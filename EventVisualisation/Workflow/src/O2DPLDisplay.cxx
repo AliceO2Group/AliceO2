@@ -51,10 +51,11 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"display-clusters", VariantType::String, "ITS,TPC,TRD,TOF", {"comma-separated list of clusters to display"}},
     {"display-tracks", VariantType::String, "TPC,ITS,ITS-TPC,TPC-TRD,ITS-TPC-TRD,TPC-TOF,ITS-TPC-TOF", {"comma-separated list of tracks to display"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
-    {"skipOnEmptyInput", VariantType::Bool, false, {"Just don't run the ED when no input is provided"}},
+    {"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings ..."}},
+    {"skipOnEmptyInput", VariantType::Bool, false, {"don't run the ED when no input is provided"}},
+    {"min-its-tracks", VariantType::Int, -1, {"don't create file if less than the specified number of ITS tracks is present"}},
+    {"min-tracks", VariantType::Int, -1, {"don't create file if less than the specified number of all tracks is present"}},
     {"filter-its-rof", VariantType::Bool, false, {"don't display tracks outside ITS readout frame"}},
-    {"no-empty-output", VariantType::Bool, false, {"don't create files with no tracks/clusters"}},
     {"filter-time-min", VariantType::Float, -1.f, {"display tracks only in [min, max] microseconds time range in each time frame, requires --filter-time-max to be specified as well"}},
     {"filter-time-max", VariantType::Float, -1.f, {"display tracks only in [min, max] microseconds time range in each time frame, requires --filter-time-min to be specified as well"}},
   };
@@ -80,7 +81,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   // filtering out any run which occur before reaching next time interval
   auto currentTime = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = currentTime - this->mTimeStamp;
-  if (elapsed < this->mTimeInteval) {
+  if (elapsed < this->mTimeInterval) {
     return; // skip this run - it is too often
   }
   this->mTimeStamp = currentTime;
@@ -114,7 +115,17 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
 
   helper.draw();
 
-  if (!(this->mNoEmptyOutput && helper.isEmpty())) {
+  bool save = true;
+
+  if (this->mMinITSTracks != -1 && helper.getITSTrackCount() < this->mMinITSTracks) {
+    save = false;
+  }
+
+  if (this->mMinTracks != -1 && helper.getTrackCount() < this->mMinTracks) {
+    save = false;
+  }
+
+  if (save) {
     helper.save(this->mJsonPath, this->mNumberOfFiles, this->mTrkMask, this->mClMask, this->mWorkflowVersion, dh->runNumber, dph->creation);
   }
 
@@ -220,13 +231,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   InputHelper::addInputSpecs(cfgc, specs, srcCl, srcTrk, srcTrk, useMC);
 
-  auto noEmptyFiles = cfgc.options().get<bool>("no-empty-output");
+  auto minITSTracks = cfgc.options().get<int>("min-its-tracks");
+  auto minTracks = cfgc.options().get<int>("min-tracks");
 
   specs.emplace_back(DataProcessorSpec{
     "o2-eve-display",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, noEmptyFiles, filterITSROF, filterTime, timeBracket)}});
+    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket)}});
 
   return std::move(specs);
 }

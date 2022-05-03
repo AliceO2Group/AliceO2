@@ -150,7 +150,8 @@ class EveWorkflowHelper
   void prepareITSClusters(const o2::itsmft::TopologyDictionary* dict); // fills mITSClustersArray
   void prepareMFTClusters(const o2::itsmft::TopologyDictionary* dict); // fills mMFTClustersArray
   void clear() { mEvent.clear(); }
-  bool isEmpty() { return mEvent.isEmpty(); }
+  int getTrackCount() { return mEvent.getTrackCount(); }
+  int getITSTrackCount() { return mEvent.getITSTrackCount(); }
 
   GID::Source detectorMapToGIDSource(uint8_t dm);
 
