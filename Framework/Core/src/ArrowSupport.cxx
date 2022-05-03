@@ -420,7 +420,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
       std::vector<OutputSpec> providedDYNs;
 
       auto inputSpecLessThan = [](InputSpec const& lhs, InputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
-      auto outputSpecLessThan = [](OutputSpec const&lhs, OutputSpec const&rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
+      auto outputSpecLessThan = [](OutputSpec const& lhs, OutputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
 
       if (builder != workflow.end()) {
         // collect currently requested IDXs
