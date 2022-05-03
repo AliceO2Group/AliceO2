@@ -739,7 +739,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   // GRP updater: must come after all detectors since requires their list
   if (!configcontext.options().get<bool>("only-context")) {
-    writerSpecs.emplace_back(o2::parameters::getGRPUpdaterSpec(grpfile, detList));
+    writerSpecs.emplace_back(o2::parameters::getGRPUpdaterSpec(simPrefixes[0], detList));
   }
 
   bool combine = configcontext.options().get<bool>("combine-devices");

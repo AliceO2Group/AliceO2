@@ -19,10 +19,11 @@
 #include "Steer/HitProcessingManager.h"
 #include "Steer/InteractionSampler.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "CommonUtils/NameConf.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
+#include <DataFormatsParameters/GRPLHCIFData.h>
 #include "DetectorsRaw/HBFUtils.h"
 #include <CCDB/BasicCCDBManager.h>
-#include <DataFormatsParameters/GRPLHCIFData.h>
 #include <FairLogger.h>
 #include <TMessage.h> // object serialization
 #include <memory>     // std::unique_ptr
@@ -32,6 +33,8 @@
 #include <chrono>
 #include <thread>
 #include <algorithm>
+#include <filesystem>
+#include <boost/interprocess/sync/named_semaphore.hpp>
 
 using namespace o2::framework;
 namespace o2lhc = o2::constants::lhc;
@@ -41,6 +44,7 @@ namespace o2
 {
 namespace steer
 {
+
 DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::string>& simprefixes, const std::vector<int>& tpcsectors)
 {
   uint64_t activeSectors = 0;
@@ -76,7 +80,7 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
         OutputRef{"collisioncontext", static_cast<SubSpecificationType>(subchannel)},
         context);
     }
-
+    pc.outputs().snapshot(OutputRef{"bunchFilling"}, mgr.getInteractionSampler().getBunchFilling());
     // digitizer workflow runs only once
     // send endOfData control event and mark the reader as ready to finish
     pc.services().get<ControlService>().endOfStream();
@@ -143,6 +147,7 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
 
       mgr.getInteractionSampler().init();
       mgr.getInteractionSampler().print();
+
       // doing a random event selection/subsampling?
       mgr.setRandomEventSequence(ctx.options().get<int>("randomsample") > 0);
 
@@ -214,6 +219,8 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
     outputs.emplace_back(
       OutputSpec{{"collisioncontext"}, "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(subchannel), Lifetime::Timeframe});
   }
+
+  outputs.emplace_back(OutputSpec{{"bunchFilling"}, "SIM", "BUNCHFILLING", 0, Lifetime::Timeframe});
 
   return DataProcessorSpec{
     /*ID*/ "SimReader",
