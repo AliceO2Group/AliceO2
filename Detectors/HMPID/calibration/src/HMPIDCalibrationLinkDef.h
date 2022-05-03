@@ -19,8 +19,8 @@
 #pragma link C++ class o2::hmpid::HMPIDDCSDataProcessor +;
 #pragma link C++ class o2::hmpid::HMPIDDCSProcessor +;
 #pragma link C++ class o2::hmpid::HMPIDDCSTime +;
-#pragma link C++ class const std::array<TF1,42> +;
-#pragma link C++ class const std::array<TF1,43> +;
+#pragma link C++ class std::array<TF1,42> +;
+#pragma link C++ class std::array<TF1,43> +;
                               
 #endif
 
