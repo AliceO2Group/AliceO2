@@ -55,8 +55,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"skipOnEmptyInput", VariantType::Bool, false, {"Just don't run the ED when no input is provided"}},
     {"filter-its-rof", VariantType::Bool, false, {"don't display tracks outside ITS readout frame"}},
     {"no-empty-output", VariantType::Bool, false, {"don't create files with no tracks/clusters"}},
-    {"filter-time-min", VariantType::Float, -1, {"display tracks only in [min, max] microseconds time range in each time frame, requires --filter-time-max to be specified as well"}},
-    {"filter-time-max", VariantType::Float, -1, {"display tracks only in [min, max] microseconds time range in each time frame, requires --filter-time-min to be specified as well"}},
+    {"filter-time-min", VariantType::Float, -1.f, {"display tracks only in [min, max] microseconds time range in each time frame, requires --filter-time-max to be specified as well"}},
+    {"filter-time-max", VariantType::Float, -1.f, {"display tracks only in [min, max] microseconds time range in each time frame, requires --filter-time-min to be specified as well"}},
   };
 
   std::swap(workflowOptions, options);
