@@ -200,16 +200,15 @@ GPUg() void trackletSelectionKernel(
   const float phiCut = 0.002f)
 {
   for (int iCurrentLayerClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentLayerClusterIndex < nClustersMiddleLayer; iCurrentLayerClusterIndex += blockDim.x * gridDim.x) {
-    const int stride{static_cast<int>(iCurrentLayerClusterIndex * maxTrackletsPerCluster)};
+    const int stride{iCurrentLayerClusterIndex * maxTrackletsPerCluster};
     int validTracklets{0};
     for (int iTracklet12{0}; iTracklet12 < nFoundTracklet12[iCurrentLayerClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{0}; iTracklet01 < nFoundTracklet01[iCurrentLayerClusterIndex] && validTracklets < maxTrackletsPerCluster; ++iTracklet01) {
         const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(tracklets01[stride + iTracklet01].tanLambda - tracklets12[stride + iTracklet12].tanLambda)};
         const float deltaPhi{o2::gpu::GPUCommonMath::Abs(tracklets01[stride + iTracklet01].phi - tracklets12[stride + iTracklet12].phi)};
-        if (!usedTracklets[iTracklet01] && deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTrackletsPerCluster) {
-          usedTracklets[iTracklet01] = true;
+        if (!usedTracklets[stride + iTracklet01] && deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTrackletsPerCluster) {
+          usedTracklets[stride + iTracklet01] = true;
           if constexpr (!initRun) {
-            printf("%d\t", nExclusiveFoundLines[iCurrentLayerClusterIndex] + validTracklets);
             new (lines + nExclusiveFoundLines[iCurrentLayerClusterIndex] + validTracklets) Line{tracklets01[stride + iTracklet01], clusters0, clusters1};
           }
           ++validTracklets;
@@ -462,7 +461,7 @@ void VertexerTraitsGPU::computeTrackletMatching()
 
     size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
 
-    gpu::trackletSelectionKernel<true><<<1, 1>>>(
+    gpu::trackletSelectionKernel<true><<<blocksGrid, threadsPerBlock>>>(
       mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
       mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
       mTimeFrameGPU->getNClustersLayer(rofId, 1),
@@ -474,7 +473,9 @@ void VertexerTraitsGPU::computeTrackletMatching()
       mTimeFrameGPU->getDeviceLines(rofId),
       mTimeFrameGPU->getDeviceNFoundLines(rofId),
       mTimeFrameGPU->getDeviceExclusiveNFoundLines(rofId),
-      mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
+      mTimeFrameGPU->getConfig().maxTrackletsPerCluster,
+      mVrtParams.tanLambdaCut,
+      mVrtParams.phiCut);
 
     discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(rofId)),
                                                 bufferSize,
@@ -484,7 +485,7 @@ void VertexerTraitsGPU::computeTrackletMatching()
     // Reset used tracklets
     checkGPUError(cudaMemset(mTimeFrameGPU->getDeviceUsedTracklets(rofId), false, sizeof(unsigned char) * mTimeFrameGPU->getConfig().maxTrackletsPerCluster * mTimeFrameGPU->getNClustersLayer(rofId, 1)), __FILE__, __LINE__);
 
-    gpu::trackletSelectionKernel<false><<<1, 1>>>(
+    gpu::trackletSelectionKernel<false><<<blocksGrid, threadsPerBlock>>>(
       mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
       mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
       mTimeFrameGPU->getNClustersLayer(rofId, 1),
@@ -496,7 +497,9 @@ void VertexerTraitsGPU::computeTrackletMatching()
       mTimeFrameGPU->getDeviceLines(rofId),
       mTimeFrameGPU->getDeviceNFoundLines(rofId),
       mTimeFrameGPU->getDeviceExclusiveNFoundLines(rofId),
-      mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
+      mTimeFrameGPU->getConfig().maxTrackletsPerCluster,
+      mVrtParams.tanLambdaCut,
+      mVrtParams.phiCut);
     gpuThrowOnError();
   }
   // #ifdef VTX_DEBUG
