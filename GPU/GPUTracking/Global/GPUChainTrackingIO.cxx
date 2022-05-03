@@ -32,6 +32,7 @@
 #include "GPUReconstructionConvert.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPUTrackingInputProvider.h"
+#include "TPCZSLinkMapping.h"
 
 #ifdef GPUCA_HAVE_O2HEADERS
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -286,6 +287,11 @@ void GPUChainTracking::DumpSettings(const char* dir)
     f += "tpcpadgaincalib.dump";
     DumpStructToFile(processors()->calibObjects.tpcPadGain, f.c_str());
   }
+  if (processors()->calibObjects.tpcZSLinkMapping != nullptr) {
+    f = dir;
+    f += "tpczslinkmapping.dump";
+    DumpStructToFile(processors()->calibObjects.tpcZSLinkMapping, f.c_str());
+  }
 #ifdef GPUCA_HAVE_O2HEADERS
   if (processors()->calibObjects.dEdxCalibContainer != nullptr) {
     f = dir;
@@ -316,6 +322,10 @@ void GPUChainTracking::ReadSettings(const char* dir)
   f += "tpcpadgaincalib.dump";
   mTPCPadGainCalibU = ReadStructFromFile<TPCPadGainCalib>(f.c_str());
   processors()->calibObjects.tpcPadGain = mTPCPadGainCalibU.get();
+  f = dir;
+  f += "tpczslinkmapping.dump";
+  mTPCZSLinkMappingU = ReadStructFromFile<TPCZSLinkMapping>(f.c_str());
+  processors()->calibObjects.tpcZSLinkMapping = mTPCZSLinkMappingU.get();
 #ifdef GPUCA_HAVE_O2HEADERS
   f = dir;
   f += "dEdxCalibContainer.dump";
