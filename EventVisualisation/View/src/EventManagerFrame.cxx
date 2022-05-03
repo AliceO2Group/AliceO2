@@ -70,9 +70,9 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
     Int_t width = 50;
     this->AddFrame(f, new TGLayoutHints(kLHintsExpandX, 0, 0, 2, 2));
 
-    b = EventManagerFrame::makeButton(f, "First", width);
+    b = EventManagerFrame::makeButton(f, "First", width, "Go to the first event");
     b->Connect("Clicked()", cls, this, "DoFirstEvent()");
-    b = EventManagerFrame::makeButton(f, "Prev", width);
+    b = EventManagerFrame::makeButton(f, "Prev", width, "Go to the previous event");
     b->Connect("Clicked()", cls, this, "DoPrevEvent()");
 
     mEventId = new TGNumberEntry(f, 0, 5, -1, TGNumberFormat::kNESInteger, TGNumberFormat::kNEANonNegative,
@@ -82,17 +82,17 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
     TGLabel* infoLabel = new TGLabel(f);
     f->AddFrame(infoLabel, new TGLayoutHints(kLHintsNormal, 5, 10, 4, 0));
 
-    b = EventManagerFrame::makeButton(f, "Next", width);
+    b = EventManagerFrame::makeButton(f, "Next", width, "Go to the next event");
     b->Connect("Clicked()", cls, this, "DoNextEvent()");
-    b = EventManagerFrame::makeButton(f, "Last", width);
+    b = EventManagerFrame::makeButton(f, "Last", width, "Go to the last event");
     b->Connect("Clicked()", cls, this, "DoLastEvent()");
-    b = EventManagerFrame::makeButton(f, "Screenshot", 2 * width);
+    b = EventManagerFrame::makeButton(f, "Screenshot", 2 * width, "Make a screenshot of current event");
     b->Connect("Clicked()", cls, this, "DoScreenshot()");
-    b = EventManagerFrame::makeButton(f, "Save", 2 * width);
+    b = EventManagerFrame::makeButton(f, "Save", 2 * width, "Save current event");
     b->Connect("Clicked()", cls, this, "DoSave()");
-    b = EventManagerFrame::makeButton(f, "Online", 2 * width);
+    b = EventManagerFrame::makeButton(f, "Online", 2 * width, "Change data source to online events");
     b->Connect("Clicked()", cls, this, "DoOnlineMode()");
-    b = EventManagerFrame::makeButton(f, "Saved", 2 * width);
+    b = EventManagerFrame::makeButton(f, "Saved", 2 * width, "Change data source to saved events");
     b->Connect("Clicked()", cls, this, "DoSavedMode()");
 
     f->AddFrame(infoLabel, new TGLayoutHints(kLHintsNormal, 5, 10, 4, 0));
@@ -108,7 +108,7 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
 }
 
 TGTextButton* EventManagerFrame::makeButton(TGCompositeFrame* p, const char* txt,
-                                            Int_t width, Int_t lo, Int_t ro, Int_t to, Int_t bo)
+                                            Int_t width, const char* txttooltip, Int_t lo, Int_t ro, Int_t to, Int_t bo)
 {
   TGTextButton* b = new TGTextButton(p, txt);
 
@@ -116,6 +116,11 @@ TGTextButton* EventManagerFrame::makeButton(TGCompositeFrame* p, const char* txt
     b->SetWidth(width);
     b->ChangeOptions(b->GetOptions() | kFixedWidth);
   }
+
+  if (txttooltip != nullptr) {
+    b->SetToolTipText(txttooltip);
+  }
+
   p->AddFrame(b, new TGLayoutHints(kLHintsNormal, lo, ro, to, bo));
   return b;
 }
