@@ -121,24 +121,49 @@ void HMPIDDCSProcessor::processHMPID(DPCOM dp)
 // if the string of the dp contains the HMPID-IR-specifier "HMP_DET/HMP_INFR"	
 void HMPIDDCSProcessor::processIR(DPCOM dp)
 {
-    const std::string alias(dp.id.get_alias());
-    const auto specify_id = alias.substr(alias.length()-9);
-
-	auto numIR = subStringToInt(alias, indexOfIR );
-	if(specify_id == WAVE_LEN_ID) {
-		waveLen[numIR].push_back(dp);
-	}  else if(specify_id == ARGON_CELL_ID) { 
-		argonCell[numIR].push_back(dp);
-	}  else if(specify_id == FREON_CELL_ID) { 
-		freonCell[numIR].push_back(dp);
-	}
-	else if(specify_id == REF_ID) { 
-		if( alias.substr(alias.length()-14) ==  ARGON_REF_ID){
-			argonRef[numIR].push_back(dp);
-		} else if( alias.substr(alias.length()-14) ==  FREON_REF_ID){
-			freonRef[numIR].push_back(dp);
-		}      LOG(debug) << "Unknown data point: {}"<< alias;
-	} else LOG(debug) << "Datapoint not found: {}"<< alias;
+    	const std::string alias(dp.id.get_alias());
+     	auto specify_id = alias.substr(alias.length()-9);
+	std::cout << alias << std::endl;
+	std::cout << specify_id << std::endl;
+	
+	// is it desired to know the index of the IRs [0..29]?: 
+	//auto numIR = subStringToInt(alias, indexOfIR );
+	//auto numIR_2nd =  subStringToInt(alias, indexOfIR+1);
+	
+	
+	
+	// if fetched datapoints is out of range, exit function: 
+	//if(numIR == -1) 
+	//{ 
+	//	LOG(debug) << "Datapoint index out of range: "<< numIR;
+	//	return;
+	//}
+	
+	// if there are two digits : 
+	//if (numIR_2nd!=-1 ) 
+	{
+	//	numIR = numIR*10 +numIR_2nd;
+	//}
+	
+       	//if(numIR < 30 && numIR >0) 				 
+	//{
+		if(alias.substr(alias.length()-10) == WAVE_LEN_ID) {
+			LOG(info) << "WAVE_LEN_ID DP: "<< alias;
+		}  else if(specify_id == FREON_CELL_ID) { 
+			LOG(info) << "FREON_CELL_ID DP: "<< alias;
+		}  else if(specify_id == ARGON_CELL_ID) { 
+			LOG(info) << "ARGON_CELL_ID DP: "<< alias;
+		}
+		else if(specify_id == REF_ID) { 
+			if( alias.substr(alias.length()-14) ==  ARGON_REF_ID){
+				LOG(info) << "ARGON_REF_ID DP: "<< alias;
+			} else if( alias.substr(alias.length()-14) ==  FREON_REF_ID){
+				LOG(info) << "FREON_REF_ID DP: "<< alias;
+			}      LOG(debug) << "Unknown data point: "<< alias;
+		} else LOG(debug) << "Datapoint not found: "<< alias;
+		std::cout << "==================" << std::endl;
+	  	}
+	//}   else LOG(debug) << "Datapoint index out of range: "<< numIR;
 }
 
 	
@@ -335,17 +360,7 @@ double HMPIDDCSProcessor::DefaultEMean(){
 	return eMean;
 }
 
-/*	
-// A: initialize pTin in  finalizeTempOutEntry function,
-void HMPIDTestComp::initTempArr()
-{	for(auto iCh = 0;iCh<7;iCh++){                   
-		for(auto iRad = 0;iRad<3;iRad++){
-			pTin[3*iCh+iRad]  = new TF1(Form("Tin%i%i" ,iCh,iRad),"[0]+[1]*x",0,1);//,fStartTime,fEndTime);
-			pTout[3*iCh+iRad] = new TF1(Form("Tout%i%i",iCh,iRad),"[0]+[1]*x",0,1);//fStartTime,fEndTime);
-		}
-	  }
-} */ 
- 
+
 
 void HMPIDDCSProcessor::finalizeEnvPressure() // after run is finished, 
 { 
