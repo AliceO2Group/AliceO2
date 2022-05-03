@@ -281,7 +281,8 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     for (unsigned i = 0; i < tracksMFTMCH.size(); i++) {
       const auto& matchTr = tracksMFTMCH[i];
       if (creator(matchTr, {i, GTrackID::MFTMCH}, matchTr.getTimeMUS().getTimeStamp(), matchTr.getTimeMUS().getTimeStampError())) {
-        flagUsed2(i, GTrackID::MFTMCH);
+        flagUsed2(matchTr.getMFTTrackID(), GTrackID::MFT);
+        flagUsed2(matchTr.getMCHTrackID(), GTrackID::MCH);
       }
     }
   }
@@ -356,7 +357,6 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
       float t0err = o2::constants::lhc::LHCBunchSpacingMUS * bcWidth / 2;
       for (int idx = rof.getFirstIdx(); idx <= rof.getLastIdx(); ++idx) {
         if (isUsed2(idx, GTrackID::MCH)) {
-          flagUsed2(idx, GTrackID::MCH);
           continue;
         }
         GTrackID gidMCH(idx, GTrackID::MCH);
