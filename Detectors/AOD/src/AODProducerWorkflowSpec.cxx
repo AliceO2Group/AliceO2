@@ -286,7 +286,7 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
   if (needBCSlice) {
     ambigMFTTracksCursor(0, mTableTrMFTID, bcSlice);
   }
-  mGIDToTableMFTID.emplace(trackID, mTableTrMFTID);
+  //  mGIDToTableMFTID.emplace(trackID, mTableTrMFTID);
   mTableTrMFTID++;
 }
 
@@ -344,6 +344,39 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           }
           mGIDToTableID.emplace(trackIndex, mTableTrID);
           mTableTrID++;
+        }
+      }
+    }
+  }
+}
+
+void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices)
+{
+  for (int src : {GIndex::Source::MFTMCH, GIndex::Source::MCH, GIndex::Source::MFT}) {
+    int start = trackRef.getFirstEntryOfSource(src);
+    int end = start + trackRef.getEntriesOfSource(src);
+    for (int ti = start; ti < end; ti++) {
+      auto& trackIndex = GIndices[ti];
+      if (GIndex::includesSource(src, mInputSources)) {
+        if (src == GIndex::Source::MFT) {
+          if (trackIndex.isAmbiguous() && mGIDToTableMFTID.find(trackIndex) != mGIDToTableMFTID.end()) {
+            continue;
+          }
+
+          mGIDToTableMFTID.emplace(trackIndex, mIndexMFTID);
+          mIndexTableMFT[trackIndex.getIndex()] = mIndexMFTID;
+          mIndexMFTID++;
+
+        } else if (src == GIndex::Source::MCH || src == GIndex::Source::MFTMCH) {
+          if (trackIndex.isAmbiguous() && mGIDToTableFwdID.find(trackIndex) != mGIDToTableFwdID.end()) {
+            continue;
+          }
+
+          mGIDToTableFwdID.emplace(trackIndex, mIndexFwdID);
+          if (src == GIndex::Source::MCH) {
+            mIndexTableFwd[trackIndex.getIndex()] = mIndexFwdID;
+          }
+          mIndexFwdID++;
         }
       }
     }
@@ -499,8 +532,8 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     chi2matchmchmid = track.getMIDMatchingChi2();
     chi2matchmchmft = track.getMFTMCHMatchingChi2();
     matchscoremchmft = track.getMFTMCHMatchingScore();
-    matchmfttrackid = track.getMFTTrackID();
-    matchmchtrackid = track.getMCHTrackID();
+    matchmfttrackid = mIndexTableMFT[track.getMFTTrackID()];
+    matchmchtrackid = mIndexTableFwd[track.getMCHTrackID()];
     trackTime = track.getTimeMUS().getTimeStamp() * 1.e3;
     trackTimeRes = track.getTimeMUS().getTimeStampError() * 1.e3;
 
@@ -577,7 +610,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   if (needBCSlice) {
     ambigFwdTracksCursor(0, mTableTrFwdID, bcSlice);
   }
-  mGIDToTableFwdID.emplace(trackID, mTableTrFwdID);
+  //  mGIDToTableFwdID.emplace(trackID, mTableTrFwdID);
   mTableTrFwdID++;
 }
 
@@ -1487,6 +1520,19 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   cacheTriggers(recoData);
 
+  int collisionID = 0;
+  mIndexTableMFT.resize(recoData.getMFTTracks().size());
+  mIndexTableFwd.resize(recoData.getMCHTracks().size() * 3); // take an upperbound to the size of the FwdTrack table
+
+  auto& trackReffwd = primVer2TRefs.back();
+  fillIndexTablesPerCollision(trackReffwd, primVerGIs);
+  collisionID = 0;
+  for (auto& vertex : primVertices) {
+    auto& trackReffwd = primVer2TRefs[collisionID];
+    fillIndexTablesPerCollision(trackReffwd, primVerGIs); // this function must follow the same track order as 'fillTrackTablesPerCollision' to fill the map of track indices
+    collisionID++;
+  }
+
   // filling unassigned tracks first
   // so that all unassigned tracks are stored in the beginning of the table together
   auto& trackRef = primVer2TRefs.back(); // references to unassigned tracks are at the end
@@ -1496,7 +1542,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                               fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, bcsMap);
 
   // filling collisions and tracks into tables
-  int collisionID = 0;
+  collisionID = 0;
   for (auto& vertex : primVertices) {
     auto& cov = vertex.getCov();
     auto& timeStamp = vertex.getTimeStamp();                       // this is a relative time
@@ -1619,6 +1665,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   mTableCollID = 0;
   mV0ToTableID.clear();
   mTableV0ID = 0;
+
+  mIndexTableFwd.clear();
+  mIndexFwdID = 0;
+  mIndexTableMFT.clear();
+  mIndexMFTID = 0;
 
   originCursor(0, tfNumber);
 
