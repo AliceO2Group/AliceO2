@@ -34,17 +34,17 @@ int makeHMPIDCCDBEntryForDCS(const std::string url = "http://localhost:8080")
   std::vector<std::string> tempInString, tempOutString, chamberPressureString, highVoltageString;
 
    aliases.push_back("HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value"); // environment pressure 
-      for(int iCh = 0; iCh < 6; iCh++)
+      for(int iCh = 0; iCh < 7; iCh++)
       {
-           chamberPressureString\.push_back( Form("HMP_DET/HMP_MP%i/HMP_MP%i_GAS/HMP_MP%i_GAS_PMWPC.actual.value",iCh,iCh,iCh));
+           chamberPressureString.push_back( Form("HMP_DET/HMP_MP%i/HMP_MP%i_GAS/HMP_MP%i_GAS_PMWPC.actual.value",iCh,iCh,iCh));
            for(int iRad = 0; iRad < 3; iRad++)
            {  
-               tempOutString.push_back\(Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iOut_Temp",iCh,iCh,iRad)); 
-               tempInString.push_back\(Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iIn_Temp",iCh,iCh,iRad)); 
+               tempOutString.push_back(Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iOut_Temp",iCh,iCh,iRad)); 
+               tempInString.push_back(Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iIn_Temp",iCh,iCh,iRad)); 
            }        
-           for(int iSec = 0; iSec < 3; iSec++)
+           for(int iSec = 0; iSec < 6; iSec++)
            {  
-               highVoltageString.push_back\(Form("HMP_DET/HMP_MP%i/HMP_MP%i_PW/HMP_MP%i_SEC%i/HMP_MP%i_SEC%i_HV.actual.vMon",iCh,iCh,iCh,iSec,iCh,iSec)); 
+               highVoltageString.push_back(Form("HMP_DET/HMP_MP%i/HMP_MP%i_PW/HMP_MP%i_SEC%i/HMP_MP%i_SEC%i_HV.actual.vMon",iCh,iCh,iCh,iSec,iCh,iSec)); 
            } 
       }
       aliases.insert(aliases.end(), chamberPressureString.begin(), chamberPressureString.end()); 
