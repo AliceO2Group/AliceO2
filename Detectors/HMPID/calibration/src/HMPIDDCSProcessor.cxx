@@ -546,7 +546,10 @@ void HMPIDDCSProcessor::fillChamberPressures(const DPCOM& dpcom)
 
  	// find chamber number:  
 	auto chNum = subStringToInt(aliasStr, startI_chamberPressure);
-	pChamber[chNum].push_back(dpcom);
+	if (chNum > 6 || chNum < 0) {
+		pChamber[chNum].push_back(dpcom);
+	}  else LOG(debug)<< "Chamber Number out of range for Environment-pressure DP: {}"<< chNum;
+			  
   } else LOG(debug)<< "Not correct specification for Environment-pressure DP: {}"<< aliasStr;
 }
 
@@ -577,7 +580,13 @@ void HMPIDDCSProcessor::fillHV(const DPCOM& dpcom)
   { 	
 	auto chNum = subStringToInt(aliasStr, startI_chamberHV);
 	auto secNum = subStringToInt(aliasStr,  startI_sectorHV);
-	dpcomHV[6*chNum+secNum].push_back(dpcom);
+	
+	if (chNum > 6 || chNum < 0) {
+		if (secNum > 5 || secNum < 0) {
+			dpcomHV[6*chNum+secNum].push_back(dpcom);
+		}  else LOG(debug)<< "Sector Number out of range for HV DP: {}"<< secNum;  
+	}  else LOG(debug)<< "Chamber Number out of range for HV DP: {}"<< chNum;
+	
   } else LOG(debug)<< "Not correct datatype for HV DP: {}"<< aliasStr;	
 }
 
@@ -590,11 +599,16 @@ void HMPIDDCSProcessor::fill_InTemperature(const DPCOM& dpcom)
   const std::string aliasStr(dpid.get_alias());  
 	
 	  if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
-	  {		
+	  {	
 		auto chNum = subStringToInt(aliasStr,  startI_chamberTemp);
 		auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp);
-		tempIn[3*chNum+radNum].push_back( dpcom); 
-	}
+		if (chNum > 6 || chNum < 0 ) {
+			if (radNum > 2 || radNum < 0) {
+				tempIn[3*chNum+radNum].push_back( dpcom); 
+			}  else LOG(debug)<< "Radiator Number out of range for TempIn DP: {}"<< radNum;  
+		}  else LOG(debug)<< "Chamber Number out of range for TempIn DP: {}"<< chNum; 		  
+
+	} else LOG(debug)<< "Not correct datatype for TempIn DP: {}"<< aliasStr;	
 }	
 	
 	
@@ -608,9 +622,14 @@ void HMPIDDCSProcessor::fill_OutTemperature(const DPCOM& dpcom)
   if(type == DeliveryType::DPVAL_DOUBLE) // check if datatype is as expected 
   {		
 	auto chNum = subStringToInt(aliasStr,  startI_chamberTemp);
-	auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp);	
-       	tempOut[3*chNum+radNum].push_back(dpcom);
-  }
+	auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp);
+	if (chNum > 6 || chNum < 0) {
+		if (radNum > 2 || radNum < 0) {
+       			tempOut[3*chNum+radNum].push_back(dpcom);
+		}  else LOG(debug)<< "Radiator Number out of range for TempOut DP: {}"<< radNum;  
+	}  else LOG(debug)<< "Chamber Number out of range for TempOut DP: {}"<< chNum; 	
+	  
+  } else LOG(debug)<< "Not correct datatype for TempOut DP: {}"<< aliasStr;
 }
 
 	
