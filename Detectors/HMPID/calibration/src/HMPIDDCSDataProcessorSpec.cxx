@@ -199,7 +199,7 @@ DataProcessorSpec getHMPIDDCSDataProcessorSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "RefIndex"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
-    "HMPID-dcs-data-processor",
+    "hmpid-dcs-data-processor",
     Inputs{{"input", "DCS", "HMPIDDATAPOINTS"}},
     outputs,
     AlgorithmSpec{adaptFromTask<o2::hmpid::HMPIDDCSDataProcessor>()},
