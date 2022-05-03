@@ -58,11 +58,29 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   auto& confref = o2::conf::SimConfig::Instance();
   // initialize CCDB service
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+  // fix the timestamp early
+  uint64_t timestamp = confref.getTimestamp();
+  // fix or check timestamp based on given run number if any
+  if (confref.getRunNumber() != -1) {
+    // if we have a run number we should fix or check the timestamp
+
+    // fetch the actual timestamp ranges for this run
+    auto soreor = ccdbmgr.getRunDuration(confref.getRunNumber());
+    if (confref.getConfigData().mTimestampMode == o2::conf::kNow) {
+      timestamp = soreor.first;
+      LOG(info) << "Fixing timestamp to " << timestamp << " based on run number";
+      // communicate decision back to sim config object
+      confref.getConfigData().mTimestampMode = o2::conf::kRun;
+      confref.getConfigData().mTimestamp = timestamp;
+    } else if (confref.getConfigData().mTimestampMode == o2::conf::kManual && (timestamp < soreor.first || timestamp > soreor.second)) {
+      LOG(error) << "The given timestamp is incompatible with the given run number";
+    }
+  }
+  ccdbmgr.setTimestamp(timestamp);
   ccdbmgr.setURL(confref.getConfigData().mCCDBUrl);
-  ccdbmgr.setTimestamp(confref.getTimestamp());
   // try to verify connection
   if (!ccdbmgr.isHostReachable()) {
-    LOG(error) << "Could not setup CCDB connecting";
+    LOG(error) << "Could not setup CCDB connection";
   } else {
     LOG(info) << "Initialized CCDB Manager at URL: " << ccdbmgr.getURL();
     LOG(info) << "Initialized CCDB Manager with timestamp : " << ccdbmgr.getTimestamp();
@@ -87,7 +105,7 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   FairRunSim* run = new o2::steer::O2RunSim(asservice, evalmat);
   run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
   run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
-  run->SetRunId(confref.getTimestamp());
+  run->SetRunId(timestamp);
 
   auto pid = getpid();
   std::stringstream s;
@@ -174,8 +192,12 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   {
     // store GRPobject
     o2::parameters::GRPObject grp;
-    grp.setRun(run->GetRunId());                // do we want to fill data taking run id?
-    uint64_t runStart = confref.getTimestamp(); // this will signify "time of this MC" (might not coincide with start of Run)
+    if (confref.getRunNumber() != -1) {
+      grp.setRun(confref.getRunNumber());
+    } else {
+      grp.setRun(run->GetRunId());
+    }
+    uint64_t runStart = timestamp;
     grp.setTimeStart(runStart);
     grp.setTimeEnd(runStart + 3600000);
     grp.setDetsReadOut(readoutDetMask);

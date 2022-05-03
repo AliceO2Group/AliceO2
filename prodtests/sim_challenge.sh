@@ -10,10 +10,11 @@
 if [ -z "$SHMSIZE" ]; then export SHMSIZE=10000000000; fi
 
 # default run number
+# (for now set to a pilot beam run until we have all CCDB objects for default unanchored MC)
 runNumDef=300000
 
-# default time stamp
-startTimeDef=$(($(date +%s%N)/1000000))
+# default time stamp --> will be determined from run number during the sim stage
+# startTimeDef=$(($(date +%s%N)/1000000))
 
 # default number of events
 nevPP=10
@@ -111,8 +112,8 @@ fi
 
 if [ "$dosim" == "1" ]; then
   #---------------------------------------------------
-  echo "Running simulation for $nev $collSyst events with $gener generator and engine $engine"
-  taskwrapper sim.log o2-sim -n"$nev" --configKeyValues "Diamond.width[2]=6." -g "$gener" -e "$engine" $simWorker
+  echo "Running simulation for $nev $collSyst events with $gener generator and engine $engine and run number $runNumber"
+  taskwrapper sim.log o2-sim -n"$nev" --configKeyValues "Diamond.width[2]=6." -g "$gener" -e "$engine" $simWorker --run ${runNumber}
 
   ##------ extract number of hits
   taskwrapper hitstats.log root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C
@@ -121,7 +122,7 @@ fi
 if [ "$dodigi" == "1" ]; then
   echo "Running digitization for $intRate kHz interaction rate"
   intRate=$((1000*(intRate)));
-  taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes --configKeyValues \""HBFUtils.startTime=$startTime;HBFUtils.runNumber=$runNumber;"\"
+  taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes --configKeyValues "HBFUtils.runNumber=${runNumber}"
   echo "Return status of digitization: $?"
   # existing checks
   #root -b -q O2/Detectors/ITSMFT/ITS/macros/test/CheckDigits.C+
