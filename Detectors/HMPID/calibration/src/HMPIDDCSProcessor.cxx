@@ -171,7 +171,7 @@ double HMPIDDCSProcessor::ProcTrans()
 {   
     for(int i=0; i<30; i++) 
       {    		
-            // evaluate wavelenght 
+            //==== evaluate wavelenght ===================================================================
             //("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.waveLenght",i)); 
             if(waveLen[i].size() == 0) // if there is no entries 
             { 
@@ -198,20 +198,19 @@ double HMPIDDCSProcessor::ProcTrans()
 	    
             //find photon energy E in eV from radiation wavelength λ in nm
 	    nm2eV = 1239.842609;	// 1239.842609 from nm to eV 
-            photEn = nm2eV/lambda;     // photon energy
-	    
-		    
-		    
+            photEn = nm2eV/lambda;     // photon energy	    
+		    		    
 	    //Ali: static Double_t  https://github.com/alisw/AliRoot/blob/222b69b9f193abd33c5e7b71e91e21ae1816bcc5/HMPID/HMPIDbase/AliHMPIDParam.h#L87-L88
 	    //O2: static double https://github.com/AliceO2Group/AliceO2/blob/3603ce32b2cddccfd94deb70b70628f3ff0846cd/Detectors/HMPID/base/include/HMPIDBase/Param.h#L136
             if(photEn<o2::hmpid::Param::ePhotMin() || photEn>o2::hmpid::Param::ePhotMax()) continue; // if photon energy is out of range
             
 	    
-            // evaluate phototube current for argon reference
+	    
+            // ===== evaluate phototube current for argon reference ==============================================================
             if(argonRef[i].size() == 0)
             { 
                 LOG(debug) << Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonReference  -----> Default E mean used!!!!!",i);
-                return DefaultEMean(); // to be checked
+                return DefaultEMean(); 
             } 
       	
             dpArgonRef =  (argonRef[i]).at(0); // pVal=(AliDCSValue*)pArgonRef->At(0);    
@@ -226,7 +225,7 @@ double HMPIDDCSProcessor::ProcTrans()
 	    
         
 	    
-            // evaluate phototube current for argon cell
+            //===== evaluate phototube current for argon cell  ==============================================================
             if(argonCell[i].size() == 0)
             { 
                 LOG(debug) << Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonCell  -----> Default E mean used!!!!!",i);
@@ -245,7 +244,7 @@ double HMPIDDCSProcessor::ProcTrans()
 		
             
 	    
-            //evaluate phototube current for freon reference
+            //====evaluate phototube current for freon reference ==============================================================	
             if(freonRef[i].size() == 0)
             { 
                 LOG(debug) << Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Reference  -----> Default E mean used!!!!!",i);
@@ -264,7 +263,7 @@ double HMPIDDCSProcessor::ProcTrans()
 	    
 		
 	    
-            //evaluate phototube current for freon cell
+            // ==== evaluate phototube current for freon cell ==============================================================
             if(freonCell[i].size() == 0)
             {
                 LOG(debug) << Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Cell  -----> Default E mean used!!!!!",i);
@@ -546,6 +545,8 @@ void HMPIDDCSProcessor::fillChamberPressures(const DPCOM& dpcom)
 
  	// find chamber number:  
 	auto chNum = subStringToInt(aliasStr, startI_chamberPressure);
+	  
+	// verify chamber-number 
 	if (chNum > 6 || chNum < 0) {
 		pChamber[chNum].push_back(dpcom);
 	}  else LOG(debug)<< "Chamber Number out of range for Environment-pressure DP: {}"<< chNum;
@@ -581,7 +582,8 @@ void HMPIDDCSProcessor::fillHV(const DPCOM& dpcom)
 	auto chNum = subStringToInt(aliasStr, startI_chamberHV);
 	auto secNum = subStringToInt(aliasStr,  startI_sectorHV);
 	
-	if (chNum > 6 || chNum < 0) {
+	// verify chamber- and sector-numbers
+	if (chNum > 6 || chNum < 0) { 
 		if (secNum > 5 || secNum < 0) {
 			dpcomHV[6*chNum+secNum].push_back(dpcom);
 		}  else LOG(debug)<< "Sector Number out of range for HV DP: {}"<< secNum;  
@@ -602,6 +604,8 @@ void HMPIDDCSProcessor::fill_InTemperature(const DPCOM& dpcom)
 	  {	
 		auto chNum = subStringToInt(aliasStr,  startI_chamberTemp);
 		auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp);
+		  
+		// verify chamber- and raiator-numbers  
 		if (chNum > 6 || chNum < 0 ) {
 			if (radNum > 2 || radNum < 0) {
 				tempIn[3*chNum+radNum].push_back( dpcom); 
@@ -623,6 +627,8 @@ void HMPIDDCSProcessor::fill_OutTemperature(const DPCOM& dpcom)
   {		
 	auto chNum = subStringToInt(aliasStr,  startI_chamberTemp);
 	auto radNum = subStringToInt(aliasStr,  startI_radiatorTemp);
+	  
+	// verify chamber- and raiator-numbers   
 	if (chNum > 6 || chNum < 0) {
 		if (radNum > 2 || radNum < 0) {
        			tempOut[3*chNum+radNum].push_back(dpcom);
