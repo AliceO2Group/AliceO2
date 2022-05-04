@@ -13,14 +13,15 @@
 /// \brief Implementation of General Run Parameters object for MagField
 /// \author ruben.shahoyan@cern.ch
 
-#include <FairLogger.h>
+#include <Framework/Logger.h>
 #include "DataFormatsParameters/GRPMagField.h"
 #include "CommonUtils/NameConf.h"
+#include <cstdint>
 
 using namespace o2::parameters;
 
 //_______________________________________________
-GRPMagField* GRPMagField::loadFrom(const std::string& grpMagFieldFileName, const std::string& grpMagFieldName)
+GRPMagField* GRPMagField::loadFrom(const std::string& grpMagFieldFileName)
 {
   // load object from file
   auto fname = o2::base::NameConf::getGRPMagFieldFileName(grpMagFieldFileName);
@@ -29,11 +30,14 @@ GRPMagField* GRPMagField::loadFrom(const std::string& grpMagFieldFileName, const
     LOG(error) << "Failed to open " << fname;
     throw std::runtime_error("Failed to open GRP Mag Field file");
   }
-  auto grpMagField = reinterpret_cast<o2::parameters::GRPMagField*>(
-    flGRPMagField.GetObjectChecked(grpMagFieldName.data(), o2::parameters::GRPMagField::Class()));
+  auto grpMagField = reinterpret_cast<o2::parameters::GRPMagField*>(flGRPMagField.GetObjectChecked(o2::base::NameConf::CCDBOBJECT.data(), Class()));
   if (!grpMagField) {
-    LOG(error) << "Did not find GRP Mag Field object named " << grpMagFieldName;
-    throw std::runtime_error("Failed to load GRP Mag Field object");
+    throw std::runtime_error(fmt::format("Failed to load GRP Mag Field object from {}", fname));
   }
   return grpMagField;
+}
+
+void GRPMagField::print() const
+{
+  printf("magnet currents (A) L3 = %.3f, Dipole = %.f; uniformity = %s\n", getL3Current(), getDipoleCurrent(), mUniformField ? "true" : "false");
 }
