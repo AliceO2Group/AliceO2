@@ -28,6 +28,7 @@
 // Boost library for easy access of host name
 #include <boost/asio/ip/host_name.hpp>
 
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"
@@ -43,9 +44,6 @@
 #include "CCDB/CcdbApi.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "DataFormatsDCS/DCSConfigObject.h"
-
-// ITS-specific confDB map for chips
-#include "ITSWorkflow/ChipDBmap.h"
 
 // ROOT includes
 #include "TTree.h"
@@ -109,6 +107,7 @@ class ITSThresholdCalibrator : public Task
 
   void finalize(EndOfStreamContext* ec);
   void stop() final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
   //////////////////////////////////////////////////////////////////
  private:
@@ -236,7 +235,7 @@ class ITSThresholdCalibrator : public Task
   int mChipModBase = 1;
 
   // map to get confDB id
-  o2::its::ChipDBmap mConfDBmap;
+  std::vector<int>* mConfDBmap;
   short int mConfDBv;
 };
 

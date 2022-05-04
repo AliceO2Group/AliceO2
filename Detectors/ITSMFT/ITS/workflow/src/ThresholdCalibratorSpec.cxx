@@ -730,6 +730,8 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
   }
   if (this->mRunNumber == -1) {
     this->updateRunID(pc);
+    // trigger finaliseCCDB (do it only once)
+    pc.inputs().get<std::vector<int>*>("confdbmap");
   }
   if (this->mLHCPeriod.empty()) {
     this->updateLHCPeriod(pc);
@@ -906,6 +908,16 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
 }
 
 //////////////////////////////////////////////////////////////////////////////
+// Retrieve conf DB map from production ccdb
+void ITSThresholdCalibrator::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ITS", "CONFDBMAP", 0)) {
+    LOG(info) << "Conf DB map retrieved from CCDB";
+    mConfDBmap = (std::vector<int>*)obj;
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////
 // Calculate the average threshold given a vector of threshold objects
 void ITSThresholdCalibrator::findAverage(const std::array<int, 5>& data, float& avgT, float& rmsT, float& avgN, float& rmsN)
 {
@@ -937,8 +949,7 @@ void ITSThresholdCalibrator::addDatabaseEntry(
   }
 
   // Get ConfDB id for the chip chipID
-  std::string hs = ssta == 0 ? "L" : "U";
-  int confDBid = mConfDBmap.getConfigDBid(lay < 3 ? Form("L%d_%02d_M%d_C%d", lay, sta, mod, chipInMod) : Form("L%d_%02d%s_M%d_C%d", lay, sta, hs.c_str(), mod, chipInMod));
+  int confDBid = mConfDBmap->at(chipID);
 
   // Bad pix list and bad dcols for dig and ana scan
   if (this->mScanType == 'D' || this->mScanType == 'A') {
@@ -1165,6 +1176,8 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
   inputs.emplace_back("digits", detOrig, "DIGITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("digitsROF", detOrig, "DIGITSROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("calib", detOrig, "GBTCALIB", 0, Lifetime::Timeframe);
+  inputs.emplace_back("confdbmap", detOrig, "CONFDBMAP", 0, Lifetime::Condition,
+                      o2::framework::ccdbParamSpec("ITS/Calib/Confdbmap"));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TSTR", inpConf.chipModSel);

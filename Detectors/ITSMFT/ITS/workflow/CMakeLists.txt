@@ -37,9 +37,6 @@ o2_add_library(ITSWorkflow
                                O2::CCDB
                                O2::GPUTracking)
 
-set(HEADERS 
-    include/ITSWorkflow/ChipDBmap.h)
-
 o2_add_executable(reco-workflow
                   SOURCES src/its-reco-workflow.cxx
                   COMPONENT_NAME its

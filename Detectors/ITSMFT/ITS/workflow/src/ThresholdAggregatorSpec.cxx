@@ -46,43 +46,38 @@ void ITSThresholdAggregator::init(InitContext& ic)
 void ITSThresholdAggregator::run(ProcessingContext& pc)
 {
   // take run type and scan type at the beginning
-  std::vector<InputSpec>
-    filter = {
-      {"check", ConcreteDataTypeMatcher{"ITS", "TSTR"}},
-      {"check", ConcreteDataTypeMatcher{"ITS", "QCSTR"}},
-      {"check", ConcreteDataTypeMatcher{"ITS", "RUNT"}},
-      {"check", ConcreteDataTypeMatcher{"ITS", "SCANT"}},
-      {"check", ConcreteDataTypeMatcher{"ITS", "FITT"}},
-      {"check", ConcreteDataTypeMatcher{"ITS", "CONFDBV"}}};
-
-  for (auto const& inputRef : InputRecordWalker(pc.inputs(), filter)) {
-    if (DataRefUtils::match(inputRef, "runtype") && mRunType == -1) {
-      mRunType = pc.inputs().get<short int>(inputRef);
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "RUNT"}}})) {
+    if (mRunType == -1) {
       updateRunID(pc);
       updateLHCPeriod(pc);
     }
-    if (DataRefUtils::match(inputRef, "scantype") && mScanType == 'n') {
-      mScanType = pc.inputs().get<char>(inputRef);
-    }
-    if (DataRefUtils::match(inputRef, "fittype") && mFitType == 'n') {
-      mFitType = pc.inputs().get<char>(inputRef);
-    }
-    if (DataRefUtils::match(inputRef, "confdbversion") && mDBversion == -1) {
-      mDBversion = pc.inputs().get<short int>(inputRef);
-    }
-    if (DataRefUtils::match(inputRef, "tunestring")) {
-      // Read strings with tuning info
-      const auto tunString = pc.inputs().get<gsl::span<char>>(inputRef);
-      // Merge all strings coming from several sources (EPN)
-      std::copy(tunString.begin(), tunString.end(), std::back_inserter(tuningMerge));
-    }
-    if (DataRefUtils::match(inputRef, "chipdonestring")) {
-      // Read strings with list of completed chips
-      const auto chipDoneString = pc.inputs().get<gsl::span<char>>(inputRef);
-      // Merge all strings coming from several sources (EPN)
-      std::copy(chipDoneString.begin(), chipDoneString.end(), std::back_inserter(chipDoneMerge));
-    }
-  } // end for inputRef
+    mRunType = pc.inputs().get<short int>(inputRef);
+    break;
+  }
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "SCANT"}}})) {
+    mScanType = pc.inputs().get<char>(inputRef);
+    break;
+  }
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "FITT"}}})) {
+    mFitType = pc.inputs().get<char>(inputRef);
+    break;
+  }
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "CONFDBV"}}})) {
+    mDBversion = pc.inputs().get<short int>(inputRef);
+    break;
+  }
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "TSTR"}}})) {
+    // Read strings with tuning info
+    const auto tunString = pc.inputs().get<gsl::span<char>>(inputRef);
+    // Merge all strings coming from several sources (EPN)
+    std::copy(tunString.begin(), tunString.end(), std::back_inserter(tuningMerge));
+  }
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "QCSTR"}}})) {
+    // Read strings with list of completed chips
+    const auto chipDoneString = pc.inputs().get<gsl::span<char>>(inputRef);
+    // Merge all strings coming from several sources (EPN)
+    std::copy(chipDoneString.begin(), chipDoneString.end(), std::back_inserter(chipDoneMerge));
+  }
 
   if (mVerboseOutput) {
     LOG(info) << "Chips completed: ";
@@ -132,7 +127,7 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
   std::string file_name = "calib_scan_" + name_str + ".root";
   info.setFileName(file_name);
 
-  if (ec) { // send to ccdb-populator wf only if there is an EndOfStreamContext
+  if (!ec) { // send to ccdb-populator wf only if there is an EndOfStreamContext
     LOG(info) << "Class Name: " << class_name << " | File Name: " << file_name
               << "\nSending to ccdb-populator the object " << info.getPath() << "/" << info.getFileName()
               << " of size " << image->size() << " bytes, valid for "
