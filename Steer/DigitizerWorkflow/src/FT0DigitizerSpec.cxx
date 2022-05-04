@@ -61,6 +61,14 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     mDisableQED = ic.options().get<bool>("disable-qed");
   }
 
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+  {
+    if (matcher == ConcreteDataMatcher("FT0", "TimeOffset", 0)) {
+      mUpdateCCDB = false;
+      return;
+    }
+  }
+
   void run(framework::ProcessingContext& pc)
   {
 
@@ -150,6 +158,7 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
   //
   bool mDisableQED = false;
   bool mUseCCDB = true;
+  bool mUpdateCCDB = true;
   std::vector<TChain*> mSimChains;
 };
 

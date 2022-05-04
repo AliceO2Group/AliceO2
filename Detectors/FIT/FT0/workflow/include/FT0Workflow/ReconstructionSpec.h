@@ -40,9 +40,11 @@ class ReconstructionDPL : public Task
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   bool mUseMC = false;
+  bool mUpdateCCDB = true;
   const std::string mCCDBpath = o2::base::NameConf::getCCDBServer();
   std::vector<o2::ft0::RecPoints> mRecPoints;
   std::vector<o2::ft0::ChannelDataFloat> mRecChData;

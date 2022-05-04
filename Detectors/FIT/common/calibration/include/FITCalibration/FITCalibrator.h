@@ -87,7 +87,7 @@ void FIT_CALIBRATOR_TYPE::finalizeSlot(Slot& slot)
   static const double TFlength = 1E-3 * o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCOrbitMUS; // in ms
   auto starting = slot.getStartTimeMS();
   /* if constexpr (std::is_same_v<decltype(*container), TimeSlotStorageType&>) { */
-/* //    starting = container->getFirstCreation(); */
+  /* //    starting = container->getFirstCreation(); */
   /*   starting = container->getStartTimeMS(); */
   /* } */
   // uint64_t stopping = starting + (slot.getTFEnd() - slot.getTFStart()) * TFlength;
