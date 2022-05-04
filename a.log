@@ -190,7 +190,7 @@ Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  [[
 Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  [[nodiscard]] static std::vector<CalibObjWithInfoType> prepareCalibrationObjectToSend(const CalibrationObjectType& calibrationObject, long timestamp);
 Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  [[nodiscard]] static CalibObjWithInfoType doSerializationAndPrepareObjectInfo(const CalibrationObjectType& calibrationObject, long timestamp);
 Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:FITCalibrationApi::CalibObjWithInfoType FITCalibrationApi::doSerializationAndPrepareObjectInfo(const CalibrationObjectType& calibrationObject, long timestamp)
-Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  LOG(INFO)<<"@@@FITCalibrationApi::CalibObjWithInfoType FITCalibrationApi::doSerializationAndPrepareObjectInfo "<< o2::ccdb::BasicCCDBManager::instance().getTimestamp()<<" current "<<o2::ccdb::getCurrentTimestamp() << " real " << timestamp;
+Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  LOG(info)<<"@@@FITCalibrationApi::CalibObjWithInfoType FITCalibrationApi::doSerializationAndPrepareObjectInfo "<< o2::ccdb::BasicCCDBManager::instance().getTimestamp()<<" current "<<o2::ccdb::getCurrentTimestamp() << " real " << timestamp;
 Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  result.first = o2::ccdb::CcdbObjectInfo(FITCalibrationApi::getObjectPath<CalibrationObjectType>(), dummyStringVariableThatWillBeChangedAnyway, dummyStringVariableThatWillBeChangedAnyway, metaData, timestamp, 99999999999999);
 Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:const CalibrationObjectType& FITCalibrationApi::getCalibrationObjectForGivenTimestamp(long timestamp)
 Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  o2::ccdb::BasicCCDBManager::instance().setTimestamp(timestamp);
@@ -208,19 +208,19 @@ Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  re
 Detectors/FIT/common/calibration/include/FITCalibration/FITCalibrationApi.h:  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject.mTimeCalibrationObject, timestamp));
 Detectors/FIT/FV0/simulation/include/FV0Simulation/Digitizer.h:  long mTimeStamp;                  // TF (run) timestamp
 Detectors/FIT/FT0/calibration/testWorkflow/FT0TFProcessor-Workflow.cxx:      long timestamp = o2::InteractionRecord::bc2ns(digit.getBC(), digit.getOrbit());
-Detectors/FIT/FT0/calibration/testWorkflow/FT0TFProcessor-Workflow.cxx:      LOG(DEBUG) << " ndig " << id << " bc " << digit.getBC() << " orbit " << digit.getOrbit()<<" timestamp  "<<timestamp;
+Detectors/FIT/FT0/calibration/testWorkflow/FT0TFProcessor-Workflow.cxx:      LOG(debug) << " ndig " << id << " bc " << digit.getBC() << " orbit " << digit.getOrbit()<<" timestamp  "<<timestamp;
 Detectors/FIT/FT0/calibration/testWorkflow/FT0TFProcessor-Workflow.cxx:        calib_data.emplace_back(timestamp, channel.ChId, channel.CFDTime, channel.QTCAmpl);
 Detectors/FIT/FT0/calibration/testWorkflow/FT0CalibSlewingCollectorSpec.h:    auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
 Detectors/FIT/FT0/calibration/testWorkflow/FT0ChannelTimeCalibrationSpec.h:      {"manual-timestamp", o2::framework::VariantType::Int64, 1636216452362 , {"manual set timestamp for given run"}}}};
 Detectors/FIT/FT0/calibration/src/FT0ChannelTimeTimeSlotContainer.cxx:    const long timestampCurrent = entry.getTimestamp();
-Detectors/FIT/FT0/calibration/src/FT0ChannelTimeTimeSlotContainer.cxx:    // LOG(INFO) << " timestamp " << timestampCurrent << " chID " << int(chID) << " time " << chTime;
+Detectors/FIT/FT0/calibration/src/FT0ChannelTimeTimeSlotContainer.cxx:    // LOG(info) << " timestamp " << timestampCurrent << " chID " << int(chID) << " time " << chTime;
 Detectors/FIT/FT0/calibration/src/FT0ChannelTimeTimeSlotContainer.cxx:    if (timestampCurrent < mTimestamp) {
 Detectors/FIT/FT0/calibration/src/FT0ChannelTimeTimeSlotContainer.cxx:      mTimestamp = timestampCurrent;
-Detectors/FIT/FT0/calibration/src/FT0ChannelTimeTimeSlotContainer.cxx:  //  LOG(INFO) << " timestamp " << mTimestamp;
+Detectors/FIT/FT0/calibration/src/FT0ChannelTimeTimeSlotContainer.cxx:  //  LOG(info) << " timestamp " << mTimestamp;
 Detectors/FIT/FT0/calibration/include/FT0Calibration/FT0CalibrationInfoObject.h:  FT0CalibrationInfoObject(long timestamp, uint8_t channel, int16_t time, int32_t amp) : mTimestamp(timestamp), mChannelIndex(channel), mTime(time), mAmp(amp){};
 Detectors/FIT/FT0/workflow/src/ReconstructionSpec.cxx:  long timestamp;
 Detectors/FIT/FT0/workflow/src/ReconstructionSpec.cxx:    timestamp = o2::InteractionRecord::bc2ns(digit.getBC(), digit.getOrbit());
-Detectors/FIT/FT0/workflow/src/ReconstructionSpec.cxx:    LOG(DEBUG) << " ndig " << id << " bc " << digit.getBC() << " orbit " << digit.getOrbit() <<" timestamp " <<timestamp ;
+Detectors/FIT/FT0/workflow/src/ReconstructionSpec.cxx:    LOG(debug) << " ndig " << id << " bc " << digit.getBC() << " orbit " << digit.getOrbit() <<" timestamp " <<timestamp ;
 Detectors/FIT/FT0/workflow/src/ReconstructionSpec.cxx:  auto caliboffsets = mCCDBManager.getForTimeStamp<o2::ft0::FT0ChannelTimeCalibrationObject>("FT0/Calibration/ChannelTimeOffset",timestamp);
 Detectors/FIT/FDD/simulation/include/FDDSimulation/Digitizer.h:  long mEventTime;                      // TF (run) timestamp
 Detectors/MUON/MCH/CTF/include/MCHCTF/CTFHelper.h:    CTFHeader h{o2::detectors::DetID::MCH, 0, 1, 0, // dummy timestamp, version 1.0
