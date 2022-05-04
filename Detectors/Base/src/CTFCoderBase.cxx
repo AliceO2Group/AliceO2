@@ -30,6 +30,21 @@ void CTFCoderBase::checkDictVersion(const CTFDictHeader& h) const
   }
 }
 
+// Assign version of the dictionary which will be stored in the data (including dictionary data during dictionary creation)
+// In case detector CTFCoder uses non-defaul dict. version, it should redefine this method in order to assign the version
+// it needs ONLY when the external dictionary is not provided
+void CTFCoderBase::assignDictVersion(CTFDictHeader& h) const
+{
+  if (mExtHeader.isValidDictTimeStamp()) {
+    h = mExtHeader;
+  }
+  // detector code may exten it by
+  //  else {
+  //    h.majorVersion = <A>;
+  //    h.minorVersion = <B>;
+  //  }
+}
+
 void CTFCoderBase::updateTimeDependentParams(ProcessingContext& pc)
 {
   if (mLoadDictFromCCDB) {
