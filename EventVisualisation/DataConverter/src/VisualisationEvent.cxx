@@ -90,6 +90,7 @@ VisualisationEvent::VisualisationEvent(VisualisationEventVO vo)
 {
   this->mEventNumber = vo.eventNumber;
   this->mRunNumber = vo.runNumber;
+  this->firstTForbit = vo.firstTForbit;
   this->mEnergy = vo.energy;
   this->mMultiplicity = vo.multiplicity;
   this->mCollidingSystem = vo.collidingSystem;

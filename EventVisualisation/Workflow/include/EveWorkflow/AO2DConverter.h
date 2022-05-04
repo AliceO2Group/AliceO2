@@ -42,6 +42,7 @@ struct AO2DConverter {
 
   static constexpr float mWorkflowVersion = 1.00;
   o2::header::DataHeader::RunNumberType mRunNumber = 1;
+  o2::header::DataHeader::TForbitType TForbitType = 1;
   o2::framework::DataProcessingHeader::CreationTime mCreationTime;
 
   void init(o2::framework::InitContext& ic);

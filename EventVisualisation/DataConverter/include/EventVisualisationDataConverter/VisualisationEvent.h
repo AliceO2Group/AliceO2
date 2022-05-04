@@ -60,6 +60,7 @@ class VisualisationEvent
   struct VisualisationEventVO {
     int eventNumber;
     o2::header::DataHeader::RunNumberType runNumber;
+    o2::header::DataHeader::TForbitType firstTForbit;
     double energy;
     int multiplicity;
     std::string collidingSystem;
