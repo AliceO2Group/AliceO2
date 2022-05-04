@@ -44,7 +44,10 @@
 #include "DataFormatsCPV/CTF.h"
 #include "DataFormatsZDC/CTF.h"
 #include "DataFormatsCTP/CTF.h"
-#include "rANS/rans.h"
+
+#include "rANS/histogram.h"
+#include "rANS/compat.h"
+
 #include <vector>
 #include <stdexcept>
 #include <array>
@@ -88,7 +91,7 @@ size_t appendToTree(TTree& tree, const std::string brname, T& ptr)
 }
 
 using DetID = o2::detectors::DetID;
-using FTrans = o2::rans::FrequencyTable;
+using FTrans = o2::rans::Histogram<int32_t>;
 
 class CTFWriterSpec : public o2::framework::Task
 {
@@ -128,9 +131,9 @@ class CTFWriterSpec : public o2::framework::Task
   bool mFallBackDirProvided = false;
   int mReportInterval = -1;
   int mVerbosity = 0;
-  int mSaveDictAfter = 0;          // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
-  uint32_t mPrevDictTimeStamp = 0; // timestamp of the previously stored dictionary
-  uint32_t mDictTimeStamp = 0;     // timestamp of the currently stored dictionary
+  int mSaveDictAfter = 0;            // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
+  uint32_t mPrevDictTimeStamp = 0;   // timestamp of the previously stored dictionary
+  uint32_t mDictTimeStamp = 0;       // timestamp of the currently stored dictionary
   size_t mMinSize = 0;               // if > 0, accumulate CTFs in the same tree until the total size exceeds this minimum
   size_t mMaxSize = 0;               // if > MinSize, and accumulated size will exceed this value, stop accumulation (even if mMinSize is not reached)
   size_t mChkSize = 0;               // if > 0 and fallback storage provided, reserve this size per CTF file in production on primary storage
@@ -316,7 +319,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
       sz = ctfBuffer.size();
     }
     if (mCreateDict) {
-      if (!mFreqsAccumulation[det].size()) {
+      if (mFreqsAccumulation[det].empty()) {
         mFreqsAccumulation[det].resize(C::getNBlocks());
         mFreqsMetaData[det].resize(C::getNBlocks());
       }
@@ -342,8 +345,17 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
                   }
                   return true;
                 }()) {
-              auto newProbBits = static_cast<uint8_t>(o2::rans::computeRenormingPrecision(freq));
-              mdSave = o2::ctf::Metadata{0, 0, md.messageWordSize, md.coderType, md.streamSize, newProbBits, md.opt, freq.getMinSymbol(), freq.getMaxSymbol(), static_cast<int32_t>(freq.size()), 0, 0};
+              auto newProbBits = static_cast<uint8_t>(o2::rans::compat::computeRenormingPrecision(freq.countNUsedAlphabetSymbols()));
+              auto histogramView = o2::rans::internal::trim(o2::rans::internal::HistogramView{freq.begin(), freq.end(), freq.getOffset()});
+              mdSave = o2::ctf::Metadata{0, 0, md.messageWordSize,
+                                         md.coderType,
+                                         md.streamSize,
+                                         newProbBits,
+                                         md.opt,
+                                         static_cast<int32_t>(histogramView.getMin()),
+                                         static_cast<int32_t>(histogramView.getMax()),
+                                         static_cast<int32_t>(histogramView.size()),
+                                         0, 0};
               mFreqsAccumulation[det][ib] = std::move(freq);
             }
           }

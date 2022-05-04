@@ -26,7 +26,6 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "FT0Base/FT0DigParam.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "rANS/rans.h"
 
 class TTree;
 

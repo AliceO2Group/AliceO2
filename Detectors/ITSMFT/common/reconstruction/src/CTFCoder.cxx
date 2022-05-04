@@ -174,7 +174,7 @@ void CTFCoder::compress(CompressedClusters& cc,
           LOG(warning) << "Negative Chip increment " << cl.getChipID() << " -> " << prevChip;
         }
 #endif
-        cc.chipMul.push_back(1);                         // this is the version with chipInc stored once per new chip
+        cc.chipMul.push_back(1); // this is the version with chipInc stored once per new chip
         prevCol = cc.colInc[iclOut] = cl.getCol();
         prevChip = cl.getChipID();
       }
@@ -195,7 +195,7 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
 {
   const auto ctf = CTF::getImage(bufVec.data());
   CompressedClusters cc; // just to get member types
-#define MAKECODER(part, slot) createCoder<decltype(part)::value_type>(op, ctf.getFrequencyTable(slot), int(slot))
+#define MAKECODER(part, slot) createCoder(op, ctf.getFrequencyTable<decltype(part)::value_type>(slot), int(slot))
   // clang-format off
   MAKECODER(cc.firstChipROF, CTF::BLCfirstChipROF);
   MAKECODER(cc.bcIncROF,     CTF::BLCbcIncROF    );
@@ -214,25 +214,23 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
 ///________________________________
 size_t CTFCoder::estimateCompressedSize(const CompressedClusters& cc)
 {
-  size_t sz = 0;
-  // clang-format off
-  // RS FIXME this is very crude estimate, instead, an empirical values should be used
-#define VTP(vec) typename std::remove_reference<decltype(vec)>::type::value_type
-#define ESTSIZE(vec, slot) mCoders[int(slot)] ?                         \
-  rans::calculateMaxBufferSize(vec.size(), reinterpret_cast<const o2::rans::LiteralEncoder64<VTP(vec)>*>(mCoders[int(slot)].get())->getAlphabetRangeBits(), sizeof(VTP(vec)) ) : vec.size()*sizeof(VTP(vec))
-  sz += ESTSIZE(cc.firstChipROF, CTF::BLCfirstChipROF);
-  sz += ESTSIZE(cc.bcIncROF,     CTF::BLCbcIncROF    );
-  sz += ESTSIZE(cc.orbitIncROF,  CTF::BLCorbitIncROF );
-  sz += ESTSIZE(cc.nclusROF,     CTF::BLCnclusROF    );
-  //
-  sz += ESTSIZE(cc.chipInc,      CTF::BLCchipInc     );
-  sz += ESTSIZE(cc.chipMul,      CTF::BLCchipMul     );
-  sz += ESTSIZE(cc.row,          CTF::BLCrow         );
-  sz += ESTSIZE(cc.colInc,       CTF::BLCcolInc      );
-  sz += ESTSIZE(cc.pattID,       CTF::BLCpattID      );
-  sz += ESTSIZE(cc.pattMap,      CTF::BLCpattMap     );
 
-  // clang-format on
+  using namespace o2::ctf::ctfCoderBaseImpl;
+
+  size_t sz = 0;
+  // RS FIXME this is very crude estimate, instead, an empirical values should be used
+
+  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCfirstChipROF)].get(), cc.firstChipROF);
+  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCbcIncROF)].get(), cc.bcIncROF);
+  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCorbitIncROF)].get(), cc.orbitIncROF);
+  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCnclusROF)].get(), cc.nclusROF);
+  //
+  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCchipInc)].get(), cc.chipInc);
+  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCchipMul)].get(), cc.chipMul);
+  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCrow)].get(), cc.row);
+  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCcolInc)].get(), cc.colInc);
+  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCpattID)].get(), cc.pattID);
+  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCpattMap)].get(), cc.pattMap);
   sz *= 2. / 3; // if needed, will be autoexpanded
   LOG(info) << "Estimated output size is " << sz << " bytes";
   return sz;
