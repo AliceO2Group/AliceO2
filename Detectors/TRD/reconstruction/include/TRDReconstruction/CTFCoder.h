@@ -23,7 +23,6 @@
 #include "DataFormatsTRD/CTF.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "rANS/rans.h"
 #include "TRDReconstruction/CTFHelper.h"
 #include "CommonConstants/LHCConstants.h"
 
@@ -225,8 +224,8 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& tr
 
   for (uint32_t itrig = 0; itrig < header.nTriggers; itrig++) {
     // restore TrigRecord
-    if (orbitInc[itrig]) {  // non-0 increment => new orbit
-      bc = bcInc[itrig];    // bcInc has absolute meaning
+    if (orbitInc[itrig]) { // non-0 increment => new orbit
+      bc = bcInc[itrig];   // bcInc has absolute meaning
       orbit += orbitInc[itrig];
     } else {
       bc += bcInc[itrig];
@@ -248,8 +247,8 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& tr
     }
     orbitPrev = orbit;
     o2::InteractionRecord ir{bc, orbit};
-    if (triggerOK && (checkIROK || canApplyBCShift(ir))) {                // correction will be ok
-      checkIROK = true;                                                   // don't check anymore since the following checks will yield same
+    if (triggerOK && (checkIROK || canApplyBCShift(ir))) { // correction will be ok
+      checkIROK = true;                                    // don't check anymore since the following checks will yield same
       orbitPrevGood = orbit;
       uint32_t firstEntryTrk = trkVec.size();
       uint16_t hcid = 0;

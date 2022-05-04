@@ -14,11 +14,14 @@
 /// @since  2020-06-22
 /// @brief  benchmark encode/decode using rans on binary data.
 
-#include "rANS/rans.h"
-#include "rANS/utils.h"
+#include <rANS/factory.h>
+#include <rANS/histogram.h>
+#include <rANS/encode.h>
+#include <rANS/decode.h>
 
 #include <boost/program_options.hpp>
 #include <algorithm>
+#include <iostream>
 
 #include <fairlogger/Logger.h>
 
@@ -28,10 +31,10 @@ namespace bpo = boost::program_options;
 #define SOURCE_T uint8_t
 #endif
 
-using source_t = SOURCE_T;
-using coder_t = uint64_t;
-using stream_t = uint32_t;
-static const uint REPETITIONS = 5;
+using source_type = SOURCE_T;
+using stream_type = uint32_t;
+inline constexpr size_t NSTREAMS = 2;
+inline constexpr size_t LOWER_BOUND = 31;
 
 template <typename T>
 std::vector<T> readFile(const std::string& filename)
@@ -45,7 +48,7 @@ std::vector<T> readFile(const std::string& filename)
     is.seekg(0, is.beg);
 
     if (length % sizeof(T)) {
-      throw std::runtime_error("Filesize is not a multiple of datatype.");
+      throw o2::rans::IOError("Filesize is not a multiple of datatype.");
     }
     // size the vector appropriately
     tokens.resize(length / sizeof(T));
@@ -60,13 +63,13 @@ std::vector<T> readFile(const std::string& filename)
 int main(int argc, char* argv[])
 {
 
+  using namespace o2::rans;
+
   bpo::options_description options("Allowed options");
   // clang-format off
   options.add_options()
     ("help,h", "print usage message")
     ("file,f",bpo::value<std::string>(), "file to compress")
-    ("samples,s",bpo::value<uint32_t>(), "how often to run benchmark")
-    ("bits,b",bpo::value<uint32_t>(), "resample dictionary to N Bits")
     ("log_severity,l",bpo::value<std::string>(), "severity of FairLogger");
   // clang-format on
 
@@ -88,54 +91,46 @@ int main(int argc, char* argv[])
     }
   }();
 
-  const uint32_t probabilityBits = [&]() {
-    if (vm.count("bits")) {
-      return vm["bits"].as<uint32_t>();
-    } else {
-      return 0u;
-    }
-  }();
-
-  const uint32_t repetitions = [&]() {
-    if (vm.count("samples")) {
-      return vm["samples"].as<uint32_t>();
-    } else {
-      return REPETITIONS;
-    }
-  }();
-
   if (vm.count("log_severity")) {
     fair::Logger::SetConsoleSeverity(vm["log_severity"].as<std::string>().c_str());
   }
-  for (size_t i = 0; i < repetitions; i++) {
-    LOG(info) << "repetion: " << i;
-    std::vector<source_t> tokens = readFile<source_t>(filename);
 
-    const auto renormedFrequencies = o2::rans::renorm(o2::rans::makeFrequencyTableFromSamples(std::begin(tokens), std::end(tokens)));
+  std::vector<source_type> tokens = readFile<source_type>(filename);
 
-    std::vector<stream_t> encoderBuffer;
-    const o2::rans::Encoder64<source_t> encoder{renormedFrequencies};
+  // build encoders
+  auto histogram = makeHistogram::fromSamples(tokens.begin(), tokens.end());
+  const Metrics<source_type> metrics{histogram};
+  auto renormedHistogram = renorm(std::move(histogram), metrics);
+  auto encoder = makeEncoder<CoderTag::SingleStream, NSTREAMS, LOWER_BOUND>::fromRenormed(renormedHistogram);
+  auto decoder = makeDecoder<LOWER_BOUND>::fromRenormed(renormedHistogram);
+
+  std::vector<stream_type> encoderBuffer;
+  std::vector<source_type> decodeBuffer(tokens.size(), 0);
+  std::vector<source_type> incompressibleSymbols;
+
+  if (renormedHistogram.hasIncompressibleSymbol()) {
+    LOG(info) << "With incompressible symbols";
+    auto [encoderEnd, incompressibleEnd] = encoder.process(tokens.begin(), tokens.end(), std::back_inserter(encoderBuffer), std::back_inserter(incompressibleSymbols));
+    LOGP(info, "nIncompressible {}", incompressibleSymbols.size());
+    decoder.process(encoderBuffer.end(), decodeBuffer.begin(), tokens.size(), NSTREAMS, incompressibleSymbols.end());
+  } else {
+    LOG(info) << "Without incompressible symbols";
     encoder.process(std::begin(tokens), std::end(tokens), std::back_inserter(encoderBuffer));
+    decoder.process(encoderBuffer.end(), decodeBuffer.begin(), tokens.size(), NSTREAMS);
+  }
 
-    std::vector<source_t> decoderBuffer(tokens.size());
-    [&]() {
-      o2::rans::Decoder64<source_t> decoder{renormedFrequencies};
-      decoder.process(encoderBuffer.end(), decoderBuffer.begin(), std::distance(std::begin(tokens), std::end(tokens)));
-    }();
-
-    size_t pos = 0;
-    if (std::equal(tokens.begin(), tokens.end(), decoderBuffer.begin(), decoderBuffer.end(),
-                   [&pos](const auto& a, const auto& b) {
-                     const bool cmp = a == b;
-                     if (!cmp) {
-                       LOG(error) << fmt::format("[{}] {} != {}", pos, a, b);
-                     }
-                     ++pos;
-                     return cmp;
-                   })) {
-      LOG(info) << "Decoder passed tests";
-    } else {
-      LOG(error) << "Decoder failed tests";
-    }
+  size_t pos = 0;
+  if (std::equal(tokens.begin(), tokens.end(), decodeBuffer.begin(), decodeBuffer.end(),
+                 [&pos](const auto& a, const auto& b) {
+                   const bool cmp = a == b;
+                   if (!cmp) {
+                     LOG(error) << fmt::format("[{}] {} != {}", pos, a, b);
+                   }
+                   ++pos;
+                   return cmp;
+                 })) {
+    LOG(info) << "Decoder passed tests";
+  } else {
+    LOG(error) << "Decoder failed tests";
   }
 };

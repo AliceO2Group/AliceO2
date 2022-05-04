@@ -165,8 +165,7 @@ size_t CTFCoder::estimateCompressedSize(const CompressedClusters& ccl)
   // clang-format off
   // RS FIXME this is very crude estimate, instead, an empirical values should be used
 #define ESTSIZE(slot, ptr, n) mCoders[int(slot)] ? \
-    rans::calculateMaxBufferSize(n, reinterpret_cast<const o2::rans::LiteralEncoder64<std::remove_pointer<decltype(ptr)>::type>*>(mCoders[int(slot)].get())->getAlphabetRangeBits(), \
-                                 sizeof(std::remove_pointer<decltype(ptr)>::type)) : n*sizeof(std::remove_pointer<decltype(ptr)>)
+    rans::compat::calculateMaxBufferSize(n, o2::rans::compat::getAlphabetRangeBits(reinterpret_cast<const o2::rans::compat::encoder_type<std::remove_pointer_t<decltype(ptr)>>*>(mCoders[int(slot)].get())->getSymbolTable())) : n*sizeof(std::remove_pointer_t<decltype(ptr)>)
   sz += ESTSIZE(CTF::BLCqTotA,            ccl.qTotA,             ccl.nAttachedClusters);
   sz += ESTSIZE(CTF::BLCqMaxA,            ccl.qMaxA,             ccl.nAttachedClusters);
   sz += ESTSIZE(CTF::BLCflagsA,            ccl.flagsA,            ccl.nAttachedClusters);

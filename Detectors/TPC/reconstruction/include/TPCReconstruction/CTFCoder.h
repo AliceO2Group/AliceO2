@@ -28,8 +28,7 @@
 #include "DataFormatsTPC/CompressedClusters.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "rANS/rans.h"
-#include "rANS/utils.h"
+#include "rANS/iterator.h"
 
 class TTree;
 
@@ -70,7 +69,7 @@ class ShiftFunctor
 template <typename iterA_T, typename iterB_T, typename F>
 auto makeInputIterators(iterA_T iterA, iterB_T iterB, size_t nElements, F functor)
 {
-  using namespace o2::rans::utils;
+  using namespace o2::rans;
 
   auto advanceIter = [](auto iter, size_t nElements) {
     auto tmp = iter;
@@ -90,8 +89,9 @@ struct MergedColumnsDecoder {
   template <typename iterA_T, typename iterB_T, typename F>
   static void decode(iterA_T iterA, iterB_T iterB, CTF::Slots slot, F decodingFunctor)
   {
+    using namespace o2::rans;
     ShiftFunctor<combined_t, bits_B> f{};
-    auto iter = rans::utils::CombinedOutputIteratorFactory<combined_t>::makeIter(iterA, iterB, f);
+    auto iter = CombinedOutputIteratorFactory<combined_t>::makeIter(iterA, iterB, f);
 
     decodingFunctor(iter, slot);
   }
@@ -156,7 +156,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 template <typename source_T>
 void CTFCoder::buildCoder(ctf::CTFCoderBase::OpType coderType, const CTF::container_t& ctf, CTF::Slots slot)
 {
-  this->createCoder<source_T>(coderType, ctf.getFrequencyTable(slot), static_cast<int>(slot));
+  this->createCoder(coderType, ctf.getFrequencyTable<source_T>(slot), static_cast<int>(slot));
 }
 
 /// entropy-encode clusters to buffer with CTF

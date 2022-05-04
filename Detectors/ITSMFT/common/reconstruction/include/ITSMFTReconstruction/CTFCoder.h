@@ -29,7 +29,6 @@
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "rANS/rans.h"
 
 //#define _CHECK_INCREMENTES_ // Uncoment this the check the incremements being non-negative
 
@@ -251,10 +250,10 @@ void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VCL
       patt = clPattLookup.getPattern(clus.getPatternID());
     }
     int rowSpan = patt.getRowSpan(), colSpan = patt.getColumnSpan(), nMasked = 0;
-    if (rowSpan == 1 && colSpan == 1) {                                        // easy case: 1 pixel cluster
-      if (noiseMap->isNoisy(clus.getChipID(), rowRef, colRef)) {               // just kill the cluster
-        std::copy(pattItStored, pattItPrev, back_inserter(pattVec));           // save patterns from after last saved to the one before killing this
-        pattItStored = pattIt;                                                 // advance to the head of the pattern iterator
+    if (rowSpan == 1 && colSpan == 1) {                              // easy case: 1 pixel cluster
+      if (noiseMap->isNoisy(clus.getChipID(), rowRef, colRef)) {     // just kill the cluster
+        std::copy(pattItStored, pattItPrev, back_inserter(pattVec)); // save patterns from after last saved to the one before killing this
+        pattItStored = pattIt;                                       // advance to the head of the pattern iterator
         cclusVec.pop_back();
       }
       // otherwise do nothing: cluster was already added, eventual patterns will be copied in large block at next modified cluster writing

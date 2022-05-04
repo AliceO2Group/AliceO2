@@ -26,7 +26,6 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
 #include "MCHCTF/CTFHelper.h"
-#include "rANS/rans.h"
 
 class TTree;
 

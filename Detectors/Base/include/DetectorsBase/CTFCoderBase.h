@@ -26,7 +26,9 @@
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "DetectorsCommonDataFormats/CTFIOSize.h"
 #include "DataFormatsCTP/TriggerOffsetsParam.h"
-#include "rANS/rans.h"
+#include "rANS/factory.h"
+#include "rANS/compat.h"
+#include "rANS/histogram.h"
 #include <filesystem>
 #include "Framework/InitContext.h"
 #include "Framework/ConcreteDataMatcher.h"
@@ -77,18 +79,20 @@ class CTFCoderBase
   void createCodersFromFile(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op, bool mayFail = false);
 
   template <typename S>
-  void createCoder(OpType op, const o2::rans::RenormedFrequencyTable& renormedFrequencyTable, int slot)
+  void createCoder(OpType op, const o2::rans::RenormedHistogram<S>& renormedHistogram, int slot)
   {
-    if (renormedFrequencyTable.empty()) {
+    using namespace o2;
+
+    if (renormedHistogram.empty()) {
       LOG(warning) << "Empty dictionary provided for slot " << slot << ", " << (op == OpType::Encoder ? "encoding" : "decoding") << " will assume literal symbols only";
     }
 
     switch (op) {
       case OpType::Encoder:
-        mCoders[slot].reset(new o2::rans::LiteralEncoder64<S>(renormedFrequencyTable));
+        mCoders[slot] = std::make_shared<rans::compat::encoder_type<S>>(std::move(rans::compat::makeEncoder::fromRenormed<S>(renormedHistogram)));
         break;
       case OpType::Decoder:
-        mCoders[slot].reset(new o2::rans::LiteralDecoder64<S>(renormedFrequencyTable));
+        mCoders[slot] = std::make_shared<rans::compat::decoder_type<S>>(std::move(rans::compat::makeDecoder::fromRenormed<S>(renormedHistogram)));
         break;
     }
   }
@@ -163,10 +167,10 @@ class CTFCoderBase
   std::string mTrigOffsBinding{"trigoffset"};
   CTFDictHeader mExtHeader;      // external dictionary header
   o2::utils::IRFrameSelector mIRFrameSelector; // optional IR frames selector
-  float mMemMarginFactor = 1.0f; // factor for memory allocation in EncodedBlocks
+  float mMemMarginFactor = 1.0f;               // factor for memory allocation in EncodedBlocks
   bool mLoadDictFromCCDB{true};
   bool mSupportBCShifts{false};
-  OpType mOpType; // Encoder or Decoder
+  OpType mOpType;       // Encoder or Decoder
   int64_t mBCShift = 0; // shift to apply to decoded IR (i.e. CTP offset if was not corrected on raw data decoding level)
   uint32_t mFirstTFOrbit = 0;
   size_t mIRFrameSelMarginBwd = 0; // margin in BC to add to the IRFrame lower boundary when selection is requested
@@ -342,6 +346,24 @@ bool CTFCoderBase::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, voi
   }
   return match;
 }
+
+namespace ctfCoderBaseImpl
+{
+
+template <typename source_T>
+[[nodiscard]] inline size_t estimateSize(const void* coder, const std::vector<source_T>& samples)
+{
+  if (coder) {
+    const auto* encoder = reinterpret_cast<const o2::rans::compat::encoder_type<source_T>*>(coder);
+    const auto& symbolTable = encoder->getSymbolTable();
+    const size_t alphabetRangeBits = o2::rans::internal::toBits(symbolTable.size() - symbolTable.getOffset());
+    return rans::compat::calculateMaxBufferSize(samples.size(), alphabetRangeBits);
+  } else {
+    return samples.size() * sizeof(source_T);
+  }
+};
+
+} // namespace ctfCoderBaseImpl
 
 } // namespace ctf
 } // namespace o2
