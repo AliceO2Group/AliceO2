@@ -56,10 +56,9 @@ class ROFRecord;
 
 namespace its
 {
-
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-class TimeFrame final
+class TimeFrame
 {
  public:
   TimeFrame(int nLayers = 7);
@@ -68,6 +67,7 @@ class TimeFrame final
   gsl::span<const Vertex> getPrimaryVertices(int romin, int romax) const;
   int getPrimaryVerticesNum(int rofID = -1) const;
   void addPrimaryVertices(const std::vector<Vertex>& vertices);
+  void addPrimaryVertices(const gsl::span<const Vertex>& vertices);
   void removePrimaryVerticesInROf(const int rofId);
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
@@ -136,7 +136,7 @@ class TimeFrame final
   // Vertexer
   void computeTrackletsScans();
   std::vector<int>& getIndexTableL0(int tf);
-  int& getNTrackletsROf(int combId, int tf);
+  int& getNTrackletsROf(int tf, int combId);
   std::vector<Line>& getLines(int tf);
   std::vector<ClusterLines>& getTrackletClusters(int tf);
   gsl::span<const Tracklet> getFoundTracklets(int rofId, int combId) const;
@@ -165,6 +165,14 @@ class TimeFrame final
 
   IndexTableUtils mIndexTableUtils;
 
+  std::vector<std::vector<Cluster>> mClusters;
+  std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
+  std::vector<std::vector<int>> mClusterExternalIndices;
+  std::vector<std::vector<int>> mROframesClusters;
+  std::vector<std::vector<int>> mIndexTablesL0;
+  std::vector<index_table_t> mIndexTables;
+  int mNrof = 0;
+
  private:
   template <typename... T>
   void addClusterToLayer(int layer, T&&... args);
@@ -173,7 +181,6 @@ class TimeFrame final
   void addClusterExternalIndexToLayer(int layer, const int idx);
 
   float mBz = 5.;
-  int mNrof = 0;
   int mBeamPosWeight = 0;
   float mBeamPos[2] = {0.f, 0.f};
   std::vector<float> mMinR;
@@ -183,16 +190,12 @@ class TimeFrame final
   std::vector<float> mPositionResolution;
   std::vector<bool> mMultiplicityCutMask;
   std::vector<int> mROframesPV = {0};
-  std::vector<std::vector<int>> mROframesClusters;
   std::vector<Vertex> mPrimaryVertices;
-  std::vector<std::vector<Cluster>> mClusters;
   std::vector<std::vector<Cluster>> mUnsortedClusters;
   std::vector<std::vector<bool>> mUsedClusters;
-  std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
   const dataformats::MCTruthContainer<MCCompLabel>* mClusterLabels = nullptr;
   std::vector<std::vector<MCCompLabel>> mTrackletLabels;
   std::vector<std::vector<MCCompLabel>> mCellLabels;
-  std::vector<std::vector<int>> mClusterExternalIndices;
   std::vector<std::vector<Cell>> mCells;
   std::vector<std::vector<int>> mCellsLookupTable;
   std::vector<std::vector<std::vector<int>>> mCellsNeighbours;
@@ -201,7 +204,6 @@ class TimeFrame final
   std::vector<std::vector<TrackITSExt>> mTracks;
   std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
 
-  std::vector<index_table_t> mIndexTables;
   std::vector<std::vector<Tracklet>> mTracklets;
   std::vector<std::vector<int>> mTrackletsLookupTable;
 
@@ -210,12 +212,12 @@ class TimeFrame final
   int mCutVertexMult;
 
   // Vertexer
-  std::vector<std::vector<int>> mIndexTablesL0;
   std::array<std::vector<int>, 2> mNTrackletsPerCluster; // TODO: remove in favour of mNTrackletsPerROf
   std::vector<std::vector<int>> mNTrackletsPerROf;
   std::vector<std::vector<Line>> mLines;
   std::vector<std::vector<ClusterLines>> mTrackletClusters;
   std::vector<std::vector<int>> mTrackletsIndexROf;
+  // \Vertexer
 };
 
 inline const Vertex& TimeFrame::getPrimaryVertex(const int vertexIndex) const { return mPrimaryVertices[vertexIndex]; }
@@ -397,7 +399,7 @@ inline gsl::span<int> TimeFrame::getNTrackletsCluster(int rofId, int combId)
   return {&mNTrackletsPerCluster[combId][startIdx], static_cast<gsl::span<int>::size_type>(mROframesClusters[1][rofId + 1] - startIdx)};
 }
 
-inline int& TimeFrame::getNTrackletsROf(int combId, int tf)
+inline int& TimeFrame::getNTrackletsROf(int tf, int combId)
 {
   return mNTrackletsPerROf[combId][tf];
 }

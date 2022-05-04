@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
   sw.Start();
   std::vector<o2::ctf::BufferType> vec;
   {
-    CTFCoder coder;
+    CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Encoder);
     coder.encode(vec, rows, digits, pattVec); // compress
   }
   sw.Stop();
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(CompressedClustersTest)
   sw.Start();
   const auto ctfImage = CTF::getImage(vec.data());
   {
-    CTFCoder coder;
+    CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Decoder);
     coder.decode(ctfImage, rowsD, digitsD, pattVecD); // decompress
   }
   sw.Stop();

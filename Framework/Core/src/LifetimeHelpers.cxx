@@ -56,7 +56,7 @@ size_t getCurrentTime()
 
 ExpirationHandler::Creator LifetimeHelpers::dataDrivenCreation()
 {
-  return [](TimesliceIndex&) -> TimesliceSlot {
+  return [](ChannelIndex, TimesliceIndex&) -> TimesliceSlot {
     return {TimesliceSlot::ANY};
   };
 }
@@ -66,7 +66,7 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
   auto last = std::make_shared<size_t>(start + inputTimeslice * step);
   auto repetition = std::make_shared<size_t>(0);
 
-  return [end, step, last, maxInputTimeslices, maxRepetitions, repetition](TimesliceIndex& index) -> TimesliceSlot {
+  return [end, step, last, maxInputTimeslices, maxRepetitions, repetition](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
     for (size_t si = 0; si < index.size(); si++) {
       if (*last > end) {
         LOGP(debug, "Last greater than end");
@@ -81,6 +81,12 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
         }
         LOGP(debug, "Associating timestamp {} to slot {}", timestamp.value, slot.index);
         index.associate(timestamp, slot);
+        // We know that next association will bring in last
+        // so we can state this will be the latest possible input for the channel
+        // associated with this.
+        LOG(debug) << "Oldest possible input is " << *last;
+        auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+        index.updateOldestPossibleOutput();
         return slot;
       }
     }
@@ -95,7 +101,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
   auto start = getCurrentTime();
   auto last = std::make_shared<decltype(start)>(start);
   // FIXME: should create timeslices when period expires....
-  return [last, period](TimesliceIndex& index) -> TimesliceSlot {
+  return [last, period](ChannelIndex, TimesliceIndex& index) -> TimesliceSlot {
     // Nothing to do if the time has not expired yet.
     auto current = getCurrentTime();
     auto delta = current - *last;
@@ -192,7 +198,7 @@ ExpirationHandler::Checker LifetimeHelpers::expireIfPresent(std::vector<InputRou
 
 ExpirationHandler::Creator LifetimeHelpers::uvDrivenCreation(int requestedLoopReason, DeviceState& state)
 {
-  return [requestedLoopReason, &state](TimesliceIndex& index) -> TimesliceSlot {
+  return [requestedLoopReason, &state](ChannelIndex, TimesliceIndex& index) -> TimesliceSlot {
     /// Not the expected loop reason, return an invalid slot.
     if ((state.loopReason & requestedLoopReason) == 0) {
       LOGP(debug, "No expiration due to a loop event. Requested: {:b}, reported: {:b}, matching: {:b}",
@@ -354,7 +360,7 @@ ExpirationHandler::Handler
       timestamp = ceilf((VariableContextHelpers::getFirstTFOrbit(variables) * o2::constants::lhc::LHCOrbitNS / 1000 + dataTakingContext.orbitResetTime) / 1000);
     } else {
       // The timestamp used by DPL is in nanoseconds
-      timestamp = ceilf(VariableContextHelpers::getTimeslice(variables).value / 1000);
+      timestamp = ceilf(VariableContextHelpers::getTimeslice(variables).value / 1000.);
     }
 
     std::string path = "";
@@ -500,9 +506,6 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     ref.payload = std::move(payload);
     (*counter)++;
 
-    auto& timesliceIndex = services.get<TimesliceIndex>();
-    auto newOldest = timesliceIndex.setOldestPossibleInput({dph.startTime}, channelIndex);
-    timesliceIndex.updateOldestPossibleOutput();
   };
 }
 
@@ -552,10 +555,6 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
     ref.header = std::move(header);
     auto payload = transport->CreateMessage(0);
     ref.payload = std::move(payload);
-
-    auto& timesliceIndex = services.get<TimesliceIndex>();
-    auto newOldest = timesliceIndex.setOldestPossibleInput({dph.startTime}, channelIndex);
-    timesliceIndex.updateOldestPossibleOutput();
   };
   return f;
 }

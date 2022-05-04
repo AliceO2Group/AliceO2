@@ -17,6 +17,7 @@
 #include "Framework/Configurable.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/CallbackService.h"
+#include "Framework/RateLimiter.h"
 #include <fairmq/Device.h>
 
 #include <iostream>
@@ -43,16 +44,16 @@ void customize(std::vector<CallbacksPolicy>& policies)
     }});
 }
 
-void customize(std::vector<SendingPolicy>& policies)
-{
-  policies.push_back(SendingPolicy{
-    .matcher = DeviceMatchers::matchByName("A"),
-    .send = [](FairMQDeviceProxy& proxy, FairMQParts& parts, ChannelIndex channelIndex) {
-      LOG(info) << "A custom policy for sending invoked!";
-      auto* channel = proxy.getOutputChannel(channelIndex);
-      channel->Send(parts, 0);
-    }});
-}
+// void customize(std::vector<SendingPolicy>& policies)
+//{
+//   policies.push_back(SendingPolicy{
+//     .matcher = DeviceMatchers::matchByName("A"),
+//     .send = [](FairMQDeviceProxy& proxy, FairMQParts& parts, ChannelIndex channelIndex) {
+//       LOG(info) << "A custom policy for sending invoked!";
+//       auto* channel = proxy.getOutputChannel(channelIndex);
+//       channel->Send(parts, 0);
+//     }});
+// }
 
 #include "Framework/runDataProcessing.h"
 
@@ -77,12 +78,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
     .outputs = {OutputSpec{{"a1"}, "TST", "A1"},
                 OutputSpec{{"a2"}, "TST", "A2"}},
     .algorithm = AlgorithmSpec{adaptStateless(
-      [](DataAllocator& outputs, RawDeviceService& device, DataTakingContext& context) {
-        device.device()->WaitFor(std::chrono::seconds(rand() % 2));
+      [](DataAllocator& outputs, RawDeviceService& device, DataTakingContext& context, ProcessingContext& pcx) {
+        // static RateLimiter limiter;
+        // limiter.check(pcx, std::stoi(device.device()->fConfig->GetValue<std::string>("timeframes-rate-limit")), 2000);
+        LOG(error) << "Foo";
         auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
         auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
       })},
-    .options = {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}}}};
+    .options = {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}},
+                ConfigParamSpec{"channel-config", VariantType::String, "name=metric-feedback", {"Timeframes per second limit"}}}};
   DataProcessorSpec b{
     .name = "B",
     .inputs = {InputSpec{"x", "TST", "A1", Lifetime::Timeframe, {ConfigParamSpec{"somestring", VariantType::String, "", {"Some input param"}}}}},

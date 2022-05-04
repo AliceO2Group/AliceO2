@@ -27,20 +27,20 @@
 namespace o2::mch::calibration
 {
 
-/** 
+/**
  * @class BadChannelCalibrator
  * @brief Compute bad channel map from pedestal data
  *
- * Calibrator that checks the computed mean and RMS of the MCH pedestals 
+ * Calibrator that checks the computed mean and RMS of the MCH pedestals
  * and compares the values with (configurable) thresholds.
- * The channels whose values exceed one of the thresholds are 
+ * The channels whose values exceed one of the thresholds are
  * considered bad/noisy and they are stored into a
  * "bad channels" list that is sent to the CDDB populator(s).
  */
 class BadChannelCalibrator final : public o2::calibration::TimeSlotCalibration<o2::mch::calibration::PedestalDigit,
                                                                                o2::mch::calibration::PedestalData>
 {
-  using TFType = uint64_t;
+  using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<o2::mch::calibration::PedestalData>;
   using BadChannelsVector = std::vector<o2::mch::DsChannelId>;
   using PedestalsVector = std::vector<PedestalChannel>;
@@ -51,7 +51,7 @@ class BadChannelCalibrator final : public o2::calibration::TimeSlotCalibration<o
   ~BadChannelCalibrator() final = default;
 
   /** Decides whether the Slot has enough data to compute the calibration.
-   * Decision depends both on the data itself and on the BadChannelCalibratorParam 
+   * Decision depends both on the data itself and on the BadChannelCalibratorParam
    * parameters.
    */
   bool hasEnoughData(const Slot& slot) const final;

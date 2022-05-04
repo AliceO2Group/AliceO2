@@ -24,6 +24,7 @@
 #include "DataFormatsPHOS/BadChannelsMap.h"
 #include "DataFormatsPHOS/CalibParams.h"
 #include "PHOSCalibWorkflow/PHOSEnergyCalibrator.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "TFile.h"
 #include "TTree.h"
 
@@ -37,7 +38,7 @@ namespace phos
 class PHOSEnergyCalibDevice : public o2::framework::Task
 {
  public:
-  explicit PHOSEnergyCalibDevice(bool useCCDB) : mUseCCDB(useCCDB) {}
+  explicit PHOSEnergyCalibDevice(bool useCCDB, std::shared_ptr<o2::base::GRPGeomRequest> req) : mUseCCDB(useCCDB), mCCDBRequest(req) {}
 
   void init(o2::framework::InitContext& ic) final;
 
@@ -46,6 +47,11 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
   void stop() final;
+
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  }
 
  protected:
   void postHistosCCDB(o2::framework::EndOfStreamContext& ec);
@@ -75,6 +81,7 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
   std::unique_ptr<TFile> mFileOut;                   /// File to store output calib digits
   std::unique_ptr<TTree> mTreeOut;                   /// Tree to store output calib digits
   std::unique_ptr<o2::dataformats::FileMetaData> mFileMetaData;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 };
 
 o2::framework::DataProcessorSpec getPHOSEnergyCalibDeviceSpec(bool useCCDB);

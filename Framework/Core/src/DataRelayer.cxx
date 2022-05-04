@@ -25,6 +25,7 @@
 #include "Framework/Signpost.h"
 #include "Framework/RoutingIndices.h"
 #include "Framework/VariableContextHelpers.h"
+#include "Framework/FairMQDeviceProxy.h"
 #include "DataProcessingStatus.h"
 #include "DataRelayerHelpers.h"
 #include "InputRouteHelpers.h"
@@ -59,8 +60,8 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
                          monitoring::Monitoring& metrics,
                          TimesliceIndex& index)
-  : mTimesliceIndex{index},
-    mMetrics{metrics},
+  : mMetrics{metrics},
+    mTimesliceIndex{index},
     mCompletionPolicy{policy},
     mDistinctRoutesIndex{DataRelayerHelpers::createDistinctRouteIndex(routes)},
     mInputMatchers{DataRelayerHelpers::createInputMatchers(routes)},
@@ -102,6 +103,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
 {
   LOGP(debug, "DataRelayer::processDanglingInputs");
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+  auto& deviceProxy = services.get<FairMQDeviceProxy>();
 
   ActivityStats activity;
   /// Nothing to do if nothing can expire.
@@ -115,7 +117,8 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
     LOGP(debug, "Creating new slot");
     for (auto& handler : expirationHandlers) {
       LOGP(debug, "handler.creator for {}", handler.name);
-      slotsCreatedByHandlers.push_back(handler.creator(mTimesliceIndex));
+      auto channelIndex = deviceProxy.getInputChannelIndex(handler.routeIndex);
+      slotsCreatedByHandlers.push_back(handler.creator(channelIndex, mTimesliceIndex));
     }
   }
   if (slotsCreatedByHandlers.empty() == false) {

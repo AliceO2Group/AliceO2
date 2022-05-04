@@ -257,6 +257,17 @@ void TrackFinder::findTrackCandidates()
     }
   }
 
+  // list the cluster combinations already used in stations 4 and 5
+  std::vector<std::array<uint32_t, 8>> usedClusters(mTracks.size());
+  int iTrack(0);
+  for (const auto& track : mTracks) {
+    for (const auto& param : track) {
+      int iCl = 2 * (param.getClusterPtr()->getChamberId() - 6) + param.getClusterPtr()->getDEId() % 2;
+      usedClusters[iTrack][iCl] = param.getClusterPtr()->uid;
+    }
+    ++iTrack;
+  }
+
   auto itLastCandidateFromSt5 = mTracks.empty() ? mTracks.end() : std::prev(mTracks.end());
 
   // then look for candidates on station 4
@@ -280,8 +291,13 @@ void TrackFinder::findTrackCandidates()
     // exluding those already attached to an identical candidate on station 4
     // (cases where both chambers of station 5 are fired should have been found in the first step)
     std::unordered_map<int, std::unordered_set<uint32_t>> excludedClusters{};
-    if (itLastCandidateFromSt5 != mTracks.end()) {
-      excludeClustersFromIdenticalTracks(itTrack, excludedClusters, std::next(itLastCandidateFromSt5));
+    if (!usedClusters.empty()) {
+      std::array<uint32_t, 4> currentClusters{};
+      for (const auto& param : *itTrack) {
+        int iCl = 2 * (param.getClusterPtr()->getChamberId() - 6) + param.getClusterPtr()->getDEId() % 2;
+        currentClusters[iCl] = param.getClusterPtr()->uid;
+      }
+      excludeClustersFromIdenticalTracks(currentClusters, usedClusters, excludedClusters);
     }
     auto itFirstNewTrack = followTrackInChamber(itTrack, 8, 8, false, excludedClusters);
     auto itNewTrack = followTrackInChamber(itTrack, 9, 9, false, excludedClusters);
@@ -1484,20 +1500,27 @@ bool TrackFinder::areUsed(const Cluster& cl1, const Cluster& cl2, const std::vec
 }
 
 //_________________________________________________________________________________________________
-void TrackFinder::excludeClustersFromIdenticalTracks(const std::list<Track>::iterator& itTrack,
-                                                     std::unordered_map<int, std::unordered_set<uint32_t>>& excludedClusters,
-                                                     const std::list<Track>::iterator& itEndTrack)
+void TrackFinder::excludeClustersFromIdenticalTracks(const std::array<uint32_t, 4>& currentClusters,
+                                                     const std::vector<std::array<uint32_t, 8>>& usedClusters,
+                                                     std::unordered_map<int, std::unordered_set<uint32_t>>& excludedClusters)
 {
-  /// Find tracks in the range [mTracks.begin(), itEndTrack[ that contain all the clusters of itTrack
-  /// and add the clusters that these tracks have on station 5 in the excludedClusters list
-  for (auto itTrack2 = mTracks.begin(); itTrack2 != itEndTrack; ++itTrack2) {
-    if (itTrack->getNClustersInCommon(*itTrack2) == itTrack->getNClusters()) {
-      for (auto itParam = itTrack2->rbegin(); itParam != itTrack2->rend(); ++itParam) {
-        const Cluster* cluster = itParam->getClusterPtr();
-        if (cluster->getChamberId() > 7) {
-          excludedClusters[cluster->getDEId()].emplace(cluster->uid);
-        } else {
-          break;
+  /// Find the combinations of usedClusters using all the currentClusters on station 4
+  /// and add the clusters from these combinations on station 5 in the excludedClusters list
+
+  for (const auto& clusters : usedClusters) {
+
+    bool identicalTrack(true);
+    for (int iCl = 0; iCl < 4; ++iCl) {
+      if (clusters[iCl] != currentClusters[iCl] && currentClusters[iCl] > 0) {
+        identicalTrack = false;
+        break;
+      }
+    }
+
+    if (identicalTrack) {
+      for (int iCl = 4; iCl < 8; ++iCl) {
+        if (clusters[iCl] > 0) {
+          excludedClusters[Cluster::getDEId(clusters[iCl])].emplace(clusters[iCl]);
         }
       }
     }

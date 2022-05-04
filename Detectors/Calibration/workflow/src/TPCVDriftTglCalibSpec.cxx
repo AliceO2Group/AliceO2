@@ -30,15 +30,19 @@ namespace calibration
 class TPCVDriftTglCalibSpec : public Task
 {
  public:
-  TPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, size_t minEnt)
+  TPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, size_t minEnt, std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req)
   {
     mCalibrator = std::make_unique<o2::calibration::TPCVDriftTglCalibration>(ntgl, tglMax, ndtgl, dtglMax, slotL, minEnt);
   }
 
-  void init(InitContext& ic) final{};
+  void init(InitContext& ic) final
+  {
+    o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
+  };
 
   void run(ProcessingContext& pc) final
   {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     auto data = pc.inputs().get<gsl::span<o2::dataformats::Pair<float, float>>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " tracks";
@@ -49,14 +53,19 @@ class TPCVDriftTglCalibSpec : public Task
   void endOfStream(EndOfStreamContext& ec) final
   {
     LOG(info) << "Finalizing calibration";
-    constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-    mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+    mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
     sendOutput(ec.outputs());
+  }
+
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
   }
 
  private:
   void sendOutput(DataAllocator& output);
   std::unique_ptr<o2::calibration::TPCVDriftTglCalibration> mCalibrator;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 };
 
 //_____________________________________________________________
@@ -89,15 +98,25 @@ DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, fl
   using device = o2::calibration::TPCVDriftTglCalibSpec;
   using clbUtils = o2::calibration::Utils;
 
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("input", "GLO", "TPCITS_VDTGL", 0, Lifetime::Timeframe);
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
+
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPCVDTGL"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPCVDTGL"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "tpc-vd-tgl-calib",
-    Inputs{{"input", "GLO", "TPCITS_VDTGL", 0, Lifetime::Timeframe}},
+    inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::calibration::TPCVDriftTglCalibSpec>(ntgl, tglMax, ndtgl, dtglMax, slotL, minEnt)},
+    AlgorithmSpec{adaptFromTask<o2::calibration::TPCVDriftTglCalibSpec>(ntgl, tglMax, ndtgl, dtglMax, slotL, minEnt, ccdbRequest)},
     Options{}};
 }
 

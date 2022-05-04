@@ -141,7 +141,7 @@ class FastHisto
   bool isUnderflowSet() const { return mUseUnderflow; }
 
   /// \return returns if overflow bin is used in the histogram
-  bool isOverflowSet() const { return mUseUnderflow; }
+  bool isOverflowSet() const { return mUseOverflow; }
 
   /// \return returns status wether the bin is in the histogram range
   bool checkBin(int bin) const

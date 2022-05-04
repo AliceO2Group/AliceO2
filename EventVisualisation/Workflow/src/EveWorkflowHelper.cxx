@@ -25,33 +25,102 @@
 #include "MCHTracking/TrackParam.h"
 #include "MCHTracking/TrackExtrap.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
+#include "CommonDataFormat/IRFrame.h"
 
 using namespace o2::event_visualisation;
 
 void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
                                      GID::mask_t maskCl, GID::mask_t maskTrk, GID::mask_t maskMatch)
 {
-  auto creator = [maskTrk, this](auto& trk, GID gid, float time, float) {
+  std::vector<TBracket> itsROFBrackets;
+
+  if (mEnabledFilters.test(Filter::ITSROF)) {
+    const auto irFrames = getRecoContainer().getIRFramesITS();
+
+    static int BCDiffErrCount = 0;
+    constexpr int MAXBCDiffErrCount = 5;
+
+    auto bcDiffToTFTimeMUS = [startIR = getRecoContainer().startIR](const o2::InteractionRecord& ir) {
+      auto bcd = ir.differenceInBC(startIR);
+      if (uint64_t(bcd) > o2::constants::lhc::LHCMaxBunches * 256 && BCDiffErrCount < MAXBCDiffErrCount) {
+        LOGP(alarm, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}", bcd, ir, startIR);
+        BCDiffErrCount++;
+      }
+      return bcd * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+    };
+
+    for (const auto& irFrame : irFrames) {
+      itsROFBrackets.emplace_back(bcDiffToTFTimeMUS(irFrame.getMin()), bcDiffToTFTimeMUS(irFrame.getMax()));
+    }
+  }
+
+  auto correctTrackTime = [this](auto& _tr, float t0, float terr) {
+    if constexpr (isTPCTrack<decltype(_tr)>()) {
+      // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
+      t0 *= this->mTPCBin2MUS;
+      terr *= this->mTPCBin2MUS;
+    } else if constexpr (isITSTrack<decltype(_tr)>()) {
+      t0 += 0.5f * this->mITSROFrameLengthMUS;          // ITS time is supplied in \mus as beginning of ROF
+      terr *= this->mITSROFrameLengthMUS;               // error is supplied as a half-ROF duration, convert to \mus
+    } else if constexpr (isMFTTrack<decltype(_tr)>()) { // Same for MFT
+      t0 += 0.5f * this->mMFTROFrameLengthMUS;
+      terr *= this->mMFTROFrameLengthMUS;
+    } else if constexpr (isGlobalFwdTrack<decltype(_tr)>()) {
+      t0 = _tr.getTimeMUS().getTimeStamp();
+      terr = _tr.getTimeMUS().getTimeStampError() * mPVParams->nSigmaTimeTrack; // gaussian errors must be scaled by requested n-sigma
+    } else {
+      terr *= mPVParams->nSigmaTimeTrack; // gaussian errors must be scaled by requested n-sigma
+    }
+    // for all other tracks the time is in \mus with gaussian error
+    terr += mPVParams->timeMarginTrackTime;
+
+    return TBracket{t0 - terr, t0 + terr};
+  };
+
+  auto isInsideITSROF = [&itsROFBrackets](const TBracket& br) {
+    for (const auto& ir : itsROFBrackets) {
+      const auto overlap = ir.getOverlap(br);
+
+      if (overlap.isValid()) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  auto creator = [maskTrk, this, &correctTrackTime, &isInsideITSROF](auto& trk, GID gid, float time, float terr) {
     if (!maskTrk[gid.getSource()]) {
       return true;
     }
-    if constexpr (isTPCTrack<decltype(trk)>()) { // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
-      time = trk.getTime0();                     // for TPC we need internal time, not the center of the possible interval
+
+    if (mEnabledFilters.test(Filter::TotalNTracks) && mTrackSet.trackGID.size() >= mMaxNTracks) {
+      return true;
     }
+
+    auto bracket = correctTrackTime(trk, time, terr);
+
+    if (mEnabledFilters.test(Filter::TimeBracket) && mTimeBracket.getOverlap(bracket).isInvalid()) {
+      return true;
+    }
+
+    if (mEnabledFilters.test(Filter::ITSROF) && !isInsideITSROF(bracket)) {
+      return true;
+    }
+
     mTrackSet.trackGID.push_back(gid);
-    mTrackSet.trackTime.push_back(time);
+    mTrackSet.trackTime.push_back(bracket.mean());
+
     return true;
   };
+
   this->mRecoCont.createTracksVariadic(creator);
 }
 
-void EveWorkflowHelper::draw(int numberOfTracks)
+void EveWorkflowHelper::draw()
 {
-  size_t nTracks = mTrackSet.trackGID.size();
-  if (numberOfTracks != -1 && numberOfTracks < nTracks) {
-    nTracks = numberOfTracks; // less than available
-  }
-  for (size_t it = 0; it < nTracks; it++) {
+  for (size_t it = 0; it < mTrackSet.trackGID.size(); it++) {
     const auto& gid = mTrackSet.trackGID[it];
     auto tim = mTrackSet.trackTime[it];
     // LOG(info) << "EveWorkflowHelper::draw " << gid.asString();
@@ -306,7 +375,7 @@ void EveWorkflowHelper::drawAODMFT(AODMFTTrack const& track, float trackTime)
                                  .PID = o2::track::PID::Muon,
                                  .startXYZ = {(float)tr.getX(), (float)tr.getY(), (float)tr.getZ()},
                                  .phi = (float)tr.getPhi(),
-                                 .theta = (float)tr.getTanl(),
+                                 .theta = (float)tr.getTheta(),
                                  .eta = (float)tr.getEta(),
                                  .gid = GID::getSourceName(GID::MFT),
                                  .source = GID::MFT});
@@ -456,8 +525,8 @@ void EveWorkflowHelper::drawMFT(GID gid, float trackTime)
                                  .PID = o2::track::PID::Muon,
                                  .startXYZ = {(float)tr.getX(), (float)tr.getY(), (float)tr.getZ()},
                                  .phi = (float)tr.getPhi(),
-                                 .theta = (float)tr.getTanl(),
-                                 .eta = (float)0,
+                                 .theta = (float)tr.getTheta(),
+                                 .eta = (float)tr.getEta(),
                                  .gid = gid.asString(),
                                  .source = GID::MFT});
   for (auto zPos : zPositions) {
@@ -575,7 +644,7 @@ void EveWorkflowHelper::drawTRDClusters(const o2::trd::TrackTRD& tpcTrdTrack, fl
   }
 }
 
-EveWorkflowHelper::EveWorkflowHelper()
+EveWorkflowHelper::EveWorkflowHelper(const FilterSet& enabledFilters, std::size_t maxNTracks, const TBracket& timeBracket) : mEnabledFilters(enabledFilters), mMaxNTracks(maxNTracks), mTimeBracket(timeBracket)
 {
   o2::mch::TrackExtrap::setField();
   this->mMFTGeom = o2::mft::GeometryTGeo::Instance();
@@ -585,6 +654,17 @@ EveWorkflowHelper::EveWorkflowHelper()
   this->mTPCFastTransform = (o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
   const auto& elParams = o2::tpc::ParameterElectronics::Instance();
   mMUS2TPCTimeBins = 1. / elParams.ZbinWidth;
+  mTPCBin2MUS = elParams.ZbinWidth;
+
+  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
+
+  const auto& alpParamsITS = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+  mITSROFrameLengthMUS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS) ? alpParamsITS.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParamsITS.roFrameLengthTrig * 1.e-3;
+
+  const auto& alpParamsMFT = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
+  mMFTROFrameLengthMUS = grp->isDetContinuousReadOut(o2::detectors::DetID::MFT) ? alpParamsMFT.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParamsMFT.roFrameLengthTrig * 1.e-3;
+
+  mPVParams = &o2::vertexing::PVertexerParams::Instance();
 }
 
 GID::Source EveWorkflowHelper::detectorMapToGIDSource(uint8_t dm)

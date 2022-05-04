@@ -29,7 +29,7 @@ namespace tpc
 class EntropyEncoderSpec : public o2::framework::Task
 {
  public:
-  EntropyEncoderSpec(bool fromFile) : mFromFile(fromFile)
+  EntropyEncoderSpec(bool fromFile) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mFromFile(fromFile)
   {
     mTimer.Stop();
     mTimer.Reset();
@@ -38,6 +38,7 @@ class EntropyEncoderSpec : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   o2::tpc::CTFCoder mCTFCoder;

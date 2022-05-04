@@ -12,6 +12,7 @@
 /// @file   ThresholdCalibratorSpec.cxx
 
 #include "ITSWorkflow/ThresholdCalibratorSpec.h"
+#include "CommonUtils/FileSystemUtils.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -140,13 +141,8 @@ void ITSThresholdCalibrator::initThresholdTree(bool recreate /*=true*/)
 {
   // Create output directory to store output
   std::string dir = this->mOutputDir + fmt::format("{}_{}/", this->mEnvironmentID, this->mRunNumber);
-  if (!std::filesystem::exists(dir)) {
-    if (!std::filesystem::create_directories(dir)) {
-      throw std::runtime_error("Failed to create " + dir + " directory");
-    } else {
-      LOG(info) << "Created " << dir << " directory for threshold output";
-    }
-  }
+  o2::utils::createDirectoriesIfAbsent(dir);
+  LOG(info) << "Created " << dir << " directory for threshold output";
 
   std::string filename = dir + std::to_string(this->mRunNumber) + '_' +
                          std::to_string(this->mFileNumber) + '_' + this->mHostname + "_modSel" + std::to_string(mChipModSel) + ".root.part";

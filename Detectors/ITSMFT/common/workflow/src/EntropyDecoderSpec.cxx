@@ -29,7 +29,7 @@ namespace itsmft
 {
 
 EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits)
-  : mOrigin(orig), mCTFCoder(orig == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT), mGetDigits(getDigits)
+  : mOrigin(orig), mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder, orig == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT), mGetDigits(getDigits)
 {
   assert(orig == o2::header::gDataOriginITS || orig == o2::header::gDataOriginMFT);
   mTimer.Stop();
@@ -39,8 +39,7 @@ EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig, int verbosit
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
-  auto detID = mOrigin == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT;
-  mCTFDictPath = ic.options().get<std::string>("ctf-dict");
+  mCTFCoder.init<CTF>(ic);
   mMaskNoise = ic.options().get<bool>("mask-noise");
   mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
 }
@@ -88,23 +87,22 @@ void EntropyDecoderSpec::updateTimeDependentParams(ProcessingContext& pc)
   if (mGetDigits || mMaskNoise) {
     pc.inputs().get<o2::itsmft::NoiseMap*>("cldict");
   }
-  static bool coderUpdated = false; // with dicts loaded from CCDB one should check also the validity of current object
-  if (!coderUpdated) {
-    coderUpdated = true;
-    if (!mCTFDictPath.empty() && mCTFDictPath != "none") {
-      mCTFCoder.createCodersFromFile<CTF>(mCTFDictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
-    }
-  }
+  mCTFCoder.updateTimeDependentParams(pc);
 }
 
 void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
   if (matcher == ConcreteDataMatcher(mOrigin, "NOISEMAP", 0)) {
     LOG(info) << mOrigin.as<std::string>() << " noise map updated";
+    return;
   }
   if (matcher == ConcreteDataMatcher(mOrigin, "CLUSDICT", 0)) {
     LOG(info) << mOrigin.as<std::string>() << " cluster dictionary updated" << (!mUseClusterDictionary ? " but its using is disabled" : "");
     mPattIdConverter.setDictionary((const TopologyDictionary*)obj);
+    return;
+  }
+  if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
+    return;
   }
 }
 
@@ -121,18 +119,17 @@ DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosi
   }
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf", orig, "CTFDATA", sspec, Lifetime::Timeframe);
-  inputs.emplace_back("noise", orig, "NOISEMAP", 0, Lifetime::Condition,
-                      ccdbParamSpec(fmt::format("{}/Calib/NoiseMap", orig.as<std::string>())));
-  inputs.emplace_back("cldict", orig, "CLUSDICT", 0, Lifetime::Condition,
-                      ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", orig.as<std::string>())));
+  inputs.emplace_back("noise", orig, "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/NoiseMap", orig.as<std::string>())));
+  inputs.emplace_back("cldict", orig, "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", orig.as<std::string>())));
+  inputs.emplace_back("ctfdict", orig, "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/CTFDictionary", orig.as<std::string>())));
 
   return DataProcessorSpec{
     EntropyDecoderSpec::getName(orig),
-    Inputs{InputSpec{"ctf", orig, "CTFDATA", 0, Lifetime::Timeframe}},
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(orig, verbosity, getDigits)},
     Options{
-      {"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}},
+      {"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
       {"mask-noise", VariantType::Bool, false, {"apply noise mask to digits or clusters (involves reclusterization)"}},
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}}}};
 }

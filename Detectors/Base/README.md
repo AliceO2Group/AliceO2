@@ -25,21 +25,24 @@ and the method `GRPGeomRequest::instance()->checkUpdates(pc)` is called in the b
 ```cpp
 class MyTask {
  public:
-  MyTask(std::shared_ptr<GRPGeomRequest> req, ...)
-  {
-    GRPGeomRequest::instance()->setRequest(req);
+  MyTask(std::shared_ptr<GRPGeomRequest> req, ...) : mCCDBReq(req) {
+  }
+  void init(o2::framework::InitContext& ic) {
+    GRPGeomHelper::instance()->setRequest(req);
     ...
   }
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   {
-    GRPGeomRequest::instance()->finaliseCCDB(matcher, obj);
+    GRPGeomHelper::instance()->finaliseCCDB(matcher, obj);
     ...
   }
   void run(ProcessingContext& pc)
   {
-    GRPGeomRequest::instance()->checkUpdates(pc);
+    GRPGeomHelper::instance()->checkUpdates(pc);
     ...
   }
+  protected:
+   std::shared_ptr<GRPGeomRequest> mCCDBReq;
 };
 ```
 

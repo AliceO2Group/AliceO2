@@ -19,15 +19,15 @@
 #include "Framework/DataProcessorSpec.h"
 #include "TPCCalibration/CalibratorPadGainTracks.h"
 #include "CCDB/CcdbApi.h"
-#include "CCDB/CcdbObjectInfo.h"
 #include "CommonUtils/NameConf.h"
 #include "Framework/Task.h"
-#include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "TPCBase/CDBInterface.h"
 #include "TPCWorkflow/ProcessingHelpers.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
+using o2::header::gDataOriginTPC;
 
 namespace o2::tpc
 {
@@ -35,55 +35,72 @@ namespace o2::tpc
 class CalibratorPadGainTracksDevice : public Task
 {
  public:
+  CalibratorPadGainTracksDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, const bool useLastExtractedMapAsReference) : mUseLastExtractedMapAsReference(useLastExtractedMapAsReference), mCCDBRequest(req) {}
   void init(framework::InitContext& ic) final
   {
-    const int slotLength = ic.options().get<int>("tf-per-slot");
-    const int maxDelay = ic.options().get<int>("max-delay");
+    o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
+    const auto slotLength = ic.options().get<uint32_t>("tf-per-slot");
+    const auto maxDelay = ic.options().get<uint32_t>("max-delay");
     const int minEntries = ic.options().get<int>("min-entries");
+    const int gainNorm = ic.options().get<int>("gainNorm");
     const bool debug = ic.options().get<bool>("file-dump");
     const auto lowTrunc = ic.options().get<float>("lowTrunc");
     const auto upTrunc = ic.options().get<float>("upTrunc");
+    const auto minAcceptedRelgain = ic.options().get<float>("minAcceptedRelgain");
+    const auto maxAcceptedRelgain = ic.options().get<float>("maxAcceptedRelgain");
+    const int minEntriesMean = ic.options().get<int>("minEntriesMean");
 
     mCalibrator = std::make_unique<CalibratorPadGainTracks>();
     mCalibrator->setMinEntries(minEntries);
     mCalibrator->setSlotLength(slotLength);
     mCalibrator->setMaxSlotsDelay(maxDelay);
     mCalibrator->setTruncationRange(lowTrunc, upTrunc);
+    mCalibrator->setRelGainRange(minAcceptedRelgain, maxAcceptedRelgain);
     mCalibrator->setWriteDebug(debug);
+    mCalibrator->setNormalizationType(static_cast<CalibPadGainTracksBase::NormType>(gainNorm));
+    mCalibrator->setUseLastExtractedMapAsReference(mUseLastExtractedMapAsReference);
+    mCalibrator->setMinEntriesMean(minEntriesMean);
 
     // setting up the CCDB
     mDBapi.init(ic.options().get<std::string>("ccdb-uri")); // or http://localhost:8080 for a local installation
     mWriteToDB = mDBapi.isHostReachable() ? true : false;
   }
 
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  }
+
   void run(ProcessingContext& pc) final
   {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     const auto histomaps = pc.inputs().get<CalibPadGainTracksBase::DataTHistos*>("gainhistos");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     mCalibrator->process(*histomaps.get());
     const auto& infoVec = mCalibrator->getTFinterval();
-    LOGP(info, "Created {} objects for TF {}", infoVec.size(), mCalibrator->getCurrentTFInfo().tfCounter);
+    LOGP(info, "Created {} objects for TF {} and time stamp {}", infoVec.size(), mCalibrator->getCurrentTFInfo().tfCounter, mCalibrator->getCurrentTFInfo().creation);
 
     if (mCalibrator->hasCalibrationData()) {
       mRunNumber = mCalibrator->getCurrentTFInfo().runNumber;
-      sendOutput(pc.outputs());
+      mCreationTime = mCalibrator->getCurrentTFInfo().creation;
+      sendOutput();
     }
   }
 
   void endOfStream(EndOfStreamContext& eos) final
   {
     LOGP(info, "Finalizing calibration");
-    constexpr calibration::TFType INFINITE_TF = 0xffffffffffffffff;
-    mCalibrator->checkSlotsToFinalize(INFINITE_TF);
-    sendOutput(eos.outputs());
+    mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
+    sendOutput();
   }
 
  private:
-  void sendOutput(DataAllocator& output)
+  void sendOutput()
   {
-    const auto& calibrations = mCalibrator->getCalibs();
+    auto calibrations = std::move(*mCalibrator).getCalibs();
+
     for (uint32_t iCalib = 0; iCalib < calibrations.size(); ++iCalib) {
-      const auto& calib = calibrations[iCalib];
+      auto& calib = calibrations[iCalib];
       const auto& infoVec = mCalibrator->getTFinterval();
       const auto firstTF = infoVec[iCalib].first;
       const auto lastTF = infoVec[iCalib].second;
@@ -91,37 +108,50 @@ class CalibratorPadGainTracksDevice : public Task
       if (mWriteToDB) {
         LOGP(info, "Writing pad-by-pad gain map to CCDB for TF {} to {}", firstTF, lastTF);
         mMetadata["runNumber"] = std::to_string(mRunNumber);
-        mDBapi.storeAsTFileAny<std::unordered_map<std::string, CalPad>>(&calib, CDBTypeMap.at(CDBType::CalPadGainResidual), mMetadata, firstTF, lastTF + 1);
+        mDBapi.storeAsTFileAny<std::unordered_map<std::string, CalPad>>(&calib, CDBTypeMap.at(CDBType::CalPadGainResidual), mMetadata, mCreationTime, o2::calibration::INFINITE_TF);
       }
     }
     mCalibrator->initOutput(); // empty the outputs after they are send
   }
 
+  const bool mUseLastExtractedMapAsReference{false};    ///< whether to use the last extracted gain map as a reference gain map
   std::unique_ptr<CalibratorPadGainTracks> mCalibrator; ///< calibrator object for creating the pad-by-pad gain map
-  bool mWriteToDB{};                                    ///< flag if writing to CCDB will be done
-  o2::ccdb::CcdbApi mDBapi;                             ///< API for storing the gain map in the CCDB
-  std::map<std::string, std::string> mMetadata;         ///< meta data of the stored object in CCDB
-  uint64_t mRunNumber{0};                               ///< processed run number
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
+  bool mWriteToDB{};                            ///< flag if writing to CCDB will be done
+  o2::ccdb::CcdbApi mDBapi;                     ///< API for storing the gain map in the CCDB
+  std::map<std::string, std::string> mMetadata; ///< meta data of the stored object in CCDB
+  uint64_t mRunNumber{0};                       ///< processed run number
+  uint64_t mCreationTime{0};                    ///< creation time of current TF
 };
 
 /// create a processor spec
-o2::framework::DataProcessorSpec getTPCCalibPadGainTracksSpec()
+o2::framework::DataProcessorSpec getTPCCalibPadGainTracksSpec(const bool useLastExtractedMapAsReference)
 {
   std::vector<OutputSpec> outputs;
+  std::vector<InputSpec> inputs{{"gainhistos", "TPC", "TRACKGAINHISTOS"}};
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   return DataProcessorSpec{
     "tpc-calibrator-gainmap-tracks",
-    Inputs{
-      InputSpec{"gainhistos", "TPC", "TRACKGAINHISTOS"},
-    },
+    inputs,
     outputs,
-    adaptFromTask<CalibratorPadGainTracksDevice>(),
+    adaptFromTask<CalibratorPadGainTracksDevice>(ccdbRequest, useLastExtractedMapAsReference),
     Options{
       {"ccdb-uri", VariantType::String, o2::base::NameConf::getCCDBServer(), {"URI for the CCDB access."}},
-      {"tf-per-slot", VariantType::Int, 100, {"number of TFs per calibration time slot"}},
-      {"max-delay", VariantType::Int, 3, {"number of slots in past to consider"}},
-      {"min-entries", VariantType::Int, 50, {"minimum entries per pad-by-pad histogram which are required"}},
+      {"tf-per-slot", VariantType::UInt32, 100u, {"number of TFs per calibration time slot"}},
+      {"max-delay", VariantType::UInt32, 3u, {"number of slots in past to consider"}},
+      {"min-entries", VariantType::Int, 0, {"minimum entries per pad-by-pad histogram which are required"}},
       {"lowTrunc", VariantType::Float, 0.05f, {"lower truncation range for calculating the rel gain"}},
       {"upTrunc", VariantType::Float, 0.6f, {"upper truncation range for calculating the rel gain"}},
+      {"minAcceptedRelgain", VariantType::Float, 0.1f, {"minimum accpeted relative gain (if the gain is below this value it will be set to 1)"}},
+      {"maxAcceptedRelgain", VariantType::Float, 2.f, {"maximum accpeted relative gain (if the gain is above this value it will be set to 1)"}},
+      {"gainNorm", VariantType::Int, 2, {"normalization method for the extracted gain map: 0=no normalization, 1=median per stack, 2=median per region"}},
+      {"minEntriesMean", VariantType::Int, 10, {"minEntries minimum number of entries in pad-by-pad histogram to calculate the mean"}},
       {"file-dump", VariantType::Bool, false, {"directly write calibration to a file"}}}};
 }
 

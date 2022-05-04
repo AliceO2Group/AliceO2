@@ -11,25 +11,12 @@
 
 #include <vector>
 #include <string>
-#include "Algorithm/RangeTokenizer.h"
 #include "Framework/WorkflowSpec.h"
-#include "Framework/Logger.h"
 #include "Framework/ConfigParamSpec.h"
-#include "Framework/CompletionPolicy.h"
-#include "Framework/CompletionPolicyHelpers.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "TPCWorkflow/TPCFourierTransformAggregatorSpec.h"
-#include "TPCCalibration/IDCFactorization.h"
-#include "TPCCalibration/IDCFourierTransform.h"
 
 using namespace o2::framework;
-
-// customize the completion policy
-void customize(std::vector<o2::framework::CompletionPolicy>& policies)
-{
-  using o2::framework::CompletionPolicy;
-  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-idc-aggregator-ft.*", CompletionPolicy::CompletionOp::Consume));
-}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
@@ -44,8 +31,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"debug", VariantType::Bool, false, {"create debug files"}},
     {"sendOutput", VariantType::Bool, false, {"send IDC0, IDC1, IDCDelta, fourier coefficients (for debugging)"}},
     {"use-naive-fft", VariantType::Bool, false, {"using naive fourier transform (true) or FFTW (false)"}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
-    {"crus", VariantType::String, cruDefault.c_str(), {"List of CRUs, comma separated ranges, e.g. 0-3,7,9-15"}}};
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -60,8 +46,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   o2::conf::ConfigurableParam::writeINI("o2tpcaggregate1didc_configuration.ini");
 
-  const auto tpcCRUs = o2::RangeTokenizer::tokenize<int>(config.options().get<std::string>("crus"));
-  const auto nCRUs = tpcCRUs.size();
   const auto timeframes = static_cast<unsigned int>(config.options().get<int>("timeframes"));
   const auto debug = config.options().get<bool>("debug");
   const auto sendOutput = config.options().get<bool>("sendOutput");
@@ -72,9 +56,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   TPCFourierTransformAggregatorSpec::IDCFType::setNThreads(nthreadsFourier);
   TPCFourierTransformAggregatorSpec::IDCFType::setFFT(!fft);
 
-  const auto first = tpcCRUs.begin();
-  const auto last = std::min(tpcCRUs.end(), first + nCRUs);
-  const std::vector<uint32_t> rangeCRUs(first, last);
-  WorkflowSpec workflow{getTPCFourierTransformAggregatorSpec(rangeCRUs, timeframes, rangeIDC, nFourierCoeff, debug, sendOutput)};
+  WorkflowSpec workflow{getTPCFourierTransformAggregatorSpec(timeframes, rangeIDC, nFourierCoeff, debug, sendOutput)};
   return workflow;
 }

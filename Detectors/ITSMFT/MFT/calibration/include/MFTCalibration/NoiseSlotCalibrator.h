@@ -45,7 +45,7 @@ class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsm
   {
     mProbabilityThreshold = prob;
     setUpdateAtTheEndOfRunOnly();
-    setSlotLength(std::numeric_limits<TFType>::max);
+    setSlotLength(INFINITE_TF);
   }
   ~NoiseSlotCalibrator() final = default;
 

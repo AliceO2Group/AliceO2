@@ -116,17 +116,17 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAll(const char* name, Compl
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAllOrdered(const char* name, CompletionPolicy::Matcher matcher)
 {
-  auto nextTfCounter = std::make_shared<long int>(0);
-  auto callback = [nextTfCounter](InputSpan const& inputs) -> CompletionPolicy::CompletionOp {
+  auto nextTimeSlice = std::make_shared<long int>(0);
+  auto callback = [nextTimeSlice](InputSpan const& inputs) -> CompletionPolicy::CompletionOp {
     for (auto& input : inputs) {
       if (input.header == nullptr) {
         return CompletionPolicy::CompletionOp::Wait;
       }
-      if (framework::DataRefUtils::isValid(input) && framework::DataRefUtils::getHeader<o2::header::DataHeader*>(input)->tfCounter != *nextTfCounter) {
+      if (framework::DataRefUtils::isValid(input) && framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input)->startTime != *nextTimeSlice) {
         return CompletionPolicy::CompletionOp::Wait;
       }
     }
-    (*nextTfCounter)++;
+    (*nextTimeSlice)++;
     return CompletionPolicy::CompletionOp::ConsumeAndRescan;
   };
   return CompletionPolicy{name, matcher, callback};

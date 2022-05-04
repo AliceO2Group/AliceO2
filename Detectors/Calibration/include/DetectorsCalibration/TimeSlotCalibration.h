@@ -16,6 +16,7 @@
 
 #include "DetectorsCalibration/TimeSlot.h"
 #include "DetectorsBase/TFIDInfoHelper.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "CommonDataFormat/TFIDInfo.h"
 #include <deque>
 #include <gsl/gsl>
@@ -34,25 +35,61 @@ namespace calibration
 template <typename Input, typename Container>
 class TimeSlotCalibration
 {
-  using Slot = TimeSlot<Container>;
-
  public:
+  using Slot = TimeSlot<Container>;
+  using TFType = o2::calibration::TFType;
+
+  static constexpr TFType INFINITE_TF = o2::calibration::INFINITE_TF;
+
   TimeSlotCalibration() = default;
   virtual ~TimeSlotCalibration() = default;
-  uint64_t getMaxSlotsDelay() const { return mMaxSlotsDelay; }
-  void setMaxSlotsDelay(uint64_t v) { mMaxSlotsDelay = v; }
+  TFType getMaxSlotsDelay() const { return mMaxSlotsDelay; }
+  void setMaxSlotsDelay(TFType v) { mMaxSlotsDelay = v; }
 
-  uint64_t getSlotLength() const { return mSlotLength; }
-  void setSlotLength(uint64_t v) { mSlotLength = v < 1 ? 1 : v; }
+  TFType getSlotLength() const { return mSlotLength; }
+  void setSlotLength(TFType v)
+  {
+    if (v == 0) {
+      setFinalizeWhenReady();
+    } else {
+      mSlotLength = v;
+    }
+  }
 
-  uint64_t getCheckIntervalInfiniteSlot() const { return mCheckIntervalInfiniteSlot; }
-  void setCheckIntervalInfiniteSlot(uint64_t v) { mCheckIntervalInfiniteSlot = v; }
+  TFType getCheckIntervalInfiniteSlot() const { return mCheckIntervalInfiniteSlot; }
+  void setCheckIntervalInfiniteSlot(TFType v) { mCheckIntervalInfiniteSlot = v; }
 
-  uint64_t getCheckDeltaIntervalInfiniteSlot() const { return mCheckDeltaIntervalInfiniteSlot; }
-  void setCheckDeltaIntervalInfiniteSlot(uint64_t v) { mCheckDeltaIntervalInfiniteSlot = v < 1 ? mCheckIntervalInfiniteSlot : v; } // if the delta is 0, we ignore it
+  TFType getCheckDeltaIntervalInfiniteSlot() const { return mCheckDeltaIntervalInfiniteSlot; }
+  void setCheckDeltaIntervalInfiniteSlot(TFType v) { mCheckDeltaIntervalInfiniteSlot = v < 1 ? mCheckIntervalInfiniteSlot : v; } // if the delta is 0, we ignore it
 
   TFType getFirstTF() const { return mFirstTF; }
   void setFirstTF(TFType v) { mFirstTF = v; }
+
+  void setSlotLengthInSeconds(int s) { mSlotLengthInSeconds = s > 0 ? s : 1; }
+  void setSlotLengthInOrbits(int n) { mSlotLengthInOrbits = n > 0 ? n : 1; }
+  void checkSlotLength()
+  {
+    if (mSlotLengthInSeconds > 0) {
+      TFType ntf = mSlotLengthInSeconds / (long(o2::base::GRPGeomHelper::getNHBFPerTF()) * o2::constants::lhc::LHCOrbitMUS / 1000000);
+      LOGP(info, "Redefining slot duration from {} s. to {} TFs", mSlotLengthInSeconds, ntf);
+      setSlotLength(ntf);
+      mSlotLengthInSeconds = 0;
+    } else if (mSlotLengthInOrbits > 0) {
+      TFType ntf = mSlotLengthInOrbits / o2::base::GRPGeomHelper::getNHBFPerTF();
+      if (ntf < 1) {
+        ntf = 1;
+      }
+      LOGP(info, "Redefining slot duration from {} orbits to {} TFs", mSlotLengthInOrbits, ntf);
+      setSlotLength(ntf);
+      mSlotLengthInOrbits = 0;
+    }
+  }
+
+  void setFinalizeWhenReady()
+  {
+    mFinalizeWhenReady = true;
+    setSlotLength(INFINITE_TF);
+  }
 
   void setUpdateAtTheEndOfRunOnly() { mUpdateAtTheEndOfRunOnly = kTRUE; }
 
@@ -115,30 +152,31 @@ class TimeSlotCalibration
 
  protected:
   auto& getSlots() { return mSlots; }
-
+  int getRunStartOrbit() const { return mCurrentTFInfo.firstTForbit - o2::base::GRPGeomHelper::getNHBFPerTF() * mCurrentTFInfo.tfCounter; }
   TFType tf2SlotMin(TFType tf) const;
 
   std::deque<Slot> mSlots;
 
   o2::dataformats::TFIDInfo mCurrentTFInfo{};
-
+  int mSlotLengthInSeconds = -1; // optionally provided slot length in seconds
+  int mSlotLengthInOrbits = -1;  // optionally provided slot length in orbits
   TFType mLastClosedTF = 0;
   TFType mFirstTF = 0;
-  TFType mMaxSeenTF = 0; // largest TF processed
-  uint64_t mSlotLength = 1;
-  uint64_t mMaxSlotsDelay = 3;
-  bool mUpdateAtTheEndOfRunOnly = false;
-  uint64_t mCheckIntervalInfiniteSlot = 1;      // will be used if the TF length is INFINITE_TF_int64 to decide
+  TFType mMaxSeenTF = 0;                        // largest TF processed
+  TFType mSlotLength = 1;                       // slot length in TFs
+  TFType mMaxSlotsDelay = 3;                    // difference between the current TF slot ID and the oldest slot to account for the TF
+  TFType mCheckIntervalInfiniteSlot = 1;        // will be used if the TF length is INFINITE_TF_int64 to decide
                                                 // when to check if to call the finalize; otherwise it is called
                                                 // at every new TF; note that this is an approximation,
                                                 // since TFs come in async order
   TFType mLastCheckedTFInfiniteSlot = 0;        // will be used if the TF length is INFINITE_TF_int64 to book-keep
                                                 // the last TF at which we tried to calibrate
-  uint64_t mCheckDeltaIntervalInfiniteSlot = 1; // will be used if the TF length is INFINITE_TF_int64 when
+  TFType mCheckDeltaIntervalInfiniteSlot = 1;   // will be used if the TF length is INFINITE_TF_int64 when
                                                 // the check on the statistics returned false, to determine
                                                 // after how many TF to check again.
   bool mWasCheckedInfiniteSlot = false;         // flag to know whether the statistics of the infinite slot was already checked
-
+  bool mUpdateAtTheEndOfRunOnly = false;
+  bool mFinalizeWhenReady = false; // if true: single bin is filled until ready, then closed and new one is added
   ClassDef(TimeSlotCalibration, 1);
 };
 
@@ -149,14 +187,14 @@ bool TimeSlotCalibration<Input, Container>::process(const DATA& data)
 {
 
   // process current TF
-  TFType tf = mCurrentTFInfo.startTime;
-
-  int maxDelay = mMaxSlotsDelay * mSlotLength;
+  TFType tf = mCurrentTFInfo.tfCounter;
+  uint64_t maxDelay64 = uint64_t(mSlotLength) * mMaxSlotsDelay;
+  TFType maxDelay = maxDelay64 > o2::calibration::INFINITE_TF ? o2::calibration::INFINITE_TF : TFType(maxDelay64);
   if (!mUpdateAtTheEndOfRunOnly) {                                                               // if you update at the end of run only, then you accept everything
-    if (tf < mLastClosedTF || (!mSlots.empty() && getLastSlot().getTFStart() > tf + maxDelay)) { // ignore TF; note that if you have only 1 timeslot
-                                                                                                 // which is INFINITE_TF wide, then maxDelay
-                                                                                                 // does not matter: you won't accept TFs from the past,
-                                                                                                 // so the first condition will be used
+    if (tf < mLastClosedTF || (!mSlots.empty() && getLastSlot().getTFStart() > tf + maxDelay64)) { // ignore TF; note that if you have only 1 timeslot
+                                                                                                   // which is INFINITE_TF wide, then maxDelay
+                                                                                                   // does not matter: you won't accept TFs from the past,
+                                                                                                   // so the first condition will be used
       LOG(info) << "Ignoring TF " << tf << ", mLastClosedTF = " << mLastClosedTF;
       return false;
     }
@@ -185,14 +223,15 @@ bool TimeSlotCalibration<Input, Container>::process(const gsl::span<const Input>
 {
 
   // process current TF
-  TFType tf = mCurrentTFInfo.startTime;
+  TFType tf = mCurrentTFInfo.tfCounter;
+  uint64_t maxDelay64 = uint64_t(mSlotLength) * mMaxSlotsDelay;
+  TFType maxDelay = maxDelay64 > o2::calibration::INFINITE_TF ? o2::calibration::INFINITE_TF : TFType(maxDelay64);
 
-  int maxDelay = mMaxSlotsDelay * mSlotLength;
-  if (!mUpdateAtTheEndOfRunOnly) {                                                               // if you update at the end of run only, then you accept everything
-    if (tf < mLastClosedTF || (!mSlots.empty() && getLastSlot().getTFStart() > tf + maxDelay)) { // ignore TF; note that if you have only 1 timeslot
-                                                                                                 // which is INFINITE_TF wide, then maxDelay
-                                                                                                 // does not matter: you won't accept TFs from the past,
-                                                                                                 // so the first condition will be used
+  if (!mUpdateAtTheEndOfRunOnly) {                                                                 // if you update at the end of run only, then you accept everything
+    if (tf < mLastClosedTF || (!mSlots.empty() && getLastSlot().getTFStart() > tf + maxDelay64)) { // ignore TF; note that if you have only 1 timeslot
+                                                                                                   // which is INFINITE_TF wide, then maxDelay
+                                                                                                   // does not matter: you won't accept TFs from the past,
+                                                                                                   // so the first condition will be used
       LOG(info) << "Ignoring TF " << tf << ", mLastClosedTF = " << mLastClosedTF;
       return false;
     }
@@ -222,15 +261,9 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
 {
   // Check which slots can be finalized, provided the newly arrived TF is tf
 
-  constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-  constexpr int64_t INFINITE_TF_int64 = std::numeric_limits<long>::max() - 1; // this is used to define the end
-                                                                              // of the slot in case it is "std::numeric_limits<long>::max()"
-                                                                              // long (so we need to subtract 1)
-
-  // if we have one slot only which is INFINITE_TF_int64 long, and we are not at the end of run (tf != INFINITE_TF),
-  // we need to check if we got enough statistics, and if so, redefine the slot
-  if (mSlots.size() == 1 && mSlots[0].getTFEnd() == INFINITE_TF_int64) {
-    uint64_t checkInterval = mCheckIntervalInfiniteSlot + mLastCheckedTFInfiniteSlot;
+  // if slot finalization is asked as soon as the slot is ready, we need to check if we got enough statistics, and if so, redefine the slot
+  if (mSlots.size() == 1 && mFinalizeWhenReady) {
+    TFType checkInterval = mCheckIntervalInfiniteSlot + mLastCheckedTFInfiniteSlot;
     if (mWasCheckedInfiniteSlot) {
       checkInterval = mCheckDeltaIntervalInfiniteSlot + mLastCheckedTFInfiniteSlot;
     }
@@ -240,7 +273,7 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
         LOG(info) << "End of run reached, trying to calibrate what we have, if we have enough statistics";
       } else {
         LOG(info) << "Calibrating as soon as we have enough statistics:";
-        LOG(info) << "Update interval passed (" << checkInterval << "), checking slot for " << mSlots[0].getTFStart() << " <= TF <= " << mSlots[0].getTFEnd();
+        LOG(info) << "Update interval passed (" << checkInterval << "), checking slot for " << mSlots[0].getTFStart() << " <= TF <= " << INFINITE_TF;
       }
       mLastCheckedTFInfiniteSlot = tf;
       if (hasEnoughData(mSlots[0])) {
@@ -249,12 +282,13 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
         mSlots[0].setTFEnd(mMaxSeenTF);
         LOG(info) << "Finalizing slot for " << mSlots[0].getTFStart() << " <= TF <= " << mSlots[0].getTFEnd();
         finalizeSlot(mSlots[0]);                  // will be removed after finalization
-        mLastClosedTF = mSlots[0].getTFEnd() + 1; // will not accept any TF below this
+        mLastClosedTF = mSlots[0].getTFEnd() < INFINITE_TF ? (mSlots[0].getTFEnd() + 1) : mSlots[0].getTFEnd() < INFINITE_TF; // will not accept any TF below this
         mSlots.erase(mSlots.begin());
         // creating a new slot if we are not at the end of run
         if (tf != INFINITE_TF) {
-          LOG(info) << "Creating new slot for " << mLastClosedTF << " <= TF <= " << INFINITE_TF_int64;
-          emplaceNewSlot(true, mLastClosedTF, INFINITE_TF_int64);
+          LOG(info) << "Creating new slot for " << mLastClosedTF << " <= TF <= " << INFINITE_TF;
+          auto& sl = emplaceNewSlot(true, mLastClosedTF, INFINITE_TF);
+          sl.setRunStartOrbit(getRunStartOrbit());
         }
       } else {
         LOG(info) << "Not enough data to calibrate";
@@ -266,8 +300,9 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
   } else {
     // check if some slots are done
     for (auto slot = mSlots.begin(); slot != mSlots.end();) {
-      //if (maxDelay == 0 || (slot->getTFEnd() + maxDelay) < tf) {
-      if ((slot->getTFEnd() + maxDelay) < tf) {
+      uint64_t lim64 = uint64_t(maxDelay) + slot->getTFEnd();
+      TFType tfLim = lim64 < INFINITE_TF ? TFType(lim64) : INFINITE_TF;
+      if (tfLim < tf) {
         if (hasEnoughData(*slot)) {
           LOG(debug) << "Finalizing slot for " << slot->getTFStart() << " <= TF <= " << slot->getTFEnd();
           finalizeSlot(*slot); // will be removed after finalization
@@ -311,12 +346,13 @@ inline TFType TimeSlotCalibration<Input, Container>::tf2SlotMin(TFType tf) const
   // returns the min TF of the slot to which "tf" belongs
 
   if (tf < mFirstTF) {
-    throw std::runtime_error("invalide TF");
+    throw std::runtime_error("invalid TF");
   }
   if (mUpdateAtTheEndOfRunOnly) {
     return mFirstTF;
   }
-  return TFType((tf - mFirstTF) / mSlotLength) * mSlotLength + mFirstTF;
+  uint64_t tft = int64_t(((tf - mFirstTF) / mSlotLength) * mSlotLength) + mFirstTF;
+  return tft < o2::calibration::INFINITE_TF ? TFType(tft) : INFINITE_TF;
 }
 
 //_________________________________________________
@@ -325,12 +361,13 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
 {
 
   LOG(debug) << "Getting slot for TF " << tf;
-
+  checkSlotLength();
   if (mUpdateAtTheEndOfRunOnly) {
     if (!mSlots.empty() && mSlots.back().getTFEnd() < tf) {
       mSlots.back().setTFEnd(tf);
     } else if (mSlots.empty()) {
-      emplaceNewSlot(true, mFirstTF, tf);
+      auto& sl = emplaceNewSlot(true, mFirstTF, tf);
+      sl.setRunStartOrbit(getRunStartOrbit());
     }
     return mSlots.back();
   }
@@ -339,8 +376,11 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
     auto tfmn = tf2SlotMin(mSlots.front().getTFStart() - 1); // min TF of the slot corresponding to a TF smaller than the first seen
     auto tftgt = tf2SlotMin(tf);                             // min TF of the slot to which the TF "tf" would belong
     while (tfmn >= tftgt) {
-      LOG(info) << "Adding new slot for " << tfmn << " <= TF <= " << tfmn + mSlotLength - 1;
-      emplaceNewSlot(true, tfmn, tfmn + mSlotLength - 1);
+      uint64_t tft = uint64_t(tfmn) + mSlotLength - 1;
+      TFType tfmx = tft < o2::calibration::INFINITE_TF ? TFType(tft) : o2::calibration::INFINITE_TF;
+      LOG(info) << "Adding new slot for " << tfmn << " <= TF <= " << tfmx;
+      auto& sl = emplaceNewSlot(true, tfmn, tfmx);
+      sl.setRunStartOrbit(getRunStartOrbit());
       if (!tfmn) {
         break;
       }
@@ -357,24 +397,17 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
   // need to add in the end
   auto tfmn = mSlots.empty() ? tf2SlotMin(tf) : tf2SlotMin(mSlots.back().getTFEnd() + 1);
   do {
-    LOG(info) << "Adding new slot for " << tfmn << " <= TF <= " << tfmn + mSlotLength - 1;
-    emplaceNewSlot(false, tfmn, tfmn + mSlotLength - 1);
+    uint64_t tft = uint64_t(tfmn) + mSlotLength - 1;
+    TFType tfmx = tft < o2::calibration::INFINITE_TF ? TFType(tft) : o2::calibration::INFINITE_TF;
+    LOG(info) << "Adding new slot for " << tfmn << " <= TF <= " << tfmx;
+    auto& sl = emplaceNewSlot(false, tfmn, tfmx);
+    sl.setRunStartOrbit(getRunStartOrbit());
     tfmn = tf2SlotMin(mSlots.back().getTFEnd() + 1);
   } while (tf > mSlots.back().getTFEnd());
 
   return mSlots.back();
 }
-/*
-//_________________________________________________
-template <typename Input, typename Container>
-void TimeSlotCalibration<Input, Container>::setCurrentTFInfo(uint32_t firstOrbit, uint32_t tfCounter, uint32_t runNumber, uint64_t creation)
-{
-  mTFfirstOrbit = firstOrbit;
-  mTFcounter = tfCounter;
-  mTFrunNumber = runNumber;
-  mTFcreationTime = creation;
-}
-*/
+
 //_________________________________________________
 template <typename Input, typename Container>
 void TimeSlotCalibration<Input, Container>::print() const

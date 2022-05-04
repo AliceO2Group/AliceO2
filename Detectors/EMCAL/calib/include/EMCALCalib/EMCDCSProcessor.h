@@ -125,7 +125,7 @@ void EMCDCSProcessor::prepareCCDBobjectInfo(const T& obj, CcdbObjectInfo& info, 
   info.setObjectType(clName);
   info.setFileName(flName);
   info.setStartValidityTimestamp(tf);
-  info.setEndValidityTimestamp(99999999999999);
+  info.setEndValidityTimestamp(o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
   info.setMetaData(md);
 }
 

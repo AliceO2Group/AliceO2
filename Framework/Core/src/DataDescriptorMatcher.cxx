@@ -15,6 +15,7 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/VariantHelpers.h"
 #include "Framework/RuntimeError.h"
+#include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 #include <iostream>
 
@@ -54,13 +55,13 @@ bool OriginValueMatcher::match(header::DataHeader const& header, VariableContext
   if (auto ref = std::get_if<ContextRef>(&mValue)) {
     auto& variable = context.get(ref->index);
     if (auto value = std::get_if<std::string>(&variable)) {
-      return strncmp(header.dataOrigin.str, value->c_str(), 4) == 0;
+      return strncmp(header.dataOrigin.str, value->c_str(), header::DataOrigin::size) == 0;
     }
-    auto maxSize = strnlen(header.dataOrigin.str, 4);
+    auto maxSize = strnlen(header.dataOrigin.str, header::DataOrigin::size);
     context.put({ref->index, std::string(header.dataOrigin.str, maxSize)});
     return true;
   } else if (auto s = std::get_if<std::string>(&mValue)) {
-    return strncmp(header.dataOrigin.str, s->c_str(), 4) == 0;
+    return strncmp(header.dataOrigin.str, s->c_str(), header::DataOrigin::size) == 0;
   }
   throw runtime_error("Mismatching type for variable");
 }
@@ -70,13 +71,13 @@ bool DescriptionValueMatcher::match(header::DataHeader const& header, VariableCo
   if (auto ref = std::get_if<ContextRef>(&mValue)) {
     auto& variable = context.get(ref->index);
     if (auto value = std::get_if<std::string>(&variable)) {
-      return strncmp(header.dataDescription.str, value->c_str(), 16) == 0;
+      return strncmp(header.dataDescription.str, value->c_str(), header::DataDescription::size) == 0;
     }
-    auto maxSize = strnlen(header.dataDescription.str, 16);
+    auto maxSize = strnlen(header.dataDescription.str, header::DataDescription::size);
     context.put({ref->index, std::string(header.dataDescription.str, maxSize)});
     return true;
   } else if (auto s = std::get_if<std::string>(&this->mValue)) {
-    return strncmp(header.dataDescription.str, s->c_str(), 16) == 0;
+    return strncmp(header.dataDescription.str, s->c_str(), header::DataDescription::size) == 0;
   }
   throw runtime_error("Mismatching type for variable");
 }
@@ -243,6 +244,8 @@ bool DataDescriptorMatcher::match(char const* d, VariableContext& context) const
   //     return std::visit(eval, mLeft) ^ std::visit(eval, mRight);
   //   case Op::Just:
   //     return std::visit(eval, mLeft);
+  //   case Op::Not:
+  //     return !std::visit(eval, mLeft);
   // }
   //  When we drop support for macOS 10.13
   if (auto pval0 = std::get_if<OriginValueMatcher>(&mLeft)) {
@@ -287,6 +290,9 @@ bool DataDescriptorMatcher::match(char const* d, VariableContext& context) const
   if (mOp == Op::Just) {
     return leftValue;
   }
+  if (mOp == Op::Not) {
+    return !leftValue;
+  }
 
   if (auto pval0 = std::get_if<OriginValueMatcher>(&mRight)) {
     auto dh = o2::header::get<header::DataHeader*>(d);
@@ -317,6 +323,8 @@ bool DataDescriptorMatcher::match(char const* d, VariableContext& context) const
       return leftValue ^ rightValue;
     case Op::Just:
       return leftValue;
+    case Op::Not:
+      return !leftValue;
   }
   throw runtime_error("Bad parsing tree");
 };
@@ -383,7 +391,11 @@ bool DataDescriptorMatcher::operator==(DataDescriptorMatcher const& other) const
   }
 
   if (mOp == Op::Just) {
-    return true;
+    return leftValue;
+  }
+
+  if (mOp == Op::Not) {
+    return leftValue;
   }
 
   {
@@ -478,6 +490,9 @@ std::ostream& operator<<(std::ostream& os, DataDescriptorMatcher::Op const& op)
       break;
     case DataDescriptorMatcher::Op::Just:
       os << "just";
+      break;
+    case DataDescriptorMatcher::Op::Not:
+      os << "not";
       break;
     case DataDescriptorMatcher::Op::Xor:
       os << "xor";

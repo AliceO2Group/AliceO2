@@ -38,7 +38,7 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
   //probably will be set via run parameter
   static constexpr unsigned int DEFAULT_MIN_ENTRIES = 1000;
 
-  using TFType = uint64_t;
+  using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<TimeSlotStorageType>;
 
  public:
@@ -90,7 +90,7 @@ void FIT_CALIBRATOR_TYPE::finalizeSlot(Slot& slot)
     starting = container->getFirstCreation();
   }
   uint64_t stopping = starting + (slot.getTFEnd() - slot.getTFStart()) * TFlength;
-  LOG(info) << "!!!! TFstart " << slot.getTFStart() << " TFend " << slot.getTFEnd() << "starting = " << starting << " - stopping = " << stopping;
+  LOGP(info, "!!!! {}({})<=TF<={}({}), starting: {} stopping {}", slot.getTFStart(), slot.getStartTimeMS(), slot.getTFEnd(), slot.getEndTimeMS(), starting, stopping);
 
   auto calibrationObject = FITCalibrationObjectProducer::generateCalibrationObject<CalibrationObjectType>(*container);
   auto preparedCalibObjects = FITCalibrationApi::prepareCalibrationObjectToSend(calibrationObject, starting, stopping);

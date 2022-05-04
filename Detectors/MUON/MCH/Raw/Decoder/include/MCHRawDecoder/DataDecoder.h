@@ -158,8 +158,12 @@ class DataDecoder
   /// Must be called before processing the TmeFrame buffer
   void setFirstOrbitInTF(uint32_t orbit);
 
-  /// Decode one TimeFrame buffer and fill the vector of digits
-  void decodeBuffer(gsl::span<const std::byte> buf);
+  /** Decode one TimeFrame buffer and fill the vector of digits.
+   *  @return true if decoding went ok, or false otherwise.
+   *  if false is returned, the decoding of the (rest of the) TF should be
+   *  abandonned simply.
+   */
+  bool decodeBuffer(gsl::span<const std::byte> buf);
 
   /// Functions to set and get the calibration offset for the SAMPA time computation
   void setSampaBcOffset(uint32_t offset) { mSampaTimeOffset = offset; }
@@ -180,6 +184,7 @@ class DataDecoder
   /// Compute the time of all the digits that have been decoded in the current TimeFrame
   void computeDigitsTimeBCRst();
   void computeDigitsTime();
+  void checkDigitsTime(int minDigitTimeAccepted, int maxDigitTimeAccepted);
 
   /// Get the vector of digits that have been decoded in the current TimeFrame
   const RawDigitVector& getDigits() const { return mDigits; }

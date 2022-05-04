@@ -103,7 +103,7 @@ class CalibdEdxDevice : public Task
 
     const auto now = std::chrono::system_clock::now();
     const long timeStart = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-    const long timeEnd = 99999999999999;
+    const long timeEnd = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
 
     info.setPath("TPC/Calib/dEdx");
     info.setStartValidityTimestamp(timeStart);

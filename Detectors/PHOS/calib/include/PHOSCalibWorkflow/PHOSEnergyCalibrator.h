@@ -119,7 +119,7 @@ class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o
   bool hasEnoughData(const Slot& slot) const final { return true; } // no need to merge Slots
   void initOutput() final {}
   void finalizeSlot(Slot& slot) final;
-  Slot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
+  Slot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
   bool process(uint64_t tf, const gsl::span<const Cluster>& clusters, const gsl::span<const CluElement>& cluelements, const gsl::span<const TriggerRecord>& cluTR, std::vector<uint32_t>& outputDigits);
 
   void endOfStream();

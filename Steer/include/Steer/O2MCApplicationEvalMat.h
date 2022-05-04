@@ -40,7 +40,6 @@ class O2MCApplicationEvalMat : public O2MCApplicationBase
   O2MCApplicationEvalMat(const char* name, const char* title, TObjArray* ModList, const char* MatName) : O2MCApplicationBase(name, title, ModList, MatName), mMaterialBudgetMap(nullptr), mPhi(0), mMode(-1) {}
 
   ~O2MCApplicationEvalMat() override = default;
-  void BeginPrimary() override;
   void FinishPrimary() override;
   void Stepping() override;
   void BeginEvent() override;

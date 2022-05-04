@@ -40,6 +40,7 @@ struct MeanVertexData {
   std::vector<float> histoY{0};
   std::vector<float> histoZ{0};
   bool useFit = false;
+  bool mVerbose = false;
 
   MeanVertexData();
 
@@ -104,6 +105,7 @@ struct MeanVertexData {
   void fill(const gsl::span<const PVertex> data);
   void merge(const MeanVertexData* prev);
   void subtract(const MeanVertexData* prev);
+  void useVerboseMode(bool flag) { mVerbose = flag; }
 
   ClassDefNV(MeanVertexData, 1);
 };

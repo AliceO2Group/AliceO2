@@ -34,8 +34,8 @@ struct MeanVertexParams : public o2::conf::ConfigurableParamHelper<MeanVertexPar
   float rangeZ = 20.f;
   int nSlots4SMA = 5;
   bool useFit = false;
-  int tfPerSlot = 5;
-  int maxTFdelay = 3;
+  uint32_t tfPerSlot = 5u;
+  uint32_t maxTFdelay = 3u;
 
   O2ParamDef(MeanVertexParams, "MeanVertexCalib");
 };

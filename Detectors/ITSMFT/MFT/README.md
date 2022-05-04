@@ -92,14 +92,7 @@ More details about these workflows are available at the documentation for [MCH](
 
 ### MCH-MID matching
 
-Workflow: `MCH and MID track reader workflows -> Muon tracks matcher workflow`
-
-Example:
-```bash
-o2-mch-tracks-reader-workflow | o2-mid-tracks-reader-workflow | o2-muon-tracks-matcher-workflow | o2-muon-tracks-writer-workflow
-```
-
-The muon matcher workflows produces `muontracks.root`, which containes only track-matching information, as defined in [TrackMCHMID.h](../../../DataFormats/Reconstruction/include/ReconstructionDataFormats/TrackMCHMID.h).
+`o2-muon-tracks-matcher-workflow` runs MCH-MID matching, using MCH tracks (`mchtracks.root`) and MID tracks (`mid-reco.root`). By default it produces `muontracks.root`, which contains only track-matching information, as defined in [TrackMCHMID.h](../../../DataFormats/Reconstruction/include/ReconstructionDataFormats/TrackMCHMID.h).
 
 ### MFT-MCH-MID matching
 

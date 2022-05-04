@@ -62,6 +62,11 @@ class ConfigParamRegistry
     return mStore->store().count(key);
   }
 
+  bool hasOption(const char* key) const
+  {
+    return mStore->store().get_child_optional(key).is_initialized();
+  }
+
   bool isDefault(const char* key) const
   {
     return mStore->store().count(key) > 0 && mStore->provenance(key) != "default";

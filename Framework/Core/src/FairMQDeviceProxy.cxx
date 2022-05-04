@@ -10,7 +10,9 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/FairMQDeviceProxy.h"
+#include "Framework/DataSpecUtils.h"
 #include "InputRouteHelpers.h"
+#include "Framework/DataProcessingHeader.h"
 
 #include <fairmq/FairMQDevice.h>
 #include <fairmq/Channel.h>
@@ -52,6 +54,20 @@ fair::mq::Channel* FairMQDeviceProxy::getInputChannel(ChannelIndex index) const
   assert(index.value < mInputChannels.size());
   return mInputChannels[index.value];
 }
+
+ChannelIndex FairMQDeviceProxy::getOutputChannelIndex(OutputSpec const& query, size_t timeslice) const
+{
+  assert(mOutputRoutes.size() == mOutputs.size());
+  for (size_t ri = 0; ri < mOutputs.size(); ++ri) {
+    auto& route = mOutputs[ri];
+
+    LOG(debug) << "matching: " << DataSpecUtils::describe(query) << " to route " << DataSpecUtils::describe(route.matcher);
+    if (DataSpecUtils::match(route.matcher, query) && ((timeslice % route.maxTimeslices) == route.timeslice)) {
+      return mOutputRoutes[ri].channel;
+    }
+  }
+  return ChannelIndex{ChannelIndex::INVALID};
+};
 
 ChannelIndex FairMQDeviceProxy::getOutputChannelIndexByName(std::string const& name) const
 {
@@ -107,9 +123,10 @@ std::unique_ptr<FairMQMessage> FairMQDeviceProxy::createInputMessage(RouteIndex 
   return getInputTransport(routeIndex)->CreateMessage(size, fair::mq::Alignment{64});
 }
 
-void FairMQDeviceProxy::bindRoutes(std::vector<OutputRoute> const& outputs, std::vector<InputRoute> const& inputs, fair::mq::Device& device)
+void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vector<InputRoute> const& inputs, fair::mq::Device& device)
 {
   {
+    mOutputs = outputs;
     mOutputRoutes.reserve(outputs.size());
     size_t ri = 0;
     std::unordered_map<std::string, ChannelIndex> channelNameToChannel;
@@ -143,6 +160,7 @@ void FairMQDeviceProxy::bindRoutes(std::vector<OutputRoute> const& outputs, std:
 
   {
     auto maxLanes = InputRouteHelpers::maxLanes(inputs);
+    mInputs = inputs;
     mInputRoutes.reserve(inputs.size());
     size_t ri = 0;
     std::unordered_map<std::string, ChannelIndex> channelNameToChannel;
@@ -173,5 +191,6 @@ void FairMQDeviceProxy::bindRoutes(std::vector<OutputRoute> const& outputs, std:
     LOGP(debug, "Total input channels found {}, total routes {}", mInputChannels.size(), mInputRoutes.size());
     assert(mInputRoutes.size() == inputs.size());
   }
+  mStateChangeCallback = [&device]() -> bool { return device.NewStatePending(); };
 }
 } // namespace o2::framework

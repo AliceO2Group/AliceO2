@@ -17,6 +17,7 @@
 #include "TRDCalibration/TrackBasedCalib.h"
 #include "Framework/Task.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "CommonUtils/NameConf.h"
@@ -40,9 +41,12 @@ class TRDTrackBasedCalibDevice : public Task
   ~TRDTrackBasedCalibDevice() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
+  void updateTimeDependentParams(framework::ProcessingContext& pc);
+
   std::shared_ptr<DataRequest> mDataRequest;
   TrackBasedCalib mCalibrator; // gather input data for calibration of vD, ExB and gain
   std::unique_ptr<Output> mOutput;
@@ -61,6 +65,7 @@ void TRDTrackBasedCalibDevice::init(InitContext& ic)
 
 void TRDTrackBasedCalibDevice::run(ProcessingContext& pc)
 {
+  updateTimeDependentParams(pc);
   if (!mDataHeaderSet) {
     mOutput = std::make_unique<Output>(o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe);
     mDataHeaderSet = true;
@@ -75,6 +80,19 @@ void TRDTrackBasedCalibDevice::run(ProcessingContext& pc)
     mDataHeaderSet = false;
     mNumberOfProcessedTFs = 0;
     mCalibrator.reset();
+  }
+}
+
+void TRDTrackBasedCalibDevice::updateTimeDependentParams(ProcessingContext& pc)
+{
+  pc.inputs().get<o2::trd::NoiseStatusMCM*>("mcmnoisemap"); // just to trigger the finaliseCCDB
+}
+
+void TRDTrackBasedCalibDevice::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("TRD", "MCMNOISEMAP", 0)) {
+    LOG(info) << "NoiseStatusMCM object has been updated";
+    mCalibrator.setNoiseMapMCM((const o2::trd::NoiseStatusMCM*)obj);
   }
 }
 
@@ -105,11 +123,14 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
   dataRequest->requestTracks(srcTrk, false);
   dataRequest->requestClusters(srcClu, false);
 
+  auto& inputs = dataRequest->inputs;
+  inputs.emplace_back("mcmnoisemap", "TRD", "MCMNOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/NoiseMapMCM"));
+
   outputs.emplace_back(o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "trd-trackbased-calib",
-    dataRequest->inputs,
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TRDTrackBasedCalibDevice>(dataRequest)},
     Options{}};

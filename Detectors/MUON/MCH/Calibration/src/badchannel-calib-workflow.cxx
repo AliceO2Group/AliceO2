@@ -22,13 +22,6 @@ using namespace o2::framework;
 
 const char* specName = "mch-badchannel-calibrator";
 
-// customize the completion policy
-void customize(std::vector<o2::framework::CompletionPolicy>& policies)
-{
-  using o2::framework::CompletionPolicy;
-  policies.push_back(CompletionPolicyHelpers::defineByName(specName, CompletionPolicy::CompletionOp::Consume));
-}
-
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -45,12 +38,19 @@ DataProcessorSpec getBadChannelCalibratorSpec(const char* specName, const std::s
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MCH_BADCHAN"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MCH_BADCHAN"}, Lifetime::Sporadic);
   outputs.emplace_back(OutputSpec{"MCH", "PEDESTALS", 0, Lifetime::Sporadic});
-
+  std::vector<InputSpec> inputs = o2::framework::select(fmt::format("digits:MCH/{}", inputSpec.data()).c_str());
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   return DataProcessorSpec{
     specName,
-    o2::framework::select(fmt::format("digits:MCH/{}", inputSpec.data()).c_str()),
+    inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::mch::calibration::BadChannelCalibrationDevice>()},
+    AlgorithmSpec{adaptFromTask<o2::mch::calibration::BadChannelCalibrationDevice>(ccdbRequest)},
     Options{
       {"logging-interval", VariantType::Int, 0, {"time interval in seconds between logging messages (set to zero to disable)"}},
     }};

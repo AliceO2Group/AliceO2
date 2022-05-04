@@ -14,6 +14,7 @@
 /// \author julian.myrcha@cern.ch
 
 #include "EveWorkflow/FileProducer.h"
+#include "CommonUtils/FileSystemUtils.h"
 
 #include <deque>
 #include <iostream>
@@ -49,7 +50,7 @@ FileProducer::FileProducer(const std::string& path, int filesInFolder, const std
   this->mFilesInFolder = filesInFolder;
   this->mPath = path;
   this->mName = name;
-  std::filesystem::create_directories(this->mPath); // create folder if not exists (fails if no rights)
+  o2::utils::createDirectoriesIfAbsent(path); // create folder if not exists (fails if no rights)
 }
 
 std::string FileProducer::newFileName() const

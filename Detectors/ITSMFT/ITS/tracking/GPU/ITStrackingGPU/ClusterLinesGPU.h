@@ -11,7 +11,6 @@
 ///
 /// \file ClusterLinesGPU.h
 /// \brief GPU-compliant version of ClusterLines, for the moment separated, might create a common traits for ClusterLines + later specifications for each arch, later.
-/// \ autrhor: mconcas@cern.ch
 
 #ifndef ITSTRACKINGGPU_CLUSTERLINESGPU_H_
 #define ITSTRACKINGGPU_CLUSTERLINESGPU_H_
@@ -52,6 +51,7 @@ struct GPUVertex final {
   float errorY;
   float errorZ;
   int contributors;
+  int timeStamp;
   unsigned char realVertex;
 };
 

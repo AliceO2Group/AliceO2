@@ -259,6 +259,7 @@ class DataDescriptorMatcher
 {
  public:
   enum struct Op { Just,
+                   Not,
                    Or,
                    And,
                    Xor };

@@ -100,7 +100,10 @@ void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string cons
     }
   }
   if (timeSlice != (size_t)-1) {
-    o2::framework::DataProcessingHelpers::sendOldestPossibleTimeframe(device.GetChannel(channel, 0), timeSlice);
+    // We propagate the information about the oldest possible timeframe downstream.
+    // Notice that the oldest possible timeframe is not the one we just sent, but the one
+    // after because we know we will not send twice the same timeframe.
+    o2::framework::DataProcessingHelpers::sendOldestPossibleTimeframe(device.GetChannel(channel, 0), timeSlice + 1);
   }
   // FIXME: we need a better logic for avoiding message spam
   if (timeout > 1 && timeout <= maxTimeout) {
