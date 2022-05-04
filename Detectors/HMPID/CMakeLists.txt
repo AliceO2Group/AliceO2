@@ -14,4 +14,7 @@ add_subdirectory(simulation)
 add_subdirectory(reconstruction)
 add_subdirectory(workflow)
 add_subdirectory(calibration)
+if(BUILD_TESTING)
+    add_subdirectory(calibration/macros)
+endif()
 
