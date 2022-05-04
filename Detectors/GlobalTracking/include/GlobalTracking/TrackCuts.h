@@ -42,7 +42,8 @@ class TrackCuts
   {
     o2::track::TrackParCov trk;
     auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
-    auto src = trackIndex.getSource();                       // make selections depending on track source
+    auto src = trackIndex.getSource(); // make selections depending on track source
+    // ITS tracks
     if (contributorsGID[GIndex::Source::ITS].isIndexSet()) { // ITS tracks selection
       isBarrelTrack = true;
       const auto& itsTrk = data.getITSTrack(contributorsGID[GID::ITS]);
@@ -55,7 +56,9 @@ class TrackCuts
           TrackMethods::FulfillsITSHitRequirements(itsClusterMap, mRequiredITSHits) == false) {
         return false;
       }
-    } else if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+    }
+    // TPC tracks
+    if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
       isBarrelTrack = true;
       const auto& tpcTrk = data.getTPCTrack(contributorsGID[GID::TPC]);
       // uint8_t tpcNClsShared, tpcNClsFound, tpcNClsCrossed, tpcNClsFindable, tpcChi2NCl;
@@ -73,19 +76,22 @@ class TrackCuts
         return false;
       }
     }
-    // else if (contributorsGID[GIndex::Source::TRD].isIndexSet()) {
+    // if (contributorsGID[GIndex::Source::TRD].isIndexSet()) {
     //   const auto& trdTrk = data.getTrack<o2::trd::TrackTRD>(contributorsGID[GID::TRD]);
-    // } else if (contributorsGID[GIndex::Source::TOF].isIndexSet()) {
+    // }
+    // if (contributorsGID[GIndex::Source::TOF].isIndexSet()) {
     //   const auto& tofMatch = data.getTOFMatch(trackIndex);
-    // } else if (contributorsGID[GIndex::Source::TPCTRDTOF].isIndexSet()) {
+    // }
+    // if (contributorsGID[GIndex::Source::TPCTRDTOF].isIndexSet()) {
     //   trk = data.getTrack<o2::track::TrackParCov>(data.getTPCTRDTOFMatches()[trackIndex].getTrackRef());
-    // } else if (contributorsGID[GIndex::Source::ITSTPCTRDTOF].isIndexSet()) {
+    // }
+    // if (contributorsGID[GIndex::Source::ITSTPCTRDTOF].isIndexSet()) {
     //   trk = data.getTrack<o2::track::TrackParCov>(data.getITSTPCTRDTOFMatches()[trackIndex].getTrackRef()); // ITSTPCTRDTOF is ITSTPCTRD + TOF cluster
-    // } else if (contributorsGID[GIndex::Source::ITSTPCTOF].isIndexSet()) {
+    // }
+    // if (contributorsGID[GIndex::Source::ITSTPCTOF].isIndexSet()) {
     //   trk = data.getTrack<o2::track::TrackParCov>(data.getTOFMatch(trackIndex).getTrackRef()); // ITSTPCTOF is ITSTPC + TOF cluster
     // }
-
-    if (isBarrelTrack) {
+    if (isBarrelTrack) { // track selection for barrel tracks
       trk = data.getTrackParam(trackIndex);
       if (trk.getPt() >= mMinPt && trk.getPt() <= mMaxPt && trk.getEta() >= mMinEta && trk.getEta() <= mMaxEta) {
         return true;
@@ -96,7 +102,7 @@ class TrackCuts
   }
 
  private:
-  bool isBarrelTrack = false; // all barrel tracks must have either ITS or TPC contribution
+  bool isBarrelTrack = false; // all barrel tracks must have either ITS or TPC contribution -> true if ITS || TPC track source condition is passed
   // cut values
   float mPtTPCCut = 0.1f;
   float mEtaTPCCut = 1.4f;
