@@ -112,6 +112,13 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
     mTrackSet.trackGID.push_back(gid);
     mTrackSet.trackTime.push_back(bracket.mean());
 
+    // for TPC we need internal time, not the center of the possible interval
+    if constexpr (isTPCTrack<decltype(trk)>()) {
+      mTrackSet.trackPropagationTime.push_back(trk.getTime0());
+    } else {
+      mTrackSet.trackPropagationTime.push_back(bracket.mean());
+    }
+
     return true;
   };
 
@@ -122,11 +129,12 @@ void EveWorkflowHelper::draw()
 {
   for (size_t it = 0; it < mTrackSet.trackGID.size(); it++) {
     const auto& gid = mTrackSet.trackGID[it];
-    auto tim = mTrackSet.trackTime[it];
+    const auto& tim = mTrackSet.trackTime[it];
+    const auto& proptim = mTrackSet.trackPropagationTime[it];
     // LOG(info) << "EveWorkflowHelper::draw " << gid.asString();
     switch (gid.getSource()) {
       case GID::TPC:
-        drawTPC(gid, tim);
+        drawTPC(gid, tim, proptim);
         break;
       case GID::MFT:
         drawMFT(gid, tim);
@@ -236,7 +244,7 @@ std::vector<PNT> EveWorkflowHelper::getTrackPoints(const o2::track::TrackPar& tr
   return pnts;
 }
 
-void EveWorkflowHelper::addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz, GID::Source source)
+void EveWorkflowHelper::addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz, GID::Source source, float maxStep)
 {
   if (source == GID::NSources) {
     source = (o2::dataformats::GlobalTrackID::Source)gid.getSource();
@@ -250,7 +258,7 @@ void EveWorkflowHelper::addTrackToEvent(const o2::track::TrackParCov& tr, GID gi
                                  .eta = tr.getEta(),
                                  .gid = gid.asString(),
                                  .source = source});
-  auto pnts = getTrackPoints(tr, minmaxR[source].first, minmaxR[source].second, 4, minmaxZ[source].first, minmaxZ[source].second);
+  auto pnts = getTrackPoints(tr, minmaxR[source].first, minmaxR[source].second, maxStep, minmaxZ[source].first, minmaxZ[source].second);
 
   for (size_t ip = 0; ip < pnts.size(); ip++) {
     vTrack->addPolyPoint(pnts[ip][0], pnts[ip][1], pnts[ip][2] + dz);
@@ -466,49 +474,21 @@ void EveWorkflowHelper::drawMFTClusters(GID gid, float trackTime)
   }
 }
 
-void EveWorkflowHelper::drawTPC(GID gid, float trackTime)
+void EveWorkflowHelper::drawTPC(GID gid, float trackTime, float trackPropagationTime)
 {
   const auto& tr = mRecoCont.getTPCTrack(gid);
   // this is a hack to suppress the noise
   //  if (std::abs(tr.getEta()) < 0.05) {
   //    return;
   //  }
-  auto vTrack = mEvent.addTrack({.time = static_cast<float>(trackTime * 8 * o2::constants::lhc::LHCBunchSpacingMUS),
-                                 .charge = tr.getCharge(),
-                                 .PID = tr.getPID(),
-                                 .startXYZ = {tr.getX(), tr.getY(), tr.getZ()},
-                                 .phi = tr.getPhi(),
-                                 .theta = tr.getTheta(),
-                                 .eta = tr.getEta(),
-                                 .gid = gid.asString(),
-                                 .source = GID::TPC});
-  auto source = gid.getSource();
-  auto pnts = getTrackPoints(tr, minmaxR[source].first, minmaxR[source].second, 4, minmaxZ[source].first, minmaxZ[source].second);
-  float dz = 0.0;
-  for (size_t ip = 0; ip < pnts.size(); ip++) {
-    vTrack->addPolyPoint(pnts[ip][0], pnts[ip][1], pnts[ip][2] + dz);
-  }
-  drawTPCClusters(gid, trackTime);
+  addTrackToEvent(tr, gid, trackTime, 0.);
+  drawTPCClusters(gid, trackPropagationTime);
 }
 
 void EveWorkflowHelper::drawITS(GID gid, float trackTime)
 {
   const auto& tr = mRecoCont.getITSTrack(gid);
-  auto vTrack = mEvent.addTrack({.time = static_cast<float>(trackTime * 8 * o2::constants::lhc::LHCBunchSpacingMUS),
-                                 .charge = tr.getCharge(),
-                                 .PID = tr.getPID(),
-                                 .startXYZ = {tr.getX(), tr.getY(), tr.getZ()},
-                                 .phi = tr.getPhi(),
-                                 .theta = tr.getTheta(),
-                                 .eta = tr.getEta(),
-                                 .gid = gid.asString(),
-                                 .source = GID::ITS});
-  auto source = gid.getSource();
-  auto pnts = getTrackPoints(tr, minmaxR[source].first, minmaxR[source].second, 1.0, minmaxZ[source].first, minmaxZ[source].second);
-  float dz = 0.0;
-  for (size_t ip = 0; ip < pnts.size(); ip++) {
-    vTrack->addPolyPoint(pnts[ip][0], pnts[ip][1], pnts[ip][2] + dz);
-  }
+  addTrackToEvent(tr, gid, trackTime, 0., GID::ITS, 1.f);
   drawITSClusters(gid, trackTime);
 }
 

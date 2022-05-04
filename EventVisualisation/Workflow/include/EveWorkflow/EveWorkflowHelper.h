@@ -41,7 +41,8 @@ using PNT = std::array<float, 3>;
 
 struct TracksSet {
   std::vector<GID> trackGID;
-  std::vector<float> trackTime;
+  std::vector<float> trackTime;            // center of the possible time interval for the track
+  std::vector<float> trackPropagationTime; // time used in propagation - in TPC case it is shifted to place clusters in the correct position
 };
 
 class EveWorkflowHelper
@@ -123,9 +124,9 @@ class EveWorkflowHelper
   static std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep, float minZ = -25000, float maxZ = 25000);
   void selectTracks(const CalibObjectsConst* calib, GID::mask_t maskCl,
                     GID::mask_t maskTrk, GID::mask_t maskMatch);
-  void addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz, GID::Source source = GID::NSources);
+  void addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz, GID::Source source = GID::NSources, float maxStep = 4.f);
   void draw();
-  void drawTPC(GID gid, float trackTime);
+  void drawTPC(GID gid, float trackTime, float trackPropagationTime);
   void drawITS(GID gid, float trackTime);
   void drawMFT(GID gid, float trackTime);
   void drawMCH(GID gid, float trackTime);
