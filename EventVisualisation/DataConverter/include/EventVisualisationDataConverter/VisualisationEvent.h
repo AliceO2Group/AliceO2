@@ -116,6 +116,7 @@ class VisualisationEvent
   size_t getClusterCount() const { return mClusters.size(); } // Returns number of clusters
   void setWorkflowVersion(float workflowVersion) { this->mWorkflowVersion = workflowVersion; }
   void setWorkflowParameters(const std::string& workflowParameters) { this->mWorkflowParameters = workflowParameters; }
+  std::string getWorkflowParameters() { return this->mWorkflowParameters; }
 
   o2::header::DataHeader::RunNumberType getRunNumber() const { return this->mRunNumber; }
   void setRunNumber(o2::header::DataHeader::RunNumberType runNumber) { this->mRunNumber = runNumber; }

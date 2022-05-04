@@ -159,6 +159,7 @@ VisualisationEvent::VisualisationEvent(const VisualisationEvent& source, EVisual
       this->mClusters.push_back(*it);
     }
   }
+  this->mWorkflowParameters = source.mWorkflowParameters;
 }
 
 void VisualisationEvent::fromJson(std::string json)
@@ -236,9 +237,9 @@ bool VisualisationEvent::fromFile(std::string fileName)
   inFile.open(fileName);
 
   std::stringstream strStream;
-  strStream << inFile.rdbuf(); //read the file
+  strStream << inFile.rdbuf(); // read the file
   inFile.close();
-  std::string str = strStream.str(); //str holds the content of the file
+  std::string str = strStream.str(); // str holds the content of the file
   fromJson(str);
   return true;
 }
