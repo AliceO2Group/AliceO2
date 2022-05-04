@@ -43,52 +43,39 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 o2::framework::WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
-  const auto maxChambers = std::min(config.options().get<int>("max-chambers"), 6);
+	const auto maxChambers = std::min(config.options().get<int>("max-chambers"), 6); // o2-hmpid-dcs-sim-workflow --max-chambers 6
 
-  std::vector<o2::dcs::test::HintType> dphints;
+	std::vector<o2::dcs::test::HintType> dphints;
 
-// ==| Environment Pressure  (mBar) |=================================
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value", 980., 1040.});
-
-
-      for(int iCh = 0; iCh < 7; iCh++)
-      {
-    	// ==|(CH4) Chamber Pressures  (mBar?) |=================================
-	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_MP%i/HMP_MP%i_GAS/HMP_MP%i_GAS_PMWPC.actual.value",iCh,iCh,iCh), 980., 1040.});
-
-	    // ==| Temperature C6F14 IN/OUT / RADIATORS  (C) |=================================
-           for(int iRad = 0; iRad < 3; iRad++)
-           {  
-		   		 
-		dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iIn_Temp",iCh,iCh,iRad),25., 27.});
-		dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iOut_Temp",iCh,iCh,iRad),25., 27.});
-
-           }
-	      
-	   // ===| HV / SECTORS (V) |=========================================================	      
-           for(int iSec = 0; iSec < 6; iSec++)
-           {  
-		dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_MP%i/HMP_MP%i_PW/HMP_MP%i_SEC%i/HMP_MP%i_SEC%i_HV.actual.vMon",iCh,iCh,iCh,iSec,iCh,iSec), 2400., 2500.});
-           } 
-      }
-
-  
-  
-     // string for DPs of Refractive Index Parameters =============================================================
-     // EF: dont know ranges for IRs yet, using 2400 2500 as temp
-  
-      for(int i = 0; i < 30; i++)
-      {
-        dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.waveLenght",i), 2400., 2500.});
-        dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonReference",i), 2400., 2500.});
-        dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonCell",i), 2400., 2500.});
-        dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Cell",i), 2400., 2500.});
-        dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Reference",i), 2400., 2500.}); 
-      }  
+	// ==| Environment Pressure  (mBar) |=================================
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value", 980., 1040.});
 
 
+	// ==|(CH4) Chamber Pressures  (mBar?) |=================================
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_GAS/HMP_MP[0..{}]_GAS_PMWPC.actual.value",maxChambers,maxChambers,maxChambers), 980., 1040.});	
 
-  WorkflowSpec specs;
-  specs.emplace_back(o2::dcs::test::getDCSRandomDataGeneratorSpec(dphints, "HMPID"));
-  return specs;
+	==| Temperature C6F14 IN/OUT / RADIATORS  (C) |=================================
+	auto iRad = 3; 
+
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_LIQ_LOOP.actual.sensors.Rad[0..{}]In_Temp",maxChambers,maxChambers,iRad),25., 27.});
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_LIQ_LOOP.actual.sensors.Rad[0..{}]Out_Temp",maxChambers,maxChambers,iRad),25., 27.});	
+
+	// ===| HV / SECTORS (V) |=========================================================	      
+	auto iSec = 6; 
+
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_PW/HMP_MP[0..{}]_SEC[0..{}]/HMP_MP[0..{}]_SEC[0..{}]_HV.actual.vMon",maxChambers,maxChambers,maxChambers,iSec,maxChambers,iSec), 2400., 2500.});
+
+
+	// string for DPs of Refractive Index Parameters =============================================================
+	// EF: dont know ranges for IRs yet, using 2400 2500 as temp
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].waveLenght"), 2400., 2500.})
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].argonReference"), 2400., 2500.})
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].argonCell"), 2400., 2500.})
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].c6f14Cell"), 2400., 2500.})
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].c6f14Reference"), 2400., 2500.})
+
+
+	WorkflowSpec specs;
+	specs.emplace_back(o2::dcs::test::getDCSRandomDataGeneratorSpec(dphints, "HMPID"));
+	return specs;
 }
