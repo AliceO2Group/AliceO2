@@ -52,7 +52,7 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
     std::vector<DPID> vect;
      
 
-    
+    // GV: is this necessary for HMPID?
    /*	We only need to process datapoints and make fits after run is over-->   
     mDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval");
     if (mDPsUpdateInterval == 0) {
@@ -72,7 +72,9 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
       CcdbApi api;
       api.init(mgr.getURL());
       long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-      std::unordered_map<DPID, std::string>* dpid2DataDesc = mgr.getForTimeStamp<std::unordered_map<DPID, std::string>>("HMPID/Config/DCSDPconfig", ts);
+      std::unordered_map<DPID, std::string>* dpid2DataDesc = mgr.getForTimeStamp<std::unordered_map<DPID, std::string>>("HMPID/Config/DCSDPconfig", ts); // correct??
+     // "HMPID/Config/DCSDPconfig", from : 
+     // https://github.com/AliceO2Group/AliceO2/blob/f76eb23c3fa8d81c5bfea9071d047ef548059fd4/Detectors/TOF/calibration/macros/makeTOFCCDBEntryForDCS.C#L49-L50
       for (auto& i : *dpid2DataDesc) {	
         vect.push_back(i.first);
       }
@@ -129,6 +131,9 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
     
     // as of now, the finalize-function processes both RefIndex and ChargeCut
     mProcessor->finalize(); // finalize, in HMPID-function
+    
+    //sendChargeThresOutput(pc.outputs()); // should be in run ??
+    //sendRefIndexOutput(pc.outputs());
   }
   
 //==========================================================================
@@ -192,11 +197,9 @@ DataProcessorSpec getHMPIDDCSDataProcessorSpec()
   std::vector<OutputSpec> outputs;
  
   // NB! probably change Lifetime::Sporadic
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ChargeCut"}, Lifetime::Sporadic); 
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ChargeCut"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ChargeCut"}, Lifetime::Sporadic); outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ChargeCut"}, Lifetime::Sporadic);
 
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "RefIndex"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "RefIndex"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "RefIndex"}, Lifetime::Sporadic); outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "RefIndex"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "hmpid-dcs-data-processor",
@@ -207,12 +210,13 @@ DataProcessorSpec getHMPIDDCSDataProcessorSpec()
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
             {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}}//,
             // NB! commented out DPs update interval for HMPID:
-            //{"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}
+            ,{"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}
             }};
 }
 
 } // namespace framework
 } // namespace o2
+
 
 
 

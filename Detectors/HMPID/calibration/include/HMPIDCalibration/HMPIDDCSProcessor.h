@@ -68,20 +68,20 @@ class HMPIDDCSProcessor{
 	
 	 	// DCS-CCDB methods and members ===================================================================================================
 	
-		const CcdbObjectInfo& getccdbREF_INDEXsInfo() const { return mccdbREF_INDEX_Info; }
-         	CcdbObjectInfo& getccdbREF_INDEXsInfo() { return mccdbREF_INDEX_Info; }
+		CcdbObjectInfo& getccdbREF_INDEXsInfo() { return mccdbREF_INDEX_Info; }
+         	//CcdbObjectInfo& getccdbREF_INDEXsInfo() { return mccdbREF_INDEX_Info; }
 	
-		const std::array<TF1,43>& getRefIndexObj() const { return arNmean; } // mRefIndex
+		std::array<TF1,43>& getRefIndexObj()  { return arNmean; } // mRefIndex
 // for calculating refractive index: 
 		//TF1 arNmean[43]; /// 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
 				 // + 1 for ePhotMean (mean photon energy) 		
 
 
 	
-   		const CcdbObjectInfo& getHmpidChargeCutInfo() const { return mccdbCHARGE_CUT_Info; }
-    		CcdbObjectInfo& getHmpidChargeCutInfo() { return mccdbCHARGE_CUT_Info; }
+   		CcdbObjectInfo& getHmpidChargeCutInfo() { return mccdbCHARGE_CUT_Info; }
+    		//CcdbObjectInfo& getHmpidChargeCutInfo() { return mccdbCHARGE_CUT_Info; }
 	
-		const std::array<TF1,42>& getChargeCutObj() const { return arQthre; }// mChargeCut
+		std::array<TF1,42>& getChargeCutObj() { return arQthre; }// mChargeCut
 		// Charge Threshold: 
 		// TF1 arQthre[42];  //42 Qthre=f(time) one per sector
 	
@@ -155,10 +155,10 @@ class HMPIDDCSProcessor{
 		bool mVerbose = false;		
 
 		CcdbObjectInfo mccdbREF_INDEX_Info;
-		const std::array<TF1,43> mRefIndex;//TF1 mRefIndex[43];
+		std::array<TF1,43> mRefIndex;//TF1 mRefIndex[43];
 	
 		CcdbObjectInfo mccdbCHARGE_CUT_Info;
-		const std::array<TF1,42> mChargeCut;//TF1 mChargeCut[42];
+		std::array<TF1,42> mChargeCut;//TF1 mChargeCut[42];
 
 
 // ProcTrans private variables	
@@ -339,6 +339,7 @@ class HMPIDDCSProcessor{
       		Form(HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Reference) 
 */
      
+
 
 
 

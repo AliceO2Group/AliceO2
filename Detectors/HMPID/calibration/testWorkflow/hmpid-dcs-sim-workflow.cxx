@@ -54,28 +54,61 @@ o2::framework::WorkflowSpec defineDataProcessing(ConfigContext const& config)
 	// ==|(CH4) Chamber Pressures  (mBar?) |=================================
 	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_GAS/HMP_MP[0..{}]_GAS_PMWPC.actual.value",maxChambers,maxChambers,maxChambers), 980., 1040.});	
 
-	==| Temperature C6F14 IN/OUT / RADIATORS  (C) |=================================
-	auto iRad = 3; 
+	//==| Temperature C6F14 IN/OUT / RADIATORS  (C) |=================================
+	int iRad = 3; 
 
 	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_LIQ_LOOP.actual.sensors.Rad[0..{}]In_Temp",maxChambers,maxChambers,iRad),25., 27.});
 	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_LIQ_LOOP.actual.sensors.Rad[0..{}]Out_Temp",maxChambers,maxChambers,iRad),25., 27.});	
 
 	// ===| HV / SECTORS (V) |=========================================================	      
-	auto iSec = 6; 
+	int iSec = 6; 
 
-	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{Form("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_PW/HMP_MP[0..{}]_SEC[0..{}]/HMP_MP[0..{}]_SEC[0..{}]_HV.actual.vMon",maxChambers,maxChambers,maxChambers,iSec,maxChambers,iSec), 2400., 2500.});
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_PW/HMP_MP[0..{}]_SEC[0..{}]/HMP_MP[0..{}]_SEC[0..{}]_HV.actual.vMon",maxChambers,maxChambers,maxChambers,iSec,maxChambers,iSec), 2400., 2500.});
 
 
 	// string for DPs of Refractive Index Parameters =============================================================
 	// EF: dont know ranges for IRs yet, using 2400 2500 as temp
-	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].waveLenght"), 2400., 2500.})
-	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].argonReference"), 2400., 2500.})
-	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].argonCell"), 2400., 2500.})
-	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].c6f14Cell"), 2400., 2500.})
-	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].c6f14Reference"), 2400., 2500.})
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].waveLenght"), 2400., 2500.});
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].argonReference"), 2400., 2500.});
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].argonCell"), 2400., 2500.});
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].c6f14Cell"), 2400., 2500.});
+	dphints.emplace_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].c6f14Reference"), 2400., 2500.});
 
 
-	WorkflowSpec specs;
+	o2::framework::WorkflowSpec specs;
+
 	specs.emplace_back(o2::dcs::test::getDCSRandomDataGeneratorSpec(dphints, "HMPID"));
 	return specs;
 }
+
+/*
+
+EnvPressure
+
+HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value
+
+
+Chamber Pressure 
+
+HMP_DET/HMP_MP[0..6]/HMP_MP[0..6]_GAS/HMP_MP[0..6]_GAS_PMWPC.actual.value
+
+
+Temp-in
+
+HMP_DET/HMP_MP[0..6]/HMP_MP[0..6]_LIQ_LOOP.actual.sensors.Rad[0..3]In_Temp
+
+
+HV
+
+HMP_DET/HMP_MP[0..6]/HMP_MP[0..6]_PW/HMP_MP[0..6]_SEC[0..6]/
+HMP_MP[0..6]_SEC[0..6]_HV.actual.vMon
+
+
+IR
+
+HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].waveLenght
+
+*/
+
+
+
