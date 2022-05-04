@@ -32,8 +32,10 @@
 
 #include "GPUCommonArray.h"
 
+#ifdef VTX_DEBUG
 #include "TTree.h"
 #include "TFile.h"
+#endif
 
 namespace o2
 {
@@ -108,26 +110,37 @@ GPUd() void printOnThread(const unsigned int tId, const char* str, Args... args)
   }
 }
 
-GPUd() void printVectorOnThread(const char* name, Vector<int>& vector, size_t size, const unsigned int tId = 0)
+GPUg() void printBufferOnThread(const int* v, size_t size, const unsigned int tId = 0)
 {
   if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
-    printf("vector %s :", name);
+    printf("vector :");
     for (int i{0}; i < size; ++i) {
-      printf("%d ", vector[i]);
+      printf("%d\t", v[i]);
     }
     printf("\n");
   }
 }
 
-// GPUg() void dumpMaximaKernel(DeviceStoreVertexerGPU& store, const int threadId)
-// {
-//   if (blockIdx.x * blockDim.x + threadIdx.x == threadId) {
-//     printf("XmaxBin: %d at index: %d | YmaxBin: %d at index: %d | ZmaxBin: %d at index: %d\n",
-//            tmpVertexBins[0].value, tmpVertexBins[0].key,
-//            tmpVertexBins[1].value, tmpVertexBins[1].key,
-//            tmpVertexBins[2].value, tmpVertexBins[2].key);
-//   }
-// }
+GPUg() void printBufferOnThreadF(const float* v, size_t size, const unsigned int tId = 0)
+{
+  if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
+    printf("vector :");
+    for (int i{0}; i < size; ++i) {
+      printf("%.9f\t", v[i]);
+    }
+    printf("\n");
+  }
+}
+
+GPUg() void dumpMaximaKernel(const cub::KeyValuePair<int, int>* tmpVertexBins, const int threadId)
+{
+  if (blockIdx.x * blockDim.x + threadIdx.x == threadId) {
+    printf("XmaxBin: %d at index: %d | YmaxBin: %d at index: %d | ZmaxBin: %d at index: %d\n",
+           tmpVertexBins[0].value, tmpVertexBins[0].key,
+           tmpVertexBins[1].value, tmpVertexBins[1].key,
+           tmpVertexBins[2].value, tmpVertexBins[2].key);
+  }
+}
 
 template <TrackletMode Mode>
 GPUg() void trackleterKernel(
@@ -252,12 +265,16 @@ GPUg() void computeCentroidsKernel(Line* lines,
         centroids[2 * currentThreadIndex] = cluster.getVertex()[0];
         centroids[2 * currentThreadIndex + 1] = cluster.getVertex()[1];
       } else {
-        // writing some data anyway outside the histogram, they will not be put in the histogram, by construction.
+        // write values outside the histogram boundaries,
+        // default behaviour is not to have them added to histogram later
+        // (writing zeroes would be problematic)
         centroids[2 * currentThreadIndex] = 2 * lowHistX;
         centroids[2 * currentThreadIndex + 1] = 2 * lowHistY;
       }
     } else {
-      // writing some data anyway outside the histogram, they will not be put in the histogram, by construction.
+      // write values outside the histogram boundaries,
+      // default behaviour is not to have them added to histogram later
+      // (writing zeroes would be problematic)
       centroids[2 * currentThreadIndex] = 2 * highHistX;
       centroids[2 * currentThreadIndex + 1] = 2 * highHistY;
     }
@@ -389,7 +406,7 @@ void VertexerTraitsGPU::computeTracklets()
       mDeviceIndexTableUtils,
       mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
   }
-  // #ifdef VTX_DEBUG
+#ifdef VTX_DEBUG
   std::ofstream out01("NTC01.txt"), out12("NTC12.txt");
   std::vector<std::vector<int>> NtrackletsClusters01(mTimeFrameGPU->getNrof());
   std::vector<std::vector<int>> NtrackletsClusters12(mTimeFrameGPU->getNrof());
@@ -447,7 +464,7 @@ void VertexerTraitsGPU::computeTracklets()
   trackletFile->cd();
   tr_tre->Write();
   trackletFile->Close();
-  // #endif
+#endif
 }
 
 void VertexerTraitsGPU::computeTrackletMatching()
@@ -502,7 +519,7 @@ void VertexerTraitsGPU::computeTrackletMatching()
       mVrtParams.phiCut);
     gpuThrowOnError();
   }
-  // #ifdef VTX_DEBUG
+#ifdef VTX_DEBUG
   std::vector<std::vector<int>> NFoundLines(mTimeFrameGPU->getNrof()), ExcNFoundLines(mTimeFrameGPU->getNrof());
   std::ofstream nlines_out("N_lines_gpu.txt");
   for (size_t rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
@@ -533,7 +550,7 @@ void VertexerTraitsGPU::computeTrackletMatching()
   trackletFile->cd();
   ln_tre->Write();
   trackletFile->Close();
-  // #endif
+#endif
 }
 
 void VertexerTraitsGPU::computeVertices()
@@ -560,7 +577,7 @@ void VertexerTraitsGPU::computeVertices()
       mTimeFrameGPU->getDeviceNFoundLines(rofId),
       mTimeFrameGPU->getDeviceExclusiveNFoundLines(rofId),
       mTimeFrameGPU->getNClustersLayer(rofId, 1),
-      mTimeFrameGPU->getDeviceXYCentroids(rofId),
+      mTimeFrameGPU->getDeviceXYCentroids(rofId), // output
       mTimeFrameGPU->getConfig().histConf.lowHistBoundariesXYZ[0],
       mTimeFrameGPU->getConfig().histConf.highHistBoundariesXYZ[0],
       mTimeFrameGPU->getConfig().histConf.lowHistBoundariesXYZ[1],
@@ -575,6 +592,7 @@ void VertexerTraitsGPU::computeVertices()
                                                                  tmpArrayLow,                                                       // lower_level
                                                                  tmpArrayHigh,                                                      // fupper_level
                                                                  nCentroids));                                                      // num_row_pixels
+
     discardResult(cub::DeviceReduce::ArgMax(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(rofId)),
                                             bufferSize,
                                             histogramXY[0],
@@ -591,7 +609,7 @@ void VertexerTraitsGPU::computeVertices()
                                                                   mTimeFrameGPU->getTmpVertexPositionBins(rofId),
                                                                   mTimeFrameGPU->getDeviceBeamPosition(rofId),
                                                                   mTimeFrameGPU->getDeviceLines(rofId),
-                                                                  mTimeFrameGPU->getDeviceZCentroids(rofId),
+                                                                  mTimeFrameGPU->getDeviceZCentroids(rofId), // output
                                                                   mTimeFrameGPU->getDeviceXHistograms(rofId),
                                                                   mTimeFrameGPU->getConfig().histConf.lowHistBoundariesXYZ[0],
                                                                   mTimeFrameGPU->getConfig().histConf.binSizeHistX,
@@ -613,6 +631,7 @@ void VertexerTraitsGPU::computeVertices()
                                                       mTimeFrameGPU->getConfig().histConf.lowHistBoundariesXYZ[2],       // lower_level
                                                       mTimeFrameGPU->getConfig().histConf.highHistBoundariesXYZ[2],      // fupper_level
                                                       nLines));                                                          // num_row_pixels
+
     for (int iVertex{0}; iVertex < mTimeFrameGPU->getConfig().maxVerticesCapacity; ++iVertex) {
       discardResult(cub::DeviceReduce::ArgMax(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(rofId)),
                                               bufferSize,
