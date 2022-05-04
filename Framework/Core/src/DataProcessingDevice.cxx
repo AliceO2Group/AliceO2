@@ -542,6 +542,7 @@ void DataProcessingDevice::initPollers()
     auto* timer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
     uv_timer_init(mState.loop, timer);
     timer->data = &mState;
+    uv_update_time(mState.loop);
     uv_timer_start(timer, on_idle_timer, 2000, 2000);
     mState.activeTimers.push_back(timer);
   }
@@ -779,6 +780,7 @@ void DataProcessingDevice::Run()
         auto timeout = mDeviceContext.exitTransitionTimeout;
         if (timeout != 0 && mState.streaming != StreamingState::Idle) {
           mState.transitionHandling = TransitionHandlingState::Requested;
+          uv_update_time(mState.loop);
           uv_timer_start(mDeviceContext.gracePeriodTimer, on_transition_requested_expired, timeout * 1000, 0);
           if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
             LOGP(info, "New state requested. Waiting for {} seconds before quitting.", timeout);
