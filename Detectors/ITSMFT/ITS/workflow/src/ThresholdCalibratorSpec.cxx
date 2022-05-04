@@ -949,7 +949,7 @@ void ITSThresholdCalibrator::addDatabaseEntry(
   }
 
   // Get ConfDB id for the chip chipID
-  int confDBid = mConfDBmap->at(chipID);
+  int confDBid = (*mConfDBmap)[chipID];
 
   // Bad pix list and bad dcols for dig and ana scan
   if (this->mScanType == 'D' || this->mScanType == 'A') {
