@@ -2245,7 +2245,6 @@ int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const ClusRan
     int clID = itsChipClRefs.clusterID[icID++];  // so, we go in clusterID increasing direction
     const auto& cls = mITSClustersArray[clID];
     float dz = trackZ - cls.getZ();
-    auto label = mITSClsLabels->getLabels(clID)[0]; // tmp
     LOG(debug) << "cl" << icl << '/' << clID << " "
                << " dZ: " << dz << " [" << tolerZ << "| dY: " << trackY - cls.getY() << " [" << tolerY << "]";
     if (dz > tolerZ) {
