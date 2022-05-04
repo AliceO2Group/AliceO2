@@ -98,7 +98,9 @@ void HypertrackerSpec::init(framework::InitContext& ic)
     auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
     o2::base::Propagator::Instance()->setMatLUT(lut);
     mTracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
+    mTracker.setBz(grp->getNominalL3Field());
     LOG(info) << "Loaded material LUT from " << matLUTFile;
+    LOG(info) << "Magnetic field loaded from GRP " << grp->getNominalL3Field();
   } else {
     LOG(info) << "Material LUT " << matLUTFile << " file is absent, only heuristic material correction can be used";
   }
@@ -147,14 +149,14 @@ void HypertrackerSpec::run(framework::ProcessingContext& pc)
 
   // ITS dict
   o2::itsmft::TopologyDictionary ITSdict;
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
+  // std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
+  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS);
   ITSdict.readFromFile(dictFile);
 
   auto pattIt = ITSpatt.begin();
   std::vector<ITSCluster> ITSClustersArray;
   ITSClustersArray.reserve(ITSclus.size());
-  o2::its::ioutils::convertCompactClusters(ITSclus, pattIt, ITSClustersArray, ITSdict);
+  o2::its::ioutils::convertCompactClusters(ITSclus, pattIt, ITSClustersArray, &ITSdict);
 
   auto geom = o2::its::GeometryTGeo::Instance();
   auto field = static_cast<field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
@@ -164,9 +166,12 @@ void HypertrackerSpec::run(framework::ProcessingContext& pc)
   mTracker.loadData(ITStracks, ITSClustersArray, ITSTrackClusIdx, v0vec, geom);
   mTracker.process();
 
+  // LOG(info) << "PROVAAA: " << mTracker.getHe3Attachments()[0][0] << " " << mTracker.getHe3Attachments()[0][1] << " " << mTracker.getHe3Attachments()[0][2];
+
   pc.outputs().snapshot(Output{"HYP", "V0S", 0, Lifetime::Timeframe}, mTracker.getV0());
   pc.outputs().snapshot(Output{"HYP", "HYPERTRACKS", 0, Lifetime::Timeframe}, mTracker.getHyperTracks());
   pc.outputs().snapshot(Output{"HYP", "CHI2", 0, Lifetime::Timeframe}, mTracker.getChi2vec());
+  pc.outputs().snapshot(Output{"HYP", "HE3UPDATES", 0, Lifetime::Timeframe}, mTracker.getHe3Attachments());
   pc.outputs().snapshot(Output{"HYP", "ITSREFS", 0, Lifetime::Timeframe}, mTracker.getITStrackRef());
 
   mTimer.Stop();
@@ -212,6 +217,7 @@ DataProcessorSpec getHyperTrackerSpec()
   outputs.emplace_back("HYP", "HYPERTRACKS", 0, Lifetime::Timeframe);
 
   outputs.emplace_back("HYP", "CHI2", 0, Lifetime::Timeframe);
+  outputs.emplace_back("HYP", "HE3UPDATES", 0, Lifetime::Timeframe);
   outputs.emplace_back("HYP", "ITSREFS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{

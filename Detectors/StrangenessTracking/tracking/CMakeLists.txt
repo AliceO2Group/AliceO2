@@ -25,4 +25,6 @@ o2_add_library(StrangenessTracking
 
 o2_target_root_dictionary(StrangenessTracking
                HEADERS include/StrangenessTracking/HypertrackingConfigParam.h
+                       include/StrangenessTracking/HyperTracker.h
+
                LINKDEF src/HypertrackingLinkDef.h)

@@ -25,11 +25,11 @@ bool HyperTracker::loadData(gsl::span<const o2::its::TrackITS> InputITStracks, s
   mInputITStracks = InputITStracks;
   mInputITSclusters = InputITSclusters;
   mInputITSidxs = InputITSidxs;
-  LOG(INFO) << "all tracks loaded";
-  LOG(INFO) << "V0 tracks size: " << mInputV0tracks.size();
-  LOG(INFO) << "ITS tracks size: " << mInputITStracks.size();
-  LOG(INFO) << "ITS clusters size: " << mInputITSclusters.size();
-  LOG(INFO) << "ITS idxs size: " << mInputITSidxs.size();
+  LOG(info) << "all tracks loaded";
+  LOG(info) << "V0 tracks size: " << mInputV0tracks.size();
+  LOG(info) << "ITS tracks size: " << mInputITStracks.size();
+  LOG(info) << "ITS clusters size: " << mInputITSclusters.size();
+  LOG(info) << "ITS idxs size: " << mInputITSidxs.size();
   mGeomITS = geomITS;
   setupFitters();
   return true;
@@ -69,7 +69,7 @@ void HyperTracker::process()
   int counter = 0;
   for (auto& v0 : mInputV0tracks) {
     counter++;
-    LOG(INFO) << "Analysing V0: " << counter << "/" << mInputV0tracks.size();
+    LOG(info) << "Analysing V0: " << counter << "/" << mInputV0tracks.size();
 
     auto posTrack = v0.getProng(0);
     auto negTrack = v0.getProng(1);
@@ -87,19 +87,22 @@ void HyperTracker::process()
 
       auto trackClusters = getTrackClusters(ITStrack);
       std::vector<ITSCluster> v0Clusters;
+      std::array<unsigned int, 7> nAttachments;
       int nUpdates = 0;
+      auto isV0Upd = false;
+
       for (auto& clus : trackClusters) {
-        auto isV0Upd = false;
+        int prevUpdate = nUpdates;
         auto diffR2 = v0R2 - clus.getX() * clus.getX() - clus.getY() * clus.getY(); // difference between V0 and Layer R2
-        // check V0 compatibility
-        if (diffR2 > -4) {
-          if (updateTrack(clus, mV0)) {
-            v0Clusters.push_back(clus);
-            // LOG(INFO) << "Attach cluster to V0, layer: " << mGeomITS->getLayer(clus.getSensorID());
-            isV0Upd = true;
-            nUpdates++;
-          }
+
+        if (updateTrack(clus, mV0) and diffR2 > -4) {
+          v0Clusters.push_back(clus);
+          LOG(info) << "Attach cluster to V0, layer: " << mGeomITS->getLayer(clus.getSensorID());
+          nAttachments[mGeomITS->getLayer(clus.getSensorID())] = 1;
+          isV0Upd = true;
+          nUpdates++;
         }
+
         // if V0 is not found, check He3 compatibility
         if (diffR2 < 4 && !isV0Upd) {
           auto& he3track = calcV0alpha(mV0) > 0 ? mV0.getProng(0) : mV0.getProng(1);
@@ -107,12 +110,12 @@ void HyperTracker::process()
             break;
           if (!recreateV0(mV0.getProng(0), mV0.getProng(1), mV0.getProngID(0), mV0.getProngID(1)))
             break;
-
-          isV0Upd = true;
+          LOG(info) << "Attach cluster to he3, layer: " << mGeomITS->getLayer(clus.getSensorID());
+          nAttachments[mGeomITS->getLayer(clus.getSensorID())] = 2;
           nUpdates++;
         }
 
-        if (!isV0Upd)
+        if (nUpdates == prevUpdate)
           break;
       }
 
@@ -131,13 +134,21 @@ void HyperTracker::process()
 
         // final 3body refit
         if (refitAllTracks()) {
-          LOG(INFO) << "Pushing back v0: " << v0.getProngID(0) << ", " << v0.getProngID(1);
+          LOG(info) << "------------------------------------------------------";
+          LOG(info) << "Pushing back v0: " << v0.getProngID(0) << ", " << v0.getProngID(1);
+          LOG(info) << "number of clusters attached: " << v0Clusters.size();
+          LOG(info) << "Number of ITS track clusters: " << ITStrack.getNumberOfClusters();
+          LOG(info) << "number of clusters attached to V0: " << nAttachments[0] << ", " << nAttachments[1] << ", " << nAttachments[2] << ", " << nAttachments[3] << ", " << nAttachments[4] << ", " << nAttachments[5] << ", " << nAttachments[6];
           auto& lastClus = trackClusters[0];
+          LOG(info) << "Matching chi2: " << getMatchingChi2(tmpV0, ITStrack, lastClus);
 
           mV0s.push_back(mV0);
           mHyperTracks.push_back(hyperTrack);
           mChi2.push_back(getMatchingChi2(tmpV0, ITStrack, lastClus));
           mITStrackRef.push_back(iTrack);
+          He3Attachments structHe3;
+          structHe3.arr = nAttachments;
+          mHe3Attachments.push_back(structHe3);
         }
       }
     }
@@ -163,12 +174,13 @@ bool HyperTracker::updateTrack(const ITSCluster& clus, o2::track::TrackParCov& t
       return false;
   }
   auto chi2 = std::abs(track.getPredictedChi2(clus));
+  // LOG(info) << track.getPredictedChi2(clus);
   if (chi2 > mMaxChi2 || chi2 < 0)
     return false;
 
   if (!track.update(clus))
     return false;
-  
+
   return true;
 }
 

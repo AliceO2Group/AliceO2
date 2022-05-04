@@ -17,5 +17,7 @@
 
 #pragma link C++ class o2::strangeness_tracking::HypertrackerParamConfig + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper <o2::strangeness_tracking::HypertrackerParamConfig> + ;
+#pragma link C++ struct o2::strangeness_tracking::He3Attachments + ;
+#pragma link C++ class std::vector<o2::strangeness_tracking::He3Attachments> + ;
 
 #endif

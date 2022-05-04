@@ -35,6 +35,13 @@ namespace o2
 namespace strangeness_tracking
 {
 
+struct He3Attachments{
+
+  std::array<unsigned int, 7> arr;
+
+};
+
+
 class HyperTracker
 {
  public:
@@ -52,6 +59,8 @@ class HyperTracker
   std::vector<V0>& getV0() { return mV0s; };
   std::vector<o2::track::TrackParCov>& getHyperTracks() { return mHyperTracks; };
   std::vector<float>& getChi2vec() { return mChi2; };
+  std::vector<He3Attachments>& getHe3Attachments(){ return mHe3Attachments; };
+
   std::vector<int>& getITStrackRef() { return mITStrackRef; };
 
   float getMaxChi2() const { return mMaxChi2; }
@@ -88,15 +97,17 @@ class HyperTracker
   gsl::span<const int> mInputITSidxs;                 // input ITS track-cluster indexes
   gsl::span<const V0> mInputV0tracks;                 // input V0 of decay daughters
 
-  std::vector<o2::track::TrackParCov> mHyperTracks; // Final hypertrack
-  std::vector<V0> mV0s;                             // V0 of decay daughters
+  std::vector<o2::track::TrackParCov> mHyperTracks;    // Final hypertrack
+  std::vector<V0> mV0s;                               // V0 of decay daughters
   std::vector<float> mChi2;                           // V0-ITS Tracks chi2 
+  std::vector<He3Attachments> mHe3Attachments;    // # of attached tracks, 1 for V0s, 2 for He3s
+
   std::vector<int> mITStrackRef;                    // Ref to the ITS track
 
   DCAFitter2 mFitterV0;    // optional DCA Fitter for recreating V0 with hypertriton mass hypothesis
   DCAFitter3 mFitter3Body; // optional DCA Fitter for final 3 Body refit
 
-  float mMaxChi2 = 10; // Maximum matching chi2
+  float mMaxChi2 = 30; // Maximum matching chi2
   float mBz = -5;      // Magnetic field
   o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE; //use mat correction
 
