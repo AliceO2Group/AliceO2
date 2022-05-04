@@ -400,7 +400,7 @@ void HMPIDDCSProcessor::finalizeHV_Entry(Int_t iCh,Int_t iSec) // after run is f
 			pGrHV->SetPoint(cntHV++,dp.data.get_epoch_time(),o2::dcs::getValue<double>(dp));
 		}
 		if(cntHV==1) { 
-		 pGrHV->GetPoint(0,xP,yP);           
+		 pGrHV->GetPoint(0,xP,yP);
 		new TF1(Form("HV%i_%i",iCh,iSec),Form("%f",yP),minTime,maxTime);       
 		} else {
 		pGrHV->Fit(new TF1(Form("HV%i_%i",iCh,iSec),"[0]+x*[1]",minTime,maxTime,"Q"));      
@@ -425,7 +425,7 @@ void HMPIDDCSProcessor::finalizeChPressureEntry(Int_t iCh) // after run is finis
 		}
 		if(cntChPressure==1) { 
 			pGrP->GetPoint(0,xP,yP);           
-		 	new  TF1(Form("P%i",iCh),Form("%f",yP),minTime, maxTime);              
+		 	new  TF1(Form("P%i",iCh),Form("%f",yP),minTime, maxTime);             
 		} else {
 		pGrP->Fit(new TF1(Form("P%i",iCh),"[0] + x*[1]",minTime,maxTime),"Q");       
 		}  delete pGrP;
@@ -507,14 +507,16 @@ void HMPIDDCSProcessor::finalize() // after run is finished,
 
 	
 	double eMean = ProcTrans();	 
-	
+	/*
 	// startTimeTemp and endTimeTemp: min and max in 1d array of vectors of Tin/Tout
 	uint64_t startTimeTemp = std::max(HMPIDDCSTime::getMinTimeArr(tempOut),HMPIDDCSTime::getMinTimeArr(tempIn));
 	
 	uint64_t endTimeTemp = std::min(HMPIDDCSTime::getMaxTimeArr(tempOut),HMPIDDCSTime::getMaxTimeArr(tempIn)); // ?? 
 	// startTime is from temperature, but endTime should be from last entry in  ProcTrans()? 
-        arNmean[42] = *(new TF1("HMP_PhotEmean",Form("%f",eMean),startTimeTemp,endTimeTemp));//fStartTime,fEndTime); //Photon energy mean
-
+	*/
+	
+	// which timestamps should be used for the arNMean[42] entry? 
+        arNmean[42] = *(new TF1("HMP_PhotEmean",Form("%f",eMean),mTimeArNmean.first,mTimeArNmean.last));//fStartTime,fEndTime); //Photon energy mean
 
 
 	
