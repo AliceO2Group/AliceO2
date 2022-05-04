@@ -349,6 +349,9 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     fMC->CurrentVolOffID(5, halfbarrel);
     int chipindex = mGeometryTGeo->getChipIndex(lay, halfbarrel, stave, halfstave, module, chipinmodule);
 
+    Hit* p = addHit(stack->GetCurrentTrackNumber(), chipindex, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
+                    mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
+                    mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
     // p->SetTotalEnergy(vmc->Etot());
 
     // RS: not sure this is needed
