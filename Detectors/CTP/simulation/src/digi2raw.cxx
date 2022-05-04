@@ -109,7 +109,7 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   }
   // if needed, create output directory
   if (!std::filesystem::exists(outDirName)) {
-    if (std::filesystem::create_directories(outDirName)) {
+    if (!std::filesystem::create_directories(outDirName)) {
       LOG(fatal) << "could not create output directory " << outDirName;
     } else {
       LOG(info) << "created output directory " << outDirName;
