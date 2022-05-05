@@ -131,7 +131,18 @@ class TimeClusterFinderTask
                           tfilter(rof);
                  });
 
-    LOGP(info, "TF {} Processed {} input ROFs and time-clusterized them into {} output ROFs {}", mTFcount, rofs.size(), outRofs.size(), mOnlyTrackable ? "(only trackable ones)" : "");
+    const float p1 = rofs.size() > 0 ? 100. * pRofs.size() / rofs.size() : 0;
+    const float p2 = rofs.size() > 0 ? 100. * outRofs.size() / rofs.size() : 0;
+
+    LOGP(info,
+         "TF {} Processed {} input ROFs, "
+         "time-clusterized them into {} ROFs ({:3.0f}%) "
+         "and output {} ({:3.0f}%) "
+         "of them {}",
+         mTFcount, rofs.size(),
+         pRofs.size(), p1,
+         outRofs.size(), p2,
+         mOnlyTrackable ? "(only trackable ones)" : "");
     mTFcount += 1;
   }
 

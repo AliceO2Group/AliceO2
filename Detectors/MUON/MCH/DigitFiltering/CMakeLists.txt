@@ -9,20 +9,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(Base)
-add_subdirectory(Contour)
-add_subdirectory(Mapping)
-add_subdirectory(DigitFiltering)
-add_subdirectory(Triggering)
-add_subdirectory(TimeClustering)
-add_subdirectory(PreClustering)
-add_subdirectory(Geometry)
-add_subdirectory(Clustering)
-add_subdirectory(Simulation)
-add_subdirectory(Tracking)
-add_subdirectory(Raw)
-add_subdirectory(CTF)
-add_subdirectory(Workflow)
-add_subdirectory(Conditions)
-add_subdirectory(Calibration)
-add_subdirectory(DevIO)
+o2_add_library(MCHDigitFiltering
+        SOURCES src/DigitFilterParam.cxx src/DigitFilteringSpec.cxx
+        PUBLIC_LINK_LIBRARIES O2::MCHBase O2::Framework O2::SimulationDataFormat)
+
+o2_add_executable(
+        digits-filtering-workflow
+        SOURCES src/digits-filtering-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHDigitFiltering)
+
+o2_target_root_dictionary(MCHDigitFiltering HEADERS include/MCHDigitFiltering/DigitFilterParam.h)

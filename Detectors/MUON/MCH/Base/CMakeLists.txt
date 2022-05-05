@@ -12,6 +12,7 @@
 o2_add_library(MCHBase
          SOURCES
            src/PreCluster.cxx
+           src/SanityCheck.cxx
            src/TrackBlock.cxx
            src/Trackable.cxx
          PUBLIC_LINK_LIBRARIES O2::DataFormatsMCH)

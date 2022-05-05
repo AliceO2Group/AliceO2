@@ -12,7 +12,7 @@
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/Task.h"
-#include "DigitFilteringSpec.h"
+#include "MCHDigitFiltering/DigitFilteringSpec.h"
 
 using namespace o2;
 using namespace o2::framework;
