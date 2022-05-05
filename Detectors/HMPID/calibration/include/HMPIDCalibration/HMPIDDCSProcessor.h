@@ -64,42 +64,19 @@ class HMPIDDCSProcessor{
 		HMPIDDCSProcessor() = default;
 		~HMPIDDCSProcessor() = default;
 		
-		void init(const std::vector<DPID>& pids);	
+		//void init(const std::vector<DPID>& pids);	
 	
-	 	// DCS-CCDB methods and members ===================================================================================================
-	
-		CcdbObjectInfo& getccdbREF_INDEXsInfo() { return mccdbREF_INDEX_Info; }
-         	//CcdbObjectInfo& getccdbREF_INDEXsInfo() { return mccdbREF_INDEX_Info; }
-	
-		std::vector<std::vector<TF1*>>& getRefIndexObj()  { return arNmean; } // mRefIndex
-// for calculating refractive index: 
-		//TF1 arNmean[43]; /// 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
-				 // + 1 for ePhotMean (mean photon energy) 		
-
-
-	
-   		CcdbObjectInfo& getHmpidChargeCutInfo() { return mccdbCHARGE_CUT_Info; }
-    		//CcdbObjectInfo& getHmpidChargeCutInfo() { return mccdbCHARGE_CUT_Info; }
-	
-		std::vector<std::vector<TF1*>>& getChargeCutObj() { return arQthre; }// mChargeCut
-		// Charge Threshold: 
-		// TF1 arQthre[42];  //42 Qthre=f(time) one per sector
-	
-		 // DCS-CCDB methods and members
-
-	
-		// procTrans	 ===================================================================================================
-		double DefaultEMean();					//just set a refractive index for C6F14 at ephot=6.675 eV @ T=25 C 		
-
-		
-		double ProcTrans();
-	
-		// Process Datapoints:  ===================================================================================================
+	 		// Process Datapoints:  ===================================================================================================
 		//void initTempArr();						// initialize tOut/tIn arrays  pTin[3*iCh+iRad]	= new TF1		
 		//void init(const std::vector<DPID>& pids);
 
-		void process(const gsl::span<const DPCOM> dps); 		// process DPs, fetch IDs and call relevant fill-method
+		// process span of DPs:
+		void process(const gsl::span<const DPCOM> dps); 		// process DPs, fetch IDs and call processIR or processHMPID
 
+		void processIR(DPCOM dp);    // if it mathces IR_ID = "HMP_DET/HMP_INFR"
+		void processHMPID(DPCOM dp); // if it matches HMPID_ID = "HMP_DET", but not IR_ID
+
+		// Fill entries of DPs==================================================
 		void fillChamberPressures(const DPCOM& dpcom);			// fill element[0-6] in chamber-pressure vector
 
 		void fillEnvironmentPressure(const DPCOM& dpcom);		// fill environment-pressure vector 
@@ -110,10 +87,6 @@ class HMPIDDCSProcessor{
 		// Temp in (T1) and out (T2), in each chamber_radiator = 7*3 :  
 		void fill_InTemperature(const DPCOM& dpcom);			// fill element[0-20] in tempIn vector
 		void fill_OutTemperature(const DPCOM& dpcom); 			// fill element[0-20] in tempOut vector
-
-		uint64_t processFlags(const uint64_t flags, const char* pid);
-		//Bool_t stDcsStore=kFALSE;
-
 
 
 		 // finalize DPs, after run is finished  ===================================================================================================
@@ -126,18 +99,56 @@ class HMPIDDCSProcessor{
 
 
 
+		uint64_t processFlags(const uint64_t flags, const char* pid);
+
+
+
+
+
+
+		// DCS-CCDB methods and members ===================================================================================================
+	
+		CcdbObjectInfo& getccdbREF_INDEXsInfo() { return mccdbREF_INDEX_Info; }
+         	//CcdbObjectInfo& getccdbREF_INDEXsInfo() { return mccdbREF_INDEX_Info; }
+	
+		std::vector<TF1>& getRefIndexObj()  { return arNmean; } // mRefIndex
+// for calculating refractive index: 
+		//TF1 arNmean[43]; /// 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
+				 // + 1 for ePhotMean (mean photon energy) 		
+
+
+	
+   		CcdbObjectInfo& getHmpidChargeCutInfo() { return mccdbCHARGE_CUT_Info; }
+    		//CcdbObjectInfo& getHmpidChargeCutInfo() { return mccdbCHARGE_CUT_Info; }
+	
+		std::vector<TF1>& getChargeCutObj() { return arQthre; }// mChargeCut
+		// Charge Threshold: 
+		// TF1 arQthre[42];  //42 Qthre=f(time) one per sector
+	
+		 // DCS-CCDB methods and members
+
+	
+		// procTrans	 ===================================================================================================
+		double DefaultEMean();					//just set a refractive index for C6F14 at ephot=6.675 eV @ T=25 C 		
+
+		
+		double ProcTrans();
+	
+
+
+
+
 
 
 		// convert char or substring to int (i.e. fetch int in string/char) 
 		int subStringToInt(std::string inputString, std::size_t startIndex);
 		
 		// determine if string of DP has substring corresponding to HMPID-IR or other HMPID specifications: 
-		void processIR(DPCOM dp);    // if it mathces IR_ID = "HMP_DET/HMP_INFR"
-		void processHMPID(DPCOM dp); // if it matches HMPID_ID = "HMP_DET", but not IR_ID
 		
 		
-			const auto& getTimeQThresh() const { return mTimeQThresh;}
-			const auto& getTimeArNmean() const { return mTimeArNmean;}
+		
+		const auto& getTimeQThresh() const { return mTimeQThresh;}
+		const auto& getTimeArNmean() const { return mTimeArNmean;}
 		//end  ProcDCS:
 			
 		  void setStartValidity(long t) { mStartValidity = t; }
@@ -156,11 +167,11 @@ class HMPIDDCSProcessor{
 
 		CcdbObjectInfo mccdbREF_INDEX_Info;
 		//std::array<TF1,43> mRefIndex;//TF1 mRefIndex[43];
-		std::vector<std::vector<TF1*>> mRefIndex;
+		std::vector<TF1> mRefIndex;
 
 		CcdbObjectInfo mccdbCHARGE_CUT_Info;
 		//std::array<TF1,42> mChargeCut;//TF1 mChargeCut[42];
-		std::vector<std::vector<TF1*>> mChargeCut;
+		std::vector<TF1> mChargeCut;
 
 // ProcTrans private variables	
 //====================================================================================		
@@ -238,13 +249,12 @@ class HMPIDDCSProcessor{
 	
 	
 		// for calculating refractive index: 
-		//std::array<TF1,43> arNmean;//[43]; /// 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
-		std::vector<std::vector<TF1*>> arNmean;		 // + 1 for ePhotMean (mean photon energy) 
+		std::vector<TF1> arNmean;//[43]; // 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
+				 		 // + 1 for ePhotMean (mean photon energy) 
 	
 	
 		// Charge Threshold: 
-		//std::array<TF1,42> arQthre;//[42];  //42 Qthre=f(time) one per sector
-		std::vector<std::vector<TF1*>> arQthre;
+		std::vector<TF1> arQthre;	 //42 Qthre=f(time) one per sector
 
 	
 		// env pressure 
@@ -256,10 +266,16 @@ class HMPIDDCSProcessor{
 		std::vector<DPCOM> pChamber[7];  //  chamber-pressure vector [0..6]
 		Int_t cntChPressure = 0; 	 // cnt chamber-pressure entries in element iCh[0..6] 
 
-	
+		/* Not necessary? 
 		// temp in and out of radiators 
-		TF1  *pTin[21]; 		  // in temp array	//  7 chambers * 3 radiators
-		TF1 *pTout[21]; 		  // out temp array 	//  7 chambers * 3 radiators
+		std::array<std::unique_ptr<TF1>,21> pTin;
+		//TF1  *pTin[21]; 		  // in temp array	//  7 chambers 	* 3 radiators	
+		//std::unique_ptr<TF1> pTin(new TF1[21]);	
+		
+		std::array<std::unique_ptr<TF1>,21> pTout;
+		//TF1 *pTout[21]; 		  // out temp array 	//  7 chambers * 3 radiators
+		//std::unique_ptr<TF1> pTout(new TF1[21]);
+		*/
 	
 		Int_t cntTin = 0, cntTOut = 0; 	  // cnt tempereature entries in element i[0..20]; i = 3*iCh+iSec
 		std::vector<DPCOM> tempIn[21];    //  tempIn vector [0..20]

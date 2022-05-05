@@ -58,9 +58,11 @@ void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
   if (dps.size() == 0) {
     return;
   }
-   if (mVerbose) {
+
+  if (mVerbose) {
     LOG(info) << "\n\n\nProcessing new DCS DP map\n-----------------";
   }
+
   if (!mFirstTimeSet) {
     mFirstTime = mStartValidity;
     mFirstTimeSet = true;
@@ -84,11 +86,12 @@ void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
     // check first if IR:
     if (ir_id == IR_ID) {
 	processIR(dp); 
-    } // if not IR, check if other DP in HMPID (pressure, temp, HV): 
+    } 
+// if not IR, check if other DP in HMPID (pressure, temp, HV): 
     else if (detector_id==HMPID_ID){
 	processHMPID(dp); 
     }  else  LOG(debug) << "Unknown data point: {}"<< alias;
-    }
+  } // end for
 }	
 
 // if the string of the dp contains the HMPID-specifier "HMP_DET",
@@ -200,8 +203,7 @@ double HMPIDDCSProcessor::ProcTrans()
 	    nm2eV = 1239.842609;	// 1239.842609 from nm to eV 
             photEn = nm2eV/lambda;     // photon energy	    
 		    		    
-	    //Ali: static Double_t  https://github.com/alisw/AliRoot/blob/222b69b9f193abd33c5e7b71e91e21ae1816bcc5/HMPID/HMPIDbase/AliHMPIDParam.h#L87-L88
-	    //O2: static double https://github.com/AliceO2Group/AliceO2/blob/3603ce32b2cddccfd94deb70b70628f3ff0846cd/Detectors/HMPID/base/include/HMPIDBase/Param.h#L136
+
             if(photEn<o2::hmpid::Param::ePhotMin() || photEn>o2::hmpid::Param::ePhotMax()) continue; // if photon energy is out of range
             
 	    
@@ -229,7 +231,7 @@ double HMPIDDCSProcessor::ProcTrans()
             if(argonCell[i].size() == 0)
             { 
                 LOG(debug) << Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.argonCell  -----> Default E mean used!!!!!",i);
-                return DefaultEMean(); // to be checked
+                return DefaultEMean(); 
             } 
 	    
             dpArgonCell  =  (argonCell[i]).at(0); // pVal=(AliDCSValue*)pArgonRef->At(0);  
@@ -267,7 +269,7 @@ double HMPIDDCSProcessor::ProcTrans()
             if(freonCell[i].size() == 0)
             {
                 LOG(debug) << Form("No Data Point values for HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.c6f14Cell  -----> Default E mean used!!!!!",i);
-                return DefaultEMean(); // to be checked
+                return DefaultEMean(); 
             }
             
 	    dpFreonCell =  (freonCell[i]).at(0); // pVal=(AliDCSValue*)pFreonCell->At(0);
@@ -301,14 +303,14 @@ double HMPIDDCSProcessor::ProcTrans()
                 
             if(aRefFreon*aRefArgon>0)
             {
-              aTransRad  = TMath::Power((aCellFreon/aRefFreon)/(aCellArgon/aRefArgon)*aCorrFactor[i],aConvFactor); // Double_t = pow(Double_t,Double_t)
+              aTransRad  = TMath::Power((aCellFreon/aRefFreon)/(aCellArgon/aRefArgon)*aCorrFactor[i],aConvFactor); 
             }
             else
             {
               return DefaultEMean();
             }
             
-	    //https://github.com/AliceO2Group/AliceO2/blob/3603ce32b2cddccfd94deb70b70628f3ff0846cd/Detectors/HMPID/base/include/HMPIDBase/Param.h#L146-L148
+
             // evaluate 0.5 mm of thickness SiO2 Trans
 	    	    
 		    // TMath : Double_t	Exp(Double_t x)
@@ -361,7 +363,9 @@ double HMPIDDCSProcessor::DefaultEMean(){
 
 
 
-void HMPIDDCSProcessor::finalizeEnvPressure() // after run is finished, 
+// ==== Functions that are called after run is finished ======================== 
+
+void HMPIDDCSProcessor::finalizeEnvPressure() 
 { 
 	// if environment-pressure has entries 
 	if(pEnv.size() != 0){ 
@@ -371,7 +375,14 @@ void HMPIDDCSProcessor::finalizeEnvPressure() // after run is finished,
 		auto maxTime = HMPIDDCSTime::getMaxTime(pEnv);
 		if(maxTime > mTimeQThresh.last) mTimeQThresh.last = maxTime;
 
-		TGraph *pGrPenv=new TGraph; 
+		int cntEnvPressure = 0;
+
+		//TGraph *pGrPenv = new TGraph;  BAD
+		// should not use new/delete for raw-pointer
+		// Workaround:
+		std::unique_ptr<TGraph> pGrPenv;
+		pGrPenv.reset(new TGraph); 
+
 		for(DPCOM dp : pEnv){
 			pGrPenv->SetPoint(cntEnvPressure++,dp.data.get_epoch_time(),o2::dcs::getValue<double>(dp));
 		}
@@ -380,16 +391,19 @@ void HMPIDDCSProcessor::finalizeEnvPressure() // after run is finished,
 		 new TF1("Penv",Form("%f",yP), minTime,maxTime);//fStartTime,fEndTime);
 		} else {
 		  pGrPenv->Fit(new TF1("Penv","1000+x*[0]",minTime,maxTime),"Q");
-		}  delete pGrPenv;
+		} // delete pGrPenv;
 	} else LOG(debug) << Form("No entries in environment pressure");
 }
 
 
-void HMPIDDCSProcessor::finalizeHV_Entry(Int_t iCh,Int_t iSec) // after run is finished, 
+void HMPIDDCSProcessor::finalizeHV_Entry(Int_t iCh,Int_t iSec) 
 { 
 	// check if given element has entries
-	if(dpcomHV[3*iCh+iSec].size() != 0){     
-		TGraph *pGrHV=new TGraph; cntHV=0; 
+	if(dpcomHV[3*iCh+iSec].size() != 0){    
+		
+		std::unique_ptr<TGraph> pGrHV;
+		pGrHV.reset(new TGraph);
+		cntHV=0; 
 
 		auto minTime = HMPIDDCSTime::getMinTime(dpcomHV[3*iCh+iSec]);
 		if(minTime < mTimeQThresh.first) mTimeQThresh.first = minTime;
@@ -404,17 +418,21 @@ void HMPIDDCSProcessor::finalizeHV_Entry(Int_t iCh,Int_t iSec) // after run is f
 		new TF1(Form("HV%i_%i",iCh,iSec),Form("%f",yP),minTime,maxTime);       
 		} else {
 		pGrHV->Fit(new TF1(Form("HV%i_%i",iCh,iSec),"[0]+x*[1]",minTime,maxTime,"Q"));      
-		}  delete pGrHV;
+		} 
 	} else LOG(debug) << Form("No entries in HV for chamber %i, section %i",iCh,iSec);
 }
 
 	
-void HMPIDDCSProcessor::finalizeChPressureEntry(Int_t iCh) // after run is finished, 
+void HMPIDDCSProcessor::finalizeChPressureEntry(Int_t iCh) 
 { 	
 	// check if given element has entries
 	if(pChamber[iCh].size() != 0){	
-		TGraph *pGrP=new TGraph; cntChPressure=0;
 
+		std::unique_ptr<TGraph> pGrP;
+		pGrP.reset(new TGraph);
+
+		 cntChPressure=0;
+		//std::unique_ptr<TGraph> pGrP
 		auto minTime = HMPIDDCSTime::getMinTime(pChamber[iCh]);
 		if(minTime < mTimeQThresh.first) mTimeQThresh.first = minTime;
 		auto maxTime = HMPIDDCSTime::getMaxTime(pChamber[iCh]);
@@ -428,109 +446,75 @@ void HMPIDDCSProcessor::finalizeChPressureEntry(Int_t iCh) // after run is finis
 		 	new  TF1(Form("P%i",iCh),Form("%f",yP),minTime, maxTime);              
 		} else {
 		pGrP->Fit(new TF1(Form("P%i",iCh),"[0] + x*[1]",minTime,maxTime),"Q");       
-		}  delete pGrP;
+		} 
 	} else  LOG(debug) << Form("No entries in chamber-pressure for chamber %i",iCh); 	
 }
 
 			
-void HMPIDDCSProcessor::finalizeTempOutEntry(Int_t iCh,Int_t iRad) // after run is finished, 
-{ 
+void HMPIDDCSProcessor::finalizeTempOutEntry(Int_t iCh,Int_t iRad) 
+{ 	
 	// check if given element has entries
 	if(tempOut[3*iCh+iRad].size() != 0){	
 		auto minTime = HMPIDDCSTime::getMinTime(tempOut[3*iCh+iRad]);
 		if(minTime < mTimeArNmean.first) mTimeArNmean.first = minTime;
 		auto maxTime = HMPIDDCSTime::getMaxTime(tempOut[3*iCh+iRad]);
 		if(maxTime > mTimeArNmean.last) mTimeArNmean.last = maxTime;
+		//TGraph *pGrTOut = new TGraph;  BAD
+		std::unique_ptr<TGraph> pGrTOut;
+		pGrTOut.reset(new TGraph);
 
-		TGraph *pGrTOut = new TGraph; cntTOut=0;
 		for(DPCOM dp : tempOut[3*iCh+iRad]){
 			pGrTOut->SetPoint(cntTOut++,dp.data.get_epoch_time(),o2::dcs::getValue<double>(dp));
 		}
-		pTout[3*iCh+iRad] = new TF1(Form("Tout%i%i",iCh,iRad),"[0]+[1]*x",minTime,maxTime);
+		std::unique_ptr<TF1> pTout;// std::make_unique<TF1>() ;
+		pTout.reset(new TF1(Form("Tout%i%i",iCh,iRad),"[0]+[1]*x",minTime,maxTime));
+
+		
 		if(cntTOut==1) { 
+		
 		 pGrTOut->GetPoint(0,xP,yP);
-		 pTout[3*iCh+iRad]->SetParameter(0,yP);
-		 pTout[3*iCh+iRad]->SetParameter(1,0);
+		 pTout->SetParameter(0,yP);
+		 pTout->SetParameter(1,0);
 		} else {
-		pGrTOut->Fit(pTout[3*iCh+iRad],"Q");
-		}  delete pGrTOut;
+	
+		pGrTOut->Fit(pTout.get(),"Q");
+		arNmean.at(6*iCh+2*iRad) = *(pTout.get());//pTout[3*iCh+iRad];
+		} // delete pGrTOut; */
 	} else  LOG(debug) << Form("No entries in temp-out for chamber %i, radiator %i",iCh,iRad); 
 }
 
-	
-void HMPIDDCSProcessor::finalizeTempInEntry(Int_t iCh,Int_t iRad) // after run is finished, 
-{ 
-	if(tempIn[3*iCh+iRad].size() != 0){
+void HMPIDDCSProcessor::finalizeTempInEntry(Int_t iCh,Int_t iRad)
+{ 	
+	// check if given element has entries
+	if(tempIn[3*iCh+iRad].size() != 0){	
 		auto minTime = HMPIDDCSTime::getMinTime(tempIn[3*iCh+iRad]);
 		if(minTime < mTimeArNmean.first) mTimeArNmean.first = minTime;
-		auto maxTime = HMPIDDCSTime::getMaxTime(tempIn[3*iCh+iRad]);
+		auto maxTime = HMPIDDCSTime::getMaxTime(tempOut[3*iCh+iRad]);
 		if(maxTime > mTimeArNmean.last) mTimeArNmean.last = maxTime;
 
-		TGraph *pGrTIn = new TGraph; cntTin=0;
+		std::unique_ptr<TGraph> pGrTIn;
+		pGrTIn.reset(new TGraph);
+
 		for(DPCOM dp : tempIn[3*iCh+iRad]){
-			pGrTIn->SetPoint(cntTin++,dp.data.get_epoch_time(),o2::dcs::getValue<double>(dp));
+			pGrTIn->SetPoint(cntTOut++,dp.data.get_epoch_time(),o2::dcs::getValue<double>(dp));
 		}
-		pTin[3*iCh+iRad]  = new TF1(Form("Tin%i%i" ,iCh,iRad),"[0]+[1]*x",minTime,maxTime);
-		if(cntTin==1) { 
+		std::unique_ptr<TF1> pTin;
+		pTin.reset(new TF1(Form("Tin%i%i",iCh,iRad),"[0]+[1]*x",minTime,maxTime));
+
+		
+		if(cntTOut==1) { 
+		
 		 pGrTIn->GetPoint(0,xP,yP);
-		 pTin[3*iCh+iRad]->SetParameter(0,yP);
-		 pTin[3*iCh+iRad]->SetParameter(1,0);
+		 pTin->SetParameter(0,yP);
+		 pTin->SetParameter(1,0);
 		} else {
-		pGrTIn->Fit(pTin[3*iCh+iRad],"Q");
-		}  delete pGrTIn;		
-	} else { LOG(debug) << Form("No entries in temp-in for chamber %i, radiator %i",iCh,iRad); }
+	
+		pGrTIn->Fit(pTin.get(),"Q");
+		arNmean.at(6*iCh+2*iRad) = *(pTin.get());
+		} /
+	} else  LOG(debug) << Form("No entries in temp-out for chamber %i, radiator %i",iCh,iRad); 
 }
 
-void HMPIDDCSProcessor::finalize() // after run is finished, 
-{ 
-	finalizeEnvPressure();
-	for(Int_t iCh=0;iCh<7;iCh++){
-		finalizeChPressureEntry(iCh);
-		for(Int_t iRad=0;iRad<3;iRad++){
-			finalizeTempInEntry(iCh,iRad);
-			finalizeTempOutEntry(iCh,iRad); 
-			// evaluate Mean Refractive Index
-
-		     	(arNmean.at(6*iCh+2*iRad)).push_back(pTin[3*iCh+iRad]); //Tin =f(t)
-      			(arNmean.at(6*iCh+2*iRad+1)).push_back(pTout[3*iCh+iRad]); //Tout=f(t)
-		}
-
-		for(Int_t iSec=0;iSec<6;iSec++){
-			finalizeHV_Entry(iCh,iSec);	
-			// evaluate Qthre
-			hvFirstTime = HMPIDDCSTime::getMinTime(dpcomHV[6*iCh+iSec]);
-			hvLastTime = HMPIDDCSTime::getMaxTime(dpcomHV[6*iCh+iSec]);
-
-			(arQthre.at(6*iCh+iSec)).push_back(new TF1(Form("HMP_QthreC%iS%i",iCh,iSec),Form("3*10^(3.01e-3*HV%i_%i - 4.72)+170745848*exp(-(P%i+Penv)*0.0162012)",iCh,iSec,iCh),hvFirstTime,hvLastTime)); 
-		}
-	}
-
-	
-	double eMean = ProcTrans();	 
-	
-	// startTimeTemp and endTimeTemp: min and max in 1d array of vectors of Tin/Tout
-	uint64_t startTimeTemp = std::max(HMPIDDCSTime::getMinTimeArr(tempOut),HMPIDDCSTime::getMinTimeArr(tempIn));
-	
-	uint64_t endTimeTemp = std::min(HMPIDDCSTime::getMaxTimeArr(tempOut),HMPIDDCSTime::getMaxTimeArr(tempIn)); // ?? 
-	// startTime is from temperature, but endTime should be from last entry in  ProcTrans()? 
-        (arNmean.at(42)).push_back(new TF1("HMP_PhotEmean",Form("%f",eMean),startTimeTemp,endTimeTemp));//fStartTime,fEndTime); //Photon energy mean
-
-
-
-	
-	 /* prepare CCDB: =============================================================================
-	 static void prepareCCDBobjectInfo(T& obj, o2::ccdb::CcdbObjectInfo& info, const std::string& path,
-	                   const std::map<std::string, std::string>& md, long start, long end = -1); */ 
-
-	 std::map<std::string, std::string> md;
-	 md["responsible"] = "NB!! CHANGE RESPONSIBLE";
-	
-	 // Refractive index (T_out, T_in, mean photon energy); mRefIndex contains class-def
-	 o2::calibration::Utils::prepareCCDBobjectInfo(mRefIndex, mccdbREF_INDEX_Info, "HMPID/Calib/RefIndex", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
-
-	 // charge threshold; mChargeCut contains class-definition
-	 o2::calibration::Utils::prepareCCDBobjectInfo(mChargeCut,mccdbCHARGE_CUT_Info , "HMPID/Calib/ChargeCut", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);	
-}
 
 
 void HMPIDDCSProcessor::fillChamberPressures(const DPCOM& dpcom)
@@ -636,6 +620,54 @@ void HMPIDDCSProcessor::fill_OutTemperature(const DPCOM& dpcom)
 	}  else LOG(debug)<< "Chamber Number out of range for TempOut DP: {}"<< chNum; 	
 	  
   } else LOG(debug)<< "Not correct datatype for TempOut DP: {}"<< aliasStr;
+}
+
+
+void HMPIDDCSProcessor::finalize() 
+{ 
+	finalizeEnvPressure();
+	for(Int_t iCh=0;iCh<7;iCh++){
+		finalizeChPressureEntry(iCh);
+		for(Int_t iRad=0;iRad<3;iRad++){
+			// fills up entries 0..41 of arNmean
+			finalizeTempInEntry(iCh,iRad);
+			finalizeTempOutEntry(iCh,iRad); 
+		}
+
+		for(Int_t iSec=0;iSec<6;iSec++){
+			finalizeHV_Entry(iCh,iSec);	
+			// evaluate Qthre
+			hvFirstTime = HMPIDDCSTime::getMinTime(dpcomHV[6*iCh+iSec]);
+			hvLastTime = HMPIDDCSTime::getMaxTime(dpcomHV[6*iCh+iSec]);
+			
+        		arQthre.at(6*iCh+iSec) = *(new TF1(Form("HMP_QthreC%iS%i",iCh,iSec),Form("3*10^(3.01e-3*HV%i_%i - 4.72)+170745848*exp(-(P%i+Penv)*0.0162012)",iCh,iSec,iCh),hvFirstTime,hvLastTime)); //Photon energy mean			
+
+
+
+		}
+	}
+
+	
+	double eMean = ProcTrans();	 
+	
+
+        arNmean.at(42) = *(new TF1("HMP_PhotEmean",Form("%f",eMean),mTimeArNmean.first,mTimeArNmean.last));//Photon energy mean
+
+
+
+	
+	 // prepare CCDB: =============================================================================
+	// static void prepareCCDBobjectInfo(T& obj, o2::ccdb::CcdbObjectInfo& info, const std::string& path,
+	  //                 const std::map<std::string, std::string>& md, long start, long end = -1);  
+
+	 std::map<std::string, std::string> md;
+	 md["responsible"] = "NB!! CHANGE RESPONSIBLE";
+	
+	 // Refractive index (T_out, T_in, mean photon energy); mRefIndex contains class-def
+	 o2::calibration::Utils::prepareCCDBobjectInfo(mRefIndex, mccdbREF_INDEX_Info, "HMPID/Calib/RefIndex", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+
+	 // charge threshold; mChargeCut contains class-definition
+	 		    o2::calibration::Utils::prepareCCDBobjectInfo(mChargeCut,mccdbCHARGE_CUT_Info , "HMPID/Calib/ChargeCut", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);	
 }
 
 	
