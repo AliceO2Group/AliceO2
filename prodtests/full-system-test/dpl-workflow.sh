@@ -386,7 +386,10 @@ fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Calibration workflows
-workflow_has_parameter CALIB && { source $MYDIR/calib-workflow.sh; [[ $? != 0 ]] && exit 1; }
+if [[ -z $CALIB_WF ]]; then
+    CALIB_WF=$MYDIR/calib-workflow.sh
+fi
+workflow_has_parameter CALIB && { source $CALIB_WF; [[ $? != 0 ]] && exit 1; }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Event display
