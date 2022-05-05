@@ -13,6 +13,8 @@
 /// \author Roman Lietava
 
 #include "DataFormatsCTP/Configuration.h"
+#include "CCDB/CcdbApi.h"
+#include "CCDB/BasicCCDBManager.h"
 #include <iostream>
 #include <sstream>
 #include <regex>
@@ -41,7 +43,7 @@ void CTPConfiguration::capitaliseString(std::string& str)
 //
 void BCMask::printStream(std::ostream& stream) const
 {
-  stream << "CTP BC mask:" << name << std::endl;
+  stream << "CTP BC mask:" << name << ":" << mask << std::endl;
   /// <<  ":" << BCmask << std::endl;
 }
 //
@@ -132,7 +134,8 @@ int CTPConfiguration::loadConfiguration(const std::string& ctpconfiguration)
 }
 int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level)
 {
-  // LOG(debug) << "line:" << line;
+  LOG(info) << "Processing line";
+  LOG(info) << "line:" << line << " lev:" << level;
   if (line.size() == 0) {
     return 0;
   }
@@ -147,7 +150,9 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
     return 0;
   }
   size_t first;
-  if (CTPGenerator::Generators.count(tokens[0])) {
+  if ((first = line.find("run")) != std::string::npos) {
+    level = RUN;
+  } else if (CTPGenerator::Generators.count(tokens[0])) {
     if (level != CLASS) {
       level = GENS;
     }
@@ -161,13 +166,30 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
   } else if ((first = line.find("cluster")) != std::string::npos) {
     level = CLUSTER;
   } else {
+    bool knownlevels = ((level == LTGitems) || (level == CLASS));
+    if (knownlevels == false) {
+      level = UNKNOWN;
+    }
   }
+  LOG(info) << "Level:" << level;
   switch (level) {
+    case RUN: {
+      mRunNumber = std::stoul(tokens[1]);
+      level = MASKS;
+      break;
+    }
     case MASKS: {
       BCMask bcmask;
+      if(tokens.size() < 3) {
+        LOG(error) << "Wrong bc mask:" << line;
+        break;
+      }
       bcmask.name = tokens[1];
-      std::regex LHdelimiters("[LH]");
-      if (std::regex_search(tokens[2], LHdelimiters)) {
+      bcmask.mask = tokens[2];
+      bool coded = tokens[2].find("L") != std::string::npos;
+      coded |= tokens[2].find("H") != std::string::npos;
+      std::cout << "coded:" << coded << std::endl;
+      if (coded) {
         // jusko notation
       } else {
         // list of integers
@@ -530,4 +552,165 @@ std::vector<int> CTPConfiguration::getTriggerClassList() const
     }
   }
   return classlist;
+}
+//
+//===============================================
+//
+void CTPRunManager::init()
+{
+  for(auto r: mActiveRuns) {
+    r = nullptr;
+  }
+  loadScalerNames();
+  LOG(info) << "CTPRunManager initialised.";
+}
+int CTPRunManager::startRun(std::string& cfg)
+{
+  LOG(info) << "Starting run: " << cfg;
+  const auto now = std::chrono::system_clock::now();
+  const long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+  CTPActiveRun* activerun = new CTPActiveRun;
+  activerun->timeStart = timeStamp;
+  activerun->cfg.loadConfigurationRun3(cfg);
+  activerun->cfg.printStream(std::cout);
+  //
+  activerun->scalers.setRunNumber(activerun->cfg.getRunNumber());
+  activerun->scalers.setClassMask(activerun->cfg.getTriggerClassMask());
+  //
+  mRunInStart = activerun;
+  return 0;
+}
+int CTPRunManager::stopRun(uint32_t irun)
+{
+  LOG(info) << "Stopping run index:" << irun;
+  if(mActiveRuns[irun] == nullptr) {
+    LOG(error) << "No config for run index:"<< irun;
+    return 1;
+  }
+  const auto now = std::chrono::system_clock::now();
+  const long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+  mActiveRuns[irun]->timeStop = timeStamp;
+  saveRunToCCDB(irun);
+  delete mActiveRuns[irun];
+  mActiveRuns[irun] = nullptr;
+  return 0;
+}
+int CTPRunManager::addScalers(uint32_t irun)
+{
+  if(mActiveRuns[irun] == nullptr) {
+    LOG(error) << "No config for run index:"<< irun;
+    return 1;
+  }
+  std::string orb = "extorb";
+  CTPScalerRecordRaw scalrec;
+  CTPScalerRaw scalraw;
+  std::vector<int> clslist = mActiveRuns[irun]->cfg.getTriggerClassList();
+  std::vector<std::string> clsnamelist;
+  for(auto const& cls: clslist) {
+    std::string cmb = "clamb"+std::to_string(cls);
+    std::string cma = "clama"+std::to_string(cls);
+    std::string c0b = "cla0b"+std::to_string(cls);
+    std::string c0a = "cla0a"+std::to_string(cls);
+    std::string c1b = "cla1b"+std::to_string(cls);
+    std::string c1a = "cla1a"+std::to_string(cls);
+    scalraw.lmBefore = mCounters[mScalerName2Position[cmb]];
+    scalraw.lmAfter  = mCounters[mScalerName2Position[cma]];
+    scalraw.l0Before = mCounters[mScalerName2Position[c0b]];
+    scalraw.l0After  = mCounters[mScalerName2Position[c0a]];
+    scalraw.l1Before = mCounters[mScalerName2Position[c1b]];
+    scalraw.l1After  = mCounters[mScalerName2Position[c1a]];
+    scalrec.scalers.push_back(scalraw);
+  }
+  scalrec.intRecord.orbit = mCounters[mScalerName2Position[orb]];
+  return 0;
+}
+int CTPRunManager::processMessage(std::string& message)
+{
+  LOG(info) << "Processing message line";
+  std::vector<std::string> tokens = o2::utils::Str::tokenize(message, ' ');
+  if(tokens.size() != (CTPRunScalers::NCOUNTERS+1)) {
+    LOG(error) << "Scalers size wrong:" << tokens.size() << " expected:" << CTPRunScalers::NCOUNTERS+1;
+    return 1;
+  }
+  double timeStamp = std::stod(tokens.at(0));
+  LOG(info) << "Processing scalers, all good, time:" << timeStamp;
+  for(int i = 1; i < tokens.size() ; i++) {
+    mCounters[i-1] = std::stoull(tokens.at(i));
+    if(i < (NRUNS+1)) std::cout << mCounters[i-1] << " ";
+  }
+  std::cout << std::endl;
+  LOG(info) << "Counter size:" << tokens.size();
+  // 
+  for(uint32_t i = 0; i < NRUNS; i++) {
+    if(( mCounters[i] == 0 ) && (mActiveRunNumbers[i] == 0)) {
+      // not active
+    } else if (( mCounters[i] != 0 ) && (mActiveRunNumbers[i] == mCounters[i])) {
+      // active , do scalers
+      LOG(info) << "Run continue:" << mCounters[i];
+      addScalers(i);
+    } else if(( mCounters[i] != 0 ) && (mActiveRunNumbers[i] == 0)) {
+      LOG(info) << "Run started:" << mCounters[i];
+      mActiveRunNumbers[i] = mCounters[i];
+      mActiveRuns[i] = mRunInStart;
+      mRunInStart = nullptr;
+      //addScalers(i);
+    } else if(( mCounters[i] == 0 ) && (mActiveRunNumbers[i] != 0)) {
+      LOG(info) << "Run stopped:" << mActiveRunNumbers[i];
+      mActiveRunNumbers[i] = 0;
+      stopRun(i);
+    }
+  }
+  printActiveRuns();
+  return 0;
+}
+void CTPRunManager::printActiveRuns() const
+{
+  std::cout << "Active runs:";
+  for(auto const& arun: mActiveRunNumbers) {
+    std::cout << arun << " ";
+  }
+  std::cout << std::endl;
+}
+int CTPRunManager::saveRunToCCDB(int i)
+{
+  // data base
+  CTPActiveRun* run = mActiveRuns[i];
+  long tmin = run->timeStart;
+  long tmax = run->timeStop;
+  o2::ccdb::CcdbApi api;
+  map<string, string> metadata; // can be empty
+  api.init(mCcdbHost.c_str());   // or http://localhost:8080 for a local installation
+  // store abitrary user object in strongly typed manner
+  api.storeAsTFileAny(&(run->cfg), o2::ctp::CCDBPathCTPConfig, metadata, tmin, tmax);
+  api.storeAsTFileAny(&(run->scalers), o2::ctp::CCDBPathCTPScalers, metadata, tmin, tmax);
+  LOG(info) << "CTP config and scalers saved in ccdb, run:" << run->cfg.getRunNumber();
+  return 0;
+}
+int CTPRunManager::getConfigFromCCDB()
+{
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL(mCcdbHost);
+  auto ctpconfigdb = mgr.get<CTPConfiguration>(CCDBPathCTPConfig);
+  ctpconfigdb->printStream(std::cout);
+  return 0;
+}
+int CTPRunManager::getScalersFromCCDB()
+{
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL(mCcdbHost);
+  auto ctpconfigdb = mgr.get<CTPRunScalers>(CCDBPathCTPScalers);
+  ctpconfigdb->printStream(std::cout);
+  return 0;
+}
+int CTPRunManager::loadScalerNames()
+{
+  if(CTPRunScalers::NCOUNTERS != CTPRunScalers::scalerNames.size()) {
+    LOG(fatal) << "NCOUNTERS:" << CTPRunScalers::NCOUNTERS << " different from names vector:" << CTPRunScalers::scalerNames.size();
+    return 1;
+  }
+  // try to open files of no success use default
+  for(uint32_t i = 0; i < CTPRunScalers::scalerNames.size(); i++) {
+    mScalerName2Position[CTPRunScalers::scalerNames[i]] = i;
+  }
+  return 0;
 }
