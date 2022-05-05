@@ -16,5 +16,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::zdc::InterCalibConfig + ;
+#pragma link C++ class o2::zdc::WaveformCalibConfig + ;
 
 #endif
