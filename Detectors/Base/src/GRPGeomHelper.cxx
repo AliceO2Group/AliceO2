@@ -50,7 +50,7 @@ GRPGeomRequest::GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, 
     askAlignments = true;
     for (auto id = DetID::First; id <= DetID::Last; id++) {
       std::string binding = fmt::format("align{}", DetID::getName(id));
-      addInput({binding, DetID::getDataOrigin(id), "ALIGNMENT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/Align"), DetID::getName(id))}, inputs);
+      addInput({binding, DetID::getDataOrigin(id), "ALIGNMENT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/Align", DetID::getName(id)))}, inputs);
     }
   }
   if (askMatLUT) {
