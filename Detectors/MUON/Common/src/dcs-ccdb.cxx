@@ -12,7 +12,6 @@
 #include "CCDB/CcdbApi.h"
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
-#include "aliasFixer.h"
 #if defined(MUON_SUBSYSTEM_MCH)
 #include "MCHConditions/DCSNamer.h"
 #elif defined(MUON_SUBSYSTEM_MID)
@@ -108,8 +107,7 @@ void makeCCDBEntryForDCS(const std::string ccdbUrl, uint64_t timestamp)
 
   DPID dpidtmp;
   for (const auto& a : aliases) {
-    auto legitName = o2::muon::replaceDotByUnderscore(a);
-    DPID::FILL(dpidtmp, legitName, o2::dcs::DeliveryType::DPVAL_DOUBLE);
+    DPID::FILL(dpidtmp, a, o2::dcs::DeliveryType::DPVAL_DOUBLE);
     dpid2DataDesc[dpidtmp] = fmt::format("{}DATAPOINTS", o2::muon ::subsysname());
   }
 
