@@ -9,11 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_CALIBRATION_LHCCLOCK_CALIBRATOR_H
-#define O2_CALIBRATION_LHCCLOCK_CALIBRATOR_H
+#ifndef O2_LHCCLOCK_CALIBRATOR_SPEC_H
+#define O2_LHCCLOCK_CALIBRATOR_SPEC_H
 
 /// @file   LHCClockCalibratorSpec.h
 /// @brief  Device to calibrate LHC clock phase using FT0 data
+/// @author Alla.Maevskaya@cern.ch
 
 #include "Framework/DataProcessorSpec.h"
 #include "FT0Calibration/LHCClockDataHisto.h"
