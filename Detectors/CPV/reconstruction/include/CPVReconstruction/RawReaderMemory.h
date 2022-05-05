@@ -31,6 +31,7 @@ enum RawErrorType_t {
   kNOT_CPV_RDH,
   kSTOPBIT_NOTFOUND,
   kPAGE_NOTFOUND,
+  kOFFSET_TO_NEXT_IS_0,
   kPAYLOAD_INCOMPLETE,
   kNO_CPVHEADER,
   kNO_CPVTRAILER,
@@ -50,7 +51,7 @@ enum RawErrorType_t {
 /// \author Dmitri Peresunko after Markus Fasel
 /// \since Sept. 25, 2020
 ///
-///It reads one HBF, stores HBF orbit number in getCurrentHBFOrbit() and produces digits in AddressChargeBC format
+/// It reads one HBF, stores HBF orbit number in getCurrentHBFOrbit() and produces digits in AddressChargeBC format
 class RawReaderMemory
 {
  public:

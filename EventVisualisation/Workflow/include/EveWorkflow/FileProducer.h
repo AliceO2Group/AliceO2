@@ -34,7 +34,7 @@ class FileProducer
 
  public:
   explicit FileProducer(const std::string& path, int filesInFolder = 10,
-                        const std::string& name = "tracks{}.json");
+                        const std::string& name = "tracks_{hostname}_{pid}_{timestamp}.json");
 
   [[nodiscard]] std::string newFileName() const;
 };
@@ -42,4 +42,4 @@ class FileProducer
 } // namespace event_visualisation
 } // namespace o2
 
-#endif //ALICE_O2_EVENTVISUALISATION_WORKFLOW_FILEPRODUCER_H
+#endif // ALICE_O2_EVENTVISUALISATION_WORKFLOW_FILEPRODUCER_H

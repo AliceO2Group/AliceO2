@@ -19,7 +19,6 @@
 #include "CommonUtils/NameConf.h"
 #include "TRDBase/GeometryFlat.h"
 #include "TRDBase/Geometry.h"
-#include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/ROFRecord.h"
@@ -41,13 +40,18 @@ void AO2DConverter::init(o2::framework::InitContext& ic)
   mHelper = std::make_shared<EveWorkflowHelper>();
 }
 
-void AO2DConverter::process(o2::aod::Collisions const& collisions, EveWorkflowHelper::AODFullTracks const& tracks)
+void AO2DConverter::process(o2::aod::Collisions const& collisions, EveWorkflowHelper::AODBarrelTracks const& barrelTracks, EveWorkflowHelper::AODForwardTracks const& fwdTracks, EveWorkflowHelper::AODMFTTracks const& mftTracks)
 {
   for (auto const& c : collisions) {
-    auto const tracksCol = tracks.sliceBy(aod::track::collisionId, c.globalIndex());
+    auto const barrelTracksForCol = barrelTracks.sliceBy(aod::track::collisionId, c.globalIndex());
+    auto const mftTracksForCol = mftTracks.sliceBy(aod::fwdtrack::collisionId, c.globalIndex());
 
-    for (auto const& track : tracksCol) {
-      mHelper->drawAOD(track, c.collisionTime());
+    for (auto const& track : barrelTracksForCol) {
+      mHelper->drawAODBarrel(track, c.collisionTime());
+    }
+
+    for (auto const& track : mftTracksForCol) {
+      mHelper->drawAODMFT(track, c.collisionTime());
     }
 
     mHelper->save(jsonPath, collisions.size(), GlobalTrackID::MASK_ALL, GlobalTrackID::MASK_NONE, mWorkflowVersion, mRunNumber, mCreationTime);

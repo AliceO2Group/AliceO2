@@ -76,7 +76,7 @@ struct TrackingParameters {
   float CellDeltaTanLambdaSigma = 0.007f;
   /// Fitter parameters
   bool UseMatBudLUT = false;
-  unsigned long MaxMemory = 32000000000UL;
+  unsigned long MaxMemory = 12000000000UL;
   std::array<float, 2> FitIterationMaxChi2 = {50, 20};
 };
 
@@ -142,40 +142,42 @@ inline VertexerHistogramsConfiguration::VertexerHistogramsConfiguration(int nBin
   binSizeHistZ = (highHistBoundariesXYZ[2] - lowHistBoundariesXYZ[2]) / (nBinsXYZ[2] - 1);
 }
 
-struct VertexerStoreConfigurationGPU {
-  VertexerStoreConfigurationGPU() = default;
-  VertexerStoreConfigurationGPU(int cubBufferSize,
-                                int maxTrkClu,
-                                int cluLayCap,
-                                int maxTrkCap,
-                                int maxVert);
+struct TimeFrameGPUConfig {
+  TimeFrameGPUConfig() = default;
+  TimeFrameGPUConfig(size_t cubBufferSize,
+                     size_t maxTrkClu,
+                     size_t cluLayCap,
+                     size_t cluROfCap,
+                     size_t maxTrkCap,
+                     size_t maxVertCap);
 
-  // o2::its::gpu::Vector constructor requires signed size for initialisation
-  int tmpCUBBufferSize = 25e5;
-  int maxTrackletsPerCluster = 2e2;
-  int clustersPerLayerCapacity = 4e4;
-  int dupletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
-  int processedTrackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
-  int maxTrackletCapacity = 2e4;
-  int maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
-  int nMaxVertices = 10;
+  size_t tmpCUBBufferSize = 1e3; // In average in pp events there are required 767 bytes
+  size_t maxTrackletsPerCluster = 50;
+  size_t clustersPerLayerCapacity = 5e5;
+  size_t clustersPerROfCapacity = 1e4;
+  size_t trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
+  size_t maxLinesCapacity = 1e2;
+  size_t maxCentroidsXYCapacity = std::ceil(maxLinesCapacity * (maxLinesCapacity - 1) / (float)2);
+  size_t maxVerticesCapacity = 10;
+  size_t nMaxROFs = 1e3;
 
-  VertexerHistogramsConfiguration histConf;
+  VertexerHistogramsConfiguration histConf; // <==== split into separate configs
 };
 
-inline VertexerStoreConfigurationGPU::VertexerStoreConfigurationGPU(int cubBufferSize,
-                                                                    int maxTrkClu,
-                                                                    int cluLayCap,
-                                                                    int maxTrkCap,
-                                                                    int maxVert) : tmpCUBBufferSize{cubBufferSize},
-                                                                                   maxTrackletsPerCluster{maxTrkClu},
-                                                                                   clustersPerLayerCapacity{cluLayCap},
-                                                                                   maxTrackletCapacity{maxTrkCap},
-                                                                                   nMaxVertices{maxVert}
+inline TimeFrameGPUConfig::TimeFrameGPUConfig(size_t cubBufferSize,
+                                              size_t maxTrkClu,
+                                              size_t cluLayCap,
+                                              size_t cluROfCap,
+                                              size_t maxTrkCap,
+                                              size_t maxVertCap) : tmpCUBBufferSize{cubBufferSize},
+                                                                   maxTrackletsPerCluster{maxTrkClu},
+                                                                   clustersPerLayerCapacity{cluLayCap},
+                                                                   clustersPerROfCapacity{cluROfCap},
+                                                                   maxLinesCapacity{maxTrkCap},
+                                                                   maxVerticesCapacity{maxVertCap}
 {
-  maxCentroidsXYCapacity = std::ceil(maxTrackletCapacity * (maxTrackletCapacity - 1) / 2);
-  dupletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
-  processedTrackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
+  maxCentroidsXYCapacity = std::ceil(maxLinesCapacity * (maxLinesCapacity - 1) / 2);
+  trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
 }
 
 } // namespace its

@@ -33,7 +33,7 @@ struct CompletionPolicyHelpers {
     return consumeWhenAll("consume-all", matcher);
   }
 
-  /// as consumeWhenAll, but ensures that records are processed with incremental DataHeader::tfCounter
+  /// as consumeWhenAll, but ensures that records are processed with incremental timeSlice (DataHeader::startTime)
   static CompletionPolicy consumeWhenAllOrdered(const char* name, CompletionPolicy::Matcher matcher);
   /// Default matcher applies for all devices
   static CompletionPolicy consumeWhenAllOrdered(CompletionPolicy::Matcher matcher = [](auto const&) -> bool { return true; })

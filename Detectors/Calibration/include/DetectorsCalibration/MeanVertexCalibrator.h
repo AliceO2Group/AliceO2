@@ -30,7 +30,6 @@ class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o
 {
   using PVertex = o2::dataformats::PrimaryVertex;
   using MeanVertexData = o2::calibration::MeanVertexData;
-  using TFType = uint64_t;
   using Slot = o2::calibration::TimeSlot<MeanVertexData>;
   using MVObject = o2::dataformats::MeanVertexObject;
   using MVObjectVector = std::vector<MVObject>;
@@ -66,6 +65,9 @@ class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o
   const CcdbObjectInfoVector& getMeanVertexObjectInfoVector() const { return mInfoVector; }
   CcdbObjectInfoVector& getMeanVertexObjectInfoVector() { return mInfoVector; }
 
+  void useVerboseMode(bool flag) { mVerbose = flag; }
+  bool getVerboseMode() const { return mVerbose; }
+
  private:
   int mMinEntries = 0;
   int mNBinsX = 0;
@@ -86,13 +88,14 @@ class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o
   std::deque<MVObject> mTmpMVobjDq;                                    // This is the deque of MeanVertex objecs that will be used for the
                                                                        // simple moving average
   MVObject mSMAMVobj;                                                  // object containing the Simple Moving Average to be put to CCDB
-  std::deque<TFType> mTmpMVobjDqTimeStart;                             // This is the deque of MeanVertex objecs that will be used for the
+  std::deque<long> mTmpMVobjDqTimeStart;                               // This is the deque of MeanVertex objecs that will be used for the
                                                                        // simple moving average, start time of used TFs
-  std::deque<o2::math_utils::detail::Bracket<TFType>> mTmpMVobjDqTime; // This is the deque for the start and end time of the
+  std::deque<o2::math_utils::detail::Bracket<long>> mTmpMVobjDqTime;   // This is the deque for the start and end time of the
                                                                        // slots used for the SMA
   std::deque<MeanVertexData> mTmpMVdataDq;                             // This is the vector of Mean Vertex data to be used for the simple
                                                                        // moving average
   MeanVertexData mSMAdata;                                             // This is to do the SMA when we keep the histos
+  bool mVerbose = false;                                               // Whether to log in verbose mode
 
   ClassDefOverride(MeanVertexCalibrator, 1);
 };

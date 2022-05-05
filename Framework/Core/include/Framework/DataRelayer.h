@@ -101,6 +101,14 @@ class DataRelayer
                     size_t nMessages,
                     size_t nPayloads = 1);
 
+  /// This is to set the oldest possible @a timeslice this relayer can
+  /// possibly see on an input channel @a channel.
+  void setOldestPossibleInput(TimesliceId timeslice, ChannelIndex channel);
+
+  /// This is to retrieve the oldest possible @a timeslice this relayer can
+  /// possibly have in output.
+  TimesliceIndex::OldestOutputInfo getOldestPossibleOutput() const;
+
   /// @returns the actions ready to be performed.
   void getReadyToProcess(std::vector<RecordAction>& completed);
 

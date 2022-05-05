@@ -2196,7 +2196,9 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
       DriverState::IMPORT_CURRENT_WORKFLOW, //
       DriverState::MATERIALISE_WORKFLOW     //
     };
-  } else if (varmap["graphviz"].as<bool>()) {
+  }
+
+  if (varmap["graphviz"].as<bool>()) {
     // Dump a graphviz representation of what I will do.
     control.callbacks = {[](WorkflowSpec const&,
                             DeviceSpecs const& specs,
@@ -2626,16 +2628,13 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   conflicting_options(varmap, "dds", "dump-workflow");
   conflicting_options(varmap, "dds", "run");
   conflicting_options(varmap, "dds", "graphviz");
-  conflicting_options(varmap, "dds", "mermaid");
   conflicting_options(varmap, "o2-control", "dump-workflow");
   conflicting_options(varmap, "o2-control", "run");
   conflicting_options(varmap, "o2-control", "graphviz");
-  conflicting_options(varmap, "o2-control", "mermaid");
   conflicting_options(varmap, "run", "dump-workflow");
   conflicting_options(varmap, "run", "graphviz");
   conflicting_options(varmap, "run", "mermaid");
   conflicting_options(varmap, "dump-workflow", "graphviz");
-  conflicting_options(varmap, "dump-workflow", "mermaid");
   conflicting_options(varmap, "no-batch", "batch");
 
   if (varmap.count("help")) {

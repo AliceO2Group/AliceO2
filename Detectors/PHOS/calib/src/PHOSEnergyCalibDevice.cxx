@@ -30,7 +30,7 @@ using namespace o2::phos;
 
 void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
 {
-
+  o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   mOutputDir = ic.options().get<std::string>("output-dir");
   mOutputDir = o2::utils::Str::rectifyDirectory(mOutputDir);
   mMetaFileDir = ic.options().get<std::string>("meta-output-dir");
@@ -72,6 +72,7 @@ void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
 
 void PHOSEnergyCalibDevice::run(o2::framework::ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
 
   // Do not use ccdb if already created
   if (!mHasCalib) { // Default map and calibration was not set, use CCDB
@@ -116,8 +117,7 @@ void PHOSEnergyCalibDevice::run(o2::framework::ProcessingContext& pc)
 
 void PHOSEnergyCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
-  constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-  mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+  mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
   mCalibrator->endOfStream();
   if (mPostHistos) {
     postHistosCCDB(ec);
@@ -198,7 +198,7 @@ void PHOSEnergyCalibDevice::postHistosCCDB(o2::framework::EndOfStreamContext& ec
   // prepare all info to be sent to CCDB
   auto flName = o2::ccdb::CcdbApi::generateFileName("TimeEnHistos");
   std::map<std::string, std::string> md;
-  o2::ccdb::CcdbObjectInfo info("PHS/Calib/TimeEnHistos", "TimeEnHistos", flName, md, mRunStartTime, 99999999999999);
+  o2::ccdb::CcdbObjectInfo info("PHS/Calib/TimeEnHistos", "TimeEnHistos", flName, md, mRunStartTime, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
   info.setMetaData(md);
   auto image = o2::ccdb::CcdbApi::createObjectImage(mCalibrator->getCollectedHistos(), &info);
 
@@ -222,6 +222,13 @@ o2::framework::DataProcessorSpec o2::phos::getPHOSEnergyCalibDeviceSpec(bool use
     inputs.emplace_back("bdmap", o2::header::gDataOriginPHS, "PHS_BM", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/BadMap"));
     inputs.emplace_back("clb", o2::header::gDataOriginPHS, "PHS_Calibr", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/CalibParams"));
   }
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_TEHistos"}, o2::framework::Lifetime::Sporadic);
@@ -230,7 +237,7 @@ o2::framework::DataProcessorSpec o2::phos::getPHOSEnergyCalibDeviceSpec(bool use
   return o2::framework::DataProcessorSpec{"PHOSEnergyCalibDevice",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<PHOSEnergyCalibDevice>(useCCDB),
+                                          o2::framework::adaptFromTask<PHOSEnergyCalibDevice>(useCCDB, ccdbRequest),
                                           o2::framework::Options{
                                             {"ptminmgg", o2::framework::VariantType::Float, 1.5f, {"minimal pt to fill mgg calib histos"}},
                                             {"eminhgtime", o2::framework::VariantType::Float, 1.5f, {"minimal E (GeV) to fill HG time calib histos"}},

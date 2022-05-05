@@ -33,7 +33,7 @@
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/Cluster.h"
 
-#include "Framework/Logger.h"
+#include "GPUCommonLogger.h"
 
 class TTree;
 
@@ -99,10 +99,10 @@ class Vertexer
   TimeFrame* mTimeFrame = nullptr;   /// Observer pointer, not owned by this class
 };
 
-inline void Vertexer::filterMCTracklets()
-{
-  mTraits->computeMCFiltering();
-}
+// inline void Vertexer::filterMCTracklets()
+// {
+//   mTraits->computeMCFiltering();
+// }
 
 template <typename... T>
 void Vertexer::initialiseVertexer(T&&... args)
@@ -116,10 +116,10 @@ void Vertexer::findTracklets(T&&... args)
   mTraits->computeTracklets(std::forward<T>(args)...);
 }
 
-inline void Vertexer::findTrivialMCTracklets()
-{
-  mTraits->computeTrackletsPureMontecarlo();
-}
+// inline void Vertexer::findTrivialMCTracklets()
+// {
+//   mTraits->computeTrackletsPureMontecarlo();
+// }
 
 inline VertexingParameters Vertexer::getVertParameters() const
 {

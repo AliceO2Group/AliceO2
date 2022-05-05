@@ -165,7 +165,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     createPairs(counter + 1, DataHeader{"PAIR", "TST", 0});
 
     // using utility from ExternalFairMQDeviceProxy
-    sendOnChannel(device, messages, channelName);
+    sendOnChannel(device, messages, channelName, (size_t)-1);
 
     if (++(counter) >= nRolls) {
       // send the end of stream signal, this is transferred by the proxies

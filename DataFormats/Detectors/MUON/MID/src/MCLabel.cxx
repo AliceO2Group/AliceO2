@@ -9,12 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MID/Simulation/src/MCLabel.cxx
+/// \file   MID/src/MCLabel.cxx
 /// \brief  Implementation of MC label for MID
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   27 February 2019
 
-#include "MIDSimulation/MCLabel.h"
+#include "DataFormatsMID/MCLabel.h"
 
 ClassImp(o2::mid::MCLabel);
 

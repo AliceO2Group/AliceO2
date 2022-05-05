@@ -135,12 +135,19 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //! Momentum in z-direction in GeV/c
 
 DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //! Momentum in Gev/c
                               0.5f * (ntan(PIQuarter - 0.5f * natan(aod::track::tgl)) + 1.f / ntan(PIQuarter - 0.5f * natan(aod::track::tgl))) / nabs(aod::track::signed1Pt));
+DECLARE_SOA_DYNAMIC_COLUMN(Energy, energy, //! Track energy, computed under the mass assumption given as input
+                           [](float signed1Pt, float tgl, float mass) -> float {
+                             const auto pt = 1.f / std::abs(signed1Pt);
+                             const auto pz = pt * tgl;
+                             const auto p = 0.5f * (tan(PIQuarter - 0.5f * atan(tgl)) + 1.f / tan(PIQuarter - 0.5f * atan(tgl))) * pt;
+                             return sqrt(p * p + mass * mass);
+                           });
 DECLARE_SOA_DYNAMIC_COLUMN(Rapidity, rapidity, //! Track rapidity, computed under the mass assumption given as input
                            [](float signed1Pt, float tgl, float mass) -> float {
-                             auto pt = 1.f / std::abs(signed1Pt);
-                             auto pz = pt * tgl;
-                             auto p = 0.5f * (tan(PIQuarter - 0.5f * atan(tgl)) + 1.f / tan(PIQuarter - 0.5f * atan(tgl))) * pt;
-                             auto energy = sqrt(p * p + mass * mass);
+                             const auto pt = 1.f / std::abs(signed1Pt);
+                             const auto pz = pt * tgl;
+                             const auto p = 0.5f * (tan(PIQuarter - 0.5f * atan(tgl)) + 1.f / tan(PIQuarter - 0.5f * atan(tgl))) * pt;
+                             const auto energy = sqrt(p * p + mass * mass);
                              return 0.5f * log((energy + pz) / (energy - pz));
                            });
 
@@ -226,7 +233,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(HasTRD, hasTRD, //! Flag to check if track has a TRD 
                            [](uint8_t detectorMap) -> bool { return detectorMap & o2::aod::track::TRD; });
 DECLARE_SOA_DYNAMIC_COLUMN(HasTOF, hasTOF, //! Flag to check if track has a TOF measurement
                            [](uint8_t detectorMap) -> bool { return detectorMap & o2::aod::track::TOF; });
-DECLARE_SOA_DYNAMIC_COLUMN(IsPVContributor, isPVContributor, //! Has this track contributed to the collision vertex fit
+DECLARE_SOA_DYNAMIC_COLUMN(IsPVContributor, isPVContributor, //! Run 3: Has this track contributed to the collision vertex fit
                            [](uint8_t flags) -> bool { return (flags & o2::aod::track::PVContributor) == o2::aod::track::PVContributor; });
 DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking, //! PID hypothesis used during tracking. See the constants in the class PID in PID.h
                            [](uint32_t flags) -> uint32_t { return flags >> 28; });
@@ -274,7 +281,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, //! Fract
                            });
 } // namespace track
 
-DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk version of the Track table
+DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk version of the track parameters at collision vertex
                        o2::soa::Index<>, track::CollisionId, track::TrackType,
                        track::X, track::Alpha,
                        track::Y, track::Z, track::Snp, track::Tgl,
@@ -282,21 +289,62 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk versi
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
+                       track::Energy<track::Signed1Pt, track::Tgl>,
                        track::Rapidity<track::Signed1Pt, track::Tgl>,
                        track::Sign<track::Signed1Pt>);
 
-DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACK", //! Basic track properties
+DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACK", //! Track parameters at collision vertex
                            aod::track::Pt,
                            aod::track::P,
                            aod::track::Eta,
                            aod::track::Phi);
 
-DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKCOV", //! On disk version of the TracksCov table
+DECLARE_SOA_TABLE_FULL(StoredTracksIU, "Tracks_IU", "AOD", "TRACK_IU", //! On disk version of the track parameters at inner most update (e.g. ITS) as it comes from the tracking
+                       o2::soa::Index<>, track::CollisionId, track::TrackType,
+                       track::X, track::Alpha,
+                       track::Y, track::Z, track::Snp, track::Tgl,
+                       track::Signed1Pt,
+                       track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
+                       track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
+                       track::Pz<track::Signed1Pt, track::Tgl>,
+                       track::Rapidity<track::Signed1Pt, track::Tgl>,
+                       track::Sign<track::Signed1Pt>);
+
+DECLARE_SOA_EXTENDED_TABLE(TracksIU, StoredTracksIU, "TRACK_IU", //! Track parameters at inner most update (e.g. ITS) as it comes from the tracking
+                           aod::track::Pt,
+                           aod::track::P,
+                           aod::track::Eta,
+                           aod::track::Phi);
+
+// NOTE Because table column lists have to be unique SigmaY and SigmaZ are swapped here compared to StoredTracksCov
+DECLARE_SOA_TABLE_FULL(StoredTracksCovIU, "TracksCov_IU", "AOD", "TRACKCOV_IU", //! On disk version of the TracksCov table at inner most update (e.g. ITS) as it comes from the tracking
+                       track::SigmaZ, track::SigmaY, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
+                       track::RhoZY, track::RhoSnpY, track::RhoSnpZ, track::RhoTglY, track::RhoTglZ,
+                       track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl);
+
+DECLARE_SOA_EXTENDED_TABLE(TracksCovIU, StoredTracksCovIU, "TRACKCOV_IU", //! Track covariance matrix at inner most update (e.g. ITS) as it comes from the tracking
+                           aod::track::CYY,
+                           aod::track::CZY,
+                           aod::track::CZZ,
+                           aod::track::CSnpY,
+                           aod::track::CSnpZ,
+                           aod::track::CSnpSnp,
+                           aod::track::CTglY,
+                           aod::track::CTglZ,
+                           aod::track::CTglSnp,
+                           aod::track::CTglTgl,
+                           aod::track::C1PtY,
+                           aod::track::C1PtZ,
+                           aod::track::C1PtSnp,
+                           aod::track::C1PtTgl,
+                           aod::track::C1Pt21Pt2);
+
+DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKCOV", //! On disk version of the TracksCov table at collision vertex
                        track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
                        track::RhoZY, track::RhoSnpY, track::RhoSnpZ, track::RhoTglY, track::RhoTglZ,
                        track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl);
 
-DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKCOV", //! Track covariance matrix
+DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKCOV", //! Track covariance matrix at collision vertex
                            aod::track::CYY,
                            aod::track::CZY,
                            aod::track::CZZ,
@@ -335,7 +383,9 @@ DECLARE_SOA_EXTENDED_TABLE(TracksExtra, StoredTracksExtra, "TRACKEXTRA", //! Add
                            track::DetectorMap);
 
 using Track = Tracks::iterator;
+using TrackIU = TracksIU::iterator;
 using TrackCov = TracksCov::iterator;
+using TrackCovIU = TracksCovIU::iterator;
 using TrackExtra = TracksExtra::iterator;
 
 } // namespace aod
@@ -715,7 +765,7 @@ DECLARE_SOA_TABLE(FDDs_001, "AOD", "FDD_001", //! FDD table, version 001
                   fdd::TimeA, fdd::TimeC,
                   fdd::TriggerMask);
 
-using FDDs = FDDs_000; //! this defines the current default version
+using FDDs = FDDs_001; //! this defines the current default version
 using FDD = FDDs::iterator;
 
 namespace v0
@@ -1002,19 +1052,6 @@ DECLARE_SOA_INDEX_TABLE(Run3MatchedToBCSparse, BCs, "MA_RN3_BC_SP", //!
 
 DECLARE_SOA_INDEX_TABLE(Run2MatchedToBCSparse, BCs, "MA_RN2_BC_SP", //!
                         indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices::FDDId);
-
-// temporary code during transition from FDD_000 to FDD_001
-namespace indices_fdd_001
-{
-using FDD_001 = FDDs_001::iterator;
-DECLARE_SOA_INDEX_COLUMN_FULL(FDD_001, fdd, int, FDDs_001, ""); //!
-} // namespace indices_fdd_001
-DECLARE_SOA_INDEX_TABLE(Run3MatchedToBCSparseFDD_001, BCs, "MA_RN3_BC_SP2", //!
-                        indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices_fdd_001::FDD_001Id);
-
-DECLARE_SOA_INDEX_TABLE(Run2MatchedToBCSparseFDD_001, BCs, "MA_RN2_BC_SP2", //!
-                        indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices_fdd_001::FDD_001Id);
-// temporary code end
 
 // Joins with collisions (only for sparse ones)
 // NOTE: index table needs to be always last argument

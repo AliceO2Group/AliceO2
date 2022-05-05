@@ -20,23 +20,6 @@ namespace o2
 {
 namespace steer
 {
-void O2MCApplicationEvalMat::BeginPrimary()
-{
-  TLorentzVector p;
-  fMC->TrackMomentum(p);
-  Float_t x, y, z;
-  fMC->TrackPosition(x, y, z);
-
-  mPhi = p.Phi() * 180. / TMath::Pi();
-  if (mPhi < 0.) {
-    mPhi += 360.;
-  }
-
-  mC1[0] = p.Theta() * 180. / TMath::Pi();
-  mC1[1] = p.Eta();
-  mC1[2] = z;
-}
-
 void O2MCApplicationEvalMat::FinishPrimary()
 {
   mMaterialBudgetMap->FinishPrimary(mC1[mMode], mPhi);
@@ -46,6 +29,22 @@ void O2MCApplicationEvalMat::FinishPrimary()
 void O2MCApplicationEvalMat::Stepping()
 {
   // dispatch to MaterialBudget Map
+  if (fMC->IsNewTrack()) {
+    TLorentzVector p;
+    fMC->TrackMomentum(p);
+    Float_t x, y, z;
+    fMC->TrackPosition(x, y, z);
+
+    mPhi = p.Phi() * 180. / TMath::Pi();
+    if (mPhi < 0.) {
+      mPhi += 360.;
+    }
+
+    mC1[0] = p.Theta() * 180. / TMath::Pi();
+    mC1[1] = p.Eta();
+    mC1[2] = z;
+  }
+
   mMaterialBudgetMap->Stepping();
 }
 

@@ -23,4 +23,7 @@
 #pragma link C++ class o2::calibration::TimeSlot < o2::emcal::EMCALTimeCalibData> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::emcal::Cell, o2::emcal::EMCALTimeCalibData> + ;
 
+#pragma link C++ class o2::emcal::EMCALCalibParams + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::emcal::EMCALCalibParams> + ;
+
 #endif

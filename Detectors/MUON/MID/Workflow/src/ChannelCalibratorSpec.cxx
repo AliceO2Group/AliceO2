@@ -35,6 +35,7 @@
 #include "MIDFiltering/MaskMaker.h"
 #include "MIDRaw/ColumnDataToLocalBoard.h"
 #include "MIDRaw/ROBoardConfigHandler.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 #include "TObjString.h"
 
@@ -48,25 +49,33 @@ namespace mid
 class ChannelCalibratorDeviceDPL
 {
  public:
-  ChannelCalibratorDeviceDPL(const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks)
+  ChannelCalibratorDeviceDPL(const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks, std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req)
   {
     mCalibrator.setReferenceMasks(makeDefaultMasksFromCrateConfig(feeIdConfig, crateMasks));
   }
 
   void init(of::InitContext& ic)
   {
+    o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     mThreshold = ic.options().get<double>("mid-mask-threshold");
 
-    int slotL = ic.options().get<int>("tf-per-slot");
-    int delay = ic.options().get<int>("max-delay");
+    auto slotL = ic.options().get<uint32_t>("tf-per-slot");
+    auto delay = ic.options().get<uint32_t>("max-delay");
 
     mCalibrator.setSlotLength(slotL);
     mCalibrator.setMaxSlotsDelay(delay);
     mCalibrator.setUpdateAtTheEndOfRunOnly();
   }
 
+  //_________________________________________________________________
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  }
+
   void run(of::ProcessingContext& pc)
   {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     auto noiseRof = pc.inputs().get<gsl::span<ROFRecord>>("mid_noise_rof");
     unsigned long nEvents = noiseRof.size();
     if (nEvents == 0) {
@@ -87,13 +96,13 @@ class ChannelCalibratorDeviceDPL
 
   void endOfStream(of::EndOfStreamContext& ec)
   {
-    constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-    mCalibrator.checkSlotsToFinalize(INFINITE_TF);
+    mCalibrator.checkSlotsToFinalize(ChannelCalibrator::INFINITE_TF);
     sendOutput(ec.outputs());
   }
 
  private:
   ChannelCalibrator mCalibrator{};     ///< Calibrator
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   std::vector<ColumnData> mRefMasks{}; ///< Reference masks
   double mThreshold{0.9};              ///< Occupancy threshold for producing a mask
 
@@ -114,7 +123,7 @@ class ChannelCalibratorDeviceDPL
   {
     o2::ccdb::CcdbObjectInfo info;
     std::map<std::string, std::string> md;
-    o2::calibration::Utils::prepareCCDBobjectInfo(payload, info, path, md, mCalibrator.getTFEnd(), o2::calibration::Utils::INFINITE_TIME);
+    o2::calibration::Utils::prepareCCDBobjectInfo(payload, info, path, md, mCalibrator.getTFEnd(), o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
     LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
@@ -125,14 +134,18 @@ class ChannelCalibratorDeviceDPL
 
 of::DataProcessorSpec getChannelCalibratorSpec(const FEEIdConfig& feeIdConfig, const CrateMasks& crateMasks)
 {
-  constexpr int64_t INFINITE_TF = 0xffffffffffffffff;
-
   std::vector<of::InputSpec> inputSpecs;
   inputSpecs.emplace_back("mid_noise", header::gDataOriginMID, "NOISE");
   inputSpecs.emplace_back("mid_noise_rof", header::gDataOriginMID, "NOISEROF");
   inputSpecs.emplace_back("mid_dead", header::gDataOriginMID, "DEAD");
   inputSpecs.emplace_back("mid_dead_rof", header::gDataOriginMID, "DEADROF");
-
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputSpecs);
   std::vector<of::OutputSpec> outputSpecs;
   outputSpecs.emplace_back(o2::calibration::Utils::gDataOriginCDBPayload, "MID_BAD_CHANNELS", 0, of::Lifetime::Sporadic);
   outputSpecs.emplace_back(o2::calibration::Utils::gDataOriginCDBWrapper, "MID_BAD_CHANNELS", 0, of::Lifetime::Sporadic);
@@ -143,11 +156,11 @@ of::DataProcessorSpec getChannelCalibratorSpec(const FEEIdConfig& feeIdConfig, c
     "MIDChannelCalibrator",
     {inputSpecs},
     {outputSpecs},
-    of::AlgorithmSpec{of::adaptFromTask<o2::mid::ChannelCalibratorDeviceDPL>(feeIdConfig, crateMasks)},
+    of::AlgorithmSpec{of::adaptFromTask<o2::mid::ChannelCalibratorDeviceDPL>(feeIdConfig, crateMasks, ccdbRequest)},
     of::Options{
       {"mid-mask-threshold", of::VariantType::Double, 0.9, {"Tolerated occupancy before producing a map"}},
-      {"tf-per-slot", of::VariantType::Int64, INFINITE_TF, {"number of TFs per calibration time slot"}},
-      {"max-delay", of::VariantType::Int64, 0ll, {"number of slots in past to consider"}}}};
+      {"tf-per-slot", of::VariantType::UInt32, ChannelCalibrator::INFINITE_TF, {"number of TFs per calibration time slot"}},
+      {"max-delay", of::VariantType::UInt32, 0u, {"number of slots in past to consider"}}}};
 }
 } // namespace mid
 } // namespace o2

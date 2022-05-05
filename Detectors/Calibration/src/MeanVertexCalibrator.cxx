@@ -41,13 +41,19 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
   o2::calibration::MeanVertexData* c = slot.getContainer();
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with "
             << c->getEntries() << " entries";
-  mTmpMVobjDqTime.emplace_back(slot.getTFStart(), slot.getTFEnd());
+  mTmpMVobjDqTime.emplace_back(slot.getStartTimeMS(), slot.getEndTimeMS());
 
   if (mUseFit) {
     MeanVertexObject mvo;
     // x coordinate
     std::vector<float> fitValues;
     float* array = &c->histoX[0];
+    if (mVerbose) {
+      LOG(info) << "**** Printing content of MeanVertex object for x coordinate";
+      for (int i = 0; i < c->nbinsX; i++) {
+        LOG(info) << "i = " << i << ", content of histogram = " << c->histoX[i];
+      }
+    }
     double fitres = fitGaus(c->nbinsX, array, -(c->rangeX), c->rangeX, fitValues);
     if (fitres >= 0) {
       LOG(info) << "X: Fit result (of single Slot) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
@@ -59,6 +65,12 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
 
     // y coordinate
     array = &c->histoY[0];
+    if (mVerbose) {
+      LOG(info) << "**** Printing content of MeanVertex object for y coordinate";
+      for (int i = 0; i < c->nbinsY; i++) {
+        LOG(info) << "i = " << i << ", content of histogram = " << c->histoY[i];
+      }
+    }
     fitres = fitGaus(c->nbinsY, array, -(c->rangeY), c->rangeY, fitValues);
     if (fitres >= 0) {
       LOG(info) << "Y: Fit result (of single Slot) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
@@ -70,6 +82,12 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
 
     // z coordinate
     array = &c->histoZ[0];
+    if (mVerbose) {
+      LOG(info) << "**** Printing content of MeanVertex object for z coordinate";
+      for (int i = 0; i < c->nbinsZ; i++) {
+        LOG(info) << "i = " << i << ", content of histogram = " << c->histoZ[i];
+      }
+    }
     fitres = fitGaus(c->nbinsZ, array, -(c->rangeZ), c->rangeZ, fitValues);
     if (fitres >= 0) {
       LOG(info) << "Z: Fit result (of single Slot) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
@@ -97,9 +115,11 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     doSimpleMovingAverage(mTmpMVobjDq, mSMAMVobj);
   } else {
     // now we need to fit, on the merged data
-    LOG(debug) << "**** Printing content of SMA MVData object for x coordinate";
-    for (int i = 0; i < mSMAdata.nbinsX; i++) {
-      LOG(debug) << "i = " << i << ", content of histogram = " << mSMAdata.histoX[i];
+    if (mVerbose) {
+      LOG(info) << "**** Printing content of SMA MVData object for x coordinate";
+      for (int i = 0; i < mSMAdata.nbinsX; i++) {
+        LOG(info) << "i = " << i << ", content of histogram = " << mSMAdata.histoX[i];
+      }
     }
     std::vector<float> fitValues;
     float* array = &mSMAdata.histoX[0];
@@ -113,6 +133,12 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     mSMAMVobj.setSigmaX(fitValues[2]);
 
     // y coordinate
+    if (mVerbose) {
+      LOG(info) << "**** Printing content of SMA MVData object for y coordinate";
+      for (int i = 0; i < mSMAdata.nbinsY; i++) {
+        LOG(info) << "i = " << i << ", content of histogram = " << mSMAdata.histoY[i];
+      }
+    }
     array = &mSMAdata.histoY[0];
     fitres = fitGaus(mSMAdata.nbinsY, array, -(mSMAdata.rangeY), mSMAdata.rangeY, fitValues);
     if (fitres >= 0) {
@@ -124,6 +150,12 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     mSMAMVobj.setSigmaY(fitValues[2]);
 
     // z coordinate
+    if (mVerbose) {
+      LOG(info) << "**** Printing content of SMA MVData object for z coordinate";
+      for (int i = 0; i < mSMAdata.nbinsZ; i++) {
+        LOG(info) << "i = " << i << ", content of histogram = " << mSMAdata.histoZ[i];
+      }
+    }
     array = &mSMAdata.histoZ[0];
     fitres = fitGaus(mSMAdata.nbinsZ, array, -(mSMAdata.rangeZ), mSMAdata.rangeZ, fitValues);
     if (fitres >= 0) {
@@ -135,18 +167,15 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     mSMAMVobj.setSigmaZ(fitValues[2]);
   }
 
-  // TODO: the timestamp is now given with the TF index, but it will have
-  // to become an absolute time. This is true both for the lhc phase object itself
-  // and the CCDB entry
   if (mTmpMVobjDqTime.size() > mSMAslots) {
     mTmpMVobjDqTime.pop_front();
   }
-  TFType startValidity = (mTmpMVobjDqTime.front().getMin() + mTmpMVobjDqTime.back().getMax()) / 2; // will be rounded to uint64_t
+  long startValidity = (mTmpMVobjDqTime.front().getMin() + mTmpMVobjDqTime.back().getMax()) / 2;
   LOG(info) << "start validity = " << startValidity;
   std::map<std::string, std::string> md;
   auto clName = o2::utils::MemFileHelper::getClassName(mSMAMVobj);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  mInfoVector.emplace_back("GLO/Calib/MeanVertex", clName, flName, md, startValidity, 99999999999999);
+  mInfoVector.emplace_back("GLO/Calib/MeanVertex", clName, flName, md, startValidity - 10 * o2::ccdb::CcdbObjectInfo::SECOND, startValidity + o2::ccdb::CcdbObjectInfo::MONTH);
   mMeanVertexVector.emplace_back(mSMAMVobj);
 
   slot.print();

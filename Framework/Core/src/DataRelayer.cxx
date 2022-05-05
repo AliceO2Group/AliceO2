@@ -25,6 +25,7 @@
 #include "Framework/Signpost.h"
 #include "Framework/RoutingIndices.h"
 #include "Framework/VariableContextHelpers.h"
+#include "Framework/FairMQDeviceProxy.h"
 #include "DataProcessingStatus.h"
 #include "DataRelayerHelpers.h"
 #include "InputRouteHelpers.h"
@@ -59,8 +60,8 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
                          monitoring::Monitoring& metrics,
                          TimesliceIndex& index)
-  : mTimesliceIndex{index},
-    mMetrics{metrics},
+  : mMetrics{metrics},
+    mTimesliceIndex{index},
     mCompletionPolicy{policy},
     mDistinctRoutesIndex{DataRelayerHelpers::createDistinctRouteIndex(routes)},
     mInputMatchers{DataRelayerHelpers::createInputMatchers(routes)},
@@ -102,6 +103,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
 {
   LOGP(debug, "DataRelayer::processDanglingInputs");
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+  auto& deviceProxy = services.get<FairMQDeviceProxy>();
 
   ActivityStats activity;
   /// Nothing to do if nothing can expire.
@@ -115,7 +117,8 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
     LOGP(debug, "Creating new slot");
     for (auto& handler : expirationHandlers) {
       LOGP(debug, "handler.creator for {}", handler.name);
-      slotsCreatedByHandlers.push_back(handler.creator(mTimesliceIndex));
+      auto channelIndex = deviceProxy.getInputChannelIndex(handler.routeIndex);
+      slotsCreatedByHandlers.push_back(handler.creator(channelIndex, mTimesliceIndex));
     }
   }
   if (slotsCreatedByHandlers.empty() == false) {
@@ -252,6 +255,41 @@ void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot,
       metrics.send(monitoring::Metric{nullstring, name, Verbosity::Debug});
     }
   }
+}
+
+void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex channel)
+{
+  auto newOldest = mTimesliceIndex.setOldestPossibleInput(proposed, channel);
+  LOGP(debug, "DataRelayer::setOldestPossibleInput {} from channel {}", newOldest.timeslice.value, newOldest.channel.value);
+  for (size_t si = 0; si < mCache.size() / mInputs.size(); ++si) {
+    auto& variables = mTimesliceIndex.getVariablesForSlot({si});
+    auto timestamp = VariableContextHelpers::getTimeslice(variables);
+    auto valid = mTimesliceIndex.validateSlot({si}, newOldest.timeslice);
+    if (valid) {
+      if (mTimesliceIndex.isValid({si})) {
+        LOGP(debug, "Keeping slot {} because data has timestamp {} while oldest possible timestamp is {}", si, timestamp.value, newOldest.timeslice.value);
+      }
+      continue;
+    }
+    bool hasTimeframe = false;
+    for (size_t mi = 0; mi == mInputs.size(); ++mi) {
+      auto& input = mInputs[mi];
+      auto& element = mCache[si * mInputs.size() + mi];
+      if (input.lifetime == Lifetime::Timeframe && element.size() != 0) {
+        LOGP(error, "Dropping Lifetime::Timeframe data in slot {} with timestamp {} < {}.", si, timestamp.value, newOldest.timeslice.value);
+        hasTimeframe = true;
+        break;
+      }
+    }
+    if (!hasTimeframe) {
+      LOGP(debug, "Silently dropping data in slot {} because it has timestamp {} < {}. Lifetime::Timeframe data not expected.", si, timestamp.value, newOldest.timeslice.value);
+    }
+  }
+}
+
+TimesliceIndex::OldestOutputInfo DataRelayer::getOldestPossibleOutput() const
+{
+  return mTimesliceIndex.getOldestPossibleOutput();
 }
 
 DataRelayer::RelayChoice
@@ -624,6 +662,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     // a new message before we look again into the given cacheline.
     mTimesliceIndex.markAsDirty(slot, false);
   }
+  mTimesliceIndex.updateOldestPossibleOutput();
   LOGP(debug, "DataRelayer::getReadyToProcess results notDirty:{}, consume:{}, consumeExisting:{}, process:{}, discard:{}, wait:{}",
        notDirty, countConsume, countConsumeExisting, countProcess,
        countDiscard, countWait);

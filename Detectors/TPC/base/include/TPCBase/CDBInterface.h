@@ -57,6 +57,13 @@ enum class CDBType {
   ParElectronics,     ///< Parameter for Electronics
   ParGas,             ///< Parameter for Gas
   ParGEM,             ///< Parameter for GEM
+                      ///
+  CalIDC0,            ///< I_0(r,\phi) = <I(r,\phi,t)>_t
+  CalIDC1,            ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
+  CalIDCDelta,        ///< \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
+  CalIDCFourier,      ///< Fourier coefficients of CalIDC1
+  CalIDCPadStatusMap, ///< Status map of the pads (dead etc. obatined from CalIDC0)
+  CalIDCGroupingPar,  ///< Parameters which were used for the averaging of the CalIDCDelta
 };
 
 /// Upload intervention type
@@ -87,6 +94,13 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::ParElectronics, "TPC/Parameter/Electronics"},
   {CDBType::ParGas, "TPC/Parameter/Gas"},
   {CDBType::ParGEM, "TPC/Parameter/GEM"},
+  // IDCs
+  {CDBType::CalIDC0, "TPC/Calib/IDC/IDC0"},
+  {CDBType::CalIDC1, "TPC/Calib/IDC/IDC1"},
+  {CDBType::CalIDCDelta, "TPC/Calib/IDC/IDCDELTA"},
+  {CDBType::CalIDCFourier, "TPC/Calib/IDC/FOURIER"},
+  {CDBType::CalIDCPadStatusMap, "TPC/Calib/IDC/PadStatusMap"},
+  {CDBType::CalIDCGroupingPar, "TPC/Calib/IDC/GROUPINGPAR"},
 };
 
 /// Poor enum reflection ...
@@ -369,11 +383,11 @@ class CDBStorage
     storeObject(obj, type, mMetaData, start, end);
   }
 
-  void uploadNoiseAndPedestal(std::string_view fileName, long first = -1, long last = 99999999999999);
-  void uploadGainMap(std::string_view fileName, bool isFull = true, long first = -1, long last = 99999999999999);
-  void uploadPulserOrCEData(CDBType type, std::string_view fileName, long first = -1, long last = 99999999999999);
-  void uploadFEEConfigPad(std::string_view fileName, long first = -1, long last = 99999999999999);
-  void uploadTimeGain(std::string_view fileName, long first = -1, long last = 99999999999999);
+  void uploadNoiseAndPedestal(std::string_view fileName, long first = -1, long last = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  void uploadGainMap(std::string_view fileName, bool isFull = true, long first = -1, long last = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  void uploadPulserOrCEData(CDBType type, std::string_view fileName, long first = -1, long last = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  void uploadFEEConfigPad(std::string_view fileName, long first = -1, long last = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  void uploadTimeGain(std::string_view fileName, long first = -1, long last = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
 
  private:
   bool checkMetaData(MetaData_t metaData) const;

@@ -13,7 +13,7 @@
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/AnalysisHelpers.h"
 #include "AnalysisDataModelHelpers.h"
-#include "DataProcessingHelpers.h"
+#include "Framework/DataProcessingHelpers.h"
 #include "Framework/ExpressionHelpers.h"
 #include "Framework/RootTableBuilderHelpers.h"
 #include "Framework/AlgorithmSpec.h"
@@ -125,10 +125,6 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec>& req
           outputs.adopt(Output{origin, description}, maker(o2::aod::Run3MatchedToBCExclusiveMetadata{}));
         } else if (description == header::DataDescription{"MA_RN2_BC_SP"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::Run2MatchedToBCSparseMetadata{}));
-        } else if (description == header::DataDescription{"MA_RN2_BC_SP2"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::Run2MatchedToBCSparseFDD_001Metadata{}));
-        } else if (description == header::DataDescription{"MA_RN3_BC_SP2"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::Run3MatchedToBCSparseFDD_001Metadata{}));
         } else {
           throw std::runtime_error("Not an index table");
         }
@@ -161,8 +157,12 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& reque
 
         if (description == header::DataDescription{"TRACK"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksExtensionMetadata{}));
+        } else if (description == header::DataDescription{"TRACK_IU"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::TracksIUExtensionMetadata{}));
         } else if (description == header::DataDescription{"TRACKCOV"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksCovExtensionMetadata{}));
+        } else if (description == header::DataDescription{"TRACKCOV_IU"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::TracksCovIUExtensionMetadata{}));
         } else if (description == header::DataDescription{"TRACKEXTRA"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksExtraExtensionMetadata{}));
         } else if (description == header::DataDescription{"MFTTRACK"}) {

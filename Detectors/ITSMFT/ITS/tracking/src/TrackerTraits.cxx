@@ -9,11 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file TrackerTraitsCPU.cxx
+/// \file TrackerTraits.cxx
 /// \brief
 ///
 
-#include "ITStracking/TrackerTraitsCPU.h"
+#include "ITStracking/TrackerTraits.h"
 
 #include "CommonConstants/MathConstants.h"
 #include "ITStracking/Cell.h"
@@ -42,7 +42,7 @@ namespace its
 
 constexpr int debugLevel{0};
 
-void TrackerTraitsCPU::computeLayerTracklets()
+void TrackerTraits::computeLayerTracklets()
 {
   TimeFrame* tf = mTimeFrame;
 
@@ -243,7 +243,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
   }
 }
 
-void TrackerTraitsCPU::computeLayerCells()
+void TrackerTraits::computeLayerCells()
 {
 
 #ifdef OPTIMISATION_OUTPUT
@@ -329,7 +329,7 @@ void TrackerTraitsCPU::computeLayerCells()
   }
 }
 
-void TrackerTraitsCPU::refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
+void TrackerTraits::refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
 {
   std::vector<const Cell*> cells;
   for (int iLayer = 0; iLayer < mTrkParams.CellsPerRoad(); iLayer++) {
@@ -342,5 +342,6 @@ void TrackerTraitsCPU::refitTracks(const std::vector<std::vector<TrackingFrameIn
   mChainRunITSTrackFit(*mChain, mTimeFrame->getRoads(), clusters, cells, tf, tracks);
 }
 
+TimeFrame* TrackerTraits::getTimeFrameGPU() { return nullptr; }
 } // namespace its
 } // namespace o2

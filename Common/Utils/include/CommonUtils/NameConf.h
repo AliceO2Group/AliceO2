@@ -67,6 +67,7 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   static constexpr std::string_view CCDBMETA = "ccdb_meta";     // hardcoded
   static constexpr std::string_view CCDBQUERY = "ccdb_query";   // hardcoded
   static constexpr std::string_view CCDBRunTag = "runNumber";
+  static constexpr std::string_view CCDBDefaultEntry = "default";
 
   // Filename to store geometry file
   static std::string getGeomFileName(const std::string_view prefix = "");

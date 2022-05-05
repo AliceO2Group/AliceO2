@@ -208,8 +208,8 @@ void AODProducerWorkflowDPL::addToTracksTable(TracksCursorType& tracksCursor, Tr
   float sY = TMath::Sqrt(track.getSigmaY2()), sZ = TMath::Sqrt(track.getSigmaZ2()), sSnp = TMath::Sqrt(track.getSigmaSnp2()),
         sTgl = TMath::Sqrt(track.getSigmaTgl2()), sQ2Pt = TMath::Sqrt(track.getSigma1Pt2());
   tracksCovCursor(0,
+                  truncateFloatFraction(sZ, mTrackCovDiag), // NOTE this writes StoredTracksCovIU where Z is before Y (see AnalysisDataModel.h)
                   truncateFloatFraction(sY, mTrackCovDiag),
-                  truncateFloatFraction(sZ, mTrackCovDiag),
                   truncateFloatFraction(sSnp, mTrackCovDiag),
                   truncateFloatFraction(sTgl, mTrackCovDiag),
                   truncateFloatFraction(sQ2Pt, mTrackCovDiag),
@@ -288,7 +288,7 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
   if (needBCSlice) {
     ambigMFTTracksCursor(0, mTableTrMFTID, bcSlice);
   }
-  mGIDToTableMFTID.emplace(trackID, mTableTrMFTID);
+  //  mGIDToTableMFTID.emplace(trackID, mTableTrMFTID);
   mTableTrMFTID++;
 }
 
@@ -346,6 +346,39 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           }
           mGIDToTableID.emplace(trackIndex, mTableTrID);
           mTableTrID++;
+        }
+      }
+    }
+  }
+}
+
+void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices)
+{
+  for (int src : {GIndex::Source::MFTMCH, GIndex::Source::MCH, GIndex::Source::MFT}) {
+    int start = trackRef.getFirstEntryOfSource(src);
+    int end = start + trackRef.getEntriesOfSource(src);
+    for (int ti = start; ti < end; ti++) {
+      auto& trackIndex = GIndices[ti];
+      if (GIndex::includesSource(src, mInputSources)) {
+        if (src == GIndex::Source::MFT) {
+          if (trackIndex.isAmbiguous() && mGIDToTableMFTID.find(trackIndex) != mGIDToTableMFTID.end()) {
+            continue;
+          }
+
+          mGIDToTableMFTID.emplace(trackIndex, mIndexMFTID);
+          mIndexTableMFT[trackIndex.getIndex()] = mIndexMFTID;
+          mIndexMFTID++;
+
+        } else if (src == GIndex::Source::MCH || src == GIndex::Source::MFTMCH) {
+          if (trackIndex.isAmbiguous() && mGIDToTableFwdID.find(trackIndex) != mGIDToTableFwdID.end()) {
+            continue;
+          }
+
+          mGIDToTableFwdID.emplace(trackIndex, mIndexFwdID);
+          if (src == GIndex::Source::MCH) {
+            mIndexTableFwd[trackIndex.getIndex()] = mIndexFwdID;
+          }
+          mIndexFwdID++;
         }
       }
     }
@@ -482,8 +515,8 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     fwdInfo.chi2matchmchmid = track.getMIDMatchingChi2();
     fwdInfo.chi2matchmchmft = track.getMFTMCHMatchingChi2();
     fwdInfo.matchscoremchmft = track.getMFTMCHMatchingScore();
-    fwdInfo.matchmfttrackid = track.getMFTTrackID();
-    fwdInfo.matchmchtrackid = track.getMCHTrackID();
+    fwdInfo.matchmfttrackid = mIndexTableMFT[track.getMFTTrackID()];
+    fwdInfo.matchmchtrackid = mIndexTableFwd[track.getMCHTrackID()];
     fwdInfo.trackTime = track.getTimeMUS().getTimeStamp() * 1.e3;
     fwdInfo.trackTimeRes = track.getTimeMUS().getTimeStampError() * 1.e3;
 
@@ -569,7 +602,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   if (needBCSlice) {
     ambigFwdTracksCursor(0, mTableTrFwdID, bcSlice);
   }
-  mGIDToTableFwdID.emplace(trackID, mTableTrFwdID);
+  //  mGIDToTableFwdID.emplace(trackID, mTableTrFwdID);
   mTableTrFwdID++;
 }
 
@@ -1173,8 +1206,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE_001"});
   auto& mcTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCTRACKLABEL"});
   auto& mftTracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MFTTRACK"});
-  auto& tracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK"});
-  auto& tracksCovBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKCOV"});
+  auto& tracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK_IU"});
+  auto& tracksCovBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKCOV_IU"});
   auto& tracksExtraBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKEXTRA"});
   auto& ambigTracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "AMBIGUOUSTRACK"});
   auto& ambigMFTTracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "AMBIGUOUSMFTTR"});
@@ -1188,21 +1221,21 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
   auto cascadesCursor = cascadesBuilder.cursor<o2::aod::Cascades>();
   auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
-  auto fddCursor = fddBuilder.cursor<o2::aod::FDDs_001>();
+  auto fddCursor = fddBuilder.cursor<o2::aod::FDDs>();
   auto ft0Cursor = ft0Builder.cursor<o2::aod::FT0s>();
   auto fv0aCursor = fv0aBuilder.cursor<o2::aod::FV0As>();
-  auto fwdTracksCursor = fwdTracksBuilder.cursor<o2::aodproducer::FwdTracksTable>();
-  auto fwdTracksCovCursor = fwdTracksCovBuilder.cursor<o2::aodproducer::FwdTracksCovTable>();
+  auto fwdTracksCursor = fwdTracksBuilder.cursor<o2::aod::StoredFwdTracks>();
+  auto fwdTracksCovCursor = fwdTracksCovBuilder.cursor<o2::aod::StoredFwdTracksCov>();
   auto mcColLabelsCursor = mcColLabelsBuilder.cursor<o2::aod::McCollisionLabels>();
   auto mcCollisionsCursor = mcCollisionsBuilder.cursor<o2::aod::McCollisions>();
   auto mcMFTTrackLabelCursor = mcMFTTrackLabelBuilder.cursor<o2::aod::McMFTTrackLabels>();
   auto mcFwdTrackLabelCursor = mcFwdTrackLabelBuilder.cursor<o2::aod::McFwdTrackLabels>();
   auto mcParticlesCursor = mcParticlesBuilder.cursor<o2::aod::StoredMcParticles_001>();
   auto mcTrackLabelCursor = mcTrackLabelBuilder.cursor<o2::aod::McTrackLabels>();
-  auto mftTracksCursor = mftTracksBuilder.cursor<o2::aodproducer::MFTTracksTable>();
-  auto tracksCovCursor = tracksCovBuilder.cursor<o2::aodproducer::TracksCovTable>();
-  auto tracksCursor = tracksBuilder.cursor<o2::aodproducer::TracksTable>();
-  auto tracksExtraCursor = tracksExtraBuilder.cursor<o2::aodproducer::TracksExtraTable>();
+  auto mftTracksCursor = mftTracksBuilder.cursor<o2::aod::StoredMFTTracks>();
+  auto tracksCovCursor = tracksCovBuilder.cursor<o2::aod::StoredTracksCov>();
+  auto tracksCursor = tracksBuilder.cursor<o2::aod::StoredTracksIU>();
+  auto tracksExtraCursor = tracksExtraBuilder.cursor<o2::aod::StoredTracksExtra>();
   auto ambigTracksCursor = ambigTracksBuilder.cursor<o2::aod::AmbiguousTracks>();
   auto ambigMFTTracksCursor = ambigMFTTracksBuilder.cursor<o2::aod::AmbiguousMFTTracks>();
   auto ambigFwdTracksCursor = ambigFwdTracksBuilder.cursor<o2::aod::AmbiguousFwdTracks>();
@@ -1479,6 +1512,19 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   cacheTriggers(recoData);
 
+  int collisionID = 0;
+  mIndexTableMFT.resize(recoData.getMFTTracks().size());
+  mIndexTableFwd.resize(recoData.getMCHTracks().size() * 3); // take an upperbound to the size of the FwdTrack table
+
+  auto& trackReffwd = primVer2TRefs.back();
+  fillIndexTablesPerCollision(trackReffwd, primVerGIs);
+  collisionID = 0;
+  for (auto& vertex : primVertices) {
+    auto& trackReffwd = primVer2TRefs[collisionID];
+    fillIndexTablesPerCollision(trackReffwd, primVerGIs); // this function must follow the same track order as 'fillTrackTablesPerCollision' to fill the map of track indices
+    collisionID++;
+  }
+
   // filling unassigned tracks first
   // so that all unassigned tracks are stored in the beginning of the table together
   auto& trackRef = primVer2TRefs.back(); // references to unassigned tracks are at the end
@@ -1488,7 +1534,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                               fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, bcsMap);
 
   // filling collisions and tracks into tables
-  int collisionID = 0;
+  collisionID = 0;
   for (auto& vertex : primVertices) {
     auto& cov = vertex.getCov();
     auto& timeStamp = vertex.getTimeStamp();                       // this is a relative time
@@ -1609,6 +1655,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   mTableCollID = 0;
   mV0ToTableID.clear();
   mTableV0ID = 0;
+
+  mIndexTableFwd.clear();
+  mIndexFwdID = 0;
+  mIndexTableMFT.clear();
+  mIndexMFTID = 0;
 
   originCursor(0, tfNumber);
 
@@ -1955,8 +2006,8 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputLabel{"O2mcparticle_001"}, "AOD", "MCPARTICLE_001", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2mctracklabel"}, "AOD", "MCTRACKLABEL", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2mfttrack"}, "AOD", "MFTTRACK", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2track"}, "AOD", "TRACK", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2trackcov"}, "AOD", "TRACKCOV", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2track_iu"}, "AOD", "TRACK_IU", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2trackcov_iu"}, "AOD", "TRACKCOV_IU", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2trackextra"}, "AOD", "TRACKEXTRA", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2ambiguoustrack"}, "AOD", "AMBIGUOUSTRACK", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2ambiguousMFTtrack"}, "AOD", "AMBIGUOUSMFTTR", 0, Lifetime::Timeframe);

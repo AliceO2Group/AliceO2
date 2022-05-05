@@ -35,10 +35,9 @@ if(HIP_ENABLED)
   o2_add_library(ITStrackingHIP
                  SOURCES ClusterLinesGPU.hip.cxx
                          Context.hip.cxx
-                         # DeviceStore.hip.cxx
-                         DeviceStoreVertexerGPU.hip.cxx
+                         TimeFrameGPU.hip.cxx
                          Stream.hip.cxx
-                         # TrackerTraits.hip.cxx
+                         TrackerTraitsGPU.hip.cxx
                          VertexerTraitsGPU.hip.cxx
                          Utils.hip.cxx
                  PUBLIC_INCLUDE_DIRECTORIES ../

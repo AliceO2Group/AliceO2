@@ -66,6 +66,7 @@ class MFTDCSDataProcessor : public o2::framework::Task
       LOG(error) << "MFT DPs update interval set to zero seconds --> changed to 60";
       mDPsUpdateInterval = 60;
     }
+    LOG(info) << "mDPsUpdateInterval " << mDPsUpdateInterval << "[sec.]";
 
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
 
@@ -147,8 +148,6 @@ class MFTDCSDataProcessor : public o2::framework::Task
 
     auto timeNow = HighResClock::now();
     Duration elapsedTime = timeNow - mTimer; // in seconds
-
-    LOG(info) << "mDPsUpdateInterval " << mDPsUpdateInterval << "[sec.]";
 
     if (elapsedTime.count() >= mDPsUpdateInterval) {
       sendDPsoutput(pc.outputs());

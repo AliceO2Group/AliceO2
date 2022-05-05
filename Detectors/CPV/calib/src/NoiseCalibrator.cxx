@@ -137,7 +137,7 @@ void NoiseCalibrator::finalizeSlot(NoiseTimeSlot& slot)
   mCcdbInfoBadChannelMapVec.emplace_back("CPV/Calib/BadChannelMap", className, fileName, metaData, timeStamp, timeStamp + 31536000000); // one year validity time (in milliseconds!)
 }
 //_____________________________________________________________________________
-NoiseTimeSlot& NoiseCalibrator::emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend)
+NoiseTimeSlot& NoiseCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
   LOG(info) << "NoiseCalibrator::emplaceNewSlot() : emplacing new Slot from tstart = " << tstart << " to " << tend;
   auto& cont = getSlots();

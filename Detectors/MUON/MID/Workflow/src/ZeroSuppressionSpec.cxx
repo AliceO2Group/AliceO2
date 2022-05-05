@@ -22,11 +22,11 @@
 #include "Framework/Task.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
+#include "DataFormatsMID/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "MIDRaw/ColumnDataToLocalBoard.h"
 #include "MIDRaw/DecodedDataAggregator.h"
 #include "MIDRaw/ROBoardResponse.h"
-#include "MIDSimulation/MCLabel.h"
 
 namespace of = o2::framework;
 

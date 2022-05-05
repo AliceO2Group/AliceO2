@@ -42,8 +42,8 @@
 namespace o2::framework
 {
 
-struct EndOfStreamContext;
-struct ProcessingContext;
+class EndOfStreamContext;
+class ProcessingContext;
 
 enum struct RateLimitingState {
   UNKNOWN = 0,                   // No information received yet.
@@ -417,6 +417,10 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
       auto writer = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-writer"; });
       std::vector<InputSpec> requestedAODs;
       std::vector<InputSpec> requestedDYNs;
+      std::vector<OutputSpec> providedDYNs;
+
+      auto inputSpecLessThan = [](InputSpec const& lhs, InputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
+      auto outputSpecLessThan = [](OutputSpec const& lhs, OutputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
 
       if (builder != workflow.end()) {
         // collect currently requested IDXs
@@ -453,14 +457,27 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
               DataSpecUtils::updateInputList(requestedDYNs, std::move(copy));
             }
           }
+          for (auto const& o : d.outputs) {
+            if (DataSpecUtils::partialMatch(o, header::DataOrigin{"DYN"})) {
+              providedDYNs.emplace_back(o);
+            }
+          }
+        }
+        std::sort(requestedDYNs.begin(), requestedDYNs.end(), inputSpecLessThan);
+        std::sort(providedDYNs.begin(), providedDYNs.end(), outputSpecLessThan);
+        std::vector<InputSpec> spawnerInputs;
+        for (auto& input : requestedDYNs) {
+          if (std::none_of(providedDYNs.begin(), providedDYNs.end(), [&input](auto const& x) { return DataSpecUtils::match(input, x); })) {
+            spawnerInputs.emplace_back(input);
+          }
         }
         // recreate inputs and outputs
         spawner->outputs.clear();
         spawner->inputs.clear();
         // replace AlgorithmSpec
         // FIXME: it should be made more generic, so it does not need replacement...
-        spawner->algorithm = readers::AODReaderHelpers::aodSpawnerCallback(requestedDYNs);
-        WorkflowHelpers::addMissingOutputsToSpawner(requestedDYNs, requestedAODs, *spawner);
+        spawner->algorithm = readers::AODReaderHelpers::aodSpawnerCallback(spawnerInputs);
+        WorkflowHelpers::addMissingOutputsToSpawner({}, spawnerInputs, requestedAODs, *spawner);
       }
 
       if (writer != workflow.end()) {
@@ -496,7 +513,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
       // ATTENTION: if there are dangling outputs the getGlobalAODSink
       // has to be created in any case!
       std::vector<InputSpec> outputsInputsAOD;
-      auto isAOD = [](InputSpec const& spec) { return DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")); };
+      auto isAOD = [](InputSpec const& spec) { return (DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")) || DataSpecUtils::partialMatch(spec, header::DataOrigin("DYN"))); };
 
       for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
         if (isAOD(outputsInputs[ii])) {

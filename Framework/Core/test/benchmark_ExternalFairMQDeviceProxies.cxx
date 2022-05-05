@@ -340,7 +340,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
             createPairs(attributes->splitPayloadSize, DataHeader{"DATA", "TST", i});
           }
           // using utility from ExternalFairMQDeviceProxy
-          o2::framework::sendOnChannel(device, messages, attributes->channelName);
+          o2::framework::sendOnChannel(device, messages, attributes->channelName, (size_t)-1);
         } else {
           for (unsigned int i = 0; i < attributes->nChannels; i++) {
             outputs.make<char>(OutputRef{"data", i}, attributes->msgSize);
@@ -375,7 +375,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
           out.AddPart(std::move(headerMessage));
           // add empty payload message
           out.AddPart(std::move(device.NewMessageFor(attributes->channelName, 0, 0)));
-          o2::framework::sendOnChannel(device, out, attributes->channelName);
+          o2::framework::sendOnChannel(device, out, attributes->channelName, (size_t)-1);
         }
       }
     };
@@ -506,7 +506,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     output.AddPart(std::move(outHeaderMessage));
     output.AddPart(std::move(inputs.At(msgidx + 1)));
     LOG(debug) << "sending " << DataSpecUtils::describe(OutputSpec{odh->dataOrigin, odh->dataDescription, odh->subSpecification});
-    o2::framework::sendOnChannel(device, output, channelName);
+    o2::framework::sendOnChannel(device, output, channelName, (size_t)-1);
   };
 
   // we use the same spec to build the configuration string, ideally we would have some helpers

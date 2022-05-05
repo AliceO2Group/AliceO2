@@ -42,7 +42,7 @@ namespace o2::framework
 {
 
 struct InputSpec;
-struct InputSpan;
+class InputSpan;
 class CallbackService;
 
 /// @class InputRecord
@@ -680,6 +680,11 @@ class InputRecord
   [[nodiscard]] const_iterator end() const
   {
     return {this, size()};
+  }
+
+  InputSpan& span()
+  {
+    return mSpan;
   }
 
  private:

@@ -37,6 +37,7 @@
 #include "TRDWorkflowIO/TRDTrackReaderSpec.h"
 #include "CTPWorkflowIO/DigitReaderSpec.h"
 #include "MCHWorkflow/TrackReaderSpec.h"
+#include "MCHWorkflow/ClusterReaderSpec.h"
 #include "MIDWorkflow/TrackReaderSpec.h"
 #include "PHOSWorkflow/ReaderSpec.h"
 #include "CPVWorkflow/ReaderSpec.h"
@@ -153,6 +154,10 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
 
   if (maskTracks[GID::EMC] && maskClusters[GID::EMC]) {
     specs.emplace_back(o2::emcal::getCellReaderSpec(maskTracksMC[GID::EMC] || maskClustersMC[GID::EMC]));
+  }
+
+  if (maskClusters[GID::MCH]) {
+    specs.emplace_back(o2::mch::getClusterReaderSpec(maskClustersMC[GID::MCH], "mch-global-cluster-reader", true, false));
   }
 
   return 0;

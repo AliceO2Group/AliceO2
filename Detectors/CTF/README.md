@@ -13,7 +13,7 @@ Every detector writing CTF data is expected to send an output with entropy-compr
 
 Example of usage:
 ```bash
-o2-its-reco-workflow --entropy-encoding | o2-ctf-writer-workflow --onlyDet ITS
+o2-its-reco-workflow | o2-itsmft-entropy-encoder-workflow | o2-ctf-writer-workflow --onlyDet ITS
 ```
 
 For the storage optimization reason one can request multiple CTFs stored in the same output file (as entries of the `ctf` tree):
@@ -40,15 +40,16 @@ By default only CTFs will written. If the upstream entropy compression is perfor
 `--output-type both` (will store both dictionaries and CTF). This is the only valid mode for dictionaries creation (if one requests dictionary creation but the compression was done with external dictionaries, the newly created dictionaries will be empty).
 In the dictionaries creation mode their data are accumulated over all CTFs procssed. User may request periodic (and incremental) saving of dictionaries after every `N` TFs processed by passing `--save-dict-after <N>` option.
 
-Option `--ctf-dict-dir <dir>` can be provided to indicate the (existing) directory where the dictionary will be stored.
+Option `--ctf-dict-dir <dir>` can be provided to indicate the directory where the dictionary will be stored.
 
-The external dictionaries created by the `o2-ctf-writer-workflow` containes a TTree (one for all participating detectos or single file per detector if `--dict-per-det` was provided). Since the TTrees cannot be used with CcdbAPI, one can
-run the macro `O2/Detectors/CTF/utils/CTFdict2CCDBfiles.C` (installed to $O2_ROOT/share/macro/CTFdict2CCDBfiles.C) which extracts the dictionary for every detector into separate file containing plain `vector<char>`. These files can be directly
+The external dictionaries created by the `o2-ctf-writer-workflow` containes a TTree (one for all participating detectos) and separate dictionaries per detector which can be uploaded to the CCDB. The per-detector dictionaries compatible with CCDB can be also extracted from the common TTree-based dictionary file using the macro `O2/Detectors/CTF/utils/CTFdict2CCDBfiles.C` (installed to $O2_ROOT/share/macro/CTFdict2CCDBfiles.C) which extracts the dictionary for every detector into separate file containing plain `vector<char>`. These per-detector files can be directly
 uploaded to CCDB and accessed via `CcdbAPI` (the reference of the vector should be provided to corresponding detector CTFCoder::createCoders method to build the run-time dictionary). These files can be also used as per-detector command-line
 parameters, on the same footing as tree-based dictionaries, e.g.
 ```
 o2-ctf-reader-workflow --ctf-input input.lst --onlyDet ITS,TPC,TOF --its-entropy-decoder ' --ctf-dict ctfdict_ITS_v1.0_1626472046.root' --tpc-entropy-decoder ' --ctf-dict ctfdict_TPC_v1.0_1626472048.root' --tof-entropy-decoder  ' --ctf-dict ctfdict_TOF_v1.0_1626472048.root'
 ```
+
+See below for the details of `--ctf-dict` option.
 
 ## CTF reader workflow
 
@@ -64,7 +65,7 @@ o2-ctf-reader-workflow --onlyDet ITS --ctf-input o2_ctf_0000000000.root  | o2-it
 
 The option are:
 ```
---ctf-input arg (=none)
+--ctf-input arg (=ccdb)
 ```
 inptu data (obligatort): comma-separated list of CTF  files and/or files with list of data files and/or directories containing files
 
@@ -148,22 +149,27 @@ allows to alter the `subSpecification` used to send the CTFDATA from the reader 
 
 ## Support for externally provided encoding dictionaries
 
-By default encoding with generate for every TF and store in the CTF the dictionary information necessary to decode the CTF.
+In absence of the external dictionary the encoding with generate for every TF and store in the CTF the dictionary information necessary to decode the CTF.
 Since the time needed for the creation of dictionary and encoder/decoder may exceed encoding/decoding time, there is a possibility
 to create in a separate pass a dictionary stored in the CTF-like object and use it for further encoding/decoding.
 
+The option `--ctf-dict <OPT>` steers in all detectors entropy encoders the fething of the entropy dictionary. The choices for OPT are:
+1) `"ccdb"` (or empty string): leads to using CCDB objec fetching by the DPL CCDB service (default)
+
+2) `<filename>`: use the dictionary from provided file (either tree-based format or flat one in CCDB format)
+
+3) `"none"`: do not use external dictionary, instead per-TF dictionaries will be stored in the CTF
+
+
 To create a dictionary run usual CTF creation chain but with extra option, e.g.:
 ```bash
-o2-its-reco-workflow --entropy-encoding | o2-ctf-writer-workflow --output-type dict --onlyDet ITS
+
+o2-its-reco-workflow | o2-itsmft-entropy-encoding-workflow --ctf-dict none | o2-ctf-writer-workflow --output-type dict --onlyDet ITS
 ```
-This will create a file `ctf_dictionary.root` containing dictionary data for all detectors processed by the `o2-ctf-writer-workflow`.
+This will create a file `ctf_dictionary_<date>_<NTF_used>.root` (linked to `ctf_dictionary.root`) containing dictionary data in a TTree format for all detectors processed by the `o2-ctf-writer-workflow`.
+Additionally, for every participation detector a `ctf_dictionary_<DET>_v<version>_<data>_<NTF_used>.root` file will be produced, with the dictionary in the flat format. These files can be directly uploaded to the CCDB.
 By default the dictionary file is written on the exit from the workflow, in `CTFWriterSpec::endOfStream()` which is currently not called if the workflow is stopped
 by `ctrl-C`. Periodic incremental saving of so-far accumulated dictionary data during processing can be triggered by providing an option
 ``--save-dict-after <N>``.
 
-Following encoding / decoding will use external dictionaries automatically if this file is found in the working directory (eventually it will be provided via CCDB).
-Note that if the file is found but dictionary data for some detector participating in the workflow are not found, an error will be printed and for given detector
-the workflows will use in-ctf dictionaries.
-The dictionaries must be provided for decoding of CTF data encoded using external dictionaries (otherwise an exception will be thrown).
-
-When decoding CTF containing dictionary data (i.e. encoded w/o external dictionaries), the CTF-specific dictionary will be created/used on the fly, ignoring eventually provided external dictionary data.
+When decoding CTF containing dictionary data (i.e. encoded w/o external dictionaries), externally provided dictionaries will be ignored.

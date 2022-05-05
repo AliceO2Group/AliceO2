@@ -123,7 +123,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
         FairMQParts outParts;
         outParts.AddPart(std::move(hdMessage));
         outParts.AddPart(std::move(plMessage));
-        o2f::sendOnChannel(device, outParts, channel);
+        o2f::sendOnChannel(device, outParts, channel, *timesliceId);
       }
 
       timer = timerNow;

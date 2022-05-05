@@ -60,13 +60,17 @@ class TrackerTraits
     mChain = chain;
   }
 
-  virtual void computeLayerTracklets(){};
-  virtual void computeLayerCells(){};
-  virtual void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&){};
+  virtual void computeLayerTracklets();
+  virtual void computeLayerCells();
+  virtual void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&);
 
   void UpdateTrackingParameters(const TrackingParameters& trkPar);
   TimeFrame* getTimeFrame() { return mTimeFrame; }
   void adoptTimeFrame(TimeFrame* tf) { mTimeFrame = tf; }
+
+  // GPU-specific interfaces
+  virtual TimeFrame* getTimeFrameGPU();
+  virtual void loadToDevice(){};
 
  protected:
   TimeFrame* mTimeFrame;

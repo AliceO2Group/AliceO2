@@ -35,10 +35,14 @@ using Lifetime = o2::framework::Lifetime;
 
 void RawToDigitConverterSpec::init(framework::InitContext& ctx)
 {
+  mStartTime = std::chrono::system_clock::now();
+  mDecoderErrorsPerMinute = 0;
+  mIsMuteDecoderErrors = false;
+
   LOG(debug) << "Initializing RawToDigitConverterSpec...";
   // Pedestal flag true/false
   LOG(info) << "Pedestal run: " << (mIsPedestalData ? "YES" : "NO");
-  if (mIsPedestalData) { //no calibration for pedestal runs needed
+  if (mIsPedestalData) { // no calibration for pedestal runs needed
     mIsUsingGainCalibration = false;
     mIsUsingBadMap = false;
     LOG(info) << "CCDB is not used. Task configuration is done.";
@@ -56,6 +60,23 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
 
 void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
 {
+  // check timers if we need mute/unmute error reporting
+  auto now = std::chrono::system_clock::now();
+  if (mIsMuteDecoderErrors) { // check if 10-minutes muting period passed
+    if (((now - mTimeWhenMuted) / std::chrono::minutes(1)) >= 10) {
+      mIsMuteDecoderErrors = false; // unmute
+      if (mDecoderErrorsCounterWhenMuted) {
+        LOG(error) << "RawToDigitConverterSpec::run() : " << mDecoderErrorsCounterWhenMuted << " errors happened while it was muted ((";
+      }
+      mDecoderErrorsCounterWhenMuted = 0;
+    }
+  }
+  if (((now - mStartTime) / std::chrono::minutes(1)) > mMinutesPassed) {
+    mMinutesPassed = (now - mStartTime) / std::chrono::minutes(1);
+    LOG(debug) << "minutes passed: " << mMinutesPassed;
+    mDecoderErrorsPerMinute = 0;
+  }
+
   // Cache digits from bunch crossings as the component reads timeframes from many links consecutively
   std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::cpv::Digit>>> digitBuffer; // Internal digit buffer
   int firstEntry = 0;
@@ -81,7 +102,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       ctx.outputs().snapshot(o2::framework::Output{"CPV", "DIGITTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
       mOutputHWErrors.clear();
       ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
-      return; //empty TF, nothing to process
+      return; // empty TF, nothing to process
     }
   }
   contDeadBeef = 0; // if good data, reset the counter
@@ -120,41 +141,71 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       try {
         rawreader.next();
       } catch (RawErrorType_t e) {
-        LOG(error) << "Raw decoding error " << (int)e;
-        //add error list
-        //RawErrorType_t is defined in O2/Detectors/CPV/reconstruction/include/CPVReconstruction/RawReaderMemory.h
-        //RawDecoderError(short c, short d, short g, short p, RawErrorType_t e)
-        mOutputHWErrors.emplace_back(25, 0, 0, 0, e); //Put general errors to non-existing ccId 25
-        //if problem in header, abandon this page
-        if (e == RawErrorType_t::kRDH_DECODING) {
+        if (!mIsMuteDecoderErrors) {
+          LOG(error) << "Raw decoding error " << (int)e;
+        }
+        // add error list
+        // RawErrorType_t is defined in O2/Detectors/CPV/reconstruction/include/CPVReconstruction/RawReaderMemory.h
+        // RawDecoderError(short c, short d, short g, short p, RawErrorType_t e)
+        mOutputHWErrors.emplace_back(-1, 0, 0, 0, e); // Put general errors to non-existing ccId -1
+        // if problem in header, abandon this page
+        if (e == RawErrorType_t::kRDH_DECODING) { // fatal error -> skip whole TF
           LOG(error) << "RDH decoding error. Skipping this TF";
           skipTF = true;
           break;
         }
-        //if problem in payload, try to continue
+        if (e == RawErrorType_t::kPAGE_NOTFOUND ||       // nothing left to read -> skip to next HBF
+            e == RawErrorType_t::kNOT_CPV_RDH ||         // not cpv rdh -> skip to next HBF
+            e == RawErrorType_t::kOFFSET_TO_NEXT_IS_0) { // offset to next package is 0 -> do not know how to read next -> skip to next HBF
+          break;
+        }
+        // if problem in payload, try to continue
         continue;
       }
       auto& rdh = rawreader.getRawHeader();
       auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
-      auto mod = o2::raw::RDHUtils::getLinkID(rdh) + 2; //link=0,1,2 -> mod=2,3,4
-      //for now all modules are written to one LinkID
-      if (mod > o2::cpv::Geometry::kNMod || mod < 2) { //only 3 correct modules:2,3,4
-        LOG(error) << "module=" << mod << "do not exist";
-        mOutputHWErrors.emplace_back(25, mod, 0, 0, kRDH_INVALID); //Add non-existing modules to non-existing ccId 25 and dilogic = mod
-        continue;                                                  //skip STU mod
+      auto mod = o2::raw::RDHUtils::getLinkID(rdh) + 2; // link=0,1,2 -> mod=2,3,4
+      // for now all modules are written to one LinkID
+      if (mod > o2::cpv::Geometry::kNMod || mod < 2) { // only 3 correct modules:2,3,4
+        if (!mIsMuteDecoderErrors) {
+          LOG(error) << "RDH linkId corresponds to module " << mod << " which does not exist";
+        }
+        mOutputHWErrors.emplace_back(-1, mod, 0, 0, kRDH_INVALID); // Add non-existing modules to non-existing ccId -1 and dilogic = mod
+        continue;
       }
       o2::cpv::RawDecoder decoder(rawreader);
+      if (mIsMuteDecoderErrors) {
+        decoder.muteErrors();
+      }
       RawErrorType_t err = decoder.decode();
+      int decoderErrors = 0;
+      for (auto errs : decoder.getErrors()) {
+        if (errs.ccId == -1) { // error related to wrong data format
+          decoderErrors++;
+        }
+      }
+      mDecoderErrorsPerMinute += decoderErrors;
+      // LOG(debug) << "RawDecoder found " << decoderErrors << " raw format errors";
+      // LOG(debug) << "Now I have " << mDecoderErrorsPerMinute << " errors for current minute";
+      if (mIsMuteDecoderErrors) {
+        mDecoderErrorsCounterWhenMuted += decoder.getErrors().size();
+      } else {
+        if (mDecoderErrorsPerMinute > 10) { // mute error reporting for 10 minutes
+          LOG(warning) << "> 10 raw decoder error messages per minute, muting it for 10 minutes";
+          mIsMuteDecoderErrors = true;
+          mTimeWhenMuted = std::chrono::system_clock::now();
+        }
+      }
 
       if (!(err == kOK || err == kOK_NO_PAYLOAD)) {
-        //TODO handle severe errors
-        //TODO: probably careful conversion of decoder errors to Fitter errors?
-        mOutputHWErrors.emplace_back(25, mod, 0, 0, err); //assign general RDH errors to non-existing ccId 25 and dilogic = mod
+        // TODO handle severe errors
+        // TODO: probably careful conversion of decoder errors to Fitter errors?
+        mOutputHWErrors.emplace_back(-1, mod, 0, 0, err); // assign general RDH errors to non-existing ccId -1 and dilogic = mod
       }
 
       std::shared_ptr<std::vector<o2::cpv::Digit>> currentDigitContainer;
       auto digilets = decoder.getDigits();
-      if (digilets.empty()) { //no digits -> continue to next pages
+      if (digilets.empty()) { // no digits -> continue to next pages
         continue;
       }
       o2::InteractionRecord currentIR(0, triggerOrbit); //(bc, orbit)
@@ -173,9 +224,9 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
 
           AddressCharge ac = {adch};
           unsigned short absId = ac.Address;
-          //if we deal with non-pedestal data?
-          if (!mIsPedestalData) { //not a pedestal data
-            //test bad map
+          // if we deal with non-pedestal data?
+          if (!mIsPedestalData) { // not a pedestal data
+            // test bad map
             if (mIsUsingBadMap) {
               if (!badMap->isChannelGood(absId)) {
                 continue; // skip bad channel
@@ -190,12 +241,12 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
             if (amp > 0) { // emplace new digit
               currentDigitContainer->emplace_back(absId, amp, -1);
             }
-          } else { //pedestal data, no calibration needed.
+          } else { // pedestal data, no calibration needed.
             currentDigitContainer->emplace_back(absId, (float)ac.Charge, -1);
           }
         }
       }
-      //Check and send list of hwErrors
+      // Check and send list of hwErrors
       for (auto& er : decoder.getErrors()) {
         mOutputHWErrors.push_back(er);
       }
@@ -241,7 +292,7 @@ o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getRawToDigitConverterS
 {
   std::vector<o2::framework::InputSpec> inputs;
   inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"CPV", "RAWDATA"}, o2::framework::Lifetime::Optional);
-  //receive at least 1 guaranteed input (which will allow to acknowledge the TF)
+  // receive at least 1 guaranteed input (which will allow to acknowledge the TF)
   if (askDISTSTF) {
     inputs.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
   }
@@ -259,7 +310,7 @@ o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getRawToDigitConverterS
   outputs.emplace_back("CPV", "DIGITS", 0, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("CPV", "DIGITTRIGREC", 0, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe);
-  //note that for cpv we always have stream #0 (i.e. CPV/DIGITS/0)
+  // note that for cpv we always have stream #0 (i.e. CPV/DIGITS/0)
 
   return o2::framework::DataProcessorSpec{"CPVRawToDigitConverterSpec",
                                           inputs, // o2::framework::select("A:CPV/RAWDATA"),

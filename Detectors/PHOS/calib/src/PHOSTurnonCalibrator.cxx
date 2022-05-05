@@ -143,7 +143,7 @@ void PHOSTurnonCalibrator::finalizeSlot(Slot& slot)
   }
   c->clear();
 }
-PHOSTurnonCalibrator::Slot& PHOSTurnonCalibrator::emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend)
+PHOSTurnonCalibrator::Slot& PHOSTurnonCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
 
   auto& cont = getSlots();

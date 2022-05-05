@@ -161,38 +161,46 @@ const std::list<Track>& TrackFinder::findTracks(const std::unordered_map<int, st
   // use the chamber resolution when fitting the tracks during the tracking
   mTrackFitter.useChamberResolution();
 
-  // find track candidates on stations 4 and 5
-  auto tStart = std::chrono::high_resolution_clock::now();
-  findTrackCandidates();
-  auto tEnd = std::chrono::high_resolution_clock::now();
-  mTimeFindCandidates += tEnd - tStart;
-  if (TrackerParam::Instance().moreCandidates) {
-    tStart = std::chrono::high_resolution_clock::now();
-    findMoreTrackCandidates();
-    tEnd = std::chrono::high_resolution_clock::now();
-    mTimeFindMoreCandidates += tEnd - tStart;
-  }
-  mNCandidates += mTracks.size();
-  print("------ list of track candidates ------");
-  printTracks();
+  try {
 
-  // track each candidate down to chamber 1 and remove it
-  tStart = std::chrono::high_resolution_clock::now();
-  for (auto itTrack = mTracks.begin(); itTrack != mTracks.end();) {
-    std::unordered_map<int, std::unordered_set<uint32_t>> excludedClusters{};
-    followTrackInChamber(itTrack, 5, 0, false, excludedClusters);
-    print("findTracks: removing candidate at position #", getTrackIndex(itTrack));
-    itTrack = mTracks.erase(itTrack);
+    // find track candidates on stations 4 and 5
+    auto tStart = std::chrono::high_resolution_clock::now();
+    findTrackCandidates();
+    auto tEnd = std::chrono::high_resolution_clock::now();
+    mTimeFindCandidates += tEnd - tStart;
+    if (TrackerParam::Instance().moreCandidates) {
+      tStart = std::chrono::high_resolution_clock::now();
+      findMoreTrackCandidates();
+      tEnd = std::chrono::high_resolution_clock::now();
+      mTimeFindMoreCandidates += tEnd - tStart;
+    }
+    mNCandidates += mTracks.size();
+    print("------ list of track candidates ------");
+    printTracks();
+
+    // track each candidate down to chamber 1 and remove it
+    tStart = std::chrono::high_resolution_clock::now();
+    for (auto itTrack = mTracks.begin(); itTrack != mTracks.end();) {
+      std::unordered_map<int, std::unordered_set<uint32_t>> excludedClusters{};
+      followTrackInChamber(itTrack, 5, 0, false, excludedClusters);
+      print("findTracks: removing candidate at position #", getTrackIndex(itTrack));
+      itTrack = mTracks.erase(itTrack);
+    }
+    tEnd = std::chrono::high_resolution_clock::now();
+    mTimeFollowTracks += tEnd - tStart;
+    print("------ list of tracks before improvement and cleaning ------");
+    printTracks();
+
+  } catch (exception const& e) {
+    LOG(error) << e.what() << " --> abort";
+    mTracks.clear();
+    return mTracks;
   }
-  tEnd = std::chrono::high_resolution_clock::now();
-  mTimeFollowTracks += tEnd - tStart;
-  print("------ list of tracks before improvement and cleaning ------");
-  printTracks();
 
   // improve the reconstructed tracks
-  tStart = std::chrono::high_resolution_clock::now();
+  auto tStart = std::chrono::high_resolution_clock::now();
   improveTracks();
-  tEnd = std::chrono::high_resolution_clock::now();
+  auto tEnd = std::chrono::high_resolution_clock::now();
   mTimeImproveTracks += tEnd - tStart;
 
   // remove connected tracks in stations(1..) 3, 4 and 5
@@ -249,6 +257,17 @@ void TrackFinder::findTrackCandidates()
     }
   }
 
+  // list the cluster combinations already used in stations 4 and 5
+  std::vector<std::array<uint32_t, 8>> usedClusters(mTracks.size());
+  int iTrack(0);
+  for (const auto& track : mTracks) {
+    for (const auto& param : track) {
+      int iCl = 2 * (param.getClusterPtr()->getChamberId() - 6) + param.getClusterPtr()->getDEId() % 2;
+      usedClusters[iTrack][iCl] = param.getClusterPtr()->uid;
+    }
+    ++iTrack;
+  }
+
   auto itLastCandidateFromSt5 = mTracks.empty() ? mTracks.end() : std::prev(mTracks.end());
 
   // then look for candidates on station 4
@@ -272,8 +291,13 @@ void TrackFinder::findTrackCandidates()
     // exluding those already attached to an identical candidate on station 4
     // (cases where both chambers of station 5 are fired should have been found in the first step)
     std::unordered_map<int, std::unordered_set<uint32_t>> excludedClusters{};
-    if (itLastCandidateFromSt5 != mTracks.end()) {
-      excludeClustersFromIdenticalTracks(itTrack, excludedClusters, std::next(itLastCandidateFromSt5));
+    if (!usedClusters.empty()) {
+      std::array<uint32_t, 4> currentClusters{};
+      for (const auto& param : *itTrack) {
+        int iCl = 2 * (param.getClusterPtr()->getChamberId() - 6) + param.getClusterPtr()->getDEId() % 2;
+        currentClusters[iCl] = param.getClusterPtr()->uid;
+      }
+      excludeClustersFromIdenticalTracks(currentClusters, usedClusters, excludedClusters);
     }
     auto itFirstNewTrack = followTrackInChamber(itTrack, 8, 8, false, excludedClusters);
     auto itNewTrack = followTrackInChamber(itTrack, 9, 9, false, excludedClusters);
@@ -746,7 +770,7 @@ std::list<Track>::iterator TrackFinder::followTrackInOverlapDE(const std::list<T
       }
 
       // duplicate the track and add the new cluster
-      itNewTrack = mTracks.emplace(itNewTrack, *itTrack);
+      itNewTrack = addTrack(itNewTrack, *itTrack);
       print("followTrackInOverlapDE: duplicating candidate at position #", getTrackIndex(itNewTrack), " to add cluster ", cluster->getIdAsString());
       itNewTrack->addParamAtCluster(paramAtCluster);
 
@@ -844,7 +868,7 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
     // or if one reaches station 1 and it is not requested, whether a cluster has been found on it or not
     if ((!isFirstOnStation && canSkip && excludedClusters.empty()) ||
         (chamber / 2 == 0 && !TrackerParam::Instance().requestStation[0] && (isFirstOnStation || !canSkip))) {
-      auto itNewTrack = mTracks.emplace(itTrack, *itTrack);
+      auto itNewTrack = addTrack(itTrack, *itTrack);
       if (itFirstNewTrack == mTracks.end()) {
         itFirstNewTrack = itNewTrack;
       }
@@ -1107,7 +1131,7 @@ std::list<Track>::iterator TrackFinder::addClustersAndFollowTrack(std::list<Trac
   } else {
 
     // or duplicate the track and add the new cluster(s)
-    itFirstNewTrack = mTracks.emplace(itTrack, *itTrack);
+    itFirstNewTrack = addTrack(itTrack, *itTrack);
     itFirstNewTrack->addParamAtCluster(paramAtCluster1);
     if (paramAtCluster2) {
       itFirstNewTrack->addParamAtCluster(*paramAtCluster2);
@@ -1302,6 +1326,11 @@ void TrackFinder::createTrack(const Cluster& cl1, const Cluster& cl2)
 {
   /// Create a new track with these 2 clusters and store it at the end of the list of tracks
   /// Compute the track parameters and covariance matrices at the 2 clusters
+  /// Throw an exception if the maximum number of tracks is exceeded
+
+  if (mTracks.size() >= TrackerParam::Instance().maxCandidates) {
+    throw length_error(string("Too many track candidates (") + mTracks.size() + ")");
+  }
 
   // create the track and the trackParam at each cluster
   Track& track = mTracks.emplace_back();
@@ -1317,6 +1346,17 @@ void TrackFinder::createTrack(const Cluster& cl1, const Cluster& cl2)
     print("... fit failed --> removing it");
     mTracks.erase(std::prev(mTracks.end()));
   }
+}
+
+//_________________________________________________________________________________________________
+std::list<Track>::iterator TrackFinder::addTrack(const std::list<Track>::iterator& pos, const Track& track)
+{
+  /// Add the given track at the requested position in the list of tracks
+  /// Throw an exception if the maximum number of tracks is exceeded
+  if (mTracks.size() >= TrackerParam::Instance().maxCandidates) {
+    throw length_error(string("Too many track candidates (") + mTracks.size() + ")");
+  }
+  return mTracks.emplace(pos, track);
 }
 
 //_________________________________________________________________________________________________
@@ -1460,20 +1500,27 @@ bool TrackFinder::areUsed(const Cluster& cl1, const Cluster& cl2, const std::vec
 }
 
 //_________________________________________________________________________________________________
-void TrackFinder::excludeClustersFromIdenticalTracks(const std::list<Track>::iterator& itTrack,
-                                                     std::unordered_map<int, std::unordered_set<uint32_t>>& excludedClusters,
-                                                     const std::list<Track>::iterator& itEndTrack)
+void TrackFinder::excludeClustersFromIdenticalTracks(const std::array<uint32_t, 4>& currentClusters,
+                                                     const std::vector<std::array<uint32_t, 8>>& usedClusters,
+                                                     std::unordered_map<int, std::unordered_set<uint32_t>>& excludedClusters)
 {
-  /// Find tracks in the range [mTracks.begin(), itEndTrack[ that contain all the clusters of itTrack
-  /// and add the clusters that these tracks have on station 5 in the excludedClusters list
-  for (auto itTrack2 = mTracks.begin(); itTrack2 != itEndTrack; ++itTrack2) {
-    if (itTrack->getNClustersInCommon(*itTrack2) == itTrack->getNClusters()) {
-      for (auto itParam = itTrack2->rbegin(); itParam != itTrack2->rend(); ++itParam) {
-        const Cluster* cluster = itParam->getClusterPtr();
-        if (cluster->getChamberId() > 7) {
-          excludedClusters[cluster->getDEId()].emplace(cluster->uid);
-        } else {
-          break;
+  /// Find the combinations of usedClusters using all the currentClusters on station 4
+  /// and add the clusters from these combinations on station 5 in the excludedClusters list
+
+  for (const auto& clusters : usedClusters) {
+
+    bool identicalTrack(true);
+    for (int iCl = 0; iCl < 4; ++iCl) {
+      if (clusters[iCl] != currentClusters[iCl] && currentClusters[iCl] > 0) {
+        identicalTrack = false;
+        break;
+      }
+    }
+
+    if (identicalTrack) {
+      for (int iCl = 4; iCl < 8; ++iCl) {
+        if (clusters[iCl] > 0) {
+          excludedClusters[Cluster::getDEId(clusters[iCl])].emplace(clusters[iCl]);
         }
       }
     }

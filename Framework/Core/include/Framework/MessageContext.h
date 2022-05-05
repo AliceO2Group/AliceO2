@@ -40,7 +40,7 @@
 namespace o2::framework
 {
 
-class Output;
+struct Output;
 
 class MessageContext
 {
@@ -249,7 +249,7 @@ class MessageContext
     ContainerRefObject(ContextType* context, FairMQMessagePtr&& headerMsg, RouteIndex routeIndex, int index, Args&&... args)
       : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), routeIndex),
         // the transport factory
-        mFactory{context->proxy().getTransport(routeIndex)},
+        mFactory{context->proxy().getOutputTransport(routeIndex)},
         // the memory resource takes ownership of the message
         mResource{mFactory ? AlignedMemoryResource(mFactory->GetMemoryResource()) : AlignedMemoryResource(nullptr)},
         // create the vector with apropriate underlying memory resource for the message
@@ -372,7 +372,7 @@ class MessageContext
       : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), routeIndex)
     {
       mObject = std::make_unique<value_type>(std::forward<Args>(args)...);
-      mPayloadMsg = context->proxy().createMessage(routeIndex);
+      mPayloadMsg = context->proxy().createOutputMessage(routeIndex);
     }
     ~RootSerializedObject() override = default;
 
@@ -494,16 +494,16 @@ class MessageContext
       // send all scheduled messages if there is no trigger callback or its result is true
       if (mDispatchControl.trigger == nullptr || mDispatchControl.trigger(*header)) {
         std::vector<FairMQParts> outputsPerChannel;
-        outputsPerChannel.resize(mProxy.getNumChannels());
+        outputsPerChannel.resize(mProxy.getNumOutputChannels());
         for (auto& message : mScheduledMessages) {
           FairMQParts parts = message->finalize();
           assert(message->empty());
           assert(parts.Size() == 2);
           for (auto& part : parts) {
-            outputsPerChannel[mProxy.getChannelIndex(message->route()).value].AddPart(std::move(part));
+            outputsPerChannel[mProxy.getOutputChannelIndex(message->route()).value].AddPart(std::move(part));
           }
         }
-        for (int ci = 0; ci < mProxy.getNumChannels(); ++ci) {
+        for (int ci = 0; ci < mProxy.getNumOutputChannels(); ++ci) {
           auto& parts = outputsPerChannel[ci];
           if (parts.Size() == 0) {
             continue;

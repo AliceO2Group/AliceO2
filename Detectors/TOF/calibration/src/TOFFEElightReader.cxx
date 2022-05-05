@@ -80,7 +80,9 @@ int TOFFEElightReader::parseFEElightConfig(bool verbose)
                 continue;
               }
               nEnabled++;
-              LOG(info) << "Enabling channel " << index;
+              if (verbose) {
+                LOG(info) << "Enabling channel " << index;
+              }
               mFEElightInfo.mChannelEnabled[index] = channelConfig->isEnabled();
               mFEElightInfo.mMatchingWindow[index] = channelConfig->mMatchingWindow;
               mFEElightInfo.mLatencyWindow[index] = channelConfig->mLatencyWindow;

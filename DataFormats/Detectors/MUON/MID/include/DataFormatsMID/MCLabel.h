@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MIDSimulation/MCLabel.h
+/// \file   DataFormatsMID/MCLabel.h
 /// \brief  Label for MID
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   27 February 2019
@@ -74,9 +74,9 @@ class MCLabel : public o2::MCCompLabel
   int getLastStrip() const { return get(sMaskStrip, sOffsetStripLast); }
 
   /// Gets the line number
-  static int getLine(int strip) { return strip / 4; }
+  static int getLine(int strip) { return strip / 16; }
   /// Gets the strip number in line
-  static int getStripInLine(int strip) { return strip % 4; }
+  static int getStripInLine(int strip) { return strip % 16; }
   /// Gets the strip
   static int getStrip(int strip, int line) { return 16 * line + strip; }
 

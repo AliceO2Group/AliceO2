@@ -34,7 +34,6 @@ namespace calibration
 struct Utils {
   static constexpr o2::header::DataOrigin gDataOriginCDBPayload{"CLP"}; // generic DataOrigin for calibrations payload
   static constexpr o2::header::DataOrigin gDataOriginCDBWrapper{"CLW"}; // generic DataOrigin for calibrations wrapper
-  static constexpr long INFINITE_TIME = 99999999999999;
   template <typename T>
   static void prepareCCDBobjectInfo(T& obj, o2::ccdb::CcdbObjectInfo& info, const std::string& path,
                                     const std::map<std::string, std::string>& md, long start, long end = -1);

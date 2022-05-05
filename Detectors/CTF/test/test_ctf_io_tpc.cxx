@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   ccFlat = reinterpret_cast<CompressedClustersFlat*>(bVec.data());
   auto buff = reinterpret_cast<void*>(reinterpret_cast<char*>(bVec.data()) + sizeCFlatBody);
   {
-    CTFCoder coder;
+    CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Encoder);
     coder.setCompClusAddresses(c, buff);
     coder.setCombineColumns(true);
   }
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   sw.Start();
   std::vector<o2::ctf::BufferType> vecIO;
   {
-    CTFCoder coder;
+    CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Decoder);
     coder.setCombineColumns(true);
     coder.encode(vecIO, c); // compress
   }
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   sw.Start();
   const auto ctfImage = o2::tpc::CTF::getImage(vecIO.data());
   {
-    CTFCoder coder;
+    CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Decoder);
     coder.setCombineColumns(true);
     coder.decode(ctfImage, vecIn); // decompress
   }

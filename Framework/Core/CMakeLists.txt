@@ -38,6 +38,7 @@ o2_add_library(Framework
                        src/CCDBHelpers.cxx
                        src/DispatchPolicy.cxx
                        src/DataSender.cxx
+                       src/DomainInfoHeader.cxx
                        src/ProcessingPoliciesHelpers.cxx
                        src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
@@ -319,6 +320,7 @@ foreach(w
         Task
         ExternalFairMQDeviceWorkflow
         VariablePayloadSequenceWorkflow
+        DataDescriptorMatcherWorkflow
         )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx

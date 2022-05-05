@@ -16,6 +16,8 @@
 #include "TPCCalibration/IDCDrawHelper.h"
 #include "TPCBase/ROC.h"
 #include "TPCBase/Painter.h"
+#include "TPCCalibration/CalibTreeDump.h"
+#include "TPCBase/Mapper.h"
 
 // root includes
 #include "TFile.h"
@@ -67,6 +69,22 @@ void CalibPadGainTracksBase::drawExtractedGainMapHelper(const bool type, const i
   drawFun.mIDCFunc = idcFunc;
   const std::string zAxisTitle = (typeMap == 0) ? "rel. gain" : (norm ? "sigma / rel. gain" : "sigma");
   type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitle, filename, minZ, maxZ);
+}
+
+void CalibPadGainTracksBase::dumpToTree(const std::string filename) const
+{
+  if (!mGainMap) {
+    LOGP(error, "Map not set. Returning");
+    return;
+  }
+  CalibTreeDump dump;
+  if (mGainMap) {
+    dump.add(mGainMap.get());
+  }
+  if (mSigmaMap) {
+    dump.add(mSigmaMap.get());
+  }
+  dump.dumpToFile(filename);
 }
 
 void CalibPadGainTracksBase::divideGainMap(const char* inpFile, const char* mapName)
@@ -146,6 +164,10 @@ void CalibPadGainTracksBase::print() const
 
 bool CalibPadGainTracksBase::hasEnoughData(const int minEntries) const
 {
+  if (minEntries == 0) {
+    return true;
+  }
+
   for (auto& calArray : mPadHistosDet->getData()) {
     for (auto& tHist : calArray.getData()) {
       const auto entries = tHist.getEntries();
@@ -157,14 +179,77 @@ bool CalibPadGainTracksBase::hasEnoughData(const int minEntries) const
   return true;
 }
 
-void CalibPadGainTracksBase::finalize(const float low, const float high)
+void CalibPadGainTracksBase::finalize(const int minEntries, const float minRelgain, const float maxRelgain, const float low, const float high)
 {
   for (int roc = 0; roc < ROC::MaxROC; ++roc) {
     const auto padsInRoc = ROC(roc).isIROC() ? Mapper::getPadsInIROC() : Mapper::getPadsInOROC();
     for (int pad = 0; pad < padsInRoc; ++pad) {
-      const auto stat = mPadHistosDet->getCalArray(roc).getData()[pad].getStatisticsData(low, high);
-      mGainMap->getCalArray(roc).getData()[pad] = stat.mCOG;
-      mSigmaMap->getCalArray(roc).getData()[pad] = stat.mStdDev;
+      const auto& histo = mPadHistosDet->getCalArray(roc).getData()[pad];
+      unsigned int entries = histo.getEntries();
+      const auto stat = histo.getStatisticsData(low, high);
+      const auto cog = std::clamp(static_cast<float>(stat.mCOG), minRelgain, maxRelgain);
+
+      // subtract underflow and overflow entries to check if only the valid entries are > 0
+      if (histo.isUnderflowSet()) {
+        entries -= histo.getBinContent(0);
+      }
+
+      if (histo.isOverflowSet()) {
+        const unsigned int binOverflow = histo.getNBins() + histo.isUnderflowSet();
+        entries -= histo.getBinContent(binOverflow);
+      }
+
+      if (entries >= minEntries) {
+        mGainMap->getCalArray(roc).getData()[pad] = cog;
+        mSigmaMap->getCalArray(roc).getData()[pad] = stat.mStdDev;
+      } else {
+        mGainMap->getCalArray(roc).getData()[pad] = 1;
+        mSigmaMap->getCalArray(roc).getData()[pad] = 0;
+      }
     }
   }
+  normalizeGain(*mGainMap.get());
+}
+
+void CalibPadGainTracksBase::normalizeGain(CalPad& calPad)
+{
+  for (auto& data : calPad.getData()) {
+    const bool isIROC = data.getPadSubsetNumber() < 36;
+    normalize(data.getData(), getNPadsForNormalization(isIROC));
+  }
+}
+
+std::vector<int> CalibPadGainTracksBase::getNPadsForNormalization(const bool iroc) const
+{
+  if (mNormType == NormType::stack) {
+    // normalize per stack
+    const std::vector<int> nPads = iroc ? std::vector<int>{Mapper::getPadsInIROC()} : std::vector<int>{Mapper::getPadsInOROC1(), Mapper::getPadsInOROC2(), Mapper::getPadsInOROC3()};
+    return nPads;
+  } else if (mNormType == NormType::region) {
+    // normalize per region
+    const std::vector<int> nPads = iroc ? std::vector<int>{Mapper::PADSPERREGION[0], Mapper::PADSPERREGION[1], Mapper::PADSPERREGION[2], Mapper::PADSPERREGION[3]} : std::vector<int>{Mapper::PADSPERREGION[4], Mapper::PADSPERREGION[5], Mapper::PADSPERREGION[6], Mapper::PADSPERREGION[7], Mapper::PADSPERREGION[8], Mapper::PADSPERREGION[9]};
+    return nPads;
+  } else {
+    return std::vector<int>();
+  }
+}
+
+void CalibPadGainTracksBase::normalize(std::vector<float>& data, const std::vector<int>& nPads)
+{
+  int padStart = 0;
+  for (const auto pads : nPads) {
+    auto median = TMath::Median(pads, data.data() + padStart);
+    std::for_each(data.data() + padStart, data.data() + padStart + pads, [median](auto& val) { val /= (val > 0) ? median : 1; });
+    padStart += pads;
+  }
+}
+
+auto CalibPadGainTracksBase::getHistogram(const int sector, const int region, const int lrow, const int pad) const
+{
+  return mPadHistosDet->getValue(sector, Mapper::getGlobalPadNumber(lrow, pad, region));
+}
+
+auto CalibPadGainTracksBase::getHistogram(const int sector, const int grow, const int pad) const
+{
+  return mPadHistosDet->getValue(sector, Mapper::GLOBALPADOFFSET[Mapper::REGION[grow]] + Mapper::OFFSETCRUGLOBAL[grow] + pad);
 }

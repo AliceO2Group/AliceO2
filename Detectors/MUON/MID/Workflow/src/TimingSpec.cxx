@@ -27,7 +27,7 @@
 #include "DataFormatsMID/ROFRecord.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "MIDRaw/ElectronicsDelay.h"
-#include "MIDSimulation/MCLabel.h"
+#include "DataFormatsMID/MCLabel.h"
 #include "MIDWorkflow/ColumnDataSpecsUtils.h"
 
 namespace of = o2::framework;

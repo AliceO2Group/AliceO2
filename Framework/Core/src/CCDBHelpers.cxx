@@ -205,11 +205,16 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     }
     const auto& api = helper->getAPI(path);
     if (checkValidity && (!api.isSnapshotMode() || etag.empty())) { // in the snapshot mode the object needs to be fetched only once
+      LOGP(detail, "Loading {} for timestamp {}", path, timestamp);
       api.loadFileToMemory(v, path, metadata, timestamp, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
       if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
         LOGP(fatal, "Unable to find object {}/{}", path, timingInfo.timeslice);
         // FIXME: I should send a dummy message.
         continue;
+      }
+      // printing in case we find a default entry
+      if (headers.find("default") != headers.end()) {
+        LOGP(detail, "******** Default entry used for {} ********", path);
       }
       if (etag.empty()) {
         helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
@@ -278,7 +283,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         LOGP(info, "The following route is a condition {}", route.matcher);
         for (auto& metadata : route.matcher.metadata) {
           if (metadata.type == VariantType::String) {
-            LOGP(info, "- {}: {}", metadata.name, metadata.defaultValue);
+            LOGP(info, "- {}: {}", metadata.name, metadata.defaultValue.asString());
           }
         }
       }

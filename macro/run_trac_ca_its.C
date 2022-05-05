@@ -35,7 +35,7 @@
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Tracker.h"
-#include "ITStracking/TrackerTraitsCPU.h"
+#include "ITStracking/TrackerTraits.h"
 #include "ITStracking/Vertexer.h"
 
 #include "MathUtils/Utils.h"
@@ -146,7 +146,6 @@ void run_trac_ca_its(bool cosmics = false,
   itsClusters.SetBranchAddress("ITSClustersROF", &rofs);
 
   itsClusters.GetEntry(0);
-
   std::vector<o2::its::TrackITSExt> tracks;
   // create/attach output tree
   TFile outFile((path + outputfile).data(), "recreate");
@@ -231,7 +230,7 @@ void run_trac_ca_its(bool cosmics = false,
 
   tf.printVertices();
 
-  o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU);
+  o2::its::Tracker tracker(new o2::its::TrackerTraits);
   tracker.adoptTimeFrame(tf);
 
   if (useLUT) {

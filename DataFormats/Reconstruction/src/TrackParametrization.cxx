@@ -182,7 +182,7 @@ GPUd() bool TrackParametrization<value_T>::rotateParam(value_t alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    //LOGF(warning,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
+    // LOGF(warning,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
     return false;
   }
   //
@@ -382,7 +382,7 @@ GPUd() bool TrackParametrization<value_T>::propagateParamToDCA(const math_utils:
   value_t xv = vtx.X() * cs + vtx.Y() * sn, yv = -vtx.X() * sn + vtx.Y() * cs, zv = vtx.Z();
   x -= xv;
   y -= yv;
-  //Estimate the impact parameter neglecting the track curvature
+  // Estimate the impact parameter neglecting the track curvature
   value_t d = math_utils::detail::abs<value_T>(x * snp - y * csp);
   if (d > maxD) {
     return false;

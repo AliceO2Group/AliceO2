@@ -158,11 +158,17 @@ void WorkflowHelpers::addMissingOutputsToReader(std::vector<OutputSpec> const& p
   }
 }
 
-void WorkflowHelpers::addMissingOutputsToSpawner(std::vector<InputSpec> const& requestedSpecials,
+void WorkflowHelpers::addMissingOutputsToSpawner(std::vector<OutputSpec> const& providedSpecials,
+                                                 std::vector<InputSpec> const& requestedSpecials,
                                                  std::vector<InputSpec>& requestedAODs,
                                                  DataProcessorSpec& publisher)
 {
   for (auto& input : requestedSpecials) {
+    if (std::any_of(providedSpecials.begin(), providedSpecials.end(), [&input](auto const& x) {
+          return DataSpecUtils::match(input, x);
+        })) {
+      continue;
+    }
     auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
     publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
     for (auto& i : input.metadata) {
@@ -288,6 +294,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
   std::vector<InputSpec> requestedDYNs;
+  std::vector<OutputSpec> providedDYNs;
   std::vector<InputSpec> requestedIDXs;
 
   std::vector<InputSpec> requestedCCDBs;
@@ -383,26 +390,23 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
           break;
       }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"AOD"})) {
-        requestedAODs.emplace_back(input);
+        DataSpecUtils::updateInputList(requestedAODs, InputSpec{input});
       }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"DYN"})) {
-        if (std::find_if(requestedDYNs.begin(), requestedDYNs.end(), [&](InputSpec const& spec) { return input.binding == spec.binding; }) == requestedDYNs.end()) {
-          requestedDYNs.emplace_back(input);
-        }
+        DataSpecUtils::updateInputList(requestedDYNs, InputSpec{input});
       }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"IDX"})) {
-        if (std::find_if(requestedIDXs.begin(), requestedIDXs.end(), [&](InputSpec const& spec) { return input.binding == spec.binding; }) == requestedIDXs.end()) {
-          requestedIDXs.emplace_back(input);
-        }
+        DataSpecUtils::updateInputList(requestedIDXs, InputSpec{input});
       }
     }
 
     std::stable_sort(timer.outputs.begin(), timer.outputs.end(), [](OutputSpec const& a, OutputSpec const& b) { return *DataSpecUtils::getOptionalSubSpec(a) < *DataSpecUtils::getOptionalSubSpec(b); });
 
-    for (size_t oi = 0; oi < processor.outputs.size(); ++oi) {
-      auto& output = processor.outputs[oi];
+    for (auto& output : processor.outputs) {
       if (DataSpecUtils::partialMatch(output, header::DataOrigin{"AOD"})) {
         providedAODs.emplace_back(output);
+      } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"DYN"})) {
+        providedDYNs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
         providedOutputObjHist.emplace_back(output);
         auto it = std::find_if(outObjHistMap.begin(), outObjHistMap.end(), [&](auto&& x) { return x.id == hash; });
@@ -417,20 +421,23 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       }
     }
   }
-  auto sortingEquals = [](InputSpec const& a, InputSpec const& b) { return DataSpecUtils::describe(a) == DataSpecUtils::describe(b); };
-  std::sort(requestedDYNs.begin(), requestedDYNs.end(), sortingEquals);
-  auto last = std::unique(requestedDYNs.begin(), requestedDYNs.end());
-  requestedDYNs.erase(last, requestedDYNs.end());
 
-  std::sort(requestedIDXs.begin(), requestedIDXs.end(), sortingEquals);
-  last = std::unique(requestedIDXs.begin(), requestedIDXs.end());
-  requestedIDXs.erase(last, requestedIDXs.end());
+  auto inputSpecLessThan = [](InputSpec const& lhs, InputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
+  auto outputSpecLessThan = [](OutputSpec const& lhs, OutputSpec const& rhs) { return DataSpecUtils::describe(lhs) < DataSpecUtils::describe(rhs); };
+  std::sort(requestedDYNs.begin(), requestedDYNs.end(), inputSpecLessThan);
+  std::sort(providedDYNs.begin(), providedDYNs.end(), outputSpecLessThan);
+  std::vector<InputSpec> spawnerInputs;
+  for (auto& input : requestedDYNs) {
+    if (std::none_of(providedDYNs.begin(), providedDYNs.end(), [&input](auto const& x) { return DataSpecUtils::match(input, x); })) {
+      spawnerInputs.emplace_back(input);
+    }
+  }
 
   DataProcessorSpec aodSpawner{
     "internal-dpl-aod-spawner",
     {},
     {},
-    readers::AODReaderHelpers::aodSpawnerCallback(requestedDYNs),
+    readers::AODReaderHelpers::aodSpawnerCallback(spawnerInputs),
     {}};
 
   DataProcessorSpec indexBuilder{
@@ -441,7 +448,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     {}};
 
   addMissingOutputsToBuilder(requestedIDXs, requestedAODs, requestedDYNs, indexBuilder);
-  addMissingOutputsToSpawner(requestedDYNs, requestedAODs, aodSpawner);
+  addMissingOutputsToSpawner({}, spawnerInputs, requestedAODs, aodSpawner);
 
   addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
   addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
@@ -596,7 +603,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // ATTENTION: if there are dangling outputs the getGlobalAODSink
   // has to be created in any case!
   std::vector<InputSpec> outputsInputsAOD;
-  auto isAOD = [](InputSpec const& spec) { return DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")); };
+  auto isAOD = [](InputSpec const& spec) { return (DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")) || DataSpecUtils::partialMatch(spec, header::DataOrigin("DYN"))); };
   for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
     if (isAOD(outputsInputs[ii])) {
       auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);

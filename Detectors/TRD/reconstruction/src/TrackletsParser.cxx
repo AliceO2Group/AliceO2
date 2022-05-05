@@ -108,19 +108,43 @@ int TrackletsParser::Parse()
   mCurrentLink = 0;
   mWordsRead = 0;
   mTrackletsFound = 0;
-  if (mTrackletHCHeaderState == 0) { //TODO move this to the reader as done for the digithcheader
+  //TODO move this to the reader as done for the digithcheader
+  //TODO this is in fact moved to outside parsing for new reader, left here so as to change as little code as possible.
+  if (mTrackletHCHeaderState == 0) {
     // tracklet hc header is never present
     mState = StateTrackletMCMHeader;
+    LOG(error) << " This option of TrackletHalfChamberHeader 0 is no longer permitted";
+    return 0;
   } else {
     if (mTrackletHCHeaderState == 1) {
-      auto nextword = std::next(mStartParse);
-      if (*nextword != constants::TRACKLETENDMARKER) {
-        //we have tracklet data so no TracletHCHeader
-        mState = StateTrackletHCHeader;
-      } else {
-        //we have no tracklet data so no TracletHCHeader
-        mState = StateTrackletMCMHeader;
+      // we either have a tracklet half chamber header word or a digit one.
+      // digit has 01 at the end last 2 bits and the supermodule in bits 9 to 13 [0:17]
+      // tracklet has bit 11 (zero based) set to 1
+      //we have tracklet data so no TracletHCHeader
+      mState = StateTrackletHCHeader;
+      TrackletHCHeader hcheader;
+
+      hcheader.word = *mStartParse;
+      uint32_t tmpheader = *mStartParse;
+      if (!trackletHCHeaderSanityCheck(hcheader)) {
+        //we dont have a tracklethcheader so no tracklet data.
+        if (mHeaderVerbose) {
+          LOG(info) << "Returning 0 from tracklet parsing " << std::hex << (tmpheader & 0x3) << " supermodule : " << ((tmpheader >> 9) & 0x1f);
+        }
+
+        return 0; //mWordsRead;
       }
+      //NBNBNBNB
+      //digit half chamber header ends with 01b and has the supermodule in position (9-13).
+      //this of course can conflict with a tracklet hc header, hence should not be used!
+      //NBNBNBNB
+      if ((tmpheader & 0x3) == 0x1 && (((tmpheader >> 9) & 0x1f) == mHCID / 30)) {
+        if (mHeaderVerbose) {
+          LOG(info) << " we seem to be on a digit halfchamber header";
+        }
+        return 0;
+      }
+      mState = StateTrackletHCHeader;
     } else {
       if (mTrackletHCHeaderState != 2) {
         LOG(warn) << "unknwon TrackletHCHeaderState of " << mIgnoreTrackletHCHeader;

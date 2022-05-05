@@ -83,7 +83,7 @@ struct Digit {
     LOG(info) << "Ref first: " << ref.getFirstEntry() << "| Ref entries: " << ref.getEntries();
     mTriggers.printLog();
   }
-  ClassDefNV(Digit, 3);
+  ClassDefNV(Digit, 4);
 };
 //For TCM extended mode (calibration mode), TCMdataExtended digit
 struct TriggersExt {

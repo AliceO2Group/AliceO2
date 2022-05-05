@@ -39,10 +39,6 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
-#ifdef CA_DEBUG
-#include "ITStracking/StandaloneDebugger.h"
-#endif
-
 namespace o2
 {
 
@@ -52,8 +48,6 @@ class GPUChainITS;
 }
 namespace its
 {
-
-class TimeFrame;
 class TrackerTraits;
 
 class Tracker
@@ -72,6 +66,7 @@ class Tracker
 
   void clustersToTracks(
     std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; }, std::function<void(std::string s)> = [](std::string s) { std::cerr << s << std::endl; });
+  void clustersToTracksGPU(std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
   void setSmoothing(bool v) { mApplySmoothing = v; }
   bool getSmoothing() const { return mApplySmoothing; }
 
@@ -81,6 +76,9 @@ class Tracker
   void setParameters(const std::vector<MemoryParameters>&, const std::vector<TrackingParameters>&);
   void getGlobalConfiguration();
   bool isMatLUT() const { return o2::base::Propagator::Instance()->getMatLUT() && (mCorrType == o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT); }
+  // GPU-specific interfaces
+  TimeFrame* getTimeFrameGPU();
+  void loadToDevice();
 
  private:
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
@@ -102,8 +100,8 @@ class Tracker
   template <typename... T>
   float evaluateTask(void (Tracker::*)(T...), const char*, std::function<void(std::string s)> logger, T&&... args);
 
-  TrackerTraits* mTraits = nullptr;                      /// Observer pointer, not owned by this class
-  TimeFrame* mTimeFrame = nullptr;                       /// Observer pointer, not owned by this class
+  TrackerTraits* mTraits = nullptr; /// Observer pointer, not owned by this class
+  TimeFrame* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
 
   std::vector<MemoryParameters> mMemParams;
   std::vector<TrackingParameters> mTrkParams;
@@ -115,9 +113,6 @@ class Tracker
   std::uint32_t mTimeFrameCounter = 0;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 
-#ifdef CA_DEBUG
-  StandaloneDebugger* mDebugger;
-#endif
 };
 
 inline void Tracker::setParameters(const std::vector<MemoryParameters>& memPars, const std::vector<TrackingParameters>& trkPars)

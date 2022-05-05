@@ -750,7 +750,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     }
     return true;
   };
-  auto appendInputChannelForConsumerDevice = [&devices, &connections, &checkNoDuplicatesFor, &channelPolicies](
+  auto appendInputChannelForConsumerDevice = [&devices, &checkNoDuplicatesFor, &channelPolicies](
                                                size_t pi, size_t ci, unsigned short port) {
     auto const& producerDevice = devices[pi];
     auto& consumerDevice = devices[ci];

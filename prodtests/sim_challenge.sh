@@ -84,7 +84,7 @@ else
 fi
 
 [[ -z $startTime ]] && startTime=$startTimeDef
-[[ -z $runNumber ]] && runNumber=$runNumberDef
+[[ -z $runNumber ]] && runNumber=$runNumDef
 
 dosim="0"
 dodigi="0"
@@ -180,7 +180,7 @@ if [ "$doreco" == "1" ]; then
   echo "Return status of midreco: $?"
 
   echo "Running MCH-MID matching flow"
-  taskwrapper mchmidMatch.log "o2-mch-tracks-reader-workflow | o2-mid-tracks-reader-workflow | o2-muon-tracks-matcher-workflow | o2-muon-tracks-writer-workflow $gloOpt"
+  taskwrapper mchmidMatch.log "o2-muon-tracks-matcher-workflow $gloOpt"
   echo "Return status of mchmidmatch: $?"
 
   echo "Running ITS-TPC matching flow"

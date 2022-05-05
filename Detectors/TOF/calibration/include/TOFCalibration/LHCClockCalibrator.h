@@ -56,7 +56,7 @@ struct LHCClockDataHisto {
 
 class LHCClockCalibrator final : public o2::calibration::TimeSlotCalibration<o2::dataformats::CalibInfoTOF, o2::tof::LHCClockDataHisto>
 {
-  using TFType = uint64_t;
+  using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<o2::tof::LHCClockDataHisto>;
   using CalibTOFapi = o2::tof::CalibTOFapi;
   using LHCphase = o2::dataformats::CalibLHCphaseTOF;

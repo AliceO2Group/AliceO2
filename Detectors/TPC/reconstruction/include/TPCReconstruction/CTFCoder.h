@@ -102,7 +102,8 @@ struct MergedColumnsDecoder {
 class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::TPC) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op) : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), o2::detectors::DetID::TPC) {}
+  ~CTFCoder() final = default;
 
   /// entropy-encode compressed clusters to flat buffer
   template <typename VEC>

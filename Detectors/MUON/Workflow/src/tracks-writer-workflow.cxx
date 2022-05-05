@@ -21,7 +21,7 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   // ordered policies for the writers
-  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:MCH|mch).*[W,w]riter.*"));
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:MUON|muon).*[W,w]riter.*"));
 }
 
 #include "Framework/runDataProcessing.h"

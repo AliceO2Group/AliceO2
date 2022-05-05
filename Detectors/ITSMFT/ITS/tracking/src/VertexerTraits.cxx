@@ -9,9 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file VertexerTraits.cxx
-/// \brief
-/// \author matteo.concas@cern.ch
 
 #include <cassert>
 #include <ostream>
@@ -21,7 +18,6 @@
 #include <boost/format.hpp>
 
 #include "ITStracking/VertexerTraits.h"
-#include "ITStracking/ROframe.h"
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/Tracklet.h"
 
@@ -37,11 +33,6 @@ namespace its
 using boost::histogram::indexed;
 using constants::math::TwoPi;
 
-enum class TrackletMode {
-  Layer0Layer1 = 0,
-  Layer1Layer2 = 2
-};
-
 template <TrackletMode Mode>
 void trackleterKernelSerial(
   const gsl::span<const Cluster>& clustersNextLayer,    // 0 2
@@ -55,13 +46,11 @@ void trackleterKernelSerial(
 {
   const int PhiBins{utils.getNphiBins()};
   const int ZBins{utils.getNzBins()};
-
   // loop on layer1 clusters
   for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
     int storedTracklets{0};
     const Cluster& currentCluster{clustersCurrentLayer[iCurrentLayerClusterIndex]};
     const int4 selectedBinsRect{VertexerTraits::getBinsRect(currentCluster, (int)Mode, 0.f, 50.f, phiCut / 2, utils)};
-
     if (selectedBinsRect.x != 0 || selectedBinsRect.y != 0 || selectedBinsRect.z != 0 || selectedBinsRect.w != 0) {
       int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
       if (phiBinsNum < 0) {
@@ -93,8 +82,8 @@ void trackleterKernelSerial(
 }
 
 void trackletSelectionKernelSerial(
-  const gsl::span<const Cluster> clustersNextLayer,    // 0
-  const gsl::span<const Cluster> clustersCurrentLayer, // 1
+  const gsl::span<const Cluster> clusters0, // 0
+  const gsl::span<const Cluster> clusters1, // 1
   const gsl::span<const Tracklet>& tracklets01,
   const gsl::span<const Tracklet>& tracklets12,
   const gsl::span<int> foundTracklets01,
@@ -104,10 +93,9 @@ void trackletSelectionKernelSerial(
   const float phiCut = 0.005f,
   const int maxTracklets = static_cast<int>(1e2))
 {
-  int offset01{0};
-  int offset12{0};
+  int offset01{0}, offset12{0};
   std::vector<bool> usedTracklets(tracklets01.size(), false);
-  for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clustersCurrentLayer.size(); ++iCurrentLayerClusterIndex) {
+  for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < clusters1.size(); ++iCurrentLayerClusterIndex) {
     int validTracklets{0};
     for (int iTracklet12{offset12}; iTracklet12 < offset12 + foundTracklets12[iCurrentLayerClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{offset01}; iTracklet01 < offset01 + foundTracklets01[iCurrentLayerClusterIndex]; ++iTracklet01) {
@@ -115,7 +103,7 @@ void trackletSelectionKernelSerial(
         const float deltaPhi{o2::gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].phi - tracklets12[iTracklet12].phi)};
         if (!usedTracklets[iTracklet01] && deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
           usedTracklets[iTracklet01] = true;
-          destTracklets.emplace_back(tracklets01[iTracklet01], clustersNextLayer.data(), clustersCurrentLayer.data());
+          destTracklets.emplace_back(tracklets01[iTracklet01], clusters0.data(), clusters1.data());
           ++validTracklets;
         }
       }
@@ -145,40 +133,40 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const int*
   return filteredBins;
 }
 
-void VertexerTraits::computeTrackletsPureMontecarlo()
-{
+// void VertexerTraits::computeTrackletsPureMontecarlo()
+// {
 
-  std::vector<int> foundTracklets01;
-  std::vector<int> foundTracklets12;
+//   std::vector<int> foundTracklets01;
+//   std::vector<int> foundTracklets12;
 
-  for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < mClusters[0].size(); ++iCurrentLayerClusterIndex) {
-    auto& currentCluster{mClusters[0][iCurrentLayerClusterIndex]};
-    for (unsigned int iNextLayerClusterIndex = 0; iNextLayerClusterIndex < mClusters[1].size(); iNextLayerClusterIndex++) {
-      const Cluster& nextCluster{mClusters[1][iNextLayerClusterIndex]};
-      const auto& lblNext = *(mTimeFrame->getClusterLabels(1, nextCluster.clusterId).begin());
-      const auto& lblCurr = *(mTimeFrame->getClusterLabels(0, currentCluster.clusterId).begin());
-      if (lblNext.compare(lblCurr) == 1 && lblCurr.getSourceID() == 0) {
-        mComb01.emplace_back(iCurrentLayerClusterIndex, iNextLayerClusterIndex, currentCluster, nextCluster);
-      }
-    }
-  }
+//   for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < mClusters[0].size(); ++iCurrentLayerClusterIndex) {
+//     auto& currentCluster{mClusters[0][iCurrentLayerClusterIndex]};
+//     for (unsigned int iNextLayerClusterIndex = 0; iNextLayerClusterIndex < mClusters[1].size(); iNextLayerClusterIndex++) {
+//       const Cluster& nextCluster{mClusters[1][iNextLayerClusterIndex]};
+//       const auto& lblNext = *(mTimeFrame->getClusterLabels(1, nextCluster.clusterId).begin());
+//       const auto& lblCurr = *(mTimeFrame->getClusterLabels(0, currentCluster.clusterId).begin());
+//       if (lblNext.compare(lblCurr) == 1 && lblCurr.getSourceID() == 0) {
+//         mComb01.emplace_back(iCurrentLayerClusterIndex, iNextLayerClusterIndex, currentCluster, nextCluster);
+//       }
+//     }
+//   }
 
-  for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < mClusters[2].size(); ++iCurrentLayerClusterIndex) {
-    auto& currentCluster{mClusters[2][iCurrentLayerClusterIndex]};
-    for (unsigned int iNextLayerClusterIndex = 0; iNextLayerClusterIndex < mClusters[1].size(); iNextLayerClusterIndex++) {
-      const Cluster& nextCluster{mClusters[1][iNextLayerClusterIndex]};
-      const auto& lblNext = *(mTimeFrame->getClusterLabels(1, nextCluster.clusterId).begin());
-      const auto& lblCurr = *(mTimeFrame->getClusterLabels(2, currentCluster.clusterId).begin());
-      if (lblNext.compare(lblCurr) == 1 && lblCurr.getSourceID() == 0) {
-        mComb12.emplace_back(iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster);
-      }
-    }
-  }
+//   for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < mClusters[2].size(); ++iCurrentLayerClusterIndex) {
+//     auto& currentCluster{mClusters[2][iCurrentLayerClusterIndex]};
+//     for (unsigned int iNextLayerClusterIndex = 0; iNextLayerClusterIndex < mClusters[1].size(); iNextLayerClusterIndex++) {
+//       const Cluster& nextCluster{mClusters[1][iNextLayerClusterIndex]};
+//       const auto& lblNext = *(mTimeFrame->getClusterLabels(1, nextCluster.clusterId).begin());
+//       const auto& lblCurr = *(mTimeFrame->getClusterLabels(2, currentCluster.clusterId).begin());
+//       if (lblNext.compare(lblCurr) == 1 && lblCurr.getSourceID() == 0) {
+//         mComb12.emplace_back(iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster);
+//       }
+//     }
+//   }
 
-  for (auto& trk : mComb01) {
-    mTracklets.emplace_back(trk, mClusters[0].data(), mClusters[1].data()); // any check on the propagation to the third layer?
-  }
-}
+//   for (auto& trk : mComb01) {
+//     mTracklets.emplace_back(trk, mClusters[0].data(), mClusters[1].data()); // any check on the propagation to the third layer?
+//   }
+// }
 
 void VertexerTraits::computeTracklets()
 {
@@ -191,7 +179,6 @@ void VertexerTraits::computeTracklets()
       mTimeFrame->getTracklets()[0],
       mTimeFrame->getNTrackletsCluster(rofId, 0),
       mIndexTableUtils);
-
     trackleterKernelSerial<TrackletMode::Layer1Layer2>(
       mTimeFrame->getClustersOnLayer(rofId, 2),
       mTimeFrame->getClustersOnLayer(rofId, 1),
@@ -200,9 +187,8 @@ void VertexerTraits::computeTracklets()
       mTimeFrame->getTracklets()[1],
       mTimeFrame->getNTrackletsCluster(rofId, 1),
       mIndexTableUtils);
-
-    mTimeFrame->getNTrackletsROf(0, rofId) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId, 0).begin(), mTimeFrame->getNTrackletsCluster(rofId, 0).end(), 0);
-    mTimeFrame->getNTrackletsROf(1, rofId) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId, 1).begin(), mTimeFrame->getNTrackletsCluster(rofId, 1).end(), 0);
+    mTimeFrame->getNTrackletsROf(rofId, 0) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId, 0).begin(), mTimeFrame->getNTrackletsCluster(rofId, 0).end(), 0);
+    mTimeFrame->getNTrackletsROf(rofId, 1) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId, 1).begin(), mTimeFrame->getNTrackletsCluster(rofId, 1).end(), 0);
   }
   mTimeFrame->computeTrackletsScans();
 
@@ -247,6 +233,16 @@ void VertexerTraits::computeTracklets()
   tr_tre->Write();
   trackletFile->Close();
 #endif
+
+  std::ofstream out01("NTC01_cpu.txt"), out12("NTC12_cpu.txt");
+  for (int iRof{0}; iRof < mTimeFrame->getNrof(); ++iRof) {
+    std::copy(mTimeFrame->getNTrackletsCluster(iRof, 0).begin(), mTimeFrame->getNTrackletsCluster(iRof, 0).end(), std::ostream_iterator<double>(out01, "\t"));
+    std::copy(mTimeFrame->getNTrackletsCluster(iRof, 1).begin(), mTimeFrame->getNTrackletsCluster(iRof, 1).end(), std::ostream_iterator<double>(out12, "\t"));
+    out01 << std::endl;
+    out12 << std::endl;
+  }
+  out01.close();
+  out12.close();
 }
 
 void VertexerTraits::computeTrackletMatching()
@@ -535,70 +531,70 @@ void VertexerTraits::computeVertices()
 // }
 
 // Montecarlo validation for externally-provided tracklets (GPU-like cases)
-void VertexerTraits::filterTrackletsWithMC(std::vector<Tracklet>& tracklets01,
-                                           std::vector<Tracklet>& tracklets12,
-                                           std::vector<int>& indices01,
-                                           std::vector<int>& indices12,
-                                           const int stride)
-{
-  // Tracklets 01
-  for (size_t iFoundTrackletIndex{0}; iFoundTrackletIndex < indices01.size(); ++iFoundTrackletIndex) // access indices vector to get numfoundtracklets
-  {
-    const size_t offset = iFoundTrackletIndex * stride;
-    int removed{0};
-    for (size_t iTrackletIndex{0}; iTrackletIndex < indices01[iFoundTrackletIndex]; ++iTrackletIndex) {
-      const size_t iTracklet{offset + iTrackletIndex};
-      const auto& lbl0 = *(mTimeFrame->getClusterLabels(0, mClusters[0][tracklets01[iTracklet].firstClusterIndex].clusterId).begin());
-      const auto& lbl1 = *(mTimeFrame->getClusterLabels(1, mClusters[1][tracklets01[iTracklet].secondClusterIndex].clusterId).begin());
-      if (!(lbl0.compare(lbl1) == 1 && lbl0.getSourceID() == 0)) {
-        tracklets01[iTracklet] = Tracklet();
-        ++removed;
-      }
-    }
-    std::sort(tracklets01.begin() + offset, tracklets01.begin() + offset + indices01[iFoundTrackletIndex]);
-    indices01[iFoundTrackletIndex] -= removed; // decrease number of tracklets by the number of removed ones
-  }
+// void VertexerTraits::filterTrackletsWithMC(std::vector<Tracklet>& tracklets01,
+//                                            std::vector<Tracklet>& tracklets12,
+//                                            std::vector<int>& indices01,
+//                                            std::vector<int>& indices12,
+//                                            const int stride)
+// {
+//   // Tracklets 01
+//   for (size_t iFoundTrackletIndex{0}; iFoundTrackletIndex < indices01.size(); ++iFoundTrackletIndex) // access indices vector to get numfoundtracklets
+//   {
+//     const size_t offset = iFoundTrackletIndex * stride;
+//     int removed{0};
+//     for (size_t iTrackletIndex{0}; iTrackletIndex < indices01[iFoundTrackletIndex]; ++iTrackletIndex) {
+//       const size_t iTracklet{offset + iTrackletIndex};
+//       const auto& lbl0 = *(mTimeFrame->getClusterLabels(0, mClusters[0][tracklets01[iTracklet].firstClusterIndex].clusterId).begin());
+//       const auto& lbl1 = *(mTimeFrame->getClusterLabels(1, mClusters[1][tracklets01[iTracklet].secondClusterIndex].clusterId).begin());
+//       if (!(lbl0.compare(lbl1) == 1 && lbl0.getSourceID() == 0)) {
+//         tracklets01[iTracklet] = Tracklet();
+//         ++removed;
+//       }
+//     }
+//     std::sort(tracklets01.begin() + offset, tracklets01.begin() + offset + indices01[iFoundTrackletIndex]);
+//     indices01[iFoundTrackletIndex] -= removed; // decrease number of tracklets by the number of removed ones
+//   }
 
-  // Tracklets 12
-  for (size_t iFoundTrackletIndex{0}; iFoundTrackletIndex < indices12.size(); ++iFoundTrackletIndex) // access indices vector to get numfoundtracklets
-  {
-    const size_t offset = iFoundTrackletIndex * stride;
-    int removed{0};
-    for (size_t iTrackletIndex{0}; iTrackletIndex < indices12[iFoundTrackletIndex]; ++iTrackletIndex) {
-      const size_t iTracklet{offset + iTrackletIndex};
-      const auto& lbl1 = *(mTimeFrame->getClusterLabels(1, mClusters[1][tracklets12[iTracklet].firstClusterIndex].clusterId).begin());
-      const auto& lbl2 = *(mTimeFrame->getClusterLabels(2, mClusters[2][tracklets12[iTracklet].secondClusterIndex].clusterId).begin());
-      if (!(lbl1.compare(lbl2) == 1 && lbl1.getSourceID() == 0)) {
-        tracklets12[iTracklet] = Tracklet();
-        ++removed;
-      }
-    }
-    std::sort(tracklets12.begin() + offset, tracklets12.begin() + offset + indices12[iFoundTrackletIndex]);
-    indices12[iFoundTrackletIndex] -= removed; // decrease number of tracklets by the number of removed ones
-  }
-}
+//   // Tracklets 12
+//   for (size_t iFoundTrackletIndex{0}; iFoundTrackletIndex < indices12.size(); ++iFoundTrackletIndex) // access indices vector to get numfoundtracklets
+//   {
+//     const size_t offset = iFoundTrackletIndex * stride;
+//     int removed{0};
+//     for (size_t iTrackletIndex{0}; iTrackletIndex < indices12[iFoundTrackletIndex]; ++iTrackletIndex) {
+//       const size_t iTracklet{offset + iTrackletIndex};
+//       const auto& lbl1 = *(mTimeFrame->getClusterLabels(1, mClusters[1][tracklets12[iTracklet].firstClusterIndex].clusterId).begin());
+//       const auto& lbl2 = *(mTimeFrame->getClusterLabels(2, mClusters[2][tracklets12[iTracklet].secondClusterIndex].clusterId).begin());
+//       if (!(lbl1.compare(lbl2) == 1 && lbl1.getSourceID() == 0)) {
+//         tracklets12[iTracklet] = Tracklet();
+//         ++removed;
+//       }
+//     }
+//     std::sort(tracklets12.begin() + offset, tracklets12.begin() + offset + indices12[iFoundTrackletIndex]);
+//     indices12[iFoundTrackletIndex] -= removed; // decrease number of tracklets by the number of removed ones
+//   }
+// }
 
-void VertexerTraits::computeMCFiltering()
-{
-  assert(mTimeFrame != nullptr);
-  for (size_t iTracklet{0}; iTracklet < mComb01.size(); ++iTracklet) {
-    const auto& lbl0 = *(mTimeFrame->getClusterLabels(0, mClusters[0][mComb01[iTracklet].firstClusterIndex].clusterId).begin());
-    const auto& lbl1 = *(mTimeFrame->getClusterLabels(1, mClusters[1][mComb01[iTracklet].secondClusterIndex].clusterId).begin());
-    if (!(lbl0.compare(lbl1) == 1 && lbl0.getSourceID() == 0)) { // evtId && trackId && isValid
-      mComb01.erase(mComb01.begin() + iTracklet);
-      --iTracklet; // vector size has been decreased
-    }
-  }
+// void VertexerTraits::computeMCFiltering()
+// {
+//   assert(mTimeFrame != nullptr);
+//   for (size_t iTracklet{0}; iTracklet < mComb01.size(); ++iTracklet) {
+//     const auto& lbl0 = *(mTimeFrame->getClusterLabels(0, mClusters[0][mComb01[iTracklet].firstClusterIndex].clusterId).begin());
+//     const auto& lbl1 = *(mTimeFrame->getClusterLabels(1, mClusters[1][mComb01[iTracklet].secondClusterIndex].clusterId).begin());
+//     if (!(lbl0.compare(lbl1) == 1 && lbl0.getSourceID() == 0)) { // evtId && trackId && isValid
+//       mComb01.erase(mComb01.begin() + iTracklet);
+//       --iTracklet; // vector size has been decreased
+//     }
+//   }
 
-  for (size_t iTracklet{0}; iTracklet < mComb12.size(); ++iTracklet) {
-    const auto& lbl1 = *(mTimeFrame->getClusterLabels(1, mClusters[1][mComb12[iTracklet].firstClusterIndex].clusterId).begin());
-    const auto& lbl2 = *(mTimeFrame->getClusterLabels(2, mClusters[2][mComb12[iTracklet].secondClusterIndex].clusterId).begin());
-    if (!(lbl1.compare(lbl2) == 1 && lbl1.getSourceID() == 0)) { // evtId && trackId && isValid
-      mComb12.erase(mComb12.begin() + iTracklet);
-      --iTracklet; // vector size has been decreased
-    }
-  }
-}
+//   for (size_t iTracklet{0}; iTracklet < mComb12.size(); ++iTracklet) {
+//     const auto& lbl1 = *(mTimeFrame->getClusterLabels(1, mClusters[1][mComb12[iTracklet].firstClusterIndex].clusterId).begin());
+//     const auto& lbl2 = *(mTimeFrame->getClusterLabels(2, mClusters[2][mComb12[iTracklet].secondClusterIndex].clusterId).begin());
+//     if (!(lbl1.compare(lbl2) == 1 && lbl1.getSourceID() == 0)) { // evtId && trackId && isValid
+//       mComb12.erase(mComb12.begin() + iTracklet);
+//       --iTracklet; // vector size has been decreased
+//     }
+//   }
+// }
 
 // VertexerTraits* createVertexerTraits()
 // {
