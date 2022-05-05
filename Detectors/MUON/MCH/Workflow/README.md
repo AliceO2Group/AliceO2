@@ -104,9 +104,15 @@ o2-mch-digits-to-timeclusters-workflow
 
 Take as input the list of all digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) in the current time frame, with the data description "DIGITS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the digits associated to each interaction, with the data description "DIGITROFS". Send a new list of ROF records that combine all the digits correlated in time within a user-defined time window, with the data description "TIMECLUSTERROFS".
 
-The option `--time-cluster-width xxx` allows to set the width of the time correlation window.
+The option `--max-cluster-width xxx` allows to set the width of the time correlation window.
 
 The time clustering is based on a brute-force peak search algorithm, which arranges the input digits into coarse time bins. The number of bins in one time cluster window can be set via the `--peak-search-nbins` option.
+
+Alternatively, one can also configure the time clustering using `--configKeyValues` :
+
+```shell
+o2-mch-digits-to-timeclusters-workflow --configKeyValues="MCHTimeClustering.maxClusterWidth=xx;MCHTimeClustering.peakSearchNbins=yy"
+```
 
 ## Event finding
 

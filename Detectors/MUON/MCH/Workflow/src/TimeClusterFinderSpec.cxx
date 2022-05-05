@@ -38,6 +38,7 @@
 #include "MCHTimeClustering/ROFTimeClusterFinder.h"
 #include "MCHBase/Trackable.h"
 #include "MCHTracking/TrackerParam.h"
+#include "MCHTimeClustering/TimeClusterizerParam.h"
 
 namespace o2
 {
@@ -94,7 +95,7 @@ class TimeClusterFinderTask
 
     if (mDebug) {
       LOGP(warning, "{:=>60} ", fmt::format("{:6d} Input ROFS", rofs.size()));
-      //rofProcessor.dumpInputROFs();
+      // rofProcessor.dumpInputROFs();
     }
 
     auto tStart = std::chrono::high_resolution_clock::now();
@@ -104,7 +105,7 @@ class TimeClusterFinderTask
 
     if (mDebug) {
       LOGP(warning, "{:=>60} ", fmt::format("{:6d} Output ROFS", rofProcessor.getROFRecords().size()));
-      //rofProcessor.dumpOutputROFs();
+      // rofProcessor.dumpOutputROFs();
     }
 
     auto& outRofs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"rofs"});
@@ -170,10 +171,10 @@ o2::framework::DataProcessorSpec
     outputs,
     AlgorithmSpec{adaptFromTask<TimeClusterFinderTask>()},
     Options{{"mch-debug", VariantType::Bool, false, {"enable verbose output"}},
-            {"max-cluster-width", VariantType::Int, 1000 / 25, {"maximum time width of time clusters, in BC units"}},
-            {"peak-search-nbins", VariantType::Int, 5, {"number of time bins for the peak search algorithm (must be an odd number >= 3)"}},
-            {{"only-trackable"}, VariantType::Bool, false, {"remove digits for ROFs which are not trackable"}},
-            {"min-digits-per-rof", VariantType::Int, 0, {"minimum number of digits per ROF (below that threshold ROF is discarded)"}}}};
+            {"max-cluster-width", VariantType::Int, TimeClusterizerParam::Instance().maxClusterWidth, {"maximum time width of time clusters, in BC units"}},
+            {"peak-search-nbins", VariantType::Int, TimeClusterizerParam::Instance().peakSearchNbins, {"number of time bins for the peak search algorithm (must be an odd number >= 3)"}},
+            {{"only-trackable"}, VariantType::Bool, TimeClusterizerParam::Instance().onlyTrackable, {"remove digits for ROFs which are not trackable"}},
+            {"min-digits-per-rof", VariantType::Int, TimeClusterizerParam::Instance().minDigitsPerROF, {"minimum number of digits per ROF (below that threshold ROF is discarded)"}}}};
 }
 
 } // end namespace mch
