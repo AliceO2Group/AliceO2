@@ -18,6 +18,7 @@
 #pragma link C++ class o2::base::Detector + ;
 #pragma link C++ class o2::base::Propagator + ;
 #pragma link C++ class o2::base::PropagatorF + ;
+#pragma link C++ class o2::base::PropagatorD + ;
 #pragma link C++ class o2::base::PropagatorImpl < double> + ;
 #pragma link C++ class o2::base::PropagatorImpl < float> + ;
 

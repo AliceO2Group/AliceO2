@@ -18,6 +18,7 @@
 #define ALIGNABLEDETECTOR_H
 
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include <TObjArray.h>
 #include <cstdio>
 #include "Align/DOFSet.h"
@@ -34,7 +35,7 @@ namespace o2
 {
 namespace align
 {
-
+using GIndex = o2::dataformats::VtxTrackIndex;
 class Controller;
 
 //TODO(milettri) : fix possibly incompatible Detector IDs of O2 and AliROOT
@@ -52,13 +53,13 @@ class AlignableDetector : public DOFSet
   ~AlignableDetector() override;
 
   auto getDetID() const { return mDetID; }
+  auto getName() const { return mDetID.getName(); }
   //
-  virtual void cacheReferenceOCDB();
+  virtual void cacheReferenceCCDB();
   virtual void acknowledgeNewRun(int run);
   virtual void updateL2GRecoMatrices();
   virtual void applyAlignmentFromMPSol();
   //
-  int getNDOFsTot() const;
   int volID2SID(int vid) const;
   int sID2VolID(int sid) const { return sid < getNSensors() ? mSID2VolID[sid] : -1; } //todo
   int getNSensors() const { return mSensors.GetEntriesFast(); }
@@ -114,7 +115,11 @@ class AlignableDetector : public DOFSet
   virtual void defineVolumes();
   virtual void defineMatrices();
   void Print(const Option_t* opt = "") const override;
-  //  virtual int ProcessPoints(const AliESDtrack* esdTr, AlignmentTrack* algTrack, bool inv = false); FIXME(milettri): needs AliESDtrack
+
+  virtual void reset();
+  virtual int processPoints(GIndex gid, bool inv = false);
+  virtual bool prepareDetectorData() { return true; }
+
   virtual void updatePointByTrackInfo(AlignmentPoint* pnt, const trackParam_t* t) const;
   virtual void setUseErrorParam(int v = 0);
   int getUseErrorParam() const { return mUseErrorParam; }
@@ -122,8 +127,6 @@ class AlignableDetector : public DOFSet
   //  virtual bool AcceptTrack(const AliESDtrack* trc, int trtype) const = 0; FIXME(milettri): needs AliESDtrack
   //  bool CheckFlags(const AliESDtrack* trc, int trtype) const; FIXME(milettri): needs AliESDtrack
   //
-  virtual AlignmentPoint* getPointFromPool();
-  virtual void resetPool();
   virtual void writeSensorPositions(const char* outFName);
   //
   void setInitGeomDone() { SetBit(kInitGeomDone); }
@@ -193,7 +196,7 @@ class AlignableDetector : public DOFSet
  protected:
   //
   DetID mDetID{}; // detector ID
-
+  bool mInitDone = false;
   int mVolIDMin = -1;        // min volID for this detector (for sensors only)
   int mVolIDMax = -1;        // max volID for this detector (for sensors only)
   int mNSensors = 0;         // number of sensors (i.e. volID's)
@@ -216,9 +219,7 @@ class AlignableDetector : public DOFSet
   //
   // this is transient info
   int mNPoints = 0;         //! number of points from this detector
-  int mPoolNPoints = 0;     //! number of points in the pool
-  int mPoolFreePointID = 0; //! id of the last free point in the pool
-  TObjArray mPointsPool;    //! pool of aligment points
+  int mFirstPoint = 0;      //! entry of the 1st point
   //
   ClassDefOverride(AlignableDetector, 1); // base class for detector global alignment
 };

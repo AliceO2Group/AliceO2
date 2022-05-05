@@ -57,8 +57,6 @@ class EventVertex : public AlignableSensor
   void prepareMatrixL2GIdeal() final { mMatL2GIdeal.Clear(); } // unit matrix
   void prepareMatrixT2L() final;
   //
-  //  AlignmentPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t); FIXME(milettri): needs AliTrackPointArray, AliESDtrack
-  //
  protected:
   EventVertex(const EventVertex&);
   EventVertex& operator=(const EventVertex&);

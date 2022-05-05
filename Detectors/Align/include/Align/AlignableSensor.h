@@ -19,7 +19,7 @@
 
 #include <TMath.h>
 #include <TObjArray.h>
-
+#include "ReconstructionDataFormats/BaseCluster.h"
 #include "Align/AlignableVolume.h"
 #include "Align/DOFStatistics.h"
 #include "Align/utils.h"
@@ -37,6 +37,8 @@ class AlignableSensor : public AlignableVolume
 {
  public:
   //
+  using ClusterF = o2::BaseCluster<float>;
+
   AlignableSensor() = default;
   AlignableSensor(const char* name, int vid, int iid, Controller* ctr);
   ~AlignableSensor() override = default;
@@ -72,16 +74,11 @@ class AlignableSensor : public AlignableVolume
   }
   const double* getAddError() const { return mAddError; }
   //
-  void prepareMatrixT2L() override;
-  //
-  void setTrackingFrame() override;
   bool isSensor() const override { return true; }
   void Print(const Option_t* opt = "") const override;
   //
   virtual void updatePointByTrackInfo(AlignmentPoint* pnt, const trackParam_t* t) const;
   void updateL2GRecoMatrices(const std::vector<o2::detectors::AlignParam>& algArr, const TGeoHMatrix* cumulDelta) override;
-  //
-  //  virtual AlignmentPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t) = 0; TODO(milettri): needs AliTrackPointArray AliESDtrack
   //
   int finalizeStat(DOFStatistics& h) override;
   //
@@ -106,7 +103,7 @@ class AlignableSensor : public AlignableVolume
   int mSID;                  // sensor id in detector
   double mAddError[2];       // additional error increment for measurement
   AlignableDetector* mDet;   // pointer on detector
-  TGeoHMatrix mMatClAlg;     // reference cluster alignment matrix in tracking frame
+  TGeoHMatrix mMatClAlg;     // reference cluster alignment matrix in tracking frame, i.e. the matrix we want to correct
   TGeoHMatrix mMatClAlgReco; // reco-time cluster alignment matrix in tracking frame
 
   //

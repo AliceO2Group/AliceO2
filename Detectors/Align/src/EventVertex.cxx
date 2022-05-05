@@ -61,15 +61,5 @@ void EventVertex::applyCorrection(double* vtx) const
   //
 }
 
-//FIXME(milettri): needs AliTrackPointArray, AliESDtrack
-////____________________________________________
-//AlignmentPoint* EventVertex::TrackPoint2AlgPoint(int, const AliTrackPointArray*, const AliESDtrack*)
-//{
-//  // convert the pntId-th point to AlignmentPoint
-//  static int cnt = 0;
-//  LOG(error) << "This method shound not have been called," << cnt++;
-//  return 0;
-//}
-
 } // namespace align
 } // namespace o2
