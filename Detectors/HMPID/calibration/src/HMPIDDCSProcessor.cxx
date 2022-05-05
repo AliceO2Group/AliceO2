@@ -400,7 +400,7 @@ void HMPIDDCSProcessor::finalizeHV_Entry(Int_t iCh,Int_t iSec) // after run is f
 			pGrHV->SetPoint(cntHV++,dp.data.get_epoch_time(),o2::dcs::getValue<double>(dp));
 		}
 		if(cntHV==1) { 
-		 pGrHV->GetPoint(0,xP,yP);
+		 pGrHV->GetPoint(0,xP,yP);           
 		new TF1(Form("HV%i_%i",iCh,iSec),Form("%f",yP),minTime,maxTime);       
 		} else {
 		pGrHV->Fit(new TF1(Form("HV%i_%i",iCh,iSec),"[0]+x*[1]",minTime,maxTime,"Q"));      
@@ -425,7 +425,7 @@ void HMPIDDCSProcessor::finalizeChPressureEntry(Int_t iCh) // after run is finis
 		}
 		if(cntChPressure==1) { 
 			pGrP->GetPoint(0,xP,yP);           
-		 	new  TF1(Form("P%i",iCh),Form("%f",yP),minTime, maxTime);             
+		 	new  TF1(Form("P%i",iCh),Form("%f",yP),minTime, maxTime);              
 		} else {
 		pGrP->Fit(new TF1(Form("P%i",iCh),"[0] + x*[1]",minTime,maxTime),"Q");       
 		}  delete pGrP;
@@ -490,9 +490,9 @@ void HMPIDDCSProcessor::finalize() // after run is finished,
 			finalizeTempInEntry(iCh,iRad);
 			finalizeTempOutEntry(iCh,iRad); 
 			// evaluate Mean Refractive Index
-			// de-reference pTin/pTout since they are pointers
-		      	arNmean[6*iCh+2*iRad] = *pTin[3*iCh+iRad]; //Tin =f(t)
-      			arNmean[6*iCh+2*iRad+1] = *pTout[3*iCh+iRad]; //Tout=f(t)
+
+		     	(arNmean.at(6*iCh+2*iRad)).push_back(pTin[3*iCh+iRad]); //Tin =f(t)
+      			(arNmean.at(6*iCh+2*iRad+1)).push_back(pTout[3*iCh+iRad]); //Tout=f(t)
 		}
 
 		for(Int_t iSec=0;iSec<6;iSec++){
@@ -500,23 +500,21 @@ void HMPIDDCSProcessor::finalize() // after run is finished,
 			// evaluate Qthre
 			hvFirstTime = HMPIDDCSTime::getMinTime(dpcomHV[6*iCh+iSec]);
 			hvLastTime = HMPIDDCSTime::getMaxTime(dpcomHV[6*iCh+iSec]);
-			// de-reference TF1 since it is a pointer
-			arQthre[6*iCh+iSec] = *(new TF1(Form("HMP_QthreC%iS%i",iCh,iSec),Form("3*10^(3.01e-3*HV%i_%i - 4.72)+170745848*exp(-(P%i+Penv)*0.0162012)",iCh,iSec,iCh),hvFirstTime,hvLastTime)); 
+
+			(arQthre.at(6*iCh+iSec)).push_back(new TF1(Form("HMP_QthreC%iS%i",iCh,iSec),Form("3*10^(3.01e-3*HV%i_%i - 4.72)+170745848*exp(-(P%i+Penv)*0.0162012)",iCh,iSec,iCh),hvFirstTime,hvLastTime)); 
 		}
 	}
 
 	
 	double eMean = ProcTrans();	 
-	/*
+	
 	// startTimeTemp and endTimeTemp: min and max in 1d array of vectors of Tin/Tout
 	uint64_t startTimeTemp = std::max(HMPIDDCSTime::getMinTimeArr(tempOut),HMPIDDCSTime::getMinTimeArr(tempIn));
 	
 	uint64_t endTimeTemp = std::min(HMPIDDCSTime::getMaxTimeArr(tempOut),HMPIDDCSTime::getMaxTimeArr(tempIn)); // ?? 
 	// startTime is from temperature, but endTime should be from last entry in  ProcTrans()? 
-	*/
-	
-	// which timestamps should be used for the arNMean[42] entry? 
-        arNmean[42] = *(new TF1("HMP_PhotEmean",Form("%f",eMean),mTimeArNmean.first,mTimeArNmean.last));//fStartTime,fEndTime); //Photon energy mean
+        (arNmean.at(42)).push_back(new TF1("HMP_PhotEmean",Form("%f",eMean),startTimeTemp,endTimeTemp));//fStartTime,fEndTime); //Photon energy mean
+
 
 
 	
