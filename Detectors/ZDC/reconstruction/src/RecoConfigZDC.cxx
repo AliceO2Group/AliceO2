@@ -86,6 +86,11 @@ void RecoConfigZDC::setPedThreshold(int32_t ich, float high, float low)
 
 void RecoConfigZDC::print()
 {
+  LOGF(info, "RecoConfigZDC:%s%s%s%s",
+       (low_pass_filter ? " LowPassFilter" : ""),
+       (full_interpolation ? " FullInterpolation" : ""),
+       (corr_signal ? " CorrSignal" : ""),
+       (corr_background ? " CorrBackground" : ""));
   for (int itdc = 0; itdc < NTDCChannels; itdc++) {
     LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << tdc_search[itdc] << " = " << tdc_search[itdc] * FTDCVal << " ns";
   }

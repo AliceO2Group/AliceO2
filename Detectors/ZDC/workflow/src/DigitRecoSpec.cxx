@@ -176,8 +176,10 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   mDR.process(peds, bcdata, chans);
   const std::vector<o2::zdc::RecEventAux>& recAux = mDR.getReco();
 
+  // Transfer wafeform
+  bool fullinter = mDR.getFullInterpolation();
   RecEvent recEvent;
-  LOG(info) << "BC processed during reconstruction " << recAux.size();
+  LOGF(info, "BC processed during reconstruction %d%s", recAux.size(), (fullinter ? " FullInterpolation" : ""));
   uint32_t nte = 0, ntt = 0, nti = 0;
   for (auto reca : recAux) {
     bool toAddBC = true;
@@ -193,6 +195,19 @@ void DigitRecoSpec::run(ProcessingContext& pc)
         nt++;
         recEvent.addTDC(it, reca.TDCVal[it][ih], reca.TDCAmp[it][ih], reca.isBeg[it], reca.isEnd[it]);
       }
+      // Add waveform information
+      if (fullinter) {
+        auto sig = TDCSignal[it];
+        uint32_t mask = 0x1 << sig;
+        if (reca.flags & mask) {
+          if (toAddBC) {
+            recEvent.addBC(reca);
+            toAddBC = false;
+          }
+          recEvent.addWaveform(sig, reca.inter[it]);
+          printf("Orbit %9u bc %4u  itdc %d sig %d flags=%x\n", reca.ir.orbit, reca.ir.bc, it, sig, reca.flags);
+        }
+      }
     }
     if (ne > 0) {
       if (toAddBC) {
@@ -206,7 +221,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     }
     nte += ne;
     ntt += nt;
-    if (mVerbosity > 0 && (nt > 0 || ne > 0)) {
+    if (mVerbosity > 1 && (nt > 0 || ne > 0)) {
       printf("Orbit %9u bc %4u ntdc %2d ne %2d\n", reca.ir.orbit, reca.ir.bc, nt, ne);
     }
     // Event information
@@ -219,6 +234,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0, Lifetime::Timeframe}, recEvent.mEnergy);
   pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0, Lifetime::Timeframe}, recEvent.mTDCData);
   pc.outputs().snapshot(Output{"ZDC", "INFO", 0, Lifetime::Timeframe}, recEvent.mInfo);
+  pc.outputs().snapshot(Output{"ZDC", "WAVEFORM", 0, Lifetime::Timeframe}, recEvent.mWaveform);
   mTimer.Stop();
 }
 
@@ -241,6 +257,7 @@ framework::DataProcessorSpec getDigitRecoSpec(const int verbosity = 0, const boo
   outputs.emplace_back("ZDC", "ENERGY", 0, Lifetime::Timeframe);
   outputs.emplace_back("ZDC", "TDCDATA", 0, Lifetime::Timeframe);
   outputs.emplace_back("ZDC", "INFO", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "WAVEFORM", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "zdc-digi-reco",

@@ -32,6 +32,7 @@
 #pragma link C++ class o2::zdc::RecEventFlat + ;
 #pragma link C++ class o2::zdc::ZDCEnergy + ;
 #pragma link C++ class o2::zdc::ZDCTDCData + ;
+#pragma link C++ class o2::zdc::ZDCWaveform + ;
 #pragma link C++ class o2::zdc::InterCalibData + ;
 #pragma link C++ class std::vector < o2::zdc::ChannelData> + ;
 #pragma link C++ class std::vector < o2::zdc::BCData> + ;
@@ -39,6 +40,7 @@
 #pragma link C++ class std::vector < o2::zdc::BCRecData> + ;
 #pragma link C++ class std::vector < o2::zdc::ZDCEnergy> + ;
 #pragma link C++ class std::vector < o2::zdc::ZDCTDCData> + ;
+#pragma link C++ class std::vector < o2::zdc::ZDCWaveform> + ;
 #pragma link C++ class std::vector < o2::zdc::RecEvent> + ;
 #pragma link C++ class std::vector < o2::zdc::RecEventAux> + ;
 #pragma link C++ class std::vector < o2::zdc::OrbitRawData> + ;

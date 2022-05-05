@@ -45,6 +45,7 @@ void DigiReco::init()
   // Update reconstruction parameters
   // auto& ropt=RecoParamZDC::Instance();
   o2::zdc::RecoParamZDC& ropt = const_cast<o2::zdc::RecoParamZDC&>(RecoParamZDC::Instance());
+  ropt.print();
   mRopt = (o2::zdc::RecoParamZDC*)&ropt;
 
   // Fill maps to decode the pattern of channels with hit
@@ -87,6 +88,21 @@ void DigiReco::init()
   }
   if (mVerbosity > DbgZero) {
     LOG(info) << "Low pass filtering is " << (mLowPassFilter ? "enabled" : "disabled");
+  }
+
+  // Full interpolation of waveform (N.B. function call overrides other settings)
+  if (mFullInterpolationSet == false) {
+    if (ropt.full_interpolation < 0) {
+      if (!mRecoConfigZDC) {
+        LOG(fatal) << "Configuration of interpolation: missing configuration object and no manual override";
+      } else {
+        ropt.full_interpolation = mRecoConfigZDC->full_interpolation;
+      }
+    }
+    mFullInterpolation = ropt.full_interpolation > 0 ? true : false;
+  }
+  if (mVerbosity > DbgZero) {
+    LOG(info) << "Full waveform interpolation is " << (mFullInterpolation ? "enabled" : "disabled");
   }
 
   if (mCorrSignalSet == false) {
@@ -143,6 +159,7 @@ void DigiReco::init()
       LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val * o2::zdc::FTDCVal << " ns";
     }
   }
+
   // Amplitude calibration
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
     float fval = ropt.tdc_calib[itdc];
@@ -215,14 +232,14 @@ void DigiReco::init()
       }
     } else {
       ropt.tower_calib[ChTowerCalib[il]] = 1;
-      LOG(warning) << "Default Tower Calibration  " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
+      LOG(warning) << "Default Tower Calibration " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
     }
   }
 
   // Tower energy calibration
   for (int il = 0; il < ChTowerCalib.size(); il++) {
     if (ropt.energy_calib[ChTowerCalib[il]] > 0) {
-      LOG(info) << "Tower Energy Calibration from command line " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.energy_calib[ChTowerCalib[il]];
+      LOG(info) << "Tower Energy Calibration set to " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.energy_calib[ChTowerCalib[il]];
     } else {
       ropt.energy_calib[ChTowerCalib[il]] = ropt.tower_calib[ChTowerCalib[il]] * ropt.energy_calib[CaloCommonPM[ChTowerCalib[il]]];
       if (mVerbosity > DbgZero) {
@@ -1055,6 +1072,7 @@ void DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
   interpolate(itdc, ibeg, iend);
 } // processTrigger
 
+// Interpolation for single point
 O2_ZDC_DIGIRECO_FLT DigiReco::getPoint(int itdc, int ibeg, int iend, int i)
 {
   constexpr int nsbun = TSN * NTimeBinsPerBC; // Total number of interpolated points per bunch crossing
@@ -1120,7 +1138,6 @@ O2_ZDC_DIGIRECO_FLT DigiReco::getPoint(int itdc, int ibeg, int iend, int i)
   }
 }
 
-#ifdef O2_ZDC_INTERP_DEBUG
 void DigiReco::setPoint(int itdc, int ibeg, int iend, int i)
 {
   constexpr int nsbun = TSN * NTimeBinsPerBC; // Total number of interpolated points per bunch crossing
@@ -1143,7 +1160,6 @@ void DigiReco::setPoint(int itdc, int ibeg, int iend, int i)
     mReco[ibun].inter[itdc][isam] = getPoint(itdc, ibeg, iend, i);
   }
 } // setPoint
-#endif
 
 void DigiReco::interpolate(int itdc, int ibeg, int iend)
 {
@@ -1166,18 +1182,19 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
 
   constexpr int nsp = 5; // Number of points to be searched
 
-  // At this level there should be no need to check if the TDC channel is connected
-  // since a fatal should have been raised already
-  for (int ibun = ibeg; ibun <= iend; ibun++) {
-    auto ref = mReco[ibun].ref[TDCSignal[itdc]];
-    if (ref == ZDCRefInitVal) {
-      LOG(fatal) << "Missing information for bunch crossing";
-    }
-  }
-
   int imod = mRopt->tmod[itdc]; // Module corresponding to TDC channel
   // int ich = mRopt->tch[itdc];   // Hardware channel corresponding to TDC channel
   int isig = TDCSignal[itdc]; // Signal corresponding to TDC
+
+  // At this level there should be no need to check if the TDC channel is connected
+  // since a fatal should have been raised already
+  for (int ibun = ibeg; ibun <= iend; ibun++) {
+    auto ref = mReco[ibun].ref[isig];
+    if (ref == ZDCRefInitVal) {
+      LOG(fatal) << "Missing information for bunch crossing";
+    }
+    mReco[ibun].flags = mReco[ibun].flags | (0x1<<isig);
+  }
 
   auto ref_beg = mReco[ibeg].ref[isig];
   auto ref_end = mReco[iend].ref[isig];
@@ -1190,13 +1207,14 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   mLastSample = mChData[ref_end].data[MaxTimeBin];
 #endif
 
-  // O2_ZDC_INTERP_DEBUG turns on full interpolation for debugging
+  // mFullInterpolation turns on full interpolation for debugging
   // otherwise the interpolation is performed only around actual signal
-#ifdef O2_ZDC_INTERP_DEBUG
-  for (int i = 0; i < mNtot; i++) {
-    setPoint(itdc, ibeg, iend, i);
+  // TODO: extend full interpolation to all channels
+  if (mFullInterpolation) {
+    for (int i = 0; i < mNtot; i++) {
+      setPoint(itdc, ibeg, iend, i);
+    }
   }
-#endif
 
   // Looking for a local maximum in a search zone
   O2_ZDC_DIGIRECO_FLT amp = std::numeric_limits<float>::infinity(); // Amplitude to be stored
@@ -1337,13 +1355,14 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
     }
     if (is_searchable) {
       int mysam = isam % nsbun;
-#ifndef O2_ZDC_INTERP_DEBUG
-      // Perform interpolation for the searched point
-      // setPoint(itdc, ibeg, iend, isam);
-      O2_ZDC_DIGIRECO_FLT myval = getPoint(itdc, ibeg, iend, isam);
-#else
-      O2_ZDC_DIGIRECO_FLT myval = mReco[ib_cur].inter[itdc][mysam];
-#endif
+      O2_ZDC_DIGIRECO_FLT myval;
+      if (mFullInterpolation) {
+        // Already interpolated
+        myval = mReco[ib_cur].inter[itdc][mysam];
+      } else {
+        // Perform interpolation for the searched point
+        myval = getPoint(itdc, ibeg, iend, isam);
+      }
       // Get local minimum of waveform
       if (myval < amp) {
         amp = myval;

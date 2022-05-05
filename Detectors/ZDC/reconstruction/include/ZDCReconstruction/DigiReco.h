@@ -111,6 +111,13 @@ class DigiReco
     LOG(warn) << __func__ << " Configuration of low pass filtering: " << (mLowPassFilter ? "enabled" : "disabled");
   };
   bool getLowPassFilter() { return mLowPassFilter; };
+  void setFullInterpolation(bool val = true)
+  {
+    mFullInterpolation = val;
+    mFullInterpolationSet = true;
+    LOG(warn) << __func__ << " Full waveform interpolation: " << (mFullInterpolation ? "enabled" : "disabled");
+  };
+  bool getFullInterpolation() { return mLowPassFilter; };
   // Enable or disable TDC corrections
   void setCorrSignal(bool val = true)
   {
@@ -143,6 +150,8 @@ class DigiReco
   void correctTDCPile();                                     /// Correction of pile-up in TDC
   bool mLowPassFilter = true;                                /// Enable low pass filtering
   bool mLowPassFilterSet = false;                            /// Low pass filtering set via function call
+  bool mFullInterpolation = false;                           /// Full waveform interpolation
+  bool mFullInterpolationSet = false;                        /// Full waveform interpolation set via function call
   bool mCorrSignal = true;                                   /// Enable TDC signal correction
   bool mCorrSignalSet = false;                               /// TDC signal correction set via function call
   bool mCorrBackground = true;                               /// Enable TDC pile-up correction
@@ -152,9 +161,7 @@ class DigiReco
   int correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& tdc);                                            /// TDC amplitude and time corrections due to pile-up from previous bunches
 
   O2_ZDC_DIGIRECO_FLT getPoint(int itdc, int ibeg, int iend, int i); /// Interpolation for current TDC
-#ifdef O2_ZDC_INTERP_DEBUG
-  void setPoint(int itdc, int ibeg, int iend, int i); /// Interpolation for current TDC
-#endif
+  void setPoint(int itdc, int ibeg, int iend, int i);                /// Interpolation for current TDC
 
   void assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float amp); /// Set reconstructed TDC values
   void findSignals(int ibeg, int iend);                                       /// Find signals around main-main that satisfy condition on TDC
