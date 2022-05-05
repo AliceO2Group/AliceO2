@@ -31,7 +31,7 @@ namespace zdc
 {
 
 struct RecEventAux : public RecEventFlat {
-  uint32_t flags; /// reconstruction flags
+  uint32_t flags;
 #ifdef O2_ZDC_TDC_C_ARRAY
   int16_t tdcVal[NTDCChannels][MaxTDCValues]; /// TdcValues (encoded)
   int16_t tdcAmp[NTDCChannels][MaxTDCValues]; /// TdcAmplitudes (encoded)
@@ -43,9 +43,7 @@ struct RecEventAux : public RecEventFlat {
   uint32_t ref[NChannels];                                   /// Cache of references
   std::array<bool, NChannels> err;                           /// Generic error condition
   std::array<int16_t, NTimeBinsPerBC> data[NChannels] = {0}; /// Samples (raw or filtered)
-#ifdef O2_ZDC_INTERP_DEBUG
-  float inter[NTDCChannels][NTimeBinsPerBC * TSN] = {0}; /// Interpolated samples
-#endif
+
   // Functions
   RecEventAux()
   {

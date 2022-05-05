@@ -9,17 +9,27 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsZDC/BCRecData.h"
-#include "DataFormatsZDC/ChannelData.h"
-#include <bitset>
+#ifndef O2_ZDC_CALIBPARAMZDC_H
+#define O2_ZDC_CALIBPARAMZDC_H
 
-using namespace o2::zdc;
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
+#include "ZDCBase/Constants.h"
 
-void BCRecData::print() const
+/// \file CalibParamZDC.h
+/// \brief ZDC calibration common parameters
+/// \author P. Cortese
+
+namespace o2
 {
-  printf("Orbit %9u bc %4u nch=%2d pos %d ntdc=%2d pos %d nmsg=%2d pos %d nwav=%d pos %d\n", ir.orbit, ir.bc,
-         refe.getEntries(), refe.getFirstEntry(),
-         reft.getEntries(), reft.getFirstEntry(),
-         refi.getEntries(), refi.getFirstEntry(),
-         refw.getEntries(), refw.getFirstEntry());
-}
+namespace zdc
+{
+struct CalibParamZDC : public o2::conf::ConfigurableParamHelper<CalibParamZDC> {
+  int debug_output = -1; // Debug output
+  void print();
+  O2ParamDef(CalibParamZDC, "CalibParamZDC");
+};
+} // namespace zdc
+} // namespace o2
+
+#endif

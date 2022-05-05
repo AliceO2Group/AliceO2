@@ -9,33 +9,42 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _ZDC_ORBIT_DATA_H_
-#define _ZDC_ORBIT_DATA_H_
+#ifndef ZDC_WAVEFORMCALIB_PARAM_H
+#define ZDC_WAVEFORMCALIB_PARAM_H
 
-#include "CommonDataFormat/InteractionRecord.h"
 #include "ZDCBase/Constants.h"
-#include <array>
 #include <Rtypes.h>
+#include "ZDCCalib/WaveformCalibData.h"
+#include <vector>
 
-/// \file OrbitData.h
-/// \brief Class to describe pedestal data accumulated over the orbit
-/// \author ruben.shahoyan@cern.ch
+/// \file WaveformCalibParam.h
+/// \brief Waveform calibration data
+/// \author pietro.cortese@cern.ch
 
 namespace o2
 {
 namespace zdc
 {
 
-struct OrbitData {
-  o2::InteractionRecord ir;
-  std::array<int16_t, NChannels> data{};
-  std::array<uint16_t, NChannels> scaler{};
+struct WaveformCalibChParam {
+  using Histo = std::vector<float>;
+  Histo shape;
+  int ampMinID = 0;
+  void print() const;
+  ClassDefNV(WaveformCalibChParam, 1);
+};
 
-  float asFloat(int i) const { return data[i] / 8.; }
+struct WaveformCalibParam {
+
+  WaveformCalibChParam channels[NChannels]; // configuration per channel
+
+  void assign(const WaveformCalibData& data);
+  int saveDebugHistos(const std::string fn) const;
   void print() const;
 
-  ClassDefNV(OrbitData, 1);
+  ClassDefNV(WaveformCalibParam, 1);
 };
+
 } // namespace zdc
 } // namespace o2
 
