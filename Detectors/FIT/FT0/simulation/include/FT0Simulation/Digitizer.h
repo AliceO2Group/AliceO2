@@ -165,11 +165,6 @@ class Digitizer
 
   o2::ft0::FT0ChannelTimeCalibrationObject const* mCalibOffset = nullptr;
 
-<<<<<<< HEAD
-  o2::ft0::FT0ChannelTimeCalibrationObject const* mCalibOffset = nullptr;
-
-=======
->>>>>>> miscalibration
   ClassDefNV(Digitizer, 3);
 };
 
