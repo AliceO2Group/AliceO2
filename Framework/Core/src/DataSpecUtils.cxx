@@ -334,7 +334,8 @@ MatcherInfo extractMatcherInfo(DataDescriptorMatcher const& top)
         state.hasError = true;
         return VisitNone;
       }
-      if (action.node->getOp() == ops::Just) {
+      if (action.node->getOp() == ops::Just ||
+          action.node->getOp() == ops::Not) {
         return VisitLeft;
       }
       return VisitBoth;
@@ -510,7 +511,8 @@ DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataTypeM
   auto timeDescriptionMatcher = std::make_unique<DataDescriptorMatcher>(
     DataDescriptorMatcher::Op::And,
     DescriptionValueMatcher{dataType.description.as<std::string>()},
-    StartTimeValueMatcher(ContextRef{0}));
+    std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
+                                            StartTimeValueMatcher{ContextRef{0}}));
   return std::move(DataDescriptorMatcher(
     DataDescriptorMatcher::Op::And,
     OriginValueMatcher{dataType.origin.as<std::string>()},
@@ -564,12 +566,11 @@ std::optional<framework::ConcreteDataMatcher> DataSpecUtils::optionalConcreteDat
       if (state.hasError) {
         return VisitNone;
       }
+      // a ConcreteDataMatcher requires either 'and' or 'just'
+      // operations and we return the corresponding action for these
       if (action.node->getOp() == ops::Just) {
         return VisitLeft;
-      }
-      // a ConcreteDataMatcher requires only 'and' operations
-      // which have an OR, so we reset all the uniqueness attributes.
-      if (action.node->getOp() == ops::And) {
+      } else if (action.node->getOp() == ops::And) {
         return VisitBoth;
       }
       // simply use the error state to indicate that the operation does not match the

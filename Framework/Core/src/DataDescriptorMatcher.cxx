@@ -454,7 +454,8 @@ std::ostream& operator<<(std::ostream& os, DataDescriptorMatcher const& matcher)
   auto edgeWalker = overloaded{
     [&os](EdgeActions::EnterNode action) {
       os << "(" << action.node->mOp;
-      if (action.node->mOp == DataDescriptorMatcher::Op::Just) {
+      if (action.node->mOp == DataDescriptorMatcher::Op::Just ||
+          action.node->mOp == DataDescriptorMatcher::Op::Not) {
         return ChildAction::VisitLeft;
       }
       return ChildAction::VisitBoth;
