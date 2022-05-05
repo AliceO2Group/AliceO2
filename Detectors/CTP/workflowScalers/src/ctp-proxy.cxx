@@ -47,7 +47,7 @@ InjectorFunction dcs2dpl()
   auto timesliceId = std::make_shared<size_t>(0);
   auto runMgr = std::make_shared<o2::ctp::CTPRunManager>();
   runMgr->init();
-  return [timesliceId,runMgr](TimingInfo&, FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
+  return [timesliceId, runMgr](TimingInfo&, FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
     // make sure just 2 messages received
     if (parts.Size() != 2) {
       LOG(error) << "received " << parts.Size() << " instead of 2 expected";
@@ -60,7 +60,7 @@ InjectorFunction dcs2dpl()
     if ((messageHeader.find("ctpconfig") != std::string::npos) && (dataSize < 1000)) {
       LOG(info) << "CTP config received";
       runMgr->startRun(messageData);
-      //runMgr->processMessage(messageData);
+      // runMgr->processMessage(messageData);
     } else {
       o2::header::DataHeader hdrF("CTP_COUNTERS", o2::header::gDataOriginCTP, 0);
       OutputSpec outsp{hdrF.dataOrigin, hdrF.dataDescription, hdrF.subSpecification};

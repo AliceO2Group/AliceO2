@@ -130,7 +130,8 @@ class CTPConfiguration
   std::map<o2::detectors::DetID::ID, std::vector<CTPInput>> getDet2InputMap();
   uint64_t getTriggerClassMask() const;
   std::vector<int> getTriggerClassList() const;
-  uint32_t getRunNumber(){return mRunNumber;} ;
+  uint32_t getRunNumber() { return mRunNumber; };
+
  private:
   uint32_t mRunNumber = 0;
   std::string mName = "";
@@ -147,8 +148,7 @@ class CTPConfiguration
   ClassDefNV(CTPConfiguration, 3);
 };
 // Run Manager
-struct CTPActiveRun
-{
+struct CTPActiveRun {
   CTPActiveRun() = default;
   long timeStart;
   long timeStop;
@@ -157,27 +157,28 @@ struct CTPActiveRun
 };
 class CTPRunManager
 {
-  public:
-    CTPRunManager() = default;
-    void init();
-    int startRun(std::string& cfg);
-    int stopRun(uint32_t irun);
-    int addScalers(uint32_t irun);
-    int processMessage(std::string& message);
-    void printActiveRuns() const;
-    int saveRunToCCDB(int i);
-    int getConfigFromCCDB();
-    int getScalersFromCCDB();
-    int loadScalerNames();
-    void setCcdbHost(std::string host){ mCcdbHost = host; };
-  private:
-    std::string mCcdbHost = "http://ccdb-test.cern.ch:8080";
-    std::array<CTPActiveRun*,NRUNS> mActiveRuns;
-    std::array<std::uint32_t,NRUNS> mActiveRunNumbers;
-    std::array<uint32_t,CTPRunScalers::NCOUNTERS> mCounters;
-    std::map<std::string,uint32_t> mScalerName2Position;
-    CTPActiveRun* mRunInStart = nullptr;
-    ClassDefNV(CTPRunManager, 1);
+ public:
+  CTPRunManager() = default;
+  void init();
+  int startRun(std::string& cfg);
+  int stopRun(uint32_t irun);
+  int addScalers(uint32_t irun);
+  int processMessage(std::string& message);
+  void printActiveRuns() const;
+  int saveRunToCCDB(int i);
+  int getConfigFromCCDB();
+  int getScalersFromCCDB();
+  int loadScalerNames();
+  void setCcdbHost(std::string host) { mCcdbHost = host; };
+
+ private:
+  std::string mCcdbHost = "http://ccdb-test.cern.ch:8080";
+  std::array<CTPActiveRun*, NRUNS> mActiveRuns;
+  std::array<std::uint32_t, NRUNS> mActiveRunNumbers;
+  std::array<uint32_t, CTPRunScalers::NCOUNTERS> mCounters;
+  std::map<std::string, uint32_t> mScalerName2Position;
+  CTPActiveRun* mRunInStart = nullptr;
+  ClassDefNV(CTPRunManager, 1);
 };
 } // namespace ctp
 } // namespace o2

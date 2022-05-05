@@ -83,11 +83,12 @@ class CTPRunScalers
   int checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2& scal1) const;
   int checkConsistency(const CTPScalerRecordO2& rec0, const CTPScalerRecordO2& rec1) const;
   void setClassMask(std::bitset<CTP_NCLASSES> classMask) { mClassMask = classMask; };
-  void setRunNumber(uint32_t rnumber){ mRunNumber = rnumber; };
+  void setRunNumber(uint32_t rnumber) { mRunNumber = rnumber; };
   //
   int parseZMQScalers(std::string zmqscalers);
-  static const uint32_t NCOUNTERS = 1052; 
+  static const uint32_t NCOUNTERS = 1052;
   static std::vector<std::string> scalerNames;
+
  private:
   // map from class index to overflow
   // overflow counts how many time class scalerers overflowed
