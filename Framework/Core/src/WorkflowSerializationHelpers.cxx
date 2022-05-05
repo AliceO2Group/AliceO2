@@ -13,8 +13,10 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/VariantHelpers.h"
 #include "Framework/VariantJSONHelpers.h"
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/DataMatcherWalker.h"
 #include "Framework/Logger.h"
 
 #include <rapidjson/reader.h>
@@ -56,6 +58,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     IN_INPUT_DESCRIPTION,
     IN_INPUT_SUBSPEC,
     IN_INPUT_LIFETIME,
+    IN_INPUT_STARTTIME,
     IN_INPUT_MATCHER,
     IN_INPUT_MATCHER_OPERATION,
     IN_INPUT_LEFT_MATCHER,
@@ -166,6 +169,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       case State::IN_INPUT_LIFETIME:
         s << "IN_INPUT_LIFETIME";
         break;
+      case State::IN_INPUT_STARTTIME:
+        s << "IN_INPUT_STARTTIME";
+        break;
       case State::IN_INPUT_OPTIONS:
         s << "IN_INPUT_OPTIONS";
         break;
@@ -271,9 +277,13 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     } else if (in(State::IN_INPUT_LEFT_MATCHER)) {
       // this is a matcher leaf, i.e. last matcher of a branch
       // will be merged into the parent matcher
+      // insert a placeholder for empty objects
+      inputMatcherNodes.push_back(ConstantValueMatcher{false});
     } else if (in(State::IN_INPUT_RIGHT_MATCHER)) {
       // this is a matcher leaf, i.e. last matcher of a branch
       // will be merged into the parent matcher
+      // insert a placeholder for empty objects
+      inputMatcherNodes.push_back(ConstantValueMatcher{false});
     } else if (in(State::IN_OUTPUTS)) {
       push(State::IN_OUTPUT);
       outputHasSubSpec = false;
@@ -315,7 +325,13 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
         return lastMatcher;
       };
 
-      auto matcher = buildMatcher(inputMatcherNodes);
+      std::unique_ptr<DataDescriptorMatcher> matcher;
+      if (auto* pval = std::get_if<std::unique_ptr<DataDescriptorMatcher>>(&inputMatcherNodes[0])) {
+        assert(inputMatcherNodes.size() == 1);
+        matcher = std::move(*pval);
+      } else {
+        matcher = buildMatcher(inputMatcherNodes);
+      }
       auto concrete = DataSpecUtils::optionalConcreteDataMatcherFrom(*matcher);
       if (concrete.has_value()) {
         // the matcher is fully qualified with unique parameters so we add ConcreteDataMatcher
@@ -561,8 +577,14 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_INPUT_SUBSPEC);
     } else if (in(State::IN_INPUT_RIGHT_MATCHER) && strncmp(str, "subspec", length) == 0) {
       push(State::IN_INPUT_SUBSPEC);
+    } else if (in(State::IN_INPUT_LEFT_MATCHER) && strncmp(str, "starttime", length) == 0) {
+      push(State::IN_INPUT_STARTTIME);
+    } else if (in(State::IN_INPUT_RIGHT_MATCHER) && strncmp(str, "starttime", length) == 0) {
+      push(State::IN_INPUT_STARTTIME);
     } else if (in(State::IN_INPUT) && strncmp(str, "lifetime", length) == 0) {
       push(State::IN_INPUT_LIFETIME);
+    } else if (in(State::IN_INPUT) && strncmp(str, "starttime", length) == 0) {
+      push(State::IN_INPUT_STARTTIME);
     } else if (in(State::IN_INPUT) && strncmp(str, "metadata", length) == 0) {
       push(State::IN_INPUT_OPTIONS);
     } else if (in(State::IN_OUTPUT) && strncmp(str, "binding", length) == 0) {
@@ -645,13 +667,38 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     } else if (in(State::IN_INPUT_ORIGIN)) {
       origin.runtimeInit(s.c_str(), std::min(s.size(), 4UL));
       std::string v(s.c_str(), std::min(s.size(), 4UL));
+      inputMatcherNodes.pop_back();
       inputMatcherNodes.push_back(OriginValueMatcher{v});
     } else if (in(State::IN_INPUT_DESCRIPTION)) {
       description.runtimeInit(s.c_str(), std::min(s.size(), 16UL));
       std::string v(s.c_str(), std::min(s.size(), 16UL));
+      inputMatcherNodes.pop_back();
       inputMatcherNodes.push_back(DescriptionValueMatcher{v});
+    } else if (in(State::IN_INPUT_STARTTIME)) {
+      // we add StartTimeValueMatcher with ContextRef for starttime, no matter what
+      // has been in the configuration.
+      inputMatcherNodes.pop_back();
+      inputMatcherNodes.push_back(StartTimeValueMatcher(ContextRef{ContextPos::STARTTIME_POS}));
     } else if (in(State::IN_INPUT_MATCHER_OPERATION)) {
-      // FIXME: read operation
+      // FIXME: need to implement operator>> to read the op parameter
+      DataDescriptorMatcher::Op op = DataDescriptorMatcher::Op::And;
+      if (s == "and") {
+        op = DataDescriptorMatcher::Op::And;
+      } else if (s == "or") {
+        op = DataDescriptorMatcher::Op::Or;
+      } else if (s == "xor") {
+        op = DataDescriptorMatcher::Op::Xor;
+      } else if (s == "just") {
+        op = DataDescriptorMatcher::Op::Just;
+      } else if (s == "not") {
+        op = DataDescriptorMatcher::Op::Not;
+      }
+      // FIXME: we could drop the placeholder which has been added when entering
+      // the states which can read key 'operation', but then we need to make sure
+      // that this key is always present
+      auto node = std::make_unique<DataDescriptorMatcher>(op, ConstantValueMatcher{false});
+      inputMatcherNodes.pop_back();
+      inputMatcherNodes.push_back(std::move(node));
     } else if (in(State::IN_OUTPUT_BINDING)) {
       binding = s;
     } else if (in(State::IN_OUTPUT_ORIGIN)) {
@@ -695,6 +742,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     debug << "Uint(" << i << ")" << std::endl;
     if (in(State::IN_INPUT_SUBSPEC)) {
       subspec = i;
+      inputMatcherNodes.pop_back();
       inputMatcherNodes.push_back(SubSpecificationTypeValueMatcher{i});
     } else if (in(State::IN_OUTPUT_SUBSPEC)) {
       subspec = i;
@@ -844,6 +892,67 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
   rapidjson::OStreamWrapper osw(out);
   rapidjson::PrettyWriter<rapidjson::OStreamWrapper> w(osw);
 
+  // handlers for serialization of InputSpec matchers
+  auto edgeWalker = overloaded{
+    [&w](EdgeActions::EnterNode action) {
+      w.Key("matcher");
+      w.StartObject();
+      w.Key("operation");
+      std::stringstream ss;
+      ss << action.node->getOp();
+      w.String(ss.str().c_str());
+      if (action.node->getOp() == DataDescriptorMatcher::Op::Just ||
+          action.node->getOp() == DataDescriptorMatcher::Op::Not) {
+        return ChildAction::VisitLeft;
+      }
+      return ChildAction::VisitBoth;
+    },
+    [&w](EdgeActions::EnterLeft) {
+      w.Key("left");
+      w.StartObject();
+    },
+    [&w](EdgeActions::ExitLeft) {
+      w.EndObject();
+    },
+    [&w](EdgeActions::EnterRight) {
+      w.Key("right");
+      w.StartObject();
+    },
+    [&w](EdgeActions::ExitRight) {
+      w.EndObject();
+    },
+    [&w](EdgeActions::ExitNode) {
+      w.EndObject();
+    },
+    [&w](auto) {}};
+  auto leafWalker = overloaded{
+    [&w](OriginValueMatcher const& origin) {
+      w.Key("origin");
+      std::stringstream ss;
+      ss << origin;
+      w.String(ss.str().c_str());
+    },
+    [&w](DescriptionValueMatcher const& description) {
+      w.Key("description");
+      std::stringstream ss;
+      ss << description;
+      w.String(ss.str().c_str());
+    },
+    [&w](SubSpecificationTypeValueMatcher const& subspec) {
+      w.Key("subspec");
+      std::stringstream ss;
+      ss << subspec;
+      w.Uint64(std::stoul(ss.str()));
+    },
+    [&w](StartTimeValueMatcher const& startTime) {
+      w.Key("starttime");
+      std::stringstream ss;
+      ss << startTime;
+      w.String(ss.str().c_str());
+    },
+    [&w](ConstantValueMatcher const& constant) {},
+    [&w](auto t) {}};
+
   w.StartObject();
   w.Key("workflow");
   w.StartArray();
@@ -858,27 +967,28 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
 
     w.Key("inputs");
     w.StartArray();
-    for (auto& input : processor.inputs) {
+    for (auto const& input : processor.inputs) {
       /// FIXME: this only works for a selected set of InputSpecs...
       ///        a proper way to fully serialize an InputSpec with
       ///        a DataDescriptorMatcher is needed.
       w.StartObject();
       w.Key("binding");
       w.String(input.binding.c_str());
-      auto origin = DataSpecUtils::getOptionalOrigin(input);
-      if (origin.has_value()) {
+      if (auto const* concrete = std::get_if<ConcreteDataMatcher>(&input.matcher)) {
         w.Key("origin");
-        w.String(origin->str, strnlen(origin->str, 4));
-      }
-      auto description = DataSpecUtils::getOptionalDescription(input);
-      if (description.has_value()) {
+        w.String(concrete->origin.str, strnlen(concrete->origin.str, 4));
         w.Key("description");
-        w.String(description->str, strnlen(description->str, 16));
-      }
-      auto subSpec = DataSpecUtils::getOptionalSubSpec(input);
-      if (subSpec.has_value()) {
+        w.String(concrete->description.str, strnlen(concrete->description.str, 16));
         w.Key("subspec");
-        w.Uint64(*subSpec);
+        w.Uint64(concrete->subSpec);
+        //auto tmp = DataSpecUtils::dataDescriptorMatcherFrom(*concrete);
+        //DataMatcherWalker::walk(tmp,
+        //                        edgeWalker,
+        //                        leafWalker);
+      } else if (auto const* matcher = std::get_if<DataDescriptorMatcher>(&input.matcher)) {
+        DataMatcherWalker::walk(*matcher,
+                                edgeWalker,
+                                leafWalker);
       }
       w.Key("lifetime");
       w.Uint((int)input.lifetime);
