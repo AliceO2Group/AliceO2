@@ -321,7 +321,7 @@ void EventManagerFrame::DoScreenshot()
     }
   }
 
-  uint8_t possibleDetectors[] =
+  const uint8_t possibleDetectors[] =
     {
       o2::dataformats::GlobalTrackID::Source::ITS,
       o2::dataformats::GlobalTrackID::Source::TPC,
@@ -339,7 +339,7 @@ void EventManagerFrame::DoScreenshot()
       o2::dataformats::GlobalTrackID::Source::FDD,
     };
 
-  std::string possibleDetectorsNames[] = {
+  const std::string possibleDetectorsNames[] = {
     "ITS", "TPC", "TRD", "TOF", "CPV", "EMC", "HMP",
     "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD"};
 
@@ -352,7 +352,15 @@ void EventManagerFrame::DoScreenshot()
     }
   }
 
-  std::vector<std::string> lines;
+  std::vector<std::string> lines(4);
+
+  if (!this->mEventManager->getDataSource()->getCollisionTime().empty()) {
+    lines[0] = TString::Format("Run number: %d", (int)this->mEventManager->getDataSource()->getRunNumber());
+    lines[1] = TString::Format("");
+    lines[2] = TString::Format("Date: %s", this->mEventManager->getDataSource()->getCollisionTime().c_str());
+    lines[3] = TString::Format("Detectors: %s", detectorsString.c_str());
+  }
+
   std::ifstream input("screenshot.txt");
   if (input.is_open()) {
     for (std::string line; getline(input, line);) {
@@ -361,21 +369,6 @@ void EventManagerFrame::DoScreenshot()
   }
 
   image.BeginPaint();
-  for (int i = 0; i < 4; i++) {
-    lines.push_back(""); // make sure that at least 4 lines are exising
-  }
-  if (!this->mEventManager->getDataSource()->getCollisionTime().empty()) {
-    char buff[100];
-    snprintf(buff, sizeof(buff), "Run number: %d", (int)this->mEventManager->getDataSource()->getRunNumber());
-    lines[0] = buff;
-    snprintf(buff, sizeof(buff), "");
-    lines[1] = buff;
-    snprintf(buff, sizeof(buff), "Date: %s", this->mEventManager->getDataSource()->getCollisionTime().c_str());
-    lines[2] = buff;
-    snprintf(buff, sizeof(buff), "Detectors: %s", detectorsString.c_str());
-    lines[3] = buff;
-  }
-
   for (int i = 0; i < 4; i++) {
     image.DrawText(textX, textY + i / 2 * 0.5f * textLineHeight + i * textLineHeight, lines[i].c_str(), fontSize, "#BBBBBB", "FreeSansBold.otf");
   }
