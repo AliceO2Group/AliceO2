@@ -24,6 +24,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "Headers/DataHeader.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "TStopwatch.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -49,9 +50,7 @@ class TRDTrackBasedCalibDevice : public Task
 
   std::shared_ptr<DataRequest> mDataRequest;
   TrackBasedCalib mCalibrator; // gather input data for calibration of vD, ExB and gain
-  std::unique_ptr<Output> mOutput;
-  uint32_t mNumberOfProcessedTFs{0};
-  bool mDataHeaderSet{false};
+  TStopwatch mTimer;
 };
 
 void TRDTrackBasedCalibDevice::init(InitContext& ic)
@@ -61,26 +60,21 @@ void TRDTrackBasedCalibDevice::init(InitContext& ic)
   o2::base::Propagator::initFieldFromGRP();
   std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
   mCalibrator.init();
+  mTimer.Stop();
+  mTimer.Reset();
 }
 
 void TRDTrackBasedCalibDevice::run(ProcessingContext& pc)
 {
   updateTimeDependentParams(pc);
-  if (!mDataHeaderSet) {
-    mOutput = std::make_unique<Output>(o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe);
-    mDataHeaderSet = true;
-  }
+  mTimer.Start(false);
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
   mCalibrator.setInput(recoData);
   mCalibrator.calculateAngResHistos();
-  ++mNumberOfProcessedTFs;
-  if (mNumberOfProcessedTFs % 200 == 0) {
-    pc.outputs().snapshot(*mOutput, mCalibrator.getAngResHistos());
-    mDataHeaderSet = false;
-    mNumberOfProcessedTFs = 0;
-    mCalibrator.reset();
-  }
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe}, mCalibrator.getAngResHistos());
+  mCalibrator.reset();
+  mTimer.Stop();
 }
 
 void TRDTrackBasedCalibDevice::updateTimeDependentParams(ProcessingContext& pc)
@@ -98,11 +92,8 @@ void TRDTrackBasedCalibDevice::finaliseCCDB(ConcreteDataMatcher& matcher, void* 
 
 void TRDTrackBasedCalibDevice::endOfStream(EndOfStreamContext& ec)
 {
-  if (mNumberOfProcessedTFs > 0) {
-    ec.outputs().snapshot(*mOutput, mCalibrator.getAngResHistos());
-  }
-  LOGF(info, "Added in total %i entries to angular residual histograms",
-       mCalibrator.getAngResHistos().getNEntries());
+  LOGF(info, "TRD track-based calibration total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask_t src)
