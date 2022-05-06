@@ -29,21 +29,22 @@
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 
-using namespace o2::framework;
 
+using namespace o2::framework;
 namespace o2
 {
 namespace hmpid
 {
 
-using DPID = o2::dcs::DataPointIdentifier;
-using DPVAL = o2::dcs::DataPointValue;
-using DPCOM = o2::dcs::DataPointCompositeObject;
-using namespace o2::ccdb;
-using CcdbManager = o2::ccdb::BasicCCDBManager;
-using clbUtils = o2::calibration::Utils;
-using HighResClock = std::chrono::high_resolution_clock;
-using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
+  using DPID = o2::dcs::DataPointIdentifier;
+  using DPVAL = o2::dcs::DataPointValue;
+  using DPCOM = o2::dcs::DataPointCompositeObject;
+  using namespace o2::ccdb;
+  using CcdbManager = o2::ccdb::BasicCCDBManager;
+  using clbUtils = o2::calibration::Utils;
+  using HighResClock = std::chrono::high_resolution_clock;
+  using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
+
 
 //==========================================================================
   void HMPIDDCSDataProcessor::init(o2::framework::InitContext& ic)
@@ -146,12 +147,12 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
 
 
   //=== send charge threshold(arQthre)=========================================
-  void HMPIDDCSDataProcessor::sendChargeThresOutput(DataAllocator& output)
+  void HMPIDDCSDataProcessor::sendChargeThresOutput(o2::framework::DataAllocator& output)
   {
     // fill CCDB with ChargeThres (arQthre)   
     const auto& payload = mProcessor->getChargeCutObj();   // arQthre
-     // const std::array<TF1,42> arQthre;  --> current, filled up array
-    //const std::array<TF1,42> mChargeCut; --> only declared
+    // const std::vector<TF1> arQthre[42];  --> current, filled up array
+    //const std::vector<TF1> mChargeCut[42]; --> only declared
     
     auto& info = mProcessor->getHmpidChargeCutInfo();   // OK, but maybe change function and var names  
     
@@ -164,23 +165,23 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
   }
 
   //====send RefIndex (arrMean)=====================================================
-  void HMPIDDCSDataProcessor::sendRefIndexOutput(DataAllocator& output)
+  void HMPIDDCSDataProcessor::sendRefIndexOutput(o2::framework::DataAllocator& output)
   {
-      // fill CCDB with RefIndex (arrMean)            
-      const auto& payload = mProcessor->getRefIndexObj();   
-       // const std::array<TF1,42> arrMean;  --> current, filled up array
-    //const std::array<TF1,42> mRefIndex; --> only declared
+    // fill CCDB with RefIndex (arrMean)            
+    const auto& payload = mProcessor->getRefIndexObj();   
+    // const std::vector<TF1> arrMean[43];  --> current, filled up array
+    //const sstd::vector<TF1> mRefIndex[43]; --> only declared
 
 
-      auto& info = mProcessor->getccdbREF_INDEXsInfo(); // OK, but maybe change function and var names  
+    auto& info = mProcessor->getccdbREF_INDEXsInfo(); // OK, but maybe change function and var names  
 
       
-      auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-      LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-                << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+    auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+              << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "RefIndex", 0}, *image.get());
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "RefIndex", 0}, info);
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "RefIndex", 0}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "RefIndex", 0}, info);
 
   } // end class HMPIDDCSDataProcessor
 
@@ -216,6 +217,7 @@ DataProcessorSpec getHMPIDDCSDataProcessorSpec()
 
 } // namespace framework
 } // namespace o2
+
 
 
 
