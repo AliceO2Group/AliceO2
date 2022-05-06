@@ -82,7 +82,7 @@ class CTFReaderSpec : public o2::framework::Task
   void stopReader();
   template <typename C>
   void processDetector(DetID det, const CTFHeader& ctfHeader, ProcessingContext& pc) const;
-  void setMessageHeader(ProcessingContext& pc, const CTFHeader& ctfHeader, const std::string& lbl, unsigned subspec = 0) const;
+  void setMessageHeader(ProcessingContext& pc, const CTFHeader& ctfHeader, const std::string& lbl, unsigned subspec) const; // keep just for the reference
   void tryToFixCTFHeader(CTFHeader& ctfHeader) const;
   CTFReaderInp mInput{};
   std::unique_ptr<o2::utils::FileFetcher> mFileFetcher;
@@ -245,8 +245,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   timingInfo.runNumber = ctfHeader.run;
 
   // send CTF Header
-  pc.outputs().snapshot({"header"}, ctfHeader);
-  setMessageHeader(pc, ctfHeader, "header");
+  pc.outputs().snapshot({"header", mInput.subspec}, ctfHeader);
 
   processDetector<o2::itsmft::CTF>(DetID::ITS, ctfHeader, pc);
   processDetector<o2::itsmft::CTF>(DetID::MFT, ctfHeader, pc);
@@ -271,7 +270,6 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
     stfDist.id = uint64_t(mCurrTreeEntry);
     stfDist.firstOrbit = ctfHeader.firstTForbit;
     stfDist.runNumber = uint32_t(ctfHeader.run);
-    setMessageHeader(pc, ctfHeader, "TFDist", 0xccdb);
   }
 
   auto entryStr = fmt::format("({} of {} in {})", mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
@@ -328,13 +326,13 @@ void CTFReaderSpec::processDetector(DetID det, const CTFHeader& ctfHeader, Proce
 {
   if (mInput.detMask[det]) {
     const auto lbl = det.getName();
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({lbl}, ctfHeader.detectors[det] ? sizeof(C) : 0);
+    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({lbl, mInput.subspec}, ctfHeader.detectors[det] ? sizeof(C) : 0);
     if (ctfHeader.detectors[det]) {
       C::readFromTree(bufVec, *(mCTFTree.get()), lbl, mCurrTreeEntry);
     } else if (!mInput.allowMissingDetectors) {
       throw std::runtime_error(fmt::format("Requested detector {} is missing in the CTF", lbl));
     }
-    setMessageHeader(pc, ctfHeader, lbl);
+    //    setMessageHeader(pc, ctfHeader, lbl);
   }
 }
 
@@ -390,7 +388,7 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
 {
   std::vector<OutputSpec> outputs;
 
-  outputs.emplace_back(OutputLabel{"header"}, "CTF", "HEADER", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"header"}, "CTF", "HEADER", inp.subspec, Lifetime::Timeframe);
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (inp.detMask[id]) {
       DetID det(id);
