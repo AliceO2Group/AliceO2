@@ -12,6 +12,9 @@ source $O2DPG_ROOT/DATA/common/getCommonArgs.sh
 # Set up calibrations
 source $O2DPG_ROOT/DATA/common/setenv_calib.sh
 
+# check that WORKFLOW_DETECTORS is needed, otherwise the wrong calib wf will be built
+if [[ -z $WORKFLOW_DETECTORS ]]; then echo "WORKFLOW_DETECTORS must be defined" 1>&2; exit 1; fi
+
 # CCDB destination for uploads
 [[ -z ${CCDBPATH+x} ]] && CCDBPATH="http://o2-ccdb.internal"
 
@@ -73,8 +76,8 @@ if [[ $CALIB_PHS_RUNBYRUNCALIB == 1 ]]; then
 fi
 
 # starting with empty workflow
-WORKFLOW=
 if workflow_has_parameters CALIB_PROXIES; then
+    WORKFLOW=
     if [[ ! -z $CALIBDATASPEC_BARREL ]]; then
   WORKFLOW+="o2-dpl-raw-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_BARREL\" $(get_proxy_connection barrel input) | "
     fi
