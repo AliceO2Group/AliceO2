@@ -118,6 +118,7 @@ int main(int argc, char** argv)
     }
 
     if (hitbr) {
+      LOG(info) << "trackidsinITS.size() " << trackidsinITS.size() << " trackidsinITS_fromhits.size() " << trackidsinITS_fromhits.size();
       assert(trackidsinITS.size() == trackidsinITS_fromhits.size());
       for (auto id : trackidsinITS) {
         assert(trackidsinITS_fromhits[id] == true);
