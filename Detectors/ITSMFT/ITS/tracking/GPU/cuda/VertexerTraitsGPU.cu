@@ -478,6 +478,9 @@ void VertexerTraitsGPU::computeTrackletMatching()
 
     size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
 
+    // Reset used tracklets
+    checkGPUError(cudaMemset(mTimeFrameGPU->getDeviceUsedTracklets(rofId), false, sizeof(unsigned char) * mTimeFrameGPU->getConfig().maxTrackletsPerCluster * mTimeFrameGPU->getNClustersLayer(rofId, 1)), __FILE__, __LINE__);
+
     gpu::trackletSelectionKernel<true><<<blocksGrid, threadsPerBlock>>>(
       mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
       mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
