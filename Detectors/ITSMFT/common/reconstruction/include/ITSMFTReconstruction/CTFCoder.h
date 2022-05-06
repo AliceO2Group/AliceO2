@@ -361,11 +361,6 @@ void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VDI
     for (uint32_t icl = 0; icl < compCl.nclusROF[irof]; icl++) {
       if (inChip++ < compCl.chipMul[chipCount]) { // still the same chip
         col += compCl.colInc[clCount];
-#ifdef _CHECK_INCREMENTES_ // RS FIXME with current clusterization column increment can be slightly negative
-//        if (int16_t(compCl.colInc[clCount])<0) {
-//          LOG(warning) << "Negative column increment " << int16_t(compCl.colInc[clCount]) << " -> " << col << " in chip " << chipID;
-//        }
-#endif
       } else { // new chip starts
         // sort digits of previous chip in col/row
         auto added = digVec.size() - chipStartNDig;
