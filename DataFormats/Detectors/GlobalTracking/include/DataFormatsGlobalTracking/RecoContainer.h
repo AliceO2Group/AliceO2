@@ -94,6 +94,11 @@ namespace o2::tof
 class Cluster;
 }
 
+namespace o2::hmpid
+{
+class Cluster;
+}
+
 namespace o2::ft0
 {
 class RecPoints;
@@ -149,6 +154,7 @@ namespace o2::dataformats
 class TrackTPCITS;
 class TrackTPCTOF;
 class MatchInfoTOF;
+class MatchInfoHMP;
 class PrimaryVertex;
 class VtxTrackIndex;
 class VtxTrackRef;
@@ -213,6 +219,7 @@ struct DataRequest {
   void requestTRDTracklets(bool mc);
   void requestMCHClusters(bool mc);
   void requestMIDClusters(bool mc);
+  void requestHMPClusters(bool mc);
 
   void requestCTPDigits(bool mc);
 
@@ -293,6 +300,7 @@ struct RecoContainer {
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcITSClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcTOFClusters;
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcHMPClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcCPVClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcMCHClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>> mcPHSCells;
@@ -325,6 +333,11 @@ struct RecoContainer {
   void addTOFMatchesITSTPC(o2::framework::ProcessingContext& pc, bool mc);
   void addTOFMatchesTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
   void addTOFMatchesITSTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
+
+  void addHMPMatchesITSTPC(o2::framework::ProcessingContext& pc, bool mc);
+  void addHMPMatchesTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
+  void addHMPMatchesITSTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
+
   void addMFTMCHMatches(o2::framework::ProcessingContext& pc, bool mc);
   void addMCHMIDMatches(o2::framework::ProcessingContext& pc, bool mc);
 
@@ -332,6 +345,7 @@ struct RecoContainer {
   void addMFTClusters(o2::framework::ProcessingContext& pc, bool mc);
   void addTPCClusters(o2::framework::ProcessingContext& pc, bool mc, bool shmap);
   void addTOFClusters(o2::framework::ProcessingContext& pc, bool mc);
+  void addHMPClusters(o2::framework::ProcessingContext& pc, bool mc);
   void addTRDTracklets(o2::framework::ProcessingContext& pc, bool mc);
   void addMCHClusters(o2::framework::ProcessingContext& pc, bool mc);
   void addMIDClusters(o2::framework::ProcessingContext& pc, bool mc);
@@ -556,6 +570,8 @@ struct RecoContainer {
 
   // TOF
   const o2::dataformats::MatchInfoTOF& getTOFMatch(GTrackID id) const { return getObject<o2::dataformats::MatchInfoTOF>(id, MATCHES); } // generic match getter
+  // HMPID
+  const o2::dataformats::MatchInfoHMP& getHMPMatch(GTrackID id) const { return getObject<o2::dataformats::MatchInfoHMP>(id, MATCHES); } // generic match getter
   // TPC-TOF, made of refitted TPC track and separate matchInfo
   const o2::dataformats::TrackTPCTOF& getTPCTOFTrack(GTrackID gid) const { return getTrack<o2::dataformats::TrackTPCTOF>(gid); }
   const o2::dataformats::MatchInfoTOF& getTPCTOFMatch(GTrackID id) const { return getObject<o2::dataformats::MatchInfoTOF>(id, MATCHES); }
@@ -579,6 +595,10 @@ struct RecoContainer {
   // TOF clusters
   auto getTOFClusters() const { return getSpan<o2::tof::Cluster>(GTrackID::TOF, CLUSTERS); }
   auto getTOFClustersMCLabels() const { return mcTOFClusters.get(); }
+
+  // HMPID clusters
+  auto getHMPClusters() const { return getSpan<o2::hmpid::Cluster>(GTrackID::HMP, CLUSTERS); }
+  auto getHMPClustersMCLabels() const { return mcHMPClusters.get(); }
 
   // FT0
   auto getFT0RecPoints() const { return getSpan<o2::ft0::RecPoints>(GTrackID::FT0, TRACKS); }

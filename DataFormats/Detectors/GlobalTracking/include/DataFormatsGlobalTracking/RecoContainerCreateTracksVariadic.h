@@ -33,6 +33,7 @@
 
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTOF/Cluster.h"
+#include "DataFormatsHMP/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsFV0/RecPoints.h"
@@ -44,6 +45,7 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackTPCTOF.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/MatchInfoHMP.h"
 #include "DataFormatsPHOS/Cell.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "DataFormatsPHOS/MCLabel.h"

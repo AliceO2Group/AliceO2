@@ -266,6 +266,16 @@ void DataRequest::requestMCHClusters(bool mc)
   requestMap["clusMCH"] = mc;
 }
 
+void DataRequest::requestHMPClusters(bool mc)
+{
+  addInput({"hmpidcluster", "HMP", "CLUSTERS", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"hmpidclusterlabel", "HMP", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
+  }
+
+  requestMap["clusHMP"] = mc;
+}
+
 void DataRequest::requestMIDClusters(bool mc)
 {
   addInput({"clusMID", "MID", "CLUSTERS", 0, Lifetime::Timeframe});
@@ -604,6 +614,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addTOFClusters(pc, req->second);
   }
 
+  req = reqMap.find("clusHMP");
+  if (req != reqMap.end()) {
+    addHMPClusters(pc, req->second);
+  }
+
   req = reqMap.find("CTPDigits");
   if (req != reqMap.end()) {
     addCTPDigits(pc, req->second);
@@ -897,6 +912,31 @@ void RecoContainer::addTOFMatchesITSTPCTRD(ProcessingContext& pc, bool mc)
 }
 
 //__________________________________________________________
+void RecoContainer::addHMPMatchesITSTPC(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::ITSTPCTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoHMP>>("matchITSTPCTOF"), MATCHES); //  HMPID match info, no real tracks
+  if (mc) {
+    commonPool[GTrackID::ITSTPCTOF].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsHMP_GLO_MCTR"), MCLABELS);
+  }
+}
+//__________________________________________________________
+void RecoContainer::addHMPMatchesTPCTRD(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::TPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoHMP>>("matchTPCTRDTOF"), MATCHES); //  : HMPID match info, no real tracks
+  if (mc) {
+    commonPool[GTrackID::TPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsHMP_GLO2_MCTR"), MCLABELS);
+  }
+}
+//__________________________________________________________
+void RecoContainer::addHMPMatchesITSTPCTRD(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::ITSTPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoHMP>>("matchITSTPCTRDTOF"), MATCHES); // HMPID match info, no real tracks
+  if (mc) {
+    commonPool[GTrackID::ITSTPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsHMP_GLO3_MCTR"), MCLABELS);
+  }
+}
+
+//__________________________________________________________
 void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusITSROF"), CLUSREFS);
@@ -938,6 +978,15 @@ void RecoContainer::addTOFClusters(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::TOF].registerContainer(pc.inputs().get<gsl::span<o2::tof::Cluster>>("tofcluster"), CLUSTERS);
   if (mc) {
     mcTOFClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("tofclusterlabel");
+  }
+}
+
+//__________________________________________________________
+void RecoContainer::addHMPClusters(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::tof::Cluster>>("hmpidcluster"), CLUSTERS);
+  if (mc) {
+    mcHMPClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("hmpidclusterlabel");
   }
 }
 
