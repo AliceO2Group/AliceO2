@@ -102,8 +102,8 @@ namespace o2::hmpid
 
 
 		// procTrans	 ===================================================================================================
-		double DefaultEMean();					//just set a refractive index for C6F14 at ephot=6.675 eV @ T=25 C 				
-		double ProcTrans();
+		double defaultEMean();					//just set a refractive index for C6F14 at ephot=6.675 eV @ T=25 C 				
+		double procTrans();
 	
 		// help-functions ================================================================================			
 	        void setStartValidity(long t) { mStartValidity = t; }
