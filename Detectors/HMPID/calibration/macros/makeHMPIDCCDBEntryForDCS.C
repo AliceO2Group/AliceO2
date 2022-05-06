@@ -30,30 +30,49 @@ int makeHMPIDCCDBEntryForDCS(const std::string url = "http://localhost:8080")
   std::unordered_map<DPID, std::string> dpid2DataDesc;
   std::vector<std::string> aliases; // vector of strings that will hold DataPoints identifiers
   
-   // ==| Environment Pressure  (mBar) |=================================
-  aliases.push_back("HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value");
+  // string for DPs of pressures, HV and temperatures =============================================================
+  std::vector<std::string> tempInString, tempOutString, chamberPressureString, highVoltageString;
 
-  int maxChambers = 7;
-  // ==|(CH4) Chamber Pressures  (mBar?) |=================================
-  aliases.push_back(fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_GAS/HMP_MP[0..{}]_GAS_PMWPC.actual.value",maxChambers,maxChambers,maxChambers));	
+   aliases.push_back("HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value"); // environment pressure 
+      for(int iCh = 0; iCh < 7; iCh++)
+      {
+           chamberPressureString.push_back( Form("HMP_DET/HMP_MP%i/HMP_MP%i_GAS/HMP_MP%i_GAS_PMWPC.actual.value",iCh,iCh,iCh));
+           for(int iRad = 0; iRad < 3; iRad++)
+           {  
+               tempOutString.push_back(Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iOut_Temp",iCh,iCh,iRad)); 
+               tempInString.push_back(Form("HMP_DET/HMP_MP%i/HMP_MP%i_LIQ_LOOP.actual.sensors.Rad%iIn_Temp",iCh,iCh,iRad)); 
+           }        
+           for(int iSec = 0; iSec < 6; iSec++)
+           {  
+               highVoltageString.push_back(Form("HMP_DET/HMP_MP%i/HMP_MP%i_PW/HMP_MP%i_SEC%i/HMP_MP%i_SEC%i_HV.actual.vMon",iCh,iCh,iCh,iSec,iCh,iSec)); 
+           } 
+      }
+      aliases.insert(aliases.end(), chamberPressureString.begin(), chamberPressureString.end()); 
+      aliases.insert(aliases.end(), tempOutString.begin(), tempOutString.end()); 
+      aliases.insert(aliases.end(), tempInString.begin(), tempInString.end()); 
+      aliases.insert(aliases.end(), highVoltageString.begin(), highVoltageString.end()); 
+  
+  
+     // string for DPs of Refractive Index Parameters =============================================================
+      std::vector<std::string> waveLenghtString, argonReferenceString, argonCellString, c6f14CellString, c6f14ReferenceString;
+      std::string wLen = "waveLenght", argRef = "argonReference",
+      argCell = "argonCell", c6f14Cell= "c6f14Cell", c6f14Ref = "c6f14Reference"; 
 
-  //==| Temperature C6F14 IN/OUT / RADIATORS  (C) |=================================
-  int iRad = 3; 
-
-  aliases.push_back(fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_LIQ_LOOP.actual.sensors.Rad[0..{}]In_Temp",maxChambers,maxChambers,iRad));
-  aliases.push_back(fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_LIQ_LOOP.actual.sensors.Rad[0..{}]Out_Temp",maxChambers,maxChambers,iRad));	
-
-  // ===| HV / SECTORS (V) |=========================================================	      
-  int iSec = 6; 
-  aliases.push_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_PW/HMP_MP[0..{}]_SEC[0..{}]/HMP_MP[0..{}]_SEC[0..{}]_HV.actual.vMon",maxChambers,maxChambers,maxChambers,iSec,maxChambers,iSec), 2400., 2500.});
-
-
-  // string for DPs of Refractive Index Parameters =============================================================
-  aliases.push_back(fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].waveLenght"));
-  aliases.push_back(fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].argonReference"));
-  aliases.push_back(fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].argonCell"));
-  aliases.push_back(fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].c6f14Cell"));
-  aliases.push_back(fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].c6f14Reference"));     
+      std::string temp;	
+      for(int i = 0; i < 30; i++)
+      {
+	temp = Form("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure%i.",i);
+        waveLenghtString.push_back(temp+wLen);
+        argonReferenceString.push_back(temp+argRef);
+        argonCellString.push_back(temp+argCell);
+        c6f14CellString.push_back(temp+c6f14Cell);
+        c6f14ReferenceString.push_back(temp+c6f14Ref); 
+      }  
+      aliases.insert(aliases.end(), waveLenghtString.begin(), waveLenghtString.end()); 
+      aliases.insert(aliases.end(), argonReferenceString.begin(), argonReferenceString.end()); 
+      aliases.insert(aliases.end(), argonCellString.begin(), argonCellString.end()); 
+      aliases.insert(aliases.end(), c6f14CellString.begin(), c6f14CellString.end()); 
+      aliases.insert(aliases.end(), c6f14ReferenceString.begin(), c6f14ReferenceString.end()); 
 
   std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
 

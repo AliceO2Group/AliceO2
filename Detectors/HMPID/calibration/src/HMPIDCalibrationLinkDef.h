@@ -19,7 +19,9 @@
 #pragma link C++ class o2::hmpid::HMPIDDCSDataProcessor +;
 #pragma link C++ class o2::hmpid::HMPIDDCSProcessor +;
 #pragma link C++ class o2::hmpid::HMPIDDCSTime +;
-#pragma link C++ class std::vector<TF1> +;
+#pragma link C++ class std::vector<std::vector<TF1*>> +;
+//#pragma link C++ class std::array<TF1,42> +;
+//#pragma link C++ class std::array<TF1,43> +; Error: It is not necessary to explicitly select class array<TF1,42>. I/O is supported for it transparently.
 
 //#pragma link C++ class TF1[] + ; // 	e.g.	const TF1[42]& getRefIndexObj() const { return mRefIndex; }
                               
