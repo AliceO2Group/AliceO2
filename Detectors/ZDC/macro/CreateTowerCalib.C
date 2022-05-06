@@ -32,6 +32,8 @@ void CreateTowerCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
   // This object allows for the calibration of the 4 towers of each calorimeter
   // The relative calibration coefficients of towers w.r.t. the common PM
   // need to be provided
+  // I.e. energy calibration is the product of Common PM calibration (or ZEM1)
+  // and tower intercalibration coefficient (or ZEM2)
 
   conf.setTowerCalib(IdZNA1, 1.);
   conf.setTowerCalib(IdZNA2, 1.);
@@ -52,6 +54,11 @@ void CreateTowerCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
   conf.setTowerCalib(IdZPC2, 1.);
   conf.setTowerCalib(IdZPC3, 1.);
   conf.setTowerCalib(IdZPC4, 1.);
+
+  // ZEM2 has special calibration: can be calibrated
+  // as a common PM and as a tower (equalized to ZEM1)
+  // The coefficient applied is the product of the two
+  conf.setTowerCalib(IdZEM2, 1.);
 
   conf.print();
 

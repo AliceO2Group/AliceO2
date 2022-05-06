@@ -44,18 +44,35 @@ namespace o2::framework
 class EndOfStreamContext;
 class ProcessingContext;
 
+o2::framework::ServiceSpec CommonMessageBackends::fairMQDeviceProxy()
+{
+  return ServiceSpec{
+    .name = "fairmq-device-proxy",
+    .init = [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      auto* proxy = new FairMQDeviceProxy();
+      return ServiceHandle{.hash = TypeIdHelpers::uniqueId<FairMQDeviceProxy>(), .instance = proxy, .kind = ServiceKind::Serial};
+    },
+    .start = [](ServiceRegistry& services, void* instance) {
+      auto* proxy = static_cast<FairMQDeviceProxy*>(instance);
+      auto& outputs = services.get<DeviceSpec const>().outputs;
+      auto& inputs = services.get<DeviceSpec const>().inputs;
+      auto* device = services.get<RawDeviceService>().device();
+      proxy->bind(outputs, inputs, *device); },
+  };
+}
+
 o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
 {
   return ServiceSpec{
     .name = "fairmq-backend",
     .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
-      auto& device = services.get<RawDeviceService>();
-      auto context = new MessageContext(FairMQDeviceProxy{device.device()});
+      auto& proxy = services.get<FairMQDeviceProxy>();
+      auto context = new MessageContext(proxy);
       auto& spec = services.get<DeviceSpec const>();
       auto& dataSender = services.get<DataSender>();
 
-      auto dispatcher = [&dataSender](FairMQParts&& parts, std::string const& channel, unsigned int) {
-        dataSender.send(parts, channel);
+      auto dispatcher = [&dataSender](FairMQParts&& parts, ChannelIndex channelIndex, unsigned int) {
+        dataSender.send(parts, channelIndex);
       };
 
       auto matcher = [policy = spec.dispatchPolicy](o2::header::DataHeader const& header) {

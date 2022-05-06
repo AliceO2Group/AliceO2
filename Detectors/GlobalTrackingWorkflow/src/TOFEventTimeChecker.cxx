@@ -187,7 +187,7 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
 
   auto evtime = o2::tof::evTimeMaker<std::vector<MyTrack>, MyTrack, MyFilter>(tracks);
 
-  if (evtime.eventTime - o2::tof::Utils::mLHCPhase < -2000 || evtime.eventTime - o2::tof::Utils::mLHCPhase > 2000) {
+  if (evtime.mEventTime - o2::tof::Utils::mLHCPhase < -2000 || evtime.mEventTime - o2::tof::Utils::mLHCPhase > 2000) {
     return;
   }
   //
@@ -195,13 +195,13 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
 
   int nt = 0;
   for (auto& track : tracks) {
-    mT0 = evtime.eventTime;
-    mT0Res = evtime.eventTimeError;
+    mT0 = evtime.mEventTime;
+    mT0Res = evtime.mEventTimeError;
 
     float sumw = 1. / (mT0Res * mT0Res);
     mT0 *= sumw;
-    mT0 -= evtime.weights[nt] * evtime.tracktime[nt];
-    sumw -= evtime.weights[nt];
+    mT0 -= evtime.mWeights[nt] * evtime.mTrackTimes[nt];
+    sumw -= evtime.mWeights[nt];
     mT0 /= sumw;
     mT0Res = sqrt(1. / sumw);
 

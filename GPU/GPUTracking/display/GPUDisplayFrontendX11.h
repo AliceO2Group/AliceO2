@@ -26,7 +26,7 @@ namespace GPUCA_NAMESPACE::gpu
 class GPUDisplayFrontendX11 : public GPUDisplayFrontend
 {
  public:
-  GPUDisplayFrontendX11() = default;
+  GPUDisplayFrontendX11();
   ~GPUDisplayFrontendX11() override = default;
 
   int StartDisplay() override;

@@ -23,6 +23,8 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
+#include "CCDB/BasicCCDBManager.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 
 #include "Field/MagneticField.h"
 
@@ -33,7 +35,7 @@
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Tracker.h"
-#include "ITStracking/TrackerTraitsCPU.h"
+#include "ITStracking/TrackerTraits.h"
 #include "ITStracking/Vertexer.h"
 
 #include "MathUtils/Utils.h"
@@ -62,9 +64,9 @@ void run_trac_ca_its(bool cosmics = false,
                      std::string path = "./",
                      std::string outputfile = "o2trac_its.root",
                      std::string inputClustersITS = "o2clus_its.root",
-                     std::string dictfile = "",
                      std::string matLUTFile = "matbud.root",
-                     std::string inputGRP = "o2sim_grp.root")
+                     std::string inputGRP = "o2sim_grp.root",
+                     long timestamp = 0)
 {
 
   gSystem->Load("libO2ITStracking");
@@ -101,6 +103,11 @@ void run_trac_ca_its(bool cosmics = false,
   auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                  o2::math_utils::TransformType::L2G)); // request cached transforms
+
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL("http://alice-ccdb.cern.ch");
+  mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());
+  const o2::itsmft::TopologyDictionary* dict = mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary");
 
   //>>>---------- attach input data --------------->>>
   TChain itsClusters("o2sim");
@@ -139,23 +146,6 @@ void run_trac_ca_its(bool cosmics = false,
   itsClusters.SetBranchAddress("ITSClustersROF", &rofs);
 
   itsClusters.GetEntry(0);
-
-  //-------------------------------------------------
-
-  o2::itsmft::TopologyDictionary dict;
-  if (dictfile.empty()) {
-    dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
-  }
-  std::ifstream file(dictfile.c_str());
-  if (file.good()) {
-    LOG(info) << "Running with dictionary: " << dictfile.c_str();
-    dict.readFromFile(dictfile);
-  } else {
-    LOG(info) << "Running without dictionary !";
-  }
-
-  //-------------------------------------------------
-
   std::vector<o2::its::TrackITSExt> tracks;
   // create/attach output tree
   TFile outFile((path + outputfile).data(), "recreate");
@@ -176,7 +166,7 @@ void run_trac_ca_its(bool cosmics = false,
     LOG(fatal) << "Did not find ITS clusters branch ITSClustersROF in the input tree";
   }
 
-  o2::its::VertexerTraits* traits = o2::its::createVertexerTraits();
+  o2::its::VertexerTraits* traits = new o2::its::VertexerTraits();
   o2::its::Vertexer vertexer(traits);
 
   o2::its::VertexingParameters parameters;
@@ -225,57 +215,28 @@ void run_trac_ca_its(bool cosmics = false,
   int currentEvent = -1;
   gsl::span<const unsigned char> patt(patterns->data(), patterns->size());
   auto pattIt = patt.begin();
+  auto pattIt_vertexer = patt.begin();
   auto clSpan = gsl::span(cclusters->data(), cclusters->size());
 
   o2::its::TimeFrame tf;
   gsl::span<o2::itsmft::ROFRecord> rofspan(*rofs);
-  tf.loadROFrameData(rofspan, clSpan, pattIt, &dict, labels);
-  pattIt = patt.begin();
+  std::vector<bool> processingMask(rofs->size(), true);
+  tf.loadROFrameData(rofspan, clSpan, pattIt_vertexer, dict, labels);
+  tf.setMultiplicityCutMask(processingMask);
+
   int rofId{0};
-  for (auto& rof : *rofs) {
+  vertexer.adoptTimeFrame(tf);
+  vertexer.clustersToVertices(false);
 
-    auto start = std::chrono::high_resolution_clock::now();
-    auto it = pattIt;
-    o2::its::ioutils::loadROFrameData(rof, event, clSpan, pattIt, &dict, labels);
-
-    vertexer.initialiseVertexer(&event);
-    vertexer.findTracklets();
-    vertexer.validateTracklets();
-    vertexer.findVertices();
-    std::vector<Vertex> vertITS = vertexer.exportVertices();
-    rofId++;
-    tf.addPrimaryVertices(vertITS);
-    auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
-    vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
-    vtxROF.setNEntries(vertITS.size());
-    for (const auto& vtx : vertITS) {
-      vertices.push_back(vtx);
-    }
-
-    if (!vertITS.empty()) {
-      // Using only the first vertex in the list
-      std::cout << " - Reconstructed vertex: x = " << vertITS[0].getX() << " y = " << vertITS[0].getY() << " x = " << vertITS[0].getZ() << std::endl;
-      event.addPrimaryVertex(vertITS[0].getX(), vertITS[0].getY(), vertITS[0].getZ());
-    } else {
-      std::cout << " - Vertex not reconstructed, tracking skipped" << std::endl;
-    }
-    trackClIdx.clear();
-    tracksITS.clear();
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double, std::milli> diff_t{end - start};
-
-    ncls.push_back(event.getTotalClusters());
-    time.push_back(diff_t.count());
-    roFrameCounter++;
-  }
   tf.printVertices();
 
-  o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU);
+  o2::its::Tracker tracker(new o2::its::TrackerTraits);
   tracker.adoptTimeFrame(tf);
 
   if (useLUT) {
     auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
     o2::base::Propagator::Instance()->setMatLUT(lut);
+    tracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
   } else {
     tracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
   }
@@ -309,9 +270,9 @@ void run_trac_ca_its(bool cosmics = false,
   outTree.Write();
   // outFile.Close();
 
-  TGraph* graph = new TGraph(ncls.size(), ncls.data(), time.data());
-  graph->SetMarkerStyle(20);
-  graph->Draw("AP");
+  // TGraph* graph = new TGraph(ncls.size(), ncls.data(), time.data());
+  // graph->SetMarkerStyle(20);
+  // graph->Draw("AP");
 }
 
 #endif

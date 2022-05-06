@@ -12,6 +12,7 @@
 /// @file   NoiseCalibratorSpec.cxx
 
 #include "CCDB/CcdbApi.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 #include "DetectorsCalibration/Utils.h"
 #include "ITSCalibration/NoiseCalibratorSpec.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
@@ -36,6 +37,7 @@ namespace its
 
 void NoiseCalibratorSpec::init(InitContext& ic)
 {
+  o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   auto onepix = ic.options().get<bool>("1pix-only");
   LOG(info) << "Fast 1=pixel calibration: " << onepix;
   auto probT = ic.options().get<float>("prob-threshold");
@@ -43,6 +45,11 @@ void NoiseCalibratorSpec::init(InitContext& ic)
 
   mCalibrator = std::make_unique<CALIBRATOR>(onepix, probT);
   mCalibrator->setNThreads(ic.options().get<int>("nthreads"));
+
+  mValidityDays = ic.options().get<int>("validity-days");
+  if (mValidityDays < 1) {
+    mValidityDays = 1;
+  }
 }
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
@@ -85,7 +92,8 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
 {
   mCalibrator->finalize();
 
-  long tstart = 0, tend = 9999999;
+  long tstart = o2::ccdb::getCurrentTimestamp();
+  long tend = o2::ccdb::getFutureTimestamp(3600 * 24 * mValidityDays);
 #ifdef TIME_SLOT_CALIBRATION
   const auto& payload = mCalibrator->getNoiseMap(tstart, tend);
 #else
@@ -117,6 +125,7 @@ void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
 ///_______________________________________
 void NoiseCalibratorSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   if (mUseClusters) {
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
   }
@@ -125,6 +134,7 @@ void NoiseCalibratorSpec::updateTimeDependentParams(ProcessingContext& pc)
 ///_______________________________________
 void NoiseCalibratorSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     mCalibrator->setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
@@ -143,7 +153,13 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useClusters)
     inputs.emplace_back("digits", "ITS", "DIGITS", 0, Lifetime::Timeframe);
     inputs.emplace_back("ROframes", "ITS", "DIGITSROF", 0, Lifetime::Timeframe);
   }
-
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ITS_NOISE"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ITS_NOISE"}, Lifetime::Sporadic);
@@ -152,11 +168,12 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useClusters)
     "its-noise-calibrator",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<NoiseCalibratorSpec>(useClusters)},
+    AlgorithmSpec{adaptFromTask<NoiseCalibratorSpec>(useClusters, ccdbRequest)},
     Options{
       {"1pix-only", VariantType::Bool, false, {"Fast 1-pixel calibration only (cluster input only)"}},
       {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}},
-      {"nthreads", VariantType::Int, 1, {"Number of map-filling threads"}}}};
+      {"nthreads", VariantType::Int, 1, {"Number of map-filling threads"}},
+      {"validity-days", VariantType::Int, 3, {"Validity on days from upload time"}}}};
 }
 
 } // namespace its

@@ -9,8 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <fmt/core.h>
+#include <unordered_map>
 #include <vector>
 #include <algorithm>
+#include <chrono>
+#include <fmt/format.h>
+#include <fmt/chrono.h>
 
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/InputRecordWalker.h"
@@ -148,8 +153,31 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
       }
 
     } catch (const std::exception& e) {
-      LOGP(alarm, "EXCEPTIION in processRawData: {} -> skipping part:{}/{} of spec:{}/{}/{}, size:{}", e.what(), dh->splitPayloadIndex, dh->splitPayloadParts,
-           dh->dataOrigin, dh->dataDescription, subSpecification, payloadSize);
+      // error message throtteling
+      using namespace std::literals::chrono_literals;
+      static std::unordered_map<uint32_t, size_t> nErrorPerSubspec;
+      static std::chrono::time_point<std::chrono::steady_clock> lastReport = std::chrono::steady_clock::now();
+      const auto now = std::chrono::steady_clock::now();
+      static size_t reportedErrors = 0;
+      const size_t MAXERRORS = 10;
+      const auto sleepTime = 10min;
+      ++nErrorPerSubspec[subSpecification];
+
+      if ((now - lastReport) < sleepTime) {
+        if (reportedErrors < MAXERRORS) {
+          ++reportedErrors;
+          std::string sleepInfo;
+          if (reportedErrors == MAXERRORS) {
+            sleepInfo = fmt::format(", maximum error count ({}) reached, not reporting for the next {}", MAXERRORS, sleepTime);
+          }
+          LOGP(alarm, "EXCEPTIION in processRawData: {} -> skipping part:{}/{} of spec:{}/{}/{}, size:{}, error count for subspec: {}{}", e.what(), dh->splitPayloadIndex, dh->splitPayloadParts,
+               dh->dataOrigin, dh->dataDescription, subSpecification, payloadSize, nErrorPerSubspec.at(subSpecification), sleepInfo);
+          lastReport = now;
+        }
+      } else {
+        lastReport = now;
+        reportedErrors = 0;
+      }
       errorCount++;
       continue;
     }

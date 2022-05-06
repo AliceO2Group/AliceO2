@@ -53,7 +53,7 @@ void check_notransport()
   }
 }
 
-FairRunSim* o2sim_init(bool asservice)
+FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
 {
   auto& confref = o2::conf::SimConfig::Instance();
   // initialize CCDB service
@@ -84,7 +84,7 @@ FairRunSim* o2sim_init(bool asservice)
   LOG(info) << "RNG INITIAL SEED " << seed;
 
   auto genconfig = confref.getGenerator();
-  FairRunSim* run = new o2::steer::O2RunSim(asservice);
+  FairRunSim* run = new o2::steer::O2RunSim(asservice, evalmat);
   run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
   run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
   run->SetRunId(confref.getTimestamp());
@@ -150,10 +150,6 @@ FairRunSim* o2sim_init(bool asservice)
     aligner.setValue(fmt::format("{}.mDetectors", aligner.getName()), o2::detectors::DetID::getNames(detMaskAlign, ','));
   }
 
-  // set global density scaling factor
-  auto& matmgr = o2::base::MaterialManager::Instance();
-  matmgr.setDensityScalingFactor(o2::conf::SimMaterialParams::Instance().globalDensityFactor);
-
   // run init
   run->Init();
 
@@ -207,6 +203,7 @@ FairRunSim* o2sim_init(bool asservice)
   // todo: save beam information in the grp
 
   // print summary about cuts and processes used
+  auto& matmgr = o2::base::MaterialManager::Instance();
   std::ofstream cutfile(o2::base::NameConf::getCutProcFileName(confref.getOutPrefix()));
   matmgr.printCuts(cutfile);
   matmgr.printProcesses(cutfile);
@@ -258,9 +255,9 @@ void o2sim_run(FairRunSim* run, bool asservice)
 }
 
 // asservice: in a parallel device-based context?
-void o2sim(bool asservice = false)
+void o2sim(bool asservice = false, bool evalmat = false)
 {
-  auto run = o2sim_init(asservice);
+  auto run = o2sim_init(asservice, evalmat);
   o2sim_run(run, asservice);
   delete run;
 }

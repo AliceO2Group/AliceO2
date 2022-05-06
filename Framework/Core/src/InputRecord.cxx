@@ -58,6 +58,21 @@ int InputRecord::getPos(const char* binding) const
   return -1;
 }
 
+InputRecord::InputPos InputRecord::getPos(std::vector<InputRoute> const& schema, ConcreteDataMatcher concrete)
+{
+  size_t inputIndex = 0;
+  for (const auto& route : schema) {
+    if (route.timeslice != 0) {
+      continue;
+    }
+    if (DataSpecUtils::match(route.matcher, concrete)) {
+      return {inputIndex};
+    }
+    ++inputIndex;
+  }
+  return InputPos{InputPos::INVALID};
+}
+
 int InputRecord::getPos(std::string const& binding) const
 {
   return this->getPos(binding.c_str());
@@ -65,21 +80,26 @@ int InputRecord::getPos(std::string const& binding) const
 
 DataRef InputRecord::getByPos(int pos, int part) const
 {
-  if (pos >= mSpan.size() || pos < 0) {
+  return InputRecord::getByPos(mInputsSchema, mSpan, pos, part);
+}
+
+DataRef InputRecord::getByPos(std::vector<InputRoute> const& schema, InputSpan const& span, int pos, int part)
+{
+  if (pos >= (int)span.size() || pos < 0) {
     throw runtime_error_f("Unknown message requested at position %d", pos);
   }
-  if (part > 0 && part >= getNofParts(pos)) {
+  if (part > 0 && part >= (int)span.getNofParts(pos)) {
     throw runtime_error_f("Invalid message part index at %d:%d", pos, part);
   }
-  if (pos >= mInputsSchema.size()) {
+  if (pos >= (int)schema.size()) {
     throw runtime_error_f("Unknown schema at position %d", pos);
   }
-  auto ref = mSpan.get(pos, part);
+  auto ref = span.get(pos, part);
   auto inputIndex = 0;
   auto schemaIndex = 0;
-  for (size_t i = 0; i < mInputsSchema.size(); ++i) {
+  for (size_t i = 0; i < schema.size(); ++i) {
     schemaIndex = i;
-    auto& route = mInputsSchema[i];
+    auto& route = schema[i];
     if (route.timeslice != 0) {
       continue;
     }
@@ -88,7 +108,7 @@ DataRef InputRecord::getByPos(int pos, int part) const
     }
     ++inputIndex;
   }
-  ref.spec = &mInputsSchema[schemaIndex].matcher;
+  ref.spec = &schema[schemaIndex].matcher;
   return ref;
 }
 

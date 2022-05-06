@@ -44,11 +44,11 @@ class NoiseStatusMCM
   static constexpr int getMcmIdxGlb(int hcid, int rob, int mcm) { return hcid * constants::NMCMHCMAX + (rob / 2) * constants::NMCMROB + mcm; }
 
   // setters
-  void setIsNoisy(int hcid, int rob, int mcm) { mNoiseFlag.set(hcid * constants::NMCMHCMAX + rob * constants::NMCMROB + mcm); }
+  void setIsNoisy(int hcid, int rob, int mcm) { mNoiseFlag.set(getMcmIdxGlb(hcid, rob, mcm)); }
   void setIsNoisy(int mcmIdxGlb) { mNoiseFlag.set(mcmIdxGlb); }
 
   // getters
-  bool getIsNoisy(int hcid, int rob, int mcm) const { return mNoiseFlag.test(hcid * constants::NMCMHCMAX + (rob / 2) * constants::NMCMROB + mcm); }
+  bool getIsNoisy(int hcid, int rob, int mcm) const { return mNoiseFlag.test(getMcmIdxGlb(hcid, rob, mcm)); }
   bool getIsNoisy(int mcmIdxGlb) const { return mNoiseFlag.test(mcmIdxGlb); }
   auto getNumberOfNoisyMCMs() const { return mNoiseFlag.count(); }
   bool isTrackletFromNoisyMCM(const Tracklet64& trklt) const { return getIsNoisy(trklt.getHCID(), trklt.getROB(), trklt.getMCM()); }

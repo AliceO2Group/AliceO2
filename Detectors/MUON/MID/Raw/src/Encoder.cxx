@@ -133,8 +133,7 @@ void Encoder::finalize(bool closeFile)
 {
   /// Writes remaining data and closes the file
   if (mLastIR.isDummy()) {
-    mLastIR.bc = 0;
-    mLastIR.orbit = mRawWriter.getHBFUtils().orbitFirst;
+    mLastIR = mRawWriter.getHBFUtils().getFirstSampledTFIR();
   }
   auto ir = getOrbitIR(mLastIR.orbit);
   auto nextIr = getOrbitIR(mLastIR.orbit + 1);
@@ -152,11 +151,16 @@ void Encoder::finalize(bool closeFile)
   }
 }
 
-void Encoder::process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType)
+void Encoder::process(gsl::span<const ColumnData> data, InteractionRecord ir, EventType eventType)
 {
   /// Encodes data
 
-  if (ir.orbit != mLastIR.orbit) {
+  // The CTP trigger arrives to the electronics with a delay
+  if (ir.differenceInBC(mRawWriter.getHBFUtils().getFirstSampledTFIR()) > mElectronicsDelay.localToBC) { // RS: not sure this is correct.
+    applyElectronicsDelay(ir.orbit, ir.bc, -mElectronicsDelay.localToBC);
+  }
+
+  if (ir.orbit != mLastIR.orbit && !mLastIR.isDummy()) {
     onOrbitChange(mLastIR.orbit);
   }
 

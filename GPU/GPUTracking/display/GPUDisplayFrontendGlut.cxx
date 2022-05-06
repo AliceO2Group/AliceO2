@@ -12,11 +12,10 @@
 /// \file GPUDisplayFrontendGlut.cxx
 /// \author David Rohr
 
-// GL EXT must be the first header
-#include "GPUDisplayBackend.h"
-
 // Now the other headers
 #include "GPUDisplayFrontendGlut.h"
+#include "GPUDisplayBackend.h"
+#include "GPUDisplayGUIWrapper.h"
 #include "GPULogging.h"
 #include <cstdio>
 #include <cstring>
@@ -26,6 +25,12 @@
 #include <pthread.h>
 using namespace GPUCA_NAMESPACE::gpu;
 static GPUDisplayFrontendGlut* me = nullptr;
+
+GPUDisplayFrontendGlut::GPUDisplayFrontendGlut()
+{
+  mFrontendType = TYPE_GLUT;
+  mFrontendName = "GLUT";
+}
 
 void GPUDisplayFrontendGlut::displayFunc()
 {
@@ -203,8 +208,8 @@ void GPUDisplayFrontendGlut::mouseFunc(int button, int state, int x, int y)
 
 void GPUDisplayFrontendGlut::mouseMoveFunc(int x, int y)
 {
-  me->mouseMvX = x;
-  me->mouseMvY = y;
+  me->mMouseMvX = x;
+  me->mMouseMvY = y;
 }
 
 void GPUDisplayFrontendGlut::mMouseWheelFunc(int button, int dir, int x, int y) { me->mMouseWheel += dir; }
@@ -230,7 +235,7 @@ int GPUDisplayFrontendGlut::FrontendMain()
   glutInitContextProfile(mBackend->CoreProfile() ? GLUT_CORE_PROFILE : GLUT_COMPATIBILITY_PROFILE);
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
   glutInitWindowSize(INIT_WIDTH, INIT_HEIGHT);
-  glutCreateWindow(GL_WINDOW_NAME);
+  glutCreateWindow(DISPLAY_WINDOW_NAME);
   glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
   if (mBackend->ExtInit()) {

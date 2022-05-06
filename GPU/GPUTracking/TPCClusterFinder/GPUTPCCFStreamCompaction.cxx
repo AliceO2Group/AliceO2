@@ -127,7 +127,7 @@ GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::compact
   if ((unsigned int)get_global_id(0) == lastId) {
     SizeT nFinal = clusterer.mPbuf[lastId];
     if (nFinal > bufferSize) {
-      clusterer.raiseError(stage ? GPUErrors::ERROR_CF_CLUSTER_OVERFLOW : GPUErrors::ERROR_CF_PEAK_OVERFLOW, nFinal, bufferSize);
+      clusterer.raiseError(stage ? GPUErrors::ERROR_CF_CLUSTER_OVERFLOW : GPUErrors::ERROR_CF_PEAK_OVERFLOW, clusterer.mISlice, nFinal, bufferSize);
       nFinal = bufferSize;
     }
     if (stage) {

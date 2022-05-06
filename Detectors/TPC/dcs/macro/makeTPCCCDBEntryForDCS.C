@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <fmt/format.h>
 #include <vector>
 #include <string>
 #include "TFile.h"
@@ -24,11 +25,10 @@
 
 using DPID = o2::dcs::DataPointIdentifier;
 
+/// macro to populate CCDB for TPC with the configuration for DCS
 int makeTPCCCDBEntryForDCS(const std::string url = "http://localhost:8080")
 {
 
-  //  std::string url(argv[0]);
-  // macro to populate CCDB for TOF with the configuration for DCS
   std::unordered_map<DPID, std::string> dpid2DataDesc;
   std::vector<std::string> aliases;
   auto dphints = o2::tpc::dcs::getTPCDCSDPHints();
@@ -42,22 +42,31 @@ int makeTPCCCDBEntryForDCS(const std::string url = "http://localhost:8080")
 
   std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
 
-  // for (const auto& alias : expaliases) {
-  // printf("%s\n", alias.data());
-  //}
+  if (url == "printOnly") {
+    for (const auto& alias : expaliases) {
+      fmt::print("{}\n", alias.data());
+    }
+    return 0;
+  }
 
   DPID dpidtmp;
-  for (size_t i = 0; i < expaliases.size(); ++i) {
-    DPID::FILL(dpidtmp, expaliases[i], o2::dcs::DeliveryType::DPVAL_DOUBLE);
+  for (const auto& alias : expaliases) {
+    std::string type = "DPVAL_DOUBLE";
+    if (alias.find("STATUS") == (alias.size() - std::string("STATUS").size())) {
+      DPID::FILL(dpidtmp, alias, o2::dcs::DeliveryType::DPVAL_INT);
+      type = "DPVAL_INT";
+    } else {
+      DPID::FILL(dpidtmp, alias, o2::dcs::DeliveryType::DPVAL_DOUBLE);
+    }
     dpid2DataDesc[dpidtmp] = "TPCDATAPOINTS";
-    LOG(info) << expaliases[i];
+    LOGP(info, "{} ({})", alias, type);
   }
 
   o2::ccdb::CcdbApi api;
   api.init(url); // or http://localhost:8080 for a local installation
   std::map<std::string, std::string> md;
   long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-  api.storeAsTFileAny(&dpid2DataDesc, "TPC/Config/DCSDPconfig", md, ts);
+  api.storeAsTFileAny(&dpid2DataDesc, "TPC/Config/DCSDPconfig", md, ts, 99999999999999);
 
   return 0;
 }

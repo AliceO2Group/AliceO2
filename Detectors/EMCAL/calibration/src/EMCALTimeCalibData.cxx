@@ -16,6 +16,7 @@
 #include "DetectorsCalibration/Utils.h"
 #include <boost/histogram.hpp>
 #include <boost/histogram/ostream.hpp>
+#include <boost/histogram/algorithm/sum.hpp>
 #include <boost/format.hpp>
 #include <cassert>
 #include <iostream>
@@ -57,28 +58,34 @@ void EMCALTimeCalibData::merge(const EMCALTimeCalibData* prev)
 //_____________________________________________
 bool EMCALTimeCalibData::hasEnoughData() const
 {
-  // true if we have enough data, also want to check for the sync trigger
-  // this is stil to be finalized, simply a skeletron for now
-
-  // if we have the sync trigger, finalize the slot anyway
-
-  //finalizeOldestSlot(Slot& slot);
-
-  // TODO: use event counter here to specify the value of enough
-  // guess and then adjust number of events as needed
-  // checking mEvents
-  bool enough;
+  bool enough = false;
+  double entries = boost::histogram::algorithm::sum(mTimeHisto);
+  LOG(debug) << "entries: " << entries << " needed: " << EMCALCalibParams::Instance().minNEntries << "  mEvents = " << mEvents;
+  // use enrties in histogram for calibration
+  if (!EMCALCalibParams::Instance().useNEventsForCalib && entries > EMCALCalibParams::Instance().minNEntries) {
+    enough = true;
+  }
+  // use number of events (from emcal trigger record) for calibration
+  if (EMCALCalibParams::Instance().useNEventsForCalib && mEvents > EMCALCalibParams::Instance().minNEvents) {
+    enough = true;
+  }
 
   return enough;
 }
 //_____________________________________________
 void EMCALTimeCalibData::fill(const gsl::span<const o2::emcal::Cell> data)
 {
+  // the fill function is called once per event
+  mEvents++;
+
   for (auto cell : data) {
-    Double_t cellEnergy = cell.getEnergy();
-    Int_t id = cell.getTower();
-    LOG(debug) << "inserting in cell ID " << id << ": energy = " << cellEnergy;
-    mTimeHisto(cellEnergy, id);
+    double cellEnergy = cell.getEnergy();
+    double cellTime = cell.getTimeStamp();
+    int id = cell.getTower();
+    LOG(debug) << "inserting in cell ID " << id << ": cellTime = " << cellTime;
+    if (cellEnergy > 0.3) {
+      mTimeHisto(cellTime, id);
+    }
   }
 }
 

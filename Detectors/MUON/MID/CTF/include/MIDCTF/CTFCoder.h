@@ -38,7 +38,7 @@ namespace mid
 class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::MID) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op) : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), o2::detectors::DetID::MID) {}
   ~CTFCoder() final = default;
 
   /// entropy-encode data to buffer with CTF
@@ -142,7 +142,7 @@ void CTFCoder::decode(const CTF::base& ec, std::array<VROF, NEvTypes>& rofVec, s
     }
     auto& cv = colVec[evType[irof]];
     firstEntry = cv.size();
-    for (uint8_t ic = 0; ic < entries[irof]; ic++) {
+    for (uint16_t ic = 0; ic < entries[irof]; ic++) {
       cv.emplace_back(ColumnData{deId[colCount], colId[colCount], std::array{pattern[pCount], pattern[pCount + 1], pattern[pCount + 2], pattern[pCount + 3], pattern[pCount + 4]}});
       pCount += 5;
       colCount++;

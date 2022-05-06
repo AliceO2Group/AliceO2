@@ -144,18 +144,19 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
                                long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize) const
 {
   if (maxSize > 0 && size > maxSize) {
+    LOGP(alarm, "Object will not be uploaded to {} since its size {} exceeds max allowed {}", path, size, maxSize);
     return -1;
   }
 
   // Prepare URL
   long sanitizedStartValidityTimestamp = startValidityTimestamp;
   if (startValidityTimestamp == -1) {
-    cout << "Start of Validity not set, current timestamp used." << endl;
+    LOGP(info, "Start of Validity not set, current timestamp used.");
     sanitizedStartValidityTimestamp = getCurrentTimestamp();
   }
   long sanitizedEndValidityTimestamp = endValidityTimestamp;
   if (endValidityTimestamp == -1) {
-    cout << "End of Validity not set, start of validity plus 1 day used." << endl;
+    LOGP(info, "End of Validity not set, start of validity plus 1 day used.");
     sanitizedEndValidityTimestamp = getFutureTimestamp(60 * 60 * 24 * 1);
   }
 
@@ -163,6 +164,9 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
   CURL* curl = nullptr;
   curl = curl_easy_init();
   int returnValue = 0;
+
+  // checking that all metadata keys do not contain invalid characters
+  checkMetadataKeys(metadata);
 
   if (curl != nullptr) {
     struct curl_httppost* formpost = nullptr;
@@ -197,8 +201,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
       res = curl_easy_perform(curl);
       /* Check for errors */
       if (res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n",
-                curl_easy_strerror(res));
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
         returnValue = res;
       }
     }
@@ -211,7 +214,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     /* free slist */
     curl_slist_free_all(headerlist);
   } else {
-    cerr << "curl initialization failure" << endl;
+    LOGP(alarm, "curl initialization failure");
     returnValue = -2;
   }
   return returnValue;
@@ -482,8 +485,7 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
       curlResultCode = curl_easy_perform(curlHandle);
 
       if (curlResultCode != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n",
-                curl_easy_strerror(curlResultCode));
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(curlResultCode));
       } else {
         curlResultCode = curl_easy_getinfo(curlHandle, CURLINFO_RESPONSE_CODE, &responseCode);
         if ((curlResultCode == CURLE_OK) && (responseCode < 300)) {
@@ -491,9 +493,9 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
           return true;
         } else {
           if (curlResultCode != CURLE_OK) {
-            cerr << "invalid URL : " << fullUrl << endl;
+            LOGP(alarm, "invalid URL {}", fullUrl);
           } else {
-            cerr << "not found under link: " << fullUrl << endl;
+            LOGP(alarm, "not found under link {}", fullUrl);
           }
         }
       }
@@ -523,7 +525,7 @@ TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::s
     mess.Reset();
     result = (TObject*)(mess.ReadObjectAny(mess.GetClass()));
     if (result == nullptr) {
-      cerr << "couldn't retrieve the object " << path << endl;
+      LOGP(info, "couldn't retrieve the object {}", path);
     }
   }
 
@@ -764,10 +766,8 @@ void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info 
 bool CcdbApi::checkAlienToken() const
 {
 #ifdef __APPLE__
-  // not checking for token on Mac because
-  // a) we have seen problems where system call below hangs in some cases
-  // b) not the production plattform where the token would be beneficial
-  return false;
+  LOG(debug) << "On macOS we simply rely on TGrid::Connect(\"alien\").";
+  return true;
 #endif
   // a somewhat weird construction to programmatically find out if we
   // have a GRID token; Can be replaced with something more elegant once
@@ -915,7 +915,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
       for (auto& l : locs) {
         if (l.size() > 0) {
           LOG(debug) << "Trying content location " << l;
-          content = navigateURLsAndRetrieveContent(curl_handle, l, tinfo, nullptr);
+          content = navigateURLsAndRetrieveContent(curl_handle, l, tinfo, headers);
           if (content /* or other success marker in future */) {
             break;
           }
@@ -1067,7 +1067,7 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
 
       res = curl_easy_perform(curl);
       if (res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
       }
     }
     curl_slist_free_all(headers);
@@ -1103,7 +1103,7 @@ void CcdbApi::deleteObject(std::string const& path, long timestamp) const
       // Perform the request, res will get the return code
       res = curl_easy_perform(curl);
       if (res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
       }
       curl_easy_cleanup(curl);
     }
@@ -1128,7 +1128,7 @@ void CcdbApi::truncate(std::string const& path) const
       // Perform the request, res will get the return code
       res = curl_easy_perform(curl);
       if (res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
       }
       curl_easy_cleanup(curl);
     }
@@ -1379,7 +1379,7 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
         // Perform the request, res will get the return code
         res = curl_easy_perform(curl);
         if (res != CURLE_OK) {
-          fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+          LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
         }
         curl_easy_cleanup(curl);
       }
@@ -1387,17 +1387,16 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
   }
 }
 
-std::vector<std::string> CcdbApi::splitString(std::string string, const char* delimiters)
+std::vector<std::string> CcdbApi::splitString(const std::string& str, const char* delimiters)
 {
   std::vector<std::string> tokens;
-  char* stringForStrTok = new char[string.length() + 1];
-  strcpy(stringForStrTok, string.c_str());
+  char stringForStrTok[str.length() + 1];
+  strcpy(stringForStrTok, str.c_str());
   char* token = strtok(stringForStrTok, delimiters);
   while (token != nullptr) {
     tokens.emplace_back(token);
     token = strtok(nullptr, delimiters);
   }
-  free(stringForStrTok);
   return tokens;
 }
 
@@ -1660,6 +1659,31 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& p
     if (isSnapshotMode()) { // generate dummy ETag to profit from the caching
       (*localHeaders)["ETag"] = path;
     }
+  }
+  return;
+}
+
+void CcdbApi::checkMetadataKeys(std::map<std::string, std::string> const& metadata) const
+{
+
+  // function to check if any key contains invalid characters
+  // if so, a fatal will be issued
+
+  const std::regex regexPatternSearch(R"([ :;.,\\/'?!\(\)\{\}\[\]@<>=+*#$&`|~^%])");
+  bool isInvalid = false;
+
+  for (auto& el : metadata) {
+    auto keyMd = el.first;
+    auto tmp = keyMd;
+    std::smatch searchRes;
+    while (std::regex_search(keyMd, searchRes, regexPatternSearch)) {
+      isInvalid = true;
+      LOG(error) << "Invalid character found in metadata key '" << tmp << "\': '" << searchRes.str() << "\'";
+      keyMd = searchRes.suffix();
+    }
+  }
+  if (isInvalid) {
+    LOG(fatal) << "Some metadata keys have invalid characters, please fix!";
   }
   return;
 }

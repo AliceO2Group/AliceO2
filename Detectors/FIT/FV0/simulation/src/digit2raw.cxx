@@ -10,18 +10,13 @@
 // or submit itself to any jurisdiction.
 
 /// \file digit2raw.cxx
-/// \author ruben.shahoyan@cern.ch
+/// \author ruben.shahoyan@cern.ch afurs@cern.ch
 
 #include <boost/program_options.hpp>
-#include <filesystem>
-#include <TFile.h>
 #include <TStopwatch.h>
-#include "Framework/Logger.h"
 #include <string>
-#include <iomanip>
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "FV0Raw/RawWriterFV0.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -48,7 +43,7 @@ int main(int argc, char** argv)
     add_option("verbosity,v", bpo::value<int>()->default_value(0), "verbosity level");
     //    add_option("input-file,i", bpo::value<std::string>()->default_value(o2::base::NameConf::getDigitsFileName(o2::detectors::DetID::FV0)),"input FV0 digits file"); // why not used?
     add_option("input-file,i", bpo::value<std::string>()->default_value("fv0digits.root"), "input FV0 digits file");
-    add_option("flp-name", bpo::value<std::string>()->default_value("alio2-cr1-flp180"), "single file per: all,flp,cru,link"); // temporary, beacause FIT deployed only on one node
+    add_option("flp-name", bpo::value<std::string>()->default_value("alio2-cr1-flp180"), "single file per: all,flp,cru,link");
     add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,flp,cru,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();

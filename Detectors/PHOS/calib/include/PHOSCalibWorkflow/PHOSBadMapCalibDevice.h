@@ -32,7 +32,7 @@ class PHOSBadMapCalibDevice : public o2::framework::Task
 {
 
  public:
-  explicit PHOSBadMapCalibDevice(int mode) : mUseCCDB(false), mForceUpdate(false), mUpdateCCDB(false), mMode(mode){};
+  explicit PHOSBadMapCalibDevice(int mode) : mMode(mode){};
 
   void init(o2::framework::InitContext& ic) final;
 
@@ -47,9 +47,6 @@ class PHOSBadMapCalibDevice : public o2::framework::Task
   void checkBadMap();
 
  private:
-  bool mUseCCDB = false;
-  bool mForceUpdate = false;                                   /// Update CCDB even if difference to current is large
-  bool mUpdateCCDB = true;                                     /// set is close to current and can update it
   int mMode = 0;                                               /// operation mode: 0: occupancy, 1: chi2
   int mElowMin = 100;                                          /// Low E minimum in ADC counts
   int mElowMax = 200;                                          /// Low E maximum in ADC counts
@@ -58,8 +55,8 @@ class PHOSBadMapCalibDevice : public o2::framework::Task
   static constexpr short kMinorChange = 10;                    /// ignore if number of channels changed smaller than...
   long mRunStartTime = 0;                                      /// start time of the run (milisec)
   long mValidityTime = 0;                                      /// end of validity range (milisec)
-  std::string mCCDBPath{"http://alice-ccdb.cern.ch"};          /// CCDB path to retrieve current CCDB objects for comparison
   std::unique_ptr<BadChannelsMap> mBadMap;                     //! Final calibration object
+  const BadChannelsMap* mOldBadMap = nullptr;                  //! Old (current) map for comparison
   std::unique_ptr<TH1F> mMeanLow;                              //! Mean occupancy for low E range
   std::unique_ptr<TH1F> mMeanHigh;                             //! Mean occupancy for high E range
   std::unique_ptr<TH1F> mMeanTime;                             //! Mean time

@@ -12,11 +12,13 @@
 o2_add_library(Steer
                SOURCES src/O2MCApplication.cxx src/InteractionSampler.cxx
                        src/HitProcessingManager.cxx src/MCKinematicsReader.cxx
+                       src/MaterialBudgetMap.cxx src/O2MCApplicationEvalMat.cxx
 		       PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
 		                     O2::CommonConstants
                              O2::DetectorsBase
                                      O2::SimulationDataFormat
-                                     O2::DetectorsCommonDataFormats)
+                                     O2::DetectorsCommonDataFormats
+                                     O2::Generators)
 
 o2_add_executable(colcontexttool
                   COMPONENT_NAME steer
@@ -29,8 +31,9 @@ o2_target_root_dictionary(Steer
                                   include/Steer/O2RunSim.h
                                   include/Steer/O2MCApplication.h
                                   include/Steer/O2MCApplicationBase.h
-                                  include/Steer/MCKinematicsReader.h)
-
+                                  include/Steer/O2MCApplicationEvalMat.h
+                                  include/Steer/MCKinematicsReader.h
+                                  include/Steer/MaterialBudgetMap.h)
 o2_add_test(InteractionSampler
             PUBLIC_LINK_LIBRARIES O2::Steer
             SOURCES test/testInteractionSampler.cxx

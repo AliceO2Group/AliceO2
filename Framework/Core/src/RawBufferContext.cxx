@@ -10,18 +10,19 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/RawBufferContext.h"
-#include <FairMQMessage.h>
+#include "Headers/DataHeader.h"
+#include <fairmq/Message.h>
 
 namespace o2::framework
 {
 
 void RawBufferContext::addRawBuffer(std::unique_ptr<FairMQMessage> header,
                                     char* payload,
-                                    std::string channel,
+                                    RouteIndex routeIndex,
                                     std::function<std::ostringstream()> serialize,
                                     std::function<void()> destructor)
 {
-  mMessages.push_back(std::move(MessageRef{std::move(header), std::move(payload), std::move(channel), std::move(serialize), std::move(destructor)}));
+  mMessages.push_back(MessageRef{std::move(header), std::move(payload), routeIndex, std::move(serialize), std::move(destructor)});
 }
 
 void RawBufferContext::clear()
@@ -44,6 +45,19 @@ void RawBufferContext::clear()
 RawBufferContext::RawBufferContext(RawBufferContext&& other)
   : mProxy{other.mProxy}, mMessages{std::move(other.mMessages)}
 {
+}
+
+int RawBufferContext::countDeviceOutputs(bool excludeDPLOrigin)
+{
+  int noutputs = 0;
+  constexpr o2::header::DataOrigin DataOriginDPL{"DPL"};
+  for (auto it = mMessages.rbegin(); it != mMessages.rend(); ++it) {
+    auto* dh = o2::header::get<o2::header::DataHeader*>(it->header->GetData());
+    if (!excludeDPLOrigin || dh->dataOrigin != DataOriginDPL) {
+      noutputs++;
+    }
+  }
+  return noutputs;
 }
 
 } // namespace o2::framework

@@ -13,23 +13,13 @@
 #include <string>
 #include "Algorithm/RangeTokenizer.h"
 #include "Framework/WorkflowSpec.h"
-#include "Framework/Logger.h"
 #include "Framework/ConfigParamSpec.h"
-#include "Framework/CompletionPolicy.h"
-#include "Framework/CompletionPolicyHelpers.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "TPCWorkflow/TPCFactorizeIDCSpec.h"
 #include "TPCCalibration/IDCFactorization.h"
 #include "TPCCalibration/IDCAverageGroup.h"
 
 using namespace o2::framework;
-
-// customize the completion policy
-void customize(std::vector<o2::framework::CompletionPolicy>& policies)
-{
-  using o2::framework::CompletionPolicy;
-  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-idc-factorize.*", CompletionPolicy::CompletionOp::Consume));
-}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
@@ -52,6 +42,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"groupRows", VariantType::String, "5,5,5,5,4,4,4,4,3,3", {"number of pads in row direction which will be grouped per region"}},
     {"groupLastRowsThreshold", VariantType::String, "3,3,3,3,2,2,2,2,2,2", {"set threshold in row direction for merging the last group to the previous group per region"}},
     {"groupLastPadsThreshold", VariantType::String, "3,3,3,3,2,2,2,2,1,1", {"set threshold in pad direction for merging the last group to the previous group per region"}},
+    {"use-approximate-timestamp", VariantType::Bool, false, {"Use not precise timestamp when writing to CCDB"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g. for pp 50kHz: 'TPCIDCCompressionParam.maxIDCDeltaValue=15;')"}}};
 
   std::swap(workflowOptions, options);
@@ -86,6 +77,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const auto nthreadsGrouping = static_cast<unsigned long>(config.options().get<int>("nthreads-grouping"));
   IDCAverageGroup<IDCAverageGroupTPC>::setNThreads(nthreadsGrouping);
   const auto nLanes = static_cast<unsigned int>(config.options().get<int>("input-lanes"));
+  const bool usePrecisetimeStamp = !config.options().get<bool>("use-approximate-timestamp");
 
   const int compressionTmp = config.options().get<int>("compression");
   IDCDeltaCompression compression;
@@ -108,7 +100,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   WorkflowSpec workflow;
   workflow.reserve(nLanes);
   for (int ilane = 0; ilane < nLanes; ++ilane) {
-    groupIDCs ? workflow.emplace_back(getTPCFactorizeIDCSpec<TPCFactorizeIDCSpecGroup>(ilane, rangeCRUs, timeframes, timeframesDeltaIDC, compression, debug, sendOutput)) : workflow.emplace_back(getTPCFactorizeIDCSpec<TPCFactorizeIDCSpecNoGroup>(ilane, rangeCRUs, timeframes, timeframesDeltaIDC, compression, debug, sendOutput));
+    groupIDCs ? workflow.emplace_back(getTPCFactorizeIDCSpec<TPCFactorizeIDCSpecGroup>(ilane, rangeCRUs, timeframes, timeframesDeltaIDC, compression, debug, sendOutput, usePrecisetimeStamp)) : workflow.emplace_back(getTPCFactorizeIDCSpec<TPCFactorizeIDCSpecNoGroup>(ilane, rangeCRUs, timeframes, timeframesDeltaIDC, compression, debug, sendOutput, usePrecisetimeStamp));
   }
   return workflow;
 }

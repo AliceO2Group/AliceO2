@@ -148,7 +148,7 @@ class DigiReco
   bool mCorrBackground = true;                               /// Enable TDC pile-up correction
   bool mCorrBackgroundSet = false;                           /// TDC pile-up correction set via function call
 
-  int correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& FTDCVal, float& FTDCAmp, bool isbeg, bool isend); /// Correct TDC single signal
+  int correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& fTDCVal, float& fTDCAmp, bool isbeg, bool isend); /// Correct TDC single signal
   int correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& tdc);                                            /// TDC amplitude and time corrections due to pile-up from previous bunches
 
   O2_ZDC_DIGIRECO_FLT getPoint(int itdc, int ibeg, int iend, int i); /// Interpolation for current TDC

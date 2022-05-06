@@ -35,7 +35,7 @@ enum TrackTypeEnum : uint8_t {
 enum TrackFlags {
   TrackTimeResIsRange = 0x1, // Gaussian or range
   PVContributor = 0x2,       // This track has contributed to the collision vertex fit
-  OrphanTrack = 0x4          // Track has no association with any collision vertexd
+  OrphanTrack = 0x4,         // Track has no association with any collision vertex
   // NOTE Highest 4 (29..32) bits reserved for PID hypothesis
 };
 enum TrackFlagsRun2Enum {

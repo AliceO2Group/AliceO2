@@ -20,6 +20,7 @@
 #include "DetectorsCalibration/TimeSlot.h"
 #include "DataFormatsTPC/Defs.h"
 #include "SpacePoints/TrackResiduals.h"
+#include "CommonUtils/StringUtils.h"
 
 #include <vector>
 #include <array>
@@ -41,11 +42,11 @@ struct ResidualsContainer {
   ResidualsContainer& operator=(const ResidualsContainer& src) = delete;
   ~ResidualsContainer();
 
-  void init(const TrackResiduals* residualsEngine);
+  void init(const TrackResiduals* residualsEngine, std::string outputDir);
   void fillStatisticsBranches();
   uint64_t getNEntries() const { return nResidualsTotal; }
 
-  void fill(const gsl::span<const TrackResiduals::UnbinnedResid> data);
+  void fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const TrackResiduals::UnbinnedResid> data);
   void merge(ResidualsContainer* prev);
   void print();
 
@@ -54,13 +55,18 @@ struct ResidualsContainer {
   std::array<std::vector<TrackResiduals::LocalResid>*, SECTORSPERSIDE * SIDES> residualsPtr{};
   std::array<std::vector<TrackResiduals::VoxStats>, SECTORSPERSIDE * SIDES> stats{}; ///< voxel statistics sent to the aggregator
   std::array<std::vector<TrackResiduals::VoxStats>*, SECTORSPERSIDE * SIDES> statsPtr{};
+  uint32_t runNumber;                                                        ///< run number (required for meta data file)
+  std::vector<uint32_t> tfOrbits, *tfOrbitsPtr{&tfOrbits};                   ///< first TF orbit
+  std::vector<uint32_t> sumOfResiduals, *sumOfResidualsPtr{&sumOfResiduals}; ///< sum of residuals for each TF
 
   std::string fileName{"o2tpc_residuals"};
   std::string treeNameResiduals{"resid"};
   std::string treeNameStats{"stats"};
+  std::string treeNameRecords{"records"};
   std::unique_ptr<TFile> fileOut{nullptr};
   std::unique_ptr<TTree> treeOutResiduals{nullptr};
   std::unique_ptr<TTree> treeOutStats{nullptr};
+  std::unique_ptr<TTree> treeOutRecords{nullptr};
 
   uint64_t nResidualsTotal{0};
 
@@ -75,13 +81,25 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Tra
   ResidualAggregator(size_t nMin = 1'000) : mMinEntries(nMin) { mTrackResiduals.init(); }
   ~ResidualAggregator() final;
 
+  void setOutputDir(std::string dir) { mOutputDir = dir.empty() ? o2::utils::Str::rectifyDirectory("./") : dir; }
+  void setMetaFileOutputDir(std::string dir)
+  {
+    mMetaOutputDir = dir;
+    mStoreMetaData = true;
+  }
+  void setLHCPeriod(std::string period) { mLHCPeriod = period; }
+
   bool hasEnoughData(const Slot& slot) const final;
   void initOutput() final;
   void finalizeSlot(Slot& slot) final;
-  Slot& emplaceNewSlot(bool front, uint64_t tStart, uint64_t tEnd) final;
+  Slot& emplaceNewSlot(bool front, TFType tStart, TFType tEnd) final;
 
  private:
   TrackResiduals mTrackResiduals; ///< providing the functionality for voxel binning of the residuals
+  std::string mOutputDir{"./"};   ///< the directory where the output of residuals is stored
+  std::string mMetaOutputDir{"none"}; ///< the directory where the meta data file is stored
+  std::string mLHCPeriod{""};         ///< the LHC period to be put into the meta file
+  bool mStoreMetaData{false};         ///< flag, whether meta file is supposed to be stored
   size_t mMinEntries;             ///< the minimum number of residuals required for the map creation (per voxel)
 
   ClassDefOverride(ResidualAggregator, 1);

@@ -14,10 +14,17 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#include "Framework/runDataProcessing.h"
 #include "TrackWriterSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:MUON|muon).*[W,w]riter.*"));
+}
+
+#include "Framework/runDataProcessing.h"
 
 WorkflowSpec defineDataProcessing(const ConfigContext&)
 {

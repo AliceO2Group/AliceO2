@@ -52,9 +52,9 @@ namespace trd
 {
 
 struct TRDCRUMapping {
-  uint32_t flpid;       // hostname of flp
-  uint32_t cruHWID = 0; // cru ID taken from ecs
-  uint32_t HCID = 0;    // hcid of first link
+  int32_t flpid;       // hostname of flp
+  int32_t cruHWID = 0; // cru ID taken from ecs
+  int32_t HCID = 0;    // hcid of first link
 };
 
 //this should probably come from ccdb or some authoritive source.
@@ -382,6 +382,9 @@ uint32_t Trap2CRU::buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, 
 bool Trap2CRU::isTrackletOnLink(const int linkid, const int currenttrackletpos)
 {
   //hcid is simply the halfcru*15+linkid
+  if (currenttrackletpos == mTracklets.size()) {
+    return false;
+  }
   int link = HelperMethods::getLinkIDfromHCID(mTracklets[currenttrackletpos].getHCID());
   if (linkid == link) {
     // this tracklet is on this link.
@@ -393,6 +396,9 @@ bool Trap2CRU::isTrackletOnLink(const int linkid, const int currenttrackletpos)
 bool Trap2CRU::isDigitOnLink(const int linkid, const int currentdigitpos)
 {
   Digit* digit = &mDigits[mDigitsIndex[currentdigitpos]];
+  if (currentdigitpos == mDigits.size()) {
+    return false;
+  }
   int link = HelperMethods::getLinkIDfromHCID(digit->getDetector() * 2 + (digit->getROB() % 2));
   if (link == linkid) {
     return true;
@@ -489,7 +495,8 @@ int Trap2CRU::buildTrackletRawData(const int trackletindex, const int linkid)
   header.pid2 = 0xff;
   unsigned int trackletcounter = 0;
   if (mVerbosity) {
-    LOG(info) << "After instantiation header is : 0x" << header.word << "  " << header;
+    LOG(info) << "After instantiation header is : 0x" << header.word << "  " << header << " Trackletindex:" << trackletindex << " max tracklet:" << mTracklets.size();
+    LOG(info) << "mTracklet:" << mCurrentTracklet << "  ==?? trackletindex" << trackletindex << " max tracklet:" << mTracklets.size();
   }
   while (linkid == HelperMethods::getLinkIDfromHCID(mTracklets[trackletindex + trackletcounter].getHCID()) && header.col == mTracklets[trackletindex + trackletcounter].getColumn() && header.padrow == mTracklets[trackletindex + trackletcounter].getPadRow()) {
     int trackletoffset = trackletindex + trackletcounter;
@@ -530,19 +537,22 @@ int Trap2CRU::buildTrackletRawData(const int trackletindex, const int linkid)
         destroytracklets = true;
         break;
     }
+    //this loop should really be redone but this will work for now.
     trackletcounter++;
+    if (trackletcounter + trackletindex >= mTracklets.size()) {
+      break;
+    }
   }
   //now copy the mcmheader and mcmdata.
   if (!destroytracklets) {
     setNumberOfTrackletsInHeader(header, trackletcounter);
-    memcpy((char*)mRawDataPtr, (char*)&header, sizeof(TrackletMCMHeader));
-    mRawDataPtr += sizeof(TrackletMCMHeader);
-    for (int i = 0; i < trackletcounter; ++i) {
-      memcpy((char*)mRawDataPtr, (char*)&trackletdata[i], sizeof(TrackletMCMData));
-      mRawDataPtr += sizeof(TrackletMCMData);
-    }
-    if (trackletcounter == 0) {
-      LOG(error) << "we have zero tracklets to go with a tracklet header ?!!??";
+    if (trackletcounter == 0) { // dont write header if there are no tracklets.
+      memcpy((char*)mRawDataPtr, (char*)&header, sizeof(TrackletMCMHeader));
+      mRawDataPtr += sizeof(TrackletMCMHeader);
+      for (int i = 0; i < trackletcounter; ++i) {
+        memcpy((char*)mRawDataPtr, (char*)&trackletdata[i], sizeof(TrackletMCMData));
+        mRawDataPtr += sizeof(TrackletMCMData);
+      }
     }
   } else {
     LOG(warn) << "something wrong with these tracklets, there are too many. You might want to take a closer look. Rejecting for now, and moving on.";

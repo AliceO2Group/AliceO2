@@ -36,6 +36,7 @@ struct ZDCTDCData {
   ZDCTDCData() = default;
   ZDCTDCData(uint8_t ida, int16_t vala, int16_t ampa, bool isbeg = false, bool isend = false)
   {
+    // TDC value and amplitude are encoded externally
     id = ida & 0x0f;
     id = id | (isbeg ? 0x80 : 0x00);
     id = id | (isend ? 0x40 : 0x00);
@@ -45,6 +46,7 @@ struct ZDCTDCData {
 
   ZDCTDCData(uint8_t ida, float vala, float ampa, bool isbeg = false, bool isend = false)
   {
+    // TDC value and amplitude are encoded externally
     id = ida & 0x0f;
     id = id | (isbeg ? 0x80 : 0x00);
     id = id | (isend ? 0x40 : 0x00);
@@ -75,10 +77,12 @@ struct ZDCTDCData {
 
   inline float amplitude() const
   {
+    // Return decoded value
     return FTDCAmp * amp;
   }
   inline float value() const
   {
+    // Return decoded value (ns)
     return FTDCVal * val;
   }
   inline int ch() const

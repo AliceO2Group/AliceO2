@@ -24,7 +24,7 @@ namespace o2
 namespace muon
 {
 
-framework::DataProcessorSpec getTrackWriterSpec(const char* specName = "TrackWriter",
+framework::DataProcessorSpec getTrackWriterSpec(const char* specName = "muon-track-writer",
                                                 const char* fileName = "muontracks.root");
 
 } // namespace muon

@@ -120,10 +120,10 @@ int TOFDCSProcessor::processDP(const DPCOM& dpcom)
   const auto& type = dpid.get_type();
   auto& val = dpcom.data;
   if (mVerbose) {
-    if (type == RAW_DOUBLE) {
+    if (type == DPVAL_DOUBLE) {
       LOG(info);
       LOG(info) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<double>(dpcom);
-    } else if (type == RAW_INT) {
+    } else if (type == DPVAL_INT) {
       LOG(info);
       LOG(info) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<int32_t>(dpcom);
     }
@@ -131,7 +131,7 @@ int TOFDCSProcessor::processDP(const DPCOM& dpcom)
   auto flags = val.get_flags();
   if (processFlags(flags, dpid.get_alias()) == 0) {
     // now I need to access the correct element
-    if (type == RAW_DOUBLE) {
+    if (type == DPVAL_DOUBLE) {
       // for these DPs, we will store the first, last, mid value, plus the value where the maximum variation occurred
       auto& dvect = mDpsdoublesmap[dpid];
       LOG(debug) << "mDpsdoublesmap[dpid].size() = " << dvect.size();
@@ -145,7 +145,7 @@ int TOFDCSProcessor::processDP(const DPCOM& dpcom)
       }
     }
 
-    if (type == RAW_INT) {
+    if (type == DPVAL_INT) {
       // for these DPs, we need some processing
       if (std::strstr(dpid.get_alias(), "FEACSTATUS") != nullptr) { // DP is FEACSTATUS
         std::string aliasStr(dpid.get_alias());
@@ -334,7 +334,7 @@ void TOFDCSProcessor::updateDPsCCDB()
 
   for (const auto& it : mPids) {
     const auto& type = it.first.get_type();
-    if (type == o2::dcs::RAW_DOUBLE) {
+    if (type == o2::dcs::DPVAL_DOUBLE) {
       auto& tofdcs = mTOFDCS[it.first];
       if (it.second == true) { // we processed the DP at least 1x
         auto& dpvect = mDpsdoublesmap[it.first];
@@ -393,7 +393,7 @@ void TOFDCSProcessor::updateDPsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/Calib/DCSDPs", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/Calib/DCSDPs", md, mStartValidity, 3 * 24L * 3600000);
 
   return;
 }
@@ -410,7 +410,7 @@ void TOFDCSProcessor::updateFEACCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mFeac, mccdbLVInfo, "TOF/Calib/LVStatus", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mFeac, mccdbLVInfo, "TOF/Calib/LVStatus", md, mStartValidity, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
   return;
 }
 
@@ -426,7 +426,7 @@ void TOFDCSProcessor::updateHVCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mHV, mccdbHVInfo, "TOF/Calib/HVStatus", md, mStartValidity, o2::calibration::Utils::INFINITE_TIME);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mHV, mccdbHVInfo, "TOF/Calib/HVStatus", md, mStartValidity, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
   return;
 }
 

@@ -78,9 +78,9 @@ void CruRawReader::OutputHalfCruRawData()
     LOG(info) << "link " << z << " length : " << mCurrentHalfCRULinkLengths[z] << " (256bit rows)";
   }
   int linkcount = 0;
-  uint64_t linkzsum = 0;
+  uint32_t linkzsum = 0;
   int bufferoffset = 0;
-  uint64_t totalhalfcrulength = std::accumulate(mCurrentHalfCRULinkLengths.begin(),
+  uint32_t totalhalfcrulength = std::accumulate(mCurrentHalfCRULinkLengths.begin(),
                                                 mCurrentHalfCRULinkLengths.end(),
                                                 decltype(mCurrentHalfCRULinkLengths)::value_type(0));
   totalhalfcrulength *= 8; //convert from 256 bits to 32 bits.
@@ -114,16 +114,32 @@ void CruRawReader::OutputHalfCruRawData()
   LOG(info) << "Full 1/2 CRU dump end ***************";
 }
 
+void CruRawReader::dumpRDHAndNextHeader(const o2::header::RDHAny* rdh)
+{
+  LOG(info) << "######################### Dumping RDH incoming buffer ##########################";
+  o2::raw::RDHUtils::printRDH(rdh);
+  LOG(info) << "Now for the buffer breakdown";
+  auto offsetToNext = o2::raw::RDHUtils::getOffsetToNext(rdh);
+  for (int i = 0; i < offsetToNext / 4; ++i) {
+    LOG(info) << "ii:" << i << " 0x" << std::hex << *((uint32_t*)rdh + i); //*(uint32_t*)(reinterpret_cast<const uint32_t*>(rdh) + i);
+  }
+  LOG(info) << "Next 8....";
+  for (int i = 0; i < 8; ++i) {
+    LOG(info) << "iii:" << i << " 0x" << std::hex << *((uint32_t*)rdh + i + offsetToNext); //*(uint32_t*)(reinterpret_cast<const uint32_t*>(rdh) + i+offsetToNext);
+  }
+  LOG(info) << "######################### Finished RDH incoming buffer ##########################";
+}
+
 bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
 {
   if (mHeaderVerbose) {
-    LOG(info) << "PROCESS HBF starting at " << std::hex << (void*)mDataPointer;
+    LOG(info) << "PROCESS HBF starting at " << std::hex << (void*)mDataPointer << " already read in : " << datasizealreadyread;
   }
   mDataRDH = reinterpret_cast<const o2::header::RDHAny*>(mDataPointer);
-  mOpenRDH = reinterpret_cast<o2::header::RDHAny*>((char*)mDataPointer);
+  mOpenRDH = reinterpret_cast<const o2::header::RDHAny*>((const char*)mDataPointer);
   auto rdh = mDataRDH;
   auto preceedingrdh = rdh;
-  uint64_t totaldataread = 0;
+  uint32_t totaldataread = 0;
   mState = CRUStateHalfCRUHeader;
   uint32_t currentsaveddatacount = 0;
   mTotalHBFPayLoad = 0;
@@ -131,9 +147,12 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
   // loop until RDH stop header
   while (!o2::raw::RDHUtils::getStop(rdh)) { // carry on till the end of the event.
     if (mHeaderVerbose) {
+      LOG(info) << "----------------------------------------------";
       LOG(info) << "--- RDH open/continue detected loopcount :" << loopcount;
       LOG(info) << " rdh first word 0x" << std::hex << (uint32_t)*mDataPointer;
+      LOG(info) << " rdh first word is sitting at 0x" << std::hex << (void*)mDataPointer;
       o2::raw::RDHUtils::printRDH(rdh);
+      dumpRDHAndNextHeader(rdh);
     }
     preceedingrdh = rdh;
     auto headerSize = o2::raw::RDHUtils::getHeaderSize(rdh);
@@ -148,32 +167,53 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     mCRUEndpoint = o2::raw::RDHUtils::getEndPointID(rdh); // the upper or lower half of the currently parsed cru 0-14 or 15-29
     mCRUID = o2::raw::RDHUtils::getCRUID(rdh);
     mIR = o2::raw::RDHUtils::getTriggerIR(rdh);
-    auto packetCount = o2::raw::RDHUtils::getPacketCounter(rdh);
-    mDataEndPointer = (const uint32_t*)((char*)rdh + offsetToNext);
+    int packetCount = o2::raw::RDHUtils::getPacketCounter(rdh);
+    //mDataEndPointer = (uint32_t*)((char*)rdh + offsetToNext);
+    if (mOptions[TRDM1Debug]) {
+      LOG(info) << "mFEEID:" << mFEEID.word << " mCRUEndpoint:" << mCRUEndpoint << " mCRUID:" << mCRUID << " packetCount:" << packetCount << "rdhpayload:" << rdhpayload << " offsettonext:" << offsetToNext << " dmDataEndPointer(after move to rdh+offsetToNext): 0x" << std::hex << (void*)mDataEndPointer << " rdh is currently at 0x" << std::hex << (void*)rdh;
+    }
     // copy the contents of the current rdh into the buffer to be parsed
-    std::memcpy((char*)&mHBFPayload[0] + currentsaveddatacount, reinterpret_cast<const char*>(rdh) + headerSize, rdhpayload);
+    std::memcpy((char*)&mHBFPayload[0] + currentsaveddatacount, ((char*)rdh) + headerSize, rdhpayload);
     mTotalHBFPayLoad += rdhpayload;
     currentsaveddatacount += rdhpayload;
     totaldataread += offsetToNext;
     // move to next rdh
+    auto oldRDH = rdh;
     rdh = reinterpret_cast<const o2::header::RDHAny*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
-    if ((char*)(rdh) < (char*)&mHBFPayload[0] + mDataBufferSize) {
-      //if (reinterpret_cast<const o2::header::RDHAny*>(rdh) < (char*)&mHBFPayload[0] + mDataBufferSize) {
+    //increment the data pointer by the size of the stop rdh.
+    mDataPointer = reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(rdh) + o2::raw::RDHUtils::getOffsetToNext(rdh));
+
+    if (mHeaderVerbose) {
+      if (!o2::raw::RDHUtils::getStop(rdh)) {
+        LOG(info) << "Next rdh is not a stop, and has a header size of " << o2::raw::RDHUtils::getHeaderSize(rdh) << " and memsize of : " << o2::raw::RDHUtils::getMemorySize(rdh);
+        LOG(info) << "rdh 0x" << (void*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0] << " mHBFoffset32 " << std::dec << mHBFoffset32;
+        LOGP(info, " rdh::: {0:08x} {1:08x} {2:08x}  {3:08x} {4:08x} {5:08x} {6:08x} {7:08x} ", *((uint32_t*)rdh), *((uint32_t*)rdh + 1), *((uint32_t*)rdh + 2), *((uint32_t*)rdh + 3), *((uint32_t*)rdh + 4), *((uint32_t*)rdh + 5), *((uint32_t*)rdh + 6), *((uint32_t*)rdh + 7), *((uint32_t*)rdh + 8));
+        o2::raw::RDHUtils::printRDH(rdh);
+      } else {
+        LOG(info) << "Next rdh is a stop, and we have moved to it.";
+      }
+    }
+
+    if (o2::raw::RDHUtils::getStop(rdh) || o2::raw::RDHUtils::getOffsetToNext(rdh) < mDataBufferSize - mHBFoffset32) {
       // we can still copy into this buffer.
     } else {
       if (mMaxWarnPrinted > 0) {
-        LOG(warn) << "rdh bounds fail offsetToNext:" << offsetToNext << " rdh 0x" << (char*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0];
+        LOG(warn) << "rdh bounds fail offsetToNext:" << offsetToNext << " rdh 0x" << (void*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0] << " mHBFoffset32 " << std::dec << mHBFoffset32;
         checkNoWarn();
-        if (mVerbose) {
-          LOG(info) << "rdh bounds fail offsetToNext:" << offsetToNext << " rdh 0x" << (char*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0];
-          o2::raw::RDHUtils::printRDH(rdh);
-        }
       }
+        if (mVerbose) {
+          LOG(info) << "rdh bounds fail offsetToNext:" << offsetToNext << " rdh 0x" << (void*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0] << " mHBFoffset32 " << std::dec << mHBFoffset32;
+          //o2::raw::RDHUtils::printRDH(rdh);
+        }
+        if (mVerbose || mOptions[TRDM1Debug]) {
+          LOG(warn) << "returning from processHBFs with a false";
+          LOG(warn) << "rdh in question is : ";
+          //o2::raw::RDHUtils::printRDH(rdh);
+        }
       return false; //-1;
     }
   }
-  //increment the data pointer by the size of the stop rdh.
-  mDataPointer = reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(rdh) + o2::raw::RDHUtils::getOffsetToNext(rdh));
+
   // at this point the entire HBF data payload is sitting in mHBFPayload and the total data count is mTotalHBFPayLoad
   int counthalfcru = 0;
   mHBFoffset32 = 0;
@@ -193,6 +233,9 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
           break;
         case 1:
           LOG(info) << "all good parsing half cru";
+          break;
+        case 2:
+          LOG(info) << "all good parsing half cru was blank double 0xe event";
           break;
         default:
           return true;
@@ -385,9 +428,10 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
   //this should only hit that instance where the cru payload is a "blank event" of o2::trd::constants::CRUPADDING32
   if (mHBFPayload[cruhbfstartoffset] == o2::trd::constants::CRUPADDING32 && mHBFPayload[cruhbfstartoffset + 1] == o2::trd::constants::CRUPADDING32) {
     if (mVerbose) {
-      LOG(info) << "blank rdh payload";
+      LOG(info) << "blank rdh payload data at " << cruhbfstartoffset << ": 0x " << std::hex << mHBFPayload[cruhbfstartoffset] << " and 0x" << mHBFPayload[cruhbfstartoffset + 1];
     }
-    return -1;
+    mHBFoffset32 += 2;
+    return 2;
   }
   if (mTotalHBFPayLoad == 0) {
     //empty payload
@@ -480,7 +524,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
     if (currentlinksize == 0) {
       mEventRecords.incLinkNoData(mDetector[0], mHalfChamberSide[0], stack_layer);
     }
-    uint64_t linkzsum = 0;
+    uint32_t linkzsum = 0;
     int dioffset = dataoffsetstart32 + linksizeAccum32;
     if (dioffset % 8 != 0) {
       if (mMaxErrsPrinted > 0) {
@@ -694,7 +738,7 @@ void CruRawReader::checkSummary()
 bool CruRawReader::run()
 {
   uint32_t dowhilecount = 0;
-  uint64_t totaldataread = 0;
+  uint32_t totaldataread = 0;
   rewind();
   mTotalDigitWordsRead = 0;
   mTotalDigitWordsRejected = 0;
@@ -707,8 +751,13 @@ bool CruRawReader::run()
       LOG(info) << " mDataBuffer :" << (void*)mDataBuffer << " and offset to start on is :" << totaldataread;
     }
     mDatareadfromhbf = 0;
-    processHBFs(totaldataread, mVerbose);
+    auto goodprocessing = processHBFs(totaldataread, mVerbose);
     totaldataread += mDatareadfromhbf;
+    if (!goodprocessing) {
+      //processHBFs returned false, get out of here ...
+      LOG(error) << "Error processing heart beat frame ... good luck";
+      break;
+    }
   } while (((char*)mDataPointer - mDataBuffer) < mDataBufferSize);
 
   return false;

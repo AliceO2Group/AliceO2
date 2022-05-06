@@ -18,14 +18,17 @@
 #include "Framework/ControlService.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/DataProcessingHelpers.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
+#include "Framework/DomainInfoHeader.h"
 
 #include "DetectorsRaw/RawFileReader.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "Headers/STFHeader.h"
 #include "Headers/Stack.h"
 
@@ -171,13 +174,17 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
       auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
       for (auto& oroute : outputRoutes) {
         LOG(debug) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
-        if (o2f::DataSpecUtils::match(oroute.matcher, h.dataOrigin, h.dataDescription, h.subSpecification) && ((h.tfCounter % oroute.maxTimeslices) == oroute.timeslice)) {
+        if (o2f::DataSpecUtils::match(oroute.matcher, h.dataOrigin, h.dataDescription, h.subSpecification) && ((mTFCounter % oroute.maxTimeslices) == oroute.timeslice)) {
           LOG(debug) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
           return std::string{oroute.channel};
         }
       }
     }
-    LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin.str, h.dataDescription.str, h.subSpecification, h.tfCounter);
+    LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin, h.dataDescription, h.subSpecification, h.tfCounter);
+    auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
+    for (auto& oroute : outputRoutes) {
+      LOGP(info, "Available output routes: {} channel: {}", o2f::DataSpecUtils::describe(oroute.matcher), oroute.channel);
+    }
     return std::string{};
   };
 
@@ -201,8 +208,8 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   auto tfID = mReader->getNextTFToRead();
   int nlinks = mReader->getNLinks();
 
-  if (tfID > mMaxTFID) {
-    if (!mReader->isEmpty() && --mLoop) {
+  if (tfID > mMaxTFID || mReader->isProcessingStopped()) {
+    if (!mReader->isProcessingStopped() && !mReader->isEmpty() && --mLoop) {
       mLoopsDone++;
       tfID = 0;
       LOG(info) << "Starting new loop " << mLoopsDone << " from the beginning of data";
@@ -346,7 +353,10 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
 
   mSentSize += tfSize;
   mSentMessages += tfNParts;
-
+  for (auto& msgIt : messagesPerRoute) {
+    auto& channel = device->GetChannel(msgIt.first, 0);
+    o2::framework::DataProcessingHelpers::sendOldestPossibleTimeframe(channel, mTFCounter);
+  }
   mReader->setNextTFToRead(++tfID);
   ++mTFCounter;
 }

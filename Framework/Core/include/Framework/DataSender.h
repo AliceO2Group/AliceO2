@@ -11,6 +11,7 @@
 #ifndef O2_FRAMEWORK_DATASENDER_H_
 #define O2_FRAMEWORK_DATASENDER_H_
 
+#include "Framework/RoutingIndices.h"
 #include "Framework/SendingPolicy.h"
 #include "Framework/Tracing.h"
 #include "Framework/OutputSpec.h"
@@ -32,11 +33,11 @@ class DataSender
  public:
   DataSender(ServiceRegistry& registry,
              SendingPolicy const& policy);
-  void send(FairMQParts&, std::string const& s);
-  std::unique_ptr<FairMQMessage> create();
+  void send(FairMQParts&, ChannelIndex index);
+  std::unique_ptr<FairMQMessage> create(RouteIndex index);
 
  private:
-  void* mContext;
+  FairMQDeviceProxy& mProxy;
   ServiceRegistry& mRegistry;
   DeviceSpec const& mSpec;
   std::vector<OutputSpec> mOutputs;

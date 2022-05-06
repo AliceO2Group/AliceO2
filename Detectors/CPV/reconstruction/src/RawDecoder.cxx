@@ -19,13 +19,13 @@
 using namespace o2::cpv;
 
 RawDecoder::RawDecoder(RawReaderMemory& reader) : mRawReader(reader),
-                                                  mChannelsInitialized(false)
+                                                  mChannelsInitialized(false),
+                                                  mIsMuteErrors(false)
 {
 }
 
 RawErrorType_t RawDecoder::decode()
 {
-
   auto& rdh = mRawReader.getRawHeader();
   short linkID = o2::raw::RDHUtils::getLinkID(rdh);
   mDigits.clear();
@@ -42,6 +42,12 @@ RawErrorType_t RawDecoder::decode()
 RawErrorType_t RawDecoder::readChannels()
 {
   mChannelsInitialized = false;
+  // // test error
+  // if (!mIsMuteErrors) {
+  //   LOG(error) << "RawDecoder::readChannels() : "
+  //             << "test error";
+  // }
+  // mErrors.emplace_back(-1, 0, 0, 0, kOK); //5 is non-existing link with general errors
 
   auto& payloadWords = mRawReader.getPayload();
   uint32_t wordCountFromLastHeader = 1; //header word is included
@@ -59,20 +65,24 @@ RawErrorType_t RawDecoder::readChannels()
                  << "I read cpv header for orbit = " << header.orbit()
                  << " and BC = " << header.bc();
       if (!isHeaderExpected) { //actually, header was not expected
-        LOG(error) << "RawDecoder::readChannels() : "
-                   << "header was not expected";
+        if (!mIsMuteErrors) {
+          LOG(error) << "RawDecoder::readChannels() : "
+                     << "header was not expected";
+        }
         removeLastNDigits(nDigitsAddedFromLastHeader); //remove previously added digits as they are bad
-        mErrors.emplace_back(5, 0, 0, 0, kNO_CPVTRAILER);
+        mErrors.emplace_back(-1, 0, 0, 0, kNO_CPVTRAILER);
       }
       skipUntilNextHeader = false;
       currentBC = header.bc();
       wordCountFromLastHeader = 0;
       nDigitsAddedFromLastHeader = 0;
       if (currentOrbit != header.orbit()) { //bad cpvheader
-        LOG(error) << "RawDecoder::readChannels() : "
-                   << "currentOrbit(=" << currentOrbit
-                   << ") != header.orbit()(=" << header.orbit() << ")";
-        mErrors.emplace_back(5, 0, 0, 0, kCPVHEADER_INVALID); //5 is non-existing link with general errors
+        if (!mIsMuteErrors) {
+          LOG(error) << "RawDecoder::readChannels() : "
+                     << "currentOrbit(=" << currentOrbit
+                     << ") != header.orbit()(=" << header.orbit() << ")";
+        }
+        mErrors.emplace_back(-1, 0, 0, 0, kCPVHEADER_INVALID); //5 is non-existing link with general errors
         skipUntilNextHeader = true;
       }
     } else {
@@ -89,8 +99,10 @@ RawErrorType_t RawDecoder::readChannels()
             if (addDigit(pw.mDataWord, word.ccId(), currentBC)) {
               nDigitsAddedFromLastHeader++;
             } else {
-              LOG(debug) << "RawDecoder::readChannels() : "
-                         << "read pad word with non-valid pad address";
+              if (!mIsMuteErrors) {
+                LOG(debug) << "RawDecoder::readChannels() : "
+                           << "read pad word with non-valid pad address";
+              }
               unsigned int dil = pw.dil, gas = pw.gas, address = pw.address;
               mErrors.emplace_back(word.ccId(), dil, gas, address, kPadAddress);
             }
@@ -103,18 +115,22 @@ RawErrorType_t RawDecoder::readChannels()
           if (diffInCount > 1 ||
               diffInCount < -1) {
             //some words lost?
-            LOG(error) << "RawDecoder::readChannels() : "
-                       << "Read " << wordCountFromLastHeader << " words, expected " << trailer.wordCounter();
-            mErrors.emplace_back(5, 0, 0, 0, kCPVTRAILER_INVALID);
+            if (!mIsMuteErrors) {
+              LOG(error) << "RawDecoder::readChannels() : "
+                         << "Read " << wordCountFromLastHeader << " words, expected " << trailer.wordCounter();
+            }
+            mErrors.emplace_back(-1, 0, 0, 0, kCPVTRAILER_INVALID);
             //throw all previous data and go to next header
             removeLastNDigits(nDigitsAddedFromLastHeader);
             skipUntilNextHeader = true;
           }
           if (trailer.bc() != currentBC) {
             //trailer does not fit header
-            LOG(error) << "RawDecoder::readChannels() : "
-                       << "CPVHeader BC is " << currentBC << " but CPVTrailer BC is " << trailer.bc();
-            mErrors.emplace_back(5, 0, 0, 0, kCPVTRAILER_INVALID);
+            if (!mIsMuteErrors) {
+              LOG(error) << "RawDecoder::readChannels() : "
+                         << "CPVHeader BC(" << currentBC << ") != CPVTrailer BC(" << trailer.bc() << ")";
+            }
+            mErrors.emplace_back(-1, 0, 0, 0, kCPVTRAILER_INVALID);
             removeLastNDigits(nDigitsAddedFromLastHeader);
             skipUntilNextHeader = true;
           }
@@ -122,9 +138,11 @@ RawErrorType_t RawDecoder::readChannels()
         } else {
           wordCountFromLastHeader++;
           //error
-          LOG(error) << "RawDecoder::readChannels() : "
-                     << "Read unknown word";
-          mErrors.emplace_back(5, 0, 0, 0, kUNKNOWN_WORD); //add error for non-existing row
+          if (!mIsMuteErrors) {
+            LOG(error) << "RawDecoder::readChannels() : "
+                       << "Read unknown word";
+          }
+          mErrors.emplace_back(-1, 0, 0, 0, kUNKNOWN_WORD); //add error for non-existing row
           //what to do?
         }
       }

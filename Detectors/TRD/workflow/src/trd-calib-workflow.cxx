@@ -20,7 +20,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"enable-root-input", o2::framework::VariantType::Bool, false, {"enable root-files input readers"}}};
+    {"enable-root-input", o2::framework::VariantType::Bool, false, {"enable root-files input readers"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
 }

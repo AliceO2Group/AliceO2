@@ -88,20 +88,20 @@ using namespace GPUCA_NAMESPACE::gpu;
 #define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC()
 #endif
 
-#define CHECK_CLUSTER_STATE_INIT()                                        \
-  bool unattached = attach == 0;                                          \
-  float qpt = 0;                                                          \
-  bool lowPt = false;                                                     \
-  bool mev200 = false;                                                    \
-  bool mergedLooper = false;                                              \
-  int id = attach & gputpcgmmergertypes::attachTrackMask;                 \
-  if (!unattached) {                                                      \
-    qpt = fabsf(mTracking->mIOPtrs.mergedTracks[id].GetParam().GetQPt()); \
-    lowPt = qpt > mTracking->GetParam().rec.tpc.rejectQPt;                \
-    mev200 = qpt > 5;                                                     \
-    mergedLooper = mTracking->mIOPtrs.mergedTracks[id].MergedLooper();    \
-  }                                                                       \
-  bool physics = false, protect = false;                                  \
+#define CHECK_CLUSTER_STATE_INIT()                                                                   \
+  bool unattached = attach == 0;                                                                     \
+  float qpt = 0;                                                                                     \
+  bool lowPt = false;                                                                                \
+  bool mev200 = false;                                                                               \
+  bool mergedLooper = false;                                                                         \
+  int id = attach & gputpcgmmergertypes::attachTrackMask;                                            \
+  if (!unattached) {                                                                                 \
+    qpt = fabsf(mTracking->mIOPtrs.mergedTracks[id].GetParam().GetQPt());                            \
+    lowPt = qpt * mTracking->GetParam().par.qptB5Scaler > mTracking->GetParam().rec.tpc.rejectQPtB5; \
+    mev200 = qpt > 5;                                                                                \
+    mergedLooper = mTracking->mIOPtrs.mergedTracks[id].MergedLooper();                               \
+  }                                                                                                  \
+  bool physics = false, protect = false;                                                             \
   CHECK_CLUSTER_STATE_INIT_LEG_BY_MC();
 
 #define CHECK_CLUSTER_STATE()                                                                              \
@@ -134,17 +134,17 @@ static const GPUSettingsQA& GPUQA_GetConfig(GPUChainTracking* chain)
   }
 }
 
-static const constexpr bool PLOT_ROOT = 0;
-static const constexpr bool FIX_SCALES = 0;
+// static const constexpr bool PLOT_ROOT = 0;
+// static const constexpr bool FIX_SCALES = 0;
 static const constexpr bool PERF_FIGURE = 0;
-static const constexpr float FIXED_SCALES_MIN[5] = {-0.05, -0.05, -0.2, -0.2, -0.5};
-static const constexpr float FIXED_SCALES_MAX[5] = {0.4, 0.7, 5, 3, 6.5};
+// static const constexpr float FIXED_SCALES_MIN[5] = {-0.05, -0.05, -0.2, -0.2, -0.5};
+// static const constexpr float FIXED_SCALES_MAX[5] = {0.4, 0.7, 5, 3, 6.5};
 static const constexpr float LOG_PT_MIN = -1.;
 
 static constexpr float Y_MAX = 40;
 static constexpr float Z_MAX = 100;
 static constexpr float PT_MIN = GPUCA_MIN_TRACK_PTB5_DEFAULT;
-static constexpr float PT_MIN2 = 0.1;
+// static constexpr float PT_MIN2 = 0.1;
 static constexpr float PT_MIN_PRIM = 0.1;
 static constexpr float PT_MIN_CLUST = GPUCA_MIN_TRACK_PTB5_DEFAULT;
 static constexpr float PT_MAX = 20;

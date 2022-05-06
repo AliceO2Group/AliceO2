@@ -34,6 +34,7 @@ class EntropyDecoderSpec : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   o2::tof::CTFCoder mCTFCoder;
@@ -42,7 +43,7 @@ class EntropyDecoderSpec : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity);
+framework::DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec);
 
 } // namespace tof
 } // namespace o2

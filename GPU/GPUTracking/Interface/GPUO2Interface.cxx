@@ -89,7 +89,11 @@ int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutp
     return (1);
   }
   if (mConfig->configInterface.dumpEvents) {
+    if (mConfig->configProcessing.doublePipeline) {
+      throw std::runtime_error("Cannot dump events in double pipeline mode");
+    }
     static int nEvent = 0;
+    mChain->DoQueuedCalibUpdates(-1);
     mChain->ClearIOPointers();
     mChain->mIOPtrs = *data;
 

@@ -54,7 +54,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
 {
 
   auto timesliceId = std::make_shared<size_t>(startTime);
-  return [dpid2group, timesliceId, step, verbose](FairMQDevice& device, FairMQParts& parts, o2f::ChannelRetriever channelRetriever) {
+  return [dpid2group, timesliceId, step, verbose](TimingInfo&, FairMQDevice& device, FairMQParts& parts, o2f::ChannelRetriever channelRetriever) {
     static std::unordered_map<DPID, DPCOM> cache; // will keep only the latest measurement in the 1-second wide window for each DPID
     static auto timer = std::chrono::system_clock::now();
 
@@ -123,7 +123,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
         FairMQParts outParts;
         outParts.AddPart(std::move(hdMessage));
         outParts.AddPart(std::move(plMessage));
-        o2f::sendOnChannel(device, outParts, channel);
+        o2f::sendOnChannel(device, outParts, channel, *timesliceId);
       }
 
       timer = timerNow;

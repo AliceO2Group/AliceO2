@@ -45,7 +45,7 @@ o2::framework::DataProcessorSpec getTRDTrackletWriterSpec(bool useMC)
       output << " 10 " << endl;
   }*/
   //LOG(info) << "before writing out the tracklet size is " << Tracklet->size();
-  return MakeRootTreeWriterSpec("TRDTrkltWrt",
+  return MakeRootTreeWriterSpec("TRD-tracklet-writer",
                                 "trdtracklets.root",
                                 "o2sim",
                                 BranchDefinition<std::vector<o2::trd::Tracklet64>>{InputSpec{"tracklets", "TRD", "TRACKLETS"}, "Tracklet"},

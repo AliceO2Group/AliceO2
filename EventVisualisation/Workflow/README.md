@@ -44,20 +44,25 @@ o2-eve -j -d /home/ed/jsons -o
 
 ## o2-eve-display command line parameters:
 
-| *parameter*| *default value*  | *description*  |  
-|-----|---|---|
-|jsons-folder     | jsons  |name of the host allowed to produce files   |
-|eve-hostname     |   |name of the host allowed to produce files (empty means no limit)   |
-|eve-dds-collection-index     |-1   |number of dpl collection allowed to produce files (-1 means no limit)   |  
-|number-of_files     |300   |maximum number of json files in folder (newer one will replace oldest)   |  
-|number-of_tracks     |-1   |maximum number of track stored in json file (-1 means no limit)   |  
-|enable-mc     |false   |enable visualization of MC data   |  
-|disable-mc     |false   |disable visualization of MC data   |  
-|display-clusters     |ITS,TPC,TRD,TOF   |comma-separated list of clusters to display   |  
-|display-tracks     |TPC,ITS,ITS-TPC,TPC-TRD,ITS-TPC-TRD,TPC-TOF,ITS-TPC-TOF   |comma-separated list of tracks to display   |  
-|read-from-files     |false   |   |  
-|disable-root-input     |false   |Disable root input overriding read-from-files   |  
-|configKeyValues     |   |Semicolon separated key=value strings ..."   | 
+| *parameter*              | *default value*                                         | *description*                                                                                                                        |  
+|--------------------------|---------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| jsons-folder             | jsons                                                   | name of the host allowed to produce files                                                                                            |
+| eve-hostname             |                                                         | name of the host allowed to produce files (empty means no limit)                                                                     |
+| eve-dds-collection-index | -1                                                      | number of dpl collection allowed to produce files (-1 means no limit)                                                                |  
+| number-of_files          | 300                                                     | maximum number of json files in folder (newer one will replace oldest)                                                               |  
+| number-of_tracks         | -1                                                      | maximum number of track stored in json file (-1 means no limit)                                                                      |
+| time-interval            | 5000                                                    | time interval in milliseconds between stored files                                                                                   |
+| disable-mc               | false                                                   | disable visualization of MC data                                                                                                     |  
+| display-clusters         | ITS,TPC,TRD,TOF                                         | comma-separated list of clusters to display                                                                                          |  
+| display-tracks           | TPC,ITS,ITS-TPC,TPC-TRD,ITS-TPC-TRD,TPC-TOF,ITS-TPC-TOF | comma-separated list of tracks to display                                                                                            |  
+| disable-root-input       | false                                                   | disable root-files input reader                                                                                                      |
+| configKeyValues          |                                                         | semicolon separated key=value strings ...                                                                                            |
+| skipOnEmptyInput         | false                                                   | don't run the ED when no input is provided                                                                                           |
+| min-its-tracks           | -1                                                      | don't create file if less than the specified number of ITS tracks is present                                                         |
+| min-tracks               | -1                                                      | don't create file if less than the specified number of all tracks is present                                                         |     
+| filter-its-rof           | false                                                   | don't display tracks outside ITS readout frame                                                                                       |      
+| filter-time-min          | -1                                                      | display tracks only in `[min, max]` microseconds time range in each time frame, requires `--filter-time-max` to be specified as well |     
+| filter-time-max          | -1                                                      | display tracks only in `[min, max]` microseconds time range in each time frame, requires `--filter-time-min` to be specified as well |
 
 
 

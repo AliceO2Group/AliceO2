@@ -27,7 +27,6 @@
 #include "GPUTRDTracker.h"
 #include "AliHLTTPCRawCluster.h"
 #include "GPUTRDTrackletLabels.h"
-#include "GPUDisplay.h"
 #include "GPUQA.h"
 #include "GPULogging.h"
 #include "GPUReconstructionConvert.h"
@@ -291,7 +290,7 @@ void GPUChainTracking::DumpSettings(const char* dir)
   if (processors()->calibObjects.dEdxCalibContainer != nullptr) {
     f = dir;
     f += "dEdxCalibContainer.dump";
-    DumpStructToFile(processors()->calibObjects.dEdxCalibContainer, f.c_str());
+    DumpFlatObjectToFile(processors()->calibObjects.dEdxCalibContainer, f.c_str());
   }
   if (processors()->calibObjects.matLUT != nullptr) {
     f = dir;
@@ -303,7 +302,6 @@ void GPUChainTracking::DumpSettings(const char* dir)
     f += "trdgeometry.dump";
     DumpStructToFile(processors()->calibObjects.trdGeometry, f.c_str());
   }
-
 #endif
 }
 
@@ -321,7 +319,7 @@ void GPUChainTracking::ReadSettings(const char* dir)
 #ifdef GPUCA_HAVE_O2HEADERS
   f = dir;
   f += "dEdxCalibContainer.dump";
-  mdEdxCalibContainerU = ReadStructFromFile<o2::tpc::CalibdEdxContainer>(f.c_str());
+  mdEdxCalibContainerU = ReadFlatObjectFromFile<o2::tpc::CalibdEdxContainer>(f.c_str());
   processors()->calibObjects.dEdxCalibContainer = mdEdxCalibContainerU.get();
   f = dir;
   f += "matlut.dump";

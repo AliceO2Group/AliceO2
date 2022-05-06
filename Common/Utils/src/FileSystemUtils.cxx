@@ -18,6 +18,8 @@
 #include <vector>
 #include <regex>
 #include <iostream>
+#include <unistd.h>
+#include <fmt/format.h>
 
 namespace o2::utils
 {
@@ -32,11 +34,17 @@ std::vector<std::string> listFiles(std::string const& dir, std::string const& se
   std::regex str_expr(rs);
 
   for (auto& p : std::filesystem::directory_iterator(dir)) {
-    if (!p.is_directory()) {
-      auto fn = p.path().filename().string();
-      if (regex_match(fn, str_expr)) {
-        filenames.push_back(p.path().string());
+    try {
+      if (!p.is_directory()) {
+        auto fn = p.path().filename().string();
+        if (regex_match(fn, str_expr)) {
+          filenames.push_back(p.path().string());
+        }
       }
+    } catch (...) {
+      // problem listing some file, just ignore continue
+      // with next one
+      continue;
     }
   }
   return filenames;
@@ -45,6 +53,13 @@ std::vector<std::string> listFiles(std::string const& dir, std::string const& se
 std::vector<std::string> listFiles(std::string const& searchpattern)
 {
   return listFiles("./", searchpattern);
+}
+
+void createDirectoriesIfAbsent(std::string const& path)
+{
+  if (!path.empty() && !std::filesystem::create_directories(path) && !std::filesystem::is_directory(path)) {
+    throw std::runtime_error(fmt::format("Failed to create {} directory", path));
+  }
 }
 
 } // namespace o2::utils

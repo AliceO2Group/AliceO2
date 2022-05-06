@@ -54,6 +54,7 @@ void AngularResidHistos::fill(const AngularResidHistos& input)
 
 void AngularResidHistos::fill(const gsl::span<const AngularResidHistos> input)
 {
+  (void)input;
   LOG(fatal) << "This function must not be called. But it must be available for the compilation to work";
 }
 

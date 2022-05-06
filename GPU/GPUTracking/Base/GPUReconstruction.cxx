@@ -45,6 +45,8 @@
 #include "GPUMemorySizeScalers.h"
 
 #include "utils/strtag.h"
+#include "utils/qlibload.h"
+
 #define GPUCA_LOGGING_PRINTF
 #include "GPULogging.h"
 
@@ -119,7 +121,7 @@ GPUReconstruction::~GPUReconstruction()
 void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits)
 {
   if (trackerTraits) {
-    trackerTraits->reset(new o2::its::TrackerTraitsCPU);
+    trackerTraits->reset(new o2::its::TrackerTraits);
   }
   if (vertexerTraits) {
     vertexerTraits->reset(new o2::its::VertexerTraits);
@@ -1133,7 +1135,7 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsDeviceBack
   if (retVal == nullptr) {
     if (cfg.forceDeviceType) {
       GPUError("Error: Could not load GPUReconstruction for specified device: %s (%u)", GPUDataTypes::DEVICE_TYPE_NAMES[type], type);
-    } else {
+    } else if (type != DeviceType::CPU) {
       GPUError("Could not load GPUReconstruction for device type %s (%u), falling back to CPU version", GPUDataTypes::DEVICE_TYPE_NAMES[type], type);
       GPUSettingsDeviceBackend cfg2 = cfg;
       cfg2.deviceType = DeviceType::CPU;
@@ -1146,6 +1148,24 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const GPUSettingsDeviceBack
   return retVal;
 }
 
+bool GPUReconstruction::CheckInstanceAvailable(DeviceType type)
+{
+  if (type == DeviceType::CPU) {
+    return true;
+  } else if (type == DeviceType::CUDA) {
+    return sLibCUDA->LoadLibrary() == 0;
+  } else if (type == DeviceType::HIP) {
+    return sLibHIP->LoadLibrary() == 0;
+  } else if (type == DeviceType::OCL) {
+    return sLibOCL->LoadLibrary() == 0;
+  } else if (type == DeviceType::OCL2) {
+    return sLibOCL2->LoadLibrary() == 0;
+  } else {
+    GPUError("Error: Invalid device type %u", type);
+    return false;
+  }
+}
+
 GPUReconstruction* GPUReconstruction::CreateInstance(const char* type, bool forceType, GPUReconstruction* master)
 {
   DeviceType t = GPUDataTypes::GetDeviceType(type);
@@ -1155,28 +1175,6 @@ GPUReconstruction* GPUReconstruction::CreateInstance(const char* type, bool forc
   }
   return CreateInstance(t, forceType, master);
 }
-
-#ifdef _WIN32
-#define LIBRARY_EXTENSION ".dll"
-#define LIBRARY_TYPE HMODULE
-#define LIBRARY_LOAD(name) LoadLibraryEx(name, nullptr, nullptr)
-#define LIBRARY_CLOSE FreeLibrary
-#define LIBRARY_FUNCTION GetProcAddress
-#else
-#define LIBRARY_EXTENSION ".so"
-#define LIBRARY_TYPE void*
-#define LIBRARY_LOAD(name) dlopen(name, RTLD_NOW)
-#define LIBRARY_CLOSE dlclose
-#define LIBRARY_FUNCTION dlsym
-#endif
-
-#if defined(GPUCA_ALIROOT_LIB)
-#define LIBRARY_PREFIX "Ali"
-#elif defined(GPUCA_O2_LIB)
-#define LIBRARY_PREFIX "O2"
-#else
-#define LIBRARY_PREFIX ""
-#endif
 
 std::shared_ptr<GPUReconstruction::LibraryLoader> GPUReconstruction::sLibCUDA(new GPUReconstruction::LibraryLoader("lib" LIBRARY_PREFIX "GPUTracking"
                                                                                                                    "CUDA" LIBRARY_EXTENSION,

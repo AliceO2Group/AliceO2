@@ -8,7 +8,7 @@
 # Note that this might require a production server to run.
 #
 # This script can use additional binary objects which can be optionally provided:
-# - matbud.root + ITSdictionary.bin
+# - matbud.root
 #
 # authors: D. Rohr / S. Wenzel
 
@@ -45,6 +45,7 @@ SPLITTRDDIGI=${SPLITTRDDIGI:-1}
 NHBPERTF=${NHBPERTF:-128}
 RUNFIRSTORBIT=${RUNFIRSTORBIT:-0}
 FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-0}
+OBLIGATORYSOR=${OBLIGATORYSOR:-false}
 if [ $BEAMTYPE == "PbPb" ]; then
   FST_GENERATOR=${FST_GENERATOR:-pythia8hi}
   FST_COLRATE=${FST_COLRATE:-50000}
@@ -73,8 +74,8 @@ echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" " > ${METR
 
 GLOBALDPLOPT="-b" # --monitoring-backend no-op:// is currently removed due to https://alice.its.cern.ch/jira/browse/O2-1887
 
-HBFUTILPARAMS="HBFUtils.nHBFPerTF=${NHBPERTF};HBFUtils.orbitFirst=${RUNFIRSTORBIT};HBFUtils.orbitFirstSampled=${FIRSTSAMPLEDORBIT}"
-[ "0$ALLOW_MULTIPLE_TF" != "01" ] && HBFUTILPARAMS+=";HBFUtils.maxNOrbits=${NHBPERTF};"
+HBFUTILPARAMS="HBFUtils.nHBFPerTF=${NHBPERTF};HBFUtils.orbitFirst=${RUNFIRSTORBIT};HBFUtils.orbitFirstSampled=${FIRSTSAMPLEDORBIT};HBFUtils.obligatorySOR=${OBLIGATORYSOR}"
+[ "0$ALLOW_MULTIPLE_TF" != "01" ] && HBFUTILPARAMS+=";HBFUtils.maxNOrbits=$((${FIRSTSAMPLEDORBIT} + ${NHBPERTF}));"
 
 ulimit -n 4096 # Make sure we can open sufficiently many files
 [ $? == 0 ] || (echo Failed setting ulimit && exit 1)
@@ -132,6 +133,17 @@ taskwrapper hmpraw.log o2-hmpid-digits-to-raw-workflow --file-for cru --outdir r
 taskwrapper trdraw.log o2-trd-trap2raw -o raw/TRD --file-per cru
 taskwrapper ctpraw.log o2-ctp-digi2raw -o raw/CTP --file-for cru
 
+CHECK_DETECTORS_RAW="ITS MFT FT0 FV0 FDD TPC TOF MID MCH CPV ZDC TRD CTP"
+if [ $BEAMTYPE == "PbPb" ] && [ $NEvents -ge 5 ] ; then
+  CHECK_DETECTORS_RAW+=" EMC PHS HMP"
+fi
+for i in $CHECK_DETECTORS_RAW; do
+  if [ `ls -l raw/$i/*.raw | awk '{print $5}' | grep -v "^0\$" | wc -l` == "0" ]; then
+    echo "ERROR: Full system test did generate no raw data for $i"
+    exit 1
+  fi
+done
+
 cat raw/*/*.cfg > rawAll.cfg
 
 if [ "0$DISABLE_PROCESSING" == "01" ]; then
@@ -146,8 +158,34 @@ if [ $ENABLE_GPU_TEST != "0" ]; then
 fi
 STAGES+=" ASYNC"
 
-# give a possibility to run the FST with external existing dictionary (i.e. with CREATECTFDICT=0 full_system_test.sh)
-[ ! -z "$CREATECTFDICT" ] && SYNCMODEDOCTFDICT="$CREATECTFDICT" || SYNCMODEDOCTFDICT=1
+# Give a possibility to run the FST with external existing dictionary (i.e. with CREATECTFDICT=0 full_system_test.sh)
+# In order to use CCDB dictionaries, pass CTFDICTFILE=ccdb CREATECTFDICT=0
+[[ ! -z "$CREATECTFDICT" ]] && SYNCMODEDOCTFDICT="$CREATECTFDICT" || SYNCMODEDOCTFDICT=1
+
+# this is default local tree-based CTF dictionary file
+[[ -z "$CTFDICTFILE" ]] && CTFDICTFILE="ctf_dictionary.root"
+
+# if dictionary creation is requested, the encoders should not use any external dictionary, neither the local one (--ctf-dict <file>) nor from the CCDB (empty or --ctf-dict "ccdb")
+[[ "$SYNCMODEDOCTFDICT" = "1" ]] && USECTFDICTFILE="none" || USECTFDICTFILE="$CTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_itsmft_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_ft0_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_fv0_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_mid_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_mch_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_phos_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_cpv_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_emcal_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_zdc_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_fdd_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_hmpid_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_tof_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_trd_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_tpc_reco_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_ctp_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+
+# for decoding we use either just produced or externally provided common local file
+export ARGS_EXTRA_PROCESS_o2_ctf_reader_workflow+="--ctf-dict $CTFDICTFILE"
+
 
 for STAGE in $STAGES; do
   logfile=reco_${STAGE}.log
@@ -174,7 +212,7 @@ for STAGE in $STAGES; do
     export SYNCMODE=1
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
     export CTFINPUT=0
-    export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS},CALIB,CTF"
+    export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS},CALIB,CTF,EVENT_DISPLAY,${FST_SYNC_EXTRA_WORKFLOW_PARAMETERS}"
     unset JOBUTILS_JOB_SKIPCREATEDONE
   fi
   export SHMSIZE

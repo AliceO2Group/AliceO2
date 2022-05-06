@@ -178,6 +178,7 @@ class CruRawReader
       ((TH2F*)mParsingErrors2d->At(hist))->Fill(sectorside, stack * constants::NLAYER + layer);
     }
   }
+  void dumpRDHAndNextHeader(const o2::header::RDHAny* rdh);
 
   inline void rewind()
   {
@@ -222,7 +223,7 @@ class CruRawReader
   int mMaxWarnPrinted = 20;
 
   long mDataBufferSize;
-  uint64_t mDataReadIn = 0;
+  uint32_t mDataReadIn = 0;
   const uint32_t* mDataPointer = nullptr; // pointer to the current position in the rdh
   const uint32_t* mDataPointerMax = nullptr;
   const uint32_t* mDataEndPointer = nullptr;
@@ -263,14 +264,14 @@ class CruRawReader
   uint32_t mDatareadfromhbf;
   uint32_t mTotalHBFPayLoad = 0; // total data payload of the heart beat frame in question.
   uint32_t mHBFoffset32 = 0;     // total data payload of the heart beat frame in question.
-  uint64_t mDigitWordsRead = 0;
-  uint64_t mDigitWordsRejected = 0;
-  uint64_t mTotalDigitWordsRead = 0;
-  uint64_t mTotalDigitWordsRejected = 0;
-  uint64_t mTrackletWordsRead = 0;
-  uint64_t mTrackletWordsRejected = 0;
-  uint64_t mTotalTrackletWordsRejected = 0;
-  uint64_t mTotalTrackletWordsRead = 0;
+  uint32_t mDigitWordsRead = 0;
+  uint32_t mDigitWordsRejected = 0;
+  uint32_t mTotalDigitWordsRead = 0;
+  uint32_t mTotalDigitWordsRejected = 0;
+  uint32_t mTrackletWordsRead = 0;
+  uint32_t mTrackletWordsRejected = 0;
+  uint32_t mTotalTrackletWordsRejected = 0;
+  uint32_t mTotalTrackletWordsRead = 0;
   //pointers to the data as we read them in, again no point in copying.
   HalfCRUHeader* mhalfcruheader;
 
@@ -283,8 +284,8 @@ class CruRawReader
   TrackletsParser mTrackletsParser;
   DigitsParser mDigitsParser;
   //used to surround the outgoing data with a coherent rdh coming from the incoming stream.
-  o2::header::RDHAny* mOpenRDH;
-  o2::header::RDHAny* mCloseRDH;
+  const o2::header::RDHAny* mOpenRDH;
+  const o2::header::RDHAny* mCloseRDH;
 
   uint32_t mEventCounter;
   uint32_t mFatalCounter;

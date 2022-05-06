@@ -28,12 +28,14 @@
 #include "Framework/Logger.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/TimesliceIndex.h"
 #include "Framework/Variant.h"
 #include "../../../Algorithm/include/Algorithm/HeaderStack.h"
 #include "Framework/OutputObjHeader.h"
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/ChannelSpec.h"
+#include "ChannelSpecHelpers.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/RuntimeError.h"
 #include <Monitoring/Monitoring.h>
@@ -46,7 +48,7 @@
 #include <ROOT/RArrowDS.hxx>
 #include <ROOT/RVec.hxx>
 
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 #include <chrono>
 #include <fstream>
 #include <functional>
@@ -122,10 +124,10 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
           std::function<void(TList*, TDirectory*)> writeListToFile;
           writeListToFile = [&](TList* list, TDirectory* parentDir) {
             TIter next(list);
-            TNamed* object = nullptr;
-            while ((object = (TNamed*)next())) {
+            TObject* object = nullptr;
+            while ((object = next())) {
               if (object->InheritsFrom(TList::Class())) {
-                writeListToFile((TList*)object, parentDir->mkdir(object->GetName(), object->GetName(), true));
+                writeListToFile(static_cast<TList*>(object), parentDir->mkdir(object->GetName(), object->GetName(), true));
               } else {
                 parentDir->WriteObjectAny(object, object->Class(), object->GetName());
                 list->Remove(object);
@@ -135,11 +137,11 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
 
           TDirectory* currentDir = f[route.policy]->GetDirectory(currentDirectory.c_str());
           if (route.sourceType == OutputObjSourceType::HistogramRegistrySource) {
-            TList* outputList = (TList*)entry.obj;
+            TList* outputList = static_cast<TList*>(entry.obj);
             outputList->SetOwner(false);
 
             // if registry should live in dedicated folder a TNamed object is appended to the list
-            if (outputList->Last()->IsA() == TNamed::Class()) {
+            if (outputList->Last() && outputList->Last()->IsA() == TNamed::Class()) {
               delete outputList->Last();
               outputList->RemoveLast();
               currentDir = currentDir->mkdir(outputList->GetName(), outputList->GetName(), true);
@@ -507,25 +509,25 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
     .name = "internal-dpl-injected-dummy-sink",
     .inputs = danglingOutputInputs,
     .algorithm = AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
-      auto dataConsumed = [](ServiceRegistry& services) {
-        services.get<DataProcessingStats>().consumedTimeframes++;
+      auto domainInfoUpdated = [](ServiceRegistry& services, size_t timeslice) {
+        auto& timesliceIndex = services.get<TimesliceIndex>();
         auto device = services.get<RawDeviceService>().device();
         auto channel = device->fChannels.find("metric-feedback");
         if (channel != device->fChannels.end()) {
           FairMQMessagePtr payload(device->NewMessage());
-          int64_t* consumed = (int64_t*)malloc(sizeof(int64_t));
-          *consumed = services.get<DataProcessingStats>().consumedTimeframes;
+          size_t* consumed = (size_t*)malloc(sizeof(size_t));
+          *consumed = timesliceIndex.getOldestPossibleOutput().timeslice.value;
           payload->Rebuild(consumed, sizeof(int64_t), nullptr, nullptr);
           channel->second[0].Send(payload);
         }
       };
-      callbacks.set(CallbackService::Id::DataConsumed, dataConsumed);
+      callbacks.set(CallbackService::Id::DomainInfoUpdated, domainInfoUpdated);
 
       return adaptStateless([]() {
       });
     })},
     .options = rateLimitingIPCID != -1 ? std::vector<ConfigParamSpec>{{"channel-config", VariantType::String, // raw input channel
-                                                                       "name=metric-feedback,type=push,method=bind,address=ipc://@metric-feedback-" + std::to_string(rateLimitingIPCID) + ",transport=shmem,rateLogging=0",
+                                                                       "name=metric-feedback,type=push,method=bind,address=ipc://" + ChannelSpecHelpers::defaultIPCFolder() + "metric-feedback-" + std::to_string(rateLimitingIPCID) + ",transport=shmem,rateLogging=0",
                                                                        {"Out-of-band channel config"}}}
                                        : std::vector<ConfigParamSpec>()
 

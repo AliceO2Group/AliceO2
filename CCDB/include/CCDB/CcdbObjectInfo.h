@@ -24,6 +24,15 @@ namespace o2::ccdb
 class CcdbObjectInfo
 {
  public:
+  // time intervals in milliseconds
+  static constexpr long SECOND = 1000;
+  static constexpr long MINUTE = 60 * SECOND;
+  static constexpr long HOUR = 60 * MINUTE;
+  static constexpr long DAY = 24 * HOUR;
+  static constexpr long MONTH = 30 * DAY;
+  static constexpr long YEAR = 364 * DAY;
+  static constexpr long INFINITE_TIMESTAMP = 9999999999999;
+
   CcdbObjectInfo() = default;
   CcdbObjectInfo(std::string path, std::string objType, std::string flName,
                  std::map<std::string, std::string> metadata,

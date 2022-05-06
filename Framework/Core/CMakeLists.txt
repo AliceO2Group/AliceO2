@@ -38,6 +38,7 @@ o2_add_library(Framework
                        src/CCDBHelpers.cxx
                        src/DispatchPolicy.cxx
                        src/DataSender.cxx
+                       src/DomainInfoHeader.cxx
                        src/ProcessingPoliciesHelpers.cxx
                        src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
@@ -76,6 +77,7 @@ o2_add_library(Framework
                        src/ConfigurationOptionsRetriever.cxx
                        src/FreePortFinder.cxx
                        src/GraphvizHelpers.cxx
+                       src/MermaidHelpers.cxx
                        src/HTTPParser.cxx
                        src/InputRecord.cxx
                        src/InputRouteHelpers.cxx
@@ -95,6 +97,7 @@ o2_add_library(Framework
                        src/O2ControlHelpers.cxx
                        src/O2ControlLabels.cxx
                        src/OutputSpec.cxx
+                       src/OptionsHelpers.cxx
                        src/PropertyTreeHelpers.cxx
                        src/Plugins.cxx
                        src/RateLimiter.cxx
@@ -180,6 +183,7 @@ foreach(t
         ConfigParamStore
         ConfigParamRegistry
         DataDescriptorMatcher
+        DataDescriptorQueryBuilder
         DataProcessorSpec
         DataRefUtils
         DataRelayer
@@ -207,6 +211,8 @@ foreach(t
         InputSpec
         Kernels
         LogParsingHelpers
+        Mermaid
+        OptionsHelpers
         OverrideLabels
         PtrHelpers
         Root2ArrowTable
@@ -315,6 +321,7 @@ foreach(w
         Task
         ExternalFairMQDeviceWorkflow
         VariablePayloadSequenceWorkflow
+        DataDescriptorMatcherWorkflow
         )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx

@@ -28,7 +28,7 @@ struct ZDCEnergyParam {
   float energy_calib[NChannels] = {0}; // Energy calibration coefficients
   void setEnergyCalib(uint32_t ich, float val);
   float getEnergyCalib(uint32_t ich) const;
-  void print();
+  void print() const;
   ClassDefNV(ZDCEnergyParam, 1);
 };
 } // namespace zdc

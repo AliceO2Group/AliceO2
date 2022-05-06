@@ -15,6 +15,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "DataFormatsTPC/CompressedClusters.h"
 #include "TPCWorkflow/EntropyDecoderSpec.h"
 
@@ -25,12 +26,16 @@ namespace o2
 namespace tpc
 {
 
+void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
+    return;
+  }
+}
+
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>("ctf-dict");
-  if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCodersFromFile<CTF>(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
-  }
+  mCTFCoder.init<CTF>(ic);
 }
 
 void EntropyDecoderSpec::run(ProcessingContext& pc)
@@ -38,6 +43,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
 
+  mCTFCoder.updateTimeDependentParams(pc);
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
 
   auto& compclusters = pc.outputs().make<std::vector<char>>(OutputRef{"output"});
@@ -57,14 +63,18 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec(int verbosity)
+DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 {
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("ctf", "TPC", "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionary"));
+
   return DataProcessorSpec{
     "tpc-entropy-decoder",
-    Inputs{InputSpec{"ctf", "TPC", "CTFDATA", 0, Lifetime::Timeframe}},
+    inputs,
     Outputs{OutputSpec{{"output"}, "TPC", "COMPCLUSTERSFLAT", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
 }
 
 } // namespace tpc

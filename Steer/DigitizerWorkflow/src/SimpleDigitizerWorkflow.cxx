@@ -218,6 +218,8 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
                     const auto orbitFirst = hbfu.orbitFirst;
                     dh.firstTForbit = offset + increment * dh.tfCounter;
                     LOG(info) << "Setting firstTFOrbit to " << dh.firstTForbit;
+                    dh.runNumber = hbfu.runNumber;
+                    LOG(info) << "Setting runNumber to " << dh.runNumber;
                     dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
                     LOG(info) << "Setting timeframe creation time to " << dph.creation;
                   });
@@ -427,6 +429,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // we expect that digitizers do not play with the manager themselves
   // this will only be needed until digitizers take CCDB objects via DPL mechanism
   o2::ccdb::BasicCCDBManager::instance().setTimestamp(hbfu.startTime);
+  // activate caching
+  o2::ccdb::BasicCCDBManager::instance().setCaching(true);
+  // without this, caching does not seem to work
+  o2::ccdb::BasicCCDBManager::instance().setLocalObjectValidityChecking(true);
 
   // update the digitization configuration with the right geometry file
   // we take the geometry from the first simPrefix (could actually check if they are

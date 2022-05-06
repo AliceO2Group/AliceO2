@@ -45,7 +45,8 @@ void PHOSHGLGRatioCalibDevice::run(o2::framework::ProcessingContext& ctx)
 
   // scan Cells stream, collect HG/LG pairs
   if (mRunStartTime == 0) {
-    mRunStartTime = o2::header::get<o2::framework::DataProcessingHeader*>(ctx.inputs().get("cellTriggerRecords").header)->startTime;
+    const auto ref = ctx.inputs().getFirstValid(true);
+    mRunStartTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
   }
 
   if (mStatistics <= 0) { // skip the rest of the run
@@ -209,7 +210,8 @@ void PHOSHGLGRatioCalibDevice::sendOutput(DataAllocator& output)
     // prepare all info to be sent to CCDB
     auto flName = o2::ccdb::CcdbApi::generateFileName("CalibParams");
     std::map<std::string, std::string> md;
-    o2::ccdb::CcdbObjectInfo info("PHS/Calib/CalibParams", "CalibParams", flName, md, mRunStartTime, 99999999999999);
+    long validityTime = mRunStartTime + 31622400000; // one year validity range
+    o2::ccdb::CcdbObjectInfo info("PHS/Calib/CalibParams", "CalibParams", flName, md, mRunStartTime, validityTime);
     info.setMetaData(md);
     auto image = o2::ccdb::CcdbApi::createObjectImage(mCalibParams.get(), &info);
 

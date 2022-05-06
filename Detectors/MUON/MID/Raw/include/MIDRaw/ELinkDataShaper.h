@@ -38,14 +38,14 @@ class ELinkDataShaper
   void set(uint32_t orbit);
 
  private:
-  uint8_t mUniqueId{0};                 /// UniqueId
+  uint8_t mUniqueId = 0;                /// UniqueId
   ElectronicsDelay mElectronicsDelay{}; /// Delays in the electronics
-  uint32_t mRDHOrbit{0};                /// RDH orbit
-  bool mReceivedCalibration{false};     /// Flag to indicate if the  calibration trigger was received
+  uint32_t mRDHOrbit = 0;               /// RDH orbit
 
-  InteractionRecord mIR{};      /// Interaction record
-  uint16_t mExpectedFETClock{}; /// Expected FET clock
-  uint16_t mLastClock{};        /// Last clock
+  InteractionRecord mIR;          /// Interaction record
+  InteractionRecord mExpectedFET; /// Expected FET clock
+  int16_t mLocalToBCSelfTrig = 0; /// Local to BC for self-triggered events
+  uint16_t mMaxBunches = 0;       /// Maximum number of bunches between orbits
 
   typedef void (ELinkDataShaper::*OnDoneFunction)(const ELinkDecoder&, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs);
   OnDoneFunction mOnDone{&ELinkDataShaper::onDoneLoc}; ///! Processes the board
@@ -57,9 +57,9 @@ class ELinkDataShaper
 
   void addLoc(const ELinkDecoder& decoder, EventType eventType, InteractionRecord ir, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs);
   bool checkLoc(const ELinkDecoder& decoder);
-  EventType processCalibrationTrigger(uint16_t localClock);
+  EventType processCalibrationTrigger(const InteractionRecord& ir);
   void processOrbitTrigger(uint16_t localClock, uint8_t triggerWord);
-  EventType processSelfTriggered(uint16_t localClock, InteractionRecord& ir);
+  EventType processSelfTriggered(InteractionRecord& ir);
   bool processTrigger(const ELinkDecoder& decoder, EventType& eventType, InteractionRecord& ir);
 };
 } // namespace mid

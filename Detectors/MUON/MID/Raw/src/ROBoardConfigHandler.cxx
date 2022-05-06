@@ -131,10 +131,7 @@ void ROBoardConfigHandler::updateMasks(const std::vector<ROBoard>& masks)
   for (auto& mask : masks) {
     auto cfgIt = mROBoardConfigs.find(mask.boardId);
 
-    // First we check if some patterns has zeros.
-    // When set xORy for boards with no Y input.
-    // So in this case we explicitly mask Y.
-    bool isMasked = ((cfgIt->second.configWord & crateconfig::sXorY) != 0);
+    bool isMasked = false;
     for (int ich = 0; ich < 4; ++ich) {
       if (mask.patternsBP[ich] != 0xFFFF || mask.patternsNBP[ich] != 0xFFFF) {
         isMasked = true;
@@ -144,9 +141,7 @@ void ROBoardConfigHandler::updateMasks(const std::vector<ROBoard>& masks)
     if (isMasked) {
       cfgIt->second.configWord |= crateconfig::sMonmoff;
       cfgIt->second.masksBP = mask.patternsBP;
-      if ((cfgIt->second.configWord & crateconfig::sXorY) == 0) {
-        cfgIt->second.masksNBP = mask.patternsNBP;
-      }
+      cfgIt->second.masksNBP = mask.patternsNBP;
     }
   }
 }

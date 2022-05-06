@@ -14,6 +14,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "TRDWorkflowIO/TRDTrackletWriterSpec.h"
 #include "TRDWorkflowIO/TRDDigitWriterSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
 
@@ -29,6 +30,12 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
   std::swap(workflowOptions, options);
+}
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:TRD|trd).*[W,w]riter.*"));
 }
 
 // ------------------------------------------------------------------

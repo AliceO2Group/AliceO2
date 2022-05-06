@@ -28,6 +28,7 @@ using namespace o2::phos;
 
 void PHOSTurnonCalibDevice::init(o2::framework::InitContext& ic)
 {
+  o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   // int slotL = ic.options().get<int>("tf-per-slot");
   // int delay = ic.options().get<int>("max-delay");
   mCalibrator.reset(new PHOSTurnonCalibrator());
@@ -38,6 +39,7 @@ void PHOSTurnonCalibDevice::init(o2::framework::InitContext& ic)
 }
 void PHOSTurnonCalibDevice::run(o2::framework::ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("clusters").header)->startTime; // is this the timestamp of the current TF?
   auto cells = pc.inputs().get<gsl::span<Cell>>("cells");
   auto cellTR = pc.inputs().get<gsl::span<TriggerRecord>>("cellTriggerRecords");
@@ -51,15 +53,14 @@ void PHOSTurnonCalibDevice::run(o2::framework::ProcessingContext& pc)
 
 void PHOSTurnonCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
-  constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-  mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+  mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
   mCalibrator->endOfStream();
   mTriggerMap.reset(new TriggerMap(mCalibrator->getCalibration()));
   if (checkFitResult()) {
-    //Calculate and send final object to CCDB
+    // Calculate and send final object to CCDB
     auto flName = o2::ccdb::CcdbApi::generateFileName("TriggerMap");
     std::map<std::string, std::string> md;
-    o2::ccdb::CcdbObjectInfo info("PHS/Calib/TriggerMap", "TriggerMap", flName, md, mRunStartTime, 99999999999999);
+    o2::ccdb::CcdbObjectInfo info("PHS/Calib/TriggerMap", "TriggerMap", flName, md, mRunStartTime, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     info.setMetaData(md);
     auto image = o2::ccdb::CcdbApi::createObjectImage(mTriggerMap.get(), &info);
 
@@ -79,7 +80,7 @@ void PHOSTurnonCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
   // ec.outputs().snapshot(o2::framework::Output{"PHS", "TURNONDIFF", 0, o2::framework::Lifetime::Timeframe}, mTurnOnDiff);
 }
 
-o2::framework::DataProcessorSpec o2::phos::getPHOSTurnonCalibDeviceSpec(bool useCCDB, std::string path)
+o2::framework::DataProcessorSpec o2::phos::getPHOSTurnonCalibDeviceSpec(bool useCCDB)
 {
 
   std::vector<InputSpec> inputs;
@@ -87,19 +88,25 @@ o2::framework::DataProcessorSpec o2::phos::getPHOSTurnonCalibDeviceSpec(bool use
   inputs.emplace_back("cellTriggerRecords", o2::header::gDataOriginPHS, "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back("clusters", o2::header::gDataOriginPHS, "CLUSTERS", 0, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back("clusterTriggerRecords", o2::header::gDataOriginPHS, "CLUSTERTRIGREC", 0, o2::framework::Lifetime::Timeframe);
-
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(
     ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_Tunron"}, Lifetime::Sporadic);
   outputs.emplace_back(
     ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_Tunron"}, Lifetime::Sporadic);
-  //stream for QC data
-  //outputs.emplace_back("PHS", "TRIGGERQC", 0, o2::framework::Lifetime::Timeframe);
+  // stream for QC data
+  // outputs.emplace_back("PHS", "TRIGGERQC", 0, o2::framework::Lifetime::Timeframe);
 
   return o2::framework::DataProcessorSpec{"PHOSTurnonCalibDevice",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<PHOSTurnonCalibDevice>(useCCDB, path),
+                                          o2::framework::adaptFromTask<PHOSTurnonCalibDevice>(useCCDB, ccdbRequest),
                                           o2::framework::Options{}};
 }

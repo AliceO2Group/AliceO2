@@ -74,8 +74,6 @@ class MFTDCSConfigProcessor : public o2::framework::Task
 
     auto tf = std::chrono::duration_cast<std::chrono::milliseconds>(HighResClock::now().time_since_epoch()).count();
 
-    constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
-
     using clbUtils = o2::calibration::Utils;
 
     const auto& payload = mReader.getConfigInfo();
@@ -84,9 +82,9 @@ class MFTDCSConfigProcessor : public o2::framework::Task
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
 
     std::map<std::string, std::string> md;
-    md.emplace("created by", "dpl");
+    md.emplace("created_by", "dpl");
 
-    o2::ccdb::CcdbObjectInfo info("MFT/Config/Params", clName, flName, md, tf, INFINITE_TF);
+    o2::ccdb::CcdbObjectInfo info("MFT/Config/Params", clName, flName, md, tf, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
 
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
 

@@ -14,7 +14,6 @@
 /// \author Ole Schmidt
 
 #include "TRDCalibration/CalibratorVdExB.h"
-#include "DataFormatsTRD/CalVdriftExB.h"
 #include "Fit/Fitter.h"
 #include "TStopwatch.h"
 #include "CCDB/CcdbApi.h"
@@ -23,6 +22,7 @@
 #include <map>
 #include <memory>
 #include "CommonUtils/NameConf.h"
+#include "CommonUtils/MemFileHelper.h"
 
 using namespace o2::trd::constants;
 
@@ -89,8 +89,9 @@ using Slot = o2::calibration::TimeSlot<AngularResidHistos>;
 
 void CalibratorVdExB::initOutput()
 {
-  // prepare output objects which will go to CCDB
-  // nothing to be done
+  // reset the CCDB output vectors
+  mInfoVector.clear();
+  mObjectVector.clear();
 }
 
 void CalibratorVdExB::initProcessing()
@@ -153,11 +154,7 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
   timer.Stop();
   LOGF(info, "Done fitting angular residual histograms. CPU time: %f, real time: %f", timer.CpuTime(), timer.RealTime());
 
-  // write results to CCDB
-  o2::ccdb::CcdbApi ccdb;
-  ccdb.init(o2::base::NameConf::getCCDBServer());
-  // ccdb.init("http://localhost:8080");
-  std::map<std::string, std::string> metadata; // TODO: do we want to store any meta data?
+  // assemble CCDB object
   CalVdriftExB calObject;
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
     // OS: what about chambers for which we had no data in this slot? should we use the initial parameters or something else?
@@ -165,13 +162,15 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
     calObject.setVdrift(iDet, vdFitResults[iDet]);
     calObject.setExB(iDet, laFitResults[iDet]);
   }
-  auto timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-  auto timeStampEnd = timeStamp;
-  timeStampEnd += 1e3 * 60 * 60 * 24 * 7; // set validity of 7 days
-  ccdb.storeAsTFileAny(&calObject, "TRD/Calib/CalVdriftExB", metadata, timeStamp, timeStampEnd);
+  auto clName = o2::utils::MemFileHelper::getClassName(calObject);
+  auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
+  std::map<std::string, std::string> metadata; // TODO: do we want to store any meta data?
+  long startValidity = slot.getStartTimeMS() - 10 * o2::ccdb::CcdbObjectInfo::SECOND;
+  mInfoVector.emplace_back("TRD/Calib/CalVdriftExB", clName, flName, metadata, startValidity, startValidity + o2::ccdb::CcdbObjectInfo::HOUR);
+  mObjectVector.push_back(calObject);
 }
 
-Slot& CalibratorVdExB::emplaceNewSlot(bool front, uint64_t tStart, uint64_t tEnd)
+Slot& CalibratorVdExB::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
 {
   auto& container = getSlots();
   auto& slot = front ? container.emplace_front(tStart, tEnd) : container.emplace_back(tStart, tEnd);

@@ -68,7 +68,7 @@ void PHOSRunbyrunSlot::fill(const gsl::span<const Cluster>& clusters, const gsl:
       auto& ccdbManager = o2::ccdb::BasicCCDBManager::instance();
       ccdbManager.setURL(o2::base::NameConf::getCCDBServer());
       LOG(info) << " set-up CCDB " << o2::base::NameConf::getCCDBServer();
-      mBadMap = std::make_unique<o2::phos::BadChannelsMap>(*(ccdbManager.get<o2::phos::BadChannelsMap>("PHS/BadMap")));
+      mBadMap = std::make_unique<o2::phos::BadChannelsMap>(*(ccdbManager.get<o2::phos::BadChannelsMap>("PHS/Calib/BadMap")));
 
       if (!mBadMap) { // was not read from CCDB, but expected
         LOG(fatal) << "Can not read BadMap from CCDB, you may use --not-use-ccdb option to create default bad map";
@@ -190,7 +190,7 @@ void PHOSRunbyrunCalibrator::finalizeSlot(Slot& slot)
   c->clear();
 }
 
-Slot& PHOSRunbyrunCalibrator::emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend)
+Slot& PHOSRunbyrunCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
 
   auto& cont = getSlots();
@@ -199,7 +199,7 @@ Slot& PHOSRunbyrunCalibrator::emplaceNewSlot(bool front, uint64_t tstart, uint64
   return slot;
 }
 
-bool PHOSRunbyrunCalibrator::process(uint64_t tf, const gsl::span<const Cluster>& clu, const gsl::span<const TriggerRecord>& tr)
+bool PHOSRunbyrunCalibrator::process(TFType tf, const gsl::span<const Cluster>& clu, const gsl::span<const TriggerRecord>& tr)
 {
   // if (!mUpdateAtTheEndOfRunOnly) {
   //   int maxDelay = mMaxSlotsDelay * mSlotLength;

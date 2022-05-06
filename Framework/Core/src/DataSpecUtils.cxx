@@ -334,7 +334,8 @@ MatcherInfo extractMatcherInfo(DataDescriptorMatcher const& top)
         state.hasError = true;
         return VisitNone;
       }
-      if (action.node->getOp() == ops::Just) {
+      if (action.node->getOp() == ops::Just ||
+          action.node->getOp() == ops::Not) {
         return VisitLeft;
       }
       return VisitBoth;
@@ -510,7 +511,8 @@ DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataTypeM
   auto timeDescriptionMatcher = std::make_unique<DataDescriptorMatcher>(
     DataDescriptorMatcher::Op::And,
     DescriptionValueMatcher{dataType.description.as<std::string>()},
-    StartTimeValueMatcher(ContextRef{0}));
+    std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
+                                            StartTimeValueMatcher{ContextRef{0}}));
   return std::move(DataDescriptorMatcher(
     DataDescriptorMatcher::Op::And,
     OriginValueMatcher{dataType.origin.as<std::string>()},
@@ -551,6 +553,81 @@ DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(header::DataDescr
         std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
                                                 StartTimeValueMatcher{ContextRef{0}})))};
   return std::move(matchOnlyOrigin);
+}
+
+std::optional<framework::ConcreteDataMatcher> DataSpecUtils::optionalConcreteDataMatcherFrom(data_matcher::DataDescriptorMatcher const& matcher)
+{
+  using namespace data_matcher;
+  using ops = DataDescriptorMatcher::Op;
+
+  MatcherInfo state;
+  auto nodeWalker = overloaded{
+    [&state](EdgeActions::EnterNode action) {
+      if (state.hasError) {
+        return VisitNone;
+      }
+      // a ConcreteDataMatcher requires either 'and' or 'just'
+      // operations and we return the corresponding action for these
+      if (action.node->getOp() == ops::Just) {
+        return VisitLeft;
+      } else if (action.node->getOp() == ops::And) {
+        return VisitBoth;
+      }
+      // simply use the error state to indicate that the operation does not match the
+      // requirement for fully qualified ConcreteDataMatcher
+      state.hasError = true;
+      return VisitNone;
+    },
+    [](auto) { return VisitNone; }};
+
+  auto leafWalker = overloaded{
+    [&state](OriginValueMatcher const& valueMatcher) {
+      // if this is not the first OriginValueMatcher, the value can not be unique
+      if (state.hasOrigin) {
+        state.hasUniqueOrigin = false;
+        return;
+      }
+      state.hasOrigin = true;
+
+      valueMatcher.visit(overloaded{
+        [&state](std::string const& s) {
+          strncpy(state.origin.str, s.data(), 4);
+          state.hasUniqueOrigin = true;
+        },
+        [&state](auto) { state.hasUniqueOrigin = false; }});
+    },
+    [&state](DescriptionValueMatcher const& valueMatcher) {
+      if (state.hasDescription) {
+        state.hasUniqueDescription = false;
+        return;
+      }
+      state.hasDescription = true;
+      valueMatcher.visit(overloaded{
+        [&state](std::string const& s) {
+          strncpy(state.description.str, s.data(), 16);
+          state.hasUniqueDescription = true;
+        },
+        [&state](auto) { state.hasUniqueDescription = false; }});
+    },
+    [&state](SubSpecificationTypeValueMatcher const& valueMatcher) {
+      if (state.hasSubSpec) {
+        state.hasUniqueSubSpec = false;
+        return;
+      }
+      state.hasSubSpec = true;
+      valueMatcher.visit(overloaded{
+        [&state](uint32_t const& data) {
+          state.subSpec = data;
+          state.hasUniqueSubSpec = true;
+        },
+        [&state](auto) { state.hasUniqueSubSpec = false; }});
+    },
+    [](auto t) {}};
+  DataMatcherWalker::walk(matcher, nodeWalker, leafWalker);
+  if (state.hasError == false && state.hasUniqueOrigin && state.hasUniqueDescription && state.hasUniqueSubSpec) {
+    return std::make_optional(ConcreteDataMatcher{state.origin, state.description, state.subSpec});
+  }
+  return {};
 }
 
 InputSpec DataSpecUtils::matchingInput(OutputSpec const& spec)

@@ -18,6 +18,7 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
+  workflowOptions.push_back(ConfigParamSpec{"run-number", o2::framework::VariantType::Int, -1, {"run number"}});
 }
 
 // ------------------------------------------------------------------
@@ -27,6 +28,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
-  specs.emplace_back(getTOFDiagnosticCalibDeviceSpec());
+  auto runnumber = configcontext.options().get<int>("run-number");
+  specs.emplace_back(getTOFDiagnosticCalibDeviceSpec(runnumber));
   return specs;
 }

@@ -10,15 +10,17 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsFV0/ChannelData.h"
+#include <Framework/Logger.h>
+#include <iostream>
 
 using namespace o2::fv0;
 
 void ChannelData::print() const
 {
-  printf("  Pmt=%2d  |  time =%4d  |  charge =%6d\n", pmtNumber, time, chargeAdc);
+  printf("  ChID%d | CFDtime=%d | QTCampl=%d QTC chain %d\n", ChId, CFDTime, QTCAmpl, ChainQTC);
 }
 
 void ChannelData::printLog() const
 {
-  LOG(info) << "ChId: " << static_cast<uint16_t>(pmtNumber) /*<< " |  FEE bits:" << static_cast<uint16_t>(ChainQTC)*/ << " | Time: " << time << " | Charge: " << chargeAdc;
+  LOG(info) << "ChId: " << static_cast<uint16_t>(ChId) << " |  FEE bits:" << static_cast<uint16_t>(ChainQTC) << " | Time: " << CFDTime << " | Charge: " << QTCAmpl;
 }

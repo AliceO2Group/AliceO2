@@ -79,4 +79,7 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
   BOOST_REQUIRE_EQUAL(w0.size(), w1.size());
   BOOST_CHECK_EQUAL(firstDump.str(), secondDump.str());
   BOOST_CHECK_EQUAL(commandInfoIn.command, commandInfoOut.command);
+
+  // also check if the conversion to ConcreteDataMatcher is working at import
+  BOOST_CHECK(std::get_if<ConcreteDataMatcher>(&w1[0].inputs[0].matcher) != nullptr);
 }

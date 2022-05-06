@@ -101,12 +101,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   readoutDetectors.clear();
 
   auto isDet = [](std::string const& s) {
-    auto d = DetID::nameToID(s.c_str());
-#ifdef ENABLE_UPGRADES
-    return d >= DetID::First && d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3;
-#else
-    return d >= DetID::First;
-#endif
+    return DetID::nameToID(s.c_str()) >= DetID::First;
   };
 
   if (enableReadout.empty()) {

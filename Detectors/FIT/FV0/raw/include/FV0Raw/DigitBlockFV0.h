@@ -17,8 +17,7 @@
 #ifndef ALICEO2_FIT_DIGITBLOCKFV0_H_
 #define ALICEO2_FIT_DIGITBLOCKFV0_H_
 #include "FITRaw/DigitBlockFIT.h"
-//#include "DataFormatsFV0/Digit.h"
-#include "DataFormatsFV0/BCData.h"
+#include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include "DataFormatsFV0/LookUpTable.h"
 
@@ -27,11 +26,9 @@ namespace o2
 namespace fv0
 {
 //Normal data taking mode
-//using DigitBlockFV0 = DigitBlockFIT<o2::fv0::SingleLUT, o2::fv0::Digit, o2::fv0::ChannelData>;
-using DigitBlockFV0 = DigitBlockFIT<o2::fv0::SingleLUT, o2::fv0::BCData, o2::fv0::ChannelData>;
+using DigitBlockFV0 = DigitBlockFIT<o2::fv0::SingleLUT, o2::fv0::Digit, o2::fv0::ChannelData>;
 //TCM extended data taking mode
-//using DigitBlockFV0ext = DigitBlockFIText<o2::fv0::SingleLUT, o2::fv0::Digit, o2::fv0::ChannelData, o2::fv0::TriggersExt>;
-using DigitBlockFV0ext = DigitBlockFIText<o2::fv0::SingleLUT, o2::fv0::BCData, o2::fv0::ChannelData, o2::fv0::TriggersExt>;
+using DigitBlockFV0ext = DigitBlockFIText<o2::fv0::SingleLUT, o2::fv0::Digit, o2::fv0::ChannelData, o2::fv0::TriggersExt>;
 } // namespace fv0
 } // namespace o2
 #endif

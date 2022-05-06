@@ -28,9 +28,7 @@
 
 union hmm_mat4;
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
+namespace GPUCA_NAMESPACE::gpu
 {
 class GPUDisplay;
 class GPUDisplayFrontend;
@@ -56,6 +54,7 @@ class GPUDisplayBackend
   };
 
   enum backendTypes {
+    TYPE_INVALID = -1,
     TYPE_OPENGL = 0,
     TYPE_VULKAN = 1
   };
@@ -93,13 +92,15 @@ class GPUDisplayBackend
   virtual void finishText() = 0;
   virtual void pointSizeFactor(float factor) = 0;
   virtual void lineWidthFactor(float factor) = 0;
-  virtual backendTypes backendType() const = 0;
+  backendTypes backendType() const { return mBackendType; }
+  const char* backendName() const { return mBackendName; }
   virtual void resizeScene(unsigned int width, unsigned int height) {}
   virtual size_t needMultiVBO() { return 0; }
   virtual void OpenGLPrint(const char* s, float x, float y, float* color, float scale) = 0;
   static GPUDisplayBackend* getBackend(const char* type);
   std::vector<char> getPixels();
   virtual float getYFactor() const { return 1.0f; }
+  virtual int getMaxMSAA() const { return 16; }
 
  protected:
   virtual void addFontSymbol(int symbol, int sizex, int sizey, int offsetx, int offsety, int advance, void* data) = 0;
@@ -122,8 +123,10 @@ class GPUDisplayBackend
   unsigned int mRenderHeight = 0;
   unsigned int mScreenWidth = 0;
   unsigned int mScreenHeight = 0;
+
+  backendTypes mBackendType = TYPE_INVALID;
+  const char* mBackendName = nullptr;
 };
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
+} // namespace GPUCA_NAMESPACE::gpu
 
 #endif

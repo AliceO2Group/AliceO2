@@ -68,9 +68,10 @@ void SimpleResourceManager::notifyAcceptedOffer(ComputingOffer const& offer)
   if (resourceFound == false) {
     std::string resources = "Available resources:\n";
     for (auto& resource : mResources) {
-      resources += fmt::format("- ({}, {}, {}, {})\n", resource.hostname.c_str(), resource.cpu, resource.memory, resource.startPort);
+      resources += fmt::format("- (host:{}, cpu:{}, memory:{}, ports:{}-{})\n", resource.hostname.c_str(), resource.cpu, resource.memory, resource.startPort, resource.lastPort);
     }
-    throw std::runtime_error(fmt::format("Could not match offer (host:{}, cpu:{}, mem:{}, ports:{}) to original resource.\n",
+    throw std::runtime_error(fmt::format("Could not match offer (host:{}, cpu:{}, mem:{}, ports:{}) to original resource.\n"
+                                         "Most likely you need to declare more resources via --resources or reduce the number of devices.",
                                          offer.hostname, offer.cpu, offer.memory, offer.rangeSize) +
                              resources);
   }

@@ -20,6 +20,8 @@
 #include "Framework/TimesliceIndex.h"
 #include "Framework/VariableContextHelpers.h"
 #include "Framework/DataTakingContext.h"
+#include "Framework/InputRecord.h"
+#include "Framework/FairMQDeviceProxy.h"
 
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
@@ -54,7 +56,7 @@ size_t getCurrentTime()
 
 ExpirationHandler::Creator LifetimeHelpers::dataDrivenCreation()
 {
-  return [](TimesliceIndex&) -> TimesliceSlot {
+  return [](ChannelIndex, TimesliceIndex&) -> TimesliceSlot {
     return {TimesliceSlot::ANY};
   };
 }
@@ -64,7 +66,7 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
   auto last = std::make_shared<size_t>(start + inputTimeslice * step);
   auto repetition = std::make_shared<size_t>(0);
 
-  return [end, step, last, maxInputTimeslices, maxRepetitions, repetition](TimesliceIndex& index) -> TimesliceSlot {
+  return [end, step, last, maxInputTimeslices, maxRepetitions, repetition](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
     for (size_t si = 0; si < index.size(); si++) {
       if (*last > end) {
         LOGP(debug, "Last greater than end");
@@ -79,6 +81,12 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
         }
         LOGP(debug, "Associating timestamp {} to slot {}", timestamp.value, slot.index);
         index.associate(timestamp, slot);
+        // We know that next association will bring in last
+        // so we can state this will be the latest possible input for the channel
+        // associated with this.
+        LOG(debug) << "Oldest possible input is " << *last;
+        auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+        index.updateOldestPossibleOutput();
         return slot;
       }
     }
@@ -93,7 +101,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
   auto start = getCurrentTime();
   auto last = std::make_shared<decltype(start)>(start);
   // FIXME: should create timeslices when period expires....
-  return [last, period](TimesliceIndex& index) -> TimesliceSlot {
+  return [last, period](ChannelIndex, TimesliceIndex& index) -> TimesliceSlot {
     // Nothing to do if the time has not expired yet.
     auto current = getCurrentTime();
     auto delta = current - *last;
@@ -136,17 +144,61 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
 
 ExpirationHandler::Checker LifetimeHelpers::expireNever()
 {
-  return [](ServiceRegistry&, int64_t) -> bool { return false; };
+  return [](ServiceRegistry&, int64_t, InputSpan const&) -> bool { return false; };
 }
 
 ExpirationHandler::Checker LifetimeHelpers::expireAlways()
 {
-  return [](ServiceRegistry&, int64_t) -> bool { return true; };
+  return [](ServiceRegistry&, int64_t, InputSpan const&) -> bool { return true; };
+}
+
+ExpirationHandler::Checker LifetimeHelpers::expireIfPresent(std::vector<InputRoute> const& routes, ConcreteDataMatcher)
+{
+  // find all the input routes which have timeframe data
+  // and store it in a vector for use inside the lambda
+  std::vector<InputRecord::InputPos> inputPositions;
+  std::vector<InputRecord::InputPos> optionalPositions;
+  size_t index = 0;
+  for (auto& route : routes) {
+    if (route.timeslice != 0) {
+      continue;
+    }
+    if (route.matcher.lifetime != Lifetime::Optional) {
+      LOGP(debug, "Lifetime of input route {} is not optional at position {}", route.matcher.binding, index);
+      inputPositions.push_back({index});
+    } else {
+      LOGP(debug, "Lifetime of input route {} is optional at position {}", route.matcher.binding, index);
+      optionalPositions.push_back({index});
+    }
+    index++;
+  }
+
+  return [inputPositions, optionalPositions, routes](ServiceRegistry&, int64_t, InputSpan const& span) -> bool {
+    // Check if timeframe data is fully present.
+    // If yes, we expire the optional data.
+    // If not, we continue to wait for the data.
+    size_t requiredCount = 0;
+    size_t optionalCount = 0;
+    for (auto& inputPos : inputPositions) {
+      auto ref = InputRecord::getByPos(routes, span, inputPos.index, 0);
+      if (ref.header != nullptr) {
+        requiredCount++;
+      }
+    }
+    for (auto& inputPos : optionalPositions) {
+      auto ref = InputRecord::getByPos(routes, span, inputPos.index, 0);
+      if (ref.header != nullptr) {
+        optionalCount++;
+      }
+    }
+    LOGP(debug, "ExpireIfPresent: allRequired={}/{}, allOptional={}/{}", requiredCount, inputPositions.size(), optionalCount, optionalPositions.size());
+    return (requiredCount == inputPositions.size()) && (optionalCount != optionalPositions.size());
+  };
 }
 
 ExpirationHandler::Creator LifetimeHelpers::uvDrivenCreation(int requestedLoopReason, DeviceState& state)
 {
-  return [requestedLoopReason, &state](TimesliceIndex& index) -> TimesliceSlot {
+  return [requestedLoopReason, &state](ChannelIndex, TimesliceIndex& index) -> TimesliceSlot {
     /// Not the expected loop reason, return an invalid slot.
     if ((state.loopReason & requestedLoopReason) == 0) {
       LOGP(debug, "No expiration due to a loop event. Requested: {:b}, reported: {:b}, matching: {:b}",
@@ -200,7 +252,7 @@ ExpirationHandler::Checker LifetimeHelpers::expireTimed(std::chrono::microsecond
 {
   auto start = getCurrentTime();
   auto last = std::make_shared<decltype(start)>(start);
-  return [last, period](ServiceRegistry&, int64_t) -> bool {
+  return [last, period](ServiceRegistry&, int64_t, InputSpan const&) -> bool {
     auto current = getCurrentTime();
     auto delta = current - *last;
     if (delta > period.count()) {
@@ -308,7 +360,7 @@ ExpirationHandler::Handler
       timestamp = ceilf((VariableContextHelpers::getFirstTFOrbit(variables) * o2::constants::lhc::LHCOrbitNS / 1000 + dataTakingContext.orbitResetTime) / 1000);
     } else {
       // The timestamp used by DPL is in nanoseconds
-      timestamp = ceilf(VariableContextHelpers::getTimeslice(variables).value / 1000);
+      timestamp = ceilf(VariableContextHelpers::getTimeslice(variables).value / 1000.);
     }
 
     std::string path = "";
@@ -419,10 +471,12 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
   using counter_t = int64_t;
   auto counter = std::make_shared<counter_t>(0);
   return [matcher, counter, sourceChannel, orbitOffset, orbitMultiplier](ServiceRegistry& services, PartRef& ref, data_matcher::VariableContext& variables) -> void {
+    // Get the ChannelIndex associated to a given channel name
+    auto& deviceProxy = services.get<FairMQDeviceProxy>();
+    auto channelIndex = deviceProxy.getInputChannelIndexByName(sourceChannel);
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
-    auto& rawDeviceService = services.get<RawDeviceService>();
 
     auto timestamp = VariableContextHelpers::getTimeslice(variables).value;
     LOGP(debug, "Enumerating record");
@@ -439,16 +493,19 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
 
     variables.put({data_matcher::FIRSTTFORBIT_POS, dh.firstTForbit});
     variables.put({data_matcher::TFCOUNTER_POS, dh.tfCounter});
+    variables.put({data_matcher::STARTTIME_POS, dph.startTime});
+    variables.put({data_matcher::CREATIONTIME_POS, dph.creation});
 
-    auto&& transport = rawDeviceService.device()->GetChannel(sourceChannel, 0).Transport();
+    auto&& transport = deviceProxy.getInputChannel(channelIndex)->Transport();
     auto channelAlloc = o2::pmr::getTransportAllocator(transport);
     auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
     ref.header = std::move(header);
 
-    auto payload = rawDeviceService.device()->NewMessage(sizeof(counter_t));
+    auto payload = transport->CreateMessage(sizeof(counter_t));
     *(counter_t*)payload->GetData() = *counter;
     ref.payload = std::move(payload);
     (*counter)++;
+
   };
 }
 
@@ -461,7 +518,9 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
-    auto& rawDeviceService = services.get<RawDeviceService>();
+    // Get the ChannelIndex associated to a given channel name
+    auto& deviceProxy = services.get<FairMQDeviceProxy>();
+    auto channelIndex = deviceProxy.getInputChannelIndexByName(sourceChannel);
 
     auto timestamp = VariableContextHelpers::getTimeslice(variables).value;
     DataHeader dh;
@@ -490,11 +549,11 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
 
     DataProcessingHeader dph{timestamp, 1};
 
-    auto&& transport = rawDeviceService.device()->GetChannel(sourceChannel, 0).Transport();
+    auto&& transport = deviceProxy.getInputChannel(channelIndex)->Transport();
     auto channelAlloc = o2::pmr::getTransportAllocator(transport);
     auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
     ref.header = std::move(header);
-    auto payload = rawDeviceService.device()->NewMessage(0);
+    auto payload = transport->CreateMessage(0);
     ref.payload = std::move(payload);
   };
   return f;

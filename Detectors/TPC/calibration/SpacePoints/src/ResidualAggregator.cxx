@@ -15,8 +15,11 @@
 
 #include "SpacePoints/ResidualAggregator.h"
 #include "SpacePoints/SpacePointsCalibParam.h"
+#include "DetectorsCommonDataFormats/FileMetaData.h"
 
 #include <filesystem>
+#include <numeric>
+#include <algorithm>
 
 using namespace o2::tpc;
 
@@ -51,20 +54,24 @@ ResidualsContainer::ResidualsContainer(ResidualsContainer&& rhs)
   treeOutStats = std::move(rhs.treeOutStats);
   for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
     residuals[iSec] = std::move(rhs.residuals[iSec]);
-    residualsPtr[iSec] = std::move(rhs.residualsPtr[iSec]);
     stats[iSec] = std::move(rhs.stats[iSec]);
-    statsPtr[iSec] = std::move(rhs.statsPtr[iSec]);
   }
+  runNumber = rhs.runNumber;
+  tfOrbits = std::move(rhs.tfOrbits);
+  sumOfResiduals = std::move(rhs.sumOfResiduals);
 }
 
-void ResidualsContainer::init(const TrackResiduals* residualsEngine)
+void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string outputDir)
 {
   trackResiduals = residualsEngine;
   fileName += std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
   fileName += ".root";
-  fileOut = std::make_unique<TFile>(fileName.c_str(), "recreate");
+  std::string fileNameTmp = outputDir + fileName;
+  fileNameTmp += ".part"; // to prevent premature external usage of the file use temporary name
+  fileOut = std::make_unique<TFile>(fileNameTmp.c_str(), "recreate");
   treeOutResiduals = std::make_unique<TTree>(treeNameResiduals.c_str(), "TPC binned residuals");
   treeOutStats = std::make_unique<TTree>(treeNameStats.c_str(), "Voxel statistics mean position and nEntries");
+  treeOutRecords = std::make_unique<TTree>(treeNameRecords.c_str(), "Statistics per TF slot");
   for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
     residualsPtr[iSec] = &residuals[iSec];
     statsPtr[iSec] = &stats[iSec];
@@ -81,6 +88,8 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine)
     treeOutResiduals->Branch(Form("sec%d", iSec), &residualsPtr[iSec]);
     treeOutStats->Branch(Form("sec%d", iSec), &statsPtr[iSec]);
   }
+  treeOutRecords->Branch("firstTForbit", &tfOrbitsPtr);
+  treeOutRecords->Branch("sumOfResiduals", &sumOfResidualsPtr);
 }
 
 void ResidualsContainer::fillStatisticsBranches()
@@ -89,23 +98,26 @@ void ResidualsContainer::fillStatisticsBranches()
   // remains empty and we keep the statistics in memory in the vectors
   // (since their size anyway does not change)
   treeOutStats->Fill();
+  treeOutRecords->Fill();
 }
 
-void ResidualsContainer::fill(const gsl::span<const TrackResiduals::UnbinnedResid> data)
+void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const TrackResiduals::UnbinnedResid> data)
 {
   // receives large vector of unbinned residuals and fills the sector-wise vectors
   // with binned residuals and statistics
   LOG(debug) << "Filling ResidualsContainer with vector of size " << data.size();
+  uint32_t nResidualsInTF = 0;
   for (const auto& residIn : data) {
     int sec = residIn.sec;
     auto& residVecOut = residuals[sec];
     auto& statVecOut = stats[sec];
     std::array<unsigned char, TrackResiduals::VoxDim> bvox;
+    float xPos = param::RowX[residIn.row];
     float yPos = residIn.y * param::MaxY / 0x7fff;
     float zPos = residIn.z * param::MaxZ / 0x7fff;
-    if (!trackResiduals->findVoxelBin(sec, param::RowX[residIn.row], yPos, zPos, bvox)) {
+    if (!trackResiduals->findVoxelBin(sec, xPos, yPos, zPos, bvox)) {
       // we are not inside any voxel
-      LOGF(debug, "Dropping residual in sec(%i), x(%f), y(%f), z(%f)", sec, param::RowX[residIn.row], yPos, zPos);
+      LOGF(debug, "Dropping residual in sec(%i), x(%f), y(%f), z(%f)", sec, xPos, yPos, zPos);
       continue;
     }
     residVecOut.emplace_back(residIn.dy, residIn.dz, residIn.tgSlp, bvox);
@@ -113,15 +125,21 @@ void ResidualsContainer::fill(const gsl::span<const TrackResiduals::UnbinnedResi
     float& binEntries = stat.nEntries;
     float oldEntries = binEntries++;
     float norm = 1.f / binEntries;
-    // update COG for voxel bvox (don't need to update X here, it stays at the pad row radius)
-    stat.meanPos[TrackResiduals::VoxF] = (stat.meanPos[TrackResiduals::VoxF] * oldEntries + yPos / param::RowX[residIn.row]) * norm;
-    stat.meanPos[TrackResiduals::VoxZ] = (stat.meanPos[TrackResiduals::VoxZ] * oldEntries + zPos / param::RowX[residIn.row]) * norm;
+    // update COG for voxel bvox (update for X only needed in case binning is not per pad row)
+    float xPosInv = 1.f / xPos;
+    stat.meanPos[TrackResiduals::VoxX] = (stat.meanPos[TrackResiduals::VoxX] * oldEntries + xPos) * norm;
+    stat.meanPos[TrackResiduals::VoxF] = (stat.meanPos[TrackResiduals::VoxF] * oldEntries + yPos * xPosInv) * norm;
+    stat.meanPos[TrackResiduals::VoxZ] = (stat.meanPos[TrackResiduals::VoxZ] * oldEntries + zPos * xPosInv) * norm;
     ++nResidualsTotal;
+    ++nResidualsInTF;
   }
   treeOutResiduals->Fill();
   for (auto& residVecOut : residuals) {
     residVecOut.clear();
   }
+  runNumber = ti.runNumber;
+  tfOrbits.push_back(ti.firstTForbit);
+  sumOfResiduals.push_back(nResidualsInTF);
 }
 
 void ResidualsContainer::merge(ResidualsContainer* prev)
@@ -140,6 +158,7 @@ void ResidualsContainer::merge(ResidualsContainer* prev)
         // if there is at least a single entry in either of the containers we need the proper norm
         norm /= (statPrev.nEntries + stat.nEntries);
       }
+      stat.meanPos[TrackResiduals::VoxX] = (stat.meanPos[TrackResiduals::VoxX] * stat.nEntries + statPrev.meanPos[TrackResiduals::VoxX] * statPrev.nEntries) * norm;
       stat.meanPos[TrackResiduals::VoxF] = (stat.meanPos[TrackResiduals::VoxF] * stat.nEntries + statPrev.meanPos[TrackResiduals::VoxF] * statPrev.nEntries) * norm;
       stat.meanPos[TrackResiduals::VoxZ] = (stat.meanPos[TrackResiduals::VoxZ] * stat.nEntries + statPrev.meanPos[TrackResiduals::VoxZ] * statPrev.nEntries) * norm;
       stat.nEntries += statPrev.nEntries;
@@ -158,6 +177,13 @@ void ResidualsContainer::merge(ResidualsContainer* prev)
   treeOutResiduals = std::move(prev->treeOutResiduals);
 
   nResidualsTotal += prev->nResidualsTotal;
+
+  // append the current vector to the vector of the previous container and afterwards swap them,
+  // since the vector of the previous container will be deleted
+  prev->tfOrbits.insert(prev->tfOrbits.end(), tfOrbits.begin(), tfOrbits.end());
+  std::swap(prev->tfOrbits, tfOrbits);
+  prev->sumOfResiduals.insert(prev->sumOfResiduals.end(), sumOfResiduals.begin(), sumOfResiduals.end());
+  std::swap(prev->sumOfResiduals, sumOfResiduals);
 }
 
 void ResidualsContainer::print()
@@ -195,15 +221,41 @@ void ResidualAggregator::finalizeSlot(Slot& slot)
   cont->treeOutResiduals.reset();
   cont->treeOutStats->Write();
   cont->treeOutStats.reset();
+  cont->treeOutRecords->Write();
+  cont->treeOutRecords.reset();
   cont->fileOut->Close();
   cont->fileOut.reset();
+  std::filesystem::rename(o2::utils::Str::concat_string(mOutputDir, cont->fileName, ".part"), mOutputDir + cont->fileName);
+  if (mStoreMetaData) {
+    o2::dataformats::FileMetaData fileMetaData; // object with information for meta data file
+    fileMetaData.fillFileData(mOutputDir + cont->fileName);
+    fileMetaData.run = cont->runNumber;
+    fileMetaData.LHCPeriod = mLHCPeriod;
+    fileMetaData.type = "calib";
+    fileMetaData.priority = "high";
+    auto metaFileNameTmp = fmt::format("{}{}.tmp", mMetaOutputDir, cont->fileName);
+    auto metaFileName = fmt::format("{}{}.done", mMetaOutputDir, cont->fileName);
+    try {
+      std::ofstream metaFileOut(metaFileNameTmp);
+      metaFileOut << fileMetaData;
+      metaFileOut << "TFOrbits: ";
+      for (size_t i = 0; i < cont->tfOrbits.size(); i++) {
+        metaFileOut << fmt::format("{}{}", i ? ", " : "", cont->tfOrbits[i]);
+      }
+      metaFileOut << '\n';
+      metaFileOut.close();
+      std::filesystem::rename(metaFileNameTmp, metaFileName);
+    } catch (std::exception const& e) {
+      LOG(error) << "Failed to store residuals meta data file " << metaFileName << ", reason: " << e.what();
+    }
+  }
 }
 
-Slot& ResidualAggregator::emplaceNewSlot(bool front, uint64_t tStart, uint64_t tEnd)
+Slot& ResidualAggregator::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
 {
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tStart, tEnd) : cont.emplace_back(tStart, tEnd);
   slot.setContainer(std::make_unique<ResidualsContainer>());
-  slot.getContainer()->init(&mTrackResiduals);
+  slot.getContainer()->init(&mTrackResiduals, mOutputDir);
   return slot;
 }

@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <vector>
-
+#include <chrono>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/ConcreteDataMatcher.h"
@@ -68,12 +68,18 @@ class RawToDigitConverterSpec : public framework::Task
   char CheckHWAddress(short ddl, short hwAddress, short& fee);
 
  private:
-  bool mIsUsingGainCalibration;                     ///< Use gain calibration from CCDB
-  bool mIsUsingBadMap;                              ///< Use BadChannelMap to mask bad channels
-  bool mIsPedestalData;                             ///< Do not subtract pedestals if true
-  std::vector<Digit> mOutputDigits;                 ///< Container with output cells
-  std::vector<TriggerRecord> mOutputTriggerRecords; ///< Container with output cells
-  std::vector<RawDecoderError> mOutputHWErrors;     ///< Errors occured in reading data
+  bool mIsUsingGainCalibration;                                      ///< Use gain calibration from CCDB
+  bool mIsUsingBadMap;                                               ///< Use BadChannelMap to mask bad channels
+  bool mIsPedestalData;                                              ///< Do not subtract pedestals if true
+  std::vector<Digit> mOutputDigits;                                  ///< Container with output cells
+  std::vector<TriggerRecord> mOutputTriggerRecords;                  ///< Container with output cells
+  std::vector<RawDecoderError> mOutputHWErrors;                      ///< Errors occured in reading data
+  bool mIsMuteDecoderErrors = false;                                 ///< mute errors for 10 minutes
+  int mDecoderErrorsCounterWhenMuted = 0;                            ///< errors counter while errors are muted
+  int mDecoderErrorsPerMinute = 0;                                   ///< errors per minute counter
+  int mMinutesPassed = 0;                                            ///< runtime duration in minutes
+  std::chrono::time_point<std::chrono::system_clock> mStartTime;     ///< Time of start of decoding
+  std::chrono::time_point<std::chrono::system_clock> mTimeWhenMuted; ///< Time when muted errors
 };
 
 /// \brief Creating DataProcessorSpec for the CPV Digit Converter Spec

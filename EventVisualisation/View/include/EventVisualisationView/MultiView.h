@@ -18,6 +18,7 @@
 #ifndef ALICE_O2_EVENTVISUALISATION_VIEW_MULTIVIEW_H
 #define ALICE_O2_EVENTVISUALISATION_VIEW_MULTIVIEW_H
 
+#include <TGLAnnotation.h>
 #include <TGLViewer.h>
 #include <TEveGeoShape.h>
 #include <TEveScene.h>
@@ -72,6 +73,10 @@ class MultiView
   /// Returns pointer to specific projection manager
   inline TEveProjectionManager* getProjection(EProjections projection) { return mProjections[projection]; }
 
+  /// Returns the detector geometry for a given name
+  /// \param detectorName The name of the requested detector
+  TEveGeoShape* getDetectorGeometry(const std::string& detectorName);
+
   /// Draws geometry for given detector
   /// \param detectorName  The name of the detector to draw geometry of
   /// \param threeD Should 3D view be drawn
@@ -84,12 +89,15 @@ class MultiView
   void destroyAllGeometries();
 
   /// Registers an element to be drawn
-  void registerElement(TEveElement* event); //override;
+  void registerElement(TEveElement* event); // override;
+
+  /// Get annotation pointer
+  TGLAnnotation* getAnnotation() { return mAnnotation.get(); }
 
   ///
   void registerEvent(TEveElement* event) { return registerElement(event); }
   /// Removes all shapes representing current event
-  void destroyAllEvents(); //override;
+  void destroyAllEvents(); // override;
   void redraw3D();
 
  private:
@@ -103,6 +111,8 @@ class MultiView
   TEveViewer* mViews[NumberOfViews];                        ///< Array of all views
   TEveScene* mScenes[NumberOfScenes];                       ///< Array of all geometry and event scenes
   TEveProjectionManager* mProjections[NumberOfProjections]; ///< Array of all projection managers
+  std::vector<TEveGeoShape*> mDetectors;                    ///< Vector of detector geometries
+  std::unique_ptr<TGLAnnotation> mAnnotation;               ///< 3D view annotation
 
   std::string mSceneNames[NumberOfScenes];        ///< Names of event and geometry scenes
   std::string mSceneDescriptions[NumberOfScenes]; ///< Descriptions of event and geometry scenes

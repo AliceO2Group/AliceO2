@@ -42,7 +42,6 @@ void DistSTFSender::run(ProcessingContext& pc)
 {
   const auto* dh = DataRefUtils::getHeader<DataHeader*>(pc.inputs().getFirstValid(true));
   auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
-  LOG(info) << "DIST STF for run " << dh->runNumber << " orbit " << dh->firstTForbit << " creation " << creationTime << " TFid: " << dh->tfCounter;
   STFHeader stfHeader{dh->tfCounter, dh->firstTForbit, dh->runNumber};
   pc.outputs().snapshot(o2::framework::Output{gDataOriginFLP, gDataDescriptionDISTSTF, mSubSpec}, stfHeader);
   if (++mTFCount >= mMaxTF) {

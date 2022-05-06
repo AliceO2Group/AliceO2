@@ -22,7 +22,7 @@
 
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Tracker.h"
-#include "ITStracking/TrackerTraitsCPU.h"
+#include "ITStracking/TrackerTraits.h"
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/VertexerTraits.h"
 

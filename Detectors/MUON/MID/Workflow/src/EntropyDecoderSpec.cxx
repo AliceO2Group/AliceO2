@@ -16,6 +16,7 @@
 #include <vector>
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "DetectorsBase/CTFCoderBase.h"
 #include "CommonUtils/NameConf.h"
 
@@ -26,19 +27,23 @@ namespace o2
 namespace mid
 {
 
-EntropyDecoderSpec::EntropyDecoderSpec(int verbosity)
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder)
 {
   mTimer.Stop();
   mTimer.Reset();
   mCTFCoder.setVerbosity(verbosity);
 }
 
+void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
+    return;
+  }
+}
+
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>("ctf-dict");
-  if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCodersFromFile<CTF>(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
-  }
+  mCTFCoder.init<CTF>(ic);
 }
 
 void EntropyDecoderSpec::run(ProcessingContext& pc)
@@ -46,6 +51,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
 
+  mCTFCoder.updateTimeDependentParams(pc);
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
   std::array<std::vector<o2::mid::ROFRecord>, NEvTypes> rofs{};
   std::array<std::vector<o2::mid::ColumnData>, NEvTypes> cols{};
@@ -73,7 +79,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyDecoderSpec(int verbosity)
+DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 {
   std::vector<OutputSpec> outputs;
   for (o2::header::DataHeader::SubSpecificationType subSpec = 0; subSpec < NEvTypes; ++subSpec) {
@@ -81,12 +87,16 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity)
     outputs.emplace_back(OutputSpec{header::gDataOriginMID, "DATAROF", subSpec});
   }
 
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("ctf", "MID", "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict", "MID", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MID/Calib/CTFDictionary"));
+
   return DataProcessorSpec{
     "mid-entropy-decoder",
-    Inputs{InputSpec{"ctf", "MID", "CTFDATA", 0, Lifetime::Timeframe}},
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
 }
 
 } // namespace mid

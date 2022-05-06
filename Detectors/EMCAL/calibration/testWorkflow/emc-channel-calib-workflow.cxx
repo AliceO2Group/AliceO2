@@ -19,27 +19,42 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "Framework/Variant.h"
+#include "Framework/ConfigParamSpec.h"
+#include "DataFormatsEMCAL/Cell.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 #include <string>
 #include <stdexcept>
 #include <unordered_map>
 
+using namespace o2::framework;
+using namespace o2::emcal;
+
 // add workflow options, note that customization needs to be declared before
 // including Framework/runDataProcessing
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  std::vector<o2::framework::ConfigParamSpec> options{
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+  std::vector<ConfigParamSpec> options{{"calibMode", VariantType::String, "badcell", {"specify time for time calib or badcell for bad channel calib"}},
+                                       {"localRootFilePath", VariantType::String, "", {"path to local root file for storage of calibration params"}},
+                                       {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
 
-o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& cfgc)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
+  std::string strCalibType = cfgc.options().get<std::string>("calibMode");
+  std::string strFilePath = cfgc.options().get<std::string>("localRootFilePath");
+
   WorkflowSpec specs;
+  specs.emplace_back(getEMCALChannelCalibDeviceSpec(strCalibType, strFilePath));
+
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  specs.emplace_back(getEMCALChannelCalibDeviceSpec());
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
   return specs;
 }

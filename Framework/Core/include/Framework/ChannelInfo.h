@@ -11,8 +11,9 @@
 #ifndef O2_FRAMEWORK_CHANNELINFO_H
 #define O2_FRAMEWORK_CHANNELINFO_H
 
+#include "Framework/RoutingIndices.h"
 #include <string>
-#include <FairMQParts.h>
+#include <fairmq/Parts.h>
 
 #include <fairmq/FwdDecls.h>
 
@@ -47,6 +48,7 @@ struct InputChannelInfo {
   /// We start with false since we assume there is no
   /// backpressure to start with.
   bool backpressureNotified = false;
+  ChannelIndex id = {-1};
 };
 
 } // namespace o2::framework

@@ -26,6 +26,7 @@
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsZDC/BCRecData.h"
 #include "DataFormatsEMCAL/EventHandler.h"
+#include "DataFormatsPHOS/EventHandler.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
@@ -52,104 +53,6 @@ using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2::aodproducer
 {
-
-using TracksTable = o2::soa::Table<o2::aod::track::CollisionId,
-                                   o2::aod::track::TrackType,
-                                   o2::aod::track::X,
-                                   o2::aod::track::Alpha,
-                                   o2::aod::track::Y,
-                                   o2::aod::track::Z,
-                                   o2::aod::track::Snp,
-                                   o2::aod::track::Tgl,
-                                   o2::aod::track::Signed1Pt>;
-
-using TracksCovTable = o2::soa::Table<o2::aod::track::SigmaY,
-                                      o2::aod::track::SigmaZ,
-                                      o2::aod::track::SigmaSnp,
-                                      o2::aod::track::SigmaTgl,
-                                      o2::aod::track::Sigma1Pt,
-                                      o2::aod::track::RhoZY,
-                                      o2::aod::track::RhoSnpY,
-                                      o2::aod::track::RhoSnpZ,
-                                      o2::aod::track::RhoTglY,
-                                      o2::aod::track::RhoTglZ,
-                                      o2::aod::track::RhoTglSnp,
-                                      o2::aod::track::Rho1PtY,
-                                      o2::aod::track::Rho1PtZ,
-                                      o2::aod::track::Rho1PtSnp,
-                                      o2::aod::track::Rho1PtTgl>;
-
-using TracksExtraTable = o2::soa::Table<o2::aod::track::TPCInnerParam,
-                                        o2::aod::track::Flags,
-                                        o2::aod::track::ITSClusterMap,
-                                        o2::aod::track::TPCNClsFindable,
-                                        o2::aod::track::TPCNClsFindableMinusFound,
-                                        o2::aod::track::TPCNClsFindableMinusCrossedRows,
-                                        o2::aod::track::TPCNClsShared,
-                                        o2::aod::track::TRDPattern,
-                                        o2::aod::track::ITSChi2NCl,
-                                        o2::aod::track::TPCChi2NCl,
-                                        o2::aod::track::TRDChi2,
-                                        o2::aod::track::TOFChi2,
-                                        o2::aod::track::TPCSignal,
-                                        o2::aod::track::TRDSignal,
-                                        o2::aod::track::Length,
-                                        o2::aod::track::TOFExpMom,
-                                        o2::aod::track::TrackEtaEMCAL,
-                                        o2::aod::track::TrackPhiEMCAL,
-                                        o2::aod::track::TrackTime,
-                                        o2::aod::track::TrackTimeRes>;
-
-using MFTTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
-                                      o2::aod::fwdtrack::X,
-                                      o2::aod::fwdtrack::Y,
-                                      o2::aod::fwdtrack::Z,
-                                      o2::aod::fwdtrack::Phi,
-                                      o2::aod::fwdtrack::Tgl,
-                                      o2::aod::fwdtrack::Signed1Pt,
-                                      o2::aod::fwdtrack::NClusters,
-                                      o2::aod::fwdtrack::Chi2,
-                                      o2::aod::fwdtrack::TrackTime,
-                                      o2::aod::fwdtrack::TrackTimeRes>;
-
-using FwdTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
-                                      o2::aod::fwdtrack::TrackType,
-                                      o2::aod::fwdtrack::X,
-                                      o2::aod::fwdtrack::Y,
-                                      o2::aod::fwdtrack::Z,
-                                      o2::aod::fwdtrack::Phi,
-                                      o2::aod::fwdtrack::Tgl,
-                                      o2::aod::fwdtrack::Signed1Pt,
-                                      o2::aod::fwdtrack::NClusters,
-                                      o2::aod::fwdtrack::PDca,
-                                      o2::aod::fwdtrack::RAtAbsorberEnd,
-                                      o2::aod::fwdtrack::Chi2,
-                                      o2::aod::fwdtrack::Chi2MatchMCHMID,
-                                      o2::aod::fwdtrack::Chi2MatchMCHMFT,
-                                      o2::aod::fwdtrack::MatchScoreMCHMFT,
-                                      o2::aod::fwdtrack::MFTTrackId,
-                                      o2::aod::fwdtrack::MCHTrackId,
-                                      o2::aod::fwdtrack::MCHBitMap,
-                                      o2::aod::fwdtrack::MIDBitMap,
-                                      o2::aod::fwdtrack::MIDBoards,
-                                      o2::aod::fwdtrack::TrackTime,
-                                      o2::aod::fwdtrack::TrackTimeRes>;
-
-using FwdTracksCovTable = o2::soa::Table<o2::aod::fwdtrack::SigmaX,
-                                         o2::aod::fwdtrack::SigmaY,
-                                         o2::aod::fwdtrack::SigmaPhi,
-                                         o2::aod::fwdtrack::SigmaTgl,
-                                         o2::aod::fwdtrack::Sigma1Pt,
-                                         o2::aod::fwdtrack::RhoXY,
-                                         o2::aod::fwdtrack::RhoPhiX,
-                                         o2::aod::fwdtrack::RhoPhiY,
-                                         o2::aod::fwdtrack::RhoTglX,
-                                         o2::aod::fwdtrack::RhoTglY,
-                                         o2::aod::fwdtrack::RhoTglPhi,
-                                         o2::aod::fwdtrack::Rho1PtX,
-                                         o2::aod::fwdtrack::Rho1PtY,
-                                         o2::aod::fwdtrack::Rho1PtPhi,
-                                         o2::aod::fwdtrack::Rho1PtTgl>;
 
 typedef boost::tuple<int, int, int> Triplet_t;
 
@@ -228,6 +131,13 @@ class AODProducerWorkflowDPL : public Task
   // unordered map connects global indices and table indices of V0s (needed for cascades references)
   std::unordered_map<GIndex, int> mV0ToTableID;
   int mTableV0ID{0};
+
+  //  std::unordered_map<int, int> mIndexTableFwd;
+  std::vector<int> mIndexTableFwd;
+  int mIndexFwdID{0};
+  //  std::unordered_map<int, int> mIndexTableMFT;
+  std::vector<int> mIndexTableMFT;
+  int mIndexMFTID{0};
 
   // zdc helper maps to avoid a number of "if" statements
   // when filling ZDC table
@@ -378,6 +288,8 @@ class AODProducerWorkflowDPL : public Task
                                    AmbigFwdTracksCursorType& ambigFwdTracksCursor,
                                    const std::map<uint64_t, int>& bcsMap);
 
+  void fillIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices);
+
   template <typename V0CursorType, typename CascadeCursorType>
   void fillSecondaryVertices(const o2::globaltracking::RecoContainer& data, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor);
 
@@ -409,15 +321,89 @@ class AODProducerWorkflowDPL : public Task
   // helper for trd pattern
   uint8_t getTRDPattern(const o2::trd::TrackTRD& track);
 
-  o2::emcal::EventHandler<o2::emcal::Cell>* mCaloEventHandler = nullptr; ///< Pointer to the event builder for emcal cells
-
-  template <typename TCaloCells, typename TCaloTriggerRecord, typename TCaloCursor, typename TCaloTRGTableCursor>
-  void fillCaloTable(const TCaloCells& calocells, const TCaloTriggerRecord& caloCellTRGR, const TCaloCursor& caloCellCursor,
-                     const TCaloTRGTableCursor& caloCellTRGTableCursor, std::map<uint64_t, int>& bcsMap);
+  template <typename TEventHandler, typename TCaloCells, typename TCaloTriggerRecord, typename TCaloCursor, typename TCaloTRGTableCursor>
+  void fillCaloTable(TEventHandler* caloEventHandler, const TCaloCells& calocells, const TCaloTriggerRecord& caloCellTRGR,
+                     const TCaloCursor& caloCellCursor, const TCaloTRGTableCursor& caloCellTRGTableCursor,
+                     std::map<uint64_t, int>& bcsMap, int8_t caloType);
 };
 
 /// create a processor spec
 framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, std::string resFile);
+
+// helper interface for calo cells to "befriend" emcal and phos cells
+class CellHelper
+{
+ public:
+  static int8_t getTriggerBits(const o2::emcal::Cell& cell)
+  {
+    return 0; // dummy value
+  }
+
+  static int8_t getTriggerBits(const o2::phos::Cell& cell)
+  {
+    return (cell.getType() == o2::phos::ChannelType_t::TRU2x2) ? 0 : 1;
+  }
+
+  static int16_t getCellNumber(const o2::emcal::Cell& cell)
+  {
+    return cell.getTower();
+  }
+
+  static int16_t getCellNumber(const o2::phos::Cell& cell)
+  {
+    return cell.getAbsId();
+  }
+  // If this cell - trigger one?
+  static bool isTRU(const o2::emcal::Cell& cell)
+  {
+    return cell.getTRU();
+  }
+
+  static bool isTRU(const o2::phos::Cell& cell)
+  {
+    return cell.getTRU();
+  }
+
+  static int16_t getFastOrAbsID(const o2::emcal::Cell& cell)
+  {
+    return 0; // dummy value
+  }
+
+  static int16_t getFastOrAbsID(const o2::phos::Cell& cell)
+  {
+    return cell.getTRUId();
+  }
+
+  static float getAmplitude(const o2::emcal::Cell& cell)
+  {
+    return cell.getAmplitude();
+  }
+
+  static float getAmplitude(const o2::phos::Cell& cell)
+  {
+    return cell.getEnergy();
+  }
+
+  static int16_t getLnAmplitude(const o2::emcal::Cell& cell)
+  {
+    return 0; // dummy value
+  }
+
+  static int16_t getLnAmplitude(const o2::phos::Cell& cell)
+  {
+    return cell.getEnergy(); // dummy value
+  }
+
+  static float getTimeStamp(const o2::emcal::Cell& cell)
+  {
+    return cell.getTimeStamp();
+  }
+
+  static float getTimeStamp(const o2::phos::Cell& cell)
+  {
+    return cell.getTime();
+  }
+};
 
 } // namespace o2::aodproducer
 

@@ -26,8 +26,8 @@
 #include "EMCALSimulation/SimParam.h"
 #include "EMCALSimulation/LabeledDigit.h"
 #include "EMCALSimulation/DigitsWriteoutBuffer.h"
-
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsEMCAL/TriggerRecord.h"
 
 namespace o2
 {
@@ -49,76 +49,61 @@ class Digitizer : public TObject
   Digitizer& operator=(const Digitizer&) = delete;
 
   void init();
-  void initCycle();
   void clear();
-  void finish();
+
+  /// clear DigitsVectorStream
+  void flush() { mDigits.flush(); }
+
+  /// This is for the readout window that was interrupted by the end of the run
+  void finish() { mDigits.finish(); }
 
   /// Steer conversion of hits to digits
   void process(const std::vector<LabeledDigit>& labeledDigit);
 
-  void setEventTime(double t);
-  double getTriggerTime() const { return mTriggerTime; }
-  double getEventTime() const { return mEventTime; }
-  bool isLive(double t) const { return ((t - mTriggerTime) < mLiveTime); }
-  bool isLive() const { return (mEventTime < mLiveTime); }
+  void setEventTime(o2::InteractionTimeRecord record);
+  double getTriggerTime() const { return mDigits.getTriggerTime(); }
+  double getEventTime() const { return mDigits.getEventTime(); }
+  bool isLive(double t) const { return mDigits.isLive(t); }
+  bool isLive() const { return mDigits.isLive(); }
 
   void setWindowStartTime(int time) { mTimeWindowStart = time; }
 
   // function returns true if the collision occurs 600ns before the readout window is open
-  // Look here for more details https://alice.its.cern.ch/jira/browse/EMCAL-681
-  bool preTriggerCollision() const { return (mEventTime > (mLiveTime + mBusyTime - mPreTriggerTime)); }
-
-  // function returns true if the collision occurs 900ns after the readout window is open
-  bool afterTriggerCollision() const { return (mEventTime > mAfterTriggerTime && mEventTime < mLiveTime); }
-
-  bool isEmpty() const { return mEmpty; }
+  bool preTriggerCollision() const { return mDigits.preTriggerCollision(); }
 
   void fillOutputContainer(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& labels);
 
   bool doSmearEnergy() const { return mSmearEnergy; }
   double smearEnergy(double energy);
   bool doSimulateTimeResponse() const { return mSimulateTimeResponse; }
-  bool doRemoveDigitsBelowThreshold() const { return mRemoveDigitsBelowThreshold; }
-  bool doSimulateNoiseDigits() const { return mSimulateNoiseDigits; }
-  void addNoiseDigits(LabeledDigit&);
-
-  void setCoeffToNanoSecond(double cf) { mCoeffToNanoSecond = cf; }
-  double getCoeffToNanoSecond() const { return mCoeffToNanoSecond; }
 
   void sampleSDigit(const Digit& sdigit);
 
-  static double rawResponseFunction(double* x, double* par);
   /// raw pointers used here to allow interface with TF1
+  static double rawResponseFunction(double* x, double* par);
+
+  const std::vector<o2::emcal::Digit>& getDigits() const { return mDigits.getDigits(); }
+  const std::vector<o2::emcal::TriggerRecord>& getTriggerRecords() const { return mDigits.getTriggerRecords(); }
+  const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& getMCLabels() const { return mDigits.getMCLabels(); }
 
  private:
-  double mTriggerTime = -1e20;             ///< global trigger time
-  double mEventTime = 0;                   ///< global event time
-  short mEventTimeOffset = 0;              ///< event time difference from trigger time (in number of bins)
-  short mPhase = 0;                        ///< event phase
-  double mCoeffToNanoSecond = 1.0;         ///< coefficient to convert event time (Fair) to ns
-  UInt_t mROFrameMin = 0;                  ///< lowest RO frame of current digits
-  UInt_t mROFrameMax = 0;                  ///< highest RO frame of current digits
-  bool mSmearEnergy = true;                ///< do time and energy smearing
-  bool mSimulateTimeResponse = true;       ///< simulate time response
-  bool mRemoveDigitsBelowThreshold = true; ///< remove digits below threshold
-  bool mSimulateNoiseDigits = true;        ///< simulate noise digits
-  const SimParam* mSimParam = nullptr;     ///< SimParam object
-  bool mEmpty = true;                      ///< Digitizer contains no digits/labels
+  short mEventTimeOffset = 0;          ///< event time difference from trigger time (in number of bins)
+  short mPhase = 0;                    ///< event phase
+  UInt_t mROFrameMin = 0;              ///< lowest RO frame of current digits
+  UInt_t mROFrameMax = 0;              ///< highest RO frame of current digits
+  bool mSmearEnergy = true;            ///< do time and energy smearing
+  bool mSimulateTimeResponse = true;   ///< simulate time response
+  const SimParam* mSimParam = nullptr; ///< SimParam object
 
   std::vector<Digit> mTempDigitVector; ///< temporary digit storage
-  std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits; ///< used to sort digits and labels by tower
-  // o2::emcal::DigitsWriteoutBuffer mDigits; ///< used to sort digits and labels by tower
+  // std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits; ///< used to sort digits and labels by tower
+  o2::emcal::DigitsWriteoutBuffer mDigits; ///< used to sort digits and labels by tower
 
-  TRandom3* mRandomGenerator = nullptr;                  // random number generator
-  std::vector<int> mTimeBinOffset;                       // offset of first time bin
-  std::vector<std::vector<double>> mAmplitudeInTimeBins; // amplitude of signal for each time bin
+  TRandom3* mRandomGenerator = nullptr;                  ///< random number generator
+  std::vector<std::vector<double>> mAmplitudeInTimeBins; ///< amplitude of signal for each time bin
 
-  float mLiveTime = 1500;        // EMCal live time (ns)
-  float mBusyTime = 35000;       // EMCal busy time (ns)
-  float mAfterTriggerTime = 900; // The time (ns) after the readout window is open in which collisions that occurs will be discarded
-  float mPreTriggerTime = 600;   // The time (ns) before the readout window is open in which collisions that occurs before the readout window is open and make hits during the live time
-  int mTimeWindowStart = 4;      // The start of the time window
-  int mDelay = 7;                // number of (full) time bins corresponding to the signal time delay
+  int mTimeWindowStart = 7; ///< The start of the time window
+  int mDelay = 7;           ///< number of (full) time bins corresponding to the signal time delay
 
   ClassDefOverride(Digitizer, 1);
 };

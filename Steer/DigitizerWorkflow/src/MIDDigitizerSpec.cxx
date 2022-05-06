@@ -28,7 +28,7 @@
 #include "MIDSimulation/ChamberResponse.h"
 #include "MIDSimulation/ChamberEfficiencyResponse.h"
 #include "MIDSimulation/Geometry.h"
-#include "MIDSimulation/MCLabel.h"
+#include "DataFormatsMID/MCLabel.h"
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;

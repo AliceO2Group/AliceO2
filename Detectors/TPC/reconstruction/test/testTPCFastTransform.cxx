@@ -194,6 +194,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
   BOOST_CHECK_MESSAGE(fabs(statDiffFile) < 1.e-10, "test of file streamer failed, average difference " << statDiffFile << " cm is too large");
 
   double maxDeviation = fastTransform->getCorrection().testInverse();
+  std::cout << "max deviation for inverse correction " << maxDeviation << " cm " << std::endl;
   BOOST_CHECK_MESSAGE(fabs(maxDeviation) < 1.e-2, "test of inverse correction map failed, max difference " << maxDeviation << " cm is too large");
 }
 

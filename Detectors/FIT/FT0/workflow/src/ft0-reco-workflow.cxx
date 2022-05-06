@@ -15,6 +15,7 @@
 #include "Framework/CallbacksPolicy.h"
 #include "CommonUtils/NameConf.h"
 #include <string>
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
 
@@ -22,6 +23,12 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
   o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:FT0|ft0).*[W,w]riter.*"));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -46,18 +53,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   LOG(info) << "WorkflowSpec defineDataProcessing";
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-
   // write the configuration used for the digitizer workflow
   o2::conf::ConfigurableParam::writeINI("o2-ft0-recoflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto ccdbpath = o2::base::NameConf::getCCDBServer();
-  auto disableRootInp =
-    configcontext.options().get<bool>("disable-root-input");
+  auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 
   LOG(info) << "WorkflowSpec getRecoWorkflow useMC " << useMC << " CCDB  " << ccdbpath;
-  auto wf = o2::fit::getRecoWorkflow(useMC, ccdbpath, disableRootInp, disableRootOut);
+  auto wf = o2::ft0::getRecoWorkflow(useMC, ccdbpath, disableRootInp, disableRootOut);
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);

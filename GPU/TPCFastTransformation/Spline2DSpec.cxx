@@ -204,6 +204,17 @@ void Spline2DContainer<DataT>::approximateFunction(
   helper.approximateFunction(*reinterpret_cast<Spline2D<DataT>*>(this), x1Min, x1Max, x2Min, x2Max, F, nAuxiliaryDataPointsX1, nAuxiliaryDataPointsX2);
 }
 
+template <typename DataT>
+void Spline2DContainer<DataT>::approximateFunctionViaDataPoints(
+  double x1Min, double x1Max, double x2Min, double x2Max,
+  std::function<void(double x1, double x2, double f[])> F,
+  int nAuxiliaryDataPointsX1, int nAuxiliaryDataPointsX2)
+{
+  /// approximate a function F with this spline
+  Spline2DHelper<DataT> helper;
+  helper.approximateFunctionViaDataPoints(*reinterpret_cast<Spline2D<DataT>*>(this), x1Min, x1Max, x2Min, x2Max, F, nAuxiliaryDataPointsX1, nAuxiliaryDataPointsX2);
+}
+
 #ifndef GPUCA_ALIROOT_LIB
 template <typename DataT>
 int Spline2DContainer<DataT>::writeToFile(TFile& outf, const char* name)

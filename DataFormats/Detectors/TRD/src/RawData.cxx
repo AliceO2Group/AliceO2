@@ -61,6 +61,8 @@ uint16_t buildTRDFeeID(int supermodule, int side, int endpoint)
   feeid.supermodule = supermodule;
   feeid.side = side;
   feeid.endpoint = endpoint;
+  feeid.unused1 = 0;
+  feeid.unused2 = 0;
   return feeid.word;
 }
 
@@ -331,20 +333,16 @@ bool trackletHCHeaderSanityCheck(o2::trd::TrackletHCHeader& header)
   //figure out but for now, just approve.
   return true;
   if (header.one != 1) {
-    LOG(warn) << "Sanity check tracklethcheader.one is not 1";
     goodheader = false;
   }
   if (header.supermodule > 17) {
-    LOG(warn) << "Sanity check tracklethcheader.supermodule>17";
     goodheader = false;
   }
   //if(header.format != )  only certain format versions are permitted come back an fill in if needed.
   if (header.layer > 6) {
-    LOG(warn) << "Sanity check tracklethcheader.laywer>6";
     goodheader = false;
   }
   if (header.stack > 5) {
-    LOG(warn) << "Sanity check tracklethcheader.stack>5";
     goodheader = false;
   }
   return goodheader;

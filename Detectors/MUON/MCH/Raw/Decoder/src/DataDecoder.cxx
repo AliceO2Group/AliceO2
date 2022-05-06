@@ -19,11 +19,12 @@
 #include "MCHRawDecoder/DataDecoder.h"
 
 #include <fstream>
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 #include "Headers/RAWDataHeader.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "MCHBase/DecoderError.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "Framework/Logger.h"
 #include "MCHRawDecoder/ErrorCodes.h"
@@ -264,7 +265,7 @@ void DataDecoder::setFirstOrbitInTF(uint32_t orbit)
 
 //_________________________________________________________________________________________________
 
-void DataDecoder::decodeBuffer(gsl::span<const std::byte> buf)
+bool DataDecoder::decodeBuffer(gsl::span<const std::byte> buf)
 {
   if (mDebug) {
     std::cout << "\n\n============================\nStart of new buffer\n";
@@ -289,7 +290,12 @@ void DataDecoder::decodeBuffer(gsl::span<const std::byte> buf)
     auto pageSize = o2::raw::RDHUtils::getOffsetToNext(rdh);
 
     gsl::span<const std::byte> page(reinterpret_cast<const std::byte*>(rdh), pageSize);
-    decodePage(page);
+    try {
+      decodePage(page);
+    } catch (const std::exception& e) {
+      mErrors.emplace_back(DecoderError(0, 0, 0, ErrorNonRecoverableDecodingError));
+      return false;
+    }
 
     pageStart += pageSize;
   }
@@ -300,6 +306,7 @@ void DataDecoder::decodeBuffer(gsl::span<const std::byte> buf)
     std::cout << "[decodeBuffer] mDigits size: " << mDigits.size() << std::endl;
     dumpDigits();
   }
+  return true;
 }
 
 //_________________________________________________________________________________________________
@@ -612,11 +619,15 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
     updateMergerRecord(mergerChannelId, mergerBoardId, mergerChannelBitmask, mDigits.size() - 1);
   };
 
-  auto errorHandler = [&](DsElecId dsId,
+  auto errorHandler = [&](DsElecId dsElecId,
                           int8_t chip,
                           uint32_t error) {
-    std::string msg = fmt::format("{} chip {:2d} error {:4d} ({})", asString(dsId), chip, error, errorCodeAsString(error));
+    std::string msg = fmt::format("{} chip {:2d} error {:4d} ({})", asString(dsElecId), chip, error, errorCodeAsString(error));
     mErrorMap[msg]++;
+
+    auto solarId = dsElecId.solarId();
+    auto dsId = dsElecId.elinkId();
+    mErrors.emplace_back(o2::mch::DecoderError(solarId, dsId, chip, error));
   };
 
   patchPage(page, mDebug);
@@ -820,6 +831,31 @@ void DataDecoder::computeDigitsTimeBCRst()
 
 //_________________________________________________________________________________________________
 
+void DataDecoder::checkDigitsTime(int minDigitOrbitAccepted, int maxDigitOrbitAccepted)
+{
+  if (maxDigitOrbitAccepted < 0) {
+    maxDigitOrbitAccepted = mOrbitsInTF - 1;
+  }
+
+  for (auto& digit : mDigits) {
+    auto& d = digit.digit;
+    auto& info = digit.info;
+    auto tfTime = d.getTime();
+    if (tfTime == DataDecoder::tfTimeInvalid) {
+      // add invalid digit time error
+      mErrors.emplace_back(o2::mch::DecoderError(info.solar, info.ds, info.chip, ErrorInvalidDigitTime));
+    } else {
+      auto orbit = tfTime / o2::constants::lhc::LHCMaxBunches;
+      if (orbit < minDigitOrbitAccepted || orbit > maxDigitOrbitAccepted) {
+        // add bad digit time error
+        mErrors.emplace_back(o2::mch::DecoderError(info.solar, info.ds, info.chip, ErrorBadDigitTime));
+      }
+    }
+  }
+}
+
+//_________________________________________________________________________________________________
+
 void DataDecoder::computeDigitsTime()
 {
   switch (mTimeRecoMode) {
@@ -920,6 +956,7 @@ void DataDecoder::reset()
 {
   mDigits.clear();
   mOrbits.clear();
+  mErrors.clear();
   memset(mMergerRecordsReady.data(), 0, sizeof(uint64_t) * mMergerRecordsReady.size());
 }
 

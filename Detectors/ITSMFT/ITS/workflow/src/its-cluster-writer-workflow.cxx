@@ -11,8 +11,15 @@
 
 #include "ITSWorkflow/ClusterWriterWorkflow.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:ITS|its).*[W,w]riter.*"));
+}
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {

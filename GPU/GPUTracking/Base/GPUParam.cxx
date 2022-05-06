@@ -139,10 +139,6 @@ void GPUParam::UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProce
   if (p) {
     par.debugLevel = p->debugLevel;
     par.resetTimers = p->resetTimers;
-    if (p->automaticQPtThresholds) {
-      rec.maxTrackQPt = 1.f / GPUCA_MIN_TRACK_PTB5_DEFAULT / par.qptB5Scaler;
-      rec.tpc.rejectQPt = 1.f / GPUCA_MIN_TRACK_PTB5_REJECT / par.qptB5Scaler;
-    }
   }
 }
 
@@ -249,7 +245,7 @@ std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexp
   return "#ifndef GPUCA_GPUCODE_DEVICE\n"
          "#include <string>\n"
          "#endif\n"
-         "namespace o2::gpu { class GPUDisplayFrontend; }\n" +
+         "namespace o2::gpu { class GPUDisplayFrontendInterface; }\n" +
          qConfigPrintRtc(std::make_tuple(&param.rec.tpc, &param.rec.trd, &param.rec, &param.par), useConstexpr);
 }
 

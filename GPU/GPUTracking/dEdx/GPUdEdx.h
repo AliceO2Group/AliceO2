@@ -145,7 +145,16 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
   const int region = param.tpcGeometry.GetRegion(padRow);
   z = CAMath::Abs(z);
   const float threshold = calibContainer->getZeroSupressionThreshold(slice, padRow, padPos); // TODO: Use the mean zero supresion threshold of all pads in the cluster?
-  const float qTotIn = CAMath::Clamp(qtot, calibContainer->getMinqTot(), calibContainer->getMaxqTot());
+  const bool useFullGainMap = calibContainer->isUsageOfFullGainMap();
+  float qTotIn = CAMath::Clamp(qtot, calibContainer->getMinqTot(), calibContainer->getMaxqTot());
+  const float fullGainMapGain = calibContainer->getGain(slice, padRow, padPos);
+  if (useFullGainMap) {
+    qmax /= fullGainMapGain;
+    qtot /= fullGainMapGain;
+  } else {
+    qTotIn *= fullGainMapGain;
+  }
+
   const float qMaxTopologyCorr = calibContainer->getTopologyCorrection(region, o2::tpc::ChargeType::Max, tanTheta, snp, z, absRelPad, relTime, threshold, qTotIn);
   const float qTotTopologyCorr = calibContainer->getTopologyCorrection(region, o2::tpc::ChargeType::Tot, tanTheta, snp, z, absRelPad, relTime, threshold, qTotIn);
   qmax /= qMaxTopologyCorr;
@@ -155,11 +164,14 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
     slice,
     static_cast<tpc::GEMstack>(roc)};
 
-  // getting the residual dE/dx correction
-  const float qMaxResidualCorr = calibContainer->getResidualCorrection(stack, tpc::ChargeType::Max, z, trackTgl);
-  const float qTotResidualCorr = calibContainer->getResidualCorrection(stack, tpc::ChargeType::Tot, z, trackTgl);
+  const float qMaxResidualCorr = calibContainer->getResidualCorrection(stack, tpc::ChargeType::Max, trackTgl, trackSnp);
+  const float qTotResidualCorr = calibContainer->getResidualCorrection(stack, tpc::ChargeType::Tot, trackTgl, trackSnp);
   qmax /= qMaxResidualCorr;
   qtot /= qTotResidualCorr;
+
+  const float residualGainMapGain = calibContainer->getResidualGain(slice, padRow, padPos);
+  qmax /= residualGainMapGain;
+  qtot /= residualGainMapGain;
 
   mChargeTot[mCount] = (GPUCA_DEDX_STORAGE_TYPE)(qtot * scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::factor + scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::round);
   mChargeMax[mCount++] = (GPUCA_DEDX_STORAGE_TYPE)(qmax * scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::factor + scalingFactor<GPUCA_DEDX_STORAGE_TYPE>::round);

@@ -20,12 +20,14 @@
 #include <vector>
 #include <chrono>
 #include <gsl/gsl>
+#include "fmt/format.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/InputRecordWalker.h"
 #include "Framework/Logger.h"
 #include "Framework/Output.h"
 #include "Framework/Task.h"
+#include "Framework/WorkflowSpec.h"
 #include "DataFormatsMID/Cluster.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
@@ -34,8 +36,9 @@
 #include "MIDClustering/PreClusterizer.h"
 #include "MIDClustering/Clusterizer.h"
 #include "MIDSimulation/ClusterLabeler.h"
-#include "MIDSimulation/MCLabel.h"
+#include "DataFormatsMID/MCLabel.h"
 #include "MIDSimulation/PreClusterLabeler.h"
+#include "MIDWorkflow/ColumnDataSpecsUtils.h"
 
 namespace of = o2::framework;
 
@@ -64,7 +67,6 @@ class ClusterizerDeviceDPL
     }
 
     auto stop = [this]() {
-      LOG(info) << "Capacities: ROFRecords: " << mClusterizer.getROFRecords().capacity() << "  preclusters: " << mPreClusterizer.getPreClusters().capacity() << "  clusters: " << mClusterizer.getClusters().capacity();
       double scaleFactor = 1.e6 / mNROFs;
       LOG(info) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  pre-clustering: " << mTimerPreCluster.count() * scaleFactor << " us  clustering: " << mTimerCluster.count() * scaleFactor << " us";
     };
@@ -75,22 +77,8 @@ class ClusterizerDeviceDPL
   {
     auto tStart = std::chrono::high_resolution_clock::now();
 
-    std::vector<of::InputSpec> filter = {
-      {"check_data", of::ConcreteDataMatcher{header::gDataOriginMID, "DATA", 0}, of::Lifetime::Timeframe},
-      {"check_rof", of::ConcreteDataMatcher{header::gDataOriginMID, "DATAROF", 0}, of::Lifetime::Timeframe},
-    };
-
-    gsl::span<const ColumnData> patterns;
-    gsl::span<const ROFRecord> inROFRecords;
-
-    for (auto const& inputRef : of::InputRecordWalker(pc.inputs(), filter)) {
-      if (of::DataRefUtils::match(inputRef, "mid_data")) {
-        patterns = pc.inputs().get<gsl::span<o2::mid::ColumnData>>(inputRef);
-      }
-      if (of::DataRefUtils::match(inputRef, "mid_data_rof")) {
-        inROFRecords = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>(inputRef);
-      }
-    }
+    gsl::span<const ColumnData> patterns = specs::getData(pc, "mid_cluster_in", EventType::Standard);
+    gsl::span<const ROFRecord> inROFRecords = specs::getRofs(pc, "mid_cluster_in", EventType::Standard);
 
     // Pre-clustering
     auto tAlgoStart = std::chrono::high_resolution_clock::now();
@@ -105,7 +93,7 @@ class ClusterizerDeviceDPL
 
     if (mIsMC) {
       // Labelling
-      std::unique_ptr<const o2::dataformats::MCTruthContainer<MCLabel>> labels = mIsMC ? pc.inputs().get<const o2::dataformats::MCTruthContainer<MCLabel>*>("mid_data_labels") : nullptr;
+      auto labels = specs::getLabels(pc, "mid_cluster_in");
       mPreClusterLabeler.process(mPreClusterizer.getPreClusters(), *labels, mPreClusterizer.getROFRecords(), inROFRecords);
       mClusterLabeler.process(mPreClusterizer.getPreClusters(), mPreClusterLabeler.getContainer(), mClusterizer.getClusters(), mCorrelation);
       // Clear the index correlations that will be used in the next cluster processing
@@ -137,19 +125,14 @@ class ClusterizerDeviceDPL
   unsigned long mNROFs{0};                           ///< Total number of processed ROFs
 };
 
-framework::DataProcessorSpec getClusterizerSpec(bool isMC)
+framework::DataProcessorSpec getClusterizerSpec(bool isMC, std::string_view inDataDesc, std::string_view inRofDesc, std::string_view inLabelsDesc)
 {
-  std::vector<of::InputSpec> inputSpecs;
-  inputSpecs.emplace_back("mid_data", of::ConcreteDataTypeMatcher(header::gDataOriginMID, "DATA"), of::Lifetime::Timeframe);
-  inputSpecs.emplace_back("mid_data_rof", of::ConcreteDataTypeMatcher(header::gDataOriginMID, "DATAROF"), of::Lifetime::Timeframe);
-
-  std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{"MID", "CLUSTERS"}, of::OutputSpec{"MID", "CLUSTERSROF"}};
+  std::vector<of::OutputSpec> outputSpecs{of::OutputSpec{header::gDataOriginMID, "CLUSTERS"}, of::OutputSpec{header::gDataOriginMID, "CLUSTERSROF"}};
 
   if (isMC) {
-    inputSpecs.emplace_back(of::InputSpec{"mid_data_labels", "MID", "DATALABELS"});
-
-    outputSpecs.emplace_back(of::OutputSpec{"MID", "CLUSTERSLABELS"});
+    outputSpecs.emplace_back(of::OutputSpec{header::gDataOriginMID, "CLUSTERSLABELS"});
   }
+  auto inputSpecs = specs::buildInputSpecs("mid_cluster_in", inDataDesc, inRofDesc, inLabelsDesc, isMC);
 
   return of::DataProcessorSpec{
     "MIDClusterizer",

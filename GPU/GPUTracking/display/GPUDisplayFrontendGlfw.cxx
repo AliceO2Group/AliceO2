@@ -12,10 +12,9 @@
 /// \file GPUDisplayFrontendGlfw.cxx
 /// \author David Rohr
 
-// GL EXT must be the first header
-#include "GPUDisplayBackend.h"
-
 #include "GPUDisplayFrontendGlfw.h"
+#include "GPUDisplayBackend.h"
+#include "GPUDisplayGUIWrapper.h"
 #include "GPULogging.h"
 
 #if defined(GPUCA_O2_LIB) && !defined(GPUCA_DISPLAY_GL3W) // Hack: we have to define this in order to initialize gl3w, cannot include the header as it clashes with glew
@@ -44,6 +43,12 @@ extern "C" int gl3wInit();
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
+
+GPUDisplayFrontendGlfw::GPUDisplayFrontendGlfw()
+{
+  mFrontendType = TYPE_GLFW;
+  mFrontendName = "GLFW";
+}
 
 static GPUDisplayFrontendGlfw* me = nullptr;
 
@@ -212,8 +217,8 @@ void GPUDisplayFrontendGlfw::mouseButton_callback(GLFWwindow* window, int button
     } else if (button == 1) {
       me->mMouseDnR = true;
     }
-    me->mMouseDnX = me->mouseMvX;
-    me->mMouseDnY = me->mouseMvY;
+    me->mMouseDnX = me->mMouseMvX;
+    me->mMouseDnY = me->mMouseMvY;
   } else if (action == GLFW_RELEASE) {
     if (button == 0) {
       me->mMouseDn = false;
@@ -227,8 +232,8 @@ void GPUDisplayFrontendGlfw::scroll_callback(GLFWwindow* window, double x, doubl
 
 void GPUDisplayFrontendGlfw::cursorPos_callback(GLFWwindow* window, double x, double y)
 {
-  me->mouseMvX = x;
-  me->mouseMvY = y;
+  me->mMouseMvX = x;
+  me->mMouseMvY = y;
 }
 
 void GPUDisplayFrontendGlfw::resize_callback(GLFWwindow* window, int width, int height) { me->ResizeScene(width, height); }
@@ -267,7 +272,7 @@ int GPUDisplayFrontendGlfw::FrontendMain()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, 0);
     glfwWindowHint(GLFW_OPENGL_PROFILE, mBackend->CoreProfile() ? GLFW_OPENGL_CORE_PROFILE : GLFW_OPENGL_COMPAT_PROFILE);
   }
-  mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, GL_WINDOW_NAME, nullptr, nullptr);
+  mWindow = glfwCreateWindow(INIT_WIDTH, INIT_HEIGHT, DISPLAY_WINDOW_NAME, nullptr, nullptr);
   if (!mWindow) {
     fprintf(stderr, "Error creating glfw window\n");
     glfwTerminate();

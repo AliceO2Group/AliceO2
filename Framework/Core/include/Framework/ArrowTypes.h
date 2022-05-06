@@ -73,6 +73,11 @@ struct arrow_array_for<int[N]> {
   using value_type = int;
 };
 template <int N>
+struct arrow_array_for<short[N]> {
+  using type = arrow::FixedSizeListArray;
+  using value_type = short;
+};
+template <int N>
 struct arrow_array_for<double[N]> {
   using type = arrow::FixedSizeListArray;
   using value_type = double;

@@ -157,14 +157,21 @@ struct BinningPolicy {
   pack<C, Cs...> getColumns() const { return pack<C, Cs...>{}; }
 
  private:
-  int getBinAt(unsigned int i, unsigned int j, unsigned int k) const
+  // We substract 1 to account for VARIABLE_WIDTH in the bins vector
+  // We substract second 1 if we omit values below minima (underflow, mapped to -1)
+  int getBinAt(unsigned int iRaw, unsigned int jRaw, unsigned int kRaw) const
   {
+    int shiftBinsWithoutOverflow = mIgnoreOverflows ? 1 : 0;
+    unsigned int i = iRaw - 1 - shiftBinsWithoutOverflow;
+    unsigned int j = jRaw - 1 - shiftBinsWithoutOverflow;
+    unsigned int k = kRaw - 1 - shiftBinsWithoutOverflow;
+    auto xBinsCount = this->mBins[0].size() - 1 - shiftBinsWithoutOverflow;
     if constexpr (sizeof...(Cs) == 0) {
-      return i - 1;
+      return i;
     } else if constexpr (sizeof...(Cs) == 1) {
-      return (i - 1) + (j - 1) * this->mBins[0].size();
+      return i + j * xBinsCount;
     } else if constexpr (sizeof...(Cs) == 2) {
-      return (i - 1) + (j - 1) * this->mBins[0].size() + (k - 1) * (this->mBins[0].size() + this->mBins[1].size());
+      return i + j * xBinsCount + k * xBinsCount * (this->mBins[1].size() - 1 - shiftBinsWithoutOverflow);
     } else {
       return -1;
     }
@@ -177,7 +184,9 @@ struct BinningPolicy {
       this->mBins[ind].clear();
       this->mBins[ind].resize(nBins + 2);
       this->mBins[ind][0] = VARIABLE_WIDTH;
-      std::iota(std::begin(this->mBins[ind]) + 1, std::end(this->mBins[ind]), bins[2] - bins[1] / nBins);
+      for (int i = 0; i <= nBins; i++) {
+        this->mBins[ind][i + 1] = bins[1] + i * (bins[2] - bins[1]) / nBins;
+      }
     }
   }
 

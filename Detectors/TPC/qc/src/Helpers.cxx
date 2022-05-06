@@ -76,7 +76,7 @@ void helpers::setStyleHistogram2D(std::vector<TH2F>& histos)
 //______________________________________________________________________________
 bool helpers::newZSCalib(const o2::tpc::CalDet<float>& refPedestal, const o2::tpc::CalDet<float>& refNoise, const o2::tpc::CalDet<float>& pedestal)
 {
-  static const o2::tpc::Mapper& mapper = o2::tpc::Mapper::instance();
+  const o2::tpc::Mapper& mapper = o2::tpc::Mapper::instance();
 
   o2::tpc::CalDet<float> diffCalDet = refPedestal - pedestal;
 

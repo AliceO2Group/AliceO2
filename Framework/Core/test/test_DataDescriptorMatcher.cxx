@@ -153,6 +153,28 @@ BOOST_AUTO_TEST_CASE(TestMatcherInvariants)
           ConstantValueMatcher{true}))};
     BOOST_CHECK_EQUAL(matcherA, matcherB);
   }
+
+  {
+    DataDescriptorMatcher matcherA{
+      DataDescriptorMatcher::Op::Not,
+      OriginValueMatcher{"TPC"}};
+    DataDescriptorMatcher matcherB{
+      DataDescriptorMatcher::Op::Not,
+      DescriptionValueMatcher{"TRACKLET"}};
+    DataDescriptorMatcher matcherC{
+      DataDescriptorMatcher::Op::Not,
+      SubSpecificationTypeValueMatcher{1}};
+
+    BOOST_CHECK(matcherA.match(header0, context) == false);
+    BOOST_CHECK(matcherA.match(header1, context) == true);
+    BOOST_CHECK(matcherA.match(header4, context) == true);
+    BOOST_CHECK(matcherB.match(header0, context) == true);
+    BOOST_CHECK(matcherB.match(header1, context) == false);
+    BOOST_CHECK(matcherB.match(header4, context) == false);
+    BOOST_CHECK(matcherC.match(header0, context) == false);
+    BOOST_CHECK(matcherC.match(header1, context) == true);
+    BOOST_CHECK(matcherC.match(header4, context) == true);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(TestSimpleMatching)

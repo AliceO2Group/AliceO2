@@ -92,8 +92,14 @@ if(BUILD_EVENT_DISPLAY)
     if (Vulkan_GLSLC_EXECUTABLE STREQUAL "Vulkan_GLSLC_EXECUTABLE-NOTFOUND")
       message(FATAL_ERROR ${Vulkan_GLSLC_EXECUTABLE})
     endif()
+    if(BUILD_EVENT_DISPLAY_WAYLAND)
+      find_package(O2GPUWayland REQUIRED)
+    endif()
   else()
     set(Vulkan_FOUND OFF)
+  endif()
+  if(BUILD_EVENT_DISPLAY_QT)
+    find_package(Qt5 COMPONENTS Widgets REQUIRED)
   endif()
 else()
   set(OpenGL_FOUND OFF)
@@ -142,7 +148,6 @@ include_directories(${GPU_DIR}/Common
                     ${GPUTRACKING_DIR}/Base/opencl-common
                     ${GPUTRACKING_DIR}/dEdx
                     ${GPUTRACKING_DIR}/TPCConvert
-                    ${GPUTRACKING_DIR}/display
                     ${GPUTRACKING_DIR}/Global
                     ${GPUTRACKING_DIR}/HLTHeaders
                     ${GPUTRACKING_DIR}/Merger
@@ -242,10 +247,8 @@ if(CONFIG_VC)
 endif()
 
 if(BUILD_EVENT_DISPLAY)
-  target_link_libraries(standalone_support PUBLIC glfw)
   if(CONFIG_GL3W)
     target_sources(GPUTracking PRIVATE ${GPUTRACKING_DIR}/display/3rdparty/gl3w.c)
-    target_compile_definitions(GPUTracking PUBLIC GPUCA_DISPLAY_GL3W)
   endif()
   target_sources(GPUTracking PRIVATE ${GPUTRACKING_DIR}/display/3rdparty/HandMadeMath/HandMadeMathImpl.cxx)
   target_include_directories(GPUTracking SYSTEM PUBLIC ${GPUTRACKING_DIR}/display/3rdparty)
@@ -272,7 +275,7 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 # Installation
-install(TARGETS ca GPUTracking TPCFastTransformation standalone_support)
+install(TARGETS ca TPCFastTransformation standalone_support)
 install(FILES "cmake/makefile" DESTINATION "${CMAKE_INSTALL_PREFIX}")
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${O2_DIR} ${CMAKE_INSTALL_PREFIX}/src)")
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/config.cmake ${CMAKE_INSTALL_PREFIX}/config.cmake)")

@@ -20,11 +20,13 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
+#include "CCDB/BasicCCDBManager.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 #endif
 
 void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile = "o2sim_HitsITS.root",
                    std::string inputGeom = "", std::string paramfile = "o2sim_par.root",
-                   std::string dictfile = "")
+                   long timestamp = 0)
 {
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 
@@ -51,6 +53,11 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                  o2::math_utils::TransformType::L2G)); // request cached transforms
 
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL("http://alice-ccdb.cern.ch");
+  mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());
+  const o2::itsmft::TopologyDictionary* dict = mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary");
+
   // Hits
   TFile fileH(hitfile.data());
   TTree* hitTree = (TTree*)fileH.Get("o2sim");
@@ -68,17 +75,6 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
   auto pattBranch = clusTree->GetBranch("ITSClusterPatt");
   if (pattBranch) {
     pattBranch->SetAddress(&patternsPtr);
-  }
-  if (dictfile.empty()) {
-    dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
-  }
-  o2::itsmft::TopologyDictionary dict;
-  std::ifstream file(dictfile.c_str());
-  if (file.good()) {
-    LOG(info) << "Running with dictionary: " << dictfile.c_str();
-    dict.readFromFile(dictfile);
-  } else {
-    LOG(info) << "Running without dictionary !";
   }
 
   // ROFrecords
@@ -152,15 +148,15 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
       int npix = 0;
       auto pattID = cluster.getPatternID();
       o2::math_utils::Point3D<float> locC;
-      if (pattID == o2::itsmft::CompCluster::InvalidPatternID || dict.isGroup(pattID)) {
+      if (pattID == o2::itsmft::CompCluster::InvalidPatternID || dict->isGroup(pattID)) {
         o2::itsmft::ClusterPattern patt(pattIt);
         npix = patt.getNPixels();
-        locC = dict.getClusterCoordinates(cluster, patt, false);
+        locC = dict->getClusterCoordinates(cluster, patt, false);
       } else {
-        locC = dict.getClusterCoordinates(cluster);
-        errX = dict.getErrX(pattID);
-        errZ = dict.getErrZ(pattID);
-        npix = dict.getNpixels(pattID);
+        locC = dict->getClusterCoordinates(cluster);
+        errX = dict->getErrX(pattID);
+        errZ = dict->getErrZ(pattID);
+        npix = dict->getNpixels(pattID);
       }
       auto chipID = cluster.getSensorID();
       // Transformation to the local --> global

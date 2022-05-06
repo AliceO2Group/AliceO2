@@ -77,6 +77,7 @@ class MatchITSTPCQC
   void getHistos(TObjArray& objar);
   void setSources(GID::mask_t src) { mSrc = src; }
   void setUseMC(bool b) { mUseMC = b; }
+  bool getUseMC() const { return mUseMC; }
   void deleteHistograms();
   void setGRPFileName(std::string fn) { mGRPFileName = fn; }
   void setGeomFileName(std::string fn) { mGeomFileName = fn; }
@@ -114,7 +115,6 @@ class MatchITSTPCQC
   std::unordered_map<o2::MCCompLabel, LblInfo> mMapTPCLabels; // map with labels that have been found for the unmatched TPC tracks; key is the label,
                                                               // value is the LblInfo with the id of the track with the highest number of TPC clusters found
                                                               // with that label so far, and the flag to say if it is a physical primary or not
-  std::vector<int> mSelectedTPCtracks;                        // vector with indices of selected TPC tracks
   o2::steer::MCKinematicsReader mcReader;                     // reader of MC information
 
   TH1F* mPtTPC = nullptr;

@@ -15,6 +15,8 @@
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
 #include "IrregularSpline1D.h"
+#include "GPUCommonLogger.h"
+
 #include <cmath>
 #include <vector>
 
@@ -205,14 +207,14 @@ void IrregularSpline1D::constructRegular(int numberOfKnots)
 void IrregularSpline1D::print() const
 {
 #if !defined(GPUCA_GPUCODE)
-  std::cout << " Irregular Spline 1D: " << std::endl;
-  std::cout << "  mNumberOfKnots = " << mNumberOfKnots << std::endl;
-  std::cout << "  mNumberOfAxisBins = " << mNumberOfAxisBins << std::endl;
-  std::cout << "  mBin2KnotMapOffset = " << mBin2KnotMapOffset << std::endl;
-  std::cout << "  knots: ";
+  LOG(info) << " Irregular Spline 1D: ";
+  LOG(info) << "  mNumberOfKnots = " << mNumberOfKnots;
+  LOG(info) << "  mNumberOfAxisBins = " << mNumberOfAxisBins;
+  LOG(info) << "  mBin2KnotMapOffset = " << mBin2KnotMapOffset;
+  LOG(info) << "  knots: ";
   for (int i = 0; i < mNumberOfKnots; i++) {
-    std::cout << getKnot(i).u << " ";
+    LOG(info) << getKnot(i).u << " ";
   }
-  std::cout << std::endl;
+  LOG(info);
 #endif
 }
