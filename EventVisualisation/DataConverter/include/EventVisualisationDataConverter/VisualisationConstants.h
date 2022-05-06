@@ -33,6 +33,9 @@ enum EVisualisationGroup {
   MFT,
   MCH,
   MID,
+  EMC,
+  PHS,
+  CPV,
   NvisualisationGroups
 };
 
@@ -43,7 +46,10 @@ const std::string gVisualisationGroupName[NvisualisationGroups] = {
   "TOF",
   "MFT",
   "MCH",
-  "MID"};
+  "MID",
+  "EMC",
+  "PHS",
+  "CPV"};
 
 const bool R3Visualisation[NvisualisationGroups] = {
   true, //"ITS",
@@ -52,18 +58,23 @@ const bool R3Visualisation[NvisualisationGroups] = {
   true, //"TOF",
   true, // "MFT"
   true, //"MCH",
-  true  //"MID",
+  true, //"MID",
+  true, //"EMC",
+  true, //"PHS",
+  true, // "CPV"
 };
 
 enum EVisualisationDataType {
-  Clusters,  ///< Reconstructed clusters (RecPoints)
-  Tracks,    ///< Event Summary Data
-  NdataTypes ///< number of supported data types
+  Clusters,     ///< Reconstructed clusters (RecPoints)
+  Tracks,       ///< Event Summary Data
+  Calorimeters, ///< Calorimeters
+  NdataTypes    ///< number of supported data types
 };
 
 const std::string gDataTypeNames[NdataTypes] = {
   "Clusters",
-  "Tracks"};
+  "Tracks",
+  "Calorimeters"};
 
 } // namespace event_visualisation
 } // namespace o2

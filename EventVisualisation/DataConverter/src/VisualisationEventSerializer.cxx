@@ -10,24 +10,28 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file   DataReaderJSON.cxx
-/// \brief  JSON specific reading from file(s)
+/// \file   VisualisationEventSerializer.cxx
+/// \brief  Serialization VisualisationEvent
 /// \author julian.myrcha@cern.ch
 
-#include "EventVisualisationDetectors/DataReaderJSON.h"
 #include "EventVisualisationDataConverter/VisualisationEventSerializer.h"
+#include "EventVisualisationDataConverter/VisualisationEventJSONSerializer.h"
 #include "FairLogger.h"
+#include <iostream>
+#include <iomanip>
 
 namespace o2
 {
 namespace event_visualisation
 {
 
-VisualisationEvent DataReaderJSON::getEvent(std::string fileName)
+VisualisationEventSerializer* VisualisationEventSerializer::instance = new VisualisationEventJSONSerializer();
+
+std::string VisualisationEventSerializer::fileNameIndexed(const std::string fileName, const int index)
 {
-  VisualisationEvent vEvent;
-  VisualisationEventSerializer::getInstance()->fromFile(vEvent, fileName);
-  return vEvent;
+  std::stringstream buffer;
+  buffer << fileName << std::setfill('0') << std::setw(3) << index << ".json";
+  return buffer.str();
 }
 
 } // namespace event_visualisation

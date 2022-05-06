@@ -10,31 +10,41 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file    VisualisationCluster.cxx
+/// \file    VisualisationTrack.cxx
 /// \author  Julian Myrcha
 ///
 
-#include "EventVisualisationDataConverter/VisualisationCluster.h"
-#include <iostream>
+#include "EventVisualisationDataConverter/VisualisationCalo.h"
+#include "FairLogger.h"
 
 using namespace std;
-
 namespace o2
 {
 namespace event_visualisation
 {
 
-VisualisationCluster::VisualisationCluster(float XYZ[], float time)
+VisualisationCalo::VisualisationCalo() = default;
+
+VisualisationCalo::VisualisationCalo(const VisualisationCaloVO& vo)
 {
-  setCoordinates(XYZ);
-  this->mTime = time;
+  this->mSource = vo.source;
+  this->mTime = vo.time;
+  this->mEnergy = vo.energy;
+  this->mEta = vo.eta;
+  this->mPhi = vo.phi;
+  this->mGID = vo.gid;
+  this->mPID = vo.PID;
 }
 
-void VisualisationCluster::setCoordinates(float xyz[3])
+VisualisationCalo::VisualisationCalo(const VisualisationCalo& src)
 {
-  for (int i = 0; i < 3; i++) {
-    mCoordinates[i] = xyz[i];
-  }
+  this->mSource = src.mSource;
+  this->mTime = src.mTime;
+  this->mEnergy = src.mEnergy;
+  this->mEta = src.mEta;
+  this->mPhi = src.mPhi;
+  this->mGID = src.mGID;
+  this->mPID = src.mPID;
 }
 
 } // namespace event_visualisation
