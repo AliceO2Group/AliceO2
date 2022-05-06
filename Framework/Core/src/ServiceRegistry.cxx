@@ -134,6 +134,9 @@ void ServiceRegistry::bindService(ServiceSpec const& spec, void* service)
   if (spec.exit) {
     mPreExitHandles.push_back(ServiceExitHandle{spec, spec.exit, service});
   }
+  if (spec.domainInfoUpdated) {
+    mDomainInfoHandles.push_back(ServiceDomainInfoHandle{spec, spec.domainInfoUpdated, service});
+  }
 }
 
 /// Invoke callbacks to be executed before every process method invokation
@@ -217,6 +220,13 @@ void ServiceRegistry::preExitCallbacks()
   /// I guess...
   for (auto exitHandle = mPreExitHandles.rbegin(); exitHandle != mPreExitHandles.rend(); ++exitHandle) {
     exitHandle->callback(*this, exitHandle->service);
+  }
+}
+
+void ServiceRegistry::domainInfoUpdatedCallback(ServiceRegistry& registry, size_t oldestPossibleTimeslice, ChannelIndex channelIndex)
+{
+  for (auto& handle : mDomainInfoHandles) {
+    handle.callback(*this, oldestPossibleTimeslice, channelIndex);
   }
 }
 

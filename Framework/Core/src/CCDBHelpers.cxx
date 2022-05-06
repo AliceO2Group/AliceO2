@@ -292,7 +292,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         static Long64_t orbitResetTime = -1;
         static size_t lastTimeUsed = -1;
         if (timingInfo.creation & DataProcessingHeader::DUMMY_CREATION_TIME_OFFSET) {
-          LOGP(error, "Dummy creation time is not supported for CCDB objects. Setting creation to last one used.");
+          LOGP(error, "Dummy creation time is not supported for CCDB objects. Setting creation to last one used {}.", lastTimeUsed);
           timingInfo.creation = lastTimeUsed;
         }
         lastTimeUsed = timingInfo.creation;
