@@ -59,6 +59,7 @@ struct ShmManager {
   ShmManager(uint64_t _shmId, const vector<string>& _segments, const vector<string>& _regions, bool zero = true)
     : shmId(fair::mq::shmem::makeShmIdStr(_shmId))
   {
+    FullReset();
     AddSegments(_segments, zero);
     AddRegions(_regions, zero);
   }
