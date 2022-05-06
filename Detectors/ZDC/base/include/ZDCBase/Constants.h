@@ -209,6 +209,7 @@ constexpr std::string_view ChannelNames[] = {
   "ZPC4",
   "ZPCS"};
 
+// From TDC ID to signal ID
 const int TDCSignal[NTDCChannels] = {
   IdZNAC,   // TDCZNAC
   IdZNASum, // TDCZNAS
@@ -221,6 +222,19 @@ const int TDCSignal[NTDCChannels] = {
   IdZPCC,   // TDCZPCC
   IdZPCSum  // TDCZPCS
 };
+
+// From Signal ID to TDC ID
+const int SignalTDC[NChannels] = {
+  TDCZNAC,
+  TDCZNAS, TDCZNAS, TDCZNAS, TDCZNAS, TDCZNAS,
+  TDCZPAC,
+  TDCZPAS, TDCZPAS, TDCZPAS, TDCZPAS, TDCZPAS,
+  TDCZEM1,
+  TDCZEM2,
+  TDCZNCC,
+  TDCZNCS, TDCZNCS, TDCZNCS, TDCZNCS, TDCZNCS,
+  TDCZPCC,
+  TDCZPCS, TDCZPCS, TDCZPCS, TDCZPCS, TDCZPCS};
 
 constexpr int DbgZero = 0;
 constexpr int DbgMinimal = 1;

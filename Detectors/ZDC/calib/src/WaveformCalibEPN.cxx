@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <vector>
 #include <TROOT.h>
 #include <TFile.h>
 #include <TPad.h>
@@ -50,38 +51,60 @@ int WaveformCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
   if (!mInitDone) {
     init();
   }
-  LOG(info) << "o2::zdc::WaveformCalibEPN processing " << RecBC.size() << " b.c. @ TS " << mData.mCTimeBeg << " : " << mData.mCTimeEnd;
+  //slot.getStartTimeMS() and slot.getEndTimeMS()
+  //LOG(info) << "o2::zdc::WaveformCalibEPN processing " << RecBC.size() << " b.c. @ TS " << mData.mCTimeBeg << " : " << mData.mCTimeEnd;
   o2::zdc::RecEventFlat ev;
   ev.init(RecBC, Energy, TDCData, Info);
-  while (ev.next()) {
+  auto nen = ev.getEntries();
+  std::vector<o2::InteractionRecord> ir;
+  /*
+  std::array<bool,nen> hasInfos[NTDCChannels];
+  std::array<int,nen> ntdc[NTDCChannels];
+  std::array<float,nen> tdca[NTDCChannels];
+  std::array<float,nen> tdcp[NTDCChannels];
+  while (int ientry = ev.next()) {
+    ir[ientry] = ev.ir;
     if (ev.getNInfo() > 0) {
+      // Need clean data (no messages)
+      // We are sure there is no pile-up in any channel (too restrictive?)
       auto& decodedInfo = ev.getDecodedInfo();
       for (uint16_t info : decodedInfo) {
         uint8_t ch = (info >> 10) & 0x1f;
         uint16_t code = info & 0x03ff;
-        // hmsg->Fill(ch, code);
+        hasInfos[SignalTDC[ch]][ientry] = true;
       }
       if (mVerbosity > DbgMinimal) {
         ev.print();
       }
-      // Need clean data (no messages)
-      // We are sure there is no pile-up in any channel (too restrictive?)
       continue;
     }
-    // Analyze TDC
-    
+    // NOTE: for the moment NH = NTDCChannels. If we remove this we will need to
+    // have a mask of affected channels (towers)
+    for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
+      int ich = o2::zdc::TDCSignal[itdc];
+      int nhit = ev.NtdcV(itdc);
+      ntdc[itdc][ientry] = nhit;
+      if (ev.NtdcA(itdc) != nhit) {
+        fprintf(stderr, "Mismatch in TDC %d data Val=%d Amp=%d\n", itdc, ev.NtdcV(itdc), ev.NtdcA(ich));
+        continue;
+      }
+      // Store just first TDC entry
+      tdca[itdc][ientry] = o2::zdc::FTDCAmp * ev.TDCAmp[itdc][0];
+      tdcp[itdc][ientry] = o2::zdc::FTDCVal * ev.TDCVal[itdc][0];
+    }
   }
+  */
   return 0;
 }
 
 int WaveformCalibEPN::endOfRun()
 {
-  if (mVerbosity > DbgZero) {
-    LOGF(info, "WaveformCalibEPN::endOfRun ts (%llu:%llu)", mData.mCTimeBeg, mData.mCTimeEnd);
-    for (int ih = 0; ih < NH; ih++) {
-      LOGF(info, "%s %g events and cuts (%g:%g)", WaveformCalibData::DN[ih], mData.mSum[ih][5][5], mWaveformCalibConfig->cutLow[ih], mWaveformCalibConfig->cutHigh[ih]);
-    }
-  }
+//   if (mVerbosity > DbgZero) {
+//     LOGF(info, "WaveformCalibEPN::endOfRun ts (%llu:%llu)", mData.mCTimeBeg, mData.mCTimeEnd);
+//     for (int ih = 0; ih < NH; ih++) {
+//       LOGF(info, "%s %g events and cuts (%g:%g)", WaveformCalibData::DN[ih], mData.mSum[ih][5][5], mWaveformCalibConfig->cutLow[ih], mWaveformCalibConfig->cutHigh[ih]);
+//     }
+//   }
   if (mSaveDebugHistos) {
     write();
   }
@@ -90,6 +113,7 @@ int WaveformCalibEPN::endOfRun()
 
 int WaveformCalibEPN::write(const std::string fn)
 {
+/*
   TDirectory* cwd = gDirectory;
   TFile* f = new TFile(fn.data(), "recreate");
   if (f->IsZombie()) {
@@ -112,5 +136,6 @@ int WaveformCalibEPN::write(const std::string fn)
   }
   f->Close();
   cwd->cd();
+*/
   return 0;
 }

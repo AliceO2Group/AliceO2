@@ -100,6 +100,11 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
 
   int next();
 
+  inline int getEntries() const
+  {
+    return mNEntries;
+  }
+
   inline NElem getNEnergy() const
   {
     return mNE;
