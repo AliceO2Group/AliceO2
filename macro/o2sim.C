@@ -150,10 +150,6 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
     aligner.setValue(fmt::format("{}.mDetectors", aligner.getName()), o2::detectors::DetID::getNames(detMaskAlign, ','));
   }
 
-  // set global density scaling factor
-  auto& matmgr = o2::base::MaterialManager::Instance();
-  matmgr.setDensityScalingFactor(o2::conf::SimMaterialParams::Instance().globalDensityFactor);
-
   // run init
   run->Init();
 
@@ -207,6 +203,7 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   // todo: save beam information in the grp
 
   // print summary about cuts and processes used
+  auto& matmgr = o2::base::MaterialManager::Instance();
   std::ofstream cutfile(o2::base::NameConf::getCutProcFileName(confref.getOutPrefix()));
   matmgr.printCuts(cutfile);
   matmgr.printProcesses(cutfile);
