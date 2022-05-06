@@ -436,9 +436,6 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       converter(timingInfo, *device, inputs, channelRetriever);
 
       if (doEos) {
-        for (auto const& channel : outputChannels) {
-          DataProcessingHelpers::sendEndOfStream(*device, channel);
-        }
         control->endOfStream();
       }
     };
