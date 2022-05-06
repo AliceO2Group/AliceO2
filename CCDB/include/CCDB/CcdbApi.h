@@ -509,6 +509,9 @@ class CcdbApi //: public DatabaseInterface
    */
   void checkMetadataKeys(std::map<std::string, std::string> const& metadata) const;
 
+  std::string getSnapshotDir(const std::string& topdir, const string& path) const { return topdir + "/" + path; }
+  std::string getSnapshotFile(const std::string& topdir, const string& path) const { return getSnapshotDir(topdir, path) + "/snapshot.root"; }
+
   /// Base URL of the CCDB (with port)
   std::string mUrl{};
   std::vector<std::string> hostsPool{};
