@@ -116,12 +116,7 @@ void CTFCoder::compress(CompressedClusters& cc,
       if (cl.getChipID() == prevChip) { // for the same chip store column increment
         // cc.chipInc[icl] = 0;  // this is the version with chipInc stored for every pixel
         cc.chipMul.back()++; // this is the version with chipInc stored once per new chip
-#ifdef _CHECK_INCREMENTES_   // RS FIXME with current clusterization column increment can be slightly negative
-//        if (cl.getCol() < prevCol) {
-//          LOG(warning) << "Negative Column increment " << cl.getCol() << " -> " << prevCol << " in chip " << prevChip << " of ROF " << irof;
-//        }
-#endif
-        cc.colInc[icl] = cl.getCol() - prevCol;
+        cc.colInc[icl] = int16_t(cl.getCol()) - prevCol;
         prevCol = cl.getCol();
       } else { // for new chips store chipID increment and abs. column
         // cc.chipInc[icl] = cl.getChipID() - prevChip;  // this is the version with chipInc stored for every pixel
