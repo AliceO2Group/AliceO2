@@ -15,8 +15,13 @@ fi
 if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then add_W o2-tpc-scdcalib-interpolation-workflow "$DISABLE_ROOT_OUTPUT --disable-root-input --pipeline $(get_N tpc-track-interpolation TPC REST)" "$ITSMFT_FILES"; fi
 
 # output-proxy for aggregator
-if [[ ! -z $CALIBDATASPEC ]]; then
-    WORKFLOW+="o2-dpl-output-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC\" --proxy-channel-name aggregator-proxy --channel-config \"name=aggregator-proxy,method=connect,type=push,transport=zeromq,rateLogging=1,address=tcp://localhost:30453\" | "
+if workflow_has_parameters CALIB_PROXIES; then
+    if [[ ! -z $CALIBDATASPEC_BARREL ]]; then
+  WORKFLOW+="o2-dpl-output-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_BARREL\" $(get_proxy_connection barrel output) | "
+    fi
+    if [[ ! -z $CALIBDATASPEC_CALO ]]; then
+  WORKFLOW+="o2-dpl-output-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_CALO\" $(get_proxy_connection calo output) | "
+    fi
 fi
 
 true # everything OK up to this point, so the script should return 0 (it is !=0 already if a has_detector check fails)

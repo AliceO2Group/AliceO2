@@ -65,10 +65,20 @@ if [[ $CALIB_PHS_RUNBYRUNCALIB == 1 ]]; then
     EXTRA_WORKFLOW+="o2-phos-calib-workflow --runbyrun | "
 fi
 
-WORKFLOW="o2-dpl-raw-proxy $ARGS_ALL --proxy-name aggregator-proxy --dataspec \"$CALIBDATASPEC\" --channel-config \"name=aggregator-proxy,method=bind,type=pull,rateLogging=1,transport=zeromq,address=tcp://localhost:30453\" | "
+# starting with empty workflow
+WORKFLOW=
+if workflow_has_parameters CALIB_PROXIES; then
+    if [[ ! -z $CALIBDATASPEC_BARREL ]]; then
+  WORKFLOW+="o2-dpl-raw-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_BARREL\" $(get_proxy_connection barrel input) | "
+    fi
+    if [[ ! -z $CALIBDATASPEC_CALO ]]; then
+  WORKFLOW+="o2-dpl-raw-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_CALO\" $(get_proxy_connection calo input) | "
+    fi
+fi
+
 WORKFLOW+=$EXTRA_WORKFLOW
 if [[ $CCDBPATH != "none" ]]; then WORKFLOW+="o2-calibration-ccdb-populator-workflow --ccdb-path $CCDBPATH | "; fi
-WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
+WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT -b"
 
 if [ $WORKFLOWMODE == "print" ]; then
   echo Workflow command:
