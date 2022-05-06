@@ -277,13 +277,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     } else if (in(State::IN_INPUT_LEFT_MATCHER)) {
       // this is a matcher leaf, i.e. last matcher of a branch
       // will be merged into the parent matcher
-      // insert a placeholder for empty objects
-      inputMatcherNodes.push_back(ConstantValueMatcher{false});
     } else if (in(State::IN_INPUT_RIGHT_MATCHER)) {
       // this is a matcher leaf, i.e. last matcher of a branch
       // will be merged into the parent matcher
-      // insert a placeholder for empty objects
-      inputMatcherNodes.push_back(ConstantValueMatcher{false});
     } else if (in(State::IN_OUTPUTS)) {
       push(State::IN_OUTPUT);
       outputHasSubSpec = false;
@@ -667,17 +663,14 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     } else if (in(State::IN_INPUT_ORIGIN)) {
       origin.runtimeInit(s.c_str(), std::min(s.size(), 4UL));
       std::string v(s.c_str(), std::min(s.size(), 4UL));
-      inputMatcherNodes.pop_back();
       inputMatcherNodes.push_back(OriginValueMatcher{v});
     } else if (in(State::IN_INPUT_DESCRIPTION)) {
       description.runtimeInit(s.c_str(), std::min(s.size(), 16UL));
       std::string v(s.c_str(), std::min(s.size(), 16UL));
-      inputMatcherNodes.pop_back();
       inputMatcherNodes.push_back(DescriptionValueMatcher{v});
     } else if (in(State::IN_INPUT_STARTTIME)) {
       // we add StartTimeValueMatcher with ContextRef for starttime, no matter what
       // has been in the configuration.
-      inputMatcherNodes.pop_back();
       inputMatcherNodes.push_back(StartTimeValueMatcher(ContextRef{ContextPos::STARTTIME_POS}));
     } else if (in(State::IN_INPUT_MATCHER_OPERATION)) {
       // FIXME: need to implement operator>> to read the op parameter
@@ -746,7 +739,6 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     debug << "Uint(" << i << ")" << std::endl;
     if (in(State::IN_INPUT_SUBSPEC)) {
       subspec = i;
-      inputMatcherNodes.pop_back();
       inputMatcherNodes.push_back(SubSpecificationTypeValueMatcher{i});
     } else if (in(State::IN_OUTPUT_SUBSPEC)) {
       subspec = i;
