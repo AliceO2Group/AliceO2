@@ -57,7 +57,7 @@ ferst 1 \n\
 2 cl_1khz bcd10 \n \
 3 cluster clu4 emc cpv \n \
 4 cl_5khz bcd20 \n";
-//
+  //
   ctpcfg.loadConfigurationRun3(cfgRun3str);
   ctpcfg.printStream(std::cout);
   return ctpcfg;
