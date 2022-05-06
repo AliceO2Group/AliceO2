@@ -24,7 +24,7 @@
 #include <iostream>
 #endif
 using namespace o2::ctp;
-void CreateCTPConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
+CTPConfiguration CreateCTPConfig()
 {
   /// Demo configuration
   CTPConfiguration ctpcfg;
@@ -57,22 +57,8 @@ ferst 1 \n\
 2 cl_1khz bcd10 \n \
 3 cluster clu4 emc cpv \n \
 4 cl_5khz bcd20 \n";
-  // ctpcfg.loadConfiguration(cfgstr);
+//
   ctpcfg.loadConfigurationRun3(cfgRun3str);
   ctpcfg.printStream(std::cout);
-  std::cout << "Going write to db" << std::endl;
-  return;
-  ///
-  /// add to database
-  o2::ccdb::CcdbApi api;
-  map<string, string> metadata; // can be empty
-  api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
-  // store abitrary user object in strongly typed manner
-  api.storeAsTFileAny(&ctpcfg, o2::ctp::CCDBPathCTPConfig, metadata, tmin, tmax);
-  std::cout << "CTP config in database" << std::endl;
-  /// get frp, database
-  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setURL(ccdbHost);
-  auto ctpconfigdb = mgr.get<CTPConfiguration>(CCDBPathCTPConfig);
-  ctpconfigdb->printStream(std::cout);
+  return ctpcfg;
 }

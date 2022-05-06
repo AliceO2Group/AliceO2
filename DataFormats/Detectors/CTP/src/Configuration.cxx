@@ -636,8 +636,9 @@ int CTPRunManager::processMessage(std::string& message)
   LOG(info) << "Processing scalers, all good, time:" << timeStamp;
   for (int i = 1; i < tokens.size(); i++) {
     mCounters[i - 1] = std::stoull(tokens.at(i));
-    if (i < (NRUNS + 1))
+    if (i < (NRUNS + 1)) {
       std::cout << mCounters[i - 1] << " ";
+    }
   }
   std::cout << std::endl;
   LOG(info) << "Counter size:" << tokens.size();
