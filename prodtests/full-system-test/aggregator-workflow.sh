@@ -27,6 +27,7 @@ echo "CALIB_PHS_ENERGYCALIB = $CALIB_PHS_ENERGYCALIB" 1>&2
 echo "CALIB_PHS_BADMAPCALIB = $CALIB_PHS_BADMAPCALIB" 1>&2
 echo "CALIB_PHS_TURNONCALIB = $CALIB_PHS_TURNONCALIB" 1>&2
 echo "CALIB_PHS_RUNBYRUNCALIB = $CALIB_PHS_RUNBYRUNCALIB" 1>&2
+echo "CALIB_TRD_VDRIFTEXB = $CALIB_TRD_VDRIFTEXB" 1>&2
 
 # PrimVertex
 if [[ $CALIB_PRIMVTX_MEANVTX == 1 ]]; then
@@ -46,6 +47,12 @@ if [[ $CALIB_TOF_DIAGNOSTICS == 1 ]]; then
     EXTRA_WORKFLOW+="o2-calibration-tof-diagnostic-workflow $ARGS_ALL --tf-per-slot 26400 | "
 fi
 
+# TRD
+if [[ $CALIB_TRD_VDRIFTEXB == 1 ]]; then
+    EXTRA_WORKFLOW+="o2-calibration-trd-vdrift-exb | "
+fi
+
+# Calo cal
 # EMC
 if [[ $CALIB_EMC_CHANNELCALIB == 1 ]]; then
     EXTRA_WORKFLOW+="o2-calibration-emcal-channel-calib-workflow --calibMode timeCalib | "
