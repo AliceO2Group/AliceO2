@@ -75,11 +75,11 @@ void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
 
   for (const auto& dp : dps) {
 
-    const auto& el = mPids.find(dp.id); // hmp?
-    if (el == mPids.end()){		// hmp?	
-      LOG(info) << "DP " << dp.id << "Not found, will not be processed";
-      continue;			// hmp?
-    }					// hmp?
+    //const auto& el = mPids.find(dp.id); // hmp?
+    //if (el == mPids.end()){		// hmp?	
+    // LOG(info) << "DP " << dp.id << "Not found, will not be processed";
+    //continue;			// hmp?
+    //}					// hmp?
 
     //mPids[it.id] = true;// hmp?
 	
