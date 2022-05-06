@@ -22,21 +22,21 @@
 #include "Framework/DataProcessorSpec.h"
 #include "CCDB/BasicCCDBManager.h"
 
-using namespace o2::framework;
+//using namespace o2::framework; // no
 
 namespace o2
 {
 namespace hmpid
 {
 
-using DPID = o2::dcs::DataPointIdentifier;
-using DPVAL = o2::dcs::DataPointValue;
-using DPCOM = o2::dcs::DataPointCompositeObject;
-using namespace o2::ccdb;
-using CcdbManager = o2::ccdb::BasicCCDBManager;
-using clbUtils = o2::calibration::Utils;
-using HighResClock = std::chrono::high_resolution_clock;
-using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
+  using DPID = o2::dcs::DataPointIdentifier;
+  using DPVAL = o2::dcs::DataPointValue;
+  using DPCOM = o2::dcs::DataPointCompositeObject;
+  using namespace o2::ccdb;
+  using CcdbManager = o2::ccdb::BasicCCDBManager;
+  using clbUtils = o2::calibration::Utils;
+  using HighResClock = std::chrono::high_resolution_clock;
+  using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
 
 class HMPIDDCSDataProcessor : public o2::framework::Task
 {
@@ -51,32 +51,38 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
       
     std::vector<std::string> aliases;
 
-	  // ==| Environment Pressure  (mBar) |=================================
-	  aliases.push_back("HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value");
+    // ==| Environment Pressure  (mBar) |=================================
+    aliases.push_back("HMP_DET/HMP_ENV/HMP_ENV_PENV.actual.value");
+    
+    int maxChambers = 7;
+    // ==|(CH4) Chamber Pressures  (mBar?) |=================================
+    aliases.push_back(fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_GAS/HMP_MP[0..{}]_GAS_PMWPC.actual.value",maxChambers,maxChambers,maxChambers));	
 
-   int maxChambers = 7;
-	  // ==|(CH4) Chamber Pressures  (mBar?) |=================================
-	  aliases.push_back(fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_GAS/HMP_MP[0..{}]_GAS_PMWPC.actual.value",maxChambers,maxChambers,maxChambers));	
+    //==| Temperature C6F14 IN/OUT / RADIATORS  (C) |=================================
+    int iRad = 3; 
 
-	  //==| Temperature C6F14 IN/OUT / RADIATORS  (C) |=================================
-  	int iRad = 3; 
+    aliases.push_back(fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_LIQ_LOOP.actual.sensors.Rad[0..{}]In_Temp",maxChambers,maxChambers,iRad));
+    aliases.push_back(fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_LIQ_LOOP.actual.sensors.Rad[0..{}]Out_Temp",maxChambers,maxChambers,iRad));	
 
-	  aliases.push_back(fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_LIQ_LOOP.actual.sensors.Rad[0..{}]In_Temp",maxChambers,maxChambers,iRad));
-  	aliases.push_back(fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_LIQ_LOOP.actual.sensors.Rad[0..{}]Out_Temp",maxChambers,maxChambers,iRad));	
-
-  	// ===| HV / SECTORS (V) |=========================================================	      
-  	int iSec = 6; 
-  	aliases.push_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_PW/HMP_MP[0..{}]_SEC[0..{}]/HMP_MP[0..{}]_SEC[0..{}]_HV.actual.vMon",maxChambers,maxChambers,maxChambers,iSec,maxChambers,iSec), 2400., 2500.});
+    // ===| HV / SECTORS (V) |=========================================================	      
+    int iSec = 6; 
+    aliases.push_back(o2::dcs::test::DataPointHint<double>{fmt::format("HMP_DET/HMP_MP[0..{}]/HMP_MP[0..{}]_PW/HMP_MP[0..{}]_SEC[0..{}]/HMP_MP[0..{}]_SEC[0..{}]_HV.actual.vMon",maxChambers,maxChambers,maxChambers,iSec,maxChambers,iSec), 2400., 2500.});
 
 
-  	// string for DPs of Refractive Index Parameters =============================================================
-	  aliases.push_back(fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].waveLenght"));
-	  aliases.push_back(fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].argonReference"));
-	  aliases.push_back(fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].argonCell"));
-	  aliases.push_back(fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].c6f14Cell"));
-  	aliases.push_back(fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].c6f14Reference"));     
+    // string for DPs of Refractive Index Parameters =============================================================
+    aliases.push_back(fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].waveLenght"));
+    aliases.push_back(fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].argonReference"));
+    aliases.push_back(fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].argonCell"));
+    aliases.push_back(fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].c6f14Cell"));
+    aliases.push_back(fmt::format("HMP_DET/HMP_INFR/HMP_INFR_TRANPLANT/HMP_INFR_TRANPLANT_MEASURE.mesure[00..29].c6f14Reference"));     
   }
+  
+  // fill CCDB with ChargeThres (arQthre)   
+  void sendChargeThresOutput(DataAllocator& output);
 
+  // fill CCDB with RefIndex (arrMean)   
+  void sendRefIndexOutput(DataAllocator& output);
+ 	
 
  private:
  
@@ -88,12 +94,6 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
   std::unique_ptr<HMPIDDCSProcessor> mProcessor;
   HighResClock::time_point mTimer;
   int64_t mDPsUpdateInterval;
-
-  // fill CCDB with ChargeThres (arQthre)   
-  void sendChargeThresOutput(DataAllocator& output);
-
-  // fill CCDB with RefIndex (arrMean)   
-  void sendRefIndexOutput(DataAllocator& output);
 
 
 }; // end class
