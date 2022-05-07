@@ -951,7 +951,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
 
     const size_t nBufferElems = calculateNDestTElements<input_t, storageBuffer_t>(messageLength);
     expandStorage(nBufferElems);
-    thisBlock->storeData(thisMetadata->nDataWords, reinterpret_cast<const storageBuffer_t*>(tmp.data()));
+    thisBlock->storeData(nBufferElems, reinterpret_cast<const storageBuffer_t*>(tmp.data()));
 
     *thisMetadata = Metadata{messageLength, 0, sizeof(input_t), sizeof(ransState_t), sizeof(storageBuffer_t), symbolTablePrecision, opt, 0, 0, 0, static_cast<int>(nBufferElems), 0};
   }
