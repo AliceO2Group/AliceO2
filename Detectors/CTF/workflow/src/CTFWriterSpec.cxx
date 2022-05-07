@@ -268,7 +268,8 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
         auto& mdSave = mFreqsMetaData[det][ib];
         const auto& md = ctfImage.getMetadata(ib);
         freq.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min);
-        mdSave = o2::ctf::Metadata{0, 0, md.messageWordSize, md.coderType, md.streamSize, md.probabilityBits, md.opt, freq.getMinSymbol(), freq.getMaxSymbol(), (int)freq.size(), 0, 0};
+        auto newProbBits = uint8_t(o2::rans::computeRenormingPrecision(freq));
+        mdSave = o2::ctf::Metadata{0, 0, md.messageWordSize, md.coderType, md.streamSize, newProbBits, md.opt, freq.getMinSymbol(), freq.getMaxSymbol(), (int)freq.size(), 0, 0};
       }
     }
   }
