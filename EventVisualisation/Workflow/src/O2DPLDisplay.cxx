@@ -200,17 +200,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
 
   bool filterTime;
-  EveWorkflowHelper::TBracket timeBracket;
+  EveWorkflowHelper::TBracket timeBracket{cfgc.options().get<float>("filter-time-min"), cfgc.options().get<float>("filter-time-max")};
 
-  if (cfgc.options().isDefault("filter-time-min") && cfgc.options().isDefault("filter-time-max")) {
+  if (timeBracket.getMin() < 0 && timeBracket.getMax() < 0) {
     filterTime = false;
-  } else if (!cfgc.options().isDefault("filter-time-min") && !cfgc.options().isDefault("filter-time-max")) {
+  } else if (timeBracket.getMin() >= 0 && timeBracket.getMax() >= 0) {
     filterTime = true;
-
-    auto filterTimeMin = cfgc.options().get<float>("filter-time-min");
-    auto filterTimeMax = cfgc.options().get<float>("filter-time-max");
-
-    timeBracket = EveWorkflowHelper::TBracket{filterTimeMin, filterTimeMax};
 
     if (timeBracket.isInvalid()) {
       throw std::runtime_error("Filter time bracket is invalid");
