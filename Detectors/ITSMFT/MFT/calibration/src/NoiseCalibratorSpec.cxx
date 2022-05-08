@@ -46,7 +46,7 @@ void NoiseCalibratorSpec::init(InitContext& ic)
   auto probT = ic.options().get<float>("prob-threshold");
   auto probTRelErr = ic.options().get<float>("prob-rel-err");
   LOGP(info, "Setting the probability threshold to {} with relative error {}", probT, probTRelErr);
-
+  mStopMeOnly = ic.options().get<bool>("stop-me-only");
   mPath = ic.options().get<std::string>("path-CCDB");
   mMeta = ic.options().get<std::string>("meta");
   mStart = ic.options().get<int64_t>("tstart");
@@ -70,7 +70,7 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
     if (mCalibrator->processTimeFrame(tfcounter, digits, rofs)) {
       LOG(info) << "Minimum number of noise counts has been reached !";
       sendOutputCcdb(pc.outputs());
-      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
+      pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
     }
   } else {
     const auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
@@ -81,7 +81,7 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
     if (mCalibrator->processTimeFrame(tfcounter, compClusters, patterns, rofs)) {
       LOG(info) << "Minimum number of noise counts has been reached !";
       sendOutputCcdb(pc.outputs());
-      pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
+      pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
     }
   }
 }
@@ -358,7 +358,8 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
       {"path-CCDB", VariantType::String, "/MFT/Calib/NoiseMap", {"Path to write to in CCDB"}},
       {"path-DCS", VariantType::String, "/MFT/Config/NoiseMap", {"Path to write to in CCDB"}},
       {"meta", VariantType::String, "", {"meta data to write in CCDB"}},
-      {"send-to-server", VariantType::String, "CCDB-DCS", {"meta data to write in DCS-CCDB"}}}};
+      {"send-to-server", VariantType::String, "CCDB-DCS", {"meta data to write in DCS-CCDB"}},
+      {"stop-me-only", VariantType::Bool, false, {"At sufficient statistics stop only this device, otherwise whole workflow"}}}};
 }
 
 } // namespace mft

@@ -43,7 +43,7 @@ void NoiseCalibratorSpec::init(InitContext& ic)
   auto probT = ic.options().get<float>("prob-threshold");
   auto probTRelErr = ic.options().get<float>("prob-rel-err");
   LOGP(info, "Setting the probability threshold to {} with relative error {}", probT, probTRelErr);
-
+  mStopMeOnly = ic.options().get<bool>("stop-me-only");
   mCalibrator = std::make_unique<CALIBRATOR>(onepix, probT, probTRelErr);
   mCalibrator->setNThreads(ic.options().get<int>("nthreads"));
 
@@ -83,7 +83,7 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
   if (done) {
     LOG(info) << "Minimum number of noise counts has been reached !";
     sendOutput(pc.outputs());
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
+    pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
   }
 
   mTimer.Stop();
@@ -180,7 +180,8 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useClusters)
       {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}},
       {"prob-rel-err", VariantType::Float, 0.2f, {"Relative error on channel noise to apply the threshold"}},
       {"nthreads", VariantType::Int, 1, {"Number of map-filling threads"}},
-      {"validity-days", VariantType::Int, 3, {"Validity on days from upload time"}}}};
+      {"validity-days", VariantType::Int, 3, {"Validity on days from upload time"}},
+      {"stop-me-only", VariantType::Bool, false, {"At sufficient statistics stop only this device, otherwise whole workflow"}}}};
 }
 
 } // namespace its
