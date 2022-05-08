@@ -78,7 +78,6 @@ std::string VisualisationEventJSONSerializer::toJson(const VisualisationEvent& e
   // Tracks
   tree.AddMember("trackCount", rapidjson::Value().SetInt(event.getTrackCount()), allocator);
 
-
   Value jsonTracks(kArrayType);
   for (auto track : event.getTracksSpan()) {
     jsonTracks.PushBack(jsonTree(track, allocator), allocator);
@@ -113,14 +112,14 @@ std::string VisualisationEventJSONSerializer::toJson(const VisualisationEvent& e
   return json_str;
 }
 
-int VisualisationEventJSONSerializer::getIntOrDefault(rapidjson::Value& tree, const char *key, int defaultValue)  {
+int VisualisationEventJSONSerializer::getIntOrDefault(rapidjson::Value& tree, const char* key, int defaultValue)
+{
   if (tree.HasMember(key)) {
     rapidjson::Value& jsonValue = tree[key];
     return jsonValue.GetInt();
   }
   return defaultValue;
 }
-
 
 void VisualisationEventJSONSerializer::fromJson(VisualisationEvent& event, std::string json)
 {

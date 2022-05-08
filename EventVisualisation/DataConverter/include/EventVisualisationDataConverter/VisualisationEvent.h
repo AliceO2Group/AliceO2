@@ -154,11 +154,11 @@ class VisualisationEvent
 
   bool isEmpty() const { return getTrackCount() == 0 && getClusterCount() == 0; }
 
-  int getClMask() const { return mClMask;}
-  void setClMask(int value) { mClMask = value;}
+  int getClMask() const { return mClMask; }
+  void setClMask(int value) { mClMask = value; }
 
-  int getTrkMask() const { return mTrkMask;}
-  void setTrkMask(int value) { mTrkMask = value;}
+  int getTrkMask() const { return mTrkMask; }
+  void setTrkMask(int value) { mTrkMask = value; }
 
   o2::header::DataHeader::RunNumberType getRunNumber() const { return this->mRunNumber; }
   void setRunNumber(o2::header::DataHeader::RunNumberType runNumber) { this->mRunNumber = runNumber; }

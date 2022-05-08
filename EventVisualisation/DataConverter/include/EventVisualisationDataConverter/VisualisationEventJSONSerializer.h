@@ -28,7 +28,7 @@ namespace event_visualisation
 
 class VisualisationEventJSONSerializer : public VisualisationEventSerializer
 {
-  static int getIntOrDefault(rapidjson::Value& tree, const char *key, int defaultValue=0) ;
+  static int getIntOrDefault(rapidjson::Value& tree, const char* key, int defaultValue = 0);
 
   std::string toJson(const VisualisationEvent& event) const;
   void fromJson(VisualisationEvent& event, std::string json);
