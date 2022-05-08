@@ -17,6 +17,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #endif
 #include <fstream>
+#include <chrono>
 
 #include "GPUChainTracking.h"
 #include "GPUChainTrackingDefs.h"
@@ -819,9 +820,29 @@ int GPUChainTracking::CheckErrorCodes(bool cpuOnly)
       }
     }
     if (processors()->errorCodes.hasError()) {
+      static int errorsShown = 0;
+      static bool quiet = false;
+      static std::chrono::time_point<std::chrono::steady_clock> silenceFrom;
+      if (!quiet && errorsShown++ >= 10 && GetProcessingSettings().throttleAlarms) {
+        silenceFrom = std::chrono::steady_clock::now();
+        quiet = true;
+      } else if (quiet) {
+        auto currentTime = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed_seconds = currentTime - silenceFrom;
+        if (elapsed_seconds.count() > 60 * 10) {
+          quiet = false;
+          errorsShown = 1;
+        }
+      }
       retVal = 1;
-      GPUError("GPUReconstruction suffered from an error in the %s part", i ? "GPU" : "CPU");
-      processors()->errorCodes.printErrors();
+      if (GetProcessingSettings().throttleAlarms) {
+        GPUWarning("GPUReconstruction suffered from an error in the %s part", i ? "GPU" : "CPU");
+      } else {
+        GPUError("GPUReconstruction suffered from an error in the %s part", i ? "GPU" : "CPU");
+      }
+      if (!quiet) {
+        processors()->errorCodes.printErrors(GetProcessingSettings().throttleAlarms);
+      }
     }
   }
   return retVal;
