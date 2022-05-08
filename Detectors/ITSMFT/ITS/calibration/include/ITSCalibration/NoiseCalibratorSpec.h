@@ -60,6 +60,7 @@ class NoiseCalibratorSpec : public Task
   size_t mNClustersProc = 0;
   int mValidityDays = 3;
   bool mUseClusters = false;
+  bool mStopMeOnly = false; // send QuitRequest::Me instead of QuitRequest::All
   TStopwatch mTimer{};
 };
 
