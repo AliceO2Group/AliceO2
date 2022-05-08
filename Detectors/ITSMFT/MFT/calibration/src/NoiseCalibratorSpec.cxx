@@ -44,14 +44,15 @@ void NoiseCalibratorSpec::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   auto probT = ic.options().get<float>("prob-threshold");
-  LOG(info) << "Setting the probability threshold to " << probT;
+  auto probTRelErr = ic.options().get<float>("prob-rel-err");
+  LOGP(info, "Setting the probability threshold to {} with relative error {}", probT, probTRelErr);
 
   mPath = ic.options().get<std::string>("path-CCDB");
   mMeta = ic.options().get<std::string>("meta");
   mStart = ic.options().get<int64_t>("tstart");
   mEnd = ic.options().get<int64_t>("tend");
 
-  mCalibrator = std::make_unique<CALIBRATOR>(probT);
+  mCalibrator = std::make_unique<CALIBRATOR>(probT, probTRelErr);
 
   mPathDcs = ic.options().get<std::string>("path-DCS");
   mOutputType = ic.options().get<std::string>("send-to-server");
@@ -69,7 +70,7 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
     if (mCalibrator->processTimeFrame(tfcounter, digits, rofs)) {
       LOG(info) << "Minimum number of noise counts has been reached !";
       sendOutputCcdb(pc.outputs());
-      pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
+      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     }
   } else {
     const auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
@@ -330,10 +331,10 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
     inputs.emplace_back("compClusters", detOrig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
     inputs.emplace_back("patterns", detOrig, "PATTERNS", 0, Lifetime::Timeframe);
     inputs.emplace_back("ROframes", detOrig, "CLUSTERSROF", 0, Lifetime::Timeframe);
-    inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/ClusterDictionary"));
+    inputs.emplace_back("cldict", "MFT", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/ClusterDictionary"));
   }
-  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
-                                                                true,                           // GRPECS=true
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+                                                                false,                          // GRPECS=true
                                                                 false,                          // GRPLHCIF
                                                                 false,                          // GRPMagField
                                                                 false,                          // askMatLUT
@@ -351,13 +352,13 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
     AlgorithmSpec{adaptFromTask<NoiseCalibratorSpec>(useDigits, ccdbRequest)},
     Options{
       {"prob-threshold", VariantType::Float, 1.e-6f, {"Probability threshold for noisy pixels"}},
+      {"prob-rel-err", VariantType::Float, 0.2f, {"Relative error on channel noise to apply the threshold"}},
       {"tstart", VariantType::Int64, -1ll, {"Start of validity timestamp"}},
       {"tend", VariantType::Int64, -1ll, {"End of validity timestamp"}},
       {"path-CCDB", VariantType::String, "/MFT/Calib/NoiseMap", {"Path to write to in CCDB"}},
       {"path-DCS", VariantType::String, "/MFT/Config/NoiseMap", {"Path to write to in CCDB"}},
       {"meta", VariantType::String, "", {"meta data to write in CCDB"}},
-      {"send-to-server", VariantType::String, "CCDB-DCS", {"meta data to write in DCS-CCDB"}},
-      {"hb-per-tf", VariantType::Int, 256, {"Number of HBF per TF"}}}};
+      {"send-to-server", VariantType::String, "CCDB-DCS", {"meta data to write in DCS-CCDB"}}}};
 }
 
 } // namespace mft
