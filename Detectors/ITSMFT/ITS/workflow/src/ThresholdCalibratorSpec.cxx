@@ -13,6 +13,7 @@
 
 #include "ITSWorkflow/ThresholdCalibratorSpec.h"
 #include "CommonUtils/FileSystemUtils.h"
+#include "CCDB/BasicCCDBManager.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -131,6 +132,14 @@ void ITSThresholdCalibrator::init(InitContext& ic)
 
   // check flag to tag single noisy pix in digital and analog scans
   this->mTagSinglePix = ic.options().get<bool>("enable-single-pix-tag");
+
+  // FIXME: Temporary solution to retrieve ConfDBmap
+  long int ts = o2::ccdb::getCurrentTimestamp();
+  LOG(info) << "Getting confDB map from ccdb - timestamp: " << ts;
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL("http://alice-ccdb.cern.ch");
+  mgr.setTimestamp(ts);
+  mConfDBmap = mgr.get<std::vector<int>>("ITS/Calib/Confdbmap");
 
   return;
 }
@@ -731,7 +740,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
   if (this->mRunNumber == -1) {
     this->updateRunID(pc);
     // trigger finaliseCCDB (do it only once)
-    pc.inputs().get<std::vector<int>*>("confdbmap");
+    // pc.inputs().get<std::vector<int>*>("confdbmap");
   }
   if (this->mLHCPeriod.empty()) {
     this->updateLHCPeriod(pc);
@@ -1176,8 +1185,8 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
   inputs.emplace_back("digits", detOrig, "DIGITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("digitsROF", detOrig, "DIGITSROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("calib", detOrig, "GBTCALIB", 0, Lifetime::Timeframe);
-  inputs.emplace_back("confdbmap", detOrig, "CONFDBMAP", 0, Lifetime::Condition,
-                      o2::framework::ccdbParamSpec("ITS/Calib/Confdbmap"));
+  // inputs.emplace_back("confdbmap", detOrig, "CONFDBMAP", 0, Lifetime::Condition,
+  //                     o2::framework::ccdbParamSpec("ITS/Calib/Confdbmap"));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TSTR", inpConf.chipModSel);
