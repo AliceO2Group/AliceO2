@@ -37,14 +37,12 @@ class NoiseCalibrator
 {
  public:
   NoiseCalibrator() = default;
-  NoiseCalibrator(bool one, float prob)
+  NoiseCalibrator(bool one, float prob, float relErr = 0.2) : m1pix(one), mProbabilityThreshold(prob), mProbRelErr(relErr)
   {
-    m1pix = one;
-    mProbabilityThreshold = prob;
+    mMinROFs = 1.1 * o2::itsmft::NoiseMap::getMinROFs(prob, relErr);
+    LOGP(info, "Expect at least {} ROFs needed to apply threshold {} with relative error {}", mMinROFs, mProbabilityThreshold, mProbRelErr);
   }
   ~NoiseCalibrator() = default;
-
-  void setThreshold(unsigned int t) { mThreshold = t; }
 
   bool processTimeFrameClusters(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
                                 gsl::span<const unsigned char> const& patterns,
@@ -56,6 +54,8 @@ class NoiseCalibrator
   void finalize();
 
   void setNThreads(int n) { mNThreads = n > 0 ? n : 1; }
+
+  void setMinROFs(long n) { mMinROFs = n; }
 
   void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
 
@@ -70,7 +70,8 @@ class NoiseCalibrator
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   o2::itsmft::NoiseMap mNoiseMap{24120};
   float mProbabilityThreshold = 3e-6f;
-  unsigned int mThreshold = 100;
+  float mProbRelErr = 0.2; // relative error on channel noise to apply the threshold
+  long mMinROFs = 0;
   unsigned int mNumberOfStrobes = 0;
   bool m1pix = true;
   int mNThreads = 1;
