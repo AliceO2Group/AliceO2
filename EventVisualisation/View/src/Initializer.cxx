@@ -123,18 +123,19 @@ void Initializer::setupGeometry()
     string detName = gVisualisationGroupName[det];
     LOG(info) << detName;
 
-    if (settings.GetValue((detName + ".draw").c_str(), false)) {
-      if (detName == "TPC" || detName == "MCH" || detName == "MID" || detName == "MFT") { // don't load MUON+MFT and AD and standard TPC to R-Phi view
+    if (detName == "TPC" || detName == "MCH" || detName == "MID" || detName == "MFT") { // don't load MUON+MFT and AD and standard TPC to R-Phi view
+      multiView->drawGeometryForDetector(detName, true, false);
+    } else if (detName == "RPH") { // special TPC geom from R-Phi view
+      multiView->drawGeometryForDetector(detName, false, true, false);
+    } else if (detName != "TST") { // default
+      multiView->drawGeometryForDetector(detName);
+    }
 
-        multiView->drawGeometryForDetector(detName, true, false);
-      } else if (detName == "RPH") { // special TPC geom from R-Phi view
+    const auto geom = multiView->getDetectorGeometry(detName);
+    const auto show = settings.GetValue((detName + ".draw").c_str(), false);
 
-        multiView->drawGeometryForDetector(detName, false, true, false);
-      } else { // default
-        if (detName != "TST") {
-          multiView->drawGeometryForDetector(detName);
-        }
-      }
+    if (geom != nullptr) {
+      geom->SetRnrSelfChildren(show, show);
     }
   }
 }

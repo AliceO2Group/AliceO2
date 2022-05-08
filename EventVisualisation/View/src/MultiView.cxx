@@ -77,8 +77,8 @@ MultiView::MultiView()
   mProjections[ProjectionRphi]->SetProjection(TEveProjection::kPT_RPhi);
   mProjections[ProjectionZrho]->SetProjection(TEveProjection::kPT_RhoZ);
 
-  gEve->AddToListTree(static_cast<TEveElement*>(mProjections[ProjectionRphi]), false);
-  gEve->AddToListTree(static_cast<TEveElement*>(mProjections[ProjectionZrho]), false);
+  // open scenes
+  gEve->GetScenes()->FindListTreeItem(gEve->GetListTree())->SetOpen(true);
 
   // add axes
   TEnv settings;

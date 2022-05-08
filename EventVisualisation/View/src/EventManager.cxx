@@ -25,6 +25,7 @@
 
 #include <TEveManager.h>
 #include <TEveTrack.h>
+#include <TEveProjectionManager.h>
 #include <TEveTrackPropagator.h>
 #include <TEnv.h>
 #include <TEveElement.h>
