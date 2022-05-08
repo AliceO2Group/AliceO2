@@ -17,6 +17,7 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CCDBQuery.h"
 #include "CommonUtils/StringUtils.h"
+#include "CommonUtils/FileSystemUtils.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "MemoryResources/MemoryResources.h"
 #include <chrono>
@@ -259,16 +260,11 @@ string CcdbApi::getFullUrlForStorage(CURL* curl, const string& path, const strin
   return fullUrl;
 }
 
-std::string getSnapshotPath(std::string const& topdir, const string& path)
-{
-  return topdir + "/" + path + "/snapshot.root";
-}
-
 // todo make a single method of the one above and below
 string CcdbApi::getFullUrlForRetrieval(CURL* curl, const string& path, const map<string, string>& metadata, long timestamp, int hostIndex) const
 {
   if (mInSnapshotMode) {
-    return getSnapshotPath(mSnapshotTopPath, path);
+    return getSnapshotFile(mSnapshotTopPath, path);
   }
 
   // Prepare timestamps
@@ -557,10 +553,11 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
   // we setup the target path for this blob
   std::string fulltargetdir = targetdir + (preservePath ? ('/' + path) : "");
 
-  if (!std::filesystem::exists(fulltargetdir)) {
-    if (!std::filesystem::create_directories(fulltargetdir)) {
-      LOG(error) << "Could not create target directory " << fulltargetdir;
-    }
+  try {
+    o2::utils::createDirectoriesIfAbsent(fulltargetdir);
+  } catch (std::exception e) {
+    LOGP(error, fmt::format("Could not create local snapshot cache directory {}, reason: {}", fulltargetdir, e.what()));
+    return false;
   }
 
   // retrieveHeaders
@@ -973,22 +970,18 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
     if (sem) {
       sem->wait(); // wait until we can enter (no one else there)
     }
-    if (!std::filesystem::exists(cachedir)) {
-      if (!std::filesystem::create_directories(cachedir)) {
-        LOG(error) << "Could not create local snapshot cache directory " << cachedir << "\n";
-      }
-    }
     std::string logfile = std::string(cachedir) + "/log";
     std::fstream out(logfile, ios_base::out | ios_base::app);
     if (out.is_open()) {
       out << "CCDB-access[" << getpid() << "] to " << path << " timestamp " << timestamp << "\n";
     }
-    auto snapshotfile = getSnapshotPath(cachedir, path);
-    std::filesystem::exists(snapshotfile);
+    auto snapshotfile = getSnapshotFile(cachedir, path);
     if (!std::filesystem::exists(snapshotfile)) {
       out << "CCDB-access[" << getpid() << "]  ... downloading to snapshot " << snapshotfile << "\n";
       // if file not already here and valid --> snapshot it
-      retrieveBlob(path, cachedir, metadata, timestamp);
+      if (!retrieveBlob(path, cachedir, metadata, timestamp)) {
+        out << "CCDB-access[" << getpid() << "]  ... failed to create directory for " << snapshotfile << "\n";
+      }
     } else {
       out << "CCDB-access[" << getpid() << "]  ... serving from local snapshot " << snapshotfile << "\n";
     }
@@ -1415,18 +1408,40 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
                                std::map<std::string, std::string>* headers, std::string const& etag,
                                const std::string& createdNotAfter, const std::string& createdNotBefore) const
 {
-  // The environment option ALICEO2_CCDB_LOCALCACHE allows
-  // to reduce the number of queries to the server, by collecting the objects in a local
-  // cache folder, and serving from this folder for repeated queries.
-  // This is useful for instance for MC GRID productions in which we spawn
-  // many isolated processes, all querying the CCDB (for potentially the same objects and same timestamp).
-  // In addition, we can monitor exactly which objects are fetched and what is their content.
-  // One can also distribute so obtained caches to sites without network access.
+  LOGP(debug, "loadFileToMemory {} ETag=[{}]", path, etag);
+
+  // if we are in snapshot mode we can simply open the file, unless the etag is non-empty:
+  // this would mean that the object was is already fetched and in this mode we don't to validity checks!
+  if (mInSnapshotMode) {
+    loadFileToMemory(dest, getSnapshotFile(mSnapshotTopPath, path), headers);
+  } else {
+    CURL* curl_handle = curl_easy_init();
+    string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
+
+    initHeadersForRetrieve(curl_handle, timestamp, headers, etag, createdNotAfter, createdNotBefore);
+
+    navigateURLsAndLoadFileToMemory(dest, curl_handle, fullUrl, headers);
+
+    for (size_t hostIndex = 1; hostIndex < hostsPool.size() && isMemoryFileInvalid(dest); hostIndex++) {
+      fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
+      loadFileToMemory(dest, fullUrl, headers);
+    }
+    curl_easy_cleanup(curl_handle);
+  }
+
+  if (dest.empty()) {
+    return; // nothing was fetched: either cached value is good or error was produced
+  }
+
+  // are we asked to create a snapshot ?
   const char* cachedir = getenv("ALICEO2_CCDB_LOCALCACHE");
   const char* cwd = ".";
   if (cachedir) {
     if (cachedir[0] == 0) {
       cachedir = cwd;
+    }
+    if (mInSnapshotMode && mSnapshotTopPath == cachedir) { // do not save to itself
+      return;
     }
     // protect this sensitive section by a multi-process named semaphore
     boost::interprocess::named_semaphore* sem = nullptr;
@@ -1441,24 +1456,35 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
     if (sem) {
       sem->wait(); // wait until we can enter (no one else there)
     }
-    if (!std::filesystem::exists(cachedir)) {
-      if (!std::filesystem::create_directories(cachedir)) {
-        LOG(error) << "Could not create local snapshot cache directory " << cachedir << "\n";
-      }
-    }
     std::string logfile = std::string(cachedir) + "/log";
     std::fstream out(logfile, ios_base::out | ios_base::app);
+    auto snapshotdir = getSnapshotDir(cachedir, path);
+    auto snapshotpath = getSnapshotFile(cachedir, path);
+    o2::utils::createDirectoriesIfAbsent(snapshotdir);
     if (out.is_open()) {
-      out << "CCDB-access[" << getpid() << "] to " << path << " timestamp " << timestamp << "\n";
+      out << "CCDB-access[" << getpid() << "]  ... downloading to snapshot " << snapshotpath << "\n";
     }
-    auto snapshotfile = getSnapshotPath(cachedir, path);
-    std::filesystem::exists(snapshotfile);
-    if (!std::filesystem::exists(snapshotfile)) {
-      out << "CCDB-access[" << getpid() << "]  ... downloading to snapshot " << snapshotfile << "\n";
-      // if file not already here and valid --> snapshot it
-      retrieveBlob(path, cachedir, metadata, timestamp);
-    } else {
-      out << "CCDB-access[" << getpid() << "]  ... serving from local snapshot " << snapshotfile << "\n";
+    { // dump image to a file
+      LOGP(debug, "creating snapshot {} -> {}", path, snapshotpath);
+
+      CCDBQuery querysummary(path, metadata, timestamp);
+      {
+        std::ofstream objFile(snapshotpath, std::ios::out | std::ofstream::binary);
+        std::copy(dest.begin(), dest.end(), std::ostreambuf_iterator<char>(objFile));
+      }
+      // now open the same file as root file and store metadata
+      std::lock_guard<std::mutex> guard(gIOMutex);
+      auto oldlevel = gErrorIgnoreLevel;
+      gErrorIgnoreLevel = 6001;                       // ignoring error messages here (since we catch with IsZombie)
+      TFile snapshot(snapshotpath.c_str(), "UPDATE"); // the assumption is that the blob is a ROOT file
+      if (!snapshot.IsZombie()) {
+        snapshot.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
+        if (headers) {
+          snapshot.WriteObjectAny(headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
+        }
+      }
+      snapshot.Close();
+      gErrorIgnoreLevel = oldlevel;
     }
     if (sem) {
       sem->post();
@@ -1468,28 +1494,8 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
         boost::interprocess::named_semaphore::remove(semhashedstring.c_str());
       }
     }
-    return loadFileToMemory(dest, snapshotfile, headers);
   }
 
-  // normal mode follows
-
-  CURL* curl_handle = curl_easy_init();
-  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
-  // if we are in snapshot mode we can simply open the file; extract the object and return
-  if (mInSnapshotMode) {
-    return loadFileToMemory(dest, fullUrl, headers);
-  }
-
-  initHeadersForRetrieve(curl_handle, timestamp, headers, etag, createdNotAfter, createdNotBefore);
-
-  navigateURLsAndLoadFileToMemory(dest, curl_handle, fullUrl, headers);
-
-  for (size_t hostIndex = 1; hostIndex < hostsPool.size() && isMemoryFileInvalid(dest); hostIndex++) {
-    fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
-    loadFileToMemory(dest, fullUrl, headers);
-  }
-
-  curl_easy_cleanup(curl_handle);
   return;
 }
 
@@ -1605,6 +1611,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
 void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& path, std::map<std::string, std::string>* localHeaders) const
 {
   // Read file to memory as vector. For special case of the locally cached file retriev metadata stored directly in the file
+  LOGP(debug, "loading from {} to memory", path);
   constexpr size_t MaxCopySize = 0x1L << 25;
   auto signalError = [&dest, localHeaders]() {
     dest.clear();
