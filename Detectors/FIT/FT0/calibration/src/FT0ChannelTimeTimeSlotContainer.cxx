@@ -11,7 +11,7 @@
 
 #include "FT0Calibration/FT0ChannelTimeTimeSlotContainer.h"
 #include "FT0Base/Geometry.h"
-#include "FT0Simulation/FT0DigParam.h"
+#include "FT0Base/FT0DigParam.h"
 #include <numeric>
 #include <algorithm>
 #include <iterator>
