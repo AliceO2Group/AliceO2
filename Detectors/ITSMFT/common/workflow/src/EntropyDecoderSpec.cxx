@@ -82,10 +82,10 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 void EntropyDecoderSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   if (mMaskNoise) {
-    mNoiseMap = pc.inputs().get<o2::itsmft::NoiseMap*>("noise").get();
+    pc.inputs().get<o2::itsmft::NoiseMap*>("noise").get();
   }
   if (mGetDigits || mMaskNoise) {
-    pc.inputs().get<o2::itsmft::NoiseMap*>("cldict");
+    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
   }
   mCTFCoder.updateTimeDependentParams(pc);
 }
@@ -93,6 +93,7 @@ void EntropyDecoderSpec::updateTimeDependentParams(ProcessingContext& pc)
 void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
   if (matcher == ConcreteDataMatcher(mOrigin, "NOISEMAP", 0)) {
+    mNoiseMap = (o2::itsmft::NoiseMap*)obj;
     LOG(info) << mOrigin.as<std::string>() << " noise map updated";
     return;
   }
