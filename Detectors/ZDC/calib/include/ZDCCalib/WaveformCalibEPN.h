@@ -20,10 +20,11 @@
 #include "CommonDataFormat/FlatHisto1D.h"
 #include "CommonDataFormat/FlatHisto2D.h"
 #include "DataFormatsZDC/RecEvent.h"
+#include "DataFormatsZDC/WaveformCalibData.h"
+#include "DataFormatsZDC/ZDCWaveform.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
 #include "ZDCCalib/WaveformCalibConfig.h"
-#include "DataFormatsZDC/ZDCWaveform.h"
 #ifndef ALICEO2_ZDC_WAVEFORMCALIBEPN_H_
 #define ALICEO2_ZDC_WAVEFORMCALIBEPN_H_
 namespace o2
@@ -44,11 +45,13 @@ class WaveformCalibEPN
               const gsl::span<const o2::zdc::ZDCWaveform>& wave);
   int endOfRun();
   int write(const std::string fn = "ZDCWaveformCalibEPN.root");
-  void setWaveformCalibConfig(const WaveformCalibConfig* param) { mWaveformCalibConfig = param; };
-  const WaveformCalibConfig* getWaveformCalibConfig() const { return mWaveformCalibConfig; };
+  void setConfig(const WaveformCalibConfig* param) { mWaveformCalibConfig = param; };
+  const WaveformCalibConfig* getConfig() const { return mWaveformCalibConfig; };
   void setSaveDebugHistos() { mSaveDebugHistos = true; }
   void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
   std::array<o2::dataformats::FlatHisto1D<float>*, NH> mH{};
+  WaveformCalibData mData;
+  WaveformCalibData& getData() { return mData; }
 
  private:
   bool mInitDone = false;

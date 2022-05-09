@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ZDC_WAVEFORMCALIB_DATA_H_
-#define ZDC_WAVEFORMCALIB_DATA_H_
+#ifndef ZDC_WAVEFORMCALIB_DATA_H
+#define ZDC_WAVEFORMCALIB_DATA_H
 
 #include "ZDCBase/Constants.h"
 #include "ZDCCalib/WaveformCalibConfig.h"
@@ -31,7 +31,7 @@ struct WaveformCalibData {
   uint64_t mCTimeBeg = 0; /// Time of processed time frame
   uint64_t mCTimeEnd = 0; /// Time of processed time frame
   std::array<float, WaveformCalibConfig::NBT * TSN> mWave[NH];
-  mEntries[NH] = {0};
+  uint32_t mEntries[NH] = {0};
   WaveformCalibData& operator+=(const WaveformCalibData& other);
   int getEntries(int ih) const;
   void print() const;

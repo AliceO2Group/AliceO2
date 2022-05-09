@@ -19,19 +19,26 @@ namespace zdc
 
 int WaveformCalibQueue::append(const RecEventAux& ev)
 {
+  auto &toadd ev.ir;
   // If queue is empty insert event
   if(mIR.size()==0){
     return appendEv(ev);
   }
   // If queue is not empty and is too long remove first element
-  while(mIR.size()>mN){
+  while(mIR.size()>=mN){
     auto &todel = mIR.front();
-    LOG(info) << __func__ << " delete " << ev.ir.orbit << "." << ev.ir.bc;
+    LOG(info) << __func__ << " delete " << todel.orbit << "." << todel.bc;
     mIR.pop();
+    LOG(info) << __func__ << " size " << mIR.size();
   }
   // Check last element
+  auto &last = mIR.back();
   // If BC are not consecutive, clear queue and then append element
+  if(toadd.differenceInBC(last)>1){
+    mIR.clear();
+  }
   // IF BC are consecutive append element
+  return appendEv(ev);
 }
 
 int WaveformCalibQueue::appendEv(const RecEventAux& ev)

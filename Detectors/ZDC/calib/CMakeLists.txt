@@ -18,6 +18,7 @@ o2_add_library(ZDCCalib
                  src/InterCalibEPNSpec.cxx
                  src/WaveformCalibConfig.cxx
                  src/WaveformCalibEPN.cxx
+                 src/WaveformCalibEPNSpec.cxx
                  src/WaveformCalibQueue.cxx
                PUBLIC_LINK_LIBRARIES
                  O2::CCDB
@@ -44,6 +45,7 @@ o2_target_root_dictionary(ZDCCalib
                             include/ZDCCalib/InterCalibEPNSpec.h
                             include/ZDCCalib/WaveformCalibConfig.h
                             include/ZDCCalib/WaveformCalibEPN.h
+                            include/ZDCCalib/WaveformCalibEPNSpec.h
                             include/ZDCCalib/WaveformCalibQueue.h)
 
 o2_add_executable(intercalib-workflow
@@ -54,4 +56,9 @@ o2_add_executable(intercalib-workflow
 o2_add_executable(intercalib-epn-workflow
                   COMPONENT_NAME zdc
                   SOURCES src/zdc-intercalib-epn-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib O2::DetectorsCalibration)
+
+o2_add_executable(waveformcalib-epn-workflow
+                  COMPONENT_NAME zdc
+                  SOURCES src/zdc-waveformcalib-epn-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib O2::DetectorsCalibration)

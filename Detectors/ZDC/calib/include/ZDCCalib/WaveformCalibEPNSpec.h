@@ -42,9 +42,9 @@ class WaveformCalibEPNSpec : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  int mVerbosity = 0;                 // Verbosity level
-  bool mInitialized = false;          // Connect once to CCDB during initialization
-  WaveformCalibEPN mWaveformCalibEPN; // Waveform calibration object
+  int mVerbosity = 0;        // Verbosity level
+  bool mInitialized = false; // Connect once to CCDB during initialization
+  WaveformCalibEPN mWorker;  // Waveform calibration object
   TStopwatch mTimer;
 };
 
