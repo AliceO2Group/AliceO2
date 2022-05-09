@@ -381,7 +381,7 @@ uint64_t DataDecoder::getMergerChannelBitmask(DualSampaChannelId channel)
 
 bool DataDecoder::mergeDigits(uint32_t mergerChannelId, uint32_t mergerBoardId, uint64_t mergerChannelBitmask, o2::mch::raw::SampaCluster& sc)
 {
-  static constexpr uint32_t BCROLLOVER = (1 << 20);
+  uint32_t BCROLLOVER = (mTimeRecoMode == TimeRecoMode::BCReset) ? (mBcInOrbit * mOrbitsInTF) : (1 << 20);
   static constexpr uint32_t ONEADCCLOCK = 4;
   static constexpr uint32_t MAXNOFSAMPLES = 0x3FF;
   static constexpr uint32_t TWENTYBITSATONE = 0xFFFFF;
