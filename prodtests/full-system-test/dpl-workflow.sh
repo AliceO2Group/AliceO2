@@ -41,7 +41,6 @@ source $MYDIR/workflow-setup.sh
 
 [[ -z $SHM_MANAGER_SHMID ]] && ( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS != 0 ]] ) && ARGS_ALL+=" --no-cleanup"
 ( [[ $GPUTYPE != "CPU" ]] || [[ $OPTIMIZED_PARALLEL_ASYNC != 0 ]] ) && ARGS_ALL+=" --shm-mlock-segment-on-creation 1"
-[[ ! -z $SHM_MANAGER_SHMID ]] && ARGS_ALL+=" --shm-no-cleanup on --shmid $SHM_MANAGER_SHMID"
 if [[ $EPNSYNCMODE == 1 ]] || type numactl >/dev/null 2>&1 && [[ `numactl -H | grep "node . size" | wc -l` -ge 2 ]]; then
   [[ $NUMAGPUIDS != 0 ]] && ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
 fi
