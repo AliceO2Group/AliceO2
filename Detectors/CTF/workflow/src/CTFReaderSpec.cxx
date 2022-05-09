@@ -94,7 +94,8 @@ class CTFReaderSpec : public o2::framework::Task
   int mNFailedFiles = 0;
   int mFilesRead = 0;
   long mLastSendTime = 0L;
-  long mCurrTreeEntry = 0;
+  long mCurrTreeEntry = 0L;
+  long mImposeRunStartMS = 0L;
   size_t mSelIDEntry = 0; // next CTFID to select from the mInput.ctfIDs (if non-empty)
   TStopwatch mTimer;
 };
@@ -136,6 +137,7 @@ void CTFReaderSpec::init(InitContext& ic)
 {
   mInput.ctfIDs = o2::RangeTokenizer::tokenize<int>(ic.options().get<std::string>("select-ctf-ids"));
   mUseLocalTFCounter = ic.options().get<bool>("local-tf-counter");
+  mImposeRunStartMS = ic.options().get<int64_t>("impose-run-start-timstamp");
   mRunning = true;
   mFileFetcher = std::make_unique<o2::utils::FileFetcher>(mInput.inpdata, mInput.tffileRegex, mInput.remoteRegex, mInput.copyCmd);
   mFileFetcher->setMaxFilesInQueue(mInput.maxFileCache);
@@ -227,6 +229,9 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   CTFHeader ctfHeader;
   if (!readFromTree(*(mCTFTree.get()), "CTFHeader", ctfHeader, mCurrTreeEntry)) {
     throw std::runtime_error("did not find CTFHeader");
+  }
+  if (mImposeRunStartMS > 0) {
+    ctfHeader.creationTime = mImposeRunStartMS + ctfHeader.firstTForbit * o2::constants::lhc::LHCOrbitMUS * 1e-3;
   }
   if (ctfHeader.creationTime == 0) { // try to repair header with ad hoc data
     tryToFixCTFHeader(ctfHeader);
@@ -405,6 +410,7 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
     outputs,
     AlgorithmSpec{adaptFromTask<CTFReaderSpec>(inp)},
     Options{{"select-ctf-ids", VariantType::String, "", {"comma-separated list CTF IDs to inject (from cumulative counter of CTFs seen)"}},
+            {"impose-run-start-timstamp", VariantType::Int64, 0L, {"impose run start time stamp (ms), ignored if 0"}},
             {"local-tf-counter", VariantType::Bool, false, {"reassign header.tfCounter from local TF counter"}}}};
 }
 
