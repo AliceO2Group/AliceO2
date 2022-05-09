@@ -81,7 +81,7 @@ class TimesliceIndex
   };
 
   TimesliceIndex(size_t maxLanes, size_t maxChannels);
-  inline void resize(size_t s);
+  void resize(size_t s);
   [[nodiscard]] inline size_t size() const;
   [[nodiscard]] inline bool isValid(TimesliceSlot const& slot) const;
   [[nodiscard]] inline bool isDirty(TimesliceSlot const& slot) const;
@@ -95,7 +95,7 @@ class TimesliceIndex
   /// Associated the @a timestamp to the given @a slot. Notice that
   /// now the information about the timeslot to associate needs to be
   /// determined outside the TimesliceIndex.
-  inline void associate(TimesliceId timestamp, TimesliceSlot slot);
+  void associate(TimesliceId timestamp, TimesliceSlot slot);
 
   /// Given a slot, @return the VariableContext associated to it.
   /// This effectively means that the TimesliceIndex is now owner of the
@@ -112,22 +112,22 @@ class TimesliceIndex
   /// @a timestamp must be provided to select the correct lane, in case of pipelining
   /// @return the action taken on insertion, which can be used for bookkeeping
   ///         of the messages.
-  inline std::tuple<ActionTaken, TimesliceSlot> replaceLRUWith(data_matcher::VariableContext& newContext, TimesliceId timestamp);
+  std::tuple<ActionTaken, TimesliceSlot> replaceLRUWith(data_matcher::VariableContext& newContext, TimesliceId timestamp);
 
   /// Set the older possible input per channel
   /// @return the updated oldest possible input. Notice that this should be
   /// used with the validateSlots below to actually discard the slots.
-  [[nodiscard]] inline OldestInputInfo setOldestPossibleInput(TimesliceId timeslice, ChannelIndex channel);
+  [[nodiscard]] OldestInputInfo setOldestPossibleInput(TimesliceId timeslice, ChannelIndex channel);
   /// Validate that the slot @a slot is still not older than @a currentOldest
   /// @return true if the slot was not invalidated by the new currentOldest
-  inline bool validateSlot(TimesliceSlot slot, TimesliceId currentOldest);
+  bool validateSlot(TimesliceSlot slot, TimesliceId currentOldest);
 
   /// Find the lowest value for the timeslices in this instance.
   /// This is the minimum between all the per channel oldest possible timeslices
   /// and the oldest possible timeslice in-fly which is still dirty.
-  [[nodiscard]] inline OldestInputInfo getOldestPossibleInput() const;
-  [[nodiscard]] inline OldestOutputInfo getOldestPossibleOutput() const;
-  inline OldestOutputInfo updateOldestPossibleOutput();
+  [[nodiscard]] OldestInputInfo getOldestPossibleInput() const;
+  [[nodiscard]] OldestOutputInfo getOldestPossibleOutput() const;
+  OldestOutputInfo updateOldestPossibleOutput();
 
  private:
   /// @return the oldest slot possible so that we can eventually override it.

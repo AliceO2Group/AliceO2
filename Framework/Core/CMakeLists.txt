@@ -117,6 +117,7 @@ o2_add_library(Framework
                        src/TableTreeHelpers.cxx
                        src/TopologyPolicy.cxx
                        src/TextDriverClient.cxx
+                       src/TimesliceIndex.cxx
                        src/DataInputDirector.cxx
                        src/DataOutputDirector.cxx
                        src/Task.cxx
