@@ -39,7 +39,7 @@ void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU
 void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, uint32_t firstOrbit, uint32_t syncOffsetReference);
 uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSpec>& filter);
 
-uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec, const std::vector<int>& sectors, size_t* nerrors)
+uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec, const std::vector<int>& sectors, size_t* nerrors, uint32_t syncOffsetReference)
 {
   std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
   size_t errorCount = 0;
@@ -74,7 +74,7 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
   // this is less precise and might lead to more time bins which have to be removed at the beginnig
   // or end of the TF
   // uint32_t syncOffsetReference = getBCsyncOffsetReference(inputs, filter);
-  uint32_t syncOffsetReference = 144;
+  // uint32_t syncOffsetReference = 144;
 
   for (auto const& ref : InputRecordWalker(inputs, filter)) {
     const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
