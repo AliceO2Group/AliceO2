@@ -30,7 +30,8 @@ static constexpr uint32_t NIntRecPayload = 48 + 12;
 static constexpr uint32_t GBTLinkIDClassRec = 1;
 static constexpr uint32_t NClassPayload = 64 + 12;
 static constexpr uint32_t NGBT = 80;
-static constexpr std::uint32_t NumOfHBInTF = 256;
+static constexpr std::uint32_t NumOfHBInTF = 128;
+static constexpr uint32_t NRUNS = 16;
 typedef std::bitset<NGBT> gbtword80_t;
 //
 static constexpr std::uint32_t CTP_NINPUTS = 48;    /// Max number of CTP inputs for all levels
