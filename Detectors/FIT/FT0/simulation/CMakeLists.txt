@@ -18,14 +18,16 @@ o2_add_library(FT0Simulation
                               O2::Headers
                               O2::FT0Base
                               O2::DataFormatsFT0
+                              O2::FT0Calibration
                               O2::CCDB
-                              O2::DetectorsCalibration)
+                              O2::DetectorsCalibration
+                              )
 
 o2_target_root_dictionary(FT0Simulation
         HEADERS include/FT0Simulation/Detector.h
                 include/FT0Simulation/DigitizationConstants.h
                 include/FT0Simulation/Digitizer.h
-                include/FT0Simulation/FT0DigParam.h)
+                )
 
 o2_add_executable(digi2raw
         COMPONENT_NAME ft0

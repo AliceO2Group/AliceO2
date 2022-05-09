@@ -14,7 +14,7 @@
 /// \brief class for entropy encoding/decoding of FT0 digits data
 
 #include "FT0Reconstruction/CTFCoder.h"
-#include "FT0Simulation/FT0DigParam.h"
+#include "FT0Base/FT0DigParam.h"
 #include "CommonUtils/StringUtils.h"
 #include <TTree.h>
 

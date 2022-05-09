@@ -16,5 +16,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::ft0::Geometry + ;
+#pragma link C++ class o2::ft0::FT0DigParam + ;
 
 #endif
