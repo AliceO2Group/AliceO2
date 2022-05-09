@@ -54,11 +54,12 @@ class TimeClusterFinderTask
   //_________________________________________________________________________________________________
   void init(framework::InitContext& ic)
   {
-    mTimeClusterWidth = ic.options().get<int>("max-cluster-width");
-    mNbinsInOneWindow = ic.options().get<int>("peak-search-nbins");
-    mMinDigitPerROF = ic.options().get<int>("min-digits-per-rof");
+    const auto& param = TimeClusterizerParam::Instance();
+    mTimeClusterWidth = param.maxClusterWidth;
+    mNbinsInOneWindow = param.peakSearchNbins;
+    mMinDigitPerROF = param.minDigitsPerROF;
+    mOnlyTrackable = param.onlyTrackable;
     mDebug = ic.options().get<bool>("mch-debug");
-    mOnlyTrackable = ic.options().get<bool>("only-trackable");
 
     if (mDebug) {
       fair::Logger::SetConsoleColor(true);
@@ -181,12 +182,7 @@ o2::framework::DataProcessorSpec
     Inputs{select(input.c_str())},
     outputs,
     AlgorithmSpec{adaptFromTask<TimeClusterFinderTask>()},
-    Options{{"mch-debug", VariantType::Bool, false, {"enable verbose output"}},
-            {"max-cluster-width", VariantType::Int, TimeClusterizerParam::Instance().maxClusterWidth, {"maximum time width of time clusters, in BC units"}},
-            {"peak-search-nbins", VariantType::Int, TimeClusterizerParam::Instance().peakSearchNbins, {"number of time bins for the peak search algorithm (must be an odd number >= 3)"}},
-            {{"only-trackable"}, VariantType::Bool, TimeClusterizerParam::Instance().onlyTrackable, {"remove digits for ROFs which are not trackable"}},
-            {"min-digits-per-rof", VariantType::Int, TimeClusterizerParam::Instance().minDigitsPerROF, {"minimum number of digits per ROF (below that threshold ROF is discarded)"}}}};
+    Options{{"mch-debug", VariantType::Bool, false, {"enable verbose output"}}}};
 }
-
 } // end namespace mch
 } // end namespace o2

@@ -25,7 +25,7 @@ namespace o2::mch
 struct DigitFilterParam : public o2::conf::ConfigurableParamHelper<DigitFilterParam> {
 
   bool sanityCheck = false; ///< whether or not to perform some sanity checks on the input digits
-  int minADCValue = 0;      ///< digits with an ADC below or equal to this value are discarded
+  uint32_t minADC = 1;      ///< digits with an ADC below this value are discarded
 
   O2ParamDef(DigitFilterParam, "MCHDigitFilter");
 };

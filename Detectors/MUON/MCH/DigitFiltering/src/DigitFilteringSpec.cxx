@@ -40,13 +40,13 @@ class DigitFilteringTask
 
   void init(InitContext& ic)
   {
-    mSanityCheck = ic.options().get<bool>("sanity-check");
-    mMinADC = ic.options().get<int>("min-adc-value");
+    mSanityCheck = DigitFilterParam::Instance().sanityCheck;
+    mMinADC = DigitFilterParam::Instance().minADC;
   }
 
   bool isGoodDigit(const Digit& digit) const
   {
-    return digit.getADC() > mMinADC;
+    return digit.getADC() >= mMinADC;
   }
 
   void run(ProcessingContext& pc)
@@ -78,9 +78,7 @@ class DigitFilteringTask
 
     if (!abort) {
       int cursor{0};
-      for (auto i = 0; i < iRofs.size(); i++) {
-        const ROFRecord& irof = iRofs[i];
-
+      for (const auto& irof : iRofs) {
         const auto digits = iDigits.subspan(irof.getFirstIdx(), irof.getNEntries());
 
         // filter the digits from the current ROF
@@ -89,7 +87,7 @@ class DigitFilteringTask
           if (isGoodDigit(d)) {
             oDigits.emplace_back(d);
             if (iLabels) {
-              oLabels->addElements(oLabels->getIndexedSize(), iLabels->getLabels(i + cursor));
+              oLabels->addElements(oLabels->getIndexedSize(), iLabels->getLabels(i + irof.getFirstIdx()));
             }
           }
         }
@@ -162,8 +160,6 @@ framework::DataProcessorSpec
     Inputs{select(input.c_str())},
     outputs,
     AlgorithmSpec{adaptFromTask<DigitFilteringTask>(useMC)},
-    Options{
-      {"sanity-check", VariantType::Bool, DigitFilterParam::Instance().sanityCheck, {"perform a few sanity checks on input digits"}},
-      {"min-adc-value", VariantType::Int, DigitFilterParam::Instance().minADCValue, {"minimum ADC value to consider"}}}};
+    Options{}};
 }
 } // namespace o2::mch
