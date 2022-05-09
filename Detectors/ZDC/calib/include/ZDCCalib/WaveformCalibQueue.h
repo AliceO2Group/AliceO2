@@ -32,7 +32,21 @@ namespace zdc
 {
 
 struct WaveformCalibQueue {
+  WaveformCalibQueue(int ifirst, int ilast){
+    configure(ifirst, ilast);
+  }
   static constexpr int NH = WaveformCalibConfig::NH;
+  int mFirst=0;
+  int mLast=0;
+  int mN=1;
+  void configure(int ifirst, int ilast){
+    if(ifirst>0 || ilast<0 || ilast<ifirst){
+      LOGF(fatal,"WaveformCalibQueue configure error with ifirst=%d ilast=%d", ifirst, ilast);
+    }
+    mFirst=ifirst;
+    mLast=ilast;
+    mN=ilast-ifirst+1;
+  }
   std::queue<o2::InteractionRecord> mIR;
   int append(const RecEventAux &ev);
   int appendEv(const RecEventAux &ev);

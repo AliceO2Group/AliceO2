@@ -24,6 +24,11 @@ int WaveformCalibQueue::append(const RecEventAux& ev)
     return appendEv(ev);
   }
   // If queue is not empty and is too long remove first element
+  while(mIR.size()>mN){
+    auto &todel = mIR.front();
+    LOG(info) << __func__ << " delete " << ev.ir.orbit << "." << ev.ir.bc;
+    mIR.pop();
+  }
   // Check last element
   // If BC are not consecutive, clear queue and then append element
   // IF BC are consecutive append element
@@ -31,6 +36,7 @@ int WaveformCalibQueue::append(const RecEventAux& ev)
 
 int WaveformCalibQueue::appendEv(const RecEventAux& ev)
 {
+  LOG(info) << __func__ << " " << ev.ir.orbit << "." << ev.ir.bc;
   mIR.push(ev.ir);
   return mIR.size();
 }
