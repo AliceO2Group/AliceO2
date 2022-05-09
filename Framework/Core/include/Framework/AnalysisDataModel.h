@@ -759,11 +759,12 @@ DECLARE_SOA_TABLE(FDDs_000, "AOD", "FDD", //! FDD table, version 000
                   fdd::TimeA, fdd::TimeC,
                   fdd::TriggerMask);
 
-DECLARE_SOA_TABLE(FDDs_001, "AOD", "FDD_001", //! FDD table, version 001
-                  o2::soa::Index<>, fdd::BCId,
-                  fdd::ChargeA, fdd::ChargeC,
-                  fdd::TimeA, fdd::TimeC,
-                  fdd::TriggerMask);
+DECLARE_SOA_TABLE_VERSIONED(FDDs_001, "AOD", "FDD", 1, //! FDD table, version 001
+                            o2::soa::Index<>,
+                            fdd::BCId,
+                            fdd::ChargeA, fdd::ChargeC,
+                            fdd::TimeA, fdd::TimeC,
+                            fdd::TriggerMask);
 
 using FDDs = FDDs_001; //! this defines the current default version
 using FDD = FDDs::iterator;
@@ -778,9 +779,9 @@ DECLARE_SOA_INDEX_COLUMN(Collision, collision);                         //! Coll
 DECLARE_SOA_TABLE(V0s_000, "AOD", "V0", //! Run 2 V0 table (version 000)
                   o2::soa::Index<>,
                   v0::PosTrackId, v0::NegTrackId);
-DECLARE_SOA_TABLE(V0s_001, "AOD", "V0_001", //! Run 3 V0 table (version 001)
-                  o2::soa::Index<>, v0::CollisionId,
-                  v0::PosTrackId, v0::NegTrackId);
+DECLARE_SOA_TABLE_VERSIONED(V0s_001, "AOD", "V0", 1, //! Run 3 V0 table (version 001)
+                            o2::soa::Index<>, v0::CollisionId,
+                            v0::PosTrackId, v0::NegTrackId);
 
 using V0s = V0s_001; //! this defines the current default version
 using V0 = V0s::iterator;
@@ -794,8 +795,8 @@ DECLARE_SOA_INDEX_COLUMN(Collision, collision);                     //! Collisio
 
 DECLARE_SOA_TABLE(Cascades_000, "AOD", "CASCADE", //! Run 2 cascade table
                   o2::soa::Index<>, cascade::V0Id, cascade::BachelorId);
-DECLARE_SOA_TABLE(Cascades_001, "AOD", "CASCADE_001", //! Run 3 cascade table
-                  o2::soa::Index<>, cascade::CollisionId, cascade::V0Id, cascade::BachelorId);
+DECLARE_SOA_TABLE_VERSIONED(Cascades_001, "AOD", "CASCADE", 1, //! Run 3 cascade table
+                            o2::soa::Index<>, cascade::CollisionId, cascade::V0Id, cascade::BachelorId);
 
 using Cascades = Cascades_001; //! this defines the current default version
 using Cascade = Cascades::iterator;
@@ -931,17 +932,17 @@ DECLARE_SOA_TABLE_FULL(StoredMcParticles_000, "McParticles", "AOD", "MCPARTICLE"
                        mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
                        mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
 
-DECLARE_SOA_TABLE_FULL(StoredMcParticles_001, "McParticles_001", "AOD", "MCPARTICLE_001", //! MC particle table, version 001
-                       o2::soa::Index<>, mcparticle::McCollisionId,
-                       mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
-                       mcparticle::MothersIds, mcparticle::DaughtersIdSlice, mcparticle::Weight,
-                       mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
-                       mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
-                       mcparticle::ProducedByGenerator<mcparticle::Flags>,
-                       mcparticle::FromBackgroundEvent<mcparticle::Flags>,
-                       mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
-                       mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
-                       mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
+DECLARE_SOA_TABLE_FULL_VERSIONED(StoredMcParticles_001, "McParticles", "AOD", "MCPARTICLE", 1, //! MC particle table, version 001
+                                 o2::soa::Index<>, mcparticle::McCollisionId,
+                                 mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
+                                 mcparticle::MothersIds, mcparticle::DaughtersIdSlice, mcparticle::Weight,
+                                 mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
+                                 mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
+                                 mcparticle::ProducedByGenerator<mcparticle::Flags>,
+                                 mcparticle::FromBackgroundEvent<mcparticle::Flags>,
+                                 mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
+                                 mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
+                                 mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
 
 DECLARE_SOA_EXTENDED_TABLE(McParticles_000, StoredMcParticles_000, "MCPARTICLE", //! Basic MC particle properties
                            mcparticle::Phi,
@@ -950,7 +951,7 @@ DECLARE_SOA_EXTENDED_TABLE(McParticles_000, StoredMcParticles_000, "MCPARTICLE",
                            mcparticle::P,
                            mcparticle::Y);
 
-DECLARE_SOA_EXTENDED_TABLE(McParticles_001, StoredMcParticles_001, "MCPARTICLE_001", //! Basic MC particle properties
+DECLARE_SOA_EXTENDED_TABLE(McParticles_001, StoredMcParticles_001, "MCPARTICLE", //! Basic MC particle properties
                            mcparticle::Phi,
                            mcparticle::Eta,
                            mcparticle::Pt,
