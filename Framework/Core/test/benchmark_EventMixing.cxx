@@ -22,7 +22,7 @@ using namespace o2::framework;
 using namespace arrow;
 using namespace o2::soa;
 
-/// FIXME: do not use data model tables
+// Validation of new event mixing: time complexity same as for naive loop
 
 #ifdef __APPLE__
 constexpr unsigned int maxPairsRange = 5;
@@ -172,7 +172,7 @@ static void BM_EventMixingCombinations(benchmark::State& state)
     colCount = 0;
 
     auto tracksTuple = std::make_tuple(tracks);
-    SameKindPair<o2::aod::Collisions, o2::aod::StoredTracks, BinningType> pair{binningOnPositions, numEventsToMix - 1, -1, o2::aod::track::collisionId, collisions, tracksTuple};
+    SameKindPair<o2::aod::Collisions, o2::aod::StoredTracks, BinningType> pair{binningOnPositions, numEventsToMix - 1, -1, collisions, tracksTuple};
     for (auto& [c1, tracks1, c2, tracks2] : pair) {
       int bin = binningOnPositions.getBin({c1.posX(), c1.posY()});
       for (auto& [t1, t2] : combinations(CombinationsFullIndexPolicy(tracks1, tracks2))) {
