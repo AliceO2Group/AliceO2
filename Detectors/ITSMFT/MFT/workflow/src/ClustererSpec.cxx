@@ -46,6 +46,8 @@ void ClustererDPL::init(InitContext& ic)
 
   mClusterer = std::make_unique<o2::itsmft::Clusterer>();
   mClusterer->setNChips(o2::itsmft::ChipMappingMFT::getNChips());
+  mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
+
   LOG(info) << "MFT ClustererDPL::init total number of sensors " << o2::itsmft::ChipMappingMFT::getNChips() << "\n";
 
   //mClusterer->setMaskOverflowPixels(false);
@@ -72,14 +74,6 @@ void ClustererDPL::init(InitContext& ic)
   mClusterer->setMaxBCSeparationToMask(nbc);
   mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mClusterer->loadDictionary(dictFile);
-    LOG(info) << "MFTClusterer running with a provided dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile << " is absent, MFTClusterer expects cluster patterns";
-  }
   mState = 1;
   mClusterer->print();
 }
