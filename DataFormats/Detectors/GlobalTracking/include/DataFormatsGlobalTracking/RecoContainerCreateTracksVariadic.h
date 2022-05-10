@@ -30,6 +30,7 @@
 #include "DataFormatsMID/Cluster.h"
 #include "DataFormatsMID/Track.h"
 #include "DataFormatsMID/MCClusterLabel.h"
+#include "DataFormatsMID/MCLabel.h"
 
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTOF/Cluster.h"
