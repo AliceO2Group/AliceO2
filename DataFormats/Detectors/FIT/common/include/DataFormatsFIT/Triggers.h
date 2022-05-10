@@ -30,12 +30,12 @@ class Triggers
 {
  public:
   enum { bitA = 0,
-         bitC = 1,      // alias of bitAIn (FT0/FDD)
-         bitAIn = 1,    // alias of bitC (FV0)
+         bitC = 1,   // alias of bitAIn (FT0/FDD)
+         bitAIn = 1, // alias of bitC (FV0)
          bitSCen = 2,
-         bitAOut = 2,   // alias of bitVertex (FV0)
+         bitAOut = 2, // alias of bitVertex (FV0)
          bitCen = 3,
-         bitVertex = 4, // alias of bitAOut (FT0/FDD)
+         bitVertex = 4,            // alias of bitAOut (FT0/FDD)
          bitLaser = 5,             // indicates the laser was triggered in this BC
          bitOutputsAreBlocked = 6, // indicates that laser-induced pulses should arrive from detector to FEE in this BC (and trigger outputs are blocked)
          bitDataIsValid = 7 };
@@ -112,8 +112,8 @@ class Triggers
 
  public:                                 // TODO: change to 'private' after modifying QC to use the setters/getters
   uint8_t triggersignals = DEFAULT_ZERO; // FIT trigger signals
-  uint8_t nChanA = DEFAULT_ZERO;          // number of fired channels A side
-  uint8_t nChanC = DEFAULT_ZERO;          // number of fired channels A side
+  uint8_t nChanA = DEFAULT_ZERO;         // number of fired channels A side
+  uint8_t nChanC = DEFAULT_ZERO;         // number of fired channels A side
   int32_t amplA = DEFAULT_AMP;           // sum amplitude A side
   int32_t amplC = DEFAULT_AMP;           // sum amplitude C side
   int16_t timeA = DEFAULT_TIME;          // average time A side (shouldn't be used if nChanA == 0)
