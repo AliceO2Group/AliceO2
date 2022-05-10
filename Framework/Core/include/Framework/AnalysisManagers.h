@@ -40,16 +40,15 @@ struct GroupedCombinationManager {
   }
 };
 
-template <typename T1, typename GroupingPolicy, typename BP, typename G, typename... Us, typename... As>
-struct GroupedCombinationManager<GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<Us...>, As...>> {
+template <typename T1, typename GroupingPolicy, typename BP, typename G, typename... As>
+struct GroupedCombinationManager<GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, As...>> {
   template <typename TG, typename... T2s>
-  static void setGroupedCombination(GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<Us...>, As...>& comb, TG& grouping, std::tuple<T2s...>& associated)
+  static void setGroupedCombination(GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, As...>& comb, TG& grouping, std::tuple<T2s...>& associated)
   {
     static_assert(sizeof...(T2s) > 0, "There must be associated tables in process() for a correct pair");
     if constexpr (std::is_same_v<G, TG>) {
-      // Take respective unique associated tables for grouping
-      auto associatedTuple = std::tuple<Us...>(std::get<Us>(associated)...);
-      comb.setTables(grouping, associatedTuple);
+      static_assert(std::conjunction_v<framework::has_type<As, pack<T2s...>>...>, "You didn't subscribed to all tables requested for mixing");
+      comb.setTables(grouping, associated);
     }
   }
 };
