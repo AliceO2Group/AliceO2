@@ -57,12 +57,6 @@ GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerInde
               getPhiBinIndex(phiRangeMax)};
 }
 
-// template <int NLayers>
-// void TrackerTraitsGPU<NLayers>::loadToDevice()
-// {
-//   mTimeFrameGPU.loadToDevice();
-// }
-
 namespace gpu
 {
 
