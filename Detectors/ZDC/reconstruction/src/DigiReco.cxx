@@ -1193,7 +1193,6 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
     if (ref == ZDCRefInitVal) {
       LOG(fatal) << "Missing information for bunch crossing";
     }
-    mReco[ibun].flags = mReco[ibun].flags | (0x1<<isig);
   }
 
   auto ref_beg = mReco[ibeg].ref[isig];

@@ -41,6 +41,9 @@ void CreateWaveformCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHo
   conf.setDescription("Simulated data");
   conf.setMinEntries(200);
 
+  // Restrict waveform range
+  conf.restrictRange(-1,0);
+
   conf.print();
 
   o2::ccdb::CcdbApi api;
@@ -57,7 +60,7 @@ void CreateWaveformCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHo
   api.init(ccdbHost.c_str());
   LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
-  api.storeAsTFileAny(&conf, CCDBPathInterCalibConfig, metadata, tmin, tmax);
+  api.storeAsTFileAny(&conf, CCDBPathWaveformCalibConfig, metadata, tmin, tmax);
 
   // return conf;
 }

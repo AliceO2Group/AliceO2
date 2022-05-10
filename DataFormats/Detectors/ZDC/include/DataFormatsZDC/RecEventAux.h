@@ -31,7 +31,7 @@ namespace zdc
 {
 
 struct RecEventAux : public RecEventFlat {
-  uint32_t flags; /// Pattern of available data
+  uint32_t flags;
 #ifdef O2_ZDC_TDC_C_ARRAY
   int16_t tdcVal[NTDCChannels][MaxTDCValues]; /// TdcValues (encoded)
   int16_t tdcAmp[NTDCChannels][MaxTDCValues]; /// TdcAmplitudes (encoded)

@@ -18,9 +18,9 @@
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/OrbitData.h"
 #include "DataFormatsZDC/RecEvent.h"
-#include "DataFormatsZDC/RecEventAux.h"
+#include "DataFormatsZDC/RecEventFlat.h"
 #include "ZDCCalib/WaveformCalibConfig.h"
-#include <queue>
+#include <deque>
 
 /// \file WaveformCalibQueue.h
 /// \brief Waveform calibration intermediate data queue
@@ -32,24 +32,68 @@ namespace zdc
 {
 
 struct WaveformCalibQueue {
-  WaveformCalibQueue(int ifirst, int ilast){
+  static constexpr int NH = WaveformCalibConfig::NH;
+  WaveformCalibQueue() = default;
+  WaveformCalibQueue(int ifirst, int ilast)
+  {
     configure(ifirst, ilast);
   }
-  static constexpr int NH = WaveformCalibConfig::NH;
-  int mFirst=0;
-  int mLast=0;
-  int mN=1;
-  void configure(int ifirst, int ilast){
-    if(ifirst>0 || ilast<0 || ilast<ifirst){
-      LOGF(fatal,"WaveformCalibQueue configure error with ifirst=%d ilast=%d", ifirst, ilast);
+  int mFirst = 0;
+  int mLast = 0;
+  int mPk = 0;
+  int mN = 1;
+  void configure(int ifirst, int ilast)
+  {
+    if (ifirst > 0 || ilast < 0 || ilast < ifirst) {
+      LOGF(fatal, "WaveformCalibQueue configure error with ifirst=%d ilast=%d", ifirst, ilast);
     }
-    mFirst=ifirst;
-    mLast=ilast;
-    mN=ilast-ifirst+1;
+    mFirst = ifirst;
+    mLast = ilast;
+    mN = ilast - ifirst + 1;
+    mPk = -mFirst;
   }
-  std::queue<o2::InteractionRecord> mIR;
-  int append(const RecEventAux &ev);
-  int appendEv(const RecEventAux &ev);
+  std::deque<o2::InteractionRecord> mIR;
+  std::deque<int32_t> mEntry;
+  std::deque<bool> mHasInfos[NH];
+  std::deque<uint32_t> mNTDC[NTDCChannels];
+  std::deque<float> mTDCA[NTDCChannels];
+  std::deque<float> mTDCP[NTDCChannels];
+  std::deque<int32_t> mFirstW;
+  std::deque<int32_t> mNW;
+  void clear()
+  {
+    LOG(info) << __func__;
+    mIR.clear();
+    mEntry.clear();
+    for (int ih = 0; ih < NH; ih++) {
+      mHasInfos[ih].clear();
+    }
+    for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+      mNTDC[itdc].clear();
+      mTDCA[itdc].clear();
+      mTDCP[itdc].clear();
+    }
+    mFirstW.clear();
+    mNW.clear();
+  }
+  void pop()
+  {
+    LOG(info) << __func__;
+    mIR.pop_front();
+    mEntry.pop_front();
+    for (int ih = 0; ih < NH; ih++) {
+      mHasInfos[ih].pop_front();
+    }
+    for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+      mNTDC[itdc].pop_front();
+      mTDCA[itdc].pop_front();
+      mTDCP[itdc].pop_front();
+    }
+    mFirstW.pop_front();
+    mNW.pop_front();
+  }
+  uint32_t append(RecEventFlat& ev);
+  void appendEv(RecEventFlat& ev);
 };
 
 } // namespace zdc

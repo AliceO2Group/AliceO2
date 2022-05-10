@@ -44,7 +44,7 @@ DataProcessorSpec getZDCRecoWriterDPLSpec()
                                 BranchDefinition<std::vector<o2::zdc::ZDCEnergy>>{InputSpec{"energy", "ZDC", "ENERGY"}, "ZDCRecE"},
                                 BranchDefinition<std::vector<o2::zdc::ZDCTDCData>>{InputSpec{"tdcdata", "ZDC", "TDCDATA"}, "ZDCRecTDC"},
                                 BranchDefinition<std::vector<uint16_t>>{InputSpec{"info", "ZDC", "INFO"}, "ZDCRecInfo"},
-                                BranchDefinition<std::vector<o2::zdc::ZDCWaveform>>{InputSpec{"wave", "ZDC", "WAVEFORM"}, "ZDCWaveform"})();
+                                BranchDefinition<std::vector<o2::zdc::ZDCWaveform>>{InputSpec{"wave", "ZDC", "WAVE"}, "ZDCWaveform"})();
 }
 
 } // namespace zdc

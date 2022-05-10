@@ -112,6 +112,26 @@ struct BCRecData {
     ni = refi.getEntries();
     nw = refw.getEntries();
   }
+  inline void getRefE(int& firste, int& ne)
+  {
+    firste = refe.getFirstEntry();
+    ne = refe.getEntries();
+  }
+  inline void getRefT(int& firstt, int& nt)
+  {
+    firstt = reft.getFirstEntry();
+    nt = reft.getEntries();
+  }
+  inline void getRefI(int& firsti, int& ni)
+  {
+    firsti = refi.getFirstEntry();
+    ni = refi.getEntries();
+  }
+  inline void getRefW(int& firstw, int& nw)
+  {
+    firstw = refw.getFirstEntry();
+    nw = refw.getEntries();
+  }
 
   void print() const;
 

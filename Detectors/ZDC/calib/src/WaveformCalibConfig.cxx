@@ -25,12 +25,12 @@ void WaveformCalibConfig::restrictRange(int ib, int ie)
 {
   ibeg = -NBB;
   iend = NBA;
-  if (ib >= ibeg && ib < 0) {
+  if (ib >= ibeg && ib <= 0) {
     ibeg = ib;
   } else {
     LOG(fatal) << __func__ << " wrong setting for ibeg = " << ib;
   }
-  if (ie <= iend && ie > 0) {
+  if (ie <= iend && ie >= 0) {
     iend = ie;
   } else {
     LOG(fatal) << __func__ << " wrong setting for iend = " << ie;

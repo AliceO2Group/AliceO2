@@ -25,8 +25,9 @@
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
 #include "ZDCCalib/WaveformCalibConfig.h"
-#ifndef ALICEO2_ZDC_WAVEFORMCALIBEPN_H_
-#define ALICEO2_ZDC_WAVEFORMCALIBEPN_H_
+#include "ZDCCalib/WaveformCalibQueue.h"
+#ifndef ALICEO2_ZDC_WAVEFORMCALIBEPN_H
+#define ALICEO2_ZDC_WAVEFORMCALIBEPN_H
 namespace o2
 {
 namespace zdc
@@ -59,6 +60,23 @@ class WaveformCalibEPN
   int32_t mNBin = 0;
   int32_t mVerbosity = DbgMinimal;
   const WaveformCalibConfig* mWaveformCalibConfig = nullptr; /// Configuration of intercalibration
+
+  int mFirst=0;
+  int mLast=0;
+  int mN=1;
+
+  void configure(int ifirst, int ilast){
+    if(ifirst>0 || ilast<0 || ilast<ifirst){
+      LOGF(fatal,"WaveformCalibEPN configure error with ifirst=%d ilast=%d", ifirst, ilast);
+    }
+    mFirst=ifirst;
+    mLast=ilast;
+    mN=ilast-ifirst+1;
+  }
+
+  
+  
+    WaveformCalibQueue mQueue;
 };
 } // namespace zdc
 } // namespace o2
