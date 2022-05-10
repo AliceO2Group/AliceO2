@@ -62,14 +62,11 @@ void FT0DataDecoderDPLSpec::run(ProcessingContext& pc)
   using ArrDataPerLink = std::array<std::vector<gsl::span<const uint8_t>>, sNlinksMax>;
   std::array<ArrRdhPtrPerLink, sNorbits> arrRdhPtrPerOrbit{};
   std::array<ArrDataPerLink, sNorbits> arrDataPerOrbit{};
-
   std::array<std::vector<const o2::header::RAWDataHeader*>, sNorbits> arrRdhTCMperOrbit{};
   std::array<std::vector<gsl::span<const uint8_t>>, sNorbits> arrDataTCMperOrbit{};
-
-  // const auto& arrLUT = LookupTable_t::Instance().getArrFEEIDandLocalChID();
   std::array<std::size_t, sNorbits> arrOrbitSizePages{};
-
   std::array<uint64_t, sNorbits> arrOrbit{};
+
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     // Aggregating pages by orbit and FeeID
     if (!it.size()) {
@@ -96,7 +93,7 @@ void FT0DataDecoderDPLSpec::run(ProcessingContext& pc)
   uint64_t eventPosPerOrbit{0};
 
   uint64_t posChDataPerOrbit[sNorbits]{}; // position per orbit
-  uint64_t nChDataPerOrbit[sNorbits]{};   // position per orbit
+  uint64_t nChDataPerOrbit[sNorbits]{};   // number of events per orbit
   NChDataBC_t posChDataPerBC[sNorbits]{};
   for (int iOrbit = 0; iOrbit < sNorbits; iOrbit++) {
     if (!arrOrbitSizePages[iOrbit]) {
@@ -176,6 +173,7 @@ void FT0DataDecoderDPLSpec::run(ProcessingContext& pc)
     } // linkID
     // Channel data position within BC per LinkID
     memcpy(mPosChDataPerLinkOrbit[iOrbit].data(), bufBC.data(), (sNBC + 4) * 4 * sNlinksMax);
+    // TCM proccessing
     memset(mVecTriggers.data(), 0, 16 * 3564);
     uint8_t* ptrDstTCM = (uint8_t*)mVecTriggers.data();
     const auto& nPagesTCM = arrRdhTCMperOrbit[iOrbit].size();
@@ -251,7 +249,6 @@ void FT0DataDecoderDPLSpec::run(ProcessingContext& pc)
     NChDataBC_t buf_nPosPerBC{};
     uint64_t nChPerBC{0};
     uint64_t nEventOrbit{0};
-
     posChDataPerOrbit[iOrbit] = chPosOrbit; //
 
     __m512i zmm_mask_seq2 = _mm512_set_epi32(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0);
