@@ -59,11 +59,7 @@ class ChannelCalibratorDeviceDPL
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     mThreshold = ic.options().get<double>("mid-mask-threshold");
 
-    auto slotL = ic.options().get<uint32_t>("tf-per-slot");
-    auto delay = ic.options().get<uint32_t>("max-delay");
-
-    mCalibrator.setSlotLength(slotL);
-    mCalibrator.setMaxSlotsDelay(delay);
+    mCalibrator.setSlotLength(calibration::INFINITE_TF);
     mCalibrator.setUpdateAtTheEndOfRunOnly();
   }
 
@@ -101,7 +97,7 @@ class ChannelCalibratorDeviceDPL
   }
 
  private:
-  ChannelCalibrator mCalibrator{};     ///< Calibrator
+  ChannelCalibrator mCalibrator{}; ///< Calibrator
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   std::vector<ColumnData> mRefMasks{}; ///< Reference masks
   double mThreshold{0.9};              ///< Occupancy threshold for producing a mask
@@ -157,10 +153,7 @@ of::DataProcessorSpec getChannelCalibratorSpec(const FEEIdConfig& feeIdConfig, c
     {inputSpecs},
     {outputSpecs},
     of::AlgorithmSpec{of::adaptFromTask<o2::mid::ChannelCalibratorDeviceDPL>(feeIdConfig, crateMasks, ccdbRequest)},
-    of::Options{
-      {"mid-mask-threshold", of::VariantType::Double, 0.9, {"Tolerated occupancy before producing a map"}},
-      {"tf-per-slot", of::VariantType::UInt32, ChannelCalibrator::INFINITE_TF, {"number of TFs per calibration time slot"}},
-      {"max-delay", of::VariantType::UInt32, 0u, {"number of slots in past to consider"}}}};
+    of::Options{{"mid-mask-threshold", of::VariantType::Double, 0.9, {"Tolerated occupancy before producing a map"}}}};
 }
 } // namespace mid
 } // namespace o2
