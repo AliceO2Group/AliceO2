@@ -189,6 +189,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
   workflowOptions.push_back(ConfigParamSpec{"ccdb-tof-sa", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects via CCDBManager (standalone)"}});
 
+  // option to use/not use CCDB for FT0
+  workflowOptions.push_back(ConfigParamSpec{"use-ccdb-ft0", o2::framework::VariantType::Bool, true, {"enable access to ccdb ft0 calibration objects"}});
+
   // option to use or not use the Trap Simulator after digitisation (debate of digitization or reconstruction is for others)
   workflowOptions.push_back(ConfigParamSpec{"disable-trd-trapsim", VariantType::Bool, false, {"disable the trap simulation of the TRD"}});
 
@@ -621,9 +624,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // the FT0 part
   if (isEnabled(o2::detectors::DetID::FT0)) {
+    auto useCCDB = configcontext.options().get<bool>("use-ccdb-ft0");
+    auto timestamp = o2::raw::HBFUtils::Instance().startTime;
     detList.emplace_back(o2::detectors::DetID::FT0);
-    // connect the FIT digitization
-    digitizerSpecs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++, mctruth));
+    // connect the FT0 digitization
+    specs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++, mctruth, !useCCDB));
     // connect the FIT digit writer
     writerSpecs.emplace_back(o2::ft0::getFT0DigitWriterSpec(mctruth));
   }

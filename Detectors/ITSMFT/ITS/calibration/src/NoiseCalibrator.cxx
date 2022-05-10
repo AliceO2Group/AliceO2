@@ -102,7 +102,7 @@ bool NoiseCalibrator::processTimeFrameClusters(gsl::span<const o2::itsmft::CompC
     hits.clear();
   }
   mNumberOfStrobes += rofs.size();
-  return (mNumberOfStrobes * mProbabilityThreshold * mNInstances >= mThreshold) ? true : false;
+  return (mNumberOfStrobes > mMinROFs) ? true : false;
 }
 
 bool NoiseCalibrator::processTimeFrameDigits(gsl::span<const o2::itsmft::Digit> const& digits,
@@ -140,13 +140,13 @@ bool NoiseCalibrator::processTimeFrameDigits(gsl::span<const o2::itsmft::Digit> 
     hits.clear();
   }
   mNumberOfStrobes += rofs.size();
-  return (mNumberOfStrobes * mProbabilityThreshold * mNInstances >= mThreshold) ? true : false;
+  return (mNumberOfStrobes > mMinROFs) ? true : false;
 }
 
 void NoiseCalibrator::finalize()
 {
   LOG(info) << "Number of processed strobes is " << mNumberOfStrobes;
-  mNoiseMap.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
+  mNoiseMap.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes, mProbRelErr);
   mNoiseMap.print();
 }
 

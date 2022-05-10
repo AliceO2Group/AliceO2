@@ -20,7 +20,8 @@
 #include "FT0Base/Geometry.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "FT0Simulation/DigitizationConstants.h"
-#include "FT0Simulation/FT0DigParam.h"
+#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
+#include "FT0Base/FT0DigParam.h"
 #include "MathUtils/RandomRing.h"
 #include <array>
 #include <bitset>
@@ -69,6 +70,9 @@ class Digitizer
   double measure_amplitude(const std::vector<float>& times) const;
   void init();
   void finish();
+
+  void SetChannelOffset(o2::ft0::FT0ChannelTimeCalibrationObject const*
+                          caliboffsets) { mCalibOffset = caliboffsets; };
 
   struct CFDOutput {
     std::optional<double> particle;
@@ -159,7 +163,9 @@ class Digitizer
                std::vector<o2::ft0::DetTrigInput>& digitsTrig,
                o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels);
 
-  ClassDefNV(Digitizer, 2);
+  o2::ft0::FT0ChannelTimeCalibrationObject const* mCalibOffset = nullptr;
+
+  ClassDefNV(Digitizer, 3);
 };
 
 } // namespace ft0

@@ -14,6 +14,7 @@ o2_add_library(FT0Base
                PUBLIC_LINK_LIBRARIES ROOT::Physics FairRoot::Base O2::DetectorsBase O2::DetectorsCommonDataFormats O2::FrameworkLogger)
 
 o2_target_root_dictionary(FT0Base HEADERS include/FT0Base/Geometry.h
-                                          include/FT0Base/Constants.h)
+                                          include/FT0Base/Constants.h
+                                          include/FT0Base/FT0DigParam.h)
 
 o2_data_file(COPY files DESTINATION Detectors/FT0/)

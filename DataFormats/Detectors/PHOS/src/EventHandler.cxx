@@ -57,13 +57,13 @@ o2::InteractionRecord EventHandler<CellInputType>::getInteractionRecordForEvent(
 {
   std::optional<o2::InteractionRecord> irClusters, irCells;
   if (mTriggerRecordsClusters.size()) {
-    if (eventID >= mTriggerRecordsClusters.size()) {
+    if (static_cast<std::size_t>(eventID) >= mTriggerRecordsClusters.size()) {
       throw RangeException(eventID, mTriggerRecordsClusters.size());
     }
     irClusters = mTriggerRecordsClusters[eventID].getBCData();
   }
   if (mTriggerRecordsCells.size()) {
-    if (eventID >= mTriggerRecordsCells.size()) {
+    if (static_cast<std::size_t>(eventID) >= mTriggerRecordsCells.size()) {
       throw RangeException(eventID, mTriggerRecordsCells.size());
     }
     irCells = mTriggerRecordsCells[eventID].getBCData();
@@ -86,7 +86,7 @@ template <class CellInputType>
 const typename EventHandler<CellInputType>::ClusterRange EventHandler<CellInputType>::getClustersForEvent(int eventID) const
 {
   if (mTriggerRecordsClusters.size()) {
-    if (eventID >= mTriggerRecordsClusters.size()) {
+    if (static_cast<std::size_t>(eventID) >= mTriggerRecordsClusters.size()) {
       throw RangeException(eventID, mTriggerRecordsClusters.size());
     }
     auto& trgrecord = mTriggerRecordsClusters[eventID];
@@ -99,7 +99,7 @@ template <class CellInputType>
 const typename EventHandler<CellInputType>::CellRange EventHandler<CellInputType>::getCellsForEvent(int eventID) const
 {
   if (mTriggerRecordsCells.size()) {
-    if (eventID >= mTriggerRecordsCells.size()) {
+    if (static_cast<std::size_t>(eventID) >= mTriggerRecordsCells.size()) {
       throw RangeException(eventID, mTriggerRecordsCells.size());
     }
     auto& trgrecord = mTriggerRecordsCells[eventID];
@@ -112,7 +112,7 @@ template <class CellInputType>
 const typename EventHandler<CellInputType>::CellIndexRange EventHandler<CellInputType>::getClusterCellIndicesForEvent(int eventID) const
 {
   if (mTriggerRecordsCellIndices.size()) {
-    if (eventID >= mTriggerRecordsCellIndices.size()) {
+    if (static_cast<std::size_t>(eventID) >= mTriggerRecordsCellIndices.size()) {
       throw RangeException(eventID, mTriggerRecordsCellIndices.size());
     }
     auto& trgrecord = mTriggerRecordsCellIndices[eventID];

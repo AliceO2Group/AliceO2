@@ -32,7 +32,7 @@ struct CluElement {
   float localZ = 0.;
   float fraction = 0.;
   CluElement() = default;
-  CluElement(short a, bool hg, float e, float t, float x, float z, int lab, float fr) : absId(a), isHG(hg), energy(e), time(t), localX(x), localZ(z), label(lab), fraction(fr) {}
+  CluElement(short a, bool hg, float e, float t, float x, float z, int lab, float fr) : absId(a), isHG(hg), label(lab), energy(e), time(t), localX(x), localZ(z), fraction(fr) {}
 };
 
 class Cluster

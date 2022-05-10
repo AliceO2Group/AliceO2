@@ -49,11 +49,11 @@ void DigitizerSpec::initDigitizerTask(framework::InitContext& ic)
 
   auto simulatePileup = ic.options().get<int>("pileup");
   if (simulatePileup) {                                              // set readout time and dead time parameters
-    mReadoutTime = o2::cpv::CPVSimParams::Instance().mReadoutTimePU; //PHOS readout time in ns
-    mDeadTime = o2::cpv::CPVSimParams::Instance().mDeadTimePU;       //PHOS dead time (should include readout => mReadoutTime< mDeadTime)
+    mReadoutTime = o2::cpv::CPVSimParams::Instance().mReadoutTimePU; // PHOS readout time in ns
+    mDeadTime = o2::cpv::CPVSimParams::Instance().mDeadTimePU;       // PHOS dead time (should include readout => mReadoutTime< mDeadTime)
   } else {
-    mReadoutTime = o2::cpv::CPVSimParams::Instance().mReadoutTime; //PHOS readout time in ns
-    mDeadTime = o2::cpv::CPVSimParams::Instance().mDeadTime;       //PHOS dead time (should include readout => mReadoutTime< mDeadTime)
+    mReadoutTime = o2::cpv::CPVSimParams::Instance().mReadoutTime; // PHOS readout time in ns
+    mDeadTime = o2::cpv::CPVSimParams::Instance().mDeadTime;       // PHOS dead time (should include readout => mReadoutTime< mDeadTime)
   }
 }
 // helper function which will be offered as a service
@@ -94,27 +94,27 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
 
   int indexStart = mDigitsOut.size();
   auto& eventParts = context->getEventParts();
-  //if this is last stream of hits and we can write directly to final vector of digits? Otherwize use temporary vectors
+  // if this is last stream of hits and we can write directly to final vector of digits? Otherwize use temporary vectors
   bool isLastStream = true;
-  double eventTime = timesview[0].getTimeNS() - o2::cpv::CPVSimParams::Instance().mDeadTime; //checked above that list not empty
-  int eventId;
+  double eventTime = timesview[0].getTimeNS() - o2::cpv::CPVSimParams::Instance().mDeadTime; // checked above that list not empty
+  int eventId = 0;
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
   for (int collID = 0; collID < n; ++collID) {
 
-    double dt = timesview[collID].getTimeNS() - eventTime; //start new PHOS readout, continue current or dead time?
-    if (dt > mReadoutTime && dt < mDeadTime) {             //dead time, skip event
+    double dt = timesview[collID].getTimeNS() - eventTime; // start new PHOS readout, continue current or dead time?
+    if (dt > mReadoutTime && dt < mDeadTime) {             // dead time, skip event
       continue;
     }
 
     if (dt >= o2::cpv::CPVSimParams::Instance().mDeadTime) { // start new event
-      //new event
+      // new event
       eventTime = timesview[collID].getTimeNS();
       dt = 0.;
       eventId = collID;
     }
 
-    //Check if next event has to be added to this read-out
+    // Check if next event has to be added to this read-out
     if (collID < n - 1) {
       isLastStream = (timesview[collID + 1].getTimeNS() - eventTime > mReadoutTime);
     } else {
@@ -131,15 +131,15 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
       int entry = part->entryID;
       retrieveHits("CPVHit", source, entry);
       part++;
-      if (part == eventParts[collID].end() && isLastStream) { //last stream, copy digits directly to output vector
+      if (part == eventParts[collID].end() && isLastStream) { // last stream, copy digits directly to output vector
         mDigitizer.processHits(mHits, mDigitsFinal, mDigitsOut, mLabels, collID, source, dt);
         mDigitsFinal.clear();
-        //finalyze previous event and clean
-        // Add trigger record
+        // finalyze previous event and clean
+        //  Add trigger record
         triggers.emplace_back(timesview[eventId], indexStart, mDigitsOut.size() - indexStart);
         indexStart = mDigitsOut.size();
         mDigitsFinal.clear();
-      } else { //Fill intermediate digitvector
+      } else { // Fill intermediate digitvector
         mDigitsTmp.swap(mDigitsFinal);
         mDigitizer.processHits(mHits, mDigitsTmp, mDigitsFinal, mLabels, collID, source, dt);
         mDigitsTmp.clear();

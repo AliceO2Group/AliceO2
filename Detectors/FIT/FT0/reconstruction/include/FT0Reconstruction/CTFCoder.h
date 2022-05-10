@@ -24,7 +24,7 @@
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "FT0Simulation/FT0DigParam.h"
+#include "FT0Base/FT0DigParam.h"
 #include "DetectorsBase/CTFCoderBase.h"
 #include "rANS/rans.h"
 

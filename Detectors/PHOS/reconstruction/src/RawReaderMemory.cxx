@@ -56,10 +56,10 @@ void RawReaderMemory::init()
 
 void RawReaderMemory::next()
 {
-  //Reads pages till RCU trailer found
-  //Several 8kB pages can be concatenated
-  //RCU trailer expected at the end of payload
-  //but not at the end of each page
+  // Reads pages till RCU trailer found
+  // Several 8kB pages can be concatenated
+  // RCU trailer expected at the end of payload
+  // but not at the end of each page
   mRawPayload.reset();
   mCurrentTrailer.reset();
   bool isDataTerminated = false;
@@ -95,7 +95,7 @@ void RawReaderMemory::next()
   if (mRawBuffer.getNDataWords() > 0) {
     try {
       mCurrentTrailer.constructFromPayloadWords(mRawBuffer.getDataWords());
-    } catch (RCUTrailer::Error e) {
+    } catch (RCUTrailer::Error& e) {
       LOG(error) << "Trailer decoding error: " << e.what();
       throw RawDecodingError::ErrorType_t::HEADER_DECODING;
     }
