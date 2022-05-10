@@ -52,6 +52,7 @@ class TrackerTraits
 {
  public:
   virtual ~TrackerTraits() = default;
+  virtual void initialiseTimeFrame(const int iteration, const MemoryParameters& memParams, const TrackingParameters& trackingParams);
   virtual void computeLayerTracklets(const int iteration);
   virtual void computeLayerCells(const int iteration);
   virtual void findCellsNeighbours(const int iteration);
@@ -95,10 +96,16 @@ class TrackerTraits
   o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   float mBz = 5.f;
 
+  void UpdateTrackingParameters(const TrackingParameters& trkPar);
+  TimeFrame* getTimeFrame() { return mTimeFrame; }
+  void adoptTimeFrame(TimeFrame* tf) { mTimeFrame = tf; }
+  void setIsGPU(const unsigned char isgpu) { mIsGPU = isgpu; };
+
  protected:
   TimeFrame* mTimeFrame;
   std::vector<TrackingParameters> mTrkParams;
 
+  bool mIsGPU = false;
   o2::gpu::GPUChainITS* mChain = nullptr;
   FuncRunITSTrackFit_t mChainRunITSTrackFit;
 };
@@ -123,8 +130,14 @@ inline const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, int 
   return getBinsRect(layerIndex, currentCluster.phi, maxdeltaphi, z1, z2, maxdeltaz);
 }
 
-inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, float maxdeltaphi,
-                                             float z1, float z2, float maxdeltaz)
+inline void TrackerTraits::initialiseTimeFrame(const int iteration, const MemoryParameters& memParams, const TrackingParameters& trackingParams)
+{
+  mTimeFrame->initialise(iteration, memParams, trackingParams, 7);
+  setIsGPU(false);
+}
+
+inline const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
+                                             const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = o2::gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
   const float phiRangeMin = phi - maxdeltaphi;
