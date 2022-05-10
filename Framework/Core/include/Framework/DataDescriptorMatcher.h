@@ -297,8 +297,6 @@ class DataDescriptorMatcher
 
   Node const& getLeft() const { return mLeft; };
   Node const& getRight() const { return mRight; };
-  Node& getLeft() { return mLeft; };
-  Node& getRight() { return mRight; };
   Op getOp() const { return mOp; };
 
  private:
