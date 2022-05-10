@@ -11,7 +11,7 @@
 
 /// @file   FITDataDecoderDPLSpec.cxx
 
-#if defined __has_include
+#if defined(__has_include)
 #if defined(__linux__) && (defined(__x86_64) || defined(__x86_64__)) && __has_include(<emmintrin.h>) && __has_include(<immintrin.h>)
 
 #include "FT0Workflow/FT0DataDecoderDPLSpec.h"

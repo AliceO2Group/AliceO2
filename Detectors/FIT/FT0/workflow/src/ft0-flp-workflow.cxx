@@ -17,7 +17,7 @@
 #include "FT0Raw/RawReaderFT0Base.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/CompletionPolicyHelpers.h"
-#if defined __has_include
+#if defined(__has_include)
 #if defined(__linux__) && (defined(__x86_64) || defined(__x86_64__)) && __has_include(<emmintrin.h>) && __has_include(<immintrin.h>)
 #include "FT0Workflow/FT0DataDecoderDPLSpec.h"
 #endif
@@ -106,7 +106,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       }
     }
   } else {
-#if defined __has_include
+#if defined(__has_include)
 #if defined(__linux__) && (defined(__x86_64) || defined(__x86_64__)) && __has_include(<emmintrin.h>) && __has_include(<immintrin.h>)
     specs.emplace_back(o2::ft0::getFT0DataDecoderDPLSpec(askSTFDist));
 #endif
