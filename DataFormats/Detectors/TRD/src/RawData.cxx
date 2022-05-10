@@ -130,19 +130,34 @@ uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader* header, const o2::trd::Tr
       break;
   }
   /*
-   * Q0/1 are 7 bits, Q2 is 6 bits
+   * Q0/1 are 7 bits, Q2 is 6 bits.
    * Q0 is completely in TrackletMCMData::data and Q2 is completely in TrackletHCHeader::pid*,
    * while Q1 is split with the lower 5 bits in the header and the upper 2 bits in the data.
+   *
+   * A detailed description of the format can be found in
+   * https://alicetrd.web.cern.ch/alicetrd/tdp/main.pdf under 17.2.1
    *
    *     |07|06|05|04|03|02|01|00|
    *     -------------------------
    * qa: |       Q2        | Q1  |  TrackletMCMHeader::pid
    *     -------------------------
    *
+   * TDP: This can be one of these fields HPID0/1/2 (=TrackletHCHeader::pid0/1/2) depending on
+   * 	  the MCM-CPU.
+   *
    *     |11|10|09|08|07|06|05|04|03|02|01|00|
    *     -------------------------------------
    * qb: |     Q0             |      Q1      |  TrackletMCMData::pid
    *     -------------------------------------
+   *
+   * TDP: This is the LPID field (=TrackletMCMData::pid).
+   *
+   * Q1 is then calculated like this:
+   *
+   *     |06|05|04|03|02|01|00|
+   *     ----------------------
+   * Q1: |qa.Q1|    qb.Q1     |
+   *     ----------------------
    *
    **/
   qb = data->pid;
