@@ -13,6 +13,7 @@ This is a top page for the MCH detector documentation.
 \subpage refDetectorsMUONMCHConditions
 \subpage refDetectorsMUONMCHContour
 \subpage refDetectorsMUONMCHDevIO
+\subpage refDetectorsMUONMCHDigitFiltering
 \subpage refDetectorsMUONMCHGeometry
 \subpage refDetectorsMUONMCHMapping
 \subpage refDetectorsMUONMCHRaw

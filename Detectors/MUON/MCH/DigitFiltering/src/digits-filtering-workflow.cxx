@@ -12,7 +12,8 @@
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/Task.h"
-#include "DigitFilteringSpec.h"
+#include "MCHDigitFiltering/DigitFilteringSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -26,12 +27,15 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"input-digitlabels-data-description", VariantType::String, "DIGITLABELS", {"description string for the input digit labels data (not used if disable-mc is true)"}});
   workflowOptions.push_back(ConfigParamSpec{"output-digitlabels-data-description", VariantType::String, "F-DIGITLABELS", {"description string for the output digit labels data (not used if disable-mc is true)"}});
   workflowOptions.push_back(ConfigParamSpec{"disable-mc", VariantType::Bool, false, {"Do not propagate MC info"}});
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
 #include "Framework/runDataProcessing.h"
 
 WorkflowSpec defineDataProcessing(const ConfigContext& cc)
 {
+  o2::conf::ConfigurableParam::updateFromString(cc.options().get<std::string>("configKeyValues"));
+
   WorkflowSpec wf;
 
   wf.emplace_back(o2::mch::getDigitFilteringSpec(

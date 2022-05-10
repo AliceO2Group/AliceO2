@@ -10,8 +10,10 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(MCHTimeClustering
-        SOURCES src/ROFTimeClusterFinder.cxx
+        SOURCES src/ROFTimeClusterFinder.cxx src/TimeClusterizerParam.cxx
         PUBLIC_LINK_LIBRARIES O2::MCHBase O2::Framework)
+
+o2_target_root_dictionary(MCHTimeClustering HEADERS include/MCHTimeClustering/TimeClusterizerParam.h)
 
 if(BUILD_TESTING)
 

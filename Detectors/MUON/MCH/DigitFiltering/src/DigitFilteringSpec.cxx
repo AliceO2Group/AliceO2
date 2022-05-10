@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DigitFilteringSpec.h"
+#include "MCHDigitFiltering/DigitFilteringSpec.h"
 
 #include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/ROFRecord.h"
@@ -19,7 +19,8 @@
 #include "Framework/OutputSpec.h"
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
-#include "SanityCheck.h"
+#include "MCHBase/SanityCheck.h"
+#include "MCHDigitFiltering/DigitFilterParam.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include <fmt/format.h>
@@ -39,13 +40,13 @@ class DigitFilteringTask
 
   void init(InitContext& ic)
   {
-    mSanityCheck = ic.options().get<bool>("sanity-check");
-    mMinADC = ic.options().get<int>("min-adc-value");
+    mSanityCheck = DigitFilterParam::Instance().sanityCheck;
+    mMinADC = DigitFilterParam::Instance().minADC;
   }
 
   bool isGoodDigit(const Digit& digit) const
   {
-    return digit.getADC() > mMinADC;
+    return digit.getADC() >= mMinADC;
   }
 
   void run(ProcessingContext& pc)
@@ -58,6 +59,7 @@ class DigitFilteringTask
     bool abort{false};
 
     if (mSanityCheck) {
+      LOGP(info, "performing sanity checks");
       auto error = sanityCheck(iRofs, iDigits);
 
       if (!isOK(error)) {
@@ -76,9 +78,7 @@ class DigitFilteringTask
 
     if (!abort) {
       int cursor{0};
-      for (auto i = 0; i < iRofs.size(); i++) {
-        const ROFRecord& irof = iRofs[i];
-
+      for (const auto& irof : iRofs) {
         const auto digits = iDigits.subspan(irof.getFirstIdx(), irof.getNEntries());
 
         // filter the digits from the current ROF
@@ -87,7 +87,7 @@ class DigitFilteringTask
           if (isGoodDigit(d)) {
             oDigits.emplace_back(d);
             if (iLabels) {
-              oLabels->addElements(oLabels->getIndexedSize(), iLabels->getLabels(i + cursor));
+              oLabels->addElements(oLabels->getIndexedSize(), iLabels->getLabels(i + irof.getFirstIdx()));
             }
           }
         }
@@ -160,8 +160,6 @@ framework::DataProcessorSpec
     Inputs{select(input.c_str())},
     outputs,
     AlgorithmSpec{adaptFromTask<DigitFilteringTask>(useMC)},
-    Options{
-      {"sanity-check", VariantType::Bool, false, {"perform a few sanity checks on input digits"}},
-      {"min-adc-value", VariantType::Int, 1, {"minumum ADC value to consider"}}}};
+    Options{}};
 }
 } // namespace o2::mch
