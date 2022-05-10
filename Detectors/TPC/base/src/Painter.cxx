@@ -79,6 +79,45 @@ std::vector<painter::PadCoordinates> painter::getPadCoordinatesSector()
   return padCoords;
 }
 
+std::vector<double> painter::getRowBinningCM(uint32_t roc)
+{
+  const Mapper& mapper = Mapper::instance();
+
+  int firstRegion = 0, lastRegion = 10;
+  if (roc < 36) {
+    firstRegion = 0;
+    lastRegion = 4;
+  } else if (roc < 72) {
+    firstRegion = 4;
+    lastRegion = 10;
+  }
+
+  std::vector<double> binning;
+
+  float lastPadHeight = mapper.getPadRegionInfo(firstRegion).getPadHeight();
+  float localX = mapper.getPadRegionInfo(firstRegion).getRadiusFirstRow();
+  binning.emplace_back(localX - 3);
+  binning.emplace_back(localX);
+  for (int iregion = firstRegion; iregion < lastRegion; ++iregion) {
+    const auto& regionInfo = mapper.getPadRegionInfo(iregion);
+    const auto padHeight = regionInfo.getPadHeight();
+
+    if (std::abs(padHeight - lastPadHeight) > 1e-5) {
+      lastPadHeight = padHeight;
+      localX = regionInfo.getRadiusFirstRow();
+      binning.emplace_back(localX);
+    }
+
+    for (int irow = 0; irow < regionInfo.getNumberOfPadRows(); ++irow) {
+      localX += lastPadHeight;
+      binning.emplace_back(localX);
+    }
+  }
+  binning.emplace_back(localX + 3);
+
+  return binning;
+}
+
 std::string painter::getROCTitle(const int rocNumber)
 {
   const std::string_view type = (rocNumber < 36) ? "IROC" : "OROC";

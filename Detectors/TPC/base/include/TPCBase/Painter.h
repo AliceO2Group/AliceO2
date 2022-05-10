@@ -71,10 +71,14 @@ struct PadCoordinates {
 /// create a vector of pad corner coordinate for one full sector
 std::vector<PadCoordinates> getPadCoordinatesSector();
 
+/// binning vector with radial pad-row positions (in cm)
+/// \param roc roc number (0-35 IROC, 36-71 OROC, >=72 full sector)
+std::vector<double> getRowBinningCM(uint32_t roc = 72);
+
 /// ROC title from ROC number
 std::string getROCTitle(const int rocNumber);
 
-//using T=float;
+// using T=float;
 /// Drawing of a CalDet object
 /// \param CalDet object to draw
 /// \return TCanvas containing CalDet content
