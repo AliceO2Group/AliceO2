@@ -59,13 +59,9 @@ class NoiseCalibratorSpec : public Task
   size_t mDataSizeStat = 0;
   size_t mNClustersProc = 0;
   int mValidityDays = 3;
-<<<<<<< HEAD
   bool mUseClusters = false;
   bool mStopMeOnly = false; // send QuitRequest::Me instead of QuitRequest::All
-=======
->>>>>>> 4e296e3b521... Fix some ITS related files
   TStopwatch mTimer{};
-  bool mUseClusters = false;
 };
 
 /// create a processor spec
