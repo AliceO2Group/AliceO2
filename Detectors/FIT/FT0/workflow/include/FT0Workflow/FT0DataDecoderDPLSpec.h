@@ -12,7 +12,7 @@
 /// @file   FT0DataDecoderDPLSpec.h
 
 #if defined(__has_include)
-#if defined(__linux__) && (defined(__x86_64) || defined(__x86_64__)) && __has_include(<emmintrin.h>) && __has_include(<immintrin.h>)
+#if defined(__linux__) && (defined(__x86_64) || defined(__x86_64__)) && __has_include(<emmintrin.h>) && __has_include(<immintrin.h>) && defined(FT0_DECODER_AVX512)
 
 #ifndef O2_FT0DATADECODERDPLSPEC_H
 #define O2_FT0DATADECODERPLSPEC_H
