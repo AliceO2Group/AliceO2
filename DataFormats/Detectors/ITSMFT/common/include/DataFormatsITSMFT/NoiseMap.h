@@ -106,7 +106,7 @@ class NoiseMap
     if (relErr > 0) {
       minFiredForErr = relErr * relErr - 1. / n;
       if (minFiredForErr <= 0.f) {
-        LOGP(alarm, "Noise threshold {} with relative error {} is not reachable with {} ROFs processed, mask all permanently fired pixels", t, relErr);
+        LOGP(alarm, "Noise threshold {} with relative error {} is not reachable with {} ROFs processed, mask all permanently fired pixels", t, relErr, n);
         minFiredForErr = n;
       } else {
         minFiredForErr = 1. / minFiredForErr;
