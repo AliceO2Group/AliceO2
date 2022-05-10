@@ -22,6 +22,7 @@ o2_add_library(FT0Workflow
                PUBLIC_LINK_LIBRARIES O2::DataFormatsFT0
                                      O2::FT0Reconstruction
                                      O2::FT0Raw
+                                     O2::FT0Decoder
                                      O2::DetectorsCommonDataFormats
                                      O2::Framework
                                      O2::DPLUtils
@@ -64,7 +65,17 @@ o2_add_executable(recpoints-reader-workflow
                   SOURCES src/recpoints-reader-workflow.cxx
                   COMPONENT_NAME ft0
                   PUBLIC_LINK_LIBRARIES O2::FT0Workflow)
-
+CHECK_CXX_COMPILER_FLAG("-mavx512f -mavx512vl -mavx512bw -mavx512dq" FT0_DECODER_AVX512_GOOD_FLAGS)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND FT0_DECODER_AVX512_GOOD_FLAGS)
+o2_add_library(FT0Decoder
+               SOURCES src/FT0DataDecoderDPLSpec.cxx
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsFT0
+                                     O2::Framework
+                                     O2::DetectorsCommonDataFormats
+                                     O2::DPLUtils
+                                     TARGETVARNAME targetDecoderAVX512)
+target_compile_options(${targetDecoderAVX512} PRIVATE -mavx512f -mavx512vl -mavx512bw -mavx512dq)
+endif()
 if(NOT APPLE)
 
  set_property(TARGET ${fitrecoexe} PROPERTY LINK_WHAT_YOU_USE ON)
