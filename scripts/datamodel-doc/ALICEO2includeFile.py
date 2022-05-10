@@ -37,22 +37,26 @@ def columnTypes(abbr=0):
 # .............................................................................
 # types of table declarations
 # 0: TABLE
-# 1: TABLE_FULL
-# 2: EXTENDED_TABLE
-# 3: INDEX_TABLE
-# 4: INDEX_TABLE_EXCLUSIVE
-# 5: EXTENDED_TABLE_USER
+# 1: TABLE_VERSIONED
+# 2: TABLE_FULL
+# 3: TABLE_FULL_VERSIONED
+# 4: EXTENDED_TABLE
+# 5: INDEX_TABLE
+# 6: INDEX_TABLE_EXCLUSIVE
+# 7: EXTENDED_TABLE_USER
 
 def tableTypes(abbr=0):
   if abbr == 0:
-    types = ["", "", "EXTENDED_", "INDEX_", "INDEX_", "EXTENDED_"]
+    types = ["", "", "", "", "EXTENDED_", "INDEX_", "INDEX_", "EXTENDED_"]
     types = [s+"TABLE" for s in types]
     types = ["DECLARE_SOA_"+s for s in types]
-    types[1] = types[1]+"_FULL"
-    types[4] = types[4]+"_EXCLUSIVE"
-    types[5] = types[5]+"_USER"
+    types[1] = types[1]+"_VERSIONED"
+    types[2] = types[2]+"_FULL"
+    types[3] = types[3]+"_FULL_VERSIONED"
+    types[6] = types[6]+"_EXCLUSIVE"
+    types[7] = types[7]+"_USER"
   else:
-    types = ["", "", "E", "I", "I", "E"]
+    types = ["", "", "", "", "E", "I", "I", "E"]
 
   return types
 
@@ -917,7 +921,7 @@ def extractTables(nslevel, content):
     tab.colNames = fullColNames
 
     # EXTENDED_TABLE?
-    if kind == 2 or kind == 5:
+    if kind == 4 or kind == 7:
       tab.toExtendWith = fullDataModelName(nslevel, words[icol+4].txt)
 
     # add a comment if available
