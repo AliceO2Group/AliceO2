@@ -45,7 +45,7 @@ class TimeFrameGPU : public TimeFrame
  public:
   TimeFrameGPU();
   ~TimeFrameGPU();
-  void loadToDevice(const int maxLayers);
+  void initialiseDevice(const int maxLayers);
 
   void checkBufferSizes();
   void initialise(const int iteration,

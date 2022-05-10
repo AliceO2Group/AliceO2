@@ -96,14 +96,6 @@ class VertexerTraits
   virtual void initialise(const TrackingParameters& trackingParams);
   virtual void computeTracklets();
   virtual void computeTrackletMatching();
-  // virtual void computeMCFiltering();
-  // virtual void filterTrackletsWithMC(std::vector<Tracklet>&,
-  //                                    std::vector<Tracklet>&,
-  //                                    std::vector<int>&,
-  //                                    std::vector<int>&,
-  //                                    const int);
-
-  // virtual void computeTrackletsPureMontecarlo();
   virtual void computeVertices();
   // virtual void computeHistVertices();
 
