@@ -2,15 +2,18 @@
 
 SEVERITY="detail"
 ENABLE_METRICS=1
-source $O2DPG_ROOT/DATA/common/setenv.sh
-source $O2_ROOT/prodtests/full-system-test/workflow-setup.sh
+
+# the check on LIST_OF_DETECTORS should ensure that setenv.sh was not called before
+[[ -z ${LIST_OF_DETECTORS+z} ]] && source $O2DPG_ROOT/DATA/common/setenv.sh
+# the check on TRACK_SOURCES should ensure that workflow-setup.sh was not called before
+[[ -z ${TRACK_SOURCES+z} ]] && source $O2_ROOT/prodtests/full-system-test/workflow-setup.sh
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Set general arguments
-source $O2DPG_ROOT/DATA/common/getCommonArgs.sh
+# Set general arguments (only if not already defined, checked via ARGS_ALL)
+[[ -z ${ARGS_ALL+z} ]] && source $O2DPG_ROOT/DATA/common/getCommonArgs.sh
 
-# Set up calibrations
-source $O2DPG_ROOT/DATA/common/setenv_calib.sh
+# Set up calibrations (if not already done, checked via SETUP_CALIB)
+[[ $SETUP_CALIB != 1 ]] && source $O2DPG_ROOT/DATA/common/setenv_calib.sh
 
 # check that WORKFLOW_DETECTORS is needed, otherwise the wrong calib wf will be built
 if [[ -z $WORKFLOW_DETECTORS ]]; then echo "WORKFLOW_DETECTORS must be defined" 1>&2; exit 1; fi
@@ -80,10 +83,10 @@ fi
 if workflow_has_parameters CALIB_PROXIES; then
     WORKFLOW=
     if [[ ! -z $CALIBDATASPEC_BARREL ]]; then
-  WORKFLOW+="o2-dpl-raw-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_BARREL\" $(get_proxy_connection barrel input) | "
+	WORKFLOW+="o2-dpl-raw-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_BARREL\" $(get_proxy_connection barrel input) | "
     fi
     if [[ ! -z $CALIBDATASPEC_CALO ]]; then
-  WORKFLOW+="o2-dpl-raw-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_CALO\" $(get_proxy_connection calo input) | "
+	WORKFLOW+="o2-dpl-raw-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_CALO\" $(get_proxy_connection calo input) | "
     fi
 fi
 
@@ -94,11 +97,11 @@ if [[ $CCDBPATH != "none" ]]; then WORKFLOW+="o2-calibration-ccdb-populator-work
 if workflow_has_parameters CALIB_PROXIES; then
     WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT -b"
     if [ $WORKFLOWMODE == "print" ]; then
-  echo Workflow command adding aggregator:
-  echo $WORKFLOW | sed "s/| */|\n/g"
+	echo Workflow command adding aggregator:
+	echo $WORKFLOW | sed "s/| */|\n/g"
     else
-  # Execute the command we have assembled
-  WORKFLOW+=" --$WORKFLOWMODE"
-  eval $WORKFLOW
+	# Execute the command we have assembled
+	WORKFLOW+=" --$WORKFLOWMODE"
+	eval $WORKFLOW
     fi
 fi

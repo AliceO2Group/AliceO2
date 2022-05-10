@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# ---------------------------------------------------------------------------------------------------------------------
-# Get this script's directory and load common settings (use zsh first (e.g. on Mac) and fallback on `readlink -f` if zsh is not there)
-MYDIR="$(dirname $(realpath $0))"
-source $O2DPG_ROOT/DATA/common/setenv.sh
-source $O2DPG_ROOT/DATA/common/setenv_calib.sh
+# the check on LIST_OF_DETECTORS should ensure that setenv.sh was not called before
+[[ -z ${LIST_OF_DETECTORS+z} ]] && source $O2DPG_ROOT/DATA/common/setenv.sh
+
+# Set up calibrations (if not already done, checked via SETUP_CALIB)
+[[ $SETUP_CALIB != 1 ]] && source $O2DPG_ROOT/DATA/common/setenv_calib.sh
 
 if [[ -z "$WORKFLOW" ]] || [[ -z "$MYDIR" ]]; then
   echo This script must be called from the dpl-workflow.sh and not standalone 1>&2
