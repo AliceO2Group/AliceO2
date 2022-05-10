@@ -70,7 +70,7 @@ if [[ $CALIB_PHS_BADMAPCALIB == 1 ]]; then
     EXTRA_WORKFLOW_CALIB+="o2-phos-calib-workflow --badmap --mode 0 $ARGS_ALL | "
 fi
 if [[ $CALIB_PHS_TURNONCALIB == 1 ]]; then
-    EXTRA_WORKFLOW_CALIB+="o2-phos-calib-workflow --turnon |$ARGS_ALL | "
+    EXTRA_WORKFLOW_CALIB+="o2-phos-calib-workflow --turnon $ARGS_ALL | "
 fi
 if [[ $CALIB_PHS_RUNBYRUNCALIB == 1 ]]; then
     EXTRA_WORKFLOW_CALIB+="o2-phos-calib-workflow --runbyrun $ARGS_ALL | "
