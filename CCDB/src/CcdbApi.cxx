@@ -37,6 +37,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <boost/algorithm/string.hpp>
+#include <boost/asio/ip/host_name.hpp>
 #include <iostream>
 #include <mutex>
 #include <boost/interprocess/sync/named_semaphore.hpp>
@@ -50,6 +51,12 @@ using namespace std;
 
 std::mutex gIOMutex; // to protect TMemFile IO operations
 unique_ptr<TJAlienCredentials> CcdbApi::mJAlienCredentials = nullptr;
+
+CcdbApi::CcdbApi()
+{
+  std::string host = boost::asio::ip::host_name();
+  mUniqueAgentID = fmt::format("{}-{}-{}", host, getCurrentTimestamp() / 1000, o2::utils::Str::getRandomString(6));
+}
 
 CcdbApi::~CcdbApi()
 {
@@ -74,7 +81,6 @@ void CcdbApi::init(std::string const& host)
 
   if (host.substr(0, 7).compare(SNAPSHOTPREFIX) == 0) {
     auto path = host.substr(7);
-    LOG(info) << "Initializing CcdbApi in snapshot readonly mode ... reading snapshot from path " << path;
     initInSnapshotMode(path);
   } else {
     initHostsPool(host);
@@ -83,7 +89,7 @@ void CcdbApi::init(std::string const& host)
 
   // find out if we can can in principle connect to Alien
   mHaveAlienToken = checkAlienToken();
-  LOG(info) << "Is alien token present?: " << mHaveAlienToken;
+  LOGP(info, "Init CcdApi with UserAgentID: {}, Host: {}{}, alien-token: {}", mUniqueAgentID, host, mInSnapshotMode ? "(snapshot readonly mode)" : "", mHaveAlienToken);
 }
 
 /**
@@ -189,6 +195,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
     curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
 
     CURLcode res = CURL_LAST;
 
@@ -395,7 +402,6 @@ void CcdbApi::initCurlOptionsForRetrieve(CURL* curlHandle, void* chunk, CurlWrit
 {
   curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, writeCallback);
   curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, chunk);
-  curl_easy_setopt(curlHandle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
   curl_easy_setopt(curlHandle, CURLOPT_FOLLOWLOCATION, followRedirect ? 1L : 0L);
 }
 
@@ -441,6 +447,8 @@ void CcdbApi::initHeadersForRetrieve(CURL* curlHandle, long timestamp, std::map<
   if (list) {
     curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, list);
   }
+
+  curl_easy_setopt(curlHandle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
 }
 
 bool CcdbApi::receiveToFile(FILE* fileHandle, std::string const& path, std::map<std::string, std::string> const& metadata,
@@ -634,7 +642,7 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
 
     /* some servers don't like requests that are made without a user-agent
          field, so we provide one */
-    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
 
     /* if redirected , we tell libcurl to follow redirection */
     curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
@@ -1209,6 +1217,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_map_callback<>);
     curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
 
     curlSetSSLOptions(curl);
 
@@ -1239,7 +1248,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
   return headers;
 }
 
-bool CcdbApi::getCCDBEntryHeaders(std::string const& url, std::string const& etag, std::vector<std::string>& headers)
+bool CcdbApi::getCCDBEntryHeaders(std::string const& url, std::string const& etag, std::vector<std::string>& headers, const std::string& agentID)
 {
   auto curl = curl_easy_init();
   headers.clear();
@@ -1258,6 +1267,9 @@ bool CcdbApi::getCCDBEntryHeaders(std::string const& url, std::string const& eta
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
   curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
   curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
+  if (!agentID.empty()) {
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, agentID.c_str());
+  }
 
   curlSetSSLOptions(curl);
 
@@ -1366,7 +1378,7 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
       if (curl != nullptr) {
         curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT"); // make sure we use PUT
-
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
         curlSetSSLOptions(curl);
 
         // Perform the request, res will get the return code
