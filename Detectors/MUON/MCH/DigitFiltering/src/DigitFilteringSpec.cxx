@@ -20,10 +20,12 @@
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
 #include "MCHBase/SanityCheck.h"
+#include "MCHDigitFiltering/DigitFilter.h"
 #include "MCHDigitFiltering/DigitFilterParam.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include <fmt/format.h>
+#include <functional>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -41,12 +43,15 @@ class DigitFilteringTask
   void init(InitContext& ic)
   {
     mSanityCheck = DigitFilterParam::Instance().sanityCheck;
-    mMinADC = DigitFilterParam::Instance().minADC;
-  }
-
-  bool isGoodDigit(const Digit& digit) const
-  {
-    return digit.getADC() >= mMinADC;
+    int minADC = DigitFilterParam::Instance().minADC;
+    bool rejectBackground = DigitFilterParam::Instance().rejectBackground;
+    mIsGoodDigit = createDigitFilter(minADC, rejectBackground, false);
+    // at digit filtering stage it is important to keep the 3rd parameter
+    // to false in the call above : the idea is to not cut too much
+    // on the tails of the charge distributions otherwise the clustering
+    // resolution will suffer.
+    // That's why we only apply the "reject background" filter, which
+    // is a loose background cut that does not penalize the signal
   }
 
   void run(ProcessingContext& pc)
@@ -84,7 +89,7 @@ class DigitFilteringTask
         // filter the digits from the current ROF
         for (auto i = 0; i < digits.size(); i++) {
           const auto& d = digits[i];
-          if (isGoodDigit(d)) {
+          if (mIsGoodDigit(d)) {
             oDigits.emplace_back(d);
             if (iLabels) {
               oLabels->addElements(oLabels->getIndexedSize(), iLabels->getLabels(i + irof.getFirstIdx()));
@@ -119,7 +124,7 @@ class DigitFilteringTask
  private:
   bool mSanityCheck;
   bool mUseMC;
-  int mMinADC;
+  DigitFilter mIsGoodDigit;
 };
 
 framework::DataProcessorSpec
