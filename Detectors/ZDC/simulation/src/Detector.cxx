@@ -315,6 +315,11 @@ void Detector::resetHitIndices()
 void Detector::flushSpatialResponse()
 {
   if (o2::zdc::ZDCSimParam::Instance().recordSpatialResponse) {
+    auto c = mNeutronResponseImage.getPhotonsPerChannel();
+    std::fstream output("o2sim-FullSimResult", std::fstream::out | std::fstream::app);
+    output << c[0] << " " << c[1] << " " << c[2] << " " << c[3] << " " << c[4] << "\n";
+    output.close();
+
     // only write non-trivial image pairs
     if (mNeutronResponseImage.getPhotonSum() > 0 || mProtonResponseImage.getPhotonSum() > 0) {
       mResponses.push_back(std::make_pair(mCurrentPrincipalParticle,
@@ -2442,6 +2447,7 @@ void Detector::FinishPrimary()
       }
       mFastSimResults.clear();
     }
+    output.close();
   }
 #endif
 }
