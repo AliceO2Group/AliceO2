@@ -166,12 +166,13 @@ class column:
     return -1
 
   def print(self):
-    print("        ns: "+self.nslevel)
-    print("    column: "+self.cname)
-    print("      kind: ", self.kind)
-    print("    access: "+self.gname)
-    print("      type: "+self.type)
-    print("   comment: "+self.comment)
+    print("         ns: "+self.nslevel)
+    print("     column: "+self.cname)
+    print("       kind: ", self.kind)
+    print("     access: "+self.gname)
+    print("       type: "+self.type)
+    print("header file: "+self.hfile)
+    print("    comment: "+self.comment)
 
   def printHTML(self):
     cn2u = fullDataModelName(self.nslevel, self.cname)
@@ -221,6 +222,7 @@ class table:
 
   def print(self):
     print("    table: "+self.tname)
+    print("   header file: ", self.hfile)
     print("          kind: ", self.kind)
     print("     producers: ", len(self.CErelations))
     for cer in self.CErelations:
@@ -326,10 +328,45 @@ class datamodel:
       self.CErelations.append(CErelation)
       self.defines = list()
       self.namespaces = list()
+      self.categories = list()
+      
+      # set some variables
+      self.O2path = ""      
+      self.O2Physicspath = ""
+      self.O2href = ""
+      self.O2Physicshref = ""
+      self.delimAO2D = ""
+      self.delimHelpers = ""
+      self.delimPWGs = ""
+      self.delimJoins = ""
+      # update with values from initCard
       if initCard != None:
         self.initCard = initCard
-      self.categories = list()
-
+        tmp = initCard.find("O2general/mainDir/O2local")
+        if tmp != None:
+          self.O2path = tmp.text.strip()
+        tmp = initCard.find("O2general/mainDir/O2Physicslocal")
+        if tmp != None:
+          self.O2Physicspath = tmp.text.strip()
+        tmp = initCard.find("O2general/mainDir/O2GitHub")
+        if tmp != None:
+          self.O2href = tmp.text.strip()
+        tmp = initCard.find("O2general/mainDir/O2PhysicsGitHub")
+        if tmp != None:
+          self.O2Physicshref = tmp.text.strip()
+        tmp = initCard.find("O2general/delimAO2D")
+        if tmp != None:
+          self.delimAO2D = tmp.text.strip()
+        tmp = initCard.find("O2general/delimHelpers")
+        if tmp != None:
+          self.delimHelpers = tmp.text.strip()
+        tmp = initCard.find("O2general/delimPWGs")
+        if tmp != None:
+          self.delimPWGs = tmp.text.strip()
+        tmp = initCard.find("O2general/delimJoins")
+        if tmp != None:
+          self.delimJoins = tmp.text.strip()
+    
       # read the file
       lines_in_file = file.readlines()
       content = O2DMT.pickContent(lines_in_file)
@@ -520,8 +557,8 @@ class datamodel:
     for ns in self.namespaces:
       ns.print()
 
-  def printSingleTable(self, href2u, path2u, tabs, uses, tab2u):
-    # print the table header
+  def printSingleTable(self, tabs, uses, tab2u):
+     # print the table header
     tab2u.printHeaderHTML()
 
     # print table comment
@@ -530,6 +567,13 @@ class datamodel:
     print("    </div>")
 
     # print header file
+    if tab2u.hfile.startswith(self.O2path):
+      href2u = self.O2href
+      path2u = self.O2path
+    else:
+      href2u = self.O2Physicshref
+      path2u = self.O2Physicspath
+ 
     hf2u = O2DMT.block(tab2u.hfile.split(path2u)[
                  1:], False).strip().lstrip("/")
     print("    <div>")
@@ -538,7 +582,7 @@ class datamodel:
     print("    </div>")
 
     # print extends
-    if tab2u.kind == 2 or tab2u.kind == 5:
+    if tab2u.kind == 4 or tab2u.kind == 7:
       print("    <div>Extends:")
       print("      <ul>")
       print("        ", tab2u.toExtendWith)
@@ -566,7 +610,7 @@ class datamodel:
     tab2u.printSubHeaderHTML()
 
     # EXTENDED_TABLE and EXTENDED_TABLE_USER are extended
-    if tab2u.kind == 2 or tab2u.kind == 5:
+    if tab2u.kind == 4 or tab2u.kind == 7:
       # this table has to be extended, find the extending table and
       # print all of its columns
       einds = [i for i, x in enumerate(tabs) if x.tname == tab2u.toExtendWith]
@@ -582,11 +626,18 @@ class datamodel:
     tab2u.printFooterHTML()
       
 
-  def printTables(self, DMtype, href2u, path2u, tabs, uses, CER, tabs2u):
+  def printTables(self, DMtype, tabs, uses, CER, tabs2u):
     print("")
     print("#### ", CER[2])
     
     # add source code information if available
+    if CER[0].startswith(self.O2path):
+      href2u = self.O2href
+      path2u = self.O2path
+    else:
+      href2u = self.O2Physicshref
+      path2u = self.O2Physicspath
+    
     if DMtype == 1:
       if href2u != "":
         print("Code file: <a href=\""+href2u+"/"+CER[0].split(path2u)[1] +
@@ -636,7 +687,7 @@ class datamodel:
           for tab in tabs2u:
             if baseTableName(tab.tname, vPattern) == tname:
               print()
-              self.printSingleTable(href2u, path2u, tabs, uses, tab)
+              self.printSingleTable(tabs, uses, tab)
               continue
         print("</div>")
         
@@ -646,67 +697,17 @@ class datamodel:
         print("<div>")
         for i in others:
           print()
-          self.printSingleTable(href2u, path2u, tabs, uses, tabs2u[i])
+          self.printSingleTable(tabs, uses, tabs2u[i])
         print("</div>")
         
     else:
       # print all tables of given producer
       for tab in tabs2u:
-        self.printSingleTable(href2u, path2u, tabs, uses, tab)
+        self.printSingleTable(tabs, uses, tab)
 
     print("</div>")
 
   def printHTML(self):
-    # get some variables
-    tmp = self.initCard.find("O2general/mainDir/O2local")
-    if tmp == None:
-      tmp = ""
-    else:
-      tmp = tmp.text.strip()
-    O2path = tmp
-    tmp = self.initCard.find("O2general/mainDir/O2Physicslocal")
-    if tmp == None:
-      tmp = ""
-    else:
-      tmp = tmp.text.strip()
-    O2Physicspath = tmp
-    tmp = self.initCard.find("O2general/mainDir/O2GitHub")
-    if tmp == None:
-      tmp = ""
-    else:
-      tmp = tmp.text.strip()
-    O2href = tmp
-    tmp = self.initCard.find("O2general/mainDir/O2PhysicsGitHub")
-    if tmp == None:
-      tmp = ""
-    else:
-      tmp = tmp.text.strip()
-    O2Physicshref = tmp
-    tmp = self.initCard.find("O2general/delimAO2D")
-    if tmp == None:
-      tmp = ""
-    else:
-      tmp = tmp.text.strip()
-    delimAO2D = tmp
-    tmp = self.initCard.find("O2general/delimHelpers")
-    if tmp == None:
-      tmp = ""
-    else:
-      tmp = tmp.text.strip()
-    delimHelpers = tmp
-    tmp = self.initCard.find("O2general/delimPWGs")
-    if tmp == None:
-      tmp = ""
-    else:
-      tmp = tmp.text.strip()
-    delimPWGs = tmp
-    tmp = self.initCard.find("O2general/delimJoins")
-    if tmp == None:
-      tmp = ""
-    else:
-      tmp = tmp.text.strip()
-    delimJoins = tmp
-
     # gather all tables and columns
     tabs = list()
     uses = list()
@@ -723,7 +724,7 @@ class datamodel:
     # 4. joins
 
     # 1. main producer
-    print(delimAO2D)
+    print(self.delimAO2D)
     inds = [i for i, x in enumerate(self.CErelations) if x[3] == 'Main']
     CER2u = [self.CErelations[i] for i in inds]
     # only one Main CER should be available
@@ -733,23 +734,23 @@ class datamodel:
     for CER in CER2u:
       inds = [i for i, x in enumerate(tabs) if CER in x.CErelations]
       tabs2u = [tabs[i] for i in inds]
-      self.printTables(0, O2href, O2path, tabs, uses, CER, tabs2u)
-    print(delimAO2D)
+      self.printTables(0, tabs, uses, CER, tabs2u)
+    print(self.delimAO2D)
 
     # 2. helper tasks
     print("")
-    print(delimHelpers)
+    print(self.delimHelpers)
     inds = [i for i, x in enumerate(self.CErelations) if x[3] == 'Helper']
     CER2u = [self.CErelations[i] for i in inds]
     for CER in CER2u:
       inds = [i for i, x in enumerate(tabs) if CER in x.CErelations]
       tabs2u = [tabs[i] for i in inds]
-      self.printTables(1, O2Physicshref, O2Physicspath, tabs, uses, CER, tabs2u)
-    print(delimHelpers)
+      self.printTables(1, tabs, uses, CER, tabs2u)
+    print(self.delimHelpers)
 
     # 3. PWG tasks
     print("")
-    print(delimPWGs)
+    print(self.delimPWGs)
     inds = [i for i, x in enumerate(self.CErelations) if x[3] == 'PWG']
     CERsPWG = [self.CErelations[i] for i in inds]
 
@@ -765,14 +766,14 @@ class datamodel:
       for CER in CER2u:
         inds = [i for i, x in enumerate(tabs) if CER in x.CErelations]
         tabs2u = [tabs[i] for i in inds]
-        self.printTables(1, O2Physicshref, O2Physicspath, tabs, uses, CER, tabs2u)
+        self.printTables(1, tabs, uses, CER, tabs2u)
 
-    print(delimPWGs)
+    print(self.delimPWGs)
     print("")
 
     # now print the usings
     if len(uses) > 0:
-      print(delimJoins)
+      print(self.delimJoins)
       print("")
       print("<a name=\"usings\"></a>")
       print("#### List of defined joins and iterators")
@@ -787,7 +788,7 @@ class datamodel:
         print("    </ul>")
         print("  </div>")
       print("</div>")
-      print(delimJoins)
+      print(self.delimJoins)
 
 # -----------------------------------------------------------------------------
 # functions
@@ -833,9 +834,8 @@ def fullDataModelName(nslevel, name):
 def tableColumnNames(nslevel, cont, kind=0):
 
   # specification according to kind of table
-  noff = 3
-  if kind == 1:
-    noff = 4
+  noffs = [3, 4, 4, 5, 3, 3, 3, 3]
+  noff = noffs[kind]
 
   # split cont with ","
   buf = O2DMT.block(cont[:len(cont)-2], False)
