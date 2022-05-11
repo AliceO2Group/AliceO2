@@ -48,7 +48,7 @@ double backgroundCut(double* x, const double* p)
   }
 }
 
-o2::mch::DigitFilter createMinAdcCut(int minADC)
+o2::mch::DigitFilter createMinAdcCut(uint32_t minADC)
 {
   return [minADC](const o2::mch::Digit& digit) -> bool {
     if (digit.getADC() < minADC) {
@@ -60,7 +60,7 @@ o2::mch::DigitFilter createMinAdcCut(int minADC)
 
 o2::mch::DigitFilter createRejectBackground()
 {
-  int minNSamplesBackground = 14;
+  uint16_t minNSamplesBackground = 14;
   double backgroundParam[4] = {18., 24., -20., 7.0};
 
   auto backgroundCut = [backgroundParam](double* x) {
@@ -78,7 +78,7 @@ o2::mch::DigitFilter createRejectBackground()
 
 o2::mch::DigitFilter createSelectSignal()
 {
-  int minNSamplesSignal = 17;
+  uint16_t minNSamplesSignal = 17;
   double signalParam[4] = {80., 16., 12., 1.2};
 
   auto signalCut = [signalParam](double* x) {
