@@ -19,14 +19,15 @@ namespace o2
 namespace utils
 {
 
-boostHisto1d boosthistoFromRoot_1D(TH1D* inHist1D)
+boostHisto1d_VarAxis boosthistoFromRoot_1D(TH1D* inHist1D)
 {
   // first setup the proper boost histogram
   int nBins = inHist1D->GetNbinsX();
-  int xMin = inHist1D->GetXaxis()->GetXmin();
-  int xMax = inHist1D->GetXaxis()->GetXmax();
-  const char* title = inHist1D->GetXaxis()->GetTitle();
-  auto mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nBins, xMin, xMax, title));
+  std::vector<double> binEdges;
+  for (int i = 0; i < nBins + 1; i++) {
+    binEdges.push_back(inHist1D->GetBinLowEdge(i + 1));
+  }
+  boostHisto1d_VarAxis mHisto = boost::histogram::make_histogram(boost::histogram::axis::variable<>(binEdges));
 
   // trasfer the acutal values
   for (Int_t x = 1; x < nBins + 1; x++) {
@@ -35,19 +36,23 @@ boostHisto1d boosthistoFromRoot_1D(TH1D* inHist1D)
   return mHisto;
 }
 
-boostHisto2d boostHistoFromRoot_2D(TH2D* inHist2D)
+boostHisto2d_VarAxis boostHistoFromRoot_2D(TH2D* inHist2D)
 {
-  // first setup the proper boost histogram
-  int nBinsX = inHist2D->GetNbinsX();
-  int xMin = inHist2D->GetXaxis()->GetXmin();
-  int xMax = inHist2D->GetXaxis()->GetXmax();
-  const char* xTitle = inHist2D->GetXaxis()->GetTitle();
-  int nBinsY = inHist2D->GetNbinsY();
-  int yMin = inHist2D->GetYaxis()->GetXmin();
-  int yMax = inHist2D->GetYaxis()->GetXmax();
-  const char* yTitle = inHist2D->GetYaxis()->GetTitle();
-  auto mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nBinsX, xMin, xMax, xTitle), boost::histogram::axis::regular<>(nBinsY, yMin,
-                                                                                                                                                  yMax, yTitle));
+  // Get Xaxis binning
+  const int nBinsX = inHist2D->GetNbinsX();
+  std::vector<double> binEdgesX;
+  for (int i = 0; i < nBinsX + 1; i++) {
+    binEdgesX.push_back(inHist2D->GetXaxis()->GetBinLowEdge(i + 1));
+  }
+  // Get Yaxis binning
+  const int nBinsY = inHist2D->GetNbinsY();
+  std::vector<double> binEdgesY;
+  for (int i = 0; i < nBinsY + 1; i++) {
+    binEdgesY.push_back(inHist2D->GetYaxis()->GetBinLowEdge(i + 1));
+  }
+
+  boostHisto2d_VarAxis mHisto = boost::histogram::make_histogram(boost::histogram::axis::variable<>(binEdgesX), boost::histogram::axis::variable<>(binEdgesY));
+
   // trasfer the acutal values
   for (Int_t x = 1; x < nBinsX + 1; x++) {
     for (Int_t y = 1; y < nBinsY + 1; y++) {
