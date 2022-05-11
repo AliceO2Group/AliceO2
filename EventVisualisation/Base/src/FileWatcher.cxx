@@ -30,15 +30,21 @@ namespace event_visualisation
 const char* FileWatcher::mLowGuard = " 0"; /// start guard
 const char* FileWatcher::mEndGuard = "~0"; /// stop guard
 
-deque<string> FileWatcher::load(string path)
+deque<string> FileWatcher::load(const string& path)
 {
   //LOG(info) << "FileWatcher::load(" << path << ")";
-  deque<string> result;
-  for (const auto& entry : std::filesystem::directory_iterator(path)) {
+  map<filesystem::file_time_type, filesystem::directory_entry> sorted_by_time;
+  for (const auto& entry : filesystem::directory_iterator(path)) {
     if (entry.path().extension() == ".json") {
-      result.push_back(entry.path().filename());
+      sorted_by_time[entry.last_write_time()] = entry;
     }
   }
+
+  deque<string> result;
+  for (const auto& [key, value] : sorted_by_time) {
+    result.emplace_back(value.path().filename());
+  }
+
   //LOG(info) << result.size();
   return result;
 }
