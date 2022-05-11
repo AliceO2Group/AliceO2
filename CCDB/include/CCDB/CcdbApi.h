@@ -57,7 +57,7 @@ class CcdbApi //: public DatabaseInterface
 {
  public:
   /// \brief Default constructor
-  CcdbApi() = default;
+  CcdbApi();
   /// \brief Default destructor
   virtual ~CcdbApi();
 
@@ -294,7 +294,7 @@ class CcdbApi //: public DatabaseInterface
    * @param headers the headers found in the request. Will be emptied when we return false.
    * @return true if the headers where updated WRT last time, false if the previous results can still be used.
    */
-  static bool getCCDBEntryHeaders(std::string const& url, std::string const& etag, std::vector<std::string>& headers);
+  static bool getCCDBEntryHeaders(std::string const& url, std::string const& etag, std::vector<std::string>& headers, const std::string& agentID = "");
 
   /**
    * Extract the possible locations for a file and check whether or not
@@ -513,6 +513,7 @@ class CcdbApi //: public DatabaseInterface
   std::string getSnapshotFile(const std::string& topdir, const string& path) const { return getSnapshotDir(topdir, path) + "/snapshot.root"; }
 
   /// Base URL of the CCDB (with port)
+  std::string mUniqueAgentID{}; // Unique User-Agent ID communicated to server for logging
   std::string mUrl{};
   std::vector<std::string> hostsPool{};
   std::string mSnapshotTopPath{};
