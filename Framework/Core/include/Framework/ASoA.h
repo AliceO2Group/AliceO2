@@ -381,6 +381,36 @@ struct IndexColumn {
   static constexpr const char* const& columnLabel() { return INHERIT::mLabel; }
 };
 
+template <typename INHERIT>
+struct MarkerColumn {
+  using inherited_t = INHERIT;
+
+  using persistent = std::false_type;
+  static constexpr const char* const& columnLabel() { return INHERIT::mLabel; }
+};
+
+template <size_t M = 0>
+struct Marker : o2::soa::MarkerColumn<Marker<M>> {
+  using type = size_t;
+  using base = o2::soa::MarkerColumn<Marker<M>>;
+  constexpr inline static auto value = M;
+
+  Marker() = default;
+  Marker(Marker const&) = default;
+  Marker(Marker&&) = default;
+
+  Marker& operator=(Marker const&) = default;
+  Marker& operator=(Marker&&) = default;
+
+  Marker(arrow::ChunkedArray const*) {}
+  constexpr inline auto mark()
+  {
+    return value;
+  }
+
+  static constexpr const char* mLabel = "Marker";
+};
+
 template <int64_t START = 0, int64_t END = -1>
 struct Index : o2::soa::IndexColumn<Index<START, END>> {
   using base = o2::soa::IndexColumn<Index<START, END>>;
