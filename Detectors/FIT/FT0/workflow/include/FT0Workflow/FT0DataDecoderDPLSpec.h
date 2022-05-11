@@ -34,7 +34,6 @@
 #include <gsl/span>
 #include <chrono>
 #include "CommonUtils/VerbosityConfig.h"
-
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/LookUpTable.h"
