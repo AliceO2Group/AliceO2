@@ -76,7 +76,7 @@ void EventManager::displayCurrentEvent()
       MultiView::getInstance()->registerElement(dataTypeLists[i]);
     }
 
-    MultiView::getInstance()->getAnnotation()->SetText(TString::Format("Run: %d", displayList[0].first.getRunNumber()));
+    MultiView::getInstance()->getAnnotation()->SetText(TString::Format("Run: %d", getDataSource()->getRunNumber()));
   }
   MultiView::getInstance()->redraw3D();
 }
