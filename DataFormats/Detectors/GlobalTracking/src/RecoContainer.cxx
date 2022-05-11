@@ -912,30 +912,13 @@ void RecoContainer::addTOFMatchesITSTPCTRD(ProcessingContext& pc, bool mc)
 }
 
 //__________________________________________________________
-void RecoContainer::addHMPMatchesITSTPC(ProcessingContext& pc, bool mc)
+void RecoContainer::addHMPMatches(ProcessingContext& pc, bool mc)
 {
-  commonPool[GTrackID::ITSTPCTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoHMP>>("matchITSTPCTOF"), MATCHES); //  HMPID match info, no real tracks
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoHMP>>("matchHMP"), MATCHES); //  HMPID match info, no real tracks
   if (mc) {
-    commonPool[GTrackID::ITSTPCTOF].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsHMP_GLO_MCTR"), MCLABELS);
+    commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsHMP_GLO_MCTR"), MCLABELS);
   }
 }
-//__________________________________________________________
-void RecoContainer::addHMPMatchesTPCTRD(ProcessingContext& pc, bool mc)
-{
-  commonPool[GTrackID::TPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoHMP>>("matchTPCTRDTOF"), MATCHES); //  : HMPID match info, no real tracks
-  if (mc) {
-    commonPool[GTrackID::TPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsHMP_GLO2_MCTR"), MCLABELS);
-  }
-}
-//__________________________________________________________
-void RecoContainer::addHMPMatchesITSTPCTRD(ProcessingContext& pc, bool mc)
-{
-  commonPool[GTrackID::ITSTPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoHMP>>("matchITSTPCTRDTOF"), MATCHES); // HMPID match info, no real tracks
-  if (mc) {
-    commonPool[GTrackID::ITSTPCTRDTOF].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsHMP_GLO3_MCTR"), MCLABELS);
-  }
-}
-
 //__________________________________________________________
 void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
 {

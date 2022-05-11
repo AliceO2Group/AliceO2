@@ -97,7 +97,8 @@ class Cluster;
 namespace o2::hmpid
 {
 class Cluster;
-}
+class Trigger;
+} // namespace o2::hmpid
 
 namespace o2::ft0
 {
@@ -334,9 +335,7 @@ struct RecoContainer {
   void addTOFMatchesTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
   void addTOFMatchesITSTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
 
-  void addHMPMatchesITSTPC(o2::framework::ProcessingContext& pc, bool mc);
-  void addHMPMatchesTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
-  void addHMPMatchesITSTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
+  void addHMPMatches(o2::framework::ProcessingContext& pc, bool mc);
 
   void addMFTMCHMatches(o2::framework::ProcessingContext& pc, bool mc);
   void addMCHMIDMatches(o2::framework::ProcessingContext& pc, bool mc);
@@ -598,6 +597,7 @@ struct RecoContainer {
 
   // HMPID clusters
   auto getHMPClusters() const { return getSpan<o2::hmpid::Cluster>(GTrackID::HMP, CLUSTERS); }
+  auto getHMPTriggers() const { return getSpan<o2::hmpid::Trigger>(GTrackID::HMP, CLUSREFS); }
   auto getHMPClustersMCLabels() const { return mcHMPClusters.get(); }
 
   // FT0
