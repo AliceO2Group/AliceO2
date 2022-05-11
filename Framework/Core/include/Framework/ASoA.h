@@ -1029,12 +1029,7 @@ class Table
     {
       using decayed = std::decay_t<CD>;
       static_assert(is_dynamic_t<decayed>(), "Requested column is not a dynamic column");
-      using all_columns = typename RowViewCore<IP, C...>::all_columns;
-      if constexpr (framework::has_type_v<decayed, all_columns>) {
-        return static_cast<decayed>(*this).template getDynamicValue<CDArgs...>();
-      } else {
-        return static_cast<int32_t>(-1);
-      }
+      return static_cast<decayed>(*this).template getDynamicValue<CDArgs...>();
     }
 
     using IP::size;
@@ -2021,7 +2016,7 @@ void notBoundTable(const char* tableName);
       return boundGetter(std::make_index_sequence<std::tuple_size_v<decltype(boundIterators)>>{}, freeArgs...);            \
     }                                                                                                                      \
     template <typename... FreeArgs>                                                                                        \
-    type _getDynamicValue_(FreeArgs... freeArgs) const                                                                     \
+    type getDynamicValue(FreeArgs... freeArgs) const                                                                       \
     {                                                                                                                      \
       return boundGetter(std::make_index_sequence<std::tuple_size_v<decltype(boundIterators)>>{}, freeArgs...);            \
     }                                                                                                                      \

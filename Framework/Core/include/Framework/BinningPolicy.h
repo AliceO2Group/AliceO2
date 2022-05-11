@@ -37,11 +37,54 @@ std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table*
   return std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci)...};
 }
 
+template <typename C>
+typename C::type getSingleRowPersistentData(arrow::Table* table, uint64_t ci, uint64_t ai)
+{
+  return std::static_pointer_cast<o2::soa::arrow_array_for_t<typename C::type>>(o2::soa::getIndexFromLabel(table, C::columnLabel())->chunk(ci))->raw_values()[ai];
+}
+
+template <typename T, typename C>
+typename C::type getSingleRowDynamicData(typename T::iterator const& rowIterator, uint64_t globalIndex)
+{
+  return rowIterator.template getDynamicColumn<C>();
+}
+
+template <typename T, typename C>
+typename C::type getSingleRowIndexData(typename T::iterator const& rowIterator, uint64_t globalIndex)
+{
+  return rowIterator.template getId<C>();
+}
+
+template <typename T, typename C>
+typename C::type getSingleRowData(arrow::Table* table, typename T::iterator const& rowIterator, uint64_t ci, uint64_t ai, uint64_t globalIndex)
+{
+  using decayed = std::decay_t<C>;
+  if constexpr (decayed::persistent::value) {
+    return getSingleRowPersistentData<C>(table, ci, ai);
+  } else if constexpr (o2::soa::is_dynamic_t<decayed>()) {
+    return getSingleRowDynamicData<T, C>(rowIterator, globalIndex);
+  } else if constexpr (o2::soa::is_index_column_v<decayed>) {
+    return getSingleRowIndexData<T, C>(rowIterator, globalIndex);
+  }
+}
+
+template <typename T, typename... Cs>
+std::tuple<typename Cs::type...> getRowData(arrow::Table* table, typename T::iterator const& rowIterator, uint64_t ci, uint64_t ai, uint64_t globalIndex)
+{
+  return std::make_tuple(getSingleRowData<T, Cs>(table, rowIterator, ci, ai, globalIndex)...);
+}
+
 template <typename... Cs>
-std::tuple<typename Cs::type...> getRowData(arrow::Table* table, pack<Cs...>, uint64_t ci, uint64_t ai)
+std::tuple<typename Cs::type...> getRowPersistentData(arrow::Table* table, pack<Cs...>, uint64_t ci, uint64_t ai)
 {
   static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
   return std::make_tuple(std::static_pointer_cast<o2::soa::arrow_array_for_t<typename Cs::type>>(o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci))->raw_values()[ai]...);
+}
+
+template <typename T, typename... Cs>
+std::tuple<typename Cs::type...> getRowDynamicData(typename T::iterator const& rowIterator, pack<Cs...>, uint64_t globalIndex)
+{
+  return std::make_tuple(rowIterator.template getDynamicColumn<Cs>()...);
 }
 } // namespace binning_helpers
 
@@ -154,7 +197,9 @@ struct BinningPolicy {
     return getBinAt(i, j, k);
   }
 
-  pack<C, Cs...> getColumns() const { return pack<C, Cs...>{}; }
+  using all_columns = pack<C, Cs...>;
+  using persistent_columns_t = framework::selected_pack<o2::soa::is_persistent_t, C, Cs...>;
+  // pack<C, Cs...> getColumns() const { return pack<C, Cs...>{}; }
 
  private:
   // We substract 1 to account for VARIABLE_WIDTH in the bins vector
@@ -204,7 +249,8 @@ struct NoBinningPolicy {
     return std::get<0>(data);
   }
 
-  pack<C> getColumns() const { return pack<C>{}; }
+  using persistent_columns_t = framework::selected_pack<o2::soa::is_persistent_t, C>;
+  // pack<C> getColumns() const { return pack<C>{}; }
 };
 
 } // namespace o2::framework

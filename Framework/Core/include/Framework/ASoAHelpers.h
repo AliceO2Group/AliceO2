@@ -153,6 +153,7 @@ template <template <typename... Cs> typename BP, typename T, typename... Cs>
 std::vector<BinningIndex> doGroupTable(const T& table, const BP<Cs...>& binningPolicy, int minCatSize, int outsider)
 {
   arrow::Table* arrowTable = table.asArrowTable().get();
+  auto rowIterator = table.begin();
 
   uint64_t ind = 0;
   uint64_t selInd = 0;
@@ -168,19 +169,21 @@ std::vector<BinningIndex> doGroupTable(const T& table, const BP<Cs...>& binningP
     selectedRows = table.getSelectedRows(); // vector<int64_t>
   }
 
-  auto binningColumns = binningPolicy.getColumns();
-  auto arrowColumns = o2::framework::binning_helpers::getArrowColumns(arrowTable, binningColumns);
+  auto persistentColumns = typename BP<Cs...>::persistent_columns_t{};
+  constexpr auto persistentColumnsCount = pack_size(persistentColumns);
+  auto arrowColumns = o2::framework::binning_helpers::getArrowColumns(arrowTable, persistentColumns);
   auto chunksCount = arrowColumns[0]->num_chunks();
-  for (int i = 1; i < sizeof...(Cs); i++) {
+  for (int i = 1; i < persistentColumnsCount; i++) {
     if (arrowColumns[i]->num_chunks() != chunksCount) {
       throw o2::framework::runtime_error("Combinations: data size varies between selected columns");
     }
   }
 
+  uint64_t globalIndex = 0;
   for (uint64_t ci = 0; ci < chunksCount; ++ci) {
-    auto chunks = o2::framework::binning_helpers::getChunks(arrowTable, binningColumns, ci);
+    auto chunks = o2::framework::binning_helpers::getChunks(arrowTable, persistentColumns, ci);
     auto chunkLength = std::get<0>(chunks)->length();
-    for_<sizeof...(Cs) - 1>([&chunks, &chunkLength](auto i) {
+    for_<persistentColumnsCount - 1>([&chunks, &chunkLength](auto i) {
       if (std::get<i.value + 1>(chunks)->length() != chunkLength) {
         throw o2::framework::runtime_error("Combinations: data size varies between selected columns");
       }
@@ -196,11 +199,13 @@ std::vector<BinningIndex> doGroupTable(const T& table, const BP<Cs...>& binningP
     uint64_t ai = 0;
     while (ai < chunkLength) {
       if constexpr (soa::is_soa_filtered_t<T>::value) {
+        globalIndex += selectedRows[ind] - selInd;
         ai += selectedRows[ind] - selInd;
         selInd = selectedRows[ind];
       }
 
-      auto rowData = o2::framework::binning_helpers::getRowData(arrowTable, binningColumns, ci, ai);
+      auto rowData = o2::framework::binning_helpers::getRowData<T, Cs...>(arrowTable, rowIterator, ci, ai, globalIndex);
+
       int val = binningPolicy.getBin(rowData);
       if (val != outsider) {
         groupedIndices.emplace_back(val, ind);
@@ -212,6 +217,7 @@ std::vector<BinningIndex> doGroupTable(const T& table, const BP<Cs...>& binningP
           break;
         }
       } else {
+        globalIndex++;
         ai++;
       }
     }
