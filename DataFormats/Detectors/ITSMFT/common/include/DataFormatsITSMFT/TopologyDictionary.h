@@ -171,9 +171,10 @@ class TopologyDictionary
   friend TopologyFastSimulation;
 
  private:
+  static constexpr int STopoSize = 8 * 255 + 1;
   std::unordered_map<unsigned long, int> mCommonMap; ///< Map of pair <hash, position in mVectorOfIDs>
   std::unordered_map<int, int> mGroupMap;            ///< Map of pair <groudID, position in mVectorOfIDs>
-  int mSmallTopologiesLUT[8 * 255 + 1];              ///< Look-Up Table for the topologies with 1-byte linearised matrix
+  int mSmallTopologiesLUT[STopoSize];                ///< Look-Up Table for the topologies with 1-byte linearised matrix
   std::vector<GroupStruct> mVectorOfIDs;             ///< Vector of topologies and groups
 
   ClassDefNV(TopologyDictionary, 4);
