@@ -33,7 +33,10 @@ namespace o2
 namespace itsmft
 {
 
-TopologyDictionary::TopologyDictionary() : mSmallTopologiesLUT{-1} {}
+TopologyDictionary::TopologyDictionary()
+{
+  memset(mSmallTopologiesLUT, -1, STopoSize * sizeof(int));
+}
 
 TopologyDictionary::TopologyDictionary(const std::string& fileName)
 {
