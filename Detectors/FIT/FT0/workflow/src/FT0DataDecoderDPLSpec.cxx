@@ -20,8 +20,8 @@
 #include <immintrin.h>
 #include <algorithm>
 #include <cstdlib>
-#include <string.h>
-
+#include <cstring>
+#include <string>
 namespace o2
 {
 namespace ft0
