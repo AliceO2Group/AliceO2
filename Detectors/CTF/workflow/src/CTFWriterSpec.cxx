@@ -562,7 +562,7 @@ void CTFWriterSpec::storeDictionaries()
   // monolitic dictionary in tree format
   mDictTimeStamp = uint32_t(std::time(nullptr));
   auto getFileName = [this](bool curr) {
-    return fmt::format("{}{}_{}_{}.root", this->mDictDir, o2::base::NameConf::CTFDICT, curr ? this->mDictTimeStamp : this->mPrevDictTimeStamp, curr ? this->mNCTF : this->mNCTFPrevDict);
+    return fmt::format("{}{}Tree_{}_{}_{}.root", this->mDictDir, o2::base::NameConf::CTFDICT, DetID::getNames(this->mDets, '-'), curr ? this->mDictTimeStamp : this->mPrevDictTimeStamp, curr ? this->mNCTF : this->mNCTFPrevDict);
   };
   auto dictFileName = getFileName(true);
   mDictFileOut.reset(TFile::Open(dictFileName.c_str(), "recreate"));
