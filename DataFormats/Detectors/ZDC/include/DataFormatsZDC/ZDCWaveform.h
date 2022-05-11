@@ -51,7 +51,7 @@ struct ZDCWaveform {
     return inter;
   }
 
-  uint8_t ch() const
+  int ch() const
   {
     return sig;
   }

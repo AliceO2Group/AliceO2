@@ -74,9 +74,7 @@ class WaveformCalibEPN
     mN=ilast-ifirst+1;
   }
 
-  
-  
-    WaveformCalibQueue mQueue;
+  WaveformCalibQueue mQueue;
 };
 } // namespace zdc
 } // namespace o2

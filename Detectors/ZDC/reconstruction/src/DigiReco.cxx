@@ -522,32 +522,37 @@ void DigiReco::lowPassFilter()
   for (int itdc = 0; itdc < NTDCChannels; itdc++) {
     auto isig = TDCSignal[itdc];
     for (int ibc = 0; ibc < mNBC; ibc++) {
+      // Indexes of current, previous and next recorded bunch crossings
       auto ref_c = mReco[ibc].ref[isig];
-      uint32_t ref_p = ibc == 0 ? ZDCRefInitVal : mReco[ibc - 1].ref[isig];
-      uint32_t ref_n = ibc == (mNBC - 1) ? ZDCRefInitVal : mReco[ibc + 1].ref[isig];
-      if (ref_c != ZDCRefInitVal) {
+      uint32_t ref_p = ZDCRefInitVal;
+      uint32_t ref_n = ZDCRefInitVal;
+      int64_t bcd_p = ZDCRefInitVal;
+      int64_t bcd_n = ZDCRefInitVal;
+      if (ibc > 0) { // Is not first bunch in list
+        ref_p = mReco[ibc - 1].ref[isig];
+        bcd_p = mReco[ibc].ir.differenceInBC(mReco[ibc - 1].ir); // b.c. number of (ibc) -  b.c. number (ibc-1)
+      }
+      if (ibc < (mNBC - 1)) { // Is not last bunch in list
+        ref_n = mReco[ibc + 1].ref[isig];
+        bcd_n = mReco[ibc + 1].ir.differenceInBC(mReco[ibc].ir); // b.c. number of (ibc+1) -  b.c. number (ibc)
+      }
+      if (ref_c != ZDCRefInitVal) { // Should always be true
         for (int is = 0; is < NTimeBinsPerBC; is++) {
           int32_t sum = mChData[ref_c].data[is];
           if (is == 0) {
             sum += mChData[ref_c].data[1];
-            if (ref_p != ZDCRefInitVal) {
-              // b.c. number of (ibc) -  b.c. number (ibc-1)
-              auto bcd = mReco[ibc].ir.differenceInBC(mReco[ibc - 1].ir);
-              if (bcd == 1) { // Previous bunch crossing
-                sum += mChData[ref_p].data[MaxTimeBin];
-              }
+            if (ref_p != ZDCRefInitVal && bcd_p == 1) {
+              // Add last sample of previous bunch crossing
+              sum += mChData[ref_p].data[MaxTimeBin];
             } else {
               // As a backup we count twice the first sample
               sum += mChData[ref_c].data[0];
             }
           } else if (is == MaxTimeBin) {
             sum += mChData[ref_c].data[MaxTimeBin - 1];
-            if (ref_n != ZDCRefInitVal) {
-              // b.c. number of (ibc+1) -  b.c. number (ibc)
-              auto bcd = mReco[ibc + 1].ir.differenceInBC(mReco[ibc].ir);
-              if (bcd == 1) {
-                sum += mChData[ref_n].data[0];
-              }
+            if (ref_n != ZDCRefInitVal && bcd_n == 1) {
+              // Add first sample of next bunch crossing
+              sum += mChData[ref_n].data[0];
             } else {
               // As a backup we count twice the last sample
               sum += mChData[ref_c].data[MaxTimeBin];
@@ -1210,6 +1215,9 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   // otherwise the interpolation is performed only around actual signal
   // TODO: extend full interpolation to all channels
   if (mFullInterpolation) {
+    for (int ibun = ibeg; ibun <= iend; ibun++) {
+      mReco[ibun].interp[itdc] = true;
+    }
     for (int i = 0; i < mNtot; i++) {
       setPoint(itdc, ibeg, iend, i);
     }

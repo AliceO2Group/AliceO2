@@ -94,6 +94,7 @@ struct WaveformCalibQueue {
   }
   uint32_t append(RecEventFlat& ev);
   void appendEv(RecEventFlat& ev);
+  int hasData(int isig, const gsl::span<const o2::zdc::ZDCWaveform>& wave);
 };
 
 } // namespace zdc

@@ -47,7 +47,7 @@ struct RecEvent {
 #ifdef O2_ZDC_DEBUG
     printf("addBC %u.%-4u En_start:%-2lu TDC_start:%-2lu Info_start:%-2lu ch=0x%08x tr=0x%08x\n", reca.ir.orbit, reca.ir.bc, mEnergy.size(), mTDCData.size(), mInfo.size(), reca.channels, reca.triggers);
 #endif
-    mRecBC.emplace_back(mEnergy.size(), mTDCData.size(), mInfo.size(), reca.ir);
+    mRecBC.emplace_back(mEnergy.size(), mTDCData.size(), mInfo.size(), mWaveform.size(), reca.ir);
     mRecBC.back().channels = reca.channels;
     mRecBC.back().triggers = reca.triggers;
   }

@@ -67,6 +67,7 @@ int WaveformCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
         if ((mask & (0x1 << itdc)) != 0) {
           // Check which channels have consecutive data
           int isig = TDCSignal[itdc];
+          LOG(info) << "check " << isig << " " << mQueue.hasData(isig, wave);
         }
       }
     }

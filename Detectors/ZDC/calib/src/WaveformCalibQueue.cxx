@@ -42,22 +42,22 @@ uint32_t WaveformCalibQueue::append(RecEventFlat& ev)
     for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
       // Check which channels satisfy the condition on TDC
       bool tdccond = true;
-      for(int i = 0; i<mN; i++){
+      for (int i = 0; i < mN; i++) {
         int n = mNTDC[itdc].at(i);
-        if(i==mPk){
-          if(n!=1){
+        if (i == mPk) {
+          if (n != 1) {
             tdccond = false;
             break;
           }
-        }else{
-          if(n!=0){
+        } else {
+          if (n != 0) {
             tdccond = false;
             break;
           }
         }
       }
-      if(tdccond){
-        mask = mask | (0x1<<itdc);
+      if (tdccond) {
+        mask = mask | (0x1 << itdc);
       }
     }
     return mask;
@@ -71,7 +71,7 @@ void WaveformCalibQueue::appendEv(RecEventFlat& ev)
   LOG(info) << __func__ << " " << ev.ir.orbit << "." << ev.ir.bc;
 
   mIR.push_back(ev.ir);
-  mEntry.push_back(ev.getNextEntry()-1);
+  mEntry.push_back(ev.getNextEntry() - 1);
 
   auto& curb = ev.getCurB();
   int firstw, nw;
@@ -116,6 +116,42 @@ void WaveformCalibQueue::appendEv(RecEventFlat& ev)
       mTDCA[itdc].push_back(ev.tdcA(itdc, 0));
       mTDCP[itdc].push_back(ev.tdcV(itdc, 0));
     }
+  }
+}
+
+int WaveformCalibQueue::hasData(int isig, const gsl::span<const o2::zdc::ZDCWaveform>& wave)
+{
+  int np = NTimeBinsPerBC * TSN;
+  int ipk = -1;
+  int ipkb = -1;
+  float min = std::numeric_limits<float>::infinity();
+  for (int ib = 0; ib < mN; ib++) {
+    int ifound = false;
+    LOG(info) << "mNW[" << ib<< "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
+    for (int iw = 0; iw < mNW[ib]; iw++) {
+      auto& mywave = wave[iw + mFirstW[ib]];
+      if (mywave.ch() == isig) {
+        ifound = true;
+        for (int ip = 0; ip < np; ip++) {
+          if (mywave.inter[ip] < min) {
+            ipkb = ib;
+            ipk = ip;
+            min = mywave.inter[ip];
+          }
+        }
+      }
+    }
+    // Need to have consecutive data for all bunches
+    if (!ifound) {
+      return -1;
+    }
+  }
+  if (ipkb != mPk) {
+    return -1;
+  } else {
+    int ipos = NTimeBinsPerBC * TSN * ipkb + ipk;
+    LOG(info) << "isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min;
+    return ipos;
   }
 }
 
