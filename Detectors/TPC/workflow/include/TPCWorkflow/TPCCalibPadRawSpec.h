@@ -240,7 +240,7 @@ DataProcessorSpec getTPCCalibPadRawSpec(const std::string inputSpec, uint32_t il
       {"use-old-subspec", VariantType::Bool, false, {"use old subsecifiation definition"}},
       {"force-quit", VariantType::Bool, false, {"force quit after max-events have been reached"}},
       {"direct-file-dump", VariantType::Bool, false, {"directly dump calibration to file"}},
-      {"sync-offset-reference", VariantType::UInt32, 144, {"Reference BCs used for the global sync offset in the CRUs"}},
+      {"sync-offset-reference", VariantType::UInt32, 144u, {"Reference BCs used for the global sync offset in the CRUs"}},
     } // end Options
   };  // end DataProcessorSpec
 }
