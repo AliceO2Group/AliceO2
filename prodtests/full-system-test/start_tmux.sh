@@ -5,7 +5,14 @@ if [ "0$1" != "0dd" ] && [ "0$1" != "0rr" ]; then
   exit 1
 fi
 
-[[ -z "${WORKFLOW_PARAMETERS+x}" ]] && export WORKFLOW_PARAMETERS="CALIB"
+if [[ -z "${WORKFLOW_PARAMETERS+x}" ]]; then
+  export WORKFLOW_PARAMETERS="CALIB,QC"
+  [[ -z "${WORKFLOW_DETECTORS_QC}" ]] && export WORKFLOW_DETECTORS_QC="ITS,TRD,TOF,MFT,MCH,MID,EMC,PHS,CPV,FT0,FV0,FDD,ZDC"
+  if [[ -z "${GEN_TOPO_WORKDIR}" ]]; then
+    mkdir gen_topo_tmp
+    export GEN_TOPO_WORKDIR=`pwd`/gen_topo_tmp
+  fi
+fi
 [[ -z "${SEVERITY}" ]] && export SEVERITY="error"
 
 MYDIR="$(dirname $(realpath $0))"
