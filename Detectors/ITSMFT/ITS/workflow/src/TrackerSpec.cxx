@@ -193,7 +193,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   std::vector<o2::its::TrackITSExt> tracks;
   auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
   std::vector<o2::MCCompLabel> trackLabels;
-  auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe});
+  auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITSExt>>(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe});
   std::vector<o2::MCCompLabel> allTrackLabels;
 
   auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
