@@ -24,9 +24,10 @@ namespace o2::mch
  */
 struct DigitFilterParam : public o2::conf::ConfigurableParamHelper<DigitFilterParam> {
 
-  bool sanityCheck = false; ///< whether or not to perform some sanity checks on the input digits
-  uint32_t minADC = 1;      ///< digits with an ADC below this value are discarded
-
+  bool sanityCheck = false;      ///< whether or not to perform some sanity checks on the input digits
+  uint32_t minADC = 1;           ///< digits with an ADC below this value are discarded
+  bool rejectBackground = false; ///< attempts to reject background (loose background selection, don't kill signal)
+  bool selectSignal = false;     ///< attempts to select only signal (strict background selection, might loose signal)
   O2ParamDef(DigitFilterParam, "MCHDigitFilter");
 };
 

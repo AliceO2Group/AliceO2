@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(MCHDigitFiltering
-        SOURCES src/DigitFilterParam.cxx src/DigitFilteringSpec.cxx
+        SOURCES src/DigitFilter.cxx src/DigitFilterParam.cxx src/DigitFilteringSpec.cxx
         PUBLIC_LINK_LIBRARIES O2::MCHBase O2::Framework O2::SimulationDataFormat)
 
 o2_add_executable(

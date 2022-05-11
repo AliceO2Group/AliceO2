@@ -81,20 +81,7 @@ filePath = /home/data/data-de819-ped-raw.raw
 
 ## Digit filtering
 
-```shell
-o2-mch-digits-filtering-workflow
-```
-
-Filter out some digits. For the moment only removes digits that have a null ADC.
-
-Inputs :
-- list of all digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) in the current time frame, with the (default) data description `DIGITS` (can be changed with `--input-digits-data-description` option)
-- the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the digits associated to each interaction, with the (default) data description `DIGITROFS` (can be changed with `--input-digit-rofs-data-description` option)
-
-Outputs :
-- list of digits that pass the filtering criteria (for the moment ADC>0), with the (default) data description `F-DIGITS`  (can be changed with `--output-digits-data-description` option)
-- list of ROF records corresponding to the digits above, with a (default) data description of `F-DIGITROFS` (can be changed with `--output-digit-rofs-data-description` option)
-
+Filter out (i.e. remove) some digits [more...](/Detectors/MUON/MCH/DigitFiltering/README.md)
 
 ## Time clustering
 
