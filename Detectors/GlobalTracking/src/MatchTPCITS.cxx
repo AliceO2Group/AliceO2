@@ -1827,9 +1827,9 @@ int MatchTPCITS::followABSeed(const o2::track::TrackParCov& seed, const ITSChipC
     // Z-step sign depends on radius decreasing or increasing during the propagation
     float zCross = seedC.getZ() + seedC.getTgl() * (dst2 < 2 * (dx * xCurr + dy * yCurr) ? dst : -dst);
 
-    for (size_t ich = -1; ich < 2; ich++) {
-      size_t chipID = chipIDguess + ich;
-      if (chipID < 0 || chipID >= lad.chips.size()) {
+    for (int ich = -1; ich < 2; ich++) {
+      int chipID = chipIDguess + ich;
+      if (chipID < 0 || chipID >= static_cast<int>(lad.chips.size())) {
         continue;
       }
       if (lad.chips[chipID].zRange.isOutside(zCross, mParams->nABSigmaZ * errZ)) {
