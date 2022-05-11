@@ -96,11 +96,13 @@ o2::mch::DigitFilter createSelectSignal()
 
 namespace o2::mch
 {
-DigitFilter createDigitFilter(int minADC, bool rejectBackground, bool selectSignal)
+DigitFilter createDigitFilter(uint32_t minADC, bool rejectBackground, bool selectSignal)
 {
   std::vector<DigitFilter> parts;
 
-  parts.emplace_back(createMinAdcCut(minADC));
+  if (minADC > 0) {
+    parts.emplace_back(createMinAdcCut(minADC));
+  }
   if (rejectBackground) {
     parts.emplace_back(createRejectBackground());
   }
