@@ -161,8 +161,8 @@ class GloFwdAssessment
   std::vector<std::unique_ptr<TEfficiency>> mPurityPtOuterVecTEff;
   std::vector<std::unique_ptr<TH1D>> mPairingPtInnerVecTH1;
   std::vector<std::unique_ptr<TH1D>> mPairingPtOuterVecTH1;
-  std::vector<std::unique_ptr<TH1D>> mTruePairingPtInnerVecTH1;
-  std::vector<std::unique_ptr<TH1D>> mTruePairingPtOuterVecTH1;
+  std::vector<std::unique_ptr<TEfficiency>> mTruePairingPtInnerVecTEff;
+  std::vector<std::unique_ptr<TEfficiency>> mTruePairingPtOuterVecTEff;
   std::vector<std::unique_ptr<TH2D>> mPairingEtaPtVec;
   std::vector<std::unique_ptr<TH2D>> mTruePairingEtaPtVec;
 
