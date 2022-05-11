@@ -1,21 +1,24 @@
 #!/bin/bash
 
-# the check on LIST_OF_DETECTORS should ensure that setenv.sh was not called before
-[[ -z ${LIST_OF_DETECTORS+z} ]] && source $O2DPG_ROOT/DATA/common/setenv.sh
-
-# Set up calibrations (if not already done, checked via SETUP_CALIB)
-[[ $SETUP_CALIB != 1 ]] && source $O2DPG_ROOT/DATA/common/setenv_calib.sh
+source $O2DPG_ROOT/DATA/common/setenv.sh
+source $O2DPG_ROOT/DATA/common/setenv_calib.sh
 
 if [[ -z "$WORKFLOW" ]] || [[ -z "$MYDIR" ]]; then
   echo This script must be called from the dpl-workflow.sh and not standalone 1>&2
   exit 1
 fi
 
+# you cannot have a locally integrated aggregator with the proxies
+if workflow_has_parameters CALIB_LOCAL_INTEGRATED_AGGREGATOR CALIB_PROXIES; then
+    echo "you cannot have a locally integrated aggregator with the proxies" 1>&2
+    exit 2
+fi
+
 # specific calibration workflows
 if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then add_W o2-tpc-scdcalib-interpolation-workflow "$DISABLE_ROOT_OUTPUT --disable-root-input --pipeline $(get_N tpc-track-interpolation TPC REST)" "$ITSMFT_FILES"; fi
 
 # output-proxy for aggregator
-if workflow_has_parameters CALIB_PROXIES; then
+if workflow_has_parameter CALIB_PROXIES; then
     if [[ ! -z $CALIBDATASPEC_BARREL ]]; then
   WORKFLOW+="o2-dpl-output-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_BARREL\" $(get_proxy_connection barrel output) | "
     fi

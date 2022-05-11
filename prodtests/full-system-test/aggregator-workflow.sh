@@ -1,26 +1,19 @@
 #!/bin/bash
 
-SEVERITY="detail"
-ENABLE_METRICS=1
+#SEVERITY="detail"
+#ENABLE_METRICS=1
 
-# the check on LIST_OF_DETECTORS should ensure that setenv.sh was not called before
-[[ -z ${LIST_OF_DETECTORS+z} ]] && source $O2DPG_ROOT/DATA/common/setenv.sh
-# the check on TRACK_SOURCES should ensure that workflow-setup.sh was not called before
-[[ -z ${TRACK_SOURCES+z} ]] && source $O2_ROOT/prodtests/full-system-test/workflow-setup.sh
-
-# ---------------------------------------------------------------------------------------------------------------------
-# Set general arguments (only if not already defined, checked via ARGS_ALL)
-[[ -z ${ARGS_ALL+z} ]] && source $O2DPG_ROOT/DATA/common/getCommonArgs.sh
-
-# Set up calibrations (if not already done, checked via SETUP_CALIB)
-[[ $SETUP_CALIB != 1 ]] && source $O2DPG_ROOT/DATA/common/setenv_calib.sh
+source $O2DPG_ROOT/DATA/common/setenv.sh
+source $O2_ROOT/prodtests/full-system-test/workflow-setup.sh
+source $O2DPG_ROOT/DATA/common/getCommonArgs.sh
+source $O2DPG_ROOT/DATA/common/setenv_calib.sh
 
 # check that WORKFLOW_DETECTORS is needed, otherwise the wrong calib wf will be built
 if [[ -z $WORKFLOW_DETECTORS ]]; then echo "WORKFLOW_DETECTORS must be defined" 1>&2; exit 1; fi
 
 # CCDB destination for uploads
-[[ -z ${CCDBPATH+x} ]] && CCDBPATH="http://o2-ccdb.internal"
-echo "CCDBPATH = $CCDBPATH" 1>&2
+[[ -z ${CCDB_POPULATOR_UPLOAD_PATH+x} ]] && CCDB_POPULATOR_UPLOAD_PATH="none"
+echo "CCDB_POPULATOR_UPLOAD_PATH = $CCDB_POPULATOR_UPLOAD_PATH" 1>&2
 
 # Adding calibrations
 EXTRA_WORKFLOW_CALIB=
@@ -80,28 +73,32 @@ if [[ $CALIB_PHS_RUNBYRUNCALIB == 1 ]]; then
 fi
 
 # starting with empty workflow
-if workflow_has_parameters CALIB_PROXIES; then
+if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR ; then
     WORKFLOW=
+fi
+
+# adding output proxies
+if workflow_has_parameter CALIB_PROXIES; then
     if [[ ! -z $CALIBDATASPEC_BARREL ]]; then
-	WORKFLOW+="o2-dpl-raw-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_BARREL\" $(get_proxy_connection barrel input) | "
+  WORKFLOW+="o2-dpl-raw-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_BARREL\" $(get_proxy_connection barrel input) | "
     fi
     if [[ ! -z $CALIBDATASPEC_CALO ]]; then
-	WORKFLOW+="o2-dpl-raw-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_CALO\" $(get_proxy_connection calo input) | "
+  WORKFLOW+="o2-dpl-raw-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_CALO\" $(get_proxy_connection calo input) | "
     fi
 fi
 
 WORKFLOW+=$EXTRA_WORKFLOW_CALIB
 
-if [[ $CCDBPATH != "none" ]]; then WORKFLOW+="o2-calibration-ccdb-populator-workflow --ccdb-path $CCDBPATH $ARGS_ALL | "; fi
+if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]]; then WORKFLOW+="o2-calibration-ccdb-populator-workflow --ccdb-path $CCDB_POPULATOR_UPLOAD_PATH $ARGS_ALL | "; fi
 
-if workflow_has_parameters CALIB_PROXIES; then
+if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
     WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT -b"
     if [ $WORKFLOWMODE == "print" ]; then
-	echo Workflow command adding aggregator:
-	echo $WORKFLOW | sed "s/| */|\n/g"
+  echo Workflow command adding aggregator:
+  echo $WORKFLOW | sed "s/| */|\n/g"
     else
-	# Execute the command we have assembled
-	WORKFLOW+=" --$WORKFLOWMODE"
-	eval $WORKFLOW
+  # Execute the command we have assembled
+  WORKFLOW+=" --$WORKFLOWMODE"
+  eval $WORKFLOW
     fi
 fi
