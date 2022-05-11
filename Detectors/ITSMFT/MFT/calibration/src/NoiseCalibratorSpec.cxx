@@ -69,7 +69,16 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
 
     if (mCalibrator->processTimeFrame(tfcounter, digits, rofs)) {
       LOG(info) << "Minimum number of noise counts has been reached !";
-      sendOutputCcdb(pc.outputs());
+      if (mOutputType.compare("CCDB") == 0) {
+        LOG(info) << "Sending an object to Production-CCDB";
+        sendOutputCcdb(pc.outputs());
+      } else if (mOutputType.compare("DCS") == 0) {
+        LOG(info) << "Sending an object to DCS-CCDB";
+        sendOutputDcs(pc.outputs());
+      } else {
+        LOG(info) << "Sending an object to Production-CCDB and DCS-CCDB";
+        sendOutputCcdbDcs(pc.outputs());
+      }
       pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
     }
   } else {
@@ -80,7 +89,16 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
 
     if (mCalibrator->processTimeFrame(tfcounter, compClusters, patterns, rofs)) {
       LOG(info) << "Minimum number of noise counts has been reached !";
-      sendOutputCcdb(pc.outputs());
+      if (mOutputType.compare("CCDB") == 0) {
+        LOG(info) << "Sending an object to Production-CCDB";
+        sendOutputCcdb(pc.outputs());
+      } else if (mOutputType.compare("DCS") == 0) {
+        LOG(info) << "Sending an object to DCS-CCDB";
+        sendOutputDcs(pc.outputs());
+      } else {
+        LOG(info) << "Sending an object to Production-CCDB and DCS-CCDB";
+        sendOutputCcdbDcs(pc.outputs());
+      }
       pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
     }
   }
