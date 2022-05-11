@@ -119,7 +119,7 @@ class ChannelCalibratorDeviceDPL
   {
     o2::ccdb::CcdbObjectInfo info;
     std::map<std::string, std::string> md;
-    o2::calibration::Utils::prepareCCDBobjectInfo(payload, info, path, md, mCalibrator.getTFEnd(), o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+    o2::calibration::Utils::prepareCCDBobjectInfo(payload, info, path, md, mCalibrator.getCurrentTFInfo().creation, mCalibrator.getCurrentTFInfo().creation + 5 * o2::ccdb::CcdbObjectInfo::DAY);
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
     LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
