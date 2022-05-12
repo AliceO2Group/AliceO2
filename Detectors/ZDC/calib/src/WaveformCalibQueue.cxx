@@ -17,6 +17,9 @@ namespace o2
 namespace zdc
 {
 
+// appends an event to the queue with the request that there are at most
+// mN consecutive bunches
+// The TDC conditions are checked and returned in output
 uint32_t WaveformCalibQueue::append(RecEventFlat& ev)
 {
   auto& toadd = ev.ir;
@@ -48,6 +51,13 @@ uint32_t WaveformCalibQueue::append(RecEventFlat& ev)
           if (n != 1) {
             tdccond = false;
             break;
+          } else {
+            auto tdca = mTDCA[itdc].at(i);
+            auto tdcv = mTDCP[itdc].at(i);
+            if (tdca < mCfg->cutLow[itdc] || tdca > mCfg->cutHigh[itdc] || tdcv < mCfg->cutTimeLow[itdc] || tdcv > mCfg->cutTimeHigh[itdc]) {
+              tdccond = false;
+              break;
+            }
           }
         } else {
           if (n != 0) {
@@ -68,8 +78,6 @@ uint32_t WaveformCalibQueue::append(RecEventFlat& ev)
 
 void WaveformCalibQueue::appendEv(RecEventFlat& ev)
 {
-  LOG(info) << __func__ << " " << ev.ir.orbit << "." << ev.ir.bc;
-
   mIR.push_back(ev.ir);
   mEntry.push_back(ev.getNextEntry() - 1);
 
@@ -181,6 +189,7 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
     if (!ifound) {
       return -1;
     }
+    // Check if a single TDC hit is present and satisfies conditions
   }
   if (ipkb != mPk) {
     return -1;
@@ -190,9 +199,8 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
     int ppos = NTimeBinsPerBC * TSN * ipkb + ipk;
     int pset = NTimeBinsPerBC * TSN * ipkb + NTimeBinsPerBC / 2 * TSN;
     int ipos = pset - ppos;
-    if(ipos > 0){
-      LOG(error) << "Cannot add waveform: missing data at the beginning";
-      return -1;
+    if (ipos > data.mFirstValid[itdc]) {
+      data.mFirstValid[itdc] = ipos;
     }
     // We know that points are consecutive
     for (int ib = 0; ib < mN; ib++) {
@@ -208,7 +216,11 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
         }
       }
     }
-    LOG(info) << "isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min;
+    ipos--;
+    if (ipos < data.mLastValid[itdc]) {
+      data.mLastValid[itdc] = ipos;
+    }
+    LOG(info) << "isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.mFirstValid[itdc] << ":" << data.mLastValid[itdc] << "]";
     return ipos;
   }
 }

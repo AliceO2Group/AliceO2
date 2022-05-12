@@ -35,18 +35,25 @@ namespace zdc
 struct WaveformCalibQueue {
   static constexpr int NH = WaveformCalibConfig::NH;
   WaveformCalibQueue() = default;
-  WaveformCalibQueue(int ifirst, int ilast)
+  WaveformCalibQueue(WaveformCalibConfig *cfg)
   {
-    configure(ifirst, ilast);
+    configure(cfg);
   }
+
   int mFirst = 0;
   int mLast = 0;
   int mPk = 0;
   int mN = 1;
   int mPPos = 0;
   int mNP = 0;
-  void configure(int ifirst, int ilast)
+
+  const WaveformCalibConfig *mCfg = nullptr;
+
+  void configure(const WaveformCalibConfig *cfg)
   {
+    mCfg = cfg;
+    int ifirst = mCfg->getFirst();
+    int ilast = mCfg->getLast();
     if (ifirst > 0 || ilast < 0 || ilast < ifirst) {
       LOGF(fatal, "WaveformCalibQueue configure error with ifirst=%d ilast=%d", ifirst, ilast);
     }
@@ -57,6 +64,7 @@ struct WaveformCalibQueue {
     mPPos = mPk * NIS + NIS/2;
     mNP = mN * NIS;
   }
+
   std::deque<o2::InteractionRecord> mIR;
   std::deque<int32_t> mEntry;
   std::deque<bool> mHasInfos[NH];

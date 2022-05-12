@@ -15,9 +15,11 @@
 using namespace o2::zdc;
 WaveformCalibConfig::WaveformCalibConfig()
 {
-  for (int i = 0; i < NH; i++) {
-    cutLow[i] = -std::numeric_limits<float>::infinity();
-    cutHigh[i] = std::numeric_limits<float>::infinity();
+  for (int ih = 0; ih < NH; ih++) {
+    cutLow[ih] = -std::numeric_limits<float>::infinity();
+    cutHigh[ih] = std::numeric_limits<float>::infinity();
+    cutTimeLow[ih] = -2.5;
+    cutTimeHigh[ih] = 2.5;
   }
 }
 

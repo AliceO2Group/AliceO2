@@ -46,7 +46,7 @@ struct WaveformCalibData {
       mN = n;
       for (int ih = 0; ih < NH; ih++) {
         mFirstValid[ih] = 0;
-        mLastValid[ih] = mH * NTimeBinsPerBC * TSN - 1;
+        mLastValid[ih] = NH * NTimeBinsPerBC * TSN - 1;
       }
     } else {
       LOG(fatal) << "WaveformCalibData " << __func__ << " wrong stored b.c. setting " << n << " not in range [0:" << WaveformCalibConfig::NBT << "]";

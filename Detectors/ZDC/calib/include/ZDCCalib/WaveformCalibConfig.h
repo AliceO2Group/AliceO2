@@ -61,7 +61,14 @@ struct WaveformCalibConfig {
   void setCuts(int ih, double low, double high);
   void setDescription(std::string d) { desc = d; }
 
-  ClassDefNV(WaveformCalibConfig, 1);
+  int getFirst() const{
+    return ibeg;
+  }
+  int getLast() const{
+    return iend;
+  }
+
+  ClassDefNV(WaveformCalibConfig, 2);
 };
 } // namespace zdc
 } // namespace o2

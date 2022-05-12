@@ -54,7 +54,7 @@ int WaveformCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
   if (!mInitDone) {
     init();
   }
-  mQueue.configure(mFirst, mLast);
+  mQueue.configure(mWaveformCalibConfig);
   o2::zdc::RecEventFlat ev;
   ev.init(RecBC, Energy, TDCData, Info);
   auto nen = ev.getEntries();
@@ -68,13 +68,7 @@ int WaveformCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
         if ((mask & (0x1 << itdc)) != 0) {
           // Check which channels have consecutive data
           int isig = TDCSignal[itdc];
-          int ipos = mQueue.hasData(isig, wave);
-          LOG(info) << "check " << isig << " " << ipos;
-          if (ipos >= 0) {
-            // Add to histogram
-            int ibun = ipos / NIS;
-            int isam = ipos % NIS;
-          }
+          mQueue.addData(isig, wave, mData);
         }
       }
     }
