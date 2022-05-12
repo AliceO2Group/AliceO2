@@ -128,7 +128,7 @@ template <typename T>
 std::vector<T> readDigits()
 {
   std::vector<T> result;
-  DataDecoder dd(handlePacketStoreAsVec<T>(result), nullptr, 0, "", "", false, false, useDummyElecMap);
+  DataDecoder dd(handlePacketStoreAsVec<T>(result), nullptr, "", "", false, false, useDummyElecMap);
 
   auto buffer = getBuffer("MCH.raw");
   dd.decodeBuffer(buffer);
