@@ -28,7 +28,7 @@ class MatchInfoHMP
   using GTrackID = o2::dataformats::GlobalTrackID;
 
  public:
-  MatchInfoHMP(int idxHMPClus, GTrackID idxTrack, float angle = 0, float q = 0, float size = 0, std::vector<float>* photsClusCharge = nullptr) : mIdxHMPClus(idxHMPClus), mIdxTrack(idxTrack), mCkovAngle(angle), mMipCluQ(q), mMipCluSize(size), mPhotsClusCharge(photsClusCharge){};
+  MatchInfoHMP(int idxHMPClus, GTrackID idxTrack, float angle = 0, float q = 0, float size = 0, int idxPhotClus = 0) : mIdxHMPClus(idxHMPClus), mIdxTrack(idxTrack), mCkovAngle(angle), mMipCluQ(q), mMipCluSize(size), mIdxPhotClus(idxPhotClus){};
   MatchInfoHMP() = default;
 
   void setIdxHMPClus(int index) { mIdxHMPClus = index; }
@@ -51,16 +51,19 @@ class MatchInfoHMP
   void setNPhots(int n) { mNPhots = n; }
   int getNPhots() const { return mNPhots; }
 
+  void setPhotIndex(int idx) { mIdxPhotClus = idx; }
+  int getPhotIndex() const { return mIdxPhotClus; }
+
   void print() const;
 
  private:
-  int mIdxHMPClus;    // Idx for HMP cluster
-  GTrackID mIdxTrack; // Idx for track
-  float mCkovAngle;
-  float mMipCluQ = 0.0;                 // MIP cluster charge
-  int mMipCluSize = 0.0;                // MIP cluster size
-  int mNPhots = 0.0;                    // number of candidate photo-electrons
-  std::vector<float>* mPhotsClusCharge; // list of cluster charge of candidate photo-electrons
+  int mIdxHMPClus;       // Idx for HMP cluster
+  GTrackID mIdxTrack;    // Idx for track
+  float mCkovAngle;      // emission angle value
+  float mMipCluQ = 0.0;  // MIP cluster charge
+  int mMipCluSize = 0.0; // MIP cluster size
+  int mNPhots = 0.0;     // number of candidate photo-electrons
+  int mIdxPhotClus;      // index of the first photo
 
   ClassDefNV(MatchInfoHMP, 1);
 };

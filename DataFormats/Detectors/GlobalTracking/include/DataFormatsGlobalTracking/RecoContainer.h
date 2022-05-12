@@ -221,6 +221,7 @@ struct DataRequest {
   void requestMCHClusters(bool mc);
   void requestMIDClusters(bool mc);
   void requestHMPClusters(bool mc);
+  void requestHMPMatches(bool mc);
 
   void requestCTPDigits(bool mc);
 
@@ -569,8 +570,6 @@ struct RecoContainer {
 
   // TOF
   const o2::dataformats::MatchInfoTOF& getTOFMatch(GTrackID id) const { return getObject<o2::dataformats::MatchInfoTOF>(id, MATCHES); } // generic match getter
-  // HMPID
-  const o2::dataformats::MatchInfoHMP& getHMPMatch(GTrackID id) const { return getObject<o2::dataformats::MatchInfoHMP>(id, MATCHES); } // generic match getter
   // TPC-TOF, made of refitted TPC track and separate matchInfo
   const o2::dataformats::TrackTPCTOF& getTPCTOFTrack(GTrackID gid) const { return getTrack<o2::dataformats::TrackTPCTOF>(gid); }
   const o2::dataformats::MatchInfoTOF& getTPCTOFMatch(GTrackID id) const { return getObject<o2::dataformats::MatchInfoTOF>(id, MATCHES); }
@@ -591,13 +590,18 @@ struct RecoContainer {
   auto getITSTPCTRDTOFMatches() const { return getSpan<o2::dataformats::MatchInfoTOF>(GTrackID::ITSTPCTRDTOF, MATCHES); }
   auto getITSTPCTRDTOFMatchesMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::ITSTPCTRDTOF, MCLABELS); }
 
+  // HMPID matches
+  auto getHMPMatchTriggers() const { return getSpan<o2::hmpid::Trigger>(GTrackID::HMP, TRACKREFS); }
+  auto getHMPMatches() const { return getSpan<o2::dataformats::MatchInfoHMP>(GTrackID::HMP, MATCHES); }
+  auto getHMPPhotsClusterCharges() const { return getSpan<float>(GTrackID::HMP, PATTERNS); }
+
   // TOF clusters
   auto getTOFClusters() const { return getSpan<o2::tof::Cluster>(GTrackID::TOF, CLUSTERS); }
   auto getTOFClustersMCLabels() const { return mcTOFClusters.get(); }
 
   // HMPID clusters
+  auto getHMPClusterTriggers() const { return getSpan<o2::hmpid::Trigger>(GTrackID::HMP, CLUSREFS); }
   auto getHMPClusters() const { return getSpan<o2::hmpid::Cluster>(GTrackID::HMP, CLUSTERS); }
-  auto getHMPTriggers() const { return getSpan<o2::hmpid::Trigger>(GTrackID::HMP, CLUSREFS); }
   auto getHMPClustersMCLabels() const { return mcHMPClusters.get(); }
 
   // FT0

@@ -269,6 +269,7 @@ void DataRequest::requestMCHClusters(bool mc)
 void DataRequest::requestHMPClusters(bool mc)
 {
   addInput({"hmpidcluster", "HMP", "CLUSTERS", 0, Lifetime::Timeframe});
+  addInput({"hmpidtriggers", "HMP", "CLUSREFS", 0, Lifetime::Timeframe});
   if (mc) {
     addInput({"hmpidclusterlabel", "HMP", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
   }
@@ -914,7 +915,9 @@ void RecoContainer::addTOFMatchesITSTPCTRD(ProcessingContext& pc, bool mc)
 //__________________________________________________________
 void RecoContainer::addHMPMatches(ProcessingContext& pc, bool mc)
 {
-  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoHMP>>("matchHMP"), MATCHES); //  HMPID match info, no real tracks
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoHMP>>("matchHMP"), MATCHES);           //  HMPID match info, no real tracks
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::hmpid::Trigger>>("matchTriggerHMP"), TRACKREFS); //  HMPID triggers
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<float>>("matchPhotsCharge"), PATTERNS);              //  HMPID photon cluster charges
   if (mc) {
     commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsHMP_GLO_MCTR"), MCLABELS);
   }
@@ -967,12 +970,12 @@ void RecoContainer::addTOFClusters(ProcessingContext& pc, bool mc)
 //__________________________________________________________
 void RecoContainer::addHMPClusters(ProcessingContext& pc, bool mc)
 {
-  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::tof::Cluster>>("hmpidcluster"), CLUSTERS);
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::hmpid::Cluster>>("hmpidcluster"), CLUSTERS);
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::hmpid::Trigger>>("hmpidtriggers"), CLUSREFS);
   if (mc) {
     mcHMPClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("hmpidclusterlabel");
   }
 }
-
 //__________________________________________________________
 void RecoContainer::addMCHClusters(ProcessingContext& pc, bool mc)
 {
