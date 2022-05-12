@@ -97,6 +97,7 @@ class VertexerTraits
   virtual void computeTracklets();
   virtual void computeTrackletMatching();
   virtual void computeVertices();
+  virtual void adoptTimeFrame(TimeFrame* tf);
   // virtual void computeHistVertices();
 
   void updateVertexingParameters(const VertexingParameters& vrtPar);
@@ -107,7 +108,7 @@ class VertexerTraits
   std::vector<lightVertex> getVertices() const { return mVertices; }
 
   // utils
-  virtual void adoptTimeFrame(TimeFrame* tf);
+
   void setIsGPU(const unsigned char isgpu) { mIsGPU = isgpu; };
   unsigned char getIsGPU() const { return mIsGPU; };
   void dumpVertexerTraits();

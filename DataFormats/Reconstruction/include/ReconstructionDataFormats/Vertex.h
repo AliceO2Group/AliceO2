@@ -42,7 +42,7 @@ class VertexBase
   static constexpr int kNCov = 6;
   GPUhdDefault() VertexBase() = default;
   GPUhdDefault() ~VertexBase() = default;
-  GPUd() VertexBase(const math_utils::Point3D<float>& pos, const gpu::gpustd::array<float, kNCov>& cov) : mPos(pos), mCov(cov)
+  GPUhd() VertexBase(const math_utils::Point3D<float>& pos, const gpu::gpustd::array<float, kNCov>& cov) : mPos(pos), mCov(cov)
   {
   }
 
@@ -121,7 +121,7 @@ class Vertex : public VertexBase
 
   GPUhdDefault() Vertex() = default;
   GPUhdDefault() ~Vertex() = default;
-  GPUd() Vertex(const math_utils::Point3D<float>& pos, const gpu::gpustd::array<float, kNCov>& cov, ushort nCont, float chi2)
+  GPUhd() Vertex(const math_utils::Point3D<float>& pos, const gpu::gpustd::array<float, kNCov>& cov, ushort nCont, float chi2)
     : VertexBase(pos, cov), mChi2(chi2), mNContributors(nCont)
   {
   }
