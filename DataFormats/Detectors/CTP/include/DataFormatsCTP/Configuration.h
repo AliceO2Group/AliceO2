@@ -162,8 +162,8 @@ class CTPRunManager
   void init();
   int startRun(std::string& cfg);
   int stopRun(uint32_t irun);
-  int addScalers(uint32_t irun);
-  int processMessage(std::string& message);
+  int addScalers(uint32_t irun, std::time_t time);
+  int processMessage(std::string& topic,std::string& message);
   void printActiveRuns() const;
   int saveRunToCCDB(int i);
   int getConfigFromCCDB();
@@ -178,6 +178,7 @@ class CTPRunManager
   std::array<uint32_t, CTPRunScalers::NCOUNTERS> mCounters;
   std::map<std::string, uint32_t> mScalerName2Position;
   CTPActiveRun* mRunInStart = nullptr;
+  int mEOX = 0; // redundancy check
   ClassDefNV(CTPRunManager, 1);
 };
 } // namespace ctp

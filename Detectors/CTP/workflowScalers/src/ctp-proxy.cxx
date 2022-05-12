@@ -57,7 +57,8 @@ InjectorFunction dcs2dpl()
     size_t dataSize = parts.At(1)->GetSize();
     std::string messageData{static_cast<const char*>(parts.At(1)->GetData()), parts.At(1)->GetSize()};
     LOG(info) << "received message " << messageHeader << " of size " << dataSize; // << " Payload:" << messageData;
-    if ((messageHeader.find("ctpconfig") != std::string::npos) && (dataSize < 1000)) {
+    if ((messageHeader.find("ctpconfig") != std::string::npos)) {
+      // Not used
       LOG(info) << "CTP config received";
       runMgr->startRun(messageData);
       // runMgr->processMessage(messageData);
@@ -69,7 +70,7 @@ InjectorFunction dcs2dpl()
         LOG(error) << "No output channel found for OutputSpec " << outsp;
         return;
       }
-      runMgr->processMessage(messageData);
+      runMgr->processMessage(messageHeader,messageData);
       hdrF.tfCounter = *timesliceId; // this also
       hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
       hdrF.splitPayloadParts = 1;
