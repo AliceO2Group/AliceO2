@@ -1145,6 +1145,12 @@ O2_ZDC_DIGIRECO_FLT DigiReco::getPoint(int itdc, int ibeg, int iend, int i)
 
 void DigiReco::setPoint(int itdc, int ibeg, int iend, int i)
 {
+  // This function needs to be used only if mFullInterpolation is true otherwise the
+  // vectors are not allocated
+  if(!mFullInterpolation){
+    LOG(FATAL) << __func__ << " call with mFullInterpolation = " << mFullInterpolation;
+    return;
+  }
   constexpr int nsbun = TSN * NTimeBinsPerBC; // Total number of interpolated points per bunch crossing
   if (i >= mNtot || i < 0) {
     LOG(fatal) << "Error addressing TDC itdc=" << itdc << " i=" << i << " mNtot=" << mNtot;
@@ -1216,7 +1222,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   // TODO: extend full interpolation to all channels
   if (mFullInterpolation) {
     for (int ibun = ibeg; ibun <= iend; ibun++) {
-      mReco[ibun].interp[itdc] = true;
+      mReco[ibun].allocate(itdc);
     }
     for (int i = 0; i < mNtot; i++) {
       setPoint(itdc, ibeg, iend, i);

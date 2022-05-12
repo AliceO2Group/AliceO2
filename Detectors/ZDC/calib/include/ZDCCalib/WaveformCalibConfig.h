@@ -34,11 +34,13 @@ struct WaveformCalibConfig {
   static constexpr int NBA = 6;
   static constexpr int NBT = NBB + NBA + 1;
 
-  double cutLow[NH];
-  double cutHigh[NH];
+  double cutLow[NH];      /// Amplitude cut low
+  double cutHigh[NH];     /// Amplitude cut high
+  double cutTimeLow[NH];  /// TDC cut low
+  double cutTimeHigh[NH]; /// TDC cut high
   double min_e[NH] = {0.};
   std::string desc = "";
-  int ibeg = - NBB;
+  int ibeg = -NBB;
   int iend = NBA;
   int nbun = iend - ibeg + 1;
 

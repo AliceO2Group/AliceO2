@@ -37,6 +37,7 @@ int WaveformCalibEPN::init()
   mNBin = cfg->nbun * TSN;
   mFirst = cfg->ibeg;
   mLast = cfg->iend;
+  mData.setN(cfg->nbun);
   for (int ih = 0; ih < NH; ih++) {
     mH[ih] = new o2::dataformats::FlatHisto1D<float>(mNBin, 0, mNBin);
   }
@@ -67,7 +68,13 @@ int WaveformCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
         if ((mask & (0x1 << itdc)) != 0) {
           // Check which channels have consecutive data
           int isig = TDCSignal[itdc];
-          LOG(info) << "check " << isig << " " << mQueue.hasData(isig, wave);
+          int ipos = mQueue.hasData(isig, wave);
+          LOG(info) << "check " << isig << " " << ipos;
+          if (ipos >= 0) {
+            // Add to histogram
+            int ibun = ipos / NIS;
+            int isam = ipos % NIS;
+          }
         }
       }
     }

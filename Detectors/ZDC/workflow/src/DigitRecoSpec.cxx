@@ -198,13 +198,12 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       // Add waveform information
       if (fullinter) {
         // For the moment only TDC channels are interpolated
-        if (reca.interp[it]) {
+        if (reca.inter[it].size()==NIS) {
           if (toAddBC) {
             recEvent.addBC(reca);
             toAddBC = false;
           }
           auto isig = TDCSignal[it];
-          LOG(INFO) << reca.ir.orbit << "." << reca.ir.bc << " isig = " << isig;
           recEvent.addWaveform(isig, reca.inter[it]);
         }
       }

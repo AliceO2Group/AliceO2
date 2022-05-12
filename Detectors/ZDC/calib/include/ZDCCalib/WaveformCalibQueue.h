@@ -19,6 +19,7 @@
 #include "DataFormatsZDC/OrbitData.h"
 #include "DataFormatsZDC/RecEvent.h"
 #include "DataFormatsZDC/RecEventFlat.h"
+#include "DataFormatsZDC/WaveformCalibData.h"
 #include "ZDCCalib/WaveformCalibConfig.h"
 #include <deque>
 
@@ -42,6 +43,8 @@ struct WaveformCalibQueue {
   int mLast = 0;
   int mPk = 0;
   int mN = 1;
+  int mPPos = 0;
+  int mNP = 0;
   void configure(int ifirst, int ilast)
   {
     if (ifirst > 0 || ilast < 0 || ilast < ifirst) {
@@ -51,6 +54,8 @@ struct WaveformCalibQueue {
     mLast = ilast;
     mN = ilast - ifirst + 1;
     mPk = -mFirst;
+    mPPos = mPk * NIS + NIS/2;
+    mNP = mN * NIS;
   }
   std::deque<o2::InteractionRecord> mIR;
   std::deque<int32_t> mEntry;
@@ -95,6 +100,7 @@ struct WaveformCalibQueue {
   uint32_t append(RecEventFlat& ev);
   void appendEv(RecEventFlat& ev);
   int hasData(int isig, const gsl::span<const o2::zdc::ZDCWaveform>& wave);
+  int addData(int isig, const gsl::span<const o2::zdc::ZDCWaveform>& wave, WaveformCalibData& data);
 };
 
 } // namespace zdc

@@ -64,6 +64,7 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   std::array<bool, NChannels> isBeg{};           //! Beginning of sequence
   std::array<bool, NChannels> isEnd{};           //! End of sequence
   BCRecData mCurB;                               //! Current BC
+  std::vector<float> inter[NTDCChannels];        //! Interpolated samples
 
   // Reconstruction messages
   std::array<bool, NChannels> genericE{};       ///  0 Generic error
@@ -100,6 +101,15 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
 
   int next();
   int at(int ientry);
+
+  void allocate(int itdc){
+    if(inter[itdc].size()!=NIS){
+      inter[itdc].resize(NIS);
+      for(int iis=0; iis<NIS; iis++){
+        inter[itdc][iis]=0;
+      }
+    }
+  }
 
   BCRecData& getCurB(){
     return mCurB;

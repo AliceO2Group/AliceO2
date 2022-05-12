@@ -43,8 +43,6 @@ struct RecEventAux : public RecEventFlat {
   uint32_t ref[NChannels];                                   /// Cache of references
   std::array<bool, NChannels> err;                           /// Generic error condition
   std::array<int16_t, NTimeBinsPerBC> data[NChannels] = {0}; /// Samples (raw or filtered)
-  float inter[NTDCChannels][NTimeBinsPerBC * TSN] = {0};     /// Interpolated samples
-  std::array<bool, NTDCChannels> interp;                     /// Pattern of interpolated data
 
   // Functions
   RecEventAux()

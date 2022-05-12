@@ -28,14 +28,30 @@ namespace zdc
 
 struct WaveformCalibData {
   static constexpr int NH = WaveformCalibConfig::NH;
+  static constexpr int NW = WaveformCalibConfig::NBT * TSN;
   uint64_t mCTimeBeg = 0; /// Time of processed time frame
   uint64_t mCTimeEnd = 0; /// Time of processed time frame
-  std::array<float, WaveformCalibConfig::NBT * TSN> mWave[NH];
+  int mN = 0;             /// Number of bunches in waveform
+  std::array<int, NH> mFirstValid;
+  std::array<int, NH> mLastValid;
+  std::array<float, NW> mWave[NH] = {0};
   uint32_t mEntries[NH] = {0};
   WaveformCalibData& operator+=(const WaveformCalibData& other);
   int getEntries(int ih) const;
   void print() const;
   void setCreationTime(uint64_t ctime);
+  void setN(int n)
+  {
+    if (n >= 0 && n < WaveformCalibConfig::NBT) {
+      mN = n;
+      for (int ih = 0; ih < NH; ih++) {
+        mFirstValid[ih] = 0;
+        mLastValid[ih] = mH * NTimeBinsPerBC * TSN - 1;
+      }
+    } else {
+      LOG(fatal) << "WaveformCalibData " << __func__ << " wrong stored b.c. setting " << n << " not in range [0:" << WaveformCalibConfig::NBT << "]";
+    }
+  }
   ClassDefNV(WaveformCalibData, 1);
 };
 

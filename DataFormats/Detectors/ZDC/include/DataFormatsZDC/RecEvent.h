@@ -110,13 +110,17 @@ struct RecEvent {
   uint32_t addInfos(const RecEventAux& reca);
 
   // Add waveform
-  inline void addWaveform(uint8_t ch, float* wave)
+  inline void addWaveform(uint8_t ch, std::vector<float>& wave)
   {
 #ifdef O2_ZDC_DEBUG
     printf("ch:%-2u [%s] Waveform\n", ch, ChannelNames[ch].data());
 #endif
-    mWaveform.emplace_back(ch, wave);
-    mRecBC.back().addWaveform();
+    if (wave.size() == NIS) {
+      mWaveform.emplace_back(ch, wave.data());
+      mRecBC.back().addWaveform();
+    } else {
+      LOG(error) << __func__ << ": ch " << int(ch) << " inconsistent waveform size " << wave.size();
+    }
   }
 
   void print() const;

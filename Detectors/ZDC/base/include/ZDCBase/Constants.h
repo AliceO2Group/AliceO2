@@ -93,6 +93,7 @@ constexpr int TSN = 200;                  // Number of interpolated points betwe
 constexpr int TSNH = TSN / 2;             // Half of TSN
 constexpr int NTS = 2 * TSL * TSN + 1;    // Tapered sinc function array size
 constexpr static float FTDCAmp = 1. / 8.; // Multiplication factor in conversion from integer
+constexpr int NIS = NTimeBinsPerBC * TSN; // Number of interpolated samples
 // With a reference clock of 40 MHz exact this FTDCVal would have been
 // constexpr static float FTDCVal = 1. / TSNS;
 // with constexpr int TSNS = 96;

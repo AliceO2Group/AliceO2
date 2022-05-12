@@ -127,7 +127,7 @@ int WaveformCalibQueue::hasData(int isig, const gsl::span<const o2::zdc::ZDCWave
   float min = std::numeric_limits<float>::infinity();
   for (int ib = 0; ib < mN; ib++) {
     int ifound = false;
-    LOG(info) << "mNW[" << ib<< "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
+    LOG(info) << "mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
     for (int iw = 0; iw < mNW[ib]; iw++) {
       auto& mywave = wave[iw + mFirstW[ib]];
       if (mywave.ch() == isig) {
@@ -150,6 +150,64 @@ int WaveformCalibQueue::hasData(int isig, const gsl::span<const o2::zdc::ZDCWave
     return -1;
   } else {
     int ipos = NTimeBinsPerBC * TSN * ipkb + ipk;
+    LOG(info) << "isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min;
+    return ipos;
+  }
+}
+
+int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWaveform>& wave, WaveformCalibData& data)
+{
+  int np = NTimeBinsPerBC * TSN;
+  int ipk = -1;
+  int ipkb = -1;
+  float min = std::numeric_limits<float>::infinity();
+  for (int ib = 0; ib < mN; ib++) {
+    int ifound = false;
+    LOG(info) << "mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
+    for (int iw = 0; iw < mNW[ib]; iw++) {
+      auto& mywave = wave[iw + mFirstW[ib]];
+      if (mywave.ch() == isig) {
+        ifound = true;
+        for (int ip = 0; ip < np; ip++) {
+          if (mywave.inter[ip] < min) {
+            ipkb = ib;
+            ipk = ip;
+            min = mywave.inter[ip];
+          }
+        }
+      }
+    }
+    // Need to have consecutive data for all bunches
+    if (!ifound) {
+      return -1;
+    }
+  }
+  if (ipkb != mPk) {
+    return -1;
+  } else {
+    // For the moment only TDC channels are interpolated
+    int itdc = SignalTDC[isig];
+    int ppos = NTimeBinsPerBC * TSN * ipkb + ipk;
+    int pset = NTimeBinsPerBC * TSN * ipkb + NTimeBinsPerBC / 2 * TSN;
+    int ipos = pset - ppos;
+    if(ipos > 0){
+      LOG(error) << "Cannot add waveform: missing data at the beginning";
+      return -1;
+    }
+    // We know that points are consecutive
+    for (int ib = 0; ib < mN; ib++) {
+      for (int iw = 0; iw < mNW[ib]; iw++) {
+        auto& mywave = wave[iw + mFirstW[ib]];
+        if (mywave.ch() == isig) {
+          for (int ip = 0; ip < np; ip++) {
+            if (ipos >= 0 && ipos < mNP) {
+              data.mWave[itdc][ipos] += mywave.inter[ip];
+            }
+            ipos++;
+          }
+        }
+      }
+    }
     LOG(info) << "isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min;
     return ipos;
   }
