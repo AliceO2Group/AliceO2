@@ -766,12 +766,16 @@ bool CcdbApi::checkAlienToken() const
   LOG(debug) << "On macOS we simply rely on TGrid::Connect(\"alien\").";
   return true;
 #endif
-  // a somewhat weird construction to programmatically find out if we
-  // have a GRID token; Can be replaced with something more elegant once
-  // alien-token-info does not ask for passwords interactively
+  if (getenv("ALICEO2_CCDB_NOTOKENCHECK")) {
+    // will be the default soon
+    return true;
+  }
   if (getenv("JALIEN_TOKEN_CERT")) {
     return true;
   }
+  // a somewhat weird construction to programmatically find out if we
+  // have a GRID token; Can be replaced with something more elegant once
+  // alien-token-info does not ask for passwords interactively
   auto returncode = system("alien-token-info > /dev/null 2> /dev/null");
   if (returncode == -1) {
     LOG(error) << "system(\"alien-token-info\") call failed with internal fork/wait error";
