@@ -31,7 +31,6 @@ class FileWatcher
   std::deque<std::string> mFiles; ///< sorted file list with guards at the beginning and end
   std::string nextItem(const std::string& item) const;
   std::string prevItem(const std::string& item) const;
-  static std::deque<std::string> load(const std::string path);
   std::string mDataFolder;  ///< folder being observed
   std::string mCurrentFile; ///< "current" file name
   bool currentFileExist();
