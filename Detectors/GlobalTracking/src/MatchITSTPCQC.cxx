@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 
 #include "GlobalTracking/MatchITSTPCQC.h"
-#include "GlobalTracking/TrackCuts.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "Framework/InputSpec.h"
@@ -20,6 +19,7 @@
 #include "SimulationDataFormat/MCUtils.h"
 #include <algorithm>
 #include "TGraphAsymmErrors.h"
+#include "GlobalTracking/TrackCuts.h"
 
 using namespace o2::globaltracking;
 using namespace o2::mcutils;
@@ -177,13 +177,13 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
   TrackCuts cuts;
   for (auto itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
     auto const& trkTpc = mTPCTracks[itrk];
-    if (selectTrack(trkTpc)) {
-      isTPCTrackSelectedEntry[itrk] = true;
-    }
-    // o2::dataformats::GlobalTrackID id(itrk, GID::TPC);
-    //  if (cuts.isSelected(id, mRecoCont)) {
+    // if (selectTrack(trkTpc)) {
     //   isTPCTrackSelectedEntry[itrk] = true;
     // }
+    o2::dataformats::GlobalTrackID id(itrk, GID::TPC);
+    if (cuts.isSelected(id, mRecoCont)) {
+      isTPCTrackSelectedEntry[itrk] = true;
+    }
   }
 
   // numerator + eta, chi2...

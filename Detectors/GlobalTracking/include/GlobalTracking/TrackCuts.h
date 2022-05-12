@@ -61,11 +61,6 @@ class TrackCuts
     if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
       isBarrelTrack = true;
       const auto& tpcTrk = data.getTPCTrack(contributorsGID[GID::TPC]);
-      // uint8_t tpcNClsShared, tpcNClsFound, tpcNClsCrossed, tpcNClsFindable, tpcChi2NCl;
-      // tpcNClsFindable = tpcTrk.getNClusters();
-      // tpcChi2NCl = tpcTrk.getNClusters() ? tpcTrk.getChi2() / tpcTrk.getNClusters() : 0;
-      // o2::TrackMethods::countTPCClusters(tpcTrk, data.getTPCTracksClusterRefs(), data.clusterShMapTPC, data.getTPCClusters(), tpcNClsShared, tpcNClsFound, tpcNClsCrossed);
-      // double tpcCrossedRowsOverFindableCls = tpcNClsCrossed / tpcNClsFindable;
       math_utils::Point3D<float> v{};
       std::array<float, 2> dca;
       if (tpcTrk.getPt() < mPtTPCCut ||
@@ -76,29 +71,13 @@ class TrackCuts
         return false;
       }
     }
-    // if (contributorsGID[GIndex::Source::TRD].isIndexSet()) {
-    //   const auto& trdTrk = data.getTrack<o2::trd::TrackTRD>(contributorsGID[GID::TRD]);
-    // }
-    // if (contributorsGID[GIndex::Source::TOF].isIndexSet()) {
-    //   const auto& tofMatch = data.getTOFMatch(trackIndex);
-    // }
-    // if (contributorsGID[GIndex::Source::TPCTRDTOF].isIndexSet()) {
-    //   trk = data.getTrack<o2::track::TrackParCov>(data.getTPCTRDTOFMatches()[trackIndex].getTrackRef());
-    // }
-    // if (contributorsGID[GIndex::Source::ITSTPCTRDTOF].isIndexSet()) {
-    //   trk = data.getTrack<o2::track::TrackParCov>(data.getITSTPCTRDTOFMatches()[trackIndex].getTrackRef()); // ITSTPCTRDTOF is ITSTPCTRD + TOF cluster
-    // }
-    // if (contributorsGID[GIndex::Source::ITSTPCTOF].isIndexSet()) {
-    //   trk = data.getTrack<o2::track::TrackParCov>(data.getTOFMatch(trackIndex).getTrackRef()); // ITSTPCTOF is ITSTPC + TOF cluster
-    // }
     if (isBarrelTrack) { // track selection for barrel tracks
       trk = data.getTrackParam(trackIndex);
-      if (trk.getPt() >= mMinPt && trk.getPt() <= mMaxPt && trk.getEta() >= mMinEta && trk.getEta() <= mMaxEta) {
-        return true;
-      } else {
+      if (trk.getPt() < mMinPt && trk.getPt() > mMaxPt && trk.getEta() < mMinEta && trk.getEta() > mMaxEta) {
         return false;
       }
     }
+    return true;
   }
 
  private:
