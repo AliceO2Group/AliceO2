@@ -126,6 +126,11 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   }
 
   if (save) {
+    helper.mEvent.setClMask(this->mClMask.to_ulong());
+    helper.mEvent.setTrkMask(this->mTrkMask.to_ulong());
+    helper.mEvent.setRunNumber(dh->runNumber);
+    helper.mEvent.setTfCounter(dh->tfCounter);
+    helper.mEvent.setFirstTForbit(dh->firstTForbit);
     helper.save(this->mJsonPath, this->mNumberOfFiles, this->mTrkMask, this->mClMask, this->mWorkflowVersion, dh->runNumber, dph->creation);
   }
 

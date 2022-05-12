@@ -13,6 +13,7 @@
 /// \author julian.myrcha@cern.ch
 
 #include <EveWorkflow/EveWorkflowHelper.h>
+#include "EventVisualisationDataConverter/VisualisationEventSerializer.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "EveWorkflow/FileProducer.h"
 #include "DataFormatsTRD/TrackTRD.h"
@@ -184,7 +185,7 @@ void EveWorkflowHelper::save(const std::string& jsonPath, int numberOfFiles,
   mEvent.setCollisionTime(asciiCreationTime);
 
   FileProducer producer(jsonPath, numberOfFiles);
-  mEvent.toFile(producer.newFileName());
+  VisualisationEventSerializer::getInstance()->toFile(mEvent, producer.newFileName());
 }
 
 std::vector<PNT> EveWorkflowHelper::getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep, float minZ, float maxZ)
