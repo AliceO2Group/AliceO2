@@ -1525,6 +1525,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     collisionID++;
   }
 
+  mGIDToTableFwdID.clear(); // reset the tables to be used by 'fillTrackTablesPerCollision'
+  mGIDToTableMFTID.clear();
+
   // filling unassigned tracks first
   // so that all unassigned tracks are stored in the beginning of the table together
   auto& trackRef = primVer2TRefs.back(); // references to unassigned tracks are at the end
