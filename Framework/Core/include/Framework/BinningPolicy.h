@@ -44,19 +44,21 @@ typename C::type getSingleRowPersistentData(arrow::Table* table, uint64_t ci, ui
 }
 
 template <typename T, typename C>
-typename C::type getSingleRowDynamicData(typename T::iterator const& rowIterator, uint64_t globalIndex)
+typename C::type getSingleRowDynamicData(T& rowIterator, uint64_t globalIndex)
 {
+  rowIterator.setCursor(globalIndex);
   return rowIterator.template getDynamicColumn<C>();
 }
 
 template <typename T, typename C>
-typename C::type getSingleRowIndexData(typename T::iterator const& rowIterator, uint64_t globalIndex)
+typename C::type getSingleRowIndexData(T& rowIterator, uint64_t globalIndex)
 {
+  rowIterator.setCursor(globalIndex);
   return rowIterator.template getId<C>();
 }
 
 template <typename T, typename C>
-typename C::type getSingleRowData(arrow::Table* table, typename T::iterator const& rowIterator, uint64_t ci, uint64_t ai, uint64_t globalIndex)
+typename C::type getSingleRowData(arrow::Table* table, T& rowIterator, uint64_t ci, uint64_t ai, uint64_t globalIndex)
 {
   using decayed = std::decay_t<C>;
   if constexpr (decayed::persistent::value) {
@@ -69,22 +71,9 @@ typename C::type getSingleRowData(arrow::Table* table, typename T::iterator cons
 }
 
 template <typename T, typename... Cs>
-std::tuple<typename Cs::type...> getRowData(arrow::Table* table, typename T::iterator const& rowIterator, uint64_t ci, uint64_t ai, uint64_t globalIndex)
+std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, uint64_t ci, uint64_t ai, uint64_t globalIndex)
 {
   return std::make_tuple(getSingleRowData<T, Cs>(table, rowIterator, ci, ai, globalIndex)...);
-}
-
-template <typename... Cs>
-std::tuple<typename Cs::type...> getRowPersistentData(arrow::Table* table, pack<Cs...>, uint64_t ci, uint64_t ai)
-{
-  static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
-  return std::make_tuple(std::static_pointer_cast<o2::soa::arrow_array_for_t<typename Cs::type>>(o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci))->raw_values()[ai]...);
-}
-
-template <typename T, typename... Cs>
-std::tuple<typename Cs::type...> getRowDynamicData(typename T::iterator const& rowIterator, pack<Cs...>, uint64_t globalIndex)
-{
-  return std::make_tuple(rowIterator.template getDynamicColumn<Cs>()...);
 }
 } // namespace binning_helpers
 

@@ -179,7 +179,6 @@ std::vector<BinningIndex> doGroupTable(const T& table, const BP<Cs...>& binningP
     }
   }
 
-  uint64_t globalIndex = 0;
   for (uint64_t ci = 0; ci < chunksCount; ++ci) {
     auto chunks = o2::framework::binning_helpers::getChunks(arrowTable, persistentColumns, ci);
     auto chunkLength = std::get<0>(chunks)->length();
@@ -199,12 +198,11 @@ std::vector<BinningIndex> doGroupTable(const T& table, const BP<Cs...>& binningP
     uint64_t ai = 0;
     while (ai < chunkLength) {
       if constexpr (soa::is_soa_filtered_t<T>::value) {
-        globalIndex += selectedRows[ind] - selInd;
         ai += selectedRows[ind] - selInd;
         selInd = selectedRows[ind];
       }
 
-      auto rowData = o2::framework::binning_helpers::getRowData<T, Cs...>(arrowTable, rowIterator, ci, ai, globalIndex);
+      auto rowData = o2::framework::binning_helpers::getRowData<decltype(rowIterator), Cs...>(arrowTable, rowIterator, ci, ai, ind);
 
       int val = binningPolicy.getBin(rowData);
       if (val != outsider) {
@@ -217,7 +215,6 @@ std::vector<BinningIndex> doGroupTable(const T& table, const BP<Cs...>& binningP
           break;
         }
       } else {
-        globalIndex++;
         ai++;
       }
     }
