@@ -76,7 +76,6 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
 
   mOutputCells.reserve(digits.size()); // most of digits will be copied
   int icell = 0;
-  int labelIndex = 0;
   for (const auto& tr : digitsTR) {
     int iFirstDigit = tr.getFirstEntry();
     int iLastDigit = iFirstDigit + tr.getNumberOfObjects();

@@ -47,7 +47,7 @@ void RawBuffer::readFromMemoryBuffer(const gsl::span<const char> rawmemory)
 {
   flush();
   auto address = reinterpret_cast<const uint32_t*>(rawmemory.data());
-  for (auto iword = 0; iword < static_cast<uint32_t>(rawmemory.size() / sizeof(uint32_t)); iword++) {
+  for (unsigned int iword = 0; iword < static_cast<uint32_t>(rawmemory.size() / sizeof(uint32_t)); iword++) {
     // Run2 code, probably not needed for run3
     // if ((address[iword] & 0xFFF) == 0x082) {
     // Termination word
