@@ -16,3 +16,11 @@ If you want to run the calibration from a local file with residuals, trdangreshi
     o2-calibration-trd-vdrift-exb -b --enable-root-input --calib-vdexb-calibration '--tf-per-slot 1 --min-entries 50000'
 
 ## DCS data points
+
+To process the DCS data points for the TRD the list of aliases as for example "trd_gaschromatographXe" has to be available in the CCDB. This can be achieved with the macro `Detectors/TRD/calibration/macros/makeTRDCCDBEntryForDCS.C`. The full list of aliases is available in jira (https://alice.its.cern.ch/jira/browse/TRD-109).
+With the list of aliases defined one can run the `o2-calibration-trd-dcs-sim-workflow` which provides DCS DPs for all possible aliases and sends them on via DPL. Attaching the `o2-calibration-trd-dcs-workflow` will include the processing of these data points. For testing purposes this is sufficient. In case also the CCDB should be populated the `o2-calibration-ccdb-populator-workflow` has to be appended. Via the `--ccdb-path` flag this can also be configured to write to a local CCDB for testing.
+
+So, in order to test the workflow independent of the actual CCDB using a local instance one can do:
+
+    root $O2_ROOT/share/macro/makeTRDCCDBEntryForDCS.C+
+    o2-calibration-trd-dcs-sim-workflow -b --delta-fraction 0.5 --max-timeframes 10 | o2-calibration-trd-dcs-workflow -b --ccdb-path http://localhost:8080 --use-ccdb-to-configure --processor-verbosity 1 | o2-calibration-ccdb-populator-workflow -b --ccdb-path http://localhost:8080
