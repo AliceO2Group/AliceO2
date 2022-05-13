@@ -277,9 +277,9 @@ void EventManagerFrame::DoScreenshot()
   }
 
   bool logo = true;
-  if (logo->IsValid()) {
+  if (logo) {
     TASImage* aliceLogo = new TASImage("Alice.png");
-    if (aliceLogo) {
+    if (aliceLogo->IsValid()) {
       double ratio = 1434. / 1939.;
       aliceLogo->Scale(0.08 * width, 0.08 * width / ratio);
       image.Merge(aliceLogo, "alphablend", 20, 20);
