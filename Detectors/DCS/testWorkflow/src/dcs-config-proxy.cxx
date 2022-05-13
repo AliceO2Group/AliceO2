@@ -69,6 +69,10 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
   auto timesliceId = std::make_shared<size_t>(0);
 
   return [acknowledge, timesliceId](TimingInfo&, FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
+    if (parts.Size() == 0) { // received at ^c, ignore
+      LOG(info) << "ignoring empty message";
+      return;
+    }
     // make sure just 2 messages received
     if (parts.Size() != 2) {
       LOG(error) << "received " << parts.Size() << " instead of 2 expected";
