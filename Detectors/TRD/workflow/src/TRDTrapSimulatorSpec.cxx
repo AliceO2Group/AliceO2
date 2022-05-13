@@ -215,7 +215,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(mNumThreads)
 #endif
-  for (int iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
+  for (size_t iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
     int currHCId = -1;
     std::array<TrapSimulator, NMCMHCMAX> trapSimulators{}; //the up to 64 trap simulators for a single half chamber
     for (int iDigit = triggerRecords[iTrig].getFirstDigit(); iDigit < (triggerRecords[iTrig].getFirstDigit() + triggerRecords[iTrig].getNumberOfDigits()); ++iDigit) {
@@ -241,7 +241,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   auto parallelTime = std::chrono::high_resolution_clock::now() - timeParallelStart;
 
   // accumulate results and add MC labels
-  for (int iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
+  for (size_t iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
     if (mUseMC) {
       int currDigitIndex = 0; // counter for all digits which are associated to tracklets
       int trkltIdxStart = tracklets.size();

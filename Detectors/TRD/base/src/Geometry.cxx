@@ -2659,7 +2659,6 @@ void Geometry::addAlignableVolumes() const
   std::string symName;
 
   // in opposite to AliGeomManager, we use consecutive numbering of modules through whole TRD
-  int volid = -1;
 
   // The super modules
   // The symbolic names are: TRD/sm00 ... TRD/sm17
