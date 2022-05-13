@@ -366,7 +366,8 @@ void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::
           if (trackIndex.isAmbiguous() && mGIDToTableMFTID.find(trackIndex) != mGIDToTableMFTID.end()) {
             continue;
           }
-
+          
+          mGIDToTableMFTID.emplace(trackIndex, mIndexMFTID);
           mIndexTableMFT[trackIndex.getIndex()] = mIndexMFTID;
           mIndexMFTID++;
 
@@ -374,7 +375,8 @@ void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::
           if (trackIndex.isAmbiguous() && mGIDToTableFwdID.find(trackIndex) != mGIDToTableFwdID.end()) {
             continue;
           }
-
+          
+          mGIDToTableFwdID.emplace(trackIndex, mIndexFwdID);
           if (src == GIndex::Source::MCH) {
             mIndexTableFwd[trackIndex.getIndex()] = mIndexFwdID;
           }
