@@ -33,17 +33,28 @@ namespace gpu
 {
 __constant__ StaticTrackingParameters<7> kTrkPar;
 
-GPUg() void computeLayerTracklets(const int layerIndex,
-                                  const Cluster* clustersNextLayer,
-                                  const Cluster* clustersCurrentLayer,
-                                  const int sizeCurrentLClusters,
-                                  Tracklet* trackletsVector,
-                                  const float meanDeltaR)
+GPUg() void computeLayerTrackletsKernel(const int layerIndex,
+                                        const Cluster* clustersNextLayer,
+                                        const Cluster* clustersCurrentLayer,
+                                        unsigned char* usedClusters,
+                                        Tracklet* trackletsVector,
+                                        const int nVertices,
+                                        const int startSortedIndex,
+                                        const int sizeCurrentLClusters,
+                                        const float minR,
+                                        const float maxR,
+                                        const float meanDeltaR)
 {
   int clusterTrackletsNum = 0;
   for (int currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < sizeCurrentLClusters; currentClusterIndex += blockDim.x * gridDim.x) {
-    const Cluster currentCluster{clustersCurrentLayer[currentClusterIndex]};
-
+    const Cluster& currentCluster{clustersCurrentLayer[currentClusterIndex]};
+    const int currentSortedIndex{startSortedIndex + currentClusterIndex};
+    if (usedClusters[currentSortedIndex]) {
+      continue;
+    }
+    const float inverseR0{1.f / currentCluster.radius};
+    for (int iPrimaryVertex{0}; iPrimaryVertex < nVertices; iPrimaryVertex++) {
+    }
     // const float tanLambda{(currentCluster.zCoordinate - devStore.getPrimaryVertex().z) / currentCluster.radius};
     // const float zAtRmin{tanLambda * (devStore.getRmin(layerIndex + 1) - currentCluster.radius) + currentCluster.zCoordinate};
     // const float zAtRmax{tanLambda * (devStore.getRmax(layerIndex + 1) - currentCluster.radius) + currentCluster.zCoordinate};
@@ -164,9 +175,7 @@ GPUg() void computeLayerTracklets(const int layerIndex,
 //   const int currentTrackletIndex{static_cast<int>(blockDim.x * blockIdx.x + threadIdx.x)};
 //   if (currentTrackletIndex < tempTrackletArray.size()) {
 //     const int firstClusterIndex = tempTrackletArray[currentTrackletIndex].firstClusterIndex;
-//     const int offset = atomicAdd(&devStore.getTrackletsPerClusterTable()[layerIndex - 1][firstClusterIndex],
-//                                  -1) -
-//                        1;
+//     const int offset = atomicAdd(&devStore.getTrackletsPerClusterTable()[layerIndex - 1][firstClusterIndex], -1) - 1;
 //     const int startIndex = devStore.getTrackletsLookupTable()[layerIndex - 1][firstClusterIndex];
 //     memcpy(&devStore.getTracklets()[layerIndex][startIndex + offset],
 //            &tempTrackletArray[currentTrackletIndex], sizeof(Tracklet));
@@ -225,7 +234,6 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
   // const Vertex diamondVert({mTrkParams.Diamond[0], mTrkParams.Diamond[1], mTrkParams.Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
   // gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
   for (int rof0{0}; rof0 < mTimeFrameGPU->getNrof(); ++rof0) {
-    LOGP(info, "Processing rof {}", rof0);
     for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
       // gsl::span<const Vertex> primaryVertices = mTrkParams.UseDiamond ? diamondSpan : mTimeFrameGPU->getPrimaryVertices(rof0);// replace with GPU one
       int minRof = (rof0 >= mTrkParams.DeltaROF) ? rof0 - mTrkParams.DeltaROF : 0;
@@ -233,18 +241,24 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
       const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getNClustersLayer(rof0, iLayer))};
       const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rof0, iLayer))};
       const float meanDeltaR{mTrkParams.LayerRadii[iLayer + 1] - mTrkParams.LayerRadii[iLayer]};
-      if (iLayer == 0) {
+      if (!iLayer) {
         if (!mTimeFrameGPU->getClustersOnLayer(rof0, iLayer).size()) {
           LOGP(info, "Skipping ROF0: {}, no clusters found on layer {}", rof0, iLayer);
           continue;
         }
-        // /*, 0, streamArray[iLayer]*/
-        // gpu::computeLayerTracklets<<<blocksGrid, threadsPerBlock>>>(iLayer,
-        //                                                             mTimeFrameGPU->getDeviceClustersOnLayer(rof0, iLayer),
-        //                                                             mTimeFrameGPU->getDeviceClustersOnLayer(rof0, iLayer + 1),
-        //                                                             mTimeFrameGPU->getNClustersLayer(rof0, iLayer),
-        //                                                             mTimeFrameGPU->getDeviceTracklets(rof0, iLayer),
-        //                                                             meanDeltaR);
+        // Reset used tracklets
+        checkGPUError(cudaMemset(mTimeFrameGPU->getDeviceUsedClustersOnLayer(rof0, iLayer), false, sizeof(unsigned char) * mTimeFrameGPU->getNClustersLayer(rof0, iLayer)), __FILE__, __LINE__);
+        gpu::computeLayerTrackletsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer].get()>>>(iLayer,
+                                                                                                        mTimeFrameGPU->getDeviceClustersOnLayer(rof0, iLayer),
+                                                                                                        mTimeFrameGPU->getDeviceClustersOnLayer(rof0, iLayer + 1),
+                                                                                                        mTimeFrameGPU->getDeviceUsedClustersOnLayer(rof0, iLayer),
+                                                                                                        mTimeFrameGPU->getDeviceTracklets(rof0, iLayer),
+                                                                                                        mTimeFrameGPU->getConfig().maxVerticesCapacity,
+                                                                                                        mTimeFrameGPU->getSortedStartIndex(rof0, iLayer),
+                                                                                                        mTimeFrameGPU->getNClustersLayer(rof0, iLayer),
+                                                                                                        mTimeFrameGPU->getMinR(iLayer + 1),
+                                                                                                        mTimeFrameGPU->getMaxR(iLayer + 1),
+                                                                                                        meanDeltaR);
       } /*else {
         gpu::layerTrackletsKernel<<<blocksGrid, threadsPerBlock , 0, streamArray[iLayer]>>>(primaryVertexContext->getDeviceContext(),
                                                                                                 iLayer, primaryVertexContext->getTempTrackletArray()[iLayer - 1].getWeakCopy());

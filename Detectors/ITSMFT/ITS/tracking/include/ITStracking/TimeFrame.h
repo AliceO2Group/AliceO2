@@ -84,6 +84,7 @@ class TimeFrame
   bool empty() const;
 
   int getSortedIndex(int rof, int layer, int i) const;
+  int getSortedStartIndex(const int, const int) const;
   int getNrof() const;
 
   void resetBeamXY(const float x, const float y, const float w = 0);
@@ -258,6 +259,8 @@ inline int TimeFrame::getPrimaryVerticesNum(int rofID) const
 inline bool TimeFrame::empty() const { return getTotalClusters() == 0; }
 
 inline int TimeFrame::getSortedIndex(int rof, int layer, int index) const { return mROframesClusters[layer][rof] + index; }
+
+inline int TimeFrame::getSortedStartIndex(const int rof, const int layer) const { return mROframesClusters[layer][rof]; }
 
 inline int TimeFrame::getNrof() const { return mNrof; }
 
