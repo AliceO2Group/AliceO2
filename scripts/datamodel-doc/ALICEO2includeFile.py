@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+import os
 import numpy as np
 import re
 import ALICEO2dataModelTools as O2DMT
@@ -341,19 +342,20 @@ class datamodel:
       self.delimJoins = ""
       # update with values from initCard
       if initCard != None:
+        psep = os.path.sep
         self.initCard = initCard
         tmp = initCard.find("O2general/mainDir/O2local")
         if tmp != None:
-          self.O2path = tmp.text.strip()
+          self.O2path = tmp.text.strip().rstrip(psep)+psep
         tmp = initCard.find("O2general/mainDir/O2Physicslocal")
         if tmp != None:
-          self.O2Physicspath = tmp.text.strip()
+          self.O2Physicspath = tmp.text.strip().rstrip(psep)+psep
         tmp = initCard.find("O2general/mainDir/O2GitHub")
         if tmp != None:
-          self.O2href = tmp.text.strip()
+          self.O2href = tmp.text.strip().rstrip(psep)+psep
         tmp = initCard.find("O2general/mainDir/O2PhysicsGitHub")
         if tmp != None:
-          self.O2Physicshref = tmp.text.strip()
+          self.O2Physicshref = tmp.text.strip().rstrip(psep)+psep
         tmp = initCard.find("O2general/delimAO2D")
         if tmp != None:
           self.delimAO2D = tmp.text.strip()
