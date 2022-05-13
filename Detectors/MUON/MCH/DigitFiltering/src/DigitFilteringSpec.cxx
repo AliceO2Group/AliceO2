@@ -144,7 +144,6 @@ class DigitFilteringTask
   bool mSanityCheck;
   bool mUseMC;
   DigitFilter mIsGoodDigit;
-  std::string mTimeCalibSource;
   int32_t mTimeCalib{0};
 };
 
