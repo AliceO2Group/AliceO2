@@ -29,12 +29,6 @@ BOOST_AUTO_TEST_CASE(TRDPileupTool_test)
 {
   PileupTool tool;
 
-  auto fill_ones = [](std::array<float, constants::TIMEBINS>& signals) {
-    for (int tb = 0; tb < constants::TIMEBINS; ++tb) {
-      signals[tb] = 1;
-    }
-  };
-
   double triggerTime;
   std::vector<SignalArray> signalArrays(3);
   std::array<SignalContainer, constants::MAXCHAMBER> chamberSignals;

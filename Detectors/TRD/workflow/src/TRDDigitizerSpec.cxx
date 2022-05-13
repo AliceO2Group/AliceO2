@@ -94,7 +94,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     timer.Start();
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
-    for (int collID = 0; collID < irecords.size(); ++collID) {
+    for (size_t collID = 0; collID < irecords.size(); ++collID) {
       currentTime = irecords[collID];
       // Trigger logic implemented here
       bool isNewTrigger = true; // flag newly accepted readout trigger
