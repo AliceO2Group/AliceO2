@@ -70,6 +70,8 @@ class DataSource
   virtual void saveCurrentEvent(std::string /*targetFolder*/){};
   virtual int getRunNumber() const { return 0; }
   virtual void setRunNumber(int) {}
+  virtual int getFirstTForbit() const { return 0; }
+  virtual void setFirstTForbit(int) {}
   virtual std::string getCollisionTime() const { return "not specified"; }
   virtual void setCollisionTime(std::string) {}
 };
@@ -77,4 +79,4 @@ class DataSource
 } // namespace event_visualisation
 } // namespace o2
 
-#endif //ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCE_H
+#endif // ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCE_H
