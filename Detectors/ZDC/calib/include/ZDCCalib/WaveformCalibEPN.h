@@ -17,13 +17,11 @@
 #include <THnSparse.h>
 #include <TMinuit.h>
 #include "ZDCBase/Constants.h"
-#include "CommonDataFormat/FlatHisto1D.h"
-#include "CommonDataFormat/FlatHisto2D.h"
 #include "DataFormatsZDC/RecEvent.h"
-#include "DataFormatsZDC/WaveformCalibData.h"
 #include "DataFormatsZDC/ZDCWaveform.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
+#include "ZDCCalib/WaveformCalibData.h"
 #include "ZDCCalib/WaveformCalibConfig.h"
 #include "ZDCCalib/WaveformCalibQueue.h"
 #ifndef ALICEO2_ZDC_WAVEFORMCALIBEPN_H
@@ -50,7 +48,7 @@ class WaveformCalibEPN
   const WaveformCalibConfig* getConfig() const { return mWaveformCalibConfig; };
   void setSaveDebugHistos() { mSaveDebugHistos = true; }
   void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
-  std::array<o2::dataformats::FlatHisto1D<float>*, NH> mH{};
+  void setVerbosity(int val) { mVerbosity = val; }
   WaveformCalibData mData;
   WaveformCalibData& getData() { return mData; }
 

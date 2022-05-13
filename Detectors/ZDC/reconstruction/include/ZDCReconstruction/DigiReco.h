@@ -117,7 +117,7 @@ class DigiReco
     mFullInterpolationSet = true;
     LOG(warn) << __func__ << " Full waveform interpolation: " << (mFullInterpolation ? "enabled" : "disabled");
   };
-  bool getFullInterpolation() { return mLowPassFilter; };
+  bool getFullInterpolation() { return mFullInterpolation; };
   // Enable or disable TDC corrections
   void setCorrSignal(bool val = true)
   {

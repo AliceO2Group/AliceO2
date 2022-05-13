@@ -12,14 +12,12 @@
 #include <vector>
 #include <TROOT.h>
 #include <TFile.h>
-#include <TPad.h>
+#include <TH1.h>
 #include <TString.h>
 #include <TStyle.h>
 #include <TDirectory.h>
-#include <TPaveStats.h>
-#include <TAxis.h>
+#include "ZDCCalib/CalibParamZDC.h"
 #include "ZDCCalib/WaveformCalibEPN.h"
-//#include "ZDCCalib/WaveformCalib.h"
 #include "Framework/Logger.h"
 
 using namespace o2::zdc;
@@ -31,16 +29,22 @@ int WaveformCalibEPN::init()
     return -1;
   }
 
+  // Inspect reconstruction parameters
+  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
+  opt.print();
+  if (opt.debug_output > 0) {
+    setSaveDebugHistos();
+  }
+
   auto* cfg = mWaveformCalibConfig;
+  mQueue.configure(mWaveformCalibConfig);
 
   // number of bins
   mNBin = cfg->nbun * TSN;
   mFirst = cfg->ibeg;
   mLast = cfg->iend;
   mData.setN(cfg->nbun);
-  for (int ih = 0; ih < NH; ih++) {
-    mH[ih] = new o2::dataformats::FlatHisto1D<float>(mNBin, 0, mNBin);
-  }
+  mData.mPeak = mQueue.mPeak;
   mInitDone = true;
   return 0;
 }
@@ -54,7 +58,6 @@ int WaveformCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
   if (!mInitDone) {
     init();
   }
-  mQueue.configure(mWaveformCalibConfig);
   o2::zdc::RecEventFlat ev;
   ev.init(RecBC, Energy, TDCData, Info);
   auto nen = ev.getEntries();
@@ -78,12 +81,15 @@ int WaveformCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
 
 int WaveformCalibEPN::endOfRun()
 {
-  //   if (mVerbosity > DbgZero) {
-  //     LOGF(info, "WaveformCalibEPN::endOfRun ts (%llu:%llu)", mData.mCTimeBeg, mData.mCTimeEnd);
-  //     for (int ih = 0; ih < NH; ih++) {
-  //       LOGF(info, "%s %g events and cuts (%g:%g)", WaveformCalibData::DN[ih], mData.mSum[ih][5][5], mWaveformCalibConfig->cutLow[ih], mWaveformCalibConfig->cutHigh[ih]);
-  //     }
-  //   }
+  if (mVerbosity > DbgZero) {
+    LOGF(info, "WaveformCalibEPN::endOfRun ts (%llu:%llu)", mData.mCTimeBeg, mData.mCTimeEnd);
+    for (int ih = 0; ih < NH; ih++) {
+      LOGF(info, "Waveform %2d with %10d events and cuts AMP:(%g:%g) TDC:(%g:%g) Valid:[%d:%d:%d]", ih, mData.mEntries[ih],
+           mWaveformCalibConfig->cutLow[ih], mWaveformCalibConfig->cutHigh[ih],
+           mWaveformCalibConfig->cutTimeLow[ih], mWaveformCalibConfig->cutTimeHigh[ih],
+           mData.mFirstValid[ih], mData.mPeak, mData.mLastValid[ih]);
+    }
+  }
   if (mSaveDebugHistos) {
     write();
   }
@@ -92,29 +98,30 @@ int WaveformCalibEPN::endOfRun()
 
 int WaveformCalibEPN::write(const std::string fn)
 {
-  /*
-    TDirectory* cwd = gDirectory;
-    TFile* f = new TFile(fn.data(), "recreate");
-    if (f->IsZombie()) {
-      LOG(error) << "Cannot create file: " << fn;
-      return 1;
-    }
-    for (int32_t ih = 0; ih < (2 * NH); ih++) {
-      if (mH[ih]) {
-        auto p = mH[ih]->createTH1F(WaveformCalib::mHUncN[ih]);
-        p->SetTitle(WaveformCalib::mHUncT[ih]);
-        p->Write("", TObject::kOverwrite);
+  TDirectory* cwd = gDirectory;
+  TFile* f = new TFile(fn.data(), "recreate");
+  if (f->IsZombie()) {
+    LOG(error) << "Cannot create file: " << fn;
+    return 1;
+  }
+  for (int32_t ih = 0; ih < NH; ih++) {
+    if (mData.mEntries[ih] > 0) {
+      // For the moment we study only TDC channels
+      int isig = TDCSignal[ih];
+      TString n = TString::Format("h%d", isig);
+      TString t = TString::Format("Waveform %d %s", isig, ChannelNames[isig].data());
+      int nbx = mData.mLastValid[ih] - mData.mFirstValid[ih] + 1;
+      int min = mData.mFirstValid[ih] - mData.mPeak - 0.5;
+      int max = mData.mLastValid[ih] - mData.mPeak + 0.5;
+      TH1F h(n, t, nbx, min, max);
+      for (int ibx = 0; ibx < nbx; ibx++) {
+        h.SetBinContent(ibx + 1, mData.mWave[ih][mData.mFirstValid[ih] + ibx]);
       }
+      h.SetEntries(mData.mEntries[ih]);
+      h.Write("", TObject::kOverwrite);
     }
-    for (int32_t ih = 0; ih < NH; ih++) {
-      if (mC[ih]) {
-        auto p = mC[ih]->createTH2F(WaveformCalib::mCUncN[ih]);
-        p->SetTitle(WaveformCalib::mCUncT[ih]);
-        p->Write("", TObject::kOverwrite);
-      }
-    }
-    f->Close();
-    cwd->cd();
-  */
+  }
+  f->Close();
+  cwd->cd();
   return 0;
 }

@@ -26,13 +26,9 @@ void o2::zdc::RecoParamZDC::setBit(uint32_t ibit, bool val)
 void o2::zdc::RecoParamZDC::print()
 {
   bool printed = false;
-    if (!printed) {
-      printed = true;
-      LOG(info) << "RecoParamZDC";
-    }
   if (low_pass_filter >= 0 || full_interpolation >= 0 || corr_signal >= 0 || corr_background >= 0) {
     if (!printed) {
-      LOG(info) << "RecoParamZDC";
+      LOG(info) << "RecoParamZDC::print()";
       printed = true;
     }
     if (low_pass_filter >= 0) {
@@ -48,6 +44,10 @@ void o2::zdc::RecoParamZDC::print()
       printf(" CorrBackground=%d", corr_background);
     }
     printf("\n");
+  }
+  if (!printed) {
+    printed = true;
+    LOG(info) << "RecoParamZDC::print()";
   }
   /*
     Int_t tsh[NTDCChannels] = {4, 4, 4, 4, 4, 4, 4, 4, 4, 4};   // Trigger shift
@@ -91,7 +91,7 @@ void o2::zdc::RecoParamZDC::print()
   if (modified) {
     if (!printed) {
       printed = true;
-      LOG(info) << "RecoParamZDC";
+      LOG(info) << "RecoParamZDC::print()";
     }
     printf("energ_calib: ");
     for (int i = 0; i < o2::zdc::NChannels; i++) {
@@ -111,7 +111,7 @@ void o2::zdc::RecoParamZDC::print()
   if (modified) {
     if (!printed) {
       printed = true;
-      LOG(info) << "RecoParamZDC";
+      LOG(info) << "RecoParamZDC::print()";
     }
     printf("tower_calib: ");
     for (int i = 0; i < o2::zdc::NChannels; i++) {

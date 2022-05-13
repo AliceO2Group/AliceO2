@@ -21,7 +21,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "CommonUtils/NameConf.h"
-#include "DataFormatsZDC/WaveformCalibData.h"
+#include "ZDCCalib/WaveformCalibData.h"
 #include "ZDCCalib/WaveformCalibEPN.h"
 #include "ZDCCalib/WaveformCalibConfig.h"
 

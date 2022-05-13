@@ -180,7 +180,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   bool fullinter = mDR.getFullInterpolation();
   RecEvent recEvent;
   LOGF(info, "BC processed during reconstruction %d%s", recAux.size(), (fullinter ? " FullInterpolation" : ""));
-  uint32_t nte = 0, ntt = 0, nti = 0;
+  uint32_t nte = 0, ntt = 0, nti = 0, ntw = 0;
   for (auto reca : recAux) {
     bool toAddBC = true;
     int32_t ne = reca.ezdc.size();
@@ -198,13 +198,14 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       // Add waveform information
       if (fullinter) {
         // For the moment only TDC channels are interpolated
-        if (reca.inter[it].size()==NIS) {
+        if (reca.inter[it].size() == NIS) {
           if (toAddBC) {
             recEvent.addBC(reca);
             toAddBC = false;
           }
           auto isig = TDCSignal[it];
           recEvent.addWaveform(isig, reca.inter[it]);
+          ntw++;
         }
       }
     }
@@ -226,7 +227,9 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     // Event information
     nti += recEvent.addInfos(reca);
   }
-  LOG(info) << "Reconstructed " << ntt << " signal TDCs and " << nte << " ZDC energies and " << nti << " info messages in " << recEvent.mRecBC.size() << "/" << recAux.size() << " b.c.";
+  LOG(info) << "Reconstructed " << ntt << " signal TDCs and " << nte << " ZDC energies and "
+            << nti << " info messages in " << recEvent.mRecBC.size() << "/" << recAux.size() << " b.c. and "
+            << ntw << " waveform chunks";
   // TODO: rate information for all channels
   // TODO: summary of reconstruction to be collected by DQM?
   pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, recEvent.mRecBC);

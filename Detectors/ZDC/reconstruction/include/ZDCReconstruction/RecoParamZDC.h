@@ -37,6 +37,8 @@ struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
   int corr_signal = -1;        // TDC signal correction
   int corr_background = -1;    // TDC pile-up correction
 
+  int debug_output = -1; // Debug output
+
   // TDC
   Int_t tmod[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};       // Position of TDC channel in raw data
   Int_t tch[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};        // Position of TDC channel in raw data

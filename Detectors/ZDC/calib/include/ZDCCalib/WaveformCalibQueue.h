@@ -19,7 +19,7 @@
 #include "DataFormatsZDC/OrbitData.h"
 #include "DataFormatsZDC/RecEvent.h"
 #include "DataFormatsZDC/RecEventFlat.h"
-#include "DataFormatsZDC/WaveformCalibData.h"
+#include "ZDCCalib/WaveformCalibData.h"
 #include "ZDCCalib/WaveformCalibConfig.h"
 #include <deque>
 
@@ -46,6 +46,7 @@ struct WaveformCalibQueue {
   int mN = 1;
   int mPPos = 0;
   int mNP = 0;
+  int mPeak = 0;
 
   const WaveformCalibConfig *mCfg = nullptr;
 
@@ -63,6 +64,7 @@ struct WaveformCalibQueue {
     mPk = -mFirst;
     mPPos = mPk * NIS + NIS/2;
     mNP = mN * NIS;
+    mPeak = NTimeBinsPerBC * TSN * mPk + NTimeBinsPerBC / 2 * TSN;
   }
 
   std::deque<o2::InteractionRecord> mIR;

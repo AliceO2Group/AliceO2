@@ -437,6 +437,19 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   // Low pass filtering
   if (mLowPassFilter) {
     lowPassFilter();
+  } else {
+    // Copy samples
+    for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+      auto isig = TDCSignal[itdc];
+      for (int ibc = 0; ibc < mNBC; ibc++) {
+        auto ref_c = mReco[ibc].ref[isig];
+        if (ref_c != ZDCRefInitVal) {
+          for (int is = 0; is < NTimeBinsPerBC; is++) {
+            mReco[ibc].data[isig][is] = mChData[ref_c].data[is];
+          }
+        }
+      }
+    }
   }
 
   // Find consecutive bunch crossings by taking into account just the presence
@@ -1107,11 +1120,8 @@ O2_ZDC_DIGIRECO_FLT DigiReco::getPoint(int itdc, int ibeg, int iend, int i)
         LOG(fatal) << "ib=" << ib << " ibun=" << ibun;
         return std::numeric_limits<float>::infinity();
       }
-#ifdef O2_ZDC_RECO_FILTERING
       return mReco[ibun].data[isig][ip]; // Filtered point
-#else
-      return mChData[mReco[ibun].ref[isig]].data[ip]; // Original point
-#endif
+      // return mChData[mReco[ibun].ref[isig]].data[ip]; // Original point
     } else {
       // Do the actual interpolation
       O2_ZDC_DIGIRECO_FLT y = 0;
@@ -1124,11 +1134,8 @@ O2_ZDC_DIGIRECO_FLT DigiReco::getPoint(int itdc, int ibeg, int iend, int i)
           if (ii < mNsam) {
             int ip = ii % NTimeBinsPerBC;
             int ib = ibeg + ii / NTimeBinsPerBC;
-#ifdef O2_ZDC_RECO_FILTERING
             yy = mReco[ib].data[isig][ip];
-#else
-            yy = mChData[mReco[ib].ref[isig]].data[ip];
-#endif
+            // yy = mChData[mReco[ib].ref[isig]].data[ip];
           } else {
             // Last acquired point
             yy = mLastSample;
@@ -1147,8 +1154,8 @@ void DigiReco::setPoint(int itdc, int ibeg, int iend, int i)
 {
   // This function needs to be used only if mFullInterpolation is true otherwise the
   // vectors are not allocated
-  if(!mFullInterpolation){
-    LOG(FATAL) << __func__ << " call with mFullInterpolation = " << mFullInterpolation;
+  if (!mFullInterpolation) {
+    LOG(fatal) << __func__ << " call with mFullInterpolation = " << mFullInterpolation;
     return;
   }
   constexpr int nsbun = TSN * NTimeBinsPerBC; // Total number of interpolated points per bunch crossing
@@ -1209,13 +1216,10 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   auto ref_beg = mReco[ibeg].ref[isig];
   auto ref_end = mReco[iend].ref[isig];
 
-#ifdef O2_ZDC_RECO_FILTERING
   mFirstSample = mReco[ibeg].data[isig][0];
   mLastSample = mReco[iend].data[isig][MaxTimeBin];
-#else
-  mFirstSample = mChData[ref_beg].data[0];
-  mLastSample = mChData[ref_end].data[MaxTimeBin];
-#endif
+  // mFirstSample = mChData[ref_beg].data[0]; // Original points
+  // mLastSample = mChData[ref_end].data[MaxTimeBin]; // Original points
 
   // mFullInterpolation turns on full interpolation for debugging
   // otherwise the interpolation is performed only around actual signal

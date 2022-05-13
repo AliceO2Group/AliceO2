@@ -104,8 +104,8 @@ void WaveformCalibQueue::appendEv(RecEventFlat& ev)
     //   ev.print();
     // }
   }
-  // NOTE: for the moment NH = NTDCChannels. If we remove this we will need to
-  // have a mask of affected channels (towers)
+  // NOTE: for the moment NH = NTDCChannels. If we want to extend it to all channels
+  // we will need to have a mask of affected channels (towers contributing to sum)
   for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
     int ich = o2::zdc::TDCSignal[itdc];
     int nhit = ev.NtdcV(itdc);
@@ -129,7 +129,6 @@ void WaveformCalibQueue::appendEv(RecEventFlat& ev)
 
 int WaveformCalibQueue::hasData(int isig, const gsl::span<const o2::zdc::ZDCWaveform>& wave)
 {
-  int np = NTimeBinsPerBC * TSN;
   int ipk = -1;
   int ipkb = -1;
   float min = std::numeric_limits<float>::infinity();
@@ -140,7 +139,7 @@ int WaveformCalibQueue::hasData(int isig, const gsl::span<const o2::zdc::ZDCWave
       auto& mywave = wave[iw + mFirstW[ib]];
       if (mywave.ch() == isig) {
         ifound = true;
-        for (int ip = 0; ip < np; ip++) {
+        for (int ip = 0; ip < NIS; ip++) {
           if (mywave.inter[ip] < min) {
             ipkb = ib;
             ipk = ip;
@@ -163,11 +162,12 @@ int WaveformCalibQueue::hasData(int isig, const gsl::span<const o2::zdc::ZDCWave
   }
 }
 
+// Checks if waveform has available data and adds it to summary data 
+// a compensation of the time jitter
 int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWaveform>& wave, WaveformCalibData& data)
 {
-  int np = NTimeBinsPerBC * TSN;
-  int ipk = -1;
-  int ipkb = -1;
+  int ipkb = -1; // Bunch where peak is found
+  int ipk = -1;  // peak position within bunch
   float min = std::numeric_limits<float>::infinity();
   for (int ib = 0; ib < mN; ib++) {
     int ifound = false;
@@ -176,7 +176,7 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
       auto& mywave = wave[iw + mFirstW[ib]];
       if (mywave.ch() == isig) {
         ifound = true;
-        for (int ip = 0; ip < np; ip++) {
+        for (int ip = 0; ip < NIS; ip++) {
           if (mywave.inter[ip] < min) {
             ipkb = ib;
             ipk = ip;
@@ -189,27 +189,27 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
     if (!ifound) {
       return -1;
     }
-    // Check if a single TDC hit is present and satisfies conditions
   }
   if (ipkb != mPk) {
     return -1;
   } else {
     // For the moment only TDC channels are interpolated
-    int itdc = SignalTDC[isig];
+    int ih = SignalTDC[isig];
     int ppos = NTimeBinsPerBC * TSN * ipkb + ipk;
-    int pset = NTimeBinsPerBC * TSN * ipkb + NTimeBinsPerBC / 2 * TSN;
-    int ipos = pset - ppos;
-    if (ipos > data.mFirstValid[itdc]) {
-      data.mFirstValid[itdc] = ipos;
+    int ipos = mPeak - ppos;
+    data.mEntries[ih]++;
+    // Restrict validity range because of signal jitter
+    if (ipos > data.mFirstValid[ih]) {
+      data.mFirstValid[ih] = ipos;
     }
     // We know that points are consecutive
     for (int ib = 0; ib < mN; ib++) {
       for (int iw = 0; iw < mNW[ib]; iw++) {
         auto& mywave = wave[iw + mFirstW[ib]];
         if (mywave.ch() == isig) {
-          for (int ip = 0; ip < np; ip++) {
+          for (int ip = 0; ip < NIS; ip++) {
             if (ipos >= 0 && ipos < mNP) {
-              data.mWave[itdc][ipos] += mywave.inter[ip];
+              data.mWave[ih][ipos] += mywave.inter[ip];
             }
             ipos++;
           }
@@ -217,10 +217,11 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
       }
     }
     ipos--;
-    if (ipos < data.mLastValid[itdc]) {
-      data.mLastValid[itdc] = ipos;
+    // Restrict validity range because of signal jitter
+    if (ipos < data.mLastValid[ih]) {
+      data.mLastValid[ih] = ipos;
     }
-    LOG(info) << "isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.mFirstValid[itdc] << ":" << data.mLastValid[itdc] << "]";
+    LOG(info) << "isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.mFirstValid[ih] << ":" << ppos << ":" << data.mLastValid[ih] << "]";
     return ipos;
   }
 }

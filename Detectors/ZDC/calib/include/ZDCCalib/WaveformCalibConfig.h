@@ -27,12 +27,13 @@ namespace zdc
 {
 struct WaveformCalibConfig {
 
-  WaveformCalibConfig();
-
   static constexpr int NH = NTDCChannels;
   static constexpr int NBB = 3;
   static constexpr int NBA = 6;
   static constexpr int NBT = NBB + NBA + 1;
+  static constexpr int NW = NBT * NIS;
+
+  WaveformCalibConfig();
 
   double cutLow[NH];      /// Amplitude cut low
   double cutHigh[NH];     /// Amplitude cut high
