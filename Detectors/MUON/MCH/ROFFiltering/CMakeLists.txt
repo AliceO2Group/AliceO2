@@ -9,21 +9,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(Base)
-add_subdirectory(Contour)
-add_subdirectory(Mapping)
-add_subdirectory(DigitFiltering)
-add_subdirectory(ROFFiltering)
-add_subdirectory(Triggering)
-add_subdirectory(TimeClustering)
-add_subdirectory(PreClustering)
-add_subdirectory(Geometry)
-add_subdirectory(Clustering)
-add_subdirectory(Simulation)
-add_subdirectory(Tracking)
-add_subdirectory(Raw)
-add_subdirectory(CTF)
-add_subdirectory(Workflow)
-add_subdirectory(Conditions)
-add_subdirectory(Calibration)
-add_subdirectory(DevIO)
+o2_add_library(MCHROFFiltering
+        SOURCES src/TrackableFilter.cxx
+        PUBLIC_LINK_LIBRARIES O2::MCHBase)
+
