@@ -44,6 +44,7 @@ TimeFrameGPU<NLayers>::TimeFrameGPU()
 
   for (int iLayer{0}; iLayer < NLayers; ++iLayer) { // Tracker and vertexer
     mClustersD[iLayer] = Vector<Cluster>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
+    mUsedClustersD[iLayer] = Vector<unsigned char>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
     mTrackingFrameInfoD[iLayer] = Vector<TrackingFrameInfo>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
     mClusterExternalIndicesD[iLayer] = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
     if (iLayer < NLayers - 1) {
@@ -78,6 +79,7 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
   // We don't check if we can store the data in the GPU for the moment, only log it.
   float totalMemory{0};
   totalMemory += NLayers * mConfig.clustersPerLayerCapacity * sizeof(Cluster);
+  totalMemory += NLayers * mConfig.clustersPerLayerCapacity * sizeof(unsigned char);
   totalMemory += NLayers * mConfig.clustersPerLayerCapacity * sizeof(TrackingFrameInfo);
   totalMemory += NLayers * mConfig.clustersPerLayerCapacity * sizeof(int);
   totalMemory += NLayers * mConfig.clustersPerROfCapacity * sizeof(int);
@@ -100,6 +102,7 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
 
   LOG(info) << fmt::format("Total requested memory for GPU: {:.2f} MB", totalMemory / MB);
   LOG(info) << fmt::format("\t- Clusters: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(Cluster) / MB);
+  LOG(info) << fmt::format("\t- Used clusters: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(unsigned char) / MB);
   LOG(info) << fmt::format("\t- Tracking frame info: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(TrackingFrameInfo) / MB);
   LOG(info) << fmt::format("\t- Cluster external indices: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
   LOG(info) << fmt::format("\t- Clusters per ROf: {:.2f} MB", NLayers * mConfig.clustersPerROfCapacity * sizeof(int) / MB);
