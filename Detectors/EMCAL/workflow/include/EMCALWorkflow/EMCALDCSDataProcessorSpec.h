@@ -23,6 +23,7 @@
 #include "DetectorsDCS/DataPointCompositeObject.h"
 #include "DetectorsDCS/DeliveryType.h"
 #include "DetectorsDCS/AliasExpander.h"
+#include "DetectorsDCS/RunStatusChecker.h"
 #include "EMCALCalibration/EMCDCSProcessor.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CCDB/CcdbApi.h"
@@ -51,15 +52,11 @@ using CcdbManager = o2::ccdb::BasicCCDBManager;
 using clbUtils = o2::calibration::Utils;
 using HighResClock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
+using RunStatus = o2::dcs::RunStatusChecker::RunStatus;
 
 class EMCALDCSDataProcessor : public o2::framework::Task
 {
  public:
-  enum class EMCRunStatus { NONE,
-                            START,
-                            ONGOING,
-                            STOP };
-
   void init(o2::framework::InitContext& ic) final
   {
     std::string ccdbpath = ic.options().get<std::string>("ccdb-path");
@@ -128,7 +125,21 @@ class EMCALDCSDataProcessor : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto grp = checkRunStartEnd();
+
+    if (mCheckRunStartStop) {
+      const auto* grp = mRunChecker.check(); // check if there is a run with EMC
+      // this is an example of what it will return
+      if (mRunChecker.getRunStatus() == RunStatus::NONE) {
+        LOGP(info, "No run with is ongoing or finished");
+      } else if (mRunChecker.getRunStatus() == RunStatus::START) { // saw new run with wanted detectors
+        LOGP(info, "Run {} has started", mRunChecker.getFollowedRun());
+        grp->print();
+      } else if (mRunChecker.getRunStatus() == RunStatus::ONGOING) { // run which was already seen is still ongoing
+        LOGP(info, "Run {} is still ongoing", mRunChecker.getFollowedRun());
+      } else if (mRunChecker.getRunStatus() == RunStatus::STOP) { // run which was already seen was stopped (EOR seen)
+        LOGP(info, "Run {} was stopped", mRunChecker.getFollowedRun());
+      }
+    }
 
     auto tfid = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
@@ -153,10 +164,8 @@ class EMCALDCSDataProcessor : public o2::framework::Task
   std::unique_ptr<EMCDCSProcessor> mProcessor;
   HighResClock::time_point mTimer;
   int64_t mDPsUpdateInterval;
-
   bool mCheckRunStartStop = false;
-  int mRunFollowed = -1; // EMCAL run being followed. Assumption is that at the given moment there might be only 1 such a run
-  EMCRunStatus mRunStatus{EMCRunStatus::NONE};
+  o2::dcs::RunStatusChecker mRunChecker{o2::detectors::DetID::getMask("EMC")};
 
   //________________________________________________________________
   void sendELMButput(DataAllocator& output)
@@ -192,49 +201,6 @@ class EMCALDCSDataProcessor : public o2::framework::Task
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_FeeDCS", 0}, *image.get());
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_FeeDCS", 0}, info);
     }
-  }
-
-  //________________________________________________________________
-  const o2::parameters::GRPECSObject* checkRunStartEnd()
-  {
-    // check if EMC run is going on
-    if (!mCheckRunStartStop) {
-      return nullptr;
-    }
-    auto& mgr = CcdbManager::instance();
-    bool fatalOn = mgr.getFatalWhenNull();
-    mgr.setFatalWhenNull(false);
-    if (mRunStatus == EMCRunStatus::STOP) { // the STOP was detected at previous check
-      mRunFollowed = -1;
-      mRunStatus = EMCRunStatus::NONE;
-    }
-    std::map<std::string, std::string> md;
-    if (mRunFollowed > 0) { // run start was seen
-      md["runNumber"] = std::to_string(mRunFollowed);
-    }
-    long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    const auto* grp = mgr.getSpecific<o2::parameters::GRPECSObject>("GLO/Config/GRPECS", ts, md);
-    if (grp) { // some object was returned
-      if (mRunFollowed > 0) {
-        if (grp->getTimeEnd() > grp->getTimeStart()) { // this means that the EOR was registered
-          mRunStatus = EMCRunStatus::STOP;
-        } else { // run still continues
-          mRunStatus = EMCRunStatus::ONGOING;
-        }
-      } else {                                                  // we were not following EMC run, check if the current one has an EMC
-        if (grp->getDetsReadOut()[o2::detectors::DetID::EMC]) { // we start following EMC run
-          mRunStatus = grp->getTimeEnd() > grp->getTimeStart() ? EMCRunStatus::STOP : EMCRunStatus::START;
-          mRunFollowed = grp->getRun();
-        }
-      }
-    } else {                  // query did not return any GRP -> we are certainly not in the EMC run
-      if (mRunFollowed > 0) { // normally this should not happen
-        LOGP(warning, "We were following EMC run {} but the query at {} did not return any GRP, problem with EOR?", mRunFollowed, ts);
-        mRunStatus = EMCRunStatus::STOP;
-      }
-    }
-    mgr.setFatalWhenNull(fatalOn);
-    return grp;
   }
 
 }; // end class
