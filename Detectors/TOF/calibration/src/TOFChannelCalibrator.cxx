@@ -609,7 +609,11 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
 
   auto clName = o2::utils::MemFileHelper::getClassName(ts);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  mInfoVector.emplace_back("TOF/Calib/ChannelCalib", clName, flName, md, slot.getTFStart(), o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  auto startValidity = slot.getStartTimeMS();
+  auto endValidity = o2::ccdb::CcdbObjectInfo::MONTH * 2;
+  ts.setStartValidity(startValidity);
+  ts.setEndValidity(endValidity);
+  mInfoVector.emplace_back("TOF/Calib/ChannelCalib", clName, flName, md, startValidity, endValidity);
   mTimeSlewingVector.emplace_back(ts);
 
 #ifdef DEBUGGING
@@ -727,7 +731,11 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
   }   // end loop over sectors
   auto clName = o2::utils::MemFileHelper::getClassName(ts);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  mInfoVector.emplace_back("TOF/Calib/ChannelCalib", clName, flName, md, slot.getTFStart(), o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  auto startValidity = slot.getStartTimeMS();
+  auto endValidity = o2::ccdb::CcdbObjectInfo::MONTH * 2;
+  ts.setStartValidity(startValidity);
+  ts.setEndValidity(endValidity);
+  mInfoVector.emplace_back("TOF/Calib/ChannelCalib", clName, flName, md, startValidity, endValidity);
   mTimeSlewingVector.emplace_back(ts);
 
 #ifdef DEBUGGING
