@@ -88,7 +88,6 @@ class TimeFrameGPU : public TimeFrame
   std::array<Vector<TrackingFrameInfo>, NLayers> mTrackingFrameInfoD;
   std::array<Vector<int>, NLayers - 1> mIndexTablesD;
   std::array<Vector<int>, NLayers> mClusterExternalIndicesD;
-  std::array<Vector<int>, NLayers> mROframesClustersD;
   std::array<Vector<Tracklet>, NLayers - 1> mTrackletsD;
   int* mCUBTmpBuffers; // don't know whether will be used by the tracker
 
