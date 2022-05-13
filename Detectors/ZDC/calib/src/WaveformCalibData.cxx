@@ -16,30 +16,42 @@ using namespace o2::zdc;
 
 void WaveformCalibData::print() const
 {
-  for (int i = 0; i < NH; i++) {
-    LOGF(info, "%d ", i);
+  for (int32_t ih = 0; ih < NH; ih++) {
+    LOGF(info, "WaveformCalibData [%llu : %llu]: entries=%d [%d:%d:%d]", mCTimeBeg, mCTimeEnd, mEntries[ih], mFirstValid[ih], mPeak, mLastValid[ih]);
   }
 }
 
 WaveformCalibData& WaveformCalibData::operator+=(const WaveformCalibData& other)
 {
-//   for (int32_t ih = 0; ih < NH; ih++) {
-//     for (int32_t i = 0; i < NPAR; i++) {
-//       for (int32_t j = 0; j < NPAR; j++) {
-//         mSum[ih][i][j] += other.mSum[ih][i][j];
-//       }
-//     }
-//   }
-//   if (mCTimeBeg == 0 || other.mCTimeBeg < mCTimeBeg) {
-//     mCTimeBeg = other.mCTimeBeg;
-//   }
-//   if (other.mCTimeEnd > mCTimeEnd) {
-//     mCTimeEnd = other.mCTimeEnd;
-//   }
-//   //#ifdef O2_ZDC_DEBUG
-//   LOGF(info, "WaveformCalibData [%llu : %llu]: %s=%d %s=%d %s=%d %s=%d %s=%d", mCTimeBeg, mCTimeEnd, DN[0], getEntries(0), DN[1], getEntries(1),
-//        DN[2], getEntries(2), DN[3], getEntries(3), DN[4], getEntries(4));
-//   //#endif
+  if (mN != other.mN) {
+    LOG(fatal) << "Mixing waveform with different configurations mN = " << mN << " != " << other.mN;
+    return *this;
+  }
+  if (mPeak != other.mPeak) {
+    LOG(fatal) << "Mixing waveform with different configurations mPeak = " << mPeak << " != " << other.mPeak;
+    return *this;
+  }
+  if (mCTimeBeg == 0 || other.mCTimeBeg < mCTimeBeg) {
+    mCTimeBeg = other.mCTimeBeg;
+  }
+  if (other.mCTimeEnd > mCTimeEnd) {
+    mCTimeEnd = other.mCTimeEnd;
+  }
+  for (int32_t ih = 0; ih < NH; ih++) {
+    if (mFirstValid[ih] > other.mFirstValid[ih]) {
+      mFirstValid[ih] = other.mFirstValid[ih];
+    }
+    if (mLastValid[ih] > other.mLastValid[ih]) {
+      mLastValid[ih] = other.mLastValid[ih];
+    }
+    mEntries[ih] = mEntries[ih] + other.mEntries[ih];
+    for (int32_t i = mFirstValid[ih]; i <= mLastValid[ih]; i++) {
+      mWave[ih][i] = mWave[ih][i] + other.mWave[ih][i];
+    }
+  }
+  //#ifdef O2_ZDC_DEBUG
+  print();
+  //#endif
   return *this;
 }
 
