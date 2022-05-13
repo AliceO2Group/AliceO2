@@ -34,7 +34,7 @@ using namespace o2::event_visualisation;
 void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
                                      GID::mask_t maskCl, GID::mask_t maskTrk, GID::mask_t maskMatch)
 {
-  std::vector<TBracket> itsROFBrackets;
+  std::vector<Bracket> itsROFBrackets;
 
   if (mEnabledFilters.test(Filter::ITSROF)) {
     const auto irFrames = getRecoContainer().getIRFramesITS();
@@ -76,10 +76,10 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
     // for all other tracks the time is in \mus with gaussian error
     terr += mPVParams->timeMarginTrackTime;
 
-    return TBracket{t0 - terr, t0 + terr};
+    return Bracket{t0 - terr, t0 + terr};
   };
 
-  auto isInsideITSROF = [&itsROFBrackets](const TBracket& br) {
+  auto isInsideITSROF = [&itsROFBrackets](const Bracket& br) {
     for (const auto& ir : itsROFBrackets) {
       const auto overlap = ir.getOverlap(br);
 
@@ -470,10 +470,11 @@ void EveWorkflowHelper::drawMFTClusters(GID gid, float trackTime)
 void EveWorkflowHelper::drawTPC(GID gid, float trackTime)
 {
   const auto& tr = mRecoCont.getTPCTrack(gid);
-  // this is a hack to suppress the noise
-  //  if (std::abs(tr.getEta()) < 0.05) {
-  //    return;
-  //  }
+
+  if (mEnabledFilters.test(Filter::EtaBracket) && mEtaBracket.isOutside(tr.getEta()) == Bracket::Relation::Inside) {
+    return;
+  }
+
   auto vTrack = mEvent.addTrack({.time = static_cast<float>(trackTime),
                                  .charge = tr.getCharge(),
                                  .PID = tr.getPID(),
@@ -645,7 +646,7 @@ void EveWorkflowHelper::drawTRDClusters(const o2::trd::TrackTRD& tpcTrdTrack, fl
   }
 }
 
-EveWorkflowHelper::EveWorkflowHelper(const FilterSet& enabledFilters, std::size_t maxNTracks, const TBracket& timeBracket) : mEnabledFilters(enabledFilters), mMaxNTracks(maxNTracks), mTimeBracket(timeBracket)
+EveWorkflowHelper::EveWorkflowHelper(const FilterSet& enabledFilters, std::size_t maxNTracks, const Bracket& timeBracket, const Bracket& etaBracket) : mEnabledFilters(enabledFilters), mMaxNTracks(maxNTracks), mTimeBracket(timeBracket), mEtaBracket(etaBracket)
 {
   o2::mch::TrackExtrap::setField();
   this->mMFTGeom = o2::mft::GeometryTGeo::Instance();
