@@ -186,9 +186,7 @@ struct BinningPolicy {
     return getBinAt(i, j, k);
   }
 
-  using all_columns = pack<C, Cs...>;
   using persistent_columns_t = framework::selected_pack<o2::soa::is_persistent_t, C, Cs...>;
-  // pack<C, Cs...> getColumns() const { return pack<C, Cs...>{}; }
 
  private:
   // We substract 1 to account for VARIABLE_WIDTH in the bins vector
@@ -239,7 +237,6 @@ struct NoBinningPolicy {
   }
 
   using persistent_columns_t = framework::selected_pack<o2::soa::is_persistent_t, C>;
-  // pack<C> getColumns() const { return pack<C>{}; }
 };
 
 } // namespace o2::framework
