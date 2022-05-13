@@ -46,7 +46,6 @@ TimeFrameGPU<NLayers>::TimeFrameGPU()
     mClustersD[iLayer] = Vector<Cluster>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
     mTrackingFrameInfoD[iLayer] = Vector<TrackingFrameInfo>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
     mClusterExternalIndicesD[iLayer] = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
-    mROframesClustersD[iLayer] = Vector<int>{mConfig.clustersPerROfCapacity, mConfig.clustersPerROfCapacity};
     if (iLayer < NLayers - 1) {
       mTrackletsD[iLayer] = Vector<Tracklet>{mConfig.trackletsCapacity,
                                              mConfig.trackletsCapacity};
@@ -128,7 +127,6 @@ void TimeFrameGPU<NLayers>::initialiseDevice(const int maxLayers)
 {
   for (int iLayer{0}; iLayer < maxLayers; ++iLayer) {
     mClustersD[iLayer].reset(mClusters[iLayer].data(), static_cast<int>(mClusters[iLayer].size()));
-    mROframesClustersD[iLayer].reset(mROframesClusters[iLayer].data(), static_cast<int>(mROframesClusters[iLayer].size()));
   }
   if (maxLayers == NLayers) {
     // Tracker-only: we don't need to copy data in vertexer
