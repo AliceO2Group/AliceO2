@@ -148,7 +148,7 @@ class TimeFrame
   const unsigned long long& getRoadLabel(int i) const;
   bool isRoadFake(int i) const;
 
-  void setMultiplicityCutMask(std::vector<bool> cutMask) { mMultiplicityCutMask = cutMask; }
+  void setMultiplicityCutMask(const std::vector<bool>& cutMask) { mMultiplicityCutMask = cutMask; }
 
   int hasBogusClusters() const { return std::accumulate(mBogusClusters.begin(), mBogusClusters.end(), 0); }
 

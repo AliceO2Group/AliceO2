@@ -223,10 +223,7 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     mBogusClusters.resize(trkParam.NLayers, 0);
     mLines.clear();
     mTrackletClusters.clear();
-    for (int iLayer{0}; iLayer < std::min((int)mClusters.size(), maxLayers); ++iLayer) {
-      if (mClusters[iLayer].size()) {
-        continue;
-      }
+    for (unsigned int iLayer{0}; iLayer < std::min((int)mClusters.size(), maxLayers); ++iLayer) {
       mClusters[iLayer].clear();
       mClusters[iLayer].resize(mUnsortedClusters[iLayer].size());
       mUsedClusters[iLayer].clear();
