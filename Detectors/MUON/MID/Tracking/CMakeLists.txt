@@ -11,8 +11,12 @@
 
 o2_add_library(
   MIDTracking
-  SOURCES src/HitMapBuilder.cxx src/Tracker.cxx
+  SOURCES src/HitMapBuilder.cxx src/Tracker.cxx src/TrackerParam.cxx
   PUBLIC_LINK_LIBRARIES O2::DataFormatsMID O2::MIDBase Microsoft.GSL::GSL)
+
+o2_target_root_dictionary(
+  MIDTracking
+  HEADERS include/MIDTracking/TrackerParam.h)
 
 if(BUILD_TESTING)
   add_subdirectory(test)
