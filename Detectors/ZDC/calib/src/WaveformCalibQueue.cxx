@@ -162,7 +162,7 @@ int WaveformCalibQueue::hasData(int isig, const gsl::span<const o2::zdc::ZDCWave
   }
 }
 
-// Checks if waveform has available data and adds it to summary data 
+// Checks if waveform has available data and adds it to summary data
 // a compensation of the time jitter
 int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWaveform>& wave, WaveformCalibData& data)
 {
