@@ -18,6 +18,7 @@
 #include <cmath>
 #include <functional>
 #include "MIDBase/DetectorParameters.h"
+#include "MIDTracking/TrackerParam.h"
 
 namespace o2
 {
@@ -40,6 +41,10 @@ bool Tracker::init(bool keepAll)
   } else {
     mFollowTrack = &Tracker::followTrackKeepBest;
   }
+
+  mImpactParamCut = TrackerParam::Instance().impactParamCut;
+  mSigmaCut = TrackerParam::Instance().sigmaCut;
+  mMaxChi2 = 2. * mSigmaCut * mSigmaCut;
 
   return true;
 }

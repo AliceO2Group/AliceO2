@@ -35,16 +35,8 @@ class Tracker
  public:
   Tracker(const GeometryTransformer& geoTrans);
 
-  /// Sets impact parameter cut
-  void setImpactParamCut(float impactParamCut) { mImpactParamCut = impactParamCut; }
   /// Gets the impact parameter cut
   inline float getImpactParamCut() const { return mImpactParamCut; }
-  /// Sets number of sigmas for cuts
-  void setSigmaCut(float sigmaCut)
-  {
-    mSigmaCut = sigmaCut;
-    mMaxChi2 = 2. * sigmaCut * sigmaCut;
-  }
   /// Gets number of sigmas for cuts
   inline float getSigmaCut() const { return mSigmaCut; }
 
