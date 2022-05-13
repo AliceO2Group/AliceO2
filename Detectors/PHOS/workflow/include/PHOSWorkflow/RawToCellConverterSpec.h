@@ -40,7 +40,7 @@ class RawToCellConverterSpec : public framework::Task
  public:
   /// \brief Constructor
   /// \param propagateMC If true the MCTruthContainer is propagated to the output
-  RawToCellConverterSpec(unsigned int flpId) : mflpId(flpId), framework::Task(){};
+  RawToCellConverterSpec(unsigned int flpId) : framework::Task(), mflpId(flpId){};
 
   /// \brief Destructor
   ~RawToCellConverterSpec() override = default;

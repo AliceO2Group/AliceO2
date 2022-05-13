@@ -104,7 +104,7 @@ void Detector::FinishEvent()
 
   mHits->erase(itr, mHits->end());
 
-  //Apply Poisson smearing of light production
+  // Apply Poisson smearing of light production
   first = mHits->begin();
   last = mHits->end();
   while (first != last) {
@@ -275,8 +275,6 @@ void Detector::ConstructGeometry()
 
   // --- Position  PHOS modules in ALICE setup ---
   Int_t idrotm[5];
-  Int_t iXYZ, iAngle;
-  char im[5];
   for (Int_t iModule = 1; iModule < 5; iModule++) {
     if (!mActiveModule[iModule]) {
       continue;
@@ -328,12 +326,6 @@ void Detector::CreateMaterials()
   Float_t dF = 0.12;
 
   Mixture(ID_POLYFOAM, "Foam", aF, zF, dF, -2, wF);
-
-  // --- Titanium ---
-  Float_t aTIT[3] = {47.88, 26.98, 54.94};
-  Float_t zTIT[3] = {22.0, 13.0, 25.0};
-  Float_t wTIT[3] = {69.0, 6.0, 1.0};
-  Float_t dTIT = 4.5;
 
   // --- Silicon ---
   Material(ID_APD, "Si", 28.0855, 14., 2.33, 9.36, 42.3, nullptr, 0);
