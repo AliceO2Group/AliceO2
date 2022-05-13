@@ -54,6 +54,8 @@ class DataSourceOnline : public DataSource
   void saveCurrentEvent(std::string targetFolder) override { mFileWatcher.saveCurrentFileToFolder(targetFolder); };
   int getRunNumber() const override { return this->mRunNumber; }
   void setRunNumber(int runNumber) override { this->mRunNumber = runNumber; }
+  int getFirstTForbit() const override { return this->mFirstTForbit; }
+  void setFirstTForbit(int firstTForbit) override { this->mFirstTForbit = firstTForbit; }
   std::string getCollisionTime() const override { return this->mCollisionTime; }
   void setCollisionTime(std::string collisionTime) override { this->mCollisionTime = collisionTime; }
 };
@@ -61,4 +63,4 @@ class DataSourceOnline : public DataSource
 } // namespace event_visualisation
 } // namespace o2
 
-#endif //O2EVE_DATASOURCEONLINE_H
+#endif // O2EVE_DATASOURCEONLINE_H
