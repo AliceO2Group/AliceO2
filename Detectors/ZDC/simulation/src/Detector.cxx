@@ -67,6 +67,9 @@ Detector::Detector(Bool_t active)
   resetHitIndices();
 
 #ifdef ZDC_FASTSIM_ONNX
+  if (!o2::zdc::ZDCSimParam::Instance().useZDCFastSim) {
+    LOG(info) << "FastSim module disabled";
+  }
   // creating classifier object
   if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierPath.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales.empty()) {
     auto eonScales = o2::zdc::fastsim::loadScales(o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales);
@@ -88,7 +91,7 @@ Detector::Detector(Bool_t active)
         } else {
           mModelScaler.setScales(modelScales->first, modelScales->second);
           mFastSimModel = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath, 1);
-          LOG(info) << "\n FastSim module enabled";
+          LOG(info) << "FastSim module enabled";
         }
       }
     }
