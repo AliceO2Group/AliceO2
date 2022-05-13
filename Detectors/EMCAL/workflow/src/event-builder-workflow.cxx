@@ -23,7 +23,9 @@ using namespace o2::framework;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  std::vector<ConfigParamSpec> options{ConfigParamSpec{"subspecifications", VariantType::String, "", {"Comma-separated list of subspecifications"}}};
+  std::vector<ConfigParamSpec> options{
+    {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings"}},
+    {"subspecifications", VariantType::String, "", {"Comma-separated list of subspecifications"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -32,6 +34,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   WorkflowSpec wf;
   wf.emplace_back(o2::emcal::reco_workflow::getEventBuilderSpec());
   return wf;

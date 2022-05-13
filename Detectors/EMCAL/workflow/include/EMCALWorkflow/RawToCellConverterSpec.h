@@ -16,6 +16,7 @@
 #include "Framework/Task.h"
 #include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
+#include "DataFormatsEMCAL/ErrorTypeFEE.h"
 #include "Headers/DataHeader.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/Mapper.h"
@@ -42,6 +43,11 @@ class RawToCellConverterSpec : public framework::Task
   /// \param subspecification Output subspecification for parallel running on multiple nodes
   /// \param hasDecodingErrors Option to swich on/off creating raw decoding error objects for later monitoring
   RawToCellConverterSpec(int subspecification, bool hasDecodingErrors) : framework::Task(), mSubspecification(subspecification), mCreateRawDataErrors(hasDecodingErrors){};
+
+  /// \brief Constructor
+  /// \param subspecification Output subspecification for parallel running on multiple nodes
+  /// \param hasDecodingErrors Option to swich on/off creating raw decoding error objects for later monitoring
+  RawToCellConverterSpec(int subspecification, bool hasDecodingErrors, bool requireSubspecLinks) : framework::Task(), mSubspecification(subspecification), mCreateRawDataErrors(hasDecodingErrors), mRequireSubspecLinks(requireSubspecLinks){};
 
   /// \brief Destructor
   ~RawToCellConverterSpec() override;
@@ -105,6 +111,14 @@ class RawToCellConverterSpec : public framework::Task
   };
   bool isLostTimeframe(framework::ProcessingContext& ctx) const;
 
+  /// \brief Get FEEID links for a certain subspecification
+  /// \param subspec Subspecification (FLP ID)
+  /// \return FEEID links
+  ///
+  /// Accepted links for subspec 0 (EMCAL FLP): 0 - 23
+  /// Accepted links for subspec 1 (DCAL FLP): 24 - 39
+  std::vector<int> getLinksForSubspec(int subspec) const;
+
   /// \brief Send data to output channels
   /// \param cells Container with output cells for timeframe
   /// \param triggers Container with trigger records for timeframe
@@ -124,6 +138,7 @@ class RawToCellConverterSpec : public framework::Task
   bool mPrintTrailer = false;                                        ///< Print RCU trailer
   bool mDisablePedestalEvaluation = false;                           ///< Disable pedestal evaluation independent of settings in the RCU trailer
   bool mCreateRawDataErrors = false;                                 ///< Create raw data error objects for monitoring
+  bool mRequireSubspecLinks = false;                                 ///< Process only FEEIDs for a certain subspecification (FLP)
   std::chrono::time_point<std::chrono::system_clock> mReferenceTime; ///< Reference time for muting messages
   Geometry* mGeometry = nullptr;                                     ///!<! Geometry pointer
   std::unique_ptr<MappingHandler> mMapper = nullptr;                 ///!<! Mapper
@@ -137,6 +152,11 @@ class RawToCellConverterSpec : public framework::Task
 ///
 /// Refer to RawToCellConverterSpec::run for input and output specs
 framework::DataProcessorSpec getRawToCellConverterSpec(bool askDISTSTF, bool disableDecodingErrors, int subspecification);
+
+/// \brief Creating DataProcessorSpec for the EMCAL Cell Converter Spec
+///
+/// Refer to RawToCellConverterSpec::run for input and output specs
+framework::DataProcessorSpec getRawToCellConverterSpecFLP(bool askDISTSTF, bool disableDecodingErrors, int subspecification);
 
 } // namespace reco_workflow
 

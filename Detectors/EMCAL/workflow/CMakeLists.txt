@@ -31,6 +31,11 @@ o2_add_executable(reco-workflow
                   SOURCES src/emc-reco-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)
 
+o2_add_executable(multi-rawfitter-workflow
+                  COMPONENT_NAME emcal
+                  SOURCES src/multi-rawfitter-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)
+
 o2_add_executable(event-builder-workflow
                   COMPONENT_NAME emcal
                   SOURCES src/event-builder-workflow.cxx

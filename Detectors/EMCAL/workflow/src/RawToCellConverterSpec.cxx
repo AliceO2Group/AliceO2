@@ -102,6 +102,11 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   constexpr auto originEMC = o2::header::gDataOriginEMC;
   constexpr auto descRaw = o2::header::gDataDescriptionRawData;
 
+  std::vector<int> acceptLinks;
+  if (mRequireSubspecLinks) {
+    acceptLinks = getLinksForSubspec(mSubspecification);
+  }
+
   // reset message counter after 10 minutes
   auto currenttime = std::chrono::system_clock::now();
   std::chrono::duration<double> interval = mReferenceTime - currenttime;
@@ -162,6 +167,11 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       auto triggerOrbit = raw::RDHUtils::getTriggerOrbit(header);
       auto feeID = raw::RDHUtils::getFEEID(header);
       auto triggerbits = raw::RDHUtils::getTriggerType(header);
+
+      // Skip links in case links for a certain subspecification are required
+      if (mRequireSubspecLinks && !std::any_of(acceptLinks.begin(), acceptLinks.end(), [&feeID](int link) { return link == feeID; })) {
+        continue;
+      }
 
       o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
       std::shared_ptr<std::vector<RecCellInfo>> currentCellContainer;
@@ -572,6 +582,19 @@ void RawToCellConverterSpec::sendData(framework::ProcessingContext& ctx, const s
   }
 }
 
+std::vector<int> RawToCellConverterSpec::getLinksForSubspec(int subspec) const
+{
+  std::vector<int> links;
+  if (subspec == 146) {
+    links = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23};
+  } else if (subspec == 147) {
+    links = {24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39};
+  } else {
+    links = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39};
+  }
+  return links;
+}
+
 o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverterSpec(bool askDISTSTF, bool disableDecodingErrors, int subspecification)
 {
   constexpr auto originEMC = o2::header::gDataOriginEMC;
@@ -592,6 +615,43 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
                                           inputs,
                                           outputs,
                                           o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(subspecification, !disableDecodingErrors),
+                                          o2::framework::Options{
+                                            {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}},
+                                            {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}},
+                                            {"printtrailer", o2::framework::VariantType::Bool, false, {"Print RCU trailer (for debugging)"}},
+                                            {"no-mergeHGLG", o2::framework::VariantType::Bool, false, {"Do not merge HG and LG channels for same tower"}},
+                                            {"no-evalpedestal", o2::framework::VariantType::Bool, false, {"Disable pedestal evaluation"}}}};
+}
+
+o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverterSpecFLP(bool askDISTSTF, bool disableDecodingErrors, int subspecification)
+{
+  constexpr auto originEMC = o2::header::gDataOriginEMC;
+  std::vector<o2::framework::OutputSpec> outputs;
+
+  outputs.emplace_back(originEMC, "CELLS", subspecification, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(originEMC, "CELLSTRGR", subspecification, o2::framework::Lifetime::Timeframe);
+  if (!disableDecodingErrors) {
+    outputs.emplace_back(originEMC, "DECODERERR", subspecification, o2::framework::Lifetime::Timeframe);
+  }
+
+  std::vector<o2::framework::InputSpec> inputs{{"stf", o2::framework::ConcreteDataTypeMatcher{originEMC, o2::header::gDataDescriptionRawData}, o2::framework::Lifetime::Optional}};
+  if (askDISTSTF) {
+    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
+  }
+
+  std::string namesubspec = "EMCALRawToCellConverterSpec";
+  if (subspecification == 147) {
+    namesubspec += "DCAL";
+  } else if (subspecification == 146) {
+    namesubspec += "EMCAL";
+  } else {
+    LOG(error) << "Wrong subspecification for FLP";
+  }
+
+  return o2::framework::DataProcessorSpec{namesubspec,
+                                          inputs,
+                                          outputs,
+                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(subspecification, !disableDecodingErrors, true),
                                           o2::framework::Options{
                                             {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}},
                                             {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}},
