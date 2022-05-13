@@ -16,6 +16,31 @@
 namespace o2::framework
 {
 
+ServiceRegistry::ServiceRegistry(ServiceRegistry const& other)
+{
+  for (size_t i = 0; i < MAX_SERVICES; ++i) {
+    mServicesKey[i].store(other.mServicesKey[i].load());
+  }
+  mServicesValue = other.mServicesValue;
+  mServicesMeta = other.mServicesMeta;
+  for (size_t i = 0; i < other.mServicesBooked.size(); ++i) {
+    this->mServicesBooked[i] = other.mServicesBooked[i].load();
+  }
+}
+
+ServiceRegistry& ServiceRegistry::operator=(ServiceRegistry const& other)
+{
+  for (size_t i = 0; i < MAX_SERVICES; ++i) {
+    mServicesKey[i].store(other.mServicesKey[i].load());
+  }
+  mServicesValue = other.mServicesValue;
+  mServicesMeta = other.mServicesMeta;
+  for (size_t i = 0; i < other.mServicesBooked.size(); ++i) {
+    this->mServicesBooked[i] = other.mServicesBooked[i].load();
+  }
+  return *this;
+}
+
 ServiceRegistry::ServiceRegistry()
 {
   for (size_t i = 0; i < MAX_SERVICES; ++i) {
