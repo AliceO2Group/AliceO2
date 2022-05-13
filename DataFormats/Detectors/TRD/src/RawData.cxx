@@ -132,7 +132,7 @@ uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader* header, const o2::trd::Tr
   /*
    * Q0/1 are 7 bits, Q2 is 6 bits.
    * Q0 is completely in TrackletMCMData::data and Q2 is completely in TrackletHCHeader::pid*,
-   * while Q1 is split with the lower 5 bits in the header and the upper 2 bits in the data.
+   * while Q1 is split with the lower 5 bits in the data and the upper 2 bits in the header.
    *
    * A detailed description of the format can be found in
    * https://alicetrd.web.cern.ch/alicetrd/tdp/main.pdf under 17.2.1
