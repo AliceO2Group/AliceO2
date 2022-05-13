@@ -48,7 +48,7 @@ std::string FileProducer::newFileName() const
   auto pid = getpid();
 
   auto result = fmt::format(this->mName, fmt::arg("hostname", hostname), fmt::arg("pid", pid), fmt::arg("timestamp", millisec_since_epoch));
-  auto marker = fmt::format("{timestamp}", millisec_since_epoch);
+  auto marker = fmt::format("{timestamp}", fmt::arg("timestamp", millisec_since_epoch));
 
   auto files = DirectoryLoader::load(this->mPath, marker); // already sorted starting by part of name at pos
 
