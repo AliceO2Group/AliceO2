@@ -361,6 +361,9 @@ class CcdbApi //: public DatabaseInterface
 #endif
 
  private:
+  // report what file is read and for which purpose
+  void logReading(const std::string& fname, const std::string& comment) const;
+
   /**
    * Initialize in local mode; Objects will be retrieved from snapshot
    *

@@ -784,6 +784,7 @@ void* CcdbApi::extractFromTFile(TFile& file, TClass const* cl)
 
 void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const
 {
+  logReading(filename, "retrieve");
   if (!std::filesystem::exists(filename)) {
     LOG(error) << "Local snapshot " << filename << " not found \n";
     return nullptr;
@@ -842,6 +843,7 @@ bool CcdbApi::initTGrid() const
 
 void* CcdbApi::downloadAlienContent(std::string const& url, std::type_info const& tinfo) const
 {
+  logReading(url, "retrieve");
   if (!initTGrid()) {
     return nullptr;
   }
@@ -1649,7 +1651,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
 void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& path, std::map<std::string, std::string>* localHeaders) const
 {
   // Read file to memory as vector. For special case of the locally cached file retriev metadata stored directly in the file
-  LOGP(debug, "loading from {} to memory", path);
+  logReading(path, "load to memory");
   constexpr size_t MaxCopySize = 0x1L << 25;
   auto signalError = [&dest, localHeaders]() {
     dest.clear();
@@ -1731,6 +1733,11 @@ void CcdbApi::checkMetadataKeys(std::map<std::string, std::string> const& metada
     LOG(fatal) << "Some metadata keys have invalid characters, please fix!";
   }
   return;
+}
+
+void CcdbApi::logReading(const std::string& fname, const std::string& comment) const
+{
+  LOGP(info, "ccdb reads {} ({}, agent_id: {}), ", fname, comment, mUniqueAgentID);
 }
 
 } // namespace o2
