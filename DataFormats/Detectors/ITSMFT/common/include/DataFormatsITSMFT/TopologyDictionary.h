@@ -160,9 +160,19 @@ class TopologyDictionary
   /// Returns the number of elements in the dicionary;
   int getSize() const { return (int)mVectorOfIDs.size(); }
   ///Returns the local position of a compact cluster
-  math_utils::Point3D<float> getClusterCoordinates(const CompCluster& cl) const;
+
+  // array version of getClusterCoordinates
+  template <typename T = float>
+  std::array<T, 3> getClusterCoordinatesA(const CompCluster& cl) const;
+  /// Returns the local position of a compact cluster
+  template <typename T = float>
+  static std::array<T, 3> getClusterCoordinatesA(const CompCluster& cl, const ClusterPattern& patt, bool isGroup = true);
+
+  template <typename T = float>
+  math_utils::Point3D<T> getClusterCoordinates(const CompCluster& cl) const;
   ///Returns the local position of a compact cluster
-  static math_utils::Point3D<float> getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt, bool isGroup = true);
+  template <typename T = float>
+  static math_utils::Point3D<T> getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt, bool isGroup = true);
 
   static TopologyDictionary* loadFrom(const std::string& fileName = "", const std::string& objName = "ccdb_object");
 
