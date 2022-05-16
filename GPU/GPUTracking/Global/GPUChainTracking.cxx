@@ -364,7 +364,9 @@ int GPUChainTracking::Init()
     mQA.reset(new GPUQA(this));
   }
   if (GetProcessingSettings().eventDisplay) {
+#ifndef GPUCA_ALIROOT_LIB
     mEventDisplay.reset(GPUDisplayInterface::getDisplay(GetProcessingSettings().eventDisplay, this, mQA.get()));
+#endif
     if (mEventDisplay == nullptr) {
       throw std::runtime_error("Error loading event display");
     }

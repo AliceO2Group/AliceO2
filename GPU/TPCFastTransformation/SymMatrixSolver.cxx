@@ -25,7 +25,9 @@
 using namespace std;
 using namespace GPUCA_NAMESPACE::gpu;
 
+#ifndef GPUCA_ALIROOT_LIB
 ClassImp(GPUCA_NAMESPACE::gpu::SymMatrixSolver);
+#endif
 
 void SymMatrixSolver::solve()
 {
