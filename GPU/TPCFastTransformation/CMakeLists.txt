@@ -112,7 +112,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
 endif()
 
 if(${ALIGPU_BUILD_TYPE} STREQUAL "ALIROOT")
-  add_definitions(-DGPUCA_ALIROOT_LIB)
+  add_definitions(-DGPUCA_ALIROOT_LIB -DGPUCA_NO_FMT)
 
   set(SRCS ${SRCS} TPCFastTransformManager.cxx TPCFastTransformQA.cxx
            ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx

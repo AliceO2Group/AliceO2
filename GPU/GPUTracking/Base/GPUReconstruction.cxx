@@ -21,6 +21,7 @@
 #include <queue>
 #include <mutex>
 #include <condition_variable>
+#include <array>
 
 #ifdef _WIN32
 #include <windows.h>

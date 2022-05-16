@@ -289,7 +289,7 @@ GPUd() Type MultivariatePolynomialHelper<0, 0>::combination_with_repetiton(const
           }
           val += term;
         } else {
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_FMT)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_FMT) && !defined(GPUCA_ALIROOT_LIB)
           std::string term{};
           for (size_t i = 1; i < size; ++i) {
             term += fmt::format("x[{}] * ", pos[i]);
