@@ -9,12 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-///
-/// \file    FileProducer.h
+/// \file FileWatcher.h
+/// \brief Observing folder for created and removed files - preserving current
 /// \author julian.myrcha@cern.ch
 
-#ifndef ALICE_O2_EVENTVISUALISATION_WORKFLOW_FILEPRODUCER_H
-#define ALICE_O2_EVENTVISUALISATION_WORKFLOW_FILEPRODUCER_H
+#ifndef O2EVE_DIRECTORYLOADER_H
+#define O2EVE_DIRECTORYLOADER_H
 
 #include <string>
 #include <deque>
@@ -23,21 +23,14 @@ namespace o2
 {
 namespace event_visualisation
 {
-class FileProducer
+
+class DirectoryLoader
 {
- private:
-  size_t mFilesInFolder;
-  std::string mPath;
-  std::string mName;
-
  public:
-  explicit FileProducer(const std::string& path, int filesInFolder = 10,
-                        const std::string& name = "tracks_{hostname}_{pid}_{timestamp}.json");
-
-  [[nodiscard]] std::string newFileName() const;
+  static std::deque<std::string> load(const std::string& path, const std::string& marker);
 };
 
 } // namespace event_visualisation
 } // namespace o2
 
-#endif // ALICE_O2_EVENTVISUALISATION_WORKFLOW_FILEPRODUCER_H
+#endif // O2EVE_DIRECTORYLOADER_H
