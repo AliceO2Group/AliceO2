@@ -125,3 +125,5 @@
 #/Utilities/Tools
 #/Utilities/hough
 /Utilities/rANS               @shahor02 @MichaelLettrich
+
+/scripts/datamodel-doc @jgrosseo @pbuehler
