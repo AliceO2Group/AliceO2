@@ -522,7 +522,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     fwdInfo.trackTime = track.getTimeMUS().getTimeStamp() * 1.e3;
     fwdInfo.trackTimeRes = track.getTimeMUS().getTimeStampError() * 1.e3;
 
-    getMCHBitMap(fwdInfo.matchmchtrackid);
+    getMCHBitMap(track.getMCHTrackID());
 
     int midTrackID = track.getMIDTrackID();
     if (midTrackID != -1) { // check matching just in case
