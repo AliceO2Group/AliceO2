@@ -67,8 +67,11 @@ Detector::Detector(Bool_t active)
   resetHitIndices();
 
 #ifdef ZDC_FASTSIM_ONNX
-  // creating classifier object
-  if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierPath.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales.empty()) {
+  // If FastSim module was disabled, log appropriate message
+  // otherwise check if all necessary parameters were passed, if so try build objects
+  if (!o2::zdc::ZDCSimParam::Instance().useZDCFastSim) {
+    LOG(info) << "FastSim module disabled";
+  } else if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierPath.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales.empty()) {
     auto eonScales = o2::zdc::fastsim::loadScales(o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales);
     if (!eonScales.has_value()) {
       LOG(error) << "Error while reading model scales from: "
@@ -88,7 +91,7 @@ Detector::Detector(Bool_t active)
         } else {
           mModelScaler.setScales(modelScales->first, modelScales->second);
           mFastSimModel = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath, 1);
-          LOG(info) << "\n FastSim module enabled";
+          LOG(info) << "FastSim module enabled";
         }
       }
     }
