@@ -66,19 +66,33 @@ uint16_t buildTRDFeeID(int supermodule, int side, int endpoint)
   return feeid.word;
 }
 
-void buildTrackletMCMData(TrackletMCMData& trackletword, const uint slope, const uint pos, const uint q0, const uint q1, const uint q2)
+void buildTrackletMCMData(TrackletMCMData& trackletword, const Tracklet64& tracklet, uint8_t checkbit) noexcept
 {
-  trackletword.slope = slope;
-  trackletword.pos = pos;
-  trackletword.pid = (q0 & 0x7f) & ((q1 & 0x1f) << 7); //q2 sits with upper 2 bits of q1 in the header pid word, hence the 0x1f so 5 bits are used here.
-  trackletword.checkbit = 1;
+  trackletword.slope = tracklet.getSlope();
+  trackletword.pos = tracklet.getPosition();
+  trackletword.pid = ((tracklet.getQ0() & 0x7f) << 5) | (tracklet.getQ1() & 0x1f);
+  /**                      |                         |
+   *                       |                         |
+   *                       |                         -> Taking the lower 5 bits of the Q1 charge
+   *                       -> shifting the Q0 charge 5 bits to the left
+   */
+  trackletword.checkbit = checkbit;
+}
+
+uint32_t getTrackletMCMHeaderQ(const Tracklet64& tracklet) noexcept
+{
+  return ((tracklet.getQ2() & 0x3f) << 2) | ((tracklet.getQ1() >> 5) & 0x3);
+  /**                          |       |                          |     |
+   *                           |       -> shift 2 to left         |     -> only two bits of Q1 are part of the header
+   *                           -> Q2 is 6 bits                    -> shift 5 the right for upper 2 bits
+   */
 }
 
 uint32_t getlinkerrorflag(const HalfCRUHeader& cruhead, const uint32_t link)
 {
   // link is the link you are requesting information on, 0-14
   uint32_t errorflag = 0;
-  //dealing with word0-2
+  // dealing with word0-2
   errorflag = cruhead.errorflags[link].errorflag;
   return errorflag;
 }

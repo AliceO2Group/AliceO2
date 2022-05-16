@@ -12,6 +12,7 @@
 #ifndef ALICEO2_TRD_RAWDATA_H
 #define ALICEO2_TRD_RAWDATA_H
 
+#include "DataFormatsTRD/Tracklet64.h"
 #include "fairlogger/Logger.h"
 
 /// \class TRDRDH
@@ -422,7 +423,8 @@ void buildTrackletHCHeaderd(TrackletHCHeader& header, int detector, int rob, int
 uint16_t buildTRDFeeID(int supermodule, int side, int endpoint);
 uint32_t setHalfCRUHeader(HalfCRUHeader& cruhead, int crurdhversion, int bunchcrossing, int stopbits, int endpoint, int eventtype, int feeid, int cruid);
 uint32_t setHalfCRUHeaderLinkData(HalfCRUHeader& cruhead, int link, int size, int errors);
-void buildTrackletMCMData(TrackletMCMData& trackletword, const uint slope, const uint pos, const uint q0, const uint q1, const uint q2);
+void buildTrackletMCMData(TrackletMCMData& trackletword, const Tracklet64& tracklet, uint8_t checkbit = 1) noexcept;
+uint32_t getTrackletMCMHeaderQ(const Tracklet64& tracklet) noexcept;
 uint32_t unpacklinkinfo(const HalfCRUHeader& cruhead, const uint32_t link, const bool data);
 uint32_t getlinkerrorflag(const HalfCRUHeader& cruhead, const uint32_t link);
 uint32_t getlinkdatasize(const HalfCRUHeader& cruhead, const uint32_t link);

@@ -500,11 +500,9 @@ int Trap2CRU::buildTrackletRawData(const int trackletindex, const int linkid)
   }
   while (linkid == HelperMethods::getLinkIDfromHCID(mTracklets[trackletindex + trackletcounter].getHCID()) && header.col == mTracklets[trackletindex + trackletcounter].getColumn() && header.padrow == mTracklets[trackletindex + trackletcounter].getPadRow()) {
     int trackletoffset = trackletindex + trackletcounter;
-    buildTrackletMCMData(trackletdata[trackletcounter], mTracklets[trackletoffset].getSlope(),
-                         mTracklets[trackletoffset].getPosition(), mTracklets[trackletoffset].getQ0(),
-                         mTracklets[trackletoffset].getQ1(), mTracklets[trackletoffset].getQ2());
-    unsigned int headerqpart = ((mTracklets[trackletoffset].getQ2() & 0x2f) << 2) + ((mTracklets[trackletoffset].getQ1() >> 6) & 0x3);
-    //all 6 bits of Q1 and 2 upper bits of 7bit Q1
+    buildTrackletMCMData(trackletdata[trackletcounter], mTracklets[trackletcounter]);
+    unsigned int headerqpart = getTrackletMCMHeaderQ(mTracklets[trackletoffset]);
+    // all 6 bits of Q1 and 2 upper bits of 7bit Q1
     if (mVerbosity) {
       if (mTracklets[trackletoffset].getQ2() > 0x2f) {
         LOGP(warning, "Tracklet Q2 out of range for raw data {0:#x}", mTracklets[trackletoffset].getQ2());

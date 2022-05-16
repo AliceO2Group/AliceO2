@@ -746,28 +746,24 @@ int TrapSimulator::packData(std::vector<uint32_t>& rawdata, uint32_t offset) con
   mcmhead.padrow = ((mRobPos >> 1) << 2) | (mMcmPos >> 2);
   int mcmcol = mMcmPos % NMCMROBINCOL + (mRobPos % 2) * NMCMROBINCOL;
   int padcol = mcmcol * NCOLMCM + NCOLMCM + 1;
-  mcmhead.col = 1; //TODO check this, cant call FeeParam due to virtual function
+  mcmhead.col = 1; // TODO check this, can't call FeeParam due to virtual function
   LOG(debug) << "packing data with trackletarry64 size of : " << mTrackletArray64.size();
   for (int i = 0; i < 3; i++) {
     if (i < mTrackletArray64.size()) { // we have  a tracklet
       LOG(debug) << "we have a tracklet at i=" << i << " with trackletword 0x" << mTrackletArray64[i].getTrackletWord();
       switch (i) {
         case 0:
-          mcmhead.pid0 = ((mTrackletArray64[0].getQ2()) << 2) + ((mTrackletArray64[0].getQ1()) >> 5);
+          mcmhead.pid0 = getTrackletMCMHeaderQ(mTrackletArray64[0]);
           break; // all of Q2 and upper 2 bits of Q1.
         case 1:
-          mcmhead.pid1 = ((mTrackletArray64[1].getQ2()) << 2) + ((mTrackletArray64[1].getQ1()) >> 5);
+          mcmhead.pid1 = getTrackletMCMHeaderQ(mTrackletArray64[1]);
           break; // all of Q2 and upper 2 bits of Q1.
         case 2:
-          mcmhead.pid2 = ((mTrackletArray64[2].getQ2()) << 2) + ((mTrackletArray64[2].getQ1()) >> 5);
+          mcmhead.pid2 = getTrackletMCMHeaderQ(mTrackletArray64[2]);
           break; // all of Q2 and upper 2 bits of Q1.
       }
-      tracklets[i].checkbit = 1;
       LOG(debug) << mTrackletArray64[i];
-      tracklets[i].pid = mTrackletArray64[i].getQ0() & (mTrackletArray64[i].getQ1() << 8);
-      tracklets[i].slope = mTrackletArray64[i].getSlope();
-      tracklets[i].pos = mTrackletArray64[i].getPosition();
-      tracklets[i].checkbit = 0;
+      buildTrackletMCMData(tracklets[i], mTrackletArray64[i], 0);
       trackletcount++;
     } else { // else we dont have a tracklet so mark it off in the header.
       switch (i) {
