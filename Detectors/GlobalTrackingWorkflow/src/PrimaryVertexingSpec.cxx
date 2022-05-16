@@ -30,6 +30,7 @@
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsVertexing/PVertexer.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -45,15 +46,18 @@ namespace o2d = o2::dataformats;
 class PrimaryVertexingSpec : public Task
 {
  public:
-  PrimaryVertexingSpec(std::shared_ptr<DataRequest> dr, bool skip, bool validateWithIR, bool useMC)
-    : mDataRequest(dr), mSkip(skip), mUseMC(useMC), mValidateWithIR(validateWithIR) {}
+  PrimaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool skip, bool validateWithIR, bool useMC)
+    : mDataRequest(dr), mGGCCDBRequest(gr), mSkip(skip), mUseMC(useMC), mValidateWithIR(validateWithIR) {}
   ~PrimaryVertexingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(ProcessingContext& pc);
   std::shared_ptr<DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::vertexing::PVertexer mVertexer;
   bool mSkip{false};           ///< skip vertexing
   bool mUseMC{false};          ///< MC flag
@@ -64,6 +68,7 @@ class PrimaryVertexingSpec : public Task
 
 void PrimaryVertexingSpec::init(InitContext& ic)
 {
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP();
@@ -102,7 +107,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
 {
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
-
+  updateTimeDependentParams(pc);
   std::vector<PVertex> vertices;
   std::vector<GIndex> vertexTrackIDs;
   std::vector<V2TRef> v2tRefs;
@@ -175,6 +180,16 @@ void PrimaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
+void PrimaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+}
+
+void PrimaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+}
+
 DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool skip, bool validateWithFT0, bool useMC)
 {
   std::vector<OutputSpec> outputs;
@@ -193,11 +208,18 @@ DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool skip, bool 
     outputs.emplace_back("GLO", "PVTX_MCTR", 0, Lifetime::Timeframe);
   }
 
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+                                                              true,                           // GRPECS=true
+                                                              false,                          // GRPLHCIF
+                                                              false,                          // GRPMagField
+                                                              false,                          // askMatLUT
+                                                              o2::base::GRPGeomRequest::None, // geometry
+                                                              dataRequest->inputs);
   return DataProcessorSpec{
     "primary-vertexing",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(dataRequest, skip, validateWithFT0, useMC)},
+    AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(dataRequest, ggRequest, skip, validateWithFT0, useMC)},
     Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
 
