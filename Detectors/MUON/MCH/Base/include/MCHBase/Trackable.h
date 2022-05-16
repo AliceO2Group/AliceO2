@@ -40,7 +40,6 @@ bool isTrackable(std::array<int, 10> itemsPerChamber,
  * @tparam T the type of items : implementation exists so far
  * only for mch::Digit (clusters and pre-clusters to come next)
  */
-#include "DataFormatsMCH/ROFRecord.h"
 template <typename T>
 std::array<int, 10> perChamber(gsl::span<const T> items);
 
