@@ -594,6 +594,7 @@ struct RecoContainer {
   auto getHMPMatchTriggers() const { return getSpan<o2::hmpid::Trigger>(GTrackID::HMP, TRACKREFS); }
   auto getHMPMatches() const { return getSpan<o2::dataformats::MatchInfoHMP>(GTrackID::HMP, MATCHES); }
   auto getHMPPhotsClusterCharges() const { return getSpan<float>(GTrackID::HMP, PATTERNS); }
+  auto getHMPMatchesMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::HMP, MCLABELS); }
 
   // TOF clusters
   auto getTOFClusters() const { return getSpan<o2::tof::Cluster>(GTrackID::TOF, CLUSTERS); }
