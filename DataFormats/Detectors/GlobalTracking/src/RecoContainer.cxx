@@ -421,6 +421,17 @@ void DataRequest::requestEMCALCells(bool mc)
   requestMap["EMCCells"] = mc;
 }
 
+void DataRequest::requestHMPMatches(bool mc)
+{
+  addInput({"matchHMP", "HMP", "MATCHES", 0, Lifetime::Timeframe});
+  addInput({"matchTriggerHMP", "HMP", "TRACKREFS", 0, Lifetime::Timeframe});
+  addInput({"matchPhotsCharge", "HMP", "PATTERNS", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"clsHMP_GLO_MCTR", "HMP", "MCLABELS", 0, Lifetime::Timeframe});
+  }
+  requestMap["matchHMP"] = mc;
+}
+
 void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
 {
   // request tracks for sources probided by the mask
@@ -473,6 +484,9 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   if (GTrackID::includesDet(DetID::CTP, src)) {
     requestCTPDigits(false); // RS FIXME: at the moment does not support MC
   }
+  if (src[GTrackID::HMP]) {
+    requestHMPMatches(useMC);
+  }
 }
 
 void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
@@ -509,6 +523,9 @@ void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
   }
   if (GTrackID::includesDet(DetID::MCH, src)) {
     requestMCHClusters(useMC);
+  }
+  if (GTrackID::includesDet(DetID::HMP, src)) {
+    requestHMPClusters(useMC);
   }
 }
 
@@ -698,6 +715,10 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   req = reqMap.find("IRFramesITS");
   if (req != reqMap.end()) {
     addIRFramesITS(pc);
+  }
+  req = reqMap.find("matchHMP");
+  if (req != reqMap.end()) {
+    addHMPMatches(pc, req->second);
   }
 }
 
