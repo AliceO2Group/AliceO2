@@ -14,7 +14,7 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CPVBase/Geometry.h"
-#include "CPVBase/CPVSimParams.h"
+#include "CPVBase/CPVCalibParams.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 
@@ -27,8 +27,8 @@ using NoiseTimeSlot = o2::calibration::TimeSlot<o2::cpv::NoiseCalibData>;
 //_____________________________________________________________________________
 NoiseCalibData::NoiseCalibData()
 {
-  auto& cpvParams = o2::cpv::CPVSimParams::Instance();
-  mNoiseThreshold = cpvParams.mNoiseClbThreshold;
+  auto& cpvParams = CPVCalibParams::Instance();
+  mNoiseThreshold = cpvParams.mNoiseThreshold;
   for (int i = 0; i < Geometry::kNCHANNELS; i++) {
     mOccupancyMap.push_back(0);
   }
@@ -64,11 +64,11 @@ NoiseCalibrator::NoiseCalibrator()
 {
   LOG(info) << "NoiseCalibrator::NoiseCalibrator() : "
             << "Noise calibrator created!";
-  auto& cpvParams = o2::cpv::CPVSimParams::Instance();
-  mMinEvents = cpvParams.mNoiseClbMinEvents;
-  mToleratedChannelEfficiencyLow = cpvParams.mNoiseClbToleratedChannelEfficiencyLow;
-  mToleratedChannelEfficiencyHigh = cpvParams.mNoiseClbToleratedChannelEfficiencyHigh;
-  mNoiseFrequencyCriteria = cpvParams.mNoiseClbFrequencyCriteria;
+  auto& cpvParams = CPVCalibParams::Instance();
+  mMinEvents = cpvParams.mNoiseMinEvents;
+  mToleratedChannelEfficiencyLow = cpvParams.mNoiseToleratedChannelEfficiencyLow;
+  mToleratedChannelEfficiencyHigh = cpvParams.mNoiseToleratedChannelEfficiencyHigh;
+  mNoiseFrequencyCriteria = cpvParams.mNoiseFrequencyCriteria;
 }
 //_____________________________________________________________________________
 void NoiseCalibrator::initOutput()
