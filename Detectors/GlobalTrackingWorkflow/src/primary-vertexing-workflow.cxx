@@ -123,7 +123,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
-  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
-
+  if (srcPV.any() && !configcontext.options().get<bool>("disable-root-output")) {
+    o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
+  }
   return std::move(specs);
 }
