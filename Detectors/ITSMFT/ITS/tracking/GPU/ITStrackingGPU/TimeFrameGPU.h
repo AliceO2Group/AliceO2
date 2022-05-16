@@ -27,6 +27,7 @@
 
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
+#include "GPUCommonLogger.h"
 
 namespace o2
 {
@@ -38,6 +39,13 @@ using namespace constants::its2;
 class TimeFrameGPUConfig;
 namespace gpu
 {
+
+template <class T>
+GPUhd() T* getPtrFromRuler(int index, T* src, const int* ruler, const int stride = 1)
+{
+  return src + ruler[index] * stride;
+}
+
 template <int NLayers = 7>
 class TimeFrameGPU : public TimeFrame
 {
@@ -55,6 +63,7 @@ class TimeFrameGPU : public TimeFrame
   float getDeviceMemory();
   Cluster* getDeviceClustersOnLayer(const int rofId, const int layerId) const;
   unsigned char* getDeviceUsedClustersOnLayer(const int rofId, const int layerId);
+  int* getDeviceROframesClustersOnLayer(const int layerId) const { return mROframesClustersD[layerId].get(); }  
   int getNClustersLayer(const int rofId, const int layerId) const;
   TimeFrameGPUConfig& getConfig() { return mConfig; }
 
@@ -91,7 +100,8 @@ class TimeFrameGPU : public TimeFrame
   std::array<Vector<int>, NLayers - 1> mIndexTablesD;
   std::array<Vector<int>, NLayers> mClusterExternalIndicesD;
   std::array<Vector<Tracklet>, NLayers - 1> mTrackletsD;
-  int* mCUBTmpBuffers; // don't know whether will be used by the tracker
+  std::array<Vector<int>, NLayers> mROframesClustersD; // layers x roframes
+  int* mCUBTmpBuffers;                                 // don't know whether will be used by the tracker
 
   // Vertexer only
   Vector<Line> mLines;
@@ -116,91 +126,55 @@ class TimeFrameGPU : public TimeFrame
 template <int NLayers>
 inline Cluster* TimeFrameGPU<NLayers>::getDeviceClustersOnLayer(const int rofId, const int layerId) const
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
-  return mClustersD[layerId].get() + mROframesClusters[layerId][rofId];
+  return getPtrFromRuler<Cluster>(rofId, mClustersD[layerId].get(), mROframesClusters[layerId].data());
 }
 
 template <int NLayers>
 inline unsigned char* TimeFrameGPU<NLayers>::getDeviceUsedClustersOnLayer(const int rofId, const int layerId)
 {
-    if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
-  return mUsedClustersD[layerId].get() + mROframesClusters[layerId][rofId];
+  return getPtrFromRuler<unsigned char>(rofId, mUsedClustersD[layerId].get(), mROframesClusters[layerId].data());
 }
 
 template <int NLayers>
 inline int TimeFrameGPU<NLayers>::getNClustersLayer(const int rofId, const int layerId) const
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning 0 as value";
-    return 0;
-  }
   return static_cast<int>(mROframesClusters[layerId][rofId + 1] - mROframesClusters[layerId][rofId]);
 }
 
 template <int NLayers>
 inline int* TimeFrameGPU<NLayers>::getDeviceNTrackletsCluster(int rofId, int combId)
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
-  return mNTrackletsPerClusterD[combId].get() + mROframesClusters[1][rofId];
+  return getPtrFromRuler<int>(rofId, mNTrackletsPerClusterD[combId].get(), mROframesClusters[1].data());
 }
 
 template <int NLayers>
 inline unsigned char* TimeFrameGPU<NLayers>::getDeviceUsedTracklets(const int rofId)
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
-  return mUsedTracklets.get() + mROframesClusters[1][rofId] * mConfig.maxTrackletsPerCluster;
+  return getPtrFromRuler<unsigned char>(rofId, mUsedTracklets.get(), mROframesClusters[1].data(), mConfig.maxTrackletsPerCluster);
 }
 
 template <int NLayers>
 inline Line* TimeFrameGPU<NLayers>::getDeviceLines(const int rofId)
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
-  return mLines.get() + mROframesClusters[1][rofId];
+  return getPtrFromRuler(rofId, mLines.get(), mROframesClusters[1].data());
 }
 
 template <int NLayers>
 inline Tracklet* TimeFrameGPU<NLayers>::getDeviceTracklets(const int rofId, const int layerId)
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
-  return mTrackletsD[layerId].get() + mROframesClusters[1][rofId] * mConfig.maxTrackletsPerCluster;
+  return getPtrFromRuler(rofId, mTrackletsD[layerId].get(), mROframesClusters[1].data(), mConfig.maxTrackletsPerCluster);
 }
 
 template <int NLayers>
 inline int* TimeFrameGPU<NLayers>::getDeviceNFoundLines(const int rofId)
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
-  return mNFoundLines.get() + mROframesClusters[1][rofId];
+  return getPtrFromRuler<int>(rofId, mNFoundLines.get(), mROframesClusters[1].data());
 }
 
 template <int NLayers>
 inline int* TimeFrameGPU<NLayers>::getDeviceExclusiveNFoundLines(const int rofId)
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
-  return mNExclusiveFoundLines.get() + mROframesClusters[1][rofId];
+  return getPtrFromRuler<int>(rofId, mNExclusiveFoundLines.get(), mROframesClusters[1].data());
 }
 
 template <int NLayers>
@@ -215,50 +189,30 @@ inline int* TimeFrameGPU<NLayers>::getDeviceCUBBuffer(const size_t rofId)
 template <int NLayers>
 inline float* TimeFrameGPU<NLayers>::getDeviceXYCentroids(const int rofId)
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
   return mXYCentroids.get() + 2 * rofId * mConfig.maxCentroidsXYCapacity;
 }
 
 template <int NLayers>
 inline float* TimeFrameGPU<NLayers>::getDeviceZCentroids(const int rofId)
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
   return mZCentroids.get() + rofId * mConfig.maxLinesCapacity;
 }
 
 template <int NLayers>
 inline int* TimeFrameGPU<NLayers>::getDeviceXHistograms(const int rofId)
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
   return mXYZHistograms[0].get() + rofId * mConfig.histConf.nBinsXYZ[0];
 }
 
 template <int NLayers>
 inline int* TimeFrameGPU<NLayers>::getDeviceYHistograms(const int rofId)
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
   return mXYZHistograms[1].get() + rofId * mConfig.histConf.nBinsXYZ[1];
 }
 
 template <int NLayers>
 inline int* TimeFrameGPU<NLayers>::getDeviceZHistograms(const int rofId)
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
   return mXYZHistograms[2].get() + rofId * mConfig.histConf.nBinsXYZ[2];
 }
 
@@ -269,30 +223,18 @@ inline hipcub::KeyValuePair<int, int>* TimeFrameGPU<NLayers>::getTmpVertexPositi
 inline cub::KeyValuePair<int, int>* TimeFrameGPU<NLayers>::getTmpVertexPositionBins(const int rofId)
 #endif
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
   return mTmpVertexPositionBins.get() + 3 * rofId;
 }
 
 template <int NLayers>
 inline float* TimeFrameGPU<NLayers>::getDeviceBeamPosition(const int rofId)
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
   return mBeamPosition.get() + 2 * rofId;
 }
 
 template <int NLayers>
 inline Vertex* TimeFrameGPU<NLayers>::getDeviceVertices(const int rofId)
 {
-  if (rofId < 0 || rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-    return nullptr;
-  }
   return mGPUVertices.get() + rofId * mConfig.maxVerticesCapacity;
 }
 

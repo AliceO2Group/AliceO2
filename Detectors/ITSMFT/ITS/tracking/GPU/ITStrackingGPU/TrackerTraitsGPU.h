@@ -26,11 +26,16 @@ namespace gpu
 {
 template <int NLayers>
 struct StaticTrackingParameters {
-  // StaticTrackingParameters<NLayers>& operator=(const StaticTrackingParameters<NLayers>& t);
+  StaticTrackingParameters<NLayers>& operator=(const StaticTrackingParameters<NLayers>& t) = default;
   // int CellMinimumLevel();
   /// General parameters
   int ClusterSharing = 0;
   int MinTrackLength = NLayers;
+  float NSigmaCut = 5;
+  float PVres = 1.e-2f;
+  int DeltaROF = 0;
+  int ZBins{256};
+  int PhiBins{128};
   /// Trackleting cuts
   float TrackletMaxDeltaPhi = 0.3f;
   float TrackletMaxDeltaZ[NLayers - 1] = {0.1f, 0.1f, 0.3f, 0.3f, 0.3f, 0.3f};

@@ -237,16 +237,17 @@ GPUg() void trackletSelectionKernel(
   }
 }
 
-GPUg() void computeCentroidsKernel(Line* lines,
-                                   int* nFoundLines,
-                                   int* nExclusiveFoundLines,
-                                   const size_t nClustersMiddleLayer,
-                                   float* centroids,
-                                   const float lowHistX,
-                                   const float highHistX,
-                                   const float lowHistY,
-                                   const float highHistY,
-                                   const float pairCut)
+GPUg() void computeCentroidsKernel(
+  Line* lines,
+  int* nFoundLines,
+  int* nExclusiveFoundLines,
+  const size_t nClustersMiddleLayer,
+  float* centroids,
+  const float lowHistX,
+  const float highHistX,
+  const float lowHistY,
+  const float highHistY,
+  const float pairCut)
 {
   const int nLines = nExclusiveFoundLines[nClustersMiddleLayer - 1] + nFoundLines[nClustersMiddleLayer - 1];
   const int maxIterations{nLines * (nLines - 1) / 2};
@@ -281,23 +282,24 @@ GPUg() void computeCentroidsKernel(Line* lines,
   }
 }
 
-GPUg() void computeZCentroidsKernel(const int nLines,
-                                    const cub::KeyValuePair<int, int>* tmpVtX,
-                                    float* beamPosition,
-                                    Line* lines,
-                                    float* centroids,
-                                    const int* histX, // X
-                                    const float lowHistX,
-                                    const float binSizeHistX,
-                                    const int nBinsHistX,
-                                    const int* histY, // Y
-                                    const float lowHistY,
-                                    const float binSizeHistY,
-                                    const int nBinsHistY,
-                                    const float lowHistZ, // Z
-                                    const float pairCut,
-                                    const int binOpeningX,
-                                    const int binOpeningY)
+GPUg() void computeZCentroidsKernel(
+  const int nLines,
+  const cub::KeyValuePair<int, int>* tmpVtX,
+  float* beamPosition,
+  Line* lines,
+  float* centroids,
+  const int* histX, // X
+  const float lowHistX,
+  const float binSizeHistX,
+  const int nBinsHistX,
+  const int* histY, // Y
+  const float lowHistY,
+  const float binSizeHistY,
+  const int nBinsHistY,
+  const float lowHistZ, // Z
+  const float pairCut,
+  const int binOpeningX,
+  const int binOpeningY)
 {
   for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < nLines; currentThreadIndex += blockDim.x * gridDim.x) {
     if (tmpVtX[0].value || tmpVtX[1].value) {
@@ -334,16 +336,17 @@ GPUg() void computeZCentroidsKernel(const int nLines,
   }
 }
 
-GPUg() void computeVertexKernel(cub::KeyValuePair<int, int>* tmpVertexBins,
-                                int* histZ, // Z
-                                const float lowHistZ,
-                                const float binSizeHistZ,
-                                const int nBinsHistZ,
-                                Vertex* vertices,
-                                float* beamPosition,
-                                const int vertIndex,
-                                const int minContributors,
-                                const int binOpeningZ)
+GPUg() void computeVertexKernel(
+  cub::KeyValuePair<int, int>* tmpVertexBins,
+  int* histZ, // Z
+  const float lowHistZ,
+  const float binSizeHistZ,
+  const int nBinsHistZ,
+  Vertex* vertices,
+  float* beamPosition,
+  const int vertIndex,
+  const int minContributors,
+  const int binOpeningZ)
 {
   for (size_t currentThreadIndex = blockIdx.x * blockDim.x + threadIdx.x; currentThreadIndex < binOpeningZ; currentThreadIndex += blockDim.x * gridDim.x) {
     if (currentThreadIndex == 0) {
