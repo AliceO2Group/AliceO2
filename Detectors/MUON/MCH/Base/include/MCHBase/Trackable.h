@@ -12,7 +12,6 @@
 #ifndef O2_MCH_TRACKABLE_H
 #define O2_MCH_TRACKABLE_H
 
-#include "DataFormatsMCH/ROFRecord.h"
 #include <array>
 #include <functional>
 #include <gsl/span>
@@ -41,6 +40,7 @@ bool isTrackable(std::array<int, 10> itemsPerChamber,
  * @tparam T the type of items : implementation exists so far
  * only for mch::Digit (clusters and pre-clusters to come next)
  */
+#include "DataFormatsMCH/ROFRecord.h"
 template <typename T>
 std::array<int, 10> perChamber(gsl::span<const T> items);
 
@@ -50,8 +50,8 @@ std::array<int, 5> perStation(gsl::span<const T> items)
 {
   std::array<int, 5> st{};
   std::array<int, 10> ch = perChamber(items);
-  for (auto i = 0; i < st.size(); i += 2) {
-    st[i] = ch[i] + ch[i + 1];
+  for (auto i = 0; i < st.size(); ++i) {
+    st[i] = ch[2 * i] + ch[2 * i + 1];
   }
   return st;
 }
