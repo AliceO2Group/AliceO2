@@ -96,22 +96,22 @@ class CPVNoiseCalibratorSpec : public o2::framework::Task
     LOG(info) << "Processing TF " << tfcounter << " with " << digits.size() << " digits in " << trigrecs.size() << " trigger records.";
     auto& slotTF = mCalibrator->getSlotForTF(tfcounter);
 
-    for (auto trigrec = trigrecs.begin(); trigrec != trigrecs.end(); trigrec++) { //event loop
+    for (auto trigrec = trigrecs.begin(); trigrec != trigrecs.end(); trigrec++) { // event loop
       // here we're filling TimeSlot event by event
       // and when last event is reached we call mCalibrator->process() to finalize the TimeSlot
       auto&& digitsInOneEvent = digits.subspan((*trigrec).getFirstEntry(), (*trigrec).getNumberOfObjects());
-      if ((trigrec + 1) == trigrecs.end()) { //last event in current TF, let's process corresponding TimeSlot
-        //LOG(info) << "last event, I call mCalibrator->process()";
+      if ((trigrec + 1) == trigrecs.end()) { // last event in current TF, let's process corresponding TimeSlot
+        // LOG(info) << "last event, I call mCalibrator->process()";
         mCalibrator->process(digitsInOneEvent); // fill TimeSlot with digits from 1 event and check slots for finalization
       } else {
-        slotTF.getContainer()->fill(digitsInOneEvent); //fill TimeSlot with digits from 1 event
+        slotTF.getContainer()->fill(digitsInOneEvent); // fill TimeSlot with digits from 1 event
       }
     }
 
     auto infoVecSize = mCalibrator->getCcdbInfoBadChannelMapVector().size();
     auto badMapVecSize = mCalibrator->getBadChannelMapVector().size();
     if (infoVecSize > 0) {
-      LOG(info) << "Created " << infoVecSize << " ccdb infos and " << badMapVecSize << " pedestal objects for TF " << tfcounter;
+      LOG(info) << "Created " << infoVecSize << " ccdb infos and " << badMapVecSize << " BadChannelMap objects for TF " << tfcounter;
     }
     sendOutput(pc.outputs());
   }

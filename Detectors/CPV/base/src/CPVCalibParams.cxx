@@ -9,16 +9,5 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
-
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::cpv::Geometry + ;
-#pragma link C++ class o2::cpv::CPVSimParams + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::cpv::CPVSimParams> + ;
-#pragma link C++ class o2::cpv::CPVCalibParams + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::cpv::CPVCalibParams> + ;
-
-#endif
+#include "CPVBase/CPVCalibParams.h"
+O2ParamImpl(o2::cpv::CPVCalibParams);
