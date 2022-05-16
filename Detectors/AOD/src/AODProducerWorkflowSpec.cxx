@@ -405,11 +405,17 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   // helper lambda for mch bitmap -- common for global and standalone tracks
   auto getMCHBitMap = [&](int mchTrackID) {
     if (mchTrackID != -1) { // check matching just in case
-      const auto mchTrack = mchTracks[mchTrackID];
+      // check to for JIRA-TICKET https://alice.its.cern.ch/jira/browse/O2-2939
+      // remove once underlying problem solved
+      if (mchTrackID < 0 || mchTrackID >= mchTracks.size()) {
+        LOG(error) << "Out of bound access to mchTracks of size " << mchTracks.size() << " with index " << mchTrackID;
+        return;
+      }
+      const auto& mchTrack = mchTracks[mchTrackID];
       int first = mchTrack.getFirstClusterIdx();
       int last = mchTrack.getLastClusterIdx();
       for (int i = first; i <= last; i++) { // check chamberIds of all clusters
-        const auto cluster = mchClusters[i];
+        const auto& cluster = mchClusters[i];
         int chamberId = cluster.getChamberId();
         fwdInfo.mchBitMap |= 1 << chamberId;
       }
