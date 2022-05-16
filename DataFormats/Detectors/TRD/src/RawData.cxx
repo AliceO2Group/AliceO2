@@ -68,6 +68,7 @@ uint16_t buildTRDFeeID(int supermodule, int side, int endpoint)
 
 void buildTrackletMCMData(TrackletMCMData& trackletword, const Tracklet64& tracklet, uint8_t checkbit) noexcept
 {
+  trackletword.word = 0;
   trackletword.slope = tracklet.getSlope();
   trackletword.pos = tracklet.getPosition();
   trackletword.pid = ((tracklet.getQ0() & 0x7f) << 5) | (tracklet.getQ1() & 0x1f);
