@@ -71,7 +71,6 @@ class ChannelCalibrator final : public o2::calibration::TimeSlotCalibration<Colu
 
   /// Finalizes the slot
   /// \param slot TimeSlot container
-  /// \return true if there is enough data
   void finalizeSlot(Slot& slot) final;
 
   /// Creates a new time slot
