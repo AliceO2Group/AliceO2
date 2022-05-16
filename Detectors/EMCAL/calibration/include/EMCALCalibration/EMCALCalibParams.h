@@ -29,9 +29,13 @@ namespace emcal
 // class containing the parameters to trigger the calibrations
 struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibParams> {
 
-  unsigned int minNEvents = 1e6;
-  unsigned int minNEntries = 1e5;
-  bool useNEventsForCalib = true;
+  unsigned int minNEvents = 1e6;              ///< minimum number of events to trigger the calibration
+  unsigned int minNEntries = 1e5;             ///< minimum number of entries to trigger the calibration
+  bool useNEventsForCalib = true;             ///< use the minimum number of events to trigger the calibration
+  std::string calibType = "time";             ///< type of calibration to run
+  std::string localRootFilePath = "";         ///< path to local root file in order to store the calibration histograms (off by default, only to be used for testing)
+  bool useScaledHistoForBadChannelMap = true; ///< use the scaled histogram for the bad channel map
+  bool enableTestMode = false;                ///< enable test mode for calibration
 
   O2ParamDef(EMCALCalibParams, "EMCALCalibParams");
 };

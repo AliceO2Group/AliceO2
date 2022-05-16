@@ -47,6 +47,9 @@
 using boostHisto2d = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
 using boostHisto1d = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
 
+using boostHisto2d_VarAxis = boost::histogram::histogram<std::tuple<boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>, boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>>>;
+using boostHisto1d_VarAxis = boost::histogram::histogram<std::tuple<boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>>>;
+
 namespace o2
 {
 namespace utils
@@ -396,10 +399,10 @@ std::vector<double> fitBoostHistoWithGaus(boost::histogram::histogram<axes...>& 
 }
 
 /// \brief Convert a 1D root histogram to a Boost histogram
-boostHisto1d boosthistoFromRoot_1D(TH1D* inHist1D);
+boostHisto1d_VarAxis boosthistoFromRoot_1D(TH1D* inHist1D);
 
 /// \brief Convert a 2D root histogram to a Boost histogram
-boostHisto2d boostHistoFromRoot_2D(TH2D* inHist2D);
+boostHisto2d_VarAxis boostHistoFromRoot_2D(TH2D* inHist2D);
 
 /// \brief Convert a 2D boost histogram to a root histogram
 template <class BoostHist>
