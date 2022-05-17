@@ -76,6 +76,7 @@ template <template <typename... Cs> typename BP, typename T, typename... Cs>
 std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPolicy, int minCatSize, int outsider)
 {
   arrow::Table* arrowTable = table.asArrowTable().get();
+  auto rowIterator = table.begin();
 
   uint64_t ind = 0;
   uint64_t selInd = 0;
@@ -91,19 +92,20 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
     selectedRows = table.getSelectedRows(); // vector<int64_t>
   }
 
-  auto binningColumns = binningPolicy.getColumns();
-  auto arrowColumns = o2::framework::binning_helpers::getArrowColumns(arrowTable, binningColumns);
+  auto persistentColumns = typename BP<Cs...>::persistent_columns_t{};
+  constexpr auto persistentColumnsCount = pack_size(persistentColumns);
+  auto arrowColumns = o2::soa::row_helpers::getArrowColumns(arrowTable, persistentColumns);
   auto chunksCount = arrowColumns[0]->num_chunks();
-  for (int i = 1; i < sizeof...(Cs); i++) {
+  for (int i = 1; i < persistentColumnsCount; i++) {
     if (arrowColumns[i]->num_chunks() != chunksCount) {
       throw o2::framework::runtime_error("Combinations: data size varies between selected columns");
     }
   }
 
   for (uint64_t ci = 0; ci < chunksCount; ++ci) {
-    auto chunks = o2::framework::binning_helpers::getChunks(arrowTable, binningColumns, ci);
+    auto chunks = o2::soa::row_helpers::getChunks(arrowTable, persistentColumns, ci);
     auto chunkLength = std::get<0>(chunks)->length();
-    for_<sizeof...(Cs) - 1>([&chunks, &chunkLength](auto i) {
+    for_<persistentColumnsCount - 1>([&chunks, &chunkLength](auto i) {
       if (std::get<i.value + 1>(chunks)->length() != chunkLength) {
         throw o2::framework::runtime_error("Combinations: data size varies between selected columns");
       }
@@ -123,7 +125,8 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
         selInd = selectedRows[ind];
       }
 
-      auto rowData = o2::framework::binning_helpers::getRowData(arrowTable, binningColumns, ci, ai);
+      auto rowData = o2::soa::row_helpers::getRowData<decltype(rowIterator), Cs...>(arrowTable, rowIterator, ci, ai, ind);
+
       int val = binningPolicy.getBin(rowData);
       if (val != outsider) {
         groupedIndices.emplace_back(val, ind);

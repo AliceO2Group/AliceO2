@@ -1054,6 +1054,14 @@ class Table
       }
     }
 
+    template <typename CD, typename... CDArgs>
+    auto getDynamicColumn() const
+    {
+      using decayed = std::decay_t<CD>;
+      static_assert(is_dynamic_t<decayed>(), "Requested column is not a dynamic column");
+      return static_cast<decayed>(*this).template getDynamicValue<CDArgs...>();
+    }
+
     using IP::size;
 
     using RowViewCore<IP, C...>::operator++;
@@ -1430,6 +1438,63 @@ constexpr bool is_binding_compatible_v()
 }
 
 void notBoundTable(const char* tableName);
+
+namespace row_helpers
+{
+template <typename... Cs>
+std::array<arrow::ChunkedArray*, sizeof...(Cs)> getArrowColumns(arrow::Table* table, framework::pack<Cs...>)
+{
+  static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
+  return std::array<arrow::ChunkedArray*, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())...};
+}
+
+template <typename... Cs>
+std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table* table, framework::pack<Cs...>, uint64_t ci)
+{
+  static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
+  return std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci)...};
+}
+
+template <typename C>
+typename C::type getSingleRowPersistentData(arrow::Table* table, uint64_t ci, uint64_t ai)
+{
+  return std::static_pointer_cast<o2::soa::arrow_array_for_t<typename C::type>>(o2::soa::getIndexFromLabel(table, C::columnLabel())->chunk(ci))->raw_values()[ai];
+}
+
+template <typename T, typename C>
+typename C::type getSingleRowDynamicData(T& rowIterator, uint64_t globalIndex)
+{
+  rowIterator.setCursor(globalIndex);
+  return rowIterator.template getDynamicColumn<C>();
+}
+
+template <typename T, typename C>
+typename C::type getSingleRowIndexData(T& rowIterator, uint64_t globalIndex)
+{
+  rowIterator.setCursor(globalIndex);
+  return rowIterator.template getId<C>();
+}
+
+template <typename T, typename C>
+typename C::type getSingleRowData(arrow::Table* table, T& rowIterator, uint64_t ci, uint64_t ai, uint64_t globalIndex)
+{
+  using decayed = std::decay_t<C>;
+  if constexpr (decayed::persistent::value) {
+    return getSingleRowPersistentData<C>(table, ci, ai);
+  } else if constexpr (o2::soa::is_dynamic_t<decayed>()) {
+    return getSingleRowDynamicData<T, C>(rowIterator, globalIndex);
+  } else if constexpr (o2::soa::is_index_column_v<decayed>) {
+    return getSingleRowIndexData<T, C>(rowIterator, globalIndex);
+  }
+}
+
+template <typename T, typename... Cs>
+std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, uint64_t ci, uint64_t ai, uint64_t globalIndex)
+{
+  return std::make_tuple(getSingleRowData<T, Cs>(table, rowIterator, ci, ai, globalIndex)...);
+}
+} // namespace row_helpers
+
 } // namespace o2::soa
 
 #define DECLARE_SOA_STORE()                                                                         \
@@ -2034,6 +2099,11 @@ void notBoundTable(const char* tableName);
                                                                                                                            \
     template <typename... FreeArgs>                                                                                        \
     type _Getter_(FreeArgs... freeArgs) const                                                                              \
+    {                                                                                                                      \
+      return boundGetter(std::make_index_sequence<std::tuple_size_v<decltype(boundIterators)>>{}, freeArgs...);            \
+    }                                                                                                                      \
+    template <typename... FreeArgs>                                                                                        \
+    type getDynamicValue(FreeArgs... freeArgs) const                                                                       \
     {                                                                                                                      \
       return boundGetter(std::make_index_sequence<std::tuple_size_v<decltype(boundIterators)>>{}, freeArgs...);            \
     }                                                                                                                      \
