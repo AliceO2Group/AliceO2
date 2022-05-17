@@ -18,6 +18,7 @@
 #include "CCDB/CcdbObjectInfo.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CPVCalibration/GainCalibrator.h"
+#include "CPVBase/CPVCalibParams.h"
 #include "DataFormatsCPV/Digit.h"
 #include "DataFormatsCPV/TriggerRecord.h"
 #include "DetectorsBase/GRPGeomHelper.h"
@@ -50,7 +51,7 @@ class CPVGainCalibratorSpec : public o2::framework::Task
     mCalibrator->setCheckIntervalInfiniteSlot(updateInterval);
     mCalibrator->setUpdateTFInterval(updateInterval);
     LOG(info) << "CPVGainCalibratorSpec initialized";
-    LOG(info) << "tf-per-slot = 0 (inconfigurable for this calibrator)";
+    LOG(info) << "tf-per-slot = 0 (this calibrator works only in single infinite slot mode)";
     LOG(info) << "max-delay = 1000 (inconfigurable for this calibrator)";
     LOG(info) << "updateInterval = " << updateInterval;
     LOG(info) << "updateAtTheEndOfRunOnly = " << updateAtTheEndOfRunOnly;
@@ -67,11 +68,21 @@ class CPVGainCalibratorSpec : public o2::framework::Task
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     TFType tfcounter = mCalibrator->getCurrentTFInfo().startTime;
-    auto&& digits = pc.inputs().get<gsl::span<o2::cpv::Digit>>("calibdigs");
+
+    // update config
+    static bool isConfigFetched = false;
+    if (!isConfigFetched) {
+      LOG(info) << "GainCalibratorSpec::run() : fetching o2::cpv::CPVCalibParams from CCDB";
+      pc.inputs().get<o2::cpv::CPVCalibParams*>("calibparams");
+      LOG(info) << "GainCalibratorSpec::run() : o2::cpv::CPVCalibParams::Instance() now is following:";
+      o2::cpv::CPVCalibParams::Instance().printKeyValues();
+      mCalibrator->configParameters();
+      isConfigFetched = true;
+    }
 
     // previous gains
     if (!mCalibrator->isSettedPreviousGains()) {
-      const auto previousGains = o2::framework::DataRefUtils::as<CCDBSerialized<o2::cpv::CalibParams>>(pc.inputs().get("gains"));
+      const auto previousGains = pc.inputs().get<o2::cpv::CalibParams*>("gains");
       if (previousGains) {
         mCalibrator->setPreviousGains(new o2::cpv::CalibParams(*previousGains));
         LOG(info) << "GainCalibratorSpec()::run() : I got previous gains";
@@ -80,13 +91,17 @@ class CPVGainCalibratorSpec : public o2::framework::Task
 
     // previous calib data
     if (!mCalibrator->isSettedPreviousGainCalibData()) {
-      const auto previousGainCalibData = o2::framework::DataRefUtils::as<CCDBSerialized<o2::cpv::GainCalibData>>(pc.inputs().get("calibdata"));
+      // const auto previousGainCalibData = o2::framework::DataRefUtils::as<CCDBSerialized<o2::cpv::GainCalibData>>(pc.inputs().get("calibdata"));
+      const auto previousGainCalibData = pc.inputs().get<o2::cpv::GainCalibData*>("calibdata");
       if (previousGainCalibData) {
         mCalibrator->setPreviousGainCalibData(new o2::cpv::GainCalibData(*previousGainCalibData));
         LOG(info) << "GainCalibratorSpec()::run() : I got previous GainCalibData: ";
         previousGainCalibData->print();
       }
     }
+
+    // process calib input
+    auto&& digits = pc.inputs().get<gsl::span<o2::cpv::Digit>>("calibdigs");
 
     // fill statistics
     LOG(info) << "Processing TF " << tfcounter << " with " << digits.size() << " digits";
@@ -163,6 +178,8 @@ DataProcessorSpec getCPVGainCalibratorSpec()
   inputs.emplace_back("calibdigs", "CPV", "CALIBDIGITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("calibdata", "CPV", "CPV_GainCD", 0, Lifetime::Condition, ccdbParamSpec("CPV/PhysicsRun/GainCalibData"));
   inputs.emplace_back("gains", "CPV", "CPV_Gains", 0, Lifetime::Condition, ccdbParamSpec("CPV/Calib/Gains"));
+  inputs.emplace_back("calibparams", "CPV", "CPV_CalibPars", 0, Lifetime::Condition, ccdbParamSpec("CPV/Config/CPVCalibParams"));
+
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF

@@ -24,12 +24,11 @@ namespace cpv
 {
 //=======================PedestalSpectrum============================
 //___________________________________________________________________
-PedestalSpectrum::PedestalSpectrum()
+PedestalSpectrum::PedestalSpectrum(uint16_t toleratedGapWidth, float nSigmasZS, float suspiciousPedestalRMS)
 {
-  auto& cpvParams = CPVCalibParams::Instance();
-  mToleratedGapWidth = cpvParams.mPedToleratedGapWidth;
-  mZSnSigmas = cpvParams.mPedZSnSigmas;
-  mSuspiciousPedestalRMS = cpvParams.mPedSuspiciousPedestalRMS;
+  mToleratedGapWidth = toleratedGapWidth;
+  mZSnSigmas = nSigmasZS;
+  mSuspiciousPedestalRMS = suspiciousPedestalRMS;
 }
 //___________________________________________________________________
 PedestalSpectrum& PedestalSpectrum::operator+=(const PedestalSpectrum& rhs)
@@ -191,10 +190,10 @@ float PedestalSpectrum::getPedestalRMS()
 
 //========================PedestalCalibData==========================
 //___________________________________________________________________
-PedestalCalibData::PedestalCalibData()
+PedestalCalibData::PedestalCalibData(uint16_t toleratedGapWidth, float nSigmasZS, float suspiciousPedestalRMS)
 {
   for (int i = 0; i < Geometry::kNCHANNELS; i++) {
-    mPedestalSpectra.emplace_back();
+    mPedestalSpectra.emplace_back(toleratedGapWidth, nSigmasZS, suspiciousPedestalRMS);
   }
 }
 //___________________________________________________________________
@@ -224,9 +223,23 @@ void PedestalCalibData::print()
 //___________________________________________________________________
 PedestalCalibrator::PedestalCalibrator()
 {
+  LOG(info) << "PedestalCalibrator::PedestalCalibrator() : pedestal calibrator created!";
+}
+//___________________________________________________________________
+void PedestalCalibrator::configParameters()
+{
   auto& cpvParams = o2::cpv::CPVCalibParams::Instance();
-  mMinEvents = cpvParams.mPedMinEvents;
-  mZSnSigmas = cpvParams.mPedZSnSigmas;
+  mMinEvents = cpvParams.pedMinEvents;
+  mZSnSigmas = cpvParams.pedZSnSigmas;
+  mToleratedGapWidth = cpvParams.pedToleratedGapWidth;
+  mZSnSigmas = cpvParams.pedZSnSigmas;
+  mSuspiciousPedestalRMS = cpvParams.pedSuspiciousPedestalRMS;
+  LOG(info) << "PedestalCalibrator::configParameters() : following parameters configured:";
+  LOG(info) << "mMinEvents = " << mMinEvents;
+  LOG(info) << "mZSnSigmas = " << mZSnSigmas;
+  LOG(info) << "mToleratedGapWidth = " << mToleratedGapWidth;
+  LOG(info) << "mZSnSigmas = " << mZSnSigmas;
+  LOG(info) << "mSuspiciousPedestalRMS = " << mSuspiciousPedestalRMS;
 }
 //___________________________________________________________________
 void PedestalCalibrator::initOutput()

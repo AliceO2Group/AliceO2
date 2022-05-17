@@ -43,15 +43,6 @@ Hit& Hit::operator+=(const Hit& rhs)
   return *this;
 }
 
-// Hit Hit::operator+(const Hit& rhs) const
-// {
-//   Hit result(*this);
-//   if (rhs.GetEnergyLoss() > result.GetEnergyLoss()) {
-//     result.SetTime(rhs.GetTime());
-//   }
-//   result.SetEnergyLoss(result.GetEnergyLoss() + rhs.GetEnergyLoss());
-//   return result;
-// }
 Hit operator+(const Hit& lhs, const Hit& rhs)
 {
   // Hit::Hit(int trackID, int detID, const math_utils::Point3D<float>& pos, double tof, double qLoss)

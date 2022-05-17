@@ -32,6 +32,7 @@ o2_add_executable(cpv-calib-workflow
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::CPVCalibration
                                         O2::DetectorsCalibration
+                                        O2::CPVBase
                                         O2::DataFormatsCPV)
 
 if(BUILD_TESTING)

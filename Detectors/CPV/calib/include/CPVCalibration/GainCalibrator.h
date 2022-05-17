@@ -90,17 +90,19 @@ class GainCalibrator final : public o2::calibration::TimeSlotCalibration<Digit, 
   GainTimeSlot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
   void prepareForEnding();
   void setUpdateTFInterval(uint32_t interval) { mUpdateTFInterval = interval; }
+  // read configurable parameters from CPVCalibParams
+  void configParameters();
 
  private:
-  uint32_t mMinEvents;               ///< Minimal number of events to produce calibration
-  uint32_t mMinNChannelsToCalibrate; ///< Minimal number of channels per one calibration
-  float mDesiredLandauMPV;           ///< Desired LandauMPV of the spectrum: gain coeff = mDesiredLandauMPV/(max Ampl of the cluster)
-  float mToleratedChi2PerNDF;        ///< Tolerated max Chi2 of the fit
-  float mMinAllowedCoeff;            ///< Min value of gain coeff at which DesiredLandauMPV is achived
-  float mMaxAllowedCoeff;            ///< Max value of gain coeff at which DesiredLandauMPV is achived
-  float mFitRangeL;                  ///< Fit range of amplitude spectrum (left)
-  float mFitRangeR;                  ///< Fit range of amplitude spectrum (right)
-  uint32_t mUpdateTFInterval = 100;  ///< Update interval (in TF)
+  uint32_t mMinEvents = 1000;                ///< Minimal number of events to produce calibration
+  uint32_t mMinNChannelsToCalibrate = 10000; ///< Minimal number of channels per one calibration
+  float mDesiredLandauMPV = 200.;            ///< Desired LandauMPV of the spectrum: gain coeff = mDesiredLandauMPV/(max Ampl of the cluster)
+  float mToleratedChi2PerNDF = 100.;         ///< Tolerated max Chi2 of the fit
+  float mMinAllowedCoeff = 0.1;              ///< Min value of gain coeff at which DesiredLandauMPV is achived
+  float mMaxAllowedCoeff = 10.;              ///< Max value of gain coeff at which DesiredLandauMPV is achived
+  float mFitRangeL = 10.;                    ///< Fit range of amplitude spectrum (left)
+  float mFitRangeR = 1000.;                  ///< Fit range of amplitude spectrum (right)
+  uint32_t mUpdateTFInterval = 100;          ///< Update interval (in TF)
 
   std::unique_ptr<CalibParams> mPreviousGains = nullptr; ///< previous calibration read from CCDB
   std::unique_ptr<GainCalibData> mPreviousGainCalibData; ///< previous GainCalibData read from CCDB

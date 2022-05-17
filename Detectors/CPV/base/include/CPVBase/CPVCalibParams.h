@@ -25,34 +25,44 @@ namespace cpv
 struct CPVCalibParams : public o2::conf::ConfigurableParamHelper<CPVCalibParams> {
 
   // Parameters used in pedestal calibration
-  uint16_t mPedToleratedGapWidth = 5;    ///< Tolerated gap between bins: if |bin1 - bin2| < width -> bin1 and bin2 belongs to same peak
-  uint32_t mPedMinEvents = 100;          ///< Minimal number of events to produce calibration
-  float mPedSuspiciousPedestalRMS = 10.; ///< Take additional care for channel if its RMS >  mPedSuspiciousPedestalRMS
-  float mPedZSnSigmas = 3.;              ///< Zero Suppression threshold
+  uint16_t pedToleratedGapWidth = 5;    ///< Tolerated gap between bins: if |bin1 - bin2| < width -> bin1 and bin2 belongs to same peak
+  uint32_t pedMinEvents = 100;          ///< Minimal number of events to produce calibration
+  float pedSuspiciousPedestalRMS = 10.; ///< Take additional care for channel if its RMS >  mPedSuspiciousPedestalRMS
+  float pedZSnSigmas = 3.;              ///< Zero Suppression threshold
 
   // Parameters used in noise scan calibration
-  uint32_t mNoiseMinEvents = 100;                    ///< Minimal number of events to produce calibration
-  float mNoiseToleratedChannelEfficiencyLow = 0.9;   ///< Tolerated channel efficiency (lower limit)
-  float mNoiseToleratedChannelEfficiencyHigh = 1.01; ///< Tolerated channel efficiency (upper limit)
-  uint16_t mNoiseThreshold = 10;                     ///< ADC threshold
-  float mNoiseFrequencyCriteria = 0.5;               ///< Appearance frequency of noisy channels
+  uint32_t noiseMinEvents = 100;                    ///< Minimal number of events to produce calibration
+  float noiseToleratedChannelEfficiencyLow = 0.9;   ///< Tolerated channel efficiency (lower limit)
+  float noiseToleratedChannelEfficiencyHigh = 1.01; ///< Tolerated channel efficiency (upper limit)
+  uint16_t noiseThreshold = 10;                     ///< ADC threshold
+  float noiseFrequencyCriteria = 0.5;               ///< Appearance frequency of noisy channels
 
   // Parameters used in gain calibration
-  uint32_t mGainMinEvents = 1000;                  ///< Minimal number of events to produce calibration in one channel
-  uint32_t mGainMinNChannelsToCalibrate = 2000;    ///< Minimal number of channels ready to be calibrated to produce calibration
-  float mGainDesiredLandauMPV = 200.;              ///< Desired LandauMPV of the spectrum: gain coeff = 200./(max Ampl of the cluster)
-  float mGainToleratedChi2PerNDF = 100.;           ///< Tolerated max Chi2 of the fit
-  float mGainMinAllowedCoeff = 0.1;                ///< Min value of gain coeff
-  float mGainMaxAllowedCoeff = 10.;                ///< Max value of gain coeff
-  float mGainFitRangeL = 10.;                      ///< Fit range of amplitude spectrum (left)
-  float mGainFitRangeR = 1000.;                    ///< Fit range of amplitude spectrum (right)
-  unsigned char mGainMinClusterMultForCalib = 3;   ///< Min cluster multiplicity for calibration digit production
-  unsigned char mGainMaxClusterMultForCalib = 15;  ///< Max cluster multiplicity for calibration digit production
-  uint32_t mGainCheckForCalibrationInterval = 100; ///< Check interval (in TFs) if statistics is enough
+  uint32_t gainMinEvents = 1000;                  ///< Minimal number of events to produce calibration in one channel
+  uint32_t gainMinNChannelsToCalibrate = 2000;    ///< Minimal number of channels ready to be calibrated to produce calibration
+  float gainDesiredLandauMPV = 200.;              ///< Desired LandauMPV of the spectrum: gain coeff = 200./(max Ampl of the cluster)
+  float gainToleratedChi2PerNDF = 100.;           ///< Tolerated max Chi2 of the fit
+  float gainMinAllowedCoeff = 0.1;                ///< Min value of gain coeff
+  float gainMaxAllowedCoeff = 10.;                ///< Max value of gain coeff
+  float gainFitRangeL = 10.;                      ///< Fit range of amplitude spectrum (left)
+  float gainFitRangeR = 1000.;                    ///< Fit range of amplitude spectrum (right)
+  unsigned char gainMinClusterMultForCalib = 3;   ///< Min cluster multiplicity for calibration digit production
+  unsigned char gainMaxClusterMultForCalib = 15;  ///< Max cluster multiplicity for calibration digit production
+  uint32_t gainCheckForCalibrationInterval = 100; ///< Check interval (in TFs) if statistics is enough
 
   O2ParamDef(CPVCalibParams, "CPVCalibParams");
 };
 } // namespace cpv
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::cpv::CPVCalibParams> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif /* O2_CPV_CPVCALIBPARAMS_H_ */
