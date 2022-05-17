@@ -39,6 +39,7 @@ struct GlobalFwdMatchingParam : public o2::conf::ConfigurableParamHelper<GlobalF
   double matchPlaneZ = -77.5;                             ///< MFT-MCH matching plane z coordinate
   bool useMIDMatch = false;                               ///< Use input from MCH-MID matching
   Int_t saveMode = kBestMatch;                            ///< Global Forward Tracks save mode
+  bool useBranson = true;                                 ///< Apply Branson corrections to matched MCH track
 
   bool
     isMatchUpstream() const

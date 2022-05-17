@@ -325,6 +325,7 @@ class MatchGlobalFwd
   bool mMCTruthON = false;      ///< Flag availability of MC truth
   bool mUseMIDMCHMatch = false; ///< Flag for using MCHMID matches (TrackMCHMID)
   int mSaveMode = 0;            ///< Output mode [0 = SaveBestMatch; 1 = SaveAllMatches; 2 = SaveTrainingData]
+  bool mUseBranson = true;      ///< Flag for applying Branson corrections
   MatchingType mMatchingType = MATCHINGUNDEFINED;
   TGeoManager* mGeoManager;
 };

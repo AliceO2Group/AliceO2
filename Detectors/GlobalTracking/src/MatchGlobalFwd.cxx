@@ -60,6 +60,9 @@ void MatchGlobalFwd::init()
 
   mSaveMode = matchingParam.saveMode;
   LOG(info) << "Save mode MFTMCH candidates = " << mSaveMode;
+
+  mUseBranson = matchingParam.useBranson;
+  LOG(info) << "Apply Branson corrections = " << (mUseBranson ? "true" : "false");
 }
 
 //_________________________________________________________
@@ -530,7 +533,10 @@ void MatchGlobalFwd::fitTracks()
 void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack& gTrack)
 {
   const auto& MFTMatchId = gTrack.getMFTTrackID();
+  const auto& MCHMatchId = gTrack.getMCHTrackID();
   const auto& mftTrack = mMFTTracks[MFTMatchId];
+  const auto& mchTrack = mMCHTracks[MCHMatchId];
+  o2::mch::TrackParam mchparam(mchTrack.getZ(), mchTrack.getParameters());
   const auto& mftTrackOut = mMFTWork[MFTMatchId];
   auto ncls = mftTrack.getNumberOfPoints();
   auto offset = mftTrack.getExternalClusterIndexOffset();
@@ -549,7 +555,18 @@ void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack& gTrack)
   gTrack.setZ(mftTrackOut.getZ());
   gTrack.setPhi(mftTrackOut.getPhi());
   gTrack.setTanl(mftTrackOut.getTanl());
-  gTrack.setInvQPt(gTrack.getInvQPt());
+
+  SMatrix55Sym lastParamCov;
+
+  if (mUseBranson){
+    o2::mch::TrackExtrap::extrapToVertex(mchparam, mftTrackOut.getX(), mftTrackOut.getY(), mftTrackOut.getZ(), 0, 0);  //Propagation of MCH to the first MFT cluster in the matching plane, applying Branson corrections to the MCH which is matched to MFT
+    auto convertedTrack = MCHtoFwd(mchparam);
+    gTrack.setInvQPt(convertedTrack.getInvQPt());
+    lastParamCov(4, 4) = convertedTrack.getCovariances()(4, 4);
+  }else{
+    gTrack.setInvQPt(gTrack.getInvQPt());
+    lastParamCov(4, 4) = gTrack.getCovariances()(4, 4);
+  }
 
   LOG(debug) << "MFTTrack: X = " << mftTrackOut.getX()
              << " Y = " << mftTrackOut.getY() << " Z = " << mftTrackOut.getZ()
@@ -558,15 +575,14 @@ void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack& gTrack)
              << " qpt = " << 1.0 / mftTrackOut.getInvQPt();
   LOG(debug) << "  initTrack GlobalTrack: q/pt = " << gTrack.getInvQPt() << std::endl;
 
-  SMatrix55Sym lastParamCov;
   Double_t tanlsigma = TMath::Max(std::abs(mftTrackOut.getTanl()), .5);
   Double_t qptsigma = TMath::Max(std::abs(mftTrackOut.getInvQPt()), .5);
+
 
   lastParamCov(0, 0) = 10000. * mftTrackOut.getCovariances()(0, 0); // <X,X>
   lastParamCov(1, 1) = 10000. * mftTrackOut.getCovariances()(1, 1); // <Y,X>
   lastParamCov(2, 2) = 10000. * mftTrackOut.getCovariances()(2, 2); // TMath::Pi() * TMath::Pi() / 16 // <PHI,X>
   lastParamCov(3, 3) = 10000. * mftTrackOut.getCovariances()(3, 3); // 100. * tanlsigma * tanlsigma;  // mftTrack.getCovariances()(3, 3);     // <TANL,X>
-  lastParamCov(4, 4) = gTrack.getCovariances()(4, 4);               // 100. * qptsigma * qptsigma;  // <INVQPT,X>
 
   gTrack.setCovariances(lastParamCov);
 
