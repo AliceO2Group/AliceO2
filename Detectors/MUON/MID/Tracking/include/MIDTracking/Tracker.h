@@ -84,6 +84,7 @@ class Tracker
   std::vector<Track> mTracks{};                ///< Vector of tracks
   std::vector<ROFRecord> mTrackROFRecords{};   ///< List of track RO frame records
   std::vector<ROFRecord> mClusterROFRecords{}; ///< List of cluster RO frame records
+  size_t mFirstTrackOffset{0};                 ///! Offset for the first track in the current event
   size_t mTrackOffset{0};                      ///! Offset for the track in the current event
   int mNTracksStep1{0};                        ///! Number of tracks found in the first tracking step
 
