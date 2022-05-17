@@ -558,12 +558,12 @@ void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack& gTrack)
 
   SMatrix55Sym lastParamCov;
 
-  if (mUseBranson){
-    o2::mch::TrackExtrap::extrapToVertex(mchparam, mftTrackOut.getX(), mftTrackOut.getY(), mftTrackOut.getZ(), 0, 0);  //Propagation of MCH to the first MFT cluster in the matching plane, applying Branson corrections to the MCH which is matched to MFT
+  if (mUseBranson) {
+    o2::mch::TrackExtrap::extrapToVertex(mchparam, mftTrackOut.getX(), mftTrackOut.getY(), mftTrackOut.getZ(), 0, 0); // Propagation of MCH to the first MFT cluster in the matching plane, applying Branson corrections to the MCH which is matched to MFT
     auto convertedTrack = MCHtoFwd(mchparam);
     gTrack.setInvQPt(convertedTrack.getInvQPt());
     lastParamCov(4, 4) = convertedTrack.getCovariances()(4, 4);
-  }else{
+  } else {
     gTrack.setInvQPt(gTrack.getInvQPt());
     lastParamCov(4, 4) = gTrack.getCovariances()(4, 4);
   }
@@ -577,7 +577,6 @@ void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack& gTrack)
 
   Double_t tanlsigma = TMath::Max(std::abs(mftTrackOut.getTanl()), .5);
   Double_t qptsigma = TMath::Max(std::abs(mftTrackOut.getInvQPt()), .5);
-
 
   lastParamCov(0, 0) = 10000. * mftTrackOut.getCovariances()(0, 0); // <X,X>
   lastParamCov(1, 1) = 10000. * mftTrackOut.getCovariances()(1, 1); // <Y,X>
