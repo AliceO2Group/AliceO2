@@ -539,6 +539,9 @@ bool zsEncoderImprovedLinkBased::checkInput(std::vector<o2::tpc::Digit>& tmpBuff
   }
   nSamples = l - k;
   finishPage = endpoint != lastEndpoint || (firstTimebinInPage != -1 && tmpBuffer[k].getTimeStamp() - firstTimebinInPage >= (1 << 8));
+  if (tmpBuffer[k].getTimeStamp() - firstTimebinInPage + 1 > (1 << (sizeof(hdr->nTimeBins) * 8)) - 1) {
+    finishPage = true;
+  }
   if (!finishPage) {
     unsigned int sizeChk = (unsigned int)(pagePtr - reinterpret_cast<unsigned char*>(page));
     sizeChk += sizeof(o2::tpc::zerosupp_link_based::CommonHeader);
