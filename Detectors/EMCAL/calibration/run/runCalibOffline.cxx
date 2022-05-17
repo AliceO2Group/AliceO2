@@ -108,7 +108,7 @@ int main(int argc, char** argv)
       nthreads = vm["nthreads"].as<unsigned int>();
     }
 
-    if (vm.count("timestampStart")) {
+    if (vm.count("namePathStoreLocalstampStart")) {
       std::cout << "timestampStart was set to "
                 << vm["timestampStart"].as<unsigned long>() << ".\n";
       rangestart = vm["timestampStart"].as<unsigned long>();
@@ -165,7 +165,27 @@ int main(int argc, char** argv)
   CalibExtractor.setNThreads(nthreads);
 
   // get boost histo from root input histogram
-  auto hCalibInputHist = o2::utils::boostHistoFromRoot_2D(hCalibInputHist_ROOT);
+  int nBinsX = hCalibInputHist_ROOT->GetNbinsX();
+  auto xMin = hCalibInputHist_ROOT->GetXaxis()->GetXmin();
+  auto xMax = hCalibInputHist_ROOT->GetXaxis()->GetXmax();
+  const char* xTitle = hCalibInputHist_ROOT->GetXaxis()->GetTitle();
+  int nBinsY = hCalibInputHist_ROOT->GetNbinsY();
+  auto yMin = hCalibInputHist_ROOT->GetYaxis()->GetXmin();
+  auto yMax = hCalibInputHist_ROOT->GetYaxis()->GetXmax();
+  const char* yTitle = hCalibInputHist_ROOT->GetYaxis()->GetTitle();
+  auto hCalibInputHist = boost::histogram::make_histogram(
+    boost::histogram::axis::regular<>(nBinsX, xMin, xMax, xTitle),
+    boost::histogram::axis::regular<>(nBinsY, yMin, yMax, yTitle));
+  // trasfer the acutal values
+  LOG(info) << "doing local conversion instead";
+  for (int x = 1; x < nBinsX + 1; x++) {
+    for (int y = 1; y < nBinsY + 1; y++) {
+      hCalibInputHist.at(x - 1, y - 1) = hCalibInputHist_ROOT->GetBinContent(x, y);
+    }
+  }
+  LOG(info) << "done converting";
+
+  //auto hCalibInputHist = o2::utils::boostHistoFromRoot_2D(hCalibInputHist_ROOT);
 
   // instance of CalibDB
   o2::emcal::CalibDB calibdb(ccdbServerPath);
@@ -174,7 +194,7 @@ int main(int argc, char** argv)
     printf("perform bad channel analysis\n");
     o2::emcal::BadChannelMap BCMap;
 
-    // BCMap = CalibExtractor.calibrateBadChannels(hCalibInputHist);
+    BCMap = CalibExtractor.calibrateBadChannels(hCalibInputHist);
   } else {
     printf("perform time calibration analysis\n");
 

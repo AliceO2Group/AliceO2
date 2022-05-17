@@ -49,7 +49,7 @@ if (OpenMP_CXX_FOUND)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
 
-o2_add_executable(emcal-run-calib-offline
+o2_add_executable(run-calib-offline
                   COMPONENT_NAME emcal
                   TARGETVARNAME targetName
                   SOURCES run/runCalibOffline.cxx

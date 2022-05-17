@@ -23,8 +23,8 @@ boostHisto1d boosthistoFromRoot_1D(TH1D* inHist1D)
 {
   // first setup the proper boost histogram
   int nBins = inHist1D->GetNbinsX();
-  int xMin = inHist1D->GetXaxis()->GetXmin();
-  int xMax = inHist1D->GetXaxis()->GetXmax();
+  auto xMin = inHist1D->GetXaxis()->GetXmin();
+  auto xMax = inHist1D->GetXaxis()->GetXmax();
   const char* title = inHist1D->GetXaxis()->GetTitle();
   auto mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nBins, xMin, xMax, title));
 
@@ -39,18 +39,18 @@ boostHisto2d boostHistoFromRoot_2D(TH2D* inHist2D)
 {
   // first setup the proper boost histogram
   int nBinsX = inHist2D->GetNbinsX();
-  int xMin = inHist2D->GetXaxis()->GetXmin();
-  int xMax = inHist2D->GetXaxis()->GetXmax();
+  auto xMin = inHist2D->GetXaxis()->GetXmin();
+  auto xMax = inHist2D->GetXaxis()->GetXmax();
   const char* xTitle = inHist2D->GetXaxis()->GetTitle();
   int nBinsY = inHist2D->GetNbinsY();
-  int yMin = inHist2D->GetYaxis()->GetXmin();
-  int yMax = inHist2D->GetYaxis()->GetXmax();
+  auto yMin = inHist2D->GetYaxis()->GetXmin();
+  auto yMax = inHist2D->GetYaxis()->GetXmax();
   const char* yTitle = inHist2D->GetYaxis()->GetTitle();
   auto mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nBinsX, xMin, xMax, xTitle), boost::histogram::axis::regular<>(nBinsY, yMin,
                                                                                                                                                   yMax, yTitle));
   // trasfer the acutal values
-  for (Int_t x = 1; x < nBinsX + 1; x++) {
-    for (Int_t y = 1; y < nBinsY + 1; y++) {
+  for (int x = 1; x < nBinsX + 1; x++) {
+    for (int y = 1; y < nBinsY + 1; y++) {
       mHisto.at(x - 1, y - 1) = inHist2D->GetBinContent(x, y);
     }
   }
@@ -61,19 +61,6 @@ boostHisto2d boostHistoFromRoot_2D(TH2D* inHist2D)
 std::string createErrorMessage(o2::utils::FitGausError_t errorcode)
 {
   return "[Error]: Fit return an invalid result.";
-}
-
-double getMeanBoost1D(boostHisto1d inHist1D)
-{
-  o2::math_utils::detail::StatAccumulator stats;
-  auto histiter = inHist1D.begin() + 1;
-  for (auto bcentiter = BinCenterView(inHist1D.axis(0).begin());
-       bcentiter != BinCenterView(inHist1D.axis(0).end());
-       bcentiter++, histiter++) {
-    stats.add(*bcentiter, *histiter);
-  }
-  double mean = stats.getMean();
-  return mean;
 }
 
 } // namespace utils

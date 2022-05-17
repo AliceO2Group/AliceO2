@@ -26,6 +26,8 @@
 #include "EMCALBase/Geometry.h"
 #include <boost/histogram.hpp>
 
+#include <TRobustEstimator.h>
+
 #if (defined(WITH_OPENMP) && !defined(__CLING__))
 #include <omp.h>
 #endif
@@ -38,6 +40,15 @@ namespace emcal
 class EMCALCalibExtractor
 {
   using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::integer<>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
+  using slice_t = int;
+  using cell_t = int;
+
+  /// \brief Stuct for the maps needed for the bad channel calibration
+  struct BadChannelCalibInfo {
+    std::map<slice_t, std::map<cell_t, double>> numberOfHitsMap;    // number of hits per cell per slice
+    std::map<slice_t, std::map<cell_t, double>> energyPerHitMap;    // energy/per hit per cell per slice
+    std::map<slice_t, std::pair<double, double>> goodCellWindowMap; // for each slice, the emin and the emax of the good cell window
+  };
 
  public:
   EMCALCalibExtractor()
@@ -61,10 +72,6 @@ class EMCALCalibExtractor
 
   void setUseScaledHistoForBadChannels(bool useScaledHistoForBadChannels) { mUseScaledHistoForBadChannels = useScaledHistoForBadChannels; }
 
-  /// \brief Average energy per hit is caluclated for each cell.
-  /// \param emin -- min. energy for cell amplitudes
-  /// \param emax -- max. energy for cell amplitudes
-  boostHisto buildHitAndEnergyMean(double emin, double emax, boostHisto mCellAmplitude);
   /// \brief Scaled hits per cell
   /// \param emin -- min. energy for cell amplitudes
   /// \param emax -- max. energy for cell amplitudes
@@ -75,37 +82,24 @@ class EMCALCalibExtractor
   o2::emcal::BadChannelMap calibrateBadChannels(boost::histogram::histogram<axes...>& hist)
   {
     LOG(info) << "In the calibrateBadChannels function";
-    std::map<int, std::pair<double, double>> slices = {{0, {0., 0.35}}, {1, {0.35, 0.5}}};
-    std::map<int, std::pair<double, double>> accept_energyRange;
+    std::map<int, std::pair<double, double>> slices = {{0, {0.1, 0.3}}, {1, {0.3, 0.5}}, {2, {0.5, 1.0}}, {3, {1.0, 4.0}}, {4, {4.0, 10.0}}};
 
-    for (auto& [index, slice] : slices) {
-      LOG(debug) << "Before running the buildHitAndEnergyMean";
-      auto histProjected = buildHitAndEnergyMean(slice.first, slice.second, hist);
-      auto fitValues = o2::utils::fitBoostHistoWithGaus<double>(histProjected);
-      double mean = fitValues.at(1);
-      double sigma = fitValues.at(2);
-      LOG(debug) << "Done calculating the mean and the sigma from the EsumHisto Mean: " << mean << " sigma: " << sigma;
-
-      // calculate the "good cell window from the mean"
-      double maxVal = mean + mSigma * sigma;
-      double minVal = mean - mSigma * sigma;
-      accept_energyRange[index] = {minVal, maxVal};
-      LOG(info) << "Calculating the good cell window in slice " << slice.first << " , " << slice.second << " from the maxVal" << maxVal << " minVal: " << minVal;
-    }
+    // get all ofthe calibration information that we need in a struct
+    BadChannelCalibInfo calibrationInformation = buildHitAndEnergyMean(slices, hist);
 
     o2::emcal::BadChannelMap mOutputBCM;
     // now loop through the cells and determine the mask for a given cell
 
-#if (defined(WITH_OPENMP) && !defined(__CLING__))
-    if (mNThreads < 1) {
-      mNThreads = std::min(omp_get_max_threads(), mNcells);
-    }
-    LOG(info) << "Number of threads that will be used = " << mNThreads;
-#pragma omp parallel for num_threads(mNThreads)
-#else
-    LOG(info) << "OPEN MP will not be used for the bad channel calibration";
-    mNThreads = 1;
-#endif
+    // #if (defined(WITH_OPENMP) && !defined(__CLING__))
+    //     if (mNThreads < 1) {
+    //       mNThreads = std::min(omp_get_max_threads(), mNcells);
+    //     }
+    //     LOG(info) << "Number of threads that will be used = " << mNThreads;
+    // #pragma omp parallel for num_threads(mNThreads)
+    // #else
+    //     LOG(info) << "OPEN MP will not be used for the bad channel calibration";
+    //     mNThreads = 1;
+    // #endif
 
     for (int cellID = 0; cellID < mNcells; cellID++) {
       auto projected = o2::utils::ProjectBoostHistoXFast(hist, cellID, cellID);
@@ -114,9 +108,9 @@ class EMCALCalibExtractor
       } else {
         bool failed = false;
         for (auto& [index, slice] : slices) {
-          auto ranges = accept_energyRange[index];
-          auto dummyMean = 0.3; // mean in the slice (range)
-          if (dummyMean < ranges.first || dummyMean > ranges.second) {
+          auto ranges = calibrationInformation.goodCellWindowMap[index];
+          auto meanPerCell = calibrationInformation.energyPerHitMap[index][cellID];
+          if (meanPerCell < ranges.first || meanPerCell > ranges.second) {
             failed = true;
             break;
           }
@@ -132,6 +126,107 @@ class EMCALCalibExtractor
     return mOutputBCM;
   }
 
+  //___________________________________________________________________________________________________
+  /// \brief Average energy per hit is caluclated for each cell.
+  /// \param sliceID -- numerical index for the slice of amplitudes
+  /// \param emin -- min. energy for cell amplitudes
+  /// \param emax -- max. energy for cell amplitudes
+  /// \param cellAmplitude -- boost histogram for the cell ID vs. Amplitude
+  template <typename... axes>
+  BadChannelCalibInfo buildHitAndEnergyMean(std::map<slice_t, std::pair<double, double>> sliceMap, boost::histogram::histogram<axes...>& cellAmplitude)
+  {
+    LOG(info) << "In the buildHitAndEnergyMean function";
+    // create the output histo
+    BadChannelCalibInfo outputInfo;
+    std::map<slice_t, std::map<cell_t, double>> outputMapEnergyPerHit;
+    std::map<slice_t, std::map<cell_t, double>> outputMapNHits;
+    // The outline for this function goes as follows
+    // (1) loop over the total number of cells
+    // (2) slice the existing histogram for one cell ranging from em    in to emax
+    // (3) calculate the mean of that sliced histogram using BoostHistoramUtils.h
+    // (4) fill the next histogram with this value
+    // #if (defined(WITH_OPENMP))
+    //     if (mNThreads < 1) {
+    //       mNThreads = std::min(omp_get_max_threads(), mNcells);
+    //     }
+    //     LOG(info) << "Number of threads that will be used = " << mNThreads;
+    // #pragma omp parallel for num_threads(mNThreads)
+    // #else
+    //     LOG(info) << "OPEN MP will not be used for the bad channel calibration";
+    //     mNThreads = 1;
+    // #endif
+    LOG(info) << "beginning to loop over the slices";
+    for (auto& [sliceIndex, slice] : sliceMap) {
+      Double_t meanValues[mNcells];
+      LOG(info) << "starting with slice " << sliceIndex << " and beginning to loop over the cells";
+      for (int cellID = 0; cellID < mNcells; cellID++) {
+        // create a slice for each cell with energies ranging from emin to emax
+        //LOG(info) << "on cell " << cellID;
+        double emin = slice.first;
+        double emax = slice.second;
+        auto binYLow = cellAmplitude.axis(1).index(cellID);
+        auto binYHigh = cellAmplitude.axis(1).index(cellID);
+        auto binXLow = cellAmplitude.axis(0).index(emin);
+        auto binXHigh = cellAmplitude.axis(0).index(emax);
+        LOG(info) << "Creating a slice from x bins (" << binXLow << " , "
+                  << binXHigh << ") and y bins (" << binYLow << " , " << binYHigh
+                  << ")";
+        auto tempSlice = o2::utils::ReduceBoostHistoFastSlice(cellAmplitude, binXLow, binXHigh, binYLow, binYHigh, false);
+        LOG(info) << " after creating a temporary slice with an integral of " << boost::histogram::algorithm::sum(tempSlice);
+        LOG(info) << " -------------- Starting to Project -----------";
+        auto projectedSlice = o2::utils::ProjectBoostHistoXFast(tempSlice, 0, tempSlice.axis(1).size());
+        // project this slice using joshua's function
+        LOG(info) << "Making a " << projectedSlice.rank() << "D projection with "
+                  << projectedSlice.axis(0).size() << " bins in X and an integral of "
+                  << boost::histogram::algorithm::sum(projectedSlice);
+        LOG(info) << " -------------- Done Projecting -----------" << std::endl;
+        for (int h = 0; h < projectedSlice.axis(0).size(); h++) {
+          LOG(info) << " Projected hist at bin " << h
+                    << " Lower: " << projectedSlice.axis(0).bin(h).lower()
+                    << " <-> Upper: " << projectedSlice.axis(0).bin(h).upper()
+                    << " With value of " << projectedSlice.at(h);
+        }
+        LOG(info) << " after projecting the slice this has an integral of " << boost::histogram::algorithm::sum(projectedSlice);
+        LOG(info) << " starting to do the mean";
+        // calculate the geometric mean of the slice
+        double meanVal = o2::utils::getMeanBoost1D(projectedSlice);
+        LOG(info) << " calculating the mean to be " << meanVal;
+        // double sumVal = boost::histogram::algorithm::sum(projectedSlice);
+        //         LOG(info) << " mean of the slice is  " << meanVal << " and the integral of the slice is " << sumVal;
+        //         //..Set the values only for cells that are not yet marked as bad
+        //         if (sumVal > 0.) {
+        // #if (defined(WITH_OPENMP))
+        // #pragma omp critical
+        // #endif
+        //           // fill the output map with the desired slicing etc.
+        //           meanValues[cellID] = (meanVal / (sumVal));                        // average energy per hit for the mean calculation
+        //           outputMapEnergyPerHit[sliceIndex][cellID] = (meanVal / (sumVal)); //..average energy per hit
+        //           outputMapNHits[sliceIndex][cellID] = sumVal;                      //..number of hits
+        //         }
+        //LOG(info) << "now this cell is done, moving onto the next one";
+      } // end loop over the cells
+
+      // get the mean per slice using EvaluateUni from the map
+      //   Double_t meanPerSlice; // mean energy per slice to be compared to the cell
+      //   Double_t sigmaPerSlice;
+      //   // create the estimator which we will then use
+      //   TRobustEstimator robustEstimator;
+      //   robustEstimator.EvaluateUni(outputMapEnergyPerHit[sliceIndex].size(), meanValues, meanPerSlice, sigmaPerSlice, 0); // mean in the slice
+
+      //   // calculate the "good cell window from the mean"
+      //   double maxVal = meanPerSlice + mSigma * sigmaPerSlice;
+      //   double minVal = meanPerSlice - mSigma * sigmaPerSlice;
+      //   // we need to change this
+      //   outputInfo.goodCellWindowMap[sliceIndex] = {minVal, maxVal};
+    } // end loop over the slices
+    // // now add these to the calib info struct
+    // outputInfo.energyPerHitMap = outputMapEnergyPerHit;
+    // outputInfo.numberOfHitsMap = outputMapNHits;
+
+    return outputInfo;
+  }
+  //____________________________________________
+
   /// \brief Calibrate time for all cells
   /// \param hist -- 2d boost histogram: cell-time vs. cell-ID
   /// \param minTime -- min. time considered for fit
@@ -146,16 +241,16 @@ class EMCALCalibExtractor
 
     double mean = 0;
 
-#if (defined(WITH_OPENMP) && !defined(__CLING__))
-    if (mNThreads < 1) {
-      mNThreads = std::min(omp_get_max_threads(), mNcells);
-    }
-    LOG(info) << "Number of threads that will be used = " << mNThreads;
-#pragma omp parallel for num_threads(mNThreads)
-#else
-    LOG(info) << "OPEN MP will not be used for the time calibration";
-    mNThreads = 1;
-#endif
+    // #if (defined(WITH_OPENMP) && !defined(__CLING__))
+    //     if (mNThreads < 1) {
+    //       mNThreads = std::min(omp_get_max_threads(), mNcells);
+    //     }
+    //     LOG(info) << "Number of threads that will be used = " << mNThreads;
+    // #pragma omp parallel for num_threads(mNThreads)
+    // #else
+    //     LOG(info) << "OPEN MP will not be used for the time calibration";
+    //     mNThreads = 1;
+    // #endif
 
     for (unsigned int i = 0; i < mNcells; ++i) {
       // project boost histogram to 1d just for 1 cell
@@ -195,6 +290,7 @@ class EMCALCalibExtractor
 
   ClassDefNV(EMCALCalibExtractor, 1);
 };
+
 } // namespace emcal
 } // namespace o2
 #endif
