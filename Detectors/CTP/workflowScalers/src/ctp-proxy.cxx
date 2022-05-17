@@ -57,41 +57,34 @@ InjectorFunction dcs2dpl()
     size_t dataSize = parts.At(1)->GetSize();
     std::string messageData{static_cast<const char*>(parts.At(1)->GetData()), parts.At(1)->GetSize()};
     LOG(info) << "received message " << messageHeader << " of size " << dataSize; // << " Payload:" << messageData;
-    if ((messageHeader.find("ctpconfig") != std::string::npos)) {
-      // Not used
-      LOG(info) << "CTP config received";
-      runMgr->startRun(messageData);
-      // runMgr->processMessage(messageData);
-    } else {
-      o2::header::DataHeader hdrF("CTP_COUNTERS", o2::header::gDataOriginCTP, 0);
-      OutputSpec outsp{hdrF.dataOrigin, hdrF.dataDescription, hdrF.subSpecification};
-      auto channel = channelRetriever(outsp, *timesliceId);
-      if (channel.empty()) {
-        LOG(error) << "No output channel found for OutputSpec " << outsp;
-        return;
-      }
-      runMgr->processMessage(messageHeader,messageData);
-      hdrF.tfCounter = *timesliceId; // this also
-      hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
-      hdrF.splitPayloadParts = 1;
-      hdrF.splitPayloadIndex = 0;
-      hdrF.payloadSize = parts.At(1)->GetSize();
-      hdrF.firstTForbit = 0; // this should be irrelevant for Counters ? Orbit is in payload
-
-      auto fmqFactory = device.GetChannel(channel).Transport();
-
-      o2::header::Stack headerStackF{hdrF, DataProcessingHeader{*timesliceId, 1}};
-      auto hdMessageF = fmqFactory->CreateMessage(headerStackF.size(), fair::mq::Alignment{64});
-      auto plMessageF = fmqFactory->CreateMessage(hdrF.payloadSize, fair::mq::Alignment{64});
-      memcpy(hdMessageF->GetData(), headerStackF.data(), headerStackF.size());
-      memcpy(plMessageF->GetData(), parts.At(1)->GetData(), hdrF.payloadSize);
-
-      FairMQParts outParts;
-      outParts.AddPart(std::move(hdMessageF));
-      outParts.AddPart(std::move(plMessageF));
-      sendOnChannel(device, outParts, channel, *timesliceId);
-      LOG(info) << "Sent CTP counters DPL message" << std::flush;
+    o2::header::DataHeader hdrF("CTP_COUNTERS", o2::header::gDataOriginCTP, 0);
+    OutputSpec outsp{hdrF.dataOrigin, hdrF.dataDescription, hdrF.subSpecification};
+    auto channel = channelRetriever(outsp, *timesliceId);
+    if (channel.empty()) {
+      LOG(error) << "No output channel found for OutputSpec " << outsp;
+      return;
     }
+    runMgr->processMessage(messageHeader,messageData);
+    hdrF.tfCounter = *timesliceId; // this also
+    hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
+    hdrF.splitPayloadParts = 1;
+    hdrF.splitPayloadIndex = 0;
+    hdrF.payloadSize = parts.At(1)->GetSize();
+    hdrF.firstTForbit = 0; // this should be irrelevant for Counters ? Orbit is in payload
+
+    auto fmqFactory = device.GetChannel(channel).Transport();
+
+    o2::header::Stack headerStackF{hdrF, DataProcessingHeader{*timesliceId, 1}};
+    auto hdMessageF = fmqFactory->CreateMessage(headerStackF.size(), fair::mq::Alignment{64});
+    auto plMessageF = fmqFactory->CreateMessage(hdrF.payloadSize, fair::mq::Alignment{64});
+    memcpy(hdMessageF->GetData(), headerStackF.data(), headerStackF.size());
+    memcpy(plMessageF->GetData(), parts.At(1)->GetData(), hdrF.payloadSize);
+
+    FairMQParts outParts;
+    outParts.AddPart(std::move(hdMessageF));
+    outParts.AddPart(std::move(plMessageF));
+    sendOnChannel(device, outParts, channel, *timesliceId);
+    LOG(info) << "Sent CTP counters DPL message" << std::flush;
   };
 }
 
