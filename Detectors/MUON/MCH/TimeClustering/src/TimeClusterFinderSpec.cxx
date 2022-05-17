@@ -14,7 +14,7 @@
 ///
 /// \author Andrea Ferrero, CEA
 
-#include "TimeClusterFinderSpec.h"
+#include "MCHTimeClustering/TimeClusterFinderSpec.h"
 
 #include <iostream>
 #include <fstream>
@@ -35,9 +35,9 @@
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
 
+#include "MCHBase/TrackerParam.h"
+#include "MCHROFFiltering/TrackableFilter.h"
 #include "MCHTimeClustering/ROFTimeClusterFinder.h"
-#include "MCHBase/Trackable.h"
-#include "MCHTracking/TrackerParam.h"
 #include "MCHTimeClustering/TimeClusterizerParam.h"
 
 namespace o2

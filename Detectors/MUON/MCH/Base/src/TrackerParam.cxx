@@ -13,6 +13,6 @@
 /// \brief Configurable parameters for MCH tracking
 /// \author Philippe Pillot, Subatech
 
-#include "MCHTracking/TrackerParam.h"
+#include "MCHBase/TrackerParam.h"
 
 O2ParamImpl(o2::mch::TrackerParam);
