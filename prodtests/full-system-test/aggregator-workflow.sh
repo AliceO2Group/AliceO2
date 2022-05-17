@@ -92,13 +92,13 @@ WORKFLOW+=$EXTRA_WORKFLOW_CALIB
 if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]]; then WORKFLOW+="o2-calibration-ccdb-populator-workflow --ccdb-path $CCDB_POPULATOR_UPLOAD_PATH $ARGS_ALL | "; fi
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
-    WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT -b"
+    WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
     if [ $WORKFLOWMODE == "print" ]; then
-  echo Workflow command adding aggregator:
-  echo $WORKFLOW | sed "s/| */|\n/g"
+      echo Workflow command adding aggregator:
+      echo $WORKFLOW | sed "s/| */|\n/g"
     else
-  # Execute the command we have assembled
-  WORKFLOW+=" --$WORKFLOWMODE"
-  eval $WORKFLOW
+      # Execute the command we have assembled
+      WORKFLOW+=" --$WORKFLOWMODE"
+      eval $WORKFLOW
     fi
 fi
