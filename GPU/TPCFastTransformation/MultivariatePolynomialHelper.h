@@ -178,7 +178,7 @@ class MultivariatePolynomialHelper<0, 0> : public MultivariatePolynomialParamete
 
   /// helper function to get all combinations
   template <class Type>
-  GPUd() static Type combination_with_repetiton(const unsigned int degree, const unsigned int dim, GPUgeneric() const float par[], int& indexPar, const float x[]);
+  GPUd() static constexpr Type combination_with_repetiton(const unsigned int degree, const unsigned int dim, GPUgeneric() const float par[], int& indexPar, const float x[]);
 };
 
 //=================================================================================
@@ -256,7 +256,7 @@ GPUd() constexpr float MultivariatePolynomialHelper<Dim, Degree>::loopDegrees(GP
 }
 
 template <class Type>
-GPUd() Type MultivariatePolynomialHelper<0, 0>::combination_with_repetiton(const unsigned int degree, const unsigned int dim, GPUgeneric() const float par[], int& indexPar, const float x[])
+GPUd() constexpr Type MultivariatePolynomialHelper<0, 0>::combination_with_repetiton(const unsigned int degree, const unsigned int dim, GPUgeneric() const float par[], int& indexPar, const float x[])
 {
   {
     const unsigned int size = degree + 1;
