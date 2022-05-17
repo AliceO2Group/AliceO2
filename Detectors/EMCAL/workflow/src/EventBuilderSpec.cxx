@@ -48,6 +48,9 @@ void EventBuilderSpec::run(framework::ProcessingContext& ctx)
     if (subspecification == 0xDEADBEEF) {
       continue;
     }
+    if (cells.find(subspecification) != cells.end()) {
+      LOG(error) << "Found multiple messages for cells for subspec " << subspecification << "!";
+    }
     cells[subspecification] = ctx.inputs().get<gsl::span<o2::emcal::Cell>>(celldata);
     LOG(info) << "Received " << cells[subspecification].size() << " cells for subspecification " << subspecification;
   }
@@ -58,9 +61,13 @@ void EventBuilderSpec::run(framework::ProcessingContext& ctx)
     if (subspecification == 0xDEADBEEF) {
       continue;
     }
+    if (triggers.find(subspecification) != triggers.end()) {
+      LOG(error) << "Found multiple messages for trigger records for subspec " << subspecification << "!";
+    }
     triggers[subspecification] = ctx.inputs().get<gsl::span<o2::emcal::TriggerRecord>>(trgrecorddata);
     LOG(info) << "Received " << triggers[subspecification].size() << " triggers for subspecification " << subspecification;
   }
+  LOG(info) << "Received data from " << cells.size() << " subspecifications for cells and " << triggers.size() << " subspecifications for triggers";
 
   for (auto interaction : connectRangesFromSubtimeframes(triggers)) {
     int start = outputCells.size(),
@@ -81,6 +88,8 @@ void EventBuilderSpec::run(framework::ProcessingContext& ctx)
     }
     outputTriggers.emplace_back(interaction.mInteractionRecord, interaction.mTriggerType, start, ncellsEvent);
   }
+
+  LOG(info) << "Sending " << outputTriggers.size() << " trigger records and " << outputCells.size() << " cells";
 
   ctx.outputs().snapshot(framework::Output{dataorigin, "CELLS", 0, framework::Lifetime::Timeframe}, outputCells);
   ctx.outputs().snapshot(framework::Output{dataorigin, "CELLSTRGR", 0, framework::Lifetime::Timeframe}, outputTriggers);
