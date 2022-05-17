@@ -279,10 +279,10 @@ inline bool zsEncoderRow::sort(const o2::tpc::Digit a, const o2::tpc::Digit b)
     return endpointa <= endpointb;
   }
   if (a.getTimeStamp() != b.getTimeStamp()) {
-    return a.getTimeStamp() <= b.getTimeStamp();
+    return a.getTimeStamp() < b.getTimeStamp();
   }
   if (a.getRow() != b.getRow()) {
-    return a.getRow() <= b.getRow();
+    return a.getRow() < b.getRow();
   }
   return a.getPad() < b.getPad();
 }
@@ -596,7 +596,7 @@ bool zsEncoderImprovedLinkBased::sort(const o2::tpc::Digit a, const o2::tpc::Dig
   int cruinsectora = param.tpcGeometry.GetRegion(a.getRow());
   int cruinsectorb = param.tpcGeometry.GetRegion(b.getRow());
   if (cruinsectora != cruinsectorb) {
-    return cruinsectora <= cruinsectorb;
+    return cruinsectora < cruinsectorb;
   }
   const auto& mapper = Mapper::instance();
   o2::tpc::GlobalPadNumber pada = mapper.globalPadNumber(o2::tpc::PadPos(a.getRow(), a.getPad()));
@@ -610,15 +610,15 @@ bool zsEncoderImprovedLinkBased::sort(const o2::tpc::Digit a, const o2::tpc::Dig
   int endpointa = 2 * cruinsectora + (fecInPartitiona >= (mapper.getPartitionInfo(cru.partition()).getNumberOfFECs() + 1) / 2);
   int endpointb = 2 * cruinsectorb + (fecInPartitionb >= (mapper.getPartitionInfo(cru.partition()).getNumberOfFECs() + 1) / 2);
   if (endpointa != endpointb) {
-    return endpointa <= endpointb;
+    return endpointa < endpointb;
   }
   if (a.getTimeStamp() != b.getTimeStamp()) {
-    return a.getTimeStamp() <= b.getTimeStamp();
+    return a.getTimeStamp() < b.getTimeStamp();
   }
   if (fecInPartitiona != fecInPartitionb) {
-    return fecInPartitiona <= fecInPartitionb;
+    return fecInPartitiona < fecInPartitionb;
   }
-  return inverseChannelMapping[feca.getSampaChip()][feca.getSampaChannel()] <= inverseChannelMapping[fecb.getSampaChip()][fecb.getSampaChannel()];
+  return inverseChannelMapping[feca.getSampaChip()][feca.getSampaChannel()] < inverseChannelMapping[fecb.getSampaChip()][fecb.getSampaChannel()];
 }
 
 void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* decPage, unsigned int decEndpoint, unsigned int firstOrbit)
