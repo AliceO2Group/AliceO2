@@ -208,7 +208,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
       LOGP(detail, "Loading {} for timestamp {}", path, timestamp);
       api.loadFileToMemory(v, path, metadata, timestamp, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
       if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
-        LOGP(fatal, "Unable to find object {}/{}", path, timingInfo.timeslice);
+        LOGP(fatal, "Unable to find object {}/{}", path, timestamp);
         // FIXME: I should send a dummy message.
         continue;
       }
