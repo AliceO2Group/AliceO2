@@ -71,11 +71,11 @@ void buildTrackletMCMData(TrackletMCMData& trackletword, const Tracklet64& track
   trackletword.word = 0;
   trackletword.slope = tracklet.getSlope();
   trackletword.pos = tracklet.getPosition();
-  trackletword.pid = ((tracklet.getQ0() & 0x7f) << 5) | (tracklet.getQ1() & 0x1f);
-  /**                      |                         |
-   *                       |                         |
-   *                       |                         -> Taking the lower 5 bits of the Q1 charge
-   *                       -> shifting the Q0 charge 5 bits to the left
+  trackletword.pid = ((tracklet.getQ1() & 0x1f) << 7) | (tracklet.getQ0() & 0x7f);
+  /**                      			|                         |
+   *                       			|                         |
+   *                       			|                         -> Get Q0 in its entirety
+   *                       			-> take the lower 5 bits from Q1 and shift it 7 to the left
    */
   trackletword.checkbit = checkbit;
 }
