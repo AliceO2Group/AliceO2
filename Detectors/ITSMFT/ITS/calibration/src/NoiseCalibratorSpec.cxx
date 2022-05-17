@@ -15,8 +15,6 @@
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "DetectorsCalibration/Utils.h"
 #include "ITSCalibration/NoiseCalibratorSpec.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
-#include "ITSMFTReconstruction/ClustererParam.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"

@@ -58,16 +58,7 @@ void ClustererDPL::init(InitContext& ic)
   mPatterns = !ic.options().get<bool>("no-patterns");
   mNThreads = std::max(1, ic.options().get<int>("nthreads"));
 
-  // settings for the fired pixel overflow masking
-  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-  const auto& clParams = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance();
-  auto nbc = clParams.maxBCDiffToMaskBias;
-  nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
-  mClusterer->setMaxBCSeparationToMask(nbc);
-  mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
-
   mState = 1;
-  mClusterer->print();
 }
 
 void ClustererDPL::run(ProcessingContext& pc)
@@ -127,7 +118,23 @@ void ClustererDPL::run(ProcessingContext& pc)
 ///_______________________________________
 void ClustererDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
-  pc.inputs().get<TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    pc.inputs().get<TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+    pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alppar");
+    pc.inputs().get<o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>*>("cluspar");
+
+    // settings for the fired pixel overflow masking
+    const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    const auto& clParams = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance();
+    auto nbc = clParams.maxBCDiffToMaskBias;
+    nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
+    mClusterer->setMaxBCSeparationToMask(nbc);
+    mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
+    mClusterer->print();
+  }
+  // we may have other params which need to be queried regularly
 }
 
 ///_______________________________________
@@ -138,6 +145,20 @@ void ClustererDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     if (mUseClusterDictionary) {
       mClusterer->setDictionary((const o2::itsmft::TopologyDictionary*)obj);
     }
+    return;
+  }
+  // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
+  if (matcher == ConcreteDataMatcher("ITS", "ALPIDEPARAM", 0)) {
+    LOG(info) << "Alpide param updated";
+    const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    par.printKeyValues();
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSPARAM", 0)) {
+    LOG(info) << "Alpide param updated";
+    const auto& par = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance();
+    par.printKeyValues();
+    return;
   }
 }
 
@@ -147,6 +168,8 @@ DataProcessorSpec getClustererSpec(bool useMC)
   inputs.emplace_back("digits", "ITS", "DIGITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "ITS", "DIGITSROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
+  inputs.emplace_back("cluspar", "ITS", "CLUSPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/ClustererParam"));
+  inputs.emplace_back("alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
