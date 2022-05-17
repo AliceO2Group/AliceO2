@@ -110,7 +110,7 @@ std::string toCSV(const std::vector<o2::mch::DsChannelId>& channels)
 
   for (const auto& c : channels) {
     csv << fmt::format("{},{},{}\n",
-                       c.getSolarId(), c.getDsId(), c.getChannel());
+                       c.getSolarId(), c.getElinkId(), c.getChannel());
   }
 
   return csv.str();

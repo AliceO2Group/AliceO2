@@ -46,14 +46,17 @@ namespace o2::its
 class VertexerTraitsGPU : public VertexerTraits
 {
 };
-template <int NLayers>
+template <int NLayers = 7>
 class TrackerTraitsGPU : public TrackerTraits
 {
 };
-template <int NLayers>
-class gpu::TimeFrameGPU : public TimeFrame
+namespace gpu
+{
+template <int NLayers = 7>
+class TimeFrameGPU : public TimeFrame
 {
 };
+} // namespace gpu
 } // namespace o2::its
 #endif
 

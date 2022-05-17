@@ -397,7 +397,6 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
     int start = cluelements.size();
     int nce = 0;
     for (uint32_t idig = firstCE; idig < lastCE; idig++) {
-      float eDigit = eInClusters[idig - firstCE][iclu];
       CluElement& el = cluelements[idig];
       float ei = el.energy * mProp[(idig - firstCE) * nMax + iclu];
       if (ei > o2::phos::PHOSSimParams::Instance().mDigitMinEnergy) {

@@ -129,19 +129,47 @@ uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader* header, const o2::trd::Tr
       LOG(warn) << " unknown trackletindex of " << trackletindex << " to getQFromRaw : " << pidindex;
       break;
   }
-  //qa is 6bits of Q2 and 2 bits of Q1
-  //second part of pid is in the TrackletMCMData
+  /*
+   * Q0/1 are 7 bits, Q2 is 6 bits.
+   * Q0 is completely in TrackletMCMData::data and Q2 is completely in TrackletHCHeader::pid*,
+   * while Q1 is split with the lower 5 bits in the data and the upper 2 bits in the header.
+   *
+   * A detailed description of the format can be found in
+   * https://alicetrd.web.cern.ch/alicetrd/tdp/main.pdf under 17.2.1
+   *
+   *     |07|06|05|04|03|02|01|00|
+   *     -------------------------
+   * qa: |       Q2        | Q1  |  TrackletMCMHeader::pid
+   *     -------------------------
+   *
+   * TDP: This can be one of these fields HPID0/1/2 (=TrackletHCHeader::pid0/1/2) depending on
+   * 	  the MCM-CPU.
+   *
+   *     |11|10|09|08|07|06|05|04|03|02|01|00|
+   *     -------------------------------------
+   * qb: |     Q0             |      Q1      |  TrackletMCMData::pid
+   *     -------------------------------------
+   *
+   * TDP: This is the LPID field (=TrackletMCMData::pid).
+   *
+   * Q1 is then calculated like this:
+   *
+   *     |06|05|04|03|02|01|00|
+   *     ----------------------
+   * Q1: |qa.Q1|    qb.Q1     |
+   *     ----------------------
+   *
+   **/
   qb = data->pid;
-  //qb is 7 bits Q0 and 5 bits of Q1
   switch (pidindex) {
     case 0:                   //Q0
       pid = (qb >> 5) & 0x7f; // 7 bits at the top of all of Q0
       break;
-    case 1:                                //Q1
-      pid = ((qa & 0x3) << 5) | (qb >> 5); // 2 bits of qb and 5 bits of qb for Q1 .. 7 bits
+    case 1:                                  //Q1
+      pid = ((qa & 0x3) << 5) | (qb & 0x1f); // 2 bits of qa and 5 bits of qb for Q1 .. 7 bits
       break;
     case 2:                   //Q2
-      pid = (qa >> 2) & 0x2f; // 6 bits shifted down by bits 2 to 8 ... 6 bits
+      pid = (qa >> 2) & 0x3f; // 6 bits shifted down by bits 2 only taking 6 bits
       break;
     default:
       LOG(warn) << " unknown pid index of : " << pidindex;

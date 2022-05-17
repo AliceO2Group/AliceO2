@@ -321,11 +321,13 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           if (trackIndex.isAmbiguous() && mGIDToTableMFTID.find(trackIndex) != mGIDToTableMFTID.end()) { // was it already stored ?
             continue;
           }
+          mGIDToTableMFTID.emplace(trackIndex, mIndexMFTID);
           addToMFTTracksTable(mftTracksCursor, ambigMFTTracksCursor, trackIndex, data, collisionID, collisionBC, bcsMap);
         } else if (src == GIndex::Source::MCH || src == GIndex::Source::MFTMCH) {                        // FwdTracks tracks are treated separately since they are stored in a different table
           if (trackIndex.isAmbiguous() && mGIDToTableFwdID.find(trackIndex) != mGIDToTableFwdID.end()) { // was it already stored ?
             continue;
           }
+          mGIDToTableFwdID.emplace(trackIndex, mIndexFwdID);
           addToFwdTracksTable(fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, trackIndex, data, collisionID, collisionBC, bcsMap);
         } else {
           // barrel track: normal tracks table
@@ -520,7 +522,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     fwdInfo.trackTime = track.getTimeMUS().getTimeStamp() * 1.e3;
     fwdInfo.trackTimeRes = track.getTimeMUS().getTimeStampError() * 1.e3;
 
-    getMCHBitMap(fwdInfo.matchmchtrackid);
+    getMCHBitMap(track.getMCHTrackID());
 
     int midTrackID = track.getMIDTrackID();
     if (midTrackID != -1) { // check matching just in case

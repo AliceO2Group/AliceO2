@@ -26,8 +26,6 @@ namespace event_visualisation
 class FileProducer
 {
  private:
-  static std::deque<std::string> load(const std::string& path);
-
   size_t mFilesInFolder;
   std::string mPath;
   std::string mName;

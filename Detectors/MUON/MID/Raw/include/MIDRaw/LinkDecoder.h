@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <functional>
 #include <gsl/gsl>
 #include "DetectorsRaw/RDHUtils.h"
 #include "Headers/RAWDataHeader.h"

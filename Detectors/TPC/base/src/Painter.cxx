@@ -24,6 +24,7 @@
 #include "TLatex.h"
 #include "TStyle.h"
 #include "TPaveText.h"
+#include "TPaletteAxis.h"
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/ROC.h"
@@ -929,6 +930,16 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const LtrCalibData& ltr, std:
   vecCanvases.emplace_back(cLtrCoverage);
   vecCanvases.emplace_back(cCalibValues);
   return vecCanvases;
+}
+
+void painter::adjustPalette(TH1* h, float x2ndc, float tickLength)
+{
+  gPad->Modified();
+  gPad->Update();
+  auto palette = (TPaletteAxis*)h->GetListOfFunctions()->FindObject("palette");
+  palette->SetX2NDC(x2ndc);
+  auto ax = h->GetZaxis();
+  ax->SetTickLength(tickLength);
 }
 
 // ===| explicit instantiations |===============================================

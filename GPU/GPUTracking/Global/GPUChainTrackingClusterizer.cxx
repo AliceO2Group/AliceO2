@@ -298,8 +298,8 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
   mCFContext->prepare(mIOPtrs.tpcZS, fragmentMax);
   if (mIOPtrs.tpcZS) {
     unsigned int nDigitsFragmentMax[NSLICES];
+    mCFContext->zsVersion = -1;
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      mCFContext->zsVersion = -1;
       if (mIOPtrs.tpcZS->slice[iSlice].count[0]) {
         const void* rdh = mIOPtrs.tpcZS->slice[iSlice].zsPtr[0][0];
         if (rdh && o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>() != o2::raw::RDHUtils::getVersion(rdh)) {

@@ -16,11 +16,11 @@
 ///
 /// \author Andrea Ferrero, CEA
 
+#include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/Task.h"
-#include "TimeClusterFinderSpec.h"
-#include "CommonUtils/ConfigurableParam.h"
+#include "MCHTimeClustering/TimeClusterFinderSpec.h"
 
 using namespace o2;
 using namespace o2::framework;

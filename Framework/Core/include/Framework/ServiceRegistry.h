@@ -109,30 +109,8 @@ struct ServiceRegistry {
   using hash_type = decltype(TypeIdHelpers::uniqueId<void>());
   ServiceRegistry();
 
-  ServiceRegistry(ServiceRegistry const& other)
-  {
-    for (size_t i = 0; i < MAX_SERVICES; ++i) {
-      mServicesKey[i].store(other.mServicesKey[i].load());
-    }
-    mServicesValue = other.mServicesValue;
-    mServicesMeta = other.mServicesMeta;
-    for (size_t i = 0; i < other.mServicesBooked.size(); ++i) {
-      this->mServicesBooked[i] = other.mServicesBooked[i].load();
-    }
-  }
-
-  ServiceRegistry& operator=(ServiceRegistry const& other)
-  {
-    for (size_t i = 0; i < MAX_SERVICES; ++i) {
-      mServicesKey[i].store(other.mServicesKey[i].load());
-    }
-    mServicesValue = other.mServicesValue;
-    mServicesMeta = other.mServicesMeta;
-    for (size_t i = 0; i < other.mServicesBooked.size(); ++i) {
-      this->mServicesBooked[i] = other.mServicesBooked[i].load();
-    }
-    return *this;
-  }
+  ServiceRegistry(ServiceRegistry const& other);
+  ServiceRegistry& operator=(ServiceRegistry const& other);
 
   /// Invoke callbacks to be executed in PreRun(), before the User Start callbacks
   void preStartCallbacks();

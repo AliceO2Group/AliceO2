@@ -18,6 +18,4 @@ o2_add_library(
 o2_target_root_dictionary(MIDCalibration
                           HEADERS include/MIDCalibration/ChannelCalibrator.h)
 
-# add_subdirectory(exe)
-
-# if(BUILD_TESTING) add_subdirectory(test) endif()
+add_subdirectory(exe)

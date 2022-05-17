@@ -9,10 +9,28 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackerParam.cxx
-/// \brief Configurable parameters for MCH tracking
-/// \author Philippe Pillot, Subatech
+/// \file FileWatcher.h
+/// \brief Observing folder for created and removed files - preserving current
+/// \author julian.myrcha@cern.ch
 
-#include "MCHTracking/TrackerParam.h"
+#ifndef O2EVE_DIRECTORYLOADER_H
+#define O2EVE_DIRECTORYLOADER_H
 
-O2ParamImpl(o2::mch::TrackerParam);
+#include <string>
+#include <deque>
+
+namespace o2
+{
+namespace event_visualisation
+{
+
+class DirectoryLoader
+{
+ public:
+  static std::deque<std::string> load(const std::string& path, const std::string& marker);
+};
+
+} // namespace event_visualisation
+} // namespace o2
+
+#endif // O2EVE_DIRECTORYLOADER_H

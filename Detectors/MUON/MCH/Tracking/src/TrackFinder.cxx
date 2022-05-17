@@ -25,8 +25,8 @@
 #include <TMath.h>
 
 #include "Field/MagneticField.h"
+#include "MCHBase/TrackerParam.h"
 #include "MCHTracking/TrackExtrap.h"
-#include "MCHTracking/TrackerParam.h"
 
 namespace o2
 {
