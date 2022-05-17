@@ -181,9 +181,9 @@ int CTPRunScalers::processScalerLine(const std::string& line, int& level, int& n
       CTPScalerRecordRaw rec;
       rec.intRecord.orbit = std::stol(tokens[0]);
       rec.intRecord.bc = std::stol(tokens[1]);
-      //rec.seconds = std::stol(tokens[2]);
+      // rec.seconds = std::stol(tokens[2]);
       rec.epochTime = std::stoll(tokens[2]);
-      //rec.microSeconds = std::stol(tokens[3]);
+      // rec.microSeconds = std::stol(tokens[3]);
       mScalerRecordRaw.push_back(rec);
       level = 3;
       return 0;
@@ -249,8 +249,8 @@ int CTPRunScalers::copyRawToO2ScalerRecord(const CTPScalerRecordRaw& rawrec, CTP
   }
   o2rec.scalers.clear();
   o2rec.intRecord = rawrec.intRecord;
-  //o2rec.seconds = rawrec.seconds;
-  //o2rec.microSeconds = rawrec.microSeconds;
+  // o2rec.seconds = rawrec.seconds;
+  // o2rec.microSeconds = rawrec.microSeconds;
   o2rec.epochTime = rawrec.epochTime;
   for (uint32_t i = 0; i < rawrec.scalers.size(); i++) {
     CTPScalerRaw rawscal = rawrec.scalers[i];

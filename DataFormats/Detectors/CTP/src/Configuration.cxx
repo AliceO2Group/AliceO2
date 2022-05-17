@@ -629,26 +629,27 @@ int CTPRunManager::processMessage(std::string& topic, std::string& message)
 {
   LOG(info) << "Processing message with topic:" << topic;
   std::string firstcounters;
-  if(topic.find("sox") != std::string::npos) {
+  if (topic.find("sox") != std::string::npos) {
     // get config
     size_t irun = message.find("run");
-    if(irun == std::string::npos) {
-      LOG(error) << "run keyword not found in SOX:\n" << message;
+    if (irun == std::string::npos) {
+      LOG(error) << "run keyword not found in SOX:\n"
+                 << message;
       return 1;
     }
     LOG(info) << "SOX received, Run:" << irun;
     std::string cfg = message.substr(irun, message.size() - irun);
     LOG(info) << "Config:" << cfg;
     startRun(cfg);
-    firstcounters = message.substr(0,irun);
+    firstcounters = message.substr(0, irun);
   }
-  if(topic.find("eox") != std::string::npos) {
+  if (topic.find("eox") != std::string::npos) {
     LOG(info) << "EOX received";
     mEOX = 1;
   }
   //
   std::vector<std::string> tokens;
-  if(firstcounters.size() > 0) {
+  if (firstcounters.size() > 0) {
     tokens = o2::utils::Str::tokenize(firstcounters, ' ');
   } else {
     tokens = o2::utils::Str::tokenize(message, ' ');
@@ -675,22 +676,22 @@ int CTPRunManager::processMessage(std::string& topic, std::string& message)
     } else if ((mCounters[i] != 0) && (mActiveRunNumbers[i] == mCounters[i])) {
       // active , do scalers
       LOG(info) << "Run continue:" << mCounters[i];
-      addScalers(i,tt);
+      addScalers(i, tt);
     } else if ((mCounters[i] != 0) && (mActiveRunNumbers[i] == 0)) {
       LOG(info) << "Run started:" << mCounters[i];
       mActiveRunNumbers[i] = mCounters[i];
-      if(mRunInStart == nullptr) {
+      if (mRunInStart == nullptr) {
         LOG(error) << "Internal error in processMessage: nullptr != 0 expected";
       }
       mActiveRuns[i] = mRunInStart;
       mRunInStart = nullptr;
-      addScalers(i,tt);
+      addScalers(i, tt);
     } else if ((mCounters[i] == 0) && (mActiveRunNumbers[i] != 0)) {
-      if(mEOX != 1) {
-        LOG(error) << "Internal error in processMessage: mEOX = 1 expected:" << mEOX; 
+      if (mEOX != 1) {
+        LOG(error) << "Internal error in processMessage: mEOX = 1 expected:" << mEOX;
       } else {
         LOG(info) << "Run stopped:" << mActiveRunNumbers[i];
-        addScalers(i,tt);
+        addScalers(i, tt);
         mActiveRunNumbers[i] = 0;
         mEOX = 0;
         stopRun(i);

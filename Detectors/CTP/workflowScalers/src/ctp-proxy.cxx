@@ -64,7 +64,7 @@ InjectorFunction dcs2dpl()
       LOG(error) << "No output channel found for OutputSpec " << outsp;
       return;
     }
-    runMgr->processMessage(messageHeader,messageData);
+    runMgr->processMessage(messageHeader, messageData);
     hdrF.tfCounter = *timesliceId; // this also
     hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
     hdrF.splitPayloadParts = 1;
