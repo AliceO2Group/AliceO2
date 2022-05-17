@@ -171,7 +171,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
 
     if (mUseCCDB) { // setting the timestamp to get the LHCPhase correction; if we don't use CCDB, then it can stay to 0 as set when creating the calibTOFapi above
       const auto tfOrbitFirst = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->firstTForbit;
-      auto tv = pc.inputs().get<std::vector<Long64_t>*>("orbitreset");
+      auto tv = pc.inputs().get<std::vector<Long64_t>*>("orbitReset");
       const auto orbitReset = tv->front();
       const long tPrec = orbitReset + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS; // microsecond-precise time stamp
       mcalibTOFapi->setTimeStamp(tPrec);
@@ -258,7 +258,7 @@ DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool followCCDBUpda
   if (useCCDB) {
     inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/LHCphase"));
     inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/ChannelCalib"));
-    inputs.emplace_back("orbitReset", o2::header::gDataOriginCTP, "ORBITRESET", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/OrbitReset"));
+    inputs.emplace_back("orbitReset", o2::header::gDataOriginCTP, "ORBITRESETTOF", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/OrbitReset"));
   }
 
   return DataProcessorSpec{

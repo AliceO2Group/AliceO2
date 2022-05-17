@@ -80,6 +80,8 @@ class LHCClockCalibDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+
+    LOG(info) << "We are running LHCPhase";
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     auto data = pc.inputs().get<gsl::span<o2::dataformats::CalibInfoTOF>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
@@ -104,18 +106,19 @@ class LHCClockCalibDevice : public o2::framework::Task
 
     else { // we use "fake" initial calibrations
       if (!mcalibTOFapi) {
-        mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), &mPhase, &mTimeSlewing); // TODO: should we replace long(0) with tfcounter defined at the beginning of the method? we need the timestamp of the TF
+        mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), &mPhase, &mTimeSlewing);
       }
     }
 
     mCalibrator->setCalibTOFapi(mcalibTOFapi);
+    LOG(info) << "Data size = " << data.size();
     if (data.size() == 0) {
       return;
     }
 
     if (mUseCCDB) { // setting the timestamp to get the LHCPhase correction; if we don't use CCDB, then it can stay to 0 as set when creating the calibTOFapi above
       const auto tfOrbitFirst = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->firstTForbit;
-      auto tv = pc.inputs().get<std::vector<Long64_t>*>("orbitreset");
+      auto tv = pc.inputs().get<std::vector<Long64_t>*>("orbitResetTOF");
       const auto orbitReset = tv->front();
       const long tPrec = orbitReset + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS; // microsecond-precise time stamp
       mcalibTOFapi->setTimeStamp(tPrec);
@@ -206,7 +209,7 @@ DataProcessorSpec getLHCClockCalibDeviceSpec(bool useCCDB, bool followCCDBUpdate
   if (useCCDB) {
     inputs.emplace_back("tofccdbLHCphase", "TOF", "LHCphaseCal", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/LHCphase"));
     inputs.emplace_back("tofccdbChannelCalib", "TOF", "ChannelCalibCal", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/ChannelCalib"));
-    inputs.emplace_back("orbitReset", o2::header::gDataOriginCTP, "ORBITRESET", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/OrbitReset"));
+    inputs.emplace_back("orbitResetTOF", o2::header::gDataOriginCTP, "ORBITRESETTOF", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/OrbitReset"));
   }
 
   std::vector<OutputSpec> outputs;
