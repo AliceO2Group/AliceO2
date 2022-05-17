@@ -559,7 +559,7 @@ void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack& gTrack)
   SMatrix55Sym lastParamCov;
 
   if (mUseBranson) {
-    o2::mch::TrackExtrap::extrapToVertex(mchparam, mftTrackOut.getX(), mftTrackOut.getY(), mftTrackOut.getZ(), 0, 0); // Propagation of MCH to the first MFT cluster in the matching plane, applying Branson corrections to the MCH which is matched to MFT
+    o2::mch::TrackExtrap::extrapToVertex(mchparam, mftTrackOut.getX(), mftTrackOut.getY(), mftTrackOut.getZ(), 0, 0); // Propagation of MCH that are matched to MFT to the matching plane, applying Branson corrections
     auto convertedTrack = MCHtoFwd(mchparam);
     gTrack.setInvQPt(convertedTrack.getInvQPt());
     lastParamCov(4, 4) = convertedTrack.getCovariances()(4, 4);
