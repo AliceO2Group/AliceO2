@@ -20,9 +20,6 @@ if(DEFINED HIP_AMDGPUTARGET)
   set(TMP_TARGET "(GPU Target ${HIP_AMDGPUTARGET})")
 endif()
 
-string(REPLACE "-O3" "-O2" CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS} ")
-string(REPLACE "-O3" "-O2" CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} " ${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} ")
-
 message(STATUS "Building GPUTracking with HIP support ${TMP_TARGET}")
 
 set(SRCS GPUReconstructionHIP.hip.cxx)
