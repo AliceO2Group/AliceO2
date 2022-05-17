@@ -79,6 +79,7 @@ struct RecoGeomHelper {
     int id = 0;       // layer ID
     int nLadders = 0; // number of ladders
     int lastChipInLadder = 0;
+    float phi2bin = 0;
     float z2chipID = 0;            // conversion factor for Z (relative to zmin) to rough chip ID
     float rInv = 0.;               // inverse mean radius
     BracketF rRange = {1e9, 0.};   // min and max radii
@@ -143,8 +144,7 @@ inline int RecoGeomHelper::RecoLayer::getLadderID(float phi) const
   // Note: this is an approximate method, precise within 1/3 of average ladder width,
   // one should check also the neighbouring ladders +/-1
   o2::math_utils::bringTo02Pi(phi);
-  constexpr float PI2Inv = 1.f / o2::constants::math::TwoPI;
-  return phi2ladder[int(phi * PI2Inv * phi2ladder.size())];
+  return phi2ladder[int(phi * phi2bin)];
 }
 
 } // namespace its
