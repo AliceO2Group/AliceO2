@@ -35,7 +35,7 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
             .matcher = [](DeviceSpec const&, ConfigContext const&) { return true; },
             .send = [](FairMQDeviceProxy& proxy, FairMQParts& parts, ChannelIndex channelIndex) { 
               auto *channel = proxy.getOutputChannel(channelIndex);
-              auto timeout = 5000;
+              auto timeout = 1000;
               auto res = channel->Send(parts, timeout);
               if (res == (size_t)fair::mq::TransferCode::timeout) {
                 LOGP(warning, "Timed out sending after {}s. Downstream backpressure detected on {}.", timeout/1000, channel->GetName()); 
