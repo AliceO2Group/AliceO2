@@ -41,6 +41,7 @@
 #include "Framework/Logger.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/TableTreeHelpers.h"
+#include "Framework/CCDBParamSpec.h"
 #include "FDDBase/Constants.h"
 #include "FT0Base/Geometry.h"
 #include "FV0Base/Geometry.h"
@@ -1156,9 +1157,10 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
 void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
-  updateTimeDependentParams(pc);
   o2::globaltracking::RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest);
+  updateTimeDependentParams(pc); // Make sure that this is called after the RecoContainer collect data, since some condition objects are fetched there
+
   mStartIR = recoData.startIR;
 
   auto primVertices = recoData.getPrimaryVertices();
@@ -1847,23 +1849,44 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
 
 void AODProducerWorkflowDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
-  // here we follow eventual updates of CCDB objects this processor depends on
-  if (mITSROFrameHalfLengthNS < 0.) {
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    // Note: DPLAlpideParam for ITS and MFT will be loaded by the RecoContainer
+
+    // apply settings
     std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()}; // normally will come from CCDB
     const auto& alpParamsITS = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
     mITSROFrameHalfLengthNS = 0.5 * (grp->isDetContinuousReadOut(o2::detectors::DetID::ITS) ? alpParamsITS.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS : alpParamsITS.roFrameLengthTrig);
 
     const auto& alpParamsMFT = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
     mMFTROFrameHalfLengthNS = 0.5 * (grp->isDetContinuousReadOut(o2::detectors::DetID::MFT) ? alpParamsMFT.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS : alpParamsMFT.roFrameLengthTrig);
-  }
-  if (mTPCBinNS < 0.) {
+
+    // RS FIXME: this is not yet fetched from the CCDB
     auto& elParam = o2::tpc::ParameterElectronics::Instance();
     mTPCBinNS = elParam.ZbinWidth * 1.e3;
-  }
-  if (mNSigmaTimeTrack < 0.) {
+
     const auto& pvParams = o2::vertexing::PVertexerParams::Instance();
     mNSigmaTimeTrack = pvParams.nSigmaTimeTrack;
     mTimeMarginTrackTime = pvParams.timeMarginTrackTime * 1.e3;
+  }
+}
+
+//_______________________________________
+void AODProducerWorkflowDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
+  if (matcher == ConcreteDataMatcher("ITS", "ALPIDEPARAM", 0)) {
+    LOG(info) << "ITS Alpide param updated";
+    const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    par.printKeyValues();
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("MFT", "ALPIDEPARAM", 0)) {
+    LOG(info) << "MFT Alpide param updated";
+    const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
+    par.printKeyValues();
+    return;
   }
 }
 

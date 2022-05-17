@@ -26,6 +26,7 @@
 #include "CommonUtils/NameConf.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "FT0Reconstruction/InteractionTag.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -73,15 +74,6 @@ void PrimaryVertexingSpec::init(InitContext& ic)
   o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP();
 
-  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
-  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-  if (!grp->isDetContinuousReadOut(DetID::ITS)) {
-    mITSROFrameLengthMUS = alpParams.roFrameLengthTrig / 1.e3; // ITS ROFrame duration in \mus
-  } else {
-    mITSROFrameLengthMUS = alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3; // ITS ROFrame duration in \mus
-  }
-  mVertexer.setITSROFrameLength(mITSROFrameLengthMUS);
-
   // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
   std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
   std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
@@ -100,14 +92,12 @@ void PrimaryVertexingSpec::init(InitContext& ic)
   const auto* digctx = o2::steer::DigitizationContext::loadFromFile();
   const auto& bcfill = digctx->getBunchFilling();
   mVertexer.setBunchFilling(bcfill);
-  mVertexer.init();
 }
 
 void PrimaryVertexingSpec::run(ProcessingContext& pc)
 {
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
-  updateTimeDependentParams(pc);
   std::vector<PVertex> vertices;
   std::vector<GIndex> vertexTrackIDs;
   std::vector<V2TRef> v2tRefs;
@@ -116,6 +106,8 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   if (!mSkip) {
     o2::globaltracking::RecoContainer recoData;
     recoData.collectData(pc, *mDataRequest.get()); // select tracks of needed type, with minimal cuts, the real selected will be done in the vertexer
+    updateTimeDependentParams(pc);                 // Make sure this is called after recoData.collectData, which may load some conditions
+
     std::vector<TrackWithTimeStamp> tracks;
     std::vector<o2::MCCompLabel> tracksMCInfo;
     std::vector<o2d::GlobalTrackID> gids;
@@ -183,11 +175,33 @@ void PrimaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
 void PrimaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
   o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
+  if (matcher == ConcreteDataMatcher("ITS", "ALPIDEPARAM", 0)) {
+    LOG(info) << "ITS Alpide param updated";
+    const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    par.printKeyValues();
+    return;
+  }
 }
 
 void PrimaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    // Note: reading of the ITS AlpideParam needed for ITS timing is done by the RecoContainer
+    std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
+    const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    if (!grp->isDetContinuousReadOut(DetID::ITS)) {
+      mITSROFrameLengthMUS = alpParams.roFrameLengthTrig / 1.e3; // ITS ROFrame duration in \mus
+    } else {
+      mITSROFrameLengthMUS = alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3; // ITS ROFrame duration in \mus
+    }
+    mVertexer.setITSROFrameLength(mITSROFrameLengthMUS);
+    mVertexer.init();
+  }
+  // we may have other params which need to be queried regularly
 }
 
 DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool skip, bool validateWithFT0, bool useMC)
@@ -215,6 +229,7 @@ DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool skip, bool 
                                                               false,                          // askMatLUT
                                                               o2::base::GRPGeomRequest::None, // geometry
                                                               dataRequest->inputs);
+
   return DataProcessorSpec{
     "primary-vertexing",
     dataRequest->inputs,
