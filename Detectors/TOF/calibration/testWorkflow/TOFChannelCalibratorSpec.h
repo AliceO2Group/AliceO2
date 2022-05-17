@@ -56,14 +56,14 @@ class TOFChannelCalibDevice : public o2::framework::Task
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     int minEnt = ic.options().get<int>("min-entries"); //std::max(50, ic.options().get<int>("min-entries"));
     int nb = std::max(500, ic.options().get<int>("nbins"));
-    float range = ic.options().get<float>("range");
+    mRange = ic.options().get<float>("range");
     int isTest = ic.options().get<bool>("do-TOF-channel-calib-in-test-mode");
     bool updateAtEORonly = ic.options().get<bool>("update-at-end-of-run-only");
     auto slotL = ic.options().get<uint32_t>("tf-per-slot");
     auto delay = ic.options().get<uint32_t>("max-delay");
     auto updateInterval = ic.options().get<uint32_t>("update-interval");
     auto deltaUpdateInterval = ic.options().get<uint32_t>("delta-update-interval");
-    mCalibrator = std::make_unique<o2::tof::TOFChannelCalibrator<T>>(minEnt, nb, range);
+    mCalibrator = std::make_unique<o2::tof::TOFChannelCalibrator<T>>(minEnt, nb, mRange);
 
     mCalibrator->doPerStrip(mDoPerStrip);
     mCalibrator->doSafeMode(mSafeMode);
@@ -155,12 +155,14 @@ class TOFChannelCalibDevice : public o2::framework::Task
       long timeNow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
       if ((timeNow - startTimeChCalib) > o2::ccdb::CcdbObjectInfo::DAY * 7) {
         LOG(info) << "Enlarging the range of the booked histogram since the latest CCDB entry is too old";
-        mCalibrator->setRange(mCalibrator->getRange() * 10); // we enlarge the range for the calibration in case the last valid object is too old (older than 1 week)
+        mCalibrator->setRange(mRange * 10); // we enlarge the range for the calibration in case the last valid object is too old (older than 1 week)
       }
     } else {
       if (mUseCCDB && mUpdateCCDB) {
         mcalibTOFapi->setLhcPhase(&mPhase);
         mcalibTOFapi->setSlewParam(&mTimeSlewing);
+	mCalibrator->setRange(mRange); // let's restrict the range since we received an updated calibration
+	mCalibrator->getSlot(mCalibrator->getNSlots() - 1).getContainer()->resetAndReRange(mCalibrator->getRange()); // we also empty the existing slot to update its range; the loss in statistics will be minimal
       }
     }
 
@@ -194,6 +196,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
   o2::tof::CalibTOFapi* mcalibTOFapi = nullptr;
   LHCphase mPhase;
   TimeSlewing mTimeSlewing;
+  float mRange = 24000.f;
   bool mUseCCDB = false;
   bool mAttachToLHCphase = false; // whether to use or not previously defined LHCphase
   bool mCosmics = false;

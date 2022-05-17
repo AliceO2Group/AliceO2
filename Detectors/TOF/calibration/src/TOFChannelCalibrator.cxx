@@ -403,6 +403,21 @@ float TOFChannelData::integral(int ch) const
   return mEntries.at(ch);
 }
 
+//_____________________________________________
+void TOFChannelData::resetAndReRange(float range)
+{
+  // empty the container and redefine the range
+
+  setRange(range);
+  std::fill(mEntries.begin(), mEntries.end(), 0);
+  mV2Bin = mNBins / (2 * mRange);
+  for (int isect = 0; isect < 18; isect++) {
+    mHisto[isect] = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBins, -mRange, mRange, "t-texp"),
+						   boost::histogram::axis::integer<>(0, mNElsPerSector, "channel index in sector" + std::to_string(isect)));
+  }
+  return;
+}
+
 //-------------------------------------------------------------------
 // TOF Channel Calibrator
 //-------------------------------------------------------------------

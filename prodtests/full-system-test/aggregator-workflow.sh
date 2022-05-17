@@ -40,7 +40,7 @@ if [[ $CALIB_TOF_LHCPHASE == 1 ]] || [[ $CALIB_TOF_CHANNELOFFSETS == 1 ]]; then
   EXTRA_WORKFLOW_CALIB+="o2-calibration-tof-calib-workflow $ARGS_ALL --do-lhc-phase --tf-per-slot 26400 --use-ccdb | "
     fi
     if [[ $CALIB_TOF_CHANNELOFFSETS == 1 ]]; then
-  EXTRA_WORKFLOW_CALIB+="o2-calibration-tof-calib-workflow $ARGS_ALL --do-channel-offset --update-interval 300000 --delta-update-interval 50000 --min-entries 100 --range 100000 --use-ccdb | "
+  EXTRA_WORKFLOW_CALIB+="o2-calibration-tof-calib-workflow $ARGS_ALL --do-channel-offset --update-interval 300000 --delta-update-interval 50000 --min-entries 100 --range 100000 --use-ccdb --follow-ccdb-updates | "
     fi
 fi
 if [[ $CALIB_TOF_DIAGNOSTICS == 1 ]]; then
