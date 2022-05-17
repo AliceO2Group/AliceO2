@@ -15,6 +15,8 @@
 #include "DataFormatsCPV/CPVBlockHeader.h"
 #include "CPVWorkflow/ClusterizerSpec.h"
 #include "Framework/ControlService.h"
+#include "CPVBase/CPVSimParams.h"
+#include "Framework/CCDBParamSpec.h"
 
 using namespace o2::cpv::reco_workflow;
 
@@ -31,6 +33,16 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(info) << "Starting ClusterizerSpec::run() ";
   LOG(debug) << "CPVClusterizer - run on digits called";
+
+  // update config
+  static bool isConfigFetched = false;
+  if (!isConfigFetched) {
+    LOG(info) << "ClusterizerSpec::run() : fetching o2::cpv::CPVSimParams from CCDB";
+    ctx.inputs().get<o2::cpv::CPVSimParams*>("simparams");
+    LOG(info) << "ClusterizerSpec::run() : o2::cpv::CPVSimParams::Instance() now is following:";
+    o2::cpv::CPVSimParams::Instance().printKeyValues();
+    isConfigFetched = true;
+  }
 
   auto digits = ctx.inputs().get<std::vector<Digit>>("digits");
 
@@ -73,6 +85,7 @@ o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getClusterizerSpec(bool
 {
   std::vector<o2::framework::InputSpec> inputs;
   std::vector<o2::framework::OutputSpec> outputs;
+  inputs.emplace_back("simparams", "CPV", "CPV_SimPars", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CPV/Config/CPVSimParams"));
   inputs.emplace_back("digits", o2::header::gDataOriginCPV, "DIGITS", 0, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back("digitTriggerRecords", o2::header::gDataOriginCPV, "DIGITTRIGREC", 0, o2::framework::Lifetime::Timeframe);
   if (propagateMC) {

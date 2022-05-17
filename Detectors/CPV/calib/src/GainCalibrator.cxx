@@ -114,15 +114,19 @@ GainCalibrator::GainCalibrator()
 {
   LOG(info) << "GainCalibrator::GainCalibrator() : "
             << "Gain calibrator created!";
+}
+//_____________________________________________________________________________
+void GainCalibrator::configParameters()
+{
   auto& cpvParams = o2::cpv::CPVCalibParams::Instance();
-  mMinEvents = cpvParams.mGainMinEvents;
-  mMinNChannelsToCalibrate = cpvParams.mGainMinNChannelsToCalibrate;
-  mDesiredLandauMPV = cpvParams.mGainDesiredLandauMPV;
-  mToleratedChi2PerNDF = cpvParams.mGainToleratedChi2PerNDF;
-  mMinAllowedCoeff = cpvParams.mGainMinAllowedCoeff;
-  mMaxAllowedCoeff = cpvParams.mGainMaxAllowedCoeff;
-  mFitRangeL = cpvParams.mGainFitRangeL;
-  mFitRangeR = cpvParams.mGainFitRangeR;
+  mMinEvents = cpvParams.gainMinEvents;
+  mMinNChannelsToCalibrate = cpvParams.gainMinNChannelsToCalibrate;
+  mDesiredLandauMPV = cpvParams.gainDesiredLandauMPV;
+  mToleratedChi2PerNDF = cpvParams.gainToleratedChi2PerNDF;
+  mMinAllowedCoeff = cpvParams.gainMinAllowedCoeff;
+  mMaxAllowedCoeff = cpvParams.gainMaxAllowedCoeff;
+  mFitRangeL = cpvParams.gainFitRangeL;
+  mFitRangeR = cpvParams.gainFitRangeR;
   // adjust fit ranges to descrete binned values
   if (mFitRangeL < AmplitudeSpectrum::lRange) {
     mFitRangeL = AmplitudeSpectrum::lRange;
@@ -133,7 +137,8 @@ GainCalibrator::GainCalibrator()
   double binWidth = (AmplitudeSpectrum::rRange - AmplitudeSpectrum::lRange) / AmplitudeSpectrum::nBins;
   mFitRangeL = AmplitudeSpectrum::lRange + std::floor((mFitRangeL - AmplitudeSpectrum::lRange) / binWidth) * binWidth;
   mFitRangeR = AmplitudeSpectrum::lRange + std::floor((mFitRangeR - AmplitudeSpectrum::lRange) / binWidth) * binWidth;
-  LOG(info) << "Parameters used: ";
+
+  LOG(info) << "GainCalibrator::configParameters() : Parameters used: ";
   LOG(info) << "mMinEvents = " << mMinEvents;
   LOG(info) << "mDesiredLandauMPV = " << mDesiredLandauMPV;
   LOG(info) << "mToleratedChi2PerNDF = " << mToleratedChi2PerNDF;

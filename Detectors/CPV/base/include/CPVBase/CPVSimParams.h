@@ -60,6 +60,16 @@ struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
   O2ParamDef(CPVSimParams, "CPVSimParams");
 };
 } // namespace cpv
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::cpv::CPVSimParams> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif /* O2_CPV_CPVSIMPARAMS_H_ */

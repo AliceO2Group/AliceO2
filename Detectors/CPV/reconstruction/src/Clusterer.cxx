@@ -157,8 +157,8 @@ void Clusterer::makeCalibDigits(std::vector<Digit>* calibDigits)
   for (auto& clu : mClusters) {
     if (clu.getNumberOfLocalMax(maxAt) == 1) { // cluster with only one local maximum
                                                // and appropriate size
-      if ((o2::cpv::CPVCalibParams::Instance().mGainMinClusterMultForCalib <= clu.getMultiplicity()) &&
-          (o2::cpv::CPVCalibParams::Instance().mGainMaxClusterMultForCalib >= clu.getMultiplicity())) {
+      if ((o2::cpv::CPVCalibParams::Instance().gainMinClusterMultForCalib <= clu.getMultiplicity()) &&
+          (o2::cpv::CPVCalibParams::Instance().gainMaxClusterMultForCalib >= clu.getMultiplicity())) {
         const FullCluster::CluElement& maxElement = clu.getElementList()->at(maxAt[0]);
         calibDigits->emplace_back(maxElement.absId, maxElement.energy, maxElement.label);
       }
@@ -187,8 +187,8 @@ void Clusterer::makeUnfoldingsAndCalibDigits(gsl::span<const Digit> digits, std:
     } else {
       clu.setNExMax(nMax); // Only one local maximum
       // make calib digits from cluster with only one local maximum and appropriate size
-      if ((o2::cpv::CPVCalibParams::Instance().mGainMinClusterMultForCalib <= clu.getMultiplicity()) &&
-          (o2::cpv::CPVCalibParams::Instance().mGainMaxClusterMultForCalib >= clu.getMultiplicity())) {
+      if ((o2::cpv::CPVCalibParams::Instance().gainMinClusterMultForCalib <= clu.getMultiplicity()) &&
+          (o2::cpv::CPVCalibParams::Instance().gainMaxClusterMultForCalib >= clu.getMultiplicity())) {
         const FullCluster::CluElement& maxElement = clu.getElementList()->at(maxAt[0]);
         calibDigits->emplace_back(maxElement.absId, maxElement.energy, maxElement.label);
       }
