@@ -161,7 +161,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
   };
 
   auto pushMatcher = [&nodes, &states](auto&& matcher) {
-    if (states.back() == IN_NEGATION) {
+    if (states.empty() == false && states.back() == IN_NEGATION) {
       states.pop_back();
       auto notMatcher = std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Xor,
                                                                 std::move(matcher),
