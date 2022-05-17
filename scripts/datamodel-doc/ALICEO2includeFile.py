@@ -569,12 +569,12 @@ class datamodel:
     print("    </div>")
 
     # print header file
-    if tab2u.hfile.startswith(self.O2path):
-      href2u = self.O2href
-      path2u = self.O2path
-    else:
+    if "O2Physics" in tab2u.hfile:
       href2u = self.O2Physicshref
       path2u = self.O2Physicspath
+    else:
+      href2u = self.O2href
+      path2u = self.O2path
  
     hf2u = O2DMT.block(tab2u.hfile.split(path2u)[
                  1:], False).strip().lstrip("/")
@@ -633,12 +633,12 @@ class datamodel:
     print("#### ", CER[2])
     
     # add source code information if available
-    if CER[0].startswith(self.O2path):
-      href2u = self.O2href
-      path2u = self.O2path
-    else:
+    if "O2Physics" in CER[0]:
       href2u = self.O2Physicshref
       path2u = self.O2Physicspath
+    else:
+      href2u = self.O2href
+      path2u = self.O2path
     
     if DMtype == 1:
       if href2u != "":
