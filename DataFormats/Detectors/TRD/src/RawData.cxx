@@ -137,20 +137,35 @@ uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader* header, const o2::trd::Tr
    * A detailed description of the format can be found in
    * https://alicetrd.web.cern.ch/alicetrd/tdp/main.pdf under 17.2.1
    *
-   *     |07|06|05|04|03|02|01|00|
-   *     -------------------------
-   * qa: |       Q2        | Q1  |  TrackletMCMHeader::pid
-   *     -------------------------
+   *      |19|18|17|16|15|14|13|12|11|10|09|08|07|06|05|04|03|02|01|00|
+   *      -------------------------------------------------------------
+   * PID: |     Q2          |      Q1            |       Q0           |
+   *      -------------------------------------------------------------
+   *
+   *
+   *
+   *
+   *      |19|18|17|16|15|14|13|12|
+   *      -------------------------
+   * qa:  |       Q2        | Q1  |
+   * |    -------------------------
+   * |    |07|06|05|04|03|02|01|00|
+   * |
+   * -->TrackletMCMHeader::pid
+   *
    *
    * TDP: This can be one of these fields HPID0/1/2 (=TrackletHCHeader::pid0/1/2) depending on
    * 	  the MCM-CPU.
    *
-   *     |11|10|09|08|07|06|05|04|03|02|01|00|
-   *     -------------------------------------
-   * qb: |     Q0             |      Q1      |  TrackletMCMData::pid
-   *     -------------------------------------
+   *                              |11|10|09|08|07|06|05|04|03|02|01|00|
+   *                              -------------------------------------
+   *                          qb: |     Q1       |       Q0           |
+   *                           |  -------------------------------------
+   *                           |  |11|10|09|08|07|06|05|04|03|02|01|00|
+   *                           |
+   *                           --> TrackletMCMData::pid
    *
-   * TDP: This is the LPID field (=TrackletMCMData::pid).
+   *                              TDP: This is the LPID field (=TrackletMCMData::pid).
    *
    * Q1 is then calculated like this:
    *
@@ -162,20 +177,24 @@ uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader* header, const o2::trd::Tr
    **/
   qb = data->pid;
   switch (pidindex) {
-    case 0:                   //Q0
-      pid = (qb >> 5) & 0x7f; // 7 bits at the top of all of Q0
+    case 0:              // Q0
+      pid = (qb & 0x7f); // take the lower 7 bits of qb
       break;
-    case 1:                                  //Q1
-      pid = ((qa & 0x3) << 5) | (qb & 0x1f); // 2 bits of qa and 5 bits of qb for Q1 .. 7 bits
+    case 1: // Q1
+      pid = ((qa & 0x3) << 5) | ((qb >> 7) & 0x1f);
+      /**               |           |
+       *                |           -> shift qb 7 to the right such that only Q1 is present
+       *                -> take the lower 2 bits of qa and shift them 5 to the right
+       */
       break;
-    case 2:                   //Q2
+    case 2:                   // Q2
       pid = (qa >> 2) & 0x3f; // 6 bits shifted down by bits 2 only taking 6 bits
       break;
     default:
       LOG(warn) << " unknown pid index of : " << pidindex;
       break;
   }
-  //PID VERSION 2
+  // PID VERSION 2
   /*
  switch(pidindex) {
      case 0 : pid=qa&0xffc>>2;break;
