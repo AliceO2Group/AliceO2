@@ -80,6 +80,8 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
       LOGP(debug, "orbit: {}, triggerOrbit: {}, triggerBC: {}, triggerBCOffset: {}", orbit, triggerOrbit, triggerBC, triggerBCOffset);
       zsdata = zsdata->next();
       continue;
+    } else if (header.isMetaHeader()) {
+      continue;
     }
 
     const auto channelBits = zsdata->getChannelBits();
