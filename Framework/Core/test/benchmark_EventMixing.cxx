@@ -92,8 +92,9 @@ static void BM_EventMixingTraditional(benchmark::State& state)
     }
     for (auto& col1 : collisions) {
       int bin = binningOnPositions.getBin({col1.posX(), col1.posY()});
-      if (bin == -1)
+      if (bin == -1) {
         continue;
+      }
 
       auto& mixingBuffer = mixingBufferVector[bin];
 
