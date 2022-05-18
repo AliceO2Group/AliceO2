@@ -571,7 +571,7 @@ unsigned int zsEncoderImprovedLinkBased::encodeSequence(std::vector<o2::tpc::Dig
   tbHdr->bitMaskHigh = (bitmask >> 64).to_ulong();
   tbHdr->bitMaskLow = (bitmask & std::bitset<80>(0xFFFFFFFFFFFFFFFFlu)).to_ulong();
   tbHdr->syncOffsetBC = 0;
-  tbHdr->syncOffsetCRUCyclesOrLink = link;
+  tbHdr->fecInPartition = link;
   hdr->nTimeBins = tmpBuffer[k].getTimeStamp() - firstTimebinInPage + 1;
   hdr->nTimebinHeaders++;
   if (TIGHTLY_PACKED) {
@@ -654,13 +654,13 @@ void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputB
     const o2::tpc::zerosupp_link_based::Header* tbHdr = (const o2::tpc::zerosupp_link_based::Header*)decPagePtr;
 #if 0 // Decoding using the function for the original linkZS
     o2::tpc::CRU cru = cruid % 10;
-    const int feeLink = tbHdr->syncOffsetCRUCyclesOrLink - (decEndpoint & 1) * ((mapper.getPartitionInfo(cru.partition()).getNumberOfFECs() + 1) / 2);
+    const int feeLink = tbHdr->fecInPartition - (decEndpoint & 1) * ((mapper.getPartitionInfo(cru.partition()).getNumberOfFECs() + 1) / 2);
     auto fillADC = [&outputBuffer](int cru, int rowInSector, int padInRow, int timeBin, float adcValue) {
       outputBuffer.emplace_back(o2::tpc::Digit{0, adcValue, rowInSector, padInRow, timeBin});
       return true;
     };
     size_t size = sizeof(*tbHdr) + tbHdr->numWordsPayload * 16;
-    raw_processing_helpersa::processZSdata((const char*)decPagePtr, size, rdh_utils::getFEEID(cruid, decEndpoint & 1, feeLink), o2::raw::RDHUtils::getHeartBeatOrbit(*rdh), firstOrbit, decHDR->timeOffset, fillADC, false);
+    raw_processing_helpersa::processZSdata((const char*)decPagePtr, size, rdh_utils::getFEEID(cruid, decEndpoint & 1, feeLink), o2::raw::RDHUtils::getHeartBeatOrbit(*rdh), firstOrbit, decHDR->timeOffset, fillADC);
 #else // Decoding directly
     if (!tbHdr->isLinkZS()) {
       throw std::runtime_error("ZS TB Hdr does not have linkZS magic word");
@@ -691,7 +691,7 @@ void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputB
       if (bitmask[j]) {
         int sampaOnFEC = 0, channelOnSAMPA = 0;
         mapper.getSampaAndChannelOnFEC(cruid, j, sampaOnFEC, channelOnSAMPA);
-        const auto padSecPos = mapper.padSecPos(cruid, tbHdr->syncOffsetCRUCyclesOrLink, sampaOnFEC, channelOnSAMPA);
+        const auto padSecPos = mapper.padSecPos(cruid, tbHdr->fecInPartition, sampaOnFEC, channelOnSAMPA);
         const auto& padPos = padSecPos.getPadPos();
         outputBuffer.emplace_back(o2::tpc::Digit{0, (float)decBuffer[k++] * decodeBitsFactor, (tpccf::Row)padPos.getRow(), (tpccf::Pad)padPos.getPad(), timeBin});
       }
