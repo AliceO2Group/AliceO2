@@ -273,7 +273,6 @@ void DataRequest::requestHMPClusters(bool mc)
   if (mc) {
     addInput({"hmpidclusterlabel", "HMP", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
   }
-
   requestMap["clusHMP"] = mc;
 }
 
