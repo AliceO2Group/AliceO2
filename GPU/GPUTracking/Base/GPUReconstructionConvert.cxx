@@ -507,7 +507,7 @@ void zsEncoderImprovedLinkBased::init()
 
 void zsEncoderImprovedLinkBased::initPage()
 {
-  hdr->magicWord = 0x1234;
+  hdr->magicWord = o2::tpc::zerosupp_link_based::CommonHeader::MagicWordLinkZSMetaHeader;
   hdr->nTimebinHeaders = 0;
   hdr->firstZSDataOffset = 0;
 }
@@ -638,7 +638,7 @@ void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputB
   if (decHDR->version != 3) {
     throw std::runtime_error("invalid ZS version");
   }
-  if (decHDR->magicWord != 0x1234) {
+  if (decHDR->magicWord != o2::tpc::zerosupp_link_based::CommonHeader::MagicWordLinkZSMetaHeader) {
     throw std::runtime_error("Magic word missing");
   }
   const float decodeBitsFactor = 1.f / (1 << (encodeBits - 10));

@@ -31,6 +31,7 @@ static constexpr uint32_t DataWordSizeBytes = DataWordSizeBits / 8; ///< size of
 /// common header definition of the zero suppressed link based data
 struct CommonHeader {
   static constexpr uint32_t MagicWordLinkZS = 0xFC;
+  static constexpr uint32_t MagicWordLinkZSMetaHeader = 0xFD;
   static constexpr uint32_t MagicWordTrigger = 0xAA;
   static constexpr uint32_t MagicWordTriggerV2 = 0xAB;
 
@@ -53,8 +54,9 @@ struct CommonHeader {
     };
   };
 
-  bool hasCorrectMagicWord() const { return (magicWord == MagicWordLinkZS) || (magicWord == MagicWordTrigger) || (magicWord == MagicWordTriggerV2); }
+  bool hasCorrectMagicWord() const { return (magicWord == MagicWordLinkZS) || (magicWord == MagicWordLinkZSMetaHeader) || (magicWord == MagicWordTrigger) || (magicWord == MagicWordTriggerV2); }
   bool isLinkZS() const { return (magicWord == MagicWordLinkZS); }
+  bool isMetaHeader() const { return (magicWord == MagicWordLinkZSMetaHeader); }
   bool isTriggerInfo() const { return (magicWord == MagicWordTrigger); }
   bool isTriggerInfoV2() const { return (magicWord == MagicWordTriggerV2); }
 };
