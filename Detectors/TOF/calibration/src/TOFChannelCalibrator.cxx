@@ -413,7 +413,7 @@ void TOFChannelData::resetAndReRange(float range)
   mV2Bin = mNBins / (2 * mRange);
   for (int isect = 0; isect < 18; isect++) {
     mHisto[isect] = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBins, -mRange, mRange, "t-texp"),
-						   boost::histogram::axis::integer<>(0, mNElsPerSector, "channel index in sector" + std::to_string(isect)));
+                                                     boost::histogram::axis::integer<>(0, mNElsPerSector, "channel index in sector" + std::to_string(isect)));
   }
   return;
 }

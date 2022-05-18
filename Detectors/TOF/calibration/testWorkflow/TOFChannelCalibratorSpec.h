@@ -88,7 +88,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
 
     // calibration objects set to zero
     mPhase.addLHCphase(0, 0);
-    mPhase.addLHCphase(2000000000, 0);
+    mPhase.addLHCphase(o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP_SECONDS, 0);
 
     if (gSystem->AccessPathName("localTimeSlewing.root") == false) {
       TFile* fsleewing = TFile::Open("localTimeSlewing.root");
@@ -161,8 +161,8 @@ class TOFChannelCalibDevice : public o2::framework::Task
       if (mUseCCDB && mUpdateCCDB) {
         mcalibTOFapi->setLhcPhase(&mPhase);
         mcalibTOFapi->setSlewParam(&mTimeSlewing);
-	mCalibrator->setRange(mRange); // let's restrict the range since we received an updated calibration
-	mCalibrator->getSlot(mCalibrator->getNSlots() - 1).getContainer()->resetAndReRange(mCalibrator->getRange()); // we also empty the existing slot to update its range; the loss in statistics will be minimal
+        mCalibrator->setRange(mRange);                                                                               // let's restrict the range since we received an updated calibration
+        mCalibrator->getSlot(mCalibrator->getNSlots() - 1).getContainer()->resetAndReRange(mCalibrator->getRange()); // we also empty the existing slot to update its range; the loss in statistics will be minimal
       }
     }
 
@@ -173,10 +173,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
 
     if (mUseCCDB) { // setting the timestamp to get the LHCPhase correction; if we don't use CCDB, then it can stay to 0 as set when creating the calibTOFapi above
       const auto tfOrbitFirst = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->firstTForbit;
-      auto tv = pc.inputs().get<std::vector<Long64_t>*>("orbitReset");
-      const auto orbitReset = tv->front();
-      const long tPrec = orbitReset + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS; // microsecond-precise time stamp
-      mcalibTOFapi->setTimeStamp(tPrec);
+      mcalibTOFapi->setTimeStamp(0.001 * (o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS * 0.001)); // in seconds
     }
 
     mCalibrator->process(data);
@@ -261,7 +258,6 @@ DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool followCCDBUpda
   if (useCCDB) {
     inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/LHCphase"));
     inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/ChannelCalib"));
-    inputs.emplace_back("orbitReset", o2::header::gDataOriginCTP, "ORBITRESETTOF", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/OrbitReset"));
   }
 
   return DataProcessorSpec{

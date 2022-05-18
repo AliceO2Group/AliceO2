@@ -45,7 +45,7 @@ class CalibLHCphaseTOF
 
  private:
   // LHCphase calibration
-  std::vector<std::pair<int, float>> mLHCphase; ///< <timestamp,LHCphase> from which the LHCphase measurement is valid
+  std::vector<std::pair<int, float>> mLHCphase; ///< <timestamp,LHCphase> from which the LHCphase measurement is valid; timestamp in seconds
 
   long mStartValidity = 0; ///< start validity of the object when put in CCDB
   long mEndValidity = 0;   ///< end validity of the object when put in CCDB

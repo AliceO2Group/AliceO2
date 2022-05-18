@@ -60,7 +60,7 @@ class LHCClockCalibDevice : public o2::framework::Task
     if (!mUseCCDB) {
       // calibration objects set to zero
       mPhase.addLHCphase(0, 0);
-      mPhase.addLHCphase(2000000000, 0);
+      mPhase.addLHCphase(o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP_SECONDS, 0);
       if (gSystem->AccessPathName("localTimeSlewing.root") == false) {
         TFile* fsleewing = TFile::Open("localTimeSlewing.root");
         if (fsleewing) {
@@ -118,10 +118,7 @@ class LHCClockCalibDevice : public o2::framework::Task
 
     if (mUseCCDB) { // setting the timestamp to get the LHCPhase correction; if we don't use CCDB, then it can stay to 0 as set when creating the calibTOFapi above
       const auto tfOrbitFirst = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->firstTForbit;
-      auto tv = pc.inputs().get<std::vector<Long64_t>*>("orbitResetTOF");
-      const auto orbitReset = tv->front();
-      const long tPrec = orbitReset + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS; // microsecond-precise time stamp
-      mcalibTOFapi->setTimeStamp(tPrec);
+      mcalibTOFapi->setTimeStamp(0.001 * (o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS * 0.001)); // in seconds
     }
 
     LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " tracks";

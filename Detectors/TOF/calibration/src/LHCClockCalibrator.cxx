@@ -99,7 +99,7 @@ void LHCClockCalibrator::finalizeSlot(Slot& slot)
   std::map<std::string, std::string> md;
   LHCphase l;
   l.addLHCphase(0, fitValues[1]);
-  l.addLHCphase(999999999, fitValues[1]);
+  l.addLHCphase(o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP_SECONDS, fitValues[1]);
   auto clName = o2::utils::MemFileHelper::getClassName(l);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
 
