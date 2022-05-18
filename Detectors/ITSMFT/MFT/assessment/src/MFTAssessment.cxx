@@ -744,15 +744,15 @@ void MFTAssessment::TH3Slicer(TCanvas* canvas, std::unique_ptr<TH3F>& histo3D, s
       th1DBG->DrawClone(option.c_str());
     }
   } else if (cname.find("VsPt") < cname.length()) {
-    for (auto etamin : list) {
-      auto etamax = etamin + window;
+    for (auto etamax : list) {
+      auto etamin = etamax + window;
       histo3D->GetYaxis()->SetRangeUser(etamin, etamax);
       std::string ytitle = "\\sigma (" + std::string(histo3D->GetZaxis()->GetTitle()) + ")";
       auto title = Form("_%1.2f_%1.2f_xz", etamin, etamax);
       auto aDBG = (TH2F*)histo3D->Project3D(title);
       aDBG->FitSlicesX(nullptr, 0, -1, 4, "QNR", &aSlices);
       auto th1DBG = (TH1F*)aSlices[iPar];
-      th1DBG->SetTitle(Form("%1.2f < \\eta < %1.2f", etamin, etamax));
+      th1DBG->SetTitle(Form("%1.2f > \\eta > %1.2f", etamax, etamin));
       th1DBG->SetStats(0);
       th1DBG->SetYTitle(ytitle.c_str());
       if (first) {
@@ -908,8 +908,8 @@ void MFTAssessment::finalizeAnalysis()
   if (mFinalizeAnalysis) {
     std::vector<float> ptList({.5, 1.5, 5., 10., 15., 18.0});
     float ptWindow = 0.4;
-    std::vector<float> etaList({2.5, 2.8, 3.1});
-    float etaWindow = 0.2;
+    std::vector<float> etaList({-2.5, -2.8, -3.1});
+    float etaWindow = -0.2;
 
     std::vector<float> sliceList;
     float sliceWindow;
