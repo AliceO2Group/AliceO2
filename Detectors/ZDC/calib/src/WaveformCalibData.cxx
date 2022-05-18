@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <TH1.h>
+#include <TFile.h>
+#include <TDirectory.h>
 #include "Framework/Logger.h"
 #include "ZDCCalib/WaveformCalibData.h"
 
@@ -84,4 +87,34 @@ void WaveformCalibData::setN(int n)
   } else {
     LOG(fatal) << "WaveformCalibData " << __func__ << " wrong stored b.c. setting " << n << " not in range [0:" << WaveformCalibConfig::NBT << "]";
   }
+}
+
+int WaveformCalibData::write(const std::string fn)
+{
+  TDirectory* cwd = gDirectory;
+  TFile* f = new TFile(fn.data(), "recreate");
+  if (f->IsZombie()) {
+    LOG(error) << "Cannot create file: " << fn;
+    return 1;
+  }
+  for (int32_t ih = 0; ih < NH; ih++) {
+    if (mEntries[ih] > 0) {
+      // For the moment we study only TDC channels
+      int isig = TDCSignal[ih];
+      TString n = TString::Format("h%d", isig);
+      TString t = TString::Format("Waveform %d %s", isig, ChannelNames[isig].data());
+      int nbx = mLastValid[ih] - mFirstValid[ih] + 1;
+      int min = mFirstValid[ih] - mPeak - 0.5;
+      int max = mLastValid[ih] - mPeak + 0.5;
+      TH1F h(n, t, nbx, min, max);
+      for (int ibx = 0; ibx < nbx; ibx++) {
+        h.SetBinContent(ibx + 1, mWave[ih][mFirstValid[ih] + ibx]);
+      }
+      h.SetEntries(mEntries[ih]);
+      h.Write("", TObject::kOverwrite);
+    }
+  }
+  f->Close();
+  cwd->cd();
+  return 0;
 }

@@ -9,13 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <mutex>
 #include <memory>
-#include <TH1.h>
-#include <TH2.h>
-#include <THnBase.h>
-#include <THnSparse.h>
-#include <TMinuit.h>
 #include "ZDCBase/Constants.h"
 #include "DataFormatsZDC/RecEvent.h"
 #include "DataFormatsZDC/ZDCWaveform.h"

@@ -15,7 +15,6 @@
 #include "ZDCBase/Constants.h"
 #include "ZDCCalib/WaveformCalibConfig.h"
 #include <array>
-#include <Rtypes.h>
 
 /// \file WaveformCalibData.h
 /// \brief Waveform calibration intermediate data
@@ -46,6 +45,7 @@ struct WaveformCalibData {
   void print() const;
   void setCreationTime(uint64_t ctime);
   void setN(int n);
+  int write(const std::string fn);
   ClassDefNV(WaveformCalibData, 1);
 };
 

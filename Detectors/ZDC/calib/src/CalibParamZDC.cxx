@@ -18,10 +18,8 @@ void o2::zdc::CalibParamZDC::print()
 {
   bool printed = false;
   if (debug_output >= 0) {
-    if (!printed) {
-      LOG(info) << "CalibParamZDC::print()";
-      printed = true;
-    }
+    LOG(info) << "CalibParamZDC::print()";
+    printed = true;
     if (debug_output >= 0) {
       printf(" debug_output=%d", debug_output);
     }

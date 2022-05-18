@@ -65,6 +65,7 @@ struct WaveformCalibConfig {
   int getFirst() const{
     return ibeg;
   }
+
   int getLast() const{
     return iend;
   }

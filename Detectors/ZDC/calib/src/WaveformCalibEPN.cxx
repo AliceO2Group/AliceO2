@@ -29,15 +29,20 @@ int WaveformCalibEPN::init()
     return -1;
   }
 
+  auto* cfg = mWaveformCalibConfig;
+  if (mVerbosity > DbgZero) {
+    mWaveformCalibConfig->print();
+  }
+
   // Inspect reconstruction parameters
   o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
   opt.print();
+
   if (opt.debug_output > 0) {
     setSaveDebugHistos();
   }
 
-  auto* cfg = mWaveformCalibConfig;
-  mQueue.configure(mWaveformCalibConfig);
+  mQueue.configure(cfg);
 
   // number of bins
   mNBin = cfg->nbun * TSN;
@@ -98,30 +103,5 @@ int WaveformCalibEPN::endOfRun()
 
 int WaveformCalibEPN::write(const std::string fn)
 {
-  TDirectory* cwd = gDirectory;
-  TFile* f = new TFile(fn.data(), "recreate");
-  if (f->IsZombie()) {
-    LOG(error) << "Cannot create file: " << fn;
-    return 1;
-  }
-  for (int32_t ih = 0; ih < NH; ih++) {
-    if (mData.mEntries[ih] > 0) {
-      // For the moment we study only TDC channels
-      int isig = TDCSignal[ih];
-      TString n = TString::Format("h%d", isig);
-      TString t = TString::Format("Waveform %d %s", isig, ChannelNames[isig].data());
-      int nbx = mData.mLastValid[ih] - mData.mFirstValid[ih] + 1;
-      int min = mData.mFirstValid[ih] - mData.mPeak - 0.5;
-      int max = mData.mLastValid[ih] - mData.mPeak + 0.5;
-      TH1F h(n, t, nbx, min, max);
-      for (int ibx = 0; ibx < nbx; ibx++) {
-        h.SetBinContent(ibx + 1, mData.mWave[ih][mData.mFirstValid[ih] + ibx]);
-      }
-      h.SetEntries(mData.mEntries[ih]);
-      h.Write("", TObject::kOverwrite);
-    }
-  }
-  f->Close();
-  cwd->cd();
-  return 0;
+  return mData.write(fn);
 }
