@@ -34,6 +34,8 @@ export ALL_EXTRA_CONFIG="$ALL_EXTRA_CONFIG;NameConf.mCCDBServer=http://o2-ccdb.i
 export DPL_CONDITION_BACKEND="http://o2-ccdb.internal"
 export DATADIST_NEW_DPL_CHAN=1
 
+workflow_has_parameter QC && export QC_REDIRECT_MERGER_TO_LOCALHOST=1
+
 if [ "0$FST_TMUX_MEM_OVERRIDE" != "0" ]; then
   export SHMSIZE=$(( $FST_TMUX_MEM_OVERRIDE << 30 ))
   export DDSHMSIZE=$(( $FST_TMUX_MEM_OVERRIDE << 10 ))
