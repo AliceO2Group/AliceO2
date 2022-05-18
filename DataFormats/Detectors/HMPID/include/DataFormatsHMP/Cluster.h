@@ -120,6 +120,16 @@ class Cluster
 };
 
 } // namespace hmpid
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::hmpid::Cluster> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif /* DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_CLUSTER_H_ */
