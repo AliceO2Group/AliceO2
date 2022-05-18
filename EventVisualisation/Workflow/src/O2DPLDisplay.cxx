@@ -54,7 +54,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings ..."}},
     {"skipOnEmptyInput", VariantType::Bool, false, {"don't run the ED when no input is provided"}},
     {"min-its-tracks", VariantType::Int, -1, {"don't create file if less than the specified number of ITS tracks is present"}},
-    {"min-tracks", VariantType::Int, -1, {"don't create file if less than the specified number of all tracks is present"}},
+    {"min-tracks", VariantType::Int, 1, {"don't create file if less than the specified number of all tracks is present"}},
     {"filter-its-rof", VariantType::Bool, false, {"don't display tracks outside ITS readout frame"}},
     {"filter-time-min", VariantType::Float, -1.f, {"display tracks only in [min, max] microseconds time range in each time frame, requires --filter-time-max to be specified as well"}},
     {"filter-time-max", VariantType::Float, -1.f, {"display tracks only in [min, max] microseconds time range in each time frame, requires --filter-time-min to be specified as well"}},
