@@ -830,16 +830,9 @@ void RecoContainer::addMIDTracks(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::MID].registerContainer(pc.inputs().get<gsl::span<o2::mid::Cluster>>("trackMIDTRACKCLUSTERS"), INDICES);
   commonPool[GTrackID::MID].registerContainer(pc.inputs().get<gsl::span<o2::mid::ROFRecord>>("trackClMIDROF"), MATCHES);
   if (mc) {
-    //    commonPool[GTrackID::MID].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMIDMCTR"), MCLABELS);
-    mcMIDTracks = pc.inputs().get<const dataformats::MCTruthContainer<o2::MCCompLabel>*>("trackMIDMCTR");
+    commonPool[GTrackID::MID].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMIDMCTR"), MCLABELS);
     mcMIDTrackClusters = pc.inputs().get<const dataformats::MCTruthContainer<o2::mid::MCClusterLabel>*>("trackMIDMCTRCL");
   }
-}
-
-//________________________________________________________
-const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* RecoContainer::getMIDTracksMCLabels() const
-{
-  return mcMIDTracks.get(); // temporary ? see comment on mcMIDTracks
 }
 
 //________________________________________________________
