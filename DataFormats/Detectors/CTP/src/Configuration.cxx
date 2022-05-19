@@ -101,9 +101,10 @@ void CTPClass::printStream(std::ostream& stream) const
 }
 /// CTP configuration
 /// Assuming Run2 format + LTG
-int CTPConfiguration::loadConfigurationRun3(const std::string& ctpconfiguration)
+int CTPConfiguration::loadConfigurationRun3(const std::string ctpconfiguration)
 {
   LOG(info) << "Loading CTP configuration.";
+  mConfigString = ctpconfiguration;
   std::istringstream iss(ctpconfiguration);
   int ret = 0;
   int level = MASKS;

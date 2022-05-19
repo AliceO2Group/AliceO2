@@ -111,7 +111,7 @@ class CTPConfiguration
                     CLUSTER,
                     CLASS,
                     UNKNOWN };
-  int loadConfigurationRun3(const std::string& ctpconfiguartion);
+  int loadConfigurationRun3(const std::string ctpconfiguartion);
   int loadConfiguration(const std::string& ctpconfiguartion);
   void addBCMask(const BCMask& bcmask);
   void addCTPInput(const CTPInput& input);
@@ -133,6 +133,7 @@ class CTPConfiguration
   uint32_t getRunNumber() { return mRunNumber; };
 
  private:
+  std::string mConfigString = "";
   uint32_t mRunNumber = 0;
   std::string mName = "";
   std::string mVersion = "0";
