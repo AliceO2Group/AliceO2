@@ -29,7 +29,6 @@ class WaveformCalibEPN
  public:
   WaveformCalibEPN() = default;
   int init();
-  static constexpr int NH = WaveformCalibConfig::NH;
   void clear(int ih = -1);
   int process(const gsl::span<const o2::zdc::BCRecData>& bcrec,
               const gsl::span<const o2::zdc::ZDCEnergy>& energy,

@@ -26,7 +26,6 @@ namespace zdc
 {
 
 struct WaveformCalibData {
-  static constexpr int NH = WaveformCalibConfig::NH;
   static constexpr int NBB = WaveformCalibConfig::NBB;
   static constexpr int NBA = WaveformCalibConfig::NBA;
   static constexpr int NBT = WaveformCalibConfig::NBT;
@@ -36,10 +35,10 @@ struct WaveformCalibData {
   uint64_t mCTimeEnd = 0; /// Time of processed time frame
   int mN = 0;             /// Number of bunches in waveform
   int mPeak = 0;          /// Peak position
-  std::array<int, NH> mFirstValid;
-  std::array<int, NH> mLastValid;
-  std::array<float, NW> mWave[NH] = {0};
-  uint32_t mEntries[NH] = {0};
+  std::array<int, NChannels> mFirstValid;
+  std::array<int, NChannels> mLastValid;
+  std::array<float, NW> mWave[NChannels] = {0};
+  uint32_t mEntries[NChannels] = {0};
   WaveformCalibData& operator+=(const WaveformCalibData& other);
   int getEntries(int ih) const;
   void print() const;

@@ -15,11 +15,13 @@
 using namespace o2::zdc;
 WaveformCalibConfig::WaveformCalibConfig()
 {
-  for (int ih = 0; ih < NH; ih++) {
-    cutLow[ih] = -std::numeric_limits<float>::infinity();
-    cutHigh[ih] = std::numeric_limits<float>::infinity();
-    cutTimeLow[ih] = -2.5;
-    cutTimeHigh[ih] = 2.5;
+  for (int isig = 0; isig < NTDCChannels; isig++) {
+    cutLow[isig] = -std::numeric_limits<float>::infinity();
+    cutHigh[isig] = std::numeric_limits<float>::infinity();
+  }
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    cutTimeLow[itdc] = -2.5;
+    cutTimeHigh[itdc] = 2.5;
   }
 }
 
@@ -43,89 +45,106 @@ void WaveformCalibConfig::restrictRange(int ib, int ie)
 void WaveformCalibConfig::print() const
 {
   LOG(info) << "WaveformCalibConfig range [" << ibeg << ":" << iend << "]";
-  for (Int_t ih = 0; ih < NH; ih++) {
-    LOG(info) << ChannelNames[TDCSignal[ih]] << " limits = (" << cutLow[ih] << " : " << cutHigh[ih] << ") min_entries = " << min_e[ih];
+  for (Int_t isig = 0; isig < NChannels; isig++) {
+    LOG(info) << ChannelNames[isig] << " limits A = (" << cutLow[isig] << " : " << cutHigh[isig] << ") min_entries = " << min_e[isig];
+  }
+  for (Int_t itdc = 0; itdc < NTDCChannels; itdc++) {
+    LOG(info) << ChannelNames[TDCSignal[itdc]] << " T = (" << cutTimeLow[itdc] << " : " << cutTimeHigh[itdc] << ")";
   }
 }
 
 void WaveformCalibConfig::setMinEntries(double val)
 {
-  for (int32_t ih = 0; ih < NH; ih++) {
-    min_e[ih] = val;
+  for (int32_t isig = 0; isig < NChannels; isig++) {
+    min_e[isig] = val;
   }
 }
 
-void WaveformCalibConfig::setMinEntries(int ih, double val)
+void WaveformCalibConfig::setMinEntries(int isig, double val)
 {
-  min_e[ih] = val;
+  min_e[isig] = val;
 }
 
 void WaveformCalibConfig::resetCuts()
 {
-  for (int32_t ih = 0; ih < NH; ih++) {
-    cutLow[ih] = -std::numeric_limits<float>::infinity();
-    cutHigh[ih] = std::numeric_limits<float>::infinity();
+  for (int32_t isig = 0; isig < NChannels; isig++) {
+    cutLow[isig] = -std::numeric_limits<float>::infinity();
+    cutHigh[isig] = std::numeric_limits<float>::infinity();
   }
 }
 
 void WaveformCalibConfig::resetCutLow()
 {
-  for (int32_t ih = 0; ih < NH; ih++) {
-    cutLow[ih] = -std::numeric_limits<float>::infinity();
+  for (int32_t isig = 0; isig < NChannels; isig++) {
+    cutLow[isig] = -std::numeric_limits<float>::infinity();
   }
 }
 
 void WaveformCalibConfig::resetCutHigh()
 {
-  for (int32_t ih = 0; ih < NH; ih++) {
-    cutHigh[ih] = std::numeric_limits<float>::infinity();
+  for (int32_t isig = 0; isig < NChannels; isig++) {
+    cutHigh[isig] = std::numeric_limits<float>::infinity();
   }
 }
 
-void WaveformCalibConfig::resetCutLow(int ih)
+void WaveformCalibConfig::resetCutLow(int isig)
 {
-  cutLow[ih] = -std::numeric_limits<float>::infinity();
+  cutLow[isig] = -std::numeric_limits<float>::infinity();
 }
 
-void WaveformCalibConfig::resetCutHigh(int ih)
+void WaveformCalibConfig::resetCutHigh(int isig)
 {
-  cutHigh[ih] = std::numeric_limits<float>::infinity();
+  cutHigh[isig] = std::numeric_limits<float>::infinity();
 }
 
 void WaveformCalibConfig::setCutLow(double val)
 {
-  for (int32_t ih = 0; ih < NH; ih++) {
-    cutLow[ih] = val;
+  for (int32_t isig = 0; isig < NChannels; isig++) {
+    cutLow[isig] = val;
   }
 }
 
 void WaveformCalibConfig::setCutHigh(double val)
 {
-  for (int32_t ih = 0; ih < NH; ih++) {
-    cutHigh[ih] = val;
+  for (int32_t isig = 0; isig < NChannels; isig++) {
+    cutHigh[isig] = val;
   }
 }
 
-void WaveformCalibConfig::setCutLow(int ih, double val)
+void WaveformCalibConfig::setCutLow(int isig, double val)
 {
-  cutLow[ih] = val;
+  cutLow[isig] = val;
 }
 
-void WaveformCalibConfig::setCutHigh(int ih, double val)
+void WaveformCalibConfig::setCutHigh(int isig, double val)
 {
-  cutHigh[ih] = val;
+  cutHigh[isig] = val;
 }
 
 void WaveformCalibConfig::setCuts(double low, double high)
 {
-  for (int32_t ih = 0; ih < NH; ih++) {
-    cutLow[ih] = low;
-    cutHigh[ih] = high;
+  for (int32_t isig = 0; isig < NChannels; isig++) {
+    cutLow[isig] = low;
+    cutHigh[isig] = high;
   }
 }
 
-void WaveformCalibConfig::setCuts(int ih, double low, double high)
+void WaveformCalibConfig::setCuts(int isig, double low, double high)
 {
-  cutHigh[ih] = low;
-  cutLow[ih] = high;
+  cutHigh[isig] = low;
+  cutLow[isig] = high;
+}
+
+void WaveformCalibConfig::setTimeCuts(double low, double high)
+{
+  for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
+    cutTimeLow[itdc] = low;
+    cutTimeHigh[itdc] = high;
+  }
+}
+
+void WaveformCalibConfig::setTimeCuts(int itdc, double low, double high)
+{
+  cutTimeHigh[itdc] = low;
+  cutTimeLow[itdc] = high;
 }

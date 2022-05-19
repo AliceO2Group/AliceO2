@@ -33,7 +33,6 @@ class WaveformCalib
  public:
   WaveformCalib() = default;
   int init();
-  static constexpr int NH = WaveformCalibConfig::NH;
   void clear();
   int process(const WaveformCalibData& data); // Calibration of RUN3 data - aggregator node
   int endOfRun();                             // Perform minimization

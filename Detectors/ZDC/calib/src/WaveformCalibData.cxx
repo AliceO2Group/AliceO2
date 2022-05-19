@@ -20,9 +20,9 @@ using namespace o2::zdc;
 void WaveformCalibData::print() const
 {
   LOGF(info, "WaveformCalibData mN = %d/%d", mN, NBT);
-  for (int32_t ih = 0; ih < NH; ih++) {
-    if (mEntries[ih] > 0) {
-      LOGF(info, "WaveformCalibData %2d [%llu : %llu]: entries=%d [%d:%d:%d]", ih, mCTimeBeg, mCTimeEnd, mEntries[ih], mFirstValid[ih], mPeak, mLastValid[ih]);
+  for (int32_t is = 0; is < NChannels; is++) {
+    if (mEntries[is] > 0) {
+      LOGF(info, "WaveformCalibData %2d %s [%llu : %llu]: entries=%d [%d:%d:%d]", is, ChannelNames[is].data(), mCTimeBeg, mCTimeEnd, mEntries[is], mFirstValid[is], mPeak, mLastValid[is]);
     }
   }
 }
@@ -43,16 +43,18 @@ WaveformCalibData& WaveformCalibData::operator+=(const WaveformCalibData& other)
   if (other.mCTimeEnd > mCTimeEnd) {
     mCTimeEnd = other.mCTimeEnd;
   }
-  for (int32_t ih = 0; ih < NH; ih++) {
-    if (mFirstValid[ih] > other.mFirstValid[ih]) {
-      mFirstValid[ih] = other.mFirstValid[ih];
+  for (int32_t is = 0; is < NChannels; is++) {
+    if(other.mEntries[is]>0){
+    if (mFirstValid[is] > other.mFirstValid[is]) {
+      mFirstValid[is] = other.mFirstValid[is];
     }
-    if (mLastValid[ih] > other.mLastValid[ih]) {
-      mLastValid[ih] = other.mLastValid[ih];
+    if (mLastValid[is] > other.mLastValid[is]) {
+      mLastValid[is] = other.mLastValid[is];
     }
-    mEntries[ih] = mEntries[ih] + other.mEntries[ih];
-    for (int32_t i = mFirstValid[ih]; i <= mLastValid[ih]; i++) {
-      mWave[ih][i] = mWave[ih][i] + other.mWave[ih][i];
+    mEntries[is] = mEntries[is] + other.mEntries[is];
+    for (int32_t i = mFirstValid[is]; i <= mLastValid[is]; i++) {
+      mWave[is][i] = mWave[is][i] + other.mWave[is][i];
+    }
     }
   }
 #ifdef O2_ZDC_DEBUG
@@ -71,10 +73,10 @@ void WaveformCalibData::setCreationTime(uint64_t ctime)
 #endif
 }
 
-int WaveformCalibData::getEntries(int ih) const
+int WaveformCalibData::getEntries(int is) const
 {
-  if (ih < 0 || ih >= NH) {
-    LOGF(error, "WaveformCalibData::getEntries ih = %d is out of range", ih);
+  if (is < 0 || is >= NChannels) {
+    LOGF(error, "WaveformCalibData::getEntries channel index %d is out of range", is);
     return 0;
   }
   return 0; // TODO
@@ -82,11 +84,11 @@ int WaveformCalibData::getEntries(int ih) const
 
 void WaveformCalibData::setN(int n)
 {
-  if (n >= 0 && n < WaveformCalibConfig::NBT) {
+  if (n >= 0 && n < NBT) {
     mN = n;
-    for (int ih = 0; ih < NH; ih++) {
-      mFirstValid[ih] = 0;
-      mLastValid[ih] = NH * NTimeBinsPerBC * TSN - 1;
+    for (int is = 0; is < NChannels; is++) {
+      mFirstValid[is] = 0;
+      mLastValid[is] = NBT * NTimeBinsPerBC * TSN - 1;
     }
   } else {
     LOG(fatal) << "WaveformCalibData " << __func__ << " wrong stored b.c. setting " << n << " not in range [0:" << WaveformCalibConfig::NBT << "]";
@@ -101,20 +103,19 @@ int WaveformCalibData::write(const std::string fn)
     LOG(error) << "Cannot create file: " << fn;
     return 1;
   }
-  for (int32_t ih = 0; ih < NH; ih++) {
-    if (mEntries[ih] > 0) {
+  for (int32_t is = 0; is < NChannels; is++) {
+    if (mEntries[is] > 0) {
       // For the moment we study only TDC channels
-      int isig = TDCSignal[ih];
-      TString n = TString::Format("h%d", isig);
-      TString t = TString::Format("Waveform %d %s", isig, ChannelNames[isig].data());
-      int nbx = mLastValid[ih] - mFirstValid[ih] + 1;
-      int min = mFirstValid[ih] - mPeak - 0.5;
-      int max = mLastValid[ih] - mPeak + 0.5;
+      TString n = TString::Format("h%d", is);
+      TString t = TString::Format("Waveform %d %s", is, ChannelNames[is].data());
+      int nbx = mLastValid[is] - mFirstValid[is] + 1;
+      int min = mFirstValid[is] - mPeak - 0.5;
+      int max = mLastValid[is] - mPeak + 0.5;
       TH1F h(n, t, nbx, min, max);
       for (int ibx = 0; ibx < nbx; ibx++) {
-        h.SetBinContent(ibx + 1, mWave[ih][mFirstValid[ih] + ibx]);
+        h.SetBinContent(ibx + 1, mWave[is][mFirstValid[is] + ibx]);
       }
-      h.SetEntries(mEntries[ih]);
+      h.SetEntries(mEntries[is]);
       h.Write("", TObject::kOverwrite);
     }
   }
@@ -129,12 +130,12 @@ void WaveformCalibData::clear()
   mCTimeEnd = 0;
   mN = 0;
   mPeak = 0;
-  for (int32_t ih = 0; ih < NH; ih++) {
-    mEntries[ih] = 0;
-    mFirstValid[ih] = -1;
-    mLastValid[ih] = -1;
+  for (int32_t is = 0; is < NChannels; is++) {
+    mEntries[is] = 0;
+    mFirstValid[is] = -1;
+    mLastValid[is] = -1;
     for (int iw = 0; iw < NW; iw++) {
-      mWave[ih][iw] = 0;
+      mWave[is][iw] = 0;
     }
   }
 }

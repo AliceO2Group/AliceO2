@@ -71,11 +71,10 @@ int WaveformCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
     uint32_t mask = mQueue.append(ev);
     if (mask != 0) {
       // Analyze signals that refer to the TDC channels that satisfy condition
-      // For the moment this is the same as for the TDCs
-      for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+      for (int isig = 0; isig < NChannels; isig++) {
+        int itdc = SignalTDC[isig];
         if ((mask & (0x1 << itdc)) != 0) {
           // Check which channels have consecutive data
-          int isig = TDCSignal[itdc];
           mQueue.addData(isig, wave, mData);
         }
       }
@@ -88,11 +87,13 @@ int WaveformCalibEPN::endOfRun()
 {
   if (mVerbosity > DbgZero) {
     LOGF(info, "WaveformCalibEPN::endOfRun ts (%llu:%llu)", mData.mCTimeBeg, mData.mCTimeEnd);
-    for (int ih = 0; ih < NH; ih++) {
-      LOGF(info, "Waveform %2d with %10d events and cuts AMP:(%g:%g) TDC:(%g:%g) Valid:[%d:%d:%d]", ih, mData.mEntries[ih],
-           mConfig->cutLow[ih], mConfig->cutHigh[ih],
-           mConfig->cutTimeLow[ih], mConfig->cutTimeHigh[ih],
-           mData.mFirstValid[ih], mData.mPeak, mData.mLastValid[ih]);
+    for (int is = 0; is < NChannels; is++) {
+      if (mData.mEntries[is] > 0) {
+        LOGF(info, "Waveform %2d %s with %10d events and cuts AMP:(%g:%g) TDC:(%g:%g) Valid:[%d:%d:%d]", is, ChannelNames[is].data(),
+             mData.mEntries[is], mConfig->cutLow[is], mConfig->cutHigh[is],
+             mConfig->cutTimeLow[is], mConfig->cutTimeHigh[is],
+             mData.mFirstValid[is], mData.mPeak, mData.mLastValid[is]);
+      }
     }
   }
   if (mSaveDebugHistos) {

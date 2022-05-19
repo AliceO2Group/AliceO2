@@ -87,25 +87,23 @@ void WaveformCalibQueue::appendEv(RecEventFlat& ev)
   mFirstW.push_back(firstw);
   mNW.push_back(nw);
 
-  for (int ih = 0; ih < NH; ih++) {
-    mHasInfos[ih].push_back(false);
+  for (int isig = 0; isig < NChannels; isig++) {
+    mHasInfos[isig].push_back(false);
   }
   if (ev.getNInfo() > 0) {
     // Need clean data (no messages)
-    // We are sure there is no pile-up in any channel (too restrictive?)
     auto& decodedInfo = ev.getDecodedInfo();
     for (uint16_t info : decodedInfo) {
       uint8_t ch = (info >> 10) & 0x1f;
       uint16_t code = info & 0x03ff;
-      auto& last = mHasInfos[SignalTDC[ch]].back();
+      auto& last = mHasInfos[ch].back();
       last = true;
     }
     // if (mVerbosity > DbgMinimal) {
     //   ev.print();
     // }
   }
-  // NOTE: for the moment NH = NTDCChannels. If we want to extend it to all channels
-  // we will need to have a mask of affected channels (towers contributing to sum)
+  // TDC channels are used to select reconstructed waveforms
   for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
     int ich = o2::zdc::TDCSignal[itdc];
     int nhit = ev.NtdcV(itdc);
@@ -193,14 +191,12 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
   if (ipkb != mPk) {
     return -1;
   } else {
-    // For the moment only TDC channels are interpolated
-    int ih = SignalTDC[isig];
     int ppos = NTimeBinsPerBC * TSN * ipkb + ipk;
     int ipos = mPeak - ppos;
-    data.mEntries[ih]++;
+    data.mEntries[isig]++;
     // Restrict validity range because of signal jitter
-    if (ipos > data.mFirstValid[ih]) {
-      data.mFirstValid[ih] = ipos;
+    if (ipos > data.mFirstValid[isig]) {
+      data.mFirstValid[isig] = ipos;
     }
     // We know that points are consecutive
     for (int ib = 0; ib < mN; ib++) {
@@ -209,7 +205,7 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
         if (mywave.ch() == isig) {
           for (int ip = 0; ip < NIS; ip++) {
             if (ipos >= 0 && ipos < mNP) {
-              data.mWave[ih][ipos] += mywave.inter[ip];
+              data.mWave[isig][ipos] += mywave.inter[ip];
             }
             ipos++;
           }
@@ -218,10 +214,10 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
     }
     ipos--;
     // Restrict validity range because of signal jitter
-    if (ipos < data.mLastValid[ih]) {
-      data.mLastValid[ih] = ipos;
+    if (ipos < data.mLastValid[isig]) {
+      data.mLastValid[isig] = ipos;
     }
-    // LOG(info) << "isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.mFirstValid[ih] << ":" << ppos << ":" << data.mLastValid[ih] << "]";
+    // LOG(info) << "isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.mFirstValid[isig] << ":" << ppos << ":" << data.mLastValid[isig] << "]";
     return ipos;
   }
 }

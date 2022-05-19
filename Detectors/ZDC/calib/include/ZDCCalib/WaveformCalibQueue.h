@@ -33,7 +33,6 @@ namespace zdc
 {
 
 struct WaveformCalibQueue {
-  static constexpr int NH = WaveformCalibConfig::NH;
   WaveformCalibQueue() = default;
   WaveformCalibQueue(WaveformCalibConfig *cfg)
   {
@@ -73,7 +72,7 @@ struct WaveformCalibQueue {
 
   std::deque<o2::InteractionRecord> mIR;
   std::deque<int32_t> mEntry;
-  std::deque<bool> mHasInfos[NH];
+  std::deque<bool> mHasInfos[NChannels];
   std::deque<uint32_t> mNTDC[NTDCChannels];
   std::deque<float> mTDCA[NTDCChannels];
   std::deque<float> mTDCP[NTDCChannels];
@@ -83,8 +82,8 @@ struct WaveformCalibQueue {
   {
     mIR.clear();
     mEntry.clear();
-    for (int ih = 0; ih < NH; ih++) {
-      mHasInfos[ih].clear();
+    for (int isig = 0; isig < NChannels; isig++) {
+      mHasInfos[isig].clear();
     }
     for (int itdc = 0; itdc < NTDCChannels; itdc++) {
       mNTDC[itdc].clear();
@@ -98,8 +97,8 @@ struct WaveformCalibQueue {
   {
     mIR.pop_front();
     mEntry.pop_front();
-    for (int ih = 0; ih < NH; ih++) {
-      mHasInfos[ih].pop_front();
+    for (int isig = 0; isig < NChannels; isig++) {
+      mHasInfos[isig].pop_front();
     }
     for (int itdc = 0; itdc < NTDCChannels; itdc++) {
       mNTDC[itdc].pop_front();

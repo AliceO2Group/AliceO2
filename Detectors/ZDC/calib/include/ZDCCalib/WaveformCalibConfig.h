@@ -12,6 +12,8 @@
 #ifndef O2_ZDC_WAVEFORMCALIBCONFIG_H
 #define O2_ZDC_WAVEFORMCALIBCONFIG_H
 
+#define O2_ZDC_WAVEFORMCALIB_DEBUG
+
 #include "ZDCBase/Constants.h"
 #include <Rtypes.h>
 #include <array>
@@ -26,8 +28,6 @@ namespace o2
 namespace zdc
 {
 struct WaveformCalibConfig {
-
-  static constexpr int NH = NTDCChannels;
   static constexpr int NBB = 3;
   static constexpr int NBA = 6;
   static constexpr int NBT = NBB + NBA + 1;
@@ -35,11 +35,11 @@ struct WaveformCalibConfig {
 
   WaveformCalibConfig();
 
-  double cutLow[NH];      /// Amplitude cut low
-  double cutHigh[NH];     /// Amplitude cut high
-  double cutTimeLow[NH];  /// TDC cut low
-  double cutTimeHigh[NH]; /// TDC cut high
-  double min_e[NH] = {0.};
+  double cutLow[NChannels];         /// Amplitude cut low
+  double cutHigh[NChannels];        /// Amplitude cut high
+  double min_e[NChannels] = {0.};   /// Minimum entries to compute waveform
+  double cutTimeLow[NTDCChannels];  /// TDC cut low
+  double cutTimeHigh[NTDCChannels]; /// TDC cut high
   std::string desc = "";
   int ibeg = -NBB;
   int iend = NBA;
@@ -60,17 +60,21 @@ struct WaveformCalibConfig {
   void setCutHigh(int ih, double val);
   void setCuts(double low, double high);
   void setCuts(int ih, double low, double high);
+  void setTimeCuts(double low, double high);
+  void setTimeCuts(int itdc, double low, double high);
   void setDescription(std::string d) { desc = d; }
 
-  int getFirst() const{
+  int getFirst() const
+  {
     return ibeg;
   }
 
-  int getLast() const{
+  int getLast() const
+  {
     return iend;
   }
 
-  ClassDefNV(WaveformCalibConfig, 2);
+  ClassDefNV(WaveformCalibConfig, 1);
 };
 } // namespace zdc
 } // namespace o2
