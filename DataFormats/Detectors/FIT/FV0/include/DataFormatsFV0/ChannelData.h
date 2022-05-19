@@ -61,6 +61,8 @@ struct ChannelData {
   {
     ChainQTC |= (value << bitFlag);
   }
+  static void setFlag(EEventDataBit bitFlag, uint8_t& chainQTC) { chainQTC |= (1 << bitFlag); }
+  static void clearFlag(EEventDataBit bitFlag, uint8_t& chainQTC) { chainQTC &= ~(1 << bitFlag); }
   bool getFlag(EEventDataBit bitFlag) const { return bool(ChainQTC & (1 << bitFlag)); }
   void print() const;
   void printLog() const;
@@ -72,7 +74,7 @@ struct ChannelData {
   {
     return std::tie(ChId, CFDTime, QTCAmpl, ChainQTC) == std::tie(other.ChId, other.CFDTime, other.QTCAmpl, other.ChainQTC);
   }
-  ClassDefNV(ChannelData, 2);
+  ClassDefNV(ChannelData, 3);
 };
 } // namespace fv0
 } // namespace o2

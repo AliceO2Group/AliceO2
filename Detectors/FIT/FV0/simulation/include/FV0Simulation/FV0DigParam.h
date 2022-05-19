@@ -26,12 +26,12 @@ struct FV0DigParam : o2::conf::ConfigurableParamHelper<FV0DigParam> {
   float lightYield = 0.01;                              // light collection efficiency to be tuned using collision data [1%]
   float adcChannelsPerMip = 16;                         // Default: 16 for pp and 8 for PbPb
   float getChannelsPerMilivolt() const { return adcChannelsPerMip / 7.5; } // Non-trivial conversion depending on the pulseshape: amplitude to charge
-  float chargeThrForMeanTime = 10;                      // Charge threshold, only above which the time is taken into account in calculating the mean time of all qualifying channels
+  float chargeThrForMeanTime = 5;                                          // Charge threshold, only above which the time is taken into account in calculating the mean time of all qualifying channels
 
   /// Parameters for the FV0 waveform [Conv. of expo. with Landau]
   // For ring 1-4
   float offsetRingA1ToA4 = 15.87e-09;
-  float normRingA1ToA4base = 7.9061033e-13;
+  float normRingA1ToA4base = 9.1042481e-13;
   float getNormRingA1ToA4() const { return normRingA1ToA4base * adcChannelsPerMip / 16; }
   float constRingA1ToA4 = -25.6165;
   float slopeRingA1ToA4 = 4.7942e+08;
@@ -39,7 +39,7 @@ struct FV0DigParam : o2::conf::ConfigurableParamHelper<FV0DigParam> {
   float sigmaRingA1ToA4 = 2.12167e-09;
   // For ring 5
   float offsetRing5 = 16.38e-09;
-  float normRing5base = 8.0303587e-13;
+  float normRing5base = 1.1680805e-12;
   float getNormRing5() const { return normRing5base * adcChannelsPerMip / 16; }
   float constRing5 = -66.76;
   float slopeRing5 = 9.43117e+08;
@@ -64,8 +64,8 @@ struct FV0DigParam : o2::conf::ConfigurableParamHelper<FV0DigParam> {
   int adcChargeCenThr = 3 * 498;     // threshold value of ADC charge for Central trigger
   int adcChargeSCenThr = 1 * 498;    // threshold value of ADC charge for Semi-central trigger
   int maxCountInAdc = 4095;          // to take care adc ADC overflow
-
-  short mTime_trg_gate = 153; // #channels as in TCM as in Pilot beams ('OR gate' setting in TCM tab in ControlServer)
+  short mTime_trg_gate = 153;        // #channels as in TCM as in Pilot beams ('OR gate' setting in TCM tab in ControlServer)
+  uint8_t defaultChainQtc = 0x48;    // only 2 flags are set by default in simulation: kIsCFDinADCgate and kIsEventInTVDC
 
   O2ParamDef(FV0DigParam, "FV0DigParam");
 };

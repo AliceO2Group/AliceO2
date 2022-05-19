@@ -12,20 +12,39 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <string>
 #include "TFile.h"
+#include "CCDB/CcdbApi.h"
+#include "CCDB/CCDBTimeStampUtils.h"
+#include "CCDB/CcdbObjectInfo.h"
+#include "CommonUtils/MemFileHelper.h"
+#include "CCDB/BasicCCDBManager.h"
 #include <iostream>
+#include <array>
 #include "FV0Calibration/FV0ChannelTimeCalibrationObject.h"
 #include "CCDB/CcdbApi.h"
-#endif
+#include "FV0Base/Constants.h"
 
-int makeChannelTimeOffsetFV0CalibObjectInCCDB(const std::string url = "http://alice-ccdb.cern.ch/")
+int makeChannelTimeOffsetFV0CalibObjectInCCDB(const std::string url = "http://alice-ccdb.cern.ch:8080")
 {
+  using CalibObjWithInfoType = std::pair<o2::ccdb::CcdbObjectInfo, std::unique_ptr<std::vector<char>>>;
+  std::array<int, o2::fv0::Constants::nFv0Channels> offsets;
+  for (int i = 0; i < o2::fv0::Constants::nFv0Channels; i++) {
+    offsets[i] = 0;
+  }
   o2::ccdb::CcdbApi api;
   api.init(url);
-  std::map<std::string, std::string> md;
-  o2::fv0::FV0ChannelTimeCalibrationObject obj;
-  for (auto& dummyCalCoeff : obj.mTimeOffsets) {
-    dummyCalCoeff = 0;
-  }
-  api.storeAsTFileAny(&obj, "FV0/Calib/ChannelTimeOffset", md, 0);
+  CalibObjWithInfoType result;
+  o2::fv0::FV0ChannelTimeCalibrationObject calibrationObject;
+  static std::map<std::string, std::string> metaData;
+  auto clName = o2::utils::MemFileHelper::getClassName(calibrationObject);
+  auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
+  uint64_t starting = 1546300800; // 01.01.2019
+  uint64_t stopping = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
+  LOG(info) << " clName " << clName << " flName " << flName;
+  result.first = o2::ccdb::CcdbObjectInfo("FV0/Calib/ChannelTimeOffset", clName, flName, metaData, starting, stopping);
+  result.second = o2::ccdb::CcdbApi::createObjectImage(&offsets, &result.first);
+  LOG(info) << " FITCalibrationApi::doSerializationAndPrepareObjectInfo"
+            << " start " << starting << " end " << stopping;
+  api.storeAsTFileAny(&calibrationObject, "FV0/Calib/ChannelTimeOffset", metaData, starting, stopping);
   return 0;
 }
+#endif
