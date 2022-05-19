@@ -38,6 +38,7 @@
 #include "MCHBase/TrackerParam.h"
 #include "MCHROFFiltering/TrackableFilter.h"
 #include "MCHTimeClustering/ROFTimeClusterFinder.h"
+#include "MCHDigitFiltering/DigitFilter.h"
 #include "MCHTimeClustering/TimeClusterizerParam.h"
 
 namespace o2
@@ -59,6 +60,7 @@ class TimeClusterFinderTask
     mNbinsInOneWindow = param.peakSearchNbins;
     mMinDigitPerROF = param.minDigitsPerROF;
     mOnlyTrackable = param.onlyTrackable;
+    mPeakSearchSignalOnly = param.peakSearchSignalOnly;
     mDebug = ic.options().get<bool>("mch-debug");
 
     if (mDebug) {
@@ -92,7 +94,7 @@ class TimeClusterFinderTask
     auto rofs = pc.inputs().get<gsl::span<o2::mch::ROFRecord>>("rofs");
     auto digits = pc.inputs().get<gsl::span<o2::mch::Digit>>("digits");
 
-    o2::mch::ROFTimeClusterFinder rofProcessor(rofs, mTimeClusterWidth, mNbinsInOneWindow, 0);
+    o2::mch::ROFTimeClusterFinder rofProcessor(rofs, digits, mTimeClusterWidth, mNbinsInOneWindow, mPeakSearchSignalOnly, mDebug);
 
     if (mDebug) {
       LOGP(warning, "{:=>60} ", fmt::format("{:6d} Input ROFS", rofs.size()));
@@ -156,6 +158,7 @@ class TimeClusterFinderTask
   int mTFcount{0};            ///< number of processed time frames
   int mDebug{0};              ///< verbosity flag
   int mMinDigitPerROF;        ///< minimum digit per ROF threshold
+  bool mPeakSearchSignalOnly; ///< only use signal-like hits in peak search
   bool mOnlyTrackable;        ///< only keep ROFs that are trackable
 };
 
