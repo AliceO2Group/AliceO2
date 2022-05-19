@@ -957,7 +957,8 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   LOGP(debug, "oldest possible timeframe range {}, {} => {} delta", currentOldest.value, currentNewest.value,
        delta);
   auto& infos = context.deviceContext->state->inputChannelInfos;
-  auto newEnd = std::remove_if(pollOrder.begin(), pollOrder.end(), [&infos, limitNew = currentOldest.value + 32](int a) -> bool {
+  static int ahead = getenv("DPL_MAX_CHANNEL_AHEAD") ? std::atoi(getenv("DPL_MAX_CHANNEL_AHEAD")) : 16;
+  auto newEnd = std::remove_if(pollOrder.begin(), pollOrder.end(), [&infos, limitNew = currentOldest.value + ahead](int a) -> bool {
     return infos[a].oldestForChannel.value > limitNew;
   });
   pollOrder.erase(newEnd, pollOrder.end());
