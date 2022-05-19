@@ -118,3 +118,19 @@ int WaveformCalibData::write(const std::string fn)
   cwd->cd();
   return 0;
 }
+
+void WaveformCalibData::clear()
+{
+  mCTimeBeg = 0;
+  mCTimeEnd = 0;
+  mN = 0;
+  mPeak = 0;
+  for (int32_t ih = 0; ih < NH; ih++) {
+    mEntries[ih]=0;
+    mFirstValid[ih] = -1;
+    mLastValid[ih] = -1;
+    for (int iw=0; iw<NW; iw++){
+      mWave[ih][iw] = 0;
+    }
+  }
+}

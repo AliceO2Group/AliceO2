@@ -18,6 +18,7 @@
 #include <string>
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
+#include "CCDB/CcdbApi.h"
 #include "Framework/Logger.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -30,6 +31,7 @@
 #include "DataFormatsZDC/RecEvent.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "CommonUtils/NameConf.h"
+#include "CommonUtils/MemFileHelper.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "ZDCCalib/WaveformCalibData.h"
@@ -57,6 +59,9 @@ WaveformCalibEPNSpec::WaveformCalibEPNSpec(const int verbosity) : mVerbosity(ver
 void WaveformCalibEPNSpec::init(o2::framework::InitContext& ic)
 {
   mVerbosity = ic.options().get<int>("verbosity-level");
+  mWorker.setVerbosity(mVerbosity);
+  mTimer.CpuTime();
+  mTimer.Start(false);
 }
 
 void WaveformCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -71,21 +76,22 @@ void WaveformCalibEPNSpec::run(ProcessingContext& pc)
   if (!mInitialized) {
     mInitialized = true;
     std::string loadedConfFiles = "Loaded ZDC configuration files:";
+    std::string ct = "WaveformCalibConfig";
+    std::string cn = "wavecalibconfig";
     // WaveformCalib configuration
-    auto interConfig = pc.inputs().get<o2::zdc::WaveformCalibConfig*>("wavecalibconfig");
-    if (!interConfig) {
-      LOG(fatal) << "Missing WaveformCalibConfig calibration object";
+    auto config = pc.inputs().get<o2::zdc::WaveformCalibConfig*>(cn);
+    if (!config) {
+      LOG(fatal) << "Missing calibration object: " << ct;
       return;
     } else {
-      loadedConfFiles += " WaveformCalibConfig";
+      loadedConfFiles += " ";
+      loadedConfFiles += cn;
       if (mVerbosity > DbgZero) {
-        LOG(info) << "Loaded WaveformCalibConfig configuration object";
-        interConfig->print();
+        LOG(info) << "Loaded configuration object: " << ct;
+        config->print();
       }
+      mWorker.setConfig(config.get());
     }
-
-    mWorker.setConfig(interConfig.get());
-
     LOG(info) << loadedConfFiles;
     mTimer.CpuTime();
     mTimer.Start(false);
@@ -105,7 +111,7 @@ void WaveformCalibEPNSpec::run(ProcessingContext& pc)
   // Process reconstructed data
   mWorker.process(bcrec, energy, tdc, info, wave);
 
-  // Send intermediate calibration data and debug histograms
+  // Send intermediate calibration data
   o2::framework::Output output("ZDC", "WAVECALIBDATA", 0, Lifetime::Timeframe);
   pc.outputs().snapshot(output, mWorker.mData);
 }

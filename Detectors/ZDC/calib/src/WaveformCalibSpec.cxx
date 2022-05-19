@@ -23,6 +23,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/DataRefUtils.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/ChannelData.h"
@@ -33,7 +34,7 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
-#include "ZDCReconstruction/RecoConfigZDC.h"
+#include "ZDCCalib/WaveformCalibData.h"
 #include "ZDCCalib/WaveformCalibSpec.h"
 
 using namespace o2::framework;
@@ -57,12 +58,8 @@ WaveformCalibSpec::WaveformCalibSpec(const int verbosity) : mVerbosity(verbosity
 
 void WaveformCalibSpec::init(o2::framework::InitContext& ic)
 {
-  //     int minEnt = std::max(300, ic.options().get<int>("min-entries"));
-  //     int nb = std::max(500, ic.options().get<int>("nbins"));
-  //     int slotL = ic.options().get<int>("tf-per-slot");
-  //     int delay = ic.options().get<int>("max-delay");
   mVerbosity = ic.options().get<int>("verbosity-level");
-  mWaveformCalib.setVerbosity(mVerbosity);
+  mWorker.setVerbosity(mVerbosity);
   mTimer.CpuTime();
   mTimer.Start(false);
 }
@@ -70,71 +67,43 @@ void WaveformCalibSpec::init(o2::framework::InitContext& ic)
 void WaveformCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   // we call these methods just to trigger finaliseCCDB callback
-  std::string loadedConfFiles = "Loaded ZDC configuration files:";
-  // Energy calibration
-  auto energyParam = pc.inputs().get<o2::zdc::ZDCEnergyParam*>("energycalib");
-  if (!energyParam) {
-    LOG(fatal) << "Missing ZDCEnergyParam calibration object";
-    return;
-  } else {
-    loadedConfFiles += " ZDCEnergyParam";
-    if (mVerbosity > DbgMinimal) {
-      LOG(info) << "Loaded Energy calibration ZDCEnergyParam";
-      energyParam->print();
-    }
-  }
-
-  // Tower calibration
-  auto towerParam = pc.inputs().get<o2::zdc::ZDCTowerParam*>("towercalib");
-  if (!towerParam) {
-    LOG(fatal) << "Missing ZDCTowerParam calibration object";
-    return;
-  } else {
-    loadedConfFiles += " ZDCTowerParam";
-    if (mVerbosity > DbgMinimal) {
-      LOG(info) << "Loaded Tower calibration ZDCTowerParam";
-      towerParam->print();
-    }
-  }
-
-  // WaveformCalib configuration
-  auto interConfig = pc.inputs().get<o2::zdc::WaveformCalibConfig*>("intercalibconfig");
-  if (!interConfig) {
-    LOG(fatal) << "Missing WaveformCalibConfig calibration WaveformCalibConfig";
-    return;
-  } else {
-    loadedConfFiles += " WaveformCalibConfig";
-    if (mVerbosity > DbgMinimal) {
-      LOG(info) << "Loaded WaveformCalib configuration object";
-      interConfig->print();
-    }
-  }
-
-  LOG(info) << loadedConfFiles;
-
-  mWaveformCalib.setEnergyParam(energyParam.get());
-  mWaveformCalib.setTowerParam(towerParam.get());
-  mWaveformCalib.setWaveformCalibConfig(interConfig.get());
+  pc.inputs().get<o2::zdc::WaveformCalibConfig*>("wavecalibconfig");
 }
 
 void WaveformCalibSpec::run(ProcessingContext& pc)
 {
   updateTimeDependentParams(pc);
-  auto data = pc.inputs().get<WaveformCalibData>("intercalibdata");
-  mWaveformCalib.process(data);
-  for (int ih = 0; ih < (2 * WaveformCalibData::NH); ih++) {
-    o2::dataformats::FlatHisto1D<float> histoView(pc.inputs().get<gsl::span<float>>(fmt::format("inter_1dh{}", ih).data()));
-    mWaveformCalib.add(ih, histoView);
+  if (!mInitialized) {
+    mInitialized = true;
+    std::string loadedConfFiles = "Loaded ZDC configuration files:";
+    std::string ct = "WaveformCalibConfig";
+    std::string cn = "wavecalibconfig";
+    // WaveformCalib configuration
+    auto config = pc.inputs().get<o2::zdc::WaveformCalibConfig*>(cn);
+    if (!config) {
+      LOG(fatal) << "Missing calibration object: " << ct;
+      return;
+    } else {
+      loadedConfFiles += " ";
+      loadedConfFiles += cn;
+      if (mVerbosity > DbgZero) {
+        LOG(info) << "Loaded configuration object: " << ct;
+        config->print();
+      }
+      mWorker.setConfig(config.get());
+    }
+    LOG(info) << loadedConfFiles;
+    mTimer.CpuTime();
+    mTimer.Start(false);
   }
-  for (int ih = 0; ih < WaveformCalibData::NH; ih++) {
-    o2::dataformats::FlatHisto2D<float> histoView(pc.inputs().get<gsl::span<float>>(fmt::format("inter_2dh{}", ih).data()));
-    mWaveformCalib.add(ih, histoView);
-  }
+
+  auto data = pc.inputs().get<WaveformCalibData>("waveformcalibdata");
+  mWorker.process(data);
 }
 
 void WaveformCalibSpec::endOfStream(EndOfStreamContext& ec)
 {
-  mWaveformCalib.endOfRun();
+  mWorker.endOfRun();
   mTimer.Stop();
   sendOutput(ec.outputs());
   LOGF(info, "ZDC Waveformcalibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
@@ -143,11 +112,12 @@ void WaveformCalibSpec::endOfStream(EndOfStreamContext& ec)
 //________________________________________________________________
 void WaveformCalibSpec::sendOutput(o2::framework::DataAllocator& output)
 {
+  /*
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
   using clbUtils = o2::calibration::Utils;
-  const auto& payload = mWaveformCalib.getTowerParamUpd();
-  auto& info = mWaveformCalib.getCcdbObjectInfo();
+  const auto& payload = mWorker.getTowerParamUpd();
+  auto& info = mWorker.getCcdbObjectInfo();
   auto image = o2::ccdb::CcdbApi::createObjectImage<ZDCTowerParam>(&payload, &info);
   if (mVerbosity > DbgMinimal) {
     payload.print();
@@ -157,7 +127,8 @@ void WaveformCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_Waveformcalib", 0}, *image.get()); // vector<char>
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_Waveformcalib", 0}, info);         // root-serialized
   // TODO: reset the outputs once they are already sent (is it necessary?)
-  // mWaveformCalib.init();
+  // mWorker.init();
+  */
 }
 
 framework::DataProcessorSpec getWaveformCalibSpec()
@@ -185,8 +156,8 @@ framework::DataProcessorSpec getWaveformCalibSpec()
   }
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_Waveformcalib"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_Waveformcalib"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDCWaveformcalib"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDCWaveformcalib"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "zdc-calib-towers",

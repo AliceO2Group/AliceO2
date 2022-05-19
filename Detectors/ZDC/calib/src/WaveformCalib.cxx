@@ -28,7 +28,7 @@ using namespace o2::zdc;
 
 int WaveformCalib::init()
 {
-  if (mWaveformCalibConfig == nullptr) {
+  if (mConfig == nullptr) {
     LOG(fatal) << "o2::zdc::WaveformCalib: missing configuration object";
     return -1;
   }
@@ -44,13 +44,13 @@ int WaveformCalib::endOfRun()
   if (mVerbosity > DbgZero) {
     LOGF(info, "Computing intercalibration coefficients");
   }
-  auto clName = o2::utils::MemFileHelper::getClassName(mTowerParamUpd);
+  auto clName = o2::utils::MemFileHelper::getClassName(mData);
   mInfo.setObjectType(clName);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   mInfo.setFileName(flName);
-  mInfo.setPath(CCDBPathTowerCalib);
+  mInfo.setPath(CCDBPathWaveformCalib);
   std::map<std::string, std::string> md;
-  md["config"] = mWaveformCalibConfig->desc;
+  md["config"] = mConfig->desc;
   mInfo.setMetaData(md);
   uint64_t starting = mData.mCTimeBeg;
   if (starting >= 10000) {
@@ -66,9 +66,9 @@ int WaveformCalib::endOfRun()
   return 0;
 }
 
-void WaveformCalib::clear(int ih)
+void WaveformCalib::clear()
 {
-  mData.mSum[ii][i][j] = 0;
+  mData.clear();
 }
 
 int WaveformCalib::process(const WaveformCalibData& data)
@@ -76,51 +76,18 @@ int WaveformCalib::process(const WaveformCalibData& data)
   if (!mInitDone) {
     init();
   }
+  // Add checks before addition
+  auto nbun = mConfig->nbun;
+  auto peak = -mConfig->ibeg;
+  if ((nbun != mData.mN) || (mData.mPeak != peak)) {
+    LOG(fatal) << "WaveformCalib::process adding inconsistent data mN cfg=" << nbun << " vs data=" << mData.mN << " mPeak cfg=" << peak << " vs data=" << mData.mPeak;
+    return -1;
+  }
   mData += data;
   return 0;
 }
 
 int WaveformCalib::write(const std::string fn)
 {
-  TDirectory* cwd = gDirectory;
-  TFile* f = new TFile(fn.data(), "recreate");
-  if (f->IsZombie()) {
-    LOG(error) << "Cannot create file: " << fn;
-    return 1;
-  }
-  for (int32_t ih = 0; ih < (2 * NH); ih++) {
-    if (mHUnc[ih]) {
-      auto p = mHUnc[ih]->createTH1F(WaveformCalib::mHUncN[ih]);
-      p->SetTitle(WaveformCalib::mHUncT[ih]);
-      p->Write("", TObject::kOverwrite);
-    }
-  }
-  for (int32_t ih = 0; ih < NH; ih++) {
-    if (mCUnc[ih]) {
-      auto p = mCUnc[ih]->createTH2F(WaveformCalib::mCUncN[ih]);
-      p->SetTitle(WaveformCalib::mCUncT[ih]);
-      p->Write("", TObject::kOverwrite);
-    }
-  }
-  // Only after replay of RUN2 data
-  for (int32_t ih = 0; ih < NH; ih++) {
-    if (mHCorr[ih]) {
-      mHCorr[ih]->Write("", TObject::kOverwrite);
-    }
-  }
-  for (int32_t ih = 0; ih < NH; ih++) {
-    if (mCCorr[ih]) {
-      mCCorr[ih]->Write("", TObject::kOverwrite);
-    }
-  }
-  // Minimization output
-  const char* mntit[NH] = {"mZNA", "mZPA", "mZNC", "mZPC", "mZEM"};
-  for (int32_t ih = 0; ih < NH; ih++) {
-    if (mMn[ih]) {
-      mMn[ih]->Write(mntit[ih], TObject::kOverwrite);
-    }
-  }
-  f->Close();
-  cwd->cd();
-  return 0;
+  return mData.write(fn);
 }

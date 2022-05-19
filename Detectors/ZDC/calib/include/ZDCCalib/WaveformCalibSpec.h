@@ -23,8 +23,8 @@
 #include "Framework/Task.h"
 #include "CommonDataFormat/FlatHisto1D.h"
 #include "CommonDataFormat/FlatHisto2D.h"
-#include "DataFormatsZDC/WaveformCalibData.h"
 #include "CommonUtils/NameConf.h"
+#include "ZDCCalib/WaveformCalibData.h"
 #include "ZDCCalib/WaveformCalib.h"
 #include "ZDCCalib/WaveformCalibConfig.h"
 #include "DetectorsCalibration/Utils.h"
@@ -49,6 +49,7 @@ class WaveformCalibSpec : public o2::framework::Task
 
  private:
   int mVerbosity = DbgMinimal; // Verbosity level
+  bool mInitialized = false;   // Connect once to CCDB during initialization
   WaveformCalib mWorker;       // Intercalibration object
   TStopwatch mTimer;
 };

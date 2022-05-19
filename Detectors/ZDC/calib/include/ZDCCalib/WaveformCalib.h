@@ -34,15 +34,15 @@ class WaveformCalib
   WaveformCalib() = default;
   int init();
   static constexpr int NH = WaveformCalibConfig::NH;
-  void clear(int ih = -1);
-  int process(const WaveformCalibData& data);            // Calibration of RUN3 data - aggregator node
-  int endOfRun();                                     // Perform minimization
+  void clear();
+  int process(const WaveformCalibData& data); // Calibration of RUN3 data - aggregator node
+  int endOfRun();                             // Perform minimization
   int write(const std::string fn = "ZDCWaveformCalib.root");
 
   CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; }
 
-  void setWaveformCalibConfig(const WaveformCalibConfig* param) { mWaveformCalibConfig = param; };
-  const WaveformCalibConfig* getWaveformCalibConfig() const { return mWaveformCalibConfig; };
+  void setConfig(const WaveformCalibConfig* param) { mConfig = param; };
+  const WaveformCalibConfig* getConfig() const { return mConfig; };
 
   void setVerbosity(int v) { mVerbosity = v; }
   int getVerbosity() const { return mVerbosity; }
@@ -50,20 +50,15 @@ class WaveformCalib
   void setSaveDebugHistos() { mSaveDebugHistos = true; }
   void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
 
+  WaveformCalibData& getData() { return mData; }
+
  private:
   WaveformCalibData mData;
   bool mInitDone = false;
   bool mSaveDebugHistos = false;
   int32_t mVerbosity = DbgMinimal;
-  static std::mutex mMtx; /// mutex for critical section
-  double mPar[NH][NPAR] = {0};
-  double mErr[NH][NPAR] = {0};
-  const WaveformCalibConfig* mWaveformCalibConfig = nullptr; /// Configuration of intercalibration
-  const ZDCEnergyParam* mEnergyParam = nullptr;        /// Energy calibration object
-  const ZDCTowerParam* mTowerParam = nullptr;          /// Tower calibration object
-  ZDCTowerParam mTowerParamUpd;                        /// Updated tower calibration object
-  CcdbObjectInfo mInfo;                                /// CCDB Info
-  void assign(int ih, bool ismod);                     /// Assign updated calibration object
+  const WaveformCalibConfig* mConfig = nullptr; /// Configuration of intercalibration
+  CcdbObjectInfo mInfo;                         /// CCDB Info
 };
 } // namespace zdc
 } // namespace o2

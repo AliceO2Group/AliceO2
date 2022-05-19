@@ -43,6 +43,7 @@ struct WaveformCalibData {
   WaveformCalibData& operator+=(const WaveformCalibData& other);
   int getEntries(int ih) const;
   void print() const;
+  void clear();
   void setCreationTime(uint64_t ctime);
   void setN(int n);
   int write(const std::string fn);

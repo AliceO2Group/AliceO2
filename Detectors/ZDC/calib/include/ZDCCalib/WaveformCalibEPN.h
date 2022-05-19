@@ -38,8 +38,8 @@ class WaveformCalibEPN
               const gsl::span<const o2::zdc::ZDCWaveform>& wave);
   int endOfRun();
   int write(const std::string fn = "ZDCWaveformCalibEPN.root");
-  void setConfig(const WaveformCalibConfig* param) { mWaveformCalibConfig = param; };
-  const WaveformCalibConfig* getConfig() const { return mWaveformCalibConfig; };
+  void setConfig(const WaveformCalibConfig* param) { mConfig = param; };
+  const WaveformCalibConfig* getConfig() const { return mConfig; };
   void setSaveDebugHistos() { mSaveDebugHistos = true; }
   void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
   void setVerbosity(int val) { mVerbosity = val; }
@@ -51,19 +51,20 @@ class WaveformCalibEPN
   bool mSaveDebugHistos = false;
   int32_t mNBin = 0;
   int32_t mVerbosity = DbgMinimal;
-  const WaveformCalibConfig* mWaveformCalibConfig = nullptr; /// Configuration of intercalibration
+  const WaveformCalibConfig* mConfig = nullptr; /// Configuration of intercalibration
 
-  int mFirst=0;
-  int mLast=0;
-  int mN=1;
+  int mFirst = 0;
+  int mLast = 0;
+  int mN = 1;
 
-  void configure(int ifirst, int ilast){
-    if(ifirst>0 || ilast<0 || ilast<ifirst){
-      LOGF(fatal,"WaveformCalibEPN configure error with ifirst=%d ilast=%d", ifirst, ilast);
+  void configure(int ifirst, int ilast)
+  {
+    if (ifirst > 0 || ilast < 0 || ilast < ifirst) {
+      LOGF(fatal, "WaveformCalibEPN configure error with ifirst=%d ilast=%d", ifirst, ilast);
     }
-    mFirst=ifirst;
-    mLast=ilast;
-    mN=ilast-ifirst+1;
+    mFirst = ifirst;
+    mLast = ilast;
+    mN = ilast - ifirst + 1;
   }
 
   WaveformCalibQueue mQueue;

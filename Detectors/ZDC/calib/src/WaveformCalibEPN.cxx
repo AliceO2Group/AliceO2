@@ -24,14 +24,14 @@ using namespace o2::zdc;
 
 int WaveformCalibEPN::init()
 {
-  if (mWaveformCalibConfig == nullptr) {
+  if (mConfig == nullptr) {
     LOG(fatal) << "o2::zdc::WaveformCalibEPN: missing configuration object";
     return -1;
   }
 
-  auto* cfg = mWaveformCalibConfig;
+  auto* cfg = mConfig;
   if (mVerbosity > DbgZero) {
-    mWaveformCalibConfig->print();
+    mConfig->print();
   }
 
   // Inspect reconstruction parameters
@@ -90,8 +90,8 @@ int WaveformCalibEPN::endOfRun()
     LOGF(info, "WaveformCalibEPN::endOfRun ts (%llu:%llu)", mData.mCTimeBeg, mData.mCTimeEnd);
     for (int ih = 0; ih < NH; ih++) {
       LOGF(info, "Waveform %2d with %10d events and cuts AMP:(%g:%g) TDC:(%g:%g) Valid:[%d:%d:%d]", ih, mData.mEntries[ih],
-           mWaveformCalibConfig->cutLow[ih], mWaveformCalibConfig->cutHigh[ih],
-           mWaveformCalibConfig->cutTimeLow[ih], mWaveformCalibConfig->cutTimeHigh[ih],
+           mConfig->cutLow[ih], mConfig->cutHigh[ih],
+           mConfig->cutTimeLow[ih], mConfig->cutTimeHigh[ih],
            mData.mFirstValid[ih], mData.mPeak, mData.mLastValid[ih]);
     }
   }
