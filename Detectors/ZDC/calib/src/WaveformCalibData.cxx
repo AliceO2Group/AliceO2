@@ -19,8 +19,11 @@ using namespace o2::zdc;
 
 void WaveformCalibData::print() const
 {
+  LOGF(info, "WaveformCalibData mN = %d/%d", mN, NBT);
   for (int32_t ih = 0; ih < NH; ih++) {
-    LOGF(info, "WaveformCalibData [%llu : %llu]: entries=%d [%d:%d:%d]", mCTimeBeg, mCTimeEnd, mEntries[ih], mFirstValid[ih], mPeak, mLastValid[ih]);
+    if (mEntries[ih] > 0) {
+      LOGF(info, "WaveformCalibData %2d [%llu : %llu]: entries=%d [%d:%d:%d]", ih, mCTimeBeg, mCTimeEnd, mEntries[ih], mFirstValid[ih], mPeak, mLastValid[ih]);
+    }
   }
 }
 
@@ -52,9 +55,10 @@ WaveformCalibData& WaveformCalibData::operator+=(const WaveformCalibData& other)
       mWave[ih][i] = mWave[ih][i] + other.mWave[ih][i];
     }
   }
-  //#ifdef O2_ZDC_DEBUG
+#ifdef O2_ZDC_DEBUG
+  LOG(info) << __func__;
   print();
-  //#endif
+#endif
   return *this;
 }
 
@@ -126,10 +130,10 @@ void WaveformCalibData::clear()
   mN = 0;
   mPeak = 0;
   for (int32_t ih = 0; ih < NH; ih++) {
-    mEntries[ih]=0;
+    mEntries[ih] = 0;
     mFirstValid[ih] = -1;
     mLastValid[ih] = -1;
-    for (int iw=0; iw<NW; iw++){
+    for (int iw = 0; iw < NW; iw++) {
       mWave[ih][iw] = 0;
     }
   }

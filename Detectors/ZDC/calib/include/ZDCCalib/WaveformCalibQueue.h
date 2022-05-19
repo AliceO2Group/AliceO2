@@ -50,6 +50,10 @@ struct WaveformCalibQueue {
 
   const WaveformCalibConfig *mCfg = nullptr;
 
+  static int peak(int pk){
+    return NTimeBinsPerBC * TSN * pk + NTimeBinsPerBC / 2 * TSN;
+  }
+  
   void configure(const WaveformCalibConfig *cfg)
   {
     mCfg = cfg;
@@ -64,7 +68,7 @@ struct WaveformCalibQueue {
     mPk = -mFirst;
     mPPos = mPk * NIS + NIS/2;
     mNP = mN * NIS;
-    mPeak = NTimeBinsPerBC * TSN * mPk + NTimeBinsPerBC / 2 * TSN;
+    mPeak = peak(mPk);
   }
 
   std::deque<o2::InteractionRecord> mIR;
@@ -77,7 +81,6 @@ struct WaveformCalibQueue {
   std::deque<int32_t> mNW;
   void clear()
   {
-    LOG(info) << __func__;
     mIR.clear();
     mEntry.clear();
     for (int ih = 0; ih < NH; ih++) {
@@ -93,7 +96,6 @@ struct WaveformCalibQueue {
   }
   void pop()
   {
-    LOG(info) << __func__;
     mIR.pop_front();
     mEntry.pop_front();
     for (int ih = 0; ih < NH; ih++) {

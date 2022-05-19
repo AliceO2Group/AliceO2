@@ -151,11 +151,11 @@ void InterCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   const auto& payload = mInterCalib.getTowerParamUpd();
   auto& info = mInterCalib.getCcdbObjectInfo();
   auto image = o2::ccdb::CcdbApi::createObjectImage<ZDCTowerParam>(&payload, &info);
+  LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+            << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   if (mVerbosity > DbgMinimal) {
     payload.print();
   }
-  LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-            << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_Intercalib", 0}, *image.get()); // vector<char>
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_Intercalib", 0}, info);         // root-serialized
   // TODO: reset the outputs once they are already sent (is it necessary?)
@@ -195,11 +195,7 @@ framework::DataProcessorSpec getInterCalibSpec()
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
-    Options{
-      {"tf-per-slot", VariantType::Int, 5, {"number of TFs per calibration time slot"}},
-      {"max-delay", VariantType::Int, 3, {"number of slots in past to consider"}},
-      {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit single time slot"}},
-      {"verbosity-level", o2::framework::VariantType::Int, 1, {"Verbosity level"}}}};
+    Options{{"verbosity-level", o2::framework::VariantType::Int, 1, {"Verbosity level"}}}};
 }
 
 } // namespace zdc

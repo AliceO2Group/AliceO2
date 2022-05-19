@@ -19,6 +19,7 @@
 #include <TAxis.h>
 #include "CommonUtils/MemFileHelper.h"
 #include "ZDCCalib/WaveformCalib.h"
+#include "ZDCCalib/WaveformCalibQueue.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
 #include "Framework/Logger.h"
@@ -33,6 +34,8 @@ int WaveformCalib::init()
     return -1;
   }
   clear();
+  mData.setN(mConfig->nbun);
+  mData.mPeak = WaveformCalibQueue::peak(-(mConfig->ibeg));
   mInitDone = true;
   return 0;
 }
@@ -42,7 +45,7 @@ int WaveformCalib::init()
 int WaveformCalib::endOfRun()
 {
   if (mVerbosity > DbgZero) {
-    LOGF(info, "Computing intercalibration coefficients");
+    LOGF(info, "Finalizing WaveformCalibData object");
   }
   auto clName = o2::utils::MemFileHelper::getClassName(mData);
   mInfo.setObjectType(clName);
@@ -77,10 +80,8 @@ int WaveformCalib::process(const WaveformCalibData& data)
     init();
   }
   // Add checks before addition
-  auto nbun = mConfig->nbun;
-  auto peak = -mConfig->ibeg;
-  if ((nbun != mData.mN) || (mData.mPeak != peak)) {
-    LOG(fatal) << "WaveformCalib::process adding inconsistent data mN cfg=" << nbun << " vs data=" << mData.mN << " mPeak cfg=" << peak << " vs data=" << mData.mPeak;
+  if ((mData.mN != data.mN) || (mData.mPeak != data.mPeak)) {
+    LOG(fatal) << "WaveformCalib::process adding inconsistent data mN cfg=" << mData.mN << " vs data=" << data.mN << " mPeak cfg=" << mData.mPeak << " vs data=" << data.mPeak;
     return -1;
   }
   mData += data;

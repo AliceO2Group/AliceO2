@@ -55,8 +55,9 @@ class InterCalibEPN
   const InterCalibConfig* getInterCalibConfig() const { return mInterCalibConfig; };
   void setSaveDebugHistos() { mSaveDebugHistos = true; }
   void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
-  InterCalibData& getData() { return mData; }
+  void setVerbosity(int val) { mVerbosity = val; }
   InterCalibData mData;
+  InterCalibData& getData() { return mData; }
   std::array<o2::dataformats::FlatHisto1D<float>*, 2 * NH> mH{};
   std::array<o2::dataformats::FlatHisto2D<float>*, NH> mC{};
 

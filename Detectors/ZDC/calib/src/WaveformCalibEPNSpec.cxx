@@ -85,7 +85,7 @@ void WaveformCalibEPNSpec::run(ProcessingContext& pc)
       return;
     } else {
       loadedConfFiles += " ";
-      loadedConfFiles += cn;
+      loadedConfFiles += ct;
       if (mVerbosity > DbgZero) {
         LOG(info) << "Loaded configuration object: " << ct;
         config->print();
@@ -100,7 +100,7 @@ void WaveformCalibEPNSpec::run(ProcessingContext& pc)
   const auto ref = pc.inputs().getFirstValid(true);
   auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
   WaveformCalibData& data = mWorker.getData();
-//  data.setCreationTime(creationTime);
+  data.setCreationTime(creationTime);
 
   auto bcrec = pc.inputs().get<gsl::span<o2::zdc::BCRecData>>("bcrec");
   auto energy = pc.inputs().get<gsl::span<o2::zdc::ZDCEnergy>>("energy");
@@ -125,6 +125,7 @@ void WaveformCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
 
 framework::DataProcessorSpec getWaveformCalibEPNSpec()
 {
+  using device = o2::zdc::WaveformCalibEPNSpec;
   std::vector<InputSpec> inputs;
   inputs.emplace_back("bcrec", "ZDC", "BCREC", 0, Lifetime::Timeframe);
   inputs.emplace_back("energy", "ZDC", "ENERGY", 0, Lifetime::Timeframe);
@@ -139,8 +140,8 @@ framework::DataProcessorSpec getWaveformCalibEPNSpec()
     "zdc-waveformcalib-epn",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<WaveformCalibEPNSpec>()},
-    o2::framework::Options{{"verbosity-level", o2::framework::VariantType::Int, 0, {"Verbosity level"}}}};
+    AlgorithmSpec{adaptFromTask<device>()},
+    Options{{"verbosity-level", o2::framework::VariantType::Int, 0, {"Verbosity level"}}}};
 }
 
 } // namespace zdc

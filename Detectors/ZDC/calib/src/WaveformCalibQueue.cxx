@@ -134,7 +134,7 @@ int WaveformCalibQueue::hasData(int isig, const gsl::span<const o2::zdc::ZDCWave
   float min = std::numeric_limits<float>::infinity();
   for (int ib = 0; ib < mN; ib++) {
     int ifound = false;
-    LOG(info) << "mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
+    // LOG(info) << "mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
     for (int iw = 0; iw < mNW[ib]; iw++) {
       auto& mywave = wave[iw + mFirstW[ib]];
       if (mywave.ch() == isig) {
@@ -157,7 +157,7 @@ int WaveformCalibQueue::hasData(int isig, const gsl::span<const o2::zdc::ZDCWave
     return -1;
   } else {
     int ipos = NTimeBinsPerBC * TSN * ipkb + ipk;
-    LOG(info) << "isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min;
+    // LOG(info) << "isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min;
     return ipos;
   }
 }
@@ -171,7 +171,7 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
   float min = std::numeric_limits<float>::infinity();
   for (int ib = 0; ib < mN; ib++) {
     int ifound = false;
-    LOG(info) << "mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
+    // LOG(info) << "mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
     for (int iw = 0; iw < mNW[ib]; iw++) {
       auto& mywave = wave[iw + mFirstW[ib]];
       if (mywave.ch() == isig) {
@@ -221,7 +221,7 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
     if (ipos < data.mLastValid[ih]) {
       data.mLastValid[ih] = ipos;
     }
-    LOG(info) << "isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.mFirstValid[ih] << ":" << ppos << ":" << data.mLastValid[ih] << "]";
+    // LOG(info) << "isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.mFirstValid[ih] << ":" << ppos << ":" << data.mLastValid[ih] << "]";
     return ipos;
   }
 }
