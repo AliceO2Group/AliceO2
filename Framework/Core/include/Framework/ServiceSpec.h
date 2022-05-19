@@ -104,6 +104,9 @@ using ServiceTopologyInject = std::function<void(WorkflowSpecNode&, ConfigContex
 /// Callback invoked when we amend the topology
 using ServiceTopologyAdjust = std::function<void(WorkflowSpecNode&, ConfigContext const&)>;
 
+/// Callback invoked whenever we get updated about the oldest possible timeslice we can process
+using ServiceDomainInfoUpdated = std::function<void(ServiceRegistry&, size_t tileslice, ChannelIndex channel)>;
+
 /// A specification for a Service.
 /// A Service is a utility class which does not perform
 /// data processing itself, but it can be used by the data processor
@@ -167,6 +170,9 @@ struct ServiceSpec {
   /// Callback invoked when finalising topology creation
   ServiceTopologyAdjust adjustTopology = nullptr;
 
+  /// Callback invoked when we get updated about the oldest possible timeslice we can process
+  ServiceDomainInfoUpdated domainInfoUpdated = nullptr;
+
   /// Kind of service being specified.
   ServiceKind kind = ServiceKind::Serial;
 };
@@ -216,6 +222,12 @@ struct ServiceStopHandle {
 struct ServiceExitHandle {
   ServiceSpec const& spec;
   ServiceExitCallback callback;
+  void* service;
+};
+
+struct ServiceDomainInfoHandle {
+  ServiceSpec const& spec;
+  ServiceDomainInfoUpdated callback;
   void* service;
 };
 

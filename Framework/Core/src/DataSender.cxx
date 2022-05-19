@@ -18,7 +18,8 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/LifetimeHelpers.h"
 #include "Framework/TimesliceIndex.h"
-#include "Framework/DomainInfoHeader.h"
+#include "Framework/DataProcessingHelpers.h"
+#include "Framework/CommonServices.h"
 
 #include <fairmq/Device.h>
 
@@ -50,8 +51,8 @@ DataSender::DataSender(ServiceRegistry& registry,
   : mProxy{registry.get<FairMQDeviceProxy>()},
     mRegistry{registry},
     mSpec{registry.get<DeviceSpec const>()},
-    mDistinctRoutesIndex{createDistinctOutputRouteIndex(mSpec.outputs)},
-    mPolicy{policy}
+    mPolicy{policy},
+    mDistinctRoutesIndex{createDistinctOutputRouteIndex(mSpec.outputs)}
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
@@ -90,27 +91,21 @@ void DataSender::send(FairMQParts& parts, ChannelIndex channelIndex)
 
   auto oldest = index.getOldestPossibleOutput();
   if (oldest.timeslice.value == -1) {
+    LOG(info) << "Unknown oldest possible output timeslice";
+    return;
+  }
+  DecongestionService& decongestion = mRegistry.get<DecongestionService>();
+  if (oldest.timeslice.value == decongestion.lastTimeslice) {
+    LOGP(debug, "Not sending already sent value");
+    return;
+  }
+  if (oldest.timeslice.value < decongestion.lastTimeslice) {
+    LOGP(error, "We are trying to send a timeslice {} that is older than the last one we sent {}",
+         oldest.timeslice.value, decongestion.lastTimeslice);
     return;
   }
   auto* channel = mProxy.getOutputChannel(channelIndex);
-
-  FairMQParts oldestParts;
-  FairMQMessagePtr payload(channel->Transport()->CreateMessage());
-  DomainInfoHeader dih;
-  dih.oldestPossibleTimeslice = oldest.timeslice.value;
-  auto channelAlloc = o2::pmr::getTransportAllocator(channel->Transport());
-  auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dih});
-  // sigh... See if we can avoid having it const by not
-  // exposing it to the user in the first place.
-  oldestParts.AddPart(std::move(header));
-  oldestParts.AddPart(std::move(payload));
-  LOGP(debug, "Notifying {} {} about oldest possible timeslice being {} from {} #{}",
-       channelIndex.value,
-       channel->GetName(),
-       oldest.timeslice.value,
-       oldest.channel.value == -1 ? "slot" : " input channel",
-       oldest.channel.value == -1 ? oldest.slot.index : oldest.channel.value);
-  channel->Send(oldestParts);
+  DataProcessingHelpers::sendOldestPossibleTimeframe(*channel, oldest.timeslice.value);
 }
 
 } // namespace o2::framework
