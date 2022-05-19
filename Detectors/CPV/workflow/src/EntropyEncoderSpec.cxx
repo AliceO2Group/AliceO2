@@ -53,10 +53,10 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"CPV", "CTFDATA", 0, Lifetime::Timeframe});
-  mCTFCoder.encode(buffer, triggers, clusters);
-  auto sz = mCTFCoder.finaliseCTFOutput<CTF>(buffer);
+  auto iosize = mCTFCoder.encode(buffer, triggers, clusters);
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
-  LOG(info) << "Created encoded data of size " << sz << " for CPV in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -75,7 +75,8 @@ DataProcessorSpec getEntropyEncoderSpec()
   return DataProcessorSpec{
     "cpv-entropy-encoder",
     inputs,
-    Outputs{{"CPV", "CTFDATA", 0, Lifetime::Timeframe}},
+    Outputs{{"CPV", "CTFDATA", 0, Lifetime::Timeframe},
+            {{"ctfrep"}, "CPV", "CTFENCREP", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
