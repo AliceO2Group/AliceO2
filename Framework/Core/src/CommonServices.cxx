@@ -307,7 +307,22 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                              .name = "infologger"};
       }
       auto infoLoggerContext = &services.get<InfoLoggerContext>();
-      infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, std::string("dpl/") + services.get<DeviceSpec const>().name);
+      // Only print the first 10 characters and the last 18 if the
+      // string length is greater than 32 bytes.
+      auto truncate = [](std::string in) -> std::string {
+        if (in.size() < 32) {
+          return in;
+        }
+        char name[32];
+        memcpy(name, in.data(), 10);
+        name[10] = '.';
+        name[11] = '.';
+        name[12] = '.';
+        memcpy(name + 13, in.data() + in.size() - 18, 18);
+        name[31] = 0;
+        return name;
+      };
+      infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, truncate(services.get<DeviceSpec const>().name));
       infoLoggerContext->setField(InfoLoggerContext::FieldName::System, std::string("DPL"));
       infoLoggerService->setContext(*infoLoggerContext);
 
