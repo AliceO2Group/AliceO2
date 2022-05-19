@@ -76,7 +76,7 @@ void DigitsVectorStream::fill(std::deque<o2::emcal::DigitTimebin>& digitlist, o2
 
           if (ld.canAdd(*ld1)) {
             ld += *ld1;
-            digitsList.erase(ld1);
+            digitsList.erase(ld1--);
           }
           digIndex1++;
         }
