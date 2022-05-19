@@ -48,6 +48,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
+  o2::ctf::CTFIOSize iosize;
 
   mCTFCoder.updateTimeDependentParams(pc);
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
@@ -58,10 +59,11 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   if (buff.size()) {
     const auto ctfImage = o2::cpv::CTF::getImage(buff.data());
-    mCTFCoder.decode(ctfImage, triggers, clusters);
+    iosize = mCTFCoder.decode(ctfImage, triggers, clusters);
   }
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
-  LOG(info) << "Decoded " << clusters.size() << " CPV clusters in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << clusters.size() << " CPV clusters in " << triggers.size() << " triggers, (" << iosize.asString() << ") in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -74,7 +76,8 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"triggers"}, "CPV", "CLUSTERTRIGRECS", 0, Lifetime::Timeframe},
-    OutputSpec{{"clusters"}, "CPV", "CLUSTERS", 0, Lifetime::Timeframe}};
+    OutputSpec{{"clusters"}, "CPV", "CLUSTERS", 0, Lifetime::Timeframe},
+    OutputSpec{{"ctfrep"}, "CPV", "CTFDECREP", 0, Lifetime::Timeframe}};
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf", "CPV", "CTFDATA", sspec, Lifetime::Timeframe);

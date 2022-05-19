@@ -38,11 +38,11 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   /// entropy-encode digits to buffer with CTF
   template <typename VEC>
-  void encode(VEC& buff, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec);
+  o2::ctf::CTFIOSize encode(VEC& buff, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec);
 
   /// entropy decode clusters from buffer with CTF
   template <typename VDIG, typename VCHAN>
-  void decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec);
+  o2::ctf::CTFIOSize decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec);
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
@@ -61,7 +61,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -91,40 +91,45 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& digitVec, const g
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
+  o2::ctf::CTFIOSize iosize;
 #define ENCODEFV0(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
-  ENCODEFV0(cd.bcInc,     CTF::BLC_bcInc,    0);
-  ENCODEFV0(cd.orbitInc,  CTF::BLC_orbitInc, 0);
-  ENCODEFV0(cd.nChan,     CTF::BLC_nChan,    0);
-  ENCODEFV0(cd.idChan ,   CTF::BLC_idChan,   0);
-  ENCODEFV0(cd.cfdTime,   CTF::BLC_cfdTime,  0);
-  ENCODEFV0(cd.qtcAmpl,   CTF::BLC_qtcAmpl,  0);
+  iosize += ENCODEFV0(cd.bcInc,     CTF::BLC_bcInc,    0);
+  iosize += ENCODEFV0(cd.orbitInc,  CTF::BLC_orbitInc, 0);
+  iosize += ENCODEFV0(cd.nChan,     CTF::BLC_nChan,    0);
+  iosize += ENCODEFV0(cd.idChan ,   CTF::BLC_idChan,   0);
+  iosize += ENCODEFV0(cd.cfdTime,   CTF::BLC_cfdTime,  0);
+  iosize += ENCODEFV0(cd.qtcAmpl,   CTF::BLC_qtcAmpl,  0);
   // extra slot was added in the end
-  ENCODEFV0(cd.trigger,   CTF::BLC_trigger,  0);
-  ENCODEFV0(cd.qtcChain,  CTF::BLC_qtcChain, 0);
+  iosize += ENCODEFV0(cd.trigger,   CTF::BLC_trigger,  0);
+  iosize += ENCODEFV0(cd.qtcChain,  CTF::BLC_qtcChain, 0);
   // clang-format on
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
+  finaliseCTFOutput<CTF>(buff);
+  iosize.rawIn = sizeof(Digit) * digitVec.size() + sizeof(ChannelData) * channelVec.size();
+  return iosize;
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
 template <typename VDIG, typename VCHAN>
-void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
+o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
 {
   CompressedDigits cd;
   cd.header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(cd.header));
   ec.print(getPrefix(), mVerbosity);
+  o2::ctf::CTFIOSize iosize;
 #define DECODEFV0(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
-  DECODEFV0(cd.bcInc,     CTF::BLC_bcInc);
-  DECODEFV0(cd.orbitInc,  CTF::BLC_orbitInc);
-  DECODEFV0(cd.nChan,     CTF::BLC_nChan);
-  DECODEFV0(cd.idChan,    CTF::BLC_idChan);
-  DECODEFV0(cd.cfdTime,   CTF::BLC_cfdTime);
-  DECODEFV0(cd.qtcAmpl,   CTF::BLC_qtcAmpl);
+  iosize += DECODEFV0(cd.bcInc,     CTF::BLC_bcInc);
+  iosize += DECODEFV0(cd.orbitInc,  CTF::BLC_orbitInc);
+  iosize += DECODEFV0(cd.nChan,     CTF::BLC_nChan);
+  iosize += DECODEFV0(cd.idChan,    CTF::BLC_idChan);
+  iosize += DECODEFV0(cd.cfdTime,   CTF::BLC_cfdTime);
+  iosize += DECODEFV0(cd.qtcAmpl,   CTF::BLC_qtcAmpl);
   // extra slot was added in the end
-  DECODEFV0(cd.trigger,   CTF::BLC_trigger);
-  DECODEFV0(cd.qtcChain,  CTF::BLC_qtcChain);
+  iosize += DECODEFV0(cd.trigger,   CTF::BLC_trigger);
+  iosize += DECODEFV0(cd.qtcChain,  CTF::BLC_qtcChain);
   // triggers and qtcChain were added later, in old data they are absent:
   if (cd.trigger.empty()) {
     cd.trigger.resize(cd.header.nTriggers);
@@ -135,6 +140,8 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
   // clang-format on
   //
   decompress(cd, digitVec, channelVec);
+  iosize.rawIn = sizeof(Digit) * digitVec.size() + sizeof(ChannelData) * channelVec.size();
+  return iosize;
 }
 
 /// decompress compressed digits to standard digits
