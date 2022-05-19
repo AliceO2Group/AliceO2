@@ -186,7 +186,7 @@ size_t CTFCoder::estimateCompressedSize(const CompressedClusters& cc)
 }
 
 ///________________________________
-CompressedClusters CTFCoder::decodeCompressedClusters(const CTF::base& ec)
+CompressedClusters CTFCoder::decodeCompressedClusters(const CTF::base& ec, o2::ctf::CTFIOSize& iosize)
 {
   CompressedClusters cc;
   cc.header = ec.getHeader();
@@ -194,17 +194,17 @@ CompressedClusters CTFCoder::decodeCompressedClusters(const CTF::base& ec)
   ec.print(getPrefix(), mVerbosity);
 #define DECODEITSMFT(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
-  DECODEITSMFT(cc.firstChipROF, CTF::BLCfirstChipROF);
-  DECODEITSMFT(cc.bcIncROF,     CTF::BLCbcIncROF);
-  DECODEITSMFT(cc.orbitIncROF,  CTF::BLCorbitIncROF);
-  DECODEITSMFT(cc.nclusROF,     CTF::BLCnclusROF);
+  iosize += DECODEITSMFT(cc.firstChipROF, CTF::BLCfirstChipROF);
+  iosize += DECODEITSMFT(cc.bcIncROF,     CTF::BLCbcIncROF);
+  iosize += DECODEITSMFT(cc.orbitIncROF,  CTF::BLCorbitIncROF);
+  iosize += DECODEITSMFT(cc.nclusROF,     CTF::BLCnclusROF);
   //
-  DECODEITSMFT(cc.chipInc,      CTF::BLCchipInc);
-  DECODEITSMFT(cc.chipMul,      CTF::BLCchipMul);
-  DECODEITSMFT(cc.row,          CTF::BLCrow);
-  DECODEITSMFT(cc.colInc,       CTF::BLCcolInc);
-  DECODEITSMFT(cc.pattID,       CTF::BLCpattID);
-  DECODEITSMFT(cc.pattMap,      CTF::BLCpattMap);
+  iosize += DECODEITSMFT(cc.chipInc,      CTF::BLCchipInc);
+  iosize += DECODEITSMFT(cc.chipMul,      CTF::BLCchipMul);
+  iosize += DECODEITSMFT(cc.row,          CTF::BLCrow);
+  iosize += DECODEITSMFT(cc.colInc,       CTF::BLCcolInc);
+  iosize += DECODEITSMFT(cc.pattID,       CTF::BLCpattID);
+  iosize += DECODEITSMFT(cc.pattMap,      CTF::BLCpattMap);
   // clang-format on
   return cc;
 }

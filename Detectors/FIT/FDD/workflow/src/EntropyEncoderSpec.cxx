@@ -53,10 +53,9 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto channels = pc.inputs().get<gsl::span<o2::fdd::ChannelData>>("channels");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"FDD", "CTFDATA", 0, Lifetime::Timeframe});
-  mCTFCoder.encode(buffer, digits, channels);
-  auto sz = mCTFCoder.finaliseCTFOutput<CTF>(buffer);
+  auto iosize = mCTFCoder.encode(buffer, digits, channels);
   mTimer.Stop();
-  LOG(info) << "Created encoded data of size " << sz << " for FDD in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)

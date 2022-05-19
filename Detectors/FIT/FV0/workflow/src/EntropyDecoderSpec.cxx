@@ -48,6 +48,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
+  o2::ctf::CTFIOSize iosize;
 
   mCTFCoder.updateTimeDependentParams(pc);
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
@@ -58,10 +59,11 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   if (buff.size()) {
     const auto ctfImage = o2::fv0::CTF::getImage(buff.data());
-    mCTFCoder.decode(ctfImage, digits, channels);
+    iosize = mCTFCoder.decode(ctfImage, digits, channels);
   }
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
-  LOG(info) << "Decoded " << channels.size() << " FV0 channels in " << digits.size() << " digits in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << channels.size() << " FV0 channels in " << digits.size() << " digits, (" << iosize.asString() << ") in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -74,7 +76,8 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"digits"}, "FV0", "DIGITSBC", 0, Lifetime::Timeframe},
-    OutputSpec{{"channels"}, "FV0", "DIGITSCH", 0, Lifetime::Timeframe}};
+    OutputSpec{{"channels"}, "FV0", "DIGITSCH", 0, Lifetime::Timeframe},
+    OutputSpec{{"ctfrep"}, "FV0", "CTFDECREP", 0, Lifetime::Timeframe}};
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf", "FV0", "CTFDATA", sspec, Lifetime::Timeframe);
