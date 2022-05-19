@@ -57,8 +57,16 @@ RP BaseRecoTask::process(o2::fv0::Digit const& bcd,
       ndigitsA++;
     }
     if (outChData[ich].charge > o2::fv0::FV0DigParam::Instance().chargeThrForMeanTime) {
-      sideAtimeAvgSelected += outChData[ich].time;
-      ndigitsASelected++;
+      if (!inChData[ich].getFlag(ChannelData::kIsDoubleEvent) &&
+          !inChData[ich].getFlag(ChannelData::kIsTimeInfoNOTvalid) &&
+          inChData[ich].getFlag(ChannelData::kIsCFDinADCgate) &&
+          !inChData[ich].getFlag(ChannelData::kIsTimeInfoLate) &&
+          !inChData[ich].getFlag(ChannelData::kIsAmpHigh) &&
+          inChData[ich].getFlag(ChannelData::kIsEventInTVDC) &&
+          !inChData[ich].getFlag(ChannelData::kIsTimeInfoLost)) {
+        sideAtimeAvgSelected += outChData[ich].time;
+        ndigitsASelected++;
+      }
     }
   }
   const int nsToPs = 1e3;
