@@ -574,7 +574,7 @@ std::string CcdbApi::generateFileName(const std::string& inp)
   // generate file name for the CCDB object  (for now augment the input string by the timestamp)
   std::string str = inp;
   str.erase(std::remove_if(str.begin(), str.end(), ::isspace), str.end());
-  str = std::regex_replace(string, std::regex("::"), "-");
+  str = std::regex_replace(str, std::regex("::"), "-");
   str += "_" + std::to_string(o2::ccdb::getCurrentTimestamp()) + ".root";
   return str;
 }
