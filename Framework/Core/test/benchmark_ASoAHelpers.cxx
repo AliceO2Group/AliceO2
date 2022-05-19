@@ -266,7 +266,7 @@ static void BM_ASoAHelpersNaiveTracksPairs(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
 }
 
-BENCHMARK(BM_ASoAHelpersNaiveTracksPairs)->Range(8, 8 << (maxPairsRange - 4));
+BENCHMARK(BM_ASoAHelpersNaiveTracksPairs)->Range(8, 8 << (maxPairsRange - 3));
 
 static void BM_ASoAHelpersNaiveTracksFives(benchmark::State& state)
 {
