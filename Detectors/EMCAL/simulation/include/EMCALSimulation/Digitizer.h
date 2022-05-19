@@ -111,7 +111,7 @@ class Digitizer : public TObject
   int mTimeWindowStart = 7; ///< The start of the time window
   int mDelay = 7;           ///< number of (full) time bins corresponding to the signal time delay
 
-  std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream = 0x0;
+  std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream = nullptr;
   bool mEnableDebugStreaming = false;
 
   ClassDefOverride(Digitizer, 1);

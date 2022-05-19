@@ -95,10 +95,8 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
             fitResults = mRawFitter->evaluate(channelData.mChannelsBunchesLG);
             fitResults.setAmp(fitResults.getAmp() * o2::emcal::constants::EMCAL_HGLGFACTOR);
             channelType = ChannelType_t::LOW_GAIN;
-            std::cout << "The high gain bunch was saturated ... fitting the low gain\n";
           } else {
             channelType = ChannelType_t::HIGH_GAIN;
-            std::cout << "The high gain bunch was not saturated ... settting the cell to high gain\n";
           }
 
           if (fitResults.getAmp() < 0) {
@@ -116,7 +114,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
         mOutputCells.emplace_back(tower, fitResults.getAmp() * CONVADCGEV, fitResults.getTime(), channelType);
         if (mPropagateMC) {
           Int_t LabelIndex = mOutputLabels.getIndexedSize();
-          if (channelType = ChannelType_t::HIGH_GAIN) {
+          if (channelType == ChannelType_t::HIGH_GAIN) {
             // if this channel has no bunches, then fill an empty label
             if (channelData.mChannelLabelsHG.size() == 0) {
               const o2::emcal::MCLabel label = o2::emcal::MCLabel(false, 1.);

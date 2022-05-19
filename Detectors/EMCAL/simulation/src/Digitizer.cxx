@@ -71,7 +71,7 @@ void Digitizer::init()
   }
 
   if (mEnableDebugStreaming) {
-    mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>("emcaldigitsDebug.root");
+    mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>("emcaldigitsDebug.root", "RECREATE");
   }
 }
 
@@ -170,7 +170,11 @@ void Digitizer::sampleSDigit(const Digit& sDigit)
   }
 
   if (mEnableDebugStreaming) {
+    double timeStamp = sDigit.getTimeStamp();
+    (*mDebugStream).GetFile()->cd();
     (*mDebugStream) << "DigitsTimeSamples"
+                    << "Tower=" << tower
+                    << "Time=" << timeStamp
                     << "DigitEnergy=" << energy
                     << "Sample0=" << energies[0]
                     << "Sample1=" << energies[1]
