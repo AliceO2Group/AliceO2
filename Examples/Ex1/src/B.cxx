@@ -7,9 +7,14 @@
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
 #include "B.h"
 #include <iostream>
 #include "fairmq/FairMQDevice.h"
 
-	B::B(   ) {std::cout << "Hello from B\n";}   
+B::B()
+{
+  // Example comment
+  std::cout << "Hello from B\n";
+}
