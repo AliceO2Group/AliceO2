@@ -53,7 +53,7 @@ struct WaveformCalibQueue {
   static int peak(int pk){
     return NTimeBinsPerBC * TSN * pk + NTimeBinsPerBC / 2 * TSN;
   }
-  
+
   void configure(const WaveformCalibConfig *cfg)
   {
     mCfg = cfg;
