@@ -6,6 +6,6 @@ name: Formatting
 jobs:
   formatting:
     name: check PR formatting
-    uses: alisw/ali-bot/.github/workflows/c++-code-formatting.yml
+    uses: alisw/ali-bot/.github/workflows/c++-code-formatting.yml@master
     secrets:
       alibuild_github_token: ${{ secrets.ALIBUILD_GITHUB_TOKEN }}
