@@ -49,7 +49,7 @@ class InterCalibSpec : public o2::framework::Task
 
  private:
   int mVerbosity = DbgMinimal; // Verbosity level
-  InterCalib mInterCalib;      // Intercalibration object
+  InterCalib mWorker;          // Intercalibration object
   TStopwatch mTimer;
 };
 

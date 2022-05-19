@@ -64,7 +64,7 @@ void InterCalibSpec::init(o2::framework::InitContext& ic)
   //     int slotL = ic.options().get<int>("tf-per-slot");
   //     int delay = ic.options().get<int>("max-delay");
   mVerbosity = ic.options().get<int>("verbosity-level");
-  mInterCalib.setVerbosity(mVerbosity);
+  mWorker.setVerbosity(mVerbosity);
   mTimer.CpuTime();
   mTimer.Start(false);
 }
@@ -114,29 +114,29 @@ void InterCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
 
   LOG(info) << loadedConfFiles;
 
-  mInterCalib.setEnergyParam(energyParam.get());
-  mInterCalib.setTowerParam(towerParam.get());
-  mInterCalib.setInterCalibConfig(interConfig.get());
+  mWorker.setEnergyParam(energyParam.get());
+  mWorker.setTowerParam(towerParam.get());
+  mWorker.setInterCalibConfig(interConfig.get());
 }
 
 void InterCalibSpec::run(ProcessingContext& pc)
 {
   updateTimeDependentParams(pc);
   auto data = pc.inputs().get<InterCalibData>("intercalibdata");
-  mInterCalib.process(data);
+  mWorker.process(data);
   for (int ih = 0; ih < (2 * InterCalibData::NH); ih++) {
     o2::dataformats::FlatHisto1D<float> histoView(pc.inputs().get<gsl::span<float>>(fmt::format("inter_1dh{}", ih).data()));
-    mInterCalib.add(ih, histoView);
+    mWorker.add(ih, histoView);
   }
   for (int ih = 0; ih < InterCalibData::NH; ih++) {
     o2::dataformats::FlatHisto2D<float> histoView(pc.inputs().get<gsl::span<float>>(fmt::format("inter_2dh{}", ih).data()));
-    mInterCalib.add(ih, histoView);
+    mWorker.add(ih, histoView);
   }
 }
 
 void InterCalibSpec::endOfStream(EndOfStreamContext& ec)
 {
-  mInterCalib.endOfRun();
+  mWorker.endOfRun();
   mTimer.Stop();
   sendOutput(ec.outputs());
   LOGF(info, "ZDC Intercalibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
@@ -148,8 +148,8 @@ void InterCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
   using clbUtils = o2::calibration::Utils;
-  const auto& payload = mInterCalib.getTowerParamUpd();
-  auto& info = mInterCalib.getCcdbObjectInfo();
+  const auto& payload = mWorker.getTowerParamUpd();
+  auto& info = mWorker.getCcdbObjectInfo();
   auto image = o2::ccdb::CcdbApi::createObjectImage<ZDCTowerParam>(&payload, &info);
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
@@ -159,7 +159,7 @@ void InterCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_Intercalib", 0}, *image.get()); // vector<char>
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_Intercalib", 0}, info);         // root-serialized
   // TODO: reset the outputs once they are already sent (is it necessary?)
-  // mInterCalib.init();
+  // mWorker.init();
 }
 
 framework::DataProcessorSpec getInterCalibSpec()
