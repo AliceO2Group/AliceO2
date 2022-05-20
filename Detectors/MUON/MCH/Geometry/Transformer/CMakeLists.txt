@@ -21,3 +21,15 @@ o2_add_executable(
   PUBLIC_LINK_LIBRARIES ROOT::Geom Microsoft.GSL::GSL Boost::program_options
                         O2::MCHGeometryTransformer
   COMPONENT_NAME mch)
+
+o2_add_executable(
+        clusters-transformer-workflow
+        SOURCES src/clusters-transformer-workflow.cxx src/ClusterTransformerSpec.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES
+           O2::DetectorsBase
+           O2::Framework
+           O2::MCHBase
+           O2::MCHGeometryTransformer
+        )
+
