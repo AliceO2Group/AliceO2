@@ -275,7 +275,6 @@ std::vector<o2::emcal::AltroBunch> CellConverterSpec::findBunches(const std::vec
         // check if the ALTRO bunch has a minimum amount of 3 ADCs
         if (currentBunch.mADCs.size() >= 3) {
           // Bunch selected, set start time and push to bunches
-          currentBunch.mStarttime = itime + 1;
           result.push_back(currentBunch);
           currentBunch = AltroBunch();
           bunchStarted = false;
@@ -292,7 +291,6 @@ std::vector<o2::emcal::AltroBunch> CellConverterSpec::findBunches(const std::vec
         // check if the ALTRO bunch has a minimum amount of ADCs
         if (currentBunch.mADCs.size() >= 3) {
           // Bunch selected, set start time and push to bunches
-          currentBunch.mStarttime = itime + 1;
           result.push_back(currentBunch);
           currentBunch = AltroBunch();
           bunchStarted = false;
@@ -302,6 +300,7 @@ std::vector<o2::emcal::AltroBunch> CellConverterSpec::findBunches(const std::vec
     // Valid ADC value, if the bunch is closed we start a new bunch
     if (!bunchStarted) {
       bunchStarted = true;
+      currentBunch.mStarttime = itime;
     }
     currentBunch.mADCs.emplace_back(adc);
     if (mPropagateMC) {
@@ -315,7 +314,6 @@ std::vector<o2::emcal::AltroBunch> CellConverterSpec::findBunches(const std::vec
   // if we have a last bunch set time start time to the time bin of teh previous digit
   if (bunchStarted) {
     if (currentBunch.mADCs.size() >= 3) {
-      currentBunch.mStarttime = itime + 1;
       result.push_back(currentBunch);
     }
   }
