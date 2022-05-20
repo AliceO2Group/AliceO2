@@ -191,6 +191,7 @@ o2::framework::DataProcessorSpec
                                   inputDigitRofDataDescription.data(),
                                   inputDigitDataDescription.data());
   if (TimeClusterizerParam::Instance().irFramesOnly && inputIRFrameDataDescription.size()) {
+    LOGP(info, "will select IRFrames from {}", inputIRFrameDataDescription);
     input += ";irframes:";
     input += inputIRFrameDataDescription;
   }
