@@ -34,26 +34,27 @@ namespace zdc
 
 struct WaveformCalibQueue {
   WaveformCalibQueue() = default;
-  WaveformCalibQueue(WaveformCalibConfig *cfg)
+  WaveformCalibQueue(WaveformCalibConfig* cfg)
   {
     configure(cfg);
   }
 
-  int mFirst = 0;
-  int mLast = 0;
-  int mPk = 0;
-  int mN = 1;
+  int mFirst = 0; // First bunch of waveform w.r.t. signal peak
+  int mLast = 0;  // Last bunch of waveform w.r.t. signal peak
+  int mPk = 0;    // Bunch position of peak w.r.t. first bunch
+  int mN = 1;     // Number of bunches in waveform
   int mPPos = 0;
   int mNP = 0;
   int mPeak = 0;
 
-  const WaveformCalibConfig *mCfg = nullptr;
+  const WaveformCalibConfig* mCfg = nullptr;
 
-  static int peak(int pk){
+  static int peak(int pk)
+  {
     return NTimeBinsPerBC * TSN * pk + NTimeBinsPerBC / 2 * TSN;
   }
 
-  void configure(const WaveformCalibConfig *cfg)
+  void configure(const WaveformCalibConfig* cfg)
   {
     mCfg = cfg;
     int ifirst = mCfg->getFirst();
@@ -65,19 +66,19 @@ struct WaveformCalibQueue {
     mLast = ilast;
     mN = ilast - ifirst + 1;
     mPk = -mFirst;
-    mPPos = mPk * NIS + NIS/2;
+    mPPos = mPk * NIS + NIS / 2;
     mNP = mN * NIS;
     mPeak = peak(mPk);
   }
 
-  std::deque<o2::InteractionRecord> mIR;
-  std::deque<int32_t> mEntry;
-  std::deque<bool> mHasInfos[NChannels];
-  std::deque<uint32_t> mNTDC[NTDCChannels];
-  std::deque<float> mTDCA[NTDCChannels];
-  std::deque<float> mTDCP[NTDCChannels];
-  std::deque<int32_t> mFirstW;
-  std::deque<int32_t> mNW;
+  std::deque<int32_t> mEntry;               // Position of event
+  std::deque<o2::InteractionRecord> mIR;    // IR of event
+  std::deque<bool> mHasInfos[NChannels];    // Channel has info messages
+  std::deque<uint32_t> mNTDC[NTDCChannels]; // Number of TDCs in event
+  std::deque<float> mTDCA[NTDCChannels];    // Peak amplitude
+  std::deque<float> mTDCP[NTDCChannels];    // Peak position
+  std::deque<int32_t> mFirstW;              // Position of first waveform in event
+  std::deque<int32_t> mNW;                  // Number of waveforms in event
 
   void clear()
   {
@@ -121,6 +122,7 @@ struct WaveformCalibQueue {
   void appendEv(RecEventFlat& ev);
   int hasData(int isig, const gsl::span<const o2::zdc::ZDCWaveform>& wave);
   int addData(int isig, const gsl::span<const o2::zdc::ZDCWaveform>& wave, WaveformCalibData& data);
+  void print();
 };
 
 } // namespace zdc

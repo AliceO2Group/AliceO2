@@ -86,6 +86,7 @@ int WaveformCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
 #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
       ev.print();
       ev.printDecodedMessages();
+      mQueue.print();
 #endif
       // Analyze signals that refer to the TDC channels that satisfy condition
       for (int isig = 0; isig < NChannels; isig++) {

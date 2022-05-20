@@ -79,7 +79,7 @@ uint32_t WaveformCalibQueue::append(RecEventFlat& ev)
 void WaveformCalibQueue::appendEv(RecEventFlat& ev)
 {
 #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
-   LOGF(info, "WaveformCalibQueue::%s %u.%04u", __func__, ev.ir.orbit, ev.ir.bc);
+  LOGF(info, "WaveformCalibQueue::%s %u.%04u", __func__, ev.ir.orbit, ev.ir.bc);
 #endif
   mIR.push_back(ev.ir);
   mEntry.push_back(ev.getNextEntry() - 1);
@@ -178,15 +178,17 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
   bool hasInfos = false;
   for (int ib = 0; ib < mN; ib++) {
     bool ifound = false;
-    // LOG(info) << "mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    LOG(info) << "mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
+#endif
+    if (mHasInfos[isig][ib] || mHasInfos[TDCSignal[SignalTDC[isig]]][ib]) {
+      LOG(info) << "isig=" << isig << " ib=" << ib << " tdcid=" << SignalTDC[isig] << " tdc_sig=" << TDCSignal[SignalTDC[isig]] << " " << mHasInfos[isig][ib] << " " << mHasInfos[TDCSignal[SignalTDC[isig]]][ib];
+      hasInfos = true;
+    }
     for (int iw = 0; iw < mNW[ib]; iw++) {
       // Signal shouldn't have info messages. We check also corresponding TDC signal for pile-up information
       // TODO: relax this condition to avoid to check pedestal messages since pedestal is subtracted
       // when converting waveform calibration object into SimConfig object
-      if(mHasInfos[isig][iw] || mHasInfos[TDCSignal[SignalTDC[isig]]][iw]){
-        LOG(info) << "isig="<<isig<<" iw="<<iw<<" tdcid="<<SignalTDC[isig]<<" tdc_sig="<<TDCSignal[SignalTDC[isig]]<<" "<<mHasInfos[isig][iw]<<" "<<mHasInfos[TDCSignal[SignalTDC[isig]]][iw];
-        hasInfos = true;
-      }
       auto& mywave = wave[iw + mFirstW[ib]];
       if (mywave.ch() == isig) {
         ifound = true;
@@ -200,8 +202,8 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
       }
     }
 #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
-    LOG(info) << "WaveformCalibQueue::" << __func__ << " isig=" << isig << " mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib] 
-                    << " ifound=" << ifound << " hasInfos=" << hasInfos;
+    LOG(info) << "WaveformCalibQueue::" << __func__ << " isig=" << isig << " mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib]
+              << " ifound=" << ifound << " hasInfos=" << hasInfos;
 #endif
     // Need to have consecutive data for all bunches
     if (!ifound || hasInfos) {
@@ -241,6 +243,43 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
     LOG(info) << "WaveformCalibConfig::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.mFirstValid[isig] << ":" << ppos << ":" << data.mLastValid[isig] << "]";
 #endif
     return ipos;
+  }
+}
+
+void WaveformCalibQueue::print()
+{
+  printf("mFirst=%d mLast=%d mPk=%d mN=%d mPPos=%d mNP=%d mPeak=%d\n", mFirst, mLast, mPk, mN, mPPos, mNP, mPeak);
+  int n = mIR.size();
+  for (int i = 0; i < n; i++) {
+    printf("%d.%04d mEntry=%d mFirstW=%d mNW=%d\n", mIR[i].orbit, mIR[i].bc, mEntry[i], mFirstW[i], mNW[i]);
+    printf("mHasInfos:");
+    for (int j = 0; j < NChannels; j++) {
+      if (mHasInfos[j][i] != 0) {
+        printf(" %2d=%d", j, mHasInfos[j][i] != 0);
+      }
+    }
+    printf("\n");
+    printf("mNTDC:");
+    for (int j = 0; j < NTDCChannels; j++) {
+      if (mNTDC[j][i] > 0) {
+        printf(" %2d=%6u", j, mNTDC[j][i]);
+      }
+    }
+    printf("\n");
+    printf("mTDCA:");
+    for (int j = 0; j < NTDCChannels; j++) {
+      if (mNTDC[j][i] > 0) {
+        printf(" %2d=%6.1f", j, mTDCA[j][i]);
+      }
+    }
+    printf("\n");
+    printf("mTDCP:");
+    for (int j = 0; j < NTDCChannels; j++) {
+      if (mNTDC[j][i] > 0) {
+        printf(" %2d=%6.1f", j, mTDCP[j][i]);
+      }
+    }
+    printf("\n");
   }
 }
 

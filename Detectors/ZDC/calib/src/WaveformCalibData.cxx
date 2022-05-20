@@ -44,17 +44,17 @@ WaveformCalibData& WaveformCalibData::operator+=(const WaveformCalibData& other)
     mCTimeEnd = other.mCTimeEnd;
   }
   for (int32_t is = 0; is < NChannels; is++) {
-    if(other.mEntries[is]>0){
-    if (mFirstValid[is] > other.mFirstValid[is]) {
-      mFirstValid[is] = other.mFirstValid[is];
-    }
-    if (mLastValid[is] > other.mLastValid[is]) {
-      mLastValid[is] = other.mLastValid[is];
-    }
-    mEntries[is] = mEntries[is] + other.mEntries[is];
-    for (int32_t i = mFirstValid[is]; i <= mLastValid[is]; i++) {
-      mWave[is][i] = mWave[is][i] + other.mWave[is][i];
-    }
+    if (other.mEntries[is] > 0) {
+      if (other.mFirstValid[is] > mFirstValid[is]) {
+        mFirstValid[is] = other.mFirstValid[is];
+      }
+      if (other.mLastValid[is] < mLastValid[is]) {
+        mLastValid[is] = other.mLastValid[is];
+      }
+      mEntries[is] = mEntries[is] + other.mEntries[is];
+      for (int32_t i = mFirstValid[is]; i <= mLastValid[is]; i++) {
+        mWave[is][i] = mWave[is][i] + other.mWave[is][i];
+      }
     }
   }
 #ifdef O2_ZDC_DEBUG
@@ -105,7 +105,6 @@ int WaveformCalibData::write(const std::string fn)
   }
   for (int32_t is = 0; is < NChannels; is++) {
     if (mEntries[is] > 0) {
-      // For the moment we study only TDC channels
       TString n = TString::Format("h%d", is);
       TString t = TString::Format("Waveform %d %s", is, ChannelNames[is].data());
       int nbx = mLastValid[is] - mFirstValid[is] + 1;
