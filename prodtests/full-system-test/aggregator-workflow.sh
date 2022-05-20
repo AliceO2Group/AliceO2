@@ -28,6 +28,8 @@ echo "CALIB_PHS_BADMAPCALIB = $CALIB_PHS_BADMAPCALIB" 1>&2
 echo "CALIB_PHS_TURNONCALIB = $CALIB_PHS_TURNONCALIB" 1>&2
 echo "CALIB_PHS_RUNBYRUNCALIB = $CALIB_PHS_RUNBYRUNCALIB" 1>&2
 echo "CALIB_TRD_VDRIFTEXB = $CALIB_TRD_VDRIFTEXB" 1>&2
+echo "CALIB_TPC_TIMEGAIN = $CALIB_TPC_TIMEGAIN" 1>&2
+echo "CALIB_TPC_RESPADGAIN = $CALIB_TPC_RESPADGAIN" 1>&2
 
 # beamtype dependent settings
 LHCPHASE_TF_PER_SLOT=26400
@@ -58,6 +60,14 @@ if [[ $CALIB_TOF_LHCPHASE == 1 ]] || [[ $CALIB_TOF_CHANNELOFFSETS == 1 ]]; then
 fi
 if [[ $CALIB_TOF_DIAGNOSTICS == 1 ]]; then
     EXTRA_WORKFLOW_CALIB+="o2-calibration-tof-diagnostic-workflow $ARGS_ALL --tf-per-slot 26400 --max-delay 1 | "
+fi
+
+# TPC
+if [[ $CALIB_TPC_TIMEGAIN == 1 ]]; then
+    EXTRA_WORKFLOW_CALIB+="o2-tpc-calibrator-dedx $ARGS_ALL --min-entries-sector 3000 --min-entries-1d 200 --min-entries-2d 10000 | "
+fi
+if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then
+    EXTRA_WORKFLOW_CALIB+="o2-tpc-calibrator-gainmap-tracks $ARGS_ALL --tf-per-slot 10000 | "
 fi
 
 # TRD

@@ -16,6 +16,8 @@ fi
 
 # specific calibration workflows
 if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then add_W o2-tpc-scdcalib-interpolation-workflow "$DISABLE_ROOT_OUTPUT --disable-root-input --pipeline $(get_N tpc-track-interpolation TPC REST)" "$ITSMFT_FILES"; fi
+if [[ $CALIB_TPC_TIMEGAIN == 1 ]]; then add_W o2-tpc-miptrack-filter; fi
+if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then add_W o2-tpc-calib-gainmap-tracks --publish-after-tfs 10000; fi
 
 # output-proxy for aggregator
 if workflow_has_parameter CALIB_PROXIES; then
