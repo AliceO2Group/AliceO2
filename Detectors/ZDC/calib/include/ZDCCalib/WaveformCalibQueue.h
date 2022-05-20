@@ -78,8 +78,12 @@ struct WaveformCalibQueue {
   std::deque<float> mTDCP[NTDCChannels];
   std::deque<int32_t> mFirstW;
   std::deque<int32_t> mNW;
+
   void clear()
   {
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    LOG(info) << "WaveformCalibConfig::" << __func__;
+#endif
     mIR.clear();
     mEntry.clear();
     for (int isig = 0; isig < NChannels; isig++) {
@@ -93,6 +97,7 @@ struct WaveformCalibQueue {
     mFirstW.clear();
     mNW.clear();
   }
+
   void pop()
   {
     mIR.pop_front();
@@ -107,7 +112,11 @@ struct WaveformCalibQueue {
     }
     mFirstW.pop_front();
     mNW.pop_front();
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    LOG(info) << "WaveformCalibConfig::" << __func__ << " remaining: " << mNW.size();
+#endif
   }
+
   uint32_t append(RecEventFlat& ev);
   void appendEv(RecEventFlat& ev);
   int hasData(int isig, const gsl::span<const o2::zdc::ZDCWaveform>& wave);

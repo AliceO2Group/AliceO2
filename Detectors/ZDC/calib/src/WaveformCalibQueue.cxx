@@ -78,6 +78,9 @@ uint32_t WaveformCalibQueue::append(RecEventFlat& ev)
 
 void WaveformCalibQueue::appendEv(RecEventFlat& ev)
 {
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+   LOGF(info, "WaveformCalibQueue::%s %u.%04u", __func__, ev.ir.orbit, ev.ir.bc);
+#endif
   mIR.push_back(ev.ir);
   mEntry.push_back(ev.getNextEntry() - 1);
 
@@ -87,6 +90,7 @@ void WaveformCalibQueue::appendEv(RecEventFlat& ev)
   mFirstW.push_back(firstw);
   mNW.push_back(nw);
 
+  // Note: pile-up messages are computed only for the 10 TDCs
   for (int isig = 0; isig < NChannels; isig++) {
     mHasInfos[isig].push_back(false);
   }
@@ -132,7 +136,9 @@ int WaveformCalibQueue::hasData(int isig, const gsl::span<const o2::zdc::ZDCWave
   float min = std::numeric_limits<float>::infinity();
   for (int ib = 0; ib < mN; ib++) {
     int ifound = false;
-    // LOG(info) << "mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    LOG(info) << "WaveformCalibQueue::" << __func__ << " mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
+#endif
     for (int iw = 0; iw < mNW[ib]; iw++) {
       auto& mywave = wave[iw + mFirstW[ib]];
       if (mywave.ch() == isig) {
@@ -155,7 +161,9 @@ int WaveformCalibQueue::hasData(int isig, const gsl::span<const o2::zdc::ZDCWave
     return -1;
   } else {
     int ipos = NTimeBinsPerBC * TSN * ipkb + ipk;
-    // LOG(info) << "isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min;
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    LOG(info) << "WaveformCalibConfig::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min;
+#endif
     return ipos;
   }
 }
@@ -167,10 +175,18 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
   int ipkb = -1; // Bunch where peak is found
   int ipk = -1;  // peak position within bunch
   float min = std::numeric_limits<float>::infinity();
+  bool hasInfos = false;
   for (int ib = 0; ib < mN; ib++) {
-    int ifound = false;
+    bool ifound = false;
     // LOG(info) << "mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
     for (int iw = 0; iw < mNW[ib]; iw++) {
+      // Signal shouldn't have info messages. We check also corresponding TDC signal for pile-up information
+      // TODO: relax this condition to avoid to check pedestal messages since pedestal is subtracted
+      // when converting waveform calibration object into SimConfig object
+      if(mHasInfos[isig][iw] || mHasInfos[TDCSignal[SignalTDC[isig]]][iw]){
+        LOG(info) << "isig="<<isig<<" iw="<<iw<<" tdcid="<<SignalTDC[isig]<<" tdc_sig="<<TDCSignal[SignalTDC[isig]]<<" "<<mHasInfos[isig][iw]<<" "<<mHasInfos[TDCSignal[SignalTDC[isig]]][iw];
+        hasInfos = true;
+      }
       auto& mywave = wave[iw + mFirstW[ib]];
       if (mywave.ch() == isig) {
         ifound = true;
@@ -183,8 +199,12 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
         }
       }
     }
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    LOG(info) << "WaveformCalibQueue::" << __func__ << " isig=" << isig << " mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib] 
+                    << " ifound=" << ifound << " hasInfos=" << hasInfos;
+#endif
     // Need to have consecutive data for all bunches
-    if (!ifound) {
+    if (!ifound || hasInfos) {
       return -1;
     }
   }
@@ -217,7 +237,9 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
     if (ipos < data.mLastValid[isig]) {
       data.mLastValid[isig] = ipos;
     }
-    // LOG(info) << "isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.mFirstValid[isig] << ":" << ppos << ":" << data.mLastValid[isig] << "]";
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    LOG(info) << "WaveformCalibConfig::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.mFirstValid[isig] << ":" << ppos << ":" << data.mLastValid[isig] << "]";
+#endif
     return ipos;
   }
 }

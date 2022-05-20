@@ -11,18 +11,15 @@
 
 #include <TROOT.h>
 #include <TFile.h>
-#include <TPad.h>
+#include <TH1.h>
 #include <TString.h>
 #include <TStyle.h>
 #include <TDirectory.h>
-#include <TPaveStats.h>
-#include <TAxis.h>
-#include "CommonUtils/MemFileHelper.h"
+#include "ZDCCalib/CalibParamZDC.h"
 #include "ZDCCalib/WaveformCalib.h"
 #include "ZDCCalib/WaveformCalibQueue.h"
-#include "ZDCReconstruction/ZDCEnergyParam.h"
-#include "ZDCReconstruction/ZDCTowerParam.h"
 #include "Framework/Logger.h"
+#include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
 
 using namespace o2::zdc;
@@ -33,6 +30,20 @@ int WaveformCalib::init()
     LOG(fatal) << "o2::zdc::WaveformCalib: missing configuration object";
     return -1;
   }
+
+  auto* cfg = mConfig;
+  if (mVerbosity > DbgZero) {
+    mConfig->print();
+  }
+
+  // Inspect reconstruction parameters
+  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
+  opt.print();
+
+  if (opt.debug_output > 0) {
+    setSaveDebugHistos();
+  }
+
   clear();
   mData.setN(mConfig->nbun);
   mData.mPeak = WaveformCalibQueue::peak(-(mConfig->ibeg));
@@ -41,7 +52,28 @@ int WaveformCalib::init()
 }
 
 //______________________________________________________________________________
-// Update calibration object
+void WaveformCalib::clear()
+{
+  mData.clear();
+}
+
+//______________________________________________________________________________
+int WaveformCalib::process(const WaveformCalibData& data)
+{
+  if (!mInitDone) {
+    init();
+  }
+  // Add checks before addition
+  if ((mData.mN != data.mN) || (mData.mPeak != data.mPeak)) {
+    LOG(fatal) << "WaveformCalib::process adding inconsistent data mN cfg=" << mData.mN << " vs data=" << data.mN << " mPeak cfg=" << mData.mPeak << " vs data=" << data.mPeak;
+    return -1;
+  }
+  mData += data;
+  return 0;
+}
+
+//______________________________________________________________________________
+// Create calibration object
 int WaveformCalib::endOfRun()
 {
   if (mVerbosity > DbgZero) {
@@ -69,25 +101,7 @@ int WaveformCalib::endOfRun()
   return 0;
 }
 
-void WaveformCalib::clear()
-{
-  mData.clear();
-}
-
-int WaveformCalib::process(const WaveformCalibData& data)
-{
-  if (!mInitDone) {
-    init();
-  }
-  // Add checks before addition
-  if ((mData.mN != data.mN) || (mData.mPeak != data.mPeak)) {
-    LOG(fatal) << "WaveformCalib::process adding inconsistent data mN cfg=" << mData.mN << " vs data=" << data.mN << " mPeak cfg=" << mData.mPeak << " vs data=" << data.mPeak;
-    return -1;
-  }
-  mData += data;
-  return 0;
-}
-
+//______________________________________________________________________________
 int WaveformCalib::write(const std::string fn)
 {
   return mData.write(fn);

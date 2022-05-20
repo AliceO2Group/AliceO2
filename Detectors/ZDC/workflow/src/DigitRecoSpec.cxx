@@ -195,16 +195,16 @@ void DigitRecoSpec::run(ProcessingContext& pc)
         nt++;
         recEvent.addTDC(it, reca.TDCVal[it][ih], reca.TDCAmp[it][ih], reca.isBeg[it], reca.isEnd[it]);
       }
-      // Add waveform information
-      if (fullinter) {
-        // For the moment only TDC channels are interpolated
-        if (reca.inter[it].size() == NIS) {
+    }
+    // Add waveform information
+    if (fullinter) {
+      for (int32_t isig = 0; isig < o2::zdc::NChannels; isig++) {
+        if (reca.inter[isig].size() == NIS) {
           if (toAddBC) {
             recEvent.addBC(reca);
             toAddBC = false;
           }
-          auto isig = TDCSignal[it];
-          recEvent.addWaveform(isig, reca.inter[it]);
+          recEvent.addWaveform(isig, reca.inter[isig]);
           ntw++;
         }
       }

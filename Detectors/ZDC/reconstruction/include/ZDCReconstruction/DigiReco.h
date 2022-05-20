@@ -33,6 +33,14 @@
 
 #ifndef ALICEO2_ZDC_DIGI_RECO_H
 #define ALICEO2_ZDC_DIGI_RECO_H
+
+//#define ALICEO2_ZDC_DIGI_RECO_DEBUG
+#ifdef O2_ZDC_DEBUG
+#ifndef ALICEO2_ZDC_DIGI_RECO_DEBUG
+#define ALICEO2_ZDC_DIGI_RECO_DEBUG
+#endif
+#endif
+
 namespace o2
 {
 namespace zdc
@@ -147,6 +155,7 @@ class DigiReco
   void processTrigger(int itdc, int ibeg, int iend);         /// Replay of trigger algorithm on acquired data
   void processTriggerExtended(int itdc, int ibeg, int iend); /// Replay of trigger algorithm on acquired data
   void interpolate(int itdc, int ibeg, int iend);            /// Interpolation of samples to evaluate signal amplitude and arrival time
+  void fullInterpolation(int itdc, int ibeg, int iend);      /// Interpolation of samples
   void correctTDCPile();                                     /// Correction of pile-up in TDC
   bool mLowPassFilter = true;                                /// Enable low pass filtering
   bool mLowPassFilterSet = false;                            /// Low pass filtering set via function call
@@ -173,8 +182,9 @@ class DigiReco
   const ZDCTDCCorr* mTDCCorr = nullptr;          /// TDC correction coefficients
   const ZDCEnergyParam* mEnergyParam = nullptr;  /// Energy calibration object
   const ZDCTowerParam* mTowerParam = nullptr;    /// Tower calibration object
-  uint32_t mTDCMask[NTDCChannels] = {0};         /// Identify TDC channels in trigger mask
-  uint32_t mChMask[NChannels] = {0};             /// Identify channels
+  uint32_t mTriggerMask = 0;                     /// Mask of triggering channels
+  uint32_t mTDCMask[NTDCChannels] = {0};         /// Identify TDC channels in trigger pattern
+  uint32_t mChMask[NChannels] = {0};             /// Identify all channels in readout pattern
   const RecoConfigZDC* mRecoConfigZDC = nullptr; /// CCDB configuration parameters
   int32_t mVerbosity = DbgMinimal;
   O2_ZDC_DIGIRECO_FLT mTS[NTS];                     /// Tapered sinc function

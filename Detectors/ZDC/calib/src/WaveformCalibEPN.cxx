@@ -9,7 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <vector>
 #include <TROOT.h>
 #include <TFile.h>
 #include <TH1.h>
@@ -54,6 +53,7 @@ int WaveformCalibEPN::init()
   return 0;
 }
 
+//______________________________________________________________________________
 int WaveformCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
                               const gsl::span<const o2::zdc::ZDCEnergy>& Energy,
                               const gsl::span<const o2::zdc::ZDCTDCData>& TDCData,
@@ -69,7 +69,24 @@ int WaveformCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
   std::vector<o2::InteractionRecord> ir;
   while (int ientry = ev.next()) {
     uint32_t mask = mQueue.append(ev);
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    LOGF(info, "WaveformCalibEPN::%s mask=0x%04x %s %s %s %s %s %s %s %s %s %s", __func__, mask,
+         (mask & 0x001) ? ChannelNames[TDCSignal[0]] : "    ",
+         (mask & 0x002) ? ChannelNames[TDCSignal[1]] : "    ",
+         (mask & 0x004) ? ChannelNames[TDCSignal[2]] : "    ",
+         (mask & 0x008) ? ChannelNames[TDCSignal[3]] : "    ",
+         (mask & 0x010) ? ChannelNames[TDCSignal[4]] : "    ",
+         (mask & 0x020) ? ChannelNames[TDCSignal[5]] : "    ",
+         (mask & 0x040) ? ChannelNames[TDCSignal[6]] : "    ",
+         (mask & 0x080) ? ChannelNames[TDCSignal[7]] : "    ",
+         (mask & 0x100) ? ChannelNames[TDCSignal[8]] : "    ",
+         (mask & 0x200) ? ChannelNames[TDCSignal[9]] : "    ");
+#endif
     if (mask != 0) {
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+      ev.print();
+      ev.printDecodedMessages();
+#endif
       // Analyze signals that refer to the TDC channels that satisfy condition
       for (int isig = 0; isig < NChannels; isig++) {
         int itdc = SignalTDC[isig];
@@ -83,6 +100,7 @@ int WaveformCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
   return 0;
 }
 
+//______________________________________________________________________________
 int WaveformCalibEPN::endOfRun()
 {
   if (mVerbosity > DbgZero) {
@@ -102,6 +120,7 @@ int WaveformCalibEPN::endOfRun()
   return 0;
 }
 
+//______________________________________________________________________________
 int WaveformCalibEPN::write(const std::string fn)
 {
   return mData.write(fn);
