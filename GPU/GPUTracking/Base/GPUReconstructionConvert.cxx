@@ -279,10 +279,10 @@ inline bool zsEncoderRow::sort(const o2::tpc::Digit a, const o2::tpc::Digit b)
     return endpointa <= endpointb;
   }
   if (a.getTimeStamp() != b.getTimeStamp()) {
-    return a.getTimeStamp() <= b.getTimeStamp();
+    return a.getTimeStamp() < b.getTimeStamp();
   }
   if (a.getRow() != b.getRow()) {
-    return a.getRow() <= b.getRow();
+    return a.getRow() < b.getRow();
   }
   return a.getPad() < b.getPad();
 }
@@ -507,7 +507,7 @@ void zsEncoderImprovedLinkBased::init()
 
 void zsEncoderImprovedLinkBased::initPage()
 {
-  hdr->magicWord = 0x1234;
+  hdr->magicWord = o2::tpc::zerosupp_link_based::CommonHeader::MagicWordLinkZSMetaHeader;
   hdr->nTimebinHeaders = 0;
   hdr->firstZSDataOffset = 0;
 }
@@ -539,6 +539,9 @@ bool zsEncoderImprovedLinkBased::checkInput(std::vector<o2::tpc::Digit>& tmpBuff
   }
   nSamples = l - k;
   finishPage = endpoint != lastEndpoint || (firstTimebinInPage != -1 && tmpBuffer[k].getTimeStamp() - firstTimebinInPage >= (1 << 8));
+  if (tmpBuffer[k].getTimeStamp() - firstTimebinInPage + 1 > (1 << (sizeof(hdr->nTimeBins) * 8)) - 1) {
+    finishPage = true;
+  }
   if (!finishPage) {
     unsigned int sizeChk = (unsigned int)(pagePtr - reinterpret_cast<unsigned char*>(page));
     sizeChk += sizeof(o2::tpc::zerosupp_link_based::CommonHeader);
@@ -568,7 +571,7 @@ unsigned int zsEncoderImprovedLinkBased::encodeSequence(std::vector<o2::tpc::Dig
   tbHdr->bitMaskHigh = (bitmask >> 64).to_ulong();
   tbHdr->bitMaskLow = (bitmask & std::bitset<80>(0xFFFFFFFFFFFFFFFFlu)).to_ulong();
   tbHdr->syncOffsetBC = 0;
-  tbHdr->syncOffsetCRUCyclesOrLink = link;
+  tbHdr->fecInPartition = link;
   hdr->nTimeBins = tmpBuffer[k].getTimeStamp() - firstTimebinInPage + 1;
   hdr->nTimebinHeaders++;
   if (TIGHTLY_PACKED) {
@@ -596,7 +599,7 @@ bool zsEncoderImprovedLinkBased::sort(const o2::tpc::Digit a, const o2::tpc::Dig
   int cruinsectora = param.tpcGeometry.GetRegion(a.getRow());
   int cruinsectorb = param.tpcGeometry.GetRegion(b.getRow());
   if (cruinsectora != cruinsectorb) {
-    return cruinsectora <= cruinsectorb;
+    return cruinsectora < cruinsectorb;
   }
   const auto& mapper = Mapper::instance();
   o2::tpc::GlobalPadNumber pada = mapper.globalPadNumber(o2::tpc::PadPos(a.getRow(), a.getPad()));
@@ -610,15 +613,15 @@ bool zsEncoderImprovedLinkBased::sort(const o2::tpc::Digit a, const o2::tpc::Dig
   int endpointa = 2 * cruinsectora + (fecInPartitiona >= (mapper.getPartitionInfo(cru.partition()).getNumberOfFECs() + 1) / 2);
   int endpointb = 2 * cruinsectorb + (fecInPartitionb >= (mapper.getPartitionInfo(cru.partition()).getNumberOfFECs() + 1) / 2);
   if (endpointa != endpointb) {
-    return endpointa <= endpointb;
+    return endpointa < endpointb;
   }
   if (a.getTimeStamp() != b.getTimeStamp()) {
-    return a.getTimeStamp() <= b.getTimeStamp();
+    return a.getTimeStamp() < b.getTimeStamp();
   }
   if (fecInPartitiona != fecInPartitionb) {
-    return fecInPartitiona <= fecInPartitionb;
+    return fecInPartitiona < fecInPartitionb;
   }
-  return inverseChannelMapping[feca.getSampaChip()][feca.getSampaChannel()] <= inverseChannelMapping[fecb.getSampaChip()][fecb.getSampaChannel()];
+  return inverseChannelMapping[feca.getSampaChip()][feca.getSampaChannel()] < inverseChannelMapping[fecb.getSampaChip()][fecb.getSampaChannel()];
 }
 
 void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* decPage, unsigned int decEndpoint, unsigned int firstOrbit)
@@ -635,7 +638,7 @@ void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputB
   if (decHDR->version != 3) {
     throw std::runtime_error("invalid ZS version");
   }
-  if (decHDR->magicWord != 0x1234) {
+  if (decHDR->magicWord != o2::tpc::zerosupp_link_based::CommonHeader::MagicWordLinkZSMetaHeader) {
     throw std::runtime_error("Magic word missing");
   }
   const float decodeBitsFactor = 1.f / (1 << (encodeBits - 10));
@@ -651,13 +654,13 @@ void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputB
     const o2::tpc::zerosupp_link_based::Header* tbHdr = (const o2::tpc::zerosupp_link_based::Header*)decPagePtr;
 #if 0 // Decoding using the function for the original linkZS
     o2::tpc::CRU cru = cruid % 10;
-    const int feeLink = tbHdr->syncOffsetCRUCyclesOrLink - (decEndpoint & 1) * ((mapper.getPartitionInfo(cru.partition()).getNumberOfFECs() + 1) / 2);
+    const int feeLink = tbHdr->fecInPartition - (decEndpoint & 1) * ((mapper.getPartitionInfo(cru.partition()).getNumberOfFECs() + 1) / 2);
     auto fillADC = [&outputBuffer](int cru, int rowInSector, int padInRow, int timeBin, float adcValue) {
       outputBuffer.emplace_back(o2::tpc::Digit{0, adcValue, rowInSector, padInRow, timeBin});
       return true;
     };
     size_t size = sizeof(*tbHdr) + tbHdr->numWordsPayload * 16;
-    raw_processing_helpersa::processZSdata((const char*)decPagePtr, size, rdh_utils::getFEEID(cruid, decEndpoint & 1, feeLink), o2::raw::RDHUtils::getHeartBeatOrbit(*rdh), firstOrbit, decHDR->timeOffset, fillADC, false);
+    raw_processing_helpersa::processZSdata((const char*)decPagePtr, size, rdh_utils::getFEEID(cruid, decEndpoint & 1, feeLink), o2::raw::RDHUtils::getHeartBeatOrbit(*rdh), firstOrbit, decHDR->timeOffset, fillADC);
 #else // Decoding directly
     if (!tbHdr->isLinkZS()) {
       throw std::runtime_error("ZS TB Hdr does not have linkZS magic word");
@@ -688,7 +691,7 @@ void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputB
       if (bitmask[j]) {
         int sampaOnFEC = 0, channelOnSAMPA = 0;
         mapper.getSampaAndChannelOnFEC(cruid, j, sampaOnFEC, channelOnSAMPA);
-        const auto padSecPos = mapper.padSecPos(cruid, tbHdr->syncOffsetCRUCyclesOrLink, sampaOnFEC, channelOnSAMPA);
+        const auto padSecPos = mapper.padSecPos(cruid, tbHdr->fecInPartition, sampaOnFEC, channelOnSAMPA);
         const auto& padPos = padSecPos.getPadPos();
         outputBuffer.emplace_back(o2::tpc::Digit{0, (float)decBuffer[k++] * decodeBitsFactor, (tpccf::Row)padPos.getRow(), (tpccf::Pad)padPos.getPad(), timeBin});
       }

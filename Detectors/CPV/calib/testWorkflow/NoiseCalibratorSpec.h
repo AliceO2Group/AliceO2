@@ -18,6 +18,7 @@
 #include "CCDB/CcdbObjectInfo.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CPVCalibration/NoiseCalibrator.h"
+#include "CPVBase/CPVCalibParams.h"
 #include "DataFormatsCPV/Digit.h"
 #include "DataFormatsCPV/TriggerRecord.h"
 #include "DetectorsBase/GRPGeomHelper.h"
@@ -66,8 +67,17 @@ class CPVNoiseCalibratorSpec : public o2::framework::Task
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     TFType tfcounter = mCalibrator->getCurrentTFInfo().startTime;
-    auto&& digits = pc.inputs().get<gsl::span<o2::cpv::Digit>>("digits");
-    auto&& trigrecs = pc.inputs().get<gsl::span<o2::cpv::TriggerRecord>>("trigrecs");
+
+    // update config
+    static bool isConfigFetched = false;
+    if (!isConfigFetched) {
+      LOG(info) << "NoiseCalibratorSpec::run() : fetching o2::cpv::CPVCalibParams from CCDB";
+      pc.inputs().get<o2::cpv::CPVCalibParams*>("calibparams");
+      LOG(info) << "NoiseCalibratorSpec::run() : o2::cpv::CPVCalibParams::Instance() now is following:";
+      o2::cpv::CPVCalibParams::Instance().printKeyValues();
+      mCalibrator->configParameters();
+      isConfigFetched = true;
+    }
 
     // read pedestal efficiencies, dead and high ped channels from pedestal run
     // do it only once as they don't change during noise scan
@@ -79,39 +89,45 @@ class CPVNoiseCalibratorSpec : public o2::framework::Task
       }
     }
     if (!mCalibrator->isSettedDeadChannels()) {
-      const auto deadChs = o2::framework::DataRefUtils::as<CCDBSerialized<std::vector<int>>>(pc.inputs().get("deadchs"));
+      // const auto deadChs = o2::framework::DataRefUtils::as<CCDBSerialized<std::vector<int>>>(pc.inputs().get("deadchs"));
+      const auto deadChs = pc.inputs().get<std::vector<int>*>("deadchs");
       if (deadChs) {
         mCalibrator->setDeadChannels(new std::vector<int>(deadChs->begin(), deadChs->end()));
         LOG(info) << "NoiseCalibratorSpec()::run() : I got dead channels vetor of size " << deadChs->size();
       }
     }
     if (!mCalibrator->isSettedHighPedChannels()) {
-      const auto highPeds = o2::framework::DataRefUtils::as<CCDBSerialized<std::vector<int>>>(pc.inputs().get("highpeds"));
+      // const auto highPeds = o2::framework::DataRefUtils::as<CCDBSerialized<std::vector<int>>>(pc.inputs().get("highpeds"));
+      const auto highPeds = pc.inputs().get<std::vector<int>*>("highpeds");
       if (highPeds) {
         mCalibrator->setHighPedChannels(new std::vector<int>(highPeds->begin(), highPeds->end()));
         LOG(info) << "NoiseCalibratorSpec()::run() : I got high pedestal channels vetor of size " << highPeds->size();
       }
     }
 
+    // process data
+    auto&& digits = pc.inputs().get<gsl::span<o2::cpv::Digit>>("digits");
+    auto&& trigrecs = pc.inputs().get<gsl::span<o2::cpv::TriggerRecord>>("trigrecs");
+
     LOG(info) << "Processing TF " << tfcounter << " with " << digits.size() << " digits in " << trigrecs.size() << " trigger records.";
     auto& slotTF = mCalibrator->getSlotForTF(tfcounter);
 
-    for (auto trigrec = trigrecs.begin(); trigrec != trigrecs.end(); trigrec++) { //event loop
+    for (auto trigrec = trigrecs.begin(); trigrec != trigrecs.end(); trigrec++) { // event loop
       // here we're filling TimeSlot event by event
       // and when last event is reached we call mCalibrator->process() to finalize the TimeSlot
       auto&& digitsInOneEvent = digits.subspan((*trigrec).getFirstEntry(), (*trigrec).getNumberOfObjects());
-      if ((trigrec + 1) == trigrecs.end()) { //last event in current TF, let's process corresponding TimeSlot
-        //LOG(info) << "last event, I call mCalibrator->process()";
+      if ((trigrec + 1) == trigrecs.end()) { // last event in current TF, let's process corresponding TimeSlot
+        // LOG(info) << "last event, I call mCalibrator->process()";
         mCalibrator->process(digitsInOneEvent); // fill TimeSlot with digits from 1 event and check slots for finalization
       } else {
-        slotTF.getContainer()->fill(digitsInOneEvent); //fill TimeSlot with digits from 1 event
+        slotTF.getContainer()->fill(digitsInOneEvent); // fill TimeSlot with digits from 1 event
       }
     }
 
     auto infoVecSize = mCalibrator->getCcdbInfoBadChannelMapVector().size();
     auto badMapVecSize = mCalibrator->getBadChannelMapVector().size();
     if (infoVecSize > 0) {
-      LOG(info) << "Created " << infoVecSize << " ccdb infos and " << badMapVecSize << " pedestal objects for TF " << tfcounter;
+      LOG(info) << "Created " << infoVecSize << " ccdb infos and " << badMapVecSize << " BadChannelMap objects for TF " << tfcounter;
     }
     sendOutput(pc.outputs());
   }
@@ -157,6 +173,7 @@ DataProcessorSpec getCPVNoiseCalibratorSpec()
   inputs.emplace_back("pedeffs", "CPV", "CPV_PedEffs", 0, Lifetime::Condition, ccdbParamSpec("CPV/PedestalRun/ChannelEfficiencies"));
   inputs.emplace_back("deadchs", "CPV", "CPV_DeadChnls", 0, Lifetime::Condition, ccdbParamSpec("CPV/PedestalRun/DeadChannels"));
   inputs.emplace_back("highpeds", "CPV", "CPV_HighThrs", 0, Lifetime::Condition, ccdbParamSpec("CPV/PedestalRun/HighPedChannels"));
+  inputs.emplace_back("calibparams", "CPV", "CPV_CalibPars", 0, Lifetime::Condition, ccdbParamSpec("CPV/Config/CPVCalibParams"));
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF

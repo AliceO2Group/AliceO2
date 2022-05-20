@@ -37,7 +37,7 @@
 #include "DataFormatsMCH/ROFRecord.h"
 #include "MCHBase/PreCluster.h"
 #include "MCHPreClustering/PreClusterFinder.h"
-#include "SanityCheck.h"
+#include "MCHBase/SanityCheck.h"
 
 #include <iostream>
 #include <chrono>

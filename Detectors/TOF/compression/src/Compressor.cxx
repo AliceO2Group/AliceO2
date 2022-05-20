@@ -21,7 +21,8 @@
 #include <cstring>
 #include <iostream>
 
-//#define DECODER_PARANOID
+// o2::ctf::CTFIOSize iosize;
+#define ENCODER_PARANOID
 //#define CHECKER_COUNTER
 
 #ifdef DECODER_PARANOID

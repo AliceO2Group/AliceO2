@@ -9,13 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file MatchInfoHMP.cxx
+/// \brief Class to store the output of the matching to HMPID
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "ReconstructionDataFormats/MatchInfoHMP.h"
 
-#pragma link C++ class o2::mch::TrackerParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::mch::TrackerParam> + ;
+using namespace o2::dataformats;
 
-#endif
+ClassImp(o2::dataformats::MatchInfoHMP);
+
+void MatchInfoHMP::print() const
+{
+  printf("Match of GlobalID %s and HMPID cl %d ", getTrackRef().asString().c_str(), getIdxHMPClus());
+}

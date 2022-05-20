@@ -13,6 +13,7 @@
 /// \file    FileProducer.cxx
 /// \author julian.myrcha@cern.ch
 
+#include "EventVisualisationBase/DirectoryLoader.h"
 #include "EveWorkflow/FileProducer.h"
 #include "CommonUtils/FileSystemUtils.h"
 
@@ -28,18 +29,6 @@ using namespace o2::event_visualisation;
 using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 using std::chrono::system_clock;
-
-std::deque<std::string> FileProducer::load(const std::string& path)
-{
-  std::deque<std::string> result;
-
-  for (const auto& entry : std::filesystem::directory_iterator(path)) {
-    if (entry.path().extension() == ".json") {
-      result.push_back(entry.path().filename());
-    }
-  }
-  return result;
-}
 
 FileProducer::FileProducer(const std::string& path, int filesInFolder, const std::string& name)
 {
@@ -57,11 +46,8 @@ std::string FileProducer::newFileName() const
   gethostname(hostname, _POSIX_HOST_NAME_MAX);
 
   auto pid = getpid();
-
   auto result = fmt::format(this->mName, fmt::arg("hostname", hostname), fmt::arg("pid", pid), fmt::arg("timestamp", millisec_since_epoch));
-
-  auto files = this->load(this->mPath);
-  std::sort(files.begin(), files.end());
+  auto files = DirectoryLoader::load(this->mPath, "_"); // already sorted starting by part of name at pos
 
   while (files.size() >= this->mFilesInFolder) {
     auto front = files.front();

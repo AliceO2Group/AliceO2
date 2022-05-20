@@ -23,6 +23,7 @@
 #include "CommonUtils/NameConf.h"
 #include "DetectorsCommonDataFormats/CTFDictHeader.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
+#include "DetectorsCommonDataFormats/CTFIOSize.h"
 #include "rANS/rans.h"
 #include <filesystem>
 #include "Framework/InitContext.h"

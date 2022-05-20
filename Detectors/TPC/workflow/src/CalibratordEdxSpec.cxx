@@ -120,8 +120,7 @@ class CalibratordEdxDevice : public Task
   void sendOutput(DataAllocator& output)
   {
     const auto& calibrations = mCalibrator->getCalibs();
-    auto& intervals = mCalibrator->getTFinterval();
-    const long timeEnd = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
+    const auto& intervals = mCalibrator->getTimeIntervals();
 
     for (unsigned int i = 0; i < calibrations.size(); i++) {
       const auto& object = calibrations[i];
@@ -131,7 +130,7 @@ class CalibratordEdxDevice : public Task
       info.setPath("TPC/Calib/dEdx");
       // FIXME: use time frame timestamp
       info.setStartValidityTimestamp(intervals[i].first);
-      info.setEndValidityTimestamp(timeEnd);
+      info.setEndValidityTimestamp(intervals[i].second + 5); // Add 5ms for safety
 
       auto md = info.getMetaData();
       md["runNumber"] = std::to_string(mRunNumber);

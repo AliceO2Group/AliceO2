@@ -86,7 +86,7 @@ class CTPRunScalers
   void setRunNumber(uint32_t rnumber) { mRunNumber = rnumber; };
   //
   int parseZMQScalers(std::string zmqscalers);
-  static const uint32_t NCOUNTERS = 1052;
+  static constexpr uint32_t NCOUNTERS = 1052;
   static std::vector<std::string> scalerNames;
 
  private:

@@ -233,6 +233,8 @@ void EventManagerFrame::DoScreenshot()
   const char* backgroundColor = "#000000"; // "#19324b";
   const char* outDirectory = "Screenshots";
 
+  std::string detectorsString;
+
   std::string runString = "Run:";
   std::string timestampString = "Timestamp:";
   std::string collidingsystemString = "Colliding system:";
@@ -277,7 +279,7 @@ void EventManagerFrame::DoScreenshot()
   bool logo = true;
   if (logo) {
     TASImage* aliceLogo = new TASImage("Alice.png");
-    if (aliceLogo) {
+    if (aliceLogo->IsValid()) {
       double ratio = 1434. / 1939.;
       aliceLogo->Scale(0.08 * width, 0.08 * width / ratio);
       image.Merge(aliceLogo, "alphablend", 20, 20);
@@ -292,8 +294,8 @@ void EventManagerFrame::DoScreenshot()
 
   if (logo) {
     TASImage* o2Logo = new TASImage("o2.png");
-    if (o2Logo) {
-      double ratio = o2Logo->GetWidth() / o2Logo->GetHeight();
+    if (o2Logo->IsValid()) {
+      double ratio = (double)(o2Logo->GetWidth()) / (double)(o2Logo->GetHeight());
       int o2LogoX = 0.01 * width;
       int o2LogoY = 0.01 * width;
       int o2LogoSize = 0.04 * width;
@@ -302,6 +304,51 @@ void EventManagerFrame::DoScreenshot()
       textX = o2LogoX + o2LogoSize + o2LogoX;
       textY = height - o2LogoSize / ratio - o2LogoY;
       delete o2Logo;
+    } else {
+      textX = 229;
+      textY = 1926;
+    }
+  }
+
+  o2::dataformats::GlobalTrackID::mask_t detectorsMask;
+
+  int noEvent = this->mEventManager->getDataSource()->getCurrentEvent();
+
+  auto displayList = this->mEventManager->getDataSource()->getVisualisationList(noEvent, EventManagerFrame::getInstance().getMinTimeFrameSliderValue(),
+                                                                                EventManagerFrame::getInstance().getMaxTimeFrameSliderValue(), EventManagerFrame::MaxRange);
+
+  const uint8_t possibleDetectors[] =
+    {
+      o2::dataformats::GlobalTrackID::Source::ITS,
+      o2::dataformats::GlobalTrackID::Source::TPC,
+      o2::dataformats::GlobalTrackID::Source::TRD,
+      o2::dataformats::GlobalTrackID::Source::TOF,
+      o2::dataformats::GlobalTrackID::Source::CPV,
+      o2::dataformats::GlobalTrackID::Source::EMC,
+      o2::dataformats::GlobalTrackID::Source::HMP,
+      o2::dataformats::GlobalTrackID::Source::MFT,
+      o2::dataformats::GlobalTrackID::Source::MCH,
+      o2::dataformats::GlobalTrackID::Source::MID,
+      o2::dataformats::GlobalTrackID::Source::ZDC,
+      o2::dataformats::GlobalTrackID::Source::FT0,
+      o2::dataformats::GlobalTrackID::Source::FV0,
+      o2::dataformats::GlobalTrackID::Source::FDD,
+    };
+
+  const std::string possibleDetectorsNames[] = {
+    "ITS", "TPC", "TRD", "TOF", "CPV", "EMC", "HMP",
+    "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD"};
+
+  for (auto it = displayList.begin(); it != displayList.end(); ++it) {
+    detectorsMask.set(it->first.getTrkMask());
+  }
+
+  for (int detID = 0; detID < (sizeof(possibleDetectors) / sizeof(possibleDetectors[0])); detID++) {
+    if (o2::dataformats::GlobalTrackID::includesDet(possibleDetectors[detID], detectorsMask)) {
+      if (!detectorsString.empty()) {
+        detectorsString += ',';
+      }
+      detectorsString += possibleDetectorsNames[detID];
     }
   }
 
@@ -313,17 +360,14 @@ void EventManagerFrame::DoScreenshot()
     }
   }
 
-  image.BeginPaint();
-  for (int i = 0; i < 4; i++) {
-    lines.push_back(""); // make sure that at least 4 lines are exising
-  }
   if (!this->mEventManager->getDataSource()->getCollisionTime().empty()) {
-    char buff[100];
-    snprintf(buff, sizeof(buff), "Run number: %d", (int)this->mEventManager->getDataSource()->getRunNumber());
-    lines[0] = buff;
-    snprintf(buff, sizeof(buff), "Date: %s", this->mEventManager->getDataSource()->getCollisionTime().c_str());
-    lines[1] = buff;
+    lines.push_back((std::string)TString::Format("Run number: %d", this->mEventManager->getDataSource()->getRunNumber()));
+    lines.push_back((std::string)TString::Format("First TF orbit: %d", this->mEventManager->getDataSource()->getFirstTForbit()));
+    lines.push_back((std::string)TString::Format("Date: %s", this->mEventManager->getDataSource()->getCollisionTime().c_str()));
+    lines.push_back((std::string)TString::Format("Detectors: %s", detectorsString.c_str()));
   }
+
+  image.BeginPaint();
 
   for (int i = 0; i < 4; i++) {
     image.DrawText(textX, textY + i * textLineHeight, lines[i].c_str(), fontSize, "#BBBBBB", "FreeSansBold.otf");

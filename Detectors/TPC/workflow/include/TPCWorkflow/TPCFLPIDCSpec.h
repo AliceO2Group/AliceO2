@@ -273,12 +273,14 @@ class TPCFLPIDCDevice : public o2::framework::Task
 
     // TODO use this and fix #include <boost/container/pmr/polymorphic_allocator.hpp> in ROOT CINT
     // output.adoptContainer(Output{gDataOriginTPC, getDataDescriptionIDCGroup(), subSpec, Lifetime::Timeframe}, std::move(mIDCs[cru]).getIDCGroupData());
+    LOGP(info, "Sending IDCs of size {}", mIDCStruct.getData(cru).size());
     output.snapshot(Output{gDataOriginTPC, getDataDescriptionIDCGroup(), subSpec, Lifetime::Timeframe}, mIDCStruct.getData(cru));
 
     mBuffer1DIDCs[cru].emplace_back(std::move(idcOne));
     mBuffer1DIDCs[cru].pop_front(); // removing oldest 1D-IDCs
 
     fill1DIDCs(cru);
+    LOGP(info, "Sending 1D-IDCs to EPNs of size {} and weights of size {}", mOneDIDCs.first.size(), mOneDIDCs.second.size());
     output.snapshot(Output{gDataOriginTPC, getDataDescription1DIDCEPN(), subSpec, Lifetime::Timeframe}, mOneDIDCs.first);
     output.snapshot(Output{gDataOriginTPC, getDataDescription1DIDCEPNWeights(), subSpec, Lifetime::Timeframe}, mOneDIDCs.second);
   }

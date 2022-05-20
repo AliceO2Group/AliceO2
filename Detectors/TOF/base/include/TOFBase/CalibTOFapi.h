@@ -81,8 +81,11 @@ class CalibTOFapi
 
   SlewParam* getSlewParam() { return mSlewParam; }
   SlewParam& getSlewParamObj() { return *mSlewParam; }
+  void setSlewParam(SlewParam* obj) { mSlewParam = obj; }
   LhcPhase* getLhcPhase() { return mLHCphase; }
+  void setLhcPhase(LhcPhase* obj) { mLHCphase = obj; }
   Diagnostic* getDiagnostic() { return mDiaFreq; }
+  void setDiagnostic(Diagnostic* obj) { mDiaFreq = obj; }
 
   int getNoisyThreshold() const { return mNoisyThreshold; }
   void setNoisyThreshold(int val) { mNoisyThreshold = val; }

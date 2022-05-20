@@ -38,6 +38,7 @@ std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline
     VisualisationEvent vEvent = this->mDataReader->getEvent(mFileWatcher.currentFilePath());
 
     this->setRunNumber(vEvent.getRunNumber());
+    this->setFirstTForbit(vEvent.getFirstTForbit());
     this->setCollisionTime(vEvent.getCollisionTime());
 
     double period = vEvent.getMaxTimeOfTracks() - vEvent.getMinTimeOfTracks();
@@ -49,11 +50,11 @@ std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline
       this->mTimeFrameMaxTrackTime = vEvent.getMaxTimeOfTracks();
     }
 
-    for(auto filter = EVisualisationGroup::ITS;
-        filter != EVisualisationGroup::NvisualisationGroups;
-        filter = static_cast<EVisualisationGroup>(static_cast<int>(filter) + 1)) {
+    for (auto filter = EVisualisationGroup::ITS;
+         filter != EVisualisationGroup::NvisualisationGroups;
+         filter = static_cast<EVisualisationGroup>(static_cast<int>(filter) + 1)) {
       auto filtered = VisualisationEvent(vEvent, filter, this->mTimeFrameMinTrackTime, this->mTimeFrameMaxTrackTime);
-      res.push_back(std::make_pair(filtered, filter));  // we can switch on/off data
+      res.push_back(std::make_pair(filtered, filter)); // we can switch on/off data
     }
   }
   return res;

@@ -23,13 +23,12 @@
 #include <chrono>
 #include <cstdlib>
 #include <locale>
-#include <boost/process.hpp>
 #include <TGrid.h>
+#include <TSystem.h>
 
 using namespace o2::utils;
 using namespace std::chrono_literals;
 namespace fs = std::filesystem;
-namespace bp = boost::process;
 
 //____________________________________________________________
 FileFetcher::FileFetcher(const std::string& input, const std::string& selRegex, const std::string& remRegex,
@@ -310,17 +309,14 @@ bool FileFetcher::copyFile(size_t id)
     }
   }
   auto realCmd = std::regex_replace(std::regex_replace(mCopyCmd, std::regex("\\?src"), mInputFiles[id].getOrigName()), std::regex("\\?dst"), mInputFiles[id].getLocalName());
-  std::vector<std::string> copyParams{"-c", realCmd};
-  bp::child copyChild(bp::search_path("sh"), copyParams, bp::std_err > mCopyCmdLogFile, bp::std_out > mCopyCmdLogFile);
-  while (!copyChild.wait_for(5s)) {
-    LOGP(info, "FileFetcher: waiting for copy command. cmd={}", realCmd);
-  }
-  const auto sysRet = copyChild.exit_code();
+  auto fullCmd = fmt::format("sh -c \"{}\" > {}  2>&1", realCmd, mCopyCmdLogFile);
+  LOG(info) << "Executing " << fullCmd;
+  const auto sysRet = gSystem->Exec(fullCmd.c_str());
   if (sysRet != 0) {
     LOGP(warning, "FileFetcher: non-zero exit code {} for cmd={}", sysRet, realCmd);
   }
   if (!fs::is_regular_file(mInputFiles[id].getLocalName()) || fs::is_empty(mInputFiles[id].getLocalName())) {
-    LOGP(error, "FileFetcher: failed for copy command {}", realCmd);
+    LOGP(alarm, "FileFetcher: failed for copy command {}", realCmd);
     return false;
   }
   mCopied[mInputFiles[id].getLocalName()] = id + 1;

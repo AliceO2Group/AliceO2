@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DigitFilteringSpec.h"
+#include "MCHDigitFiltering/DigitFilteringSpec.h"
 
 #include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/ROFRecord.h"
@@ -19,10 +19,13 @@
 #include "Framework/OutputSpec.h"
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
-#include "SanityCheck.h"
+#include "MCHBase/SanityCheck.h"
+#include "MCHDigitFiltering/DigitFilter.h"
+#include "MCHDigitFiltering/DigitFilterParam.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include <fmt/format.h>
+#include <functional>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -39,13 +42,31 @@ class DigitFilteringTask
 
   void init(InitContext& ic)
   {
-    mSanityCheck = ic.options().get<bool>("sanity-check");
-    mMinADC = ic.options().get<int>("min-adc-value");
+    mSanityCheck = DigitFilterParam::Instance().sanityCheck;
+    int minADC = DigitFilterParam::Instance().minADC;
+    bool rejectBackground = DigitFilterParam::Instance().rejectBackground;
+    mIsGoodDigit = createDigitFilter(minADC, rejectBackground, false);
+    // at digit filtering stage it is important to keep the 3rd parameter
+    // to false in the call above : the idea is to not cut too much
+    // on the tails of the charge distributions otherwise the clustering
+    // resolution will suffer.
+    // That's why we only apply the "reject background" filter, which
+    // is a loose background cut that does not penalize the signal
+
+    mTimeCalib = DigitFilterParam::Instance().timeOffset;
   }
 
-  bool isGoodDigit(const Digit& digit) const
+  void shiftDigitsTime(gsl::span<ROFRecord> rofs, gsl::span<Digit> digits)
   {
-    return digit.getADC() > mMinADC;
+    for (auto i = 0; i < rofs.size(); i++) {
+      ROFRecord& rof = rofs[i];
+      rof.getBCData() += mTimeCalib;
+    }
+
+    for (auto i = 0; i < digits.size(); i++) {
+      Digit& d = digits[i];
+      d.setTime(d.getTime() + mTimeCalib);
+    }
   }
 
   void run(ProcessingContext& pc)
@@ -58,6 +79,7 @@ class DigitFilteringTask
     bool abort{false};
 
     if (mSanityCheck) {
+      LOGP(info, "performing sanity checks");
       auto error = sanityCheck(iRofs, iDigits);
 
       if (!isOK(error)) {
@@ -76,18 +98,16 @@ class DigitFilteringTask
 
     if (!abort) {
       int cursor{0};
-      for (auto i = 0; i < iRofs.size(); i++) {
-        const ROFRecord& irof = iRofs[i];
-
+      for (const auto& irof : iRofs) {
         const auto digits = iDigits.subspan(irof.getFirstIdx(), irof.getNEntries());
 
         // filter the digits from the current ROF
         for (auto i = 0; i < digits.size(); i++) {
           const auto& d = digits[i];
-          if (isGoodDigit(d)) {
+          if (mIsGoodDigit(d)) {
             oDigits.emplace_back(d);
             if (iLabels) {
-              oLabels->addElements(oLabels->getIndexedSize(), iLabels->getLabels(i + cursor));
+              oLabels->addElements(oLabels->getIndexedSize(), iLabels->getLabels(i + irof.getFirstIdx()));
             }
           }
         }
@@ -111,6 +131,10 @@ class DigitFilteringTask
          oDigits.size(), iDigits.size(),
          labelMsg);
 
+    if (mTimeCalib != 0) {
+      shiftDigitsTime(oRofs, oDigits);
+    }
+
     if (abort) {
       LOGP(error, "Sanity check failed");
     }
@@ -119,7 +143,8 @@ class DigitFilteringTask
  private:
   bool mSanityCheck;
   bool mUseMC;
-  int mMinADC;
+  DigitFilter mIsGoodDigit;
+  int32_t mTimeCalib{0};
 };
 
 framework::DataProcessorSpec
@@ -160,8 +185,6 @@ framework::DataProcessorSpec
     Inputs{select(input.c_str())},
     outputs,
     AlgorithmSpec{adaptFromTask<DigitFilteringTask>(useMC)},
-    Options{
-      {"sanity-check", VariantType::Bool, false, {"perform a few sanity checks on input digits"}},
-      {"min-adc-value", VariantType::Int, 1, {"minumum ADC value to consider"}}}};
+    Options{}};
 }
 } // namespace o2::mch

@@ -5,7 +5,14 @@ if [ "0$1" != "0dd" ] && [ "0$1" != "0rr" ]; then
   exit 1
 fi
 
-[[ -z "${WORKFLOW_PARAMETERS+x}" ]] && export WORKFLOW_PARAMETERS="CALIB"
+if [[ -z "${WORKFLOW_PARAMETERS+x}" ]]; then
+  export WORKFLOW_PARAMETERS="CALIB,QC"
+  [[ -z "${WORKFLOW_DETECTORS_QC}" ]] && export WORKFLOW_DETECTORS_QC="ITS,TRD,TOF,MFT,MCH,MID,EMC,PHS,CPV,FT0,FV0,FDD,ZDC"
+  if [[ -z "${GEN_TOPO_WORKDIR}" ]]; then
+    mkdir -p gen_topo_tmp
+    export GEN_TOPO_WORKDIR=`pwd`/gen_topo_tmp
+  fi
+fi
 [[ -z "${SEVERITY}" ]] && export SEVERITY="error"
 
 MYDIR="$(dirname $(realpath $0))"
@@ -26,6 +33,8 @@ export IS_SIMULATED_DATA=1
 export ALL_EXTRA_CONFIG="$ALL_EXTRA_CONFIG;NameConf.mCCDBServer=http://o2-ccdb.internal;"
 export DPL_CONDITION_BACKEND="http://o2-ccdb.internal"
 export DATADIST_NEW_DPL_CHAN=1
+
+workflow_has_parameter QC && export QC_REDIRECT_MERGER_TO_LOCALHOST=1
 
 if [ "0$FST_TMUX_MEM_OVERRIDE" != "0" ]; then
   export SHMSIZE=$(( $FST_TMUX_MEM_OVERRIDE << 30 ))

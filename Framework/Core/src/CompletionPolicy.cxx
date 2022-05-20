@@ -47,8 +47,10 @@ std::ostream& operator<<(std::ostream& oss, CompletionPolicy::CompletionOp const
       break;
     case CompletionPolicy::CompletionOp::ConsumeExisting:
       oss << "consumeExisting";
+      break;
     case CompletionPolicy::CompletionOp::ConsumeAndRescan:
       oss << "consumeAndRescan";
+      break;
   };
   return oss;
 }

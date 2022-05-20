@@ -25,6 +25,7 @@
 #include "Framework/DataProcessingStats.h"
 #include "Framework/CommonMessageBackends.h"
 #include "Framework/DanglingContext.h"
+#include "Framework/DataProcessingHelpers.h"
 #include "InputRouteHelpers.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/RawDeviceService.h"
@@ -306,7 +307,22 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                              .name = "infologger"};
       }
       auto infoLoggerContext = &services.get<InfoLoggerContext>();
-      infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, std::string("dpl/") + services.get<DeviceSpec const>().name);
+      // Only print the first 10 characters and the last 18 if the
+      // string length is greater than 32 bytes.
+      auto truncate = [](std::string in) -> std::string {
+        if (in.size() < 32) {
+          return in;
+        }
+        char name[32];
+        memcpy(name, in.data(), 10);
+        name[10] = '.';
+        name[11] = '.';
+        name[12] = '.';
+        memcpy(name + 13, in.data() + in.size() - 18, 18);
+        name[31] = 0;
+        return name;
+      };
+      infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, truncate(services.get<DeviceSpec const>().name));
       infoLoggerContext->setField(InfoLoggerContext::FieldName::System, std::string("DPL"));
       infoLoggerService->setContext(*infoLoggerContext);
 
@@ -402,10 +418,10 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
 {
   return ServiceSpec{
     .name = "timesliceindex",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistry& services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<TimesliceIndex>(),
-                           new TimesliceIndex(InputRouteHelpers::maxLanes(spec.inputs), spec.inputChannels.size())};
+                           new TimesliceIndex(InputRouteHelpers::maxLanes(spec.inputs), state.inputChannelInfos)};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
@@ -525,6 +541,76 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
         }
       } },
     .kind = ServiceKind::Global};
+}
+
+// Decongestion service
+// If we do not have any Timeframe input, it means we must be creating timeslices
+// in order and that we should propagate the oldest possible timeslice at the end
+// of each processing step.
+o2::framework::ServiceSpec CommonServices::decongestionSpec()
+{
+  return ServiceSpec{
+    .name = "decongestion",
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      DecongestionService* decongestion = new DecongestionService();
+      for (auto& input : services.get<DeviceSpec const>().inputs) {
+        if (input.matcher.lifetime == Lifetime::Timeframe) {
+          LOGP(detail, "Found a Timeframe input, we cannot update the oldest possible timeslice");
+          decongestion->isFirstInTopology = false;
+          break;
+        }
+      }
+      return ServiceHandle{TypeIdHelpers::uniqueId<DecongestionService>(), decongestion, ServiceKind::Serial};
+    },
+    .postProcessing = [](ProcessingContext& ctx, void* service) {
+      DecongestionService* decongestion = reinterpret_cast<DecongestionService*>(service);
+      if (decongestion->isFirstInTopology == false) {
+        LOGP(debug, "We are not the first in the topology, do not update the oldest possible timeslice");
+        return;
+      }
+      auto& timesliceIndex = ctx.services().get<TimesliceIndex>();
+      auto& relayer = ctx.services().get<DataRelayer>();
+      timesliceIndex.updateOldestPossibleOutput();
+      auto& proxy = ctx.services().get<FairMQDeviceProxy>();
+      auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
+      if (oldestPossibleOutput.timeslice.value == decongestion->lastTimeslice) {
+        LOGP(debug, "Not sending already sent value");
+        return;
+      }
+      if (oldestPossibleOutput.timeslice.value < decongestion->lastTimeslice) {
+        LOGP(error, "We are trying to send a timeslice {} that is older than the last one we sent {}",
+             oldestPossibleOutput.timeslice.value, decongestion->lastTimeslice);
+        return;
+      }
+
+      LOGP(debug, "Broadcasting possible output {} due to {} ({})", oldestPossibleOutput.timeslice.value,
+           oldestPossibleOutput.slot.index == -1 ? "channel" : "slot", 
+           oldestPossibleOutput.slot.index == -1 ? oldestPossibleOutput.channel.value: oldestPossibleOutput.slot.index);
+      DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
+      decongestion->lastTimeslice = oldestPossibleOutput.timeslice.value; },
+    .domainInfoUpdated = [](ServiceRegistry& services, size_t oldestPossibleTimeslice, ChannelIndex channel) {
+      DecongestionService& decongestion = services.get<DecongestionService>();
+      auto& relayer = services.get<DataRelayer>();
+      auto& timesliceIndex = services.get<TimesliceIndex>();
+      auto& proxy = services.get<FairMQDeviceProxy>();
+      LOGP(debug, "Received oldest possible timeframe {} from channel {}", oldestPossibleTimeslice, channel.value);
+      relayer.setOldestPossibleInput({oldestPossibleTimeslice}, channel);
+      timesliceIndex.updateOldestPossibleOutput();
+      auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
+
+      if (oldestPossibleOutput.timeslice.value == decongestion.lastTimeslice) {
+        LOGP(debug, "Not sending already sent value");
+        return;
+      }
+      if (oldestPossibleOutput.timeslice.value < decongestion.lastTimeslice) {
+        LOGP(error, "We are trying to send a timeslice {} that is older than the last one we sent {}",
+             oldestPossibleOutput.timeslice.value, decongestion.lastTimeslice);
+        return;
+      }
+      LOGP(debug, "Broadcasting possible output {}", oldestPossibleOutput.timeslice.value);
+      DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
+      decongestion.lastTimeslice = oldestPossibleOutput.timeslice.value; },
+    .kind = ServiceKind::Serial};
 }
 
 // FIXME: allow configuring the default number of threads per device
@@ -756,6 +842,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     CommonMessageBackends::fairMQBackendSpec(),
     ArrowSupport::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),
+    decongestionSpec(),
     CommonMessageBackends::rawBufferBackendSpec()};
   if (numThreads) {
     specs.push_back(threadPool(numThreads));

@@ -30,6 +30,8 @@
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ReconstructionDataFormats/BaseCluster.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
+#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 namespace o2
 {
@@ -40,12 +42,6 @@ namespace dataformats
 {
 template <typename T>
 class MCTruthContainer;
-}
-
-namespace itsmft
-{
-class CompClusterExt;
-class TopologyDictionary;
 }
 
 namespace its
@@ -79,6 +75,50 @@ inline static const o2::itsmft::ChipMappingITS& getChipMappingITS()
 std::vector<std::unordered_map<int, Label>> loadLabels(const int, const std::string&);
 void writeRoadsReport(std::ofstream&, std::ofstream&, std::ofstream&, const std::vector<std::vector<Road>>&,
                       const std::unordered_map<int, Label>&);
+
+template <class iterator, typename T>
+o2::math_utils::Point3D<T> extractClusterData(const itsmft::CompClusterExt& c, iterator iter, const itsmft::TopologyDictionary* dict, T& sig2y, T& sig2z)
+{
+  auto pattID = c.getPatternID();
+  sig2y = ioutils::DefClusError2Row;
+  sig2z = ioutils::DefClusError2Col; // Dummy COG errors (about half pixel size)
+  if (pattID != itsmft::CompCluster::InvalidPatternID) {
+    sig2y = dict->getErr2X(pattID);
+    sig2z = dict->getErr2Z(pattID);
+    if (!dict->isGroup(pattID)) {
+      return dict->getClusterCoordinates<T>(c);
+    } else {
+      o2::itsmft::ClusterPattern patt(iter);
+      return dict->getClusterCoordinates<T>(c, patt);
+    }
+  } else {
+    o2::itsmft::ClusterPattern patt(iter);
+    return dict->getClusterCoordinates<T>(c, patt, false);
+  }
+}
+
+// same method returning coordinates as an array (suitable for the TGeoMatrix)
+template <class iterator, typename T>
+std::array<T, 3> extractClusterDataA(const itsmft::CompClusterExt& c, iterator iter, const itsmft::TopologyDictionary* dict, T& sig2y, T& sig2z)
+{
+  auto pattID = c.getPatternID();
+  sig2y = ioutils::DefClusError2Row;
+  sig2z = ioutils::DefClusError2Col; // Dummy COG errors (about half pixel size)
+  if (pattID != itsmft::CompCluster::InvalidPatternID) {
+    sig2y = dict->getErr2X(pattID);
+    sig2z = dict->getErr2Z(pattID);
+    if (!dict->isGroup(pattID)) {
+      return dict->getClusterCoordinatesA<T>(c);
+    } else {
+      o2::itsmft::ClusterPattern patt(iter);
+      return dict->getClusterCoordinatesA<T>(c, patt);
+    }
+  } else {
+    o2::itsmft::ClusterPattern patt(iter);
+    return dict->getClusterCoordinatesA<T>(c, patt, false);
+  }
+}
+
 } // namespace ioutils
 } // namespace its
 } // namespace o2

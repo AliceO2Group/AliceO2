@@ -1595,7 +1595,7 @@ void MatchTPCITS::runAfterBurner()
   mTimer[SWABSeeds].Start(false);
   prepareABSeeds();
   int nIntCand = mInteractions.size(), nABSeeds = mTPCABSeeds.size();
-  LOGP(info, "Afterburner will check {} seeds from {} TPC tracks and {} interaction candidates", nABSeeds, mTPCABIndexCache.size(), nIntCand); // TMP
+  LOGP(info, "AfterBurner will check {} seeds from {} TPC tracks and {} interaction candidates with {} threads", nABSeeds, mTPCABIndexCache.size(), nIntCand, mNThreads); // TMP
   mTimer[SWABSeeds].Stop();
   if (!nIntCand || !mTPCABSeeds.size()) {
     return;
@@ -1760,11 +1760,12 @@ void MatchTPCITS::processABSeed(int sid, const ITSChipClustersRefs& itsChipClRef
     while (nextLinkID > MinusOne) {
       const auto& seedLink = ABSeed.getLink(nextLinkID);
       if (seedLink.isDisabled()) {
+        nextLinkID = seedLink.nextOnLr;
         continue;
       }
+      int next2nextLinkID = seedLink.nextOnLr;                            // fetch now since the seedLink may change due to the relocation
       followABSeed(seedLink, itsChipClRefs, nextLinkID, ilr - 1, ABSeed); // check matches on the next layer
-      nextLinkID = seedLink.nextOnLr;
-      // RS FIXME account for possibility of missing a layer
+      nextLinkID = next2nextLinkID;
     }
   }
   /* // RS FIXME remove on final clean-up

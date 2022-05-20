@@ -455,17 +455,17 @@ void DataProcessingDevice::initPollers()
           (channelName.rfind("from_internal-dpl-aod", 0) != 0) &&
           (channelName.rfind("from_internal-dpl-ccdb-backend", 0) != 0) &&
           (channelName.rfind("from_internal-dpl-injected", 0)) != 0) {
-        LOGP(debug, "{} is an internal channel. Skipping as no input will come from there.", channelName);
+        LOGP(detail, "{} is an internal channel. Skipping as no input will come from there.", channelName);
         continue;
       }
       // We only watch receiving sockets.
       if (channelName.rfind("from_" + mSpec.name + "_", 0) == 0) {
-        LOGP(debug, "{} is to send data. Not polling.", channelName);
+        LOGP(detail, "{} is to send data. Not polling.", channelName);
         continue;
       }
 
       if (channelName.rfind("from_") != 0) {
-        LOGP(info, "{} is not a DPL socket. Not polling.", channelName);
+        LOGP(detail, "{} is not a DPL socket. Not polling.", channelName);
         continue;
       }
 
@@ -479,7 +479,7 @@ void DataProcessingDevice::initPollers()
         LOG(error) << "Cannot get file descriptor for channel." << channelName;
         continue;
       }
-      LOGP(debug, "Polling socket for {}", channelName);
+      LOGP(detail, "Polling socket for {}", channelName);
       auto* pCtx = (PollerContext*)malloc(sizeof(PollerContext));
       pCtx->name = strdup(channelName.c_str());
       pCtx->loop = mState.loop;
@@ -493,7 +493,7 @@ void DataProcessingDevice::initPollers()
       poller->data = pCtx;
       uv_poll_init(mState.loop, poller, zmq_fd);
       if (channelName.rfind("from_") != 0) {
-        LOGP(debug, "{} is an out of band channel.", channelName);
+        LOGP(detail, "{} is an out of band channel.", channelName);
         mState.activeOutOfBandPollers.push_back(poller);
       } else {
         mState.activeInputPollers.push_back(poller);
@@ -509,11 +509,11 @@ void DataProcessingDevice::initPollers()
       mDeviceContext.exitTransitionTimeout = 0;
       for (auto& [channelName, channel] : fChannels) {
         if (channelName.rfind(mSpec.channelPrefix + "from_internal-dpl", 0) == 0) {
-          LOGP(debug, "{} is an internal channel. Not polling.", channelName);
+          LOGP(detail, "{} is an internal channel. Not polling.", channelName);
           continue;
         }
         if (channelName.rfind(mSpec.channelPrefix + "from_" + mSpec.name + "_", 0) == 0) {
-          LOGP(debug, "{} is an out of band channel. Not polling for output.", channelName);
+          LOGP(detail, "{} is an out of band channel. Not polling for output.", channelName);
           continue;
         }
         // We assume there is always a ZeroMQ socket behind.
@@ -526,7 +526,7 @@ void DataProcessingDevice::initPollers()
           LOGP(error, "Cannot get file descriptor for channel {}", channelName);
           continue;
         }
-        LOG(debug) << "Polling socket for " << channel[0].GetName();
+        LOG(detail) << "Polling socket for " << channel[0].GetName();
         // FIXME: leak
         auto* pCtx = (PollerContext*)malloc(sizeof(PollerContext));
         pCtx->name = strdup(channelName.c_str());
@@ -573,12 +573,15 @@ void DataProcessingDevice::startPollers()
 
 void DataProcessingDevice::stopPollers()
 {
+  LOGP(detail, "Stopping {} input pollers", mState.activeInputPollers.size());
   for (auto& poller : mState.activeInputPollers) {
     uv_poll_stop(poller);
   }
+  LOGP(detail, "Stopping {} out of band pollers", mState.activeOutOfBandPollers.size());
   for (auto& poller : mState.activeOutOfBandPollers) {
     uv_poll_stop(poller);
   }
+  LOGP(detail, "Stopping {} output pollers", mState.activeOutOfBandPollers.size());
   for (auto& poller : mState.activeOutputPollers) {
     uv_poll_stop(poller);
   }
@@ -623,11 +626,11 @@ void DataProcessingDevice::InitTask()
                                                                &pendingRegionInfos = mPendingRegionInfos,
                                                                &regionInfoMutex = mRegionInfoMutex](FairMQRegionInfo info) {
       std::lock_guard<std::mutex> lock(regionInfoMutex);
-      LOG(debug) << ">>> Region info event" << info.event;
-      LOG(debug) << "id: " << info.id;
-      LOG(debug) << "ptr: " << info.ptr;
-      LOG(debug) << "size: " << info.size;
-      LOG(debug) << "flags: " << info.flags;
+      LOG(detail) << ">>> Region info event" << info.event;
+      LOG(detail) << "id: " << info.id;
+      LOG(detail) << "ptr: " << info.ptr;
+      LOG(detail) << "size: " << info.size;
+      LOG(detail) << "flags: " << info.flags;
       context.expectedRegionCallbacks -= 1;
       pendingRegionInfos.push_back(info);
       // We always want to handle these on the main loop
@@ -935,9 +938,35 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
 
   // Whether or not all the channels are completed
   LOGP(debug, "Processing {} input channels.", context.deviceContext->spec->inputChannels.size());
-  for (size_t ci = 0; ci < context.deviceContext->spec->inputChannels.size(); ++ci) {
-    auto& info = context.deviceContext->state->inputChannelInfos[ci];
-    auto& channelSpec = context.deviceContext->spec->inputChannels[ci];
+  /// Sort channels by oldest possible timeframe and
+  /// process them in such order.
+  static std::vector<int> pollOrder;
+  pollOrder.resize(context.deviceContext->state->inputChannelInfos.size());
+  std::iota(pollOrder.begin(), pollOrder.end(), 0);
+  std::sort(pollOrder.begin(), pollOrder.end(), [&infos = context.deviceContext->state->inputChannelInfos](int a, int b) {
+    return infos[a].oldestForChannel.value < infos[b].oldestForChannel.value;
+  });
+
+  // Nothing to poll...
+  if (pollOrder.empty()) {
+    return;
+  }
+  auto currentOldest = context.deviceContext->state->inputChannelInfos[pollOrder.front()].oldestForChannel;
+  auto currentNewest = context.deviceContext->state->inputChannelInfos[pollOrder.back()].oldestForChannel;
+  auto delta = currentNewest.value - currentOldest.value;
+  LOGP(debug, "oldest possible timeframe range {}, {} => {} delta", currentOldest.value, currentNewest.value,
+       delta);
+  auto& infos = context.deviceContext->state->inputChannelInfos;
+  static int ahead = getenv("DPL_MAX_CHANNEL_AHEAD") ? std::atoi(getenv("DPL_MAX_CHANNEL_AHEAD")) : 16;
+  auto newEnd = std::remove_if(pollOrder.begin(), pollOrder.end(), [&infos, limitNew = currentOldest.value + ahead](int a) -> bool {
+    return infos[a].oldestForChannel.value > limitNew;
+  });
+  pollOrder.erase(newEnd, pollOrder.end());
+  LOGP(debug, "processing {} channels", pollOrder.size());
+
+  for (auto sci : pollOrder) {
+    auto& info = context.deviceContext->state->inputChannelInfos[sci];
+    auto& channelSpec = context.deviceContext->spec->inputChannels[sci];
     LOGP(debug, "Processing channel {}", channelSpec.name);
 
     if (info.state != InputChannelState::Completed && info.state != InputChannelState::Pull) {
@@ -978,7 +1007,8 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
     // to process.
     bool newMessages = false;
     while (true) {
-      LOGP(debug, "Receiving loop called.");
+      LOGP(debug, "Receiving loop called for channel {} ({}) with oldest possible timeslice {}",
+           info.channel->GetName(), info.id.value, info.oldestForChannel.value);
       if (info.parts.Size() < 64) {
         FairMQParts parts;
         info.channel->Receive(parts, 0);
@@ -1177,6 +1207,8 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
         oldestPossibleTimeslice = std::min(oldestPossibleTimeslice, dih->oldestPossibleTimeslice);
         insertInputInfo(pi, 2, InputType::DomainInfo);
         *context.wasActive = true;
+        LOGP(debug, "Got DomainInfoHeader, new oldestPossibleTimeslice {} on channel {}", oldestPossibleTimeslice, info.id.value);
+
         continue;
       }
       auto dh = o2::header::get<DataHeader*>(headerData);
@@ -1334,14 +1366,10 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     return;
   }
   if (oldestPossibleTimeslice != (size_t)-1) {
-    TimesliceIndex& timesliceIndex = context.registry->get<TimesliceIndex>();
-    auto r = timesliceIndex.setOldestPossibleInput({oldestPossibleTimeslice}, info.id);
-    timesliceIndex.updateOldestPossibleOutput();
-    auto& proxy = context.registry->get<FairMQDeviceProxy>();
-    auto oldestPossibleOutput = context.relayer->getOldestPossibleOutput();
-    LOGP(detail, "Broadcasting possible output {}", oldestPossibleOutput.timeslice.value);
-    context.registry->get<CallbackService>()(CallbackService::Id::DomainInfoUpdated, *(context.registry), (size_t)oldestPossibleOutput.timeslice.value);
-    DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
+    info.oldestForChannel = {oldestPossibleTimeslice};
+    context.registry->domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
+    context.registry->get<CallbackService>()(CallbackService::Id::DomainInfoUpdated, (ServiceRegistry&)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
+    *context.wasActive = true;
   }
   handleValidMessages(*inputTypes);
   return;
@@ -1707,6 +1735,15 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     if (action.op == CompletionPolicy::CompletionOp::Wait) {
       LOGP(debug, "  - Action is to Wait");
       continue;
+    }
+
+    switch (action.op) {
+      case CompletionPolicy::CompletionOp::Consume:
+        LOG(debug) << "  - Action is to " << action.op << " " << action.slot.index;
+        break;
+      default:
+        LOG(debug) << "  - Action is to " << action.op << " " << action.slot.index;
+        break;
     }
 
     prepareAllocatorForCurrentTimeSlice(TimesliceSlot{action.slot});

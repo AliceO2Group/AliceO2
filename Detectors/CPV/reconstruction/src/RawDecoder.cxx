@@ -26,8 +26,8 @@ RawDecoder::RawDecoder(RawReaderMemory& reader) : mRawReader(reader),
 
 RawErrorType_t RawDecoder::decode()
 {
-  auto& rdh = mRawReader.getRawHeader();
-  //   short linkID = o2::raw::RDHUtils::getLinkID(rdh);
+  // auto& rdh = mRawReader.getRawHeader();
+  //    short linkID = o2::raw::RDHUtils::getLinkID(rdh);
   mDigits.clear();
   mBCRecords.clear();
 

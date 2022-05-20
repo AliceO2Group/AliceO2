@@ -9,10 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackerParam.cxx
-/// \brief Configurable parameters for MCH tracking
-/// \author Philippe Pillot, Subatech
+#ifdef __CLING__
 
-#include "MCHTracking/TrackerParam.h"
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-O2ParamImpl(o2::mch::TrackerParam);
+#pragma link C++ class o2::mch::DigitFilterParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::mch::DigitFilterParam> + ;
+
+#endif

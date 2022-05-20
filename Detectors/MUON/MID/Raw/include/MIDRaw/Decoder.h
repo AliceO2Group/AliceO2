@@ -50,11 +50,11 @@ class Decoder
     /// Processes the page
     auto feeId = o2::raw::RDHUtils::getFEEID(rdh);
 #if defined(MID_RAW_VECTORS)
-    mLinkDecoders[feeId]->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
+    mLinkDecoders[feeId]->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), o2::raw::RDHUtils::getTriggerType(rdh), mData, mROFRecords);
 #else
     auto linkDecoder = mLinkDecoders.find(feeId);
     if (linkDecoder != mLinkDecoders.end()) {
-      linkDecoder->second->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
+      linkDecoder->second->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), o2::raw::RDHUtils::getTriggerType(rdh), mData, mROFRecords);
     } else {
       LOG(alarm) << "Unexpected feeId " << feeId << " in RDH";
     }

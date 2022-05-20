@@ -188,10 +188,10 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
   float sum2x2[nxTRU + 1][nzTRU + 1];
   float time2x2[nxTRU + 1][nzTRU + 1];
   float tt = 0;
-  for (char iTRU = 0; iTRU < nDDL; iTRU++) {
-    for (char ix = 1; ix <= nxTRU; ix++) {
-      for (char iz = 1; iz <= nzTRU; iz++) {
-        char truRelId[3] = {iTRU, ix, iz};
+  for (short iTRU = 0; iTRU < nDDL; iTRU++) {
+    for (short ix = 1; ix <= nxTRU; ix++) {
+      for (short iz = 1; iz <= nzTRU; iz++) {
+        char truRelId[3] = {char(iTRU), char(ix), char(iz)};
         short tileId = Geometry::truRelToAbsNumbering(truRelId);
         if (!mTrigUtils->isGood2x2(tileId)) {
           continue;
@@ -250,9 +250,9 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     }
 
     if (mTrig4x4) {
-      for (char ix = 1; ix < nxTRU; ix++) {
-        for (char iz = 1; iz < nzTRU; iz++) {
-          char truRelId[3] = {iTRU, ix, iz};
+      for (short ix = 1; ix < nxTRU; ix++) {
+        for (short iz = 1; iz < nzTRU; iz++) {
+          char truRelId[3] = {char(iTRU), char(ix), char(iz)};
           short tileId = Geometry::truRelToAbsNumbering(truRelId);
           if (!mTrigUtils->isGood4x4(tileId)) {
             continue;

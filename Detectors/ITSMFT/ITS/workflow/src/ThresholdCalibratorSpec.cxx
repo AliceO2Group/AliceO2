@@ -886,6 +886,9 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
       for (auto& chipID : mChips) {
         if (mRunTypeChip[chipID] == N_INJ) {
           this->addDatabaseEntry(chipID, "", 0, 0, 0, 0, 0, true); // output for QC (mainly)
+          if (mCheckEos) {
+            mRunTypeChip[chipID] = 0; // to avoid to re-write the chip in the DCSConfigObject
+          }
         }
       }
     } // if (charge)

@@ -55,8 +55,9 @@ static ROFVector makeROFs(std::vector<int> binEntries, uint32_t winSize, uint32_
 static ROFVector makeTimeROFs(std::vector<int> binEntries, uint32_t winSize, uint32_t nBinsInOneWindow)
 {
   const auto& rofRecords = makeROFs(binEntries, winSize, nBinsInOneWindow);
+  const std::vector<o2::mch::Digit> digits;
 
-  o2::mch::ROFTimeClusterFinder rofProcessor(rofRecords, winSize, nBinsInOneWindow, 1);
+  o2::mch::ROFTimeClusterFinder rofProcessor(rofRecords, digits, winSize, nBinsInOneWindow, false, 1);
   rofProcessor.process();
 
   const auto& rofTimeRecords = rofProcessor.getROFRecords();

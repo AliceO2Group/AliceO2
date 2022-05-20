@@ -35,6 +35,14 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
             .matcher = [](DeviceSpec const&, ConfigContext const&) { return true; },
             .send = [](FairMQDeviceProxy& proxy, FairMQParts& parts, ChannelIndex channelIndex) { 
               auto *channel = proxy.getOutputChannel(channelIndex);
-              channel->Send(parts); }}};
+              auto timeout = 1000;
+              auto res = channel->Send(parts, timeout);
+              if (res == (size_t)fair::mq::TransferCode::timeout) {
+                LOGP(warning, "Timed out sending after {}s. Downstream backpressure detected on {}.", timeout/1000, channel->GetName()); 
+                channel->Send(parts);
+                LOGP(info, "Downstream backpressure on {} recovered.", channel->GetName()); 
+              } else if (res == (size_t) fair::mq::TransferCode::error) {
+                LOGP(fatal, "Error while sending on channel {}", channel->GetName());
+              } }}};
 }
 } // namespace o2::framework

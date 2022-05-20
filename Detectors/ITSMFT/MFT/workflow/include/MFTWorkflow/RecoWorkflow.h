@@ -23,7 +23,7 @@ namespace mft
 
 namespace reco_workflow
 {
-framework::WorkflowSpec getWorkflow(bool useMC, bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, bool runAssessment, bool processGen);
+framework::WorkflowSpec getWorkflow(bool useMC, bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, bool runAssessment, bool processGen, bool runTracking);
 }
 
 } // namespace mft

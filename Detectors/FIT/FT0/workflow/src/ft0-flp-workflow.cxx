@@ -17,6 +17,11 @@
 #include "FT0Raw/RawReaderFT0Base.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "Framework/CompletionPolicyHelpers.h"
+#if defined(__has_include)
+#if defined(__linux__) && (defined(__x86_64) || defined(__x86_64__)) && __has_include(<emmintrin.h>) && __has_include(<immintrin.h>) && defined(FT0_DECODER_AVX512)
+#include "FT0Workflow/FT0DataDecoderDPLSpec.h"
+#endif
+#endif
 
 using namespace o2::framework;
 
@@ -26,7 +31,6 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   // ordered policies for the writers
   policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:FT0|ft0).*[W,w]riter.*"));
 }
-
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -58,6 +62,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
                     o2::framework::VariantType::Bool,
                     false,
                     {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}});
+
+  workflowOptions.push_back(
+    ConfigParamSpec{"new-decoder",
+                    o2::framework::VariantType::Bool,
+                    false,
+                    {"New decoder which uses AVX-512 CPU instractions"}});
 }
 
 // ------------------------------------------------------------------
@@ -71,27 +81,36 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto isExtendedMode = configcontext.options().get<bool>("tcm-extended-mode");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto askSTFDist = !configcontext.options().get<bool>("ignore-dist-stf");
+  auto isNewDecoder = configcontext.options().get<bool>("new-decoder");
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   LOG(info) << "WorkflowSpec FLPWorkflow";
-  //Type aliases
-  //using RawReaderFT0trgInput = o2::fit::RawReaderFIT<o2::ft0::RawReaderFT0BaseNorm,true>;
+  // Type aliases
+  // using RawReaderFT0trgInput = o2::fit::RawReaderFIT<o2::ft0::RawReaderFT0BaseNorm,true>;
   using RawReaderFT0 = o2::fit::RawReaderFIT<o2::ft0::RawReaderFT0BaseNorm, false>;
-  //using RawReaderFT0trgInputExt = o2::fit::RawReaderFIT<o2::ft0::RawReaderFT0BaseExt,true>;
+  // using RawReaderFT0trgInputExt = o2::fit::RawReaderFIT<o2::ft0::RawReaderFT0BaseExt,true>;
   using RawReaderFT0ext = o2::fit::RawReaderFIT<o2::ft0::RawReaderFT0BaseExt, false>;
   using MCLabelCont = o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>;
   o2::header::DataOrigin dataOrigin = o2::header::gDataOriginFT0;
   //
   WorkflowSpec specs;
-  if (isExtendedMode) {
-    specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFT0ext{dataOrigin, dumpReader}, askSTFDist));
-    if (!disableRootOut) {
-      specs.emplace_back(o2::fit::FITDigitWriterSpecHelper<RawReaderFT0ext, MCLabelCont>::getFITDigitWriterSpec(false, false, dataOrigin));
+  if (!isNewDecoder) {
+    if (isExtendedMode) {
+      specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFT0ext{dataOrigin, dumpReader}, askSTFDist));
+      if (!disableRootOut) {
+        specs.emplace_back(o2::fit::FITDigitWriterSpecHelper<RawReaderFT0ext, MCLabelCont>::getFITDigitWriterSpec(false, false, dataOrigin));
+      }
+    } else {
+      specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFT0{dataOrigin, dumpReader}, askSTFDist));
+      if (!disableRootOut) {
+        specs.emplace_back(o2::fit::FITDigitWriterSpecHelper<RawReaderFT0, MCLabelCont>::getFITDigitWriterSpec(false, false, dataOrigin));
+      }
     }
   } else {
-    specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFT0{dataOrigin, dumpReader}, askSTFDist));
-    if (!disableRootOut) {
-      specs.emplace_back(o2::fit::FITDigitWriterSpecHelper<RawReaderFT0, MCLabelCont>::getFITDigitWriterSpec(false, false, dataOrigin));
-    }
+#if defined(__has_include)
+#if defined(__linux__) && (defined(__x86_64) || defined(__x86_64__)) && __has_include(<emmintrin.h>) && __has_include(<immintrin.h>) && defined(FT0_DECODER_AVX512)
+    specs.emplace_back(o2::ft0::getFT0DataDecoderDPLSpec(askSTFDist));
+#endif
+#endif
   }
   return std::move(specs);
 }

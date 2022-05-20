@@ -17,9 +17,11 @@
 #include "CCDB/CcdbObjectInfo.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CPVCalibration/PedestalCalibrator.h"
+#include "CPVBase/CPVCalibParams.h"
 #include "DataFormatsCPV/Digit.h"
 #include "DataFormatsCPV/TriggerRecord.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
 
@@ -65,20 +67,32 @@ class CPVPedestalCalibratorSpec : public o2::framework::Task
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     TFType tfcounter = mCalibrator->getCurrentTFInfo().startTime;
+
+    // update config
+    static bool isConfigFetched = false;
+    if (!isConfigFetched) {
+      LOG(info) << "PedestalCalibratorSpec::run() : fetching o2::cpv::CPVCalibParams from CCDB";
+      pc.inputs().get<o2::cpv::CPVCalibParams*>("calibparams");
+      LOG(info) << "PedestalCalibratorSpec::run() : o2::cpv::CPVCalibParams::Instance() now is following:";
+      o2::cpv::CPVCalibParams::Instance().printKeyValues();
+      mCalibrator->configParameters();
+      isConfigFetched = true;
+    }
+
     auto&& digits = pc.inputs().get<gsl::span<o2::cpv::Digit>>("digits");
     auto&& trigrecs = pc.inputs().get<gsl::span<o2::cpv::TriggerRecord>>("trigrecs");
     LOG(info) << "Processing TF " << tfcounter << " with " << digits.size() << " digits in " << trigrecs.size() << " trigger records.";
     auto& slotTF = mCalibrator->getSlotForTF(tfcounter);
 
-    for (auto trigrec = trigrecs.begin(); trigrec != trigrecs.end(); trigrec++) { //event loop
+    for (auto trigrec = trigrecs.begin(); trigrec != trigrecs.end(); trigrec++) { // event loop
       // here we're filling TimeSlot event by event
       // and when last event is reached we call mCalibrator->process() to finalize the TimeSlot
       auto&& digitsInOneEvent = digits.subspan((*trigrec).getFirstEntry(), (*trigrec).getNumberOfObjects());
-      if ((trigrec + 1) == trigrecs.end()) { //last event in current TF, let's process corresponding TimeSlot
-        //LOG(info) << "last event, I call mCalibrator->process()";
+      if ((trigrec + 1) == trigrecs.end()) { // last event in current TF, let's process corresponding TimeSlot
+        // LOG(info) << "last event, I call mCalibrator->process()";
         mCalibrator->process(digitsInOneEvent); // fill TimeSlot with digits from 1 event and check slots for finalization
       } else {
-        slotTF.getContainer()->fill(digitsInOneEvent); //fill TimeSlot with digits from 1 event
+        slotTF.getContainer()->fill(digitsInOneEvent); // fill TimeSlot with digits from 1 event
       }
     }
 
@@ -169,6 +183,7 @@ DataProcessorSpec getCPVPedestalCalibratorSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_HighThrs"}, Lifetime::Sporadic);
   std::vector<InputSpec> inputs{{"digits", "CPV", "DIGITS"},
                                 {"trigrecs", "CPV", "DIGITTRIGREC"}};
+  inputs.emplace_back("calibparams", "CPV", "CPV_CalibPars", 0, Lifetime::Condition, ccdbParamSpec("CPV/Config/CPVCalibParams"));
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF

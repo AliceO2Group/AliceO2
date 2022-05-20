@@ -77,7 +77,7 @@ class RawGBTDecoderDeviceDPL
       dh = it.o2DataHeader();
       auto const* rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
       gsl::span<const uint8_t> payload(it.data(), it.size());
-      mDecoder->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdhPtr), data, rofRecords);
+      mDecoder->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdhPtr), o2::raw::RDHUtils::getTriggerType(rdhPtr), data, rofRecords);
     }
 
     mTimerAlgo += std::chrono::high_resolution_clock::now() - tAlgoStart;

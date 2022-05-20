@@ -144,8 +144,8 @@ class TPCDistributeIDCSpec : public o2::framework::Task
 
         const auto descr = tpcCRUHeader->dataDescription;
         if (TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescriptionIDCGroup() == descr) {
-          LOGP(debug, "receiving IDCs for CRU: {}", cru);
           mIDCs[currentBuffer][cru][relTF] = pc.inputs().get<pmr::vector<float>>(ref);
+          LOGP(info, "receiving IDCs for CRU: {} of size {}", cru, mIDCs[currentBuffer][cru][relTF].size());
         }
       }
     }
