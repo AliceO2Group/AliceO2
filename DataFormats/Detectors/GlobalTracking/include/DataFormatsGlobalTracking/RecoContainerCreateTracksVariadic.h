@@ -281,18 +281,6 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     }
   }
 
-  // TPC only tracks
-  {
-    int nacc = 0, noffer = 0;
-    for (unsigned i = 0; i < tracksTPC.size(); i++) {
-      if (isUsed2(i, GTrackID::TPC)) { // skip used tracks
-        continue;
-      }
-      const auto& trc = tracksTPC[i];
-      creator(trc, {i, GTrackID::TPC}, trc.getTime0() + 0.5 * (trc.getDeltaTFwd() - trc.getDeltaTBwd()), 0.5 * (trc.getDeltaTFwd() + trc.getDeltaTBwd()));
-    }
-  }
-
   // ITS only tracks
   {
     const auto& rofrs = getITSTracksROFRecords();
@@ -375,6 +363,18 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
         const auto& trc = tracksMID[idx];
         creator(trc, gidMID, t0, t0err);
       }
+    }
+  }
+
+  // TPC only tracks
+  {
+    int nacc = 0, noffer = 0;
+    for (unsigned i = 0; i < tracksTPC.size(); i++) {
+      if (isUsed2(i, GTrackID::TPC)) { // skip used tracks
+        continue;
+      }
+      const auto& trc = tracksTPC[i];
+      creator(trc, {i, GTrackID::TPC}, trc.getTime0() + 0.5 * (trc.getDeltaTFwd() - trc.getDeltaTBwd()), 0.5 * (trc.getDeltaTFwd() + trc.getDeltaTBwd()));
     }
   }
 
