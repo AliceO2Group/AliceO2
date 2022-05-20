@@ -601,29 +601,14 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
     return false;
   }
 
-  // retrieveHeaders
-  auto headers = retrieveHeaders(path, metadata, timestamp);
-
-  // extract unique ETag identifier
-  auto ETag_original = headers["ETag"];
-  // if there is no ETag ... something is wrong
-  if (ETag_original.size() == 0) {
-    LOG(error) << "No ETag found in header for path " << path << ". Aborting.";
+  o2::pmr::vector<char> buff;
+  std::map<std::string, std::string> headers;
+  // avoid creating snapshot via loadFileToMemory itself
+  loadFileToMemory(buff, path, metadata, timestamp, &headers, "", "", "", false);
+  if ((headers.count("Error") != 0) || (buff.empty())) {
+    LOGP(error, "Unable to find object {}/{}, Aborting", path, timestamp);
     return false;
   }
-
-  // remove surrounding quotation marks
-  auto ETag = ETag_original.substr(1, ETag_original.size() - 2);
-
-  // extract location property of object
-  auto location = headers["Location"];
-  // See if this resource is on ALIEN or not.
-  // If this is the case, we can't follow the standard curl procedure further below. We'll
-  // have 2 choices:
-  // a) if we have a token --> copy the file from alien using TMemFile::cp (which internally uses the TGrid instance)
-  // b) if we don't have token or a) fails --> try to download from fallback https: resource if it exists
-  bool onAlien = location.find("alien:") != std::string::npos;
-
   // determine local filename --> use user given one / default -- or if empty string determine from content
   auto getFileName = [&headers]() {
     auto& s = headers["Content-Disposition"];
@@ -640,96 +625,29 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
   };
   auto filename = localFileName.size() > 0 ? localFileName : getFileName();
   std::string targetpath = fulltargetdir + "/" + filename;
-
-  bool success = false;
-  // if resource on Alien and token ok
-  if (onAlien && mHaveAlienToken) {
-    if (initTGrid()) {
-      success = TFile::Cp(location.c_str(), targetpath.c_str());
-      if (!success) {
-        LOG(error) << "Object was marked an ALIEN resource but copy failed.\n";
-      }
-    }
-  }
-
-  if (!success) {
-    FILE* fp = fopen(targetpath.c_str(), "w");
-    if (!fp) {
-      LOG(error) << " Could not open/create target file " << targetpath << "\n";
+  {
+    std::ofstream objFile(targetpath, std::ios::out | std::ofstream::binary);
+    std::copy(buff.begin(), buff.end(), std::ostreambuf_iterator<char>(objFile));
+    if (!objFile.good()) {
+      LOGP(error, "Unable to open local file {}, Aborting", targetpath);
       return false;
     }
-
-    // Prepare CURL
-    CURL* curl_handle;
-    CURLcode res = CURL_LAST;
-    long response_code = 404;
-
-    /* init the curl session */
-    curl_handle = curl_easy_init();
-
-    /* send all data to this function  */
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteToFileCallback);
-
-    /* we pass our file handle to the callback function */
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)fp);
-
-    /* some servers don't like requests that are made without a user-agent
-         field, so we provide one */
-    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
-
-    /* if redirected , we tell libcurl to follow redirection */
-    curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
-
-    curlSetSSLOptions(curl_handle);
-
-    for (size_t i = 0; i < hostsPool.size() && res > 0 && response_code >= 400; i++) {
-      // we can construct download URL direclty from the headers obtained above
-      string fullUrl = getHostUrl(i) + "/download/" + ETag; // getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
-
-      /* specify URL to get */
-      curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
-
-      /* get it! */
-      res = curl_easy_perform(curl_handle);
-
-      success = true;
-      if (res == CURLE_OK) {
-        res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
-        if ((res == CURLE_OK) && (response_code != 404)) {
-        } else {
-          LOG(error) << "Invalid URL : " << fullUrl;
-          success = false;
-        }
-      } else {
-        LOG(error) << "Invalid URL : " << fullUrl;
-        success = false;
-      }
-    }
-
-    if (fp) {
-      fclose(fp);
-    }
-    curl_easy_cleanup(curl_handle);
   }
-
-  if (success) {
-    // append metadata (such as returned headers) to the file so that it can be inspected WHERE/HOW/WHAT IT corresponds to
-    CCDBQuery querysummary(path, metadata, timestamp);
-    {
-      std::lock_guard<std::mutex> guard(gIOMutex);
-      auto oldlevel = gErrorIgnoreLevel;
-      gErrorIgnoreLevel = 6001; // ignoring error messages here (since we catch with IsZombie)
-      TFile snapshotfile(targetpath.c_str(), "UPDATE");
-      // The assumption is that the blob is a ROOT file
-      if (!snapshotfile.IsZombie()) {
-        snapshotfile.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
-        snapshotfile.WriteObjectAny(&headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
-        snapshotfile.Close();
-      }
-      gErrorIgnoreLevel = oldlevel;
+  CCDBQuery querysummary(path, metadata, timestamp);
+  {
+    std::lock_guard<std::mutex> guard(gIOMutex);
+    auto oldlevel = gErrorIgnoreLevel;
+    gErrorIgnoreLevel = 6001; // ignoring error messages here (since we catch with IsZombie)
+    TFile snapshotfile(targetpath.c_str(), "UPDATE");
+    // The assumption is that the blob is a ROOT file
+    if (!snapshotfile.IsZombie()) {
+      snapshotfile.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
+      snapshotfile.WriteObjectAny(&headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
+      snapshotfile.Close();
     }
+    gErrorIgnoreLevel = oldlevel;
   }
-  return success;
+  return true;
 }
 
 void CcdbApi::snapshot(std::string const& ccdbrootpath, std::string const& localDir, long timestamp) const
@@ -1448,7 +1366,7 @@ std::string CcdbApi::getHostUrl(int hostIndex) const
 void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& path,
                                std::map<std::string, std::string> const& metadata, long timestamp,
                                std::map<std::string, std::string>* headers, std::string const& etag,
-                               const std::string& createdNotAfter, const std::string& createdNotBefore) const
+                               const std::string& createdNotAfter, const std::string& createdNotBefore, bool considerSnapshot) const
 {
   LOGP(debug, "loadFileToMemory {} ETag=[{}]", path, etag);
 
@@ -1483,7 +1401,7 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
   }
 
   // are we asked to create a snapshot ?
-  if (!mSnapshotCachePath.empty()) {
+  if (considerSnapshot && !mSnapshotCachePath.empty()) {
     if (mInSnapshotMode && mSnapshotTopPath == mSnapshotCachePath) { // do not save to itself
       return;
     }
