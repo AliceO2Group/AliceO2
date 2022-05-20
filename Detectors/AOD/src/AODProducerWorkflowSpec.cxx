@@ -209,8 +209,8 @@ void AODProducerWorkflowDPL::addToTracksTable(TracksCursorType& tracksCursor, Tr
   float sY = TMath::Sqrt(track.getSigmaY2()), sZ = TMath::Sqrt(track.getSigmaZ2()), sSnp = TMath::Sqrt(track.getSigmaSnp2()),
         sTgl = TMath::Sqrt(track.getSigmaTgl2()), sQ2Pt = TMath::Sqrt(track.getSigma1Pt2());
   tracksCovCursor(0,
-                  truncateFloatFraction(sZ, mTrackCovDiag), // NOTE this writes StoredTracksCovIU where Z is before Y (see AnalysisDataModel.h)
                   truncateFloatFraction(sY, mTrackCovDiag),
+                  truncateFloatFraction(sZ, mTrackCovDiag),
                   truncateFloatFraction(sSnp, mTrackCovDiag),
                   truncateFloatFraction(sTgl, mTrackCovDiag),
                   truncateFloatFraction(sQ2Pt, mTrackCovDiag),
