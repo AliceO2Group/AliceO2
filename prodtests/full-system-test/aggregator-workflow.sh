@@ -68,7 +68,7 @@ fi
 # Calo cal
 # EMC
 if [[ $CALIB_EMC_CHANNELCALIB == 1 ]]; then
-    EXTRA_WORKFLOW_CALIB+="o2-calibration-emcal-channel-calib-workflow --configKeyValue EMCALCalibParams.calibType=\"time\" $ARGS_ALL | "
+    EXTRA_WORKFLOW_CALIB+="o2-calibration-emcal-channel-calib-workflow --configKeyValues EMCALCalibParams.calibType=\"time\" $ARGS_ALL | "
 fi
 
 # PHS
