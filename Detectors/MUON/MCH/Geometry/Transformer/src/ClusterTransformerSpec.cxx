@@ -123,7 +123,6 @@ class ClusterTransformerTask
  public:
   o2::mch::geo::TransformationCreator transformation;
   std::shared_ptr<base::GRPGeomRequest> mCcdbRequest;
-  bool mDisableCcdb;
 };
 
 DataProcessorSpec getClusterTransformerSpec(const char* specName, bool disableCcdb)

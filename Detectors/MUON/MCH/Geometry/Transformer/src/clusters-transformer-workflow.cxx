@@ -25,7 +25,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
                                o2::framework::ConfigParamSpec::HelpString{"Semicolon separated key=value strings"});
   workflowOptions.emplace_back("mch-disable-geometry-from-ccdb",
                                o2::framework::VariantType::Bool, false,
-                               o2::framework::ConfigParamSpec::HelpString{"do not reead geometry from ccdb"});
+                               o2::framework::ConfigParamSpec::HelpString{"do not read geometry from ccdb"});
 }
 
 #include "Framework/runDataProcessing.h"

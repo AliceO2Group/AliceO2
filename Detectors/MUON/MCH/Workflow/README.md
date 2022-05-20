@@ -186,7 +186,7 @@ The decoding is done automatically by the `o2-ctf-reader-workflow`.
 
 ## Local to global cluster transformation
 
-Converts the clusters coordinates from local (2D within detection element plane) to global (3D within Alice reference frame) [more...](/Detectors/MUON/MCH/Geometry/Transformer/src/clusters-transformer.cxx)
+Converts the clusters coordinates from local (2D within detection element plane) to global (3D within Alice reference frame) [more...](/Detectors/MUON/MCH/Geometry/Transformer/README.md)
 
 ## Tracking
 
