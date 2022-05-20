@@ -57,12 +57,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2-fv0-recoflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  auto ccdbpath = o2::base::NameConf::getCCDBServer();
   auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 
-  LOG(info) << "WorkflowSpec getRecoWorkflow useMC " << useMC << " CCDB  " << ccdbpath;
-  auto wf = o2::fv0::getRecoWorkflow(useMC, ccdbpath, disableRootInp, disableRootOut);
+  LOG(info) << "WorkflowSpec getRecoWorkflow useMC " << useMC;
+  auto wf = o2::fv0::getRecoWorkflow(useMC, disableRootInp, disableRootOut);
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
