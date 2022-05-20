@@ -14,9 +14,6 @@
 
 #include <functional>
 #include "DataFormatsMCH/ROFRecord.h"
-#include <array>
-#include <gsl/span>
-#include "MCHBase/Trackable.h"
 #include "MCHROFFiltering/ROFFilter.h"
 
 namespace o2::mch

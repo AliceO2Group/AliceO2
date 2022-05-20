@@ -11,7 +11,6 @@
 
 #include "MCHROFFiltering/IRFrameFilter.h"
 #include "CommonDataFormat/InteractionRecord.h"
-#include "Framework/Logger.h"
 
 using o2::InteractionRecord;
 using o2::dataformats::IRFrame;
@@ -25,7 +24,6 @@ ROFFilter createIRFrameFilter(gsl::span<const o2::dataformats::IRFrame> irframes
     InteractionRecord rofEnd = rofStart + rof.getBCWidth();
     IRFrame ref(rofStart, rofEnd);
     for (const auto& ir : irframes) {
-      // LOGP(info, "TOTO ref {} vs ir {}", ref.asString(), ir.asString());
       auto overlap = ref.getOverlap(ir);
       if (overlap.isValid() && !overlap.isZeroLength()) {
         return true;
