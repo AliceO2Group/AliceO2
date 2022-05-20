@@ -46,6 +46,8 @@ struct WaveformCalibQueue {
   int mPPos = 0;
   int mNP = 0;
   int mPeak = 0;
+  int mTimeLow[NChannels];  /// Cut on position difference low
+  int mTimeHigh[NChannels]; /// Cut on position difference high
 
   const WaveformCalibConfig* mCfg = nullptr;
 
@@ -54,22 +56,7 @@ struct WaveformCalibQueue {
     return NTimeBinsPerBC * TSN * pk + NTimeBinsPerBC / 2 * TSN;
   }
 
-  void configure(const WaveformCalibConfig* cfg)
-  {
-    mCfg = cfg;
-    int ifirst = mCfg->getFirst();
-    int ilast = mCfg->getLast();
-    if (ifirst > 0 || ilast < 0 || ilast < ifirst) {
-      LOGF(fatal, "WaveformCalibQueue configure error with ifirst=%d ilast=%d", ifirst, ilast);
-    }
-    mFirst = ifirst;
-    mLast = ilast;
-    mN = ilast - ifirst + 1;
-    mPk = -mFirst;
-    mPPos = mPk * NIS + NIS / 2;
-    mNP = mN * NIS;
-    mPeak = peak(mPk);
-  }
+  void configure(const WaveformCalibConfig* cfg);
 
   std::deque<int32_t> mEntry;               // Position of event
   std::deque<o2::InteractionRecord> mIR;    // IR of event
@@ -123,6 +110,7 @@ struct WaveformCalibQueue {
   int hasData(int isig, const gsl::span<const o2::zdc::ZDCWaveform>& wave);
   int addData(int isig, const gsl::span<const o2::zdc::ZDCWaveform>& wave, WaveformCalibData& data);
   void print();
+  void printConf();
 };
 
 } // namespace zdc

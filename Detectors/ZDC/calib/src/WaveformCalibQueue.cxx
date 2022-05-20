@@ -17,6 +17,27 @@ namespace o2
 namespace zdc
 {
 
+void WaveformCalibQueue::configure(const WaveformCalibConfig* cfg)
+{
+  mCfg = cfg;
+  int ifirst = mCfg->getFirst();
+  int ilast = mCfg->getLast();
+  if (ifirst > 0 || ilast < 0 || ilast < ifirst) {
+    LOGF(fatal, "WaveformCalibQueue configure error with ifirst=%d ilast=%d", ifirst, ilast);
+  }
+  mFirst = ifirst;
+  mLast = ilast;
+  mN = ilast - ifirst + 1;
+  mPk = -mFirst;
+  mPPos = mPk * NIS + NIS / 2;
+  mNP = mN * NIS;
+  mPeak = peak(mPk);
+  for (int32_t isig = 0; isig < NChannels; isig++) {
+    mTimeLow[isig] = std::nearbyint(cfg->cutTimeLow[SignalTDC[isig]] / FTDCVal);
+    mTimeHigh[isig] = std::nearbyint(cfg->cutTimeHigh[SignalTDC[isig]] / FTDCVal);
+  }
+}
+
 // appends an event to the queue with the request that there are at most
 // mN consecutive bunches
 // The TDC conditions are checked and returned in output
@@ -248,7 +269,6 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
 
 void WaveformCalibQueue::print()
 {
-  printf("mFirst=%d mLast=%d mPk=%d mN=%d mPPos=%d mNP=%d mPeak=%d\n", mFirst, mLast, mPk, mN, mPPos, mNP, mPeak);
   int n = mIR.size();
   for (int i = 0; i < n; i++) {
     printf("%d.%04d mEntry=%d mFirstW=%d mNW=%d\n", mIR[i].orbit, mIR[i].bc, mEntry[i], mFirstW[i], mNW[i]);
@@ -280,6 +300,15 @@ void WaveformCalibQueue::print()
       }
     }
     printf("\n");
+  }
+}
+
+void WaveformCalibQueue::printConf()
+{
+  LOG(info) << "WaveformCalibQueue::" << __func__;
+  LOGF(info, "mFirst=%d mLast=%d mPk=%d mN=%d mPPos=%d mNP=%d mPeak=%d\n", mFirst, mLast, mPk, mN, mPPos, mNP, mPeak);
+  for (int isig = 0; isig < NChannels; isig++) {
+    LOGF(info, "ch%02d pos [%d:%d]", mTimeLow[isig], mTimeHigh[isig]);
   }
 }
 
