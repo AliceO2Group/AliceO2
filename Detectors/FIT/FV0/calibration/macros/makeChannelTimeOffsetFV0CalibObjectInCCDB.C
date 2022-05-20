@@ -26,6 +26,6 @@ int makeChannelTimeOffsetFV0CalibObjectInCCDB(const std::string url = "http://al
   for (auto& dummyCalCoeff : obj.mTimeOffsets) {
     dummyCalCoeff = 0;
   }
-  api.storeAsTFileAny(&obj, "FV0/Calibration/ChannelTimeOffset", md, 0);
+  api.storeAsTFileAny(&obj, "FV0/Calib/ChannelTimeOffset", md, 0);
   return 0;
 }

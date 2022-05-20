@@ -171,7 +171,7 @@ inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::p
 template <>
 inline const char* FITCalibrationApi::getObjectPath<o2::fv0::FV0ChannelTimeCalibrationObject>()
 {
-  return "FV0/Calibration/ChannelTimeOffset";
+  return "FV0/Calib/ChannelTimeOffset";
 }
 
 template <>
