@@ -32,6 +32,7 @@ class CcdbObjectInfo
   static constexpr long MONTH = 30 * DAY;
   static constexpr long YEAR = 364 * DAY;
   static constexpr long INFINITE_TIMESTAMP = 9999999999999;
+  static constexpr long INFINITE_TIMESTAMP_SECONDS = 2000000000; // not really inifinity, but close to std::numeric_limits<int>::max() till 18.05.2033
 
   CcdbObjectInfo() = default;
   CcdbObjectInfo(std::string path, std::string objType, std::string flName,
