@@ -80,32 +80,6 @@ std::unique_ptr<FairMQMessage> DataSender::create(RouteIndex routeIndex)
 void DataSender::send(FairMQParts& parts, ChannelIndex channelIndex)
 {
   mPolicy.send(mProxy, parts, channelIndex);
-
-  /// We also always propagate the information about what is the oldest possible
-  /// timeslice that can be sent from this device.
-  /// FIXME: do it at a different level?
-  /// FIXME: throttling this information?
-  /// FIXME: do it only if it changes?
-  TimesliceIndex& index = mRegistry.get<TimesliceIndex>();
-  index.updateOldestPossibleOutput();
-
-  auto oldest = index.getOldestPossibleOutput();
-  if (oldest.timeslice.value == -1) {
-    LOG(info) << "Unknown oldest possible output timeslice";
-    return;
-  }
-  DecongestionService& decongestion = mRegistry.get<DecongestionService>();
-  if (oldest.timeslice.value == decongestion.lastTimeslice) {
-    LOGP(debug, "Not sending already sent value");
-    return;
-  }
-  if (oldest.timeslice.value < decongestion.lastTimeslice) {
-    LOGP(error, "We are trying to send a timeslice {} that is older than the last one we sent {}",
-         oldest.timeslice.value, decongestion.lastTimeslice);
-    return;
-  }
-  auto* channel = mProxy.getOutputChannel(channelIndex);
-  DataProcessingHelpers::sendOldestPossibleTimeframe(*channel, oldest.timeslice.value);
 }
 
 } // namespace o2::framework
