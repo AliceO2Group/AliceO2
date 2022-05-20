@@ -118,7 +118,7 @@ DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
   }
   inputSpec.emplace_back("ft0offsets", "FT0", "TimeOffset", 0,
                          Lifetime::Condition,
-                         ccdbParamSpec("FT0/Calibration/ChannelTimeOffset"));
+                         ccdbParamSpec("FT0/Calib/ChannelTimeOffset"));
 
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECCHDATA", 0, Lifetime::Timeframe);
