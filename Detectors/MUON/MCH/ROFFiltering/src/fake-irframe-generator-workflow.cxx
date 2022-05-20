@@ -45,7 +45,7 @@ using namespace o2::framework;
 class IRFrameGenerator : public Task
 {
  public:
-  void init(InitContext& ic)
+  void init(InitContext& ic) override
   {
     std::stringstream in(ic.options().get<std::string>("irframes"));
     rapidjson::IStreamWrapper isw(in);
@@ -70,7 +70,7 @@ class IRFrameGenerator : public Task
     }
   }
 
-  void run(ProcessingContext& pc)
+  void run(ProcessingContext& pc) override
   {
     pc.outputs().snapshot(OutputRef{"irframes"}, mIRFrames);
   }
