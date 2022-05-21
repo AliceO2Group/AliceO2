@@ -598,10 +598,6 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       timesliceIndex.updateOldestPossibleOutput();
       auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
 
-      if (oldestPossibleOutput.timeslice.value == decongestion.lastTimeslice) {
-        LOGP(debug, "Not sending already sent value");
-        return;
-      }
       if (oldestPossibleOutput.timeslice.value < decongestion.lastTimeslice) {
         LOGP(error, "We are trying to send a timeslice {} that is older than the last one we sent {}",
              oldestPossibleOutput.timeslice.value, decongestion.lastTimeslice);
