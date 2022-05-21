@@ -1673,12 +1673,11 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       }
     }
     for (size_t fi = 0; fi < spec->forwards.size(); fi++) {
-      if (forwardedParts[fi].Size() == 0) {
-        continue;
-      }
       auto& channel = device->GetChannel(spec->forwards[fi].channel, 0);
-      // in DPL we are using subchannel 0 only
-      channel.Send(forwardedParts[fi]);
+      if (forwardedParts[fi].Size() != 0) {
+        // in DPL we are using subchannel 0 only
+        channel.Send(forwardedParts[fi]);
+      }
 
       // The oldest possible timeslice for a forwarded message
       // is conservatively the one of the device doing the forwarding.
