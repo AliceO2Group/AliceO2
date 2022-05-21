@@ -9,4 +9,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHROFFiltering/TrackableFilter.h"
+#include "MCHROFFiltering/ROFFilter.h"
+
+namespace o2::mch
+{
+ROFFilter createROFFilter(gsl::span<const ROFFilter> filters)
+{
+  return [filters](const ROFRecord& rof) {
+    for (const auto& filter : filters) {
+      if (!filter(rof)) {
+        return false;
+      }
+    }
+    return true;
+  };
+}
+} // namespace o2::mch

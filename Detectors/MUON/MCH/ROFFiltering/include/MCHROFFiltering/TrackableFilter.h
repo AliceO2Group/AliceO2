@@ -17,6 +17,7 @@
 #include <array>
 #include <gsl/span>
 #include "MCHBase/Trackable.h"
+#include "MCHROFFiltering/ROFFilter.h"
 
 namespace o2::mch
 {
@@ -26,8 +27,6 @@ namespace o2::mch
  * a boolean.
  *
  * @param items : the items "pointed to" by the ROFRecords (digits, ...)
- * @param onlyTrackable : if false the filter will always return true
- * (i.e. will be a noop basically)
  *
  * @param requestStation : @ref isTrackable
  * @param moreCandidates : @ref isTrackable
@@ -36,17 +35,11 @@ namespace o2::mch
  */
 
 template <typename T>
-std::function<bool(const ROFRecord&)>
-  createTrackableFilter(gsl::span<const T> items, bool onlyTrackable,
+ROFFilter
+  createTrackableFilter(gsl::span<const T> items,
                         std::array<bool, 5> requestStation = {true, true, true, true, true},
                         bool moreCandidates = false)
 {
-  if (!onlyTrackable) {
-    // return an "always true" filter
-    return [](const ROFRecord&) {
-      return true;
-    };
-  }
   return [items, requestStation, moreCandidates](const ROFRecord& rof) {
     std::array<int, 10> nofItemsPerChamber = perChamber(items.subspan(rof.getFirstIdx(), rof.getNEntries()));
     return isTrackable(nofItemsPerChamber, requestStation, moreCandidates);

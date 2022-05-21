@@ -10,6 +10,13 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(MCHROFFiltering
-        SOURCES src/TrackableFilter.cxx
+        SOURCES src/ROFFilter.cxx src/IRFrameFilter.cxx
         PUBLIC_LINK_LIBRARIES O2::MCHBase)
+
+o2_add_executable(
+        fake-irframe-generator-workflow
+        SOURCES src/fake-irframe-generator-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::MCHBase)
+
 
