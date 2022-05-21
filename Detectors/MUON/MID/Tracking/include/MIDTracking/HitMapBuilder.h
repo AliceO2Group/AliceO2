@@ -45,13 +45,11 @@ class HitMapBuilder
   /// Builds the track infos
   /// \param track Reconstructed track: it will be modified
   /// \param clusters gsl::span of associated clusters (in local coordinates)
-  /// \return TrackInfo object with the track hit map and other information
   void buildTrackInfo(Track& track, gsl::span<const Cluster> clusters) const;
 
   /// Builds the track infos for the tracks in the vector
   /// \param tracks Vector of reconstructed tracks: it will be modified
   /// \param clusters gsl::span of associated clusters (in local coordinates)
-  /// \return TrackInfo object with the track hit map and other information
   void process(std::vector<Track>& tracks, gsl::span<const Cluster> clusters) const;
 
  private:

@@ -16,7 +16,7 @@
 #include "FairLogger.h" // for LOG
 #include "DataFormatsFT0/RecPoints.h"
 #include "FT0Base/Geometry.h"
-#include "FT0Simulation/FT0DigParam.h"
+#include "FT0Base/FT0DigParam.h"
 #include <DataFormatsFT0/ChannelData.h>
 #include <DataFormatsFT0/Digit.h>
 #include <cmath>

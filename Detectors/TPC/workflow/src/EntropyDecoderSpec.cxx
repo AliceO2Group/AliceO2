@@ -42,6 +42,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
+  o2::ctf::CTFIOSize iosize;
 
   mCTFCoder.updateTimeDependentParams(pc);
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
@@ -49,12 +50,12 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto& compclusters = pc.outputs().make<std::vector<char>>(OutputRef{"output"});
   if (buff.size()) {
     const auto ctfImage = o2::tpc::CTF::getImage(buff.data());
-    mCTFCoder.decode(ctfImage, compclusters);
+    iosize = mCTFCoder.decode(ctfImage, compclusters);
   }
-
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
   LOG(info) << "Decoded " << buff.size() * sizeof(o2::ctf::BufferType) << " encoded bytes to "
-            << compclusters.size() << " bytes in " << mTimer.CpuTime() - cput << " s";
+            << compclusters.size() << " bytes, (" << iosize.asString() << ") in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -72,7 +73,8 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
   return DataProcessorSpec{
     "tpc-entropy-decoder",
     inputs,
-    Outputs{OutputSpec{{"output"}, "TPC", "COMPCLUSTERSFLAT", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{{"output"}, "TPC", "COMPCLUSTERSFLAT", 0, Lifetime::Timeframe},
+            OutputSpec{{"ctfrep"}, "TPC", "CTFDECREP", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
 }

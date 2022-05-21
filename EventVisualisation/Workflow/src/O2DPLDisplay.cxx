@@ -29,7 +29,6 @@
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/Cluster.h"
 #include <unistd.h>
-#include <climits>
 
 using namespace o2::event_visualisation;
 using namespace o2::framework;
@@ -54,10 +53,11 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings ..."}},
     {"skipOnEmptyInput", VariantType::Bool, false, {"don't run the ED when no input is provided"}},
     {"min-its-tracks", VariantType::Int, -1, {"don't create file if less than the specified number of ITS tracks is present"}},
-    {"min-tracks", VariantType::Int, -1, {"don't create file if less than the specified number of all tracks is present"}},
+    {"min-tracks", VariantType::Int, 1, {"don't create file if less than the specified number of all tracks is present"}},
     {"filter-its-rof", VariantType::Bool, false, {"don't display tracks outside ITS readout frame"}},
     {"filter-time-min", VariantType::Float, -1.f, {"display tracks only in [min, max] microseconds time range in each time frame, requires --filter-time-max to be specified as well"}},
     {"filter-time-max", VariantType::Float, -1.f, {"display tracks only in [min, max] microseconds time range in each time frame, requires --filter-time-min to be specified as well"}},
+    {"remove-tpc-abs-eta", VariantType::Float, 0.f, {"remove TPC tracks in [-eta, +eta] range"}},
   };
 
   std::swap(workflowOptions, options);
@@ -89,19 +89,12 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
 
   EveWorkflowHelper::FilterSet enabledFilters;
 
-  if (this->mFilterITSROF) {
-    enabledFilters.set(EveWorkflowHelper::Filter::ITSROF);
-  }
+  enabledFilters.set(EveWorkflowHelper::Filter::ITSROF, this->mFilterITSROF);
+  enabledFilters.set(EveWorkflowHelper::Filter::TimeBracket, this->mFilterTime);
+  enabledFilters.set(EveWorkflowHelper::Filter::EtaBracket, this->mRemoveTPCEta);
+  enabledFilters.set(EveWorkflowHelper::Filter::TotalNTracks, this->mNumberOfTracks != -1);
 
-  if (this->mFilterTime) {
-    enabledFilters.set(EveWorkflowHelper::Filter::TimeBracket);
-  }
-
-  if (this->mNumberOfTracks != -1) {
-    enabledFilters.set(EveWorkflowHelper::Filter::TotalNTracks);
-  }
-
-  EveWorkflowHelper helper(enabledFilters, this->mNumberOfTracks, this->mTimeBracket);
+  EveWorkflowHelper helper(enabledFilters, this->mNumberOfTracks, this->mTimeBracket, this->mEtaBracket);
 
   helper.getRecoContainer().collectData(pc, *mDataRequest);
   helper.selectTracks(&(mData.mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
@@ -126,6 +119,11 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   }
 
   if (save) {
+    helper.mEvent.setClMask(this->mClMask.to_ulong());
+    helper.mEvent.setTrkMask(this->mTrkMask.to_ulong());
+    helper.mEvent.setRunNumber(dh->runNumber);
+    helper.mEvent.setTfCounter(dh->tfCounter);
+    helper.mEvent.setFirstTForbit(dh->firstTForbit);
     helper.save(this->mJsonPath, this->mNumberOfFiles, this->mTrkMask, this->mClMask, this->mWorkflowVersion, dh->runNumber, dph->creation);
   }
 
@@ -199,19 +197,35 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     throw std::runtime_error("No input configured");
   }
 
-  bool filterTime;
-  EveWorkflowHelper::TBracket timeBracket{cfgc.options().get<float>("filter-time-min"), cfgc.options().get<float>("filter-time-max")};
+  auto isRangeEnabled = [&opts = cfgc.options()](const char* min_name, const char* max_name) {
+    EveWorkflowHelper::Bracket bracket{opts.get<float>(min_name), opts.get<float>(max_name)};
+    bool optEnabled = false;
 
-  if (timeBracket.getMin() < 0 && timeBracket.getMax() < 0) {
-    filterTime = false;
-  } else if (timeBracket.getMin() >= 0 && timeBracket.getMax() >= 0) {
-    filterTime = true;
+    if (bracket.getMin() < 0 && bracket.getMax() < 0) {
+      optEnabled = false;
+    } else if (bracket.getMin() >= 0 && bracket.getMax() >= 0) {
+      optEnabled = true;
 
-    if (timeBracket.isInvalid()) {
-      throw std::runtime_error("Filter time bracket is invalid");
+      if (bracket.isInvalid()) {
+        throw std::runtime_error(fmt::format("{}, {} bracket is invalid", min_name, max_name));
+      }
+    } else {
+      throw std::runtime_error(fmt::format("Both boundaries, {} and {}, have to be specified at the same time", min_name, max_name));
     }
-  } else {
-    throw std::runtime_error("Both filter times, min and max, have to be specified at the same time");
+
+    return std::make_tuple(optEnabled, bracket);
+  };
+
+  const auto [filterTime, timeBracket] = isRangeEnabled("filter-time-min", "filter-time-max");
+
+  const auto etaRange = cfgc.options().get<float>("remove-tpc-abs-eta");
+
+  bool removeTPCEta = false;
+  EveWorkflowHelper::Bracket etaBracket;
+
+  if (etaRange != 0.f) {
+    etaBracket = EveWorkflowHelper::Bracket{-etaRange, etaRange};
+    removeTPCEta = true;
   }
 
   std::shared_ptr<DataRequest> dataRequest = std::make_shared<DataRequest>();
@@ -233,7 +247,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     "o2-eve-display",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket)}});
+    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket)}});
 
   return std::move(specs);
 }

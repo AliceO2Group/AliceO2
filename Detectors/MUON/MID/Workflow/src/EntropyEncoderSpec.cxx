@@ -62,6 +62,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
       {"check", ConcreteDataTypeMatcher{header::gDataOriginMID, "DATA"}, Lifetime::Timeframe},
       {"check", ConcreteDataTypeMatcher{header::gDataOriginMID, "DATAROF"}, Lifetime::Timeframe},
     };
+  size_t insize = 0;
   for (auto const& inputRef : InputRecordWalker(pc.inputs(), filter)) {
     auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
     if (dh->subSpecification >= NEvTypes) {
@@ -69,19 +70,22 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
     }
     if (DataRefUtils::match(inputRef, "cols")) {
       tfData.colData[dh->subSpecification] = pc.inputs().get<gsl::span<o2::mid::ColumnData>>(inputRef);
+      insize += tfData.colData[dh->subSpecification].size() * sizeof(o2::mid::ColumnData);
     }
     if (DataRefUtils::match(inputRef, "rofs")) {
       tfData.rofData[dh->subSpecification] = pc.inputs().get<gsl::span<o2::mid::ROFRecord>>(inputRef);
+      insize += tfData.rofData[dh->subSpecification].size() * sizeof(o2::mid::ROFRecord);
     }
   }
   // build references for looping over the data in BC increasing direction
   tfData.buildReferences();
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{header::gDataOriginMID, "CTFDATA", 0, Lifetime::Timeframe});
-  mCTFCoder.encode(buffer, tfData);
-  auto sz = mCTFCoder.finaliseCTFOutput<CTF>(buffer);
+  auto iosize = mCTFCoder.encode(buffer, tfData);
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
+  iosize.rawIn = insize;
   mTimer.Stop();
-  LOG(info) << "Created encoded data of size " << sz << " for MID in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -100,7 +104,8 @@ DataProcessorSpec getEntropyEncoderSpec()
   return DataProcessorSpec{
     "mid-entropy-encoder",
     inputs,
-    Outputs{{header::gDataOriginMID, "CTFDATA", 0, Lifetime::Timeframe}},
+    Outputs{{header::gDataOriginMID, "CTFDATA", 0, Lifetime::Timeframe},
+            {{"ctfrep"}, header::gDataOriginMID, "CTFENCREP", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};

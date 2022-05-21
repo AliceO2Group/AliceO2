@@ -24,6 +24,7 @@
 #include "TLatex.h"
 #include "TStyle.h"
 #include "TPaveText.h"
+#include "TPaletteAxis.h"
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/ROC.h"
@@ -77,6 +78,45 @@ std::vector<painter::PadCoordinates> painter::getPadCoordinatesSector()
   }
 
   return padCoords;
+}
+
+std::vector<double> painter::getRowBinningCM(uint32_t roc)
+{
+  const Mapper& mapper = Mapper::instance();
+
+  int firstRegion = 0, lastRegion = 10;
+  if (roc < 36) {
+    firstRegion = 0;
+    lastRegion = 4;
+  } else if (roc < 72) {
+    firstRegion = 4;
+    lastRegion = 10;
+  }
+
+  std::vector<double> binning;
+
+  float lastPadHeight = mapper.getPadRegionInfo(firstRegion).getPadHeight();
+  float localX = mapper.getPadRegionInfo(firstRegion).getRadiusFirstRow();
+  binning.emplace_back(localX - 3);
+  binning.emplace_back(localX);
+  for (int iregion = firstRegion; iregion < lastRegion; ++iregion) {
+    const auto& regionInfo = mapper.getPadRegionInfo(iregion);
+    const auto padHeight = regionInfo.getPadHeight();
+
+    if (std::abs(padHeight - lastPadHeight) > 1e-5) {
+      lastPadHeight = padHeight;
+      localX = regionInfo.getRadiusFirstRow();
+      binning.emplace_back(localX);
+    }
+
+    for (int irow = 0; irow < regionInfo.getNumberOfPadRows(); ++irow) {
+      localX += lastPadHeight;
+      binning.emplace_back(localX);
+    }
+  }
+  binning.emplace_back(localX + 3);
+
+  return binning;
 }
 
 std::string painter::getROCTitle(const int rocNumber)
@@ -890,6 +930,16 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const LtrCalibData& ltr, std:
   vecCanvases.emplace_back(cLtrCoverage);
   vecCanvases.emplace_back(cCalibValues);
   return vecCanvases;
+}
+
+void painter::adjustPalette(TH1* h, float x2ndc, float tickLength)
+{
+  gPad->Modified();
+  gPad->Update();
+  auto palette = (TPaletteAxis*)h->GetListOfFunctions()->FindObject("palette");
+  palette->SetX2NDC(x2ndc);
+  auto ax = h->GetZaxis();
+  ax->SetTickLength(tickLength);
 }
 
 // ===| explicit instantiations |===============================================

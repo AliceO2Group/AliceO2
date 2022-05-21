@@ -208,7 +208,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
       LOGP(detail, "Loading {} for timestamp {}", path, timestamp);
       api.loadFileToMemory(v, path, metadata, timestamp, &headers, etag, helper->createdNotAfter, helper->createdNotBefore);
       if ((headers.count("Error") != 0) || (etag.empty() && v.empty())) {
-        LOGP(fatal, "Unable to find object {}/{}", path, timingInfo.timeslice);
+        LOGP(fatal, "Unable to find object {}/{}", path, timestamp);
         // FIXME: I should send a dummy message.
         continue;
       }
@@ -292,7 +292,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         static Long64_t orbitResetTime = -1;
         static size_t lastTimeUsed = -1;
         if (timingInfo.creation & DataProcessingHeader::DUMMY_CREATION_TIME_OFFSET) {
-          LOGP(error, "Dummy creation time is not supported for CCDB objects. Setting creation to last one used.");
+          LOGP(error, "Dummy creation time is not supported for CCDB objects. Setting creation to last one used {}.", lastTimeUsed);
           timingInfo.creation = lastTimeUsed;
         }
         lastTimeUsed = timingInfo.creation;

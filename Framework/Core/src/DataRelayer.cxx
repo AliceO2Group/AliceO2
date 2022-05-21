@@ -121,9 +121,17 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       slotsCreatedByHandlers.push_back(handler.creator(channelIndex, mTimesliceIndex));
     }
   }
-  if (slotsCreatedByHandlers.empty() == false) {
+  // Count how many slots are not invalid
+  auto validSlots = 0;
+  for (auto slot : slotsCreatedByHandlers) {
+    if (slot.index == TimesliceSlot::INVALID) {
+      continue;
+    }
+    validSlots++;
+  }
+  if (validSlots > 0) {
     activity.newSlots++;
-    LOGP(debug, "DataRelayer::processDanglingInputs: {} slots created by handler", slotsCreatedByHandlers.size());
+    LOGP(debug, "DataRelayer::processDanglingInputs: {} slots created by handler", validSlots);
   } else {
     LOGP(debug, "DataRelayer::processDanglingInputs: no slots created by handler");
   }
@@ -568,9 +576,13 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
   // These two are trivial, but in principle the whole loop could be parallelised
   // or vectorised so "completed" could be a thread local variable which needs
   // merging at the end.
-  auto updateCompletionResults = [&completed](TimesliceSlot li, CompletionPolicy::CompletionOp op) {
-    LOGP(debug, "Doing action {} for slot {}", op, li.index);
-    completed.emplace_back(RecordAction{li, op});
+  auto updateCompletionResults = [&completed](TimesliceSlot li, uint64_t const* timeslice, CompletionPolicy::CompletionOp op) {
+    if (timeslice) {
+      LOGP(debug, "Doing action {} for slot {} (timeslice: {})", op, li.index, *timeslice);
+      completed.emplace_back(RecordAction{li, {*timeslice}, op});
+    } else {
+      LOGP(debug, "No timeslice associated with slot ", li.index);
+    }
   };
 
   // THE OUTER LOOP
@@ -630,29 +642,31 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     } else {
       throw std::runtime_error("No completion policy found");
     }
+    auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
+    auto timeslice = std::get_if<uint64_t>(&variables.get(0));
     switch (action) {
       case CompletionPolicy::CompletionOp::Consume:
         countConsume++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
         break;
       case CompletionPolicy::CompletionOp::ConsumeAndRescan:
         // This is just like Consume, but we also mark all slots as dirty
         countConsume++;
         action = CompletionPolicy::CompletionOp::Consume;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
         mTimesliceIndex.rescan();
         break;
       case CompletionPolicy::CompletionOp::ConsumeExisting:
         countConsumeExisting++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
         break;
       case CompletionPolicy::CompletionOp::Process:
         countProcess++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
         break;
       case CompletionPolicy::CompletionOp::Discard:
         countDiscard++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
         break;
       case CompletionPolicy::CompletionOp::Wait:
         countWait++;

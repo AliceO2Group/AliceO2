@@ -36,7 +36,7 @@ class ELinkManager
  public:
   void init(uint16_t feeId, bool isDebugMode, bool isBare = false, const ElectronicsDelay& electronicsDelay = ElectronicsDelay(), const FEEIdConfig& feeIdConfig = FEEIdConfig());
 
-  void set(uint32_t orbit);
+  void set(uint32_t orbit, uint32_t trigger);
 
   /// Main function to be executed when decoding is done
   inline void onDone(const ELinkDecoder& decoder, uint8_t boardUniqueId, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs) { return onDone(decoder, raw::getCrateId(boardUniqueId), raw::getLocId(boardUniqueId), data, rofs); }

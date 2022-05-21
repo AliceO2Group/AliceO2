@@ -57,6 +57,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     IN_INPUT_ORIGIN,
     IN_INPUT_DESCRIPTION,
     IN_INPUT_SUBSPEC,
+    IN_INPUT_ORIGIN_REF,
+    IN_INPUT_DESCRIPTION_REF,
+    IN_INPUT_SUBSPEC_REF,
     IN_INPUT_LIFETIME,
     IN_INPUT_STARTTIME,
     IN_INPUT_MATCHER,
@@ -153,6 +156,15 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
         break;
       case State::IN_INPUT_SUBSPEC:
         s << "IN_INPUT_SUBSPEC";
+        break;
+      case State::IN_INPUT_ORIGIN_REF:
+        s << "IN_INPUT_ORIGIN_REF";
+        break;
+      case State::IN_INPUT_DESCRIPTION_REF:
+        s << "IN_INPUT_DESCRIPTION_REF";
+        break;
+      case State::IN_INPUT_SUBSPEC_REF:
+        s << "IN_INPUT_SUBSPEC_REF";
         break;
       case State::IN_INPUT_MATCHER:
         s << "IN_INPUT_MATCHER";
@@ -546,6 +558,12 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_INPUT_DESCRIPTION);
     } else if (in(State::IN_INPUT) && strncmp(str, "subspec", length) == 0) {
       push(State::IN_INPUT_SUBSPEC);
+    } else if (in(State::IN_INPUT) && strncmp(str, "originRef", length) == 0) {
+      push(State::IN_INPUT_ORIGIN_REF);
+    } else if (in(State::IN_INPUT) && strncmp(str, "descriptionRef", length) == 0) {
+      push(State::IN_INPUT_DESCRIPTION_REF);
+    } else if (in(State::IN_INPUT) && strncmp(str, "subspecRef", length) == 0) {
+      push(State::IN_INPUT_SUBSPEC_REF);
     } else if (in(State::IN_INPUT) && strncmp(str, "matcher", length) == 0) {
       // the outermost matcher is starting here
       // we create a placeholder which is being updated later
@@ -573,6 +591,18 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_INPUT_SUBSPEC);
     } else if (in(State::IN_INPUT_RIGHT_MATCHER) && strncmp(str, "subspec", length) == 0) {
       push(State::IN_INPUT_SUBSPEC);
+    } else if (in(State::IN_INPUT_LEFT_MATCHER) && strncmp(str, "originRef", length) == 0) {
+      push(State::IN_INPUT_ORIGIN_REF);
+    } else if (in(State::IN_INPUT_RIGHT_MATCHER) && strncmp(str, "originRef", length) == 0) {
+      push(State::IN_INPUT_ORIGIN_REF);
+    } else if (in(State::IN_INPUT_LEFT_MATCHER) && strncmp(str, "descriptionRef", length) == 0) {
+      push(State::IN_INPUT_DESCRIPTION_REF);
+    } else if (in(State::IN_INPUT_RIGHT_MATCHER) && strncmp(str, "descriptionRef", length) == 0) {
+      push(State::IN_INPUT_DESCRIPTION_REF);
+    } else if (in(State::IN_INPUT_LEFT_MATCHER) && strncmp(str, "subspecRef", length) == 0) {
+      push(State::IN_INPUT_SUBSPEC_REF);
+    } else if (in(State::IN_INPUT_RIGHT_MATCHER) && strncmp(str, "subspecRef", length) == 0) {
+      push(State::IN_INPUT_SUBSPEC_REF);
     } else if (in(State::IN_INPUT_LEFT_MATCHER) && strncmp(str, "starttime", length) == 0) {
       push(State::IN_INPUT_STARTTIME);
     } else if (in(State::IN_INPUT_RIGHT_MATCHER) && strncmp(str, "starttime", length) == 0) {
@@ -740,6 +770,15 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     if (in(State::IN_INPUT_SUBSPEC)) {
       subspec = i;
       inputMatcherNodes.push_back(SubSpecificationTypeValueMatcher{i});
+    } else if (in(State::IN_INPUT_ORIGIN_REF)) {
+      ref = i;
+      inputMatcherNodes.push_back(OriginValueMatcher{ContextRef{i}});
+    } else if (in(State::IN_INPUT_DESCRIPTION_REF)) {
+      ref = i;
+      inputMatcherNodes.push_back(DescriptionValueMatcher{ContextRef{i}});
+    } else if (in(State::IN_INPUT_SUBSPEC_REF)) {
+      ref = i;
+      inputMatcherNodes.push_back(SubSpecificationTypeValueMatcher{ContextRef{i}});
     } else if (in(State::IN_OUTPUT_SUBSPEC)) {
       subspec = i;
     } else if (in(State::IN_INPUT_LIFETIME)) {
@@ -823,6 +862,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   header::DataOrigin origin;
   header::DataDescription description;
   size_t subspec;
+  size_t ref;
   Lifetime lifetime;
   std::string optionName;
   VariantType optionType;
@@ -923,22 +963,43 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
     [&w](auto) {}};
   auto leafWalker = overloaded{
     [&w](OriginValueMatcher const& origin) {
-      w.Key("origin");
-      std::stringstream ss;
-      ss << origin;
-      w.String(ss.str().c_str());
+      origin.visit(overloaded{
+        [&w](ContextRef const& ref) {
+          w.Key("originRef");
+          w.Uint64(ref.index);
+        },
+        [&w](auto const& value) {
+          w.Key("origin");
+          std::stringstream ss;
+          ss << value;
+          w.String(ss.str().c_str());
+        }});
     },
     [&w](DescriptionValueMatcher const& description) {
-      w.Key("description");
-      std::stringstream ss;
-      ss << description;
-      w.String(ss.str().c_str());
+      description.visit(overloaded{
+        [&w](ContextRef const& ref) {
+          w.Key("descriptionRef");
+          w.Uint64(ref.index);
+        },
+        [&w](auto const& value) {
+          w.Key("description");
+          std::stringstream ss;
+          ss << value;
+          w.String(ss.str().c_str());
+        }});
     },
     [&w](SubSpecificationTypeValueMatcher const& subspec) {
-      w.Key("subspec");
-      std::stringstream ss;
-      ss << subspec;
-      w.Uint64(std::stoul(ss.str()));
+      subspec.visit(overloaded{
+        [&w](ContextRef const& ref) {
+          w.Key("subspecRef");
+          w.Uint64(ref.index);
+        },
+        [&w](auto const& value) {
+          w.Key("subspec");
+          std::stringstream ss;
+          ss << value;
+          w.Uint64(std::stoul(ss.str()));
+        }});
     },
     [&w](StartTimeValueMatcher const& startTime) {
       w.Key("starttime");
@@ -977,10 +1038,10 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
         w.String(concrete->description.str, strnlen(concrete->description.str, 16));
         w.Key("subspec");
         w.Uint64(concrete->subSpec);
-        //auto tmp = DataSpecUtils::dataDescriptorMatcherFrom(*concrete);
-        //DataMatcherWalker::walk(tmp,
-        //                        edgeWalker,
-        //                        leafWalker);
+        // auto tmp = DataSpecUtils::dataDescriptorMatcherFrom(*concrete);
+        // DataMatcherWalker::walk(tmp,
+        //                         edgeWalker,
+        //                         leafWalker);
       } else if (auto const* matcher = std::get_if<DataDescriptorMatcher>(&input.matcher)) {
         DataMatcherWalker::walk(*matcher,
                                 edgeWalker,

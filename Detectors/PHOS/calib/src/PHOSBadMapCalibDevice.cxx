@@ -98,7 +98,14 @@ void PHOSBadMapCalibDevice::run(o2::framework::ProcessingContext& ctx)
     }
   }
 
-  if (mMode == 2) { // Pedestals
+  if (mMode == 2) {         // Pedestals
+    if (mStatistics <= 0) { // skip the rest of the run
+      return;
+    }
+    if (mStatistics % 100 == 0) {
+      LOG(info) << mStatistics << " left to produce pedestal BadMap";
+    }
+
     auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
     LOG(debug) << "[PHOSBadMapCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
     for (const auto& c : cells) {
@@ -112,6 +119,13 @@ void PHOSBadMapCalibDevice::run(o2::framework::ProcessingContext& ctx)
         mLGNorm->Fill(c.getAbsId() - 1792, 1.);
       }
     }
+    --mStatistics;
+    if (mStatistics <= 0) {
+      LOG(info) << "Start calculating bad map";
+      calculateBadMap();
+      checkBadMap();
+      sendOutput(ctx.outputs());
+    }
   }
 }
 
@@ -120,6 +134,9 @@ void PHOSBadMapCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 
   LOG(info) << "[PHOSBadMapCalibDevice - endOfStream]";
   // calculate stuff here
+  if (mMode == 2 && mStatistics <= 0) { // already calculated, do nothing
+    return;
+  }
   if (calculateBadMap()) {
     checkBadMap();
     sendOutput(ec.outputs());
@@ -162,7 +179,7 @@ void PHOSBadMapCalibDevice::sendOutput(DataAllocator& output)
 
   // Send change to QC
   LOG(info) << "[PHOSBadMapCalibDevice - run] Sending QC ";
-  output.snapshot(o2::framework::Output{"PHS", "CALIBDIFF", 0, o2::framework::Lifetime::Timeframe}, mBadMapDiff);
+  output.snapshot(o2::framework::Output{"PHS", "BADMAPDIFF", 0, o2::framework::Lifetime::Timeframe}, mBadMapDiff);
 }
 
 bool PHOSBadMapCalibDevice::calculateBadMap()
@@ -402,7 +419,7 @@ o2::framework::DataProcessorSpec o2::phos::getBadMapCalibSpec(int mode)
 
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(o2::header::gDataOriginPHS, "CALIBDIFF", 0, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(o2::header::gDataOriginPHS, "BADMAPDIFF", 0, o2::framework::Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHS_BadMap"}, o2::framework::Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHS_BadMap"}, o2::framework::Lifetime::Sporadic);
   return o2::framework::DataProcessorSpec{"BadMapCalibSpec",

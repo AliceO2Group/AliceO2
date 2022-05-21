@@ -34,15 +34,17 @@ CallbacksPolicy epnProcessReporting()
       callbacks.set(CallbackService::Id::PreProcessing, [](ServiceRegistry& registry, int op) {
         auto& info = registry.get<TimingInfo>();
         if ((int)info.firstTFOrbit != -1) {
-          LOGP(info, "Processing timeslice:{}, tfCounter:{}, firstTFOrbit:{}, action:{}",
-               info.timeslice, info.tfCounter, info.firstTFOrbit, op);
+          char const* what = (info.timeslice > 1652945069870351) ? "timer" : "timeslice";
+          LOGP(info, "Processing {}:{}, tfCounter:{}, firstTFOrbit:{}, creation:{}, action:{}",
+               what, info.timeslice, info.tfCounter, info.firstTFOrbit, info.creation, op);
         }
       });
       callbacks.set(CallbackService::Id::PostProcessing, [](ServiceRegistry& registry, int op) {
         auto& info = registry.get<TimingInfo>();
         if ((int)info.firstTFOrbit != -1) {
-          LOGP(info, "Done processing timeslice:{}, tfCounter:{}, firstTFOrbit:{}, action:{}",
-               info.timeslice, info.tfCounter, info.firstTFOrbit, op);
+          char const* what = (info.timeslice > 1652945069870351) ? "timer" : "timeslice";
+          LOGP(info, "Done processing {}:{}, tfCounter:{}, firstTFOrbit:{}, creation:{}, action:{}",
+               what, info.timeslice, info.tfCounter, info.firstTFOrbit, info.creation, op);
         }
       });
     }};
@@ -55,4 +57,3 @@ std::vector<CallbacksPolicy> CallbacksPolicy::createDefaultPolicies()
 }
 
 } // namespace o2::framework
-#pragma GCC diagnostic pop

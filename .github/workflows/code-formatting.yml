@@ -1,104 +1,11 @@
-name: Check PR with clang-format
+---
+name: Formatting
 
-on: [pull_request_target]
+'on': [pull_request_target]
 
 jobs:
-  build:
-    # We need at least 20.04 to install clang-format-11.
-    runs-on: ubuntu-20.04
-
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
-        persist-credentials: false
-        # We need the history of the dev branch all the way back to where the PR
-        # diverged. We're fetching everything here, as we don't know how many
-        # commits back that point is.
-        fetch-depth: 0
-
-    - name: Install prerequisites
-      env:
-        DEBIAN_FRONTEND: noninteractive
-      run: |
-        sudo apt update -y
-        sudo apt install -y clang-format-11
-        sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-11 100
-        sudo update-alternatives --install /usr/bin/git-clang-format git-clang-format /usr/bin/git-clang-format-11 100
-
-    - name: Run clang format
-      id: clang_format
-      env:
-        ALIBUILD_GITHUB_TOKEN: ${{secrets.ALIBUILD_GITHUB_TOKEN}}
-      run: |
-        set -x
-        # We need to fetch the other commit.
-        git fetch origin ${{ github.event.pull_request.base.ref }} \
-                         pull/${{ github.event.pull_request.number }}/head:${{ github.event.pull_request.head.ref }}
-
-        # We create a new branch which we will use for the eventual PR.
-        git config --global user.email "alibuild@cern.ch"
-        git config --global user.name "ALICE Action Bot"
-        git checkout -b alibot-cleanup-${{ github.event.pull_request.number }} ${{ github.event.pull_request.head.sha }}
-
-        # github.event.pull_request.base.sha is the latest commit on the branch
-        # the PR will be merged into, NOT the commit this PR derives from! For
-        # that, we need to find the latest common ancestor between the PR and
-        # the branch we are merging into.
-        BASE_COMMIT=$(git merge-base HEAD ${{ github.event.pull_request.base.sha }})
-        echo "Running clang-format against branch ${{ github.event.pull_request.base.ref }}, with hash ${{ github.event.pull_request.base.sha }}"
-        COMMIT_FILES=$(git diff --diff-filter d --name-only "$BASE_COMMIT" -- ':!*LinkDef*' ':!Utilities/PCG/')
-        if [ -z "$COMMIT_FILES" ]; then
-          echo "No files to check" >&2
-          echo ::set-output name=clean::true
-          exit 0
-        fi
-        RESULT_OUTPUT="$(git-clang-format --commit $BASE_COMMIT --diff --style file $COMMIT_FILES)"
-
-        for x in $COMMIT_FILES; do
-          case $x in
-            *.hxx|*.cc|*.hpp) echo "$x uses non-allowed extension." && exit 1 ;;
-            *) ;;
-          esac
-        done
-
-        if [ "$RESULT_OUTPUT" == 'no modified files to format' ] ||
-           [ "$RESULT_OUTPUT" == 'clang-format did not modify any files' ]
-        then
-          echo "clang-format passed."
-          git push --set-upstream https://alibuild:$ALIBUILD_GITHUB_TOKEN@github.com/alibuild/AliceO2.git :alibot-cleanup-${{ github.event.pull_request.number }} -f || true
-          echo ::set-output name=clean::true
-        else
-          git-clang-format --diff --commit $BASE_COMMIT --style file $COMMIT_FILES |
-            patch -p1
-          echo "clang-format failed."
-          echo "To reproduce it locally please run"
-          echo -e "\tgit checkout ${{ github.event.pull_request.head.ref }}"
-          echo -e "\tgit-clang-format --commit $BASE_COMMIT --diff --style file"
-          echo "Note: using clang-format version $(clang-format --version)"
-          echo "Opening a PR to your branch with the fixes"
-          git commit -m "Please consider the following formatting changes" -a
-          git show | cat
-          git fetch https://github.com/AliceO2Group/AliceO2.git pull/${{ github.event.pull_request.number }}/head
-          git push --set-upstream https://alibuild:$ALIBUILD_GITHUB_TOKEN@github.com/alibuild/AliceO2.git HEAD:refs/heads/alibot-cleanup-${{ github.event.pull_request.number }} -f
-          echo ::set-output name=clean::false
-        fi
-
-    - name: pull-request
-      uses: alisw/pull-request@master
-      with:
-        source_branch: 'alibuild:alibot-cleanup-${{ github.event.pull_request.number }}'
-        destination_branch: '${{ github.event.pull_request.head.label }}'
-        github_token: ${{ secrets.ALIBUILD_GITHUB_TOKEN }}
-        pr_title: "Please consider the following formatting changes to ${{ github.event.pull_request.repository.full_name }}#${{ github.event.pull_request.number }}"
-        pr_body: | 
-          This PR cannot be merged as is. You should either run clang-format yourself and update the pull request, or merge this PR in yours.
-          You can find AliceO2 coding conventions at http://github.com/AliceO2Group/CodingGuidelines. 
-      continue-on-error: true # We do not create PRs if the branch is not there.
-
-    - name: Exit with error if the PR is not clean
-      run: |
-        case ${{ steps.clang_format.outputs.clean }} in
-          true) echo "PR clean" ; exit 0 ;;
-          false) echo "PR not clean" ; exit 1 ;;
-        esac
+  formatting:
+    name: PR formatting
+    uses: alisw/ali-bot/.github/workflows/c++-code-formatting.yml@master
+    secrets:
+      alibuild_github_token: ${{ secrets.ALIBUILD_GITHUB_TOKEN }}

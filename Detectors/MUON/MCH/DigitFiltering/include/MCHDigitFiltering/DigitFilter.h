@@ -9,23 +9,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "SanityCheck.h"
-#include <fmt/core.h>
+#ifndef O2_MCH_DIGITFILTERING_DIGITFILTER_H_
+#define O2_MCH_DIGITFILTERING_DIGITFILTER_H_
+
+#include <functional>
+#include "DataFormatsMCH/Digit.h"
 
 namespace o2::mch
 {
 
-bool isOK(const SanityError& error)
-{
-  return error.nofDuplicatedIndices == 0 &&
-         error.nofDuplicatedItems == 0 &&
-         error.nofMissingItems == 0 &&
-         error.nofOutOfBounds == 0;
-}
+typedef std::function<bool(const Digit&)> DigitFilter;
 
-std::string asString(const SanityError& error)
-{
-  return fmt::format("error counts : {} duplicated items {} missing items {} out-of-bounds index {} duplicated index", error.nofDuplicatedItems, error.nofMissingItems, error.nofOutOfBounds, error.nofDuplicatedIndices);
-}
+DigitFilter createDigitFilter(uint32_t minADC, bool rejectBackground, bool selectSignal);
 
 } // namespace o2::mch
+
+#endif

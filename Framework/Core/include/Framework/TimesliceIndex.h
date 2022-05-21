@@ -17,6 +17,7 @@
 #include "Framework/RoutingIndices.h"
 #include "Framework/ServiceHandle.h"
 #include "Framework/TimesliceSlot.h"
+#include "Framework/ChannelInfo.h"
 
 #include <cstdint>
 #include <vector>
@@ -80,7 +81,7 @@ class TimesliceIndex
     TimesliceSlot slot = {(size_t)-1};
   };
 
-  TimesliceIndex(size_t maxLanes, size_t maxChannels);
+  TimesliceIndex(size_t maxLanes, std::vector<InputChannelInfo>& channels);
   void resize(size_t s);
   [[nodiscard]] inline size_t size() const;
   [[nodiscard]] inline bool isValid(TimesliceSlot const& slot) const;
@@ -146,7 +147,7 @@ class TimesliceIndex
 
   /// This is the oldest possible timeslice for any given channel
   /// The cardinality of this vector is the number of input channels
-  std::vector<TimesliceId> mOldestPossibleTimeslices;
+  std::vector<InputChannelInfo>& mChannels;
   /// This is the oldest possible timeslice for this index.
   /// By default we use -1, which means that we don't have any.
   OldestInputInfo mOldestPossibleInput = {};

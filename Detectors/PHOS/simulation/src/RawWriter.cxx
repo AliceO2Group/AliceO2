@@ -169,19 +169,19 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       chanhead.mPayloadSize = rawbunches.size();
       chanhead.mMark = 1; // mark channel header
       char* chanheadwords = reinterpret_cast<char*>(&chanhead.mDataWord);
-      for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
+      for (unsigned int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
         payload.emplace_back(chanheadwords[iword]);
       }
       char* channelwords = reinterpret_cast<char*>(encodedbunches.data());
-      for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
+      for (unsigned int iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
         payload.emplace_back(channelwords[iword]);
       }
     }
     if (mTRUdata[ddl].mChannels.size()) { // if there are TRU digits, fill trigger flags
       std::vector<uint32_t> a;
-      for (short chan = 0; chan < Mapping::NTRUBranchReadoutChannels; chan++) {
+      for (unsigned short chan = 0; chan < Mapping::NTRUBranchReadoutChannels; chan++) {
         if (trmask[chan] > 0) {
-          while (a.size() < trmask[chan]) {
+          while (a.size() < static_cast<unsigned short>(trmask[chan])) {
             a.push_back(0);
           }
           a[trmask[chan] - 1] |= (1 << (chan % 10)); // Fill mask for a given channel
@@ -193,11 +193,11 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
           chanhead.mPayloadSize = a.size();
           chanhead.mMark = 1; // mark channel header
           char* chanheadwords = reinterpret_cast<char*>(&chanhead.mDataWord);
-          for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
+          for (unsigned int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
             payload.emplace_back(chanheadwords[iword]);
           }
           char* channelwords = reinterpret_cast<char*>(encodedbunches.data());
-          for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
+          for (unsigned int iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
             payload.emplace_back(channelwords[iword]);
           }
           a.clear();
@@ -207,7 +207,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       for (short i = 0; i < Mapping::NTRUBranchReadoutChannels; i++) {
         short chan = i + Mapping::NTRUBranchReadoutChannels;
         if (trmask[chan] > 0) {
-          while (a.size() < trmask[chan]) {
+          while (a.size() < static_cast<unsigned short>(trmask[chan])) {
             a.push_back(0);
           }
           a[trmask[chan] - 1] |= (1 << (i % 10)); // Fill mask for a given channel
@@ -219,11 +219,11 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
           chanhead.mPayloadSize = a.size();
           chanhead.mMark = 1; // mark channel header
           char* chanheadwords = reinterpret_cast<char*>(&chanhead.mDataWord);
-          for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
+          for (unsigned int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
             payload.emplace_back(chanheadwords[iword]);
           }
           char* channelwords = reinterpret_cast<char*>(encodedbunches.data());
-          for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
+          for (unsigned int iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
             payload.emplace_back(channelwords[iword]);
           }
           a.clear();
@@ -257,12 +257,12 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       chanhead.mPayloadSize = rawbunches.size();
       chanhead.mMark = 1; // mark channel header
       char* chanheadwords = reinterpret_cast<char*>(&chanhead.mDataWord);
-      for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
+      for (unsigned int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
         payload.emplace_back(chanheadwords[iword]);
       }
 
       char* channelwords = reinterpret_cast<char*>(encodedbunches.data());
-      for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
+      for (unsigned int iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
         payload.emplace_back(channelwords[iword]);
       }
 
@@ -288,11 +288,11 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
         chanheadLG.mMark = 1; // mark channel header
 
         chanheadwords = reinterpret_cast<char*>(&chanheadLG.mDataWord);
-        for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
+        for (unsigned int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
           payload.emplace_back(chanheadwords[iword]);
         }
         channelwords = reinterpret_cast<char*>(encodedbunches.data());
-        for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
+        for (unsigned int iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
           payload.emplace_back(channelwords[iword]);
         }
       }
@@ -333,7 +333,7 @@ void RawWriter::createTRUBunches(short truId, const std::vector<o2::phos::Digit*
       currentBunch.mStarttime = time;
       maxAmp = ampADC;
     }
-    while (samples.size() <= time) {
+    while (samples.size() <= static_cast<unsigned short>(time)) {
       samples.push_back(0);
     }
     samples[time] = ampADC;

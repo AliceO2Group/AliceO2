@@ -44,10 +44,11 @@ struct TPCZSHDR {
 };
 struct TPCZSHDRV2 : public TPCZSHDR {
   static constexpr unsigned int TPC_ZS_NBITS_V3 = 12;
-  unsigned short magicWord;         // Magic word
   unsigned short firstZSDataOffset; // Offset (after the TPCZSHDRV2 header) in 128bit words to first ZS data (in between can be trigger words, etc.)
   unsigned short nTimebinHeaders;   // Number of timebin headers
-  unsigned short reserved;          // 16 reserved bits, header is 128 bit
+  unsigned short reserved1;         // 16 reserved bits, header is 128 bit
+  unsigned char reserved2;          // 8 reserved bits, header is 128 bit
+  unsigned char magicWord;          // Magic word
 };
 struct TPCZSTBHDR {
   unsigned short rowMask;

@@ -70,15 +70,15 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mCTFCoder.updateTimeDependentParams(pc);
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
 
-  auto& rofs = pc.outputs().make<std::vector<o2::mch::ROFRecord>>(OutputRef{"rofs"});
-  auto& digits = pc.outputs().make<std::vector<o2::mch::Digit>>(OutputRef{"digits"});
+  auto& rofs = pc.outputs().make<std::vector<o2::mch::ROFRecord>>(OutputRef{"rofs", 0});
+  auto& digits = pc.outputs().make<std::vector<o2::mch::Digit>>(OutputRef{"digits", 0});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   const auto ctfImage = o2::mch::CTF::getImage(buff.data());
-  mCTFCoder.decode(ctfImage, rofs, digits);
-
+  auto iosize = mCTFCoder.decode(ctfImage, rofs, digits);
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
-  LOG(info) << "Decoded " << digits.size() << " MCH digits in " << rofs.size() << " ROFRecords in " << mTimer.CpuTime() - cput << " s.";
+  LOG(info) << "Decoded " << digits.size() << " MCH digits in " << rofs.size() << " ROFRecords, (" << iosize.asString() << ") in " << mTimer.CpuTime() - cput << " s.";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -91,7 +91,9 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, const char* specName, uns
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"rofs"}, "MCH", "DIGITROFS", 0, Lifetime::Timeframe},
-    OutputSpec{{"digits"}, "MCH", "DIGITS", 0, Lifetime::Timeframe}};
+    OutputSpec{{"digits"}, "MCH", "DIGITS", 0, Lifetime::Timeframe},
+    OutputSpec{{"ctfrep"}, "MCH", "CTFDECREP", 0, Lifetime::Timeframe},
+  };
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf", "MCH", "CTFDATA", sspec, Lifetime::Timeframe);

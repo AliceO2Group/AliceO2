@@ -71,7 +71,6 @@ class ChannelCalibrator final : public o2::calibration::TimeSlotCalibration<Colu
 
   /// Finalizes the slot
   /// \param slot TimeSlot container
-  /// \return true if there is enough data
   void finalizeSlot(Slot& slot) final;
 
   /// Creates a new time slot
@@ -87,9 +86,6 @@ class ChannelCalibrator final : public o2::calibration::TimeSlotCalibration<Colu
   /// Returns the bad channels
   const std::vector<ColumnData>& getBadChannels() const { return mBadChannels; }
 
-  /// Returns the TF end
-  TFType getTFEnd() { return mTFEnd; }
-
   /// Returns mask as string
   std::string getMasksAsString() { return mMasksString; }
 
@@ -97,8 +93,6 @@ class ChannelCalibrator final : public o2::calibration::TimeSlotCalibration<Colu
   void setReferenceMasks(const std::vector<ColumnData>& refMasks) { mRefMasks = refMasks; }
 
  private:
-  TFType mTFEnd = 0; /// Ending TF
-
   std::vector<ColumnData> mBadChannels; /// List of bad channels
   std::vector<ColumnData> mRefMasks;    /// Reference masks
   std::string mMasksString;             /// Masks as string

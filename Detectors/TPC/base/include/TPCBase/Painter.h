@@ -71,10 +71,14 @@ struct PadCoordinates {
 /// create a vector of pad corner coordinate for one full sector
 std::vector<PadCoordinates> getPadCoordinatesSector();
 
+/// binning vector with radial pad-row positions (in cm)
+/// \param roc roc number (0-35 IROC, 36-71 OROC, >=72 full sector)
+std::vector<double> getRowBinningCM(uint32_t roc = 72);
+
 /// ROC title from ROC number
 std::string getROCTitle(const int rocNumber);
 
-//using T=float;
+// using T=float;
 /// Drawing of a CalDet object
 /// \param CalDet object to draw
 /// \return TCanvas containing CalDet content
@@ -185,6 +189,12 @@ TH3F convertCalDetToTH3(const std::vector<CalDet<DataT>>& calDet, const bool nor
 
 /// make summary canvases for laser calibration data
 std::vector<TCanvas*> makeSummaryCanvases(const LtrCalibData& ltr, std::vector<TCanvas*>* outputCanvases = nullptr);
+
+/// Adjust the X2 position and the tick length of the color axis
+/// \param h histogram to get z axis
+/// \param x2ndc new x2 value of color axis in NDC
+/// \param tickLength tick length of the color axis
+void adjustPalette(TH1* h, float x2ndc, float tickLength = 0.015);
 
 } // namespace painter
 

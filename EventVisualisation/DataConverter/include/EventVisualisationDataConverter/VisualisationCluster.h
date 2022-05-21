@@ -36,10 +36,10 @@ namespace event_visualisation
 
 class VisualisationCluster
 {
- public:
-  VisualisationCluster(rapidjson::Value& tree);
-  rapidjson::Value jsonTree(rapidjson::Document::AllocatorType& allocator);
+  friend class VisualisationEventJSONSerializer;
+  friend class VisualisationEventROOTSerializer;
 
+ public:
   // Default constructor
   VisualisationCluster(float XYZ[], float time);
 

@@ -16,8 +16,6 @@
 #include "DataFormatsCPV/Digit.h"
 #include "DataFormatsCPV/Cluster.h"
 #include "CPVReconstruction/FullCluster.h"
-#include "DataFormatsCPV/CalibParams.h"
-#include "DataFormatsCPV/BadChannelMap.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsCPV/TriggerRecord.h"
 
@@ -36,7 +34,8 @@ class Clusterer
   void process(gsl::span<const Digit> digits, gsl::span<const TriggerRecord> dtr,
                const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* dmc,
                std::vector<Cluster>* clusters, std::vector<TriggerRecord>* trigRec,
-               o2::dataformats::MCTruthContainer<o2::MCCompLabel>* cluMC);
+               o2::dataformats::MCTruthContainer<o2::MCCompLabel>* cluMC,
+               std::vector<Digit>* calibDigits);
 
   void makeClusters(gsl::span<const Digit> digits);
   void evalCluProperties(gsl::span<const Digit> digits, std::vector<Cluster>* clusters,
@@ -46,7 +45,8 @@ class Clusterer
   float responseShape(float dx, float dz); // Parameterization of EM shower
   void propagateMC(bool toRun = true) { mRunMC = toRun; }
 
-  void makeUnfoldings(gsl::span<const Digit> digits); // Find and unfold clusters with few local maxima
+  void makeUnfoldingsAndCalibDigits(gsl::span<const Digit> digits, std::vector<Digit>* calibDigits); // Find and unfold clusters with few local maxima
+  void makeCalibDigits(std::vector<Digit>* calibDigits);                                             // Find clusters with 1 local maximum and make calibDigits using them
   void unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> digitId, gsl::span<const Digit> digits);
 
  protected:

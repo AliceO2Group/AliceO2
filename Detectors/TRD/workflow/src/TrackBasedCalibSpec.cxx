@@ -66,10 +66,10 @@ void TRDTrackBasedCalibDevice::init(InitContext& ic)
 
 void TRDTrackBasedCalibDevice::run(ProcessingContext& pc)
 {
-  updateTimeDependentParams(pc);
   mTimer.Start(false);
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
+  updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
   mCalibrator.setInput(recoData);
   mCalibrator.calculateAngResHistos();
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe}, mCalibrator.getAngResHistos());

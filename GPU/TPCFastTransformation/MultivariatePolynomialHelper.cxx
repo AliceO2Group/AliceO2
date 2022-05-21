@@ -13,23 +13,22 @@
 /// \author Matthias Kleiner <mkleiner@ikf.uni-frankfurt.de>
 
 #include "MultivariatePolynomialHelper.h"
-
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-#include "Framework/Logger.h"
-#endif
+#include "GPUCommonLogger.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 void MultivariatePolynomialHelper<0, 0>::print() const
 {
+#ifndef GPUCA_NO_FMT
   const auto terms = getTerms();
   std::string formula = "";
   for (int i = 0; i < (int)terms.size() - 1; ++i) {
     formula += fmt::format("{} + ", terms[i]);
   }
   formula += terms.back();
-  LOGP(info, formula);
+  LOGP(info, formula.c_str());
+#endif
 }
 
 std::vector<std::string> MultivariatePolynomialHelper<0, 0>::getTerms() const

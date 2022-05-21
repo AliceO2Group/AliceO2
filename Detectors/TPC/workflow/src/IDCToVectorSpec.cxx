@@ -132,7 +132,7 @@ class IDCToVectorDevice : public o2::framework::Task
         auto& idcs = *((idc::Container*)(data));
         const uint32_t orbit = idcs.header.heartbeatOrbit;
         const uint32_t bc = idcs.header.heartbeatBC;
-        //LOGP(info, "IDC Procssing orbit/BC: {:9}/{:4}", orbit, bc);
+        // LOGP(info, "IDC Procssing orbit/BC: {:9}/{:4}", orbit, bc);
 
         auto infoIt = std::find(infoVec.begin(), infoVec.end(), orbit);
         if (!infoVec.size()) {
@@ -188,9 +188,9 @@ class IDCToVectorDevice : public o2::framework::Task
             const GlobalPadNumber padInRegion = padInSector - regionPadOffset;
             const GlobalPadNumber vectorPosition = padInRegion + idcOffset * numberPads;
             // TODO: for debugging, remove later
-            //auto rawVal = idcs.getChannelValue(iLink, iChannel);
-            //auto rawValF = idcs.getChannelValueFloat(iLink, iChannel);
-            //LOGP(info, "filling channel {}, link {}, fecLinkOffsetCRU {:2}, fecSectorOffset {:3}, fecInSector {:3}, idcVec[{} ({})] = {} ({} / {})", iChannel, iLink, fecLinkOffsetCRU, fecSectorOffset, fecInSector, vectorPosition, padInRegion, val, rawVal, rawValF);
+            // auto rawVal = idcs.getChannelValue(iLink, iChannel);
+            // auto rawValF = idcs.getChannelValueFloat(iLink, iChannel);
+            // LOGP(info, "filling channel {}, link {}, fecLinkOffsetCRU {:2}, fecSectorOffset {:3}, fecInSector {:3}, idcVec[{} ({})] = {} ({} / {})", iChannel, iLink, fecLinkOffsetCRU, fecSectorOffset, fecInSector, vectorPosition, padInRegion, val, rawVal, rawValF);
             idcVec[vectorPosition] = val;
           }
         }
@@ -278,6 +278,7 @@ class IDCToVectorDevice : public o2::framework::Task
     for (auto& [cru, idcVec] : mIDCvectors) {
       idcVec.resize(Mapper::PADSPERREGION[CRU(cru).region()] * orbitsInTF);
       const header::DataHeader::SubSpecificationType subSpec{cru << 7};
+      LOGP(info, "Sending IDCs for CRU {} of size {}", cru, idcVec.size());
       output.snapshot(Output{gDataOriginTPC, "IDCVECTOR", subSpec}, idcVec);
       output.snapshot(Output{gDataOriginTPC, "IDCORBITS", subSpec}, orbitBCInfo);
     }

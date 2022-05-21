@@ -19,6 +19,7 @@
 #include "SimulationDataFormat/MCUtils.h"
 #include <algorithm>
 #include "TGraphAsymmErrors.h"
+#include "GlobalTracking/TrackCuts.h"
 
 using namespace o2::globaltracking;
 using namespace o2::mcutils;
@@ -173,9 +174,14 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
 
   // cache selection for TPC tracks
   std::vector<bool> isTPCTrackSelectedEntry(mTPCTracks.size(), false);
+  TrackCuts cuts;
   for (auto itrk = 0; itrk < mTPCTracks.size(); ++itrk) {
     auto const& trkTpc = mTPCTracks[itrk];
-    if (selectTrack(trkTpc)) {
+    // if (selectTrack(trkTpc)) {
+    //   isTPCTrackSelectedEntry[itrk] = true;
+    // }
+    o2::dataformats::GlobalTrackID id(itrk, GID::TPC);
+    if (cuts.isSelected(id, mRecoCont)) {
       isTPCTrackSelectedEntry[itrk] = true;
     }
   }

@@ -65,6 +65,9 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
   int currentpos = 0;
 
   int payloadend = buffer.size() - mRCUTrailer.getTrailerSize(); // mRCUTrailer.getPayloadSize() was not updated in case of merged pages.
+  // Extract offset from fee configuration
+  short value = mRCUTrailer.getAltroCFGReg1();
+  short offset = (value >> 10) & 0xf;
   while (currentpos < payloadend) {
     auto currentword = buffer[currentpos++];
     ChannelHeader header = {currentword};
@@ -176,15 +179,15 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
         if (fitResult == CaloRawFitter::FitStatus::kOK || fitResult == CaloRawFitter::FitStatus::kNoTime) {
           if (!mPedestalRun) {
             if (caloFlag == Mapping::kHighGain && !rawFitter->isOverflow()) {
-              currentCellContainer.emplace_back(absId, rawFitter->getAmp(),
+              currentCellContainer.emplace_back(absId, rawFitter->getAmp() - offset,
                                                 (rawFitter->getTime() + starttime - bunchlength - mPreSamples) * o2::phos::PHOSSimParams::Instance().mTimeTick * 1.e-9, (ChannelType_t)caloFlag);
             }
             if (caloFlag == Mapping::kLowGain) {
-              currentCellContainer.emplace_back(absId, rawFitter->getAmp(),
+              currentCellContainer.emplace_back(absId, rawFitter->getAmp() - offset,
                                                 (rawFitter->getTime() + starttime - bunchlength - mPreSamples) * o2::phos::PHOSSimParams::Instance().mTimeTick * 1.e-9, (ChannelType_t)caloFlag);
             }
           } else { // pedestal, to store RMS, scale in by 1.e-7 to fit range
-            currentCellContainer.emplace_back(absId, rawFitter->getAmp(), 1.e-7 * rawFitter->getTime(), (ChannelType_t)caloFlag);
+            currentCellContainer.emplace_back(absId, rawFitter->getAmp() - offset, 1.e-7 * rawFitter->getTime(), (ChannelType_t)caloFlag);
           }
         }  // Successful fit
       }    // Bunched of a channel

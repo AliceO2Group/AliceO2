@@ -9,9 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <stdexcept>
-#include <cstring>
-#include "Framework/Logger.h"
 #include "DataFormatsFT0/CTF.h"
 
 using namespace o2::ft0;
