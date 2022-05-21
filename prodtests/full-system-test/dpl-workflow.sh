@@ -5,7 +5,7 @@
 MYDIR="$(dirname $(realpath $0))"
 source $MYDIR/setenv.sh
 
-if [[ $EPNSYNCMODE == 0 ]] && [[ $DPL_CONDITION_BACKEND != "http://o2-ccdb.internal" ]]; then
+if [[ $EPNSYNCMODE == 0 && $DPL_CONDITION_BACKEND != "http://o2-ccdb.internal" && $DPL_CONDITION_BACKEND != "http://localhost:8084" ]]; then
   alien-token-info >& /dev/null
   if [[ $? != 0 ]]; then
     echo "No alien token present" 1>&2
