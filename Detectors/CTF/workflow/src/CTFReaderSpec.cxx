@@ -19,6 +19,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/InputSpec.h"
+#include "Framework/RawDeviceService.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/FileFetcher.h"
 #include "CTFWorkflow/CTFReaderSpec.h"
@@ -176,7 +177,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
 
   if (!mCTFCounter) { // RS FIXME: this is a temporary hack to avoid late-starting devices to lose the input
     LOG(warning) << "This is a hack, sleeping 5 s at startup";
-    usleep(1000000);
+    pc.services().get<RawDeviceService>().waitFor(1000);
   }
 
   std::string tfFileName;
@@ -206,7 +207,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
         mRunning = false;
         break;
       }
-      usleep(5000); // wait 5ms for the files cache to be filled
+      pc.services().get<RawDeviceService>().waitFor(5);
       continue;
     }
     LOG(info) << "Reading CTF input " << ' ' << tfFileName;
@@ -285,7 +286,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   auto tDiff = tNow - mLastSendTime;
   if (mCTFCounter) {
     if (tDiff < mInput.delay_us) {
-      usleep(mInput.delay_us - tDiff); // respect requested delay before sending
+      pc.services().get<RawDeviceService>().waitFor((mInput.delay_us - tDiff) / 1000); // respect requested delay before sending
     }
   } else {
     mLastSendTime = tNow;
