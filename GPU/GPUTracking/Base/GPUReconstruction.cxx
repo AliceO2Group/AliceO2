@@ -262,7 +262,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
       mProcessingSettings.trackletSelectorSlices = 1;
     }
   }
-  if (mProcessingSettings.createO2Output > 1 && mProcessingSettings.runQA) {
+  if (mProcessingSettings.createO2Output > 1 && mProcessingSettings.runQA && mProcessingSettings.qcRunFraction == 100.f) {
     mProcessingSettings.createO2Output = 1;
   }
   if (!mProcessingSettings.createO2Output || !IsGPU()) {
