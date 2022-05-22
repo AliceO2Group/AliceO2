@@ -283,7 +283,7 @@ if args.fecmapfile:
             "ds_id_1": lambda x: " %-6s" % x,
             "ds_id_2": lambda x: " %-6s" % x,
             "ds_id_3": lambda x: " %-6s" % x,
-            "ds_id_4": lambda x: " %-6s" % x,
+            "ds_id_4": lambda x: (" %-6s" % x).rstrip(),
         })
     fec_file = open(args.fecmapfile, "w")
     fec_file.write(fec_string.rstrip()+"\n")
