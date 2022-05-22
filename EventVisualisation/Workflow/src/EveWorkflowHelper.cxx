@@ -28,6 +28,11 @@
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "CommonDataFormat/IRFrame.h"
+#include "MFTBase/GeometryTGeo.h"
+#include "ITSBase/GeometryTGeo.h"
+#include "PHOSBase/Geometry.h"
+#include <TGeoBBox.h>
+#include <tuple>
 
 using namespace o2::event_visualisation;
 
@@ -121,6 +126,8 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
 
 void EveWorkflowHelper::draw()
 {
+  this->drawPHOS();
+
   for (size_t it = 0; it < mTrackSet.trackGID.size(); it++) {
     const auto& gid = mTrackSet.trackGID[it];
     auto tim = mTrackSet.trackTime[it];
@@ -279,6 +286,28 @@ void EveWorkflowHelper::prepareMFTClusters(const o2::itsmft::TopologyDictionary*
     auto pattIt = patterns.begin();
     this->mMFTClustersArray.reserve(clusMFT.size());
     o2::mft::ioutils::convertCompactClusters(clusMFT, pattIt, this->mMFTClustersArray, dict);
+  }
+}
+
+void EveWorkflowHelper::drawPHOS()
+{
+  for (auto phos : mRecoCont.getPHOSCells()) {
+    char relativeLocalPositionInModule[3]; // relative (local) position within module
+    float x, z;
+    o2::phos::Geometry::absToRelNumbering(phos.getAbsId(), relativeLocalPositionInModule);
+    o2::phos::Geometry::absIdToRelPosInModule(phos.getAbsId(), x, z);
+    TVector3 gPos;
+
+    // convert local position in module to global position in ALICE including actual mis-aslignment read with GetInstance("Run3")
+    this->mPHOSGeom->local2Global(relativeLocalPositionInModule[0], x, z, gPos);
+
+    auto vCalo = mEvent.addCalo({.time = static_cast<float>(phos.getTime()),
+                                 .energy = phos.getEnergy(),
+                                 .phi = (float)gPos.Phi(),
+                                 .eta = (float)gPos.Eta(),
+                                 .PID = 0,
+                                 .gid = GID::getSourceName(GID::PHS),
+                                 .source = GID::PHS});
   }
 }
 
@@ -653,6 +682,7 @@ EveWorkflowHelper::EveWorkflowHelper(const FilterSet& enabledFilters, std::size_
   this->mMFTGeom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
   this->mITSGeom = o2::its::GeometryTGeo::Instance();
   this->mITSGeom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::L2G));
+  this->mPHOSGeom = o2::phos::Geometry::GetInstance("");
   this->mTPCFastTransform = (o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
   const auto& elParams = o2::tpc::ParameterElectronics::Instance();
   mMUS2TPCTimeBins = 1. / elParams.ZbinWidth;
