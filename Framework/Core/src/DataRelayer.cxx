@@ -648,6 +648,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       case CompletionPolicy::CompletionOp::Consume:
         countConsume++;
         updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::ConsumeAndRescan:
         // This is just like Consume, but we also mark all slots as dirty
@@ -659,14 +660,17 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       case CompletionPolicy::CompletionOp::ConsumeExisting:
         countConsumeExisting++;
         updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::Process:
         countProcess++;
         updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::Discard:
         countDiscard++;
         updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::Retry:
         countWait++;
@@ -675,11 +679,9 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
         break;
       case CompletionPolicy::CompletionOp::Wait:
         countWait++;
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
     }
-    // Given we have created an action for this cacheline, we need to wait for
-    // a new message before we look again into the given cacheline.
-    mTimesliceIndex.markAsDirty(slot, false);
   }
   mTimesliceIndex.updateOldestPossibleOutput();
   LOGP(debug, "DataRelayer::getReadyToProcess results notDirty:{}, consume:{}, consumeExisting:{}, process:{}, discard:{}, wait:{}",
