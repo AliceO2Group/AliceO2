@@ -601,6 +601,9 @@ int GPUChainTracking::RunChain()
       return 1;
     }
   }
+  if (needQA && GetProcessingSettings().qcRunFraction != 100.f) {
+    mFractionalQAEnabled = (rand() % 10000) < (unsigned int)(GetProcessingSettings().qcRunFraction * 100);
+  }
   if (GetProcessingSettings().debugLevel >= 6) {
     *mDebugFile << "\n\nProcessing event " << mRec->getNEventsProcessed() << std::endl;
   }
@@ -705,10 +708,13 @@ int GPUChainTracking::RunChainFinalize()
 #endif
 
   const bool needQA = GPUQA::QAAvailable() && (GetProcessingSettings().runQA || (GetProcessingSettings().eventDisplay && mIOPtrs.nMCInfosTPC));
-  if (needQA) {
+  if (needQA && (GetProcessingSettings().qcRunFraction == 100.f || mFractionalQAEnabled)) {
     mRec->getGeneralStepTimer(GeneralStep::QA).Start();
     mQA->RunQA(!GetProcessingSettings().runQA);
     mRec->getGeneralStepTimer(GeneralStep::QA).Stop();
+    if (GetProcessingSettings().debugLevel == 0) {
+      GPUInfo("Total QA runtime: %d us", (int)(mRec->getGeneralStepTimer(GeneralStep::QA).GetElapsedTime() * 1000000));
+    }
   }
 
   if (GetProcessingSettings().showOutputStat) {

@@ -53,6 +53,7 @@ class GPUQA
   bool clusterRemovable(int attach, bool prot) const { return false; }
   void DumpO2MCData(const char* filename) const {}
   int ReadO2MCData(const char* filename) { return 1; }
+  void* AllocateScratchBuffer(size_t nBytes) { return nullptr; }
   static bool QAAvailable() { return false; }
   static bool IsInitialized() { return false; }
 };
@@ -116,6 +117,7 @@ class GPUQA
   const std::vector<TH1D>& getHistograms1Dd() const { return *mHist1Dd; }
   void resetHists();
   int loadHistograms(std::vector<TH1F>& i1, std::vector<TH2F>& i2, std::vector<TH1D>& i3, int tasks = -1);
+  void* AllocateScratchBuffer(size_t nBytes);
 
   static constexpr int N_CLS_HIST = 8;
   static constexpr int N_CLS_TYPE = 3;
@@ -309,6 +311,8 @@ class GPUQA
   std::vector<std::vector<int>> mcLabelBuffer;
   std::vector<std::vector<bool>> mGoodTracks;
   std::vector<std::vector<bool>> mGoodHits;
+
+  std::vector<unsigned long int> mTrackingScratchBuffer;
 
   static std::vector<TColor*> mColors;
   static int initColors();

@@ -198,6 +198,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   const GPUSettingsDisplay* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
   const GPUSettingsQA* mConfigQA = nullptr;           // Abstract pointer to Standalone QA Configuration Structure
+  bool mFractionalQAEnabled = false;
 
  protected:
   struct GPUTrackingFlatObjects : public GPUProcessor {

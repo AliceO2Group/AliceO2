@@ -107,6 +107,13 @@ fi
 
 has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",compressed-clusters-ctf"
 
+if workflow_has_parameter QC && has_detector_qc TPC; then
+  GPU_OUTPUT+=",qa"
+  [[ -z $TPC_TRACKING_QC_RUN_FRACTION ]] && TPC_TRACKING_QC_RUN_FRACTION=1
+  GPU_CONFIG_KEY+="GPU_QA.clusterRejectionHistograms=1;GPU_proc.qcRunFraction=$TPC_TRACKING_QC_RUN_FRACTION;"
+  [[ $HOSTMEMSIZE == "0" && $TPC_TRACKING_QC_RUN_FRACTION == "100" ]] && HOSTMEMSIZE=$(( 5 << 30 ))
+fi
+
 if [[ -z $DISABLE_ROOT_OUTPUT ]]; then
   # enable only if root output is written, because it slows down the processing
   GPU_OUTPUT+=",send-clusters-per-sector"
@@ -150,9 +157,7 @@ fi
 
 if [[ $GPUTYPE != "CPU" ]]; then
   GPU_CONFIG_KEY+="GPU_proc.forceMemoryPoolSize=$GPUMEMSIZE;"
-  if [[ $HOSTMEMSIZE == "0" ]]; then
-    HOSTMEMSIZE=$(( 1 << 30 ))
-  fi
+  [[ $HOSTMEMSIZE == "0" ]] && HOSTMEMSIZE=$(( 1 << 30 ))
 fi
 
 if [[ $HOSTMEMSIZE != "0" ]]; then
