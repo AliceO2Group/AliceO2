@@ -1152,11 +1152,11 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
   // simple lambdas for each of the steps I am planning to have.
   assert(!context.deviceContext->spec->inputs.empty());
 
-  enum struct InputType {
-    Invalid,
-    Data,
-    SourceInfo,
-    DomainInfo
+  enum struct InputType : int {
+    Invalid = 0,
+    Data = 1,
+    SourceInfo = 2,
+    DomainInfo = 3
   };
 
   struct InputInfo {
@@ -1169,14 +1169,12 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     InputType type;
   };
 
-  size_t oldestPossibleTimeslice = (size_t)-1;
-
   // This is how we validate inputs. I.e. we try to enforce the O2 Data model
   // and we do a few stats. We bind parts as a lambda captured variable, rather
   // than an input, because we do not want the outer loop actually be exposed
   // to the implementation details of the messaging layer.
   auto getInputTypes = [&stats = context.registry->get<DataProcessingStats>(),
-                        &info, &context, &oldestPossibleTimeslice]() -> std::optional<std::vector<InputInfo>> {
+                        &info, &context]() -> std::optional<std::vector<InputInfo>> {
     auto& parts = info.parts;
     stats.inputParts = parts.Size();
 
@@ -1204,11 +1202,8 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
       }
       auto dih = o2::header::get<DomainInfoHeader*>(headerData);
       if (dih) {
-        oldestPossibleTimeslice = std::min(oldestPossibleTimeslice, dih->oldestPossibleTimeslice);
         insertInputInfo(pi, 2, InputType::DomainInfo);
         *context.wasActive = true;
-        LOGP(debug, "Got DomainInfoHeader, new oldestPossibleTimeslice {} on channel {}", oldestPossibleTimeslice, info.id.value);
-
         continue;
       }
       auto dh = o2::header::get<DataHeader*>(headerData);
@@ -1269,10 +1264,15 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     auto& parts = info.parts;
     // We relay execution to make sure we have a complete set of parts
     // available.
-    for (auto ii = 0; ii < inputInfos.size(); ++ii) {
+    bool hasBackpressure = false;
+    bool hasData = false;
+    bool hasDomainInfo = false;
+    size_t oldestPossibleTimeslice = -1;
+    for (size_t ii = 0; ii < inputInfos.size(); ++ii) {
       auto const& input = inputInfos[ii];
       switch (input.type) {
         case InputType::Data: {
+          hasData = true;
           auto headerIndex = input.position;
           auto nMessages = 0;
           auto nPayloadsPerHeader = 0;
@@ -1301,6 +1301,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
                 info.normalOpsNotified = false;
               }
               policy.backpressure(info);
+              hasBackpressure = true;
               break;
             case DataRelayer::Dropped:
             case DataRelayer::Invalid:
@@ -1331,12 +1332,21 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
 
         } break;
         case InputType::DomainInfo: {
+          /// We have back pressure, therefore we do not process DomainInfo anymore.
+          /// until the previous message are processed.
+          if (hasBackpressure) {
+            break;
+          }
           *context.wasActive = true;
           auto headerIndex = input.position;
           auto payloadIndex = input.position + 1;
           assert(payloadIndex < parts.Size());
           // FIXME: the message with the end of stream cannot contain
           //        split parts.
+
+          auto dih = o2::header::get<DomainInfoHeader*>(parts.At(headerIndex)->GetData());
+          oldestPossibleTimeslice = std::min(oldestPossibleTimeslice, dih->oldestPossibleTimeslice);
+          LOGP(info, "Got DomainInfoHeader, new oldestPossibleTimeslice {} on channel {}", oldestPossibleTimeslice, info.id.value);
           parts.At(headerIndex).reset(nullptr);
           parts.At(payloadIndex).reset(nullptr);
         }
@@ -1344,6 +1354,14 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
           reportError("Invalid part found.");
         } break;
       }
+    }
+    /// The oldest possible timeslice has changed. We can should therefore process it.
+    /// Notice we do so only if the incoming data has been fully processed.
+    if (oldestPossibleTimeslice != (size_t)-1) {
+      info.oldestForChannel = {oldestPossibleTimeslice};
+      context.registry->domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
+      context.registry->get<CallbackService>()(CallbackService::Id::DomainInfoUpdated, (ServiceRegistry&)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
+      *context.wasActive = true;
     }
     auto it = std::remove_if(parts.fParts.begin(), parts.fParts.end(), [](auto& msg) -> bool { return msg.get() == nullptr; });
     parts.fParts.erase(it, parts.end());
@@ -1364,12 +1382,6 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
   if (bool(inputTypes) == false) {
     reportError("Parts should come in couples. Dropping it.");
     return;
-  }
-  if (oldestPossibleTimeslice != (size_t)-1) {
-    info.oldestForChannel = {oldestPossibleTimeslice};
-    context.registry->domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
-    context.registry->get<CallbackService>()(CallbackService::Id::DomainInfoUpdated, (ServiceRegistry&)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
-    *context.wasActive = true;
   }
   handleValidMessages(*inputTypes);
   return;
