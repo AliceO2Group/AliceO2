@@ -613,7 +613,7 @@ int GPUChainTracking::RunChain()
     }
   }
   if (needQA && GetProcessingSettings().qcRunFraction != 100.f) {
-    mFractionalQAEnabled = (rand() % 10000) < (unsigned int)(GetProcessingSettings().qcRunFraction * 100);
+    mFractionalQAEnabled = (unsigned int)(rand() % 10000) < (unsigned int)(GetProcessingSettings().qcRunFraction * 100);
   }
   if (GetProcessingSettings().debugLevel >= 6) {
     *mDebugFile << "\n\nProcessing event " << mRec->getNEventsProcessed() << std::endl;

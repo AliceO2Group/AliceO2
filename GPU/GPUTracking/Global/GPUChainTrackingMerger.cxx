@@ -254,7 +254,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
         size_t size = mRec->Res(Merger.MemoryResOutput()).Size() + GPUCA_MEMALIGN;
         void* buffer = mQA->AllocateScratchBuffer(size);
         void* bufferEnd = Merger.SetPointersOutput(buffer);
-        if ((char*)bufferEnd - (char*)buffer > size) {
+        if ((size_t)((char*)bufferEnd - (char*)buffer) > size) {
           throw std::runtime_error("QA Scratch buffer exceeded");
         }
       }
