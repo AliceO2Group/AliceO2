@@ -339,7 +339,7 @@ GPUd() void GPUTPCCFDecodeZSLink::DecodeTBSingleThread(
   } else { // ! TPCZSHDRV2::TIGHTLY_PACKED_V3
     unsigned int rawFECChannel = 0;
     const unsigned long* adcData64 = (const unsigned long*)adcData;
-    for (int j = 0; j < nAdc; j++) {
+    for (unsigned int j = 0; j < nAdc; j++) {
       for (; !ChannelIsActive(channelMask, rawFECChannel); rawFECChannel++) {
       }
 
