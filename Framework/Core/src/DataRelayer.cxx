@@ -668,6 +668,11 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
         countDiscard++;
         updateCompletionResults(slot, timeslice, action);
         break;
+      case CompletionPolicy::CompletionOp::Retry:
+        countWait++;
+        mTimesliceIndex.markAsDirty(slot, true);
+        action = CompletionPolicy::CompletionOp::Wait;
+        break;
       case CompletionPolicy::CompletionOp::Wait:
         countWait++;
         break;
