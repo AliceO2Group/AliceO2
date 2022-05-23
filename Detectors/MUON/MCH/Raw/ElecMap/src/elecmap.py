@@ -90,7 +90,7 @@ def gencode_do(df, df_cru, solar_map, chamber):
     for row in df_cru.itertuples():
         if len(row.solar_id) > 0:
             out.write("add_cru(s2f,{},{},{});\n".format(
-                row.fee_id, int(row.link_id)%12, row.solar_id))
+                row.fee_id, int(row.link_id) % 12, row.solar_id))
 
     out.write("}")
     gencode_close_generated(out)
@@ -140,7 +140,7 @@ def gs_read_sheet_cru(credential_file, workbook, sheet_name):
 
 # LINK ID  CRU ID  CRU LINK  DWP  CRU ADDR  DW ADDR   FEE ID
 
-    cols = np.array([0, 1, 2, 3, 4, 5,6,7])
+    cols = np.array([0, 1, 2, 3, 4, 5, 6, 7])
     df = pd.DataFrame(np.asarray(data)[:, cols],
                       columns=["solar_id", "cru_id", "link_id", "cru_sn",
                                "dwp", "cru_address_0", "cru_address_1",
@@ -194,7 +194,7 @@ def _simplify_dataframe(df):
             'solar_id': solar_id,
             'group_id': group_id,
             'de_id': de_id,
-            'ds_id_0': int(row.ds1) if pd.notna(row.ds1) and len(row.ds1) >0 else 0
+            'ds_id_0': int(row.ds1) if pd.notna(row.ds1) and len(row.ds1) > 0 else 0
         })
         d['ds_id_1'] = int(row.ds2) if pd.notna(
             row.ds2) and len(row.ds2) > 0 else 0
@@ -254,13 +254,14 @@ df_cru = pd.DataFrame()
 
 if args.excel_filename:
     for ifile in args.excel_filename:
-        df = df.append(excel_is_valid_file(parser, ifile, args.sheet))
+        df = pd.concat([df, excel_is_valid_file(parser, ifile, args.sheet)])
 
 if args.gs_name:
-    df = df.append(gs_read_sheet(args.credentials, args.gs_name, args.sheet))
+    df = pd.concat(
+        [df, gs_read_sheet(args.credentials, args.gs_name, args.sheet)])
     df, solar_map = _simplify_dataframe(df)
-    df_cru = df_cru.append(gs_read_sheet_cru(args.credentials, args.gs_name,
-                                             args.sheet+" CRU map"))
+    df_cru = pd.concat([df_cru, gs_read_sheet_cru(args.credentials, args.gs_name,
+                                                  args.sheet+" CRU map")])
 
 if args.verbose:
     print(df.to_string())
@@ -282,14 +283,14 @@ if args.fecmapfile:
             "ds_id_1": lambda x: " %-6s" % x,
             "ds_id_2": lambda x: " %-6s" % x,
             "ds_id_3": lambda x: " %-6s" % x,
-            "ds_id_4": lambda x: " %-6s" % x,
+            "ds_id_4": lambda x: (" %-6s" % x).rstrip(),
         })
     fec_file = open(args.fecmapfile, "w")
-    fec_file.write(fec_string+"\n")
+    fec_file.write(fec_string.rstrip()+"\n")
 
 if args.crumapfile:
     cru_string = df_cru.to_string(
-        columns=["solar_id","fee_id","link_id"],
+        columns=["solar_id", "fee_id", "link_id"],
         header=False,
         index=False,
         formatters={
@@ -298,4 +299,5 @@ if args.crumapfile:
             "link_id": lambda x: "%4s" % x if x else "XXXX",
         })
     cru_file = open(args.crumapfile, "w")
-    [cru_file.write(line+"\n") for line in cru_string.split("\n") if not line.startswith("XXXX")]
+    [cru_file.write(line.rstrip()+"\n")
+     for line in cru_string.split("\n") if not line.startswith("XXXX")]
