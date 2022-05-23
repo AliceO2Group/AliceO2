@@ -25,6 +25,9 @@
 #include <sstream>
 #include <vector>
 
+#define rans_likely(x) __builtin_expect((x), 1)
+#define rans_unlikely(x) __builtin_expect((x), 0)
+
 namespace o2
 {
 namespace rans
@@ -141,6 +144,15 @@ class JSONArrayLogger
   std::vector<T> mElems{};
   bool mReverse{false};
 };
+
+inline uint32_t safeadd(uint32_t a, uint32_t b)
+{
+  uint32_t result;
+  if (rans_unlikely(__builtin_uadd_overflow(a, b, &result))) {
+    throw std::overflow_error("arithmetic overflow during addition");
+  }
+  return result;
+}
 
 template <typename T, typename IT>
 inline constexpr bool isCompatibleIter_v = std::is_convertible_v<typename std::iterator_traits<IT>::value_type, T>;
