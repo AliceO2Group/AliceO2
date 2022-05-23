@@ -102,7 +102,7 @@ void RawReaderMemory::nextPage(bool doResetPayload)
       // update current FEE ID
       mCurrentFEE = feeID;
     }
-    //RDHDecoder::printRDH(mRawHeader);
+    // RDHDecoder::printRDH(mRawHeader);
     if (RDHDecoder::getOffsetToNext(mRawHeader) == RDHDecoder::getHeaderSize(mRawHeader)) {
       // No Payload - jump to next rawheader
       // This will eventually move, depending on whether for events without payload in the SRU we send the RCU trailer
@@ -113,7 +113,7 @@ void RawReaderMemory::nextPage(bool doResetPayload)
         // update current FEE ID
         mCurrentFEE = feeID;
       }
-      //RDHDecoder::printRDH(mRawHeader);
+      // RDHDecoder::printRDH(mRawHeader);
     }
     mRawHeaderInitialized = true;
   } catch (...) {
@@ -146,13 +146,17 @@ void RawReaderMemory::nextPage(bool doResetPayload)
       if (lastword >> 30 == 3) {
         // lastword is a trailer word
         // decode trailer and chop
-        auto trailer = RCUTrailer::constructFromPayloadWords(mRawBuffer.getDataWords());
-        if (!mCurrentTrailer.isInitialized()) {
-          mCurrentTrailer = trailer;
-        } else {
-          mCurrentTrailer.setPayloadSize(mCurrentTrailer.getPayloadSize() + trailer.getPayloadSize());
+        try {
+          auto trailer = RCUTrailer::constructFromPayloadWords(mRawBuffer.getDataWords());
+          if (!mCurrentTrailer.isInitialized()) {
+            mCurrentTrailer = trailer;
+          } else {
+            mCurrentTrailer.setPayloadSize(mCurrentTrailer.getPayloadSize() + trailer.getPayloadSize());
+          }
+          payloadWithoutTrailer = gsl::span<const uint32_t>(mRawBuffer.getDataWords().data(), mRawBuffer.getDataWords().size() - trailer.getTrailerSize());
+        } catch (RCUTrailer::Error& e) {
+          throw RawDecodingError(RawDecodingError::ErrorType_t::TRAILER_DECODING, mCurrentFEE);
         }
-        payloadWithoutTrailer = gsl::span<const uint32_t>(mRawBuffer.getDataWords().data(), mRawBuffer.getDataWords().size() - trailer.getTrailerSize());
       } else {
         // Not a trailer word = copy page as it is
         payloadWithoutTrailer = mRawBuffer.getDataWords(); // No trailer to be chopped

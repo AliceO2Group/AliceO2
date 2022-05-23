@@ -53,12 +53,13 @@ void RCUTrailer::constructFromRawPayload(const gsl::span<const uint32_t> payload
   mTrailerSize = trailerSize;
 
   trailerSize -= 2; // Cut first and last trailer words as they are handled separately
+  int foundTrailerWords = 0;
   for (; trailerSize > 0; trailerSize--) {
     word = payloadwords[--index];
     if ((word >> 30) != 2) {
-      std::cerr << "Missing RCU trailer identifier pattern!\n";
       continue;
     }
+    foundTrailerWords++;
     int parCode = (word >> 26) & 0xF;
     int parData = word & 0x3FFFFFF;
     // std::cout << "Found trailer word 0x" << std::hex << word << "(Par code: " << std::dec << parCode << ", Par data: 0x" << std::hex << parData << std::dec << ")";
@@ -97,7 +98,14 @@ void RCUTrailer::constructFromRawPayload(const gsl::span<const uint32_t> payload
         break;
     }
   }
-  mPayloadSize = payloadwords[--index] & 0x3FFFFFF;
+  auto lastword = payloadwords[--index];
+  if (lastword >> 30 == 2) {
+    mPayloadSize = lastword & 0x3FFFFFF;
+    foundTrailerWords++;
+  }
+  if (foundTrailerWords + 1 < mTrailerSize) { // Must account for the first word which was chopped
+    throw Error(Error::ErrorType_t::DECODING_INVALID, fmt::format("Corrupted trailer words: {:d} word(s) not having trailer marker", mTrailerSize - foundTrailerWords).data());
+  }
   mIsInitialized = true;
 }
 
@@ -119,7 +127,7 @@ double RCUTrailer::getTimeSampleNS() const
       tSample = 8.;
       break;
     default:
-      throw Error(Error::ErrorType_t::SAMPLINGFREQ_INVALID, fmt::format("Invalid sampling frequency value %d !", int(fq)).data());
+      throw Error(Error::ErrorType_t::SAMPLINGFREQ_INVALID, fmt::format("Invalid sampling frequency value {:d} !", int(fq)).data());
   }
 
   return tSample * o2::constants::lhc::LHCBunchSpacingNS;
@@ -139,7 +147,7 @@ void RCUTrailer::setTimeSamplePhaseNS(uint64_t triggertime, uint64_t timesample)
       sample = 2;
       break;
     default:
-      throw Error(Error::ErrorType_t::SAMPLINGFREQ_INVALID, fmt::format("invalid time sample: %f", timesample).data());
+      throw Error(Error::ErrorType_t::SAMPLINGFREQ_INVALID, fmt::format("invalid time sample: {:f}", timesample).data());
   };
   mAltroConfig.mSampleTime = sample;
   // calculate L1 phase
@@ -151,7 +159,7 @@ double RCUTrailer::getL1PhaseNS() const
   double tSample = getTimeSampleNS(),
          phase = static_cast<double>(mAltroConfig.mL1Phase) * o2::constants::lhc::LHCBunchSpacingNS;
   if (phase >= tSample) {
-    throw Error(Error::ErrorType_t::L1PHASE_INVALID, fmt::format("Invalid L1 trigger phase (%e ns (phase) >= %e ns (sampling time)) !", phase, tSample).data());
+    throw Error(Error::ErrorType_t::L1PHASE_INVALID, fmt::format("Invalid L1 trigger phase ({:e} ns (phase) >= {:e} ns (sampling time)) !", phase, tSample).data());
   }
   return phase;
 }
