@@ -184,7 +184,7 @@ struct bcRanges {
       isExtended = true;
     }
   }
-  
+
   // check if the value index is in a range
   // and return true if this is the case
   bool isInRange(uint64_t index)
@@ -193,7 +193,7 @@ struct bcRanges {
     merge(false);
 
     // find the range in which the value index falls
-    auto range = std::find_if( mbcRangesList.begin(), mbcRangesList.end(), [index](limits a) {
+    auto range = std::find_if(mbcRangesList.begin(), mbcRangesList.end(), [index](limits a) {
       return (index >= a.first) && (index <= a.second);
     });
     return (range != mbcRangesList.end());
