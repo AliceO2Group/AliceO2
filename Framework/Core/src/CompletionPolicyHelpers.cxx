@@ -97,6 +97,9 @@ CompletionPolicy CompletionPolicyHelpers::defineByName(std::string const& name, 
     case CompletionPolicy::CompletionOp::ConsumeAndRescan:
       return CompletionPolicy{"always-rescan", matcher, callback};
       break;
+    case CompletionPolicy::CompletionOp::Retry:
+      return CompletionPolicy{"retry", matcher, callback};
+      break;
   }
   O2_BUILTIN_UNREACHABLE();
 }
@@ -123,7 +126,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAllOrdered(const char* name
         return CompletionPolicy::CompletionOp::Wait;
       }
       if (framework::DataRefUtils::isValid(input) && framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input)->startTime != *nextTimeSlice) {
-        return CompletionPolicy::CompletionOp::Wait;
+        return CompletionPolicy::CompletionOp::Retry;
       }
     }
     (*nextTimeSlice)++;
