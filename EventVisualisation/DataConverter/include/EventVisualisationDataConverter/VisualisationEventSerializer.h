@@ -41,6 +41,7 @@ class VisualisationEventSerializer
   }
   virtual bool fromFile(VisualisationEvent& event, std::string fileName) = 0;
   virtual void toFile(const VisualisationEvent& event, std::string fileName) = 0;
+  virtual ~VisualisationEventSerializer() = default;
 };
 
 } // namespace event_visualisation
