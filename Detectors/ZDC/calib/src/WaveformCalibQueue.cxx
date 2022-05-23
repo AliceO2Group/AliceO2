@@ -29,9 +29,8 @@ void WaveformCalibQueue::configure(const WaveformCalibConfig* cfg)
   mLast = ilast;
   mN = ilast - ifirst + 1;
   mPk = -mFirst;
-  mPPos = mPk * NIS + NIS / 2;
-  mNP = mN * NIS;
   mPeak = peak(mPk);
+  mNP = mN * NIS;
   for (int32_t isig = 0; isig < NChannels; isig++) {
     mTimeLow[isig] = std::nearbyint(cfg->cutTimeLow[SignalTDC[isig]] / FTDCVal);
     mTimeHigh[isig] = std::nearbyint(cfg->cutTimeHigh[SignalTDC[isig]] / FTDCVal);
@@ -196,6 +195,7 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
   int ipkb = -1; // Bunch where peak is found
   int ipk = -1;  // peak position within bunch
   float min = std::numeric_limits<float>::infinity();
+  float max = -std::numeric_limits<float>::infinity();
   bool hasInfos = false;
   for (int ib = 0; ib < mN; ib++) {
     bool ifound = false;
@@ -219,6 +219,9 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
             ipk = ip;
             min = mywave.inter[ip];
           }
+          if (mywave.inter[ip] > max) {
+            max = mywave.inter[ip];
+          }
         }
       }
     }
@@ -234,7 +237,21 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
   if (ipkb != mPk) {
     return -1;
   } else {
-    int ppos = NTimeBinsPerBC * TSN * ipkb + ipk;
+    int ppos = NIS * ipkb + ipk;
+    int itdc = SignalTDC[isig];
+    if (isig != TDCSignal[itdc]) {
+      // Additional checks for towers
+      float amp = max - min;
+      if (amp < mCfg->cutLow[isig] || amp > mCfg->cutHigh[isig]) {
+        // No warning messages for amplitude cuts on towers
+        return -1;
+      }
+      if ((ppos - mPeak) < mTimeLow[itdc] || (ppos - mPeak) > mTimeHigh[itdc]) {
+        // Put a warning message for a signal out of time
+        LOGF(warning, "%d.%04d Signal %2d peak position %d-%d=%d is outside allowed range [%d:%d]", mIR[mPk].orbit, mIR[mPk].bc, isig, ppos, mPeak, ppos - mPeak, mTimeLow[isig], mTimeHigh[isig]);
+        return -1;
+      }
+    }
     int ipos = mPeak - ppos;
     data.mEntries[isig]++;
     // Restrict validity range because of signal jitter
@@ -306,9 +323,9 @@ void WaveformCalibQueue::print()
 void WaveformCalibQueue::printConf()
 {
   LOG(info) << "WaveformCalibQueue::" << __func__;
-  LOGF(info, "mFirst=%d mLast=%d mPk=%d mN=%d mPPos=%d mNP=%d mPeak=%d\n", mFirst, mLast, mPk, mN, mPPos, mNP, mPeak);
+  LOGF(info, "mFirst=%d mLast=%d mPk=%d mN=%d mPeak=%d/mNP=%d", mFirst, mLast, mPk, mN, mPeak, mNP);
   for (int isig = 0; isig < NChannels; isig++) {
-    LOGF(info, "ch%02d pos [%d:%d]", mTimeLow[isig], mTimeHigh[isig]);
+    LOGF(info, "ch%02d pos [%d:%d]", isig, mTimeLow[isig], mTimeHigh[isig]);
   }
 }
 

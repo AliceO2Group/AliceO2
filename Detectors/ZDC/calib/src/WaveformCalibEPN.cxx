@@ -45,7 +45,6 @@ int WaveformCalibEPN::init()
   if (mVerbosity > DbgZero) {
     mQueue.printConf();
   }
-  mQueue.printConf();
 
   // number of bins
   mNBin = cfg->nbun * TSN;
