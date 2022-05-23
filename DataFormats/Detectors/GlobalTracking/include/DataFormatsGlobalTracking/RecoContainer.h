@@ -310,7 +310,7 @@ struct RecoContainer {
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>> mcEMCCells;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>> mcMIDTrackClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>> mcMIDClusters;
-  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcMIDTracks; // temporary, why MID stores MCTruthContainer for tracks and not single label?
+  std::unique_ptr<const std::vector<o2::MCCompLabel>> mcMIDTracks;
 
   gsl::span<const unsigned char> clusterShMapTPC; ///< externally set TPC clusters sharing map
 
@@ -493,8 +493,7 @@ struct RecoContainer {
   auto getMIDTracksROFRecords() const { return getSpan<o2::mid::ROFRecord>(GTrackID::MID, TRACKREFS); }
   auto getMIDTrackClusters() const { return getSpan<o2::mid::Cluster>(GTrackID::MID, INDICES); }
   auto getMIDTrackClustersROFRecords() const { return getSpan<o2::mid::ROFRecord>(GTrackID::MID, MATCHES); }
-  // auto getMIDTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::MID, MCLABELS); }
-  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* getMIDTracksMCLabels() const; // temporary?
+  auto getMIDTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::MID, MCLABELS); }
   const o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>* getMIDTracksClusterMCLabels() const;
 
   // MID clusters

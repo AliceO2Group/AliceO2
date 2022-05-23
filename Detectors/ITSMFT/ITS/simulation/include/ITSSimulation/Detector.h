@@ -240,13 +240,6 @@ class Detector : public o2::base::DetImpl<Detector>
   void BeginPrimary() override { ; }
   void PostTrack() override { ; }
   void PreTrack() override { ; }
-  /// Prints out the content of this class in ASCII format
-  /// \param ostream *os The output stream
-  void Print(std::ostream* os) const;
-
-  /// Reads in the content of this class in the format of Print
-  /// \param istream *is The input stream
-  void Read(std::istream* is);
 
   /// Returns the number of layers
   Int_t getNumberOfLayers() const { return sNumberLayers; }

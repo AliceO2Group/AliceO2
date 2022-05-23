@@ -74,7 +74,7 @@ void TestDataReader::init(InitContext& ic)
   mFolderNames = GetFName(mWorkDir);
 
   cout << "NFolder = " << mFolderNames.size() << endl;
-  for (int i = 0; i < mFolderNames.size(); i++) {
+  for (size_t i = 0; i < mFolderNames.size(); i++) {
 
     cout << "FDN = " << mFolderNames[i] << endl;
 
@@ -82,7 +82,7 @@ void TestDataReader::init(InitContext& ic)
 
     cout << "FDN File Size = " << mFileNames[i].size() << endl;
 
-    for (int j = 0; j < mFileNames[i].size(); j++) {
+    for (size_t j = 0; j < mFileNames[i].size(); j++) {
 
       cout << "FDN File = " << mFileNames[i][j] << endl;
     }
@@ -91,12 +91,11 @@ void TestDataReader::init(InitContext& ic)
     mErrors[i] = 0;
   }
 
-  //		mEventPerPush = 3000;
+  // mEventPerPush = 3000;
   mEventRegistered = 0;
   mTotalPixelSize = 0;
 
-  //	GetFileName("infile");
-
+  //("infile");
   //
 
   const Int_t numOfChips = o2::itsmft::ChipMappingITS::getNChips();
@@ -114,9 +113,9 @@ void TestDataReader::run(ProcessingContext& pc)
   // Keep checking new folders (and files in the folders)
   // If found, process them one by one
 
-  //Defining all local variables
+  // Defining all local variables
   int j = 0;
-  int NEventPre;
+  int NEventPre = 0;
   int NEvent;
   double PercentDone = 0;
   int ErrorDetcted;
@@ -130,7 +129,7 @@ void TestDataReader::run(ProcessingContext& pc)
   // Get folders in working directory, put all files in a vector
   mNowFolderNames = GetFName(mWorkDir);
   cout << "Now NFolder = " << mNowFolderNames.size() << endl;
-  for (int i = 0; i < mNowFolderNames.size(); i++) {
+  for (size_t i = 0; i < mNowFolderNames.size(); i++) {
     mNowFileNames.push_back(GetFName(mNowFolderNames[i]));
   }
 
@@ -180,7 +179,7 @@ void TestDataReader::run(ProcessingContext& pc)
 
   LOG(debug) << "Get IN LOOP";
   // Checking for new files, extract them into new vector
-  for (int i = 0; i < mFolderNames.size(); i++) {
+  for (size_t i = 0; i < mFolderNames.size(); i++) {
     std::set_difference(mNowFileNames[i].begin(), mNowFileNames[i].end(), mFileNames[i].begin(), mFileNames[i].end(), std::inserter(mDiffFileNamePush, mDiffFileNamePush.begin()));
     mDiffFileNames.push_back(mDiffFileNamePush);
     cout << "Difference File Size Between New and Initial Runs " << mDiffFileNames[i].size() << endl;
@@ -190,8 +189,8 @@ void TestDataReader::run(ProcessingContext& pc)
 
   LOG(debug) << "DONE GRABING Existing";
 
-  //Getting the new files from new folders that does not exist in the previous cycle
-  for (int i = mFolderNames.size(); i < mNowFolderNames.size(); i++) {
+  // Getting the new files from new folders that does not exist in the previous cycle
+  for (size_t i = mFolderNames.size(); i < mNowFolderNames.size(); i++) {
     mDiffFileNames.push_back(mNowFileNames[i]);
     cout << "New File Size Between New and Initial Runs " << mDiffFileNames[i].size() << endl;
   }
@@ -204,15 +203,15 @@ void TestDataReader::run(ProcessingContext& pc)
 
   LOG(debug) << "Start Loop";
 
-  //Start Decoding New Files by loop through the new file vector
+  // Start Decoding New Files by loop through the new file vector
 
-  for (int i = 0; i < mNowFolderNames.size(); i++) {
+  for (size_t i = 0; i < mNowFolderNames.size(); i++) {
 
     LOG(debug) << "i = " << i << "    mDiffFileNames[i].size() = " << mDiffFileNames[i].size();
 
-    //Getting the folder name ID
+    // Getting the folder name ID
 
-    int pos = mNowFolderNames[i].find_last_of("/");
+    size_t pos = mNowFolderNames[i].find_last_of("/");
 
     if (pos != string::npos) {
       mRunID = mNowFolderNames[i].substr(pos + 1);
@@ -220,7 +219,7 @@ void TestDataReader::run(ProcessingContext& pc)
 
     LOG(debug) << "FileDone = " << mFileDone << endl;
 
-    //Reading files one by one
+    // Reading files one by one
 
     if (mDiffFileNames[i].size() > 0 && mFileDone == 1) {
 
@@ -229,11 +228,11 @@ void TestDataReader::run(ProcessingContext& pc)
       cout << "RunID = " << mRunID << endl;
       cout << "File Location = " << mDiffFileNames[i][0] << endl;
 
-      //Getting the RunID
+      // Getting the RunID
       size_t last_index1 = mRunID.find_last_not_of("0123456789");
       string RunIDS = mRunID.substr(last_index1 + 1);
 
-      //Getting the FileID
+      // Getting the FileID
       string FileIDS;
       pos = mDiffFileNames[i][0].find_last_of("/");
       if (pos != string::npos) {
@@ -245,21 +244,21 @@ void TestDataReader::run(ProcessingContext& pc)
       size_t last_index2 = FileIDS.find_last_not_of("0123456789");
       FileIDS = FileIDS.substr(last_index2 + 1);
 
-      //Extracting the RunID and File to integer in order to make it possible to inject to the QC
+      // Extracting the RunID and File to integer in order to make it possible to inject to the QC
       mRunNumber = std::stoi(RunIDS);
       mFileID = std::stoi(FileIDS);
 
       ofstream fout(Form("ErrorData/ErrorLogRun%d_File%d.dat", mRunNumber, mFileID));
       fout << " START OF ERROR REPORT For Run " << mRunNumber << "  File " << mFileID << endl;
 
-      //Reading the first file (Because it is one by one)
+      // Reading the first file (Because it is one by one)
       mInputName = mDiffFileNames[i][0];
 
       mEventRegistered = 0;
       LOG(debug) << "mInputName = " << mInputName;
 
-      //Inject fake thing digits for the QC to update immediately
-      //mDigitsTest is the fake digit for updating the QC immediately on the QC GUI
+      // Inject fake thing digits for the QC to update immediately
+      // mDigitsTest is the fake digit for updating the QC immediately on the QC GUI
 
       if (mNewFileInj == 1) {
         cout << "New File Injected, Now Updating the Canvas and Light" << endl;
@@ -284,7 +283,7 @@ void TestDataReader::run(ProcessingContext& pc)
         break;
       }
 
-      //DONE Inhection//
+      // DONE Inhection//
 
       o2::itsmft::RawPixelReader<o2::itsmft::ChipMappingITS> mRawReader;
       mRawReader.setPadding128(true); // payload GBT words are padded to 16B
@@ -305,7 +304,7 @@ void TestDataReader::run(ProcessingContext& pc)
         if (NChip < NChipMax) {
           break;
         }
-        //	cout << "Pass Chip" << endl;
+        // cout << "Pass Chip" << endl;
 
         const auto* ruInfo = rawErrorReader.getCurrRUDecodeData()->ruInfo;
         const auto& statRU = rawErrorReader.getRUDecodingStatSW(ruInfo->idSW);
@@ -340,7 +339,7 @@ void TestDataReader::run(ProcessingContext& pc)
           mTotalPixelSize = 0;
         }
 
-        //Printing the Event Number Processed
+        // Printing the Event Number Processed
 
         if (NEvent % 1000000 == 0 && TimePrint == 0) {
           cout << "Event Number = " << NEvent << endl;
@@ -453,22 +452,23 @@ void TestDataReader::run(ProcessingContext& pc)
 
   LOG(debug) << "mIndexPush After = " << mIndexPush;
 
-  /*
-			   LOG(debug) << "Before:  " << "mIndexPush = " << mIndexPush << "     mDigits.size() = " <<  mDigits.size(); 
-			   while(mIndexPush < mDigits.size()){
-			//	LOG(debug) << "mDigits.size() = " << mDigits.size();
-			pc.outputs().snapshot(Output{ "ITS", "DIGITS", 0, Lifetime::Timeframe }, mDigits[mIndexPush++]);
-			if(mIndexPush%100000==0) 	LOG(debug) << "mIndexPush = " << mIndexPush << "    Chip ID Pushing " << mDigits[mIndexPush].getChipIndex();
-			}
-			//pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
-			LOG(debug) << "After:  " << "mIndexPush = " << mIndexPush << "     mDigits.size() = " <<  mDigits.size(); 
-			*/
+  // LOG(debug) << "Before:  "
+  //            << "mIndexPush = " << mIndexPush << "     mDigits.size() = " << mDigits.size();
+  // while (mIndexPush < mDigits.size()) {
+  // LOG(debug) << "mDigits.size() = " << mDigits.size();
+  //   pc.outputs().snapshot(Output{"ITS", "DIGITS", 0, Lifetime::Timeframe}, mDigits[mIndexPush++]);
+  //   if (mIndexPush % 100000 == 0)
+  //     LOG(debug) << "mIndexPush = " << mIndexPush << "    Chip ID Pushing " << mDigits[mIndexPush].getChipIndex();
+  // }
+  // // pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
+  // LOG(debug) << "After:  "
+  //            << "mIndexPush = " << mIndexPush << "     mDigits.size() = " << mDigits.size();
 
   mFolderNames.clear();
-  //	mFileNames.clear();
+  // mFileNames.clear();
   NewNextFold.clear();
   mFolderNames = mNowFolderNames;
-  //	mFileNames = mNowFileNames;
+  // mFileNames = mNowFileNames;
 
   mNowFolderNames.clear();
   mNowFileNames.clear();
@@ -479,7 +479,7 @@ void TestDataReader::run(ProcessingContext& pc)
 
   cout << "Resetting Pushing Things" << endl;
 
-  //Resetting a New File //
+  // Resetting a New File //
   if (mIndexPush > mDigits.size() - 5) {
     mDigits.clear();
     mIndexPush = 0;
@@ -491,9 +491,9 @@ void TestDataReader::run(ProcessingContext& pc)
     mErrorsVec.clear();
   }
 
-  //if(mNewFileInjAction == 1){
-  //		mNewFileInjAction = 0;
-  //	}
+  // if(mNewFileInjAction == 1){
+  // mNewFileInjAction = 0;
+  // }
 
   cout << "Start Sleeping" << endl;
   cout << " " << endl;
@@ -519,12 +519,12 @@ std::vector<string> TestDataReader::GetFName(std::string folder)
   strcpy(cstr, folder.c_str());
   dirp = opendir(cstr);
   std::vector<string> names;
-  //string search_path = folder + "/*";
+  // string search_path = folder + "/*";
   if (dirp) {
     struct dirent* directory;
     while ((directory = readdir(dirp)) != nullptr) {
 
-      //printf("%s\n", directory->d_name);
+      // printf("%s\n", directory->d_name);
 
       if (!(!strcmp(directory->d_name, ".") || !strcmp(directory->d_name, ".."))) {
         names.push_back(folder + "/" + directory->d_name);
@@ -551,18 +551,18 @@ DataProcessorSpec getTestDataReaderSpec()
       OutputSpec{"ITS", "File", 0, Lifetime::Timeframe},
       OutputSpec{"ITS", "Finish", 0, Lifetime::Timeframe},
       /*
-						   OutputSpec{ "TST", "Error0", 0, Lifetime::Timeframe },
-						   OutputSpec{ "TST", "Error1", 0, Lifetime::Timeframe },
-						   OutputSpec{ "TST", "Error2", 0, Lifetime::Timeframe },
-						   OutputSpec{ "TST", "Error3", 0, Lifetime::Timeframe },
-						   OutputSpec{ "TST", "Error4", 0, Lifetime::Timeframe },
-						   OutputSpec{ "TST", "Error5", 0, Lifetime::Timeframe },
-						   OutputSpec{ "TST", "Error6", 0, Lifetime::Timeframe },
-						   OutputSpec{ "TST", "Error7", 0, Lifetime::Timeframe },
-						   OutputSpec{ "TST", "Error8", 0, Lifetime::Timeframe },
-						   OutputSpec{ "TST", "Error9", 0, Lifetime::Timeframe },
-						   */
-      //		OutputSpec{ "TST", "TEST3", 0, Lifetime::Timeframe },
+               OutputSpec{ "TST", "Error0", 0, Lifetime::Timeframe },
+               OutputSpec{ "TST", "Error1", 0, Lifetime::Timeframe },
+               OutputSpec{ "TST", "Error2", 0, Lifetime::Timeframe },
+               OutputSpec{ "TST", "Error3", 0, Lifetime::Timeframe },
+               OutputSpec{ "TST", "Error4", 0, Lifetime::Timeframe },
+               OutputSpec{ "TST", "Error5", 0, Lifetime::Timeframe },
+               OutputSpec{ "TST", "Error6", 0, Lifetime::Timeframe },
+               OutputSpec{ "TST", "Error7", 0, Lifetime::Timeframe },
+               OutputSpec{ "TST", "Error8", 0, Lifetime::Timeframe },
+               OutputSpec{ "TST", "Error9", 0, Lifetime::Timeframe },
+               */
+      // OutputSpec{ "TST", "TEST3", 0, Lifetime::Timeframe },
     },
     AlgorithmSpec{adaptFromTask<TestDataReader>()},
   };

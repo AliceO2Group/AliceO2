@@ -133,20 +133,54 @@ std::vector<Hit> generateHits(size_t nHits, int deId, const Mapping& mapping, co
   return hits;
 }
 
+std::vector<size_t> getCompatibleGenTrackIds(size_t igen, const std::vector<GenTrack>& genTracks)
+{
+  // Two generated tracks are indistinguishable in reconstruction if:
+  // - they cross the same strip in all chamber planes
+  // - they cross neighbour strips in all chamber planes
+  // The first case is evident.
+  // The second happens because the digits of the tracks will form a unique cluster.
+  // The maximum strip pitch is 4 cm. So, to simplify,
+  // we consider that the tracks will have digits in the same cluster
+  // if the distance of their hits is smaller than twice the maximum strip pitch.
+  std::vector<size_t> ids;
+  auto& refHits = genTracks[igen].hits;
+  for (auto itr = 0; itr < genTracks.size(); ++itr) {
+    if (itr == igen) {
+      ids.emplace_back(itr);
+      continue;
+    }
+    auto& hits = genTracks[itr].hits;
+    if (hits.size() == refHits.size()) {
+      size_t nSame = 0;
+      for (auto ihit = 0; ihit < refHits.size(); ++ihit) {
+        if (hits[ihit].GetDetectorID() == refHits[ihit].GetDetectorID() && std::abs(hits[ihit].GetX() - refHits[ihit].GetX()) < 8. && std::abs(hits[ihit].GetY() - refHits[ihit].GetY()) < 8.) {
+          ++nSame;
+        } else {
+          break;
+        }
+      }
+      if (nSame == refHits.size()) {
+        ids.emplace_back(itr);
+      }
+    }
+  }
+  return ids;
+}
+
 std::vector<GenTrack> generateTracks(int nTracks)
 {
-  Mapping::MpStripIndex stripIndex;
   auto tracks = simTracking.trackGen.generate(nTracks);
   std::vector<GenTrack> genTracks;
-  for (auto& track : tracks) {
-    int trackId = &track - &tracks[0];
+  for (auto trackIt = tracks.begin(), end = tracks.end(); trackIt != end; ++trackIt) {
+    auto trackId = std::distance(tracks.begin(), trackIt);
     GenTrack genTrack;
-    genTrack.track = track;
+    genTrack.track = *trackIt;
     for (int ich = 0; ich < 4; ++ich) {
-      auto clusters = simTracking.hitFinder.getLocalPositions(track, ich);
+      auto clusters = simTracking.hitFinder.getLocalPositions(*trackIt, ich);
       bool isFired = false;
       for (auto& cl : clusters) {
-        stripIndex = simBase.mapping.stripByPosition(cl.xCoor, cl.yCoor, 0, cl.deId, false);
+        auto stripIndex = simBase.mapping.stripByPosition(cl.xCoor, cl.yCoor, 0, cl.deId, false);
         if (!stripIndex.isValid()) {
           continue;
         }
@@ -262,10 +296,7 @@ std::string getDebugInfo(const std::vector<GenTrack>& genTracks, Tracker& tracke
   }
 
   for (size_t itrack = rofTrack.firstEntry; itrack < rofTrack.firstEntry + rofTrack.nEntries; ++itrack) {
-    debug << "reco: " << tracker.getTracks()[itrack] << "  matches:";
-    for (auto& label : trackLabeler.getTracksLabels().getLabels(itrack)) {
-      debug << "  " << label.getTrackID();
-    }
+    debug << "reco: " << tracker.getTracks()[itrack] << "  matches: " << trackLabeler.getTracksLabels()[itrack].getTrackID();
     debug << "  clusters:\n";
     for (int ich = 0; ich < 4; ++ich) {
       int icl = tracker.getTracks()[itrack].getClusterMatched(ich);
@@ -518,7 +549,7 @@ BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({1, 2, 3, 4, 5,
   // To avoid this, compare adding a factor 2 in the sigma cut.
   float chi2Cut = simTracking.tracker.getSigmaCut() * simTracking.tracker.getSigmaCut();
 
-  unsigned long int nGood = 0, nUntagged = 0, nTaggedNonCompatible = 0, nReconstructible = 0;
+  unsigned long int nGood = 0, nUntagged = 0, nTaggedNonCompatible = 0, nReconstructible = 0, nFakes = 0;
 
   for (size_t ievent = 0; ievent < 100; ++ievent) {
     auto genTracks = generateTracks(nTracks);
@@ -548,28 +579,35 @@ BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({1, 2, 3, 4, 5,
 
   // For the moment we save all clusters
   BOOST_TEST(simTracking.tracker.getClusters().size() == simClustering.clusterizer.getClusters().size());
-  BOOST_TEST(simTracking.tracker.getTracks().size() == simTracking.trackLabeler.getTracksLabels().getIndexedSize());
+  BOOST_TEST(simTracking.tracker.getTracks().size() == simTracking.trackLabeler.getTracksLabels().size());
   BOOST_TEST(simTracking.tracker.getClusters().size() == simTracking.trackLabeler.getTrackClustersLabels().getIndexedSize());
   BOOST_TEST(simTracking.tracker.getTrackROFRecords().size() == digitsROF.size());
 
-  std::string debugInfo = "";
   // Test that all reconstructible tracks are reconstructed
   for (size_t ievent = 0; ievent < genTrackCollection.size(); ++ievent) {
     auto firstTrack = simTracking.tracker.getTrackROFRecords()[ievent].firstEntry;
     auto nTracks = simTracking.tracker.getTrackROFRecords()[ievent].nEntries;
+    std::string debugInfo = "";
     for (size_t igen = 0; igen < genTrackCollection[ievent].size(); ++igen) {
       bool isReco = false;
+      auto ids = getCompatibleGenTrackIds(igen, genTrackCollection[ievent]);
       for (size_t itrack = firstTrack; itrack < firstTrack + nTracks; ++itrack) {
-        for (auto& label : simTracking.trackLabeler.getTracksLabels().getLabels(itrack)) {
-          if (label.getTrackID() == igen) {
-            if (simTracking.tracker.getTracks()[itrack].isCompatible(genTrackCollection[ievent][igen].track, chi2Cut)) {
-              isReco = true;
-              break;
-            }
+        auto label = simTracking.trackLabeler.getTracksLabels()[itrack];
+        bool checkReco = false;
+        if (label.isFake()) {
+          checkReco = true;
+        }
+        for (auto& id : ids) {
+          if (label.getTrackID() == id) {
+            checkReco = true;
+            break;
           }
         }
-        if (isReco) {
-          break;
+        if (checkReco) {
+          if (simTracking.tracker.getTracks()[itrack].isCompatible(genTrackCollection[ievent][igen].track, chi2Cut)) {
+            isReco = true;
+            break;
+          }
         }
       }
       std::stringstream ss;
@@ -584,35 +622,38 @@ BOOST_DATA_TEST_CASE(MID_SimTracks, boost::unit_test::data::make({1, 2, 3, 4, 5,
 
     // Perform some statistics
     for (size_t itrack = firstTrack; itrack < firstTrack + nTracks; ++itrack) {
-      for (auto& label : simTracking.trackLabeler.getTracksLabels().getLabels(itrack)) {
-        if (label.isEmpty()) {
-          ++nUntagged;
+      auto label = simTracking.trackLabeler.getTracksLabels()[itrack];
+      if (label.isEmpty()) {
+        ++nUntagged;
+        continue;
+      }
+      if (label.isFake()) {
+        ++nFakes;
+        continue;
+      }
+      const Track& matchedGenTrack(genTrackCollection[ievent][label.getTrackID()].track);
+      if (simTracking.tracker.getTracks()[itrack].isCompatible(matchedGenTrack, chi2Cut)) {
+        ++nGood;
+      } else {
+        ++nTaggedNonCompatible;
+      }
+      int nMatched = 0;
+      for (int ich = 0; ich < 4; ++ich) {
+        int trClusIdx = simTracking.tracker.getTracks()[itrack].getClusterMatched(ich);
+        if (trClusIdx < 0) {
           continue;
         }
-        const Track& matchedGenTrack(genTrackCollection[ievent][label.getTrackID()].track);
-        if (simTracking.tracker.getTracks()[itrack].isCompatible(matchedGenTrack, chi2Cut)) {
-          ++nGood;
-        } else {
-          ++nTaggedNonCompatible;
-        }
-        int nMatched = 0;
-        for (int ich = 0; ich < 4; ++ich) {
-          int trClusIdx = simTracking.tracker.getTracks()[itrack].getClusterMatched(ich);
-          if (trClusIdx < 0) {
-            continue;
-          }
-          for (auto& trClusterLabel : simTracking.trackLabeler.getTrackClustersLabels().getLabels(trClusIdx)) {
-            if (trClusterLabel.getTrackID() == label.getTrackID()) {
-              ++nMatched;
-            }
+        for (auto& trClusterLabel : simTracking.trackLabeler.getTrackClustersLabels().getLabels(trClusIdx)) {
+          if (trClusterLabel.getTrackID() == label.getTrackID()) {
+            ++nMatched;
           }
         }
-        BOOST_TEST(nMatched >= 3);
-      } // lop on track labels
-    }   // loop on reconstructed tracks
-  }     // loop on event
+      }
+      BOOST_TEST(nMatched >= 3);
+    } // loop on reconstructed tracks
+  }   // loop on event
   std::stringstream outMsg;
-  outMsg << "Tracks per event: " << nTracks << "  fraction of good: " << static_cast<double>(nGood) / static_cast<double>(nReconstructible) << "  untagged: " << static_cast<double>(nUntagged) / static_cast<double>(nReconstructible) << "  tagged but not compatible: " << static_cast<double>(nTaggedNonCompatible) / static_cast<double>(nReconstructible);
+  outMsg << "Tracks per event: " << nTracks << "  fraction of good: " << static_cast<double>(nGood) / static_cast<double>(nReconstructible) << "  untagged: " << static_cast<double>(nUntagged) / static_cast<double>(nReconstructible) << "  tagged but not compatible: " << static_cast<double>(nTaggedNonCompatible) / static_cast<double>(nReconstructible) << "  fake: " << static_cast<double>(nFakes) / static_cast<double>(nReconstructible);
 
   BOOST_TEST_MESSAGE(outMsg.str().c_str());
 }
