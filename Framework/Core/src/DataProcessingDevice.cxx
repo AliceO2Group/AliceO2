@@ -684,8 +684,15 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   deviceContext.quotaEvaluator = &mQuotaEvaluator;
   deviceContext.stats = &mStats;
   context.isSink = false;
+  context.balancingInputs = true;
   // If nothing is a sink, the rate limiting simply does not trigger.
   bool enableRateLimiting = std::stoi(fConfig->GetValue<std::string>("timeframes-rate-limit"));
+
+  // This is needed because the internal injected dummy sink should not
+  // try to balance inputs unless the rate limiting is requested.
+  if (enableRateLimiting == false && deviceContext.spec->name == "internal-dpl-injected-dummy-sink") {
+    context.balancingInputs = false;
+  }
   if (enableRateLimiting) {
     for (auto& spec : mSpec.outputs) {
       if (spec.matcher.binding.value == "dpl-summary") {
@@ -957,11 +964,14 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   LOGP(debug, "oldest possible timeframe range {}, {} => {} delta", currentOldest.value, currentNewest.value,
        delta);
   auto& infos = context.deviceContext->state->inputChannelInfos;
-  static int ahead = getenv("DPL_MAX_CHANNEL_AHEAD") ? std::atoi(getenv("DPL_MAX_CHANNEL_AHEAD")) : 16;
-  auto newEnd = std::remove_if(pollOrder.begin(), pollOrder.end(), [&infos, limitNew = currentOldest.value + ahead](int a) -> bool {
-    return infos[a].oldestForChannel.value > limitNew;
-  });
-  pollOrder.erase(newEnd, pollOrder.end());
+
+  if (context.balancingInputs) {
+    static uint64_t ahead = getenv("DPL_MAX_CHANNEL_AHEAD") ? std::atoll(getenv("DPL_MAX_CHANNEL_AHEAD")) : 16;
+    auto newEnd = std::remove_if(pollOrder.begin(), pollOrder.end(), [&infos, limitNew = currentOldest.value + ahead](int a) -> bool {
+      return infos[a].oldestForChannel.value > limitNew;
+    });
+    pollOrder.erase(newEnd, pollOrder.end());
+  }
   LOGP(debug, "processing {} channels", pollOrder.size());
 
   for (auto sci : pollOrder) {
