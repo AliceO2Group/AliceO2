@@ -41,7 +41,8 @@ class RawDecodingError : public std::exception
     PAYLOAD_DECODING,   ///< Payload cannot be decoded (format incorrect)
     HEADER_INVALID,     ///< Header in memory not belonging to requested superpage
     PAGE_START_INVALID, ///< Page position starting outside payload size
-    PAYLOAD_INVALID     ///< Payload in memory not belonging to requested superpage
+    PAYLOAD_INVALID,    ///< Payload in memory not belonging to requested superpage
+    TRAILER_DECODING    ///< Inconsistent trailer in memory (several trailer words missing the trailer marker)
   };
 
   /// \brief Constructor
@@ -73,6 +74,8 @@ class RawDecodingError : public std::exception
         return "Page decoding starting outside payload size";
       case ErrorType_t::PAYLOAD_INVALID:
         return "Access to payload not belonging to requested superpage";
+      case ErrorType_t::TRAILER_DECODING:
+        return "Inconsistent trailer in memory";
     };
     return "Undefined error";
   }
@@ -102,6 +105,8 @@ class RawDecodingError : public std::exception
         return 4;
       case ErrorType_t::PAYLOAD_INVALID:
         return 5;
+      case ErrorType_t::TRAILER_DECODING:
+        return 6;
     };
     // can never reach this, due to enum class
     // just to make Werror happy
