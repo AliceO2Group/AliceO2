@@ -2183,29 +2183,6 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     control.state = DriverControlState::PLAY;
   }
 
-  if (!varmap["mermaid"].as<std::string>().empty()) {
-    // Dump a mermaid representation of what I will do.
-    control.callbacks = {[filename = varmap["mermaid"].as<std::string>()](WorkflowSpec const&,
-                                                                          DeviceSpecs const& specs,
-                                                                          DeviceExecutions const&,
-                                                                          DataProcessorInfos&,
-                                                                          CommandInfo const&) {
-      if (filename == "-") {
-        MermaidHelpers::dumpDeviceSpec2Mermaid(std::cout, specs);
-      } else {
-        std::ofstream output(filename);
-        MermaidHelpers::dumpDeviceSpec2Mermaid(output, specs);
-      }
-    }};
-    control.forcedTransitions = {
-      DriverState::EXIT,                    //
-      DriverState::PERFORM_CALLBACKS,       //
-      DriverState::MERGE_CONFIGS,           //
-      DriverState::IMPORT_CURRENT_WORKFLOW, //
-      DriverState::MATERIALISE_WORKFLOW     //
-    };
-  }
-
   if (varmap["graphviz"].as<bool>()) {
     // Dump a graphviz representation of what I will do.
     control.callbacks = {[](WorkflowSpec const&,
@@ -2241,22 +2218,34 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
       DriverState::IMPORT_CURRENT_WORKFLOW, //
       DriverState::MATERIALISE_WORKFLOW     //
     };
-  } else if (!varmap["o2-control"].as<std::string>().empty()) {
-    control.callbacks = {[workflowName = varmap["o2-control"].as<std::string>()] //
-                         (WorkflowSpec const&,
-                          DeviceSpecs const& specs,
-                          DeviceExecutions const& executions,
-                          DataProcessorInfos&,
-                          CommandInfo const& commandInfo) {
-                           dumpDeviceSpec2O2Control(workflowName, specs, executions, commandInfo);
-                         }};
-    control.forcedTransitions = {
-      DriverState::EXIT,                    //
-      DriverState::PERFORM_CALLBACKS,       //
-      DriverState::MERGE_CONFIGS,           //
-      DriverState::IMPORT_CURRENT_WORKFLOW, //
-      DriverState::MATERIALISE_WORKFLOW     //
-    };
+  } else if (!varmap["o2-control"].as<std::string>().empty() or !varmap["mermaid"].as<std::string>().empty()) {
+      // Dump the workflow in o2-control and/or mermaid format
+      control.callbacks = {[filename = varmap["mermaid"].as<std::string>(),
+                            workflowName = varmap["o2-control"].as<std::string>()]
+                           (WorkflowSpec const&,
+                            DeviceSpecs const& specs,
+                            DeviceExecutions const& executions,
+                            DataProcessorInfos&,
+                            CommandInfo const& commandInfo) {
+                             if(!workflowName.empty()) {
+                               dumpDeviceSpec2O2Control(workflowName, specs, executions, commandInfo);
+                             }
+                             if(!filename.empty()) {
+                              if (filename == "-") {
+                                MermaidHelpers::dumpDeviceSpec2Mermaid(std::cout, specs);
+                              } else {
+                                std::ofstream output(filename);
+                                MermaidHelpers::dumpDeviceSpec2Mermaid(output, specs);
+                              }
+                             }
+                            }};
+      control.forcedTransitions = {
+        DriverState::EXIT,                    //
+        DriverState::PERFORM_CALLBACKS,       //
+        DriverState::MERGE_CONFIGS,           //
+        DriverState::IMPORT_CURRENT_WORKFLOW, //
+        DriverState::MATERIALISE_WORKFLOW     //
+      };
 
   } else if (varmap.count("id")) {
     // Add our own stacktrace dumping
