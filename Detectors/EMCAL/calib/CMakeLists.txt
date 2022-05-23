@@ -23,6 +23,7 @@ o2_add_library(EMCALCalib
                        src/FeeDCS.cxx
                        src/CalibDB.cxx
                        src/ElmbMeasurement.cxx
+                       src/EMCALChannelScaleFactors.cxx
                PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase)
 
 o2_target_root_dictionary(EMCALCalib
@@ -40,6 +41,7 @@ o2_target_root_dictionary(EMCALCalib
                                   include/EMCALCalib/CalibDB.h
                                   include/EMCALCalib/ElmbData.h
                                   include/EMCALCalib/ElmbMeasurement.h
+                                  include/EMCALCalib/EMCALChannelScaleFactors.h
                           LINKDEF src/EMCALCalibLinkDef.h)
 
 o2_add_test(BadChannelMap
