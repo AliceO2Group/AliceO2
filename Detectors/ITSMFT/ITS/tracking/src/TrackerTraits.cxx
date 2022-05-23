@@ -116,6 +116,7 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
               int iPhiBin = (selectedBinsRect.y + iPhiCount) % mTrkParams[iteration].PhiBins;
               const int firstBinIndex{tf->mIndexTableUtils.getBinIndex(selectedBinsRect.x, iPhiBin)};
               const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
+              printf("%d %d %d %d %d %d %d\n", maxBinIndex, firstBinIndex, iPhiBin, iPhiCount, phiBinsNum, rof1, rof0);
               if constexpr (debugLevel) {
                 if (firstBinIndex < 0 || firstBinIndex > tf->getIndexTable(rof1, iLayer + 1).size() ||
                     maxBinIndex < 0 || maxBinIndex > tf->getIndexTable(rof1, iLayer + 1).size()) {

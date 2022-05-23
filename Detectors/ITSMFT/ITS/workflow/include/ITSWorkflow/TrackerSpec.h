@@ -60,6 +60,7 @@ class TrackerDPL : public framework::Task
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;
+  std::unique_ptr<o2::gpu::GPUReconstruction> mRecChainCPU = nullptr;
   std::unique_ptr<o2::gpu::GPUChainITS> mChainITS = nullptr;
   std::unique_ptr<Tracker> mTracker = nullptr;
   std::unique_ptr<Vertexer> mVertexer = nullptr;

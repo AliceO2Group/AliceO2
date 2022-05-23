@@ -41,37 +41,6 @@ template <int NLayers>
 TimeFrameGPU<NLayers>::TimeFrameGPU()
 {
   getDeviceMemory();
-
-  for (int iLayer{0}; iLayer < NLayers; ++iLayer) { // Tracker and vertexer
-    mClustersD[iLayer] = Vector<Cluster>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
-    mUsedClustersD[iLayer] = Vector<unsigned char>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
-    mTrackingFrameInfoD[iLayer] = Vector<TrackingFrameInfo>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
-    mClusterExternalIndicesD[iLayer] = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
-    mROframesClustersD[iLayer] = Vector<int>{mConfig.nMaxROFs, mConfig.nMaxROFs};
-    if (iLayer < NLayers - 1) {
-      mTrackletsD[iLayer] = Vector<Tracklet>{mConfig.trackletsCapacity,
-                                             mConfig.trackletsCapacity};
-    }
-  }
-
-  for (auto iComb{0}; iComb < 2; ++iComb) { // Vertexer only
-    mNTrackletsPerClusterD[iComb] = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
-  }
-  mIndexTablesLayer0D = Vector<int>{mConfig.nMaxROFs * (ZBins * PhiBins + 1), mConfig.nMaxROFs * (ZBins * PhiBins + 1)};
-  mIndexTablesLayer2D = Vector<int>{mConfig.nMaxROFs * (ZBins * PhiBins + 1), mConfig.nMaxROFs * (ZBins * PhiBins + 1)};
-  mLines = Vector<Line>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
-  mNFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
-  mNExclusiveFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
-  mUsedTracklets = Vector<unsigned char>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
-  discardResult(cudaMalloc(&mCUBTmpBuffers, mConfig.nMaxROFs * mConfig.tmpCUBBufferSize));
-  mXYCentroids = Vector<float>{2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity, 2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity};
-  mZCentroids = Vector<float>{mConfig.nMaxROFs * mConfig.maxLinesCapacity, mConfig.nMaxROFs * mConfig.maxLinesCapacity};
-  for (size_t i{0}; i < 3; ++i) {
-    mXYZHistograms[i] = Vector<int>{mConfig.nMaxROFs * mConfig.histConf.nBinsXYZ[i], mConfig.nMaxROFs * mConfig.histConf.nBinsXYZ[i]};
-  }
-  mTmpVertexPositionBins = Vector<cub::KeyValuePair<int, int>>{3 * mConfig.nMaxROFs, 3 * mConfig.nMaxROFs};
-  mBeamPosition = Vector<float>{2 * mConfig.nMaxROFs, 2 * mConfig.nMaxROFs};
-  mGPUVertices = Vector<Vertex>{mConfig.nMaxROFs * mConfig.maxVerticesCapacity, mConfig.nMaxROFs * mConfig.maxVerticesCapacity};
 }
 
 template <int NLayers>
@@ -85,6 +54,7 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
   totalMemory += NLayers * mConfig.clustersPerLayerCapacity * sizeof(int);
   totalMemory += NLayers * mConfig.clustersPerROfCapacity * sizeof(int);
   totalMemory += (NLayers - 1) * mConfig.trackletsCapacity * sizeof(Tracklet);
+  totalMemory += (NLayers - 1) * mConfig.nMaxROFs * (256 * 128 + 1) * sizeof(int);
   totalMemory += 2 * mConfig.clustersPerLayerCapacity * sizeof(int);
   totalMemory += 2 * mConfig.nMaxROFs * (ZBins * PhiBins + 1) * sizeof(int);
   totalMemory += mConfig.trackletsCapacity * sizeof(Line);
@@ -108,6 +78,7 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
   LOG(info) << fmt::format("\t- Cluster external indices: {:.2f} MB", NLayers * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
   LOG(info) << fmt::format("\t- Clusters per ROf: {:.2f} MB", NLayers * mConfig.clustersPerROfCapacity * sizeof(int) / MB);
   LOG(info) << fmt::format("\t- Tracklets: {:.2f} MB", (NLayers - 1) * mConfig.trackletsCapacity * sizeof(Tracklet) / MB);
+  LOG(info) << fmt::format("\t- Tracklet index tables: {:.2f} MB", (NLayers - 1) * mConfig.nMaxROFs * (256 * 128 + 1) * sizeof(int) / MB);
   LOG(info) << fmt::format("\t- N tracklets per cluster: {:.2f} MB", 2 * mConfig.clustersPerLayerCapacity * sizeof(int) / MB);
   LOG(info) << fmt::format("\t- Index tables: {:.2f} MB", 2 * mConfig.nMaxROFs * (ZBins * PhiBins + 1) * sizeof(int) / MB);
   LOG(info) << fmt::format("\t- Lines: {:.2f} MB", mConfig.trackletsCapacity * sizeof(Line) / MB);
@@ -127,14 +98,52 @@ float TimeFrameGPU<NLayers>::getDeviceMemory()
 }
 
 template <int NLayers>
-void TimeFrameGPU<NLayers>::initialiseDevice(const int maxLayers)
+template <unsigned char isTracker>
+void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
 {
-  for (int iLayer{0}; iLayer < maxLayers; ++iLayer) {
+
+  for (int iLayer{0}; iLayer < NLayers; ++iLayer) { // Tracker and vertexer
+    // mClustersD[iLayer] = Vector<Cluster>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
+    mUsedClustersD[iLayer] = Vector<unsigned char>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
+    // mTrackingFrameInfoD[iLayer] = Vector<TrackingFrameInfo>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
+    // mClusterExternalIndicesD[iLayer] = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
+    // mROframesClustersD[iLayer] = Vector<int>{mConfig.nMaxROFs, mConfig.nMaxROFs};
+    if (iLayer < NLayers - 1) {
+      mTrackletsD[iLayer] = Vector<Tracklet>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
+      mIndexTablesD[iLayer] = Vector<int>{mConfig.nMaxROFs * (256 * 128 + 1), mConfig.nMaxROFs * (256 * 128 + 1)};
+    }
+  }
+
+  for (auto iComb{0}; iComb < 2; ++iComb) { // Vertexer only
+    mNTrackletsPerClusterD[iComb] = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
+  }
+  // mIndexTablesLayer0D = Vector<int>{mConfig.nMaxROFs * (ZBins * PhiBins + 1), mConfig.nMaxROFs * (ZBins * PhiBins + 1)};
+  // mIndexTablesLayer2D = Vector<int>{mConfig.nMaxROFs * (ZBins * PhiBins + 1), mConfig.nMaxROFs * (ZBins * PhiBins + 1)};
+  mLines = Vector<Line>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
+  mNFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
+  mNExclusiveFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
+  mUsedTracklets = Vector<unsigned char>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
+  discardResult(cudaMalloc(&mCUBTmpBuffers, mConfig.nMaxROFs * mConfig.tmpCUBBufferSize));
+  mXYCentroids = Vector<float>{2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity, 2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity};
+  mZCentroids = Vector<float>{mConfig.nMaxROFs * mConfig.maxLinesCapacity, mConfig.nMaxROFs * mConfig.maxLinesCapacity};
+  for (size_t i{0}; i < 3; ++i) {
+    mXYZHistograms[i] = Vector<int>{mConfig.nMaxROFs * mConfig.histConf.nBinsXYZ[i], mConfig.nMaxROFs * mConfig.histConf.nBinsXYZ[i]};
+  }
+  mTmpVertexPositionBins = Vector<cub::KeyValuePair<int, int>>{3 * mConfig.nMaxROFs, 3 * mConfig.nMaxROFs};
+  mBeamPosition = Vector<float>{2 * mConfig.nMaxROFs, 2 * mConfig.nMaxROFs};
+  mGPUVertices = Vector<Vertex>{mConfig.nMaxROFs * mConfig.maxVerticesCapacity, mConfig.nMaxROFs * mConfig.maxVerticesCapacity};
+  //////////////////////////////////////////////////////////////////////////////
+  constexpr int layers = isTracker ? NLayers : 3;
+  for (int iLayer{0}; iLayer < layers; ++iLayer) {
     mClustersD[iLayer].reset(mClusters[iLayer].data(), static_cast<int>(mClusters[iLayer].size()));
   }
-  if (maxLayers == NLayers) {
+  if constexpr (isTracker) {
+    discardResult(cudaMalloc(reinterpret_cast<void**>(&mDeviceTrackingParams), sizeof(gpu::StaticTrackingParameters<NLayers>)));
+    discardResult(cudaMalloc(reinterpret_cast<void**>(&mDeviceIndexTableUtils), sizeof(IndexTableUtils)));
+    discardResult(cudaMemcpy(mDeviceTrackingParams, &trkParam, sizeof(gpu::StaticTrackingParameters<NLayers>), cudaMemcpyHostToDevice));
+    discardResult(cudaMemcpy(mDeviceIndexTableUtils, &mIndexTableUtils, sizeof(IndexTableUtils), cudaMemcpyHostToDevice));
     // Tracker-only: we don't need to copy data in vertexer
-    for (int iLayer{0}; iLayer < maxLayers; ++iLayer) {
+    for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
       mTrackingFrameInfoD[iLayer].reset(mTrackingFrameInfo[iLayer].data(), static_cast<int>(mTrackingFrameInfo[iLayer].size()));
       mClusterExternalIndicesD[iLayer].reset(mClusterExternalIndices[iLayer].data(), static_cast<int>(mClusterExternalIndices[iLayer].size()));
       mROframesClustersD[iLayer].reset(mROframesClusters[iLayer].data(), static_cast<int>(mROframesClusters[iLayer].size()));
@@ -153,11 +162,20 @@ void TimeFrameGPU<NLayers>::initialise(const int iteration,
 {
   o2::its::TimeFrame::initialise(iteration, trkParam, maxLayers);
   checkBufferSizes();
-  initialiseDevice(maxLayers);
+  if (maxLayers < NLayers) {
+    initialiseDevice<false>(trkParam); // vertexer
+  } else {
+    initialiseDevice<true>(trkParam); // tracker
+  }
 }
 
 template <int NLayers>
-TimeFrameGPU<NLayers>::~TimeFrameGPU() = default;
+TimeFrameGPU<NLayers>::~TimeFrameGPU()
+{
+  discardResult(cudaFree(mCUBTmpBuffers));
+  discardResult(cudaFree(mDeviceTrackingParams));
+  discardResult(cudaFree(mDeviceIndexTableUtils));
+}
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::checkBufferSizes()
