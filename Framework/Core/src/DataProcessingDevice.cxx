@@ -966,7 +966,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   auto& infos = context.deviceContext->state->inputChannelInfos;
 
   if (context.balancingInputs) {
-    static uint64_t ahead = getenv("DPL_MAX_CHANNEL_AHEAD") ? std::atoll(getenv("DPL_MAX_CHANNEL_AHEAD")) : 16;
+    static uint64_t ahead = getenv("DPL_MAX_CHANNEL_AHEAD") ? std::atoll(getenv("DPL_MAX_CHANNEL_AHEAD")) : 8;
     auto newEnd = std::remove_if(pollOrder.begin(), pollOrder.end(), [&infos, limitNew = currentOldest.value + ahead](int a) -> bool {
       return infos[a].oldestForChannel.value > limitNew;
     });
