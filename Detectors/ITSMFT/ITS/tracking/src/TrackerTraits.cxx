@@ -293,7 +293,7 @@ void TrackerTraits::computeLayerCells()
 
         if (deltaTanLambda / mTrkParams.CellDeltaTanLambdaSigma < mTrkParams.NSigmaCut) {
 
-          if (iLayer > 0 && tf->getCellsLookupTable()[iLayer - 1].size() <= iTracklet) {
+          if (iLayer > 0 && (int)tf->getCellsLookupTable()[iLayer - 1].size() <= iTracklet) {
             tf->getCellsLookupTable()[iLayer - 1].resize(iTracklet + 1, tf->getCells()[iLayer].size());
           }
 

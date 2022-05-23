@@ -28,7 +28,7 @@ template <unsigned int D>
 class Smoother
 {
  public:
-  Smoother(TrackITSExt& track, int layer, const ROframe& event, float bZ, o2::base::PropagatorF::MatCorrType corr);
+  Smoother(TrackITSExt& track, size_t layer, const ROframe& event, float bZ, o2::base::PropagatorF::MatCorrType corr);
   ~Smoother();
 
   bool isValidInit() const
@@ -48,7 +48,7 @@ class Smoother
   bool smoothTrack();
 
  private:
-  int mLayerToSmooth;                       // Layer to compute smoothing optimization
+  size_t mLayerToSmooth;                    // Layer to compute smoothing optimization
   float mBz;                                // Magnetic field along Z
   bool mInitStatus;                         // State after the initialization
   o2::base::PropagatorF::MatCorrType mCorr; // Type of correction to use

@@ -72,7 +72,6 @@ float FastMultEst::processNoiseFree(const std::array<int, NLayers> ncl)
   for (int il = conf.firstLayer; il <= conf.lastLayer; il++) {
     if (ncl[il] > 0) {
       int nch = o2::itsmft::ChipMappingITS::getNChipsPerLr(il);
-      float err2i = 1. / ncl[il];
       float diff = mult * conf.accCorr[il] + nch * noisePerChip - ncl[il];
       chi2 += diff * diff / ncl[il];
     }
@@ -120,7 +119,6 @@ float FastMultEst::processNoiseImposed(const std::array<int, NLayers> ncl)
   chi2 = 0.;
   for (int il = conf.firstLayer; il <= conf.lastLayer; il++) {
     if (ncl[il] > 0) {
-      int nch = o2::itsmft::ChipMappingITS::getNChipsPerLr(il);
       float noise = ncl[il] - mult * conf.accCorr[il], estNoise = o2::itsmft::ChipMappingITS::getNChipsPerLr(il) * noisePerChip;
       float diff = noise - estNoise;
       chi2 += diff * diff / estNoise;
