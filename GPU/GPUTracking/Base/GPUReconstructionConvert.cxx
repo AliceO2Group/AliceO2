@@ -786,7 +786,7 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
         size = CAMath::nextMultipleOf<o2::raw::RDHUtils::GBTWord>(size);
 #ifdef GPUCA_O2_LIB
         if (raw) {
-          raw->addData(rawfeeid, rawcru, rawlnk, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true);
+          raw->addData(rawfeeid, rawcru, rawlnk, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true, 0, 2);
         } else
 #endif
         {
@@ -796,6 +796,7 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
           o2::raw::RDHUtils::setMemorySize(*rdh, size);
           o2::raw::RDHUtils::setVersion(*rdh, o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>());
           o2::raw::RDHUtils::setFEEID(*rdh, rawfeeid);
+          o2::raw::RDHUtils::setDetectorField(*rdh, 2);
         }
       }
       if (k >= tmpBuffer.size()) {
