@@ -29,7 +29,7 @@ int makeEMCALCCDBEntryForDCS(const std::string url = "http://ccdb-test.cern.ch:8
   // macro to populate CCDB for EMC with the configuration for DCS
   std::unordered_map<DPID, std::string> dpid2DataDesc;
 
-  std::vector<std::string> aliasesTEMP = {"EMC_PT_[00..83]/Temperature", "EMC_PT_[88..91]/Temperature", "EMC_PT_[96..159]/Temperature"};
+  std::vector<std::string> aliasesTEMP = {"EMC_PT_[00..83].Temperature", "EMC_PT_[88..91].Temperature", "EMC_PT_[96..159].Temperature"};
   std::vector<std::string> aliasesUINT = {"EMC_DDL_LIST[0..1]", "EMC_SRU[00..19]_CFG", "EMC_SRU[00..19]_FMVER",
                                           "EMC_TRU[00..45]_PEAKFINDER", "EMC_TRU[00..45]_L0ALGSEL", "EMC_TRU[00..45]_COSMTHRESH",
                                           "EMC_TRU[00..45]_GLOBALTHRESH", "EMC_TRU[00..45]_MASK[0..5]",
@@ -38,7 +38,7 @@ int makeEMCALCCDBEntryForDCS(const std::string url = "http://ccdb-test.cern.ch:8
                                          "EMC_STU_JA[0..1]", "EMC_STU_JB[0..1]", "EMC_STU_JC[0..1]", "EMC_STU_PATCHSIZE", "EMC_STU_GETRAW",
                                          "EMC_STU_MEDIAN", "EMC_STU_REGION", "DMC_STU_FWVERS", "DMC_STU_PHOS_scale[0..3]", "DMC_STU_GA[0..1]",
                                          "DMC_STU_GB[0..1]", "DMC_STU_GC[0..1]", "DMC_STU_JA[0..1]", "DMC_STU_JB[0..1]", "DMC_STU_JC[0..1]",
-                                         "DMC_STU_PATCHSIZE", "DMC_STU_GETRAW", "DMC_STU_MEDIAN", "DMC_STU_REGION"};
+                                         "DMC_STU_PATCHSIZE", "DMC_STU_GETRAW", "DMC_STU_MEDIAN", "DMC_STU_REGION", "EMC_RUNNUMBER"};
 
   std::vector<std::string> expaliasesTEMP = o2::dcs::expandAliases(aliasesTEMP);
   std::vector<std::string> expaliasesUINT = o2::dcs::expandAliases(aliasesUINT);
