@@ -291,7 +291,8 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk versi
                        track::Pz<track::Signed1Pt, track::Tgl>,
                        track::Energy<track::Signed1Pt, track::Tgl>,
                        track::Rapidity<track::Signed1Pt, track::Tgl>,
-                       track::Sign<track::Signed1Pt>);
+                       track::Sign<track::Signed1Pt>,
+                       o2::soa::Marker<1>);
 
 DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACK", //! Track parameters at collision vertex
                            aod::track::Pt,
@@ -304,11 +305,12 @@ DECLARE_SOA_TABLE_FULL(StoredTracksIU, "Tracks_IU", "AOD", "TRACK_IU", //! On di
                        track::X, track::Alpha,
                        track::Y, track::Z, track::Snp, track::Tgl,
                        track::Signed1Pt,
-                       track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
+                       track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
                        track::Rapidity<track::Signed1Pt, track::Tgl>,
-                       track::Sign<track::Signed1Pt>);
+                       track::Sign<track::Signed1Pt>,
+                       o2::soa::Marker<2>);
 
 DECLARE_SOA_EXTENDED_TABLE(TracksIU, StoredTracksIU, "TRACK_IU", //! Track parameters at inner most update (e.g. ITS) as it comes from the tracking
                            aod::track::Pt,
@@ -316,13 +318,12 @@ DECLARE_SOA_EXTENDED_TABLE(TracksIU, StoredTracksIU, "TRACK_IU", //! Track param
                            aod::track::Eta,
                            aod::track::Phi);
 
-// NOTE Because table column lists have to be unique SigmaY and SigmaZ are swapped here compared to StoredTracksCov
-DECLARE_SOA_TABLE_FULL(StoredTracksCovIU, "TracksCov_IU", "AOD", "TRACKCOV_IU", //! On disk version of the TracksCov table at inner most update (e.g. ITS) as it comes from the tracking
-                       track::SigmaZ, track::SigmaY, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
+DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKCOV", //! On disk version of the TracksCov table at collision vertex
+                       track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
                        track::RhoZY, track::RhoSnpY, track::RhoSnpZ, track::RhoTglY, track::RhoTglZ,
-                       track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl);
+                       track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl, o2::soa::Marker<1>);
 
-DECLARE_SOA_EXTENDED_TABLE(TracksCovIU, StoredTracksCovIU, "TRACKCOV_IU", //! Track covariance matrix at inner most update (e.g. ITS) as it comes from the tracking
+DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKCOV", //! Track covariance matrix at collision vertex
                            aod::track::CYY,
                            aod::track::CZY,
                            aod::track::CZZ,
@@ -339,12 +340,12 @@ DECLARE_SOA_EXTENDED_TABLE(TracksCovIU, StoredTracksCovIU, "TRACKCOV_IU", //! Tr
                            aod::track::C1PtTgl,
                            aod::track::C1Pt21Pt2);
 
-DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKCOV", //! On disk version of the TracksCov table at collision vertex
+DECLARE_SOA_TABLE_FULL(StoredTracksCovIU, "TracksCov_IU", "AOD", "TRACKCOV_IU", //! On disk version of the TracksCov table at inner most update (e.g. ITS) as it comes from the tracking
                        track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
                        track::RhoZY, track::RhoSnpY, track::RhoSnpZ, track::RhoTglY, track::RhoTglZ,
-                       track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl);
+                       track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl, o2::soa::Marker<2>);
 
-DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKCOV", //! Track covariance matrix at collision vertex
+DECLARE_SOA_EXTENDED_TABLE(TracksCovIU, StoredTracksCovIU, "TRACKCOV_IU", //! Track covariance matrix at inner most update (e.g. ITS) as it comes from the tracking
                            aod::track::CYY,
                            aod::track::CZY,
                            aod::track::CZZ,

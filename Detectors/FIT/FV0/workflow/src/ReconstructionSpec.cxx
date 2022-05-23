@@ -38,9 +38,7 @@ void ReconstructionDPL::init(InitContext& ic)
 
 void ReconstructionDPL::run(ProcessingContext& pc)
 {
-  auto& mCCDBManager = o2::ccdb::BasicCCDBManager::instance();
-  mCCDBManager.setURL(mCCDBpath);
-  LOG(info) << " set-up CCDB " << mCCDBpath;
+  updateTimeDependentParams(pc);
   mTimer.Start(false);
   mRecPoints.clear();
   auto digits = pc.inputs().get<gsl::span<o2::fv0::Digit>>("digits");
@@ -51,8 +49,6 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     LOG(info) << "Ignoring MC info";
   }
-  auto caliboffsets = mCCDBManager.get<o2::fv0::FV0ChannelTimeCalibrationObject>("FV0/Calibration/ChannelTimeOffset");
-  mReco.setChannelOffset(caliboffsets);
   int nDig = digits.size();
   LOG(debug) << " nDig " << nDig << " | ndigch " << digch.size();
   mRecPoints.reserve(nDig);
@@ -79,12 +75,27 @@ void ReconstructionDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
+void ReconstructionDPL::updateTimeDependentParams(ProcessingContext& pc)
+{
+  pc.inputs().get<o2::fv0::FV0ChannelTimeCalibrationObject*>("chtimeoffs");
+}
+
+void ReconstructionDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("FV0", "CHANTIMEOFFS", 0)) {
+    LOG(info) << "ChannelTimeOffset updated";
+    mReco.setChannelOffset((o2::fv0::FV0ChannelTimeCalibrationObject*)obj);
+    return;
+  }
+}
+
+DataProcessorSpec getReconstructionSpec(bool useMC)
 {
   std::vector<InputSpec> inputSpec;
   std::vector<OutputSpec> outputSpec;
   inputSpec.emplace_back("digits", o2::header::gDataOriginFV0, "DIGITSBC", 0, Lifetime::Timeframe);
   inputSpec.emplace_back("digch", o2::header::gDataOriginFV0, "DIGITSCH", 0, Lifetime::Timeframe);
+  inputSpec.emplace_back("chtimeoffs", o2::header::gDataOriginFV0, "CHANTIMEOFFS", 0, Lifetime::Condition, ccdbParamSpec("FV0/Calib/ChannelTimeOffset"));
   if (useMC) {
     LOG(info) << "Currently Reconstruction does not consume and provide MC truth";
     inputSpec.emplace_back("labels", o2::header::gDataOriginFV0, "DIGITSMCTR", 0, Lifetime::Timeframe);
@@ -96,7 +107,7 @@ DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
     "fv0-reconstructor",
     inputSpec,
     outputSpec,
-    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC, ccdbpath)},
+    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC)},
     Options{}};
 }
 

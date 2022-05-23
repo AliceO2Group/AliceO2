@@ -5,7 +5,7 @@
 MYDIR="$(dirname $(realpath $0))"
 source $MYDIR/setenv.sh
 
-if [[ $EPNSYNCMODE == 0 ]] && [[ $DPL_CONDITION_BACKEND != "http://o2-ccdb.internal" ]]; then
+if [[ $EPNSYNCMODE == 0 && $DPL_CONDITION_BACKEND != "http://o2-ccdb.internal" && $DPL_CONDITION_BACKEND != "http://localhost:8084" ]]; then
   alien-token-info >& /dev/null
   if [[ $? != 0 ]]; then
     echo "No alien token present" 1>&2
@@ -107,6 +107,13 @@ fi
 
 has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",compressed-clusters-ctf"
 
+if workflow_has_parameter QC && has_detector_qc TPC; then
+  GPU_OUTPUT+=",qa"
+  [[ -z $TPC_TRACKING_QC_RUN_FRACTION ]] && TPC_TRACKING_QC_RUN_FRACTION=1
+  GPU_CONFIG_KEY+="GPU_QA.clusterRejectionHistograms=1;GPU_proc.qcRunFraction=$TPC_TRACKING_QC_RUN_FRACTION;"
+  [[ $HOSTMEMSIZE == "0" && $TPC_TRACKING_QC_RUN_FRACTION == "100" ]] && HOSTMEMSIZE=$(( 5 << 30 ))
+fi
+
 if [[ -z $DISABLE_ROOT_OUTPUT ]]; then
   # enable only if root output is written, because it slows down the processing
   GPU_OUTPUT+=",send-clusters-per-sector"
@@ -150,9 +157,7 @@ fi
 
 if [[ $GPUTYPE != "CPU" ]]; then
   GPU_CONFIG_KEY+="GPU_proc.forceMemoryPoolSize=$GPUMEMSIZE;"
-  if [[ $HOSTMEMSIZE == "0" ]]; then
-    HOSTMEMSIZE=$(( 1 << 30 ))
-  fi
+  [[ $HOSTMEMSIZE == "0" ]] && HOSTMEMSIZE=$(( 1 << 30 ))
 fi
 
 if [[ $HOSTMEMSIZE != "0" ]]; then
@@ -342,7 +347,8 @@ has_detector MFT && has_processing_step MFT_RECO && add_W o2-mft-reco-workflow "
 has_detector FDD && has_processing_step FDD_RECO && add_W o2-fdd-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
 has_detector FV0 && has_processing_step FV0_RECO && add_W o2-fv0-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
 has_detector ZDC && has_processing_step ZDC_RECO && add_W o2-zdc-digits-reco "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
-has_detectors_reco MCH MID && has_detector_matching MCHMID && add_W o2-muon-tracks-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_MC $DISABLE_ROOT_OUTPUT --pipeline $(get_N globalfwd-track-matcher MATCH REST 1)"
+has_detector HMP && has_processing_step HMP_RECO && add_W o2-hmpid-digits-to-clusters-workflow
+has_detectors_reco MCH MID && has_detector_matching MCHMID && add_W o2-muon-tracks-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_MC $DISABLE_ROOT_OUTPUT --pipeline $(get_N muon-track-matcher MATCH REST 1)"
 has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N globalfwd-track-matcher MATCH REST 1)"
 
 # ---------------------------------------------------------------------------------------------------------------------

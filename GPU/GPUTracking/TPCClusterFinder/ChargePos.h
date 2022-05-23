@@ -30,10 +30,9 @@ struct ChargePos {
 
   GPUdDefault() ChargePos() CON_DEFAULT;
 
-  GPUdi() ChargePos(tpccf::Row row, tpccf::Pad pad, tpccf::TPCFragmentTime t)
+  constexpr GPUdi() ChargePos(tpccf::Row row, tpccf::Pad pad, tpccf::TPCFragmentTime t)
+    : gpad(tpcGlobalPadIdx(row, pad)), timePadded(t + PADDING_TIME)
   {
-    gpad = tpcGlobalPadIdx(row, pad);
-    timePadded = t + PADDING_TIME;
   }
 
   GPUdi() ChargePos(const tpccf::GlobalPad& p, const tpccf::TPCFragmentTime& t) : gpad(p), timePadded(t) {}
@@ -58,7 +57,7 @@ struct ChargePos {
  private:
   // Maps the position of a pad given as row and index in that row to a unique
   // index between 0 and TPC_NUM_OF_PADS.
-  static GPUdi() tpccf::GlobalPad tpcGlobalPadIdx(tpccf::Row row, tpccf::Pad pad)
+  static constexpr GPUdi() tpccf::GlobalPad tpcGlobalPadIdx(tpccf::Row row, tpccf::Pad pad)
   {
     return TPC_PADS_PER_ROW_PADDED * row + pad + PADDING_PAD;
   }

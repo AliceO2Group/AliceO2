@@ -173,16 +173,19 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
   mTBrackets.clear();
 
   auto creator = [this, &vcont](auto& _tr, GIndex _origID, float t0, float terr) {
-    if (vcont.find(_origID) != vcont.end()) { // track is contributor to vertex, already accounted
-      return true;
+    if constexpr (!(isMFTTrack<decltype(_tr)>() || isMCHTrack<decltype(_tr)>() || isGlobalFwdTrack<decltype(_tr)>())) { // Skip test for forward tracks; do not contribute to vertex
+      if (vcont.find(_origID) != vcont.end()) {                                                                         // track is contributor to vertex, already accounted
+        return true;
+      }
     }
+
     if constexpr (isTPCTrack<decltype(_tr)>()) {
       // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
       t0 *= this->mTPCBin2MUS;
       terr *= this->mTPCBin2MUS;
     } else if constexpr (isITSTrack<decltype(_tr)>()) {
-      t0 += 0.5 * this->mITSROFrameLengthMUS; // ITS time is supplied in \mus as beginning of ROF
-      terr *= this->mITSROFrameLengthMUS;     // error is supplied as a half-ROF duration, convert to \mus
+      t0 += 0.5 * this->mITSROFrameLengthMUS;           // ITS time is supplied in \mus as beginning of ROF
+      terr *= this->mITSROFrameLengthMUS;               // error is supplied as a half-ROF duration, convert to \mus
     } else if constexpr (isMFTTrack<decltype(_tr)>()) { // Same for MFT
       t0 += 0.5 * this->mMFTROFrameLengthMUS;
       terr *= this->mMFTROFrameLengthMUS;
@@ -195,6 +198,10 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
     // for all other tracks the time is in \mus with gaussian error
     terr += mPVParams->timeMarginTrackTime;
     mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});
+
+    if constexpr (isMFTTrack<decltype(_tr)>() || isMCHTrack<decltype(_tr)>() || isGlobalFwdTrack<decltype(_tr)>()) {
+      return false;
+    }
     return true;
   };
 

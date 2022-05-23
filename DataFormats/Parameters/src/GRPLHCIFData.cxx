@@ -15,8 +15,11 @@
 #include "DataFormatsParameters/GRPLHCIFData.h"
 #include "CommonUtils/NameConf.h"
 #include "CommonConstants/PhysicsConstants.h"
+#include <ctime>
+#include <sstream>
 #include <cmath>
-#include <FairLogger.h>
+#include <iomanip>
+#include <Framework/Logger.h>
 
 using namespace o2::parameters;
 using namespace o2::constants::physics;
@@ -90,7 +93,7 @@ void GRPLHCIFData::translateBucketsToBCNumbers(std::vector<int32_t>& bcNb, std::
 GRPLHCIFData* GRPLHCIFData::loadFrom(const std::string& grpFileName)
 {
   // load object from file
-  auto fname = o2::base::NameConf::getGRPFileName(grpFileName);
+  auto fname = o2::base::NameConf::getGRPLHCIFFileName(grpFileName);
   TFile flGRP(fname.c_str());
   if (flGRP.IsZombie()) {
     LOG(error) << "Failed to open " << fname;
@@ -101,4 +104,30 @@ GRPLHCIFData* GRPLHCIFData::loadFrom(const std::string& grpFileName)
     throw std::runtime_error(fmt::format("Failed to load GRPLHCIF object from {}", fname));
   }
   return grp;
+}
+
+//_______________________________________________
+void GRPLHCIFData::print() const
+{
+  // print itself
+  auto timeStr = [](long t) -> std::string {
+    if (t) {
+      std::time_t temp = t / 1000;
+      std::tm* tt = std::gmtime(&temp);
+      std::stringstream ss;
+      ss << std::put_time(tt, "%d/%m/%y %H:%M:%S") << " UTC";
+      return ss.str();
+    }
+    return {"        N / A        "};
+  };
+
+  printf("%s: Fill              : %d\n", timeStr(mFillNumber.first).c_str(), mFillNumber.second);
+  printf("%s: Injection scheme  : %s\n", timeStr(mInjectionScheme.first).c_str(), mInjectionScheme.second.c_str());
+  printf("%s: Beam energy per Z : %d\n", timeStr(mBeamEnergyPerZ.first).c_str(), mBeamEnergyPerZ.second);
+  printf("%s: A beam1 (clock)   : %d\n", timeStr(mAtomicNumberB1.first).c_str(), mAtomicNumberB1.second);
+  printf("%s: A beam2 (a-clock) : %d\n", timeStr(mAtomicNumberB2.first).c_str(), mAtomicNumberB2.second);
+  printf("%s: Bunch filling\n", timeStr(mBunchFilling.first).c_str());
+  if (mBunchFilling.first > 0) {
+    mBunchFilling.second.print();
+  }
 }

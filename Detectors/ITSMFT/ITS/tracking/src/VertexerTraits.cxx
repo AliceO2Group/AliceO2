@@ -10,10 +10,6 @@
 // or submit itself to any jurisdiction.
 ///
 
-#include <cassert>
-#include <ostream>
-#include <fstream>
-
 #include <boost/histogram.hpp>
 #include <boost/format.hpp>
 
@@ -21,8 +17,12 @@
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/Tracklet.h"
 
+#ifdef VTX_DEBUG
 #include "TTree.h"
 #include "TFile.h"
+#include <fstream>
+#include <ostream>
+#endif
 
 // #define VTX_DEBUG
 
@@ -182,7 +182,6 @@ void VertexerTraits::computeTracklets()
   trackletFile->cd();
   tr_tre->Write();
   trackletFile->Close();
-#endif
 
   std::ofstream out01("NTC01_cpu.txt"), out12("NTC12_cpu.txt");
   for (int iRof{0}; iRof < mTimeFrame->getNrof(); ++iRof) {
@@ -193,6 +192,7 @@ void VertexerTraits::computeTracklets()
   }
   out01.close();
   out12.close();
+#endif
 }
 
 void VertexerTraits::computeTrackletMatching()

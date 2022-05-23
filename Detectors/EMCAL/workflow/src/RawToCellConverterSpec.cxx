@@ -155,6 +155,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         } else {
           mErrorMessagesSuppressed++;
         }
+        // We must skip the page as payload is not consistent
+        // otherwise the next functions will rethrow the exceptions as
+        // the page format does not follow the expected format
+        continue;
       }
 
       auto& header = rawreader.getRawHeader();

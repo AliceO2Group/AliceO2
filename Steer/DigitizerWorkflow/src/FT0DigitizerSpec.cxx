@@ -182,7 +182,7 @@ o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel, bool mctruth, 
   if (useCCDB) {
     inputs.emplace_back("ft0offsets", "FT0", "TimeOffset", 0,
                         Lifetime::Condition,
-                        ccdbParamSpec("FT0/Calibration/ChannelTimeOffset"));
+                        ccdbParamSpec("FT0/Calib/ChannelTimeOffset"));
   }
   return DataProcessorSpec{
     "FT0Digitizer",

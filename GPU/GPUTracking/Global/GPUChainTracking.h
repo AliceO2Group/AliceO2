@@ -170,6 +170,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // Getters / setters for parameters
   const TPCFastTransform* GetTPCTransform() const { return processors()->calibObjects.fastTransform; }
   const TPCPadGainCalib* GetTPCPadGainCalib() const { return processors()->calibObjects.tpcPadGain; }
+  const TPCZSLinkMapping* GetTPCZSLinkMapping() const { return processors()->calibObjects.tpcZSLinkMapping; }
   const o2::tpc::CalibdEdxContainer* GetdEdxCalibContainer() const { return processors()->calibObjects.dEdxCalibContainer; }
   const o2::base::MatLayerCylSet* GetMatLUT() const { return processors()->calibObjects.matLUT; }
   const GPUTRDGeometry* GetTRDGeometry() const { return (GPUTRDGeometry*)processors()->calibObjects.trdGeometry; }
@@ -198,6 +199,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   const GPUSettingsDisplay* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
   const GPUSettingsQA* mConfigQA = nullptr;           // Abstract pointer to Standalone QA Configuration Structure
+  bool mFractionalQAEnabled = false;
 
  protected:
   struct GPUTrackingFlatObjects : public GPUProcessor {
@@ -259,6 +261,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // Ptr to detector / calibration objects
   std::unique_ptr<TPCFastTransform> mTPCFastTransformU;              // Global TPC fast transformation object
   std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibU;                // TPC gain calibration and cluster finder parameters
+  std::unique_ptr<TPCZSLinkMapping> mTPCZSLinkMappingU;              // TPC Mapping data required by ZS Link decoder
   std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainerU; // TPC dEdx calibration container
   std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;                // Material Lookup Table
   std::unique_ptr<o2::trd::GeometryFlat> mTRDGeometryU;              // TRD Geometry

@@ -8,10 +8,11 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef O2_FRAMEWORK_CHANNELINFO_H
-#define O2_FRAMEWORK_CHANNELINFO_H
+#ifndef O2_FRAMEWORK_CHANNELINFO_H_
+#define O2_FRAMEWORK_CHANNELINFO_H_
 
 #include "Framework/RoutingIndices.h"
+#include "Framework/TimesliceSlot.h"
 #include <string>
 #include <fairmq/Parts.h>
 
@@ -49,8 +50,10 @@ struct InputChannelInfo {
   /// backpressure to start with.
   bool backpressureNotified = false;
   ChannelIndex id = {-1};
+  /// Oldest possible timeslice for the given channel
+  TimesliceId oldestForChannel;
 };
 
 } // namespace o2::framework
 
-#endif // O2_FRAMEWORK_CHANNELSPEC_H
+#endif // O2_FRAMEWORK_CHANNELINFO_H_

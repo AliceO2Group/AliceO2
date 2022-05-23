@@ -23,10 +23,13 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/CCDBParamSpec.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+
+#include <TSystem.h>
 
 using namespace o2::framework;
 
@@ -41,7 +44,7 @@ class LHCClockCalibDevice : public o2::framework::Task
   using LHCphase = o2::dataformats::CalibLHCphaseTOF;
 
  public:
-  LHCClockCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
+  LHCClockCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool useCCDB, bool followCCDBUpdates) : mCCDBRequest(req), mUseCCDB(useCCDB), mFollowCCDBUpdates(followCCDBUpdates) {}
 
   void init(o2::framework::InitContext& ic) final
   {
@@ -54,39 +57,69 @@ class LHCClockCalibDevice : public o2::framework::Task
     mCalibrator->setSlotLength(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
 
-    // calibration objects set to zero
-    mPhase.addLHCphase(0, 0);
-    mPhase.addLHCphase(2000000000, 0);
-
-    TFile* fsleewing = TFile::Open("localTimeSlewing.root");
-    if (fsleewing) {
-      TimeSlewing* ob = (TimeSlewing*)fsleewing->Get("ccdb_object");
-      mTimeSlewing = *ob;
-      return;
-    }
-
-    for (int ich = 0; ich < TimeSlewing::NCHANNELS; ich++) {
-      mTimeSlewing.addTimeSlewingInfo(ich, 0, 0);
-      int sector = ich / TimeSlewing::NCHANNELXSECTOR;
-      int channelInSector = ich % TimeSlewing::NCHANNELXSECTOR;
-      mTimeSlewing.setFractionUnderPeak(sector, channelInSector, 1);
+    if (!mUseCCDB) {
+      // calibration objects set to zero
+      mPhase.addLHCphase(0, 0);
+      mPhase.addLHCphase(o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP_SECONDS, 0);
+      if (gSystem->AccessPathName("localTimeSlewing.root") == false) {
+        TFile* fsleewing = TFile::Open("localTimeSlewing.root");
+        if (fsleewing) {
+          TimeSlewing* ob = (TimeSlewing*)fsleewing->Get("ccdb_object");
+          mTimeSlewing = *ob;
+        }
+      } else {
+        for (int ich = 0; ich < TimeSlewing::NCHANNELS; ich++) {
+          mTimeSlewing.addTimeSlewingInfo(ich, 0, 0);
+          int sector = ich / TimeSlewing::NCHANNELXSECTOR;
+          int channelInSector = ich % TimeSlewing::NCHANNELXSECTOR;
+          mTimeSlewing.setFractionUnderPeak(sector, channelInSector, 1);
+        }
+      }
     }
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+
+    LOG(info) << "We are running LHCPhase";
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     auto data = pc.inputs().get<gsl::span<o2::dataformats::CalibInfoTOF>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
 
-    if (!mcalibTOFapi) {
-      mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), &mPhase, &mTimeSlewing); // TODO: should we replace long(0) with tfcounter defined at the beginning of the method? we need the timestamp of the TF
-      mCalibrator->setCalibTOFapi(mcalibTOFapi);
+    if (mUseCCDB) { // read calibration objects from ccdb with the CCDB fetcher
+      const auto lhcPhaseIn = pc.inputs().get<LHCphase*>("tofccdbLHCphase");
+      const auto channelCalibIn = pc.inputs().get<TimeSlewing*>("tofccdbChannelCalib");
+      if (!mcalibTOFapi) {
+        LHCphase* lhcPhase = new LHCphase(std::move(*lhcPhaseIn));
+        TimeSlewing* channelCalib = new TimeSlewing(std::move(*channelCalibIn));
+        mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib);
+      } else {
+        // if the calib objects were updated, we need to update the mcalibTOFapi
+        if (mUpdateCCDB) {
+          delete mcalibTOFapi;
+          LHCphase* lhcPhase = new LHCphase(*lhcPhaseIn);
+          TimeSlewing* channelCalib = new TimeSlewing(*channelCalibIn);
+          mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib);
+        }
+      }
     }
+
+    else { // we use "fake" initial calibrations
+      if (!mcalibTOFapi) {
+        mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), &mPhase, &mTimeSlewing);
+      }
+    }
+
+    mCalibrator->setCalibTOFapi(mcalibTOFapi);
+    LOG(info) << "Data size = " << data.size();
     if (data.size() == 0) {
       return;
     }
-    mcalibTOFapi->setTimeStamp(data[0].getTimestamp());
+
+    if (mUseCCDB) { // setting the timestamp to get the LHCPhase correction; if we don't use CCDB, then it can stay to 0 as set when creating the calibTOFapi above
+      const auto tfOrbitFirst = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->firstTForbit;
+      mcalibTOFapi->setTimeStamp(0.001 * (o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS * 0.001)); // in seconds
+    }
 
     LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " tracks";
     mCalibrator->process(data);
@@ -98,6 +131,17 @@ class LHCClockCalibDevice : public o2::framework::Task
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
   {
     o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+    mUpdateCCDB = false;
+    if (mFollowCCDBUpdates) {
+      if (matcher == ConcreteDataMatcher("TOF", "LHCphaseCal", 0)) {
+        mUpdateCCDB = true;
+        return;
+      }
+      if (matcher == ConcreteDataMatcher("TOF", "ChannelCalibCal", 0)) {
+        mUpdateCCDB = true;
+        return;
+      }
+    }
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
@@ -113,6 +157,9 @@ class LHCClockCalibDevice : public o2::framework::Task
   TimeSlewing mTimeSlewing;
   std::unique_ptr<o2::tof::LHCClockCalibrator> mCalibrator;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
+  bool mUpdateCCDB = false;
+  bool mUseCCDB = true;
+  bool mFollowCCDBUpdates = false;
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -143,7 +190,7 @@ class LHCClockCalibDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getLHCClockCalibDeviceSpec()
+DataProcessorSpec getLHCClockCalibDeviceSpec(bool useCCDB, bool followCCDBUpdates = false)
 {
   using device = o2::calibration::LHCClockCalibDevice;
   using clbUtils = o2::calibration::Utils;
@@ -155,6 +202,13 @@ DataProcessorSpec getLHCClockCalibDeviceSpec()
                                                                 false,                          // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs);
+
+  if (useCCDB) {
+    inputs.emplace_back("tofccdbLHCphase", "TOF", "LHCphaseCal", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/LHCphase"));
+    inputs.emplace_back("tofccdbChannelCalib", "TOF", "ChannelCalibCal", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/ChannelCalib"));
+    inputs.emplace_back("orbitResetTOF", o2::header::gDataOriginCTP, "ORBITRESETTOF", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/OrbitReset"));
+  }
+
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase"}, Lifetime::Sporadic);
@@ -162,7 +216,7 @@ DataProcessorSpec getLHCClockCalibDeviceSpec()
     "calib-lhcclock-calibration",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest, useCCDB, followCCDBUpdates)},
     Options{
       {"tf-per-slot", VariantType::UInt32, 5u, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::UInt32, 3u, {"number of slots in past to consider"}},

@@ -271,6 +271,16 @@ void DataRequest::requestMCHClusters(bool mc)
   requestMap["clusMCH"] = mc;
 }
 
+void DataRequest::requestHMPClusters(bool mc)
+{
+  addInput({"hmpidcluster", "HMP", "CLUSTERS", 0, Lifetime::Timeframe});
+  addInput({"hmpidtriggers", "HMP", "CLUSREFS", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"hmpidclusterlabel", "HMP", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
+  }
+  requestMap["clusHMP"] = mc;
+}
+
 void DataRequest::requestMIDClusters(bool mc)
 {
   addInput({"clusMID", "MID", "CLUSTERS", 0, Lifetime::Timeframe});
@@ -415,6 +425,17 @@ void DataRequest::requestEMCALCells(bool mc)
   requestMap["EMCCells"] = mc;
 }
 
+void DataRequest::requestHMPMatches(bool mc)
+{
+  addInput({"matchHMP", "HMP", "MATCHES", 0, Lifetime::Timeframe});
+  addInput({"matchTriggerHMP", "HMP", "TRACKREFS", 0, Lifetime::Timeframe});
+  addInput({"matchPhotsCharge", "HMP", "PATTERNS", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"clsHMP_GLO_MCTR", "HMP", "MCLABELS", 0, Lifetime::Timeframe});
+  }
+  requestMap["matchHMP"] = mc;
+}
+
 void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
 {
   // request tracks for sources probided by the mask
@@ -467,6 +488,9 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   if (GTrackID::includesDet(DetID::CTP, src)) {
     requestCTPDigits(false); // RS FIXME: at the moment does not support MC
   }
+  if (src[GTrackID::HMP]) {
+    requestHMPMatches(useMC);
+  }
 }
 
 void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
@@ -503,6 +527,9 @@ void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
   }
   if (GTrackID::includesDet(DetID::MCH, src)) {
     requestMCHClusters(useMC);
+  }
+  if (GTrackID::includesDet(DetID::HMP, src)) {
+    requestHMPClusters(useMC);
   }
 }
 
@@ -609,6 +636,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addTOFClusters(pc, req->second);
   }
 
+  req = reqMap.find("clusHMP");
+  if (req != reqMap.end()) {
+    addHMPClusters(pc, req->second);
+  }
+
   req = reqMap.find("CTPDigits");
   if (req != reqMap.end()) {
     addCTPDigits(pc, req->second);
@@ -687,6 +719,10 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   req = reqMap.find("IRFramesITS");
   if (req != reqMap.end()) {
     addIRFramesITS(pc);
+  }
+  req = reqMap.find("matchHMP");
+  if (req != reqMap.end()) {
+    addHMPMatches(pc, req->second);
   }
 }
 
@@ -919,6 +955,16 @@ void RecoContainer::addTOFMatchesITSTPCTRD(ProcessingContext& pc, bool mc)
 }
 
 //__________________________________________________________
+void RecoContainer::addHMPMatches(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoHMP>>("matchHMP"), MATCHES);           //  HMPID match info, no real tracks
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::hmpid::Trigger>>("matchTriggerHMP"), TRACKREFS); //  HMPID triggers
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<float>>("matchPhotsCharge"), PATTERNS);              //  HMPID photon cluster charges
+  if (mc) {
+    commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsHMP_GLO_MCTR"), MCLABELS);
+  }
+}
+//__________________________________________________________
 void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
 {
   static bool initOnceDone = false;
@@ -977,6 +1023,15 @@ void RecoContainer::addTOFClusters(ProcessingContext& pc, bool mc)
   }
 }
 
+//__________________________________________________________
+void RecoContainer::addHMPClusters(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::hmpid::Cluster>>("hmpidcluster"), CLUSTERS);
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::hmpid::Trigger>>("hmpidtriggers"), CLUSREFS);
+  if (mc) {
+    mcHMPClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("hmpidclusterlabel");
+  }
+}
 //__________________________________________________________
 void RecoContainer::addMCHClusters(ProcessingContext& pc, bool mc)
 {

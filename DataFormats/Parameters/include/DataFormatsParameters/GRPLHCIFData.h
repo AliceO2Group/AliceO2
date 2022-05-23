@@ -95,17 +95,18 @@ class GRPLHCIFData
   /// helper function for BunchFilling
   void translateBucketsToBCNumbers(std::vector<int32_t>& bcNb, std::vector<int32_t>& buckets, int beam);
 
+  void print() const;
   static GRPLHCIFData* loadFrom(const std::string& grpLHCIFFileName = "");
 
  private:
-  std::pair<long, int32_t> mBeamEnergyPerZ; // beam energy per charge
-  std::pair<long, int32_t> mFillNumber;
-  std::pair<long, std::string> mInjectionScheme;
-  std::pair<long, int32_t> mAtomicNumberB1; // clockwise
-  std::pair<long, int32_t> mAtomicNumberB2; // anticlockwise
-  std::pair<long, o2::units::AngleRad_t> mCrossingAngle;
+  std::pair<long, int32_t> mBeamEnergyPerZ{}; // beam energy per charge
+  std::pair<long, int32_t> mFillNumber{};
+  std::pair<long, std::string> mInjectionScheme{};
+  std::pair<long, int32_t> mAtomicNumberB1{}; // clockwise
+  std::pair<long, int32_t> mAtomicNumberB2{}; // anticlockwise
+  std::pair<long, o2::units::AngleRad_t> mCrossingAngle{};
   int mBeamAZ[beamDirection::NBeamDirections] = {0, 0}; ///< A<<16+Z for each beam
-  std::pair<long, o2::BunchFilling> mBunchFilling;      ///To hold bunch filling information
+  std::pair<long, o2::BunchFilling> mBunchFilling{};    /// To hold bunch filling information
 
   ClassDefNV(GRPLHCIFData, 1);
 };

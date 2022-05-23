@@ -46,12 +46,6 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
   TPCFourierTransformAggregatorSpec(const unsigned int timeframes, const unsigned int nFourierCoefficientsStore, const unsigned int rangeIDC, const bool debug = false, const bool senddebug = false)
     : mIDCFourierTransform{rangeIDC, timeframes, nFourierCoefficientsStore}, mDebug{debug}, mSendOutDebug{senddebug} {};
 
-  void init(o2::framework::InitContext& ic) final
-  {
-    mDBapi.init(ic.options().get<std::string>("ccdb-uri")); // or http://localhost:8080 for a local installation
-    mWriteToDB = mDBapi.isHostReachable() ? true : false;
-  }
-
   void run(o2::framework::ProcessingContext& pc) final
   {
     LOGP(info, "1D-IDCs received. Performing FFT");
@@ -79,9 +73,11 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
     mIDCFourierTransform.setIDCs(std::move(idcOne), std::move(intervals));
     mIDCFourierTransform.calcFourierCoefficients();
 
-    if (mWriteToDB) {
-      mDBapi.storeAsTFileAny<o2::tpc::FourierCoeff>(&mIDCFourierTransform.getFourierCoefficients(), CDBTypeMap.at(CDBType::CalIDCFourier), mMetadata, timeStampsCCDB.front(), timeStampsCCDB.back());
-    }
+    o2::ccdb::CcdbObjectInfo ccdbInfo(CDBTypeMap.at(CDBType::CalIDCFourier), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampsCCDB.front(), timeStampsCCDB.back());
+    auto imageFFT = o2::ccdb::CcdbApi::createObjectImage(&mIDCFourierTransform.getFourierCoefficients(), &ccdbInfo);
+    LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", ccdbInfo.getPath(), ccdbInfo.getFileName(), imageFFT->size(), ccdbInfo.getStartValidityTimestamp(), ccdbInfo.getEndValidityTimestamp());
+    pc.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBFourier(), 0}, *imageFFT.get());
+    pc.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBFourier(), 0}, ccdbInfo);
 
     if (mDebug) {
       LOGP(info, "dumping FT to file");
@@ -99,15 +95,13 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
   }
 
   static constexpr header::DataDescription getDataDescriptionFourier() { return header::DataDescription{"FOURIER"}; }
+  static constexpr header::DataDescription getDataDescriptionCCDBFourier() { return header::DataDescription{"TPC_CalibFFT"}; }
 
  private:
-  IDCFType mIDCFourierTransform{};              ///< object for performing the fourier transform of 1D-IDCs
-  const bool mDebug{false};                     ///< dump IDCs to tree for debugging
-  const bool mSendOutDebug{false};              ///< flag if the output will be send (for debugging)
-  o2::ccdb::CcdbApi mDBapi;                     ///< API for storing the IDCs in the CCDB
-  std::map<std::string, std::string> mMetadata; ///< meta data of the stored object in CCDB
-  bool mWriteToDB{};                            ///< flag if writing to CCDB will be done
-  uint64_t mProcessedTimeStamp{0};              ///< to keep track of the processed timestamps
+  IDCFType mIDCFourierTransform{}; ///< object for performing the fourier transform of 1D-IDCs
+  const bool mDebug{false};        ///< dump IDCs to tree for debugging
+  const bool mSendOutDebug{false}; ///< flag if the output will be send (for debugging)
+  uint64_t mProcessedTimeStamp{0}; ///< to keep track of the processed timestamps
 
   void sendOutput(DataAllocator& output)
   {
@@ -118,6 +112,9 @@ class TPCFourierTransformAggregatorSpec : public o2::framework::Task
 DataProcessorSpec getTPCFourierTransformAggregatorSpec(const unsigned int timeframes, const unsigned int rangeIDC, const unsigned int nFourierCoefficientsStore, const bool debug = false, const bool senddebug = false)
 {
   std::vector<OutputSpec> outputSpecs;
+  outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, TPCFourierTransformAggregatorSpec::getDataDescriptionCCDBFourier()}, Lifetime::Sporadic);
+  outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, TPCFourierTransformAggregatorSpec::getDataDescriptionCCDBFourier()}, Lifetime::Sporadic);
+
   if (senddebug) {
     outputSpecs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, TPCFourierTransformAggregatorSpec::getDataDescriptionFourier()});
   }
@@ -132,8 +129,7 @@ DataProcessorSpec getTPCFourierTransformAggregatorSpec(const unsigned int timefr
     "tpc-aggregator-ft",
     inputSpecs,
     outputSpecs,
-    AlgorithmSpec{adaptFromTask<TPCFourierTransformAggregatorSpec>(timeframes, nFourierCoefficientsStore, rangeIDC, debug, senddebug)},
-    Options{{"ccdb-uri", VariantType::String, o2::base::NameConf::getCCDBServer(), {"URI for the CCDB access."}}}}; // end DataProcessorSpec
+    AlgorithmSpec{adaptFromTask<TPCFourierTransformAggregatorSpec>(timeframes, nFourierCoefficientsStore, rangeIDC, debug, senddebug)}};
 }
 
 } // namespace o2::tpc

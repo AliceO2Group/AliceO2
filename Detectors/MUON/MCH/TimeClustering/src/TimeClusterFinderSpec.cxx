@@ -20,10 +20,11 @@
 #include <fstream>
 #include <chrono>
 #include <vector>
-
 #include <stdexcept>
 
 #include <fmt/core.h>
+
+#include "CommonDataFormat/IRFrame.h"
 
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -36,6 +37,9 @@
 #include "Framework/WorkflowSpec.h"
 
 #include "MCHBase/TrackerParam.h"
+#include "MCHDigitFiltering/DigitFilter.h"
+#include "MCHROFFiltering/IRFrameFilter.h"
+#include "MCHROFFiltering/MultiplicityFilter.h"
 #include "MCHROFFiltering/TrackableFilter.h"
 #include "MCHTimeClustering/ROFTimeClusterFinder.h"
 #include "MCHTimeClustering/TimeClusterizerParam.h"
@@ -59,6 +63,8 @@ class TimeClusterFinderTask
     mNbinsInOneWindow = param.peakSearchNbins;
     mMinDigitPerROF = param.minDigitsPerROF;
     mOnlyTrackable = param.onlyTrackable;
+    mPeakSearchSignalOnly = param.peakSearchSignalOnly;
+    mIRFramesOnly = param.irFramesOnly;
     mDebug = ic.options().get<bool>("mch-debug");
 
     if (mDebug) {
@@ -73,10 +79,12 @@ class TimeClusterFinderTask
       mNbinsInOneWindow += 1;
     }
 
-    LOGP(info, "max-cluster-width : {}", mTimeClusterWidth);
-    LOGP(info, "peak-search-nbins: {} ", mNbinsInOneWindow);
-    LOGP(info, "min-digits-per-rof: {}", mMinDigitPerROF);
-    LOGP(info, "only-trackable : {}", mOnlyTrackable);
+    LOGP(info, "TimeClusterWidth    : {}", mTimeClusterWidth);
+    LOGP(info, "BinsInOneWindow     : {} ", mNbinsInOneWindow);
+    LOGP(info, "MinDigitPerROF      : {}", mMinDigitPerROF);
+    LOGP(info, "OnlyTrackable       : {}", mOnlyTrackable);
+    LOGP(info, "PeakSearchSignalOnly: {}", mPeakSearchSignalOnly);
+    LOGP(info, "IRFramesOnly        : {}", mIRFramesOnly);
 
     auto stop = [this]() {
       if (mTFcount) {
@@ -92,11 +100,10 @@ class TimeClusterFinderTask
     auto rofs = pc.inputs().get<gsl::span<o2::mch::ROFRecord>>("rofs");
     auto digits = pc.inputs().get<gsl::span<o2::mch::Digit>>("digits");
 
-    o2::mch::ROFTimeClusterFinder rofProcessor(rofs, mTimeClusterWidth, mNbinsInOneWindow, 0);
+    o2::mch::ROFTimeClusterFinder rofProcessor(rofs, digits, mTimeClusterWidth, mNbinsInOneWindow, mPeakSearchSignalOnly, mDebug);
 
     if (mDebug) {
       LOGP(warning, "{:=>60} ", fmt::format("{:6d} Input ROFS", rofs.size()));
-      // rofProcessor.dumpInputROFs();
     }
 
     auto tStart = std::chrono::high_resolution_clock::now();
@@ -106,31 +113,44 @@ class TimeClusterFinderTask
 
     if (mDebug) {
       LOGP(warning, "{:=>60} ", fmt::format("{:6d} Output ROFS", rofProcessor.getROFRecords().size()));
-      // rofProcessor.dumpOutputROFs();
     }
 
     auto& outRofs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"rofs"});
     const auto& pRofs = rofProcessor.getROFRecords();
 
-    const auto& trackerParam = TrackerParam::Instance();
-    std::array<bool, 5> requestStation{
-      trackerParam.requestStation[0],
-      trackerParam.requestStation[1],
-      trackerParam.requestStation[2],
-      trackerParam.requestStation[3],
-      trackerParam.requestStation[4]};
+    // prepare the list of filters we want to apply to ROFs
+    std::vector<ROFFilter> filters;
 
-    auto tfilter = createTrackableFilter(digits, mOnlyTrackable,
-                                         requestStation,
-                                         trackerParam.moreCandidates);
+    if (mOnlyTrackable) {
+      // selects only ROFs that are trackable
+      const auto& trackerParam = TrackerParam::Instance();
+      std::array<bool, 5> requestStation{
+        trackerParam.requestStation[0],
+        trackerParam.requestStation[1],
+        trackerParam.requestStation[2],
+        trackerParam.requestStation[3],
+        trackerParam.requestStation[4]};
+      filters.emplace_back(createTrackableFilter(digits,
+                                                 requestStation,
+                                                 trackerParam.moreCandidates));
+    }
+    if (mMinDigitPerROF > 0) {
+      // selects only those ROFs have that minimum number of digits
+      filters.emplace_back(createMultiplicityFilter(mMinDigitPerROF));
+    }
+    if (mIRFramesOnly) {
+      // selects only those ROFs that overlop some IRFrame
+      auto irFrames = pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("irframes");
+      filters.emplace_back(createIRFrameFilter(irFrames));
+    }
+
+    // a single filter which is the AND combination of the elements of the filters vector
+    auto filter = createROFFilter(filters);
 
     std::copy_if(begin(pRofs),
                  end(pRofs),
                  std::back_inserter(outRofs),
-                 [this, tfilter](const o2::mch::ROFRecord& rof) {
-                   return rof.getNEntries() > mMinDigitPerROF &&
-                          tfilter(rof);
-                 });
+                 filter);
 
     const float p1 = rofs.size() > 0 ? 100. * pRofs.size() / rofs.size() : 0;
     const float p2 = rofs.size() > 0 ? 100. * outRofs.size() / rofs.size() : 0;
@@ -138,12 +158,10 @@ class TimeClusterFinderTask
     LOGP(info,
          "TF {} Processed {} input ROFs, "
          "time-clusterized them into {} ROFs ({:3.0f}%) "
-         "and output {} ({:3.0f}%) "
-         "of them {}",
+         "and output {} ({:3.0f}%) of them",
          mTFcount, rofs.size(),
          pRofs.size(), p1,
-         outRofs.size(), p2,
-         mOnlyTrackable ? "(only trackable ones)" : "");
+         outRofs.size(), p2);
     mTFcount += 1;
   }
 
@@ -156,7 +174,9 @@ class TimeClusterFinderTask
   int mTFcount{0};            ///< number of processed time frames
   int mDebug{0};              ///< verbosity flag
   int mMinDigitPerROF;        ///< minimum digit per ROF threshold
+  bool mPeakSearchSignalOnly; ///< only use signal-like hits in peak search
   bool mOnlyTrackable;        ///< only keep ROFs that are trackable
+  bool mIRFramesOnly;         ///< only keep ROFs that overlap some IRFrame
 };
 
 //_________________________________________________________________________________________________
@@ -164,11 +184,17 @@ o2::framework::DataProcessorSpec
   getTimeClusterFinderSpec(const char* specName,
                            std::string_view inputDigitDataDescription,
                            std::string_view inputDigitRofDataDescription,
-                           std::string_view outputDigitRofDataDescription)
+                           std::string_view outputDigitRofDataDescription,
+                           std::string_view inputIRFrameDataDescription)
 {
   std::string input = fmt::format("rofs:MCH/{}/0;digits:MCH/{}/0",
                                   inputDigitRofDataDescription.data(),
                                   inputDigitDataDescription.data());
+  if (TimeClusterizerParam::Instance().irFramesOnly && inputIRFrameDataDescription.size()) {
+    LOGP(info, "will select IRFrames from {}", inputIRFrameDataDescription);
+    input += ";irframes:";
+    input += inputIRFrameDataDescription;
+  }
   std::string output = fmt::format("rofs:MCH/{}/0", outputDigitRofDataDescription.data());
 
   std::vector<OutputSpec> outputs;

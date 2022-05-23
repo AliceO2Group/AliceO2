@@ -931,7 +931,7 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
 
 // Process all the sigchld which are pending
 // @return wether or not a given child exited with an error condition.
-bool processSigChild(DeviceInfos& infos)
+bool processSigChild(DeviceInfos& infos, DeviceSpecs& specs)
 {
   bool hasError = false;
   while (true) {
@@ -942,13 +942,21 @@ bool processSigChild(DeviceInfos& infos)
 
       if (WIFEXITED(status) == false || es != 0) {
         es = WIFEXITED(status) ? es : 128 + es;
+        // Look for the name associated to the pid in the infos
+        std::string id = "unknown";
+        assert(specs.size() == infos.size());
+        for (size_t ii = 0; ii < infos.size(); ++ii) {
+          if (infos[ii].pid == pid) {
+            id = specs[ii].id;
+          }
+        }
         // No need to print anything if the user
         // force quitted doing a double Ctrl-C.
         if (double_sigint) {
         } else if (forceful_exit) {
-          LOGP(error, "pid {} was forcefully terminated after being requested to quit", pid);
+          LOGP(error, "pid {} ({}) was forcefully terminated after being requested to quit", pid, id);
         } else {
-          LOGP(error, "pid {} crashed with {}", pid, es);
+          LOGP(error, "pid {} ({}) crashed with {}", pid, id, es);
         }
         hasError |= true;
       }
@@ -1869,7 +1877,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             callback(serviceRegistry, metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics, timestamp);
           }
         }
-        hasError = processSigChild(infos);
+        hasError = processSigChild(infos, runningWorkflow.devices);
         bool allChildrenGone = areAllChildrenGone(infos);
         bool canExit = checkIfCanExit(infos);
         bool supposedToQuit = (guiQuitRequested || canExit || graceful_exit);

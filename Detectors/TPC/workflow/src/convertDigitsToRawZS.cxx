@@ -91,7 +91,7 @@ struct ProcessAttributes {
 void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::raw::RawFileWriter& writer);
 #include "DetectorsRaw/HBFUtils.h"
 void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, std::string_view fileFor,
-                            bool sectorBySector, uint32_t rdhV, bool stopPage, bool padding, bool createParentDir)
+                            bool sectorBySector, uint32_t rdhV, uint32_t zsV, bool stopPage, bool padding, bool createParentDir)
 {
 
   // ===| open file and get tree |==============================================
@@ -168,6 +168,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
 
   ProcessAttributes attr;
   attr.padding = padding;
+  attr.version = zsV;
 
   for (int iSecBySec = 0; iSecBySec < Sector::MAXSECTOR; ++iSecBySec) {
     treeSim->ResetBranchAddresses();
@@ -249,6 +250,7 @@ int main(int argc, char** argv)
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
+    add_option("zs-version,r", bpo::value<uint32_t>()->default_value(2), "ZS version to use");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
     opt_all.add(opt_general).add(opt_hidden);
@@ -281,6 +283,7 @@ int main(int argc, char** argv)
     vm["file-for"].as<std::string>(),
     vm["sector-by-sector"].as<bool>(),
     vm["rdh-version"].as<uint32_t>(),
+    vm["zs-version"].as<uint32_t>(),
     vm["stop-page"].as<bool>(),
     vm["padding"].as<bool>(),
     !vm.count("no-parent-directories"));

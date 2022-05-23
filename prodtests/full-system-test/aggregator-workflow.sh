@@ -29,6 +29,19 @@ echo "CALIB_PHS_TURNONCALIB = $CALIB_PHS_TURNONCALIB" 1>&2
 echo "CALIB_PHS_RUNBYRUNCALIB = $CALIB_PHS_RUNBYRUNCALIB" 1>&2
 echo "CALIB_TRD_VDRIFTEXB = $CALIB_TRD_VDRIFTEXB" 1>&2
 
+# beamtype dependent settings
+LHCPHASE_TF_PER_SLOT=26400
+TOF_CHANNELOFFSETS_UPDATE=300000
+TOF_CHANNELOFFSETS_DELTA_UPDATE=50000
+
+if [[ $BEAMTYPE == "PbPb" ]]; then
+    LHCPHASE_TF_PER_SLOT=264
+    TOF_CHANNELOFFSETS_UPDATE=3000
+    TOF_CHANNELOFFSETS_DELTA_UPDATE=500
+fi
+
+# Calibration workflows
+
 # PrimVertex
 if [[ $CALIB_PRIMVTX_MEANVTX == 1 ]]; then
     EXTRA_WORKFLOW_CALIB+="o2-calibration-mean-vertex-calibration-workflow $ARGS_ALL | "
@@ -37,14 +50,14 @@ fi
 # TOF
 if [[ $CALIB_TOF_LHCPHASE == 1 ]] || [[ $CALIB_TOF_CHANNELOFFSETS == 1 ]]; then
     if [[ $CALIB_TOF_LHCPHASE == 1 ]]; then
-  EXTRA_WORKFLOW_CALIB+="o2-calibration-tof-calib-workflow $ARGS_ALL --do-lhc-phase --tf-per-slot 10 | "
+  EXTRA_WORKFLOW_CALIB+="o2-calibration-tof-calib-workflow $ARGS_ALL --do-lhc-phase --tf-per-slot $LHCPHASE_TF_PER_SLOT --use-ccdb | "
     fi
     if [[ $CALIB_TOF_CHANNELOFFSETS == 1 ]]; then
-  EXTRA_WORKFLOW_CALIB+="o2-calibration-tof-calib-workflow $ARGS_ALL --do-channel-offset --update-at-end-of-run-only --min-entries 8 --range 100000 | "
+  EXTRA_WORKFLOW_CALIB+="o2-calibration-tof-calib-workflow $ARGS_ALL --do-channel-offset --update-interval $TOF_CHANNELOFFSETS_UPDATE --delta-update-interval $TOF_CHANNELOFFSETS_DELTA_UPDATE --min-entries 100 --range 100000 --use-ccdb --follow-ccdb-updates | "
     fi
 fi
 if [[ $CALIB_TOF_DIAGNOSTICS == 1 ]]; then
-    EXTRA_WORKFLOW_CALIB+="o2-calibration-tof-diagnostic-workflow $ARGS_ALL --tf-per-slot 26400 | "
+    EXTRA_WORKFLOW_CALIB+="o2-calibration-tof-diagnostic-workflow $ARGS_ALL --tf-per-slot 26400 --max-delay 1 | "
 fi
 
 # TRD
@@ -55,7 +68,7 @@ fi
 # Calo cal
 # EMC
 if [[ $CALIB_EMC_CHANNELCALIB == 1 ]]; then
-    EXTRA_WORKFLOW_CALIB+="o2-calibration-emcal-channel-calib-workflow --calibMode timeCalib $ARGS_ALL | "
+    EXTRA_WORKFLOW_CALIB+="o2-calibration-emcal-channel-calib-workflow --configKeyValues EMCALCalibParams.calibType=\"time\" $ARGS_ALL | "
 fi
 
 # PHS

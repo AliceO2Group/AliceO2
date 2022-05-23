@@ -53,7 +53,8 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)")(
     "noemptyevents", "only writes events with at least one hit")(
     "CCDBUrl", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "URL for CCDB to be used.")(
-    "timestamp", bpo::value<uint64_t>(), "global timestamp value in ms (for anchoring) - default is now")(
+    "timestamp", bpo::value<uint64_t>(), "global timestamp value in ms (for anchoring) - default is now ... or beginning of run if ALICE run number was given")(
+    "run", bpo::value<int>()->default_value(-1), "ALICE run number")(
     "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode")(
     "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)");
 }
@@ -68,7 +69,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
     activeModules.clear();
     for (int d = DetID::First; d <= DetID::Last; ++d) {
 #ifdef ENABLE_UPGRADES
-      if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3) {
+      if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT) {
         activeModules.emplace_back(DetID::getName(d));
       }
 #else
@@ -160,9 +161,12 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mSimWorkers = vm["nworkers"].as<int>();
   if (vm.count("timestamp")) {
     mConfigData.mTimestamp = vm["timestamp"].as<uint64_t>();
+    mConfigData.mTimestampMode = kManual;
   } else {
     mConfigData.mTimestamp = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    mConfigData.mTimestampMode = kNow;
   }
+  mConfigData.mRunNumber = vm["run"].as<int>();
   mConfigData.mCCDBUrl = vm["CCDBUrl"].as<std::string>();
   mConfigData.mAsService = vm["asservice"].as<bool>();
   mConfigData.mNoGeant = vm["noGeant"].as<bool>();

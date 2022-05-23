@@ -938,9 +938,35 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
 
   // Whether or not all the channels are completed
   LOGP(debug, "Processing {} input channels.", context.deviceContext->spec->inputChannels.size());
-  for (size_t ci = 0; ci < context.deviceContext->spec->inputChannels.size(); ++ci) {
-    auto& info = context.deviceContext->state->inputChannelInfos[ci];
-    auto& channelSpec = context.deviceContext->spec->inputChannels[ci];
+  /// Sort channels by oldest possible timeframe and
+  /// process them in such order.
+  static std::vector<int> pollOrder;
+  pollOrder.resize(context.deviceContext->state->inputChannelInfos.size());
+  std::iota(pollOrder.begin(), pollOrder.end(), 0);
+  std::sort(pollOrder.begin(), pollOrder.end(), [&infos = context.deviceContext->state->inputChannelInfos](int a, int b) {
+    return infos[a].oldestForChannel.value < infos[b].oldestForChannel.value;
+  });
+
+  // Nothing to poll...
+  if (pollOrder.empty()) {
+    return;
+  }
+  auto currentOldest = context.deviceContext->state->inputChannelInfos[pollOrder.front()].oldestForChannel;
+  auto currentNewest = context.deviceContext->state->inputChannelInfos[pollOrder.back()].oldestForChannel;
+  auto delta = currentNewest.value - currentOldest.value;
+  LOGP(debug, "oldest possible timeframe range {}, {} => {} delta", currentOldest.value, currentNewest.value,
+       delta);
+  auto& infos = context.deviceContext->state->inputChannelInfos;
+  static int ahead = getenv("DPL_MAX_CHANNEL_AHEAD") ? std::atoi(getenv("DPL_MAX_CHANNEL_AHEAD")) : 16;
+  auto newEnd = std::remove_if(pollOrder.begin(), pollOrder.end(), [&infos, limitNew = currentOldest.value + ahead](int a) -> bool {
+    return infos[a].oldestForChannel.value > limitNew;
+  });
+  pollOrder.erase(newEnd, pollOrder.end());
+  LOGP(debug, "processing {} channels", pollOrder.size());
+
+  for (auto sci : pollOrder) {
+    auto& info = context.deviceContext->state->inputChannelInfos[sci];
+    auto& channelSpec = context.deviceContext->spec->inputChannels[sci];
     LOGP(debug, "Processing channel {}", channelSpec.name);
 
     if (info.state != InputChannelState::Completed && info.state != InputChannelState::Pull) {
@@ -981,7 +1007,8 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
     // to process.
     bool newMessages = false;
     while (true) {
-      LOGP(debug, "Receiving loop called.");
+      LOGP(debug, "Receiving loop called for channel {} ({}) with oldest possible timeslice {}",
+           info.channel->GetName(), info.id.value, info.oldestForChannel.value);
       if (info.parts.Size() < 64) {
         FairMQParts parts;
         info.channel->Receive(parts, 0);
@@ -1180,6 +1207,8 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
         oldestPossibleTimeslice = std::min(oldestPossibleTimeslice, dih->oldestPossibleTimeslice);
         insertInputInfo(pi, 2, InputType::DomainInfo);
         *context.wasActive = true;
+        LOGP(debug, "Got DomainInfoHeader, new oldestPossibleTimeslice {} on channel {}", oldestPossibleTimeslice, info.id.value);
+
         continue;
       }
       auto dh = o2::header::get<DataHeader*>(headerData);
@@ -1337,14 +1366,10 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     return;
   }
   if (oldestPossibleTimeslice != (size_t)-1) {
-    TimesliceIndex& timesliceIndex = context.registry->get<TimesliceIndex>();
-    auto r = timesliceIndex.setOldestPossibleInput({oldestPossibleTimeslice}, info.id);
-    timesliceIndex.updateOldestPossibleOutput();
-    auto& proxy = context.registry->get<FairMQDeviceProxy>();
-    auto oldestPossibleOutput = context.relayer->getOldestPossibleOutput();
-    LOGP(detail, "Broadcasting possible output {}", oldestPossibleOutput.timeslice.value);
-    context.registry->get<CallbackService>()(CallbackService::Id::DomainInfoUpdated, *(context.registry), (size_t)oldestPossibleOutput.timeslice.value);
-    DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
+    info.oldestForChannel = {oldestPossibleTimeslice};
+    context.registry->domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
+    context.registry->get<CallbackService>()(CallbackService::Id::DomainInfoUpdated, (ServiceRegistry&)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
+    *context.wasActive = true;
   }
   handleValidMessages(*inputTypes);
   return;
@@ -1648,13 +1673,14 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       }
     }
     for (size_t fi = 0; fi < spec->forwards.size(); fi++) {
-      if (forwardedParts[fi].Size() == 0) {
-        continue;
-      }
       auto& channel = device->GetChannel(spec->forwards[fi].channel, 0);
-      // in DPL we are using subchannel 0 only
-      channel.Send(forwardedParts[fi]);
-
+      if (forwardedParts[fi].Size() != 0) {
+        // in DPL we are using subchannel 0 only
+        channel.Send(forwardedParts[fi]);
+      }
+    }
+    for (size_t fi = 0; fi < spec->forwards.size(); fi++) {
+      auto& channel = device->GetChannel(spec->forwards[fi].channel, 0);
       // The oldest possible timeslice for a forwarded message
       // is conservatively the one of the device doing the forwarding.
       if (spec->forwards[fi].channel.rfind("from_", 0) == 0) {
@@ -1710,6 +1736,15 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     if (action.op == CompletionPolicy::CompletionOp::Wait) {
       LOGP(debug, "  - Action is to Wait");
       continue;
+    }
+
+    switch (action.op) {
+      case CompletionPolicy::CompletionOp::Consume:
+        LOG(debug) << "  - Action is to " << action.op << " " << action.slot.index;
+        break;
+      default:
+        LOG(debug) << "  - Action is to " << action.op << " " << action.slot.index;
+        break;
     }
 
     prepareAllocatorForCurrentTimeSlice(TimesliceSlot{action.slot});

@@ -24,10 +24,13 @@ namespace o2::mch
  */
 struct TimeClusterizerParam : public o2::conf::ConfigurableParamHelper<TimeClusterizerParam> {
 
-  bool onlyTrackable = true;       ///< only output ROFs that match the trackable condition @see MCHBase/Trackable.h
-  int maxClusterWidth = 1000 / 25; ///< maximum time width of time clusters, in BC units
-  int peakSearchNbins = 5;         ///< number of time bins for the peak search algorithm (must be an odd number >= 3)
-  int minDigitsPerROF = 0;         ///< minimum number of digits per ROF (below that threshold ROF is discarded)
+  bool onlyTrackable = true; ///< only output ROFs that match the trackable condition @see MCHROFFiltering/TrackableFilter
+
+  int maxClusterWidth = 1000 / 25;  ///< maximum time width of time clusters, in BC units
+  int peakSearchNbins = 5;          ///< number of time bins for the peak search algorithm (must be an odd number >= 3)
+  int minDigitsPerROF = 0;          ///< minimum number of digits per ROF (below that threshold ROF is discarded)
+  bool peakSearchSignalOnly = true; ///< only use signal-like hits in peak search
+  bool irFramesOnly = false;        ///< only output ROFs that overlap one of the IRFrames (provided externally, e.g. by ITS) @see MCHROFFiltering/IRFrameFilter
 
   O2ParamDef(TimeClusterizerParam, "MCHTimeClusterizer");
 };

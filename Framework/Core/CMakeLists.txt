@@ -285,6 +285,7 @@ foreach(b
         WorkflowHelpers
         ASoA
         ASoAHelpers
+        EventMixing
         HistogramRegistry
         TableToTree
         TreeToTable
