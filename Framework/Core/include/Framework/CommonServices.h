@@ -81,6 +81,7 @@ struct CommonServices {
   static ServiceSpec ccdbSupportSpec();
   static ServiceSpec decongestionSpec();
   static ServiceSpec asyncQueue();
+  static ServiceSpec guiMetricsSpec();
 
   static std::vector<ServiceSpec> defaultServices(int numWorkers = 0);
   static std::vector<ServiceSpec> requiredServices();

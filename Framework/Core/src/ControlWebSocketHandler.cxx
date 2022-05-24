@@ -24,7 +24,9 @@ void ControlWebSocketHandler::frame(char const* frame, size_t s)
   auto updateMetricsViews = Metric2DViewIndex::getUpdater({&(*mContext.infos)[mIndex].dataRelayerViewIndex,
                                                            &(*mContext.infos)[mIndex].variablesViewIndex,
                                                            &(*mContext.infos)[mIndex].queriesViewIndex,
-                                                           &(*mContext.infos)[mIndex].outputsViewIndex});
+                                                           &(*mContext.infos)[mIndex].outputsViewIndex,
+                                                           &(*mContext.infos)[mIndex].inputChannelMetricsViewIndex,
+                                                           &(*mContext.infos)[mIndex].outputChannelMetricsViewIndex});
 
   auto newMetricCallback = [&updateMetricsViews, &metrics = mContext.metrics, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
     updateMetricsViews(name, metric, value, metricIndex);

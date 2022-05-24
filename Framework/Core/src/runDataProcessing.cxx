@@ -346,6 +346,8 @@ void spawnRemoteDevice(std::string const&,
   info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
   info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
   info.outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}};
+  info.inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}};
+  info.outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}};
   // FIXME: use uv_now.
   info.lastSignal = uv_hrtime() - 10000000;
 
@@ -464,7 +466,8 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     auto updateMetricsViews = Metric2DViewIndex::getUpdater({&(*mContext.infos)[mIndex].dataRelayerViewIndex,
                                                              &(*mContext.infos)[mIndex].variablesViewIndex,
                                                              &(*mContext.infos)[mIndex].queriesViewIndex,
-                                                             &(*mContext.infos)[mIndex].outputsViewIndex});
+                                                             &(*mContext.infos)[mIndex].outputsViewIndex,
+                                                             &(*mContext.infos)[mIndex].inputChannelMetricsViewIndex});
 
     auto newMetricCallback = [&updateMetricsViews, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
       updateMetricsViews(name, metric, value, metricIndex);
@@ -826,6 +829,8 @@ void spawnDevice(DeviceRef ref,
   info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
   info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
   info.outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}};
+  info.inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}};
+  info.outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}};
   info.tracyPort = driverInfo.tracyPort;
   info.lastSignal = uv_hrtime() - 10000000;
 
