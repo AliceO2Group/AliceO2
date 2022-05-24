@@ -37,4 +37,6 @@
 #pragma link C++ class o2::base::NameConf + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::base::NameConf> + ;
 
+#pragma link C++ class o2::utils::IRFrameSelector + ;
+
 #endif
