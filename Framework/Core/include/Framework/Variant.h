@@ -28,8 +28,6 @@ namespace o2::framework
 
 // Do NOT insert entries in this enum, only append at the end (before "Empty"). Hyperloop depends on the order.
 enum class VariantType : int { Int = 0,
-                               Int8,
-                               Int16,
                                Int64,
                                Float,
                                Double,
@@ -52,6 +50,8 @@ enum class VariantType : int { Int = 0,
                                UInt64,
                                Empty,
                                Dict,
+                               Int8,
+                               Int16,
                                Unknown };
 
 template <VariantType V>
