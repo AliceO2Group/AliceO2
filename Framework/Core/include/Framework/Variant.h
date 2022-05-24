@@ -48,10 +48,10 @@ enum class VariantType : int { Int = 0,
                                UInt16,
                                UInt32,
                                UInt64,
-                               Empty,
-                               Dict,
                                Int8,
                                Int16,
+                               Empty,
+                               Dict,
                                Unknown };
 
 template <VariantType V>
