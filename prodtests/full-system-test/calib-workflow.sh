@@ -10,8 +10,8 @@ fi
 
 # you cannot have a locally integrated aggregator with the proxies
 if workflow_has_parameters CALIB_LOCAL_INTEGRATED_AGGREGATOR CALIB_PROXIES; then
-    echo "you cannot have a locally integrated aggregator with the proxies" 1>&2
-    exit 2
+  echo "you cannot have a locally integrated aggregator with the proxies" 1>&2
+  exit 2
 fi
 
 # specific calibration workflows
@@ -21,12 +21,12 @@ if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then add_W o2-tpc-calib-gainmap-tracks "--p
 
 # output-proxy for aggregator
 if workflow_has_parameter CALIB_PROXIES; then
-    if [[ ! -z $CALIBDATASPEC_BARREL ]]; then
-  WORKFLOW+="o2-dpl-output-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_BARREL\" $(get_proxy_connection barrel output) | "
-    fi
-    if [[ ! -z $CALIBDATASPEC_CALO ]]; then
-  WORKFLOW+="o2-dpl-output-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_CALO\" $(get_proxy_connection calo output) | "
-    fi
+  if [[ ! -z $CALIBDATASPEC_BARREL ]]; then
+    WORKFLOW+="o2-dpl-output-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_BARREL\" $(get_proxy_connection barrel output) | "
+  fi
+  if [[ ! -z $CALIBDATASPEC_CALO ]]; then
+    WORKFLOW+="o2-dpl-output-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_CALO\" $(get_proxy_connection calo output) | "
+  fi
 fi
 
 true # everything OK up to this point, so the script should return 0 (it is !=0 already if a has_detector check fails)
