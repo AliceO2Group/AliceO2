@@ -31,6 +31,8 @@ BOOST_AUTO_TEST_CASE(TestConfigParamStore)
     ("aFloat", bpo::value<float>()->default_value(10.f))                  //
     ("aDouble", bpo::value<double>()->default_value(20.))                 //
     ("anInt", bpo::value<int>()->default_value(1))                        //
+    ("anInt8", bpo::value<int8_t>()->default_value(1))                    //
+    ("anInt16", bpo::value<int16_t>()->default_value(1))                  //
     ("anUInt8", bpo::value<uint8_t>()->default_value(1))                  //
     ("anUInt16", bpo::value<uint16_t>()->default_value(1))                //
     ("anUInt32", bpo::value<uint32_t>()->default_value(1))                //
@@ -46,6 +48,8 @@ BOOST_AUTO_TEST_CASE(TestConfigParamStore)
   options->ParseAll({"cmd", "--aFloat", "1.0",
                      "--aDouble", "2.0",
                      "--anInt", "10",
+                     "--anInt8", "2",
+                     "--anInt16", "10",
                      "--anUInt8", "2",
                      "--anUInt16", "10",
                      "--anUInt32", "10",
@@ -58,6 +62,8 @@ BOOST_AUTO_TEST_CASE(TestConfigParamStore)
                     true);
   std::vector<ConfigParamSpec> specs{
     ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}},
+    ConfigParamSpec{"anInt8", VariantType::Int8, static_cast<int8_t>(1), {"an int8 option"}},
+    ConfigParamSpec{"anInt16", VariantType::Int16, static_cast<int16_t>(1), {"an int16 option"}},
     ConfigParamSpec{"anUInt8", VariantType::UInt8, static_cast<uint8_t>(1u), {"an int option"}},
     ConfigParamSpec{"anUInt16", VariantType::UInt16, static_cast<uint16_t>(1u), {"an int option"}},
     ConfigParamSpec{"anUInt32", VariantType::UInt32, 1u, {"an int option"}},
@@ -83,6 +89,8 @@ BOOST_AUTO_TEST_CASE(TestConfigParamStore)
   BOOST_CHECK_EQUAL(store.store().get<float>("aFloat"), 1.0);
   BOOST_CHECK_EQUAL(store.store().get<double>("aDouble"), 2.0);
   BOOST_CHECK_EQUAL(store.store().get<int>("anInt"), 10);
+  BOOST_CHECK_EQUAL(store.store().get<int8_t>("anInt8"), '2');
+  BOOST_CHECK_EQUAL(store.store().get<int16_t>("anInt16"), 10);
   BOOST_CHECK_EQUAL(store.store().get<uint8_t>("anUInt8"), '2');
   BOOST_CHECK_EQUAL(store.store().get<uint16_t>("anUInt16"), 10);
   BOOST_CHECK_EQUAL(store.store().get<uint32_t>("anUInt32"), 10);
@@ -103,6 +111,8 @@ BOOST_AUTO_TEST_CASE(TestConfigParamStore)
   BOOST_CHECK_EQUAL(store.provenance("aFloat"), "fairmq");
   BOOST_CHECK_EQUAL(store.provenance("aDouble"), "fairmq");
   BOOST_CHECK_EQUAL(store.provenance("anInt"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("anInt8"), "fairmq");
+  BOOST_CHECK_EQUAL(store.provenance("anInt16"), "fairmq");
   BOOST_CHECK_EQUAL(store.provenance("anUInt8"), "fairmq");
   BOOST_CHECK_EQUAL(store.provenance("anUInt16"), "fairmq");
   BOOST_CHECK_EQUAL(store.provenance("anUInt32"), "fairmq");
