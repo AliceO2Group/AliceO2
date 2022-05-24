@@ -2219,33 +2219,32 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
       DriverState::MATERIALISE_WORKFLOW     //
     };
   } else if (!varmap["o2-control"].as<std::string>().empty() or !varmap["mermaid"].as<std::string>().empty()) {
-      // Dump the workflow in o2-control and/or mermaid format
-      control.callbacks = {[filename = varmap["mermaid"].as<std::string>(),
-                            workflowName = varmap["o2-control"].as<std::string>()]
-                           (WorkflowSpec const&,
-                            DeviceSpecs const& specs,
-                            DeviceExecutions const& executions,
-                            DataProcessorInfos&,
-                            CommandInfo const& commandInfo) {
-                             if(!workflowName.empty()) {
-                               dumpDeviceSpec2O2Control(workflowName, specs, executions, commandInfo);
-                             }
-                             if(!filename.empty()) {
-                              if (filename == "-") {
-                                MermaidHelpers::dumpDeviceSpec2Mermaid(std::cout, specs);
-                              } else {
-                                std::ofstream output(filename);
-                                MermaidHelpers::dumpDeviceSpec2Mermaid(output, specs);
-                              }
-                             }
-                            }};
-      control.forcedTransitions = {
-        DriverState::EXIT,                    //
-        DriverState::PERFORM_CALLBACKS,       //
-        DriverState::MERGE_CONFIGS,           //
-        DriverState::IMPORT_CURRENT_WORKFLOW, //
-        DriverState::MATERIALISE_WORKFLOW     //
-      };
+    // Dump the workflow in o2-control and/or mermaid format
+    control.callbacks = {[filename = varmap["mermaid"].as<std::string>(),
+                          workflowName = varmap["o2-control"].as<std::string>()](WorkflowSpec const&,
+                                                                                 DeviceSpecs const& specs,
+                                                                                 DeviceExecutions const& executions,
+                                                                                 DataProcessorInfos&,
+                                                                                 CommandInfo const& commandInfo) {
+      if (!workflowName.empty()) {
+        dumpDeviceSpec2O2Control(workflowName, specs, executions, commandInfo);
+      }
+      if (!filename.empty()) {
+        if (filename == "-") {
+          MermaidHelpers::dumpDeviceSpec2Mermaid(std::cout, specs);
+        } else {
+          std::ofstream output(filename);
+          MermaidHelpers::dumpDeviceSpec2Mermaid(output, specs);
+        }
+      }
+    }};
+    control.forcedTransitions = {
+      DriverState::EXIT,                    //
+      DriverState::PERFORM_CALLBACKS,       //
+      DriverState::MERGE_CONFIGS,           //
+      DriverState::IMPORT_CURRENT_WORKFLOW, //
+      DriverState::MATERIALISE_WORKFLOW     //
+    };
 
   } else if (varmap.count("id")) {
     // Add our own stacktrace dumping
