@@ -243,7 +243,7 @@ struct GroupSlicer {
           // optimized split
           if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
             if (groups[index].empty()) {
-              return std::decay_t<A1>{{makeEmptyTable<A1>("empty")}, SelectionVector{}};
+              return std::decay_t<A1>{{makeEmptyTable<A1>("empty")}, soa::SelectionVector{}};
             }
             auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
 
