@@ -77,7 +77,7 @@ void InspectCCDBFile(){
       printf("%s %s %d %s\n",key->GetClassName(),key->GetName(),key->GetCycle(),key->GetTitle());
     }
   }
-  
+
 //   TObject *ob = (TObject*)gDirectory->Get("ccdb_object");
 //   if(ob == nullptr){
 //     printf("Object not found\n");
