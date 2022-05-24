@@ -48,65 +48,65 @@ if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then WORKFLOW=; f
 # adding input proxies
 if workflow_has_parameter CALIB_PROXIES; then
   if [[ ! -z $CALIBDATASPEC_BARREL ]]; then
-    WORKFLOW+="o2-dpl-raw-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_BARREL\" $(get_proxy_connection barrel input) | "
+    add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_BARREL\" $(get_proxy_connection barrel input)" "" 0
   fi
   if [[ ! -z $CALIBDATASPEC_CALO ]]; then
-    WORKFLOW+="o2-dpl-raw-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_CALO\" $(get_proxy_connection calo input) | "
+    add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_CALO\" $(get_proxy_connection calo input)" "" 0
   fi
 fi
 
 # PrimVertex
 if [[ $CALIB_PRIMVTX_MEANVTX == 1 ]]; then
-  WORKFLOW+="o2-calibration-mean-vertex-calibration-workflow $ARGS_ALL | "
+  add_W o2-calibration-mean-vertex-calibration-workflow ""
 fi
 
 # TOF
 if [[ $CALIB_TOF_LHCPHASE == 1 ]] || [[ $CALIB_TOF_CHANNELOFFSETS == 1 ]]; then
   if [[ $CALIB_TOF_LHCPHASE == 1 ]]; then
-    WORKFLOW+="o2-calibration-tof-calib-workflow $ARGS_ALL --do-lhc-phase --tf-per-slot $LHCPHASE_TF_PER_SLOT --use-ccdb | "
+    add_W o2-calibration-tof-calib-workflow "--do-lhc-phase --tf-per-slot $LHCPHASE_TF_PER_SLOT --use-ccdb" "" 0
   fi
   if [[ $CALIB_TOF_CHANNELOFFSETS == 1 ]]; then
-    WORKFLOW+="o2-calibration-tof-calib-workflow $ARGS_ALL --do-channel-offset --update-interval $TOF_CHANNELOFFSETS_UPDATE --delta-update-interval $TOF_CHANNELOFFSETS_DELTA_UPDATE --min-entries 100 --range 100000 --use-ccdb --follow-ccdb-updates | "
+    add_W o2-calibration-tof-calib-workflow "--do-channel-offset --update-interval $TOF_CHANNELOFFSETS_UPDATE --delta-update-interval $TOF_CHANNELOFFSETS_DELTA_UPDATE --min-entries 100 --range 100000 --use-ccdb --follow-ccdb-updates" "" 0
   fi
 fi
 if [[ $CALIB_TOF_DIAGNOSTICS == 1 ]]; then
-  WORKFLOW+="o2-calibration-tof-diagnostic-workflow $ARGS_ALL --tf-per-slot 26400 --max-delay 1 | "
+  add_W o2-calibration-tof-diagnostic-workflow "--tf-per-slot 26400 --max-delay 1" "" 0
 fi
 
 # TPC
 if [[ $CALIB_TPC_TIMEGAIN == 1 ]]; then
-  WORKFLOW+="o2-tpc-calibrator-dedx $ARGS_ALL --min-entries-sector 3000 --min-entries-1d 200 --min-entries-2d 10000 | "
+  add_W o2-tpc-calibrator-dedx "--min-entries-sector 3000 --min-entries-1d 200 --min-entries-2d 10000"
 fi
 if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then
-  WORKFLOW+="o2-tpc-calibrator-gainmap-tracks $ARGS_ALL --tf-per-slot 10000 | "
+  add_W o2-tpc-calibrator-gainmap-tracks "--tf-per-slot 10000" "" 0
 fi
 
 # TRD
 if [[ $CALIB_TRD_VDRIFTEXB == 1 ]]; then
-  WORKFLOW+="o2-calibration-trd-vdrift-exb $ARGS_ALL | "
+  add_W o2-calibration-trd-vdrift-exb ""
 fi
 
 # Calo cal
 # EMC
 if [[ $CALIB_EMC_CHANNELCALIB == 1 ]]; then
-  WORKFLOW+="o2-calibration-emcal-channel-calib-workflow --configKeyValues EMCALCalibParams.calibType=\"time\" $ARGS_ALL | "
+  add_W o2-calibration-emcal-channel-calib-workflow "" "EMCALCalibParams.calibType=\"time\""
 fi
 
 # PHS
 if [[ $CALIB_PHS_ENERGYCALIB == 1 ]]; then
-  WORKFLOW+="o2-phos-calib-workflow --energy $ARGS_ALL | "
+  add_W o2-phos-calib-workflow "--energy"
 fi
 if [[ $CALIB_PHS_BADMAPCALIB == 1 ]]; then
-  WORKFLOW+="o2-phos-calib-workflow --badmap --mode 0 $ARGS_ALL | "
+  add_W o2-phos-calib-workflow "--badmap --mode 0"
 fi
 if [[ $CALIB_PHS_TURNONCALIB == 1 ]]; then
-  WORKFLOW+="o2-phos-calib-workflow --turnon $ARGS_ALL | "
+  add_W o2-phos-calib-workflow "--turnon"
 fi
 if [[ $CALIB_PHS_RUNBYRUNCALIB == 1 ]]; then
-  WORKFLOW+="o2-phos-calib-workflow --runbyrun $ARGS_ALL | "
+  add_W o2-phos-calib-workflow "--runbyrun"
 fi
 
-if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]]; then WORKFLOW+="o2-calibration-ccdb-populator-workflow --ccdb-path $CCDB_POPULATOR_UPLOAD_PATH $ARGS_ALL | "; fi
+if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH"; fi
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"

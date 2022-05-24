@@ -22,10 +22,10 @@ if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then add_W o2-tpc-calib-gainmap-tracks "--p
 # output-proxy for aggregator
 if workflow_has_parameter CALIB_PROXIES; then
   if [[ ! -z $CALIBDATASPEC_BARREL ]]; then
-    WORKFLOW+="o2-dpl-output-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_BARREL\" $(get_proxy_connection barrel output) | "
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_BARREL\" $(get_proxy_connection barrel output)" "" 0
   fi
   if [[ ! -z $CALIBDATASPEC_CALO ]]; then
-    WORKFLOW+="o2-dpl-output-proxy ${ARGS_ALL} --dataspec \"$CALIBDATASPEC_CALO\" $(get_proxy_connection calo output) | "
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_CALO\" $(get_proxy_connection calo output)" "" 0
   fi
 fi
 
