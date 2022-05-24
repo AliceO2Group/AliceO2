@@ -101,7 +101,7 @@ void CTPClass::printStream(std::ostream& stream) const
 }
 /// CTP configuration
 /// Assuming Run2 format + LTG
-int CTPConfiguration::loadConfigurationRun3(const std::string ctpconfiguration)
+int CTPConfiguration::loadConfigurationRun3(const std::string& ctpconfiguration)
 {
   LOG(info) << "Loading CTP configuration.";
   mConfigString = ctpconfiguration;
@@ -565,7 +565,7 @@ void CTPRunManager::init()
   loadScalerNames();
   LOG(info) << "CTPRunManager initialised.";
 }
-int CTPRunManager::startRun(std::string& cfg)
+int CTPRunManager::startRun(const std::string& cfg)
 {
   LOG(info) << "Starting run: " << cfg;
   const auto now = std::chrono::system_clock::now();
@@ -626,7 +626,7 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
   scalrec.intRecord.orbit = mCounters[mScalerName2Position[orb]];
   return 0;
 }
-int CTPRunManager::processMessage(std::string& topic, std::string& message)
+int CTPRunManager::processMessage(std::string& topic, const std::string& message)
 {
   LOG(info) << "Processing message with topic:" << topic;
   std::string firstcounters;

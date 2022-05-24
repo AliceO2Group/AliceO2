@@ -111,7 +111,7 @@ class CTPConfiguration
                     CLUSTER,
                     CLASS,
                     UNKNOWN };
-  int loadConfigurationRun3(const std::string ctpconfiguartion);
+  int loadConfigurationRun3(const std::string& ctpconfiguartion);
   int loadConfiguration(const std::string& ctpconfiguartion);
   void addBCMask(const BCMask& bcmask);
   void addCTPInput(const CTPInput& input);
@@ -161,10 +161,10 @@ class CTPRunManager
  public:
   CTPRunManager() = default;
   void init();
-  int startRun(std::string& cfg);
+  int startRun(const std::string& cfg);
   int stopRun(uint32_t irun);
   int addScalers(uint32_t irun, std::time_t time);
-  int processMessage(std::string& topic, std::string& message);
+  int processMessage(std::string& topic,const std::string& message);
   void printActiveRuns() const;
   int saveRunToCCDB(int i);
   int getConfigFromCCDB();
