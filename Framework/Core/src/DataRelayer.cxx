@@ -52,9 +52,9 @@ namespace o2::framework
 
 constexpr int INVALID_INPUT = -1;
 
-// 16 is just some reasonable numer
+// 128 is just some reasonable numer
 // The number should really be tuned at runtime for each processor.
-constexpr int DEFAULT_PIPELINE_LENGTH = 32;
+constexpr int DEFAULT_PIPELINE_LENGTH = 128;
 
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
