@@ -9,9 +9,30 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <TH1.h>
+#include <TFile.h>
+#include <TDirectory.h>
+#include "Framework/Logger.h"
 #include "ZDCCalib/WaveformCalibParam.h"
 
 using namespace o2::zdc;
+
+void WaveformCalibChParam::print() const
+{
+  if (shape.size() > 0) {
+    printf("Shape min at bin %d/%d\n", ampMinID, shape.size());
+  } else {
+    printf("No data\n", ampMinID, shape.size());
+  }
+}
+
+void WaveformCalibParam::print() const
+{
+  for (int i = 0; i < NChannels; i++) {
+    printf("%s ", channelName(i));
+    channels[i].print();
+  }
+}
 
 void WaveformCalibParam::assign(const WaveformCalibData& data)
 {
@@ -29,19 +50,32 @@ void WaveformCalibParam::assign(const WaveformCalibData& data)
   }
 }
 
-void WaveformCalibChParam::print() const
+//______________________________________________________________________________
+int WaveformCalibParam::saveDebugHistos(const std::string fn) const
 {
-  if (shape.size() > 0) {
-    printf("Shape min at bin %d/%d\n", ampMinID, shape.size());
-  } else {
-    printf("No data\n", ampMinID, shape.size());
+  TDirectory* cwd = gDirectory;
+  TFile* f = new TFile(fn.data(), "recreate");
+  if (f->IsZombie()) {
+    LOG(error) << "Cannot create file: " << fn;
+    return 1;
   }
-}
-
-void WaveformCalibParam::print() const
-{
-  for (int i = 0; i < NChannels; i++) {
-    printf("%s ", channelName(i));
-    channels[i].print();
+  for (int32_t is = 0; is < NChannels; is++) {
+    auto& channel = channels[is];
+    auto& shape = channel.shape;
+    int nbx = shape.size();
+    int iamin = channel.ampMinID;
+    if (nbx > 0) {
+      TString n = TString::Format("h%d", is);
+      TString t = TString::Format("Waveform %d %s", is, ChannelNames[is].data());
+      TH1F h(n, t, nbx, -0.5 - iamin, nbx - iamin - 0.5);
+      for (int ibx = 0; ibx < nbx; ibx++) {
+        h.SetBinContent(ibx + 1, shape[ibx]);
+      }
+      h.SetEntries(1);
+      h.Write("", TObject::kOverwrite);
+    }
   }
+  f->Close();
+  cwd->cd();
+  return 0;
 }

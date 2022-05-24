@@ -12,11 +12,10 @@
 #ifndef ZDC_WAVEFORMCALIB_PARAM_H
 #define ZDC_WAVEFORMCALIB_PARAM_H
 
-#include "GPUCommonRtypes.h"
 #include "ZDCBase/Constants.h"
+#include <Rtypes.h>
 #include "ZDCCalib/WaveformCalibData.h"
 #include <array>
-#include <vector>
 
 /// \file WaveformCalibParam.h
 /// \brief Waveform calibration data
@@ -28,7 +27,8 @@ namespace zdc
 {
 
 struct WaveformCalibChParam {
-  std::vector<float> shape;
+  using Histo = std::vector<float>;
+  Histo shape;
   int ampMinID = 0;
   void print() const;
   ClassDefNV(WaveformCalibChParam, 1);
@@ -39,7 +39,7 @@ struct WaveformCalibParam {
   std::array<WaveformCalibChParam, NChannels> channels; // configuration per channel
 
   void assign(const WaveformCalibData &data);
-
+  int saveDebugHistos(const std::string fn) const;
   void print() const;
 
   ClassDefNV(WaveformCalibParam, 1);
