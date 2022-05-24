@@ -155,13 +155,5 @@ o2_add_test_root_macro(macros/GainCalibrationFactors_CalibDBTest.C
             PUBLIC_LINK_LIBRARIES O2::EMCALCalib
             LABELS emcal COMPILE_ONLY)
 
-o2_add_test_root_macro(macros/TriggerDCS_CCDBApiTest.C
-            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
-            LABELS emcal COMPILE_ONLY)
-
-o2_add_test_root_macro(macros/TriggerDCS_CalibDBTest.C
-            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
-            LABELS emcal COMPILE_ONLY)
-
 o2_data_file(COPY files DESTINATION Detectors/EMC)
 
