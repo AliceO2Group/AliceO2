@@ -402,19 +402,51 @@ bool ITSThresholdCalibrator::findThresholdHitcounting(
 
   return true;
 }
+//////////////////////////////////////////////////////////////////////////////
+// Tagging Dead Pixel
+bool ITSThresholdCalibrator::isPixelDead(const unsigned short int* data, const short int& NPoints)
+{
+  unsigned short int numberOfHits = 0;
+  bool isDead = true;
+  for (unsigned short int i = 0; i < NPoints; i++) {
+    numberOfHits += data[i];
+    if (isDead && numberOfHits > 0) {
+      isDead = false;
+      break;
+    }
+  }
+  return isDead;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // Run threshold extraction on completed row and update memory
 void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const short int& row)
 {
   if (this->mScanType == 'D' || this->mScanType == 'A') {
+    bool isDead;
+    int nDead = 0;
     // Loop over all columns (pixels) in the row
     for (short int col_i = 0; col_i < this->N_COL; col_i++) {
       vChipid[col_i] = chipID;
       vRow[col_i] = row;
       vThreshold[col_i] = this->mPixelHits[chipID][row][col_i][0];
-      if (vThreshold[col_i] > N_INJ) {
+
+      if (vThreshold[col_i] == N_INJ) {
+        this->mCorrectPixID[chipID].push_back(col_i * 1000 + row);
+      }
+
+      else if (vThreshold[col_i] > N_INJ) {
         this->mNoisyPixID[chipID].push_back(col_i * 1000 + row);
+      }
+
+      else if (vThreshold[col_i] > 0) {
+        this->mIneffPixID[chipID].push_back(col_i * 1000 + row);
+      }
+
+      isDead = this->isPixelDead(&(this->mPixelHits[chipID][row][col_i][0]), *(this->N_RANGE));
+
+      if (isDead) {
+        this->mDeadPixID[chipID].push_back(col_i * 1000 + row);
       }
     }
   } else {
@@ -967,6 +999,9 @@ void ITSThresholdCalibrator::addDatabaseEntry(
   if (this->mScanType == 'D' || this->mScanType == 'A') {
     short int vPixDcolCounter[512] = {0}; // count #bad_pix per dcol
     std::vector<int>& v = mNoisyPixID[chipID];
+    std::vector<int>& v_Dead = mDeadPixID[chipID];
+    std::vector<int>& v_Ineff = mIneffPixID[chipID];
+
     std::string ds = "-1"; // dummy string
     // find bad dcols and add them one by one
     for (int i = 0; i < v.size(); i++) {
@@ -988,19 +1023,45 @@ void ITSThresholdCalibrator::addDatabaseEntry(
 
     // find single noisy pix (not in the dcol string!) if required and add them one by one
     if (this->mTagSinglePix) {
-      for (int i = 0; i < v.size(); i++) {
-        short int dcol = ((v[i] - v[i] % 1000) / 1000) / 2;
-        if (vPixDcolCounter[dcol] > N_PIX_DCOL) { // single pixels must not be already in dcolIDs
-          continue;
+      if (PixelType == "Noisy") {
+        for (int i = 0; i < v.size(); i++) {
+          short int dcol = ((v[i] - v[i] % 1000) / 1000) / 2;
+          if (vPixDcolCounter[dcol] > N_PIX_DCOL) { // single pixels must not be already in dcolIDs
+            continue;
+          }
+          o2::dcs::addConfigItem(this->mTuning, "Stave", std::string(stave));
+          o2::dcs::addConfigItem(this->mTuning, "Hs_pos", std::to_string(ssta));
+          o2::dcs::addConfigItem(this->mTuning, "Hic_Pos", std::to_string(mod));
+          o2::dcs::addConfigItem(this->mTuning, "ChipID", std::to_string(chipInMod));
+          o2::dcs::addConfigItem(this->mTuning, "ChipDbID", std::to_string(confDBid));
+          o2::dcs::addConfigItem(this->mTuning, "Dcol", ds);
+          o2::dcs::addConfigItem(this->mTuning, "Row", std::to_string(v[i] % 1000));
+          o2::dcs::addConfigItem(this->mTuning, "Col", std::to_string(int((v[i] - v[i] % 1000) / 1000)));
         }
+      }
+    }
+
+    if (PixelType == "Dead") {
+      for (int i = 0; i < v_Dead.size(); i++) {
         o2::dcs::addConfigItem(this->mTuning, "Stave", std::string(stave));
         o2::dcs::addConfigItem(this->mTuning, "Hs_pos", std::to_string(ssta));
         o2::dcs::addConfigItem(this->mTuning, "Hic_Pos", std::to_string(mod));
         o2::dcs::addConfigItem(this->mTuning, "ChipID", std::to_string(chipInMod));
         o2::dcs::addConfigItem(this->mTuning, "ChipDbID", std::to_string(confDBid));
-        o2::dcs::addConfigItem(this->mTuning, "Dcol", ds);
-        o2::dcs::addConfigItem(this->mTuning, "Row", std::to_string(v[i] % 1000));
-        o2::dcs::addConfigItem(this->mTuning, "Col", std::to_string(int((v[i] - v[i] % 1000) / 1000)));
+        o2::dcs::addConfigItem(this->mTuning, "Dead_Row", std::to_string(v_Dead[i] % 1000));
+        o2::dcs::addConfigItem(this->mTuning, "Dead_Col", std::to_string(int((v_Dead[i] - v_Dead[i] % 1000) / 1000)));
+      }
+    }
+
+    if (PixelType == "Ineff") {
+      for (int i = 0; i < v_Ineff.size(); i++) {
+        o2::dcs::addConfigItem(this->mTuning, "Stave", std::string(stave));
+        o2::dcs::addConfigItem(this->mTuning, "Hs_pos", std::to_string(ssta));
+        o2::dcs::addConfigItem(this->mTuning, "Hic_Pos", std::to_string(mod));
+        o2::dcs::addConfigItem(this->mTuning, "ChipID", std::to_string(chipInMod));
+        o2::dcs::addConfigItem(this->mTuning, "ChipDbID", std::to_string(confDBid));
+        o2::dcs::addConfigItem(this->mTuning, "Ineff_Row", std::to_string(v_Ineff[i] % 1000));
+        o2::dcs::addConfigItem(this->mTuning, "Ineff_Col", std::to_string(int((v_Ineff[i] - v_Ineff[i] % 1000) / 1000)));
       }
     }
   }
@@ -1124,6 +1185,9 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
       if (this->mVerboseOutput) {
         LOG(info) << "Chip " << itchip->first << " done";
       }
+      if (!mNoisyPixID.count(itchip->first)) {
+        mRunTypeChip[itchip->first] = 0; // to avoid multiple writes into the tree
+      }
       ++itchip;
     }
 
@@ -1134,6 +1198,7 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
         ++it;
         continue;
       }
+      PixelType = "Noisy";
       this->addDatabaseEntry(it->first, name, 0, 0, 0, 0, 0, false); // all zeros are not used here
       if (this->mVerboseOutput) {
         LOG(info) << "Chip " << it->first << " done";
@@ -1143,6 +1208,40 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
         it = this->mNoisyPixID.erase(it);
       } else {
         ++it;
+      }
+    }
+
+    LOG(info) << "Extracting dead pixels in the full matrix";
+    auto it_d = this->mDeadPixID.cbegin();
+    while (it_d != this->mDeadPixID.cend()) {
+      if (!this->mCheckEos && this->mRunTypeChip[it_d->first] < N_INJ) {
+        ++it_d;
+        continue;
+      }
+      PixelType = "Dead";
+      this->addDatabaseEntry(it_d->first, name, 0, 0, 0, 0, 0, false); // all zeros are not used here
+      if (!this->mCheckEos) {
+        this->mRunTypeChip[it_d->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
+        it_d = this->mDeadPixID.erase(it_d);
+      } else {
+        ++it_d;
+      }
+    }
+
+    LOG(info) << "Extracting inefficient pixels in the full matrix";
+    auto it_ineff = this->mIneffPixID.cbegin();
+    while (it_ineff != this->mIneffPixID.cend()) {
+      if (!this->mCheckEos && this->mRunTypeChip[it_ineff->first] < N_INJ) {
+        ++it_ineff;
+        continue;
+      }
+      PixelType = "Ineff";
+      this->addDatabaseEntry(it_ineff->first, name, 0, 0, 0, 0, 0, false);
+      if (!this->mCheckEos) {
+        this->mRunTypeChip[it_ineff->first] = 0;
+        it_ineff = this->mIneffPixID.erase(it_ineff);
+      } else {
+        ++it_ineff;
       }
     }
   }

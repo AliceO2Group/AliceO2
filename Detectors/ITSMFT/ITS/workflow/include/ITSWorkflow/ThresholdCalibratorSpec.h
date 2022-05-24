@@ -137,8 +137,14 @@ class ITSThresholdCalibrator : public Task
   std::map<short int, std::deque<short int>> mForbiddenRows;
   // Unordered map for saving sum of values (thr/ithr/vcasn) for avg calculation
   std::map<short int, std::array<int, 5>> mThresholds;
+  // Map including PixID for efficient or correct pixels
+  std::map<short int, std::vector<int>> mCorrectPixID;
   // Map including PixID for noisy pixels
   std::map<short int, std::vector<int>> mNoisyPixID;
+  // Map including PixID for Inefficient pixels
+  std::map<short int, std::vector<int>> mIneffPixID;
+  // Map including PixID for Dead pixels
+  std::map<short int, std::vector<int>> mDeadPixID;
 
   // Tree to save threshold info in full threshold scan case
   TFile* mRootOutfile = nullptr;
@@ -175,6 +181,8 @@ class ITSThresholdCalibrator : public Task
   void findAverage(const std::array<int, 5>&, float&, float&, float&, float&);
   void saveThreshold();
 
+  bool isPixelDead(const unsigned short int*, const short int&);
+
   // Helper functions for writing to the database
   void addDatabaseEntry(const short int&, const char*, const short int&,
                         const float&, const short int&, const float&, bool, bool);
@@ -209,6 +217,8 @@ class ITSThresholdCalibrator : public Task
   // Get threshold method (fit == 1, derivative == 0, or hitcounting == 2)
   char mFitType = -1;
 
+  // To tag type(noisy, dead, ineff) of pixel
+  std::string PixelType;
   // Machine hostname
   std::string mHostname;
 
