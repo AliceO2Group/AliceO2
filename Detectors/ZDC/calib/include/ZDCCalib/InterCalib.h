@@ -20,9 +20,9 @@
 #include "CommonDataFormat/FlatHisto1D.h"
 #include "CommonDataFormat/FlatHisto2D.h"
 #include "DataFormatsZDC/RecEvent.h"
-#include "DataFormatsZDC/InterCalibData.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
+#include "ZDCCalib/InterCalibData.h"
 #include "ZDCCalib/InterCalibConfig.h"
 #include "CCDB/CcdbObjectInfo.h"
 #ifndef ALICEO2_ZDC_INTERCALIB_H

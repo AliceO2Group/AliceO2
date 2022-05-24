@@ -18,10 +18,10 @@
 #include <TPaveStats.h>
 #include <TAxis.h>
 #include "CommonUtils/MemFileHelper.h"
+#include "ZDCCalib/InterCalibData.h"
 #include "ZDCCalib/InterCalib.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
-#include "DataFormatsZDC/InterCalibData.h"
 #include "Framework/Logger.h"
 #include "CCDB/CcdbApi.h"
 

@@ -11,6 +11,7 @@
 
 o2_add_library(ZDCCalib
                SOURCES
+                 src/InterCalibData.cxx
                  src/InterCalib.cxx
                  src/InterCalibConfig.cxx
                  src/InterCalibSpec.cxx
@@ -42,6 +43,7 @@ o2_add_library(ZDCCalib
 
 o2_target_root_dictionary(ZDCCalib
                           HEADERS
+                            include/ZDCCalib/InterCalibData.h
                             include/ZDCCalib/InterCalib.h
                             include/ZDCCalib/InterCalibConfig.h
                             include/ZDCCalib/InterCalibSpec.h

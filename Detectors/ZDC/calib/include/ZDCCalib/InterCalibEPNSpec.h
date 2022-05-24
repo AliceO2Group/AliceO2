@@ -21,7 +21,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "CommonUtils/NameConf.h"
-#include "DataFormatsZDC/InterCalibData.h"
+#include "ZDCCalib/InterCalibData.h"
 #include "ZDCCalib/InterCalibEPN.h"
 #include "ZDCCalib/InterCalibConfig.h"
 
