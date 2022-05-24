@@ -38,7 +38,6 @@
 #include <array>
 #include <iostream>
 #include <numeric>
-#include <iostream>
 
 namespace o2::trd
 {
@@ -223,7 +222,7 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     if (mHeaderVerbose) {
       LOG(info) << "Looping over cruheaders in HBF, loop count " << counthalfcru << " current offset is" << mHBFoffset32 << " total payload is " << mTotalHBFPayLoad / 4 << "  raw :" << mTotalHBFPayLoad;
     }
-    int halfcruprocess = processHalfCRU(mHBFoffset32);
+    int halfcruprocess = processHalfCRU(mHBFoffset32, counthalfcru);
     if (mVerbose) {
       switch (halfcruprocess) {
         case -1:
@@ -410,7 +409,7 @@ void CruRawReader::updateLinkErrorGraphs(int currentlinkindex, int supermodule_h
   }
 }
 
-int CruRawReader::processHalfCRU(int cruhbfstartoffset)
+int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU)
 {
   //It will clean this code up *alot*
   // process a halfcru
@@ -429,11 +428,12 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
   uint32_t cruwordsread = 9;
   //reject halfcru if it starts with padding words.
   //this should only hit that instance where the cru payload is a "blank event" of o2::trd::constants::CRUPADDING32
-  if (mHBFPayload[cruhbfstartoffset] == o2::trd::constants::CRUPADDING32 && mHBFPayload[cruhbfstartoffset + 1] == o2::trd::constants::CRUPADDING32) {
+  if (mHBFPayload[cruhbfstartoffset] == o2::trd::constants::CRUPADDING32) { //} && mHBFPayload[cruhbfstartoffset + 1] == o2::trd::constants::CRUPADDING32) {
     if (mVerbose) {
       LOG(info) << "blank rdh payload data at " << cruhbfstartoffset << ": 0x " << std::hex << mHBFPayload[cruhbfstartoffset] << " and 0x" << mHBFPayload[cruhbfstartoffset + 1];
     }
-    mHBFoffset32 += 2;
+    increment2dHist(TRDParsingGarbageDataAtEndOfHalfCRU, (mFEEID.supermodule * 2 + mHalfChamberSide[0]) * 30, mStack[0], mLayer[0]);
+    mHBFoffset32++;
     return 2;
   }
   if (mTotalHBFPayLoad == 0) {
@@ -442,29 +442,43 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
   }
   auto crustart = std::chrono::high_resolution_clock::now();
   // well then read the halfcruheader.
-  memcpy((char*)&mCurrentHalfCRUHeader, (void*)(&mHBFPayload[cruhbfstartoffset]), sizeof(mCurrentHalfCRUHeader)); //TODO remove the copy just use pointer dereferencing, doubt it will improve the speed much though.
+  memcpy((char*)&mCurrentHalfCRUHeader, (void*)(&mHBFPayload[cruhbfstartoffset]), sizeof(mCurrentHalfCRUHeader));
 
-  o2::trd::getlinkdatasizes(mCurrentHalfCRUHeader, mCurrentHalfCRULinkLengths);
-  o2::trd::getlinkerrorflags(mCurrentHalfCRUHeader, mCurrentHalfCRULinkErrorFlags);
+  o2::trd::getHalfCRULinkDataSizes(mCurrentHalfCRUHeader, mCurrentHalfCRULinkLengths);
+  o2::trd::getHalfCRULinkErrorFlags(mCurrentHalfCRUHeader, mCurrentHalfCRULinkErrorFlags);
   mTotalHalfCRUDataLength256 = std::accumulate(mCurrentHalfCRULinkLengths.begin(),
                                                mCurrentHalfCRULinkLengths.end(),
                                                decltype(mCurrentHalfCRULinkLengths)::value_type(0));
   mTotalHalfCRUDataLength = mTotalHalfCRUDataLength256 * 32; //convert to bytes.
   int mTotalHalfCRUDataLength32 = mTotalHalfCRUDataLength256 * 8; //convert to bytes.
 
+  // in the interests of descerning real corrupt halfcruheaders from the sometimes garbage at the end of a half cru
+  // if the first word is clearly garbage assume garbage and not a corrupt halfcruheader.
+  if (numberOfPreviousCRU > 0) {
+    if (mCurrentHalfCRUHeader.EndPoint != mPreviousHalfCRUHeader.EndPoint) {
+      increment2dHist(TRDParsingHalfCRUCorrupt, (mFEEID.supermodule * 2 + mHalfChamberSide[0]) * 30, mStack[0], mLayer[0]);
+      return -2;
+    }
+    if (mCurrentHalfCRUHeader.EventType != mPreviousHalfCRUHeader.EventType) {
+      increment2dHist(TRDParsingHalfCRUCorrupt, (mFEEID.supermodule * 2 + mHalfChamberSide[0]) * 30, mStack[0], mLayer[0]);
+      return -2;
+    }
+    if (mCurrentHalfCRUHeader.StopBit != mPreviousHalfCRUHeader.StopBit) {
+      increment2dHist(TRDParsingHalfCRUCorrupt, (mFEEID.supermodule * 2 + mHalfChamberSide[0]) * 30, mStack[0], mLayer[0]);
+      return -2;
+    }
+  }
+  memcpy((char*)&mPreviousHalfCRUHeader, (void*)(&mHBFPayload[cruhbfstartoffset]), sizeof(mCurrentHalfCRUHeader));
   //can this half cru length fit into the available space of the rdh accumulated payload
   if (mTotalHalfCRUDataLength32 > mTotalHBFPayLoad - mHBFoffset32) {
-    if (mMaxErrsPrinted > 0) {
-      LOG(error) << "Next HalfCRU header says it contains more data than in the rdh payloads! " << mTotalHalfCRUDataLength32 << " < " << mTotalHBFPayLoad << "-" << mHBFoffset32;
-      checkNoErr();
-    }
+    LOG(error) << "Next HalfCRU header says it contains more data than in the rdh payloads! " << mTotalHalfCRUDataLength32 << " < " << mTotalHBFPayLoad << "-" << mHBFoffset32;
+    increment2dHist(TRDParsingHalfCRUSumLength, (mFEEID.supermodule * 2 + mHalfChamberSide[0]) * 30, mStack[0], mLayer[0]);
+
     return -2;
   }
   if (halfCRUHeaderSanityCheck(mCurrentHalfCRUHeader, mCurrentHalfCRULinkLengths, mCurrentHalfCRULinkErrorFlags)) {
-    if (mMaxErrsPrinted > 0) {
-      LOG(error) << "HalfCRU header failed sanity check";
-      checkNoErr();
-    }
+    LOG(error) << "HalfCRU header failed sanity check";
+    increment2dHist(TRDParsingHalfCRUCorrupt, (mFEEID.supermodule * 2 + mHalfChamberSide[0]) * 30, mStack[0], mLayer[0]);
     return -2;
   }
 
@@ -637,6 +651,14 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
           linkstart = linkend;
           mHBFoffset32 = std::distance(mHBFPayload.begin(), linkend); //currentlinksize-mTrackletWordsRead-sizeof(digitHCHeader)/4; // advance to the end of the link
           mTotalDigitWordsRejected += std::distance(linkstart + mTrackletWordsRead + sizeof(DigitHCHeader) / 4, linkend);
+          LOG(info) << "####################################################################################################################:";
+          LOG(info) << "####################################################################################################################:";
+          LOG(info) << "####################################################################################################################:";
+          LOG(info) << "Configuration event : ";
+          LOG(info) << "####################################################################################################################:";
+          LOG(info) << "####################################################################################################################:";
+          LOG(info) << "####################################################################################################################:";
+          LOG(info) << "####################################################################################################################:";
         } else {
             mDigitWordsRead = 0;
             auto digitsparsingstart = std::chrono::high_resolution_clock::now();

@@ -260,7 +260,7 @@ void Trap2CRU::readTrapData()
     int endpoint = link % 2;
     int cru = link / 2;
     int side = cru % 2; // A or C, 0 or 1 respectively:
-    mFeeID = buildTRDFeeID(supermodule, side, endpoint);
+    mFeeID = constructTRDFeeID(supermodule, side, endpoint);
     LOG(info) << "FEEID;" << std::hex << mFeeID;
     mCruID = link / 2;
     mEndPointID = endpoint;
@@ -368,7 +368,7 @@ uint32_t Trap2CRU::buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, 
   //lets first clear it out.
   clearHalfCRUHeader(header);
   //this bunchcrossing is not the same as the bunchcrossing in the rdh, which is the bc coming in the parameter list to this function. See explanation in rawdata.h
-  setHalfCRUHeader(header, crurdhversion, bunchcrossing, stopbits, endpoint, eventtype, feeid, cruid);
+  setHalfCRUHeaderFirstWord(header, crurdhversion, bunchcrossing, stopbits, endpoint, eventtype, feeid, cruid);
 
   return 1;
 }
@@ -427,7 +427,7 @@ int Trap2CRU::buildDigitRawData(const int digitstartindex, const int digitendind
   digitwordswritten++;
   //we are writing zero suppressed so
   DigitMCMADCMask adcmask;
-  adcmask = buildBlankADCMask();
+  adcmask = constructBlankADCMask();
   memcpy(mRawDataPtr, (char*)&adcmask, sizeof(DigitMCMADCMask));
   DigitMCMADCMask* adcmaskptr = (DigitMCMADCMask*)mRawDataPtr;
   mRawDataPtr += 4;
@@ -493,9 +493,7 @@ int Trap2CRU::buildTrackletRawData(const int trackletindex, const int linkid)
   }
   while (linkid == HelperMethods::getLinkIDfromHCID(mTracklets[trackletindex + trackletcounter].getHCID()) && header.col == mTracklets[trackletindex + trackletcounter].getColumn() && header.padrow == mTracklets[trackletindex + trackletcounter].getPadRow()) {
     int trackletoffset = trackletindex + trackletcounter;
-    buildTrackletMCMData(trackletdata[trackletcounter], mTracklets[trackletoffset].getSlope(),
-                         mTracklets[trackletoffset].getPosition(), mTracklets[trackletoffset].getQ0(),
-                         mTracklets[trackletoffset].getQ1(), mTracklets[trackletoffset].getQ2());
+    constructTrackletMCMData(trackletdata[trackletcounter], mTracklets[trackletoffset]);
     unsigned int headerqpart = ((mTracklets[trackletoffset].getQ2() & 0x2f) << 2) + ((mTracklets[trackletoffset].getQ1() >> 6) & 0x3);
     //all 6 bits of Q1 and 2 upper bits of 7bit Q1
     if (mVerbosity) {
@@ -673,7 +671,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
     //first cru is A second CRU is C , so an flp will be either ACA or CAC A=0 C=1
     int cru = halfcru / 2;
     int side = cru % 2; // first cru is A second is B, 3rd is A etc
-    mFeeID = buildTRDFeeID(supermodule, side, mEndPointID);
+    mFeeID = constructTRDFeeID(supermodule, side, mEndPointID);
     mCruID = halfcru / 2;
     mLinkID = o2::trd::constants::TRDLINKID;
     mEndPointID = halfcru % 2; // just the upper or lower half of the cru, hence %2 of the the halfcru number.
@@ -825,7 +823,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
           LOG(error) << " linksize is huge : " << crudatasize;
         }
         LOG(debug) << " setting halfcrulink " << halfcrulink << " linksize to : " << crudatasize << " with a linkwordswrittern=" << linkwordswritten;
-        setHalfCRUHeaderLinkData(halfcruheader, halfcrulink, crudatasize, errors);
+        setHalfCRUHeaderLinkSizeAndFlags(halfcruheader, halfcrulink, crudatasize, errors);
         uint32_t bytescopied;
         totallinklengths += crudatasize;
         if ((mRawDataPtr - rawdataptratstart) != (totallinklengths * 32)) {
@@ -847,13 +845,13 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
           }
         }
         //sanity check for now:
-        if (crudatasize != o2::trd::getlinkdatasize(halfcruheader, halfcrulink)) {
+        if (crudatasize != o2::trd::getHalfCRULinkDataSize(halfcruheader, halfcrulink)) {
           // we have written the wrong amount of data ....
-          LOG(warn) << "crudata is ! = get link data size " << crudatasize << "!=" << o2::trd::getlinkdatasize(halfcruheader, halfcrulink);
+          LOG(warn) << "crudata is ! = get link data size " << crudatasize << "!=" << o2::trd::getHalfCRULinkDataSize(halfcruheader, halfcrulink);
         }
       } // if we have data on link
       else {
-        setHalfCRUHeaderLinkData(halfcruheader, halfcrulink, 0, 0);
+        setHalfCRUHeaderLinkSizeAndFlags(halfcruheader, halfcrulink, 0, 0);
         if (mVerbosity) {
           LOG(info) << "linkwordswritten is zero : " << linkwordswritten;
         }

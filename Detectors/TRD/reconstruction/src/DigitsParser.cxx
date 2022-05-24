@@ -157,7 +157,7 @@ int DigitsParser::Parse(bool verbose)
         if (mHeaderVerbose) {
           printDigitMCMHeader(*mDigitMCMHeader);
         }
-        if (!digitMCMHeaderSanityCheck(mDigitMCMHeader)) {
+        if (!sanityCheckDigitMCMHeader(mDigitMCMHeader)) {
           incParsingError(TRDParsingDigitMCMHeaderSanityCheckFailure);
           // we dump the remainig data pending better options.
           // we can try a 16 bit bitshift...
@@ -203,7 +203,7 @@ int DigitsParser::Parse(bool verbose)
           std::bitset<21> adcmask(mADCMask);
           bitsinmask = adcmask.count();
           //check ADCMask:
-          if (!digitMCMADCMaskSanityCheck(*mDigitMCMADCMask, bitsinmask)) {
+          if (!sanityCheckDigitMCMADCMask(*mDigitMCMADCMask, bitsinmask)) {
             incParsingError(TRDParsingDigitADCMaskMismatch);
             mWordsDumped += std::distance(word, mEndParse) - 1;
             word = mEndParse;
@@ -281,7 +281,8 @@ int DigitsParser::Parse(bool verbose)
               //new adc expected so set channel accord to bitpattern or sequential depending on zero suppressed or not.
               if (mDigitHCHeader.major & 0x20) { // zero suppressed
                 //zero suppressed, so channel must be extracted from next available bit in adcmask
-                mCurrentADCChannel = nextmcmadc(mADCMask, mCurrentADCChannel);
+                mCurrentADCChannel = getNextMCMADCfromBP(mADCMask, mCurrentADCChannel);
+
                 if (mCurrentADCChannel == 21) {
                   incParsingError(TRDParsingDigitADCChannel21);
                 }
@@ -313,7 +314,7 @@ int DigitsParser::Parse(bool verbose)
             mDataWordsParsed++;
             mcmdatacount++;
             // digit sanity check
-            if (!digitMCMWordSanityCheck(mDigitMCMData, mCurrentADCChannel)) {
+            if (!sanityCheckDigitMCMWord(mDigitMCMData, mCurrentADCChannel)) {
               incParsingError(TRDParsingDigitSanityCheck);
               mWordsDumped++;
               mDataWordsParsed--; // we incremented it above the if loop so now transfer the count to dumped instead of parsed;
