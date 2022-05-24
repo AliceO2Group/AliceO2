@@ -38,7 +38,7 @@ struct WaveformCalibParam {
 
   std::array<WaveformCalibChParam, NChannels> channels; // configuration per channel
 
-  void assign(const WaveformCalibData &data);
+  void assign(const WaveformCalibData& data);
   int saveDebugHistos(const std::string fn) const;
   void print() const;
 
