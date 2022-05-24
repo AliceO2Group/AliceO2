@@ -864,6 +864,39 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
     .kind = ServiceKind::Serial};
 }
 
+struct GUIMetrics {
+};
+
+o2::framework::ServiceSpec CommonServices::guiMetricsSpec()
+{
+  return ServiceSpec{
+    .name = "gui-metrics",
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      GUIMetrics* stats = new GUIMetrics();
+      auto& monitoring = services.get<Monitoring>();
+      auto& spec = services.get<DeviceSpec const>();
+      monitoring.send({(int)spec.inputChannels.size(), fmt::format("oldest_possible_timeslice/h"), o2::monitoring::Verbosity::Debug});
+      monitoring.send({(int)1, fmt::format("oldest_possible_timeslice/w"), o2::monitoring::Verbosity::Debug});
+      monitoring.send({(int)spec.outputChannels.size(), fmt::format("oldest_possible_output/h"), o2::monitoring::Verbosity::Debug});
+      monitoring.send({(int)1, fmt::format("oldest_possible_output/w"), o2::monitoring::Verbosity::Debug});
+      return ServiceHandle{TypeIdHelpers::uniqueId<GUIMetrics>(), stats};
+    },
+    .configure = noConfiguration(),
+    .postProcessing = [](ProcessingContext& context, void* service) {
+      auto& relayer = context.services().get<DataRelayer>();
+      auto& monitoring = context.services().get<Monitoring>();
+      auto& spec = context.services().get<DeviceSpec const>();
+      auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
+      for (size_t ci; ci < spec.outputChannels.size(); ++ci) {
+        monitoring.send({(uint64_t)oldestPossibleOutput.timeslice.value, fmt::format("oldest_possible_output/{}", ci), o2::monitoring::Verbosity::Debug}); 
+      } },
+    .domainInfoUpdated = [](ServiceRegistry& registry, size_t timeslice, ChannelIndex channel) {
+      auto& monitoring = registry.get<Monitoring>();
+      monitoring.send({(uint64_t)timeslice, fmt::format("oldest_possible_timeslice/{}", channel.value), o2::monitoring::Verbosity::Debug}); },
+    .active = false,
+    .kind = ServiceKind::Serial};
+}
+
 o2::framework::ServiceSpec CommonServices::objectCache()
 {
   return ServiceSpec{
@@ -903,6 +936,9 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     CommonMessageBackends::stringBackendSpec(),
     decongestionSpec(),
     CommonMessageBackends::rawBufferBackendSpec()};
+
+  // I should make it optional depending wether the GUI is there or not...
+  specs.push_back(CommonServices::guiMetricsSpec());
   if (numThreads) {
     specs.push_back(threadPool(numThreads));
   }
