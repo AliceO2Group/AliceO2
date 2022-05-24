@@ -458,8 +458,6 @@ class CcdbApi //: public DatabaseInterface
 
   // initialize the TGrid (Alien connection)
   bool initTGrid() const;
-  // checks if an alien token is available, required to make a TGrid connection
-  bool checkAlienToken() const;
 
   /// Queries the CCDB server and navigates through possible redirects until binary content is found; Retrieves content as instance
   /// given by tinfo if that is possible. Returns nullptr if something fails...
@@ -524,7 +522,6 @@ class CcdbApi //: public DatabaseInterface
   bool mPreferSnapshotCache = false; // if snapshot is available, don't try to query its validity even in non-snapshot backend mode
   bool mInSnapshotMode = false;
   mutable TGrid* mAlienInstance = nullptr;                       // a cached connection to TGrid (needed for Alien locations)
-  bool mHaveAlienToken = false;                                  // stores if an alien token is available
   static std::unique_ptr<TJAlienCredentials> mJAlienCredentials; // access JAliEn credentials
 
   ClassDefNV(CcdbApi, 1);
