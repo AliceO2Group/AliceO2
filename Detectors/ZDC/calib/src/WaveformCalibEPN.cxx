@@ -119,13 +119,13 @@ int WaveformCalibEPN::endOfRun()
     }
   }
   if (mSaveDebugHistos) {
-    write();
+    saveDebugHistos();
   }
   return 0;
 }
 
 //______________________________________________________________________________
-int WaveformCalibEPN::write(const std::string fn)
+int WaveformCalibEPN::saveDebugHistos(const std::string fn)
 {
-  return mData.write(fn);
+  return mData.saveDebugHistos(fn);
 }

@@ -151,7 +151,7 @@ void WaveformCalibChData::setN(int n)
 }
 
 //______________________________________________________________________________
-int WaveformCalibData::write(const std::string fn)
+int WaveformCalibData::saveDebugHistos(const std::string fn)
 {
   TDirectory* cwd = gDirectory;
   TFile* f = new TFile(fn.data(), "recreate");

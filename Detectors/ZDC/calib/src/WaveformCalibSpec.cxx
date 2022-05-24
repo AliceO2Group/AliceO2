@@ -34,6 +34,7 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
+#include "ZDCCalib/WaveformCalibParam.h"
 #include "ZDCCalib/WaveformCalibData.h"
 #include "ZDCCalib/WaveformCalibSpec.h"
 
@@ -114,9 +115,11 @@ void WaveformCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
   using clbUtils = o2::calibration::Utils;
-  const auto& payload = mWorker.getData();
+  const auto& data = mWorker.getData();
+  WaveformCalibParam payload;
+  payload.assign(data);
   auto& info = mWorker.getCcdbObjectInfo();
-  auto image = o2::ccdb::CcdbApi::createObjectImage<WaveformCalibData>(&payload, &info);
+  auto image = o2::ccdb::CcdbApi::createObjectImage<WaveformCalibParam>(&payload, &info);
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   if (mVerbosity > DbgZero) {

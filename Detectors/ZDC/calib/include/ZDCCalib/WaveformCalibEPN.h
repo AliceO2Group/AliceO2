@@ -36,7 +36,7 @@ class WaveformCalibEPN
               const gsl::span<const uint16_t>& info,
               const gsl::span<const o2::zdc::ZDCWaveform>& wave);
   int endOfRun();
-  int write(const std::string fn = "ZDCWaveformCalibEPN.root");
+  int saveDebugHistos(const std::string fn = "ZDCWaveformCalibEPN.root");
   void setConfig(const WaveformCalibConfig* param) { mConfig = param; };
   const WaveformCalibConfig* getConfig() const { return mConfig; };
   void setSaveDebugHistos() { mSaveDebugHistos = true; }

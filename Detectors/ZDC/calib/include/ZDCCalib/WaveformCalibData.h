@@ -79,7 +79,7 @@ struct WaveformCalibData {
   void clear();
   void setCreationTime(uint64_t ctime);
   void setN(int n);
-  int write(const std::string fn);
+  int saveDebugHistos(const std::string fn);
   ClassDefNV(WaveformCalibData, 1);
 };
 

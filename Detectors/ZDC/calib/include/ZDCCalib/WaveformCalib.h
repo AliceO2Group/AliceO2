@@ -36,7 +36,7 @@ class WaveformCalib
   void clear();
   int process(const WaveformCalibData& data); // Calibration of RUN3 data - aggregator node
   int endOfRun();                             // Perform minimization
-  int write(const std::string fn = "ZDCWaveformCalib.root");
+  int saveDebugHistos(const std::string fn = "ZDCWaveformCalib.root");
 
   CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; }
 

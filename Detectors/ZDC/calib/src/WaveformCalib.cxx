@@ -96,13 +96,13 @@ int WaveformCalib::endOfRun()
   mInfo.setEndValidityTimestamp(stopping);
 
   if (mSaveDebugHistos) {
-    write();
+    saveDebugHistos();
   }
   return 0;
 }
 
 //______________________________________________________________________________
-int WaveformCalib::write(const std::string fn)
+int WaveformCalib::saveDebugHistos(const std::string fn)
 {
-  return mData.write(fn);
+  return mData.saveDebugHistos(fn);
 }
