@@ -6,7 +6,7 @@ if [ "0$1" != "0dd" ] && [ "0$1" != "0rr" ]; then
 fi
 
 if [[ -z "${WORKFLOW_PARAMETERS+x}" ]]; then
-  export WORKFLOW_PARAMETERS="CALIB,QC"
+  export WORKFLOW_PARAMETERS="CALIB,QC,EVENT_DISPLAY"
   if [[ -z "${GEN_TOPO_WORKDIR}" ]]; then
     mkdir -p gen_topo_tmp
     export GEN_TOPO_WORKDIR=`pwd`/gen_topo_tmp
