@@ -89,9 +89,9 @@ class TrackletsParser
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* mData;
   std::vector<Tracklet64> mTracklets;
   // pointers to keep track of the currently parsing headers and data.
-  TrackletHCHeader* mTrackletHCHeader;
+  TrackletHCHeader mTrackletHCHeader;
   TrackletMCMHeader* mTrackletMCMHeader;
-  TrackletMCMData* mTrackletMCMData;
+  std::array<TrackletMCMData, 3> mTrackletMCMData;
 
   int mState;               // state that the parser is currently in.
   int mWordsRead{0};        // number of words read from buffer
