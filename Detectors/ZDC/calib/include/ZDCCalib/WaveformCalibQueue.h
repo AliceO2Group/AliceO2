@@ -39,12 +39,12 @@ struct WaveformCalibQueue {
     configure(cfg);
   }
 
-  int mFirst = 0; // First bunch of waveform w.r.t. bunch of signal peak
-  int mLast = 0;  // Last bunch of waveform w.r.t. bunch of signal peak
-  int mPk = 0;    // Bunch position of peak w.r.t. first bunch
-  int mN = 1;     // Number of bunches in waveform
-  int mPeak = 0; // Peak position (interpolated samples) w.r.t. first point
-  int mNP = 0; // Number of interpolated points in waveform
+  int mFirst = 0;           // First bunch of waveform w.r.t. bunch of signal peak
+  int mLast = 0;            // Last bunch of waveform w.r.t. bunch of signal peak
+  int mPk = 0;              // Bunch position of peak w.r.t. first bunch
+  int mN = 1;               // Number of bunches in waveform
+  int mPeak = 0;            // Peak position (interpolated samples) w.r.t. first point
+  int mNP = 0;              // Number of interpolated points in waveform
   int mTimeLow[NChannels];  /// Cut on position difference low
   int mTimeHigh[NChannels]; /// Cut on position difference high
 

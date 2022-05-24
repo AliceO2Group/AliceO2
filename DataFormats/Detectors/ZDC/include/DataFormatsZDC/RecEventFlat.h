@@ -102,16 +102,18 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   int next();
   int at(int ientry);
 
-  void allocate(int isig){
-    if(inter[isig].size()!=NIS){
+  void allocate(int isig)
+  {
+    if (inter[isig].size() != NIS) {
       inter[isig].resize(NIS);
-      for(int iis=0; iis<NIS; iis++){
-        inter[isig][iis]=0;
+      for (int iis = 0; iis < NIS; iis++) {
+        inter[isig][iis] = 0;
       }
     }
   }
 
-  BCRecData& getCurB(){
+  BCRecData& getCurB()
+  {
     return mCurB;
   }
 

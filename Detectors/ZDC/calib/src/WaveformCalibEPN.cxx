@@ -110,11 +110,11 @@ int WaveformCalibEPN::endOfRun()
   if (mVerbosity > DbgZero) {
     LOGF(info, "WaveformCalibEPN::endOfRun ts (%llu:%llu)", mData.mCTimeBeg, mData.mCTimeEnd);
     for (int is = 0; is < NChannels; is++) {
-      if (mData.mEntries[is] > 0) {
+      if (mData.getEntries(is) > 0) {
         LOGF(info, "Waveform %2d %s with %10d events and cuts AMP:(%g:%g) TDC:(%g:%g) Valid:[%d:%d:%d]", is, ChannelNames[is].data(),
-             mData.mEntries[is], mConfig->cutLow[is], mConfig->cutHigh[is],
+             mData.getEntries(is), mConfig->cutLow[is], mConfig->cutHigh[is],
              mConfig->cutTimeLow[is], mConfig->cutTimeHigh[is],
-             mData.mFirstValid[is], mData.mPeak, mData.mLastValid[is]);
+             mData.getFirstValid(is), mData.mPeak, mData.getLastValid(is));
       }
     }
   }

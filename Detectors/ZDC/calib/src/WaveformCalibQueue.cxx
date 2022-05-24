@@ -253,11 +253,9 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
       }
     }
     int ipos = mPeak - ppos;
-    data.mEntries[isig]++;
+    data.addEntry(isig);
     // Restrict validity range because of signal jitter
-    if (ipos > data.mFirstValid[isig]) {
-      data.mFirstValid[isig] = ipos;
-    }
+    data.setFirstValid(isig, ipos);
     // We know that points are consecutive
     for (int ib = 0; ib < mN; ib++) {
       for (int iw = 0; iw < mNW[ib]; iw++) {
@@ -265,7 +263,8 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
         if (mywave.ch() == isig) {
           for (int ip = 0; ip < NIS; ip++) {
             if (ipos >= 0 && ipos < mNP) {
-              data.mWave[isig][ipos] += mywave.inter[ip];
+              // We don't use incapsulation because this section is called too many times
+              data.mWave[isig].mData[ipos] += mywave.inter[ip];
             }
             ipos++;
           }
@@ -274,11 +273,9 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
     }
     ipos--;
     // Restrict validity range because of signal jitter
-    if (ipos < data.mLastValid[isig]) {
-      data.mLastValid[isig] = ipos;
-    }
+    data.setLastValid(isig, ipos);
 #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
-    LOG(info) << "WaveformCalibConfig::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.mFirstValid[isig] << ":" << ppos << ":" << data.mLastValid[isig] << "]";
+    LOG(info) << "WaveformCalibConfig::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.getFirstValid(isig) << ":" << ppos << ":" << data.getLastValid(isig) << "]";
 #endif
     return ipos;
   }

@@ -42,7 +42,7 @@ void CreateWaveformCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHo
   conf.setMinEntries(200);
 
   // Restrict waveform range
-  conf.restrictRange(-1,0);
+  conf.restrictRange(-1, 0);
 
   conf.print();
 

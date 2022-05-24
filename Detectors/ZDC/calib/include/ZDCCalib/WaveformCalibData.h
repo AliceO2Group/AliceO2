@@ -25,6 +25,24 @@ namespace o2
 namespace zdc
 {
 
+struct WaveformCalibChData {
+  static constexpr int NBT = WaveformCalibConfig::NBT;
+  static constexpr int NW = WaveformCalibConfig::NW;
+
+  int mFirstValid = 0;
+  int mLastValid = 0;
+  uint32_t mEntries = 0;
+  std::array<float, NW> mData = {0};
+
+  WaveformCalibChData& operator+=(const WaveformCalibChData& other);
+  int getEntries() const;
+  int getFirstValid() const;
+  int getLastValid() const;
+  void clear();
+  void setN(int n);
+  ClassDefNV(WaveformCalibChData, 1);
+};
+
 struct WaveformCalibData {
   static constexpr int NBB = WaveformCalibConfig::NBB;
   static constexpr int NBA = WaveformCalibConfig::NBA;
@@ -35,12 +53,28 @@ struct WaveformCalibData {
   uint64_t mCTimeEnd = 0; /// Time of processed time frame
   int mN = 0;             /// Number of bunches in waveform
   int mPeak = 0;          /// Peak position
-  std::array<int, NChannels> mFirstValid;
-  std::array<int, NChannels> mLastValid;
-  std::array<float, NW> mWave[NChannels] = {0};
-  uint32_t mEntries[NChannels] = {0};
+
+  std::array<WaveformCalibChData, NChannels> mWave;
   WaveformCalibData& operator+=(const WaveformCalibData& other);
-  int getEntries(int ih) const;
+  inline void setFirstValid(int isig, int ipos)
+  {
+    if (ipos > mWave[isig].mFirstValid) {
+      mWave[isig].mFirstValid = ipos;
+    }
+  }
+  inline void setLastValid(int isig, int ipos)
+  {
+    if (ipos < mWave[isig].mLastValid) {
+      mWave[isig].mLastValid = ipos;
+    }
+  }
+  inline void addEntry(int isig)
+  {
+    mWave[isig].mEntries++;
+  }
+  int getEntries(int is) const;
+  int getFirstValid(int is) const;
+  int getLastValid(int is) const;
   void print() const;
   void clear();
   void setCreationTime(uint64_t ctime);

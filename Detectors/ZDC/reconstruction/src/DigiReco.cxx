@@ -456,7 +456,7 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
     }
   }
 
-  if(mFullInterpolation){
+  if (mFullInterpolation) {
     // Copy remaining channels
     for (int isig = 0; isig < NChannels; isig++) {
       int isig_tdc = TDCSignal[SignalTDC[isig]];
