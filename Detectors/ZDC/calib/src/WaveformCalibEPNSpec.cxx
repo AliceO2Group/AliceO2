@@ -86,10 +86,6 @@ void WaveformCalibEPNSpec::run(ProcessingContext& pc)
     } else {
       loadedConfFiles += " ";
       loadedConfFiles += ct;
-      if (mVerbosity > DbgZero) {
-        LOG(info) << "Loaded configuration object: " << ct;
-        config->print();
-      }
       mWorker.setConfig(config.get());
     }
     LOG(info) << loadedConfFiles;

@@ -16,6 +16,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::zdc::CalibParamZDC + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::zdc::CalibParamZDC> + ;
 #pragma link C++ class o2::zdc::InterCalibConfig + ;
 #pragma link C++ class o2::zdc::WaveformCalibConfig + ;
 #pragma link C++ class o2::zdc::WaveformCalibChData + ;

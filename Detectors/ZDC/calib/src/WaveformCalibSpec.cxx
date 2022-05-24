@@ -86,10 +86,6 @@ void WaveformCalibSpec::run(ProcessingContext& pc)
     } else {
       loadedConfFiles += " ";
       loadedConfFiles += ct;
-      if (mVerbosity > DbgZero) {
-        LOG(info) << "Loaded configuration object: " << ct;
-        config->print();
-      }
       mWorker.setConfig(config.get());
     }
     LOG(info) << loadedConfFiles;
@@ -123,7 +119,7 @@ void WaveformCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   auto image = o2::ccdb::CcdbApi::createObjectImage<WaveformCalibData>(&payload, &info);
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
-  if (mVerbosity > DbgMinimal) {
+  if (mVerbosity > DbgZero) {
     payload.print();
   }
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDCWaveformCalib", 0}, *image.get()); // vector<char>
