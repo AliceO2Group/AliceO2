@@ -118,11 +118,9 @@ void CcdbApi::init(std::string const& host)
   if (!snapshotReport.empty()) {
     snapshotReport += ')';
   }
-  // find out if we can can in principle connect to Alien
-  mHaveAlienToken = checkAlienToken();
 
-  LOGP(info, "Init CcdApi with UserAgentID: {}, Host: {}{}, alien-token: {}", mUniqueAgentID, host,
-       mInSnapshotMode ? "(snapshot readonly mode)" : snapshotReport.c_str(), mHaveAlienToken);
+  LOGP(info, "Init CcdApi with UserAgentID: {}, Host: {}{}", mUniqueAgentID, host,
+       mInSnapshotMode ? "(snapshot readonly mode)" : snapshotReport.c_str());
 }
 
 /**
@@ -723,41 +721,14 @@ void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info 
   return extractFromTFile(f, tcl);
 }
 
-bool CcdbApi::checkAlienToken() const
-{
-#ifdef __APPLE__
-  LOG(debug) << "On macOS we simply rely on TGrid::Connect(\"alien\").";
-  return true;
-#endif
-  if (getenv("ALICEO2_CCDB_NOTOKENCHECK")) {
-    // will be the default soon
-    return true;
-  }
-  if (getenv("JALIEN_TOKEN_CERT")) {
-    return true;
-  }
-  // a somewhat weird construction to programmatically find out if we
-  // have a GRID token; Can be replaced with something more elegant once
-  // alien-token-info does not ask for passwords interactively
-  auto returncode = system("alien-token-info > /dev/null 2> /dev/null");
-  if (returncode == -1) {
-    LOG(error) << "system(\"alien-token-info\") call failed with internal fork/wait error";
-  }
-  return returncode == 0;
-}
-
 bool CcdbApi::initTGrid() const
 {
   if (!mAlienInstance) {
-    if (mHaveAlienToken) {
-      mAlienInstance = TGrid::Connect("alien");
-      static bool errorShown = false;
-      if (!mAlienInstance && errorShown == false) {
-        LOG(error) << "TGrid::Connect returned nullptr despite token present";
-        errorShown = true;
-      }
-    } else {
-      LOG(warn) << "CCDB: Did not find an alien token; Cannot serve objects located on alien://";
+    mAlienInstance = TGrid::Connect("alien");
+    static bool errorShown = false;
+    if (!mAlienInstance && errorShown == false) {
+      LOG(error) << "TGrid::Connect returned nullptr. May be due to missing alien token";
+      errorShown = true;
     }
   }
   return mAlienInstance != nullptr;
