@@ -1278,8 +1278,21 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     bool hasData = false;
     bool hasDomainInfo = false;
     size_t oldestPossibleTimeslice = -1;
+    static std::vector<int> ordering;
+    // Same as inputInfos but with iota.
+    ordering.resize(inputInfos.size());
+    std::iota(ordering.begin(), ordering.end(), 0);
+    // stable sort orderings by type and position
+    std::stable_sort(ordering.begin(), ordering.end(), [&inputInfos](int const& a, int const& b) {
+      auto const& ai = inputInfos[a];
+      auto const& bi = inputInfos[b];
+      if (ai.type != bi.type) {
+        return ai.type < bi.type;
+      }
+      return ai.position < bi.position;
+    });
     for (size_t ii = 0; ii < inputInfos.size(); ++ii) {
-      auto const& input = inputInfos[ii];
+      auto const& input = inputInfos[ordering[ii]];
       switch (input.type) {
         case InputType::Data: {
           hasData = true;
