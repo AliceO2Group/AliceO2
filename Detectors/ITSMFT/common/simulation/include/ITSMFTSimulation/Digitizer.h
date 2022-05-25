@@ -58,8 +58,8 @@ class Digitizer : public TObject
   void setROFRecords(std::vector<o2::itsmft::ROFRecord>* rec) { mROFRecords = rec; }
   o2::itsmft::DigiParams& getParams() { return (o2::itsmft::DigiParams&)mParams; }
   const o2::itsmft::DigiParams& getParams() const { return mParams; }
-  void setNoiseMap(const o2::itsmft::NoiseMap* mp);
-  void setDeadChannelsMap(const o2::itsmft::NoiseMap* mp);
+  void setNoiseMap(const o2::itsmft::NoiseMap* mp) { mNoiseMap = mp; }
+  void setDeadChannelsMap(const o2::itsmft::NoiseMap* mp) { mDeadChanMap = mp; }
 
   void init();
 
@@ -122,7 +122,7 @@ class Digitizer : public TObject
   uint32_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
   uint32_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
 
-  int mNumberOfChips;
+  int mNumberOfChips = 0;
   o2::itsmft::AlpideSimResponse* mAlpSimRespMFT = nullptr;
   o2::itsmft::AlpideSimResponse* mAlpSimRespIB = nullptr;
   o2::itsmft::AlpideSimResponse* mAlpSimRespOB = nullptr;
