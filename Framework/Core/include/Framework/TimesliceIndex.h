@@ -129,6 +129,7 @@ class TimesliceIndex
   [[nodiscard]] OldestInputInfo getOldestPossibleInput() const;
   [[nodiscard]] OldestOutputInfo getOldestPossibleOutput() const;
   OldestOutputInfo updateOldestPossibleOutput();
+  InputChannelInfo const& getChannelInfo(ChannelIndex channel) const;
 
  private:
   /// @return the oldest slot possible so that we can eventually override it.
