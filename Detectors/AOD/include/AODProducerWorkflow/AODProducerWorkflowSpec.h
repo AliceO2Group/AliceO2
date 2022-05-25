@@ -140,6 +140,10 @@ class AODProducerWorkflowDPL : public Task
   std::vector<int> mIndexTableMFT;
   int mIndexMFTID{0};
 
+  // container for MCH-MID match IDs
+  // element = match ID if there is one for an MCH track, else = -1
+  std::vector<int> mMCHMIDMatchID;
+
   // zdc helper maps to avoid a number of "if" statements
   // when filling ZDC table
   map<string, float> mZDCEnergyMap; // mapping detector name to a corresponding energy
