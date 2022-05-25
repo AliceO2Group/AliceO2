@@ -40,11 +40,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::swap(workflowOptions, options);
 }
 
-/*void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   // ordered policies for the writers
   policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:CTF|ctf).*[W,w]riter.*"));
-}*/
+}
 
 // ------------------------------------------------------------------
 #include "Framework/runDataProcessing.h"
