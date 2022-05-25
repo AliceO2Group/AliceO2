@@ -190,8 +190,9 @@ void EMCDCSProcessor::FillFeeDP(const DPCOM& dpcom)
       mFEECFG->setRunNumber(val);
     } else {
       mFEECFG->setRunNumber(mRunNumberFromGRP);
-      if (mRunNumberFromGRP != val)
+      if (mRunNumberFromGRP != val) {
         LOG(error) << "RunNumber from GRP (=" << mRunNumberFromGRP << ") and from EMC DCS (=" << val << ") are not consistant";
+      }
     }
   } else if (alias.find("EMC_DDL_LIST0") != std::string::npos) {
     mFEECFG->setDDLlist0(val);
