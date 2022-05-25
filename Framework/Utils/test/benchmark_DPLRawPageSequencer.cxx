@@ -69,7 +69,7 @@ static void BM_DPLRawPageSequencerBinary(benchmark::State& state)
     return reinterpret_cast<test::RAWDataHeader const*>(left)->feeId == reinterpret_cast<test::RAWDataHeader const*>(right)->feeId;
   };
   std::vector<std::pair<const char*, size_t>> pages;
-  auto insertPages = [&pages](const char* ptr, size_t n) -> void {
+  auto insertPages = [&pages](const char* ptr, size_t n, uint32_t subSpec) -> void {
     pages.emplace_back(ptr, n);
   };
   auto dataset = createData(state.range(0));
@@ -88,7 +88,7 @@ static void BM_DPLRawPageSequencerForward(benchmark::State& state)
     return reinterpret_cast<test::RAWDataHeader const*>(left)->feeId == reinterpret_cast<test::RAWDataHeader const*>(right)->feeId;
   };
   std::vector<std::pair<const char*, size_t>> pages;
-  auto insertPages = [&pages](const char* ptr, size_t n) -> void {
+  auto insertPages = [&pages](const char* ptr, size_t n, uint32_t subSpec) -> void {
     pages.emplace_back(ptr, n);
   };
   auto dataset = createData(state.range(0));
