@@ -153,17 +153,6 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters O2::Framework O2::DataFormatsMCH O2::MCHTracking O2::DataFormatsParameters)
 
 o2_add_executable(
-        clusters-transformer-workflow
-        SOURCES src/clusters-transformer-workflow.cxx src/ClusterTransformerSpec.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES
-           O2::DetectorsBase
-           O2::Framework
-           O2::MCHBase
-           O2::MCHGeometryTransformer
-        )
-
-o2_add_executable(
         vertex-sampler-workflow
         SOURCES src/VertexSamplerSpec.cxx src/vertex-sampler-workflow.cxx
         COMPONENT_NAME mch
@@ -214,7 +203,6 @@ o2_add_executable(
 o2_add_executable(
         reco-workflow
         SOURCES
-            src/ClusterTransformerSpec.cxx
             src/DigitReaderSpec.cxx
             src/EventFinderSpec.cxx
             src/TrackFinderSpec.cxx

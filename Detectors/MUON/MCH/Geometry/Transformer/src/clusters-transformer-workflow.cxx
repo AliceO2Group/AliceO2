@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ClusterTransformerSpec.h"
+#include "MCHGeometryTransformer/ClusterTransformerSpec.h"
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigContext.h"
@@ -23,6 +23,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.emplace_back("configKeyValues",
                                o2::framework::VariantType::String, "",
                                o2::framework::ConfigParamSpec::HelpString{"Semicolon separated key=value strings"});
+  workflowOptions.emplace_back("mch-disable-geometry-from-ccdb",
+                               o2::framework::VariantType::Bool, false,
+                               o2::framework::ConfigParamSpec::HelpString{"do not read geometry from ccdb"});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -30,5 +33,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 o2::framework::WorkflowSpec defineDataProcessing(const o2::framework::ConfigContext& configContext)
 {
   o2::conf::ConfigurableParam::updateFromString(configContext.options().get<std::string>("configKeyValues"));
-  return o2::framework::WorkflowSpec{o2::mch::getClusterTransformerSpec()};
+  bool disableCcdb = configContext.options().get<bool>("mch-disable-geometry-from-ccdb");
+
+  return o2::framework::WorkflowSpec{o2::mch::getClusterTransformerSpec("mch-cluster-transformer", disableCcdb)};
 }
