@@ -391,6 +391,9 @@ void websocket_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
     return;
   }
   if (nread == UV_EOF) {
+    if (buf->base) {
+      free(buf->base);
+    }
     uv_read_stop(stream);
     uv_close((uv_handle_t*)stream, close_websocket);
     return;
@@ -398,6 +401,9 @@ void websocket_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
   if (nread < 0) {
     // FIXME: should I close?
     LOG(error) << "websocket_callback: Error while reading from websocket";
+    if (buf->base) {
+      free(buf->base);
+    }
     uv_read_stop(stream);
     uv_close((uv_handle_t*)stream, close_websocket);
     return;
@@ -405,6 +411,9 @@ void websocket_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
   try {
     LOG(debug3) << "Parsing request with " << handler << " with " << nread << " bytes";
     parse_http_request(buf->base, nread, handler);
+    if (buf->base) {
+      free(buf->base);
+    }
   } catch (WSError& e) {
     LOG(error) << "Error while parsing request: " << e.message;
     handler->error(e.code, e.message.c_str());
