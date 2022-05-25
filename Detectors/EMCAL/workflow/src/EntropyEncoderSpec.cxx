@@ -53,10 +53,10 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto cells = pc.inputs().get<gsl::span<Cell>>("cells");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"EMC", "CTFDATA", 0, Lifetime::Timeframe});
-  mCTFCoder.encode(buffer, triggers, cells);
-  auto sz = mCTFCoder.finaliseCTFOutput<CTF>(buffer);
+  auto iosize = mCTFCoder.encode(buffer, triggers, cells);
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
-  LOG(info) << "Created encoded data of size " << sz << " for EMCAL in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -75,10 +75,12 @@ DataProcessorSpec getEntropyEncoderSpec()
   return DataProcessorSpec{
     "emcal-entropy-encoder",
     inputs,
-    Outputs{{"EMC", "CTFDATA", 0, Lifetime::Timeframe}},
+    Outputs{{"EMC", "CTFDATA", 0, Lifetime::Timeframe},
+            {{"ctfrep"}, "EMC", "CTFENCREP", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
+    Options{
+      {"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
+      {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }
 
 } // namespace emcal

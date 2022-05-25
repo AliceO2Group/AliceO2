@@ -109,6 +109,21 @@ class ClusterFactory
     std::string mErrorMessage; ///< Error message
   };
 
+  /// \class GeometryNoSetException
+  /// \brief Exception thrown when the geometry is not set
+  class GeometryNotSetException final : public std::exception
+  {
+   public:
+    /// \brief Constructor
+    GeometryNotSetException() = default;
+    /// \brief Destructor
+    ~GeometryNotSetException() noexcept final = default;
+
+    /// \brief Provide error message
+    /// \return Error message connected to this exception
+    const char* what() const noexcept final { return "Geometry not set"; }
+  };
+
   class ClusterIterator
   {
    public:
@@ -172,7 +187,7 @@ class ClusterFactory
 
   ///
   /// Dummy constructor
-  ClusterFactory() = default;
+  ClusterFactory();
 
   ///
   /// \brief Constructor initializing the ClusterFactory
@@ -331,7 +346,7 @@ class ClusterFactory
   float etaToTheta(float arg) const;
 
  private:
-  o2::emcal::Geometry* mGeomPtr = Geometry::GetInstanceFromRunNumber(223409); //!<! Pointer to geometry for utilities
+  o2::emcal::Geometry* mGeomPtr = nullptr;
 
   float mCoreRadius = 10; ///<  The radius in which the core energy is evaluated
 

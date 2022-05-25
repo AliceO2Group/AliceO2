@@ -40,7 +40,7 @@ namespace its
 class NoiseCalibratorSpec : public Task
 {
  public:
-  NoiseCalibratorSpec(bool useClusters = false, std::shared_ptr<o2::base::GRPGeomRequest> req = {}) : mUseClusters(useClusters), mCCDBRequest(req)
+  NoiseCalibratorSpec(bool useClusters = false, std::shared_ptr<o2::base::GRPGeomRequest> req = {}) : mCCDBRequest(req), mUseClusters(useClusters)
   {
     mTimer.Stop();
   }

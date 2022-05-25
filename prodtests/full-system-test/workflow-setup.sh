@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# used to avoid sourcing this file 2x
+if [[ -z $SOURCE_GUARD_WORKFLOW_SETUP ]]; then
+SOURCE_GUARD_WORKFLOW_SETUP=1
+
 # ---------------------------------------------------------------------------------------------------------------------
 #Some additional settings used in this workflow
 
@@ -106,3 +110,5 @@ add_W() # Add binarry to workflow command USAGE: add_W [BINARY] [COMMAND_LINE_OP
   [[ ! -z "$KEY_VALUES" ]] && KEY_VALUES="--configKeyValues \"$KEY_VALUES\""
   WORKFLOW+="$1 $ARGS_ALL $2 ${!NAME_PROC_ARGS} $KEY_VALUES | "
 }
+
+fi # workflow-setup.sh sourced

@@ -73,6 +73,7 @@
 #include <ITS3Simulation/Detector.h>
 #include <TRKSimulation/Detector.h>
 #include <FT3Simulation/Detector.h>
+#include <FCTSimulation/Detector.h>
 #endif
 
 #include <tbb/concurrent_unordered_map.h>
@@ -927,6 +928,10 @@ void O2HitMerger::initDetInstances()
     }
     if (i == DetID::FT3) {
       mDetectorInstances[i] = std::move(std::make_unique<o2::ft3::Detector>(true));
+      counter++;
+    }
+    if (i == DetID::FCT) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::fct::Detector>(true));
       counter++;
     }
 #endif

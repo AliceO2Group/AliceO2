@@ -14,7 +14,7 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CPVBase/Geometry.h"
-#include "CPVBase/CPVSimParams.h"
+#include "CPVBase/CPVCalibParams.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 
@@ -25,10 +25,9 @@ namespace cpv
 using NoiseTimeSlot = o2::calibration::TimeSlot<o2::cpv::NoiseCalibData>;
 // NoiseCalibData
 //_____________________________________________________________________________
-NoiseCalibData::NoiseCalibData()
+NoiseCalibData::NoiseCalibData(float noiseThreshold)
 {
-  auto& cpvParams = o2::cpv::CPVSimParams::Instance();
-  mNoiseThreshold = cpvParams.mNoiseClbThreshold;
+  mNoiseThreshold = noiseThreshold;
   for (int i = 0; i < Geometry::kNCHANNELS; i++) {
     mOccupancyMap.push_back(0);
   }
@@ -64,11 +63,22 @@ NoiseCalibrator::NoiseCalibrator()
 {
   LOG(info) << "NoiseCalibrator::NoiseCalibrator() : "
             << "Noise calibrator created!";
-  auto& cpvParams = o2::cpv::CPVSimParams::Instance();
-  mMinEvents = cpvParams.mNoiseClbMinEvents;
-  mToleratedChannelEfficiencyLow = cpvParams.mNoiseClbToleratedChannelEfficiencyLow;
-  mToleratedChannelEfficiencyHigh = cpvParams.mNoiseClbToleratedChannelEfficiencyHigh;
-  mNoiseFrequencyCriteria = cpvParams.mNoiseClbFrequencyCriteria;
+}
+//_____________________________________________________________________________
+void NoiseCalibrator::configParameters()
+{
+  auto& cpvParams = CPVCalibParams::Instance();
+  mMinEvents = cpvParams.noiseMinEvents;
+  mToleratedChannelEfficiencyLow = cpvParams.noiseToleratedChannelEfficiencyLow;
+  mToleratedChannelEfficiencyHigh = cpvParams.noiseToleratedChannelEfficiencyHigh;
+  mNoiseFrequencyCriteria = cpvParams.noiseFrequencyCriteria;
+  mNoiseThreshold = cpvParams.noiseThreshold;
+  LOG(info) << "NoiseCalibrator::configParameters() : following parameters configured:";
+  LOG(info) << "mMinEvents = " << mMinEvents;
+  LOG(info) << "mToleratedChannelEfficiencyLow = " << mToleratedChannelEfficiencyLow;
+  LOG(info) << "mToleratedChannelEfficiencyHigh = " << mToleratedChannelEfficiencyHigh;
+  LOG(info) << "mNoiseFrequencyCriteria = " << mNoiseFrequencyCriteria;
+  LOG(info) << "mNoiseThreshold = " << mNoiseThreshold;
 }
 //_____________________________________________________________________________
 void NoiseCalibrator::initOutput()
@@ -142,7 +152,7 @@ NoiseTimeSlot& NoiseCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType
   LOG(info) << "NoiseCalibrator::emplaceNewSlot() : emplacing new Slot from tstart = " << tstart << " to " << tend;
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
-  slot.setContainer(std::make_unique<NoiseCalibData>());
+  slot.setContainer(std::make_unique<NoiseCalibData>(mNoiseThreshold));
   return slot;
 }
 //_____________________________________________________________________________

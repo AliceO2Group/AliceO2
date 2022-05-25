@@ -38,10 +38,10 @@ class GBTUserLogicDecoderImplV2
     mELinkDecoder.setBareDecoder(false);
   }
 
-  void operator()(gsl::span<const uint8_t> payload, uint32_t orbit, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
+  void operator()(gsl::span<const uint8_t> payload, uint32_t orbit, uint32_t trigger, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
   {
     /// Decodes the buffer
-    mElinkManager.set(orbit);
+    mElinkManager.set(orbit, trigger);
     // for (auto& byte : payload) {
     auto it = payload.begin();
     auto end = payload.end();
@@ -79,10 +79,10 @@ class GBTUserLogicDecoderImplV1
     mElinkManager.init(feeId, isDebugMode, true, electronicsDelay);
   }
 
-  void operator()(gsl::span<const uint8_t> payload, uint32_t orbit, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
+  void operator()(gsl::span<const uint8_t> payload, uint32_t orbit, uint32_t trigger, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
   {
     /// Decodes the buffer
-    mElinkManager.set(orbit);
+    mElinkManager.set(orbit, trigger);
     // for (auto& byte : payload) {
     auto it = payload.begin();
     auto end = payload.end();
@@ -126,10 +126,10 @@ class GBTBareDecoderImplV1
     }
   }
 
-  void operator()(gsl::span<const uint8_t> payload, uint32_t orbit, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
+  void operator()(gsl::span<const uint8_t> payload, uint32_t orbit, uint32_t trigger, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
   {
     /// Decodes the buffer
-    mElinkManager.set(orbit);
+    mElinkManager.set(orbit, trigger);
     mData = &data;
     mROFs = &rofs;
 
@@ -209,10 +209,10 @@ class GBTBareDecoderImplV1
 
 } // namespace impl
 
-void LinkDecoder::process(gsl::span<const uint8_t> payload, uint32_t orbit, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
+void LinkDecoder::process(gsl::span<const uint8_t> payload, uint32_t orbit, uint32_t trigger, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
 {
   /// Decodes the data
-  mDecode(payload, orbit, data, rofs);
+  mDecode(payload, orbit, trigger, data, rofs);
 }
 
 std::unique_ptr<LinkDecoder> createGBTDecoder(const o2::header::RDHAny& rdh, uint16_t feeId, bool isDebugMode, uint8_t mask, const ElectronicsDelay& electronicsDelay)

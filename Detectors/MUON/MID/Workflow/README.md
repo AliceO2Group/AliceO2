@@ -8,6 +8,7 @@
 2. [MID raw data checker](#mid-raw-data-checker)
 3. [MID calibration](#mid-calibration)
 4. [MID digits writer](#mid-digits-writer)
+5. [MID raw data dumper](#mid-raw-data-dumper)
 
 ## MID reconstruction workflow
 
@@ -181,3 +182,15 @@ Usage:
 ```bash
 o2-ctf-reader-workflow --ctf-input o2_ctf_0000000000.root --onlyDet MID | o2-mid-decoded-digits-writer-workflow
 ```
+
+# MID raw data dumper
+
+This workflow allows to dump on screen the raw data.
+It is useful for debugging
+Usage:
+
+```bash
+o2-raw-tf-reader-workflow --onlyDet MID --input-data o2_rawtf_run00505645_tf00000001_epn156.tf --max-tf 1 | o2-mid-raw-dump-workflow
+```
+
+If option `--decode` is added, the decoded digits are dumped instead.

@@ -14,6 +14,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ class o2::dcs::RunStatusChecker;
 #pragma link C++ struct o2::dcs::DataPointCompositeObject + ;
 #pragma link C++ class o2::dcs::DataPointIdentifier + ;
 #pragma link C++ struct o2::dcs::DataPointValue + ;

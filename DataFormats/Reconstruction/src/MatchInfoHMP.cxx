@@ -9,10 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackerParam.cxx
-/// \brief Configurable parameters for MCH tracking
-/// \author Philippe Pillot, Subatech
+/// \file MatchInfoHMP.cxx
+/// \brief Class to store the output of the matching to HMPID
 
-#include "MCHTracking/TrackerParam.h"
+#include "ReconstructionDataFormats/MatchInfoHMP.h"
 
-O2ParamImpl(o2::mch::TrackerParam);
+using namespace o2::dataformats;
+
+ClassImp(o2::dataformats::MatchInfoHMP);
+
+void MatchInfoHMP::print() const
+{
+  printf("Match of GlobalID %s and HMPID cl %d ", getTrackRef().asString().c_str(), getIdxHMPClus());
+}

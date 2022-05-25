@@ -15,6 +15,7 @@
 #include "GPUChainTracking.h"
 #include "GPULogging.h"
 #include "GPUO2DataTypes.h"
+#include "GPUQA.h"
 #include "utils/strtag.h"
 #include <fstream>
 
@@ -225,6 +226,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   }
   if (doGPU && !doGPUall) {
     TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, 0);
+    GPUError("foo1");
     SynchronizeStream(0);
   }
 
@@ -247,7 +249,15 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     RecordMarker(&mEvents->single, 0);
     if (!GetProcessingSettings().fullMergerOnGPU) {
       TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutput(), outputStream, nullptr, &mEvents->single);
-    } else if (GetProcessingSettings().keepDisplayMemory || GetProcessingSettings().createO2Output <= 1) {
+    } else if (GetProcessingSettings().keepDisplayMemory || GetProcessingSettings().createO2Output <= 1 || mFractionalQAEnabled) {
+      if (!(GetProcessingSettings().keepDisplayMemory || GetProcessingSettings().createO2Output <= 1)) {
+        size_t size = mRec->Res(Merger.MemoryResOutput()).Size() + GPUCA_MEMALIGN;
+        void* buffer = mQA->AllocateScratchBuffer(size);
+        void* bufferEnd = Merger.SetPointersOutput(buffer);
+        if ((size_t)((char*)bufferEnd - (char*)buffer) > size) {
+          throw std::runtime_error("QA Scratch buffer exceeded");
+        }
+      }
       GPUMemCpy(RecoStep::TPCMerging, Merger.OutputTracks(), MergerShadowAll.OutputTracks(), Merger.NOutputTracks() * sizeof(*Merger.OutputTracks()), outputStream, 0, nullptr, &mEvents->single);
       if (param().par.dodEdx) {
         GPUMemCpy(RecoStep::TPCMerging, Merger.OutputTracksdEdx(), MergerShadowAll.OutputTracksdEdx(), Merger.NOutputTracks() * sizeof(*Merger.OutputTracksdEdx()), outputStream, 0, nullptr, &mEvents->single);
@@ -264,6 +274,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   }
   if (GetProcessingSettings().keepDisplayMemory && !GetProcessingSettings().keepAllMemory) {
     TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, -1, true);
+    GPUError("foo2");
   }
 
   mRec->ReturnVolatileDeviceMemory();
@@ -296,6 +307,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     if (GetProcessingSettings().runMC && mIOPtrs.clustersNative && mIOPtrs.clustersNative->clustersMCTruth) {
       AllocateRegisteredMemory(Merger.MemoryResOutputO2MC(), mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTracksO2Labels)]);
       TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, -1, true);
+      GPUError("foo3");
       runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::mc>(GetGridAuto(0, GPUReconstruction::krnlDeviceType::CPU), krnlRunRangeNone, krnlEventNone);
     } else if (doGPUall) {
       RecordMarker(&mEvents->single, 0);

@@ -20,6 +20,7 @@
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
+#include "Framework/DataProcessingHelpers.h"
 #include "Headers/DataHeaderHelpers.h"
 
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -99,10 +100,6 @@ void TFReaderSpec::init(o2f::InitContext& ic)
 //___________________________________________________________
 void TFReaderSpec::run(o2f::ProcessingContext& ctx)
 {
-  if (!mTFCounter) { // RS FIXME: this is a temporary hack to avoid late-starting devices to lose the input
-    LOG(warning) << "This is a hack, sleeping 2 s at startup";
-    usleep(2000000);
-  }
   if (!mDevice) {
     mDevice = ctx.services().get<o2f::RawDeviceService>().device();
     mOutputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs; // copy!!!
@@ -123,6 +120,11 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
     for (int ip = 0; ip < np; ip += 2) {
       const auto& msgh = parts[ip];
       const auto* hd = o2h::get<o2h::DataHeader*>(msgh.GetData());
+      const auto* dph = o2h::get<o2f::DataProcessingHeader*>(msgh.GetData());
+      if (dph->startTime != this->mTFCounter) {
+        LOGP(fatal, "Local tf counter {} != TF timeslice {} for {}", this->mTFCounter, dph->startTime,
+             o2::framework::DataSpecUtils::describe(o2::framework::OutputSpec{hd->dataOrigin, hd->dataDescription, hd->subSpecification}));
+      }
       if (hd->splitPayloadIndex == 0) { // check the 1st one only
         auto& entry = this->mSeenOutputMap[{hd->dataDescription.str, hd->dataOrigin.str}];
         if (entry.count != this->mTFCounter) {
@@ -232,6 +234,10 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
         acknowledgeOutput(*msgIt.second.get());
         nparts += msgIt.second->Size() / 2;
         device->Send(*msgIt.second.get(), msgIt.first);
+        if (msgIt.first != mInput.rawChannelConfig) { // don't do this with output to the raw FMQ channel
+          auto& channel = device->GetChannel(msgIt.first, 0);
+          o2::framework::DataProcessingHelpers::sendOldestPossibleTimeframe(channel, mTFCounter);
+        }
       }
       tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       deltaSending = mTFCounter ? tNow - tLastTF : 0;

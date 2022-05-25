@@ -50,6 +50,7 @@
 #include "GPUO2Interface.h"
 #include "CalibdEdxContainer.h"
 #include "TPCPadGainCalib.h"
+#include "TPCZSLinkMapping.h"
 #include "display/GPUDisplayInterface.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "TPCBase/Sector.h"
@@ -98,6 +99,7 @@ struct ProcessAttributes {
   std::unique_ptr<TPCFastTransform> fastTransform;
   std::unique_ptr<TPCPadGainCalib> tpcPadGainCalib;
   std::unique_ptr<TPCPadGainCalib> tpcPadGainCalibBufferNew;
+  std::unique_ptr<TPCZSLinkMapping> tpcZSLinkMapping;
   std::unique_ptr<o2::tpc::CalibdEdxContainer> dEdxCalibContainer;
   std::unique_ptr<o2::tpc::CalibdEdxContainer> dEdxCalibContainerBufferNew;
   std::unique_ptr<o2::trd::GeometryFlat> trdGeometry;
@@ -1000,6 +1002,9 @@ void initFunctionTPC(ProcessAttributes* processAttributes, const GPUSettingsO2& 
     processAttributes->tpcPadGainCalib->getGainCorrection(30, 5, 5);
   }
   config.configCalib.tpcPadGain = processAttributes->tpcPadGainCalib.get();
+
+  processAttributes->tpcZSLinkMapping.reset(new TPCZSLinkMapping{tpc::Mapper::instance()});
+  config.configCalib.tpcZSLinkMapping = processAttributes->tpcZSLinkMapping.get();
 }
 
 void finaliseCCDBTPC(ProcessAttributes* processAttributes, gpuworkflow::Config const& specconfig, ConcreteDataMatcher& matcher, void* obj)

@@ -50,10 +50,6 @@ class Hit : public o2::BasicXYZEHit<float>
   /// \return True if points are the same (origin and detector), false otherwise
   Bool_t operator==(const Hit& rhs) const;
 
-  /// \brief Check whether the points are from the same SuperParent and in the same detector volume
-  /// \return True if points are the same (origin and detector), false otherwise
-  Bool_t operator=(const Hit& rhs) const;
-
   /// \brief Sorting points according to parent particle and detector volume
   /// \return True if this Hit is smaller, false otherwise
   Bool_t operator<(const Hit& rhs) const;
@@ -66,7 +62,8 @@ class Hit : public o2::BasicXYZEHit<float>
   /// \brief Creates a new Hit based on this Hit but adding the energy loss of the right hand side
   /// \param
   /// \return New Hit based on this Hit
-  Hit operator+(const Hit& rhs) const;
+  // Hit operator+(const Hit& rhs) const;
+  friend Hit operator+(const Hit& lhs, const Hit& rhs);
 
   /// \brief Destructor
   ~Hit() = default;

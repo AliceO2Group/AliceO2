@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <functional>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsMID/ROBoard.h"
 #include "DataFormatsMID/ROFRecord.h"
@@ -35,7 +36,7 @@ class ELinkDataShaper
   /// Main function to be executed when decoding is done
   inline void onDone(const ELinkDecoder& decoder, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs) { std::invoke(mOnDone, this, decoder, data, rofs); }
 
-  void set(uint32_t orbit);
+  void set(uint32_t orbit, uint32_t trigger);
 
  private:
   uint8_t mUniqueId = 0;                /// UniqueId
@@ -58,7 +59,7 @@ class ELinkDataShaper
   void addLoc(const ELinkDecoder& decoder, EventType eventType, InteractionRecord ir, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs);
   bool checkLoc(const ELinkDecoder& decoder);
   EventType processCalibrationTrigger(const InteractionRecord& ir);
-  void processOrbitTrigger(uint16_t localClock, uint8_t triggerWord);
+  void processHBTrigger(uint16_t localClock, uint8_t triggerWord);
   EventType processSelfTriggered(InteractionRecord& ir);
   bool processTrigger(const ELinkDecoder& decoder, EventType& eventType, InteractionRecord& ir);
 };

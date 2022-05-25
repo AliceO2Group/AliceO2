@@ -206,7 +206,7 @@ template <>
 class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
 {
  public:
-  GPUdDefault() trackInterface<GPUTPCGMTrackParam>() = default;
+  GPUdDefault() trackInterface<GPUTPCGMTrackParam>() CON_DEFAULT;
   GPUd() trackInterface<GPUTPCGMTrackParam>(const GPUTPCGMTrackParam& param) CON_DELETE;
   GPUd() trackInterface<GPUTPCGMTrackParam>(const GPUTPCGMMergedTrack& trk) : GPUTPCGMTrackParam(trk.GetParam()), mAlpha(trk.GetAlpha()) {}
   GPUd() trackInterface<GPUTPCGMTrackParam>(const gputpcgmmergertypes::GPUTPCOuterParam& param) : GPUTPCGMTrackParam(), mAlpha(param.alpha)

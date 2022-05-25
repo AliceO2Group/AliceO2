@@ -129,8 +129,8 @@ void Digits2Raw::convertDigits(o2::fdd::Digit bcdigits, gsl::span<const ChannelD
   auto& tcmdata = mRawEventData.mTCMdata;
   mTriggers = bcdigits.mTriggers;
 
-  float ampA = mTriggers.amplA;
-  float ampC = mTriggers.amplC;
+  float ampA = mTriggers.getAmplA();
+  float ampC = mTriggers.getAmplC();
   if (ampA > 131071) {
     ampA = 131071; //2^17
   }
@@ -142,16 +142,16 @@ void Digits2Raw::convertDigits(o2::fdd::Digit bcdigits, gsl::span<const ChannelD
   tcmdata.orC = mTriggers.getOrC();
   tcmdata.sCen = mTriggers.getSCen();
   tcmdata.cen = mTriggers.getCen();
-  tcmdata.nChanA = mTriggers.nChanA;
-  tcmdata.nChanC = mTriggers.nChanC;
+  tcmdata.nChanA = mTriggers.getNChanA();
+  tcmdata.nChanC = mTriggers.getNChanC();
   tcmdata.amplA = ampA;
   tcmdata.amplC = ampC;
-  tcmdata.timeA = mTriggers.timeA;
-  tcmdata.timeC = mTriggers.timeC;
+  tcmdata.timeA = mTriggers.getTimeA();
+  tcmdata.timeC = mTriggers.getTimeC();
   LOG(debug) << " TCM  triggers read "
-             << " time A " << mTriggers.timeA << " time C " << mTriggers.timeC
+             << " time A " << mTriggers.getTimeA() << " time C " << mTriggers.getTimeC()
              << " amp A " << ampA << " amp C " << ampC
-             << " N A " << int(mTriggers.nChanA) << " N C " << int(mTriggers.nChanC)
+             << " N A " << int(mTriggers.getNChanA()) << " N C " << int(mTriggers.getNChanC())
              << " trig "
              << " ver " << mTriggers.getVertex() << " A " << mTriggers.getOrA() << " C " << mTriggers.getOrC();
 

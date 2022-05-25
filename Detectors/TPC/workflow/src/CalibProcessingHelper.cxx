@@ -247,12 +247,11 @@ void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReader
       continue;
     }
 
-    const bool useTimeBins = false;
     const auto feeID = RDHUtils::getFEEID(*rdhPtr);
     const auto orbit = RDHUtils::getHeartBeatOrbit(*rdhPtr);
     const auto data = (const char*)it.data();
     const auto size = it.size();
-    raw_processing_helpers::processZSdata(data, size, feeID, orbit, firstOrbit, syncOffsetReference, reader->getManager()->getLinkZSCallback(), useTimeBins);
+    raw_processing_helpers::processZSdata(data, size, feeID, orbit, firstOrbit, syncOffsetReference, reader->getManager()->getLinkZSCallback());
   }
 }
 

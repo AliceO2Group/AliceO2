@@ -172,14 +172,18 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
   }
 };
 
-DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, const bool debug, const bool useLastExtractedMapAsReference, const std::string polynomialsFile, const bool disablePolynomialsCCDB)
+DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, const bool debug, const bool useLastExtractedMapAsReference, const std::string polynomialsFile, bool disablePolynomialsCCDB)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("trackTPC", gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackTPCClRefs", gDataOriginTPC, "CLUSREFS", 0, Lifetime::Timeframe);
   inputs.emplace_back("clusTPC", ConcreteDataTypeMatcher{gDataOriginTPC, "CLUSTERNATIVE"}, Lifetime::Timeframe);
 
-  if (polynomialsFile.empty() || disablePolynomialsCCDB) {
+  if (!polynomialsFile.empty()) {
+    disablePolynomialsCCDB = true;
+  }
+
+  if (!disablePolynomialsCCDB) {
     inputs.emplace_back("tpctopologygain", gDataOriginTPC, "TOPOLOGYGAIN", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalTopologyGain)));
   }
 
@@ -196,7 +200,6 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
     outputs,
     AlgorithmSpec{adaptFromTask<TPCCalibPadGainTracksDevice>(publishAfterTFs, debug, useLastExtractedMapAsReference, polynomialsFile, disablePolynomialsCCDB)},
     Options{
-      {"ccdb-uri", VariantType::String, o2::base::NameConf::getCCDBServer(), {"URI for the CCDB access"}},
       {"nBins", VariantType::Int, 20, {"Number of bins per histogram"}},
       {"reldEdxMin", VariantType::Int, 0, {"Minimum x coordinate of the histogram for Q/(dE/dx)"}},
       {"reldEdxMax", VariantType::Int, 3, {"Maximum x coordinate of the histogram for Q/(dE/dx)"}},

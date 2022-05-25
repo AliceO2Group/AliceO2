@@ -239,7 +239,7 @@ FrequencyTable& FrequencyTable::addFrequencies(Freq_IT begin, Freq_IT end, symbo
         histogramOverlap = utils::intersection(newHistogram, addedHistogram);
         assert(!histogramOverlap.empty());
         assert(histogramOverlap.size() == addedHistogram.size());
-        std::transform(addedHistogram.begin(), addedHistogram.end(), histogramOverlap.begin(), histogramOverlap.begin(), [this](const count_t& a, const count_t& b) { return this->frequencyCountingDecorator(a) + b; });
+        std::transform(addedHistogram.begin(), addedHistogram.end(), histogramOverlap.begin(), histogramOverlap.begin(), [this](const count_t& a, const count_t& b) { return internal::safeadd(this->frequencyCountingDecorator(a), b); });
 
         this->mFrequencyTable = std::move(newFreequencyTable);
         this->mOffset = newHistogram.getOffset();
@@ -259,7 +259,7 @@ FrequencyTable& FrequencyTable::addFrequencies(Freq_IT begin, Freq_IT end, symbo
       if (!overlapAdded.empty()) {
         assert(overlapAdded.getMin() == overlapThis.getMin());
         assert(overlapAdded.size() == overlapThis.size());
-        std::transform(overlapAdded.begin(), overlapAdded.end(), overlapThis.begin(), overlapThis.begin(), [this](const count_t& a, const count_t& b) { return this->frequencyCountingDecorator(a) + b; });
+        std::transform(overlapAdded.begin(), overlapAdded.end(), overlapThis.begin(), overlapThis.begin(), [this](const count_t& a, const count_t& b) { return internal::safeadd(this->frequencyCountingDecorator(a), b); });
       }
 
       // right incompressible tail

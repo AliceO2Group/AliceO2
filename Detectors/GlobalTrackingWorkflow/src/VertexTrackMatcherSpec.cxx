@@ -15,7 +15,6 @@
 
 #include "GlobalTrackingWorkflow/VertexTrackMatcherSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
 #include "CommonUtils/NameConf.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DetectorsVertexing/VertexTrackMatcher.h"

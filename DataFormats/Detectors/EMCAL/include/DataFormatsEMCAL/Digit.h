@@ -35,7 +35,8 @@ class Digit : public DigitBase
  public:
   Digit() = default;
 
-  Digit(Short_t tower, Double_t amplitudeGeV, Double_t time, ChannelType_t ctype = ChannelType_t::HIGH_GAIN);
+  Digit(Short_t tower, Double_t amplitudeGeV, Double_t time);
+  Digit(Short_t tower, uint16_t noiseLG, uint16_t noiseHG, double time);
   ~Digit() = default; // override
 
   bool operator<(const Digit& other) const { return getTimeStamp() < other.getTimeStamp(); }
@@ -57,38 +58,50 @@ class Digit : public DigitBase
   void setTower(Short_t tower) { mTower = tower; }
   Short_t getTower() const { return mTower; }
 
-  void setAmplitude(Double_t amplitude); // GeV
-  Double_t getAmplitude() const { return getAmplitudeADC() * constants::EMCAL_ADCENERGY; }
+  void setAmplitude(Double_t amplitude) { mAmplitudeGeV = amplitude; }
+  Double_t getAmplitude() const;
 
-  void setEnergy(Double_t energy) { setAmplitude(energy); }
-  Double_t getEnergy() const { return getAmplitude(); }
+  void setEnergy(Double_t energy) { mAmplitudeGeV = energy; }
+  Double_t getEnergy() const { return mAmplitudeGeV; }
 
   void setAmplitudeADC(Short_t amplitude, ChannelType_t ctype = ChannelType_t::HIGH_GAIN);
-  Int_t getAmplitudeADC(ChannelType_t ctype = ChannelType_t::HIGH_GAIN) const;
+  Int_t getAmplitudeADC(ChannelType_t ctype) const;
+  Int_t getAmplitudeADC() const { return getAmplitudeADC(getType()); };
 
-  void setType(ChannelType_t ctype) { mChannelType = ctype; }
-  ChannelType_t getType() const { return mChannelType; }
+  void setType(ChannelType_t ctype) {}
+  ChannelType_t getType() const;
 
-  void setHighGain() { mChannelType = ChannelType_t::HIGH_GAIN; }
-  Bool_t getHighGain() const { return mChannelType == ChannelType_t::HIGH_GAIN; }
+  void setHighGain() {}
+  Bool_t getHighGain() const { return (getType() == ChannelType_t::HIGH_GAIN); };
 
-  void setLowGain() { mChannelType = ChannelType_t::LOW_GAIN; }
-  Bool_t getLowGain() const { return mChannelType == ChannelType_t::LOW_GAIN; }
+  void setLowGain() {}
+  Bool_t getLowGain() const { return (getType() == ChannelType_t::LOW_GAIN); };
 
-  void setTRU() { mChannelType = ChannelType_t::TRU; }
-  Bool_t getTRU() const { return mChannelType == ChannelType_t::TRU; }
+  void setTRU() { mIsTRU = true; }
+  Bool_t getTRU() const { return mIsTRU; }
 
-  void setLEDMon() { mChannelType = ChannelType_t::LEDMON; }
-  Bool_t getLEDMon() const { return mChannelType == ChannelType_t::LEDMON; }
+  void setLEDMon() {}
+  Bool_t getLEDMon() const { return false; }
 
   void PrintStream(std::ostream& stream) const;
+
+  void setNoiseLG(uint16_t noise) { mNoiseLG = noise; }
+  uint16_t getNoiseLG() const { return mNoiseLG; }
+
+  void setNoiseHG(uint16_t noise) { mNoiseHG = noise; }
+  uint16_t getNoiseHG() const { return mNoiseHG; }
+
+  void setNoiseTRU(uint16_t noise) { mNoiseHG = noise; }
+  uint16_t getNoiseTRU() const { return mNoiseHG; }
 
  private:
   friend class boost::serialization::access;
 
-  Short_t mAmplitude = 0;                                ///< Amplitude (ADC counts)
-  Short_t mTower = -1;                                   ///< Tower index (absolute cell ID)
-  ChannelType_t mChannelType = ChannelType_t::HIGH_GAIN; ///< Channel type (high gain, low gain, TRU, LEDMON)
+  double mAmplitudeGeV = 0.; ///< Amplitude (GeV)
+  Short_t mTower = -1;       ///< Tower index (absolute cell ID)
+  bool mIsTRU = false;       ///< TRU flag
+  uint16_t mNoiseLG = 0;     ///< Noise of the low gain digits
+  uint16_t mNoiseHG = 0;     ///< Noise of the high gain digits or TRU digits (can never be at the same time)
 
   ClassDefNV(Digit, 2);
 };

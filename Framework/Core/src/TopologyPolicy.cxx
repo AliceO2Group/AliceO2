@@ -11,6 +11,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/TopologyPolicy.h"
 #include <string>
+#include <regex>
 
 namespace o2::framework
 {
@@ -18,6 +19,7 @@ namespace o2::framework
 struct TopologyPolicyHelpers {
   static TopologyPolicy::DataProcessorMatcher matchAll();
   static TopologyPolicy::DataProcessorMatcher matchByName(std::string const& name);
+  static TopologyPolicy::DataProcessorMatcher matchByRegex(std::string const& re);
   static TopologyPolicy::DependencyChecker dataDependency();
   static TopologyPolicy::DependencyChecker alwaysDependent();
 };
@@ -36,21 +38,36 @@ TopologyPolicy::DataProcessorMatcher TopologyPolicyHelpers::matchByName(std::str
   };
 }
 
+TopologyPolicy::DataProcessorMatcher TopologyPolicyHelpers::matchByRegex(std::string const& re)
+{
+  return [re](DataProcessorSpec const& spec) -> bool {
+    const std::regex matcher(re);
+    // Check if regex applies
+    std::cmatch m;
+    return std::regex_match(spec.name.data(), m, matcher);
+  };
+}
+
+bool dataDeps(DataProcessorSpec const& a, DataProcessorSpec const& b)
+{
+  for (size_t ii = 0; ii < a.inputs.size(); ++ii) {
+    for (size_t oi = 0; oi < b.outputs.size(); ++oi) {
+      try {
+        if (DataSpecUtils::match(a.inputs[ii], b.outputs[oi])) {
+          return true;
+        }
+      } catch (...) {
+        continue;
+      }
+    }
+  }
+  return false;
+};
+
 TopologyPolicy::DependencyChecker TopologyPolicyHelpers::dataDependency()
 {
   return [](DataProcessorSpec const& a, DataProcessorSpec const& b) {
-    for (size_t ii = 0; ii < a.inputs.size(); ++ii) {
-      for (size_t oi = 0; oi < b.outputs.size(); ++oi) {
-        try {
-          if (DataSpecUtils::match(a.inputs[ii], b.outputs[oi])) {
-            return true;
-          }
-        } catch (...) {
-          continue;
-        }
-      }
-    }
-    return false;
+    return dataDeps(a, b);
   };
 }
 
@@ -63,6 +80,12 @@ TopologyPolicy::DependencyChecker TopologyPolicyHelpers::alwaysDependent()
     if (ancestor.name == "internal-dpl-injected-dummy-sink") {
       return false;
     }
+    const std::regex matcher(".*output-proxy.*");
+    // Check if regex applies
+    std::cmatch m;
+    if (std::regex_match(ancestor.name.data(), m, matcher) && std::regex_match(ancestor.name.data(), m, matcher)) {
+      return dataDeps(dependent, ancestor);
+    }
     return true;
   };
 }
@@ -70,7 +93,7 @@ TopologyPolicy::DependencyChecker TopologyPolicyHelpers::alwaysDependent()
 std::vector<TopologyPolicy> TopologyPolicy::createDefaultPolicies()
 {
   return {
-    {TopologyPolicyHelpers::matchByName("dpl-output-proxy"), TopologyPolicyHelpers::alwaysDependent()},
+    {TopologyPolicyHelpers::matchByRegex(".*output-proxy.*"), TopologyPolicyHelpers::alwaysDependent()},
     {TopologyPolicyHelpers::matchAll(), TopologyPolicyHelpers::dataDependency()}};
 }
 

@@ -35,10 +35,10 @@ void TRDTrackletTransformerSpec::init(o2::framework::InitContext& ic)
 void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
 {
   LOG(info) << "Running tracklet transformer";
-  updateTimeDependentParams(pc);
 
   o2::globaltracking::RecoContainer inputData;
   inputData.collectData(pc, *mDataRequest);
+  updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
 
   auto tracklets = pc.inputs().get<gsl::span<Tracklet64>>("trdtracklets");
   auto trigRecs = pc.inputs().get<gsl::span<TriggerRecord>>("trdtriggerrec");

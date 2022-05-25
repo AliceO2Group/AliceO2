@@ -92,14 +92,14 @@ void ELinkManager::onDone(const ELinkDecoder& decoder, uint8_t crateId, uint8_t 
   return ds->second.onDone(decoder, data, rofs);
 }
 
-void ELinkManager::set(uint32_t orbit)
+void ELinkManager::set(uint32_t orbit, uint32_t trigger)
 {
   /// Setup the orbit
   for (auto& shaper : mDataShapers) {
 #if defined(MID_RAW_VECTORS)
-    shaper.set(orbit);
+    shaper.set(orbit, trigger);
 #else
-    shaper.second.set(orbit);
+    shaper.second.set(orbit, trigger);
 #endif
   }
 }

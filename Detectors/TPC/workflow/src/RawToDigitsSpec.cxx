@@ -257,7 +257,7 @@ DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, s
       {"remove-duplicates", VariantType::Bool, false, {"check if duplicate digits exist and remove them"}},
       {"remove-ce-digits", VariantType::Bool, false, {"find CE position and remove digits around it"}},
       {"ignore-grp", VariantType::Bool, false, {"ignore GRP file"}},
-      {"sync-offset-reference", VariantType::UInt32, 144, {"Reference BCs used for the global sync offset in the CRUs"}},
+      {"sync-offset-reference", VariantType::UInt32, 144u, {"Reference BCs used for the global sync offset in the CRUs"}},
     } // end Options
   };  // end DataProcessorSpec
 }

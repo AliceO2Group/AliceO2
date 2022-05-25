@@ -18,5 +18,6 @@ Currently two sections are included:
 <!-- doxy
 * \subpage refDetectorsUpgradesIT3
 * \subpage refDetectorsUpgradesALICE3FT3
+* \subpage refDetectorsUpgradesALICE3FCT
 * \subpage refDetectorsUpgradesALICE3TRK
 /doxy -->

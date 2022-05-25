@@ -43,7 +43,6 @@ BOOST_AUTO_TEST_CASE(SampaBunchCrossingCounterToIRConversionMustNotThrowIfBxFitI
 
 BOOST_AUTO_TEST_CASE(SampaBunchCrossingCounterSpansABitLessThan294Orbits)
 {
-  o2::conf::ConfigurableParam::setValue("MCHCoDecParam", "sampaBcOffset", 0);
   uint32_t bx = BXMAX;
   auto [orbit, bc] = orbitBC(bx, 0);
   BOOST_CHECK_EQUAL(orbit, 294);

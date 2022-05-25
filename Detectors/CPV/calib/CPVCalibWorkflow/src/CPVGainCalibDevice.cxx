@@ -66,7 +66,7 @@ void CPVGainCalibDevice::run(o2::framework::ProcessingContext& ctx)
         // if problem in payload, try to continue
         continue;
       }
-      auto& header = rawreader.getRawHeader();
+      // auto& header = rawreader.getRawHeader();
       //       auto triggerBC = o2::raw::RDHUtils::getTriggerBC(header);
       //       auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(header);
       // use the altro decoder to decode the raw data, and extract the RCU trailer

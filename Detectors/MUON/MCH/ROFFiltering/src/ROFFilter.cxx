@@ -9,13 +9,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "MCHROFFiltering/ROFFilter.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::mch::TrackerParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::mch::TrackerParam> + ;
-
-#endif
+namespace o2::mch
+{
+ROFFilter createROFFilter(gsl::span<const ROFFilter> filters)
+{
+  return [filters](const ROFRecord& rof) {
+    for (const auto& filter : filters) {
+      if (!filter(rof)) {
+        return false;
+      }
+    }
+    return true;
+  };
+}
+} // namespace o2::mch

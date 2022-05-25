@@ -67,7 +67,7 @@ std::vector<o2::emcal::LabeledDigit> SDigitizer::process(const std::vector<Hit>&
       Digit digit(tower, energy, hit.GetTime());
 
       MCLabel label(hit.GetTrackID(), mCurrEvID, mCurrSrcID, false, 1.0);
-      if (digit.getAmplitude() == 0) {
+      if (digit.getAmplitude() < __DBL_EPSILON__) {
         label.setAmplitudeFraction(0);
       }
       LabeledDigit d(digit, label);

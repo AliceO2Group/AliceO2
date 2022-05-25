@@ -57,7 +57,7 @@ class CcdbApi //: public DatabaseInterface
 {
  public:
   /// \brief Default constructor
-  CcdbApi() = default;
+  CcdbApi();
   /// \brief Default destructor
   virtual ~CcdbApi();
 
@@ -294,7 +294,7 @@ class CcdbApi //: public DatabaseInterface
    * @param headers the headers found in the request. Will be emptied when we return false.
    * @return true if the headers where updated WRT last time, false if the previous results can still be used.
    */
-  static bool getCCDBEntryHeaders(std::string const& url, std::string const& etag, std::vector<std::string>& headers);
+  static bool getCCDBEntryHeaders(std::string const& url, std::string const& etag, std::vector<std::string>& headers, const std::string& agentID = "");
 
   /**
    * Extract the possible locations for a file and check whether or not
@@ -342,7 +342,7 @@ class CcdbApi //: public DatabaseInterface
   void loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& path,
                         std::map<std::string, std::string> const& metadata, long timestamp,
                         std::map<std::string, std::string>* headers, std::string const& etag,
-                        const std::string& createdNotAfter, const std::string& createdNotBefore) const;
+                        const std::string& createdNotAfter, const std::string& createdNotBefore, bool considerSnapshot = true) const;
   void navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL* curl_handle, std::string const& url, std::map<string, string>* headers) const;
 
   // the failure to load the file to memory is signaled by 0 size and non-0 capacity
@@ -361,6 +361,9 @@ class CcdbApi //: public DatabaseInterface
 #endif
 
  private:
+  // report what file is read and for which purpose
+  void logReading(const std::string& fname, const std::string& comment) const;
+
   /**
    * Initialize in local mode; Objects will be retrieved from snapshot
    *
@@ -455,8 +458,6 @@ class CcdbApi //: public DatabaseInterface
 
   // initialize the TGrid (Alien connection)
   bool initTGrid() const;
-  // checks if an alien token is available, required to make a TGrid connection
-  bool checkAlienToken() const;
 
   /// Queries the CCDB server and navigates through possible redirects until binary content is found; Retrieves content as instance
   /// given by tinfo if that is possible. Returns nullptr if something fails...
@@ -513,12 +514,14 @@ class CcdbApi //: public DatabaseInterface
   std::string getSnapshotFile(const std::string& topdir, const string& path) const { return getSnapshotDir(topdir, path) + "/snapshot.root"; }
 
   /// Base URL of the CCDB (with port)
+  std::string mUniqueAgentID{}; // Unique User-Agent ID communicated to server for logging
   std::string mUrl{};
   std::vector<std::string> hostsPool{};
-  std::string mSnapshotTopPath{};
+  std::string mSnapshotTopPath{};    // root of the snaphot in the snapshot backend mode, i.e. with init("file://<dir>) call
+  std::string mSnapshotCachePath{};  // root of the local snapshot (to fill or impose, even if not in the snapshot backend mode)
+  bool mPreferSnapshotCache = false; // if snapshot is available, don't try to query its validity even in non-snapshot backend mode
   bool mInSnapshotMode = false;
   mutable TGrid* mAlienInstance = nullptr;                       // a cached connection to TGrid (needed for Alien locations)
-  bool mHaveAlienToken = false;                                  // stores if an alien token is available
   static std::unique_ptr<TJAlienCredentials> mJAlienCredentials; // access JAliEn credentials
 
   ClassDefNV(CcdbApi, 1);

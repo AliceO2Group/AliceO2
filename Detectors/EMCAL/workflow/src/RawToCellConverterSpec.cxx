@@ -155,6 +155,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         } else {
           mErrorMessagesSuppressed++;
         }
+        // We must skip the page as payload is not consistent
+        // otherwise the next functions will rethrow the exceptions as
+        // the page format does not follow the expected format
+        continue;
       }
 
       auto& header = rawreader.getRawHeader();
@@ -429,7 +433,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                   hwAddressHG = chan.getHardwareAddress();
                 }
                 int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
-                currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, chantype),
+                currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, flagChanType),
                                                  lgNoHG,
                                                  hgOutOfRange,
                                                  fecID, feeID, hwAddressLG, hwAddressHG});

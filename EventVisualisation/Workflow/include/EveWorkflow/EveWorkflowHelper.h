@@ -111,19 +111,20 @@ class EveWorkflowHelper
   enum Filter : uint8_t {
     ITSROF,
     TimeBracket,
+    EtaBracket,
     TotalNTracks,
     NFilters
   };
 
   using FilterSet = std::bitset<Filter::NFilters>;
 
-  using TBracket = o2::math_utils::Bracketf_t;
+  using Bracket = o2::math_utils::Bracketf_t;
 
-  EveWorkflowHelper(const FilterSet& enabledFilters = {}, std::size_t maxNTracks = -1, const TBracket& timeBracket = {});
+  EveWorkflowHelper(const FilterSet& enabledFilters = {}, std::size_t maxNTracks = -1, const Bracket& timeBracket = {}, const Bracket& etaBracket = {});
   static std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep, float minZ = -25000, float maxZ = 25000);
   void selectTracks(const CalibObjectsConst* calib, GID::mask_t maskCl,
                     GID::mask_t maskTrk, GID::mask_t maskMatch);
-  void addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz, GID::Source source = GID::NSources);
+  void addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz, GID::Source source = GID::NSources, float maxStep = 4.f);
   void draw();
   void drawTPC(GID gid, float trackTime);
   void drawITS(GID gid, float trackTime);
@@ -165,7 +166,8 @@ class EveWorkflowHelper
 
   FilterSet mEnabledFilters;
   std::size_t mMaxNTracks;
-  TBracket mTimeBracket;
+  Bracket mTimeBracket;
+  Bracket mEtaBracket;
   o2::globaltracking::RecoContainer mRecoCont;
   o2::globaltracking::RecoContainer& getRecoContainer() { return mRecoCont; }
   TracksSet mTrackSet;

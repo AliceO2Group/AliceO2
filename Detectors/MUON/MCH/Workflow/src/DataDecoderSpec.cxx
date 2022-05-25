@@ -79,7 +79,6 @@ class DataDecoderTask
     RdhHandler rdhHandler;
 
     auto ds2manu = ic.options().get<bool>("ds2manu");
-    auto sampaBcOffset = CoDecParam::Instance().sampaBcOffset;
     mDebug = ic.options().get<bool>("mch-debug");
     mCheckROFs = ic.options().get<bool>("check-rofs");
     mDummyROFs = ic.options().get<bool>("dummy-rofs");
@@ -96,7 +95,7 @@ class DataDecoderTask
       timeRecoMode = DataDecoder::TimeRecoMode::BCReset;
     }
 
-    mDecoder = new DataDecoder(channelHandler, rdhHandler, sampaBcOffset, mapCRUfile, mapFECfile, ds2manu, mDebug,
+    mDecoder = new DataDecoder(channelHandler, rdhHandler, mapCRUfile, mapFECfile, ds2manu, mDebug,
                                useDummyElecMap, timeRecoMode);
 
     auto stop = [this]() {
