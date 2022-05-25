@@ -866,7 +866,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
       free(chunk.memory);
     }
   } else {
-    LOGP(alarm, "Curl request to {} failed with result {}, response code: {} ", url, int(res), response_code);
+    LOGP(alarm, "Curl request to {} failed with result {}, response code: {}", url, int(res), response_code);
     errorflag = true;
   }
   // indicate that an error occurred ---> used by caching layers (such as CCDBManager)
@@ -1542,7 +1542,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
       signalError();
     }
   } else {
-    LOGP(alarm, "Curl request to {} failed with result {}, response code: {} ", url, int(res), response_code);
+    LOGP(alarm, "Curl request to {} failed with result {}, response code: {}", url, int(res), response_code);
     signalError();
   }
   // indicate that an error occurred ---> used by caching layers (such as CCDBManager)
