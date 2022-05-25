@@ -211,7 +211,7 @@ void DataDecoderTask2::decodeTF(framework::ProcessingContext& pc)
       }
     } catch (int e) {
       // The stream end !
-      LOG(info) << "End Page decoding !";
+      LOG(debug) << "End Page decoding !";
     }
     //   std::cout << ">>>>" << pointerToTheFirst << "," << mDeco->mDigits.size() << std::endl;
     mTriggers.push_back(o2::hmpid::Trigger(mDeco->mIntReco, pointerToTheFirst, mDeco->mDigits.size() - pointerToTheFirst));
