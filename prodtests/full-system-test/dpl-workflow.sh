@@ -131,7 +131,7 @@ if [[ $EPNSYNCMODE == 1 ]]; then
   if [[ $EXTINPUT == 1 ]] && [[ $GPUTYPE != "CPU" ]] && [[ -z "$GPU_NUM_MEM_REG_CALLBACKS" ]]; then GPU_NUM_MEM_REG_CALLBACKS=4; fi
 fi
 
-if [[ $SYNCMODE == 1 && "0$ED_NO_ITS_ROF_FILTER" != "00" ]] && has_detector ITS; then
+if [[ $SYNCMODE == 1 && "0$ED_NO_ITS_ROF_FILTER" != "01" && $BEAMTYPE == "PbPb" ]] && has_detector ITS; then
   EVE_CONFIG+=" --filter-its-rof"
 fi
 
