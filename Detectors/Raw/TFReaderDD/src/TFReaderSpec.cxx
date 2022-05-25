@@ -234,10 +234,6 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
         acknowledgeOutput(*msgIt.second.get());
         nparts += msgIt.second->Size() / 2;
         device->Send(*msgIt.second.get(), msgIt.first);
-        if (msgIt.first != mInput.rawChannelConfig) { // don't do this with output to the raw FMQ channel
-          auto& channel = device->GetChannel(msgIt.first, 0);
-          o2::framework::DataProcessingHelpers::sendOldestPossibleTimeframe(channel, mTFCounter);
-        }
       }
       tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       deltaSending = mTFCounter ? tNow - tLastTF : 0;
