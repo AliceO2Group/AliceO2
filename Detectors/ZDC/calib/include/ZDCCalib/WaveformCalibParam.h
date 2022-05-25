@@ -15,7 +15,7 @@
 #include "ZDCBase/Constants.h"
 #include <Rtypes.h>
 #include "ZDCCalib/WaveformCalibData.h"
-#include <array>
+#include <vector>
 
 /// \file WaveformCalibParam.h
 /// \brief Waveform calibration data
@@ -36,7 +36,7 @@ struct WaveformCalibChParam {
 
 struct WaveformCalibParam {
 
-  std::array<WaveformCalibChParam, NChannels> channels; // configuration per channel
+  WaveformCalibChParam channels[NChannels]; // configuration per channel
 
   void assign(const WaveformCalibData& data);
   int saveDebugHistos(const std::string fn) const;
