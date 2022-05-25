@@ -62,6 +62,8 @@ void GPUErrors::printErrors(bool silent)
     const char* errorName = it == errorNames.end() ? "INVALID ERROR CODE" : it->second;
     if (silent && i) {
       GPUWarning("GPU Error Code (%u:%u) %s : %u / %u / %u", i, errorCode, errorName, mErrors[4 * i + 2], mErrors[4 * i + 3], mErrors[4 * i + 4]);
+    } else if (silent) {
+      GPUAlarm("GPU Error Code (%u:%u) %s : %u / %u / %u", i, errorCode, errorName, mErrors[4 * i + 2], mErrors[4 * i + 3], mErrors[4 * i + 4]);
     } else {
       GPUError("GPU Error Code (%u:%u) %s : %u / %u / %u", i, errorCode, errorName, mErrors[4 * i + 2], mErrors[4 * i + 3], mErrors[4 * i + 4]);
     }
