@@ -25,10 +25,8 @@ namespace its
 {
 namespace gpu
 {
-
 namespace utils
 {
-
 namespace host
 {
 
