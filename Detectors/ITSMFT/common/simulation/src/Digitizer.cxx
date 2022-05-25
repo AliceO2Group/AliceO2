@@ -40,6 +40,13 @@ void Digitizer::init()
   mChips.resize(mNumberOfChips);
   for (int i = mNumberOfChips; i--;) {
     mChips[i].setChipIndex(i);
+    if (mNoiseMap) {
+      mChips[i].setNoiseMap(mNoiseMap);
+    }
+    if (mDeadChanMap) {
+      mChips[i].disable(mDeadChanMap->isFullChipMasked(i));
+      mChips[i].setDeadChanMap(mDeadChanMap);
+    }
   }
   // initializing for both collection tables
   for (int i = 0; i < 2; i++) {
@@ -454,23 +461,4 @@ void Digitizer::registerDigits(ChipDigitsContainer& chip, uint32_t roFrame, floa
       extra->emplace_back(lbl);
     }
   }
-}
-
-//________________________________________________________________________________
-void Digitizer::setNoiseMap(const o2::itsmft::NoiseMap* mp)
-{
-  for (int i = 0; i < mNumberOfChips; i++) {
-    mChips[i].setNoiseMap(mp);
-  }
-  mNoiseMap = mp;
-}
-
-//________________________________________________________________________________
-void Digitizer::setDeadChannelsMap(const o2::itsmft::NoiseMap* mp)
-{
-  for (int i = 0; i < mNumberOfChips; i++) {
-    mChips[i].disable(mp->isFullChipMasked(i));
-    mChips[i].setDeadChanMap(mp);
-  }
-  mDeadChanMap = mp;
 }
