@@ -25,7 +25,7 @@ namespace its
 using constants::MB;
 namespace gpu
 {
-
+using utils::host::checkGPUError;
 GPUh() void gpuThrowOnError()
 {
   cudaError_t error = cudaGetLastError();
@@ -104,7 +104,7 @@ void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
 
   for (int iLayer{0}; iLayer < NLayers; ++iLayer) { // Tracker and vertexer
     // mClustersD[iLayer] = Vector<Cluster>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
-    mUsedClustersD[iLayer] = Vector<unsigned char>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
+    // mUsedClustersD[iLayer] = Vector<unsigned char>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
     // mTrackingFrameInfoD[iLayer] = Vector<TrackingFrameInfo>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
     // mClusterExternalIndicesD[iLayer] = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
     // mROframesClustersD[iLayer] = Vector<int>{mConfig.nMaxROFs, mConfig.nMaxROFs};
@@ -138,12 +138,15 @@ void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
     mClustersD[iLayer].reset(mClusters[iLayer].data(), static_cast<int>(mClusters[iLayer].size()));
   }
   if constexpr (isTracker) {
-    discardResult(cudaMalloc(reinterpret_cast<void**>(&mDeviceTrackingParams), sizeof(gpu::StaticTrackingParameters<NLayers>)));
-    discardResult(cudaMalloc(reinterpret_cast<void**>(&mDeviceIndexTableUtils), sizeof(IndexTableUtils)));
-    discardResult(cudaMemcpy(mDeviceTrackingParams, &trkParam, sizeof(gpu::StaticTrackingParameters<NLayers>), cudaMemcpyHostToDevice));
-    discardResult(cudaMemcpy(mDeviceIndexTableUtils, &mIndexTableUtils, sizeof(IndexTableUtils), cudaMemcpyHostToDevice));
+    StaticTrackingParameters<NLayers> pars;
+    pars.set(trkParam);
+    checkGPUError(cudaMalloc(reinterpret_cast<void**>(&mDeviceTrackingParams), sizeof(gpu::StaticTrackingParameters<NLayers>)), __FILE__, __LINE__);
+    checkGPUError(cudaMalloc(reinterpret_cast<void**>(&mDeviceIndexTableUtils), sizeof(IndexTableUtils)), __FILE__, __LINE__);
+    checkGPUError(cudaMemcpy(mDeviceTrackingParams, &pars, sizeof(gpu::StaticTrackingParameters<NLayers>), cudaMemcpyHostToDevice), __FILE__, __LINE__);
+    checkGPUError(cudaMemcpy(mDeviceIndexTableUtils, &mIndexTableUtils, sizeof(IndexTableUtils), cudaMemcpyHostToDevice), __FILE__, __LINE__);
     // Tracker-only: we don't need to copy data in vertexer
     for (int iLayer{0}; iLayer < NLayers; ++iLayer) {
+      mUsedClustersD[iLayer].reset(mUsedClusters[iLayer].data(), static_cast<int>(mUsedClusters[iLayer].size()));
       mTrackingFrameInfoD[iLayer].reset(mTrackingFrameInfo[iLayer].data(), static_cast<int>(mTrackingFrameInfo[iLayer].size()));
       mClusterExternalIndicesD[iLayer].reset(mClusterExternalIndices[iLayer].data(), static_cast<int>(mClusterExternalIndices[iLayer].size()));
       mROframesClustersD[iLayer].reset(mROframesClusters[iLayer].data(), static_cast<int>(mROframesClusters[iLayer].size()));

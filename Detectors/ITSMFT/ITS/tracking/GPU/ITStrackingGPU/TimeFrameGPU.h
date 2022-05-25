@@ -43,6 +43,7 @@ namespace gpu
 template <int NLayers>
 struct StaticTrackingParameters {
   StaticTrackingParameters<NLayers>& operator=(const StaticTrackingParameters<NLayers>& t) = default;
+  void set(const TrackingParameters& pars);
   // int CellMinimumLevel();
   /// General parameters
   int ClusterSharing = 0;
@@ -53,8 +54,8 @@ struct StaticTrackingParameters {
   int ZBins{256};
   int PhiBins{128};
   /// Trackleting cuts
-  float TrackletMaxDeltaPhi = 0.3f;
-  float TrackletMaxDeltaZ[NLayers - 1] = {0.1f, 0.1f, 0.3f, 0.3f, 0.3f, 0.3f};
+  // float TrackletMaxDeltaPhi = 0.3f;
+  // float TrackletMaxDeltaZ[NLayers - 1] = {0.1f, 0.1f, 0.3f, 0.3f, 0.3f, 0.3f};
   /// Cell finding cuts
   // float CellMaxDeltaTanLambda = 0.025f;
   // float CellMaxDCA[NLayers - 2] = {0.05f, 0.04f, 0.05f, 0.2f, 0.4f};
@@ -64,6 +65,23 @@ struct StaticTrackingParameters {
   // float NeighbourMaxDeltaCurvature[NLayers - 3] = {0.008f, 0.0025f, 0.003f, 0.0035f};
   // float NeighbourMaxDeltaN[NLayers - 3] = {0.002f, 0.0090f, 0.002f, 0.005f};
 };
+
+template <int NLayers>
+void StaticTrackingParameters<NLayers>::set(const TrackingParameters& pars)
+{
+  ClusterSharing = pars.ClusterSharing;
+  MinTrackLength = pars.MinTrackLength;
+  NSigmaCut = pars.NSigmaCut;
+  PVres = pars.PVres;
+  DeltaROF = pars.DeltaROF;
+  ZBins = pars.ZBins;
+  PhiBins = pars.PhiBins;
+  // TrackletMaxDeltaPhi = pars.TrackletMaxDeltaPhi;
+  // for (int i = 0; i < NLayers - 1; i++) {
+  //   TrackletMaxDeltaZ[i] = pars.TrackletMaxDeltaZ[i];
+  // }
+}
+
 
 template <class T>
 GPUhd() T* getPtrFromRuler(int index, T* src, const int* ruler, const int stride = 1)

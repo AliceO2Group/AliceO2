@@ -59,7 +59,7 @@ GPUd() float Sq(float q)
   return q * q;
 }
 
-template <bool Layer0, int NLayers=7>
+template <bool Layer0, int NLayers = 7>
 GPUg() void computeLayerTrackletsKernel(
   const int rof0,
   const int maxRofs,
@@ -86,7 +86,7 @@ GPUg() void computeLayerTrackletsKernel(
   const StaticTrackingParameters<NLayers>* trkPars,
   const IndexTableUtils* utils)
 {
-  int clusterTrackletsNum = 0;
+  // int clusterTrackletsNum = 0;
   for (int currentClusterIndex = blockIdx.x * blockDim.x + threadIdx.x; currentClusterIndex < sizeCurrentLClusters; currentClusterIndex += blockDim.x * gridDim.x) {
     const Cluster& currentCluster{clustersCurrentLayer[currentClusterIndex]};
     const int currentSortedIndex{startSortedIndexLayer + currentClusterIndex};
@@ -95,9 +95,6 @@ GPUg() void computeLayerTrackletsKernel(
     }
     int minRof = (rof0 >= trkPars->DeltaROF) ? rof0 - trkPars->DeltaROF : 0;
     int maxRof = (rof0 == maxRofs - trkPars->DeltaROF) ? rof0 : rof0 + trkPars->DeltaROF;
-    if (!currentClusterIndex) {
-      printf(" >>>> %d\n", trkPars->DeltaROF);
-    }
     const float inverseR0{1.f / currentCluster.radius};
     for (int iPrimaryVertex{0}; iPrimaryVertex < nVertices; iPrimaryVertex++) {
       const auto& primaryVertex{vertices[iPrimaryVertex]};
@@ -284,7 +281,6 @@ void TrackerTraitsGPU<NLayers>::initialiseTimeFrame(const int iteration, const M
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
 {
-  LOG(info) << " >>> " << mTrkParams.DeltaROF;
   std::array<unsigned int, NLayers - 2> tempSize;
   std::array<gpu::Stream, NLayers - 1> streamArray;
 
@@ -312,9 +308,9 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
           LOGP(info, "Skipping ROF0: {}, no clusters found on layer {}", rof0, iLayer);
           continue;
         }
-        // Reset used tracklets
-        checkGPUError(cudaMemset(mTimeFrameGPU->getDeviceUsedClustersOnLayer(rof0, iLayer), false, sizeof(unsigned char) * mTimeFrameGPU->getNClustersLayer(rof0, iLayer)), __FILE__, __LINE__);
-        gpu::computeLayerTrackletsKernel<true><<<1, 1, 0, streamArray[iLayer].get()>>>(
+        // // Reset used tracklets
+        // checkGPUError(cudaMemset(mTimeFrameGPU->getDeviceUsedClustersOnLayer(rof0, iLayer), false, sizeof(unsigned char) * mTimeFrameGPU->getNClustersLayer(rof0, iLayer)), __FILE__, __LINE__);
+        gpu::computeLayerTrackletsKernel<true><<<1, 1 /*, 0, streamArray[iLayer].get()*/>>>(
           rof0,
           mTimeFrameGPU->getNrof(),
           iLayer,
@@ -339,11 +335,32 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
           mTimeFrameGPU->getMSangle(iLayer),
           mTimeFrameGPU->getDeviceTrackingParameters(),
           mTimeFrameGPU->getDeviceIndexTableUtils());
-        // }
-        /*else {
-         gpu::layerTrackletsKernel<<<blocksGrid, threadsPerBlock , 0, streamArray[iLayer]>>>(primaryVertexContext->getDeviceContext(),
-                                                                                                 iLayer, primaryVertexContext->getTempTrackletArray()[iLayer - 1].getWeakCopy());
-       }*/
+      } else {
+        // gpu::computeLayerTrackletsKernel<false><<<1, 1 /*, 0, streamArray[iLayer].get()*/>>>(
+        //   rof0,
+        //   mTimeFrameGPU->getNrof(),
+        //   iLayer,
+        //   mTimeFrameGPU->getDeviceClustersOnLayer(rof0, iLayer + 1),     // :check:
+        //   mTimeFrameGPU->getDeviceClustersOnLayer(rof0, iLayer),         // :check:
+        //   mTimeFrameGPU->getDeviceIndexTables(iLayer),                   // :check:
+        //   mTimeFrameGPU->getDeviceROframesClustersOnLayer(iLayer + 1),   // :check:
+        //   mTimeFrameGPU->getDeviceUsedClustersOnLayer(rof0, iLayer),     // :check:
+        //   mTimeFrameGPU->getDeviceUsedClustersOnLayer(rof0, iLayer + 1), // WRONG, to be fixed!
+        //   mTimeFrameGPU->getDeviceVertices(rof0),
+        //   mTimeFrameGPU->getDeviceTrackletsLookupTable(rof0, iLayer),
+        //   mTimeFrameGPU->getDeviceTracklets(rof0, iLayer),
+        //   mTimeFrameGPU->getConfig().maxVerticesCapacity,
+        //   mTimeFrameGPU->getSortedStartIndex(rof0, iLayer),
+        //   mTimeFrameGPU->getSortedStartIndex(rof0, iLayer + 1), // WRONG, to be fixed!
+        //   mTimeFrameGPU->getNClustersLayer(rof0, iLayer),
+        //   mTimeFrameGPU->getPhiCut(iLayer),
+        //   mTimeFrameGPU->getMinR(iLayer + 1),
+        //   mTimeFrameGPU->getMaxR(iLayer + 1),
+        //   meanDeltaR,
+        //   mTimeFrameGPU->getPositionResolution(iLayer),
+        //   mTimeFrameGPU->getMSangle(iLayer),
+        //   mTimeFrameGPU->getDeviceTrackingParameters(),
+        //   mTimeFrameGPU->getDeviceIndexTableUtils());
       }
     }
   }
