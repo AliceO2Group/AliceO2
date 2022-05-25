@@ -578,13 +578,13 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         return;
       }
       if (oldestPossibleOutput.timeslice.value < decongestion->lastTimeslice) {
-        LOGP(error, "We are trying to send a timeslice {} that is older than the last one we sent {}",
+        LOGP(error, "We are trying to send a oldest possible timeslice {} that is older than the last one we already sent {}",
              oldestPossibleOutput.timeslice.value, decongestion->lastTimeslice);
         return;
       }
 
       LOGP(debug, "Broadcasting possible output {} due to {} ({})", oldestPossibleOutput.timeslice.value,
-           oldestPossibleOutput.slot.index == -1 ? "channel" : "slot", 
+           oldestPossibleOutput.slot.index == -1 ? "channel" : "slot",
            oldestPossibleOutput.slot.index == -1 ? oldestPossibleOutput.channel.value: oldestPossibleOutput.slot.index);
       DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
       decongestion->lastTimeslice = oldestPossibleOutput.timeslice.value; },
