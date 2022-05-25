@@ -26,13 +26,13 @@ namespace zdc
 {
 
 struct WaveformCalibChData {
-  static constexpr int NBT = WaveformCalibConfig::NBT;
-  static constexpr int NW = WaveformCalibConfig::NW;
+  static constexpr int NBT = WaveformCalib_NBT;
+  static constexpr int NW = WaveformCalib_NW;
 
-  int mFirstValid = 0;   /// First bin with valid data
-  int mLastValid = 0;    /// Last bin with valid data
-  uint32_t mEntries = 0; /// Number of waveforms added
-  std::array<float, NW> mData = {0};
+  int mFirstValid = 0;               /// First bin with valid data
+  int mLastValid = 0;                /// Last bin with valid data
+  uint32_t mEntries = 0;             /// Number of waveforms added
+  std::array<float, NW> mData = {0}; /// Waveform
 
   WaveformCalibChData& operator+=(const WaveformCalibChData& other);
   int getEntries() const;
@@ -44,10 +44,10 @@ struct WaveformCalibChData {
 };
 
 struct WaveformCalibData {
-  static constexpr int NBB = WaveformCalibConfig::NBB;
-  static constexpr int NBA = WaveformCalibConfig::NBA;
-  static constexpr int NBT = WaveformCalibConfig::NBT;
-  static constexpr int NW = WaveformCalibConfig::NW;
+  static constexpr int NBB = WaveformCalib_NBB;
+  static constexpr int NBA = WaveformCalib_NBA;
+  static constexpr int NBT = WaveformCalib_NBT;
+  static constexpr int NW = WaveformCalib_NW;
 
   uint64_t mCTimeBeg = 0; /// Time of processed time frame
   uint64_t mCTimeEnd = 0; /// Time of processed time frame

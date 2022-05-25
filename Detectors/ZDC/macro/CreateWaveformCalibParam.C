@@ -11,15 +11,15 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
-#include "Framework/Logger.h"
-#include "CCDB/CcdbApi.h"
 #include <TH1.h>
 #include <TFile.h>
 #include <string>
 #include <map>
+#include "CCDB/CcdbApi.h"
 
 #endif
 
+#include "Framework/Logger.h"
 #include "ZDCBase/Constants.h"
 #include "ZDCCalib/WaveformCalibParam.h"
 

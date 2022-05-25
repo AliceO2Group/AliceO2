@@ -366,6 +366,13 @@ constexpr int toDet(int channel, int& tower)
   }
 }
 
+// Calibration workflows
+static constexpr int WaveformCalib_NBB = 3;
+static constexpr int WaveformCalib_NBA = 6;
+static constexpr int WaveformCalib_NBT = WaveformCalib_NBB + WaveformCalib_NBA + 1;
+static constexpr int WaveformCalib_NW = WaveformCalib_NBT * NIS;
+
+
 } // namespace zdc
 } // namespace o2
 

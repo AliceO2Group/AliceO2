@@ -136,7 +136,7 @@ void WaveformCalibData::setN(int n)
       mWave[is].setN(n);
     }
   } else {
-    LOG(fatal) << "WaveformCalibData " << __func__ << " wrong stored b.c. setting " << n << " not in range [0:" << WaveformCalibConfig::NBT << "]";
+    LOG(fatal) << "WaveformCalibData " << __func__ << " wrong stored b.c. setting " << n << " not in range [0:" << NBT << "]";
   }
 }
 
@@ -146,7 +146,7 @@ void WaveformCalibChData::setN(int n)
     mFirstValid = 0;
     mLastValid = n * NTimeBinsPerBC * TSN - 1;
   } else {
-    LOG(fatal) << "WaveformCalibChData " << __func__ << " wrong stored b.c. setting " << n << " not in range [0:" << WaveformCalibConfig::NBT << "]";
+    LOG(fatal) << "WaveformCalibChData " << __func__ << " wrong stored b.c. setting " << n << " not in range [0:" << NBT << "]";
   }
 }
 

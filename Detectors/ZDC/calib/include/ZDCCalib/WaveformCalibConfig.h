@@ -28,10 +28,10 @@ namespace o2
 namespace zdc
 {
 struct WaveformCalibConfig {
-  static constexpr int NBB = 3;
-  static constexpr int NBA = 6;
-  static constexpr int NBT = NBB + NBA + 1;
-  static constexpr int NW = NBT * NIS;
+  static constexpr int NBB = WaveformCalib_NBB;
+  static constexpr int NBA = WaveformCalib_NBA;
+  static constexpr int NBT = WaveformCalib_NBT;
+  static constexpr int NW = WaveformCalib_NW;
 
   WaveformCalibConfig();
 

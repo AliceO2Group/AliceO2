@@ -11,13 +11,13 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
-#include "Framework/Logger.h"
 #include "CCDB/CcdbApi.h"
 #include <string>
 #include <map>
 
 #endif
 
+#include "Framework/Logger.h"
 #include "ZDCBase/Constants.h"
 #include "ZDCCalib/WaveformCalibConfig.h"
 

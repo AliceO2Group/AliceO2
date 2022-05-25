@@ -83,7 +83,7 @@ void o2::zdc::RecoParamZDC::print()
   */
   bool modified = false;
   for (int i = 0; i < o2::zdc::NChannels; i++) {
-    if (energy_calib[NChannels] != 0) {
+    if (energy_calib[i] != 0) {
       modified = true;
       break;
     }
@@ -95,7 +95,7 @@ void o2::zdc::RecoParamZDC::print()
     }
     printf("energ_calib: ");
     for (int i = 0; i < o2::zdc::NChannels; i++) {
-      if (energy_calib[NChannels] != 0) {
+      if (energy_calib[i] != 0) {
         printf(" %s=%f", o2::zdc::ChannelNames[i].data(), energy_calib[i]);
       }
     }
@@ -103,7 +103,7 @@ void o2::zdc::RecoParamZDC::print()
   }
   modified = false;
   for (int i = 0; i < o2::zdc::NChannels; i++) {
-    if (tower_calib[NChannels] != 0) {
+    if (tower_calib[i] != 0) {
       modified = true;
       break;
     }
@@ -115,7 +115,7 @@ void o2::zdc::RecoParamZDC::print()
     }
     printf("tower_calib: ");
     for (int i = 0; i < o2::zdc::NChannels; i++) {
-      if (tower_calib[NChannels] != 0) {
+      if (tower_calib[i] != 0) {
         printf(" %s=%f", o2::zdc::ChannelNames[i].data(), tower_calib[i]);
       }
     }
