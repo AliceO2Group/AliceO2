@@ -36,6 +36,7 @@
 #include <Monitoring/Metric.h>
 #include <Monitoring/Monitoring.h>
 
+#include <fairmq/Channel.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <gsl/span>
@@ -279,18 +280,19 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       }
       continue;
     }
-    bool hasTimeframe = false;
+    bool droppingNotCondition = false;
     for (size_t mi = 0; mi == mInputs.size(); ++mi) {
       auto& input = mInputs[mi];
       auto& element = mCache[si * mInputs.size() + mi];
-      if (input.lifetime == Lifetime::Timeframe && element.size() != 0) {
-        LOGP(error, "Dropping Lifetime::Timeframe data in slot {} with timestamp {} < {}.", si, timestamp.value, newOldest.timeslice.value);
-        hasTimeframe = true;
+      if (input.lifetime != Lifetime::Condition && element.size() != 0) {
+        LOGP(error, "Dropping Lifetime::{} data in slot {} with timestamp {} < {}.", input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+        droppingNotCondition = true;
         break;
       }
     }
-    if (!hasTimeframe) {
-      LOGP(debug, "Silently dropping data in slot {} because it has timestamp {} < {}. Lifetime::Timeframe data not expected.", si, timestamp.value, newOldest.timeslice.value);
+    if (!droppingNotCondition) {
+      LOGP(info, "Silently dropping data in slot {} because it has timestamp {} < {} after receiving data from channel {}. Lifetime::Timeframe data not expected.", si, timestamp.value, newOldest.timeslice.value,
+           newOldest.timeslice.value, mTimesliceIndex.getChannelInfo(channel).channel->GetName());
     }
   }
 }
