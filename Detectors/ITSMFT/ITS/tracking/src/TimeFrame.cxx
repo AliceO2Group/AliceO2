@@ -216,7 +216,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     mTracklets.resize(std::min(trkParam.TrackletsPerRoad(), maxLayers - 1));
     mTrackletLabels.resize(trkParam.TrackletsPerRoad());
     mTrackletsLookupTable.resize(trkParam.CellsPerRoad());
-    mIndexTables.clear();
+    mFlatIndexTables.clear();
     mIndexTableUtils.setTrackingParameters(trkParam);
     mPositionResolution.resize(trkParam.NLayers);
     mBogusClusters.resize(trkParam.NLayers, 0);
@@ -288,11 +288,35 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
           c.indexTableBinIndex = h.bin;
         }
 
+<<<<<<< HEAD
         for (unsigned int iB{0}; iB < clsPerBin.size(); ++iB) {
           mIndexTables[iLayer][rof * (trkParam.ZBins * trkParam.PhiBins + 1) + iB] = lutPerBin[iB];
         }
+<<<<<<< HEAD
         for (auto iB{clsPerBin.size()}; iB < (trkParam.ZBins * trkParam.PhiBins + 1); iB++) {
           mIndexTables[iLayer][rof * (trkParam.ZBins * trkParam.PhiBins + 1) + iB] = clustersNum;
+=======
+        for (auto iB{clsPerBin.size()}; iB < mIndexTables[rof][iLayer].size(); iB++) {
+          mIndexTables[rof][iLayer][iB] = clustersNum;
+=======
+        if (iLayer > 0) {
+          for (unsigned int iB{0}; iB < clsPerBin.size(); ++iB) {
+            // mIndexTables[rof][iLayer - 1][iB] = lutPerBin[iB];
+            mFlatIndexTables[iLayer - 1][rof * (trkParam.ZBins * trkParam.PhiBins + 1) + iB] = lutPerBin[iB];
+          }
+          for (auto iB{clsPerBin.size()}; iB < (trkParam.ZBins * trkParam.PhiBins + 1); iB++) {
+            // mIndexTables[rof][iLayer - 1][iB] = clustersNum;
+            mFlatIndexTables[iLayer - 1][rof * (trkParam.ZBins * trkParam.PhiBins + 1) + iB] = clustersNum;
+          }
+        } else { // LUTs on layer 0 are only for vertexer
+          for (unsigned int iB{0}; iB < clsPerBin.size(); ++iB) {
+            mIndexTablesL0[rof][iB] = lutPerBin[iB];
+          }
+          for (auto iB{clsPerBin.size()}; iB < mIndexTablesL0[rof].size(); iB++) {
+            mIndexTablesL0[rof][iB] = clustersNum;
+          }
+>>>>>>> cp
+>>>>>>> cp
         }
       }
     }

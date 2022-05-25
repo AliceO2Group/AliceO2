@@ -173,11 +173,13 @@ class TimeFrame
 
   IndexTableUtils mIndexTableUtils;
 
+  bool mIsGPU = false;
   std::vector<std::vector<Cluster>> mClusters;
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
   std::vector<std::vector<int>> mClusterExternalIndices;
   std::vector<std::vector<int>> mROframesClusters;
   std::vector<std::vector<int>> mIndexTables;
+  std::vector<std::vector<int>> mTrackletsLookupTable;
   std::vector<std::vector<unsigned char>> mUsedClusters;
   int mNrof = 0;
 
@@ -213,7 +215,6 @@ class TimeFrame
   std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
 
   std::vector<std::vector<Tracklet>> mTracklets;
-  std::vector<std::vector<int>> mTrackletsLookupTable;
 
   std::vector<std::pair<unsigned long long, bool>> mRoadLabels;
   int mCutClusterMult;

@@ -116,7 +116,6 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
               int iPhiBin = (selectedBinsRect.y + iPhiCount) % mTrkParams[iteration].PhiBins;
               const int firstBinIndex{tf->mIndexTableUtils.getBinIndex(selectedBinsRect.x, iPhiBin)};
               const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
-              printf("%d %d %d %d %d %d %d\n", maxBinIndex, firstBinIndex, iPhiBin, iPhiCount, phiBinsNum, rof1, rof0);
               if constexpr (debugLevel) {
                 if (firstBinIndex < 0 || firstBinIndex > tf->getIndexTable(rof1, iLayer + 1).size() ||
                     maxBinIndex < 0 || maxBinIndex > tf->getIndexTable(rof1, iLayer + 1).size()) {
@@ -135,7 +134,6 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
                   break;
                 }
                 const Cluster& nextCluster{layer1[iNextCluster]};
-
                 if (tf->isClusterUsed(iLayer + 1, nextCluster.clusterId)) {
                   continue;
                 }
@@ -172,7 +170,9 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
                                                                 currentCluster.xCoordinate - nextCluster.xCoordinate)};
                   const float tanL{(currentCluster.zCoordinate - nextCluster.zCoordinate) /
                                    (currentCluster.radius - nextCluster.radius)};
+                  // printf("%d %d %d %d %d %d %d %d %d %d %f %f %f\n", maxBinIndex, firstBinIndex, iPhiBin, iPhiCount, phiBinsNum, rof1, rof0, firstRowClusterIndex, maxRowClusterIndex, iNextCluster, nextCluster.xCoordinate, nextCluster.yCoordinate, nextCluster.zCoordinate);
                   tf->getTracklets()[iLayer].emplace_back(currentSortedIndex, tf->getSortedIndex(rof1, iLayer + 1, iNextCluster), tanL, phi, rof0, rof1);
+                  printf("%d %d %lf %lf %hu %hu\n", tf->getTracklets()[iLayer].back().firstClusterIndex, tf->getTracklets()[iLayer].back().secondClusterIndex, tf->getTracklets()[iLayer].back().tanLambda, tf->getTracklets()[iLayer].back().phi, tf->getTracklets()[iLayer].back().rof[0], tf->getTracklets()[iLayer].back().rof[0]);
                 }
               }
             }
