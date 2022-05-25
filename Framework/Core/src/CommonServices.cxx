@@ -578,7 +578,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         return;
       }
       if (oldestPossibleOutput.timeslice.value < decongestion->lastTimeslice) {
-        LOGP(error, "We are trying to send a timeslice {} that is older than the last one we sent {}",
+        LOGP(error, "We are trying to send a oldest possible timeslice {} that is older than the last one we already sent {}",
              oldestPossibleOutput.timeslice.value, decongestion->lastTimeslice);
         return;
       }
