@@ -155,8 +155,9 @@ class EMCALDCSDataProcessor : public o2::framework::Task
       sendELMButput(pc.outputs());
       mTimer = timeNow;
     }
-    if ((mCheckRunStartStop && (mRunChecker.getRunStatus() == RunStatus::START)) || (!mCheckRunStartStop && mProcessor->isUpdateFEEcfg()))
+    if ((mCheckRunStartStop && (mRunChecker.getRunStatus() == RunStatus::START)) || (!mCheckRunStartStop && mProcessor->isUpdateFEEcfg())) {
       sendCFGoutput(pc.outputs());
+    }
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
