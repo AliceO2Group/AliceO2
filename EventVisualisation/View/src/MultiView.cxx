@@ -186,8 +186,6 @@ void MultiView::registerGeometry(TEveGeoShape* geom, bool threeD, bool rPhi, boo
     LOG(error) << "MultiView::registerGeometry -- geometry is NULL!";
     exit(-1);
   }
-  // mGeomVector.push_back(geom);
-
   TEveProjectionManager* projection;
 
   if (threeD) {
@@ -227,8 +225,6 @@ void MultiView::registerElement(TEveElement* event)
   gEve->GetCurrentEvent()->AddElement(event);
   getProjection(ProjectionRphi)->ImportElements(event, getScene(SceneRphiEvent));
   getProjection(ProjectionZrho)->ImportElements(event, getScene(SceneZrhoEvent));
-
-  gEve->Redraw3D();
 }
 
 void MultiView::destroyAllEvents()

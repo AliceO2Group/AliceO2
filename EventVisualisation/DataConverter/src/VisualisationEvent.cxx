@@ -101,6 +101,13 @@ VisualisationEvent::VisualisationEvent(VisualisationEventVO vo)
   this->mMaxTimeOfTracks = numeric_limits<float>::min();
 }
 
+void VisualisationEvent::appendAnotherEventCalo(const VisualisationEvent& another)
+{
+  for (auto calo : another.getCalorimetersSpan()) {
+    this->mCalo.push_back(calo);
+  }
+}
+
 VisualisationEvent::VisualisationEvent(const VisualisationEvent& source, EVisualisationGroup filter, float minTime, float maxTime)
 {
   for (auto it = source.mTracks.begin(); it != source.mTracks.end(); ++it) {
