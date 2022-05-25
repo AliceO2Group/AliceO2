@@ -112,7 +112,7 @@ int EMCDCSProcessor::processDP(const DPCOM& dp)
     auto& dpval_prev = mapFEEcfg[dpid];
     if (dpval_prev.size() == 0 || val.get_epoch_time() != dpval_prev.back().get_epoch_time()) // compare the time stamps
     {
-      dpval_prev.push_back(val); // do we need to archive them all?????
+      dpval_prev.push_back(val); // do we need to archive them all???
                                  //     mUpdateFEEcfg = true; FEE data will be updated based on SOR/EOR
 
       FillFeeDP(dp);
