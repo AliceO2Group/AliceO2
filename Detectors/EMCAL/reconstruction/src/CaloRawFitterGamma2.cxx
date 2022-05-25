@@ -87,7 +87,7 @@ CaloFitResults CaloRawFitterGamma2::evaluate(const gsl::span<const Bunch> bunchl
     time = time * constants::EMCAL_TIMESAMPLE;
     time -= mL1Phase;
 
-    return CaloFitResults(maxADC, pedEstimate, mAlgo, amp, time, (int)time, chi2, ndf);
+    return CaloFitResults(maxADC, pedEstimate, 0, amp, time, (int)time, chi2, ndf);
   }
   // Fit failed, rethrow error
   throw RawFitterError_t::FIT_ERROR;

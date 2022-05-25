@@ -419,7 +419,6 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                 bool hgOutOfRange = false; // Flag if only a HG is present which is out-of-range
                 int hwAddressLG = -1,      // Hardware address of the LG of the tower (for monitoring)
                   hwAddressHG = -1;        // Hardware address of the HG of the tower (for monitoring)
-                auto flagChanType = chantype;
                 if (chantype == o2::emcal::ChannelType_t::LOW_GAIN) {
                   lgNoHG = true;
                   amp *= o2::emcal::constants::EMCAL_HGLGFACTOR;
@@ -427,13 +426,12 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                 } else {
                   // High gain cell: Flag as low gain if above threshold
                   if (amp / CONVADCGEV > o2::emcal::constants::OVERFLOWCUT) {
-                    flagChanType = ChannelType_t::LOW_GAIN;
                     hgOutOfRange = true;
                   }
                   hwAddressHG = chan.getHardwareAddress();
                 }
                 int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
-                currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, flagChanType),
+                currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, chantype),
                                                  lgNoHG,
                                                  hgOutOfRange,
                                                  fecID, feeID, hwAddressLG, hwAddressHG});
