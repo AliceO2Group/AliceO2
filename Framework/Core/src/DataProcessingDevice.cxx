@@ -1369,7 +1369,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
 
           auto dih = o2::header::get<DomainInfoHeader*>(parts.At(headerIndex)->GetData());
           oldestPossibleTimeslice = std::min(oldestPossibleTimeslice, dih->oldestPossibleTimeslice);
-          LOGP(info, "Got DomainInfoHeader, new oldestPossibleTimeslice {} on channel {}", oldestPossibleTimeslice, info.id.value);
+          LOGP(debug, "Got DomainInfoHeader, new oldestPossibleTimeslice {} on channel {}", oldestPossibleTimeslice, info.id.value);
           parts.At(headerIndex).reset(nullptr);
           parts.At(payloadIndex).reset(nullptr);
         }
