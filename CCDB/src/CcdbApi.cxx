@@ -658,19 +658,19 @@ void CcdbApi::snapshot(std::string const& ccdbrootpath, std::string const& local
   }
 }
 
-void* CcdbApi::extractFromTFile(TFile& file, TClass const* cl)
+void* CcdbApi::extractFromTFile(TFile& file, TClass const* cl, const char* what)
 {
   if (!cl) {
     return nullptr;
   }
-  auto object = file.GetObjectChecked(CCDBOBJECT_ENTRY, cl);
+  auto object = file.GetObjectChecked(what, cl);
   if (!object) {
     // it could be that object was stored with previous convention
     // where the classname was taken as key
     std::string objectName(cl->GetName());
     o2::utils::Str::trim(objectName);
     object = file.GetObjectChecked(objectName.c_str(), cl);
-    LOG(warn) << "Did not find object under expected name " << CCDBOBJECT_ENTRY;
+    LOG(warn) << "Did not find object under expected name " << what;
     if (!object) {
       return nullptr;
     }
@@ -700,7 +700,6 @@ void* CcdbApi::extractFromTFile(TFile& file, TClass const* cl)
 
 void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const
 {
-  logReading(filename, "retrieve");
   if (!std::filesystem::exists(filename)) {
     LOG(error) << "Local snapshot " << filename << " not found \n";
     return nullptr;
@@ -714,7 +713,7 @@ void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info 
       *headers = *storedmeta; // do a simple deep copy
       delete storedmeta;
     }
-    if (isSnapshotMode() || mPreferSnapshotCache) { // generate dummy ETag to profit from the caching
+    if ((isSnapshotMode() || mPreferSnapshotCache) && headers->find("ETag") == headers->end()) { // generate dummy ETag to profit from the caching
       (*headers)["ETag"] = filename;
     }
   }
@@ -736,7 +735,6 @@ bool CcdbApi::initTGrid() const
 
 void* CcdbApi::downloadAlienContent(std::string const& url, std::type_info const& tinfo) const
 {
-  logReading(url, "retrieve");
   if (!initTGrid()) {
     return nullptr;
   }
@@ -903,7 +901,9 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
       out << "CCDB-access[" << getpid() << "] to " << path << " timestamp " << timestamp << "\n";
     }
     auto snapshotfile = getSnapshotFile(mSnapshotCachePath, path);
+    bool snapshoting = false;
     if (!std::filesystem::exists(snapshotfile)) {
+      snapshoting = true;
       out << "CCDB-access[" << getpid() << "]  ... downloading to snapshot " << snapshotfile << "\n";
       // if file not already here and valid --> snapshot it
       if (!retrieveBlob(path, mSnapshotCachePath, metadata, timestamp)) {
@@ -920,7 +920,11 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
         boost::interprocess::named_semaphore::remove(semhashedstring.c_str());
       }
     }
-    return extractFromLocalFile(snapshotfile, tinfo, headers);
+    auto res = extractFromLocalFile(snapshotfile, tinfo, headers);
+    if (!snapshoting) { // if snapshot was created at this call, the log was already done
+      logReading(path, headers, "retrieve from snapshot");
+    }
+    return res;
   }
 
   // normal mode follows
@@ -930,6 +934,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   // if we are in snapshot mode we can simply open the file; extract the object and return
   if (mInSnapshotMode) {
     return extractFromLocalFile(fullUrl, tinfo, headers);
+    logReading(path, headers, "retrieve from snapshot");
   }
 
   initHeadersForRetrieve(curl_handle, timestamp, headers, etag, createdNotAfter, createdNotBefore);
@@ -939,7 +944,9 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
     fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
     content = navigateURLsAndRetrieveContent(curl_handle, fullUrl, tinfo, headers);
   }
-
+  if (content) {
+    logReading(path, headers, "retrieve");
+  }
   curl_easy_cleanup(curl_handle);
   return content;
 }
@@ -1344,14 +1351,16 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
   // if we are in snapshot mode we can simply open the file, unless the etag is non-empty:
   // this would mean that the object was is already fetched and in this mode we don't to validity checks!
   std::string snapshotpath{};
+  int fromSnapshot = 0;
   if (mInSnapshotMode) { // file must be there, otherwise a fatal will be produced
     loadFileToMemory(dest, getSnapshotFile(mSnapshotTopPath, path), headers);
+    fromSnapshot = 1;
   } else if (mPreferSnapshotCache && std::filesystem::exists(snapshotpath = getSnapshotFile(mSnapshotCachePath, path))) {
     // if file is available, use it, otherwise cache it below from the server. Do this only when etag is empty since otherwise the object was already fetched and cached
     if (etag.empty()) {
       loadFileToMemory(dest, snapshotpath, headers);
     }
-    return;
+    fromSnapshot = 2;
   } else { // look on the server
     CURL* curl_handle = curl_easy_init();
     string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
@@ -1362,7 +1371,7 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
 
     for (size_t hostIndex = 1; hostIndex < hostsPool.size() && isMemoryFileInvalid(dest); hostIndex++) {
       fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
-      loadFileToMemory(dest, fullUrl, headers);
+      loadFileToMemory(dest, fullUrl, nullptr); // headers loaded from the file in case of the snapshot reading only
     }
     curl_easy_cleanup(curl_handle);
   }
@@ -1370,9 +1379,11 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
   if (dest.empty()) {
     return; // nothing was fetched: either cached value is good or error was produced
   }
+  // !considerSnapshot means that the call was made by retrieve for snapshoting reasons
+  logReading(path, headers, fmt::format("{}{}", considerSnapshot ? "load to memory" : "retrieve", fromSnapshot ? " from snapshot" : ""));
 
   // are we asked to create a snapshot ?
-  if (considerSnapshot && !mSnapshotCachePath.empty()) {
+  if (considerSnapshot && !mSnapshotCachePath.empty() && fromSnapshot != 1) { // store in the snapshot only if the object was not read from the snapshot
     if (mInSnapshotMode && mSnapshotTopPath == mSnapshotCachePath) { // do not save to itself
       return;
     }
@@ -1442,7 +1453,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
 
   // let's see first of all if the url is something specific that curl cannot handle
   if (url.find("alien:/", 0) != std::string::npos) {
-    return loadFileToMemory(dest, url);
+    return loadFileToMemory(dest, url, nullptr); // headers loaded from the file in case of the snapshot reading only
   }
   // otherwise make an HTTP/CURL request
   bool errorflag = false;
@@ -1544,7 +1555,6 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
 void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& path, std::map<std::string, std::string>* localHeaders) const
 {
   // Read file to memory as vector. For special case of the locally cached file retriev metadata stored directly in the file
-  logReading(path, "load to memory");
   constexpr size_t MaxCopySize = 0x1L << 25;
   auto signalError = [&dest, localHeaders]() {
     dest.clear();
@@ -1589,14 +1599,15 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& p
     dptr += nread;
     totalread += nread;
   } while (nread == (long)MaxCopySize);
+
   if (localHeaders) {
-    sfile->Seek(0);
-    auto storedmeta = retrieveMetaInfo(*sfile);
+    TMemFile memFile("name", const_cast<char*>(dest.data()), dest.size(), "READ");
+    auto storedmeta = (std::map<std::string, std::string>*)extractFromTFile(memFile, TClass::GetClass("std::map<std::string, std::string>"), CCDBMETA_ENTRY);
     if (storedmeta) {
       *localHeaders = *storedmeta; // do a simple deep copy
       delete storedmeta;
     }
-    if (isSnapshotMode() || mPreferSnapshotCache) { // generate dummy ETag to profit from the caching
+    if ((isSnapshotMode() || mPreferSnapshotCache) && localHeaders->find("ETag") == localHeaders->end()) { // generate dummy ETag to profit from the caching
       (*localHeaders)["ETag"] = path;
     }
   }
@@ -1628,9 +1639,21 @@ void CcdbApi::checkMetadataKeys(std::map<std::string, std::string> const& metada
   return;
 }
 
-void CcdbApi::logReading(const std::string& fname, const std::string& comment) const
+void CcdbApi::logReading(const std::string& path, const std::map<std::string, std::string>* headers, const std::string& comment) const
 {
-  LOGP(info, "ccdb reads {} ({}, agent_id: {}), ", fname, comment, mUniqueAgentID);
+  std::string upath{path};
+  if (headers) {
+    auto ent = headers->find("Valid-From");
+    if (ent != headers->end()) {
+      upath += "/" + ent->second;
+    }
+    ent = headers->find("ETag");
+    if (ent != headers->end()) {
+      upath += "/" + ent->second;
+    }
+  }
+  upath.erase(remove(upath.begin(), upath.end(), '\"'), upath.end());
+  LOGP(info, "ccdb reads {}{}{} ({}, agent_id: {}), ", mUrl, mUrl.back() == '/' ? "" : "/", upath, comment, mUniqueAgentID);
 }
 
 } // namespace o2

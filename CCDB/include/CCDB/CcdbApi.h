@@ -286,7 +286,7 @@ class CcdbApi //: public DatabaseInterface
    * @param cl The TClass object describing the serialized type
    * @return raw pointer to created object
    */
-  static void* extractFromTFile(TFile& file, TClass const* cl);
+  static void* extractFromTFile(TFile& file, TClass const* cl, const char* what = CCDBOBJECT_ENTRY);
 
   /** Get headers associated to a given CCDBEntry on the server.
    * @param url the url which refers to the objects
@@ -362,7 +362,7 @@ class CcdbApi //: public DatabaseInterface
 
  private:
   // report what file is read and for which purpose
-  void logReading(const std::string& fname, const std::string& comment) const;
+  void logReading(const std::string& path, const std::map<std::string, std::string>* headers, const std::string& comment) const;
 
   /**
    * Initialize in local mode; Objects will be retrieved from snapshot
@@ -543,9 +543,12 @@ typename std::enable_if<std::is_base_of<o2::conf::ConfigurableParam, T>::value, 
                                 const std::string& createdNotAfter, const std::string& createdNotBefore) const
 {
   auto obj = retrieveFromTFile(typeid(T), path, metadata, timestamp, headers, etag, createdNotAfter, createdNotBefore);
-  auto& param = const_cast<typename std::remove_const<T&>::type>(T::Instance());
-  param.syncCCDBandRegistry(obj);
-  return &param;
+  if (obj) {
+    auto& param = const_cast<typename std::remove_const<T&>::type>(T::Instance());
+    param.syncCCDBandRegistry(obj);
+    return &param;
+  }
+  return static_cast<T*>(obj);
 }
 
 } // namespace ccdb
