@@ -584,7 +584,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       }
 
       LOGP(debug, "Broadcasting possible output {} due to {} ({})", oldestPossibleOutput.timeslice.value,
-           oldestPossibleOutput.slot.index == -1 ? "channel" : "slot", 
+           oldestPossibleOutput.slot.index == -1 ? "channel" : "slot",
            oldestPossibleOutput.slot.index == -1 ? oldestPossibleOutput.channel.value: oldestPossibleOutput.slot.index);
       DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
       decongestion->lastTimeslice = oldestPossibleOutput.timeslice.value; },
