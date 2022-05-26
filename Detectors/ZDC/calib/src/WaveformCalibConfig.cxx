@@ -45,10 +45,10 @@ void WaveformCalibConfig::restrictRange(int ib, int ie)
 void WaveformCalibConfig::print() const
 {
   LOG(info) << "WaveformCalibConfig range [" << ibeg << ":" << iend << "]";
-  for (Int_t isig = 0; isig < NChannels; isig++) {
+  for (int isig = 0; isig < NChannels; isig++) {
     LOG(info) << ChannelNames[isig] << " limits A = (" << cutLow[isig] << " : " << cutHigh[isig] << ") min_entries = " << min_e[isig];
   }
-  for (Int_t itdc = 0; itdc < NTDCChannels; itdc++) {
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
     LOG(info) << ChannelNames[TDCSignal[itdc]] << " T = (" << cutTimeLow[itdc] << " : " << cutTimeHigh[itdc] << ")";
   }
 }

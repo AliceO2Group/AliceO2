@@ -11,15 +11,14 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
-#include "CCDB/CcdbApi.h"
 #include <string>
 #include <map>
-
-#endif
-
 #include "Framework/Logger.h"
+#include "CCDB/CcdbApi.h"
 #include "ZDCBase/Constants.h"
 #include "ZDCCalib/WaveformCalibConfig.h"
+
+#endif
 
 using namespace o2::zdc;
 using namespace std;
@@ -41,7 +40,8 @@ void CreateWaveformCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHo
   conf.setDescription("Simulated data");
   conf.setMinEntries(200);
 
-  // Restrict waveform range
+  // Restrict waveform range (default is -3, 6 as defined in WaveformCalib_NBB
+  // WaveformCalib_NBA in file Detectors/ZDC/base/include/ZDCBase/Constants.h)
   conf.restrictRange(-1, 0);
 
   conf.print();
@@ -61,6 +61,4 @@ void CreateWaveformCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHo
   LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&conf, CCDBPathWaveformCalibConfig, metadata, tmin, tmax);
-
-  // return conf;
 }

@@ -16,7 +16,6 @@
 
 #include "ZDCBase/Constants.h"
 #include <Rtypes.h>
-#include <array>
 #include <string>
 
 /// \file WaveformCalibConfig.h

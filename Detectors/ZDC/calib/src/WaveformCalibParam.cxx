@@ -20,9 +20,9 @@ using namespace o2::zdc;
 void WaveformCalibChParam::print() const
 {
   if (shape.size() > 0) {
-    printf("Shape min at bin %d/%d\n", ampMinID, shape.size());
+    printf("Shape min at bin %d/%lu\n", ampMinID, shape.size());
   } else {
-    printf("No data\n", ampMinID, shape.size());
+    printf("No data\n");
   }
 }
 
