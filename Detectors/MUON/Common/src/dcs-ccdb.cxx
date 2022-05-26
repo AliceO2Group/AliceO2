@@ -44,10 +44,10 @@ void doQueryHVLV(const std::string ccdbUrl, uint64_t timestamp, bool hv, bool lv
 {
   std::vector<std::string> what;
   if (hv) {
-    what.emplace_back(fmt::format("{}/HV", o2::muon::subsysname()));
+    what.emplace_back(fmt::format("{}/Calib/HV", o2::muon::subsysname()));
   }
   if (lv) {
-    what.emplace_back(fmt::format("{}/LV", o2::muon::subsysname()));
+    what.emplace_back(fmt::format("{}/Calib/LV", o2::muon::subsysname()));
   }
 
   auto sum =
