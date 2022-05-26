@@ -165,7 +165,7 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track, o2::gpu::GPUO2Int
   }
 
   if (mMode == dedxTrack) {
-    const auto dedx = getTruncMean(mDEdxBuffer);
+    getTruncMean();
 
     // set the dEdx
     for (auto& x : mClTrk) {
@@ -173,7 +173,7 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track, o2::gpu::GPUO2Int
       const int region = Mapper::REGION[globRow];
       const int indexBuffer = getdEdxBufferIndex(region);
 
-      const float dedxTmp = dedx[indexBuffer];
+      const float dedxTmp = mDedxTmp[indexBuffer];
       if (dedxTmp <= 0) {
         continue;
       }
@@ -193,15 +193,15 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track, o2::gpu::GPUO2Int
   }
 }
 
-std::vector<float> CalibPadGainTracks::getTruncMean(std::vector<std::vector<float>>& vCharge, float low, float high) const
+void CalibPadGainTracks::getTruncMean(float low, float high)
 {
-  std::vector<float> dedx;
-  dedx.reserve(vCharge.size());
+  mDedxTmp.clear();
+  mDedxTmp.reserve(mDEdxBuffer.size());
   // returns the truncated mean for input vector
-  for (auto& charge : vCharge) {
+  for (auto& charge : mDEdxBuffer) {
     const int nClustersUsed = static_cast<int>(charge.size());
     if (nClustersUsed < mMinClusters) {
-      dedx.emplace_back(-1);
+      mDedxTmp.emplace_back(-1);
       continue;
     }
 
@@ -211,15 +211,14 @@ std::vector<float> CalibPadGainTracks::getTruncMean(std::vector<std::vector<floa
     const int endInd = static_cast<int>(high * nClustersUsed);
 
     if (endInd <= startInd) {
-      dedx.emplace_back(-1);
+      mDedxTmp.emplace_back(-1);
       continue;
     }
 
     const float dEdx = std::accumulate(charge.begin() + startInd, charge.begin() + endInd, 0.f);
     const int nClustersTrunc = endInd - startInd; // count number of clusters
-    dedx.emplace_back(dEdx / nClustersTrunc);
+    mDedxTmp.emplace_back(dEdx / nClustersTrunc);
   }
-  return dedx;
 }
 
 float CalibPadGainTracks::getTrackTopologyCorrection(const o2::tpc::TrackTPC& track, const unsigned int region) const
