@@ -15,7 +15,7 @@
 using namespace o2::zdc;
 WaveformCalibConfig::WaveformCalibConfig()
 {
-  for (int isig = 0; isig < NTDCChannels; isig++) {
+  for (int isig = 0; isig < NChannels; isig++) {
     cutLow[isig] = -std::numeric_limits<float>::infinity();
     cutHigh[isig] = std::numeric_limits<float>::infinity();
   }
