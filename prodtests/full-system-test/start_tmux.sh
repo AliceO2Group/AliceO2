@@ -20,8 +20,8 @@ source $MYDIR/setenv.sh
 # This sets up the hardcoded configuration to run the full system workflow on the EPN
 export NGPUS=4
 export GPUTYPE=HIP
-export SHMSIZE=$(( 128 << 30 ))
-export DDSHMSIZE=$(( 128 << 10 ))
+export SHMSIZE=$(( 112 << 30 ))
+export DDSHMSIZE=$(( 112 << 10 ))
 export GPUMEMSIZE=$(( 24 << 30 ))
 export NUMAGPUIDS=1
 export EXTINPUT=1
