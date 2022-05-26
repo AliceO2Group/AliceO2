@@ -583,7 +583,7 @@ int CTPRunManager::startRun(const std::string& cfg)
 }
 int CTPRunManager::stopRun(uint32_t irun)
 {
-  LOG(info) << "Stopping run index:" << irun;
+  LOG(info) << "Stopping run index: " << irun;
   if (mActiveRuns[irun] == nullptr) {
     LOG(error) << "No config for run index:" << irun;
     return 1;
