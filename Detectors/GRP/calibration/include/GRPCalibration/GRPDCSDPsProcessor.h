@@ -231,7 +231,11 @@ class GRPDCSDPsProcessor
   bool isCollimatorsUpdated() const { return mUpdateCollimators; }
 
   void setStartValidity(long t) { mStartValidity = t; }
+  void setCurrentTime(long t) { mCurrentTime = t; }
   void useVerboseMode() { mVerbose = true; }
+
+  bool magFieldComplete() const { return mL3CurrentSet && mDipoleCurrentSet && mL3Polarity && mDipolePolarity; }
+  void resetMagField();
 
  private:
   std::unordered_map<DPID, bool> mPids; // contains all PIDs for the processor, the bool
@@ -239,6 +243,7 @@ class GRPDCSDPsProcessor
 
   long mFirstTime;         // time when a CCDB object was stored first
   long mStartValidity = 0; // TF index for processing, used to store CCDB object
+  long mCurrentTime;
   bool mFirstTimeSet = false;
 
   bool mVerbose = false;
@@ -246,6 +251,13 @@ class GRPDCSDPsProcessor
   o2::parameters::GRPMagField mMagField;
   o2::ccdb::CcdbObjectInfo mccdbMagFieldInfo;
   bool mUpdateMagField = false;
+  int mL3Polarity = 0;     // 0 means it is not set, +1 it is positive, -1 it is negative
+  int mDipolePolarity = 0; // 0 means it is not set, +1 it is positive, -1 it is negative
+  bool mL3CurrentSet = false;
+  bool mDipoleCurrentSet = false;
+  bool mStartValidityMagFieldSet = false;
+  long mStartValidityMagField = -1;
+  long mEndValidityMagField = -1;
 
   GRPEnvVariables mEnvVars;
   o2::ccdb::CcdbObjectInfo mccdbEnvVarsInfo;

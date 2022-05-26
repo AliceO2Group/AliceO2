@@ -121,6 +121,7 @@ void GRPDCSDPsDataProcessor::run(o2::framework::ProcessingContext& pc)
   if (startValidity == 0xffffffffffffffff) {                                                                   // it means it is not set
     startValidity = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
   }
+  mProcessor->setCurrentTime(startValidity);
   mProcessor->setStartValidity(startValidity);
   mProcessor->process(dps);
   Duration elapsedTime = timeNow - mTimer; // in seconds
@@ -147,8 +148,11 @@ void GRPDCSDPsDataProcessor::endOfStream(o2::framework::EndOfStreamContext& ec)
   LOG(info) << " ********** End of Stream **********";
   mProcessor->updateLHCIFInfoCCDB();
   sendLHCIFDPsoutput(ec.outputs());
+  if (mProcessor->magFieldComplete()) {
+    mProcessor->updateMagFieldCCDB();
+    sendMagFieldDPsoutput(ec.outputs());
+  }
   /*
-  sendMagFieldDPsoutput(ec.outputs());
   sendCollimatorsDPsoutput(ec.outputs());
   sendEnvVarsDPsoutput(ec.outputs());
   */
@@ -181,6 +185,7 @@ void GRPDCSDPsDataProcessor::sendMagFieldDPsoutput(DataAllocator& output)
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "GRP_Bfield", 0}, *image.get());
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "GRP_Bfield", 0}, info);
+  mProcessor->resetMagField();
 }
 
 //________________________________________________________________

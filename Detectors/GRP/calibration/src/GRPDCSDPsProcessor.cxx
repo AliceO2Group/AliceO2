@@ -122,26 +122,75 @@ int GRPDCSDPsProcessor::processDP(const DPCOM& dpcom)
     // LOG(info) << "alias 0 = " << aliasStr;
     //  B-field DPs
     if (aliasStr.find("Current") != string::npos || aliasStr.find("Polarity") != string::npos) { // B-field DPs
-      mUpdateMagField = true;
+      if (!mStartValidityMagFieldSet) {
+        mStartValidityMagField = mCurrentTime;
+        mStartValidityMagFieldSet = true;
+      }
       if (aliasStr == "L3Current") {
-        mMagField.setL3Current(std::signbit(mMagField.getL3Current()) ? -static_cast<float>(o2::dcs::getValue<double>(dpcom)) : static_cast<float>(o2::dcs::getValue<double>(dpcom))); // true is negative field
-        if (mVerbose) {
-          LOG(info) << "Updating L3 current with value " << mMagField.getL3Current();
+        if (!mL3CurrentSet) {
+          mMagField.setL3Current(o2::dcs::getValue<double>(dpcom));
+          mL3CurrentSet = true;
+        } else {
+          if (std::fabs(std::fabs(mMagField.getL3Current()) - o2::dcs::getValue<double>(dpcom)) > 0.1f) {
+            if (magFieldComplete()) {
+              mUpdateMagField = true;
+            } else {
+              LOG(alarm) << "Detected a change in L3 current, but the CCDB object is incomplete - discarding it";
+              resetMagField();
+              mStartValidityMagField = mCurrentTime;
+              mMagField.setL3Current(o2::dcs::getValue<double>(dpcom));
+              mL3CurrentSet = true;
+            }
+          }
         }
       } else if (aliasStr == "L3Polarity") {
-        mMagField.setL3Current(o2::dcs::getValue<bool>(dpcom) ? -mMagField.getL3Current() : mMagField.getL3Current()); // true is negative field
-        if (mVerbose) {
-          LOG(info) << "Updating L3 polarity with value " << std::signbit(mMagField.getL3Current()); // poisitive is false, negative is true
+        if (!mL3Polarity) {
+          mL3Polarity = o2::dcs::getValue<bool>(dpcom) ? -1 : 1;
+        } else {
+          if ((mL3Polarity == 1 && o2::dcs::getValue<bool>(dpcom)) || (mL3Polarity == -1 && !o2::dcs::getValue<bool>(dpcom))) {
+            // new polarity detected
+            if (magFieldComplete()) {
+              mUpdateMagField = true;
+            } else {
+              LOG(alarm) << "Detected a change in L3 current, but the CCDB object is incomplete - discarding it";
+              resetMagField();
+              mStartValidityMagField = mCurrentTime;
+              mL3Polarity = o2::dcs::getValue<bool>(dpcom) ? -1 : 1;
+            }
+          }
         }
       } else if (aliasStr == "DipoleCurrent") {
-        mMagField.setDipoleCurrent(std::signbit(mMagField.getDipoleCurrent()) ? -static_cast<float>(o2::dcs::getValue<double>(dpcom)) : static_cast<float>(o2::dcs::getValue<double>(dpcom))); // true is negative field
-        if (mVerbose) {
-          LOG(info) << "Updating Dipole current with value " << mMagField.getDipoleCurrent();
+        if (!mDipoleCurrentSet) {
+          mMagField.setDipoleCurrent(o2::dcs::getValue<double>(dpcom));
+          mDipoleCurrentSet = true;
+        } else {
+          if (std::fabs(std::fabs(mMagField.getDipoleCurrent()) - o2::dcs::getValue<double>(dpcom)) > 0.1f) {
+            if (magFieldComplete()) {
+              mUpdateMagField = true;
+            } else {
+              LOG(alarm) << "Detected a change in Dipole current, but the CCDB object is incomplete - discarding it";
+              resetMagField();
+              mStartValidityMagField = mCurrentTime;
+              mMagField.setDipoleCurrent(o2::dcs::getValue<double>(dpcom));
+              mDipoleCurrentSet = true;
+            }
+          }
         }
       } else if (aliasStr == "DipolePolarity") {
-        mMagField.setDipoleCurrent(o2::dcs::getValue<bool>(dpcom) ? -mMagField.getDipoleCurrent() : mMagField.getDipoleCurrent()); // true is negative field
-        if (mVerbose) {
-          LOG(info) << "Updating Dipole polarity with value " << std::signbit(mMagField.getDipoleCurrent()); // poisitive is false, negative is true
+        if (!mDipolePolarity) {
+          mDipolePolarity = o2::dcs::getValue<bool>(dpcom) ? -1 : 1;
+        } else {
+          if ((mDipolePolarity == 1 && o2::dcs::getValue<bool>(dpcom)) || (mDipolePolarity == -1 && !o2::dcs::getValue<bool>(dpcom))) {
+            // new polarity detected
+            if (magFieldComplete()) {
+              mUpdateMagField = true;
+            } else {
+              LOG(alarm) << "Detected a change in Dipole current, but the CCDB object is incomplete - discarding it";
+              resetMagField();
+              mStartValidityMagField = mCurrentTime;
+              mDipolePolarity = o2::dcs::getValue<bool>(dpcom) ? -1 : 1;
+            }
+          }
         }
       } else {
         if (mVerbose) {
@@ -402,7 +451,10 @@ void GRPDCSDPsProcessor::updateMagFieldCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mMagField, mccdbMagFieldInfo, "GLO/Config/GRPMagField", md, mStartValidity, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  mMagField->setL3Current(mMagField->getL3Current() * mL3Polarity);
+  mMagField->setDipoleCurrent(mMagField->getDipoleCurrent() * mDipolePolarity);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mMagField, mccdbMagFieldInfo, "GLO/Config/GRPMagField", md, mStartValidityMagField, mCurrentTime);
+  mStartValidityMagFieldSet = false;
   return;
 }
 
@@ -452,4 +504,13 @@ void GRPDCSDPsProcessor::updateCollimatorsCCDB()
   md["responsible"] = "Chiara Zampolli";
   o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbCollimatorsInfo, "GLO/Config/Collimators", md, mStartValidity, mStartValidity + 3 * 24L * 3600000); // valid for 3 days
   return;
+}
+
+void GRPDCSDPsProcessor::resetMagField()
+{
+  mL3CurrentSet = false;
+  mDipoleCurrentSet = false;
+  mL3Polarity = 0;
+  mDipolePolarity = 0;
+  mStartValidityMagFieldSet = false;
 }
