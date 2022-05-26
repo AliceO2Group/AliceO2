@@ -168,6 +168,29 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
       if (extRunNumber != "unspecified" || context.runNumber == "0") {
         context.runNumber = extRunNumber;
       }
+      auto extLHCPeriod = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("lhc_period", "unspecified");
+      if (extLHCPeriod != "unspecified") {
+        context.lhcPeriod = extLHCPeriod;
+      } else {
+        static const char* months[12] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+        time_t now = time(nullptr);
+        auto ltm = gmtime(&now);
+        context.lhcPeriod = months[ltm->tm_mon];
+        LOG(warning) << "LHCPeriod is not available, using current month " << context.lhcPeriod;
+      }
+
+      auto extRunType = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("run_type", "unspecified");
+      if (extRunType != "unspecified") {
+        context.runType = extRunType;
+      }
+      auto extEnvId = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("environment_id", "unspecified");
+      if (extEnvId != "unspecified") {
+        context.runType = extEnvId;
+      }
+      auto extDetectors = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("detectors", "unspecified");
+      if (extDetectors != "unspecified") {
+        context.detectors = extDetectors;
+      }
       // FIXME: we actually need to get the orbit, not only to know where it is
       std::string orbitResetTimeUrl = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitResetTime");
       auto is_number = [](const std::string& s) -> bool {
