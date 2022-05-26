@@ -39,6 +39,11 @@ using namespace o2::event_visualisation;
 void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
                                      GID::mask_t maskCl, GID::mask_t maskTrk, GID::mask_t maskMatch)
 {
+  struct TrackTimeNode {
+    GID trackGID;
+    float trackTime;
+  };
+  std::vector<TrackTimeNode> trackTimeNodes;
   std::vector<Bracket> itsROFBrackets;
 
   if (mEnabledFilters.test(Filter::ITSROF)) {
@@ -96,7 +101,7 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
     return false;
   };
 
-  auto creator = [maskTrk, this, &correctTrackTime, &isInsideITSROF](auto& trk, GID gid, float time, float terr) {
+  auto creator = [maskTrk, this, &correctTrackTime, &isInsideITSROF, &trackTimeNodes](auto& trk, GID gid, float time, float terr) {
     if (!maskTrk[gid.getSource()]) {
       return true;
     }
@@ -115,13 +120,29 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
       return true;
     }
 
-    mTrackSet.trackGID.push_back(gid);
-    mTrackSet.trackTime.push_back(bracket.mean());
+    // mTrackSet.trackGID.push_back(gid);
+    // mTrackSet.trackTime.push_back(bracket.mean());
+
+    TrackTimeNode node;
+    node.trackGID = gid;
+    node.trackTime = bracket.mean();
+    trackTimeNodes.push_back(node);
 
     return true;
   };
 
   this->mRecoCont.createTracksVariadic(creator);
+  std::sort(trackTimeNodes.begin(), trackTimeNodes.end(),
+            [](TrackTimeNode a, TrackTimeNode b) {
+              return a.trackTime > b.trackTime;
+            });
+  for (auto node : trackTimeNodes) {
+    if (mEnabledFilters.test(Filter::TotalNTracks) && mTrackSet.trackGID.size() >= mMaxNTracks) {
+      break;
+    }
+    mTrackSet.trackGID.push_back(node.trackGID);
+    mTrackSet.trackTime.push_back(node.trackTime);
+  }
 }
 
 void EveWorkflowHelper::draw()
