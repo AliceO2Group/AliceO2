@@ -119,6 +119,8 @@ void CcdbApi::init(std::string const& host)
     snapshotReport += ')';
   }
 
+  mNeedAlienToken = host != "http://o2-ccdb.internal" && host != "http://localhost:8084" && host != "http://127.0.0.1:8084";
+
   LOGP(info, "Init CcdApi with UserAgentID: {}, Host: {}{}", mUniqueAgentID, host,
        mInSnapshotMode ? "(snapshot readonly mode)" : snapshotReport.c_str());
 }
@@ -723,7 +725,7 @@ void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info 
 
 bool CcdbApi::initTGrid() const
 {
-  if (!mAlienInstance) {
+  if (mNeedAlienToken && !mAlienInstance) {
     mAlienInstance = TGrid::Connect("alien");
     static bool errorShown = false;
     if (!mAlienInstance && errorShown == false) {
