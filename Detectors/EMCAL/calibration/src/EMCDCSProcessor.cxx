@@ -30,6 +30,7 @@
 
 #include <map>
 #include <iterator>
+#include "EMCALCalib/CalibDB.h"
 #include "EMCALCalibration/EMCDCSProcessor.h"
 
 using namespace o2::dcs;
@@ -109,10 +110,10 @@ int EMCDCSProcessor::processDP(const DPCOM& dp)
   if ((type == DPVAL_INT) || (type == DPVAL_UINT)) // FEE config params and STU_TRU error counters
   {
     auto& dpval_prev = mapFEEcfg[dpid];
-    if (dpval_prev.size() == 0 || val.get_epoch_time() != dpval_prev.back().get_epoch_time()) // compate the time stamps
+    if (dpval_prev.size() == 0 || val.get_epoch_time() != dpval_prev.back().get_epoch_time()) // compare the time stamps
     {
-      dpval_prev.push_back(val); // do we need to archive them all?????
-      mUpdateFEEcfg = true;
+      dpval_prev.push_back(val); // do we need to archive them all???
+                                 //     mUpdateFEEcfg = true; FEE data will be updated based on SOR/EOR
 
       FillFeeDP(dp);
       setTF(val.get_epoch_time()); // fix: this must not be here!
@@ -179,6 +180,20 @@ void EMCDCSProcessor::FillFeeDP(const DPCOM& dpcom)
   if ((index = alias.find("STU_ERROR_COUNT_TRU")) != std::string::npos) {
     // processing of STU_TRU error counters not included yet
     return;
+  }
+
+  else if (alias.find("EMC_RUNNUMBER") != std::string::npos) {
+    if (mFEECFG->getRunNumber() != val) {
+      mUpdateFEEcfg = true;
+    }
+    if (mRunNumberFromGRP == -2) { // no run number from GRP
+      mFEECFG->setRunNumber(val);
+    } else {
+      mFEECFG->setRunNumber(mRunNumberFromGRP);
+      if (mRunNumberFromGRP != val) {
+        LOG(error) << "RunNumber from GRP (=" << mRunNumberFromGRP << ") and from EMC DCS (=" << val << ") are not consistant";
+      }
+    }
   } else if (alias.find("EMC_DDL_LIST0") != std::string::npos) {
     mFEECFG->setDDLlist0(val);
   } else if (alias.find("EMC_DDL_LIST1") != std::string::npos) {
@@ -278,7 +293,7 @@ void EMCDCSProcessor::updateElmbCCDBinfo()
 
   std::map<std::string, std::string> metadata;
   metadata["responsible"] = "Martin Poghosyan";
-  prepareCCDBobjectInfo(mELMBdata.get(), mccdbELMBinfo, "EMC/Temperature", mTF, metadata);
+  prepareCCDBobjectInfo(*mELMBdata.get(), mccdbELMBinfo, o2::emcal::CalibDB::getCDBPathTemperatureSensor(), mTF, metadata);
 }
 
 void EMCDCSProcessor::updateFeeCCDBinfo()
@@ -290,7 +305,7 @@ void EMCDCSProcessor::updateFeeCCDBinfo()
   }
   std::map<std::string, std::string> metadata;
   metadata["responsible"] = "Martin Poghosyan";
-  prepareCCDBobjectInfo(mFEECFG.get(), mccdbFEEcfginfo, "EMC/FeeDCS", mTF, metadata);
+  prepareCCDBobjectInfo(*mFEECFG.get(), mccdbFEEcfginfo, o2::emcal::CalibDB::getCDBPathFeeDCS(), mTF, metadata);
 }
 
 void EMCDCSProcessor::printPDCOM(const DPCOM& dpcom)
