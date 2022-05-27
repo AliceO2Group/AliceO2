@@ -77,23 +77,10 @@ class ResidualAggregatorDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    updateTimeDependentParams(pc);
+
     auto data = pc.inputs().get<gsl::span<o2::tpc::TrackResiduals::UnbinnedResid>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mAggregator->getCurrentTFInfo());
-    if (!isLHCPeriodSet) {
-      // read the LHC period information only once
-      const std::string NAStr = "NA";
-      auto LHCPeriodStr = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("LHCPeriod", NAStr);
-      if (LHCPeriodStr == NAStr) {
-        const char* months[12] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
-        time_t now = time(nullptr);
-        auto ltm = gmtime(&now);
-        LHCPeriodStr = months[ltm->tm_mon];
-        LOG(warning) << "LHCPeriod is not available, using current month " << LHCPeriodStr;
-      }
-      mAggregator->setLHCPeriod(LHCPeriodStr);
-      isLHCPeriodSet = true;
-    }
     LOG(debug) << "Processing TF " << mAggregator->getCurrentTFInfo().tfCounter << " with " << data.size() << " unbinned residuals";
     mAggregator->process(data);
   }
@@ -106,9 +93,17 @@ class ResidualAggregatorDevice : public o2::framework::Task
   }
 
  private:
+  void updateTimeDependentParams(ProcessingContext& pc)
+  {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    static bool initOnceDone = false;
+    if (!initOnceDone) {
+      initOnceDone = true;
+      mAggregator->setDataTakingContext(pc.services().get<DataTakingContext>());
+    }
+  }
   std::unique_ptr<o2::tpc::ResidualAggregator> mAggregator;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
-  bool isLHCPeriodSet{false};
 };
 
 } // namespace calibration

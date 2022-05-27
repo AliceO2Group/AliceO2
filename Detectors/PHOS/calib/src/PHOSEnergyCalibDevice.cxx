@@ -70,9 +70,20 @@ void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
   Geometry::GetInstance("Run3");
 }
 
+//___________________________________________________________________
+void PHOSEnergyCalibDevice::updateTimeDependentParams(ProcessingContext& pc)
+{
+  static bool initOnceDone = false;
+  if (!initOnceDone) {
+    initOnceDone = true;
+    mDataTakingContext = pc.services().get<DataTakingContext>();
+  }
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+}
+
 void PHOSEnergyCalibDevice::run(o2::framework::ProcessingContext& pc)
 {
-  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  updateTimeDependentParams(pc);
 
   // Do not use ccdb if already created
   if (!mHasCalib) { // Default map and calibration was not set, use CCDB
@@ -175,8 +186,7 @@ void PHOSEnergyCalibDevice::writeOutFile()
 
   // write metaFile data
   mFileMetaData->fillFileData(mFileName);
-  mFileMetaData->run = mRunNumber;
-  mFileMetaData->LHCPeriod = mLHCPeriod;
+  mFileMetaData->setDataTakingContext(mDataTakingContext);
   mFileMetaData->type = "calib";
   mFileMetaData->priority = "high";
 

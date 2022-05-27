@@ -26,6 +26,7 @@ o2_add_library(DetectorsCommonDataFormats
                O2::FrameworkLogger
                O2::Headers
                O2::rANS
+               O2::Framework
                O2::CommonUtils)
 
 o2_target_root_dictionary(
