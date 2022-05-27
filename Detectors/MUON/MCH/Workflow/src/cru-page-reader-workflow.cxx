@@ -585,7 +585,7 @@ class FileReaderTask
 
   void setMessageHeader(ProcessingContext& pc, const o2::dataformats::TFIDInfo& tfid) const
   {
-    auto& timingInfo = pc.services().get<TimingInfo>();
+    auto& timingInfo = pc.services().get<o2::framework::TimingInfo>();
     if (tfid.firstTForbit != -1U) {
       timingInfo.firstTFOrbit = tfid.firstTForbit;
     }

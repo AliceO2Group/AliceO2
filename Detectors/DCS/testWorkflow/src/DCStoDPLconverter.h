@@ -54,7 +54,7 @@ using DPCOM = o2::dcs::DataPointCompositeObject;
 o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dpid2group, bool fbiFirst, bool verbose = false)
 {
 
-  return [dpid2group, fbiFirst, verbose](TimingInfo& tinfo, FairMQDevice& device, FairMQParts& parts, o2f::ChannelRetriever channelRetriever) {
+  return [dpid2group, fbiFirst, verbose](o2::framework::TimingInfo& tinfo, FairMQDevice& device, FairMQParts& parts, o2f::ChannelRetriever channelRetriever) {
     static std::unordered_map<DPID, DPCOM> cache; // will keep only the latest measurement in the 1-second wide window for each DPID
     static auto timer = std::chrono::system_clock::now();
     static auto timer0 = std::chrono::system_clock::now();

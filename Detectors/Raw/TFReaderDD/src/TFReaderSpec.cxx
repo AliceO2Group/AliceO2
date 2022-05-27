@@ -157,7 +157,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
     return std::string{};
   };
   auto setTimingInfo = [&ctx](TFMap& msgMap) {
-    auto& timingInfo = ctx.services().get<TimingInfo>();
+    auto& timingInfo = ctx.services().get<o2::framework::TimingInfo>();
     const auto* dataptr = (*msgMap.begin()->second.get())[0].GetData();
     const auto* hd0 = o2h::get<o2h::DataHeader*>(dataptr);
     const auto* dph = o2h::get<o2f::DataProcessingHeader*>(dataptr);
