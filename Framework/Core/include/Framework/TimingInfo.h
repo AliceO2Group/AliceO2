@@ -17,6 +17,9 @@
 
 /// This class holds the information about timing
 /// of the messages being processed.
+namespace o2::framework
+{
+
 struct TimingInfo {
   size_t timeslice; /// the timeslice associated to current processing
   uint32_t firstTFOrbit = -1; /// the orbit the TF begins
@@ -24,5 +27,7 @@ struct TimingInfo {
   uint32_t runNumber = -1;
   uint64_t creation = -1UL;
 };
+
+} // namespace o2::framework
 
 #endif // O2_FRAMEWORK_TIMINGINFO_H_
