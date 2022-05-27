@@ -33,16 +33,18 @@
 #include "PHOSBase/Geometry.h"
 #include <TGeoBBox.h>
 #include <tuple>
+#include <gsl/span>
 
 using namespace o2::event_visualisation;
 
+struct TrackTimeNode {
+  GID trackGID;
+  float trackTime;
+};
+
 void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
-                                     GID::mask_t maskCl, GID::mask_t maskTrk, GID::mask_t maskMatch)
+                                     GID::mask_t maskCl, GID::mask_t maskTrk, GID::mask_t maskMatch, bool trackSorting)
 {
-  struct TrackTimeNode {
-    GID trackGID;
-    float trackTime;
-  };
   std::vector<TrackTimeNode> trackTimeNodes;
   std::vector<Bracket> itsROFBrackets;
 
@@ -106,10 +108,6 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
       return true;
     }
 
-    if (mEnabledFilters.test(Filter::TotalNTracks) && mTrackSet.trackGID.size() >= mMaxNTracks) {
-      return true;
-    }
-
     auto bracket = correctTrackTime(trk, time, terr);
 
     if (mEnabledFilters.test(Filter::TimeBracket) && mTimeBracket.getOverlap(bracket).isInvalid()) {
@@ -120,9 +118,6 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
       return true;
     }
 
-    // mTrackSet.trackGID.push_back(gid);
-    // mTrackSet.trackTime.push_back(bracket.mean());
-
     TrackTimeNode node;
     node.trackGID = gid;
     node.trackTime = bracket.mean();
@@ -132,14 +127,20 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
   };
 
   this->mRecoCont.createTracksVariadic(creator);
-  std::sort(trackTimeNodes.begin(), trackTimeNodes.end(),
-            [](TrackTimeNode a, TrackTimeNode b) {
-              return a.trackTime > b.trackTime;
-            });
-  for (auto node : trackTimeNodes) {
-    if (mEnabledFilters.test(Filter::TotalNTracks) && mTrackSet.trackGID.size() >= mMaxNTracks) {
-      break;
-    }
+
+  if (trackSorting) {
+    std::sort(trackTimeNodes.begin(), trackTimeNodes.end(),
+              [](TrackTimeNode a, TrackTimeNode b) {
+                return a.trackTime > b.trackTime;
+              });
+  }
+
+  std::size_t trackCount = trackTimeNodes.size();
+  if (mEnabledFilters.test(Filter::TotalNTracks) && trackCount >= mMaxNTracks) {
+    trackCount = mMaxNTracks;
+  }
+
+  for (auto node : gsl::span<const TrackTimeNode>(trackTimeNodes.data(), trackCount)) {
     mTrackSet.trackGID.push_back(node.trackGID);
     mTrackSet.trackTime.push_back(node.trackTime);
   }
