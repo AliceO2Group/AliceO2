@@ -61,7 +61,7 @@
       {                                              \
         fprintf(stderr, string "\n", ##__VA_ARGS__); \
       }
-    #define GPUError(...) GPUAlarm(__VA_ARGS__)
+    #define GPUAlarm(...) GPUWarning(__VA_ARGS__)
     #define GPUError(...) GPUWarning(__VA_ARGS__)
     #ifdef GPUCA_NOCOMPAT
       #define GPUFatal(string, ...)                    \
