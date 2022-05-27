@@ -21,8 +21,8 @@ namespace o2::utils
 class IRFrameSelector
 {
  public:
-  bool check(const o2::dataformats::IRFrame& fr);
-  bool check(const o2::InteractionRecord& ir) { return check(o2::dataformats::IRFrame{ir, ir}); }
+  long check(const o2::dataformats::IRFrame& fr);
+  long check(const o2::InteractionRecord& ir) { return check(o2::dataformats::IRFrame{ir, ir}); }
 
   template <typename SPAN>
   void setSelectedIRFrames(const SPAN& sp)
@@ -34,6 +34,8 @@ class IRFrameSelector
 
   size_t loadIRFrames(const std::string& fname);
   void print(bool lst = false) const;
+
+  auto getIRFrames() const { return mFrames; }
 
  private:
   gsl::span<const o2::dataformats::IRFrame> mFrames{}; // externally provided span of IRFrames, must be sorted in IRFrame.getMin()

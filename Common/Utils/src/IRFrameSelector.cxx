@@ -21,20 +21,20 @@
 
 using namespace o2::utils;
 
-bool IRFrameSelector::check(const o2::dataformats::IRFrame& fr)
+long IRFrameSelector::check(const o2::dataformats::IRFrame& fr)
 {
-  bool ans = false;
+  long ans = -1;
 
   // find entry which overlaps or above fr
-  auto fullcheck = [&fr, this]() {
+  auto fullcheck = [&fr, this]() -> long {
     auto lower = std::lower_bound(this->mFrames.begin(), this->mFrames.end(), fr);
     if (lower == this->mFrames.end()) {
       this->mLastBoundID = this->mFrames.size();
     } else {
       this->mLastBoundID = std::distance(this->mFrames.begin(), lower);
-      return fr.isOutside(*lower) == o2::dataformats::IRFrame::Inside;
+      return fr.isOutside(*lower) == o2::dataformats::IRFrame::Inside ? this->mLastBoundID : -1;
     }
-    return false;
+    return -1;
   };
 
   if (mLastBoundID < 0) { // 1st call, do full search
@@ -48,7 +48,7 @@ bool IRFrameSelector::check(const o2::dataformats::IRFrame& fr)
         if (res == o2::dataformats::IRFrame::Above) {
           break; // no point in checking further
         } else if (res == o2::dataformats::IRFrame::Inside) {
-          ans = true;
+          ans = mLastBoundID;
           break;
         }
         if (++steps == MaxSteps) {
@@ -66,7 +66,7 @@ bool IRFrameSelector::check(const o2::dataformats::IRFrame& fr)
           mLastBoundID++; // no point in checking further
           break;
         } else if (res == o2::dataformats::IRFrame::Inside) {
-          ans = true;
+          ans = mLastBoundID;
           break;
         }
         if (++steps == MaxSteps) {
