@@ -58,6 +58,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"filter-time-min", VariantType::Float, -1.f, {"display tracks only in [min, max] microseconds time range in each time frame, requires --filter-time-max to be specified as well"}},
     {"filter-time-max", VariantType::Float, -1.f, {"display tracks only in [min, max] microseconds time range in each time frame, requires --filter-time-min to be specified as well"}},
     {"remove-tpc-abs-eta", VariantType::Float, 0.f, {"remove TPC tracks in [-eta, +eta] range"}},
+    {"track-sorting", VariantType::Bool, true, {"sort track by track time before applying filters"}},
   };
 
   std::swap(workflowOptions, options);
@@ -97,7 +98,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   EveWorkflowHelper helper(enabledFilters, this->mNumberOfTracks, this->mTimeBracket, this->mEtaBracket);
 
   helper.getRecoContainer().collectData(pc, *mDataRequest);
-  helper.selectTracks(&(mData.mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
+  helper.selectTracks(&(mData.mConfig->configCalib), mClMask, mTrkMask, mTrkMask, mTrackSorting);
 
   helper.prepareITSClusters(mData.mITSDict);
   helper.prepareMFTClusters(mData.mMFTDict);
@@ -242,12 +243,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   auto minITSTracks = cfgc.options().get<int>("min-its-tracks");
   auto minTracks = cfgc.options().get<int>("min-tracks");
+  auto tracksSorting = cfgc.options().get<bool>("track-sorting");
+  if (numberOfTracks == -1) {
+    tracksSorting = false; // do not sort if all tracks are allowed
+  }
 
   specs.emplace_back(DataProcessorSpec{
     "o2-eve-display",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket)}});
+    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting)}});
 
   return std::move(specs);
 }
