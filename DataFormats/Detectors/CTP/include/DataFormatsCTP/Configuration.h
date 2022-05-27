@@ -146,7 +146,7 @@ class CTPConfiguration
   std::vector<CTPClass> mCTPClasses;
   int processConfigurationLineRun3(std::string& line, int& level);
   int processConfigurationLine(std::string& line, int& level);
-  ClassDefNV(CTPConfiguration, 3);
+  ClassDefNV(CTPConfiguration, 4);
 };
 // Run Manager
 struct CTPActiveRun {
