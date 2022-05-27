@@ -334,7 +334,8 @@ MatcherInfo extractMatcherInfo(DataDescriptorMatcher const& top)
         state.hasError = true;
         return VisitNone;
       }
-      if (action.node->getOp() == ops::Just) {
+      if (action.node->getOp() == ops::Just ||
+          action.node->getOp() == ops::Not) {
         return VisitLeft;
       }
       return VisitBoth;
@@ -510,7 +511,8 @@ DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataTypeM
   auto timeDescriptionMatcher = std::make_unique<DataDescriptorMatcher>(
     DataDescriptorMatcher::Op::And,
     DescriptionValueMatcher{dataType.description.as<std::string>()},
-    StartTimeValueMatcher(ContextRef{0}));
+    std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
+                                            StartTimeValueMatcher{ContextRef{0}}));
   return std::move(DataDescriptorMatcher(
     DataDescriptorMatcher::Op::And,
     OriginValueMatcher{dataType.origin.as<std::string>()},
@@ -564,12 +566,11 @@ std::optional<framework::ConcreteDataMatcher> DataSpecUtils::optionalConcreteDat
       if (state.hasError) {
         return VisitNone;
       }
+      // a ConcreteDataMatcher requires either 'and' or 'just'
+      // operations and we return the corresponding action for these
       if (action.node->getOp() == ops::Just) {
         return VisitLeft;
-      }
-      // a ConcreteDataMatcher requires only 'and' operations
-      // which have an OR, so we reset all the uniqueness attributes.
-      if (action.node->getOp() == ops::And) {
+      } else if (action.node->getOp() == ops::And) {
         return VisitBoth;
       }
       // simply use the error state to indicate that the operation does not match the
@@ -654,7 +655,7 @@ InputSpec DataSpecUtils::fromMetadataString(std::string s)
 {
   std::regex word_regex("(\\w+)");
   auto words = std::sregex_iterator(s.begin(), s.end(), word_regex);
-  if (std::distance(words, std::sregex_iterator()) != 3) {
+  if (std::distance(words, std::sregex_iterator()) != 4) {
     throw runtime_error_f("Malformed input spec metadata: %s", s.c_str());
   }
   std::vector<std::string> data;
@@ -665,7 +666,8 @@ InputSpec DataSpecUtils::fromMetadataString(std::string s)
   char description[16];
   std::memcpy(&origin, data[1].c_str(), 4);
   std::memcpy(&description, data[2].c_str(), 16);
-  return InputSpec{data[0], header::DataOrigin{origin}, header::DataDescription{description}};
+  auto version = static_cast<o2::header::DataHeader::SubSpecificationType>(std::atoi(data[3].c_str()));
+  return InputSpec{data[0], header::DataOrigin{origin}, header::DataDescription{description}, version, Lifetime::Timeframe};
 }
 
 std::optional<header::DataOrigin> DataSpecUtils::getOptionalOrigin(InputSpec const& spec)
@@ -766,7 +768,7 @@ bool DataSpecUtils::includes(const InputSpec& left, const InputSpec& right)
 
 void DataSpecUtils::updateInputList(std::vector<InputSpec>& list, InputSpec&& input)
 {
-  auto locate = std::find_if(list.begin(), list.end(), [&](InputSpec& entry) { return entry.binding == input.binding; });
+  auto locate = std::find(list.begin(), list.end(), input);
   if (locate != list.end()) {
     // amend entry
     auto& entryMetadata = locate->metadata;

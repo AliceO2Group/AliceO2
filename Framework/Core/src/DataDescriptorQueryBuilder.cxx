@@ -41,6 +41,7 @@ enum QueryBuilderState {
   IN_END_QUERY,
   IN_STRING,
   IN_NUMBER,
+  IN_NEGATION,
   IN_ERROR,
   IN_BEGIN_ATTRIBUTES,
   IN_END_ATTRIBUTES,
@@ -79,6 +80,22 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
   };
 
   auto pushState = [&states](QueryBuilderState state) {
+    states.push_back(state);
+  };
+
+  auto checkModifier = [&states, &cur, &next, &error](QueryBuilderState state, const char* mod) {
+    const char* modifier = nullptr;
+    if (mod[0] != '\0' && (modifier = strpbrk(cur, mod)) != nullptr) {
+      switch (*modifier) {
+        case '!':
+          states.push_back(IN_NEGATION);
+          break;
+        default:
+          error("invalid modifier '" + std::string(modifier, 1) + "'");
+          return;
+      }
+      next = ++cur;
+    }
     states.push_back(state);
   };
 
@@ -141,6 +158,18 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
       }
     }
     return InputSpec{binding, std::move(*lastMatcher.release()), lifetime, attributes};
+  };
+
+  auto pushMatcher = [&nodes, &states](auto&& matcher) {
+    if (states.empty() == false && states.back() == IN_NEGATION) {
+      states.pop_back();
+      auto notMatcher = std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Xor,
+                                                                std::move(matcher),
+                                                                data_matcher::ConstantValueMatcher{true});
+      nodes.push_back(std::move(notMatcher));
+    } else {
+      nodes.push_back(std::move(matcher));
+    }
   };
 
   while (states.empty() == false) {
@@ -217,28 +246,29 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
           nodes.push_back(DescriptionValueMatcher{*currentDescription});
         } else if (*next == '?' && assignLastStringMatch("description", 16, currentDescription, IN_BEGIN_ATTRIBUTES)) {
           nodes.push_back(DescriptionValueMatcher{*currentDescription});
-        } else if (*next == '\0' && assignLastStringMatch("description", 16, currentDescription, IN_BEGIN_ATTRIBUTES)) {
+        } else if (*next == '\0' && assignLastStringMatch("description", 16, currentDescription, IN_END_MATCHER)) {
           nodes.push_back(DescriptionValueMatcher{*currentDescription});
         } else {
           error("description needs to be between 1 and 16 char long");
         }
       } break;
       case IN_BEGIN_SUBSPEC: {
-        pushState(IN_END_SUBSPEC);
+        checkModifier(IN_END_SUBSPEC, "!");
         token(IN_NUMBER, ";%?");
       } break;
       case IN_END_SUBSPEC: {
         if (*next == '%' && assignLastNumericMatch("subspec", currentSubSpec, IN_BEGIN_TIMEMODULO)) {
-          nodes.push_back(SubSpecificationTypeValueMatcher{*currentSubSpec});
         } else if (*next == '?' && assignLastNumericMatch("subspec", currentSubSpec, IN_BEGIN_ATTRIBUTES)) {
-          nodes.push_back(SubSpecificationTypeValueMatcher{*currentSubSpec});
         } else if (*next == ';' && assignLastNumericMatch("subspec", currentSubSpec, IN_END_MATCHER)) {
-          nodes.push_back(SubSpecificationTypeValueMatcher{*currentSubSpec});
         } else if (*next == '\0' && assignLastNumericMatch("subspec", currentSubSpec, IN_END_MATCHER)) {
-          nodes.push_back(SubSpecificationTypeValueMatcher{*currentSubSpec});
         } else {
           error("Expected a number");
+          break;
         }
+        auto backup = states.back();
+        states.pop_back();
+        pushMatcher(SubSpecificationTypeValueMatcher{*currentSubSpec});
+        states.push_back(backup);
       } break;
       case IN_BEGIN_TIMEMODULO: {
         pushState(IN_END_TIMEMODULO);
@@ -305,6 +335,9 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
       } break;
       case IN_END_ATTRIBUTES: {
         pushState(IN_END_MATCHER);
+      } break;
+      case IN_NEGATION: {
+        error("property modifiers should have been handled before when inserting previous matcher");
       } break;
       case IN_ERROR: {
         throw std::runtime_error("Parse error: " + errorString);

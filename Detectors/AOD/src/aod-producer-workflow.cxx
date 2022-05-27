@@ -17,6 +17,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
+#include "DetectorsBase/DPLWorkflowUtils.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -36,7 +37,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation"}},
     {"disable-secondary-vertices", o2::framework::VariantType::Bool, false, {"disable filling secondary vertices"}},
     {"info-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
+    {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -50,7 +52,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto resFile = configcontext.options().get<std::string>("aod-writer-resfile");
   bool enableSV = !configcontext.options().get<bool>("disable-secondary-vertices");
 
-  GID::mask_t allowedSrc = GID::getSourcesMask("ITS,MFT,MCH,TPC,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TRD-TOF,MFT-MCH,FT0,FV0,FDD,ZDC,EMC,CTP,PHS");
+  GID::mask_t allowedSrc = GID::getSourcesMask("ITS,MFT,MCH,MID,TPC,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TRD-TOF,MFT-MCH,FT0,FV0,FDD,ZDC,EMC,CTP,PHS");
   GID::mask_t src = allowedSrc & GID::getSourcesMask(configcontext.options().get<std::string>("info-sources"));
 
   WorkflowSpec specs;
@@ -59,11 +61,24 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto srcCls = src & ~(GID::getSourceMask(GID::MCH) | GID::getSourceMask(GID::MID)); // Don't read global MID and MCH clusters (those attached to tracks are always read)
   auto srcMtc = src & ~GID::getSourceMask(GID::MFTMCH); // Do not request MFTMCH matches
 
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcMtc, src, useMC, src);
-  o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
+  WorkflowSpec inputspecs;
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, inputspecs, srcCls, srcMtc, src, useMC, src);
+  o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, inputspecs, useMC);
   if (enableSV) {
-    o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
+    o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, inputspecs);
   }
+  if (configcontext.options().get<bool>("combine-source-devices")) {
+    std::vector<DataProcessorSpec> unmerged;
+    specs.push_back(specCombiner("AOD-input-reader", inputspecs, unmerged));
+    for (auto& is : unmerged) {
+      specs.push_back(is);
+    }
+  } else {
+    for (auto& s : inputspecs) {
+      specs.push_back(s);
+    }
+  }
+
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 

@@ -35,12 +35,12 @@
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
-#include "Framework/DataProcessorSpec.h"
-#include "Framework/runDataProcessing.h"
 
 #include "DPLUtils/DPLRawParser.h"
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "DetectorsRaw/HBFUtils.h"
+#include "CommonDataFormat/TFIDInfo.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -188,6 +188,17 @@ class FileReaderTask
       this->mInputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+
+    const auto& hbfu = o2::raw::HBFUtils::Instance();
+    if (hbfu.runNumber != 0) {
+      mTFIDInfo.runNumber = hbfu.runNumber;
+    }
+    if (hbfu.orbitFirst != 0) {
+      mTFIDInfo.firstTForbit = hbfu.orbitFirst;
+    }
+    if (hbfu.startTime != 0) {
+      mTFIDInfo.creation = hbfu.startTime;
+    }
   }
 
   void printHBF(char* framePtr, size_t frameSize)
@@ -256,8 +267,8 @@ class FileReaderTask
   {
     /// send one RDH block via DPL
     RDH rdh;
-    char* buf{nullptr};
-    size_t frameSize{0};
+    char* buf[NFEEID][NLINKS] = {nullptr};
+    size_t frameSize[NFEEID][NLINKS] = {0};
 
     static int TFid = 0;
 
@@ -337,34 +348,33 @@ class FileReaderTask
       }
 
       // allocate or extend the output buffer
-      buf = (char*)realloc(buf, frameSize + pageSize);
-      if (buf == nullptr) {
+      buf[feeID][linkID] = (char*)realloc(buf[feeID][linkID], frameSize[feeID][linkID] + pageSize);
+      if (buf[feeID][linkID] == nullptr) {
         std::cout << mFrameMax << " - failed to allocate buffer" << std::endl;
         pc.services().get<ControlService>().endOfStream();
         return;
       }
 
       // copy the RDH into the output buffer
-      memcpy(buf + frameSize, &rdh, rdhHeaderSize);
+      memcpy(buf[feeID][linkID] + frameSize[feeID][linkID], &rdh, rdhHeaderSize);
 
       // read the frame payload into the output buffer
       if (mPrint) {
         std::cout << "Reading " << pageSize - rdhHeaderSize << " for payload from input file\n";
       }
-      mInputFile.read(buf + frameSize + rdhHeaderSize, pageSize - rdhHeaderSize);
+      mInputFile.read(buf[feeID][linkID] + frameSize[feeID][linkID] + rdhHeaderSize, pageSize - rdhHeaderSize);
 
       // stop if data cannot be read completely
       if (mInputFile.fail()) {
         if (mPrint) {
           std::cout << "end of file reached" << std::endl;
         }
-        free(buf);
         pc.services().get<ControlService>().endOfStream();
         return; // probably reached eof
       }
 
       // increment the total buffer size
-      frameSize += pageSize;
+      frameSize[feeID][linkID] += pageSize;
 
       if ((triggerType & 0x800) != 0 && stopBit == 0 && pageCounter == 0) {
         // This is the start of a new TimeFrame, so we need to take some actions:
@@ -410,9 +420,9 @@ class FileReaderTask
 
         if (mPrint) {
           std::cout << "Appending HBF to TF #" << tfQueue.size() << std::endl;
-          printHBF(buf, frameSize);
+          printHBF(buf[feeID][linkID], frameSize[feeID][linkID]);
         }
-        if (!appendHBF(tfQueue.back(), buf, frameSize, true)) {
+        if (!appendHBF(tfQueue.back(), buf[feeID][linkID], frameSize[feeID][linkID], true)) {
           std::cout << mFrameMax << " - failed to append HBframe" << std::endl;
           pc.services().get<ControlService>().endOfStream();
           return;
@@ -423,9 +433,9 @@ class FileReaderTask
           if (tfQueue.back().hbframes.size() <= mOverlap) {
             if (mPrint) {
               std::cout << "Appending HBF to TF #1" << std::endl;
-              printHBF(buf, frameSize);
+              printHBF(buf[feeID][linkID], frameSize[feeID][linkID]);
             }
-            if (!appendHBF(tfQueue.front(), buf, frameSize, false)) {
+            if (!appendHBF(tfQueue.front(), buf[feeID][linkID], frameSize[feeID][linkID], false)) {
               std::cout << mFrameMax << " - failed to append HBframe" << std::endl;
               pc.services().get<ControlService>().endOfStream();
               return;
@@ -434,9 +444,9 @@ class FileReaderTask
         }
 
         // free the HBFrame buffer
-        free(buf);
-        buf = nullptr;
-        frameSize = 0;
+        free(buf[feeID][linkID]);
+        buf[feeID][linkID] = nullptr;
+        frameSize[feeID][linkID] = 0;
 
         if (tfQueue.size() == 2 && tfQueue.back().hbframes.size() >= mOverlap) {
           // we collected enough HBFrames after the last fully recorded TimeFrame, so we can send it
@@ -470,9 +480,11 @@ class FileReaderTask
   //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
+    setMessageHeader(pc, mTFIDInfo);
+
     if (mFullTF) {
       sendTF(pc);
-      //pc.services().get<ControlService>().endOfStream();
+      // pc.services().get<ControlService>().endOfStream();
       return;
     }
 
@@ -571,6 +583,24 @@ class FileReaderTask
     } // while (true)
   }
 
+  void setMessageHeader(ProcessingContext& pc, const o2::dataformats::TFIDInfo& tfid) const
+  {
+    auto& timingInfo = pc.services().get<TimingInfo>();
+    if (tfid.firstTForbit != -1U) {
+      timingInfo.firstTFOrbit = tfid.firstTForbit;
+    }
+    if (tfid.tfCounter != -1U) {
+      timingInfo.tfCounter = tfid.tfCounter;
+    }
+    if (tfid.runNumber != -1U) {
+      timingInfo.runNumber = tfid.runNumber;
+    }
+    if (tfid.creation != -1U) {
+      timingInfo.creation = tfid.creation;
+    }
+    // LOGP(info, "TimingInfo set to : firstTFOrbit {}, tfCounter {}, runNumber {}, creatio {}",  timingInfo.firstTFOrbit, timingInfo.tfCounter, timingInfo.runNumber, timingInfo.creation);
+  }
+
  private:
   std::ifstream mInputFile{}; ///< input file
   int mFrameMax;              ///< number of frames to process
@@ -580,6 +610,7 @@ class FileReaderTask
   bool mSaveTF;               ///< save individual time frames to file
   int mOverlap;               ///< overlap between contiguous TimeFrames
   bool mPrint = false;        ///< print debug messages
+  o2::dataformats::TFIDInfo mTFIDInfo{}; // struct to modify output headers
 };
 
 //_________________________________________________________________________________________________
@@ -589,7 +620,7 @@ o2::framework::DataProcessorSpec getFileReaderSpec(const char* specName)
   return DataProcessorSpec{
     specName,
     Inputs{},
-    Outputs{OutputSpec{"RDT", "RAWDATA", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{"RDT", "RAWDATA", 0, Lifetime::Sporadic}},
     AlgorithmSpec{adaptFromTask<FileReaderTask>()},
     Options{{"infile", VariantType::String, "", {"input file name"}},
             {"nframes", VariantType::Int, -1, {"number of frames to process"}},
@@ -606,11 +637,21 @@ o2::framework::DataProcessorSpec getFileReaderSpec(const char* specName)
 } // end namespace mch
 } // end namespace o2
 
+// we need to add workflow options before including Framework/runDataProcessing
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
+{
+  std::vector<ConfigParamSpec> options{{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+  workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
+}
+
+#include "Framework/runDataProcessing.h"
+
 using namespace o2;
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(const ConfigContext&)
+WorkflowSpec defineDataProcessing(const ConfigContext& cfgc)
 {
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   WorkflowSpec specs;
 
   // The producer to generate some data in the workflow

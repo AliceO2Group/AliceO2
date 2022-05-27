@@ -291,7 +291,8 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk versi
                        track::Pz<track::Signed1Pt, track::Tgl>,
                        track::Energy<track::Signed1Pt, track::Tgl>,
                        track::Rapidity<track::Signed1Pt, track::Tgl>,
-                       track::Sign<track::Signed1Pt>);
+                       track::Sign<track::Signed1Pt>,
+                       o2::soa::Marker<1>);
 
 DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACK", //! Track parameters at collision vertex
                            aod::track::Pt,
@@ -304,11 +305,12 @@ DECLARE_SOA_TABLE_FULL(StoredTracksIU, "Tracks_IU", "AOD", "TRACK_IU", //! On di
                        track::X, track::Alpha,
                        track::Y, track::Z, track::Snp, track::Tgl,
                        track::Signed1Pt,
-                       track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
+                       track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
                        track::Rapidity<track::Signed1Pt, track::Tgl>,
-                       track::Sign<track::Signed1Pt>);
+                       track::Sign<track::Signed1Pt>,
+                       o2::soa::Marker<2>);
 
 DECLARE_SOA_EXTENDED_TABLE(TracksIU, StoredTracksIU, "TRACK_IU", //! Track parameters at inner most update (e.g. ITS) as it comes from the tracking
                            aod::track::Pt,
@@ -316,13 +318,12 @@ DECLARE_SOA_EXTENDED_TABLE(TracksIU, StoredTracksIU, "TRACK_IU", //! Track param
                            aod::track::Eta,
                            aod::track::Phi);
 
-// NOTE Because table column lists have to be unique SigmaY and SigmaZ are swapped here compared to StoredTracksCov
-DECLARE_SOA_TABLE_FULL(StoredTracksCovIU, "TracksCov_IU", "AOD", "TRACKCOV_IU", //! On disk version of the TracksCov table at inner most update (e.g. ITS) as it comes from the tracking
-                       track::SigmaZ, track::SigmaY, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
+DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKCOV", //! On disk version of the TracksCov table at collision vertex
+                       track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
                        track::RhoZY, track::RhoSnpY, track::RhoSnpZ, track::RhoTglY, track::RhoTglZ,
-                       track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl);
+                       track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl, o2::soa::Marker<1>);
 
-DECLARE_SOA_EXTENDED_TABLE(TracksCovIU, StoredTracksCovIU, "TRACKCOV_IU", //! Track covariance matrix at inner most update (e.g. ITS) as it comes from the tracking
+DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKCOV", //! Track covariance matrix at collision vertex
                            aod::track::CYY,
                            aod::track::CZY,
                            aod::track::CZZ,
@@ -339,12 +340,12 @@ DECLARE_SOA_EXTENDED_TABLE(TracksCovIU, StoredTracksCovIU, "TRACKCOV_IU", //! Tr
                            aod::track::C1PtTgl,
                            aod::track::C1Pt21Pt2);
 
-DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKCOV", //! On disk version of the TracksCov table at collision vertex
+DECLARE_SOA_TABLE_FULL(StoredTracksCovIU, "TracksCov_IU", "AOD", "TRACKCOV_IU", //! On disk version of the TracksCov table at inner most update (e.g. ITS) as it comes from the tracking
                        track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
                        track::RhoZY, track::RhoSnpY, track::RhoSnpZ, track::RhoTglY, track::RhoTglZ,
-                       track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl);
+                       track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl, o2::soa::Marker<2>);
 
-DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKCOV", //! Track covariance matrix at collision vertex
+DECLARE_SOA_EXTENDED_TABLE(TracksCovIU, StoredTracksCovIU, "TRACKCOV_IU", //! Track covariance matrix at inner most update (e.g. ITS) as it comes from the tracking
                            aod::track::CYY,
                            aod::track::CZY,
                            aod::track::CZZ,
@@ -759,11 +760,12 @@ DECLARE_SOA_TABLE(FDDs_000, "AOD", "FDD", //! FDD table, version 000
                   fdd::TimeA, fdd::TimeC,
                   fdd::TriggerMask);
 
-DECLARE_SOA_TABLE(FDDs_001, "AOD", "FDD_001", //! FDD table, version 001
-                  o2::soa::Index<>, fdd::BCId,
-                  fdd::ChargeA, fdd::ChargeC,
-                  fdd::TimeA, fdd::TimeC,
-                  fdd::TriggerMask);
+DECLARE_SOA_TABLE_VERSIONED(FDDs_001, "AOD", "FDD", 1, //! FDD table, version 001
+                            o2::soa::Index<>,
+                            fdd::BCId,
+                            fdd::ChargeA, fdd::ChargeC,
+                            fdd::TimeA, fdd::TimeC,
+                            fdd::TriggerMask);
 
 using FDDs = FDDs_001; //! this defines the current default version
 using FDD = FDDs::iterator;
@@ -778,9 +780,9 @@ DECLARE_SOA_INDEX_COLUMN(Collision, collision);                         //! Coll
 DECLARE_SOA_TABLE(V0s_000, "AOD", "V0", //! Run 2 V0 table (version 000)
                   o2::soa::Index<>,
                   v0::PosTrackId, v0::NegTrackId);
-DECLARE_SOA_TABLE(V0s_001, "AOD", "V0_001", //! Run 3 V0 table (version 001)
-                  o2::soa::Index<>, v0::CollisionId,
-                  v0::PosTrackId, v0::NegTrackId);
+DECLARE_SOA_TABLE_VERSIONED(V0s_001, "AOD", "V0", 1, //! Run 3 V0 table (version 001)
+                            o2::soa::Index<>, v0::CollisionId,
+                            v0::PosTrackId, v0::NegTrackId);
 
 using V0s = V0s_001; //! this defines the current default version
 using V0 = V0s::iterator;
@@ -794,8 +796,8 @@ DECLARE_SOA_INDEX_COLUMN(Collision, collision);                     //! Collisio
 
 DECLARE_SOA_TABLE(Cascades_000, "AOD", "CASCADE", //! Run 2 cascade table
                   o2::soa::Index<>, cascade::V0Id, cascade::BachelorId);
-DECLARE_SOA_TABLE(Cascades_001, "AOD", "CASCADE_001", //! Run 3 cascade table
-                  o2::soa::Index<>, cascade::CollisionId, cascade::V0Id, cascade::BachelorId);
+DECLARE_SOA_TABLE_VERSIONED(Cascades_001, "AOD", "CASCADE", 1, //! Run 3 cascade table
+                            o2::soa::Index<>, cascade::CollisionId, cascade::V0Id, cascade::BachelorId);
 
 using Cascades = Cascades_001; //! this defines the current default version
 using Cascade = Cascades::iterator;
@@ -931,17 +933,17 @@ DECLARE_SOA_TABLE_FULL(StoredMcParticles_000, "McParticles", "AOD", "MCPARTICLE"
                        mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
                        mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
 
-DECLARE_SOA_TABLE_FULL(StoredMcParticles_001, "McParticles_001", "AOD", "MCPARTICLE_001", //! MC particle table, version 001
-                       o2::soa::Index<>, mcparticle::McCollisionId,
-                       mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
-                       mcparticle::MothersIds, mcparticle::DaughtersIdSlice, mcparticle::Weight,
-                       mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
-                       mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
-                       mcparticle::ProducedByGenerator<mcparticle::Flags>,
-                       mcparticle::FromBackgroundEvent<mcparticle::Flags>,
-                       mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
-                       mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
-                       mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
+DECLARE_SOA_TABLE_FULL_VERSIONED(StoredMcParticles_001, "McParticles", "AOD", "MCPARTICLE", 1, //! MC particle table, version 001
+                                 o2::soa::Index<>, mcparticle::McCollisionId,
+                                 mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
+                                 mcparticle::MothersIds, mcparticle::DaughtersIdSlice, mcparticle::Weight,
+                                 mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
+                                 mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
+                                 mcparticle::ProducedByGenerator<mcparticle::Flags>,
+                                 mcparticle::FromBackgroundEvent<mcparticle::Flags>,
+                                 mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
+                                 mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
+                                 mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
 
 DECLARE_SOA_EXTENDED_TABLE(McParticles_000, StoredMcParticles_000, "MCPARTICLE", //! Basic MC particle properties
                            mcparticle::Phi,
@@ -950,7 +952,7 @@ DECLARE_SOA_EXTENDED_TABLE(McParticles_000, StoredMcParticles_000, "MCPARTICLE",
                            mcparticle::P,
                            mcparticle::Y);
 
-DECLARE_SOA_EXTENDED_TABLE(McParticles_001, StoredMcParticles_001, "MCPARTICLE_001", //! Basic MC particle properties
+DECLARE_SOA_EXTENDED_TABLE(McParticles_001, StoredMcParticles_001, "MCPARTICLE", //! Basic MC particle properties
                            mcparticle::Phi,
                            mcparticle::Eta,
                            mcparticle::Pt,

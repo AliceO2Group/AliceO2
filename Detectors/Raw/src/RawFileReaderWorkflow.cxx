@@ -353,10 +353,6 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
 
   mSentSize += tfSize;
   mSentMessages += tfNParts;
-  for (auto& msgIt : messagesPerRoute) {
-    auto& channel = device->GetChannel(msgIt.first, 0);
-    o2::framework::DataProcessingHelpers::sendOldestPossibleTimeframe(channel, mTFCounter);
-  }
   mReader->setNextTFToRead(++tfID);
   ++mTFCounter;
 }

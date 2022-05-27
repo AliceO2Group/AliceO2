@@ -33,6 +33,7 @@ constexpr DetID::ID DetID::ITS, DetID::TPC, DetID::TRD, DetID::TOF, DetID::PHS, 
 constexpr DetID::ID DetID::IT3;
 constexpr DetID::ID DetID::TRK;
 constexpr DetID::ID DetID::FT3;
+constexpr DetID::ID DetID::FCT;
 #endif
 
 constexpr int DetID::nDetectors;

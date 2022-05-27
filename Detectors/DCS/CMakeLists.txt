@@ -24,6 +24,7 @@ o2_add_library(
           src/GenericFunctions.cxx
           src/StringUtils.cxx
           src/Clock.cxx
+   src/RunStatusChecker.cxx
   PUBLIC_LINK_LIBRARIES O2::Headers O2::CommonUtils O2::CCDB
                         O2::DetectorsCalibration Microsoft.GSL::GSL)
 
@@ -31,7 +32,8 @@ o2_target_root_dictionary(
   DetectorsDCS
   HEADERS include/DetectorsDCS/DataPointCompositeObject.h
           include/DetectorsDCS/DataPointIdentifier.h
-          include/DetectorsDCS/DataPointValue.h)
+          include/DetectorsDCS/DataPointValue.h
+   include/DetectorsDCS/RunStatusChecker.h)
 
 if(OpenMP_CXX_FOUND)
   target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)

@@ -15,8 +15,9 @@
 #include "EMCALCalib/TimeCalibParamL1Phase.h"
 #include "EMCALCalib/TempCalibParamSM.h"
 #include "EMCALCalib/GainCalibrationFactors.h"
-#include "EMCALCalib/TriggerDCS.h"
+#include "EMCALCalib/FeeDCS.h"
 #include "EMCALCalib/CalibDB.h"
+#include "EMCALCalib/ElmbData.h"
 
 using namespace o2::emcal;
 
@@ -79,12 +80,20 @@ void CalibDB::storeGainCalibFactors(GainCalibrationFactors* gcf, const std::map<
   mCCDBManager.storeAsTFileAny(gcf, getCDBPathGainCalibrationParams(), metadata, rangestart, rangeend);
 }
 
-void CalibDB::storeTriggerDCSData(TriggerDCS* dcs, const std::map<std::string, std::string>& metadata, ULong_t rangestart, ULong_t rangeend)
+void CalibDB::storeFeeDCSData(FeeDCS* dcs, const std::map<std::string, std::string>& metadata, ULong_t rangestart, ULong_t rangeend)
 {
   if (!mInit) {
     init();
   }
-  mCCDBManager.storeAsTFileAny(dcs, getCDBPathTriggerDCS(), metadata, rangestart, rangeend);
+  mCCDBManager.storeAsTFileAny(dcs, getCDBPathFeeDCS(), metadata, rangestart, rangeend);
+}
+
+void CalibDB::storeTemperatureSensorData(ElmbData* dcs, const std::map<std::string, std::string>& metadata, ULong_t rangestart, ULong_t rangeend)
+{
+  if (!mInit) {
+    init();
+  }
+  mCCDBManager.storeAsTFileAny(dcs, getCDBPathTemperatureSensor(), metadata, rangestart, rangeend);
 }
 
 BadChannelMap* CalibDB::readBadChannelMap(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
@@ -159,14 +168,26 @@ GainCalibrationFactors* CalibDB::readGainCalibFactors(ULong_t timestamp, const s
   return result;
 }
 
-TriggerDCS* CalibDB::readTriggerDCSData(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
+FeeDCS* CalibDB::readFeeDCSData(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
 {
   if (!mInit) {
     init();
   }
-  TriggerDCS* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::TriggerDCS>(getCDBPathTriggerDCS(), metadata, timestamp);
+  FeeDCS* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::FeeDCS>(getCDBPathFeeDCS(), metadata, timestamp);
   if (!result) {
-    throw ObjectNotFoundException(mCCDBServer, getCDBPathTriggerDCS(), metadata, timestamp);
+    throw ObjectNotFoundException(mCCDBServer, getCDBPathFeeDCS(), metadata, timestamp);
+  }
+  return result;
+}
+
+ElmbData* CalibDB::readTemperatureSensorData(ULong_t timestamp, const std::map<std::string, std::string>& metadata)
+{
+  if (!mInit) {
+    init();
+  }
+  ElmbData* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::ElmbData>(getCDBPathTemperatureSensor(), metadata, timestamp);
+  if (!result) {
+    throw ObjectNotFoundException(mCCDBServer, getCDBPathTemperatureSensor(), metadata, timestamp);
   }
   return result;
 }

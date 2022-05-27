@@ -11,7 +11,7 @@
 
 #include "FT0Simulation/Digitizer.h"
 #include "FT0Simulation/DigitizationConstants.h"
-#include "FT0Simulation/FT0DigParam.h"
+#include "FT0Base/FT0DigParam.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include <CommonDataFormat/InteractionRecord.h>
 
@@ -263,14 +263,20 @@ void Digitizer::storeBC(BCCache& bc,
     if (!cfd.particle) {
       continue;
     }
-    int smeared_time = 1000. * (*cfd.particle - params.mCfdShift) * params.mChannelWidthInverse;
+    //miscalibrate CFD with cahnnel offsets
+    int miscalib = 0;
+    if (mCalibOffset) {
+      miscalib = mCalibOffset->mTimeOffsets[ipmt];
+    }
+    int smeared_time = 1000. * (*cfd.particle - params.mCfdShift) * params.mChannelWidthInverse + miscalib;
     bool is_time_in_signal_gate = (smeared_time > -params.mTime_trg_gate && smeared_time < params.mTime_trg_gate);
     float charge = measure_amplitude(channel_times) * params.mCharge2amp;
     float amp = is_time_in_signal_gate ? params.mMV_2_Nchannels * charge : 0;
     if (amp > 4095) {
       amp = 4095;
     }
-    LOG(debug) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored;
+
+    LOG(debug) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored << " offset " << miscalib;
     digitsCh.emplace_back(ipmt, smeared_time, int(amp), chain);
     nStored++;
 
@@ -398,6 +404,7 @@ void Digitizer::finish()
   printParameters();
 }
 
+//_______________________________________________________________________
 void Digitizer::printParameters() const
 {
   const auto& params = FT0DigParam::Instance();

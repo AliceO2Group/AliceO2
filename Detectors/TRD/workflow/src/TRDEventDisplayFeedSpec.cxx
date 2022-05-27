@@ -213,7 +213,6 @@ void TRDEventDisplayFeedSpec::run(o2::framework::ProcessingContext& pc)
   int nEvents = std::min((int)mTrigRecs.size(), mNeventsMax);
 
   for (int iEvent = 0; iEvent < nEvents; ++iEvent) {
-    const auto& trigRec = mTrigRecs[iEvent];
     const auto& trackTrigRec = trackTrigRecs[iEvent];
 
     if (trackTrigRec.getNumberOfTracks() == 0) {

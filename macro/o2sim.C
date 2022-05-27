@@ -22,6 +22,9 @@
 #include <TStopwatch.h>
 #include <memory>
 #include "DataFormatsParameters/GRPObject.h"
+#include "DataFormatsParameters/GRPECSObject.h"
+#include "DataFormatsParameters/GRPMagField.h"
+#include "DataFormatsParameters/GRPLHCIFData.h"
 #include "FairParRootFileIo.h"
 #include "FairSystemInfo.h"
 #include <SimSetup/SimSetup.h>
@@ -58,11 +61,29 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   auto& confref = o2::conf::SimConfig::Instance();
   // initialize CCDB service
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+  // fix the timestamp early
+  uint64_t timestamp = confref.getTimestamp();
+  // fix or check timestamp based on given run number if any
+  if (confref.getRunNumber() != -1) {
+    // if we have a run number we should fix or check the timestamp
+
+    // fetch the actual timestamp ranges for this run
+    auto soreor = ccdbmgr.getRunDuration(confref.getRunNumber());
+    if (confref.getConfigData().mTimestampMode == o2::conf::kNow) {
+      timestamp = soreor.first;
+      LOG(info) << "Fixing timestamp to " << timestamp << " based on run number";
+      // communicate decision back to sim config object
+      confref.getConfigData().mTimestampMode = o2::conf::kRun;
+      confref.getConfigData().mTimestamp = timestamp;
+    } else if (confref.getConfigData().mTimestampMode == o2::conf::kManual && (timestamp < soreor.first || timestamp > soreor.second)) {
+      LOG(error) << "The given timestamp is incompatible with the given run number";
+    }
+  }
+  ccdbmgr.setTimestamp(timestamp);
   ccdbmgr.setURL(confref.getConfigData().mCCDBUrl);
-  ccdbmgr.setTimestamp(confref.getTimestamp());
   // try to verify connection
   if (!ccdbmgr.isHostReachable()) {
-    LOG(error) << "Could not setup CCDB connecting";
+    LOG(error) << "Could not setup CCDB connection";
   } else {
     LOG(info) << "Initialized CCDB Manager at URL: " << ccdbmgr.getURL();
     LOG(info) << "Initialized CCDB Manager with timestamp : " << ccdbmgr.getTimestamp();
@@ -87,7 +108,7 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   FairRunSim* run = new o2::steer::O2RunSim(asservice, evalmat);
   run->SetImportTGeoToVMC(false); // do not import TGeo to VMC since the latter is built together with TGeo
   run->SetSimSetup([confref]() { o2::SimSetup::setup(confref.getMCEngine().c_str()); });
-  run->SetRunId(confref.getTimestamp());
+  run->SetRunId(timestamp);
 
   auto pid = getpid();
   std::stringstream s;
@@ -150,10 +171,6 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
     aligner.setValue(fmt::format("{}.mDetectors", aligner.getName()), o2::detectors::DetID::getNames(detMaskAlign, ','));
   }
 
-  // set global density scaling factor
-  auto& matmgr = o2::base::MaterialManager::Instance();
-  matmgr.setDensityScalingFactor(o2::conf::SimMaterialParams::Instance().globalDensityFactor);
-
   // run init
   run->Init();
 
@@ -175,11 +192,16 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   rtdb->print();
   o2::PDG::addParticlesToPdgDataBase(0);
 
+  long runStart = confref.getTimestamp(); // this will signify "time of this MC" (might not coincide with start of Run)
   {
     // store GRPobject
     o2::parameters::GRPObject grp;
-    grp.setRun(run->GetRunId());                // do we want to fill data taking run id?
-    uint64_t runStart = confref.getTimestamp(); // this will signify "time of this MC" (might not coincide with start of Run)
+    if (confref.getRunNumber() != -1) {
+      grp.setRun(confref.getRunNumber());
+    } else {
+      grp.setRun(run->GetRunId());
+    }
+    uint64_t runStart = timestamp;
     grp.setTimeStart(runStart);
     grp.setTimeEnd(runStart + 3600000);
     grp.setDetsReadOut(readoutDetMask);
@@ -203,10 +225,60 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
     TFile grpF(grpfilename.c_str(), "recreate");
     grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
   }
+  // create GRPECS object
+  {
+    o2::parameters::GRPECSObject grp;
+    grp.setRun(run->GetRunId());
+    grp.setTimeStart(runStart);
+    grp.setTimeEnd(runStart + 3600000);
+    grp.setNHBFPerTF(128); // might be overridden later
+    grp.setDetsReadOut(readoutDetMask);
+    if (isReadout("CTP")) {
+      grp.addDetReadOut(o2::detectors::DetID::CTP);
+    }
+    grp.setIsMC(true);
+    grp.setRunType(o2::parameters::GRPECSObject::PHYSICS);
+    // grp.setDataPeriod("mc"); // decide what to put here
+    std::string grpfilename = o2::base::NameConf::getGRPECSFileName(confref.getOutPrefix());
+    TFile grpF(grpfilename.c_str(), "recreate");
+    grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
+  }
+  // create GRPMagField object
+  {
+    o2::parameters::GRPMagField grp;
+    auto field = dynamic_cast<o2::field::MagneticField*>(run->GetField());
+    if (!field) {
+      LOGP(fatal, "Failed to get magnetic field from the FairRunSim");
+    }
+    o2::units::Current_t currDip = field->getCurrentDipole();
+    o2::units::Current_t currL3 = field->getCurrentSolenoid();
+    grp.setL3Current(currL3);
+    grp.setDipoleCurrent(currDip);
+    grp.setFieldUniformity(field->IsUniform());
 
-  // todo: save beam information in the grp
+    std::string grpfilename = o2::base::NameConf::getGRPMagFieldFileName(confref.getOutPrefix());
+    TFile grpF(grpfilename.c_str(), "recreate");
+    grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
+  }
+  // create GRPLHCIF object (just a placeholder, bunch filling will be set in digitization)
+  {
+    o2::parameters::GRPLHCIFData grp;
+    // eventually we need to set the beam info from the generator, at the moment put some plausible values
+    grp.setFillNumberWithTime(runStart, 0);         // RS FIXME
+    grp.setInjectionSchemeWithTime(runStart, "");   // RS FIXME
+    grp.setBeamEnergyPerZWithTime(runStart, 6.8e3); // RS FIXME
+    grp.setAtomicNumberB1WithTime(runStart, 1.);    // RS FIXME
+    grp.setAtomicNumberB2WithTime(runStart, 1.);    // RS FIXME
+    grp.setCrossingAngleWithTime(runStart, 0.);     // RS FIXME
+    grp.setBeamAZ();
+
+    std::string grpfilename = o2::base::NameConf::getGRPLHCIFFileName(confref.getOutPrefix());
+    TFile grpF(grpfilename.c_str(), "recreate");
+    grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
+  }
 
   // print summary about cuts and processes used
+  auto& matmgr = o2::base::MaterialManager::Instance();
   std::ofstream cutfile(o2::base::NameConf::getCutProcFileName(confref.getOutPrefix()));
   matmgr.printCuts(cutfile);
   matmgr.printProcesses(cutfile);

@@ -52,7 +52,6 @@ void DataProcessingHelpers::sendOldestPossibleTimeframe(fair::mq::Channel& chann
   // exposing it to the user in the first place.
   oldestParts.AddPart(std::move(header));
   oldestParts.AddPart(std::move(payload));
-  LOGP(debug, "Notifying {} about oldest possible timeslice being {}", channel.GetName(), timeslice);
   channel.Send(oldestParts);
 }
 

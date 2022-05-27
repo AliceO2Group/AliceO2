@@ -39,7 +39,7 @@ o2_add_executable(emc-dcs-workflow
                   COMPONENT_NAME calibration
                   SOURCES src/emc-dcs-data-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
-                                       O2::EMCALCalib
+                                       O2::EMCALCalibration
                                        O2::EMCALWorkflow
                                        O2::DetectorsDCS)
 

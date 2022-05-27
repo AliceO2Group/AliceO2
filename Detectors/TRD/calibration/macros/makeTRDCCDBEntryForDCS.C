@@ -28,21 +28,29 @@ int makeTRDCCDBEntryForDCS(const std::string url = "http://localhost:8080")
   // macro to populate CCDB for TRD with the configuration for DCS
   std::unordered_map<DPID, std::string> dpid2DataDesc;
   std::vector<std::string> aliasesFloat;
+  std::vector<std::string> aliasesInt;
+  std::vector<std::string> aliasesString;
   aliasesFloat.insert(aliasesFloat.end(), {"trd_gasCO2", "trd_gasH2O", "trd_gasO2"});
   aliasesFloat.insert(aliasesFloat.end(), {"trd_gaschromatographCO2", "trd_gaschromatographN2", "trd_gaschromatographXe"});
-  // aliasesFloat.insert(aliasesFloat.end(), {"trd_hvAnodeImon[00..539]", "trd_hvAnodeUmon[00..539]", "trd_hvDriftImon[00..539]", "trd_hvDriftImon[00..539]"});
-  // std::vector<std::string> aliasesInt = {"trd_fedChamberStatus[00..539]", "trd_runNo", "trd_runType"};
-  std::vector<std::string> aliasesInt = {"trd_runNo", "trd_runType"};
-  std::vector<std::string> expAliasesFloat = o2::dcs::expandAliases(aliasesFloat);
-  std::vector<std::string> expAliasesInt = o2::dcs::expandAliases(aliasesInt);
+  aliasesFloat.insert(aliasesFloat.end(), {"trd_hvAnodeImon[00..539]", "trd_hvAnodeUmon[00..539]", "trd_hvDriftImon[00..539]", "trd_hvDriftUmon[00..539]"});
+  aliasesFloat.insert(aliasesFloat.end(), {"trd_aliEnvTempCavern", "trd_aliEnvTempP2"});
+  aliasesFloat.insert(aliasesFloat.end(), {"trd_aliEnvPressure00", "trd_aliEnvPressure01", "trd_aliEnvPressure02"});
+  aliasesInt.insert(aliasesInt.end(), {"trd_runNo", "trd_runType"});
+  // aliasesFloat.insert(aliasesFloat.end(), {"trd_cavernHumidity", "trd_fedEnvTemp[00..539]"});
+  // aliasesInt.insert(aliasesInt.end(), {"trd_fedChamberStatus[00..539]"});
+  // aliasesString.insert(aliasesString.end(), {"trd_fedCFGtag[00..539]"});
 
   DPID dpidTmp;
-  for (size_t i = 0; i < expAliasesFloat.size(); ++i) {
-    DPID::FILL(dpidTmp, expAliasesFloat[i], o2::dcs::DeliveryType::DPVAL_DOUBLE);
+  for (const auto& ali : o2::dcs::expandAliases(aliasesFloat)) {
+    DPID::FILL(dpidTmp, ali, o2::dcs::DeliveryType::DPVAL_DOUBLE);
     dpid2DataDesc[dpidTmp] = "TRDDATAPOINTS";
   }
-  for (size_t i = 0; i < expAliasesInt.size(); ++i) {
-    DPID::FILL(dpidTmp, expAliasesInt[i], o2::dcs::DeliveryType::DPVAL_INT);
+  for (const auto& ali : o2::dcs::expandAliases(aliasesInt)) {
+    DPID::FILL(dpidTmp, ali, o2::dcs::DeliveryType::DPVAL_INT);
+    dpid2DataDesc[dpidTmp] = "TRDDATAPOINTS";
+  }
+  for (const auto& ali : o2::dcs::expandAliases(aliasesString)) {
+    DPID::FILL(dpidTmp, ali, o2::dcs::DeliveryType::DPVAL_STRING);
     dpid2DataDesc[dpidTmp] = "TRDDATAPOINTS";
   }
 

@@ -74,10 +74,6 @@ class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::e
   void setIsTest(bool isTest) { mTest = isTest; }
   bool isTest() const { return mTest; }
 
-  ///\brief Set path to local root file for storage of calibration histograms
-  void setLocalStorePath(const std::string path) { namePathStoreLocal = path; }
-  std::string getLocalStorePath() const { return namePathStoreLocal; }
-
   const CcdbObjectInfoVector& getInfoVector() const { return mInfoVector; }
   const std::vector<DataOutput>& getOutputVector() const { return mCalibObjectVector; }
 
@@ -91,7 +87,6 @@ class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<o2::e
   float mRange = 0.;  ///< range of the histogram for passing
   bool mTest = false; ///< flag to be used when running in test mode: it simplify the processing (e.g. does not go through all channels)
   std::shared_ptr<EMCALCalibExtractor> mCalibrator;
-  std::string namePathStoreLocal;
 
   // output
   CcdbObjectInfoVector mInfoVector; // vector of CCDB Infos , each element is filled with the CCDB description of the accompanying TimeSlewing object
@@ -146,8 +141,8 @@ void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::finalizeSlot(
     mInfoVector.emplace_back(CalibDB::getCDBPathTimeCalibrationParams(), clName, flName, md, slot.getStartTimeMS(), o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     mCalibObjectVector.push_back(tcd);
 
-    if (namePathStoreLocal.find(".root") != std::string::npos) {
-      TFile fLocalStorage(namePathStoreLocal.c_str(), "update");
+    if ((EMCALCalibParams::Instance().localRootFilePath).find(".root") != std::string::npos) {
+      TFile fLocalStorage((EMCALCalibParams::Instance().localRootFilePath).c_str(), "update");
       fLocalStorage.cd();
       TH1F* histTCparams = (TH1F*)tcd.getHistogramRepresentation(false);
       std::string nameTCHist = "TCParams_" + std::to_string(slot.getStartTimeMS());

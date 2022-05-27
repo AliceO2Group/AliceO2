@@ -129,7 +129,7 @@ std::vector<TopoIndexInfo>
 }
 
 void WorkflowHelpers::addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
-                                                std::vector<InputSpec> requestedInputs,
+                                                std::vector<InputSpec> const& requestedInputs,
                                                 DataProcessorSpec& publisher)
 {
   auto matchingOutputFor = [](InputSpec const& requested) {
@@ -174,7 +174,7 @@ void WorkflowHelpers::addMissingOutputsToSpawner(std::vector<OutputSpec> const& 
     for (auto& i : input.metadata) {
       if ((i.type == VariantType::String) && (i.name.find("input:") != std::string::npos)) {
         auto spec = DataSpecUtils::fromMetadataString(i.defaultValue.get<std::string>());
-        auto j = std::find_if(publisher.inputs.begin(), publisher.inputs.end(), [&](auto x) { return x.binding == spec.binding; });
+        auto j = std::find(publisher.inputs.begin(), publisher.inputs.end(), spec);
         if (j == publisher.inputs.end()) {
           publisher.inputs.push_back(spec);
         }
@@ -1123,7 +1123,7 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
 
         // use the dangling outputs
         std::vector<InputSpec> danglingOutputs;
-        for (auto ii = 0; ii < OutputsInputs.size(); ii++) {
+        for (auto ii = 0u; ii < OutputsInputs.size(); ii++) {
           if (isAOD(OutputsInputs[ii]) && isDangling[ii]) {
             danglingOutputs.emplace_back(OutputsInputs[ii]);
           }

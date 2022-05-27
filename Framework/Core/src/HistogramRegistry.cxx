@@ -79,6 +79,11 @@ HistPtr HistogramRegistry::insert(const HistogramSpec& histSpec)
 // helper function that checks if histogram name can be used in registry
 void HistogramRegistry::validateHistName(const std::string& name, const uint32_t hash)
 {
+  // check that there are still slots left in the registry
+  if (mRegisteredNames.size() == MAX_REGISTRY_SIZE) {
+    LOGF(fatal, R"(HistogramRegistry "%s" is full! It can hold only %d histograms.)", mName, MAX_REGISTRY_SIZE);
+  }
+
   // validate that hash is unique
   auto it = std::find(mRegistryKey.begin(), mRegistryKey.end(), hash);
   if (it != mRegistryKey.end()) {

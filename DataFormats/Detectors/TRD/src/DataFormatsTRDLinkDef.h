@@ -47,4 +47,6 @@
 #pragma link C++ struct o2::trd::CTF + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::trd::CTFHeader, 15, uint32_t> + ;
 
+#pragma link C++ struct o2::trd::TRDDCSMinMaxMeanInfo + ;
+
 #endif

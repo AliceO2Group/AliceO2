@@ -15,6 +15,7 @@ o2_add_library(TPCQC
                        src/Helpers.cxx
                        src/Clusters.cxx
                        src/Tracks.cxx
+                       src/DCSPTemperature.cxx
                PUBLIC_LINK_LIBRARIES O2::TPCBase
                                      O2::DataFormatsTPC
                                      O2::GPUO2Interface)
@@ -26,7 +27,8 @@ o2_target_root_dictionary(TPCQC
                                   include/TPCQC/Helpers.h
                                   include/TPCQC/Clusters.h
                                   include/TPCQC/Tracks.h
-                                  include/TPCQC/CalPadWrapper.h)
+                                  include/TPCQC/CalPadWrapper.h
+                                  include/TPCQC/DCSPTemperature.h)
 
 o2_add_test(PID
             COMPONENT_NAME tpc

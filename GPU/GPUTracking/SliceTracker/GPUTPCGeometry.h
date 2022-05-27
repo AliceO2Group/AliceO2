@@ -47,6 +47,10 @@ class GPUTPCGeometry
   const unsigned char mRegionRows[10] GPUCA_CPP11_INIT(= {17, 15, 16, 15, 18, 16, 16, 14, 13, 12});
   const unsigned char mRegionStart[10] GPUCA_CPP11_INIT(= {0, 17, 32, 48, 63, 81, 97, 113, 127, 140});
 
+  const unsigned char mSampaMapping[10] GPUCA_CPP11_INIT(= {0, 0, 1, 1, 2, 3, 3, 4, 4, 2});
+  const unsigned char mChannelOffset[10] GPUCA_CPP11_INIT(= {0, 16, 0, 16, 0, 0, 16, 0, 16, 16});
+  const unsigned char mSectorFECOffset[5] GPUCA_CPP11_INIT(= {0, 15, 15 + 18, 15 + 18 + 18, 15 + 18 + 18 + 20});
+
   const float mPadHeight[10] GPUCA_CPP11_INIT(= {.75f, .75f, .75f, .75f, 1.f, 1.f, 1.2f, 1.2f, 1.5f, 1.5f});
   const float mPadWidth[10] GPUCA_CPP11_INIT(= {.416f, .420f, .420f, .436f, .6f, .6f, .608f, .588f, .604f, .607f});
 
@@ -58,6 +62,9 @@ class GPUTPCGeometry
   GPUd() int GetRegion(int row) const { return mRegion[row]; }
   GPUd() int GetRegionRows(int region) const { return mRegionRows[region]; }
   GPUd() int GetRegionStart(int region) const { return mRegionStart[region]; }
+  GPUd() int GetSampaMapping(int region) const { return mSampaMapping[region]; }
+  GPUd() int GetChannelOffset(int region) const { return mChannelOffset[region]; }
+  GPUd() int GetSectorFECOffset(int partition) const { return mSectorFECOffset[partition]; }
   GPUd() int GetROC(int row) const { return row < 97 ? (row < 63 ? 0 : 1) : (row < 127 ? 2 : 3); }
   GPUd() int EndIROC() const { return 63; }
   GPUd() int EndOROC1() const { return 97; }

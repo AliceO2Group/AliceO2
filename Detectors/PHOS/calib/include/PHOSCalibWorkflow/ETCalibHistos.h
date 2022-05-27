@@ -63,7 +63,7 @@ class ETCalibHistos
   ETCalibHistos& operator=(const ETCalibHistos& other) = default;
 
   /// \brief Destructor
-  ~ETCalibHistos() = default;
+  virtual ~ETCalibHistos() = default;
 
   /// \brief Merge statistics in two containers
   /// \param other Another container to be added to current

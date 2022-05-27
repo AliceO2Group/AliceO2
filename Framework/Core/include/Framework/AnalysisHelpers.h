@@ -115,18 +115,18 @@ struct Produces : WritingCursor<typename soa::PackToTable<typename T::table_t::p
 
 template <template <typename...> class T, typename... C>
 struct Produces<T<C...>> : WritingCursor<typename soa::PackToTable<typename T<C...>::table_t::persistent_columns_t>::table> {
-  using table_t = soa::Table<C...>;
+  using table_t = T<C...>;
   using metadata = typename aod::MetadataTrait<table_t>::metadata;
 
   // @return the associated OutputSpec
   OutputSpec const spec()
   {
-    return OutputSpec{OutputLabel{metadata::tableLabel()}, metadata::origin(), metadata::description()};
+    return OutputSpec{OutputLabel{metadata::tableLabel()}, metadata::origin(), metadata::description(), metadata::version()};
   }
 
   OutputRef ref()
   {
-    return OutputRef{metadata::tableLabel(), 0};
+    return OutputRef{metadata::tableLabel(), metadata::version()};
   }
 };
 
@@ -156,7 +156,8 @@ struct TableTransform {
     return InputSpec{
       o_metadata::tableLabel(),
       header::DataOrigin{o_metadata::origin()},
-      header::DataDescription{o_metadata::description()}};
+      header::DataDescription{o_metadata::description()},
+      o_metadata::version()};
   }
 
   template <typename... Os>
@@ -172,17 +173,17 @@ struct TableTransform {
 
   constexpr auto spec() const
   {
-    return OutputSpec{OutputLabel{METADATA::tableLabel()}, METADATA::origin(), METADATA::description()};
+    return OutputSpec{OutputLabel{METADATA::tableLabel()}, METADATA::origin(), METADATA::description(), METADATA::version()};
   }
 
   constexpr auto output() const
   {
-    return Output{METADATA::origin(), METADATA::description()};
+    return Output{METADATA::origin(), METADATA::description(), METADATA::version()};
   }
 
   constexpr auto ref() const
   {
-    return OutputRef{METADATA::tableLabel(), 0};
+    return OutputRef{METADATA::tableLabel(), METADATA::version()};
   }
 };
 

@@ -5,7 +5,13 @@
 MYDIR="$(dirname $(realpath $0))"
 source $MYDIR/setenv.sh
 
-if [ -z $FILEWORKDIRRUN ]; then FILEWORKDIRRUN=$FILEWORKDIR; fi              # directory where to find the run-related files (grp, collision context)
+if [[ $EPNSYNCMODE == 0 && $DPL_CONDITION_BACKEND != "http://o2-ccdb.internal" && $DPL_CONDITION_BACKEND != "http://localhost:8084" && $DPL_CONDITION_BACKEND != "http://127.0.0.1:8084" ]]; then
+  alien-token-info >& /dev/null
+  if [[ $? != 0 ]]; then
+    echo "No alien token present" 1>&2
+    exit 1
+  fi
+fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 #Some additional settings used in this workflow
@@ -16,79 +22,29 @@ if [[ -z $CTF_METAFILES_DIR ]];        then CTF_METAFILES_DIR="/dev/null"; fi  #
 if [[ -z $RECO_NUM_NODES_WORKFLOW ]];  then RECO_NUM_NODES_WORKFLOW=250; fi    # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
 if [[ -z $CTF_MINSIZE ]];              then CTF_MINSIZE="2000000000"; fi        # accumulate CTFs until file size reached
 if [[ -z $CTF_MAX_PER_FILE ]];         then CTF_MAX_PER_FILE="10000"; fi       # but no more than given number of CTFs per file
-if [[ -z $IS_SIMULATED_DATA ]];        then IS_SIMULATED_DATA=1; fi            # processing simulated data
-
-if [[ $SYNCMODE == 1 ]]; then
-  if [[ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]]; then export WORKFLOW_DETECTORS_MATCHING="ITSTPC,ITSTPCTRD,ITSTPCTOF,ITSTPCTRDTOF,PRIMVTX"; fi # Select matchings that are enabled in sync mode
-else
-  if [[ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]]; then export WORKFLOW_DETECTORS_MATCHING="ALL"; fi # All matching / vertexing enabled in async mode
-fi
 
 workflow_has_parameter CTF && export SAVECTF=1
 workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
 
-[[ -z $ITS_STROBE ]] && ITS_STROBE="891"
-[[ -z $MFT_STROBE ]] && MFT_STROBE="198"
-
-MID_FEEID_MAP="$FILEWORKDIR/mid-feeId_mapper.txt"
 NITSDECTHREADS=2
 NMFTDECTHREADS=2
-# FIXME: multithreading in the itsmft reconstruction does not work
-#        on macOS.
+# FIXME: multithreading in the itsmft reconstruction does not work on macOS.
 if [[ $(uname) == "Darwin" ]]; then
     NITSDECTHREADS=1
     NMFTDECTHREADS=1
 fi
 
-ITSMFT_STROBES=""
-[[ -z $ITS_STROBE ]] && ITSMFT_STROBES+="ITSAlpideParam.roFrameLengthInBC=$ITS_STROBE;"
-[[ -z $MFT_STROBE ]] && ITSMFT_STROBES+="MFTAlpideParam.roFrameLengthInBC=$MFT_STROBE;"
-
-LIST_OF_ASYNC_RECO_STEPS="MID MCH MFT FDD FV0 ZDC"
-
-DISABLE_DIGIT_ROOT_INPUT="--disable-root-input"
-DISABLE_DIGIT_CLUSTER_INPUT="--clusters-from-upstream"
-
-# ---------------------------------------------------------------------------------------------------------------------
-# Set active reconstruction steps (defaults added according to SYNCMODE)
-
-has_processing_step()
-{
-  [[ $WORKFLOW_EXTRA_PROCESSING_STEPS =~ (^|,)"$1"(,|$) ]]
-}
-
-for i in `echo $LIST_OF_GLORECO | sed "s/,/ /g"`; do
-  has_processing_step MATCH_$i && add_comma_separated WORKFLOW_DETECTORS_MATCHING $i # Enable extra matchings requested via WORKFLOW_EXTRA_PROCESSING_STEPS
-done
-if [[ $SYNCMODE == 1 ]]; then # Add default steps for synchronous mode
-  add_comma_separated WORKFLOW_EXTRA_PROCESSING_STEPS ENTROPY_ENCODER
-else # Add default steps for async mode
-  for i in $LIST_OF_ASYNC_RECO_STEPS; do
-    has_detector_reco $i && add_comma_separated WORKFLOW_EXTRA_PROCESSING_STEPS ${i}_RECO
-  done
-fi
-
 # ---------------------------------------------------------------------------------------------------------------------
 # Set general arguments
-ARGS_ALL="--session ${OVERRIDE_SESSION:-default} --severity $SEVERITY --shm-segment-id $NUMAID --shm-segment-size $SHMSIZE $ARGS_ALL_EXTRA --early-forward-policy noraw"
-ARGS_ALL_CONFIG="NameConf.mDirGeom=$FILEWORKDIR;NameConf.mDirMatLUT=$FILEWORKDIR;NameConf.mDirCollContext=$FILEWORKDIRRUN;NameConf.mDirGRP=$FILEWORKDIRRUN;keyval.input_dir=$FILEWORKDIR;keyval.output_dir=/dev/null;$ALL_EXTRA_CONFIG"
-if [[ $EPNSYNCMODE == 1 ]]; then
-  ARGS_ALL+=" --infologger-severity $INFOLOGGER_SEVERITY"
-  ARGS_ALL+=" --monitoring-backend influxdb-unix:///tmp/telegraf.sock --resources-monitoring 15"
-  ARGS_ALL_CONFIG+="NameConf.mCCDBServer=$GEN_TOPO_EPN_CCDB_SERVER;"
-elif [[ "0$ENABLE_METRICS" != "01" ]]; then
-  ARGS_ALL+=" --monitoring-backend no-op://"
-fi
-( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS != 0 ]] ) && ARGS_ALL+=" --no-cleanup"
+source $MYDIR/getCommonArgs.sh
+source $MYDIR/workflow-setup.sh
+
+[[ -z $SHM_MANAGER_SHMID ]] && ( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS != 0 ]] ) && ARGS_ALL+=" --no-cleanup"
 ( [[ $GPUTYPE != "CPU" ]] || [[ $OPTIMIZED_PARALLEL_ASYNC != 0 ]] ) && ARGS_ALL+=" --shm-mlock-segment-on-creation 1"
-[[ $SHMTHROW == 0 ]] && ARGS_ALL+=" --shm-throw-bad-alloc 0"
-[[ ! -z $SHM_MANAGER_SHMID ]] && ARGS_ALL+=" --shm-no-cleanup on --shmid $SHM_MANAGER_SHMID"
-[[ $NORATELOG == 1 ]] && ARGS_ALL+=" --fairmq-rate-logging 0"
 if [[ $EPNSYNCMODE == 1 ]] || type numactl >/dev/null 2>&1 && [[ `numactl -H | grep "node . size" | wc -l` -ge 2 ]]; then
   [[ $NUMAGPUIDS != 0 ]] && ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
 fi
 [[ ! -z $TIMEFRAME_RATE_LIMIT ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && ARGS_ALL+=" --timeframes-rate-limit $TIMEFRAME_RATE_LIMIT --timeframes-rate-limit-ipcid $NUMAID"
-
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Set some individual workflow arguments depending on configuration
@@ -107,21 +63,23 @@ CPV_INPUT=raw
 EVE_CONFIG=" --jsons-folder $EDJSONS_DIR"
 MIDDEC_CONFIG=
 EMCRAW2C_CONFIG=
+PHS_CONFIG=
 
 if [[ -z $ALPIDE_ERR_DUMPS ]]; then
   [[ $EPNSYNCMODE == 1 ]] && ALPIDE_ERR_DUMPS="1" || ALPIDE_ERR_DUMPS="0"
 fi
-
 
 if [[ $SYNCMODE == 1 ]]; then
   if [[ $BEAMTYPE == "PbPb" ]]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode sync"
     [[ -z ${PVERTEXING_CONFIG_KEY+x} ]] && PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=2000;"
+    workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"
   elif [[ $BEAMTYPE == "pp" ]]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=-1;fastMultConfig.cutMultClusHigh=-1;fastMultConfig.cutMultVtxHigh=-1;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2"
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode sync"
     [[ -z ${PVERTEXING_CONFIG_KEY+x} ]] && PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=10;"
+    workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"
   elif [[ $BEAMTYPE == "cosmic" ]]; then
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode cosmics"
   else
@@ -134,10 +92,12 @@ else
   if [[ $BEAMTYPE == "PbPb" ]]; then
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
     [[ -z ${PVERTEXING_CONFIG_KEY+x} ]] && PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=2000;"
+    workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"
   elif [[ $BEAMTYPE == "pp" ]]; then
     ITS_CONFIG_KEY+="ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2"
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
     [[ -z ${PVERTEXING_CONFIG_KEY+x} ]] && PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=10;"
+    workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"
   elif [[ $BEAMTYPE == "cosmic" ]]; then
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode cosmics"
   else
@@ -146,6 +106,13 @@ else
 fi
 
 has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",compressed-clusters-ctf"
+
+if workflow_has_parameter QC && has_detector_qc TPC; then
+  GPU_OUTPUT+=",qa"
+  [[ -z $TPC_TRACKING_QC_RUN_FRACTION ]] && TPC_TRACKING_QC_RUN_FRACTION=1
+  GPU_CONFIG_KEY+="GPU_QA.clusterRejectionHistograms=1;GPU_proc.qcRunFraction=$TPC_TRACKING_QC_RUN_FRACTION;"
+  [[ $HOSTMEMSIZE == "0" && $TPC_TRACKING_QC_RUN_FRACTION == "100" ]] && HOSTMEMSIZE=$(( 5 << 30 ))
+fi
 
 if [[ -z $DISABLE_ROOT_OUTPUT ]]; then
   # enable only if root output is written, because it slows down the processing
@@ -158,10 +125,14 @@ has_detector_flp_processing CPV && CPV_INPUT=digits
 if [[ $EPNSYNCMODE == 1 ]]; then
   EVE_CONFIG+=" --eve-dds-collection-index 0"
   MIDDEC_CONFIG+=" --feeId-config-file \"$MID_FEEID_MAP\""
-  GPU_CONFIG_KEY+="GPU_proc.tpcIncreasedMinClustersPerRow=500000;GPU_proc.ignoreNonFatalGPUErrors=1;"
+  GPU_CONFIG_KEY+="GPU_proc.tpcIncreasedMinClustersPerRow=500000;GPU_proc.ignoreNonFatalGPUErrors=1;GPU_proc.throttleAlarms=1;"
   # Options for decoding current TRD real raw data (not needed for data converted from MC)
   if [[ -z $TRD_DECODER_OPTIONS ]]; then TRD_DECODER_OPTIONS=" --tracklethcheader 2 "; fi
   if [[ $EXTINPUT == 1 ]] && [[ $GPUTYPE != "CPU" ]] && [[ -z "$GPU_NUM_MEM_REG_CALLBACKS" ]]; then GPU_NUM_MEM_REG_CALLBACKS=4; fi
+fi
+
+if [[ $SYNCMODE == 1 && "0$ED_NO_ITS_ROF_FILTER" != "01" && $BEAMTYPE == "PbPb" ]] && has_detector ITS; then
+  EVE_CONFIG+=" --filter-its-rof"
 fi
 
 if [[ $GPUTYPE != "CPU" && $NUMAGPUIDS != 0 ]]; then
@@ -190,9 +161,7 @@ fi
 
 if [[ $GPUTYPE != "CPU" ]]; then
   GPU_CONFIG_KEY+="GPU_proc.forceMemoryPoolSize=$GPUMEMSIZE;"
-  if [[ $HOSTMEMSIZE == "0" ]]; then
-    HOSTMEMSIZE=$(( 1 << 30 ))
-  fi
+  [[ $HOSTMEMSIZE == "0" ]] && HOSTMEMSIZE=$(( 1 << 30 ))
 fi
 
 if [[ $HOSTMEMSIZE != "0" ]]; then
@@ -203,34 +172,11 @@ if ! has_detector_reco TOF; then
   TOF_OUTPUT=digits
 fi
 
+if has_detector_calib PHS && workflow_has_parameter CALIB; then
+  PHS_CONFIG+="--fullclu-output"
+fi
+
 [[ $IS_SIMULATED_DATA == "1" ]] && EMCRAW2C_CONFIG+=" --no-mergeHGLG"
-
-# ---------------------------------------------------------------------------------------------------------------------
-# Assemble matching sources
-TRD_SOURCES=
-TOF_SOURCES=
-TRACK_SOURCES=
-has_detectors_reco ITS TPC && has_detector_matching ITSTPC && add_comma_separated TRACK_SOURCES "ITS-TPC"
-has_detectors_reco TPC TRD && has_detector_matching TPCTRD && { add_comma_separated TRD_SOURCES TPC; add_comma_separated TRACK_SOURCES "TPC-TRD"; }
-has_detectors_reco ITS TPC TRD && has_detector_matching ITSTPCTRD && { add_comma_separated TRD_SOURCES ITS-TPC; add_comma_separated TRACK_SOURCES "ITS-TPC-TRD"; }
-has_detectors_reco TPC TOF && has_detector_matching TPCTOF && { add_comma_separated TOF_SOURCES TPC; add_comma_separated TRACK_SOURCES "TPC-TOF"; }
-has_detectors_reco ITS TPC TOF && has_detector_matching ITSTPCTOF && { add_comma_separated TOF_SOURCES ITS-TPC; add_comma_separated TRACK_SOURCES "ITS-TPC-TOF"; }
-has_detectors_reco TPC TRD TOF && has_detector_matching TPCTRDTOF && { add_comma_separated TOF_SOURCES TPC-TRD; add_comma_separated TRACK_SOURCES "TPC-TRD-TOF"; }
-has_detectors_reco ITS TPC TRD TOF && has_detector_matching ITSTPCTRDTOF && { add_comma_separated TOF_SOURCES ITS-TPC-TRD; add_comma_separated TRACK_SOURCES "ITS-TPC-TRD-TOF"; }
-has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_comma_separated TRACK_SOURCES "MFT-MCH"
-has_detectors_reco MCH MID && has_detector_matching MCHMID && add_comma_separated TRACK_SOURCES "MCH-MID"
-for det in `echo $LIST_OF_DETECTORS | sed "s/,/ /g"`; do
-  if [[ $LIST_OF_ASYNC_RECO_STEPS =~ (^| )${det}( |$) ]]; then
-    has_detector ${det} && has_processing_step ${det}_RECO && add_comma_separated TRACK_SOURCES "$det"
-  else
-    has_detector_reco $det && add_comma_separated TRACK_SOURCES "$det"
-  fi
-done
-[[ -z $VERTEXING_SOURCES ]] && VERTEXING_SOURCES="$TRACK_SOURCES"
-PVERTEX_CONFIG="--vertexing-sources $VERTEXING_SOURCES --vertex-track-matching-sources $VERTEXING_SOURCES"
-
-# this option requires well calibrated timing beween different detectors, at the moment suppress it
-#has_detector_reco FT0 && PVERTEX_CONFIG+=" --validate-with-ft0"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Process multiplicities
@@ -239,24 +185,6 @@ PVERTEX_CONFIG="--vertexing-sources $VERTEXING_SOURCES --vertex-track-matching-s
 N_F_REST=$MULTIPLICITY_FACTOR_REST
 N_F_RAW=$MULTIPLICITY_FACTOR_RAWDECODERS
 N_F_CTF=$MULTIPLICITY_FACTOR_CTFENCODERS
-get_N() # USAGE: get_N [processor-name] [DETECTOR_NAME] [RAW|CTF|REST] [threads, to be used for process scaling. 0 = do not scale this one process] [optional name [FOO] of variable "$N_[FOO]" with default, default = 1]
-{
-  local NAME_FACTOR="N_F_$3"
-  local NAME_DET="MULTIPLICITY_FACTOR_DETECTOR_$2"
-  local NAME_PROC="MULTIPLICITY_FACTOR_PROCESS_${1//-/_}"
-  local NAME_DEFAULT="N_$5"
-  local MULT=${!NAME_PROC:-$((${!NAME_FACTOR} * ${!NAME_DET:-1} * ${!NAME_DEFAULT:-1}))}
-  if [[ "0$GEN_TOPO_AUTOSCALE_PROCESSES" == "01" && $4 != 0 ]]; then
-    echo $1:\$\(\(\($MULT*\$AUTOSCALE_PROCESS_FACTOR/100\) \< 16 ? \($MULT*\$AUTOSCALE_PROCESS_FACTOR/100\) : 16\)\)
-  else
-    echo $1:$MULT
-  fi
-}
-
-math_max()
-{
-  echo $(($1 > $2 ? $1 : $2))
-}
 
 N_TPCTRK=$NGPUS
 if [[ $OPTIMIZED_PARALLEL_ASYNC != 0 ]]; then
@@ -307,22 +235,10 @@ elif [[ $EPNPIPELINES != 0 ]]; then
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Helper to add binaries to workflow adding automatic and custom arguments
+# Start of workflow command generation
+
 WORKFLOW= # Make sure we start with an empty workflow
 [[ "0$GEN_TOPO_ONTHEFLY" == "01" ]] && WORKFLOW="echo '{}' | "
-
-add_W() # Add binarry to workflow command USAGE: add_W [BINARY] [COMMAND_LINE_OPTIONS] [CONFIG_KEY_VALUES] [Add ARGS_ALL_CONFIG, optional, default = 1]
-{
-  local NAME_PROC_ARGS="ARGS_EXTRA_PROCESS_${1//-/_}"
-  local NAME_PROC_CONFIG="CONFIG_EXTRA_PROCESS_${1//-/_}"
-  local KEY_VALUES=
-  [[ "0$4" != "00" ]] && KEY_VALUES+="$ARGS_ALL_CONFIG;"
-  [[ ! -z "$3" ]] && KEY_VALUES+="$3;"
-  [[ ! -z ${!NAME_PROC_CONFIG} ]] && KEY_VALUES+="${!NAME_PROC_CONFIG};"
-  [[ ! -z "$KEY_VALUES" ]] && KEY_VALUES="--configKeyValues \"$KEY_VALUES\""
-  WORKFLOW+="$1 $ARGS_ALL $2 ${!NAME_PROC_ARGS} $KEY_VALUES | "
-}
-
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Input workflow
@@ -435,15 +351,19 @@ has_detector MFT && has_processing_step MFT_RECO && add_W o2-mft-reco-workflow "
 has_detector FDD && has_processing_step FDD_RECO && add_W o2-fdd-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
 has_detector FV0 && has_processing_step FV0_RECO && add_W o2-fv0-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
 has_detector ZDC && has_processing_step ZDC_RECO && add_W o2-zdc-digits-reco "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
-has_detectors_reco MCH MID && has_detector_matching MCHMID && add_W o2-muon-tracks-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_MC $DISABLE_ROOT_OUTPUT --pipeline $(get_N globalfwd-track-matcher MATCH REST 1)"
+has_detector HMP && has_processing_step HMP_RECO && add_W o2-hmpid-digits-to-clusters-workflow
+has_detectors_reco MCH MID && has_detector_matching MCHMID && add_W o2-muon-tracks-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_MC $DISABLE_ROOT_OUTPUT --pipeline $(get_N muon-track-matcher MATCH REST 1)"
 has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N globalfwd-track-matcher MATCH REST 1)"
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Reconstruction workflows needed only in case QC was requested
-has_detector_qc PHS && workflow_has_parameter QC && add_W o2-phos-reco-workflow "--input-type cells --output-type clusters $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N PHOSClusterizerSpec PHS REST 1)"
+# Reconstruction workflows needed only in case QC or CALIB was requested
+( has_detector_qc PHS || has_detector_calib PHS ) && ( workflow_has_parameter QC || workflow_has_parameter CALIB ) && add_W o2-phos-reco-workflow "--input-type cells --output-type clusters ${PHS_CONFIG} $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N PHOSClusterizerSpec PHS REST 1)"
+
+# always run vertexing if requested and if there are some sources, but in cosmic mode we work in pass-trough mode (create record for non-associated tracks)
+[[ $BEAMTYPE == "cosmic" ]] && PVTXSKIP="--skip" || PVTXSKIP=
+has_detectors_reco ITS && has_detector_matching PRIMVTX && [[ ! -z "$VERTEXING_SOURCES" ]] && add_W o2-primary-vertexing-workflow "$PVTXSKIP $DISABLE_MC $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST 1)" "${PVERTEXING_CONFIG_KEY}"
 
 if [[ $BEAMTYPE != "cosmic" ]]; then
-  has_detectors_reco ITS && has_detector_matching PRIMVTX && [[ ! -z "$VERTEXING_SOURCES" ]] && add_W o2-primary-vertexing-workflow "$DISABLE_MC $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST 1)" "${PVERTEXING_CONFIG_KEY}"
   has_detectors_reco ITS && has_detector_matching SECVTX && [[ ! -z "$VERTEXING_SOURCES" ]] && add_W o2-secondary-vertexing-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT --vertexing-sources $VERTEXING_SOURCES --pipeline $(get_N secondary-vertexing MATCH REST 1)"
 fi
 
@@ -482,7 +402,8 @@ fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Calibration workflows
-workflow_has_parameter CALIB && { source $MYDIR/calib-workflow.sh; [[ $? != 0 ]] && exit 1; }
+workflow_has_parameter CALIB && { source ${CALIB_WF:-$MYDIR/calib-workflow.sh}; [[ $? != 0 ]] && exit 1; }
+workflow_has_parameters CALIB CALIB_LOCAL_INTEGRATED_AGGREGATOR && { source ${CALIB_AGGREGATOR_WF:-$MYDIR/aggregator-workflow.sh}; [[ $? != 0 ]] && exit 1; }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Event display
@@ -494,7 +415,8 @@ workflow_has_parameter EVENT_DISPLAY && [[ $NUMAID == 0 ]] && [[ ! -z "$ED_TRACK
 # ---------------------------------------------------------------------------------------------------------------------
 # AOD
 [[ -z "$AOD_INPUT" ]] && AOD_INPUT=$TRACK_SOURCES
-workflow_has_parameter AOD && [[ ! -z "$AOD_INPUT" ]] && add_W o2-aod-producer-workflow "--info-sources $AOD_INPUT $DISABLE_DIGIT_ROOT_INPUT --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE $DISABLE_MC"
+[[ $BEAMTYPE == "cosmic" ]] && AODPROD_OPT+="--disable-secondary-vertices"
+workflow_has_parameter AOD && [[ ! -z "$AOD_INPUT" ]] && add_W o2-aod-producer-workflow "$AODPROD_OPT --info-sources $AOD_INPUT $DISABLE_DIGIT_ROOT_INPUT --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE $DISABLE_MC"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Quality Control

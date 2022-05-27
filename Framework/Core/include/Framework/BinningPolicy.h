@@ -21,30 +21,6 @@
 namespace o2::framework
 {
 
-namespace binning_helpers
-{
-template <typename... Cs>
-std::array<arrow::ChunkedArray*, sizeof...(Cs)> getArrowColumns(arrow::Table* table, pack<Cs...>)
-{
-  static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
-  return std::array<arrow::ChunkedArray*, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())...};
-}
-
-template <typename... Cs>
-std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table* table, pack<Cs...>, uint64_t ci)
-{
-  static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
-  return std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci)...};
-}
-
-template <typename... Cs>
-std::tuple<typename Cs::type...> getRowData(arrow::Table* table, pack<Cs...>, uint64_t ci, uint64_t ai)
-{
-  static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
-  return std::make_tuple(std::static_pointer_cast<o2::soa::arrow_array_for_t<typename Cs::type>>(o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci))->raw_values()[ai]...);
-}
-} // namespace binning_helpers
-
 template <typename C, typename... Cs>
 struct BinningPolicy {
   BinningPolicy(std::array<std::vector<double>, sizeof...(Cs) + 1> bins, bool ignoreOverflows = true) : mBins(bins), mIgnoreOverflows(ignoreOverflows)
@@ -154,7 +130,7 @@ struct BinningPolicy {
     return getBinAt(i, j, k);
   }
 
-  pack<C, Cs...> getColumns() const { return pack<C, Cs...>{}; }
+  using persistent_columns_t = framework::selected_pack<o2::soa::is_persistent_t, C, Cs...>;
 
  private:
   // We substract 1 to account for VARIABLE_WIDTH in the bins vector
@@ -204,7 +180,7 @@ struct NoBinningPolicy {
     return std::get<0>(data);
   }
 
-  pack<C> getColumns() const { return pack<C>{}; }
+  using persistent_columns_t = framework::selected_pack<o2::soa::is_persistent_t, C>;
 };
 
 } // namespace o2::framework

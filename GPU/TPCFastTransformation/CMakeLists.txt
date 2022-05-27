@@ -24,16 +24,16 @@ set(SRCS
     TPCFastTransformGeo.cxx
     TPCFastSpaceChargeCorrection.cxx
     TPCFastTransform.cxx
-    MultivariatePolynomial.cxx
-    MultivariatePolynomialHelper.cxx
 )
 
-if(NOT ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   set(SRCS ${SRCS}
       Spline1DHelper.cxx
       Spline2DHelper.cxx
       SymMatrixSolver.cxx
       BandMatrixSolver.cxx
+      MultivariatePolynomial.cxx
+      MultivariatePolynomialHelper.cxx
       devtools/IrregularSpline1D.cxx
       devtools/IrregularSpline2D3D.cxx
       devtools/SemiregularSpline2D3D.cxx
@@ -112,7 +112,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
 endif()
 
 if(${ALIGPU_BUILD_TYPE} STREQUAL "ALIROOT")
-  add_definitions(-DGPUCA_ALIROOT_LIB)
+  add_definitions(-DGPUCA_ALIROOT_LIB -DGPUCA_NO_FMT)
 
   set(SRCS ${SRCS} TPCFastTransformManager.cxx TPCFastTransformQA.cxx
            ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx

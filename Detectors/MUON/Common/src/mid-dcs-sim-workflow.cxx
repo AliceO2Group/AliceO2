@@ -12,23 +12,22 @@
 #include "DCStestWorkflow/DCSRandomDataGeneratorSpec.h"
 #include "Framework/runDataProcessing.h"
 #include "MIDConditions/DCSNamer.h"
-#include "aliasFixer.h"
 
 /**
-* DPL workflow which generates fake random MID DCS data points.
-*
-* Data points are generated for HV (currents and voltages).
-*/
+ * DPL workflow which generates fake random MID DCS data points.
+ *
+ * Data points are generated for HV (currents and voltages).
+ */
 o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcontext)
 {
   std::vector<o2::dcs::test::HintType> dphints;
 
   for (auto a : o2::mid::dcs::aliases({o2::mid::dcs::MeasurementType::HV_V})) {
-    dphints.emplace_back(o2::dcs::test::DataPointHint<double>{o2::muon::replaceDotByUnderscore(a), 9200, 9800});
+    dphints.emplace_back(o2::dcs::test::DataPointHint<double>{a, 9200, 9800});
   }
 
   for (auto a : o2::mid::dcs::aliases({o2::mid::dcs::MeasurementType::HV_I})) {
-    dphints.emplace_back(o2::dcs::test::DataPointHint<double>{o2::muon::replaceDotByUnderscore(a), 2, 10});
+    dphints.emplace_back(o2::dcs::test::DataPointHint<double>{a, 2, 10});
   }
 
   o2::framework::WorkflowSpec specs;

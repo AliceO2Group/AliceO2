@@ -13,6 +13,7 @@
 #define O2_FRAMEWORK_ASOA_H_
 
 #include "Framework/Pack.h"
+#include "Headers/DataHeader.h"
 #include "Framework/CheckTypes.h"
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/CompilerBuiltins.h"
@@ -378,6 +379,36 @@ struct IndexColumn {
 
   using persistent = std::false_type;
   static constexpr const char* const& columnLabel() { return INHERIT::mLabel; }
+};
+
+template <typename INHERIT>
+struct MarkerColumn {
+  using inherited_t = INHERIT;
+
+  using persistent = std::false_type;
+  static constexpr const char* const& columnLabel() { return INHERIT::mLabel; }
+};
+
+template <size_t M = 0>
+struct Marker : o2::soa::MarkerColumn<Marker<M>> {
+  using type = size_t;
+  using base = o2::soa::MarkerColumn<Marker<M>>;
+  constexpr inline static auto value = M;
+
+  Marker() = default;
+  Marker(Marker const&) = default;
+  Marker(Marker&&) = default;
+
+  Marker& operator=(Marker const&) = default;
+  Marker& operator=(Marker&&) = default;
+
+  Marker(arrow::ChunkedArray const*) {}
+  constexpr inline auto mark()
+  {
+    return value;
+  }
+
+  static constexpr const char* mLabel = "Marker";
 };
 
 template <int64_t START = 0, int64_t END = -1>
@@ -1023,6 +1054,14 @@ class Table
       }
     }
 
+    template <typename CD, typename... CDArgs>
+    auto getDynamicColumn() const
+    {
+      using decayed = std::decay_t<CD>;
+      static_assert(is_dynamic_t<decayed>(), "Requested column is not a dynamic column");
+      return static_cast<decayed>(*this).template getDynamicValue<CDArgs...>();
+    }
+
     using IP::size;
 
     using RowViewCore<IP, C...>::operator++;
@@ -1298,7 +1337,8 @@ class TableMetadata
   static constexpr char const* tableLabel() { return INHERIT::mLabel; }
   static constexpr char const (&origin())[4] { return INHERIT::mOrigin; }
   static constexpr char const (&description())[16] { return INHERIT::mDescription; }
-  static std::string sourceSpec() { return fmt::format("{}/{}/{}", INHERIT::mLabel, INHERIT::mOrigin, INHERIT::mDescription); };
+  static constexpr o2::header::DataHeader::SubSpecificationType version() { return INHERIT::mVersion; }
+  static std::string sourceSpec() { return fmt::format("{}/{}/{}/{}", INHERIT::mLabel, INHERIT::mOrigin, INHERIT::mDescription, INHERIT::mVersion); };
 };
 
 /// Helper template to define universal join
@@ -1398,12 +1438,81 @@ constexpr bool is_binding_compatible_v()
 }
 
 void notBoundTable(const char* tableName);
+
+namespace row_helpers
+{
+template <typename... Cs>
+std::array<arrow::ChunkedArray*, sizeof...(Cs)> getArrowColumns(arrow::Table* table, framework::pack<Cs...>)
+{
+  static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
+  return std::array<arrow::ChunkedArray*, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())...};
+}
+
+template <typename... Cs>
+std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table* table, framework::pack<Cs...>, uint64_t ci)
+{
+  static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
+  return std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci)...};
+}
+
+template <typename C>
+typename C::type getSingleRowPersistentData(arrow::Table* table, uint64_t ci, uint64_t ai)
+{
+  return std::static_pointer_cast<o2::soa::arrow_array_for_t<typename C::type>>(o2::soa::getIndexFromLabel(table, C::columnLabel())->chunk(ci))->raw_values()[ai];
+}
+
+template <typename T, typename C>
+typename C::type getSingleRowDynamicData(T& rowIterator, uint64_t globalIndex)
+{
+  rowIterator.setCursor(globalIndex);
+  return rowIterator.template getDynamicColumn<C>();
+}
+
+template <typename T, typename C>
+typename C::type getSingleRowIndexData(T& rowIterator, uint64_t globalIndex)
+{
+  rowIterator.setCursor(globalIndex);
+  return rowIterator.template getId<C>();
+}
+
+template <typename T, typename C>
+typename C::type getSingleRowData(arrow::Table* table, T& rowIterator, uint64_t ci, uint64_t ai, uint64_t globalIndex)
+{
+  using decayed = std::decay_t<C>;
+  if constexpr (decayed::persistent::value) {
+    return getSingleRowPersistentData<C>(table, ci, ai);
+  } else if constexpr (o2::soa::is_dynamic_t<decayed>()) {
+    return getSingleRowDynamicData<T, C>(rowIterator, globalIndex);
+  } else if constexpr (o2::soa::is_index_column_v<decayed>) {
+    return getSingleRowIndexData<T, C>(rowIterator, globalIndex);
+  }
+}
+
+template <typename T, typename... Cs>
+std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, uint64_t ci, uint64_t ai, uint64_t globalIndex)
+{
+  return std::make_tuple(getSingleRowData<T, Cs>(table, rowIterator, ci, ai, globalIndex)...);
+}
+} // namespace row_helpers
+
 } // namespace o2::soa
 
-#define DECLARE_SOA_STORE()          \
-  template <typename T>              \
-  struct MetadataTrait {             \
-    using metadata = std::void_t<T>; \
+#define DECLARE_SOA_STORE()                                                                         \
+  template <typename T>                                                                             \
+  struct MetadataTrait {                                                                            \
+    using metadata = std::void_t<T>;                                                                \
+  };                                                                                                \
+                                                                                                    \
+  template <typename T>                                                                             \
+  constexpr int getVersion()                                                                        \
+  {                                                                                                 \
+    if constexpr (o2::soa::is_type_with_metadata_v<MetadataTrait<T>>) {                             \
+      return MetadataTrait<T>::metadata::version();                                                 \
+    } else if constexpr (o2::soa::is_type_with_originals_v<T>) {                                    \
+      return MetadataTrait<o2::framework::pack_head_t<typename T::originals>>::metadata::version(); \
+    } else {                                                                                        \
+      static_assert(o2::framework::always_static_assert_v<T>, "Not a versioned type");              \
+    }                                                                                               \
   }
 
 #define DECLARE_EQUIVALENT_FOR_INDEX(_Base_, _Equiv_) \
@@ -1993,6 +2102,11 @@ void notBoundTable(const char* tableName);
     {                                                                                                                      \
       return boundGetter(std::make_index_sequence<std::tuple_size_v<decltype(boundIterators)>>{}, freeArgs...);            \
     }                                                                                                                      \
+    template <typename... FreeArgs>                                                                                        \
+    type getDynamicValue(FreeArgs... freeArgs) const                                                                       \
+    {                                                                                                                      \
+      return boundGetter(std::make_index_sequence<std::tuple_size_v<decltype(boundIterators)>>{}, freeArgs...);            \
+    }                                                                                                                      \
                                                                                                                            \
     template <size_t... Is, typename... FreeArgs>                                                                          \
     type boundGetter(std::integer_sequence<size_t, Is...>&&, FreeArgs... freeArgs) const                                   \
@@ -2004,28 +2118,33 @@ void notBoundTable(const char* tableName);
     std::tuple<o2::soa::ColumnIterator<typename Bindings::type> const*...> boundIterators;                                 \
   }
 
-#define DECLARE_SOA_TABLE_FULL(_Name_, _Label_, _Origin_, _Description_, ...) \
-  using _Name_ = o2::soa::Table<__VA_ARGS__>;                                 \
-                                                                              \
-  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {        \
-    using table_t = _Name_;                                                   \
-    static constexpr char const* mLabel = _Label_;                            \
-    static constexpr char const mOrigin[4] = _Origin_;                        \
-    static constexpr char const mDescription[16] = _Description_;             \
-  };                                                                          \
-                                                                              \
-  template <>                                                                 \
-  struct MetadataTrait<_Name_> {                                              \
-    using metadata = _Name_##Metadata;                                        \
-  };                                                                          \
-                                                                              \
-  template <>                                                                 \
-  struct MetadataTrait<_Name_::unfiltered_iterator> {                         \
-    using metadata = _Name_##Metadata;                                        \
+#define DECLARE_SOA_TABLE_FULL_VERSIONED(_Name_, _Label_, _Origin_, _Description_, _Version_, ...) \
+  using _Name_ = o2::soa::Table<__VA_ARGS__>;                                                      \
+                                                                                                   \
+  struct _Name_##Metadata : o2::soa::TableMetadata<_Name_##Metadata> {                             \
+    using table_t = _Name_;                                                                        \
+    static constexpr o2::header::DataHeader::SubSpecificationType mVersion = _Version_;            \
+    static constexpr char const* mLabel = _Label_;                                                 \
+    static constexpr char const mOrigin[4] = _Origin_;                                             \
+    static constexpr char const mDescription[16] = _Description_;                                  \
+  };                                                                                               \
+                                                                                                   \
+  template <>                                                                                      \
+  struct MetadataTrait<_Name_> {                                                                   \
+    using metadata = _Name_##Metadata;                                                             \
+  };                                                                                               \
+                                                                                                   \
+  template <>                                                                                      \
+  struct MetadataTrait<_Name_::unfiltered_iterator> {                                              \
+    using metadata = _Name_##Metadata;                                                             \
   };
 
+#define DECLARE_SOA_TABLE_FULL(_Name_, _Label_, _Origin_, _Description_, ...) \
+  DECLARE_SOA_TABLE_FULL_VERSIONED(_Name_, _Label_, _Origin_, _Description_, 0, __VA_ARGS__);
 #define DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, ...) \
   DECLARE_SOA_TABLE_FULL(_Name_, #_Name_, _Origin_, _Description_, __VA_ARGS__);
+#define DECLARE_SOA_TABLE_VERSIONED(_Name_, _Origin_, _Description_, _Version_, ...) \
+  DECLARE_SOA_TABLE_FULL_VERSIONED(_Name_, #_Name_, _Origin_, _Description_, _Version_, __VA_ARGS__);
 
 #define DECLARE_SOA_EXTENDED_TABLE_FULL(_Name_, _Table_, _Origin_, _Description_, ...)                                          \
   struct _Name_##Extension : o2::soa::Table<__VA_ARGS__> {                                                                      \
@@ -2045,6 +2164,7 @@ void notBoundTable(const char* tableName);
     using expression_pack_t = typename _Name_##Extension::expression_pack_t;                                                    \
     using originals = soa::originals_pack_t<_Table_>;                                                                           \
     using sources = originals;                                                                                                  \
+    static constexpr o2::header::DataHeader::SubSpecificationType mVersion = getVersion<_Table_>();                             \
     static constexpr char const* mLabel = #_Name_ "Extension";                                                                  \
     static constexpr char const mOrigin[4] = _Origin_;                                                                          \
     static constexpr char const mDescription[16] = _Description_;                                                               \
@@ -2075,6 +2195,7 @@ void notBoundTable(const char* tableName);
     using index_pack_t = framework::pack<__VA_ARGS__>;                                                                           \
     using originals = decltype(soa::extractBindings(index_pack_t{}));                                                            \
     using sources = typename _Name_::sources_t;                                                                                  \
+    static constexpr o2::header::DataHeader::SubSpecificationType mVersion = 0;                                                  \
     static constexpr char const* mLabel = #_Name_;                                                                               \
     static constexpr char const mOrigin[4] = _Origin_;                                                                           \
     static constexpr char const mDescription[16] = _Description_;                                                                \
@@ -2738,7 +2859,7 @@ template <typename T>
 using is_soa_index_table_t = typename framework::is_base_of_template<soa::IndexTable, T>;
 
 template <typename T>
-struct SmallGroups : Filtered<T> {
+struct SmallGroups : public Filtered<T> {
   SmallGroups(std::vector<std::shared_ptr<arrow::Table>>&& tables, gandiva::Selection const& selection, uint64_t offset = 0)
     : Filtered<T>(std::move(tables), selection, offset) {}
 

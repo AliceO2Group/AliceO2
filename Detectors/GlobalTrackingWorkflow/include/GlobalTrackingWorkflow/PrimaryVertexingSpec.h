@@ -24,7 +24,7 @@ namespace vertexing
 {
 
 /// create a processor spec
-o2::framework::DataProcessorSpec getPrimaryVertexingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool validateWithFT0, bool useMC);
+o2::framework::DataProcessorSpec getPrimaryVertexingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool skip, bool validateWithFT0, bool useMC);
 
 } // namespace vertexing
 } // namespace o2

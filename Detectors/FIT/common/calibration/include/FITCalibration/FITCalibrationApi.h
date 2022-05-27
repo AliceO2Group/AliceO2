@@ -128,18 +128,18 @@ const char* FITCalibrationApi::getObjectPath()
 template <>
 inline const char* FITCalibrationApi::getObjectPath<o2::ft0::FT0ChannelTimeCalibrationObject>()
 {
-  return "FT0/Calibration/ChannelTimeOffset";
+  return "FT0/Calib/ChannelTimeOffset";
 }
 
 template <>
 inline const char* FITCalibrationApi::getObjectPath<o2::ft0::FT0CalibTimeSlewing>()
 {
-  return "FT0/Calibration/SlewingCorrection";
+  return "FT0/Calib/SlewingCorrection";
 }
 template <>
 inline const char* FITCalibrationApi::getObjectPath<o2::ft0::GlobalOffsetsCalibrationObject>()
 {
-  return "FT0/Calibration/GlobalOffsets";
+  return "FT0/Calib/GlobalOffsets";
 }
 
 template <>
@@ -171,7 +171,7 @@ inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::p
 template <>
 inline const char* FITCalibrationApi::getObjectPath<o2::fv0::FV0ChannelTimeCalibrationObject>()
 {
-  return "FV0/Calibration/ChannelTimeOffset";
+  return "FV0/Calib/ChannelTimeOffset";
 }
 
 template <>

@@ -29,6 +29,7 @@
 #include <vector>
 #include <array>
 #include <cmath>
+#include <gsl/span>
 
 namespace o2
 {
@@ -43,13 +44,12 @@ namespace event_visualisation
 
 class VisualisationTrack
 {
+  friend class VisualisationEventJSONSerializer;
+  friend class VisualisationEventROOTSerializer;
+
  public:
   // Default constructor
   VisualisationTrack();
-  // create track from their JSON representation
-  VisualisationTrack(rapidjson::Value& tree);
-  // create JSON representation of the track
-  rapidjson::Value jsonTree(rapidjson::Document::AllocatorType& allocator);
 
   /// constructor parametrisation (Value Object) for VisualisationTrack class
   ///
@@ -98,6 +98,11 @@ class VisualisationTrack
   VisualisationCluster& addCluster(float pos[]);
   const VisualisationCluster& getCluster(int i) const { return mClusters[i]; };
   size_t getClusterCount() const { return mClusters.size(); } // Returns number of clusters
+  gsl::span<const VisualisationCluster> getClustersSpan() const
+  {
+    return mClusters;
+  }
+
  private:
   // Set coordinates of the beginning of the track
   void addStartCoordinates(const float xyz[3]);

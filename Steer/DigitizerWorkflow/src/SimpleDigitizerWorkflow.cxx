@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <boost/program_options.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "Framework/RootSerializationSupport.h"
 #include "DetectorsBase/Propagator.h"
@@ -109,6 +110,8 @@
 #include <sstream>
 #include <cmath>
 #include <unistd.h> // for getppid
+#include <type_traits>
+#include "DetectorsBase/DPLWorkflowUtils.h"
 
 using namespace o2::framework;
 
@@ -186,8 +189,13 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
   workflowOptions.push_back(ConfigParamSpec{"ccdb-tof-sa", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects via CCDBManager (standalone)"}});
 
+  // option to use/not use CCDB for FT0
+  workflowOptions.push_back(ConfigParamSpec{"use-ccdb-ft0", o2::framework::VariantType::Bool, true, {"enable access to ccdb ft0 calibration objects"}});
+
   // option to use or not use the Trap Simulator after digitisation (debate of digitization or reconstruction is for others)
   workflowOptions.push_back(ConfigParamSpec{"disable-trd-trapsim", VariantType::Bool, false, {"disable the trap simulation of the TRD"}});
+
+  workflowOptions.push_back(ConfigParamSpec{"combine-devices", VariantType::Bool, false, {"combined multiple DPL worker/writer devices"}});
 }
 
 void customize(std::vector<o2::framework::DispatchPolicy>& policies)
@@ -277,8 +285,25 @@ void initTPC()
 }
 
 // ------------------------------------------------------------------
+void publish_master_env(const char* key, const char* value)
+{
+  // publish env variables as process master
+  std::stringstream str;
+  str << "O2SIMDIGIINTERNAL_" << getpid() << "_" << key;
+  LOG(info) << "Publishing master key " << str.str();
+  setenv(str.str().c_str(), value, 1);
+}
 
-std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP)
+const char* get_master_env(const char* key)
+{
+  // access internal env variables published by master process
+  std::stringstream str;
+  str << "O2SIMDIGIINTERNAL_" << getppid() << "_" << key;
+  // LOG(info) << "Looking up master key " << str.str();
+  return getenv(str.str().c_str());
+}
+
+std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string const& inputGRP)
 {
   auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
   if (!grp) {
@@ -294,7 +319,7 @@ std::shared_ptr<o2::parameters::GRPObject> readGRP(std::string inputGRP)
 // ------------------------------------------------------------------
 
 // Split a given string on a separator character
-std::vector<std::string> splitString(std::string src, char sep)
+std::vector<std::string> splitString(std::string const& src, char sep)
 {
   std::vector<std::string> fields;
   std::string token;
@@ -318,7 +343,7 @@ struct DetFilterer {
   // mustContain: The nature of this DetFilterer. If true, it is a white lister
   //              i.e. option defines the list of allowed detectors. If false
   //              it is a black lister i.e defines the list of disallowed detectors.
-  DetFilterer(std::string detlist, std::string unsetVal, char separator, bool doWhiteListing)
+  DetFilterer(std::string const& detlist, std::string const& unsetVal, char separator, bool doWhiteListing)
   {
     // option is not set, nothing to do
     if (detlist.compare(unsetVal) == 0) {
@@ -328,7 +353,7 @@ struct DetFilterer {
     std::vector<std::string> tokens = splitString(detlist, separator);
 
     // Convert a vector of strings to one of o2::detectors::DetID
-    for (auto token : tokens) {
+    for (auto& token : tokens) {
       ids.emplace_back(token.c_str());
     }
 
@@ -366,25 +391,6 @@ DetFilterer blacklister(std::string optionVal, std::string unsetValue, char sepa
   return DetFilterer(optionVal, unsetValue, separator, false);
 }
 
-// Finding out if the current process is the master DPL driver process,
-// first setting up the topology. Might be important to know when we write
-// files (to prevent that multiple processes write the same file)
-bool isMasterWorkflowDefinition(ConfigContext const& configcontext)
-{
-  int argc = configcontext.argc();
-  auto argv = configcontext.argv();
-  bool ismaster = true;
-  for (int argi = 0; argi < argc; ++argi) {
-    // when channel-config is present it means that this is started as
-    // as FairMQDevice which means it is already a forked process
-    if (strcmp(argv[argi], "--channel-config") == 0) {
-      ismaster = false;
-      break;
-    }
-  }
-  return ismaster;
-}
-
 // ------------------------------------------------------------------
 
 /// This function is required to be implemented to define the workflow
@@ -397,10 +403,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   bool ismaster = isMasterWorkflowDefinition(configcontext);
   gIsMaster = ismaster;
 
-  // Reserve one entry which fill be filled with the SimReaderSpec
+  std::string dplProcessName = whoAmI(configcontext);
+  bool isDPLinternal = isInternalDPL(dplProcessName);
+  bool isDumpWorkflow = isDumpWorkflowInvocation(configcontext);
+  bool initServices = !isDPLinternal && !isDumpWorkflow && !ismaster;
+  // Reserve one entry which will be filled with the SimReaderSpec
   // at the end. This places the processor at the beginning of the
   // workflow in the upper left corner of the GUI.
   WorkflowSpec specs(1);
+  WorkflowSpec digitizerSpecs; // collecting everything producing digits
+  WorkflowSpec writerSpecs;    // collecting everything writing digits to files
 
   using namespace o2::conf;
   ConfigurableParam::updateFromFile(configcontext.options().get<std::string>("configFile"));
@@ -415,30 +427,57 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto simPrefixes = splitString(configcontext.options().get<std::string>("sims"), ',');
   // First, read the GRP to detect which components need instantiations
   std::shared_ptr<o2::parameters::GRPObject const> grp(nullptr);
+
+  // lambda to access the GRP time start
+  auto getGRPStartTime = [](o2::parameters::GRPObject const* grp) {
+    const auto GRPTIMEKEY = "GRPTIMESTART";
+    if (gIsMaster && grp) {
+      // we publish a couple of things as environment variables
+      // this saves loading from ROOT file and hence duplicated file reading and
+      // initialization of the ROOT engine in each DPL device
+      auto t = grp->getTimeStart();
+      publish_master_env(GRPTIMEKEY, std::to_string(t).c_str());
+      return t;
+    } else {
+      auto tstr = get_master_env(GRPTIMEKEY);
+      if (!tstr) {
+        LOG(fatal) << "Expected env value not found";
+      }
+      // LOG(info) << "Found entry " << tstr;
+      return boost::lexical_cast<uint64_t>(tstr);
+    }
+  };
+
   if (!helpasked) {
-    grp = readGRP(simPrefixes[0]);
-    if (!grp) {
-      return WorkflowSpec{};
+    if (gIsMaster) {
+      grp = readGRP(simPrefixes[0]);
+      if (!grp) {
+        return WorkflowSpec{};
+      }
+      getGRPStartTime(grp.get());
     }
     if (!hbfu.startTime) { // HBFUtils.startTime was not set from the command line, set it from GRP
-      hbfu.setValue("HBFUtils.startTime", std::to_string(grp->getTimeStart()));
+      hbfu.setValue("HBFUtils.startTime", std::to_string(getGRPStartTime(grp.get())));
     }
   }
-  auto grpfile = o2::base::NameConf::getGRPFileName(simPrefixes[0]);
-  // init on a high level, the time for the CCDB queries
-  // we expect that digitizers do not play with the manager themselves
-  // this will only be needed until digitizers take CCDB objects via DPL mechanism
-  o2::ccdb::BasicCCDBManager::instance().setTimestamp(hbfu.startTime);
-  // activate caching
-  o2::ccdb::BasicCCDBManager::instance().setCaching(true);
-  // without this, caching does not seem to work
-  o2::ccdb::BasicCCDBManager::instance().setLocalObjectValidityChecking(true);
 
+  auto grpfile = o2::base::NameConf::getGRPFileName(simPrefixes[0]);
+  if (initServices) {
+    // init on a high level, the time for the CCDB queries
+    // we expect that digitizers do not play with the manager themselves
+    // this will only be needed until digitizers take CCDB objects via DPL mechanism
+    o2::ccdb::BasicCCDBManager::instance().setTimestamp(hbfu.startTime);
+    // activate caching
+    o2::ccdb::BasicCCDBManager::instance().setCaching(true);
+    // without this, caching does not seem to work
+    o2::ccdb::BasicCCDBManager::instance().setLocalObjectValidityChecking(true);
+  }
   // update the digitization configuration with the right geometry file
   // we take the geometry from the first simPrefix (could actually check if they are
   // all compatible)
   ConfigurableParam::setValue("DigiParams.digitizationgeometry_prefix", simPrefixes[0]);
   ConfigurableParam::setValue("DigiParams.grpfile", grpfile);
+
   LOG(info) << "MC-TRUTH " << !configcontext.options().get<bool>("disable-mc");
   bool mctruth = !configcontext.options().get<bool>("disable-mc");
   ConfigurableParam::setValue("DigiParams", "mctruth", mctruth);
@@ -470,6 +509,23 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // lambda to extract detectors which are enabled in the workflow
   // will complain if user gave wrong input in construction of DetID
   auto isEnabled = [&configcontext, &filterers, accept, grp, helpasked](o2::detectors::DetID id) {
+    auto isInGRPReadout = [grp](o2::detectors::DetID id) {
+      std::stringstream str;
+      str << "GRPDETKEY_" << id.getName();
+      if (gIsMaster and grp.get() != nullptr) {
+        auto ok = grp->isDetReadOut(id);
+        if (ok) {
+          publish_master_env(str.str().c_str(), "ON");
+        }
+        return ok;
+      } else {
+        // we should have published important GRP info as
+        // environment variables in order to not having to read GRP via ROOT
+        // in all the processes
+        return get_master_env(str.str().c_str()) != nullptr;
+      }
+    };
+
     if (helpasked) {
       return true;
     }
@@ -478,7 +534,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       return false;
     }
     auto accepted = accept(id);
-    bool is_ingrp = grp->isDetReadOut(id);
+    bool is_ingrp = isInGRPReadout(id);
     if (gIsMaster) {
       LOG(info) << id.getName()
                 << " is in grp? " << (is_ingrp ? "yes" : "no") << ";"
@@ -523,9 +579,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::ITS)) {
     detList.emplace_back(o2::detectors::DetID::ITS);
     // connect the ITS digitization
-    specs.emplace_back(o2::itsmft::getITSDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::itsmft::getITSDigitizerSpec(fanoutsize++, mctruth));
     // connect ITS digit writer
-    specs.emplace_back(o2::itsmft::getITSDigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::itsmft::getITSDigitWriterSpec(mctruth));
   }
 
 #ifdef ENABLE_UPGRADES
@@ -543,9 +599,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::MFT)) {
     detList.emplace_back(o2::detectors::DetID::MFT);
     // connect the MFT digitization
-    specs.emplace_back(o2::itsmft::getMFTDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::itsmft::getMFTDigitizerSpec(fanoutsize++, mctruth));
     // connect MFT digit writer
-    specs.emplace_back(o2::itsmft::getMFTDigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::itsmft::getMFTDigitWriterSpec(mctruth));
   }
 
   // the TOF part
@@ -561,54 +617,56 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (CCDBsa) {
       useCCDB = true;
     }
-    specs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str(), timestamp, CCDBsa));
+    digitizerSpecs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str(), timestamp, CCDBsa));
     // add TOF digit writer
-    specs.emplace_back(o2::tof::getTOFDigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::tof::getTOFDigitWriterSpec(mctruth));
   }
 
   // the FT0 part
   if (isEnabled(o2::detectors::DetID::FT0)) {
+    auto useCCDB = configcontext.options().get<bool>("use-ccdb-ft0");
+    auto timestamp = o2::raw::HBFUtils::Instance().startTime;
     detList.emplace_back(o2::detectors::DetID::FT0);
-    // connect the FIT digitization
-    specs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++, mctruth));
+    // connect the FT0 digitization
+    specs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++, mctruth, !useCCDB));
     // connect the FIT digit writer
-    specs.emplace_back(o2::ft0::getFT0DigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::ft0::getFT0DigitWriterSpec(mctruth));
   }
 
   // the FV0 part
   if (isEnabled(o2::detectors::DetID::FV0)) {
     detList.emplace_back(o2::detectors::DetID::FV0);
     // connect the FV0 digitization
-    specs.emplace_back(o2::fv0::getFV0DigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::fv0::getFV0DigitizerSpec(fanoutsize++, mctruth));
     // connect the FV0 digit writer
-    specs.emplace_back(o2::fv0::getFV0DigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::fv0::getFV0DigitWriterSpec(mctruth));
   }
 
   // the EMCal part
   if (isEnabled(o2::detectors::DetID::EMC)) {
     detList.emplace_back(o2::detectors::DetID::EMC);
     // connect the EMCal digitization
-    specs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++, mctruth));
     // connect the EMCal digit writer
-    specs.emplace_back(o2::emcal::getEMCALDigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::emcal::getEMCALDigitWriterSpec(mctruth));
   }
 
   // add HMPID
   if (isEnabled(o2::detectors::DetID::HMP)) {
     detList.emplace_back(o2::detectors::DetID::HMP);
     // connect the HMP digitization
-    specs.emplace_back(o2::hmpid::getHMPIDDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::hmpid::getHMPIDDigitizerSpec(fanoutsize++, mctruth));
     // connect the HMP digit writer
-    specs.emplace_back(o2::hmpid::getHMPIDDigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::hmpid::getHMPIDDigitWriterSpec(mctruth));
   }
 
   // add ZDC
   if (isEnabled(o2::detectors::DetID::ZDC)) {
     detList.emplace_back(o2::detectors::DetID::ZDC);
     // connect the ZDC digitization
-    specs.emplace_back(o2::zdc::getZDCDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::zdc::getZDCDigitizerSpec(fanoutsize++, mctruth));
     // connect the ZDC digit writer
-    specs.emplace_back(o2::zdc::getZDCDigitWriterDPLSpec(mctruth, true));
+    writerSpecs.emplace_back(o2::zdc::getZDCDigitWriterDPLSpec(mctruth, true));
   }
 
   // add TRD
@@ -631,45 +689,45 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::MCH)) {
     detList.emplace_back(o2::detectors::DetID::MCH);
     //connect the MUON MCH digitization
-    specs.emplace_back(o2::mch::getMCHDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::mch::getMCHDigitizerSpec(fanoutsize++, mctruth));
     //connect the MUON MCH digit writer
-    specs.emplace_back(o2::mch::getMCHDigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::mch::getMCHDigitWriterSpec(mctruth));
   }
 
   // add MID
   if (isEnabled(o2::detectors::DetID::MID)) {
     detList.emplace_back(o2::detectors::DetID::MID);
     // connect the MID digitization
-    specs.emplace_back(o2::mid::getMIDDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::mid::getMIDDigitizerSpec(fanoutsize++, mctruth));
     // connect the MID digit writer
-    specs.emplace_back(o2::mid::getMIDDigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::mid::getMIDDigitWriterSpec(mctruth));
   }
 
   // add FDD
   if (isEnabled(o2::detectors::DetID::FDD)) {
     detList.emplace_back(o2::detectors::DetID::FDD);
     // connect the FDD digitization
-    specs.emplace_back(o2::fdd::getFDDDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::fdd::getFDDDigitizerSpec(fanoutsize++, mctruth));
     // connect the FDD digit writer
-    specs.emplace_back(o2::fdd::getFDDDigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::fdd::getFDDDigitWriterSpec(mctruth));
   }
 
   // the PHOS part
   if (isEnabled(o2::detectors::DetID::PHS)) {
     detList.emplace_back(o2::detectors::DetID::PHS);
     // connect the PHOS digitization
-    specs.emplace_back(o2::phos::getPHOSDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::phos::getPHOSDigitizerSpec(fanoutsize++, mctruth));
     // add PHOS writer
-    specs.emplace_back(o2::phos::getPHOSDigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::phos::getPHOSDigitWriterSpec(mctruth));
   }
 
   // the CPV part
   if (isEnabled(o2::detectors::DetID::CPV)) {
     detList.emplace_back(o2::detectors::DetID::CPV);
     // connect the CPV digitization
-    specs.emplace_back(o2::cpv::getCPVDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::cpv::getCPVDigitizerSpec(fanoutsize++, mctruth));
     // add PHOS writer
-    specs.emplace_back(o2::cpv::getCPVDigitWriterSpec(mctruth));
+    writerSpecs.emplace_back(o2::cpv::getCPVDigitWriterSpec(mctruth));
   }
   // the CTP part
   if (isEnabled(o2::detectors::DetID::CTP)) {
@@ -681,11 +739,27 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   // GRP updater: must come after all detectors since requires their list
   if (!configcontext.options().get<bool>("only-context")) {
-    specs.emplace_back(o2::parameters::getGRPUpdaterSpec(grpfile, detList));
+    writerSpecs.emplace_back(o2::parameters::getGRPUpdaterSpec(simPrefixes[0], detList));
+  }
+
+  bool combine = configcontext.options().get<bool>("combine-devices");
+  if (!combine) {
+    for (auto& s : digitizerSpecs) {
+      specs.push_back(s);
+    }
+    for (auto& s : writerSpecs) {
+      specs.push_back(s);
+    }
+  } else {
+    std::vector<DataProcessorSpec> remaining;
+    specs.push_back(specCombiner("Digitizations", digitizerSpecs, remaining));
+    specs.push_back(specCombiner("Writers", writerSpecs, remaining));
+    for (auto& s : remaining) {
+      specs.push_back(s);
+    }
   }
 
   // The SIM Reader. NEEDS TO BE LAST
   specs[0] = o2::steer::getSimReaderSpec({firstOtherChannel, fanoutsize}, simPrefixes, tpcsectors);
-
   return specs;
 }

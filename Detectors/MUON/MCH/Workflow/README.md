@@ -81,32 +81,11 @@ filePath = /home/data/data-de819-ped-raw.raw
 
 ## Digit filtering
 
-```shell
-o2-mch-digits-filtering-workflow
-```
-
-Filter out some digits. For the moment only removes digits that have a null ADC.
-
-Inputs :
-- list of all digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) in the current time frame, with the (default) data description `DIGITS` (can be changed with `--input-digits-data-description` option)
-- the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the digits associated to each interaction, with the (default) data description `DIGITROFS` (can be changed with `--input-digit-rofs-data-description` option)
-
-Outputs :
-- list of digits that pass the filtering criteria (for the moment ADC>0), with the (default) data description `F-DIGITS`  (can be changed with `--output-digits-data-description` option)
-- list of ROF records corresponding to the digits above, with a (default) data description of `F-DIGITROFS` (can be changed with `--output-digit-rofs-data-description` option)
-
+Filter out (i.e. remove) some digits [more...](/Detectors/MUON/MCH/DigitFiltering/README.md)
 
 ## Time clustering
 
-```shell
-o2-mch-digits-to-timeclusters-workflow
-```
-
-Take as input the list of all digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) in the current time frame, with the data description "DIGITS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the digits associated to each interaction, with the data description "DIGITROFS". Send a new list of ROF records that combine all the digits correlated in time within a user-defined time window, with the data description "TIMECLUSTERROFS".
-
-The option `--time-cluster-width xxx` allows to set the width of the time correlation window.
-
-The time clustering is based on a brute-force peak search algorithm, which arranges the input digits into coarse time bins. The number of bins in one time cluster window can be set via the `--peak-search-nbins` option.
+Cluster ROFs per time, thus making IR ranges of interest. [more...](/Detectors/MUON/MCH/TimeClustering/README.md)
 
 ## Event finding
 
@@ -207,20 +186,7 @@ The decoding is done automatically by the `o2-ctf-reader-workflow`.
 
 ## Local to global cluster transformation
 
-The `o2-mch-clusters-transformer-workflow` takes as input the list of all clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)), in local reference frame, in the current time frame, with the data description "CLUSTERS".
-
-It sends the list of the same clusters, but converted in global reference frame, with the data description "GLOBALCLUSTERS".
-
-To test it one can use e.g. a sampler-transformer-sink pipeline as such :
-
-```
-o2-mch-clusters-sampler-workflow
-    -b --nEventsPerTF 1000 --infile someclusters.data |
-o2-mch-clusters-transformer-workflow
-    -b --geometry Detectors/MUON/MCH/Geometry/Test/ideal-geometry-o2.json |
-o2-mch-clusters-sink-workflow
-    -b --txt --outfile global-clusters.txt --no-digits --global
-```
+Converts the clusters coordinates from local (2D within detection element plane) to global (3D within Alice reference frame) [more...](/Detectors/MUON/MCH/Geometry/Transformer/README.md)
 
 ## Tracking
 

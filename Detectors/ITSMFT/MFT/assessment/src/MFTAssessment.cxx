@@ -13,6 +13,7 @@
 #include "Framework/InputSpec.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "MFTBase/GeometryTGeo.h"
+#include "MathUtils/Utils.h"
 #include <Framework/InputRecord.h>
 #include <TPaveText.h>
 #include <TLegend.h>
@@ -203,13 +204,13 @@ void MFTAssessment::createHistos()
       throw std::invalid_argument("initialization of MCKinematicsReader failed");
     }
 
-    mHistPhiRecVsPhiGen = std::make_unique<TH2F>("mHistPhiRecVsPhiGen", "Phi Rec Vs Phi Gen of true reco tracks ", 24, -2 * TMath::Pi(), 2 * TMath::Pi(), 24, -2 * TMath::Pi(), 2 * TMath::Pi());
+    mHistPhiRecVsPhiGen = std::make_unique<TH2F>("mHistPhiRecVsPhiGen", "Phi Rec Vs Phi Gen of true reco tracks ", 24, 0, 2 * TMath::Pi(), 24, 0, 2 * TMath::Pi());
     mHistPhiRecVsPhiGen->SetXTitle((std::string("#phi of ") + mNameOfTrackTypes[kGen]).c_str());
     mHistPhiRecVsPhiGen->SetYTitle((std::string("#phi of ") + mNameOfTrackTypes[kRecoTrue]).c_str());
     mHistPhiRecVsPhiGen->Sumw2();
     mHistPhiRecVsPhiGen->SetOption("COLZ");
 
-    mHistEtaRecVsEtaGen = std::make_unique<TH2F>("mHistEtaRecVsEtaGen", "Eta Rec Vs Eta Gen of true reco tracks ", 35, 1.0, 4.5, 35, 1.0, 4.5);
+    mHistEtaRecVsEtaGen = std::make_unique<TH2F>("mHistEtaRecVsEtaGen", "Eta Rec Vs Eta Gen of true reco tracks ", 35, -4.5, -1.0, 35, -4.5, -1.0);
     mHistEtaRecVsEtaGen->SetXTitle((std::string("#eta of ") + mNameOfTrackTypes[kGen]).c_str());
     mHistEtaRecVsEtaGen->SetYTitle((std::string("#eta of ") + mNameOfTrackTypes[kRecoTrue]).c_str());
     mHistEtaRecVsEtaGen->Sumw2();
@@ -217,21 +218,21 @@ void MFTAssessment::createHistos()
 
     for (int trackType = 0; trackType < kNumberOfTrackTypes; trackType++) {
       // mHistPhiVsEta
-      mHistPhiVsEta[trackType] = std::make_unique<TH2F>((std::string("mHistPhiVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, 1.0, 4.5, 24, -2 * TMath::Pi(), 2 * TMath::Pi());
+      mHistPhiVsEta[trackType] = std::make_unique<TH2F>((std::string("mHistPhiVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, -4.5, -1, 24, 0, 2 * TMath::Pi());
       mHistPhiVsEta[trackType]->SetXTitle((std::string("#eta of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPhiVsEta[trackType]->SetYTitle((std::string("#phi of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPhiVsEta[trackType]->Sumw2();
       mHistPhiVsEta[trackType]->SetOption("COLZ");
 
       // mHistPtVsEta
-      mHistPtVsEta[trackType] = std::make_unique<TH2F>((std::string("mHistPtVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Pt Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, 1.0, 4.5, 40, 0., 10.);
+      mHistPtVsEta[trackType] = std::make_unique<TH2F>((std::string("mHistPtVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Pt Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, -4.5, -1, 40, 0., 10.);
       mHistPtVsEta[trackType]->SetXTitle((std::string("#eta of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPtVsEta[trackType]->SetYTitle((std::string("p_{T} (GeV/c) of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPtVsEta[trackType]->Sumw2();
       mHistPtVsEta[trackType]->SetOption("COLZ");
 
       // mHistPhiVsPt
-      mHistPhiVsPt[trackType] = std::make_unique<TH2F>((std::string("mHistPhiVsPt") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Pt of ") + mNameOfTrackTypes[trackType]).c_str(), 40, 0., 10., 24, -2 * TMath::Pi(), 2 * TMath::Pi());
+      mHistPhiVsPt[trackType] = std::make_unique<TH2F>((std::string("mHistPhiVsPt") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Phi Vs Pt of ") + mNameOfTrackTypes[trackType]).c_str(), 40, 0., 10., 24, 0, 2 * TMath::Pi());
       mHistPhiVsPt[trackType]->SetXTitle((std::string("p_{T} (GeV/c) of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPhiVsPt[trackType]->SetYTitle((std::string("#phi of ") + mNameOfTrackTypes[trackType]).c_str());
       mHistPhiVsPt[trackType]->Sumw2();
@@ -239,7 +240,7 @@ void MFTAssessment::createHistos()
 
       if (trackType != kReco) {
         // mHistZvtxVsEta
-        mHistZvtxVsEta[trackType] = std::make_unique<TH2F>((std::string("mHistZvtxVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Z_{vtx} Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, 1.0, 4.5, 15, -15, 15);
+        mHistZvtxVsEta[trackType] = std::make_unique<TH2F>((std::string("mHistZvtxVsEta") + mNameOfTrackTypes[trackType]).c_str(), (std::string("Z_{vtx} Vs Eta of ") + mNameOfTrackTypes[trackType]).c_str(), 35, -4.5, -1, 15, -15, 15);
         mHistZvtxVsEta[trackType]->SetXTitle((std::string("#eta of ") + mNameOfTrackTypes[trackType]).c_str());
         mHistZvtxVsEta[trackType]->SetYTitle((std::string("z_{vtx} (cm) of ") + mNameOfTrackTypes[trackType]).c_str());
         mHistZvtxVsEta[trackType]->Sumw2();
@@ -489,8 +490,9 @@ void MFTAssessment::addMCParticletoHistos(const MCTrack* mcTr, const int TrackTy
   auto zVtx = evH.GetZ();
 
   auto pt = mcTr->GetPt();
-  auto eta = -1 * mcTr->GetEta();
-  auto phi = mcTr->GetPhi();
+  auto eta = mcTr->GetEta();
+  float phi = TMath::ATan2(mcTr->Py(), mcTr->Px());
+  o2::math_utils::bringTo02Pi(phi);
   auto z = mcTr->GetStartVertexCoordinatesZ();
   auto R = sqrt(pow(mcTr->GetStartVertexCoordinatesX(), 2) + pow(mcTr->GetStartVertexCoordinatesY(), 2));
 
@@ -511,8 +513,9 @@ void MFTAssessment::processRecoTracks()
     const auto& pt_Rec = mftTrack.getPt();
     const auto& invQPt_Rec = mftTrack.getInvQPt();
     const auto& invQPt_Seed = mftTrack.getInvQPtSeed();
-    const auto& eta_Rec = std::abs(mftTrack.getEta());
-    const auto& phi_Rec = mftTrack.getPhi();
+    const auto& eta_Rec = mftTrack.getEta();
+    float phi_Rec = mftTrack.getPhi();
+    o2::math_utils::bringTo02Pi(phi_Rec);
     const auto& nClusters = mftTrack.getNumberOfPoints();
     const auto& Chi2_Rec = mftTrack.getTrackChi2();
     int Q_Rec = mftTrack.getCharge();
@@ -545,8 +548,9 @@ void MFTAssessment::processTrueTracks()
             continue;
           }
 
-          auto etaGen = std::abs(mcParticle->GetEta());
-          auto phiGen = TMath::ATan2(mcParticle->Py(), mcParticle->Px());
+          auto etaGen = mcParticle->GetEta();
+          float phiGen = TMath::ATan2(mcParticle->Py(), mcParticle->Px());
+          o2::math_utils::bringTo02Pi(phiGen);
           auto ptGen = mcParticle->GetPt();
           auto vxGen = mcParticle->GetStartVertexCoordinatesX();
           auto vyGen = mcParticle->GetStartVertexCoordinatesY();
@@ -558,8 +562,9 @@ void MFTAssessment::processTrueTracks()
           const auto& pt_Rec = mftTrack.getPt();
           const auto& invQPt_Rec = mftTrack.getInvQPt();
           const auto& invQPt_Seed = mftTrack.getInvQPtSeed();
-          const auto& eta_Rec = std::abs(mftTrack.getEta());
-          const auto& phi_Rec = mftTrack.getPhi();
+          const auto& eta_Rec = mftTrack.getEta();
+          float phi_Rec = mftTrack.getPhi();
+          o2::math_utils::bringTo02Pi(phi_Rec);
           const auto& nClusters = mftTrack.getNumberOfPoints();
           const auto& Chi2_Rec = mftTrack.getTrackChi2();
           int Q_Rec = mftTrack.getCharge();
@@ -574,6 +579,12 @@ void MFTAssessment::processTrueTracks()
           mHistPhiVsEta[kRecoTrue]->Fill(eta_Rec, phi_Rec);
           mHistPhiVsPt[kRecoTrue]->Fill(pt_Rec, phi_Rec);
           mHistZvtxVsEta[kRecoTrue]->Fill(eta_Rec, zVtx);
+
+          mHistPtVsEta[kRecoTrueMC]->Fill(etaGen, ptGen);
+          mHistPhiVsEta[kRecoTrueMC]->Fill(etaGen, phiGen);
+          mHistPhiVsPt[kRecoTrueMC]->Fill(ptGen, phiGen);
+          mHistZvtxVsEta[kRecoTrueMC]->Fill(eta_Rec, zVtx);
+
           mHistPhiRecVsPhiGen->Fill(phiGen, phi_Rec);
           mHistEtaRecVsEtaGen->Fill(etaGen, eta_Rec);
           /// Reco assessment histos

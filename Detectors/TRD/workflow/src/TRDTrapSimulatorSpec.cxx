@@ -24,6 +24,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "fairlogger/Logger.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -44,13 +45,10 @@ namespace trd
 
 using namespace constants;
 
-void TRDDPLTrapSimulatorTask::initTrapConfig()
+void TRDDPLTrapSimulatorTask::initTrapConfig(long timeStamp)
 {
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
-  auto timeStamp = (mRunNumber < 0) ? std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() : mRunNumber;
-  //ccdbmgr.setURL("http://localhost:8080");
-  ccdbmgr.setTimestamp(timeStamp);
-  mTrapConfig = ccdbmgr.get<o2::trd::TrapConfig>("TRD/TrapConfig/" + mTrapConfigName);
+  mTrapConfig = ccdbmgr.getForTimeStamp<o2::trd::TrapConfig>("TRD/TrapConfig/" + mTrapConfigName, timeStamp);
 
   if (mEnableTrapConfigDump) {
     mTrapConfig->DumpTrapConfig2File("run3trapconfig_dump");
@@ -138,12 +136,7 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
   mOnlineGainTableName = ic.options().get<std::string>("trd-onlinegaintable");
   mRunNumber = ic.options().get<int>("trd-runnum");
   mEnableTrapConfigDump = ic.options().get<bool>("trd-dumptrapconfig");
-  //Connect to CCDB for all things needing access to ccdb, trapconfig and online gains
-  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
-  mCalib = std::make_unique<Calibrations>();
-  mCalib->getCCDBObjects(mRunNumber);
-  initTrapConfig();
-  setOnlineGainTables();
+
 #ifdef WITH_OPENMP
   int askedThreads = TRDSimParams::Instance().digithreads;
   int maxThreads = omp_get_max_threads();
@@ -160,6 +153,17 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 {
   // this method steeres the processing of the TRAP simulation
   LOG(info) << "TRD Trap Simulator Device running over incoming message";
+
+  if (!mInitCcdbObjectsDone) {
+    const auto ref = pc.inputs().getFirstValid(true);
+    auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation;
+    auto timeStamp = (mRunNumber < 0) ? creationTime : mRunNumber;
+    mCalib = std::make_unique<Calibrations>();
+    mCalib->getCCDBObjects(timeStamp);
+    initTrapConfig(timeStamp);
+    setOnlineGainTables();
+    mInitCcdbObjectsDone = true;
+  }
 
   // input
   auto digits = pc.inputs().get<gsl::span<o2::trd::Digit>>("digitinput");                       // block of TRD digits
@@ -211,7 +215,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(mNumThreads)
 #endif
-  for (int iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
+  for (size_t iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
     int currHCId = -1;
     std::array<TrapSimulator, NMCMHCMAX> trapSimulators{}; //the up to 64 trap simulators for a single half chamber
     for (int iDigit = triggerRecords[iTrig].getFirstDigit(); iDigit < (triggerRecords[iTrig].getFirstDigit() + triggerRecords[iTrig].getNumberOfDigits()); ++iDigit) {
@@ -237,7 +241,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   auto parallelTime = std::chrono::high_resolution_clock::now() - timeParallelStart;
 
   // accumulate results and add MC labels
-  for (int iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
+  for (size_t iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
     if (mUseMC) {
       int currDigitIndex = 0; // counter for all digits which are associated to tracklets
       int trkltIdxStart = tracklets.size();

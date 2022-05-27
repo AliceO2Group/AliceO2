@@ -58,9 +58,9 @@ class AltroDecoderError : public std::exception
   /// \return Error message
   const char* what() const noexcept override { return mErrorMessage.data(); }
 
-  /// \brief Access to the error type connected to the erro
+  /// \brief Access to the error type connected to the error
   /// \return Error type
-  const ErrorType_t getErrorType() const noexcept { return mErrorType; }
+  ErrorType_t getErrorType() const noexcept { return mErrorType; }
 
  private:
   ErrorType_t mErrorType;    ///< Code of the decoding error type

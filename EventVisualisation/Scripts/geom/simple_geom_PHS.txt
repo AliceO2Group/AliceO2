@@ -1,0 +1,4 @@
+/cave_1/barrel_1/PHOH_1
+/cave_1/barrel_1/PHOS_2
+/cave_1/barrel_1/PHOS_3
+/cave_1/barrel_1/PHOS_4

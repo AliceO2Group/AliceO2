@@ -135,7 +135,7 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
     }
   }
 
-  return std::move(specs);
+  return specs;
 }
 
 } // namespace reco_workflow

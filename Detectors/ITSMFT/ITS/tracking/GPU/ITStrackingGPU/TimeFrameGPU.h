@@ -56,7 +56,6 @@ class TimeFrameGPU : public TimeFrame
   float getDeviceMemory();
   Cluster* getDeviceClustersOnLayer(const int rofId, const int layerId) const;
   int getNClustersLayer(const int rofId, const int layerId) const;
-  std::array<Vector<Tracklet>, NLayers - 1>& getDeviceTracklets() { return mTrackletsD; }
   TimeFrameGPUConfig& getConfig() { return mConfig; }
 
   // Vertexer only
@@ -65,6 +64,7 @@ class TimeFrameGPU : public TimeFrame
   int* getDeviceIndexTableL2(const int rofId) { return mIndexTablesLayer2D.get() + rofId * (ZBins * PhiBins + 1); }
   unsigned char* getDeviceUsedTracklets(const int rofId);
   Line* getDeviceLines(const int rofId);
+  Tracklet* getDeviceTracklets(const int rofId, const int layerId);
   int* getDeviceNFoundLines(const int rofId);
   int* getDeviceExclusiveNFoundLines(const int rofId);
   int* getDeviceCUBBuffer(const size_t rofId);
@@ -150,7 +150,7 @@ inline unsigned char* TimeFrameGPU<NLayers>::getDeviceUsedTracklets(const int ro
     LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
     return nullptr;
   }
-  return mUsedTracklets.get() + mROframesClusters[1][rofId];
+  return mUsedTracklets.get() + mROframesClusters[1][rofId] * mConfig.maxTrackletsPerCluster;
 }
 
 template <int NLayers>
@@ -161,6 +161,16 @@ inline Line* TimeFrameGPU<NLayers>::getDeviceLines(const int rofId)
     return nullptr;
   }
   return mLines.get() + mROframesClusters[1][rofId];
+}
+
+template <int NLayers>
+inline Tracklet* TimeFrameGPU<NLayers>::getDeviceTracklets(const int rofId, const int layerId)
+{
+  if (rofId < 0 || rofId >= mNrof) {
+    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
+    return nullptr;
+  }
+  return mTrackletsD[layerId].get() + mROframesClusters[1][rofId] * mConfig.maxTrackletsPerCluster;
 }
 
 template <int NLayers>

@@ -26,9 +26,9 @@ constexpr std::array<double, 3> getInverseSymm2D(const std::array<double, 3>& ma
 
 // Smoother
 template <unsigned int D>
-Smoother<D>::Smoother(TrackITSExt& track, int smoothingLayer, const ROframe& event, float bZ, o2::base::PropagatorF::MatCorrType corr) : mLayerToSmooth{smoothingLayer},
-                                                                                                                                         mBz(bZ),
-                                                                                                                                         mCorr(corr)
+Smoother<D>::Smoother(TrackITSExt& track, size_t smoothingLayer, const ROframe& event, float bZ, o2::base::PropagatorF::MatCorrType corr) : mLayerToSmooth{smoothingLayer},
+                                                                                                                                            mBz(bZ),
+                                                                                                                                            mCorr(corr)
 {
 
   auto propInstance = o2::base::Propagator::Instance();
@@ -204,7 +204,6 @@ bool Smoother<D>::testCluster(const int clusterId, const ROframe& event)
                                           o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
                                           o2::base::PropagatorImpl<float>::MAX_STEP,
                                           mCorr);
-  bool testStatus = statusOutw && statusInw;
   if (!(statusOutw && statusInw)) {
     LOG(warning) << "Failed propagation in smoother!";
     return false;

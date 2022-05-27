@@ -22,7 +22,7 @@
 using namespace o2::tpc;
 
 //______________________________________________________________________________
-bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_utils::FEEIDType feeId, uint32_t orbit, uint32_t referenceOrbit, uint32_t syncOffsetReference, ADCCallback fillADC, bool useTimeBin)
+bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_utils::FEEIDType feeId, uint32_t orbit, uint32_t referenceOrbit, uint32_t syncOffsetReference, ADCCallback fillADC)
 {
   const auto& mapper = Mapper::instance();
 
@@ -69,7 +69,18 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
       const auto triggerBC = triggerInfo->triggerInfo.bunchCrossing;
       triggerBCOffset = (int(triggerOrbit) - int(referenceOrbit)) * maxBunches + triggerBC;
       LOGP(debug, "orbit: {}, triggerOrbit: {}, triggerBC: {}, triggerBCOffset: {}", orbit, triggerOrbit, triggerBC, triggerBCOffset);
-      zsdata = (zerosupp_link_based::ContainerZS*)((const char*)zsdata + sizeof(zerosupp_link_based::Header) * (1 + header.numWordsPayload));
+      zsdata = zsdata->next();
+      continue;
+    } else if (header.isTriggerInfoV2()) {
+      // for the moment only skip the trigger info
+      const auto triggerInfo = (zerosupp_link_based::TriggerInfoV2*)zsdata;
+      const auto triggerOrbit = triggerInfo->orbit;
+      const auto triggerBC = triggerInfo->bunchCrossing;
+      triggerBCOffset = (int(triggerOrbit) - int(referenceOrbit)) * maxBunches + triggerBC;
+      LOGP(debug, "orbit: {}, triggerOrbit: {}, triggerBC: {}, triggerBCOffset: {}", orbit, triggerOrbit, triggerBC, triggerBCOffset);
+      zsdata = zsdata->next();
+      continue;
+    } else if (header.isMetaHeader()) {
       continue;
     }
 
@@ -80,14 +91,6 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
 
     const uint32_t bunchCrossingHeader = zsdata->getBunchCrossing() + syncOffsetReference;
     uint32_t syncOffset = header.syncOffsetBC;
-
-    if (useTimeBin) {
-      const uint32_t timebinHeader = (header.syncOffsetCRUCyclesOrLink << 8) | header.syncOffsetBC;
-      if (syncOffsetLinks[tpcGlobalLinkID] == 0) {
-        syncOffsetLinks[tpcGlobalLinkID] = (bunchCrossingHeader + maxBunches - (timebinHeader * 8) % maxBunches) % maxBunches % 16;
-      }
-      syncOffset = syncOffsetLinks[tpcGlobalLinkID];
-    }
 
     const int bcOffset = (int(globalBCOffset) + int(bunchCrossingHeader) - int(syncOffset)) - triggerBCOffset;
     const int timebin = bcOffset / constants::LHCBCPERTIMEBIN;

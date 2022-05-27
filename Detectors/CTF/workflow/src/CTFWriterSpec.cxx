@@ -43,6 +43,7 @@
 #include "DataFormatsCTP/CTF.h"
 #include "rANS/rans.h"
 #include <vector>
+#include <stdexcept>
 #include <array>
 #include <TStopwatch.h>
 #include <vector>
@@ -118,8 +119,8 @@ class CTFWriterSpec : public o2::framework::Task
   bool mCreateRunEnvDir = true;
   bool mStoreMetaFile = false;
   int mVerbosity = 0;
-  int mSaveDictAfter = 0; // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
-  int mFlagMinDet = 1;    // append list of detectors to LHC period if their number is <= mFlagMinDet
+  int mSaveDictAfter = 0;          // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
+  int mFlagMinDet = 1;             // append list of detectors to LHC period if their number is <= mFlagMinDet
   uint32_t mPrevDictTimeStamp = 0; // timestamp of the previously stored dictionary
   uint32_t mDictTimeStamp = 0;     // timestamp of the currently stored dictionary
   uint64_t mRun = 0;
@@ -160,6 +161,7 @@ class CTFWriterSpec : public o2::framework::Task
   // The metadata of the block (min,max) will be used for the consistency check at the decoding
   std::array<std::vector<FTrans>, DetID::nDetectors> mFreqsAccumulation;
   std::array<std::vector<o2::ctf::Metadata>, DetID::nDetectors> mFreqsMetaData;
+  std::array<std::bitset<64>, DetID::nDetectors> mIsSaturatedFrequencyTable;
   std::array<std::shared_ptr<void>, DetID::nDetectors> mHeaders;
   TStopwatch mTimer;
 
@@ -172,6 +174,7 @@ const std::string CTFWriterSpec::TMPFileEnding{".part"};
 CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& outType, int verbosity)
   : mDets(dm), mRun(r), mOutputType(outType), mVerbosity(verbosity)
 {
+  std::for_each(mIsSaturatedFrequencyTable.begin(), mIsSaturatedFrequencyTable.end(), [](auto& bitset) { bitset.reset(); });
   mTimer.Stop();
   mTimer.Reset();
 }
@@ -262,13 +265,27 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
       hb.det = det;
     }
     for (int ib = 0; ib < C::getNBlocks(); ib++) {
-      const auto& bl = ctfImage.getBlock(ib);
-      if (bl.getNDict()) {
-        auto& freq = mFreqsAccumulation[det][ib];
-        auto& mdSave = mFreqsMetaData[det][ib];
-        const auto& md = ctfImage.getMetadata(ib);
-        freq.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min);
-        mdSave = o2::ctf::Metadata{0, 0, md.messageWordSize, md.coderType, md.streamSize, md.probabilityBits, md.opt, freq.getMinSymbol(), freq.getMaxSymbol(), (int)freq.size(), 0, 0};
+      if (!mIsSaturatedFrequencyTable[det][ib]) {
+        const auto& bl = ctfImage.getBlock(ib);
+        if (bl.getNDict()) {
+          auto freq = mFreqsAccumulation[det][ib];
+          auto& mdSave = mFreqsMetaData[det][ib];
+          const auto& md = ctfImage.getMetadata(ib);
+          if ([&, this]() {
+                try {
+                  freq.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min);
+                } catch (const std::overflow_error& e) {
+                  LOGP(warning, "unable to frequency table for {}, block {} due to overflow", det.getName(), ib);
+                  mIsSaturatedFrequencyTable[det][ib] = true;
+                  return false;
+                }
+                return true;
+              }()) {
+            auto newProbBits = static_cast<uint8_t>(o2::rans::computeRenormingPrecision(freq));
+            mdSave = o2::ctf::Metadata{0, 0, md.messageWordSize, md.coderType, md.streamSize, newProbBits, md.opt, freq.getMinSymbol(), freq.getMaxSymbol(), static_cast<int32_t>(freq.size()), 0, 0};
+            mFreqsAccumulation[det][ib] = std::move(freq);
+          }
+        }
       }
     }
   }
@@ -561,7 +578,7 @@ void CTFWriterSpec::storeDictionaries()
   // monolitic dictionary in tree format
   mDictTimeStamp = uint32_t(std::time(nullptr));
   auto getFileName = [this](bool curr) {
-    return fmt::format("{}{}_{}_{}.root", this->mDictDir, o2::base::NameConf::CTFDICT, curr ? this->mDictTimeStamp : this->mPrevDictTimeStamp, curr ? this->mNCTF : this->mNCTFPrevDict);
+    return fmt::format("{}{}Tree_{}_{}_{}.root", this->mDictDir, o2::base::NameConf::CTFDICT, DetID::getNames(this->mDets, '-'), curr ? this->mDictTimeStamp : this->mPrevDictTimeStamp, curr ? this->mNCTF : this->mNCTFPrevDict);
   };
   auto dictFileName = getFileName(true);
   mDictFileOut.reset(TFile::Open(dictFileName.c_str(), "recreate"));

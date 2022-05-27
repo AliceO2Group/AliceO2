@@ -200,4 +200,9 @@ o2_add_executable(calibrator-gainmap-tracks
                   SOURCES src/tpc-calibrator-gainmap-tracks.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(entropy-encoder-workflow
+                  SOURCES src/entropy-encoder-workflow.cxx
+                  COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 add_subdirectory(readers)

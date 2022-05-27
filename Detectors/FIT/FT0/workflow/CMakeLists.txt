@@ -9,6 +9,36 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+CHECK_CXX_COMPILER_FLAG("-mavx512f -mavx512vl -mavx512bw -mavx512dq" FT0_DECODER_AVX512_GOOD_FLAGS)
+if((DEFINED ENV{O2_BUILD_FOR_FLP}) AND (CMAKE_SYSTEM_NAME STREQUAL "Linux") AND FT0_DECODER_AVX512_GOOD_FLAGS)
+add_definitions(-DFT0_DECODER_AVX512)
+o2_add_library(FT0Workflow
+               SOURCES src/RecoWorkflow.cxx
+                       src/ReconstructionSpec.cxx
+                       src/RecPointWriterSpec.cxx
+                       src/RecPointReaderSpec.cxx
+                       src/EntropyEncoderSpec.cxx
+                       src/EntropyDecoderSpec.cxx
+                       src/DigitReaderSpec.cxx
+                       src/FT0DigitWriterSpec.cxx
+                       src/RecoQCworkflow.cxx
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsFT0
+                                     O2::FT0Reconstruction
+                                     O2::FT0Raw
+                                     O2::FT0Decoder
+                                     O2::DetectorsCommonDataFormats
+                                     O2::Framework
+                                     O2::DPLUtils
+                                     O2::DataFormatsGlobalTracking)
+o2_add_library(FT0Decoder
+               SOURCES src/FT0DataDecoderDPLSpec.cxx
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsFT0
+                                     O2::Framework
+                                     O2::DetectorsCommonDataFormats
+                                     O2::DPLUtils
+                                     TARGETVARNAME targetDecoderAVX512)
+target_compile_options(${targetDecoderAVX512} PRIVATE -mavx512f -mavx512vl -mavx512bw -mavx512dq)
+else()
 o2_add_library(FT0Workflow
                SOURCES src/RecoWorkflow.cxx
                        src/ReconstructionSpec.cxx
@@ -26,6 +56,8 @@ o2_add_library(FT0Workflow
                                      O2::Framework
                                      O2::DPLUtils
                                      O2::DataFormatsGlobalTracking)
+
+endif()
 
 o2_add_executable(reco-workflow
                   SOURCES src/ft0-reco-workflow.cxx
@@ -64,7 +96,6 @@ o2_add_executable(recpoints-reader-workflow
                   SOURCES src/recpoints-reader-workflow.cxx
                   COMPONENT_NAME ft0
                   PUBLIC_LINK_LIBRARIES O2::FT0Workflow)
-
 if(NOT APPLE)
 
  set_property(TARGET ${fitrecoexe} PROPERTY LINK_WHAT_YOU_USE ON)

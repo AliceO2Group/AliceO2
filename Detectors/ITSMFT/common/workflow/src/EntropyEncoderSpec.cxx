@@ -51,10 +51,10 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{mOrigin, "CTFDATA", 0, Lifetime::Timeframe});
-  mCTFCoder.encode(buffer, rofs, compClusters, pspan);
-  auto sz = mCTFCoder.finaliseCTFOutput<CTF>(buffer);
+  auto iosize = mCTFCoder.encode(buffer, rofs, compClusters, pspan);
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
-  LOG(info) << "Created encoded data of size " << sz << " for " << mOrigin.as<std::string>() << " in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -84,7 +84,8 @@ DataProcessorSpec getEntropyEncoderSpec(o2::header::DataOrigin orig)
   return DataProcessorSpec{
     orig == o2::header::gDataOriginITS ? "its-entropy-encoder" : "mft-entropy-encoder",
     inputs,
-    Outputs{{orig, "CTFDATA", 0, Lifetime::Timeframe}},
+    Outputs{{orig, "CTFDATA", 0, Lifetime::Timeframe},
+            {{"ctfrep"}, orig, "CTFENCREP", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(orig)},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};

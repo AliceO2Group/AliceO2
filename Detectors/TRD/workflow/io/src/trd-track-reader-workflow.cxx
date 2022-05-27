@@ -58,5 +58,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (GTrackID::includesSource(GTrackID::Source::TPCTRD, srcTRD)) {
     specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(useMC, configcontext.options().get<bool>("output-strict")));
   }
-  return std::move(specs);
+  return specs;
 }

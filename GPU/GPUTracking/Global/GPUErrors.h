@@ -35,7 +35,7 @@ class GPUErrors
   GPUd() bool hasError() { return *mErrors > 0; }
   void setMemory(GPUglobalref() unsigned int* m) { mErrors = m; }
   void clear();
-  void printErrors();
+  void printErrors(bool silent = false);
   static unsigned int getMaxErrors();
 
  private:

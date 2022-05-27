@@ -391,6 +391,9 @@ void websocket_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
     return;
   }
   if (nread == UV_EOF) {
+    if (buf->base) {
+      free(buf->base);
+    }
     uv_read_stop(stream);
     uv_close((uv_handle_t*)stream, close_websocket);
     return;
@@ -398,6 +401,9 @@ void websocket_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
   if (nread < 0) {
     // FIXME: should I close?
     LOG(error) << "websocket_callback: Error while reading from websocket";
+    if (buf->base) {
+      free(buf->base);
+    }
     uv_read_stop(stream);
     uv_close((uv_handle_t*)stream, close_websocket);
     return;
@@ -405,6 +411,9 @@ void websocket_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
   try {
     LOG(debug3) << "Parsing request with " << handler << " with " << nread << " bytes";
     parse_http_request(buf->base, nread, handler);
+    if (buf->base) {
+      free(buf->base);
+    }
   } catch (WSError& e) {
     LOG(error) << "Error while parsing request: " << e.message;
     handler->error(e.code, e.message.c_str());
@@ -931,7 +940,7 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
 
 // Process all the sigchld which are pending
 // @return wether or not a given child exited with an error condition.
-bool processSigChild(DeviceInfos& infos)
+bool processSigChild(DeviceInfos& infos, DeviceSpecs& specs)
 {
   bool hasError = false;
   while (true) {
@@ -942,13 +951,21 @@ bool processSigChild(DeviceInfos& infos)
 
       if (WIFEXITED(status) == false || es != 0) {
         es = WIFEXITED(status) ? es : 128 + es;
+        // Look for the name associated to the pid in the infos
+        std::string id = "unknown";
+        assert(specs.size() == infos.size());
+        for (size_t ii = 0; ii < infos.size(); ++ii) {
+          if (infos[ii].pid == pid) {
+            id = specs[ii].id;
+          }
+        }
         // No need to print anything if the user
         // force quitted doing a double Ctrl-C.
         if (double_sigint) {
         } else if (forceful_exit) {
-          LOGP(error, "pid {} was forcefully terminated after being requested to quit", pid);
+          LOGP(error, "pid {} ({}) was forcefully terminated after being requested to quit", pid, id);
         } else {
-          LOGP(error, "pid {} crashed with {}", pid, es);
+          LOGP(error, "pid {} ({}) crashed with {}", pid, id, es);
         }
         hasError |= true;
       }
@@ -1869,7 +1886,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             callback(serviceRegistry, metricsInfos, runningWorkflow.devices, infos, driverInfo.metrics, timestamp);
           }
         }
-        hasError = processSigChild(infos);
+        hasError = processSigChild(infos, runningWorkflow.devices);
         bool allChildrenGone = areAllChildrenGone(infos);
         bool canExit = checkIfCanExit(infos);
         bool supposedToQuit = (guiQuitRequested || canExit || graceful_exit);
@@ -2175,29 +2192,6 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     control.state = DriverControlState::PLAY;
   }
 
-  if (!varmap["mermaid"].as<std::string>().empty()) {
-    // Dump a mermaid representation of what I will do.
-    control.callbacks = {[filename = varmap["mermaid"].as<std::string>()](WorkflowSpec const&,
-                                                                          DeviceSpecs const& specs,
-                                                                          DeviceExecutions const&,
-                                                                          DataProcessorInfos&,
-                                                                          CommandInfo const&) {
-      if (filename == "-") {
-        MermaidHelpers::dumpDeviceSpec2Mermaid(std::cout, specs);
-      } else {
-        std::ofstream output(filename);
-        MermaidHelpers::dumpDeviceSpec2Mermaid(output, specs);
-      }
-    }};
-    control.forcedTransitions = {
-      DriverState::EXIT,                    //
-      DriverState::PERFORM_CALLBACKS,       //
-      DriverState::MERGE_CONFIGS,           //
-      DriverState::IMPORT_CURRENT_WORKFLOW, //
-      DriverState::MATERIALISE_WORKFLOW     //
-    };
-  }
-
   if (varmap["graphviz"].as<bool>()) {
     // Dump a graphviz representation of what I will do.
     control.callbacks = {[](WorkflowSpec const&,
@@ -2233,15 +2227,26 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
       DriverState::IMPORT_CURRENT_WORKFLOW, //
       DriverState::MATERIALISE_WORKFLOW     //
     };
-  } else if (!varmap["o2-control"].as<std::string>().empty()) {
-    control.callbacks = {[workflowName = varmap["o2-control"].as<std::string>()] //
-                         (WorkflowSpec const&,
-                          DeviceSpecs const& specs,
-                          DeviceExecutions const& executions,
-                          DataProcessorInfos&,
-                          CommandInfo const& commandInfo) {
-                           dumpDeviceSpec2O2Control(workflowName, specs, executions, commandInfo);
-                         }};
+  } else if (!varmap["o2-control"].as<std::string>().empty() or !varmap["mermaid"].as<std::string>().empty()) {
+    // Dump the workflow in o2-control and/or mermaid format
+    control.callbacks = {[filename = varmap["mermaid"].as<std::string>(),
+                          workflowName = varmap["o2-control"].as<std::string>()](WorkflowSpec const&,
+                                                                                 DeviceSpecs const& specs,
+                                                                                 DeviceExecutions const& executions,
+                                                                                 DataProcessorInfos&,
+                                                                                 CommandInfo const& commandInfo) {
+      if (!workflowName.empty()) {
+        dumpDeviceSpec2O2Control(workflowName, specs, executions, commandInfo);
+      }
+      if (!filename.empty()) {
+        if (filename == "-") {
+          MermaidHelpers::dumpDeviceSpec2Mermaid(std::cout, specs);
+        } else {
+          std::ofstream output(filename);
+          MermaidHelpers::dumpDeviceSpec2Mermaid(output, specs);
+        }
+      }
+    }};
     control.forcedTransitions = {
       DriverState::EXIT,                    //
       DriverState::PERFORM_CALLBACKS,       //

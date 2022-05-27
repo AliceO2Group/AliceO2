@@ -147,7 +147,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()));
         }
         if (mNumErrorMessages < mMaxErrorMessages) {
-          LOG(alarm) << " EMCAL raw task: " << e.what() << " in FEC " << e.getFECID() << std::endl;
+          LOG(alarm) << " Page decoding: " << e.what() << " in FEE ID " << e.getFECID() << std::endl;
           mNumErrorMessages++;
           if (mNumErrorMessages == mMaxErrorMessages) {
             LOG(alarm) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
@@ -155,6 +155,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         } else {
           mErrorMessagesSuppressed++;
         }
+        // We must skip the page as payload is not consistent
+        // otherwise the next functions will rethrow the exceptions as
+        // the page format does not follow the expected format
+        continue;
       }
 
       auto& header = rawreader.getRawHeader();
@@ -429,7 +433,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                   hwAddressHG = chan.getHardwareAddress();
                 }
                 int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
-                currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, chantype),
+                currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, flagChanType),
                                                  lgNoHG,
                                                  hgOutOfRange,
                                                  fecID, feeID, hwAddressLG, hwAddressHG});
@@ -551,7 +555,7 @@ bool RawToCellConverterSpec::isLostTimeframe(framework::ProcessingContext& ctx) 
     if (payloadSize == 0) {
       auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
       if (++contDeadBeef <= maxWarn) {
-        LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+        LOGP(alarm, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
              dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
              contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
       }

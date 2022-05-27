@@ -105,7 +105,7 @@ namespace gpu
 {
 class TPCFastTransform;
 struct TPCPadGainCalib;
-
+struct TPCZSLinkMapping;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
@@ -215,6 +215,7 @@ struct GPUCalibObjectsTemplate {
   typename S<o2::base::MatLayerCylSet>::type* matLUT = nullptr;
   typename S<o2::trd::GeometryFlat>::type* trdGeometry = nullptr;
   typename S<TPCPadGainCalib>::type* tpcPadGain = nullptr;
+  typename S<TPCZSLinkMapping>::type* tpcZSLinkMapping = nullptr;
   typename S<o2::tpc::CalibdEdxContainer>::type* dEdxCalibContainer = nullptr;
   typename S<o2::base::PropagatorImpl<float>>::type* o2Propagator = nullptr;
   typename S<o2::itsmft::TopologyDictionary>::type* itsPatternDict = nullptr;

@@ -16,7 +16,11 @@
 #ifndef ALICEO2_DATAFORMATSTPC_ZeroSuppressionLinkBased_H
 #define ALICEO2_DATAFORMATSTPC_ZeroSuppressionLinkBased_H
 
+#include "GPUCommonDef.h"
+
+#ifndef GPUCA_GPUCODE
 #include <bitset>
+#endif
 
 namespace o2
 {
@@ -27,11 +31,14 @@ namespace zerosupp_link_based
 
 static constexpr uint32_t DataWordSizeBits = 128;                   ///< size of header word and data words in bits
 static constexpr uint32_t DataWordSizeBytes = DataWordSizeBits / 8; ///< size of header word and data words in bytes
+static constexpr uint32_t ChannelPerTBHeader = 80;
 
 /// common header definition of the zero suppressed link based data
 struct CommonHeader {
   static constexpr uint32_t MagicWordLinkZS = 0xFC;
+  static constexpr uint32_t MagicWordLinkZSMetaHeader = 0xFD;
   static constexpr uint32_t MagicWordTrigger = 0xAA;
+  static constexpr uint32_t MagicWordTriggerV2 = 0xAB;
 
   union {
     uint64_t word0 = 0;                        ///< lower 64 bits
@@ -47,15 +54,20 @@ struct CommonHeader {
       uint32_t bunchCrossing : 12;             ///< bunch crossing number
       uint32_t numWordsPayload : 4;            ///< number of 128bit words with 12bit ADC values
       uint32_t syncOffsetBC : 8;               ///< sync offset in bunch crossings
-      uint32_t syncOffsetCRUCyclesOrLink : 16; ///< sync offset in 240MHz CRU clock cycles, or link ID in improved format
+      uint32_t fecInPartition : 16;            ///< fecInPartition, only used in improved link-based format
       uint32_t magicWord : 8;                  ///< magic word, identifies package
     };
   };
 
-  bool hasCorrectMagicWord() const { return (magicWord == MagicWordLinkZS) || (magicWord == MagicWordTrigger); }
+  bool hasCorrectMagicWord() const { return (magicWord == MagicWordLinkZS) || (magicWord == MagicWordLinkZSMetaHeader) || (magicWord == MagicWordTrigger) || (magicWord == MagicWordTriggerV2); }
   bool isLinkZS() const { return (magicWord == MagicWordLinkZS); }
+  bool isMetaHeader() const { return (magicWord == MagicWordLinkZSMetaHeader); }
   bool isTriggerInfo() const { return (magicWord == MagicWordTrigger); }
+  bool isTriggerInfoV2() const { return (magicWord == MagicWordTriggerV2); }
 };
+
+// GPU Code only requires header definition
+#ifndef GPUCA_GPUCODE
 
 /// header definition of the zero suppressed link based data format
 struct Header final : public CommonHeader {
@@ -240,6 +252,28 @@ struct TriggerInfo {
   uint32_t getTriggerType() const { return (triggerTypeHigh << 20) + triggerTypeLow; }
 };
 
+/// Data definition for the new trigger information after FW update, allowing for interleaved triggers
+struct TriggerInfoV2 {
+  union {
+    uint64_t word0 = 0;             ///< lower 64 bits
+    struct {                        ///
+      uint32_t triggerType;         ///< tigger type
+      uint32_t orbit;               ///< orbit number
+    };                              ///
+  };                                ///
+                                    ///
+  union {                           ///
+    uint64_t word1 = 0;             ///< upper bits of the 80 bit bitmask
+    struct {                        ///
+      uint32_t bunchCrossing : 12;  ///< bunch crossing number
+      uint32_t empty1_0 : 16;       ///< empty
+      uint32_t numWordsPayload : 4; ///< number of 128bit words with 12bit ADC values, should always be 0
+      uint32_t empty1_1 : 24;       ///< empty
+      uint32_t magicWord : 8;       ///< magic word for identification
+    };
+  };
+};
+
 /// Container for Trigger information, header + data
 struct TriggerContainer {
   CommonHeader header;
@@ -247,6 +281,9 @@ struct TriggerContainer {
 
   uint32_t getTriggerType() const { return triggerInfo.getTriggerType(); }
 };
+
+#endif // !defined(GPUCA_GPUCODE)
+
 } // namespace zerosupp_link_based
 } // namespace tpc
 } // namespace o2

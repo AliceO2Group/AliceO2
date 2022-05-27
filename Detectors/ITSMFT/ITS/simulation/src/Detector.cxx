@@ -18,6 +18,7 @@
 #include "ITSSimulation/Detector.h"
 #include "ITSSimulation/V3Layer.h"
 #include "ITSSimulation/V3Services.h"
+#include "ITSSimulation/V3Cage.h"
 
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
@@ -106,11 +107,8 @@ static void configITS(Detector* its)
     {-1, 34.24, -1, 7., 4.29, 42}, // 42 was 88
     {-1, 39.20, -1, 7., 3.75, 48}  // 48 was 100
   };
-  const int nChipsPerModule = 7;  // For OB: how many chips in a row
-  const double zChipGap = 0.01;   // For OB: gap in Z between chips
-  const double zModuleGap = 0.01; // For OB: gap in Z between modules
 
-  double dzLr, rLr, phi0, turbo;
+  double rLr, phi0, turbo;
   int nStaveLr, nModPerStaveLr;
 
   its->setStaveModelIB(o2::its::Detector::kIBModel4);
@@ -510,6 +508,9 @@ void Detector::createMaterials()
   // Rohacell
   o2::base::Detector::Mixture(32, "ROHACELL$", aRohac, zRohac, dRohac, -4, wRohac);
   o2::base::Detector::Medium(32, "ROHACELL$", 32, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  // Carbon prepreg (Cage)
+  o2::base::Detector::Material(33, "M46J6K$", 12.0107, 6, 1.84, 999, 999);
+  o2::base::Detector::Medium(33, "M46J6K$", 33, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // PEEK CF30
   o2::base::Detector::Mixture(19, "PEEKCF30$", aPEEK, zPEEK, dPEEK, -3, wPEEK);
@@ -715,7 +716,7 @@ TGeoVolume* Detector::createWrapperVolume(Int_t id)
   }
 
   // Now create the actual shape and volume
-  TGeoShape* tube;
+  TGeoShape* tube = nullptr;
   Double_t zlen;
   switch (id) {
     case 0: // IB Layer 0,1,2: simple cylinder
@@ -884,13 +885,17 @@ void Detector::constructDetectorGeometry()
     mGeometry[j]->createLayer(dest);
   }
 
-  // Finally create the services
+  // Now create the services
   mServicesGeometry = new V3Services();
 
   createInnerBarrelServices(wrapVols[0]);
   createMiddlBarrelServices(wrapVols[1]);
   createOuterBarrelServices(wrapVols[2]);
   createOuterBarrelSupports(vITSV);
+
+  // Finally create and place the cage
+  V3Cage* cagePtr = new V3Cage();
+  cagePtr->createAndPlaceCage(vALIC); // vALIC = barrel
 
   delete[] wrapVols; // delete pointer only, not the volumes
 }
@@ -1218,85 +1223,6 @@ Hit* Detector::addHit(int trackID, int detID, const TVector3& startPos, const TV
 {
   mHits->emplace_back(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
   return &(mHits->back());
-}
-
-void Detector::Print(std::ostream* os) const
-{
-  // Standard output format for this class.
-  // Inputs:
-  //   ostream *os   The output stream
-  // Outputs:
-  //   none.
-  // Return:
-  //   none.
-
-#if defined __GNUC__
-#if __GNUC__ > 2
-  std::ios::fmtflags fmt;
-#else
-  Int_t fmt;
-#endif
-#else
-#if defined __ICC || defined __ECC || defined __xlC__
-  ios::fmtflags fmt;
-#else
-  Int_t fmt;
-#endif
-#endif
-  // RS: why do we need to pring this garbage?
-
-  // fmt = os->setf(std::ios::scientific); // set scientific floating point output
-  // fmt = os->setf(std::ios::hex); // set hex for mStatus only.
-  // fmt = os->setf(std::ios::dec); // every thing else decimel.
-  //  *os << mModule << " ";
-  //  *os << mEnergyDepositionStep << " " << mTof;
-  //  *os << " " << mStartingStepX << " " << mStartingStepY << " " << mStartingStepZ;
-  //    *os << " " << endl;
-  // os->flags(fmt); // reset back to old formating.
-  return;
-}
-
-void Detector::Read(std::istream* is)
-{
-  // Standard input format for this class.
-  // Inputs:
-  //   istream *is  the input stream
-  // Outputs:
-  //   none.
-  // Return:
-  //   none.
-  // RS no need to read garbage
-  return;
-}
-
-std::ostream& operator<<(std::ostream& os, Detector& p)
-{
-  // Standard output streaming function.
-  // Inputs:
-  //   ostream os  The output stream
-  //   Detector p The his to be printed out
-  // Outputs:
-  //   none.
-  // Return:
-  //   The input stream
-
-  p.Print(&os);
-  return os;
-}
-
-std::istream& operator>>(std::istream& is, Detector& r)
-{
-  // Standard input streaming function.
-  // Inputs:
-  //   istream is  The input stream
-  //   Detector p The Detector class to be filled from this input stream
-  // Outputs:
-  //   none.
-  // Return:
-  //   The input stream
-
-  r.Read(&is);
-  return is;
 }
 
 ClassImp(o2::its::Detector);

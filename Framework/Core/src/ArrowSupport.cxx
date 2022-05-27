@@ -361,7 +361,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          if (input.header == nullptr) {
                            continue;
                          }
-                         auto dh = o2::header::get<DataHeader*>(input.header);
+                         auto const* dh = DataRefUtils::getHeader<DataHeader*>(input);
+                         auto payloadSize = DataRefUtils::getPayloadSize(input);
                          if (dh->serialization != o2::header::gSerializationMethodArrow) {
                            LOGP(debug, "Message {}/{} is not of kind arrow, therefore we are not accounting its shared memory", dh->dataOrigin, dh->dataDescription);
                            continue;
@@ -369,7 +370,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          auto dph = o2::header::get<DataProcessingHeader*>(input.header);
                          bool forwarded = false;
                          for (auto const& forward : ctx.services().get<DeviceSpec const>().forwards) {
-                           if (DataSpecUtils::match(forward.matcher, dh->dataOrigin, dh->dataDescription, dh->subSpecification)) {
+                           if (DataSpecUtils::match(forward.matcher, *dh)) {
                              forwarded = true;
                              break;
                            }
@@ -378,8 +379,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            LOGP(debug, "Message {}/{} is forwarded so we are not returning its memory.", dh->dataOrigin, dh->dataDescription);
                            continue;
                          }
-                         LOGP(debug, "Message {}/{} is being deleted. We will return {}MB.", dh->dataOrigin, dh->dataDescription, dh->payloadSize / 1000000.);
-                         totalBytes += dh->payloadSize;
+                         LOGP(debug, "Message {}/{} is being deleted. We will return {}MB.", dh->dataOrigin, dh->dataDescription, payloadSize / 1000000.);
+                         totalBytes += payloadSize;
                          totalMessages += 1;
                        }
                        arrow->updateBytesDestroyed(totalBytes);

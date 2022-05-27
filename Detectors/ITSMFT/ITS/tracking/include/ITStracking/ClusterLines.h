@@ -37,12 +37,13 @@ struct Line final {
   GPUhd() static void getDCAComponents(const Line& line, const float point[3], float destArray[6]);
   GPUhd() static float getDCA(const Line&, const Line&, const float precision = 1e-14);
   static bool areParallel(const Line&, const Line&, const float precision = 1e-14);
+  GPUhd() unsigned char isEmpty() const { return (originPoint[0] == 0.f && originPoint[1] == 0.f && originPoint[2] == 0.f) &&
+                                                 (cosinesDirector[0] == 0.f && cosinesDirector[1] == 0.f && cosinesDirector[2] == 0.f); }
   bool operator==(const Line&) const;
   bool operator!=(const Line&) const;
 
   float originPoint[3], cosinesDirector[3];         // std::array<float, 3> originPoint, cosinesDirector;
   float weightMatrix[6] = {1., 0., 0., 1., 0., 1.}; // std::array<float, 6> weightMatrix;
-  unsigned char isEmpty = false;
   // weightMatrix is a symmetric matrix internally stored as
   //    0 --> row = 0, col = 0
   //    1 --> 0,1
@@ -55,12 +56,10 @@ struct Line final {
 
 GPUhdi() Line::Line() : weightMatrix{1., 0., 0., 1., 0., 1.}
 {
-  isEmpty = true;
 }
 
 GPUhdi() Line::Line(const Line& other)
 {
-  isEmpty = other.isEmpty;
   for (int i{0}; i < 3; ++i) {
     originPoint[i] = other.originPoint[i];
     cosinesDirector[i] = other.cosinesDirector[i];
@@ -68,9 +67,6 @@ GPUhdi() Line::Line(const Line& other)
   for (int i{0}; i < 6; ++i) {
     weightMatrix[i] = other.weightMatrix[i];
   }
-#ifdef CA_DEBUG
-  evtId = other.evtId;
-#endif
 }
 
 GPUhdi() Line::Line(const float firstPoint[3], const float secondPoint[3])
@@ -187,7 +183,7 @@ inline bool Line::operator==(const Line& rhs) const
   for (int i{0}; i < 3; ++i) {
     val &= this->originPoint[i] == rhs.originPoint[i];
   }
-  return val && this->isEmpty == rhs.isEmpty;
+  return val;
 }
 
 inline bool Line::operator!=(const Line& rhs) const
@@ -196,7 +192,7 @@ inline bool Line::operator!=(const Line& rhs) const
   for (int i{0}; i < 3; ++i) {
     val &= this->originPoint[i] != rhs.originPoint[i];
   }
-  return val || this->isEmpty != rhs.isEmpty;
+  return val;
 }
 
 class ClusterLines final
@@ -220,13 +216,13 @@ class ClusterLines final
   bool operator==(const ClusterLines&) const;
 
  protected:
-  std::array<float, 6> mAMatrix;         // AX=B
-  std::array<float, 3> mBMatrix;         // AX=B
-  std::vector<int> mLabels;              // labels
-  std::array<float, 9> mWeightMatrix;    // weight matrix
-  std::array<float, 3> mVertex;          // cluster centroid position
-  std::array<float, 6> mRMS2;            // symmetric matrix: diagonal is RMS2
-  float mAvgDistance2;                   // substitute for chi2
+  std::array<float, 6> mAMatrix;      // AX=B
+  std::array<float, 3> mBMatrix;      // AX=B
+  std::vector<int> mLabels;           // labels
+  std::array<float, 9> mWeightMatrix; // weight matrix
+  std::array<float, 3> mVertex;       // cluster centroid position
+  std::array<float, 6> mRMS2;         // symmetric matrix: diagonal is RMS2
+  float mAvgDistance2;                // substitute for chi2
 };
 
 } // namespace its

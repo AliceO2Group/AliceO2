@@ -179,6 +179,7 @@ class MultivariatePolynomialHelper<0, 0> : public MultivariatePolynomialParamete
   /// helper function to get all combinations
   template <class Type>
   GPUd() static Type combination_with_repetiton(const unsigned int degree, const unsigned int dim, GPUgeneric() const float par[], int& indexPar, const float x[]);
+  GPUd() static constexpr float combination_with_repetiton_constexpr_float(const unsigned int degree, const unsigned int dim, GPUgeneric() const float par[], int& indexPar, const float x[]);
 };
 
 //=================================================================================
@@ -289,7 +290,7 @@ GPUd() Type MultivariatePolynomialHelper<0, 0>::combination_with_repetiton(const
           }
           val += term;
         } else {
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_FMT)
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_FMT) && !defined(GPUCA_ALIROOT_LIB)
           std::string term{};
           for (size_t i = 1; i < size; ++i) {
             term += fmt::format("x[{}] * ", pos[i]);
@@ -306,12 +307,61 @@ GPUd() Type MultivariatePolynomialHelper<0, 0>::combination_with_repetiton(const
   }
 }
 
+GPUd() constexpr float MultivariatePolynomialHelper<0, 0>::combination_with_repetiton_constexpr_float(const unsigned int degree, const unsigned int dim, GPUgeneric() const float par[], int& indexPar, const float x[])
+{
+  {
+    const unsigned int size = degree + 1;
+    unsigned int pos[FMaxdegree + 1]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+    // return value is either the sum of all polynomials or a vector of strings containing the formula for each polynomial
+    float val(0);
+    for (;;) {
+      // starting on the rightmost digit
+      for (unsigned int i = degree; i > 0; --i) {
+        // check if digit of current position is at is max position
+        if (pos[i] == dim) {
+          // increase digit of left position
+          ++pos[i - 1];
+          // resetting the indices of the digits to the right
+          for (unsigned int j = i; j <= degree; ++j) {
+            pos[j] = pos[i - 1];
+          }
+        }
+      }
+
+      // check if all combinations are processed
+      if (pos[0] == 1) {
+        break;
+      } else {
+        if constexpr (std::is_same_v<float, float>) {
+          float term = par[indexPar++];
+          for (size_t i = 1; i < size; ++i) {
+            term *= x[pos[i]];
+          }
+          val += term;
+        } else {
+          // Removed since it cannot work as constexpr
+          /*std::string term{};
+          for (size_t i = 1; i < size; ++i) {
+            term += fmt::format("x[{}] * ", pos[i]);
+          }
+          term += fmt::format("par[{}]", indexPar++);
+          val.emplace_back(term);*/
+        }
+      }
+      // increase the rightmost digit
+      ++pos[degree];
+    }
+    return val;
+  }
+}
+
 GPUd() constexpr float MultivariatePolynomialHelper<0, 0>::evalPol(GPUgeneric() const float par[], const float x[], const unsigned int degree, const unsigned int dim)
 {
   float val = par[0];
   int indexPar = 1;
   for (unsigned int deg = 1; deg <= degree; ++deg) {
-    val += combination_with_repetiton<float>(deg, dim, par, indexPar, x);
+    val += combination_with_repetiton_constexpr_float(deg, dim, par, indexPar, x);
   }
   return val;
 }

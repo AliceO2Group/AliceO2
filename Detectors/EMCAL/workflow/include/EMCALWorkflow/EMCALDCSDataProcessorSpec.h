@@ -23,7 +23,8 @@
 #include "DetectorsDCS/DataPointCompositeObject.h"
 #include "DetectorsDCS/DeliveryType.h"
 #include "DetectorsDCS/AliasExpander.h"
-#include "EMCALCalib/EMCDCSProcessor.h"
+#include "DetectorsDCS/RunStatusChecker.h"
+#include "EMCALCalibration/EMCDCSProcessor.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -51,15 +52,11 @@ using CcdbManager = o2::ccdb::BasicCCDBManager;
 using clbUtils = o2::calibration::Utils;
 using HighResClock = std::chrono::high_resolution_clock;
 using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
+using RunStatus = o2::dcs::RunStatusChecker::RunStatus;
 
 class EMCALDCSDataProcessor : public o2::framework::Task
 {
  public:
-  enum class EMCRunStatus { NONE,
-                            START,
-                            ONGOING,
-                            STOP };
-
   void init(o2::framework::InitContext& ic) final
   {
     std::string ccdbpath = ic.options().get<std::string>("ccdb-path");
@@ -85,7 +82,7 @@ class EMCALDCSDataProcessor : public o2::framework::Task
     } else {
       LOG(info) << "Configuring via hardcoded strings";
 
-      std::vector<std::string> aliasesTEMP = {"EMC_PT_[00..83]/Temperature", "EMC_PT_[88..91]/Temperature", "EMC_PT_[96..159]/Temperature"};
+      std::vector<std::string> aliasesTEMP = {"EMC_PT_[00..83].Temperature", "EMC_PT_[88..91].Temperature", "EMC_PT_[96..159].Temperature"};
       std::vector<std::string> aliasesUINT = {"EMC_DDL_LIST[0..1]", "EMC_SRU[00..19]_CFG", "EMC_SRU[00..19]_FMVER",
                                               "EMC_TRU[00..45]_PEAKFINDER", "EMC_TRU[00..45]_L0ALGSEL", "EMC_TRU[00..45]_COSMTHRESH",
                                               "EMC_TRU[00..45]_GLOBALTHRESH", "EMC_TRU[00..45]_MASK[0..5]",
@@ -94,7 +91,7 @@ class EMCALDCSDataProcessor : public o2::framework::Task
                                              "EMC_STU_JA[0..1]", "EMC_STU_JB[0..1]", "EMC_STU_JC[0..1]", "EMC_STU_PATCHSIZE", "EMC_STU_GETRAW",
                                              "EMC_STU_MEDIAN", "EMC_STU_REGION", "DMC_STU_FWVERS", "DMC_STU_PHOS_scale[0..3]", "DMC_STU_GA[0..1]",
                                              "DMC_STU_GB[0..1]", "DMC_STU_GC[0..1]", "DMC_STU_JA[0..1]", "DMC_STU_JB[0..1]", "DMC_STU_JC[0..1]",
-                                             "DMC_STU_PATCHSIZE", "DMC_STU_GETRAW", "DMC_STU_MEDIAN", "DMC_STU_REGION"};
+                                             "DMC_STU_PATCHSIZE", "DMC_STU_GETRAW", "DMC_STU_MEDIAN", "DMC_STU_REGION", "EMC_RUNNUMBER"};
 
       std::vector<std::string> expaliasesTEMP = o2::dcs::expandAliases(aliasesTEMP);
       std::vector<std::string> expaliasesUINT = o2::dcs::expandAliases(aliasesUINT);
@@ -128,9 +125,27 @@ class EMCALDCSDataProcessor : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto grp = checkRunStartEnd();
 
-    auto tfid = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
+    if (mCheckRunStartStop) {
+      const auto* grp = mRunChecker.check(); // check if there is a run with EMC
+      // this is an example of what it will return
+      if (mRunChecker.getRunStatus() == RunStatus::NONE) {
+        LOGP(info, "No run with is ongoing or finished");
+      } else if (mRunChecker.getRunStatus() == RunStatus::START) { // saw new run with wanted detectors
+        LOGP(info, "Run {} has started", mRunChecker.getFollowedRun());
+        grp->print();
+        mProcessor->setRunNumberFromGRP(mRunChecker.getFollowedRun());
+      } else if (mRunChecker.getRunStatus() == RunStatus::ONGOING) { // run which was already seen is still ongoing
+        LOGP(info, "Run {} is still ongoing", mRunChecker.getFollowedRun());
+      } else if (mRunChecker.getRunStatus() == RunStatus::STOP) { // run which was already seen was stopped (EOR seen)
+        LOGP(info, "Run {} was stopped", mRunChecker.getFollowedRun());
+      }
+    } else {
+      mProcessor->setRunNumberFromGRP(-2);
+    }
+
+    //    auto tfid = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
+    auto tfid = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->creation;
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
     mProcessor->setTF(tfid);
     mProcessor->process(dps);
@@ -140,23 +155,23 @@ class EMCALDCSDataProcessor : public o2::framework::Task
       sendELMButput(pc.outputs());
       mTimer = timeNow;
     }
-    sendCFGoutput(pc.outputs());
+    if ((mCheckRunStartStop && (mRunChecker.getRunStatus() == RunStatus::START)) || (!mCheckRunStartStop && mProcessor->isUpdateFEEcfg())) {
+      sendCFGoutput(pc.outputs());
+    }
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     sendELMButput(ec.outputs());
-    sendCFGoutput(ec.outputs());
+    //    sendCFGoutput(ec.outputs());
   }
 
  private:
   std::unique_ptr<EMCDCSProcessor> mProcessor;
   HighResClock::time_point mTimer;
   int64_t mDPsUpdateInterval;
-
   bool mCheckRunStartStop = false;
-  int mRunFollowed = -1; // EMCAL run being followed. Assumption is that at the given moment there might be only 1 such a run
-  EMCRunStatus mRunStatus{EMCRunStatus::NONE};
+  o2::dcs::RunStatusChecker mRunChecker{o2::detectors::DetID::getMask("EMC")};
 
   //________________________________________________________________
   void sendELMButput(DataAllocator& output)
@@ -180,61 +195,18 @@ class EMCALDCSDataProcessor : public o2::framework::Task
   {
     // extract CCDB and FeeDCS info
 
-    if (mProcessor->isUpdateFEEcfg()) {
-      mProcessor->updateFeeCCDBinfo();
+    //    if (mProcessor->isUpdateFEEcfg()) {
+    mProcessor->updateFeeCCDBinfo();
 
-      const auto& payload = mProcessor->getFeeDCSdata();
-      auto& info = mProcessor->getccdbFeeDCSinfo();
-      auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-      LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-                << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+    const auto& payload = mProcessor->getFeeDCSdata();
+    auto& info = mProcessor->getccdbFeeDCSinfo();
+    auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+              << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_FeeDCS", 0}, *image.get());
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_FeeDCS", 0}, info);
-    }
-  }
-
-  //________________________________________________________________
-  const o2::parameters::GRPECSObject* checkRunStartEnd()
-  {
-    // check if EMC run is going on
-    if (!mCheckRunStartStop) {
-      return nullptr;
-    }
-    auto& mgr = CcdbManager::instance();
-    bool fatalOn = mgr.getFatalWhenNull();
-    mgr.setFatalWhenNull(false);
-    if (mRunStatus == EMCRunStatus::STOP) { // the STOP was detected at previous check
-      mRunFollowed = -1;
-      mRunStatus = EMCRunStatus::NONE;
-    }
-    std::map<std::string, std::string> md;
-    if (mRunFollowed > 0) { // run start was seen
-      md["runNumber"] = std::to_string(mRunFollowed);
-    }
-    long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    const auto* grp = mgr.getSpecific<o2::parameters::GRPECSObject>("GLO/Config/GRPECS", ts, md);
-    if (grp) { // some object was returned
-      if (mRunFollowed > 0) {
-        if (grp->getTimeEnd() > grp->getTimeStart()) { // this means that the EOR was registered
-          mRunStatus = EMCRunStatus::STOP;
-        } else { // run still continues
-          mRunStatus = EMCRunStatus::ONGOING;
-        }
-      } else {                                                  // we were not following EMC run, check if the current one has an EMC
-        if (grp->getDetsReadOut()[o2::detectors::DetID::EMC]) { // we start following EMC run
-          mRunStatus = grp->getTimeEnd() > grp->getTimeStart() ? EMCRunStatus::STOP : EMCRunStatus::START;
-          mRunFollowed = grp->getRun();
-        }
-      }
-    } else {                  // query did not return any GRP -> we are certainly not in the EMC run
-      if (mRunFollowed > 0) { // normally this should not happen
-        LOGP(warning, "We were following EMC run {} but the query at {} did not return any GRP, problem with EOR?", mRunFollowed, ts);
-        mRunStatus = EMCRunStatus::STOP;
-      }
-    }
-    mgr.setFatalWhenNull(fatalOn);
-    return grp;
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_FeeDCS", 0}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_FeeDCS", 0}, info);
+    //   }
   }
 
 }; // end class

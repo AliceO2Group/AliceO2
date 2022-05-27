@@ -94,6 +94,7 @@ GPUCA_KRNL_LB((GPUTPCCFStreamCompaction, scanTop            ), (single), (, int 
 GPUCA_KRNL_LB((GPUTPCCFStreamCompaction, scanDown           ), (single), (, int iBuf, unsigned int offset, int nElems), (, iBuf, offset, nElems))
 GPUCA_KRNL_LB((GPUTPCCFStreamCompaction, compactDigits      ), (single), (, int iBuf, int stage, GPUPtr1(ChargePos*, in), GPUPtr1(ChargePos*, out)), (, iBuf, stage, GPUPtr2(ChargePos*, in), GPUPtr2(ChargePos*, out)))
 GPUCA_KRNL_LB((GPUTPCCFDecodeZS                             ), (single), (, int firstHBF), (, firstHBF))
+GPUCA_KRNL_LB((GPUTPCCFDecodeZSLink                         ), (single), (, int firstHBF), (, firstHBF))
 GPUCA_KRNL_LB((GPUTPCCFGather                               ), (single), (, GPUPtr1(o2::tpc::ClusterNative*, dest)), (, GPUPtr2(o2::tpc::ClusterNative*, dest)))
 GPUCA_KRNL_LB((GPUTrackingRefitKernel, mode0asGPU           ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTrackingRefitKernel, mode1asTrackParCov   ), (simple), (), ())

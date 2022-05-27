@@ -46,7 +46,7 @@ int main()
     return 0;
   }
   // Loading actual model and setting scales
-  o2::zdc::fastsim::ConditionalModelSimulation onnxVAEDemo(o2::zdc::fastsim::gZDCModelPath);
+  o2::zdc::fastsim::ConditionalModelSimulation onnxVAEDemo(o2::zdc::fastsim::gZDCModelPath, 1);
   std::cout << " ONNX VAE model loaded: " << std::endl;
 
   // Loading SAE scales
@@ -59,7 +59,7 @@ int main()
     return 0;
   }
   // Loading actual model and setting scales
-  o2::zdc::fastsim::ConditionalModelSimulation onnxSAEDemo(o2::zdc::fastsim::gSAEModelPath);
+  o2::zdc::fastsim::ConditionalModelSimulation onnxSAEDemo(o2::zdc::fastsim::gSAEModelPath, 1);
   std::cout << " ONNX SAE model loaded: " << std::endl;
 
   // Create scaler object, set scales and scale particleData
@@ -76,12 +76,12 @@ int main()
   // Running model, will throw only if error in ONNX was encountered
   onnxVAEDemo.setInput(input);
   onnxVAEDemo.run();
-  auto vaeResult = o2::zdc::fastsim::processors::calculateChannels(onnxVAEDemo.getResult()[0]);
+  auto vaeResult = o2::zdc::fastsim::processors::calculateChannels(onnxVAEDemo.getResult()[0], 1)[0];
 
   // Running model, will throw only if error in ONNX was encountered
   onnxSAEDemo.setInput(input);
   onnxSAEDemo.run();
-  auto saeResult = o2::zdc::fastsim::processors::calculateChannels(onnxSAEDemo.getResult()[0]);
+  auto saeResult = o2::zdc::fastsim::processors::calculateChannels(onnxSAEDemo.getResult()[0], 1)[0];
 
   // Print output
   for (auto& element : vaeResult) {

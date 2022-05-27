@@ -25,6 +25,12 @@ namespace o2
 namespace tpc
 {
 
+enum ZSVersion : unsigned char {
+  ZSVersionRowBased10BitADC = 1,
+  ZSVersionRowBased12BitADC = 2,
+  ZSVersionLinkBasedWithMeta = 3,
+};
+
 struct TPCZSHDR {
   static constexpr size_t TPC_ZS_PAGE_SIZE = 8192;
   static constexpr size_t TPC_MAX_SEQ_LEN = 138;
@@ -44,10 +50,14 @@ struct TPCZSHDR {
 };
 struct TPCZSHDRV2 : public TPCZSHDR {
   static constexpr unsigned int TPC_ZS_NBITS_V3 = 12;
-  unsigned short magicWord;         // Magic word
+  static constexpr bool TIGHTLY_PACKED_V3 = false;
+  static constexpr unsigned int SAMPLESPER64BIT = 64 / TPC_ZS_NBITS_V3; // 5 12-bit samples with 4 bit padding per 64 bit word for non-TIGHTLY_PACKED data
+
   unsigned short firstZSDataOffset; // Offset (after the TPCZSHDRV2 header) in 128bit words to first ZS data (in between can be trigger words, etc.)
   unsigned short nTimebinHeaders;   // Number of timebin headers
-  unsigned short reserved;          // 16 reserved bits, header is 128 bit
+  unsigned short reserved1;         // 16 reserved bits, header is 128 bit
+  unsigned char reserved2;          // 8 reserved bits, header is 128 bit
+  unsigned char magicWord;          // Magic word
 };
 struct TPCZSTBHDR {
   unsigned short rowMask;

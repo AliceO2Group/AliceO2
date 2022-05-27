@@ -110,7 +110,7 @@ struct AnalysisDataProcessorBuilder {
       auto inputSources = getInputMetadata<std::decay_t<Arg>>();
       inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
     }
-    auto newInput = InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), Lifetime::Timeframe, inputMetadata};
+    auto newInput = InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), metadata::version(), Lifetime::Timeframe, inputMetadata};
     DataSpecUtils::updateInputList(inputs, std::move(newInput));
   }
 
@@ -553,11 +553,6 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       return false;
     },
     *task.get());
-
-  // avoid self-forwarding if process methods subscribe to same tables
-  std::sort(inputs.begin(), inputs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
-  auto last = std::unique(inputs.begin(), inputs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
-  inputs.erase(last, inputs.end());
 
   // request base tables for spawnable extended tables
   // this checks for duplications

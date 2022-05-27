@@ -17,6 +17,7 @@
 #include "MIDQC/RawDataChecker.h"
 
 #include <unordered_map>
+#include "fmt/format.h"
 #include "MIDRaw/CrateParameters.h"
 
 namespace o2
@@ -53,6 +54,22 @@ bool RawDataChecker::process(gsl::span<const ROBoard> localBoards, gsl::span<con
     mDebugMsg += mCheckers[item.first].getDebugMessage();
   }
 
+  return isOk;
+}
+
+bool RawDataChecker::checkMissingLinks(bool clear)
+{
+  /// Checks for missing links
+  if (clear) {
+    mDebugMsg.clear();
+  }
+  bool isOk = true;
+  for (auto& checker : mCheckers) {
+    if (checker.getNEventsProcessed() == 0) {
+      isOk = false;
+      mDebugMsg += fmt::format("Missing info from GBT 0x{:02x}\n", checker.getGBTUniqueId());
+    }
+  }
   return isOk;
 }
 

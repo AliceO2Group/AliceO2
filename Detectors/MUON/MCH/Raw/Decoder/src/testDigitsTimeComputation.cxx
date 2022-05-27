@@ -78,12 +78,11 @@ static std::vector<RawDigit> processDigits(const std::vector<RawDigit>& digits, 
   RdhHandler rdhHandler;
 
   bool ds2manu = false;
-  uint32_t sampaBcOffset = 0;
   bool mDebug = true;
   bool mCheckROFs = false;
   bool mDummyROFs = true;
   bool useDummyElecMap = false;
-  DataDecoder decoder{channelHandler, rdhHandler, sampaBcOffset, "", "", ds2manu, mDebug, useDummyElecMap};
+  DataDecoder decoder{channelHandler, rdhHandler, "", "", ds2manu, mDebug, useDummyElecMap};
 
   decoder.setFirstOrbitInTF(tfOrbit);
   decoder.setDigits(digits);

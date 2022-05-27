@@ -26,8 +26,8 @@ RawDecoder::RawDecoder(RawReaderMemory& reader) : mRawReader(reader),
 
 RawErrorType_t RawDecoder::decode()
 {
-  auto& rdh = mRawReader.getRawHeader();
-  short linkID = o2::raw::RDHUtils::getLinkID(rdh);
+  // auto& rdh = mRawReader.getRawHeader();
+  //    short linkID = o2::raw::RDHUtils::getLinkID(rdh);
   mDigits.clear();
   mBCRecords.clear();
 
@@ -50,52 +50,52 @@ RawErrorType_t RawDecoder::readChannels()
   // mErrors.emplace_back(-1, 0, 0, 0, kOK); //5 is non-existing link with general errors
 
   auto& payloadWords = mRawReader.getPayload();
-  uint32_t wordCountFromLastHeader = 1; //header word is included
+  uint32_t wordCountFromLastHeader = 1; // header word is included
   int nDigitsAddedFromLastHeader = 0;
-  bool isHeaderExpected = true;    //true if we expect to read header, false otherwise
-  bool skipUntilNextHeader = true; //true if something wrong with data format, try to read next header
+  bool isHeaderExpected = true;    // true if we expect to read header, false otherwise
+  bool skipUntilNextHeader = true; // true if something wrong with data format, try to read next header
   uint16_t currentBC;
   uint32_t currentOrbit = mRawReader.getCurrentHBFOrbit();
   auto b = payloadWords.cbegin();
   auto e = payloadWords.cend();
-  while (b != e) { //payload must start with cpvheader folowed by cpvwords and finished with cpvtrailer
+  while (b != e) { // payload must start with cpvheader folowed by cpvwords and finished with cpvtrailer
     CpvHeader header(b, e);
     if (header.isOK()) {
       LOG(debug) << "RawDecoder::readChannels() : "
                  << "I read cpv header for orbit = " << header.orbit()
                  << " and BC = " << header.bc();
-      if (!isHeaderExpected) { //actually, header was not expected
+      if (!isHeaderExpected) { // actually, header was not expected
         if (!mIsMuteErrors) {
           LOG(error) << "RawDecoder::readChannels() : "
                      << "header was not expected";
         }
-        removeLastNDigits(nDigitsAddedFromLastHeader); //remove previously added digits as they are bad
+        removeLastNDigits(nDigitsAddedFromLastHeader); // remove previously added digits as they are bad
         mErrors.emplace_back(-1, 0, 0, 0, kNO_CPVTRAILER);
       }
       skipUntilNextHeader = false;
       currentBC = header.bc();
       wordCountFromLastHeader = 0;
       nDigitsAddedFromLastHeader = 0;
-      if (currentOrbit != header.orbit()) { //bad cpvheader
+      if (currentOrbit != header.orbit()) { // bad cpvheader
         if (!mIsMuteErrors) {
           LOG(error) << "RawDecoder::readChannels() : "
                      << "currentOrbit(=" << currentOrbit
                      << ") != header.orbit()(=" << header.orbit() << ")";
         }
-        mErrors.emplace_back(-1, 0, 0, 0, kCPVHEADER_INVALID); //5 is non-existing link with general errors
+        mErrors.emplace_back(-1, 0, 0, 0, kCPVHEADER_INVALID); // 5 is non-existing link with general errors
         skipUntilNextHeader = true;
       }
     } else {
       if (skipUntilNextHeader) {
         b += 16;
-        continue; //continue while'ing until it's not header
+        continue; // continue while'ing until it's not header
       }
       CpvWord word(b, e);
       if (word.isOK()) {
         wordCountFromLastHeader++;
         for (int i = 0; i < 3; i++) {
           PadWord pw = {word.cpvPadWord(i)};
-          if (pw.zero == 0) { //cpv pad word, not control or empty
+          if (pw.zero == 0) { // cpv pad word, not control or empty
             if (addDigit(pw.mDataWord, word.ccId(), currentBC)) {
               nDigitsAddedFromLastHeader++;
             } else {
@@ -108,24 +108,24 @@ RawErrorType_t RawDecoder::readChannels()
             }
           }
         }
-      } else { //this may be trailer
+      } else { // this may be trailer
         CpvTrailer trailer(b, e);
         if (trailer.isOK()) {
           int diffInCount = wordCountFromLastHeader - trailer.wordCounter();
           if (diffInCount > 1 ||
               diffInCount < -1) {
-            //some words lost?
+            // some words lost?
             if (!mIsMuteErrors) {
               LOG(error) << "RawDecoder::readChannels() : "
                          << "Read " << wordCountFromLastHeader << " words, expected " << trailer.wordCounter();
             }
             mErrors.emplace_back(-1, 0, 0, 0, kCPVTRAILER_INVALID);
-            //throw all previous data and go to next header
+            // throw all previous data and go to next header
             removeLastNDigits(nDigitsAddedFromLastHeader);
             skipUntilNextHeader = true;
           }
           if (trailer.bc() != currentBC) {
-            //trailer does not fit header
+            // trailer does not fit header
             if (!mIsMuteErrors) {
               LOG(error) << "RawDecoder::readChannels() : "
                          << "CPVHeader BC(" << currentBC << ") != CPVTrailer BC(" << trailer.bc() << ")";
@@ -137,13 +137,13 @@ RawErrorType_t RawDecoder::readChannels()
           isHeaderExpected = true;
         } else {
           wordCountFromLastHeader++;
-          //error
+          // error
           if (!mIsMuteErrors) {
             LOG(error) << "RawDecoder::readChannels() : "
                        << "Read unknown word";
           }
-          mErrors.emplace_back(-1, 0, 0, 0, kUNKNOWN_WORD); //add error for non-existing row
-          //what to do?
+          mErrors.emplace_back(-1, 0, 0, 0, kUNKNOWN_WORD); // add error for non-existing row
+          // what to do?
         }
       }
     }
@@ -155,14 +155,14 @@ RawErrorType_t RawDecoder::readChannels()
 
 bool RawDecoder::addDigit(uint32_t w, short ccId, uint16_t bc)
 {
-  //add digit
+  // add digit
   PadWord pad = {w};
   unsigned short absId;
   if (!o2::cpv::Geometry::hwaddressToAbsId(ccId, pad.dil, pad.gas, pad.address, absId)) {
     return false;
   }
 
-  //new bc -> add bc reference
+  // new bc -> add bc reference
   if (mBCRecords.empty() || (mBCRecords.back().bc != bc)) {
     mBCRecords.push_back(BCRecord(bc, mDigits.size(), mDigits.size()));
   } else {

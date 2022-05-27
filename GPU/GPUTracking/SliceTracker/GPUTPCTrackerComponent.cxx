@@ -385,7 +385,7 @@ int GPUTPCTrackerComponent::ConfigureSlices()
     rec.tpc.clusterError2CorrectionZ = fClusterErrorCorrectionZ * fClusterErrorCorrectionZ;
   }
   rec.tpc.minNTrackClusters = fMinNTrackClusters;
-  rec.SetMinTrackPt(fMinTrackPt);
+  rec.SetMinTrackPtB5(fMinTrackPt * fabsf(fSolenoidBz / 5));
   rec.tpc.searchWindowDZDR = fSearchWindowDZDR;
   devProc.nDeviceHelperThreads = fGPUHelperThreads;
   rec.tpc.globalTracking = fGlobalTracking;

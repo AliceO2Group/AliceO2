@@ -92,7 +92,7 @@ class CallbackService
   using PreProcessingCallback = std::function<void(ServiceRegistry&, int)>;
   using PostProcessingCallback = std::function<void(ServiceRegistry&, int)>;
   using CCDBDeserializedCallback = std::function<void(ConcreteDataMatcher&, void*)>;
-  using DomainInfoUpdatedCallback = std::function<void(ServiceRegistry&, size_t timeslice)>;
+  using DomainInfoUpdatedCallback = std::function<void(ServiceRegistry&, size_t timeslice, ChannelIndex index)>;
 
   using Callbacks = CallbackRegistry<Id,                                                                //
                                      RegistryPair<Id, Id::Start, StartCallback>,                        //

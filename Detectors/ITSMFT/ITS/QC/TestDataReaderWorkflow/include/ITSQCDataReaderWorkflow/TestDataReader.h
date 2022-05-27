@@ -85,7 +85,7 @@ class TestDataReader : public Task
 
   ChipPixelData* mChipData = nullptr;
   std::string mInputName = "Split9.bin";
-  int mIndexPush;
+  size_t mIndexPush;
   //  int mPixelSize;
   std::vector<int> mNDigits;
   std::vector<std::string> mFolderNames;
@@ -106,7 +106,7 @@ class TestDataReader : public Task
   int mEventRegistered;
   int mTotalPixelSize;
   static constexpr int sNError = 11;
-  //			unsigned int Error[sNError];
+  // unsigned int Error[sNError];
   std::array<unsigned int, sNError> mErrors;
   std::vector<std::array<unsigned int, sNError>> mErrorsVec;
   std::vector<std::array<unsigned int, sNError>> mErrorsVecTest;
@@ -119,7 +119,7 @@ class TestDataReader : public Task
   int mIndexPushEx;
   int mFileRemain;
   int mFileInfo;
-  //Immediate Injection Variables//
+  // Immediate Injection Variables//
 
   int mNewFileInj;
   //  int mNewFileInjAction;

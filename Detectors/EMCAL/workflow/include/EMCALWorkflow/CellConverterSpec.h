@@ -12,12 +12,14 @@
 #include <vector>
 
 #include "DataFormatsEMCAL/Cell.h"
+#include "DataFormatsEMCAL/MCLabel.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALReconstruction/CaloRawFitter.h"
 #include "EMCALReconstruction/AltroHelper.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
 {
@@ -72,16 +74,21 @@ class CellConverterSpec : public framework::Task
   void run(framework::ProcessingContext& ctx) final;
 
  protected:
-  std::vector<o2::emcal::SRUBunchContainer> digitsToBunches(gsl::span<const o2::emcal::Digit> digits);
+  std::vector<o2::emcal::SRUBunchContainer> digitsToBunches(gsl::span<const o2::emcal::Digit> digits, std::vector<gsl::span<const o2::emcal::MCLabel>>& mcLabels);
 
-  std::vector<AltroBunch> findBunches(const std::vector<const o2::emcal::Digit*>& channelDigits);
+  std::vector<AltroBunch> findBunches(const std::vector<const o2::emcal::Digit*>& channelDigits, const std::vector<gsl::span<const o2::emcal::MCLabel>>& mcLabels, ChannelType_t channelType);
+
+  void mergeLabels(std::vector<o2::emcal::AltroBunch>& channelBunches);
+
+  int selectMaximumBunch(const gsl::span<const Bunch>& bunchvector);
 
  private:
-  bool mPropagateMC = false;                             ///< Switch whether to process MC true labels
-  o2::emcal::Geometry* mGeometry = nullptr;              ///!<! Geometry pointer
-  std::unique_ptr<o2::emcal::CaloRawFitter> mRawFitter;  ///!<! Raw fitter
-  std::vector<o2::emcal::Cell> mOutputCells;             ///< Container with output cells
-  std::vector<o2::emcal::TriggerRecord> mOutputTriggers; ///< Container with output trigger records
+  bool mPropagateMC = false;                                           ///< Switch whether to process MC true labels
+  o2::emcal::Geometry* mGeometry = nullptr;                            ///!<! Geometry pointer
+  std::unique_ptr<o2::emcal::CaloRawFitter> mRawFitter;                ///!<! Raw fitter
+  std::vector<o2::emcal::Cell> mOutputCells;                           ///< Container with output cells
+  std::vector<o2::emcal::TriggerRecord> mOutputTriggers;               ///< Container with output trigger records
+  o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> mOutputLabels; ///< Container with output MC labels
 };
 
 /// \brief Creating DataProcessorSpec for the EMCAL Cell Converter Spec

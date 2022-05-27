@@ -61,7 +61,10 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool dec, bool calib, o2::hea
       nent = n;
     }
     outputtree->SetEntries(nent);
-    outputtree->Write("", TObject::kOverwrite);
+    // do not use TTree::Write .. as this writes to default directory (not the associated file)
+    // instead of outputtree->Write("", TObject::kOverwrite)
+    // --> better use TFile::Write or TFile::WriteObject
+    outputfile->Write("", TObject::kOverwrite);
     outputfile->Close();
   };
 

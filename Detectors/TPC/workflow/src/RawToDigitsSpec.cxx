@@ -52,6 +52,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
   {
     // parse command line arguments
     mMaxEvents = static_cast<uint32_t>(ic.options().get<int>("max-events"));
+    mSyncOffsetReference = ic.options().get<uint32_t>("sync-offset-reference");
     mUseOldSubspec = ic.options().get<bool>("use-old-subspec");
     const bool createOccupancyMaps = ic.options().get<bool>("create-occupancy-maps");
     mForceQuit = ic.options().get<bool>("force-quit");
@@ -139,7 +140,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
     }
 
     auto& reader = mRawReader.getReaders()[0];
-    mActiveSectors = calib_processing_helper::processRawData(pc.inputs(), reader, mUseOldSubspec);
+    mActiveSectors = calib_processing_helper::processRawData(pc.inputs(), reader, mUseOldSubspec, std::vector<int>(), nullptr, mSyncOffsetReference);
 
     mDigitDump.incrementNEvents();
     if (mClusterQC) {
@@ -179,6 +180,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
   std::unique_ptr<qc::Clusters> mClusterQC;
   rawreader::RawReaderCRUManager mRawReader;
   uint32_t mMaxEvents{0};
+  uint32_t mSyncOffsetReference{144};
   bool mReadyToQuit{false};
   bool mCalibDumped{false};
   bool mUseOldSubspec{false};
@@ -255,6 +257,7 @@ DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, s
       {"remove-duplicates", VariantType::Bool, false, {"check if duplicate digits exist and remove them"}},
       {"remove-ce-digits", VariantType::Bool, false, {"find CE position and remove digits around it"}},
       {"ignore-grp", VariantType::Bool, false, {"ignore GRP file"}},
+      {"sync-offset-reference", VariantType::UInt32, 144u, {"Reference BCs used for the global sync offset in the CRUs"}},
     } // end Options
   };  // end DataProcessorSpec
 }

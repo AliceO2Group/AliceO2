@@ -28,6 +28,7 @@
 // Boost library for easy access of host name
 #include <boost/asio/ip/host_name.hpp>
 
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"
@@ -106,6 +107,7 @@ class ITSThresholdCalibrator : public Task
 
   void finalize(EndOfStreamContext* ec);
   void stop() final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
   //////////////////////////////////////////////////////////////////
  private:
@@ -175,7 +177,7 @@ class ITSThresholdCalibrator : public Task
 
   // Helper functions for writing to the database
   void addDatabaseEntry(const short int&, const char*, const short int&,
-                        const float&, const short int&, const float&, bool);
+                        const float&, const short int&, const float&, bool, bool);
   void sendToAggregator(EndOfStreamContext*);
 
   std::string mSelfName;
@@ -213,6 +215,9 @@ class ITSThresholdCalibrator : public Task
   // DCS config object
   o2::dcs::DCSconfigObject_t mTuning;
 
+  // DCS config object shipped only to QC to know when scan is done
+  o2::dcs::DCSconfigObject_t mChipDoneQc;
+
   // Flag to check if endOfStream is available
   bool mCheckEos = false;
 
@@ -228,6 +233,10 @@ class ITSThresholdCalibrator : public Task
   // Chip mod selector and chip mod base for parallel chip access
   int mChipModSel = 0;
   int mChipModBase = 1;
+
+  // map to get confDB id
+  std::vector<int>* mConfDBmap;
+  short int mConfDBv;
 };
 
 // Create a processor spec

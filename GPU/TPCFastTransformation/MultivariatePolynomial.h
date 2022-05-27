@@ -156,7 +156,9 @@ void MultivariatePolynomial<Dim, Degree>::loadFromFile(TFile& inpf, const char* 
     setFromContainer(*polTmp);
     delete polTmp;
   } else {
+#ifndef GPUCA_ALIROOT_LIB
     LOGP(info, fmt::format("couldnt load object {} from input file", name));
+#endif
   }
 }
 
@@ -165,11 +167,15 @@ void MultivariatePolynomial<Dim, Degree>::setFromContainer(const MultivariatePol
 {
   if constexpr (Dim > 0 && Degree > 0) {
     if (this->getDim() != container.mDim) {
+#ifndef GPUCA_ALIROOT_LIB
       LOGP(info, fmt::format("wrong number of dimensions! this {} container {}", this->getDim(), container.mDim));
+#endif
       return;
     }
     if (this->getDegree() != container.mDegree) {
+#ifndef GPUCA_ALIROOT_LIB
       LOGP(info, fmt::format("wrong number of degrees! this {} container {}", this->getDegree(), container.mDegree));
+#endif
       return;
     }
     setParams(container.mParams.data());

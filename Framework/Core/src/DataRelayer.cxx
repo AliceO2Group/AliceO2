@@ -36,6 +36,7 @@
 #include <Monitoring/Metric.h>
 #include <Monitoring/Monitoring.h>
 
+#include <fairmq/Channel.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <gsl/span>
@@ -52,9 +53,9 @@ namespace o2::framework
 
 constexpr int INVALID_INPUT = -1;
 
-// 16 is just some reasonable numer
+// 128 is just some reasonable numer
 // The number should really be tuned at runtime for each processor.
-constexpr int DEFAULT_PIPELINE_LENGTH = 32;
+constexpr int DEFAULT_PIPELINE_LENGTH = 128;
 
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
@@ -121,9 +122,17 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       slotsCreatedByHandlers.push_back(handler.creator(channelIndex, mTimesliceIndex));
     }
   }
-  if (slotsCreatedByHandlers.empty() == false) {
+  // Count how many slots are not invalid
+  auto validSlots = 0;
+  for (auto slot : slotsCreatedByHandlers) {
+    if (slot.index == TimesliceSlot::INVALID) {
+      continue;
+    }
+    validSlots++;
+  }
+  if (validSlots > 0) {
     activity.newSlots++;
-    LOGP(debug, "DataRelayer::processDanglingInputs: {} slots created by handler", slotsCreatedByHandlers.size());
+    LOGP(debug, "DataRelayer::processDanglingInputs: {} slots created by handler", validSlots);
   } else {
     LOGP(debug, "DataRelayer::processDanglingInputs: no slots created by handler");
   }
@@ -271,18 +280,19 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       }
       continue;
     }
-    bool hasTimeframe = false;
+    bool droppingNotCondition = false;
     for (size_t mi = 0; mi == mInputs.size(); ++mi) {
       auto& input = mInputs[mi];
       auto& element = mCache[si * mInputs.size() + mi];
-      if (input.lifetime == Lifetime::Timeframe && element.size() != 0) {
-        LOGP(error, "Dropping Lifetime::Timeframe data in slot {} with timestamp {} < {}.", si, timestamp.value, newOldest.timeslice.value);
-        hasTimeframe = true;
+      if (input.lifetime != Lifetime::Condition && element.size() != 0) {
+        LOGP(error, "Dropping Lifetime::{} data in slot {} with timestamp {} < {}.", input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+        droppingNotCondition = true;
         break;
       }
     }
-    if (!hasTimeframe) {
-      LOGP(debug, "Silently dropping data in slot {} because it has timestamp {} < {}. Lifetime::Timeframe data not expected.", si, timestamp.value, newOldest.timeslice.value);
+    if (!droppingNotCondition) {
+      LOGP(info, "Silently dropping data in slot {} because it has timestamp {} < {} after receiving data from channel {}. Lifetime::Timeframe data not expected.", si, timestamp.value, newOldest.timeslice.value,
+           newOldest.timeslice.value, mTimesliceIndex.getChannelInfo(channel).channel->GetName());
     }
   }
 }
@@ -568,9 +578,13 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
   // These two are trivial, but in principle the whole loop could be parallelised
   // or vectorised so "completed" could be a thread local variable which needs
   // merging at the end.
-  auto updateCompletionResults = [&completed](TimesliceSlot li, CompletionPolicy::CompletionOp op) {
-    LOGP(debug, "Doing action {} for slot {}", op, li.index);
-    completed.emplace_back(RecordAction{li, op});
+  auto updateCompletionResults = [&completed](TimesliceSlot li, uint64_t const* timeslice, CompletionPolicy::CompletionOp op) {
+    if (timeslice) {
+      LOGP(debug, "Doing action {} for slot {} (timeslice: {})", op, li.index, *timeslice);
+      completed.emplace_back(RecordAction{li, {*timeslice}, op});
+    } else {
+      LOGP(debug, "No timeslice associated with slot ", li.index);
+    }
   };
 
   // THE OUTER LOOP
@@ -630,37 +644,46 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     } else {
       throw std::runtime_error("No completion policy found");
     }
+    auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
+    auto timeslice = std::get_if<uint64_t>(&variables.get(0));
     switch (action) {
       case CompletionPolicy::CompletionOp::Consume:
         countConsume++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::ConsumeAndRescan:
         // This is just like Consume, but we also mark all slots as dirty
         countConsume++;
         action = CompletionPolicy::CompletionOp::Consume;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
         mTimesliceIndex.rescan();
         break;
       case CompletionPolicy::CompletionOp::ConsumeExisting:
         countConsumeExisting++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::Process:
         countProcess++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::Discard:
         countDiscard++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
+        break;
+      case CompletionPolicy::CompletionOp::Retry:
+        countWait++;
+        mTimesliceIndex.markAsDirty(slot, true);
+        action = CompletionPolicy::CompletionOp::Wait;
         break;
       case CompletionPolicy::CompletionOp::Wait:
         countWait++;
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
     }
-    // Given we have created an action for this cacheline, we need to wait for
-    // a new message before we look again into the given cacheline.
-    mTimesliceIndex.markAsDirty(slot, false);
   }
   mTimesliceIndex.updateOldestPossibleOutput();
   LOGP(debug, "DataRelayer::getReadyToProcess results notDirty:{}, consume:{}, consumeExisting:{}, process:{}, discard:{}, wait:{}",

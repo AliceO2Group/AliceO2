@@ -95,7 +95,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     if (payloadSize == 0) { // send empty output
       auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
       if (++contDeadBeef <= maxWarn) {
-        LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+        LOGP(alarm, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
              dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
              contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
       }
@@ -146,7 +146,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(header);
       auto ddl = o2::raw::RDHUtils::getFEEID(header);
 
-      if (ddl >= o2::phos::Mapping::NDDL || ddl < 0) { // only 0..13 correct DDLs
+      if (ddl >= o2::phos::Mapping::NDDL) { // only 0..13 correct DDLs
         LOG(error) << "DDL=" << ddl;
         mOutputHWErrors.emplace_back(14, 16, char(ddl)); // Add non-existing DDL as DDL 15
         continue;                                        // skip STU ddl

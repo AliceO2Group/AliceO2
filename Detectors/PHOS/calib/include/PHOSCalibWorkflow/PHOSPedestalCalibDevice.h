@@ -54,7 +54,7 @@ class PHOSPedestalCalibDevice : public o2::framework::Task
   long mRunStartTime = 0;                                           /// start time of the run (sec)
   int mStatistics = 1000;                                           /// number of events to calculate pedestals
   std::unique_ptr<Pedestals> mPedestals;                            //! Final calibration object
-  std::unique_ptr<Pedestals> mOldPed;                               //! Pedestals currently stored in CCDB for comparisoin
+  std::unique_ptr<const Pedestals> mOldPed;                         //! Pedestals currently stored in CCDB for comparisoin
   std::unique_ptr<TH2F> mMeanHG;                                    //! Mean values in High Gain channels
   std::unique_ptr<TH2F> mMeanLG;                                    //! RMS of values in High Gain channels
   std::unique_ptr<TH2F> mRMSHG;                                     //! Mean values in Low Gain channels

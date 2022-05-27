@@ -40,3 +40,8 @@ o2_add_executable(assessment-workflow
                   SOURCES src/mft-assessment-workflow.cxx
                   COMPONENT_NAME mft
                   PUBLIC_LINK_LIBRARIES O2::MFTWorkflow)
+
+o2_add_executable(cluster-writer-workflow
+                  SOURCES src/mft-cluster-writer-workflow.cxx
+                  COMPONENT_NAME mft
+                  PUBLIC_LINK_LIBRARIES O2::MFTWorkflow)

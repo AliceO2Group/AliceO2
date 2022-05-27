@@ -23,8 +23,7 @@ o2_add_library(EMCALCalib
                        src/FeeDCS.cxx
                        src/CalibDB.cxx
                        src/ElmbMeasurement.cxx
-                       src/EMCDCSProcessor.cxx
-               PUBLIC_LINK_LIBRARIES O2::CCDB O2::DetectorsDCS O2::EMCALBase)
+               PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase)
 
 o2_target_root_dictionary(EMCALCalib
                           HEADERS include/EMCALCalib/BadChannelMap.h
@@ -41,7 +40,6 @@ o2_target_root_dictionary(EMCALCalib
                                   include/EMCALCalib/CalibDB.h
                                   include/EMCALCalib/ElmbData.h
                                   include/EMCALCalib/ElmbMeasurement.h
-                                  include/EMCALCalib/EMCDCSProcessor.h
                           LINKDEF src/EMCALCalibLinkDef.h)
 
 o2_add_test(BadChannelMap
@@ -156,23 +154,6 @@ o2_add_test_root_macro(macros/GainCalibrationFactors_CCDBApiTest.C
 o2_add_test_root_macro(macros/GainCalibrationFactors_CalibDBTest.C
             PUBLIC_LINK_LIBRARIES O2::EMCALCalib
             LABELS emcal COMPILE_ONLY)
-
-o2_add_test_root_macro(macros/TriggerDCS_CCDBApiTest.C
-            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
-            LABELS emcal COMPILE_ONLY)
-
-o2_add_test_root_macro(macros/TriggerDCS_CalibDBTest.C
-            PUBLIC_LINK_LIBRARIES O2::EMCALCalib
-            LABELS emcal COMPILE_ONLY)
-
-o2_add_test_root_macro(macros/makeEMCALCCDBEntryForDCS.C
-                                PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB
-                                LABELS emcal COMPILE_ONLY)
-
-o2_add_test_root_macro(macros/readEMCALDCSentries.C
-                                PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB O2::EMCALCalib
-                                LABELS emcal COMPILE_ONLY)
-
 
 o2_data_file(COPY files DESTINATION Detectors/EMC)
 

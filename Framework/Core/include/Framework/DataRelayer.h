@@ -70,6 +70,7 @@ class DataRelayer
 
   struct RecordAction {
     TimesliceSlot slot;
+    TimesliceId timeslice;
     CompletionPolicy::CompletionOp op;
   };
 

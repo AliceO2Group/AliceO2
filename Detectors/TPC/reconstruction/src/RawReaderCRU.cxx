@@ -810,8 +810,8 @@ void RawReaderCRU::processLinkZS()
     }
     file.seekg(payloadOffset, file.beg);
     file.read(buffer, payloadSize);
-    const uint32_t syncOffsetReference = 144;                                                                                                                                                     // <<< TODO: fix value as max offset over all links
-    o2::tpc::raw_processing_helpers::processZSdata(buffer, payloadSize, packet.getFEEID(), packet.getHeartBeatOrbit(), firstOrbitInEvent, syncOffsetReference, mManager->mLinkZSCallback, false); // last parameter should be true for MW2 data
+    const uint32_t syncOffsetReference = 144;                                                                                                                                              // <<< TODO: fix value as max offset over all links
+    o2::tpc::raw_processing_helpers::processZSdata(buffer, payloadSize, packet.getFEEID(), packet.getHeartBeatOrbit(), firstOrbitInEvent, syncOffsetReference, mManager->mLinkZSCallback); // last parameter should be true for MW2 data
   }
 }
 

@@ -12,4 +12,5 @@
 add_subdirectory(Passive)
 add_subdirectory(TRK)
 add_subdirectory(FT3)
+add_subdirectory(FCT)
 add_subdirectory(AOD)
