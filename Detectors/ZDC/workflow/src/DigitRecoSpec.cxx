@@ -176,9 +176,11 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   mDR.process(peds, bcdata, chans);
   const std::vector<o2::zdc::RecEventAux>& recAux = mDR.getReco();
 
+  // Transfer wafeform
+  bool fullinter = mDR.getFullInterpolation();
   RecEvent recEvent;
-  LOG(info) << "BC processed during reconstruction " << recAux.size();
-  uint32_t nte = 0, ntt = 0, nti = 0;
+  LOGF(info, "BC processed during reconstruction %d%s", recAux.size(), (fullinter ? " FullInterpolation" : ""));
+  uint32_t nte = 0, ntt = 0, nti = 0, ntw = 0;
   for (auto reca : recAux) {
     bool toAddBC = true;
     int32_t ne = reca.ezdc.size();
@@ -194,6 +196,19 @@ void DigitRecoSpec::run(ProcessingContext& pc)
         recEvent.addTDC(it, reca.TDCVal[it][ih], reca.TDCAmp[it][ih], reca.isBeg[it], reca.isEnd[it]);
       }
     }
+    // Add waveform information
+    if (fullinter) {
+      for (int32_t isig = 0; isig < o2::zdc::NChannels; isig++) {
+        if (reca.inter[isig].size() == NIS) {
+          if (toAddBC) {
+            recEvent.addBC(reca);
+            toAddBC = false;
+          }
+          recEvent.addWaveform(isig, reca.inter[isig]);
+          ntw++;
+        }
+      }
+    }
     if (ne > 0) {
       if (toAddBC) {
         recEvent.addBC(reca);
@@ -206,19 +221,22 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     }
     nte += ne;
     ntt += nt;
-    if (mVerbosity > 0 && (nt > 0 || ne > 0)) {
-      printf("Orbit %9u bc %4u ntdc %2d ne %2d\n", reca.ir.orbit, reca.ir.bc, nt, ne);
+    if (mVerbosity > 1 && (nt > 0 || ne > 0)) {
+      printf("Orbit %9u bc %4u ntdc %2d ne %2d channels=0x%08x\n", reca.ir.orbit, reca.ir.bc, nt, ne, reca.channels);
     }
     // Event information
     nti += recEvent.addInfos(reca);
   }
-  LOG(info) << "Reconstructed " << ntt << " signal TDCs and " << nte << " ZDC energies and " << nti << " info messages in " << recEvent.mRecBC.size() << "/" << recAux.size() << " b.c.";
+  LOG(info) << "Reconstructed " << ntt << " signal TDCs and " << nte << " ZDC energies and "
+            << nti << " info messages in " << recEvent.mRecBC.size() << "/" << recAux.size() << " b.c. and "
+            << ntw << " waveform chunks";
   // TODO: rate information for all channels
   // TODO: summary of reconstruction to be collected by DQM?
   pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, recEvent.mRecBC);
   pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0, Lifetime::Timeframe}, recEvent.mEnergy);
   pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0, Lifetime::Timeframe}, recEvent.mTDCData);
   pc.outputs().snapshot(Output{"ZDC", "INFO", 0, Lifetime::Timeframe}, recEvent.mInfo);
+  pc.outputs().snapshot(Output{"ZDC", "WAVE", 0, Lifetime::Timeframe}, recEvent.mWaveform);
   mTimer.Stop();
 }
 
@@ -241,6 +259,7 @@ framework::DataProcessorSpec getDigitRecoSpec(const int verbosity = 0, const boo
   outputs.emplace_back("ZDC", "ENERGY", 0, Lifetime::Timeframe);
   outputs.emplace_back("ZDC", "TDCDATA", 0, Lifetime::Timeframe);
   outputs.emplace_back("ZDC", "INFO", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "WAVE", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "zdc-digi-reco",
