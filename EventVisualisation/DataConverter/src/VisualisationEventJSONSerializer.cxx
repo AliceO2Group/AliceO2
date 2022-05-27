@@ -73,7 +73,7 @@ std::string VisualisationEventJSONSerializer::toJson(const VisualisationEvent& e
   tree.AddMember("firstTForbit", rapidjson::Value().SetInt(event.mFirstTForbit), allocator);
 
   tree.AddMember("collisionTime", rapidjson::Value().SetString(event.mCollisionTime.c_str(), event.mCollisionTime.size()), allocator);
-  tree.AddMember("workflowVersion", rapidjson::Value().SetFloat(event.mWorkflowVersion), allocator);
+  tree.AddMember("workflowVersion", rapidjson::Value().SetString(event.mWorkflowVersion.c_str(), event.mWorkflowVersion.size()), allocator);
   tree.AddMember("workflowParameters", rapidjson::Value().SetString(event.mWorkflowParameters.c_str(), event.mWorkflowParameters.size()), allocator);
   // Tracks
   tree.AddMember("trackCount", rapidjson::Value().SetInt(event.getTrackCount()), allocator);

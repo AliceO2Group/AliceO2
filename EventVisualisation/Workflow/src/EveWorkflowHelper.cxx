@@ -13,6 +13,7 @@
 /// \author julian.myrcha@cern.ch
 
 #include <EveWorkflow/EveWorkflowHelper.h>
+#include "EventVisualisationBase/ConfigurationManager.h"
 #include "EventVisualisationDataConverter/VisualisationEventSerializer.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "EveWorkflow/FileProducer.h"
@@ -177,9 +178,9 @@ void EveWorkflowHelper::draw()
 
 void EveWorkflowHelper::save(const std::string& jsonPath, int numberOfFiles,
                              o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask,
-                             float workflowVersion, o2::header::DataHeader::RunNumberType runNumber, o2::framework::DataProcessingHeader::CreationTime creation)
+                             o2::header::DataHeader::RunNumberType runNumber, o2::framework::DataProcessingHeader::CreationTime creation)
 {
-  mEvent.setWorkflowVersion(workflowVersion);
+  mEvent.setWorkflowVersion(o2_eve_version);
   mEvent.setRunNumber(runNumber);
   std::time_t timeStamp = std::time(nullptr);
   std::string asciiTimeStamp = std::asctime(std::localtime(&timeStamp));
