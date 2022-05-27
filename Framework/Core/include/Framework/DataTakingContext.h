@@ -34,6 +34,14 @@ struct DataTakingContext {
   uint64_t orbitResetTime = INVALID_RESET_TIME;
   // What currently set the orbitResetTime value.
   OrbitResetTimeSource source = OrbitResetTimeSource::Default;
+  /// The current lhc period
+  std::string lhcPeriod = "unknown";
+  /// The run type of the current run
+  std::string runType = "unknown";
+  /// The environment ID for the deployment
+  std::string envId = "unknown";
+  /// The list of detectors taking part in the run
+  std::string detectors = "unknown";
 };
 
 } // namespace o2::framework
