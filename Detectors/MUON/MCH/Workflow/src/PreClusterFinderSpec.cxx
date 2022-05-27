@@ -173,7 +173,10 @@ class PreClusterFinderTask
           break;
         case CHECK_NO_LEFTOVER_DIGITS_ERROR:
           if (digitsSizesDiffer) {
-            LOG(error) << "some digits have been lost during the preclustering";
+            static int nAlarms = 0;
+            if (nAlarms++ < 5) {
+              LOG(alarm) << "some digits have been lost during the preclustering";
+            }
           }
           break;
         case CHECK_NO_LEFTOVER_DIGITS_FATAL:
