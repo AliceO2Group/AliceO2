@@ -146,7 +146,6 @@ class MFTDCSDataProcessor : public o2::framework::Task
 
     auto timeNow = HighResClock::now();
     Duration elapsedTime = timeNow - mTimer; // in seconds
-
     if (elapsedTime.count() >= mDPsUpdateInterval) {
       sendDPsoutput(pc.outputs());
       mTimer = timeNow;
@@ -183,8 +182,7 @@ class MFTDCSDataProcessor : public o2::framework::Task
     }
 
     if (tend == -1) {
-      constexpr long SECONDSPERYEAR = 365 * 24 * 60 * 60;
-      tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
+      tend = tstart + o2::ccdb::CcdbObjectInfo::MONTH;
     }
 
     info.setStartValidityTimestamp(tstart);
