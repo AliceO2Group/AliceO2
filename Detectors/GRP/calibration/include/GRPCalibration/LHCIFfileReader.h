@@ -58,12 +58,12 @@ void LHCIFfileReader::readValue(const std::string& alias, std::string& type, int
   }
   std::string subStr = mFileBuffStr.substr(posStart, posEnd - posStart);
   LOG(debug) << "subStr = " << subStr;
-  auto tokensStr = o2::utils::Str::tokenize(subStr, '\t');
+  auto tokensStr = o2::utils::Str::tokenize(subStr, '\t', true, false);
   LOG(debug) << "size of tokensStr = " << tokensStr.size();
   if (tokensStr.size() < 5) {
     LOG(fatal) << "Number of tokens too small: " << tokensStr.size() << ", should be at 5 (alias, type, nelements, value(s), timestamp(s)";
   }
-  auto tokensStr_type = o2::utils::Str::tokenize(tokensStr[1], ':');
+  auto tokensStr_type = o2::utils::Str::tokenize(tokensStr[1], ':', true, false);
   LOG(debug) << "size of tokensStr_type = " << tokensStr_type.size();
 
   type = tokensStr_type[0];
@@ -73,9 +73,11 @@ void LHCIFfileReader::readValue(const std::string& alias, std::string& type, int
   nmeas = std::stoi(tokensStr[2]);     // number of measurements
   LOG(debug) << "nele = " << nele << ", nmeas = " << nmeas;
   int shift = 3;                                          // number of tokens that are not measurments (alias, type, number of measurements)
-  if ((tokensStr.size() - shift) != (nele + 1) * nmeas) { // +1 to account for the timestamp
-    LOG(fatal) << "Wrong number of pairs (value(s), timestamp): " << tokensStr.size() - 3 << ", should be " << (nele + 1) * nmeas;
-  }
+
+  // RS: this check is wrong: the provided pair might be simply empty, but they are requested by the check above (Number of tokens too small...)
+  //  if ((tokensStr.size() - shift) != (nele + 1) * nmeas) { // +1 to account for the timestamp
+  //    LOG(fatal) << "Wrong number of pairs (value(s), timestamp): " << tokensStr.size() - 3 << ", should be " << (nele + 1) * nmeas;
+  //  }
   meas.reserve(nmeas);
 
   for (int idx = 0; idx < nmeas; ++idx) {
