@@ -52,6 +52,9 @@ void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
     const auto irFrames = inputData.getIRFramesITS();
     size_t lastMatchedIdx = 0; // ITS IR are sorted in time and do not overlap
     for (const auto& irFrame : irFrames) {
+      if (!irFrame.info) { // skip IRFrames where ITS did not find any track
+        continue;
+      }
       for (auto j = lastMatchedIdx; j < trigRecs.size(); ++j) {
         const auto& trigRec = trigRecs[j];
         if (trigRec.getBCData() >= irFrame.getMin()) {
