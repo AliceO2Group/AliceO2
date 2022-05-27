@@ -172,6 +172,17 @@ Bool_t GeneratorHepMC::Init()
       return kFALSE;
   }
 
+  // skip events at the beginning
+  if (!mReader->failed()) {
+    LOGF(info, "%i events to skip.", mEventsToSkip);
+    for (auto ind = 0; ind < mEventsToSkip; ind++) {
+      if (!generateEvent()) {
+        LOGF(error, "The file %s only contains %i events!", mFileName, ind);
+        break;
+      }
+    }
+  }
+
   /** success **/
   return !mReader->failed();
 }
