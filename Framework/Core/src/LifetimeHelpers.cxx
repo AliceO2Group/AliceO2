@@ -37,6 +37,7 @@
 #include <fairmq/FairMQDevice.h>
 
 #include <cstdlib>
+#include <random>
 
 using namespace o2::header;
 using namespace fair;
@@ -98,7 +99,17 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
 
 ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds period)
 {
-  auto start = getCurrentTime();
+  std::random_device r;
+  std::default_random_engine e1(r());
+  std::uniform_int_distribution<uint64_t> dist(0, period.count() * 0.9);
+
+  // We start with a random offset to avoid all the devices
+  // send their first message at the same time, bring down
+  // the QC machine.
+  // We reduce the first interval rather than increasing it
+  // to avoid having a triggered timer which appears to be in
+  // the future.
+  size_t start = getCurrentTime() - dist(e1) - period.count() * 0.1;
   auto last = std::make_shared<decltype(start)>(start);
   // FIXME: should create timeslices when period expires....
   return [last, period](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
