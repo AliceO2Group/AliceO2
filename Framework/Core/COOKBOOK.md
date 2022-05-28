@@ -269,6 +269,23 @@ InputSpec{"*", "CLUSTERS"}, InputSpec{"*", "TRACKS"}
 i.e. the first message which arrives will define the wildcard for all the other input
 spec in the definition.
 
+## Building a data query by string
+
+The C++ API is not the only way an InputSpec can be constructed. This can be done
+also by string via the `DataDescriptorQueryBuilder::parse` method. E.g.:
+
+
+```cpp
+DataDescriptorQueryBuilder::parse("label:orig/description/0?lifetime=condition");
+```
+
+is equivalent of:
+
+```cpp
+InputSpec{"label", "orig", "description", 0, Lifetime::Condition};
+```
+
+
 ### Data flow parallelism
 
 Data flow parallelism is simply expressed by tuning the data flow, adding explicitly the parallel data paths, using the appropriate `InputSpec` and `OutputSpec`.
