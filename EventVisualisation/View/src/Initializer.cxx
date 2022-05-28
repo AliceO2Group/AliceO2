@@ -95,7 +95,6 @@ void Initializer::setup()
   // Temporary:
   // Later this will be triggered by button, and finally moved to configuration.
   gEve->AddEvent(&EventManager::getInstance());
-  // eventManager.getDataSource()->refresh();
 
   if (Options::Instance()->online()) {
     frame->StartTimer();
