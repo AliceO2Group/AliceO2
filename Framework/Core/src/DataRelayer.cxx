@@ -293,8 +293,9 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       }
     }
     if (!droppingNotCondition) {
-      LOGP(info, "Silently dropping data in slot {} because it has timestamp {} < {} after receiving data from channel {}. Lifetime::Timeframe data not expected.", si, timestamp.value, newOldest.timeslice.value,
-           newOldest.timeslice.value, mTimesliceIndex.getChannelInfo(channel).channel->GetName());
+      LOGP(info, "Silently dropping data in slot {} because it has timeslice {} < {} after receiving data from channel {}."
+                 "Lifetime::Timeframe data not expected (e.g. due to sampling) so we drop non sampled ones.", si, timestamp.value, newOldest.timeslice.value,
+                 mTimesliceIndex.getChannelInfo(channel).channel->GetName());
     }
   }
 }
