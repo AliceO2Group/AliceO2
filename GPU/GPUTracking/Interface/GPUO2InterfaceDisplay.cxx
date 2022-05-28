@@ -71,3 +71,8 @@ int GPUO2InterfaceDisplay::endDisplay()
   mFrontend->DisplayExit();
   return 0;
 }
+
+void GPUO2InterfaceDisplay::UpdateCalib(const GPUCalibObjectsConst* calib)
+{
+  mDisplay->UpdateCalib(calib);
+}
