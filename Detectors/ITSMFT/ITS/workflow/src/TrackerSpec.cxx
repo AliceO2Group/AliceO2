@@ -77,10 +77,12 @@ void TrackerDPL::init(InitContext& ic)
 
     std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
     std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
+    o2::base::PropagatorImpl<float>::MatCorrType corrType{o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE};
     if (o2::utils::Str::pathExists(matLUTFile)) {
       auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
       o2::base::Propagator::Instance()->setMatLUT(lut);
-      mTracker->setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
+      mTracker->setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT); /// TODO: eventually remove this in favour of the one below
+      corrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
       LOG(info) << "Loaded material LUT from " << matLUTFile;
     } else {
       LOG(info) << "Material LUT " << matLUTFile << " file is absent, only heuristic material correction can be used";
@@ -147,6 +149,11 @@ void TrackerDPL::init(InitContext& ic)
     } else {
       throw std::runtime_error(fmt::format("Unsupported ITS tracking mode {:s} ", mMode));
     }
+
+    for (auto& params : trackParams) {
+      params.CorrType = corrType;
+    }
+
     mTracker->setParameters(memParams, trackParams);
 
     mVertexer->getGlobalConfiguration();

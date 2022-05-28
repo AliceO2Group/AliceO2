@@ -153,6 +153,7 @@ class TimeFrame
   int hasBogusClusters() const { return std::accumulate(mBogusClusters.begin(), mBogusClusters.end(), 0); }
 
   void setBz(float bz) { mBz = bz; }
+  float getBz() const { return mBz; }
 
   /// Debug and printing
   void checkTrackletLUTs();

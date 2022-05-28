@@ -52,7 +52,9 @@ class TrackerTraits
   virtual ~TrackerTraits() = default;
 
   GPUhd() static constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
-  const int4 getBinsRect(const Cluster&, const int, const float, const float, float maxdeltaz, float maxdeltaphi);
+  const int4 getBinsRect(const Cluster&, int layer, float z1, float z2, float maxdeltaz, float maxdeltaphi);
+  const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z, float maxdeltaz);
+  const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z1, float z2, float maxdeltaz);
 
   void SetRecoChain(o2::gpu::GPUChainITS* chain, FuncRunITSTrackFit_t&& funcRunITSTrackFit)
   {
@@ -63,6 +65,7 @@ class TrackerTraits
   virtual void computeLayerTracklets();
   virtual void computeLayerCells();
   virtual void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&);
+  virtual bool trackFollowing(TrackITSExt* track, int rof, bool outward);
 
   void UpdateTrackingParameters(const TrackingParameters& trkPar);
   TimeFrame* getTimeFrame() { return mTimeFrame; }
@@ -85,13 +88,24 @@ inline void TrackerTraits::UpdateTrackingParameters(const TrackingParameters& tr
   mTrkParams = trkPar;
 }
 
-inline const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                             const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
+inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, float maxdeltaphi,
+                                             float z, float maxdeltaz) {
+  return getBinsRect(layerIndex, phi, maxdeltaphi, z, z, maxdeltaz);
+}
+
+inline const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, int layerIndex,
+                                             float z1, float z2, float maxdeltaz, float maxdeltaphi)
+{
+  return getBinsRect(layerIndex, currentCluster.phi, maxdeltaphi, z1, z2, maxdeltaz);
+}
+
+inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, float maxdeltaphi,
+                                             float z1, float z2, float maxdeltaz)
 {
   const float zRangeMin = o2::gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
-  const float phiRangeMin = currentCluster.phi - maxdeltaphi;
+  const float phiRangeMin = phi - maxdeltaphi;
   const float zRangeMax = o2::gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
-  const float phiRangeMax = currentCluster.phi + maxdeltaphi;
+  const float phiRangeMax = phi + maxdeltaphi;
 
   if (zRangeMax < -mTrkParams.LayerZ[layerIndex + 1] ||
       zRangeMin > mTrkParams.LayerZ[layerIndex + 1] || zRangeMin > zRangeMax) {

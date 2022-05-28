@@ -98,6 +98,8 @@ class TrackITS : public o2::track::TrackParCov
   uint32_t getPattern() const { return mPattern; }
   bool hasHitOnLayer(int i) { return mPattern & (0x1 << i); }
   bool isFakeOnLayer(int i) { return !(mPattern & (0x1 << (16 + i))); }
+  uint32_t getLastClusterLayer() const { uint32_t r{0}, v{mPattern & ((1 << 16) - 1)}; while (v >>= 1) { r++; } return r; }
+  uint32_t getFirstClusterLayer() const { int s{0}; while (!(mPattern & (1 << s))) { s++; } return s; }
   int getNFakeClusters();
 
   void setNextROFbit(bool toggle = true) { setUserField((getUserField() & ~kNextROF) | (-toggle & kNextROF)); }

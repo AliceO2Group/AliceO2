@@ -23,6 +23,7 @@
 #include <cmath>
 #endif
 
+#include "DetectorsBase/Propagator.h"
 #include "ITStracking/Constants.h"
 
 namespace o2
@@ -75,7 +76,7 @@ struct TrackingParameters {
   /// Cell finding cuts
   float CellDeltaTanLambdaSigma = 0.007f;
   /// Fitter parameters
-  bool UseMatBudLUT = false;
+  o2::base::PropagatorImpl<float>::MatCorrType CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   unsigned long MaxMemory = 12000000000UL;
   std::array<float, 2> FitIterationMaxChi2 = {50, 20};
 };
