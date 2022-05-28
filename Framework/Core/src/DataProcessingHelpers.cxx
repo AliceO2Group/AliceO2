@@ -57,7 +57,7 @@ void DataProcessingHelpers::sendOldestPossibleTimeframe(fair::mq::Channel& chann
   auto res = channel.Send(parts, timeout);
   if (res == (size_t)fair::mq::TransferCode::timeout) {
     LOGP(warning, "Timed out sending oldest possible timeslice after {}s. Downstream backpressure detected on {}.", timeout / 1000, channel.GetName());
-    channel.Send(parts, timeout);
+    channel.Send(parts);
     LOGP(info, "Downstream backpressure on {} recovered.", channel.GetName());
   } else if (res == (size_t)fair::mq::TransferCode::error) {
     LOGP(fatal, "Error while sending on channel {}", channel.GetName());
