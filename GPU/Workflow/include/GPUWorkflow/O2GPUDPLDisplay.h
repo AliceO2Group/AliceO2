@@ -43,9 +43,11 @@ class O2GPUDPLDisplaySpec : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   bool mUseMC = false;
+  bool mUpdateCalib = false;
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;
   o2::dataformats::GlobalTrackID::mask_t mClMask;
   std::unique_ptr<GPUO2InterfaceDisplay> mDisplay;

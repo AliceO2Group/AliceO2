@@ -87,6 +87,9 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
 void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
 {
   static bool first = false;
+  if (mUpdateCalib) {
+    mDisplay->UpdateCalib(&mConfig->configCalib);
+  }
   if (first == false) {
     if (mDisplay->startDisplay()) {
       throw std::runtime_error("Error starting event display");
@@ -104,6 +107,15 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
 void O2GPUDPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
 {
   mDisplay->endDisplay();
+}
+
+void O2GPUDPLDisplaySpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == o2::framework::ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    mConfig->configCalib.itsPatternDict = (const o2::itsmft::TopologyDictionary*)obj;
+    mUpdateCalib = true;
+    return;
+  }
 }
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
