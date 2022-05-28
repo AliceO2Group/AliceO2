@@ -34,6 +34,7 @@ namespace o2::gpu
 class GPUO2InterfaceDisplay;
 struct GPUO2InterfaceConfiguration;
 class TPCFastTransform;
+struct GPUSettingsTF;
 
 class O2GPUDPLDisplaySpec : public o2::framework::Task
 {
@@ -56,6 +57,7 @@ class O2GPUDPLDisplaySpec : public o2::framework::Task
   std::unique_ptr<o2::trd::GeometryFlat> mTrdGeo;
   std::unique_ptr<o2::itsmft::TopologyDictionary> mITSDict;
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
+  std::unique_ptr<o2::gpu::GPUSettingsTF> mTFSettings;
 };
 
 } // namespace o2::gpu

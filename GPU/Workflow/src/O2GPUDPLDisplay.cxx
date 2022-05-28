@@ -29,6 +29,7 @@
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "GPUWorkflowHelper/GPUWorkflowHelper.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::framework;
 using namespace o2::dataformats;
@@ -81,6 +82,15 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
 
   o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G, o2::math_utils::TransformType::L2G, o2::math_utils::TransformType::T2L));
 
+  mTFSettings.reset(new o2::gpu::GPUSettingsTF);
+  mTFSettings->hasNHBFPerTF = 1;
+  mTFSettings->nHBFPerTF = grp->getNHBFPerTF();
+  mTFSettings->hasRunStartOrbit = 1;
+  mTFSettings->runStartOrbit = grp->getFirstOrbit();
+  mTFSettings->hasSimStartOrbit = 1;
+  auto& hbfu = o2::raw::HBFUtils::Instance();
+  mTFSettings->simStartOrbit = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).orbit;
+
   mDisplay.reset(new GPUO2InterfaceDisplay(mConfig.get()));
 }
 
@@ -100,6 +110,11 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
   recoData.collectData(pc, *mDataRequest);
   GPUTrackingInOutPointers ptrs;
   auto tmpContainer = GPUWorkflowHelper::fillIOPtr(ptrs, recoData, mUseMC, &(mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
+
+  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
+  mTFSettings->tfStartOrbit = dh->firstTForbit;
+  mTFSettings->hasTfStartOrbit = 1;
+  ptrs.settingsTF = mTFSettings.get();
 
   mDisplay->show(&ptrs);
 }
