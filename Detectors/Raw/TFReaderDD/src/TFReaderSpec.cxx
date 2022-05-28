@@ -310,7 +310,7 @@ void TFReaderSpec::TFBuilder()
     tfFileName = mFileFetcher ? mFileFetcher->getNextFileInQueue() : "";
     if (!mRunning || (tfFileName.empty() && !mFileFetcher->isRunning()) || mTFBuilderCounter >= mInput.maxTFs) {
       // stopped or no more files in the queue is expected or needed
-      LOG(info) << "TFBuilder stops processing";
+      LOG(info) << "TFReader stops processing";
       if (mFileFetcher) {
         mFileFetcher->stop();
       }
