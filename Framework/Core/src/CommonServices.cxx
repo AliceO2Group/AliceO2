@@ -185,7 +185,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
       }
       auto extEnvId = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("environment_id", "unspecified");
       if (extEnvId != "unspecified") {
-        context.runType = extEnvId;
+        context.envId = extEnvId;
       }
       auto extDetectors = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("detectors", "unspecified");
       if (extDetectors != "unspecified") {
