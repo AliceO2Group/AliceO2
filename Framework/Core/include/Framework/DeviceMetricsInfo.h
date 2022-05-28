@@ -53,7 +53,19 @@ struct MetricLabel {
   char label[MAX_METRIC_LABEL_SIZE];
 };
 
+struct MetricPrefix {
+  static constexpr size_t MAX_METRIC_PREFIX_SIZE = 256 - sizeof(unsigned char); // Maximum size for a metric name.
+  unsigned char size = 0;
+  char prefix[MAX_METRIC_PREFIX_SIZE];
+  int begin = 0;
+  int end = 0;
+};
+
 struct MetricLabelIndex {
+  size_t index;
+};
+
+struct MetricPrefixIndex {
   size_t index;
 };
 
@@ -87,7 +99,9 @@ struct DeviceMetricsInfo {
   std::vector<size_t> minDomain;
   std::vector<size_t> maxDomain;
   std::vector<MetricLabel> metricLabels;
+  std::vector<MetricPrefix> metricPrefixes;
   std::vector<MetricLabelIndex> metricLabelsAlphabeticallySortedIdx;
+  std::vector<MetricPrefixIndex> metricLabelsPrefixesSortedIdx;
   std::vector<MetricInfo> metrics;
   std::vector<bool> changed;
 };
