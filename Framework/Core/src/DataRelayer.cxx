@@ -293,8 +293,9 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       }
     }
     if (!droppingNotCondition) {
-      LOGP(info, "Silently dropping data in pipeline slot {} because it has timeslice {} < {} after receiving data from channel {}."
-           "Because Lifetime::Timeframe data not there and not expected (e.g. due to sampling) we drop non sampled, non timeframe data (e.g. Conditions).", 
+      LOGP(info,
+           "Silently dropping data in pipeline slot {} because it has timeslice {} < {} after receiving data from channel {}."
+           "Because Lifetime::Timeframe data not there and not expected (e.g. due to sampling) we drop non sampled, non timeframe data (e.g. Conditions).",
            si, timestamp.value, newOldest.timeslice.value,
            mTimesliceIndex.getChannelInfo(channel).channel->GetName());
     }
