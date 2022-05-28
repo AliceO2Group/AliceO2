@@ -90,6 +90,9 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
   mTFSettings->hasSimStartOrbit = 1;
   auto& hbfu = o2::raw::HBFUtils::Instance();
   mTFSettings->simStartOrbit = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).orbit;
+  if (mConfig->configGRP.continuousMaxTimeBin == -1) {
+    mConfig->configGRP.continuousMaxTimeBin = (mTFSettings->nHBFPerTF * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
+  }
 
   mDisplay.reset(new GPUO2InterfaceDisplay(mConfig.get()));
 }
