@@ -209,7 +209,7 @@ void EveWorkflowHelper::save(const std::string& jsonPath, int numberOfFiles,
   asciiTimeStamp.pop_back(); // remove trailing \n
   mEvent.setWorkflowParameters(asciiTimeStamp + " t:" + trkMask.to_string() + " c:" + clMask.to_string());
 
-  std::time_t creationTime = creation;
+  std::time_t creationTime = creation / 1000; // convert to seconds
   std::string asciiCreationTime = std::asctime(std::localtime(&creationTime));
   asciiCreationTime.pop_back(); // remove trailing \n
   mEvent.setCollisionTime(asciiCreationTime);
