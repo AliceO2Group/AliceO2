@@ -52,7 +52,8 @@ const int nZ = 129;
 using SC = o2::tpc::SpaceCharge<double>;
 std::unique_ptr<SC> spaceCharge;
 
-void getSpaceChargeCorrection(const int roc, const double XYZ[3], double dXdYdZ[3]);
+void getGlobalSpaceChargeCorrection(const int roc, double x, double y, double z,
+                                    double& dx, double& dy, double& dz);
 void initSpaceCharge(const char* histoFileName, const char* histoName);
 
 void DumpFlatObjectToFile(const TPCFastTransform* obj, const char* file);
@@ -74,7 +75,7 @@ void createTPCSpaceChargeCorrection(
 {
   SC::setGrid(nZ, nR, nPhi);
   initSpaceCharge(histoFileName, histoName);
-  TPCFastTransformHelperO2::instance()->setSpaceChargeCorrection(getSpaceChargeCorrection);
+  TPCFastTransformHelperO2::instance()->setGlobalSpaceChargeCorrection(getGlobalSpaceChargeCorrection);
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
 
@@ -123,10 +124,11 @@ void initSpaceCharge(const char* histoFileName, const char* histoName)
 /// Function to get corrections from original lookup tables
 /// \param XYZ array with x, y and z position
 /// \param dXdYdZ array with correction dx, dy and dz
-void getSpaceChargeCorrection(const int roc, const double XYZ[3], double dXdYdZ[3])
+void getGlobalSpaceChargeCorrection(const int roc, double x, double y, double z,
+                                    double& dx, double& dy, double& dz)
 {
   Side side = roc < 18 ? Side::A : Side::C;
-  spaceCharge->getCorrections(XYZ[0], XYZ[1], XYZ[2], side, dXdYdZ[0], dXdYdZ[1], dXdYdZ[2]);
+  spaceCharge->getCorrections(x, y, z, side, dx, dy, dz);
 }
 
 /// Save TPCFastTransform to a file
@@ -192,41 +194,41 @@ void debugInterpolation(utils::TreeStreamRedirector& pcstream,
 
           // non-corrected point
           fastTransform->setApplyCorrectionOff();
-          float lx, ly, lz, gx, gy, gz, r, phi;
+          float lx, ly, lz;
           fastTransform->Transform(slice, row, pad, time, lx, ly, lz);
+          float gx, gy, gz, r, phi;
           geo.convLocalToGlobal(slice, lx, ly, lz, gx, gy, gz);
           r = std::sqrt(lx * lx + ly * ly);
           phi = std::atan2(gy, gx);
           fastTransform->setApplyCorrectionOn();
 
           // fast transformation
-          float lxT, lyT, lzT, gxT, gyT, gzT, rT;
+          float lxT, lyT, lzT;
           fastTransform->Transform(slice, row, pad, time, lxT, lyT, lzT);
+          float gxT, gyT, gzT, rT;
           geo.convLocalToGlobal(slice, lxT, lyT, lzT, gxT, gyT, gzT);
           rT = std::sqrt(lxT * lxT + lyT * lyT);
 
           // the original correction
-          double gxyz[3] = {gx, gy, gz};
           double gdC[3] = {0, 0, 0};
           Side side = slice < geo.getNumberOfSlicesA() ? Side::A : Side::C;
-          spaceCharge->getCorrections(gxyz[0], gxyz[1], gxyz[2], side, gdC[0], gdC[1], gdC[2]);
+          spaceCharge->getCorrections(gx, gy, gz, side, gdC[0], gdC[1], gdC[2]);
           float ldxC, ldyC, ldzC;
           geo.convGlobalToLocal(slice, gdC[0], gdC[1], gdC[2], ldxC, ldyC, ldzC);
 
-          float rC = std::sqrt((gx + gdC[0]) * (gx + gdC[0]) + (gy + gdC[1]) * (gy + gdC[1]));
+          double rC = std::sqrt((gx + gdC[0]) * (gx + gdC[0]) + (gy + gdC[1]) * (gy + gdC[1]));
 
           // calculate distortion for the xyz0
           double ldD[3] = {0.0, 0.0, 0.0};
           double gdD[3] = {0.0, 0.0, 0.0};
 
-          float gxyzf[3] = {gx, gy, gz};
           float pointCyl[3] = {gz, r, phi};
           double efield[3] = {0.0, 0.0, 0.0};
           double charge = spaceCharge->getDensityCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
           double potential = spaceCharge->getPotentialCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
           spaceCharge->getElectricFieldsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, efield[0], efield[1], efield[2]);
           spaceCharge->getLocalDistortionsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, ldD[0], ldD[1], ldD[2]);
-          spaceCharge->getDistortions(gxyzf[0], gxyzf[1], gxyzf[2], side, gdD[0], gdD[1], gdD[2]);
+          spaceCharge->getDistortions(gx, gy, gz, side, gdD[0], gdD[1], gdD[2]);
 
           double gD[3] = {gx + gdD[0], gy + gdD[1], gz + gdD[2]};
           float rD = std::sqrt(gD[0] * gD[0] + gD[1] * gD[1]);
@@ -356,7 +358,7 @@ void debugGridpoints(utils::TreeStreamRedirector& pcstream, const o2::gpu::TPCFa
           float u = 0.f, v = 0.f;
           geo.convLocalToUV(sector, y0, z0, u, v);
           float pad = 0.f, time = 0.f;
-          fastTransform->convUVtoPadTime(sector, row, u, v, pad, time, 0.);
+          fastTransform->convUVtoPadTime(sector, row, u, v, pad, time, 0.f);
           if (pad < 0) {
             continue;
           }
@@ -368,13 +370,11 @@ void debugGridpoints(utils::TreeStreamRedirector& pcstream, const o2::gpu::TPCFa
           float gx1, gy1, gz1;
           geo.convLocalToGlobal(sector, x1, y1, z1, gx1, gy1, gz1);
 
-          double xyz[3] = {gx0, gy0, gz0};
-          double gcorr[3] = {0, 0, 0};
-          getSpaceChargeCorrection(sector, xyz, gcorr);
-          float lcorr[3];
-          geo.convGlobalToLocal(sector, gcorr[0], gcorr[1], gcorr[2], lcorr[0], lcorr[1], lcorr[2]);
+          double gdx, gdy, gdz;
+          getGlobalSpaceChargeCorrection(sector, gx0, gy0, gz0, gdx, gdy, gdz);
+          float ldx, ldy, ldz;
+          geo.convGlobalToLocal(sector, gdx, gdy, gdz, ldx, ldy, ldz);
 
-          float fxyz[3] = {gx0, gy0, gz0};
           float pointCyl[3] = {gz0, radius, phi};
           double efield[3] = {0.0, 0.0, 0.0};
           double distLocal[3] = {0.0, 0.0, 0.0};
@@ -383,7 +383,7 @@ void debugGridpoints(utils::TreeStreamRedirector& pcstream, const o2::gpu::TPCFa
           double potential = spaceCharge->getPotentialCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
           spaceCharge->getElectricFieldsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, efield[0], efield[1], efield[2]);
           spaceCharge->getLocalDistortionsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, distLocal[0], distLocal[1], distLocal[2]);
-          spaceCharge->getDistortions(fxyz[0], fxyz[1], fxyz[2], side, dist[0], dist[1], dist[2]);
+          spaceCharge->getDistortions(gx0, gy0, gz0, side, dist[0], dist[1], dist[2]);
 
           pcstream << "fastTransform"
                    // internal coordinates
@@ -408,13 +408,13 @@ void debugGridpoints(utils::TreeStreamRedirector& pcstream, const o2::gpu::TPCFa
                    << "gy1=" << gy1
                    << "gz1=" << gz1
                    // corrections local
-                   << "lcorrdx=" << lcorr[0]
-                   << "lcorrdy=" << lcorr[1]
-                   << "lcorrdz=" << lcorr[2]
+                   << "lcorrdx=" << ldx
+                   << "lcorrdy=" << ldy
+                   << "lcorrdz=" << ldz
                    // corrections global
-                   << "gcorrdx=" << gcorr[0]
-                   << "gcorrdy=" << gcorr[1]
-                   << "gcorrdz=" << gcorr[2]
+                   << "gcorrdx=" << gdx
+                   << "gcorrdy=" << gdy
+                   << "gcorrdz=" << gdz
                    // distortions
                    << "distdx=" << dist[0]
                    << "distdy=" << dist[1]
