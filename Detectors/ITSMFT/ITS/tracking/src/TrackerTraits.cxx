@@ -113,8 +113,8 @@ void TrackerTraits::computeLayerTracklets()
               const int firstBinIndex{tf->mIndexTableUtils.getBinIndex(selectedBinsRect.x, iPhiBin)};
               const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
               if constexpr (debugLevel) {
-                if (firstBinIndex < 0 || firstBinIndex > tf->getIndexTables(rof1)[iLayer].size() ||
-                    maxBinIndex < 0 || maxBinIndex > tf->getIndexTables(rof1)[iLayer].size()) {
+                if (firstBinIndex < 0 || firstBinIndex > tf->getIndexTables(rof1)[iLayer + 1].size() ||
+                    maxBinIndex < 0 || maxBinIndex > tf->getIndexTables(rof1)[iLayer + 1].size()) {
                   std::cout << iLayer << "\t" << iCluster << "\t" << zAtRmin << "\t" << zAtRmax << "\t" << sigmaZ * mTrkParams.NSigmaCut << "\t" << tf->getPhiCut(iLayer) << std::endl;
                   std::cout << currentCluster.zCoordinate << "\t" << primaryVertex.getZ() << "\t" << currentCluster.radius << std::endl;
                   std::cout << tf->getMinR(iLayer + 1) << "\t" << currentCluster.radius << "\t" << currentCluster.zCoordinate << std::endl;
@@ -122,8 +122,8 @@ void TrackerTraits::computeLayerTracklets()
                   exit(1);
                 }
               }
-              const int firstRowClusterIndex = tf->getIndexTables(rof1)[iLayer][firstBinIndex];
-              const int maxRowClusterIndex = tf->getIndexTables(rof1)[iLayer][maxBinIndex];
+              const int firstRowClusterIndex = tf->getIndexTables(rof1)[iLayer + 1][firstBinIndex];
+              const int maxRowClusterIndex = tf->getIndexTables(rof1)[iLayer + 1][maxBinIndex];
 
               for (int iNextCluster{firstRowClusterIndex}; iNextCluster < maxRowClusterIndex; ++iNextCluster) {
                 if (iNextCluster >= (int)layer1.size()) {

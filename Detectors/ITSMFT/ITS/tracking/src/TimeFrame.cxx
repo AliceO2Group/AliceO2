@@ -217,7 +217,6 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     mTrackletLabels.resize(trkParam.TrackletsPerRoad());
     mTrackletsLookupTable.resize(trkParam.CellsPerRoad());
     mIndexTables.clear();
-    mIndexTablesL0.clear();
     mIndexTableUtils.setTrackingParameters(trkParam);
     mPositionResolution.resize(trkParam.NLayers);
     mBogusClusters.resize(trkParam.NLayers, 0);
@@ -231,7 +230,6 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
       mPositionResolution[iLayer] = std::hypot(trkParam.LayerMisalignment[iLayer], trkParam.LayerResolution[iLayer]);
     }
     mIndexTables.resize(mNrof);
-    mIndexTablesL0.resize(mNrof, std::vector<int>(trkParam.ZBins * trkParam.PhiBins + 1, 0));
     mLines.resize(mNrof);
     mTrackletClusters.resize(mNrof);
     mNTrackletsPerROf.resize(2, std::vector<int>(mNrof + 1, 0));
@@ -239,7 +237,7 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     std::vector<ClusterHelper> cHelper;
     std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
     for (int rof{0}; rof < mNrof; ++rof) {
-      mIndexTables[rof].resize(trkParam.TrackletsPerRoad(), std::vector<int>(trkParam.ZBins * trkParam.PhiBins + 1, 0));
+      mIndexTables[rof].resize(mClusters.size(), std::vector<int>(trkParam.ZBins * trkParam.PhiBins + 1, 0));
       if ((int)mMultiplicityCutMask.size() == mNrof && !mMultiplicityCutMask[rof]) {
         continue;
       }
@@ -291,20 +289,11 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
           c.indexTableBinIndex = h.bin;
         }
 
-        if (iLayer > 0) {
-          for (unsigned int iB{0}; iB < clsPerBin.size(); ++iB) {
-            mIndexTables[rof][iLayer - 1][iB] = lutPerBin[iB];
-          }
-          for (auto iB{clsPerBin.size()}; iB < mIndexTables[rof][iLayer - 1].size(); iB++) {
-            mIndexTables[rof][iLayer - 1][iB] = clustersNum;
-          }
-        } else { // LUTs on layer 0 are only for vertexer
-          for (unsigned int iB{0}; iB < clsPerBin.size(); ++iB) {
-            mIndexTablesL0[rof][iB] = lutPerBin[iB];
-          }
-          for (auto iB{clsPerBin.size()}; iB < mIndexTablesL0[rof].size(); iB++) {
-            mIndexTablesL0[rof][iB] = clustersNum;
-          }
+        for (unsigned int iB{0}; iB < clsPerBin.size(); ++iB) {
+          mIndexTables[rof][iLayer][iB] = lutPerBin[iB];
+        }
+        for (auto iB{clsPerBin.size()}; iB < mIndexTables[rof][iLayer].size(); iB++) {
+          mIndexTables[rof][iLayer][iB] = clustersNum;
         }
       }
     }
