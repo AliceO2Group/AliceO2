@@ -83,8 +83,8 @@ Word 7  |              reserved 5                       |             link 14 da
       uint64_t HeaderVersion : 8;  // TRD Header Version
       uint64_t BunchCrossing : 12; // bunch crossing of the physics trigger.
       //NB  The BC in the RDH is the BC sent together with the heartbeat trigger, while the BC in the HalfCRUHeader is the BC of the physics trigger where the data that follows the HalfCRUHeader belongs to. However, it is not forbidden for CTP to send the heartbeat trigger together with a physics trigger, in this case the two would match (accidentally).
-      uint64_t StopBit : 4;        // 8 .. 11 stop bit  0x1 if TRD packet is last data packet of trigger, else 0x0  TODO why 4 bits if only using 1?
-      uint64_t EndPoint : 4;       // bit 0..7 event type of the data. Trigger bits from TTC-PON message, distinguish physics from calibration events.
+      uint64_t StopBit : 4;        // 8 .. 11 stop bit  0x1 if TRD packet is last data packet of trigger, else 0x0
+      uint64_t EndPoint : 4;       // pci end point upper or lower 15 links of cru
       uint64_t EventType : 4;      // bit 0..7 event type of the data. Trigger bits from TTC-PON message, distinguish physics from calibration events.
       uint64_t reserveda : 32;     //
     } __attribute__((__packed__));
@@ -447,6 +447,7 @@ bool trackletHCHeaderSanityCheck(o2::trd::TrackletHCHeader& header);
 bool digitMCMHeaderSanityCheck(o2::trd::DigitMCMHeader* header);
 bool digitMCMADCMaskSanityCheck(o2::trd::DigitMCMADCMask& mask, int numberofbitsset);
 bool digitMCMWordSanityCheck(o2::trd::DigitMCMData* word, int adcchannel);
+bool halfCRUHeaderSanityCheck(o2::trd::HalfCRUHeader& header, std::array<uint32_t, 15>& lengths, std::array<uint32_t, 15>& eflags);
 void printDigitMCMHeader(o2::trd::DigitMCMHeader& header);
 int getDigitHCHeaderWordType(uint32_t word);
 void printDigitHCHeader(o2::trd::DigitHCHeader& header, uint32_t headers[3]);
