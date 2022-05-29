@@ -74,8 +74,8 @@ VisualisationEvent::GIDVisualisation VisualisationEvent::mVis = [] {
       res.contains[o2::dataformats::GlobalTrackID::MFTMCHMID][filter] = true;
     }
     if (filter == o2::event_visualisation::EVisualisationGroup::MID) {
-      res.contains[o2::dataformats::GlobalTrackID::MCH][filter] = true;
-      res.contains[o2::dataformats::GlobalTrackID::MFTMCH][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::MID][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::MCHMID][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::MFTMCHMID][filter] = true;
     }
     if (filter == o2::event_visualisation::EVisualisationGroup::EMC) {
