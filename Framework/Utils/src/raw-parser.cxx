@@ -69,7 +69,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                 // print the DataHeader information only for the first part or if we have high verbosity
                 if (loglevel > 1 || dh->splitPayloadIndex == 0) {
                   rdhprintout << fmt::format("DH: {}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification) << "  "
-                              << " TF " << dh->tfCounter << " Run " << dh->runNumber << " |";
+                              << " TF " << dh->tfCounter << " firstOrbit " << dh->firstTForbit << " Run " << dh->runNumber << " |";
 
                   // at high verbosity print part number, otherwise only the total number of parts
                   if (loglevel > 1) {
