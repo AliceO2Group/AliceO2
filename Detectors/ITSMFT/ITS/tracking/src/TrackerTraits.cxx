@@ -362,7 +362,8 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
         continue;
       }
       bool success{false};
-      if (!propInstance->propagateToX(hypo, x, mTimeFrame->getBz(), PropagatorF::MAX_SIN_PHI,
+      auto& hypoParam{outward ? hypo.getParamOut() : hypo.getParamIn()};
+      if (!propInstance->propagateToX(hypoParam, x, mTimeFrame->getBz(), PropagatorF::MAX_SIN_PHI,
                                       PropagatorF::MAX_STEP, mTrkParams.CorrType)) {
         continue;
       }
@@ -370,7 +371,7 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
       if (mTrkParams.CorrType == PropagatorF::MatCorrType::USEMatCorrNONE) {
         float radl = 9.36f; // Radiation length of Si [cm]
         float rho = 2.33f;  // Density of Si [g/cm^3]
-        if (!hypo.correctForMaterial(mTrkParams.LayerxX0[iLayer], mTrkParams.LayerxX0[iLayer] * radl * rho, true)) {
+        if (!hypoParam.correctForMaterial(mTrkParams.LayerxX0[iLayer], mTrkParams.LayerxX0[iLayer] * radl * rho, true)) {
           continue;
         }
       }
@@ -418,12 +419,12 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
           const TrackingFrameInfo& trackingHit = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer).at(nextCluster.clusterId);
 
           TrackITSExt& tbupdated = first ? hypo : newHypo;
-
-          if (!tbupdated.rotate(trackingHit.alphaTrackingFrame)) {
+          auto& tbuParams = outward ? tbupdated.getParamOut() : tbupdated.getParamIn();
+          if (!tbuParams.rotate(trackingHit.alphaTrackingFrame)) {
             continue;
           }
 
-          if (!propInstance->propagateToX(tbupdated, trackingHit.xTrackingFrame, mTimeFrame->getBz(),
+          if (!propInstance->propagateToX(tbuParams, trackingHit.xTrackingFrame, mTimeFrame->getBz(),
                                           PropagatorF::MAX_SIN_PHI, PropagatorF::MAX_STEP, PropagatorF::MatCorrType::USEMatCorrNONE)) {
             continue;
           }
@@ -431,15 +432,15 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
           GPUArray<float, 3> cov{trackingHit.covarianceTrackingFrame};
           cov[0] = std::hypot(cov[0], mTrkParams.LayerMisalignment[iLayer]);
           cov[2] = std::hypot(cov[2], mTrkParams.LayerMisalignment[iLayer]);
-          auto predChi2{tbupdated.getPredictedChi2(trackingHit.positionTrackingFrame, cov)};
+          auto predChi2{tbuParams.getPredictedChi2(trackingHit.positionTrackingFrame, cov)};
           if (predChi2 >= track->getChi2() * mTrkParams.NSigmaCut) {
             continue;
           }
 
-          if (!tbupdated.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, cov)) {
+          if (!tbuParams.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, cov)) {
             continue;
           }
-          tbupdated.setChi2(tbupdated.getChi2() + predChi2);
+          tbupdated.setChi2(tbupdated.getChi2() + predChi2); /// This is wrong for outward propagation as the chi2 refers to inward parameters
           tbupdated.setExternalClusterIndex(iLayer, nextCluster.clusterId, true);
 
           if (!first) {
@@ -460,7 +461,7 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
       swapped = true;
     }
   }
-
+  *track = *bestHypo;
   return swapped;
 }
 

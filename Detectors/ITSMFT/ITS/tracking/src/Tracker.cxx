@@ -384,6 +384,24 @@ void Tracker::findTracks()
 
 void Tracker::extendTracks()
 {
+  for (int rof{0}; rof < mTimeFrame->getNrof(); ++rof) {
+    for (auto& track : mTimeFrame->getTracks(rof)) {
+      ///TODO: track refitting is missing!
+      int ncl{track.getNClusters()};
+      if (track.getLastClusterLayer() != mTrkParams[0].NLayers - 1) {
+        bool success{mTraits->trackFollowing(&track, rof, true)};
+        if (success) {
+          std::cout << "Successfully followed track outward " << ncl << "\t" << track.getNClusters() << std::endl;
+        }
+      }
+      if (track.getFirstClusterLayer() != 0) {
+        bool success{mTraits->trackFollowing(&track, rof, false)};
+        if (success) {
+          std::cout << "Successfully followed track inward " << ncl << "\t" << track.getNClusters() << std::endl;
+        }
+      }
+    }
+  }
 }
 
 bool Tracker::fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut, const float maxQoverPt)
