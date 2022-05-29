@@ -176,7 +176,6 @@ class EveWorkflowHelper
             int numberOfFiles,
             o2::dataformats::GlobalTrackID::mask_t trkMask,
             o2::dataformats::GlobalTrackID::mask_t clMask,
-            float workflowVersion,
             o2::header::DataHeader::RunNumberType runNumber,
             o2::framework::DataProcessingHeader::CreationTime creationTime);
 
