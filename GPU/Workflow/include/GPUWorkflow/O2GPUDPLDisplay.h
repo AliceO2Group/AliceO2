@@ -49,6 +49,8 @@ class O2GPUDPLDisplaySpec : public o2::framework::Task
  private:
   bool mUseMC = false;
   bool mUpdateCalib = false;
+  bool mDisplayShutDown = false;
+  bool mFirst = false;
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;
   o2::dataformats::GlobalTrackID::mask_t mClMask;
   std::unique_ptr<GPUO2InterfaceDisplay> mDisplay;
