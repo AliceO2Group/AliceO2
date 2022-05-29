@@ -333,6 +333,36 @@ std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru)
   return stream;
 }
 
+bool halfCRUHeaderSanityCheck(o2::trd::HalfCRUHeader& header, std::array<uint32_t, 15>& lengths, std::array<uint32_t, 15>& eflags)
+{
+  // check the sizes for less than max value
+  // check the errors for either < 0x3, for now (may 2022) there is only no error, 1, or 2.
+  //
+  bool goodheader = true;
+  for (int lengthindex = 0; lengthindex < 15; ++lengthindex) {
+    if (lengths[lengthindex] > o2::trd::constants::MAXDATAPERLINK256) {
+      // something has gone insane.
+      //LOG(info) << "AAA dumping half cru as : half cru link length > max possible! : " << lengths[lengthindex] << " ?? " << o2::trd::constants::MAXDATAPERLINK256;
+      goodheader = false;
+    }
+  }
+  for (int eflagindex = 0; eflagindex < 15; ++eflagindex) {
+    if (eflags[eflagindex] > o2::trd::constants::MAXCRUERRORVALUE) {
+      // something has gone insane.
+      // LOG(info) << "AAA dumping half cru as : half cru link eflag > max possible! : " << std::hex << eflags[eflagindex] << " ?? " << o2::trd::constants::MAXCRUERRORVALUE;
+      goodheader = false;
+    }
+    if (header.EndPoint > 1) {
+      // end point can only be zero or 1, for ach of the 2 pci end points in the cru
+      goodheader = false;
+    }
+    //LOG(info) << "Header sanity check is : " << goodheader;
+    goodheader = false;
+  }
+
+  return goodheader;
+}
+
 bool trackletMCMHeaderSanityCheck(o2::trd::TrackletMCMHeader& header)
 {
   // a bit limited to what we can check.
