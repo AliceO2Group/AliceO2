@@ -23,6 +23,7 @@ set(SRCS
     ChebyshevFit1D.cxx
     TPCFastTransformGeo.cxx
     TPCFastSpaceChargeCorrection.cxx
+    TPCFastSpaceChargeCorrectionMap.cxx
     TPCFastTransform.cxx
 )
 
@@ -56,7 +57,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
                                        Vc::Vc
                                        ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad
                              )
-                 
+
   o2_target_root_dictionary(${MODULE}
                             HEADERS ${HDRS_CINT_O2}
                             LINKDEF TPCFastTransformationLinkDef_O2.h)
@@ -80,7 +81,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
 
   foreach(m
           SplineDemo.C
-          SplineConstructionDemo.C
+          SplineRecoveryDemo.C
           fastTransformQA.C
           generateTPCCorrectionNTuple.C)
     o2_add_test_root_macro(macro/${m}

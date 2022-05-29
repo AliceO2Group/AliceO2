@@ -411,7 +411,7 @@ GPUd() void TPCFastSpaceChargeCorrection::setNoCorrection()
         area.maxDriftLengthCheb[i] = 0;
       }
       area.maxDriftLengthCheb[0] = vLength;
-      mGeo.convPadToU(row, 0., area.cuMin);
+      area.cuMin = mGeo.convPadToU(row, 0.f);
       area.cuMax = -area.cuMin;
       area.vMax = vLength;
       area.cvMax = vLength;
@@ -444,13 +444,12 @@ void TPCFastSpaceChargeCorrection::initMaxDriftLength(bool prn)
       RowActiveArea& area = getSliceRowInfo(slice, row).activeArea;
       area.cvMax = 0;
       area.vMax = 0;
-      mGeo.convPadToU(row, 0., area.cuMin);
+      area.cuMin = mGeo.convPadToU(row, 0.f);
       area.cuMax = -area.cuMin;
       chebFitter.reset(4, 0., mGeo.getRowInfo(row).maxPad);
       double x = mGeo.getRowInfo(row).x;
       for (int pad = 0; pad < mGeo.getRowInfo(row).maxPad; pad++) {
-        float u = 0;
-        mGeo.convPadToU(row, pad, u);
+        float u = mGeo.convPadToU(row, (float)pad);
         float v0 = 0;
         float v1 = 1.1 * vLength;
         float vLastValid = -1;
@@ -714,8 +713,8 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
     double maxDslice[3] = {0, 0, 0};
     for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
       float u0, u1, v0, v1;
-      mGeo.convScaledUVtoUV(slice, row, 0., 0, u0, v0);
-      mGeo.convScaledUVtoUV(slice, row, 1., 1, u1, v1);
+      mGeo.convScaledUVtoUV(slice, row, 0., 0., u0, v0);
+      mGeo.convScaledUVtoUV(slice, row, 1., 1., u1, v1);
       double x = mGeo.getRowInfo(row).x;
       double stepU = (u1 - u0) / 100.;
       double stepV = (v1 - v0) / 100.;
