@@ -166,7 +166,8 @@ class CTPRunManager
   int addScalers(uint32_t irun, std::time_t time);
   int processMessage(std::string& topic, const std::string& message);
   void printActiveRuns() const;
-  int saveRunToCCDB(int i);
+  int saveRunScalersToCCDB(int i);
+  int saveRunConfigToCCDB(int i);
   int getConfigFromCCDB();
   int getScalersFromCCDB();
   int loadScalerNames();

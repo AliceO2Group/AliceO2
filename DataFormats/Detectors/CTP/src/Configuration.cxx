@@ -591,7 +591,7 @@ int CTPRunManager::stopRun(uint32_t irun)
   const auto now = std::chrono::system_clock::now();
   const long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   mActiveRuns[irun]->timeStop = timeStamp;
-  saveRunToCCDB(irun);
+  saveRunScalersToCCDB(irun);
   delete mActiveRuns[irun];
   mActiveRuns[irun] = nullptr;
   return 0;
@@ -685,6 +685,7 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
         LOG(error) << "Internal error in processMessage: nullptr != 0 expected";
       }
       mActiveRuns[i] = mRunInStart;
+      saveRunConfigToCCDB(i);
       mRunInStart = nullptr;
       addScalers(i, tt);
     } else if ((mCounters[i] == 0) && (mActiveRunNumbers[i] != 0)) {
@@ -711,7 +712,7 @@ void CTPRunManager::printActiveRuns() const
   }
   std::cout << std::endl;
 }
-int CTPRunManager::saveRunToCCDB(int i)
+int CTPRunManager::saveRunScalersToCCDB(int i)
 {
   // data base
   CTPActiveRun* run = mActiveRuns[i];
@@ -721,9 +722,25 @@ int CTPRunManager::saveRunToCCDB(int i)
   map<string, string> metadata; // can be empty
   api.init(mCcdbHost.c_str());  // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
-  api.storeAsTFileAny(&(run->cfg), o2::ctp::CCDBPathCTPConfig, metadata, tmin, tmax);
   api.storeAsTFileAny(&(run->scalers), o2::ctp::CCDBPathCTPScalers, metadata, tmin, tmax);
-  LOG(info) << "CTP config and scalers saved in ccdb, run:" << run->cfg.getRunNumber();
+  LOG(info) << "CTP scalers saved in ccdb, run:" << run->cfg.getRunNumber();
+  return 0;
+}
+int CTPRunManager::saveRunConfigToCCDB(int i)
+{
+  // data base
+  CTPActiveRun* run = mActiveRuns[i];
+  long tmin = run->timeStart;
+  using namespace std::chrono_literals;
+  std::chrono::seconds days3 = 259200s;
+  long time3days = std::chrono::duration_cast<std::chrono::milliseconds>(days3).count();
+  long tmax = run->timeStart + time3days;
+  o2::ccdb::CcdbApi api;
+  map<string, string> metadata; // can be empty
+  api.init(mCcdbHost.c_str());  // or http://localhost:8080 for a local installation
+  // store abitrary user object in strongly typed manner
+  api.storeAsTFileAny(&(run->cfg), o2::ctp::CCDBPathCTPConfig, metadata, tmin, tmax);
+  LOG(info) << "CTP config  saved in ccdb, run:" << run->cfg.getRunNumber();
   return 0;
 }
 int CTPRunManager::getConfigFromCCDB()
