@@ -14,6 +14,8 @@
 #include "Framework/Logger.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include <vector>
 
 using namespace o2::framework;
@@ -48,6 +50,18 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(
     ConfigParamSpec{
       "default-port", VariantType::Int, 4200, {"default port number"}});
+
+  /*  workflowOptions.push_back( // Cannot read option in customize function, so using an env variable for now
+      ConfigParamSpec{
+        "ordered-completion-policy", VariantType::Bool, false, {"Use the ordered completion policy for the input"}});*/
+}
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  static bool doOrdered = getenv("DPL_OUTPUT_PROXY_ORDERED") && atoi(getenv("DPL_OUTPUT_PROXY_ORDERED"));
+  if (doOrdered) {
+    policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*"));
+  }
 }
 
 #include "Framework/runDataProcessing.h"
