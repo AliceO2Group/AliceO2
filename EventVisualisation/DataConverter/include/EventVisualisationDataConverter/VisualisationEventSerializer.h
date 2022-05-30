@@ -34,8 +34,14 @@ class VisualisationEventSerializer
 
  public:
   static VisualisationEventSerializer* getInstance() { return instance; }
+  static void setInstance(VisualisationEventSerializer* newInstance)
+  { // take ownership
+    delete instance;
+    instance = newInstance;
+  }
   virtual bool fromFile(VisualisationEvent& event, std::string fileName) = 0;
   virtual void toFile(const VisualisationEvent& event, std::string fileName) = 0;
+  virtual ~VisualisationEventSerializer() = default;
 };
 
 } // namespace event_visualisation

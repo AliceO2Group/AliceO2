@@ -19,6 +19,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/DataTakingContext.h"
 #include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "DataFormatsPHOS/Cluster.h"
 #include "DataFormatsPHOS/BadChannelsMap.h"
@@ -54,12 +55,14 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
   }
 
  protected:
+  void updateTimeDependentParams(ProcessingContext& pc);
   void postHistosCCDB(o2::framework::EndOfStreamContext& ec);
   void fillOutputTree();
   void writeOutFile();
 
  private:
   static constexpr short kMaxCluInEvent = 64; /// maximal number of clusters per event to separate digits from them (6 bits in digit map)
+  o2::framework::DataTakingContext mDataTakingContext{};
   bool mUseCCDB = false;
   bool mHasCalib = false;
   bool mPostHistos = true; /// post colllected histos to ccdb

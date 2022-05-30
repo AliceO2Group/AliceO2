@@ -29,7 +29,7 @@ double KrClusterFinder::LandauChi2Functor::operator()(const double* par) const
   // par[1] : location parameter (approximately most probable value)
   // par[2] : sigma
   double retVal = 0;
-  for (unsigned int i = xLowerBound; i <= xUpperBound; ++i) {
+  for (int i = xLowerBound; i <= xUpperBound; ++i) {
     if (fabs(y[i]) < 1e-3f) {
       // exclude bins with zero errors like in TH1::Fit
       // the standard bin error is the square root of its content
@@ -168,8 +168,7 @@ void KrClusterFinder::findClusters()
         int tbMax = 0;
         int rowMax = 0;
         int colMax = 0;
-        unsigned int iDigitMax = 0;
-        for (int iDigit = 0; iDigit < nDigitsInDet; ++iDigit) {
+        for (unsigned int iDigit = 0; iDigit < nDigitsInDet; ++iDigit) {
           uint64_t digitIdx = digitIdxArray[trig.getFirstDigit() + idxFirstDigitInDet[iDet] + iDigit]; // global index for array of all digits (mDigits)
           if (mDigits[digitIdx].isSharedDigit()) {
             // we need to skip the shared digits which are duplicates contained in the global digits array
@@ -186,7 +185,6 @@ void KrClusterFinder::findClusters()
             tbMax = tbMaxADC;
             rowMax = mDigits[digitIdx].getPadRow();
             colMax = mDigits[digitIdx].getPadCol();
-            iDigitMax = iDigit;
             adcMax = maxAdcInDigit;
           }
         }
@@ -282,6 +280,7 @@ void KrClusterFinder::findClusters()
         uint32_t sumOfAdcTrunc;
         double rmsTimeTrunc;
         auto rmsAdcClusterTrunc = getRms(constituentAdcIndices, 2, 3., static_cast<uint32_t>(mMinAdcClEoverT * .95), rmsTimeTrunc, sumOfAdcTrunc);
+        (void)rmsAdcClusterTrunc; // return value not used, so silence compiler warning about unused variable
 
         // ADC value and time bin of first maximum
         int maxAdcA = -1;

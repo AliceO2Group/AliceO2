@@ -13,6 +13,21 @@
 /// \brief Class to perform track cuts
 /// \author amelia.lindner@cern.ch
 
+// This class is developed in order to be used for extensive track selections. The selections are done detector wise
+//(or for detector combinations).
+// sources: https://github.com/AliceO2Group/AliceO2/blob/e988b0c43346ccb24f3515d1a24f058313f14a0f/DataFormats/Reconstruction/include/ReconstructionDataFormats/GlobalTrackID.h#L40
+//
+// !!! For further development:
+// The main method is isSelected(o2::dataformats::GlobalTrackID, o2::globaltracking::RecoContainer&), which is a boolean
+// that returns true only if all the checks are passed. First, based on the global track id, the track detector source is
+// inquired(e.g. below for ITS and TPC tracks). The source-specific tracks is initialized in order to access the
+// source-specific parameters than one wants to perform selections on.
+// For each detector source, the inquiry should be done in such way that “false” should be returned if the checks are not passed,
+// moving to the next detector source otherwise.
+// (e.g below for TPC tracks, where the track selections used here: https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/GlobalTracking/src/MatchITSTPCQC.cxx#L318
+// are reproduced;
+// Moreover, an example of how this class should be used can be found here: https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/GlobalTracking/src/MatchITSTPCQC.cxx#L184).
+
 #ifndef ALICEO2_TRACKCUTS_H
 #define ALICEO2_TRACKCUTS_H
 

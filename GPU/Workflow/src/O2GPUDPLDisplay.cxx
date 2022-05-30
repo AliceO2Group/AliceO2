@@ -29,6 +29,7 @@
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "GPUWorkflowHelper/GPUWorkflowHelper.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::framework;
 using namespace o2::dataformats;
@@ -81,16 +82,34 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
 
   o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G, o2::math_utils::TransformType::L2G, o2::math_utils::TransformType::T2L));
 
+  mTFSettings.reset(new o2::gpu::GPUSettingsTF);
+  mTFSettings->hasNHBFPerTF = 1;
+  mTFSettings->nHBFPerTF = grp->getNHBFPerTF();
+  mTFSettings->hasRunStartOrbit = 1;
+  mTFSettings->runStartOrbit = grp->getFirstOrbit();
+  mTFSettings->hasSimStartOrbit = 1;
+  auto& hbfu = o2::raw::HBFUtils::Instance();
+  mTFSettings->simStartOrbit = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).orbit;
+  if (mConfig->configGRP.continuousMaxTimeBin == -1) {
+    mConfig->configGRP.continuousMaxTimeBin = (mTFSettings->nHBFPerTF * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
+  }
+
   mDisplay.reset(new GPUO2InterfaceDisplay(mConfig.get()));
 }
 
 void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
 {
-  static bool first = false;
-  if (first == false) {
+  if (mDisplayShutDown) {
+    return;
+  }
+  if (mUpdateCalib) {
+    mDisplay->UpdateCalib(&mConfig->configCalib);
+  }
+  if (mFirst == false) {
     if (mDisplay->startDisplay()) {
       throw std::runtime_error("Error starting event display");
     }
+    mFirst = true;
   }
 
   o2::globaltracking::RecoContainer recoData;
@@ -98,12 +117,33 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
   GPUTrackingInOutPointers ptrs;
   auto tmpContainer = GPUWorkflowHelper::fillIOPtr(ptrs, recoData, mUseMC, &(mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
 
-  mDisplay->show(&ptrs);
+  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
+  mTFSettings->tfStartOrbit = dh->firstTForbit;
+  mTFSettings->hasTfStartOrbit = 1;
+  ptrs.settingsTF = mTFSettings.get();
+
+  if (mDisplay->show(&ptrs)) {
+    mDisplay->endDisplay();
+    mDisplayShutDown = true;
+  }
 }
 
 void O2GPUDPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
 {
+  if (mDisplayShutDown) {
+    return;
+  }
   mDisplay->endDisplay();
+  mDisplayShutDown = true;
+}
+
+void O2GPUDPLDisplaySpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == o2::framework::ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    mConfig->configCalib.itsPatternDict = (const o2::itsmft::TopologyDictionary*)obj;
+    mUpdateCalib = true;
+    return;
+  }
 }
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)

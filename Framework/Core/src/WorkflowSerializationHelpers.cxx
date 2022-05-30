@@ -424,11 +424,17 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
         case VariantType::Int:
           opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stoi(optionDefault, nullptr), HelpString{optionHelp}, optionKind);
           break;
+        case VariantType::Int8:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, static_cast<int8_t>(std::stoi(optionDefault, nullptr)), HelpString{optionHelp}, optionKind);
+          break;
+        case VariantType::Int16:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, static_cast<int16_t>(std::stoi(optionDefault, nullptr)), HelpString{optionHelp}, optionKind);
+          break;
         case VariantType::UInt8:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, static_cast<uint8_t>(std::stoul(optionDefault, nullptr)), HelpString{optionHelp}, optionKind);
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, static_cast<uint8_t>(std::stoi(optionDefault, nullptr)), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::UInt16:
-          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, static_cast<uint16_t>(std::stoul(optionDefault, nullptr)), HelpString{optionHelp}, optionKind);
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, static_cast<uint16_t>(std::stoi(optionDefault, nullptr)), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::UInt32:
           opt = std::make_unique<ConfigParamSpec>(optionName, optionType, static_cast<uint32_t>(std::stoul(optionDefault, nullptr)), HelpString{optionHelp}, optionKind);

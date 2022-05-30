@@ -744,6 +744,8 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
   zsPage singleBuffer;
 #ifdef GPUCA_O2_LIB
   int rawlnk = rdh_utils::UserLogicLinkID;
+  int maxhbf = 0;
+  int minhbf = o2::constants::lhc::LHCMaxBunches;
 #else
   int rawlnk = 15;
 #endif
@@ -786,7 +788,9 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
         size = CAMath::nextMultipleOf<o2::raw::RDHUtils::GBTWord>(size);
 #ifdef GPUCA_O2_LIB
         if (raw) {
-          raw->addData(rawfeeid, rawcru, rawlnk, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true);
+          raw->addData(rawfeeid, rawcru, rawlnk, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true, 0, 2);
+          maxhbf = std::max<int>(maxhbf, hbf);
+          minhbf = std::min<int>(minhbf, hbf);
         } else
 #endif
         {
@@ -796,6 +800,7 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
           o2::raw::RDHUtils::setMemorySize(*rdh, size);
           o2::raw::RDHUtils::setVersion(*rdh, o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>());
           o2::raw::RDHUtils::setFEEID(*rdh, rawfeeid);
+          o2::raw::RDHUtils::setDetectorField(*rdh, 2);
         }
       }
       if (k >= tmpBuffer.size()) {
@@ -837,7 +842,15 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
     hdr->nADCsamples += nEncoded;
     k += nEncoded - 1;
   }
-  if (!raw) {
+  if (raw) {
+#ifdef GPUCA_O2_LIB
+    if (iSector == 0) {
+      for (int i = minhbf; i <= maxhbf; i++) {
+        raw->addData(46208, 360, rawlnk, 0, *ir + i * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)&singleBuffer, (char*)&singleBuffer), true, 0, 4);
+      }
+    }
+#endif
+  } else {
     for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
       if (buffer[j].size() == 0) {
         buffer[j].emplace_back();

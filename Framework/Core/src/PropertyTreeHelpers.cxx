@@ -37,6 +37,12 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
         case VariantType::Int:
           pt.put(key, spec.defaultValue.get<int>());
           break;
+        case VariantType::Int8:
+          pt.put(key, spec.defaultValue.get<int8_t>());
+          break;
+        case VariantType::Int16:
+          pt.put(key, spec.defaultValue.get<int16_t>());
+          break;
         case VariantType::UInt8:
           pt.put(key, spec.defaultValue.get<uint8_t>());
           break;
@@ -131,6 +137,12 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
       switch (spec.type) {
         case VariantType::Int:
           pt.put(key, vmap[key].as<int>());
+          break;
+        case VariantType::Int8:
+          pt.put(key, vmap[key].as<int8_t>());
+          break;
+        case VariantType::Int16:
+          pt.put(key, vmap[key].as<int16_t>());
           break;
         case VariantType::UInt8:
           pt.put(key, vmap[key].as<uint8_t>());
@@ -239,6 +251,12 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
       switch (spec.type) {
         case VariantType::Int:
           pt.put(key, (*it).get_value<int>());
+          break;
+        case VariantType::Int8:
+          pt.put(key, (*it).get_value<int8_t>());
+          break;
+        case VariantType::Int16:
+          pt.put(key, (*it).get_value<int16_t>());
           break;
         case VariantType::UInt8:
           pt.put(key, (*it).get_value<uint8_t>());

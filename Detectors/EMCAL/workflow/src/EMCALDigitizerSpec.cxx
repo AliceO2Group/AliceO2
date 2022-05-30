@@ -46,6 +46,9 @@ void DigitizerSpec::initDigitizerTask(framework::InitContext& ctx)
 
   mSumDigitizer.setGeometry(geom);
 
+  if (ctx.options().get<bool>("debug-stream")) {
+    mDigitizer.setDebugStreaming(true);
+  }
   mDigitizer.init();
 
   mFinished = false;
@@ -146,7 +149,9 @@ o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth
     "EMCALDigitizer", Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>()},
-    Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
+    Options{
+      {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
+      {"debug-stream", VariantType::Bool, false, {"Enable debug streaming"}}}
     // I can't use VariantType::Bool as it seems to have a problem
   };
 }

@@ -68,6 +68,7 @@ uint16_t buildTRDFeeID(int supermodule, int side, int endpoint)
 
 void buildTrackletMCMData(TrackletMCMData& trackletword, const uint slope, const uint pos, const uint q0, const uint q1, const uint q2)
 {
+  trackletword.word = 0;
   trackletword.slope = slope;
   trackletword.pos = pos;
   trackletword.pid = (q0 & 0x7f) & ((q1 & 0x1f) << 7); //q2 sits with upper 2 bits of q1 in the header pid word, hence the 0x1f so 5 bits are used here.
@@ -143,7 +144,7 @@ uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader* header, const o2::trd::Tr
    *     -------------------------
    *
    * TDP: This can be one of these fields HPID0/1/2 (=TrackletHCHeader::pid0/1/2) depending on
-   * 	  the MCM-CPU.
+   *      the MCM-CPU.
    *
    *     |11|10|09|08|07|06|05|04|03|02|01|00|
    *     -------------------------------------

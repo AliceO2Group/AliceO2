@@ -182,16 +182,21 @@ class column:
 
   def printHTML(self):
     cn2u = fullDataModelName(self.nslevel, self.cname)
-    cn2u = cn2u.replace(":collision",":&zwnj;collision")
-    # replace < by &lt; and > by &gt;
-    ty2u = self.type.replace("<","&lt;").replace(">","&gt;")
-    print("      <tr>")
-    print("        <td>"+cn2u+"</td>")
-    print("        <td>"+columnTypes(1)[self.kind]+"</td>")
-    print("        <td>"+self.gname+"</td>")
-    print("        <td>"+ty2u+"</td>")
-    print("        <td>"+self.comment+"</td>")
-    print("      </tr>")
+
+    # some columns don't need to be printed
+    cols2Skip = [ "o2::soa::Marker" ]
+    if not any(cn2u.startswith(word) for word in cols2Skip):
+      cn2u = cn2u.replace(":collision",":&zwnj;collision")
+      # replace < by &lt; and > by &gt;
+      ty2u = self.type.replace("<","&lt;").replace(">","&gt;")
+      print("      <tr>")
+      print("        <td>"+cn2u+"</td>")
+      print("        <td>"+columnTypes(1)[self.kind]+"</td>")
+      print("        <td>"+self.gname+"</td>")
+      print("        <td>"+ty2u+"</td>")
+      print("        <td>"+self.comment+"</td>")
+      print("      </tr>")
+
 
 # .............................................................................
 # holds a table
@@ -335,9 +340,9 @@ class datamodel:
       self.defines = list()
       self.namespaces = list()
       self.categories = list()
-      
+
       # set some variables
-      self.O2path = ""      
+      self.O2path = ""
       self.O2Physicspath = ""
       self.O2href = ""
       self.O2Physicshref = ""
@@ -373,7 +378,7 @@ class datamodel:
         tmp = initCard.find("O2general/delimJoins")
         if tmp != None:
           self.delimJoins = tmp.text.strip()
-    
+
       # read the file
       lines_in_file = file.readlines()
       content = O2DMT.pickContent(lines_in_file)
@@ -381,7 +386,7 @@ class datamodel:
       # parse datamodel
       self.parseContent(hfile, content, "", self)
       # self.synchronize()
-  
+
   # extract the categories definition
   def setTableCategories(self, DMxml):
 
@@ -580,7 +585,7 @@ class datamodel:
     else:
       href2u = self.O2href
       path2u = self.O2path
- 
+
     hf2u = O2DMT.block(tab2u.hfile.split(path2u)[
                  1:], False).strip().lstrip("/")
     print("    <div>")
@@ -631,12 +636,12 @@ class datamodel:
 
     # print the table footer
     tab2u.printFooterHTML()
-      
+
 
   def printTables(self, DMtype, tabs, uses, CER, tabs2u):
     print("")
     print("#### ", CER[2])
-    
+
     # add source code information if available
     if "O2Physics" in CER[0]:
       href2u = self.O2Physicshref
@@ -644,7 +649,7 @@ class datamodel:
     else:
       href2u = self.O2href
       path2u = self.O2path
-    
+
     if DMtype == 1:
       if href2u != "":
         print("Code file: <a href=\""+href2u+"/"+CER[0].split(path2u)[1] +
@@ -654,14 +659,14 @@ class datamodel:
 
     tabInCat = list()
     others = list()
-    if DMtype == 0:  
+    if DMtype == 0:
       # pattern for table versions
       vPattern = self.initCard.find('O2general/TableVersionPattern')
       if vPattern == None:
         vPattern = "_\d\d\d$"
       else:
         vPattern = vPattern.text.strip()
-    
+
       # Analyze the tables and categories
       tabInCat = [False]*len(tabs2u)
       for cat in self.categories:
@@ -681,14 +686,14 @@ class datamodel:
 
     print("<div>")
     print("")
-    
+
     # loop over all table categories
     if DMtype == 0:
       for cat in self.categories:
         txt2print = '<h4 id="cat_'+cat.name+'">'+cat.name+'</h4>'
         print(txt2print)
         print("<div>")
-        
+
         # print tables of of given category
         for tname in cat.members:
           for tab in tabs2u:
@@ -697,7 +702,7 @@ class datamodel:
               self.printSingleTable(tabs, uses, tab)
               continue
         print("</div>")
-        
+
       # print non-categorized tables
       if len(others) > 0:
         print('<h4 id="cat_Others">Others</h4>')
@@ -706,7 +711,7 @@ class datamodel:
           print()
           self.printSingleTable(tabs, uses, tabs2u[i])
         print("</div>")
-        
+
     else:
       # print all tables of given producer
       for tab in tabs2u:
@@ -737,7 +742,7 @@ class datamodel:
     # only one Main CER should be available
     if len(CER2u) != 1:
       sys.exit('<datamodel.printHTML> Exacly 1 DataModel of type Main is expected. We found '+len(CER2u)+'! EXIT -->')
-    
+
     for CER in CER2u:
       inds = [i for i, x in enumerate(tabs) if CER in x.CErelations]
       tabs2u = [tabs[i] for i in inds]
@@ -804,7 +809,7 @@ class datamodel:
 # remove the version id from the table name
 
 def baseTableName(vtname, vPattern):
-  
+
   vres = re.compile(vPattern).search(vtname)
   if vres:
     return vtname[0:vres.start()]
@@ -1154,11 +1159,11 @@ class tableCategory:
   def __init__(self, catName, catMembers):
     self.name = catName
     self.members = catMembers
-    
+
   def blongsTo(self, tableName):
     if tableName in catMembers:
       return true
     else:
       return false
-  
+
 # -----------------------------------------------------------------------------

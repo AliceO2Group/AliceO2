@@ -102,7 +102,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
       sizes.resize(NSectors * NEndpoints);
       const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
       o2::InteractionRecord ir{0, dh->firstTForbit};
-      o2::gpu::GPUReconstructionConvert::RunZSEncoder<DigitArray>(inputs->inputDigits, &zsoutput, sizes.data(), nullptr, &ir, _GPUParam, true, verify, config.configReconstruction.tpc.zsThreshold);
+      o2::gpu::GPUReconstructionConvert::RunZSEncoder<DigitArray>(inputs->inputDigits, &zsoutput, sizes.data(), nullptr, &ir, _GPUParam, 2, verify, config.configReconstruction.tpc.zsThreshold);
       ZeroSuppressedContainer8kb* page = reinterpret_cast<ZeroSuppressedContainer8kb*>(zsoutput.get());
       unsigned int offset = 0;
       for (unsigned int i = 0; i < NSectors; i++) {
@@ -155,7 +155,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
           writer.useCaching();
         }
         ir = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
-        o2::gpu::GPUReconstructionConvert::RunZSEncoder(inputs->inputDigits, nullptr, nullptr, &writer, &ir, _GPUParam, true, false, config.configReconstruction.tpc.zsThreshold);
+        o2::gpu::GPUReconstructionConvert::RunZSEncoder(inputs->inputDigits, nullptr, nullptr, &writer, &ir, _GPUParam, 2, false, config.configReconstruction.tpc.zsThreshold);
         writer.writeConfFile("TPC", "RAWDATA", fmt::format("{}tpcraw.cfg", outDir));
       }
       zsoutput.reset(nullptr);

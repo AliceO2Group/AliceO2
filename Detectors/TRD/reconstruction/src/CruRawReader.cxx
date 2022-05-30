@@ -144,6 +144,8 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
   uint32_t currentsaveddatacount = 0;
   mTotalHBFPayLoad = 0;
   int loopcount = 0;
+  int counthalfcru = 0;
+  mHBFoffset32 = 0;
   // loop until RDH stop header
   while (!o2::raw::RDHUtils::getStop(rdh)) { // carry on till the end of the event.
     if (mHeaderVerbose) {
@@ -215,8 +217,6 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
   }
 
   // at this point the entire HBF data payload is sitting in mHBFPayload and the total data count is mTotalHBFPayLoad
-  int counthalfcru = 0;
-  mHBFoffset32 = 0;
 
   while ((mHBFoffset32 < ((mTotalHBFPayLoad) / 4))) { // the blank event of eeeeee at the end
     if (mHeaderVerbose) {
@@ -246,9 +246,6 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
       mHBFoffset32 += 8;
     }
     counthalfcru++;
-    if (counthalfcru == 1) {
-      break;
-    }
   } // loop of halfcru's while there is still data in the heart beat frame.
   if (totaldataread > 0) {
     mDatareadfromhbf = totaldataread;

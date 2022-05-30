@@ -312,7 +312,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
          mLoopsDone, link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
   }
 
-  auto& timingInfo = ctx.services().get<TimingInfo>();
+  auto& timingInfo = ctx.services().get<o2::framework::TimingInfo>();
   timingInfo.firstTFOrbit = firstOrbit;
   timingInfo.creation = creationTime;
   timingInfo.tfCounter = mTFCounter;
@@ -353,12 +353,6 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
 
   mSentSize += tfSize;
   mSentMessages += tfNParts;
-  for (auto& msgIt : messagesPerRoute) {
-    if (msgIt.first != mRawChannelName) {
-      auto& channel = device->GetChannel(msgIt.first, 0);
-      o2::framework::DataProcessingHelpers::sendOldestPossibleTimeframe(channel, mTFCounter);
-    }
-  }
   mReader->setNextTFToRead(++tfID);
   ++mTFCounter;
 }

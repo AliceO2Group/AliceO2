@@ -36,6 +36,8 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
+#include "Framework/DataTakingContext.h"
+#include "Framework/TimingInfo.h"
 #include <fairmq/Device.h>
 
 #include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
@@ -111,6 +113,7 @@ class ITSThresholdCalibrator : public Task
 
   //////////////////////////////////////////////////////////////////
  private:
+  void updateTimeDependentParams(ProcessingContext& pc);
   // detector information
   static constexpr short int N_COL = 1024; // column number in Alpide chip
 
@@ -160,9 +163,6 @@ class ITSThresholdCalibrator : public Task
   void finalizeOutput();
 
   void setRunType(const short int&);
-  void updateEnvironmentID(ProcessingContext&);
-  void updateRunID(ProcessingContext&);
-  void updateLHCPeriod(ProcessingContext&);
 
   // Helper functions related to threshold extraction
   void initThresholdTree(bool recreate = true);
@@ -186,12 +186,11 @@ class ITSThresholdCalibrator : public Task
 
   bool mVerboseOutput = false;
   std::string mMetaType;
-  std::string mLHCPeriod;
-  std::string mEnvironmentID;
   std::string mOutputDir;
   std::string mMetafileDir = "/dev/null";
   int mNThreads = 1;
-  int mRunNumber = -1;
+  o2::framework::DataTakingContext mDataTakingContext{};
+  o2::framework::TimingInfo mTimingInfo{};
 
   // How many rows before starting new ROOT file
   unsigned int mFileNumber = 0;

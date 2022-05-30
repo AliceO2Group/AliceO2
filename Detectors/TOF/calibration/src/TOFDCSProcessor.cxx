@@ -70,16 +70,18 @@ int TOFDCSProcessor::process(const gsl::span<const DPCOM> dps)
     mFirstTimeSet = true;
   }
 
-  std::unordered_map<DPID, DPVAL> mapin;
-  for (auto& it : dps) {
-    mapin[it.id] = it.data;
-  }
-  for (auto& it : mPids) {
-    const auto& el = mapin.find(it.first);
-    if (el == mapin.end()) {
-      LOG(debug) << "DP " << it.first << " not found in map";
-    } else {
-      LOG(debug) << "DP " << it.first << " found in map";
+  if (false) {
+    std::unordered_map<DPID, DPVAL> mapin;
+    for (auto& it : dps) {
+      mapin[it.id] = it.data;
+    }
+    for (auto& it : mPids) {
+      const auto& el = mapin.find(it.first);
+      if (el == mapin.end()) {
+        LOG(debug) << "DP " << it.first << " not found in map";
+      } else {
+        LOG(debug) << "DP " << it.first << " found in map";
+      }
     }
   }
 
@@ -332,11 +334,12 @@ void TOFDCSProcessor::updateDPsCCDB()
     double double_value;
   } converter0, converter1;
 
-  for (const auto& it : mPids) {
+  for (auto& it : mPids) {
     const auto& type = it.first.get_type();
     if (type == o2::dcs::DPVAL_DOUBLE) {
       auto& tofdcs = mTOFDCS[it.first];
-      if (it.second == true) { // we processed the DP at least 1x
+      if (it.second) {     // we processed the DP at least 1x
+        it.second = false; // reset for the next period
         auto& dpvect = mDpsdoublesmap[it.first];
         tofdcs.firstValue.first = dpvect[0].get_epoch_time();
         converter0.raw_data = dpvect[0].payload_pt1;
@@ -393,7 +396,7 @@ void TOFDCSProcessor::updateDPsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/Calib/DCSDPs", md, mStartValidity, 3 * 24L * 3600000);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/Calib/DCSDPs", md, mStartValidity, mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return;
 }
@@ -410,7 +413,7 @@ void TOFDCSProcessor::updateFEACCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mFeac, mccdbLVInfo, "TOF/Calib/LVStatus", md, mStartValidity, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mFeac, mccdbLVInfo, "TOF/Calib/LVStatus", md, mStartValidity, mStartValidity + o2::ccdb::CcdbObjectInfo::MONTH);
   return;
 }
 
@@ -426,7 +429,7 @@ void TOFDCSProcessor::updateHVCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mHV, mccdbHVInfo, "TOF/Calib/HVStatus", md, mStartValidity, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mHV, mccdbHVInfo, "TOF/Calib/HVStatus", md, mStartValidity, mStartValidity + o2::ccdb::CcdbObjectInfo::MONTH);
   return;
 }
 

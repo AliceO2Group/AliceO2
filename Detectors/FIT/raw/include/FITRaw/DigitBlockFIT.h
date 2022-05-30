@@ -110,7 +110,10 @@ auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDa
   if (isValid) {
     vecChData.emplace_back(static_cast<uint8_t>(globalChID), static_cast<int>(pmData.time), static_cast<int>(pmData.charge), static_cast<uint8_t>(pmData.getFlagWord()));
   } else {
-    LOG(warning) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
+    static int warningCount = 0;
+    if (warningCount++ < 100) {
+      LOG(warning) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
+    }
   }
 }
 // FDD
@@ -122,7 +125,10 @@ auto ConvertEventData2ChData(std::vector<ChannelDataType>& vecChData, const PMDa
   if (isValid) {
     vecChData.emplace_back(static_cast<uint8_t>(globalChID), static_cast<int>(pmData.time), static_cast<int>(pmData.charge), static_cast<uint8_t>(pmData.getFlagWord()));
   } else {
-    LOG(warning) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
+    static int warningCount = 0;
+    if (warningCount++ < 100) {
+      LOG(warning) << "Incorrect global channel! linkID: " << linkID << " | EndPoint: " << ep << " | LocalChID: " << pmData.channelID;
+    }
   }
 }
 //Interface for extracting interaction record from Digit

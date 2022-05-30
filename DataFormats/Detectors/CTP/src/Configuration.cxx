@@ -104,6 +104,7 @@ void CTPClass::printStream(std::ostream& stream) const
 int CTPConfiguration::loadConfigurationRun3(const std::string& ctpconfiguration)
 {
   LOG(info) << "Loading CTP configuration.";
+  mConfigString = ctpconfiguration;
   std::istringstream iss(ctpconfiguration);
   int ret = 0;
   int level = MASKS;
@@ -564,7 +565,7 @@ void CTPRunManager::init()
   loadScalerNames();
   LOG(info) << "CTPRunManager initialised.";
 }
-int CTPRunManager::startRun(std::string& cfg)
+int CTPRunManager::startRun(const std::string& cfg)
 {
   LOG(info) << "Starting run: " << cfg;
   const auto now = std::chrono::system_clock::now();
@@ -582,7 +583,7 @@ int CTPRunManager::startRun(std::string& cfg)
 }
 int CTPRunManager::stopRun(uint32_t irun)
 {
-  LOG(info) << "Stopping run index:" << irun;
+  LOG(info) << "Stopping run index: " << irun;
   if (mActiveRuns[irun] == nullptr) {
     LOG(error) << "No config for run index:" << irun;
     return 1;
@@ -595,7 +596,7 @@ int CTPRunManager::stopRun(uint32_t irun)
   mActiveRuns[irun] = nullptr;
   return 0;
 }
-int CTPRunManager::addScalers(uint32_t irun)
+int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
 {
   if (mActiveRuns[irun] == nullptr) {
     LOG(error) << "No config for run index:" << irun;
@@ -604,6 +605,7 @@ int CTPRunManager::addScalers(uint32_t irun)
   std::string orb = "extorb";
   CTPScalerRecordRaw scalrec;
   CTPScalerRaw scalraw;
+  scalrec.epochTime = time;
   std::vector<int> clslist = mActiveRuns[irun]->cfg.getTriggerClassList();
   std::vector<std::string> clsnamelist;
   for (auto const& cls : clslist) {
@@ -624,16 +626,42 @@ int CTPRunManager::addScalers(uint32_t irun)
   scalrec.intRecord.orbit = mCounters[mScalerName2Position[orb]];
   return 0;
 }
-int CTPRunManager::processMessage(std::string& message)
+int CTPRunManager::processMessage(std::string& topic, const std::string& message)
 {
-  LOG(info) << "Processing message line";
-  std::vector<std::string> tokens = o2::utils::Str::tokenize(message, ' ');
+  LOG(info) << "Processing message with topic:" << topic;
+  std::string firstcounters;
+  if (topic.find("sox") != std::string::npos) {
+    // get config
+    size_t irun = message.find("run");
+    if (irun == std::string::npos) {
+      LOG(error) << "run keyword not found in SOX:\n"
+                 << message;
+      return 1;
+    }
+    LOG(info) << "SOX received, Run:" << irun;
+    std::string cfg = message.substr(irun, message.size() - irun);
+    LOG(info) << "Config:" << cfg;
+    startRun(cfg);
+    firstcounters = message.substr(0, irun);
+  }
+  if (topic.find("eox") != std::string::npos) {
+    LOG(info) << "EOX received";
+    mEOX = 1;
+  }
+  //
+  std::vector<std::string> tokens;
+  if (firstcounters.size() > 0) {
+    tokens = o2::utils::Str::tokenize(firstcounters, ' ');
+  } else {
+    tokens = o2::utils::Str::tokenize(message, ' ');
+  }
   if (tokens.size() != (CTPRunScalers::NCOUNTERS + 1)) {
     LOG(error) << "Scalers size wrong:" << tokens.size() << " expected:" << CTPRunScalers::NCOUNTERS + 1;
     return 1;
   }
-  double timeStamp = std::stod(tokens.at(0));
-  LOG(info) << "Processing scalers, all good, time:" << timeStamp;
+  double timeStamp = std::stold(tokens.at(0));
+  std::time_t tt = timeStamp;
+  LOG(info) << "Processing scalers, all good, time:" << tokens.at(0) << " " << std::asctime(std::localtime(&tt));
   for (int i = 1; i < tokens.size(); i++) {
     mCounters[i - 1] = std::stoull(tokens.at(i));
     if (i < (NRUNS + 1)) {
@@ -649,19 +677,29 @@ int CTPRunManager::processMessage(std::string& message)
     } else if ((mCounters[i] != 0) && (mActiveRunNumbers[i] == mCounters[i])) {
       // active , do scalers
       LOG(info) << "Run continue:" << mCounters[i];
-      addScalers(i);
+      addScalers(i, tt);
     } else if ((mCounters[i] != 0) && (mActiveRunNumbers[i] == 0)) {
       LOG(info) << "Run started:" << mCounters[i];
       mActiveRunNumbers[i] = mCounters[i];
+      if (mRunInStart == nullptr) {
+        LOG(error) << "Internal error in processMessage: nullptr != 0 expected";
+      }
       mActiveRuns[i] = mRunInStart;
       mRunInStart = nullptr;
-      // addScalers(i);
+      addScalers(i, tt);
     } else if ((mCounters[i] == 0) && (mActiveRunNumbers[i] != 0)) {
-      LOG(info) << "Run stopped:" << mActiveRunNumbers[i];
-      mActiveRunNumbers[i] = 0;
-      stopRun(i);
+      if (mEOX != 1) {
+        LOG(error) << "Internal error in processMessage: mEOX = 1 expected:" << mEOX;
+      } else {
+        LOG(info) << "Run stopped:" << mActiveRunNumbers[i];
+        addScalers(i, tt);
+        mActiveRunNumbers[i] = 0;
+        mEOX = 0;
+        stopRun(i);
+      }
     }
   }
+  mEOX = 0;
   printActiveRuns();
   return 0;
 }

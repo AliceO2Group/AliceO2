@@ -157,7 +157,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
     return std::string{};
   };
   auto setTimingInfo = [&ctx](TFMap& msgMap) {
-    auto& timingInfo = ctx.services().get<TimingInfo>();
+    auto& timingInfo = ctx.services().get<o2::framework::TimingInfo>();
     const auto* dataptr = (*msgMap.begin()->second.get())[0].GetData();
     const auto* hd0 = o2h::get<o2h::DataHeader*>(dataptr);
     const auto* dph = o2h::get<o2f::DataProcessingHeader*>(dataptr);
@@ -234,10 +234,6 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
         acknowledgeOutput(*msgIt.second.get());
         nparts += msgIt.second->Size() / 2;
         device->Send(*msgIt.second.get(), msgIt.first);
-        if (msgIt.first != mInput.rawChannelConfig) { // don't do this with output to the raw FMQ channel
-          auto& channel = device->GetChannel(msgIt.first, 0);
-          o2::framework::DataProcessingHelpers::sendOldestPossibleTimeframe(channel, mTFCounter);
-        }
       }
       tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       deltaSending = mTFCounter ? tNow - tLastTF : 0;
@@ -314,7 +310,7 @@ void TFReaderSpec::TFBuilder()
     tfFileName = mFileFetcher ? mFileFetcher->getNextFileInQueue() : "";
     if (!mRunning || (tfFileName.empty() && !mFileFetcher->isRunning()) || mTFBuilderCounter >= mInput.maxTFs) {
       // stopped or no more files in the queue is expected or needed
-      LOG(info) << "TFBuilder stops processing";
+      LOG(info) << "TFReader stops processing";
       if (mFileFetcher) {
         mFileFetcher->stop();
       }

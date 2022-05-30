@@ -36,15 +36,16 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"no-grp", VariantType::Bool, false, {"do not read GRP file"}});
   options.push_back(ConfigParamSpec{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries) or both or none"}});
   options.push_back(ConfigParamSpec{"ctf-writer-verbosity", VariantType::Int, 0, {"verbosity level (0: summary per detector, 1: summary per block"}});
+  options.push_back(ConfigParamSpec{"report-data-size-interval", VariantType::Int, 200, {"report sizes per detector for every N-th timeframe"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
   std::swap(workflowOptions, options);
 }
 
-/*void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   // ordered policies for the writers
   policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:CTF|ctf).*[W,w]riter.*"));
-}*/
+}
 
 // ------------------------------------------------------------------
 #include "Framework/runDataProcessing.h"
@@ -80,6 +81,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
     outType = configcontext.options().get<std::string>("output-type");
   }
-  WorkflowSpec specs{o2::ctf::getCTFWriterSpec(dets, run, outType, configcontext.options().get<int>("ctf-writer-verbosity"))};
+  WorkflowSpec specs{o2::ctf::getCTFWriterSpec(dets, run, outType,
+                                               configcontext.options().get<int>("ctf-writer-verbosity"),
+                                               configcontext.options().get<int>("report-data-size-interval"))};
   return std::move(specs);
 }

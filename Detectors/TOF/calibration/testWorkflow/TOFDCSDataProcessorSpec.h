@@ -68,8 +68,6 @@ class TOFDCSDataProcessor : public o2::framework::Task
       std::string ccdbpath = ic.options().get<std::string>("ccdb-path");
       auto& mgr = CcdbManager::instance();
       mgr.setURL(ccdbpath);
-      CcdbApi api;
-      api.init(mgr.getURL());
       long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
       std::unordered_map<DPID, std::string>* dpid2DataDesc = mgr.getForTimeStamp<std::unordered_map<DPID, std::string>>("TOF/Config/DCSDPconfig", ts);
       for (auto& i : *dpid2DataDesc) {

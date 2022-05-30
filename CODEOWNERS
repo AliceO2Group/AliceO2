@@ -63,7 +63,7 @@
 /Detectors/GlobalTrackingWorkflow  @shahor02
 /Detectors/HMPID                   @gvolpe79
 /Detectors/ITSMFT                  @iouribelikov @bovulpes @rpezzi @mconcas
-/Detectors/MUON                    @aphecetche @pillot
+/Detectors/MUON                    @AliceO2Group/muon-experts
 /Detectors/PHOS                    @peressounko @kharlov
 /Detectors/Passive                 @sawenzel
 /Detectors/TOF                     @noferini
