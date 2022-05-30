@@ -1280,7 +1280,7 @@ TClass* CcdbApi::tinfo2TClass(std::type_info const& tinfo)
   return cl;
 }
 
-void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id)
+void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id, long newEOV)
 {
   CURL* curl = curl_easy_init();
   if (curl != nullptr) {
@@ -1288,6 +1288,9 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
     stringstream fullUrl;
     for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
       fullUrl << getHostUrl(hostIndex) << "/" << path << "/" << timestamp;
+      if (newEOV > 0) {
+        fullUrl << "/" << newEOV;
+      }
       if (!id.empty()) {
         fullUrl << "/" << id;
       }
@@ -1305,9 +1308,11 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
       }
 
       if (curl != nullptr) {
+        LOG(debug) << "passing to curl: " << fullUrl.str();
         curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT"); // make sure we use PUT
         curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         curlSetSSLOptions(curl);
 
         // Perform the request, res will get the return code
