@@ -49,10 +49,10 @@ class PHOSBadMapCalibDevice : public o2::framework::Task
  private:
   int mMode = 0;                                                   /// operation mode: 0: occupancy, 1: chi2
   int mElowMin = 100;                                              /// Low E minimum in ADC counts
-  int mElowMax = 200;                                              /// Low E maximum in ADC counts
+  int mElowMax = 1100;                                             /// Low E maximum in ADC counts
   int mEhighMin = 400;                                             /// high E minimum in ADC counts
   int mEhighMax = 900;                                             /// high E maximum in ADC counts
-  int mStatistics = 1000;                                          /// number of events to calculate pedestals
+  int mStatistics = 100000;                                        /// number of events to calculate pedestals
   static constexpr short kMinorChange = 10;                        /// ignore if number of channels changed smaller than...
   long mRunStartTime = 0;                                          /// start time of the run (milisec)
   long mValidityTime = 0;                                          /// end of validity range (milisec)

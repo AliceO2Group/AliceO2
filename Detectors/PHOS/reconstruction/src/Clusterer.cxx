@@ -382,10 +382,10 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
           // insuficientAccuracy|=fabs(meMax[iclu]-eOld)> meMax[iclu]*o2::phos::PHOSSimParams::Instance().mUnfogingEAccuracy ;
         }
       } else {
-        LOG(warning) << "Failed to decompose matrix of size " << nMax;
+        LOG(warning) << "Failed to decompose matrix of size " << int(nMax);
       }
     } else {
-      LOG(warning) << "Failed to decompose matrix of size " << nMax;
+      LOG(warning) << "Failed to decompose matrix of size " << int(nMax);
     }
     insuficientAccuracy &= (chi2 > o2::phos::PHOSSimParams::Instance().mUnfogingChi2Accuracy * nMax);
     nIterations++;
@@ -621,13 +621,22 @@ void Clusterer::evalAll(Cluster& clu, std::vector<CluElement>& cluel) const
 
   for (auto& trd : mTrigger) {
     char trurelid[3];
-    Geometry::truAbsToRelNumbering(trd.getAbsId(), trurelid);
+    short trtype = trd.is2x2Tile() ? 0 : 1;
+    Geometry::truAbsToRelNumbering(trd.getAbsId(), trtype, trurelid);
 
+    // Trigger tile coordinates of lower left corner (smallest x,z)
     int dx = relId[1] - trurelid[1];
     int dz = relId[2] - trurelid[2];
-    if (dx > -2 && dx < 3 && dz > -2 && dz < 3) {
-      clu.setFiredTrigger(trd.isHighGain());
-      break;
+    if (trtype == 0) { // 2x2
+      if (dx >= 0 && dx < 2 && dz >= 0 && dz < 2) {
+        clu.setFiredTrigger(trd.isHighGain());
+        break;
+      }
+    } else { // 4x4
+      if (dx >= 0 && dx < 4 && dz >= 0 && dz < 4) {
+        clu.setFiredTrigger(trd.isHighGain());
+        break;
+      }
     }
   }
 }

@@ -124,27 +124,44 @@ class AltroDecoder
   }
   void setCombineHGLG(bool a) { mCombineGHLG = a; }
 
+  void setKeepTruNoise(bool a) { mKeepTruNoise = a; }
+
   void setPresamples(int ps) { mPreSamples = ps; }
 
  private:
+  union truDigitPack {
+    int32_t mDataWord;
+    struct {
+      int32_t mHeader : 1; ///< Bit  0 : digit exist
+      int32_t mAmp : 15;   ///< Bits  1 - 15: amplitude in channel
+      int32_t mTime : 16;  ///< Bits 16 - 25: Time in TRU ticks
+    };
+  };
+
   static constexpr int kGeneralSRUErr = 15; ///< Non-existing FEE card to store general SRU errors
   static constexpr int kGeneralTRUErr = 16; ///< Non-existing FEE card to store general TRU errors
   // check and convert HW address to absId and caloFlag
   bool hwToAbsAddress(short hwaddress, short& absId, Mapping::CaloFlag& caloFlag);
   // read trigger digits
-  void readTRUDigits(short absId, int payloadSize, std::vector<o2::phos::Cell>& truContainer);
+  void readTRUDigits(short absId, int payloadSize);
   // read trigger summary tables
   void readTRUFlags(short hwAddress, int payloadSize);
+  // Check if TRU digit belongs/matches TRU flag
+  bool matchTruDigits(const Cell& cTruFlag, float& sumAmp);
 
-  bool mCombineGHLG = true;                                ///< Combine or not HG and LG channels (def: combine, LED runs: not combine)
-  bool mPedestalRun = false;                               ///< Analyze pedestal run (calculate pedestal mean and RMS)
-  short mddl;                                              ///< Current DDL
-  short mPreSamples = 0;                                   ///< Number of pre-samples in time calculation
-  std::vector<uint16_t> mBunchwords;                       ///< (transient) bunch of samples for current channel
-  std::vector<o2::phos::RawReaderError> mOutputHWErrors;   ///< Errors occured in reading data
-  std::vector<short> mOutputFitChi;                        ///< Raw sample fit quality
-  std::bitset<Mapping::NTRUReadoutChannels + 2> mTRUFlags; ///< trigger summary table
-  RCUTrailer mRCUTrailer;                                  ///< RCU trailer
+  bool mCombineGHLG = true;                              ///< Combine or not HG and LG channels (def: combine, LED runs: not combine)
+  bool mPedestalRun = false;                             ///< Analyze pedestal run (calculate pedestal mean and RMS)
+  bool mKeepTruNoise = false;                            ///< Keep all TRU channels for noise scan
+  short mddl;                                            ///< Current DDL
+  short mPreSamples = 0;                                 ///< Number of pre-samples in time calculation
+  std::vector<uint16_t> mBunchwords;                     ///< (transient) bunch of samples for current channel
+  std::vector<o2::phos::RawReaderError> mOutputHWErrors; ///< Errors occured in reading data
+  std::vector<short> mOutputFitChi;                      ///< Raw sample fit quality
+  std::vector<Cell> mTRUFlags;                           ///< trigger summary table
+  std::array<int32_t, 224> mTRUDigits;                   ///< list of active TRU digits in DDL
+  std::bitset<128> mFlag4x4Bitset;
+  std::bitset<128> mFlag2x2Bitset;
+  RCUTrailer mRCUTrailer; ///< RCU trailer
 
   ClassDefNV(AltroDecoder, 2);
 };

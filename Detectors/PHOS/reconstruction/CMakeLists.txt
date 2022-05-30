@@ -23,6 +23,7 @@ o2_add_library(PHOSReconstruction
                PUBLIC_LINK_LIBRARIES O2::PHOSBase
                                      O2::DataFormatsPHOS
                                      O2::DetectorsRaw
+                                     O2::DataFormatsCTP
                                      AliceO2::InfoLogger
                                      O2::rANS
                                      Microsoft.GSL::GSL)
