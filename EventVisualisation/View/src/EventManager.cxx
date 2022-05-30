@@ -61,16 +61,18 @@ EventManager::EventManager() : TEveEventManager("Event", "")
 
 void EventManager::displayCurrentEvent()
 {
-  if (getDataSource()->getEventCount() > 0) {
-    MultiView::getInstance()->destroyAllEvents();
-    int no = getDataSource()->getCurrentEvent();
+  const auto multiView = MultiView::getInstance();
+  const auto dataSource = getDataSource();
+  if (dataSource->getEventCount() > 0) {
+    multiView->destroyAllEvents();
+    int no = dataSource->getCurrentEvent();
 
     for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
       dataTypeLists[i] = new TEveElementList(gDataTypeNames[i].c_str());
     }
 
     VisualisationEvent event; // collect calorimeters in one drawing step
-    auto displayList = getDataSource()->getVisualisationList(no, EventManagerFrame::getInstance().getMinTimeFrameSliderValue(), EventManagerFrame::getInstance().getMaxTimeFrameSliderValue(), EventManagerFrame::MaxRange);
+    auto displayList = dataSource->getVisualisationList(no, EventManagerFrame::getInstance().getMinTimeFrameSliderValue(), EventManagerFrame::getInstance().getMaxTimeFrameSliderValue(), EventManagerFrame::MaxRange);
     for (auto it = displayList.begin(); it != displayList.end(); ++it) {
       if (it->second == EVisualisationGroup::EMC || it->second == EVisualisationGroup::PHS) {
         event.appendAnotherEventCalo(it->first);
@@ -82,12 +84,14 @@ void EventManager::displayCurrentEvent()
 
     for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
       if (i != EVisualisationGroup::EMC && i != EVisualisationGroup::PHS) {
-        MultiView::getInstance()->registerElement(dataTypeLists[i]);
+        multiView->registerElement(dataTypeLists[i]);
       }
     }
-    MultiView::getInstance()->getAnnotation()->SetText(TString::Format("Run: %d", getDataSource()->getRunNumber()));
+    multiView->getAnnotationTop()->SetText(TString::Format("Run %d\n%s", dataSource->getRunNumber(), dataSource->getCollisionTime().c_str()));
+    auto detectors = dataformats::GlobalTrackID::getSourcesNames(dataSource->getDetectorsMask());
+    multiView->getAnnotationBottom()->SetText(TString::Format("TFOrbit: %d\nDetectors: %s", dataSource->getFirstTForbit(), detectors.c_str()));
   }
-  MultiView::getInstance()->redraw3D();
+  multiView->redraw3D();
 }
 
 void EventManager::GotoEvent(Int_t no)
