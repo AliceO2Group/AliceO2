@@ -196,9 +196,10 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   template <int DETID>
   void updateTimeDependentParams(ProcessingContext& pc)
   {
-    pc.inputs().get<o2::itsmft::NoiseMap*>("noise");
-    pc.inputs().get<o2::itsmft::NoiseMap*>("dead");
-    pc.inputs().get<o2::itsmft::DPLAlpideParam<DETID>*>("alppar");
+    std::string detstr(o2::detectors::DetID::getName(DETID));
+    pc.inputs().get<o2::itsmft::NoiseMap*>(detstr + "_noise");
+    pc.inputs().get<o2::itsmft::NoiseMap*>(detstr + "_dead");
+    pc.inputs().get<o2::itsmft::DPLAlpideParam<DETID>*>(detstr + "_alppar");
 
     auto& dopt = o2::itsmft::DPLDigitizerParam<DETID>::Instance();
     auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
@@ -319,9 +320,9 @@ DataProcessorSpec getITSDigitizerSpec(int channel, bool mctruth)
             << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
   std::vector<InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
-  inputs.emplace_back("noise", "ITS", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/NoiseMap"));
-  inputs.emplace_back("dead", "ITS", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/DeadMap"));
-  inputs.emplace_back("alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
+  inputs.emplace_back("ITS_noise", "ITS", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/NoiseMap"));
+  inputs.emplace_back("ITS_dead", "ITS", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/DeadMap"));
+  inputs.emplace_back("ITS_alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
 
   return DataProcessorSpec{(detStr + "Digitizer").c_str(),
                            inputs, makeOutChannels(detOrig, mctruth),
@@ -337,9 +338,9 @@ DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth)
   std::stringstream parHelper;
   std::vector<InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
-  inputs.emplace_back("noise", "MFT", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/NoiseMap"));
-  inputs.emplace_back("dead", "MFT", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/DeadMap"));
-  inputs.emplace_back("alppar", "MFT", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("MFT/Config/AlpideParam"));
+  inputs.emplace_back("MFT_noise", "MFT", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/NoiseMap"));
+  inputs.emplace_back("MFT_dead", "MFT", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/DeadMap"));
+  inputs.emplace_back("MFT_alppar", "MFT", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("MFT/Config/AlpideParam"));
   parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
             << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
             << " or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
