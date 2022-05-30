@@ -645,12 +645,12 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
       return 1;
     }
     LOG(info) << "SOX received, Run:" << irun;
-    if(mCtpcfg == 0) {
+    if (mCtpcfg == 0) {
       std::string cfg = message.substr(irun, message.size() - irun);
       LOG(info) << "Config:" << cfg;
       startRun(cfg);
     } else {
-      mCtpcfg = 0;     
+      mCtpcfg = 0;
     }
     firstcounters = message.substr(0, irun);
   }
@@ -747,7 +747,7 @@ int CTPRunManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
   map<string, string> metadata; // can be empty
   api.init(mCcdbHost.c_str());  // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
-  api.storeAsTFileAny( cfg, o2::ctp::CCDBPathCTPConfig, metadata, tmin, tmax);
+  api.storeAsTFileAny(cfg, o2::ctp::CCDBPathCTPConfig, metadata, tmin, tmax);
   LOG(info) << "CTP config  saved in ccdb, run:" << cfg->getRunNumber();
   return 0;
 }
