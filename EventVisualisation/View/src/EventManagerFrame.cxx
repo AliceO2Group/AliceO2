@@ -252,10 +252,16 @@ void EventManagerFrame::DoScreenshot()
   TASImage image(width, height);
   image.FillRectangle(backgroundColor, 0, 0, width, height);
 
-  auto annotationState = MultiView::getInstance()->getAnnotation()->GetState();
-  MultiView::getInstance()->getAnnotation()->SetState(TGLOverlayElement::kInvisible);
+  const auto annotationStateTop = MultiView::getInstance()->getAnnotationTop()->GetState();
+  const auto annotationStateBottom = MultiView::getInstance()->getAnnotationBottom()->GetState();
+  MultiView::getInstance()->getAnnotationTop()->SetState(TGLOverlayElement::kInvisible);
+  MultiView::getInstance()->getAnnotationBottom()->SetState(TGLOverlayElement::kInvisible);
+
   TImage* view3dImage = MultiView::getInstance()->getView(MultiView::EViews::View3d)->GetGLViewer()->GetPictureUsingBB();
-  MultiView::getInstance()->getAnnotation()->SetState(annotationState);
+
+  MultiView::getInstance()->getAnnotationTop()->SetState(annotationStateTop);
+  MultiView::getInstance()->getAnnotationBottom()->SetState(annotationStateBottom);
+
   scaledImage = ScaleImage((TASImage*)view3dImage, width * 0.65, height * 0.95);
   if (scaledImage) {
     CopyImage(&image, scaledImage, width * 0.015, height * 0.025, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
