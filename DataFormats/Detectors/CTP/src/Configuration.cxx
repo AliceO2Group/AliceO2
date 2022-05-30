@@ -579,6 +579,7 @@ int CTPRunManager::startRun(const std::string& cfg)
   activerun->scalers.setClassMask(activerun->cfg.getTriggerClassMask());
   //
   mRunInStart = activerun;
+  saveRunConfigToCCDB(&activerun->cfg, timeStamp);
   return 0;
 }
 int CTPRunManager::stopRun(uint32_t irun)
@@ -630,6 +631,11 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
 {
   LOG(info) << "Processing message with topic:" << topic;
   std::string firstcounters;
+  if (topic.find("ctpconfig") != std::string::npos) {
+    LOG(info) << "ctpcfg received";
+    startRun(message);
+    mCtpcfg = 1;
+  }
   if (topic.find("sox") != std::string::npos) {
     // get config
     size_t irun = message.find("run");
@@ -639,9 +645,13 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
       return 1;
     }
     LOG(info) << "SOX received, Run:" << irun;
-    std::string cfg = message.substr(irun, message.size() - irun);
-    LOG(info) << "Config:" << cfg;
-    startRun(cfg);
+    if(mCtpcfg == 0) {
+      std::string cfg = message.substr(irun, message.size() - irun);
+      LOG(info) << "Config:" << cfg;
+      startRun(cfg);
+    } else {
+      mCtpcfg = 0;     
+    }
     firstcounters = message.substr(0, irun);
   }
   if (topic.find("eox") != std::string::npos) {
@@ -685,7 +695,6 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
         LOG(error) << "Internal error in processMessage: nullptr != 0 expected";
       }
       mActiveRuns[i] = mRunInStart;
-      saveRunConfigToCCDB(i);
       mRunInStart = nullptr;
       addScalers(i, tt);
     } else if ((mCounters[i] == 0) && (mActiveRunNumbers[i] != 0)) {
@@ -726,21 +735,20 @@ int CTPRunManager::saveRunScalersToCCDB(int i)
   LOG(info) << "CTP scalers saved in ccdb, run:" << run->cfg.getRunNumber();
   return 0;
 }
-int CTPRunManager::saveRunConfigToCCDB(int i)
+int CTPRunManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
 {
   // data base
-  CTPActiveRun* run = mActiveRuns[i];
-  long tmin = run->timeStart;
+  long tmin = timeStart;
   using namespace std::chrono_literals;
   std::chrono::seconds days3 = 259200s;
   long time3days = std::chrono::duration_cast<std::chrono::milliseconds>(days3).count();
-  long tmax = run->timeStart + time3days;
+  long tmax = timeStart + time3days;
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
   api.init(mCcdbHost.c_str());  // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
-  api.storeAsTFileAny(&(run->cfg), o2::ctp::CCDBPathCTPConfig, metadata, tmin, tmax);
-  LOG(info) << "CTP config  saved in ccdb, run:" << run->cfg.getRunNumber();
+  api.storeAsTFileAny( cfg, o2::ctp::CCDBPathCTPConfig, metadata, tmin, tmax);
+  LOG(info) << "CTP config  saved in ccdb, run:" << cfg->getRunNumber();
   return 0;
 }
 int CTPRunManager::getConfigFromCCDB()
