@@ -33,16 +33,16 @@ BOOST_AUTO_TEST_CASE(Cell_test)
   for (short j = 1793; j < 14337; j++) {
     c.setAbsId(j);
     BOOST_CHECK_EQUAL(c.getAbsId(), j);
-    BOOST_CHECK_EQUAL(c.getTRUId(), 0);
+    BOOST_CHECK_EQUAL(c.getTRUId(), j);
     BOOST_CHECK_SMALL(c.getTime() - float(0.), kTimeAccuracy3);
     BOOST_CHECK_SMALL(c.getEnergy() - 0, float(0.1));
     BOOST_CHECK_EQUAL(c.getLowGain(), true);
     BOOST_CHECK_EQUAL(c.getTRU(), false);
   }
   for (short j = 0; j < 3136; j++) { // TRU
-    c.setAbsId(14337 + 1 + j);
+    c.setAbsId(14337 + j);
     BOOST_CHECK_EQUAL(c.getAbsId(), 0);
-    BOOST_CHECK_EQUAL(c.getTRUId(), j);
+    BOOST_CHECK_EQUAL(c.getTRUId(), 14337 + j);
     BOOST_CHECK_SMALL(c.getTime() - float(0.), kTimeAccuracy3);
     BOOST_CHECK_SMALL(c.getEnergy() - float(0), float(0.1));
     BOOST_CHECK_EQUAL(c.getTRU(), true);

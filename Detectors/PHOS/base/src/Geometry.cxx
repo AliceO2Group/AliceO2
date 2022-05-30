@@ -21,16 +21,14 @@ ClassImp(Geometry);
 // module numbering:
 //  start from module 0 (non-existing), 1 (half-module), 2 (bottom),... 4(highest)
 // absId:
-// start from 1 till 4*64*56. Numbering in each module starts at bottom left and first go in z direction:
+// start from 1 till 4*64*56=14336. Numbering in each module starts at bottom left and first go in z direction:
 //  56   112   3584
 //  ...  ...    ...
 //  1    57 ...3529
 //  relid[3]: (module number[1...4], iphi[1...64], iz[1...56])
 //
-//  Then TRU channels go from 1 to 112 per branch, 2 branches per ddl
-//  absId = getTotalNCells() + TRUabsId ;
-//  relId for TRU
-//  relid: [DDL id=0..13] [x in 2x2 system: 1..8] [z in 2x2 system 1..28] TODO: verify with real TRU data!!!
+//  TRUabsId channels go from getTotalNCells()+1, 112 per branch, 2 branches per 14 ddl
+//  Converting tru absId to relId one gets bottom left corner of 2x2 or 4x4 box
 
 // these initialisations are needed for a singleton
 Geometry* Geometry::sGeom = nullptr;
@@ -41,7 +39,7 @@ Geometry::Geometry(const std::string_view name) : mGeoName(name)
   p += "/share/Detectors/PHOS/files/alignment.root";
   TFile fin(p.data());
 
-  //try reading rotation mathices
+  // try reading rotation mathices
   for (int m = 1; m < 5; m++) {
     mPHOS[m] = *static_cast<TGeoHMatrix*>(fin.Get(Form("Module%d", m)));
   }
@@ -82,36 +80,72 @@ bool Geometry::absToRelNumbering(short absId, char* relid)
 
   return true;
 }
-bool Geometry::truAbsToRelNumbering(short truId, char* relid)
+bool Geometry::truAbsToRelNumbering(short truId, short trigType, char* relid)
 {
-  //convert trigger cell Id to
-  truId--;
-  relid[0] = truId / 224; //2*112 channels // DDL id
+  // convert trigger cell Id 1..224*14 to relId (same relId schema as for readout channels)
+  // short trigType=0 for 2x2, short trigType=1 for 4x4 trigger
+  //   Converting tru absId to relId one gets bottom left corner of 2x2 or 4x4 box
+  truId -= getTotalNCells() + 1; // 1 to start from zero
+  short ddl = truId / 224;       // 2*112 channels // DDL id
+  relid[0] = 1 + (ddl + 2) / 4;
   truId = truId % 224;
-  relid[1] = 1 + truId % 8; // x index in TRU internal 2x2 coordinate system
-  relid[2] = 1 + truId / 8; // z index in TRU internal 2x2 coordinate system
+  if (trigType == 1) { // 4x4 trigger
+    if ((truId > 90 && truId < 112) || truId > 202) {
+      LOG(error) << "Wrong TRU id channel " << truId << " should be <91";
+      relid[0] = 0;
+      relid[1] = 0;
+      relid[2] = 0;
+      return false;
+    }
+    relid[1] = 16 * ((2 + ddl) % 4) + 13 - 2 * (truId % 7); // x index
+    if (truId < 112) {
+      relid[2] = 53 - 2 * (truId / 7); // z index branch 0
+    } else {
+      truId -= 112;
+      relid[2] = 25 - 2 * (truId / 7); // z index branch 1
+    }
+  } else {                                                  // 2x2 trigger
+    relid[1] = 16 * ((2 + ddl) % 4) + 15 - 2 * (truId % 8); // x index
+    if (truId < 112) {
+      relid[2] = 55 - 2 * (truId / 8); // z index branch 0
+    } else {
+      truId -= 112;
+      relid[2] = 27 - 2 * (truId / 8); // z index branch 1
+    }
+  }
   return true;
 }
-short Geometry::truRelToAbsNumbering(const char* relId)
+short Geometry::truRelToAbsNumbering(const char* relId, short trigType)
 {
-  return relId[0] * 224 +    // the offset of PHOS modules
-         relId[1] - 1 +      // the offset along phi
-         (relId[2] - 1) * 8; // the offset along z
+  // Convert position in PHOS module to TRU id for 4x4 or 2x2 tiles
+
+  short absId = 0;
+  short ddl = relId[0] * 4 + relId[1] / 16 - 6;
+  if (trigType == 1) { // 4x4 trigger
+    if (relId[2] > 28) {
+      absId = ((53 - relId[2]) / 2) * 7;
+    } else {
+      absId = 112 + ((25 - relId[2]) / 2) * 7;
+    }
+    absId += ((13 - relId[1] % 16) / 2) % 7;
+    absId += ddl * 224;
+    return getTotalNCells() + absId + 1;
+  } else { // 2x2
+    if (relId[2] > 28) {
+      absId = ((55 - relId[2]) / 2) * 8;
+    } else {
+      absId = 112 + ((27 - relId[2]) / 2) * 8;
+    }
+    absId += ((15 - (relId[1] % 16)) / 2) % 8;
+    absId += ddl * 224;
+    return getTotalNCells() + absId + 1;
+  }
 }
-bool Geometry::truRelId2RelId(const char* truRelId, char* relId)
+short Geometry::relPosToTruId(char mod, float x, float z, short trigType)
 {
-  relId[0] = 1 + (truRelId[0] + 2) / 4;
-  relId[1] = ((truRelId[0] + 2) % 4) * 16 + truRelId[1] * 2 - 1;
-  relId[2] = truRelId[2] * 2 - 1;
-  return true;
-}
-short Geometry::relPosToTruId(char mod, float x, float z, short& ddl)
-{
-  //tranform local cluster coordinates to truId
-  char relid[3] = {mod, static_cast<char>(ceil(x / CELLSTEP + 32.5)), static_cast<char>(ceil(z / CELLSTEP + 28.5))};
-  ddl = (mod - 1) * 4 + relid[1] / 16 - 2;
-  char truid[3] = {static_cast<char>(ddl), static_cast<char>(1 + ((relid[1] - 1) % 16) / 2), static_cast<char>(1 + (relid[2] - 1) / 2)};
-  return truRelToAbsNumbering(truid);
+  // tranform local cluster coordinates to truId
+  char relid[3] = {mod, static_cast<char>(ceil(x / CELLSTEP + 32.499)), static_cast<char>(ceil(z / CELLSTEP + 28.499))};
+  return truRelToAbsNumbering(relid, trigType);
 }
 
 char Geometry::absIdToModule(short absId)
@@ -182,24 +216,25 @@ bool Geometry::relToAbsNumbering(const char* relId, short& absId)
 
   return true;
 }
-//local position to absId
+// local position to absId
 void Geometry::relPosToAbsId(char module, float x, float z, short& absId)
 {
-  char relid[3] = {module, static_cast<char>(ceil(x / CELLSTEP + 32.5)), static_cast<char>(ceil(z / CELLSTEP + 28.5))};
+  // adding 32.5 instead of 32.499 leads to (rare) rounding errors before ceil()
+  char relid[3] = {module, static_cast<char>(ceil(x / CELLSTEP + 32.499)), static_cast<char>(ceil(z / CELLSTEP + 28.499))};
   relToAbsNumbering(relid, absId);
 }
 void Geometry::relPosToRelId(short module, float x, float z, char* relId)
 {
   relId[0] = module;
-  relId[1] = static_cast<char>(ceil(x / CELLSTEP + 32.5));
-  relId[2] = static_cast<char>(ceil(z / CELLSTEP + 28.5));
+  relId[1] = static_cast<char>(ceil(x / CELLSTEP + 32.499));
+  relId[2] = static_cast<char>(ceil(z / CELLSTEP + 28.499));
 }
 
 // convert local position in module to global position in ALICE
 void Geometry::local2Global(char module, float x, float z, TVector3& globaPos) const
 {
   // constexpr float shiftY=-10.76; Run2
-  constexpr float shiftY = -1.26; //Depth-optimized
+  constexpr float shiftY = -1.26; // Depth-optimized
   Double_t posL[3] = {x, z, shiftY};
   Double_t posG[3];
   mPHOS[module].LocalToMaster(posL, posG);
@@ -211,34 +246,34 @@ bool Geometry::impactOnPHOS(const TVector3& vtx, const TVector3& p,
 {
   // calculates the impact coordinates on PHOS of a neutral particle
   // emitted in the vertex vtx with 3-momentum p
-  constexpr float shiftY = -1.26;          //Depth-optimized
+  constexpr float shiftY = -1.26;          // Depth-optimized
   constexpr float moduleXhalfSize = 72.16; // 18.04 / 2 * 8
   constexpr float moduleZhalfSize = 64.14; // 4.51 / 2 * 28
 
   for (short mod = 1; mod < 5; mod++) {
-    //create vector from (0,0,0) to center of crystal surface of imod module
+    // create vector from (0,0,0) to center of crystal surface of imod module
     double tmp[3] = {0., 0., shiftY};
     double posG[3] = {0., 0., 0.};
     mPHOS[mod].LocalToMaster(tmp, posG);
     TVector3 n(posG[0], posG[1], posG[2]);
     double direction = n.Dot(p);
     if (direction <= 0.) {
-      continue; //momentum directed FROM module
+      continue; // momentum directed FROM module
     }
     double fr = (n.Mag2() - n.Dot(vtx)) / direction;
-    //Calculate direction in module plane
+    // Calculate direction in module plane
     n -= vtx + fr * p;
     n *= -1.;
     if (TMath::Abs(n.Z()) < moduleZhalfSize && n.Pt() < moduleXhalfSize) {
       module = mod;
       z = n.Z();
       x = TMath::Sign(n.Pt(), n.X());
-      //no need to return to local system since we calcilated distance from module center
-      //and tilts can not be significant.
+      // no need to return to local system since we calcilated distance from module center
+      // and tilts can not be significant.
       return true;
     }
   }
-  //Not in acceptance
+  // Not in acceptance
   x = 0;
   z = 0;
   module = 0;
