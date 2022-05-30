@@ -18,6 +18,12 @@ if [ `ls | grep -v "^[A-Z0-9]\{3\}\$" | wc -l` != "0" ]; then
     exit 1
 fi
 
+rm -f /dev/shm/*fmq*
+if [[ `ls /dev/shm/*fmq* 2> /dev/null | wc -l` != "0" ]]; then
+  echo "FMQ SHM files left which cannot be deleted, please clean up!"
+  exit 1
+fi
+
 echo Generating readout config
 $O2_ROOT/prodtests/full-system-test/gen_rdo_cfg.sh 128 *
 
