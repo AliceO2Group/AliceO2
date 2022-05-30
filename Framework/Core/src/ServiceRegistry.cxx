@@ -125,6 +125,9 @@ void ServiceRegistry::bindService(ServiceSpec const& spec, void* service)
   if (spec.postDispatching) {
     mPostDispatchingHandles.push_back(ServiceDispatchingHandle{spec, spec.postDispatching, service});
   }
+  if (spec.postForwarding) {
+    mPostForwardingHandles.push_back(ServiceForwardingHandle{spec, spec.postForwarding, service});
+  }
   if (spec.start) {
     mPreStartHandles.push_back(ServiceStartHandle{spec, spec.start, service});
   }
@@ -191,6 +194,14 @@ void ServiceRegistry::postDispatchingCallbacks(ProcessingContext& processContext
 {
   for (auto& dispatchingHandle : mPostDispatchingHandles) {
     dispatchingHandle.callback(processContext, dispatchingHandle.service);
+  }
+}
+
+/// Invoke callbacks to be executed after every data Dispatching
+void ServiceRegistry::postForwardingCallbacks(ProcessingContext& processContext)
+{
+  for (auto& forwardingHandle : mPostForwardingHandles) {
+    forwardingHandle.callback(processContext, forwardingHandle.service);
   }
 }
 
