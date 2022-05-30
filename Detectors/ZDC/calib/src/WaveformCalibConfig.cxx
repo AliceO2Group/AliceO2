@@ -11,6 +11,7 @@
 
 #include "Framework/Logger.h"
 #include "ZDCCalib/WaveformCalibConfig.h"
+#include <limits>
 
 using namespace o2::zdc;
 WaveformCalibConfig::WaveformCalibConfig()

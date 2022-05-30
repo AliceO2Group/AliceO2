@@ -45,17 +45,8 @@ o2_add_library(ZDCCalib
 o2_target_root_dictionary(ZDCCalib
                           HEADERS
                             include/ZDCCalib/InterCalibData.h
-                            include/ZDCCalib/InterCalib.h
                             include/ZDCCalib/InterCalibConfig.h
-                            include/ZDCCalib/InterCalibSpec.h
-                            include/ZDCCalib/InterCalibEPN.h
-                            include/ZDCCalib/InterCalibEPNSpec.h
                             include/ZDCCalib/WaveformCalibConfig.h
-                            include/ZDCCalib/WaveformCalib.h
-                            include/ZDCCalib/WaveformCalibSpec.h
-                            include/ZDCCalib/WaveformCalibEPN.h
-                            include/ZDCCalib/WaveformCalibEPNSpec.h
-                            include/ZDCCalib/WaveformCalibQueue.h
                             include/ZDCCalib/WaveformCalibData.h
                             include/ZDCCalib/WaveformCalibParam.h
                             include/ZDCCalib/CalibParamZDC.h)
