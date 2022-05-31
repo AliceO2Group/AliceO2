@@ -46,6 +46,7 @@ NHBPERTF=${NHBPERTF:-128}
 RUNFIRSTORBIT=${RUNFIRSTORBIT:-0}
 FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-0}
 OBLIGATORYSOR=${OBLIGATORYSOR:-false}
+FST_TPC_ZSVERSION=${FST_TPC_ZSVERSION:-2}
 RUNNUMBER=300000 # a default un-anchored run number
 if [ $BEAMTYPE == "PbPb" ]; then
   FST_GENERATOR=${FST_GENERATOR:-pythia8hi}
@@ -126,7 +127,7 @@ taskwrapper mftraw.log o2-mft-digi2raw --file-for cru -o raw/MFT
 taskwrapper ft0raw.log o2-ft0-digi2raw --file-for cru -o raw/FT0
 taskwrapper fv0raw.log o2-fv0-digi2raw --file-for cru -o raw/FV0
 taskwrapper fddraw.log o2-fdd-digit2raw --file-for cru -o raw/FDD
-taskwrapper tpcraw.log o2-tpc-digits-to-rawzs --file-for cru -i tpcdigits.root -o raw/TPC
+taskwrapper tpcraw.log o2-tpc-digits-to-rawzs --zs-version ${FST_TPC_ZSVERSION} --file-for cru -i tpcdigits.root -o raw/TPC
 taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --file-for cru --output-type raw --tof-raw-outdir raw/TOF
 taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --file-for cru
 taskwrapper mchraw.log o2-mch-digits-to-raw --input-file mchdigits.root --output-dir raw/MCH --file-for cru
