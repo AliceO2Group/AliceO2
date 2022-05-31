@@ -61,6 +61,7 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Bool_t doSimulateTimeResponse() const { return mSimulateTimeResponse; }
   Bool_t doRemoveDigitsBelowThreshold() const { return mRemoveDigitsBelowThreshold; }
   Bool_t doSimulateNoiseDigits() const { return mSimulateNoiseDigits; }
+  Bool_t doSimulateL1Phase() const { return mSimulateL1Phase; }
 
   Bool_t isDisablePileup() const { return mDisablePileup; }
 
@@ -100,6 +101,7 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Bool_t mSimulateTimeResponse{true};       ///< simulate time response
   Bool_t mRemoveDigitsBelowThreshold{true}; ///< remove digits below threshold
   Bool_t mSimulateNoiseDigits{true};        ///< simulate noise digits
+  bool mSimulateL1Phase{true};              ///< Simulate L1 phase
 
   // DigitizerSpec
   Bool_t mDisablePileup{false}; ///< disable pileup simulation
