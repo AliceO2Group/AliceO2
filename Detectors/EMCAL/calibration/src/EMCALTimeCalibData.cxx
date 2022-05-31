@@ -83,7 +83,7 @@ void EMCALTimeCalibData::fill(const gsl::span<const o2::emcal::Cell> data)
     double cellTime = cell.getTimeStamp();
     int id = cell.getTower();
     LOG(debug) << "inserting in cell ID " << id << ": cellTime = " << cellTime;
-    if (cellEnergy > 0.3) {
+    if (cellEnergy > EMCALCalibParams::Instance().minCellEnergyForTimeCalib) {
       mTimeHisto(cellTime, id);
     }
   }
