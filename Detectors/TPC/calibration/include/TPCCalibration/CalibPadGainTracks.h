@@ -95,7 +95,8 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   ~CalibPadGainTracks() = default;
 
   /// processes input tracks and filling the histograms with self calibrated probe qMax/dEdx
-  void processTracks();
+  /// \param nMaxTracks max number of tracks to process (-1 to process all tracks)
+  void processTracks(const int nMaxTracks = -1);
 
   /// set the member variables
   /// \param vTPCTracksArrayInp vector of tpc tracks
