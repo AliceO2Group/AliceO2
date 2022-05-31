@@ -12,7 +12,7 @@ if [[ -z "${WORKFLOW_PARAMETERS+x}" ]]; then
     export GEN_TOPO_WORKDIR=`pwd`/gen_topo_tmp
   fi
 fi
-[[ -z "${SEVERITY}" ]] && export SEVERITY="error"
+[[ -z "${SEVERITY}" ]] && export SEVERITY="important"
 
 MYDIR="$(dirname $(realpath $0))"
 source $MYDIR/setenv.sh

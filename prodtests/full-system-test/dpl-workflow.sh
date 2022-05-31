@@ -213,7 +213,11 @@ elif [[ $EPNPIPELINES != 0 ]]; then
   # Tuned multiplicities for sync Pb-Pb processing
   N_TPCENT=$(math_max $((3 * $EPNPIPELINES * $NGPUS / 4)) 1)
   N_TPCITS=$(math_max $((3 * $EPNPIPELINES * $NGPUS / 4)) 1)
-  N_ITSTRK=$(math_max $((2 * $EPNPIPELINES * $NGPUS / 4)) 1)
+  if [[ $BEAMTYPE == "pp" ]]; then
+    N_ITSTRK=$(math_max $((4 * $EPNPIPELINES * $NGPUS / 4)) 1)
+  else
+    N_ITSTRK=$(math_max $((2 * $EPNPIPELINES * $NGPUS / 4)) 1)
+  fi
   N_ITSRAWDEC=$(math_max $((3 * $EPNPIPELINES * $NGPUS / 4)) 1)
   N_EMCREC=$(math_max $((3 * $EPNPIPELINES * $NGPUS / 4)) 1)
   N_TRDENT=$(math_max $((3 * $EPNPIPELINES * $NGPUS / 4)) 1)
