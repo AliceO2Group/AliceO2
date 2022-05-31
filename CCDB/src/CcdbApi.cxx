@@ -1379,7 +1379,7 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
 
     for (size_t hostIndex = 1; hostIndex < hostsPool.size() && isMemoryFileInvalid(dest); hostIndex++) {
       fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
-      loadFileToMemory(dest, fullUrl, nullptr); // headers loaded from the file in case of the snapshot reading only
+      loadFileToMemory(dest, fullUrl, headers); // headers loaded from the file in case of the snapshot reading only
     }
     curl_easy_cleanup(curl_handle);
   }
@@ -1537,7 +1537,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
       for (auto& l : locs) {
         if (l.size() > 0) {
           LOG(debug) << "Trying content location " << l;
-          navigateURLsAndLoadFileToMemory(dest, curl_handle, l, nullptr);
+          navigateURLsAndLoadFileToMemory(dest, curl_handle, l, headers);
           if (dest.size()) { /* or other success marker in future */
             break;
           }
