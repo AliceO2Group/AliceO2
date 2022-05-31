@@ -36,7 +36,12 @@ class CcdbObjectInfo
   static constexpr const char* AdjustableEOV = "adjustableEOV";
   static constexpr const char* DefaultObj = "default";
 
-  CcdbObjectInfo() = default;
+  CcdbObjectInfo(bool adjustableEOV = true)
+  {
+    if (adjustableEOV) {
+      setAdjustableEOV();
+    }
+  }
   CcdbObjectInfo(std::string path, std::string objType, std::string flName,
                  std::map<std::string, std::string> metadata,
                  long startValidityTimestamp, long endValidityTimestamp, bool adjustableEOV = true)
