@@ -88,7 +88,7 @@ void EventManager::displayCurrentEvent()
       }
     }
     multiView->getAnnotationTop()->SetText(TString::Format("Run %d\n%s", dataSource->getRunNumber(), dataSource->getCollisionTime().c_str()));
-    auto detectors = dataformats::GlobalTrackID::getSourcesNames(dataSource->getDetectorsMask());
+    auto detectors = detectors::DetID::getNames(dataSource->getDetectorsMask());
     multiView->getAnnotationBottom()->SetText(TString::Format("TFOrbit: %d\nDetectors: %s", dataSource->getFirstTForbit(), detectors.c_str()));
   }
   multiView->redraw3D();

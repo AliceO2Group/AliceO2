@@ -116,7 +116,7 @@ class DetID
   // we need default c-tor only for root persistency, code must use c-tor with argument
   DetID() : mID(First) {}
 
-  /// get derector id
+  /// get detector id
   GPUdi() ID getID() const { return mID; }
   /// get detector mask
   GPUdi() mask_t getMask() const { return getMask(mID); }
