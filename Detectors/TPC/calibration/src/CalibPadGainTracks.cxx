@@ -26,10 +26,11 @@
 
 // root includes
 #include "TFile.h"
+#include <random>
 
 using namespace o2::tpc;
 
-void CalibPadGainTracks::processTracks()
+void CalibPadGainTracks::processTracks(const int nMaxTracks)
 {
   if (!mPropagateTrack && !mFastTransform) {
     mFastTransform = TPCFastTransformHelperO2::instance()->create(0);
@@ -43,8 +44,21 @@ void CalibPadGainTracks::processTracks()
     refit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, mFastTransform.get(), mField, mTPCTrackClIdxVecInput->data(), mClusterShMapTPC);
   }
 
-  for (const auto& trk : *mTracks) {
-    processTrack(trk, refit.get());
+  const size_t loopEnd = (nMaxTracks < 0) ? mTracks->size() : ((nMaxTracks > mTracks->size()) ? mTracks->size() : size_t(nMaxTracks));
+
+  if (loopEnd < mTracks->size()) {
+    // draw random tracks
+    std::vector<size_t> ind(mTracks->size());
+    std::iota(ind.begin(), ind.end(), 0);
+    std::minstd_rand rng(std::time(nullptr));
+    std::shuffle(ind.begin(), ind.end(), rng);
+    for (size_t i = 0; i < loopEnd; ++i) {
+      processTrack((*mTracks)[ind[i]], refit.get());
+    }
+  } else {
+    for (const auto& trk : *mTracks) {
+      processTrack(trk, refit.get());
+    }
   }
 }
 
