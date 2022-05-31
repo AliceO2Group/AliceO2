@@ -167,8 +167,6 @@ class EveWorkflowHelper
   void prepareITSClusters(const o2::itsmft::TopologyDictionary* dict); // fills mITSClustersArray
   void prepareMFTClusters(const o2::itsmft::TopologyDictionary* dict); // fills mMFTClustersArray
   void clear() { mEvent.clear(); }
-  int getTrackCount() { return mEvent.getTrackCount(); }
-  int getITSTrackCount() { return mEvent.getITSTrackCount(); }
 
   GID::Source detectorMapToGIDSource(uint8_t dm);
 
@@ -187,6 +185,7 @@ class EveWorkflowHelper
   o2::globaltracking::RecoContainer& getRecoContainer() { return mRecoCont; }
   TracksSet mTrackSet;
   o2::event_visualisation::VisualisationEvent mEvent;
+  std::unordered_map<o2::dataformats::GlobalTrackID, std::size_t> mTotalTracks;
   std::vector<o2::BaseCluster<float>> mITSClustersArray;
   std::vector<o2::BaseCluster<float>> mMFTClustersArray;
   o2::mft::GeometryTGeo* mMFTGeom;
