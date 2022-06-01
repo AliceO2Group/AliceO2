@@ -90,9 +90,9 @@ std::string NameConf::getMatLUTFileName(const std::string_view prefix)
   return buildFileName(prefix, "", "", MATBUDLUT, ROOT_EXT_STRING, Instance().mDirMatLUT);
 }
 
-std::string NameConf::getCTFFileName(uint32_t run, uint32_t orb, uint32_t id, const std::string_view prefix)
+std::string NameConf::getCTFFileName(uint32_t run, uint32_t orb, uint32_t id, const std::string& host, const std::string_view prefix)
 {
-  return o2::utils::Str::concat_string(prefix, '_', fmt::format("run{:08d}_orbit{:010d}_tf{:010d}", run, orb, id), ".root");
+  return o2::utils::Str::concat_string(prefix, '_', fmt::format("run{:08d}_orbit{:010d}_tf{:010d}_{}", run, orb, id, host), ".root");
 }
 
 std::string NameConf::getCTFDictFileName()
