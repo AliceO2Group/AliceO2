@@ -1391,7 +1391,7 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
   logReading(path, headers, fmt::format("{}{}", considerSnapshot ? "load to memory" : "retrieve", fromSnapshot ? " from snapshot" : ""));
 
   // are we asked to create a snapshot ?
-  if (considerSnapshot && !mSnapshotCachePath.empty() && fromSnapshot != 1) { // store in the snapshot only if the object was not read from the snapshot
+  if (considerSnapshot && !mSnapshotCachePath.empty() && fromSnapshot != 2) { // store in the snapshot only if the object was not read from the snapshot
     if (mInSnapshotMode && mSnapshotTopPath == mSnapshotCachePath) { // do not save to itself
       return;
     }
