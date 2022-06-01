@@ -95,6 +95,8 @@ struct ServiceRegistry {
   std::vector<ServiceEOSHandle> mPostEOSHandles;
   /// Callbacks for services to be executed after every dispatching
   std::vector<ServiceDispatchingHandle> mPostDispatchingHandles;
+  /// Callbacks for services to be executed after every dispatching
+  std::vector<ServiceForwardingHandle> mPostForwardingHandles;
   /// Callbacks for services to be executed before Start
   std::vector<ServiceStartHandle> mPreStartHandles;
   /// Callbacks for services to be executed on the Stop transition
@@ -131,6 +133,8 @@ struct ServiceRegistry {
   /// Invoke callbacks to monitor inputs after dispatching, regardless of them
   /// being discarded, consumed or processed.
   void postDispatchingCallbacks(ProcessingContext&);
+  /// Callback invoked after the late forwarding has been done
+  void postForwardingCallbacks(ProcessingContext&);
 
   /// Invoke callbacks on stop.
   void postStopCallbacks();

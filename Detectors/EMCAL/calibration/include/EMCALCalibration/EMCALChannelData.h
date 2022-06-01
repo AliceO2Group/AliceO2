@@ -23,6 +23,7 @@
 // #include "CommonUtils/BoostHistogramUtils.h"
 // #include "EMCALCalib/BadChannelMap.h"
 // #include "EMCALCalib/TimeCalibrationParams.h"
+#include "EMCALCalib/EMCALChannelScaleFactors.h"
 #include "EMCALCalibration/EMCALCalibExtractor.h"
 #include "EMCALCalibration/EMCALCalibParams.h"
 #include "DataFormatsEMCAL/Cell.h"

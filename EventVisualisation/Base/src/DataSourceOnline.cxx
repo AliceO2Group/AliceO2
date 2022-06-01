@@ -88,8 +88,7 @@ Int_t DataSourceOnline::getCurrentEvent()
 
 o2::detectors::DetID::mask_t DataSourceOnline::getDetectorsMask()
 {
-  auto mask = o2::dataformats::GlobalTrackID{0, static_cast<o2::dataformats::GlobalTrackID::Src_t>(mTrackMask)};
-  return mask.getSourceDetectorsMask();
+  return o2::dataformats::GlobalTrackID::getSourcesDetectorsMask(mTrackMask);
 }
 
 } // namespace event_visualisation

@@ -83,6 +83,7 @@ class GlobalTrackID : public AbstractRef<25, 5, 2>
 
   // methods for detector level manipulations
   GPUd() static constexpr DetID::mask_t getSourceDetectorsMask(int i);
+  GPUd() static constexpr DetID::mask_t getSourcesDetectorsMask(GlobalTrackID::mask_t srcm);
   GPUd() static bool includesDet(DetID id, GlobalTrackID::mask_t srcm);
   GPUdi() auto getSourceDetectorsMask() const { return getSourceDetectorsMask(getSource()); }
   GPUdi() bool includesDet(DetID id) const { return (getSourceDetectorsMask() & DetID::getMask(id)).any(); }
@@ -173,6 +174,17 @@ GPUdi() bool GlobalTrackID::includesDet(DetID id, GlobalTrackID::mask_t srcm)
     }
   }
   return false;
+}
+
+GPUd() constexpr GlobalTrackID::DetID::mask_t GlobalTrackID::getSourcesDetectorsMask(GlobalTrackID::mask_t srcm)
+{
+  GlobalTrackID::DetID::mask_t mdet;
+  for (int i = 0; i < NSources; i++) {
+    if (srcm[i]) {
+      mdet |= getSourceDetectorsMask(i);
+    }
+  }
+  return mdet;
 }
 
 } // namespace dataformats

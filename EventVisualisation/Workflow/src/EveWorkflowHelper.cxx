@@ -105,6 +105,8 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
   };
 
   auto creator = [maskTrk, this, &correctTrackTime, &isInsideITSROF, &trackTimeNodes](auto& trk, GID gid, float time, float terr) {
+    mTotalTracks[gid.getSource()]++;
+
     if (!maskTrk[gid.getSource()]) {
       return true;
     }
@@ -720,6 +722,10 @@ EveWorkflowHelper::EveWorkflowHelper(const FilterSet& enabledFilters, std::size_
   mMFTROFrameLengthMUS = grp->isDetContinuousReadOut(o2::detectors::DetID::MFT) ? alpParamsMFT.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParamsMFT.roFrameLengthTrig * 1.e-3;
 
   mPVParams = &o2::vertexing::PVertexerParams::Instance();
+
+  for (int i = 0; i < GID::Source::NSources; i++) {
+    mTotalTracks[i] = 0;
+  }
 }
 
 GID::Source EveWorkflowHelper::detectorMapToGIDSource(uint8_t dm)

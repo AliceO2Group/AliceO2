@@ -9,15 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file  TPCFastSpaceChargeCorrectionMap.cxx
+/// \brief Implementation of TPCFastSpaceChargeCorrectionMap class
+///
+/// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::trd::Tracking + ;
-#pragma link C++ class o2::trd::TrackQC + ;
-#pragma link C++ class std::vector < o2::trd::TrackQC> + ;
-#pragma link C++ class o2::trd::HalfChamberStatusQC + ;
-
-#endif
+#include "TPCFastSpaceChargeCorrectionMap.h"
+#include "GPUCommonLogger.h"

@@ -20,7 +20,6 @@
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "DataFormatsPHOS/Cell.h"
 #include "PHOSBase/Mapping.h"
-#include <TFile.h>
 #include "Framework/ConfigParamRegistry.h"
 #include "CommonUtils/NameConf.h"
 
@@ -198,7 +197,7 @@ bool PHOSBadMapCalibDevice::calculateBadMap()
 
     float nMean, nRMS;
     calculateLimits(mMeanLow.get(), nMean, nRMS); // for low E occupamcy
-    float nMinLow = std::max(float(1.), nMean - 6 * nRMS);
+    float nMinLow = std::max(float(0.), nMean - 6 * nRMS);
     float nMaxLow = nMean + 6 * nRMS;
     LOG(info) << "Limits for low E histo: " << nMinLow << "<n<" << nMaxLow;
     for (int i = 1; i <= mMeanLow->GetNbinsX(); i++) {
@@ -208,7 +207,7 @@ bool PHOSBadMapCalibDevice::calculateBadMap()
       }
     }
     calculateLimits(mMeanHigh.get(), nMean, nRMS); // for high
-    float nMinHigh = std::max(float(1.), nMean - 6 * nRMS);
+    float nMinHigh = std::max(float(0.), nMean - 6 * nRMS);
     float nMaxHigh = nMean + 6 * nRMS;
     LOG(info) << "Limits for high E histo: " << nMinHigh << "<n<" << nMaxHigh;
     for (int i = 1; i <= mMeanHigh->GetNbinsX(); i++) {

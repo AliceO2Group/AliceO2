@@ -227,9 +227,6 @@ struct GroupSlicer {
     {
       constexpr auto index = framework::has_type_at_v<A1>(associated_pack_t{});
       auto& originalTable = std::get<A1>(*mAt);
-      if (originalTable.size() == 0) {
-        return originalTable;
-      }
 
       if constexpr (relatedByIndex<std::decay_t<G>, std::decay_t<A1>>()) {
         uint64_t pos;
@@ -241,6 +238,9 @@ struct GroupSlicer {
 
         if constexpr (!framework::is_specialization_v<std::decay_t<A1>, soa::SmallGroups>) {
           // optimized split
+          if (originalTable.size() == 0) {
+            return originalTable;
+          }
           if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
             if (groups[index].empty()) {
               return std::decay_t<A1>{{makeEmptyTable<A1>("empty")}, soa::SelectionVector{}};

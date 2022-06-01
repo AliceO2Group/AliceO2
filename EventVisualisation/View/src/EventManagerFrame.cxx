@@ -233,8 +233,6 @@ void EventManagerFrame::DoScreenshot()
   const char* backgroundColor = "#000000"; // "#19324b";
   const char* outDirectory = "Screenshots";
 
-  std::string detectorsString;
-
   std::string runString = "Run:";
   std::string timestampString = "Timestamp:";
   std::string collidingsystemString = "Colliding system:";
@@ -317,46 +315,7 @@ void EventManagerFrame::DoScreenshot()
   }
 
   o2::dataformats::GlobalTrackID::mask_t detectorsMask;
-
-  int noEvent = this->mEventManager->getDataSource()->getCurrentEvent();
-
-  auto displayList = this->mEventManager->getDataSource()->getVisualisationList(noEvent, EventManagerFrame::getInstance().getMinTimeFrameSliderValue(),
-                                                                                EventManagerFrame::getInstance().getMaxTimeFrameSliderValue(), EventManagerFrame::MaxRange);
-
-  const uint8_t possibleDetectors[] =
-    {
-      o2::dataformats::GlobalTrackID::Source::ITS,
-      o2::dataformats::GlobalTrackID::Source::TPC,
-      o2::dataformats::GlobalTrackID::Source::TRD,
-      o2::dataformats::GlobalTrackID::Source::TOF,
-      o2::dataformats::GlobalTrackID::Source::CPV,
-      o2::dataformats::GlobalTrackID::Source::EMC,
-      o2::dataformats::GlobalTrackID::Source::HMP,
-      o2::dataformats::GlobalTrackID::Source::MFT,
-      o2::dataformats::GlobalTrackID::Source::MCH,
-      o2::dataformats::GlobalTrackID::Source::MID,
-      o2::dataformats::GlobalTrackID::Source::ZDC,
-      o2::dataformats::GlobalTrackID::Source::FT0,
-      o2::dataformats::GlobalTrackID::Source::FV0,
-      o2::dataformats::GlobalTrackID::Source::FDD,
-    };
-
-  const std::string possibleDetectorsNames[] = {
-    "ITS", "TPC", "TRD", "TOF", "CPV", "EMC", "HMP",
-    "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD"};
-
-  for (auto it = displayList.begin(); it != displayList.end(); ++it) {
-    detectorsMask.set(it->first.getTrkMask());
-  }
-
-  for (int detID = 0; detID < (sizeof(possibleDetectors) / sizeof(possibleDetectors[0])); detID++) {
-    if (o2::dataformats::GlobalTrackID::includesDet(possibleDetectors[detID], detectorsMask)) {
-      if (!detectorsString.empty()) {
-        detectorsString += ',';
-      }
-      detectorsString += possibleDetectorsNames[detID];
-    }
-  }
+  auto detectorsString = detectors::DetID::getNames(this->mEventManager->getDataSource()->getDetectorsMask());
 
   std::vector<std::string> lines;
   std::ifstream input("screenshot.txt");

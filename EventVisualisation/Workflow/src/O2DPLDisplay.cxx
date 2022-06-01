@@ -112,11 +112,11 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
 
   bool save = true;
 
-  if (this->mMinITSTracks != -1 && helper.getITSTrackCount() < this->mMinITSTracks) {
+  if (this->mMinITSTracks != -1 && helper.mEvent.getDetectorTrackCount(detectors::DetID::ITS) < this->mMinITSTracks) {
     save = false;
   }
 
-  if (this->mMinTracks != -1 && helper.getTrackCount() < this->mMinTracks) {
+  if (this->mMinTracks != -1 && helper.mEvent.getTrackCount() < this->mMinTracks) {
     save = false;
   }
 
@@ -131,6 +131,15 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
 
   auto endTime = std::chrono::high_resolution_clock::now();
   LOGP(info, "Visualization of TF:{} at orbit {} took {} s.", dh->tfCounter, dh->firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
+
+  std::array<std::string, GID::Source::NSources> sourceStats;
+
+  for (int i = 0; i < GID::Source::NSources; i++) {
+    sourceStats[i] = fmt::format("{}/{} {}", GID::getSourceName(i), helper.mEvent.getSourceTrackCount(static_cast<GID::Source>(i)), helper.mTotalTracks.at(i));
+  }
+
+  LOGP(info, "JSON saved: {}", save ? "YES" : "NO");
+  LOGP(info, "Tracks: {}", fmt::join(sourceStats, ","));
 }
 
 void O2DPLDisplaySpec::endOfStream(EndOfStreamContext& ec)

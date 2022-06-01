@@ -101,7 +101,7 @@ class HMPIDDigitizer
   constexpr static double TRACKHOLDTIME = 1200; // defines the window for pile-up after a trigger received in nanoseconds
   constexpr static double BUSYTIME = 22000;     // the time for which no new trigger can be received in nanoseconds
 
-  std::map<int, short> mIndexForPad; //! logarithmic mapping of pad to digit index
+  std::map<int, int> mIndexForPad; //! logarithmic mapping of pad to digit index
 
   std::vector<int> mInvolvedPads; //! list of pads where digits created
 
