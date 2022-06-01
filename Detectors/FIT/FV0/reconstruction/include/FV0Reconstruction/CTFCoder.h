@@ -52,11 +52,12 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   size_t estimateCompressedSize(const CompressedDigits& cc);
 
   /// decompress CompressedDigits to digits
-  template <typename VDIG, typename VCHAN>
+  template <int MAJOR_VERSION, int MINOR_VERSION, typename VDIG, typename VCHAN>
   void decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& channelVec);
 
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<Digit>& digitVec, std::vector<ChannelData>& channelVec);
+  void assignDictVersion(o2::ctf::CTFDictHeader& h) const final;
 };
 
 /// entropy-encode clusters to buffer with CTF
@@ -116,7 +117,8 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& 
 {
   CompressedDigits cd;
   cd.header = ec.getHeader();
-  checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(cd.header));
+  const auto& hd = static_cast<const o2::ctf::CTFDictHeader&>(cd.header);
+  checkDictVersion(hd);
   ec.print(getPrefix(), mVerbosity);
   o2::ctf::CTFIOSize iosize;
 #define DECODEFV0(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
@@ -139,13 +141,18 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& 
   }
   // clang-format on
   //
-  decompress(cd, digitVec, channelVec);
+  if (hd.minorVersion==0 && hd.majorVersion==1) {
+    decompress<1,0>(cd, digitVec, channelVec);
+  }
+  else {
+    decompress<1,1>(cd, digitVec, channelVec);
+  }
   iosize.rawIn = sizeof(Digit) * digitVec.size() + sizeof(ChannelData) * channelVec.size();
   return iosize;
 }
 
 /// decompress compressed digits to standard digits
-template <typename VDIG, typename VCHAN>
+template <int MAJOR_VERSION, int MINOR_VERSION, typename VDIG, typename VCHAN>
 void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& channelVec)
 {
   digitVec.clear();
@@ -173,7 +180,15 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     int16_t timeA = 0, timeC = Triggers::DEFAULT_TIME;
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       auto icc = channelVec.size();
-      const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.cfdTime[icc], cd.qtcAmpl[icc], cd.qtcChain[icc]);
+      if constexpr(MINOR_VERSION==0 && MAJOR_VERSION==1) {
+        // Old decoding procedure, mostly for Pilot Beam in October 2021
+        chID += cd.idChan[icc];
+      }
+      else {
+        // New decoding procedure, w/o sorted ChID requriment
+        chID = cd.idChan[icc];
+      }
+      const auto& chan = channelVec.emplace_back(chID, cd.cfdTime[icc], cd.qtcAmpl[icc], cd.qtcChain[icc]);
       if (std::abs(chan.CFDTime) < triggerGate) {
         amplA += chan.QTCAmpl;
         timeA += chan.CFDTime;
