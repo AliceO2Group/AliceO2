@@ -87,6 +87,11 @@ class EMCALTimeCalibData
   /// \brief Get number of events currently available for calibration
   int getNEvents() const { return mEvents; }
 
+  /// \brief Get the number of entries in histogram
+  long unsigned int getNEntriesInHisto() const { return mNEntriesInHisto; }
+  /// \brief Set the number of entries in histogram
+  void setNEntriesInHisto(long unsigned int n) { mNEntriesInHisto = n; }
+
   /// \brief Get current histogram
   boostHisto& getHisto() { return mTimeHisto; }
   const boostHisto& getHisto() const { return mTimeHisto; }
@@ -97,10 +102,11 @@ class EMCALTimeCalibData
   o2::emcal::TimeCalibrationParams process();
 
  private:
-  boostHisto mTimeHisto;
-  TimeCalibInitParams mTimeCalibParams;
+  boostHisto mTimeHisto;                ///< histogram with cell time vs. cell ID
+  TimeCalibInitParams mTimeCalibParams; ///< initialization parameters for histogram
 
-  int mEvents = 0;
+  int mEvents = 0;                        ///< current number of events
+  long unsigned int mNEntriesInHisto = 0; ///< number of entries in histogram
 
   ClassDefNV(EMCALTimeCalibData, 1);
 };
