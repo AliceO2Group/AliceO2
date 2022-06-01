@@ -54,6 +54,12 @@ void SpatialPhotonResponse::addPhoton(double x, double y, int nphotons)
   mPhotonSum += nphotons;
 }
 
+void SpatialPhotonResponse::addPhotonByPixel(int xpixel, int ypixel, int nphotons)
+{
+  mImageData[xpixel][ypixel] += nphotons;
+  mPhotonSum += nphotons;
+}
+
 // will print pixel 0 == (0,0) at the lower left corner
 void SpatialPhotonResponse::printToScreen() const
 {
