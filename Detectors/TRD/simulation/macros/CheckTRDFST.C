@@ -24,6 +24,9 @@
 // Then run this script.
 // the convert-raw-to-tf-file.sh must be run on a machine with >200G the rest can be run anywhere.
 //
+// WARNING: This should be used only for rather small data sets (e.g. the 20 PbPb events as suggested above).
+//          Otherwise, due to the quadratic dependency on the number of digits/tracklets this takes very long,
+//          especially in case there are no matches found.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <TFile.h>
@@ -43,9 +46,7 @@
 
 using namespace o2::trd;
 
-constexpr int kMINENTRIES = 100;
-
-void CheckTRDFST(std::string fstbasedir = "./",
+void CheckTRDFST(bool ignoreTrkltPid = true, std::string fstbasedir = "./",
                  std::string digitfile = "trddigits.root", std::string trackletfile = "trdtracklets.root",
                  std::string recodigitfile = "trddigits.root", std::string recotrackletfile = "trdtracklets.root")
 {
@@ -73,121 +74,85 @@ void CheckTRDFST(std::string fstbasedir = "./",
   trackletTreereco->SetBranchAddress("Tracklet", &trackletsreco);
   int ntrackletevreco = trackletTreereco->GetEntries();
 
-  TH2F* hDigitsPerLayer[6];
-  TH2F* hTrackletsPerLayer[6];
-  TH2F* hDigitsPerLayer_reco[6];
-  TH2F* hTrackletsPerLayer_reco[6];
-  TH2F* hDigitsPerLayer_diff[6];
-  TH2F* hTrackletsPerLayer_diff[6];
-  for (int layer = 0; layer < 6; layer++) {
-    hDigitsPerLayer[layer] = new TH2F(Form("Digit_layer%d", layer), ";stack;sector", 5, 0, 5, 35, 0, 35);
-    hDigitsPerLayer[layer]->SetTitle(Form("Layer %d", layer));
-    hTrackletsPerLayer[layer] = new TH2F(Form("Tracklets_layer%d", layer), ";stack;sector", 5, 0, 5, 35, 0, 35);
-    hTrackletsPerLayer[layer]->SetTitle(Form("Layer %d", layer));
-    hDigitsPerLayer_reco[layer] = new TH2F(Form("Digit_layer%d_reco", layer), ";stack;sector", 5, 0, 5, 35, 0, 35);
-    hDigitsPerLayer_reco[layer]->SetTitle(Form("Layer %d", layer));
-    hTrackletsPerLayer_reco[layer] = new TH2F(Form("Tracklets_layer%d_reco", layer), ";stack;sector", 5, 0, 5, 35, 0, 35);
-    hTrackletsPerLayer_reco[layer]->SetTitle(Form("Layer %d", layer));
-    hDigitsPerLayer_diff[layer] = new TH2F(Form("Digit_layer%d_diff", layer), ";stack;sector", 5, 0, 5, 35, 0, 35);
-    hDigitsPerLayer_diff[layer]->SetTitle(Form("Layer %d difference", layer));
-    hTrackletsPerLayer_diff[layer] = new TH2F(Form("Tracklets_layer%d_diff", layer), ";stack;sector", 5, 0, 5, 35, 0, 35);
-    hTrackletsPerLayer_diff[layer]->SetTitle(Form("Layer %d difference", layer));
+  if ((ndigitev != ntrackletev) || (ndigitevreco != ntrackletevreco) || (ndigitev != ndigitevreco)) {
+    // make sure the number of entries is the same in all trees
+    LOG(error) << "The trees have a different number of entries";
   }
 
-  LOG(info) << ndigitev << " digits entries found";
-  LOG(info) << ntrackletev << " tracklet entries found";
   for (int iev = 0; iev < ntrackletev; ++iev) {
     digitTree->GetEvent(iev);
     trackletTree->GetEvent(iev);
-    for (const auto& digit : *digits) {
-      int det = digit.getDetector(); // chamber
-      int row = digit.getPadRow();   // pad row
-      int col = digit.getPadCol();   // pad column
-      int stack = o2::trd::HelperMethods::getStack(det);
-      int layer = o2::trd::HelperMethods::getLayer(det);
-      int sector = o2::trd::HelperMethods::getSector(det);
-      hDigitsPerLayer[layer]->Fill(stack, sector * 2 + digit.getROB() % 2);
+    digitTreereco->GetEvent(iev);
+    trackletTreereco->GetEvent(iev);
+
+    // compare tracklets
+    if (tracklets->size() != trackletsreco->size()) {
+      LOG(warn) << "Number of tracklets does not match for entry " << iev;
     }
-    for (const auto& tracklet : *tracklets) {
-      int det = tracklet.getHCID() / 2; // chamber
-      int hcid = tracklet.getHCID();
-      int stack = o2::trd::HelperMethods::getStack(det);
-      int layer = o2::trd::HelperMethods::getLayer(det);
-      int sector = o2::trd::HelperMethods::getSector(det);
-      hTrackletsPerLayer[layer]->Fill(stack, sector * 2 + tracklet.getHCID() % 2);
-    }
-    LOG(info) << ndigitevreco << " digits entries found";
-    LOG(info) << ntrackletevreco << " tracklet entries found";
-    for (int iev = 0; iev < ntrackletevreco; ++iev) {
-      digitTreereco->GetEvent(iev);
-      trackletTreereco->GetEvent(iev);
-      for (const auto& digit : *digitsreco) {
-        int det = digit.getDetector(); // chamber
-        int stack = o2::trd::HelperMethods::getStack(det);
-        int layer = o2::trd::HelperMethods::getLayer(det);
-        int sector = o2::trd::HelperMethods::getSector(det);
-        hDigitsPerLayer_reco[layer]->Fill(stack, sector * 2 + digit.getROB() % 2);
+    std::vector<bool> flags(trackletsreco->size());
+    for (size_t iTrklt = 0; iTrklt < tracklets->size(); ++iTrklt) {
+      const auto& trklt = tracklets->at(iTrklt);
+      auto tw = trklt.getTrackletWord();
+      tw |= (0xfUL << 60); // set all format bits
+      if (ignoreTrkltPid) {
+        tw |= 0xffffffUL; // set all PID bits
       }
-      for (const auto& tracklet : *trackletsreco) {
-        int det = tracklet.getHCID() / 2; // chamber
-        int hcid = tracklet.getHCID();
-        int stack = o2::trd::HelperMethods::getStack(det);
-        int layer = o2::trd::HelperMethods::getLayer(det);
-        int sector = o2::trd::HelperMethods::getSector(det);
-        hTrackletsPerLayer_reco[layer]->Fill(stack, sector * 2 + tracklet.getHCID() % 2);
+      for (size_t iTrkltReco = 0; iTrkltReco < trackletsreco->size(); ++iTrkltReco) {
+        if (flags[iTrkltReco]) {
+          // tracklet has already been matched, skip it
+          continue;
+        }
+        const auto& trkltReco = trackletsreco->at(iTrkltReco);
+        auto twReco = trkltReco.getTrackletWord();
+        twReco |= (0xfUL << 60); // set all format bits
+        if (ignoreTrkltPid) {
+          twReco |= 0xffffffUL; // set all PID bits
+        }
+        if (tw == twReco) {
+          // matching tracklet found
+          flags[iTrkltReco] = true;
+          break;
+        }
       }
     }
+
+    // compare digits
+    if (digits->size() != digitsreco->size()) {
+      LOG(warn) << "Number of digits does not match for entry " << iev;
+    }
+    std::vector<bool> flagsDigit(digitsreco->size());
+    for (size_t iDigit = 0; iDigit < digits->size(); ++iDigit) {
+      const auto& digit = digits->at(iDigit);
+      for (size_t iDigitReco = 0; iDigitReco < digitsreco->size(); ++iDigitReco) {
+        if (flagsDigit[iDigitReco]) {
+          continue;
+        }
+        const auto& digitReco = digitsreco->at(iDigitReco);
+        if (digitReco == digit) {
+          flagsDigit[iDigitReco] = true;
+          break;
+        }
+      }
+    }
+
+    // summary for this TF
+    int matchedTracklets = 0;
+    for (auto f : flags) {
+      if (f) {
+        matchedTracklets++;
+      }
+    }
+    int matchedDigits = 0;
+    for (auto f : flagsDigit) {
+      if (f) {
+        matchedDigits++;
+      }
+    }
+    LOGF(info, "Number of tracklets in simulation: %lu. In reco: %lu. Number of tracklets from simulation for which a match in reco was found: %i", tracklets->size(), trackletsreco->size(), matchedTracklets);
+    LOGF(info, "Number of digits in simulation: %lu. In reco: %lu. Number of digits from simulation for which a match in reco was found: %i", digits->size(), digitsreco->size(), matchedDigits);
   }
-  //post simulation
-  TCanvas* c = new TCanvas("c", "trd digits distribution", 800, 800);
-  c->Divide(3, 2, 0.05, 0.05);
-  for (int layer = 0; layer < 6; ++layer) {
-    c->cd(layer + 1);
-    hDigitsPerLayer[layer]->Draw("COLZ");
+
+  if (ignoreTrkltPid) {
+    LOG(warn) << "The PID values stored inside the tracklets have been ignored for this comparison";
   }
-  c->SaveAs("DigitsPerLayerAfterSim.pdf");
-  TCanvas* c1 = new TCanvas("c1", "trd tracklet distribution", 800, 800);
-  c1->Divide(3, 2, 0.05, 0.05);
-  for (int layer = 0; layer < 6; ++layer) {
-    c1->cd(layer + 1);
-    hTrackletsPerLayer[layer]->Draw("COLZ");
-  }
-  c1->SaveAs("TrackletsPerLayerAfterSim.pdf");
-  //post simulation
-  TCanvas* c2 = new TCanvas("c2", "trd digits distribution reconstruction", 800, 800);
-  c2->Divide(3, 2, 0.05, 0.05);
-  for (int layer = 0; layer < 6; ++layer) {
-    c2->cd(layer + 1);
-    hDigitsPerLayer_reco[layer]->Draw("COLZ");
-  }
-  c2->SaveAs("DigitsPerLayerAfterReco.pdf");
-  TCanvas* c3 = new TCanvas("c3", "trd tracklet distribution reconstruction", 800, 800);
-  c3->Divide(3, 2, 0.05, 0.05);
-  for (int layer = 0; layer < 6; ++layer) {
-    c3->cd(layer + 1);
-    hTrackletsPerLayer_reco[layer]->Draw("COLZ");
-  }
-  c3->SaveAs("TrackletsPerLayerAfterReco.pdf");
-  // calculate spectra differences, and the spectra should be empty.
-  for (int layer = 0; layer < 6; layer++) {
-    hDigitsPerLayer_diff[layer]->Add(hDigitsPerLayer[layer], hDigitsPerLayer_reco[layer], 1, -1);
-    std::cout << "Digit Difference layer: " << layer << " sim - reco : " << hDigitsPerLayer_diff[layer]->Integral() << std::endl;
-    hTrackletsPerLayer_diff[layer]->Add(hTrackletsPerLayer[layer], hTrackletsPerLayer_reco[layer], 1, -1);
-    std::cout << "Tracklet Difference layer: " << layer << " sim - reco : " << hTrackletsPerLayer_diff[layer]->Integral() << std::endl;
-  }
-  TCanvas* c4 = new TCanvas("c4", "trd digits distribution diff", 800, 800);
-  c4->Divide(3, 2, 0.05, 0.05);
-  for (int layer = 0; layer < 6; ++layer) {
-    c4->cd(layer + 1);
-    hDigitsPerLayer_diff[layer]->Draw("COLZ");
-  }
-  c4->SaveAs("DigitsPerLayerDiff.pdf");
-  TCanvas* c5 = new TCanvas("c5", "trd tracklet distribution diff", 800, 800);
-  c5->Divide(3, 2, 0.05, 0.05);
-  for (int layer = 0; layer < 6; ++layer) {
-    c5->cd(layer + 1);
-    hTrackletsPerLayer_diff[layer]->Draw("COLZ");
-  }
-  c5->SaveAs("TrackletsPerLayerDiff.pdf");
-  // the _diff spectra *should* be empty
 }
