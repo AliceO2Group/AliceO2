@@ -50,7 +50,8 @@ void CellConverterSpec::init(framework::InitContext& ctx)
 void CellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(debug) << "[EMCALCellConverter - run] called";
-  const double CONVADCGEV = 0.016; // Conversion from ADC counts to energy: E = 16 MeV / ADC
+  const double CONVADCGEV = 0.016;   // Conversion from ADC counts to energy: E = 16 MeV / ADC
+  constexpr double timeshift = 600.; // subtract 600 ns in order to center the time peak around the nominal delay
 
   mOutputCells.clear();
   mOutputLabels.clear();
@@ -105,13 +106,18 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
           if (fitResults.getTime() < 0) {
             fitResults.setTime(0.);
           }
+          mOutputCells.emplace_back(tower, fitResults.getAmp() * CONVADCGEV, fitResults.getTime() - timeshift, channelType);
+
         } catch (CaloRawFitter::RawFitterError_t& fiterror) {
           if (fiterror != CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK) {
             LOG(error) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
           }
         }
 
-        mOutputCells.emplace_back(tower, fitResults.getAmp() * CONVADCGEV, fitResults.getTime(), channelType);
+        if (fitResults.getStatus() < 0) {
+          continue;
+        }
+
         if (mPropagateMC) {
           Int_t LabelIndex = mOutputLabels.getIndexedSize();
           if (channelType == ChannelType_t::HIGH_GAIN) {
