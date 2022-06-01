@@ -42,8 +42,8 @@ void CTFCoder::assignDictVersion(o2::ctf::CTFDictHeader& h) const
   if (mExtHeader.isValidDictTimeStamp()) {
     h = mExtHeader;
   } else {
-      h.majorVersion = 1;
-      h.minorVersion = 1;
+    h.majorVersion = 1;
+    h.minorVersion = 1;
   }
 }
 ///________________________________
@@ -96,7 +96,7 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
     }
     uint8_t prevChan = 0;
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
-      //cd.idChan[ccount] = chanels[ic].mPMNumber - prevChan; //Old method, lets keep it for a while
+      // cd.idChan[ccount] = chanels[ic].mPMNumber - prevChan; //Old method, lets keep it for a while
       cd.idChan[ccount] = chanels[ic].mPMNumber;
       cd.time[ccount] = chanels[ic].mTime;        // make sure it fits to short!!!
       cd.charge[ccount] = chanels[ic].mChargeADC; // make sure we really need short!!!

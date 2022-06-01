@@ -138,11 +138,10 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& 
   iosize += DECODEFDD(cd.feeBits,   CTF::BLC_feeBits);
   // clang-format on
   //
-  if (hd.minorVersion==0 && hd.majorVersion==1) {
-    decompress<1,0>(cd, digitVec, channelVec);
-  }
-  else {
-    decompress<1,1>(cd, digitVec, channelVec);
+  if (hd.minorVersion == 0 && hd.majorVersion == 1) {
+    decompress<1, 0>(cd, digitVec, channelVec);
+  } else {
+    decompress<1, 1>(cd, digitVec, channelVec);
   }
   iosize.rawIn = sizeof(Digit) * digitVec.size() + sizeof(ChannelData) * channelVec.size();
   return iosize;
@@ -175,11 +174,10 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     int16_t timeA = 0, timeC = 0;
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       auto icc = channelVec.size();
-      if constexpr(MINOR_VERSION==0 && MAJOR_VERSION==1) {
+      if constexpr (MINOR_VERSION == 0 && MAJOR_VERSION == 1) {
         // Old decoding procedure, mostly for Pilot Beam in October 2021
         chID += cd.idChan[icc];
-      }
-      else {
+      } else {
         // New decoding procedure, w/o sorted ChID requriment
         chID = cd.idChan[icc];
       }

@@ -57,7 +57,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   size_t estimateCompressedSize(const CompressedDigits& cc);
 
   /// decompress CompressedDigits to digits
-  template <int MAJOR_VERSION,int MINOR_VERSION,typename VDIG, typename VCHAN>
+  template <int MAJOR_VERSION, int MINOR_VERSION, typename VDIG, typename VCHAN>
   void decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& channelVec);
 
   void appendToTree(TTree& tree, CTF& ec);
@@ -139,18 +139,17 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& 
   iosize += DECODEFT0(cd.qtcAmpl,     CTF::BLC_qtcAmpl);
   // clang-format on
   //
-  if (hd.minorVersion==0 && hd.majorVersion==1) {
-    decompress<1,0>(cd, digitVec, channelVec);
-  }
-  else {
-    decompress<1,1>(cd, digitVec, channelVec);
+  if (hd.minorVersion == 0 && hd.majorVersion == 1) {
+    decompress<1, 0>(cd, digitVec, channelVec);
+  } else {
+    decompress<1, 1>(cd, digitVec, channelVec);
   }
   iosize.rawIn = sizeof(Digit) * digitVec.size() + sizeof(ChannelData) * channelVec.size();
   return iosize;
 }
 
 /// decompress compressed digits to standard digits
-template <int MAJOR_VERSION,int MINOR_VERSION,typename VDIG, typename VCHAN>
+template <int MAJOR_VERSION, int MINOR_VERSION, typename VDIG, typename VCHAN>
 void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& channelVec)
 {
   digitVec.clear();
@@ -178,11 +177,10 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     int16_t timeA = 0, timeC = 0;
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       auto icc = channelVec.size();
-      if constexpr(MINOR_VERSION==0 && MAJOR_VERSION==1) {
+      if constexpr (MINOR_VERSION == 0 && MAJOR_VERSION == 1) {
         // Old decoding procedure, mostly for Pilot Beam in October 2021
         chID += cd.idChan[icc];
-      }
-      else {
+      } else {
         // New decoding procedure, w/o sorted ChID requriment
         chID = cd.idChan[icc];
       }
