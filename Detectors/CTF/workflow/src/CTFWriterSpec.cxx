@@ -143,6 +143,7 @@ class CTFWriterSpec : public o2::framework::Task
   std::string mOutputType{}; // RS FIXME once global/local options clash is solved, --output-type will become device option
   std::string mDictDir{};
   std::string mCTFDir{};
+  std::string mHostName{};
   std::string mCTFDirFallBack = "/dev/null";
   std::string mCTFMetaFileDir = "/dev/null";
   std::string mCurrentCTFFileName{};
@@ -237,6 +238,11 @@ void CTFWriterSpec::init(InitContext& ic)
     }
     o2::utils::createDirectoriesIfAbsent(mDictDir);
   }
+
+  char hostname[_POSIX_HOST_NAME_MAX];
+  gethostname(hostname, _POSIX_HOST_NAME_MAX);
+  mHostName = hostname;
+  mHostName = mHostName.substr(0, mHostName.find('.'));
 }
 
 //___________________________________________________________________
@@ -468,7 +474,6 @@ void CTFWriterSpec::prepareTFTreeAndFile()
   }
   if (needToOpen) {
     closeTFTreeAndFile();
-    auto fname = o2::base::NameConf::getCTFFileName(mTimingInfo.runNumber, mTimingInfo.firstTFOrbit, mTimingInfo.tfCounter);
     auto ctfDir = mCTFDir.empty() ? o2::utils::Str::rectifyDirectory("./") : mCTFDir;
     if (mChkSize > 0 && (mCTFDirFallBack != "/dev/null")) {
       createLockFile(0);
@@ -486,7 +491,7 @@ void CTFWriterSpec::prepareTFTreeAndFile()
         LOGP(info, "Created {} directory for CTFs output", ctfDir);
       }
     }
-    mCurrentCTFFileName = o2::base::NameConf::getCTFFileName(mTimingInfo.runNumber, mTimingInfo.firstTFOrbit, mTimingInfo.tfCounter);
+    mCurrentCTFFileName = o2::base::NameConf::getCTFFileName(mTimingInfo.runNumber, mTimingInfo.firstTFOrbit, mTimingInfo.tfCounter, mHostName);
     mCurrentCTFFileNameFull = fmt::format("{}{}", ctfDir, mCurrentCTFFileName);
     mCTFFileOut.reset(TFile::Open(fmt::format("{}{}", mCurrentCTFFileNameFull, TMPFileEnding).c_str(), "recreate")); // to prevent premature external usage, use temporary name
     mCTFTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
