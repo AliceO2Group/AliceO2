@@ -93,7 +93,7 @@ DataProcessorSpec getTrackMatcherSpec(const char* name)
            InputSpec{"mchtracks", "MCH", "TRACKS", 0, Lifetime::Timeframe},
            InputSpec{"midrofs", "MID", "TRACKROFS", 0, Lifetime::Timeframe},
            InputSpec{"midtracks", "MID", "TRACKS", 0, Lifetime::Timeframe}},
-    Outputs{OutputSpec{{"muontracks"}, "GLO", "MCHMID", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{{"muontracks"}, "GLO", "MTC_MCHMID", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<TrackMatcherTask>()},
     Options{{"mch-config", VariantType::String, "", {"JSON or INI file with matching parameters"}}}};
 }
