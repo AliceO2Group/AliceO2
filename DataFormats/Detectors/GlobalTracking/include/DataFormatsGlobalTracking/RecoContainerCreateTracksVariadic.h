@@ -32,6 +32,8 @@
 #include "DataFormatsMID/MCClusterLabel.h"
 #include "DataFormatsMID/MCLabel.h"
 
+#include "ReconstructionDataFormats/TrackMCHMID.h"
+
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTOF/Cluster.h"
 #include "DataFormatsHMP/Cluster.h"
@@ -97,6 +99,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   const auto tracksTPC = getTPCTracks();
   const auto tracksTPCITS = getTPCITSTracks();
   const auto tracksMFTMCH = getGlobalFwdTracks();
+  const auto matchesMCHMID = getMCHMIDMatches();
   const auto tracksTPCTOF = getTPCTOFTracks();   // TOF-TPC tracks with refit
   const auto matchesTPCTOF = getTPCTOFMatches(); // and corresponding matches
   const auto tracksTPCTRD = getTPCTRDTracks<o2::trd::TrackTRD>();
@@ -187,8 +190,8 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
           flagUsed(trc.getRefGlobalTrackId()); // flag seeding ITS-TPC track
           continue;
         }
-        if (creator(trc, {i, currentSource}, t0, 1e-3)) {       // assign 1ns error to BC
-          flagUsed(trc.getRefGlobalTrackId());                  // flag seeding ITS-TPC track
+        if (creator(trc, {i, currentSource}, t0, 1e-3)) { // assign 1ns error to BC
+          flagUsed(trc.getRefGlobalTrackId());            // flag seeding ITS-TPC track
         }
       }
     }
@@ -231,8 +234,8 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
           flagUsed(trc.getRefGlobalTrackId()); // flag seeding TPC track
           continue;
         }
-        if (creator(trc, {i, currentSource}, t0, 1e-3)) {    // assign 1ns error to BC
-          flagUsed(trc.getRefGlobalTrackId());               // flag seeding TPC track
+        if (creator(trc, {i, currentSource}, t0, 1e-3)) { // assign 1ns error to BC
+          flagUsed(trc.getRefGlobalTrackId());            // flag seeding TPC track
         }
       }
     }
@@ -283,6 +286,27 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
       if (creator(matchTr, {i, currentSource}, matchTr.getTimeMUS().getTimeStamp(), matchTr.getTimeMUS().getTimeStampError())) {
         flagUsed2(matchTr.getMFTTrackID(), GTrackID::MFT);
         flagUsed2(matchTr.getMCHTrackID(), GTrackID::MCH);
+      }
+    }
+  }
+
+  // MCH-MID matches
+  {
+    currentSource = GTrackID::MCHMID;
+    if (matchesMCHMID.size() && !tracksMCH.size()) {
+      throw std::runtime_error(fmt::format("MCH-MID matched tracks ({}) require MCHMID matches ({}) and MCH tracks ({})",
+                                           matchesMCHMID.size(), tracksMCH.size()));
+    }
+    for (unsigned i = 0; i < matchesMCHMID.size(); i++) {
+      const auto& match = matchesMCHMID[i];
+      auto gidxMCH = match.getMCHRef();
+      const auto& trc = tracksMCH[gidxMCH.getIndex()];
+      float t0err = 0.0005;
+      auto bcdiff = getBCDiff(match.getIR());
+      float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingMUS;
+      if (creator(trc, {i, currentSource}, t0, t0err)) {
+        flagUsed(gidxMCH);           // flag used MCH tracks
+        flagUsed(match.getMIDRef()); // flag used MID tracks (if requested)
       }
     }
   }
