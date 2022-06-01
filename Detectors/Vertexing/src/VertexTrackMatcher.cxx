@@ -199,7 +199,7 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
     terr += mPVParams->timeMarginTrackTime;
     mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});
 
-    if constexpr (isMFTTrack<decltype(_tr)>() || isMCHTrack<decltype(_tr)>() || isGlobalFwdTrack<decltype(_tr)>()) {
+    if constexpr (isGlobalFwdTrack<decltype(_tr)>()) {
       return false;
     }
     return true;
