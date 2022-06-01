@@ -36,7 +36,7 @@ DataProcessorSpec getTrackWriterSpec(const char* specName, const char* fileName)
   return MakeRootTreeWriterSpec(specName,
                                 fileName,
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree Matched MCH-MID Tracks"},
-                                BranchDefinition<std::vector<dataformats::TrackMCHMID>>{InputSpec{"tracks", "GLO", "MCHMID"}, "tracks"})();
+                                BranchDefinition<std::vector<dataformats::TrackMCHMID>>{InputSpec{"tracks", "GLO", "MTC_MCHMID"}, "tracks"})();
 }
 
 } // namespace muon
