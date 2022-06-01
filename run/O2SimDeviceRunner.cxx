@@ -259,6 +259,10 @@ int main(int argc, char* argv[])
     }
   }
 
+  // set the fatal callback for the logger to not do a core dump (since this might interfere with process shutdown sequence
+  // since it calls ROOT::TSystem and further child processes)
+  fair::Logger::OnFatal([] { throw fair::FatalException("Fatal error occured. Exiting without core dump..."); });
+
   // extract the path to FairMQ config
   bpo::options_description desc{"Options"};
   // clang-format off

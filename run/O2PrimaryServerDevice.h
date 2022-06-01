@@ -186,6 +186,9 @@ class O2PrimaryServerDevice final : public FairMQDevice
 
   void InitTask() final
   {
+    // fatal without core dump
+    fair::Logger::OnFatal([] { throw fair::FatalException("Fatal error occured. Exiting without core dump..."); });
+
     o2::simpubsub::publishMessage(fChannels["primary-notifications"].at(0), "SERVER : INITIALIZING");
 
     stateTransition(O2PrimaryServerState::Initializing, "INITTASK");
