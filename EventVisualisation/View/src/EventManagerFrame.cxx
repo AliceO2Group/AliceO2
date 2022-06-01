@@ -315,8 +315,7 @@ void EventManagerFrame::DoScreenshot()
   }
 
   o2::dataformats::GlobalTrackID::mask_t detectorsMask;
-
-  auto detectorsString = dataformats::GlobalTrackID::getSourcesNames(this->mEventManager->getDataSource()->getDetectorsMask());
+  auto detectorsString = detectors::DetID::getNames(this->mEventManager->getDataSource()->getDetectorsMask());
 
   std::vector<std::string> lines;
   std::ifstream input("screenshot.txt");
