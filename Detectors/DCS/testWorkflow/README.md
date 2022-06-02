@@ -93,7 +93,7 @@ mkdir ~/tstDCS
 cd ~/tstDCS
 cp ~/alice/O2/Detectors/DCS/testWorkflow/src/dcs*.cpp ./
 cp ~/alice/O2/Detectors/DCS/testWorkflow/src/compile-dcs-emulator.sh ./
-./compile-dcs-emulator.sh
+source ./compile-dcs-emulator.sh
 ```
 This will compile two executables `dcssend` and `dcsclient`. The former one is the `DCS server emulator` which has the following options:
 ```
