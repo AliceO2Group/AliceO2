@@ -138,8 +138,8 @@ inline void TrackerTraits::initialiseTimeFrame(const int iteration, const Memory
 
 inline void TrackerTraits::adoptTimeFrame(TimeFrame* tf) { mTimeFrame = tf; }
 
-inline const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
-                                             const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
+inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, float maxdeltaphi,
+                                             float z1, float z2, float maxdeltaz)
 {
   const float zRangeMin = o2::gpu::GPUCommonMath::Min(z1, z2) - maxdeltaz;
   const float phiRangeMin = phi - maxdeltaphi;

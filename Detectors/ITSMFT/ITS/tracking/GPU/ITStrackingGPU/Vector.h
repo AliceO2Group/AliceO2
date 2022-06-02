@@ -55,6 +55,9 @@ class Vector final
   void resize(const size_t);
   void reset(const size_t, const size_t = 0);
   void reset(const T* const, const size_t, const size_t = 0);
+
+  template <typename U = T, std::enable_if_t<std::is_integral<U>::value, int>>
+  void reset(const size_t, const int value = 0);
   void copyIntoSizedVector(std::vector<T>&);
 
   GPUhd() T* get() const;
@@ -212,6 +215,25 @@ void Vector<T>::reset(const T* const source, const size_t size, const size_t ini
   } else {
     utils::host::gpuMemcpyHostToDevice(mDeviceSizePtr, &initialSize, sizeof(size_t));
   }
+}
+
+template <typename T>
+template <typename U, std::enable_if_t<std::is_integral<U>::value, int>>
+void Vector<T>::reset(const size_t size, const int value)
+{
+  if (size > mCapacity) {
+    if (mArrayPtr != nullptr) {
+      utils::host::gpuFree(mArrayPtr);
+    }
+    utils::host::gpuMalloc(reinterpret_cast<void**>(&mArrayPtr), size * sizeof(int));
+    mCapacity = size;
+  }
+  if (mDeviceSizePtr == nullptr) {
+    utils::host::gpuMalloc(reinterpret_cast<void**>(&mDeviceSizePtr), sizeof(int));
+  }
+
+  utils::host::gpuMemset(mArrayPtr, value, size);
+  utils::host::gpuMemcpyHostToDevice(mDeviceSizePtr, &size, sizeof(int));
 }
 
 template <typename T>
