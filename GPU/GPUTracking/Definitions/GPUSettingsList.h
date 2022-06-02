@@ -89,6 +89,7 @@ AddOptionRTC(chi2SeparationCut, float, 2.5f, "", 0, "Minimum difference between 
 AddOptionRTC(nSigmaTerrITSTPC, float, 4.f, "", 0, "Number of sigmas for ITS-TPC track time error estimate")
 AddOptionRTC(extraRoadY, float, 2.f, "", 0, "Addition to search road around track prolongation along Y in cm")
 AddOptionRTC(extraRoadZ, float, 0.f, "", 0, "Addition to search road around track prolongation along Z in cm")
+AddOptionRTC(trkltResRPhiIdeal, float, 0.04f, "", 0, "Optimal tracklet rphi resolution in cm (in case phi of track = lorentz angle)")
 AddOptionRTC(applyDeflectionCut, unsigned char, 0, "", 0, "Set to 1 to enable tracklet selection based on deflection")
 AddOptionRTC(stopTrkAfterNMissLy, unsigned char, 6, "", 0, "Abandon track following after N layers without a TRD match")
 AddOptionRTC(useExternalO2DefaultPropagator, unsigned char, 0, "", 0, "Use the default instance of the o2::Propagator, instead of the GPU Reconstruciton one with GPU B field")
