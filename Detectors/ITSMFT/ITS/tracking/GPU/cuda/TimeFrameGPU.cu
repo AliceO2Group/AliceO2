@@ -107,8 +107,8 @@ void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
     if (iLayer < NLayers - 1) {
       mTrackletsD[iLayer] = Vector<Tracklet>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
     }
-    if (iLayer < NLayers - 2) {
-      mTrackletsLookupTablesD[iLayer].reset(mTrackletsLookupTable[iLayer].data(), static_cast<int>(mTrackletsLookupTable[iLayer].size()));
+    if (iLayer < NLayers - 1) {
+      mTrackletsLookupTablesD[iLayer].reset(static_cast<int>(mTrackletsLookupTable[iLayer].size()));
     }
   }
 
