@@ -28,12 +28,8 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 
-#include <chrono>
-
 using namespace o2::framework;
 using TFType = uint64_t;
-using HighResClock = std::chrono::high_resolution_clock;
-using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
 
 namespace o2
 {
@@ -55,12 +51,11 @@ class TOFDCSConfigProcessor : public o2::framework::Task
   {
     auto configBuff = pc.inputs().get<gsl::span<char>>("inputConfig");
     auto configFileName = pc.inputs().get<std::string>("inputConfigFileName");
-    auto timer = std::chrono::duration_cast<std::chrono::milliseconds>(HighResClock::now().time_since_epoch()).count();
     LOG(info) << "got input file " << configFileName << " of size " << configBuff.size();
     mTOFFEElightReader.loadFEElightConfig(configBuff);
     mTOFFEElightReader.parseFEElightConfig(mVerbose);
     //auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().getFirstValid(true).header)->startTime;
-    sendOutput(pc.outputs(), timer);
+    sendOutput(pc.outputs(), configFileName);
   }
 
   //---------------------------------------------------------
@@ -70,7 +65,7 @@ class TOFDCSConfigProcessor : public o2::framework::Task
   }
 
  private:
-  void sendOutput(DataAllocator& output, long tf)
+  void sendOutput(DataAllocator& output, std::string fileName)
   {
     // sending output to CCDB
 
@@ -80,6 +75,49 @@ class TOFDCSConfigProcessor : public o2::framework::Task
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
     std::map<std::string, std::string> md;
     md.emplace("created_by", "dpl");
+
+    // finding start of validity and run number in filename
+    int n = fileName.length();
+    char fileName_char[n + 1];
+    strcpy(fileName_char, fileName.c_str());
+    std::vector<std::string> tokens;
+    const char* delimiters = ".";
+    const char* token = strtok(fileName_char, delimiters);
+    std::string startOfValidityStr = "";
+    std::string runNumberStr = "";
+    bool foundSOV = false;
+    bool foundRUN = false;
+    std::string timeStampLabel = "sov";
+    std::string runNumberLabel = "run";
+    while (token) {
+      LOG(debug) << "token = " << token;
+      std::string stoken(token);
+      auto idxInStringSOV = stoken.find(timeStampLabel);
+      auto idxInStringRUN = stoken.find(runNumberLabel);
+      if (idxInStringSOV != std::string::npos) {
+        foundSOV = true;
+        stoken.erase(idxInStringSOV, timeStampLabel.length());
+        startOfValidityStr = stoken;
+      }
+      if (idxInStringRUN != std::string::npos) {
+        foundRUN = true;
+        stoken.erase(idxInStringRUN, runNumberLabel.length());
+        runNumberStr = stoken;
+      }
+      token = std::strtok(nullptr, delimiters);
+    }
+    if (!foundSOV) {
+      LOG(fatal) << "SOV not found but needed!";
+    } else {
+    }
+    if (!foundRUN) {
+      LOG(warning) << "RUN not found, will be left empty!";
+    }
+    LOG(debug) << "startOfValidityStr = " << startOfValidityStr << ", run = " << runNumberStr;
+    long tf = std::stol(startOfValidityStr) * 1E3; // in ms
+    md.emplace("runNumberFromTOF", runNumberStr);
+
+    // creating CCDB object to be shipped
     o2::ccdb::CcdbObjectInfo info("TOF/Calib/FEELIGHT", clName, flName, md, tf, tf + o2::ccdb::CcdbObjectInfo::MONTH);
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
     LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
