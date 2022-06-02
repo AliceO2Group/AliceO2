@@ -76,6 +76,16 @@ const std::string gDataTypeNames[NdataTypes] = {
   "Tracks",
   "Calorimeters"};
 
+static int findGroupIndex(const std::string& name)
+{
+  for (int i = 0; i < NvisualisationGroups; i++) {
+    if (name == gVisualisationGroupName[i]) {
+      return i;
+    }
+  }
+  return -1;
+};
+
 } // namespace event_visualisation
 } // namespace o2
 

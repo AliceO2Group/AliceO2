@@ -54,8 +54,17 @@ EventManager& EventManager::getInstance()
 EventManager::EventManager() : TEveEventManager("Event", "")
 {
   LOG(info) << "Initializing TEveManager";
-  for (unsigned int i = 0; i < elemof(dataTypeLists); i++) {
-    dataTypeLists[i] = nullptr;
+  vizSettings.firstEvent = true;
+
+  for (int i = 0; i < NvisualisationGroups; i++) {
+    vizSettings.trackVisibility[i] = true;
+    vizSettings.trackColor[i] = kMagenta;
+    vizSettings.trackStyle[i] = 1;
+    vizSettings.trackWidth[i] = 1;
+    vizSettings.clusterVisibility[i] = true;
+    vizSettings.clusterColor[i] = kBlue;
+    vizSettings.clusterStyle[i] = 20;
+    vizSettings.clusterSize[i] = 1.0f;
   }
 }
 
@@ -64,6 +73,10 @@ void EventManager::displayCurrentEvent()
   const auto multiView = MultiView::getInstance();
   const auto dataSource = getDataSource();
   if (dataSource->getEventCount() > 0) {
+    if (!vizSettings.firstEvent) {
+      saveVisualisationSettings();
+    }
+
     multiView->destroyAllEvents();
     int no = dataSource->getCurrentEvent();
 
@@ -87,6 +100,14 @@ void EventManager::displayCurrentEvent()
         multiView->registerElement(dataTypeLists[i]);
       }
     }
+
+    if (vizSettings.firstEvent) {
+      saveVisualisationSettings();
+      vizSettings.firstEvent = false;
+    } else {
+      restoreVisualisationSettings();
+    }
+
     multiView->getAnnotationTop()->SetText(TString::Format("Run %d\n%s", dataSource->getRunNumber(), dataSource->getCollisionTime().c_str()));
     auto detectors = detectors::DetID::getNames(dataSource->getDetectorsMask());
     multiView->getAnnotationBottom()->SetText(TString::Format("TFOrbit: %d\nDetectors: %s", dataSource->getFirstTForbit(), detectors.c_str()));
@@ -289,6 +310,70 @@ void EventManager::displayCalorimeters(VisualisationEvent& event)
 
     dataTypeLists[EVisualisationDataType::Calorimeters]->AddElement(calo3d);
     MultiView::getInstance()->registerElement(calo3d);
+  }
+}
+
+void EventManager::saveVisualisationSettings()
+{
+  const auto& tracks = *dataTypeLists[EVisualisationDataType::Tracks];
+
+  for (auto elm : tracks.RefChildren()) {
+    auto trackList = static_cast<TEveTrackList*>(elm);
+    int i = findGroupIndex(trackList->GetElementName());
+
+    if (i != -1) {
+      vizSettings.trackVisibility[i] = trackList->GetRnrSelf();
+      vizSettings.trackColor[i] = trackList->GetLineColor();
+      vizSettings.trackStyle[i] = trackList->GetLineStyle();
+      vizSettings.trackWidth[i] = trackList->GetLineWidth();
+    }
+  }
+
+  const auto& clusters = *dataTypeLists[EVisualisationDataType::Clusters];
+
+  for (auto elm : clusters.RefChildren()) {
+    auto clusterSet = static_cast<TEvePointSet*>(elm);
+    int i = findGroupIndex(clusterSet->GetElementName());
+
+    if (i != -1) {
+      vizSettings.clusterVisibility[i] = clusterSet->GetRnrSelf();
+      vizSettings.clusterColor[i] = clusterSet->GetMarkerColor();
+      vizSettings.clusterStyle[i] = clusterSet->GetMarkerStyle();
+      vizSettings.clusterSize[i] = clusterSet->GetMarkerSize();
+    }
+  }
+}
+
+void EventManager::restoreVisualisationSettings()
+{
+  const auto& tracks = *dataTypeLists[EVisualisationDataType::Tracks];
+
+  for (auto elm : tracks.RefChildren()) {
+    auto trackList = static_cast<TEveTrackList*>(elm);
+    int i = findGroupIndex(trackList->GetElementName());
+
+    if (i != -1) {
+      const auto viz = vizSettings.trackVisibility[i];
+      trackList->SetRnrSelfChildren(viz, viz);
+      trackList->SetLineColor(vizSettings.trackColor[i]);
+      trackList->SetLineStyle(vizSettings.trackStyle[i]);
+      trackList->SetLineWidth(vizSettings.trackWidth[i]);
+    }
+  }
+
+  const auto& clusters = *dataTypeLists[EVisualisationDataType::Clusters];
+
+  for (auto elm : clusters.RefChildren()) {
+    auto clusterSet = static_cast<TEvePointSet*>(elm);
+    int i = findGroupIndex(clusterSet->GetElementName());
+
+    if (i != -1) {
+      const auto viz = vizSettings.clusterVisibility[i];
+      clusterSet->SetRnrSelfChildren(viz, viz);
+      clusterSet->SetMarkerColor(vizSettings.clusterColor[i]);
+      clusterSet->SetMarkerStyle(vizSettings.clusterStyle[i]);
+      clusterSet->SetMarkerSize(vizSettings.clusterSize[i]);
+    }
   }
 }
 
