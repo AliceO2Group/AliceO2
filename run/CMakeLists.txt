@@ -222,6 +222,7 @@ o2_add_test_command(NAME o2sim_hepmc
 set_tests_properties(o2sim_hepmc
                      PROPERTIES PASS_REGULAR_EXPRESSION
                                 "SIMULATION RETURNED SUCCESFULLY")
+set_property(TEST o2sim_hepmc APPEND PROPERTY ENVIRONMENT ${G4ENV})
 
 # somewhat analyse the logfiles as another means to detect problems
 o2_add_test_command(NAME o2sim_G3_checklogs
