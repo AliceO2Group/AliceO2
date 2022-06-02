@@ -901,19 +901,19 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
     std::string logfile = mSnapshotCachePath + "/log";
     std::fstream out(logfile, ios_base::out | ios_base::app);
     if (out.is_open()) {
-      out << "CCDB-access[" << getpid() << "] to " << path << " timestamp " << timestamp << "\n";
+      out << "CCDB-access[" << getpid() << "] of " << mUniqueAgentID << " to " << path << " timestamp " << timestamp << "\n";
     }
     auto snapshotfile = getSnapshotFile(mSnapshotCachePath, path);
     bool snapshoting = false;
     if (!std::filesystem::exists(snapshotfile)) {
       snapshoting = true;
-      out << "CCDB-access[" << getpid() << "]  ... downloading to snapshot " << snapshotfile << "\n";
+      out << "CCDB-access[" << getpid() << "] ... " << mUniqueAgentID << " downloading to snapshot " << snapshotfile << "\n";
       // if file not already here and valid --> snapshot it
       if (!retrieveBlob(path, mSnapshotCachePath, metadata, timestamp)) {
-        out << "CCDB-access[" << getpid() << "]  ... failed to create directory for " << snapshotfile << "\n";
+        out << "CCDB-access[" << getpid() << "] ... " << mUniqueAgentID << " failed to create directory for " << snapshotfile << "\n";
       }
     } else {
-      out << "CCDB-access[" << getpid() << "]  ... serving from local snapshot " << snapshotfile << "\n";
+      out << "CCDB-access[" << getpid() << "]  ... " << mUniqueAgentID << "serving from local snapshot " << snapshotfile << "\n";
     }
     if (sem) {
       sem->post();
@@ -1414,7 +1414,7 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
     snapshotpath = getSnapshotFile(mSnapshotCachePath, path);
     o2::utils::createDirectoriesIfAbsent(snapshotdir);
     if (out.is_open()) {
-      out << "CCDB-access[" << getpid() << "]  ... downloading to snapshot " << snapshotpath << "\n";
+      out << "CCDB-access[" << getpid() << "] ... " << mUniqueAgentID << " downloading to snapshot " << snapshotpath << " from memory\n";
     }
     { // dump image to a file
       LOGP(debug, "creating snapshot {} -> {}", path, snapshotpath);
