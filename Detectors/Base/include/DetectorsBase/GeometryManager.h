@@ -48,10 +48,10 @@ namespace base
 class GeometryManager : public TObject
 {
  public:
-  ///< load geometry from file
+  ///< load geometry from file (filename is constructed from given simulation prefix (e.g., o2sim))
   ///< When applyMisalignedment == false --> read from unaligned file
   ///< When preferAlignedFile == true and applyMisalignment == true : Prefer reading from existing aligned file
-  static void loadGeometry(std::string_view geomFilePath = "", bool applyMisalignment = false, bool preferAlignedFile = true);
+  static void loadGeometry(std::string_view simPrefix = "", bool applyMisalignment = false, bool preferAlignedFile = true);
   static bool isGeometryLoaded() { return gGeoManager != nullptr; }
   static void applyMisalignent(bool applyMisalignment = true);
 
