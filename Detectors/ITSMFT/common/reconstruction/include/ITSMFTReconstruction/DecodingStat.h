@@ -150,7 +150,7 @@ struct ChipStat {
   static int getAPENonCritical(uint8_t c)
   {
     if (c == 0xfd || c == 0xfe) {
-      return APE_STRIP_START + c - 0xf2;
+      return APE_STRIP + c - 0xf2;
     }
     return -1;
   }
@@ -163,7 +163,7 @@ struct ChipStat {
       return -1;
     }
     ft = c >= 0xf2 && c <= 0xfe;
-    return APE_STRIP_START + c - 0xf2;
+    return APE_STRIP + c - 0xf2;
   }
   uint32_t getNErrors() const;
   uint32_t addErrors(uint32_t mask, uint16_t chID, int verbosity);
