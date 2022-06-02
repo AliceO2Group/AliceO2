@@ -212,9 +212,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       if (verbosity >= VerboseHeaders) {
         RDHUtils::printRDH(rdh);
       }
-      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsRDH(*rdh));     // make sure we are dealing with RDH
-      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsRDHStop(*rdh)); // if new HB starts, the lastRDH must have stop
-      //      GBTLINK_DECODE_ERRORCHECK(checkErrorsRDHStopPageEmpty(*rdh)); // end of HBF should be an empty page with stop
+      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsRDH(*rdh)); // make sure we are dealing with RDH
       hbfEntry = hbfEntrySav; // critical check of RDH passed
       lastRDH = rdh;
       statistics.nPackets++;
@@ -222,6 +220,8 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
         irHBF = RDHUtils::getHeartBeatIR(*rdh);
         hbfEntry = rawData.currentPieceID();
       }
+      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsRDHStop(*rdh)); // if new HB starts, the lastRDH must have stop
+      //      GBTLINK_DECODE_ERRORCHECK(checkErrorsRDHStopPageEmpty(*rdh)); // end of HBF should be an empty page with stop
       dataOffset += sizeof(RDH);
       auto psz = RDHUtils::getMemorySize(*rdh);
       if (psz == sizeof(RDH)) {
