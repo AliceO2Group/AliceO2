@@ -22,6 +22,7 @@
 #include "ZDCSimulation/SpatialPhotonResponse.h"
 #include "TParticle.h"
 #include <utility>
+#include "ZDCBase/Constants.h"
 #ifdef ZDC_FASTSIM_ONNX
 #include "FastSimulations.h" // for fastsim module
 #include "Processors.h"      // for fastsim module
@@ -237,6 +238,20 @@ class Detector : public o2::base::DetImpl<Detector>
   // container for fastsim model responses
   using FastSimResults = std::vector<std::array<long, 5>>; //!
   FastSimResults mFastSimResults;                          //!
+
+  // converts FastSim model results to Hit
+  bool FastSimToHits(const Ort::Value& response, const TParticle& particle, int detector);
+  // determines detector geometry
+  constexpr std::pair<const int, const int> determineDetectorGeometry(int detector)
+  {
+    if (detector == ZNA || detector == ZNC) {
+      return {Geometry::ZNDIVISION[0] * Geometry::ZNSECTORS[0] * 2, Geometry::ZNDIVISION[1] * Geometry::ZNSECTORS[1] * 2};
+    } else if (detector == ZPA || detector == ZPC) {
+      return {Geometry::ZPDIVISION[0] * Geometry::ZPSECTORS[0] * 2, Geometry::ZPDIVISION[1] * Geometry::ZPSECTORS[1] * 2};
+    } else {
+      return {-1, -1};
+    }
+  }
 #endif
 
   template <typename Det>
