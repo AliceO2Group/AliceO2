@@ -498,7 +498,7 @@ void EveWorkflowHelper::drawTPCClusters(GID gid, float trackTimeTB)
 
     std::array<float, 3> xyz;
     this->mTPCFastTransform->TransformIdeal(sector, row, clTPC.getPad(), clTPC.getTime(), xyz[0], xyz[1], xyz[2], trc.getTime0()); // in sector coordinate
-    o2::math_utils::rotateZ(xyz, o2::math_utils::sector2Angle(sector % o2::tpc::SECTORSPERSIDE));                               // lab coordinate (global)
+    o2::math_utils::rotateZ(xyz, o2::math_utils::sector2Angle(sector % o2::tpc::SECTORSPERSIDE));                                  // lab coordinate (global)
     mEvent.addCluster(xyz[0], xyz[1], xyz[2], trackTimeTB / mMUS2TPCTimeBins);
   }
 }
@@ -590,6 +590,7 @@ void EveWorkflowHelper::drawMCH(GID gid, float trackTime)
 {
   //  LOG(info) << "EveWorkflowHelper::drawMCH " << gid;
   const auto& track = mRecoCont.getMCHTrack(gid);
+  auto trackParam = mch::TrackParam(track.getZ(), track.getParameters(), track.getCovariances());
 
   auto noOfClusters = track.getNClusters();                  // number of clusters in MCH Track
   auto offset = track.getFirstClusterIdx();                  // first external cluster index offset:
@@ -605,10 +606,23 @@ void EveWorkflowHelper::drawMCH(GID gid, float trackTime)
                                  .gid = gid.asString(),
                                  .source = GID::MCH});
 
-  for (int icl = noOfClusters - 1; icl > -1; --icl) {
-    const auto& cluster = mchClusters[offset + icl];
-    vTrack->addPolyPoint(cluster.x, cluster.y, cluster.z);
+  const auto& lastCluster = mchClusters[offset + noOfClusters - 1];
+
+  static constexpr auto stepDensity = 50.; // one vertex per 50 cm should be sufficiently dense
+
+  const auto startZ = track.getZ();
+  const auto endZ = lastCluster.getZ();
+
+  const auto nSteps = static_cast<std::size_t>(std::abs(endZ - startZ) / stepDensity);
+
+  const auto dZ = (endZ - startZ) / nSteps;
+
+  for (std::size_t i = 0; i < nSteps; ++i) {
+    const auto z = startZ + i * dZ;
+    vTrack->addPolyPoint(trackParam.getNonBendingCoor(), trackParam.getBendingCoor(), z);
+    mch::TrackExtrap::extrapToZCov(trackParam, z);
   }
+
   drawMCHClusters(gid, trackTime);
 }
 
