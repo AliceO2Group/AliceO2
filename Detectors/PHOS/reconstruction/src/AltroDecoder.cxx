@@ -275,7 +275,7 @@ void AltroDecoder::readTRUDigits(short absId, int payloadSize)
     }
     timeBin = mBunchwords[currentsample + 1] - bunchlength;
     int istart = currentsample + 2;
-    int iend = std::min((unsigned long)istart + bunchlength - 2, mBunchwords.size());
+    int iend = std::min(istart + bunchlength - 2, static_cast<int>(mBunchwords.size()));
     for (int i = istart; i < iend; i++) {
       if (maxAmp < mBunchwords[i]) {
         maxAmp = mBunchwords[i];
@@ -306,14 +306,14 @@ void AltroDecoder::readTRUFlags(short hwAddress, int payloadSize)
   int currentsample = 0;
   while (currentsample < payloadSize) {
     int bunchlength = mBunchwords[currentsample] - 2; // remove words for bunchlength and starttime
-    int timeBin = mBunchwords[currentsample + 1] + 1; // +1 for further convenience
-    if (bunchlength < 0) {                            // corrupted sample: add error and ignore the reast of bunchwords
+    if (bunchlength < 1) {                            // corrupted sample: add error and ignore the reast of bunchwords
       // 1: wrong TRU header
       mOutputHWErrors.emplace_back(mddl, kGeneralTRUErr, static_cast<char>(1));
       return;
     }
+    int timeBin = mBunchwords[currentsample + 1] + 1; // +1 for further convenience
     int istart = currentsample + 2;
-    int iend = istart + std::min((unsigned long)bunchlength, mBunchwords.size() - currentsample - 2);
+    int iend = istart + std::min(bunchlength, static_cast<int>(mBunchwords.size()) - currentsample - 2);
     currentsample += bunchlength + 2;
 
     for (int i = iend - 1; i >= istart; i--) {
