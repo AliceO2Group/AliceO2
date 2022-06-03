@@ -414,6 +414,13 @@ void Tracker::extendTracks()
           track = backup;
           continue;
         }
+        /// Make sure that the newly attached clusters get marked as used
+        for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
+          if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+            continue;
+          }
+          mTimeFrame->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
+        }
       }
     }
   }
