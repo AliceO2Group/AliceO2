@@ -133,6 +133,7 @@ class CTPConfiguration
   uint32_t getRunNumber() { return mRunNumber; };
 
  private:
+  std::string mConfigString = "";
   uint32_t mRunNumber = 0;
   std::string mName = "";
   std::string mVersion = "0";
@@ -145,7 +146,7 @@ class CTPConfiguration
   std::vector<CTPClass> mCTPClasses;
   int processConfigurationLineRun3(std::string& line, int& level);
   int processConfigurationLine(std::string& line, int& level);
-  ClassDefNV(CTPConfiguration, 3);
+  ClassDefNV(CTPConfiguration, 4);
 };
 // Run Manager
 struct CTPActiveRun {
@@ -160,12 +161,13 @@ class CTPRunManager
  public:
   CTPRunManager() = default;
   void init();
-  int startRun(std::string& cfg);
+  int startRun(const std::string& cfg);
   int stopRun(uint32_t irun);
-  int addScalers(uint32_t irun);
-  int processMessage(std::string& message);
+  int addScalers(uint32_t irun, std::time_t time);
+  int processMessage(std::string& topic, const std::string& message);
   void printActiveRuns() const;
-  int saveRunToCCDB(int i);
+  int saveRunScalersToCCDB(int i);
+  int saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart);
   int getConfigFromCCDB();
   int getScalersFromCCDB();
   int loadScalerNames();
@@ -178,7 +180,9 @@ class CTPRunManager
   std::array<uint32_t, CTPRunScalers::NCOUNTERS> mCounters;
   std::map<std::string, uint32_t> mScalerName2Position;
   CTPActiveRun* mRunInStart = nullptr;
-  ClassDefNV(CTPRunManager, 1);
+  int mEOX = 0; // redundancy check
+  int mCtpcfg = 0;
+  ClassDefNV(CTPRunManager, 2);
 };
 } // namespace ctp
 } // namespace o2

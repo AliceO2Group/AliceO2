@@ -78,8 +78,6 @@ class MFTDCSDataProcessor : public o2::framework::Task
 
       auto& mgr = CcdbManager::instance();
       mgr.setURL(o2::base::NameConf::getCCDBServer());
-      CcdbApi api;
-      api.init(mgr.getURL());
       long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
       std::unordered_map<DPID, std::string>* dpid2DataDesc = mgr.getForTimeStamp<std::unordered_map<DPID, std::string>>("MFT/Config/DCSDPconfig", ts);
       for (auto& i : *dpid2DataDesc) {
@@ -148,7 +146,6 @@ class MFTDCSDataProcessor : public o2::framework::Task
 
     auto timeNow = HighResClock::now();
     Duration elapsedTime = timeNow - mTimer; // in seconds
-
     if (elapsedTime.count() >= mDPsUpdateInterval) {
       sendDPsoutput(pc.outputs());
       mTimer = timeNow;
@@ -185,8 +182,7 @@ class MFTDCSDataProcessor : public o2::framework::Task
     }
 
     if (tend == -1) {
-      constexpr long SECONDSPERYEAR = 365 * 24 * 60 * 60;
-      tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
+      tend = tstart + o2::ccdb::CcdbObjectInfo::MONTH;
     }
 
     info.setStartValidityTimestamp(tstart);

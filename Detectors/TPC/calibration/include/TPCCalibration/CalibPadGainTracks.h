@@ -95,7 +95,8 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   ~CalibPadGainTracks() = default;
 
   /// processes input tracks and filling the histograms with self calibrated probe qMax/dEdx
-  void processTracks();
+  /// \param nMaxTracks max number of tracks to process (-1 to process all tracks)
+  void processTracks(const int nMaxTracks = -1);
 
   /// set the member variables
   /// \param vTPCTracksArrayInp vector of tpc tracks
@@ -194,7 +195,7 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   gsl::span<const TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr};                     ///<! input vector with TPC tracks cluster indicies
   const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr};                         ///<! needed to access clusternative with tpctracks
   std::vector<unsigned char> mBufVec;                                                 ///<! buffer for filling shared cluster map
-  unsigned char* mClusterShMapTPC{nullptr};                                           ///< externally set TPC clusters sharing map
+  unsigned char* mClusterShMapTPC{nullptr};                                           ///<! externally set TPC clusters sharing map
   DEdxType mMode = dedxTrack;                                                         ///< normalization type: type=DedxTrack use truncated mean, type=DedxBB use value from BB fit
   DEdxRegion mDedxRegion = stack;                                                     ///<  using the dE/dx per chamber, stack or per sector
   float mField{-5};                                                                   ///< Magnetic field in kG, used for track propagation
@@ -206,6 +207,7 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   ChargeType mChargeType{ChargeType::Max};                                            ///< charge type which is used for calculating the dE/dx and filling the pad-by-pad histograms
   std::vector<std::vector<float>> mDEdxBuffer{};                                      ///<! memory for dE/dx
   std::vector<std::tuple<unsigned char, unsigned char, unsigned char, float>> mClTrk; ///<! memory for cluster informations
+  std::vector<float> mDedxTmp{};                                                      ///<! memory for dE/dx calculation
   std::unique_ptr<CalPad> mGainMapRef;                                                ///<! static Gain map object used for correcting the cluster charge
   std::unique_ptr<CalibdEdxTrackTopologyPol> mCalibTrackTopologyPol;                  ///<! calibration container for the cluster charge
   std::unique_ptr<o2::gpu::TPCFastTransform> mFastTransform;                          ///<! fast transform for refitting the track
@@ -228,10 +230,9 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   float getTrackTopologyCorrectionPol(const o2::tpc::TrackTPC& track, const o2::tpc::ClusterNative& cl, const unsigned int region, const float charge) const;
 
   /// get the truncated mean for input vector and the truncation range low*nCl<nCl<high*nCl
-  /// \param vCharge vector containing all qmax values of the track
   /// \param low lower cluster cut of  0.05*nCluster
   /// \param high higher cluster cut of  0.6*nCluster
-  std::vector<float> getTruncMean(std::vector<std::vector<float>>& vCharge, float low = 0.05f, float high = 0.6f) const;
+  void getTruncMean(float low = 0.05f, float high = 0.6f);
 
   /// Helper function for drawing the reference gain map
   void drawRefGainMapHelper(const bool type, const Sector sector, const std::string filename, const float minZ, const float maxZ) const;

@@ -84,14 +84,14 @@ BOOST_AUTO_TEST_CASE(test_DPLRawPageSequencer)
     return reinterpret_cast<test::RAWDataHeader const*>(left)->feeId == reinterpret_cast<test::RAWDataHeader const*>(right)->feeId;
   };
   std::vector<std::pair<const char*, size_t>> pages;
-  auto insertPages = [&pages](const char* ptr, size_t n) -> void {
+  auto insertPages = [&pages](const char* ptr, size_t n, uint32_t subSpec) -> void {
     pages.emplace_back(ptr, n);
   };
   parser(isSameRdh, insertPages);
 
   // a second parsing step based on forward search
   std::vector<std::pair<const char*, size_t>> pagesByForwardSearch;
-  auto insertForwardPages = [&pagesByForwardSearch](const char* ptr, size_t n) -> void {
+  auto insertForwardPages = [&pagesByForwardSearch](const char* ptr, size_t n, uint32_t subSpec) -> void {
     pagesByForwardSearch.emplace_back(ptr, n);
   };
   DPLRawPageSequencer(inputs).forward(isSameRdh, insertForwardPages);

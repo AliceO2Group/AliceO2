@@ -52,6 +52,7 @@ void SimParam::PrintStream(std::ostream& stream) const
   stream << "\nEMCal::SimParam.mRemoveDigitsBelowThreshold = " << ((mRemoveDigitsBelowThreshold) ? "true" : "false");
   stream << "\nEMCal::SimParam.mSimulateNoiseDigits = " << ((mSimulateNoiseDigits) ? "true" : "false");
   stream << "\nEMCal::SimParam.mDisablePileup = " << ((mDisablePileup) ? "true" : "false");
+  stream << "\nEMCal::SimParam.mSimulateL1Phase = " << ((mSimulateL1Phase) ? "true" : "false");
 }
 
 Double_t SimParam::getTimeResolution(Double_t energy) const

@@ -109,7 +109,7 @@ class Mapping
   ErrorStatus setMapping();
 
   // Select TRU readout channels or TRU flag channels
-  static bool isTRUReadoutchannel(short hwAddress) { return (hwAddress < 112) || (hwAddress > 2048 && hwAddress < 2048 + 112); }
+  static bool isTRUReadoutchannel(short hwAddress) { return (hwAddress < 112) || (hwAddress >= 2048 && hwAddress < 2048 + 112); }
 
  protected:
   Mapping() = default;

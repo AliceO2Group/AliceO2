@@ -117,7 +117,7 @@ void CruRawReader::OutputHalfCruRawData()
 void CruRawReader::dumpRDHAndNextHeader(const o2::header::RDHAny* rdh)
 {
   LOG(info) << "######################### Dumping RDH incoming buffer ##########################";
-  o2::raw::RDHUtils::printRDH(rdh);
+  //  o2::raw::RDHUtils::printRDH(rdh);
   LOG(info) << "Now for the buffer breakdown";
   auto offsetToNext = o2::raw::RDHUtils::getOffsetToNext(rdh);
   for (int i = 0; i < offsetToNext / 4; ++i) {
@@ -140,15 +140,19 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
   auto rdh = mDataRDH;
   auto preceedingrdh = rdh;
   uint32_t totaldataread = 0;
+  if (mHeaderVerbose) {
+    LOG(info) << " mem : " << o2::raw::RDHUtils::getMemorySize(rdh) << " headersize : " << o2::raw::RDHUtils::getHeaderSize(rdh);
+  }
   mState = CRUStateHalfCRUHeader;
   uint32_t currentsaveddatacount = 0;
   mTotalHBFPayLoad = 0;
   int loopcount = 0;
+  int counthalfcru = 0;
+  mHBFoffset32 = 0;
   // loop until RDH stop header
   while (!o2::raw::RDHUtils::getStop(rdh)) { // carry on till the end of the event.
     if (mHeaderVerbose) {
       LOG(info) << "----------------------------------------------";
-      LOG(info) << "--- RDH open/continue detected loopcount :" << loopcount;
       LOG(info) << " rdh first word 0x" << std::hex << (uint32_t)*mDataPointer;
       LOG(info) << " rdh first word is sitting at 0x" << std::hex << (void*)mDataPointer;
       o2::raw::RDHUtils::printRDH(rdh);
@@ -188,7 +192,7 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
         LOG(info) << "Next rdh is not a stop, and has a header size of " << o2::raw::RDHUtils::getHeaderSize(rdh) << " and memsize of : " << o2::raw::RDHUtils::getMemorySize(rdh);
         LOG(info) << "rdh 0x" << (void*)rdh << " bufsize:" << mDataBufferSize << " payload start: 0x" << (void*)&mHBFPayload[0] << " mHBFoffset32 " << std::dec << mHBFoffset32;
         LOGP(info, " rdh::: {0:08x} {1:08x} {2:08x}  {3:08x} {4:08x} {5:08x} {6:08x} {7:08x} ", *((uint32_t*)rdh), *((uint32_t*)rdh + 1), *((uint32_t*)rdh + 2), *((uint32_t*)rdh + 3), *((uint32_t*)rdh + 4), *((uint32_t*)rdh + 5), *((uint32_t*)rdh + 6), *((uint32_t*)rdh + 7), *((uint32_t*)rdh + 8));
-        o2::raw::RDHUtils::printRDH(rdh);
+        //      o2::raw::RDHUtils::printRDH(rdh);
       } else {
         LOG(info) << "Next rdh is a stop, and we have moved to it.";
       }
@@ -215,10 +219,7 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
   }
 
   // at this point the entire HBF data payload is sitting in mHBFPayload and the total data count is mTotalHBFPayLoad
-  int counthalfcru = 0;
-  mHBFoffset32 = 0;
-
-  while ((mHBFoffset32 < ((mTotalHBFPayLoad) / 4))) { // the blank event of eeeeee at the end
+  while ((mHBFoffset32 < ((mTotalHBFPayLoad) / 4))) {
     if (mHeaderVerbose) {
       LOG(info) << "Looping over cruheaders in HBF, loop count " << counthalfcru << " current offset is" << mHBFoffset32 << " total payload is " << mTotalHBFPayLoad / 4 << "  raw :" << mTotalHBFPayLoad;
     }
@@ -233,22 +234,24 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
           break;
         case 1:
           LOG(info) << "all good parsing half cru";
+          LOG(info) << " mHBFoffset32:" << mHBFoffset32 << " and mTotalHBFPayload/4 : " << mTotalHBFPayLoad / 4;
           break;
         case 2:
           LOG(info) << "all good parsing half cru was blank double 0xe event";
           break;
-        default:
-          return true;
+          //        default:
+          //          return true;
       }
     }
     //take care of the case where there is an "empty" rdh containing all 0xeeeeeeee as payload.
-    if (mTotalHBFPayLoad / 4 - mHBFoffset32 == 8 && mHBFPayload[mHBFoffset32 + 7] == o2::trd::constants::CRUPADDING32) {
-      mHBFoffset32 += 8;
+    //    if (mTotalHBFPayLoad / 4 - mHBFoffset32 == 8 && mHBFPayload[mHBFoffset32 + 7] == o2::trd::constants::CRUPADDING32) {
+    //      mHBFoffset32 += 8;
+    //    }
+    if (halfcruprocess == -2) {
+      //dump rest of this rdh payload, something screwed up.
+      mHBFoffset32 = mTotalHBFPayLoad / 4;
     }
     counthalfcru++;
-    if (counthalfcru == 1) {
-      break;
-    }
   } // loop of halfcru's while there is still data in the heart beat frame.
   if (totaldataread > 0) {
     mDatareadfromhbf = totaldataread;
@@ -449,6 +452,22 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
   mTotalHalfCRUDataLength = mTotalHalfCRUDataLength256 * 32; //convert to bytes.
   int mTotalHalfCRUDataLength32 = mTotalHalfCRUDataLength256 * 8; //convert to bytes.
 
+  //can this half cru length fit into the available space of the rdh accumulated payload
+  if (mTotalHalfCRUDataLength32 > mTotalHBFPayLoad - mHBFoffset32) {
+    if (mMaxErrsPrinted > 0) {
+      LOG(error) << "Next HalfCRU header says it contains more data than in the rdh payloads! " << mTotalHalfCRUDataLength32 << " < " << mTotalHBFPayLoad << "-" << mHBFoffset32;
+      checkNoErr();
+    }
+    return -2;
+  }
+  if (halfCRUHeaderSanityCheck(mCurrentHalfCRUHeader, mCurrentHalfCRULinkLengths, mCurrentHalfCRULinkErrorFlags)) {
+    if (mMaxErrsPrinted > 0) {
+      LOG(error) << "HalfCRU header failed sanity check";
+      checkNoErr();
+    }
+    return -2;
+  }
+
   //get eventrecord for event we are looking at
   mIR.bc = mCurrentHalfCRUHeader.BunchCrossing; // correct mIR to have the physics trigger bunchcrossing *NOT* the heartbeat trigger bunch crossing.
   InteractionRecord trdir(mIR);
@@ -481,7 +500,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
       LOG(info) << "******* LINK # " << currentlinkindex;
     }
     //disaster dump the rest of this hbf
-    return 42;
+    return -2;
   }
 
   // verify cru header vs rdh header
@@ -756,6 +775,13 @@ bool CruRawReader::run()
     if (!goodprocessing) {
       //processHBFs returned false, get out of here ...
       LOG(error) << "Error processing heart beat frame ... good luck";
+      break;
+    }
+    if (totaldataread == 0) {
+      if (mMaxWarnPrinted > 0) {
+        LOG(warn) << "EEE  we read zero data but bailing out of here for now.";
+        checkNoWarn();
+      }
       break;
     }
   } while (((char*)mDataPointer - mDataBuffer) < mDataBufferSize);

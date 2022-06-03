@@ -29,5 +29,6 @@
 #pragma link C++ class o2::emcal::FeeDCS + ;
 #pragma link C++ class o2::emcal::ElmbData + ;
 #pragma link C++ class o2::emcal::ElmbMeasurement + ;
+#pragma link C++ class o2::emcal::EMCALChannelScaleFactors + ;
 
 #endif

@@ -60,10 +60,6 @@ TEveGeoShape* GeometryManager::getGeometryForDetector(string detectorName)
   f->Close();
 
   geomShape->SetName(detectorName.c_str());
-  // tricks for different R-Phi geom of TPC:
-  if (detectorName == "RPH") { // use all other parameters of regular TPC geom
-    detectorName = "TPC";
-  }
 
   // prepare geometry to be drawn including all children
   drawDeep(geomShape,
@@ -88,7 +84,7 @@ void GeometryManager::drawDeep(TEveGeoShape* geomShape, Color_t color, Char_t tr
       }
       if (lineColor >= 0) {
         geomShape->SetLineColor(lineColor);
-        geomShape->SetLineWidth(0.1);
+        geomShape->SetLineWidth(1); // 0.1
         geomShape->SetDrawFrame(true);
       } else {
         geomShape->SetDrawFrame(false);
@@ -108,7 +104,7 @@ void GeometryManager::drawDeep(TEveGeoShape* geomShape, Color_t color, Char_t tr
     }
     if (lineColor >= 0) {
       geomShape->SetLineColor(lineColor);
-      geomShape->SetLineWidth(0.1);
+      geomShape->SetLineWidth(1); // 0.1
       geomShape->SetDrawFrame(true);
     } else {
       geomShape->SetDrawFrame(false);

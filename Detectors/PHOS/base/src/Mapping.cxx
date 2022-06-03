@@ -62,7 +62,8 @@ Mapping::ErrorStatus Mapping::hwToAbsId(short ddl, short hwAddr, short& absId, C
   if (ddl < 0 || ddl > 14) {
     return kWrongDDL;
   }
-  if ((hwAddr >= 112 && hwAddr < 128) || (hwAddr >= 2159 && hwAddr < 2176)) { //TRU flags
+
+  if ((hwAddr >= 112 && hwAddr < 128) || (hwAddr >= 2159 && hwAddr < 2176)) { // TRU flags
     caloFlag = kTRU;
     absId = -1;
     return kOK;
@@ -71,11 +72,14 @@ Mapping::ErrorStatus Mapping::hwToAbsId(short ddl, short hwAddr, short& absId, C
     return kWrongHWAddress;
   }
 
-  //transform
+  // transform
   absId = mAbsId[ddl][hwAddr];
   caloFlag = mCaloFlag[ddl][hwAddr];
 
-  if (absId > NCHANNELS || absId <= 1792) {
+  if (caloFlag == 2) {
+    absId += NCHANNELS;
+  }
+  if (caloFlag < 2 && (absId > NCHANNELS || absId <= 1792)) {
     absId = 0;
     return kWrongHWAddress;
   }
@@ -96,8 +100,9 @@ Mapping::ErrorStatus Mapping::absIdTohw(short absId, short caloFlag, short& ddl,
       hwAddr = 0;
       return kWrongAbsId;
     }
-  } else {
-    if (absId < 0 || absId > NTRUReadoutChannels) {
+  } else { // TRU: absId goes after readout ones
+    absId -= NCHANNELS;
+    if (absId < 1 || absId > NTRUReadoutChannels) {
       ddl = 0;
       hwAddr = 0;
       return kWrongAbsId;
@@ -116,20 +121,20 @@ Mapping::ErrorStatus Mapping::absIdTohw(short absId, short caloFlag, short& ddl,
 //_______________________________________________________
 Mapping::ErrorStatus Mapping::setMapping()
 {
-  //Read mapping from data files a-la Run2
+  // Read mapping from data files a-la Run2
 
   std::string p;
-  if (mPath.empty()) { //use default path
+  if (mPath.empty()) { // use default path
     p = gSystem->Getenv("O2_ROOT");
     p += "/share/Detectors/PHOS/files";
   } else {
     p = mPath.data();
   }
 
-  for (short m = 0; m < 4; m++) {   //modules
-    for (short i = 0; i < 4; i++) { //RCU
+  for (short m = 0; m < 4; m++) {   // modules
+    for (short i = 0; i < 4; i++) { // RCU
       if (m == 0 && (i < 2)) {
-        continue; //half of module: only RCU 2,3
+        continue; // half of module: only RCU 2,3
       }
 
       short numberOfChannels = 0;
@@ -177,11 +182,11 @@ Mapping::ErrorStatus Mapping::setMapping()
           return kNotInitialized;
         }
 
-        //convert ddl, col,raw caloFlag to AbsId
-        // Converts the absolute numbering into the following array
-        //  relid[0] = PHOS Module number
-        //  relid[1] = Row number inside a PHOS module (Phi coordinate)
-        //  relid[2] = Column number inside a PHOS module (Z coordinate)
+        // convert ddl, col,raw caloFlag to AbsId
+        //  Converts the absolute numbering into the following array
+        //   relid[0] = PHOS Module number
+        //   relid[1] = Row number inside a PHOS module (Phi coordinate)
+        //   relid[2] = Column number inside a PHOS module (Z coordinate)
         short ddl = 4 * m + i - 2;
         if (ddl < 0 || ddl >= NDDL) {
           LOG(fatal) << "Wrong ddl address found (" << ddl << "). Module= " << m << " RCU =" << i;
@@ -189,17 +194,17 @@ Mapping::ErrorStatus Mapping::setMapping()
         }
 
         short absId;
-        if (caloFlag < 2) { //readout channels
+        if (caloFlag < 2) { // readout channels
           char relid[3] = {static_cast<char>(m + 1), static_cast<char>(row + 1), static_cast<char>(col + 1)};
           Geometry::relToAbsNumbering(relid, absId);
-        } else { //TRU channels
+        } else { // TRU channels: internal storage of TRU channesl absId-NCHANNELS
           if (isTRUReadoutchannel(hwAddress)) {
-            if (hwAddress < 2048) { //branch 28<=z<56
-              absId = ddl * 2 * NTRUBranchReadoutChannels + hwAddress;
-            } else { //branch 0<=z<28
-              absId = (ddl * 2 + 1) * NTRUBranchReadoutChannels + hwAddress - 2048;
+            if (hwAddress < 2048) { // branch 28<=z<56
+              absId = 1 + ddl * 2 * NTRUBranchReadoutChannels + hwAddress;
+            } else { // branch 0<=z<28
+              absId = 1 + (ddl * 2 + 1) * NTRUBranchReadoutChannels + hwAddress - 2048;
             }
-          } else { //TRU flag channels, no absId
+          } else { // TRU flag channels, no absId
             continue;
           }
         }
@@ -210,7 +215,7 @@ Mapping::ErrorStatus Mapping::setMapping()
         mAbsToHW[absId - 1][caloFlag][1] = hwAddress;
       }
       fIn.close();
-    } //RCU
+    } // RCU
   }   // module
   mInitialized = true;
   return kOK;

@@ -70,6 +70,7 @@ class EMCDCSProcessor
 
   CcdbObjectInfo& getccdbELMBinfo() { return mccdbELMBinfo; }
   CcdbObjectInfo& getccdbFeeDCSinfo() { return mccdbFEEcfginfo; }
+  int getRunNumberFromGRP() { return mRunNumberFromGRP; }
 
   void updateFeeCCDBinfo();
   void updateElmbCCDBinfo();
@@ -82,11 +83,14 @@ class EMCDCSProcessor
 
   void setTF(TFType tf) { mTF = tf; }
   void setElmbCCDBupdateRate(TFType tf) { mElmbCCDBupdateRate = tf; }
+  void setRunNumberFromGRP(int rn) { mRunNumberFromGRP = rn; }
 
  private:
   TFType mTF{0};                    // TF index for processing
   TFType mTFprevELMB{0};            // TF index of previous ELMB data update in CCDB
   TFType mElmbCCDBupdateRate{1000}; // duration (in TF units) for averaging and updating the ELMB data in CCDB
+  bool mVerbose = false;
+  int mRunNumberFromGRP = -2; // Run number from GRP; -1 is the default in RunStatusChecker.h. Here use -2.
 
   std::unordered_map<DPID, bool> mPids;                   // contains all PIDs for the processor, the bool
                                                           // will be true if the DP was processed at least once
@@ -102,13 +106,10 @@ class EMCDCSProcessor
   std::unique_ptr<ElmbData> mELMBdata;
 
   o2::emcal::TriggerSTUDCS mSTU;
-  //o2::emcal::TriggerTRUDCS mTRU;
-  TriggerTRUDCS mTRU;
+  o2::emcal::TriggerTRUDCS mTRU;
 
   void FillFeeDP(const DPCOM& dpcom);
   void FillElmbDP(const DPCOM& dpcom);
-
-  bool mVerbose = false;
 
   ClassDefNV(EMCDCSProcessor, 1);
 };
@@ -125,7 +126,7 @@ void EMCDCSProcessor::prepareCCDBobjectInfo(const T& obj, CcdbObjectInfo& info, 
   info.setObjectType(clName);
   info.setFileName(flName);
   info.setStartValidityTimestamp(tf);
-  info.setEndValidityTimestamp(o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  info.setEndValidityTimestamp(tf + o2::ccdb::CcdbObjectInfo::MONTH);
   info.setMetaData(md);
 }
 

@@ -32,8 +32,8 @@ class TRDTrackletTransformerSpec : public o2::framework::Task
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
 
-  bool mTrigRecFilterActive; ///< if true, transform only TRD tracklets for which ITS data is available
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
+  bool mTrigRecFilterActive; ///< if true, transform only TRD tracklets for which ITS data is available
   TrackletTransformer mTransformer;
 };
 

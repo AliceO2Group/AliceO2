@@ -62,6 +62,7 @@ class GeneratorHepMC : public Generator
   /** setters **/
   void setVersion(Int_t val) { mVersion = val; };
   void setFileName(std::string val) { mFileName = val; };
+  void setEventsToSkip(uint64_t val) { mEventsToSkip = val; };
 
  protected:
   /** copy constructor **/
@@ -80,6 +81,7 @@ class GeneratorHepMC : public Generator
   std::ifstream mStream; //!
   std::string mFileName;
   Int_t mVersion;
+  uint64_t mEventsToSkip;
 #ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
   HepMC::Reader* mReader;  //!
   HepMC::GenEvent* mEvent; //!

@@ -248,7 +248,7 @@ endif()
 
 if(BUILD_EVENT_DISPLAY)
   if(CONFIG_GL3W)
-    target_sources(GPUTracking PRIVATE ${GPUTRACKING_DIR}/display/3rdparty/gl3w.c)
+    target_sources(GPUTrackingDisplay PRIVATE ${GPUTRACKING_DIR}/display/3rdparty/gl3w.c)
   endif()
   target_sources(GPUTracking PRIVATE ${GPUTRACKING_DIR}/display/3rdparty/HandMadeMath/HandMadeMathImpl.cxx)
   target_include_directories(GPUTracking SYSTEM PUBLIC ${GPUTRACKING_DIR}/display/3rdparty)

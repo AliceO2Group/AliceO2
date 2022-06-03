@@ -134,3 +134,16 @@ void Diagnostic::getNoisyMap(Bool_t* output, int noisyThr) const
     }
   }
 }
+
+bool Diagnostic::isNoisyChannel(int channel, int thr) const
+{
+  static const ULong64_t addMask[3] = {0, 1 << 19, 3 << 19};
+  ULong64_t mask = getNoisyChannelKey(channel);
+  for (int i = thr; i <= 2; i++) {
+    if (getFrequency(mask + addMask[i])) {
+      return true;
+    }
+  }
+
+  return false;
+}

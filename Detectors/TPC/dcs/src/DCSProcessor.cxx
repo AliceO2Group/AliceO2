@@ -152,12 +152,12 @@ void DCSProcessor::fitTemperature(Side side)
 
       LOGP(debug, "sensor {}, start {}, size {}", sensor.sensorNumber, startPos[iSensor], sensor.data.size());
       while (startPos[iSensor] < sensor.data.size()) {
-        nextInterval = true;
         const auto& dataPoint = sensor.data[startPos[iSensor]];
         if ((dataPoint.time - refTime) >= mFitInterval) {
           LOGP(debug, "sensor {}, {} - {} >= {}", sensor.sensorNumber, dataPoint.time, refTime, mFitInterval);
           break;
         }
+        nextInterval = true;
         firstTime = std::min(firstTime, dataPoint.time);
         const auto temperature = dataPoint.value;
         // sanity check

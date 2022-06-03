@@ -6,14 +6,13 @@ if [ "0$1" != "0dd" ] && [ "0$1" != "0rr" ]; then
 fi
 
 if [[ -z "${WORKFLOW_PARAMETERS+x}" ]]; then
-  export WORKFLOW_PARAMETERS="CALIB,QC"
-  [[ -z "${WORKFLOW_DETECTORS_QC}" ]] && export WORKFLOW_DETECTORS_QC="ITS,TRD,TOF,MFT,MCH,MID,EMC,PHS,CPV,FT0,FV0,FDD,ZDC"
+  export WORKFLOW_PARAMETERS="CALIB,QC,EVENT_DISPLAY"
   if [[ -z "${GEN_TOPO_WORKDIR}" ]]; then
     mkdir -p gen_topo_tmp
     export GEN_TOPO_WORKDIR=`pwd`/gen_topo_tmp
   fi
 fi
-[[ -z "${SEVERITY}" ]] && export SEVERITY="error"
+[[ -z "${SEVERITY}" ]] && export SEVERITY="important"
 
 MYDIR="$(dirname $(realpath $0))"
 source $MYDIR/setenv.sh
@@ -21,8 +20,8 @@ source $MYDIR/setenv.sh
 # This sets up the hardcoded configuration to run the full system workflow on the EPN
 export NGPUS=4
 export GPUTYPE=HIP
-export SHMSIZE=$(( 128 << 30 ))
-export DDSHMSIZE=$(( 128 << 10 ))
+export SHMSIZE=$(( 112 << 30 ))
+export DDSHMSIZE=$(( 112 << 10 ))
 export GPUMEMSIZE=$(( 24 << 30 ))
 export NUMAGPUIDS=1
 export EXTINPUT=1

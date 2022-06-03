@@ -276,11 +276,11 @@ class ClusterFactory
 
   // searches for the local maxima
   // energy above relative level
-  //int getNumberOfLocalMax(int nInputMult,
+  // int getNumberOfLocalMax(int nInputMult,
   //                        float locMaxCut, gsl::span<InputType> inputs) const;
 
-  //int getNumberOfLocalMax(std::vector<InputType>& maxAt, std::vector<float>& maxAtEnergy,
-  //                        float locMaxCut, gsl::span<InputType> inputs) const;
+  // int getNumberOfLocalMax(std::vector<InputType>& maxAt, std::vector<float>& maxAtEnergy,
+  //                         float locMaxCut, gsl::span<InputType> inputs) const;
 
   bool sharedCluster() const { return mSharedCluster; }
   void setSharedCluster(bool s) { mSharedCluster = s; }
@@ -312,6 +312,10 @@ class ClusterFactory
   {
     return mClustersContainer.size();
   }
+
+  /// \brief Initialize Cluster Factory with geometry
+  /// \param geometry EMCAL geometry
+  void setGeometry(o2::emcal::Geometry* geometry) { mGeomPtr = geometry; }
 
  protected:
   ///
@@ -367,4 +371,4 @@ class ClusterFactory
 
 } // namespace emcal
 } // namespace o2
-#endif //ALICEO2_EMCAL_CLUSTERFACTORY_H_
+#endif // ALICEO2_EMCAL_CLUSTERFACTORY_H_

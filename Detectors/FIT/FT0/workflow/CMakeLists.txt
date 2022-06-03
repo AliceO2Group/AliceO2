@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 CHECK_CXX_COMPILER_FLAG("-mavx512f -mavx512vl -mavx512bw -mavx512dq" FT0_DECODER_AVX512_GOOD_FLAGS)
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND FT0_DECODER_AVX512_GOOD_FLAGS)
+if((DEFINED ENV{O2_BUILD_FOR_FLP}) AND (CMAKE_SYSTEM_NAME STREQUAL "Linux") AND FT0_DECODER_AVX512_GOOD_FLAGS)
 add_definitions(-DFT0_DECODER_AVX512)
 o2_add_library(FT0Workflow
                SOURCES src/RecoWorkflow.cxx

@@ -235,12 +235,16 @@ struct GroupSlicer {
         } else {
           pos = position;
         }
+
         if constexpr (!framework::is_specialization_v<std::decay_t<A1>, soa::SmallGroups>) {
+          // optimized split
           if (originalTable.size() == 0) {
             return originalTable;
           }
-          // optimized split
           if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
+            if (groups[index].empty()) {
+              return std::decay_t<A1>{{makeEmptyTable<A1>("empty")}, soa::SelectionVector{}};
+            }
             auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
 
             // for each grouping element we need to slice the selection vector
@@ -256,7 +260,11 @@ struct GroupSlicer {
             std::decay_t<A1> typedTable{{groupedElementsTable}, std::move(slicedSelection), (offsets[index])[pos]};
             typedTable.bindInternalIndicesTo(&originalTable);
             return typedTable;
+
           } else {
+            if (groups[index].empty()) {
+              return std::decay_t<A1>{{makeEmptyTable<A1>("empty")}};
+            }
             auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
             std::decay_t<A1> typedTable{{groupedElementsTable}, (offsets[index])[pos]};
             typedTable.bindInternalIndicesTo(&originalTable);
@@ -265,9 +273,6 @@ struct GroupSlicer {
         } else {
           //generic split
           if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
-            if (originalTable.tableSize() == 0) {
-              return originalTable;
-            }
             // intersect selections
             o2::soa::SelectionVector s;
             if (selections[index]->empty()) {
@@ -283,7 +288,7 @@ struct GroupSlicer {
           }
         }
       } else {
-        return std::get<A1>(*mAt);
+        return originalTable;
       }
     }
 

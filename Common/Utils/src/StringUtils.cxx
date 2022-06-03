@@ -15,7 +15,7 @@
 
 using namespace o2::utils;
 
-std::vector<std::string> Str::tokenize(const std::string& src, char delim, bool trimToken)
+std::vector<std::string> Str::tokenize(const std::string& src, char delim, bool trimToken, bool skipEmpty)
 {
   std::stringstream ss(src);
   std::string token;
@@ -25,7 +25,7 @@ std::vector<std::string> Str::tokenize(const std::string& src, char delim, bool 
     if (trimToken) {
       trim(token);
     }
-    if (!token.empty()) {
+    if (!token.empty() || !skipEmpty) {
       tokens.push_back(std::move(token));
     }
   }

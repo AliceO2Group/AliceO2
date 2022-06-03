@@ -16,7 +16,7 @@
 #include <boost/program_options.hpp>
 #include "Framework/FairOptionsRetriever.h"
 #include "Framework/ConfigParamStore.h"
-#include <fairmq/options/FairMQProgOptions.h>
+#include <fairmq/ProgOptions.h>
 #include <boost/property_tree/ptree.hpp>
 
 namespace bpo = boost::program_options;
@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE(TestOptionsRetriever)
     ("aNested.int", bpo::value<int>()->default_value(2))                  //
     ("aNested.float", bpo::value<float>()->default_value(3.f));           //
 
-  FairMQProgOptions* options = new FairMQProgOptions();
+  fair::mq::ProgOptions* options = new fair::mq::ProgOptions();
   options->AddToCmdLineOptions(testOptions);
   options->ParseAll({"cmd", "--aFloat", "1.0",
                      "--aDouble", "2.0",
@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(TestOptionsDefaults)
     ("aNested.int", bpo::value<int>()->default_value(2))                  //
     ("aNested.float", bpo::value<float>()->default_value(3.f));           //
 
-  FairMQProgOptions* options = new FairMQProgOptions();
+  fair::mq::ProgOptions* options = new fair::mq::ProgOptions();
   options->AddToCmdLineOptions(testOptions);
   options->ParseAll({"cmd"}, true);
   std::vector<ConfigParamSpec> specs{

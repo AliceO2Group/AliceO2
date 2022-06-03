@@ -9,13 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_WORKFLOW_CLUSTER_TRANSFORMER_SPEC_H
-#define O2_MCH_WORKFLOW_CLUSTER_TRANSFORMER_SPEC_H
-#include "Framework/DataProcessorSpec.h"
+/// \file  TPCFastSpaceChargeCorrectionMap.cxx
+/// \brief Implementation of TPCFastSpaceChargeCorrectionMap class
+///
+/// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
-namespace o2::mch
-{
-o2::framework::DataProcessorSpec getClusterTransformerSpec(const char* specName = "mch-cluster-transformer");
-};
-
-#endif
+#include "TPCFastSpaceChargeCorrectionMap.h"
+#include "GPUCommonLogger.h"

@@ -113,7 +113,7 @@ The GUI provides the following facilities:
 
 ### Integrating with non-DPL devices
 
-Given the Data Processing Layer comes somewhat later in the design of O2, it's possible that you already have some topology of devices which you want to integrate, without having to port them to the DPL itself. Alternatively, your devices might not satisfy the requirements of the Data Processing Layer and therefore require a "raw" `FairMQDevice`, fully customised to your needs. This is fully supported and we provide means to ingest foreign, non-DPL FairMQDevices produced, messages into a DPL workflow. This is done via the help of a "proxy" data processor which connects to the foreign device, receives its inputs, optionally converts them to a format understood by the Data Processing Layer, and then pumps them to the right Data Processor Specs. In order to have such a device in your workflow, you can use the [`specifyExternalFairMQDeviceProxy`][specifyExternalFairMQDeviceProxy] helper to instanciate it. For an example of how to use it you can look at
+Given the Data Processing Layer comes somewhat later in the design of O2, it's possible that you already have some topology of devices which you want to integrate, without having to port them to the DPL itself. Alternatively, your devices might not satisfy the requirements of the Data Processing Layer and therefore require a "raw" `fair::mq::Device`, fully customised to your needs. This is fully supported and we provide means to ingest foreign, non-DPL FairMQ devices produced, messages into a DPL workflow. This is done via the help of a "proxy" data processor which connects to the foreign device, receives its inputs, optionally converts them to a format understood by the Data Processing Layer, and then pumps them to the right Data Processor Specs. In order to have such a device in your workflow, you can use the [`specifyExternalFairMQDeviceProxy`][specifyExternalFairMQDeviceProxy] helper to instanciate it. For an example of how to use it you can look at
 [`Framework/TestWorkflows/src/test_RawDeviceInjector.cxx`][rawDeviceInjectorExample]. The `specifyExternalFairMQDeviceProxy` takes four arguments:
 
 ```cpp
@@ -268,6 +268,23 @@ InputSpec{"*", "CLUSTERS"}, InputSpec{"*", "TRACKS"}
 
 i.e. the first message which arrives will define the wildcard for all the other input
 spec in the definition.
+
+## Building a data query by string
+
+The C++ API is not the only way an InputSpec can be constructed. This can be done
+also by string via the `DataDescriptorQueryBuilder::parse` method. E.g.:
+
+
+```cpp
+DataDescriptorQueryBuilder::parse("label:orig/description/0?lifetime=condition");
+```
+
+is equivalent of:
+
+```cpp
+InputSpec{"label", "orig", "description", 0, Lifetime::Condition};
+```
+
 
 ### Data flow parallelism
 

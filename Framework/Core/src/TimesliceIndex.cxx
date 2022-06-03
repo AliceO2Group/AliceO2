@@ -166,4 +166,9 @@ TimesliceIndex::OldestOutputInfo TimesliceIndex::updateOldestPossibleOutput()
   return result;
 }
 
+InputChannelInfo const& TimesliceIndex::getChannelInfo(ChannelIndex channel) const
+{
+  return mChannels[channel.value];
+}
+
 } // namespace o2::framework

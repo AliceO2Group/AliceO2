@@ -74,8 +74,8 @@ VisualisationEvent::GIDVisualisation VisualisationEvent::mVis = [] {
       res.contains[o2::dataformats::GlobalTrackID::MFTMCHMID][filter] = true;
     }
     if (filter == o2::event_visualisation::EVisualisationGroup::MID) {
-      res.contains[o2::dataformats::GlobalTrackID::MCH][filter] = true;
-      res.contains[o2::dataformats::GlobalTrackID::MFTMCH][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::MID][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::MCHMID][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::MFTMCHMID][filter] = true;
     }
     if (filter == o2::event_visualisation::EVisualisationGroup::EMC) {
@@ -99,6 +99,13 @@ VisualisationEvent::VisualisationEvent(VisualisationEventVO vo)
   this->mCollisionTime = vo.collisionTime;
   this->mMinTimeOfTracks = numeric_limits<float>::max();
   this->mMaxTimeOfTracks = numeric_limits<float>::min();
+}
+
+void VisualisationEvent::appendAnotherEventCalo(const VisualisationEvent& another)
+{
+  for (auto calo : another.getCalorimetersSpan()) {
+    this->mCalo.push_back(calo);
+  }
 }
 
 VisualisationEvent::VisualisationEvent(const VisualisationEvent& source, EVisualisationGroup filter, float minTime, float maxTime)

@@ -43,13 +43,13 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
   // Apply time smearing
 
   if (!mCalibParams) {
-    //By default MC simulations are performed with realistic but not real calibration parameters
-    //This allows to account digitization detorioration and revert energy assuming ideal calibration
-    //or one can use modified calibration in clusterer to emulate inaccuracy of calibration.
-    //However, one can request digitization with special calibration parameters, e.g. real ones
-    //by pointing to proper CCDB
+    // By default MC simulations are performed with realistic but not real calibration parameters
+    // This allows to account digitization detorioration and revert energy assuming ideal calibration
+    // or one can use modified calibration in clusterer to emulate inaccuracy of calibration.
+    // However, one can request digitization with special calibration parameters, e.g. real ones
+    // by pointing to proper CCDB
     if (o2::phos::PHOSSimParams::Instance().mDigitizationCalibPath.compare("default") == 0) {
-      //Use default calibration
+      // Use default calibration
       mCalibParams.reset(new CalibParams(1)); // test default calibration
       LOG(info) << "Use default calibration";
     } else {
@@ -81,11 +81,11 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     }
   }
 
-  //Despite sorting in Detector::EndEvent(), hits still can be unsorted due to splitting of processing different bunches of primary
+  // Despite sorting in Detector::EndEvent(), hits still can be unsorted due to splitting of processing different bunches of primary
   for (int i = NCHANNELS; i--;) {
     mArrayD[i].reset();
   }
-  int nBgTrigFirst = digitsOut.size(); //Bg trigger digits will be directly copied to output
+  int nBgTrigFirst = digitsOut.size(); // Bg trigger digits will be directly copied to output
 
   if (digitsBg.size() == 0) { // no digits provided: try simulate noise
     for (int i = NCHANNELS; i--;) {
@@ -98,17 +98,17 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
         mArrayD[i].setAbsId(i + OFFSET);
       }
     }
-  } else {                       //if digits exist, no noise should be added
-    for (auto& dBg : digitsBg) { //digits are sorted and unique
+  } else {                       // if digits exist, no noise should be added
+    for (auto& dBg : digitsBg) { // digits are sorted and unique
       if (dBg.isTRU()) {
-        digitsOut.emplace_back(dBg); //tileId, sum2x2[ix][iz], tt, true, -1);
+        digitsOut.emplace_back(dBg); // tileId, sum2x2[ix][iz], tt, true, -1);
       } else {
         mArrayD[dBg.getAbsId() - OFFSET] = dBg;
       }
     }
   }
 
-  //add Hits
+  // add Hits
   for (auto& h : *hits) {
     short absId = h.GetDetectorID();
     short i = absId - OFFSET;
@@ -122,22 +122,22 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     }
     energy = uncalibrate(energy, absId);
     if (mArrayD[i].getAmplitude() > 0) {
-      //update energy and time
+      // update energy and time
       if (mArrayD[i].isHighGain()) {
         mArrayD[i].addEnergyTime(energy, time);
-        //if overflow occured?
-        if (mArrayD[i].getAmplitude() > o2::phos::PHOSSimParams::Instance().mMCOverflow) { //10bit ADC
+        // if overflow occured?
+        if (mArrayD[i].getAmplitude() > o2::phos::PHOSSimParams::Instance().mMCOverflow) { // 10bit ADC
           float hglgratio = mCalibParams->getHGLGRatio(absId);
           mArrayD[i].setAmplitude(mArrayD[i].getAmplitude() / hglgratio);
           mArrayD[i].setHighGain(false);
         }
-      } else { //digit already in LG
+      } else { // digit already in LG
         float hglgratio = mCalibParams->getHGLGRatio(absId);
         energy /= hglgratio;
         mArrayD[i].addEnergyTime(energy, time);
       }
     } else {
-      mArrayD[i].setHighGain(energy < o2::phos::PHOSSimParams::Instance().mMCOverflow); //10bit ADC
+      mArrayD[i].setHighGain(energy < o2::phos::PHOSSimParams::Instance().mMCOverflow); // 10bit ADC
       if (mArrayD[i].isHighGain()) {
         mArrayD[i].setAmplitude(energy);
       } else {
@@ -147,15 +147,15 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
       mArrayD[i].setTime(time);
       mArrayD[i].setAbsId(absId);
     }
-    //Add MC info
+    // Add MC info
     if (mProcessMC) {
       int labelIndex = mArrayD[i].getLabel();
-      if (labelIndex == -1) { //no digit or noisy
+      if (labelIndex == -1) { // no digit or noisy
         labelIndex = labels.getIndexedSize();
         MCLabel label(h.GetTrackID(), collId, source, false, h.GetEnergyLoss());
         labels.addElement(labelIndex, label);
         mArrayD[i].setLabel(labelIndex);
-      } else { //check if lable already exist
+      } else { // check if lable already exist
         MCLabel label(h.GetTrackID(), collId, source, false, h.GetEnergyLoss());
         gsl::span<MCLabel> sp = labels.getLabels(labelIndex);
         bool found = false;
@@ -167,9 +167,9 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
           }
         }
         if (!found) {
-          //Highly inefficient management of Labels: commenting  line below reeduces WHOLE digitization time by factor ~30
+          // Highly inefficient management of Labels: commenting  line below reeduces WHOLE digitization time by factor ~30
           labels.addElementRandomAccess(labelIndex, label);
-          //sort MCLabels according to eDeposited
+          // sort MCLabels according to eDeposited
           sp = labels.getLabels(labelIndex);
           std::sort(sp.begin(), sp.end(),
                     [](o2::phos::MCLabel a, o2::phos::MCLabel b) { return a.getEdep() > b.getEdep(); });
@@ -179,25 +179,21 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
       mArrayD[i].setLabel(-1);
     }
   }
-  //Calculate trigger tiles 2*2 and 4*4
-  int nBgTrig = digitsOut.size(); //Number of trigger digits copied to output from background
+  // Calculate trigger tiles 2*2 and 4*4
+  int nBgTrig = digitsOut.size(); // Number of trigger digits copied to output from background
   bool mL0Fired = false;
-  const int nDDL = 14;
-  const int nxTRU = 8;
-  const int nzTRU = 28;
-  float sum2x2[nxTRU + 1][nzTRU + 1];
-  float time2x2[nxTRU + 1][nzTRU + 1];
+  float sum2x2[65][57];
+  float time2x2[65][57];
   float tt = 0;
-  for (short iTRU = 0; iTRU < nDDL; iTRU++) {
-    for (short ix = 1; ix <= nxTRU; ix++) {
-      for (short iz = 1; iz <= nzTRU; iz++) {
-        char truRelId[3] = {char(iTRU), char(ix), char(iz)};
-        short tileId = Geometry::truRelToAbsNumbering(truRelId);
+  for (short module = 1; module < 5; module++) {
+    short xmin = (module == 1) ? 33 : 1;
+    for (short ix = xmin; ix < 64; ix++) {
+      for (short iz = 1; iz < 56; iz++) {
+        char relId[3] = {char(module), char(ix), char(iz)};
+        short tileId = Geometry::truRelToAbsNumbering(relId, 0);
         if (!mTrigUtils->isGood2x2(tileId)) {
           continue;
         }
-        char relId[3];
-        Geometry::truRelId2RelId(truRelId, relId);
         short i1, i2, i3, i4;
         Geometry::relToAbsNumbering(relId, i1);
         relId[1] = relId[1] + 1;
@@ -223,16 +219,16 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
         }
         time2x2[ix][iz] = tt;
         if (mTrig2x2) {
-          if (sum2x2[ix][iz] > PHOSSimParams::Instance().mTrig2x2MinThreshold) { //do not test (slow) probability function with soft tiles
-            mL0Fired |= mTrigUtils->isFiredMC2x2(sum2x2[ix][iz], iTRU, short(ix), short(iz));
-            //add TRU digit. Note that only tiles with E>mTrigMinThreshold added!
-            //Check that this tile does not exist yet in Bg
-            //Number of trigger tiles is small, plain loop is OK
+          if (sum2x2[ix][iz] > PHOSSimParams::Instance().mTrig2x2MinThreshold) { // do not test (slow) probability function with soft tiles
+            mL0Fired |= mTrigUtils->isFiredMC2x2(sum2x2[ix][iz], module, short(ix), short(iz));
+            // add TRU digit. Note that only tiles with E>mTrigMinThreshold added!
+            // Check that this tile does not exist yet in Bg
+            // Number of trigger tiles is small, plain loop is OK
             bool added = false;
             for (int ibgTr = nBgTrigFirst; ibgTr < nBgTrig; ibgTr++) {
               Digit& bgTr = digitsOut[ibgTr];
               if (bgTr.getTRUId() == tileId && bgTr.is2x2Tile()) {
-                //assign time to the larger tile
+                // assign time to the larger tile
                 if (sum2x2[ix][iz] > bgTr.getAmplitude()) {
                   bgTr.setTime(tt);
                 }
@@ -242,7 +238,7 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
               }
             }
             if (!added) {
-              digitsOut.emplace_back(tileId, sum2x2[ix][iz], tt, true, -1);
+              digitsOut.emplace_back(tileId, sum2x2[ix][iz], tt, true, -1); // true for 2x2 trigger
             }
           }
         }
@@ -250,37 +246,37 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     }
 
     if (mTrig4x4) {
-      for (short ix = 1; ix < nxTRU; ix++) {
-        for (short iz = 1; iz < nzTRU; iz++) {
-          char truRelId[3] = {char(iTRU), char(ix), char(iz)};
-          short tileId = Geometry::truRelToAbsNumbering(truRelId);
+      for (short ix = xmin; ix < 62; ix++) {
+        for (short iz = 1; iz < 54; iz++) {
+          char relId[3] = {char(module), char(ix), char(iz)};
+          short tileId = Geometry::truRelToAbsNumbering(relId, 1); // 1 for 4x4 trigger
           if (!mTrigUtils->isGood4x4(tileId)) {
             continue;
           }
-          float sum4x4 = sum2x2[ix][iz] + sum2x2[ix][iz + 1] + sum2x2[ix + 1][iz] + sum2x2[ix + 1][iz + 1];
-          if (sum4x4 > PHOSSimParams::Instance().mTrig4x4MinThreshold) { //do not test (slow) probability function with soft tiles
-            mL0Fired |= mTrigUtils->isFiredMC4x4(sum4x4, iTRU, short(ix), short(iz));
-            //Add TRU digit short cell, float amplitude, float time, int label
+          float sum4x4 = sum2x2[ix][iz] + sum2x2[ix][iz + 2] + sum2x2[ix + 2][iz] + sum2x2[ix + 2][iz + 2];
+          if (sum4x4 > PHOSSimParams::Instance().mTrig4x4MinThreshold) { // do not test (slow) probability function with soft tiles
+            mL0Fired |= mTrigUtils->isFiredMC4x4(sum4x4, module, short(ix), short(iz));
+            // Add TRU digit short cell, float amplitude, float time, int label
             tt = time2x2[ix][iz];
             float ampMax = sum2x2[ix][iz];
-            if (sum2x2[ix][iz + 1] > ampMax) {
-              ampMax = sum2x2[ix][iz + 1];
-              tt = sum2x2[ix][iz + 1];
+            if (sum2x2[ix][iz + 2] > ampMax) {
+              ampMax = sum2x2[ix][iz + 2];
+              tt = sum2x2[ix][iz + 2];
             }
-            if (sum2x2[ix + 1][iz] > ampMax) {
-              ampMax = sum2x2[ix + 1][iz];
-              tt = sum2x2[ix + 1][iz];
+            if (sum2x2[ix + 2][iz] > ampMax) {
+              ampMax = sum2x2[ix + 2][iz];
+              tt = sum2x2[ix + 2][iz];
             }
-            if (sum2x2[ix + 1][iz + 1] > ampMax) {
-              tt = sum2x2[ix][iz + 1];
+            if (sum2x2[ix + 2][iz + 2] > ampMax) {
+              tt = sum2x2[ix][iz + 2];
             }
-            //Check that this tile does not exist yet in Bg
-            //Number of trigger tiles is small, plain loop is OK
+            // Check that this tile does not exist yet in Bg
+            // Number of trigger tiles is small, plain loop is OK
             bool added = false;
             for (int ibgTr = nBgTrigFirst; ibgTr < nBgTrig; ibgTr++) {
               Digit& bgTr = digitsOut[ibgTr];
               if (bgTr.getTRUId() == tileId && !bgTr.is2x2Tile()) {
-                //assign time to the larger tile
+                // assign time to the larger tile
                 if (sum2x2[ix][iz] > bgTr.getAmplitude()) {
                   bgTr.setTime(tt);
                 }
@@ -290,7 +286,7 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
               }
             }
             if (!added) {
-              digitsOut.emplace_back(tileId, sum4x4, tt, false, -1);
+              digitsOut.emplace_back(tileId, sum4x4, tt, false, -1); // false for 4x4 trigger tile
             }
           }
         }

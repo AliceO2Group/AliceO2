@@ -63,6 +63,7 @@
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/GeometryFlat.h"
+#include "CommonUtils/VerbosityConfig.h"
 #include <filesystem>
 #include <memory> // for make_shared
 #include <vector>
@@ -308,7 +309,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
     }
 
     auto& callbacks = ic.services().get<CallbackService>();
-    callbacks.set(CallbackService::Id::RegionInfoCallback, [&processAttributes, confParam](FairMQRegionInfo const& info) {
+    callbacks.set(CallbackService::Id::RegionInfoCallback, [&processAttributes, confParam](fair::mq::RegionInfo const& info) {
       if (info.size == 0) {
         return;
       }
@@ -445,13 +446,23 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       if (specconfig.zsDecoder) {
         std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
         auto isSameRdh = [](const char* left, const char* right) -> bool {
-          return o2::raw::RDHUtils::getFEEID(left) == o2::raw::RDHUtils::getFEEID(right);
+          return o2::raw::RDHUtils::getFEEID(left) == o2::raw::RDHUtils::getFEEID(right) && o2::raw::RDHUtils::getDetectorField(left) == o2::raw::RDHUtils::getDetectorField(right);
         };
-        auto insertPages = [&tpcZSmetaPointers, &tpcZSmetaSizes](const char* ptr, size_t count) -> void {
+        auto insertPages = [&tpcZSmetaPointers, &tpcZSmetaSizes](const char* ptr, size_t count, uint32_t subSpec) -> void {
+          if (subSpec == 0xdeadbeef) {
+            auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
+            static int contDeadBeef = 0;
+            if (++contDeadBeef <= maxWarn) {
+              LOGP(alarm, "Found input [TPC/RAWDATA/0xdeadbeef] assuming no payload for all links in this TF{}", contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
+            }
+            return;
+          }
           int rawcru = rdh_utils::getCRU(ptr);
           int rawendpoint = rdh_utils::getEndPoint(ptr);
-          tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(ptr);
-          tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
+          if (o2::raw::RDHUtils::getDetectorField(ptr) == 2) {
+            tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(ptr);
+            tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
+          }
         };
         // the sequencer processes all inputs matching the filter and finds sequences of consecutive
         // raw pages based on the matcher predicate, and calls the inserter for each sequence

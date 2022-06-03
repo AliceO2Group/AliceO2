@@ -24,6 +24,7 @@
 #include "TPCFastTransform.h"
 #include "Rtypes.h"
 #include <functional>
+#include "TPCFastSpaceChargeCorrectionMap.h"
 
 namespace o2
 {
@@ -54,12 +55,35 @@ class TPCFastTransformHelperO2
 
   /// _______________  Main functionality  ________________________
 
-  /// set an external space charge correction in the global coordinates
+  /// set space charge correction in the global coordinates
+  /// as a continious function
+  void setGlobalSpaceChargeCorrection(
+    std::function<void(int roc, double gx, double gy, double gz,
+                       double& dgx, double& dgy, double& dgz)>
+      correctionGlobal);
+
   template <typename F>
-  void setSpaceChargeCorrection(F&& spaceChargeCorrection)
+  void setGlobalSpaceChargeCorrection(F&& correctionGlobal)
   {
-    mSpaceChargeCorrection = spaceChargeCorrection;
-  };
+    std::function<void(int roc, double gx, double gy, double gz,
+                       double& dgx, double& dgy, double& dgz)>
+      f = correctionGlobal;
+    setGlobalSpaceChargeCorrection(f);
+  }
+
+  /// set space charge correction in the local coordinates
+  /// as a continious function
+  template <typename F>
+  void setLocalSpaceChargeCorrection(F&& correctionLocal)
+  {
+    std::function<void(int roc, int irow, double y, double z, double& dx, double& dy, double& dz)> f = correctionLocal;
+    setLocalSpaceChargeCorrection(f);
+  }
+
+  /// set space charge correction in the local coordinates
+  /// as a continious function
+  void setLocalSpaceChargeCorrection(
+    std::function<void(int roc, int irow, double y, double z, double& dx, double& dy, double& dz)> correctionLocal);
 
   /// creates TPCFastTransform object
   std::unique_ptr<TPCFastTransform> create(Long_t TimeStamp);
@@ -69,20 +93,26 @@ class TPCFastTransformHelperO2
 
   /// _______________  Utilities   ________________________
 
+  const TPCFastTransformGeo& getGeometry() { return mGeo; }
+
   void testGeometry(const TPCFastTransformGeo& fastTransform) const;
+
+  TPCFastSpaceChargeCorrectionMap& getCorrectionMap() { return mCorrectionMap; }
 
  private:
   /// initialization
   void init();
-  /// get space charge correction in internal TPCFastTransform coordinates su,sv->dx,du,dv
-  int getSpaceChargeCorrection(int slice, int row, double su, double sv, double& dx, double& du, double& dv);
 
-  static TPCFastTransformHelperO2* sInstance;                                                  ///< singleton instance
-  bool mIsInitialized = 0;                                                                     ///< initialization flag
-  std::function<void(int roc, const double XYZ[3], double dXdYdZ[3])> mSpaceChargeCorrection = nullptr; ///< pointer to an external correction method
-  TPCFastTransformGeo mGeo;                                                                    ///< geometry parameters
+  /// get space charge correction in internal TPCFastTransform coordinates u,v->dx,du,dv
+  void getSpaceChargeCorrection(int slice, int row, o2::gpu::TPCFastSpaceChargeCorrectionMap::CorrectionPoint p, double& su, double& sv, double& dx, double& du, double& dv);
 
-  ClassDefNV(TPCFastTransformHelperO2, 2);
+  static TPCFastTransformHelperO2* sInstance; ///< singleton instance
+  bool mIsInitialized = 0;                    ///< initialization flag
+  TPCFastTransformGeo mGeo;                   ///< geometry parameters
+
+  TPCFastSpaceChargeCorrectionMap mCorrectionMap{0, 0};
+
+  ClassDefNV(TPCFastTransformHelperO2, 3);
 };
 } // namespace tpc
 } // namespace o2

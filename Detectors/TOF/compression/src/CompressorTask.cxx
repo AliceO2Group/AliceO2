@@ -23,7 +23,8 @@
 #include "Framework/InputRecordWalker.h"
 #include "CommonUtils/VerbosityConfig.h"
 
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
+#include <fairmq/Parts.h>
 
 using namespace o2::framework;
 
@@ -63,7 +64,7 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
   auto device = pc.services().get<o2::framework::RawDeviceService>().device();
   auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;
   auto fairMQChannel = outputRoutes.at(0).channel;
-  FairMQParts partsOut;
+  fair::mq::Parts partsOut;
 
   /** to store data sorted by subspec id **/
   std::map<int, std::vector<o2::framework::DataRef>> subspecPartMap;
@@ -81,7 +82,7 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
       if (payloadSize == 0) {
         auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
         if (++contDeadBeef <= maxWarn) {
-          LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+          LOGP(alarm, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
                dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }

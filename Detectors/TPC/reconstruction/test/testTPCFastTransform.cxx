@@ -97,29 +97,52 @@ BOOST_AUTO_TEST_CASE(FastTransform_test1)
 BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
 {
 
-  std::unique_ptr<TPCFastTransform> fastTransform0(TPCFastTransformHelperO2::instance()->create(0));
+  // init some transformation w/o space charge correction
+  // to initialize TPCFastTransformGeo geometry
 
-  auto correctionXUV = [&](int roc, const float /*x*/, const float u, const float v, float& dX, float& dU, float& dV) {
+  std::unique_ptr<TPCFastTransform> fastTransform0(TPCFastTransformHelperO2::instance()->create(0));
+  const TPCFastTransformGeo& geo = fastTransform0->getGeometry();
+
+  auto correctionUV = [&](int roc, int /*row*/, const double u, const double v, double& dX, double& dU, double& dV) {
+    // float lx = geo.getRowInfo(row).x;
     dX = 1. + 1 * u + 0.1 * u * u;
     dU = 2. + 0.2 * u + 0.002 * u * u; // + 0.001 * u * u * u;
     dV = 3. + 0.1 * v + 0.01 * v * v;  //+ 0.0001 * v * v * v;
   };
 
-  auto correctionGlobal = [&](int roc, const double XYZ[3], double dXdYdZ[3]) {
-    const TPCFastTransformGeo& geo = fastTransform0->getGeometry();
-    float lx, ly, lz, u, v, dx, du, dv, gx, gy, gz;
-    geo.convGlobalToLocal(roc, XYZ[0], XYZ[1], XYZ[2], lx, ly, lz);
+  auto correctionLocal = [&](int roc, int row, double ly, double lz,
+                             double& dx, double& dly, double& dlz) {
+    float u, v;
     geo.convLocalToUV(roc, ly, lz, u, v);
-    correctionXUV(roc, lx, u, v, dx, du, dv);
-    lx += dx;
-    geo.convUVtoLocal(roc, u + du, v + dv, ly, lz);
-    geo.convLocalToGlobal(roc, lx, ly, lz, gx, gy, gz);
-    dXdYdZ[0] = gx - XYZ[0];
-    dXdYdZ[1] = gy - XYZ[1];
-    dXdYdZ[2] = gz - XYZ[2];
+    double du, dv;
+    correctionUV(roc, row, u, v, dx, du, dv);
+    float ly1, lz1;
+    geo.convUVtoLocal(roc, u + du, v + dv, ly1, lz1);
+    dly = ly1 - ly;
+    dlz = lz1 - lz;
   };
 
-  TPCFastTransformHelperO2::instance()->setSpaceChargeCorrection(correctionGlobal);
+  int nRocs = geo.getNumberOfSlices();
+  int nRows = geo.getNumberOfRows();
+  TPCFastSpaceChargeCorrectionMap& scData = TPCFastTransformHelperO2::instance()->getCorrectionMap();
+  scData.init(nRocs, nRows);
+
+  for (int iRoc = 0; iRoc < nRocs; iRoc++) {
+    for (int iRow = 0; iRow < nRows; iRow++) {
+      double dsu = 1. / (3 * 8 - 3);
+      double dsv = 1. / (3 * 20 - 3);
+      for (double su = 0.f; su < 1.f + .5 * dsu; su += dsv) {
+        for (double sv = 0.f; sv < 1.f + .5 * dsv; sv += dsv) {
+          float ly = 0.f, lz = 0.f;
+          geo.convScaledUVtoLocal(iRoc, iRow, su, sv, ly, lz);
+          double dx, dy, dz;
+          correctionLocal(iRoc, iRow, ly, lz, dx, dy, dz);
+          scData.addCorrectionPoint(iRoc, iRow,
+                                    ly, lz, dx, dy, dz);
+        }
+      }
+    } // row
+  }   // slice
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
 
@@ -130,8 +153,6 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
   TPCFastTransform* fromFile = TPCFastTransform::loadFromFile("tmpTestTPCFastTransform.root");
 
   BOOST_CHECK(fromFile != nullptr);
-
-  const TPCFastTransformGeo& geo = fastTransform->getGeometry();
 
   double statDiff = 0., statN = 0.;
   double statDiffFile = 0., statNFile = 0.;
@@ -166,8 +187,8 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
           float u0, v0, u1, v1;
           geo.convLocalToUV(slice, y0, z0, u0, v0);
           geo.convLocalToUV(slice, y1, z1, u1, v1);
-          float dx, du, dv;
-          correctionXUV(slice, x0, u0, v0, dx, du, dv);
+          double dx, du, dv;
+          correctionUV(slice, row, u0, v0, dx, du, dv);
           statDiff += fabs((x1 - x0) - dx) + fabs((u1 - u0) - du) + fabs((v1 - v0) - dv);
           statN += 3;
           //std::cout << (x1 - x0) - dx << " " << (u1 - u0) - du << " " << (v1 - v0) - dv << std::endl; //": v0 " << v0 <<" z0 "<<z0<<" v1 "<< v1<<" z1 "<<z1 << std::endl;

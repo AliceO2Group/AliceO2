@@ -230,7 +230,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
   }
 };
 
-DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, std::vector<int> const& tpcSectors, bool sendCEdigits)
+DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, bool ignoreDistStf, std::vector<int> const& tpcSectors, bool sendCEdigits)
 {
   using device = o2::tpc::TPCDigitDumpDevice;
 
@@ -242,9 +242,19 @@ DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, s
     }
   }
 
+  std::vector<InputSpec> inputs;
+  if (inputSpec != "") {
+    inputs = select(inputSpec.data());
+  } else {
+    inputs.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Optional});
+    if (!ignoreDistStf) {
+      inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+    }
+  }
+
   return DataProcessorSpec{
     fmt::format("tpc-raw-to-digits-{}", channel),
-    select(inputSpec.data()),
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<device>(tpcSectors, sendCEdigits)},
     Options{

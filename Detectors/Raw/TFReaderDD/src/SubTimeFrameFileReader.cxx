@@ -17,7 +17,9 @@
 #include "Framework/OutputRoute.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataProcessingHeader.h"
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
+#include <fairmq/Message.h>
+#include <fairmq/Parts.h>
 #include <mutex>
 
 #if __linux__
@@ -182,7 +184,7 @@ std::uint32_t sFirstTForbit = 0;                  // TODO: add id to files metad
 std::uint64_t sCreationTime = 0;
 std::mutex stfMtx;
 
-std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* device, const std::vector<o2f::OutputRoute>& outputRoutes,
+std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device* device, const std::vector<o2f::OutputRoute>& outputRoutes,
                                                                const std::string& rawChannel, bool sup0xccdb, int verbosity)
 {
   std::unique_ptr<MessagesPerRoute> messagesPerRoute = std::make_unique<MessagesPerRoute>();
@@ -208,11 +210,11 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(FairMQDevice* dev
     return chFromMap.first;
   };
 
-  auto addPart = [&msgMap](FairMQMessagePtr hd, FairMQMessagePtr pl, const std::string& fairMQChannel) {
-    FairMQParts* parts = nullptr;
-    parts = msgMap[fairMQChannel].get(); // FairMQParts*
+  auto addPart = [&msgMap](fair::mq::MessagePtr hd, fair::mq::MessagePtr pl, const std::string& fairMQChannel) {
+    fair::mq::Parts* parts = nullptr;
+    parts = msgMap[fairMQChannel].get(); // fair::mq::Parts*
     if (!parts) {
-      msgMap[fairMQChannel] = std::make_unique<FairMQParts>();
+      msgMap[fairMQChannel] = std::make_unique<fair::mq::Parts>();
       parts = msgMap[fairMQChannel].get();
     }
     parts->AddPart(std::move(hd));

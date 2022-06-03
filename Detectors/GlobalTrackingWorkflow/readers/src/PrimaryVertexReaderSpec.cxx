@@ -73,6 +73,7 @@ void PrimaryVertexReader::init(InitContext& ic)
 {
   mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                             ic.options().get<std::string>("primary-vertex-infile"));
+  mVerbose = ic.options().get<bool>("verbose-reader");
   connectTree();
 }
 
@@ -92,13 +93,18 @@ void PrimaryVertexReader::run(ProcessingContext& pc)
   }
 
   if (mVerbose) {
-    int cnt = 0;
-    for (const auto& vtx : mVertices) {
-      Label lb;
-      if (mUseMC) {
-        lb = mLabels[cnt];
+    size_t nrec = mPV2MatchIdxRef.size();
+    for (size_t cnt = 0; cnt < nrec; cnt++) {
+      if (cnt < mVertices.size() - 1) {
+        const auto& vtx = mVertices[cnt];
+        Label lb;
+        if (mUseMC) {
+          lb = mLabels[cnt];
+        }
+        LOG(info) << "#" << cnt << " " << mVertices[cnt] << " | MC:" << lb;
+      } else {
+        LOG(info) << "#" << cnt << " this is not a vertex";
       }
-      LOG(info) << "#" << cnt << " " << vtx << " | MC:" << lb;
       LOG(info) << "References: " << mPV2MatchIdxRef[cnt];
       for (int is = 0; is < GIndex::NSources; is++) {
         LOG(info) << GIndex::getSourceName(is) << " : " << mPV2MatchIdxRef[cnt].getEntriesOfSource(is) << " attached:";
@@ -116,7 +122,6 @@ void PrimaryVertexReader::run(ProcessingContext& pc)
           LOG(info) << trIDs;
         }
       }
-      cnt++;
     }
   }
 
@@ -168,7 +173,8 @@ DataProcessorSpec getPrimaryVertexReaderSpec(bool useMC)
     Options{
       {"primary-vertex-infile", VariantType::String, "o2_primary_vertex.root", {"Name of the input primary vertex file"}},
       {"vertex-track-matches-infile", VariantType::String, "o2_pvertex_track_matches.root", {"Name of the input file with primary vertex - tracks matches"}},
-      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
+      {"input-dir", VariantType::String, "none", {"Input directory"}},
+      {"verbose-reader", VariantType::Bool, false, {"Print vertex/tracks info"}}}};
 }
 
 } // namespace vertexing

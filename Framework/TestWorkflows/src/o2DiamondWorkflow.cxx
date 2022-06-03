@@ -48,7 +48,7 @@ void customize(std::vector<CallbacksPolicy>& policies)
 //{
 //   policies.push_back(SendingPolicy{
 //     .matcher = DeviceMatchers::matchByName("A"),
-//     .send = [](FairMQDeviceProxy& proxy, FairMQParts& parts, ChannelIndex channelIndex) {
+//     .send = [](FairMQDeviceProxy& proxy, fair::mq::Parts& parts, ChannelIndex channelIndex) {
 //       LOG(info) << "A custom policy for sending invoked!";
 //       auto* channel = proxy.getOutputChannel(channelIndex);
 //       channel->Send(parts, 0);
@@ -81,7 +81,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
       [](DataAllocator& outputs, RawDeviceService& device, DataTakingContext& context, ProcessingContext& pcx) {
         // static RateLimiter limiter;
         // limiter.check(pcx, std::stoi(device.device()->fConfig->GetValue<std::string>("timeframes-rate-limit")), 2000);
-        LOG(error) << "Foo";
         auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
         auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
       })},

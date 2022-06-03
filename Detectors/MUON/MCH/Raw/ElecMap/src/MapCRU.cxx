@@ -46,6 +46,8 @@ MapCRU::MapCRU(std::string_view content)
     }
     mFeeLink2Solar.at(ix) = link_id;
   }
+
+  mSize = size();
 }
 
 std::set<uint16_t> MapCRU::getSolarUIDs() const
@@ -90,7 +92,7 @@ size_t MapCRU::size() const
 
 std::optional<uint16_t> MapCRU::operator()(const o2::mch::raw::FeeLinkId& feeLinkId) const
 {
-  if (!size()) {
+  if (!mSize) {
     return std::nullopt;
   }
   auto ix = indexFeeLink(feeLinkId.feeId(), feeLinkId.linkId());

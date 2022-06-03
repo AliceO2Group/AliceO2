@@ -22,10 +22,9 @@
 #include "EventVisualisationView/Options.h"
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
 #include <EventVisualisationBase/DataSourceOnline.h>
-
+#include "EventVisualisationBase/ConfigurationManager.h"
 #include <TEveManager.h>
 #include <TEveTrack.h>
-#include <TEveProjectionManager.h>
 #include <TEveTrackPropagator.h>
 #include <TEnv.h>
 #include <TEveElement.h>
@@ -55,34 +54,65 @@ EventManager& EventManager::getInstance()
 EventManager::EventManager() : TEveEventManager("Event", "")
 {
   LOG(info) << "Initializing TEveManager";
-  for (unsigned int i = 0; i < elemof(dataTypeLists); i++) {
-    dataTypeLists[i] = nullptr;
+  vizSettings.firstEvent = true;
+
+  for (int i = 0; i < NvisualisationGroups; i++) {
+    vizSettings.trackVisibility[i] = true;
+    vizSettings.trackColor[i] = kMagenta;
+    vizSettings.trackStyle[i] = 1;
+    vizSettings.trackWidth[i] = 1;
+    vizSettings.clusterVisibility[i] = true;
+    vizSettings.clusterColor[i] = kBlue;
+    vizSettings.clusterStyle[i] = 20;
+    vizSettings.clusterSize[i] = 1.0f;
   }
 }
 
 void EventManager::displayCurrentEvent()
 {
-  if (getDataSource()->getEventCount() > 0) {
-    MultiView::getInstance()->destroyAllEvents();
-    int no = getDataSource()->getCurrentEvent();
+  const auto multiView = MultiView::getInstance();
+  const auto dataSource = getDataSource();
+  if (dataSource->getEventCount() > 0) {
+    if (!vizSettings.firstEvent) {
+      saveVisualisationSettings();
+    }
+
+    multiView->destroyAllEvents();
+    int no = dataSource->getCurrentEvent();
 
     for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
       dataTypeLists[i] = new TEveElementList(gDataTypeNames[i].c_str());
     }
 
-    auto displayList = getDataSource()->getVisualisationList(no, EventManagerFrame::getInstance().getMinTimeFrameSliderValue(), EventManagerFrame::getInstance().getMaxTimeFrameSliderValue(), EventManagerFrame::MaxRange);
+    VisualisationEvent event; // collect calorimeters in one drawing step
+    auto displayList = dataSource->getVisualisationList(no, EventManagerFrame::getInstance().getMinTimeFrameSliderValue(), EventManagerFrame::getInstance().getMaxTimeFrameSliderValue(), EventManagerFrame::MaxRange);
     for (auto it = displayList.begin(); it != displayList.end(); ++it) {
-      displayVisualisationEvent(it->first, gVisualisationGroupName[it->second]);
+      if (it->second == EVisualisationGroup::EMC || it->second == EVisualisationGroup::PHS) {
+        event.appendAnotherEventCalo(it->first);
+      } else {
+        displayVisualisationEvent(it->first, gVisualisationGroupName[it->second]);
+      }
     }
+    displayCalorimeters(event);
 
     for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
-      MultiView::getInstance()->registerElement(dataTypeLists[i]);
+      if (i != EVisualisationGroup::EMC && i != EVisualisationGroup::PHS) {
+        multiView->registerElement(dataTypeLists[i]);
+      }
     }
-    // displayCalorimeters(displayList[0].first);
 
-    MultiView::getInstance()->getAnnotation()->SetText(TString::Format("Run: %d", getDataSource()->getRunNumber()));
+    if (vizSettings.firstEvent) {
+      saveVisualisationSettings();
+      vizSettings.firstEvent = false;
+    } else {
+      restoreVisualisationSettings();
+    }
+
+    multiView->getAnnotationTop()->SetText(TString::Format("Run %d\n%s", dataSource->getRunNumber(), dataSource->getCollisionTime().c_str()));
+    auto detectors = detectors::DetID::getNames(dataSource->getDetectorsMask());
+    multiView->getAnnotationBottom()->SetText(TString::Format("TFOrbit: %d\nDetectors: %s", dataSource->getFirstTForbit(), detectors.c_str()));
   }
-  MultiView::getInstance()->redraw3D();
+  multiView->redraw3D();
 }
 
 void EventManager::GotoEvent(Int_t no)
@@ -175,12 +205,9 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   for (size_t i = 0; i < trackCount; ++i) {
     VisualisationTrack track = event.getTrack(i);
     TEveRecTrackD t;
-    // double* p = track.getMomentum();
-    // t.fP = {p[0], p[1], p[2]};
     t.fSign = track.getCharge() > 0 ? 1 : -1;
     auto* vistrack = new TEveTrack(&t, &TEveTrackPropagator::fgDefault);
     vistrack->SetLineColor(kMagenta);
-    // vistrack->SetName(detectorName + " track: " + i);
     vistrack->SetName(track.getGIDAsString().c_str());
     size_t pointCount = track.getPointCount();
     vistrack->Reset(pointCount);
@@ -226,37 +253,127 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
 
   LOG(info) << "tracks: " << trackCount << " detector: " << detectorName << ":" << dataTypeLists[EVisualisationDataType::Tracks]->NumChildren();
   LOG(info) << "clusters: " << clusterCount << " detector: " << detectorName << ":" << dataTypeLists[EVisualisationDataType::Clusters]->NumChildren();
-
-  displayCalorimeters(event);
 }
 
 void EventManager::displayCalorimeters(VisualisationEvent& event)
 {
+  struct CaloInfo {
+    unsigned int index;
+    std::string name;
+    std::string configColor;
+    int defaultColor;
+    float sizeEta;
+    float sizePhi;
+    std::string configNoise;
+    float defaultNoise;
+  };
+
+  // TODO: calculate values based on info available in O2
+  const std::unordered_map<o2::dataformats::GlobalTrackID::Source, CaloInfo> caloInfos =
+    {
+      {o2::dataformats::GlobalTrackID::EMC, {0, "emcal", "emcal.tower.color", kYellow, 0.0143, 0.0143, "emcal.tower.noise", 0}},
+      {o2::dataformats::GlobalTrackID::PHS, {1, "phos", "phos.tower.color", kYellow, 0.0046, 0.00478, "phos.tower.noise", 200}},
+    };
+
   int size = event.getCaloCount();
   if (size > 0) {
-    auto data = new TEveCaloDataVec(1);
-    data->IncDenyDestroy();
-    data->RefSliceInfo(0).Setup("Data", 0.3, kYellow);
+    TEnv settings;
+    ConfigurationManager::getInstance().getConfig(settings);
+    const bool showAxes = settings.GetValue("axes.show", false);
 
-    for (auto calo : event.getCalorimetersSpan()) {
-      const float dX = 0.173333;
-      const float dY = 0.104667;
-      data->AddTower(calo.getEta(), calo.getEta() + dX, calo.getPhi(), calo.getPhi() + dY);
-      data->FillSlice(0, calo.getEnergy());
+    auto data = new TEveCaloDataVec(caloInfos.size());
+    data->IncDenyDestroy();
+
+    for (const auto& [det, info] : caloInfos) {
+      data->RefSliceInfo(info.index).Setup(info.name.c_str(), settings.GetValue(info.configNoise.c_str(), info.defaultNoise), settings.GetValue(info.configColor.c_str(), info.defaultColor));
+    }
+
+    for (const auto& calo : event.getCalorimetersSpan()) {
+      const auto& info = caloInfos.at(calo.getSource());
+      const auto dEta = info.sizeEta / 2;
+      const auto dPhi = info.sizePhi / 2;
+      data->AddTower(calo.getEta() - dEta, calo.getEta() + dEta, calo.getPhi() - dPhi, calo.getPhi() + dPhi);
+      data->FillSlice(info.index, calo.getEnergy());
     }
 
     data->DataChanged();
     data->SetAxisFromBins();
 
-    float barrelRadius = 375;
-    float endCalPosition = 400;
+    const float barrelRadius = settings.GetValue("barrel.radius", 375);
 
     auto calo3d = new TEveCalo3D(data);
+    calo3d->SetName("Calorimeters");
 
     calo3d->SetBarrelRadius(barrelRadius);
-    calo3d->SetEndCapPos(endCalPosition);
+    calo3d->SetEndCapPos(barrelRadius);
+    calo3d->SetRnrFrame(false, false); // do not draw barrel grid
 
     dataTypeLists[EVisualisationDataType::Calorimeters]->AddElement(calo3d);
+    MultiView::getInstance()->registerElement(calo3d);
+  }
+}
+
+void EventManager::saveVisualisationSettings()
+{
+  const auto& tracks = *dataTypeLists[EVisualisationDataType::Tracks];
+
+  for (auto elm : tracks.RefChildren()) {
+    auto trackList = static_cast<TEveTrackList*>(elm);
+    int i = findGroupIndex(trackList->GetElementName());
+
+    if (i != -1) {
+      vizSettings.trackVisibility[i] = trackList->GetRnrSelf();
+      vizSettings.trackColor[i] = trackList->GetLineColor();
+      vizSettings.trackStyle[i] = trackList->GetLineStyle();
+      vizSettings.trackWidth[i] = trackList->GetLineWidth();
+    }
+  }
+
+  const auto& clusters = *dataTypeLists[EVisualisationDataType::Clusters];
+
+  for (auto elm : clusters.RefChildren()) {
+    auto clusterSet = static_cast<TEvePointSet*>(elm);
+    int i = findGroupIndex(clusterSet->GetElementName());
+
+    if (i != -1) {
+      vizSettings.clusterVisibility[i] = clusterSet->GetRnrSelf();
+      vizSettings.clusterColor[i] = clusterSet->GetMarkerColor();
+      vizSettings.clusterStyle[i] = clusterSet->GetMarkerStyle();
+      vizSettings.clusterSize[i] = clusterSet->GetMarkerSize();
+    }
+  }
+}
+
+void EventManager::restoreVisualisationSettings()
+{
+  const auto& tracks = *dataTypeLists[EVisualisationDataType::Tracks];
+
+  for (auto elm : tracks.RefChildren()) {
+    auto trackList = static_cast<TEveTrackList*>(elm);
+    int i = findGroupIndex(trackList->GetElementName());
+
+    if (i != -1) {
+      const auto viz = vizSettings.trackVisibility[i];
+      trackList->SetRnrSelfChildren(viz, viz);
+      trackList->SetLineColor(vizSettings.trackColor[i]);
+      trackList->SetLineStyle(vizSettings.trackStyle[i]);
+      trackList->SetLineWidth(vizSettings.trackWidth[i]);
+    }
+  }
+
+  const auto& clusters = *dataTypeLists[EVisualisationDataType::Clusters];
+
+  for (auto elm : clusters.RefChildren()) {
+    auto clusterSet = static_cast<TEvePointSet*>(elm);
+    int i = findGroupIndex(clusterSet->GetElementName());
+
+    if (i != -1) {
+      const auto viz = vizSettings.clusterVisibility[i];
+      clusterSet->SetRnrSelfChildren(viz, viz);
+      clusterSet->SetMarkerColor(vizSettings.clusterColor[i]);
+      clusterSet->SetMarkerStyle(vizSettings.clusterStyle[i]);
+      clusterSet->SetMarkerSize(vizSettings.clusterSize[i]);
+    }
   }
 }
 

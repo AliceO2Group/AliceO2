@@ -186,20 +186,7 @@ The decoding is done automatically by the `o2-ctf-reader-workflow`.
 
 ## Local to global cluster transformation
 
-The `o2-mch-clusters-transformer-workflow` takes as input the list of all clusters ([Cluster](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Cluster.h)), in local reference frame, in the current time frame, with the data description "CLUSTERS".
-
-It sends the list of the same clusters, but converted in global reference frame, with the data description "GLOBALCLUSTERS".
-
-To test it one can use e.g. a sampler-transformer-sink pipeline as such :
-
-```
-o2-mch-clusters-sampler-workflow
-    -b --nEventsPerTF 1000 --infile someclusters.data |
-o2-mch-clusters-transformer-workflow
-    -b --geometry Detectors/MUON/MCH/Geometry/Test/ideal-geometry-o2.json |
-o2-mch-clusters-sink-workflow
-    -b --txt --outfile global-clusters.txt --no-digits --global
-```
+Converts the clusters coordinates from local (2D within detection element plane) to global (3D within Alice reference frame) [more...](/Detectors/MUON/MCH/Geometry/Transformer/README.md)
 
 ## Tracking
 

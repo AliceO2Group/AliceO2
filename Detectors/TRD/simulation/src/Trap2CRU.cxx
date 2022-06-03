@@ -116,7 +116,6 @@ void Trap2CRU::openInputFiles()
     mDigitsTree = (TTree*)mDigitsFile->Get("o2sim");
     mDigitsTree->SetBranchAddress("TRDDigit", &mDigitsPtr);                   // the branch with the actual digits
     mDigitsTree->SetBranchAddress("TriggerRecord", &mDigitTriggerRecordsPtr); // branch with trigger records for digits
-                                                                              //    LOG(info) << "Digit tree has " << mDigitsTree->GetEntries() << " entries"; //<<
   } else {
     LOG(warn) << " cant open file containing digit tree";
   }
@@ -125,7 +124,6 @@ void Trap2CRU::openInputFiles()
     mTrackletsTree = (TTree*)mTrackletsFile->Get("o2sim");
     mTrackletsTree->SetBranchAddress("Tracklet", &mTrackletsPtr);              // the branch with the actual tracklets.
     mTrackletsTree->SetBranchAddress("TrackTrg", &mTrackletTriggerRecordsPtr); // branch with trigger records for digits
-                                                                               //  LOG(info) << "Tracklet tree has " << mTrackletsTree->GetEntries() << " entries";//<<
   } else {
     LOG(fatal) << " cant open file containing tracklet tree";
   }
@@ -133,7 +131,6 @@ void Trap2CRU::openInputFiles()
 
 void Trap2CRU::sortDataToLinks()
 {
-  //sort the digits array TODO refactor this intoa vector index sort and possibly generalise past merely digits.
   auto sortstart = std::chrono::high_resolution_clock::now();
   //build indexes
   // digits first
@@ -316,7 +313,7 @@ void Trap2CRU::readTrapData()
     // each entry is a timeframe
     uint32_t linkcount = 0;
     for (auto tracklettrigger : mTrackletTriggerRecords) {
-      convertTrapData(tracklettrigger, triggercount); // tracklettrigger assumed to be authoritive, TODO check for blanks digits range
+      convertTrapData(tracklettrigger, triggercount); // tracklettrigger assumed to be authoritive
       triggercount++;
       mEventDigitCount++;
     }
@@ -355,9 +352,6 @@ void Trap2CRU::linkSizePadding(uint32_t linksize, uint32_t& crudatasize, uint32_
       LOG(info) << "We have data with linkdatasize=" << linksize << " with size number in header of:" << crudatasize << " padded with " << padding << " 32bit words";
     }
   }
-  if (mVerbosity) {
-    LOG(debug) << __func__ << " leaving linkSizePadding : CRUDATASIZE : " << crudatasize;
-  }
 }
 
 uint32_t Trap2CRU::buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, const uint32_t halfcru)
@@ -374,7 +368,7 @@ uint32_t Trap2CRU::buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, 
   //lets first clear it out.
   clearHalfCRUHeader(header);
   //this bunchcrossing is not the same as the bunchcrossing in the rdh, which is the bc coming in the parameter list to this function. See explanation in rawdata.h
-  setHalfCRUHeader(header, crurdhversion, bunchcrossing, stopbits, endpoint, eventtype, feeid, cruid); //TODO come back and pull this from somewhere.
+  setHalfCRUHeader(header, crurdhversion, bunchcrossing, stopbits, endpoint, eventtype, feeid, cruid);
 
   return 1;
 }
@@ -395,10 +389,10 @@ bool Trap2CRU::isTrackletOnLink(const int linkid, const int currenttrackletpos)
 
 bool Trap2CRU::isDigitOnLink(const int linkid, const int currentdigitpos)
 {
-  Digit* digit = &mDigits[mDigitsIndex[currentdigitpos]];
-  if (currentdigitpos == mDigits.size()) {
+  if (currentdigitpos >= mDigits.size()) {
     return false;
   }
+  Digit* digit = &mDigits[mDigitsIndex[currentdigitpos]];
   int link = HelperMethods::getLinkIDfromHCID(digit->getDetector() * 2 + (digit->getROB() % 2));
   if (link == linkid) {
     return true;
@@ -440,7 +434,6 @@ int Trap2CRU::buildDigitRawData(const int digitstartindex, const int digitendind
   digitwordswritten++;
   //LOG(info) << "writing data to digit stream of " << std::hex << header.word;
   for (int digitindex = digitstartindex; digitindex < digitendindex; ++digitindex) {
-    //LOG(info) << "digit index of : " << digitindex; //<<
     Digit* d = &mDigits[mDigitsIndex[digitindex]];
     ArrayADC adcdata = d->getADC();
     //write these 2 now as we only have it now.
@@ -506,7 +499,7 @@ int Trap2CRU::buildTrackletRawData(const int trackletindex, const int linkid)
     unsigned int headerqpart = ((mTracklets[trackletoffset].getQ2() & 0x2f) << 2) + ((mTracklets[trackletoffset].getQ1() >> 6) & 0x3);
     //all 6 bits of Q1 and 2 upper bits of 7bit Q1
     if (mVerbosity) {
-      if (mTracklets[trackletoffset].getQ2() > 0x2f) {
+      if (mTracklets[trackletoffset].getQ2() > 0x3f) {
         LOGP(warning, "Tracklet Q2 out of range for raw data {0:#x}", mTracklets[trackletoffset].getQ2());
       }
       if (mTracklets[trackletoffset].getQ1() > 0x7f) {
@@ -537,7 +530,6 @@ int Trap2CRU::buildTrackletRawData(const int trackletindex, const int linkid)
         destroytracklets = true;
         break;
     }
-    //this loop should really be redone but this will work for now.
     trackletcounter++;
     if (trackletcounter + trackletindex >= mTracklets.size()) {
       break;
@@ -546,7 +538,7 @@ int Trap2CRU::buildTrackletRawData(const int trackletindex, const int linkid)
   //now copy the mcmheader and mcmdata.
   if (!destroytracklets) {
     setNumberOfTrackletsInHeader(header, trackletcounter);
-    if (trackletcounter == 0) { // dont write header if there are no tracklets.
+    if (trackletcounter > 0) { // dont write header if there are no tracklets.
       memcpy((char*)mRawDataPtr, (char*)&header, sizeof(TrackletMCMHeader));
       mRawDataPtr += sizeof(TrackletMCMHeader);
       for (int i = 0; i < trackletcounter; ++i) {
@@ -636,8 +628,8 @@ int Trap2CRU::writeDigitHCHeader(const int eventcount, const uint32_t linkid)
   digitheader.major = 0x21;  // zero suppressed and 0x1 to comply with what we see in the raw data
   digitheader.version = 1;   //new version of the header. we only have 1 version
   digitheader1.res = 1;
-  digitheader1.ptrigcount = 1;             //TODO put something more real in here?
-  digitheader1.ptrigphase = 1;             //TODO put something more real in here?
+  digitheader1.ptrigcount = 1;
+  digitheader1.ptrigphase = 1;
   digitheader1.bunchcrossing = eventcount; //NB this is not the same as the bunchcrossing the rdh. See RawData.h for explanation
   digitheader1.numtimebins = 30;
   memcpy(mRawDataPtr, (char*)&digitheader, sizeof(DigitHCHeader)); // 8 because we are only using the first 2 32bit words of the header, the rest are optional.
@@ -672,6 +664,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
   int endtrackletindex = triggerrecord.getFirstTracklet() + triggerrecord.getNumberOfTracklets();
   int64_t startdigitindex = triggerrecord.getFirstDigit();
   int64_t enddigitindex = triggerrecord.getFirstDigit() + triggerrecord.getNumberOfDigits();
+
   for (int halfcru = 0; halfcru < o2::trd::constants::NHALFCRU; halfcru++) {
     int halfcruwordswritten = 0;
     int supermodule = halfcru / 4; // 2 cru per supermodule. 72/4, as of writing
@@ -698,7 +691,6 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
     halfcruwordswritten += sizeof(halfcruheader) / 4;
     int totallinklengths = 0;
     rawdataptratstart = mRawDataPtr; // keep track of where we started.
-    //TODO by pass all if the current digit and tracklet are not on this halfcru.
     for (int halfcrulink = 0; halfcrulink < o2::trd::constants::NLINKSPERHALFCRU; halfcrulink++) {
       //links run from 0 to 14, so linkid offset is halfcru*15;
       int linkid = halfcrulink + halfcru * o2::trd::constants::NLINKSPERHALFCRU;
@@ -727,7 +719,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
           if (isTrackletOnLink(linkid, mCurrentTracklet) || mUseTrackletHCHeader == 2) {
             //write tracklethcheader if there is tracklet data or if we always have tracklethcheader
             //first part of the if statement handles the mUseTrackletHCHeader==1 option
-            int hcheaderwords = writeTrackletHCHeader(triggercount, linkid);
+            int hcheaderwords = writeTrackletHCHeader(triggercount, mDigits[mDigitsIndex[mCurrentDigit]].getHCId());
             linkwordswritten += hcheaderwords;
             rawwords += hcheaderwords;
           }
@@ -751,14 +743,15 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
         adccounter = 0;
         rawwordsbefore = rawwords;
         //always write the digit hc header
-        int hcheaderwords = writeDigitHCHeader(triggercount, linkid);
+        int hcheaderwords = writeDigitHCHeader(triggercount, mDigits[mDigitsIndex[mCurrentDigit]].getHCId());
         linkwordswritten += hcheaderwords;
         rawwords += hcheaderwords;
         //although if there are trackelts there better be some digits unless the digits are switched off.
         if (mCurrentDigit < mDigits.size()) {
           while (isDigitOnLink(linkid, mCurrentDigit) && mCurrentDigit < enddigitindex && mEventDigitCount % mDigitRate == 0) {
             if (mVerbosity) {
-              LOG(info) << "at top of digit while loop calc linkid :" << linkid << " : " << mDigits[mDigitsIndex[mCurrentDigit]].getDetector() * 2 + mDigits[mDigitsIndex[mCurrentDigit]].getROB() % 2 << " actual link=" << linkid;
+              LOG(info) << "at top of digit while loop calc linkid :" << linkid << " : hcid=" << mDigits[mDigitsIndex[mCurrentDigit]].getHCId() << " actual link=" << linkid;
+              LOG(info) << "mCurrentDigit :" << mCurrentDigit;
             }
             //while we are on a single mcm, copy the digits timebins to the array.
             int digitcounter = 0;
@@ -775,6 +768,9 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
               adccounter++;
               if (digitcounter > 22) {
                 LOG(error) << " we are on the 22nd digit of an mcm ?? This is not possible";
+              }
+              if (mCurrentDigit == mDigits.size()) {
+                break;
               }
             }
             // mcm digits are full, now write it out.
@@ -880,5 +876,6 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
     }
   }
 }
+
 } // end namespace trd
 } // end namespace o2

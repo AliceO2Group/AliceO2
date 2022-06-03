@@ -47,4 +47,7 @@
 #pragma link C++ struct o2::ctp::CTF + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::ctp::CTFHeader, 4, uint32_t> + ;
 
+#pragma link C++ class o2::ctp::TriggerOffsetsParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::ctp::TriggerOffsetsParam> + ;
+
 #endif

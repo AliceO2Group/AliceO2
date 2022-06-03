@@ -13,7 +13,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/RunningWorkflowInfo.h"
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
 #include <fairmq/shmem/Monitor.h>
 #include <fairmq/shmem/Common.h>
 

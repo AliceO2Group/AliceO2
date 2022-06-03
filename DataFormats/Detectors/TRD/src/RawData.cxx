@@ -68,6 +68,7 @@ uint16_t buildTRDFeeID(int supermodule, int side, int endpoint)
 
 void buildTrackletMCMData(TrackletMCMData& trackletword, const uint slope, const uint pos, const uint q0, const uint q1, const uint q2)
 {
+  trackletword.word = 0;
   trackletword.slope = slope;
   trackletword.pos = pos;
   trackletword.pid = (q0 & 0x7f) & ((q1 & 0x1f) << 7); //q2 sits with upper 2 bits of q1 in the header pid word, hence the 0x1f so 5 bits are used here.
@@ -143,7 +144,7 @@ uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader* header, const o2::trd::Tr
    *     -------------------------
    *
    * TDP: This can be one of these fields HPID0/1/2 (=TrackletHCHeader::pid0/1/2) depending on
-   * 	  the MCM-CPU.
+   *      the MCM-CPU.
    *
    *     |11|10|09|08|07|06|05|04|03|02|01|00|
    *     -------------------------------------
@@ -330,6 +331,36 @@ std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru)
   stream << std::endl;
   stream << "0x" << std::hex << halfcru.word0 << " 0x" << halfcru.word12[0] << " 0x" << halfcru.word12[1] << " 0x" << halfcru.word3 << " 0x" << halfcru.word47[0] << " 0x" << halfcru.word47[1] << " 0x" << halfcru.word47[2] << " 0x" << halfcru.word47[3] << std::endl;
   return stream;
+}
+
+bool halfCRUHeaderSanityCheck(o2::trd::HalfCRUHeader& header, std::array<uint32_t, 15>& lengths, std::array<uint32_t, 15>& eflags)
+{
+  // check the sizes for less than max value
+  // check the errors for either < 0x3, for now (may 2022) there is only no error, 1, or 2.
+  //
+  bool goodheader = true;
+  for (int lengthindex = 0; lengthindex < 15; ++lengthindex) {
+    if (lengths[lengthindex] > o2::trd::constants::MAXDATAPERLINK256) {
+      // something has gone insane.
+      //LOG(info) << "AAA dumping half cru as : half cru link length > max possible! : " << lengths[lengthindex] << " ?? " << o2::trd::constants::MAXDATAPERLINK256;
+      goodheader = false;
+    }
+  }
+  for (int eflagindex = 0; eflagindex < 15; ++eflagindex) {
+    if (eflags[eflagindex] > o2::trd::constants::MAXCRUERRORVALUE) {
+      // something has gone insane.
+      // LOG(info) << "AAA dumping half cru as : half cru link eflag > max possible! : " << std::hex << eflags[eflagindex] << " ?? " << o2::trd::constants::MAXCRUERRORVALUE;
+      goodheader = false;
+    }
+    if (header.EndPoint > 1) {
+      // end point can only be zero or 1, for ach of the 2 pci end points in the cru
+      goodheader = false;
+    }
+    //LOG(info) << "Header sanity check is : " << goodheader;
+    goodheader = false;
+  }
+
+  return goodheader;
 }
 
 bool trackletMCMHeaderSanityCheck(o2::trd::TrackletMCMHeader& header)

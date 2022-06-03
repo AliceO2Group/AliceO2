@@ -90,6 +90,11 @@ int TrackBasedCalib::doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks)
     trkWork.setChi2(0.f);
     trkWork.resetCovariance(20);
 
+    if (std::isnan(trkWork.getSnp())) {
+      LOG(alarm) << "Track with invalid parameters found: " << trkWork.getRefGlobalTrackId();
+      continue;
+    }
+
     // first inward propagation (TRD track fit)
     int currLayer = NLAYER;
     for (int iLayer = NLAYER - 1; iLayer >= 0; --iLayer) {

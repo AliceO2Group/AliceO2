@@ -147,7 +147,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()));
         }
         if (mNumErrorMessages < mMaxErrorMessages) {
-          LOG(alarm) << " EMCAL raw task: " << e.what() << " in FEC " << e.getFECID() << std::endl;
+          LOG(alarm) << " Page decoding: " << e.what() << " in FEE ID " << e.getFECID() << std::endl;
           mNumErrorMessages++;
           if (mNumErrorMessages == mMaxErrorMessages) {
             LOG(alarm) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
@@ -419,7 +419,6 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                 bool hgOutOfRange = false; // Flag if only a HG is present which is out-of-range
                 int hwAddressLG = -1,      // Hardware address of the LG of the tower (for monitoring)
                   hwAddressHG = -1;        // Hardware address of the HG of the tower (for monitoring)
-                auto flagChanType = chantype;
                 if (chantype == o2::emcal::ChannelType_t::LOW_GAIN) {
                   lgNoHG = true;
                   amp *= o2::emcal::constants::EMCAL_HGLGFACTOR;
@@ -427,7 +426,6 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                 } else {
                   // High gain cell: Flag as low gain if above threshold
                   if (amp / CONVADCGEV > o2::emcal::constants::OVERFLOWCUT) {
-                    flagChanType = ChannelType_t::LOW_GAIN;
                     hgOutOfRange = true;
                   }
                   hwAddressHG = chan.getHardwareAddress();
@@ -555,7 +553,7 @@ bool RawToCellConverterSpec::isLostTimeframe(framework::ProcessingContext& ctx) 
     if (payloadSize == 0) {
       auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
       if (++contDeadBeef <= maxWarn) {
-        LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+        LOGP(alarm, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
              dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
              contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
       }

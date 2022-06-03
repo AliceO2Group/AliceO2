@@ -21,7 +21,7 @@
 #include "DataFormatsTPC/Defs.h"
 #include "SpacePoints/TrackResiduals.h"
 #include "CommonUtils/StringUtils.h"
-
+#include "Framework/DataTakingContext.h"
 #include <vector>
 #include <array>
 #include <string>
@@ -78,9 +78,10 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Tra
   using Slot = o2::calibration::TimeSlot<ResidualsContainer>;
 
  public:
-  ResidualAggregator(size_t nMin = 1'000) : mMinEntries(nMin) { mTrackResiduals.init(); }
+  ResidualAggregator(size_t nMin = 1000) : mMinEntries(nMin) { mTrackResiduals.init(); }
   ~ResidualAggregator() final;
 
+  void setDataTakingContext(o2::framework::DataTakingContext& dtc) { mDataTakingContext = dtc; }
   void setOutputDir(std::string dir) { mOutputDir = dir.empty() ? o2::utils::Str::rectifyDirectory("./") : dir; }
   void setMetaFileOutputDir(std::string dir)
   {
@@ -95,6 +96,7 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Tra
   Slot& emplaceNewSlot(bool front, TFType tStart, TFType tEnd) final;
 
  private:
+  o2::framework::DataTakingContext mDataTakingContext{};
   TrackResiduals mTrackResiduals; ///< providing the functionality for voxel binning of the residuals
   std::string mOutputDir{"./"};   ///< the directory where the output of residuals is stored
   std::string mMetaOutputDir{"none"}; ///< the directory where the meta data file is stored

@@ -49,7 +49,7 @@ namespace o2
 namespace devices
 {
 
-class O2PrimaryServerDevice final : public FairMQDevice
+class O2PrimaryServerDevice final : public fair::mq::Device
 {
  public:
   /// constructor
@@ -158,14 +158,14 @@ class O2PrimaryServerDevice final : public FairMQDevice
         if (!channel.IsValid()) {
           LOG(error) << "channel primserv-info not valid";
         }
-        std::unique_ptr<FairMQMessage> request(channel.NewSimpleMessage(-1));
+        std::unique_ptr<fair::mq::Message> request(channel.NewSimpleMessage(-1));
         int timeout = 100; // 100ms --> so as not to block and allow for proper termination of this thread
         if (channel.Receive(request, timeout) > 0) {
           LOG(info) << "INFO REQUEST RECEIVED";
           if (*(int*)(request->GetData()) == (int)O2PrimaryServerInfoRequest::Status) {
             LOG(info) << "Received status request";
             // request needs to be a simple enum of type O2PrimaryServerInfoRequest
-            std::unique_ptr<FairMQMessage> reply(channel.NewSimpleMessage((int)mState.load()));
+            std::unique_ptr<fair::mq::Message> reply(channel.NewSimpleMessage((int)mState.load()));
             if (channel.Send(reply) > 0) {
               LOG(info) << "Send status successful";
             }
@@ -173,7 +173,7 @@ class O2PrimaryServerDevice final : public FairMQDevice
             HandleConfigRequest(channel);
           } else {
             LOG(fatal) << "UNKNOWN REQUEST";
-            std::unique_ptr<FairMQMessage> reply(channel.NewSimpleMessage(404));
+            std::unique_ptr<fair::mq::Message> reply(channel.NewSimpleMessage(404));
             channel.Send(reply);
           }
         }
@@ -186,6 +186,9 @@ class O2PrimaryServerDevice final : public FairMQDevice
 
   void InitTask() final
   {
+    // fatal without core dump
+    fair::Logger::OnFatal([] { throw fair::FatalException("Fatal error occured. Exiting without core dump..."); });
+
     o2::simpubsub::publishMessage(fChannels["primary-notifications"].at(0), "SERVER : INITIALIZING");
 
     stateTransition(O2PrimaryServerState::Initializing, "INITTASK");
@@ -303,7 +306,7 @@ class O2PrimaryServerDevice final : public FairMQDevice
   }
 
   // method reacting to requests to get the simulation configuration
-  bool HandleConfigRequest(FairMQChannel& channel)
+  bool HandleConfigRequest(fair::mq::Channel& channel)
   {
     LOG(info) << "Received config request";
     // just sending the simulation configuration to anyone that wants it
@@ -314,7 +317,7 @@ class O2PrimaryServerDevice final : public FairMQDevice
 
     auto free_tmessage = [](void* data, void* hint) { delete static_cast<TMessage*>(hint); };
 
-    std::unique_ptr<FairMQMessage> message(
+    std::unique_ptr<fair::mq::Message> message(
       fTransportFactory->CreateMessage(tmsg->Buffer(), tmsg->BufferSize(), free_tmessage, tmsg));
 
     // send answer
@@ -339,7 +342,7 @@ class O2PrimaryServerDevice final : public FairMQDevice
 
     auto& channel = fChannels.at("primary-get").at(0);
     PrimaryChunkRequest requestpayload;
-    std::unique_ptr<FairMQMessage> request(channel.NewSimpleMessage(requestpayload));
+    std::unique_ptr<fair::mq::Message> request(channel.NewSimpleMessage(requestpayload));
     auto bytes = channel.Receive(request);
     if (bytes < 0) {
       LOG(error) << "Some error/interrupt occurred on socket during receive";
@@ -382,7 +385,7 @@ class O2PrimaryServerDevice final : public FairMQDevice
     }
   }
 
-  bool HandleRequest(FairMQMessagePtr& request, int /*index*/, FairMQChannel& channel)
+  bool HandleRequest(fair::mq::MessagePtr& request, int /*index*/, fair::mq::Channel& channel)
   {
     // LOG(debug) << "GOT A REQUEST WITH SIZE " << request->GetSize();
     // std::string requeststring(static_cast<char*>(request->GetData()), request->GetSize());
@@ -397,8 +400,8 @@ class O2PrimaryServerDevice final : public FairMQDevice
     }
 
     PrimaryChunkAnswer header{mState, workavailable};
-    FairMQParts reply;
-    std::unique_ptr<FairMQMessage> headermsg(channel.NewSimpleMessage(header));
+    fair::mq::Parts reply;
+    std::unique_ptr<fair::mq::Message> headermsg(channel.NewSimpleMessage(header));
     reply.AddPart(std::move(headermsg));
 
     LOG(info) << "Received request for work " << mEventCounter << " " << mMaxEvents << " " << mNeedNewEvent << " available " << workavailable;
@@ -471,7 +474,7 @@ class O2PrimaryServerDevice final : public FairMQDevice
 
       auto free_tmessage = [](void* data, void* hint) { delete static_cast<TMessage*>(hint); };
 
-      std::unique_ptr<FairMQMessage> message(channel.NewMessage(tmsg->Buffer(), tmsg->BufferSize(), free_tmessage, tmsg));
+      std::unique_ptr<fair::mq::Message> message(channel.NewMessage(tmsg->Buffer(), tmsg->BufferSize(), free_tmessage, tmsg));
 
       reply.AddPart(std::move(message));
     }
@@ -505,12 +508,12 @@ class O2PrimaryServerDevice final : public FairMQDevice
     o2::simpubsub::publishMessage(fChannels["primary-notifications"].at(0), o2::simpubsub::simStatusString("PRIMSERVER", "STATUS", "AWAITING INPUT"));
     // this means we are idling
 
-    auto factory = FairMQTransportFactory::CreateTransportFactory("zeromq");
-    auto channel = FairMQChannel{"o2sim-control", "sub", factory};
+    auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+    auto channel = fair::mq::Channel{"o2sim-control", "sub", factory};
     auto controlsocketname = getenv("ALICE_O2SIMCONTROL");
     channel.Connect(std::string(controlsocketname));
     channel.Validate();
-    std::unique_ptr<FairMQMessage> reply(channel.NewMessage());
+    std::unique_ptr<fair::mq::Message> reply(channel.NewMessage());
 
     bool ok = false;
 

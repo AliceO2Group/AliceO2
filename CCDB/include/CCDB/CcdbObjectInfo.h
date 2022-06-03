@@ -33,12 +33,24 @@ class CcdbObjectInfo
   static constexpr long YEAR = 364 * DAY;
   static constexpr long INFINITE_TIMESTAMP = 9999999999999;
   static constexpr long INFINITE_TIMESTAMP_SECONDS = 2000000000; // not really inifinity, but close to std::numeric_limits<int>::max() till 18.05.2033
+  static constexpr const char* AdjustableEOV = "adjustableEOV";
+  static constexpr const char* DefaultObj = "default";
 
-  CcdbObjectInfo() = default;
+  CcdbObjectInfo(bool adjustableEOV = true)
+  {
+    if (adjustableEOV) {
+      setAdjustableEOV();
+    }
+  }
   CcdbObjectInfo(std::string path, std::string objType, std::string flName,
                  std::map<std::string, std::string> metadata,
-                 long startValidityTimestamp, long endValidityTimestamp)
-    : mObjType(std::move(objType)), mFileName(std::move(flName)), mPath(std::move(path)), mMD(std::move(metadata)), mStart(startValidityTimestamp), mEnd(endValidityTimestamp) {}
+                 long startValidityTimestamp, long endValidityTimestamp, bool adjustableEOV = true)
+    : mObjType(std::move(objType)), mFileName(std::move(flName)), mPath(std::move(path)), mMD(std::move(metadata)), mStart(startValidityTimestamp), mEnd(endValidityTimestamp)
+  {
+    if (adjustableEOV) {
+      setAdjustableEOV();
+    }
+  }
   ~CcdbObjectInfo() = default;
 
   [[nodiscard]] const std::string& getObjectType() const { return mObjType; }
@@ -51,7 +63,26 @@ class CcdbObjectInfo
   void setPath(const std::string& path) { mPath = path; }
 
   [[nodiscard]] const std::map<std::string, std::string>& getMetaData() const { return mMD; }
-  void setMetaData(const std::map<std::string, std::string>& md) { mMD = md; }
+  void setMetaData(const std::map<std::string, std::string>& md)
+  {
+    mMD = md;
+    if (mAdjustableEOV) {
+      setAdjustableEOV();
+    }
+  }
+
+  void setAdjustableEOV()
+  {
+    mAdjustableEOV = true;
+    if (mMD.find(DefaultObj) != mMD.end()) {
+      LOGP(fatal, "default object cannot have adjustable EOV, {}", mPath);
+    }
+    if (mMD.find(AdjustableEOV) == mMD.end()) {
+      mMD[AdjustableEOV] = "true";
+    }
+  }
+
+  bool isAdjustableEOV() const { return mAdjustableEOV; }
 
   [[nodiscard]] long getStartValidityTimestamp() const { return mStart; }
   void setStartValidityTimestamp(long start) { mStart = start; }
@@ -66,8 +97,8 @@ class CcdbObjectInfo
   std::map<std::string, std::string> mMD; // metadata
   long mStart = 0;                        // start of the validity of the object
   long mEnd = 0;                          // end of the validity of the object
-
-  ClassDefNV(CcdbObjectInfo, 1);
+  bool mAdjustableEOV = false;            // each new object may override EOV of object it overrides to its own SOV
+  ClassDefNV(CcdbObjectInfo, 2);
 };
 
 } // namespace o2::ccdb

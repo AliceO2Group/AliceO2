@@ -15,38 +15,36 @@
 o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcontext)
 {
   std::vector<o2::dcs::test::HintType> dphints;
-  // for TRD
-  // for test, we use less DPs than official ones
+  // for TRD, official list
+
+  // gas parameters
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_gasCO2", 0, 50.}); // adding a data point of type double with the name trd_gasCO2 which takes values between 0 and 50
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_gasH2O", 0, 500.});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_gasO2", 0, 100.});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_gaschromatographCO2", 0, 100.});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_gaschromatographN2", 0, 100.});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_gaschromatographXe", 0, 100.});
-  // dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvAnodeImon[00..02]", 0, 50.});
-  // dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvAnodeUmon[00..02]", 0, 50.});
-  // dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvDriftImon[00..02]", 0, 50.});
-  // dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvDriftUmon[00..02]", 0, 50.});
-  // dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_fedChamberStatus", 0, 255});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_runNo", 0, 255});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_runType", 0, 255});
-  // for TRD, official list, not yet complete
-  /*
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_gasCO2", 0, 50.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_gasH2O", 0, 50.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_gasO2", 0, 50.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_gaschromatographCO2", 0, 50.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_gaschromatographN2", 0, 50.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_gaschromatographXe", 0, 50.});
+
+  // HV parameters
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvAnodeImon[00..539]", 0, 50.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvAnodeUmon[00..539]", 0, 50.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvAnodeUmon[00..539]", 49., 50.});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvDriftImon[00..539]", 0, 50.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvDriftUmon[00..539]", 0, 50.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_fedChamberStatus", 0, 255});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_runNo", 0, 255});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_runType", 0, 255});
-  */
-  o2::framework::WorkflowSpec specs;
-  specs.emplace_back(o2::dcs::test::getDCSRandomDataGeneratorSpec(dphints, "TRD"));
-  return specs;
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvDriftUmon[00..539]", 49., 50.});
+
+  // temperatures, pressures, config and other
+  // dphints.emplace_back(o2::dcs::test::DataPointHint<std::string>{"trd_fedCFGtag[00..539]", "foo", "bar"});
+  // FIXME if I put a longer string here, e.g. "cf2_krypton_tb30:r5927" then dcs-random-data-generator crashes (std::bad_alloc or std::length_error)
+
+  // dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_fedChamberStatus[00..539]", 0, 255});
+  // dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_fedEnvTemp[00..539]", 10., 40.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_aliEnvTempCavern", 0, 100.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_aliEnvTempP2", 0, 100.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_aliEnvPressure00", 0, 100.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_aliEnvPressure01", 0, 100.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_aliEnvPressure02", 0, 100.});
+  // dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_cavernHumidity", 0, 100.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_runNo", 254, 255});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<int32_t>{"trd_runType", 254, 255});
+
+  return o2::framework::WorkflowSpec{o2::dcs::test::getDCSRandomDataGeneratorSpec(dphints, "TRD")};
 }

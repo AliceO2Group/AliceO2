@@ -63,13 +63,13 @@ class TRDGlobalTracking : public o2::framework::Task
   o2::gpu::GPUChainTracking* mChainTracking{nullptr}; ///< TRD tracker is run in the tracking chain
   std::unique_ptr<GeometryFlat> mFlatGeo{nullptr};    ///< flat TRD geometry
   bool mUseMC{false};                                 ///< MC flag
-  bool mTrigRecFilter{false};                         ///< if true, TRD trigger records without matching ITS IR are filtered out
-  bool mStrict{false};                                ///< preliminary matching in strict mode
   float mTPCTBinMUS{.2f};                             ///< width of a TPC time bin in us
   float mTPCTBinMUSInv{1.f / mTPCTBinMUS};            ///< inverse width of a TPC time bin in 1/us
   float mTPCVdrift{2.58f};                            ///< TPC drift velocity (for shifting TPC tracks along Z)
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< seeding input (TPC-only, ITS-TPC or both)
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;               ///< seeding track sources (TPC, ITS-TPC)
+  bool mTrigRecFilter{false};                                    ///< if true, TRD trigger records without matching ITS IR are filtered out
+  bool mStrict{false};                                           ///< preliminary matching in strict mode
   TStopwatch mTimer;
   // temporary members -> should go into processor (GPUTRDTracker or additional refit processor?)
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter;         ///< TPC refitter used for TPC tracks refit during the reconstruction

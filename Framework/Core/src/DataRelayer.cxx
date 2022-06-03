@@ -36,6 +36,7 @@
 #include <Monitoring/Metric.h>
 #include <Monitoring/Monitoring.h>
 
+#include <fairmq/Channel.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <gsl/span>
@@ -52,9 +53,9 @@ namespace o2::framework
 
 constexpr int INVALID_INPUT = -1;
 
-// 16 is just some reasonable numer
+// 128 is just some reasonable numer
 // The number should really be tuned at runtime for each processor.
-constexpr int DEFAULT_PIPELINE_LENGTH = 32;
+constexpr int DEFAULT_PIPELINE_LENGTH = 128;
 
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
@@ -70,7 +71,9 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
   if (policy.configureRelayer == nullptr) {
-    setPipelineLength(DEFAULT_PIPELINE_LENGTH);
+    char* defaultPipelineLengthTxt = getenv("DPL_DEFAULT_PIPELINE_LENGTH");
+    int defaultPipelineLength = defaultPipelineLengthTxt ? std::stoi(defaultPipelineLengthTxt) : DEFAULT_PIPELINE_LENGTH;
+    setPipelineLength(defaultPipelineLength);
   } else {
     policy.configureRelayer(*this);
   }
@@ -279,18 +282,22 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       }
       continue;
     }
-    bool hasTimeframe = false;
+    bool droppingNotCondition = false;
     for (size_t mi = 0; mi == mInputs.size(); ++mi) {
       auto& input = mInputs[mi];
       auto& element = mCache[si * mInputs.size() + mi];
-      if (input.lifetime == Lifetime::Timeframe && element.size() != 0) {
-        LOGP(error, "Dropping Lifetime::Timeframe data in slot {} with timestamp {} < {}.", si, timestamp.value, newOldest.timeslice.value);
-        hasTimeframe = true;
+      if (input.lifetime != Lifetime::Condition && element.size() != 0) {
+        LOGP(error, "Dropping Lifetime::{} data in slot {} with timestamp {} < {}.", input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+        droppingNotCondition = true;
         break;
       }
     }
-    if (!hasTimeframe) {
-      LOGP(debug, "Silently dropping data in slot {} because it has timestamp {} < {}. Lifetime::Timeframe data not expected.", si, timestamp.value, newOldest.timeslice.value);
+    if (!droppingNotCondition) {
+      LOGP(info,
+           "Silently dropping data in pipeline slot {} because it has timeslice {} < {} after receiving data from channel {}."
+           "Because Lifetime::Timeframe data not there and not expected (e.g. due to sampling) we drop non sampled, non timeframe data (e.g. Conditions).",
+           si, timestamp.value, newOldest.timeslice.value,
+           mTimesliceIndex.getChannelInfo(channel).channel->GetName());
     }
   }
 }
@@ -302,7 +309,7 @@ TimesliceIndex::OldestOutputInfo DataRelayer::getOldestPossibleOutput() const
 
 DataRelayer::RelayChoice
   DataRelayer::relay(void const* rawHeader,
-                     std::unique_ptr<FairMQMessage>* messages,
+                     std::unique_ptr<fair::mq::Message>* messages,
                      size_t nMessages,
                      size_t nPayloads)
 {
@@ -392,7 +399,7 @@ DataRelayer::RelayChoice
     assert(nPayloads > 0);
     for (size_t mi = 0; mi < nMessages; ++mi) {
       assert(mi + nPayloads < nMessages);
-      target.add([&messages, &mi](size_t i) -> FairMQMessagePtr& { return messages[mi + i]; }, nPayloads + 1);
+      target.add([&messages, &mi](size_t i) -> fair::mq::MessagePtr& { return messages[mi + i]; }, nPayloads + 1);
       mi += nPayloads;
     }
   };
@@ -648,6 +655,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       case CompletionPolicy::CompletionOp::Consume:
         countConsume++;
         updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::ConsumeAndRescan:
         // This is just like Consume, but we also mark all slots as dirty
@@ -659,22 +667,28 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
       case CompletionPolicy::CompletionOp::ConsumeExisting:
         countConsumeExisting++;
         updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::Process:
         countProcess++;
         updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::Discard:
         countDiscard++;
         updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
+        break;
+      case CompletionPolicy::CompletionOp::Retry:
+        countWait++;
+        mTimesliceIndex.markAsDirty(slot, true);
+        action = CompletionPolicy::CompletionOp::Wait;
         break;
       case CompletionPolicy::CompletionOp::Wait:
         countWait++;
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
     }
-    // Given we have created an action for this cacheline, we need to wait for
-    // a new message before we look again into the given cacheline.
-    mTimesliceIndex.markAsDirty(slot, false);
   }
   mTimesliceIndex.updateOldestPossibleOutput();
   LOGP(debug, "DataRelayer::getReadyToProcess results notDirty:{}, consume:{}, consumeExisting:{}, process:{}, discard:{}, wait:{}",

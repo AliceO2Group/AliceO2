@@ -63,7 +63,7 @@ void HMPIDDigitizer::reset()
 // this will process hits and fill the digit vector with digits which are finalized
 void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::vector<o2::hmpid::Digit>& digits)
 {
-  printf("*******************In digitizer process**********************************");
+  LOG(info) << "Starting HMPPID digitizer process function";
 
   for (auto& hit : hits) {
     int chamber, pc, px, py;
@@ -81,7 +81,7 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
     for (int nx = -1; nx <= 1; ++nx) {
       for (int ny = -1; ny <= 1; ++ny) {
         if ((px + nx) < 0 || (px + nx) > 79 || (py + ny) < 0 || (py + ny) > 47) {
-          LOG(info) << ">> Pad out the PhotoCathod boundary. Excluded :" << px << " " << py << " :" << nx << "," << ny;
+          // LOG(info) << ">> Pad out the PhotoCathod boundary. Excluded :" << px << " " << py << " :" << nx << "," << ny;
           continue;
         }
         allpads[counter] = o2::hmpid::Digit::abs(chamber, pc, px + nx, py + ny);

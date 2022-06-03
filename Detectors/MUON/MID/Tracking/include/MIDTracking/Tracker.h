@@ -35,16 +35,8 @@ class Tracker
  public:
   Tracker(const GeometryTransformer& geoTrans);
 
-  /// Sets impact parameter cut
-  void setImpactParamCut(float impactParamCut) { mImpactParamCut = impactParamCut; }
   /// Gets the impact parameter cut
   inline float getImpactParamCut() const { return mImpactParamCut; }
-  /// Sets number of sigmas for cuts
-  void setSigmaCut(float sigmaCut)
-  {
-    mSigmaCut = sigmaCut;
-    mMaxChi2 = 2. * sigmaCut * sigmaCut;
-  }
   /// Gets number of sigmas for cuts
   inline float getSigmaCut() const { return mSigmaCut; }
 
@@ -92,6 +84,7 @@ class Tracker
   std::vector<Track> mTracks{};                ///< Vector of tracks
   std::vector<ROFRecord> mTrackROFRecords{};   ///< List of track RO frame records
   std::vector<ROFRecord> mClusterROFRecords{}; ///< List of cluster RO frame records
+  size_t mFirstTrackOffset{0};                 ///! Offset for the first track in the current event
   size_t mTrackOffset{0};                      ///! Offset for the track in the current event
   int mNTracksStep1{0};                        ///! Number of tracks found in the first tracking step
 

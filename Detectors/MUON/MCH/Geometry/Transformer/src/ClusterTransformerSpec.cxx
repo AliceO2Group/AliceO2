@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ClusterTransformerSpec.h"
+#include "MCHGeometryTransformer/ClusterTransformerSpec.h"
 
 #include "DetectorsBase/GeometryManager.h"
 #include "CommonUtils/NameConf.h"
@@ -30,6 +30,7 @@
 #include <filesystem>
 #include <fstream>
 #include <vector>
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace std;
 using namespace o2::framework;
@@ -61,9 +62,20 @@ void local2global(geo::TransformationCreator transformation,
 class ClusterTransformerTask
 {
  public:
-  void init(InitContext& ic)
+  ClusterTransformerTask(std::shared_ptr<base::GRPGeomRequest> req) : mCcdbRequest(req)
   {
-    auto geoFile = ic.options().get<std::string>("geometry");
+  }
+
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+  {
+    if (mCcdbRequest) {
+      base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+      transformation = o2::mch::geo::transformationFromTGeoManager(*gGeoManager);
+    }
+  }
+
+  void readGeometryFromFile(std::string geoFile)
+  {
     std::string ext = fs::path(geoFile).extension();
     std::transform(ext.begin(), ext.begin(), ext.end(), [](unsigned char c) { return std::tolower(c); });
 
@@ -77,7 +89,17 @@ class ClusterTransformerTask
       o2::base::GeometryManager::loadGeometry(geoFile);
       transformation = o2::mch::geo::transformationFromTGeoManager(*gGeoManager);
     } else {
-      throw std::invalid_argument("Geometry can only be in JSON or Root format");
+      throw std::invalid_argument("Geometry from file can only be in JSON or Root format");
+    }
+  }
+
+  void init(InitContext& ic)
+  {
+    if (mCcdbRequest) {
+      base::GRPGeomHelper::instance().setRequest(mCcdbRequest);
+    } else {
+      auto geoFile = ic.options().get<std::string>("geometry");
+      readGeometryFromFile(geoFile);
     }
   }
 
@@ -85,6 +107,10 @@ class ClusterTransformerTask
   // tranform them into master reference frame.
   void run(ProcessingContext& pc)
   {
+    if (mCcdbRequest) {
+      base::GRPGeomHelper::instance().checkUpdates(pc);
+    }
+
     // get the input clusters
     auto localClusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
 
@@ -96,16 +122,26 @@ class ClusterTransformerTask
 
  public:
   o2::mch::geo::TransformationCreator transformation;
+  std::shared_ptr<base::GRPGeomRequest> mCcdbRequest;
 };
 
-DataProcessorSpec getClusterTransformerSpec(const char* specName)
+DataProcessorSpec getClusterTransformerSpec(const char* specName, bool disableCcdb)
 {
   std::string inputConfig = fmt::format("rofs:MCH/CLUSTERROFS;clusters:MCH/CLUSTERS");
+  auto inputs = o2::framework::select(inputConfig.c_str());
+
+  auto ccdbRequest = disableCcdb ? nullptr : std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                                                        false,                             // GRPECS=true
+                                                                                        false,                             // GRPLHCIF
+                                                                                        false,                             // GRPMagField
+                                                                                        false,                             // askMatLUT
+                                                                                        o2::base::GRPGeomRequest::Aligned, // geometry
+                                                                                        inputs);
   return DataProcessorSpec{
     specName,
-    Inputs{o2::framework::select(inputConfig.c_str())},
+    inputs,
     Outputs{OutputSpec{{"globalclusters"}, "MCH", "GLOBALCLUSTERS", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<ClusterTransformerTask>()},
+    AlgorithmSpec{adaptFromTask<ClusterTransformerTask>(ccdbRequest)},
     Options{
       {"geometry", VariantType::String, o2::base::NameConf::getGeomFileName(), {"input geometry file (JSON or Root format)"}}}};
 }

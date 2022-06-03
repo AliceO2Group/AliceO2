@@ -51,6 +51,9 @@ std::ostream& operator<<(std::ostream& oss, CompletionPolicy::CompletionOp const
     case CompletionPolicy::CompletionOp::ConsumeAndRescan:
       oss << "consumeAndRescan";
       break;
+    case CompletionPolicy::CompletionOp::Retry:
+      oss << "retry";
+      break;
   };
   return oss;
 }

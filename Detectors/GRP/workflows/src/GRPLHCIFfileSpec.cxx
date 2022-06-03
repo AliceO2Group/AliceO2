@@ -67,89 +67,100 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
   // Beam Energy
   mReader.readValue<int32_t>("BEAM_ENERGY", type, nEle, nMeas, beamEnergy);
   if (nMeas == 0) {
-    LOG(fatal) << "Beam energy not present";
+    LOG(warn) << "Beam energy not present/empty"; // RS: in absence of the beam it is empty, don't produce an error
   }
-  if (nEle != 1 || nMeas != 1) {
-    LOG(error) << "More than one value/measurement found for Beam Energy, keeping the last one";
+  if (nEle > 1 || nMeas > 1) {
+    LOGP(warn, "More than one value/measurement {}/{} found for Beam Energy, keeping the last one", nEle, nMeas);
   }
-  LOG(info) << "beam energy size = " << beamEnergy.size();
-  lhcifdata.setBeamEnergyPerZWithTime(beamEnergy.back().first, beamEnergy.back().second.back());
-
+  if (!beamEnergy.empty()) {
+    lhcifdata.setBeamEnergyPerZWithTime(beamEnergy.back().first, beamEnergy.back().second.back());
+  }
   // Injection scheme
   mReader.readValue<std::string>("INJECTION_SCHEME", type, nEle, nMeas, injScheme);
   if (nMeas == 0) {
-    LOG(fatal) << "Injection scheme not present";
+    LOG(warn) << "Injection scheme not present/empty"; // RS: same comment
   }
-  if (nEle != 1 || nMeas != 1) {
-    LOG(error) << "More than one value/measurement found for Injection Scheme, keeping the last one";
+  if (nEle > 1 || nMeas > 1) {
+    LOGP(warn, "More than one value/measurement {}/{} found for Injection Scheme, keeping the last one", nEle, nMeas);
   }
-  lhcifdata.setInjectionSchemeWithTime(injScheme.back().first, injScheme.back().second.back());
+  if (!injScheme.empty()) {
+    lhcifdata.setInjectionSchemeWithTime(injScheme.back().first, injScheme.back().second.back());
+  }
 
   // fill number
   mReader.readValue<std::string>("FILL_NUMBER", type, nEle, nMeas, fillNb);
   if (nMeas == 0) {
-    LOG(fatal) << "Fill Number not present";
+    LOG(warn) << "Fill Number not present/empty";
   }
-  if (nEle != 1 || nMeas != 1) {
-    LOG(error) << "More than one value/measurement found for Fill Number, keeping the last one";
+  if (nEle > 1 || nMeas > 1) {
+    LOG(warn) << "More than one value/measurement found for Fill Number, keeping the last one";
   }
-  lhcifdata.setFillNumberWithTime(fillNb.back().first, atoi(fillNb.back().second.back().c_str()));
+  if (!fillNb.empty()) {
+    lhcifdata.setFillNumberWithTime(fillNb.back().first, atoi(fillNb.back().second.back().c_str()));
+  }
 
   // Atomic Number (Z) for B1
   mReader.readValue<int32_t>("ATOMIC_NUMBER_B1", type, nEle, nMeas, atomicNbB1);
   if (nMeas == 0) {
-    LOG(fatal) << "Atomic Number Beam 1 (clockwise) not present";
+    LOG(warn) << "Atomic Number Beam 1 (clockwise) not present/empty"; // RS same comment
   }
-  if (nEle != 1 || nMeas != 1) {
-    LOG(error) << "More than one value/measurement found for Atomic Number Beam 1 (clockwise), keeping the last one";
+  if (nEle > 1 || nMeas > 1) {
+    LOGP(warn, "More than one value/measurement {}/{} found for Atomic Number Beam 1 (clockwise), keeping the last one", nEle, nMeas);
   }
-  lhcifdata.setAtomicNumberB1WithTime(atomicNbB1.back().first, atomicNbB1.back().second.back());
+  if (!atomicNbB1.empty()) {
+    lhcifdata.setAtomicNumberB1WithTime(atomicNbB1.back().first, atomicNbB1.back().second.back());
+  }
 
   // Atomic Number (Z) for B2
   mReader.readValue<int32_t>("ATOMIC_NUMBER_B2", type, nEle, nMeas, atomicNbB2);
   if (nMeas == 0) {
-    LOG(fatal) << "Atomic Number Beam 2 (anticlockwise) not present";
+    LOG(warn) << "Atomic Number Beam 2 (anticlockwise) not present/empty";
   }
-  if (nEle != 1 || nMeas != 1) {
-    LOG(error) << "More than one value/measurement found for Atomic Number Beam 2 (anticlockwise), keeping the last one";
+  if (nEle > 1 || nMeas > 1) {
+    LOGP(warn, "More than one value/measurement {}/{} found for Atomic Number Beam 2 (anticlockwise), keeping the last one", nEle, nMeas);
   }
-  lhcifdata.setAtomicNumberB2WithTime(atomicNbB2.back().first, atomicNbB2.back().second.back());
+  if (!atomicNbB2.empty()) {
+    lhcifdata.setAtomicNumberB2WithTime(atomicNbB2.back().first, atomicNbB2.back().second.back());
+  }
 
   // Crossing Angle
   mReader.readValue<float>("IP2_XING_V_MURAD", type, nEle, nMeas, crossAngle);
   if (nMeas == 0) {
-    LOG(fatal) << "Crossing Angle not present";
+    LOG(warn) << "Crossing Angle not present/empty";
   }
-  if (nEle != 1 || nMeas != 1) {
-    LOG(error) << "More than one value/measurement found for Crossing Angle, keeping the last one";
+  if (nEle > 1 || nMeas > 1) {
+    LOGP(warn, "More than one value/measurement {}/{} found for Crossing Angle, keeping the last one", nEle, nMeas);
   }
-  lhcifdata.setCrossingAngleWithTime(crossAngle.back().first, crossAngle.back().second.back());
+  if (!crossAngle.empty()) {
+    lhcifdata.setCrossingAngleWithTime(crossAngle.back().first, crossAngle.back().second.back());
+  }
 
   // Bunch Config for B1
   mReader.readValue<int>("CIRCULATING_BUNCH_CONFIG_BEAM1", type, nEle, nMeas, bunchConfigB1);
   if (nMeas == 0) {
-    LOG(fatal) << "Bunch Config Beam 1 not present";
+    LOG(warn) << "Bunch Config Beam 1 not present/empty";
   }
-  if (nMeas != 1) {
-    LOG(error) << "More than one value/measurement found for Bunch Config Beam 1, keeping the last one";
+  if (nMeas > 1) {
+    LOGP(warn, "More than one measurement {} found for Bunch Config Beam 1, keeping the last one", nMeas);
   }
 
   // Bunch Config for B2
   mReader.readValue<int>("CIRCULATING_BUNCH_CONFIG_BEAM2", type, nEle, nMeas, bunchConfigB2);
   if (nMeas == 0) {
-    LOG(fatal) << "Bunch Config Beam 2 not present";
+    LOG(warn) << "Bunch Config Beam 2 not present/empty";
   }
-  if (nMeas != 1) {
-    LOG(error) << "More than one value/measurement found for Bunch Config Beam 2, keeping the last one";
+  if (nMeas > 1) {
+    LOGP(warn, "More than one measurement {} found for Bunch Config Beam 2, keeping the last one", nMeas);
   }
 
   // Building Bunch Filling
-  o2::BunchFilling bunchFilling;
-  bunchFilling.buckets2BeamPattern(bunchConfigB1.back().second, 0);
-  bunchFilling.buckets2BeamPattern(bunchConfigB2.back().second, 1);
-  bunchFilling.setInteractingBCsFromBeams();
-
-  lhcifdata.setBunchFillingWithTime((bunchConfigB1.back().first + bunchConfigB2.back().first) / 2, bunchFilling);
+  if (!bunchConfigB1.empty() && !bunchConfigB2.empty()) {
+    o2::BunchFilling bunchFilling;
+    bunchFilling.buckets2BeamPattern(bunchConfigB1.back().second, 0);
+    bunchFilling.buckets2BeamPattern(bunchConfigB2.back().second, 1);
+    bunchFilling.setInteractingBCsFromBeams();
+    lhcifdata.setBunchFillingWithTime((bunchConfigB1.back().first + bunchConfigB2.back().first) / 2, bunchFilling);
+  }
 
   if (mVerbose) {
     LOG(info) << " **** Beam Energy ****";
@@ -210,7 +221,10 @@ void GRPLHCIFfileProcessor::sendOutput(DataAllocator& output, long start, const 
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   std::map<std::string, std::string> md;
   md.emplace("created_by", "dpl");
-  o2::ccdb::CcdbObjectInfo info("GLO/Config/GRPLHCIFData", clName, flName, md, start, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  if (lhcifdata.getFillNumberTime()) {
+    md.emplace("fillNumber", fmt::format("{}", lhcifdata.getFillNumber()));
+  }
+  o2::ccdb::CcdbObjectInfo info("GLO/Config/GRPLHCIF", clName, flName, md, start, start + o2::ccdb::CcdbObjectInfo::MONTH);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&lhcifdata, &info);
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
