@@ -188,6 +188,17 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
       mDigitizer.setDeadChannelsMap((const o2::itsmft::NoiseMap*)obj);
       return;
     }
+    if (matcher == ConcreteDataMatcher(mOrigin, "ALPIDEPARAM", 0)) {
+      LOG(info) << mID.getName() << " Alpide param updated";
+      if (mID == o2::detectors::DetID::ITS) {
+        const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+        par.printKeyValues();
+      } else {
+        const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
+        par.printKeyValues();
+      }
+      return;
+    }
   }
 
  protected:
