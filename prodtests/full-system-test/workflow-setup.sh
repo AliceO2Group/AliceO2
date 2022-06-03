@@ -22,8 +22,8 @@ fi
 MID_FEEID_MAP="$FILEWORKDIR/mid-feeId_mapper.txt"
 
 ITSMFT_STROBES=""
-[[ -z $ITS_STROBE ]] && ITSMFT_STROBES+="ITSAlpideParam.roFrameLengthInBC=$ITS_STROBE;"
-[[ -z $MFT_STROBE ]] && ITSMFT_STROBES+="MFTAlpideParam.roFrameLengthInBC=$MFT_STROBE;"
+[[ ! -z $ITS_STROBE ]] && ITSMFT_STROBES+="ITSAlpideParam.roFrameLengthInBC=$ITS_STROBE;"
+[[ ! -z $MFT_STROBE ]] && ITSMFT_STROBES+="MFTAlpideParam.roFrameLengthInBC=$MFT_STROBE;"
 
 LIST_OF_ASYNC_RECO_STEPS="MID MCH MFT FDD FV0 ZDC"
 
