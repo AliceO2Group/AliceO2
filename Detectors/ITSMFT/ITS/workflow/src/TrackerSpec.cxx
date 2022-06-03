@@ -253,24 +253,22 @@ void TrackerDPL::run(ProcessingContext& pc)
     if (mRunVertexer) {
       auto vtxSpan = timeFrame->getPrimaryVertices(iRof);
       vtxROF.setNEntries(vtxSpan.size());
-      if (multEstConf.isVtxMultCutRequested()) {
-        bool selROF = vtxSpan.size() == 0;
-        for (auto& v : vtxSpan) {
-          if (!multEstConf.isPassingVtxMultCut(v.getNContributors())) {
-            continue; // skip vertex of unwanted multiplicity
-          }
-          selROF = true;
-          vertices.push_back(v);
+      bool selROF = vtxSpan.size() == 0;
+      for (auto& v : vtxSpan) {
+        if (multEstConf.isVtxMultCutRequested() && !multEstConf.isPassingVtxMultCut(v.getNContributors())) {
+          continue; // skip vertex of unwanted multiplicity
         }
-        if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
-          LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
-                                    iRof,
-                                    multEstConf.cutMultVtxLow,
-                                    multEstConf.cutMultVtxHigh);
-          processingMask[iRof] = selROF;
-          cutVertexMult++;
-        }
-      }      // vertex mult cut was requested
+        selROF = true;
+        vertices.push_back(v);
+      }
+      if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
+        LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
+                                  iRof,
+                                  multEstConf.cutMultVtxLow,
+                                  multEstConf.cutMultVtxHigh);
+        processingMask[iRof] = selROF;
+        cutVertexMult++;
+      }
     } else { // cosmics
       vtxVecLoc.emplace_back(Vertex());
       vtxVecLoc.back().setNContributors(1);
@@ -281,7 +279,6 @@ void TrackerDPL::run(ProcessingContext& pc)
       timeFrame->addPrimaryVertices(vtxVecLoc);
     }
   }
-
   LOG(info) << fmt::format(" - rejected {}/{} ROFs: random:{}, mult.sel:{}, vtx.sel:{}", cutRandomMult + cutClusterMult + cutVertexMult, rofspan.size(), cutRandomMult, cutClusterMult, cutVertexMult);
   LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} clusters in {} ROFs", vertexerElapsedTime, nclUsed, rofspan.size());
   LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", timeFrame->getBeamX(), timeFrame->getBeamY());
