@@ -375,10 +375,10 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
           continue;
         }
       }
-      const float phi{hypo.getPhi()};
-      const float ePhi{std::sqrt(hypo.getSigmaSnp2() / hypo.getCsp2())};
-      const float z{hypo.getZ()};
-      const float eZ{std::sqrt(hypo.getSigmaZ2())};
+      const float phi{hypoParam.getPhi()};
+      const float ePhi{std::sqrt(hypoParam.getSigmaSnp2() / hypoParam.getCsp2())};
+      const float z{hypoParam.getZ()};
+      const float eZ{std::sqrt(hypoParam.getSigmaZ2())};
       const int4 selectedBinsRect{getBinsRect(iLayer, phi, mTrkParams.NSigmaCut * ePhi, z, mTrkParams.NSigmaCut * eZ)};
 
       if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
