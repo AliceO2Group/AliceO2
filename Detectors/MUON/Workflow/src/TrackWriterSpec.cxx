@@ -20,6 +20,7 @@
 
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "ReconstructionDataFormats/TrackMCHMID.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 namespace o2
 {
@@ -31,12 +32,13 @@ using namespace o2::framework;
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-DataProcessorSpec getTrackWriterSpec(const char* specName, const char* fileName)
+DataProcessorSpec getTrackWriterSpec(bool useMC, const char* specName, const char* fileName)
 {
   return MakeRootTreeWriterSpec(specName,
                                 fileName,
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree Matched MCH-MID Tracks"},
-                                BranchDefinition<std::vector<dataformats::TrackMCHMID>>{InputSpec{"tracks", "GLO", "MTC_MCHMID"}, "tracks"})();
+                                BranchDefinition<std::vector<dataformats::TrackMCHMID>>{InputSpec{"tracks", "GLO", "MTC_MCHMID"}, "tracks"},
+                                BranchDefinition<std::vector<o2::MCCompLabel>>{InputSpec{"tracklabels", "GLO", "MCMTC_MCHMID"}, "tracklabels", useMC ? 1 : 0})();
 }
 
 } // namespace muon
