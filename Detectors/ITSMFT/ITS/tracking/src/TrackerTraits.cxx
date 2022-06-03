@@ -402,7 +402,6 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
         int iPhiBin = (selectedBinsRect.y + iPhiCount) % mTrkParams.PhiBins;
         const int firstBinIndex{mTimeFrame->mIndexTableUtils.getBinIndex(selectedBinsRect.x, iPhiBin)};
         const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
-        /// TODO: here we assume that we have the intex tables in layer 0... we currently don't. We must fix this.
         const int firstRowClusterIndex = mTimeFrame->getIndexTables(rof)[iLayer][firstBinIndex];
         const int maxRowClusterIndex = mTimeFrame->getIndexTables(rof)[iLayer][maxBinIndex];
 

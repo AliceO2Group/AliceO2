@@ -251,7 +251,6 @@ void TrackerDPL::run(ProcessingContext& pc)
     // Run seeding vertexer
     vertexerElapsedTime = mVertexer->clustersToVertices(false, logger);
   }
-  // timeFrame->setMultiplicityCutMask(std::vector<bool>(false, processingMask.size())); // <===== THIS BREAKS EVERYTHING
 
   for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
     std::vector<Vertex> vtxVecLoc;
