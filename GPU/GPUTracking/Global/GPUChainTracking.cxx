@@ -864,17 +864,18 @@ int GPUChainTracking::CheckErrorCodes(bool cpuOnly, bool forceShowErrors)
       }
     }
   }
+  ClearErrorCodes(cpuOnly);
   return retVal;
 }
 
-void GPUChainTracking::ClearErrorCodes()
+void GPUChainTracking::ClearErrorCodes(bool cpuOnly)
 {
   processors()->errorCodes.clear();
-  const auto& threadContext = GetThreadContext();
-  if (mRec->IsGPU()) {
+  if (mRec->IsGPU() && !cpuOnly) {
+    const auto& threadContext = GetThreadContext();
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->errorCodes - (char*)processors(), &processorsShadow()->errorCodes, sizeof(processorsShadow()->errorCodes), 0);
+    TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes, 0);
   }
-  TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes, 0);
 }
 
 void GPUChainTracking::SetDefaultInternalO2Propagator(bool useGPUField)
