@@ -43,16 +43,19 @@ GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, in
       GPUglobalref() GPUTPCHitId* const GPUrestrict() startHits = tracker.mTrackletTmpStartHits + s.mIRow * tracker.mNMaxRowStartHits;
       unsigned int nextRowStartHits = CAMath::AtomicAddShared(&s.mNRowStartHits, 1u);
       if (nextRowStartHits >= tracker.mNMaxRowStartHits) {
-        tracker.raiseError(GPUErrors::ERROR_ROWSTARTHIT_OVERFLOW, tracker.ISlice(), nextRowStartHits, tracker.mNMaxRowStartHits);
+        tracker.raiseError(GPUErrors::ERROR_ROWSTARTHIT_OVERFLOW, tracker.ISlice() * 1000 + s.mIRow, nextRowStartHits, tracker.mNMaxRowStartHits);
+        CAMath::AtomicExch(&tracker.mCommonMem->nStartHits, tracker.mNMaxRowStartHits);
+        break;
+      }
 #else
       GPUglobalref() GPUTPCHitId* const GPUrestrict() startHits = tracker.mTrackletStartHits;
       unsigned int nextRowStartHits = CAMath::AtomicAdd(&tracker.mCommonMem->nStartHits, 1u);
       if (nextRowStartHits >= tracker.mNMaxStartHits) {
-        tracker.raiseError(GPUErrors::ERROR_STARTHIT_OVERFLOW, tracker.ISlice(), nextRowStartHits, tracker.mNMaxStartHits);
-#endif
-        CAMath::AtomicExch(&tracker.mCommonMem->nStartHits, 0u);
+        tracker.raiseError(GPUErrors::ERROR_STARTHIT_OVERFLOW, tracker.ISlice() * 1000 + s.mIRow, nextRowStartHits, tracker.mNMaxStartHits);
+        CAMath::AtomicExch(&tracker.mCommonMem->nStartHits, tracker.mNMaxStartHits);
         break;
       }
+#endif
       startHits[nextRowStartHits].Set(s.mIRow, ih);
     }
   }
@@ -63,8 +66,8 @@ GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, in
     unsigned int nOffset = CAMath::AtomicAdd(&tracker.mCommonMem->nStartHits, s.mNRowStartHits);
     tracker.mRowStartHitCountOffset[s.mIRow] = s.mNRowStartHits;
     if (nOffset + s.mNRowStartHits > tracker.mNMaxStartHits) {
-      tracker.raiseError(GPUErrors::ERROR_STARTHIT_OVERFLOW, tracker.ISlice(), nOffset + s.mNRowStartHits, tracker.mNMaxStartHits);
-      CAMath::AtomicExch(&tracker.mCommonMem->nStartHits, 0u);
+      tracker.raiseError(GPUErrors::ERROR_STARTHIT_OVERFLOW, tracker.ISlice() * 1000 + s.mIRow, nOffset + s.mNRowStartHits, tracker.mNMaxStartHits);
+      CAMath::AtomicExch(&tracker.mCommonMem->nStartHits, tracker.mNMaxStartHits);
     }
   }
 #endif
