@@ -131,42 +131,30 @@ static const char* opencl_error_string(int errorcode)
 #define GPUFailedMsg(x) GPUFailedMsgA(x, __FILE__, __LINE__)
 #define GPUFailedMsgI(x) GPUFailedMsgAI(x, __FILE__, __LINE__)
 
-static int GPUFailedMsgAI(int error, const char* file, int line)
+static inline long int OCLsetKernelParameters_helper(cl_kernel& k, int i)
 {
-  // Check for OPENCL Error and in the case of an error display the corresponding error string
-  if (error == CL_SUCCESS) {
-    return (0);
-  }
-  GPUError("OCL Error: %d / %s (%s:%d)", error, opencl_error_string(error), file, line);
-  return 1;
+  return 0;
 }
-
-static void GPUFailedMsgA(const long long int error, const char* file, int line)
-{
-  if (GPUFailedMsgAI(error, file, line)) {
-    throw std::runtime_error("OpenCL Failure");
-  }
-}
-
-static inline int OCLsetKernelParameters_helper(cl_kernel& k, int i) { return 0; }
 
 template <typename T, typename... Args>
-static inline int OCLsetKernelParameters_helper(cl_kernel& kernel, int i, const T& firstParameter, const Args&... restOfParameters)
+static inline long int OCLsetKernelParameters_helper(cl_kernel& kernel, int i, const T& firstParameter, const Args&... restOfParameters)
 {
-  GPUFailedMsg(clSetKernelArg(kernel, i, sizeof(T), &firstParameter));
+  long int retVal = clSetKernelArg(kernel, i, sizeof(T), &firstParameter);
+  if (retVal) {
+    return retVal;
+  }
   return OCLsetKernelParameters_helper(kernel, i + 1, restOfParameters...);
 }
 
 template <typename... Args>
-static inline int OCLsetKernelParameters(cl_kernel& kernel, const Args&... args)
+static inline long int OCLsetKernelParameters(cl_kernel& kernel, const Args&... args)
 {
   return OCLsetKernelParameters_helper(kernel, 0, args...);
 }
 
-static inline int clExecuteKernelA(cl_command_queue queue, cl_kernel krnl, size_t local_size, size_t global_size, cl_event* pEvent, cl_event* wait = nullptr, cl_int nWaitEvents = 1)
+static inline long int clExecuteKernelA(cl_command_queue queue, cl_kernel krnl, size_t local_size, size_t global_size, cl_event* pEvent, cl_event* wait = nullptr, cl_int nWaitEvents = 1)
 {
-  GPUFailedMsg(clEnqueueNDRangeKernel(queue, krnl, 1, nullptr, &global_size, &local_size, wait == nullptr ? 0 : nWaitEvents, wait, pEvent));
-  return 0;
+  return clEnqueueNDRangeKernel(queue, krnl, 1, nullptr, &global_size, &local_size, wait == nullptr ? 0 : nWaitEvents, wait, pEvent);
 }
 
 struct GPUReconstructionOCLInternals {
@@ -191,13 +179,9 @@ int GPUReconstructionOCL::runKernelBackendCommon(krnlSetup& _xyz, K& k, const Ar
   auto& y = _xyz.y;
   auto& z = _xyz.z;
   if (y.num <= 1) {
-    if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, y.start, args...)) {
-      return 1;
-    }
+    GPUFailedMsg(OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, y.start, args...));
   } else {
-    if (OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, y.start, y.num, args...)) {
-      return 1;
-    }
+    GPUFailedMsg(OCLsetKernelParameters(k, mInternals->mem_gpu, mInternals->mem_constant, y.start, y.num, args...));
   }
 
   cl_event ev;
@@ -209,7 +193,7 @@ int GPUReconstructionOCL::runKernelBackendCommon(krnlSetup& _xyz, K& k, const Ar
   } else {
     evr = (cl_event*)z.ev;
   }
-  int retVal = clExecuteKernelA(mInternals->command_queue[x.stream], k, x.nThreads, x.nThreads * x.nBlocks, evr, (cl_event*)z.evList, z.nEvents);
+  GPUFailedMsg(clExecuteKernelA(mInternals->command_queue[x.stream], k, x.nThreads, x.nThreads * x.nBlocks, evr, (cl_event*)z.evList, z.nEvents));
   if (mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0) {
     cl_ulong time_start, time_end;
     GPUFailedMsg(clWaitForEvents(1, evr));
@@ -220,7 +204,7 @@ int GPUReconstructionOCL::runKernelBackendCommon(krnlSetup& _xyz, K& k, const Ar
       GPUFailedMsg(clReleaseEvent(ev));
     }
   }
-  return retVal;
+  return 0;
 }
 
 template <class T, int I>
