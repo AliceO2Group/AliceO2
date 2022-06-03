@@ -1706,7 +1706,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
     unsigned int iOutTrackFirstCluster = CAMath::AtomicAdd(&mMemory->nOutputTrackClusters, (unsigned int)nHits);
     if (iOutTrackFirstCluster >= mNMaxOutputTrackClusters) {
       raiseError(GPUErrors::ERROR_MERGER_HIT_OVERFLOW, iOutTrackFirstCluster, mNMaxOutputTrackClusters);
-      CAMath::AtomicExch(&mMemory->nOutputTrackClusters, 0u);
+      CAMath::AtomicExch(&mMemory->nOutputTrackClusters, mNMaxOutputTrackClusters);
       continue;
     }
 
@@ -1764,7 +1764,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
     unsigned int iOutputTrack = CAMath::AtomicAdd(&mMemory->nOutputTracks, 1u);
     if (iOutputTrack >= mNMaxTracks) {
       raiseError(GPUErrors::ERROR_MERGER_TRACK_OVERFLOW, iOutputTrack, mNMaxTracks);
-      CAMath::AtomicExch(&mMemory->nOutputTracks, 0u);
+      CAMath::AtomicExch(&mMemory->nOutputTracks, mNMaxTracks);
       continue;
     }
 
@@ -2030,7 +2030,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopersInit(int nBlocks, int nThreads, int iBlo
       unsigned int myId = CAMath::AtomicAdd(&mMemory->nLooperMatchCandidates, 1u);
       if (myId >= mNMaxLooperMatches) {
         raiseError(GPUErrors::ERROR_LOOPER_MATCH_OVERFLOW, myId, mNMaxLooperMatches);
-        CAMath::AtomicExch(&mMemory->nLooperMatchCandidates, 0u);
+        CAMath::AtomicExch(&mMemory->nLooperMatchCandidates, mNMaxLooperMatches);
         return;
       }
       mLooperCandidates[myId] = MergeLooperParam{refz, gmx, gmy, i};
