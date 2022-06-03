@@ -81,7 +81,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false) override;
   bool SupportsDoublePipeline() override { return true; }
   int FinalizePipelinedProcessing() override;
-  void ClearErrorCodes();
+  void ClearErrorCodes(bool cpuOnly = false);
   void DoQueuedCalibUpdates(int stream); // Forces doing queue calib updates, don't call when you are not sure you are allowed to do so!
 
   // Structures for input and output data
