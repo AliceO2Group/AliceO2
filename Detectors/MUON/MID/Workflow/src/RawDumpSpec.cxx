@@ -55,12 +55,6 @@ class RawDumpDeviceDPL
       mDumpDecoded = true;
       mDumpPayload = false;
     }
-
-    printf("rdhOnly: %i  decoded: %i  all: %i  DD: %i  DP: %i\n", rdhOnly, dumpDecoded, dumpAll, mDumpDecoded, mDumpPayload);
-
-    // if (!outFilename.empty()) {
-    //   mOutFile.open(outFilename.c_str());
-    // }
   }
 
   void printPayload(gsl::span<const uint8_t> payload, bool isBare)
@@ -68,7 +62,6 @@ class RawDumpDeviceDPL
     std::stringstream ss;
     size_t wordLength = isBare ? 16 : 32;
     ss << "\n";
-    bool show = false;
     for (size_t iword = 0; iword < payload.size(); iword += wordLength) {
       auto word = payload.subspan(iword, wordLength);
       if (isBare) {
@@ -84,18 +77,12 @@ class RawDumpDeviceDPL
         }
       } else {
         for (auto it = word.begin(); it != word.end(); ++it) {
-          if (iword == 0 && std::distance(word.begin(), it) == 1 && static_cast<int>(*it) != 1) {
-            show = true;
-          }
           ss << fmt::format("{:02x}", static_cast<int>(*it));
         }
       }
       ss << "\n";
     }
-    // show = o2::raw::RDHUtils::getTriggerType(rdhPtr) & 0xA00;
-    if (show) {
-      LOG(info) << ss.str();
-    }
+    LOG(info) << ss.str();
   }
 
   void run(of::ProcessingContext& pc)
@@ -144,7 +131,6 @@ class RawDumpDeviceDPL
   }
 
  private:
-  std::ofstream mOutFile; /// Output file
   std::unique_ptr<Decoder> mDecoder{nullptr};
   bool mIsDebugMode{false};
   FEEIdConfig mFeeIdConfig{};
