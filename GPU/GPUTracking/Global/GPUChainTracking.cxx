@@ -825,7 +825,7 @@ int GPUChainTracking::HelperOutput(int iSlice, int threadId, GPUReconstructionHe
   return 0;
 }
 
-int GPUChainTracking::CheckErrorCodes(bool cpuOnly)
+int GPUChainTracking::CheckErrorCodes(bool cpuOnly, bool forceShowErrors)
 {
   int retVal = 0;
   for (int i = 0; i < 1 + (!cpuOnly && mRec->IsGPU()); i++) {
@@ -842,7 +842,7 @@ int GPUChainTracking::CheckErrorCodes(bool cpuOnly)
       static int errorsShown = 0;
       static bool quiet = false;
       static std::chrono::time_point<std::chrono::steady_clock> silenceFrom;
-      if (!quiet && errorsShown++ >= 10 && GetProcessingSettings().throttleAlarms) {
+      if (!quiet && errorsShown++ >= 10 && GetProcessingSettings().throttleAlarms && !forceShowErrors) {
         silenceFrom = std::chrono::steady_clock::now();
         quiet = true;
       } else if (quiet) {
@@ -854,13 +854,13 @@ int GPUChainTracking::CheckErrorCodes(bool cpuOnly)
         }
       }
       retVal = 1;
-      if (GetProcessingSettings().throttleAlarms) {
+      if (GetProcessingSettings().throttleAlarms && !forceShowErrors) {
         GPUWarning("GPUReconstruction suffered from an error in the %s part", i ? "GPU" : "CPU");
       } else {
         GPUError("GPUReconstruction suffered from an error in the %s part", i ? "GPU" : "CPU");
       }
       if (!quiet) {
-        processors()->errorCodes.printErrors(GetProcessingSettings().throttleAlarms);
+        processors()->errorCodes.printErrors(GetProcessingSettings().throttleAlarms && !forceShowErrors);
       }
     }
   }
