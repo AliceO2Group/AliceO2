@@ -37,6 +37,7 @@ class MapCRU
   static constexpr int sMaxFeeId = 64;
   static constexpr int sMaxLinkId = 12;
   std::array<uint16_t, sMaxFeeId * sMaxLinkId> mFeeLink2Solar;
+  size_t mSize = 0;
 };
 
 } // namespace o2::mch::raw
