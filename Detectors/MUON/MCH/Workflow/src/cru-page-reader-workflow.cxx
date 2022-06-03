@@ -63,6 +63,7 @@ struct TimeFrame {
   size_t tfSize{0};
   size_t totalSize{0};
   size_t payloadSize{0};
+  uint32_t firstOrbit{0xFFFFFFFF};
   std::vector<std::pair<size_t, size_t>> hbframes;
 
   void computePayloadSize()
@@ -263,7 +264,72 @@ class FileReaderTask
   }
 
   //_________________________________________________________________________________________________
-  void sendTF(framework::ProcessingContext& pc)
+  bool sendTF(framework::ProcessingContext& pc)
+  {
+    uint32_t orbitMin = 0xFFFFFFFF;
+    int maxQueueSize = 0;
+    for (int feeId = 0; feeId < NFEEID; feeId++) {
+      for (int linkId = 0; linkId < NLINKS; linkId++) {
+        TFQueue& tfQueue = tfQueues[feeId][linkId];
+        if (tfQueue.empty()) {
+          continue;
+        }
+        if (mPrint) {
+          std::cout << fmt::format("FEE ID {}  LINK {}   orbit {}    queue size {}", feeId, linkId, tfQueue.front().firstOrbit, tfQueue.size()) << std::endl;
+        }
+        if (tfQueue.front().firstOrbit < orbitMin) {
+          orbitMin = tfQueue.front().firstOrbit;
+        }
+        if (tfQueue.size() > maxQueueSize) {
+          maxQueueSize = tfQueue.size();
+        }
+      }
+    }
+
+    if (maxQueueSize < 3) {
+      return false;
+    }
+
+    char* outBuf{nullptr};
+    size_t outSize{0};
+    for (int feeId = 0; feeId < NFEEID; feeId++) {
+      for (int linkId = 0; linkId < NLINKS; linkId++) {
+        TFQueue& tfQueue = tfQueues[feeId][linkId];
+        TimeFrame& tf = tfQueue.front();
+        if (tf.firstOrbit != orbitMin) {
+          continue;
+        }
+
+        size_t newSize = outSize + tf.totalSize;
+        // increase the size of the memory buffer
+        outBuf = (char*)realloc(outBuf, newSize);
+        if (outBuf == nullptr) {
+          std::cout << "failed to allocate output buffer of size " << newSize << " bytes" << std::endl;
+          return false;
+        }
+        if (mPrint) {
+          std::cout << fmt::format("Appending FEE ID {}  LINK {}   orbit {} to current TF", feeId, linkId, tf.firstOrbit) << std::endl;
+        }
+        // copy the SubTimeFrame into the TimeFrame buffer
+        char* bufPtr = outBuf + outSize;
+        memcpy(bufPtr, tf.buf, tf.totalSize);
+
+        outSize += tf.totalSize;
+        tfQueue.pop();
+      }
+    }
+
+    if (mPrint) {
+      std::cout << "Sending TF" << std::endl << std::endl;
+    }
+    auto freefct = [](void* data, void* /*hint*/) { free(data); };
+    pc.outputs().adoptChunk(Output{"RDT", "RAWDATA"}, outBuf, outSize, freefct, nullptr);
+
+    return true;
+  }
+
+  //_________________________________________________________________________________________________
+  void appendSTF(framework::ProcessingContext& pc)
   {
     /// send one RDH block via DPL
     RDH rdh;
@@ -314,6 +380,7 @@ class FileReaderTask
       auto triggerType = o2::raw::RDHUtils::getTriggerType(rdh);
       auto pageSize = o2::raw::RDHUtils::getOffsetToNext(rdh);
       auto pageCounter = RDHUtils::getPageCounter(rdh);
+      auto orbit = RDHUtils::getHeartBeatOrbit(rdh);
       int bc = (int)RDHUtils::getTriggerBC(rdh);
 
       if (mPrint) {
@@ -321,8 +388,7 @@ class FileReaderTask
                (int)0, (int)rdhVersion, (int)pageSize,
                (int)RDHUtils::getPacketCounter(rdh), (int)RDHUtils::getSourceID(rdh),
                (int)cruID, (int)endPointID, (int)linkID,
-               (uint32_t)RDHUtils::getHeartBeatOrbit(rdh), (int)RDHUtils::getTriggerBC(rdh),
-               (int)triggerType, (int)pageCounter, (int)stopBit);
+               orbit, bc, (int)triggerType, (int)pageCounter, (int)stopBit);
         if ((triggerType & 0x800) != 0) {
           printf(" <===");
         }
@@ -382,42 +448,12 @@ class FileReaderTask
       mTimeFrameSizes[feeID][linkID] += pageSize;
 
       if ((triggerType & 0x800) != 0 && stopBit == 0 && pageCounter == 0 && bc == 0) {
-        // This is the start of a new TimeFrame, so we need to take some actions:
-        // - push a new TimeFrame in the queue
-        // - append the last N HBFrames of the previous TimeFrame at the beginning of the current one
-        // - set the initial total size of the TimeFrame buffer
-        char* prevTFptr{nullptr};
-        size_t prevTFsize{0};
-
+        // This is the start of a new TimeFrame, so we need to push a new empty TimeFrame in the queue
         if (mPrint) {
           std::cout << "tfQueue.size(): " << tfQueue.size() << std::endl;
         }
-        if (!tfQueue.empty()) {
-          TimeFrame& prevTF = tfQueue.back();
-          size_t nhbf = prevTF.hbframes.size();
-          if ((mOverlap > 0) && (nhbf >= mOverlap)) {
-            size_t hbfID = nhbf - mOverlap;
-            prevTFptr = prevTF.buf + prevTF.hbframes[hbfID].first;
-            for (size_t i = hbfID; i < nhbf; i++) {
-              prevTFsize += prevTF.hbframes[i].second;
-            }
-          }
-        }
-
         tfQueue.emplace();
-
-        if (prevTFsize > 0) {
-          tfQueue.back().buf = (char*)malloc(prevTFsize);
-          if (tfQueue.back().buf == nullptr) {
-            std::cout << mFrameMax << " - failed to allocate TimeFrame buffer" << std::endl;
-            pc.services().get<ControlService>().endOfStream();
-            return;
-          }
-
-          memcpy(tfQueue.back().buf, prevTFptr, prevTFsize);
-        }
-
-        tfQueue.back().totalSize = prevTFsize;
+        tfQueue.back().firstOrbit = orbit;
       }
 
       if (stopBit && tfQueue.size() > 0) {
@@ -434,49 +470,12 @@ class FileReaderTask
           return;
         }
 
-        if (tfQueue.size() == 2) {
-          // we have two TimeFrames in the queue, we also append mOverlap HBFrames to the first one
-          if (tfQueue.back().hbframes.size() <= mOverlap) {
-            if (mPrint) {
-              std::cout << "Appending HBF to TF #1" << std::endl;
-              printHBF(mTimeFrameBufs[feeID][linkID], mTimeFrameSizes[feeID][linkID]);
-            }
-            if (!appendHBF(tfQueue.front(), mTimeFrameBufs[feeID][linkID], mTimeFrameSizes[feeID][linkID], false)) {
-              std::cout << mFrameMax << " - failed to append HBframe" << std::endl;
-              pc.services().get<ControlService>().endOfStream();
-              return;
-            }
-          }
-        }
-
         // free the HBFrame buffer
         free(mTimeFrameBufs[feeID][linkID]);
         mTimeFrameBufs[feeID][linkID] = nullptr;
         mTimeFrameSizes[feeID][linkID] = 0;
 
-        if (tfQueue.size() == 2 && tfQueue.back().hbframes.size() >= mOverlap) {
-          // we collected enough HBFrames after the last fully recorded TimeFrame, so we can send it
-          tfQueue.front().computePayloadSize();
-          if (mPrint) {
-            tfQueue.front().print();
-            sleep(1);
-          }
-          if (tfQueue.front().payloadSize > 0) {
-            if (mSaveTF && TFid < 100) {
-              char fname[500];
-              snprintf(fname, 499, "tf-%03d.raw", TFid);
-              FILE* fout = fopen(fname, "wb");
-              if (fout) {
-                fwrite(tfQueue.front().buf, tfQueue.front().totalSize, 1, fout);
-                fclose(fout);
-              }
-            }
-
-            auto freefct = [](void* data, void* /*hint*/) { free(data); };
-            pc.outputs().adoptChunk(Output{"RDT", "RAWDATA"}, tfQueue.front().buf, tfQueue.front().totalSize, freefct, nullptr);
-            TFid += 1;
-          }
-          tfQueue.pop();
+        if (sendTF(pc)) {
           break;
         }
       }
@@ -489,7 +488,7 @@ class FileReaderTask
     setMessageHeader(pc, mTFIDInfo);
 
     if (mFullTF) {
-      sendTF(pc);
+      appendSTF(pc);
       // pc.services().get<ControlService>().endOfStream();
       return;
     }
