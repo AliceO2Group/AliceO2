@@ -79,6 +79,7 @@ struct TrackingParameters {
   o2::base::PropagatorImpl<float>::MatCorrType CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   unsigned long MaxMemory = 12000000000UL;
   std::array<float, 2> FitIterationMaxChi2 = {50, 20};
+  bool UseTrackFollower = false;
 };
 
 struct MemoryParameters {

@@ -384,20 +384,35 @@ void Tracker::findTracks()
 
 void Tracker::extendTracks()
 {
+  if (!mTrkParams.back().UseTrackFollower) {
+    return;
+  }
   for (int rof{0}; rof < mTimeFrame->getNrof(); ++rof) {
     for (auto& track : mTimeFrame->getTracks(rof)) {
-      ///TODO: track refitting is missing!
+      /// TODO: track refitting is missing!
       int ncl{track.getNClusters()};
+      auto backup{track};
+      bool success{false};
       if (track.getLastClusterLayer() != mTrkParams[0].NLayers - 1) {
-        bool success{mTraits->trackFollowing(&track, rof, true)};
-        if (success) {
-          std::cout << "Successfully followed track outward " << ncl << "\t" << track.getNClusters() << std::endl;
-        }
+        success = success || mTraits->trackFollowing(&track, rof, true);
       }
       if (track.getFirstClusterLayer() != 0) {
-        bool success{mTraits->trackFollowing(&track, rof, false)};
-        if (success) {
-          std::cout << "Successfully followed track inward " << ncl << "\t" << track.getNClusters() << std::endl;
+        success = success || mTraits->trackFollowing(&track, rof, false);
+      }
+      if (success) {
+        /// We have to refit the track
+        track.resetCovariance();
+        bool fitSuccess = fitTrack(track, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].FitIterationMaxChi2[0]);
+        if (!fitSuccess) {
+          track = backup;
+          continue;
+        }
+        track.getParamOut() = track;
+        track.resetCovariance();
+        fitSuccess = fitTrack(track, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1], 50.);
+        if (!fitSuccess) {
+          track = backup;
+          continue;
         }
       }
     }
@@ -725,6 +740,9 @@ void Tracker::getGlobalConfiguration()
     params.UseDiamond = tc.useDiamond;
     if (tc.maxMemory) {
       params.MaxMemory = tc.maxMemory;
+    }
+    if (tc.useTrackFollower >= 0) {
+      params.UseTrackFollower = tc.useTrackFollower;
     }
   }
 }

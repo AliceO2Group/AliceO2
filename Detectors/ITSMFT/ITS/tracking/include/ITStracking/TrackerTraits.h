@@ -89,7 +89,8 @@ inline void TrackerTraits::UpdateTrackingParameters(const TrackingParameters& tr
 }
 
 inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, float maxdeltaphi,
-                                             float z, float maxdeltaz) {
+                                             float z, float maxdeltaz)
+{
   return getBinsRect(layerIndex, phi, maxdeltaphi, z, z, maxdeltaz);
 }
 
