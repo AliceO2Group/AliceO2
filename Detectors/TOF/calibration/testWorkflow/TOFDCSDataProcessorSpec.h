@@ -107,6 +107,7 @@ class TOFDCSDataProcessor : public o2::framework::Task
   {
     TStopwatch sw;
     auto startValidity = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+    LOG(debug) << "startValidity = " << startValidity;
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
     auto timeNow = HighResClock::now();
     if (startValidity == 0xffffffffffffffff) {                                                                   // it means it is not set
@@ -116,8 +117,12 @@ class TOFDCSDataProcessor : public o2::framework::Task
     mProcessor->process(dps);
     Duration elapsedTime = timeNow - mTimer; // in seconds
     if (elapsedTime.count() >= mDPsUpdateInterval) {
-      sendDPsoutput(pc.outputs());
-      mTimer = timeNow;
+      if (mProcessor->areAllDPsFilled()) {
+        sendDPsoutput(pc.outputs());
+        mTimer = timeNow;
+      } else {
+        LOG(debug) << "Not sending yet, not all DPs were filled";
+      }
     }
     sendLVandHVoutput(pc.outputs());
     sw.Stop();
@@ -128,6 +133,9 @@ class TOFDCSDataProcessor : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
+    if (!mProcessor->areAllDPsFilled()) {
+      LOG(debug) << "Not all DPs are filled, sending to CCDB what we have anyway";
+    }
     sendDPsoutput(ec.outputs());
     sendLVandHVoutput(ec.outputs());
   }
