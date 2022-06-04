@@ -27,9 +27,9 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
 
   // HV parameters
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvAnodeImon[00..539]", 0, 50.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvAnodeUmon[00..539]", 49., 50.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvAnodeUmon[00..539]", 1549., 1550.});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvDriftImon[00..539]", 0, 50.});
-  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvDriftUmon[00..539]", 49., 50.});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"trd_hvDriftUmon[00..539]", 2249., 2250.});
 
   // temperatures, pressures, config and other
   // dphints.emplace_back(o2::dcs::test::DataPointHint<std::string>{"trd_fedCFGtag[00..539]", "foo", "bar"});
