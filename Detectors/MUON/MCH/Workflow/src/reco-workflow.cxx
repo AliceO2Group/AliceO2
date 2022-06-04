@@ -25,6 +25,7 @@
 #include "MCHWorkflow/ClusterFinderOriginalSpec.h"
 #include "MCHWorkflow/PreClusterFinderSpec.h"
 #include "MCHWorkflow/TrackWriterSpec.h"
+#include "MCHWorkflow/ClusterWriterSpec.h"
 #include "TrackFinderSpec.h"
 #include "TrackFitterSpec.h"
 #include "TrackMCLabelFinderSpec.h"
@@ -105,6 +106,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   if (!disableRootOutput) {
     specs.emplace_back(o2::mch::getTrackWriterSpec(useMC, "mch-track-writer", "mchtracks.root", digits));
+    specs.emplace_back(o2::mch::getClusterWriterSpec(false, "mch-global-cluster-writer", true, digits)); // RS cannot find who produces MCH/CLUSTERLABELS/0
   }
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
