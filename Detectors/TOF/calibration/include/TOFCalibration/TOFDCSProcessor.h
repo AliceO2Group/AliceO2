@@ -115,6 +115,16 @@ class TOFDCSProcessor
     mTOFDCS.clear();
   }
 
+  bool areAllDPsFilled()
+  {
+    for (auto& it : mPids) {
+      if (!it.second) {
+        return false;
+      }
+    }
+    return true;
+  }
+
  private:
   std::unordered_map<DPID, TOFDCSinfo> mTOFDCS;                // this is the object that will go to the CCDB
   std::unordered_map<DPID, bool> mPids;                        // contains all PIDs for the processor, the bool
