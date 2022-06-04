@@ -1531,7 +1531,10 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("infologger-mode", bpo::value<std::string>(), "O2_INFOLOGGER_MODE override")                                                                                    //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")                                                      //
     ("dpl-tracing-flags", bpo::value<std::string>(), "pipe separated list of events to trace")                                                                       //
-    ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");                                                             //
+    ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)")
+    ("inspector", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow with DataInspector")
+    ("inspector-address", bpo::value<std::string>()->default_value("127.0.0.1"), "address of DataInspector proxy")
+    ("inspector-port", bpo::value<std::string>()->default_value("8081"), "port of DataInspector proxy");
 
   return forwardedDeviceOptions;
 }
