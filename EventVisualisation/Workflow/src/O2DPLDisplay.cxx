@@ -135,7 +135,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   std::array<std::string, GID::Source::NSources> sourceStats;
 
   for (int i = 0; i < GID::Source::NSources; i++) {
-    sourceStats[i] = fmt::format("{}/{} {}", GID::getSourceName(i), helper.mEvent.getSourceTrackCount(static_cast<GID::Source>(i)), helper.mTotalTracks.at(i));
+    sourceStats[i] = fmt::format("{}/{} {}", helper.mEvent.getSourceTrackCount(static_cast<GID::Source>(i)), helper.mTotalTracks.at(i), GID::getSourceName(i));
   }
 
   LOGP(info, "JSON saved: {}", save ? "YES" : "NO");
