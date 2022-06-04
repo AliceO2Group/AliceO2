@@ -46,12 +46,14 @@ endif()
 
 set(SRCS ../utils/qsem.cxx
          GPUDisplay.cxx
+         GPUDisplayMagneticField.cxx
          GPUDisplayFrontend.cxx
          GPUDisplayBackend.cxx
          GPUDisplayBackendOpenGL.cxx
          GPUDisplayFrontendGlfw.cxx)
 
 set(SRCS_NO_H GPUDisplayLoader.cxx
+              GPUDisplayBackendOpenGLMagneticField.cxx
               GPUDisplayQuaternion.cxx
               GPUDisplayInterpolation.cxx
               GPUDisplayKeys.cxx
@@ -82,10 +84,10 @@ if(GPUCA_EVENT_DISPLAY_VULKAN)
       COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/
       COMMAND ${O2GPUWayland_SCANNER} private-code ${O2GPUWayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-protocol.c
   MAIN_DEPENDENCY ${O2GPUWayland_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml)
-  
+
     set_property(SOURCE GPUDisplayFrontendWayland.cxx ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c APPEND PROPERTY OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-client-protocol.h ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-client-protocol.h)
     set_property(SOURCE GPUDisplayFrontendWayland.cxx APPEND PROPERTY INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/)
-    
+
     set(SRCS_NO_H ${SRCS_NO_H} GPUDisplayFrontendWayland.cxx ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-shell-protocol.c ${CMAKE_CURRENT_BINARY_DIR}/xdg-gen/xdg-decoration-protocol.c)
   endif()
 endif()
@@ -102,7 +104,7 @@ if(GPUCA_EVENT_DISPLAY_QT)
   set(CMAKE_AUTOMOC ON)
   set(CMAKE_AUTORCC ON)
   set(CMAKE_AUTOUIC ON)
-  
+
   set(SRCS ${SRCS} GPUDisplayGUI.cxx GPUDisplayGUIWrapper.cxx)
   set(SRCS_NO_H ${SRCS_NO_H} GPUDisplayGUI.ui)
 endif()
@@ -118,8 +120,16 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
 
   target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY_GLFW GPUCA_DISPLAY_GL3W GPUCA_DISPLAY_OPENGL_CORE)
-  
+
   install(FILES ${HDRS} ${HDRS_INSTALL} DESTINATION include/GPU)
+
+  o2_add_executable(field-uniform-exporter
+          TARGETVARNAME exporterName
+          COMPONENT_NAME gpu
+          PUBLIC_LINK_LIBRARIES O2::Field O2::GPUTracking Boost::program_options
+          SOURCES tools/field-uniform-exporter.cxx GPUDisplayMagneticField.cxx)
+
+  target_compile_definitions(${exporterName} PRIVATE $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")

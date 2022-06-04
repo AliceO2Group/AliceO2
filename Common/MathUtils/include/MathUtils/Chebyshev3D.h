@@ -179,6 +179,16 @@ class Chebyshev3D : public TNamed
     return (float*)mMaxBoundaries;
   }
 
+  Float_t* getBoundaryMappingScale() const
+  {
+    return (float*)mBoundaryMappingScale;
+  }
+
+  Float_t* getBoundaryMappingOffset() const
+  {
+    return (float*)mBoundaryMappingOffset;
+  }
+
   Float_t getPrecision() const
   {
     return mPrecision;
