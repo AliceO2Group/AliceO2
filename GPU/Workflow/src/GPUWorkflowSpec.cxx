@@ -773,13 +773,18 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
       if (specconfig.outputQA) {
         TObjArray out;
-        auto getoutput = [createEmptyOutput](auto ptr) { return ptr && !createEmptyOutput ? *ptr : std::decay_t<decltype(*ptr)>(); };
+        bool sendQAOutput = !createEmptyOutput && outputRegions.qa.newQAHistsCreated;
+        auto getoutput = [sendQAOutput](auto ptr) { return sendQAOutput && ptr ? *ptr : std::decay_t<decltype(*ptr)>(); };
         std::vector<TH1F> copy1 = getoutput(outputRegions.qa.hist1); // Internally, this will also be used as output, so we need a non-const copy
         std::vector<TH2F> copy2 = getoutput(outputRegions.qa.hist2);
         std::vector<TH1D> copy3 = getoutput(outputRegions.qa.hist3);
-        processAttributes->qa->postprocessExternal(copy1, copy2, copy3, out, processAttributes->qaTaskMask ? processAttributes->qaTaskMask : -1);
+        if (sendQAOutput) {
+          processAttributes->qa->postprocessExternal(copy1, copy2, copy3, out, processAttributes->qaTaskMask ? processAttributes->qaTaskMask : -1);
+        }
         pc.outputs().snapshot({gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe}, out);
-        processAttributes->qa->cleanup();
+        if (sendQAOutput) {
+          processAttributes->qa->cleanup();
+        }
       }
       timer.Stop();
       LOG(info) << "GPU Reoncstruction time for this TF " << timer.CpuTime() - cput << " s (cpu), " << timer.RealTime() - realt << " s (wall)";
