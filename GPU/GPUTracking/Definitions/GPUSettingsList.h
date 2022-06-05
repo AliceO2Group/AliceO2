@@ -434,6 +434,7 @@ AddOption(gpuDisplayfilterMacro, std::string, "", "", 0, "File name of ROOT macr
 AddOption(benchmarkMemoryRegistration, bool, false, "", 0, "Time-benchmark for memory registration")
 AddOption(registerSelectedSegmentIds, int, -1, "", 0, "Register only a specific managed shm segment id (-1 = all)")
 AddOption(disableCalibUpdates, bool, false, "", 0, "Disable all calibration updates")
+AddOption(partialOutputForNonFatalErrors, bool, false, "", 0, "In case of a non-fatal error that is ignored (ignoreNonFatalGPUErrors=true), forward the partial output that was created instead of shipping an empty TF")
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE
