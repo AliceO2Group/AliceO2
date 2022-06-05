@@ -185,7 +185,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* nam
       } else if (withPayload == 0) {
         return CompletionPolicy::CompletionOp::Wait;
       }
-      return CompletionPolicy::CompletionOp::ConsumeExisting;
+      return CompletionPolicy::CompletionOp::ConsumeAndRescan;
     }
 
   };
