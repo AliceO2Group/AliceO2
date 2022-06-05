@@ -26,6 +26,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <vector>
+#include <TStopwatch.h>
 #include "CommonUtils/ConfigurableParam.h"
 #if defined(MUON_SUBSYSTEM_MCH)
 #include "MCHConditions/DCSNamer.h"
@@ -256,9 +257,10 @@ std::tuple<bool, std::string> needOutput(const DPMAP& dpmap, int maxSize, int ma
 void processDataPoints(o2::framework::ProcessingContext& pc,
                        std::array<std::vector<std::string>, NOBJECTS> aliases,
                        std::array<int, NOBJECTS> maxSize,
-                       std::array<int, NOBJECTS> maxDuration)
+                       std::array<int, NOBJECTS> maxDuration,
+                       bool reportTiming)
 {
-
+  TStopwatch sw;
   auto creationTime = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->creation;
   if (t0 <= 0) {
     t0 = creationTime;
@@ -279,6 +281,10 @@ void processDataPoints(o2::framework::ProcessingContext& pc,
       t0 = creationTime;
       dataPoints[i].clear(); // FIXME: here the clear should be more clever and keep at least one value per dp ?
     }
+  }
+  sw.Stop();
+  if (reportTiming) {
+    LOGP(info, "Timing CPU:{:.3e} Real:{:.3e} at slice {}", sw.CpuTime(), sw.RealTime(), pc.services().get<o2::framework::TimingInfo>().timeslice);
   }
 }
 
@@ -316,13 +322,13 @@ o2::framework::AlgorithmSpec::ProcessCallback createProcessFunction(o2::framewor
   std::array<int, NOBJECTS> maxSize{ic.options().get<int>("hv-max-size")};
   std::array<int, NOBJECTS> maxDuration{ic.options().get<int>("hv-max-duration")};
 #endif
-
+  bool reportTiming = ic.options().get<bool>("report-timing");
   for (auto i = 0; i < NOBJECTS; i++) {
     dataPoints[i].clear();
   }
 
-  return [aliases, maxSize, maxDuration](o2::framework::ProcessingContext& pc) {
-    processDataPoints(pc, aliases, maxSize, maxDuration);
+  return [aliases, maxSize, maxDuration, reportTiming](o2::framework::ProcessingContext& pc) {
+    processDataPoints(pc, aliases, maxSize, maxDuration, reportTiming);
   };
 }
 
@@ -396,6 +402,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   dcsProcessor.outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCDBWrapper, CCDBOBJ}, o2::framework::Lifetime::Sporadic);
   dcsProcessor.algorithm = algo;
   dcsProcessor.options = {
+    {"report-timing", o2::framework::VariantType::Bool, false, {"Report timing for every slice"}},
 #if defined(MUON_SUBSYSTEM_MCH)
     whenToSendOption("lv", 128, "size", "KB"),
     whenToSendOption("lv", 8 * 3600, "duration", "seconds"),

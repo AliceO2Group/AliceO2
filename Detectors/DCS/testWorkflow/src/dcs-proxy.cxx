@@ -24,6 +24,7 @@
 #include "DetectorsDCS/DataPointValue.h"
 #include "DetectorsDCS/DeliveryType.h"
 #include "DCStoDPLconverter.h"
+#include "CommonUtils/StringUtils.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbApi.h"
 #include "Headers/DataHeaderHelpers.h"
@@ -84,12 +85,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     std::sregex_token_iterator it(detectorList.begin(), detectorList.end(), re, -1);
     std::sregex_token_iterator reg_end;
     for (; it != reg_end; ++it) {
-      LOG(info) << "DCS DPs configured for detector " << it->str();
-      std::unordered_map<DPID, std::string>* dpid2Det = mgr.getForTimeStamp<std::unordered_map<DPID, std::string>>(it->str() + "/Config/DCSDPconfig", ts);
-      for (auto& el : *dpid2Det) {
-        o2::header::DataDescription tmpd;
-        tmpd.runtimeInit(el.second.c_str(), el.second.size());
-        dpid2DataDesc[el.first] = tmpd;
+      std::string detStr = it->str();
+      o2::utils::Str::trim(detStr);
+      if (!detStr.empty()) {
+        LOG(info) << "DCS DPs configured for detector " << detStr;
+        std::unordered_map<DPID, std::string>* dpid2Det = mgr.getForTimeStamp<std::unordered_map<DPID, std::string>>(detStr + "/Config/DCSDPconfig", ts);
+        for (auto& el : *dpid2Det) {
+          o2::header::DataDescription tmpd;
+          tmpd.runtimeInit(el.second.c_str(), el.second.size());
+          dpid2DataDesc[el.first] = tmpd;
+        }
       }
     }
   }

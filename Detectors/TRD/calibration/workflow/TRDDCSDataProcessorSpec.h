@@ -126,10 +126,13 @@ class TRDDCSDataProcessor : public o2::framework::Task
     mTimerVoltages = mTimerGas;
     mTimerCurrents = mTimerGas;
     mTimerEnv = mTimerGas;
+
+    mReportTiming = ic.options().get<bool>("report-timing") || verbosity > 0;
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    TStopwatch sw;
     auto currentTimeStamp = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
     auto timeNow = std::chrono::high_resolution_clock::now();
@@ -169,6 +172,10 @@ class TRDDCSDataProcessor : public o2::framework::Task
     if (mProcessor->shouldUpdateRun()) {
       sendDPsoutputRun(pc.outputs());
     }
+    sw.Stop();
+    if (mReportTiming) {
+      LOGP(info, "Timing CPU:{:.3e} Real:{:.3e} at slice {}", sw.CpuTime(), sw.RealTime(), pc.services().get<o2::framework::TimingInfo>().timeslice);
+    }
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
@@ -181,6 +188,7 @@ class TRDDCSDataProcessor : public o2::framework::Task
   }
 
  private:
+  bool mReportTiming = false;
   std::unique_ptr<DCSProcessor> mProcessor;
   std::chrono::high_resolution_clock::time_point mTimerGas;
   std::chrono::high_resolution_clock::time_point mTimerVoltages;
@@ -314,6 +322,7 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
     AlgorithmSpec{adaptFromTask<o2::trd::TRDDCSDataProcessor>()},
     Options{{"ccdb-path", VariantType::String, "http://localhost:8080", {"Path to CCDB"}},
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
+            {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
             {"processor-verbosity", VariantType::Int, 0, {"Increase for more verbose output (max 3)"}},
             {"DPs-update-interval-currents", VariantType::Int64, 60ll, {"Interval (in s) after which to update the DPs CCDB entry for current parameters"}},
             {"DPs-update-interval-voltages", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry for voltage parameters"}},
