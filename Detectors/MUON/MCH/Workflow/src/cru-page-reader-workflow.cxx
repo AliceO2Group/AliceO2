@@ -320,7 +320,8 @@ class FileReaderTask
     }
 
     if (mPrint) {
-      std::cout << "Sending TF" << std::endl << std::endl;
+      std::cout << "Sending TF" << std::endl
+                << std::endl;
     }
     auto freefct = [](void* data, void* /*hint*/) { free(data); };
     pc.outputs().adoptChunk(Output{"RDT", "RAWDATA"}, outBuf, outSize, freefct, nullptr);
