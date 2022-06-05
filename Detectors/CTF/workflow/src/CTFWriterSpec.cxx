@@ -310,7 +310,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
       }
     }
   }
-  mSizeReport += fmt::format(" {}:{:L}", det.getName(), fmt::group_digits(sz));
+  mSizeReport += fmt::format(" {}:{}", det.getName(), fmt::group_digits(sz));
   return sz;
 }
 
