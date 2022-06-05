@@ -290,8 +290,8 @@ void GPUQA::createHist(T*& h, const char* name, Args... args)
   } else {
     p.first->emplace_back(name, args...);
   }
+  h = &((*p.first)[p.second->size()]);
   p.second->emplace_back(&h);
-  h = &p.first->back();
 }
 
 namespace GPUCA_NAMESPACE::gpu
