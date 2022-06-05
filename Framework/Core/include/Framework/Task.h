@@ -139,5 +139,34 @@ AlgorithmSpec adaptFromTask(Args&&... args)
     };
   }};
 }
+
+template <typename T>
+AlgorithmSpec adoptTask(std::shared_ptr<T> task)
+{
+  return AlgorithmSpec::InitCallback{[task](InitContext& ic) {
+    if constexpr (has_endOfStream<T>::value) {
+      auto& callbacks = ic.services().get<CallbackService>();
+      callbacks.set(CallbackService::Id::EndOfStream, [task](EndOfStreamContext& eosContext) {
+        task->endOfStream(eosContext);
+      });
+    }
+    if constexpr (has_finaliseCCDB<T>::value) {
+      auto& callbacks = ic.services().get<CallbackService>();
+      callbacks.set(CallbackService::Id::CCDBDeserialised, [task](ConcreteDataMatcher& matcher, void* obj) {
+        task->finaliseCCDB(matcher, obj);
+      });
+    }
+    if constexpr (has_stop<T>::value) {
+      auto& callbacks = ic.services().get<CallbackService>();
+      callbacks.set(CallbackService::Id::Stop, [task]() {
+        task->stop();
+      });
+    }
+    task->init(ic);
+    return [&task](ProcessingContext& pc) {
+      task->run(pc);
+    };
+  }};
+}
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_TASK_H_
