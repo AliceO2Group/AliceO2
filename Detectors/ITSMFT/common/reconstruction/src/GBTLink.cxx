@@ -68,6 +68,7 @@ void GBTLink::clear(bool resetStat, bool resetTFRaw)
     statistics.clear();
   }
   hbfEntry = 0;
+  extTrigVec = nullptr;
   status = None;
 }
 

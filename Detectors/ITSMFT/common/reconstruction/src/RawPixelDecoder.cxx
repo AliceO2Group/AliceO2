@@ -48,21 +48,21 @@ void RawPixelDecoder<Mapping>::printReport(bool decstat, bool skipNoErr) const
 {
   double cpu = 0, real = 0;
   auto& tmrS = const_cast<TStopwatch&>(mTimerTFStart);
-  LOGF(info, "%s Timing Start TF:  CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrS.CpuTime(), tmrS.RealTime(), tmrS.Counter() - 1);
+  LOGP(info, "{} Timing Start TF:  CPU = {:.3e} Real = {:.3e} in {} slots", mSelfName, tmrS.CpuTime(), tmrS.RealTime(), tmrS.Counter() - 1);
   cpu += tmrS.CpuTime();
   real += tmrS.RealTime();
   auto& tmrD = const_cast<TStopwatch&>(mTimerDecode);
-  LOGF(info, "%s Timing Decode:    CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrD.CpuTime(), tmrD.RealTime(), tmrD.Counter() - 1);
+  LOGP(info, "{} Timing Decode:    CPU = {:.3e} Real = {:.3e} in {} slots", mSelfName, tmrD.CpuTime(), tmrD.RealTime(), tmrD.Counter() - 1);
   cpu += tmrD.CpuTime();
   real += tmrD.RealTime();
   auto& tmrF = const_cast<TStopwatch&>(mTimerFetchData);
-  LOGF(info, "%s Timing FetchData: CPU = %.3e Real = %.3e in %d slots", mSelfName, tmrF.CpuTime(), tmrF.RealTime(), tmrF.Counter() - 1);
+  LOGP(info, "{} Timing FetchData: CPU = {:.3e} Real = {:.3e} in {} slots", mSelfName, tmrF.CpuTime(), tmrF.RealTime(), tmrF.Counter() - 1);
   cpu += tmrF.CpuTime();
   real += tmrF.RealTime();
-  LOGF(info, "%s Timing Total:     CPU = %.3e Real = %.3e in %d slots in %s mode", mSelfName, cpu, real, tmrS.Counter() - 1,
+  LOGP(info, "{} Timing Total:     CPU = {:.3e} Real = {:.3e} in {} slots in {} mode", mSelfName, cpu, real, tmrS.Counter() - 1,
        mDecodeNextAuto ? "AutoDecode" : "ExternalCall");
 
-  LOGF(important, "%s Decoded %zu hits in %zu non-empty chips in %u ROFs with %d threads", mSelfName, mNPixelsFired, mNChipsFired, mROFCounter, mNThreads);
+  LOGP(important, "{} decoded {} hits in {} non-empty chips in {} ROFs with {} threads, {} external triggers", mSelfName, mNPixelsFired, mNChipsFired, mROFCounter, mNThreads, mNExtTriggers);
   if (decstat) {
     LOG(important) << "GBT Links decoding statistics" << (skipNoErr ? " (only links with errors are reported)" : "");
     for (auto& lnk : mGBTLinks) {
@@ -82,6 +82,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
   mNPixelsFiredROF = 0;
   mInteractionRecord.clear();
   int nLinksWithData = 0, nru = mRUDecodeVec.size();
+  size_t prevNTrig = mExtTriggers.size();
   do {
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(mNThreads) reduction(+ \
@@ -116,7 +117,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
     }
 
   } while (mNLinksDone < mGBTLinks.size());
-
+  mNExtTriggers += mExtTriggers.size() - prevNTrig;
   ensureChipOrdering();
   mTimerDecode.Stop();
   return nLinksWithData;
@@ -138,6 +139,7 @@ void RawPixelDecoder<Mapping>::startNewTF(InputRecord& inputs)
   }
   setupLinks(inputs);
   mNLinksDone = 0;
+  mExtTriggers.clear();
   mTimerTFStart.Stop();
 }
 
@@ -200,7 +202,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
 
   DPLRawParser parser(inputs, filter);
   uint32_t currSSpec = 0xffffffff; // dummy starting subspec
-  int linksAdded = 0;
+  int linksAdded = 0, linksSeen = 0;
   for (auto it = parser.begin(); it != parser.end(); ++it) {
     auto const* dh = it.o2DataHeader();
     auto& lnkref = mSubsSpec2LinkID[dh->subSpecification];
@@ -220,6 +222,9 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
     if (currSSpec != dh->subSpecification) { // this is the 1st part for this link in this TF, next parts must follow contiguously!!!
       link.clear(false, true);               // clear link data except statistics
       currSSpec = dh->subSpecification;
+      if (!linksSeen) { // designate 1st link to register triggers
+        link.extTrigVec = &mExtTriggers;
+      }
     }
     link.cacheData(it.raw(), RDHUtils::getMemorySize(rdh));
   }
