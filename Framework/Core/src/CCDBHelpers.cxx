@@ -360,7 +360,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         if (timestamp + 5000 < timingInfo.creation) {                                                                        // 5 sec. tolerance
           static bool notWarnedYet = true;
           if (notWarnedYet) {
-            LOGP(warn, "timestamp {} for orbit {} and orbit reset time {} is well behind TF creation time, use the latter");
+            LOGP(warn, "timestamp {} for orbit {} and orbit reset time {} is well behind TF creation time {}, use the latter", timestamp, timingInfo.firstTFOrbit, orbitResetTime / 1000, timingInfo.creation);
             notWarnedYet = false;
           }
           timestamp = timingInfo.creation;
