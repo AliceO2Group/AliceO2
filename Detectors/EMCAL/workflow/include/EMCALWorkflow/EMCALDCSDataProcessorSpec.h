@@ -121,11 +121,12 @@ class EMCALDCSDataProcessor : public o2::framework::Task
     }
     mProcessor->init(vect);
     mTimer = HighResClock::now();
+    mReportTiming = ic.options().get<bool>("report-timing") || useVerboseMode;
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-
+    TStopwatch sw;
     if (mCheckRunStartStop) {
       const auto* grp = mRunChecker.check(); // check if there is a run with EMC
       // this is an example of what it will return
@@ -158,6 +159,10 @@ class EMCALDCSDataProcessor : public o2::framework::Task
     if ((mCheckRunStartStop && (mRunChecker.getRunStatus() == RunStatus::START)) || (!mCheckRunStartStop && mProcessor->isUpdateFEEcfg())) {
       sendCFGoutput(pc.outputs());
     }
+    sw.Stop();
+    if (mReportTiming) {
+      LOGP(info, "Timing CPU:{:.3e} Real:{:.3e} at slice {}", sw.CpuTime(), sw.RealTime(), pc.services().get<o2::framework::TimingInfo>().timeslice);
+    }
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
@@ -167,6 +172,7 @@ class EMCALDCSDataProcessor : public o2::framework::Task
   }
 
  private:
+  bool mReportTiming{false};
   std::unique_ptr<EMCDCSProcessor> mProcessor;
   HighResClock::time_point mTimer;
   int64_t mDPsUpdateInterval;
@@ -235,6 +241,7 @@ DataProcessorSpec getEMCALDCSDataProcessorSpec()
     Options{{"ccdb-path", VariantType::String, o2::base::NameConf::getCCDBServer(), {"Path to CCDB"}},
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
             {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
+            {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
             {"follow-emcal-run", VariantType::Bool, false, {"Check EMCAL runs SOR/EOR"}},
             {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};
 }

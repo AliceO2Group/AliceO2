@@ -27,6 +27,7 @@
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
 #include "DetectorsDCS/DataPointCompositeObject.h"
+#include <TStopwatch.h>
 
 namespace o2
 {
@@ -110,11 +111,13 @@ void GRPDCSDPsDataProcessor::init(o2::framework::InitContext& ic)
   }
   mProcessor->init(vect);
   mTimer = HighResClock::now();
+  mReportTiming = ic.options().get<bool>("report-timing") || useVerboseMode;
 }
 //__________________________________________________________________
 
 void GRPDCSDPsDataProcessor::run(o2::framework::ProcessingContext& pc)
 {
+  TStopwatch sw;
   auto startValidity = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
   auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
   auto timeNow = HighResClock::now();
@@ -137,6 +140,10 @@ void GRPDCSDPsDataProcessor::run(o2::framework::ProcessingContext& pc)
   }
   if (mProcessor->isEnvVarsUpdated()) {
     sendEnvVarsDPsoutput(pc.outputs());
+  }
+  sw.Stop();
+  if (mReportTiming) {
+    LOGP(info, "Timing CPU:{:.3e} Real:{:.3e} at slice {}", sw.CpuTime(), sw.RealTime(), pc.services().get<o2::framework::TimingInfo>().timeslice);
   }
 }
 //________________________________________________________________
@@ -243,6 +250,7 @@ DataProcessorSpec getGRPDCSDPsDataProcessorSpec()
     Options{{"ccdb-path", VariantType::String, "http://localhost:8080", {"Path to CCDB"}},
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
             {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
+            {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
             {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};
 }
 
