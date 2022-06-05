@@ -105,17 +105,14 @@ struct ProcessAttributes {
   std::unique_ptr<o2::tpc::CalibdEdxContainer> dEdxCalibContainerBufferNew;
   std::unique_ptr<o2::trd::GeometryFlat> trdGeometry;
   std::unique_ptr<GPUO2InterfaceConfiguration> config;
+  std::unique_ptr<GPUSettingsO2> confParam;
   int qaTaskMask = 0;
   std::unique_ptr<GPUO2InterfaceQA> qa;
   std::vector<int> clusterOutputIds;
-  unsigned long outputBufferSize = 0;
   unsigned long tpcSectorMask = 0;
   int verbosity = 0;
   bool readyToQuit = false;
-  bool allocateOutputOnTheFly = false;
-  bool suppressOutput = false;
   bool updateGainMapCCDB = true;
-  bool disableCalibUpdates = false;
   o2::gpu::GPUSettingsTF tfSettings;
 };
 
@@ -146,8 +143,9 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 
   auto initFunction = [processAttributes, specconfig](InitContext& ic) {
     processAttributes->config.reset(new GPUO2InterfaceConfiguration);
+    processAttributes->confParam.reset(new GPUSettingsO2);
     GPUO2InterfaceConfiguration& config = *processAttributes->config.get();
-    GPUSettingsO2 confParam;
+    GPUSettingsO2& confParam = *processAttributes->confParam.get();
     {
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
@@ -174,10 +172,6 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       LOG(info) << "Initializing run paramerers from GRP bz=" << config.configGRP.solenoidBz << " cont=" << grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
 
       confParam = config.ReadConfigurableParam();
-      processAttributes->allocateOutputOnTheFly = confParam.allocateOutputOnTheFly;
-      processAttributes->outputBufferSize = confParam.outputBufferSize;
-      processAttributes->suppressOutput = (confParam.dump == 2);
-      processAttributes->disableCalibUpdates = confParam.disableCalibUpdates;
       config.configInterface.dumpEvents = confParam.dump;
       if (confParam.display) {
         processAttributes->displayFrontend.reset(GPUDisplayFrontendInterface::getFrontend(config.configDisplay.displayFrontend.c_str()));
@@ -560,7 +554,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       auto setOutputAllocator = [&specconfig, &outputBuffers, &outputRegions, &processAttributes, &pc, verbosity](const char* name, bool condition, GPUOutputControl& region, auto&& outputSpec, size_t offset = 0) {
         if (condition) {
           auto& buffer = outputBuffers[outputRegions.getIndex(region)];
-          if (processAttributes->allocateOutputOnTheFly) {
+          if (processAttributes->confParam->allocateOutputOnTheFly) {
             region.allocator = [name, &buffer, &pc, outputSpec = std::move(outputSpec), verbosity, offset](size_t size) -> void* {
               size += offset;
               if (verbosity) {
@@ -579,7 +573,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
               return (buffer.second = buffer.first->get().data()) + offset;
             };
           } else {
-            buffer.first.emplace(pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(std::make_from_tuple<Output>(outputSpec), processAttributes->outputBufferSize));
+            buffer.first.emplace(pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(std::make_from_tuple<Output>(outputSpec), processAttributes->confParam->outputBufferSize));
             region.ptrBase = (buffer.second = buffer.first->get().data()) + offset;
             region.size = buffer.first->get().size() - offset;
           }
@@ -662,7 +656,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 
       tracker->Clear(false);
 
-      if (processAttributes->suppressOutput) {
+      if (processAttributes->confParam->dump == 2) {
         return;
       }
       bool createEmptyOutput = false;
@@ -710,7 +704,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         gsl::span<const o2::tpc::TrackTPC> spanOutputTracks = {ptrs.outputTracksTPCO2, ptrs.nOutputTracksTPCO2};
         gsl::span<const uint32_t> spanOutputClusRefs = {ptrs.outputClusRefsTPCO2, ptrs.nOutputClusRefsTPCO2};
         gsl::span<const o2::MCCompLabel> spanOutputTracksMCTruth = {ptrs.outputTracksTPCO2MC, ptrs.outputTracksTPCO2MC ? ptrs.nOutputTracksTPCO2 : 0};
-        if (!processAttributes->allocateOutputOnTheFly) {
+        if (!processAttributes->confParam->allocateOutputOnTheFly) {
           for (unsigned int i = 0; i < outputRegions.count(); i++) {
             if (outputRegions.asArray()[i].ptrBase) {
               if (outputRegions.asArray()[i].size == 1) {
@@ -1075,7 +1069,7 @@ void finaliseCCDBTPC(ProcessAttributes* processAttributes, gpuworkflow::Config c
 void fetchCalibsCCDBTPC(ProcessAttributes* processAttributes, gpuworkflow::Config const& specconfig, ProcessingContext& pc)
 {
   // update calibrations for clustering and tracking
-  if ((specconfig.outputTracks || specconfig.caClusterer) && !processAttributes->disableCalibUpdates) {
+  if ((specconfig.outputTracks || specconfig.caClusterer) && !processAttributes->confParam->disableCalibUpdates) {
     const CalibdEdxContainer* dEdxCalibContainer = processAttributes->dEdxCalibContainer.get();
 
     // this calibration is defined for clustering and tracking
