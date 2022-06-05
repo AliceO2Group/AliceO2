@@ -83,6 +83,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int FinalizePipelinedProcessing() override;
   void ClearErrorCodes(bool cpuOnly = false);
   void DoQueuedCalibUpdates(int stream); // Forces doing queue calib updates, don't call when you are not sure you are allowed to do so!
+  bool QARanForTF() const { return mFractionalQAEnabled; }
 
   // Structures for input and output data
   GPUTrackingInOutPointers& mIOPtrs;
