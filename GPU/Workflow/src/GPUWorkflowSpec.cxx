@@ -667,7 +667,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
           } else {
             LOG(alarm) << "GPU Reconstruction aborted with non fatal error code, ignoring";
           }
-          createEmptyOutput = true;
+          createEmptyOutput = !processAttributes->confParam->partialOutputForNonFatalErrors;
         } else {
           throw std::runtime_error("tracker returned error code " + std::to_string(retVal));
         }
