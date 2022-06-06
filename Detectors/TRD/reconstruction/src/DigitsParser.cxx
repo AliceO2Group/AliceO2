@@ -42,7 +42,7 @@ inline void DigitsParser::swapByteOrder(unsigned int& word)
          (word << 24);
 }
 int DigitsParser::Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
-                        std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, int stack, int layer, int side, DigitHCHeader& hcheader,
+                        std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, int stack, int layer, int side, DigitHCHeader& hcheader, uint16_t timebins,
                         TRDFeeID& feeid, unsigned int linkindex, EventRecord* eventrecord, EventStorage* eventrecords, std::bitset<16> options, bool cleardigits)
 {
   setData(data);
@@ -63,6 +63,14 @@ int DigitsParser::Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* 
   mReturnVectorPos = 0;
   mEventRecord = eventrecord;
   mEventRecords = eventrecords;
+  mTimeBins = timebins;
+  if (mTimeBins > constants::TIMEBINS) {
+    mTimeBins = constants::TIMEBINS;
+    if (mMaxErrsPrinted > 0) {
+      LOG(alarm) << "Time bins DigitHC Header is too large:" << timebins << " > " << constants::TIMEBINS;
+      checkNoErr();
+    }
+  }
   return Parse();
 };
 
@@ -277,7 +285,7 @@ int DigitsParser::Parse(bool verbose)
             if (mHeaderVerbose) {
               LOG(info) << "***DigitMCMWord : " << std::hex << *word << " channel:" << std::dec << mCurrentADCChannel << " wordcount:" << mDigitWordCount << " at offset " << std::hex << std::distance(mStartParse, word);
             }
-            if (mDigitWordCount == 0 || mDigitWordCount == constants::TIMEBINS / 3) {
+            if (mDigitWordCount == 0 || mDigitWordCount == mTimeBins / 3) {
               //new adc expected so set channel accord to bitpattern or sequential depending on zero suppressed or not.
               if (mDigitHCHeader.major & 0x20) { // zero suppressed
                 //zero suppressed, so channel must be extracted from next available bit in adcmask
@@ -306,7 +314,7 @@ int DigitsParser::Parse(bool verbose)
                 }
               }
             }
-            if (mDigitWordCount > constants::TIMEBINS / 3) {
+            if (mDigitWordCount > mTimeBins / 3) {
               incParsingError(TRDParsingDigitGT10ADCs);
             }
             mDigitMCMData = (DigitMCMData*)word;
@@ -325,7 +333,7 @@ int DigitsParser::Parse(bool verbose)
               mADCValues[digittimebinoffset++] = mDigitMCMData->y;
               mADCValues[digittimebinoffset++] = mDigitMCMData->x;
 
-              if (digittimebinoffset > constants::TIMEBINS) {
+              if (digittimebinoffset > mTimeBins) {
                 incParsingError(TRDParsingDigitSanityCheck);
                 //bale out TODO
                 mWordsDumped += std::distance(word, mEndParse) - 1;
@@ -334,7 +342,7 @@ int DigitsParser::Parse(bool verbose)
               if (mVerbose || mDataVerbose) {
                 LOG(info) << "digit word count is : " << mDigitWordCount << " digittimebinoffset = " << digittimebinoffset;
               }
-              if (mDigitWordCount == constants::TIMEBINS / 3) {
+              if (mDigitWordCount == mTimeBins / 3) {
                 //write out adc value to vector
                 //zero digittimebinoffset
                 mEventRecord->getDigits().emplace_back(mDetector, mROB, mMCM, mCurrentADCChannel, mADCValues); // outgoing parsed digits
@@ -373,5 +381,11 @@ int DigitsParser::Parse(bool verbose)
   return mDataWordsParsed;
 }
 
+void DigitsParser::checkNoErr()
+{
+  if (!mVerbose && --mMaxErrsPrinted == 0) {
+    LOG(error) << "Errors limit reached, the following ones will be suppressed";
+  }
+}
 
 } // namespace o2::trd

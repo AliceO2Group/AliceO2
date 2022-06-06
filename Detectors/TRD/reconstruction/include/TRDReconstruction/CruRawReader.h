@@ -76,6 +76,7 @@ class CruRawReader
     mEnableTimeInfo = options[TRDEnableTimeInfoBit];
     mEnableStats = options[TRDEnableStatsBit];
     mOptions = options;
+    mTimeBins = constants::TIMEBINS; // set to value from constants incase the DigitHCHeader1 header is not present.
   }
 
   void setMaxErrWarnPrinted(int nerr, int nwar)
@@ -238,6 +239,7 @@ class CruRawReader
   HalfCRUHeader mPreviousHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on
   DigitHCHeader mDigitHCHeader;        // Digit HalfChamber header we are currently on.
   DigitHCHeader1 mDigitHCHeader1;      // this and the next 2 are option are and variable in order, hence
+  uint16_t mTimeBins;
   DigitHCHeader2 mDigitHCHeader2;      // the individual seperation instead of an array.
   DigitHCHeader3 mDigitHCHeader3;
   TrackletHCHeader mTrackletHCHeader;  // Tracklet HalfChamber header we are currently on.
