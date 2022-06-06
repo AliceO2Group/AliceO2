@@ -134,11 +134,10 @@ class TRDDCSDataProcessor : public o2::framework::Task
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
     auto timeNow = std::chrono::high_resolution_clock::now();
     if (currentTimeStamp < 1577833200000UL || currentTimeStamp > 2208985200000UL) {
-      LOG(error) << "The creation time of this TF is set to " << currentTimeStamp << ". Overwriting this with current time";
+      LOG(warning) << "The creation time of this TF is set to " << currentTimeStamp << ". Overwriting this with current time";
       // in case it is not set
       currentTimeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
     }
-    LOG(warning) << "Setting current time stamp: " << currentTimeStamp; // TODO REMOVE BEFORE MERGING
     mProcessor->setCurrentTS(currentTimeStamp);
     mProcessor->process(dps);
 

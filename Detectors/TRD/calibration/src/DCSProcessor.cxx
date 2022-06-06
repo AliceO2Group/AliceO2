@@ -108,7 +108,7 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
         auto& dpInfoGas = mTRDDCSGas[dpid];
         if (dpInfoGas.nPoints == 0 || etime != mLastDPTimeStamps[dpid]) {
           // only add data point in case it was not already read before
-          dpInfoGas.addPoint(o2::dcs::getValue<double>(dpcom));
+          dpInfoGas.addPoint(o2::dcs::getValue<double>(dpcom), etime);
           mLastDPTimeStamps[dpid] = etime;
         }
       }
@@ -122,7 +122,7 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
         auto& dpInfoCurrents = mTRDDCSCurrents[dpid];
         if (dpInfoCurrents.nPoints == 0 || etime != mLastDPTimeStamps[dpid]) {
           // only add data point in case it was not already read before
-          dpInfoCurrents.addPoint(o2::dcs::getValue<double>(dpcom));
+          dpInfoCurrents.addPoint(o2::dcs::getValue<double>(dpcom), etime);
           mLastDPTimeStamps[dpid] = etime;
         }
       }
@@ -159,7 +159,7 @@ int DCSProcessor::processDP(const DPCOM& dpcom)
         auto& dpInfoEnv = mTRDDCSEnv[dpid];
         if (dpInfoEnv.nPoints == 0 || etime != mLastDPTimeStamps[dpid]) {
           // only add data point in case it was not already read before
-          dpInfoEnv.addPoint(o2::dcs::getValue<double>(dpcom));
+          dpInfoEnv.addPoint(o2::dcs::getValue<double>(dpcom), etime);
           mLastDPTimeStamps[dpid] = etime;
         }
       }
@@ -301,7 +301,7 @@ bool DCSProcessor::updateGasDPsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Ole Schmidt";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSGas, mCcdbGasDPsInfo, "TRD/Calib/DCSDPsGas", md, mGasStartTS, mCurrentTS);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSGas, mCcdbGasDPsInfo, "TRD/Calib/DCSDPsGas", md, mGasStartTS, mGasStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return retVal;
 }
@@ -329,7 +329,7 @@ bool DCSProcessor::updateCurrentsDPsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Ole Schmidt";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSCurrents, mCcdbCurrentsDPsInfo, "TRD/Calib/DCSDPsI", md, mCurrentsStartTS, mCurrentTS);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSCurrents, mCcdbCurrentsDPsInfo, "TRD/Calib/DCSDPsI", md, mCurrentsStartTS, mCurrentsStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return retVal;
 }
@@ -356,7 +356,7 @@ bool DCSProcessor::updateVoltagesDPsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Ole Schmidt";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSVoltages, mCcdbVoltagesDPsInfo, "TRD/Calib/DCSDPsU", md, mVoltagesStartTS, mCurrentTS);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSVoltages, mCcdbVoltagesDPsInfo, "TRD/Calib/DCSDPsU", md, mVoltagesStartTS, mVoltagesStartTS + 7 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return retVal;
 }
@@ -384,7 +384,7 @@ bool DCSProcessor::updateEnvDPsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Ole Schmidt";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSEnv, mCcdbEnvDPsInfo, "TRD/Calib/DCSDPsEnv", md, mEnvStartTS, mCurrentTS);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mTRDDCSEnv, mCcdbEnvDPsInfo, "TRD/Calib/DCSDPsEnv", md, mEnvStartTS, mEnvStartTS + 3 * o2::ccdb::CcdbObjectInfo::DAY);
 
   return retVal;
 }

@@ -58,7 +58,7 @@ int makeTRDCCDBEntryForDCS(const std::string url = "http://localhost:8080")
   api.init(url);
   std::map<std::string, std::string> md;
   long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-  api.storeAsTFileAny(&dpid2DataDesc, "TRD/Config/DCSDPconfig", md, ts);
+  api.storeAsTFileAny(&dpid2DataDesc, "TRD/Config/DCSDPconfig", md, ts, ts + 10 * o2::ccdb::CcdbObjectInfo::YEAR);
 
   return 0;
 }
