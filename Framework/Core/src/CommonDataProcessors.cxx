@@ -515,7 +515,7 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
         auto device = services.get<RawDeviceService>().device();
         auto channel = device->fChannels.find("metric-feedback");
         if (channel != device->fChannels.end()) {
-          FairMQMessagePtr payload(device->NewMessage());
+          fair::mq::MessagePtr payload(device->NewMessage());
           size_t* consumed = (size_t*)malloc(sizeof(size_t));
           *consumed = timesliceIndex.getOldestPossibleOutput().timeslice.value;
           payload->Rebuild(consumed, sizeof(int64_t), nullptr, nullptr);

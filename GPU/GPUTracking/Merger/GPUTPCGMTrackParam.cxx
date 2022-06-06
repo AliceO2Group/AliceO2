@@ -611,7 +611,7 @@ GPUdic(0, 1) void GPUTPCGMTrackParam::StoreAttachMirror(const GPUTPCGMMerger* GP
   unsigned int nLoopData = CAMath::AtomicAdd(&Merger->Memory()->nLoopData, 1u);
   if (nLoopData >= Merger->NMaxTracks()) {
     Merger->raiseError(GPUErrors::ERROR_MERGER_LOOPER_OVERFLOW, nLoopData, Merger->NMaxTracks());
-    CAMath::AtomicExch(&Merger->Memory()->nLoopData, 0u);
+    CAMath::AtomicExch(&Merger->Memory()->nLoopData, Merger->NMaxTracks());
     return;
   }
   GPUTPCGMLoopData data;

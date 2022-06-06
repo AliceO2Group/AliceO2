@@ -1484,7 +1484,7 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
       vk::Fence fen = VkFence(VK_NULL_HANDLE);
       vk::Semaphore sem = VkSemaphore(VK_NULL_HANDLE);
       if (mCommandBufferPerImage) {
-        fen = VkFence(mInFlightFence[mCurrentFrame]);
+        fen = mInFlightFence[mCurrentFrame];
         CHKERR(mDevice.resetFences(1, &fen));
       } else {
         sem = mImageAvailableSemaphore[mCurrentFrame];

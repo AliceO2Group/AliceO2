@@ -27,7 +27,7 @@
 #include <Monitoring/Monitoring.h>
 #include <Headers/DataHeader.h>
 
-#include <options/FairMQProgOptions.h>
+#include <fairmq/ProgOptions.h>
 #include <fairmq/Device.h>
 
 #include <uv.h>
@@ -71,7 +71,7 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQBackendSpec()
       auto& spec = services.get<DeviceSpec const>();
       auto& dataSender = services.get<DataSender>();
 
-      auto dispatcher = [&dataSender](FairMQParts&& parts, ChannelIndex channelIndex, unsigned int) {
+      auto dispatcher = [&dataSender](fair::mq::Parts&& parts, ChannelIndex channelIndex, unsigned int) {
         dataSender.send(parts, channelIndex);
       };
 

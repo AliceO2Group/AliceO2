@@ -51,6 +51,7 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/TrackTPC.h
           include/DataFormatsTPC/LaserTrack.h
           include/DataFormatsTPC/Constants.h
+          include/DataFormatsTPC/RawDataTypes.h
           include/DataFormatsTPC/Defs.h
           include/DataFormatsTPC/dEdxInfo.h
           include/DataFormatsTPC/CompressedClusters.h

@@ -3,6 +3,7 @@
 #include "FairRunAna.h"
 #include "FairFileSource.h"
 #include "FairEventManager.h"
+#include <FairRootFileSink.h>
 #include "FairRuntimeDb.h"
 #include "FairParRootFileIo.h"
 #include "FairMCTracks.h"
@@ -20,7 +21,7 @@ void eventDisplay()
   FairRunAna* fRun = new FairRunAna();
   FairFileSource* fFileSource = new FairFileSource(InputFile.Data());
   fRun->SetSource(fFileSource);
-  fRun->SetOutputFile(OutFile.Data());
+  fRun->SetSink(new FairRootFileSink(OutFile.Data()));
 
   FairRuntimeDb* rtdb = fRun->GetRuntimeDb();
   FairParRootFileIo* parInput1 = new FairParRootFileIo();

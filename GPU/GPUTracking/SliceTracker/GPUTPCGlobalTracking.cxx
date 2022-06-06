@@ -43,7 +43,7 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
 
   // GPUInfo("Parameters X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi());
   if (!tParam.Rotate(angle, GPUCA_MAX_SIN_PHI)) {
-    return (0);
+    return 0;
   }
   // GPUInfo("Rotated X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi());
 
@@ -52,11 +52,11 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
   do {
     rowIndex += direction;
     if (!tParam.TransportToX(tracker.Row(rowIndex).X(), t0, tracker.Param().par.constBz, GPUCA_MAX_SIN_PHI)) {
-      return (0); // Reuse t0 linearization until we are in the next sector
+      return 0; // Reuse t0 linearization until we are in the next sector
     }
     // GPUInfo("Transported X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f (MaxY %f)", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi(), Row(rowIndex).MaxY());
     if (--maxRowGap == 0) {
-      return (0);
+      return 0;
     }
   } while (CAMath::Abs(tParam.Y()) > tracker.Row(rowIndex).MaxY());
 
@@ -77,9 +77,15 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
     if (hitId + nHits > tracker.NMaxTrackHits()) {
       tracker.raiseError(GPUErrors::ERROR_GLOBAL_TRACKING_TRACK_HIT_OVERFLOW, tracker.ISlice(), hitId + nHits, tracker.NMaxTrackHits());
       CAMath::AtomicExch(&tracker.CommonMemory()->nTrackHits, tracker.NMaxTrackHits());
-      return (0);
+      return 0;
     }
     unsigned int trackId = CAMath::AtomicAdd(&tracker.CommonMemory()->nTracks, 1u);
+    if (trackId >= tracker.NMaxTracks()) { // >= since will increase by 1
+      tracker.raiseError(GPUErrors::ERROR_GLOBAL_TRACKING_TRACK_OVERFLOW, tracker.ISlice(), trackId, tracker.NMaxTracks());
+      CAMath::AtomicExch(&tracker.CommonMemory()->nTracks, tracker.NMaxTracks());
+      return 0;
+    }
+
     if (direction == 1) {
       int i = 0;
       while (i < nHits) {
@@ -123,10 +129,6 @@ GPUd() void GPUTPCGlobalTracking::PerformGlobalTracking(int nBlocks, int nThread
         int rowIndex = tracker.TrackHits()[tmpHit].RowIndex();
         const GPUTPCRow& GPUrestrict() row = tracker.Row(rowIndex);
         float Y = (float)tracker.Data().HitDataY(row, tracker.TrackHits()[tmpHit].HitIndex()) * row.HstepY() + row.Grid().YMin();
-        if (sliceTarget.CommonMemory()->nTracks >= sliceTarget.NMaxTracks()) { // >= since will increase by 1
-          sliceTarget.raiseError(GPUErrors::ERROR_GLOBAL_TRACKING_TRACK_OVERFLOW, sliceTarget.ISlice(), sliceTarget.CommonMemory()->nTracks, sliceTarget.NMaxTracks());
-          return;
-        }
         if (!right && Y < -row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_LOWER) {
           // GPUInfo("Track %d, lower row %d, left border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
           PerformGlobalTrackingRun(sliceTarget, smem, tracker, i, rowIndex, -tracker.Param().par.dAlpha, -1);
@@ -144,10 +146,6 @@ GPUd() void GPUTPCGlobalTracking::PerformGlobalTracking(int nBlocks, int nThread
         int rowIndex = tracker.TrackHits()[tmpHit].RowIndex();
         const GPUTPCRow& GPUrestrict() row = tracker.Row(rowIndex);
         float Y = (float)tracker.Data().HitDataY(row, tracker.TrackHits()[tmpHit].HitIndex()) * row.HstepY() + row.Grid().YMin();
-        if (sliceTarget.CommonMemory()->nTracks >= sliceTarget.NMaxTracks()) { // >= since will increase by 1
-          sliceTarget.raiseError(GPUErrors::ERROR_GLOBAL_TRACKING_TRACK_OVERFLOW, sliceTarget.ISlice(), sliceTarget.CommonMemory()->nTracks, sliceTarget.NMaxTracks());
-          return;
-        }
         if (!right && Y < -row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_UPPER) {
           // GPUInfo("Track %d, upper row %d, left border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
           PerformGlobalTrackingRun(sliceTarget, smem, tracker, i, rowIndex, -tracker.Param().par.dAlpha, 1);

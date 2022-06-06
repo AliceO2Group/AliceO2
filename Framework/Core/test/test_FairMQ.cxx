@@ -31,8 +31,8 @@ using namespace o2::pmr;
 
 //__________________________________________________________________________________________________
 // addDataBlock for generic (compatible) containers, that is contiguous containers using the pmr allocator
-template <typename ContainerT, typename std::enable_if<!std::is_same<ContainerT, FairMQMessagePtr>::value, int>::type = 0>
-bool addDataBlock(FairMQParts& parts, o2::header::Stack&& inputStack, ContainerT&& inputData, o2::pmr::FairMQMemoryResource* targetResource = nullptr)
+template <typename ContainerT, typename std::enable_if<!std::is_same<ContainerT, fair::mq::MessagePtr>::value, int>::type = 0>
+bool addDataBlock(fair::mq::Parts& parts, o2::header::Stack&& inputStack, ContainerT&& inputData, o2::pmr::FairMQMemoryResource* targetResource = nullptr)
 {
   using std::forward;
   using std::move;
@@ -47,10 +47,10 @@ bool addDataBlock(FairMQParts& parts, o2::header::Stack&& inputStack, ContainerT
 }
 
 //__________________________________________________________________________________________________
-// addDataBlock for data already wrapped in FairMQMessagePtr
+// addDataBlock for data already wrapped in fair::mq::MessagePtr
 // note: since we cannot partially specialize function templates, use SFINAE here instead
-template <typename ContainerT, typename std::enable_if<std::is_same<ContainerT, FairMQMessagePtr>::value, int>::type = 0>
-bool addDataBlock(FairMQParts& parts, o2::header::Stack&& inputStack, ContainerT&& dataMessage, o2::pmr::FairMQMemoryResource* targetResource = nullptr)
+template <typename ContainerT, typename std::enable_if<std::is_same<ContainerT, fair::mq::MessagePtr>::value, int>::type = 0>
+bool addDataBlock(fair::mq::Parts& parts, o2::header::Stack&& inputStack, ContainerT&& dataMessage, o2::pmr::FairMQMemoryResource* targetResource = nullptr)
 {
   using std::move;
 
@@ -98,7 +98,7 @@ auto forEach(I begin, I end, F&& function)
 /// Execute user code (e.g. a lambda) on each data block (header-payload pair)
 /// returns the function (same as std::for_each)
 template <typename F>
-auto forEach(FairMQParts& parts, F&& function)
+auto forEach(fair::mq::Parts& parts, F&& function)
 {
   if ((parts.Size() % 2) != 0) {
     throw std::invalid_argument(
@@ -114,8 +114,8 @@ BOOST_AUTO_TEST_CASE(getMessage_Stack)
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
 
-  auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
+  auto factoryZMQ = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem");
   BOOST_REQUIRE(factorySHM != nullptr);
   BOOST_REQUIRE(factoryZMQ != nullptr);
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
@@ -163,14 +163,14 @@ BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
 
-  auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto factoryZMQ = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   BOOST_REQUIRE(factoryZMQ);
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
   BOOST_REQUIRE(allocZMQ);
 
   {
     //simple addition of a data block from an exisiting message
-    FairMQParts message;
+    fair::mq::Parts message;
     auto simpleMessage = factoryZMQ->CreateMessage(10);
     addDataBlock(message,
                  Stack{allocZMQ, DataHeader{gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{0}}},
@@ -185,7 +185,7 @@ BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
       int j;
     };
     using namespace boost::container::pmr;
-    FairMQParts message;
+    fair::mq::Parts message;
     std::vector<elem, polymorphic_allocator<elem>> vec(polymorphic_allocator<elem>{allocZMQ});
     vec.reserve(100);
     vec.push_back({1, 2});

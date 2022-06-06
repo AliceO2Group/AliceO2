@@ -24,10 +24,10 @@
 
 namespace o2::framework
 {
-void DataProcessingHelpers::sendEndOfStream(FairMQDevice& device, OutputChannelSpec const& channel)
+void DataProcessingHelpers::sendEndOfStream(fair::mq::Device& device, OutputChannelSpec const& channel)
 {
-  FairMQParts parts;
-  FairMQMessagePtr payload(device.NewMessage());
+  fair::mq::Parts parts;
+  fair::mq::MessagePtr payload(device.NewMessage());
   SourceInfoHeader sih;
   sih.state = InputChannelState::Completed;
   auto channelAlloc = o2::pmr::getTransportAllocator(device.GetChannel(channel.name, 0).Transport());
@@ -42,8 +42,8 @@ void DataProcessingHelpers::sendEndOfStream(FairMQDevice& device, OutputChannelS
 
 void DataProcessingHelpers::sendOldestPossibleTimeframe(fair::mq::Channel& channel, size_t timeslice)
 {
-  FairMQParts parts;
-  FairMQMessagePtr payload(channel.Transport()->CreateMessage());
+  fair::mq::Parts parts;
+  fair::mq::MessagePtr payload(channel.Transport()->CreateMessage());
   o2::framework::DomainInfoHeader dih;
   dih.oldestPossibleTimeslice = timeslice;
   auto channelAlloc = o2::pmr::getTransportAllocator(channel.Transport());

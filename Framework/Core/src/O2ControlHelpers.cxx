@@ -228,6 +228,10 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
   dumpOut << indLevel << "env:\n";
   dumpOut << indLevel << indLevel << "- O2_DETECTOR={{ detector }}\n";
   dumpOut << indLevel << indLevel << "- O2_PARTITION={{ environment_id }}\n";
+  // Dump all the environment variables
+  for (auto& env : execution.environ) {
+    dumpOut << indLevel << indLevel << "- " << env << "\n";
+  }
   dumpOut << indLevel << "user: \"{{ user }}\"\n";
   dumpOut << indLevel << "value: \"{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}\"\n";
 

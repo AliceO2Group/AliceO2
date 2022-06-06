@@ -202,6 +202,8 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     mEstNROF = std::max(mEstNROF, size_t(clusROFVec.size() * 1.2));
   }
 
+  pc.outputs().snapshot(Output{orig, "PHYSTRIG", 0, Lifetime::Timeframe}, mDecoder->getExternalTriggers());
+
   if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE)) {
     mDecoder->produceRawDataDumps(mDumpOnError, DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true)));
   }
@@ -286,6 +288,7 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
     // if (doClusters && doPatterns)
     outputs.emplace_back(inp.origin, "PATTERNS", 0, Lifetime::Timeframe);
   }
+  outputs.emplace_back(inp.origin, "PHYSTRIG", 0, Lifetime::Timeframe);
 
   if (inp.askSTFDist) {
     for (auto& ins : inputs) { // mark input as optional in order not to block the workflow if our raw data happen to be missing in some TFs
@@ -300,6 +303,7 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
     inputs.emplace_back("cldict", inp.origin, "CLUSDICT", 0, Lifetime::Condition,
                         o2::framework::ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", inp.origin.as<std::string>())));
   }
+
   return DataProcessorSpec{
     inp.deviceName,
     inputs,

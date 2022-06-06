@@ -162,7 +162,7 @@ void ClustererDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (matcher == ConcreteDataMatcher("MFT", "CLUSPARAM", 0)) {
-    LOG(info) << "Alpide param updated";
+    LOG(info) << "Cluster param updated";
     const auto& par = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance();
     par.printKeyValues();
     return;

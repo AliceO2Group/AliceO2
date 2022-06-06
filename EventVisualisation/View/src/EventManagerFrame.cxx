@@ -15,6 +15,7 @@
 /// \author p.nowakowski@cern.ch
 
 #include <TGButton.h>
+#include <TGButtonGroup.h>
 #include <TGNumberEntry.h>
 #include <TGLabel.h>
 #include <TTimer.h>
@@ -90,10 +91,12 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
     b->Connect("Clicked()", cls, this, "DoScreenshot()");
     b = EventManagerFrame::makeButton(f, "Save", 2 * width, "Save current event");
     b->Connect("Clicked()", cls, this, "DoSave()");
-    b = EventManagerFrame::makeButton(f, "Online", 2 * width, "Change data source to online events");
+    TGHButtonGroup* g = new TGHButtonGroup(f);
+    b = EventManagerFrame::makeRadioButton(g, "Online", 2 * width, "Change data source to online events", Options::Instance()->online());
     b->Connect("Clicked()", cls, this, "DoOnlineMode()");
-    b = EventManagerFrame::makeButton(f, "Saved", 2 * width, "Change data source to saved events");
+    b = EventManagerFrame::makeRadioButton(g, "Saved", 2 * width, "Change data source to saved events", !Options::Instance()->online());
     b->Connect("Clicked()", cls, this, "DoSavedMode()");
+    f->AddFrame(g, new TGLayoutHints(kLHintsNormal, 0, 0, 0, 0));
 
     f->AddFrame(infoLabel, new TGLayoutHints(kLHintsNormal, 5, 10, 4, 0));
     this->mTimeFrameSlider = EventManagerFrame::makeSlider(f, "Time", 8 * width);
@@ -122,6 +125,25 @@ TGTextButton* EventManagerFrame::makeButton(TGCompositeFrame* p, const char* txt
   }
 
   p->AddFrame(b, new TGLayoutHints(kLHintsNormal, lo, ro, to, bo));
+  return b;
+}
+
+TGRadioButton* EventManagerFrame::makeRadioButton(TGButtonGroup* g, const char* txt,
+                                                  Int_t width, const char* txttooltip, bool checked, Int_t lo, Int_t ro, Int_t to, Int_t bo)
+{
+  TGRadioButton* b = new TGRadioButton(g, txt);
+
+  if (width > 0) {
+    b->SetWidth(width);
+    b->ChangeOptions(b->GetOptions() | kFixedWidth);
+  }
+
+  if (txttooltip != nullptr) {
+    b->SetToolTipText(txttooltip);
+  }
+
+  b->SetOn(checked);
+
   return b;
 }
 

@@ -11,7 +11,7 @@
 #ifndef FRAMEWORK_TMESSAGESERIALIZER_H
 #define FRAMEWORK_TMESSAGESERIALIZER_H
 
-#include <fairmq/FairMQMessage.h>
+#include <fairmq/Message.h>
 
 #include "Framework/RuntimeError.h"
 
@@ -35,7 +35,7 @@ class FairTMessage;
 // utilities to produce a span over a byte buffer held by various message types
 // this is to avoid littering code with casts and conversions (span has a signed index type(!))
 gsl::span<std::byte> as_span(const FairTMessage& msg);
-gsl::span<std::byte> as_span(const FairMQMessage& msg);
+gsl::span<std::byte> as_span(const fair::mq::Message& msg);
 
 class FairTMessage : public TMessage
 {
@@ -54,17 +54,17 @@ struct TMessageSerializer {
   enum class CacheStreamers { yes,
                               no };
 
-  static void Serialize(FairMQMessage& msg, const TObject* input,
+  static void Serialize(fair::mq::Message& msg, const TObject* input,
                         CacheStreamers streamers = CacheStreamers::no,
                         CompressionLevel compressionLevel = -1);
 
   template <typename T>
-  static void Serialize(FairMQMessage& msg, const T* input, const TClass* cl, //
-                        CacheStreamers streamers = CacheStreamers::no,        //
+  static void Serialize(fair::mq::Message& msg, const T* input, const TClass* cl, //
+                        CacheStreamers streamers = CacheStreamers::no,            //
                         CompressionLevel compressionLevel = -1);
 
   template <typename T = TObject>
-  static void Deserialize(const FairMQMessage& msg, std::unique_ptr<T>& output);
+  static void Deserialize(const fair::mq::Message& msg, std::unique_ptr<T>& output);
 
   static void serialize(FairTMessage& msg, const TObject* input,
                         CacheStreamers streamers = CacheStreamers::no,
@@ -81,11 +81,11 @@ struct TMessageSerializer {
   static inline std::unique_ptr<T> deserialize(std::byte* buffer, size_t size);
 
   // load the schema information from a message/buffer
-  static void loadSchema(const FairMQMessage& msg);
+  static void loadSchema(const fair::mq::Message& msg);
   static void loadSchema(gsl::span<std::byte> buffer);
 
   // write the schema into an empty message/buffer
-  static void fillSchema(FairMQMessage& msg, const StreamerList& streamers);
+  static void fillSchema(fair::mq::Message& msg, const StreamerList& streamers);
   static void fillSchema(FairTMessage& msg, const StreamerList& streamers);
 
   // get the streamers
@@ -171,7 +171,7 @@ inline void FairTMessage::free(void* /*data*/, void* hint)
   deleter(static_cast<FairTMessage*>(hint));
 }
 
-inline void TMessageSerializer::Serialize(FairMQMessage& msg, const TObject* input,
+inline void TMessageSerializer::Serialize(fair::mq::Message& msg, const TObject* input,
                                           TMessageSerializer::CacheStreamers streamers,
                                           TMessageSerializer::CompressionLevel compressionLevel)
 {
@@ -184,7 +184,7 @@ inline void TMessageSerializer::Serialize(FairMQMessage& msg, const TObject* inp
 }
 
 template <typename T>
-inline void TMessageSerializer::Serialize(FairMQMessage& msg, const T* input,           //
+inline void TMessageSerializer::Serialize(fair::mq::Message& msg, const T* input,       //
                                           const TClass* cl,                             //
                                           TMessageSerializer::CacheStreamers streamers, //
                                           TMessageSerializer::CompressionLevel compressionLevel)
@@ -198,7 +198,7 @@ inline void TMessageSerializer::Serialize(FairMQMessage& msg, const T* input,   
 }
 
 template <typename T>
-inline void TMessageSerializer::Deserialize(const FairMQMessage& msg, std::unique_ptr<T>& output)
+inline void TMessageSerializer::Deserialize(const fair::mq::Message& msg, std::unique_ptr<T>& output)
 {
   // we know the message will not be modified by this,
   // so const_cast should be OK here(IMHO).
@@ -213,7 +213,7 @@ inline TMessageSerializer::StreamerList TMessageSerializer::getStreamers()
 
 // gsl::narrow is used to do a runtime narrowing check, this might be a bit paranoid,
 // we would probably be fine with e.g. gsl::narrow_cast (or just a static_cast)
-inline gsl::span<std::byte> as_span(const FairMQMessage& msg)
+inline gsl::span<std::byte> as_span(const fair::mq::Message& msg)
 {
   return gsl::span<std::byte>{static_cast<std::byte*>(msg.GetData()), gsl::narrow<gsl::span<std::byte>::size_type>(msg.GetSize())};
 }

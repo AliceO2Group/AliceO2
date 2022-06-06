@@ -48,8 +48,8 @@ struct ChipStat {
     UnknownWord,                  // Unknown word was seen
     RepeatingPixel,               // Same pixel fired more than once
     WrongRow,                     // Non-existing row decoded
-    APE_STRIP_START,              // lane entering strip data mode | See https://alice.its.cern.ch/jira/browse/O2-1717
-    APE_STRIP_STOP,               // lane exiting strip data mode
+    APE_STRIP,                    // lane data stripped for this chip event (behaviour changed with RU FW v1.16.0, for general APE behaviour see  https://alice.its.cern.ch/jira/browse/O2-1717)
+    APE_RESERVED_F3,              // reserved F3
     APE_DET_TIMEOUT,              // detector timeout (FATAL)
     APE_OOT_START,                // 8b10b OOT (FATAL, start)
     APE_PROTOCOL_ERROR,           // event protocol error marker (FATAL, start)
@@ -83,8 +83,8 @@ struct ChipStat {
     "Unknown word",                                 // UnknownWord
     "Same pixel fired multiple times",              // RepeatingPixel
     "Non-existing row decoded",                     // WrongRow
-    "APE_STRIP_START",                              // lane entering strip data mode | See https://alice.its.cern.ch/jira/browse/O2-1717
-    "APE_STRIP_STOP",                               // lane exiting strip data mode
+    "APE_STRIP",                                    // lane data stripped for this chip event (behaviour changed with RU FW v1.16.0, for general APE behaviour see  https://alice.its.cern.ch/jira/browse/O2-1717)
+    "APE_RESERVED_F3",                              // reserved F3
     "APE_DET_TIMEOUT",                              // detector timeout (FATAL)
     "APE_OOT_START",                                // 8b10b OOT (FATAL, start)
     "APE_PROTOCOL_ERROR",                           // event event protocol error marker (FATAL, start)
@@ -117,8 +117,8 @@ struct ChipStat {
     ErrActPropagate | ErrActDump, // Unknown word was seen
     ErrActPropagate,              // Same pixel fired more than once
     ErrActPropagate | ErrActDump, // Non-existing row decoded
-    ErrActPropagate | ErrActDump, // lane entering strip data mode | See https://alice.its.cern.ch/jira/browse/O2-1717
-    ErrActPropagate | ErrActDump, // lane exiting strip data mode
+    ErrActPropagate | ErrActDump, // lane data stripped for this chip event (behaviour changed with RU FW v1.16.0, for general APE behaviour see  https://alice.its.cern.ch/jira/browse/O2-1717)
+    ErrActPropagate | ErrActDump, // reserved F3
     ErrActPropagate | ErrActDump, // detector timeout (FATAL)
     ErrActPropagate | ErrActDump, // 8b10b OOT (FATAL, start)
     ErrActPropagate | ErrActDump, // event protocol error marker (FATAL, start)
@@ -150,7 +150,7 @@ struct ChipStat {
   static int getAPENonCritical(uint8_t c)
   {
     if (c == 0xfd || c == 0xfe) {
-      return APE_STRIP_START + c - 0xf2;
+      return APE_STRIP + c - 0xf2;
     }
     return -1;
   }
@@ -163,7 +163,7 @@ struct ChipStat {
       return -1;
     }
     ft = c >= 0xf2 && c <= 0xfe;
-    return APE_STRIP_START + c - 0xf2;
+    return APE_STRIP + c - 0xf2;
   }
   uint32_t getNErrors() const;
   uint32_t addErrors(uint32_t mask, uint16_t chID, int verbosity);

@@ -14,18 +14,18 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/DataAllocator.h"
-#include <fairmq/FairMQParts.h>
+#include <fairmq/FwdDecls.h>
 #include <vector>
 #include <functional>
 
 namespace o2::framework
 {
 
-/// A callback function to retrieve the FairMQChannel name to be used for sending
+/// A callback function to retrieve the fair::mq::Channel name to be used for sending
 /// messages of the specified OutputSpec
 using ChannelRetriever = std::function<std::string(OutputSpec const&, DataProcessingHeader::StartTime)>;
-using InjectorFunction = std::function<void(TimingInfo&, FairMQDevice& device, FairMQParts& inputs, ChannelRetriever)>;
-using ChannelSelector = std::function<std::string(InputSpec const& input, const std::unordered_map<std::string, std::vector<FairMQChannel>>& channels)>;
+using InjectorFunction = std::function<void(TimingInfo&, fair::mq::Device& device, fair::mq::Parts& inputs, ChannelRetriever)>;
+using ChannelSelector = std::function<std::string(InputSpec const& input, const std::unordered_map<std::string, std::vector<fair::mq::Channel>>& channels)>;
 
 struct InputChannelSpec;
 struct OutputChannelSpec;
@@ -37,11 +37,11 @@ std::string formatExternalChannelConfiguration(InputChannelSpec const&);
 std::string formatExternalChannelConfiguration(OutputChannelSpec const&);
 
 /// send header/payload O2 message for an OutputSpec, a channel retriever callback is required to
-/// get the associated FairMQChannel
+/// get the associated fair::mq::Channel
 /// FIXME: can in principle drop the OutputSpec parameter and take the DataHeader
-void sendOnChannel(FairMQDevice& device, o2::header::Stack&& headerStack, FairMQMessagePtr&& payloadMessage, OutputSpec const& spec, ChannelRetriever& channelRetriever);
+void sendOnChannel(fair::mq::Device& device, o2::header::Stack&& headerStack, fair::mq::MessagePtr&& payloadMessage, OutputSpec const& spec, ChannelRetriever& channelRetriever);
 
-void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string const& channel, size_t timeSlice);
+void sendOnChannel(fair::mq::Device& device, fair::mq::Parts& messages, std::string const& channel, size_t timeSlice);
 
 /// Helper function which takes a set of inputs coming from a device,
 /// massages them so that they are valid DPL messages using @param spec as header
@@ -84,7 +84,7 @@ inline InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& specs, bo
 static auto gDefaultConverter = incrementalConverter(OutputSpec{"TST", "TEST", 0}, 0, 1);
 
 /// Default way to select an output channel for multi-output proxy.
-std::string defaultOutputProxyChannelSelector(InputSpec const& input, const std::unordered_map<std::string, std::vector<FairMQChannel>>& channels);
+std::string defaultOutputProxyChannelSelector(InputSpec const& input, const std::unordered_map<std::string, std::vector<fair::mq::Channel>>& channels);
 
 /// Create a DataProcessorSpec which can be used to inject
 /// messages in the DPL.
@@ -107,9 +107,9 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* label,
                                                  Inputs const& inputSpecs,
                                                  const char* defaultChannelConfig);
 /// Create a DataProcessorSpec for a DPL processor with an out-of-band channel to relay DPL
-/// workflow data to an external FairMQDevice channel.
+/// workflow data to an external fair::mq::Device channel.
 ///
-/// The output configuration is determined by one or multiple entries of the FairMQDevice
+/// The output configuration is determined by one or multiple entries of the fair::mq::Device
 /// command line option '--channel-config' in the format
 ///    --channel-config "name=channel-name;..."
 /// A default string is build from the provided parameter.
