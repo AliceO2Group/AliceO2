@@ -567,7 +567,8 @@ void CTPRunManager::init()
 }
 int CTPRunManager::startRun(const std::string& cfg)
 {
-  LOG(info) << "Starting run: \n" << cfg;
+  LOG(info) << "Starting run: \n"
+            << cfg;
   const auto now = std::chrono::system_clock::now();
   const long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   CTPActiveRun* activerun = new CTPActiveRun;
