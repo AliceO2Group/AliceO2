@@ -384,6 +384,46 @@ void Tracker::findTracks()
 
 void Tracker::extendTracks()
 {
+  if (!mTrkParams.back().UseTrackFollower) {
+    return;
+  }
+  for (int rof{0}; rof < mTimeFrame->getNrof(); ++rof) {
+    for (auto& track : mTimeFrame->getTracks(rof)) {
+      /// TODO: track refitting is missing!
+      int ncl{track.getNClusters()};
+      auto backup{track};
+      bool success{false};
+      if (track.getLastClusterLayer() != mTrkParams[0].NLayers - 1) {
+        success = success || mTraits->trackFollowing(&track, rof, true);
+      }
+      if (track.getFirstClusterLayer() != 0) {
+        success = success || mTraits->trackFollowing(&track, rof, false);
+      }
+      if (success) {
+        /// We have to refit the track
+        track.resetCovariance();
+        bool fitSuccess = fitTrack(track, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].FitIterationMaxChi2[0]);
+        if (!fitSuccess) {
+          track = backup;
+          continue;
+        }
+        track.getParamOut() = track;
+        track.resetCovariance();
+        fitSuccess = fitTrack(track, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1], 50.);
+        if (!fitSuccess) {
+          track = backup;
+          continue;
+        }
+        /// Make sure that the newly attached clusters get marked as used
+        for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
+          if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+            continue;
+          }
+          mTimeFrame->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
+        }
+      }
+    }
+  }
 }
 
 bool Tracker::fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut, const float maxQoverPt)
@@ -707,6 +747,9 @@ void Tracker::getGlobalConfiguration()
     params.UseDiamond = tc.useDiamond;
     if (tc.maxMemory) {
       params.MaxMemory = tc.maxMemory;
+    }
+    if (tc.useTrackFollower >= 0) {
+      params.UseTrackFollower = tc.useTrackFollower;
     }
   }
 }
