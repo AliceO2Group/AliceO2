@@ -357,6 +357,15 @@ int CruRawReader::parseDigitHCHeader()
           //LOG(alarm) << "Digit HC Header 1 reserved : " << std::hex << mDigitHCHeader1.res << " raw: 0x" << mDigitHCHeader1.word;
           increment2dHist(TRDParsingDigitHeaderWrong1, mFEEID.supermodule * 2 + mHalfChamberSide[0], mStack[0], mLayer[0]);
         }
+        mTimeBins = mDigitHCHeader1.numtimebins;
+        if (mTimeBins < 1 && mTimeBins > o2::trd::constants::TIMEBINS) {
+          //sanity check on the hcheader settings
+          mTimeBins = o2::trd::constants::TIMEBINS;
+          if (mMaxWarnPrinted > 0) {
+            LOG(warn) << "Time bins in Digit HC Header 1 is " << mDigitHCHeader1.numtimebins << " this is absurd";
+            checkNoWarn();
+          }
+        }
         break;
       case 2: // header header2;
         mDigitHCHeader2.word = headers[headerwordcount];
@@ -641,7 +650,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
             mDigitWordsRead = 0;
             auto digitsparsingstart = std::chrono::high_resolution_clock::now();
             //linkstart and linkend already have the multiple cruheaderoffsets built in
-            mDigitWordsRead = mDigitsParser.Parse(&mHBFPayload, linkstart, linkend, mDetector[mWhichData], mStack[mWhichData], mLayer[mWhichData], mHalfChamberSide[mWhichData], mDigitHCHeader, mFEEID, currentlinkindex, mCurrentEvent, &mEventRecords, mOptions, cleardigits);
+            mDigitWordsRead = mDigitsParser.Parse(&mHBFPayload, linkstart, linkend, mDetector[mWhichData], mStack[mWhichData], mLayer[mWhichData], mHalfChamberSide[mWhichData], mDigitHCHeader, mTimeBins, mFEEID, currentlinkindex, mCurrentEvent, &mEventRecords, mOptions, cleardigits);
             std::chrono::duration<double, std::micro> digitsparsingtime = std::chrono::high_resolution_clock::now() - digitsparsingstart;
             if (mRootOutput) {
               mDigitTiming->Fill((int)std::chrono::duration_cast<std::chrono::microseconds>(digitsparsingtime).count());

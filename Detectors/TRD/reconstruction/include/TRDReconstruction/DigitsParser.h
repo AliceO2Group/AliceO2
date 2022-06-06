@@ -46,7 +46,7 @@ class DigitsParser
   void setData(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data) { mData = data; }
   int Parse(bool verbose = false); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
-            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, int stack, int layer, int side, DigitHCHeader& hcheader,
+            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, int stack, int layer, int side, DigitHCHeader& hcheader, uint16_t timebins,
             TRDFeeID& feeid, unsigned int linkindex, EventRecord* eventrecord, EventStorage* eventrecords, std::bitset<16> options, bool cleardigits = false);
 
   enum DigitParserState { StateDigitHCHeader, // always the start of a half chamber.
@@ -89,6 +89,7 @@ class DigitsParser
       ((TH2F*)mParsingErrors2d->At(error))->Fill(mFEEID.supermodule * 2 + mHalfChamberSide, mStack * constants::NLAYER + mLayer);
     }
   }
+  void checkNoErr();
 
  private:
   int mState;
@@ -134,11 +135,13 @@ class DigitsParser
   uint16_t mSector;
   uint16_t mHalfChamberSide;
   uint16_t mStackLayer; //store these values to prevent numerous recalculation;
+  uint16_t mTimeBins;   // timebins used defaults is constants::TIMEBINS
 
   uint16_t mEventCounter;
   TRDFeeID mFEEID;
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
   std::array<uint16_t, constants::TIMEBINS> mADCValues{};
+  int mMaxErrsPrinted;
   TH1F* mParsingErrors;
   TList* mParsingErrors2d;
 };
