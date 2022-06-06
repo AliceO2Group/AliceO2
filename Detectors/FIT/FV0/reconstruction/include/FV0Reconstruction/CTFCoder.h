@@ -81,14 +81,12 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& dig
   CompressedDigits cd;
   if (mExtHeader.isValidDictTimeStamp()) {
     if (mExtHeader.minorVersion == 0 && mExtHeader.majorVersion == 1) {
-      compress<1,0>(cd, digitVec, channelVec);
+      compress<1, 0>(cd, digitVec, channelVec);
+    } else {
+      compress<1, 1>(cd, digitVec, channelVec);
     }
-    else {
-      compress<1,1>(cd, digitVec, channelVec);
-    }
-  }
-  else {
-    compress<1,1>(cd, digitVec, channelVec);
+  } else {
+    compress<1, 1>(cd, digitVec, channelVec);
   }
   // book output size with some margin
   auto szIni = estimateCompressedSize(cd);
@@ -192,11 +190,9 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
       if constexpr (MINOR_VERSION == 0 && MAJOR_VERSION == 1) {
         // Old decoding procedure, mostly for Pilot Beam in October 2021
         chID += cd.idChan[icc];
-        LOG(info)<<"Old method";
       } else {
         // New decoding procedure, w/o sorted ChID requriment
         chID = cd.idChan[icc];
-        LOG(info)<<"New method";
       }
       const auto& chan = channelVec.emplace_back(chID, cd.cfdTime[icc], cd.qtcAmpl[icc], cd.qtcChain[icc]);
       if (std::abs(chan.CFDTime) < triggerGate) {
@@ -270,12 +266,9 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
     uint8_t prevChan = 0;
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       if constexpr (MINOR_VERSION == 0 && MAJOR_VERSION == 1) {
-        cd.idChan[ccount] = chanels[ic].ChId - prevChan; //Old method, lets keep it for a while
-        LOG(info)<<"Old method";
-      }
-      else {
+        cd.idChan[ccount] = chanels[ic].ChId - prevChan; // Old method, lets keep it for a while
+      } else {
         cd.idChan[ccount] = chanels[ic].ChId;
-        LOG(info)<<"New method";
       }
       cd.qtcChain[ccount] = chanels[ic].ChainQTC;
       cd.cfdTime[ccount] = chanels[ic].CFDTime;
