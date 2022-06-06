@@ -136,6 +136,13 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
   mOnlineGainTableName = ic.options().get<std::string>("trd-onlinegaintable");
   mRunNumber = ic.options().get<int>("trd-runnum");
   mEnableTrapConfigDump = ic.options().get<bool>("trd-dumptrapconfig");
+  mUseFloatingPointForQ = ic.options().get<bool>("float-arithmetic");
+
+  if (mUseFloatingPointForQ) {
+    LOG(info) << "Tracklet charges will be calculated using floating point arithmetic";
+  } else {
+    LOG(info) << "Tracklet charges will be calculated using a fixed multiplier";
+  }
 
 #ifdef WITH_OPENMP
   int askedThreads = TRDSimParams::Instance().digithreads;
@@ -232,6 +239,9 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       int trapIdx = (digit->getROB() / 2) * NMCMROB + digit->getMCM();
       if (!trapSimulators[trapIdx].isDataSet()) {
         trapSimulators[trapIdx].init(mTrapConfig, digit->getDetector(), digit->getROB(), digit->getMCM());
+        if (mUseFloatingPointForQ) {
+          trapSimulators[trapIdx].setUseFloatingPointForQ();
+        }
       }
       trapSimulators[trapIdx].setData(digit->getChannel(), digit->getADC(), digitIdxArray[iDigit]);
     }
@@ -318,6 +328,7 @@ o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC)
                            outputs,
                            AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>(useMC)},
                            Options{
+                             {"float-arithmetic", VariantType::Bool, false, {"Enable floating point calculation of the tracklet charges instead of using fixed multiplier"}},
                              {"trd-trapconfig", VariantType::String, "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549", {"TRAP config name"}},
                              {"trd-onlinegaincorrection", VariantType::Bool, false, {"Apply online gain calibrations, mostly for back checking to run2 by setting FGBY to 0"}},
                              {"trd-onlinegaintable", VariantType::String, "Krypton_2015-02", {"Online gain table to be use, names found in CCDB, obviously trd-onlinegaincorrection must be set as well."}},

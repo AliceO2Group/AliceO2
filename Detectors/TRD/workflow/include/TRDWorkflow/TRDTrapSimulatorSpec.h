@@ -43,6 +43,7 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
  private:
   TrapConfig* mTrapConfig{nullptr};
   int mRunNumber{297595}; // run number to anchor simulation to.
+  bool mUseFloatingPointForQ{false};
   bool mEnableOnlineGainCorrection{false};
   bool mUseMC{false}; // whether or not to use MC labels
   bool mEnableTrapConfigDump{false};
