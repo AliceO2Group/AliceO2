@@ -130,7 +130,9 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
 
       bool saturatedBunchHG = false;
       createPayload(channel, ChannelType_t::HIGH_GAIN, srucont.mSRUid, payload, saturatedBunchHG);
-      createPayload(channel, ChannelType_t::LOW_GAIN, srucont.mSRUid, payload, saturatedBunchHG);
+      if (saturatedBunchHG) {
+        createPayload(channel, ChannelType_t::LOW_GAIN, srucont.mSRUid, payload, saturatedBunchHG);
+      }
     }
 
     if (!payload.size()) {
@@ -174,7 +176,7 @@ void RawWriter::createPayload(o2::emcal::ChannelData channel, o2::emcal::Channel
     rawbunches.push_back(bunch.mStarttime);
     for (auto adc : bunch.mADCs) {
       rawbunches.push_back(adc);
-      if (adc > o2::emcal::constants::OVERFLOWCUT) {
+      if (adc > o2::emcal::constants::LG_SUPPRESSION_CUT) {
         saturatedBunch = true;
       }
     }
