@@ -53,6 +53,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
  private:
   /// compres digits clusters to CompressedDigits
+  template <int MAJOR_VERSION, int MINOR_VERSION>
   void compress(CompressedDigits& cd, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec);
   size_t estimateCompressedSize(const CompressedDigits& cc);
 
@@ -83,8 +84,17 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& dig
     MD::EENCODE  // BLC_qtcAmpl
   };
   CompressedDigits cd;
-  compress(cd, digitVec, channelVec);
-
+  if (mExtHeader.isValidDictTimeStamp()) {
+    if (mExtHeader.minorVersion == 0 && mExtHeader.majorVersion == 1) {
+      compress<1,0>(cd, digitVec, channelVec);
+    }
+    else {
+      compress<1,1>(cd, digitVec, channelVec);
+    }
+  }
+  else {
+    compress<1,1>(cd, digitVec, channelVec);
+  }
   // book output size with some margin
   auto szIni = estimateCompressedSize(cd);
   buff.resize(szIni);
@@ -180,9 +190,11 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
       if constexpr (MINOR_VERSION == 0 && MAJOR_VERSION == 1) {
         // Old decoding procedure, mostly for Pilot Beam in October 2021
         chID += cd.idChan[icc];
+        LOG(info)<<"Old method";
       } else {
         // New decoding procedure, w/o sorted ChID requriment
         chID = cd.idChan[icc];
+        LOG(info)<<"New method";
       }
       const auto& chan = channelVec.emplace_back(chID, cd.cfdTime[icc], cd.qtcAmpl[icc], cd.qtcChain[icc]);
       if (std::abs(chan.CFDTime) < triggerGate) {
@@ -215,6 +227,77 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     trig.setTriggers(cd.trigger[idig], nChanA, nChanC, amplA, amplC, timeA, timeC);
     auto& d = digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, trig, idig);
     d.setEventStatus(cd.eventStatus[idig]);
+  }
+}
+
+///________________________________
+template <int MAJOR_VERSION, int MINOR_VERSION>
+void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec)
+{
+  // convert digits/channel to their compressed version
+  cd.clear();
+  if (!digitVec.size()) {
+    return;
+  }
+  const auto& dig0 = digitVec[0];
+  cd.header.det = mDet;
+  cd.header.nTriggers = digitVec.size();
+  cd.header.firstOrbit = dig0.getOrbit();
+  cd.header.firstBC = dig0.getBC();
+  cd.header.triggerGate = FT0DigParam::Instance().mTime_trg_gate;
+
+  cd.trigger.resize(cd.header.nTriggers);
+  cd.bcInc.resize(cd.header.nTriggers);
+  cd.orbitInc.resize(cd.header.nTriggers);
+  cd.eventStatus.resize(cd.header.nTriggers);
+  cd.nChan.resize(cd.header.nTriggers);
+
+  cd.idChan.resize(channelVec.size());
+  cd.qtcChain.resize(channelVec.size());
+  cd.cfdTime.resize(channelVec.size());
+  cd.qtcAmpl.resize(channelVec.size());
+
+  uint16_t prevBC = cd.header.firstBC;
+  uint32_t prevOrbit = cd.header.firstOrbit;
+  uint32_t ccount = 0;
+  for (uint32_t idig = 0; idig < cd.header.nTriggers; idig++) {
+    const auto& digit = digitVec[idig];
+    const auto chanels = digit.getBunchChannelData(channelVec); // we assume the channels are sorted
+
+    // fill trigger info
+    cd.trigger[idig] = digit.getTriggers().getTriggersignals();
+    cd.eventStatus[idig] = digit.getEventStatusWord();
+    if (prevOrbit == digit.getOrbit()) {
+      cd.bcInc[idig] = digit.getBC() - prevBC;
+      cd.orbitInc[idig] = 0;
+    } else {
+      cd.bcInc[idig] = digit.getBC();
+      cd.orbitInc[idig] = digit.getOrbit() - prevOrbit;
+    }
+    prevBC = digit.getBC();
+    prevOrbit = digit.getOrbit();
+    // fill channels info
+    cd.nChan[idig] = chanels.size();
+    if (!cd.nChan[idig]) {
+      LOG(debug) << "Digits with no channels";
+      continue;
+    }
+    uint8_t prevChan = 0;
+    for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
+      if constexpr (MINOR_VERSION == 0 && MAJOR_VERSION == 1) {
+        cd.idChan[ccount] = chanels[ic].ChId - prevChan; //Old method, lets keep it for a while
+        LOG(info)<<"Old method";
+      }
+      else {
+        cd.idChan[ccount] = chanels[ic].ChId;
+        LOG(info)<<"New method";
+      }
+      cd.qtcChain[ccount] = chanels[ic].ChainQTC;
+      cd.cfdTime[ccount] = chanels[ic].CFDTime;
+      cd.qtcAmpl[ccount] = chanels[ic].QTCAmpl;
+      prevChan = chanels[ic].ChId;
+      ccount++;
+    }
   }
 }
 

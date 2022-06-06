@@ -52,6 +52,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
  private:
   /// compres digits clusters to CompressedDigits
+  template <int MAJOR_VERSION, int MINOR_VERSION>
   void compress(CompressedDigits& cd, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec);
   size_t estimateCompressedSize(const CompressedDigits& cc);
 
@@ -82,8 +83,17 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& dig
     MD::EENCODE  // BLC_feeBits
   };
   CompressedDigits cd;
-  compress(cd, digitVec, channelVec);
-
+  if (mExtHeader.isValidDictTimeStamp()) {
+    if (mExtHeader.minorVersion == 0 && mExtHeader.majorVersion == 1) {
+      compress<1,0>(cd, digitVec, channelVec);
+    }
+    else {
+      compress<1,1>(cd, digitVec, channelVec);
+    }
+  }
+  else {
+    compress<1,1>(cd, digitVec, channelVec);
+  }
   // book output size with some margin
   auto szIni = estimateCompressedSize(cd);
   buff.resize(szIni);
@@ -177,9 +187,11 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
       if constexpr (MINOR_VERSION == 0 && MAJOR_VERSION == 1) {
         // Old decoding procedure, mostly for Pilot Beam in October 2021
         chID += cd.idChan[icc];
+        LOG(info)<<"Old method";
       } else {
         // New decoding procedure, w/o sorted ChID requriment
         chID = cd.idChan[icc];
+        LOG(info)<<"New method";
       }
       const auto& chan = channelVec.emplace_back(chID, cd.time[icc], cd.charge[icc], cd.feeBits[icc]);
       // rebuild digit
@@ -211,6 +223,74 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     Triggers trig;
     trig.setTriggers(cd.trigger[idig], nChanA, nChanC, amplA, amplC, timeA, timeC);
     digitVec.emplace_back(firstEntry, cd.nChan[idig], ir, trig);
+  }
+}
+
+///________________________________
+template <int MAJOR_VERSION, int MINOR_VERSION>
+void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digitVec, const gsl::span<const ChannelData>& channelVec)
+{
+  // convert digits/channel to their compressed version
+  cd.clear();
+  if (!digitVec.size()) {
+    return;
+  }
+  const auto& dig0 = digitVec[0];
+  cd.header.det = mDet;
+  cd.header.nTriggers = digitVec.size();
+  cd.header.firstOrbit = dig0.mIntRecord.orbit;
+  cd.header.firstBC = dig0.mIntRecord.bc;
+
+  cd.trigger.resize(cd.header.nTriggers);
+  cd.bcInc.resize(cd.header.nTriggers);
+  cd.orbitInc.resize(cd.header.nTriggers);
+  cd.nChan.resize(cd.header.nTriggers);
+
+  cd.idChan.resize(channelVec.size());
+  cd.time.resize(channelVec.size());
+  cd.charge.resize(channelVec.size());
+  cd.feeBits.resize(channelVec.size());
+
+  uint16_t prevBC = cd.header.firstBC;
+  uint32_t prevOrbit = cd.header.firstOrbit;
+  uint32_t ccount = 0;
+  for (uint32_t idig = 0; idig < cd.header.nTriggers; idig++) {
+    const auto& digit = digitVec[idig];
+    const auto chanels = digit.getBunchChannelData(channelVec); // we assume the channels are sorted
+
+    // fill trigger info
+    cd.trigger[idig] = digit.mTriggers.getTriggersignals();
+    if (prevOrbit == digit.mIntRecord.orbit) {
+      cd.bcInc[idig] = digit.mIntRecord.bc - prevBC;
+      cd.orbitInc[idig] = 0;
+    } else {
+      cd.bcInc[idig] = digit.mIntRecord.bc;
+      cd.orbitInc[idig] = digit.mIntRecord.orbit - prevOrbit;
+    }
+    prevBC = digit.mIntRecord.bc;
+    prevOrbit = digit.mIntRecord.orbit;
+    // fill channels info
+    cd.nChan[idig] = chanels.size();
+    if (!cd.nChan[idig]) {
+      LOG(debug) << "Digits with no channels";
+      continue;
+    }
+    uint8_t prevChan = 0;
+    for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
+      if constexpr (MINOR_VERSION == 0 && MAJOR_VERSION == 1) {
+        cd.idChan[ccount] = chanels[ic].mPMNumber - prevChan; //Old method, lets keep it for a while
+        LOG(info)<<"Old method";
+      }
+      else {
+        cd.idChan[ccount] = chanels[ic].mPMNumber;
+        LOG(info)<<"New method";
+      }
+      cd.time[ccount] = chanels[ic].mTime;        // make sure it fits to short!!!
+      cd.charge[ccount] = chanels[ic].mChargeADC; // make sure we really need short!!!
+      cd.feeBits[ccount] = chanels[ic].mFEEBits;
+      prevChan = chanels[ic].mPMNumber;
+      ccount++;
+    }
   }
 }
 
