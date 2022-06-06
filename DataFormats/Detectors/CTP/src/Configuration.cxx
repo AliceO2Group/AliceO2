@@ -567,7 +567,7 @@ void CTPRunManager::init()
 }
 int CTPRunManager::startRun(const std::string& cfg)
 {
-  LOG(info) << "Starting run: " << cfg;
+  LOG(info) << "Starting run: \n" << cfg;
   const auto now = std::chrono::system_clock::now();
   const long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   CTPActiveRun* activerun = new CTPActiveRun;
@@ -635,6 +635,7 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
     LOG(info) << "ctpcfg received";
     startRun(message);
     mCtpcfg = 1;
+    return 0;
   }
   if (topic.find("sox") != std::string::npos) {
     // get config
@@ -644,7 +645,7 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
                  << message;
       return 1;
     }
-    LOG(info) << "SOX received, Run:" << irun;
+    LOG(info) << "SOX received, Run keyword position:" << irun;
     if (mCtpcfg == 0) {
       std::string cfg = message.substr(irun, message.size() - irun);
       LOG(info) << "Config:" << cfg;
