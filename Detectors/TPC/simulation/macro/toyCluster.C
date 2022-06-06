@@ -269,8 +269,8 @@ GlobalPosition3D getElectronDrift(const GlobalPosition3D& posEle)
 {
   static o2::math_utils::RandomRing<> randomGaus;
 
-  auto& detParam = ParameterDetector::Instance();
-  auto& gasParam = ParameterGas::Instance();
+  const auto& detParam = ParameterDetector::Instance();
+  const auto& gasParam = ParameterGas::Instance();
   float driftl = detParam.TPClength - posEle.Z();
   if (driftl < 0.01) {
     driftl = 0.01;
@@ -318,7 +318,7 @@ void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const st
   auto& eleParam = ParameterElectronics::Instance();
   const float zbinWidth = eleParam.ZbinWidth;
   static GEMAmplification& gemAmplification = GEMAmplification::instance();
-  auto& gasParam = ParameterGas::Instance();
+  const auto& gasParam = ParameterGas::Instance();
 
   ElectronTransport& electronTransport = ElectronTransport::instance();
   electronTransport.updateParameters();
