@@ -419,19 +419,13 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
         printf(" %08x DRM Data Trailer      (locEvCnt=%d) \n", *mDecoderPointer, locEvCnt);
       }
       decoderNext();
-      if (paranoid && decoderParanoid()) {
-        return true;
-      }
 
       /** filler detected **/
-      if (IS_FILLER(*mDecoderPointer)) {
+      if ( (mDecoderPointer < mDecoderPointerMax) && IS_FILLER(*mDecoderPointer) ) {
         if (verbose && mDecoderVerbose) {
           printf(" %08x Filler \n", *mDecoderPointer);
         }
         decoderNext();
-        if (paranoid && decoderParanoid()) {
-          return true;
-        }
       }
 
       /** encode Crate Trailer **/
