@@ -132,14 +132,17 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   auto endTime = std::chrono::high_resolution_clock::now();
   LOGP(info, "Visualization of TF:{} at orbit {} took {} s.", dh->tfCounter, dh->firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
 
-  std::array<std::string, GID::Source::NSources> sourceStats;
+  std::vector<std::string> sourceStats;
+  sourceStats.reserve(GID::Source::NSources);
 
   for (int i = 0; i < GID::Source::NSources; i++) {
-    sourceStats[i] = fmt::format("{}/{} {}", helper.mEvent.getSourceTrackCount(static_cast<GID::Source>(i)), helper.mTotalTracks.at(i), GID::getSourceName(i));
+    if (mTrkMask[i]) {
+      sourceStats.emplace_back(fmt::format("{}/{} {}", helper.mEvent.getSourceTrackCount(static_cast<GID::Source>(i)), helper.mTotalTracks.at(i), GID::getSourceName(i)));
+    }
   }
 
   LOGP(info, "JSON saved: {}", save ? "YES" : "NO");
-  LOGP(info, "Tracks: {}", fmt::join(sourceStats, ","));
+  LOGP(info, "Tracks: {}", fmt::join(sourceStats, ", "));
 }
 
 void O2DPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
@@ -195,8 +198,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   int numberOfFiles = cfgc.options().get<int>("number-of_files");
   int numberOfTracks = cfgc.options().get<int>("number-of_tracks");
 
-  GID::mask_t allowedTracks = GID::getSourcesMask("ITS,TPC,MFT,MCH,ITS-TPC,ITS-TPC-TOF,TPC-TRD,ITS-TPC-TRD,MID,PHS,EMC");
-  GID::mask_t allowedClusters = GID::getSourcesMask("ITS,TPC,MFT,MCH,TRD,TOF,MID,TRD,PHS,EMC");
+  GID::mask_t allowedTracks = GID::getSourcesMask(O2DPLDisplaySpec::allowedTracks);
+  GID::mask_t allowedClusters = GID::getSourcesMask(O2DPLDisplaySpec::allowedClusters);
 
   GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks")) & allowedTracks;
   GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters")) & allowedClusters;

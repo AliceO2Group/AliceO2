@@ -46,6 +46,9 @@ class TPCFastTransform;
 class O2DPLDisplaySpec : public o2::framework::Task
 {
  public:
+  static constexpr auto allowedTracks = "ITS,TPC,MFT,MCH,ITS-TPC,ITS-TPC-TOF,TPC-TRD,ITS-TPC-TRD,MID,PHS,EMC";
+  static constexpr auto allowedClusters = "ITS,TPC,MFT,MCH,TRD,TOF,MID,TRD,PHS,EMC";
+
   O2DPLDisplaySpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t trkMask,
                    o2::dataformats::GlobalTrackID::mask_t clMask,
                    std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, const std::string& jsonPath,
