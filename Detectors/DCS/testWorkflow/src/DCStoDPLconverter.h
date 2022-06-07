@@ -74,8 +74,8 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
     nInp++;
     if (o2::utils::Str::endsWith(firstName, "Master")) {
       isFBI = true;
-      seenFBI = true;
       nInpFBI++;
+      seenFBI = true;
     } else if (o2::utils::Str::endsWith(firstName, "MasterDelta")) {
       isFBI = false;
     } else {
@@ -106,7 +106,8 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
       }
     }
     auto timerNow = std::chrono::high_resolution_clock::now();
-    if (fbiFirst && !seenFBI) {
+    if (fbiFirst && nInpFBI < 2) { // 1st FBI might be obsolete
+      seenFBI = false;
       static int prevDelay = 0;
       std::chrono::duration<double, std::ratio<1>> duration = timerNow - timer0;
       int delay = duration.count();
