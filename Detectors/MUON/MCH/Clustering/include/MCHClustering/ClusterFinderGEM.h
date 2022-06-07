@@ -28,16 +28,13 @@
 #include <TH2D.h>
 
 #include "DataFormatsMCH/Digit.h"
-#include "DataFormatsMCH/Cluster.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHPreClustering/PreClusterFinder.h"
 #include "ClusterFinderOriginal.h"
+#include "MCHClustering/ClusterPEM.h"
 
 // GG Added include
 #include "ClusterDump.h"
-#include "dataStructure.h"
-#include "mathieson.h"
-#include "padProcessing.h"
 #include "clusterProcessing.h"
 
 namespace o2
