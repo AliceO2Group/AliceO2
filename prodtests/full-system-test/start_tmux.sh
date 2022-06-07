@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "0$1" != "0dd" ] && [ "0$1" != "0rr" ] && [ "0$1" != "0rr" ]; then
+if [ "0$1" != "0dd" ] && [ "0$1" != "0rr" ] && [ "0$1" != "0tf" ]; then
   echo Please indicate whether to start with raw-reader [rr] or with DataDistribution [dd] or TfReader [tf]
   exit 1
 fi
