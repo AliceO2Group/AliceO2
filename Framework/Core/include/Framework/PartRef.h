@@ -22,8 +22,8 @@ namespace framework
 
 /// Reference to an inflight part.
 struct PartRef {
-  std::unique_ptr<FairMQMessage> header;
-  std::unique_ptr<FairMQMessage> payload;
+  std::unique_ptr<fair::mq::Message> header;
+  std::unique_ptr<fair::mq::Message> payload;
 };
 
 } // namespace framework

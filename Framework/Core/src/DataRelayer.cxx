@@ -293,8 +293,11 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       }
     }
     if (!droppingNotCondition) {
-      LOGP(info, "Silently dropping data in slot {} because it has timestamp {} < {} after receiving data from channel {}. Lifetime::Timeframe data not expected.", si, timestamp.value, newOldest.timeslice.value,
-           newOldest.timeslice.value, mTimesliceIndex.getChannelInfo(channel).channel->GetName());
+      LOGP(info,
+           "Silently dropping data in pipeline slot {} because it has timeslice {} < {} after receiving data from channel {}."
+           "Because Lifetime::Timeframe data not there and not expected (e.g. due to sampling) we drop non sampled, non timeframe data (e.g. Conditions).",
+           si, timestamp.value, newOldest.timeslice.value,
+           mTimesliceIndex.getChannelInfo(channel).channel->GetName());
     }
   }
 }
@@ -306,7 +309,7 @@ TimesliceIndex::OldestOutputInfo DataRelayer::getOldestPossibleOutput() const
 
 DataRelayer::RelayChoice
   DataRelayer::relay(void const* rawHeader,
-                     std::unique_ptr<FairMQMessage>* messages,
+                     std::unique_ptr<fair::mq::Message>* messages,
                      size_t nMessages,
                      size_t nPayloads)
 {
@@ -396,7 +399,7 @@ DataRelayer::RelayChoice
     assert(nPayloads > 0);
     for (size_t mi = 0; mi < nMessages; ++mi) {
       assert(mi + nPayloads < nMessages);
-      target.add([&messages, &mi](size_t i) -> FairMQMessagePtr& { return messages[mi + i]; }, nPayloads + 1);
+      target.add([&messages, &mi](size_t i) -> fair::mq::MessagePtr& { return messages[mi + i]; }, nPayloads + 1);
       mi += nPayloads;
     }
   };

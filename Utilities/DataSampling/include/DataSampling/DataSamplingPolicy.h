@@ -69,7 +69,7 @@ class DataSamplingPolicy
   //  void registerPolicy(framework::InputSpec&&, framework::OutputSpec&&);
   /// \brief Adds a new sampling condition.
   void registerCondition(std::unique_ptr<DataSamplingCondition>&&);
-  /// \brief Sets a raw FairMQChannel. Deprecated, do not use.
+  /// \brief Sets a raw fair::mq::Channel. Deprecated, do not use.
   void setFairMQOutputChannel(std::string);
 
   /// \brief Returns true if this policy requires data with given InputSpec.

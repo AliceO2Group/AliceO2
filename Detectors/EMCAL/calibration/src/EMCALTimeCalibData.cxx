@@ -53,16 +53,17 @@ std::ostream& operator<<(std::ostream& stream, const EMCALTimeCalibData& emcdata
 void EMCALTimeCalibData::merge(const EMCALTimeCalibData* prev)
 {
   mEvents += prev->getNEvents();
+  mNEntriesInHisto += prev->getNEntriesInHisto();
   mTimeHisto += prev->getHisto();
 }
 //_____________________________________________
 bool EMCALTimeCalibData::hasEnoughData() const
 {
   bool enough = false;
-  double entries = boost::histogram::algorithm::sum(mTimeHisto);
-  LOG(debug) << "entries: " << entries << " needed: " << EMCALCalibParams::Instance().minNEntries << "  mEvents = " << mEvents;
+
+  LOG(debug) << "mNEntriesInHisto: " << mNEntriesInHisto << " needed: " << EMCALCalibParams::Instance().minNEntries << "  mEvents = " << mEvents;
   // use enrties in histogram for calibration
-  if (!EMCALCalibParams::Instance().useNEventsForCalib && entries > EMCALCalibParams::Instance().minNEntries) {
+  if (!EMCALCalibParams::Instance().useNEventsForCalib && mNEntriesInHisto > EMCALCalibParams::Instance().minNEntries) {
     enough = true;
   }
   // use number of events (from emcal trigger record) for calibration
@@ -83,8 +84,9 @@ void EMCALTimeCalibData::fill(const gsl::span<const o2::emcal::Cell> data)
     double cellTime = cell.getTimeStamp();
     int id = cell.getTower();
     LOG(debug) << "inserting in cell ID " << id << ": cellTime = " << cellTime;
-    if (cellEnergy > 0.3) {
+    if (cellEnergy > EMCALCalibParams::Instance().minCellEnergyForTimeCalib) {
       mTimeHisto(cellTime, id);
+      mNEntriesInHisto++;
     }
   }
 }

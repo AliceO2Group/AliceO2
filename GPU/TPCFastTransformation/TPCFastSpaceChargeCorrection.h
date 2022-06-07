@@ -125,8 +125,11 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   /// Sets the time stamp of the current calibaration
   GPUd() void setTimeStamp(long int v) { mTimeStamp = v; }
 
-  /// Gives pointer to a spline
+  /// Gives const pointer to a spline
   GPUd() const SplineType& getSpline(int slice, int row) const;
+
+  /// Gives pointer to a spline
+  GPUd() SplineType& getSpline(int slice, int row);
 
   /// Gives pointer to spline data
   GPUd() float* getSplineData(int slice, int row, int iSpline = 0);
@@ -248,6 +251,13 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 /// ====================================================
 
 GPUdi() const TPCFastSpaceChargeCorrection::SplineType& TPCFastSpaceChargeCorrection::getSpline(int slice, int row) const
+{
+  /// Gives const pointer to spline
+  const RowInfo& rowInfo = mRowInfoPtr[row];
+  return mScenarioPtr[rowInfo.splineScenarioID];
+}
+
+GPUdi() TPCFastSpaceChargeCorrection::SplineType& TPCFastSpaceChargeCorrection::getSpline(int slice, int row)
 {
   /// Gives pointer to spline
   const RowInfo& rowInfo = mRowInfoPtr[row];

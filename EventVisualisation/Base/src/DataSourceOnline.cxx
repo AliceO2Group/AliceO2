@@ -40,6 +40,8 @@ std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline
     this->setRunNumber(vEvent.getRunNumber());
     this->setFirstTForbit(vEvent.getFirstTForbit());
     this->setCollisionTime(vEvent.getCollisionTime());
+    this->setTrackMask(vEvent.getTrkMask());
+    this->setClusterMask(vEvent.getClMask());
 
     double period = vEvent.getMaxTimeOfTracks() - vEvent.getMinTimeOfTracks();
     if (period > 0) {
@@ -82,6 +84,11 @@ bool DataSourceOnline::refresh()
 Int_t DataSourceOnline::getCurrentEvent()
 {
   return mFileWatcher.getPos();
+}
+
+o2::detectors::DetID::mask_t DataSourceOnline::getDetectorsMask()
+{
+  return o2::dataformats::GlobalTrackID::getSourcesDetectorsMask(mTrackMask);
 }
 
 } // namespace event_visualisation

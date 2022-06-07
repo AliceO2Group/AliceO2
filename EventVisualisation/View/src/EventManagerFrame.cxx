@@ -15,6 +15,7 @@
 /// \author p.nowakowski@cern.ch
 
 #include <TGButton.h>
+#include <TGButtonGroup.h>
 #include <TGNumberEntry.h>
 #include <TGLabel.h>
 #include <TTimer.h>
@@ -90,10 +91,12 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
     b->Connect("Clicked()", cls, this, "DoScreenshot()");
     b = EventManagerFrame::makeButton(f, "Save", 2 * width, "Save current event");
     b->Connect("Clicked()", cls, this, "DoSave()");
-    b = EventManagerFrame::makeButton(f, "Online", 2 * width, "Change data source to online events");
+    TGHButtonGroup* g = new TGHButtonGroup(f);
+    b = EventManagerFrame::makeRadioButton(g, "Online", 2 * width, "Change data source to online events", Options::Instance()->online());
     b->Connect("Clicked()", cls, this, "DoOnlineMode()");
-    b = EventManagerFrame::makeButton(f, "Saved", 2 * width, "Change data source to saved events");
+    b = EventManagerFrame::makeRadioButton(g, "Saved", 2 * width, "Change data source to saved events", !Options::Instance()->online());
     b->Connect("Clicked()", cls, this, "DoSavedMode()");
+    f->AddFrame(g, new TGLayoutHints(kLHintsNormal, 0, 0, 0, 0));
 
     f->AddFrame(infoLabel, new TGLayoutHints(kLHintsNormal, 5, 10, 4, 0));
     this->mTimeFrameSlider = EventManagerFrame::makeSlider(f, "Time", 8 * width);
@@ -122,6 +125,25 @@ TGTextButton* EventManagerFrame::makeButton(TGCompositeFrame* p, const char* txt
   }
 
   p->AddFrame(b, new TGLayoutHints(kLHintsNormal, lo, ro, to, bo));
+  return b;
+}
+
+TGRadioButton* EventManagerFrame::makeRadioButton(TGButtonGroup* g, const char* txt,
+                                                  Int_t width, const char* txttooltip, bool checked, Int_t lo, Int_t ro, Int_t to, Int_t bo)
+{
+  TGRadioButton* b = new TGRadioButton(g, txt);
+
+  if (width > 0) {
+    b->SetWidth(width);
+    b->ChangeOptions(b->GetOptions() | kFixedWidth);
+  }
+
+  if (txttooltip != nullptr) {
+    b->SetToolTipText(txttooltip);
+  }
+
+  b->SetOn(checked);
+
   return b;
 }
 
@@ -233,8 +255,6 @@ void EventManagerFrame::DoScreenshot()
   const char* backgroundColor = "#000000"; // "#19324b";
   const char* outDirectory = "Screenshots";
 
-  std::string detectorsString;
-
   std::string runString = "Run:";
   std::string timestampString = "Timestamp:";
   std::string collidingsystemString = "Colliding system:";
@@ -252,10 +272,16 @@ void EventManagerFrame::DoScreenshot()
   TASImage image(width, height);
   image.FillRectangle(backgroundColor, 0, 0, width, height);
 
-  auto annotationState = MultiView::getInstance()->getAnnotation()->GetState();
-  MultiView::getInstance()->getAnnotation()->SetState(TGLOverlayElement::kInvisible);
+  const auto annotationStateTop = MultiView::getInstance()->getAnnotationTop()->GetState();
+  const auto annotationStateBottom = MultiView::getInstance()->getAnnotationBottom()->GetState();
+  MultiView::getInstance()->getAnnotationTop()->SetState(TGLOverlayElement::kInvisible);
+  MultiView::getInstance()->getAnnotationBottom()->SetState(TGLOverlayElement::kInvisible);
+
   TImage* view3dImage = MultiView::getInstance()->getView(MultiView::EViews::View3d)->GetGLViewer()->GetPictureUsingBB();
-  MultiView::getInstance()->getAnnotation()->SetState(annotationState);
+
+  MultiView::getInstance()->getAnnotationTop()->SetState(annotationStateTop);
+  MultiView::getInstance()->getAnnotationBottom()->SetState(annotationStateBottom);
+
   scaledImage = ScaleImage((TASImage*)view3dImage, width * 0.65, height * 0.95);
   if (scaledImage) {
     CopyImage(&image, scaledImage, width * 0.015, height * 0.025, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
@@ -311,46 +337,7 @@ void EventManagerFrame::DoScreenshot()
   }
 
   o2::dataformats::GlobalTrackID::mask_t detectorsMask;
-
-  int noEvent = this->mEventManager->getDataSource()->getCurrentEvent();
-
-  auto displayList = this->mEventManager->getDataSource()->getVisualisationList(noEvent, EventManagerFrame::getInstance().getMinTimeFrameSliderValue(),
-                                                                                EventManagerFrame::getInstance().getMaxTimeFrameSliderValue(), EventManagerFrame::MaxRange);
-
-  const uint8_t possibleDetectors[] =
-    {
-      o2::dataformats::GlobalTrackID::Source::ITS,
-      o2::dataformats::GlobalTrackID::Source::TPC,
-      o2::dataformats::GlobalTrackID::Source::TRD,
-      o2::dataformats::GlobalTrackID::Source::TOF,
-      o2::dataformats::GlobalTrackID::Source::CPV,
-      o2::dataformats::GlobalTrackID::Source::EMC,
-      o2::dataformats::GlobalTrackID::Source::HMP,
-      o2::dataformats::GlobalTrackID::Source::MFT,
-      o2::dataformats::GlobalTrackID::Source::MCH,
-      o2::dataformats::GlobalTrackID::Source::MID,
-      o2::dataformats::GlobalTrackID::Source::ZDC,
-      o2::dataformats::GlobalTrackID::Source::FT0,
-      o2::dataformats::GlobalTrackID::Source::FV0,
-      o2::dataformats::GlobalTrackID::Source::FDD,
-    };
-
-  const std::string possibleDetectorsNames[] = {
-    "ITS", "TPC", "TRD", "TOF", "CPV", "EMC", "HMP",
-    "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD"};
-
-  for (auto it = displayList.begin(); it != displayList.end(); ++it) {
-    detectorsMask.set(it->first.getTrkMask());
-  }
-
-  for (int detID = 0; detID < (sizeof(possibleDetectors) / sizeof(possibleDetectors[0])); detID++) {
-    if (o2::dataformats::GlobalTrackID::includesDet(possibleDetectors[detID], detectorsMask)) {
-      if (!detectorsString.empty()) {
-        detectorsString += ',';
-      }
-      detectorsString += possibleDetectorsNames[detID];
-    }
-  }
+  auto detectorsString = detectors::DetID::getNames(this->mEventManager->getDataSource()->getDetectorsMask());
 
   std::vector<std::string> lines;
   std::ifstream input("screenshot.txt");

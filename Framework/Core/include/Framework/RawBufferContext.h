@@ -36,7 +36,7 @@ class RawBufferContext
   RawBufferContext(RawBufferContext&& other);
 
   struct MessageRef {
-    std::unique_ptr<FairMQMessage> header;
+    std::unique_ptr<fair::mq::Message> header;
     char* payload;
     RouteIndex routeIndex;
     std::function<std::ostringstream()> serializeMsg;
@@ -45,7 +45,7 @@ class RawBufferContext
 
   using Messages = std::vector<MessageRef>;
 
-  void addRawBuffer(std::unique_ptr<FairMQMessage> header,
+  void addRawBuffer(std::unique_ptr<fair::mq::Message> header,
                     char* payload,
                     RouteIndex routeIndex,
                     std::function<std::ostringstream()> serialize,

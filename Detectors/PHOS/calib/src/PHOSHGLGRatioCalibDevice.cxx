@@ -53,9 +53,14 @@ void PHOSHGLGRatioCalibDevice::run(o2::framework::ProcessingContext& ctx)
   if (mStatistics <= 0) { // skip the rest of the run
     return;
   }
+
   if (!mOldCalibParams) { // Default map and calibration was not set, use CCDB
-    LOG(info) << "Getting calib from CCDB";
-    mOldCalibParams = ctx.inputs().get<o2::phos::CalibParams*>("oldclb");
+    if (mUseCCDB) {
+      LOG(info) << "Getting calib from CCDB";
+      mOldCalibParams = ctx.inputs().get<o2::phos::CalibParams*>("oldclb");
+    } else { // For test only
+      mOldCalibParams = std::make_unique<o2::phos::CalibParams>(1);
+    }
   }
 
   auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");

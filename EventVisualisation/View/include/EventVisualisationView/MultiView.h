@@ -92,7 +92,8 @@ class MultiView
   void registerElement(TEveElement* event); // override;
 
   /// Get annotation pointer
-  TGLAnnotation* getAnnotation() { return mAnnotation.get(); }
+  TGLAnnotation* getAnnotationTop() { return mAnnotationTop.get(); }
+  TGLAnnotation* getAnnotationBottom() { return mAnnotationBottom.get(); }
 
   ///
   void registerEvent(TEveElement* event) { return registerElement(event); }
@@ -112,7 +113,8 @@ class MultiView
   TEveScene* mScenes[NumberOfScenes];                       ///< Array of all geometry and event scenes
   TEveProjectionManager* mProjections[NumberOfProjections]; ///< Array of all projection managers
   std::vector<TEveGeoShape*> mDetectors;                    ///< Vector of detector geometries
-  std::unique_ptr<TGLAnnotation> mAnnotation;               ///< 3D view annotation
+  std::unique_ptr<TGLAnnotation> mAnnotationTop;            ///< 3D view annotation (top)
+  std::unique_ptr<TGLAnnotation> mAnnotationBottom;         ///< 3D view annotation (bottom)
 
   std::string mSceneNames[NumberOfScenes];        ///< Names of event and geometry scenes
   std::string mSceneDescriptions[NumberOfScenes]; ///< Descriptions of event and geometry scenes

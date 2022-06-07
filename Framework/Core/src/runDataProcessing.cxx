@@ -75,10 +75,10 @@
 #include <InfoLogger/InfoLogger.hxx>
 #include "ResourcesMonitoringHelper.h"
 
-#include "FairMQDevice.h"
+#include <fairmq/Device.h>
 #include <fairmq/DeviceRunner.h>
 #include <fairmq/shmem/Monitor.h>
-#include "options/FairMQProgOptions.h"
+#include <fairmq/ProgOptions.h>
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/options_description.hpp>

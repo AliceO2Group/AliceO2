@@ -74,6 +74,11 @@ class DataSource
   virtual void setFirstTForbit(int) {}
   virtual std::string getCollisionTime() const { return "not specified"; }
   virtual void setCollisionTime(std::string) {}
+  virtual int getTrackMask() const { return 0; }
+  virtual void setTrackMask(int) {}
+  virtual int getClusterMask() const { return 0; }
+  virtual void setClusterMask(int) {}
+  virtual o2::detectors::DetID::mask_t getDetectorsMask() = 0;
 };
 
 } // namespace event_visualisation

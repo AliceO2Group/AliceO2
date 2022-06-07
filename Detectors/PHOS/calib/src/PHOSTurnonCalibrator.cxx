@@ -27,20 +27,19 @@
 
 using namespace o2::phos;
 
-PHOSTurnonSlot::PHOSTurnonSlot(bool useCCDB, std::string path) : mUseCCDB(useCCDB), mCCDBPath(path)
+PHOSTurnonSlot::PHOSTurnonSlot(bool useCCDB) : mUseCCDB(useCCDB)
 {
   mFiredTiles.reset();
   mNoisyTiles.reset();
-  mTurnOnHistos.reset(new TurnOnHistos());
+  mTurnOnHistos = std::make_unique<TurnOnHistos>();
 }
 PHOSTurnonSlot::PHOSTurnonSlot(const PHOSTurnonSlot& other)
 {
   mUseCCDB = other.mUseCCDB;
   mRunStartTime = other.mUseCCDB;
-  mCCDBPath = other.mCCDBPath;
   mFiredTiles.reset();
   mNoisyTiles.reset();
-  mTurnOnHistos.reset(new TurnOnHistos());
+  mTurnOnHistos = std::make_unique<TurnOnHistos>();
 }
 
 void PHOSTurnonSlot::print() const
@@ -64,14 +63,14 @@ void PHOSTurnonSlot::fill(const gsl::span<const Cell>& cells, const gsl::span<co
   auto clutr = cluTR.begin();
   while (ctr != cellTR.end() && clutr != cluTR.end()) {
     //
-    //TODO! select NOT PHOS triggered events
+    // TODO! select NOT PHOS triggered events
     // DataProcessingHeader::
     //
-    if (ctr->getBCData() != clutr->getBCData()) {
+    if (ctr->getBCData() == clutr->getBCData()) {
+      scanClusters(cells, *ctr, clusters, *clutr);
+    } else {
       LOG(error) << "Different TrigRecords for cells:" << ctr->getBCData() << " and clusters:" << clutr->getBCData();
-      //TODO: Try to recover by increasing smaller TR?
     }
-    scanClusters(cells, *ctr, clusters, *clutr);
     ctr++;
     clutr++;
   }
@@ -85,19 +84,18 @@ void PHOSTurnonSlot::clear()
 void PHOSTurnonSlot::scanClusters(const gsl::span<const Cell>& cells, const TriggerRecord& celltr,
                                   const gsl::span<const Cluster>& clusters, const TriggerRecord& clutr)
 {
-  //First fill map of expected tiles from TRU cells
+  // First fill map of expected tiles from TRU cells
   mNoisyTiles.reset();
   int firstCellInEvent = celltr.getFirstEntry();
   int lastCellInEvent = firstCellInEvent + celltr.getNumberOfObjects();
   for (int i = firstCellInEvent; i < lastCellInEvent; i++) {
     const Cell& c = cells[i];
     if (c.getTRU()) {
-      mNoisyTiles.set(c.getTRUId());
+      mNoisyTiles.set(c.getTRUId() - Geometry::getTotalNCells() - 1);
     }
   }
 
-  //Copy to have good and noisy map
-
+  // Copy to have good and noisy map
   mFiredTiles.reset();
   char mod;
   float x, z;
@@ -111,17 +109,17 @@ void PHOSTurnonSlot::scanClusters(const gsl::span<const Cell>& cells, const Trig
     }
     mod = clu.module();
     clu.getLocalPosition(x, z);
-    short truId = Geometry::relPosToTruId(mod, x, z, ddl);
-    //TODO!!!    if(map.isGood2x2(truId)){
+    short truId2x2 = Geometry::relPosToTruId(mod, x, z, 0);
+    short truId4x4 = Geometry::relPosToTruId(mod, x, z, 1);
     mTurnOnHistos->fillTotSp(ddl, clu.getEnergy());
-    if (clu.firedTrigger() & 1) { //Bit 1: 2x2, bit 2 4x4  //TODO: do we need separate 2x2 and 4x4 spectra? Switch?
-      mTurnOnHistos->fillFiredSp(ddl, clu.getEnergy());
-      //Fill trigger map
-      mFiredTiles.set(truId);
-    }
+    //     if (clu.firedTrigger() & 1) { //Bit 1: 2x2, bit 2 4x4  //TODO: do we need separate 2x2 and 4x4 spectra? Switch?
+    //       mTurnOnHistos->fillFiredSp(ddl, clu.getEnergy());
+    //       //Fill trigger map
+    //       mFiredTiles.set(truId);
+    //     }
     // }
   }
-  //Fill final good and noisy maps
+  // Fill final good and noisy maps
   mTurnOnHistos->fillFiredMap(mFiredTiles);
   mNoisyTiles ^= mFiredTiles;
   mTurnOnHistos->fillNoisyMap(mFiredTiles);
@@ -131,13 +129,13 @@ void PHOSTurnonSlot::scanClusters(const gsl::span<const Cell>& cells, const Trig
 void PHOSTurnonCalibrator::finalizeSlot(Slot& slot)
 {
   // Extract results for the single slot
-  //if not ready yet, prepare containers
+  // if not ready yet, prepare containers
   if (!mTurnOnHistos) {
     mTurnOnHistos.reset(new TurnOnHistos());
   }
   PHOSTurnonSlot* c = slot.getContainer();
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
-  //Add histos
+  // Add histos
   for (int mod = 0; mod < 8; mod++) {
     mTurnOnHistos->merge(c->getCollectedHistos());
   }
@@ -148,7 +146,7 @@ PHOSTurnonCalibrator::Slot& PHOSTurnonCalibrator::emplaceNewSlot(bool front, TFT
 
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
-  slot.setContainer(std::make_unique<PHOSTurnonSlot>(mUseCCDB, mCCDBPath));
+  slot.setContainer(std::make_unique<PHOSTurnonSlot>(mUseCCDB));
   return slot;
 }
 
@@ -165,10 +163,10 @@ bool PHOSTurnonCalibrator::process(uint64_t tf, const gsl::span<const Cell>& cel
 
 void PHOSTurnonCalibrator::endOfStream()
 {
-  //Use stored histos to calculate maps and turn-on curves
-  //return true of successful
+  // Use stored histos to calculate maps and turn-on curves
+  // return true of successful
 
-  //extract TOC
+  // extract TOC
   if (!mTriggerMap) {
     mTriggerMap.reset(new TriggerMap());
   }
@@ -191,7 +189,7 @@ void PHOSTurnonCalibrator::endOfStream()
     gr->Fit(th, "Q", "", 2., 20.);
     gr->SetName(Form("DDL_%d", ddl));
     gr->SetTitle(Form("DDL %d", ddl));
-    //TODO!!! Add TGraph with fit to list of objects to send to QC
+    // TODO!!! Add TGraph with fit to list of objects to send to QC
     double* par = th->GetParameters();
     for (int i = 0; i < 10; i++) {
       params[ddl][i] = par[i];
@@ -199,7 +197,7 @@ void PHOSTurnonCalibrator::endOfStream()
   }
   std::string_view versionName{"default"};
   mTriggerMap->addTurnOnCurvesParams(versionName, params);
-  //TODO: calculate bad map
-  //and fill object
-  //mTriggerMap->addBad2x2Channel(short cellID) ;
+  // TODO: calculate bad map
+  // and fill object
+  // mTriggerMap->addBad2x2Channel(short cellID) ;
 }

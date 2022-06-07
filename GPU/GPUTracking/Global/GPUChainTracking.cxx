@@ -471,7 +471,7 @@ int GPUChainTracking::ForceInitQA()
 
 int GPUChainTracking::Finalize()
 {
-  if (GetProcessingSettings().runQA && mQA->IsInitialized() && !(mConfigQA && mConfigQA->shipToQC)) {
+  if (GetProcessingSettings().runQA && mQA->IsInitialized() && !(mConfigQA && mConfigQA->shipToQC) && mFractionalQAEnabled) {
     mQA->DrawQAHistograms();
   }
   if (GetProcessingSettings().debugLevel >= 6) {
@@ -612,8 +612,8 @@ int GPUChainTracking::RunChain()
       return 1;
     }
   }
-  if (needQA && GetProcessingSettings().qcRunFraction != 100.f) {
-    mFractionalQAEnabled = (unsigned int)(rand() % 10000) < (unsigned int)(GetProcessingSettings().qcRunFraction * 100);
+  if (needQA) {
+    mFractionalQAEnabled = GetProcessingSettings().qcRunFraction == 100.f || (unsigned int)(rand() % 10000) < (unsigned int)(GetProcessingSettings().qcRunFraction * 100);
   }
   if (GetProcessingSettings().debugLevel >= 6) {
     *mDebugFile << "\n\nProcessing event " << mRec->getNEventsProcessed() << std::endl;
@@ -719,9 +719,10 @@ int GPUChainTracking::RunChainFinalize()
 #endif
 
   const bool needQA = GPUQA::QAAvailable() && (GetProcessingSettings().runQA || (GetProcessingSettings().eventDisplay && mIOPtrs.nMCInfosTPC));
-  if (needQA && (GetProcessingSettings().qcRunFraction == 100.f || mFractionalQAEnabled)) {
+  if (needQA && mFractionalQAEnabled) {
     mRec->getGeneralStepTimer(GeneralStep::QA).Start();
     mQA->RunQA(!GetProcessingSettings().runQA);
+    GPUError("RUNNING QA");
     mRec->getGeneralStepTimer(GeneralStep::QA).Stop();
     if (GetProcessingSettings().debugLevel == 0) {
       GPUInfo("Total QA runtime: %d us", (int)(mRec->getGeneralStepTimer(GeneralStep::QA).GetElapsedTime() * 1000000));
@@ -825,7 +826,7 @@ int GPUChainTracking::HelperOutput(int iSlice, int threadId, GPUReconstructionHe
   return 0;
 }
 
-int GPUChainTracking::CheckErrorCodes(bool cpuOnly)
+int GPUChainTracking::CheckErrorCodes(bool cpuOnly, bool forceShowErrors)
 {
   int retVal = 0;
   for (int i = 0; i < 1 + (!cpuOnly && mRec->IsGPU()); i++) {
@@ -842,7 +843,7 @@ int GPUChainTracking::CheckErrorCodes(bool cpuOnly)
       static int errorsShown = 0;
       static bool quiet = false;
       static std::chrono::time_point<std::chrono::steady_clock> silenceFrom;
-      if (!quiet && errorsShown++ >= 10 && GetProcessingSettings().throttleAlarms) {
+      if (!quiet && errorsShown++ >= 10 && GetProcessingSettings().throttleAlarms && !forceShowErrors) {
         silenceFrom = std::chrono::steady_clock::now();
         quiet = true;
       } else if (quiet) {
@@ -854,27 +855,28 @@ int GPUChainTracking::CheckErrorCodes(bool cpuOnly)
         }
       }
       retVal = 1;
-      if (GetProcessingSettings().throttleAlarms) {
+      if (GetProcessingSettings().throttleAlarms && !forceShowErrors) {
         GPUWarning("GPUReconstruction suffered from an error in the %s part", i ? "GPU" : "CPU");
       } else {
         GPUError("GPUReconstruction suffered from an error in the %s part", i ? "GPU" : "CPU");
       }
       if (!quiet) {
-        processors()->errorCodes.printErrors(GetProcessingSettings().throttleAlarms);
+        processors()->errorCodes.printErrors(GetProcessingSettings().throttleAlarms && !forceShowErrors);
       }
     }
   }
+  ClearErrorCodes(cpuOnly);
   return retVal;
 }
 
-void GPUChainTracking::ClearErrorCodes()
+void GPUChainTracking::ClearErrorCodes(bool cpuOnly)
 {
   processors()->errorCodes.clear();
-  const auto& threadContext = GetThreadContext();
-  if (mRec->IsGPU()) {
+  if (mRec->IsGPU() && !cpuOnly) {
+    const auto& threadContext = GetThreadContext();
     WriteToConstantMemory(RecoStep::NoRecoStep, (char*)&processors()->errorCodes - (char*)processors(), &processorsShadow()->errorCodes, sizeof(processorsShadow()->errorCodes), 0);
+    TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes, 0);
   }
-  TransferMemoryResourceLinkToGPU(RecoStep::NoRecoStep, mInputsHost->mResourceErrorCodes, 0);
 }
 
 void GPUChainTracking::SetDefaultInternalO2Propagator(bool useGPUField)

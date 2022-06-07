@@ -24,7 +24,7 @@ namespace o2::framework
 class FairMQDeviceProxy;
 
 struct SendingPolicy {
-  using SendingCallback = std::function<void(FairMQDeviceProxy&, FairMQParts&, ChannelIndex channelIndex)>;
+  using SendingCallback = std::function<void(FairMQDeviceProxy&, fair::mq::Parts&, ChannelIndex channelIndex)>;
   std::string name = "invalid";
   DeviceMatcher matcher = nullptr;
   SendingCallback send = nullptr;

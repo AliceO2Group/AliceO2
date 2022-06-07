@@ -204,7 +204,7 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp The timestamp to select the object
    * @param id The id, if any, to select the object
    */
-  void updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id = "");
+  void updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id = "", long newEOV = 0);
 
   /**
    * Return the listing of objects, and in some cases subfolders, matching this path.
@@ -362,7 +362,7 @@ class CcdbApi //: public DatabaseInterface
 
  private:
   // report what file is read and for which purpose
-  void logReading(const std::string& path, const std::map<std::string, std::string>* headers, const std::string& comment) const;
+  void logReading(const std::string& path, long ts, const std::map<std::string, std::string>* headers, const std::string& comment) const;
 
   /**
    * Initialize in local mode; Objects will be retrieved from snapshot

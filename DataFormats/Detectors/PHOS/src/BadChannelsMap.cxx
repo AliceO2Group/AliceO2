@@ -64,7 +64,11 @@ void BadChannelsMap::getHistogramRepresentation(char module, TH2* h) const
   h->Reset();
   char relid[3] = {module, 1, 1};
   short absId;
-  for (char ix = 1; ix <= MAXX; ix++) {
+  char xmin = 1;
+  if (module == 1) {
+    xmin = 33;
+  }
+  for (char ix = xmin; ix <= MAXX; ix++) {
     relid[1] = ix;
     for (char iz = 1; iz <= MAXZ; iz++) {
       relid[2] = iz;

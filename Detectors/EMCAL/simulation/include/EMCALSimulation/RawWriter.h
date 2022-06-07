@@ -152,13 +152,15 @@ class RawWriter
                       std::vector<char>& trailer, std::vector<char>& header) const;
 
  protected:
+  void createPayload(o2::emcal::ChannelData channel, o2::emcal::ChannelType_t chanType, int ddlID, std::vector<char>& payload, bool& saturatedBunch);
+
   /// \brief Parse digits vector in channel and create ALTRO bunches
   /// \param channelDigits Vector with digits in the channel for the current event
   ///
   /// Channels are parsed in a time-reversed order. Bunches are selected for ranges of
   /// digits where the ADC value is consecutively above the pedestal. Only bunches having
   /// a min. amount of ADC samples are selected.
-  std::vector<AltroBunch> findBunches(const std::vector<o2::emcal::Digit*>& channelDigits);
+  std::vector<AltroBunch> findBunches(const std::vector<o2::emcal::Digit*>& channelDigits, ChannelType_t channelType);
 
   /// \brief Create channel header
   /// \param hardwareAddress Hardware address

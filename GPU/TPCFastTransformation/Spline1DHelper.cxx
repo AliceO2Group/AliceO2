@@ -149,7 +149,8 @@ void Spline1DHelper<DataT>::approximateDataPoints(
 
   const int nPar = 2 * spline.getNumberOfKnots(); // n parameters for 1-Dimentional Y
 
-  BandMatrixSolver<6> band(nPar, nYdim);
+  // BandMatrixSolver<6> band(nPar, nYdim);
+  SymMatrixSolver band(nPar, nYdim);
 
   for (int iPoint = 0; iPoint < nDataPoints; ++iPoint) {
     double u = mSpline.convXtoU(vx[iPoint]);
@@ -210,6 +211,29 @@ void Spline1DHelper<DataT>::approximateDataPoints(
       }
     }
   } // iKnot
+
+  // experimental: set slopes at neighbouring knots equal - doesn't work
+  /*
+    for (int iKnot = 0; iKnot < spline.getNumberOfKnots() - 2; ++iKnot) {
+      const typename Spline1D<double>::Knot& knot0 = mSpline.getKnot(iKnot);
+      const typename Spline1D<double>::Knot& knot1 = mSpline.getKnot(iKnot + 1);
+      double w = 1.;
+      int i = 2 * iKnot; // index of parameter S0
+      double d = knot1.u - knot0.u;
+      {
+        double c1[4] = {1, d, -1, 0};
+        double c2[4] = {1, 0, -1, d};
+        // chi2 += w*(c1[0]*S0 + c1[1]*Z0 + c1[2]*S1 + c1[3]*Z1)^2
+        // chi2 += w*(c2[0]*S0 + c2[1]*Z0 + c2[2]*S1 + c2[3]*Z1)^2
+        for (int j = 0; j < 4; j++) {   // parameters S0, Z0, S1, Z1
+          for (int k = j; k < 4; k++) { // loop over the second parameter
+            band.A(i + j, i + k) += w * (c1[j] * c1[k] + c2[j] * c2[k]);
+          }
+        }
+      }
+    } // iKnot
+  }
+  */
 
   band.solve();
 

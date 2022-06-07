@@ -50,7 +50,7 @@
 #include <fairmq/Device.h>
 #include <fairmq/shmem/Monitor.h>
 #include <fairmq/shmem/Common.h>
-#include <options/FairMQProgOptions.h>
+#include <fairmq/ProgOptions.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -185,7 +185,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
       }
       auto extEnvId = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("environment_id", "unspecified");
       if (extEnvId != "unspecified") {
-        context.runType = extEnvId;
+        context.envId = extEnvId;
       }
       auto extDetectors = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("detectors", "unspecified");
       if (extDetectors != "unspecified") {
@@ -585,7 +585,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       }
       return ServiceHandle{TypeIdHelpers::uniqueId<DecongestionService>(), decongestion, ServiceKind::Serial};
     },
-    .postProcessing = [](ProcessingContext& ctx, void* service) {
+    .postForwarding = [](ProcessingContext& ctx, void* service) {
       DecongestionService* decongestion = reinterpret_cast<DecongestionService*>(service);
       if (decongestion->isFirstInTopology == false) {
         LOGP(debug, "We are not the first in the topology, do not update the oldest possible timeslice");
@@ -610,6 +610,18 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
            oldestPossibleOutput.slot.index == -1 ? "channel" : "slot",
            oldestPossibleOutput.slot.index == -1 ? oldestPossibleOutput.channel.value: oldestPossibleOutput.slot.index);
       DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
+      DeviceSpec const& spec = ctx.services().get<DeviceSpec const>();
+      auto device = ctx.services().get<RawDeviceService>().device();
+      for (size_t fi = 0; fi < spec.forwards.size(); fi++) {
+        auto& channel = device->GetChannel(spec.forwards[fi].channel, 0);
+        // The oldest possible timeslice for a forwarded message
+        // is conservatively the one of the device doing the forwarding.
+        if (spec.forwards[fi].channel.rfind("from_", 0) == 0) {
+          auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
+          DataProcessingHelpers::sendOldestPossibleTimeframe(channel, oldestTimeslice.timeslice.value);
+          LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}", spec.forwards[fi].channel, oldestTimeslice.timeslice.value);
+        }
+      }
       decongestion->lastTimeslice = oldestPossibleOutput.timeslice.value; },
     .domainInfoUpdated = [](ServiceRegistry& services, size_t oldestPossibleTimeslice, ChannelIndex channel) {
       DecongestionService& decongestion = services.get<DecongestionService>();
@@ -632,6 +644,18 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       }
       LOGP(debug, "Broadcasting possible output {}", oldestPossibleOutput.timeslice.value);
       DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
+      DeviceSpec const& spec = services.get<DeviceSpec const>();
+      auto device = services.get<RawDeviceService>().device();
+      for (size_t fi = 0; fi < spec.forwards.size(); fi++) {
+        auto& channel = device->GetChannel(spec.forwards[fi].channel, 0);
+        // The oldest possible timeslice for a forwarded message
+        // is conservatively the one of the device doing the forwarding.
+        if (spec.forwards[fi].channel.rfind("from_", 0) == 0) {
+          auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
+          LOGP(info, "Forwarding to channel {} oldest possible timeslice {}", spec.forwards[fi].channel, oldestTimeslice.timeslice.value);
+          DataProcessingHelpers::sendOldestPossibleTimeframe(channel, oldestTimeslice.timeslice.value);
+        }
+      }
       decongestion.lastTimeslice = oldestPossibleOutput.timeslice.value; },
     .kind = ServiceKind::Serial};
 }

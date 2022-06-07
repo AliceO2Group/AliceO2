@@ -345,7 +345,7 @@ struct ExpirationHandlerHelpers {
   }
 };
 
-/// This creates a string to configure channels of a FairMQDevice
+/// This creates a string to configure channels of a fair::mq::Device
 /// FIXME: support shared memory
 std::string DeviceSpecHelpers::inputChannel2String(const InputChannelSpec& channel)
 {

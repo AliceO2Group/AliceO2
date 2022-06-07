@@ -56,6 +56,7 @@ void GBTLink::clear(bool resetStat, bool resetTFRaw)
   nTriggers = 0;
   lanes = 0;
   lanesActive = lanesStop = lanesTimeOut = lanesWithData = 0;
+  packetCounter = -1;
   errorBits = 0;
   irHBF.clear();
   if (resetTFRaw) {
@@ -67,6 +68,7 @@ void GBTLink::clear(bool resetStat, bool resetTFRaw)
     statistics.clear();
   }
   hbfEntry = 0;
+  extTrigVec = nullptr;
   status = None;
 }
 
@@ -159,6 +161,9 @@ uint8_t GBTLink::checkErrorsRDH(const RDH& rdh)
     return err;
   }
   if ((RDHUtils::getPacketCounter(rdh) > packetCounter + 1) && packetCounter >= 0) {
+    if (irHBF.isDummy()) {
+      irHBF = RDHUtils::getHeartBeatIR(rdh);
+    }
     statistics.errorCounts[GBTLinkDecodingStat::ErrPacketCounterJump]++;
     if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrPacketCounterJump])) {
       LOG(important) << describe() << ' ' << irHBF << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrPacketCounterJump]

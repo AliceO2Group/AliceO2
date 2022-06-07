@@ -156,6 +156,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     auto hepmcGen = new o2::eventgen::GeneratorHepMC();
     hepmcGen->setFileName(param.fileName);
     hepmcGen->setVersion(param.version);
+    hepmcGen->setEventsToSkip(param.eventsToSkip);
     primGen->AddGenerator(hepmcGen);
 #endif
 #ifdef GENERATORS_WITH_PYTHIA6

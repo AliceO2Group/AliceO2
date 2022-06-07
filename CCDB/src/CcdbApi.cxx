@@ -901,19 +901,19 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
     std::string logfile = mSnapshotCachePath + "/log";
     std::fstream out(logfile, ios_base::out | ios_base::app);
     if (out.is_open()) {
-      out << "CCDB-access[" << getpid() << "] to " << path << " timestamp " << timestamp << "\n";
+      out << "CCDB-access[" << getpid() << "] of " << mUniqueAgentID << " to " << path << " timestamp " << timestamp << "\n";
     }
     auto snapshotfile = getSnapshotFile(mSnapshotCachePath, path);
     bool snapshoting = false;
     if (!std::filesystem::exists(snapshotfile)) {
       snapshoting = true;
-      out << "CCDB-access[" << getpid() << "]  ... downloading to snapshot " << snapshotfile << "\n";
+      out << "CCDB-access[" << getpid() << "] ... " << mUniqueAgentID << " downloading to snapshot " << snapshotfile << "\n";
       // if file not already here and valid --> snapshot it
       if (!retrieveBlob(path, mSnapshotCachePath, metadata, timestamp)) {
-        out << "CCDB-access[" << getpid() << "]  ... failed to create directory for " << snapshotfile << "\n";
+        out << "CCDB-access[" << getpid() << "] ... " << mUniqueAgentID << " failed to create directory for " << snapshotfile << "\n";
       }
     } else {
-      out << "CCDB-access[" << getpid() << "]  ... serving from local snapshot " << snapshotfile << "\n";
+      out << "CCDB-access[" << getpid() << "]  ... " << mUniqueAgentID << "serving from local snapshot " << snapshotfile << "\n";
     }
     if (sem) {
       sem->post();
@@ -925,7 +925,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
     }
     auto res = extractFromLocalFile(snapshotfile, tinfo, headers);
     if (!snapshoting) { // if snapshot was created at this call, the log was already done
-      logReading(path, headers, "retrieve from snapshot");
+      logReading(path, timestamp, headers, "retrieve from snapshot");
     }
     return res;
   }
@@ -937,7 +937,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   // if we are in snapshot mode we can simply open the file; extract the object and return
   if (mInSnapshotMode) {
     return extractFromLocalFile(fullUrl, tinfo, headers);
-    logReading(path, headers, "retrieve from snapshot");
+    logReading(path, timestamp, headers, "retrieve from snapshot");
   }
 
   initHeadersForRetrieve(curl_handle, timestamp, headers, etag, createdNotAfter, createdNotBefore);
@@ -948,7 +948,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
     content = navigateURLsAndRetrieveContent(curl_handle, fullUrl, tinfo, headers);
   }
   if (content) {
-    logReading(path, headers, "retrieve");
+    logReading(path, timestamp, headers, "retrieve");
   }
   curl_easy_cleanup(curl_handle);
   return content;
@@ -1280,7 +1280,7 @@ TClass* CcdbApi::tinfo2TClass(std::type_info const& tinfo)
   return cl;
 }
 
-void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id)
+void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id, long newEOV)
 {
   CURL* curl = curl_easy_init();
   if (curl != nullptr) {
@@ -1288,6 +1288,9 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
     stringstream fullUrl;
     for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
       fullUrl << getHostUrl(hostIndex) << "/" << path << "/" << timestamp;
+      if (newEOV > 0) {
+        fullUrl << "/" << newEOV;
+      }
       if (!id.empty()) {
         fullUrl << "/" << id;
       }
@@ -1305,9 +1308,11 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
       }
 
       if (curl != nullptr) {
+        LOG(debug) << "passing to curl: " << fullUrl.str();
         curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT"); // make sure we use PUT
         curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         curlSetSSLOptions(curl);
 
         // Perform the request, res will get the return code
@@ -1353,8 +1358,40 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
 
   // if we are in snapshot mode we can simply open the file, unless the etag is non-empty:
   // this would mean that the object was is already fetched and in this mode we don't to validity checks!
-  std::string snapshotpath{};
+  considerSnapshot &= !mSnapshotCachePath.empty(); // create snaphot if absent
   int fromSnapshot = 0;
+  boost::interprocess::named_semaphore* sem = nullptr;
+  std::string semhashedstring{}, snapshotpath{}, logfile{};
+  std::unique_ptr<std::fstream> logStream;
+  auto sem_release = [&sem, &semhashedstring, path, this]() {
+    if (sem) {
+      sem->post();
+      if (sem->try_wait()) { // if nobody else is waiting remove the semaphore resource
+        sem->post();
+        boost::interprocess::named_semaphore::remove(semhashedstring.c_str());
+      }
+    }
+  };
+
+  if (considerSnapshot) { // create named semaphore
+    std::hash<std::string> hasher;
+    semhashedstring = "aliceccdb" + std::to_string(hasher(mSnapshotCachePath + path)).substr(0, 16);
+    try {
+      sem = new boost::interprocess::named_semaphore(boost::interprocess::open_or_create_t{}, semhashedstring.c_str(), 1);
+    } catch (std::exception e) {
+      LOG(warn) << "Exception occurred during CCDB (cache) semaphore setup; Continuing without";
+      sem = nullptr;
+    }
+    if (sem) {
+      sem->wait(); // wait until we can enter (no one else there)
+    }
+    logfile = mSnapshotCachePath + "/log";
+    logStream = std::make_unique<std::fstream>(logfile, ios_base::out | ios_base::app);
+    if (logStream->is_open()) {
+      *logStream.get() << "CCDB-access[" << getpid() << "] of " << mUniqueAgentID << " to " << path << " timestamp " << timestamp << " for load to memory\n";
+    }
+  }
+
   if (mInSnapshotMode) { // file must be there, otherwise a fatal will be produced
     loadFileToMemory(dest, getSnapshotFile(mSnapshotTopPath, path), headers);
     fromSnapshot = 1;
@@ -1374,46 +1411,28 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
 
     for (size_t hostIndex = 1; hostIndex < hostsPool.size() && isMemoryFileInvalid(dest); hostIndex++) {
       fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
-      loadFileToMemory(dest, fullUrl, nullptr); // headers loaded from the file in case of the snapshot reading only
+      loadFileToMemory(dest, fullUrl, headers); // headers loaded from the file in case of the snapshot reading only
     }
     curl_easy_cleanup(curl_handle);
   }
 
   if (dest.empty()) {
+    sem_release();
     return; // nothing was fetched: either cached value is good or error was produced
   }
   // !considerSnapshot means that the call was made by retrieve for snapshoting reasons
-  logReading(path, headers, fmt::format("{}{}", considerSnapshot ? "load to memory" : "retrieve", fromSnapshot ? " from snapshot" : ""));
+  logReading(path, timestamp, headers, fmt::format("{}{}", considerSnapshot ? "load to memory" : "retrieve", fromSnapshot ? " from snapshot" : ""));
 
   // are we asked to create a snapshot ?
-  if (considerSnapshot && !mSnapshotCachePath.empty() && fromSnapshot != 1) { // store in the snapshot only if the object was not read from the snapshot
-    if (mInSnapshotMode && mSnapshotTopPath == mSnapshotCachePath) { // do not save to itself
-      return;
-    }
-    // protect this sensitive section by a multi-process named semaphore
-    boost::interprocess::named_semaphore* sem = nullptr;
-    std::hash<std::string> hasher;
-    const auto semhashedstring = "aliceccdb" + std::to_string(hasher(mSnapshotCachePath + path)).substr(0, 16);
-    try {
-      sem = new boost::interprocess::named_semaphore(boost::interprocess::open_or_create_t{}, semhashedstring.c_str(), 1);
-    } catch (std::exception e) {
-      LOG(warn) << "Exception occurred during CCDB (cache) semaphore setup; Continuing without";
-      sem = nullptr;
-    }
-    if (sem) {
-      sem->wait(); // wait until we can enter (no one else there)
-    }
-    std::string logfile = mSnapshotCachePath + "/log";
-    std::fstream out(logfile, ios_base::out | ios_base::app);
+  if (considerSnapshot && fromSnapshot != 2 && !(mInSnapshotMode && mSnapshotTopPath == mSnapshotCachePath)) { // store in the snapshot only if the object was not read from the snapshot
     auto snapshotdir = getSnapshotDir(mSnapshotCachePath, path);
     snapshotpath = getSnapshotFile(mSnapshotCachePath, path);
     o2::utils::createDirectoriesIfAbsent(snapshotdir);
-    if (out.is_open()) {
-      out << "CCDB-access[" << getpid() << "]  ... downloading to snapshot " << snapshotpath << "\n";
+    if (logStream->is_open()) {
+      *logStream.get() << "CCDB-access[" << getpid() << "] ... " << mUniqueAgentID << " downloading to snapshot " << snapshotpath << " from memory\n";
     }
     { // dump image to a file
       LOGP(debug, "creating snapshot {} -> {}", path, snapshotpath);
-
       CCDBQuery querysummary(path, metadata, timestamp);
       {
         std::ofstream objFile(snapshotpath, std::ios::out | std::ofstream::binary);
@@ -1433,17 +1452,8 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
       snapshot.Close();
       gErrorIgnoreLevel = oldlevel;
     }
-    if (sem) {
-      sem->post();
-      if (sem->try_wait()) {
-        // if nobody else is waiting remove the semaphore resource
-        sem->post();
-        boost::interprocess::named_semaphore::remove(semhashedstring.c_str());
-      }
-    }
   }
-
-  return;
+  sem_release();
 }
 
 // navigate sequence of URLs until TFile content is found; object is extracted and returned
@@ -1532,7 +1542,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
       for (auto& l : locs) {
         if (l.size() > 0) {
           LOG(debug) << "Trying content location " << l;
-          navigateURLsAndLoadFileToMemory(dest, curl_handle, l, nullptr);
+          navigateURLsAndLoadFileToMemory(dest, curl_handle, l, headers);
           if (dest.size()) { /* or other success marker in future */
             break;
           }
@@ -1642,7 +1652,7 @@ void CcdbApi::checkMetadataKeys(std::map<std::string, std::string> const& metada
   return;
 }
 
-void CcdbApi::logReading(const std::string& path, const std::map<std::string, std::string>* headers, const std::string& comment) const
+void CcdbApi::logReading(const std::string& path, long ts, const std::map<std::string, std::string>* headers, const std::string& comment) const
 {
   std::string upath{path};
   if (headers) {
@@ -1656,7 +1666,7 @@ void CcdbApi::logReading(const std::string& path, const std::map<std::string, st
     }
   }
   upath.erase(remove(upath.begin(), upath.end(), '\"'), upath.end());
-  LOGP(info, "ccdb reads {}{}{} ({}, agent_id: {}), ", mUrl, mUrl.back() == '/' ? "" : "/", upath, comment, mUniqueAgentID);
+  LOGP(info, "ccdb reads {}{}{} for {} ({}, agent_id: {}), ", mUrl, mUrl.back() == '/' ? "" : "/", upath, ts < 0 ? getCurrentTimestamp() : ts, comment, mUniqueAgentID);
 }
 
 } // namespace o2

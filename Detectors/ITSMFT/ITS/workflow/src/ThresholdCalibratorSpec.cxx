@@ -150,11 +150,11 @@ void ITSThresholdCalibrator::initThresholdTree(bool recreate /*=true*/)
 {
 
   // Create output directory to store output
-  std::string dir = this->mOutputDir + fmt::format("{}_{}/", this->mEnvironmentID, this->mRunNumber);
+  std::string dir = this->mOutputDir + fmt::format("{}_{}/", mDataTakingContext.envId, mDataTakingContext.runNumber);
   o2::utils::createDirectoriesIfAbsent(dir);
   LOG(info) << "Created " << dir << " directory for ROOT trees output";
 
-  std::string filename = dir + std::to_string(this->mRunNumber) + '_' +
+  std::string filename = dir + mDataTakingContext.runNumber + '_' +
                          std::to_string(this->mFileNumber) + '_' + this->mHostname + "_modSel" + std::to_string(mChipModSel) + ".root.part";
 
   // Check if file already exists
@@ -501,14 +501,14 @@ void ITSThresholdCalibrator::finalizeOutput()
   this->mRootOutfile = nullptr;
 
   // Check that expected output directory exists
-  std::string dir = this->mOutputDir + fmt::format("{}_{}/", this->mEnvironmentID, this->mRunNumber);
+  std::string dir = this->mOutputDir + fmt::format("{}_{}/", mDataTakingContext.envId, mDataTakingContext.runNumber);
   if (!std::filesystem::exists(dir)) {
     LOG(error) << "Cannot find expected output directory " << dir;
     return;
   }
 
   // Expected ROOT output filename
-  std::string filename = std::to_string(this->mRunNumber) + '_' +
+  std::string filename = mDataTakingContext.runNumber + '_' +
                          std::to_string(this->mFileNumber) + '_' + this->mHostname + "_modSel" + std::to_string(mChipModSel);
   std::string filenameFull = dir + filename;
   try {
@@ -522,10 +522,7 @@ void ITSThresholdCalibrator::finalizeOutput()
   // Create metadata file
   o2::dataformats::FileMetaData* mdFile = new o2::dataformats::FileMetaData();
   mdFile->fillFileData(filenameFull + ".root");
-  mdFile->run = this->mRunNumber;
-  mdFile->LHCPeriod = (this->mLHCPeriod.find("_ITS") == std::string::npos)
-                        ? this->mLHCPeriod + "_ITS"
-                        : this->mLHCPeriod;
+  mdFile->setDataTakingContext(mDataTakingContext);
   if (!(this->mMetaType.empty())) {
     mdFile->type = this->mMetaType;
   }
@@ -683,68 +680,12 @@ void ITSThresholdCalibrator::extractAndUpdate(const short int& chipID, const sho
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// LHC period
-void ITSThresholdCalibrator::updateLHCPeriod(ProcessingContext& pc)
-{
-  auto conf = pc.services().get<RawDeviceService>().device()->fConfig;
-  const std::string LHCPeriodStr = conf->GetProperty<std::string>("LHCPeriod", "");
-  if (!(LHCPeriodStr.empty())) {
-    this->mLHCPeriod = LHCPeriodStr;
-  } else {
-    const char* months[12] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN",
-                              "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
-    std::time_t now = std::time(nullptr);
-    std::tm* ltm = std::gmtime(&now);
-    this->mLHCPeriod = (std::string)months[ltm->tm_mon];
-    LOG(warning) << "LHCPeriod is not available, using current month " << this->mLHCPeriod;
-  }
-  this->mLHCPeriod += "_ITS";
-
-  return;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-void ITSThresholdCalibrator::updateEnvironmentID(ProcessingContext& pc)
-{
-  auto conf = pc.services().get<RawDeviceService>().device()->fConfig;
-  const std::string envN = conf->GetProperty<std::string>("environment_id", "");
-  if (!(envN.empty())) {
-    this->mEnvironmentID = envN;
-  }
-
-  return;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-void ITSThresholdCalibrator::updateRunID(ProcessingContext& pc)
-{
-  const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(
-    pc.inputs().getFirstValid(true));
-  if (dh->runNumber != 0) {
-    this->mRunNumber = dh->runNumber;
-  }
-
-  return;
-}
-
-//////////////////////////////////////////////////////////////////////////////
 // Main running function
 // Get info from previous stf decoder workflow, then loop over readout frames
 //     (ROFs) to count hits and extract thresholds
 void ITSThresholdCalibrator::run(ProcessingContext& pc)
 {
-  // Save environment ID and run number if needed
-  if (this->mEnvironmentID.empty()) {
-    this->updateEnvironmentID(pc);
-  }
-  if (this->mRunNumber == -1) {
-    this->updateRunID(pc);
-    // trigger finaliseCCDB (do it only once)
-    // pc.inputs().get<std::vector<int>*>("confdbmap");
-  }
-  if (this->mLHCPeriod.empty()) {
-    this->updateLHCPeriod(pc);
-  }
+  updateTimeDependentParams(pc);
 
   // Calibration vector
   const auto calibs = pc.inputs().get<gsl::span<o2::itsmft::GBTCalibData>>("calib");
@@ -1020,6 +961,17 @@ void ITSThresholdCalibrator::addDatabaseEntry(
   }
 
   return;
+}
+
+//___________________________________________________________________
+void ITSThresholdCalibrator::updateTimeDependentParams(ProcessingContext& pc)
+{
+  static bool initOnceDone = false;
+  if (!initOnceDone) {
+    initOnceDone = true;
+    mDataTakingContext = pc.services().get<DataTakingContext>();
+  }
+  mTimingInfo = pc.services().get<o2::framework::TimingInfo>();
 }
 
 //////////////////////////////////////////////////////////////////////////////

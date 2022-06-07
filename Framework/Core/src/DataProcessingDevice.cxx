@@ -50,9 +50,9 @@
 
 #include <Framework/Tracing.h>
 
-#include <fairmq/FairMQParts.h>
-#include <fairmq/FairMQSocket.h>
-#include <options/FairMQProgOptions.h>
+#include <fairmq/Parts.h>
+#include <fairmq/Socket.h>
+#include <fairmq/ProgOptions.h>
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <TMessage.h>
@@ -239,7 +239,7 @@ struct PollerContext {
   uv_loop_t* loop = nullptr;
   DataProcessingDevice* device = nullptr;
   DeviceState* state = nullptr;
-  FairMQSocket* socket = nullptr;
+  fair::mq::Socket* socket = nullptr;
   InputChannelInfo* channelInfo = nullptr;
   int fd = -1;
   bool read = true;
@@ -417,10 +417,10 @@ void on_signal_callback(uv_signal_t* handle, int signum)
 }
 
 /// Invoke the callbacks for the mPendingRegionInfos
-void handleRegionCallbacks(ServiceRegistry& registry, std::vector<FairMQRegionInfo>& infos)
+void handleRegionCallbacks(ServiceRegistry& registry, std::vector<fair::mq::RegionInfo>& infos)
 {
   if (infos.empty() == false) {
-    std::vector<FairMQRegionInfo> toBeNotified;
+    std::vector<fair::mq::RegionInfo> toBeNotified;
     toBeNotified.swap(infos); // avoid any MT issue.
     for (auto const& info : toBeNotified) {
       registry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
@@ -624,7 +624,7 @@ void DataProcessingDevice::InitTask()
     channel.second.at(0).Transport()->SubscribeToRegionEvents([&context = mDeviceContext,
                                                                &registry = mServiceRegistry,
                                                                &pendingRegionInfos = mPendingRegionInfos,
-                                                               &regionInfoMutex = mRegionInfoMutex](FairMQRegionInfo info) {
+                                                               &regionInfoMutex = mRegionInfoMutex](fair::mq::RegionInfo info) {
       std::lock_guard<std::mutex> lock(regionInfoMutex);
       LOG(detail) << ">>> Region info event" << info.event;
       LOG(detail) << "id: " << info.id;
@@ -1020,7 +1020,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
       LOGP(debug, "Receiving loop called for channel {} ({}) with oldest possible timeslice {}",
            info.channel->GetName(), info.id.value, info.oldestForChannel.value);
       if (info.parts.Size() < 64) {
-        FairMQParts parts;
+        fair::mq::Parts parts;
         info.channel->Receive(parts, 0);
         if (parts.Size()) {
           LOGP(debug, "Receiving some parts {}", parts.Size());
@@ -1597,7 +1597,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     LOGP(debug, "DataProcessingDevice::tryDispatchComputation::forwardInputs");
     assert(record.size() == currentSetOfInputs.size());
     // we collect all messages per forward in a map and send them together
-    std::vector<FairMQParts> forwardedParts;
+    std::vector<fair::mq::Parts> forwardedParts;
     forwardedParts.resize(spec->forwards.size());
 
     std::vector<size_t> forwardMap;
@@ -1889,6 +1889,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       LOGP(debug, "Late forwarding");
       forwardInputs(action.slot, record, false, action.op == CompletionPolicy::CompletionOp::Consume);
     }
+    context.registry->postForwardingCallbacks(processContext);
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
 #ifdef TRACY_ENABLE
       cleanupRecord(record);

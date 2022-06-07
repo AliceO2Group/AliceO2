@@ -99,14 +99,17 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
 
 void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
 {
-  static bool first = false;
+  if (mDisplayShutDown) {
+    return;
+  }
   if (mUpdateCalib) {
     mDisplay->UpdateCalib(&mConfig->configCalib);
   }
-  if (first == false) {
+  if (mFirst == false) {
     if (mDisplay->startDisplay()) {
       throw std::runtime_error("Error starting event display");
     }
+    mFirst = true;
   }
 
   o2::globaltracking::RecoContainer recoData;
@@ -119,12 +122,19 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
   mTFSettings->hasTfStartOrbit = 1;
   ptrs.settingsTF = mTFSettings.get();
 
-  mDisplay->show(&ptrs);
+  if (mDisplay->show(&ptrs)) {
+    mDisplay->endDisplay();
+    mDisplayShutDown = true;
+  }
 }
 
 void O2GPUDPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
 {
+  if (mDisplayShutDown) {
+    return;
+  }
   mDisplay->endDisplay();
+  mDisplayShutDown = true;
 }
 
 void O2GPUDPLDisplaySpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)

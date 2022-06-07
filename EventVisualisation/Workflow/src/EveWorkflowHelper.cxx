@@ -13,6 +13,7 @@
 /// \author julian.myrcha@cern.ch
 
 #include <EveWorkflow/EveWorkflowHelper.h>
+#include "EventVisualisationBase/ConfigurationManager.h"
 #include "EventVisualisationDataConverter/VisualisationEventSerializer.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "EveWorkflow/FileProducer.h"
@@ -104,6 +105,8 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
   };
 
   auto creator = [maskTrk, this, &correctTrackTime, &isInsideITSROF, &trackTimeNodes](auto& trk, GID gid, float time, float terr) {
+    mTotalTracks[gid.getSource()]++;
+
     if (!maskTrk[gid.getSource()]) {
       return true;
     }
@@ -199,16 +202,16 @@ void EveWorkflowHelper::draw()
 
 void EveWorkflowHelper::save(const std::string& jsonPath, int numberOfFiles,
                              o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask,
-                             float workflowVersion, o2::header::DataHeader::RunNumberType runNumber, o2::framework::DataProcessingHeader::CreationTime creation)
+                             o2::header::DataHeader::RunNumberType runNumber, o2::framework::DataProcessingHeader::CreationTime creation)
 {
-  mEvent.setWorkflowVersion(workflowVersion);
+  mEvent.setWorkflowVersion(o2_eve_version);
   mEvent.setRunNumber(runNumber);
   std::time_t timeStamp = std::time(nullptr);
   std::string asciiTimeStamp = std::asctime(std::localtime(&timeStamp));
   asciiTimeStamp.pop_back(); // remove trailing \n
   mEvent.setWorkflowParameters(asciiTimeStamp + " t:" + trkMask.to_string() + " c:" + clMask.to_string());
 
-  std::time_t creationTime = creation;
+  std::time_t creationTime = creation / 1000; // convert to seconds
   std::string asciiCreationTime = std::asctime(std::localtime(&creationTime));
   asciiCreationTime.pop_back(); // remove trailing \n
   mEvent.setCollisionTime(asciiCreationTime);
@@ -719,6 +722,10 @@ EveWorkflowHelper::EveWorkflowHelper(const FilterSet& enabledFilters, std::size_
   mMFTROFrameLengthMUS = grp->isDetContinuousReadOut(o2::detectors::DetID::MFT) ? alpParamsMFT.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParamsMFT.roFrameLengthTrig * 1.e-3;
 
   mPVParams = &o2::vertexing::PVertexerParams::Instance();
+
+  for (int i = 0; i < GID::Source::NSources; i++) {
+    mTotalTracks[i] = 0;
+  }
 }
 
 GID::Source EveWorkflowHelper::detectorMapToGIDSource(uint8_t dm)

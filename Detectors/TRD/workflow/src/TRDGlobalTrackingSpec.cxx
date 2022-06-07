@@ -353,7 +353,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     if (trackGID.includesDet(GTrackID::Source::ITS)) {
       // this track is from an ITS-TPC seed
       tracksOutITSTPC.push_back(trdTrack);
-      if (!refitITSTPCTRDTrack(tracksOutITSTPC.back(), mChainTracking->mIOPtrs.trdTriggerTimes[trdTrack.getCollisionId()], &inputTracks)) {
+      if (!refitITSTPCTRDTrack(tracksOutITSTPC.back(), mChainTracking->mIOPtrs.trdTriggerTimes[trdTrack.getCollisionId()], &inputTracks) || std::isnan(tracksOutITSTPC.back().getSnp())) {
         tracksOutITSTPC.pop_back();
         ++nTracksFailedITSTPCTRDRefit;
         continue;
@@ -364,7 +364,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     } else {
       // this track is from a TPC-only seed
       tracksOutTPC.push_back(trdTrack);
-      if (!refitTPCTRDTrack(tracksOutTPC.back(), mChainTracking->mIOPtrs.trdTriggerTimes[trdTrack.getCollisionId()], &inputTracks)) {
+      if (!refitTPCTRDTrack(tracksOutTPC.back(), mChainTracking->mIOPtrs.trdTriggerTimes[trdTrack.getCollisionId()], &inputTracks) || std::isnan(tracksOutTPC.back().getSnp())) {
         tracksOutTPC.pop_back();
         ++nTracksFailedTPCTRDRefit;
         continue;

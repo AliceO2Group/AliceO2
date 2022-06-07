@@ -21,6 +21,7 @@
 #include "CommonUtils/NameConf.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 
 using namespace o2::phos;
 
@@ -89,6 +90,12 @@ void RawWriter::digitsToRaw(gsl::span<o2::phos::Digit> digitsbranch, gsl::span<o
 
 bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, const o2::phos::TriggerRecord& trg)
 {
+  // Account for L0-LM trigger lattency
+  const auto& ctpOffsets = o2::ctp::TriggerOffsetsParam::Instance();
+  o2::InteractionRecord currentIR = trg.getBCData();
+  currentIR += ctpOffsets.LM_L0;
+  // TODO:Should we check if we still within TF?
+
   auto srucont = mSRUdata.begin();
   while (srucont != mSRUdata.end()) {
     srucont->mChannels.clear();
@@ -309,7 +316,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
 
     short flp, crorc, link;
     Mapping::ddlToCrorcLink(ddl, flp, crorc, link);
-    mRawWriter->addData(ddl, crorc, link, 0, trg.getBCData(), payload);
+    mRawWriter->addData(ddl, crorc, link, 0, currentIR, payload);
   }
   return true;
 }

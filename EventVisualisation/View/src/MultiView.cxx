@@ -144,11 +144,17 @@ void MultiView::setupMultiview()
   mViews[ViewZrho]->AddScene(mScenes[SceneZrhoGeom]);
   mViews[ViewZrho]->AddScene(mScenes[SceneZrhoEvent]);
 
-  mAnnotation = std::make_unique<TGLAnnotation>(mViews[View3d]->GetGLViewer(), "", 0, 1.0);
-  mAnnotation->SetState(TGLOverlayElement::kDisabled); // make the annotation non-interactive
-  mAnnotation->SetUseColorSet(false);                  // make the colors individually changeable
-  mAnnotation->SetTextColor(0);                        // default color white
-  mAnnotation->SetTextSize(0.06f);
+  mAnnotationTop = std::make_unique<TGLAnnotation>(mViews[View3d]->GetGLViewer(), "", 0, 1.0);
+  mAnnotationTop->SetState(TGLOverlayElement::kDisabled); // make the annotation non-interactive
+  mAnnotationTop->SetUseColorSet(false);                  // make the colors individually changeable
+  mAnnotationTop->SetTextColor(0);                        // default color white
+  mAnnotationTop->SetTextSize(0.05f);
+
+  mAnnotationBottom = std::make_unique<TGLAnnotation>(mViews[View3d]->GetGLViewer(), "", 0, 0.07);
+  mAnnotationBottom->SetState(TGLOverlayElement::kDisabled);
+  mAnnotationBottom->SetUseColorSet(false);
+  mAnnotationBottom->SetTextColor(0);
+  mAnnotationBottom->SetTextSize(0.03f);
 }
 
 MultiView::EScenes MultiView::getSceneOfProjection(EProjections projection)

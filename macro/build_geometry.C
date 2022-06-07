@@ -41,7 +41,8 @@
 #include <DetectorsPassive/Cave.h>
 #include <DetectorsPassive/FrameStructure.h>
 #include <SimConfig/SimConfig.h>
-#include "FairRunSim.h"
+#include <FairRunSim.h>
+#include <FairRootFileSink.h>
 #include <FairLogger.h>
 #include <algorithm>
 #include "DetectorsCommonDataFormats/UpgradesStatus.h"
@@ -98,7 +99,7 @@ void build_geometry(FairRunSim* run = nullptr)
   // Create simulation run if it does not exist
   if (run == nullptr) {
     run = new FairRunSim();
-    run->SetOutputFile("foo.root"); // Output file
+    run->SetSink(new FairRootFileSink("foo.root")); // Output file
     run->SetName("TGeant3");        // Transport engine
   }
   // Create media

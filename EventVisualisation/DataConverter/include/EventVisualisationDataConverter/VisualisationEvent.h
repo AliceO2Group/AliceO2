@@ -132,11 +132,25 @@ class VisualisationEvent
     return mCalo.size();
   }
 
-  // Returns number of tracks with ITS contribution (including standalone)
-  size_t getITSTrackCount() const
+  // Returns number of tracks with detector contribution (including standalone)
+  size_t getDetectorTrackCount(o2::detectors::DetID::ID id) const
   {
-    return std::count_if(mTracks.begin(), mTracks.end(), [](const auto& t) {
-      return o2::dataformats::GlobalTrackID{0, t.getSource()}.includesDet(o2::detectors::DetID::ITS);
+    return getDetectorsTrackCount(o2::detectors::DetID::getMask(id));
+  }
+
+  // Returns number of tracks with any detector contribution (including standalone) from the list
+  size_t getDetectorsTrackCount(o2::detectors::DetID::mask_t mdet) const
+  {
+    return std::count_if(mTracks.begin(), mTracks.end(), [&](const auto& t) {
+      return (o2::dataformats::GlobalTrackID::getSourceDetectorsMask(t.getSource()) & mdet).any();
+    });
+  }
+
+  // Returns number of tracks from a given source
+  size_t getSourceTrackCount(o2::dataformats::GlobalTrackID::Source src) const
+  {
+    return std::count_if(mTracks.begin(), mTracks.end(), [&](const auto& t) {
+      return t.getSource() == src;
     });
   }
 
@@ -150,7 +164,7 @@ class VisualisationEvent
 
   const VisualisationCluster& getCluster(int i) const { return mClusters[i]; };
   size_t getClusterCount() const { return mClusters.size(); } // Returns number of clusters
-  void setWorkflowVersion(float workflowVersion) { this->mWorkflowVersion = workflowVersion; }
+  void setWorkflowVersion(const std::string& workflowVersion) { this->mWorkflowVersion = workflowVersion; }
   void setWorkflowParameters(const std::string& workflowParameters) { this->mWorkflowParameters = workflowParameters; }
 
   std::string getCollisionTime() const { return this->mCollisionTime; }
@@ -185,7 +199,7 @@ class VisualisationEvent
 
   float mMinTimeOfTracks;                           /// minimum time of tracks in the event
   float mMaxTimeOfTracks;                           /// maximum time of tracks in the event
-  float mWorkflowVersion;                           /// workflow version used to generate this Event
+  std::string mWorkflowVersion;                     /// workflow version used to generate this Event
   std::string mWorkflowParameters;                  /// workflow parameters used to generate this Event
   int mEventNumber;                                 /// event number in file
   double mEnergy;                                   /// energy of the collision

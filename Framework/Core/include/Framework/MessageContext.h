@@ -25,8 +25,8 @@
 #include "Headers/Stack.h"
 #include "MemoryResources/MemoryResources.h"
 
-#include <fairmq/FairMQMessage.h>
-#include <fairmq/FairMQParts.h>
+#include <fairmq/Message.h>
+#include <fairmq/Parts.h>
 
 #include <cassert>
 #include <functional>
@@ -68,14 +68,14 @@ class MessageContext
   {
    public:
     ContextObject() = delete;
-    ContextObject(FairMQMessagePtr&& headerMsg, FairMQMessagePtr&& payloadMsg, RouteIndex routeIndex)
+    ContextObject(fair::mq::MessagePtr&& headerMsg, fair::mq::MessagePtr&& payloadMsg, RouteIndex routeIndex)
       : mParts{}, mRouteIndex{routeIndex}
     {
       mParts.AddPart(std::move(headerMsg));
       mParts.AddPart(std::move(payloadMsg));
     }
 
-    ContextObject(FairMQMessagePtr&& headerMsg, RouteIndex routeIndex)
+    ContextObject(fair::mq::MessagePtr&& headerMsg, RouteIndex routeIndex)
       : mParts{}, mRouteIndex{routeIndex}
     {
       mParts.AddPart(std::move(headerMsg));
@@ -86,9 +86,9 @@ class MessageContext
     /// @brief Finalize the object and return the parts by move
     /// This is the default method and can be overloaded by other implmentations to carry out other
     /// tasks before returning the parts objects
-    virtual FairMQParts finalize()
+    virtual fair::mq::Parts finalize()
     {
-      FairMQParts parts = std::move(mParts);
+      fair::mq::Parts parts = std::move(mParts);
       assert(parts.Size() == 2);
       auto* header = o2::header::get<o2::header::DataHeader*>(parts.At(0)->GetData());
       if (header == nullptr) {
@@ -114,7 +114,7 @@ class MessageContext
 
     o2::header::DataHeader const* header()
     {
-      // we would expect this function to be const but the FairMQParts API does not allow this
+      // we would expect this function to be const but the fair::mq::Parts API does not allow this
       if (empty() || mParts.At(0) == nullptr) {
         return nullptr;
       }
@@ -131,7 +131,7 @@ class MessageContext
 
     o2::header::Stack const* headerStack()
     {
-      // we would expect this function to be const but the FairMQParts API does not allow this
+      // we would expect this function to be const but the fair::mq::Parts API does not allow this
       if (empty() || mParts.At(0) == nullptr) {
         return nullptr;
       }
@@ -139,7 +139,7 @@ class MessageContext
     }
 
    protected:
-    FairMQParts mParts;
+    fair::mq::Parts mParts;
     RouteIndex mRouteIndex{-1};
   };
 
@@ -151,14 +151,14 @@ class MessageContext
     TrivialObject() = delete;
     /// constructor consuming the header and payload messages for a given channel by move
     template <typename ContextType>
-    TrivialObject(ContextType* context, FairMQMessagePtr&& headerMsg, FairMQMessagePtr&& payloadMsg, RouteIndex routeIndex)
-      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), std::forward<FairMQMessagePtr>(payloadMsg), routeIndex)
+    TrivialObject(ContextType* context, fair::mq::MessagePtr&& headerMsg, fair::mq::MessagePtr&& payloadMsg, RouteIndex routeIndex)
+      : ContextObject(std::forward<fair::mq::MessagePtr>(headerMsg), std::forward<fair::mq::MessagePtr>(payloadMsg), routeIndex)
     {
     }
     /// constructor taking header message by move and creating the paypload message
     template <typename ContextType, typename... Args>
-    TrivialObject(ContextType* context, FairMQMessagePtr&& headerMsg, RouteIndex routeIndex, int index, Args... args)
-      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), context->createMessage(routeIndex, index, std::forward<Args>(args)...), routeIndex)
+    TrivialObject(ContextType* context, fair::mq::MessagePtr&& headerMsg, RouteIndex routeIndex, int index, Args... args)
+      : ContextObject(std::forward<fair::mq::MessagePtr>(headerMsg), context->createMessage(routeIndex, index, std::forward<Args>(args)...), routeIndex)
     {
     }
     ~TrivialObject() override = default;
@@ -175,7 +175,7 @@ class MessageContext
   class AlignedMemoryResource : public pmr::FairMQMemoryResource
   {
    public:
-    AlignedMemoryResource(fair::mq::FairMQMemoryResource* other)
+    AlignedMemoryResource(fair::mq::MemoryResource* other)
       : mUpstream(other)
     {
     }
@@ -189,17 +189,17 @@ class MessageContext
     {
       return mUpstream != nullptr;
     }
-    FairMQMessagePtr getMessage(void* p) override
+    fair::mq::MessagePtr getMessage(void* p) override
     {
       return mUpstream->getMessage(p);
     }
 
-    void* setMessage(FairMQMessagePtr fmm) override
+    void* setMessage(fair::mq::MessagePtr fmm) override
     {
       return mUpstream->setMessage(std::move(fmm));
     }
 
-    FairMQTransportFactory* getTransportFactory() noexcept override
+    fair::mq::TransportFactory* getTransportFactory() noexcept override
     {
       return mUpstream->getTransportFactory();
     }
@@ -226,7 +226,7 @@ class MessageContext
     }
 
    private:
-    fair::mq::FairMQMemoryResource* mUpstream = nullptr;
+    fair::mq::MemoryResource* mUpstream = nullptr;
   };
 
   /// ContainerRefObject handles a message object holding an instance of type T
@@ -246,8 +246,8 @@ class MessageContext
     ContainerRefObject() = delete;
     /// constructor taking header message by move and creating the paypload message
     template <typename ContextType, typename... Args>
-    ContainerRefObject(ContextType* context, FairMQMessagePtr&& headerMsg, RouteIndex routeIndex, int index, Args&&... args)
-      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), routeIndex),
+    ContainerRefObject(ContextType* context, fair::mq::MessagePtr&& headerMsg, RouteIndex routeIndex, int index, Args&&... args)
+      : ContextObject(std::forward<fair::mq::MessagePtr>(headerMsg), routeIndex),
         // the transport factory
         mFactory{context->proxy().getOutputTransport(routeIndex)},
         // the memory resource takes ownership of the message
@@ -268,7 +268,7 @@ class MessageContext
 
     /// @brief Finalize object and return parts by move
     /// This retrieves the actual message from the vector object and moves it to the parts
-    FairMQParts finalize() final
+    fair::mq::Parts finalize() final
     {
       assert(mParts.Size() == 1);
       auto payloadMsg = o2::pmr::getMessage(std::move(mData));
@@ -295,7 +295,7 @@ class MessageContext
     }
 
    private:
-    FairMQTransportFactory* mFactory = nullptr;     /// pointer to transport factory
+    fair::mq::TransportFactory* mFactory = nullptr; /// pointer to transport factory
     AlignedMemoryResource mResource;                /// message resource
     buffer_type mData;                              /// the data buffer
   };
@@ -326,8 +326,8 @@ class MessageContext
     SpanObject() = delete;
     /// constructor taking header message by move and creating the payload message for the span
     template <typename ContextType>
-    SpanObject(ContextType* context, FairMQMessagePtr&& headerMsg, RouteIndex routeIndex, int index, size_t nElements)
-      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), routeIndex)
+    SpanObject(ContextType* context, fair::mq::MessagePtr&& headerMsg, RouteIndex routeIndex, int index, size_t nElements)
+      : ContextObject(std::forward<fair::mq::MessagePtr>(headerMsg), routeIndex)
     {
       // create the span object for the memory of the payload message
       // TODO: we probably also want to check consistency of the header message, i.e. payloadSize member
@@ -368,8 +368,8 @@ class MessageContext
     RootSerializedObject() = delete;
     /// constructor taking header message by move and creating the object from variadic argument list
     template <typename ContextType, typename... Args>
-    RootSerializedObject(ContextType* context, FairMQMessagePtr&& headerMsg, RouteIndex routeIndex, Args&&... args)
-      : ContextObject(std::forward<FairMQMessagePtr>(headerMsg), routeIndex)
+    RootSerializedObject(ContextType* context, fair::mq::MessagePtr&& headerMsg, RouteIndex routeIndex, Args&&... args)
+      : ContextObject(std::forward<fair::mq::MessagePtr>(headerMsg), routeIndex)
     {
       mObject = std::make_unique<value_type>(std::forward<Args>(args)...);
       mPayloadMsg = context->proxy().createOutputMessage(routeIndex);
@@ -378,7 +378,7 @@ class MessageContext
 
     /// @brief Finalize object and return parts by move
     /// This retrieves the actual message from the vector object and moves it to the parts
-    FairMQParts finalize() final
+    fair::mq::Parts finalize() final
     {
       assert(mParts.Size() == 1);
       TMessageSerializer::Serialize(*mPayloadMsg, mObject.get(), nullptr);
@@ -398,7 +398,7 @@ class MessageContext
 
    private:
     std::unique_ptr<value_type> mObject;
-    FairMQMessagePtr mPayloadMsg;
+    fair::mq::MessagePtr mPayloadMsg;
   };
 
   using Messages = std::vector<std::unique_ptr<ContextObject>>;
@@ -493,10 +493,10 @@ class MessageContext
     if (mDispatchControl.dispatch != nullptr) {
       // send all scheduled messages if there is no trigger callback or its result is true
       if (mDispatchControl.trigger == nullptr || mDispatchControl.trigger(*header)) {
-        std::vector<FairMQParts> outputsPerChannel;
+        std::vector<fair::mq::Parts> outputsPerChannel;
         outputsPerChannel.resize(mProxy.getNumOutputChannels());
         for (auto& message : mScheduledMessages) {
-          FairMQParts parts = message->finalize();
+          fair::mq::Parts parts = message->finalize();
           assert(message->empty());
           assert(parts.Size() == 2);
           for (auto& part : parts) {
@@ -550,18 +550,18 @@ class MessageContext
 
   // Add a message to cache and returns a unique identifier for
   // such cached message.
-  int64_t addToCache(std::unique_ptr<FairMQMessage>& message);
+  int64_t addToCache(std::unique_ptr<fair::mq::Message>& message);
   // Clone a message from cache so that it can be added to the context
-  std::unique_ptr<FairMQMessage> cloneFromCache(int64_t id) const;
+  std::unique_ptr<fair::mq::Message> cloneFromCache(int64_t id) const;
   // Prune a message from cache
   void pruneFromCache(int64_t id);
 
   /// call the proxy to create a message of the specified size
-  /// we don't implement in the header to avoid including the FairMQDevice header here
+  /// we don't implement in the header to avoid including the fair::mq::Device header here
   /// that's why the different versions need to be implemented as individual functions
   // FIXME: can that be const?
-  FairMQMessagePtr createMessage(RouteIndex routeIndex, int index, size_t size);
-  FairMQMessagePtr createMessage(RouteIndex routeIndex, int index, void* data, size_t size, fairmq_free_fn* ffn, void* hint);
+  fair::mq::MessagePtr createMessage(RouteIndex routeIndex, int index, size_t size);
+  fair::mq::MessagePtr createMessage(RouteIndex routeIndex, int index, void* data, size_t size, fair::mq::FreeFn* ffn, void* hint);
 
   /// return the headers of the 1st (from the end) matching message checking first in mMessages then in mScheduledMessages
   o2::header::DataHeader* findMessageHeader(const Output& spec);
@@ -577,7 +577,7 @@ class MessageContext
   bool mDidDispatch = false;
   DispatchControl mDispatchControl;
   /// Cached messages, in case we want to reuse them.
-  std::unordered_map<int64_t, std::unique_ptr<FairMQMessage>> mMessageCache;
+  std::unordered_map<int64_t, std::unique_ptr<fair::mq::Message>> mMessageCache;
 };
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_MESSAGECONTEXT_H_

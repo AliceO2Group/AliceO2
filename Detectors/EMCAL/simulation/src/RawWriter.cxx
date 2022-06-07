@@ -127,52 +127,11 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     }
 
     for (const auto& [tower, channel] : srucont.mChannels) {
-      // Find out hardware address of the channel
-      auto hwaddress = mMappingHandler->getMappingForDDL(srucont.mSRUid).getHardwareAddress(channel.mRow, channel.mCol, ChannelType_t::HIGH_GAIN); // @TODO distinguish between high- and low-gain cells
 
-      std::vector<int> rawbunches;
-      int nbunches = 0;
-      for (auto& bunch : findBunches(channel.mDigits)) {
-        if (!bunch.mADCs.size()) {
-          LOG(error) << "Found bunch with without ADC entries - skipping ...";
-          continue;
-        }
-        rawbunches.push_back(bunch.mADCs.size() + 2); // add 2 words for header information
-        rawbunches.push_back(bunch.mStarttime);
-        for (auto adc : bunch.mADCs) {
-          rawbunches.push_back(adc);
-        }
-        nbunches++;
-      }
-      if (!rawbunches.size()) {
-        LOG(debug) << "No bunch selected";
-        continue;
-      }
-      LOG(debug) << "Selected " << nbunches << " bunches";
-
-      auto encodedbunches = encodeBunchData(rawbunches);
-      auto chanhead = createChannelHeader(hwaddress, rawbunches.size(), false); /// bad channel status eventually to be added later
-      char* chanheadwords = reinterpret_cast<char*>(&chanhead);
-      uint32_t* testheader = reinterpret_cast<uint32_t*>(chanheadwords);
-      if ((*testheader >> 30) & 1) {
-        // header pattern found, check that the payload size is properly reflecting the number of words
-        uint32_t payloadsizeRead = ((*testheader >> 16) & 0x3FF);
-        uint32_t nwordsRead = (payloadsizeRead + 2) / 3;
-        if (encodedbunches.size() != nwordsRead) {
-          LOG(error) << "Mismatch in number of 32-bit words, encoded " << encodedbunches.size() << ", recalculated " << nwordsRead << std::endl;
-          LOG(error) << "Payload size: " << payloadsizeRead << ", number of words: " << rawbunches.size() << ", encodeed words " << encodedbunches.size() << ", calculated words " << nwordsRead << std::endl;
-        } else {
-          LOG(debug) << "Matching number of payload 32-bit words, encoded " << encodedbunches.size() << ", decoded " << nwordsRead;
-        }
-      } else {
-        LOG(error) << "Header without header bit detected ..." << std::endl;
-      }
-      for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
-        payload.emplace_back(chanheadwords[iword]);
-      }
-      char* channelwords = reinterpret_cast<char*>(encodedbunches.data());
-      for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
-        payload.emplace_back(channelwords[iword]);
+      bool saturatedBunchHG = false;
+      createPayload(channel, ChannelType_t::HIGH_GAIN, srucont.mSRUid, payload, saturatedBunchHG);
+      if (saturatedBunchHG) {
+        createPayload(channel, ChannelType_t::LOW_GAIN, srucont.mSRUid, payload, saturatedBunchHG);
       }
     }
 
@@ -184,7 +143,7 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     LOG(debug) << "Payload buffer has size " << payload.size();
 
     // Create RCU trailer
-    auto trailerwords = createRCUTrailer(payload.size() / 4, 100., trg.getBCData().toLong(), srucont.mSRUid);
+    auto trailerwords = createRCUTrailer(payload.size() / sizeof(uint32_t), 100., trg.getBCData().toLong(), srucont.mSRUid);
     for (auto word : trailerwords) {
       payload.emplace_back(word);
     }
@@ -199,7 +158,64 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
   return true;
 }
 
-std::vector<AltroBunch> RawWriter::findBunches(const std::vector<o2::emcal::Digit*>& channelDigits)
+void RawWriter::createPayload(o2::emcal::ChannelData channel, o2::emcal::ChannelType_t chanType, int ddlID, std::vector<char>& payload, bool& saturatedBunch)
+{
+  // Find out hardware address of the channel
+  auto hwaddress = mMappingHandler->getMappingForDDL(ddlID).getHardwareAddress(channel.mRow, channel.mCol, chanType); // @TODO distinguish between high- and low-gain cells
+
+  std::vector<int> rawbunches;
+  int nbunches = 0;
+
+  // Creating the high gain bunch
+  for (auto& bunch : findBunches(channel.mDigits, chanType)) {
+    if (!bunch.mADCs.size()) {
+      LOG(error) << "Found bunch with without ADC entries - skipping ...";
+      continue;
+    }
+    rawbunches.push_back(bunch.mADCs.size() + 2); // add 2 words for header information
+    rawbunches.push_back(bunch.mStarttime);
+    for (auto adc : bunch.mADCs) {
+      rawbunches.push_back(adc);
+      if (adc > o2::emcal::constants::LG_SUPPRESSION_CUT) {
+        saturatedBunch = true;
+      }
+    }
+    nbunches++;
+  }
+
+  if (!rawbunches.size()) {
+    LOG(debug) << "No bunch selected";
+    return;
+  }
+  LOG(debug) << "Selected " << nbunches << " bunches";
+
+  auto encodedbunches = encodeBunchData(rawbunches);
+  auto chanhead = createChannelHeader(hwaddress, rawbunches.size(), false); /// bad channel status eventually to be added later
+  char* chanheadwords = reinterpret_cast<char*>(&chanhead);
+  uint32_t* testheader = reinterpret_cast<uint32_t*>(chanheadwords);
+  if ((*testheader >> 30) & 1) {
+    // header pattern found, check that the payload size is properly reflecting the number of words
+    uint32_t payloadsizeRead = ((*testheader >> 16) & 0x3FF);
+    uint32_t nwordsRead = (payloadsizeRead + 2) / 3;
+    if (encodedbunches.size() != nwordsRead) {
+      LOG(error) << "Mismatch in number of 32-bit words, encoded " << encodedbunches.size() << ", recalculated " << nwordsRead << std::endl;
+      LOG(error) << "Payload size: " << payloadsizeRead << ", number of words: " << rawbunches.size() << ", encodeed words " << encodedbunches.size() << ", calculated words " << nwordsRead << std::endl;
+    } else {
+      LOG(debug) << "Matching number of payload 32-bit words, encoded " << encodedbunches.size() << ", decoded " << nwordsRead;
+    }
+  } else {
+    LOG(error) << "Header without header bit detected ..." << std::endl;
+  }
+  for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
+    payload.emplace_back(chanheadwords[iword]);
+  }
+  char* channelwords = reinterpret_cast<char*>(encodedbunches.data());
+  for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
+    payload.emplace_back(channelwords[iword]);
+  }
+}
+
+std::vector<AltroBunch> RawWriter::findBunches(const std::vector<o2::emcal::Digit*>& channelDigits, ChannelType_t channelType)
 {
   std::vector<AltroBunch> result;
   AltroBunch currentBunch;
@@ -214,7 +230,6 @@ std::vector<AltroBunch> RawWriter::findBunches(const std::vector<o2::emcal::Digi
         // check if the ALTRO bunch has a minimum amount of ADCs
         if (currentBunch.mADCs.size() >= mMinADCBunch) {
           // Bunch selected, set start time and push to bunches
-          currentBunch.mStarttime = itime + 1;
           result.push_back(currentBunch);
           currentBunch = AltroBunch();
           bunchStarted = false;
@@ -222,7 +237,7 @@ std::vector<AltroBunch> RawWriter::findBunches(const std::vector<o2::emcal::Digi
       }
       continue;
     }
-    int adc = dig->getAmplitudeADC();
+    int adc = dig->getAmplitudeADC(channelType);
     if (adc < mPedestal) {
       // ADC value below threshold
       // in case we have an open bunch it needs to be stopped bunch
@@ -231,7 +246,6 @@ std::vector<AltroBunch> RawWriter::findBunches(const std::vector<o2::emcal::Digi
         // check if the ALTRO bunch has a minimum amount of ADCs
         if (currentBunch.mADCs.size() >= mMinADCBunch) {
           // Bunch selected, set start time and push to bunches
-          currentBunch.mStarttime = itime + 1;
           result.push_back(currentBunch);
           currentBunch = AltroBunch();
           bunchStarted = false;
@@ -241,13 +255,13 @@ std::vector<AltroBunch> RawWriter::findBunches(const std::vector<o2::emcal::Digi
     // Valid ADC value, if the bunch is closed we start a new bunch
     if (!bunchStarted) {
       bunchStarted = true;
+      currentBunch.mStarttime = itime;
     }
     currentBunch.mADCs.emplace_back(adc);
   }
   // if we have a last bunch set time start time to the time bin of teh previous digit
   if (bunchStarted) {
     if (currentBunch.mADCs.size() >= mMinADCBunch) {
-      currentBunch.mStarttime = itime + 1;
       result.push_back(currentBunch);
     }
   }

@@ -965,6 +965,7 @@ using McParticle = McParticles::iterator;
 namespace soa
 {
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMcParticles_000, aod::StoredMcParticles_001);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksIU);
 }
 
 namespace aod

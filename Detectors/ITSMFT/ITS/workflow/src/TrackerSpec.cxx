@@ -77,10 +77,12 @@ void TrackerDPL::init(InitContext& ic)
 
     std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
     std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
+    o2::base::PropagatorImpl<float>::MatCorrType corrType{o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE};
     if (o2::utils::Str::pathExists(matLUTFile)) {
       auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
       o2::base::Propagator::Instance()->setMatLUT(lut);
-      mTracker->setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
+      mTracker->setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT); /// TODO: eventually remove this in favour of the one below
+      corrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
       LOG(info) << "Loaded material LUT from " << matLUTFile;
     } else {
       LOG(info) << "Material LUT " << matLUTFile << " file is absent, only heuristic material correction can be used";
@@ -147,6 +149,11 @@ void TrackerDPL::init(InitContext& ic)
     } else {
       throw std::runtime_error(fmt::format("Unsupported ITS tracking mode {:s} ", mMode));
     }
+
+    for (auto& params : trackParams) {
+      params.CorrType = corrType;
+    }
+
     mTracker->setParameters(memParams, trackParams);
 
     mVertexer->getGlobalConfiguration();
@@ -244,7 +251,6 @@ void TrackerDPL::run(ProcessingContext& pc)
     // Run seeding vertexer
     vertexerElapsedTime = mVertexer->clustersToVertices(false, logger);
   }
-  // timeFrame->setMultiplicityCutMask(std::vector<bool>(false, processingMask.size())); // <===== THIS BREAKS EVERYTHING
 
   for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
     std::vector<Vertex> vtxVecLoc;
@@ -253,24 +259,22 @@ void TrackerDPL::run(ProcessingContext& pc)
     if (mRunVertexer) {
       auto vtxSpan = timeFrame->getPrimaryVertices(iRof);
       vtxROF.setNEntries(vtxSpan.size());
-      if (multEstConf.isVtxMultCutRequested()) {
-        bool selROF = vtxSpan.size() == 0;
-        for (auto& v : vtxSpan) {
-          if (!multEstConf.isPassingVtxMultCut(v.getNContributors())) {
-            continue; // skip vertex of unwanted multiplicity
-          }
-          selROF = true;
-          vertices.push_back(v);
+      bool selROF = vtxSpan.size() == 0;
+      for (auto& v : vtxSpan) {
+        if (multEstConf.isVtxMultCutRequested() && !multEstConf.isPassingVtxMultCut(v.getNContributors())) {
+          continue; // skip vertex of unwanted multiplicity
         }
-        if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
-          LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
-                                    iRof,
-                                    multEstConf.cutMultVtxLow,
-                                    multEstConf.cutMultVtxHigh);
-          processingMask[iRof] = selROF;
-          cutVertexMult++;
-        }
-      }      // vertex mult cut was requested
+        selROF = true;
+        vertices.push_back(v);
+      }
+      if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
+        LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
+                                  iRof,
+                                  multEstConf.cutMultVtxLow,
+                                  multEstConf.cutMultVtxHigh);
+        processingMask[iRof] = selROF;
+        cutVertexMult++;
+      }
     } else { // cosmics
       vtxVecLoc.emplace_back(Vertex());
       vtxVecLoc.back().setNContributors(1);
@@ -281,7 +285,6 @@ void TrackerDPL::run(ProcessingContext& pc)
       timeFrame->addPrimaryVertices(vtxVecLoc);
     }
   }
-
   LOG(info) << fmt::format(" - rejected {}/{} ROFs: random:{}, mult.sel:{}, vtx.sel:{}", cutRandomMult + cutClusterMult + cutVertexMult, rofspan.size(), cutRandomMult, cutClusterMult, cutVertexMult);
   LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} clusters in {} ROFs", vertexerElapsedTime, nclUsed, rofspan.size());
   LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", timeFrame->getBeamX(), timeFrame->getBeamY());

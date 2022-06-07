@@ -32,7 +32,7 @@ void createGRPECSObject(const std::string& dataPeriod,
                         const std::string& detsTrigger,
                         long tstart,
                         long tend,
-                        std::string ccdbServer = "")
+                        const std::string& ccdbServer = "")
 {
   auto detMask = o2::detectors::DetID::getMask(detsReadout);
   if (detMask.count() == 0) {
@@ -47,12 +47,13 @@ void createGRPECSObject(const std::string& dataPeriod,
   if (tstart == 0) {
     tstart = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
   }
+  auto MarginAtSOR = 4 * o2::ccdb::CcdbObjectInfo::DAY;     // assume that we will never have run longer than 4 days, apply this validity duration when creating SOR version
+  auto MarginAtEOR = 10 * o2::ccdb::CcdbObjectInfo::MINUTE; // when writing EOR version, make it and also SOR version valid this margin after real EOR timestamp
   long tendVal = 0;
   if (tend < tstart) {
-    tendVal = tstart + 2 * 24 * 3600 * 1000UL; // assume that we will never have run longer than 2 days
-    LOG(info) << tstart << " -> " << tend;
+    tendVal = tstart + MarginAtSOR;
   } else if (tendVal < tend) {
-    tendVal = tend + 3600 * 1000UL; // we want the version with EOR to fully override the version w/o EOR
+    tendVal = tend + MarginAtEOR;
   }
   GRPECSObject grpecs;
   grpecs.setTimeStart(tstart);
@@ -70,24 +71,38 @@ void createGRPECSObject(const std::string& dataPeriod,
 
   if (!ccdbServer.empty()) {
     CcdbApi api;
+    const std::string objPath{"GLO/Config/GRPECS"};
     api.init(ccdbServer);
     std::map<std::string, std::string> metadata;
     metadata["responsible"] = "ECS";
     metadata[o2::base::NameConf::CCDBRunTag.data()] = std::to_string(run);
+    metadata["EOR"] = fmt::format("{}", tend);
     // long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    api.storeAsTFileAny(&grpecs, "GLO/Config/GRPECS", metadata, tstart, tendVal); // making it 1-year valid to be sure we have something
-    LOGP(info, "Uploaded to {}/{} with validity {}:{}", ccdbServer, "GLO/Config/GRPECS", tstart, tendVal);
-    // also storing the RCT/Info/RunInformation entry in case the run type is PHYSICS and if we are at the end of run
-    if (runType == GRPECSObject::RunType::PHYSICS && tend < tstart) {
-      char tempChar;
-      std::map<std::string, std::string> mdRCT;
-      mdRCT["SOR"] = std::to_string(tstart);
-      mdRCT["EOR"] = std::to_string(tend);
-      long startValRCT = (long)run;
-      long endValRCT = (long)(run + 1);
-      api.storeAsBinaryFile(&tempChar, sizeof(tempChar), "tmp.dat", "char", "RCT/Info/RunInformation", mdRCT, startValRCT, endValRCT);
-      LOGP(info, "Uploaded RCT object to {}/{} with validity {}:{}", ccdbServer, "RCT/Info/RunInformation", startValRCT, endValRCT);
+    api.storeAsTFileAny(&grpecs, objPath, metadata, tstart, tendVal); // making it 1-year valid to be sure we have something
+    LOGP(info, "Uploaded to {}/{} with validity {}:{} for SOR:{}/EOR:{}", ccdbServer, objPath, tstart, tendVal, tstart, tend);
+    if (tend > tstart) {
+      // override SOR version to the same limits
+      metadata.erase("EOR");
+      auto prevHeader = api.retrieveHeaders(objPath, metadata, tendVal + 1); // is there an object to override
+      const auto itETag = prevHeader.find("ETag");
+      if (itETag != prevHeader.end()) {
+        std::string etag = itETag->second;
+        etag.erase(remove(etag.begin(), etag.end(), '\"'), etag.end());
+        LOGP(info, "Overriding run {} SOR-only version {}{}{}/{} validity to match complete SOR/EOR version validity", run, ccdbServer, ccdbServer.back() == '/' ? "" : "/", prevHeader["Valid-From"], etag);
+        api.updateMetadata(objPath, {}, std::max(tstart, tendVal - 1), etag, tendVal);
+      }
+      if (runType == GRPECSObject::RunType::PHYSICS) { // also storing the RCT/Info/RunInformation entry in case the run type is PHYSICS and if we are at the end of run
+        char tempChar{};
+        std::map<std::string, std::string> mdRCT;
+        mdRCT["SOR"] = std::to_string(tstart);
+        mdRCT["EOR"] = std::to_string(tend);
+        long startValRCT = (long)run;
+        long endValRCT = (long)(run + 1);
+        api.storeAsBinaryFile(&tempChar, sizeof(tempChar), "tmp.dat", "char", "RCT/Info/RunInformation", mdRCT, startValRCT, endValRCT);
+        LOGP(info, "Uploaded RCT object to {}/{} with validity {}:{}", ccdbServer, "RCT/Info/RunInformation", startValRCT, endValRCT);
+      }
     }
+
   } else { // write a local file
     auto fname = o2::base::NameConf::getGRPECSFileName();
     TFile grpF(fname.c_str(), "recreate");

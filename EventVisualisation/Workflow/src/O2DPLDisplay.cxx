@@ -14,6 +14,7 @@
 
 #include "EveWorkflow/O2DPLDisplay.h"
 #include "EveWorkflow/EveWorkflowHelper.h"
+#include "EventVisualisationBase/ConfigurationManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
@@ -67,7 +68,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h" // main method must be included here (otherwise customize not used)
 void O2DPLDisplaySpec::init(InitContext& ic)
 {
-  LOG(info) << "------------------------    O2DPLDisplay::init version " << this->mWorkflowVersion << "    ------------------------------------";
+  LOG(info) << "------------------------    O2DPLDisplay::init version " << o2_eve_version << "    ------------------------------------";
   mData.init();
 
   mData.mConfig->configProcessing.runMC = mUseMC;
@@ -78,7 +79,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   if (!this->mEveHostNameMatch) {
     return;
   }
-  LOG(info) << "------------------------    O2DPLDisplay::run version " << this->mWorkflowVersion << "    ------------------------------------";
+  LOG(info) << "------------------------    O2DPLDisplay::run version " << o2_eve_version << "    ------------------------------------";
   // filtering out any run which occur before reaching next time interval
   auto currentTime = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = currentTime - this->mTimeStamp;
@@ -111,11 +112,11 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
 
   bool save = true;
 
-  if (this->mMinITSTracks != -1 && helper.getITSTrackCount() < this->mMinITSTracks) {
+  if (this->mMinITSTracks != -1 && helper.mEvent.getDetectorTrackCount(detectors::DetID::ITS) < this->mMinITSTracks) {
     save = false;
   }
 
-  if (this->mMinTracks != -1 && helper.getTrackCount() < this->mMinTracks) {
+  if (this->mMinTracks != -1 && helper.mEvent.getTrackCount() < this->mMinTracks) {
     save = false;
   }
 
@@ -125,11 +126,20 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
     helper.mEvent.setRunNumber(dh->runNumber);
     helper.mEvent.setTfCounter(dh->tfCounter);
     helper.mEvent.setFirstTForbit(dh->firstTForbit);
-    helper.save(this->mJsonPath, this->mNumberOfFiles, this->mTrkMask, this->mClMask, this->mWorkflowVersion, dh->runNumber, dph->creation);
+    helper.save(this->mJsonPath, this->mNumberOfFiles, this->mTrkMask, this->mClMask, dh->runNumber, dph->creation);
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();
   LOGP(info, "Visualization of TF:{} at orbit {} took {} s.", dh->tfCounter, dh->firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
+
+  std::array<std::string, GID::Source::NSources> sourceStats;
+
+  for (int i = 0; i < GID::Source::NSources; i++) {
+    sourceStats[i] = fmt::format("{}/{} {}", helper.mEvent.getSourceTrackCount(static_cast<GID::Source>(i)), helper.mTotalTracks.at(i), GID::getSourceName(i));
+  }
+
+  LOGP(info, "JSON saved: {}", save ? "YES" : "NO");
+  LOGP(info, "Tracks: {}", fmt::join(sourceStats, ","));
 }
 
 void O2DPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
@@ -156,7 +166,7 @@ void O2DPLDisplaySpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  LOG(info) << "------------------------    defineDataProcessing " << O2DPLDisplaySpec::mWorkflowVersion << "    ------------------------------------";
+  LOG(info) << "------------------------    defineDataProcessing " << o2_eve_version << "    ------------------------------------";
 
   WorkflowSpec specs;
 

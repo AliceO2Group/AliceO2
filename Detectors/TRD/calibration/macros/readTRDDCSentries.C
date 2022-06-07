@@ -24,11 +24,11 @@
 #include <bitset>
 #endif
 
-void readTRDDCSentries(std::string ccdb = "http://ccdb-test.cern.ch:8080", long ts = -1)
+void readTRDDCSentries(std::string ccdb = "http://localhost:8080", long ts = -1)
 {
 
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
-  ccdbmgr.setURL(ccdb.c_str());
+  ccdbmgr.setURL(ccdb.c_str()); // comment out this line to read from production CCDB instead of a local one, or adapt ccdb string
   if (ts < 0) {
     ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
   }
@@ -44,7 +44,7 @@ void readTRDDCSentries(std::string ccdb = "http://ccdb-test.cern.ch:8080", long 
   std::cout << std::endl;
 
   // now, access the actual calibration object from CCDB
-  auto cal = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, o2::trd::TRDDCSMinMaxMeanInfo>>("TRD/Calib/DCSDPs");
+  auto cal = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, o2::trd::TRDDCSMinMaxMeanInfo>>("TRD/Calib/DCSDPsGas");
 
   std::cout << "Printing a single object from the map (trd_gasCO2):" << std::endl;
   o2::dcs::DataPointIdentifier dpid; // used as key to access the map
