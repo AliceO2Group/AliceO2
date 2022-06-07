@@ -381,7 +381,7 @@ void GRPDCSDPsProcessor::updateLHCIFInfoCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mLHCInfo, mccdbLHCIFInfo, "GLO/Config/LHCIF", md, mStartValidity, mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY); // valid for 3 days
+  o2::calibration::Utils::prepareCCDBobjectInfo(mLHCInfo, mccdbLHCIFInfo, "GLO/Config/LHCIFDataPoints", md, mStartValidity, mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY); // valid for 3 days
   return;
 }
 
