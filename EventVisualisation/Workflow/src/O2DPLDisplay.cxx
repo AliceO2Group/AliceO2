@@ -262,7 +262,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
 
   specs.emplace_back(DataProcessorSpec{
-    "o2-eve-display",
+    "o2-eve-export",
     dataRequest->inputs,
     {},
     AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting)}});
