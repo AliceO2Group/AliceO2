@@ -525,6 +525,7 @@ struct RecoContainer {
   // MCH-MID
   const o2::dataformats::TrackMCHMID& getMCHMIDMatch(GTrackID gid) const { return getObject<o2::dataformats::TrackMCHMID>(gid, MATCHES); }
   auto getMCHMIDMatches() const { return getSpan<o2::dataformats::TrackMCHMID>(GTrackID::MCHMID, MATCHES); }
+  auto getMCHMIDMatchesMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::MCHMID, MCLABELS); }
 
   // ITS-TPC-TRD, since the TrackTRD track is just an alias, forward-declaring it does not work, need to keep template
   template <class U>
