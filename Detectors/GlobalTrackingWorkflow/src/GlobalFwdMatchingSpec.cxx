@@ -181,7 +181,7 @@ DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC, bool matchRootOutput)
   }
 
   if (matchingParam.useMIDMatch) {
-    dataRequest->requestMCHMIDMatches(useMC); // Request MCHMID Matches
+    dataRequest->requestMCHMIDMatches(false); // Request MCHMID Matches. Labels are not used
   }
 
   if (matchingParam.saveMode == kSaveTrainingData) {

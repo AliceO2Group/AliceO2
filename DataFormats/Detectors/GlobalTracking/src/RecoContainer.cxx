@@ -152,6 +152,9 @@ void DataRequest::requestMFTMCHMatches(bool mc)
 void DataRequest::requestMCHMIDMatches(bool mc)
 {
   addInput({"matchMCHMID", "GLO", "MTC_MCHMID", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"matchMCHMID_MCTR", "GLO", "MCMTC_MCHMID", 0, Lifetime::Timeframe});
+  }
   requestMap["matchMCHMID"] = mc;
 }
 
@@ -891,6 +894,9 @@ void RecoContainer::addMFTMCHMatches(ProcessingContext& pc, bool mc)
 void RecoContainer::addMCHMIDMatches(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::MCHMID].registerContainer(pc.inputs().get<gsl::span<o2d::TrackMCHMID>>("matchMCHMID"), MATCHES);
+  if (mc) {
+    commonPool[GTrackID::MCHMID].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("matchMCHMID_MCTR"), MCLABELS);
+  }
 }
 
 //__________________________________________________________
