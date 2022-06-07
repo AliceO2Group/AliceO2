@@ -95,7 +95,7 @@ cp ~/alice/O2/Detectors/DCS/testWorkflow/src/dcs*.cpp ./
 cp ~/alice/O2/Detectors/DCS/testWorkflow/src/compile-dcs-emulator.sh ./
 source ./compile-dcs-emulator.sh
 ```
-This will compile two executables `dcssend` and `dcsclient`. The former one is the `DCS server emulator` which has the following options:
+This will compile tree executables `dcssend`, `dcsclient` and dcssendDPs. The former one is the `DCS server emulator` which has the following options:
 ```
 ./dcssend -h
 ```
@@ -110,3 +110,5 @@ In case of problems you can validate the receiving process using `dcsclient` tes
 ```
 ./dcsclient -o 5556 -a 5557
 ```
+
+The `dcssendDPs` can be used to emulate the DCS DPs data coming from the ADAPOS server.
