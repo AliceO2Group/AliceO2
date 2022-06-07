@@ -73,7 +73,10 @@
 #define GET_DRMHEADW5_EVENTCRC(x) DRM_EVCRC(x)
 #define GET_DRMDATATRAILER_LOCEVCNT(x) DRM_LOCEVCNT(x)
 
-// TRM getter
+// LTM getters
+#define GET_LTMDATAHEADER_EVENTWORDS(x) LTM_EVENTSIZE(x)
+
+// TRM getters
 #define GET_TRMDATAHEADER_SLOTID(x) TOF_GETGEO(x)
 #define GET_TRMDATAHEADER_EVENTCNT(x) TRM_EVCNT_GH(x)
 #define GET_TRMDATAHEADER_EVENTWORDS(x) TRM_EVWORDS(x)
@@ -534,6 +537,7 @@ bool Compressor<RDH, verbose, paranoid>::processLTM()
 {
   /** process LTM **/
 
+  mDecoderSummary.ltmDataHeader = mDecoderPointer;
   if (verbose && mDecoderVerbose) {
     printf(" %08x LTM Global Header \n", *mDecoderPointer);
   }
@@ -543,26 +547,28 @@ bool Compressor<RDH, verbose, paranoid>::processLTM()
   }
 
   /** loop over LTM payload **/
-  while (true) {
-    /** LTM global trailer detected **/
-    if (IS_LTM_GLOBAL_TRAILER(*mDecoderPointer)) {
-      if (verbose && mDecoderVerbose) {
-        printf(" %08x LTM Global Trailer \n", *mDecoderPointer);
-      }
-      decoderNext();
-      if (paranoid && decoderParanoid()) {
-        return true;
-      }
-      break;
-    }
-
+  uint32_t eventWords = GET_LTMDATAHEADER_EVENTWORDS(*mDecoderPointer);
+  for (int i = 0; i < eventWords; ++i) {
     if (verbose && mDecoderVerbose) {
-      printf(" %08x LTM data \n", *mDecoderPointer);
+      printf(" %08x LTM Data Header \n", *mDecoderPointer);
     }
     decoderNext();
     if (paranoid && decoderParanoid()) {
       return true;
     }
+  }
+
+  /** LTM global trailer detected **/
+  if (IS_LTM_GLOBAL_TRAILER(*mDecoderPointer)) {
+    mDecoderSummary.ltmDataTrailer = mDecoderPointer;
+    if (verbose && mDecoderVerbose) {
+      printf(" %08x LTM Global Trailer \n", *mDecoderPointer);
+    }
+    decoderNext();
+    if (paranoid && decoderParanoid()) {
+      return true;
+    }
+    break;
   }
 
   /** success **/
