@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ "0$1" != "0dd" ] && [ "0$1" != "0rr" ]; then
-  echo Please indicate whether to start with raw-reader [rr] or with DataDistribution [dd]
+if [ "0$1" != "0dd" ] && [ "0$1" != "0rr" ] && [ "0$1" != "0rr" ]; then
+  echo Please indicate whether to start with raw-reader [rr] or with DataDistribution [dd] or TfReader [tf]
   exit 1
 fi
 
@@ -43,7 +43,10 @@ fi
 if [ $1 == "dd" ]; then
   export CMD=datadistribution.sh
   export GPU_NUM_MEM_REG_CALLBACKS=5
-else
+elif [ $1 == "tf" ]; then
+  export CMD=tf-reader.sh
+  export GPU_NUM_MEM_REG_CALLBACKS=3
+elif [ $1 == "rr" ]; then
   export CMD=raw-reader.sh
   export GPU_NUM_MEM_REG_CALLBACKS=3
 fi
