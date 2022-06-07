@@ -12,6 +12,7 @@
 #include <boost/program_options.hpp>
 #include <ctime>
 #include <chrono>
+#include <TSystem.h>
 #include "DataFormatsParameters/GRPECSObject.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CCDB/CcdbApi.h"
@@ -32,7 +33,8 @@ void createGRPECSObject(const std::string& dataPeriod,
                         const std::string& detsTrigger,
                         long tstart,
                         long tend,
-                        const std::string& ccdbServer = "")
+                        const std::string& ccdbServer = "",
+                        bool refresh = false)
 {
   auto detMask = o2::detectors::DetID::getMask(detsReadout);
   if (detMask.count() == 0) {
@@ -109,6 +111,12 @@ void createGRPECSObject(const std::string& dataPeriod,
     grpF.WriteObjectAny(&grpecs, grpecs.Class(), o2::base::NameConf::CCDBOBJECT.data());
     LOG(info) << "Stored to local file " << fname;
   }
+  //
+  if (refresh && !ccdbServer.empty()) {
+    auto cmd = fmt::format("curl -I -i -s \"{}{}/latest/%5Cw%7B3%7D/.*/`date +%s000`/?prepare=true\"", ccdbServer, ccdbServer.back() == '/' ? "" : "/");
+    auto res = gSystem->Exec(cmd.c_str());
+    LOGP(info, "Executed [{}] -> {}", cmd, res);
+  }
 }
 
 int main(int argc, char** argv)
@@ -136,6 +144,7 @@ int main(int argc, char** argv)
     add_option("start-time,s", bpo::value<long>()->default_value(0), "run start time in ms, now() if 0");
     add_option("end-time,e", bpo::value<long>()->default_value(0), "run end time in ms, start-time+3days is used if 0");
     add_option("ccdb-server", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "CCDB server for upload, local file if empty");
+    add_option("refresh", bpo::value<bool>()->default_value(false)->implicit_value(true), "refresh server cache after upload");
 
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
@@ -178,5 +187,6 @@ int main(int argc, char** argv)
     vm["triggering"].as<std::string>(),
     vm["start-time"].as<long>(),
     vm["end-time"].as<long>(),
-    vm["ccdb-server"].as<std::string>());
+    vm["ccdb-server"].as<std::string>(),
+    vm["refresh"].as<bool>());
 }
