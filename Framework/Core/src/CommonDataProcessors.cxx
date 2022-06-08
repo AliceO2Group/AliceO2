@@ -511,6 +511,7 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
     .algorithm = AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
       auto domainInfoUpdated = [](ServiceRegistry& services, size_t timeslice, ChannelIndex channelIndex) {
         LOGP(debug, "Domain info updated with timeslice {}", timeslice);
+        static size_t lastTimeslice = -1;
         auto& timesliceIndex = services.get<TimesliceIndex>();
         auto device = services.get<RawDeviceService>().device();
         auto channel = device->fChannels.find("metric-feedback");
@@ -518,8 +519,11 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
           fair::mq::MessagePtr payload(device->NewMessage());
           size_t* consumed = (size_t*)malloc(sizeof(size_t));
           *consumed = timesliceIndex.getOldestPossibleOutput().timeslice.value;
-          payload->Rebuild(consumed, sizeof(int64_t), nullptr, nullptr);
-          channel->second[0].Send(payload);
+          if (*consumed != lastTimeslice) {
+            payload->Rebuild(consumed, sizeof(int64_t), nullptr, nullptr);
+            channel->second[0].Send(payload);
+            lastTimeslice = *consumed;
+          }
         }
       };
       callbacks.set(CallbackService::Id::DomainInfoUpdated, domainInfoUpdated);
