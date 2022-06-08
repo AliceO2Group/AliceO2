@@ -31,6 +31,50 @@
 #include <typeinfo>
 #include <gsl/span>
 
+namespace o2::framework
+{
+template <typename T>
+struct Preslice {
+  using target_t = T;
+  Preslice(expressions::BindingNode index_) : index{index_} {}
+  arrow::Status processTable(std::shared_ptr<arrow::Table> input)
+  {
+    if (newDataframe) {
+      fullSize = input->num_rows();
+      newDataframe = false;
+      return o2::framework::getSlices(index.name.c_str(), input, mValues, mCounts);
+    } else {
+      return arrow::Status::OK();
+    }
+  };
+
+  void setNewDF()
+  {
+    newDataframe = true;
+  };
+
+  std::shared_ptr<arrow::NumericArray<arrow::Int32Type>> mValues = nullptr;
+  std::shared_ptr<arrow::NumericArray<arrow::Int64Type>> mCounts = nullptr;
+  size_t fullSize;
+  expressions::BindingNode index;
+  bool newDataframe = false;
+
+  arrow::Status getSliceFor(int value, std::shared_ptr<arrow::Table>& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset) const
+  {
+    arrow::Status status;
+    for (auto slice = 0; slice < mValues->length(); ++slice) {
+      if (mValues->Value(slice) == value) {
+        output = input->Slice(offset, mCounts->Value(slice));
+        return arrow::Status::OK();
+      }
+      offset += mCounts->Value(slice);
+    }
+    output = input->Slice(offset, 0);
+    return arrow::Status::OK();
+  }
+};
+} // namespace o2::framework
+
 namespace o2::soa
 {
 template <typename... C>
@@ -93,6 +137,14 @@ inline constexpr bool is_self_index_column_v = false;
 
 template <typename T>
 inline constexpr bool is_self_index_column_v<T, std::void_t<decltype(sizeof(typename T::self_index_t))>> = true;
+
+template <typename B, typename E>
+struct EquivalentIndex {
+  constexpr static bool value = false;
+};
+
+template <typename B, typename E>
+constexpr bool is_index_equivalent_v = EquivalentIndex<B, E>::value || EquivalentIndex<E, B>::value;
 
 template <typename T, typename TLambda>
 void call_if_has_originals(TLambda&& lambda)
@@ -932,6 +984,22 @@ struct ArrowHelpers {
 template <typename... T>
 using originals_pack_t = decltype(make_originals_from_type<T...>());
 
+template <typename T, typename... Os>
+constexpr bool are_bindings_compatible_v(framework::pack<Os...>&&)
+{
+  if constexpr (is_type_with_originals_v<T>) {
+    return (are_bindings_compatible_v<Os>(originals_pack_t<T>{}) || ...);
+  } else {
+    return ((std::is_same_v<T, Os> || is_index_equivalent_v<T, Os>) || ...);
+  }
+}
+
+template <typename T, typename B>
+constexpr bool is_binding_compatible_v()
+{
+  return are_bindings_compatible_v<T>(originals_pack_t<B>{});
+}
+
 template <typename T>
 using is_soa_iterator_t = typename framework::is_base_of_template<RowViewCore, T>;
 
@@ -1236,10 +1304,27 @@ class Table
     return t;
   }
 
+  template <typename T1>
+  auto sliceBy(o2::framework::Preslice<T1> const& container, int value)
+  {
+    if constexpr (o2::soa::is_binding_compatible_v<T1, table_t>()) {
+      std::shared_ptr<arrow::Table> out;
+      uint64_t offset = 0;
+      auto status = container.getSliceFor(value, mTable, out, offset);
+      auto t = T1({out}, offset);
+      copyIndexBindings(t);
+      t.bindInternalIndicesTo(this);
+      return t;
+    } else {
+      static_assert(o2::framework::always_static_assert_v<T1>, "Wrong Preslice<> entry used: incompatible type");
+    }
+  }
+
   auto sliceBy(framework::expressions::BindingNode const& node, int value) const
   {
     auto t = o2::soa::sliceBy(*this, node, value);
     copyIndexBindings(t);
+    t.bindInternalIndicesTo(this);
     return t;
   }
 
@@ -1412,30 +1497,6 @@ using JoinBase = decltype(join(std::declval<Ts>()...));
 
 template <typename T1, typename T2>
 using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
-
-template <typename B, typename E>
-struct EquivalentIndex {
-  constexpr static bool value = false;
-};
-
-template <typename B, typename E>
-constexpr bool is_index_equivalent_v = EquivalentIndex<B, E>::value || EquivalentIndex<E, B>::value;
-
-template <typename T, typename... Os>
-constexpr bool are_bindings_compatible_v(framework::pack<Os...>&&)
-{
-  if constexpr (is_type_with_originals_v<T>) {
-    return (are_bindings_compatible_v<Os>(originals_pack_t<T>{}) || ...);
-  } else {
-    return ((std::is_same_v<T, Os> || is_index_equivalent_v<T, Os>) || ...);
-  }
-}
-
-template <typename T, typename B>
-constexpr bool is_binding_compatible_v()
-{
-  return are_bindings_compatible_v<T>(originals_pack_t<B>{});
-}
 
 void notBoundTable(const char* tableName);
 

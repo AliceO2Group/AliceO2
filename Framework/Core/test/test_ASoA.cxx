@@ -912,6 +912,8 @@ BOOST_AUTO_TEST_CASE(TestListColumns)
 
 BOOST_AUTO_TEST_CASE(TestSliceBy)
 {
+  o2::framework::Preslice<References> slices = test::originId;
+  slices.setNewDF();
   TableBuilder b;
   auto writer = b.cursor<Origins>();
   for (auto i = 0; i < 20; ++i) {
@@ -931,11 +933,17 @@ BOOST_AUTO_TEST_CASE(TestSliceBy)
   }
   auto refs = w.finalize();
   References r{refs};
+  auto status = slices.processTable(refs);
 
   for (auto& oi : o) {
     auto slice = r.sliceBy(test::originId, oi.globalIndex());
+    auto cachedSlice = r.sliceBy(slices, oi.globalIndex());
     BOOST_CHECK_EQUAL(slice.size(), 5);
+    BOOST_CHECK_EQUAL(cachedSlice.size(), 5);
     for (auto& ri : slice) {
+      BOOST_CHECK_EQUAL(ri.originId(), oi.globalIndex());
+    }
+    for (auto& ri : cachedSlice) {
       BOOST_CHECK_EQUAL(ri.originId(), oi.globalIndex());
     }
   }
