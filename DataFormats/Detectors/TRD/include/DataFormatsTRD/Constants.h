@@ -49,6 +49,7 @@ constexpr int NROBC1 = 8;       // the number of ROBs per C1 chamber
 constexpr int NADCMCM = 21;     // the number of ADC channels per MCM
 constexpr int NCOLMCM = 18;     // the number of pads per MCM
 constexpr int NCPU = 4;         // the number of CPUs inside the TRAP chip
+constexpr int NCHARGES = 3;         // the number of charges per tracklet (Q0/1/2)
 
 // the values below should come out of the TRAP config in the future
 constexpr int NBITSTRKLPOS = 11;                   // number of bits for position in tracklet64 word

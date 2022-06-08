@@ -44,9 +44,13 @@ namespace trd
 struct TrackQC {
   int type;          ///< 0 TPC-TRD track; 1 ITS-TPC-TRD track
   int nTracklets;    ///< number of attached TRD tracklets
+  int nLayers; //< Number of associated Layers of a Track
   float chi2;        ///< total chi2 value for the track
   float reducedChi2; ///< chi2 total divided by number of layers in which track is inside TRD geometrical acceptance
   float pt;          ///< the transverse momentum of the track at the point of the innermost ITS cluster (ITS-TPC-TRD) or at the inner TPC radius (TPC-TRD)
+  float ptSigma2;    //< Sigma2 of pt
+  track::PID pid;    //< assigned particle id from TPC
+  float phi; //< Phi 0:2Pi value of Track
 
   // layer-wise information for seeding track and assigned tracklet (if available)
   std::array<float, constants::NLAYER> findable{}; ///< flag if track was in geometrical acceptance
@@ -66,10 +70,11 @@ struct TrackQC {
   std::array<int, constants::NLAYER> trackletSlope{};  ///< the raw slope from Tracklet64 (signed integer)
   std::array<int, constants::NLAYER> trackletDet{};    ///< the chamber of the tracklet
   // some tracklet details to identify its global MCM number to check if it is from noisy MCM
-  std::array<int, constants::NLAYER> trackletHCId{};   ///< the half-chamber ID of the tracklet
-  std::array<int, constants::NLAYER> trackletRob{};    ///< the ROB number of the tracklet
-  std::array<int, constants::NLAYER> trackletMcm{};    ///< the MCM number of the tracklet
-  std::array<float, constants::NLAYER> trackletChi2{}; ///< estimated chi2 for the update of the track with the given tracklet
+  std::array<int, constants::NLAYER> trackletHCId{};                                     ///< the half-chamber ID of the tracklet
+  std::array<int, constants::NLAYER> trackletRob{};                                      ///< the ROB number of the tracklet
+  std::array<int, constants::NLAYER> trackletMcm{};                                      ///< the MCM number of the tracklet
+  std::array<float, constants::NLAYER> trackletChi2{};                                   ///< estimated chi2 for the update of the track with the given tracklet
+  std::array<std::array<int, constants::NCHARGES>, constants::NLAYER> trackletCharges{}; ///< charges of tracklets
   ClassDefNV(TrackQC, 1);
 };
 
