@@ -55,24 +55,43 @@ void encode_websocket_frames(std::vector<uv_buf_t>& outputs, char const* src, si
 
   if (size < 126) {
     headerSize = sizeof(WebSocketFrameTiny);
-    buffer = (char*)malloc(headerSize + maskSize + size);
+    // Allocate a new page if we do not fit in the current one
+    if (outputs.empty() || outputs.back().len > WebSocketConstants::MaxChunkSize || (size + maskSize + headerSize) > (WebSocketConstants::MaxChunkSize - outputs.back().len)) {
+      char* chunk = (char*)malloc(WebSocketConstants::MaxChunkSize);
+      outputs.push_back(uv_buf_init(chunk, 0));
+    }
+    auto& buf = outputs.back();
+    // Reposition the buffer to the end of the current page
+    buffer = buf.base + buf.len;
+    buf.len += headerSize + size + maskSize;
     WebSocketFrameTiny* header = (WebSocketFrameTiny*)buffer;
     memset(buffer, 0, headerSize);
     header->len = size;
   } else if (size < 1 << 16) {
     headerSize = sizeof(WebSocketFrameShort);
-    buffer = (char*)malloc(headerSize + maskSize + size);
+    // Allocate a new page if we do not fit in the current one
+    if (outputs.empty() || outputs.back().len > WebSocketConstants::MaxChunkSize || (size + maskSize + headerSize) > (WebSocketConstants::MaxChunkSize - outputs.back().len)) {
+      char* chunk = (char*)malloc(WebSocketConstants::MaxChunkSize);
+      outputs.push_back(uv_buf_init(chunk, 0));
+    }
+    auto& buf = outputs.back();
+    // Reposition the buffer to the end of the current page
+    buffer = buf.base + buf.len;
+    buf.len += headerSize + size + maskSize;
     WebSocketFrameShort* header = (WebSocketFrameShort*)buffer;
     memset(buffer, 0, headerSize);
     header->len = 126;
     header->len16 = htons(size);
   } else {
+    // For larger messages we do standalone allocation
+    // so that the message does not need to be sent in multiple chunks
     headerSize = sizeof(WebSocketFrameHuge);
     buffer = (char*)malloc(headerSize + maskSize + size);
     WebSocketFrameHuge* header = (WebSocketFrameHuge*)buffer;
     memset(buffer, 0, headerSize);
     header->len = 127;
     header->len64 = htonll(size);
+    outputs.push_back(uv_buf_init(buffer, size));
   }
   size_t fullHeaderSize = maskSize + headerSize;
   startPayload = buffer + fullHeaderSize;
@@ -85,7 +104,6 @@ void encode_websocket_frames(std::vector<uv_buf_t>& outputs, char const* src, si
   }
   header->mask = mask ? 1 : 0;
   memmask(startPayload, src, size, mask);
-  outputs.push_back(uv_buf_init(buffer, size + fullHeaderSize));
 }
 
 void decode_websocket(char* start, size_t size, WebSocketHandler& handler)
