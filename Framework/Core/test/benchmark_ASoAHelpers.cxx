@@ -158,7 +158,7 @@ static void BM_ASoAHelpersNaiveSimpleFives(benchmark::State& state)
 
 BENCHMARK(BM_ASoAHelpersNaiveSimpleFives)->RangeMultiplier(2)->Range(8, 8 << maxFivesRange);
 
-static void BM_ASoAHelpersNaiveTracksPairs(benchmark::State& state)
+static void BM_ASoAHelpersNaiveCalosPairs(benchmark::State& state)
 {
   // Seed with a real random value, if available
   std::default_random_engine e1(1234567891);
@@ -190,9 +190,9 @@ static void BM_ASoAHelpersNaiveTracksPairs(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
 }
 
-BENCHMARK(BM_ASoAHelpersNaiveTracksPairs)->Range(8, 8 << (maxPairsRange - 3));
+BENCHMARK(BM_ASoAHelpersNaiveCalosPairs)->Range(8, 8 << (maxPairsRange - 3));
 
-static void BM_ASoAHelpersNaiveTracksFives(benchmark::State& state)
+static void BM_ASoAHelpersNaiveCalosFives(benchmark::State& state)
 {
   // Seed with a real random value, if available
   std::default_random_engine e1(1234567891);
@@ -216,6 +216,84 @@ static void BM_ASoAHelpersNaiveTracksFives(benchmark::State& state)
         for (auto t2 = t1 + 1; t2 + 2 != calos.end(); ++t2) {
           for (auto t3 = t2 + 1; t3 + 1 != calos.end(); ++t3) {
             for (auto t4 = t3 + 1; t4 != calos.end(); ++t4) {
+              auto comb = std::make_tuple(t0, t1, t2, t3, t4);
+              count++;
+              benchmark::DoNotOptimize(comb);
+            }
+          }
+        }
+      }
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
+}
+
+BENCHMARK(BM_ASoAHelpersNaiveCalosFives)->RangeMultiplier(2)->Range(8, 8 << maxFivesRange);
+
+static void BM_ASoAHelpersNaiveTracksPairs(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+  std::uniform_int_distribution<int> uniform_dist_int(0, 10);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist_int(e1), 0,
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::StoredTracks tracks{table};
+  int64_t count = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto t0 = tracks.begin(); t0 + 1 != tracks.end(); ++t0) {
+      for (auto t1 = t0 + 1; t1 != tracks.end(); ++t1) {
+        auto comb = std::make_tuple(t0, t1);
+        count++;
+        benchmark::DoNotOptimize(comb);
+      }
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
+}
+
+BENCHMARK(BM_ASoAHelpersNaiveTracksPairs)->Range(8, 8 << (maxPairsRange - 3));
+
+static void BM_ASoAHelpersNaiveTracksFives(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+  std::uniform_int_distribution<int> uniform_dist_int(0, 10);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist_int(e1), 0,
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::StoredTracks tracks{table};
+  int64_t count = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto t0 = tracks.begin(); t0 + 4 != tracks.end(); ++t0) {
+      for (auto t1 = t0 + 1; t1 + 3 != tracks.end(); ++t1) {
+        for (auto t2 = t1 + 1; t2 + 2 != tracks.end(); ++t2) {
+          for (auto t3 = t2 + 1; t3 + 1 != tracks.end(); ++t3) {
+            for (auto t4 = t3 + 1; t4 != tracks.end(); ++t4) {
               auto comb = std::make_tuple(t0, t1, t2, t3, t4);
               count++;
               benchmark::DoNotOptimize(comb);
@@ -294,7 +372,7 @@ static void BM_ASoAHelpersCombGenSimpleFives(benchmark::State& state)
 
 BENCHMARK(BM_ASoAHelpersCombGenSimpleFives)->RangeMultiplier(2)->Range(8, 8 << maxFivesRange);
 
-static void BM_ASoAHelpersCombGenTracksPairs(benchmark::State& state)
+static void BM_ASoAHelpersCombGenCalosPairs(benchmark::State& state)
 {
   // Seed with a real random value, if available
   std::default_random_engine e1(1234567891);
@@ -323,9 +401,9 @@ static void BM_ASoAHelpersCombGenTracksPairs(benchmark::State& state)
   state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
 }
 
-BENCHMARK(BM_ASoAHelpersCombGenTracksPairs)->Range(8, 8 << (maxPairsRange - 3));
+BENCHMARK(BM_ASoAHelpersCombGenCalosPairs)->Range(8, 8 << (maxPairsRange - 3));
 
-static void BM_ASoAHelpersCombGenTracksFives(benchmark::State& state)
+static void BM_ASoAHelpersCombGenCalosFives(benchmark::State& state)
 {
   // Seed with a real random value, if available
   std::default_random_engine e1(1234567891);
@@ -346,6 +424,72 @@ static void BM_ASoAHelpersCombGenTracksFives(benchmark::State& state)
   for (auto _ : state) {
     count = 0;
     for (auto& comb : combinations(calos, calos, calos, calos, calos)) {
+      count++;
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenCalosFives)->RangeMultiplier(2)->Range(8, 8 << maxFivesRange);
+
+static void BM_ASoAHelpersCombGenTracksPairs(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+  std::uniform_int_distribution<int> uniform_dist_int(0, 10);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist_int(e1), 0,
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::StoredTracks tracks{table};
+
+  int64_t count = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto& comb : combinations(tracks, tracks)) {
+      count++;
+    }
+    benchmark::DoNotOptimize(count);
+  }
+  state.counters["Combinations"] = count;
+  state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
+}
+
+BENCHMARK(BM_ASoAHelpersCombGenTracksPairs)->Range(8, 8 << (maxPairsRange - 3));
+
+static void BM_ASoAHelpersCombGenTracksFives(benchmark::State& state)
+{
+  // Seed with a real random value, if available
+  std::default_random_engine e1(1234567891);
+  std::uniform_real_distribution<float> uniform_dist(0, 1);
+  std::uniform_int_distribution<int> uniform_dist_int(0, 10);
+
+  TableBuilder builder;
+  auto rowWriter = builder.cursor<o2::aod::StoredTracks>();
+  for (auto i = 0; i < state.range(0); ++i) {
+    rowWriter(0, uniform_dist_int(e1), 0,
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1), uniform_dist(e1),
+              uniform_dist(e1), uniform_dist(e1), uniform_dist(e1));
+  }
+  auto table = builder.finalize();
+
+  o2::aod::StoredTracks tracks{table};
+
+  int64_t count = 0;
+
+  for (auto _ : state) {
+    count = 0;
+    for (auto& comb : combinations(tracks, tracks, tracks, tracks, tracks)) {
       count++;
     }
     benchmark::DoNotOptimize(count);
@@ -397,7 +541,7 @@ static void BM_ASoAHelpersCombGenSimpleFivesMultipleChunks(benchmark::State& sta
 
 BENCHMARK(BM_ASoAHelpersCombGenSimpleFivesMultipleChunks)->RangeMultiplier(2)->Range(8, 8 << (maxFivesRange - 1));
 
-static void BM_ASoAHelpersCombGenTracksFivesMultipleChunks(benchmark::State& state)
+static void BM_ASoAHelpersCombGenCalosFivesMultipleChunks(benchmark::State& state)
 {
   // Seed with a real random value, if available
   std::default_random_engine e1(1234567891);
@@ -436,7 +580,7 @@ static void BM_ASoAHelpersCombGenTracksFivesMultipleChunks(benchmark::State& sta
   state.SetBytesProcessed(state.iterations() * sizeof(float) * count);
 }
 
-BENCHMARK(BM_ASoAHelpersCombGenTracksFivesMultipleChunks)->RangeMultiplier(2)->Range(8, 8 << (maxFivesRange - 1));
+BENCHMARK(BM_ASoAHelpersCombGenCalosFivesMultipleChunks)->RangeMultiplier(2)->Range(8, 8 << (maxFivesRange - 1));
 
 static void BM_ASoAHelpersCombGenSimplePairsSameCategories(benchmark::State& state)
 {
