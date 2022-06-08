@@ -61,8 +61,6 @@ void WaveformCalibSpec::init(o2::framework::InitContext& ic)
 {
   mVerbosity = ic.options().get<int>("verbosity-level");
   mWorker.setVerbosity(mVerbosity);
-  mTimer.CpuTime();
-  mTimer.Start(false);
 }
 
 void WaveformCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -77,20 +75,15 @@ void WaveformCalibSpec::run(ProcessingContext& pc)
   if (!mInitialized) {
     mInitialized = true;
     std::string loadedConfFiles = "Loaded ZDC configuration files:";
-    std::string ct = "WaveformCalibConfig";
-    std::string cn = "wavecalibconfig";
-    // WaveformCalib configuration
-    auto config = pc.inputs().get<o2::zdc::WaveformCalibConfig*>(cn);
-    if (!config) {
-      LOG(fatal) << "Missing calibration object: " << ct;
-      return;
-    } else {
-      loadedConfFiles += " ";
-      loadedConfFiles += ct;
-      mWorker.setConfig(config.get());
+    auto config = pc.inputs().get<o2::zdc::WaveformCalibConfig*>("wavecalibconfig");
+    loadedConfFiles += " WaveformCalibConfig";
+    if (mVerbosity > DbgZero) {
+      config->print();
     }
+    mWorker.setConfig(config.get());
     LOG(info) << loadedConfFiles;
-    mTimer.CpuTime();
+    mTimer.Stop();
+    mTimer.Reset();
     mTimer.Start(false);
   }
 

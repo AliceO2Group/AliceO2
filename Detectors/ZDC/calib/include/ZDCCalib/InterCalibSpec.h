@@ -49,6 +49,7 @@ class InterCalibSpec : public o2::framework::Task
 
  private:
   int mVerbosity = DbgMinimal; // Verbosity level
+  bool mInitialized = false;   // Connect once to CCDB during initialization
   InterCalib mWorker;          // Intercalibration object
   TStopwatch mTimer;
 };

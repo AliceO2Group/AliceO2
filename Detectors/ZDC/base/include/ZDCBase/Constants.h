@@ -88,15 +88,15 @@ constexpr int TSL = 6;                    // number of zeros on the right (and o
 constexpr int TSN = 200;                  // Number of interpolated points between each pair = TSN-1
 constexpr int TSNH = TSN / 2;             // Half of TSN
 constexpr int NTS = 2 * TSL * TSN + 1;    // Tapered sinc function array size
-constexpr static float FTDCAmp = 1. / 8.; // Multiplication factor in conversion from integer
+constexpr float FTDCAmp = 1. / 8.;        // Multiplication factor in conversion from integer
 constexpr int NIS = NTimeBinsPerBC * TSN; // Number of interpolated samples
 // With a reference clock of 40 MHz exact this FTDCVal would have been
-// constexpr static float FTDCVal = 1. / TSNS;
+// constexpr float FTDCVal = 1. / TSNS;
 // with constexpr int TSNS = 96;
 // However we need to modify to take into account actual LHC clock frequency
 // Multiplication factor in conversion from integer
-constexpr static float FTDCVal = o2::constants::lhc::LHCBunchSpacingNS / NTimeBinsPerBC / TSN;
-constexpr static float FOffset = 8.; // Conversion from average pedestal to representation in OrbitData (16 bit)
+constexpr float FTDCVal = o2::constants::lhc::LHCBunchSpacingNS / NTimeBinsPerBC / TSN;
+constexpr float FOffset = 8.; // Conversion from average pedestal to representation in OrbitData (16 bit)
 
 enum TDCChannelID {
   TDCZNAC,
@@ -367,10 +367,10 @@ constexpr int toDet(int channel, int& tower)
 }
 
 // Calibration workflows
-static constexpr int WaveformCalib_NBB = 3;
-static constexpr int WaveformCalib_NBA = 6;
-static constexpr int WaveformCalib_NBT = WaveformCalib_NBB + WaveformCalib_NBA + 1;
-static constexpr int WaveformCalib_NW = WaveformCalib_NBT * NIS;
+constexpr int WaveformCalib_NBB = 3;
+constexpr int WaveformCalib_NBA = 6;
+constexpr int WaveformCalib_NBT = WaveformCalib_NBB + WaveformCalib_NBA + 1;
+constexpr int WaveformCalib_NW = WaveformCalib_NBT * NIS;
 
 } // namespace zdc
 } // namespace o2

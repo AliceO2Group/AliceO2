@@ -60,8 +60,6 @@ void InterCalibEPNSpec::init(o2::framework::InitContext& ic)
 {
   mVerbosity = ic.options().get<int>("verbosity-level");
   mWorker.setVerbosity(mVerbosity);
-  mTimer.CpuTime();
-  mTimer.Start(false);
 }
 
 void InterCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -77,22 +75,16 @@ void InterCalibEPNSpec::run(ProcessingContext& pc)
     mInitialized = true;
     std::string loadedConfFiles = "Loaded ZDC configuration files:";
     // InterCalib configuration
-    auto interConfig = pc.inputs().get<o2::zdc::InterCalibConfig*>("intercalibconfig");
-    if (!interConfig) {
-      LOG(fatal) << "Missing InterCalibConfig calibration InterCalibConfig";
-      return;
-    } else {
-      loadedConfFiles += " InterCalibConfig";
-      if (mVerbosity > DbgZero) {
-        LOG(info) << "Loaded InterCalib configuration object";
-        interConfig->print();
-      }
+    auto config = pc.inputs().get<o2::zdc::InterCalibConfig*>("intercalibconfig");
+    loadedConfFiles += " InterCalibConfig";
+    if (mVerbosity > DbgZero) {
+      LOG(info) << "Loaded InterCalib configuration object";
+      config->print();
     }
-
-    mWorker.setInterCalibConfig(interConfig.get());
-
+    mWorker.setInterCalibConfig(config.get());
     LOG(info) << loadedConfFiles;
-    mTimer.CpuTime();
+    mTimer.Stop();
+    mTimer.Reset();
     mTimer.Start(false);
   }
 

@@ -164,8 +164,8 @@ int WaveformCalibData::saveDebugHistos(const std::string fn)
       TString n = TString::Format("h%d", is);
       TString t = TString::Format("Waveform %d %s", is, ChannelNames[is].data());
       int nbx = mWave[is].mLastValid - mWave[is].mFirstValid + 1;
-      int min = mWave[is].mFirstValid - mPeak - 0.5;
-      int max = mWave[is].mLastValid - mPeak + 0.5;
+      float min = mWave[is].mFirstValid - mPeak - 0.5;
+      float max = mWave[is].mLastValid - mPeak + 0.5;
       TH1F h(n, t, nbx, min, max);
       for (int ibx = 0; ibx < nbx; ibx++) {
         h.SetBinContent(ibx + 1, mWave[is].mData[mWave[is].mFirstValid + ibx]);

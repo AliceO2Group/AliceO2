@@ -106,9 +106,6 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   {
     if (inter[isig].size() != NIS) {
       inter[isig].resize(NIS);
-      for (int iis = 0; iis < NIS; iis++) {
-        inter[isig][iis] = 0;
-      }
     }
   }
 

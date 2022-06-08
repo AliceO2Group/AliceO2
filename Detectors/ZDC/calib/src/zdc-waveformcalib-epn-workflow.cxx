@@ -42,6 +42,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   WorkflowSpec specs;
   specs.emplace_back(o2::zdc::getWaveformCalibEPNSpec());
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
-  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
+  // o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs); // Needed only if you read from root files
   return specs;
 }
