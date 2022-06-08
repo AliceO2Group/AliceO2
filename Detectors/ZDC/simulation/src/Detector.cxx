@@ -332,6 +332,25 @@ void Detector::flushSpatialResponse()
   }
 }
 
+// quick estimates the time of flight to reach this detector (located at z)
+// just based on primary particle properties
+// Meant for the neutron / proton detectors which sit a large z so that speed
+// is essentially the speed in z-direction.
+double estimateTimeOfFlight(TParticle const& part, double z /* needs to be in meters */)
+{
+  const auto m = part.GetMass();
+  constexpr auto SPEED_OF_LIGHT = 299792458.; // m/s
+  if (m == 0.) {
+    return z / SPEED_OF_LIGHT;
+  } else {
+    TLorentzVector lorentz; // could be made member var
+    part.Momentum(lorentz);
+    const auto gamma = lorentz.Gamma();
+    const auto speed = SPEED_OF_LIGHT * std::sqrt(1. - 1. / (gamma * gamma));
+    return z / speed; // could refine this
+  }
+}
+
 //_____________________________________________________________________________
 Bool_t Detector::ProcessHits(FairVolume* v)
 {
@@ -2492,6 +2511,11 @@ void Detector::BeginPrimary()
           mFastSimModel->setInput(modelInput);
           mFastSimModel->run();
           mFastSimResults.push_back(fastsim::processors::calculateChannels(mFastSimModel->getResult()[0], 1)[0]);
+
+          // produce hits from fast sim result
+          bool forward = mCurrentPrincipalParticle.Pz() > 0.;
+          FastSimToHits(mFastSimModel->getResult()[0], mCurrentPrincipalParticle, forward ? ZNA : ZNC);
+          // TODO: call models for all detectors ZNA + ZPA
         }
       } else {
         mFastSimResults.push_back({0, 0, 0, 0, 0});
@@ -2538,7 +2562,7 @@ bool Detector::FastSimToHits(const Ort::Value& response, const TParticle& partic
   math_utils::Vector3D<float> xImp(0., 0., 0.); // good value
 
   // determines dimensions of the detector and binds it
-  auto [Nx, Ny] = determineDetectorGeometry(detector);
+  auto [Nx, Ny] = determineDetectorSize(detector);
   // if invalid detector was provided return false
   if (Nx == -1 || Ny == -1) {
     return false;
@@ -2576,6 +2600,22 @@ bool Detector::FastSimToHits(const Ort::Value& response, const TParticle& partic
     return ((x + y) % 2 == 0) ? mMediumPMCid : mMediumPMQid;
   };
 
+  auto z_pos = 0.;
+  if (detector == ZPA) {
+    z_pos = o2::zdc::Geometry::ZPAPOSITION[2];
+  } else if (detector == ZPC) {
+    z_pos = o2::zdc::Geometry::ZPCPOSITION[2];
+  } else if (detector == ZNA) {
+    z_pos = o2::zdc::Geometry::ZNAPOSITION[2];
+  } else if (detector == ZNC) {
+    z_pos = o2::zdc::Geometry::ZNCPOSITION[2];
+  } else {
+    // should not happen --> we don't have fastsim for other detectors
+    LOG(fatal) << "Unsupported detector in ZDC fast sim";
+  }
+
+  const float tof = estimateTimeOfFlight(particle, std::abs(z_pos));
+
   // loop over x = columns
   for (int x = 0; x < Nx; ++x) {
     // loop over y = rows
@@ -2586,19 +2626,21 @@ bool Detector::FastSimToHits(const Ort::Value& response, const TParticle& partic
       int currentMediumid = determineMediumID(detector, x, y);
       // LOG(info) << " x " << x << " y " << y << " sec " << sector << " medium " << currentMediumid;
       int nphe = pixels[Nx * x + y];
-      float tof = 0.;        // needs to be in nanoseconds ---> to be filled later on (should be meta-data of image or calculated otherwise)
-      float trackenergy = 0; // energy of the primary (need to fill good value)
-      createOrAddHit(detector,
-                     sector,
-                     currentMediumid,
-                     0 /*issecondary ---> don't know in fast sim */,
-                     nphe,
-                     0 /* trackn */,
-                     0 /* parent */,
-                     tof,
-                     trackenergy,
-                     xImp,
-                     0. /* eDep */, 0 /* x */, 0. /* y */, 0. /* z */, 0. /* px */, 0. /* py */, 0. /* pz */);
+
+      if (nphe > 0) {
+        float trackenergy = 0; // energy of the primary (need to fill good value)
+        createOrAddHit(detector,
+                       sector,
+                       currentMediumid,
+                       0 /*issecondary ---> don't know in fast sim */,
+                       nphe,
+                       0 /* trackn */,
+                       0 /* parent */,
+                       tof,
+                       trackenergy,
+                       xImp,
+                       0. /* eDep */, 0 /* x */, 0. /* y */, 0. /* z */, 0. /* px */, 0. /* py */, 0. /* pz */);
+      }
     } // end loop over y
   }   // end loop over x
   return true;

@@ -241,8 +241,9 @@ class Detector : public o2::base::DetImpl<Detector>
 
   // converts FastSim model results to Hit
   bool FastSimToHits(const Ort::Value& response, const TParticle& particle, int detector);
-  // determines detector geometry
-  constexpr std::pair<const int, const int> determineDetectorGeometry(int detector)
+
+  // determines detector geometry "pixel sizes"
+  constexpr std::pair<const int, const int> determineDetectorSize(int detector)
   {
     if (detector == ZNA || detector == ZNC) {
       return {Geometry::ZNDIVISION[0] * Geometry::ZNSECTORS[0] * 2, Geometry::ZNDIVISION[1] * Geometry::ZNSECTORS[1] * 2};
