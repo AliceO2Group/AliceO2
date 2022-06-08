@@ -566,6 +566,37 @@ struct IndexManager<Builds<IDX>> {
   }
 };
 
+/// Manager template to handle slice caching
+template <typename T>
+struct PresliceManager {
+  template <typename T1>
+  static bool processTable(T&, T1&)
+  {
+    return false;
+  }
+
+  static bool setNewDF(T&) { return false; };
+};
+
+template <typename T>
+struct PresliceManager<Preslice<T>> {
+  template <typename T1>
+  static bool processTable(Preslice<T>& container, T1& table)
+  {
+    if constexpr (o2::soa::is_binding_compatible_v<T, T1>()) {
+      auto status = o2::framework::getSlices(container.index.name, table.asArrowTable(), container.mValues, container.mCounts);
+      return status.ok();
+    } else {
+      return false;
+    }
+  }
+
+  static bool setNewDF(Preslice<T>& container)
+  {
+    container.setNewDF();
+    return true;
+  }
+};
 } // namespace o2::framework
 
 #endif // ANALYSISMANAGERS_H
