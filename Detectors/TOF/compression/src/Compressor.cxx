@@ -424,7 +424,7 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
       decoderNext();
 
       /** filler detected **/
-      if ( (mDecoderPointer < mDecoderPointerMax) && IS_FILLER(*mDecoderPointer) ) {
+      if ((mDecoderPointer < mDecoderPointerMax) && IS_FILLER(*mDecoderPointer)) {
         if (verbose && mDecoderVerbose) {
           printf(" %08x Filler \n", *mDecoderPointer);
         }
