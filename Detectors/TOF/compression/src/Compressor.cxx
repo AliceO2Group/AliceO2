@@ -539,7 +539,11 @@ bool Compressor<RDH, verbose, paranoid>::processLTM()
 
   mDecoderSummary.ltmDataHeader = mDecoderPointer;
   if (verbose && mDecoderVerbose) {
-    printf(" %08x LTM Global Header \n", *mDecoderPointer);
+    auto ltmDataHeader = reinterpret_cast<const raw::LTMDataHeader_t*>(mDecoderPointer);
+    auto eventWords = ltmDataHeader->eventWords;
+    auto cycloneErr = ltmDataHeader->cycloneErr;
+    auto fault = ltmDataHeader->cycloneErr;
+    printf(" %08x LTM Data Header       (eventWords=%d, cycloneErr=%d, fault=%d) \n", *mDecoderPointer, eventWords, cycloneErr, fault);
   }
   decoderNext();
   if (paranoid && decoderParanoid()) {
@@ -550,7 +554,7 @@ bool Compressor<RDH, verbose, paranoid>::processLTM()
   uint32_t eventWords = GET_LTMDATAHEADER_EVENTWORDS(*mDecoderPointer);
   for (int i = 0; i < eventWords; ++i) {
     if (verbose && mDecoderVerbose) {
-      printf(" %08x LTM Data Header \n", *mDecoderPointer);
+      printf(" %08x LTM Data \n", *mDecoderPointer);
     }
     decoderNext();
     if (paranoid && decoderParanoid()) {
@@ -568,7 +572,6 @@ bool Compressor<RDH, verbose, paranoid>::processLTM()
     if (paranoid && decoderParanoid()) {
       return true;
     }
-    break;
   }
 
   /** success **/
