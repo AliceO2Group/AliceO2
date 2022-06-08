@@ -23,7 +23,7 @@ namespace constants
 {
 namespace geom
 {
-constexpr float XBeamPipeInnerRef = 2.0; ///< inner radius of the beam pipe
+constexpr float XBeamPipeOuterRef = 1.6; ///< inner radius of the beam pipe
 constexpr float XTPCInnerRef = 83.0;     ///< reference radius at which TPC provides the tracks
 constexpr float XTPCOuterRef = 255.0;    ///< reference radius to propagate outer TPC track
 } // namespace geom
