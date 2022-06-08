@@ -268,7 +268,7 @@ void Digitizer::storeBC(BCCache& bc,
     if (mCalibOffset) {
       miscalib = mCalibOffset->mTimeOffsets[ipmt];
     }
-    int smeared_time = 1000. * (*cfd.particle - params.mCfdShift) * params.mChannelWidthInverse + miscalib;
+    int smeared_time = 1000. * (*cfd.particle - params.mCfdShift) * params.mChannelWidthInverse + miscalib + int(1000. * mIntRecord.getTimeOffsetWrtBC() * params.mChannelWidthInverse);
     bool is_time_in_signal_gate = (smeared_time > -params.mTime_trg_gate && smeared_time < params.mTime_trg_gate);
     float charge = measure_amplitude(channel_times) * params.mCharge2amp;
     float amp = is_time_in_signal_gate ? params.mMV_2_Nchannels * charge : 0;
