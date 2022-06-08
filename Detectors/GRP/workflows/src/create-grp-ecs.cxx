@@ -149,7 +149,7 @@ int main(int argc, char** argv)
     add_option("start-time,s", bpo::value<long>()->default_value(0), "run start time in ms, now() if 0");
     add_option("end-time,e", bpo::value<long>()->default_value(0), "run end time in ms, start-time+3days is used if 0");
     add_option("ccdb-server", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "CCDB server for upload, local file if empty");
-    add_option("refresh", bpo::value<string>()->default_value("")->implicit_value("async"), "refresh server cache after upload: \"none\" (or \"\"), \"async\" (non-blocking) and \"sync\" (blocking)");
+    add_option("refresh", bpo::value<string>()->default_value("")->implicit_value("async"), R"(refresh server cache after upload: "none" (or ""), "async" (non-blocking) and "sync" (blocking))");
 
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
@@ -189,7 +189,7 @@ int main(int argc, char** argv)
     } else if (refreshStr == "sync") {
       refresh = CCDBRefreshMode::SYNC;
     } else {
-      LOGP(fatal, "Wrong CCDB refresh mode {}, supported are \"none\" (or \"\"), \"async\" and \"sync\"", refreshStr);
+      LOGP(fatal, R"(Wrong CCDB refresh mode {}, supported are "none" (or ""), "async" and "sync")", refreshStr);
     }
   }
 
