@@ -135,6 +135,10 @@ if [[ $SYNCMODE == 1 && "0$ED_NO_ITS_ROF_FILTER" != "01" && $BEAMTYPE == "PbPb" 
   EVE_CONFIG+=" --filter-its-rof"
 fi
 
+if [[ $BEAMTYPE == "PbPb" ]]; then
+  EVE_CONFIG+=" --only-nth-event=2"
+fi
+
 if [[ $GPUTYPE != "CPU" && $NUMAGPUIDS != 0 ]]; then
   GPU_CONFIG_KEY+="GPU_global.registerSelectedSegmentIds=$NUMAID;"
 fi

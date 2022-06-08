@@ -55,8 +55,8 @@ class O2DPLDisplaySpec : public o2::framework::Task
                    std::chrono::milliseconds timeInterval, int numberOfFiles, int numberOfTracks,
                    bool eveHostNameMatch, int minITSTracks, int minTracks, bool filterITSROF, bool filterTime,
                    const EveWorkflowHelper::Bracket& timeBracket, bool removeTPCEta,
-                   const EveWorkflowHelper::Bracket& etaBracket, bool trackSorting)
-    : mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mJsonPath(jsonPath), mTimeInterval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch), mMinITSTracks(minITSTracks), mMinTracks(minTracks), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket), mRemoveTPCEta(removeTPCEta), mEtaBracket(etaBracket), mTrackSorting(trackSorting)
+                   const EveWorkflowHelper::Bracket& etaBracket, bool trackSorting, int onlyNthEvent)
+    : mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mJsonPath(jsonPath), mTimeInterval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch), mMinITSTracks(minITSTracks), mMinTracks(minTracks), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket), mRemoveTPCEta(removeTPCEta), mEtaBracket(etaBracket), mTrackSorting(trackSorting), mOnlyNthEvent(onlyNthEvent)
   {
     this->mTimeStamp = std::chrono::high_resolution_clock::now() - timeInterval; // first run meets condition
   }
@@ -83,6 +83,8 @@ class O2DPLDisplaySpec : public o2::framework::Task
   int mNumberOfFiles;                      // maximum number of files in folder - newer replaces older
   int mNumberOfTracks;                     // maximum number of track in single file (0 means no limit)
   bool mTrackSorting;                      // perform sorting tracks by track time before applying filters
+  int mOnlyNthEvent;                       // process only every nth event.
+  int mEventCounter = 0;
   std::chrono::time_point<std::chrono::high_resolution_clock> mTimeStamp;
 
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;
