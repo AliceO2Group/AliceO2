@@ -652,7 +652,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         // is conservatively the one of the device doing the forwarding.
         if (spec.forwards[fi].channel.rfind("from_", 0) == 0) {
           auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
-          LOGP(info, "Forwarding to channel {} oldest possible timeslice {}", spec.forwards[fi].channel, oldestTimeslice.timeslice.value);
+          LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}", spec.forwards[fi].channel, oldestTimeslice.timeslice.value);
           DataProcessingHelpers::sendOldestPossibleTimeframe(channel, oldestTimeslice.timeslice.value);
         }
       }
