@@ -207,14 +207,21 @@ void Digitizer::digitizeBC(BCCache& bc)
   }
   // Prepare sum of towers before adding noise
   for (int ib = NTimeBinsPerBC; ib--;) {
+    // Only for proton calorimeters we allow for gain modification (attenuation) before entering into the sum
     bcdata[IdZNASum][ib] = mSimCondition->channels[IdZNASum].gain *
                            (bcdata[IdZNA1][ib] + bcdata[IdZNA2][ib] + bcdata[IdZNA3][ib] + bcdata[IdZNA4][ib]);
     bcdata[IdZPASum][ib] = mSimCondition->channels[IdZPASum].gain *
-                           (bcdata[IdZPA1][ib] + bcdata[IdZPA2][ib] + bcdata[IdZPA3][ib] + bcdata[IdZPA4][ib]);
+                           (bcdata[IdZPA1][ib] * mSimCondition->channels[IdZPA1].gainInSum +
+                            bcdata[IdZPA2][ib] * mSimCondition->channels[IdZPA2].gainInSum +
+                            bcdata[IdZPA3][ib] * mSimCondition->channels[IdZPA3].gainInSum +
+                            bcdata[IdZPA4][ib] * mSimCondition->channels[IdZPA4].gainInSum);
     bcdata[IdZNCSum][ib] = mSimCondition->channels[IdZNCSum].gain *
                            (bcdata[IdZNC1][ib] + bcdata[IdZNC2][ib] + bcdata[IdZNC3][ib] + bcdata[IdZNC4][ib]);
     bcdata[IdZPCSum][ib] = mSimCondition->channels[IdZPCSum].gain *
-                           (bcdata[IdZPC1][ib] + bcdata[IdZPC2][ib] + bcdata[IdZPC3][ib] + bcdata[IdZPC4][ib]);
+                           (bcdata[IdZPC1][ib] * mSimCondition->channels[IdZPC1].gainInSum +
+                            bcdata[IdZPC2][ib] * mSimCondition->channels[IdZPC2].gainInSum +
+                            bcdata[IdZPC3][ib] * mSimCondition->channels[IdZPC3].gainInSum +
+                            bcdata[IdZPC4][ib] * mSimCondition->channels[IdZPC4].gainInSum);
   }
   // Digitize the signals connected to each channel of the different modules
   for (const auto& md : mModuleConfig->modules) {
