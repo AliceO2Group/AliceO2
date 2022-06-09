@@ -445,7 +445,7 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   if (src[GTrackID::MFT]) {
     requestMFTTracks(useMC);
   }
-  if (src[GTrackID::MCH]) {
+  if (src[GTrackID::MCH] || src[GTrackID::MCHMID]) {
     requestMCHTracks(useMC);
   }
   if (src[GTrackID::MID]) {
