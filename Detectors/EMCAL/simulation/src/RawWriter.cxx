@@ -14,6 +14,7 @@
 #include <fmt/core.h>
 #include <gsl/span>
 #include <TSystem.h>
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "DataFormatsEMCAL/Constants.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/RCUTrailer.h"
@@ -152,7 +153,7 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     auto ddlid = srucont.mSRUid;
     auto [crorc, link] = mGeometry->getLinkAssignment(ddlid);
     LOG(debug1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
-    mRawWriter->addData(ddlid, crorc, link, 0, trg.getBCData(), payload, false, trg.getTriggerBits());
+    mRawWriter->addData(ddlid, crorc, link, 0, trg.getBCData() + o2::ctp::TriggerOffsetsParam::Instance().LM_L0, payload, false, trg.getTriggerBits());
   }
   LOG(debug) << "Done";
   return true;
