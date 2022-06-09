@@ -15,6 +15,7 @@
 
 #include <InfoLogger/InfoLogger.hxx>
 
+#include "CommonConstants/Triggers.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -22,6 +23,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Logger.h"
 #include "Framework/WorkflowSpec.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "DataFormatsEMCAL/Constants.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "DataFormatsEMCAL/ErrorTypeFEE.h"
@@ -120,6 +122,11 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     return;
   }
 
+  // Get the first orbit of the timeframe later used to check whether the corrected
+  // BC is within the timeframe
+  const auto tfOrbitFirst = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ctx.inputs().getFirstValid(true))->firstTForbit;
+  auto lml0delay = o2::ctp::TriggerOffsetsParam::Instance().LM_L0;
+
   // Cache cells from for bunch crossings as the component reads timeframes from many links consecutively
   std::map<o2::InteractionRecord, std::shared_ptr<std::vector<RecCellInfo>>> cellBuffer; // Internal cell buffer
   std::map<o2::InteractionRecord, uint32_t> triggerBuffer;
@@ -168,6 +175,15 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       auto triggerbits = raw::RDHUtils::getTriggerType(header);
 
       o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
+      // Correct physics triggers for the shift of the BC due to the LM-L0 delay
+      if (triggerbits & o2::trigger::PhT) {
+        if (currentIR.differenceInBC({0, tfOrbitFirst}) >= lml0delay) {
+          currentIR -= lml0delay; // guaranteed to stay in the TF containing the collision
+        } else {
+          // discard the data associated with this IR as it was triggered before the start of timeframe
+          continue;
+        }
+      }
       std::shared_ptr<std::vector<RecCellInfo>> currentCellContainer;
       auto found = cellBuffer.find(currentIR);
       if (found == cellBuffer.end()) {
