@@ -2,6 +2,7 @@
 
 #SEVERITY="detail"
 #ENABLE_METRICS=1
+[ -d "$O2DPG_ROOT" ] || { echo "O2DPG_ROOT not set" 1>&2; exit 1; }
 
 source $O2DPG_ROOT/DATA/common/setenv.sh
 source $O2_ROOT/prodtests/full-system-test/workflow-setup.sh
