@@ -18,6 +18,8 @@
 #include "TOFBase/Geo.h"
 #include "DetectorsRaw/RDHUtils.h"
 
+#include "FairLogger.h"
+
 #include <cstring>
 #include <iostream>
 
@@ -193,7 +195,12 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
   /** process DRM data **/
   mDecoderPointer = reinterpret_cast<const uint32_t*>(mDecoderSaveBuffer);
   mDecoderPointerMax = reinterpret_cast<const uint32_t*>(mDecoderSaveBuffer + mDecoderSaveBufferDataSize);
+  int nsteps = 0;
   while (mDecoderPointer < mDecoderPointerMax) {
+    nsteps++;
+    if (nsteps > 3) {
+      LOG(error) << "processHBF: nsteps in while loop = " << nsteps << ", infity loop?";
+    }
     mEventCounter++;
     if (processDRM()) {            // if this breaks, we did not run the checker and the summary is not reset!
       mDecoderSummary = {nullptr}; // reset it like this, perhaps a better way can be found
@@ -396,7 +403,12 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
   encoderNext();
 
   /** loop over DRM payload **/
+  int nsteps = 0;
   while (true) {
+    nsteps++;
+    if (nsteps > 20) {
+      LOG(error) << "processDRM: nsteps in while loop = " << nsteps << ", infity loop?";
+    }
 
     /** LTM global header detected **/
     if (IS_LTM_GLOBAL_HEADER(*mDecoderPointer)) {
@@ -600,7 +612,12 @@ bool Compressor<RDH, verbose, paranoid>::processTRM()
   }
 
   /** loop over TRM payload **/
+  int nsteps = 0;
   while (true) {
+    nsteps++;
+    if (nsteps > 20) {
+      LOG(error) << "processTRM: nsteps in while loop = " << nsteps << ", infity loop?";
+    }
 
     /** TRM Chain-A Header detected **/
     if (IS_TRM_CHAINA_HEADER(*mDecoderPointer) && GET_TRMCHAINHEADER_SLOTID(*mDecoderPointer) == slotId) {
@@ -690,7 +707,12 @@ bool Compressor<RDH, verbose, paranoid>::processTRMchain(int itrm, int ichain)
   }
 
   /** loop over TRM Chain payload **/
+  int nsteps = 0;
   while (true) {
+    nsteps++;
+    if (nsteps > 20) {
+      LOG(error) << "processTRMchain: nsteps in while loop = " << nsteps << ", infity loop?";
+    }
     /** TDC hit detected **/
     if (IS_TDC_HIT(*mDecoderPointer)) {
       mDecoderSummary.hasHits[itrm][ichain] = true;
