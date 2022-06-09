@@ -538,7 +538,8 @@ bool Compressor<RDH, verbose, paranoid>::processLTM()
   /** process LTM **/
 
   mDecoderSummary.ltmDataHeader = mDecoderPointer;
-  uint32_t eventWords = GET_LTMDATAHEADER_EVENTWORDS(*mDecoderPointer);
+  uint32_t eventWords = GET_LTMDATAHEADER_EVENTWORDS(*mDecoderPointer); // this is the total event size, including header/trailer
+  uint32_t payload = eventWords - 2;
   if (verbose && mDecoderVerbose) {
     auto ltmDataHeader = reinterpret_cast<const raw::LTMDataHeader_t*>(mDecoderPointer);
     auto eventWords = ltmDataHeader->eventWords;
@@ -552,7 +553,7 @@ bool Compressor<RDH, verbose, paranoid>::processLTM()
   }
 
   /** loop over LTM payload **/
-  for (int i = 0; i < eventWords; ++i) {
+  for (int i = 0; i < payload; ++i) {
     if (verbose && mDecoderVerbose) {
       printf(" %08x LTM Data \n", *mDecoderPointer);
     }
