@@ -83,7 +83,7 @@ void CreateSimCondition(long tmin = 0, long tmax = -1, std::string ccdbHost = ""
     int det = o2::zdc::toDet(ic, tower); // detector ID for this channel
     //
     channel.gain = (tower != o2::zdc::Sum) ? fudgeFactor * Gains[det - 1] : 1.0;
-    if(ic == o2::zdc::IdZPA4 || ic == o2::zdc::IdZPC4){
+    if (ic == o2::zdc::IdZPA4 || ic == o2::zdc::IdZPC4) {
       channel.gainInSum = 0.5;
       channel.gain = channel.gain / channel.gainInSum;
     }
