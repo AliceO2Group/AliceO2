@@ -76,8 +76,8 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskClusters[GID::MFT]) {
     specs.emplace_back(o2::itsmft::getMFTClusterReaderSpec(maskClustersMC[GID::MFT], true));
   }
-  if (maskTracks[GID::MCH]) {
-    specs.emplace_back(o2::mch::getTrackReaderSpec(maskTracksMC[GID::MCH]));
+  if (maskTracks[GID::MCH] || maskMatches[GID::MCHMID]) {
+    specs.emplace_back(o2::mch::getTrackReaderSpec(maskTracksMC[GID::MCH] || maskTracksMC[GID::MCHMID]));
   }
   if (maskTracks[GID::MID]) {
     specs.emplace_back(o2::mid::getTrackReaderSpec(maskTracksMC[GID::MID]));
