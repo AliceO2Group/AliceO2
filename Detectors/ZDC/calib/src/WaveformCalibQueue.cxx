@@ -203,7 +203,9 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
     LOG(info) << "mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
 #endif
     if (mHasInfos[isig][ib] || mHasInfos[TDCSignal[SignalTDC[isig]]][ib]) {
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
       LOG(info) << "isig=" << isig << " ib=" << ib << " tdcid=" << SignalTDC[isig] << " tdc_sig=" << TDCSignal[SignalTDC[isig]] << " " << mHasInfos[isig][ib] << " " << mHasInfos[TDCSignal[SignalTDC[isig]]][ib];
+#endif
       hasInfos = true;
     }
     for (int iw = 0; iw < mNW[ib]; iw++) {
