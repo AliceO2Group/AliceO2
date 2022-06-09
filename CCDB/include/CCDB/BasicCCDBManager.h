@@ -121,6 +121,15 @@ class CCDBManagerInstance
     }
   }
 
+  /// Check if an object in cache is valid
+  bool isCachedObjectValid(std::string const& path, long timestamp)
+  {
+    if (!isCachingEnabled()) {
+      return false;
+    }
+    return mCache[path].isValid(timestamp);
+  }
+
   /// check if checks of object validity before CCDB query is enabled
   bool isLocalObjectValidityCheckingEnabled() const { return mCheckObjValidityEnabled; }
 
