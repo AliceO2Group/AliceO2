@@ -41,25 +41,16 @@ inline unsigned long llu2lu(std::uint64_t v) { return (unsigned long)v; }
 
 struct GRPEnvVariables {
 
-  std::pair<uint64_t, double> mCavernTemperature;
-  std::pair<uint64_t, double> mCavernAtmosPressure;
-  std::pair<uint64_t, double> mSurfaceAtmosPressure;
-  std::pair<uint64_t, double> mCavernAtmosPressure2;
-
-  GRPEnvVariables()
-  {
-    mCavernTemperature = std::make_pair(0, -999999999);
-    mCavernAtmosPressure = std::make_pair(0, -999999999);
-    mSurfaceAtmosPressure = std::make_pair(0, -999999999);
-    mCavernAtmosPressure2 = std::make_pair(0, -999999999);
-  }
+  std::unordered_map<std::string, std::vector<std::pair<uint64_t, double>>> mEnvVars;
 
   void print()
   {
-    std::printf("%-30s : timestamp %lu   val %.3f\n", "Cavern Temperature", llu2lu(mCavernTemperature.first), mCavernTemperature.second);
-    std::printf("%-30s : timestamp %lu   val %.3f\n", "Cavern Atm Pressure", llu2lu(mCavernAtmosPressure.first), mCavernAtmosPressure.second);
-    std::printf("%-30s : timestamp %lu   val %.3f\n", "Surf Atm Pressure", llu2lu(mSurfaceAtmosPressure.first), mSurfaceAtmosPressure.second);
-    std::printf("%-30s : timestamp %lu   val %.3f\n", "Cavern Atm Pressure 2", llu2lu(mCavernAtmosPressure2.first), mCavernAtmosPressure2.second);
+    for (const auto& el : mEnvVars) {
+      std::printf("%-30s\n", el.first.c_str());
+      for (const auto& it : el.second) {
+        std::printf("timestamp %lu   val %.3f\n", llu2lu(it.first), it.second);
+      }
+    }
   }
 
   ClassDefNV(GRPEnvVariables, 1);
@@ -72,10 +63,14 @@ struct MagFieldHelper {
   bool negL3 = 0;
   bool negDip = 0;
   bool updated = false;
+  bool verbose = false;
 
   void updateCurL3(float v)
   {
     if (!(isSet & 0x1) || std::abs(v - curL3) > 0.1) {
+      if (verbose) {
+        LOG(info) << "L3 current will be updated from " << curL3 << " to " << v;
+      }
       curL3 = v;
       isSet |= 0x1;
       updated = true;
@@ -84,6 +79,9 @@ struct MagFieldHelper {
   void updateCurDip(float v)
   {
     if (!(isSet & 0x2) || std::abs(v - curDip) > 0.1) {
+      if (verbose) {
+        LOG(info) << "Dipole current will be updated from " << curDip << " to " << v;
+      }
       curDip = v;
       isSet |= 0x2;
       updated = true;
@@ -92,6 +90,9 @@ struct MagFieldHelper {
   void updateSignL3(bool v)
   {
     if (!(isSet & 0x4) || v != negL3) {
+      if (verbose) {
+        LOG(info) << "L3 polarity will be updated from " << negL3 << " to " << v;
+      }
       negL3 = v;
       isSet |= 0x4;
       updated = true;
@@ -100,6 +101,9 @@ struct MagFieldHelper {
   void updateSignDip(bool v)
   {
     if (!(isSet & 0x8) || v != negDip) {
+      if (verbose) {
+        LOG(info) << "Dipole polarity will be updated from " << negDip << " to " << v;
+      }
       negDip = v;
       isSet |= 0x8;
       updated = true;
@@ -109,31 +113,17 @@ struct MagFieldHelper {
 
 struct GRPCollimators {
 
-  std::pair<uint64_t, double> mgap_downstream;
-  std::pair<uint64_t, double> mgap_upstream;
-  std::pair<uint64_t, double> mleft_downstream;
-  std::pair<uint64_t, double> mleft_upstream;
-  std::pair<uint64_t, double> mright_downstream;
-  std::pair<uint64_t, double> mright_upstream;
-
-  GRPCollimators()
-  {
-    mgap_downstream = std::make_pair(0, -999999999);
-    mgap_upstream = std::make_pair(0, -999999999);
-    mleft_downstream = std::make_pair(0, -999999999);
-    mleft_upstream = std::make_pair(0, -999999999);
-    mright_downstream = std::make_pair(0, -999999999);
-    mright_upstream = std::make_pair(0, -999999999);
-  }
+  std::unordered_map<std::string, std::vector<std::pair<uint64_t, double>>> mCollimators;
 
   void print()
   {
-    std::printf("%-60s : timestamp %lu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_downstream", llu2lu(mgap_downstream.first), mgap_downstream.second);
-    std::printf("%-60s : timestamp %lu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_upstream", llu2lu(mgap_upstream.first), mgap_upstream.second);
-    std::printf("%-60s : timestamp %lu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_downstream", llu2lu(mleft_downstream.first), mleft_downstream.second);
-    std::printf("%-60s : timestamp %lu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_upstream", llu2lu(mleft_upstream.first), mleft_upstream.second);
-    std::printf("%-60s : timestamp %lu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream", llu2lu(mright_downstream.first), mright_downstream.second);
-    std::printf("%-60s : timestamp %lu   val %.3e\n", "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream", llu2lu(mright_upstream.first), mright_upstream.second);
+
+    for (const auto& el : mCollimators) {
+      std::printf("%-60s\n", el.first.c_str());
+      for (const auto& it : el.second) {
+        std::printf("timestamp %lu   val %.3f\n", llu2lu(it.first), it.second);
+      }
+    }
   }
 
   ClassDefNV(GRPCollimators, 1);
@@ -153,20 +143,20 @@ struct GRPLHCInfo {
   std::pair<uint64_t, std::string> mMachineMode; // only one value per object: when there is a change, a new object is stored
   std::pair<uint64_t, std::string> mBeamMode;    // only one value per object: when there is a change, a new object is stored
 
-  void reset()
+  void resetAndKeepLast()
   {
     for (int i = 0; i < 2; ++i) {
-      mIntensityBeam[i].clear();
-      mBPTXPhase[i].clear();
-      mBPTXPhaseRMS[i].clear();
-      mBPTXPhaseShift[i].clear();
+      mIntensityBeam[i].erase(mIntensityBeam[i].begin(), mIntensityBeam[i].end() - 1);
+      mBPTXPhase[i].erase(mBPTXPhase[i].begin(), mBPTXPhase[i].end() - 1);
+      mBPTXPhaseRMS[i].erase(mBPTXPhaseRMS[i].begin(), mBPTXPhaseRMS[i].end() - 1);
+      mBPTXPhaseShift[i].erase(mBPTXPhaseShift[i].begin(), mBPTXPhaseShift[i].end() - 1);
     }
     for (int i = 0; i < 3; ++i) {
-      mBackground[i].clear();
+      mBackground[i].erase(mBackground[i].begin(), mBackground[i].end() - 1);
     }
-    mInstLumi.clear();
-    mBPTXdeltaT.clear();
-    mBPTXdeltaTRMS.clear();
+    mInstLumi.erase(mInstLumi.begin(), mInstLumi.end() - 1);
+    mBPTXdeltaT.erase(mBPTXdeltaT.begin(), mBPTXdeltaT.end() - 1);
+    mBPTXdeltaTRMS.erase(mBPTXdeltaTRMS.begin(), mBPTXdeltaTRMS.end() - 1);
   }
 
   void print()
@@ -242,12 +232,26 @@ class GRPDCSDPsProcessor
   uint64_t processFlags(uint64_t flag, const char* pid) { return 0; } // for now it is not really implemented
   bool processCollimators(const DPCOM& dpcom);
   bool processEnvVar(const DPCOM& dpcom);
-  bool processPairD(const DPCOM& dpcom, const std::string& alias, std::pair<uint64_t, double>& p, bool& flag);
+  bool processPairD(const DPCOM& dpcom, const std::string& alias, std::unordered_map<std::string, std::vector<std::pair<uint64_t, double>>>& mapToUpdate);
   bool processPairS(const DPCOM& dpcom, const std::string& alias, std::pair<uint64_t, std::string>& p, bool& flag);
-  bool compareAndUpdate(std::pair<uint64_t, double>& p, const DPCOM& dpcom);
+  bool compareToLatest(std::pair<uint64_t, double>& p, double val);
   bool processLHCIFDPs(const DPCOM& dpcom);
 
-  void resetLHCIFDPs() { mLHCInfo.reset(); }
+  void resetAndKeepLastLHCIFDPs() { mLHCInfo.resetAndKeepLast(); }
+  void resetAndKeepLast(std::unordered_map<std::string, std::vector<std::pair<uint64_t, double>>>& mapToReset)
+  {
+    // keep only the latest measurement
+    for (auto& el : mapToReset) {
+      el.second.erase(el.second.begin(), el.second.end() - 1);
+    }
+  }
+
+  void resetPIDs()
+  {
+    for (auto& it : mPids) {
+      it.second = false;
+    }
+  }
 
   const o2::parameters::GRPMagField& getMagFieldObj() const { return mMagField; }
   const o2::ccdb::CcdbObjectInfo& getccdbMagFieldInfo() const { return mccdbMagFieldInfo; }
@@ -262,19 +266,22 @@ class GRPDCSDPsProcessor
   bool isLHCIFInfoUpdated() const { return mUpdateLHCIFInfo; }
 
   const GRPEnvVariables& getEnvVarsObj() const { return mEnvVars; }
+  GRPEnvVariables& getEnvVarsObj() { return mEnvVars; }
   const o2::ccdb::CcdbObjectInfo& getccdbEnvVarsInfo() const { return mccdbEnvVarsInfo; }
   o2::ccdb::CcdbObjectInfo& getccdbEnvVarsInfo() { return mccdbEnvVarsInfo; }
   void updateEnvVarsCCDB();
-  bool isEnvVarsUpdated() const { return mUpdateEnvVars; }
 
   const GRPCollimators& getCollimatorsObj() const { return mCollimators; }
+  GRPCollimators& getCollimatorsObj() { return mCollimators; }
   const o2::ccdb::CcdbObjectInfo& getccdbCollimatorsInfo() const { return mccdbCollimatorsInfo; }
   o2::ccdb::CcdbObjectInfo& getccdbCollimatorsInfo() { return mccdbCollimatorsInfo; }
   void updateCollimatorsCCDB();
-  bool isCollimatorsUpdated() const { return mUpdateCollimators; }
 
   void setStartValidity(long t) { mStartValidity = t; }
   void useVerboseMode() { mVerbose = true; }
+
+  void printVectorInfo(const std::vector<std::pair<uint64_t, double>>& vect, bool afterUpdate);
+  void updateVector(const DPID& dpid, std::vector<std::pair<uint64_t, double>>& vect, std::string alias, uint64_t timestamp, double val);
 
  private:
   std::unordered_map<DPID, bool> mPids; // contains all PIDs for the processor, the bool
@@ -292,11 +299,9 @@ class GRPDCSDPsProcessor
 
   GRPEnvVariables mEnvVars;
   o2::ccdb::CcdbObjectInfo mccdbEnvVarsInfo;
-  bool mUpdateEnvVars = false;
 
   GRPCollimators mCollimators;
   o2::ccdb::CcdbObjectInfo mccdbCollimatorsInfo;
-  bool mUpdateCollimators = false;
 
   GRPLHCInfo mLHCInfo;
   o2::ccdb::CcdbObjectInfo mccdbLHCIFInfo;

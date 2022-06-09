@@ -31,6 +31,7 @@ void GRPDCSDPsProcessor::init(const std::vector<DPID>& pids)
   for (const auto& it : pids) {
     mPids[it] = false;
   }
+  mMagFieldHelper.verbose = mVerbose;
 }
 //__________________________________________________________________
 
@@ -46,31 +47,12 @@ int GRPDCSDPsProcessor::process(const gsl::span<const DPCOM> dps)
     mFirstTime = mStartValidity;
     mFirstTimeSet = true;
   }
-  std::unordered_map<DPID, DPVAL> mapin;
-  for (auto& it : dps) {
-    mapin[it.id] = it.data;
-  }
-  for (auto& it : mPids) {
-    const auto& el = mapin.find(it.first);
-    if (el == mapin.end()) {
-      LOG(debug) << "DP " << it.first << " not found in list of DPs expected for GRP";
-    } else {
-      LOG(debug) << "DP " << it.first << " found in list of DPs expected for GRP";
-    }
-  }
   mMagFieldHelper.updated = false;
-  mUpdateEnvVars = false;     // by default, we do not foresee a new entry in the CCDB for the Env Var
-  mUpdateCollimators = false; // by default, we do not foresee a new entry in the CCDB for the Collimators
+
   mUpdateLHCIFInfo = false;   // by default, we do not foresee a new entry in the CCDB for the LHCIF DPs
 
   // now we process all DPs, one by one
   for (const auto& it : dps) {
-    // we process only the DPs defined in the configuration
-    const auto& el = mPids.find(it.id);
-    if (el == mPids.end()) {
-      LOG(info) << "DP " << it.id << " not found in GRPDCSProcessor, we will not process it";
-      continue;
-    }
     processDP(it);
     mPids[it.id] = true;
   }
@@ -78,16 +60,6 @@ int GRPDCSDPsProcessor::process(const gsl::span<const DPCOM> dps)
   if (isMagFieldUpdated()) {
     updateMagFieldCCDB();
   }
-  if (mUpdateEnvVars) {
-    updateEnvVarsCCDB();
-  }
-  if (mUpdateCollimators) {
-    updateCollimatorsCCDB();
-  }
-  if (mUpdateLHCIFInfo) {
-    updateLHCIFInfoCCDB();
-  }
-
   mCallSlice++;
   return 0;
 }
@@ -142,15 +114,13 @@ bool GRPDCSDPsProcessor::processCollimators(const DPCOM& dpcom)
 {
 
   // function to process Data Points that are related to the collimators
-  bool match = processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_downstream", mCollimators.mgap_downstream, mUpdateCollimators) ||
-               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_upstream", mCollimators.mgap_upstream, mUpdateCollimators) ||
-               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_downstream", mCollimators.mleft_downstream, mUpdateCollimators) ||
-               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_upstream", mCollimators.mleft_upstream, mUpdateCollimators) ||
-               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream", mCollimators.mright_downstream, mUpdateCollimators) ||
-               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream", mCollimators.mright_upstream, mUpdateCollimators);
-  if (mVerbose) {
-    LOG(info) << "update collimators = " << mUpdateCollimators << " matched: " << match;
-  }
+  bool match = processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_downstream", mCollimators.mCollimators) ||
+               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_upstream", mCollimators.mCollimators) ||
+               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_downstream", mCollimators.mCollimators) ||
+               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_upstream", mCollimators.mCollimators) ||
+               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream", mCollimators.mCollimators) ||
+               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream", mCollimators.mCollimators);
+
   return match;
 }
 
@@ -160,35 +130,31 @@ bool GRPDCSDPsProcessor::processEnvVar(const DPCOM& dpcom)
 {
 
   // function to process Data Points that are related to env variables
-  bool match = processPairD(dpcom, "CavernTemperature", mEnvVars.mCavernTemperature, mUpdateEnvVars) ||
-               processPairD(dpcom, "CavernAtmosPressure", mEnvVars.mCavernAtmosPressure, mUpdateEnvVars) ||
-               processPairD(dpcom, "SurfaceAtmosPressure", mEnvVars.mSurfaceAtmosPressure, mUpdateEnvVars) ||
-               processPairD(dpcom, "CavernAtmosPressure2", mEnvVars.mCavernAtmosPressure2, mUpdateEnvVars);
-  if (mVerbose) {
-    LOG(info) << "update env vars = " << mUpdateEnvVars << " matched: " << match;
-  }
+  bool match = processPairD(dpcom, "CavernTemperature", mEnvVars.mEnvVars) ||
+               processPairD(dpcom, "CavernAtmosPressure", mEnvVars.mEnvVars) ||
+               processPairD(dpcom, "SurfaceAtmosPressure", mEnvVars.mEnvVars) ||
+               processPairD(dpcom, "CavernAtmosPressure2", mEnvVars.mEnvVars);
+
   return match;
 }
 
 //______________________________________________________________________
-bool GRPDCSDPsProcessor::processPairD(const DPCOM& dpcom, const std::string& alias, std::pair<uint64_t, double>& p, bool& flag)
+bool GRPDCSDPsProcessor::processPairD(const DPCOM& dpcom, const std::string& alias, std::unordered_map<std::string, std::vector<std::pair<uint64_t, double>>>& mapToUpdate)
 {
 
   // function to process Data Points that is stored in a pair
+
+  auto& vect = mapToUpdate[alias]; // we also create at this point the vector in the map if it did not exist yet
 
   auto& dpcomdata = dpcom.data;
   auto& dpid = dpcom.id;
   std::string aliasStr(dpid.get_alias());
 
-  if (mVerbose) {
-    LOG(info) << "comparing DP alias " << aliasStr << " to " << alias;
-  }
-
   if (aliasStr == alias) {
     if (mVerbose) {
       LOG(info) << "It matches the requested string " << alias << ", let's check if the value needs to be updated";
     }
-    flag = compareAndUpdate(p, dpcom);
+    updateVector(dpid, mapToUpdate[alias], aliasStr, dpcomdata.get_epoch_time(), o2::dcs::getValue<double>(dpcom));
     return true;
   }
   return false;
@@ -203,10 +169,6 @@ bool GRPDCSDPsProcessor::processPairS(const DPCOM& dpcom, const std::string& ali
   auto& dpcomdata = dpcom.data;
   auto& dpid = dpcom.id;
   std::string aliasStr(dpid.get_alias());
-
-  if (mVerbose) {
-    LOG(info) << "comparing string DP alias " << aliasStr << " to " << alias;
-  }
 
   if (aliasStr == alias) {
     auto val = o2::dcs::getValue<std::string>(dpcom);
@@ -229,19 +191,15 @@ bool GRPDCSDPsProcessor::processPairS(const DPCOM& dpcom, const std::string& ali
 
 //______________________________________________________________________
 
-bool GRPDCSDPsProcessor::compareAndUpdate(std::pair<uint64_t, double>& p, const DPCOM& dpcom)
+bool GRPDCSDPsProcessor::compareToLatest(std::pair<uint64_t, double>& p, double val)
 {
 
   // check if the content of the pair should be updated
 
-  double val = o2::dcs::getValue<double>(dpcom);
-  auto& dpcomdata = dpcom.data;
   if (mVerbose) {
     LOG(info) << "old value = " << p.second << ", new value = " << val << ", absolute difference = " << std::abs(p.second - val) << " call " << mCallSlice;
   }
   if (mCallSlice == 0 || (std::abs(p.second - val) > 0.5e-7 * (std::abs(p.second) + std::abs(val)))) {
-    p.first = dpcomdata.get_epoch_time();
-    p.second = val;
     if (mVerbose) {
       LOG(info) << "value will be updated";
     }
@@ -266,75 +224,54 @@ bool GRPDCSDPsProcessor::processLHCIFDPs(const DPCOM& dpcom)
   if (mVerbose) {
     LOG(info) << "Processing LHCIF DP " << aliasStr;
   }
+  const auto& type = dpid.get_type();
+  double val = -99999999;
+  if (type == DPVAL_DOUBLE || type == RAW_DOUBLE) {
+    val = o2::dcs::getValue<double>(dpcom);
+  }
+
   for (int ibeam = 1; ibeam <= 2; ++ibeam) {
     if (aliasStr.find(fmt::format("{}{}", "LHC_IntensityBeam", ibeam)) != string::npos) {
-      double val = o2::dcs::getValue<double>(dpcom);
-      mLHCInfo.mIntensityBeam[ibeam - 1].emplace_back(dpcomdata.get_epoch_time(), val);
-      if (mVerbose) {
-        LOG(info) << "Adding value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " to mIntensityBeam[" << ibeam - 1 << "]";
-      }
+      updateVector(dpid, mLHCInfo.mIntensityBeam[ibeam - 1], aliasStr, dpcomdata.get_epoch_time(), val);
       return true;
     }
   }
 
   if (aliasStr.find("BPTX") != string::npos) {
-    double val = o2::dcs::getValue<double>(dpcom);
     if (aliasStr == "BPTX_deltaT_B1_B2") {
-      mLHCInfo.mBPTXdeltaT.emplace_back(dpcomdata.get_epoch_time(), val);
-      if (mVerbose) {
-        LOG(info) << "Adding value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " to BPTX_deltaT_B1_B2";
-      }
+      updateVector(dpid, mLHCInfo.mBPTXdeltaT, aliasStr, dpcomdata.get_epoch_time(), val);
       return true;
     }
     if (aliasStr == "BPTX_deltaTRMS_B1_B2") {
-      mLHCInfo.mBPTXdeltaTRMS.emplace_back(dpcomdata.get_epoch_time(), val);
-      if (mVerbose) {
-        LOG(info) << "Adding value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " to BPTX_deltaTRMS_B1_B2";
-      }
+      updateVector(dpid, mLHCInfo.mBPTXdeltaTRMS, aliasStr, dpcomdata.get_epoch_time(), val);
       return true;
     }
     for (int ibeam = 1; ibeam <= 2; ++ibeam) {
       if (aliasStr == fmt::format("{}{}", "BPTX_Phase_B", ibeam)) {
-        mLHCInfo.mBPTXPhase[ibeam - 1].emplace_back(dpcomdata.get_epoch_time(), val);
-        if (mVerbose) {
-          LOG(info) << "Adding value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " to mBPTXPhase[" << ibeam - 1 << "]";
-        }
+        updateVector(dpid, mLHCInfo.mBPTXPhase[ibeam - 1], aliasStr, dpcomdata.get_epoch_time(), val);
         return true;
       } else if (aliasStr == fmt::format("{}{}", "BPTX_PhaseRMS_B", ibeam)) {
-        mLHCInfo.mBPTXPhaseRMS[ibeam - 1].emplace_back(dpcomdata.get_epoch_time(), val);
-        if (mVerbose) {
-          LOG(info) << "Adding value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " to mBPTXPhaseRMS[" << ibeam - 1 << "]";
-        }
+        updateVector(dpid, mLHCInfo.mBPTXPhaseRMS[ibeam - 1], aliasStr, dpcomdata.get_epoch_time(), val);
         return true;
       } else if (aliasStr == fmt::format("{}{}", "BPTX_Phase_Shift_B", ibeam)) {
-        mLHCInfo.mBPTXPhaseShift[ibeam - 1].emplace_back(dpcomdata.get_epoch_time(), val);
-        if (mVerbose) {
-          LOG(info) << "Adding value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " to mBPTXPhaseShift[" << ibeam - 1 << "]";
-        }
+        updateVector(dpid, mLHCInfo.mBPTXPhaseShift[ibeam - 1], aliasStr, dpcomdata.get_epoch_time(), val);
         return true;
       }
     }
     return true;
   }
   if (aliasStr == "ALI_Lumi_Total_Inst") {
-    double val = o2::dcs::getValue<double>(dpcom);
-    mLHCInfo.mInstLumi.emplace_back(dpcomdata.get_epoch_time(), val);
-    if (mVerbose) {
-      LOG(info) << "Adding value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " to mInstLumi";
-    }
+    updateVector(dpid, mLHCInfo.mInstLumi, aliasStr, dpcomdata.get_epoch_time(), val);
     return true;
   }
 
   for (int ibkg = 1; ibkg <= 3; ++ibkg) {
     if (aliasStr.find(fmt::format("{}{}", "ALI_Background", ibkg)) != string::npos) {
-      double val = o2::dcs::getValue<double>(dpcom);
-      mLHCInfo.mBackground[ibkg - 1].emplace_back(dpcomdata.get_epoch_time(), val);
-      if (mVerbose) {
-        LOG(info) << "Adding value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " to mBackground[" << ibkg - 1 << "]";
-      }
+      updateVector(dpid, mLHCInfo.mBackground[ibkg - 1], aliasStr, dpcomdata.get_epoch_time(), val);
       return true;
     }
   }
+
   if (processPairS(dpcom, "ALI_Lumi_Source_Name", mLHCInfo.mLumiSource, mUpdateLHCIFInfo)) {
     return true;
   }
@@ -409,10 +346,51 @@ void GRPDCSDPsProcessor::updateCollimatorsCCDB()
   // we need to update a CCDB for the Env Variables DPs --> let's prepare the CCDBInfo
 
   if (mVerbose) {
-    LOG(info) << "Entry related to Env Vars needs to be updated with startTime " << mStartValidity;
+    LOG(info) << "Entry related to Collimators needs to be updated with startTime " << mStartValidity;
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
   o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbCollimatorsInfo, "GLO/Config/Collimators", md, mStartValidity, mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY); // valid for 3 days
   return;
+}
+
+//______________________________________________________________________
+
+void GRPDCSDPsProcessor::printVectorInfo(const std::vector<std::pair<uint64_t, double>>& vect, bool afterUpdate)
+{
+
+  std::string stage = afterUpdate ? "after update" : "before update";
+  if (mVerbose) {
+    LOG(info) << "size " << stage << " : " << vect.size();
+    for (const auto& it : vect) {
+      LOG(info) << it.first << ", " << it.second;
+    }
+  }
+}
+
+//______________________________________________________________________
+
+void GRPDCSDPsProcessor::updateVector(const DPID& dpid, std::vector<std::pair<uint64_t, double>>& vect, std::string alias, uint64_t timestamp, double val)
+{
+  printVectorInfo(vect, 0);
+  bool updateFlag = false;
+
+  if (mPids[dpid] == false) { // let's remove the first value when it is the leftover from the previous processing, since we now have a newer one
+    if (mVerbose) {
+      LOG(info) << "We will clear the existing vector, since it is the very first time we receive values for it and we have a dummy one, or the only value present is from the previous processing, so it is old";
+    }
+    vect.clear(); // won't hurt if the vector is empty as at the very beginning of the processing
+    updateFlag = true;
+  } else { // we are accumulating entries in the vector already
+    updateFlag = compareToLatest(vect.back(), val);
+  }
+
+  // add new value if needed
+  if (updateFlag) {
+    vect.emplace_back(timestamp, val);
+    if (mVerbose) {
+      LOG(info) << "Adding value " << val << " with timestamp " << timestamp << " to vector for DP " << alias;
+    }
+  }
+  printVectorInfo(vect, 1);
 }
