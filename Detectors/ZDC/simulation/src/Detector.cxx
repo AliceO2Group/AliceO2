@@ -2456,7 +2456,8 @@ void Detector::FinishPrimary()
   flushSpatialResponse();
 
 #ifdef ZDC_FASTSIM_ONNX
-  if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && mFastSimModel != nullptr && mFastSimClassifier != nullptr) {
+  // dump to file only if debugZDCFastSim is set to true
+  if (o2::zdc::ZDCSimParam::Instance().debugZDCFastSim && o2::zdc::ZDCSimParam::Instance().useZDCFastSim && mFastSimModel != nullptr && mFastSimClassifier != nullptr) {
     std::fstream output("o2sim-FastSimResult", std::fstream::out | std::fstream::app);
     if (!output.is_open()) {
       LOG(error) << "Could not open file.";
@@ -2510,14 +2511,17 @@ void Detector::BeginPrimary()
           std::vector<std::vector<float>> modelInput = {fastsim::normal_distribution(0.0, 1.0, 10), std::move(*scaledModelParticle)};
           mFastSimModel->setInput(modelInput);
           mFastSimModel->run();
-          mFastSimResults.push_back(fastsim::processors::calculateChannels(mFastSimModel->getResult()[0], 1)[0]);
+
+          if (o2::zdc::ZDCSimParam::Instance().debugZDCFastSim) {
+            mFastSimResults.push_back(fastsim::processors::calculateChannels(mFastSimModel->getResult()[0], 1)[0]);
+          }
 
           // produce hits from fast sim result
           bool forward = mCurrentPrincipalParticle.Pz() > 0.;
           FastSimToHits(mFastSimModel->getResult()[0], mCurrentPrincipalParticle, forward ? ZNA : ZNC);
           // TODO: call models for all detectors ZNA + ZPA
         }
-      } else {
+      } else if (o2::zdc::ZDCSimParam::Instance().debugZDCFastSim) {
         mFastSimResults.push_back({0, 0, 0, 0, 0});
       }
     }
