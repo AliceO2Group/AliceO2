@@ -283,7 +283,7 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       continue;
     }
     bool droppingNotCondition = false;
-    for (size_t mi = 0; mi == mInputs.size(); ++mi) {
+    for (size_t mi = 0; mi < mInputs.size(); ++mi) {
       auto& input = mInputs[mi];
       auto& element = mCache[si * mInputs.size() + mi];
       if (input.lifetime != Lifetime::Condition && element.size() != 0) {
