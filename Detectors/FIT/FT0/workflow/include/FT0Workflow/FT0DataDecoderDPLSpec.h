@@ -63,11 +63,11 @@ class FT0DataDecoderDPLSpec : public Task
   uint8_t mFEEID_TCM;
   void init(InitContext& ic) final
   {
-
     auto ccdbUrl = ic.options().get<std::string>("ccdb-path");
     auto lutPath = ic.options().get<std::string>("lut-path");
+    mEnableEmptyTFprotection = !ic.options().get<bool>("disable-empty-tf-protection");
     mVecDigits.resize(sNorbits * sNBC);
-    mVecChannelData.resize(216 * sNorbits * sNBC);
+    mVecChannelData.resize(31 * sNorbits * sNBC);
     mVecTriggers.resize(sNBC);
     // mVecChannelDataBuf.resize(216*3564);
     mVecChannelDataBuf.resize(143);
@@ -101,6 +101,7 @@ class FT0DataDecoderDPLSpec : public Task
   std::vector<std::array<o2::ft0::ChannelData, 25 * 216>> mVecChannelDataBuf; // buffer per orbit
   std::vector<o2::ft0::Digit> mVecDigits;
   std::vector<o2::fit::Triggers> mVecTriggers;
+  bool mEnableEmptyTFprotection;
   void run(ProcessingContext& pc) final;
 };
 
@@ -121,7 +122,8 @@ framework::DataProcessorSpec getFT0DataDecoderDPLSpec(bool askSTFDist)
     outputSpec,
     adaptFromTask<FT0DataDecoderDPLSpec>(),
     {o2::framework::ConfigParamSpec{"ccdb-path", VariantType::String, "", {"CCDB url which contains LookupTable"}},
-     o2::framework::ConfigParamSpec{"lut-path", VariantType::String, "", {"LookupTable path, e.g. FT0/LookupTable"}}}};
+     o2::framework::ConfigParamSpec{"lut-path", VariantType::String, "", {"LookupTable path, e.g. FT0/LookupTable"}},
+     o2::framework::ConfigParamSpec{"disable-empty-tf-protection", VariantType::Bool, false, {"Disable empty TF protection. In case of empty payload within TF, only dummy ChannelData object will be sent."}}}};
 }
 
 } // namespace ft0
