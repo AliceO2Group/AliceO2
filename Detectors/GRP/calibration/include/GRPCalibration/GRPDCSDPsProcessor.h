@@ -143,20 +143,28 @@ struct GRPLHCInfo {
   std::pair<uint64_t, std::string> mMachineMode; // only one value per object: when there is a change, a new object is stored
   std::pair<uint64_t, std::string> mBeamMode;    // only one value per object: when there is a change, a new object is stored
 
+  void resetAndKeepLastVector(std::vector<std::pair<uint64_t, double>>& vect)
+  {
+    // always check that the size is > 0 (--> begin != end) for all vectors
+    if (vect.begin() != vect.end()) {
+      vect.erase(vect.begin(), vect.end() - 1);
+    }
+  }
+
   void resetAndKeepLast()
   {
     for (int i = 0; i < 2; ++i) {
-      mIntensityBeam[i].erase(mIntensityBeam[i].begin(), mIntensityBeam[i].end() - 1);
-      mBPTXPhase[i].erase(mBPTXPhase[i].begin(), mBPTXPhase[i].end() - 1);
-      mBPTXPhaseRMS[i].erase(mBPTXPhaseRMS[i].begin(), mBPTXPhaseRMS[i].end() - 1);
-      mBPTXPhaseShift[i].erase(mBPTXPhaseShift[i].begin(), mBPTXPhaseShift[i].end() - 1);
+      resetAndKeepLastVector(mIntensityBeam[i]);
+      resetAndKeepLastVector(mBPTXPhase[i]);
+      resetAndKeepLastVector(mBPTXPhaseRMS[i]);
+      resetAndKeepLastVector(mBPTXPhaseShift[i]);
     }
     for (int i = 0; i < 3; ++i) {
-      mBackground[i].erase(mBackground[i].begin(), mBackground[i].end() - 1);
+      resetAndKeepLastVector(mBackground[i]);
     }
-    mInstLumi.erase(mInstLumi.begin(), mInstLumi.end() - 1);
-    mBPTXdeltaT.erase(mBPTXdeltaT.begin(), mBPTXdeltaT.end() - 1);
-    mBPTXdeltaTRMS.erase(mBPTXdeltaTRMS.begin(), mBPTXdeltaTRMS.end() - 1);
+    resetAndKeepLastVector(mInstLumi);
+    resetAndKeepLastVector(mBPTXdeltaT);
+    resetAndKeepLastVector(mBPTXdeltaTRMS);
   }
 
   void print()
