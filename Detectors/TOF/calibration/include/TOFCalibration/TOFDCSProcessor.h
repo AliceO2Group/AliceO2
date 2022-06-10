@@ -44,6 +44,7 @@ struct TOFDCSinfo {
   std::pair<uint64_t, double> lastValue;  // last value seen by the TOF DCS processor
   std::pair<uint64_t, double> midValue;   // mid value seen by the TOF DCS processor
   std::pair<uint64_t, double> maxChange;  // maximum variation seen by the TOF DCS processor
+  bool updated = false;
   TOFDCSinfo()
   {
     firstValue = std::make_pair(0, -999999999);
@@ -107,12 +108,13 @@ class TOFDCSProcessor
   bool isHVUpdated() const { return mUpdateHVStatus; }
 
   void setStartValidity(long t) { mStartValidity = t; }
-  void useVerboseMode() { mVerbose = true; }
+  void useVerboseModeDP() { mVerboseDP = true; }
+  void useVerboseModeHVLV() { mVerboseHVLV = true; }
 
   void clearDPsinfo()
   {
     mDpsdoublesmap.clear();
-    mTOFDCS.clear();
+    //    mTOFDCS.clear();
   }
 
   bool areAllDPsFilled()
@@ -146,7 +148,8 @@ class TOFDCSProcessor
   long mStartValidity = 0; // TF index for processing, used to store CCDB object
   bool mFirstTimeSet = false;
 
-  bool mVerbose = false;
+  bool mVerboseDP = false;
+  bool mVerboseHVLV = false;
 
   ClassDefNV(TOFDCSProcessor, 0);
 };
