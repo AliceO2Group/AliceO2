@@ -81,11 +81,12 @@ class EMCALCalibExtractor
   template <typename... axes>
   o2::emcal::BadChannelMap calibrateBadChannels(boost::histogram::histogram<axes...>& hist)
   {
-    LOG(info) << "In the calibrateBadChannels function";
+    LOG(info) << "--------------- In the calibrateBadChannels function ---------------";
     std::map<int, std::pair<double, double>> slices = {{0, {0.1, 0.3}}, {1, {0.3, 0.5}}, {2, {0.5, 1.0}}, {3, {1.0, 4.0}}, {4, {4.0, 10.0}}};
 
     // get all ofthe calibration information that we need in a struct
     BadChannelCalibInfo calibrationInformation = buildHitAndEnergyMean(slices, hist);
+    LOG(info) << "--------------- Done with Build Energy Hit and Mean ---------------";
 
     o2::emcal::BadChannelMap mOutputBCM;
     // now loop through the cells and determine the mask for a given cell
@@ -101,23 +102,30 @@ class EMCALCalibExtractor
     //     mNThreads = 1;
     // #endif
 
+    LOG(info) << "beginning the loop over all the cells to add bad channels";
     for (int cellID = 0; cellID < mNcells; cellID++) {
+      LOG(info) << " On cell" << cellID;
       auto projected = o2::utils::ProjectBoostHistoXFast(hist, cellID, cellID);
       if (std::accumulate(projected.begin(), projected.end(), 0) == 0) {
+        LOG(info) << "Cell " << cellID << " is dead.";
         mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::DEAD_CELL);
       } else {
         bool failed = false;
         for (auto& [index, slice] : slices) {
           auto ranges = calibrationInformation.goodCellWindowMap[index];
           auto meanPerCell = calibrationInformation.energyPerHitMap[index][cellID];
+          LOG(info) << "Mean per cell is " << meanPerCell << " Good Cell Window: [ " << ranges.first << " , " << ranges.second << " ]";
           if (meanPerCell < ranges.first || meanPerCell > ranges.second) {
+            LOG(info) << "********* FAILED **********";
             failed = true;
             break;
           }
         }
         if (failed) {
+          LOG(info) << "Cell " << cellID << " is bad.";
           mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::BAD_CELL);
         } else {
+          LOG(info) << "Cell " << cellID << " is good.";
           mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::GOOD_CELL);
         }
       }
@@ -158,12 +166,14 @@ class EMCALCalibExtractor
     LOG(info) << "beginning to loop over the slices";
     for (auto& [sliceIndex, slice] : sliceMap) {
       Double_t meanValues[mNcells];
-      LOG(info) << "starting with slice " << sliceIndex << " and beginning to loop over the cells";
-      for (int cellID = 0; cellID < mNcells; cellID++) {
+      double emin = slice.first;
+      double emax = slice.second;
+      LOG(info) << "starting with slice " << sliceIndex << " from [" << emin << " <-> " << emax << "] and beginning to loop over the cells";
+      LOG(info) << "number of cells " << mNcells;
+      for (int cellID = 0; cellID < 1; cellID++) {
         // create a slice for each cell with energies ranging from emin to emax
         //LOG(info) << "on cell " << cellID;
-        double emin = slice.first;
-        double emax = slice.second;
+
         auto binYLow = cellAmplitude.axis(1).index(cellID);
         auto binYHigh = cellAmplitude.axis(1).index(cellID);
         auto binXLow = cellAmplitude.axis(0).index(emin);
@@ -191,37 +201,39 @@ class EMCALCalibExtractor
         // calculate the geometric mean of the slice
         double meanVal = o2::utils::getMeanBoost1D(projectedSlice);
         LOG(info) << " calculating the mean to be " << meanVal;
-        // double sumVal = boost::histogram::algorithm::sum(projectedSlice);
-        //         LOG(info) << " mean of the slice is  " << meanVal << " and the integral of the slice is " << sumVal;
-        //         //..Set the values only for cells that are not yet marked as bad
-        //         if (sumVal > 0.) {
-        // #if (defined(WITH_OPENMP))
-        // #pragma omp critical
-        // #endif
-        //           // fill the output map with the desired slicing etc.
-        //           meanValues[cellID] = (meanVal / (sumVal));                        // average energy per hit for the mean calculation
-        //           outputMapEnergyPerHit[sliceIndex][cellID] = (meanVal / (sumVal)); //..average energy per hit
-        //           outputMapNHits[sliceIndex][cellID] = sumVal;                      //..number of hits
-        //         }
-        //LOG(info) << "now this cell is done, moving onto the next one";
+        double sumVal = boost::histogram::algorithm::sum(projectedSlice);
+        LOG(info) << " mean of the slice is  " << meanVal << " and the integral of the slice is " << sumVal;
+        //..Set the values only for cells that are not yet marked as bad
+        if (sumVal > 0.) {
+#if (defined(WITH_OPENMP))
+#pragma omp critical
+#endif
+          // fill the output map with the desired slicing etc.
+          LOG(info) << "Filling mean values with " << (meanVal / (sumVal)) << " with Nhits " << sumVal;
+          meanValues[cellID] = (meanVal / (sumVal));                        // average energy per hit for the mean calculation
+          outputMapEnergyPerHit[sliceIndex][cellID] = (meanVal / (sumVal)); //..average energy per hit
+          outputMapNHits[sliceIndex][cellID] = sumVal;                      //..number of hits
+        }
+        LOG(info) << "now this cell (" << cellID << ") is done, moving onto the next one";
       } // end loop over the cells
 
       // get the mean per slice using EvaluateUni from the map
-      //   Double_t meanPerSlice; // mean energy per slice to be compared to the cell
-      //   Double_t sigmaPerSlice;
-      //   // create the estimator which we will then use
-      //   TRobustEstimator robustEstimator;
-      //   robustEstimator.EvaluateUni(outputMapEnergyPerHit[sliceIndex].size(), meanValues, meanPerSlice, sigmaPerSlice, 0); // mean in the slice
+      Double_t meanPerSlice; // mean energy per slice to be compared to the cell
+      Double_t sigmaPerSlice;
+      //   // create the estimator whihc we will then use
+      TRobustEstimator robustEstimator;
+      robustEstimator.EvaluateUni(sizeof(meanValues) / sizeof(double), meanValues, meanPerSlice, sigmaPerSlice, 0); // mean in the slice
 
-      //   // calculate the "good cell window from the mean"
-      //   double maxVal = meanPerSlice + mSigma * sigmaPerSlice;
-      //   double minVal = meanPerSlice - mSigma * sigmaPerSlice;
-      //   // we need to change this
-      //   outputInfo.goodCellWindowMap[sliceIndex] = {minVal, maxVal};
+      LOG(info) << "Mean per slice is: " << meanPerSlice << " Sigma Per Slice: " << sigmaPerSlice << " with size " << outputMapEnergyPerHit[sliceIndex].size();
+      // calculate the "good cell window from the mean"
+      double maxVal = meanPerSlice + mSigma * sigmaPerSlice;
+      double minVal = meanPerSlice - mSigma * sigmaPerSlice;
+      // we need to change this
+      outputInfo.goodCellWindowMap[sliceIndex] = {minVal, maxVal};
     } // end loop over the slices
-    // // now add these to the calib info struct
-    // outputInfo.energyPerHitMap = outputMapEnergyPerHit;
-    // outputInfo.numberOfHitsMap = outputMapNHits;
+    // now add these to the calib info struct
+    outputInfo.energyPerHitMap = outputMapEnergyPerHit;
+    outputInfo.numberOfHitsMap = outputMapNHits;
 
     return outputInfo;
   }

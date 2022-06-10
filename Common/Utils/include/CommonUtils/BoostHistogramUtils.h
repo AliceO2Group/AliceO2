@@ -83,98 +83,98 @@ class BinCenterView
   AxisIterator mBaseIterator;
 };
 
-// /// \class BinUpperView
-// /// \brief  Axis iterator over bin upper edges.
-// template <typename AxisIterator>
-// class BinUpperView
-// {
-//  public:
-//   BinUpperView(AxisIterator iter) : mBaseIterator(iter) {}
-//   ~BinUpperView() = default;
-//   AxisIterator&
-//     operator++()
-//   {
-//     ++mBaseIterator;
-//     return mBaseIterator;
-//   }
-//   AxisIterator operator++(int)
-//   {
-//     AxisIterator result(mBaseIterator);
-//     mBaseIterator++;
-//     return result;
-//   }
+/// \class BinUpperView
+/// \brief  Axis iterator over bin upper edges.
+template <typename AxisIterator>
+class BinUpperView
+{
+ public:
+  BinUpperView(AxisIterator iter) : mBaseIterator(iter) {}
+  ~BinUpperView() = default;
+  AxisIterator&
+    operator++()
+  {
+    ++mBaseIterator;
+    return mBaseIterator;
+  }
+  AxisIterator operator++(int)
+  {
+    AxisIterator result(mBaseIterator);
+    mBaseIterator++;
+    return result;
+  }
 
-//   bool operator!=(const BinUpperView& rhs) const
-//   {
-//     return mBaseIterator != rhs.mBaseIterator;
-//   }
+  bool operator!=(const BinUpperView& rhs) const
+  {
+    return mBaseIterator != rhs.mBaseIterator;
+  }
 
-//   decltype(auto) operator*() { return mBaseIterator->upper(); }
+  decltype(auto) operator*() { return mBaseIterator->upper(); }
 
-//  private:
-//   AxisIterator mBaseIterator;
-// };
+ private:
+  AxisIterator mBaseIterator;
+};
 
-// /// \class BinLowerView
-// /// \brief  Axis iterator over bin lower edges.
-// template <typename AxisIterator>
-// class BinLowerView
-// {
-//  public:
-//   BinLowerView(AxisIterator iter) : mBaseIterator(iter) {}
-//   ~BinLowerView() = default;
-//   AxisIterator&
-//     operator++()
-//   {
-//     ++mBaseIterator;
-//     return mBaseIterator;
-//   }
-//   AxisIterator operator++(int)
-//   {
-//     AxisIterator result(mBaseIterator);
-//     mBaseIterator++;
-//     return result;
-//   }
-//   bool operator!=(const BinLowerView& rhs) const
-//   {
-//     return mBaseIterator != rhs.mBaseIterator;
-//   }
+/// \class BinLowerView
+/// \brief  Axis iterator over bin lower edges.
+template <typename AxisIterator>
+class BinLowerView
+{
+ public:
+  BinLowerView(AxisIterator iter) : mBaseIterator(iter) {}
+  ~BinLowerView() = default;
+  AxisIterator&
+    operator++()
+  {
+    ++mBaseIterator;
+    return mBaseIterator;
+  }
+  AxisIterator operator++(int)
+  {
+    AxisIterator result(mBaseIterator);
+    mBaseIterator++;
+    return result;
+  }
+  bool operator!=(const BinLowerView& rhs) const
+  {
+    return mBaseIterator != rhs.mBaseIterator;
+  }
 
-//   decltype(auto) operator*() { return mBaseIterator->lower(); }
+  decltype(auto) operator*() { return mBaseIterator->lower(); }
 
-//  private:
-//   AxisIterator mBaseIterator;
-// };
+ private:
+  AxisIterator mBaseIterator;
+};
 
-// template <typename AxisIterator>
-// BinCenterView<AxisIterator> operator+(BinCenterView<AxisIterator> lhs, int n)
-// {
-//   BinCenterView<AxisIterator> result(lhs);
-//   for (int i = 0; i < n; i++) {
-//     ++result;
-//   }
-//   return result;
-// }
+template <typename AxisIterator>
+BinCenterView<AxisIterator> operator+(BinCenterView<AxisIterator> lhs, int n)
+{
+  BinCenterView<AxisIterator> result(lhs);
+  for (int i = 0; i < n; i++) {
+    ++result;
+  }
+  return result;
+}
 
-// template <typename AxisIterator>
-// BinUpperView<AxisIterator> operator+(BinUpperView<AxisIterator> lhs, int n)
-// {
-//   BinUpperView<AxisIterator> result(lhs);
-//   for (int i = 0; i < n; i++) {
-//     ++result;
-//   }
-//   return result;
-// }
+template <typename AxisIterator>
+BinUpperView<AxisIterator> operator+(BinUpperView<AxisIterator> lhs, int n)
+{
+  BinUpperView<AxisIterator> result(lhs);
+  for (int i = 0; i < n; i++) {
+    ++result;
+  }
+  return result;
+}
 
-// template <typename AxisIterator>
-// BinLowerView<AxisIterator> operator+(BinLowerView<AxisIterator> lhs, int n)
-// {
-//   BinLowerView<AxisIterator> result(lhs);
-//   for (int i = 0; i < n; i++) {
-//     ++result;
-//   }
-//   return result;
-// }
+template <typename AxisIterator>
+BinLowerView<AxisIterator> operator+(BinLowerView<AxisIterator> lhs, int n)
+{
+  BinLowerView<AxisIterator> result(lhs);
+  for (int i = 0; i < n; i++) {
+    ++result;
+  }
+  return result;
+}
 
 template <typename T, int nparams>
 class fitResult
@@ -419,30 +419,16 @@ template <typename... axes>
 double getMeanBoost1D(boost::histogram::histogram<axes...>& inHist1D)
 {
   LOG(info) << "Entering the mean function for hist with rank " << inHist1D.rank() << " with " << inHist1D.axis(0).size() << " bins";
-  // o2::math_utils::detail::StatAccumulator stats;
-  // auto histiter = inHist1D.begin() + 1;
-  // LOG(info) << " hist iter " << *histiter;
-  // for (auto bcentiter = BinCenterView(inHist1D.axis(0).begin());
-  //      bcentiter != BinCenterView(inHist1D.axis(0).end());
-  //      ++bcentiter, ++histiter) {
-  //   LOG(info) << "iterating..... bin center: " << *bcentiter << "hist iter " << *histiter;
-  //   //stats.add(*bcentiter, *histiter);
-  //   LOG(info) << "Successfully added to that stats object - moving onto the next one";
-  // }
-
+  o2::math_utils::detail::StatAccumulator stats;
+  int mynbins = 0;
   auto histiter = inHist1D.begin() + 1;
-  auto bcentiterBegin = BinCenterView(inHist1D.axis(0).begin());
-  auto bcentiterEnd = BinCenterView(inHist1D.axis(0).end());
-  LOG(info) << " Hist iter " << *histiter << " Beginning iter " << *bcentiterBegin; // << " ending iter " << *bcentiterEnd;
-  // for (auto bcentiter = BinCenterView(inHist1D.axis(0).begin());
-  //      bcentiter != BinCenterView(inHist1D.axis(0).end());
-  //      ++bcentiter, ++histiter) {
-  //   LOG(info) << "Bin center: " << *bcentiter
-  //             << " Bin content: " << *histiter
-  //             << "Index: " << inHist1D.axis(0).index(*bcentiter);
-  // }
-  //return stats.getMean();
-  return 1.0;
+  const auto& axis = inHist1D.axis(0);
+  for (auto bincenter = BinCenterView(axis.begin()); bincenter != BinCenterView(axis.end()); ++bincenter, ++histiter) {
+    std::cout << "bin center bin " << mynbins << ": " << *bincenter << " <-> value: " << *histiter << std::endl;
+    ++mynbins;
+    stats.add(*bincenter, *histiter);
+  }
+  return stats.getMean();
 }
 
 /// \brief Convert a 2D boost histogram to a root histogram
@@ -523,17 +509,18 @@ auto ProjectBoostHistoXFast(boost::histogram::histogram<axes...>& hist2d, const 
   double binEndXreduced = hist2d.axis(0).bin(nbinsTotal - 1).upper();
   // make the binning in the new histogram preseving the binning in the old
   // histogram
-  unsigned int nbinsReduced = hist2d.axis(0).index(binEndXreduced) -
-                              hist2d.axis(0).index(binStartXreduced);
+  unsigned int nbinsReduced = nbinsTotal; //hist2d.axis(0).index(binEndXreduced) - hist2d.axis(0).index(binStartXreduced);
   unsigned int nbinsYReduced = hist2d.axis(1).size();
+  LOG(info) << "Bin Start: " << binStartXreduced << " Bin End : " << binEndXreduced;
+  LOG(info) << "Making a projection from " << binStartXreduced << " Index (" << hist2d.axis(0).index(binStartXreduced) << ") "
+            << " to " << binEndXreduced << " Index (" << hist2d.axis(0).index(binEndXreduced) << ") "
+            << " with " << nbinsReduced << " bins ";
   auto histoProj = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nbinsReduced, binStartXreduced, binEndXreduced));
 
   // Now rewrite the bin content of the 1d histogram to get the summed bin content in the specified range
   for (int x = 0; x < nbinsReduced; ++x) {
     histoProj.at(x) = 0;
-    LOG(info) << " on x bin " << x << " now looping over y bins ";
     for (int y = 0; y < nbinsYReduced; ++y) {
-      LOG(info) << " on y bin " << y;
       histoProj.at(x) = histoProj.at(x) + hist2d.at(x, y);
     }
   }
