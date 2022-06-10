@@ -59,8 +59,8 @@ class TRDDCSDataProcessor : public o2::framework::Task
     }
     mCurrentsDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval-currents");
     if (mCurrentsDPsUpdateInterval == 0) {
-      LOG(error) << "TRD DPs update interval set to zero seconds --> changed to 60s";
-      mCurrentsDPsUpdateInterval = 60;
+      LOG(error) << "TRD DPs update interval set to zero seconds --> changed to 120s";
+      mCurrentsDPsUpdateInterval = 120;
     }
     mVoltagesDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval-voltages");
     if (mVoltagesDPsUpdateInterval == 0) {
@@ -158,7 +158,7 @@ class TRDDCSDataProcessor : public o2::framework::Task
     }
 
     auto elapsedTimeCurrents = timeNow - mTimerCurrents; // in ns
-    if (elapsedTimeCurrents.count() * 1e-9 >= mVoltagesDPsUpdateInterval) {
+    if (elapsedTimeCurrents.count() * 1e-9 >= mCurrentsDPsUpdateInterval) {
       sendDPsoutputCurrents(pc.outputs());
       mTimerCurrents = timeNow;
     }
@@ -324,7 +324,7 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
             {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
             {"processor-verbosity", VariantType::Int, 0, {"Increase for more verbose output (max 3)"}},
-            {"DPs-update-interval-currents", VariantType::Int64, 60ll, {"Interval (in s) after which to update the DPs CCDB entry for current parameters"}},
+            {"DPs-update-interval-currents", VariantType::Int64, 120ll, {"Interval (in s) after which to update the DPs CCDB entry for current parameters"}},
             {"DPs-update-interval-voltages", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry for voltage parameters"}},
             {"DPs-update-interval-env", VariantType::Int64, 1800ll, {"Interval (in s) after which to update the DPs CCDB entry for environment parameters"}},
             {"DPs-min-update-interval-voltages", VariantType::Int64, 120ll, {"Minimum range to be covered by voltage CCDB object"}},
