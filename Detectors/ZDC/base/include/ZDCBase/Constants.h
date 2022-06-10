@@ -367,8 +367,9 @@ constexpr int toDet(int channel, int& tower)
 }
 
 // Calibration workflows
-constexpr int WaveformCalib_NBB = 3;
-constexpr int WaveformCalib_NBA = 6;
+// Waveform calibration
+constexpr int WaveformCalib_NBB = 3; // Number of bunches acquired before colliding b.c.
+constexpr int WaveformCalib_NBA = 6; // Number of bunches acquired after colliding b.c.
 constexpr int WaveformCalib_NBT = WaveformCalib_NBB + WaveformCalib_NBA + 1;
 constexpr int WaveformCalib_NW = WaveformCalib_NBT * NIS;
 
