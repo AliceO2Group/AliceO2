@@ -93,14 +93,20 @@ class TOFDCSDataProcessor : public o2::framework::Task
     }
 
     mProcessor = std::make_unique<o2::tof::TOFDCSProcessor>();
-    bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
-    LOG(info) << " ************************* Verbose?" << useVerboseMode;
-    if (useVerboseMode) {
-      mProcessor->useVerboseMode();
+    bool useVerboseModeDP = ic.options().get<bool>("use-verbose-mode-DP");
+    bool useVerboseModeHVLV = ic.options().get<bool>("use-verbose-mode-HVLV");
+    LOG(info) << " ************************* Verbose DP?    " << useVerboseModeDP;
+    LOG(info) << " ************************* Verbose HV/LV? " << useVerboseModeHVLV;
+    if (useVerboseModeDP) {
+      mProcessor->useVerboseModeDP();
+    }
+    if (useVerboseModeHVLV) {
+      mProcessor->useVerboseModeHVLV();
     }
     mProcessor->init(vect);
     mTimer = HighResClock::now();
-    mReportTiming = ic.options().get<bool>("report-timing") || useVerboseMode;
+    mReportTiming = ic.options().get<bool>("report-timing") || useVerboseModeDP || useVerboseModeHVLV;
+    mStoreWhenAllDPs = ic.options().get<bool>("store-when-all-DPs-filled");
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -117,11 +123,15 @@ class TOFDCSDataProcessor : public o2::framework::Task
     mProcessor->process(dps);
     Duration elapsedTime = timeNow - mTimer; // in seconds
     if (elapsedTime.count() >= mDPsUpdateInterval) {
-      if (mProcessor->areAllDPsFilled()) {
+      bool sendToCCDB = true;
+      if (mStoreWhenAllDPs) {
+        sendToCCDB = mProcessor->areAllDPsFilled();
+      }
+      if (sendToCCDB) {
         sendDPsoutput(pc.outputs());
         mTimer = timeNow;
       } else {
-        LOG(debug) << "Not sending yet, not all DPs were filled";
+        LOG(debug) << "Not sending yet: mStoreWhenAllDPs = " << mStoreWhenAllDPs << ", mProcessor->areAllDPsFilled() = " << mProcessor->areAllDPsFilled() << ", sentToCCDB = " << sendToCCDB;
       }
     }
     sendLVandHVoutput(pc.outputs());
@@ -145,6 +155,7 @@ class TOFDCSDataProcessor : public o2::framework::Task
   std::unique_ptr<TOFDCSProcessor> mProcessor;
   HighResClock::time_point mTimer;
   int64_t mDPsUpdateInterval;
+  bool mStoreWhenAllDPs = false;
 
   //________________________________________________________________
   void sendDPsoutput(DataAllocator& output)
@@ -215,9 +226,11 @@ DataProcessorSpec getTOFDCSDataProcessorSpec()
     AlgorithmSpec{adaptFromTask<o2::tof::TOFDCSDataProcessor>()},
     Options{{"ccdb-path", VariantType::String, "http://localhost:8080", {"Path to CCDB"}},
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
-            {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
+            {"use-verbose-mode-DP", VariantType::Bool, false, {"Use verbose mode for DPs"}},
+            {"use-verbose-mode-HVLV", VariantType::Bool, false, {"Use verbose mode for HV and LV"}},
             {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
-            {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};
+            {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}},
+            {"store-when-all-DPs-filled", VariantType::Bool, false, {"Store CCDB entry only when all DPs have been filled (--> never re-use an old value)"}}}};
 }
 
 } // namespace framework
