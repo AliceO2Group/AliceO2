@@ -198,7 +198,7 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
   int nsteps = 0;
   while (mDecoderPointer < mDecoderPointerMax) {
     nsteps++;
-    if (nsteps > 3) {
+    if (nsteps > 3 && !(nsteps % 4)) {
       LOG(error) << "processHBF: nsteps in while loop = " << nsteps << ", infity loop?";
     }
     mEventCounter++;
@@ -406,7 +406,7 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
   int nsteps = 0;
   while (true) {
     nsteps++;
-    if (nsteps > 20) {
+    if (nsteps > 19 && !(nsteps % 20)) {
       LOG(error) << "processDRM: nsteps in while loop = " << nsteps << ", infity loop?";
     }
 
@@ -615,7 +615,7 @@ bool Compressor<RDH, verbose, paranoid>::processTRM()
   int nsteps = 0;
   while (true) {
     nsteps++;
-    if (nsteps > 20) {
+    if (nsteps > 19 && !(nsteps % 20)) {
       LOG(error) << "processTRM: nsteps in while loop = " << nsteps << ", infity loop?";
     }
 
@@ -710,7 +710,7 @@ bool Compressor<RDH, verbose, paranoid>::processTRMchain(int itrm, int ichain)
   int nsteps = 0;
   while (true) {
     nsteps++;
-    if (nsteps > 20) {
+    if (nsteps > 99 && !(nsteps % 100)) {
       LOG(error) << "processTRMchain: nsteps in while loop = " << nsteps << ", infity loop?";
     }
     /** TDC hit detected **/
