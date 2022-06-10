@@ -20,7 +20,8 @@
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/Task.h"
-#include "MCHWorkflow/PreClusterFinderSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "MCHPreClustering/PreClusterFinderSpec.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -29,12 +30,14 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.emplace_back(ConfigParamSpec{"input-digitrofs-data-description", VariantType::String, "TC-F-DIGITROFS", {"description string for the input ROF data"}});
   workflowOptions.emplace_back(ConfigParamSpec{"input-digits-data-description", VariantType::String, "F-DIGITS", {"description string for the input digits data"}});
+  workflowOptions.emplace_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
 #include "Framework/runDataProcessing.h"
 
 WorkflowSpec defineDataProcessing(const ConfigContext& cc)
 {
+  o2::conf::ConfigurableParam::updateFromString(cc.options().get<std::string>("configKeyValues"));
   return {
     o2::mch::getPreClusterFinderSpec(
       "mch-preclustering",

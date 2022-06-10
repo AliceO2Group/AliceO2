@@ -14,7 +14,7 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#include "MCHWorkflow/PreClusterFinderSpec.h"
+#include "MCHPreClustering/PreClusterFinderSpec.h"
 
 #include <iostream>
 #include <fstream>
