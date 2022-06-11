@@ -43,23 +43,30 @@ struct TOFDCSinfo {
   std::pair<uint64_t, double> firstValue; // first value seen by the TOF DCS processor
   std::pair<uint64_t, double> lastValue;  // last value seen by the TOF DCS processor
   std::pair<uint64_t, double> midValue;   // mid value seen by the TOF DCS processor
-  std::pair<uint64_t, double> maxChange;  // maximum variation seen by the TOF DCS processor
+  std::pair<std::array<uint64_t, 2>, double> maxChange; // maximum variation seen by the TOF DCS processor (previous - subsequent value)
+  std::pair<uint64_t, double> minValue;                 // smallest measurement seen by the TOF DCS processor
+  std::pair<uint64_t, double> maxValue;                 // largest measurement seen by the TOF DCS processor
   bool updated = false;
   TOFDCSinfo()
   {
     firstValue = std::make_pair(0, -999999999);
     lastValue = std::make_pair(0, -999999999);
     midValue = std::make_pair(0, -999999999);
-    maxChange = std::make_pair(0, -999999999);
+    std::array<uint64_t, 2> atmp = {0, 0};
+    maxChange = std::make_pair(atmp, 0);
+    minValue = std::make_pair(0, 99999999999);
+    maxValue = std::make_pair(0, -99999999999);
   }
   void makeEmpty()
   {
-    firstValue.first = lastValue.first = midValue.first = maxChange.first = 0;
-    firstValue.second = lastValue.second = midValue.second = maxChange.second = -999999999;
+    firstValue.first = lastValue.first = midValue.first = maxChange.first[0] = maxChange.first[1] = minValue.first = maxValue.first = maxChange.second = 0;
+    firstValue.second = lastValue.second = midValue.second = -999999999;
+    minValue.second = 99999999999;
+    maxValue.second = -99999999999;
   }
   void print() const;
 
-  ClassDefNV(TOFDCSinfo, 1);
+  ClassDefNV(TOFDCSinfo, 2);
 };
 
 struct TOFFEACinfo {
