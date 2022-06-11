@@ -29,7 +29,6 @@ namespace ctp
 {
 /// Database constants
 const std::string CCDBPathCTPConfig = "CTP/Config/Config";
-const std::string CCDBPathCTPScalers = "CTP/Scalers";
 ///
 /// CTP Config items
 struct BCMask {
@@ -168,13 +167,16 @@ class CTPRunManager
   void printActiveRuns() const;
   int saveRunScalersToCCDB(int i);
   int saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart);
-  int getConfigFromCCDB();
-  int getScalersFromCCDB();
+  CTPConfiguration getConfigFromCCDB(long timestamp);
+  CTPRunScalers getScalersFromCCDB(long timestamp);
   int loadScalerNames();
   void setCcdbHost(std::string host) { mCcdbHost = host; };
-
+  //void setCCDBPathConfig(std::string path) { mCCDBPathCTPConfig = path;};
+  void setCCDBPathScalers(std::string path) { mCCDBPathCTPScalers = path;};
  private:
+  /// Database constants
   std::string mCcdbHost = "http://ccdb-test.cern.ch:8080";
+  std::string mCCDBPathCTPScalers = "CTP/Calib/Scalers";
   std::array<CTPActiveRun*, NRUNS> mActiveRuns;
   std::array<std::uint32_t, NRUNS> mActiveRunNumbers;
   std::array<uint32_t, CTPRunScalers::NCOUNTERS> mCounters;
@@ -182,7 +184,7 @@ class CTPRunManager
   CTPActiveRun* mRunInStart = nullptr;
   int mEOX = 0; // redundancy check
   int mCtpcfg = 0;
-  ClassDefNV(CTPRunManager, 2);
+  ClassDefNV(CTPRunManager, 3);
 };
 } // namespace ctp
 } // namespace o2

@@ -457,6 +457,7 @@ void CTPConfiguration::addCTPClass(const CTPClass& ctpclass)
 void CTPConfiguration::printStream(std::ostream& stream) const
 {
   stream << "Configuration:" << mName << "\n Version:" << mVersion << std::endl;
+  stream << "Run:" << mRunNumber << " cfg name:" << mName;
   stream << "CTP BC  masks:" << std::endl;
   for (const auto& i : mBCMasks) {
     i.printStream(stream);
@@ -567,8 +568,7 @@ void CTPRunManager::init()
 }
 int CTPRunManager::startRun(const std::string& cfg)
 {
-  LOG(info) << "Starting run: \n"
-            << cfg;
+  LOG(info) << "Starting run: " << cfg;
   const auto now = std::chrono::system_clock::now();
   const long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   CTPActiveRun* activerun = new CTPActiveRun;
@@ -606,7 +606,6 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
   }
   std::string orb = "extorb";
   CTPScalerRecordRaw scalrec;
-  CTPScalerRaw scalraw;
   scalrec.epochTime = time;
   std::vector<int> clslist = mActiveRuns[irun]->cfg.getTriggerClassList();
   std::vector<std::string> clsnamelist;
@@ -617,6 +616,7 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
     std::string c0a = "cla0a" + std::to_string(cls);
     std::string c1b = "cla1b" + std::to_string(cls);
     std::string c1a = "cla1a" + std::to_string(cls);
+    CTPScalerRaw scalraw;
     scalraw.lmBefore = mCounters[mScalerName2Position[cmb]];
     scalraw.lmAfter = mCounters[mScalerName2Position[cma]];
     scalraw.l0Before = mCounters[mScalerName2Position[c0b]];
@@ -626,6 +626,9 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
     scalrec.scalers.push_back(scalraw);
   }
   scalrec.intRecord.orbit = mCounters[mScalerName2Position[orb]];
+  mActiveRuns[irun]->scalers.addScalerRacordRaw(scalrec);
+  LOG(info) << "Adding scalers for orbit:" << scalrec.intRecord.orbit;
+  scalrec.printStream(std::cout); 
   return 0;
 }
 int CTPRunManager::processMessage(std::string& topic, const std::string& message)
@@ -727,47 +730,64 @@ int CTPRunManager::saveRunScalersToCCDB(int i)
 {
   // data base
   CTPActiveRun* run = mActiveRuns[i];
-  long tmin = run->timeStart;
-  long tmax = run->timeStop;
+  using namespace std::chrono_literals;
+  std::chrono::seconds days3 = 259200s;
+  std::chrono::seconds days1 = 86400s;
+  long time3days = std::chrono::duration_cast<std::chrono::milliseconds>(days3).count();
+  long time1days = std::chrono::duration_cast<std::chrono::milliseconds>(days1).count();
+  long tmin = run->timeStart - time1days;
+  long tmax = run->timeStop + time3days;
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
+  metadata["runNumber"] = std::to_string(run->cfg.getRunNumber());
   api.init(mCcdbHost.c_str());  // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
-  api.storeAsTFileAny(&(run->scalers), o2::ctp::CCDBPathCTPScalers, metadata, tmin, tmax);
-  LOG(info) << "CTP scalers saved in ccdb, run:" << run->cfg.getRunNumber();
+  api.storeAsTFileAny(&(run->scalers), mCCDBPathCTPScalers, metadata, tmin, tmax);
+  LOG(info) << "CTP scalers saved in ccdb, run:" << run->cfg.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
   return 0;
 }
 int CTPRunManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
 {
   // data base
-  long tmin = timeStart;
   using namespace std::chrono_literals;
   std::chrono::seconds days3 = 259200s;
+  std::chrono::seconds days1 = 86400s;
   long time3days = std::chrono::duration_cast<std::chrono::milliseconds>(days3).count();
+  long time1days = std::chrono::duration_cast<std::chrono::milliseconds>(days1).count();
+  long tmin = timeStart - time1days;
   long tmax = timeStart + time3days;
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
+  metadata["runNumber"] = std::to_string(cfg->getRunNumber());
   api.init(mCcdbHost.c_str());  // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
-  api.storeAsTFileAny(cfg, o2::ctp::CCDBPathCTPConfig, metadata, tmin, tmax);
-  LOG(info) << "CTP config  saved in ccdb, run:" << cfg->getRunNumber();
+  api.storeAsTFileAny(cfg, CCDBPathCTPConfig, metadata, tmin, tmax);
+  LOG(info) << "CTP config  saved in ccdb, run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
   return 0;
 }
-int CTPRunManager::getConfigFromCCDB()
+CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp)
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCcdbHost);
-  auto ctpconfigdb = mgr.get<CTPConfiguration>(CCDBPathCTPConfig);
-  ctpconfigdb->printStream(std::cout);
-  return 0;
+  auto ctpconfigdb = mgr.getForTimeStamp<CTPConfiguration>(CCDBPathCTPConfig, timestamp);
+  if(ctpconfigdb == nullptr) {
+    LOG(info) << "CTP config not in database, timestamp:" << timestamp;
+  } else {
+    ctpconfigdb->printStream(std::cout);
+  }
+  return *ctpconfigdb;
 }
-int CTPRunManager::getScalersFromCCDB()
+CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp)
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCcdbHost);
-  auto ctpconfigdb = mgr.get<CTPRunScalers>(CCDBPathCTPScalers);
-  ctpconfigdb->printStream(std::cout);
-  return 0;
+  auto ctpscalers = mgr.getForTimeStamp<CTPRunScalers>(mCCDBPathCTPScalers, timestamp);
+  if( ctpscalers == nullptr) {
+    LOG(info) << "CTPRunScalers not in database, timestamp:" << timestamp;
+  } else {
+    ctpscalers->printStream(std::cout);
+  }
+  return *ctpscalers;
 }
 int CTPRunManager::loadScalerNames()
 {

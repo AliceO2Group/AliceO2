@@ -83,8 +83,8 @@ class CTPRunScalers
   int checkConsistency(const CTPScalerRecordO2& rec0, const CTPScalerRecordO2& rec1) const;
   void setClassMask(std::bitset<CTP_NCLASSES> classMask) { mClassMask = classMask; };
   void setRunNumber(uint32_t rnumber) { mRunNumber = rnumber; };
+  void addScalerRacordRaw(CTPScalerRecordRaw& scalerrecordraw) { mScalerRecordRaw.push_back(scalerrecordraw); };
   //
-  int parseZMQScalers(std::string zmqscalers);
   // static constexpr uint32_t NCOUNTERS = 1052;
   static constexpr uint32_t NCOUNTERS = 1070;
   static std::vector<std::string> scalerNames;
@@ -93,8 +93,8 @@ class CTPRunScalers
   // map from class index to overflow
   // overflow counts how many time class scalerers overflowed
   typedef std::map<uint32_t, std::array<uint32_t, 6>> overflows_t;
-  int mVersion;
-  uint32_t mRunNumber;
+  int mVersion = 0;
+  uint32_t mRunNumber = 0;
   // using class mask for all class index related stuff
   std::bitset<CTP_NCLASSES> mClassMask;
   std::vector<CTPScalerRecordRaw> mScalerRecordRaw;
