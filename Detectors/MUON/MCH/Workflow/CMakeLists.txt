@@ -82,8 +82,7 @@ o2_add_executable(
         digits-to-preclusters-workflow
         SOURCES src/digits-to-preclusters-workflow.cxx
         COMPONENT_NAME mch
-        # PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl4)
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl3)
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl4)
 
 o2_add_executable(
         digits-reader-workflow
@@ -107,8 +106,7 @@ o2_add_executable(
         preclusters-to-clusters-original-workflow
         SOURCES src/preclusters-to-clusters-original-workflow.cxx
         COMPONENT_NAME mch
-        # PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImp4)
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImpl3)
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImpl4)
 
 o2_add_executable(
         preclusters-to-clusters-gem-workflow
