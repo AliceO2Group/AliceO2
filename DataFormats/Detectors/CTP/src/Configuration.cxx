@@ -628,7 +628,7 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
   scalrec.intRecord.orbit = mCounters[mScalerName2Position[orb]];
   mActiveRuns[irun]->scalers.addScalerRacordRaw(scalrec);
   LOG(info) << "Adding scalers for orbit:" << scalrec.intRecord.orbit;
-  scalrec.printStream(std::cout); 
+  scalrec.printStream(std::cout);
   return 0;
 }
 int CTPRunManager::processMessage(std::string& topic, const std::string& message)
@@ -770,7 +770,7 @@ CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp)
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCcdbHost);
   auto ctpconfigdb = mgr.getForTimeStamp<CTPConfiguration>(CCDBPathCTPConfig, timestamp);
-  if(ctpconfigdb == nullptr) {
+  if (ctpconfigdb == nullptr) {
     LOG(info) << "CTP config not in database, timestamp:" << timestamp;
   } else {
     ctpconfigdb->printStream(std::cout);
@@ -782,7 +782,7 @@ CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp)
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCcdbHost);
   auto ctpscalers = mgr.getForTimeStamp<CTPRunScalers>(mCCDBPathCTPScalers, timestamp);
-  if( ctpscalers == nullptr) {
+  if (ctpscalers == nullptr) {
     LOG(info) << "CTPRunScalers not in database, timestamp:" << timestamp;
   } else {
     ctpscalers->printStream(std::cout);

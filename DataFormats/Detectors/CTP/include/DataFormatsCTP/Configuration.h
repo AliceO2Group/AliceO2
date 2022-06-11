@@ -171,8 +171,9 @@ class CTPRunManager
   CTPRunScalers getScalersFromCCDB(long timestamp);
   int loadScalerNames();
   void setCcdbHost(std::string host) { mCcdbHost = host; };
-  //void setCCDBPathConfig(std::string path) { mCCDBPathCTPConfig = path;};
-  void setCCDBPathScalers(std::string path) { mCCDBPathCTPScalers = path;};
+  // void setCCDBPathConfig(std::string path) { mCCDBPathCTPConfig = path;};
+  void setCCDBPathScalers(std::string path) { mCCDBPathCTPScalers = path; };
+
  private:
   /// Database constants
   std::string mCcdbHost = "http://ccdb-test.cern.ch:8080";
