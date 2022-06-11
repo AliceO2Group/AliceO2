@@ -41,11 +41,13 @@ struct AO2DConverter {
   o2::framework::Configurable<std::string> jsonPath{"jsons-folder", "./json", "name of the folder to store json files"};
 
   static constexpr float mWorkflowVersion = 1.00;
-  o2::header::DataHeader::RunNumberType mRunNumber = 1;
+  o2::header::DataHeader::RunNumberType mRunNumber = 0;
+  o2::header::DataHeader::TFCounterType mTfCounter = 0;
+  o2::header::DataHeader::TForbitType mTfOrbit = 0;
   o2::framework::DataProcessingHeader::CreationTime mCreationTime;
 
   void init(o2::framework::InitContext& ic);
-  void process(o2::aod::Collisions const& collisions, EveWorkflowHelper::AODBarrelTracks const& barrelTracks, EveWorkflowHelper::AODForwardTracks const& fwdTracks, EveWorkflowHelper::AODMFTTracks const& mftTracks);
+  void process(o2::aod::Collision const& collision, EveWorkflowHelper::AODBarrelTracks const& barrelTracks, EveWorkflowHelper::AODForwardTracks const& fwdTracks, EveWorkflowHelper::AODMFTTracks const& mftTracks);
 
   DetectorData mData;
   std::shared_ptr<EveWorkflowHelper> mHelper;

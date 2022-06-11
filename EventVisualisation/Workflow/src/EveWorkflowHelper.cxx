@@ -269,7 +269,7 @@ std::vector<PNT> EveWorkflowHelper::getTrackPoints(const o2::track::TrackPar& tr
   return pnts;
 }
 
-void EveWorkflowHelper::addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz, GID::Source source, float maxStep)
+void EveWorkflowHelper::addTrackToEvent(const o2::track::TrackPar& tr, GID gid, float trackTime, float dz, GID::Source source, float maxStep)
 {
   if (source == GID::NSources) {
     source = (o2::dataformats::GlobalTrackID::Source)gid.getSource();
@@ -403,14 +403,8 @@ void EveWorkflowHelper::drawAODBarrel(EveWorkflowHelper::AODBarrelTrack const& t
 {
   std::array<float, 5> const arraypar = {track.y(), track.z(), track.snp(),
                                          track.tgl(), track.signed1Pt()};
-  std::array<float, 15> const covpar = {track.cYY(), track.cZY(), track.cZZ(),
-                                        track.cSnpY(), track.cSnpZ(),
-                                        track.cSnpSnp(), track.cTglY(), track.cTglZ(),
-                                        track.cTglSnp(), track.cTglTgl(),
-                                        track.c1PtY(), track.c1PtZ(), track.c1PtSnp(),
-                                        track.c1PtTgl(), track.c1Pt21Pt2()};
 
-  auto const tr = o2::track::TrackParCov(track.x(), track.alpha(), arraypar, covpar);
+  auto const tr = o2::track::TrackPar(track.x(), track.alpha(), arraypar);
 
   addTrackToEvent(tr, GID{0, detectorMapToGIDSource(track.detectorMap())}, trackTime, 0.);
 }
