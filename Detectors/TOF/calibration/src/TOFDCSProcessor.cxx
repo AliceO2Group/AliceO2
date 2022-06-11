@@ -33,7 +33,9 @@ void TOFDCSinfo::print() const
   LOG(info) << "First Value: timestamp = " << firstValue.first << ", value = " << firstValue.second;
   LOG(info) << "Last Value:  timestamp = " << lastValue.first << ", value = " << lastValue.second;
   LOG(info) << "Mid Value:   timestamp = " << midValue.first << ", value = " << midValue.second;
-  LOG(info) << "Max Change:  timestamp = " << maxChange.first << ", value = " << maxChange.second;
+  LOG(info) << "Min Value:   timestamp = " << minValue.first << ", value = " << minValue.second;
+  LOG(info) << "Max Value:   timestamp = " << maxValue.first << ", value = " << maxValue.second;
+  LOG(info) << "Max Change:  timestamp[0] = " << maxChange.first[0] << ", timestamp[1] = " << maxChange.first[1] << ", value = " << maxChange.second;
   std::string updatedStr = updated ? "UPDATED" : "NOT UPDATED";
   LOG(info) << "Status = " << updatedStr;
 }
@@ -341,6 +343,9 @@ void TOFDCSProcessor::updateDPsCCDB()
     if (type == o2::dcs::DPVAL_DOUBLE) {
       auto& tofdcs = mTOFDCS[it.first];
       if (it.second) {     // we processed the DP at least 1x
+        if (mVerboseDP) {
+          LOG(info) << "Processing DP " << it.first.get_alias();
+        }
         it.second = false; // reset for the next period
         tofdcs.updated = true;
         auto& dpvect = mDpsdoublesmap[it.first];
@@ -350,6 +355,17 @@ void TOFDCSProcessor::updateDPsCCDB()
         tofdcs.lastValue.first = dpvect.back().get_epoch_time();
         converter0.raw_data = dpvect.back().payload_pt1;
         tofdcs.lastValue.second = converter0.double_value;
+        for (const auto& el : dpvect) {
+          converter0.raw_data = el.payload_pt1;
+          if (converter0.double_value < tofdcs.minValue.second) {
+            tofdcs.minValue.first = el.get_epoch_time();
+            tofdcs.minValue.second = converter0.double_value;
+          }
+          if (converter0.double_value > tofdcs.maxValue.second) {
+            tofdcs.maxValue.first = el.get_epoch_time();
+            tofdcs.maxValue.second = converter0.double_value;
+          }
+        }
         // now I will look for the max change
         if (dpvect.size() > 1) {
           auto deltatime = dpvect.back().get_epoch_time() - dpvect[0].get_epoch_time();
@@ -358,19 +374,22 @@ void TOFDCSProcessor::updateDPsCCDB()
             // max variation is defined as the difference between first and last value
             converter0.raw_data = dpvect[0].payload_pt1;
             converter1.raw_data = dpvect.back().payload_pt1;
-            double delta = std::abs(converter0.double_value - converter1.double_value);
-            tofdcs.maxChange.first = deltatime; // is it ok to do like this, as in Run 2?
+            double delta = converter0.double_value - converter1.double_value;
+            tofdcs.maxChange.first[0] = dpvect[0].get_epoch_time();
+            tofdcs.maxChange.first[1] = dpvect.back().get_epoch_time();
             tofdcs.maxChange.second = delta;
           } else {
             for (auto i = 0; i < dpvect.size() - 1; ++i) {
               for (auto j = i + 1; j < dpvect.size(); ++j) {
                 auto deltatime = dpvect[j].get_epoch_time() - dpvect[i].get_epoch_time();
-                if (deltatime >= 60000) { // we check every min; epoch_time in ms
+                if (deltatime >= 60000) { // we compare to values coming from at least 1 minute later; epoch_time in ms
                   converter0.raw_data = dpvect[i].payload_pt1;
                   converter1.raw_data = dpvect[j].payload_pt1;
-                  double delta = std::abs(converter0.double_value - converter1.double_value);
-                  if (delta > tofdcs.maxChange.second) {
-                    tofdcs.maxChange.first = deltatime; // is it ok to do like this, as in Run 2?
+                  double delta = converter0.double_value - converter1.double_value;
+                  LOG(info) << "converter0.double_value = " << converter0.double_value << ", converter1.double_value = " << converter1.double_value << ", delta = " << delta << " tofdcs.maxChange.second = " << tofdcs.maxChange.second;
+                  if (std::abs(delta) > std::abs(tofdcs.maxChange.second)) {
+                    tofdcs.maxChange.first[0] = dpvect[i].get_epoch_time();
+                    tofdcs.maxChange.first[1] = dpvect[j].get_epoch_time();
                     tofdcs.maxChange.second = delta;
                   }
                 }
@@ -383,7 +402,8 @@ void TOFDCSProcessor::updateDPsCCDB()
           converter0.raw_data = dpvect[midIdx].payload_pt1;
           tofdcs.midValue.second = converter0.double_value;
         } else {
-          tofdcs.maxChange.first = dpvect[0].get_epoch_time();
+          tofdcs.maxChange.first[0] = dpvect[0].get_epoch_time();
+          tofdcs.maxChange.first[1] = dpvect[0].get_epoch_time();
           converter0.raw_data = dpvect[0].payload_pt1;
           tofdcs.maxChange.second = converter0.double_value;
           tofdcs.midValue.first = dpvect[0].get_epoch_time();
