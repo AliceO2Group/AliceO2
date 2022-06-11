@@ -35,6 +35,7 @@ struct BCRecData {
   o2::dataformats::RangeRefComp<5> refe; // Reference to reconstructed energy
   o2::dataformats::RangeRefComp<5> reft; // Reference to reconstructed TDC
   o2::dataformats::RangeRefComp<5> refi; // Reference to reconstruction error/information flags
+  o2::dataformats::RangeRefComp<5> refw; // Reference to waveform interpolated data
 
   BCRecData() = default;
 
@@ -47,6 +48,21 @@ struct BCRecData {
     reft.setEntries(0);
     refi.setFirstEntry(firsti);
     refi.setEntries(0);
+    refw.setFirstEntry(0);
+    refw.setEntries(0);
+    ir = iRec;
+  }
+
+  BCRecData(int firste, int firstt, int firsti, int firstd, o2::InteractionRecord iRec)
+  {
+    refe.setFirstEntry(firste);
+    refe.setEntries(0);
+    reft.setFirstEntry(firstt);
+    reft.setEntries(0);
+    refi.setFirstEntry(firsti);
+    refi.setEntries(0);
+    refw.setFirstEntry(firstd);
+    refw.setEntries(0);
     ir = iRec;
   }
 
@@ -68,6 +84,12 @@ struct BCRecData {
     refi.setEntries(refi.getEntries() + 1);
   }
 
+  // Update counter of Waveform entries
+  inline void addWaveform()
+  {
+    refw.setEntries(refw.getEntries() + 1);
+  }
+
   // Get information about event
   inline void getRef(int& firste, int& ne, int& firstt, int& nt, int& firsti, int& ni)
   {
@@ -79,9 +101,41 @@ struct BCRecData {
     ni = refi.getEntries();
   }
 
+  inline void getRef(int& firste, int& ne, int& firstt, int& nt, int& firsti, int& ni, int& firstw, int& nw)
+  {
+    firste = refe.getFirstEntry();
+    firstt = reft.getFirstEntry();
+    firsti = refi.getFirstEntry();
+    firstw = refw.getFirstEntry();
+    ne = refe.getEntries();
+    nt = reft.getEntries();
+    ni = refi.getEntries();
+    nw = refw.getEntries();
+  }
+  inline void getRefE(int& firste, int& ne)
+  {
+    firste = refe.getFirstEntry();
+    ne = refe.getEntries();
+  }
+  inline void getRefT(int& firstt, int& nt)
+  {
+    firstt = reft.getFirstEntry();
+    nt = reft.getEntries();
+  }
+  inline void getRefI(int& firsti, int& ni)
+  {
+    firsti = refi.getFirstEntry();
+    ni = refi.getEntries();
+  }
+  inline void getRefW(int& firstw, int& nw)
+  {
+    firstw = refw.getFirstEntry();
+    nw = refw.getEntries();
+  }
+
   void print() const;
 
-  ClassDefNV(BCRecData, 1);
+  ClassDefNV(BCRecData, 2);
 };
 } // namespace zdc
 } // namespace o2

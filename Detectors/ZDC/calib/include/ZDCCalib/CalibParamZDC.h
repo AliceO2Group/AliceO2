@@ -9,20 +9,27 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ZDCSimulation/SimCondition.h"
+#ifndef O2_ZDC_CALIBPARAMZDC_H
+#define O2_ZDC_CALIBPARAMZDC_H
 
-using namespace o2::zdc;
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
+#include "ZDCBase/Constants.h"
 
-void ChannelSimCondition::print() const
+/// \file CalibParamZDC.h
+/// \brief ZDC calibration common parameters
+/// \author P. Cortese
+
+namespace o2
 {
-  printf("Shape min at bin %d, Pedestal:{%+e,%+e,%+e}, Gain:%.4f, GainInSum:%.4f, TimeJitter: %.4f TimePos: %.2f\n",
-         ampMinID, pedestal, pedestalNoise, pedestalFluct, gain, gainInSum, timeJitter, timePosition);
-}
-
-void SimCondition::print() const
+namespace zdc
 {
-  for (int i = 0; i < NChannels; i++) {
-    printf("%s ", channelName(i));
-    channels[i].print();
-  }
-}
+struct CalibParamZDC : public o2::conf::ConfigurableParamHelper<CalibParamZDC> {
+  int debug_output = -1; // Debug output
+  void print();
+  O2ParamDef(CalibParamZDC, "CalibParamZDC");
+};
+} // namespace zdc
+} // namespace o2
+
+#endif

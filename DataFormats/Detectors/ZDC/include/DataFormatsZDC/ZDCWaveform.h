@@ -9,32 +9,56 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _ZDC_ORBIT_DATA_H_
-#define _ZDC_ORBIT_DATA_H_
+#ifndef ZDC_WAVEFORM_H
+#define ZDC_WAVEFORM_H
 
-#include "CommonDataFormat/InteractionRecord.h"
 #include "ZDCBase/Constants.h"
 #include <array>
+#include <cmath>
 #include <Rtypes.h>
 
-/// \file OrbitData.h
-/// \brief Class to describe pedestal data accumulated over the orbit
-/// \author ruben.shahoyan@cern.ch
+/// \file ZDCWaveform.h
+/// \brief Container class to store the interpolated waveform of the ZDC
+/// \author pietro.cortese@cern.ch
 
 namespace o2
 {
 namespace zdc
 {
 
-struct OrbitData {
-  o2::InteractionRecord ir;
-  std::array<int16_t, NChannels> data{};
-  std::array<uint16_t, NChannels> scaler{};
+struct ZDCWaveform {
 
-  float asFloat(int i) const { return data[i] / 8.; }
+  uint8_t sig = 0; /// Signal id
+  float inter[NTimeBinsPerBC * TSN] = {0};
+
+  ZDCWaveform() = default;
+
+  ZDCWaveform(uint8_t mych, float* waveform)
+  {
+    set(mych, waveform);
+  }
+
+  inline void set(uint8_t ch, float* waveform)
+  {
+    sig = ch;
+    for (int i = 0; i < (NTimeBinsPerBC * TSN); i++) {
+      inter[i] = waveform[i];
+    }
+  }
+
+  const float* waveform() const
+  {
+    return inter;
+  }
+
+  int ch() const
+  {
+    return sig;
+  }
+
   void print() const;
 
-  ClassDefNV(OrbitData, 1);
+  ClassDefNV(ZDCWaveform, 1);
 };
 } // namespace zdc
 } // namespace o2

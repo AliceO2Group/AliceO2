@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   InterCalibEPNSpec.cxx
+/// @file   WaveformCalibEPNSpec.cxx
 /// @brief  ZDC reconstruction
 /// @author pietro.cortese@cern.ch
 
@@ -18,6 +18,7 @@
 #include <string>
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
+#include "CCDB/CcdbApi.h"
 #include "Framework/Logger.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -30,12 +31,11 @@
 #include "DataFormatsZDC/RecEvent.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "CommonUtils/NameConf.h"
+#include "CommonUtils/MemFileHelper.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
-#include "ZDCReconstruction/RecoConfigZDC.h"
-#include "ZDCReconstruction/ZDCEnergyParam.h"
-#include "ZDCReconstruction/ZDCTowerParam.h"
-#include "ZDCCalib/InterCalibEPNSpec.h"
+#include "ZDCCalib/WaveformCalibData.h"
+#include "ZDCCalib/WaveformCalibEPNSpec.h"
 
 using namespace o2::framework;
 
@@ -44,44 +44,42 @@ namespace o2
 namespace zdc
 {
 
-InterCalibEPNSpec::InterCalibEPNSpec()
+WaveformCalibEPNSpec::WaveformCalibEPNSpec()
 {
   mTimer.Stop();
   mTimer.Reset();
 }
 
-InterCalibEPNSpec::InterCalibEPNSpec(const int verbosity) : mVerbosity(verbosity)
+WaveformCalibEPNSpec::WaveformCalibEPNSpec(const int verbosity) : mVerbosity(verbosity)
 {
   mTimer.Stop();
   mTimer.Reset();
 }
 
-void InterCalibEPNSpec::init(o2::framework::InitContext& ic)
+void WaveformCalibEPNSpec::init(o2::framework::InitContext& ic)
 {
   mVerbosity = ic.options().get<int>("verbosity-level");
   mWorker.setVerbosity(mVerbosity);
 }
 
-void InterCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
+void WaveformCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   // we call these methods just to trigger finaliseCCDB callback
-  pc.inputs().get<o2::zdc::InterCalibConfig*>("intercalibconfig");
+  pc.inputs().get<o2::zdc::WaveformCalibConfig*>("wavecalibconfig");
 }
 
-void InterCalibEPNSpec::run(ProcessingContext& pc)
+void WaveformCalibEPNSpec::run(ProcessingContext& pc)
 {
   updateTimeDependentParams(pc);
   if (!mInitialized) {
     mInitialized = true;
     std::string loadedConfFiles = "Loaded ZDC configuration files:";
-    // InterCalib configuration
-    auto config = pc.inputs().get<o2::zdc::InterCalibConfig*>("intercalibconfig");
-    loadedConfFiles += " InterCalibConfig";
+    auto config = pc.inputs().get<o2::zdc::WaveformCalibConfig*>("wavecalibconfig");
+    loadedConfFiles += " WaveformCalibConfig";
     if (mVerbosity > DbgZero) {
-      LOG(info) << "Loaded InterCalib configuration object";
       config->print();
     }
-    mWorker.setInterCalibConfig(config.get());
+    mWorker.setConfig(config.get());
     LOG(info) << loadedConfFiles;
     mTimer.Stop();
     mTimer.Reset();
@@ -90,65 +88,49 @@ void InterCalibEPNSpec::run(ProcessingContext& pc)
 
   const auto ref = pc.inputs().getFirstValid(true);
   auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
-  mWorker.getData().setCreationTime(creationTime);
+  WaveformCalibData& data = mWorker.getData();
+  data.setCreationTime(creationTime);
 
   auto bcrec = pc.inputs().get<gsl::span<o2::zdc::BCRecData>>("bcrec");
   auto energy = pc.inputs().get<gsl::span<o2::zdc::ZDCEnergy>>("energy");
   auto tdc = pc.inputs().get<gsl::span<o2::zdc::ZDCTDCData>>("tdc");
   auto info = pc.inputs().get<gsl::span<uint16_t>>("info");
+  auto wave = pc.inputs().get<gsl::span<o2::zdc::ZDCWaveform>>("wave");
 
   // Process reconstructed data
-  mWorker.process(bcrec, energy, tdc, info);
+  mWorker.process(bcrec, energy, tdc, info, wave);
 
-  // Send intermediate calibration data and debug histograms
-  o2::framework::Output output("ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
+  // Send intermediate calibration data
+  o2::framework::Output output("ZDC", "WAVECALIBDATA", 0, Lifetime::Timeframe);
   pc.outputs().snapshot(output, mWorker.mData);
-  char outputd[o2::header::gSizeDataDescriptionString];
-  for (int ih = 0; ih < (2 * InterCalibData::NH); ih++) {
-    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_1DH%d", ih);
-    o2::framework::Output output("ZDC", outputd, 0, Lifetime::Timeframe);
-    pc.outputs().snapshot(output, mWorker.mH[ih]->getBase());
-  }
-  for (int ih = 0; ih < InterCalibData::NH; ih++) {
-    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_2DH%d", ih);
-    o2::framework::Output output("ZDC", outputd, 0, Lifetime::Timeframe);
-    pc.outputs().snapshot(output, mWorker.mC[ih]->getBase());
-  }
 }
 
-void InterCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
+void WaveformCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
 {
   mWorker.endOfRun();
   mTimer.Stop();
-  LOGF(info, "ZDC EPN Intercalibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  LOGF(info, "ZDC EPN Waveform calibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-framework::DataProcessorSpec getInterCalibEPNSpec()
+framework::DataProcessorSpec getWaveformCalibEPNSpec()
 {
+  using device = o2::zdc::WaveformCalibEPNSpec;
   std::vector<InputSpec> inputs;
   inputs.emplace_back("bcrec", "ZDC", "BCREC", 0, Lifetime::Timeframe);
   inputs.emplace_back("energy", "ZDC", "ENERGY", 0, Lifetime::Timeframe);
   inputs.emplace_back("tdc", "ZDC", "TDCDATA", 0, Lifetime::Timeframe);
   inputs.emplace_back("info", "ZDC", "INFO", 0, Lifetime::Timeframe);
-  inputs.emplace_back("intercalibconfig", "ZDC", "INTERCALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathInterCalibConfig.data())));
+  inputs.emplace_back("wave", "ZDC", "WAVE", 0, Lifetime::Timeframe);
+  inputs.emplace_back("wavecalibconfig", "ZDC", "WAVECALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathWaveformCalibConfig.data())));
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
-  char outputd[o2::header::gSizeDataDescriptionString];
-  for (int ih = 0; ih < (2 * InterCalibData::NH); ih++) {
-    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_1DH%d", ih);
-    outputs.emplace_back("ZDC", outputd, 0, Lifetime::Timeframe);
-  }
-  for (int ih = 0; ih < InterCalibData::NH; ih++) {
-    snprintf(outputd, o2::header::gSizeDataDescriptionString, "INTER_2DH%d", ih);
-    outputs.emplace_back("ZDC", outputd, 0, Lifetime::Timeframe);
-  }
+  outputs.emplace_back("ZDC", "WAVECALIBDATA", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
-    "zdc-intercalib-epn",
+    "zdc-waveformcalib-epn",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<InterCalibEPNSpec>()},
-    o2::framework::Options{{"verbosity-level", o2::framework::VariantType::Int, 0, {"Verbosity level"}}}};
+    AlgorithmSpec{adaptFromTask<device>()},
+    Options{{"verbosity-level", o2::framework::VariantType::Int, 0, {"Verbosity level"}}}};
 }
 
 } // namespace zdc

@@ -9,18 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ZDC_INTERCALIBWORKFLOW_H
-#define O2_ZDC_INTERCALIBWORKFLOW_H
+#include "DataFormatsZDC/ZDCWaveform.h"
 
-/// @file   InterCalibWorkflow.h
+using namespace o2::zdc;
 
-#include "Framework/WorkflowSpec.h"
-
-namespace o2
+void ZDCWaveform::print() const
 {
-namespace zdc
-{
-framework::WorkflowSpec getInterCalibWorkflow(const int verbosity);
-} // namespace zdc
-} // namespace o2
-#endif
+  auto id = this->ch();
+  printf("%2d (%s)\n", id, channelName(id));
+}

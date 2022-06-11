@@ -13,8 +13,8 @@
 /// @brief  ZDC intercalibration
 /// @author pietro.cortese@cern.ch
 
-#ifndef O2_ZDC_INTERCALIB_SPEC
-#define O2_ZDC_INTERCALIB_SPEC
+#ifndef O2_ZDC_WAVEFORMCALIB_SPEC
+#define O2_ZDC_WAVEFORMCALIB_SPEC
 
 #include <TStopwatch.h>
 #include "Framework/Logger.h"
@@ -24,9 +24,9 @@
 #include "CommonDataFormat/FlatHisto1D.h"
 #include "CommonDataFormat/FlatHisto2D.h"
 #include "CommonUtils/NameConf.h"
-#include "ZDCCalib/InterCalibData.h"
-#include "ZDCCalib/InterCalib.h"
-#include "ZDCCalib/InterCalibConfig.h"
+#include "ZDCCalib/WaveformCalibData.h"
+#include "ZDCCalib/WaveformCalib.h"
+#include "ZDCCalib/WaveformCalibConfig.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CCDB/CcdbObjectInfo.h"
 
@@ -35,12 +35,12 @@ namespace o2
 namespace zdc
 {
 
-class InterCalibSpec : public o2::framework::Task
+class WaveformCalibSpec : public o2::framework::Task
 {
  public:
-  InterCalibSpec();
-  InterCalibSpec(const int verbosity);
-  ~InterCalibSpec() override = default;
+  WaveformCalibSpec();
+  WaveformCalibSpec(const int verbosity);
+  ~WaveformCalibSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
   void run(o2::framework::ProcessingContext& pc) final;
@@ -50,11 +50,11 @@ class InterCalibSpec : public o2::framework::Task
  private:
   int mVerbosity = DbgMinimal; // Verbosity level
   bool mInitialized = false;   // Connect once to CCDB during initialization
-  InterCalib mWorker;          // Intercalibration object
+  WaveformCalib mWorker;       // Intercalibration object
   TStopwatch mTimer;
 };
 
-framework::DataProcessorSpec getInterCalibSpec();
+framework::DataProcessorSpec getWaveformCalibSpec();
 
 } // namespace zdc
 } // namespace o2

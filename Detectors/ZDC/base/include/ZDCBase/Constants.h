@@ -25,10 +25,6 @@
 //#define O2_ZDC_DEBUG
 // TDC arrays in debug output
 //#define O2_ZDC_TDC_C_ARRAY
-// Debug output of full interpolated function
-//#define O2_ZDC_INTERP_DEBUG
-// Low pass filtering of acquired samples
-#define O2_ZDC_RECO_FILTERING
 
 namespace o2
 {
@@ -92,14 +88,15 @@ constexpr int TSL = 6;                    // number of zeros on the right (and o
 constexpr int TSN = 200;                  // Number of interpolated points between each pair = TSN-1
 constexpr int TSNH = TSN / 2;             // Half of TSN
 constexpr int NTS = 2 * TSL * TSN + 1;    // Tapered sinc function array size
-constexpr static float FTDCAmp = 1. / 8.; // Multiplication factor in conversion from integer
+constexpr float FTDCAmp = 1. / 8.;        // Multiplication factor in conversion from integer
+constexpr int NIS = NTimeBinsPerBC * TSN; // Number of interpolated samples
 // With a reference clock of 40 MHz exact this FTDCVal would have been
-// constexpr static float FTDCVal = 1. / TSNS;
+// constexpr float FTDCVal = 1. / TSNS;
 // with constexpr int TSNS = 96;
 // However we need to modify to take into account actual LHC clock frequency
 // Multiplication factor in conversion from integer
-constexpr static float FTDCVal = o2::constants::lhc::LHCBunchSpacingNS / NTimeBinsPerBC / TSN;
-constexpr static float FOffset = 8.; // Conversion from average pedestal to representation in OrbitData (16 bit)
+constexpr float FTDCVal = o2::constants::lhc::LHCBunchSpacingNS / NTimeBinsPerBC / TSN;
+constexpr float FOffset = 8.; // Conversion from average pedestal to representation in OrbitData (16 bit)
 
 enum TDCChannelID {
   TDCZNAC,
@@ -209,6 +206,7 @@ constexpr std::string_view ChannelNames[] = {
   "ZPC4",
   "ZPCS"};
 
+// From TDC ID to signal ID
 const int TDCSignal[NTDCChannels] = {
   IdZNAC,   // TDCZNAC
   IdZNASum, // TDCZNAS
@@ -221,6 +219,19 @@ const int TDCSignal[NTDCChannels] = {
   IdZPCC,   // TDCZPCC
   IdZPCSum  // TDCZPCS
 };
+
+// From Signal ID to TDC ID
+const int SignalTDC[NChannels] = {
+  TDCZNAC,
+  TDCZNAS, TDCZNAS, TDCZNAS, TDCZNAS, TDCZNAS,
+  TDCZPAC,
+  TDCZPAS, TDCZPAS, TDCZPAS, TDCZPAS, TDCZPAS,
+  TDCZEM1,
+  TDCZEM2,
+  TDCZNCC,
+  TDCZNCS, TDCZNCS, TDCZNCS, TDCZNCS, TDCZNCS,
+  TDCZPCC,
+  TDCZPCS, TDCZPCS, TDCZPCS, TDCZPCS, TDCZPCS};
 
 constexpr int DbgZero = 0;
 constexpr int DbgMinimal = 1;
@@ -240,6 +251,8 @@ const std::string CCDBPathTDCCorr = "ZDC/Calib/TDCCorr";
 const std::string CCDBPathEnergyCalib = "ZDC/Calib/EnergyCalib";
 const std::string CCDBPathTowerCalib = "ZDC/Calib/TowerCalib";
 const std::string CCDBPathInterCalibConfig = "ZDC/Calib/InterCalibConfig";
+const std::string CCDBPathWaveformCalib = "ZDC/Calib/WaveformCalib";
+const std::string CCDBPathWaveformCalibConfig = "ZDC/Calib/WaveformCalibConfig";
 
 enum Ped { PedND = 0,
            PedEv = 1,
@@ -352,6 +365,13 @@ constexpr int toDet(int channel, int& tower)
     return ZNC + channel / NChannelsZP;
   }
 }
+
+// Calibration workflows
+// Waveform calibration
+constexpr int WaveformCalib_NBB = 3; // Number of bunches acquired before colliding b.c.
+constexpr int WaveformCalib_NBA = 6; // Number of bunches acquired after colliding b.c.
+constexpr int WaveformCalib_NBT = WaveformCalib_NBB + WaveformCalib_NBA + 1;
+constexpr int WaveformCalib_NW = WaveformCalib_NBT * NIS;
 
 } // namespace zdc
 } // namespace o2
