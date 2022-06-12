@@ -167,8 +167,8 @@ class CTPRunManager
   void printActiveRuns() const;
   int saveRunScalersToCCDB(int i);
   int saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart);
-  CTPConfiguration getConfigFromCCDB(long timestamp);
-  CTPRunScalers getScalersFromCCDB(long timestamp);
+  CTPConfiguration getConfigFromCCDB(long timestamp, std::string run);
+  CTPRunScalers getScalersFromCCDB(long timestamp, std::string);
   int loadScalerNames();
   void setCcdbHost(std::string host) { mCcdbHost = host; };
   // void setCCDBPathConfig(std::string path) { mCCDBPathCTPConfig = path;};

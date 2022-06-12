@@ -59,16 +59,18 @@ struct CTPScalerRecordRaw {
   o2::InteractionRecord intRecord;
   uint64_t epochTime;
   std::vector<CTPScalerRaw> scalers;
+  std::vector<uint32_t> scalersDets;
   void printStream(std::ostream& stream) const;
-  ClassDefNV(CTPScalerRecordRaw, 1);
+  ClassDefNV(CTPScalerRecordRaw, 2);
 };
 struct CTPScalerRecordO2 {
   CTPScalerRecordO2() = default;
   o2::InteractionRecord intRecord;
   uint64_t epochTime;
   std::vector<CTPScalerO2> scalers;
+  std::vector<uint64_t> scalersDets;
   void printStream(std::ostream& stream) const;
-  ClassDefNV(CTPScalerRecordO2, 1);
+  ClassDefNV(CTPScalerRecordO2, 2);
 };
 class CTPRunScalers
 {
@@ -97,13 +99,14 @@ class CTPRunScalers
   uint32_t mRunNumber = 0;
   // using class mask for all class index related stuff
   std::bitset<CTP_NCLASSES> mClassMask;
+  o2::detectors::DetID::mask_t mDetectorMask;
   std::vector<CTPScalerRecordRaw> mScalerRecordRaw;
   std::vector<CTPScalerRecordO2> mScalerRecordO2;
   int processScalerLine(const std::string& line, int& level, int& nclasses);
   int copyRawToO2ScalerRecord(const CTPScalerRecordRaw& rawrec, CTPScalerRecordO2& o2rec, overflows_t& classesoverflows);
   int updateOverflows(const CTPScalerRecordRaw& rec0, const CTPScalerRecordRaw& rec1, overflows_t& classesoverflows) const;
   int updateOverflows(const CTPScalerRaw& scal0, const CTPScalerRaw& scal1, std::array<uint32_t, 6>& overflow) const;
-  ClassDefNV(CTPRunScalers, 1);
+  ClassDefNV(CTPRunScalers, 2);
 };
 } // namespace ctp
 } // namespace o2
