@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _ZDC_INTERCALIB_DATA_H_
-#define _ZDC_INTERCALIB_DATA_H_
+#ifndef _ZDC_INTERCALIB_DATA_H
+#define _ZDC_INTERCALIB_DATA_H
 
 #include "ZDCBase/Constants.h"
 #include <array>

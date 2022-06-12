@@ -33,6 +33,14 @@
 
 #ifndef ALICEO2_ZDC_DIGI_RECO_H
 #define ALICEO2_ZDC_DIGI_RECO_H
+
+//#define ALICEO2_ZDC_DIGI_RECO_DEBUG
+#ifdef O2_ZDC_DEBUG
+#ifndef ALICEO2_ZDC_DIGI_RECO_DEBUG
+#define ALICEO2_ZDC_DIGI_RECO_DEBUG
+#endif
+#endif
+
 namespace o2
 {
 namespace zdc
@@ -111,6 +119,13 @@ class DigiReco
     LOG(warn) << __func__ << " Configuration of low pass filtering: " << (mLowPassFilter ? "enabled" : "disabled");
   };
   bool getLowPassFilter() { return mLowPassFilter; };
+  void setFullInterpolation(bool val = true)
+  {
+    mFullInterpolation = val;
+    mFullInterpolationSet = true;
+    LOG(warn) << __func__ << " Full waveform interpolation: " << (mFullInterpolation ? "enabled" : "disabled");
+  };
+  bool getFullInterpolation() { return mFullInterpolation; };
   // Enable or disable TDC corrections
   void setCorrSignal(bool val = true)
   {
@@ -140,9 +155,12 @@ class DigiReco
   void processTrigger(int itdc, int ibeg, int iend);         /// Replay of trigger algorithm on acquired data
   void processTriggerExtended(int itdc, int ibeg, int iend); /// Replay of trigger algorithm on acquired data
   void interpolate(int itdc, int ibeg, int iend);            /// Interpolation of samples to evaluate signal amplitude and arrival time
+  void fullInterpolation(int itdc, int ibeg, int iend);      /// Interpolation of samples
   void correctTDCPile();                                     /// Correction of pile-up in TDC
   bool mLowPassFilter = true;                                /// Enable low pass filtering
   bool mLowPassFilterSet = false;                            /// Low pass filtering set via function call
+  bool mFullInterpolation = false;                           /// Full waveform interpolation
+  bool mFullInterpolationSet = false;                        /// Full waveform interpolation set via function call
   bool mCorrSignal = true;                                   /// Enable TDC signal correction
   bool mCorrSignalSet = false;                               /// TDC signal correction set via function call
   bool mCorrBackground = true;                               /// Enable TDC pile-up correction
@@ -152,9 +170,7 @@ class DigiReco
   int correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& tdc);                                            /// TDC amplitude and time corrections due to pile-up from previous bunches
 
   O2_ZDC_DIGIRECO_FLT getPoint(int itdc, int ibeg, int iend, int i); /// Interpolation for current TDC
-#ifdef O2_ZDC_INTERP_DEBUG
-  void setPoint(int itdc, int ibeg, int iend, int i); /// Interpolation for current TDC
-#endif
+  void setPoint(int itdc, int ibeg, int iend, int i);                /// Interpolation for current TDC
 
   void assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float amp); /// Set reconstructed TDC values
   void findSignals(int ibeg, int iend);                                       /// Find signals around main-main that satisfy condition on TDC
@@ -166,8 +182,9 @@ class DigiReco
   const ZDCTDCCorr* mTDCCorr = nullptr;          /// TDC correction coefficients
   const ZDCEnergyParam* mEnergyParam = nullptr;  /// Energy calibration object
   const ZDCTowerParam* mTowerParam = nullptr;    /// Tower calibration object
-  uint32_t mTDCMask[NTDCChannels] = {0};         /// Identify TDC channels in trigger mask
-  uint32_t mChMask[NChannels] = {0};             /// Identify channels
+  uint32_t mTriggerMask = 0;                     /// Mask of triggering channels
+  uint32_t mTDCMask[NTDCChannels] = {0};         /// Identify TDC channels in trigger pattern
+  uint32_t mChMask[NChannels] = {0};             /// Identify all channels in readout pattern
   const RecoConfigZDC* mRecoConfigZDC = nullptr; /// CCDB configuration parameters
   int32_t mVerbosity = DbgMinimal;
   O2_ZDC_DIGIRECO_FLT mTS[NTS];                     /// Tapered sinc function

@@ -21,7 +21,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "CommonUtils/NameConf.h"
-#include "DataFormatsZDC/InterCalibData.h"
+#include "ZDCCalib/InterCalibData.h"
 #include "ZDCCalib/InterCalibEPN.h"
 #include "ZDCCalib/InterCalibConfig.h"
 
@@ -42,9 +42,9 @@ class InterCalibEPNSpec : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  int mVerbosity = 0;           // Verbosity level
-  bool mInitialized = false;    // Connect once to CCDB during initialization
-  InterCalibEPN mInterCalibEPN; // Intercalibration object
+  int mVerbosity = DbgMinimal; // Verbosity level
+  bool mInitialized = false;   // Connect once to CCDB during initialization
+  InterCalibEPN mWorker;       // Intercalibration object
   TStopwatch mTimer;
 };
 
