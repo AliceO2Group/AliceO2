@@ -616,8 +616,8 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
     std::string c1b = "cla1b" + std::to_string(cls);
     std::string c1a = "cla1a" + std::to_string(cls);
     CTPScalerRaw scalraw;
-    scalraw.classIndex = (uint32_t) cls;
-    //std::cout << "cls:" << cls << " " << scalraw.classIndex << std::endl;
+    scalraw.classIndex = (uint32_t)cls;
+    // std::cout << "cls:" << cls << " " << scalraw.classIndex << std::endl;
     scalraw.lmBefore = mCounters[mScalerName2Position[cmb]];
     scalraw.lmAfter = mCounters[mScalerName2Position[cma]];
     scalraw.l0Before = mCounters[mScalerName2Position[c0b]];
