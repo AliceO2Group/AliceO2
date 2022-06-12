@@ -102,9 +102,7 @@ class LHCClockCalibDevice : public o2::framework::Task
           mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib);
         }
       }
-    }
-
-    else { // we use "fake" initial calibrations
+    } else { // we use "fake" initial calibrations
       if (!mcalibTOFapi) {
         mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), &mPhase, &mTimeSlewing);
       }
