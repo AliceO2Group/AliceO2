@@ -272,6 +272,28 @@ float CalibTOFapi::getTimeCalibration(int ich, float tot)
 
 //______________________________________________________________________
 
+float CalibTOFapi::getTimeCalibration(int ich, float tot, float phase)
+{
+
+  // time calibration to correct measured TOF times
+
+  float corr = 0;
+  if (!mLHCphase || !mSlewParam) {
+    LOG(warning) << "Either LHC phase or slewing object null: mLHCphase = " << mLHCphase << ", mSlewParam = " << mSlewParam;
+    return corr;
+  }
+  //  printf("LHC phase apply\n");
+  // LHCphase
+  corr += phase; // timestamp that we use in LHCPhase is in seconds
+  // time slewing + channel offset
+  //printf("eval time sleweing calibration: ch=%d   tot=%f (lhc phase = %f)\n",ich,tot,corr);
+  corr += mSlewParam->evalTimeSlewing(ich, tot);
+  //printf("corr = %f\n",corr);
+  return corr;
+}
+
+//______________________________________________________________________
+
 float CalibTOFapi::getTimeDecalibration(int ich, float tot)
 {
 
