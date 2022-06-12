@@ -339,15 +339,17 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          LOGP(info, "Offer consumed so far {}", shmOfferConsumed);
                          lastShmOfferConsumed = shmOfferConsumed;
                        }
-                       int unusedOfferedMemory = (offeredSharedMemory - (totalBytesExpired + shmOfferConsumed) / 1000000);
+                       totalBytesExpired /= 1000000;
+                       shmOfferConsumed /= 1000000;
+                       int unusedOfferedMemory = offeredSharedMemory - (totalBytesExpired + shmOfferConsumed);
                        if (lastUnusedOfferedMemory != unusedOfferedMemory) {
-                         LOGP(info, "unusedOfferedMemory:{} = offered:{} - (expired:{} + consumed:{}) / 1000000", unusedOfferedMemory, offeredSharedMemory, totalBytesExpired / 1000000, shmOfferConsumed / 1000000);
+                         LOGP(info, "unusedOfferedMemory:{} = offered:{} - (expired:{} + consumed:{})", unusedOfferedMemory, offeredSharedMemory, totalBytesExpired, shmOfferConsumed);
                          lastUnusedOfferedMemory = unusedOfferedMemory;
                        }
                        // availableSharedMemory is the amount of memory which we know is available to be offered.
                        // We subtract the amount which we know was already offered but it's unused and we then balance how
                        // much was created with how much was destroyed.
-                       availableSharedMemory = MAX_SHARED_MEMORY + ((totalBytesDestroyed - totalBytesCreated) / 1000000) - unusedOfferedMemory;
+                       availableSharedMemory = MAX_SHARED_MEMORY + (totalBytesDestroyed - totalBytesCreated) - unusedOfferedMemory;
                        availableSharedMemoryMetric(driverMetrics, availableSharedMemory, timestamp);
                        unusedOfferedMemoryMetric(driverMetrics, unusedOfferedMemory, timestamp);
 
