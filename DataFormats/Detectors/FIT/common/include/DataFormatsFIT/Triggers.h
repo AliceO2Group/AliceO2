@@ -119,7 +119,7 @@ class Triggers
   int16_t timeA = DEFAULT_TIME;          // average time A side (shouldn't be used if nChanA == 0)
   int16_t timeC = DEFAULT_TIME;          // average time C side (shouldn't be used if nChanC == 0)
 
-  ClassDefNV(Triggers, 5);
+  ClassDefNV(Triggers, 6);
 };
 
 } // namespace fit
