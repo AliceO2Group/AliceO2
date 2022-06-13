@@ -64,6 +64,14 @@ struct HeatMapHelper {
       ImVec2{size.x + 1, size.y - 1} + winPos,
       BORDER_COLOR);
     float padding = 1;
+
+    size_t totalRects = 0;
+    for (size_t ri = 0, re = getNumRecords(); ri < re; ri++) {
+      auto record = getRecord(ri);
+      totalRects += getNumItems(record);
+    }
+
+    drawList->PrimReserve(totalRects * 6, totalRects * 4);
     for (size_t ri = 0, re = getNumRecords(); ri < re; ri++) {
       auto record = getRecord(ri);
       ImVec2 xOffset{(ri * boxSizeX) + padding, 0};
@@ -73,7 +81,7 @@ struct HeatMapHelper {
         ImVec2 yOffSet{0, (mi * boxSizeY) + padding};
         ImVec2 ySize{0, boxSizeY - 2 * padding};
 
-        drawList->AddRectFilled(
+        drawList->PrimRect(
           xOffset + yOffSet + winPos,
           xOffset + xSize + yOffSet + ySize + winPos,
           getColor(getValue(getItem(record, mi))));
