@@ -32,7 +32,7 @@ namespace trd
 class TRDDigitReaderSpec : public o2::framework::Task
 {
  public:
-  TRDDigitReaderSpec(bool useMC, bool publishTrigRec) : mUseMC(useMC), mPublishTrigRec(publishTrigRec) {}
+  TRDDigitReaderSpec(bool useMC) : mUseMC(useMC) {}
   ~TRDDigitReaderSpec() override = default;
   void init(o2::framework::InitContext& ic) override;
   void run(o2::framework::ProcessingContext& pc) override;
@@ -40,7 +40,6 @@ class TRDDigitReaderSpec : public o2::framework::Task
  private:
   void connectTree();
   bool mUseMC = false;
-  bool mPublishTrigRec = true;
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTreeDigits;
   std::string mFileName = "trddigits.root";
@@ -53,7 +52,7 @@ class TRDDigitReaderSpec : public o2::framework::Task
   o2::dataformats::IOMCTruthContainerView* mLabels = nullptr;
 };
 
-o2::framework::DataProcessorSpec getTRDDigitReaderSpec(bool useMC, bool publishTrigRec = true);
+o2::framework::DataProcessorSpec getTRDDigitReaderSpec(bool useMC);
 
 } // end namespace trd
 } // end namespace o2
