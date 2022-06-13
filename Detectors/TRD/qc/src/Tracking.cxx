@@ -104,6 +104,8 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     qcStruct.trackSnp[iLayer] = trk.getSnp();
     qcStruct.trackTgl[iLayer] = trk.getTgl();
     qcStruct.trackQpt[iLayer] = trk.getQ2Pt();
+    qcStruct.trackPhi[iLayer] = trk.getPhi();
+    qcStruct.trackEta[iLayer] = trk.getEta();
     qcStruct.trackletYraw[iLayer] = mTrackletsCalib[trkltId].getY();
     qcStruct.trackletZraw[iLayer] = mTrackletsCalib[trkltId].getZ();
     qcStruct.trackletY[iLayer] = trkltPosUp[0];
@@ -120,8 +122,6 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
       mTrackletsRaw[trkltId].getQ1(),
       mTrackletsRaw[trkltId].getQ2(),
     };
-    qcStruct.trackletPhi[iLayer] = trk.getPhi();
-    qcStruct.trackletEta[iLayer] = trk.getEta();
   }
   mTrackQC.push_back(qcStruct);
 }

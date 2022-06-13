@@ -59,6 +59,8 @@ struct TrackQC {
   std::array<float, constants::NLAYER> trackSnp{}; ///< sin(phi) of seeding track (sector coordinates -> local inclination in r-phi)
   std::array<float, constants::NLAYER> trackTgl{}; ///< tan(lambda) of seeding track (inclination in s_xy-z plane)
   std::array<float, constants::NLAYER> trackQpt{}; ///< q/pt of seeding track
+  std::array<float, constants::NLAYER> trackPhi{}; //< Phi 0:2Pi value of Track
+  std::array<float, constants::NLAYER> trackEta{}; //< Eta value of Track
 
   // tracklet position is also given in sector coordinates
   std::array<float, constants::NLAYER> trackletYraw{}; ///< y-position of tracklet without tilt correction
@@ -74,8 +76,6 @@ struct TrackQC {
   std::array<int, constants::NLAYER> trackletMcm{};                                      ///< the MCM number of the tracklet
   std::array<float, constants::NLAYER> trackletChi2{};                                   ///< estimated chi2 for the update of the track with the given tracklet
   std::array<std::array<int, constants::NCHARGES>, constants::NLAYER> trackletCharges{}; ///< charges of tracklets
-  std::array<float, constants::NLAYER> trackletPhi{};                                    //< Phi 0:2Pi value of Tracklet
-  std::array<float, constants::NLAYER> trackletEta{};                                    //< Eta value of Tracklet
   ClassDefNV(TrackQC, 1);
 };
 
