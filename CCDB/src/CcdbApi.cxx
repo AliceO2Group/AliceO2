@@ -862,6 +862,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
       LOG(error) << "Requested resource does not exist: " << url;
       errorflag = true;
     } else {
+      LOG(error) << "Error in fetching object " << url << ", curl response code:" << response_code;
       errorflag = true;
     }
     // cleanup
@@ -1358,7 +1359,7 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
 
   // if we are in snapshot mode we can simply open the file, unless the etag is non-empty:
   // this would mean that the object was is already fetched and in this mode we don't to validity checks!
-  considerSnapshot &= !mSnapshotCachePath.empty(); // create snaphot if absent
+  bool createSnapshot = considerSnapshot && !mSnapshotCachePath.empty(); // create snaphot if absent
   int fromSnapshot = 0;
   boost::interprocess::named_semaphore* sem = nullptr;
   std::string semhashedstring{}, snapshotpath{}, logfile{};
@@ -1373,7 +1374,7 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
     }
   };
 
-  if (considerSnapshot) { // create named semaphore
+  if (createSnapshot) { // create named semaphore
     std::hash<std::string> hasher;
     semhashedstring = "aliceccdb" + std::to_string(hasher(mSnapshotCachePath + path)).substr(0, 16);
     try {
@@ -1424,7 +1425,7 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
   logReading(path, timestamp, headers, fmt::format("{}{}", considerSnapshot ? "load to memory" : "retrieve", fromSnapshot ? " from snapshot" : ""));
 
   // are we asked to create a snapshot ?
-  if (considerSnapshot && fromSnapshot != 2 && !(mInSnapshotMode && mSnapshotTopPath == mSnapshotCachePath)) { // store in the snapshot only if the object was not read from the snapshot
+  if (createSnapshot && fromSnapshot != 2 && !(mInSnapshotMode && mSnapshotTopPath == mSnapshotCachePath)) { // store in the snapshot only if the object was not read from the snapshot
     auto snapshotdir = getSnapshotDir(mSnapshotCachePath, path);
     snapshotpath = getSnapshotFile(mSnapshotCachePath, path);
     o2::utils::createDirectoriesIfAbsent(snapshotdir);
@@ -1552,6 +1553,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
       LOG(error) << "Requested resource does not exist: " << url;
       signalError();
     } else {
+      LOG(error) << "Error in fetching object " << url << ", curl response code:" << response_code;
       signalError();
     }
   } else {
