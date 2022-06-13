@@ -44,6 +44,9 @@ void ErrorTypeFEE::PrintStream(std::ostream& stream) const
       break;
   };
   stream << "EMCAL SM: " << getFEEID() << ", " << typestring << " Type: " << getErrorCode();
+  if (mSubspecification >= 0) {
+    stream << ", Subspecification: " << mSubspecification;
+  }
 }
 
 std::ostream& operator<<(std::ostream& stream, const ErrorTypeFEE& error)
