@@ -9,11 +9,18 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(simulation)
-add_subdirectory(reconstruction)
-add_subdirectory(workflow)
-add_subdirectory(calibration)
-if(BUILD_TESTING)
-  add_subdirectory(calibration/macros)
-endif()
+o2_add_test_root_macro(
+  makeHMPIDCCDBEntryForDCS.C
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
+
+o2_add_test_root_macro(
+  readHMPIDDCSEntries.C
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
+  
+
+
+install(
+  FILES makeHMPIDCCDBEntryForDCS.C
+        readHMPIDDCSEntries.C
+  DESTINATION share/macro/)
+
