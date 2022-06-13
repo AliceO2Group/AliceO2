@@ -511,6 +511,7 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
 
     variables.put({data_matcher::FIRSTTFORBIT_POS, dh.firstTForbit});
     variables.put({data_matcher::TFCOUNTER_POS, dh.tfCounter});
+    variables.put({data_matcher::RUNNUMBER_POS, dh.runNumber});
     variables.put({data_matcher::STARTTIME_POS, dph.startTime});
     variables.put({data_matcher::CREATIONTIME_POS, dph.creation});
 
