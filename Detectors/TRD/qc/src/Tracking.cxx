@@ -60,7 +60,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
   qcStruct.reducedChi2 = trkTrd.getReducedChi2();
   qcStruct.pt = trkTrd.getPt();
   qcStruct.ptSigma2 = trkTrd.getSigma1Pt2();
-  qcStruct.phi = trkTrd.getPhi();
+  qcStruct.pid = trkTrd.getPID();
 
   LOGF(debug, "Got track with %i tracklets and ID %i", trkTrd.getNtracklets(), trkTrd.getRefGlobalTrackId());
   const auto& trkSeed = isTPCTRD ? mTracksTPC[trkTrd.getRefGlobalTrackId()].getParamOut() : mTracksITSTPC[trkTrd.getRefGlobalTrackId()].getParamOut();
@@ -120,7 +120,8 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
       mTrackletsRaw[trkltId].getQ1(),
       mTrackletsRaw[trkltId].getQ2(),
     };
-    qcStruct.pid = trk.getPID();
+    qcStruct.trackletPhi[iLayer] = trk.getPhi();
+    qcStruct.trackletEta[iLayer] = trk.getEta();
   }
   mTrackQC.push_back(qcStruct);
 }

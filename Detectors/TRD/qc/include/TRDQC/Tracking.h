@@ -50,7 +50,6 @@ struct TrackQC {
   float pt;          ///< the transverse momentum of the track at the point of the innermost ITS cluster (ITS-TPC-TRD) or at the inner TPC radius (TPC-TRD)
   float ptSigma2;    //< Sigma2 of pt
   track::PID pid;    //< assigned particle id from TPC
-  float phi;         //< Phi 0:2Pi value of Track
 
   // layer-wise information for seeding track and assigned tracklet (if available)
   std::array<float, constants::NLAYER> findable{}; ///< flag if track was in geometrical acceptance
@@ -75,6 +74,8 @@ struct TrackQC {
   std::array<int, constants::NLAYER> trackletMcm{};                                      ///< the MCM number of the tracklet
   std::array<float, constants::NLAYER> trackletChi2{};                                   ///< estimated chi2 for the update of the track with the given tracklet
   std::array<std::array<int, constants::NCHARGES>, constants::NLAYER> trackletCharges{}; ///< charges of tracklets
+  std::array<float, constants::NLAYER> trackletPhi{};                                    //< Phi 0:2Pi value of Tracklet
+  std::array<float, constants::NLAYER> trackletEta{};                                    //< Eta value of Tracklet
   ClassDefNV(TrackQC, 1);
 };
 
