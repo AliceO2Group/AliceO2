@@ -49,6 +49,8 @@ struct CompletionPolicyHelpers {
   {
     return consumeWhenAny("consume-any", matcher);
   }
+  static CompletionPolicy consumeWhenAny(std::string matchName);
+
   /// When any of the parts of the record have been received, process the existing and free the associated payloads.
   /// This allows freeing things as early as possible, while still being able to wait
   /// all the parts before disposing the timeslice completely

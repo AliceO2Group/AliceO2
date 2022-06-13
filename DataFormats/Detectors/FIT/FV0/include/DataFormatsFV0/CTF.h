@@ -27,11 +27,11 @@ namespace fv0
 
 /// Header for a single CTF
 struct CTFHeader : public o2::ctf::CTFDictHeader {
-  uint32_t nTriggers = 0;  /// number of triggers in TF
-  uint32_t firstOrbit = 0; /// 1st orbit of TF
-  uint16_t firstBC = 0;    /// 1st BC of TF
-
-  ClassDefNV(CTFHeader, 2);
+  uint32_t nTriggers = 0;     /// number of triggers in TF
+  uint32_t firstOrbit = 0;    /// 1st orbit of TF
+  uint16_t firstBC = 0;       /// 1st BC of TF
+  uint16_t triggerGate = 192; // trigger gate used at encoding
+  ClassDefNV(CTFHeader, 3);
 };
 
 /// Intermediate, compressed but not yet entropy-encoded digits
@@ -39,26 +39,27 @@ struct CompressedDigits {
 
   CTFHeader header;
 
-  // BC data
+  // trigger data
   std::vector<uint8_t> trigger;   // trigger bits
   std::vector<uint16_t> bcInc;    // increment in BC if the same orbit, otherwise abs bc
   std::vector<uint32_t> orbitInc; // increment in orbit
   std::vector<uint8_t> nChan;     // number of fired channels
 
   // channel data
-  std::vector<uint8_t> idChan; // channels ID: 1st on absolute, then increment
-  std::vector<int16_t> time;   // time
-  std::vector<int16_t> charge; // Amplitude
+  std::vector<uint8_t> idChan;   // channels ID: 1st on absolute, then increment
+  std::vector<int16_t> cfdTime;  // CFD time
+  std::vector<int16_t> qtcAmpl;  // Amplitude
+  std::vector<uint8_t> qtcChain; // QTC chain
 
   CompressedDigits() = default;
 
   void clear();
 
-  ClassDefNV(CompressedDigits, 2);
+  ClassDefNV(CompressedDigits, 3);
 };
 
 /// wrapper for the Entropy-encoded clusters of the TF
-struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 7, uint32_t> {
+struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 8, uint32_t> {
 
   static constexpr size_t N = getNBlocks();
   enum Slots {
@@ -66,15 +67,16 @@ struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 7, uint32_t> {
     BLC_orbitInc, // increment in orbit
     BLC_nChan,    // number of fired channels
 
-    BLC_idChan, // channels ID: 1st on absolute, then increment
-    BLC_time,   // time
-    BLC_charge, // amplitude
+    BLC_idChan,  // channels ID: 1st on absolute, then increment
+    BLC_cfdTime, // CFD time
+    BLC_qtcAmpl, // amplitude
 
     // extra slot added, should not alter the order of previous ones
-    BLC_trigger // trigger bits
+    BLC_trigger, // trigger bits
+    BLC_qtcChain // ADC chain
   };
 
-  ClassDefNV(CTF, 2);
+  ClassDefNV(CTF, 3);
 };
 
 } // namespace fv0

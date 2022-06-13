@@ -27,14 +27,12 @@ o2-mch-digits-file-dumper --infile digits.sim.out \
 
 echo "=== Conversion digits -> raw (MCH)"
 o2-mch-digits-to-raw --input-file mchdigits.root \
---configKeyValues="MCHCoDecParam.sampaBcOffset=12345" \
 --output-dir ./raw/MCH --file-per-link $option &> \
 digits-to-raw.log
 
 echo "=== Conversion raw -> digit + real digits to mch binary format"
 o2-raw-file-reader-workflow --input-conf raw/MCH/MCHraw.cfg -b | \
-o2-mch-raw-to-digits-workflow ${option} \
---configKeyValues="MCHCoDecParam.sampaBcOffset=12345" -b | \
+o2-mch-raw-to-digits-workflow ${option} -b | \
 o2-mch-digits-writer-workflow -b --binary-file-format 3 --outfile \
 digits.real.out &> raw-to-digits.log
 

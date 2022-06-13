@@ -26,14 +26,23 @@ enum struct OrbitResetTimeSource : int {
 
 struct DataTakingContext {
   static constexpr uint64_t INVALID_RESET_TIME = 490917600;
+  static constexpr const char* UNKNOWN = "unknown";
   /// The current run number
-  std::string runNumber = "unknown";
+  std::string runNumber{UNKNOWN};
   /// How many orbits in a timeframe
   uint64_t nOrbitsPerTF = 128;
   /// The start time of the first orbit
   uint64_t orbitResetTime = INVALID_RESET_TIME;
   // What currently set the orbitResetTime value.
   OrbitResetTimeSource source = OrbitResetTimeSource::Default;
+  /// The current lhc period
+  std::string lhcPeriod{UNKNOWN};
+  /// The run type of the current run
+  std::string runType{UNKNOWN};
+  /// The environment ID for the deployment
+  std::string envId{UNKNOWN};
+  /// The list of detectors taking part in the run
+  std::string detectors{UNKNOWN};
 };
 
 } // namespace o2::framework

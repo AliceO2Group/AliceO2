@@ -54,6 +54,7 @@ void EMCALChannelData::fill(const gsl::span<const o2::emcal::Cell> data)
     Int_t id = cell.getTower();
     LOG(debug) << "inserting in cell ID " << id << ": energy = " << cellEnergy;
     mHisto(cellEnergy, id);
+    mNEntriesInHisto++;
   }
 }
 //_____________________________________________
@@ -65,6 +66,7 @@ void EMCALChannelData::print()
 void EMCALChannelData::merge(const EMCALChannelData* prev)
 {
   mEvents += prev->getNEvents();
+  mNEntriesInHisto += prev->getNEntriesInHisto();
   mHisto += prev->getHisto();
 }
 
@@ -72,10 +74,10 @@ void EMCALChannelData::merge(const EMCALChannelData* prev)
 bool EMCALChannelData::hasEnoughData() const
 {
   bool enough = false;
-  double entries = boost::histogram::algorithm::sum(mEsumHisto);
-  LOG(debug) << "entries: " << entries << " needed: " << EMCALCalibParams::Instance().minNEntries << "  mEvents = " << mEvents;
+
+  LOG(debug) << "mNEntriesInHisto: " << mNEntriesInHisto << " needed: " << EMCALCalibParams::Instance().minNEntries << "  mEvents = " << mEvents;
   // use enrties in histogram for calibration
-  if (!EMCALCalibParams::Instance().useNEventsForCalib && entries > EMCALCalibParams::Instance().minNEntries) {
+  if (!EMCALCalibParams::Instance().useNEventsForCalib && mNEntriesInHisto > EMCALCalibParams::Instance().minNEntries) {
     enough = true;
   }
   // use number of events (from emcal trigger record) for calibration

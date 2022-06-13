@@ -24,6 +24,7 @@
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsBase/Propagator.h"
 #include "Align/AlignmentTrack.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 // #include "AliSymMatrix.h" FIXME(milettri): needs AliSymMatrix
@@ -137,7 +138,7 @@ class Controller : public TObject
   ~Controller() final;
 
   void expandGlobalsBy(int n);
-  void process(const o2::globaltracking::RecoContainer& recodata);
+  void process();
 
   //  bool LoadRefOCDB(); FIXME(milettri): needs OCDB
   //  bool LoadRecoTimeOCDB(); FIXME(milettri): needs OCDB
@@ -204,19 +205,23 @@ class Controller : public TObject
   const Millepede2Record& getMPRecord() const { return mMPRecord; }
   TTree* getMPRecTree() const { return mMPRecTree.get(); }
   AlignmentTrack* getAlgTrack() const { return mAlgTrack.get(); }
+
+  const o2::globaltracking::RecoContainer* getRecoContainer() const { return mRecoData; }
+  void setRecoContainer(const o2::globaltracking::RecoContainer* cont) { mRecoData = cont; }
+
   //  bool ProcessEvent(const AliESDEvent* esdEv); FIXME(milettri): needs AliESDEvent
   //  bool ProcessTrack(const AliESDtrack* esdTr); FIXME(milettri): needs AliESDtrack
   //  bool ProcessTrack(const AliESDCosmicTrack* esdCTr); FIXME(milettri): needs AliESDCosmicTrack
   //  uint32_t AcceptTrack(const AliESDtrack* esdTr, bool strict = true) const; FIXME(milettri): needs AliESDtrack
   //  uint32_t AcceptTrackCosmic(const AliESDtrack* esdPairCosm[kNCosmLegs]) const; FIXME(milettri): needs AliESDtrack
   //  bool CheckSetVertex(const AliESDVertex* vtx); FIXME(milettri): needs AliESDVertex
-  bool addVertexConstraint();
+  bool addVertexConstraint(const o2::dataformats::PrimaryVertex& vtx);
   int getNDetectors() const { return mNDet; }
   AlignableDetector* getDetector(DetID id) const { return mDetectors[id]; }
 
   EventVertex* getVertexSensor() const { return mVtxSens.get(); }
   //
-  void resetDetectors();
+  void resetForNextTrack();
   int getNDOFs() const { return mGloParVal.size(); }
   //----------------------------------------
   // output related
@@ -347,6 +352,7 @@ class Controller : public TObject
   bool mFieldOn = false;                     // field on flag
   int mTracksType = utils::Coll;             // collision/cosmic event type
   std::unique_ptr<AlignmentTrack> mAlgTrack; // current alignment track
+  const o2::globaltracking::RecoContainer* mRecoData = nullptr; // externally set RecoContainer
 
   std::array<AlignableDetector*, DetID::nDetectors> mDetectors{}; // detectors participating in the alignment
 

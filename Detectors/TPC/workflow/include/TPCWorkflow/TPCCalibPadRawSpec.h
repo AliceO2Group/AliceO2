@@ -87,6 +87,7 @@ class TPCCalibPedestalDevice : public o2::framework::Task
     mUseOldSubspec = ic.options().get<bool>("use-old-subspec");
     mForceQuit = ic.options().get<bool>("force-quit");
     mDirectFileDump = ic.options().get<bool>("direct-file-dump");
+    mSyncOffsetReference = ic.options().get<uint32_t>("sync-offset-reference");
     if (mUseOldSubspec) {
       LOGP(info, "Using old subspecification (CruId << 16) | ((LinkId + 1) << (CruEndPoint == 1 ? 8 : 0))");
     }
@@ -106,7 +107,7 @@ class TPCCalibPedestalDevice : public o2::framework::Task
       mCalibration.processEvent();
     } else {
       auto& reader = mRawReader.getReaders()[0];
-      calib_processing_helper::processRawData(pc.inputs(), reader, mUseOldSubspec, mSectors);
+      calib_processing_helper::processRawData(pc.inputs(), reader, mUseOldSubspec, mSectors, nullptr, mSyncOffsetReference);
       mCalibration.endEvent();
       mCalibration.endReader();
     }
@@ -148,17 +149,18 @@ class TPCCalibPedestalDevice : public o2::framework::Task
  private:
   T mCalibration;
   rawreader::RawReaderCRUManager mRawReader;
-  CDBType mCalibType;          ///< calibration type
-  uint32_t mMaxEvents{0};      ///< maximum number of events to process
-  uint32_t mPublishAfter{0};   ///< number of events after which to dump the calibration
-  uint32_t mLane{0};           ///< lane number of processor
-  std::vector<int> mSectors{}; ///< sectors to process in this instance
-  bool mReadyToQuit{false};    ///< if processor is ready to quit
-  bool mCalibDumped{false};    ///< if calibration object already dumped
-  bool mUseOldSubspec{false};  ///< use the old subspec definition
-  bool mUseDigits{false};      ///< use digits as input
-  bool mForceQuit{false};      ///< for quit after processing finished
-  bool mDirectFileDump{false}; ///< directly dump the calibration data to file
+  CDBType mCalibType;                 ///< calibration type
+  uint32_t mMaxEvents{0};             ///< maximum number of events to process
+  uint32_t mPublishAfter{0};          ///< number of events after which to dump the calibration
+  uint32_t mLane{0};                  ///< lane number of processor
+  uint32_t mSyncOffsetReference{144}; ///< reference sync offset for decoding
+  std::vector<int> mSectors{};        ///< sectors to process in this instance
+  bool mReadyToQuit{false};           ///< if processor is ready to quit
+  bool mCalibDumped{false};           ///< if calibration object already dumped
+  bool mUseOldSubspec{false};         ///< use the old subspec definition
+  bool mUseDigits{false};             ///< use digits as input
+  bool mForceQuit{false};             ///< for quit after processing finished
+  bool mDirectFileDump{false};        ///< directly dump the calibration data to file
 
   //____________________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -238,6 +240,7 @@ DataProcessorSpec getTPCCalibPadRawSpec(const std::string inputSpec, uint32_t il
       {"use-old-subspec", VariantType::Bool, false, {"use old subsecifiation definition"}},
       {"force-quit", VariantType::Bool, false, {"force quit after max-events have been reached"}},
       {"direct-file-dump", VariantType::Bool, false, {"directly dump calibration to file"}},
+      {"sync-offset-reference", VariantType::UInt32, 144u, {"Reference BCs used for the global sync offset in the CRUs"}},
     } // end Options
   };  // end DataProcessorSpec
 }

@@ -95,12 +95,16 @@ struct ServiceRegistry {
   std::vector<ServiceEOSHandle> mPostEOSHandles;
   /// Callbacks for services to be executed after every dispatching
   std::vector<ServiceDispatchingHandle> mPostDispatchingHandles;
+  /// Callbacks for services to be executed after every dispatching
+  std::vector<ServiceForwardingHandle> mPostForwardingHandles;
   /// Callbacks for services to be executed before Start
   std::vector<ServiceStartHandle> mPreStartHandles;
   /// Callbacks for services to be executed on the Stop transition
   std::vector<ServiceStopHandle> mPostStopHandles;
   /// Callbacks for services to be executed on exit
   std::vector<ServiceExitHandle> mPreExitHandles;
+  /// Callbacks for services to be executed on exit
+  std::vector<ServiceDomainInfoHandle> mDomainInfoHandles;
 
   /// To hide exception throwing from QC
   void throwError(RuntimeErrorRef const& ref) const;
@@ -109,30 +113,8 @@ struct ServiceRegistry {
   using hash_type = decltype(TypeIdHelpers::uniqueId<void>());
   ServiceRegistry();
 
-  ServiceRegistry(ServiceRegistry const& other)
-  {
-    for (size_t i = 0; i < MAX_SERVICES; ++i) {
-      mServicesKey[i].store(other.mServicesKey[i].load());
-    }
-    mServicesValue = other.mServicesValue;
-    mServicesMeta = other.mServicesMeta;
-    for (size_t i = 0; i < other.mServicesBooked.size(); ++i) {
-      this->mServicesBooked[i] = other.mServicesBooked[i].load();
-    }
-  }
-
-  ServiceRegistry& operator=(ServiceRegistry const& other)
-  {
-    for (size_t i = 0; i < MAX_SERVICES; ++i) {
-      mServicesKey[i].store(other.mServicesKey[i].load());
-    }
-    mServicesValue = other.mServicesValue;
-    mServicesMeta = other.mServicesMeta;
-    for (size_t i = 0; i < other.mServicesBooked.size(); ++i) {
-      this->mServicesBooked[i] = other.mServicesBooked[i].load();
-    }
-    return *this;
-  }
+  ServiceRegistry(ServiceRegistry const& other);
+  ServiceRegistry& operator=(ServiceRegistry const& other);
 
   /// Invoke callbacks to be executed in PreRun(), before the User Start callbacks
   void preStartCallbacks();
@@ -151,11 +133,16 @@ struct ServiceRegistry {
   /// Invoke callbacks to monitor inputs after dispatching, regardless of them
   /// being discarded, consumed or processed.
   void postDispatchingCallbacks(ProcessingContext&);
+  /// Callback invoked after the late forwarding has been done
+  void postForwardingCallbacks(ProcessingContext&);
 
   /// Invoke callbacks on stop.
   void postStopCallbacks();
   /// Invoke callbacks on exit.
   void preExitCallbacks();
+
+  /// Invoke whenever we get a new DomainInfo message
+  void domainInfoUpdatedCallback(ServiceRegistry& registry, size_t oldestPossibleTimeslice, ChannelIndex channelIndex);
 
   /// Declare a service by its ServiceSpec. If of type Global
   /// / Serial it will be immediately registered for tid 0,

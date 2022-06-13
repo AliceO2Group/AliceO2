@@ -661,4 +661,15 @@ BOOST_AUTO_TEST_CASE(DataQuery)
 
   // This is valid.
   BOOST_CHECK_NO_THROW(DataDescriptorQueryBuilder::parse("x:TST/A1/0xccdb"));
+
+  auto result5 = DataDescriptorQueryBuilder::parse("x:TST/A1/0?lifetime=sporadic&ccdb-path=GLO/Config/GRPECS&key3=value3");
+  BOOST_CHECK_EQUAL(result5.size(), 1);
+  result5[0].lifetime = Lifetime::Sporadic;
+  BOOST_CHECK_EQUAL(result5[0].metadata.size(), 3);
+  BOOST_CHECK_EQUAL(result5[0].metadata[0].name, "lifetime");
+  BOOST_CHECK_EQUAL(result5[0].metadata[0].defaultValue.get<std::string>(), "sporadic");
+  BOOST_CHECK_EQUAL(result5[0].metadata[1].name, "ccdb-path");
+  BOOST_CHECK_EQUAL(result5[0].metadata[1].defaultValue.get<std::string>(), "GLO/Config/GRPECS");
+  BOOST_CHECK_EQUAL(result5[0].metadata[2].name, "key3");
+  BOOST_CHECK_EQUAL(result5[0].metadata[2].defaultValue.get<std::string>(), "value3");
 }

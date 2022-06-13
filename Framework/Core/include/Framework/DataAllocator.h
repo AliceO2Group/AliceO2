@@ -41,7 +41,7 @@
 #include <utility>
 #include <cstddef>
 
-// Do not change this for a full inclusion of FairMQDevice.
+// Do not change this for a full inclusion of fair::mq::Device.
 #include <fairmq/FwdDecls.h>
 
 namespace arrow
@@ -92,7 +92,7 @@ class DataAllocator
 
   inline DataChunk& newChunk(OutputRef&& ref, size_t size) { return newChunk(getOutputByBind(std::move(ref)), size); }
 
-  void adoptChunk(const Output&, char*, size_t, fairmq_free_fn*, void*);
+  void adoptChunk(const Output&, char*, size_t, fair::mq::FreeFn*, void*);
 
   /// Generic helper to create an object which is owned by the framework and
   /// returned as a reference to the own object.
@@ -111,7 +111,7 @@ class DataAllocator
       auto& context = mRegistry->get<MessageContext>();
 
       // Note: initial payload size is 0 and will be set by the context before sending
-      FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
+      fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
       return context.add<MessageContext::VectorObject<ValueType, MessageContext::ContainerRefObject<std::vector<ValueType, o2::pmr::NoConstructAllocator<ValueType>>>>>(
                       std::move(headerMessage), routeIndex, 0, std::forward<Args>(args)...)
         .get();
@@ -124,7 +124,7 @@ class DataAllocator
       auto& context = mRegistry->get<MessageContext>();
 
       // Note: initial payload size is 0 and will be set by the context before sending
-      FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
+      fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
       return context.add<MessageContext::VectorObject<ValueType>>(std::move(headerMessage), routeIndex, 0, std::forward<Args>(args)...).get();
     } else if constexpr (has_root_dictionary<T>::value == true && is_messageable<T>::value == false) {
       // Extended support for types implementing the Root ClassDef interface, both TObject
@@ -134,7 +134,7 @@ class DataAllocator
       auto& context = mRegistry->get<MessageContext>();
 
       // Note: initial payload size is 0 and will be set by the context before sending
-      FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodROOT, 0);
+      fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodROOT, 0);
       return context.add<MessageContext::RootSerializedObject<T>>(std::move(headerMessage), routeIndex, std::forward<Args>(args)...).get();
     } else if constexpr (std::is_base_of_v<std::string, T>) {
       auto* s = new std::string(args...);
@@ -176,7 +176,7 @@ class DataAllocator
           auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
           auto& context = mRegistry->get<MessageContext>();
 
-          FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, size);
+          fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, size);
           return context.add<MessageContext::SpanObject<T>>(std::move(headerMessage), routeIndex, 0, nElements).get();
         }
       } else if constexpr (std::is_same_v<FirstArg, std::shared_ptr<arrow::Schema>>) {
@@ -280,7 +280,7 @@ class DataAllocator
   void snapshot(const Output& spec, T const& object)
   {
     auto& proxy = mRegistry->get<MessageContext>().proxy();
-    FairMQMessagePtr payloadMessage;
+    fair::mq::MessagePtr payloadMessage;
     auto serializationType = o2::header::gSerializationMethodNone;
     RouteIndex routeIndex = matchDataHeader(spec, mRegistry->get<TimingInfo>().timeslice);
     if constexpr (is_messageable<T>::value == true) {
@@ -425,12 +425,12 @@ class DataAllocator
   template <typename ContainerT>
   CacheId adoptContainer(const Output& /*spec*/, ContainerT& /*container*/, bool /* cache  = false */, o2::header::SerializationMethod /* method = header::gSerializationMethodNone*/)
   {
-    static_assert(always_static_assert_v<ContainerT>, "Container cannot be moved. Please make sure it is backed by a FairMQMemoryResource");
+    static_assert(always_static_assert_v<ContainerT>, "Container cannot be moved. Please make sure it is backed by a o2::pmr::FairMQMemoryResource");
     return {0};
   }
 
   /// Adopt a PMR container. Notice that the container must be moveable and
-  /// eventually backed / by a FairMQMemoryResource.
+  /// eventually backed / by a o2::pmr::FairMQMemoryResource.
   /// @a spec where to send the message
   /// @a container the container whose resource needs to be sent
   /// @a cache: if true, the messages being sent are shallow copies of a cached
@@ -489,13 +489,13 @@ class DataAllocator
   ServiceRegistry* mRegistry;
 
   RouteIndex matchDataHeader(const Output& spec, size_t timeframeId);
-  FairMQMessagePtr headerMessageFromOutput(Output const& spec,                                  //
-                                           RouteIndex index,                                    //
-                                           o2::header::SerializationMethod serializationMethod, //
-                                           size_t payloadSize);                                 //
+  fair::mq::MessagePtr headerMessageFromOutput(Output const& spec,                                  //
+                                               RouteIndex index,                                    //
+                                               o2::header::SerializationMethod serializationMethod, //
+                                               size_t payloadSize);                                 //
 
   Output getOutputByBind(OutputRef&& ref);
-  void addPartToContext(FairMQMessagePtr&& payload,
+  void addPartToContext(fair::mq::MessagePtr&& payload,
                         const Output& spec,
                         o2::header::SerializationMethod serializationMethod);
 };
@@ -510,10 +510,10 @@ DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, Contain
 
   auto& context = mRegistry->get<MessageContext>();
   auto* transport = mRegistry->get<FairMQDeviceProxy>().getOutputTransport(routeIndex);
-  FairMQMessagePtr payloadMessage = o2::pmr::getMessage(std::forward<ContainerT>(container), *transport);
-  FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex,         //
-                                                           method,                   //
-                                                           payloadMessage->GetSize() //
+  fair::mq::MessagePtr payloadMessage = o2::pmr::getMessage(std::forward<ContainerT>(container), *transport);
+  fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex,         //
+                                                               method,                   //
+                                                               payloadMessage->GetSize() //
   );
 
   CacheId cacheId{0}; //

@@ -20,7 +20,6 @@ o2_add_library(FT0Calibration
          O2::MathUtils
          O2::DataFormatsFT0
          O2::DetectorsCalibration
-         O2::FT0Simulation
          O2::DataFormatsGlobalTracking
          ROOT::Minuit
          Microsoft.GSL::GSL
@@ -70,6 +69,5 @@ o2_add_library(FT0Calibration
         PUBLIC_LINK_LIBRARIES
         O2::DataFormatsFT0 O2::FITCalibration O2::DetectorsCalibration
         )
-   
 
 o2_data_file(COPY files DESTINATION Detectors/FT0/)

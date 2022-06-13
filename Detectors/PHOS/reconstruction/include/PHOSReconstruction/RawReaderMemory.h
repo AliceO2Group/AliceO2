@@ -106,7 +106,7 @@ class RawReaderMemory
   RawPayload mRawPayload;                 ///< Raw payload (can consist of multiple pages)
   RCUTrailer mCurrentTrailer;             ///< RCU trailer
   uint64_t mTrailerPayloadWords = 0;      ///< Payload words in common trailer
-  int mCurrentPosition = 0;               ///< Current page in file
+  uint32_t mCurrentPosition = 0;          ///< Current page in file
   int mNumData = 0;                       ///< Number of pages
   bool mRawHeaderInitialized = false;     ///< RDH for current page initialized
   bool mPayloadInitialized = false;       ///< Payload for current page initialized

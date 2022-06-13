@@ -24,19 +24,10 @@ void CalibTOFapi::resetDia()
   mNoisy.clear();
 }
 
-CalibTOFapi::CalibTOFapi()
-{
-  resetDia();
-  memset(mIsErrorCh, false, Geo::NCHANNELS);
-  memset(mIsOffCh, false, Geo::NCHANNELS);
-  memset(mIsNoisy, false, Geo::NCHANNELS);
-}
-
 //______________________________________________________________________
 
 CalibTOFapi::CalibTOFapi(const std::string url)
 {
-  CalibTOFapi();
   // setting the URL to the CCDB manager
 
   setURL(url);

@@ -202,6 +202,7 @@ void duplicateHits(const char* filebase = "o2sim", const char* newfilebase = "o2
 
 #ifdef ENABLE_UPGRADES
   duplicateV<o2::itsmft::Hit>(grp, filebase, DetID::FT3, newfilebase, factor);
+  duplicateV<o2::itsmft::Hit>(grp, filebase, DetID::FCT, newfilebase, factor);
 #endif
 
   // duplicateACO(reftree);

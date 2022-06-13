@@ -108,3 +108,39 @@ void Module::setChannel(int slot, int8_t chID, int16_t fID, bool read, bool trig
     trigChannelConf[slot].threshold = tT;
   }
 }
+
+//______________________________________________________________________________
+uint32_t ModuleConfig::getTriggerMask() const
+{
+  uint32_t triggermask = 0;
+  for (int im = 0; im < NModules; im++) {
+    for (int ic = 0; ic < NChPerModule; ic++) {
+      if (modules[im].trigChannel[ic]) {
+        uint32_t tmask = 0x1 << (im * NChPerModule + ic);
+        triggermask = triggermask | tmask;
+      }
+    }
+  }
+  return triggermask;
+}
+
+std::string ModuleConfig::getPrintTriggerMask() const
+{
+  std::string printTriggerMask{};
+  for (int im = 0; im < NModules; im++) {
+    if (im > 0) {
+      printTriggerMask += " ";
+    }
+    printTriggerMask += std::to_string(im);
+    printTriggerMask += "[";
+    for (int ic = 0; ic < NChPerModule; ic++) {
+      if (modules[im].trigChannel[ic]) {
+        printTriggerMask += "T";
+      } else {
+        printTriggerMask += " ";
+      }
+    }
+    printTriggerMask += "]";
+  }
+  return printTriggerMask;
+}

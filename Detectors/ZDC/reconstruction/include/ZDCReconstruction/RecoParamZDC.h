@@ -32,9 +32,12 @@ struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
   void setBit(uint32_t ibit, bool val = true);
 
   // Signal processing
-  int low_pass_filter = -1; // Low pass filtering
-  int corr_signal = -1;     // TDC signal correction
-  int corr_background = -1; // TDC pile-up correction
+  int low_pass_filter = -1;    // Low pass filtering
+  int full_interpolation = -1; // Full interpolation of waveform
+  int corr_signal = -1;        // TDC signal correction
+  int corr_background = -1;    // TDC pile-up correction
+
+  int debug_output = -1; // Debug output
 
   // TDC
   Int_t tmod[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};       // Position of TDC channel in raw data
@@ -59,6 +62,9 @@ struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
   // Energy calibration
   float energy_calib[NChannels] = {0}; // Energy calibration coefficients
   float tower_calib[NChannels] = {0};  // Tower calibration coefficients
+
+  void print();
+
   O2ParamDef(RecoParamZDC, "RecoParamZDC");
 };
 } // namespace zdc

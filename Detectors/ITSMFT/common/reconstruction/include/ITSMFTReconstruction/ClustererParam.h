@@ -50,6 +50,21 @@ template <int N>
 ClustererParam<N> ClustererParam<N>::sInstance;
 
 } // namespace itsmft
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>> : std::true_type {
+};
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif

@@ -58,8 +58,7 @@ int GRPDCSDPsProcessor::process(const gsl::span<const DPCOM> dps)
       LOG(debug) << "DP " << it.first << " found in list of DPs expected for GRP";
     }
   }
-
-  mUpdateMagField = false;    // by default, we do not foresee a new entry in the CCDB for the B field
+  mMagFieldHelper.updated = false;
   mUpdateEnvVars = false;     // by default, we do not foresee a new entry in the CCDB for the Env Var
   mUpdateCollimators = false; // by default, we do not foresee a new entry in the CCDB for the Collimators
   mUpdateLHCIFInfo = false;   // by default, we do not foresee a new entry in the CCDB for the LHCIF DPs
@@ -76,7 +75,7 @@ int GRPDCSDPsProcessor::process(const gsl::span<const DPCOM> dps)
     mPids[it.id] = true;
   }
 
-  if (mUpdateMagField) {
+  if (isMagFieldUpdated()) {
     updateMagFieldCCDB();
   }
   if (mUpdateEnvVars) {
@@ -89,11 +88,11 @@ int GRPDCSDPsProcessor::process(const gsl::span<const DPCOM> dps)
     updateLHCIFInfoCCDB();
   }
 
+  mCallSlice++;
   return 0;
 }
 
 //__________________________________________________________________
-
 int GRPDCSDPsProcessor::processDP(const DPCOM& dpcom)
 {
 
@@ -116,66 +115,22 @@ int GRPDCSDPsProcessor::processDP(const DPCOM& dpcom)
   }
   auto flags = val.get_flags();
   if (processFlags(flags, dpid.get_alias()) == 0) {
-
     // now I need to access the correct element
     std::string aliasStr(dpid.get_alias());
     // LOG(info) << "alias 0 = " << aliasStr;
     //  B-field DPs
-    if (aliasStr.find("Current") != string::npos || aliasStr.find("Polarity") != string::npos) { // B-field DPs
-      mUpdateMagField = true;
-      if (aliasStr == "L3Current") {
-        mMagField.setL3Current(std::signbit(mMagField.getL3Current()) ? -static_cast<float>(o2::dcs::getValue<double>(dpcom)) : static_cast<float>(o2::dcs::getValue<double>(dpcom))); // true is negative field
-        if (mVerbose) {
-          LOG(info) << "Updating L3 current with value " << mMagField.getL3Current();
-        }
-      } else if (aliasStr == "L3Polarity") {
-        mMagField.setL3Current(o2::dcs::getValue<bool>(dpcom) ? -mMagField.getL3Current() : mMagField.getL3Current()); // true is negative field
-        if (mVerbose) {
-          LOG(info) << "Updating L3 polarity with value " << std::signbit(mMagField.getL3Current()); // poisitive is false, negative is true
-        }
-      } else if (aliasStr == "DipoleCurrent") {
-        mMagField.setDipoleCurrent(std::signbit(mMagField.getDipoleCurrent()) ? -static_cast<float>(o2::dcs::getValue<double>(dpcom)) : static_cast<float>(o2::dcs::getValue<double>(dpcom))); // true is negative field
-        if (mVerbose) {
-          LOG(info) << "Updating Dipole current with value " << mMagField.getDipoleCurrent();
-        }
-      } else if (aliasStr == "DipolePolarity") {
-        mMagField.setDipoleCurrent(o2::dcs::getValue<bool>(dpcom) ? -mMagField.getDipoleCurrent() : mMagField.getDipoleCurrent()); // true is negative field
-        if (mVerbose) {
-          LOG(info) << "Updating Dipole polarity with value " << std::signbit(mMagField.getDipoleCurrent()); // poisitive is false, negative is true
-        }
-      } else {
-        if (mVerbose) {
-          LOG(info) << "Alias " << aliasStr << " seemd from B field, but it is not recognized";
-        }
-        mUpdateMagField = false;
-      }
+    if (aliasStr == "L3Current") {
+      mMagFieldHelper.updateCurL3(static_cast<float>(o2::dcs::getValue<double>(dpcom)));
+    } else if (aliasStr == "DipoleCurrent") {
+      mMagFieldHelper.updateCurDip(static_cast<float>(o2::dcs::getValue<double>(dpcom)));
+    } else if (aliasStr == "L3Polarity") {
+      mMagFieldHelper.updateSignL3(o2::dcs::getValue<bool>(dpcom)); // true is negative
+    } else if (aliasStr == "DipolePolarity") {
+      mMagFieldHelper.updateSignDip(o2::dcs::getValue<bool>(dpcom)); // true is negative
+    } else if (processEnvVar(dpcom)) {                               // environment variables
+    } else if (processCollimators(dpcom)) {
     } else {
-      // environment variables
-      if (aliasStr.find("Cavern") != string::npos || aliasStr.find("Surface") != string::npos) {
-        if (mVerbose) {
-          LOG(info) << "Alias " << aliasStr << " seems from Env Variables";
-        }
-        processEnvVar(dpcom);
-      }
-
-      else {
-        // Collimators
-        if (aliasStr.find("Collimator") != string::npos) {
-          // this is a collimator
-          if (mVerbose) {
-            LOG(info) << "Alias " << aliasStr << " seems from Collimators";
-          }
-          processCollimators(dpcom);
-        }
-
-        else {
-          // the rest should all be LHCIF DPs
-          if (mVerbose) {
-            LOG(info) << "Alias " << aliasStr << " should be related to LHCIF";
-          }
-          processLHCIFDPs(dpcom);
-        }
-      }
+      processLHCIFDPs(dpcom);
     }
   }
   return 0;
@@ -183,43 +138,40 @@ int GRPDCSDPsProcessor::processDP(const DPCOM& dpcom)
 
 //______________________________________________________________________
 
-void GRPDCSDPsProcessor::processCollimators(const DPCOM& dpcom)
+bool GRPDCSDPsProcessor::processCollimators(const DPCOM& dpcom)
 {
 
   // function to process Data Points that are related to the collimators
-
-  processPair(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_downstream", mCollimators.mgap_downstream, mUpdateCollimators);
-  processPair(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_upstream", mCollimators.mgap_upstream, mUpdateCollimators);
-  processPair(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_downstream", mCollimators.mleft_downstream, mUpdateCollimators);
-  processPair(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_upstream", mCollimators.mleft_upstream, mUpdateCollimators);
-  processPair(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream", mCollimators.mright_downstream, mUpdateCollimators);
-  processPair(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream", mCollimators.mright_upstream, mUpdateCollimators);
+  bool match = processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_downstream", mCollimators.mgap_downstream, mUpdateCollimators) ||
+               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_upstream", mCollimators.mgap_upstream, mUpdateCollimators) ||
+               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_downstream", mCollimators.mleft_downstream, mUpdateCollimators) ||
+               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_upstream", mCollimators.mleft_upstream, mUpdateCollimators) ||
+               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream", mCollimators.mright_downstream, mUpdateCollimators) ||
+               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream", mCollimators.mright_upstream, mUpdateCollimators);
   if (mVerbose) {
-    LOG(info) << "update collimators = " << mUpdateCollimators;
+    LOG(info) << "update collimators = " << mUpdateCollimators << " matched: " << match;
   }
-  return;
+  return match;
 }
 
 //______________________________________________________________________
 
-void GRPDCSDPsProcessor::processEnvVar(const DPCOM& dpcom)
+bool GRPDCSDPsProcessor::processEnvVar(const DPCOM& dpcom)
 {
 
   // function to process Data Points that are related to env variables
-
-  processPair(dpcom, "CavernTemperature", mEnvVars.mCavernTemperature, mUpdateEnvVars);
-  processPair(dpcom, "CavernAtmosPressure", mEnvVars.mCavernAtmosPressure, mUpdateEnvVars);
-  processPair(dpcom, "SurfaceAtmosPressure", mEnvVars.mSurfaceAtmosPressure, mUpdateEnvVars);
-  processPair(dpcom, "CavernAtmosPressure2", mEnvVars.mCavernAtmosPressure2, mUpdateEnvVars);
+  bool match = processPairD(dpcom, "CavernTemperature", mEnvVars.mCavernTemperature, mUpdateEnvVars) ||
+               processPairD(dpcom, "CavernAtmosPressure", mEnvVars.mCavernAtmosPressure, mUpdateEnvVars) ||
+               processPairD(dpcom, "SurfaceAtmosPressure", mEnvVars.mSurfaceAtmosPressure, mUpdateEnvVars) ||
+               processPairD(dpcom, "CavernAtmosPressure2", mEnvVars.mCavernAtmosPressure2, mUpdateEnvVars);
   if (mVerbose) {
-    LOG(info) << "update env vars = " << mUpdateEnvVars;
+    LOG(info) << "update env vars = " << mUpdateEnvVars << " matched: " << match;
   }
-  return;
+  return match;
 }
 
 //______________________________________________________________________
-
-void GRPDCSDPsProcessor::processPair(const DPCOM& dpcom, const std::string& alias, std::pair<uint64_t, double>& p, bool& flag)
+bool GRPDCSDPsProcessor::processPairD(const DPCOM& dpcom, const std::string& alias, std::pair<uint64_t, double>& p, bool& flag)
 {
 
   // function to process Data Points that is stored in a pair
@@ -229,7 +181,7 @@ void GRPDCSDPsProcessor::processPair(const DPCOM& dpcom, const std::string& alia
   std::string aliasStr(dpid.get_alias());
 
   if (mVerbose) {
-    LOG(info) << "Processing alias " << aliasStr;
+    LOG(info) << "comparing DP alias " << aliasStr << " to " << alias;
   }
 
   if (aliasStr == alias) {
@@ -237,8 +189,42 @@ void GRPDCSDPsProcessor::processPair(const DPCOM& dpcom, const std::string& alia
       LOG(info) << "It matches the requested string " << alias << ", let's check if the value needs to be updated";
     }
     flag = compareAndUpdate(p, dpcom);
+    return true;
   }
-  return;
+  return false;
+}
+
+//______________________________________________________________________
+bool GRPDCSDPsProcessor::processPairS(const DPCOM& dpcom, const std::string& alias, std::pair<uint64_t, std::string>& p, bool& flag)
+{
+
+  // function to process string Data Points that is stored in a pair
+
+  auto& dpcomdata = dpcom.data;
+  auto& dpid = dpcom.id;
+  std::string aliasStr(dpid.get_alias());
+
+  if (mVerbose) {
+    LOG(info) << "comparing string DP alias " << aliasStr << " to " << alias;
+  }
+
+  if (aliasStr == alias) {
+    auto val = o2::dcs::getValue<std::string>(dpcom);
+    if (mVerbose) {
+      LOG(info) << "It matches the requested string " << alias << ", let's check if the value needs to be updated";
+      LOG(info) << "old value = " << p.second << ", new value = " << val << ", call " << mCallSlice;
+    }
+    if (mCallSlice == 0 || (val != p.second)) {
+      p.first = dpcomdata.get_epoch_time();
+      p.second = val;
+      flag = true;
+      if (mVerbose) {
+        LOG(info) << "Updating value " << alias << " with timestamp " << p.first;
+      }
+    }
+    return true;
+  }
+  return false;
 }
 
 //______________________________________________________________________
@@ -251,9 +237,9 @@ bool GRPDCSDPsProcessor::compareAndUpdate(std::pair<uint64_t, double>& p, const 
   double val = o2::dcs::getValue<double>(dpcom);
   auto& dpcomdata = dpcom.data;
   if (mVerbose) {
-    LOG(info) << "old value = " << p.second << ", new value = " << val << ", absolute difference = " << std::abs(p.second - val);
+    LOG(info) << "old value = " << p.second << ", new value = " << val << ", absolute difference = " << std::abs(p.second - val) << " call " << mCallSlice;
   }
-  if (std::abs(p.second - val) > 0.5e-7 * (std::abs(p.second) + std::abs(val))) {
+  if (mCallSlice == 0 || (std::abs(p.second - val) > 0.5e-7 * (std::abs(p.second) + std::abs(val)))) {
     p.first = dpcomdata.get_epoch_time();
     p.second = val;
     if (mVerbose) {
@@ -343,46 +329,19 @@ bool GRPDCSDPsProcessor::processLHCIFDPs(const DPCOM& dpcom)
     if (aliasStr.find(fmt::format("{}{}", "ALI_Background", ibkg)) != string::npos) {
       double val = o2::dcs::getValue<double>(dpcom);
       mLHCInfo.mBackground[ibkg - 1].emplace_back(dpcomdata.get_epoch_time(), val);
-      LOG(info) << "Adding value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " to mBackground[" << ibkg - 1 << "]";
       if (mVerbose) {
         LOG(info) << "Adding value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " to mBackground[" << ibkg - 1 << "]";
       }
       return true;
     }
   }
-  if (aliasStr == "ALI_Lumi_Source_Name") {
-    std::string val = o2::dcs::getValue<std::string>(dpcom);
-    mLHCInfo.mLumiSource.first = dpcomdata.get_epoch_time();
-    mLHCInfo.mLumiSource.second = val;
-    LOG(info) << "Updating value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " for mLumiSource";
-    if (mVerbose) {
-      LOG(info) << "Updating value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " for mLumiSource";
-    }
-    mUpdateLHCIFInfo = true; // we force the update of the LHCIF if the lumi source changes
+  if (processPairS(dpcom, "ALI_Lumi_Source_Name", mLHCInfo.mLumiSource, mUpdateLHCIFInfo)) {
     return true;
   }
-
-  if (aliasStr == "MACHINE_MODE") {
-    std::string val = o2::dcs::getValue<std::string>(dpcom);
-    mLHCInfo.mMachineMode.first = dpcomdata.get_epoch_time();
-    mLHCInfo.mMachineMode.second = val;
-    LOG(info) << "Updating value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " for mMachineMode";
-    if (mVerbose) {
-      LOG(info) << "Updating value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " for mMachineMode";
-    }
-    mUpdateLHCIFInfo = true; // we force the update of the LHCIF if the machine mode (ION PHYSICS, PROTON PHYSICS..., see https://lhc-commissioning.web.cern.ch/systems/data-exchange/doc/LHC-OP-ES-0005-10-00.pdf) changes
+  if (processPairS(dpcom, "MACHINE_MODE", mLHCInfo.mMachineMode, mUpdateLHCIFInfo)) {
     return true;
   }
-  if (aliasStr == "BEAM_MODE") {
-    std::string val = o2::dcs::getValue<std::string>(dpcom);
-    LOG(info) << "Updating value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " for mBeamMode";
-    mLHCInfo.mBeamMode.first = dpcomdata.get_epoch_time();
-    mLHCInfo.mBeamMode.second = val;
-    if (mVerbose) {
-      LOG(info) << "Updating value " << val << " with timestamp " << dpcomdata.get_epoch_time() << " for mBeamMode";
-    }
-
-    mUpdateLHCIFInfo = true; // we force the update of the LHCIF if the beam mode (SETUP, RAMP, STABLE BEAMS..., see https://lhc-commissioning.web.cern.ch/systems/data-exchange/doc/LHC-OP-ES-0005-10-00.pdf) changes
+  if (processPairS(dpcom, "BEAM_MODE", mLHCInfo.mBeamMode, mUpdateLHCIFInfo)) {
     return true;
   }
 
@@ -394,16 +353,20 @@ bool GRPDCSDPsProcessor::processLHCIFDPs(const DPCOM& dpcom)
 
 void GRPDCSDPsProcessor::updateMagFieldCCDB()
 {
-
   // we need to update a CCDB for the B field --> let's prepare the CCDBInfo
-
   if (mVerbose) {
     LOG(info) << "At least one DP related to B field changed --> we will update CCDB with startTime " << mStartValidity;
   }
+  if (mMagFieldHelper.isSet != (0x1 << 4) - 1) {
+    LOG(alarm) << "Magnetic field was updated but not all fields were set: no FBI was seen?";
+    mMagFieldHelper.updated = false;
+    return;
+  }
+  mMagField.setL3Current(mMagFieldHelper.negL3 ? -mMagFieldHelper.curL3 : mMagFieldHelper.curL3);
+  mMagField.setDipoleCurrent(mMagFieldHelper.negDip ? -mMagFieldHelper.curDip : mMagFieldHelper.curDip);
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mMagField, mccdbMagFieldInfo, "GLO/Config/GRPMagField", md, mStartValidity, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
-  return;
+  o2::calibration::Utils::prepareCCDBobjectInfo(mMagField, mccdbMagFieldInfo, "GLO/Config/GRPMagField", md, mStartValidity, mStartValidity + o2::ccdb::CcdbObjectInfo::MONTH);
 }
 
 //______________________________________________________________________
@@ -418,7 +381,7 @@ void GRPDCSDPsProcessor::updateLHCIFInfoCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mLHCInfo, mccdbLHCIFInfo, "GLO/Config/LHCIF", md, mStartValidity, mStartValidity + 3 * 24L * 3600000); // valid for 3 days
+  o2::calibration::Utils::prepareCCDBobjectInfo(mLHCInfo, mccdbLHCIFInfo, "GLO/Config/LHCIFDataPoints", md, mStartValidity, mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY); // valid for 3 days
   return;
 }
 
@@ -434,7 +397,7 @@ void GRPDCSDPsProcessor::updateEnvVarsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbEnvVarsInfo, "GLO/Config/EnvVars", md, mStartValidity, mStartValidity + 3 * 24L * 3600000); // valid for 3 days
+  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbEnvVarsInfo, "GLO/Config/EnvVars", md, mStartValidity, mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY); // valid for 3 days
   return;
 }
 
@@ -450,6 +413,6 @@ void GRPDCSDPsProcessor::updateCollimatorsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbCollimatorsInfo, "GLO/Config/Collimators", md, mStartValidity, mStartValidity + 3 * 24L * 3600000); // valid for 3 days
+  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbCollimatorsInfo, "GLO/Config/Collimators", md, mStartValidity, mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY); // valid for 3 days
   return;
 }

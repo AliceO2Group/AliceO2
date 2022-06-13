@@ -682,6 +682,11 @@ class InputRecord
     return {this, size()};
   }
 
+  InputSpan& span()
+  {
+    return mSpan;
+  }
+
  private:
   ServiceRegistry& mRegistry;
   std::vector<InputRoute> const& mInputsSchema;

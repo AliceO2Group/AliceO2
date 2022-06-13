@@ -96,19 +96,18 @@ void LHCClockCalibrator::finalizeSlot(Slot& slot)
     LOG(error) << "Fit failed with result = " << fitres;
   }
 
-  // TODO: the timestamp is now given with the TF index, but it will have
-  // to become an absolute time. This is true both for the lhc phase object itself
-  // and the CCDB entry
   std::map<std::string, std::string> md;
   LHCphase l;
   l.addLHCphase(0, fitValues[1]);
-  l.addLHCphase(999999999, fitValues[1]);
+  l.addLHCphase(o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP_SECONDS, fitValues[1]);
   auto clName = o2::utils::MemFileHelper::getClassName(l);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
 
-  auto starting = slot.getStartTimeMS() - 10000; // start 10 seconds before
-  auto stopping = slot.getEndTimeMS() + 10000;   // stop 10 seconds after
+  auto starting = slot.getStartTimeMS();
+  auto stopping = slot.getEndTimeMS() + 5 * getSlotLength() + getMaxSlotsDelay();
   LOG(info) << "starting = " << starting << " - stopping = " << stopping << " -> phase = " << fitValues[1] << " ps";
+  l.setStartValidity(starting);
+  l.setEndValidity(stopping);
 
   mInfoVector.emplace_back("TOF/Calib/LHCphase", clName, flName, md, starting, stopping);
   mLHCphaseVector.emplace_back(l);

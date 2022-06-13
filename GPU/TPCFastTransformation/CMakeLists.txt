@@ -23,17 +23,18 @@ set(SRCS
     ChebyshevFit1D.cxx
     TPCFastTransformGeo.cxx
     TPCFastSpaceChargeCorrection.cxx
+    TPCFastSpaceChargeCorrectionMap.cxx
     TPCFastTransform.cxx
-    MultivariatePolynomial.cxx
-    MultivariatePolynomialHelper.cxx
 )
 
-if(NOT ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   set(SRCS ${SRCS}
       Spline1DHelper.cxx
       Spline2DHelper.cxx
       SymMatrixSolver.cxx
       BandMatrixSolver.cxx
+      MultivariatePolynomial.cxx
+      MultivariatePolynomialHelper.cxx
       devtools/IrregularSpline1D.cxx
       devtools/IrregularSpline2D3D.cxx
       devtools/SemiregularSpline2D3D.cxx
@@ -56,7 +57,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
                                        Vc::Vc
                                        ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad
                              )
-                 
+
   o2_target_root_dictionary(${MODULE}
                             HEADERS ${HDRS_CINT_O2}
                             LINKDEF TPCFastTransformationLinkDef_O2.h)
@@ -80,7 +81,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
 
   foreach(m
           SplineDemo.C
-          SplineConstructionDemo.C
+          SplineRecoveryDemo.C
           fastTransformQA.C
           generateTPCCorrectionNTuple.C)
     o2_add_test_root_macro(macro/${m}
@@ -112,7 +113,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
 endif()
 
 if(${ALIGPU_BUILD_TYPE} STREQUAL "ALIROOT")
-  add_definitions(-DGPUCA_ALIROOT_LIB)
+  add_definitions(-DGPUCA_ALIROOT_LIB -DGPUCA_NO_FMT)
 
   set(SRCS ${SRCS} TPCFastTransformManager.cxx TPCFastTransformQA.cxx
            ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx

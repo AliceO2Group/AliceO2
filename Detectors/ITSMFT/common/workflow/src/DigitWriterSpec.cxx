@@ -61,7 +61,10 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool dec, bool calib, o2::hea
       nent = n;
     }
     outputtree->SetEntries(nent);
-    outputtree->Write("", TObject::kOverwrite);
+    // do not use TTree::Write .. as this writes to default directory (not the associated file)
+    // instead of outputtree->Write("", TObject::kOverwrite)
+    // --> better use TFile::Write or TFile::WriteObject
+    outputfile->Write("", TObject::kOverwrite);
     outputfile->Close();
   };
 
@@ -85,19 +88,19 @@ DataProcessorSpec getDigitWriterSpec(bool mctruth, bool dec, bool calib, o2::hea
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Digits tree"},
                                 MakeRootTreeWriterSpec::CustomClose(finishWriting),
                                 // in case of labels we first read them as std::vector<char> and process them correctly in the fillLabels hook
-                                BranchDefinition<std::vector<char>>{InputSpec{"digitsMCTR", detOrig, "DIGITSMCTR", 0},
+                                BranchDefinition<std::vector<char>>{InputSpec{(detStr + "_digitsMCTR").c_str(), detOrig, "DIGITSMCTR", 0},
                                                                     (detStr + "DigitMCTruth").c_str(),
                                                                     (mctruth ? 1 : 0), fillLabels},
-                                BranchDefinition<std::vector<itsmft::MC2ROFRecord>>{InputSpec{"digitsMC2ROF", detOrig, "DIGITSMC2ROF", 0},
+                                BranchDefinition<std::vector<itsmft::MC2ROFRecord>>{InputSpec{(detStr + "_digitsMC2ROF").c_str(), detOrig, "DIGITSMC2ROF", 0},
                                                                                     (detStr + "DigitMC2ROF").c_str(),
                                                                                     (mctruth ? 1 : 0)},
-                                BranchDefinition<std::vector<itsmft::Digit>>{InputSpec{"digits", detOrig, "DIGITS", 0},
+                                BranchDefinition<std::vector<itsmft::Digit>>{InputSpec{(detStr + "digits").c_str(), detOrig, "DIGITS", 0},
                                                                              (detStr + "Digit").c_str(),
                                                                              logger},
-                                BranchDefinition<std::vector<itsmft::GBTCalibData>>{InputSpec{"calib", detOrig, "GBTCALIB", 0},
+                                BranchDefinition<std::vector<itsmft::GBTCalibData>>{InputSpec{(detStr + "calib").c_str(), detOrig, "GBTCALIB", 0},
                                                                                     (detStr + "Calib").c_str(),
                                                                                     (calib ? 1 : 0)},
-                                BranchDefinition<std::vector<itsmft::ROFRecord>>{InputSpec{"digitsROF", detOrig, "DIGITSROF", 0},
+                                BranchDefinition<std::vector<itsmft::ROFRecord>>{InputSpec{(detStr + "digitsROF").c_str(), detOrig, "DIGITSROF", 0},
                                                                                  (detStr + "DigitROF").c_str()})();
 }
 

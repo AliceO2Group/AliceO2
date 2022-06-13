@@ -23,7 +23,7 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/WorkflowSpec.h"
 #include <Monitoring/Monitoring.h>
-#include <fairmq/FairMQTransportFactory.h>
+#include <fairmq/TransportFactory.h>
 #include <array>
 #include <vector>
 
@@ -44,7 +44,8 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
     InputRoute{spec, 0, "Fake", 0}};
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index{1, 1};
+  std::vector<InputChannelInfo> infos{1};
+  TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -60,13 +61,13 @@ BOOST_AUTO_TEST_CASE(TestNoWait)
   dh.splitPayloadParts = 1;
 
   DataProcessingHeader dph{0, 1};
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  std::array<FairMQMessagePtr, 2> messages;
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  std::array<fair::mq::MessagePtr, 2> messages;
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   messages[0] = o2::pmr::getMessage(Stack{channelAlloc, dh, dph});
   messages[1] = transport->CreateMessage(1000);
-  FairMQMessagePtr& header = messages[0];
-  FairMQMessagePtr& payload = messages[1];
+  fair::mq::MessagePtr& header = messages[0];
+  fair::mq::MessagePtr& payload = messages[1];
   relayer.relay(header->GetData(), messages.data(), messages.size());
   std::vector<RecordAction> ready;
   relayer.getReadyToProcess(ready);
@@ -91,7 +92,8 @@ BOOST_AUTO_TEST_CASE(TestNoWaitMatcher)
     InputRoute{specs[0], 0, "Fake", 0}};
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index{1, 1};
+  std::vector<InputChannelInfo> infos{1};
+  TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -107,13 +109,13 @@ BOOST_AUTO_TEST_CASE(TestNoWaitMatcher)
   dh.splitPayloadParts = 1;
 
   DataProcessingHeader dph{0, 1};
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  std::array<FairMQMessagePtr, 2> messages;
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  std::array<fair::mq::MessagePtr, 2> messages;
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   messages[0] = o2::pmr::getMessage(Stack{channelAlloc, dh, dph});
   messages[1] = transport->CreateMessage(1000);
-  FairMQMessagePtr& header = messages[0];
-  FairMQMessagePtr& payload = messages[1];
+  fair::mq::MessagePtr& header = messages[0];
+  fair::mq::MessagePtr& payload = messages[1];
   relayer.relay(header->GetData(), messages.data(), messages.size());
   std::vector<RecordAction> ready;
   relayer.getReadyToProcess(ready);
@@ -150,21 +152,22 @@ BOOST_AUTO_TEST_CASE(TestRelay)
 
   std::vector<ForwardRoute> forwards;
 
-  TimesliceIndex index{1, 1};
+  std::vector<InputChannelInfo> infos{1};
+  TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
   DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(4);
 
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
 
   auto createMessage = [&transport, &channelAlloc, &relayer](DataHeader& dh, size_t time) {
-    std::array<FairMQMessagePtr, 2> messages;
+    std::array<fair::mq::MessagePtr, 2> messages;
     messages[0] = o2::pmr::getMessage(Stack{channelAlloc, dh, DataProcessingHeader{time, 1}});
     messages[1] = transport->CreateMessage(1000);
-    FairMQMessagePtr& header = messages[0];
-    FairMQMessagePtr& payload = messages[1];
+    fair::mq::MessagePtr& header = messages[0];
+    fair::mq::MessagePtr& payload = messages[1];
     relayer.relay(header->GetData(), messages.data(), messages.size());
     BOOST_CHECK_EQUAL(header.get(), nullptr);
     BOOST_CHECK_EQUAL(payload.get(), nullptr);
@@ -228,21 +231,22 @@ BOOST_AUTO_TEST_CASE(TestRelayBug)
 
   std::vector<ForwardRoute> forwards;
 
-  TimesliceIndex index{1, 1};
+  std::vector<InputChannelInfo> infos{1};
+  TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
   DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(3);
 
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
 
   auto createMessage = [&transport, &channelAlloc, &relayer](DataHeader& dh, size_t time) {
-    std::array<FairMQMessagePtr, 2> messages;
+    std::array<fair::mq::MessagePtr, 2> messages;
     messages[0] = o2::pmr::getMessage(Stack{channelAlloc, dh, DataProcessingHeader{time, 1}});
     messages[1] = transport->CreateMessage(1000);
-    FairMQMessagePtr& header = messages[0];
-    FairMQMessagePtr& payload = messages[1];
+    fair::mq::MessagePtr& header = messages[0];
+    fair::mq::MessagePtr& payload = messages[1];
     relayer.relay(header->GetData(), messages.data(), messages.size());
     BOOST_CHECK_EQUAL(header.get(), nullptr);
     BOOST_CHECK_EQUAL(payload.get(), nullptr);
@@ -310,7 +314,8 @@ BOOST_AUTO_TEST_CASE(TestCache)
   std::vector<ForwardRoute> forwards;
 
   auto policy = CompletionPolicyHelpers::consumeWhenAll();
-  TimesliceIndex index{1, 1};
+  std::vector<InputChannelInfo> infos{1};
+  TimesliceIndex index{1, infos};
   DataRelayer relayer(policy, inputs, metrics, index);
   // Only two messages to fill the cache.
   relayer.setPipelineLength(2);
@@ -325,14 +330,14 @@ BOOST_AUTO_TEST_CASE(TestCache)
   dh.splitPayloadParts = 1;
 
   DataProcessingHeader dph{0, 1};
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto createMessage = [&transport, &channelAlloc, &relayer, &dh](auto const& h) {
-    std::array<FairMQMessagePtr, 2> messages;
+    std::array<fair::mq::MessagePtr, 2> messages;
     messages[0] = o2::pmr::getMessage(Stack{channelAlloc, dh, h});
     messages[1] = transport->CreateMessage(1000);
-    FairMQMessagePtr& header = messages[0];
-    FairMQMessagePtr& payload = messages[1];
+    fair::mq::MessagePtr& header = messages[0];
+    fair::mq::MessagePtr& payload = messages[1];
     auto res = relayer.relay(header->GetData(), messages.data(), messages.size());
     BOOST_REQUIRE(res != DataRelayer::RelayChoice::WillRelay || header.get() == nullptr);
     BOOST_REQUIRE(res != DataRelayer::RelayChoice::WillRelay || payload.get() == nullptr);
@@ -383,7 +388,8 @@ BOOST_AUTO_TEST_CASE(TestPolicies)
   };
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index{1, 1};
+  std::vector<InputChannelInfo> infos{1};
+  TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -406,14 +412,14 @@ BOOST_AUTO_TEST_CASE(TestPolicies)
   dh2.splitPayloadIndex = 0;
   dh2.splitPayloadParts = 1;
 
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto createMessage = [&transport, &channelAlloc, &relayer](auto const& dh, auto const& h) {
-    std::array<FairMQMessagePtr, 2> messages;
+    std::array<fair::mq::MessagePtr, 2> messages;
     messages[0] = o2::pmr::getMessage(Stack{channelAlloc, dh, h});
     messages[1] = transport->CreateMessage(1000);
-    FairMQMessagePtr& header = messages[0];
-    FairMQMessagePtr& payload = messages[1];
+    fair::mq::MessagePtr& header = messages[0];
+    fair::mq::MessagePtr& payload = messages[1];
     return relayer.relay(header->GetData(), messages.data(), messages.size());
   };
 
@@ -453,7 +459,8 @@ BOOST_AUTO_TEST_CASE(TestClear)
   };
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index{1, 1};
+  std::vector<InputChannelInfo> infos{1};
+  TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -476,14 +483,14 @@ BOOST_AUTO_TEST_CASE(TestClear)
   dh2.splitPayloadIndex = 0;
   dh2.splitPayloadParts = 1;
 
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   auto createMessage = [&transport, &channelAlloc, &relayer](auto const& dh, auto const& h) {
-    std::array<FairMQMessagePtr, 2> messages;
+    std::array<fair::mq::MessagePtr, 2> messages;
     messages[0] = o2::pmr::getMessage(Stack{channelAlloc, dh, h});
     messages[1] = transport->CreateMessage(1000);
-    FairMQMessagePtr& header = messages[0];
-    FairMQMessagePtr& payload = messages[1];
+    fair::mq::MessagePtr& header = messages[0];
+    fair::mq::MessagePtr& payload = messages[1];
     return relayer.relay(header->GetData(), messages.data(), messages.size());
   };
 
@@ -510,7 +517,8 @@ BOOST_AUTO_TEST_CASE(TestTooMany)
   };
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index{1, 1};
+  std::vector<InputChannelInfo> infos{1};
+  TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -533,22 +541,22 @@ BOOST_AUTO_TEST_CASE(TestTooMany)
   dh2.splitPayloadIndex = 0;
   dh2.splitPayloadParts = 1;
 
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
 
-  std::array<FairMQMessagePtr, 4> messages;
+  std::array<fair::mq::MessagePtr, 4> messages;
   messages[0] = o2::pmr::getMessage(Stack{channelAlloc, dh1, DataProcessingHeader{0, 1}});
   messages[1] = transport->CreateMessage(1000);
-  FairMQMessagePtr& header = messages[0];
-  FairMQMessagePtr& payload = messages[1];
+  fair::mq::MessagePtr& header = messages[0];
+  fair::mq::MessagePtr& payload = messages[1];
   relayer.relay(header->GetData(), &messages[0], 2);
   BOOST_CHECK_EQUAL(header.get(), nullptr);
   BOOST_CHECK_EQUAL(payload.get(), nullptr);
   // This fills the cache, and then waits.
   messages[2] = o2::pmr::getMessage(Stack{channelAlloc, dh1, DataProcessingHeader{1, 1}});
   messages[3] = transport->CreateMessage(1000);
-  FairMQMessagePtr& header2 = messages[2];
-  FairMQMessagePtr& payload2 = messages[3];
+  fair::mq::MessagePtr& header2 = messages[2];
+  fair::mq::MessagePtr& payload2 = messages[3];
   auto action = relayer.relay(header2->GetData(), &messages[2], 2);
   BOOST_CHECK_EQUAL(action, DataRelayer::Backpressured);
   BOOST_CHECK_NE(header2.get(), nullptr);
@@ -567,7 +575,8 @@ BOOST_AUTO_TEST_CASE(SplitParts)
   };
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index{1, 1};
+  std::vector<InputChannelInfo> infos{1};
+  TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::processWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -590,22 +599,22 @@ BOOST_AUTO_TEST_CASE(SplitParts)
   dh2.splitPayloadIndex = 0;
   dh2.splitPayloadParts = 1;
 
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
 
-  std::array<FairMQMessagePtr, 6> messages;
+  std::array<fair::mq::MessagePtr, 6> messages;
   messages[0] = o2::pmr::getMessage(Stack{channelAlloc, dh1, DataProcessingHeader{0, 1}});
   messages[1] = transport->CreateMessage(1000);
-  FairMQMessagePtr& header = messages[0];
-  FairMQMessagePtr& payload = messages[1];
+  fair::mq::MessagePtr& header = messages[0];
+  fair::mq::MessagePtr& payload = messages[1];
   relayer.relay(header->GetData(), &messages[0], 2);
   BOOST_CHECK_EQUAL(header.get(), nullptr);
   BOOST_CHECK_EQUAL(payload.get(), nullptr);
   // This fills the cache, and then waits.
   messages[2] = o2::pmr::getMessage(Stack{channelAlloc, dh1, DataProcessingHeader{1, 1}});
   messages[3] = transport->CreateMessage(1000);
-  FairMQMessagePtr& header2 = messages[2];
-  FairMQMessagePtr& payload2 = messages[3];
+  fair::mq::MessagePtr& header2 = messages[2];
+  fair::mq::MessagePtr& payload2 = messages[3];
   auto action = relayer.relay(header2->GetData(), &messages[2], 2);
   BOOST_CHECK_EQUAL(action, DataRelayer::Backpressured);
   BOOST_CHECK_NE(header2.get(), nullptr);
@@ -613,8 +622,8 @@ BOOST_AUTO_TEST_CASE(SplitParts)
   // This fills the cache, and then waits.
   messages[4] = o2::pmr::getMessage(Stack{channelAlloc, dh1, DataProcessingHeader{1, 1}});
   messages[5] = transport->CreateMessage(1000);
-  FairMQMessagePtr& header3 = messages[2];
-  FairMQMessagePtr& payload3 = messages[3];
+  fair::mq::MessagePtr& header3 = messages[2];
+  fair::mq::MessagePtr& payload3 = messages[3];
   auto action2 = relayer.relay(header2->GetData(), &messages[4], 2);
   BOOST_CHECK_EQUAL(action, DataRelayer::Backpressured);
   BOOST_CHECK_NE(header2.get(), nullptr);
@@ -631,7 +640,8 @@ BOOST_AUTO_TEST_CASE(SplitPayloadPairs)
   };
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index{1, 1};
+  std::vector<InputChannelInfo> infos{1};
+  TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
@@ -639,20 +649,20 @@ BOOST_AUTO_TEST_CASE(SplitPayloadPairs)
 
   DataHeader dh{"CLUSTERS", "TPC", 0};
 
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
   size_t timeslice = 0;
 
   const int nSplitParts = 100;
-  std::vector<std::unique_ptr<FairMQMessage>> splitParts;
+  std::vector<std::unique_ptr<fair::mq::Message>> splitParts;
   splitParts.reserve(2 * nSplitParts);
 
   for (size_t i = 0; i < nSplitParts; ++i) {
     dh.splitPayloadIndex = i;
     dh.splitPayloadParts = nSplitParts;
 
-    FairMQMessagePtr header = o2::pmr::getMessage(Stack{channelAlloc, dh, DataProcessingHeader{timeslice, 1}});
-    FairMQMessagePtr payload = transport->CreateMessage(100);
+    fair::mq::MessagePtr header = o2::pmr::getMessage(Stack{channelAlloc, dh, DataProcessingHeader{timeslice, 1}});
+    fair::mq::MessagePtr payload = transport->CreateMessage(100);
 
     splitParts.emplace_back(std::move(header));
     splitParts.emplace_back(std::move(payload));
@@ -682,13 +692,14 @@ BOOST_AUTO_TEST_CASE(SplitPayloadSequence)
   };
 
   std::vector<ForwardRoute> forwards;
-  TimesliceIndex index{1, 1};
+  std::vector<InputChannelInfo> infos{1};
+  TimesliceIndex index{1, infos};
 
   auto policy = CompletionPolicyHelpers::consumeWhenAny();
   DataRelayer relayer(policy, inputs, metrics, index);
   relayer.setPipelineLength(4);
 
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   size_t timeslice = 0;
 
   std::vector<size_t> sequenceSize;
@@ -696,7 +707,7 @@ BOOST_AUTO_TEST_CASE(SplitPayloadSequence)
 
   auto createSequence = [&nTotalPayloads, &timeslice, &sequenceSize, &transport, &relayer](size_t nPayloads) -> void {
     auto channelAlloc = o2::pmr::getTransportAllocator(transport.get());
-    std::vector<std::unique_ptr<FairMQMessage>> messages;
+    std::vector<std::unique_ptr<fair::mq::Message>> messages;
     messages.reserve(nPayloads + 1);
     DataHeader dh{"COUNTER", "TST", 0};
 
@@ -704,7 +715,7 @@ BOOST_AUTO_TEST_CASE(SplitPayloadSequence)
     // of payloads without additional headers
     dh.splitPayloadIndex = nPayloads;
     dh.splitPayloadParts = nPayloads;
-    FairMQMessagePtr header = o2::pmr::getMessage(Stack{channelAlloc, dh, DataProcessingHeader{timeslice, 1}});
+    fair::mq::MessagePtr header = o2::pmr::getMessage(Stack{channelAlloc, dh, DataProcessingHeader{timeslice, 1}});
     messages.emplace_back(std::move(header));
 
     for (size_t i = 0; i < nPayloads; ++i) {

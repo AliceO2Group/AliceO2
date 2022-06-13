@@ -42,9 +42,9 @@ class RawToDigitConverterSpec : public framework::Task
   /// \brief Constructor
   /// \param propagateMC If true the MCTruthContainer is propagated to the output
   RawToDigitConverterSpec(bool isPedestal, bool useBadChannelMap, bool useGainCalibration) : framework::Task(),
-                                                                                             mIsPedestalData(isPedestal),
+                                                                                             mIsUsingGainCalibration(useGainCalibration),
                                                                                              mIsUsingBadMap(useBadChannelMap),
-                                                                                             mIsUsingGainCalibration(useGainCalibration){};
+                                                                                             mIsPedestalData(isPedestal){};
 
   /// \brief Destructor
   ~RawToDigitConverterSpec() override = default;

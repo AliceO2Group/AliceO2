@@ -32,6 +32,7 @@
 #include "CCDB/CcdbObjectInfo.h"
 #include "CCDB/CcdbApi.h"
 #include "DataFormatsDCS/DCSConfigObject.h"
+#include "Framework/InputRecordWalker.h"
 
 using namespace o2::framework;
 using namespace o2::itsmft;
@@ -73,17 +74,20 @@ class ITSThresholdAggregator : public Task
   bool mStopped = false;
 
   o2::dcs::DCSconfigObject_t tuningMerge;
+  o2::dcs::DCSconfigObject_t chipDoneMerge;
   short int mRunType = -1;
   // Either "T" for threshold, "V" for VCASN, or "I" for ITHR
-  char mScanType = '\0';
+  char mScanType = 'n';
   // Either "derivative"=0, "fit"=1, or "hitcounting=2
-  char mFitType;
+  char mFitType = 'n';
 
   std::string mLHCPeriod;
   // Ccdb url for ccdb upload withing the wf
   std::string mCcdbUrl = "";
   // Run number
   int mRunNumber = -1;
+  // confDB version
+  short int mDBversion = -1;
 };
 
 // Create a processor spec

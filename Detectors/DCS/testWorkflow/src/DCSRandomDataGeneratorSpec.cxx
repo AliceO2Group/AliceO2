@@ -95,11 +95,11 @@ std::vector<o2::dcs::DataPointCompositeObject> generate(const std::vector<o2::dc
   return dataPoints;
 }
 
-/** 
-  * DCSRandomDataGenerator is an example device that generates random 
+/**
+  * DCSRandomDataGenerator is an example device that generates random
   * DCS Data Points.
   *
-  * The actual description of what is generated is hard-coded in 
+  * The actual description of what is generated is hard-coded in
   * the init() method.
   */
 class DCSRandomDataGenerator : public o2::framework::Task
@@ -149,6 +149,10 @@ void DCSRandomDataGenerator::run(o2::framework::ProcessingContext& pc)
   auto dpcoms = generate(mDataPointHints, fraction, tfid);
 
   LOG(info) << "***************** TF " << tfid << " has generated " << dpcoms.size() << " DPs";
+  auto& timingInfo = pc.services().get<o2::framework::TimingInfo>();
+  auto timeNow = std::chrono::high_resolution_clock::now();
+  timingInfo.creation = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
+
   pc.outputs().snapshot(Output{"DCS", mDataDescription, 0, Lifetime::Timeframe}, dpcoms);
   mTFs++;
 }

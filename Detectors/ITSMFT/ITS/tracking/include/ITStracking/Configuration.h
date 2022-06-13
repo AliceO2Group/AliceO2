@@ -23,6 +23,7 @@
 #include <cmath>
 #endif
 
+#include "DetectorsBase/Propagator.h"
 #include "ITStracking/Constants.h"
 
 namespace o2
@@ -75,9 +76,10 @@ struct TrackingParameters {
   /// Cell finding cuts
   float CellDeltaTanLambdaSigma = 0.007f;
   /// Fitter parameters
-  bool UseMatBudLUT = false;
+  o2::base::PropagatorImpl<float>::MatCorrType CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   unsigned long MaxMemory = 12000000000UL;
   std::array<float, 2> FitIterationMaxChi2 = {50, 20};
+  bool UseTrackFollower = false;
 };
 
 struct MemoryParameters {
@@ -151,7 +153,7 @@ struct TimeFrameGPUConfig {
                      size_t maxTrkCap,
                      size_t maxVertCap);
 
-  size_t tmpCUBBufferSize = 1e3; // In average in pp events there are required 767 bytes
+  size_t tmpCUBBufferSize = 1e5; // In average in pp events there are required 4096 bytes
   size_t maxTrackletsPerCluster = 50;
   size_t clustersPerLayerCapacity = 5e5;
   size_t clustersPerROfCapacity = 1e4;

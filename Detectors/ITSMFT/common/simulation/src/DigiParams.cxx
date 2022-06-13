@@ -65,7 +65,7 @@ void DigiParams::print() const
   printf("Strobe delay (ns)              : %f\n", mStrobeDelay);
   printf("Strobe length (ns)             : %f\n", mStrobeLength);
   printf("Threshold (N electrons)        : %d\n", mChargeThreshold);
-  printf("Min N electrons to accoint     : %d\n", mMinChargeToAccount);
+  printf("Min N electrons to account     : %d\n", mMinChargeToAccount);
   printf("Number of charge sharing steps : %d\n", mNSimSteps);
   printf("ELoss to N electrons factor    : %e\n", mEnergyToNElectrons);
   printf("Noise level per pixel          : %e\n", mNoisePerPixel);

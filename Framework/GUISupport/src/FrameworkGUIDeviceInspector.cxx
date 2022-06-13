@@ -123,6 +123,12 @@ void optionsTable(const char* label, std::vector<ConfigParamSpec> const& options
           case VariantType::Int:
             ImGui::Text("%d (default)", option.defaultValue.get<int>());
             break;
+          case VariantType::Int8:
+            ImGui::Text("%d (default)", option.defaultValue.get<int8_t>());
+            break;
+          case VariantType::Int16:
+            ImGui::Text("%d (default)", option.defaultValue.get<int16_t>());
+            break;
           case VariantType::Int64:
             ImGui::Text("%" PRId64 " (default)", option.defaultValue.get<int64_t>());
             break;

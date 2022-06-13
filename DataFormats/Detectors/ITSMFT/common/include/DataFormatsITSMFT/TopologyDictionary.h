@@ -160,9 +160,19 @@ class TopologyDictionary
   /// Returns the number of elements in the dicionary;
   int getSize() const { return (int)mVectorOfIDs.size(); }
   ///Returns the local position of a compact cluster
-  math_utils::Point3D<float> getClusterCoordinates(const CompCluster& cl) const;
+
+  // array version of getClusterCoordinates
+  template <typename T = float>
+  std::array<T, 3> getClusterCoordinatesA(const CompCluster& cl) const;
+  /// Returns the local position of a compact cluster
+  template <typename T = float>
+  static std::array<T, 3> getClusterCoordinatesA(const CompCluster& cl, const ClusterPattern& patt, bool isGroup = true);
+
+  template <typename T = float>
+  math_utils::Point3D<T> getClusterCoordinates(const CompCluster& cl) const;
   ///Returns the local position of a compact cluster
-  static math_utils::Point3D<float> getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt, bool isGroup = true);
+  template <typename T = float>
+  static math_utils::Point3D<T> getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt, bool isGroup = true);
 
   static TopologyDictionary* loadFrom(const std::string& fileName = "", const std::string& objName = "ccdb_object");
 
@@ -171,9 +181,10 @@ class TopologyDictionary
   friend TopologyFastSimulation;
 
  private:
+  static constexpr int STopoSize = 8 * 255 + 1;
   std::unordered_map<unsigned long, int> mCommonMap; ///< Map of pair <hash, position in mVectorOfIDs>
   std::unordered_map<int, int> mGroupMap;            ///< Map of pair <groudID, position in mVectorOfIDs>
-  int mSmallTopologiesLUT[8 * 255 + 1];              ///< Look-Up Table for the topologies with 1-byte linearised matrix
+  int mSmallTopologiesLUT[STopoSize];                ///< Look-Up Table for the topologies with 1-byte linearised matrix
   std::vector<GroupStruct> mVectorOfIDs;             ///< Vector of topologies and groups
 
   ClassDefNV(TopologyDictionary, 4);

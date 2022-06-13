@@ -17,12 +17,14 @@
 #include "TRDCalibration/TrackBasedCalib.h"
 #include "Framework/Task.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "CommonUtils/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Headers/DataHeader.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "TStopwatch.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -40,14 +42,15 @@ class TRDTrackBasedCalibDevice : public Task
   ~TRDTrackBasedCalibDevice() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
+  void updateTimeDependentParams(framework::ProcessingContext& pc);
+
   std::shared_ptr<DataRequest> mDataRequest;
   TrackBasedCalib mCalibrator; // gather input data for calibration of vD, ExB and gain
-  std::unique_ptr<Output> mOutput;
-  uint32_t mNumberOfProcessedTFs{0};
-  bool mDataHeaderSet{false};
+  TStopwatch mTimer;
 };
 
 void TRDTrackBasedCalibDevice::init(InitContext& ic)
@@ -57,34 +60,40 @@ void TRDTrackBasedCalibDevice::init(InitContext& ic)
   o2::base::Propagator::initFieldFromGRP();
   std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
   mCalibrator.init();
+  mTimer.Stop();
+  mTimer.Reset();
 }
 
 void TRDTrackBasedCalibDevice::run(ProcessingContext& pc)
 {
-  if (!mDataHeaderSet) {
-    mOutput = std::make_unique<Output>(o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe);
-    mDataHeaderSet = true;
-  }
+  mTimer.Start(false);
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
+  updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
   mCalibrator.setInput(recoData);
   mCalibrator.calculateAngResHistos();
-  ++mNumberOfProcessedTFs;
-  if (mNumberOfProcessedTFs % 200 == 0) {
-    pc.outputs().snapshot(*mOutput, mCalibrator.getAngResHistos());
-    mDataHeaderSet = false;
-    mNumberOfProcessedTFs = 0;
-    mCalibrator.reset();
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe}, mCalibrator.getAngResHistos());
+  mCalibrator.reset();
+  mTimer.Stop();
+}
+
+void TRDTrackBasedCalibDevice::updateTimeDependentParams(ProcessingContext& pc)
+{
+  pc.inputs().get<o2::trd::NoiseStatusMCM*>("mcmnoisemap"); // just to trigger the finaliseCCDB
+}
+
+void TRDTrackBasedCalibDevice::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("TRD", "MCMNOISEMAP", 0)) {
+    LOG(info) << "NoiseStatusMCM object has been updated";
+    mCalibrator.setNoiseMapMCM((const o2::trd::NoiseStatusMCM*)obj);
   }
 }
 
 void TRDTrackBasedCalibDevice::endOfStream(EndOfStreamContext& ec)
 {
-  if (mNumberOfProcessedTFs > 0) {
-    ec.outputs().snapshot(*mOutput, mCalibrator.getAngResHistos());
-  }
-  LOGF(info, "Added in total %i entries to angular residual histograms",
-       mCalibrator.getAngResHistos().getNEntries());
+  LOGF(info, "TRD track-based calibration total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask_t src)
@@ -105,11 +114,14 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
   dataRequest->requestTracks(srcTrk, false);
   dataRequest->requestClusters(srcClu, false);
 
+  auto& inputs = dataRequest->inputs;
+  inputs.emplace_back("mcmnoisemap", "TRD", "MCMNOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/NoiseMapMCM"));
+
   outputs.emplace_back(o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "trd-trackbased-calib",
-    dataRequest->inputs,
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TRDTrackBasedCalibDevice>(dataRequest)},
     Options{}};

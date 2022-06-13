@@ -30,7 +30,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
-#include "MIDSimulation/MCLabel.h"
+#include "DataFormatsMID/MCLabel.h"
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/StringUtils.h"
 

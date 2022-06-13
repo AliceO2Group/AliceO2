@@ -159,8 +159,7 @@ void digi2raw(std::string_view inpName, std::string_view outDir, std::string_vie
   m2r.setVerbosity(verbosity);
   setupLinks(m2r, outDir, MAP::getName(), fileFor);
   //-------------------------------------------------------------------------------<<<<
-  int lastTreeID = -1;
-  long offs = 0, nEntProc = 0;
+  long nEntProc = 0;
   for (int i = 0; i < digTree.GetEntries(); i++) {
     digTree.GetEntry(i);
     for (const auto& rofRec : rofRecVec) {

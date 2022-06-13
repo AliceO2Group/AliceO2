@@ -62,6 +62,10 @@ HBFUtilsInitializer::HBFUtilsInitializer(const o2f::ConfigContext& configcontext
     return confTFInfo;
   };
 
+  if (configcontext.options().hasOption("disable-root-input") && configcontext.options().get<bool>("disable-root-input")) {
+    return; // we apply HBFUtilsInitializer only in case of root readers
+  }
+
   const auto& hbfu = o2::raw::HBFUtils::Instance();
   for (auto& spec : wf) {
     if (spec.inputs.empty()) {

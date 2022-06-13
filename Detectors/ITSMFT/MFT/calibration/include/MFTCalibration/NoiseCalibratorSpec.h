@@ -67,6 +67,7 @@ class NoiseCalibratorSpec : public Task
   int64_t mStart;
   int64_t mEnd;
   bool mDigits = false;
+  bool mStopMeOnly = false; // send QuitRequest::Me instead of QuitRequest::All
 };
 
 /// create a processor spec

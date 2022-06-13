@@ -18,7 +18,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
-
+#include <TStopwatch.h>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
@@ -104,6 +104,7 @@ class DCSDevice : public o2::framework::Task
   int mFitInterval;
   bool mDebugWritten{false};
   bool mWriteDebug{false};
+  bool mReportTiming{false};
 };
 
 void DCSDevice::init(o2::framework::InitContext& ic)
@@ -126,10 +127,12 @@ void DCSDevice::init(o2::framework::InitContext& ic)
   mCDBStorage.setResponsible("Jens Wiechula (jens.wiechula@cern.ch)");
   mCDBStorage.setIntervention(CDBIntervention::Automatic);
   mCDBStorage.setReason("DCS workflow upload");
+  mReportTiming = ic.options().get<bool>("report-timing") || mWriteDebug;
 }
 
 void DCSDevice::run(o2::framework::ProcessingContext& pc)
 {
+  TStopwatch sw;
   mLastCreationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
   if (mUpdateIntervalStart == 0) {
     mUpdateIntervalStart = mLastCreationTime;
@@ -140,6 +143,10 @@ void DCSDevice::run(o2::framework::ProcessingContext& pc)
   }
   auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
   mDCS.process(dps);
+  sw.Stop();
+  if (mReportTiming) {
+    LOGP(info, "Timing CPU:{:.3e} Real:{:.3e} at slice {}", sw.CpuTime(), sw.RealTime(), pc.services().get<o2::framework::TimingInfo>().timeslice);
+  }
 }
 
 template <typename T>
@@ -187,6 +194,7 @@ DataProcessorSpec getDCSSpec()
     AlgorithmSpec{adaptFromTask<DCSDevice>()},
     Options{
       {"write-debug", VariantType::Bool, false, {"write a debug output tree"}},
+      {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
       {"update-interval", VariantType::Int, 60 * 5, {"update interval in seconds for which ccdb entries are written"}},
       {"fit-interval", VariantType::Int, 60, {"interval in seconds for which to e.g. perform fits of the temperature sensors"}},
       {"round-to-interval", VariantType::Bool, false, {"round fit interval to fixed times e.g. to every 5min in the hour"}},

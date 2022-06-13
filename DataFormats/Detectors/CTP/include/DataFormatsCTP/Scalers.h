@@ -19,6 +19,7 @@
 #include "DataFormatsCTP/Digits.h"
 #include <map>
 #include <bitset>
+#include <ctime>
 
 namespace o2
 {
@@ -56,8 +57,7 @@ struct CTPScalerO2 {
 struct CTPScalerRecordRaw {
   CTPScalerRecordRaw() = default;
   o2::InteractionRecord intRecord;
-  uint32_t seconds;
-  uint32_t microSeconds;
+  uint64_t epochTime;
   std::vector<CTPScalerRaw> scalers;
   void printStream(std::ostream& stream) const;
   ClassDefNV(CTPScalerRecordRaw, 1);
@@ -65,8 +65,7 @@ struct CTPScalerRecordRaw {
 struct CTPScalerRecordO2 {
   CTPScalerRecordO2() = default;
   o2::InteractionRecord intRecord;
-  uint32_t seconds;
-  uint32_t microSeconds;
+  uint64_t epochTime;
   std::vector<CTPScalerO2> scalers;
   void printStream(std::ostream& stream) const;
   ClassDefNV(CTPScalerRecordO2, 1);
@@ -82,8 +81,12 @@ class CTPRunScalers
   int convertRawToO2();
   int checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2& scal1) const;
   int checkConsistency(const CTPScalerRecordO2& rec0, const CTPScalerRecordO2& rec1) const;
+  void setClassMask(std::bitset<CTP_NCLASSES> classMask) { mClassMask = classMask; };
+  void setRunNumber(uint32_t rnumber) { mRunNumber = rnumber; };
   //
   int parseZMQScalers(std::string zmqscalers);
+  static constexpr uint32_t NCOUNTERS = 1052;
+  static std::vector<std::string> scalerNames;
 
  private:
   // map from class index to overflow

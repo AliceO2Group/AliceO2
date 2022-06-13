@@ -35,10 +35,10 @@ void TRDTrackletTransformerSpec::init(o2::framework::InitContext& ic)
 void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
 {
   LOG(info) << "Running tracklet transformer";
-  updateTimeDependentParams(pc);
 
   o2::globaltracking::RecoContainer inputData;
   inputData.collectData(pc, *mDataRequest);
+  updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
 
   auto tracklets = pc.inputs().get<gsl::span<Tracklet64>>("trdtracklets");
   auto trigRecs = pc.inputs().get<gsl::span<TriggerRecord>>("trdtriggerrec");
@@ -50,9 +50,12 @@ void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
 
   if (mTrigRecFilterActive) {
     const auto irFrames = inputData.getIRFramesITS();
-    int lastMatchedIdx = 0; // ITS IR are sorted in time and do not overlap
+    size_t lastMatchedIdx = 0; // ITS IR are sorted in time and do not overlap
     for (const auto& irFrame : irFrames) {
-      for (int j = lastMatchedIdx; j < trigRecs.size(); ++j) {
+      if (!irFrame.info) { // skip IRFrames where ITS did not find any track
+        continue;
+      }
+      for (auto j = lastMatchedIdx; j < trigRecs.size(); ++j) {
         const auto& trigRec = trigRecs[j];
         if (trigRec.getBCData() >= irFrame.getMin()) {
           if (trigRec.getBCData() <= irFrame.getMax()) {
@@ -85,7 +88,7 @@ void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
 
   if (mTrigRecFilterActive) {
     // skip tracklets from TRD triggers without ITS data
-    for (int iTrig = 0; iTrig < trigRecs.size(); ++iTrig) {
+    for (size_t iTrig = 0; iTrig < trigRecs.size(); ++iTrig) {
       if (!trigRecBitfield[iTrig]) {
         continue;
       } else {
@@ -98,7 +101,7 @@ void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
     }
   } else {
     // transform all tracklets
-    for (int iTrklt = 0; iTrklt < tracklets.size(); ++iTrklt) {
+    for (size_t iTrklt = 0; iTrklt < tracklets.size(); ++iTrklt) {
       calibratedTracklets[iTrklt] = mTransformer.transformTracklet(tracklets[iTrklt]);
       ++nTrackletsTransformed;
     }

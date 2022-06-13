@@ -100,24 +100,28 @@ template <typename P1, typename P2>
 using interleaved_pack_t = decltype(interleave_pack(P1{}, P2{}));
 
 /// Selects from the pack types that satisfy the Condition
-template <template <typename> typename Condition, typename Result>
-constexpr auto select_pack(Result result, pack<>)
+/// Multicondition takes the type to check as first template parameter
+/// and any helper types as the following parameters
+template <template <typename...> typename Condition, typename Result, typename... Cs>
+constexpr auto select_pack(Result result, pack<>, pack<Cs...>)
 {
   return result;
 }
 
-template <template <typename> typename Condition, typename Result, typename T, typename... Ts>
-constexpr auto select_pack(Result result, pack<T, Ts...>)
+template <template <typename...> typename Condition, typename Result, typename T, typename... Cs, typename... Ts>
+constexpr auto select_pack(Result result, pack<T, Ts...>, pack<Cs...> condPack)
 {
-  if constexpr (Condition<T>()) {
-    return select_pack<Condition>(concatenate_pack(result, pack<T>{}), pack<Ts...>{});
+  if constexpr (Condition<T, Cs...>()) {
+    return select_pack<Condition>(concatenate_pack(result, pack<T>{}), pack<Ts...>{}, condPack);
   } else {
-    return select_pack<Condition>(result, pack<Ts...>{});
+    return select_pack<Condition>(result, pack<Ts...>{}, condPack);
   }
 }
 
-template <template <typename> typename Condition, typename... Types>
-using selected_pack = std::decay_t<decltype(select_pack<Condition>(pack<>{}, pack<Types...>{}))>;
+template <template <typename...> typename Condition, typename... Types>
+using selected_pack = std::decay_t<decltype(select_pack<Condition>(pack<>{}, pack<Types...>{}, pack<>{}))>;
+template <template <typename...> typename Condition, typename CondPack, typename Pack>
+using selected_pack_multicondition = std::decay_t<decltype(select_pack<Condition>(pack<>{}, Pack{}, CondPack{}))>;
 
 /// Select only the items of a pack which match Condition
 template <template <typename> typename Condition, typename Result>

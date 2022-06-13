@@ -25,12 +25,10 @@
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Headers/DataHeader.h"
 #include "DetectorsCalibration/Utils.h"
-#include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 #include "CommonUtils/NameConf.h"
-
-using CcdbManager = o2::ccdb::BasicCCDBManager;
 
 namespace o2
 {
@@ -49,9 +47,7 @@ class CCDBPopulator : public o2::framework::Task
     mSSpecMin = ic.options().get<std::int64_t>("sspec-min");
     mSSpecMax = ic.options().get<std::int64_t>("sspec-max");
     mFatalOnFailure = ic.options().get<bool>("no-fatal-on-failure");
-    auto& mgr = CcdbManager::instance();
-    mgr.setURL(mCCDBpath);
-    mAPI.init(mgr.getURL());
+    mAPI.init(mCCDBpath);
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -63,7 +59,6 @@ class CCDBPopulator : public o2::framework::Task
     if (runNoFromDH > 0) {
       runNoStr = std::to_string(runNoFromDH);
     }
-
     std::map<std::string, std::string> metadata;
     for (int isl = 0; isl < nSlots; isl++) {
       auto refWrp = pc.inputs().get("clbWrapper", isl);
@@ -89,6 +84,11 @@ class CCDBPopulator : public o2::framework::Task
                                        *md, wrp->getStartValidityTimestamp(), wrp->getEndValidityTimestamp());
       if (res && mFatalOnFailure) {
         LOGP(fatal, "failed on uploading to {} / {}", mAPI.getURL(), wrp->getPath());
+      }
+
+      // do we need to override previous object?
+      if (wrp->isAdjustableEOV()) {
+        o2::ccdb::adjustOverriddenEOV(mAPI, *wrp.get());
       }
     }
   }

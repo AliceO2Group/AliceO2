@@ -15,6 +15,8 @@
 /// \date   01 March 2018
 #include "MIDSimulation/TrackLabeler.h"
 
+#include <unordered_map>
+
 namespace o2
 {
 namespace mid
@@ -35,22 +37,23 @@ bool TrackLabeler::areBothSidesFired(const gsl::span<const MCClusterLabel>& labe
   return isFiredBP && isFiredNBP;
 }
 
-std::vector<MCCompLabel> TrackLabeler::findLabels(const Track& track, const o2::dataformats::MCTruthContainer<MCClusterLabel>& inMCContainer) const
+MCCompLabel TrackLabeler::makeTrackLabel(const Track& track, const o2::dataformats::MCTruthContainer<MCClusterLabel>& inMCContainer) const
 {
   /// Finds the track label from its associated clusters labels
-  std::vector<MCCompLabel> allLabels;
-  std::vector<int> counts;
+  std::unordered_map<MCCompLabel, int> allLabels;
   for (int ich = 0; ich < 4; ++ich) {
     auto icl = track.getClusterMatched(ich);
     if (icl < 0) {
       continue;
     }
 
+    auto clLabels = inMCContainer.getLabels(icl);
+
     // First check if the BP and NBP were ever fired by a track
     // If they are, it means that the chamber was efficient
-    bool bothFired = areBothSidesFired(inMCContainer.getLabels(icl));
+    bool bothFired = areBothSidesFired(clLabels);
 
-    for (auto& label : inMCContainer.getLabels(icl)) {
+    for (auto& label : clLabels) {
       // This track fired only one cathode
       bool oneFired = (!label.isFiredBP() || !label.isFiredNBP());
       if (bothFired && oneFired) {
@@ -60,30 +63,24 @@ std::vector<MCCompLabel> TrackLabeler::findLabels(const Track& track, const o2::
         // This means that the cluster is a fake one, so we discard it
         continue;
       }
-      bool isNew = true;
-      for (size_t idx = 0; idx < allLabels.size(); ++idx) {
-        if (allLabels[idx] == label) {
-          ++counts[idx];
-          isNew = false;
-          break;
-        }
-      }
-      if (isNew) {
-        allLabels.emplace_back(label);
-        counts.emplace_back(1);
-      }
+      ++allLabels[label];
     }
   }
 
-  std::vector<MCCompLabel> labels;
-
-  for (size_t idx = 0; idx < allLabels.size(); ++idx) {
-    if (counts[idx] >= 3) {
-      labels.emplace_back(allLabels[idx]);
+  MCCompLabel outLabel;
+  int nMatched = 0;
+  for (auto& item : allLabels) {
+    if (item.second > nMatched) {
+      nMatched = item.second;
+      outLabel = item.first;
     }
   }
 
-  return labels;
+  if (nMatched < 3) {
+    outLabel.setFakeFlag();
+  }
+
+  return outLabel;
 }
 
 void TrackLabeler::process(gsl::span<const Cluster> clusters, gsl::span<const Track> tracks, const o2::dataformats::MCTruthContainer<MCClusterLabel>& inMCContainer)
@@ -92,14 +89,7 @@ void TrackLabeler::process(gsl::span<const Cluster> clusters, gsl::span<const Tr
   mMCTracksLabels.clear();
 
   for (auto& track : tracks) {
-    auto idx = &track - &tracks[0];
-    auto labels = findLabels(track, inMCContainer);
-    if (labels.empty()) {
-      labels.emplace_back(MCCompLabel());
-    }
-    for (auto& label : labels) {
-      mMCTracksLabels.addElement(idx, label);
-    }
+    mMCTracksLabels.emplace_back(makeTrackLabel(track, inMCContainer));
   }
 
   // For the moment we store all clusters

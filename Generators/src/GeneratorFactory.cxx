@@ -71,7 +71,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
       LOG(info) << "Reading \'Pythia8\' base configuration: " << config << std::endl;
       gen->readFile(config);
     }
-    auto seed = (gRandom->GetSeed() % 900000000);
+    auto seed = (gRandom->TRandom::GetSeed() % 900000000);
     LOG(info) << "Using random seed from gRandom % 900000000: " << seed;
     gen->readString("Random:setSeed on");
     gen->readString("Random:seed " + std::to_string(seed));
@@ -156,6 +156,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     auto hepmcGen = new o2::eventgen::GeneratorHepMC();
     hepmcGen->setFileName(param.fileName);
     hepmcGen->setVersion(param.version);
+    hepmcGen->setEventsToSkip(param.eventsToSkip);
     primGen->AddGenerator(hepmcGen);
 #endif
 #ifdef GENERATORS_WITH_PYTHIA6

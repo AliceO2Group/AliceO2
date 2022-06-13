@@ -13,7 +13,7 @@
 /// \brief GUI (bottom buttons) for visualisation
 /// \author julian.myrcha@cern.ch
 /// \author p.nowakowski@cern.ch
-/// \author m.chwasiuk@cern.ch
+/// \author michal.chwesiuk@cern.ch
 
 #ifndef ALICE_O2_EVENTVISUALISATION_EVENTMANAGERFRAME_H
 #define ALICE_O2_EVENTVISUALISATION_EVENTMANAGERFRAME_H
@@ -23,6 +23,8 @@
 #include <TASImage.h>
 
 class TGTextButton;
+class TGRadioButton;
+class TGButtonGroup;
 class TGCompositeFrame;
 class TGNumberEntry;
 class TGLabel;
@@ -50,8 +52,10 @@ class EventManagerFrame : public TGMainFrame
   void clearInTick(); // safely clears inTick
   void checkMemory(); // check memory used end exit(-1) if it is too much
   void updateGUI();   // updates
-  static TGTextButton* makeButton(TGCompositeFrame* p, const char* txt, Int_t width = 0,
+  static TGTextButton* makeButton(TGCompositeFrame* p, const char* txt, Int_t width = 0, const char* txttooltip = nullptr,
                                   Int_t lo = 0, Int_t ro = 0, Int_t to = 0, Int_t bo = 0);
+  static TGRadioButton* makeRadioButton(TGButtonGroup* g, const char* txt, Int_t width = 0, const char* txttooltip = nullptr, bool checked = false,
+                                        Int_t lo = 0, Int_t ro = 0, Int_t to = 0, Int_t bo = 0);
   static TGDoubleHSlider* makeSlider(TGCompositeFrame* p, const char* txt, Int_t width = 0,
                                      Int_t lo = 2, Int_t ro = 2, Int_t to = 2, Int_t bo = 2);
   static void makeSliderRangeEntries(TGCompositeFrame* parent, int height,
@@ -97,4 +101,4 @@ class EventManagerFrame : public TGMainFrame
 } // namespace event_visualisation
 } // namespace o2
 
-#endif //ALICE_O2_EVENTVISUALISATION_EVENTMANAGERFRAME_H
+#endif // ALICE_O2_EVENTVISUALISATION_EVENTMANAGERFRAME_H

@@ -70,7 +70,7 @@ struct ChannelData {
 
   bool operator==(ChannelData const& other) const
   {
-    return std::tie(ChId, CFDTime, QTCAmpl) == std::tie(other.ChId, other.CFDTime, other.QTCAmpl); // TODO: MS: include ChainQTC when FV0 CTF format is extended by trigger flags
+    return std::tie(ChId, CFDTime, QTCAmpl, ChainQTC) == std::tie(other.ChId, other.CFDTime, other.QTCAmpl, other.ChainQTC);
   }
   ClassDefNV(ChannelData, 2);
 };

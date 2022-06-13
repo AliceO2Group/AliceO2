@@ -137,10 +137,11 @@ int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutp
     mRec->ClearAllocatedMemory();
     return retVal;
   }
-  if (mConfig->configQA.shipToQC) {
+  if (mConfig->configQA.shipToQC && mChain->QARanForTF()) {
     outputs->qa.hist1 = &mChain->GetQA()->getHistograms1D();
     outputs->qa.hist2 = &mChain->GetQA()->getHistograms2D();
     outputs->qa.hist3 = &mChain->GetQA()->getHistograms1Dd();
+    outputs->qa.newQAHistsCreated = true;
   }
   *data = mChain->mIOPtrs;
 

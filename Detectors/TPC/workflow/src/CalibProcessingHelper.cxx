@@ -9,8 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <fmt/core.h>
+#include <unordered_map>
 #include <vector>
 #include <algorithm>
+#include <chrono>
+#include <fmt/format.h>
+#include <fmt/chrono.h>
 
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/InputRecordWalker.h"
@@ -34,7 +39,7 @@ void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU
 void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, uint32_t firstOrbit, uint32_t syncOffsetReference);
 uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSpec>& filter);
 
-uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec, const std::vector<int>& sectors, size_t* nerrors)
+uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec, const std::vector<int>& sectors, size_t* nerrors, uint32_t syncOffsetReference)
 {
   std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
   size_t errorCount = 0;
@@ -69,7 +74,7 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
   // this is less precise and might lead to more time bins which have to be removed at the beginnig
   // or end of the TF
   // uint32_t syncOffsetReference = getBCsyncOffsetReference(inputs, filter);
-  uint32_t syncOffsetReference = 144;
+  // uint32_t syncOffsetReference = 144;
 
   for (auto const& ref : InputRecordWalker(inputs, filter)) {
     const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
@@ -148,8 +153,31 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
       }
 
     } catch (const std::exception& e) {
-      LOGP(alarm, "EXCEPTIION in processRawData: {} -> skipping part:{}/{} of spec:{}/{}/{}, size:{}", e.what(), dh->splitPayloadIndex, dh->splitPayloadParts,
-           dh->dataOrigin, dh->dataDescription, subSpecification, payloadSize);
+      // error message throtteling
+      using namespace std::literals::chrono_literals;
+      static std::unordered_map<uint32_t, size_t> nErrorPerSubspec;
+      static std::chrono::time_point<std::chrono::steady_clock> lastReport = std::chrono::steady_clock::now();
+      const auto now = std::chrono::steady_clock::now();
+      static size_t reportedErrors = 0;
+      const size_t MAXERRORS = 10;
+      const auto sleepTime = 10min;
+      ++nErrorPerSubspec[subSpecification];
+
+      if ((now - lastReport) < sleepTime) {
+        if (reportedErrors < MAXERRORS) {
+          ++reportedErrors;
+          std::string sleepInfo;
+          if (reportedErrors == MAXERRORS) {
+            sleepInfo = fmt::format(", maximum error count ({}) reached, not reporting for the next {}", MAXERRORS, sleepTime);
+          }
+          LOGP(alarm, "EXCEPTIION in processRawData: {} -> skipping part:{}/{} of spec:{}/{}/{}, size:{}, error count for subspec: {}{}", e.what(), dh->splitPayloadIndex, dh->splitPayloadParts,
+               dh->dataOrigin, dh->dataDescription, subSpecification, payloadSize, nErrorPerSubspec.at(subSpecification), sleepInfo);
+          lastReport = now;
+        }
+      } else {
+        lastReport = now;
+        reportedErrors = 0;
+      }
       errorCount++;
       continue;
     }
@@ -219,12 +247,11 @@ void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReader
       continue;
     }
 
-    const bool useTimeBins = false;
     const auto feeID = RDHUtils::getFEEID(*rdhPtr);
     const auto orbit = RDHUtils::getHeartBeatOrbit(*rdhPtr);
     const auto data = (const char*)it.data();
     const auto size = it.size();
-    raw_processing_helpers::processZSdata(data, size, feeID, orbit, firstOrbit, syncOffsetReference, reader->getManager()->getLinkZSCallback(), useTimeBins);
+    raw_processing_helpers::processZSdata(data, size, feeID, orbit, firstOrbit, syncOffsetReference, reader->getManager()->getLinkZSCallback());
   }
 }
 

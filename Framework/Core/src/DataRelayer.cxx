@@ -25,6 +25,7 @@
 #include "Framework/Signpost.h"
 #include "Framework/RoutingIndices.h"
 #include "Framework/VariableContextHelpers.h"
+#include "Framework/FairMQDeviceProxy.h"
 #include "DataProcessingStatus.h"
 #include "DataRelayerHelpers.h"
 #include "InputRouteHelpers.h"
@@ -35,6 +36,7 @@
 #include <Monitoring/Metric.h>
 #include <Monitoring/Monitoring.h>
 
+#include <fairmq/Channel.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <gsl/span>
@@ -51,16 +53,16 @@ namespace o2::framework
 
 constexpr int INVALID_INPUT = -1;
 
-// 16 is just some reasonable numer
+// 128 is just some reasonable numer
 // The number should really be tuned at runtime for each processor.
-constexpr int DEFAULT_PIPELINE_LENGTH = 32;
+constexpr int DEFAULT_PIPELINE_LENGTH = 128;
 
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
                          monitoring::Monitoring& metrics,
                          TimesliceIndex& index)
-  : mTimesliceIndex{index},
-    mMetrics{metrics},
+  : mMetrics{metrics},
+    mTimesliceIndex{index},
     mCompletionPolicy{policy},
     mDistinctRoutesIndex{DataRelayerHelpers::createDistinctRouteIndex(routes)},
     mInputMatchers{DataRelayerHelpers::createInputMatchers(routes)},
@@ -69,7 +71,9 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
   if (policy.configureRelayer == nullptr) {
-    setPipelineLength(DEFAULT_PIPELINE_LENGTH);
+    char* defaultPipelineLengthTxt = getenv("DPL_DEFAULT_PIPELINE_LENGTH");
+    int defaultPipelineLength = defaultPipelineLengthTxt ? std::stoi(defaultPipelineLengthTxt) : DEFAULT_PIPELINE_LENGTH;
+    setPipelineLength(defaultPipelineLength);
   } else {
     policy.configureRelayer(*this);
   }
@@ -102,6 +106,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
 {
   LOGP(debug, "DataRelayer::processDanglingInputs");
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+  auto& deviceProxy = services.get<FairMQDeviceProxy>();
 
   ActivityStats activity;
   /// Nothing to do if nothing can expire.
@@ -115,12 +120,21 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
     LOGP(debug, "Creating new slot");
     for (auto& handler : expirationHandlers) {
       LOGP(debug, "handler.creator for {}", handler.name);
-      slotsCreatedByHandlers.push_back(handler.creator(mTimesliceIndex));
+      auto channelIndex = deviceProxy.getInputChannelIndex(handler.routeIndex);
+      slotsCreatedByHandlers.push_back(handler.creator(channelIndex, mTimesliceIndex));
     }
   }
-  if (slotsCreatedByHandlers.empty() == false) {
+  // Count how many slots are not invalid
+  auto validSlots = 0;
+  for (auto slot : slotsCreatedByHandlers) {
+    if (slot.index == TimesliceSlot::INVALID) {
+      continue;
+    }
+    validSlots++;
+  }
+  if (validSlots > 0) {
     activity.newSlots++;
-    LOGP(debug, "DataRelayer::processDanglingInputs: {} slots created by handler", slotsCreatedByHandlers.size());
+    LOGP(debug, "DataRelayer::processDanglingInputs: {} slots created by handler", validSlots);
   } else {
     LOGP(debug, "DataRelayer::processDanglingInputs: no slots created by handler");
   }
@@ -268,18 +282,22 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       }
       continue;
     }
-    bool hasTimeframe = false;
-    for (size_t mi = 0; mi == mInputs.size(); ++mi) {
+    bool droppingNotCondition = false;
+    for (size_t mi = 0; mi < mInputs.size(); ++mi) {
       auto& input = mInputs[mi];
       auto& element = mCache[si * mInputs.size() + mi];
-      if (input.lifetime == Lifetime::Timeframe && element.size() != 0) {
-        LOGP(error, "Dropping Lifetime::Timeframe data in slot {} with timestamp {} < {}.", si, timestamp.value, newOldest.timeslice.value);
-        hasTimeframe = true;
+      if (input.lifetime != Lifetime::Condition && element.size() != 0) {
+        LOGP(error, "Dropping Lifetime::{} data in slot {} with timestamp {} < {}.", input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+        droppingNotCondition = true;
         break;
       }
     }
-    if (!hasTimeframe) {
-      LOGP(debug, "Silently dropping data in slot {} because it has timestamp {} < {}. Lifetime::Timeframe data not expected.", si, timestamp.value, newOldest.timeslice.value);
+    if (!droppingNotCondition) {
+      LOGP(info,
+           "Silently dropping data in pipeline slot {} because it has timeslice {} < {} after receiving data from channel {}."
+           "Because Lifetime::Timeframe data not there and not expected (e.g. due to sampling) we drop non sampled, non timeframe data (e.g. Conditions).",
+           si, timestamp.value, newOldest.timeslice.value,
+           mTimesliceIndex.getChannelInfo(channel).channel->GetName());
     }
   }
 }
@@ -291,7 +309,7 @@ TimesliceIndex::OldestOutputInfo DataRelayer::getOldestPossibleOutput() const
 
 DataRelayer::RelayChoice
   DataRelayer::relay(void const* rawHeader,
-                     std::unique_ptr<FairMQMessage>* messages,
+                     std::unique_ptr<fair::mq::Message>* messages,
                      size_t nMessages,
                      size_t nPayloads)
 {
@@ -381,7 +399,7 @@ DataRelayer::RelayChoice
     assert(nPayloads > 0);
     for (size_t mi = 0; mi < nMessages; ++mi) {
       assert(mi + nPayloads < nMessages);
-      target.add([&messages, &mi](size_t i) -> FairMQMessagePtr& { return messages[mi + i]; }, nPayloads + 1);
+      target.add([&messages, &mi](size_t i) -> fair::mq::MessagePtr& { return messages[mi + i]; }, nPayloads + 1);
       mi += nPayloads;
     }
   };
@@ -565,9 +583,13 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
   // These two are trivial, but in principle the whole loop could be parallelised
   // or vectorised so "completed" could be a thread local variable which needs
   // merging at the end.
-  auto updateCompletionResults = [&completed](TimesliceSlot li, CompletionPolicy::CompletionOp op) {
-    LOGP(debug, "Doing action {} for slot {}", op, li.index);
-    completed.emplace_back(RecordAction{li, op});
+  auto updateCompletionResults = [&completed](TimesliceSlot li, uint64_t const* timeslice, CompletionPolicy::CompletionOp op) {
+    if (timeslice) {
+      LOGP(debug, "Doing action {} for slot {} (timeslice: {})", op, li.index, *timeslice);
+      completed.emplace_back(RecordAction{li, {*timeslice}, op});
+    } else {
+      LOGP(debug, "No timeslice associated with slot ", li.index);
+    }
   };
 
   // THE OUTER LOOP
@@ -627,37 +649,46 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     } else {
       throw std::runtime_error("No completion policy found");
     }
+    auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
+    auto timeslice = std::get_if<uint64_t>(&variables.get(0));
     switch (action) {
       case CompletionPolicy::CompletionOp::Consume:
         countConsume++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::ConsumeAndRescan:
         // This is just like Consume, but we also mark all slots as dirty
         countConsume++;
         action = CompletionPolicy::CompletionOp::Consume;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
         mTimesliceIndex.rescan();
         break;
       case CompletionPolicy::CompletionOp::ConsumeExisting:
         countConsumeExisting++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::Process:
         countProcess++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::Discard:
         countDiscard++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
+        break;
+      case CompletionPolicy::CompletionOp::Retry:
+        countWait++;
+        mTimesliceIndex.markAsDirty(slot, true);
+        action = CompletionPolicy::CompletionOp::Wait;
         break;
       case CompletionPolicy::CompletionOp::Wait:
         countWait++;
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
     }
-    // Given we have created an action for this cacheline, we need to wait for
-    // a new message before we look again into the given cacheline.
-    mTimesliceIndex.markAsDirty(slot, false);
   }
   mTimesliceIndex.updateOldestPossibleOutput();
   LOGP(debug, "DataRelayer::getReadyToProcess results notDirty:{}, consume:{}, consumeExisting:{}, process:{}, discard:{}, wait:{}",

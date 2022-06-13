@@ -95,7 +95,7 @@ int main()
   std::cout << "\n===================================\n";
   std::cout << "\nTOTAL EVENTS: " << vecTotalEvents2.size() << std::endl;
   if (vecTotalEvents == vecTotalEvents2) {
-    std::cout << "TEST IS OK!\n";
+    std::cout << "\n TEST IS OK!\n";
   } else {
     std::cout << "\nDIFFERENCE BETWEEN SRC AND DEST\n";
     std::cout << "\n===============================\n";

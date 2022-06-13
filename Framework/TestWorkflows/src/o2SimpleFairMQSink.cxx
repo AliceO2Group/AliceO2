@@ -27,7 +27,7 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
   return AlgorithmSpec{adaptStateful([what, minDelay]() {
     srand(getpid());
     return adaptStateless([what, minDelay](RawDeviceService& device) {
-      std::unique_ptr<FairMQMessage> msg;
+      std::unique_ptr<fair::mq::Message> msg;
       device.device()->Receive(msg, "upstream", 0);
       LOGP(info, "Callback invoked. Size of the message {}", msg->GetSize());
 

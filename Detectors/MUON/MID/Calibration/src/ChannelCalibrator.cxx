@@ -77,8 +77,6 @@ void ChannelCalibrator::finalizeSlot(Slot& slot)
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
 
   // Keep track of last TimeFrame, since the masks will be valid from now on
-  mTFEnd = slot.getTFEnd();
-
   mBadChannels = makeBadChannels(noiseData->getScalers(), mEventsCounter, mThreshold);
 
   // Get the masks for the electronics

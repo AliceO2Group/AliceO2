@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <functional>
 #include <gsl/gsl>
 #include "DetectorsRaw/RDHUtils.h"
 #include "Headers/RAWDataHeader.h"
@@ -34,17 +35,17 @@ namespace mid
 class LinkDecoder
 {
  public:
-  LinkDecoder(std::function<void(gsl::span<const uint8_t>, uint32_t orbit, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)> decode) : mDecode(decode) {}
-  void process(gsl::span<const uint8_t> payload, uint32_t orbit, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs);
+  LinkDecoder(std::function<void(gsl::span<const uint8_t>, uint32_t orbit, uint32_t trigger, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)> decode) : mDecode(decode) {}
+  void process(gsl::span<const uint8_t> payload, uint32_t orbit, uint32_t trigger, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs);
 
   template <class RDH>
   void process(gsl::span<const uint8_t> payload, const RDH& rdh, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
   {
-    process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), data, rofs);
+    process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), o2::raw::RDHUtils::getTriggerType(rdh), data, rofs);
   }
 
  protected:
-  std::function<void(gsl::span<const uint8_t>, uint32_t orbit, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)> mDecode{nullptr};
+  std::function<void(gsl::span<const uint8_t>, uint32_t orbit, uint32_t trigger, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)> mDecode{nullptr};
 };
 
 std::unique_ptr<LinkDecoder> createGBTDecoder(const o2::header::RDHAny& rdh, uint16_t feeId, bool isDebugMode, uint8_t mask, const ElectronicsDelay& electronicsDelay);

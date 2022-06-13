@@ -48,6 +48,7 @@ enum mMFTTrackTypes { kReco,
                       kGen,
                       kTrackable,
                       kRecoTrue,
+                      kRecoTrueMC,
                       kNumberOfTrackTypes };
 
 using ClusterLabelsType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -162,7 +163,8 @@ class MFTAssessment
   std::vector<std::string> mNameOfTrackTypes = {"Rec",
                                                 "Gen",
                                                 "Trackable",
-                                                "RecoTrue"};
+                                                "RecoTrue",
+                                                "RecotrueMC"};
 
   std::unique_ptr<TH2F> mHistPhiRecVsPhiGen = nullptr;
   std::unique_ptr<TH2F> mHistEtaRecVsEtaGen = nullptr;
@@ -223,18 +225,18 @@ class MFTAssessment
     {kTH3TrackReducedChi2PtEta, "TH3TrackReducedChi2PtEta"}};
 
   std::map<int, std::array<double, 9>> TH3Binning{
-    {kTH3TrackDeltaXDeltaYEta, {16, 2.2, 3.8, 1000, -1000, 1000, 1000, -1000, 1000}},
+    {kTH3TrackDeltaXDeltaYEta, {16, -3.8, -2.2, 1000, -1000, 1000, 1000, -1000, 1000}},
     {kTH3TrackDeltaXDeltaYPt, {100, 0, 20, 1000, -1000, 1000, 1000, -1000, 1000}},
-    {kTH3TrackDeltaYVertexPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -1000, 1000}},
-    {kTH3TrackDeltaXVertexPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -1000, 1000}},
-    {kTH3TrackInvQPtResolutionPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -50, 50}},
-    {kTH3TrackInvQPtResSeedPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -50, 50}},
-    {kTH3TrackXPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
-    {kTH3TrackYPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
-    {kTH3TrackPhiPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
-    {kTH3TrackTanlPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
-    {kTH3TrackInvQPtPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -15, 15}},
-    {kTH3TrackReducedChi2PtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, 0, 100}}};
+    {kTH3TrackDeltaYVertexPtEta, {100, 0, 20, 16, -3.8, -2.2, 1000, -1000, 1000}},
+    {kTH3TrackDeltaXVertexPtEta, {100, 0, 20, 16, -3.8, -2.2, 1000, -1000, 1000}},
+    {kTH3TrackInvQPtResolutionPtEta, {100, 0, 20, 16, -3.8, -2.2, 1000, -50, 50}},
+    {kTH3TrackInvQPtResSeedPtEta, {100, 0, 20, 16, -3.8, -2.2, 1000, -50, 50}},
+    {kTH3TrackXPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 200, -10, 10}},
+    {kTH3TrackYPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 200, -10, 10}},
+    {kTH3TrackPhiPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 200, -10, 10}},
+    {kTH3TrackTanlPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 200, -10, 10}},
+    {kTH3TrackInvQPtPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 1000, -15, 15}},
+    {kTH3TrackReducedChi2PtEta, {100, 0, 20, 16, -3.8, -2.2, 1000, 0, 100}}};
 
   std::map<int, const char*> TH3XaxisTitles{
     {kTH3TrackDeltaXDeltaYEta, R"(\\eta)"},

@@ -23,6 +23,9 @@ using namespace o2::framework;
 template <typename T>
 using is_int_t = std::is_same<typename std::decay_t<T>, int>;
 
+template <typename T, typename T2>
+using is_same_as_second_t = std::is_same<typename std::decay_t<T>, T2>;
+
 template <int A, int B>
 struct TestStruct {
 };
@@ -36,6 +39,7 @@ BOOST_AUTO_TEST_CASE(TestOverride)
   static_assert(has_type_at<double>(pck) == pack_size(pck) + 1, "double is not in the pack so the function returns size + 1");
 
   static_assert(std::is_same_v<selected_pack<is_int_t, int, float, char>, pack<int>>, "selector should select int");
+  static_assert(std::is_same_v<selected_pack_multicondition<is_same_as_second_t, pack<int>, pack<int, float, char>>, pack<int>>, "multiselector should select int");
   static_assert(std::is_same_v<filtered_pack<is_int_t, int, float, char>, pack<float, char>>, "filter should remove int");
   static_assert(std::is_same_v<intersected_pack_t<pack<int, float, char>, pack<float, double>>, pack<float>>, "filter intersect two packs");
   static_assert(has_type_v<pack_element_t<0, pack<int>>, pack<int>> == true, "foo");

@@ -20,8 +20,14 @@ LabeledDigit::LabeledDigit(Digit digit, o2::emcal::MCLabel label)
   mLabels.push_back(label);
 }
 
-LabeledDigit::LabeledDigit(Short_t tower, Double_t amplitudeGeV, Double_t time, o2::emcal::MCLabel label, ChannelType_t ctype)
-  : mDigit(tower, amplitudeGeV, time, ctype)
+LabeledDigit::LabeledDigit(Short_t tower, Double_t amplitudeGeV, Double_t time, o2::emcal::MCLabel label)
+  : mDigit(tower, amplitudeGeV, time)
+{
+  mLabels.push_back(label);
+}
+
+LabeledDigit::LabeledDigit(Short_t tower, uint16_t noiseLG, uint16_t noiseHG, Double_t time, o2::emcal::MCLabel label)
+  : mDigit(tower, noiseLG, noiseHG, time)
 {
   mLabels.push_back(label);
 }
@@ -29,9 +35,9 @@ LabeledDigit::LabeledDigit(Short_t tower, Double_t amplitudeGeV, Double_t time, 
 LabeledDigit& LabeledDigit::operator+=(const LabeledDigit& other)
 {
   if (canAdd(other)) {
-    Int_t a1 = getAmplitudeADC();
-    Int_t a2 = other.getAmplitudeADC();
-    Double_t r = ((a1 + a2) != 0) ? 1.0 / (a1 + a2) : 0.0;
+    double a1 = getAmplitude();
+    double a2 = other.getAmplitude();
+    double r = ((a1 + a2) != 0) ? 1.0 / (a1 + a2) : 0.0;
     mDigit += other.getDigit();
 
     for (int j = 0; j < mLabels.size(); j++) {
@@ -49,7 +55,7 @@ LabeledDigit& LabeledDigit::operator+=(const LabeledDigit& other)
 
 void LabeledDigit::PrintStream(std::ostream& stream) const
 {
-  stream << "EMCAL LabeledDigit: Tower " << getTower() << ", Time " << getTimeStamp() << ", Amplitude " << getAmplitude() << " GeV, Type " << getType() << ", Labels ( ";
+  stream << "EMCAL LabeledDigit: Tower " << getTower() << ", Time " << getTimeStamp() << ", Amplitude " << getAmplitude() << " GeV, Type " << channelTypeToString(getType()) << ", Labels ( ";
   for (auto label : mLabels) {
     stream << label.getRawValue() << " ";
   }

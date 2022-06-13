@@ -12,6 +12,21 @@
 /// \file checkNoisyMCMs.C
 /// \brief macro identify noisy MCMs based on the number of found tracklets
 
+/*
+  Provided an input file with tracklets and trigger records this macro produces a bitset
+  where noisy MCMs are flagged.
+  In case useMean is requested the mean number of tracklets sent from each MCM is calculated.
+  MCMs which don't send any tracklets are not taken into account. The 10% of MCMs which send
+  the highest number of tracklets are also not considered for the mean calculation. Then, MCMs
+  which sent more than 100 times as many tracklets as the mean are flagged as noisy. If useMean
+  is not used simply the MCMs are flagged which sent on average at least one tracklet every 10th
+  trigger.
+
+  Important: Compare the number of tracklets sent from the first and the last masked MCM. In case
+  there is a large discrepancy between the two numbers the noise threshold might need to be adjusted
+  or not enough statistics is used.
+*/
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "CCDB/CcdbApi.h"
 #include "DataFormatsTRD/NoiseCalibration.h"
@@ -26,10 +41,11 @@
 #include <utility>
 #include <map>
 #include <algorithm>
+#include <locale.h>
 
 #endif
 
-void checkNoisyMCMs(std::string inpFile = "trdtracklets.root", bool enableWriteCCDB = false)
+void checkNoisyMCMs(std::string inpFile = "trdtracklets.root", bool useMean = true, bool detailedOutput = true, bool enableWriteCCDB = false)
 {
   using namespace o2::trd;
 
@@ -51,13 +67,15 @@ void checkNoisyMCMs(std::string inpFile = "trdtracklets.root", bool enableWriteC
   tree->SetBranchAddress("TrackTrg", &trigInPtr);
   tree->SetBranchAddress("Tracklet", &trackletsInPtr);
 
-  std::array<std::pair<unsigned int, unsigned short>, constants::MAXHALFCHAMBER * constants::NMCMHCMAX> trackletCounter{};
+  std::array<std::pair<unsigned int, unsigned int>, constants::MAXHALFCHAMBER * constants::NMCMHCMAX> trackletCounter{};
   std::for_each(trackletCounter.begin(), trackletCounter.end(), [](auto& counter) { static int idx = 0; counter.second = idx++; });
 
   // count number of tracklets per MCM
   size_t totalTrackletCounter = 0;
+  size_t totalTriggerCounter = 0;
   for (int iEntry = 0; iEntry < tree->GetEntries(); ++iEntry) {
     tree->GetEntry(iEntry);
+    totalTriggerCounter += trigIn.size();
     for (const auto& tracklet : tracklets) {
       totalTrackletCounter++;
       int mcmGlb = NoiseStatusMCM::getMcmIdxGlb(tracklet.getHCID(), tracklet.getROB(), tracklet.getMCM());
@@ -67,29 +85,53 @@ void checkNoisyMCMs(std::string inpFile = "trdtracklets.root", bool enableWriteC
 
   // estimate noise threshold
   std::sort(trackletCounter.begin(), trackletCounter.end(), [](const auto& a, const auto& b) { return a.first < b.first; }); // sort by number of tracklets per MCM
-  float mean = 0;
-  int nActiveMcms = 0;
-  for (int idx = 0; idx < static_cast<int>(0.9 * (constants::MAXHALFCHAMBER * constants::NMCMHCMAX)); ++idx) {
-    // get average number of tracklets discarding the 10% of MCMs with most entries
+  float mean90 = 0;                                                                                                          // mean excluding 10% of MCMs with most entries
+  int nActiveMcms90 = 0;
+  std::vector<int> nTrkltsPerActiveMcm; // for median calculation
+  for (int idx = 0; idx < constants::MAXHALFCHAMBER * constants::NMCMHCMAX; ++idx) {
     if (trackletCounter[idx].first > 0) {
-      nActiveMcms++;
-      mean += trackletCounter[idx].first;
+      nTrkltsPerActiveMcm.push_back(trackletCounter[idx].first);
+      if (idx < static_cast<int>(0.9 * (constants::MAXHALFCHAMBER * constants::NMCMHCMAX))) {
+        // for the average number of tracklets we exclude the 10% of MCMs with most entries
+        nActiveMcms90++;
+        mean90 += trackletCounter[idx].first;
+      }
     }
   }
-  if (!nActiveMcms) {
+  if (!nActiveMcms90) {
     printf("ERROR: did not find any MCMs which sent tracklets. Aborting\n");
     return;
   }
-  mean /= nActiveMcms;
-  float noiseThreshold = 10 * mean;
 
-  for (const auto& counter : trackletCounter) {
-    if (counter.first > noiseThreshold) {
-      noiseMap.setIsNoisy(counter.second);
+  auto n = nTrkltsPerActiveMcm.size() / 2;
+  auto median = nTrkltsPerActiveMcm[n]; // the distinction between odd/even number of entries in the vector is irrelevant
+  mean90 /= nActiveMcms90;
+  auto noiseThreshold = (useMean) ? 100.f * mean90 : (float)totalTriggerCounter / 10.f;
+
+  setlocale(LC_NUMERIC, "en_US.utf-8");
+  printf("Info: Found in total %'lu MCMs which sent tracklets with a median of %i tracklets per MCM\n", nTrkltsPerActiveMcm.size(), median);
+  printf("Info: Excluding the 10%% of MCMs which sent the highest number of tracklets %'i MCMs remain with on average %.2f tracklets per MCM\n", nActiveMcms90, mean90);
+  printf("Important: Masking MCMs which sent more than %.2f tracklets for given period\n", noiseThreshold);
+
+  std::vector<int> nTrackletsFromNoisyMcm;
+  bool hasPrintedFirstNoisy = false;
+  for (int idx = 0; idx < constants::MAXHALFCHAMBER * constants::NMCMHCMAX; ++idx) {
+    auto mcmIdx = trackletCounter[idx].second;
+    if (trackletCounter[idx].first > noiseThreshold) {
+      if (!hasPrintedFirstNoisy) {
+        printf("Info: The first masked MCM idx(%i) with glb idx %i sent %i trackelts\n", idx, mcmIdx, trackletCounter[idx].first);
+        hasPrintedFirstNoisy = true;
+      }
+      noiseMap.setIsNoisy(mcmIdx);
+      nTrackletsFromNoisyMcm.push_back(trackletCounter[idx].first);
     }
+  }
+  if (noiseMap.getNumberOfNoisyMCMs() > 0) {
+    printf("Info: Last masked MCM sent %i tracklets\n", nTrackletsFromNoisyMcm.back());
   }
 
   if (enableWriteCCDB) {
+    printf("Info: Uploading to CCDB (by default only to ccdb-test)\n");
     o2::ccdb::CcdbApi ccdb;
     ccdb.init("http://ccdb-test.cern.ch:8080");
     std::map<std::string, std::string> metadata;
@@ -98,7 +140,31 @@ void checkNoisyMCMs(std::string inpFile = "trdtracklets.root", bool enableWriteC
     auto timeStampEnd = timeStampStart;
     timeStampEnd += 1e3 * 60 * 60 * 24 * 60; // 60 days
     ccdb.storeAsTFileAny(&noiseMap, "TRD/Calib/NoiseMapMCM", metadata, timeStampStart, timeStampEnd);
+  } else {
+    // write to local file
+    printf("Info: Writing to local file mcmNoiseMap.root\n");
+    auto fOut = new TFile("mcmNoiseMap.root", "recreate");
+    fOut->WriteObjectAny(&noiseMap, "o2::trd::NoiseStatusMCM", "map");
+    fOut->Close();
   }
 
-  printf("Found in total %lu noisy MCMs for %lu tracklets from %lu trigger records\n", noiseMap.getNumberOfNoisyMCMs(), totalTrackletCounter, trigIn.size());
+  printf("Info: Found in total %lu noisy MCMs for %'lu tracklets from %'lu triggers\n", noiseMap.getNumberOfNoisyMCMs(), totalTrackletCounter, totalTriggerCounter);
+
+  if (detailedOutput) {
+    size_t countTrackletsFromNoisyMcms = 0;
+    printf("Info: Number of tracklets sent per masked MCM: \n");
+    printf("----->\n");
+    for (int idx = 0; idx < constants::MAXHALFCHAMBER * constants::NMCMHCMAX; ++idx) {
+      auto mcmIdx = trackletCounter[idx].second;
+      if (noiseMap.getIsNoisy(mcmIdx)) {
+        countTrackletsFromNoisyMcms += trackletCounter[idx].first;
+        int hcid, rob, mcm;
+        NoiseStatusMCM::convertMcmIdxGlb(mcmIdx, hcid, rob, mcm);
+        printf("Masked MCM idx (%i), glbIdx(%i). HCID(%i), ROB(%i), MCM(%i). nTracklets: %i\n", idx, mcmIdx, hcid, rob, mcm, trackletCounter[idx].first);
+      }
+    }
+    printf("\n<-----\n");
+    printf("Info: Number of tracklets sent from masked MCMs: %'lu (%.2f%%)\n", countTrackletsFromNoisyMcms, (float)countTrackletsFromNoisyMcms / totalTrackletCounter * 100);
+  }
+  printf("Info: Done\n");
 }

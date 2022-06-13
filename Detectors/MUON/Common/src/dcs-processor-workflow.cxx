@@ -19,7 +19,6 @@
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/runDataProcessing.h"
-#include "aliasFixer.h"
 #include "subsysname.h"
 #include <array>
 #include <chrono>
@@ -27,6 +26,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <vector>
+#include <TStopwatch.h>
 #include "CommonUtils/ConfigurableParam.h"
 #if defined(MUON_SUBSYSTEM_MCH)
 #include "MCHConditions/DCSNamer.h"
@@ -47,14 +47,14 @@ using DPMAP = std::unordered_map<DPID, std::vector<DPVAL>>;
 using namespace o2::calibration;
 
 /*
-* Create a default CCDB Object Info that will be used as a template.
-*
-* @param path describes the CCDB data path used (e.g. MCH/LV or MID/HV)
-*
-* The start and end validity times are supposed to be updated from this template,
-* as well as the metadata (if needed). The rest of the information should
-* be taken as is.
-*/
+ * Create a default CCDB Object Info that will be used as a template.
+ *
+ * @param path describes the CCDB data path used (e.g. MCH/LV or MID/HV)
+ *
+ * The start and end validity times are supposed to be updated from this template,
+ * as well as the metadata (if needed). The rest of the information should
+ * be taken as is.
+ */
 o2::ccdb::CcdbObjectInfo createDefaultInfo(const char* path)
 {
   DPMAP obj;
@@ -84,8 +84,8 @@ std::array<DPMAP, NOBJECTS> dataPoints;
 uint64_t t0{0};
 
 /*
-* Return the data point values with min and max timestamps
-*/
+ * Return the data point values with min and max timestamps
+ */
 std::pair<DPVAL, DPVAL> computeTimeRange(const DPMAP& dpmap)
 {
   DPVAL dmin, dmax;
@@ -109,8 +109,8 @@ std::pair<DPVAL, DPVAL> computeTimeRange(const DPMAP& dpmap)
 }
 
 /*
-* Compute the (approximate) size (in KB) of a dpmap.
-*/
+ * Compute the (approximate) size (in KB) of a dpmap.
+ */
 size_t computeSize(const DPMAP& dpmap)
 {
   constexpr int itemSize = 64; // DataPointIdentifier or DataPointValue have the same size = 64 bytes
@@ -125,8 +125,8 @@ size_t computeSize(const DPMAP& dpmap)
 }
 
 /*
-* Compute the duration (in seconds) span by the datapoints in the dpmap.
-*/
+ * Compute the duration (in seconds) span by the datapoints in the dpmap.
+ */
 int computeDuration(const DPMAP& dpmap)
 {
   auto range = computeTimeRange(dpmap);
@@ -134,14 +134,14 @@ int computeDuration(const DPMAP& dpmap)
 }
 
 /*
-* Send a DPMAP to the output.
-*
-* @param dpmap a map of string to vector of DataPointValue
-* @param output a DPL data allocator
-* @param info a CCDB object info describing the dpmap
-* @param reason (optional, can be empty) a string description why the dpmap
-* was ready to be shipped (e.g. big enough, long enough, end of process, etc...)
-*/
+ * Send a DPMAP to the output.
+ *
+ * @param dpmap a map of string to vector of DataPointValue
+ * @param output a DPL data allocator
+ * @param info a CCDB object info describing the dpmap
+ * @param reason (optional, can be empty) a string description why the dpmap
+ * was ready to be shipped (e.g. big enough, long enough, end of process, etc...)
+ */
 void sendOutput(const DPMAP& dpmap,
                 o2::framework::DataAllocator& output,
                 o2::ccdb::CcdbObjectInfo info,
@@ -158,7 +158,7 @@ void sendOutput(const DPMAP& dpmap,
     // we do _not_ write objects with a duration below 10 seconds
     return;
   }
-  //info.setStartValidityTimestamp(startOfValidity);
+  // info.setStartValidityTimestamp(startOfValidity);
   auto range = computeTimeRange(dpmap);
   info.setStartValidityTimestamp(range.first.get_epoch_time());
   info.setEndValidityTimestamp(range.second.get_epoch_time());
@@ -186,10 +186,10 @@ void sendOutput(const DPMAP& dpmap,
 }
 
 /*
-* Implementation of DPL end of stream callback.
-*
-* We send the remaining datapoints at the end of the processing.
-*/
+ * Implementation of DPL end of stream callback.
+ *
+ * We send the remaining datapoints at the end of the processing.
+ */
 void endOfStream(o2::framework::EndOfStreamContext& eosc)
 {
   LOG(debug) << "This is the end. Must write what we have left ?\n";
@@ -199,16 +199,16 @@ void endOfStream(o2::framework::EndOfStreamContext& eosc)
 }
 
 /*
-* Decides whether or not the dpmap should be sent to the output.
-*
-* @param maxSize if the dpmap size is above this size,
-* then it should go to output
-* @param maxDuration if the dpmap spans more than this duration,
-* then it should go to output
-*
-* @returns a boolean stating if the dpmap should be output and a string
-* describing why it should be output.
-*/
+ * Decides whether or not the dpmap should be sent to the output.
+ *
+ * @param maxSize if the dpmap size is above this size,
+ * then it should go to output
+ * @param maxDuration if the dpmap spans more than this duration,
+ * then it should go to output
+ *
+ * @returns a boolean stating if the dpmap should be output and a string
+ * describing why it should be output.
+ */
 std::tuple<bool, std::string> needOutput(const DPMAP& dpmap, int maxSize, int maxDuration)
 {
   std::string reason;
@@ -238,35 +238,36 @@ std::tuple<bool, std::string> needOutput(const DPMAP& dpmap, int maxSize, int ma
 }
 
 /*
-* Process the datapoints received.
-*
-* The datapoints are accumulated into one (MID) or two (MCH) DPMAPs (map from
-* alias names to vector of DataPointValue) : one for HV values (MID and MCH)
-* and one for LV values (MCH only).
-*
-* If the DPMAPs satisfy certain conditions (@see needOutput) they are sent to
-* the output.
-*
-* @param aliases an array of one or two vectors of aliases (one for HV values,
-* one for LV values)
-* @param maxSize an array of one or two values for the
-* maxsizes of the HV and LV values respectively
-* @param maxDuration an array of
-* one or two values for the max durations of the HV and LV values respectively
-*/
+ * Process the datapoints received.
+ *
+ * The datapoints are accumulated into one (MID) or two (MCH) DPMAPs (map from
+ * alias names to vector of DataPointValue) : one for HV values (MID and MCH)
+ * and one for LV values (MCH only).
+ *
+ * If the DPMAPs satisfy certain conditions (@see needOutput) they are sent to
+ * the output.
+ *
+ * @param aliases an array of one or two vectors of aliases (one for HV values,
+ * one for LV values)
+ * @param maxSize an array of one or two values for the
+ * maxsizes of the HV and LV values respectively
+ * @param maxDuration an array of
+ * one or two values for the max durations of the HV and LV values respectively
+ */
 void processDataPoints(o2::framework::ProcessingContext& pc,
                        std::array<std::vector<std::string>, NOBJECTS> aliases,
                        std::array<int, NOBJECTS> maxSize,
-                       std::array<int, NOBJECTS> maxDuration)
+                       std::array<int, NOBJECTS> maxDuration,
+                       bool reportTiming)
 {
-
+  TStopwatch sw;
   auto creationTime = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->creation;
   if (t0 <= 0) {
     t0 = creationTime;
   }
   auto dps = pc.inputs().get<gsl::span<o2::dcs::DataPointCompositeObject>>("input");
   for (auto dp : dps) {
-    //FIXME: check we're not adding twice the same dp (i.e. check timestamp ?)
+    // FIXME: check we're not adding twice the same dp (i.e. check timestamp ?)
     for (auto i = 0; i < NOBJECTS; i++) {
       if (std::find(aliases[i].begin(), aliases[i].end(), dp.id.get_alias()) != aliases[i].end()) {
         dataPoints[i][dp.id].emplace_back(dp.data);
@@ -278,26 +279,21 @@ void processDataPoints(o2::framework::ProcessingContext& pc,
     if (shouldOutput) {
       sendOutput(dataPoints[i], pc.outputs(), info[i], reason, t0);
       t0 = creationTime;
-      dataPoints[i].clear(); //FIXME: here the clear should be more clever and keep at least one value per dp ?
+      dataPoints[i].clear(); // FIXME: here the clear should be more clever and keep at least one value per dp ?
     }
   }
-}
-
-std::vector<std::string> replaceDotByUnderscore(const std::vector<std::string>& aliases)
-{
-  std::vector<std::string> fixed;
-  for (const auto& a : aliases) {
-    fixed.emplace_back(o2::muon::replaceDotByUnderscore(a));
+  sw.Stop();
+  if (reportTiming) {
+    LOGP(info, "Timing CPU:{:.3e} Real:{:.3e} at slice {}", sw.CpuTime(), sw.RealTime(), pc.services().get<o2::framework::TimingInfo>().timeslice);
   }
-  return fixed;
 }
 
 /*
-* Creates the main processing function.
-*
-* @param ic InitContext which is used to get the options and set the end of
-* stream callback
-*/
+ * Creates the main processing function.
+ *
+ * @param ic InitContext which is used to get the options and set the end of
+ * stream callback
+ */
 o2::framework::AlgorithmSpec::ProcessCallback createProcessFunction(o2::framework::InitContext& ic)
 {
   auto& callbacks = ic.services().get<o2::framework::CallbackService>();
@@ -307,11 +303,11 @@ o2::framework::AlgorithmSpec::ProcessCallback createProcessFunction(o2::framewor
   // we are interested to transit to the CCDB
 #if defined(MUON_SUBSYSTEM_MCH)
   std::array<std::vector<std::string>, NOBJECTS> aliases = {
-    replaceDotByUnderscore(o2::mch::dcs::aliases({o2::mch::dcs::MeasurementType::HV_V,
-                                                  o2::mch::dcs::MeasurementType::HV_I})),
-    replaceDotByUnderscore(o2::mch::dcs::aliases({o2::mch::dcs::MeasurementType::LV_V_FEE_ANALOG,
-                                                  o2::mch::dcs::MeasurementType::LV_V_FEE_DIGITAL,
-                                                  o2::mch::dcs::MeasurementType::LV_V_SOLAR}))};
+    o2::mch::dcs::aliases({o2::mch::dcs::MeasurementType::HV_V,
+                           o2::mch::dcs::MeasurementType::HV_I}),
+    o2::mch::dcs::aliases({o2::mch::dcs::MeasurementType::LV_V_FEE_ANALOG,
+                           o2::mch::dcs::MeasurementType::LV_V_FEE_DIGITAL,
+                           o2::mch::dcs::MeasurementType::LV_V_SOLAR})};
   std::array<int, 2> maxSize{
     ic.options().get<int>("hv-max-size"),
     ic.options().get<int>("lv-max-size")};
@@ -321,29 +317,29 @@ o2::framework::AlgorithmSpec::ProcessCallback createProcessFunction(o2::framewor
     ic.options().get<int>("lv-max-duration")};
 #elif defined(MUON_SUBSYSTEM_MID)
   std::array<std::vector<std::string>, NOBJECTS> aliases = {
-    replaceDotByUnderscore(o2::mid::dcs::aliases({o2::mid::dcs::MeasurementType::HV_V,
-                                                  o2::mid::dcs::MeasurementType::HV_I}))};
+    o2::mid::dcs::aliases({o2::mid::dcs::MeasurementType::HV_V,
+                           o2::mid::dcs::MeasurementType::HV_I})};
   std::array<int, NOBJECTS> maxSize{ic.options().get<int>("hv-max-size")};
   std::array<int, NOBJECTS> maxDuration{ic.options().get<int>("hv-max-duration")};
 #endif
-
+  bool reportTiming = ic.options().get<bool>("report-timing");
   for (auto i = 0; i < NOBJECTS; i++) {
     dataPoints[i].clear();
   }
 
-  return [aliases, maxSize, maxDuration](o2::framework::ProcessingContext& pc) {
-    processDataPoints(pc, aliases, maxSize, maxDuration);
+  return [aliases, maxSize, maxDuration, reportTiming](o2::framework::ProcessingContext& pc) {
+    processDataPoints(pc, aliases, maxSize, maxDuration, reportTiming);
   };
 }
 
 /* Helper function to create a ConfigParamSpec option object.
-*
-* @param name is either 'size' or 'duration'
-* @param value is the default value to be used (i.e. when the option is not
-* specified on the command line)
-* @param what is either 'hv' or 'lv'
-* @param unit is the unit in which the values are given
-*/
+ *
+ * @param name is either 'size' or 'duration'
+ * @param value is the default value to be used (i.e. when the option is not
+ * specified on the command line)
+ * @param what is either 'hv' or 'lv'
+ * @param unit is the unit in which the values are given
+ */
 o2::framework::ConfigParamSpec whenToSendOption(const char* name, int value,
                                                 const char* what, const char* unit)
 {
@@ -368,20 +364,20 @@ using o2::framework::DataProcessorSpec;
 using o2::framework::WorkflowSpec;
 
 /**
-* DPL Workflow to process MCH or MID DCS data points.
-*
-* The expected input is a vector of DataPointCompositeObject containing
-* only MCH (or only MID) data points.
-*
-* Those datapoints are accumulated into DPMAPs (map from alias names to
-* vector of DataPointValue).
-*
-* The accumulated DPMAPs are sent to the output whenever :
-* - they reach a given size (--xx-max-size option(s))
-* - they span a given duration (--xx-max-duration option(s))
-* - the workflow is ended
-*
-*/
+ * DPL Workflow to process MCH or MID DCS data points.
+ *
+ * The expected input is a vector of DataPointCompositeObject containing
+ * only MCH (or only MID) data points.
+ *
+ * Those datapoints are accumulated into DPMAPs (map from alias names to
+ * vector of DataPointValue).
+ *
+ * The accumulated DPMAPs are sent to the output whenever :
+ * - they reach a given size (--xx-max-size option(s))
+ * - they span a given duration (--xx-max-duration option(s))
+ * - the workflow is ended
+ *
+ */
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   DataProcessorSpec dcsProcessor;
@@ -406,6 +402,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   dcsProcessor.outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCDBWrapper, CCDBOBJ}, o2::framework::Lifetime::Sporadic);
   dcsProcessor.algorithm = algo;
   dcsProcessor.options = {
+    {"report-timing", o2::framework::VariantType::Bool, false, {"Report timing for every slice"}},
 #if defined(MUON_SUBSYSTEM_MCH)
     whenToSendOption("lv", 128, "size", "KB"),
     whenToSendOption("lv", 8 * 3600, "duration", "seconds"),

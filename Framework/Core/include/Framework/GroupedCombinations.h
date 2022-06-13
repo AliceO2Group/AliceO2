@@ -14,7 +14,6 @@
 
 #include "Framework/ASoAHelpers.h"
 #include "Framework/BinningPolicy.h"
-#include "Framework/GroupSlicer.h"
 #include "Framework/Pack.h"
 #include <optional>
 
@@ -34,31 +33,22 @@ auto interleaveTuples(std::tuple<T1s...>& t1, std::tuple<T2s...>& t2)
   return interleaveTuplesImpl(t1, t2, std::index_sequence_for<T1s...>());
 }
 
-// Functions to create a tuple from N runs of a function that returns a value
-template <std::size_t I, typename R, typename C, typename... Args>
-R execFunctionWithDummyIndex(R (C::*f)(Args...), C& obj, Args... args)
+template <typename T, typename G>
+using is_index_to_g_t = typename std::conditional<o2::soa::is_binding_compatible_v<G, typename T::binding_t>(), std::true_type, std::false_type>::type;
+
+template <typename G, typename A>
+expressions::BindingNode getMatchingIndexNode()
 {
-  return (obj.*f)(args...);
+  using external_index_columns_pack = typename A::external_index_columns_t;
+  using selected_indices_t = selected_pack_multicondition<is_index_to_g_t, pack<G>, external_index_columns_pack>;
+  static_assert(pack_size(selected_indices_t{}) == 1, "No matching index column from associated to grouping");
+  using index_column_t = pack_head_t<selected_indices_t>;
+  auto label = std::string(index_column_t::mLabel);
+  return expressions::BindingNode{label, typeid(typename index_column_t::column_t).hash_code(), expressions::selectArrowType<typename index_column_t::type>()};
 }
 
-template <typename R, typename C, typename... Args, std::size_t... Is>
-auto functionToTupleImpl(R (C::*f)(Args...), C& obj, Args... args, std::index_sequence<Is...>)
-{
-  return std::make_tuple((execFunctionWithDummyIndex<Is>(f, obj, args...))...);
-}
-
-template <std::size_t N, typename R, typename C, typename... Args>
-auto functionToTuple(R (C::*f)(Args...), C& obj, Args... args)
-{
-  return functionToTupleImpl(f, obj, args..., std::make_index_sequence<N>());
-}
-
-template <typename T1, typename GroupingPolicy, typename BP, typename G, typename... Ts>
+template <typename T1, typename GroupingPolicy, typename BP, typename G, typename... As>
 struct GroupedCombinationsGenerator {
-};
-
-template <typename T1, typename GroupingPolicy, typename BP, typename G, typename... Us, typename... As>
-struct GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<Us...>, As...> {
   using GroupedIteratorType = pack_to_tuple_t<interleaved_pack_t<repeated_type_pack_t<typename G::iterator, sizeof...(As)>, pack<As...>>>;
 
   struct GroupedIterator : public GroupingPolicy {
@@ -68,8 +58,9 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<Us...>, As..
     using pointer = GroupedIteratorType*;
     using iterator_category = std::forward_iterator_tag;
 
-    GroupedIterator(const GroupingPolicy& groupingPolicy) : GroupingPolicy(groupingPolicy) {}
-    GroupedIterator(const GroupingPolicy& groupingPolicy, const G& grouping, const std::shared_ptr<GroupSlicer<G, Us...>>&& slicer_ptr) : GroupingPolicy(groupingPolicy), mSlicer{std::move(slicer_ptr)}
+    GroupedIterator(const GroupingPolicy& groupingPolicy) : GroupingPolicy(groupingPolicy), mIndexColumns{getMatchingIndexNode<G, As>()...} {}
+    template <typename... T2s>
+    GroupedIterator(const GroupingPolicy& groupingPolicy, const G& grouping, std::tuple<T2s...>& associated) : GroupingPolicy(groupingPolicy), mGrouping{std::make_shared<G>(std::vector{grouping.asArrowTable()})}, mAssociated{std::make_shared<std::tuple<As...>>(std::make_tuple(std::get<As>(associated)...))}, mIndexColumns{getMatchingIndexNode<G, As>()...}
     {
       if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
         mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()}, grouping.getSelectedRows());
@@ -86,14 +77,15 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<Us...>, As..
     GroupedIterator& operator=(GroupedIterator const&) = default;
     ~GroupedIterator() = default;
 
-    void setTables(const G& grouping, std::shared_ptr<GroupSlicer<G, Us...>> slicer_ptr)
+    template <typename... T2s>
+    void setTables(const G& grouping, std::tuple<T2s...>& associated)
     {
       if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
         mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()}, grouping.getSelectedRows());
       } else {
         mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()});
       }
-      mSlicer = slicer_ptr;
+      mAssociated = std::make_shared<std::tuple<As...>>(std::make_tuple(std::get<As>(associated)...));
       setMultipleGroupingTables<sizeof...(As)>(grouping);
       if (!this->mIsEnd) {
         setCurrentGroupedCombination();
@@ -148,70 +140,35 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<Us...>, As..
    private:
     std::tuple<As...> getAssociatedTables()
     {
-      auto& currentGrouping = GroupingPolicy::mCurrent;
-      constexpr auto k = sizeof...(As);
-      auto slicerIterators = functionToTuple<k>(&GroupSlicer<G, Us...>::begin, *mSlicer);
-      o2::soa::for_<k>([&](auto i) {
-        auto col = std::get<i.value>(currentGrouping);
-        for (auto& slice : *mSlicer) {
-          if (slice.groupingElement().globalIndex() == col.globalIndex()) {
-            std::get<i.value>(slicerIterators) = slice;
-            break;
-          }
-        }
-      });
-
-      return getSlices(slicerIterators, std::index_sequence_for<As...>());
+      return doGetAssociatedTables(std::make_index_sequence<sizeof...(As)>());
     }
 
-    template <std::size_t I, typename T, typename... Ts>
-    auto getSliceAt(std::tuple<Ts...>& t)
+    template <std::size_t... Is>
+    std::tuple<As...> doGetAssociatedTables(std::index_sequence<Is...>)
     {
-      auto it = std::get<I>(t); // Get the tables corresponding to the grouping at index I
-      auto associatedType = it.template prepareArgument<T>();
-      return associatedType;
+      return std::make_tuple(getAssociatedTable<Is>()...);
     }
 
-    template <typename... Ts, std::size_t... Is>
-    std::tuple<As...> getSlices(std::tuple<Ts...>& t, std::index_sequence<Is...> is)
+    template <std::size_t I>
+    auto getAssociatedTable()
     {
-      return std::make_tuple(getSliceAt<Is, As, Ts...>(t)...);
+      uint64_t ind = *std::get<0>(std::get<I>(this->mCurrent).getIndices());
+      return std::get<I>(*mAssociated).sliceByCached(mIndexColumns[I], ind);
     }
 
     void setCurrentGroupedCombination()
     {
-      std::tuple<As...> initAssociatedTables = getAssociatedTables();
-      constexpr auto k = sizeof...(As);
-      bool moveForward = false;
-      o2::soa::for_<k>([&](auto i) {
-        if (std::get<i.value>(initAssociatedTables).size() == 0) {
-          moveForward = true;
-        }
-      });
-      while (!this->mIsEnd && moveForward) {
-        GroupingPolicy::addOne();
-        std::tuple<As...> temp = getAssociatedTables();
-        moveForward = false;
-        o2::soa::for_<k>([&](auto i) {
-          if (std::get<i.value>(temp).size() == 0) {
-            moveForward = true;
-          }
-        });
-      }
-      std::tuple<As...> associatedTables = getAssociatedTables();
-
       if (!this->mIsEnd) {
         auto& currentGrouping = GroupingPolicy::mCurrent;
-        o2::soa::for_<k>([&](auto i) {
-          std::get<i.value>(associatedTables).bindExternalIndices(mGrouping.get());
-        });
-
-        mCurrentGrouped.emplace(interleaveTuples(currentGrouping, associatedTables));
+        mSlices.emplace(getAssociatedTables());
+        mCurrentGrouped.emplace(interleaveTuples(currentGrouping, *mSlices));
       }
     }
 
-    std::shared_ptr<GroupSlicer<G, Us...>> mSlicer = nullptr;
+    std::array<expressions::BindingNode, sizeof...(As)> mIndexColumns;
     std::shared_ptr<G> mGrouping;
+    std::shared_ptr<std::tuple<As...>> mAssociated;
+    std::optional<std::tuple<As...>> mSlices;
     std::optional<GroupedIteratorType> mCurrentGrouped;
   };
 
@@ -236,7 +193,8 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<Us...>, As..
   }
 
   GroupedCombinationsGenerator(const BP& binningPolicy, int catNeighbours, const T1& outsider) : mBegin(GroupingPolicy(binningPolicy, catNeighbours, outsider)), mEnd(GroupingPolicy(binningPolicy, catNeighbours, outsider)) {}
-  GroupedCombinationsGenerator(const BP& binningPolicy, int catNeighbours, const T1& outsider, G& grouping, std::tuple<Us...>& associated) : GroupedCombinationsGenerator(binningPolicy, catNeighbours, outsider)
+  template <typename... T2s>
+  GroupedCombinationsGenerator(const BP& binningPolicy, int catNeighbours, const T1& outsider, G& grouping, std::tuple<T2s...>& associated) : GroupedCombinationsGenerator(binningPolicy, catNeighbours, outsider)
   {
     setTables(grouping, associated);
   }
@@ -244,34 +202,31 @@ struct GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<Us...>, As..
   GroupedCombinationsGenerator& operator=(GroupedCombinationsGenerator const&) = default;
   ~GroupedCombinationsGenerator() = default;
 
-  void setTables(G& grouping, std::tuple<Us...>& associated)
+  template <typename... T2s>
+  void setTables(G& grouping, std::tuple<T2s...>& associated)
   {
-    if (mSlicer == nullptr) {
-      mSlicer = std::make_shared<GroupSlicer<G, Us...>>(grouping, associated);
-      mBegin.setTables(grouping, mSlicer);
-      mEnd.setTables(grouping, mSlicer);
-      mEnd.moveToEnd();
-    }
+    mBegin.setTables(grouping, associated);
+    mEnd.setTables(grouping, associated);
+    mEnd.moveToEnd();
   }
 
  private:
   iterator mBegin;
   iterator mEnd;
-  std::shared_ptr<GroupSlicer<G, Us...>> mSlicer = nullptr;
 };
 
 // Aliases for 2-particle correlations
 // 'Pair' and 'Triple' can be used for same kind pair/triple, too, just specify the same type twice
 template <typename G, typename A1, typename A2, typename BP, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, G, G>>
-using Pair = GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, unique_pack_t<pack<A1, A2>>, A1, A2>;
+using Pair = GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, A1, A2>;
 template <typename G, typename A, typename BP, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, G, G>>
-using SameKindPair = GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<A>, A, A>;
+using SameKindPair = GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, A, A>;
 
 // Aliases for 3-particle correlations
 template <typename G, typename A1, typename A2, typename A3, typename BP, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, G, G, G>>
-using Triple = GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, unique_pack_t<pack<A1, A2, A3>>, A1, A2, A3>;
+using Triple = GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, A1, A2, A3>;
 template <typename G, typename A, typename BP, typename T1 = int, typename GroupingPolicy = o2::soa::CombinationsBlockStrictlyUpperSameIndexPolicy<BP, T1, G, G, G>>
-using SameKindTriple = GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, pack<A>, A, A, A>;
+using SameKindTriple = GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, A, A, A>;
 
 } // namespace o2::framework
 #endif // FRAMEWORK_GROUPEDCOMBINATIONS_H_

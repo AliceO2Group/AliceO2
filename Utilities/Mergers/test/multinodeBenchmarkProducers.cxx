@@ -32,7 +32,7 @@ void customize(std::vector<ConfigParamSpec>& options)
 }
 
 #include <Framework/runDataProcessing.h>
-#include <fairmq/FairMQLogger.h>
+#include "Framework/Logger.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include <TRandomGen.h>
 #include <TObjArray.h>

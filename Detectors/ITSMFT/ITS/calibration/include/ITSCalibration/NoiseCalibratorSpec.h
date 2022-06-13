@@ -40,7 +40,7 @@ namespace its
 class NoiseCalibratorSpec : public Task
 {
  public:
-  NoiseCalibratorSpec(bool useClusters = false, std::shared_ptr<o2::base::GRPGeomRequest> req = {}) : mUseClusters(useClusters), mCCDBRequest(req)
+  NoiseCalibratorSpec(bool useClusters = false, std::shared_ptr<o2::base::GRPGeomRequest> req = {}) : mCCDBRequest(req), mUseClusters(useClusters)
   {
     mTimer.Stop();
   }
@@ -60,6 +60,7 @@ class NoiseCalibratorSpec : public Task
   size_t mNClustersProc = 0;
   int mValidityDays = 3;
   bool mUseClusters = false;
+  bool mStopMeOnly = false; // send QuitRequest::Me instead of QuitRequest::All
   TStopwatch mTimer{};
 };
 

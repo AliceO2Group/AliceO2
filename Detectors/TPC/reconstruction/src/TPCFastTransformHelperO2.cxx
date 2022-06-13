@@ -134,7 +134,7 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
     for (int scenario = 0; scenario < nCorrectionScenarios; scenario++) {
       int row = scenario * 10;
       TPCFastSpaceChargeCorrection::SplineType spline;
-      if (!mSpaceChargeCorrection || row >= nRows) {
+      if (!mCorrectionMap.isInitialized() || row >= nRows) {
         spline.recreate(8, 20);
       } else {
         // TODO: update the calibrator
@@ -262,17 +262,42 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   // for the future: switch TOF correction off for a while
 
-  if (mSpaceChargeCorrection) {
+  if (mCorrectionMap.isInitialized()) {
     for (int slice = 0; slice < correction.getGeometry().getNumberOfSlices(); slice++) {
       for (int row = 0; row < correction.getGeometry().getNumberOfRows(); row++) {
-        const TPCFastSpaceChargeCorrection::SplineType& spline = correction.getSpline(slice, row);
-        float* data = correction.getSplineData(slice, row);
+        TPCFastSpaceChargeCorrection::SplineType& spline = correction.getSpline(slice, row);
         Spline2DHelper<float> helper;
+        float* splineParameters = correction.getSplineData(slice, row);
+        /* old style
+
         helper.setSpline(spline, 3, 3);
         auto F = [&](double su, double sv, double dxuv[3]) {
           getSpaceChargeCorrection(slice, row, su, sv, dxuv[0], dxuv[1], dxuv[2]);
         };
-        helper.approximateFunction(data, 0., 1., 0., 1., F);
+        helper.approximateFunction(splineParameters, 0., 1., 0., 1., F);
+        */
+        const std::vector<o2::gpu::TPCFastSpaceChargeCorrectionMap::CorrectionPoint>& data = mCorrectionMap.getPoints(slice, row);
+        int nDataPoints = data.size();
+        if (nDataPoints >= 4) {
+          std::vector<double> pointSU(nDataPoints);
+          std::vector<double> pointSV(nDataPoints);
+          std::vector<double> pointCorr(3 * nDataPoints); // 3 dimensions
+          for (int i = 0; i < nDataPoints; ++i) {
+            double su, sv, dx, du, dv;
+            getSpaceChargeCorrection(slice, row, data[i], su, sv, dx, du, dv);
+            pointSU[i] = su;
+            pointSV[i] = sv;
+            pointCorr[3 * i + 0] = dx;
+            pointCorr[3 * i + 1] = du;
+            pointCorr[3 * i + 2] = dv;
+          }
+          helper.approximateDataPoints(spline, splineParameters, 0., 1., 0., 1., &pointSU[0],
+                                       &pointSV[0], &pointCorr[0], nDataPoints);
+        } else {
+          for (int i = 0; i < spline.getNumberOfParameters(); i++) {
+            splineParameters[i] = 0.f;
+          }
+        }
       } // row
     }   // slice
     correction.initInverse();
@@ -285,7 +310,8 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
   return 0;
 }
 
-int TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, double su, double sv, double& dx, double& du, double& dv)
+void TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, o2::gpu::TPCFastSpaceChargeCorrectionMap::CorrectionPoint p,
+                                                        double& su, double& sv, double& dx, double& du, double& dv)
 {
   // get space charge correction in internal TPCFastTransform coordinates su,sv->dx,du,dv
 
@@ -293,52 +319,70 @@ int TPCFastTransformHelperO2::getSpaceChargeCorrection(int slice, int row, doubl
     init();
   }
 
-  dx = 0.f;
-  du = 0.f;
-  dv = 0.f;
+  // not corrected coordinates in u,v
+  float u = 0.f, v = 0.f, fsu = 0.f, fsv = 0.f;
+  mGeo.convLocalToUV(slice, p.mY, p.mZ, u, v);
+  mGeo.convUVtoScaledUV(slice, row, u, v, fsu, fsv);
+  su = fsu;
+  sv = fsv;
+  // corrected coordinates in u,v
+  float u1 = 0.f, v1 = 0.f;
+  mGeo.convLocalToUV(slice, p.mY + p.mDy, p.mZ + p.mDz, u1, v1);
 
-  if (!mSpaceChargeCorrection) {
-    return 0;
-  }
-
-  const TPCFastTransformGeo::RowInfo& rowInfo = mGeo.getRowInfo(row);
-
-  float x = rowInfo.x;
-
-  // x, u, v cordinates of the (su,sv) point (local cartesian coord. of slice towards central electrode )
-  float u = 0, v = 0;
-  mGeo.convScaledUVtoUV(slice, row, su, sv, u, v);
-
-  // nominal x,y,z coordinates of the knot (without corrections and time-of-flight correction)
-  float y = 0, z = 0;
-  mGeo.convUVtoLocal(slice, u, v, y, z);
-
-  // global coordinates of the knot
-  float gx, gy, gz;
-  mGeo.convLocalToGlobal(slice, x, y, z, gx, gy, gz);
-  float gx1 = gx, gy1 = gy, gz1 = gz;
-  {
-    double xyz[3] = {gx, gy, gz};
-    double dxyz[3] = {0., 0., 0.};
-    mSpaceChargeCorrection(slice, xyz, dxyz);
-    gx1 += dxyz[0];
-    gy1 += dxyz[1];
-    gz1 += dxyz[2];
-  }
-
-  // corrections in the local coordinates
-  float x1, y1, z1;
-  mGeo.convGlobalToLocal(slice, gx1, gy1, gz1, x1, y1, z1);
-
-  // correction corrections in u,v
-  float u1 = 0, v1 = 0;
-  mGeo.convLocalToUV(slice, y1, z1, u1, v1);
-
-  dx = x1 - x;
+  dx = p.mDx;
   du = u1 - u;
   dv = v1 - v;
+}
 
-  return 0;
+void TPCFastTransformHelperO2::setGlobalSpaceChargeCorrection(
+  std::function<void(int roc, double gx, double gy, double gz,
+                     double& dgx, double& dgy, double& dgz)>
+    correctionGlobal)
+{
+  auto correctionLocal = [&](int roc, int irow, double ly, double lz,
+                             double& dlx, double& dly, double& dlz) {
+    double lx = mGeo.getRowInfo(irow).x;
+    float gx, gy, gz;
+    mGeo.convLocalToGlobal(roc, lx, ly, lz, gx, gy, gz);
+    double dgx, dgy, dgz;
+    correctionGlobal(roc, gx, gy, gz, dgx, dgy, dgz);
+    float lx1, ly1, lz1;
+    mGeo.convGlobalToLocal(roc, gx + dgx, gy + dgy, gz + dgz, lx1, ly1, lz1);
+    dlx = lx1 - lx;
+    dly = ly1 - ly;
+    dlz = lz1 - lz;
+  };
+  setLocalSpaceChargeCorrection(correctionLocal);
+}
+
+void TPCFastTransformHelperO2::setLocalSpaceChargeCorrection(
+  std::function<void(int roc, int irow, double y, double z,
+                     double& dx, double& dy, double& dz)>
+    correctionLocal)
+{
+  /// set space charge correction in the local coordinates
+  /// as a continious function
+
+  int nRocs = mGeo.getNumberOfSlices();
+  int nRows = mGeo.getNumberOfRows();
+  mCorrectionMap.init(nRocs, nRows);
+
+  for (int iRoc = 0; iRoc < nRocs; iRoc++) {
+    for (int iRow = 0; iRow < nRows; iRow++) {
+      double dsu = 1. / (3 * 8 - 3);
+      double dsv = 1. / (3 * 20 - 3);
+      for (double su = 0.f; su < 1.f + .5 * dsu; su += dsv) {
+        for (double sv = 0.f; sv < 1.f + .5 * dsv; sv += dsv) {
+          float ly, lz;
+          mGeo.convScaledUVtoLocal(iRoc, iRow, su, sv, ly, lz);
+          double dx, dy, dz;
+          correctionLocal(iRoc, iRow, ly, lz, dx, dy, dz);
+          mCorrectionMap.addCorrectionPoint(iRoc, iRow,
+                                            ly, lz, dx, dy, dz);
+        }
+      }
+    } // row
+  }   // roc
 }
 
 void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) const
@@ -370,8 +414,7 @@ void TPCFastTransformHelperO2::testGeometry(const TPCFastTransformGeo& geo) cons
     for (int pad = 0; pad < nPads; pad++) {
       const GlobalPadNumber p = mapper.globalPadNumber(PadPos(row, pad));
       const PadCentre& c = mapper.padCentre(p);
-      float u = 0;
-      geo.convPadToU(row, pad, u);
+      double u = geo.convPadToU(row, pad);
 
       const double dx = x - c.X();
       const double dy = u - (-c.Y()); // diferent sign convention for Y coordinate in the map

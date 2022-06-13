@@ -51,38 +51,15 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
   using BaseDPLDigitizer::init;
   void initDigitizerTask(framework::InitContext& ic) override
   {
-    setDigitizationOptions(); // set options provided via configKeyValues mechanism
-    auto& digipar = mDigitizer.getParams();
-
-    mROMode = digipar.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
-    LOG(info) << mID.getName() << " simulated in "
-              << ((mROMode == o2::parameters::GRPObject::CONTINUOUS) ? "CONTINUOUS" : "TRIGGERED")
-              << " RO mode";
-
-    // configure digitizer
-    o2::itsmft::GeometryTGeo* geom = nullptr;
-    if (mID == o2::detectors::DetID::ITS) {
-      geom = o2::its::GeometryTGeo::Instance();
-    } else {
-      geom = o2::mft::GeometryTGeo::Instance();
-    }
-    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)); // make sure L2G matrices are loaded
-    mDigitizer.setGeometry(geom);
-
     mDisableQED = ic.options().get<bool>("disable-qed");
-
-    // init digitizer
-    mDigitizer.init();
   }
-
-  virtual void setDigitizationOptions() = 0;
 
   void run(framework::ProcessingContext& pc)
   {
     if (mFinished) {
       return;
     }
-    updateTimeDependentParams(pc);
+    mID == o2::detectors::DetID::ITS ? updateTimeDependentParams<o2::detectors::DetID::ITS>(pc) : updateTimeDependentParams<o2::detectors::DetID::MFT>(pc);
     std::string detStr = mID.getName();
     // read collision context from input
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
@@ -204,19 +181,76 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     if (matcher == ConcreteDataMatcher(mOrigin, "NOISEMAP", 0)) {
       LOG(info) << mID.getName() << " noise map updated";
       mDigitizer.setNoiseMap((const o2::itsmft::NoiseMap*)obj);
+      return;
     }
     if (matcher == ConcreteDataMatcher(mOrigin, "DEADMAP", 0)) {
       LOG(info) << mID.getName() << " dead map updated";
       mDigitizer.setDeadChannelsMap((const o2::itsmft::NoiseMap*)obj);
+      return;
+    }
+    if (matcher == ConcreteDataMatcher(mOrigin, "ALPIDEPARAM", 0)) {
+      LOG(info) << mID.getName() << " Alpide param updated";
+      if (mID == o2::detectors::DetID::ITS) {
+        const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+        par.printKeyValues();
+      } else {
+        const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
+        par.printKeyValues();
+      }
+      return;
     }
   }
 
  protected:
   ITSMFTDPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth) {}
+
+  template <int DETID>
   void updateTimeDependentParams(ProcessingContext& pc)
   {
-    pc.inputs().get<o2::itsmft::NoiseMap*>("noise");
-    pc.inputs().get<o2::itsmft::NoiseMap*>("dead");
+    std::string detstr(o2::detectors::DetID::getName(DETID));
+    pc.inputs().get<o2::itsmft::NoiseMap*>(detstr + "_noise");
+    pc.inputs().get<o2::itsmft::NoiseMap*>(detstr + "_dead");
+    pc.inputs().get<o2::itsmft::DPLAlpideParam<DETID>*>(detstr + "_alppar");
+
+    auto& dopt = o2::itsmft::DPLDigitizerParam<DETID>::Instance();
+    auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
+    auto& digipar = mDigitizer.getParams();
+    digipar.setContinuous(dopt.continuous);
+    if (dopt.continuous) {
+      auto frameNS = aopt.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
+      digipar.setROFrameLengthInBC(aopt.roFrameLengthInBC);
+      digipar.setROFrameLength(frameNS);                                                                       // RO frame in ns
+      digipar.setStrobeDelay(aopt.strobeDelay);                                                                // Strobe delay wrt beginning of the RO frame, in ns
+      digipar.setStrobeLength(aopt.strobeLengthCont > 0 ? aopt.strobeLengthCont : frameNS - aopt.strobeDelay); // Strobe length in ns
+    } else {
+      digipar.setROFrameLength(aopt.roFrameLengthTrig); // RO frame in ns
+      digipar.setStrobeDelay(aopt.strobeDelay);         // Strobe delay wrt beginning of the RO frame, in ns
+      digipar.setStrobeLength(aopt.strobeLengthTrig);   // Strobe length in ns
+    }
+    // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
+    digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
+    digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
+    digipar.setNoisePerPixel(dopt.noisePerPixel);     // noise level
+    digipar.setTimeOffset(dopt.timeOffset);
+    digipar.setNSimSteps(dopt.nSimSteps);
+    digipar.setIBVbb(dopt.IBVbb);
+    digipar.setOBVbb(dopt.OBVbb);
+
+    mROMode = digipar.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
+    LOG(info) << mID.getName() << " simulated in "
+              << ((mROMode == o2::parameters::GRPObject::CONTINUOUS) ? "CONTINUOUS" : "TRIGGERED")
+              << " RO mode";
+
+    // configure digitizer
+    o2::itsmft::GeometryTGeo* geom = nullptr;
+    if (mID == o2::detectors::DetID::ITS) {
+      geom = o2::its::GeometryTGeo::Instance();
+    } else {
+      geom = o2::mft::GeometryTGeo::Instance();
+    }
+    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::L2G)); // make sure L2G matrices are loaded
+    mDigitizer.setGeometry(geom);
+    mDigitizer.init();
   }
 
   bool mWithMCTruth = true;
@@ -251,32 +285,6 @@ class ITSDPLDigitizerTask : public ITSMFTDPLDigitizerTask
     mID = DETID;
     mOrigin = DETOR;
   }
-  void setDigitizationOptions() override
-  {
-    auto& dopt = o2::itsmft::DPLDigitizerParam<DETID>::Instance();
-    auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
-    auto& digipar = mDigitizer.getParams();
-    digipar.setContinuous(dopt.continuous);
-    if (dopt.continuous) {
-      auto frameNS = aopt.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
-      digipar.setROFrameLengthInBC(aopt.roFrameLengthInBC);
-      digipar.setROFrameLength(frameNS);                                                                       // RO frame in ns
-      digipar.setStrobeDelay(aopt.strobeDelay);                                                                // Strobe delay wrt beginning of the RO frame, in ns
-      digipar.setStrobeLength(aopt.strobeLengthCont > 0 ? aopt.strobeLengthCont : frameNS - aopt.strobeDelay); // Strobe length in ns
-    } else {
-      digipar.setROFrameLength(aopt.roFrameLengthTrig); // RO frame in ns
-      digipar.setStrobeDelay(aopt.strobeDelay);         // Strobe delay wrt beginning of the RO frame, in ns
-      digipar.setStrobeLength(aopt.strobeLengthTrig);   // Strobe length in ns
-    }
-    // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
-    digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
-    digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
-    digipar.setNoisePerPixel(dopt.noisePerPixel);     // noise level
-    digipar.setTimeOffset(dopt.timeOffset);
-    digipar.setNSimSteps(dopt.nSimSteps);
-    digipar.setIBVbb(dopt.IBVbb);
-    digipar.setOBVbb(dopt.OBVbb);
-  }
 };
 
 constexpr o2::detectors::DetID::ID ITSDPLDigitizerTask::DETID;
@@ -293,33 +301,6 @@ class MFTDPLDigitizerTask : public ITSMFTDPLDigitizerTask
   {
     mID = DETID;
     mOrigin = DETOR;
-  }
-
-  void setDigitizationOptions() override
-  {
-    auto& dopt = o2::itsmft::DPLDigitizerParam<DETID>::Instance();
-    auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
-    auto& digipar = mDigitizer.getParams();
-    digipar.setContinuous(dopt.continuous);
-    digipar.setContinuous(dopt.continuous);
-    if (dopt.continuous) {
-      auto frameNS = aopt.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
-      digipar.setROFrameLengthInBC(aopt.roFrameLengthInBC);
-      digipar.setROFrameLength(frameNS);                                                                       // RO frame in ns
-      digipar.setStrobeDelay(aopt.strobeDelay);                                                                // Strobe delay wrt beginning of the RO frame, in ns
-      digipar.setStrobeLength(aopt.strobeLengthCont > 0 ? aopt.strobeLengthCont : frameNS - aopt.strobeDelay); // Strobe length in ns
-    } else {
-      digipar.setROFrameLength(aopt.roFrameLengthTrig); // RO frame in ns
-      digipar.setStrobeDelay(aopt.strobeDelay);         // Strobe delay wrt beginning of the RO frame, in ns
-      digipar.setStrobeLength(aopt.strobeLengthTrig);   // Strobe length in ns
-    }
-    // parameters of signal time response: flat-top duration, max rise time and q @ which rise time is 0
-    digipar.getSignalShape().setParameters(dopt.strobeFlatTop, dopt.strobeMaxRiseTime, dopt.strobeQRiseTime0);
-    digipar.setChargeThreshold(dopt.chargeThreshold); // charge threshold in electrons
-    digipar.setNoisePerPixel(dopt.noisePerPixel);     // noise level
-    digipar.setTimeOffset(dopt.timeOffset);
-    digipar.setNSimSteps(dopt.nSimSteps);
-    digipar.setVbb(dopt.Vbb);
   }
 };
 
@@ -350,8 +331,10 @@ DataProcessorSpec getITSDigitizerSpec(int channel, bool mctruth)
             << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::Instance();
   std::vector<InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
-  inputs.emplace_back("noise", "ITS", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/NoiseMap"));
-  inputs.emplace_back("dead", "ITS", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/DeadMap"));
+  inputs.emplace_back("ITS_noise", "ITS", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/NoiseMap"));
+  inputs.emplace_back("ITS_dead", "ITS", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/DeadMap"));
+  inputs.emplace_back("ITS_alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
+
   return DataProcessorSpec{(detStr + "Digitizer").c_str(),
                            inputs, makeOutChannels(detOrig, mctruth),
                            AlgorithmSpec{adaptFromTask<ITSDPLDigitizerTask>(mctruth)},
@@ -366,8 +349,9 @@ DataProcessorSpec getMFTDigitizerSpec(int channel, bool mctruth)
   std::stringstream parHelper;
   std::vector<InputSpec> inputs;
   inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
-  inputs.emplace_back("noise", "MFT", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/NoiseMap"));
-  inputs.emplace_back("dead", "MFT", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/DeadMap"));
+  inputs.emplace_back("MFT_noise", "MFT", "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/NoiseMap"));
+  inputs.emplace_back("MFT_dead", "MFT", "DEADMAP", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/DeadMap"));
+  inputs.emplace_back("MFT_alppar", "MFT", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("MFT/Config/AlpideParam"));
   parHelper << "Params as " << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"
             << o2::itsmft::DPLDigitizerParam<ITSDPLDigitizerTask::DETID>::Instance()
             << " or " << o2::itsmft::DPLAlpideParam<ITSDPLDigitizerTask::DETID>::getParamName().data() << ".<param>=value;... with"

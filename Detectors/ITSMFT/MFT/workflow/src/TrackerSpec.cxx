@@ -152,7 +152,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       mTimer[SWLoadData].Start(false);
       int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels, mTracker.get());
       mTimer[SWLoadData].Stop();
-
+      int ntracksROF = 0, firstROFTrackEntry = allTracksMFT.size();
       if (nclUsed) {
         mTimer[SWLoadData].Start(false);
         event.setROFrameId(roFrame);
@@ -188,12 +188,11 @@ void TrackerDPL::run(ProcessingContext& pc)
         }
 
         LOG(debug) << "Found MFT tracks: " << tracks.size();
-        int first = allTracksMFT.size();
-        int number = tracks.size();
-        rof.setFirstEntry(first);
-        rof.setNEntries(number);
+        ntracksROF = tracks.size();
         copyTracks(tracks, allTracksMFT, allClusIdx);
       }
+      rof.setFirstEntry(firstROFTrackEntry);
+      rof.setNEntries(ntracksROF);
       roFrame++;
     }
   } else { // Use Linear Tracker for Field off
@@ -220,7 +219,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       mTimer[SWLoadData].Start(false);
       int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels, mTrackerL.get());
       mTimer[SWLoadData].Stop();
-
+      int ntracksROF = 0, firstROFTrackEntry = allTracksMFT.size();
       if (nclUsed) {
         event.setROFrameId(roFrame);
         mTimer[SWLoadData].Start(false);
@@ -256,12 +255,11 @@ void TrackerDPL::run(ProcessingContext& pc)
         }
 
         LOG(debug) << "Found MFT tracks: " << tracks.size();
-        int first = allTracksMFT.size();
-        int number = tracksL.size();
-        rof.setFirstEntry(first);
-        rof.setNEntries(number);
+        ntracksROF = tracksL.size();
         copyTracks(tracksL, allTracksMFT, allClusIdx);
       }
+      rof.setFirstEntry(firstROFTrackEntry);
+      rof.setNEntries(ntracksROF);
       roFrame++;
     }
   }

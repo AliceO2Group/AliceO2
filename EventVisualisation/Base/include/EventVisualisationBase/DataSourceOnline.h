@@ -32,6 +32,9 @@ class DataSourceOnline : public DataSource
  protected:
   FileWatcher mFileWatcher;
   int mRunNumber;
+  int mFirstTForbit;
+  int mTrackMask;
+  int mClusterMask;
   std::string mCollisionTime;
 
  public:
@@ -54,11 +57,18 @@ class DataSourceOnline : public DataSource
   void saveCurrentEvent(std::string targetFolder) override { mFileWatcher.saveCurrentFileToFolder(targetFolder); };
   int getRunNumber() const override { return this->mRunNumber; }
   void setRunNumber(int runNumber) override { this->mRunNumber = runNumber; }
+  int getFirstTForbit() const override { return this->mFirstTForbit; }
+  void setFirstTForbit(int firstTForbit) override { this->mFirstTForbit = firstTForbit; }
   std::string getCollisionTime() const override { return this->mCollisionTime; }
   void setCollisionTime(std::string collisionTime) override { this->mCollisionTime = collisionTime; }
+  int getTrackMask() const override { return this->mTrackMask; }
+  void setTrackMask(int trackMask) override { this->mTrackMask = trackMask; }
+  int getClusterMask() const override { return this->mClusterMask; }
+  void setClusterMask(int clusterMask) override { this->mClusterMask = clusterMask; }
+  o2::detectors::DetID::mask_t getDetectorsMask() override;
 };
 
 } // namespace event_visualisation
 } // namespace o2
 
-#endif //O2EVE_DATASOURCEONLINE_H
+#endif // O2EVE_DATASOURCEONLINE_H

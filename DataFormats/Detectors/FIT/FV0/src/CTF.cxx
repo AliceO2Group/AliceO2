@@ -16,13 +16,15 @@ using namespace o2::fv0;
 ///________________________________
 void CompressedDigits::clear()
 {
+  trigger.clear();
   bcInc.clear();
   orbitInc.clear();
   nChan.clear();
 
   idChan.clear();
-  time.clear();
-  charge.clear();
+  qtcChain.clear();
+  cfdTime.clear();
+  qtcAmpl.clear();
 
   header.nTriggers = 0;
   header.firstOrbit = 0;

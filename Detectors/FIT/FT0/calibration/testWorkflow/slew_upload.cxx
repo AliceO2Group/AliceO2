@@ -108,7 +108,7 @@ void slew_upload(const std::string& inFileName, const std::string& mergedFileNam
   std::map<std::string, std::string> metadata; // can be empty
   api.init(o2::base::NameConf::getCCDBServer()); // or http://localhost:8080 for a local installation
                                                  // store abitrary user object in strongly typed manner
-  api.storeAsTFileAny(&graphs, "FT0/SlewingCorr", metadata);
+  api.storeAsTFileAny(&graphs, "FT0/Calib/SlewingCorr", metadata);
 
   //
   swTot.Stop();

@@ -51,6 +51,7 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   float diamondPos[3] = {0.f, 0.f, 0.f};
   bool useDiamond = false;
   unsigned long maxMemory = 0;
+  int useTrackFollower = -1;
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };

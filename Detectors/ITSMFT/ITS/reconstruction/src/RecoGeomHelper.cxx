@@ -39,7 +39,7 @@ void RecoGeomHelper::RecoChip::print() const
 void RecoGeomHelper::RecoLadder::updateLimits(const o2::math_utils::Point3D<float>& pntGlo)
 {
   // update limits from the point in Global frame
-  float phi = pntGlo.phi();    // -pi:pi range
+  float phi = pntGlo.phi();         // -pi:pi range
   o2::math_utils::bringTo02Pi(phi); // temporary bring to 0:2pi range
   o2::math_utils::bringTo02Pi(phiRange.getMin());
   o2::math_utils::bringTo02Pi(phiRange.getMax());
@@ -107,8 +107,8 @@ void RecoGeomHelper::RecoLayer::init()
   for (int ich = 0; ich < nCh; ich++) {
     int chipID = chip0 + ich, lay, sta, ssta, mod, chipInMod;
     gm->getChipId(chipID, lay, sta, ssta, mod, chipInMod);
-    int ladID = sta, chipInLadder = nChMod - chipInMod - 1; // count from negative to positive Z, contrary to official chips numbering
-    if (nHStaves > 1) {                                     // OB
+    int ladID = sta;    // count from negative to positive Z, contrary to official chips numbering
+    if (nHStaves > 1) { // OB
       int modUpper = chipInMod / nChModH;
       ladID = sta * 4 + ssta * 2 + modUpper; // OB module covers 2 "ladders"
     }
@@ -184,11 +184,11 @@ void RecoGeomHelper::RecoLayer::init()
     plad.overlapWithNext = r2Prev > r2This ? RecoLadder::Above : RecoLadder::Below;
   }
 
-  int ndiv = nLadders * 3; // number of bins for mapping
-  phi2ladder.resize(ndiv);
-  float dphi = o2::constants::math::TwoPI / ndiv;
+  int nPhiBins = nLadders * 3; // number of bins for mapping
+  phi2ladder.resize(nPhiBins + 1);
+  float dphi = o2::constants::math::TwoPI / nPhiBins;
   int laddId = 0;
-  for (int i = 0; i < ndiv; i++) {
+  for (int i = 0; i < nPhiBins; i++) {
     float phi = (0.5 + i) * dphi;
     o2::math_utils::bringToPMPi(phi);
     while (laddId < nLadders) {
@@ -201,6 +201,8 @@ void RecoGeomHelper::RecoLayer::init()
     }
     phi2ladder[i] = laddId % nLadders;
   }
+  phi2ladder[nPhiBins] = phi2ladder[0]; // safety bin
+  phi2bin = nPhiBins / o2::constants::math::TwoPI;
   lastChipInLadder = ladders[0].chips.size();
   z2chipID = lastChipInLadder / zRange.delta();
   lastChipInLadder--;

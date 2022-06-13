@@ -10,10 +10,6 @@
 // or submit itself to any jurisdiction.
 ///
 
-#include <cassert>
-#include <ostream>
-#include <fstream>
-
 #include <boost/histogram.hpp>
 #include <boost/format.hpp>
 
@@ -21,8 +17,12 @@
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/Tracklet.h"
 
+#ifdef VTX_DEBUG
 #include "TTree.h"
 #include "TFile.h"
+#include <fstream>
+#include <ostream>
+#endif
 
 // #define VTX_DEBUG
 
@@ -133,48 +133,13 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const int*
   return filteredBins;
 }
 
-// void VertexerTraits::computeTrackletsPureMontecarlo()
-// {
-
-//   std::vector<int> foundTracklets01;
-//   std::vector<int> foundTracklets12;
-
-//   for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < mClusters[0].size(); ++iCurrentLayerClusterIndex) {
-//     auto& currentCluster{mClusters[0][iCurrentLayerClusterIndex]};
-//     for (unsigned int iNextLayerClusterIndex = 0; iNextLayerClusterIndex < mClusters[1].size(); iNextLayerClusterIndex++) {
-//       const Cluster& nextCluster{mClusters[1][iNextLayerClusterIndex]};
-//       const auto& lblNext = *(mTimeFrame->getClusterLabels(1, nextCluster.clusterId).begin());
-//       const auto& lblCurr = *(mTimeFrame->getClusterLabels(0, currentCluster.clusterId).begin());
-//       if (lblNext.compare(lblCurr) == 1 && lblCurr.getSourceID() == 0) {
-//         mComb01.emplace_back(iCurrentLayerClusterIndex, iNextLayerClusterIndex, currentCluster, nextCluster);
-//       }
-//     }
-//   }
-
-//   for (unsigned int iCurrentLayerClusterIndex{0}; iCurrentLayerClusterIndex < mClusters[2].size(); ++iCurrentLayerClusterIndex) {
-//     auto& currentCluster{mClusters[2][iCurrentLayerClusterIndex]};
-//     for (unsigned int iNextLayerClusterIndex = 0; iNextLayerClusterIndex < mClusters[1].size(); iNextLayerClusterIndex++) {
-//       const Cluster& nextCluster{mClusters[1][iNextLayerClusterIndex]};
-//       const auto& lblNext = *(mTimeFrame->getClusterLabels(1, nextCluster.clusterId).begin());
-//       const auto& lblCurr = *(mTimeFrame->getClusterLabels(2, currentCluster.clusterId).begin());
-//       if (lblNext.compare(lblCurr) == 1 && lblCurr.getSourceID() == 0) {
-//         mComb12.emplace_back(iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster);
-//       }
-//     }
-//   }
-
-//   for (auto& trk : mComb01) {
-//     mTracklets.emplace_back(trk, mClusters[0].data(), mClusters[1].data()); // any check on the propagation to the third layer?
-//   }
-// }
-
 void VertexerTraits::computeTracklets()
 {
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
     trackleterKernelSerial<TrackletMode::Layer0Layer1>(
       mTimeFrame->getClustersOnLayer(rofId, 0),
       mTimeFrame->getClustersOnLayer(rofId, 1),
-      mTimeFrame->getIndexTableL0(rofId).data(),
+      mTimeFrame->getIndexTables(rofId)[0].data(),
       mVrtParams.phiCut,
       mTimeFrame->getTracklets()[0],
       mTimeFrame->getNTrackletsCluster(rofId, 0),
@@ -182,7 +147,7 @@ void VertexerTraits::computeTracklets()
     trackleterKernelSerial<TrackletMode::Layer1Layer2>(
       mTimeFrame->getClustersOnLayer(rofId, 2),
       mTimeFrame->getClustersOnLayer(rofId, 1),
-      mTimeFrame->getIndexTables(rofId)[1].data(),
+      mTimeFrame->getIndexTables(rofId)[2].data(),
       mVrtParams.phiCut,
       mTimeFrame->getTracklets()[1],
       mTimeFrame->getNTrackletsCluster(rofId, 1),
@@ -203,24 +168,9 @@ void VertexerTraits::computeTracklets()
   std::vector<o2::its::Cluster> clus2(0);
   tr_tre->Branch("Tracklets0", &trkl_vec_0);
   tr_tre->Branch("Tracklets1", &trkl_vec_1);
-  tr_tre->Branch("clusters0", &clus0);
-  tr_tre->Branch("clusters1", &clus1);
-  tr_tre->Branch("clusters2", &clus2);
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
     trkl_vec_0.clear();
     trkl_vec_1.clear();
-    clus0.clear();
-    clus1.clear();
-    clus2.clear();
-    for (auto& cl : mTimeFrame->getClustersOnLayer(rofId, 0)) {
-      clus0.push_back(cl);
-    }
-    for (auto& cl : mTimeFrame->getClustersOnLayer(rofId, 1)) {
-      clus1.push_back(cl);
-    }
-    for (auto& cl : mTimeFrame->getClustersOnLayer(rofId, 2)) {
-      clus2.push_back(cl);
-    }
     for (auto& tr : mTimeFrame->getFoundTracklets(rofId, 0)) {
       trkl_vec_0.push_back(tr);
     }
@@ -232,7 +182,6 @@ void VertexerTraits::computeTracklets()
   trackletFile->cd();
   tr_tre->Write();
   trackletFile->Close();
-#endif
 
   std::ofstream out01("NTC01_cpu.txt"), out12("NTC12_cpu.txt");
   for (int iRof{0}; iRof < mTimeFrame->getNrof(); ++iRof) {
@@ -243,6 +192,7 @@ void VertexerTraits::computeTracklets()
   }
   out01.close();
   out12.close();
+#endif
 }
 
 void VertexerTraits::computeTrackletMatching()
@@ -529,77 +479,5 @@ void VertexerTraits::computeVertices()
 //     }
 //   }
 // }
-
-// Montecarlo validation for externally-provided tracklets (GPU-like cases)
-// void VertexerTraits::filterTrackletsWithMC(std::vector<Tracklet>& tracklets01,
-//                                            std::vector<Tracklet>& tracklets12,
-//                                            std::vector<int>& indices01,
-//                                            std::vector<int>& indices12,
-//                                            const int stride)
-// {
-//   // Tracklets 01
-//   for (size_t iFoundTrackletIndex{0}; iFoundTrackletIndex < indices01.size(); ++iFoundTrackletIndex) // access indices vector to get numfoundtracklets
-//   {
-//     const size_t offset = iFoundTrackletIndex * stride;
-//     int removed{0};
-//     for (size_t iTrackletIndex{0}; iTrackletIndex < indices01[iFoundTrackletIndex]; ++iTrackletIndex) {
-//       const size_t iTracklet{offset + iTrackletIndex};
-//       const auto& lbl0 = *(mTimeFrame->getClusterLabels(0, mClusters[0][tracklets01[iTracklet].firstClusterIndex].clusterId).begin());
-//       const auto& lbl1 = *(mTimeFrame->getClusterLabels(1, mClusters[1][tracklets01[iTracklet].secondClusterIndex].clusterId).begin());
-//       if (!(lbl0.compare(lbl1) == 1 && lbl0.getSourceID() == 0)) {
-//         tracklets01[iTracklet] = Tracklet();
-//         ++removed;
-//       }
-//     }
-//     std::sort(tracklets01.begin() + offset, tracklets01.begin() + offset + indices01[iFoundTrackletIndex]);
-//     indices01[iFoundTrackletIndex] -= removed; // decrease number of tracklets by the number of removed ones
-//   }
-
-//   // Tracklets 12
-//   for (size_t iFoundTrackletIndex{0}; iFoundTrackletIndex < indices12.size(); ++iFoundTrackletIndex) // access indices vector to get numfoundtracklets
-//   {
-//     const size_t offset = iFoundTrackletIndex * stride;
-//     int removed{0};
-//     for (size_t iTrackletIndex{0}; iTrackletIndex < indices12[iFoundTrackletIndex]; ++iTrackletIndex) {
-//       const size_t iTracklet{offset + iTrackletIndex};
-//       const auto& lbl1 = *(mTimeFrame->getClusterLabels(1, mClusters[1][tracklets12[iTracklet].firstClusterIndex].clusterId).begin());
-//       const auto& lbl2 = *(mTimeFrame->getClusterLabels(2, mClusters[2][tracklets12[iTracklet].secondClusterIndex].clusterId).begin());
-//       if (!(lbl1.compare(lbl2) == 1 && lbl1.getSourceID() == 0)) {
-//         tracklets12[iTracklet] = Tracklet();
-//         ++removed;
-//       }
-//     }
-//     std::sort(tracklets12.begin() + offset, tracklets12.begin() + offset + indices12[iFoundTrackletIndex]);
-//     indices12[iFoundTrackletIndex] -= removed; // decrease number of tracklets by the number of removed ones
-//   }
-// }
-
-// void VertexerTraits::computeMCFiltering()
-// {
-//   assert(mTimeFrame != nullptr);
-//   for (size_t iTracklet{0}; iTracklet < mComb01.size(); ++iTracklet) {
-//     const auto& lbl0 = *(mTimeFrame->getClusterLabels(0, mClusters[0][mComb01[iTracklet].firstClusterIndex].clusterId).begin());
-//     const auto& lbl1 = *(mTimeFrame->getClusterLabels(1, mClusters[1][mComb01[iTracklet].secondClusterIndex].clusterId).begin());
-//     if (!(lbl0.compare(lbl1) == 1 && lbl0.getSourceID() == 0)) { // evtId && trackId && isValid
-//       mComb01.erase(mComb01.begin() + iTracklet);
-//       --iTracklet; // vector size has been decreased
-//     }
-//   }
-
-//   for (size_t iTracklet{0}; iTracklet < mComb12.size(); ++iTracklet) {
-//     const auto& lbl1 = *(mTimeFrame->getClusterLabels(1, mClusters[1][mComb12[iTracklet].firstClusterIndex].clusterId).begin());
-//     const auto& lbl2 = *(mTimeFrame->getClusterLabels(2, mClusters[2][mComb12[iTracklet].secondClusterIndex].clusterId).begin());
-//     if (!(lbl1.compare(lbl2) == 1 && lbl1.getSourceID() == 0)) { // evtId && trackId && isValid
-//       mComb12.erase(mComb12.begin() + iTracklet);
-//       --iTracklet; // vector size has been decreased
-//     }
-//   }
-// }
-
-// VertexerTraits* createVertexerTraits()
-// {
-//   return new VertexerTraits;
-// }
-
 } // namespace its
 } // namespace o2

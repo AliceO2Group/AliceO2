@@ -31,8 +31,8 @@ void customize(std::vector<CompletionPolicy>& policies)
 #include "Framework/runDataProcessing.h"
 #include "Mergers/MergerInfrastructureBuilder.h"
 #include "Mergers/CustomMergeableObject.h"
+#include "Framework/Logger.h"
 
-#include <fairmq/FairMQLogger.h>
 #include <TH1F.h>
 #include <memory>
 #include <random>

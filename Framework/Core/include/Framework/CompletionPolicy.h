@@ -55,7 +55,9 @@ struct CompletionPolicy {
     /// Messages which have to be forwarded downstream will be forwarded.
     /// Invalidate the TimesliceIndex so that all the entries are checked
     /// again.
-    ConsumeAndRescan
+    ConsumeAndRescan,
+    /// Like Wait but mark the cacheline as dirty
+    Retry,
   };
 
   using Matcher = std::function<bool(DeviceSpec const& device)>;

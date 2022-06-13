@@ -18,8 +18,8 @@
 #include <iostream>
 #include <iomanip>
 #include "Headers/DataHeader.h"
-#include <fairmq/FairMQMessage.h>
-#include <fairmq/FairMQTransportFactory.h>
+#include <fairmq/Message.h>
+#include <fairmq/TransportFactory.h>
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/InputRecord.h"
 #include "Framework/InputSpan.h"
@@ -142,16 +142,16 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   BOOST_CHECK(writer.getStoreSize() == 7);
 
   // need to mimic a context to actually call the processing
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  std::vector<FairMQMessagePtr> store;
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  std::vector<fair::mq::MessagePtr> store;
 
   auto createPlainMessage = [&transport, &store](DataHeader&& dh, auto& data) {
     dh.payloadSize = sizeof(data);
     dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
     DataProcessingHeader dph{0, 1};
     o2::header::Stack stack{dh, dph};
-    FairMQMessagePtr header = transport->CreateMessage(stack.size());
-    FairMQMessagePtr payload = transport->CreateMessage(sizeof(data));
+    fair::mq::MessagePtr header = transport->CreateMessage(stack.size());
+    fair::mq::MessagePtr payload = transport->CreateMessage(sizeof(data));
     memcpy(header->GetData(), stack.data(), stack.size());
     memcpy(payload->GetData(), &data, sizeof(data));
     store.emplace_back(std::move(header));
@@ -163,8 +163,8 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
     dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
     DataProcessingHeader dph{0, 1};
     o2::header::Stack stack{dh, dph};
-    FairMQMessagePtr header = transport->CreateMessage(stack.size());
-    FairMQMessagePtr payload = transport->CreateMessage(dh.payloadSize);
+    fair::mq::MessagePtr header = transport->CreateMessage(stack.size());
+    fair::mq::MessagePtr payload = transport->CreateMessage(dh.payloadSize);
     memcpy(header->GetData(), stack.data(), stack.size());
     memcpy(payload->GetData(), data.data(), dh.payloadSize);
     store.emplace_back(std::move(header));
@@ -172,14 +172,14 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   };
 
   auto createSerializedMessage = [&transport, &store](DataHeader&& dh, auto& data) {
-    FairMQMessagePtr payload = transport->CreateMessage();
+    fair::mq::MessagePtr payload = transport->CreateMessage();
     auto* cl = TClass::GetClass(typeid(decltype(data)));
     TMessageSerializer().Serialize(*payload, &data, cl);
     dh.payloadSize = payload->GetSize();
     dh.payloadSerializationMethod = o2::header::gSerializationMethodROOT;
     DataProcessingHeader dph{0, 1};
     o2::header::Stack stack{dh, dph};
-    FairMQMessagePtr header = transport->CreateMessage(stack.size());
+    fair::mq::MessagePtr header = transport->CreateMessage(stack.size());
     memcpy(header->GetData(), stack.data(), stack.size());
     store.emplace_back(std::move(header));
     store.emplace_back(std::move(payload));

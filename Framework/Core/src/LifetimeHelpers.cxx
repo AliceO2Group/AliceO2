@@ -34,9 +34,10 @@
 #include <TMemFile.h>
 #include <curl/curl.h>
 
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
 
 #include <cstdlib>
+#include <random>
 
 using namespace o2::header;
 using namespace fair;
@@ -56,7 +57,7 @@ size_t getCurrentTime()
 
 ExpirationHandler::Creator LifetimeHelpers::dataDrivenCreation()
 {
-  return [](TimesliceIndex&) -> TimesliceSlot {
+  return [](ChannelIndex, TimesliceIndex&) -> TimesliceSlot {
     return {TimesliceSlot::ANY};
   };
 }
@@ -66,7 +67,7 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
   auto last = std::make_shared<size_t>(start + inputTimeslice * step);
   auto repetition = std::make_shared<size_t>(0);
 
-  return [end, step, last, maxInputTimeslices, maxRepetitions, repetition](TimesliceIndex& index) -> TimesliceSlot {
+  return [end, step, last, maxInputTimeslices, maxRepetitions, repetition](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
     for (size_t si = 0; si < index.size(); si++) {
       if (*last > end) {
         LOGP(debug, "Last greater than end");
@@ -81,6 +82,12 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
         }
         LOGP(debug, "Associating timestamp {} to slot {}", timestamp.value, slot.index);
         index.associate(timestamp, slot);
+        // We know that next association will bring in last
+        // so we can state this will be the latest possible input for the channel
+        // associated with this.
+        LOG(debug) << "Oldest possible input is " << *last;
+        auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+        index.updateOldestPossibleOutput();
         return slot;
       }
     }
@@ -92,14 +99,26 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
 
 ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds period)
 {
-  auto start = getCurrentTime();
+  std::random_device r;
+  std::default_random_engine e1(r());
+  std::uniform_int_distribution<uint64_t> dist(0, period.count() * 0.9);
+
+  // We start with a random offset to avoid all the devices
+  // send their first message at the same time, bring down
+  // the QC machine.
+  // We reduce the first interval rather than increasing it
+  // to avoid having a triggered timer which appears to be in
+  // the future.
+  size_t start = getCurrentTime() - dist(e1) - period.count() * 0.1;
   auto last = std::make_shared<decltype(start)>(start);
   // FIXME: should create timeslices when period expires....
-  return [last, period](TimesliceIndex& index) -> TimesliceSlot {
+  return [last, period](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
     // Nothing to do if the time has not expired yet.
     auto current = getCurrentTime();
     auto delta = current - *last;
     if (delta < period.count()) {
+      auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+      index.updateOldestPossibleOutput();
       return TimesliceSlot{TimesliceSlot::INVALID};
     }
     // We first check if the current time is not already present
@@ -112,6 +131,8 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
       }
       auto& variables = index.getVariablesForSlot(slot);
       if (VariableContextHelpers::getTimeslice(variables).value == current) {
+        auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+        index.updateOldestPossibleOutput();
         return TimesliceSlot{TimesliceSlot::INVALID};
       }
     }
@@ -132,6 +153,9 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
       case TimesliceIndex::ActionTaken::Wait:
         break;
     }
+
+    auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+    index.updateOldestPossibleOutput();
     return slot;
   };
 }
@@ -192,7 +216,7 @@ ExpirationHandler::Checker LifetimeHelpers::expireIfPresent(std::vector<InputRou
 
 ExpirationHandler::Creator LifetimeHelpers::uvDrivenCreation(int requestedLoopReason, DeviceState& state)
 {
-  return [requestedLoopReason, &state](TimesliceIndex& index) -> TimesliceSlot {
+  return [requestedLoopReason, &state](ChannelIndex, TimesliceIndex& index) -> TimesliceSlot {
     /// Not the expected loop reason, return an invalid slot.
     if ((state.loopReason & requestedLoopReason) == 0) {
       LOGP(debug, "No expiration due to a loop event. Requested: {:b}, reported: {:b}, matching: {:b}",
@@ -354,7 +378,7 @@ ExpirationHandler::Handler
       timestamp = ceilf((VariableContextHelpers::getFirstTFOrbit(variables) * o2::constants::lhc::LHCOrbitNS / 1000 + dataTakingContext.orbitResetTime) / 1000);
     } else {
       // The timestamp used by DPL is in nanoseconds
-      timestamp = ceilf(VariableContextHelpers::getTimeslice(variables).value / 1000);
+      timestamp = ceilf(VariableContextHelpers::getTimeslice(variables).value / 1000.);
     }
 
     std::string path = "";
@@ -429,7 +453,7 @@ ExpirationHandler::Handler
     // Receive parts and put them in the PartRef
     // we know this is not blocking because we were polled
     // on the channel.
-    FairMQParts parts;
+    fair::mq::Parts parts;
     device->Receive(parts, channelName, 0);
     ref.header = std::move(parts.At(0));
     ref.payload = std::move(parts.At(1));
@@ -500,9 +524,6 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     ref.payload = std::move(payload);
     (*counter)++;
 
-    auto& timesliceIndex = services.get<TimesliceIndex>();
-    auto newOldest = timesliceIndex.setOldestPossibleInput({dph.startTime}, channelIndex);
-    timesliceIndex.updateOldestPossibleOutput();
   };
 }
 
@@ -552,10 +573,6 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
     ref.header = std::move(header);
     auto payload = transport->CreateMessage(0);
     ref.payload = std::move(payload);
-
-    auto& timesliceIndex = services.get<TimesliceIndex>();
-    auto newOldest = timesliceIndex.setOldestPossibleInput({dph.startTime}, channelIndex);
-    timesliceIndex.updateOldestPossibleOutput();
   };
   return f;
 }

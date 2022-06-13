@@ -60,6 +60,7 @@ class PHOSHGLGRatioCalibDevice : public o2::framework::Task
   static constexpr short kMinorChange = 10;                       /// ignore if number of channels changed smaller than...
   long mRunStartTime = 0;                                         /// start time of the run (sec)
   std::unique_ptr<CalibParams> mCalibParams;                      //! Final calibration object
+  std::unique_ptr<const CalibParams> mOldCalibParams;             //! Previous calibration object
   int mStatistics = 100000;                                       /// number of events to calculate HG/LG ratio
   short mMinLG = 20;                                              /// minimal LG ampl used in ratio
   short minimalStatistics = 100;                                  /// minimal statistics per channel

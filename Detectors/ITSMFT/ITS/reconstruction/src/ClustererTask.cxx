@@ -140,7 +140,7 @@ void ClustererTask::writeTree(std::string basename, int i)
   }
   TTree outTree("o2sim", "ITS Clusters");
 
-  auto max = (i + 1) * maxROframe;
+  size_t max = (i + 1) * maxROframe;
   auto lastf = (max < mROFRecVec.size()) ? mROFRecVec.begin() + max : mROFRecVec.end();
   std::vector<o2::itsmft::ROFRecord> rofRecBuffer(mROFRecVec.begin() + i * maxROframe, lastf);
   std::vector<o2::itsmft::ROFRecord>* rofRecPtr = &rofRecBuffer;

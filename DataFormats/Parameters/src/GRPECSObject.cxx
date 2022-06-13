@@ -13,10 +13,13 @@
 /// \brief Implementation of General Run Parameters object from ECS
 /// \author ruben.shahoyan@cern.ch
 
-#include <FairLogger.h>
 #include <TFile.h>
-#include "DataFormatsParameters/GRPECSObject.h"
+#include <ctime>
+#include <sstream>
+#include <iomanip>
 #include <cmath>
+#include "DataFormatsParameters/GRPECSObject.h"
+#include "Framework/Logger.h"
 #include "CommonUtils/NameConf.h"
 
 using namespace o2::parameters;
@@ -26,11 +29,18 @@ using o2::detectors::DetID;
 void GRPECSObject::print() const
 {
   // print itself
-  std::time_t ts = mTimeStart / 1000, te = mTimeEnd / 1000;
-  printf("Run %d of type %d, period %s\n", mRun, int(mRunType), mDataPeriod.c_str());
-  printf("Start: %s", std::ctime(&ts));
-  printf("End  : %s", std::ctime(&te));
-  printf("isMC : %d ", isMC());
+  auto timeStr = [](long t) -> std::string {
+    if (t) {
+      std::time_t temp = t / 1000;
+      std::tm* tt = std::gmtime(&temp);
+      std::stringstream ss;
+      ss << std::put_time(tt, "%d/%m/%y %H:%M:%S") << " UTC";
+      return ss.str();
+    }
+    return {"        N / A        "};
+  };
+  printf("Run %d of type %d, period %s, isMC: %d\n", mRun, int(mRunType), mDataPeriod.c_str(), isMC());
+  printf("Start: %s | End: %s\n", timeStr(mTimeStart).c_str(), timeStr(mTimeEnd).c_str());
   printf("Detectors: Cont.RO Triggers\n");
   for (auto i = DetID::First; i <= DetID::Last; i++) {
     if (!isDetReadOut(DetID(i))) {
@@ -85,7 +95,7 @@ GRPECSObject::ROMode GRPECSObject::getDetROMode(o2::detectors::DetID id) const
 GRPECSObject* GRPECSObject::loadFrom(const std::string& grpecsFileName)
 {
   // load object from file
-  auto fname = o2::base::NameConf::getGRPFileName(grpecsFileName);
+  auto fname = o2::base::NameConf::getGRPECSFileName(grpecsFileName);
   TFile flGRP(fname.c_str());
   if (flGRP.IsZombie()) {
     LOG(error) << "Failed to open " << fname;

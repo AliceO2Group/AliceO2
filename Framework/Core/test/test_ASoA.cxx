@@ -41,6 +41,10 @@ DECLARE_SOA_EXPRESSION_COLUMN(ESum, esum, int32_t, test ::x + test::y);
 DECLARE_SOA_TABLE(Points, "TST", "POINTS", test::X, test::Y);
 DECLARE_SOA_TABLE(Points3Ds, "TST", "PTS3D", o2::soa::Index<>, test::X, test::Y, test::Z);
 
+DECLARE_SOA_TABLE(Points3DsMk1, "TST", "PTS3D_1", o2::soa::Index<>, o2::soa::Marker<1>, test::X, test::Y, test::Z);
+DECLARE_SOA_TABLE(Points3DsMk2, "TST", "PTS3D_2", o2::soa::Index<>, o2::soa::Marker<2>, test::X, test::Y, test::Z);
+DECLARE_SOA_TABLE(Points3DsMk3, "TST", "PTS3D_3", o2::soa::Index<>, o2::soa::Marker<3>, test::X, test::Y, test::Z);
+
 namespace test
 {
 DECLARE_SOA_COLUMN_FULL(SomeBool, someBool, bool, "someBool");
@@ -68,6 +72,24 @@ DECLARE_SOA_COLUMN(L2, l2, std::vector<int>);
 } // namespace test
 
 DECLARE_SOA_TABLE(Lists, "TST", "LISTS", o2::soa::Index<>, test::L1, test::L2);
+
+BOOST_AUTO_TEST_CASE(TestMarkers)
+{
+  TableBuilder b1;
+  auto pwriter = b1.cursor<Points3Ds>();
+  for (auto i = 0; i < 20; ++i) {
+    pwriter(0, -1 * i, (int)(i / 2), 2 * i);
+  }
+  auto t1 = b1.finalize();
+
+  auto pt = Points3Ds{t1};
+  auto pt1 = Points3DsMk1{t1};
+  auto pt2 = Points3DsMk2{t1};
+  auto pt3 = Points3DsMk3{t1};
+  BOOST_REQUIRE_EQUAL(pt1.begin().mark(), (size_t)1);
+  BOOST_REQUIRE_EQUAL(pt2.begin().mark(), (size_t)2);
+  BOOST_REQUIRE_EQUAL(pt3.begin().mark(), (size_t)3);
+}
 
 BOOST_AUTO_TEST_CASE(TestTableIteration)
 {

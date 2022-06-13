@@ -17,7 +17,11 @@
 
 #include <cmath>
 #include <functional>
+#include <stdexcept>
+
+#include "Framework/Logger.h"
 #include "MIDBase/DetectorParameters.h"
+#include "MIDTracking/TrackerParam.h"
 
 namespace o2
 {
@@ -40,6 +44,10 @@ bool Tracker::init(bool keepAll)
   } else {
     mFollowTrack = &Tracker::followTrackKeepBest;
   }
+
+  mImpactParamCut = TrackerParam::Instance().impactParamCut;
+  mSigmaCut = TrackerParam::Instance().sigmaCut;
+  mMaxChi2 = 2. * mSigmaCut * mSigmaCut;
 
   return true;
 }
@@ -115,21 +123,27 @@ void Tracker::process(gsl::span<const Cluster> clusters, bool accumulate)
 
   // Load the digits to get the fired pads
   if (loadClusters(clusters)) {
-    // Right and left side can be processed in parallel
-    // Right inward
-    mTrackOffset = mTracks.size();
-    mNTracksStep1 = 0;
-    processSide(true, true);
-    mNTracksStep1 = mTracks.size() - mTrackOffset;
-    // Right outward
-    processSide(true, false);
-    // Left inward
-    mTrackOffset = mTracks.size();
-    mNTracksStep1 = 0;
-    processSide(false, true);
-    mNTracksStep1 = mTracks.size() - mTrackOffset;
-    // left outward
-    processSide(false, false);
+    mFirstTrackOffset = mTracks.size();
+    try {
+      // Right and left side can be processed in parallel
+      // Right inward
+      mTrackOffset = mTracks.size();
+      mNTracksStep1 = 0;
+      processSide(true, true);
+      mNTracksStep1 = mTracks.size() - mTrackOffset;
+      // Right outward
+      processSide(true, false);
+      // Left inward
+      mTrackOffset = mTracks.size();
+      mNTracksStep1 = 0;
+      processSide(false, true);
+      mNTracksStep1 = mTracks.size() - mTrackOffset;
+      // left outward
+      processSide(false, false);
+    } catch (std::exception const& e) {
+      LOG(error) << e.what() << " --> abort";
+      mTracks.erase(mTracks.begin() + mFirstTrackOffset, mTracks.end());
+    }
   }
 }
 
@@ -250,6 +264,7 @@ bool Tracker::findAllClusters(const Track& track, bool isRight, int chamber, int
   /// Find all compatible clusters in these RPCs and attach them to a copy of the track
   /// For each of them look for further compatible clusters in the next chamber, if any
   /// Either exclude the excludedClusters from the search or add the new clusters found in the list
+  /// Throw an exception if the maximum number of tracks is exceeded
 
   int rpcOffset = detparams::getDEId(isRight, chamber, 0);
   bool clusterFound = false;
@@ -278,6 +293,10 @@ bool Tracker::findAllClusters(const Track& track, bool isRight, int chamber, int
       // store this track extrapolated to MT11 unless compatible clusters are found in the next chamber (if any)
       if (nextChamber < 0 || !findAllClusters(newTrack, isRight, nextChamber, getFirstNeighbourRPC(irpc),
                                               getLastNeighbourRPC(irpc), -1, excludedClusters, false)) {
+        if (mTracks.size() - mFirstTrackOffset >= TrackerParam::Instance().maxCandidates) {
+          throw std::length_error(std::string("Too many track candidates (") +
+                                  (mTracks.size() - mFirstTrackOffset) + ")");
+        }
         newTrack.propagateToZ(SMT11Z);
         mTracks.emplace_back(newTrack);
       }

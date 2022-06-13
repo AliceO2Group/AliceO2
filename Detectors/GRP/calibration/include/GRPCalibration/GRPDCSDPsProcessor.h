@@ -65,6 +65,48 @@ struct GRPEnvVariables {
   ClassDefNV(GRPEnvVariables, 1);
 };
 
+struct MagFieldHelper {
+  int isSet = 0;
+  float curL3 = 0.;
+  float curDip = 0.;
+  bool negL3 = 0;
+  bool negDip = 0;
+  bool updated = false;
+
+  void updateCurL3(float v)
+  {
+    if (!(isSet & 0x1) || std::abs(v - curL3) > 0.1) {
+      curL3 = v;
+      isSet |= 0x1;
+      updated = true;
+    }
+  }
+  void updateCurDip(float v)
+  {
+    if (!(isSet & 0x2) || std::abs(v - curDip) > 0.1) {
+      curDip = v;
+      isSet |= 0x2;
+      updated = true;
+    }
+  }
+  void updateSignL3(bool v)
+  {
+    if (!(isSet & 0x4) || v != negL3) {
+      negL3 = v;
+      isSet |= 0x4;
+      updated = true;
+    }
+  }
+  void updateSignDip(bool v)
+  {
+    if (!(isSet & 0x8) || v != negDip) {
+      negDip = v;
+      isSet |= 0x8;
+      updated = true;
+    }
+  }
+};
+
 struct GRPCollimators {
 
   std::pair<uint64_t, double> mgap_downstream;
@@ -198,9 +240,10 @@ class GRPDCSDPsProcessor
   int process(const gsl::span<const DPCOM> dps);
   int processDP(const DPCOM& dpcom);
   uint64_t processFlags(uint64_t flag, const char* pid) { return 0; } // for now it is not really implemented
-  void processCollimators(const DPCOM& dpcom);
-  void processEnvVar(const DPCOM& dpcom);
-  void processPair(const DPCOM& dpcom, const std::string& alias, std::pair<uint64_t, double>& p, bool& flag);
+  bool processCollimators(const DPCOM& dpcom);
+  bool processEnvVar(const DPCOM& dpcom);
+  bool processPairD(const DPCOM& dpcom, const std::string& alias, std::pair<uint64_t, double>& p, bool& flag);
+  bool processPairS(const DPCOM& dpcom, const std::string& alias, std::pair<uint64_t, std::string>& p, bool& flag);
   bool compareAndUpdate(std::pair<uint64_t, double>& p, const DPCOM& dpcom);
   bool processLHCIFDPs(const DPCOM& dpcom);
 
@@ -210,7 +253,7 @@ class GRPDCSDPsProcessor
   const o2::ccdb::CcdbObjectInfo& getccdbMagFieldInfo() const { return mccdbMagFieldInfo; }
   o2::ccdb::CcdbObjectInfo& getccdbMagFieldInfo() { return mccdbMagFieldInfo; }
   void updateMagFieldCCDB();
-  bool isMagFieldUpdated() const { return mUpdateMagField; }
+  bool isMagFieldUpdated() const { return mMagFieldHelper.updated; }
 
   const GRPLHCInfo& getLHCIFObj() const { return mLHCInfo; }
   const o2::ccdb::CcdbObjectInfo& getccdbLHCIFInfo() const { return mccdbLHCIFInfo; }
@@ -241,11 +284,11 @@ class GRPDCSDPsProcessor
   long mStartValidity = 0; // TF index for processing, used to store CCDB object
   bool mFirstTimeSet = false;
 
+  size_t mCallSlice = 0;
   bool mVerbose = false;
-
+  MagFieldHelper mMagFieldHelper;
   o2::parameters::GRPMagField mMagField;
   o2::ccdb::CcdbObjectInfo mccdbMagFieldInfo;
-  bool mUpdateMagField = false;
 
   GRPEnvVariables mEnvVars;
   o2::ccdb::CcdbObjectInfo mccdbEnvVarsInfo;

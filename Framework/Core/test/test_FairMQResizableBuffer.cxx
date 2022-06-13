@@ -16,7 +16,7 @@
 #include <boost/test/unit_test.hpp>
 #include "Framework/TableBuilder.h"
 #include "../src/FairMQResizableBuffer.h"
-#include <fairmq/FairMQTransportFactory.h>
+#include <fairmq/TransportFactory.h>
 #include <cstring>
 #include <arrow/io/memory.h>
 #include <arrow/ipc/writer.h>
@@ -25,14 +25,14 @@
 
 using namespace o2::framework;
 
-template class std::unique_ptr<FairMQMessage>;
+template class std::unique_ptr<fair::mq::Message>;
 
 // A simple test where an input is provided
 // and the subsequent InputRecord is immediately requested.
 BOOST_AUTO_TEST_CASE(TestCreation)
 {
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  FairMQResizableBuffer buffer{[&transport](size_t size) -> std::unique_ptr<FairMQMessage> {
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  FairMQResizableBuffer buffer{[&transport](size_t size) -> std::unique_ptr<fair::mq::Message> {
     return std::move(transport->CreateMessage(size));
   }};
 }
@@ -40,8 +40,8 @@ BOOST_AUTO_TEST_CASE(TestCreation)
 // Check a few invariants for Resize and Reserve operations
 BOOST_AUTO_TEST_CASE(TestInvariants)
 {
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  FairMQResizableBuffer buffer{[&transport](size_t size) -> std::unique_ptr<FairMQMessage> {
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  FairMQResizableBuffer buffer{[&transport](size_t size) -> std::unique_ptr<fair::mq::Message> {
     return std::move(transport->CreateMessage(size));
   }};
 
@@ -84,8 +84,8 @@ BOOST_AUTO_TEST_CASE(TestInvariants)
 // Check a few invariants for Resize and Reserve operations
 BOOST_AUTO_TEST_CASE(TestContents)
 {
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  FairMQResizableBuffer buffer{[&transport](size_t size) -> std::unique_ptr<FairMQMessage> {
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  FairMQResizableBuffer buffer{[&transport](size_t size) -> std::unique_ptr<fair::mq::Message> {
     return std::move(transport->CreateMessage(size));
   }};
 
@@ -131,8 +131,8 @@ BOOST_AUTO_TEST_CASE(TestStreaming)
   t.ForeachSlot(builder.persist<int, int>({"x", "z"}), {"x", "z"});
 
   auto table = builder.finalize();
-  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  auto creator = [&transport](size_t size) -> std::unique_ptr<FairMQMessage> {
+  auto transport = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  auto creator = [&transport](size_t size) -> std::unique_ptr<fair::mq::Message> {
     return transport->CreateMessage(size);
   };
   auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
@@ -144,5 +144,5 @@ BOOST_AUTO_TEST_CASE(TestStreaming)
     throw std::runtime_error("Unable to Write table");
   }
 
-  std::unique_ptr<FairMQMessage> payload = buffer->Finalise();
+  std::unique_ptr<fair::mq::Message> payload = buffer->Finalise();
 }

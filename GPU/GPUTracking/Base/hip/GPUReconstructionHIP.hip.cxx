@@ -62,25 +62,28 @@ namespace o2::its
 class VertexerTraitsGPU : public VertexerTraits
 {
 };
-template <int NLayers>
+template <int NLayers = 7>
 class TrackerTraitsGPU : public TrackerTraits
 {
 };
-template <int NLayers>
-class gpu::TimeFrameGPU : public TimeFrame
+namespace gpu
+{
+template <int NLayers = 7>
+class TimeFrameGPU : public TimeFrame
 {
 };
+} // namespace gpu
 } // namespace o2::its
 #endif
 
 class GPUDebugTiming
 {
  public:
-  GPUDebugTiming(bool d, void** t, hipStream_t* s, GPUReconstruction::krnlSetup& x, GPUReconstructionHIPBackend* r = nullptr) : mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r), mDo(d)
+  GPUDebugTiming(bool d, void** t, hipStream_t* s, GPUReconstruction::krnlSetup& x, GPUReconstructionHIPBackend* r) : mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r), mDo(d)
   {
     if (mDo) {
       if (mDeviceTimers) {
-        GPUFailedMsg(hipEventRecord((hipEvent_t)mDeviceTimers[0], mStreams[mXYZ.x.stream]));
+        mRec->GPUFailedMsg(hipEventRecord((hipEvent_t)mDeviceTimers[0], mStreams[mXYZ.x.stream]));
       } else {
         mTimer.ResetStart();
       }
@@ -90,13 +93,13 @@ class GPUDebugTiming
   {
     if (mDo) {
       if (mDeviceTimers) {
-        GPUFailedMsg(hipEventRecord((hipEvent_t)mDeviceTimers[1], mStreams[mXYZ.x.stream]));
-        GPUFailedMsg(hipEventSynchronize((hipEvent_t)mDeviceTimers[1]));
+        mRec->GPUFailedMsg(hipEventRecord((hipEvent_t)mDeviceTimers[1], mStreams[mXYZ.x.stream]));
+        mRec->GPUFailedMsg(hipEventSynchronize((hipEvent_t)mDeviceTimers[1]));
         float v;
-        GPUFailedMsg(hipEventElapsedTime(&v, (hipEvent_t)mDeviceTimers[0], (hipEvent_t)mDeviceTimers[1]));
+        mRec->GPUFailedMsg(hipEventElapsedTime(&v, (hipEvent_t)mDeviceTimers[0], (hipEvent_t)mDeviceTimers[1]));
         mXYZ.t = v * 1.e-3;
       } else {
-        GPUFailedMsg(hipStreamSynchronize(mStreams[mXYZ.x.stream]));
+        mRec->GPUFailedMsg(hipStreamSynchronize(mStreams[mXYZ.x.stream]));
         mXYZ.t = mTimer.GetCurrentElapsedTime();
       }
     }
@@ -205,6 +208,28 @@ GPUReconstructionHIPBackend::~GPUReconstructionHIPBackend()
   Exit(); // Make sure we destroy everything (in particular the ITS tracker) before we exit
   if (mMaster == nullptr) {
     delete mInternals;
+  }
+}
+
+int GPUReconstructionHIPBackend::GPUFailedMsgAI(const long long int error, const char* file, int line)
+{
+  // Check for HIP Error and in the case of an error display the corresponding error string
+  if (error == hipSuccess) {
+    return (0);
+  }
+  GPUError("HIP Error: %lld / %s (%s:%d)", error, hipGetErrorString((hipError_t)error), file, line);
+  return 1;
+}
+
+void GPUReconstructionHIPBackend::GPUFailedMsgA(const long long int error, const char* file, int line)
+{
+  if (GPUFailedMsgAI(error, file, line)) {
+    static bool runningCallbacks = false;
+    if (IsInitialized() && runningCallbacks == false) {
+      runningCallbacks = true;
+      CheckErrorCodes(false, true);
+    }
+    throw std::runtime_error("HIP Failure");
   }
 }
 

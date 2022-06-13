@@ -19,6 +19,7 @@
 
 #include <onnxruntime/core/session/onnxruntime_cxx_api.h>
 #include <optional>
+#include <mutex>
 
 namespace o2::zdc::fastsim
 {
@@ -32,7 +33,8 @@ class NeuralFastSimulation
   NeuralFastSimulation(const std::string& modelPath,
                        Ort::SessionOptions sessionOptions,
                        OrtAllocatorType allocatorType,
-                       OrtMemType memoryType);
+                       OrtMemType memoryType,
+                       int64_t batchSize);
   virtual ~NeuralFastSimulation() = default;
 
   /**
@@ -52,6 +54,8 @@ class NeuralFastSimulation
   /// returns model output as const &.
   virtual const std::vector<Ort::Value>& getResult() = 0;
 
+  [[nodiscard]] size_t getBatchSize() const;
+
  protected:
   /// Sets models metadata (input/output layers names, inputs shape) in onnx session
   void setInputOutputData();
@@ -69,6 +73,9 @@ class NeuralFastSimulation
   std::vector<char*> mInputNames;
   std::vector<char*> mOutputNames;
   std::vector<std::vector<int64_t>> mInputShapes;
+  /// If model has dynamic axis (for batch processing) this will tell ONNX expected size of those axis
+  /// otherwise mBatchSize has no effect during runtime
+  int64_t mBatchSize;
 
   /// Container for input tensors
   std::vector<Ort::Value> mInputTensors;
@@ -81,7 +88,7 @@ class NeuralFastSimulation
 class ConditionalModelSimulation : public NeuralFastSimulation
 {
  public:
-  ConditionalModelSimulation(const std::string& modelPath);
+  ConditionalModelSimulation(const std::string& modelPath, int64_t batchSize);
   ~ConditionalModelSimulation() override = default;
 
   /**
@@ -109,7 +116,35 @@ class ConditionalModelSimulation : public NeuralFastSimulation
   std::vector<Ort::Value> mModelOutput;
 };
 
+/**
+ * @brief Meyers Singleton thread safe singleton. Responsible for collecting particle data for batch processing.
+ *
+ */
+class BatchHandler
+{
+ public:
+  static BatchHandler& getInstance(size_t batchSize);
+  std::optional<std::vector<std::vector<float>>> getBatch(const std::vector<float>& input);
+
+  BatchHandler(const BatchHandler&) = delete;
+  BatchHandler& operator=(const BatchHandler&) = delete;
+
+ private:
+  explicit BatchHandler(size_t batchSize);
+  ~BatchHandler() = default;
+
+  std::mutex mMutex;
+  std::vector<std::vector<float>> mBatch;
+  size_t mBatchSize;
+};
+
+/**
+ * @brief loads and parse model scales from file at path
+ *
+ * @param path loaction of file with model scales
+ * @return std::optional<std::pair<std::vector<float>, std::vector<float>>>
+ */
 std::optional<std::pair<std::vector<float>, std::vector<float>>> loadScales(const std::string& path);
 
 } // namespace o2::zdc::fastsim
-#endif // ONNX_API_FAST_SIMULATIONS_H
+#endif // O2_ZDC_FAST_SIMULATIONS_H

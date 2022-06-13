@@ -25,6 +25,8 @@
 #ifndef AliceO2_TPC_PadPos_H
 #define AliceO2_TPC_PadPos_H
 
+#include "GPUCommonDef.h"
+
 namespace o2
 {
 namespace tpc
@@ -38,32 +40,32 @@ class PadPos
   /// constructor
   /// @param [in] row pad row
   /// @param [in] pad pad in a row
-  PadPos(const unsigned char row, const unsigned char pad) : mRow(row), mPad(pad) {}
+  GPUdi() PadPos(const unsigned char row, const unsigned char pad) : mRow(row), mPad(pad) {}
 
   /// numeric row number
   /// @return numeric row number
-  unsigned char getRow() const { return mRow; }
+  GPUdi() unsigned char getRow() const { return mRow; }
 
   /// numeric pad number
   /// @return numeric pad number
-  unsigned char getPad() const { return mPad; }
+  GPUdi() unsigned char getPad() const { return mPad; }
 
   /// setter for row number
   /// @param [in] row row number
-  void setRow(const unsigned char row) { mRow = row; }
+  GPUdi() void setRow(const unsigned char row) { mRow = row; }
 
   /// setter for pad number
   /// @param [in] pad pad number
-  void setPad(const unsigned char pad) { mPad = pad; }
+  GPUdi() void setPad(const unsigned char pad) { mPad = pad; }
 
   /// add row offset
   /// @param [in] rowOffset row offset to add
-  void addRowOffset(const unsigned char rowOffset) { mRow += rowOffset; }
+  GPUdi() void addRowOffset(const unsigned char rowOffset) { mRow += rowOffset; }
 
   /// setter for row and pad number
   /// @param [in] row row number
   /// @param [in] pad pad number
-  void set(const unsigned char row, const unsigned char pad)
+  GPUdi() void set(const unsigned char row, const unsigned char pad)
   {
     mRow = row;
     mPad = pad;
@@ -71,16 +73,16 @@ class PadPos
 
   /// check if is valid
   /// @return pad valid
-  bool isValid() const { return !(mRow == 255 && mPad == 255); }
+  GPUdi() bool isValid() const { return !(mRow == 255 && mPad == 255); }
 
   /// equal operator
-  bool operator==(const PadPos& other) const { return (mRow == other.mRow) && (mPad == other.mPad); }
+  GPUdi() bool operator==(const PadPos& other) const { return (mRow == other.mRow) && (mPad == other.mPad); }
 
   /// unequal operator
-  bool operator!=(const PadPos& other) const { return (mRow != other.mRow) || (mPad != other.mPad); }
+  GPUdi() bool operator!=(const PadPos& other) const { return (mRow != other.mRow) || (mPad != other.mPad); }
 
   /// smaller operator
-  bool operator<(const PadPos& other) const
+  GPUdi() bool operator<(const PadPos& other) const
   {
     if (mRow < other.mRow) {
       return true;

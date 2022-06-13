@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "DataFormatsCPV/Cluster.h"
+#include "DataFormatsCPV/Digit.h"
 #include "CPVBase/Geometry.h"
 #include "CPVReconstruction/Clusterer.h"
 #include "Framework/DataProcessorSpec.h"
@@ -62,6 +63,7 @@ class ClusterizerSpec : public framework::Task
   o2::cpv::Clusterer mClusterizer; ///< Clusterizer object
   std::vector<o2::cpv::Cluster> mOutputClusters;
   std::vector<o2::cpv::TriggerRecord> mOutputClusterTrigRecs;
+  std::vector<o2::cpv::Digit> mCalibDigits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mOutputTruthCont;
 };
 

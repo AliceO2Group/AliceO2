@@ -25,6 +25,11 @@
 #include <type_traits>
 #include <typeinfo>
 
+namespace o2::conf
+{
+class ConfigurableParam;
+}
+
 namespace o2::framework
 {
 
@@ -155,7 +160,13 @@ struct DataRefUtils {
     } else if constexpr (is_specialization_v<T, CCDBSerialized> == true) {
       using wrapped = typename T::wrapped_type;
       using DataHeader = o2::header::DataHeader;
-      std::unique_ptr<wrapped> result(static_cast<wrapped*>(DataRefUtils::decodeCCDB(ref, typeid(wrapped))));
+      auto* ptr = DataRefUtils::decodeCCDB(ref, typeid(wrapped));
+      if constexpr (std::is_base_of<o2::conf::ConfigurableParam, wrapped>::value) {
+        auto& param = const_cast<typename std::remove_const<wrapped&>::type>(wrapped::Instance());
+        param.syncCCDBandRegistry(ptr);
+        ptr = &param;
+      }
+      std::unique_ptr<wrapped> result(static_cast<wrapped*>(ptr));
       return std::move(result);
     }
   }

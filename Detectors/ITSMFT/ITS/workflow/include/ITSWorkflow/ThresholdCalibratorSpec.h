@@ -28,6 +28,7 @@
 // Boost library for easy access of host name
 #include <boost/asio/ip/host_name.hpp>
 
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"
@@ -35,6 +36,8 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
+#include "Framework/DataTakingContext.h"
+#include "Framework/TimingInfo.h"
 #include <fairmq/Device.h>
 
 #include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
@@ -106,9 +109,11 @@ class ITSThresholdCalibrator : public Task
 
   void finalize(EndOfStreamContext* ec);
   void stop() final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
   //////////////////////////////////////////////////////////////////
  private:
+  void updateTimeDependentParams(ProcessingContext& pc);
   // detector information
   static constexpr short int N_COL = 1024; // column number in Alpide chip
 
@@ -158,9 +163,6 @@ class ITSThresholdCalibrator : public Task
   void finalizeOutput();
 
   void setRunType(const short int&);
-  void updateEnvironmentID(ProcessingContext&);
-  void updateRunID(ProcessingContext&);
-  void updateLHCPeriod(ProcessingContext&);
 
   // Helper functions related to threshold extraction
   void initThresholdTree(bool recreate = true);
@@ -175,7 +177,7 @@ class ITSThresholdCalibrator : public Task
 
   // Helper functions for writing to the database
   void addDatabaseEntry(const short int&, const char*, const short int&,
-                        const float&, const short int&, const float&, bool);
+                        const float&, const short int&, const float&, bool, bool);
   void sendToAggregator(EndOfStreamContext*);
 
   std::string mSelfName;
@@ -184,12 +186,11 @@ class ITSThresholdCalibrator : public Task
 
   bool mVerboseOutput = false;
   std::string mMetaType;
-  std::string mLHCPeriod;
-  std::string mEnvironmentID;
   std::string mOutputDir;
   std::string mMetafileDir = "/dev/null";
   int mNThreads = 1;
-  int mRunNumber = -1;
+  o2::framework::DataTakingContext mDataTakingContext{};
+  o2::framework::TimingInfo mTimingInfo{};
 
   // How many rows before starting new ROOT file
   unsigned int mFileNumber = 0;
@@ -213,6 +214,9 @@ class ITSThresholdCalibrator : public Task
   // DCS config object
   o2::dcs::DCSconfigObject_t mTuning;
 
+  // DCS config object shipped only to QC to know when scan is done
+  o2::dcs::DCSconfigObject_t mChipDoneQc;
+
   // Flag to check if endOfStream is available
   bool mCheckEos = false;
 
@@ -228,6 +232,10 @@ class ITSThresholdCalibrator : public Task
   // Chip mod selector and chip mod base for parallel chip access
   int mChipModSel = 0;
   int mChipModBase = 1;
+
+  // map to get confDB id
+  std::vector<int>* mConfDBmap;
+  short int mConfDBv;
 };
 
 // Create a processor spec

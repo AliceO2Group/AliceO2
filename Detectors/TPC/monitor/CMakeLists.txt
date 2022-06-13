@@ -21,7 +21,7 @@ o2_target_root_dictionary(TPCMonitor
 o2_add_executable(monitor
                   COMPONENT_NAME tpc
                   SOURCES run/runMonitor.cxx
-                  PUBLIC_LINK_LIBRARIES O2::TPCMonitor)
+                  PUBLIC_LINK_LIBRARIES O2::TPCMonitor ROOT::Rint)
 
 o2_add_test_root_macro(macro/RunCompareMode3.C
                        PUBLIC_LINK_LIBRARIES O2::TPCReconstruction

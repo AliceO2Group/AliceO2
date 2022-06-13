@@ -22,15 +22,15 @@
 
 namespace o2::framework
 {
-/// Helper class to hide FairMQDevice headers in the DataAllocator header.
-/// This is done because FairMQDevice brings in a bunch of boost.mpl /
+/// Helper class to hide fair::mq::Device headers in the DataAllocator header.
+/// This is done because fair::mq::Device brings in a bunch of boost.mpl /
 /// boost.fusion stuff, slowing down compilation times enourmously.
 class FairMQDeviceProxy
 {
  public:
   FairMQDeviceProxy() = default;
   FairMQDeviceProxy(FairMQDeviceProxy const&) = delete;
-  void bind(std::vector<OutputRoute> const& outputs, std::vector<InputRoute> const& inputs, FairMQDevice& device);
+  void bind(std::vector<OutputRoute> const& outputs, std::vector<InputRoute> const& inputs, fair::mq::Device& device);
 
   /// Retrieve the transport associated to a given route.
   fair::mq::TransportFactory* getOutputTransport(RouteIndex routeIndex) const;
@@ -49,11 +49,11 @@ class FairMQDeviceProxy
   fair::mq::Channel* getInputChannel(ChannelIndex channelIndex) const;
   fair::mq::Channel* getOutputChannel(ChannelIndex channelIndex) const;
 
-  std::unique_ptr<FairMQMessage> createOutputMessage(RouteIndex routeIndex) const;
-  std::unique_ptr<FairMQMessage> createOutputMessage(RouteIndex routeIndex, const size_t size) const;
+  std::unique_ptr<fair::mq::Message> createOutputMessage(RouteIndex routeIndex) const;
+  std::unique_ptr<fair::mq::Message> createOutputMessage(RouteIndex routeIndex, const size_t size) const;
 
-  std::unique_ptr<FairMQMessage> createInputMessage(RouteIndex routeIndex) const;
-  std::unique_ptr<FairMQMessage> createInputMessage(RouteIndex routeIndex, const size_t size) const;
+  std::unique_ptr<fair::mq::Message> createInputMessage(RouteIndex routeIndex) const;
+  std::unique_ptr<fair::mq::Message> createInputMessage(RouteIndex routeIndex, const size_t size) const;
   size_t getNumOutputChannels() const { return mOutputChannels.size(); }
   size_t getNumInputChannels() const { return mInputChannels.size(); }
 

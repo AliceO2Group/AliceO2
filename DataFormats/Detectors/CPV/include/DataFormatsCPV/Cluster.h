@@ -65,9 +65,9 @@ class Cluster
     posX = mLocalPosX;
     posZ = mLocalPosZ;
   }
-  int getMultiplicity() const { return mMulDigit; } // gets the number of digits making this recpoint
-                                                    // 0: was no unfolging, -1: unfolding failed
-  char getModule() const { return mModule; }        // CPV module of a current cluster
+  unsigned char getMultiplicity() const { return mMulDigit; } // gets the number of digits making this recpoint
+                                                              // 0: was no unfolging, -1: unfolding failed
+  char getModule() const { return mModule; }                  // CPV module of a current cluster
 
   // 0: was no unfolging, -1: unfolding failed
   void setNExMax(char nmax = 1) { mNExMax = nmax; }
@@ -87,7 +87,7 @@ class Cluster
   uint8_t getPackedClusterStatus() const
   {
     CluStatus s = {0};
-    s.multiplicity = std::min(mMulDigit, static_cast<unsigned char>(31)); //5 bits available
+    s.multiplicity = std::min(mMulDigit, static_cast<unsigned char>(31)); // 5 bits available
     s.module = mModule - 2;
     s.unfolded = mNExMax > 1;
     return s.mBits;

@@ -436,6 +436,9 @@ class Mapper
     return getPadsInOROC();
   }
 
+  const std::vector<PadPos>& getMapGlobalPadToPadPos() const { return mMapGlobalPadToPadPos; }
+  const std::vector<int>& getMapFECIDGlobalPad() const { return mMapFECIDGlobalPad; }
+
   const std::vector<float>& getTraceLengthsIROC() const { return mTraceLengthsIROC; }
   const std::vector<float>& getTraceLengthsOROC() const { return mTraceLengthsOROC; }
 

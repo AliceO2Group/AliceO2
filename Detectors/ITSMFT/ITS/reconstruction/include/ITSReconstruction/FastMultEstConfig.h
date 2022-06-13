@@ -38,6 +38,13 @@ struct FastMultEstConfig : public o2::conf::ConfigurableParamHelper<FastMultEstC
   float cutMultClusHigh = -1; /// reject ROF with estimated cluster mult. above this value (no cut if <0)
   float cutMultVtxLow = -1;   /// reject seed vertex if its multiplicity below this value (no cut if <0)
   float cutMultVtxHigh = -1;  /// reject seed vertex if its multiplicity above this value (no cut if <0)
+  float cutRandomFraction = -1.; /// apply random cut rejecting requested fraction
+
+  bool isMultCutRequested() const { return cutMultClusLow >= 0.f && cutMultClusHigh > 0.f; };
+  bool isVtxMultCutRequested() const { return cutMultVtxLow >= 0.f && cutMultVtxHigh > 0.f; };
+  bool isPassingRandomRejection() const;
+  bool isPassingMultCut(float mult) const { return mult >= cutMultClusLow && (mult <= cutMultClusHigh || cutMultClusHigh <= 0.f); }
+  bool isPassingVtxMultCut(int mult) const { return mult >= cutMultVtxLow && (mult <= cutMultVtxHigh || cutMultVtxHigh <= 0.f); }
 
   O2ParamDef(FastMultEstConfig, "fastMultConfig");
 };

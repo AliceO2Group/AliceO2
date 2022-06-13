@@ -30,6 +30,7 @@
 #include "TOFBase/Utils.h"
 #include "Steer/MCKinematicsReader.h"
 #include "TSystem.h"
+#include "DetectorsBase/DPLWorkflowUtils.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -60,7 +61,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"strict-matching", o2::framework::VariantType::Bool, false, {"High purity preliminary matching"}},
     {"output-type", o2::framework::VariantType::String, "matching-info,calib-info", {"matching-info, calib-info"}},
     {"enable-dia", o2::framework::VariantType::Bool, false, {"to require diagnostic freq and then write to calib outputs"}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
+    {"combine-devices", o2::framework::VariantType::Bool, false, {"merge DPL source/writer devices"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -129,7 +131,19 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     mcmaskcl |= GID::getSourceMask(GID::TOF);
   }
   // pass strict flag to fetch eventual TPC-TRD input with correct subspec
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, clustermask, nonemask, src, useMC, mcmaskcl, GID::getSourcesMask(GID::ALL), strict);
+  WorkflowSpec inputspecs;
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, inputspecs, clustermask, nonemask, src, useMC, mcmaskcl, GID::getSourcesMask(GID::ALL), strict);
+  if (configcontext.options().get<bool>("combine-devices")) {
+    std::vector<DataProcessorSpec> unmerged;
+    specs.push_back(specCombiner("TOF-readers", inputspecs, unmerged));
+    if (unmerged.size() > 0) {
+      LOG(fatal) << "Unexpected DPL device merge problem";
+    }
+  } else {
+    for (auto& s : inputspecs) {
+      specs.push_back(s);
+    }
+  }
 
   specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, strict)); // doTPCrefit not yet supported (need to load TPC clusters?)
 
@@ -151,22 +165,35 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   if (!disableRootOut) {
+    std::vector<DataProcessorSpec> writers;
     if (writematching) {
       if (GID::includesSource(GID::TPC, src)) { // matching to TPC was requested
-        specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_tpc.root", true, (int)o2::dataformats::MatchInfoTOFReco::TrackType::TPC, strict));
+        writers.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_tpc.root", true, (int)o2::dataformats::MatchInfoTOFReco::TrackType::TPC, strict));
       }
       if (GID::includesSource(GID::ITSTPC, src)) { // matching to ITS-TPC was requested, there is not strict mode in this case
-        specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_itstpc.root", false, (int)o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC, false));
+        writers.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_itstpc.root", false, (int)o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC, false));
       }
       if (GID::includesSource(GID::TPCTRD, src)) { // matching to TPC-TRD was requested, there is not strict mode in this case
-        specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_tpctrd.root", false, (int)o2::dataformats::MatchInfoTOFReco::TrackType::TPCTRD, strict));
+        writers.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_tpctrd.root", false, (int)o2::dataformats::MatchInfoTOFReco::TrackType::TPCTRD, strict));
       }
       if (GID::includesSource(GID::ITSTPCTRD, src)) { // matching to ITS-TPC-TRD was requested, there is not strict mode in this case
-        specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_itstpctrd.root", false, (int)o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPCTRD, false));
+        writers.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_itstpctrd.root", false, (int)o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPCTRD, false));
       }
     }
     if (writecalib) {
-      specs.emplace_back(o2::tof::getTOFCalibWriterSpec("o2calib_tof.root", 0, diagnostic));
+      writers.emplace_back(o2::tof::getTOFCalibWriterSpec("o2calib_tof.root", 0, diagnostic));
+    }
+
+    if (configcontext.options().get<bool>("combine-devices")) {
+      std::vector<DataProcessorSpec> unmerged;
+      specs.push_back(specCombiner("TOF-writers", writers, unmerged));
+      if (unmerged.size() > 0) {
+        LOG(fatal) << "Unexpected DPL device merge problem";
+      }
+    } else {
+      for (auto& s : writers) {
+        specs.push_back(s);
+      }
     }
   }
 

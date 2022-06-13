@@ -72,7 +72,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
-  GID::mask_t alowedSources = GID::getSourcesMask("ITS,TPC,ITS-TPC,TPC-TOF,ITS-TPC-TOF");
+  GID::mask_t alowedSources = GID::getSourcesMask("ITS,MFT,TPC,TRD,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
   DetID::mask_t allowedDets = DetID::getMask("ITS,TPC,TRD,TOF,CPV,PHS,EMC,HMP");
 
   // Update the (declared) parameters if changed from the command line
@@ -85,10 +85,20 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   DetID::mask_t dets = allowedDets & DetID::getMask(configcontext.options().get<std::string>("detectors"));
 
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
+  if (GID::includesDet(DetID::TPC, src)) {
+    src |= GID::getSourceMask(GID::TPC);
+    LOG(info) << "adding TPC request";
+  }
+  if (GID::includesDet(DetID::TPC, src)) {
+    src |= GID::getSourceMask(GID::TPC);
+    LOG(info) << "adding TPC request";
+  }
+
   GID::mask_t dummy;
   specs.emplace_back(o2::align::getBarrelAlignmentSpec(src, dets));
-
+  // RS FIXME: check which clusters are really needed
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, false, dummy); // clusters MC is not needed
+  o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, false);
 
   if (!disableRootOut) {
   }
