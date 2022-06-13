@@ -46,8 +46,8 @@ class TPCFastTransform;
 class O2DPLDisplaySpec : public o2::framework::Task
 {
  public:
-  static constexpr auto allowedTracks = "ITS,TPC,MFT,MCH,ITS-TPC,ITS-TPC-TOF,TPC-TRD,ITS-TPC-TRD,MID,PHS,EMC";
-  static constexpr auto allowedClusters = "ITS,TPC,MFT,MCH,TRD,TOF,MID,TRD,PHS,EMC";
+  static constexpr auto allowedTracks = "ITS,TPC,MFT,MCH,MID,ITS-TPC,TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD,ITS-TPC-TRD-TOF,PHS,EMC";
+  static constexpr auto allowedClusters = "ITS,TPC,TRD,TOF,MFT,MCH,MID,PHS,EMC";
 
   O2DPLDisplaySpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t trkMask,
                    o2::dataformats::GlobalTrackID::mask_t clMask,
@@ -70,19 +70,19 @@ class O2DPLDisplaySpec : public o2::framework::Task
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
 
   bool mUseMC = false;
-  bool mEveHostNameMatch;                   // empty or correct hostname
-  int mMinITSTracks;                        // minimum number of ITS tracks to produce a file
-  int mMinTracks;                           // minimum number of all tracks to produce a file
-  bool mFilterITSROF;                       // don't display tracks outside ITS readout frame
-  bool mFilterTime;                         // don't display tracks outside [min, max] range in TF time
-  bool mRemoveTPCEta;                       // don't display TPC tracks inside [min, max] eta range
-  EveWorkflowHelper::Bracket mTimeBracket;  // [min, max] range in TF time for the filter
-  EveWorkflowHelper::Bracket mEtaBracket;   // [min, max] eta range for the TPC tracks removal
-  std::string mJsonPath;                    // folder where files are stored
-  std::chrono::milliseconds mTimeInterval;  // minimal interval between files in milliseconds
-  int mNumberOfFiles;                       // maximum number of files in folder - newer replaces older
-  int mNumberOfTracks;                      // maximum number of track in single file (0 means no limit)
-  bool mTrackSorting;                       // perform sorting tracks by track time before applying filters
+  bool mEveHostNameMatch;                  // empty or correct hostname
+  int mMinITSTracks;                       // minimum number of ITS tracks to produce a file
+  int mMinTracks;                          // minimum number of all tracks to produce a file
+  bool mFilterITSROF;                      // don't display tracks outside ITS readout frame
+  bool mFilterTime;                        // don't display tracks outside [min, max] range in TF time
+  bool mRemoveTPCEta;                      // don't display TPC tracks inside [min, max] eta range
+  EveWorkflowHelper::Bracket mTimeBracket; // [min, max] range in TF time for the filter
+  EveWorkflowHelper::Bracket mEtaBracket;  // [min, max] eta range for the TPC tracks removal
+  std::string mJsonPath;                   // folder where files are stored
+  std::chrono::milliseconds mTimeInterval; // minimal interval between files in milliseconds
+  int mNumberOfFiles;                      // maximum number of files in folder - newer replaces older
+  int mNumberOfTracks;                     // maximum number of track in single file (0 means no limit)
+  bool mTrackSorting;                      // perform sorting tracks by track time before applying filters
   std::chrono::time_point<std::chrono::high_resolution_clock> mTimeStamp;
 
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;
