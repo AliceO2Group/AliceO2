@@ -111,7 +111,10 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     qcStruct.trackletY[iLayer] = trkltPosUp[0];
     qcStruct.trackletZ[iLayer] = trkltPosUp[1];
     qcStruct.trackletDy[iLayer] = mTrackletsCalib[trkltId].getDy();
-    qcStruct.trackletSlope[iLayer] = mTrackletsRaw[trkltId].getSlopeBinSigned();
+    qcStruct.trackletSlope[iLayer] = mTrackletsRaw[trkltId].getSlope();
+    qcStruct.trackletSlopeSigned[iLayer] = mTrackletsRaw[trkltId].getSlopeBinSigned();
+    qcStruct.trackletPosition[iLayer] = mTrackletsRaw[trkltId].getPosition();
+    qcStruct.trackletPositionSigned[iLayer] = mTrackletsRaw[trkltId].getPositionBinSigned();
     qcStruct.trackletDet[iLayer] = trkltDet;
     qcStruct.trackletHCId[iLayer] = mTrackletsRaw[trkltId].getHCID();
     qcStruct.trackletRob[iLayer] = mTrackletsRaw[trkltId].getROB();
