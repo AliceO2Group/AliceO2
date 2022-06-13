@@ -24,9 +24,10 @@
 #ifndef ALIGNMENTPOINT_H
 #define ALIGNMENTPOINT_H
 
-#include <TObject.h>
+#include <Rtypes.h>
 #include <TMatrixD.h>
 #include <TVectorD.h>
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "Align/AlignableSensor.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "Framework/Logger.h"
@@ -37,16 +38,24 @@ namespace o2
 namespace align
 {
 
-class AlignmentPoint : public TObject
+class AlignmentPoint
 {
  public:
-  enum { kMaterialBit = BIT(14),        // point contains material
-         kMeasurementBit = BIT(15),     // point contains measurement
-         kUpdateFromTrackBit = BIT(16), // point needs to recalculate itself using track info
-         kVaryELossBit = BIT(17),       // ELoss variation allowed
-         kUseBzOnly = BIT(18),          // use only Bz component (ITS)
-         kInvDir = BIT(19),             // propagation via this point is in decreasing X direction (upper cosmic leg)
-         kStatOK = BIT(20)              // point is accounted in global statistics
+  using DetID = o2::detectors::DetID;
+
+  enum BITS { kMaterialBit = 0x1 << 0,        // point contains material
+              kMeasurementBit = 0x1 << 1,     // point contains measurement
+              kUpdateFromTrackBit = 0x1 << 2, // point needs to recalculate itself using track info
+              kVaryELossBit = 0x1 << 3,       // ELoss variation allowed
+              kUseBzOnly = 0x1 << 4,          // use only Bz component (ITS)
+              kInvDir = 0x1 << 5,             // propagation via this point is in decreasing X direction (upper cosmic leg)
+              kStatOK = 0x1 << 6,             // point is accounted in global statistics
+
+              kOptUMAT = 0x1 << 10,
+              kOptDiag = 0x1 << 11,
+              kOptWSA = 0x1 << 12,
+              kOptWSB = 0x1 << 13
+
   };
   enum { kParY = 0 // track parameters
          ,
@@ -61,8 +70,7 @@ class AlignmentPoint : public TObject
          kY,
          kZ };
   //
-  AlignmentPoint();
-  ~AlignmentPoint() override = default;
+  AlignmentPoint() = default;
   //
   void init();
   void updatePointByTrackInfo(const trackParam_t* t);
@@ -86,14 +94,23 @@ class AlignmentPoint : public TObject
   int getMinLocVarID() const { return mMinLocVarID; }
   int getMaxLocVarID() const { return mMaxLocVarID; }
   int getNMatPar() const;
-  bool containsMaterial() const { return TestBit(kMaterialBit); }
-  bool containsMeasurement() const { return TestBit(kMeasurementBit); }
-  bool getNeedUpdateFromTrack() const { return TestBit(kUpdateFromTrackBit); }
-  bool getELossVaried() const { return TestBit(kVaryELossBit); }
-  bool getUseBzOnly() const { return TestBit(kUseBzOnly); }
-  bool isInvDir() const { return TestBit(kInvDir); }
-  bool isStatOK() const { return TestBit(kStatOK); }
+
+  bool containsMaterial() const { return testBit(kMaterialBit); }
+  bool containsMeasurement() const { return testBit(kMeasurementBit); }
+  bool getNeedUpdateFromTrack() const { return testBit(kUpdateFromTrackBit); }
+  bool getELossVaried() const { return testBit(kVaryELossBit); }
+  bool getUseBzOnly() const { return testBit(kUseBzOnly); }
+  bool isInvDir() const { return testBit(kInvDir); }
+  bool isStatOK() const { return testBit(kStatOK); }
   //
+  void setELossVaried(bool v = true) { setBit(kVaryELossBit, v); }
+  void setContainsMaterial(bool v = true) { setBit(kMaterialBit, v); }
+  void setContainsMeasurement(bool v = true) { setBit(kMeasurementBit, v); }
+  void setNeedUpdateFromTrack(bool v = true) { setBit(kUpdateFromTrackBit, v); }
+  void setUseBzOnly(bool v = true) { setBit(kUseBzOnly, v); }
+  void setInvDir(bool v = true) { setBit(kInvDir, v); }
+  void setStatOK(bool v = true) { setBit(kStatOK, v); }
+
   double getXTimesRho() const { return mXTimesRho; }
   double getX2X0() const { return mX2X0; }
   void setXTimesRho(double v) { mXTimesRho = v; }
@@ -104,13 +121,6 @@ class AlignmentPoint : public TObject
   //
   void setMinLocVarID(int id) { mMinLocVarID = id; }
   void setMaxLocVarID(int id) { mMaxLocVarID = id; }
-  void setELossVaried(bool v = true) { SetBit(kVaryELossBit, v); }
-  void setContainsMaterial(bool v = true) { SetBit(kMaterialBit, v); }
-  void setContainsMeasurement(bool v = true) { SetBit(kMeasurementBit, v); }
-  void setNeedUpdateFromTrack(bool v = true) { SetBit(kUpdateFromTrackBit, v); }
-  void setUseBzOnly(bool v = true) { SetBit(kUseBzOnly, v); }
-  void setInvDir(bool v = true) { SetBit(kInvDir, v); }
-  void setStatOK(bool v = true) { SetBit(kStatOK, v); }
   //
   void getResidualsDiag(const double* pos, double& resU, double& resV) const;
   void diagonalizeResiduals(double rY, double rZ, double& resU, double& resV) const;
@@ -183,50 +193,61 @@ class AlignmentPoint : public TObject
   void incrementStat();
   //
   virtual void dumpCoordinates() const;
-  void Print(Option_t* option = "") const final;
-  void Clear(Option_t* option = "") final;
+  void print(uint16_t opt) const;
+  void clear();
   //
+  bool isAfter(const AlignmentPoint& pnt) const;
+
  protected:
-  bool IsSortable() const final { return true; }
-  int Compare(const TObject* a) const final;
   //
   // ---------- dummies ----------
-  AlignmentPoint(const AlignmentPoint&);
-  AlignmentPoint& operator=(const AlignmentPoint&);
-  //
+  void setBit(BITS b, bool v)
+  {
+    if (v) {
+      mBits |= b;
+    } else {
+      mBits &= ~(b & 0xffff);
+    }
+  }
+  bool testBit(BITS b) const
+  {
+    return mBits & b;
+  }
+
  protected:
   //
-  int mMinLocVarID;         // The residuals/derivatives depend on fNLocExtPar params
-                            // and point params>=mMinLocVarID.
-  int mMaxLocVarID;         // The residuals/derivatives depend on fNLocExtPar params
-                            // and point params<mMaxLocVarID.
-                            // If the point contains materials, mMaxLocVarID also marks
-                            // the parameters associated with this point
-  char mDetID;              // DetectorID
-  int16_t mSID;             // sensor ID in the detector
-  float mAlphaSens;         // Alpha of tracking frame
-  float mXSens;             // X of tracking frame
-  float mCosDiagErr;        // Cos of Phi of rotation in YZ plane which diagonalize errors
-  float mSinDiagErr;        // Sin of Phi of rotation in YZ plane which diagonalize errors
-  float mErrDiag[2];        // diagonalized errors
-  double mXYZTracking[3];   // X,Y,Z in tracking frame
-  double mErrYZTracking[3]; // errors in tracking frame
+  int mMinLocVarID = -1;          // The residuals/derivatives depend on fNLocExtPar params
+                                  // and point params>=mMinLocVarID.
+  int mMaxLocVarID = -1;          // The residuals/derivatives depend on fNLocExtPar params
+                                  // and point params<mMaxLocVarID.
+                                  // If the point contains materials, mMaxLocVarID also marks
+                                  // the parameters associated with this point
+  DetID mDetID{};                 // DetectorID
+  int16_t mSID = -1;              // sensor ID in the detector
+  uint16_t mBits = 0;             // flags
+  float mAlphaSens = 0;           // Alpha of tracking frame
+  float mXSens = 0;               // X of tracking frame
+  float mCosDiagErr = 0;          // Cos of Phi of rotation in YZ plane which diagonalize errors
+  float mSinDiagErr = 0;          // Sin of Phi of rotation in YZ plane which diagonalize errors
+  float mErrDiag[2] = {0};        // diagonalized errors
+  double mXYZTracking[3] = {0};   // X,Y,Z in tracking frame
+  double mErrYZTracking[3] = {0}; // errors in tracking frame
   //
-  float mX2X0;      // X2X0 seen by the track (including inclination)
-  float mXTimesRho; // signed Density*Length seen by the track (including inclination)
+  float mX2X0 = 0;      // X2X0 seen by the track (including inclination)
+  float mXTimesRho = 0; // signed Density*Length seen by the track (including inclination)
   //
-  int mNGloDOFs;                        // number of global DOFs this point depends on
-  int mDGloOffs;                        // 1st entry slot of d/dGloPar in the AlgTrack fDResDGlo arrays
-  float mMatCorrExp[kNMatDOFs];         // material correction due to ELoss expectation (non-diagonalized)
-  float mMatCorrCov[kNMatDOFs];         // material correction delta covariance (diagonalized)
-  float mMatDiag[kNMatDOFs][kNMatDOFs]; // matrix for  diagonalization of material effects errors
+  int mNGloDOFs = 0;                         // number of global DOFs this point depends on
+  int mDGloOffs = 0;                         // 1st entry slot of d/dGloPar in the AlgTrack fDResDGlo arrays
+  float mMatCorrExp[kNMatDOFs] = {};         // material correction due to ELoss expectation (non-diagonalized)
+  float mMatCorrCov[kNMatDOFs] = {};         // material correction delta covariance (diagonalized)
+  float mMatDiag[kNMatDOFs][kNMatDOFs] = {}; // matrix for  diagonalization of material effects errors
   //
-  double mTrParamWSA[kNMatDOFs]; // workspace for tracks params at this point AFTER material correction
-  double mTrParamWSB[kNMatDOFs]; // workspace for tracks params at this point BEFORE material correction
+  double mTrParamWSA[kNMatDOFs] = {}; // workspace for tracks params at this point AFTER material correction
+  double mTrParamWSB[kNMatDOFs] = {}; // workspace for tracks params at this point BEFORE material correction
 
-  AlignableSensor* mSensor; // sensor of this point
+  AlignableSensor* mSensor = nullptr; // sensor of this point
 
-  ClassDefOverride(AlignmentPoint, 1)
+  ClassDefNV(AlignmentPoint, 1)
 };
 
 //____________________________________________________

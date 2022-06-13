@@ -65,7 +65,7 @@ class Millepede2Record : public TObject
   const int16_t* getArrLabLoc() const { return mIDLoc; }
   const int* getArrLabGlo() const { return mIDGlo; }
   //
-  bool fillTrack(const AlignmentTrack* trc, const int* id2Lab = nullptr);
+  bool fillTrack(AlignmentTrack* trc, const int* id2Lab = nullptr);
   void dummyRecord(float res, float err, float dGlo, int labGlo);
   //
   void resize(int nresid, int nloc, int nglo);

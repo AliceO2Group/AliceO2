@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file RawEventData.h class  for RAW data format
-//Alla.Maevskaya@cern.ch
+// file RawEventData.h class  for RAW data format
+// Alla.Maevskaya@cern.ch
 // with Artur.Furs@cern.ch
 //
 #ifndef ALICEO2_FIT_RAWEVENTDATA_H_
@@ -67,7 +67,7 @@ struct EventData {
     struct {
       int64_t time : 12;
       int64_t charge : 13;
-      uint64_t numberADC : 1, //25 bit
+      uint64_t numberADC : 1, // 25 bit
         isDoubleEvent : 1,
         isTimeInfoNOTvalid : 1,
         isCFDinADCgate : 1,
@@ -103,28 +103,28 @@ struct TCMdata {
   static constexpr size_t MinNelements = 1;
   static constexpr size_t MaxNelements = 1;
   uint64_t orA : 1,        // 0 bit (0 byte)
-    orC : 1,               //1 bit
-    sCen : 1,              //2 bit
-    cen : 1,               //3 bit
-    vertex : 1,            //4 bit
-    laser : 1,             //5 bit
-    outputsAreBlocked : 1, //6 bit
-    dataIsValid : 1,       //7 bit
-    nChanA : 7,            //8 bit(1 byte)
-    reservedField2 : 1,    //15 bit
-    nChanC : 7,            //16 bit(2 byte)
+    orC : 1,               // 1 bit
+    sCen : 1,              // 2 bit
+    cen : 1,               // 3 bit
+    vertex : 1,            // 4 bit
+    laser : 1,             // 5 bit
+    dataIsValid : 1,       // 6 bit
+    outputsAreBlocked : 1, // 7 bit
+    nChanA : 7,            // 8 bit(1 byte)
+    reservedField2 : 1,    // 15 bit
+    nChanC : 7,            // 16 bit(2 byte)
     reservedField3 : 1;    // 23 bit
-  int64_t amplA : 17,      //24 bit (3 byte)
-    reservedField4 : 1,    //41 bit
-    amplC : 17,            //42 bit.
-    reservedField5 : 1,    //59 bit.
-    //in standard case(without __atribute__((packed)) macros, or packing by using union)
-    //here will be empty 4 bits, end next field("timeA") will start from 64 bit.
-    timeA : 9,           //60 bit
-    reservedField6 : 1,  //69 bit
-    timeC : 9,           //70 bit
-    reservedField7 : 1,  //79 bit
-    reservedField8 : 48; //80 bit
+  int64_t amplA : 17,      // 24 bit (3 byte)
+    reservedField4 : 1,    // 41 bit
+    amplC : 17,            // 42 bit.
+    reservedField5 : 1,    // 59 bit.
+    // in standard case(without __atribute__((packed)) macros, or packing by using union)
+    // here will be empty 4 bits, end next field("timeA") will start from 64 bit.
+    timeA : 9,           // 60 bit
+    reservedField6 : 1,  // 69 bit
+    timeC : 9,           // 70 bit
+    reservedField7 : 1,  // 79 bit
+    reservedField8 : 48; // 80 bit
 
   void print() const;
 } __attribute__((__packed__));

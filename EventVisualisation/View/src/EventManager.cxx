@@ -96,9 +96,7 @@ void EventManager::displayCurrentEvent()
     displayCalorimeters(event);
 
     for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
-      if (i != EVisualisationGroup::EMC && i != EVisualisationGroup::PHS) {
-        multiView->registerElement(dataTypeLists[i]);
-      }
+      multiView->registerElement(dataTypeLists[i]);
     }
 
     if (vizSettings.firstEvent) {

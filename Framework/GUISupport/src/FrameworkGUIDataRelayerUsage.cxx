@@ -118,11 +118,11 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
   };
   auto getValue = [](int const& item) -> int { return item; };
   auto getColor = [](int value) {
-    const ImU32 SLOT_EMPTY = ImColor(70, 70, 70, 255);
-    const ImU32 SLOT_FULL = ImColor(PaletteHelpers::RED);
-    const ImU32 SLOT_DISPATCHED = ImColor(PaletteHelpers::YELLOW);
-    const ImU32 SLOT_DONE = ImColor(PaletteHelpers::GREEN);
-    const ImU32 SLOT_ERROR = ImColor(0xfe, 0x43, 0x65, 255);
+    static const ImU32 SLOT_EMPTY = ImColor(70, 70, 70, 255);
+    static const ImU32 SLOT_FULL = ImColor(PaletteHelpers::RED);
+    static const ImU32 SLOT_DISPATCHED = ImColor(PaletteHelpers::YELLOW);
+    static const ImU32 SLOT_DONE = ImColor(PaletteHelpers::GREEN);
+    static const ImU32 SLOT_ERROR = ImColor(0xfe, 0x43, 0x65, 255);
     switch (value) {
       case 0:
         return SLOT_EMPTY;

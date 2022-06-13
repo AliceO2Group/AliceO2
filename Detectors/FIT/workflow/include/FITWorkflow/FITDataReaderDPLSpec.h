@@ -50,6 +50,9 @@ class FITDataReaderDPLSpec : public Task
   {
     auto ccdbUrl = ic.options().get<std::string>("ccdb-path");
     auto lutPath = ic.options().get<std::string>("lut-path");
+    if (!ic.options().get<bool>("disable-empty-tf-protection")) {
+      mRawReader.enableEmptyTFprotection();
+    }
     if (ccdbUrl != "") {
       RawReader_t::LookupTable_t::setCCDBurl(ccdbUrl);
     }
@@ -94,12 +97,13 @@ class FITDataReaderDPLSpec : public Task
     std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{mRawReader.mDataOrigin, o2::header::gDataDescriptionRawData}, Lifetime::Timeframe}};
     DPLRawParser parser(pc.inputs(), filter);
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-      //Proccessing each page
+      // Proccessing each page
       auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
       gsl::span<const uint8_t> payload(it.data(), it.size());
       mRawReader.process(payload, int(rdhPtr->linkID), int(rdhPtr->endPointID));
     }
     mRawReader.accumulateDigits();
+    mRawReader.emptyTFprotection();
     mRawReader.makeSnapshot(pc);
     mRawReader.clear();
   }
@@ -128,7 +132,8 @@ framework::DataProcessorSpec getFITDataReaderDPLSpec(const RawReaderType& rawRea
      o2::framework::ConfigParamSpec{"reserve-vec-dig", VariantType::Int, 0, {"Reserve memory for Digit vector, to DPL channel"}},
      o2::framework::ConfigParamSpec{"reserve-vec-chdata", VariantType::Int, 0, {"Reserve memory for ChannelData vector, to DPL channel"}},
      o2::framework::ConfigParamSpec{"reserve-vec-buffer", VariantType::Int, 0, {"Reserve memory for DataBlock vector, buffer for each page"}},
-     o2::framework::ConfigParamSpec{"reserve-map-dig", VariantType::Int, 0, {"Reserve memory for Digit map, mapping in RawReader"}}}};
+     o2::framework::ConfigParamSpec{"reserve-map-dig", VariantType::Int, 0, {"Reserve memory for Digit map, mapping in RawReader"}},
+     o2::framework::ConfigParamSpec{"disable-empty-tf-protection", VariantType::Bool, false, {"Disable empty TF protection. In case of empty payload within TF, only dummy ChannelData object will be sent."}}}};
 }
 
 } // namespace fit

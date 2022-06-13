@@ -93,20 +93,27 @@ class TOFDCSDataProcessor : public o2::framework::Task
     }
 
     mProcessor = std::make_unique<o2::tof::TOFDCSProcessor>();
-    bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
-    LOG(info) << " ************************* Verbose?" << useVerboseMode;
-    if (useVerboseMode) {
-      mProcessor->useVerboseMode();
+    bool useVerboseModeDP = ic.options().get<bool>("use-verbose-mode-DP");
+    bool useVerboseModeHVLV = ic.options().get<bool>("use-verbose-mode-HVLV");
+    LOG(info) << " ************************* Verbose DP?    " << useVerboseModeDP;
+    LOG(info) << " ************************* Verbose HV/LV? " << useVerboseModeHVLV;
+    if (useVerboseModeDP) {
+      mProcessor->useVerboseModeDP();
+    }
+    if (useVerboseModeHVLV) {
+      mProcessor->useVerboseModeHVLV();
     }
     mProcessor->init(vect);
     mTimer = HighResClock::now();
-    mReportTiming = ic.options().get<bool>("report-timing") || useVerboseMode;
+    mReportTiming = ic.options().get<bool>("report-timing") || useVerboseModeDP || useVerboseModeHVLV;
+    mStoreWhenAllDPs = ic.options().get<bool>("store-when-all-DPs-filled");
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
     TStopwatch sw;
     auto startValidity = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+    LOG(debug) << "startValidity = " << startValidity;
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
     auto timeNow = HighResClock::now();
     if (startValidity == 0xffffffffffffffff) {                                                                   // it means it is not set
@@ -116,8 +123,16 @@ class TOFDCSDataProcessor : public o2::framework::Task
     mProcessor->process(dps);
     Duration elapsedTime = timeNow - mTimer; // in seconds
     if (elapsedTime.count() >= mDPsUpdateInterval) {
-      sendDPsoutput(pc.outputs());
-      mTimer = timeNow;
+      bool sendToCCDB = true;
+      if (mStoreWhenAllDPs) {
+        sendToCCDB = mProcessor->areAllDPsFilled();
+      }
+      if (sendToCCDB) {
+        sendDPsoutput(pc.outputs());
+        mTimer = timeNow;
+      } else {
+        LOG(debug) << "Not sending yet: mStoreWhenAllDPs = " << mStoreWhenAllDPs << ", mProcessor->areAllDPsFilled() = " << mProcessor->areAllDPsFilled() << ", sentToCCDB = " << sendToCCDB;
+      }
     }
     sendLVandHVoutput(pc.outputs());
     sw.Stop();
@@ -128,6 +143,9 @@ class TOFDCSDataProcessor : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
+    if (!mProcessor->areAllDPsFilled()) {
+      LOG(debug) << "Not all DPs are filled, sending to CCDB what we have anyway";
+    }
     sendDPsoutput(ec.outputs());
     sendLVandHVoutput(ec.outputs());
   }
@@ -137,6 +155,7 @@ class TOFDCSDataProcessor : public o2::framework::Task
   std::unique_ptr<TOFDCSProcessor> mProcessor;
   HighResClock::time_point mTimer;
   int64_t mDPsUpdateInterval;
+  bool mStoreWhenAllDPs = false;
 
   //________________________________________________________________
   void sendDPsoutput(DataAllocator& output)
@@ -207,9 +226,11 @@ DataProcessorSpec getTOFDCSDataProcessorSpec()
     AlgorithmSpec{adaptFromTask<o2::tof::TOFDCSDataProcessor>()},
     Options{{"ccdb-path", VariantType::String, "http://localhost:8080", {"Path to CCDB"}},
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
-            {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
+            {"use-verbose-mode-DP", VariantType::Bool, false, {"Use verbose mode for DPs"}},
+            {"use-verbose-mode-HVLV", VariantType::Bool, false, {"Use verbose mode for HV and LV"}},
             {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
-            {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};
+            {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}},
+            {"store-when-all-DPs-filled", VariantType::Bool, false, {"Store CCDB entry only when all DPs have been filled (--> never re-use an old value)"}}}};
 }
 
 } // namespace framework

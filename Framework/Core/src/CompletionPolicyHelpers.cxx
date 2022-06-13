@@ -204,6 +204,14 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, Compl
   return CompletionPolicy{name, matcher, callback};
 }
 
+CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(std::string matchName)
+{
+  auto matcher = [matchName](DeviceSpec const& device) -> bool {
+    return std::regex_match(device.name.begin(), device.name.end(), std::regex(matchName));
+  };
+  return consumeWhenAny(matcher);
+}
+
 CompletionPolicy CompletionPolicyHelpers::processWhenAny(const char* name, CompletionPolicy::Matcher matcher)
 {
   auto callback = [](InputSpan const& inputs) -> CompletionPolicy::CompletionOp {

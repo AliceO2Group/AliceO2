@@ -9,15 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _ZDC_PEDESTAL_DATA_H_
-#define _ZDC_PEDESTAL_DATA_H_
+#ifndef _ZDC_ORBIT_DATA_H_
+#define _ZDC_ORBIT_DATA_H_
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "ZDCBase/Constants.h"
 #include <array>
 #include <Rtypes.h>
 
-/// \file Pedestal.h
+/// \file OrbitData.h
 /// \brief Class to describe pedestal data accumulated over the orbit
 /// \author ruben.shahoyan@cern.ch
 
