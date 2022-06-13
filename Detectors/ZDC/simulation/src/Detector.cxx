@@ -2629,7 +2629,8 @@ bool Detector::FastSimToHits(const Ort::Value& response, const TParticle& partic
       // get medium PMQ and PMC
       int currentMediumid = determineMediumID(detector, x, y);
       // LOG(info) << " x " << x << " y " << y << " sec " << sector << " medium " << currentMediumid;
-      int nphe = pixels[Nx * x + y];
+      // Model output needs to be converted with exp(x)-1 function to be valid
+      int nphe = (int)std::expm1(pixels[Nx * x + y]);
 
       if (nphe > 0) {
         float trackenergy = 0; // energy of the primary (need to fill good value)
