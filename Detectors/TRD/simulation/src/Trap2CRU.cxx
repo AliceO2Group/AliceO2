@@ -140,7 +140,7 @@ void Trap2CRU::sortDataToLinks()
   for (auto& trig : mTrackletTriggerRecords) {
     if (trig.getNumberOfTracklets() > 0) {
       if (mVerbosity) {
-        LOG(debug) << " sorting digits from : " << trig.getFirstTracklet() << " till " << trig.getFirstTracklet() + trig.getNumberOfTracklets();
+        LOG(debug) << " sorting tracklets from : " << trig.getFirstTracklet() << " till " << trig.getFirstTracklet() + trig.getNumberOfTracklets();
       }
       // sort to link order *NOT* hcid order ...
       // link is defined by stack,layer,halfchamberside.
@@ -224,7 +224,7 @@ void Trap2CRU::mergetriggerDigitRanges()
   // trapsim should now be sending out the trigger with both information.
   bool fixdigitinfo = false;
   for (auto trig : mTrackletTriggerRecords) {
-    if (trig.getNumberOfDigits() != 0) {
+    if (trig.getNumberOfDigits() == 0) {
       fixdigitinfo = true;
     }
   }
@@ -680,7 +680,6 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
     (side) ? sside = "C" : sside = "A";
     //15 links per half cru or cru end point.
     memset(&mRawData[0], 0, sizeof(mRawData[0]) * mRawData.size()); //   zero the rawdata storage
-    int numberofdetectors = o2::trd::constants::MAXCHAMBER;
     HalfCRUHeader halfcruheader;
     //now write the cruheader at the head of all the data for this halfcru.
     buildHalfCRUHeader(halfcruheader, triggerrecord.getBCData().bc, halfcru);
