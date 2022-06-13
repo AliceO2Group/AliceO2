@@ -287,8 +287,10 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       auto& input = mInputs[mi];
       auto& element = mCache[si * mInputs.size() + mi];
       if (input.lifetime != Lifetime::Condition && element.size() != 0) {
-        LOGP(error, "Dropping Lifetime::{} data in slot {} with timestamp {} < {}.", input.lifetime, si, timestamp.value, newOldest.timeslice.value);
-        droppingNotCondition = true;
+        LOGP(error, "Dropping {} Lifetime::{} data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+        droppingNotCondition |= true;
+      }
+      if (droppingNotCondition) {
         break;
       }
     }
