@@ -43,9 +43,7 @@ void TRDDigitReaderSpec::connectTree()
   mTreeDigits.reset((TTree*)mFile->Get(mDigitTreeName.c_str()));
   assert(mTreeDigits);
   mTreeDigits->SetBranchAddress(mDigitBranchName.c_str(), &mDigitsPtr);
-  if (mPublishTrigRec) {
-    mTreeDigits->SetBranchAddress(mTriggerRecordBranchName.c_str(), &mTriggerRecordsPtr);
-  }
+  mTreeDigits->SetBranchAddress(mTriggerRecordBranchName.c_str(), &mTriggerRecordsPtr);
   if (mUseMC) {
     mTreeDigits->SetBranchAddress(mMCLabelsBranchName.c_str(), &mLabels);
   }
@@ -57,12 +55,10 @@ void TRDDigitReaderSpec::run(ProcessingContext& pc)
   auto currEntry = mTreeDigits->GetReadEntry() + 1;
   assert(currEntry < mTreeDigits->GetEntries()); // this should not happen
   mTreeDigits->GetEntry(currEntry);
+  LOG(info) << "Pushing " << mTriggerRecords.size() << " TRD trigger records at entry " << currEntry;
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 1, Lifetime::Timeframe}, mTriggerRecords);
   LOG(info) << "Pushing " << mDigits.size() << " digits for these trigger records";
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
-  if (mPublishTrigRec) {
-    LOG(info) << "Pushing " << mTriggerRecords.size() << " TRD trigger records at entry " << currEntry;
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, mTriggerRecords);
-  }
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 1, Lifetime::Timeframe}, mDigits);
   if (mUseMC) {
     auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{o2::header::gDataOriginTRD, "LABELS", 0, Lifetime::Timeframe});
     mLabels->copyandflatten(sharedlabels);
@@ -73,20 +69,18 @@ void TRDDigitReaderSpec::run(ProcessingContext& pc)
   }
 }
 
-DataProcessorSpec getTRDDigitReaderSpec(bool useMC, bool publishTrigRec)
+DataProcessorSpec getTRDDigitReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
-  if (publishTrigRec) {
-    outputs.emplace_back("TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
-  }
+  outputs.emplace_back("TRD", "DIGITS", 1, Lifetime::Timeframe);
+  outputs.emplace_back("TRD", "TRKTRGRD", 1, Lifetime::Timeframe);
   if (useMC) {
     outputs.emplace_back("TRD", "LABELS", 0, Lifetime::Timeframe);
   }
   return DataProcessorSpec{"TRDDIGITREADER",
                            Inputs{},
                            outputs,
-                           AlgorithmSpec{adaptFromTask<TRDDigitReaderSpec>(useMC, publishTrigRec)},
+                           AlgorithmSpec{adaptFromTask<TRDDigitReaderSpec>(useMC)},
                            Options{
                              {"digitsfile", VariantType::String, "trddigits.root", {"Input data file containing TRD digits"}},
                              {"input-dir", VariantType::String, "none", {"Input directory"}}}};
