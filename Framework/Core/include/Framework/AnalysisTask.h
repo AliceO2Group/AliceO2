@@ -361,7 +361,7 @@ struct AnalysisDataProcessorBuilder {
       } else {
         // non-grouping case
         // pre-slice associated tables
-        std::apply([](auto&... x) {
+        std::apply([&presliceTable](auto&... x) {
           (presliceTable(x), ...);
         },
                    associatedTables);
