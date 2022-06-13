@@ -194,6 +194,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // option to use or not use the Trap Simulator after digitisation (debate of digitization or reconstruction is for others)
   workflowOptions.push_back(ConfigParamSpec{"disable-trd-trapsim", VariantType::Bool, false, {"disable the trap simulation of the TRD"}});
+  workflowOptions.push_back(ConfigParamSpec{"trd-digit-downscaling", VariantType::Int, 1, {"only keep TRD digits for every n-th trigger"}});
 
   workflowOptions.push_back(ConfigParamSpec{"combine-devices", VariantType::Bool, false, {"combined multiple DPL worker/writer devices"}});
 }
@@ -674,14 +675,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     detList.emplace_back(o2::detectors::DetID::TRD);
     // connect the TRD digitization
     specs.emplace_back(o2::trd::getTRDDigitizerSpec(fanoutsize++, mctruth));
-    // connect the TRD digit writer
-    specs.emplace_back(o2::trd::getTRDDigitWriterSpec(mctruth));
     auto disableTrapSim = configcontext.options().get<bool>("disable-trd-trapsim");
+    auto trdDigitDownscaling = configcontext.options().get<int>("trd-digit-downscaling");
     if (!disableTrapSim) {
-      // connect the TRD Trap SimulatorA
-      specs.emplace_back(o2::trd::getTRDTrapSimulatorSpec(mctruth));
+      // connect the TRD TRAP simulator
+      specs.emplace_back(o2::trd::getTRDTrapSimulatorSpec(mctruth, trdDigitDownscaling));
       // connect to the device to write out the tracklets.
       specs.emplace_back(o2::trd::getTRDTrackletWriterSpec(mctruth));
+      // connect the TRD digit writer expecting input from TRAP simulation
+      specs.emplace_back(o2::trd::getTRDDigitWriterSpec(mctruth, false));
+    } else {
+      // connect the TRD digit writer expecting input from TRD digitizer
+      specs.emplace_back(o2::trd::getTRDDigitWriterSpec(mctruth, true));
     }
   }
 

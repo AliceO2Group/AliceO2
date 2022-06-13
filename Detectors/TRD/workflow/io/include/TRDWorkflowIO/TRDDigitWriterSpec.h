@@ -22,7 +22,7 @@ struct DataProcessorSpec;
 namespace trd
 {
 
-o2::framework::DataProcessorSpec getTRDDigitWriterSpec(bool mctruth = true, bool writeTrigRec = true);
+o2::framework::DataProcessorSpec getTRDDigitWriterSpec(bool mctruth = true, bool inpFromDigitizer = true);
 
 } // end namespace trd
 } // end namespace o2
