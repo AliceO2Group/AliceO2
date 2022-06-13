@@ -35,10 +35,10 @@ class Triggers
          bitSCen = 2,
          bitAOut = 2, // alias of bitVertex (FV0)
          bitCen = 3,
-         bitVertex = 4,            // alias of bitAOut (FT0/FDD)
-         bitLaser = 5,             // indicates the laser was triggered in this BC
-         bitOutputsAreBlocked = 6, // indicates that laser-induced pulses should arrive from detector to FEE in this BC (and trigger outputs are blocked)
-         bitDataIsValid = 7 };
+         bitVertex = 4, // alias of bitAOut (FT0/FDD)
+         bitLaser = 5,  // indicates the laser was triggered in this BC
+         bitDataIsValid = 6,
+         bitOutputsAreBlocked = 7 };         // indicates that laser-induced pulses should arrive from detector to FEE in this BC (and trigger outputs are blocked)
   static const int16_t DEFAULT_TIME = -5000; // for average of one side (A or C)
   static const int16_t DEFAULT_AMP = 0;
   static const int16_t DEFAULT_ZERO = 0;
@@ -119,7 +119,7 @@ class Triggers
   int16_t timeA = DEFAULT_TIME;          // average time A side (shouldn't be used if nChanA == 0)
   int16_t timeC = DEFAULT_TIME;          // average time C side (shouldn't be used if nChanC == 0)
 
-  ClassDefNV(Triggers, 5);
+  ClassDefNV(Triggers, 6);
 };
 
 } // namespace fit

@@ -11,9 +11,6 @@
 
 /// @file   FITDataDecoderDPLSpec.cxx
 
-#if defined(__has_include)
-#if defined(__linux__) && (defined(__x86_64) || defined(__x86_64__)) && __has_include(<emmintrin.h>) && __has_include(<immintrin.h>) && defined(FT0_DECODER_AVX512)
-
 #include "FT0Workflow/FT0DataDecoderDPLSpec.h"
 #include <numeric>
 #include <emmintrin.h>
@@ -65,6 +62,7 @@ void FT0DataDecoderDPLSpec::run(ProcessingContext& pc)
   std::array<std::vector<const o2::header::RAWDataHeader*>, sNorbits> arrRdhTCMperOrbit{};
   std::array<std::vector<gsl::span<const uint8_t>>, sNorbits> arrDataTCMperOrbit{};
   std::array<std::size_t, sNorbits> arrOrbitSizePages{};
+  std::array<std::size_t, sNorbits> arrOrbitSizePagesTCM{};
   std::array<uint64_t, sNorbits> arrOrbit{};
 
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
@@ -81,6 +79,7 @@ void FT0DataDecoderDPLSpec::run(ProcessingContext& pc)
     const uint16_t feeID = linkID + 12 * endPoint;
     if (feeID == mFEEID_TCM) {
       // Iterator is noncopyable, preparing RDH pointers and span objects
+      arrOrbitSizePagesTCM[orbitTF] += it.size();
       arrRdhTCMperOrbit[orbitTF].push_back(it.get_if<o2::header::RAWDataHeader>());
       arrDataTCMperOrbit[orbitTF].emplace_back(it.data(), it.size());
     } else {
@@ -96,22 +95,92 @@ void FT0DataDecoderDPLSpec::run(ProcessingContext& pc)
   uint64_t nChDataPerOrbit[sNorbits]{};   // number of events per orbit
   NChDataBC_t posChDataPerBC[sNorbits]{};
   for (int iOrbit = 0; iOrbit < sNorbits; iOrbit++) {
-    if (!arrOrbitSizePages[iOrbit]) {
-      continue;
-    }
     const auto& orbit = arrOrbit[iOrbit];
     NChDataOrbitBC_t bufBC{};
     NChDataBC_t buf_nChPerBC{};
-    for (int iFeeID = 0; iFeeID < sNlinksMax; iFeeID++) {
-      if (iFeeID == mFEEID_TCM) {
-        continue;
-      }
-      const auto& nPages = arrRdhPtrPerOrbit[iOrbit][iFeeID].size();
+    if (arrOrbitSizePages[iOrbit] > 0) {
+      for (int iFeeID = 0; iFeeID < sNlinksMax; iFeeID++) {
+        if (iFeeID == mFEEID_TCM) {
+          continue;
+        }
+        const auto& nPages = arrRdhPtrPerOrbit[iOrbit][iFeeID].size();
 
-      for (int iPage = 0; iPage < nPages; iPage++) {
-        const auto& rdhPtr = arrRdhPtrPerOrbit[iOrbit][iFeeID][iPage];
-        const auto& payload = arrDataPerOrbit[iOrbit][iFeeID][iPage].data();
-        const auto& payloadSize = arrDataPerOrbit[iOrbit][iFeeID][iPage].size();
+        for (int iPage = 0; iPage < nPages; iPage++) {
+          const auto& rdhPtr = arrRdhPtrPerOrbit[iOrbit][iFeeID][iPage];
+          const auto& payload = arrDataPerOrbit[iOrbit][iFeeID][iPage].data();
+          const auto& payloadSize = arrDataPerOrbit[iOrbit][iFeeID][iPage].size();
+          const uint8_t* src = (uint8_t*)payload;
+          const auto nNGBTwords = payloadSize / 16;
+          const int nNGBTwordsDiff = nNGBTwords % 16;
+          const int nChunks = nNGBTwords / 16 + static_cast<int>(nNGBTwordsDiff > 0);
+          const auto lastChunk = nChunks - 1;
+          const uint16_t mask = (0xffff << (16 - nNGBTwordsDiff)) | (0xffff * (nNGBTwordsDiff == 0));
+          __m512i zmm_pos1 = _mm512_set_epi32(0, 16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240);
+          __m512i zmm_pos2 = _mm512_set1_epi32(6);
+          zmm_pos2 = _mm512_add_epi32(zmm_pos1, zmm_pos2);
+          for (int iChunk = 0; iChunk < nChunks; iChunk++) {
+            __mmask16 mask16_MaxGBTwords = _mm512_int2mask((0xffff * (iChunk != lastChunk)) | mask);
+            __m512i zmm_mask_zero = _mm512_setzero_epi32();
+
+            __m512i zmm_src_column0_part0 = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_MaxGBTwords, zmm_pos1, src, 1);
+            __m512i zmm_src_column1_part1 = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_MaxGBTwords, zmm_pos2, src, 1);
+            // ChID column(contains ChID in data and descriptor in header)
+            __m512i zmm_mask_localChID = _mm512_set1_epi32(0xf);
+            __m512i zmm_buf = _mm512_srai_epi32(zmm_src_column1_part1, 28);
+            __m512i zmm_ChID_column1 = _mm512_and_epi32(zmm_buf, zmm_mask_localChID);
+            // Header
+            __mmask16 mask16_header = _mm512_cmpeq_epi32_mask(zmm_ChID_column1, zmm_mask_localChID);
+            // NGBTwords column
+            zmm_buf = _mm512_srai_epi32(zmm_src_column1_part1, 24);
+            __m512i zmm_NGBTwords = _mm512_maskz_and_epi32(mask16_header, zmm_buf, zmm_mask_localChID);
+
+            // Checking for empty events which contains only header(NGBTwords=0), and getting last header position within chunk
+            __mmask16 mask16_header_final = _mm512_mask_cmpgt_epu32_mask(mask16_header, zmm_NGBTwords, zmm_mask_zero);
+
+            // BC
+            __m512i zmm_mask_time = _mm512_set1_epi32(0xfff);
+            __m512i zmm_bc = _mm512_mask_and_epi32(zmm_mask_zero, mask16_header_final, zmm_src_column0_part0, zmm_mask_time);
+
+            // Estimation for number of channels
+            __m512i zmm_Nchannels = _mm512_slli_epi32(zmm_NGBTwords, 1); // multiply by 2
+
+            __m512i zmm_last_word_pos = zmm_NGBTwords;
+            zmm_last_word_pos = _mm512_slli_epi32(zmm_last_word_pos, 4); // multiply by 16, byte position for last word
+            zmm_last_word_pos = _mm512_add_epi32(zmm_last_word_pos, zmm_pos1);
+            zmm_buf = _mm512_i32gather_epi32(zmm_last_word_pos, src + 8, 1);
+            zmm_buf = _mm512_srai_epi32(zmm_buf, 12);
+            __m512i zmm_ChID_last_column1 = _mm512_and_epi32(zmm_buf, zmm_mask_localChID);
+
+            __mmask16 mask16_half_word = _mm512_cmpeq_epi32_mask(zmm_ChID_last_column1, zmm_mask_zero);
+            __m512i zmm_mask_one = _mm512_set1_epi32(1);
+            __m512i zmm_Nch = _mm512_mask_sub_epi32(zmm_Nchannels, mask16_half_word, zmm_Nchannels, zmm_mask_one);
+            __m512i zmm_nEventPerBC = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_header_final, zmm_bc, buf_nChPerBC.data(), 4);
+            zmm_buf = _mm512_add_epi32(zmm_nEventPerBC, zmm_Nch);
+            _mm512_mask_i32scatter_epi32(buf_nChPerBC.data(), mask16_header_final, zmm_bc, zmm_buf, 4);
+
+            zmm_buf = _mm512_set1_epi32(256);
+            zmm_pos1 = _mm512_add_epi32(zmm_buf, zmm_pos1);
+            zmm_pos2 = _mm512_add_epi32(zmm_buf, zmm_pos2);
+
+          } // chunk
+        }   // Page
+        if (iFeeID != sNlinksMax - 1) {
+          memcpy(bufBC[iFeeID + 1].data(), buf_nChPerBC.data(), (sNBC + 4) * 4);
+        }
+      } // linkID
+    }
+    // Channel data position within BC per LinkID
+    memcpy(mPosChDataPerLinkOrbit[iOrbit].data(), bufBC.data(), (sNBC + 4) * 4 * sNlinksMax);
+    // TCM proccessing
+
+    uint8_t* ptrDstTCM = (uint8_t*)mVecTriggers.data();
+    if (arrOrbitSizePagesTCM[iOrbit] > 0) {
+      memset(mVecTriggers.data(), 0, 16 * 3564);
+      const auto& nPagesTCM = arrRdhTCMperOrbit[iOrbit].size();
+      for (int iPage = 0; iPage < nPagesTCM; iPage++) {
+        const auto& rdhPtr = arrRdhTCMperOrbit[iOrbit][iPage];
+        const auto& payload = arrDataTCMperOrbit[iOrbit][iPage].data();
+        const auto& payloadSize = arrDataTCMperOrbit[iOrbit][iPage].size();
         const uint8_t* src = (uint8_t*)payload;
         const auto nNGBTwords = payloadSize / 16;
         const int nNGBTwordsDiff = nNGBTwords % 16;
@@ -119,133 +188,65 @@ void FT0DataDecoderDPLSpec::run(ProcessingContext& pc)
         const auto lastChunk = nChunks - 1;
         const uint16_t mask = (0xffff << (16 - nNGBTwordsDiff)) | (0xffff * (nNGBTwordsDiff == 0));
         __m512i zmm_pos1 = _mm512_set_epi32(0, 16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240);
-        __m512i zmm_pos2 = _mm512_set1_epi32(6);
-        zmm_pos2 = _mm512_add_epi32(zmm_pos1, zmm_pos2);
         for (int iChunk = 0; iChunk < nChunks; iChunk++) {
           __mmask16 mask16_MaxGBTwords = _mm512_int2mask((0xffff * (iChunk != lastChunk)) | mask);
           __m512i zmm_mask_zero = _mm512_setzero_epi32();
 
-          __m512i zmm_src_column0_part0 = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_MaxGBTwords, zmm_pos1, src, 1);
-          __m512i zmm_src_column1_part1 = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_MaxGBTwords, zmm_pos2, src, 1);
-          // ChID column(contains ChID in data and descriptor in header)
-          __m512i zmm_mask_localChID = _mm512_set1_epi32(0xf);
-          __m512i zmm_buf = _mm512_srai_epi32(zmm_src_column1_part1, 28);
-          __m512i zmm_ChID_column1 = _mm512_and_epi32(zmm_buf, zmm_mask_localChID);
+          __m512i zmm_src_header = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_MaxGBTwords, zmm_pos1, src + 9, 1);
+
+          __m512i zmm_mask_header = _mm512_set1_epi32(0xf1); // one GBT word + descriptor
           // Header
-          __mmask16 mask16_header = _mm512_cmpeq_epi32_mask(zmm_ChID_column1, zmm_mask_localChID);
-          // NGBTwords column
-          zmm_buf = _mm512_srai_epi32(zmm_src_column1_part1, 24);
-          __m512i zmm_NGBTwords = _mm512_maskz_and_epi32(mask16_header, zmm_buf, zmm_mask_localChID);
-
-          // Checking for empty events which contains only header(NGBTwords=0), and getting last header position within chunk
-          __mmask16 mask16_header_final = _mm512_mask_cmpgt_epu32_mask(mask16_header, zmm_NGBTwords, zmm_mask_zero);
-
+          __mmask16 mask16_header = _mm512_cmpeq_epi32_mask(zmm_src_header, zmm_mask_header);
           // BC
-          __m512i zmm_mask_time = _mm512_set1_epi32(0xfff);
-          __m512i zmm_bc = _mm512_mask_and_epi32(zmm_mask_zero, mask16_header_final, zmm_src_column0_part0, zmm_mask_time);
+          __m512i zmm_bc = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_MaxGBTwords, zmm_pos1, src, 1);
+          __m512i zmm_mask_12bit = _mm512_set1_epi32(0xfff);
 
-          // Estimation for number of channels
-          __m512i zmm_Nchannels = _mm512_slli_epi32(zmm_NGBTwords, 1); // multiply by 2
+          zmm_bc = _mm512_maskz_and_epi32(mask16_header, zmm_mask_12bit, zmm_bc);
+          // Position of first GBT word with data
+          __m512i zmm_pos2 = _mm512_set1_epi32(16);
+          zmm_pos2 = _mm512_maskz_add_epi32(mask16_header, zmm_pos1, zmm_pos2);
 
-          __m512i zmm_last_word_pos = zmm_NGBTwords;
-          zmm_last_word_pos = _mm512_slli_epi32(zmm_last_word_pos, 4); // multiply by 16, byte position for last word
-          zmm_last_word_pos = _mm512_add_epi32(zmm_last_word_pos, zmm_pos1);
-          zmm_buf = _mm512_i32gather_epi32(zmm_last_word_pos, src + 8, 1);
-          zmm_buf = _mm512_srai_epi32(zmm_buf, 12);
-          __m512i zmm_ChID_last_column1 = _mm512_and_epi32(zmm_buf, zmm_mask_localChID);
+          __m512i zmm_src_part0 = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_header, zmm_pos2, src, 1);
+          __m512i zmm_src_part1 = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_header, zmm_pos2, src + 3, 1);
+          __m512i zmm_src_part2 = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_header, zmm_pos2, src + 7, 1);
+          // Trigger bits + NchanA + NchanC
+          __m512i zmm_mask_3byte = _mm512_set1_epi32(0xffffff);
+          __m512i zmm_dst_part0 = _mm512_and_epi32(zmm_src_part0, zmm_mask_3byte);
+          // Sum AmpA
+          __m512i zmm_mask_17bit = _mm512_set1_epi32(0x1ffff);
+          __m512i zmm_dst_part1 = _mm512_and_epi32(zmm_src_part1, zmm_mask_17bit);
+          // Sum AmpC
+          __m512i zmm_dst_part2 = _mm512_srai_epi32(zmm_src_part1, 18);
+          __m512i zmm_mask_14bit = _mm512_set1_epi32(0b11111111111111);
+          zmm_dst_part2 = _mm512_and_epi32(zmm_mask_14bit, zmm_dst_part2);
 
-          __mmask16 mask16_half_word = _mm512_cmpeq_epi32_mask(zmm_ChID_last_column1, zmm_mask_zero);
-          __m512i zmm_mask_one = _mm512_set1_epi32(1);
-          __m512i zmm_Nch = _mm512_mask_sub_epi32(zmm_Nchannels, mask16_half_word, zmm_Nchannels, zmm_mask_one);
-          __m512i zmm_nEventPerBC = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_header_final, zmm_bc, buf_nChPerBC.data(), 4);
-          zmm_buf = _mm512_add_epi32(zmm_nEventPerBC, zmm_Nch);
-          _mm512_mask_i32scatter_epi32(buf_nChPerBC.data(), mask16_header_final, zmm_bc, zmm_buf, 4);
+          __m512i zmm_buf = _mm512_slli_epi32(zmm_src_part2, 14);
+          __m512i zmm_mask_3bit = _mm512_set1_epi32(0b11100000000000);
+          zmm_buf = _mm512_and_epi32(zmm_mask_3bit, zmm_buf);
+          zmm_dst_part2 = _mm512_or_epi32(zmm_dst_part2, zmm_buf);
+          // Average time A + C
+          __m512i zmm_dst_part3 = _mm512_srai_epi32(zmm_src_part2, 4);
+          __m512i zmm_mask_9bit = _mm512_set1_epi32(0x1ff);
+          zmm_dst_part3 = _mm512_and_epi32(zmm_dst_part3, zmm_mask_9bit);
+
+          zmm_buf = _mm512_slli_epi32(zmm_src_part2, 2);
+          __m512i zmm_mask_9bit_2 = _mm512_set1_epi32(0x1ff0000);
+          zmm_buf = _mm512_and_epi32(zmm_buf, zmm_mask_9bit_2);
+
+          zmm_dst_part3 = _mm512_or_epi32(zmm_buf, zmm_dst_part3);
+          // Position
+          __m512i zmm_dst_pos = _mm512_slli_epi32(zmm_bc, 4);
+          // Pushing data to buffer
+          _mm512_mask_i32scatter_epi32(ptrDstTCM, mask16_header, zmm_dst_pos, zmm_dst_part0, 1);
+          _mm512_mask_i32scatter_epi32(ptrDstTCM + 4, mask16_header, zmm_dst_pos, zmm_dst_part1, 1);
+          _mm512_mask_i32scatter_epi32(ptrDstTCM + 8, mask16_header, zmm_dst_pos, zmm_dst_part2, 1);
+          _mm512_mask_i32scatter_epi32(ptrDstTCM + 12, mask16_header, zmm_dst_pos, zmm_dst_part3, 1);
 
           zmm_buf = _mm512_set1_epi32(256);
           zmm_pos1 = _mm512_add_epi32(zmm_buf, zmm_pos1);
-          zmm_pos2 = _mm512_add_epi32(zmm_buf, zmm_pos2);
-
         } // chunk
-      }   // Page
-      if (iFeeID != sNlinksMax - 1) {
-        memcpy(bufBC[iFeeID + 1].data(), buf_nChPerBC.data(), (sNBC + 4) * 4);
-      }
-    } // linkID
-    // Channel data position within BC per LinkID
-    memcpy(mPosChDataPerLinkOrbit[iOrbit].data(), bufBC.data(), (sNBC + 4) * 4 * sNlinksMax);
-    // TCM proccessing
-    memset(mVecTriggers.data(), 0, 16 * 3564);
-    uint8_t* ptrDstTCM = (uint8_t*)mVecTriggers.data();
-    const auto& nPagesTCM = arrRdhTCMperOrbit[iOrbit].size();
-    for (int iPage = 0; iPage < nPagesTCM; iPage++) {
-      const auto& rdhPtr = arrRdhTCMperOrbit[iOrbit][iPage];
-      const auto& payload = arrDataTCMperOrbit[iOrbit][iPage].data();
-      const auto& payloadSize = arrDataTCMperOrbit[iOrbit][iPage].size();
-      const uint8_t* src = (uint8_t*)payload;
-      const auto nNGBTwords = payloadSize / 16;
-      const int nNGBTwordsDiff = nNGBTwords % 16;
-      const int nChunks = nNGBTwords / 16 + static_cast<int>(nNGBTwordsDiff > 0);
-      const auto lastChunk = nChunks - 1;
-      const uint16_t mask = (0xffff << (16 - nNGBTwordsDiff)) | (0xffff * (nNGBTwordsDiff == 0));
-      __m512i zmm_pos1 = _mm512_set_epi32(0, 16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, 240);
-      for (int iChunk = 0; iChunk < nChunks; iChunk++) {
-        __mmask16 mask16_MaxGBTwords = _mm512_int2mask((0xffff * (iChunk != lastChunk)) | mask);
-        __m512i zmm_mask_zero = _mm512_setzero_epi32();
-
-        __m512i zmm_src_header = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_MaxGBTwords, zmm_pos1, src + 9, 1);
-
-        __m512i zmm_mask_header = _mm512_set1_epi32(0xf1); // one GBT word + descriptor
-        // Header
-        __mmask16 mask16_header = _mm512_cmpeq_epi32_mask(zmm_src_header, zmm_mask_header);
-        // BC
-        __m512i zmm_bc = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_MaxGBTwords, zmm_pos1, src, 1);
-        __m512i zmm_mask_12bit = _mm512_set1_epi32(0xfff);
-
-        zmm_bc = _mm512_maskz_and_epi32(mask16_header, zmm_mask_12bit, zmm_bc);
-        // Position of first GBT word with data
-        __m512i zmm_pos2 = _mm512_set1_epi32(16);
-        zmm_pos2 = _mm512_maskz_add_epi32(mask16_header, zmm_pos1, zmm_pos2);
-
-        __m512i zmm_src_part0 = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_header, zmm_pos2, src, 1);
-        __m512i zmm_src_part1 = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_header, zmm_pos2, src + 3, 1);
-        __m512i zmm_src_part2 = _mm512_mask_i32gather_epi32(zmm_mask_zero, mask16_header, zmm_pos2, src + 7, 1);
-        // Trigger bits + NchanA + NchanC
-        __m512i zmm_mask_3byte = _mm512_set1_epi32(0xffffff);
-        __m512i zmm_dst_part0 = _mm512_and_epi32(zmm_src_part0, zmm_mask_3byte);
-        // Sum AmpA
-        __m512i zmm_mask_17bit = _mm512_set1_epi32(0x1ffff);
-        __m512i zmm_dst_part1 = _mm512_and_epi32(zmm_src_part1, zmm_mask_17bit);
-        // Sum AmpC
-        __m512i zmm_dst_part2 = _mm512_srai_epi32(zmm_src_part1, 18);
-        __m512i zmm_mask_14bit = _mm512_set1_epi32(0b11111111111111);
-        zmm_dst_part2 = _mm512_and_epi32(zmm_mask_14bit, zmm_dst_part2);
-
-        __m512i zmm_buf = _mm512_slli_epi32(zmm_src_part2, 14);
-        __m512i zmm_mask_3bit = _mm512_set1_epi32(0b11100000000000);
-        zmm_buf = _mm512_and_epi32(zmm_mask_3bit, zmm_buf);
-        zmm_dst_part2 = _mm512_or_epi32(zmm_dst_part2, zmm_buf);
-        // Average time A + C
-        __m512i zmm_dst_part3 = _mm512_srai_epi32(zmm_src_part2, 4);
-        __m512i zmm_mask_9bit = _mm512_set1_epi32(0x1ff);
-        zmm_dst_part3 = _mm512_and_epi32(zmm_dst_part3, zmm_mask_9bit);
-
-        zmm_buf = _mm512_slli_epi32(zmm_src_part2, 2);
-        __m512i zmm_mask_9bit_2 = _mm512_set1_epi32(0x1ff0000);
-        zmm_buf = _mm512_and_epi32(zmm_buf, zmm_mask_9bit_2);
-
-        zmm_dst_part3 = _mm512_or_epi32(zmm_buf, zmm_dst_part3);
-        // Position
-        __m512i zmm_dst_pos = _mm512_slli_epi32(zmm_bc, 4);
-        // Pushing data to buffer
-        _mm512_mask_i32scatter_epi32(ptrDstTCM, mask16_header, zmm_dst_pos, zmm_dst_part0, 1);
-        _mm512_mask_i32scatter_epi32(ptrDstTCM + 4, mask16_header, zmm_dst_pos, zmm_dst_part1, 1);
-        _mm512_mask_i32scatter_epi32(ptrDstTCM + 8, mask16_header, zmm_dst_pos, zmm_dst_part2, 1);
-        _mm512_mask_i32scatter_epi32(ptrDstTCM + 12, mask16_header, zmm_dst_pos, zmm_dst_part3, 1);
-
-        zmm_buf = _mm512_set1_epi32(256);
-        zmm_pos1 = _mm512_add_epi32(zmm_buf, zmm_pos1);
-      } // chunk
-    }   // page
+      }   // page
+    }
     NChDataBC_t buf_nPosPerBC{};
     uint64_t nChPerBC{0};
     uint64_t nEventOrbit{0};
@@ -505,6 +506,11 @@ void FT0DataDecoderDPLSpec::run(ProcessingContext& pc)
     }     // link
     memcpy(&mVecChannelData[posChDataOrbit], mVecChannelDataBuf.data(), 6 * nChDataPerOrbit[iOrbit]);
   } // orbit
+  if (mEnableEmptyTFprotection && mVecDigits.size() == 0) {
+    // In case of empty payload within TF, there will be inly single dummy object in ChannelData container.
+    // Due to empty Digit container this dummy object will never participate in any further tasks.
+    mVecChannelData.emplace_back();
+  }
   pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mVecDigits);
   pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mVecChannelData);
   auto t2 = std::chrono::high_resolution_clock::now();
@@ -513,6 +519,3 @@ void FT0DataDecoderDPLSpec::run(ProcessingContext& pc)
 }
 } // namespace ft0
 } // namespace o2
-
-#endif
-#endif
