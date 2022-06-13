@@ -151,6 +151,9 @@ void RawReaderSpecs::init(o2f::InitContext& ic)
     hbfU.setValue("HBFUtils.startTime", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()));
     LOG(warning) << "Run start time is not provided via HBFUtils.startTime, will use now() = " << hbfU.startTime << " ms.";
   }
+  if (mRunNumber == 0 && hbfU.runNumber > 0) {
+    mRunNumber = hbfU.runNumber;
+  }
 }
 
 //___________________________________________________________
