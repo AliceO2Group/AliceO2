@@ -55,7 +55,6 @@ using RunStatus = o2::dcs::RunStatusChecker::RunStatus;
 class HMPIDDCSDataProcessor : public o2::framework::Task
 {
  public:
-
   void init(o2::framework::InitContext& ic) final
   {
     mCheckRunStartStop = ic.options().get<bool>("follow-hmpid-run");
@@ -76,13 +75,13 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
         vect.push_back(i.first);
       }
     } else {
-        LOG(info) << "Configuring via hardcoded strings";
-        std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
+      LOG(info) << "Configuring via hardcoded strings";
+      std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
 
-        for (const auto& i : expaliases) {
-          vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
-          // LOG(info) << i;
-        }
+      for (const auto& i : expaliases) {
+        vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
+        // LOG(info) << i;
+      }
 
     } // end else
 
@@ -94,14 +93,13 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
     mProcessor = std::make_unique<o2::hmpid::HMPIDDCSProcessor>();
     bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
     LOG(info) << " ************************* Verbose?" << useVerboseMode;
- 
+
     if (useVerboseMode) {
       mProcessor->useVerboseMode();
     }
     mProcessor->init(vect);
     mTimer = HighResClock::now();
   }
-
 
   //==========================================================================
 
@@ -136,7 +134,7 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
     mProcessor->setStartValidity(startValidity);
   }
 
-//==========================================================================
+  //==========================================================================
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
@@ -146,23 +144,21 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
     sendRefIndexOutput(ec.outputs());
   }
 
-//==========================================================================
-
-
+  //==========================================================================
 
  private:
   // fill CCDB with ChargeThresh (arQthre)
   void sendChargeThresOutput(o2::framework::DataAllocator& output)
   {
-  const auto& payload = mProcessor->getChargeCutObj();
-  auto& info = mProcessor->getHmpidChargeInfo();
+    const auto& payload = mProcessor->getChargeCutObj();
+    auto& info = mProcessor->getHmpidChargeInfo();
 
-  auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-  LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-            << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
-  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ChargeCut", 0}, *image.get());
-  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ChargeCut", 0}, info);
-}
+    auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+              << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ChargeCut", 0}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ChargeCut", 0}, info);
+  }
 
   // fill CCDB with RefIndex (arrMean)
   void sendRefIndexOutput(o2::framework::DataAllocator& output)
@@ -173,7 +169,7 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
 
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
     LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-            << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+              << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "RefIndex", 0}, *image.get());
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "RefIndex", 0}, info);
@@ -231,5 +227,3 @@ o2::framework::DataProcessorSpec getHMPIDDCSDataProcessorSpec()
 } // namespace o2
 
 #endif
-
-

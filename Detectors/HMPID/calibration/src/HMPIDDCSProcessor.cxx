@@ -202,12 +202,12 @@ void HMPIDDCSProcessor::fillHV(const DPCOM& dpcom)
       if (secNum < 6 && secNum >= 0) {
         dpVecHV[6 * chNum + secNum].push_back(dpcom);
       } else {
-        LOG(debug) << "Sector Number out of range for HV : " << secNum; 
+        LOG(debug) << "Sector Number out of range for HV : " << secNum;
       }
     } else {
       LOG(debug) << "Chamber Number out of range for HV : " << chNum;
     }
-  } else { 
+  } else {
     LOG(debug) << "Not correct datatype for HV DP";
   }
 }
@@ -329,10 +329,10 @@ double HMPIDDCSProcessor::procTrans()
     auto minTime = std::max({s1, s2, s3, s4, s5});
     auto maxTime = std::min({e1, e2, e3, e4, e5});
 
-    if (minTime < mTimeEMean.first){
+    if (minTime < mTimeEMean.first) {
       mTimeEMean.first = minTime;
     }
-    if (maxTime > mTimeEMean.last){
+    if (maxTime > mTimeEMean.last) {
       mTimeEMean.last = maxTime;
     }
 
@@ -751,8 +751,8 @@ int HMPIDDCSProcessor::aliasStringToInt(DPID dpid, std::size_t startIndex)
   char stringPos = inputString.at(startIndex);
   int charInt = ((int)stringPos) - ((int)'0');
   if (charInt < 10 && charInt >= 0) {
-    return charInt; 
-  } else { 
+    return charInt;
+  } else {
     return -1;
   }
 }
