@@ -224,8 +224,11 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       currSSpec = dh->subSpecification;
       if (!linksSeen) { // designate 1st link to register triggers
         link.extTrigVec = &mExtTriggers;
+      } else {
+        link.extTrigVec = nullptr;
       }
     }
+    linksSeen++;
     link.cacheData(it.raw(), RDHUtils::getMemorySize(rdh));
   }
 
