@@ -34,7 +34,7 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
 {
 
  public:
-  TRDDPLTrapSimulatorTask(bool useMC) : mUseMC(useMC) {}
+  TRDDPLTrapSimulatorTask(bool useMC, int digitDownscaling = 1) : mUseMC(useMC), mDigitDownscaling(digitDownscaling) {}
 
   void init(o2::framework::InitContext& ic) override;
   void run(o2::framework::ProcessingContext& pc) override;
@@ -43,6 +43,7 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
  private:
   TrapConfig* mTrapConfig{nullptr};
   int mRunNumber{297595}; // run number to anchor simulation to.
+  int mDigitDownscaling{1}; // only digits of every mDigitDownscaling-th trigger will be kept
   bool mUseFloatingPointForQ{false};
   bool mEnableOnlineGainCorrection{false};
   bool mUseMC{false}; // whether or not to use MC labels
@@ -58,7 +59,7 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   void processTRAPchips(int& nTracklets, std::vector<Tracklet64>& trackletsAccum, std::array<TrapSimulator, constants::NMCMHCMAX>& trapSimulators, std::vector<short>& digitCounts, std::vector<int>& digitIndices);
 };
 
-o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC);
+o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC, int digitDownscaling);
 
 } // end namespace trd
 } // end namespace o2

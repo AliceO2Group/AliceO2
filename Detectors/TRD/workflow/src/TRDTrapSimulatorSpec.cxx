@@ -191,6 +191,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   }
 
   // output
+  std::vector<Digit> digitsOut;                                    // in case downscaling is applied this vector keeps the digits which should not be removed
   std::vector<Tracklet64> tracklets;                               // calculated tracklets
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> lblTracklets; // MC labels for the tracklets, taken from the digits which make up the tracklet (duplicates are removed)
 
@@ -286,6 +287,14 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     }
     tracklets.insert(tracklets.end(), trackletsAccum[iTrig].begin(), trackletsAccum[iTrig].end());
     triggerRecords[iTrig].setTrackletRange(tracklets.size() - nTracklets[iTrig], nTracklets[iTrig]);
+    if ((iTrig % mDigitDownscaling) == 0) {
+      // we keep digits for this trigger
+      digitsOut.insert(digitsOut.end(), digits.begin() + triggerRecords[iTrig].getFirstDigit(), digits.begin() + triggerRecords[iTrig].getFirstDigit() + triggerRecords[iTrig].getNumberOfDigits());
+      triggerRecords[iTrig].setDigitRange(digitsOut.size() - triggerRecords[iTrig].getNumberOfDigits(), triggerRecords[iTrig].getNumberOfDigits());
+    } else {
+      // digits are not kept, we just need to update the trigger record
+      triggerRecords[iTrig].setDigitRange(digitsOut.size(), 0);
+    }
   }
 
   auto processingTime = std::chrono::high_resolution_clock::now() - timeProcessingStart;
@@ -300,6 +309,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 
   pc.outputs().snapshot(Output{"TRD", "TRACKLETS", 0, Lifetime::Timeframe}, tracklets);
   pc.outputs().snapshot(Output{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe}, triggerRecords);
+  pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, digitsOut);
   if (mUseMC) {
     pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}, lblTracklets);
   }
@@ -307,14 +317,15 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   LOG(debug) << "TRD Trap Simulator Device exiting";
 }
 
-o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC)
+o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC, int digitDownscaling)
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
 
-  inputs.emplace_back("digitinput", "TRD", "DIGITS", 0);
-  inputs.emplace_back("triggerrecords", "TRD", "TRGRDIG", 0);
+  inputs.emplace_back("digitinput", "TRD", "DIGITS", 1);
+  inputs.emplace_back("triggerrecords", "TRD", "TRKTRGRD", 1);
 
+  outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "TRACKLETS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
 
@@ -326,7 +337,7 @@ o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC)
   return DataProcessorSpec{"TRAP",
                            inputs,
                            outputs,
-                           AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>(useMC)},
+                           AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>(useMC, digitDownscaling)},
                            Options{
                              {"float-arithmetic", VariantType::Bool, false, {"Enable floating point calculation of the tracklet charges instead of using fixed multiplier"}},
                              {"trd-trapconfig", VariantType::String, "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549", {"TRAP config name"}},
