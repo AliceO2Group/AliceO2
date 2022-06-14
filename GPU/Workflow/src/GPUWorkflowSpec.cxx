@@ -588,6 +588,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
   mTFSettings->tfStartOrbit = dh->firstTForbit;
   mTFSettings->hasTfStartOrbit = 1;
+  if (mVerbosity) {
+    LOG(info) << "TF firstTFOrbit " << mTFSettings->tfStartOrbit << " nHBF " << mTFSettings->nHBFPerTF << " runStartOrbit " << mTFSettings->runStartOrbit << " simStartOrbit " << mTFSettings->simStartOrbit;
+  }
   ptrs.settingsTF = mTFSettings.get();
 
   if (mTPCSectorMask != 0xFFFFFFFFF) {
