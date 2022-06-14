@@ -40,7 +40,7 @@ using namespace o2::event_visualisation;
 
 struct TrackTimeNode {
   GID trackGID;
-  float trackTime;
+  unsigned int trackTime;
 };
 
 void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
@@ -104,10 +104,13 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
     return false;
   };
 
-  auto creator = [maskTrk, this, &correctTrackTime, &isInsideITSROF, &trackTimeNodes](auto& trk, GID gid, float time, float terr) {
-    mTotalTracks[gid.getSource()]++;
+  static constexpr int TIME_OFFSET = 23000; // max TF time
 
-    if (!maskTrk[gid.getSource()]) {
+  auto creator = [maskTrk, this, &correctTrackTime, &isInsideITSROF, &trackTimeNodes](auto& trk, GID gid, float time, float terr) {
+    const auto src = gid.getSource();
+    mTotalTracks[src]++;
+
+    if (!maskTrk[src]) {
       return true;
     }
 
@@ -123,7 +126,13 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
 
     TrackTimeNode node;
     node.trackGID = gid;
-    node.trackTime = bracket.mean();
+    node.trackTime = static_cast<int>(bracket.mean()) + TIME_OFFSET; // offset the time so it's always positive
+
+    // if it's a tracklet, give it a lower priority in time sort by setting the highest bit
+    if (src <= GID::MID) {
+      node.trackTime |= (1 << 31);
+    }
+
     trackTimeNodes.push_back(node);
 
     return true;
@@ -134,7 +143,7 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
   if (trackSorting) {
     std::sort(trackTimeNodes.begin(), trackTimeNodes.end(),
               [](TrackTimeNode a, TrackTimeNode b) {
-                return a.trackTime > b.trackTime;
+                return a.trackTime < b.trackTime;
               });
   }
 
@@ -145,7 +154,9 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
 
   for (auto node : gsl::span<const TrackTimeNode>(trackTimeNodes.data(), trackCount)) {
     mTrackSet.trackGID.push_back(node.trackGID);
-    mTrackSet.trackTime.push_back(node.trackTime);
+    // return the time value to its original form
+    const auto origTime = static_cast<float>(static_cast<int>(node.trackTime & ~(1 << 31)) - TIME_OFFSET);
+    mTrackSet.trackTime.push_back(origTime);
   }
 }
 
