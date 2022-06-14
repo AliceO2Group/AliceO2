@@ -35,7 +35,7 @@ void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
   mOutputDir = o2::utils::Str::rectifyDirectory(mOutputDir);
   mMetaFileDir = ic.options().get<std::string>("meta-output-dir");
   mMetaFileDir = o2::utils::Str::rectifyDirectory(mMetaFileDir);
-  LOG(error) << "Meta dir=" << mMetaFileDir;
+  LOG(info) << "Meta dir=" << mMetaFileDir;
 
   mPtMin = ic.options().get<float>("ptminmgg");
   mEminHGTime = ic.options().get<float>("eminhgtime");
