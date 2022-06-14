@@ -692,7 +692,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     }
   }
 
-  LOG(info) << "found " << ptrs.nOutputTracksTPCO2 << " track(s)";
+  if (mConfig->configWorkflow.outputs.isSet(GPUDataTypes::InOutType::TPCMergedTracks)) {
+    LOG(info) << "found " << ptrs.nOutputTracksTPCO2 << " track(s)";
+  }
 
   if (mSpecConfig.outputCompClusters) {
     CompressedClustersROOT compressedClusters = *ptrs.tpcCompressedClusters;
