@@ -23,7 +23,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options{
     ConfigParamSpec{"runmft", VariantType::Bool, false, {"source detector is MFT (default ITS)"}},
-    ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+    ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    ConfigParamSpec{"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -37,11 +38,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec wf;
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-
+  bool selIR = cfgc.options().get<bool>("select-ir-frames");
   if (cfgc.options().get<bool>("runmft")) {
-    wf.emplace_back(o2::itsmft::getEntropyEncoderSpec("MFT"));
+    wf.emplace_back(o2::itsmft::getEntropyEncoderSpec("MFT", selIR));
   } else {
-    wf.emplace_back(o2::itsmft::getEntropyEncoderSpec("ITS"));
+    wf.emplace_back(o2::itsmft::getEntropyEncoderSpec("ITS", selIR));
   }
   return wf;
 }

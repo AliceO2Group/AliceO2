@@ -21,6 +21,7 @@
 #include <TTree.h>
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/NameConf.h"
+#include "CommonUtils/IRFrameSelector.h"
 #include "DetectorsCommonDataFormats/CTFDictHeader.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "DetectorsCommonDataFormats/CTFIOSize.h"
@@ -114,6 +115,8 @@ class CTFCoderBase
 
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
 
+  o2::utils::IRFrameSelector& getIRFramesSelector() { return mIRFrameSelector; }
+
  protected:
   std::string getPrefix() const { return o2::utils::Str::concat_string(mDet.getName(), "_CTF: "); }
 
@@ -122,6 +125,7 @@ class CTFCoderBase
   std::vector<std::shared_ptr<void>> mCoders; // encoders/decoders
   DetID mDet;
   CTFDictHeader mExtHeader;      // external dictionary header
+  o2::utils::IRFrameSelector mIRFrameSelector; // optional IR frames selector
   float mMemMarginFactor = 1.0f; // factor for memory allocation in EncodedBlocks
   bool mLoadDictFromCCDB{true};
   OpType mOpType; // Encoder or Decoder
