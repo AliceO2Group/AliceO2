@@ -176,7 +176,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
         time_t now = time(nullptr);
         auto ltm = gmtime(&now);
         context.lhcPeriod = months[ltm->tm_mon];
-        LOG(warning) << "LHCPeriod is not available, using current month " << context.lhcPeriod;
+        LOG(info) << "LHCPeriod is not available, using current month " << context.lhcPeriod;
       }
 
       auto extRunType = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("run_type", "unspecified");
