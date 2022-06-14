@@ -92,9 +92,14 @@ void GPUChainTracking::DumpData(const char* filename)
       const char* ptrs[NSLICES];
       size_t sizes[NSLICES];
       for (unsigned int i = 0; i < NSLICES; i++) {
-        const auto& buffer = mIOPtrs.tpcPackedDigits->tpcDigitsMC->v[i]->getBuffer();
-        ptrs[i] = buffer.data();
-        sizes[i] = buffer.size();
+        if (mIOPtrs.tpcPackedDigits->tpcDigitsMC->v[i]) {
+          const auto& buffer = mIOPtrs.tpcPackedDigits->tpcDigitsMC->v[i]->getBuffer();
+          ptrs[i] = buffer.data();
+          sizes[i] = buffer.size();
+        } else {
+          ptrs[i] = nullptr;
+          sizes[i] = 0;
+        }
       }
       DumpData(fp, ptrs, sizes, InOutPointerType::TPC_DIGIT_MC);
     }
