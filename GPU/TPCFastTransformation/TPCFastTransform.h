@@ -26,6 +26,10 @@
 #include <string>
 #endif // !GPUCA_GPUCODE
 
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#include "TPCSpaceCharge/SpaceCharge.h"
+#endif
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -204,6 +208,21 @@ class TPCFastTransform : public FlatObject
 
   static TPCFastTransform* loadFromFile(std::string inpFName = "", std::string name = "");
 
+  /// setting the reference corrections
+  /// \tparam DataTIn data type of the corrections on the root file (float or double)
+  template <typename DataTIn = double>
+  void setSlowTPCSCCorrection(TFile& inpf)
+  {
+    // mCorrectionSlow = new o2::tpc::SpaceCharge<float>;
+    mCorrectionSlow = std::make_unique<o2::tpc::SpaceCharge<float>>();
+    mCorrectionSlow->setGlobalCorrectionsFromFile<DataTIn>(inpf, o2::tpc::Side::A);
+    mCorrectionSlow->setGlobalCorrectionsFromFile<DataTIn>(inpf, o2::tpc::Side::C);
+    mUseSlowCorrection = true;
+  }
+
+  /// \return returns the space charge object which is used for the slow correction
+  const auto& getCorrectionSlow() const { return *mCorrectionSlow; }
+
 #endif // !GPUCA_GPUCODE
 
   /// Print method
@@ -253,6 +272,14 @@ class TPCFastTransform : public FlatObject
   float mTOFcorr;
 
   float mPrimVtxZ; ///< Z of the primary vertex, needed for the Time-Of-Flight correction
+
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+  /// Note: if this is defined above, it will give errors during the GPU reconstruction?!
+  /// Correction of (x,u,v) with tricubic interpolator on a regular grid
+  std::unique_ptr<o2::tpc::SpaceCharge<float>> mCorrectionSlow; ///<! reference space charge corrections
+  bool mUseSlowCorrection{false};                               ///<! flag whether to use the slow correction
+#endif
+
 #ifndef GPUCA_ALIROOT_LIB
   ClassDefNV(TPCFastTransform, 1);
 #endif
@@ -370,7 +397,35 @@ GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float ti
 
   if (mApplyCorrection) {
     float dx, du, dv;
-    mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
+
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+    if (!mUseSlowCorrection) {
+#endif
+      mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+    } else {
+      float ly, lz;
+      getGeometry().convUVtoLocal(slice, u, v, ly, lz);
+      float dzTOF = 0;
+      getTOFcorrection(slice, row, x, ly, lz, dzTOF);
+      z += dzTOF;
+
+      float gx, gy, gz;
+      getGeometry().convLocalToGlobal(slice, x, ly, lz, gx, gy, gz);
+
+      float gdxC, gdyC, gdzC;
+      const o2::tpc::Side side = (slice < getGeometry().getNumberOfSlicesA()) ? o2::tpc::Side::A : o2::tpc::Side::C;
+      mCorrectionSlow->getCorrections(gx, gy, gz, side, gdxC, gdyC, gdzC);
+      getGeometry().convGlobalToLocal(slice, gdxC, gdyC, gdzC, dx, du, dv);
+
+      if (slice >= 18) {
+        du = -du; // mirror for c-Side
+      } else {
+        dv = -dv; // mirror z for A-Side
+      }
+    }
+#endif
+
     x += dx;
     u += du;
     v += dv;

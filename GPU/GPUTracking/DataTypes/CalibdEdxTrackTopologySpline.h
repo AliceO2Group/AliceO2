@@ -74,7 +74,7 @@ class CalibdEdxTrackTopologySpline : public o2::gpu::FlatObject
 
 #if !defined(GPUCA_GPUCODE)
   /// Default constructor
-  CalibdEdxTrackTopologySpline();
+  CalibdEdxTrackTopologySpline() CON_DEFAULT;
 
   /// constructor with initialization of the splines from file
   /// \param dEdxSplinesFile path to root file containing the splines

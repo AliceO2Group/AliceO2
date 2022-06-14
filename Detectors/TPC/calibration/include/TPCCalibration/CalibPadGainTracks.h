@@ -21,7 +21,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "TPCBase/CalDet.h"
 #include "TPCCalibration/CalibPadGainTracksBase.h"
-#include "DataFormatsTPC/CalibdEdxTrackTopologyPol.h"
+#include "CalibdEdxTrackTopologyPol.h"
 #include "TPCFastTransform.h"
 
 #include <vector>

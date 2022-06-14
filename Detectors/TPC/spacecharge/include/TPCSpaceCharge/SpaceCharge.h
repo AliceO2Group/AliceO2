@@ -901,7 +901,7 @@ class SpaceCharge
 
  private:
   inline static auto& mParamGrid = ParameterSpaceCharge::Instance(); ///< parameters of the grid on which the calculations are performed
-  inline static int sNThreads{omp_get_max_threads()};                ///< number of threads which are used during the calculations
+  inline static int sNThreads{TriCubic::getOMPMaxThreads()};         ///< number of threads which are used during the calculations
 
   /// check if the addition of two values are close to zero.
   /// This avoids errors during the integration of the electric fields when the sum of the nominal electric with the electric field from the space charge is close to 0 (usually this is not the case!).

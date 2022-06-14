@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsTPC/CalibdEdxTrackTopologyPol.h"
+#include "CalibdEdxTrackTopologyPol.h"
 
 #if !defined(GPUCA_GPUCODE) // code invisible on GPU and in the standalone compilation
 #include <cstddef>

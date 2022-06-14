@@ -47,6 +47,7 @@ o2_add_library(TPCCalibration
                                      Microsoft.GSL::GSL
                                      O2::DetectorsCalibration
                                      O2::GPUO2Interface
+                                     O2::GPUTracking
                                      O2::CCDB)
 
 o2_target_root_dictionary(TPCCalibration
