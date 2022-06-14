@@ -331,7 +331,7 @@ void TrackerDPL::run(ProcessingContext& pc)
         allTracks.emplace_back(trc);
       }
     }
-    LOGP(info, "ITSTracker pushed {} and {} vertices", allTracks.size(), vertices.size());
+    LOGP(info, "ITSTracker pushed {} tracks and {} vertices", allTracks.size(), vertices.size());
     if (mIsMC) {
       LOGP(info, "ITSTracker pushed {} track labels", allTrackLabels.size());
       pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
