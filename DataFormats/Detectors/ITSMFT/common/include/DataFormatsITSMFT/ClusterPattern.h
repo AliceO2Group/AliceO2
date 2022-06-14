@@ -65,6 +65,14 @@ class ClusterPattern
     pattIt += nBytes;
   }
 
+  template <class iterator>
+  static void skipPattern(iterator& pattIt)
+  {
+    unsigned char b0 = *pattIt++, b1 = *pattIt++;
+    int nbits = b0 * b1;
+    pattIt += nbits / 8 + (((nbits) % 8) != 0);
+  }
+
   /// Constructor from cluster patterns
   template <class iterator>
   ClusterPattern(iterator& pattIt)
