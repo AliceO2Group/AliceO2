@@ -207,7 +207,7 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
   }
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(gDataOriginTPC, "TRACKGAINHISTOS", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(gDataOriginTPC, "TRACKGAINHISTOS", 0, o2::framework::Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "calib-tpc-gainmap-tracks",
