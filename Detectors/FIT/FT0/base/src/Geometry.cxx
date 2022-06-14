@@ -8,6 +8,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
 #include "FT0Base/Geometry.h"
 #include "TSystem.h"
 #include "Framework/Logger.h"
@@ -31,16 +32,20 @@ Geometry::Geometry() : mMCP{{0, 0, 0}}
 
 void Geometry::setAsideModules()
 {
-  Float_t mPosModuleAx[Geometry::NCellsA] = {-12.2, -6.1, 0, 6.1, 12.2, -12.2, -6.1, 0,
-                                             6.1, 12.2, -13.3743, -7.274299999999999,
-                                             7.274299999999999, 13.3743, -12.2, -6.1, 0,
-                                             6.1, 12.2, -12.2, -6.1, 0, 6.1, 12.2};
+  //These are coordinate positions for the sensitive elements within the FIT mother volume
+  //measured from the CAD drawings.  The positive/negative X values are referenced
+  //from the back side of the frame lookinmg toward the interaction point
+  Float_t mPosModuleAx[Geometry::NCellsA] = {-12.25, -6.15, -0.05, 6.15, 12.25,
+                                             -12.25, -6.15, -0.05, 6.15, 12.25,
+                                             -13.58, -7.48, 7.48, 13.58,
+                                             -12.25, -6.15, 0.05, 6.15, 12.25,
+                                             -12.25, -6.15, 0.05, 6.15, 12.25};
 
-  Float_t mPosModuleAy[Geometry::NCellsA] = {12.2, 12.2, 13.53, 12.2, 12.2, 6.1, 6.1,
-                                             7.43, 6.1, 6.1, 0, 0, 0, 0, -6.1, -6.1,
-                                             -7.43, -6.1, -6.1, -12.2, -12.2, -13.53,
-                                             -12.2, -12.2};
-
+  Float_t mPosModuleAy[Geometry::NCellsA] = {12.2, 12.2, 13.53, 12.2, 12.2,
+                                             6.1, 6.1, 7.43, 6.1, 6.1,
+                                             0.0, 0.0, 0.0, 0.0,
+                                             -6.1, -6.1, -7.43, -6.1, -6.1,
+                                             -12.2, -12.2, -13.53, -12.2, -12.2};
   // A side Translations
   for (Int_t ipmt = 0; ipmt < NCellsA; ipmt++) {
     mMCP[ipmt].SetXYZ(mPosModuleAx[ipmt], mPosModuleAy[ipmt], ZdetA);
