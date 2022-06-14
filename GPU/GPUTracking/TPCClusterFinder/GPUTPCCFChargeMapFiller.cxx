@@ -97,16 +97,12 @@ GPUd() size_t GPUTPCCFChargeMapFiller::findTransition(int time, const tpc::Digit
   }
   size_t upper = nDigits - 1;
 
-  while (lower <= upper) {
+  while (lower < upper) {
     size_t middle = (lower + upper) / 2;
-
-    if (middle == 0) {
-      return 0;
-    }
 
     if (digits[middle].getTimeStamp() < time) {
       lower = middle + 1;
-    } else if (digits[middle - 1].getTimeStamp() < time) {
+    } else if (middle == lower || digits[middle - 1].getTimeStamp() < time) {
       return middle;
     } else {
       upper = middle - 1;
