@@ -37,8 +37,6 @@ class SpatialPhotonResponse
   SpatialPhotonResponse() = default;
 
   void addPhoton(double x, double y, int nphotons);
-  // Adds photon to the image (as addPhoton does) but it takes pixel coordinates as arguments.
-  void addPhotonByPixel(int xpixel, int ypixel, int nphotons);
   // void exportToPNG() const;
   void printToScreen() const;
   void reset();
