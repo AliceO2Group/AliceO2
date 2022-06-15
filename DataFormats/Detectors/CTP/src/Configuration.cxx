@@ -172,7 +172,7 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
         break;
       }
       bcmask.name = tokens[1];
-      for(int i = 2; i < tokens.size(); i++) {
+      for (int i = 2; i < tokens.size(); i++) {
         bcmask.mask = tokens[i] = " ";
       }
       bool coded = tokens[2].find("L") != std::string::npos;
@@ -253,7 +253,7 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
     }
     case CLASS: {
       // add to the last cluster
-      if(tokens.size() < 3) {
+      if (tokens.size() < 3) {
         LOG(error) << "CTPClass: less than 3 items in class:" << line;
         break;
       }
@@ -443,30 +443,30 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
   scalrec.epochTime = time;
   std::vector<int> clslist = mActiveRuns[irun]->cfg.getTriggerClassList();
   for (auto const& cls : clslist) {
-    std::string cmb = "clamb" + std::to_string(cls+1);
-    std::string cma = "clama" + std::to_string(cls+1);
-    std::string c0b = "cla0b" + std::to_string(cls+1);
-    std::string c0a = "cla0a" + std::to_string(cls+1);
-    std::string c1b = "cla1b" + std::to_string(cls+1);
-    std::string c1a = "cla1a" + std::to_string(cls+1);
+    std::string cmb = "clamb" + std::to_string(cls + 1);
+    std::string cma = "clama" + std::to_string(cls + 1);
+    std::string c0b = "cla0b" + std::to_string(cls + 1);
+    std::string c0a = "cla0a" + std::to_string(cls + 1);
+    std::string c1b = "cla1b" + std::to_string(cls + 1);
+    std::string c1a = "cla1a" + std::to_string(cls + 1);
     CTPScalerRaw scalraw;
     scalraw.classIndex = (uint32_t)cls;
-    //std::cout << "cls:" << cls << " " << scalraw.classIndex << std::endl;
+    // std::cout << "cls:" << cls << " " << scalraw.classIndex << std::endl;
     scalraw.lmBefore = mCounters[mScalerName2Position[cmb]];
     scalraw.lmAfter = mCounters[mScalerName2Position[cma]];
     scalraw.l0Before = mCounters[mScalerName2Position[c0b]];
     scalraw.l0After = mCounters[mScalerName2Position[c0a]];
     scalraw.l1Before = mCounters[mScalerName2Position[c1b]];
     scalraw.l1After = mCounters[mScalerName2Position[c1a]];
-    //std::cout << "positions:" << cmb << " " <<  mScalerName2Position[cmb] << std::endl;
-    //std::cout << "positions:" << cma << " " <<  mScalerName2Position[cma] << std::endl;
+    // std::cout << "positions:" << cmb << " " <<  mScalerName2Position[cmb] << std::endl;
+    // std::cout << "positions:" << cma << " " <<  mScalerName2Position[cma] << std::endl;
     scalrec.scalers.push_back(scalraw);
   }
   scalrec.intRecord.orbit = mCounters[mScalerName2Position[orb]];
   scalrec.intRecord.bc = 0;
   mActiveRuns[irun]->scalers.addScalerRacordRaw(scalrec);
   LOG(info) << "Adding scalers for orbit:" << scalrec.intRecord.orbit;
-  //scalrec.printStream(std::cout);
+  // scalrec.printStream(std::cout);
   printCounters();
   return 0;
 }
@@ -649,76 +649,76 @@ void CTPRunManager::printCounters()
   int NINPS = 48;
   int NCLKFP = 7;
   int NLTG_start = NRUNS;
-  int NCLKFP_start = NLTG_start + NDET*32;
-  int NINPS_start = NCLKFP_start + 7; 
+  int NCLKFP_start = NLTG_start + NDET * 32;
+  int NINPS_start = NCLKFP_start + 7;
   int NCLS_start = NINPS_start + NINPS;
   std::cout << "====> CTP counters:" << std::endl;
   std::cout << "RUNS:" << std::endl;
   int ipos = 0;
-  for(int i = 0; i < NRUNS; i++) {
+  for (int i = 0; i < NRUNS; i++) {
     std::cout << ipos << ":" << mCounters[i] << " ";
     ipos++;
   }
   std::cout << std::endl;
-  for(int i = 0; i < NDET; i++) {
-    std::cout << "LTG" << i+1 << std::endl;
-    for(int j = NLTG_start + i*32; j < NLTG_start+ (i+1)*32; j++) {
+  for (int i = 0; i < NDET; i++) {
+    std::cout << "LTG" << i + 1 << std::endl;
+    for (int j = NLTG_start + i * 32; j < NLTG_start + (i + 1) * 32; j++) {
       std::cout << ipos << ":" << mCounters[j] << " ";
       ipos++;
     }
     std::cout << std::endl;
   }
   std::cout << "BC40,BC240,Orbit,pulser, fastlm, busy,spare" << std::endl;
-  for(int i = NCLKFP_start; i < NCLKFP_start+7; i ++ ) {
-        std::cout << ipos << ":" << mCounters[i] << " ";
-        ipos++;
+  for (int i = NCLKFP_start; i < NCLKFP_start + 7; i++) {
+    std::cout << ipos << ":" << mCounters[i] << " ";
+    ipos++;
   }
   std::cout << std::endl;
   std::cout << "INPUTS:" << std::endl;
-  for(int i = NINPS_start; i <  NINPS_start + NINPS; i++ ){
+  for (int i = NINPS_start; i < NINPS_start + NINPS; i++) {
     std::cout << ipos << ":" << mCounters[i] << " ";
     ipos++;
   }
   std::cout << std::endl;
   std::cout << "CLASS M Before" << std::endl;
-  for(int i = NCLS_start; i < NCLS_start + 64 ; i++) {
+  for (int i = NCLS_start; i < NCLS_start + 64; i++) {
     std::cout << ipos << ":" << mCounters[i] << " ";
     ipos++;
   }
   std::cout << std::endl;
   std::cout << "CLASS M After" << std::endl;
-  for(int i = NCLS_start + 64; i < NCLS_start + 2*64 ; i++) {
+  for (int i = NCLS_start + 64; i < NCLS_start + 2 * 64; i++) {
     std::cout << ipos << ":" << mCounters[i] << " ";
     ipos++;
   }
   std::cout << std::endl;
   std::cout << "CLASS 0 Before" << std::endl;
-  for(int i = NCLS_start + 2*64; i < NCLS_start + 3*64 ; i++) {
+  for (int i = NCLS_start + 2 * 64; i < NCLS_start + 3 * 64; i++) {
     std::cout << ipos << ":" << mCounters[i] << " ";
     ipos++;
   }
   std::cout << std::endl;
   std::cout << "CLASS 0 After" << std::endl;
-  for(int i = NCLS_start + 3*64; i < NCLS_start + 4*64 ; i++) {
+  for (int i = NCLS_start + 3 * 64; i < NCLS_start + 4 * 64; i++) {
     std::cout << ipos << ":" << mCounters[i] << " ";
     ipos++;
   }
   std::cout << std::endl;
   std::cout << "CLASS 1 Before" << std::endl;
-  for(int i = NCLS_start + 4*64; i < NCLS_start + 5*64 ; i++) {
+  for (int i = NCLS_start + 4 * 64; i < NCLS_start + 5 * 64; i++) {
     std::cout << ipos << ":" << mCounters[i] << " ";
     ipos++;
   }
   std::cout << std::endl;
   std::cout << "CLASS 1 After" << std::endl;
-  for(int i = NCLS_start + 5*64; i < NCLS_start + 6*64 ; i++) {
+  for (int i = NCLS_start + 5 * 64; i < NCLS_start + 6 * 64; i++) {
     std::cout << ipos << ":" << mCounters[i] << " ";
     ipos++;
   }
   std::cout << std::endl;
   std::cout << " REST:" << std::endl;
-  for(int i = NCLS_start + 6*64; i < mCounters.size(); i++ ) {
-    if((ipos % 10) == 0) {
+  for (int i = NCLS_start + 6 * 64; i < mCounters.size(); i++) {
+    if ((ipos % 10) == 0) {
       std::cout << std::endl;
       std::cout << ipos << ":";
     }
