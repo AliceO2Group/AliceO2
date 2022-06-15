@@ -57,20 +57,20 @@ struct CTPScalerO2 {
 struct CTPScalerRecordRaw {
   CTPScalerRecordRaw() = default;
   o2::InteractionRecord intRecord;
-  uint64_t epochTime;
+  double_t epochTime;
   std::vector<CTPScalerRaw> scalers;
   std::vector<uint32_t> scalersDets;
   void printStream(std::ostream& stream) const;
-  ClassDefNV(CTPScalerRecordRaw, 2);
+  ClassDefNV(CTPScalerRecordRaw, 3);
 };
 struct CTPScalerRecordO2 {
   CTPScalerRecordO2() = default;
   o2::InteractionRecord intRecord;
-  uint64_t epochTime;
+  double_t epochTime;
   std::vector<CTPScalerO2> scalers;
   std::vector<uint64_t> scalersDets;
   void printStream(std::ostream& stream) const;
-  ClassDefNV(CTPScalerRecordO2, 2);
+  ClassDefNV(CTPScalerRecordO2, 3);
 };
 class CTPRunScalers
 {
@@ -86,6 +86,7 @@ class CTPRunScalers
   void setClassMask(std::bitset<CTP_NCLASSES> classMask) { mClassMask = classMask; };
   void setRunNumber(uint32_t rnumber) { mRunNumber = rnumber; };
   void addScalerRacordRaw(CTPScalerRecordRaw& scalerrecordraw) { mScalerRecordRaw.push_back(scalerrecordraw); };
+  int printRates();
   //
   // static constexpr uint32_t NCOUNTERS = 1052;
   static constexpr uint32_t NCOUNTERS = 1070;
