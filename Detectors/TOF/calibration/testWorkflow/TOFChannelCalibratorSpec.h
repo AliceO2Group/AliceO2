@@ -133,36 +133,25 @@ class TOFChannelCalibDevice : public o2::framework::Task
     auto tfcounter = mCalibrator->getCurrentTFInfo().tfCounter;
 
     if (mUseCCDB) { // read calibration objects from ccdb
-      LHCphase lhcPhaseObjTmp;
-      auto lhcPhase = pc.inputs().get<LHCphase*>("tofccdbLHCphase");
-      lhcPhaseObjTmp = std::move(*lhcPhase);
-      auto channelCalib = pc.inputs().get<TimeSlewing*>("tofccdbChannelCalib");
-      TimeSlewing channelCalibObjTmp = std::move(*channelCalib);
+      const auto lhcPhaseIn = pc.inputs().get<LHCphase*>("tofccdbLHCphase");
+      const auto channelCalibIn = pc.inputs().get<TimeSlewing*>("tofccdbChannelCalib");
 
-      mPhase = lhcPhaseObjTmp;
-      mTimeSlewing = channelCalibObjTmp;
-
-      startTimeLHCphase = mPhase.getStartValidity();
-      startTimeChCalib = mTimeSlewing.getStartValidity();
-    }
-
-    LOG(debug) << "startTimeLHCphase = " << startTimeLHCphase << ",  startTimeChCalib = " << startTimeChCalib;
-
-    if (!mcalibTOFapi) {
-      mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), &mPhase, &mTimeSlewing);
-
-      // checking if the existing object is too old. This check we can do only once, because any other update will be from the same run (--> not too old)
-      long timeNow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-      if ((timeNow - startTimeChCalib) > o2::ccdb::CcdbObjectInfo::DAY * 7) {
-        LOG(info) << "Enlarging the range of the booked histogram since the latest CCDB entry is too old";
-        mCalibrator->setRange(mRange * 10); // we enlarge the range for the calibration in case the last valid object is too old (older than 1 week)
+      if (!mcalibTOFapi) {
+        LHCphase* lhcPhase = new LHCphase(std::move(*lhcPhaseIn));
+        TimeSlewing* channelCalib = new TimeSlewing(std::move(*channelCalibIn));
+        mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib);
+      } else {
+        // if the calib objects were updated, we need to update the mcalibTOFapi
+        if (mUpdateCCDB) {
+          delete mcalibTOFapi;
+          LHCphase* lhcPhase = new LHCphase(*lhcPhaseIn);
+          TimeSlewing* channelCalib = new TimeSlewing(*channelCalibIn);
+          mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib);
+        }
       }
-    } else {
-      if (mUseCCDB && mUpdateCCDB) {
-        mcalibTOFapi->setLhcPhase(&mPhase);
-        mcalibTOFapi->setSlewParam(&mTimeSlewing);
-        mCalibrator->setRange(mRange);                                                                               // let's restrict the range since we received an updated calibration
-        mCalibrator->getSlot(mCalibrator->getNSlots() - 1).getContainer()->resetAndReRange(mCalibrator->getRange()); // we also empty the existing slot to update its range; the loss in statistics will be minimal
+    } else { // we use "fake" initial calibrations
+      if (!mcalibTOFapi) {
+        mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), &mPhase, &mTimeSlewing);
       }
     }
 

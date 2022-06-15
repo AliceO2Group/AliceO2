@@ -447,7 +447,7 @@ void GPUDisplayBackendVulkan::createDevice()
   vk::FormatProperties depth32FormatProperties = mPhysicalDevice.getFormatProperties(vk::Format::eD32Sfloat);
   vk::FormatProperties depth64FormatProperties = mPhysicalDevice.getFormatProperties(vk::Format::eD32SfloatS8Uint);
   vk::FormatProperties formatProperties = mPhysicalDevice.getFormatProperties(mSurfaceFormat.format);
-  GPUInfo("Using physicak Vulkan device %s", deviceProperties.deviceName.data());
+  GPUInfo("Using physical Vulkan device %s", deviceProperties.deviceName.data());
   mMaxMSAAsupported = getMaxUsableSampleCount(deviceProperties);
   mZSupported = (bool)(depth32FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
   mStencilSupported = (bool)(depth64FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
@@ -1484,7 +1484,7 @@ void GPUDisplayBackendVulkan::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
       vk::Fence fen = VkFence(VK_NULL_HANDLE);
       vk::Semaphore sem = VkSemaphore(VK_NULL_HANDLE);
       if (mCommandBufferPerImage) {
-        fen = VkFence(mInFlightFence[mCurrentFrame]);
+        fen = mInFlightFence[mCurrentFrame];
         CHKERR(mDevice.resetFences(1, &fen));
       } else {
         sem = mImageAvailableSemaphore[mCurrentFrame];

@@ -18,6 +18,8 @@
 #include "TOFBase/Geo.h"
 #include "DetectorsRaw/RDHUtils.h"
 
+#include "FairLogger.h"
+
 #include <cstring>
 #include <iostream>
 
@@ -73,7 +75,10 @@
 #define GET_DRMHEADW5_EVENTCRC(x) DRM_EVCRC(x)
 #define GET_DRMDATATRAILER_LOCEVCNT(x) DRM_LOCEVCNT(x)
 
-// TRM getter
+// LTM getters
+#define GET_LTMDATAHEADER_EVENTWORDS(x) LTM_EVENTSIZE(x)
+
+// TRM getters
 #define GET_TRMDATAHEADER_SLOTID(x) TOF_GETGEO(x)
 #define GET_TRMDATAHEADER_EVENTCNT(x) TRM_EVCNT_GH(x)
 #define GET_TRMDATAHEADER_EVENTWORDS(x) TRM_EVWORDS(x)
@@ -190,7 +195,12 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
   /** process DRM data **/
   mDecoderPointer = reinterpret_cast<const uint32_t*>(mDecoderSaveBuffer);
   mDecoderPointerMax = reinterpret_cast<const uint32_t*>(mDecoderSaveBuffer + mDecoderSaveBufferDataSize);
+  int nsteps = 0;
   while (mDecoderPointer < mDecoderPointerMax) {
+    nsteps++;
+    if (nsteps > 3 && !(nsteps % 4)) {
+      LOG(error) << "processHBF: nsteps in while loop = " << nsteps << ", infity loop?";
+    }
     mEventCounter++;
     if (processDRM()) {            // if this breaks, we did not run the checker and the summary is not reset!
       mDecoderSummary = {nullptr}; // reset it like this, perhaps a better way can be found
@@ -393,7 +403,12 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
   encoderNext();
 
   /** loop over DRM payload **/
+  int nsteps = 0;
   while (true) {
+    nsteps++;
+    if (nsteps > 19 && !(nsteps % 20)) {
+      LOG(error) << "processDRM: nsteps in while loop = " << nsteps << ", infity loop?";
+    }
 
     /** LTM global header detected **/
     if (IS_LTM_GLOBAL_HEADER(*mDecoderPointer)) {
@@ -419,19 +434,13 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
         printf(" %08x DRM Data Trailer      (locEvCnt=%d) \n", *mDecoderPointer, locEvCnt);
       }
       decoderNext();
-      if (paranoid && decoderParanoid()) {
-        return true;
-      }
 
       /** filler detected **/
-      if (IS_FILLER(*mDecoderPointer)) {
+      if ((mDecoderPointer < mDecoderPointerMax) && IS_FILLER(*mDecoderPointer)) {
         if (verbose && mDecoderVerbose) {
           printf(" %08x Filler \n", *mDecoderPointer);
         }
         decoderNext();
-        if (paranoid && decoderParanoid()) {
-          return true;
-        }
       }
 
       /** encode Crate Trailer **/
@@ -540,8 +549,15 @@ bool Compressor<RDH, verbose, paranoid>::processLTM()
 {
   /** process LTM **/
 
+  mDecoderSummary.ltmDataHeader = mDecoderPointer;
+  uint32_t eventWords = GET_LTMDATAHEADER_EVENTWORDS(*mDecoderPointer); // this is the total event size, including header/trailer
+  uint32_t payload = eventWords - 2;
   if (verbose && mDecoderVerbose) {
-    printf(" %08x LTM Global Header \n", *mDecoderPointer);
+    auto ltmDataHeader = reinterpret_cast<const raw::LTMDataHeader_t*>(mDecoderPointer);
+    auto eventWords = ltmDataHeader->eventWords;
+    auto cycloneErr = ltmDataHeader->cycloneErr;
+    auto fault = ltmDataHeader->cycloneErr;
+    printf(" %08x LTM Data Header       (eventWords=%d, cycloneErr=%d, fault=%d) \n", *mDecoderPointer, eventWords, cycloneErr, fault);
   }
   decoderNext();
   if (paranoid && decoderParanoid()) {
@@ -549,21 +565,21 @@ bool Compressor<RDH, verbose, paranoid>::processLTM()
   }
 
   /** loop over LTM payload **/
-  while (true) {
-    /** LTM global trailer detected **/
-    if (IS_LTM_GLOBAL_TRAILER(*mDecoderPointer)) {
-      if (verbose && mDecoderVerbose) {
-        printf(" %08x LTM Global Trailer \n", *mDecoderPointer);
-      }
-      decoderNext();
-      if (paranoid && decoderParanoid()) {
-        return true;
-      }
-      break;
-    }
-
+  for (int i = 0; i < payload; ++i) {
     if (verbose && mDecoderVerbose) {
-      printf(" %08x LTM data \n", *mDecoderPointer);
+      printf(" %08x LTM Data \n", *mDecoderPointer);
+    }
+    decoderNext();
+    if (paranoid && decoderParanoid()) {
+      return true;
+    }
+  }
+
+  /** LTM global trailer detected **/
+  if (IS_LTM_GLOBAL_TRAILER(*mDecoderPointer)) {
+    mDecoderSummary.ltmDataTrailer = mDecoderPointer;
+    if (verbose && mDecoderVerbose) {
+      printf(" %08x LTM Global Trailer \n", *mDecoderPointer);
     }
     decoderNext();
     if (paranoid && decoderParanoid()) {
@@ -596,7 +612,12 @@ bool Compressor<RDH, verbose, paranoid>::processTRM()
   }
 
   /** loop over TRM payload **/
+  int nsteps = 0;
   while (true) {
+    nsteps++;
+    if (nsteps > 19 && !(nsteps % 20)) {
+      LOG(error) << "processTRM: nsteps in while loop = " << nsteps << ", infity loop?";
+    }
 
     /** TRM Chain-A Header detected **/
     if (IS_TRM_CHAINA_HEADER(*mDecoderPointer) && GET_TRMCHAINHEADER_SLOTID(*mDecoderPointer) == slotId) {
@@ -686,7 +707,12 @@ bool Compressor<RDH, verbose, paranoid>::processTRMchain(int itrm, int ichain)
   }
 
   /** loop over TRM Chain payload **/
+  int nsteps = 0;
   while (true) {
+    nsteps++;
+    if (nsteps > 99 && !(nsteps % 100)) {
+      LOG(error) << "processTRMchain: nsteps in while loop = " << nsteps << ", infity loop?";
+    }
     /** TDC hit detected **/
     if (IS_TDC_HIT(*mDecoderPointer)) {
       mDecoderSummary.hasHits[itrm][ichain] = true;

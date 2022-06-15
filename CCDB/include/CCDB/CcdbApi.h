@@ -204,7 +204,7 @@ class CcdbApi //: public DatabaseInterface
    * @param timestamp The timestamp to select the object
    * @param id The id, if any, to select the object
    */
-  void updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id = "");
+  void updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id = "", long newEOV = 0);
 
   /**
    * Return the listing of objects, and in some cases subfolders, matching this path.
@@ -286,7 +286,7 @@ class CcdbApi //: public DatabaseInterface
    * @param cl The TClass object describing the serialized type
    * @return raw pointer to created object
    */
-  static void* extractFromTFile(TFile& file, TClass const* cl);
+  static void* extractFromTFile(TFile& file, TClass const* cl, const char* what = CCDBOBJECT_ENTRY);
 
   /** Get headers associated to a given CCDBEntry on the server.
    * @param url the url which refers to the objects
@@ -362,7 +362,7 @@ class CcdbApi //: public DatabaseInterface
 
  private:
   // report what file is read and for which purpose
-  void logReading(const std::string& fname, const std::string& comment) const;
+  void logReading(const std::string& path, long ts, const std::map<std::string, std::string>* headers, const std::string& comment) const;
 
   /**
    * Initialize in local mode; Objects will be retrieved from snapshot
@@ -458,8 +458,6 @@ class CcdbApi //: public DatabaseInterface
 
   // initialize the TGrid (Alien connection)
   bool initTGrid() const;
-  // checks if an alien token is available, required to make a TGrid connection
-  bool checkAlienToken() const;
 
   /// Queries the CCDB server and navigates through possible redirects until binary content is found; Retrieves content as instance
   /// given by tinfo if that is possible. Returns nullptr if something fails...
@@ -524,7 +522,7 @@ class CcdbApi //: public DatabaseInterface
   bool mPreferSnapshotCache = false; // if snapshot is available, don't try to query its validity even in non-snapshot backend mode
   bool mInSnapshotMode = false;
   mutable TGrid* mAlienInstance = nullptr;                       // a cached connection to TGrid (needed for Alien locations)
-  bool mHaveAlienToken = false;                                  // stores if an alien token is available
+  bool mNeedAlienToken = true;                                   // On EPN and FLP we use a local cache and don't need the alien token
   static std::unique_ptr<TJAlienCredentials> mJAlienCredentials; // access JAliEn credentials
 
   ClassDefNV(CcdbApi, 1);
@@ -546,9 +544,12 @@ typename std::enable_if<std::is_base_of<o2::conf::ConfigurableParam, T>::value, 
                                 const std::string& createdNotAfter, const std::string& createdNotBefore) const
 {
   auto obj = retrieveFromTFile(typeid(T), path, metadata, timestamp, headers, etag, createdNotAfter, createdNotBefore);
-  auto& param = const_cast<typename std::remove_const<T&>::type>(T::Instance());
-  param.syncCCDBandRegistry(obj);
-  return &param;
+  if (obj) {
+    auto& param = const_cast<typename std::remove_const<T&>::type>(T::Instance());
+    param.syncCCDBandRegistry(obj);
+    return &param;
+  }
+  return static_cast<T*>(obj);
 }
 
 } // namespace ccdb

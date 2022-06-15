@@ -229,8 +229,7 @@ void ResidualAggregator::finalizeSlot(Slot& slot)
   if (mStoreMetaData) {
     o2::dataformats::FileMetaData fileMetaData; // object with information for meta data file
     fileMetaData.fillFileData(mOutputDir + cont->fileName);
-    fileMetaData.run = cont->runNumber;
-    fileMetaData.LHCPeriod = mLHCPeriod;
+    fileMetaData.setDataTakingContext(mDataTakingContext);
     fileMetaData.type = "calib";
     fileMetaData.priority = "high";
     auto metaFileNameTmp = fmt::format("{}{}.tmp", mMetaOutputDir, cont->fileName);

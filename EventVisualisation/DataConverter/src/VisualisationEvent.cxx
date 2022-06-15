@@ -39,29 +39,33 @@ VisualisationEvent::GIDVisualisation VisualisationEvent::mVis = [] {
     if (filter == o2::event_visualisation::EVisualisationGroup::TPC) {
       res.contains[o2::dataformats::GlobalTrackID::TPC][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::ITSTPC][filter] = true;
-      res.contains[o2::dataformats::GlobalTrackID::ITSTPCTRD][filter] = true;
-      res.contains[o2::dataformats::GlobalTrackID::ITSTPCTRDTOF][filter] = true;
-      res.contains[o2::dataformats::GlobalTrackID::TPCTRD][filter] = true;
-      res.contains[o2::dataformats::GlobalTrackID::TPCTRDTOF][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::TPCTOF][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::TPCTRD][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::ITSTPCTRD][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::ITSTPCTOF][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::TPCTRDTOF][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::ITSTPCTRDTOF][filter] = true;
     }
     if (filter == o2::event_visualisation::EVisualisationGroup::ITS) {
       res.contains[o2::dataformats::GlobalTrackID::ITS][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::ITSTPC][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::ITSTPCTRD][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::ITSTPCTOF][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::ITSTPCTRDTOF][filter] = true;
     }
     if (filter == o2::event_visualisation::EVisualisationGroup::TRD) {
       res.contains[o2::dataformats::GlobalTrackID::TRD][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::TPCTRD][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::ITSTPCTRD][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::TPCTRDTOF][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::ITSTPCTRDTOF][filter] = true;
     }
     if (filter == o2::event_visualisation::EVisualisationGroup::TOF) {
-      res.contains[o2::dataformats::GlobalTrackID::ITSTPCTRDTOF][filter] = true;
-      res.contains[o2::dataformats::GlobalTrackID::TPCTRDTOF][filter] = true;
-      res.contains[o2::dataformats::GlobalTrackID::TPCTOF][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::TOF][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::TPCTOF][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::ITSTPCTOF][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::TPCTRDTOF][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::ITSTPCTRDTOF][filter] = true;
     }
     if (filter == o2::event_visualisation::EVisualisationGroup::MFT) {
       res.contains[o2::dataformats::GlobalTrackID::MFT][filter] = true;
@@ -71,11 +75,12 @@ VisualisationEvent::GIDVisualisation VisualisationEvent::mVis = [] {
     if (filter == o2::event_visualisation::EVisualisationGroup::MCH) {
       res.contains[o2::dataformats::GlobalTrackID::MCH][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::MFTMCH][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::MCHMID][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::MFTMCHMID][filter] = true;
     }
     if (filter == o2::event_visualisation::EVisualisationGroup::MID) {
-      res.contains[o2::dataformats::GlobalTrackID::MCH][filter] = true;
-      res.contains[o2::dataformats::GlobalTrackID::MFTMCH][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::MID][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::MCHMID][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::MFTMCHMID][filter] = true;
     }
     if (filter == o2::event_visualisation::EVisualisationGroup::EMC) {
@@ -99,6 +104,13 @@ VisualisationEvent::VisualisationEvent(VisualisationEventVO vo)
   this->mCollisionTime = vo.collisionTime;
   this->mMinTimeOfTracks = numeric_limits<float>::max();
   this->mMaxTimeOfTracks = numeric_limits<float>::min();
+}
+
+void VisualisationEvent::appendAnotherEventCalo(const VisualisationEvent& another)
+{
+  for (auto calo : another.getCalorimetersSpan()) {
+    this->mCalo.push_back(calo);
+  }
 }
 
 VisualisationEvent::VisualisationEvent(const VisualisationEvent& source, EVisualisationGroup filter, float minTime, float maxTime)

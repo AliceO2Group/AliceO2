@@ -15,17 +15,21 @@
 
 #include "ITStracking/TrackerTraits.h"
 
+#include <cassert>
+#include <iostream>
+
+#include <fmt/format.h>
+
 #include "CommonConstants/MathConstants.h"
+#include "DetectorsBase/Propagator.h"
+#include "GPUCommonMath.h"
 #include "ITStracking/Cell.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/Tracklet.h"
-#include <fmt/format.h>
 #include "ReconstructionDataFormats/Track.h"
-#include <cassert>
-#include <iostream>
 
-#include "GPUCommonMath.h"
+using o2::base::PropagatorF;
 
 namespace
 {
@@ -82,7 +86,7 @@ void TrackerTraits::computeLayerTracklets()
           const float zAtRmin{tanLambda * (tf->getMinR(iLayer + 1) - currentCluster.radius) + currentCluster.zCoordinate};
           const float zAtRmax{tanLambda * (tf->getMaxR(iLayer + 1) - currentCluster.radius) + currentCluster.zCoordinate};
 
-          const float sqInverseDeltaZ0{1.f / (Sq(currentCluster.zCoordinate - primaryVertex.getZ()) + 2.e-8f)}; ///protecting from overflows adding the detector resolution
+          const float sqInverseDeltaZ0{1.f / (Sq(currentCluster.zCoordinate - primaryVertex.getZ()) + 2.e-8f)}; /// protecting from overflows adding the detector resolution
           const float sigmaZ{std::sqrt(Sq(resolution) * Sq(tanLambda) * ((Sq(inverseR0) + sqInverseDeltaZ0) * Sq(meanDeltaR) + 1.f) + Sq(meanDeltaR * tf->getMSangle(iLayer)))};
 
           const int4 selectedBinsRect{getBinsRect(currentCluster, iLayer, zAtRmin, zAtRmax,
@@ -109,8 +113,8 @@ void TrackerTraits::computeLayerTracklets()
               const int firstBinIndex{tf->mIndexTableUtils.getBinIndex(selectedBinsRect.x, iPhiBin)};
               const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
               if constexpr (debugLevel) {
-                if (firstBinIndex < 0 || firstBinIndex > tf->getIndexTables(rof1)[iLayer].size() ||
-                    maxBinIndex < 0 || maxBinIndex > tf->getIndexTables(rof1)[iLayer].size()) {
+                if (firstBinIndex < 0 || firstBinIndex > tf->getIndexTables(rof1)[iLayer + 1].size() ||
+                    maxBinIndex < 0 || maxBinIndex > tf->getIndexTables(rof1)[iLayer + 1].size()) {
                   std::cout << iLayer << "\t" << iCluster << "\t" << zAtRmin << "\t" << zAtRmax << "\t" << sigmaZ * mTrkParams.NSigmaCut << "\t" << tf->getPhiCut(iLayer) << std::endl;
                   std::cout << currentCluster.zCoordinate << "\t" << primaryVertex.getZ() << "\t" << currentCluster.radius << std::endl;
                   std::cout << tf->getMinR(iLayer + 1) << "\t" << currentCluster.radius << "\t" << currentCluster.zCoordinate << std::endl;
@@ -118,8 +122,8 @@ void TrackerTraits::computeLayerTracklets()
                   exit(1);
                 }
               }
-              const int firstRowClusterIndex = tf->getIndexTables(rof1)[iLayer][firstBinIndex];
-              const int maxRowClusterIndex = tf->getIndexTables(rof1)[iLayer][maxBinIndex];
+              const int firstRowClusterIndex = tf->getIndexTables(rof1)[iLayer + 1][firstBinIndex];
+              const int maxRowClusterIndex = tf->getIndexTables(rof1)[iLayer + 1][maxBinIndex];
 
               for (int iNextCluster{firstRowClusterIndex}; iNextCluster < maxRowClusterIndex; ++iNextCluster) {
                 if (iNextCluster >= (int)layer1.size()) {
@@ -340,6 +344,124 @@ void TrackerTraits::refitTracks(const std::vector<std::vector<TrackingFrameInfo>
     clusters.push_back(mTimeFrame->getClusters()[iLayer].data());
   }
   mChainRunITSTrackFit(*mChain, mTimeFrame->getRoads(), clusters, cells, tf, tracks);
+}
+
+bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
+{
+  auto propInstance = o2::base::Propagator::Instance();
+  const int step = -1 + outward * 2;
+  const int end = outward ? mTrkParams.NLayers - 1 : 0;
+  std::vector<TrackITSExt> hypotheses(1, *track);
+  for (auto& hypo : hypotheses) {
+    int iLayer = outward ? track->getLastClusterLayer() : track->getFirstClusterLayer();
+    while (iLayer != end) {
+      iLayer += step;
+      const float& r = mTrkParams.LayerRadii[iLayer];
+      float x;
+      if (!hypo.getXatLabR(r, x, mTimeFrame->getBz(), o2::track::DirAuto)) {
+        continue;
+      }
+      bool success{false};
+      auto& hypoParam{outward ? hypo.getParamOut() : hypo.getParamIn()};
+      if (!propInstance->propagateToX(hypoParam, x, mTimeFrame->getBz(), PropagatorF::MAX_SIN_PHI,
+                                      PropagatorF::MAX_STEP, mTrkParams.CorrType)) {
+        continue;
+      }
+
+      if (mTrkParams.CorrType == PropagatorF::MatCorrType::USEMatCorrNONE) {
+        float radl = 9.36f; // Radiation length of Si [cm]
+        float rho = 2.33f;  // Density of Si [g/cm^3]
+        if (!hypoParam.correctForMaterial(mTrkParams.LayerxX0[iLayer], mTrkParams.LayerxX0[iLayer] * radl * rho, true)) {
+          continue;
+        }
+      }
+      const float phi{hypoParam.getPhi()};
+      const float ePhi{std::sqrt(hypoParam.getSigmaSnp2() / hypoParam.getCsp2())};
+      const float z{hypoParam.getZ()};
+      const float eZ{std::sqrt(hypoParam.getSigmaZ2())};
+      const int4 selectedBinsRect{getBinsRect(iLayer, phi, mTrkParams.NSigmaCut * ePhi, z, mTrkParams.NSigmaCut * eZ)};
+
+      if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
+        continue;
+      }
+
+      int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
+
+      if (phiBinsNum < 0) {
+        phiBinsNum += mTrkParams.PhiBins;
+      }
+
+      gsl::span<const Cluster> layer1 = mTimeFrame->getClustersOnLayer(rof, iLayer);
+      if (layer1.empty()) {
+        continue;
+      }
+
+      TrackITSExt currentHypo{hypo}, newHypo{hypo};
+      bool first{true};
+      for (int iPhiCount{0}; iPhiCount < phiBinsNum; iPhiCount++) {
+        int iPhiBin = (selectedBinsRect.y + iPhiCount) % mTrkParams.PhiBins;
+        const int firstBinIndex{mTimeFrame->mIndexTableUtils.getBinIndex(selectedBinsRect.x, iPhiBin)};
+        const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
+        const int firstRowClusterIndex = mTimeFrame->getIndexTables(rof)[iLayer][firstBinIndex];
+        const int maxRowClusterIndex = mTimeFrame->getIndexTables(rof)[iLayer][maxBinIndex];
+
+        for (int iNextCluster{firstRowClusterIndex}; iNextCluster < maxRowClusterIndex; ++iNextCluster) {
+          if (iNextCluster >= (int)layer1.size()) {
+            break;
+          }
+          const Cluster& nextCluster{layer1[iNextCluster]};
+
+          if (mTimeFrame->isClusterUsed(iLayer, nextCluster.clusterId)) {
+            continue;
+          }
+
+          const TrackingFrameInfo& trackingHit = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer).at(nextCluster.clusterId);
+
+          TrackITSExt& tbupdated = first ? hypo : newHypo;
+          auto& tbuParams = outward ? tbupdated.getParamOut() : tbupdated.getParamIn();
+          if (!tbuParams.rotate(trackingHit.alphaTrackingFrame)) {
+            continue;
+          }
+
+          if (!propInstance->propagateToX(tbuParams, trackingHit.xTrackingFrame, mTimeFrame->getBz(),
+                                          PropagatorF::MAX_SIN_PHI, PropagatorF::MAX_STEP, PropagatorF::MatCorrType::USEMatCorrNONE)) {
+            continue;
+          }
+
+          GPUArray<float, 3> cov{trackingHit.covarianceTrackingFrame};
+          cov[0] = std::hypot(cov[0], mTrkParams.LayerMisalignment[iLayer]);
+          cov[2] = std::hypot(cov[2], mTrkParams.LayerMisalignment[iLayer]);
+          auto predChi2{tbuParams.getPredictedChi2(trackingHit.positionTrackingFrame, cov)};
+          if (predChi2 >= track->getChi2() * mTrkParams.NSigmaCut) {
+            continue;
+          }
+
+          if (!tbuParams.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, cov)) {
+            continue;
+          }
+          tbupdated.setChi2(tbupdated.getChi2() + predChi2); /// This is wrong for outward propagation as the chi2 refers to inward parameters
+          tbupdated.setExternalClusterIndex(iLayer, nextCluster.clusterId, true);
+
+          if (!first) {
+            hypotheses.emplace_back(tbupdated);
+            newHypo = currentHypo;
+          }
+          first = false;
+        }
+      }
+    }
+  }
+
+  TrackITSExt* bestHypo{track};
+  bool swapped{false};
+  for (auto& hypo : hypotheses) {
+    if (hypo.isBetter(*bestHypo, track->getChi2() * mTrkParams.NSigmaCut)) {
+      bestHypo = &hypo;
+      swapped = true;
+    }
+  }
+  *track = *bestHypo;
+  return swapped;
 }
 
 TimeFrame* TrackerTraits::getTimeFrameGPU() { return nullptr; }

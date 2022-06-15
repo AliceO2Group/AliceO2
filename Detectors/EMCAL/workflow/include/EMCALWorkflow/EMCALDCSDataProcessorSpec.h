@@ -82,7 +82,7 @@ class EMCALDCSDataProcessor : public o2::framework::Task
     } else {
       LOG(info) << "Configuring via hardcoded strings";
 
-      std::vector<std::string> aliasesTEMP = {"EMC_PT_[00..83]/Temperature", "EMC_PT_[88..91]/Temperature", "EMC_PT_[96..159]/Temperature"};
+      std::vector<std::string> aliasesTEMP = {"EMC_PT_[00..83].Temperature", "EMC_PT_[88..91].Temperature", "EMC_PT_[96..159].Temperature"};
       std::vector<std::string> aliasesUINT = {"EMC_DDL_LIST[0..1]", "EMC_SRU[00..19]_CFG", "EMC_SRU[00..19]_FMVER",
                                               "EMC_TRU[00..45]_PEAKFINDER", "EMC_TRU[00..45]_L0ALGSEL", "EMC_TRU[00..45]_COSMTHRESH",
                                               "EMC_TRU[00..45]_GLOBALTHRESH", "EMC_TRU[00..45]_MASK[0..5]",
@@ -91,7 +91,7 @@ class EMCALDCSDataProcessor : public o2::framework::Task
                                              "EMC_STU_JA[0..1]", "EMC_STU_JB[0..1]", "EMC_STU_JC[0..1]", "EMC_STU_PATCHSIZE", "EMC_STU_GETRAW",
                                              "EMC_STU_MEDIAN", "EMC_STU_REGION", "DMC_STU_FWVERS", "DMC_STU_PHOS_scale[0..3]", "DMC_STU_GA[0..1]",
                                              "DMC_STU_GB[0..1]", "DMC_STU_GC[0..1]", "DMC_STU_JA[0..1]", "DMC_STU_JB[0..1]", "DMC_STU_JC[0..1]",
-                                             "DMC_STU_PATCHSIZE", "DMC_STU_GETRAW", "DMC_STU_MEDIAN", "DMC_STU_REGION"};
+                                             "DMC_STU_PATCHSIZE", "DMC_STU_GETRAW", "DMC_STU_MEDIAN", "DMC_STU_REGION", "EMC_RUNNUMBER"};
 
       std::vector<std::string> expaliasesTEMP = o2::dcs::expandAliases(aliasesTEMP);
       std::vector<std::string> expaliasesUINT = o2::dcs::expandAliases(aliasesUINT);
@@ -121,11 +121,12 @@ class EMCALDCSDataProcessor : public o2::framework::Task
     }
     mProcessor->init(vect);
     mTimer = HighResClock::now();
+    mReportTiming = ic.options().get<bool>("report-timing") || useVerboseMode;
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-
+    TStopwatch sw;
     if (mCheckRunStartStop) {
       const auto* grp = mRunChecker.check(); // check if there is a run with EMC
       // this is an example of what it will return
@@ -134,14 +135,18 @@ class EMCALDCSDataProcessor : public o2::framework::Task
       } else if (mRunChecker.getRunStatus() == RunStatus::START) { // saw new run with wanted detectors
         LOGP(info, "Run {} has started", mRunChecker.getFollowedRun());
         grp->print();
+        mProcessor->setRunNumberFromGRP(mRunChecker.getFollowedRun());
       } else if (mRunChecker.getRunStatus() == RunStatus::ONGOING) { // run which was already seen is still ongoing
         LOGP(info, "Run {} is still ongoing", mRunChecker.getFollowedRun());
       } else if (mRunChecker.getRunStatus() == RunStatus::STOP) { // run which was already seen was stopped (EOR seen)
         LOGP(info, "Run {} was stopped", mRunChecker.getFollowedRun());
       }
+    } else {
+      mProcessor->setRunNumberFromGRP(-2);
     }
 
-    auto tfid = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
+    //    auto tfid = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
+    auto tfid = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->creation;
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
     mProcessor->setTF(tfid);
     mProcessor->process(dps);
@@ -151,16 +156,23 @@ class EMCALDCSDataProcessor : public o2::framework::Task
       sendELMButput(pc.outputs());
       mTimer = timeNow;
     }
-    sendCFGoutput(pc.outputs());
+    if ((mCheckRunStartStop && (mRunChecker.getRunStatus() == RunStatus::START)) || (!mCheckRunStartStop && mProcessor->isUpdateFEEcfg())) {
+      sendCFGoutput(pc.outputs());
+    }
+    sw.Stop();
+    if (mReportTiming) {
+      LOGP(info, "Timing CPU:{:.3e} Real:{:.3e} at slice {}", sw.CpuTime(), sw.RealTime(), pc.services().get<o2::framework::TimingInfo>().timeslice);
+    }
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     sendELMButput(ec.outputs());
-    sendCFGoutput(ec.outputs());
+    //    sendCFGoutput(ec.outputs());
   }
 
  private:
+  bool mReportTiming{false};
   std::unique_ptr<EMCDCSProcessor> mProcessor;
   HighResClock::time_point mTimer;
   int64_t mDPsUpdateInterval;
@@ -189,18 +201,18 @@ class EMCALDCSDataProcessor : public o2::framework::Task
   {
     // extract CCDB and FeeDCS info
 
-    if (mProcessor->isUpdateFEEcfg()) {
-      mProcessor->updateFeeCCDBinfo();
+    //    if (mProcessor->isUpdateFEEcfg()) {
+    mProcessor->updateFeeCCDBinfo();
 
-      const auto& payload = mProcessor->getFeeDCSdata();
-      auto& info = mProcessor->getccdbFeeDCSinfo();
-      auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-      LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-                << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+    const auto& payload = mProcessor->getFeeDCSdata();
+    auto& info = mProcessor->getccdbFeeDCSinfo();
+    auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+              << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
 
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_FeeDCS", 0}, *image.get());
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_FeeDCS", 0}, info);
-    }
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_FeeDCS", 0}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_FeeDCS", 0}, info);
+    //   }
   }
 
 }; // end class
@@ -229,6 +241,7 @@ DataProcessorSpec getEMCALDCSDataProcessorSpec()
     Options{{"ccdb-path", VariantType::String, o2::base::NameConf::getCCDBServer(), {"Path to CCDB"}},
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
             {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
+            {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
             {"follow-emcal-run", VariantType::Bool, false, {"Check EMCAL runs SOR/EOR"}},
             {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};
 }

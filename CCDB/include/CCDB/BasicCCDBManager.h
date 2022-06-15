@@ -49,6 +49,7 @@ class CCDBManagerInstance
     bool isValid(long ts) { return ts < endvalidity && ts > startvalidity; }
     void clear()
     {
+      noCleanupPtr = nullptr;
       objPtr.reset();
       uuid = "";
       startvalidity = 0;
@@ -118,6 +119,15 @@ class CCDBManagerInstance
     if (!v) {
       clearCache();
     }
+  }
+
+  /// Check if an object in cache is valid
+  bool isCachedObjectValid(std::string const& path, long timestamp)
+  {
+    if (!isCachingEnabled()) {
+      return false;
+    }
+    return mCache[path].isValid(timestamp);
   }
 
   /// check if checks of object validity before CCDB query is enabled
@@ -193,7 +203,8 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
                                               mCreatedNotAfter ? std::to_string(mCreatedNotAfter) : "",
                                               mCreatedNotBefore ? std::to_string(mCreatedNotBefore) : "");
   if (ptr) { // new object was shipped, old one (if any) is not valid anymore
-    if constexpr (std::is_same<TGeoManager, T>::value) { // some special objects cannot be cached to shared_ptr since root may delete their raw global pointer
+    if constexpr (std::is_same<TGeoManager, T>::value || std::is_base_of<o2::conf::ConfigurableParam, T>::value) {
+      // some special objects cannot be cached to shared_ptr since root may delete their raw global pointer
       cached.noCleanupPtr = ptr;
     } else {
       cached.objPtr.reset(ptr);

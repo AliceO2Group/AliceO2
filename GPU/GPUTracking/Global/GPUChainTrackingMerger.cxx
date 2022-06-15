@@ -226,7 +226,6 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   }
   if (doGPU && !doGPUall) {
     TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, 0);
-    GPUError("foo1");
     SynchronizeStream(0);
   }
 
@@ -274,7 +273,6 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   }
   if (GetProcessingSettings().keepDisplayMemory && !GetProcessingSettings().keepAllMemory) {
     TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, -1, true);
-    GPUError("foo2");
   }
 
   mRec->ReturnVolatileDeviceMemory();
@@ -307,7 +305,6 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     if (GetProcessingSettings().runMC && mIOPtrs.clustersNative && mIOPtrs.clustersNative->clustersMCTruth) {
       AllocateRegisteredMemory(Merger.MemoryResOutputO2MC(), mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTracksO2Labels)]);
       TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, -1, true);
-      GPUError("foo3");
       runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::mc>(GetGridAuto(0, GPUReconstruction::krnlDeviceType::CPU), krnlRunRangeNone, krnlEventNone);
     } else if (doGPUall) {
       RecordMarker(&mEvents->single, 0);

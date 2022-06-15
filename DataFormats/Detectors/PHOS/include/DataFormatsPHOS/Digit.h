@@ -121,7 +121,7 @@ class Digit : public DigitBase
   bool isHighGain() const { return mIsHighGain; }
   void setHighGain(Bool_t isHG) { mIsHighGain = isHG; }
 
-  bool is2x2Tile() { return isTRU() && isHighGain(); }
+  bool is2x2Tile() const { return isTRU() && isHighGain(); }
 
   /// \brief index of entry in MCLabels array
   /// \return ndex of entry in MCLabels array

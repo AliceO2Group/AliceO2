@@ -92,6 +92,9 @@ using ServiceMetricHandling = std::function<void(ServiceRegistry&,
 /// Callback executed in the child after dispatching happened.
 using ServicePostDispatching = std::function<void(ProcessingContext&, void*)>;
 
+/// Callback executed in the child after late forwarding happened.
+using ServicePostForwarding = std::function<void(ProcessingContext&, void*)>;
+
 /// Callback invoked when the driver enters the init phase.
 using ServiceDriverInit = std::function<void(ServiceRegistry&, boost::program_options::variables_map const&)>;
 
@@ -153,6 +156,8 @@ struct ServiceSpec {
   /// dispatched.
   ServicePostDispatching postDispatching = nullptr;
 
+  ServicePostForwarding postForwarding = nullptr;
+
   /// Callback invoked on Start
   ServiceStartCallback start = nullptr;
   /// Callback invoked on Start
@@ -204,6 +209,12 @@ struct ServiceEOSHandle {
 struct ServiceDispatchingHandle {
   ServiceSpec const& spec;
   ServicePostDispatching callback;
+  void* service;
+};
+
+struct ServiceForwardingHandle {
+  ServiceSpec const& spec;
+  ServicePostForwarding callback;
   void* service;
 };
 

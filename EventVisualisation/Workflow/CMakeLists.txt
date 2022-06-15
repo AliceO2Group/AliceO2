@@ -16,9 +16,9 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2"
   AND TARGET AliceO2::DebugGUI
   AND OPENGL_GLU_FOUND
 )
-  o2_add_executable(display
+  o2_add_executable(export-workflow
           COMPONENT_NAME eve
-          TARGETVARNAME displayTargetName
+          TARGETVARNAME exportWorkflowTargetName
           SOURCES
                 src/O2DPLDisplay.cxx
                 src/DetectorData.cxx
@@ -47,7 +47,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2"
                 O2::TRDWorkflowIO
                 O2::SpacePoints
           )
-  target_include_directories(${displayTargetName} PUBLIC "include")
+  target_include_directories(${exportWorkflowTargetName} PUBLIC "include")
 
   o2_add_executable(aodconverter
           COMPONENT_NAME eve

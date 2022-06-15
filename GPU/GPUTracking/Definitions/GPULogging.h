@@ -22,6 +22,7 @@
   #define GPUInfo(...)
   #define GPUImportant(...)
   #define GPUWarning(...)
+  #define GPUAlarm(...)
   #define GPUError(...)
   #define GPUFatal(...)
 #elif defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE_DEVICE) && !defined(GPUCA_NO_FMT)
@@ -36,6 +37,7 @@
       fmt::fprintf(stderr, string "\n", ##__VA_ARGS__); \
     }
   #define GPUError(...) GPUWarning(__VA_ARGS__)
+  #define GPUAlarm(...) GPUWarning(__VA_ARGS__)
   #define GPUFatal(string, ...)                         \
     {                                                   \
       fmt::fprintf(stderr, string "\n", ##__VA_ARGS__); \
@@ -51,6 +53,7 @@
   #define GPUImportant(...) GPUInfo(__VA_ARGS__)
   #ifdef GPUCA_GPUCODE_DEVICE
     #define GPUWarning(...) GPUInfo(__VA_ARGS__)
+    #define GPUAlarm(...) GPUInfo(__VA_ARGS__)
     #define GPUError(...) GPUInfo(__VA_ARGS__)
     #define GPUFatal(...) GPUInfo(__VA_ARGS__)
   #else
@@ -58,6 +61,7 @@
       {                                              \
         fprintf(stderr, string "\n", ##__VA_ARGS__); \
       }
+    #define GPUAlarm(...) GPUWarning(__VA_ARGS__)
     #define GPUError(...) GPUWarning(__VA_ARGS__)
     #ifdef GPUCA_NOCOMPAT
       #define GPUFatal(string, ...)                    \
@@ -79,6 +83,7 @@
   #define GPUInfo(...) HLTInfo(__VA_ARGS__)
   #define GPUImportant(...) HLTImportant(__VA_ARGS__)
   #define GPUWarning(...) HLTWarning(__VA_ARGS__)
+  #define GPUAlarm(...) HLTWarning(__VA_ARGS__)
   #define GPUError(...) HLTError(__VA_ARGS__)
   #define GPUFatal(...) HLTFatal(__VA_ARGS__)
   // Workaround for static functions / classes not deriving from AliHLTLogging
@@ -110,6 +115,7 @@
   #define GPUInfo(...) LOGF(info, __VA_ARGS__)
   #define GPUImportant(...) LOGF(info, __VA_ARGS__)
   #define GPUWarning(...) LOGF(warning, __VA_ARGS__)
+  #define GPUAlarm(...) LOGF(alarm, __VA_ARGS__)
   #define GPUError(...) LOGF(error, __VA_ARGS__)
   #define GPUFatal(...) LOGF(fatal, __VA_ARGS__)
 #endif

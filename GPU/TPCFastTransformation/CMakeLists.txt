@@ -23,6 +23,7 @@ set(SRCS
     ChebyshevFit1D.cxx
     TPCFastTransformGeo.cxx
     TPCFastSpaceChargeCorrection.cxx
+    TPCFastSpaceChargeCorrectionMap.cxx
     TPCFastTransform.cxx
 )
 
@@ -34,6 +35,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
       BandMatrixSolver.cxx
       MultivariatePolynomial.cxx
       MultivariatePolynomialHelper.cxx
+      NDPiecewisePolynomials.cxx
       devtools/IrregularSpline1D.cxx
       devtools/IrregularSpline2D3D.cxx
       devtools/SemiregularSpline2D3D.cxx
@@ -54,9 +56,9 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                        O2::GPUUtils
                                        Vc::Vc
-                                       ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad
+                                       ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad ROOT::Minuit
                              )
-                 
+
   o2_target_root_dictionary(${MODULE}
                             HEADERS ${HDRS_CINT_O2}
                             LINKDEF TPCFastTransformationLinkDef_O2.h)
@@ -80,7 +82,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
 
   foreach(m
           SplineDemo.C
-          SplineConstructionDemo.C
+          SplineRecoveryDemo.C
           fastTransformQA.C
           generateTPCCorrectionNTuple.C)
     o2_add_test_root_macro(macro/${m}

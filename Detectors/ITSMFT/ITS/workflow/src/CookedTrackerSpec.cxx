@@ -146,21 +146,23 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   mTimeFrame.loadROFrameData(rofspan, compClusters, pattIt_timeframe, mDict, labels.get());
 
   std::vector<bool> processingMask;
-  int cutClusterMult{0}, cutVertexMult{0}, cutTotalMult{0};
+  int cutRandomMult{0}, cutClusterMult{0}, cutVertexMult{0};
 
   for (size_t iRof{0}; iRof < rofspan.size(); ++iRof) {
     auto& rof = rofspan[iRof];
-    bool multCut = (multEstConf.cutMultClusLow <= 0 && multEstConf.cutMultClusHigh <= 0); // cut was requested
-    if (!multCut) {
+    bool selROF = multEstConf.isPassingRandomRejection();
+    if (!selROF) {
+      cutRandomMult++;
+    } else if (multEstConf.isMultCutRequested()) { // cut was requested
       float mult = multEst.process(rof.getROFData(compClusters));
-      multCut = mult >= multEstConf.cutMultClusLow && mult <= multEstConf.cutMultClusHigh;
-      if (!multCut) {
+      selROF = multEstConf.isPassingMultCut(mult);
+      if (!selROF) {
         LOG(info) << "Estimated cluster mult. " << mult << " is outside of requested range "
                   << multEstConf.cutMultClusLow << " : " << multEstConf.cutMultClusHigh << " | ROF " << rof.getBCData();
       }
-      cutClusterMult += !multCut;
+      cutClusterMult += !selROF;
     }
-    processingMask.push_back(multCut);
+    processingMask.push_back(selROF);
   }
   // auto processingMask_ephemeral = processingMask;
   mTimeFrame.setMultiplicityCutMask(processingMask);
@@ -175,7 +177,6 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
     vtxROF.setFirstEntry(vertices.size());
     vtxROF.setNEntries(0);
-
     if (!processingMask[iRof]) {
       rof.setFirstEntry(tracks.size());
       rof.setNEntries(0);
@@ -186,16 +187,22 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     for (auto& v : mTimeFrame.getPrimaryVertices(iRof)) {
       vtxVecLoc.push_back(v);
     }
-    if (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0) { // cut was requested
+
+    if (multEstConf.isVtxMultCutRequested()) { // cut was requested
       std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> vtxVecSel;
       vtxVecSel.swap(vtxVecLoc);
+      int nv = vtxVecSel.size(), nrej = 0;
       for (const auto& vtx : vtxVecSel) {
-        if (vtx.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && vtx.getNContributors() > multEstConf.cutMultVtxHigh)) {
-          LOG(info) << "Found vertex mult. " << vtx.getNContributors() << " is outside of requested range "
-                    << multEstConf.cutMultVtxLow << " : " << multEstConf.cutMultVtxHigh << " | ROF " << rof.getBCData();
+        if (!multEstConf.isPassingVtxMultCut(vtx.getNContributors())) {
+          LOG(info) << "Found vertex mult. " << vtx.getNContributors() << " is outside of requested range " << multEstConf.cutMultVtxLow << " : " << multEstConf.cutMultVtxHigh << " | ROF " << rof.getBCData();
+          nrej++;
           continue; // skip vertex of unwanted multiplicity
         }
         vtxVecLoc.push_back(vtx);
+      }
+      if (nv && (nrej == nv)) { // all vertices were rejected
+        cutVertexMult++;
+        processingMask[iRof] = false;
       }
     }
     if (vtxVecLoc.empty()) {
@@ -215,12 +222,12 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
 
     mTracker.setVertices(vtxVecLoc);
     mTracker.process(compClusters, pattIt_tracker, mDict, tracks, clusIdx, rof);
-    if (tracks.size()) {
-      irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1);
+    if (processingMask[iRof]) {
+      irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1).info = tracks.size();
     }
   }
 
-  LOG(info) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
+  LOG(info) << "ITSCookedTracker pushed " << tracks.size() << " tracks and " << vertices.size() << " vertices";
 
   if (mUseMC) {
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, trackLabels);

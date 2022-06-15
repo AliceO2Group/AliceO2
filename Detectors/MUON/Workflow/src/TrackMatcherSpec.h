@@ -24,7 +24,7 @@ namespace o2
 namespace muon
 {
 
-framework::DataProcessorSpec getTrackMatcherSpec(const char* name = "TrackMatcher");
+framework::DataProcessorSpec getTrackMatcherSpec(bool useMC, const char* name = "TrackMatcher");
 
 } // namespace muon
 } // namespace o2

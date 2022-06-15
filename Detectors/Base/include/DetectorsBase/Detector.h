@@ -165,9 +165,9 @@ class Detector : public FairDetector
 
   // interfaces to attach properly encoded hit information to a FairMQ message
   // and to decode it
-  virtual void attachHits(FairMQChannel&, FairMQParts&) = 0;
-  virtual void fillHitBranch(TTree& tr, FairMQParts& parts, int& index) = 0;
-  virtual void collectHits(int eventID, FairMQParts& parts, int& index) = 0;
+  virtual void attachHits(fair::mq::Channel&, fair::mq::Parts&) = 0;
+  virtual void fillHitBranch(TTree& tr, fair::mq::Parts& parts, int& index) = 0;
+  virtual void collectHits(int eventID, fair::mq::Parts& parts, int& index) = 0;
   virtual void mergeHitEntriesAndFlush(int eventID,
                                        TTree& target,
                                        std::vector<int> const& trackoffsets,
@@ -245,21 +245,21 @@ inline std::string demangle(const char* name)
   return (status == 0) ? res.get() : name;
 }
 
-void attachShmMessage(void* hitsptr, FairMQChannel& channel, FairMQParts& parts, bool* busy_ptr);
-void* decodeShmCore(FairMQParts& dataparts, int index, bool*& busy);
+void attachShmMessage(void* hitsptr, fair::mq::Channel& channel, fair::mq::Parts& parts, bool* busy_ptr);
+void* decodeShmCore(fair::mq::Parts& dataparts, int index, bool*& busy);
 
 template <typename T>
-T decodeShmMessage(FairMQParts& dataparts, int index, bool*& busy)
+T decodeShmMessage(fair::mq::Parts& dataparts, int index, bool*& busy)
 {
   return reinterpret_cast<T>(decodeShmCore(dataparts, index, busy));
 }
 
 // this goes into the source
-void attachMessageBufferToParts(FairMQParts& parts, FairMQChannel& channel,
+void attachMessageBufferToParts(fair::mq::Parts& parts, fair::mq::Channel& channel,
                                 void* data, size_t size, void (*func_ptr)(void* data, void* hint), void* hint);
 
 template <typename Container>
-void attachTMessage(Container const& hits, FairMQChannel& channel, FairMQParts& parts)
+void attachTMessage(Container const& hits, fair::mq::Channel& channel, fair::mq::Parts& parts)
 {
   TMessage* tmsg = new TMessage();
   tmsg->WriteObjectAny((void*)&hits, TClass::GetClass(typeid(hits)));
@@ -268,14 +268,14 @@ void attachTMessage(Container const& hits, FairMQChannel& channel, FairMQParts& 
     [](void* data, void* hint) { delete static_cast<TMessage*>(hint); }, tmsg);
 }
 
-void* decodeTMessageCore(FairMQParts& dataparts, int index);
+void* decodeTMessageCore(fair::mq::Parts& dataparts, int index);
 template <typename T>
-T decodeTMessage(FairMQParts& dataparts, int index)
+T decodeTMessage(fair::mq::Parts& dataparts, int index)
 {
   return static_cast<T>(decodeTMessageCore(dataparts, index));
 }
 
-void attachDetIDHeaderMessage(int id, FairMQChannel& channel, FairMQParts& parts);
+void attachDetIDHeaderMessage(int id, fair::mq::Channel& channel, fair::mq::Parts& parts);
 
 template <typename T>
 TBranch* getOrMakeBranch(TTree& tree, const char* brname, T* ptr)
@@ -329,7 +329,7 @@ class DetImpl : public o2::base::Detector
     }
   }
 
-  void attachHits(FairMQChannel& channel, FairMQParts& parts) override
+  void attachHits(fair::mq::Channel& channel, fair::mq::Parts& parts) override
   {
     int probe = 0;
     // check if there is anything to be attached
@@ -526,7 +526,7 @@ class DetImpl : public o2::base::Detector
   /// Collect Hits available as incoming message (shared mem or not)
   /// inside this process for later streaming to output. A function needed
   /// by the hit-merger process (not for direct use by users)
-  void collectHits(int eventID, FairMQParts& parts, int& index) override
+  void collectHits(int eventID, fair::mq::Parts& parts, int& index) override
   {
     using Hit_t = typename std::remove_pointer<decltype(static_cast<Det*>(this)->Det::getHits(0))>::type;
     using Collector_t = tbb::concurrent_unordered_map<int, std::vector<std::vector<std::unique_ptr<Hit_t>>>>;
@@ -586,7 +586,7 @@ class DetImpl : public o2::base::Detector
     }
   }
 
-  void fillHitBranch(TTree& tr, FairMQParts& parts, int& index) override
+  void fillHitBranch(TTree& tr, fair::mq::Parts& parts, int& index) override
   {
     int probe = 0;
     bool* busy = nullptr;

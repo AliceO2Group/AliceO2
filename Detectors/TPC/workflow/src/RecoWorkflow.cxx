@@ -420,7 +420,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   //
   // selected by output type 'tracks'
   if (runTracker) {
-    o2::gpu::gpuworkflow::Config cfg;
+    o2::gpu::GPURecoWorkflowSpec::Config cfg;
     cfg.decompressTPC = decompressTPC;
     cfg.decompressTPCFromROOT = decompressTPC && inputType == InputType::CompClusters;
     cfg.caClusterer = caClusterer;
@@ -435,7 +435,13 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     cfg.processMC = propagateMC;
     cfg.sendClustersPerSector = isEnabled(OutputType::SendClustersPerSector);
     cfg.askDISTSTF = askDISTSTF;
-    specs.emplace_back(o2::gpu::getGPURecoWorkflowSpec(policyData, cfg, tpcSectors, tpcSectorMask, "tpc-tracker"));
+
+    std::shared_ptr<o2::gpu::GPURecoWorkflowSpec> task = std::make_shared<o2::gpu::GPURecoWorkflowSpec>(policyData, cfg, tpcSectors, tpcSectorMask);
+    specs.emplace_back(DataProcessorSpec{
+      "tpc-tracker",
+      task->inputs(),
+      task->outputs(),
+      AlgorithmSpec{adoptTask<o2::gpu::GPURecoWorkflowSpec>(task)}});
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////

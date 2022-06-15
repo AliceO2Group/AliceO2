@@ -34,9 +34,10 @@
 #include <TMemFile.h>
 #include <curl/curl.h>
 
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
 
 #include <cstdlib>
+#include <random>
 
 using namespace o2::header;
 using namespace fair;
@@ -98,7 +99,17 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
 
 ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds period)
 {
-  auto start = getCurrentTime();
+  std::random_device r;
+  std::default_random_engine e1(r());
+  std::uniform_int_distribution<uint64_t> dist(0, period.count() * 0.9);
+
+  // We start with a random offset to avoid all the devices
+  // send their first message at the same time, bring down
+  // the QC machine.
+  // We reduce the first interval rather than increasing it
+  // to avoid having a triggered timer which appears to be in
+  // the future.
+  size_t start = getCurrentTime() - dist(e1) - period.count() * 0.1;
   auto last = std::make_shared<decltype(start)>(start);
   // FIXME: should create timeslices when period expires....
   return [last, period](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
@@ -442,7 +453,7 @@ ExpirationHandler::Handler
     // Receive parts and put them in the PartRef
     // we know this is not blocking because we were polled
     // on the channel.
-    FairMQParts parts;
+    fair::mq::Parts parts;
     device->Receive(parts, channelName, 0);
     ref.header = std::move(parts.At(0));
     ref.payload = std::move(parts.At(1));
@@ -500,6 +511,7 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
 
     variables.put({data_matcher::FIRSTTFORBIT_POS, dh.firstTForbit});
     variables.put({data_matcher::TFCOUNTER_POS, dh.tfCounter});
+    variables.put({data_matcher::RUNNUMBER_POS, dh.runNumber});
     variables.put({data_matcher::STARTTIME_POS, dph.startTime});
     variables.put({data_matcher::CREATIONTIME_POS, dph.creation});
 

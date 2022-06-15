@@ -96,7 +96,7 @@ CaloFitResults CaloRawFitterStandard::evaluate(const gsl::span<const Bunch> bunc
     time = time * constants::EMCAL_TIMESAMPLE;
     time -= mL1Phase;
 
-    return CaloFitResults(maxADC, pedEstimate, mAlgo, amp, time, (int)time, chi2, ndf);
+    return CaloFitResults(maxADC, pedEstimate, 0, amp, time, (int)time, chi2, ndf);
   }
   throw RawFitterError_t::FIT_ERROR;
 }
@@ -120,7 +120,7 @@ std::tuple<float, float, float> CaloRawFitterStandard::fitRaw(int firstTimeBin, 
 
   TF1 signalF("signal", CaloRawFitterStandard::rawResponseFunction, 0, constants::EMCAL_MAXTIMEBINS, 5);
 
-  signalF.SetParameters(10., 5., constants::TAU, constants::ORDER, 0.); //set all defaults once, just to be safe
+  signalF.SetParameters(10., 5., constants::TAU, constants::ORDER, 0.); // set all defaults once, just to be safe
   signalF.SetParNames("amp", "t0", "tau", "N", "ped");
   signalF.FixParameter(2, constants::TAU);
   signalF.FixParameter(3, constants::ORDER);

@@ -38,6 +38,9 @@ class GPUReconstructionOCL : public GPUReconstructionDeviceBase
   int ExitDevice_Runtime() override;
   void UpdateSettings() override;
 
+  int GPUFailedMsgAI(const long int error, const char* file, int line);
+  void GPUFailedMsgA(const long int error, const char* file, int line);
+
   void SynchronizeGPU() override;
   int DoStuckProtection(int stream, void* event) override;
   int GPUDebug(const char* state = "UNKNOWN", int stream = -1, bool force = false) override;

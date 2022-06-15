@@ -9,7 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <iterator>
+#include <limits>
 #include <memory>
+#include <stdexcept>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -29,11 +32,14 @@
 #include "DPLUtils/RawParser.h"
 #include "Headers/DataHeader.h"
 #include "CommonUtils/TreeStreamRedirector.h"
+#include "CommonUtils/NameConf.h"
 #include "DataFormatsTPC/Constants.h"
 #include "CommonConstants/LHCConstants.h"
+#include "CCDB/BasicCCDBManager.h"
 
 #include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/IDC.h"
+#include "DataFormatsTPC/RawDataTypes.h"
 #include "TPCBase/Utils.h"
 #include "TPCBase/RDHUtils.h"
 #include "TPCBase/Mapper.h"
@@ -43,6 +49,7 @@ using o2::constants::lhc::LHCMaxBunches;
 using o2::header::gDataOriginTPC;
 using o2::tpc::constants::LHCBCPERTIMEBIN;
 using RDHUtils = o2::raw::RDHUtils;
+using RawDataType = o2::tpc::raw_data_types::Type;
 
 namespace o2::tpc
 {
@@ -59,17 +66,39 @@ class IDCToVectorDevice : public o2::framework::Task
     if (ic.options().get<bool>("write-debug")) {
       mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>("idc_vector_debug.root", "recreate");
     }
-    const auto pedestalFile = ic.options().get<std::string>("pedestal-file");
+    auto pedestalFile = ic.options().get<std::string>("pedestal-url");
     if (pedestalFile.length()) {
-      LOGP(info, "Setting pedestal file: {}", pedestalFile);
-      auto calPads = utils::readCalPads(pedestalFile, "Pedestals");
-      if (calPads.size() != 1) {
-        LOGP(error, "Pedestal could not be loaded from file {}", pedestalFile);
+      if (pedestalFile.find("ccdb") != std::string::npos) {
+        if (pedestalFile.find("-default") != std::string::npos) {
+          pedestalFile = o2::base::NameConf::getCCDBServer();
+        }
+        LOGP(info, "Loading pedestals from ccdb: {}", pedestalFile);
+        auto& cdb = o2::ccdb::BasicCCDBManager::instance();
+        cdb.setURL(pedestalFile);
+        if (cdb.isHostReachable()) {
+          auto pedestalNoise = cdb.get<std::unordered_map<std::string, CalPad>>("TPC/Calib/PedestalNoise");
+          try {
+            if (!pedestalNoise) {
+              throw std::runtime_error("Couldn't retrieve PedestaNoise map");
+            }
+            mPedestal = std::make_unique<CalPad>(pedestalNoise->at("Pedestals"));
+          } catch (const std::exception& e) {
+            LOGP(fatal, "could not load pedestals from {} ({}), required for IDC processing", pedestalFile, e.what());
+          }
+        } else {
+          LOGP(fatal, "ccdb access to {} requested, but host is not reachable. Cannot load pedestals, required for IDC processing", pedestalFile);
+        }
       } else {
-        for (auto p : calPads) {
-          mNoisePedestal.emplace_back(p);
+        LOGP(info, "Loading pedestals from file: {}", pedestalFile);
+        auto calPads = utils::readCalPads(pedestalFile, "Pedestals");
+        if (calPads.size() != 1) {
+          LOGP(fatal, "Pedestal could not be loaded from file {}, required for IDC processing", pedestalFile);
+        } else {
+          mPedestal.reset(calPads[0]);
         }
       }
+    } else {
+      LOGP(error, "No pedestal file set, IDCs will be without pedestal subtraction!");
     }
 
     initIDC();
@@ -85,48 +114,57 @@ class IDCToVectorDevice : public o2::framework::Task
     uint32_t tfCounter = 0;
     bool first = true;
 
-    CalPad* pedestals = nullptr;
-    if (mNoisePedestal.size() && mNoisePedestal[0]) {
-      pedestals = mNoisePedestal[0].get();
-    }
+    CalPad* pedestals = mPedestal.get();
 
     for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
       const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      // ---| extract hardware information to do the processing |---
-      const auto feeId = (FEEIDType)dh->subSpecification;
-      const auto link = rdh_utils::getLink(feeId);
-      const uint32_t cruID = rdh_utils::getCRU(feeId);
-      const auto endPoint = rdh_utils::getEndPoint(feeId);
       tfCounter = dh->tfCounter;
-
-      // only select IDCs
-      // ToDo: cleanup once IDCs will be propagated not as RAWDATA, but IDC.
-      if (link != rdh_utils::IDCLinkID) {
-        continue;
-      }
-      LOGP(info, "IDC Processing firstTForbit {:9}, tfCounter {:5}, run {:6}, feeId {:6} ({:3}/{}/{:2})", dh->firstTForbit, dh->tfCounter, dh->runNumber, feeId, cruID, endPoint, link);
-
-      if (std::find(mCRUs.begin(), mCRUs.end(), cruID) == mCRUs.end()) {
-        LOGP(error, "IDC CRU {:3} not configured in CRUs, skipping", cruID);
-        continue;
-      }
-
-      const CRU cru(cruID);
-      const int sector = cru.sector();
-      const auto& partInfo = mapper.getPartitionInfo(cru.partition());
-      const int fecLinkOffsetCRU = (partInfo.getNumberOfFECs() + 1) / 2;
-      const int fecSectorOffset = partInfo.getSectorFECOffset();
-      const GlobalPadNumber regionPadOffset = Mapper::GLOBALPADOFFSET[cru.region()];
-      const GlobalPadNumber numberPads = Mapper::PADSPERREGION[cru.region()];
-      int sampaOnFEC{}, channelOnSAMPA{};
-      auto& idcVec = mIDCvectors[cruID];
-      auto& infoVec = mIDCInfos[cruID];
 
       // ---| data loop |---
       const gsl::span<const char> raw = pc.inputs().get<gsl::span<char>>(ref);
       o2::framework::RawParser parser(raw.data(), raw.size());
       for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
         const auto size = it.size();
+        // skip empty packages (HBF open)
+        if (size == 0) {
+          continue;
+        }
+
+        auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
+        if (!rdhPtr) {
+          throw std::runtime_error("could not get RDH from packet");
+        }
+
+        // ---| extract hardware information to do the processing |---
+        const auto feeId = (FEEIDType)RDHUtils::getFEEID(*rdhPtr);
+        const auto link = rdh_utils::getLink(feeId);
+        const uint32_t cruID = rdh_utils::getCRU(feeId);
+        const auto endPoint = rdh_utils::getEndPoint(feeId);
+        const auto detField = RDHUtils::getDetectorField(*rdhPtr);
+
+        // only select IDCs
+        // ToDo: cleanup once IDCs will be propagated not as RAWDATA, but IDC.
+        if ((detField != (decltype(detField))RawDataType::IDC) || (link != rdh_utils::IDCLinkID)) {
+          continue;
+        }
+        LOGP(info, "IDC Processing firstTForbit {:9}, tfCounter {:5}, run {:6}, feeId {:6} ({:3}/{}/{:2})", dh->firstTForbit, dh->tfCounter, dh->runNumber, feeId, cruID, endPoint, link);
+
+        if (std::find(mCRUs.begin(), mCRUs.end(), cruID) == mCRUs.end()) {
+          LOGP(error, "IDC CRU {:3} not configured in CRUs, skipping", cruID);
+          continue;
+        }
+
+        const CRU cru(cruID);
+        const int sector = cru.sector();
+        const auto& partInfo = mapper.getPartitionInfo(cru.partition());
+        const int fecLinkOffsetCRU = (partInfo.getNumberOfFECs() + 1) / 2;
+        const int fecSectorOffset = partInfo.getSectorFECOffset();
+        const GlobalPadNumber regionPadOffset = Mapper::GLOBALPADOFFSET[cru.region()];
+        const GlobalPadNumber numberPads = Mapper::PADSPERREGION[cru.region()];
+        int sampaOnFEC{}, channelOnSAMPA{};
+        auto& idcVec = mIDCvectors[cruID];
+        auto& infoVec = mIDCInfos[cruID];
+
         assert(size == sizeof(idc::Container));
         auto data = it.data();
         auto& idcs = *((idc::Container*)(data));
@@ -138,7 +176,6 @@ class IDCToVectorDevice : public o2::framework::Task
         if (!infoVec.size()) {
           infoVec.emplace_back(orbit, bc);
           infoIt = infoVec.end() - 1;
-          //} else if (!infoVec.back().matches(orbit, bc)) {
         } else if (infoIt == infoVec.end()) {
           auto& lastInfo = infoVec.back();
           if ((orbit - lastInfo.heartbeatOrbit) != mNOrbitsIDC) {
@@ -160,15 +197,7 @@ class IDCToVectorDevice : public o2::framework::Task
         const size_t idcOffset = std::distance(infoVec.begin(), infoIt);
 
         // TODO: for debugging, remove later
-        /*
-        auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
-        const auto feeId2 = (FEEIDType)RDHUtils::getFEEID(*rdhPtr);
-        const auto link2 = rdh_utils::getLink(feeId2);
-        const uint32_t cruID2 = rdh_utils::getCRU(feeId2);
-        const auto endPoint2 = rdh_utils::getEndPoint(feeId2);
-        const auto detField = RDHUtils::getDetectorField(*rdhPtr);
-        LOGP(info, "processing IDCs for CRU {}, ep {}, feeId {:6} ({:3}/{}/{:2}), detField: {}, orbit {}, bc {}, idcOffset {}, idcVec size {}, epSeen {:02b}", cruID, endPoint, feeId2, cruID2, endPoint2, link2, detField, orbit, bc, idcOffset, idcVec.size(), lastInfo.epSeen);
-        */
+        // LOGP(info, "processing IDCs for CRU {}, ep {}, feeId {:6} ({:3}/{}/{:2}), detField: {}, orbit {}, bc {}, idcOffset {}, idcVec size {}, epSeen {:02b}", cruID, endPoint, feeId, cruID, endPoint, link, detField, orbit, bc, idcOffset, idcVec.size(), lastInfo.epSeen);
 
         const float norm = 1. / float(mTimeStampsPerIntegrationInterval);
         for (uint32_t iLink = 0; iLink < idc::Links; ++iLink) {
@@ -208,6 +237,10 @@ class IDCToVectorDevice : public o2::framework::Task
     LOGP(info, "endOfStream");
     ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     if (mDebugStream) {
+      // set some default aliases
+      auto& stream = (*mDebugStream) << "idcs";
+      auto& tree = stream.getTree();
+      tree.SetAlias("sector", "int(cru/10)");
       mDebugStream->Close();
     }
   }
@@ -238,7 +271,7 @@ class IDCToVectorDevice : public o2::framework::Task
   std::unordered_map<uint32_t, std::vector<float>> mIDCvectors;                                 ///< decoded IDCs per cru for each pad in the region over all IDC packets in the TF
   std::unordered_map<uint32_t, std::vector<IDCInfo>> mIDCInfos;                                 ///< IDC packet information within the TF
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream;                                ///< debug output streamer
-  std::vector<std::unique_ptr<CalPad>> mNoisePedestal{};                                        ///< noise and pedestal values
+  std::unique_ptr<CalPad> mPedestal{};                                                          ///< noise and pedestal values
 
   //____________________________________________________________________________
   void snapshotIDCs(DataAllocator& output)
@@ -310,6 +343,8 @@ class IDCToVectorDevice : public o2::framework::Task
     mDebugStream->GetFile()->cd();
     auto& stream = (*mDebugStream) << "idcs";
     uint32_t seen = 0;
+    static uint32_t firstOrbit = std::numeric_limits<uint32_t>::max();
+
     for (auto cru : mCRUs) {
       if (mIDCInfos.find(cru) == mIDCInfos.end()) {
         continue;
@@ -320,6 +355,9 @@ class IDCToVectorDevice : public o2::framework::Task
       for (int i = 0; i < infos.size(); ++i) {
         auto& info = infos[i];
 
+        if (firstOrbit == std::numeric_limits<uint32_t>::max()) {
+          firstOrbit = info.heartbeatOrbit;
+        }
         auto idcFirst = idcVec.begin() + i * Mapper::PADSPERREGION[cru % Mapper::NREGIONS];
         auto idcLast = idcFirst + Mapper::PADSPERREGION[cru % Mapper::NREGIONS];
         std::vector<float> idcs(idcFirst, idcLast);
@@ -331,17 +369,36 @@ class IDCToVectorDevice : public o2::framework::Task
           const short pads = (short)mapper.getNumberOfPadsInRowSector(row[ipad]);
           cpad[ipad] = (short)padPos.getPad() - pads / 2;
         }
-        float mean = std::accumulate(idcs.begin(), idcs.end(), 0.f) / float(idcs.size());
+        auto idcSort = idcs;
+        std::sort(idcSort.begin(), idcSort.end());
+        const auto idcSize = idcSort.size();
+        float median = idcSize % 2 ? idcSort[idcSize / 2] : (idcSort[idcSize / 2] + idcSort[idcSize / 2 - 1]) / 2.f;
+        // outlier removal
+        auto itEnd = idcSort.end();
+        while (std::abs(*(itEnd - 1) - median) > 40) {
+          --itEnd;
+        }
+
+        float mean = 0;
+        const auto nForMean = std::distance(idcSort.begin(), itEnd);
+        if (nForMean > 0) {
+          mean = std::accumulate(idcSort.begin(), itEnd, 0.f) / float(nForMean);
+        }
+        uint32_t outliers = uint32_t(idcSort.size() - nForMean);
 
         stream << "cru=" << cru
+               << "entry=" << i
                << "epSeen=" << info.epSeen
                << "tfCounter=" << tfCounter
+               << "firstOrbit=" << firstOrbit
                << "orbit=" << info.heartbeatOrbit
                << "bc=" << info.heartbeatBC
                << "idcs=" << idcs
                << "cpad=" << cpad
                << "row=" << row
+               << "outliers=" << outliers
                << "idc_mean=" << mean
+               << "idc_median=" << median
                << "\n";
       }
     }
@@ -366,7 +423,7 @@ o2::framework::DataProcessorSpec getIDCToVectorSpec(const std::string inputSpec,
     AlgorithmSpec{adaptFromTask<device>(crus)},
     Options{
       {"write-debug", VariantType::Bool, false, {"write a debug output tree."}},
-      {"pedestal-file", VariantType::String, "", {"file with pedestals and noise for zero suppression"}},
+      {"pedestal-url", VariantType::String, "ccdb-default", {"ccdb-default: load from NameConf::getCCDBServer() OR ccdb url (must contain 'ccdb' OR pedestal file name"}},
     } // end Options
   };  // end DataProcessorSpec
 }

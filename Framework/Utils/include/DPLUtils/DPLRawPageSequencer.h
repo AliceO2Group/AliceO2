@@ -79,6 +79,7 @@ class DPLRawPageSequencer
   {
     for (auto const& ref : mInput) {
       auto size = DataRefUtils::getPayloadSize(ref);
+      auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       auto const pageSize = rawparser_type::max_size;
       auto nPages = size / pageSize + (size % pageSize ? 1 : 0);
       if (nPages == 0) {
@@ -90,8 +91,8 @@ class DPLRawPageSequencer
       auto check = [&pred, &pageSize, payload = ref.payload](size_t left, size_t right) -> bool {
         return pred(payload + left * pageSize, payload + right * pageSize);
       };
-      auto insert = [&inserter, &pageSize, payload = ref.payload](size_t pos, size_t n) -> void {
-        inserter(payload + pos * pageSize, n);
+      auto insert = [&inserter, &pageSize, payload = ref.payload](size_t pos, size_t n, uint32_t subSpec) -> void {
+        inserter(payload + pos * pageSize, n, subSpec);
       };
       // binary search the next different page based on the check predicate
       auto search = [&check](size_t first, size_t n) -> size_t {
@@ -118,11 +119,11 @@ class DPLRawPageSequencer
       do {
         // insert the full block if the last RDH matches the position
         if (check(p, nPages - 1)) {
-          insert(p, nPages - p);
+          insert(p, nPages - p, dh->subSpecification);
           break;
         }
         auto q = search(p, nPages - p);
-        insert(p, q - p);
+        insert(p, q - p, dh->subSpecification);
         p = q;
       } while (p < nPages);
       // if payloads are consecutive in memory we could apply this algorithm even over
@@ -136,6 +137,7 @@ class DPLRawPageSequencer
     for (auto const& ref : mInput) {
       auto size = DataRefUtils::getPayloadSize(ref);
       o2::framework::RawParser parser(ref.payload, size);
+      auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       const char* ptr = nullptr;
       int count = 0;
       for (auto it = parser.begin(); it != parser.end(); it++) {
@@ -144,7 +146,7 @@ class DPLRawPageSequencer
           ptr = current;
         } else if (check(ptr, current) == false) {
           if (count) {
-            inserter(ptr, count);
+            inserter(ptr, count, dh->subSpecification);
           }
           count = 0;
           ptr = current;
@@ -152,7 +154,7 @@ class DPLRawPageSequencer
         count++;
       }
       if (count) {
-        inserter(ptr, count);
+        inserter(ptr, count, dh->subSpecification);
       }
     }
   }

@@ -30,6 +30,7 @@
 #include <set>
 #include <string>
 #include <cinttypes>
+#include <numeric>
 
 // Make sure we can use aggregated initialisers.
 #pragma GCC diagnostic push
@@ -556,6 +557,13 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     size_t gmi = 0;
     std::vector<MetricDisplayState> newMetricDisplayStates;
     newMetricDisplayStates.resize(totalMetrics);
+    static std::vector<int> order;
+    order.resize(metricDisplayState.size());
+    std::iota(order.begin(), order.end(), 0);
+    std::sort(order.begin(), order.end(), [](int a, int b) {
+      return metricDisplayState[a].legend < metricDisplayState[b].legend;
+    });
+
     for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
       auto& metricsInfos = *metricsStore.metrics[si];
       auto& specs = *metricsStore.specs[si];
@@ -564,20 +572,26 @@ void displayMetrics(gui::WorkspaceGUIState& state,
         auto& spec = specs[di];
         for (size_t li = 0; li != metricInfo.metricLabels.size(); ++li) {
           char const* metricLabel = metricInfo.metricLabels[li].label;
+          // find the equal range for the label
+          auto low = std::lower_bound(order.begin(), order.end(), spec.label, [](int a, std::string const& b) {
+            return metricDisplayState[a].legend < b;
+          });
+          auto up = std::upper_bound(low, order.end(), spec.label, [](std::string const& a, int b) {
+            return a < metricDisplayState[b].legend;
+          });
           std::string legend = fmt::format("{}/{}", spec.label, metricLabel);
-          auto hasher = std::hash<std::string>();
-          size_t legendHash = hasher(legend);
-          auto old = std::find_if(metricDisplayState.begin(), metricDisplayState.end(), [&legend, &legendHash](MetricDisplayState const& state) { return state.legendHash == legendHash && state.legend == legend; });
-          if (old != metricDisplayState.end()) {
-            newMetricDisplayStates[gmi].visible = old->visible;
-            newMetricDisplayStates[gmi].axis = old->axis;
+          auto old = std::lower_bound(low, up, legend, [](int a, std::string const& b) {
+            return metricDisplayState[a].legend < b;
+          });
+          if (old != order.end() && metricDisplayState[*old].legend == legend) {
+            newMetricDisplayStates[gmi].visible = metricDisplayState[*old].visible;
+            newMetricDisplayStates[gmi].axis = metricDisplayState[*old].axis;
           } else {
             newMetricDisplayStates[gmi].visible = false;
           }
 
           newMetricDisplayStates[gmi].selected = hasAll(metricLabel, query);
           newMetricDisplayStates[gmi].legend = legend;
-          newMetricDisplayStates[gmi].legendHash = legendHash;
           gmi++;
         }
       }

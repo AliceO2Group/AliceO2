@@ -21,6 +21,7 @@
 #include "Align/AlignmentTrack.h"
 #include "Align/DOFStatistics.h"
 #include "Align/GeometricalConstraint.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "Framework/Logger.h"
 //#include "AliGeomManager.h"
 //#include "AliCDBManager.h"
@@ -39,6 +40,7 @@
 ClassImp(o2::align::AlignableDetector);
 
 using namespace o2::align::utils;
+using GIndex = o2::dataformats::VtxTrackIndex;
 
 namespace o2
 {
@@ -55,50 +57,35 @@ AlignableDetector::~AlignableDetector()
   // d-tor
   mSensors.Clear();  // sensors are also attached as volumes, don't delete them here
   mVolumes.Delete(); // here all is deleted
-  mPointsPool.Delete();
 }
 
 //____________________________________________
-int AlignableDetector::getNDOFsTot() const
+int AlignableDetector::processPoints(GIndex gid, bool inv)
 {
-  int n = getNDOFs();
-  for (int i = 0; i < getNVolumes(); i++) {
-    n += getVolume(i)->getNDOFs();
-  }
-  return n;
+  // Create alignment points corresponding to this detector, recalibrate/realign them to the
+  // level of the "starting point" for the alignment/calibration session.
+  // If inv==true, the track propagates in direction of decreasing tracking X
+  // (i.e. upper leg of cosmic track)
+  /*
+    auto algTrack = mController->getAlgTrack();
+    for (clus: clusters_of_track_gid) {
+      auto& pnt = mPoints.emplace_back();
+      // realign as needed the cluster data
+      auto* sensor = getSensor(clus.getSensorID());
+      pnt.setXYZTracking(clus.getX(), clus.getY(), clus.getZ());
+      pnt.setAlphaSens(sensor->getAlpTracking());
+      pnt.setXSens(sensor->getXTracking());
+      pnt.setDetID(mDetID);
+      pnt.setSID(sensor->getSID());
+      //
+      pnt.setContainsMeasurement();
+      pnt.init();
+      algTrack->AddPoint(&pnt);
+    }
+  */
+  LOGP(error, "Detector {} must implement its own ProcessPoints method", getName());
+  return 0;
 }
-
-//FIXME(milettri): needs AliESDtrack
-////____________________________________________
-//int AlignableDetector::ProcessPoints(const AliESDtrack* esdTr, AlignmentTrack* algTrack, bool inv)
-//{
-//  // Extract the points corresponding to this detector, recalibrate/realign them to the
-//  // level of the "starting point" for the alignment/calibration session.
-//  // If inv==true, the track propagates in direction of decreasing tracking X
-//  // (i.e. upper leg of cosmic track)
-//  //
-//  const AliESDfriendTrack* trF(esdTr->GetFriendTrack());
-//  const AliTrackPointArray* trP(trF->GetTrackPointArray());
-//  //
-//  int np(trP->getNPoints());
-//  int npSel(0);
-//  AlignmentPoint* apnt(0);
-//  for (int ip = 0; ip < np; ip++) {
-//    int vid = trP->GetVolumeID()[ip];
-//    if (!sensorOfDetector(vid)){
-//      continue;}
-//    apnt = getSensorByVolId(vid)->TrackPoint2AlgPoint(ip, trP, esdTr);
-//    if (!apnt){
-//      continue;}
-//    algTrack->addPoint(apnt);
-//    if (inv){
-//      apnt->setInvDir();}
-//    npSel++;
-//    mNPoints++;
-//  }
-//  //
-//  return npSel;
-//}
 
 //_________________________________________________________
 void AlignableDetector::acknowledgeNewRun(int run)
@@ -131,6 +118,13 @@ void AlignableDetector::updateL2GRecoMatrices()
 }
 
 //_________________________________________________________
+void AlignableDetector::reset()
+{
+  // prepare for the next track processing
+  mNPoints = mFirstPoint = 0;
+}
+
+//_________________________________________________________
 void AlignableDetector::applyAlignmentFromMPSol()
 {
   // apply alignment from millepede solution array to reference alignment level
@@ -141,51 +135,19 @@ void AlignableDetector::applyAlignmentFromMPSol()
 }
 
 //_________________________________________________________
-void AlignableDetector::cacheReferenceOCDB()
+void AlignableDetector::cacheReferenceCCDB()
 {
-  LOG(fatal) << __PRETTY_FUNCTION__ << " is disabled";
-  //FIXME(milettri): needs OCDB
-  //  // if necessary, detector may fetch here some reference OCDB data
-  //  //
-  //  // cache global deltas to avoid preicision problem
-  //  AliCDBManager* man = AliCDBManager::Instance();
-  //  AliCDBEntry* ent = man->Get(Form("%s/Align/Data", mDetID.getName()));
-  //  TObjArray* arr = (TObjArray*)ent->GetObject();
-  //  for (int i = arr->GetEntriesFast(); i--;) {
-  //    const AliAlignObjParams* par = (const AliAlignObjParams*)arr->At(i);
-  //    AlignableVolume* vol = getVolume(par->GetSymName());
-  //    if (!vol) {
-  //      AliErrorF("Volume %s not found", par->GetSymName());
-  //      continue;
-  //    }
-  //    TGeoHMatrix delta;
-  //    par->GetMatrix(delta);
-  //    vol->setGlobalDeltaRef(delta);
-  //  }
-}
-
-//_________________________________________________________
-AlignmentPoint* AlignableDetector::getPointFromPool()
-{
-  // fetch or create new free point from the pool.
-  // detector may override this method to create its own points derived from AlignmentPoint
-  //
-  if (mPoolFreePointID >= mPoolNPoints) { // expand pool
-    mPointsPool.AddAtAndExpand(new AlignmentPoint(), mPoolNPoints++);
+  LOGP(info, "caching reference CCDB for {}", getName());
+  const auto& ggHelper = o2::base::GRPGeomHelper::instance();
+  const auto* algVec = ggHelper.getAlignment(mDetID);
+  for (const auto& alg : *algVec) {
+    AlignableVolume* vol = getVolume(alg.getSymName().c_str());
+    if (!vol) {
+      LOGP(fatal, "Volume {} not found", alg.getSymName());
+    }
+    auto mat = alg.createMatrix();
+    vol->setGlobalDeltaRef(mat);
   }
-  //
-  AlignmentPoint* pnt = (AlignmentPoint*)mPointsPool.UncheckedAt(mPoolFreePointID++);
-  pnt->Clear();
-  return pnt;
-  //
-}
-
-//_________________________________________________________
-void AlignableDetector::resetPool()
-{
-  // declare pool free
-  mPoolFreePointID = 0;
-  mNPoints = 0;
 }
 
 //_________________________________________________________
@@ -251,7 +213,7 @@ void AlignableDetector::sortSensors()
     return;
   }
   mSensors.Sort();
-  mSID2VolID = new int[mNSensors]; // cash id's for fast binary search
+  mSID2VolID = new int[mNSensors]; // cash id's for fast binary search RS FIXME DO WE NEED THIS?
   for (int i = 0; i < mNSensors; i++) {
     mSID2VolID[i] = getSensor(i)->getVolID();
     getSensor(i)->setSID(i);
@@ -290,7 +252,7 @@ int AlignableDetector::assignDOFs()
   // assign DOFs IDs, parameters
   //
   setFirstParGloID(mController->getNDOFs());
-  if (mFirstParGloID == (int)mController->getGloParVal().size()) {
+  if (mFirstParGloID == (int)mController->getGloParVal().size() && mNCalibDOFs) { // new detector is being added
     mController->expandGlobalsBy(mNCalibDOFs);
   }
   for (int icl = 0; icl < mNCalibDOFs; icl++) {

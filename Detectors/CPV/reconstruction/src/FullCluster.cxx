@@ -173,7 +173,10 @@ char FullCluster::getNumberOfLocalMax(gsl::span<int> maxAt) const
       maxAt[iDigitN] = i;
       iDigitN++;
       if (iDigitN >= maxAt.size()) { // Note that size of output arrays is limited:
-        LOG(error) << "Too many local maxima, cluster multiplicity " << mMulDigit;
+        static int nAlarms = 0;
+        if (nAlarms++ < 5) {
+          LOG(warning) << "Too many local maxima, cluster multiplicity " << mMulDigit;
+        }
         return 0;
       }
     }

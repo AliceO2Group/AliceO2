@@ -14,13 +14,16 @@ o2_add_library(DataFormatsCTP
           src/Configuration.cxx
           src/Scalers.cxx
           src/CTF.cxx
+          src/TriggerOffsetsParam.cxx
   PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
                         O2::Headers
                         O2::SimulationDataFormat
+                        O2::CommonUtils
                         O2::CommonConstants)
 o2_target_root_dictionary(DataFormatsCTP
                           HEADERS include/DataFormatsCTP/Digits.h
                                   include/DataFormatsCTP/Configuration.h
                                   include/DataFormatsCTP/Scalers.h
-                                  include/DataFormatsCTP/CTF.h)
+                                  include/DataFormatsCTP/CTF.h
+                                  include/DataFormatsCTP/TriggerOffsetsParam.h)
 

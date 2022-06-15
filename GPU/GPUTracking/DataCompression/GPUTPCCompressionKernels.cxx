@@ -185,11 +185,11 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
   GPUParam& GPUrestrict() param = processors.param;
   unsigned int* sortBuffer = smem.sortBuffer;
   for (int iSliceRow = iBlock; iSliceRow < GPUCA_NSLICES * GPUCA_ROW_COUNT; iSliceRow += nBlocks) {
-    const int iSlice = iSliceRow / GPUCA_ROW_COUNT;
-    const int iRow = iSliceRow % GPUCA_ROW_COUNT;
-    const int idOffset = clusters->clusterOffset[iSlice][iRow];
-    const int idOffsetOut = clusters->clusterOffset[iSlice][iRow] * compressor.mMaxClusterFactorBase1024 / 1024;
-    const int idOffsetOutMax = ((const unsigned int*)clusters->clusterOffset[iSlice])[iRow + 1] * compressor.mMaxClusterFactorBase1024 / 1024; // Array out of bounds access is ok, since it goes to the correct nClustersTotal
+    const unsigned int iSlice = iSliceRow / GPUCA_ROW_COUNT;
+    const unsigned int iRow = iSliceRow % GPUCA_ROW_COUNT;
+    const unsigned int idOffset = clusters->clusterOffset[iSlice][iRow];
+    const unsigned int idOffsetOut = clusters->clusterOffset[iSlice][iRow] * compressor.mMaxClusterFactorBase1024 / 1024;
+    const unsigned int idOffsetOutMax = ((const unsigned int*)clusters->clusterOffset[iSlice])[iRow + 1] * compressor.mMaxClusterFactorBase1024 / 1024; // Array out of bounds access is ok, since it goes to the correct nClustersTotal
     if (iThread == nThreads - 1) {
       smem.nCount = 0;
     }
@@ -250,6 +250,12 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
       }
 
       unsigned int count = CAMath::Min(smem.nCount, (unsigned int)GPUCA_TPC_COMP_CHUNK_SIZE);
+      if (idOffsetOut + totalCount + count > idOffsetOutMax) {
+        if (iThread == nThreads - 1) {
+          compressor.raiseError(GPUErrors::ERROR_COMPRESSION_ROW_HIT_OVERFLOW, iSlice * 1000 + iRow, idOffsetOut + totalCount + count, idOffsetOutMax);
+        }
+        break;
+      }
       if (param.rec.tpc.compressionTypeMask & GPUSettings::CompressionDifferences) {
         if (param.rec.tpc.compressionSortOrder == GPUSettings::SortZPadTime) {
           CAAlgo::sortInBlock(sortBuffer, sortBuffer + count, GPUTPCCompressionKernels_Compare<GPUSettings::SortZPadTime>(clusters->clusters[iSlice][iRow]));
@@ -265,11 +271,6 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
 
       for (unsigned int j = get_local_id(0); j < count; j += get_local_size(0)) {
         int outidx = idOffsetOut + totalCount + j;
-        if (outidx >= idOffsetOutMax) {
-          compressor.raiseError(GPUErrors::ERROR_COMPRESSION_ROW_HIT_OVERFLOW, iSlice * 1000 + iRow, outidx, idOffsetOutMax);
-          count = 0;
-          break;
-        }
         const ClusterNative& GPUrestrict() orgCl = clusters->clusters[iSlice][iRow][sortBuffer[j]];
         unsigned int lastTime = 0;
         unsigned int lastPad = 0;

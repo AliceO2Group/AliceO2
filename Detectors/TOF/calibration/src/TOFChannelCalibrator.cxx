@@ -747,7 +747,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
   auto clName = o2::utils::MemFileHelper::getClassName(ts);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
   auto startValidity = slot.getStartTimeMS();
-  auto endValidity = o2::ccdb::CcdbObjectInfo::MONTH * 2;
+  auto endValidity = startValidity + o2::ccdb::CcdbObjectInfo::MONTH * 2;
   ts.setStartValidity(startValidity);
   ts.setEndValidity(endValidity);
   mInfoVector.emplace_back("TOF/Calib/ChannelCalib", clName, flName, md, startValidity, endValidity);

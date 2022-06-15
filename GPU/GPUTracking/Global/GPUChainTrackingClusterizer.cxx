@@ -355,7 +355,7 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
   }
   mCFContext->fragmentFirst = CfFragment{std::max<int>(mCFContext->tpcMaxTimeBin + 1, TPC_MAX_FRAGMENT_LEN), TPC_MAX_FRAGMENT_LEN};
   for (int iSlice = 0; iSlice < GetProcessingSettings().nTPCClustererLanes && iSlice < NSLICES; iSlice++) {
-    if (mIOPtrs.tpcZS && mCFContext->nPagesSector[iSlice]) {
+    if (mIOPtrs.tpcZS && mCFContext->nPagesSector[iSlice] && mCFContext->zsVersion != -1) {
       mCFContext->nextPos[iSlice] = RunTPCClusterizer_transferZS(iSlice, mCFContext->fragmentFirst, GetProcessingSettings().nTPCClustererLanes + iSlice);
     }
   }
@@ -492,7 +492,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         }
 
         if (mIOPtrs.tpcZS) {
-          if (mCFContext->nPagesSector[iSlice]) {
+          if (mCFContext->nPagesSector[iSlice] && mCFContext->zsVersion != -1) {
             clusterer.mPmemory->counters.nPositions = mCFContext->nextPos[iSlice].first;
             clusterer.mPmemory->counters.nPagesSubslice = mCFContext->nextPos[iSlice].second;
           } else {
@@ -510,14 +510,14 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         }
         DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpChargeMap, *mDebugFile, "Zeroed Charges");
 
-        if (mIOPtrs.tpcZS && mCFContext->nPagesSector[iSlice]) {
+        if (mIOPtrs.tpcZS && mCFContext->nPagesSector[iSlice] && mCFContext->zsVersion != -1) {
           TransferMemoryResourceLinkToGPU(RecoStep::TPCClusterFinding, mInputsHost->mResourceZS, lane);
           SynchronizeStream(GetProcessingSettings().nTPCClustererLanes + lane);
         }
 
         SynchronizeStream(mRec->NStreams() - 1); // Wait for copying to constant memory
 
-        if (mIOPtrs.tpcZS && !mCFContext->nPagesSector[iSlice]) {
+        if (mIOPtrs.tpcZS && (!mCFContext->nPagesSector[iSlice] || mCFContext->zsVersion == -1)) {
           continue;
         }
 
@@ -559,7 +559,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
             nextSlice += GetProcessingSettings().nTPCClustererLanes;
             f = mCFContext->fragmentFirst;
           }
-          if (nextSlice < NSLICES && mIOPtrs.tpcZS && mCFContext->nPagesSector[nextSlice]) {
+          if (nextSlice < NSLICES && mIOPtrs.tpcZS && mCFContext->nPagesSector[nextSlice] && mCFContext->zsVersion != -1) {
             mCFContext->nextPos[nextSlice] = RunTPCClusterizer_transferZS(nextSlice, f, GetProcessingSettings().nTPCClustererLanes + lane);
           }
         }
@@ -664,8 +664,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         }
         for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
           if (nClsTotal + clusterer.mPclusterInRow[j] > mInputsHost->mNClusterNative) {
-            clusterer.raiseError(GPUErrors::ERROR_CF_GLOBAL_CLUSTER_OVERFLOW, nClsTotal + clusterer.mPclusterInRow[j], mInputsHost->mNClusterNative);
-            tmpNative->nClusters[iSlice][j] = 0;
+            clusterer.raiseError(GPUErrors::ERROR_CF_GLOBAL_CLUSTER_OVERFLOW, iSlice * 1000 + j, nClsTotal + clusterer.mPclusterInRow[j], mInputsHost->mNClusterNative);
             continue;
           }
           if (buildNativeGPU) {

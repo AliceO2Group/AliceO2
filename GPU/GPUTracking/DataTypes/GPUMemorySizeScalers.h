@@ -53,6 +53,7 @@ struct GPUMemorySizeScalers {
   size_t tpcMaxSectorClusters = 30000000;
   size_t tpcMaxStartHits = 650000;
   size_t tpcMaxRowStartHits = 100000;
+  size_t tpcMinRowStartHits = 4000;
   size_t tpcMaxTracklets = 520000;
   size_t tpcMaxTrackletHits = 35000000;
   size_t tpcMaxSectorTracks = 130000;
@@ -71,7 +72,7 @@ struct GPUMemorySizeScalers {
   inline size_t NTPCPeaks(size_t tpcDigits, bool perSector = false) { return getValue(perSector ? tpcMaxPeaks : (GPUCA_NSLICES * tpcMaxPeaks), hitOffset + tpcDigits * tpcPeaksPerDigit); }
   inline size_t NTPCClusters(size_t tpcDigits, bool perSector = false) { return getValue(perSector ? tpcMaxSectorClusters : tpcMaxClusters, tpcClustersPerPeak * NTPCPeaks(tpcDigits, perSector)); }
   inline size_t NTPCStartHits(size_t tpcHits) { return getValue(tpcMaxStartHits, tpcHits * tpcStartHitsPerHit); }
-  inline size_t NTPCRowStartHits(size_t tpcHits) { return getValue(tpcMaxRowStartHits, NTPCStartHits(tpcHits) * 4 / GPUCA_ROW_COUNT); }
+  inline size_t NTPCRowStartHits(size_t tpcHits) { return getValue(tpcMaxRowStartHits, std::max<size_t>(NTPCStartHits(tpcHits) * 10 / GPUCA_ROW_COUNT, tpcMinRowStartHits)); }
   inline size_t NTPCTracklets(size_t tpcHits) { return getValue(tpcMaxTracklets, NTPCStartHits(tpcHits) * tpcTrackletsPerStartHit); }
   inline size_t NTPCTrackletHits(size_t tpcHits) { return getValue(tpcMaxTrackletHits, hitOffset + tpcHits * tpcTrackletHitsPerHit); }
   inline size_t NTPCSectorTracks(size_t tpcHits) { return getValue(tpcMaxSectorTracks, tpcHits * tpcSectorTracksPerHit); }

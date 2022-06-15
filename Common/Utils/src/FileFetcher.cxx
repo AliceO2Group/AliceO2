@@ -309,7 +309,7 @@ bool FileFetcher::copyFile(size_t id)
     }
   }
   auto realCmd = std::regex_replace(std::regex_replace(mCopyCmd, std::regex("\\?src"), mInputFiles[id].getOrigName()), std::regex("\\?dst"), mInputFiles[id].getLocalName());
-  auto fullCmd = fmt::format("sh -c \"{}\" > {}  2>&1", realCmd, mCopyCmdLogFile);
+  auto fullCmd = fmt::format("sh -c \"{}\" >> {}  2>&1", realCmd, mCopyCmdLogFile);
   LOG(info) << "Executing " << fullCmd;
   const auto sysRet = gSystem->Exec(fullCmd.c_str());
   if (sysRet != 0) {

@@ -33,11 +33,9 @@ class AlignableSensorTOF : public AlignableSensor
 {
  public:
   AlignableSensorTOF(const char* name = 0, int vid = 0, int iid = 0, int isec = 0);
-  virtual ~AlignableSensorTOF();
+  ~AlignableSensorTOF() = final;
   //
-  virtual AlignmentPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t);
-  //  virtual void   setTrackingFrame();
-  virtual void prepareMatrixT2L();
+  void prepareMatrixT2L() final;
   //
   int GetSector() const { return fSector; }
   void SetSector(uint32_t sc) { fSector = (uint8_t)sc; }

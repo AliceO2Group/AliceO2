@@ -55,7 +55,7 @@ void Clusterer::calibrateStrip()
     dig->setBC(dig->getBC() - mBCOffset); // RS Don't use raw BC, always start from the beginning of the TF
     double calib = mCalibApi->getTimeCalibration(dig->getChannel(), dig->getTOT() * Geo::TOTBIN_NS);
     //printf("channel %d) isProblematic = %d, fractionUnderPeak = %f\n",dig->getChannel(),mCalibApi->isProblematic(dig->getChannel()),mCalibApi->getFractionUnderPeak(dig->getChannel())); // toberem
-    bool isProbOrError = mCalibApi->isChannelError(dig->getChannel()) || mCalibApi->isNoisy(dig->getChannel()) || mCalibApi->isProblematic(dig->getChannel());
+    bool isProbOrError = mAreCalibStored ? mCalibApi->isChannelError(dig->getChannel()) || mCalibApi->isNoisy(dig->getChannel()) : mCalibApi->isChannelError(dig->getChannel()) || mCalibApi->isNoisy(dig->getChannel()) || mCalibApi->isProblematic(dig->getChannel());
     dig->setIsProblematic(isProbOrError);
     dig->setCalibratedTime(dig->getTDC() * Geo::TDCBIN + dig->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3 - Geo::LATENCYWINDOW * 1E3 - calib); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
     //printf("calibration correction = %f\n",calib); // toberem

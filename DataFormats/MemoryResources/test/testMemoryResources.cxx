@@ -14,7 +14,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "MemoryResources/MemoryResources.h"
-#include "FairMQTransportFactory.h"
+#include <fairmq/TransportFactory.h>
 #include <fairmq/Tools.h>
 #include <fairmq/ProgOptions.h>
 #include <vector>
@@ -51,8 +51,8 @@ BOOST_AUTO_TEST_CASE(transportallocatormap_test)
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
 
-  auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
+  auto factoryZMQ = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem");
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
   auto allocSHM = getTransportAllocator(factorySHM.get());
   BOOST_CHECK(allocZMQ != nullptr && allocSHM != allocZMQ);
@@ -68,8 +68,8 @@ BOOST_AUTO_TEST_CASE(allocator_test)
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
 
-  auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
+  auto factoryZMQ = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem");
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
   auto allocSHM = getTransportAllocator(factorySHM.get());
 
@@ -106,14 +106,14 @@ BOOST_AUTO_TEST_CASE(getMessage_test)
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
 
-  auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
+  auto factoryZMQ = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem");
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
   auto allocSHM = getTransportAllocator(factorySHM.get());
 
   testData::nconstructions = 0;
 
-  FairMQMessagePtr message{nullptr};
+  fair::mq::MessagePtr message{nullptr};
 
   int* messageArray{nullptr};
 
@@ -158,8 +158,8 @@ BOOST_AUTO_TEST_CASE(adoptVector_test)
   fair::mq::ProgOptions config;
   config.SetProperty<std::string>("session", std::to_string(session));
 
-  auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
+  auto factoryZMQ = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  auto factorySHM = fair::mq::TransportFactory::CreateTransportFactory("shmem");
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
   auto allocSHM = getTransportAllocator(factorySHM.get());
 

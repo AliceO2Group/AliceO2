@@ -52,6 +52,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"tpc-lanes", VariantType::Int, defaultlanes, {laneshelp}},
     {"tpc-sectors", VariantType::String, sectorDefault.c_str(), {sectorshelp}},
     {"tpc-reco-output", VariantType::String, "", {tpcrthelp}},
+    {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"send-ce-digits", VariantType::Bool, false, {"filter CE digits and publish them for analysis on a separate stream"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCCalibPedestal.FirstTimeBin=10;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
@@ -92,7 +93,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   int fanoutsize = 0;
   for (int l = 0; l < lanes; ++l) {
-    specs.emplace_back(o2::tpc::getRawToDigitsSpec(fanoutsize, configcontext.options().get<std::string>("input-spec"), tpcSectors, sendCEdigits));
+    specs.emplace_back(o2::tpc::getRawToDigitsSpec(fanoutsize, configcontext.options().get<std::string>("input-spec"), configcontext.options().get<bool>("ignore-dist-stf"), tpcSectors, sendCEdigits));
     fanoutsize++;
   }
 

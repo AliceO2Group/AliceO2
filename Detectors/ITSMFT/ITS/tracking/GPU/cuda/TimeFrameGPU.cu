@@ -141,8 +141,8 @@ void TimeFrameGPU<NLayers>::loadToDevice(const int maxLayers)
     flatTables0.reserve(mConfig.nMaxROFs * (ZBins * PhiBins + 1));
     flatTables2.reserve(mConfig.nMaxROFs * (ZBins * PhiBins + 1));
     for (size_t rofId{0}; rofId < mNrof; ++rofId) {
-      const auto& v0 = mIndexTablesL0[rofId];
-      const auto& v2 = mIndexTables[rofId][1];
+      const auto& v0 = mIndexTables[rofId][0];
+      const auto& v2 = mIndexTables[rofId][2];
       flatTables0.insert(flatTables0.end(), v0.begin(), v0.end());
       flatTables2.insert(flatTables2.end(), v2.begin(), v2.end());
     }

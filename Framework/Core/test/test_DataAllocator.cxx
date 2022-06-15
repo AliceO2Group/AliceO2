@@ -26,7 +26,7 @@
 #include "Headers/DataHeader.h"
 #include "TestClasses.h"
 #include "Framework/Logger.h"
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
 #include <vector>
 #include <chrono>
 #include <cstring>

@@ -29,6 +29,8 @@ BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest)
 
   auto specs = std::vector<ConfigParamSpec>{
     {"someInt", VariantType::Int, 2, {"some int option"}},
+    {"someInt8", VariantType::Int8, static_cast<int8_t>(2), {"some int8 option"}},
+    {"someInt16", VariantType::Int16, static_cast<int16_t>(2), {"some int16 option"}},
     {"someUInt8", VariantType::UInt8, static_cast<uint8_t>(2u), {"some uint8 option"}},
     {"someUInt16", VariantType::UInt16, static_cast<uint16_t>(2u), {"some uint16 option"}},
     {"someUInt32", VariantType::UInt32, 2u, {"some uint32 option"}},
@@ -42,6 +44,8 @@ BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest)
     "test",
     "--someBool",
     "--someInt", "1",
+    "--someInt8", "1",
+    "--someInt16", "1",
     "--someUInt8", "1",
     "--someUInt16", "1",
     "--someUInt32", "1",
@@ -58,6 +62,8 @@ BOOST_AUTO_TEST_CASE(TrivialBoostOptionsRetrieverTest)
   bpo::store(parse_command_line(sizeof(args) / sizeof(char*), args, opts), vm);
   bpo::notify(vm);
   BOOST_CHECK(vm["someInt"].as<int>() == 1);
+  BOOST_CHECK(vm["someInt8"].as<int8_t>() == '1');
+  BOOST_CHECK(vm["someInt16"].as<int16_t>() == 1);
   BOOST_CHECK(vm["someUInt8"].as<uint8_t>() == '1');
   BOOST_CHECK(vm["someUInt16"].as<uint16_t>() == 1);
   BOOST_CHECK(vm["someUInt32"].as<uint32_t>() == 1);

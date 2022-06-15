@@ -24,6 +24,7 @@
 #include "DetectorsDCS/DataPointValue.h"
 #include "DetectorsDCS/DeliveryType.h"
 #include "DCStoDPLconverter.h"
+#include "CommonUtils/StringUtils.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbApi.h"
 #include "Headers/DataHeaderHelpers.h"
@@ -44,6 +45,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(ConfigParamSpec{"verbose", VariantType::Bool, false, {"verbose output"}});
   workflowOptions.push_back(ConfigParamSpec{"test-mode", VariantType::Bool, false, {"test mode"}});
+  workflowOptions.push_back(ConfigParamSpec{"may-send-delta-first", VariantType::Bool, false, {"if true, do not wait for FBI before sending 1st output"}});
   workflowOptions.push_back(ConfigParamSpec{"ccdb-url", VariantType::String, "http://ccdb-test.cern.ch:8080", {"url of CCDB to get the detectors DPs configuration"}});
   workflowOptions.push_back(ConfigParamSpec{"detector-list", VariantType::String, "TOF, MCH", {"list of detectors for which to process DCS"}});
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
@@ -56,6 +58,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   bool verbose = config.options().get<bool>("verbose");
   bool testMode = config.options().get<bool>("test-mode");
+  bool fbiFirst = !config.options().get<bool>("may-send-delta-first");
   std::string detectorList = config.options().get<std::string>("detector-list");
   o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   std::string url = config.options().get<std::string>("ccdb-url");
@@ -82,12 +85,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     std::sregex_token_iterator it(detectorList.begin(), detectorList.end(), re, -1);
     std::sregex_token_iterator reg_end;
     for (; it != reg_end; ++it) {
-      LOG(info) << "DCS DPs configured for detector " << it->str();
-      std::unordered_map<DPID, std::string>* dpid2Det = mgr.getForTimeStamp<std::unordered_map<DPID, std::string>>(it->str() + "/Config/DCSDPconfig", ts);
-      for (auto& el : *dpid2Det) {
-        o2::header::DataDescription tmpd;
-        tmpd.runtimeInit(el.second.c_str(), el.second.size());
-        dpid2DataDesc[el.first] = tmpd;
+      std::string detStr = it->str();
+      o2::utils::Str::trim(detStr);
+      if (!detStr.empty()) {
+        LOG(info) << "DCS DPs configured for detector " << detStr;
+        std::unordered_map<DPID, std::string>* dpid2Det = mgr.getForTimeStamp<std::unordered_map<DPID, std::string>>(detStr + "/Config/DCSDPconfig", ts);
+        for (auto& el : *dpid2Det) {
+          o2::header::DataDescription tmpd;
+          tmpd.runtimeInit(el.second.c_str(), el.second.size());
+          dpid2DataDesc[el.first] = tmpd;
+        }
       }
     }
   }
@@ -110,7 +117,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     "dcs-proxy",
     std::move(dcsOutputs),
     "type=pull,method=connect,address=tcp://aldcsadaposactor:60000,rateLogging=1,transport=zeromq",
-    dcs2dpl(dpid2DataDesc, 0, 1, verbose));
+    dcs2dpl(dpid2DataDesc, fbiFirst, verbose));
 
   WorkflowSpec workflow;
   workflow.emplace_back(dcsProxy);

@@ -19,6 +19,7 @@
 #include "DataFormatsCTP/Digits.h"
 #include <map>
 #include <bitset>
+#include <ctime>
 
 namespace o2
 {
@@ -56,8 +57,7 @@ struct CTPScalerO2 {
 struct CTPScalerRecordRaw {
   CTPScalerRecordRaw() = default;
   o2::InteractionRecord intRecord;
-  uint32_t seconds;
-  uint32_t microSeconds;
+  uint64_t epochTime;
   std::vector<CTPScalerRaw> scalers;
   void printStream(std::ostream& stream) const;
   ClassDefNV(CTPScalerRecordRaw, 1);
@@ -65,8 +65,7 @@ struct CTPScalerRecordRaw {
 struct CTPScalerRecordO2 {
   CTPScalerRecordO2() = default;
   o2::InteractionRecord intRecord;
-  uint32_t seconds;
-  uint32_t microSeconds;
+  uint64_t epochTime;
   std::vector<CTPScalerO2> scalers;
   void printStream(std::ostream& stream) const;
   ClassDefNV(CTPScalerRecordO2, 1);

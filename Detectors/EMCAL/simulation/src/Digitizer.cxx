@@ -209,7 +209,7 @@ void Digitizer::setEventTime(o2::InteractionTimeRecord record)
 
   mDigits.forwardMarker(record);
 
-  mPhase = mDigits.getPhase();
+  mPhase = mSimParam->doSimulateL1Phase() ? mDigits.getPhase() : 0;
 
   mEventTimeOffset = 0;
 

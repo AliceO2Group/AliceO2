@@ -21,11 +21,23 @@ if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then add_W o2-tpc-calib-gainmap-tracks "--p
 
 # output-proxy for aggregator
 if workflow_has_parameter CALIB_PROXIES; then
-  if [[ ! -z $CALIBDATASPEC_BARREL ]]; then
-    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_BARREL\" $(get_proxy_connection barrel output)" "" 0
+  if [[ ! -z $CALIBDATASPEC_BARREL_TF ]]; then
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_BARREL_TF\" $(get_proxy_connection barrel_tf output)" "" 0
   fi
-  if [[ ! -z $CALIBDATASPEC_CALO ]]; then
-    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_CALO\" $(get_proxy_connection calo output)" "" 0
+  if [[ ! -z $CALIBDATASPEC_BARREL_SPORADIC ]]; then
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_BARREL_SPORADIC\" $(get_proxy_connection barrel_sp output)" "" 0
+  fi
+  if [[ ! -z $CALIBDATASPEC_CALO_TF ]]; then
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_CALO_TF\" $(get_proxy_connection calo_tf output)" "" 0
+  fi
+  if [[ ! -z $CALIBDATASPEC_CALO_SPORADIC ]]; then
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_CALO_SPORADIC\" $(get_proxy_connection calo_sp output)" "" 0
+  fi
+  if [[ ! -z $CALIBDATASPEC_MUON_TF ]]; then
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_MUON_TF\" $(get_proxy_connection muon_tf output)" "" 0
+  fi
+  if [[ ! -z $CALIBDATASPEC_MUON_SPORADIC ]]; then
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_MUON_SPORADIC\" $(get_proxy_connection muon_sp output)" "" 0
   fi
 fi
 

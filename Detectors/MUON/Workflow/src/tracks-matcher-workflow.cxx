@@ -74,10 +74,10 @@ WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
     specs.emplace_back(o2::mid::getTrackReaderSpec(useMC, "mid-track-reader"));
   }
 
-  specs.emplace_back(o2::muon::getTrackMatcherSpec("muon-track-matcher"));
+  specs.emplace_back(o2::muon::getTrackMatcherSpec(useMC, "muon-track-matcher"));
 
   if (!disableRootOutput) {
-    specs.emplace_back(o2::muon::getTrackWriterSpec("muon-track-writer", "muontracks.root"));
+    specs.emplace_back(o2::muon::getTrackWriterSpec(useMC, "muon-track-writer", "muontracks.root"));
   }
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit

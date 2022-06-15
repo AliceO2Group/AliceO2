@@ -22,6 +22,7 @@
 #include "Framework/Logger.h"
 #include "TOFWorkflowIO/CalibInfoReaderSpec.h"
 #include "CommonUtils/NameConf.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::framework;
 using namespace o2::tof;
@@ -53,6 +54,17 @@ void CalibInfoReader::run(ProcessingContext& pc)
     return;
   }
 
+  static int tf = 0;
+  static uint64_t timestamp = 1;
+  const auto& hbfu = o2::raw::HBFUtils::Instance();
+  auto& timingInfo = pc.services().get<o2::framework::TimingInfo>();
+  timingInfo.firstTFOrbit = hbfu.orbitFirst;
+  timingInfo.creation = timestamp; // set after reading tree
+  timingInfo.tfCounter = tf;
+  timingInfo.runNumber = hbfu.runNumber;
+
+  tf++;
+
   char filename[100];
 
   if ((mTree && mCurrentEntry < mTree->GetEntries()) || fscanf(mFile, "%s", filename) == 1) {
@@ -70,6 +82,15 @@ void CalibInfoReader::run(ProcessingContext& pc)
     }
     if ((mGlobalEntry % mNinstances) == mInstance) {
       mTree->GetEvent(mCurrentEntry);
+
+      if (mVect.size()) {
+        timingInfo.creation = uint64_t(mVect[0].getTimestamp()) * 1000;
+        timestamp = timingInfo.creation;
+      } else if (mDiagnostic) {
+        timingInfo.creation = uint64_t(mDia.getTimeStamp()) * 1000;
+        timestamp = timingInfo.creation;
+      }
+
       LOG(debug) << "Current entry " << mCurrentEntry;
       LOG(debug) << "Send " << mVect.size() << " calib infos";
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTOFTPC ? ddCalib_tpc : ddCalib, 0, Lifetime::Timeframe}, mVect);

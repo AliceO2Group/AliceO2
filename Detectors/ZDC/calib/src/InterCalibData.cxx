@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/Logger.h"
-#include "DataFormatsZDC/InterCalibData.h"
+#include "ZDCCalib/InterCalibData.h"
 
 using namespace o2::zdc;
 

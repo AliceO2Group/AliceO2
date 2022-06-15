@@ -12,6 +12,7 @@
 #include <boost/program_options.hpp>
 #include <ctime>
 #include <chrono>
+#include <TSystem.h>
 #include "DataFormatsParameters/GRPECSObject.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CCDB/CcdbApi.h"
@@ -23,6 +24,10 @@ using CcdbApi = o2::ccdb::CcdbApi;
 using GRPECSObject = o2::parameters::GRPECSObject;
 namespace bpo = boost::program_options;
 
+enum CCDBRefreshMode { NONE,
+                       ASYNC,
+                       SYNC };
+
 void createGRPECSObject(const std::string& dataPeriod,
                         int run,
                         int runType,
@@ -32,7 +37,8 @@ void createGRPECSObject(const std::string& dataPeriod,
                         const std::string& detsTrigger,
                         long tstart,
                         long tend,
-                        std::string ccdbServer = "")
+                        const std::string& ccdbServer = "",
+                        CCDBRefreshMode refresh = CCDBRefreshMode::NONE)
 {
   auto detMask = o2::detectors::DetID::getMask(detsReadout);
   if (detMask.count() == 0) {
@@ -45,14 +51,15 @@ void createGRPECSObject(const std::string& dataPeriod,
   auto detMaskTrig = detMask & o2::detectors::DetID::getMask(detsTrigger);
   LOG(info) << tstart << " " << tend;
   if (tstart == 0) {
-    tstart = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    tstart = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
   }
+  auto MarginAtSOR = 4 * o2::ccdb::CcdbObjectInfo::DAY;     // assume that we will never have run longer than 4 days, apply this validity duration when creating SOR version
+  auto MarginAtEOR = 10 * o2::ccdb::CcdbObjectInfo::MINUTE; // when writing EOR version, make it and also SOR version valid this margin after real EOR timestamp
   long tendVal = 0;
   if (tend < tstart) {
-    tendVal = tstart + 2 * 24 * 3600 * 1000UL; // assume that we will never have run longer than 2 days
-    LOG(info) << tstart << " -> " << tend;
+    tendVal = tstart + MarginAtSOR;
   } else if (tendVal < tend) {
-    tendVal = tend + 3600 * 1000UL; // we want the version with EOR to fully override the version w/o EOR
+    tendVal = tend + MarginAtEOR;
   }
   GRPECSObject grpecs;
   grpecs.setTimeStart(tstart);
@@ -70,29 +77,50 @@ void createGRPECSObject(const std::string& dataPeriod,
 
   if (!ccdbServer.empty()) {
     CcdbApi api;
+    const std::string objPath{"GLO/Config/GRPECS"};
     api.init(ccdbServer);
     std::map<std::string, std::string> metadata;
     metadata["responsible"] = "ECS";
     metadata[o2::base::NameConf::CCDBRunTag.data()] = std::to_string(run);
-    // long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    api.storeAsTFileAny(&grpecs, "GLO/Config/GRPECS", metadata, tstart, tendVal); // making it 1-year valid to be sure we have something
-    LOGP(info, "Uploaded to {}/{} with validity {}:{}", ccdbServer, "GLO/Config/GRPECS", tstart, tendVal);
-    // also storing the RCT/Info/RunInformation entry in case the run type is PHYSICS and if we are at the end of run
-    if (runType == GRPECSObject::RunType::PHYSICS && tend < tstart) {
-      char tempChar;
-      std::map<std::string, std::string> mdRCT;
-      mdRCT["SOR"] = std::to_string(tstart);
-      mdRCT["EOR"] = std::to_string(tend);
-      long startValRCT = (long)run;
-      long endValRCT = (long)(run + 1);
-      api.storeAsBinaryFile(&tempChar, sizeof(tempChar), "tmp.dat", "char", "RCT/Info/RunInformation", mdRCT, startValRCT, endValRCT);
-      LOGP(info, "Uploaded RCT object to {}/{} with validity {}:{}", ccdbServer, "RCT/Info/RunInformation", startValRCT, endValRCT);
+    metadata["EOR"] = fmt::format("{}", tend);
+    api.storeAsTFileAny(&grpecs, objPath, metadata, tstart, tendVal); // making it 1-year valid to be sure we have something
+    LOGP(info, "Uploaded to {}/{} with validity {}:{} for SOR:{}/EOR:{}", ccdbServer, objPath, tstart, tendVal, tstart, tend);
+    if (tend > tstart) {
+      // override SOR version to the same limits
+      metadata.erase("EOR");
+      auto prevHeader = api.retrieveHeaders(objPath, metadata, tendVal + 1); // is there an object to override
+      const auto itETag = prevHeader.find("ETag");
+      if (itETag != prevHeader.end()) {
+        std::string etag = itETag->second;
+        etag.erase(remove(etag.begin(), etag.end(), '\"'), etag.end());
+        LOGP(info, "Overriding run {} SOR-only version {}{}{}/{} validity to match complete SOR/EOR version validity", run, ccdbServer, ccdbServer.back() == '/' ? "" : "/", prevHeader["Valid-From"], etag);
+        api.updateMetadata(objPath, {}, std::max(tstart, tendVal - 1), etag, tendVal);
+      }
+      if (runType == GRPECSObject::RunType::PHYSICS) { // also storing the RCT/Info/RunInformation entry in case the run type is PHYSICS and if we are at the end of run
+        char tempChar{};
+        std::map<std::string, std::string> mdRCT;
+        mdRCT["SOR"] = std::to_string(tstart);
+        mdRCT["EOR"] = std::to_string(tend);
+        long startValRCT = (long)run;
+        long endValRCT = (long)(run + 1);
+        api.storeAsBinaryFile(&tempChar, sizeof(tempChar), "tmp.dat", "char", "RCT/Info/RunInformation", mdRCT, startValRCT, endValRCT);
+        LOGP(info, "Uploaded RCT object to {}/{} with validity {}:{}", ccdbServer, "RCT/Info/RunInformation", startValRCT, endValRCT);
+      }
     }
+
   } else { // write a local file
     auto fname = o2::base::NameConf::getGRPECSFileName();
     TFile grpF(fname.c_str(), "recreate");
     grpF.WriteObjectAny(&grpecs, grpecs.Class(), o2::base::NameConf::CCDBOBJECT.data());
     LOG(info) << "Stored to local file " << fname;
+  }
+  //
+  if (refresh != CCDBRefreshMode::NONE && !ccdbServer.empty()) {
+    auto cmd = fmt::format("curl -I -i -s \"{}{}/latest/%5Cw%7B3%7D/.*/`date +%s000`/?prepare={}\"", ccdbServer, ccdbServer.back() == '/' ? "" : "/", refresh == CCDBRefreshMode::SYNC ? "sync" : "true");
+    auto t0 = std::chrono::high_resolution_clock::now();
+    auto res = gSystem->Exec(cmd.c_str());
+    auto t1 = std::chrono::high_resolution_clock::now();
+    LOGP(info, "Executed [{}] -> {} in {:.3f} s", cmd, res, std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() / 1000.f);
   }
 }
 
@@ -121,6 +149,7 @@ int main(int argc, char** argv)
     add_option("start-time,s", bpo::value<long>()->default_value(0), "run start time in ms, now() if 0");
     add_option("end-time,e", bpo::value<long>()->default_value(0), "run end time in ms, start-time+3days is used if 0");
     add_option("ccdb-server", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "CCDB server for upload, local file if empty");
+    add_option("refresh", bpo::value<string>()->default_value("")->implicit_value("async"), R"(refresh server cache after upload: "none" (or ""), "async" (non-blocking) and "sync" (blocking))");
 
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
@@ -152,6 +181,17 @@ int main(int argc, char** argv)
     std::cerr << opt_general << std::endl;
     exit(3);
   }
+  std::string refreshStr = vm["refresh"].as<string>();
+  CCDBRefreshMode refresh = CCDBRefreshMode::NONE;
+  if (!refreshStr.empty() && refreshStr != "none") {
+    if (refreshStr == "async") {
+      refresh = CCDBRefreshMode::ASYNC;
+    } else if (refreshStr == "sync") {
+      refresh = CCDBRefreshMode::SYNC;
+    } else {
+      LOGP(fatal, R"(Wrong CCDB refresh mode {}, supported are "none" (or ""), "async" and "sync")", refreshStr);
+    }
+  }
 
   createGRPECSObject(
     vm["period"].as<std::string>(),
@@ -163,5 +203,6 @@ int main(int argc, char** argv)
     vm["triggering"].as<std::string>(),
     vm["start-time"].as<long>(),
     vm["end-time"].as<long>(),
-    vm["ccdb-server"].as<std::string>());
+    vm["ccdb-server"].as<std::string>(),
+    refresh);
 }

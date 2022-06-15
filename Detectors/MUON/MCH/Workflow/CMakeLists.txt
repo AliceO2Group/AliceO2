@@ -82,8 +82,7 @@ o2_add_executable(
         digits-to-preclusters-workflow
         SOURCES src/digits-to-preclusters-workflow.cxx
         COMPONENT_NAME mch
-        # PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl4)
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl3)
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl4)
 
 o2_add_executable(
         digits-reader-workflow
@@ -107,8 +106,7 @@ o2_add_executable(
         preclusters-to-clusters-original-workflow
         SOURCES src/preclusters-to-clusters-original-workflow.cxx
         COMPONENT_NAME mch
-        # PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImp4)
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImpl3)
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImpl4)
 
 o2_add_executable(
         preclusters-to-clusters-gem-workflow
@@ -151,17 +149,6 @@ o2_add_executable(
         SOURCES src/TrackFinderSpec.cxx src/clusters-to-tracks-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters O2::Framework O2::DataFormatsMCH O2::MCHTracking O2::DataFormatsParameters)
-
-o2_add_executable(
-        clusters-transformer-workflow
-        SOURCES src/clusters-transformer-workflow.cxx src/ClusterTransformerSpec.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES
-           O2::DetectorsBase
-           O2::Framework
-           O2::MCHBase
-           O2::MCHGeometryTransformer
-        )
 
 o2_add_executable(
         vertex-sampler-workflow
@@ -214,7 +201,6 @@ o2_add_executable(
 o2_add_executable(
         reco-workflow
         SOURCES
-            src/ClusterTransformerSpec.cxx
             src/DigitReaderSpec.cxx
             src/EventFinderSpec.cxx
             src/TrackFinderSpec.cxx

@@ -50,7 +50,8 @@ void CellConverterSpec::init(framework::InitContext& ctx)
 void CellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(debug) << "[EMCALCellConverter - run] called";
-  const double CONVADCGEV = 0.016; // Conversion from ADC counts to energy: E = 16 MeV / ADC
+  const double CONVADCGEV = 0.016;   // Conversion from ADC counts to energy: E = 16 MeV / ADC
+  constexpr double timeshift = 600.; // subtract 600 ns in order to center the time peak around the nominal delay
 
   mOutputCells.clear();
   mOutputLabels.clear();
@@ -105,42 +106,43 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
           if (fitResults.getTime() < 0) {
             fitResults.setTime(0.);
           }
+          mOutputCells.emplace_back(tower, fitResults.getAmp() * CONVADCGEV, fitResults.getTime() - timeshift, channelType);
+
+          if (mPropagateMC) {
+            Int_t LabelIndex = mOutputLabels.getIndexedSize();
+            if (channelType == ChannelType_t::HIGH_GAIN) {
+              // if this channel has no bunches, then fill an empty label
+              if (channelData.mChannelLabelsHG.size() == 0) {
+                const o2::emcal::MCLabel label = o2::emcal::MCLabel(false, 1.);
+                mOutputLabels.addElementRandomAccess(LabelIndex, label);
+              } else {
+                // Fill only labels that corresponds to bunches with maximum ADC
+                const int bunchindex = selectMaximumBunch(channelData.mChannelsBunchesHG);
+                for (const auto& label : channelData.mChannelLabelsHG[bunchindex]) {
+                  mOutputLabels.addElementRandomAccess(LabelIndex, label);
+                }
+              }
+            } else {
+              // if this channel has no bunches, then fill an empty label
+              if (channelData.mChannelLabelsLG.size() == 0) {
+                const o2::emcal::MCLabel label = o2::emcal::MCLabel(false, 1.);
+                mOutputLabels.addElementRandomAccess(LabelIndex, label);
+              } else {
+                // Fill only labels that corresponds to bunches with maximum ADC
+                const int bunchindex = selectMaximumBunch(channelData.mChannelsBunchesLG);
+                for (const auto& label : channelData.mChannelLabelsLG[bunchindex]) {
+                  mOutputLabels.addElementRandomAccess(LabelIndex, label);
+                }
+              }
+            }
+          }
+          ncellsTrigger++;
+
         } catch (CaloRawFitter::RawFitterError_t& fiterror) {
           if (fiterror != CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK) {
             LOG(error) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
           }
         }
-
-        mOutputCells.emplace_back(tower, fitResults.getAmp() * CONVADCGEV, fitResults.getTime(), channelType);
-        if (mPropagateMC) {
-          Int_t LabelIndex = mOutputLabels.getIndexedSize();
-          if (channelType == ChannelType_t::HIGH_GAIN) {
-            // if this channel has no bunches, then fill an empty label
-            if (channelData.mChannelLabelsHG.size() == 0) {
-              const o2::emcal::MCLabel label = o2::emcal::MCLabel(false, 1.);
-              mOutputLabels.addElementRandomAccess(LabelIndex, label);
-            } else {
-              // Fill only labels that corresponds to bunches with maximum ADC
-              const int bunchindex = selectMaximumBunch(channelData.mChannelsBunchesHG);
-              for (const auto& label : channelData.mChannelLabelsHG[bunchindex]) {
-                mOutputLabels.addElementRandomAccess(LabelIndex, label);
-              }
-            }
-          } else {
-            // if this channel has no bunches, then fill an empty label
-            if (channelData.mChannelLabelsLG.size() == 0) {
-              const o2::emcal::MCLabel label = o2::emcal::MCLabel(false, 1.);
-              mOutputLabels.addElementRandomAccess(LabelIndex, label);
-            } else {
-              // Fill only labels that corresponds to bunches with maximum ADC
-              const int bunchindex = selectMaximumBunch(channelData.mChannelsBunchesLG);
-              for (const auto& label : channelData.mChannelLabelsLG[bunchindex]) {
-                mOutputLabels.addElementRandomAccess(LabelIndex, label);
-              }
-            }
-          }
-        }
-        ncellsTrigger++;
       }
     }
     mOutputTriggers.emplace_back(trg.getBCData(), trg.getTriggerBits(), currentstart, ncellsTrigger);
@@ -230,25 +232,32 @@ std::vector<o2::emcal::SRUBunchContainer> CellConverterSpec::digitsToBunches(gsl
       std::vector<std::vector<o2::emcal::MCLabel>> rawLabelsHG;
       std::vector<std::vector<o2::emcal::MCLabel>> rawLabelsLG;
 
+      bool saturatedBunch = false;
+
       // Creating the high gain bunch with labels
       for (auto& bunch : findBunches(channelDigits.mChannelDigits, channelDigits.mChannelLabels, ChannelType_t::HIGH_GAIN)) {
         rawbunchesHG.emplace_back(bunch.mADCs.size(), bunch.mStarttime);
         for (auto adc : bunch.mADCs) {
           rawbunchesHG.back().addADC(adc);
+          if (adc > o2::emcal::constants::LG_SUPPRESSION_CUT) {
+            saturatedBunch = true;
+          }
         }
         if (mPropagateMC) {
           rawLabelsHG.push_back(bunch.mLabels);
         }
       }
 
-      // Creating the low gain bunch with labels
-      for (auto& bunch : findBunches(channelDigits.mChannelDigits, channelDigits.mChannelLabels, ChannelType_t::LOW_GAIN)) {
-        rawbunchesLG.emplace_back(bunch.mADCs.size(), bunch.mStarttime);
-        for (auto adc : bunch.mADCs) {
-          rawbunchesLG.back().addADC(adc);
-        }
-        if (mPropagateMC) {
-          rawLabelsLG.push_back(bunch.mLabels);
+      // Creating the low gain bunch with labels if the HG bunch is saturated
+      if (saturatedBunch) {
+        for (auto& bunch : findBunches(channelDigits.mChannelDigits, channelDigits.mChannelLabels, ChannelType_t::LOW_GAIN)) {
+          rawbunchesLG.emplace_back(bunch.mADCs.size(), bunch.mStarttime);
+          for (auto adc : bunch.mADCs) {
+            rawbunchesLG.back().addADC(adc);
+          }
+          if (mPropagateMC) {
+            rawLabelsLG.push_back(bunch.mLabels);
+          }
         }
       }
 

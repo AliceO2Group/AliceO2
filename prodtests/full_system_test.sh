@@ -46,13 +46,15 @@ NHBPERTF=${NHBPERTF:-128}
 RUNFIRSTORBIT=${RUNFIRSTORBIT:-0}
 FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-0}
 OBLIGATORYSOR=${OBLIGATORYSOR:-false}
-RUNNUMBER=300000 # a default un-anchored run number
+FST_TPC_ZSVERSION=${FST_TPC_ZSVERSION:-2}
 if [ $BEAMTYPE == "PbPb" ]; then
   FST_GENERATOR=${FST_GENERATOR:-pythia8hi}
   FST_COLRATE=${FST_COLRATE:-50000}
+  RUNNUMBER=310000 # a default un-anchored Pb-Pb run number
 else
   FST_GENERATOR=${FST_GENERATOR:-pythia8pp}
   FST_COLRATE=${FST_COLRATE:-400000}
+  RUNNUMBER=303000 # a default un-anchored pp run number
 fi
 FST_MC_ENGINE=${FST_MC_ENGINE:-TGeant4}
 
@@ -93,16 +95,21 @@ if [ $BEAMTYPE == "PbPb" ]; then
   DIGIQED="--simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD}"
 fi
 
-DIGITRDOPTREAL="--configKeyValues \"${HBFUTILPARAMS};TRDSimParams.digithreads=${NJOBS}\" "
+DIGITOPT=
+DIGITOPTKEYTRD="${HBFUTILPARAMS};TRDSimParams.digithreads=${NJOBS};"
+DIGITOPTKEY=${HBFUTILPARAMS}
+[[ ! -z $ITS_STROBE ]] && DIGITOPTKEY+="ITSAlpideParam.roFrameLengthInBC=$ITS_STROBE;"
+[[ ! -z $MFT_STROBE ]] && DIGITOPTKEY+="MFTAlpideParam.roFrameLengthInBC=$MFT_STROBE;"
 if [ $SPLITTRDDIGI == "1" ]; then
-  DIGITRDOPT="--configKeyValues \"${HBFUTILPARAMS}\" --skipDet TRD"
+  DIGITOPT+=" --skipDet TRD"
 else
-  DIGITRDOPT=$DIGITRDOPTREAL
+  DIGITOPTKEY+=$DIGITOPTKEYTRD
 fi
+DIGITDOWNSCALINGTRD=${DIGITDOWNSCALINGTRD:-1000}
 
 taskwrapper sim.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} --seed $O2SIMSEED -n $NEvents --configKeyValues "Diamond.width[2]=6." -g ${FST_GENERATOR} -e ${FST_MC_ENGINE} -j $NJOBS --run ${RUNNUMBER}
-taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents ${DIGIQED} ${NOMCLABELS} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT} --interactionRate $FST_COLRATE
-[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
+taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents ${DIGIQED} ${NOMCLABELS} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITOPT} --configKeyValues "\"${DIGITOPTKEY}\"" --interactionRate $FST_COLRATE
+[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --trd-digit-downscaling ${DIGITDOWNSCALINGTRD} --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root --configKeyValues "\"${DIGITOPTKEYTRD}\""
 touch digiTRD.log_done
 
 if [ "0$GENERATE_ITSMFT_DICTIONARIES" == "01" ]; then
@@ -122,7 +129,7 @@ taskwrapper mftraw.log o2-mft-digi2raw --file-for cru -o raw/MFT
 taskwrapper ft0raw.log o2-ft0-digi2raw --file-for cru -o raw/FT0
 taskwrapper fv0raw.log o2-fv0-digi2raw --file-for cru -o raw/FV0
 taskwrapper fddraw.log o2-fdd-digit2raw --file-for cru -o raw/FDD
-taskwrapper tpcraw.log o2-tpc-digits-to-rawzs --file-for cru -i tpcdigits.root -o raw/TPC
+taskwrapper tpcraw.log o2-tpc-digits-to-rawzs --zs-version ${FST_TPC_ZSVERSION} --file-for cru -i tpcdigits.root -o raw/TPC
 taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --file-for cru --output-type raw --tof-raw-outdir raw/TOF
 taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --file-for cru
 taskwrapper mchraw.log o2-mch-digits-to-raw --input-file mchdigits.root --output-dir raw/MCH --file-for cru

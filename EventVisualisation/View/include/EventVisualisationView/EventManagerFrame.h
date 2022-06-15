@@ -23,6 +23,8 @@
 #include <TASImage.h>
 
 class TGTextButton;
+class TGRadioButton;
+class TGButtonGroup;
 class TGCompositeFrame;
 class TGNumberEntry;
 class TGLabel;
@@ -52,6 +54,8 @@ class EventManagerFrame : public TGMainFrame
   void updateGUI();   // updates
   static TGTextButton* makeButton(TGCompositeFrame* p, const char* txt, Int_t width = 0, const char* txttooltip = nullptr,
                                   Int_t lo = 0, Int_t ro = 0, Int_t to = 0, Int_t bo = 0);
+  static TGRadioButton* makeRadioButton(TGButtonGroup* g, const char* txt, Int_t width = 0, const char* txttooltip = nullptr, bool checked = false,
+                                        Int_t lo = 0, Int_t ro = 0, Int_t to = 0, Int_t bo = 0);
   static TGDoubleHSlider* makeSlider(TGCompositeFrame* p, const char* txt, Int_t width = 0,
                                      Int_t lo = 2, Int_t ro = 2, Int_t to = 2, Int_t bo = 2);
   static void makeSliderRangeEntries(TGCompositeFrame* parent, int height,

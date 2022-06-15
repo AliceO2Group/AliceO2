@@ -33,6 +33,7 @@
 #include <CCDB/BasicCCDBManager.h>
 #include <CommonUtils/NameConf.h>
 #include "DetectorsBase/Aligner.h"
+#include <FairRootFileSink.h>
 #include <unistd.h>
 #include <sstream>
 #endif
@@ -119,7 +120,7 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   s << ".root";
 
   std::string outputfilename = s.str();
-  run->SetOutputFile(outputfilename.c_str());  // Output file
+  run->SetSink(new FairRootFileSink(outputfilename.c_str())); // Output file
   run->SetName(confref.getMCEngine().c_str()); // Transport engine
   run->SetIsMT(confref.getIsMT());             // MT mode
 

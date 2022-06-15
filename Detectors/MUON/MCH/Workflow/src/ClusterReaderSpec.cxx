@@ -44,7 +44,11 @@ struct ClusterReader {
     auto fileName = ic.options().get<std::string>("infile");
     auto nofEntries{-1};
     auto clusterDescription = mGlobal ? header::DataDescription{"GLOBALCLUSTERS"} : header::DataDescription{"CLUSTERS"};
-
+    if (mUseMC) {
+      // not clear where the MClabels come from
+      LOG(warn) << "Disabling clusters MC labels reading";
+      mUseMC = false;
+    }
     if (mUseMC) {
       if (mDigits) {
         mTreeReader = std::make_unique<RootTreeReader>(

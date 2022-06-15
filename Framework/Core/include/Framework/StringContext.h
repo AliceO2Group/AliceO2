@@ -35,14 +35,14 @@ class StringContext
   }
 
   struct MessageRef {
-    std::unique_ptr<FairMQMessage> header;
+    std::unique_ptr<fair::mq::Message> header;
     std::unique_ptr<std::string> payload;
     RouteIndex routeIndex;
   };
 
   using Messages = std::vector<MessageRef>;
 
-  void addString(std::unique_ptr<FairMQMessage> header,
+  void addString(std::unique_ptr<fair::mq::Message> header,
                  std::unique_ptr<std::string> s,
                  RouteIndex routeIndex);
 

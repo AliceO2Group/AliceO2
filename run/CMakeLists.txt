@@ -126,7 +126,7 @@ set_tests_properties(o2sim_G4
 set_property(TEST o2sim_G4 APPEND PROPERTY ENVIRONMENT ${G4ENV})
 
 # # note that the MT is currently only supported in the non FairMQ version
-# # switched off 
+# # switched off
 # o2_add_test_command(NAME o2sim_G4_mt
 #                   WORKING_DIRECTORY ${SIMTESTDIR}
 #                   TIMEOUT 400
@@ -170,7 +170,7 @@ o2_add_test_command(NAME o2sim_G3
                                       TGeant3
                                       -o
                                       o2simG3
-                                      -g 
+                                      -g
                                       pythia8pp
                                       --chunkSize
                                       10
@@ -222,6 +222,7 @@ o2_add_test_command(NAME o2sim_hepmc
 set_tests_properties(o2sim_hepmc
                      PROPERTIES PASS_REGULAR_EXPRESSION
                                 "SIMULATION RETURNED SUCCESFULLY")
+set_property(TEST o2sim_hepmc APPEND PROPERTY ENVIRONMENT ${G4ENV})
 
 # somewhat analyse the logfiles as another means to detect problems
 o2_add_test_command(NAME o2sim_G3_checklogs

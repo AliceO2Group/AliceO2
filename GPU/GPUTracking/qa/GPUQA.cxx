@@ -282,16 +282,18 @@ void GPUQA::createHist(T*& h, const char* name, Args... args)
   const auto& p = getHistArray<T>();
   if (mHaveExternalHists) {
     if (p.first->size() <= p.second->size()) {
+      GPUError("Array sizes mismatch: Histograms %lu <= Positions %lu", p.first->size(), p.second->size());
       throw std::runtime_error("Incoming histogram array incomplete");
     }
     if (strcmp((*p.first)[p.second->size()].GetName(), name)) {
+      GPUError("Histogram name mismatch: in array %s, trying to create %s", (*p.first)[p.second->size()].GetName(), name);
       throw std::runtime_error("Incoming histogram has incorrect name");
     }
   } else {
     p.first->emplace_back(name, args...);
   }
+  h = &((*p.first)[p.second->size()]);
   p.second->emplace_back(&h);
-  h = &p.first->back();
 }
 
 namespace GPUCA_NAMESPACE::gpu
@@ -310,7 +312,7 @@ T* GPUQA::createGarbageCollected(Args... args)
 }
 void GPUQA::clearGarbagageCollector()
 {
-  std::get<std::vector<std::unique_ptr<TPad>>>(mGarbageCollector->v).clear(); // Make sure to depete TPad first due to ROOT ownership (std::tuple has no defined order in its destructor)
+  std::get<std::vector<std::unique_ptr<TPad>>>(mGarbageCollector->v).clear(); // Make sure to delete TPad first due to ROOT ownership (std::tuple has no defined order in its destructor)
   std::apply([](auto&&... args) { ((args.clear()), ...); }, mGarbageCollector->v);
 }
 

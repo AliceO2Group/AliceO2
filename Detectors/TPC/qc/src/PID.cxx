@@ -13,64 +13,91 @@
 
 #include <cmath>
 
-//root includes
+// root includes
 #include "TStyle.h"
 #include "TFile.h"
 #include "TCanvas.h"
 #include "TMathBase.h"
+#include "TObjArray.h"
 
-//o2 includes
+// o2 includes
 #include "DataFormatsTPC/dEdxInfo.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "TPCQC/PID.h"
 #include "TPCQC/Helpers.h"
 
 ClassImp(o2::tpc::qc::PID);
-
 using namespace o2::tpc::qc;
+
+struct binning {
+  int bins;
+  double min;
+  double max;
+};
+
+constexpr std::array<float, 5> xks{90.f, 108.475f, 151.7f, 188.8f, 227.65f};
+const std::vector<std::string_view> rocNames{"TPC", "IROC", "OROC1", "OROC2", "OROC3"};
+const std::vector<std::string_view> histVecNames{"hdEdxTotVspPos", "hdEdxTotVspNeg", "hNClsPID", "hNClsSubPID", "hdEdxVsPhi", "hdEdxVsTgl", "hdEdxVsncls", "hdEdxTotVspBeforeCuts", "hdEdxMaxVspBeforeCuts", "hdEdxTotVsp", "histdEdxMax", "hdEdxTotVspMIP", "histdEdxMaxMIP", "hdEdxTotVspMIPTgl", "histdEdxMaxMIPTgl", "hdEdxTotVspMIPSnp", "hdEdxMaxMIPVsSnp", "hdEdxTotMIPVsNcl", "histdEdxMaxMIPVsNcl", "hdEdxTotVspMIPVsSec", "hdEdxMaxMIPVsSec", "hMIPNclVsTgl", "hMIPNclVsTglSub"};
+const std::vector<int> nclCuts{60, 25, 14, 12, 10};
+const std::vector<int> nclMax{152, 63, 34, 30, 25};
+const binning binsdEdxTot{2000, 20., 6000.};
+const binning binsdEdxMax{2000, 20., 2000.};
+const int mipTot = 50;
+const int mipMax = 50;
+const binning binsdEdxMIPTot{100, mipTot / 3., mipTot * 3.};
+const binning binsdEdxMIPMax{100, mipMax / 3., mipMax * 3.};
+const binning binsSec{36, 0., 36.};
+const auto bins = o2::tpc::qc::helpers::makeLogBinning(200, 0.05, 20);
 
 //______________________________________________________________________________
 void PID::initializeHistograms()
 {
-  mHist1D.emplace_back("hNClusters", "Number of clusters; # of clusters; counts", 160, 0, 160);                         //| mHist1D[0]
-  mHist1D.emplace_back("hdEdxTot", "; dEdxTot (a.u.); counts", 200, 0, 200);                                            //| mHist1D[1]
-  mHist1D.emplace_back("hdEdxMax", "; dEdxMax (a.u.); counts", 200, 0, 200);                                            //| mHist1D[2]
-  mHist1D.emplace_back("hPhi", "; #phi (rad); counts", 180, 0., 2 * M_PI);                                              //| mHist1D[3]
-  mHist1D.emplace_back("hTgl", "; tan#lambda; counts", 60, -2, 2);                                                      //| mHist1D[4]
-  mHist1D.emplace_back("hSnp", "; sin p; counts", 60, -2, 2);                                                           //| mHist1D[5]
-  mHist1D.emplace_back("hdEdxMips", "dEdx (a.u.) of MIPs; dEdx of MIPs (a.u.); counts", 25, 35, 60);                    //| mHist1D[6]
-  mHist1D.emplace_back("hdEdxEles", "dEdx (a.u.) of electrons; dEdx (a.u.); counts", 30, 70, 100);                      //| mHist1D[7]
-  mHist1D.emplace_back("hNClustersBeforeCuts", "Number of clusters (before cuts); # of clusters; counts", 160, 0, 160); //| mHist1D[8]
+  TH1::AddDirectory(false);
+  const auto& name = rocNames[0];
+  mMapHist["hdEdxTotVspPos"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxTotVsP_Pos_{}", name).data(), (fmt::format("Q_{{Tot}} positive particles {}", name) + ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{Tot} (arb. unit)").data(), 200, bins.data(), binsdEdxTot.bins, binsdEdxTot.min, binsdEdxTot.max));
+  mMapHist["hdEdxTotVspNeg"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxTotVsP_Neg_{}", name).data(), (fmt::format("Q_{{Tot}} negative particles {}", name) + ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{Tot} (arb. unit)").data(), 200, bins.data(), binsdEdxTot.bins, binsdEdxTot.min, binsdEdxTot.max));
+  mMapHist["hNClsPID"].emplace_back(std::make_unique<TH1F>("hNClsPID", "Number of clusters (after cuts); # of clusters; counts", 160, 0, 160));
+  mMapHist["hNClsSubPID"].emplace_back(std::make_unique<TH1F>("hNClsSubPID", "Number of clusters (after cuts); # of clusters; counts", 160, 0, 160));
 
-  mHist2D.emplace_back("hdEdxVsPhi", "dEdx (a.u.) vs #phi (rad); #phi (rad); dEdx (a.u.)", 180, 0., 2 * M_PI, 300, 0, 300); //| mHist2D[0]
-  mHist2D.emplace_back("hdEdxVsTgl", "dEdx (a.u.) vs tan#lambda; tan#lambda; dEdx (a.u.)", 60, -2, 2, 300, 0, 300);         //| mHist2D[1]
-  mHist2D.emplace_back("hdEdxVsncls", "dEdx (a.u.) vs ncls; ncls; dEdx (a.u.)", 80, 0, 160, 300, 0, 300);                   //| mHist2D[2]
+  mMapHist["hdEdxVsPhi"].emplace_back(std::make_unique<TH2F>("hdEdxVsPhi", "dEdx (a.u.) vs #phi (rad); #phi (rad); dEdx (a.u.)", 180, 0., 2 * M_PI, 300, 0, 300));
+  mMapHist["hdEdxVsTgl"].emplace_back(std::make_unique<TH2F>("hdEdxVsTgl", "dEdx (a.u.) vs tan#lambda; tan#lambda; dEdx (a.u.)", 60, -2, 2, 300, 0, 300));
+  mMapHist["hdEdxVsncls"].emplace_back(std::make_unique<TH2F>("hdEdxVsncls", "dEdx (a.u.) vs ncls; ncls; dEdx (a.u.)", 80, 0, 160, 300, 0, 300));
 
   const auto logPtBinning = helpers::makeLogBinning(200, 0.05, 20);
   if (logPtBinning.size() > 0) {
-    mHist2D.emplace_back("hdEdxVsp", "dEdx (a.u.) vs p (GeV/#it{c}); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 500, 0, 1000);                         //| mHist2D[3]
-    mHist2D.emplace_back("hdEdxVspBeforeCuts", "dEdx (a.u.) vs p (GeV/#it{c}) (before cuts); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 500, 0, 1000); //| mHist2D[4]
+    mMapHist["hdEdxTotVspBeforeCuts"].emplace_back(std::make_unique<TH2F>("hdEdxTotVspBeforeCuts", "dEdx (a.u.) vs p (GeV/#it{c}) (before cuts); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 500, 0, 1000));
+    mMapHist["hdEdxMaxVspBeforeCuts"].emplace_back(std::make_unique<TH2F>("hdEdxMaxVspBeforeCuts", "dEdx_Max (a.u.) vs p (GeV/#it{c}) (before cuts); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 500, 0, 1000));
   }
 
-  mHist2D.emplace_back("hdEdxVsPhiMipsAside", "dEdx (a.u.) vs #phi (rad) of MIPs (A side); #phi (rad); dEdx (a.u.)", 180, 0., 2 * M_PI, 25, 35, 60);       //| mHist2D[5]
-  mHist2D.emplace_back("hdEdxVsPhiMipsCside", "dEdx (a.u.) vs #phi (rad) of MIPs (C side); #phi (rad); dEdx (a.u.)", 180, 0., 2 * M_PI, 25, 35, 60);       //| mHist2D[6]
-  mHist2D.emplace_back("hdEdxVsPhiElesAside", "dEdx (a.u.) vs #phi (rad) of electrons (A side); #phi (rad); dEdx (a.u.)", 180, 0., 2 * M_PI, 30, 70, 100); //| mHist2D[7]
-  mHist2D.emplace_back("hdEdxVsPhiElesCside", "dEdx (a.u.) vs #phi (rad) of electrons (C side); #phi (rad); dEdx (a.u.)", 180, 0., 2 * M_PI, 30, 70, 100); //| mHist2D[8]
+  mMapHist["hdEdxVsPhiMipsAside"].emplace_back(std::make_unique<TH2F>("hdEdxVsPhiMipsAside", "dEdx (a.u.) vs #phi (rad) of MIPs (A side); #phi (rad); dEdx (a.u.)", 180, 0., 2 * M_PI, 25, 35, 60));
+  mMapHist["hdEdxVsPhiMipsCside"].emplace_back(std::make_unique<TH2F>("hdEdxVsPhiMipsCside", "dEdx (a.u.) vs #phi (rad) of MIPs (C side); #phi (rad); dEdx (a.u.)", 180, 0., 2 * M_PI, 25, 35, 60));
 
-  if (logPtBinning.size() > 0) {
-    mHist2D.emplace_back("hdEdxMaxVsp", "dEdx_Max (a.u.) vs p (GeV/#it{c}); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 500, 0, 1000);                         //| mHist2D[9]
-    mHist2D.emplace_back("hdEdxMaxVspBeforeCuts", "dEdx_Max (a.u.) vs p (GeV/#it{c}) (before cuts); p (GeV/#it{c}); dEdx (a.u.)", logPtBinning.size() - 1, logPtBinning.data(), 500, 0, 1000); //| mHist2D[10]
+  for (size_t idEdxType = 0; idEdxType < rocNames.size(); ++idEdxType) {
+    const auto& name = rocNames[idEdxType];
+    mMapHist["hdEdxTotVsp"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxTotVsP_{}", name).data(), (fmt::format("Q_{{Tot}} {}", name) + ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{Tot} (arb. unit)").data(), 200, bins.data(), binsdEdxTot.bins, binsdEdxTot.min, binsdEdxTot.max));
+    mMapHist["hdEdxMaxVsp"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxMaxVsP_{}", name).data(), (fmt::format("Q_{{Max}} {}", name) + ";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_{Max} (arb. unit)").data(), 200, bins.data(), binsdEdxMax.bins, binsdEdxMax.min, binsdEdxMax.max));
+    mMapHist["hdEdxTotMIP"].emplace_back(std::make_unique<TH1F>(fmt::format("hdEdxTotMIP_{}", name).data(), (fmt::format("MIP Q_{{Tot}} {}", name) + ";d#it{E}/d#it{x}_{Tot} (arb. unit)").data(), binsdEdxMIPTot.bins, binsdEdxMIPTot.min, binsdEdxMIPTot.max));
+    mMapHist["hdEdxMaxMIP"].emplace_back(std::make_unique<TH1F>(fmt::format("hdEdxMaxMIP_{}", name).data(), (fmt::format("MIP Q_{{Max}} {}", name) + ";d#it{E}/d#it{x}_{Max} (arb. unit)").data(), binsdEdxMIPMax.bins, binsdEdxMIPMax.min, binsdEdxMIPMax.max));
+    mMapHist["hdEdxTotMIPVsTgl"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxTotMIPVsTgl_{}", name).data(), (fmt::format("MIP Q_{{Tot}} {}", name) + ";#tan(#lambda);d#it{E}/d#it{x}_{Tot} (arb. unit)").data(), 50, -2, 2, binsdEdxMIPTot.bins, binsdEdxMIPTot.min, binsdEdxMIPTot.max));
+    mMapHist["hdEdxMaxMIPVsTgl"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxMaxMIPVsTgl_{}", name).data(), (fmt::format("MIP Q_{{Max}} {}", name) + ";#tan(#lambda);d#it{E}/d#it{x}_{Max} (arb. unit)").data(), 50, -2, 2, binsdEdxMIPMax.bins, binsdEdxMIPMax.min, binsdEdxMIPMax.max));
+    mMapHist["hdEdxTotMIPVsSnp"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxTotMIPVsSnp_{}", name).data(), (fmt::format("MIP Q_{{Tot}} {}", name) + ";#sin(#phi);d#it{E}/d#it{x}_{Tot} (arb. unit)").data(), 50, -1, 1, binsdEdxMIPTot.bins, binsdEdxMIPTot.min, binsdEdxMIPTot.max));
+    mMapHist["hdEdxMaxMIPVsSnp"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxMaxMIPVsSnp_{}", name).data(), (fmt::format("MIP Q_{{Max}} {}", name) + ";#sin(#phi);d#it{E}/d#it{x}_{Max} (arb. unit)").data(), 50, -1, 1, binsdEdxMIPMax.bins, binsdEdxMIPMax.min, binsdEdxMIPMax.max));
+    mMapHist["hdEdxTotMIPVsNcl"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxTotMIPVsNcl_{}", name).data(), (fmt::format("MIP Q_{{Tot}} {}", name) + ";N_{clusters};d#it{E}/d#it{x}_{Tot} (arb. unit)").data(), nclMax[idEdxType], 0, nclMax[idEdxType], binsdEdxMIPTot.bins, binsdEdxMIPTot.min, binsdEdxMIPTot.max));
+    mMapHist["hdEdxMaxMIPVsNcl"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxMaxMIPVsNcl_{}", name).data(), (fmt::format("MIP Q_{{Max}} {}", name) + ";N_{clusters};d#it{E}/d#it{x}_{Max} (arb. unit)").data(), nclMax[idEdxType], 0, nclMax[idEdxType], binsdEdxMIPMax.bins, binsdEdxMIPMax.min, binsdEdxMIPMax.max));
+    mMapHist["hdEdxTotMIPVsSec"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxTotMIPVsSec_{}", name).data(), (fmt::format("MIP Q_{{Tot}} {}", name) + ";sector;d#it{E}/d#it{x}_{Tot} (arb. unit)").data(), binsSec.bins, binsSec.min, binsSec.max, binsdEdxMIPTot.bins, binsdEdxMIPTot.min, binsdEdxMIPTot.max));
+    mMapHist["hdEdxMaxMIPVsSec"].emplace_back(std::make_unique<TH2F>(fmt::format("hdEdxMaxMIPVsSec_{}", name).data(), (fmt::format("MIP Q_{{Max}} {}", name) + ";sector;d#it{E}/d#it{x}_{Max} (arb. unit)").data(), binsSec.bins, binsSec.min, binsSec.max, binsdEdxMIPMax.bins, binsdEdxMIPMax.min, binsdEdxMIPMax.max));
+    mMapHist["hMIPNclVsTgl"].emplace_back(std::make_unique<TH2F>(fmt::format("hMIPNclVsTgl_{}", name).data(), (fmt::format("rec. clusters {}", name) + ";#tan(#lambda);d#it{E}/d#it{x}_{Max} (arb. unit)").data(), 50, -2, 2, nclMax[idEdxType], 0, nclMax[idEdxType]));
+    mMapHist["hMIPNclVsTglSub"].emplace_back(std::make_unique<TH2F>(fmt::format("hMIPNclVsTglSub_{}", name).data(), (fmt::format("rec. + sub-thrs. clusters {}", name) + ";#tan(#lambda);d#it{E}/d#it{x}_{Max} (arb. unit)").data(), 50, -2, 2, nclMax[idEdxType], 0, nclMax[idEdxType]));
   }
 }
 
 //______________________________________________________________________________
 void PID::resetHistograms()
 {
-  for (auto& hist : mHist1D) {
-    hist.Reset();
-  }
-  for (auto& hist : mHist2D) {
-    hist.Reset();
+  for (const auto& pair : mMapHist) {
+    for (auto& hist : pair.second) {
+      hist->Reset();
+    }
   }
 }
 
@@ -78,55 +105,85 @@ void PID::resetHistograms()
 bool PID::processTrack(const o2::tpc::TrackTPC& track)
 {
   // ===| variables required for cutting and filling |===
-  const auto p = track.getP();
-  const auto dEdxTot = track.getdEdx().dEdxTotTPC;
-  const auto dEdxMax = track.getdEdx().dEdxMaxTPC;
-  const auto phi = track.getPhi();
+  const auto& dEdx = track.getdEdx();
+  const auto pTPC = track.getP();
   const auto tgl = track.getTgl();
   const auto snp = track.getSnp();
-  const auto nclusters = track.getNClusterReferences();
+  const auto phi = track.getPhi();
+  const auto ncl = uint8_t(track.getNClusters());
+
   const auto eta = track.getEta();
+  mMapHist["hdEdxTotVspBeforeCuts"][0]->Fill(phi, dEdx.dEdxTotTPC);
+  mMapHist["hdEdxMaxVspBeforeCuts"][0]->Fill(pTPC, dEdx.dEdxMaxTPC);
 
-  double absEta = TMath::Abs(eta);
-
-  // ===| histogram filling before cuts |===
-  mHist1D[8].Fill(nclusters);
-  mHist2D[4].Fill(p, dEdxTot);
-  mHist2D[10].Fill(p, dEdxMax);
-
-  // ===| histogram filling including cuts |===
-  if (absEta < 1. && nclusters > 60 && dEdxTot > 20) {
-    mHist1D[0].Fill(nclusters);
-    mHist1D[1].Fill(dEdxTot);
-    mHist1D[2].Fill(dEdxMax);
-    mHist1D[3].Fill(phi);
-    mHist1D[4].Fill(tgl);
-    mHist1D[5].Fill(snp);
-
-    mHist2D[0].Fill(phi, dEdxTot);
-    mHist2D[1].Fill(tgl, dEdxTot);
-    mHist2D[2].Fill(nclusters, dEdxTot);
-    mHist2D[3].Fill(p, dEdxTot);
-    mHist2D[9].Fill(p, dEdxMax);
+  if (pTPC < 0.05 || pTPC > 20 || ncl < 60) {
+    return true;
   }
+  const std::vector<float> dEdxTot{dEdx.dEdxTotTPC, dEdx.dEdxTotIROC, dEdx.dEdxTotOROC1, dEdx.dEdxTotOROC2, dEdx.dEdxTotOROC3};
+  const std::vector<float> dEdxMax{dEdx.dEdxMaxTPC, dEdx.dEdxMaxIROC, dEdx.dEdxMaxOROC1, dEdx.dEdxMaxOROC2, dEdx.dEdxMaxOROC3};
+  const std::vector<uint8_t> dEdxNcl{static_cast<uint8_t>(dEdx.NHitsIROC + dEdx.NHitsOROC1 + dEdx.NHitsOROC2 + dEdx.NHitsOROC3), dEdx.NHitsIROC, dEdx.NHitsOROC1, dEdx.NHitsOROC2, dEdx.NHitsOROC3};
+  const std::vector<uint8_t> dEdxNclSub{static_cast<uint8_t>(dEdx.NHitsSubThresholdIROC + dEdx.NHitsSubThresholdOROC1 + dEdx.NHitsSubThresholdOROC2 + dEdx.NHitsSubThresholdOROC3), dEdx.NHitsSubThresholdIROC, dEdx.NHitsSubThresholdOROC1, dEdx.NHitsSubThresholdOROC2, dEdx.NHitsSubThresholdOROC3};
+  mMapHist["hdEdxVsTgl"][0]->Fill(tgl, dEdxTot[0]);
 
-  // ===| cuts and  histogram filling for MIPs |===
-  if (p > 0.4 && p < 0.55 && absEta < 1. && nclusters > 80 && dEdxTot > 35 && dEdxTot < 60) {
-    mHist1D[6].Fill(dEdxTot);
-    if (eta > 0.) {
-      mHist2D[5].Fill(phi, dEdxTot);
+  if (std::abs(tgl) < 1) {
+
+    mMapHist["hdEdxVsPhi"][0]->Fill(phi, dEdxTot[0]);
+    mMapHist["hdEdxVsncls"][0]->Fill(ncl, dEdxTot[0]);
+    mMapHist["hNClsSubPID"][0]->Fill(dEdxNcl[0]);
+    mMapHist["hNClsSubPID"][0]->Fill(dEdxNclSub[0]);
+
+    if (track.getCharge() > 0) {
+      mMapHist["hdEdxTotVspPos"][0]->Fill(pTPC, dEdxTot[0]);
     } else {
-      mHist2D[6].Fill(phi, dEdxTot);
+      mMapHist["hdEdxTotVspNeg"][0]->Fill(pTPC, dEdxTot[0]);
     }
   }
+  for (size_t idEdxType = 0; idEdxType < rocNames.size(); ++idEdxType) {
+    bool ok = false;
+    float sec = 18.f * o2::math_utils::to02PiGen(track.getXYZGloAt(xks[idEdxType], 2, ok).Phi()) / o2::constants::math::TwoPI;
+    if (track.hasCSideClusters()) {
+      sec += 18.f;
+    }
+    if (!ok) {
+      sec = -1;
+    }
 
-  // ===| cuts and  histogram filling for electrons |===
-  if (p > 0.32 && p < 0.38 && absEta < 1. && nclusters > 80 && dEdxTot > 70 && dEdxTot < 100) {
-    mHist1D[7].Fill(dEdxTot);
-    if (eta > 0.) {
-      mHist2D[7].Fill(phi, dEdxTot);
-    } else {
-      mHist2D[8].Fill(phi, dEdxTot);
+    if (dEdxTot[idEdxType] < 10 || dEdxTot[idEdxType] > binsdEdxTot.max || dEdxNcl[idEdxType] < nclCuts[idEdxType]) {
+      continue;
+    }
+    if (std::abs(tgl) < 1) {
+      mMapHist["hdEdxTotVsp"][idEdxType]->Fill(pTPC, dEdxTot[idEdxType]);
+      mMapHist["hdEdxMaxVsp"][idEdxType]->Fill(pTPC, dEdxMax[idEdxType]);
+    }
+    // ===| cuts and  histogram filling for MIPs |===
+    if (pTPC > 0.45 && pTPC < 0.55) {
+      mMapHist["hdEdxTotMIPVsTgl"][idEdxType]->Fill(tgl, dEdxTot[idEdxType]);
+      mMapHist["hdEdxMaxMIPVsTgl"][idEdxType]->Fill(tgl, dEdxMax[idEdxType]);
+
+      if (dEdxTot[idEdxType] < 70) {
+        mMapHist["hMIPNclVsTgl"][idEdxType]->Fill(tgl, dEdxNcl[idEdxType]);
+        mMapHist["hMIPNclVsTglSub"][idEdxType]->Fill(tgl, dEdxNclSub[idEdxType]);
+      }
+
+      if (std::abs(tgl) < 1) {
+        if (track.hasASideClustersOnly()) {
+          mMapHist["hdEdxVsPhiMipsAside"][0]->Fill(phi, dEdxTot[0]);
+        } else if (track.hasCSideClustersOnly()) {
+          mMapHist["hdEdxVsPhiMipsCside"][0]->Fill(phi, dEdxTot[0]);
+        }
+
+        mMapHist["hdEdxTotMIP"][idEdxType]->Fill(dEdxTot[idEdxType]);
+        mMapHist["hdEdxMaxMIP"][idEdxType]->Fill(dEdxMax[idEdxType]);
+
+        mMapHist["hdEdxTotMIPVsNcl"][idEdxType]->Fill(dEdxNcl[idEdxType], dEdxTot[idEdxType]);
+        mMapHist["hdEdxMaxMIPVsNcl"][idEdxType]->Fill(dEdxNcl[idEdxType], dEdxMax[idEdxType]);
+
+        mMapHist["hdEdxTotMIPVsSec"][idEdxType]->Fill(sec, dEdxTot[idEdxType]);
+        mMapHist["hdEdxMaxMIPVsSec"][idEdxType]->Fill(sec, dEdxMax[idEdxType]);
+
+        mMapHist["hdEdxTotMIPVsSnp"][idEdxType]->Fill(snp, dEdxTot[idEdxType]);
+        mMapHist["hdEdxMaxMIPVsSnp"][idEdxType]->Fill(snp, dEdxMax[idEdxType]);
+      }
     }
   }
 
@@ -137,11 +194,13 @@ bool PID::processTrack(const o2::tpc::TrackTPC& track)
 void PID::dumpToFile(const std::string filename)
 {
   auto f = std::unique_ptr<TFile>(TFile::Open(filename.c_str(), "recreate"));
-  for (auto& hist : mHist1D) {
-    f->WriteObject(&hist, hist.GetName());
-  }
-  for (auto& hist : mHist2D) {
-    f->WriteObject(&hist, hist.GetName());
+  for (const auto& [name, histos] : mMapHist) {
+    TObjArray arr;
+    arr.SetName(name.data());
+    for (auto& hist : histos) {
+      arr.Add(hist.get());
+    }
+    arr.Write(arr.GetName(), TObject::kSingleKey);
   }
   f->Close();
 }

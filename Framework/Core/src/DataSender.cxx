@@ -72,12 +72,12 @@ DataSender::DataSender(ServiceRegistry& registry,
   }
 }
 
-std::unique_ptr<FairMQMessage> DataSender::create(RouteIndex routeIndex)
+std::unique_ptr<fair::mq::Message> DataSender::create(RouteIndex routeIndex)
 {
   return mProxy.getOutputTransport(routeIndex)->CreateMessage();
 }
 
-void DataSender::send(FairMQParts& parts, ChannelIndex channelIndex)
+void DataSender::send(fair::mq::Parts& parts, ChannelIndex channelIndex)
 {
   mPolicy.send(mProxy, parts, channelIndex);
 }

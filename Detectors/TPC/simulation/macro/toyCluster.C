@@ -41,7 +41,6 @@
 #include "TRandom.h"
 
 // O2 includes
-#include "DataFormatsTPC/TrackTPC.h"
 #include "TPCBase/Mapper.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
@@ -55,7 +54,6 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "TPCBase/ParameterGas.h"
-#include "TPCSpaceCharge/PoissonSolverHelpers.h"
 #include "TPCReconstruction/HwClusterer.h"
 #include "TPCSimulation/GEMAmplification.h"
 #endif
@@ -66,7 +64,8 @@ GlobalPosition3D getPointFromPhi(float phi, float theta, GlobalPosition3D global
 GlobalPosition3D getPosBTrack(const GlobalPosition3D& posA, const GlobalPosition3D& posB);
 GlobalPosition3D getGlobalPositionTrk(float lambda, const GlobalPosition3D& refA, const GlobalPosition3D& refB);
 
-const int mSector = 4; ///< consider only this mSector
+const int mSector = 4;       ///< consider only this mSector
+const float mMaxDrift = 270; ///< maximum drift length in cm
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -81,7 +80,7 @@ const int mSector = 4; ///< consider only this mSector
 /// \param dedxMax maximum dE/dx of the tracks (primary ionization: number of electrons per cm)
 /// \param maxSinPhi maximum sin(phi) of the tracks
 /// \param maxTanTheta maximum tan(theta) of the tracks
-void simulateTracks(const int maxEvents = 1, const char* outputFolder = "./", const float dedxMin = 14, const float dedxMax = 50, const float maxSinPhi = 1.f, const float maxTanTheta = 1.6)
+void simulateTracks(const int maxEvents = 1, const char* outputFolder = "./", const int dedxMin = 14, const int dedxMax = 50, const float maxSinPhi = 1.f, const float maxTanTheta = 1.6f)
 {
   // output file / tree
   TFile fOut(fmt::format("{}/o2sim_HitsTPC.root", outputFolder).data(), "RECREATE");
@@ -101,6 +100,9 @@ void simulateTracks(const int maxEvents = 1, const char* outputFolder = "./", co
   // set random seed
   gRandom->SetSeed(0);
 
+  // bias dedx to lower values
+  TF1 fdEdx("fdEdx", "-log(x) + 10", 1, dedxMax);
+
   // loop over events (tracks)
   for (int iEvent = 0; iEvent < maxEvents; ++iEvent) {
     hitGroupSector.clear();
@@ -108,7 +110,7 @@ void simulateTracks(const int maxEvents = 1, const char* outputFolder = "./", co
     // draw random track parameters
     phi = std::asin(gRandom->Uniform(0, maxSinPhi));
     theta = std::atan(gRandom->Uniform(0, maxTanTheta));
-    dedx = gRandom->Uniform(dedxMin, dedxMax);
+    dedx = (dedxMin == dedxMax) ? dedxMin : fdEdx.GetRandom();
 
     // fill the tree (simulate the primary electrons along the track)
     fillTPCHits(theta, phi, dedx, hitGroupSector, trackInfo);
@@ -132,12 +134,16 @@ void fillTPCHits(const float theta, const float phi, const float dedx, std::vect
   const float xPos = gRandom->Uniform(-2, 2);          // x starting position of track
   const int ireg = gRandom->Integer(Mapper::NREGIONS); // region where the track starts
   static auto& detParam = ParameterDetector::Instance();
-  const float zCoordinate = gRandom->Uniform(0, detParam.TPClength - 1);       // draw flat z position
+  const float minZ = detParam.TPClength - mMaxDrift;
+  static TF1 fz("fz", "tanh(x/60 - 3.5) * 0.6  + 1.6", minZ, detParam.TPClength);
+  const float zCoordinate = fz.GetRandom(); // draw z position
+
   const float flightTime = 0;                                                  // flight time of the particle. This value is not needed and set therefor to 0.
   const float radiusStart = mapper.getPadRegionInfo(ireg).getRadiusFirstRow(); // region start
   const auto padLength = mapper.getPadRegionInfo(ireg).getPadHeight();
   const float radius = radiusStart + Mapper::ROWSPERREGION[ireg] / 2 * padLength; // start in the center of the region
   HitGroup hitGroup{};                                                            // create HitGroup and push_back to TPCHitsShiftedSector
+  const float radiusEnd = radiusStart + Mapper::ROWSPERREGION[ireg] * padLength;
 
   // first point of the track
   const GlobalPosition3D posATrack(xPos, radius, zCoordinate);
@@ -160,10 +166,10 @@ void fillTPCHits(const float theta, const float phi, const float dedx, std::vect
     const float radiusCurr = std::sqrt(xTmp * xTmp + yTmp * yTmp);
 
     // check if the track is in the TPC
-    const float rMinTPC = TPCParameters<float>::IFCRADIUS;
-    const float rMaxTPC = TPCParameters<float>::OFCRADIUS;
-    static auto& detParam = ParameterDetector::Instance();
-    if (std::abs(zTmp) > detParam.TPClength || radiusCurr > rMaxTPC || yTmp < rMinTPC || zTmp < 0 || mapper.isOutOfSector(posTrk, Sector(mSector)) || radiusCurr < rMinTPC) {
+    const float rMinTPC = radiusStart;
+    const float rMaxTPC = radiusEnd;
+
+    if (std::abs(zTmp) > detParam.TPClength || radiusCurr > rMaxTPC || yTmp < rMinTPC || zTmp < minZ || mapper.isOutOfSector(posTrk, Sector(mSector)) || radiusCurr < rMinTPC) {
       continue;
     }
 
@@ -259,6 +265,26 @@ void setZBinWidth(const int facZWidth = 1)
   LOG(info) << "zbinWidth: " << zbinWidth;
 }
 
+GlobalPosition3D getElectronDrift(const GlobalPosition3D& posEle)
+{
+  static o2::math_utils::RandomRing<> randomGaus;
+
+  const auto& detParam = ParameterDetector::Instance();
+  const auto& gasParam = ParameterGas::Instance();
+  float driftl = detParam.TPClength - posEle.Z();
+  if (driftl < 0.01) {
+    driftl = 0.01;
+  }
+  driftl = std::sqrt(driftl);
+  const float sigT = driftl * gasParam.DiffT;
+  const float sigL = driftl * gasParam.DiffL;
+
+  /// The position is smeared by a Gaussian with mean around the actual position and a width according to the diffusion
+  /// coefficient times sqrt(drift length)
+  GlobalPosition3D posEleDiffusion((randomGaus.getNextValue() * sigT) + posEle.X(), (randomGaus.getNextValue() * sigT) + posEle.Y(), (randomGaus.getNextValue() * sigL) + posEle.Z());
+  return posEleDiffusion;
+}
+
 /// creating the digits from the simulated hits (similar to the digitizer in O2)
 /// \param inpFileSim input sim file
 /// \param outName output path
@@ -269,6 +295,9 @@ void setZBinWidth(const int facZWidth = 1)
 /// \param disableNoise do not simulate any noise, commonMode and pedestal
 void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const std::string outName = "digits.root", const float eleAttachmentFac = 1, const int facZWidth = 1, const int maxSecondaries = 3, const int nEleGEM = -1, const bool disableNoise = false)
 {
+  // set random seed
+  gRandom->SetSeed(0);
+
   auto& cdb = CDBInterface::instance();
   cdb.setUseDefaults();
 
@@ -288,8 +317,8 @@ void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const st
   auto& detParam = ParameterDetector::Instance();
   auto& eleParam = ParameterElectronics::Instance();
   const float zbinWidth = eleParam.ZbinWidth;
-  auto& gemParam = ParameterGEM::Instance();
   static GEMAmplification& gemAmplification = GEMAmplification::instance();
+  const auto& gasParam = ParameterGas::Instance();
 
   ElectronTransport& electronTransport = ElectronTransport::instance();
   electronTransport.updateParameters();
@@ -326,10 +355,9 @@ void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const st
   // loop over hits
   const int nEvents = hitTree->GetEntries(); // number of simulated events per hit file
   for (int iev = 0; iev < nEvents; ++iev) {
-    const double eventTime = 100 + iev * 10; // some random time
+    const double eventTime = 0;
     if (iev % 50 == false) {
       LOG(info) << "event: " << iev + 1 << " from " << nEvents << " events";
-      LOG(info) << "TPC: Event time " << eventTime << " us";
     }
     hitTree->GetEntry(iev);
 
@@ -347,17 +375,16 @@ void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const st
         GlobalPosition3D posEle(eh.GetX(), eh.GetY(), eh.GetZ());
 
         const int nPrimaryElectrons = static_cast<int>(eh.GetEnergyLoss());
-        const float hitTime = eh.GetTime() * 0.001;
+        const float hitTime = eh.GetTime() * 0.001f;
         if (nPrimaryElectrons <= 0) {
           continue;
         }
 
-        float driftTime = 0.f;
         for (int iele = 0; iele < nPrimaryElectrons; iele++) {
-          const GlobalPosition3D posEleDiff = electronTransport.getElectronDrift(posEle, driftTime);
+          const GlobalPosition3D posEleDiff = getElectronDrift(posEle);
 
           // add secondaries
-          int nSecondaries = maxSecondaries == 0 ? 0 : getNsec();
+          int nSecondaries = (maxSecondaries == 0) ? 0 : getNsec();
 
           // restrict secondaries to avoid clusters with high charge (tail in the qMax qTot distributions)
           if (nSecondaries > maxSecondaries) {
@@ -374,24 +401,20 @@ void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const st
             // electrons are created randomly
             const double x = gRandom->Gaus(0, std::abs(posEle.X() - posEleDiff.X())) + posEle.X();
             const double y = gRandom->Gaus(0, std::abs(posEle.Y() - posEleDiff.Y())) + posEle.Y();
-            double z = gRandom->Gaus(0, std::abs(posEle.Z() - posEleDiff.Z())) + posEle.Z();
-            if (z < 0) {
-              z = 0.01;
-            }
+            const double z = gRandom->Gaus(0, std::abs(posEle.Z() - posEleDiff.Z())) + posEle.Z();
             posTotElectrons.emplace_back(GlobalPosition3D(x, y, z));
           }
 
           // loop over all electrons
           for (unsigned int j = 0; j < posTotElectrons.size(); ++j) {
             auto posEleTmp = posTotElectrons[j];
-            driftTime = electronTransport.getDriftTime(posEleTmp.Z());
+            const float driftTime = (detParam.TPClength - posEleTmp.Z()) / gasParam.DriftV;
 
             const float eleTime = driftTime + hitTime; /// in us
             if (eleTime > maxEleTime) {
               LOG(warning) << "Skipping electron with driftTime " << driftTime << " from hit at time " << hitTime;
               continue;
             }
-            const float absoluteTime = eleTime + eventTime; /// in us
 
             // Attachment
             if (electronTransport.isElectronAttachment(driftTime)) {
@@ -404,11 +427,14 @@ void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const st
             }
 
             // When the electron is not in the mSector we're processing, abandon
-            if (mapper.isOutOfSector(posEleTmp, mSector)) {
+            // create dummy pos at A-Side
+            auto posEleTmpTmp = posEleTmp;
+            posEleTmpTmp.SetZ(1);
+            if (mapper.isOutOfSector(posEleTmpTmp, mSector)) {
               continue;
             }
 
-            const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posEleTmp, mSector);
+            const DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(posEleTmpTmp, mSector);
             if (!digiPadPos.isValid()) {
               continue;
             }
@@ -432,11 +458,9 @@ void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const st
             const int sourceID = 0; // TPC
             const o2::MCCompLabel label(MCTrackID, eventID, sourceID, false);
 
-            for (float i = 0; i < nShapedPoints; ++i) {
-              const float time = absoluteTime + i * zbinWidth;
-              const auto timebin = sampaProcessing.getTimeBinFromTime(time);
-              float fillCharge = signalArray[i];
-              digitContainer.addDigit(label, cru, timebin, globalPad, fillCharge);
+            for (int i = 0; i < nShapedPoints; ++i) {
+              const float timebin = driftTime / eleParam.ZbinWidth + i;
+              digitContainer.addDigit(label, cru, timebin, globalPad, signalArray[i]);
             }
           }
         } // electron loop
@@ -501,10 +525,13 @@ void createCluster(const char* inpHits = "o2sim_HitsTPC.root", const char* outFi
 {
   gRandom->SetSeed(0);
 
-  static auto& detParam = ParameterDetector::Instance();
   auto& eleParam = ParameterElectronics::Instance();
   auto& gasParam = ParameterGas::Instance();
+  auto& cdb = CDBInterface::instance();
+  cdb.setUseDefaults();
+
   const static Mapper& mapper = Mapper::instance();
+  SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
 
   // load the theta, phi and dE/dx angles from the simulation
   TFile fTrackInf(inpHits, "READ");
@@ -538,13 +565,6 @@ void createCluster(const char* inpHits = "o2sim_HitsTPC.root", const char* outFi
   }
   std::vector<o2::tpc::Digit>* digits = new std::vector<o2::tpc::Digit>;
   tDigi->SetBranchAddress(fmt::format("TPCDigit_{}", mSector).data(), &digits);
-
-  // cut on the sigmaTime (extracted from plotting sigmaTime vs tan(theta))
-  TF1 fSigmaTimeCut("sigmaTimeCut", "pol3", 0, 3);
-  fSigmaTimeCut.SetParameter(0, 0.194862);
-  fSigmaTimeCut.SetParameter(1, 0.818718);
-  fSigmaTimeCut.SetParameter(2, -0.213279);
-  fSigmaTimeCut.SetParameter(3, 0.0181574);
 
   std::vector<float> vdedx;
   std::vector<float> vrelTime;
@@ -619,27 +639,25 @@ void createCluster(const char* inpHits = "o2sim_HitsTPC.root", const char* outFi
     for (auto cont : clusterOutput) {
       auto container = cont.getContainer();
       const CRU cru(container->CRU);
-      const PadRegionInfo& region = mapper.getPadRegionInfo(cru.region());
-      const int rowOffset = region.getGlobalRowOffset();
+      const int rowOffset = mapper.getPadRegionInfo(cru.region()).getGlobalRowOffset();
 
       for (int clusterCount = 0; clusterCount < container->numberOfClusters; ++clusterCount) {
         const auto timeBinOffset = container->timeBinOffset;
         auto& cluster = container->clusters[clusterCount];
         const int qTot = cluster.getQTot();
         const int qMax = cluster.getQMax();
-        const float pad = cluster.getPad() + 0.5;
+        const float pad = cluster.getPad() + 0.5f;
         const float time = cluster.getTimeLocal() + timeBinOffset;
         const int padrow = rowOffset + cluster.getRow();
         const int region = cru.region();
         const float sigmaPad = std::sqrt(cluster.getSigmaPad2());
         const float sigmaTime = std::sqrt(cluster.getSigmaTime2());
-        const float zPos = std::abs(time * eleParam.ZbinWidth * gasParam.DriftV - 0.6 - detParam.TPClength); // factor 0.6? see distToTrackZ
-        const float relPad = pad - static_cast<int>(pad);
-        const float relTime = time - static_cast<int>(time + 0.5);
-        const auto tanTheta = std::tan(theta);
+        const float zPos = sampaProcessing.getZfromTimeBin(time, Side::A) + eleParam.ZbinWidth * gasParam.DriftV;
+        const float relPad = cluster.getPad() - static_cast<int>(pad);
+        const float relTime = time - static_cast<int>(time + 0.5f);
 
         // check for mSector edge pad
-        const int off = 1;
+        const int off = 2;
         const int offPad = 2;
         const int localPadRow = Mapper::getLocalRowFromGlobalRow(padrow);
         bool isEdge = false;
@@ -687,8 +705,7 @@ void createCluster(const char* inpHits = "o2sim_HitsTPC.root", const char* outFi
         const float distXT = (globX * xTrkF + globY * yTrkF) / (xTrkF * xTrkF + yTrkF * yTrkF);
         const float distanceToTrackXY = std::sqrt(std::pow(globX - distXT * xTrkF, 2) + std::pow(globY - distXT * yTrkF, 2));
 
-        const float distZ = (globZ * zTrkF) / (zTrkF * zTrkF);
-        const float distanceToTrackZ = std::sqrt(std::pow(globZ - dist * zTrkF, 2));
+        const float distanceToTrackZ = globZ - dist * zTrkF;
 
         vLargestqTotinRow.emplace_back(largestqTot);
         vdedx.emplace_back(dedx);
@@ -711,8 +728,6 @@ void createCluster(const char* inpHits = "o2sim_HitsTPC.root", const char* outFi
         vsinglePadOrTime.emplace_back(singlePadOrTime);
         vLocalRow.emplace_back(localPadRow);
         zeroSuppOut.emplace_back(zeroSuppression);
-        const bool lowTimeCut = sigmaTime < fSigmaTimeCut.Eval(tanTheta);
-        vSigmaTimeCut.emplace_back(lowTimeCut);
       }
     }
 
@@ -735,7 +750,6 @@ void createCluster(const char* inpHits = "o2sim_HitsTPC.root", const char* outFi
              << "z=" << vzPos                          // z of the cluster
              << "isEdge=" << visEdge                   // true if the cluster is edge pad
              << "singlePadOrTime=" << vsinglePadOrTime // true if the cluster is single pad or single time cluster
-             << "sigmaTimeCut=" << vSigmaTimeCut       // cut on the sigma time
              << "eleAttFac=" << eleAttFac              // electron attachement factor
              << "zeroSupp=" << zeroSuppOut             // absolute zero supression value in ADC counts
              << "isLargestqTot=" << vLargestqTotinRow  // is true cluster has the highest qTot from all clusters in the same pad row (cluster with lower charge are noise)
@@ -746,7 +760,7 @@ void createCluster(const char* inpHits = "o2sim_HitsTPC.root", const char* outFi
   }
 
   TTree* tree = (TTree*)(pcstream.GetFile()->Get("cl"));
-  tree->SetAlias("cut", "isLargestqTot==1 && singlePadOrTime==0 && isEdge==0 && sigmaTimeCut==0 && sigmaTime>0.5"); // cut to filter clusters
+  tree->SetAlias("cut", "isLargestqTot==1 && singlePadOrTime==0 && isEdge==0"); // cut to filter clusters
   pcstream.Close();
   fTrackInf.Close();
 }

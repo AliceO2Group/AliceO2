@@ -50,9 +50,9 @@
 
 #include <Framework/Tracing.h>
 
-#include <fairmq/FairMQParts.h>
-#include <fairmq/FairMQSocket.h>
-#include <options/FairMQProgOptions.h>
+#include <fairmq/Parts.h>
+#include <fairmq/Socket.h>
+#include <fairmq/ProgOptions.h>
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <TMessage.h>
@@ -239,7 +239,7 @@ struct PollerContext {
   uv_loop_t* loop = nullptr;
   DataProcessingDevice* device = nullptr;
   DeviceState* state = nullptr;
-  FairMQSocket* socket = nullptr;
+  fair::mq::Socket* socket = nullptr;
   InputChannelInfo* channelInfo = nullptr;
   int fd = -1;
   bool read = true;
@@ -416,13 +416,22 @@ void on_signal_callback(uv_signal_t* handle, int signum)
   context->stats->totalSigusr1 += 1;
 }
 
+extern volatile int region_read_global_dummy_variable;
+volatile int region_read_global_dummy_variable;
+
 /// Invoke the callbacks for the mPendingRegionInfos
-void handleRegionCallbacks(ServiceRegistry& registry, std::vector<FairMQRegionInfo>& infos)
+void handleRegionCallbacks(ServiceRegistry& registry, std::vector<fair::mq::RegionInfo>& infos)
 {
   if (infos.empty() == false) {
-    std::vector<FairMQRegionInfo> toBeNotified;
+    std::vector<fair::mq::RegionInfo> toBeNotified;
     toBeNotified.swap(infos); // avoid any MT issue.
+    static bool dummyRead = getenv("DPL_DEBUG_MAP_ALL_SHM_REGIONS") && atoi(getenv("DPL_DEBUG_MAP_ALL_SHM_REGIONS"));
     for (auto const& info : toBeNotified) {
+      if (dummyRead) {
+        for (size_t i = 0; i < info.size / sizeof(region_read_global_dummy_variable); i += 4096 / sizeof(region_read_global_dummy_variable)) {
+          region_read_global_dummy_variable = ((int*)info.ptr)[i];
+        }
+      }
       registry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
     }
   }
@@ -624,7 +633,7 @@ void DataProcessingDevice::InitTask()
     channel.second.at(0).Transport()->SubscribeToRegionEvents([&context = mDeviceContext,
                                                                &registry = mServiceRegistry,
                                                                &pendingRegionInfos = mPendingRegionInfos,
-                                                               &regionInfoMutex = mRegionInfoMutex](FairMQRegionInfo info) {
+                                                               &regionInfoMutex = mRegionInfoMutex](fair::mq::RegionInfo info) {
       std::lock_guard<std::mutex> lock(regionInfoMutex);
       LOG(detail) << ">>> Region info event" << info.event;
       LOG(detail) << "id: " << info.id;
@@ -1020,7 +1029,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
       LOGP(debug, "Receiving loop called for channel {} ({}) with oldest possible timeslice {}",
            info.channel->GetName(), info.id.value, info.oldestForChannel.value);
       if (info.parts.Size() < 64) {
-        FairMQParts parts;
+        fair::mq::Parts parts;
         info.channel->Receive(parts, 0);
         if (parts.Size()) {
           LOGP(debug, "Receiving some parts {}", parts.Size());
@@ -1162,11 +1171,11 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
   // simple lambdas for each of the steps I am planning to have.
   assert(!context.deviceContext->spec->inputs.empty());
 
-  enum struct InputType {
-    Invalid,
-    Data,
-    SourceInfo,
-    DomainInfo
+  enum struct InputType : int {
+    Invalid = 0,
+    Data = 1,
+    SourceInfo = 2,
+    DomainInfo = 3
   };
 
   struct InputInfo {
@@ -1179,14 +1188,12 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     InputType type;
   };
 
-  size_t oldestPossibleTimeslice = (size_t)-1;
-
   // This is how we validate inputs. I.e. we try to enforce the O2 Data model
   // and we do a few stats. We bind parts as a lambda captured variable, rather
   // than an input, because we do not want the outer loop actually be exposed
   // to the implementation details of the messaging layer.
   auto getInputTypes = [&stats = context.registry->get<DataProcessingStats>(),
-                        &info, &context, &oldestPossibleTimeslice]() -> std::optional<std::vector<InputInfo>> {
+                        &info, &context]() -> std::optional<std::vector<InputInfo>> {
     auto& parts = info.parts;
     stats.inputParts = parts.Size();
 
@@ -1214,11 +1221,8 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
       }
       auto dih = o2::header::get<DomainInfoHeader*>(headerData);
       if (dih) {
-        oldestPossibleTimeslice = std::min(oldestPossibleTimeslice, dih->oldestPossibleTimeslice);
         insertInputInfo(pi, 2, InputType::DomainInfo);
         *context.wasActive = true;
-        LOGP(debug, "Got DomainInfoHeader, new oldestPossibleTimeslice {} on channel {}", oldestPossibleTimeslice, info.id.value);
-
         continue;
       }
       auto dh = o2::header::get<DataHeader*>(headerData);
@@ -1279,10 +1283,28 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     auto& parts = info.parts;
     // We relay execution to make sure we have a complete set of parts
     // available.
-    for (auto ii = 0; ii < inputInfos.size(); ++ii) {
-      auto const& input = inputInfos[ii];
+    bool hasBackpressure = false;
+    bool hasData = false;
+    bool hasDomainInfo = false;
+    size_t oldestPossibleTimeslice = -1;
+    static std::vector<int> ordering;
+    // Same as inputInfos but with iota.
+    ordering.resize(inputInfos.size());
+    std::iota(ordering.begin(), ordering.end(), 0);
+    // stable sort orderings by type and position
+    std::stable_sort(ordering.begin(), ordering.end(), [&inputInfos](int const& a, int const& b) {
+      auto const& ai = inputInfos[a];
+      auto const& bi = inputInfos[b];
+      if (ai.type != bi.type) {
+        return ai.type < bi.type;
+      }
+      return ai.position < bi.position;
+    });
+    for (size_t ii = 0; ii < inputInfos.size(); ++ii) {
+      auto const& input = inputInfos[ordering[ii]];
       switch (input.type) {
         case InputType::Data: {
+          hasData = true;
           auto headerIndex = input.position;
           auto nMessages = 0;
           auto nPayloadsPerHeader = 0;
@@ -1311,6 +1333,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
                 info.normalOpsNotified = false;
               }
               policy.backpressure(info);
+              hasBackpressure = true;
               break;
             case DataRelayer::Dropped:
             case DataRelayer::Invalid:
@@ -1341,12 +1364,21 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
 
         } break;
         case InputType::DomainInfo: {
+          /// We have back pressure, therefore we do not process DomainInfo anymore.
+          /// until the previous message are processed.
+          if (hasBackpressure) {
+            break;
+          }
           *context.wasActive = true;
           auto headerIndex = input.position;
           auto payloadIndex = input.position + 1;
           assert(payloadIndex < parts.Size());
           // FIXME: the message with the end of stream cannot contain
           //        split parts.
+
+          auto dih = o2::header::get<DomainInfoHeader*>(parts.At(headerIndex)->GetData());
+          oldestPossibleTimeslice = std::min(oldestPossibleTimeslice, dih->oldestPossibleTimeslice);
+          LOGP(debug, "Got DomainInfoHeader, new oldestPossibleTimeslice {} on channel {}", oldestPossibleTimeslice, info.id.value);
           parts.At(headerIndex).reset(nullptr);
           parts.At(payloadIndex).reset(nullptr);
         }
@@ -1354,6 +1386,14 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
           reportError("Invalid part found.");
         } break;
       }
+    }
+    /// The oldest possible timeslice has changed. We can should therefore process it.
+    /// Notice we do so only if the incoming data has been fully processed.
+    if (oldestPossibleTimeslice != (size_t)-1) {
+      info.oldestForChannel = {oldestPossibleTimeslice};
+      context.registry->domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
+      context.registry->get<CallbackService>()(CallbackService::Id::DomainInfoUpdated, (ServiceRegistry&)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
+      *context.wasActive = true;
     }
     auto it = std::remove_if(parts.fParts.begin(), parts.fParts.end(), [](auto& msg) -> bool { return msg.get() == nullptr; });
     parts.fParts.erase(it, parts.end());
@@ -1374,12 +1414,6 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
   if (bool(inputTypes) == false) {
     reportError("Parts should come in couples. Dropping it.");
     return;
-  }
-  if (oldestPossibleTimeslice != (size_t)-1) {
-    info.oldestForChannel = {oldestPossibleTimeslice};
-    context.registry->domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
-    context.registry->get<CallbackService>()(CallbackService::Id::DomainInfoUpdated, (ServiceRegistry&)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
-    *context.wasActive = true;
   }
   handleValidMessages(*inputTypes);
   return;
@@ -1572,7 +1606,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     LOGP(debug, "DataProcessingDevice::tryDispatchComputation::forwardInputs");
     assert(record.size() == currentSetOfInputs.size());
     // we collect all messages per forward in a map and send them together
-    std::vector<FairMQParts> forwardedParts;
+    std::vector<fair::mq::Parts> forwardedParts;
     forwardedParts.resize(spec->forwards.size());
 
     std::vector<size_t> forwardMap;
@@ -1864,6 +1898,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       LOGP(debug, "Late forwarding");
       forwardInputs(action.slot, record, false, action.op == CompletionPolicy::CompletionOp::Consume);
     }
+    context.registry->postForwardingCallbacks(processContext);
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
 #ifdef TRACY_ENABLE
       cleanupRecord(record);

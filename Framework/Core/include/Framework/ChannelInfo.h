@@ -39,8 +39,8 @@ struct InputChannelInfo {
   InputChannelState state = InputChannelState::Running;
   uint32_t hasPendingEvents = 0;
   bool readPolled = false;
-  FairMQChannel* channel = nullptr;
-  FairMQParts parts;
+  fair::mq::Channel* channel = nullptr;
+  fair::mq::Parts parts;
   /// Wether we already notified operations are normal.
   /// We start with true given we assume in the beginning
   /// things are ok.

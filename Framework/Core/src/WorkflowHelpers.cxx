@@ -699,6 +699,13 @@ void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const
       // have Optional inputs as well.
       // This is done to avoid the race condition where the DISTSUBTIMEFRAME/0 gets
       // forwarded before actual RAWDATA arrives.
+      if (DataSpecUtils::match(input, ConcreteDataTypeMatcher{"FLP", "DISTSUBTIMEFRAME"}) &&
+          !DataSpecUtils::match(input, ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", 0})) {
+        LOGP(error,
+             "Only FLP/DISTSUBTIMEFRAME/0 is supported as input "
+             "provided by the user. Please replace {} with FLP/DISTSUBTIMEFRAME/0 in {}.",
+             DataSpecUtils::describe(input), input.binding);
+      }
       if (hasOptionals && DataSpecUtils::match(input, ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", 0})) {
         // The first one remains unchanged, therefore we use the postincrement
         DataSpecUtils::updateMatchingSubspec(input, distSTFCount++);

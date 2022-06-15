@@ -68,6 +68,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"write-decoding-errors", o2::framework::VariantType::Bool, false, {"trace errors in digits output when decoding"}},
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"calib-cluster", VariantType::Bool, false, {"to enable calib info production from clusters"}},
+    {"for-calib", VariantType::Bool, false, {"to disable check on problematic, otherwise masked for new calibrations"}},
     {"cosmics", VariantType::Bool, false, {"to enable cosmics utils"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -145,6 +146,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto isCosmics = cfgc.options().get<bool>("cosmics");
   auto ignoreDistStf = cfgc.options().get<bool>("ignore-dist-stf");
   auto ccdb_url = o2::base::NameConf::getCCDBServer();
+  auto isForCalib = cfgc.options().get<bool>("for-calib");
 
   LOG(debug) << "TOF RECO WORKFLOW configuration";
   LOG(debug) << "TOF input = " << cfgc.options().get<std::string>("input-type");
@@ -191,7 +193,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   if (!clusterinput && writecluster) {
     LOG(debug) << "Insert TOF Clusterizer";
-    specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC, useCCDB, isCalibFromCluster, isCosmics, ccdb_url.c_str()));
+    specs.emplace_back(o2::tof::getTOFClusterizerSpec(useMC, useCCDB, isCalibFromCluster, isCosmics, ccdb_url.c_str(), isForCalib));
     if (writecluster && !disableRootOutput) {
       LOG(debug) << "Insert TOF Cluster Writer";
       specs.emplace_back(o2::tof::getTOFClusterWriterSpec(useMC));

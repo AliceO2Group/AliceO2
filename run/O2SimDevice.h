@@ -15,7 +15,7 @@
 #define ALICEO2_DEVICES_SIMDEVICE_H_
 
 #include <memory>
-#include "FairMQMessage.h"
+#include <fairmq/Message.h>
 #include <fairmq/Device.h>
 #include <fairmq/Parts.h>
 #include <FairLogger.h>
@@ -42,7 +42,7 @@ class TMessageWrapper : public TMessage
 };
 
 // device representing a simulation worker
-class O2SimDevice final : public FairMQDevice
+class O2SimDevice final : public fair::mq::Device
 {
  public:
   O2SimDevice() = default;
@@ -59,13 +59,13 @@ class O2SimDevice final : public FairMQDevice
   }
 
  protected:
-  /// Overloads the InitTask() method of FairMQDevice
+  /// Overloads the InitTask() method of fair::mq::Device
   void InitTask() final
   {
     // in the initialization phase we will init the simulation
-    // NOTE: In a FairMQDevice this is better done here (instead of outside) since
+    // NOTE: In a fair::mq::Device this is better done here (instead of outside) since
     // we have to setup simulation + worker in the same thread (due to many threadlocal variables
-    // in the simulation) ... at least as long FairMQDevice is not spawning workers on the master thread
+    // in the simulation) ... at least as long fair::mq::Device is not spawning workers on the master thread
     initSim(fChannels.at("o2sim-primserv-info").at(0), mSimRun);
 
     // set the vmc and app pointers
@@ -86,13 +86,13 @@ class O2SimDevice final : public FairMQDevice
   // should go into a helper
   // this function queries the sim config data and initializes the SimConfig singleton
   // returns true if successful / false if not
-  static bool querySimConfig(FairMQChannel& channel)
+  static bool querySimConfig(fair::mq::Channel& channel)
   {
-    //auto text = new std::string("configrequest");
-    //std::unique_ptr<FairMQMessage> request(channel.NewMessage(const_cast<char*>(text->c_str()),
-    //                                                          text->length(), CustomCleanup, text));
-    std::unique_ptr<FairMQMessage> request(channel.NewSimpleMessage(O2PrimaryServerInfoRequest::Config));
-    std::unique_ptr<FairMQMessage> reply(channel.NewMessage());
+    // auto text = new std::string("configrequest");
+    // std::unique_ptr<fair::mq::Message> request(channel.NewMessage(const_cast<char*>(text->c_str()),
+    //                                                           text->length(), CustomCleanup, text));
+    std::unique_ptr<fair::mq::Message> request(channel.NewSimpleMessage(O2PrimaryServerInfoRequest::Config));
+    std::unique_ptr<fair::mq::Message> reply(channel.NewMessage());
 
     int timeoutinMS = 60000; // wait for 60s max --> should be fast reply
     if (channel.Send(request, timeoutinMS) > 0) {
@@ -125,7 +125,7 @@ class O2SimDevice final : public FairMQDevice
   }
 
   // initializes the simulation classes; queries the configuration on a given channel
-  static bool initSim(FairMQChannel& channel, std::unique_ptr<FairRunSim>& simptr)
+  static bool initSim(fair::mq::Channel& channel, std::unique_ptr<FairRunSim>& simptr)
   {
     if (!querySimConfig(channel)) {
       return false;
@@ -146,7 +146,7 @@ class O2SimDevice final : public FairMQDevice
     return true;
   }
 
-  bool isWorkAvailable(FairMQChannel& statuschannel, int workerID = -1)
+  bool isWorkAvailable(fair::mq::Channel& statuschannel, int workerID = -1)
   {
     std::stringstream str;
     str << "[W" << workerID << "]";
@@ -157,8 +157,8 @@ class O2SimDevice final : public FairMQDevice
     while (reprobe) {
       reprobe = false;
       int i = -1;
-      FairMQMessagePtr request(statuschannel.NewSimpleMessage(O2PrimaryServerInfoRequest::Status));
-      FairMQMessagePtr reply(statuschannel.NewSimpleMessage(i));
+      fair::mq::MessagePtr request(statuschannel.NewSimpleMessage(O2PrimaryServerInfoRequest::Status));
+      fair::mq::MessagePtr reply(statuschannel.NewSimpleMessage(i));
       auto sendcode = statuschannel.Send(request, timeoutinMS);
       if (sendcode > 0) {
         LOG(info) << workerStr << " Waiting for status answer ";
@@ -190,12 +190,12 @@ class O2SimDevice final : public FairMQDevice
     return false;
   }
 
-  bool Kernel(int workerID, FairMQChannel& requestchannel, FairMQChannel& dataoutchannel, FairMQChannel* statuschannel = nullptr)
+  bool Kernel(int workerID, fair::mq::Channel& requestchannel, fair::mq::Channel& dataoutchannel, fair::mq::Channel* statuschannel = nullptr)
   {
     static int counter = 0;
 
-    FairMQMessagePtr request(requestchannel.NewSimpleMessage(PrimaryChunkRequest{workerID, -1, counter++})); // <-- don't need content; channel means -> give primaries
-    FairMQParts reply;
+    fair::mq::MessagePtr request(requestchannel.NewSimpleMessage(PrimaryChunkRequest{workerID, -1, counter++})); // <-- don't need content; channel means -> give primaries
+    fair::mq::Parts reply;
 
     mVMCApp->setSimDataChannel(&dataoutchannel);
 
@@ -282,7 +282,7 @@ class O2SimDevice final : public FairMQDevice
   }
 
  protected:
-  /// Overloads the ConditionalRun() method of FairMQDevice
+  /// Overloads the ConditionalRun() method of fair::mq::Device
   bool ConditionalRun() final
   {
     return Kernel(-1, fChannels.at("primary-get").at(0), fChannels.at("simdata").at(0));
