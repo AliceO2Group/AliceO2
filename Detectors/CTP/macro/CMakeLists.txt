@@ -13,10 +13,6 @@ o2_add_test_root_macro(CreateCTPConfig.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
                                              O2::CCDB
                        LABELS ctp)
-o2_add_test_root_macro(CreateCTPConfigRun2.C
-                       PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
-                                             O2::CCDB
-                       LABELS ctp)
 o2_add_test_root_macro(TestCTPScalers.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
                                              O2::CCDB
