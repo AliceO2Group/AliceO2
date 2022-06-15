@@ -112,7 +112,7 @@ Trap2CRU::Trap2CRU(const std::string& outputDir, const std::string& inputdigitsf
 void Trap2CRU::openInputFiles()
 {
   mDigitsFile = TFile::Open(mInputDigitsFileName.data());
-  if (mDigitsFile != nullptr) {
+  if (mDigitsFile != nullptr && !mDigitsFile->IsZombie()) {
     mDigitsTree = (TTree*)mDigitsFile->Get("o2sim");
     mDigitsTree->SetBranchAddress("TRDDigit", &mDigitsPtr);                   // the branch with the actual digits
     mDigitsTree->SetBranchAddress("TriggerRecord", &mDigitTriggerRecordsPtr); // branch with trigger records for digits
@@ -120,7 +120,7 @@ void Trap2CRU::openInputFiles()
     LOG(warn) << " cant open file containing digit tree";
   }
   mTrackletsFile = TFile::Open(mInputTrackletsFileName.data());
-  if (mTrackletsFile != nullptr) {
+  if (mTrackletsFile != nullptr && !mTrackletsFile->IsZombie()) {
     mTrackletsTree = (TTree*)mTrackletsFile->Get("o2sim");
     mTrackletsTree->SetBranchAddress("Tracklet", &mTrackletsPtr);              // the branch with the actual tracklets.
     mTrackletsTree->SetBranchAddress("TrackTrg", &mTrackletTriggerRecordsPtr); // branch with trigger records for digits
