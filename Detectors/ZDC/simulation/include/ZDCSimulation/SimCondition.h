@@ -32,9 +32,9 @@ struct ChannelSimCondition {
 
   Histo shape;
   int ampMinID = 0;
-  float pedestal = 0.f;
-  float pedestalNoise = 0.f;
-  float pedestalFluct = 0.f;
+  float pedestal = 0.f;      /// Average baseline
+  float pedestalNoise = 0.f; /// Baseline noise (high frequency)
+  float pedestalFluct = 0.f; /// Baseline oscillations (low frequency)
   float gain = 0.f;
   float gainInSum = 1.f;
   float timeJitter = 0.f;   // in ns

@@ -29,6 +29,12 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = ""
 
   ModuleConfig conf;
 
+  // Conversion factor for baseline
+  conf.nBunchAverage = 2; // Number of bunch crossings in average
+  int bshift = std::ceil(std::log2(double(o2::zdc::NTimeBinsPerBC) * double(conf.nBunchAverage) * double(ADCRange))) - 16;
+  int divisor = 0x1<<bshift;
+  conf.baselineFactor = float(divisor)/float(conf.nBunchAverage)/float(o2::zdc::NTimeBinsPerBC);
+
   int modID;
 
   //-------------------------------------------

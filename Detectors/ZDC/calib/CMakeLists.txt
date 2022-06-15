@@ -11,6 +11,12 @@
 
 o2_add_library(ZDCCalib
                SOURCES
+                 src/BaselineCalibData.cxx
+                 src/BaselineCalibConfig.cxx
+                 src/BaselineCalibEPN.cxx
+                 src/BaselineCalibEPNSpec.cxx
+                 src/BaselineCalib.cxx
+                 src/BaselineCalibSpec.cxx
                  src/InterCalibData.cxx
                  src/InterCalib.cxx
                  src/InterCalibConfig.cxx
@@ -44,6 +50,8 @@ o2_add_library(ZDCCalib
 
 o2_target_root_dictionary(ZDCCalib
                           HEADERS
+                            include/ZDCCalib/BaselineCalibData.h
+                            include/ZDCCalib/BaselineCalibConfig.h
                             include/ZDCCalib/InterCalibData.h
                             include/ZDCCalib/InterCalibConfig.h
                             include/ZDCCalib/WaveformCalibConfig.h
@@ -69,4 +77,9 @@ o2_add_executable(waveformcalib-epn-workflow
 o2_add_executable(waveformcalib-workflow
                   COMPONENT_NAME zdc
                   SOURCES src/zdc-waveformcalib-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib O2::DetectorsCalibration)
+
+o2_add_executable(baselinecalib-workflow
+                  COMPONENT_NAME zdc
+                  SOURCES src/zdc-baselinecalib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib O2::DetectorsCalibration)

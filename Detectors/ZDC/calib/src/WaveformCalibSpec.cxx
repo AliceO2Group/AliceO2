@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// @file   WaveformCalibSpec.cxx
-/// @brief  ZDC reconstruction
+/// @brief  ZDC waveform calibration
 /// @author pietro.cortese@cern.ch
 
 #include <iostream>

@@ -15,6 +15,7 @@
 #include "ZDCWorkflow/DigitReaderSpec.h"
 #include "ZDCWorkflow/ZDCRecoWriterDPLSpec.h"
 #include "ZDCWorkflow/DigitRecoSpec.h"
+#include "ZDCCalib/BaselineCalibEPNSpec.h"
 
 namespace o2
 {
@@ -28,6 +29,7 @@ framework::WorkflowSpec getRecoWorkflow(const bool useMC, const bool disableRoot
     specs.emplace_back(o2::zdc::getDigitReaderSpec(useMC));
   }
   specs.emplace_back(o2::zdc::getDigitRecoSpec(verbosity, enableDebugOut));
+  specs.emplace_back(o2::zdc::getBaselineCalibEPNSpec());
   if (!disableRootOut) {
     specs.emplace_back(o2::zdc::getZDCRecoWriterDPLSpec());
   }

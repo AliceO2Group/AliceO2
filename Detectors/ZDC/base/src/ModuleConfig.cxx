@@ -48,7 +48,7 @@ void Module::print() const
 
 void ModuleConfig::print() const
 {
-  printf("Modules configuration:\n");
+  printf("Modules configuration: baselineFactor = %f\n", baselineFactor);
   for (const auto& md : modules) {
     if (md.id >= 0) {
       md.printCh();

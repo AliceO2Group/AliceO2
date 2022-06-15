@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// @file   InterCalibSpec.cxx
-/// @brief  ZDC reconstruction
+/// @brief  ZDC intercalibration
 /// @author pietro.cortese@cern.ch
 
 #include <iostream>

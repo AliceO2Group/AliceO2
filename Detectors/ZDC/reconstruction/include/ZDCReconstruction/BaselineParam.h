@@ -9,32 +9,34 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _ZDC_ORBIT_DATA_H_
-#define _ZDC_ORBIT_DATA_H_
+#ifndef ZDC_BASELINECALIB_PARAM_H
+#define ZDC_BASELINECALIB_PARAM_H
 
-#include "CommonDataFormat/InteractionRecord.h"
 #include "ZDCBase/Constants.h"
-#include <array>
 #include <Rtypes.h>
+#include <vector>
 
-/// \file OrbitData.h
-/// \brief Class to describe pedestal data accumulated over the orbit
-/// \author ruben.shahoyan@cern.ch
+/// \file BaselineParam.h
+/// \brief Baseline calibration data
+/// \author pietro.cortese@cern.ch
 
 namespace o2
 {
 namespace zdc
 {
 
-struct OrbitData {
-  o2::InteractionRecord ir;
-  std::array<int16_t, NChannels> data{};
-  std::array<uint16_t, NChannels> scaler{};
+struct BaselineParam {
 
-  void print() const;
+  BaselineParam();
+  std::array<bool, NChannels> modified{};
+  float baseline[NChannels]; // configuration per channel
+  void setCalib(uint32_t ich, float val, bool ismodified = true);
+  float getCalib(uint32_t ich) const;
+  void print(bool printall = true) const;
 
-  ClassDefNV(OrbitData, 1);
+  ClassDefNV(BaselineParam, 1);
 };
+
 } // namespace zdc
 } // namespace o2
 
