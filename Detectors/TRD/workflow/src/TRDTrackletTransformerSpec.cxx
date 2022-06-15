@@ -30,6 +30,9 @@ namespace trd
 void TRDTrackletTransformerSpec::init(o2::framework::InitContext& ic)
 {
   mTransformer.init();
+  if (mApplyXOR) {
+    mTransformer.setApplyXOR();
+  }
 }
 
 void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
@@ -126,7 +129,7 @@ void TRDTrackletTransformerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void
   }
 }
 
-o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive)
+o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive, bool applyXOR)
 {
   std::shared_ptr<DataRequest> dataRequest = std::make_shared<DataRequest>();
   if (trigRecFilterActive) {
@@ -145,7 +148,7 @@ o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilte
     "TRDTRACKLETTRANSFORMER",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDTrackletTransformerSpec>(dataRequest, trigRecFilterActive)},
+    AlgorithmSpec{adaptFromTask<TRDTrackletTransformerSpec>(dataRequest, trigRecFilterActive, applyXOR)},
     Options{}};
 }
 
