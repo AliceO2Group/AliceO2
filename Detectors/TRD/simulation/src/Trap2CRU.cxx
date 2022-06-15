@@ -447,9 +447,9 @@ int Trap2CRU::buildDigitRawData(const int digitstartindex, const int digitendind
     //set adcmask for the channel we currently have.
     adcmaskptr->adcmask |= 1UL << channel;
     for (int timebin = 0; timebin < o2::trd::constants::TIMEBINS; timebin += 3) {
-      data.x = adcdata[timebin];
+      data.z = adcdata[timebin];
       data.y = adcdata[timebin + 1];
-      data.z = adcdata[timebin + 2];
+      data.x = adcdata[timebin + 2];
       data.c = (channel % 2 == 0) ? 0x3 : 0x2;                 // 3 for even channel 2 for odd channel
       memcpy(mRawDataPtr, (char*)&data, sizeof(DigitMCMData)); // uint32 -- 4 bytes.
       mRawDataPtr += sizeof(DigitMCMData);
