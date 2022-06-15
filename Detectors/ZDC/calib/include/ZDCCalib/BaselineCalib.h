@@ -26,7 +26,7 @@ namespace zdc
 class BaselineCalib
 {
   using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
-//
+
  public:
   BaselineCalib() = default;
   int init();

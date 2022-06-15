@@ -47,7 +47,7 @@ BaselineCalibData& BaselineCalibData::operator+=(const BaselineCalibData& other)
     }
     // Check if sum will result into an overflow
     for (int32_t i = 0; i < BaselineCalibChData::NW; i++) {
-      uint64_t sum =  mHisto[is].mData[i] + other.mHisto[is].mData[i];
+      uint64_t sum = mHisto[is].mData[i] + other.mHisto[is].mData[i];
       if (sum > 0xffffffff) {
         LOG(warn) << "BaselineCalibData::" << __func__ << " Addition would result in an overflow for ch " << is << " BREAK!";
         return *this;
@@ -57,7 +57,7 @@ BaselineCalibData& BaselineCalibData::operator+=(const BaselineCalibData& other)
   // No problems with overflow
   for (int32_t is = 0; is < NChannels; is++) {
     for (int32_t i = 0; i < BaselineCalibChData::NW; i++) {
-       mHisto[is].mData[i] =  mHisto[is].mData[i] + other.mHisto[is].mData[i];
+      mHisto[is].mData[i] = mHisto[is].mData[i] + other.mHisto[is].mData[i];
     }
   }
   if (mCTimeBeg == 0 || other.mCTimeBeg < mCTimeBeg) {
@@ -94,51 +94,14 @@ BaselineCalibData& BaselineCalibData::operator=(const BaselineCalibSummaryData& 
   }
   return *this;
 }
-/*
-//______________________________________________________________________________
-BaselineCalibData& BaselineCalibData::operator+=(const BaselineCalibSummaryData& s)
-{
-  if (s.mOverflow) {
-    // Refusing to add an overflow
-    LOG(warn) << __func__ << " Refusing to add an overflow BaselineCalibSummaryData BREAK!";
-    return *this;
-  }
-  for (int32_t is = 0; is < NChannels; is++) {
-    if (s.mOverflowCh[is]) {
-      // Refusing to add an overflow histogram
-      LOG(warn) << __func__ << " Refusing to add an overflow histogram for ch " << is << " BREAK!";
-      return *this;
-    }
-  }
-  // Check if sum will result into an overflow
-  for (const BaselineCalibBinData& bin : s.mData) {
-    uint64_t sum = mHisto[bin.id].mData[bin.ibin] = bin.cont;
-    if (sum > 0xffffffff) {
-      LOG(warn) << __func__ << " Addition would result in an overflow for ch " << bin.id << " BREAK!";
-      return *this;
-    }
-  }
-  if (mCTimeBeg == 0 || s.mCTimeBeg < mCTimeBeg) {
-    mCTimeBeg = s.mCTimeBeg;
-  }
-  if (s.mCTimeEnd > mCTimeEnd) {
-    mCTimeEnd = s.mCTimeEnd;
-  }
-  for (const BaselineCalibBinData& bin : s.mData) {
-    mHisto[bin.id].mData[bin.ibin] += bin.cont;
-  }
-  return *this;
-}
-*/
 
 //______________________________________________________________________________
 BaselineCalibData& BaselineCalibData::operator+=(const BaselineCalibSummaryData* s)
 {
-  if (s == nullptr){
+  if (s == nullptr) {
     LOG(error) << "BaselineCalibData::operator+=(const BaselineCalibSummaryData* s): null pointer";
     return *this;
   }
-  s->print();
   if (s->mOverflow) {
     // Refusing to add an overflow
     LOG(warn) << __func__ << " Refusing to add an overflow BaselineCalibSummaryData BREAK!";
@@ -154,19 +117,11 @@ BaselineCalibData& BaselineCalibData::operator+=(const BaselineCalibSummaryData*
     }
   }
   // Check if sum will result into an overflow
-  auto& v = s->mData;
-  int n = v.size();
-  int i=0;
-  for(auto &bin : v){
+  for (auto& bin : s->mData) {
     uint64_t sum = mHisto[bin.id].mData[bin.ibin] = bin.cont;
     if (sum > 0xffffffff) {
       LOG(warn) << __func__ << " Addition would result in an overflow for ch " << bin.id << " BREAK!";
       return *this;
-    }
-    i++;
-    if(i>=n){
-      // This is needed. Don't understand why
-      break;
     }
   }
   if (mCTimeBeg == 0 || s->mCTimeBeg < mCTimeBeg) {
@@ -175,14 +130,8 @@ BaselineCalibData& BaselineCalibData::operator+=(const BaselineCalibSummaryData*
   if (s->mCTimeEnd > mCTimeEnd) {
     mCTimeEnd = s->mCTimeEnd;
   }
-  i=0;
-  for(auto &bin : v){
+  for (auto& bin : s->mData) {
     mHisto[bin.id].mData[bin.ibin] += bin.cont;
-    i++;
-    if(i>=n){
-      // This is needed. Don't understand why
-      break;
-    }
   }
   return *this;
 }
@@ -300,6 +249,15 @@ void BaselineCalibChData::clear()
   }
 }
 
+void BaselineCalibSummaryData::clear()
+{
+  mCTimeBeg = 0;
+  mCTimeEnd = 0;
+  mOverflow = false;
+  mOverflowCh.fill(false);
+  mData.clear();
+}
+
 //______________________________________________________________________________
 BaselineCalibSummaryData& BaselineCalibData::getSummary()
 {
@@ -317,4 +275,28 @@ BaselineCalibSummaryData& BaselineCalibData::getSummary()
     }
   }
   return mSummary;
+}
+
+//______________________________________________________________________________
+void BaselineCalibSummaryData::print() const
+{
+  LOGF(info, "BaselineCalibSummaryData: %llu:%llu %d bins%s", mCTimeBeg, mCTimeEnd, mData.size(), (mOverflow ? " OVERFLOW_BIT" : ""));
+  if (mOverflow) {
+    printf("OVERFLOW:");
+    for (int ich = 0; ich < NChannels; ich++) {
+      if (mOverflowCh[ich]) {
+        printf(" %s", ChannelNames[ich].data());
+      }
+    }
+    printf("\n");
+  }
+  int nbin[NChannels] = {0};
+  uint64_t ccont[NChannels] = {0};
+  for (auto& bin : mData) {
+    nbin[bin.id]++;
+    ccont[bin.id] += bin.cont;
+  }
+  for (int32_t is = 0; is < NChannels; is++) {
+    LOG(info) << "Summary ch " << is << " nbin = " << nbin[is] << " ccont = " << ccont[is];
+  }
 }

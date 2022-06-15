@@ -59,26 +59,8 @@ struct BaselineCalibSummaryData {
   bool mOverflow = false;                  /// Overflow of one channel
   std::array<bool, NChannels> mOverflowCh; /// Channel overflow information
   std::vector<BaselineCalibBinData> mData; /// Data of not empty bins
-  void clear()
-  {
-    mCTimeBeg = 0;
-    mCTimeEnd = 0;
-    mOverflowCh.fill(false);
-    mData.clear();
-  }
-  void print() const
-  {
-    LOGF(info, "BaselineCalibSummaryData: %llu:%llu %d bins%s", mCTimeBeg, mCTimeEnd, mData.size(), (mOverflow ? " OVERFLOW_BIT" : ""));
-    if (mOverflow) {
-      printf("OVERFLOW:");
-      for (int ich = 0; ich < NChannels; ich++) {
-        if (mOverflowCh[ich]) {
-          printf(" %s", ChannelNames[ich].data());
-        }
-      }
-      printf("\n");
-    }
-  }
+  void clear();
+  void print() const;
   ClassDefNV(BaselineCalibSummaryData, 1);
 };
 

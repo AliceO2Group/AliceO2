@@ -15,6 +15,8 @@
 #include "ZDCCalib/InterCalibConfig.h"
 #include "ZDCCalib/WaveformCalibConfig.h"
 #include "ZDCCalib/WaveformCalibParam.h"
+#include "ZDCCalib/BaselineCalibConfig.h"
+#include "ZDCReconstruction/BaselineParam.h"
 
 void InspectCCDBFile()
 {
@@ -66,6 +68,14 @@ void InspectCCDBFile()
     } else if (cn.EqualTo("o2::zdc::InterCalibConfig")) {
       o2::zdc::InterCalibConfig* ob = (o2::zdc::InterCalibConfig*)key->ReadObj();
       printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathInterCalibConfig.data());
+      ob->print();
+    } else if (cn.EqualTo("o2::zdc::BaselineCalibConfig")) {
+      o2::zdc::BaselineCalibConfig* ob = (o2::zdc::BaselineCalibConfig*)key->ReadObj();
+      printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathBaselineCalibConfig.data());
+      ob->print();
+    } else if (cn.EqualTo("o2::zdc::BaselineParam")) {
+      o2::zdc::BaselineParam* ob = (o2::zdc::BaselineParam*)key->ReadObj();
+      printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathBaselineCalib.data());
       ob->print();
     } else if (cn.EqualTo("o2::zdc::WaveformCalibConfig")) {
       o2::zdc::WaveformCalibConfig* ob = (o2::zdc::WaveformCalibConfig*)key->ReadObj();

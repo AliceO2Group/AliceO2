@@ -54,25 +54,19 @@ void BaselineCalib::clear()
   mData.clear();
 }
 
-/*
-//______________________________________________________________________________
-int BaselineCalib::process(const o2::zdc::BaselineCalibSummaryData& data)
-{
-  if (!mInitDone) {
-    init();
-  }
-  mData += data;
-  return 0;
-}
-*/
-
 //______________________________________________________________________________
 int BaselineCalib::process(const o2::zdc::BaselineCalibSummaryData* data)
 {
   if (!mInitDone) {
     init();
   }
+  if (mVerbosity >= DbgFull) {
+    data->print();
+  }
   mData += data;
+  if (mVerbosity >= DbgFull) {
+    mData.print();
+  }
   return 0;
 }
 
@@ -103,10 +97,10 @@ int BaselineCalib::endOfRun()
       LOGF(info, "Baseline %s %g events and cuts (%g:%g): %f", ChannelNames[ic].data(), nsum, bmin, bmax, ave);
       mParamUpd.setCalib(ic, ave, true);
     } else {
-      if(mParam == nullptr){
+      if (mParam == nullptr) {
         LOGF(error, "Baseline %s %g events and cuts (%g:%g): CANNOT UPDATE AND MISSING OLD VALUE", ChannelNames[ic].data(), nsum, bmin, bmax);
         mParamUpd.setCalib(ic, -std::numeric_limits<float>::infinity(), false);
-      }else{
+      } else {
         float val = mParam->getCalib(ic);
         LOGF(info, "Baseline %s %g events and cuts (%g:%g): %f NOT UPDATED", ChannelNames[ic].data(), nsum, bmin, bmax, val);
         mParamUpd.setCalib(ic, val, false);
