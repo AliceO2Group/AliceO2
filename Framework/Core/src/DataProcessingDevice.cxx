@@ -729,14 +729,17 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   for (auto& forwarded : mSpec.forwards) {
     if (strncmp(DataSpecUtils::asConcreteOrigin(forwarded.matcher).str, "AOD", 3) == 0) {
       context.canForwardEarly = false;
+      LOG(detail) << "Cannot forward early because of AOD input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
     if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && mProcessingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
       context.canForwardEarly = false;
+      LOG(detail) << "Cannot forward early because of RAWDATA input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
     if (forwarded.matcher.lifetime == Lifetime::Optional) {
       context.canForwardEarly = false;
+      LOG(detail) << "Cannot forward early because of Optional input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
   }
