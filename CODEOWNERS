@@ -73,6 +73,7 @@
 /Detectors/ZDC                     @coppedis
 /Detectors/CTF                     @shahor02
 /Detectors/Raw                     @shahor02
+/Detectors/StrangenessTracking     @mconcas @mpuccio @fmazzasc
 
 /EventVisualisation  @jmyrcha
 #/EventVisualisation/Base

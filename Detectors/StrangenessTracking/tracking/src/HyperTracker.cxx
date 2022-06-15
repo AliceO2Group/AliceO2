@@ -69,7 +69,7 @@ void HyperTracker::process()
   int counter = 0;
   for (auto& v0 : mInputV0tracks) {
     counter++;
-    LOG(info) << "Analysing V0: " << counter << "/" << mInputV0tracks.size();
+    LOG(debug) << "Analysing V0: " << counter << "/" << mInputV0tracks.size();
 
     auto posTrack = v0.getProng(0);
     auto negTrack = v0.getProng(1);
@@ -97,7 +97,7 @@ void HyperTracker::process()
 
         if (updateTrack(clus, mV0) and diffR2 > -4) {
           v0Clusters.push_back(clus);
-          LOG(info) << "Attach cluster to V0, layer: " << mGeomITS->getLayer(clus.getSensorID());
+          LOG(debug) << "Attach cluster to V0, layer: " << mGeomITS->getLayer(clus.getSensorID());
           nAttachments[mGeomITS->getLayer(clus.getSensorID())] = 1;
           isV0Upd = true;
           nUpdates++;
@@ -110,7 +110,7 @@ void HyperTracker::process()
             break;
           if (!recreateV0(mV0.getProng(0), mV0.getProng(1), mV0.getProngID(0), mV0.getProngID(1)))
             break;
-          LOG(info) << "Attach cluster to he3, layer: " << mGeomITS->getLayer(clus.getSensorID());
+          LOG(debug) << "Attach cluster to he3, layer: " << mGeomITS->getLayer(clus.getSensorID());
           nAttachments[mGeomITS->getLayer(clus.getSensorID())] = 2;
           nUpdates++;
         }
@@ -134,13 +134,13 @@ void HyperTracker::process()
 
         // final 3body refit
         if (refitAllTracks()) {
-          LOG(info) << "------------------------------------------------------";
-          LOG(info) << "Pushing back v0: " << v0.getProngID(0) << ", " << v0.getProngID(1);
-          LOG(info) << "number of clusters attached: " << v0Clusters.size();
-          LOG(info) << "Number of ITS track clusters: " << ITStrack.getNumberOfClusters();
-          LOG(info) << "number of clusters attached to V0: " << nAttachments[0] << ", " << nAttachments[1] << ", " << nAttachments[2] << ", " << nAttachments[3] << ", " << nAttachments[4] << ", " << nAttachments[5] << ", " << nAttachments[6];
+          LOG(debug) << "------------------------------------------------------";
+          LOG(debug) << "Pushing back v0: " << v0.getProngID(0) << ", " << v0.getProngID(1);
+          LOG(debug) << "number of clusters attached: " << v0Clusters.size();
+          LOG(debug) << "Number of ITS track clusters: " << ITStrack.getNumberOfClusters();
+          LOG(debug) << "number of clusters attached to V0: " << nAttachments[0] << ", " << nAttachments[1] << ", " << nAttachments[2] << ", " << nAttachments[3] << ", " << nAttachments[4] << ", " << nAttachments[5] << ", " << nAttachments[6];
           auto& lastClus = trackClusters[0];
-          LOG(info) << "Matching chi2: " << getMatchingChi2(tmpV0, ITStrack, lastClus);
+          LOG(debug) << "Matching chi2: " << getMatchingChi2(tmpV0, ITStrack, lastClus);
 
           mV0s.push_back(mV0);
           mHyperTracks.push_back(hyperTrack);

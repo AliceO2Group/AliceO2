@@ -20,8 +20,19 @@ o2_add_library(StrangenessTrackingWorkflow
                                      O2::SimulationDataFormat
                                      O2::ReconstructionDataFormats
                                      O2::Framework
-                                     O2::DetectorsRaw)
+                                     O2::DetectorsRaw
+                                     O2::SimConfig
+                                     O2::DataFormatsITS
+                                     O2::DataFormatsDCS
+                                     O2::ITStracking
+                                     O2::ITSReconstruction
+                                     O2::ITSMFTReconstruction
+                                     O2::ITSMFTWorkflow
+                                     O2::DetectorsCalibration
+                                     O2::GlobalTrackingWorkflowWriters
+                                     O2::CCDB)
 
 o2_add_executable(hypertracking-workflow
                   SOURCES src/hypertracking-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::StrangenessTrackingWorkflow)
+                  PUBLIC_LINK_LIBRARIES O2::StrangenessTrackingWorkflow
+                                        O2::GlobalTrackingWorkflowReaders)

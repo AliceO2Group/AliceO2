@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 
 #include "TGeoGlobalMagField.h"
-#include "DataFormatsParameters/GRPObject.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Field/MagneticField.h"
 
@@ -22,17 +21,14 @@
 #include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflow/TOFMatcherSpec.h"
+#include "Framework/CCDBParamSpec.h"
 
-#include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "ITStracking/IOUtils.h"
-#include "ITSMFTReconstruction/ClustererParam.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
-
-#include "StrangenessTracking/HyperTracker.h"
 
 #include <fmt/format.h>
 
@@ -41,26 +37,6 @@ namespace o2
 using namespace o2::framework;
 namespace strangeness_tracking
 {
-
-class HypertrackerSpec : public framework::Task
-{
- public:
-  using ITSCluster = o2::BaseCluster<float>;
-
-  HypertrackerSpec(bool isMC = false);
-  ~HypertrackerSpec() override = default;
-
-  void init(framework::InitContext& ic) final;
-  void run(framework::ProcessingContext& pc) final;
-  void endOfStream(framework::EndOfStreamContext& ec) final;
-
- private:
-  bool mIsMC = false;
-  bool mRecreateV0 = true;
-  TStopwatch mTimer;
-  HyperTracker mTracker;
-  std::unique_ptr<parameters::GRPObject> mGRP = nullptr;
-};
 
 framework::WorkflowSpec getWorkflow(bool useMC, bool useRootInput)
 {
@@ -116,7 +92,8 @@ void HypertrackerSpec::init(framework::InitContext& ic)
 void HypertrackerSpec::run(framework::ProcessingContext& pc)
 {
   mTimer.Start(false);
-  LOG(info) << "Running Hypertracker...";
+  LOG(info) << "Running hypertracker...";
+  updateTimeDependentParams(pc);
   // ITS
   auto ITSclus = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   auto ITSpatt = pc.inputs().get<gsl::span<unsigned char>>("patterns");
@@ -133,7 +110,7 @@ void HypertrackerSpec::run(framework::ProcessingContext& pc)
   // auto labTPCTOF = pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsTOF_TPC_MCTR");
   // auto labITSTPCTOF = pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsTOF_GLO_MCTR");
   auto labITS = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSMCTR");
-  LOGF(info, "ITSclus: %d \nITSpatt: %d \nITStracks: %d \nROFsInput: %d \nITSTrackClusIdx: %d \nTPCITStracks: %d \nv0s: %d \nlabITSTPC: %d\nlabITS: %d",
+  LOGF(debug, "ITSclus: %d \nITSpatt: %d \nITStracks: %d \nROFsInput: %d \nITSTrackClusIdx: %d \nTPCITStracks: %d \nv0s: %d \nlabITSTPC: %d\nlabITS: %d",
        ITSclus.size(),
        ITSpatt.size(),
        ITStracks.size(),
@@ -147,17 +124,10 @@ void HypertrackerSpec::run(framework::ProcessingContext& pc)
        labITS.size());
   //  \nlabTPCTOF: %d\nlabITSTPCTOF: %d
 
-  // ITS dict
-  o2::itsmft::TopologyDictionary ITSdict;
-  // std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS);
-  ITSdict.readFromFile(dictFile);
-
   auto pattIt = ITSpatt.begin();
   std::vector<ITSCluster> ITSClustersArray;
   ITSClustersArray.reserve(ITSclus.size());
-  o2::its::ioutils::convertCompactClusters(ITSclus, pattIt, ITSClustersArray, &ITSdict);
-
+  o2::its::ioutils::convertCompactClusters(ITSclus, pattIt, ITSClustersArray, mDict);
   auto geom = o2::its::GeometryTGeo::Instance();
   auto field = static_cast<field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
   double origD[3] = {0., 0., 0.};
@@ -166,8 +136,6 @@ void HypertrackerSpec::run(framework::ProcessingContext& pc)
   mTracker.loadData(ITStracks, ITSClustersArray, ITSTrackClusIdx, v0vec, geom);
   mTracker.process();
 
-  // LOG(info) << "PROVAAA: " << mTracker.getHe3Attachments()[0][0] << " " << mTracker.getHe3Attachments()[0][1] << " " << mTracker.getHe3Attachments()[0][2];
-
   pc.outputs().snapshot(Output{"HYP", "V0S", 0, Lifetime::Timeframe}, mTracker.getV0());
   pc.outputs().snapshot(Output{"HYP", "HYPERTRACKS", 0, Lifetime::Timeframe}, mTracker.getHyperTracks());
   pc.outputs().snapshot(Output{"HYP", "CHI2", 0, Lifetime::Timeframe}, mTracker.getChi2vec());
@@ -175,6 +143,26 @@ void HypertrackerSpec::run(framework::ProcessingContext& pc)
   pc.outputs().snapshot(Output{"HYP", "ITSREFS", 0, Lifetime::Timeframe}, mTracker.getITStrackRef());
 
   mTimer.Stop();
+}
+
+///_______________________________________
+void HypertrackerSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+  }
+}
+
+///_______________________________________
+void HypertrackerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
+    return;
+  }
 }
 
 void HypertrackerSpec::endOfStream(framework::EndOfStreamContext& ec)
@@ -193,6 +181,7 @@ DataProcessorSpec getHyperTrackerSpec()
   inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackITSClIdx", "ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
   inputs.emplace_back("ITSTrack", "ITS", "TRACKS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
 
   // V0
   inputs.emplace_back("v0s", "GLO", "V0S", 0, Lifetime::Timeframe);                // found V0s
@@ -221,7 +210,7 @@ DataProcessorSpec getHyperTrackerSpec()
   outputs.emplace_back("HYP", "ITSREFS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
-    "hypertracker",
+    "hyper-tracker",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<HypertrackerSpec>()},
