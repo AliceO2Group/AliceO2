@@ -199,6 +199,12 @@ void TrackResiduals::reset()
 }
 
 //______________________________________________________________________________
+void TrackResiduals::resetUnbinnedResiduals()
+{
+  mUnbinnedResiduals.clear();
+}
+
+//______________________________________________________________________________
 int TrackResiduals::getRowID(float x) const
 {
   int ix;
