@@ -44,9 +44,10 @@ Word 0  |   Format  |              HCID              |  padrow   | col |        
 Word 0  |  slope                |    Q2                 |    Q1                 |         Q0            |
         -------------------------------------------------------------------------------------------------
 
-        Note: In the tracklet word both the position and the slope have one bit inverted. This avoids the
-              misinterpretation of the word as tracklet end marker. So before the position and slope are
-              written into the tracklet word they are XOR'd with 0x80, i.e. bits 31 and 39 are inverted.
+        Note: In the tracklet word wich is sent from the FEE both the position and the slope have one bit inverted.
+              This avoids the mis-interpretation of the word as tracklet end marker. The raw reader flips these bits
+              back so that the position and slope stored in the Tracklet64 can be used without requiring to invert
+              any bit.
 */
 class Tracklet64
 {
@@ -67,7 +68,6 @@ class Tracklet64
                     ((Q2 << Q2bs) & Q2mask) |
                     ((Q1 << Q1bs) & Q1mask) |
                     ((Q0 << Q0bs) & Q0mask);
-    mtrackletWord ^= 0x8080000000UL;
   }
 
   Tracklet64(uint64_t format, uint64_t hcid, uint64_t padrow, uint64_t col, uint64_t position,
@@ -80,7 +80,6 @@ class Tracklet64
                     ((position << posbs) & posmask) |
                     ((slope << slopebs) & slopemask) |
                     (pid & PIDmask);
-    mtrackletWord ^= 0x8080000000UL;
   }
 
   GPUdDefault() ~Tracklet64() = default;
@@ -91,8 +90,8 @@ class Tracklet64
   GPUd() int getHCID() const { return ((mtrackletWord & hcidmask) >> hcidbs); };           // no units 0..1079
   GPUd() int getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); };     // pad row number [0..15]
   GPUd() int getColumn() const { return ((mtrackletWord & colmask) >> colbs); };           // column refers to MCM position in column direction on readout board [0..3]
-  GPUd() int getPosition() const { return ((mtrackletWord & posmask) >> posbs) ^ 0x80; };  // in units of 1/40 pads, 11 bit granularity
-  GPUd() int getSlope() const { return ((mtrackletWord & slopemask) >> slopebs) ^ 0x80; }; // in units of 1/1000 pads/timebin, 8 bit granularity
+  GPUd() int getPosition() const { return ((mtrackletWord & posmask) >> posbs); };         // in units of 1/40 pads, 11 bit granularity
+  GPUd() int getSlope() const { return ((mtrackletWord & slopemask) >> slopebs); };        // in units of 1/1000 pads/timebin, 8 bit granularity
   GPUd() int getPID() const { return ((mtrackletWord & PIDmask)); };                       // no unit, all 3 charge windows combined
   GPUd() int getQ0() const { return ((mtrackletWord & Q0mask) >> Q0bs); };                 // no unit
   GPUd() int getQ1() const { return ((mtrackletWord & Q1mask) >> Q1bs); };                 // no unit
@@ -137,12 +136,12 @@ class Tracklet64
   GPUd() void setPosition(uint64_t position)
   {
     mtrackletWord &= ~posmask;
-    mtrackletWord |= (((position ^ 0x80) << posbs) & posmask);
+    mtrackletWord |= ((position << posbs) & posmask);
   }
   GPUd() void setSlope(uint64_t slope)
   {
     mtrackletWord &= ~slopemask;
-    mtrackletWord |= (((slope ^ 0x80) << slopebs) & slopemask);
+    mtrackletWord |= ((slope << slopebs) & slopemask);
   }
 
   GPUd() bool operator==(const Tracklet64& o) const { return mtrackletWord == o.mtrackletWord; }

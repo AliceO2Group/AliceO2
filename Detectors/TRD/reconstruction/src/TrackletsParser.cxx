@@ -308,6 +308,11 @@ int TrackletsParser::Parse()
             int col = mTrackletMCMHeader->col;
             int pos = mTrackletMCMData->pos;
             int slope = mTrackletMCMData->slope;
+            // The 8-th bit of position and slope are always flipped in the FEE.
+            // We flip them back while reading the raw data so that they are stored
+            // without flipped bits in the CTFs
+            pos = pos ^ 0x80;
+            slope = slope ^ 0x80;
             int hcid = mDetector * 2 + mHalfChamberSide;
             if (mHeaderVerbose) {
               if (mTrackletHCHeaderState) {
