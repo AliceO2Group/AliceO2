@@ -89,7 +89,7 @@ void GRPGeomHelper::setRequest(std::shared_ptr<GRPGeomRequest> req)
 
 void GRPGeomHelper::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
-  if (mRequest->askGRPMagField && matcher == ConcreteDataMatcher("GRP", "GRPMAGFIELD", 0)) {
+  if (mRequest->askGRPMagField && matcher == ConcreteDataMatcher("GLO", "GRPMAGFIELD", 0)) {
     bool needInit = mGRPMagField == nullptr;
     mGRPMagField = (o2::parameters::GRPMagField*)obj;
     LOG(info) << "GRP MagField object updated";
@@ -104,12 +104,12 @@ void GRPGeomHelper::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     }
     return;
   }
-  if (mRequest->askGRPECS && matcher == ConcreteDataMatcher("GRP", "GRPECS", 0)) {
+  if (mRequest->askGRPECS && matcher == ConcreteDataMatcher("GLO", "GRPECS", 0)) {
     mGRPECS = (o2::parameters::GRPECSObject*)obj;
     LOG(info) << "GRP ECS object updated";
     return;
   }
-  if (mRequest->askGRPLHCIF && matcher == ConcreteDataMatcher("GRP", "GRPLHCIF", 0)) {
+  if (mRequest->askGRPLHCIF && matcher == ConcreteDataMatcher("GLO", "GRPLHCIF", 0)) {
     mGRPLHCIF = (o2::parameters::GRPLHCIFData*)obj;
     LOG(info) << "GRP LHCIF object updated";
     return;
