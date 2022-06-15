@@ -869,7 +869,7 @@ size_t zsEncoderRun<T>::compare(std::vector<zsPage>* buffer, std::vector<o2::tpc
   std::vector<o2::tpc::Digit> compareBuffer;
   compareBuffer.reserve(tmpBuffer.size());
   for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
-    unsigned int firstOrbit = o2::raw::RDHUtils::getHeartBeatOrbit(*(const o2::header::RAWDataHeader*)buffer[j].data());
+    unsigned int firstOrbit = ir ? ir->orbit : 0;
     for (unsigned int k = 0; k < buffer[j].size(); k++) {
       zsPage* decPage = &buffer[j][k];
       decodePage(compareBuffer, decPage, j, firstOrbit);
