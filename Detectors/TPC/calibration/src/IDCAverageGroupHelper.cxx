@@ -52,18 +52,18 @@ void o2::tpc::IDCAverageGroupHelper<o2::tpc::IDCAverageGroupCRU>::clearRobustAve
 
 float o2::tpc::IDCAverageGroupHelper<o2::tpc::IDCAverageGroupTPC>::getGroupedIDCValGlobal(unsigned int urow, unsigned int upad) const
 {
-  return mIDCsGrouped.getValue(getSide(), mIDCGroupHelperSector.getIndexUngroupedGlobal(getSector(), getRegion(), urow, upad, mIntegrationInterval));
+  return mIDCsGrouped.getValue(mIDCGroupHelperSector.getIndexUngroupedGlobal(getSector(), getRegion(), urow, upad, mIntegrationInterval));
 }
 
 void o2::tpc::IDCAverageGroupHelper<o2::tpc::IDCAverageGroupTPC>::setGroupedIDC(const unsigned int glrow, const unsigned int padGrouped, const float val)
 {
   const unsigned int index = mIDCGroupHelperSector.getOffsRow(getRegion(), glrow) + padGrouped + mOffsetGrouped;
-  mIDCsGrouped.setValue(val, getSide(), index);
+  mIDCsGrouped.setValue(val, index);
 }
 
 float o2::tpc::IDCAverageGroupHelper<o2::tpc::IDCAverageGroupTPC>::getUngroupedIDCVal(const unsigned int padInRegion) const
 {
-  return mIDCsUngrouped.getValue(getSide(), padInRegion + mOffsetUngrouped);
+  return mIDCsUngrouped.getValue(padInRegion + mOffsetUngrouped);
 }
 
 void o2::tpc::IDCAverageGroupHelper<o2::tpc::IDCAverageGroupTPC>::setIntegrationInterval(const unsigned int integrationInterval)
@@ -106,5 +106,5 @@ void o2::tpc::IDCAverageGroupHelper<o2::tpc::IDCAverageGroupTPC>::clearRobustAve
 void o2::tpc::IDCAverageGroupHelper<o2::tpc::IDCAverageGroupTPC>::setSectorEdgeIDC(const unsigned int ulrow, const unsigned int upad)
 {
   const int index = mIDCGroupHelperSector.getIndexUngrouped(getSector(), getRegion(), ulrow, upad, mIntegrationInterval);
-  mIDCsGrouped.setValue(getGroupedIDC(false), getSide(), index);
+  mIDCsGrouped.setValue(getGroupedIDC(false), index);
 }

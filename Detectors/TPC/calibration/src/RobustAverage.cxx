@@ -58,6 +58,16 @@ float o2::tpc::RobustAverage::getMean(std::vector<float>::const_iterator begin, 
   return std::accumulate(begin, end, decltype(mValues)::value_type(0)) / std::distance(begin, end);
 }
 
+float o2::tpc::RobustAverage::getMedian()
+{
+  if (mValues.empty()) {
+    return 0;
+  }
+  size_t n = mValues.size() / 2;
+  std::nth_element(mValues.begin(), mValues.begin() + n, mValues.end());
+  return mValues[n];
+}
+
 float o2::tpc::RobustAverage::getWeightedMean(std::vector<float>::const_iterator beginValues, std::vector<float>::const_iterator endValues, std::vector<float>::const_iterator beginWeight, std::vector<float>::const_iterator endWeight) const
 {
   return std::inner_product(beginValues, endValues, beginWeight, decltype(mValues)::value_type(0)) / std::accumulate(beginWeight, endWeight, decltype(mWeights)::value_type(0));

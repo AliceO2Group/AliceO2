@@ -54,19 +54,17 @@ class IDCFourierTransformBase<IDCFourierTransformBaseEPN>
   static constexpr unsigned int getNIntervals() { return 1; }
 
   /// \return returns indices used for accessing correct IDCs for given TF
-  std::vector<unsigned int> getLastIntervals(const o2::tpc::Side side) const { return std::vector<unsigned int>{static_cast<unsigned int>(mIDCOne.getNIDCs(side)) - mRangeIDC}; }
+  std::vector<unsigned int> getLastIntervals() const { return std::vector<unsigned int>{static_cast<unsigned int>(mIDCOne.getNIDCs()) - mRangeIDC}; }
 
   /// copy over IDCs from buffer to current IDCOne vector for easier access
   /// \return returns expanded 1D-IDC vector
-  /// \param side TPC side
-  std::vector<float> getExpandedIDCOne(const o2::tpc::Side side) const { return mIDCOne.mIDCOne[side]; }
+  std::vector<float> getExpandedIDCOne() const { return mIDCOne.mIDCOne; }
 
   /// \return returns struct of stored 1D-IDC
   const IDCOne& getIDCOne() const { return mIDCOne; }
 
   /// \return returns number of 1D-IDCs
-  /// \param side TPC side
-  unsigned long getNIDCs(const o2::tpc::Side side) const { return mIDCOne.mIDCOne[side].size(); }
+  unsigned long getNIDCs() const { return mIDCOne.mIDCOne.size(); }
 
  protected:
   const unsigned int mRangeIDC{}; ///< number of IDCs used for the calculation of fourier coefficients
@@ -90,11 +88,15 @@ class IDCFourierTransformBase<IDCFourierTransformBaseAggregator>
   /// set input 1D-IDCs which are used to calculate fourier coefficients
   /// \param oneDIDCs 1D-IDCs
   /// \param integrationIntervalsPerTF vector containg for each TF the number of IDCs
+  void setIDCs(IDCOne&& oneDIDCs, const std::vector<unsigned int>& integrationIntervalsPerTF);
+
+  /// set input 1D-IDCs which are used to calculate fourier coefficients
+  /// \param oneDIDCs 1D-IDCs
+  /// \param integrationIntervalsPerTF vector containg for each TF the number of IDCs
   void setIDCs(const IDCOne& oneDIDCs, const std::vector<unsigned int>& integrationIntervalsPerTF);
 
   /// \return returns number of 1D-IDCs
-  /// \param side TPC side
-  unsigned long getNIDCs(const o2::tpc::Side side) const { return mIDCOne[!mBufferIndex].mIDCOne[side].size(); }
+  unsigned long getNIDCs() const { return mIDCOne[!mBufferIndex].mIDCOne.size(); }
 
   /// \return returns number of time frames for which the coefficients are obtained
   unsigned int getNIntervals() const { return mTimeFrames; }
@@ -103,16 +105,14 @@ class IDCFourierTransformBase<IDCFourierTransformBaseAggregator>
   const IDCOne& getIDCOne() const { return mIDCOne[!mBufferIndex]; }
 
   /// \return returns indices used for accessing correct IDCs for given TF
-  std::vector<unsigned int> getLastIntervals(o2::tpc::Side) const;
+  std::vector<unsigned int> getLastIntervals() const;
 
   /// copy over IDCs from buffer to current IDCOne vector for easier access
   /// \return returns expanded 1D-IDC vector
-  /// \param side TPC side
-  std::vector<float> getExpandedIDCOne(const o2::tpc::Side side) const;
+  std::vector<float> getExpandedIDCOne() const;
 
   /// allocate memory for variable holding getrangeIDC() IDCs
-  /// \param side TPC side
-  float* allocMemFFTW(const o2::tpc::Side side) const;
+  float* allocMemFFTW() const;
 
  protected:
   const unsigned int mRangeIDC{};                                        ///< number of IDCs used for the calculation of fourier coefficients
