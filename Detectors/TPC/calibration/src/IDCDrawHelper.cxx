@@ -17,6 +17,11 @@
 #include "TLatex.h"
 #include <fmt/format.h>
 
+unsigned int o2::tpc::IDCDrawHelper::getPad(const unsigned int pad, const unsigned int region, const unsigned int row, const Side side)
+{
+  return (side == Side::A) ? pad : (Mapper::PADSPERROW[region][row] - pad - 1); // C-Side is mirrored
+}
+
 void o2::tpc::IDCDrawHelper::drawSector(const IDCDraw& idc, const unsigned int startRegion, const unsigned int endRegion, const unsigned int sector, const std::string zAxisTitle, const std::string filename, const float minZ, const float maxZ)
 {
   const auto coords = o2::tpc::painter::getPadCoordinatesSector();
@@ -107,7 +112,7 @@ TH2Poly* o2::tpc::IDCDrawHelper::drawSide(const IDCDraw& idc, const o2::tpc::Sid
           coordinate.rotate(angDeg);
           const float yPos = static_cast<float>(coordinate.yVals[0] + coordinate.yVals[1] + coordinate.yVals[2] + coordinate.yVals[3]) / 4;
           const float xPos = static_cast<float>(coordinate.xVals[0] + coordinate.xVals[1] + coordinate.xVals[2] + coordinate.xVals[3]) / 4;
-          const auto padTmp = (side == Side::A) ? ipad : (Mapper::PADSPERROW[region][irow] - ipad); // C-Side is mirrored
+          const auto padTmp = getPad(ipad, region, irow, side);
           poly->Fill(xPos, yPos, idc.getIDC(sector, region, irow, padTmp));
         }
       }
@@ -131,7 +136,7 @@ TH1F* o2::tpc::IDCDrawHelper::drawSide(const IDCDraw& idc, std::string_view type
     for (unsigned int region = 0; region < Mapper::NREGIONS; ++region) {
       for (unsigned int irow = 0; irow < Mapper::ROWSPERREGION[region]; ++irow) {
         for (unsigned int ipad = 0; ipad < Mapper::PADSPERROW[region][irow]; ++ipad) {
-          const auto padTmp = (side == Side::A) ? ipad : (Mapper::PADSPERROW[region][irow] - ipad); // C-Side is mirrored
+          const auto padTmp = getPad(ipad, region, irow, side);
           h->Fill(idc.getIDC(sector, region, irow, padTmp));
         }
       }
@@ -151,7 +156,7 @@ void o2::tpc::IDCDrawHelper::drawRadialProfile(const IDCDraw& idc, TH2F& hist, c
     for (unsigned int region = 0; region < Mapper::NREGIONS; ++region) {
       for (unsigned int irow = 0; irow < Mapper::ROWSPERREGION[region]; ++irow) {
         for (unsigned int ipad = 0; ipad < Mapper::PADSPERROW[region][irow]; ++ipad) {
-          const auto padTmp = (side == Side::A) ? ipad : (Mapper::PADSPERROW[region][irow] - ipad); // C-Side is mirrored
+          const auto padTmp = getPad(ipad, region, irow, side);
           const auto padNum = Mapper::getGlobalPadNumber(irow, ipad, region);
           const float padX = mapper.padCentre(padNum).x();
           hist.Fill(padX, idc.getIDC(sector, region, irow, padTmp));
@@ -177,7 +182,7 @@ void o2::tpc::IDCDrawHelper::drawIDCZeroStackCanvas(const IDCDraw& idc, const o2
     for (unsigned int region = 0; region < Mapper::NREGIONS; ++region) {
       for (unsigned int irow = 0; irow < Mapper::ROWSPERREGION[region]; ++irow) {
         for (unsigned int ipad = 0; ipad < Mapper::PADSPERROW[region][irow]; ++ipad) {
-          const auto padTmp = (side == Side::A) ? ipad : (Mapper::PADSPERROW[region][irow] - ipad); // C-Side is mirrored
+          const auto padTmp = getPad(ipad, region, irow, side);
           if (region < 4) {
             hIROC->Fill(idc.getIDC(sector, region, irow, padTmp));
           } else if (region < 6) {

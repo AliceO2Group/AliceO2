@@ -110,8 +110,7 @@ BOOST_AUTO_TEST_CASE(AverageGroupSector_test)
 
   // converting the IDCs to IDCDelta object which is used forthe averating and grouping
   IDCDelta<float> idcs;
-  idcs.getIDCDelta(Side::A) = idcsPerSide;
-  idcs.getIDCDelta(Side::C) = idcsPerSide;
+  idcs.getIDCDelta() = idcsPerSide;
 
   for (int iter = 0; iter < NITER; ++iter) {
     // type=0: do nothing special for grouping at sector edges, typ1=1: do group pads at sector edges in pad direction, typ1=2: group pads at sector edges in pad+row direction
@@ -132,7 +131,7 @@ BOOST_AUTO_TEST_CASE(AverageGroupSector_test)
 
       // perform the grouping
       IDCAverageGroup<IDCAverageGroupTPC> idcaverage(grPad, grRow, grRowThr, grPadThr, groupPadsSectorEdges);
-      idcaverage.setIDCs(idcs);
+      idcaverage.setIDCs(idcs, Side::A);
       idcaverage.processIDCs();
 
       std::array<IDCAverageGroup<IDCAverageGroupCRU>, Mapper::NREGIONS> idcaverageCRU{

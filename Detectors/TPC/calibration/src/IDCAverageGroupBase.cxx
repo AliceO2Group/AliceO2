@@ -50,29 +50,25 @@ void o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC>::drawIDCDeltaHelp
 
 void o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC>::resizeGroupedIDCs()
 {
-  resizeGroupedIDCs(Side::A);
-  resizeGroupedIDCs(Side::C);
+  const unsigned int nIDCs = mIDCGroupHelperSector.getNIDCsPerSector() * SECTORSPERSIDE * getNIntegrationIntervals();
+  mIDCsGrouped.resize(nIDCs);
 }
 
-void o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC>::resizeGroupedIDCs(const Side side)
+void o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC>::setIDCs(const IDCDelta<float>& idcs, const Side side)
 {
-  const unsigned int nIDCs = mIDCGroupHelperSector.getNIDCsPerSector() * SECTORSPERSIDE * getNIntegrationIntervals(side);
-  mIDCsGrouped.resize(side, nIDCs);
-}
-
-void o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC>::setIDCs(const IDCDelta<float>& idcs)
-{
+  mSide = side;
   mIDCsUngrouped = idcs;
   resizeGroupedIDCs();
 }
 
-void o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC>::setIDCs(IDCDelta<float>&& idcs)
+void o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC>::setIDCs(IDCDelta<float>&& idcs, const Side side)
 {
+  mSide = side;
   mIDCsUngrouped = std::move(idcs);
   resizeGroupedIDCs();
 }
 
-void o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC>::resetGroupedIDCs(const Side side)
+void o2::tpc::IDCAverageGroupBase<o2::tpc::IDCAverageGroupTPC>::resetGroupedIDCs()
 {
-  std::fill(mIDCsGrouped.getIDCDelta(side).begin(), mIDCsGrouped.getIDCDelta(side).end(), 0);
+  std::fill(mIDCsGrouped.getIDCDelta().begin(), mIDCsGrouped.getIDCDelta().end(), 0);
 }
