@@ -386,7 +386,6 @@ void TOFDCSProcessor::updateDPsCCDB()
                   converter0.raw_data = dpvect[i].payload_pt1;
                   converter1.raw_data = dpvect[j].payload_pt1;
                   double delta = converter0.double_value - converter1.double_value;
-                  LOG(info) << "converter0.double_value = " << converter0.double_value << ", converter1.double_value = " << converter1.double_value << ", delta = " << delta << " tofdcs.maxChange.second = " << tofdcs.maxChange.second;
                   if (std::abs(delta) > std::abs(tofdcs.maxChange.second)) {
                     tofdcs.maxChange.first[0] = dpvect[i].get_epoch_time();
                     tofdcs.maxChange.first[1] = dpvect[j].get_epoch_time();
