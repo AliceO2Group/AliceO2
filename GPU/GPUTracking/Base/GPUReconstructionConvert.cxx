@@ -752,29 +752,27 @@ unsigned int zsEncoderDenseLinkBased::encodeSequence(std::vector<o2::tpc::Digit>
   } else {
     (*linkCounter)++;
   }
-  unsigned char xlink = link;
-  int maskLen = 10;
-  if ((bitmask & std::bitset<80>(0xFFFFFFFFFFlu)).none()) {
-    xlink |= 0b10000000;
-    maskLen = 5;
-    bitmask = bitmask >> 40;
-  } else if (((bitmask >> 40) & std::bitset<80>(0xFFFFFFFFFFlu)).none()) {
-    xlink |= 0b01000000;
-    maskLen = 5;
-  } else if ((bitmask & std::bitset<80>(0xFFFFFlu)).none() && ((bitmask >> 60) & std::bitset<80>(0xFFFFFlu)).none()) {
-    xlink |= 0b11000000;
-    maskLen = 5;
-    bitmask = bitmask >> 20;
-  } else if (((bitmask >> 20) & std::bitset<80>(0xFFFFFFFFFFlu)).none()) {
-    xlink |= 0b00100000;
-    maskLen = 5;
-    bitmask = ((bitmask >> 40) & std::bitset<80>(0xFFFFF00000lu)) | (bitmask & std::bitset<80>(0xFFFFFlu));
-  }
-  *((unsigned char*)pagePtr) = xlink;
+  unsigned char* plink = (unsigned char*)pagePtr;
+  *((unsigned char*)pagePtr) = link;
   pagePtr += sizeof(unsigned char);
-  for (int i = maskLen - 1; i >= 0; i--) {
-    *((unsigned char*)pagePtr) = ((bitmask >> (i * 8)) & std::bitset<80>(0xFF)).to_ulong();
+
+  std::bitset<10> bitmaskL2;
+  for (int i = 9; i >= 0; i--) {
+    bitmaskL2.set(i, ((bitmask >> (i * 8)) & std::bitset<80>(0xFF)).any());
+  }
+  if (bitmaskL2.all()) {
+    *plink |= 0b00100000;
+  } else {
+    *plink |= (bitmaskL2.to_ulong() >> 2) & 0b11000000;
+    *((unsigned char*)pagePtr) = bitmaskL2.to_ulong() & 0xFF;
     pagePtr += sizeof(unsigned char);
+  }
+
+  for (int i = 9; i >= 0; i--) {
+    if (bitmaskL2.test(i)) {
+      *((unsigned char*)pagePtr) = ((bitmask >> (i * 8)) & std::bitset<80>(0xFF)).to_ulong();
+      pagePtr += sizeof(unsigned char);
+    }
   }
   unsigned int tmp = 0;
   unsigned int tmpIn = nSamples;
@@ -810,32 +808,27 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
   int region = cruid % 10;
   decPagePtr += decHDR->firstZSDataOffset * 16;
   for (unsigned int i = 0; i < decHDR->nTimebinHeaders; i++) {
-    unsigned char linkTimeBin = *((char*)decPagePtr);
-    decPagePtr += sizeof(char);
-    unsigned char linkCount = *((char*)decPagePtr);
-    decPagePtr += sizeof(char);
+    unsigned char linkTimeBin = *((unsigned char*)decPagePtr);
+    decPagePtr += sizeof(unsigned char);
+    unsigned char linkCount = *((unsigned char*)decPagePtr);
+    decPagePtr += sizeof(unsigned char);
     for (unsigned int l = 0; l < linkCount; l++) {
-      unsigned char decLinkX = *((char*)decPagePtr);
+      unsigned char decLinkX = *((unsigned char*)decPagePtr);
+      decPagePtr += sizeof(unsigned char);
       unsigned char decLink = decLinkX & 0b00011111;
-      decPagePtr += sizeof(char);
-      int maskLen = 10;
-      if (decLinkX & 0b11100000) {
-        maskLen = 5;
-      }
-      std::bitset<80> bitmask(0);
-      for (int i = maskLen - 1; i >= 0; i--) {
-        bitmask |= std::bitset<80>(*((unsigned char*)decPagePtr)) << i * 8;
+      std::bitset<12> bitmaskL2;
+      if (decLinkX & 0b00100000) {
+        bitmaskL2.set();
+      } else {
+        bitmaskL2 = std::bitset<12>(((((unsigned short)decLinkX) & 0b11000000) << 2) | (unsigned short)*((unsigned char*)decPagePtr));
         decPagePtr += sizeof(unsigned char);
       }
-      if (decLinkX & 0b11100000) {
-        if ((decLinkX & 0b11100000) == 0b10000000) {
-          bitmask = bitmask << 40;
-        } else if ((decLinkX & 0b11100000) == 0b01000000) {
-          // nothing to be done;
-        } else if ((decLinkX & 0b11100000) == 0b11000000) {
-          bitmask = bitmask << 20;
-        } else if ((decLinkX & 0b11100000) == 0b00100000) {
-          bitmask = ((bitmask & std::bitset<80>(0xFFFFF00000lu)) << 40) | (bitmask & std::bitset<80>(0xFFFFFlu));
+
+      std::bitset<80> bitmask(0);
+      for (int i = 9; i >= 0; i--) {
+        if (bitmaskL2.test(i)) {
+          bitmask |= std::bitset<80>(*((unsigned char*)decPagePtr)) << i * 8;
+          decPagePtr += sizeof(unsigned char);
         }
       }
       int timeBin = (decHDR->timeOffset + (unsigned long)(o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN + linkTimeBin;
