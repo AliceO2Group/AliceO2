@@ -104,14 +104,14 @@ void GRPDCSDPsDataProcessor::init(o2::framework::InitContext& ic)
   }
 
   mProcessor = std::make_unique<o2::grp::GRPDCSDPsProcessor>();
-  bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
-  LOG(info) << " ************************* Verbose?" << useVerboseMode;
-  if (useVerboseMode) {
+  mVerbose = ic.options().get<bool>("use-verbose-mode");
+  LOG(info) << " ************************* Verbose?" << mVerbose;
+  if (mVerbose) {
     mProcessor->useVerboseMode();
   }
   mProcessor->init(vect);
   mTimer = HighResClock::now();
-  mReportTiming = ic.options().get<bool>("report-timing") || useVerboseMode;
+  mReportTiming = ic.options().get<bool>("report-timing") || mVerbose;
 }
 //__________________________________________________________________
 
@@ -130,15 +130,27 @@ void GRPDCSDPsDataProcessor::run(o2::framework::ProcessingContext& pc)
   Duration elapsedTime = timeNow - mTimer; // in seconds
   if (elapsedTime.count() >= mDPsUpdateInterval || mProcessor->isLHCIFInfoUpdated()) {
     // after enough time or after something changed, we store the LHCIF part of the DPs:
-    LOG(debug) << "enough time passed (" << elapsedTime.count() << " s), sending to CCDB";
+    if (elapsedTime.count() >= mDPsUpdateInterval) {
+      if (mVerbose) {
+        LOG(info) << "enough time passed (" << elapsedTime.count() << " s), sending to CCDB LHCIFDPs";
+      }
+    } else {
+      if (mVerbose) {
+        LOG(info) << "sending to CCDB LHCIFDPs since something changed";
+      }
+    }
     mProcessor->updateLHCIFInfoCCDB();
     sendLHCIFDPsoutput(pc.outputs());
     mProcessor->resetAndKeepLastLHCIFDPs();
     mLHCIFupdated = true;
+    mProcessor->resetPIDsLHCIF();
   }
   if (elapsedTime.count() >= mDPsUpdateInterval) {
     // after enough time, we store:
     // collimators:
+    if (mVerbose) {
+      LOG(info) << "enough time passed (" << elapsedTime.count() << " s), sending to CCDB Env and Coll";
+    }
     mProcessor->updateCollimatorsCCDB();
     sendCollimatorsDPsoutput(pc.outputs());
     mProcessor->resetAndKeepLast(mProcessor->getCollimatorsObj().mCollimators);
