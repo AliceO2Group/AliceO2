@@ -445,7 +445,7 @@ void zsEncoderRow::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const z
       for (int n = 0; n < nSeqRead; n++) {
         const int decSeqLen = rowData[(n + 1) * 2] - (n ? rowData[n * 2] : 0);
         for (int o = 0; o < decSeqLen; o++) {
-          outputBuffer.emplace_back(o2::tpc::Digit{0, (float)decBuffer[posXbits++] * decodeBitsFactor, (tpccf::Row)(rowOffset + m), (tpccf::Pad)(rowData[n * 2 + 1] + o), timeBin + l});
+          outputBuffer.emplace_back(o2::tpc::Digit{0, decBuffer[posXbits++] * decodeBitsFactor, (tpccf::Row)(rowOffset + m), (tpccf::Pad)(rowData[n * 2 + 1] + o), timeBin + l});
         }
       }
       rowPos++;
@@ -699,7 +699,7 @@ void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputB
         mapper.getSampaAndChannelOnFEC(cruid, j, sampaOnFEC, channelOnSAMPA);
         const auto padSecPos = mapper.padSecPos(cruid, tbHdr->fecInPartition, sampaOnFEC, channelOnSAMPA);
         const auto& padPos = padSecPos.getPadPos();
-        outputBuffer.emplace_back(o2::tpc::Digit{0, (float)decBuffer[k++] * decodeBitsFactor, (tpccf::Row)padPos.getRow(), (tpccf::Pad)padPos.getPad(), timeBin});
+        outputBuffer.emplace_back(o2::tpc::Digit{0, decBuffer[k++] * decodeBitsFactor, (tpccf::Row)padPos.getRow(), (tpccf::Pad)padPos.getPad(), timeBin});
       }
     }
 #endif
@@ -713,6 +713,7 @@ struct zsEncoderDenseLinkBased : public zsEncoderLinkBased {
   void decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* page, unsigned int endpoint, unsigned int firstOrbit);
 
   unsigned char* linkCounter = nullptr;
+  unsigned char* free4bitPointer = nullptr;
   unsigned char curTimeBin = 0;
 };
 
@@ -745,6 +746,7 @@ unsigned int zsEncoderDenseLinkBased::encodeSequence(std::vector<o2::tpc::Digit>
     pagePtr += sizeof(unsigned char);
     linkCounter = (unsigned char*)pagePtr;
     *linkCounter = 1;
+    free4bitPointer = nullptr;
     curTimeBin = newTimeBin;
     pagePtr += sizeof(unsigned char);
     hdr->nTimeBins = tmpBuffer[k].getTimeStamp() - firstTimebinInPage + 1;
@@ -774,10 +776,23 @@ unsigned int zsEncoderDenseLinkBased::encodeSequence(std::vector<o2::tpc::Digit>
       pagePtr += sizeof(unsigned char);
     }
   }
-  unsigned int tmp = 0;
-  unsigned int tmpIn = nSamples;
-  ZSstreamOut(adcValues.data(), tmpIn, pagePtr, tmp, encodeBits);
-  pagePtr += tmp;
+
+  static_assert(TPCZSHDRV2::TPC_ZS_NBITS_V4 == 12);
+  unsigned int nStreaming = nSamples;
+  if (free4bitPointer) {
+    nStreaming--;
+    (*free4bitPointer) |= (adcValues[0] & 0xF00) >> 4;
+    *((unsigned char*)pagePtr) = adcValues[0] & 0xFF;
+    pagePtr += sizeof(unsigned char);
+  }
+  if (nStreaming) {
+    unsigned int tmp = 0;
+    unsigned int tmpIn = nStreaming;
+    ZSstreamOut(adcValues.data() + (free4bitPointer != nullptr), tmpIn, pagePtr, tmp, encodeBits);
+    pagePtr += tmp;
+  }
+  free4bitPointer = (nStreaming & 1) ? pagePtr - 1 : nullptr;
+
   return nSamples;
 }
 
@@ -812,6 +827,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
     decPagePtr += sizeof(unsigned char);
     unsigned char linkCount = *((unsigned char*)decPagePtr);
     decPagePtr += sizeof(unsigned char);
+    const unsigned char* decFree4bitPointer = nullptr;
     for (unsigned int l = 0; l < linkCount; l++) {
       unsigned char decLinkX = *((unsigned char*)decPagePtr);
       decPagePtr += sizeof(unsigned char);
@@ -832,27 +848,35 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
         }
       }
       int timeBin = (decHDR->timeOffset + (unsigned long)(o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN + linkTimeBin;
-      const unsigned char* adcData = (const unsigned char*)(decPagePtr);
+
       int nADC = bitmask.count();
-      decPagePtr += (nADC * TPCZSHDRV2::TPC_ZS_NBITS_V4 + 7) / 8;
       std::vector<unsigned short> decBuffer(nADC);
+      unsigned short* pDecBuffer = decBuffer.data();
+      if (decFree4bitPointer) {
+        *(pDecBuffer++) = ((unsigned short)*decPagePtr) | ((((unsigned short)(*decFree4bitPointer)) & 0xF0) << 4);
+        nADC--;
+        decPagePtr += sizeof(unsigned char);
+      }
+      const unsigned char* adcData = (const unsigned char*)(decPagePtr);
+      decPagePtr += (nADC * TPCZSHDRV2::TPC_ZS_NBITS_V4 + 7) / 8;
       unsigned int byte = 0, bits = 0, posXbits = 0;
       while (posXbits < nADC) {
         byte |= *(adcData++) << bits;
         bits += 8;
         while (bits >= encodeBits) {
-          decBuffer[posXbits++] = byte & mask;
+          pDecBuffer[posXbits++] = byte & mask;
           byte = byte >> encodeBits;
           bits -= encodeBits;
         }
       }
+      decFree4bitPointer = (nADC & 1) ? decPagePtr - 1 : nullptr;
       for (int j = 0, k = 0; j < bitmask.size(); j++) {
         if (bitmask[j]) {
           int sampaOnFEC = 0, channelOnSAMPA = 0;
           mapper.getSampaAndChannelOnFEC(cruid, j, sampaOnFEC, channelOnSAMPA);
           const auto padSecPos = mapper.padSecPos(cruid, decLink, sampaOnFEC, channelOnSAMPA);
           const auto& padPos = padSecPos.getPadPos();
-          outputBuffer.emplace_back(o2::tpc::Digit{0, (float)decBuffer[k++] * decodeBitsFactor, (tpccf::Row)padPos.getRow(), (tpccf::Pad)padPos.getPad(), timeBin});
+          outputBuffer.emplace_back(o2::tpc::Digit{0, decBuffer[k++] * decodeBitsFactor, (tpccf::Row)padPos.getRow(), (tpccf::Pad)padPos.getPad(), timeBin});
         }
       }
     }
