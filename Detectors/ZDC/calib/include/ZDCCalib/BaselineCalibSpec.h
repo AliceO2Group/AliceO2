@@ -47,7 +47,8 @@ class BaselineCalibSpec : public o2::framework::Task
 
  private:
   int mVerbosity = DbgMinimal; // Verbosity level
-  BaselineCalib mWorker;          // Baseline calibration object
+  bool mInitialized = false;   // Connect once to CCDB during initialization
+  BaselineCalib mWorker;       // Baseline calibration object
   TStopwatch mTimer;
 };
 

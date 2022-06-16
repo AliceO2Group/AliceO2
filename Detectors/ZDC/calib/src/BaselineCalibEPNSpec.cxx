@@ -60,37 +60,31 @@ void BaselineCalibEPNSpec::init(o2::framework::InitContext& ic)
 {
   mVerbosity = ic.options().get<int>("verbosity-level");
   mWorker.setVerbosity(mVerbosity);
-  mTimer.CpuTime();
-  mTimer.Start(false);
 }
 
 void BaselineCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   // we call these methods just to trigger finaliseCCDB callback
   pc.inputs().get<o2::zdc::ModuleConfig*>("moduleconfig");
-    std::string loadedConfFiles = "Loaded ZDC configuration files:";
-    {
-    std::string ct = "Moduleconfig";
-    std::string cn = "moduleconfig";
-    // Module configuration
-    auto config = pc.inputs().get<o2::zdc::ModuleConfig*>(cn);
-    if (!config) {
-      LOG(fatal) << "Missing calibration object: " << ct;
-      return;
-    } else {
-      loadedConfFiles += " ";
-      loadedConfFiles += ct;
-      mWorker.setModuleConfig(config.get());
-    }
-  }
-    LOG(info) << loadedConfFiles;
-    mTimer.CpuTime();
-    mTimer.Start(false);
 }
 
 void BaselineCalibEPNSpec::run(ProcessingContext& pc)
 {
   updateTimeDependentParams(pc);
+  if (!mInitialized) {
+    mInitialized = true;
+    std::string loadedConfFiles = "Loaded ZDC configuration files:";
+    {
+      // Module configuration
+      auto config = pc.inputs().get<o2::zdc::ModuleConfig*>("moduleconfig");
+      loadedConfFiles += " Moduleconfig";
+      mWorker.setModuleConfig(config.get());
+    }
+    LOG(info) << loadedConfFiles;
+    mTimer.Stop();
+    mTimer.Reset();
+    mTimer.Start(false);
+  }
 
   const auto ref = pc.inputs().getFirstValid(true);
   auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
@@ -125,7 +119,7 @@ framework::DataProcessorSpec getBaselineCalibEPNSpec()
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
-    "zdc-baselinecalib-epn",
+    "zdc-calib-baseline-epn",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},

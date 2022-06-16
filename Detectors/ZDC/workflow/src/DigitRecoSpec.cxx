@@ -19,8 +19,10 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "Framework/Logger.h"
+#include "Framework/DataProcessorSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "ZDCWorkflow/DigitRecoSpec.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsZDC/BCData.h"
@@ -34,6 +36,7 @@
 #include "ZDCReconstruction/RecoConfigZDC.h"
 #include "ZDCReconstruction/ZDCTDCParam.h"
 #include "ZDCReconstruction/ZDCTDCCorr.h"
+#include "ZDCReconstruction/BaselineParam.h"
 
 using namespace o2::framework;
 
@@ -57,115 +60,115 @@ DigitRecoSpec::DigitRecoSpec(const int verbosity, const bool debugOut)
 
 void DigitRecoSpec::init(o2::framework::InitContext& ic)
 {
+  mEnableBaselineParam = ic.options().get<bool>("disable-baseline-calib");
+  mEnableZDCTDCCorr = ic.options().get<bool>("disable-tdc-corr");
+  mEnableZDCEnergyParam = ic.options().get<bool>("disable-energy-calib");
+  mEnableZDCTowerParam = ic.options().get<bool>("disable-tower-calib");
   mccdbHost = ic.options().get<std::string>("ccdb-url");
+}
+
+void DigitRecoSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  // we call these methods just to trigger finaliseCCDB callback
+  pc.inputs().get<o2::zdc::ModuleConfig*>("moduleconfig");
+  pc.inputs().get<o2::zdc::RecoConfigZDC*>("recoconfig");
+  pc.inputs().get<o2::zdc::ZDCTDCParam*>("tdccalib");
+  if (mEnableZDCTDCCorr) {
+    pc.inputs().get<o2::zdc::ZDCTDCParam*>("tdccorr");
+  }
+  if (mEnableZDCEnergyParam) {
+    pc.inputs().get<o2::zdc::ZDCTDCParam*>("adccalib");
+  }
+
+  LOG(info) << "mEnableBaselineParam=" <<  mEnableBaselineParam;
+  if (mEnableBaselineParam) {
+    pc.inputs().get<o2::zdc::BaselineParam*>("basecalib");
+  }
 }
 
 void DigitRecoSpec::run(ProcessingContext& pc)
 {
+  updateTimeDependentParams(pc);
   if (!mInitialized) {
     mInitialized = true;
-    // Initialization from CCDB
-    auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-    mgr.setURL(mccdbHost);
-    /*long timeStamp = 0; // TIMESTAMP SHOULD NOT BE 0
-    if (timeStamp == mgr.getTimestamp()) {
-      return;
+    std::string loadedConfFiles = "Loaded ZDC configuration files:";
+    {
+      // Module configuration
+      auto config = pc.inputs().get<o2::zdc::ModuleConfig*>("moduleconfig");
+      loadedConfFiles += " Moduleconfig";
+      mWorker.setModuleConfig(config.get());
+      if (mVerbosity > DbgZero) {
+        config->print();
+      }
     }
-    mgr.setTimestamp(timeStamp);*/
-
-    std::string loadedConfFiles = "Loaded ZDC configuration files for timestamp " + std::to_string(mgr.getTimestamp()) + ":";
-    auto* moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
-    if (!moduleConfig) {
-      LOG(fatal) << "Missing ModuleConfig ZDC configuration object";
-      return;
-    } else {
-      loadedConfFiles += " ModuleConfig";
-    }
-    if (mVerbosity > DbgZero) {
-      LOG(info) << "Loaded ZDC module configuration for timestamp " << mgr.getTimestamp();
-      moduleConfig->print();
-    }
-
-    // Configuration parameters for ZDC reconstruction
-    auto* recoConfigZDC = mgr.get<o2::zdc::RecoConfigZDC>(o2::zdc::CCDBPathRecoConfigZDC);
-    if (!recoConfigZDC) {
-      LOG(info) << loadedConfFiles;
-      LOG(fatal) << "Missing RecoConfigZDC object";
-      return;
-    } else {
+    {
+      // Configuration parameters for ZDC reconstruction
+      auto config = pc.inputs().get<o2::zdc::RecoConfigZDC*>("recoconfig");
       loadedConfFiles += " RecoConfigZDC";
+      mWorker.setRecoConfigZDC(config.get());
+      if (mVerbosity > DbgZero) {
+        config->print();
+      }
     }
-    if (mVerbosity > DbgZero) {
-      LOG(info) << "Loaded RecoConfigZDC for timestamp " << mgr.getTimestamp();
-      recoConfigZDC->print();
-    }
-
-    // TDC centering
-    auto* tdcParam = mgr.get<o2::zdc::ZDCTDCParam>(o2::zdc::CCDBPathTDCCalib);
-    if (!tdcParam) {
-      LOG(info) << loadedConfFiles;
-      LOG(fatal) << "Missing ZDCTDCParam calibration object";
-      return;
-    } else {
+    {
+      // TDC centering
+      auto config = pc.inputs().get<o2::zdc::ZDCTDCParam*>("tdccalib");
       loadedConfFiles += " ZDCTDCParam";
-    }
-    if (mVerbosity > DbgZero) {
-      LOG(info) << "Loaded TDC centering ZDCTDCParam for timestamp " << mgr.getTimestamp();
-      tdcParam->print();
-    }
-
-    // TDC correction parameters
-    auto* tdcCorr = mgr.get<o2::zdc::ZDCTDCCorr>(o2::zdc::CCDBPathTDCCorr);
-    if (!tdcCorr) {
-      LOG(warning) << "Missing ZDCTDCCorr calibration object - no correction is applied";
-    } else {
+      mWorker.setTDCParam(config.get());
       if (mVerbosity > DbgZero) {
-        LOG(info) << "Loaded TDC correction parameters for timestamp " << mgr.getTimestamp();
-        tdcCorr->print();
+        config->print();
       }
+    }
+    if (mEnableZDCTDCCorr) {
+      // TDC correction parameters
+      auto config = pc.inputs().get<o2::zdc::ZDCTDCCorr*>("tdccorr");
       loadedConfFiles += " ZDCTDCCorr";
-    }
-
-    // Energy calibration
-    auto* energyParam = mgr.get<o2::zdc::ZDCEnergyParam>(o2::zdc::CCDBPathEnergyCalib);
-    if (!energyParam) {
-      LOG(warning) << "Missing ZDCEnergyParam calibration object - using default";
+      mWorker.setTDCCorr(config.get());
+      if (mVerbosity > DbgZero) {
+        config->print();
+      }
     } else {
+      LOG(warning) << "ZDCTDCCorr has been disabled - no correction is applied";
+    }
+    if (mEnableZDCEnergyParam) {
+      // Energy calibration
+      auto config = pc.inputs().get<o2::zdc::ZDCEnergyParam*>("adccalib");
       loadedConfFiles += " ZDCEnergyParam";
+      mWorker.setEnergyParam(config.get());
       if (mVerbosity > DbgZero) {
-        LOG(info) << "Loaded Energy calibration ZDCEnergyParam for timestamp " << mgr.getTimestamp();
-        energyParam->print();
+        config->print();
       }
-    }
-
-    // Tower calibration
-    auto* towerParam = mgr.get<o2::zdc::ZDCTowerParam>(o2::zdc::CCDBPathTowerCalib);
-    if (!towerParam) {
-      LOG(warning) << "Missing ZDCTowerParam calibration object - using default";
     } else {
+      LOG(warning) << "ZDCEnergyParam has been disabled - no energy calibration is applied";
+    }
+    if (mEnableZDCTowerParam) {
+      // Tower intercalibration
+      auto config = pc.inputs().get<o2::zdc::ZDCTowerParam*>("towercalib");
       loadedConfFiles += " ZDCTowerParam";
+      mWorker.setTowerParam(config.get());
       if (mVerbosity > DbgZero) {
-        LOG(info) << "Loaded Tower calibration ZDCTowerParam for timestamp " << mgr.getTimestamp();
-        towerParam->print();
+        config->print();
       }
+    } else {
+      LOG(warning) << "ZDCTowerParam has been disabled - no tower intercalibration";
     }
-
+    if (mEnableBaselineParam) {
+      // Average pedestals
+      auto config = pc.inputs().get<o2::zdc::BaselineParam*>("basecalib");
+      loadedConfFiles += " BaselineParam";
+      mWorker.setBaselineParam(config.get());
+      if (mVerbosity > DbgZero) {
+        config->print();
+      }
+    } else {
+      LOG(warning) << "BaselineParam has been disabled - no fallback in case orbit pedestals are missing";
+    }
     LOG(info) << loadedConfFiles;
-
-    mDR.setModuleConfig(moduleConfig);
-    mDR.setRecoConfigZDC(recoConfigZDC);
-    mDR.setTDCParam(tdcParam);
-    mDR.setTDCCorr(tdcCorr);
-    mDR.setEnergyParam(energyParam);
-    mDR.setTowerParam(towerParam);
-
     if (mDebugOut) {
-      mDR.setDebugOutput();
+      mWorker.setDebugOutput();
     }
-
-    mDR.setVerbosity(mVerbosity);
-
-    mDR.init();
+    mWorker.setVerbosity(mVerbosity);
+    mWorker.init();
   }
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
@@ -173,11 +176,11 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   auto chans = pc.inputs().get<gsl::span<o2::zdc::ChannelData>>("chan");
   auto peds = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("peds");
 
-  mDR.process(peds, bcdata, chans);
-  const std::vector<o2::zdc::RecEventAux>& recAux = mDR.getReco();
+  mWorker.process(peds, bcdata, chans);
+  const std::vector<o2::zdc::RecEventAux>& recAux = mWorker.getReco();
 
   // Transfer wafeform
-  bool fullinter = mDR.getFullInterpolation();
+  bool fullinter = mWorker.getFullInterpolation();
   RecEvent recEvent;
   LOGF(info, "BC processed during reconstruction %d%s", recAux.size(), (fullinter ? " FullInterpolation" : ""));
   uint32_t nte = 0, ntt = 0, nti = 0, ntw = 0;
@@ -242,7 +245,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
 
 void DigitRecoSpec::endOfStream(EndOfStreamContext& ec)
 {
-  mDR.eor();
+  mWorker.eor();
   LOGF(info, "ZDC Reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
@@ -253,6 +256,13 @@ framework::DataProcessorSpec getDigitRecoSpec(const int verbosity = 0, const boo
   inputs.emplace_back("trig", "ZDC", "DIGITSBC", 0, Lifetime::Timeframe);
   inputs.emplace_back("chan", "ZDC", "DIGITSCH", 0, Lifetime::Timeframe);
   inputs.emplace_back("peds", "ZDC", "DIGITSPD", 0, Lifetime::Timeframe);
+  inputs.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathConfigModule.data())));
+  inputs.emplace_back("recoconfig", "ZDC", "RECOCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathRecoConfigZDC.data())));
+  inputs.emplace_back("tdccalib", "ZDC", "TDCCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathTDCCalib.data())));
+  inputs.emplace_back("tdccorr", "ZDC", "TDCCORR", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathTDCCorr.data())));
+  inputs.emplace_back("adccalib", "ZDC", "ADCCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathEnergyCalib.data())));
+  inputs.emplace_back("towercalib", "ZDC", "TOWERCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathTowerCalib.data())));
+  inputs.emplace_back("basecalib", "ZDC", "BASECALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathBaselineCalib.data())));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ZDC", "BCREC", 0, Lifetime::Timeframe);
@@ -266,7 +276,12 @@ framework::DataProcessorSpec getDigitRecoSpec(const int verbosity = 0, const boo
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<DigitRecoSpec>(verbosity, enableDebugOut)},
-    o2::framework::Options{{"ccdb-url", o2::framework::VariantType::String, o2::base::NameConf::getCCDBServer(), {"CCDB Url"}}}};
+    o2::framework::Options{
+      {"ccdb-url", o2::framework::VariantType::String, o2::base::NameConf::getCCDBServer(), {"CCDB Url"}},
+      {"disable-tdc-corr", o2::framework::VariantType::Bool, false, {"Get ZDCTDCCorr calibration object"}},
+      {"disable-energy-calib", o2::framework::VariantType::Bool, false, {"Get ZDCEnergyParam calibration object"}},
+      {"disable-tower-calib", o2::framework::VariantType::Bool, false, {"Get ZDCTowerParam calibration object"}},
+      {"disable-baseline-calib", o2::framework::VariantType::Bool, false, {"Get BaselineParam calibration object"}}}};
 }
 
 } // namespace zdc

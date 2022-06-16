@@ -58,7 +58,7 @@ struct RecoConfigZDC {
   float ped_thr_lo[NChannels] = {ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange, ADCRange};
   void setPedThreshold(int32_t ich, float high, float low);
 
-  void print();
+  void print() const;
 
   ClassDefNV(RecoConfigZDC, 2);
 };

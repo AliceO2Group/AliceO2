@@ -57,8 +57,6 @@ void BaselineCalibSpec::init(o2::framework::InitContext& ic)
 {
   mVerbosity = ic.options().get<int>("verbosity-level");
   mWorker.setVerbosity(mVerbosity);
-  mTimer.CpuTime();
-  mTimer.Start(false);
 }
 
 void BaselineCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -66,44 +64,31 @@ void BaselineCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
   // we call these methods just to trigger finaliseCCDB callback
   pc.inputs().get<o2::zdc::ModuleConfig*>("moduleconfig");
   pc.inputs().get<o2::zdc::BaselineCalibConfig*>("calibconfig");
-
-  std::string loadedConfFiles = "Loaded ZDC configuration files:";
-  {
-    std::string ct = "Moduleconfig";
-    std::string cn = "moduleconfig";
-    // Module configuration
-    auto config = pc.inputs().get<o2::zdc::ModuleConfig*>(cn);
-    if (!config) {
-      LOG(fatal) << "Missing calibration object: " << ct;
-      return;
-    } else {
-      loadedConfFiles += " ";
-      loadedConfFiles += ct;
-      mWorker.setModuleConfig(config.get());
-    }
-  }
-  {
-    std::string ct = "BaselineCalibConfig";
-    std::string cn = "calibconfig";
-    // Baseline calibration configuration
-    auto config = pc.inputs().get<o2::zdc::BaselineCalibConfig*>(cn);
-    if (!config) {
-      LOG(fatal) << "Missing calibration object: " << ct;
-      return;
-    } else {
-      loadedConfFiles += " ";
-      loadedConfFiles += ct;
-      mWorker.setConfig(config.get());
-    }
-  }
-  LOG(info) << loadedConfFiles;
-  mTimer.CpuTime();
-  mTimer.Start(false);
 }
 
 void BaselineCalibSpec::run(ProcessingContext& pc)
 {
   updateTimeDependentParams(pc);
+  if (!mInitialized) {
+    mInitialized = true;
+    std::string loadedConfFiles = "Loaded ZDC configuration files:";
+    {
+      // Module configuration
+      auto config = pc.inputs().get<o2::zdc::ModuleConfig*>("moduleconfig");
+      loadedConfFiles += " Moduleconfig";
+      mWorker.setModuleConfig(config.get());
+    }
+    {
+      // Baseline calibration configuration
+      auto config = pc.inputs().get<o2::zdc::BaselineCalibConfig*>("calibconfig");
+      loadedConfFiles += " BaselineCalibConfig";
+      mWorker.setConfig(config.get());
+    }
+    LOG(info) << loadedConfFiles;
+    mTimer.Stop();
+    mTimer.Reset();
+    mTimer.Start(false);
+  }
   auto data = pc.inputs().get<o2::zdc::BaselineCalibSummaryData*>("basecalibdata");
   mWorker.process(data.get());
 }
@@ -145,6 +130,7 @@ framework::DataProcessorSpec getBaselineCalibSpec()
   inputs.emplace_back("basecalibdata", "ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);
   inputs.emplace_back("calibconfig", "ZDC", "BASECALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathBaselineCalibConfig.data())));
   inputs.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathConfigModule.data())));
+  inputs.emplace_back("basecalibdata", "ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDCBaselinecalib"}, Lifetime::Sporadic);

@@ -121,9 +121,11 @@ int BaselineCalib::endOfRun()
   if (starting >= 10000) {
     starting = starting - 10000; // start 10 seconds before
   }
-  uint64_t stopping = mData.mCTimeEnd + 10000; // stop 10 seconds after
+//  uint64_t stopping = mData.mCTimeEnd + 10000; // stop 10 seconds after
+  uint64_t stopping = mData.mCTimeEnd + 31557600000; // stop 1 year after
   mInfo.setStartValidityTimestamp(starting);
   mInfo.setEndValidityTimestamp(stopping);
+  LOGF(info, "Validity: %llu:%llu", starting, stopping);
 
   if (mSaveDebugHistos) {
     LOG(info) << "Saving debug histograms";
