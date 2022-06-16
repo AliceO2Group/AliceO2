@@ -45,9 +45,9 @@ int BaselineCalibEPN::process(const gsl::span<const o2::zdc::OrbitData>& orbitda
   if (!mInitDone) {
     init();
   }
-  for (auto& myorbit : orbitdata){
+  for (auto& myorbit : orbitdata) {
     for (int ich = 0; ich < NChannels; ich++) {
-      auto myped = float(myorbit.data[ich])*mModuleConfig->baselineFactor;
+      auto myped = float(myorbit.data[ich]) * mModuleConfig->baselineFactor;
       if (myped >= ADCMin && myped <= ADCMax) {
         mData.addEntry(ich, myorbit.data[ich]);
       }

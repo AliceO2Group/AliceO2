@@ -39,7 +39,8 @@ struct BaselineCalibBinData {
   uint8_t id = 0xff; // channel ID
   uint16_t ibin = 0; // bin number
   uint32_t cont = 0; // channel counts
-  void print() const {
+  void print() const
+  {
     LOGF(info, "BaselineCalibBinData ch=%2u bin=%4u cont=%u", id, ibin, cont);
   }
   ClassDefNV(BaselineCalibBinData, 1);

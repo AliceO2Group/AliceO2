@@ -30,7 +30,7 @@ void CreateBaselineCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHo
   BaselineCalibConfig conf;
 
   // Threshold to include the baseline into the average
-//  conf.setCuts(1700, 2000);
+  // conf.setCuts(1700, 2000);
   conf.setMinEntries(200);
   conf.setDescription("Simulated data");
 

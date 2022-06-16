@@ -97,7 +97,7 @@ void BaselineCalibEPNSpec::run(ProcessingContext& pc)
   mWorker.process(peds);
 
   // Send intermediate calibration data
-  auto &summary = mWorker.mData.getSummary();
+  auto& summary = mWorker.mData.getSummary();
   o2::framework::Output outputData("ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);
   pc.outputs().snapshot(outputData, summary);
 }

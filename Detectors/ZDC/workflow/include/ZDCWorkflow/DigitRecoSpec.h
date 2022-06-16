@@ -41,14 +41,14 @@ class DigitRecoSpec : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  DigiReco mWorker;                                           // Reconstruction object
-  int mVerbosity = 0;                                         // Verbosity level during recostruction
-  bool mDebugOut = false;                                     // Save temporary reconstruction structures on root file
-  bool mEnableZDCTDCCorr = true;                              // Get ZDCTDCCorr object
-  bool mEnableZDCEnergyParam = true;                          // Get ZDCEnergyParam object
-  bool mEnableZDCTowerParam = true;                           // Get ZDCTowerParam object
-  bool mEnableBaselineParam = true;                           // Get BaselineParam object
-  bool mInitialized = false;                                  // Connect once to CCDB during initialization
+  DigiReco mWorker;                  // Reconstruction object
+  int mVerbosity = 0;                // Verbosity level during recostruction
+  bool mDebugOut = false;            // Save temporary reconstruction structures on root file
+  bool mEnableZDCTDCCorr = true;     // Get ZDCTDCCorr object
+  bool mEnableZDCEnergyParam = true; // Get ZDCEnergyParam object
+  bool mEnableZDCTowerParam = true;  // Get ZDCTowerParam object
+  bool mEnableBaselineParam = true;  // Get BaselineParam object
+  bool mInitialized = false;         // Connect once to CCDB during initialization
   TStopwatch mTimer;
 };
 
