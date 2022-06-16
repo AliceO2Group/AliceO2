@@ -469,17 +469,6 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         clusterer.mPmemory->counters.nPeaks = clusterer.mPmemory->counters.nClusters = 0;
         clusterer.mPmemory->fragment = fragment;
 
-        if (propagateMCLabels && fragment.index == 0) {
-          clusterer.PrepareMC();
-          clusterer.mPinputLabels = digitsMC->v[iSlice];
-          if (clusterer.mPinputLabels == nullptr) {
-            GPUFatal("MC label container missing, sector %d", iSlice);
-          }
-          if (clusterer.mPinputLabels->getIndexedSize() != mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice]) {
-            GPUFatal("MC label container has incorrect number of entries: %d expected, has %d\n", (int)mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice], (int)clusterer.mPinputLabels->getIndexedSize());
-          }
-        }
-
         if (mIOPtrs.tpcPackedDigits) {
           bool setDigitsOnGPU = doGPU && not mIOPtrs.tpcZS;
           bool setDigitsOnHost = (not doGPU && not mIOPtrs.tpcZS) || propagateMCLabels;
@@ -522,6 +511,21 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
         if (mIOPtrs.tpcZS && (!mCFContext->nPagesSector[iSlice] || mCFContext->zsVersion == -1)) {
           continue;
+        }
+        if (!mIOPtrs.tpcZS && mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice] == 0) {
+          clusterer.mPmemory->counters.nPositions = 0;
+          continue;
+        }
+
+        if (propagateMCLabels && fragment.index == 0) {
+          clusterer.PrepareMC();
+          clusterer.mPinputLabels = digitsMC->v[iSlice];
+          if (clusterer.mPinputLabels == nullptr) {
+            GPUFatal("MC label container missing, sector %d", iSlice);
+          }
+          if (clusterer.mPinputLabels->getIndexedSize() != mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice]) {
+            GPUFatal("MC label container has incorrect number of entries: %d expected, has %d\n", (int)mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice], (int)clusterer.mPinputLabels->getIndexedSize());
+          }
         }
 
         if (not mIOPtrs.tpcZS) {
