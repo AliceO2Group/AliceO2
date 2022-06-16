@@ -202,8 +202,12 @@ int GPUChainTracking::ReadData(const char* filename)
       mIOMem.tpcDigitMCMap = std::make_unique<GPUTPCDigitsMCInput>();
       mIOMem.tpcDigitMCView.reset(new ConstMCLabelContainerView[NSLICES]);
       for (unsigned int i = 0; i < NSLICES; i++) {
-        mIOMem.tpcDigitMCView.get()[i] = gsl::span<const char>(ptrs[i], ptrs[i] + sizes[i]);
-        mIOMem.tpcDigitMCMap->v[i] = mIOMem.tpcDigitMCView.get() + i;
+        if (sizes[i]) {
+          mIOMem.tpcDigitMCView.get()[i] = gsl::span<const char>(ptrs[i], ptrs[i] + sizes[i]);
+          mIOMem.tpcDigitMCMap->v[i] = mIOMem.tpcDigitMCView.get() + i;
+        } else {
+          mIOMem.tpcDigitMCMap->v[i] = nullptr;
+        }
       }
       mIOMem.digitMap->tpcDigitsMC = mIOMem.tpcDigitMCMap.get();
     }

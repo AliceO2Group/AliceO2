@@ -472,9 +472,12 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         if (propagateMCLabels && fragment.index == 0) {
           clusterer.PrepareMC();
           clusterer.mPinputLabels = digitsMC->v[iSlice];
-          // TODO: Why is the number of header entries in truth container
-          // sometimes larger than the number of digits?
-          assert(clusterer.mPinputLabels->getIndexedSize() >= mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice]);
+          if (clusterer.mPinputLabels == nullptr) {
+            GPUFatal("MC label container missing, sector %d", iSlice);
+          }
+          if (clusterer.mPinputLabels->getIndexedSize() != mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice]) {
+            GPUFatal("MC label container has incorrect number of entries: %d expected, has %d\n", (int)mIOPtrs.tpcPackedDigits->nTPCDigits[iSlice], (int)clusterer.mPinputLabels->getIndexedSize());
+          }
         }
 
         if (mIOPtrs.tpcPackedDigits) {
@@ -484,11 +487,11 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
           size_t numDigits = inDigits->nTPCDigits[iSlice];
           if (setDigitsOnGPU) {
             GPUMemCpy(RecoStep::TPCClusterFinding, clustererShadow.mPdigits, inDigits->tpcDigits[iSlice], sizeof(clustererShadow.mPdigits[0]) * numDigits, lane, true);
-            clusterer.mPmemory->counters.nDigits = numDigits;
-          } else if (setDigitsOnHost) {
-            clusterer.mPdigits = const_cast<o2::tpc::Digit*>(inDigits->tpcDigits[iSlice]); // TODO: Needs fixing (invalid const cast)
-            clusterer.mPmemory->counters.nDigits = numDigits;
           }
+          if (setDigitsOnHost) {
+            clusterer.mPdigits = const_cast<o2::tpc::Digit*>(inDigits->tpcDigits[iSlice]); // TODO: Needs fixing (invalid const cast)
+          }
+          clusterer.mPmemory->counters.nDigits = numDigits;
         }
 
         if (mIOPtrs.tpcZS) {
