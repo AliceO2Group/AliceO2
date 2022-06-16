@@ -360,7 +360,7 @@ void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::
 {
   const auto& mchmidMatches = data.getMCHMIDMatches();
 
-  for (int src : {GIndex::Source::MFTMCH, GIndex::Source::MCH, GIndex::Source::MFT, GIndex::Source::MCHMID}) {
+  for (int src : {GIndex::Source::MCHMID, GIndex::Source::MFTMCH, GIndex::Source::MCH, GIndex::Source::MFT}) {
     int start = trackRef.getFirstEntryOfSource(src);
     int end = start + trackRef.getEntriesOfSource(src);
     for (int ti = start; ti < end; ti++) {
