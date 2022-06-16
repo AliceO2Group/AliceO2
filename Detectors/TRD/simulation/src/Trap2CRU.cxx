@@ -581,11 +581,12 @@ int Trap2CRU::writeTrackletEndMarker()
   return wordswritten;
 }
 
-int Trap2CRU::writeTrackletHCHeader(const int eventcount, const uint32_t linkid)
+int Trap2CRU::writeTrackletHCHeader(const int eventcount)
 {
   int wordswritten = 0;
   //from linkid we can get supermodule, stack, layer, side
-  int detector = linkid / 2;
+  int linkid = mTracklets[mCurrentTracklet].getHCID();
+  int detector = mTracklets[mCurrentTracklet].getHCID() / 2;
   TrackletHCHeader trackletheader;
   trackletheader.supermodule = linkid / 60;
   trackletheader.stack = (detector % (o2::trd::constants::NLAYER * o2::trd::constants::NSTACK)) / o2::trd::constants::NLAYER;
@@ -709,7 +710,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
       bool isFirstDigit = true;
       int trackletcounter = 0;
       if (mVerbosity) {
-        LOG(info) << "tracklet on link : " << linkid << " mcurrentdigit:" << mCurrentTracklet << " endtrackletindex:" << endtrackletindex << " is on link: " << isTrackletOnLink(linkid, mCurrentTracklet) << " and digits current digit:" << mCurrentDigit << " enddigitindex:" << enddigitindex << "is digit on link:" << isDigitOnLink(linkid, mCurrentDigit);
+        LOG(info) << "tracklet on link : " << linkid << " mcurrenttracklet:" << mCurrentTracklet << " endtrackletindex:" << endtrackletindex << " is on link: " << isTrackletOnLink(linkid, mCurrentTracklet) << " and digits current digit:" << mCurrentDigit << " enddigitindex:" << enddigitindex << "is digit on link:" << isDigitOnLink(linkid, mCurrentDigit);
       }
       if (isTrackletOnLink(linkid, mCurrentTracklet) || isDigitOnLink(linkid, mCurrentDigit)) {
         // we have some data somewhere for this link
@@ -718,7 +719,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
           if (isTrackletOnLink(linkid, mCurrentTracklet) || mUseTrackletHCHeader == 2) {
             //write tracklethcheader if there is tracklet data or if we always have tracklethcheader
             //first part of the if statement handles the mUseTrackletHCHeader==1 option
-            int hcheaderwords = writeTrackletHCHeader(triggercount, mDigits[mDigitsIndex[mCurrentDigit]].getHCId());
+            int hcheaderwords = writeTrackletHCHeader(triggercount);
             linkwordswritten += hcheaderwords;
             rawwords += hcheaderwords;
           }
@@ -742,7 +743,14 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
         adccounter = 0;
         rawwordsbefore = rawwords;
         //always write the digit hc header
-        int hcheaderwords = writeDigitHCHeader(triggercount, mDigits[mDigitsIndex[mCurrentDigit]].getHCId());
+        int hcheaderwords = 0;
+        if (mCurrentDigit >= mDigits.size()) {
+          // take care of the case where the digit hc header is written but we have no more digits to write, we then need to get the half chamber header from the tracklet.
+          hcheaderwords = writeDigitHCHeader(triggercount, mTracklets[mCurrentTracklet].getHCID());
+        } else {
+          hcheaderwords = writeDigitHCHeader(triggercount, mDigits[mDigitsIndex[mCurrentDigit]].getHCId());
+        }
+
         linkwordswritten += hcheaderwords;
         rawwords += hcheaderwords;
         //although if there are trackelts there better be some digits unless the digits are switched off.
