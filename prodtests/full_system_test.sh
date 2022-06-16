@@ -17,6 +17,16 @@ if [ "0$O2_ROOT" == "0" ] || [ "0$AEGIS_ROOT" == "0" ]; then
   exit 1
 fi
 
+if [[ $DPL_CONDITION_BACKEND != "http://o2-ccdb.internal" && $DPL_CONDITION_BACKEND != "http://localhost:8084" && $DPL_CONDITION_BACKEND != "http://127.0.0.1:8084" ]]; then
+  alien-token-info >& /dev/null
+  RETVAL=$?
+  if [[ $RETVAL != 0 ]]; then
+    echo "command alien-token-init had nonzero exit code $RETVAL" 1>&2
+    echo "FATAL: No alien token present" 1>&2
+    exit 1
+  fi
+fi
+
 # include jobutils, which notably brings
 # --> the taskwrapper as a simple control and monitoring tool
 #     (look inside the jobutils.sh file for documentation)

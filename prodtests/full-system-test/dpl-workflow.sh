@@ -8,7 +8,7 @@ source $MYDIR/setenv.sh
 if [[ $EPNSYNCMODE == 0 && $DPL_CONDITION_BACKEND != "http://o2-ccdb.internal" && $DPL_CONDITION_BACKEND != "http://localhost:8084" && $DPL_CONDITION_BACKEND != "http://127.0.0.1:8084" ]]; then
   alien-token-info >& /dev/null
   if [[ $? != 0 ]]; then
-    echo "No alien token present" 1>&2
+    echo "FATAL: No alien token present" 1>&2
     exit 1
   fi
 fi
