@@ -12,7 +12,7 @@
 // // we need to add workflow options before including Framework/runDataProcessing
 // void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 // {
-//   // option allowing to set parameters
+// // option allowing to set parameters
 // }
 
 // ------------------------------------------------------------------
