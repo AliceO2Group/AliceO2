@@ -18,11 +18,8 @@
 // ------------------------------------------------------------------
 #include <iostream>
 #include <fstream>
-
 #include <fmt/format.h>
-
 #include "Framework/ConfigParamSpec.h"
-
 #include "DCStestWorkflow/DCSRandomDataGeneratorSpec.h"
 
 using namespace o2::framework;
