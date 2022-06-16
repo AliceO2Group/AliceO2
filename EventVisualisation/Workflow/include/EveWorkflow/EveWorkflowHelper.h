@@ -49,6 +49,11 @@ namespace o2::phos
 class Geometry;
 }
 
+namespace o2::emcal
+{
+class Geometry;
+}
+
 namespace o2::event_visualisation
 {
 using GID = o2::dataformats::GlobalTrackID;
@@ -118,6 +123,8 @@ class EveWorkflowHelper
   void drawTPCTRD(GID gid, float trackTime, GID::Source source = GID::TPCTRD);
   void drawTPCTOF(GID gid, float trackTime);
   void drawPHOS();
+  void drawEMCAL();
+
   void drawAODBarrel(AODBarrelTrack const& track, float trackTime);
   void drawAODMFT(AODMFTTrack const& track, float trackTime);
   void drawITSClusters(GID gid, float trackTime);
@@ -155,6 +162,7 @@ class EveWorkflowHelper
   o2::mft::GeometryTGeo* mMFTGeom;
   o2::its::GeometryTGeo* mITSGeom;
   o2::phos::Geometry* mPHOSGeom;
+  o2::emcal::Geometry* mEMCALGeom;
 
   float mMUS2TPCTimeBins = 5.0098627;
   float mITSROFrameLengthMUS = 0; ///< ITS RO frame in mus

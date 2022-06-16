@@ -32,6 +32,7 @@
 #include "MFTBase/GeometryTGeo.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "PHOSBase/Geometry.h"
+#include "EMCALBase/Geometry.h"
 #include <TGeoBBox.h>
 #include <tuple>
 #include <gsl/span>
@@ -175,6 +176,7 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
 void EveWorkflowHelper::draw()
 {
   this->drawPHOS();
+  this->drawEMCAL();
 
   for (size_t it = 0; it < mTrackSet.trackGID.size(); it++) {
     const auto& gid = mTrackSet.trackGID[it];
@@ -367,6 +369,62 @@ void EveWorkflowHelper::drawPHOS()
                                  .PID = 0,
                                  .gid = GID::getSourceName(GID::PHS),
                                  .source = GID::PHS});
+  }
+}
+
+void EveWorkflowHelper::drawEMCAL()
+{
+  // LOG(info) <<  mRecoCont.getEMCALCells().size() << "----------------------------------------------------------------------------- !mRecoCont.getEMCALCells().size()";
+  auto triggers = mRecoCont.getEMCALTriggers();
+  for (auto trigger : triggers) {
+    // trigger.getBCData().toLong() // timestamp in ns
+    // trigger.getFirstEntry()
+    // trigger.getFirstEntry() range in the emcal cell vector in RecoContainer
+    //   this will be towers belongs to BC (the same for emcal/phos) ++mattermost
+  }
+
+  for (auto emcal : mRecoCont.getEMCALCells()) {
+    int id = emcal.getTower();
+    // supermodule ID, module number, index of cell in module in phi, index of cell in module in eta
+    auto index = this->mEMCALGeom->GetCellIndex(id);
+    // Point3D with x,y,z coordinates of cell with absId inside SM
+    auto relPosCell = this->mEMCALGeom->RelPosCellInSModule(id);
+    TGeoNode* node = gGeoManager->GetTopVolume()->FindNode("XEN1");
+    auto nSupermodules = this->mEMCALGeom->GetNumberOfSuperModules();
+    auto fPhiTileSize = this->mEMCALGeom->GetPhiTileSize();
+    auto fEtaTileSize = this->mEMCALGeom->GetEtaTileSize();
+    auto sm = std::get<0>(index);
+    auto module_number = std::get<1>(index);
+    auto index_module_phi = std::get<2>(index);
+    auto index_module_eta = std::get<3>(index);
+
+    const TGeoHMatrix* matrix = this->mEMCALGeom->GetMatrixForSuperModuleFromGeoManager(sm);
+    const Double_t* translation = matrix->GetTranslation();
+    /*
+    LOG(info) << "EMCAL -----------------------------------------------------------------------------------------------";
+    LOG(info) << "EMCAL               id: "<< id  <<            "                  emcal.getTower()";
+    LOG(info) << "EMCAL       relPosCell: "<< relPosCell  <<    "                  this->mEMCALGeom->RelPosCellInSModule(id);";
+    LOG(info) << "EMCAL    nSupermodules: "<< nSupermodules  << "                  this->mEMCALGeom->GetNumberOfSuperModules()";
+    LOG(info) << "EMCAL     fPhiTileSize: "<< fPhiTileSize <<   "                  this->mEMCALGeom->GetPhiTileSize()";
+    LOG(info) << "EMCAL     fEtaTileSize: "<< fEtaTileSize <<   "                  this->mEMCALGeom->GetEtaTileSize();" ;
+    LOG(info) << "EMCAL             node: "<< node ;
+    LOG(info) << "EMCAL               sm: "<< sm ;
+    LOG(info) << "EMCAL    module_number: "<< module_number ;
+    LOG(info) << "EMCAL index_module_phi: "<< index_module_phi ;
+    LOG(info) << "EMCAL index_module_eta: "<< index_module_eta ;
+    LOG(info) << "EMCAL      translation: "<< "["<<translation[0]<<","<<translation[1]<<","<<translation[2]<<"]"  ;
+    */
+    TVector3 gPos;
+    gPos[0] = translation[0] + relPosCell.X();
+    gPos[1] = translation[1] + relPosCell.Y();
+    gPos[2] = translation[2] + relPosCell.Z();
+    auto vCalo = mEvent.addCalo({.time = static_cast<float>(emcal.getTimeStamp()),
+                                 .energy = emcal.getEnergy(),
+                                 .phi = (float)gPos.Phi(),
+                                 .eta = (float)gPos.Eta(),
+                                 .PID = 0,
+                                 .gid = GID::getSourceName(GID::EMC),
+                                 .source = GID::EMC});
   }
 }
 
@@ -723,6 +781,7 @@ EveWorkflowHelper::EveWorkflowHelper(const FilterSet& enabledFilters, std::size_
   this->mMFTGeom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
   this->mITSGeom = o2::its::GeometryTGeo::Instance();
   this->mITSGeom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::L2G));
+  this->mEMCALGeom = o2::emcal::Geometry::GetInstance("");
   this->mPHOSGeom = o2::phos::Geometry::GetInstance("");
   this->mTPCFastTransform = (o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
   const auto& elParams = o2::tpc::ParameterElectronics::Instance();
