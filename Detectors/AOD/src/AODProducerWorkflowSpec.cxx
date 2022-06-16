@@ -358,7 +358,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
 
 void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices)
 {
-  for (int src : {GIndex::Source::MFTMCH, GIndex::Source::MCH, GIndex::Source::MFT}) {
+  for (int src : {GIndex::Source::MFTMCH, GIndex::Source::MCH, GIndex::Source::MFT, GIndex::Source::MCHMID}) {
     int start = trackRef.getFirstEntryOfSource(src);
     int end = start + trackRef.getEntriesOfSource(src);
     for (int ti = start; ti < end; ti++) {
@@ -408,11 +408,11 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   // helper lambda for mch bitmap -- common for global and standalone tracks
   auto getMCHBitMap = [&](int mchTrackID) {
     if (mchTrackID != -1) { // check matching just in case
-      const auto mchTrack = mchTracks[mchTrackID];
+      const auto& mchTrack = mchTracks[mchTrackID];
       int first = mchTrack.getFirstClusterIdx();
       int last = mchTrack.getLastClusterIdx();
       for (int i = first; i <= last; i++) { // check chamberIds of all clusters
-        const auto cluster = mchClusters[i];
+        const auto& cluster = mchClusters[i];
         int chamberId = cluster.getChamberId();
         fwdInfo.mchBitMap |= 1 << chamberId;
       }
@@ -421,14 +421,14 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
 
   auto getMIDBitMapBoards = [&](int midTrackID) {
     if (midTrackID != -1) { // check matching just in case
-      const auto midTrack = midTracks[midTrackID];
+      const auto& midTrack = midTracks[midTrackID];
       fwdInfo.midBitMap = midTrack.getHitMap();
       fwdInfo.midBoards = midTrack.getEfficiencyWord();
     }
   };
 
   auto extrapMCHTrack = [&](int mchTrackID) {
-    const auto track = mchTracks[mchTrackID];
+    const auto& track = mchTracks[mchTrackID];
 
     // mch standalone tracks extrapolated to vertex
     // compute 3 sets of tracks parameters :
@@ -515,7 +515,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     int mchTrackID = trackID.getIndex();
     getMCHBitMap(mchTrackID);
     if (!extrapMCHTrack(mchTrackID)) {
-      return;
+      LOGF(warn, "Unable to extrapolate MCH track with ID %d! Dummy parameters will be used", mchTrackID);
     }
     fwdInfo.trackTypeId = o2::aod::fwdtrack::MCHStandaloneTrack;
     const auto& rof = data.getMCHTracksROFRecords()[mMCHROFs[mchTrackID]];
@@ -525,10 +525,10 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     errGaussian = false;
   } else if (trackID.getSource() == GIndex::MCHMID) { // This is an MCH-MID track
     fwdInfo.trackTypeId = o2::aod::fwdtrack::MuonStandaloneTrack;
-    const auto mchmidMatch = mchmidMatches[trackID.getIndex()];
+    const auto& mchmidMatch = mchmidMatches[trackID.getIndex()];
     const auto& mchTrackID = mchmidMatch.getMCHRef().getIndex();
     if (!extrapMCHTrack(mchTrackID)) {
-      return;
+      LOGF(warn, "Unable to extrapolate MCH track with ID %d! Dummy parameters will be used", mchTrackID);
     }
     const auto& midTrackID = mchmidMatch.getMIDRef().getIndex();
     fwdInfo.chi2matchmchmid = mchmidMatch.getMatchChi2OverNDF();
@@ -540,7 +540,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     fwdInfo.trackTime = bc * o2::constants::lhc::LHCBunchSpacingNS;
     fwdInfo.trackTimeRes = 0.5;
   } else { // This is a GlobalMuonTrack or a GlobalForwardTrack
-    const auto track = data.getGlobalFwdTrack(trackID);
+    const auto& track = data.getGlobalFwdTrack(trackID);
     fwdInfo.x = track.getX();
     fwdInfo.y = track.getY();
     fwdInfo.z = track.getZ();
@@ -2029,9 +2029,6 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   auto dataRequest = std::make_shared<DataRequest>();
 
   dataRequest->requestTracks(src, useMC);
-  if (src[GID::MCHMID]) {
-    dataRequest->requestMCHMIDMatches(useMC);
-  }
   dataRequest->requestPrimaryVertertices(useMC);
   if (src[GID::CTP]) {
     LOGF(info, "Requesting CTP digits");
