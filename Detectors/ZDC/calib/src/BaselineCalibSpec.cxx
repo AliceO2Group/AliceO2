@@ -130,7 +130,6 @@ framework::DataProcessorSpec getBaselineCalibSpec()
   inputs.emplace_back("basecalibdata", "ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);
   inputs.emplace_back("calibconfig", "ZDC", "BASECALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathBaselineCalibConfig.data())));
   inputs.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathConfigModule.data())));
-  inputs.emplace_back("basecalibdata", "ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDCBaselinecalib"}, Lifetime::Sporadic);

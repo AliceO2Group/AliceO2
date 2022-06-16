@@ -32,7 +32,8 @@ class DigitRecoSpec : public o2::framework::Task
 {
  public:
   DigitRecoSpec();
-  DigitRecoSpec(const int verbosity, const bool debugOut);
+  DigitRecoSpec(const int verbosity, const bool debugOut,
+                const bool enableZDCTDCCorr, const bool enableZDCEnergyParam, const bool enableZDCTowerParam, const bool enableBaselineParam);
   ~DigitRecoSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
@@ -41,19 +42,19 @@ class DigitRecoSpec : public o2::framework::Task
 
  private:
   DigiReco mWorker;                                           // Reconstruction object
-  std::string mccdbHost{o2::base::NameConf::getCCDBServer()}; // Alternative ccdb server
   int mVerbosity = 0;                                         // Verbosity level during recostruction
   bool mDebugOut = false;                                     // Save temporary reconstruction structures on root file
-  bool mEnableBaselineParam = true;                           // Get BaselineParam object
   bool mEnableZDCTDCCorr = true;                              // Get ZDCTDCCorr object
   bool mEnableZDCEnergyParam = true;                          // Get ZDCEnergyParam object
   bool mEnableZDCTowerParam = true;                           // Get ZDCTowerParam object
+  bool mEnableBaselineParam = true;                           // Get BaselineParam object
   bool mInitialized = false;                                  // Connect once to CCDB during initialization
   TStopwatch mTimer;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getDigitRecoSpec(const int verbosity, const bool enableDebugOut);
+framework::DataProcessorSpec getDigitRecoSpec(const int verbosity, const bool enableDebugOut,
+                                              const bool enableZDCTDCCorr, const bool enableZDCEnergyParam, const bool enableZDCTowerParam, const bool enableBaselineParam);
 
 } // namespace zdc
 } // namespace o2
