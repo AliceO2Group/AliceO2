@@ -48,12 +48,6 @@ struct ChargePos {
   GPUdi() tpccf::Pad pad() const { return gpad % TPC_PADS_PER_ROW_PADDED - PADDING_PAD; }
   GPUdi() tpccf::TPCFragmentTime time() const { return timePadded - PADDING_TIME; }
 
-  GPUdi() bool isPadding() const
-  {
-    tpccf::Pad pad = gpad % TPC_PADS_PER_ROW_PADDED;
-    return timePadded < PADDING_TIME || timePadded >= TPC_MAX_FRAGMENT_LEN || pad < PADDING_PAD;
-  }
-
  private:
   // Maps the position of a pad given as row and index in that row to a unique
   // index between 0 and TPC_NUM_OF_PADS.
