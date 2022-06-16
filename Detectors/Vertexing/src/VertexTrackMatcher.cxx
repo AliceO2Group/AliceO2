@@ -107,8 +107,7 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
       auto res = tro.tBracket.isOutside(vto.tBracket);
       if (res == TBracket::Below) {                                       // vertex preceeds the track
         if (tro.tBracket.getMin() > vto.tBracket.getMin() + maxVtxSpan) { // all following vertices will be preceeding all following tracks times
-          ivStart = ++iv;
-          break;
+          ivStart = iv + 1;
         }
         continue; // following vertex with longer span might still match this track
       }
@@ -199,7 +198,7 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
     terr += mPVParams->timeMarginTrackTime;
     mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});
 
-    if constexpr (isGlobalFwdTrack<decltype(_tr)>()) {
+    if constexpr (isGlobalFwdTrack<decltype(_tr)>() || isMFTTrack<decltype(_tr)>()) {
       return false;
     }
     return true;
