@@ -583,8 +583,8 @@ struct PresliceManager<Preslice<T>> {
   template <typename T1>
   static bool processTable(Preslice<T>& container, T1& table)
   {
-    if constexpr (o2::soa::is_binding_compatible_v<T, T1>()) {
-      auto status = o2::framework::getSlices(container.index.name, table.asArrowTable(), container.mValues, container.mCounts);
+    if constexpr (o2::soa::is_binding_compatible_v<typename T::table_t, typename T1::table_t>()) {
+      auto status = o2::framework::getSlices(container.index.name.c_str(), table.asArrowTable(), container.mValues, container.mCounts);
       return status.ok();
     } else {
       return false;
