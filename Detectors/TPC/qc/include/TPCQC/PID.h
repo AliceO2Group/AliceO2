@@ -25,10 +25,6 @@
 // root includes
 #include "TH1.h"
 
-// NOTE
-// required for backward compatibility, will be removed in the next PR
-#include "TH2.h"
-
 // o2 includes
 #include "DataFormatsTPC/Defs.h"
 
@@ -68,27 +64,32 @@ class PID
   /// Dump results to a file
   void dumpToFile(std::string filename);
 
+  // To set the elementary track cuts
+  void setPIDCuts(int minnCls = 60, float absTgl = 1., float mindEdxTot = 10.0,
+                  float maxdEdxTot = 70., float minpTPC = 0.05, float maxpTPC = 20., float minpTPCMIPs = 0.45, float maxpTPCMIPs = 0.55)
+  {
+    mCutMinnCls = minnCls;
+    mCutAbsTgl = absTgl;
+    mCutMindEdxTot = mindEdxTot;
+    mCutMaxdEdxTot = maxdEdxTot;
+    mCutMinpTPC = minpTPC;
+    mCutMaxpTPC = maxpTPC;
+    mCutMinpTPCMIPs = minpTPCMIPs;
+    mCutMaxpTPCMIPs = maxpTPCMIPs;
+  }
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>>& getMapOfHisto() { return mMapHist; }
   const std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>>& getMapOfHisto() const { return mMapHist; }
 
-  // NOTE
-  // we need these two function to make backward compatibility, The CI check trigger QC test and there these two functions are required
-  // I will remove these two functions in the next PR once this PR is merged.
-  /// get 1D histograms
-  std::vector<TH1F>& getHistograms1D() { return mHist1D; }
-  const std::vector<TH1F>& getHistograms1D() const { return mHist1D; }
-
-  /// get 2D histograms
-  std::vector<TH2F>& getHistograms2D() { return mHist2D; }
-  const std::vector<TH2F>& getHistograms2D() const { return mHist2D; }
-
  private:
+  int mCutMinnCls = 60;          // minimum N clusters
+  float mCutAbsTgl = 1.f;        // AbsTgl max cut
+  float mCutMindEdxTot = 10.f;   // dEdxTot min value
+  float mCutMaxdEdxTot = 70.f;   // dEdxTot max value
+  float mCutMinpTPC = 0.05f;     // pTPC min value
+  float mCutMaxpTPC = 20.f;      // pTPC max value
+  float mCutMinpTPCMIPs = 0.45f; // pTPC min value for MIPs
+  float mCutMaxpTPCMIPs = 0.55f; // pTPC max value for MIPs
   std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>> mMapHist;
-  // NOTE
-  // same reason these two are need to remove the circular dependencies and make backward compatible for QC
-  // I will remove these two functions in the next PR once this PR is merged.
-  std::vector<TH1F> mHist1D{};
-  std::vector<TH2F> mHist2D{};
   ClassDefNV(PID, 1)
 };
 } // namespace qc
