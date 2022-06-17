@@ -509,7 +509,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
   spec.name = name;
   spec.inputs = inputSpecs;
   spec.outputs = {};
-  spec.algorithm = adaptStateful([inputSpecs](CallbackService& callbacks, RawDeviceService& rds, DeviceSpec const& deviceSpec, ConfigParamRegistry const& options) {
+  spec.algorithm = adaptStateful([inputSpecs](FairMQDeviceProxy& proxy, CallbackService& callbacks, RawDeviceService& rds, DeviceSpec const& deviceSpec, ConfigParamRegistry const& options) {
     // we can retrieve the channel name from the channel configuration string
     // FIXME: even if a --channel-config option is specified on the command line, always the default string
     // is retrieved from the config registry. The channel name thus needs to be configured in the default
@@ -542,12 +542,15 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
       // are no internal forwards
       throw std::runtime_error("can not add forward targets outside DPL if internal forwards are existing, the proxy must be at the end of the workflow");
     }
+    auto& spec = const_cast<DeviceSpec&>(deviceSpec);
     for (auto const& inputSpec : inputSpecs) {
       // this is a prototype, in principle we want to have all spec objects const
       // and so only the const object can be retrieved from service registry
       ForwardRoute route{0, 1, inputSpec, outputChannelName};
-      const_cast<DeviceSpec&>(deviceSpec).forwards.emplace_back(route);
+      spec.forwards.emplace_back(route);
     }
+
+    proxy.bind(spec.outputs, spec.inputs, spec.forwards, *device);
 
     auto forwardEos = [device, lastDataProcessingHeader, outputChannelName](EndOfStreamContext&) {
       // DPL implements an internal end of stream signal, which is propagated through
@@ -614,20 +617,21 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
   spec.name = name;
   spec.inputs = inputSpecs;
   spec.outputs = {};
-  spec.algorithm = adaptStateful([inputSpecs, channelSelector](CallbackService& callbacks, RawDeviceService& rds, const DeviceSpec& deviceSpec) {
+  spec.algorithm = adaptStateful([inputSpecs, channelSelector](FairMQDeviceProxy& proxy, CallbackService& callbacks, RawDeviceService& rds, const DeviceSpec& deviceSpec) {
     auto device = rds.device();
     // check that the input spec bindings have corresponding output channels
     // fair::mq::Device calls the custom init before the channels have been configured
     // so we do the check before starting in a dedicated callback
     // also we set forwards for all input specs and keep a list of all channels so we can send EOS on them
     auto channelNames = std::make_shared<std::vector<std::string>>();
-    auto channelConfigurationInitializer = [inputSpecs = std::move(inputSpecs), device, channelSelector, &deviceSpec, channelNames]() {
+    auto channelConfigurationInitializer = [&proxy, inputSpecs = std::move(inputSpecs), device, channelSelector, &deviceSpec, channelNames]() {
       if (deviceSpec.forwards.size() > 0) {
         // check that no internal forwards are existing, i.e. that proxy is at the end of the workflow
         // in principle we can be less strict here if we check only for the defined input specs that there
         // are no internal forwards
         throw std::runtime_error("can not add forward targets outside DPL if internal forwards are existing, the proxy must be at the end of the workflow");
       }
+      auto& mutableDeviceSpec = const_cast<DeviceSpec&>(deviceSpec);
       for (auto const& spec : inputSpecs) {
         auto channel = channelSelector(spec, device->fChannels);
         if (device->fChannels.count(channel) == 0) {
@@ -638,10 +642,11 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
         // set external routes. Basically, this has to be added while setting up the
         // workflow. After that, the actual spec provided by the service is supposed
         // to be const by design
-        const_cast<DeviceSpec&>(deviceSpec).forwards.emplace_back(route);
+        mutableDeviceSpec.forwards.emplace_back(route);
 
         channelNames->emplace_back(std::move(channel));
       }
+      proxy.bind(mutableDeviceSpec.outputs, mutableDeviceSpec.inputs, mutableDeviceSpec.forwards, *device);
     };
     callbacks.set(CallbackService::Id::Start, channelConfigurationInitializer);
 
