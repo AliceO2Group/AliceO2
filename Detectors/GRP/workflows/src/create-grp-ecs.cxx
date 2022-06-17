@@ -116,7 +116,7 @@ void createGRPECSObject(const std::string& dataPeriod,
   }
   //
   if (refresh != CCDBRefreshMode::NONE && !ccdbServer.empty()) {
-    auto cmd = fmt::format("curl -I -i -s \"{}{}/latest/%5Cw%7B3%7D/.*/`date +%s000`/?prepare={}\"", ccdbServer, ccdbServer.back() == '/' ? "" : "/", refresh == CCDBRefreshMode::SYNC ? "sync" : "true");
+    auto cmd = fmt::format("curl -I -i -s \"{}{}latest/%5Cw%7B3%7D/.*/`date +%s000`/?prepare={}\"", ccdbServer, ccdbServer.back() == '/' ? "" : "/", refresh == CCDBRefreshMode::SYNC ? "sync" : "true");
     auto t0 = std::chrono::high_resolution_clock::now();
     auto res = gSystem->Exec(cmd.c_str());
     auto t1 = std::chrono::high_resolution_clock::now();
