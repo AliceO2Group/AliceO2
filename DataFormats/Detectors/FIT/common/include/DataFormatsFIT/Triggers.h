@@ -30,14 +30,16 @@ class Triggers
 {
  public:
   enum { bitA = 0,
-         bitC = 1,   // alias of bitAIn (FT0/FDD)
-         bitAIn = 1, // alias of bitC (FV0)
-         bitSCen = 2,
-         bitAOut = 2, // alias of bitVertex (FV0)
-         bitCen = 3,
-         bitVertex = 4, // alias of bitAOut (FT0/FDD)
-         bitLaser = 5,  // indicates the laser was triggered in this BC
-         bitDataIsValid = 6,
+         bitC = 1,                           // alias of bitAOut (FT0/FDD)
+         bitAOut = 1,                        // alias of bitC (FV0)
+         bitSCen = 2,                        // alias of bitTrgNchan (FT0/FDD)
+         bitTrgNchan = 2,                    // alias of bitSCen (FV0)
+         bitCen = 3,                         // alias of bitTrgCharge (FT0/FDD)
+         bitTrgCharge = 3,                   // alias of bitCen (FV0)
+         bitVertex = 4,                      // alias of bitAIn (FT0/FDD)
+         bitAIn = 4,                         // alias of bitVertex (FV0)
+         bitLaser = 5,                       // indicates the laser was triggered in this BC
+         bitDataIsValid = 6,                 // data is valid for processing
          bitOutputsAreBlocked = 7 };         // indicates that laser-induced pulses should arrive from detector to FEE in this BC (and trigger outputs are blocked)
   static const int16_t DEFAULT_TIME = -5000; // for average of one side (A or C)
   static const int16_t DEFAULT_AMP = 0;
@@ -55,12 +57,14 @@ class Triggers
     timeC = atimeC;
   }
   bool getOrA() const { return (triggersignals & (1 << bitA)) != 0; }
-  bool getOrC() const { return (triggersignals & (1 << bitC)) != 0; }         // only used by FT0/FDD (same bit as OrAIn in FV0)
-  bool getOrAIn() const { return (triggersignals & (1 << bitAIn)) != 0; }     // only used by FV0 (same bit as OrC in FT0/FDD)
-  bool getVertex() const { return (triggersignals & (1 << bitVertex)) != 0; } // only used by FT0/FDD (same bit as OrAOut in FV0
-  bool getOrAOut() const { return (triggersignals & (1 << bitAOut)) != 0; }   // only used by FV0 (same bit as Vertex in FT0/FDD)
-  bool getCen() const { return (triggersignals & (1 << bitCen)) != 0; }
-  bool getSCen() const { return (triggersignals & (1 << bitSCen)) != 0; }
+  bool getOrC() const { return (triggersignals & (1 << bitC)) != 0; }               // only used by FT0/FDD (same bit as OrAOut in FV0)
+  bool getOrAOut() const { return (triggersignals & (1 << bitAOut)) != 0; }         // only used by FV0 (same bit as OrC in FT0/FDD)
+  bool getSCen() const { return (triggersignals & (1 << bitSCen)) != 0; }           // only used by FT0/FDD (same bit as Nchan in FV0)
+  bool getTrgNChan() const { return (triggersignals & (1 << bitTrgNchan)) != 0; }   // only used by FV0 (same bit as SCen in FT0/FDD)
+  bool getCen() const { return (triggersignals & (1 << bitCen)) != 0; }             // only used by FT0/FDD (same bit as Charge in FV0)
+  bool getTrgCharge() const { return (triggersignals & (1 << bitTrgCharge)) != 0; } // only used by FV0 (same bit as Cen in FT0/FDD)
+  bool getVertex() const { return (triggersignals & (1 << bitVertex)) != 0; }       // only used by FT0/FDD (same bit as OrAIn in FV0)
+  bool getOrAIn() const { return (triggersignals & (1 << bitAIn)) != 0; }           // only used by FV0 (same bit as OrC in FT0/FDD)
   bool getLaser() const { return (triggersignals & (1 << bitLaser)) != 0; }
   bool getLaserBit() const { return getLaser(); } // TODO: remove after QC is modified
   bool getOutputsAreBlocked() const { return (triggersignals & (1 << bitOutputsAreBlocked)) != 0; }
@@ -119,7 +123,7 @@ class Triggers
   int16_t timeA = DEFAULT_TIME;          // average time A side (shouldn't be used if nChanA == 0)
   int16_t timeC = DEFAULT_TIME;          // average time C side (shouldn't be used if nChanC == 0)
 
-  ClassDefNV(Triggers, 6);
+  ClassDefNV(Triggers, 7);
 };
 
 } // namespace fit
