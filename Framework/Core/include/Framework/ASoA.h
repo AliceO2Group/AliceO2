@@ -59,7 +59,7 @@ struct Preslice {
   expressions::BindingNode index;
   bool newDataframe = false;
 
-  arrow::Status getSliceFor(int value, std::shared_ptr<arrow::Table>& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset) const
+  arrow::Status getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset) const
   {
     arrow::Status status;
     for (auto slice = 0; slice < mValues->length(); ++slice) {
@@ -1305,9 +1305,9 @@ class Table
   }
 
   template <typename T1>
-  auto sliceBy(o2::framework::Preslice<T1> const& container, int value)
+  auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
   {
-    if constexpr (o2::soa::is_binding_compatible_v<T1, table_t>()) {
+    if constexpr (o2::soa::is_binding_compatible_v<typename T1::table_t, table_t>()) {
       std::shared_ptr<arrow::Table> out;
       uint64_t offset = 0;
       auto status = container.getSliceFor(value, mTable, out, offset);
@@ -2318,6 +2318,8 @@ struct Join : JoinBase<Ts...> {
     this->copyIndexBindings(t);
     return t;
   }
+
+  using table_t::sliceBy;
 };
 
 template <typename... Ts>
@@ -2385,6 +2387,8 @@ class FilteredBase : public T
   using table_t = typename T::table_t;
   using persistent_columns_t = typename T::persistent_columns_t;
   using external_index_columns_t = typename T::external_index_columns_t;
+
+  using table_t::sliceBy;
 
   template <typename P, typename... Os>
   constexpr static auto make_it(framework::pack<Os...> const&)

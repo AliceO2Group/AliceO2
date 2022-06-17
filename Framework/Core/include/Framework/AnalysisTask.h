@@ -339,6 +339,12 @@ struct AnalysisDataProcessorBuilder {
 
       if constexpr (soa::is_soa_iterator_t<std::decay_t<G>>::value) {
         // grouping case
+        // pre-slice associated tables
+        std::apply([&presliceTable](auto&... x) {
+          (presliceTable(x), ...);
+        },
+                   associatedTables);
+
         auto slicer = GroupSlicer(groupingTable, associatedTables);
         for (auto& slice : slicer) {
           auto associatedSlices = slice.associatedTables();
