@@ -86,6 +86,11 @@ using Stack = o2::header::Stack;
     LOG(fatal) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
+#define ASSERT_EQUAL(left, right)                                                            \
+  if ((left == right) == false) {                                                            \
+    LOGP(fatal, R"(Test condition {} ({}) == {} ({}) failed")", #left, left, #right, right); \
+  }
+
 template <typename T>
 T readConfig(ConfigContext const& config, const char* key)
 {
@@ -308,7 +313,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     ++(*counter);
   };
   auto checkCounter = [counter, nRolls](EndOfStreamContext&) {
-    ASSERT_ERROR(*counter == nRolls);
+    ASSERT_EQUAL(*counter, nRolls);
     if (*counter == nRolls) {
       LOG(info) << "checker has received " << nRolls << " successful event(s)";
     }

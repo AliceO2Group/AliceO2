@@ -65,6 +65,15 @@ struct InputChannelInfo {
   TimesliceId oldestForChannel;
 };
 
+/// Forward channel information
+struct ForwardChannelInfo {
+  /// The name of the channel
+  std::string name = "invalid";
+  /// Wether or not it's a DPL internal channel.
+  bool dplChannel = true;
+  fair::mq::Channel& channel;
+};
+
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_CHANNELINFO_H_
