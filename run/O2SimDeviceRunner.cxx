@@ -37,33 +37,38 @@ std::vector<int> gChildProcesses; // global vector of child pids
 int gMasterProcess = -1;
 int gDriverProcess = -1;
 
+// a handler for error/termination signals
 void sigaction_handler(int signal, siginfo_t* signal_info, void*)
 {
   auto pid = getpid();
   LOG(info) << pid << " caught signal " << signal << " from source " << signal_info->si_pid;
   auto groupid = getpgrp();
   if (pid == gMasterProcess) {
-    killpg(pid, signal); // master kills whole process group
+    // master worker forwards signal to whole worker process group
+    killpg(pid, signal);
   } else {
     if (signal_info->si_pid != gDriverProcess) {
-      // forward to master if coming internally
+      // forward to master worker if coming internally
       kill(groupid, signal);
     }
   }
-  if (signal_info->si_pid == gDriverProcess) {
-    _exit(0); // external requests are not treated as error
-  }
-  if (signal == SIGTERM) {
-    // normal termination is not error
-    // need to wait for children
+
+  if (signal_info->si_pid == gDriverProcess || signal == SIGTERM) {
+    // signal was sent from driver process --> not error
+    // or it was a standard SIGTERM
+
+    // need to wait for potential children before exiting itself
+    // ... in order to have correct resource accounting
     int status, cpid;
     while ((cpid = wait(&status))) {
       if (cpid == -1) {
         break;
       }
     }
+
     _exit(0);
   }
+
   // we treat internal signal interruption as an error
   // because only ordinary termination is good in the context of the distributed system
   _exit(128 + signal);
