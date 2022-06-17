@@ -24,9 +24,11 @@ ROFFilter createIRFrameFilter(gsl::span<const o2::dataformats::IRFrame> irframes
     InteractionRecord rofEnd = rofStart + rof.getBCWidth() - 1;
     IRFrame ref(rofStart, rofEnd);
     for (const auto& ir : irframes) {
-      auto overlap = ref.getOverlap(ir);
-      if (overlap.isValid()) {
-        return true;
+      if (ir.info > 0) {
+        auto overlap = ref.getOverlap(ir);
+        if (overlap.isValid()) {
+          return true;
+        }
       }
     }
     return false;
