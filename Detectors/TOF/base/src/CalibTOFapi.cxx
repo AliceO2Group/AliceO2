@@ -250,7 +250,7 @@ bool CalibTOFapi::isOff(int ich)
 
 //______________________________________________________________________
 
-float CalibTOFapi::getTimeCalibration(int ich, float tot)
+float CalibTOFapi::getTimeCalibration(int ich, float tot) const
 {
 
   // time calibration to correct measured TOF times
@@ -272,7 +272,7 @@ float CalibTOFapi::getTimeCalibration(int ich, float tot)
 
 //______________________________________________________________________
 
-float CalibTOFapi::getTimeCalibration(int ich, float tot, float phase)
+float CalibTOFapi::getTimeCalibration(int ich, float tot, float phase) const
 {
 
   // time calibration to correct measured TOF times
@@ -294,7 +294,7 @@ float CalibTOFapi::getTimeCalibration(int ich, float tot, float phase)
 
 //______________________________________________________________________
 
-float CalibTOFapi::getTimeDecalibration(int ich, float tot)
+float CalibTOFapi::getTimeDecalibration(int ich, float tot) const
 {
 
   // time decalibration for simulation (it is just the opposite of the calibration)

@@ -72,9 +72,9 @@ class CalibTOFapi
   void loadActiveMap(TOFFEElightInfo* fee);
   void writeLHCphase(LhcPhase* phase, std::map<std::string, std::string> metadataLHCphase, uint64_t minTimeSTamp, uint64_t maxTimeStamp);
   void writeTimeSlewingParam(SlewParam* param, std::map<std::string, std::string> metadataChannelCalib, uint64_t minTimeSTamp, uint64_t maxTimeStamp = 0);
-  float getTimeCalibration(int ich, float tot);
-  float getTimeCalibration(int ich, float tot, float phase);
-  float getTimeDecalibration(int ich, float tot);
+  float getTimeCalibration(int ich, float tot) const;
+  float getTimeCalibration(int ich, float tot, float phase) const;
+  float getTimeDecalibration(int ich, float tot) const;
   bool isProblematic(int ich);
   bool isNoisy(int ich);
   bool isOff(int ich);
