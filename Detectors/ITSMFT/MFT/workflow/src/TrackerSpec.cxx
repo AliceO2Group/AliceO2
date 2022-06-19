@@ -46,51 +46,15 @@ namespace mft
 
 void TrackerDPL::init(InitContext& ic)
 {
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   for (int sw = 0; sw < NStopWatches; sw++) {
     mTimer[sw].Stop();
     mTimer[sw].Reset();
   }
 
   mTimer[SWTot].Start(false);
-
-  auto filename = ic.options().get<std::string>("grp-file");
-  const auto grp = o2::parameters::GRPObject::loadFrom(filename.c_str());
-  if (grp) {
-    mGRP.reset(grp);
-    o2::base::Propagator::initFieldFromGRP(grp);
-    auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-
-    Bool_t continuous = mGRP->isDetContinuousReadOut("MFT");
-    LOG(info) << "MFTTracker RO: continuous=" << continuous;
-
-    o2::base::GeometryManager::loadGeometry("", true, true);
-    o2::mft::GeometryTGeo* geom = o2::mft::GeometryTGeo::Instance();
-    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
-                                                   o2::math_utils::TransformType::T2G));
-
-    // tracking configuration parameters
-    auto& trackingParam = MFTTrackingParam::Instance();
-    // create the tracker: set the B-field, the configuration and initialize
-
-    double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
-    auto Bz = field->getBz(centerMFT);
-    if (Bz == 0 || trackingParam.forceZeroField) {
-      LOG(info) << "Starting MFT Linear tracker: Field is off!";
-      mFieldOn = false;
-      mTrackerL = std::make_unique<o2::mft::Tracker<TrackLTFL>>(mUseMC);
-      mTrackerL->initConfig(trackingParam, true);
-      mTrackerL->initialize(trackingParam.FullClusterScan);
-    } else {
-      LOG(info) << "Starting MFT tracker: Field is on!";
-      mFieldOn = true;
-      mTracker = std::make_unique<o2::mft::Tracker<TrackLTF>>(mUseMC);
-      mTracker->setBz(Bz);
-      mTracker->initConfig(trackingParam, true);
-      mTracker->initialize(trackingParam.FullClusterScan);
-    }
-  } else {
-    throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
-  }
+  // tracking configuration parameters
+  auto& trackingParam = MFTTrackingParam::Instance(); // to avoi loading interpreter during the run
 }
 
 void TrackerDPL::run(ProcessingContext& pc)
@@ -282,12 +246,46 @@ void TrackerDPL::endOfStream(EndOfStreamContext& ec)
 ///_______________________________________
 void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
-  pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+    // tracking configuration parameters
+
+    bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::MFT);
+    LOG(info) << "MFTTracker RO: continuous=" << continuous;
+
+    o2::mft::GeometryTGeo* geom = o2::mft::GeometryTGeo::Instance();
+    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
+                                                   o2::math_utils::TransformType::T2G));
+    auto& trackingParam = MFTTrackingParam::Instance();
+    auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+    double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
+    auto Bz = field->getBz(centerMFT);
+    if (Bz == 0 || trackingParam.forceZeroField) {
+      LOG(info) << "Starting MFT Linear tracker: Field is off!";
+      mFieldOn = false;
+      mTrackerL = std::make_unique<o2::mft::Tracker<TrackLTFL>>(mUseMC);
+      mTrackerL->initConfig(trackingParam, true);
+      mTrackerL->initialize(trackingParam.FullClusterScan);
+    } else {
+      LOG(info) << "Starting MFT tracker: Field is on!";
+      mFieldOn = true;
+      mTracker = std::make_unique<o2::mft::Tracker<TrackLTF>>(mUseMC);
+      mTracker->setBz(Bz);
+      mTracker->initConfig(trackingParam, true);
+      mTracker->initialize(trackingParam.FullClusterScan);
+    }
+  }
 }
 
 ///_______________________________________
 void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     mDict = (const o2::itsmft::TopologyDictionary*)obj;
@@ -301,7 +299,14 @@ DataProcessorSpec getTrackerSpec(bool useMC)
   inputs.emplace_back("patterns", "MFT", "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "MFT", "CLUSTERSROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("cldict", "MFT", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/ClusterDictionary"));
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              false,                             // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              inputs,
+                                                              true);
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "TRACKS", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "MFTTrackROF", 0, Lifetime::Timeframe);
@@ -318,9 +323,8 @@ DataProcessorSpec getTrackerSpec(bool useMC)
     "mft-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC)},
-    Options{
-      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the output file"}}}};
+    AlgorithmSpec{adaptFromTask<TrackerDPL>(ggRequest, useMC)},
+    Options{}};
 }
 
 } // namespace mft

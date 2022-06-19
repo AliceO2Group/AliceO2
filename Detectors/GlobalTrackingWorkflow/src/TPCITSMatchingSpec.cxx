@@ -26,7 +26,6 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "SimulationDataFormat/DigitizationContext.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/CompCluster.h"
@@ -39,12 +38,13 @@
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
-#include "DataFormatsParameters/GRPObject.h"
+#include "DataFormatsParameters/GRPECSObject.h"
 #include "Headers/DataHeader.h"
 #include "CommonDataFormat/BunchFilling.h"
 #include "CommonDataFormat/Pair.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 using MCLabelsCl = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -59,8 +59,8 @@ namespace globaltracking
 class TPCITSMatchingDPL : public Task
 {
  public:
-  TPCITSMatchingDPL(std::shared_ptr<DataRequest> dr, bool useFT0, bool calib, bool skipTPCOnly, bool useMC)
-    : mDataRequest(dr), mUseFT0(useFT0), mCalibMode(calib), mSkipTPCOnly(skipTPCOnly), mUseMC(useMC) {}
+  TPCITSMatchingDPL(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useFT0, bool calib, bool skipTPCOnly, bool useMC)
+    : mDataRequest(dr), mGGCCDBRequest(gr), mUseFT0(useFT0), mCalibMode(calib), mSkipTPCOnly(skipTPCOnly), mUseMC(useMC) {}
   ~TPCITSMatchingDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -70,6 +70,7 @@ class TPCITSMatchingDPL : public Task
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
   std::shared_ptr<DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::globaltracking::MatchTPCITS mMatching; // matching engine
   bool mUseFT0 = false;
   bool mCalibMode = false;
@@ -82,40 +83,10 @@ void TPCITSMatchingDPL::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
-  //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP();
-  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
-  mMatching.setSkipTPCOnly(mSkipTPCOnly);
-  mMatching.setITSTriggered(!grp->isDetContinuousReadOut(o2::detectors::DetID::ITS));
-
-  mMatching.setMCTruthOn(mUseMC);
-  mMatching.setUseFT0(mUseFT0);
-  mMatching.setVDriftCalib(mCalibMode);
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mMatching.setNThreads(std::max(1, ic.options().get<int>("nthreads")));
   mMatching.setUseBCFilling(!ic.options().get<bool>("ignore-bc-check"));
-  //
-  // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
-  std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
-  std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
-  if (o2::utils::Str::pathExists(matLUTFile)) {
-    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
-    o2::base::Propagator::Instance()->setMatLUT(lut);
-    LOG(info) << "Loaded material LUT from " << matLUTFile;
-  } else {
-    LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
-  }
-
-  int dbgFlags = ic.options().get<int>("debug-tree-flags");
-  mMatching.setDebugFlag(dbgFlags);
-
-  // set bunch filling. Eventually, this should come from CCDB
-  if (mMatching.getUseBCFilling()) {
-    const auto* digctx = o2::steer::DigitizationContext::loadFromFile();
-    const auto& bcfill = digctx->getBunchFilling();
-    mMatching.setBunchFilling(bcfill);
-  }
-  //
+  mMatching.setDebugFlag(ic.options().get<int>("debug-tree-flags"));
 }
 
 void TPCITSMatchingDPL::run(ProcessingContext& pc)
@@ -150,6 +121,9 @@ void TPCITSMatchingDPL::endOfStream(EndOfStreamContext& ec)
 
 void TPCITSMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     mMatching.setITSDictionary((const o2::itsmft::TopologyDictionary*)obj);
@@ -165,6 +139,7 @@ void TPCITSMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 
 void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
@@ -176,6 +151,14 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
     } else {
       mMatching.setITSROFrameLengthInBC(alpParams.roFrameLengthInBC); // ITS ROFrame duration in \mus
     }
+
+    mMatching.setSkipTPCOnly(mSkipTPCOnly);
+    mMatching.setITSTriggered(!o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS));
+    mMatching.setMCTruthOn(mUseMC);
+    mMatching.setUseFT0(mUseFT0);
+    mMatching.setVDriftCalib(mCalibMode);
+    mMatching.setBunchFilling(o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling());
+
     mMatching.init();
   }
   // we may have other params which need to be queried regularly
@@ -209,14 +192,22 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
   }
   // Note: ITS/CLUSDICT and ITS/ALPIDEPARAM are requested/loaded by the recocontainer
 
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                              // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              true,                              // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              dataRequest->inputs,
+                                                              true); // query only once all objects except mag.field
+
   return DataProcessorSpec{
     "itstpc-track-matcher",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(dataRequest, useFT0, calib, skipTPCOnly, useMC)},
+    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(dataRequest, ggRequest, useFT0, calib, skipTPCOnly, useMC)},
     Options{
       {"nthreads", VariantType::Int, 1, {"Number of afterburner threads"}},
-      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
       {"ignore-bc-check", VariantType::Bool, false, {"Do not check match candidate against BC filling"}},
       {"debug-tree-flags", VariantType::Int, 0, {"DebugFlagTypes bit-pattern for debug tree"}}}};
 }

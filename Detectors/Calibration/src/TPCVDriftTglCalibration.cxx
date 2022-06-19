@@ -72,7 +72,7 @@ void TPCVDriftTglCalibration::finalizeSlot(Slot& slot)
   }
   double det = sS * sXX - sX * sX;
   if (!det || npval < 2) {
-    LOGP(alarm, "VDrift fit failed for slot {} ({}<=TF<={}) with {} entries: det={} npoints={}", slot.getTFStart(), slot.getTFEnd(), cont->entries, det, npval);
+    LOGP(alarm, "VDrift fit failed for slot {}<=TF<={} with {} entries: det={} npoints={}", slot.getTFStart(), slot.getTFEnd(), cont->entries, det, npval);
   } else {
     det = 1. / det;
     double offs = (sXX * sY - sX * sXY) * det, slope = (sS * sXY - sX * sY) * det;

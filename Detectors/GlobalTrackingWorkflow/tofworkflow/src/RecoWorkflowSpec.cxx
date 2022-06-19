@@ -23,6 +23,7 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "CommonUtils/NameConf.h"
 #include <gsl/span>
 #include "TStopwatch.h"
@@ -51,23 +52,11 @@ class TOFDPLRecoWorkflowTask
   bool mUseFIT = false;
 
  public:
-  explicit TOFDPLRecoWorkflowTask(bool useMC, bool useFIT) : mUseMC(useMC), mUseFIT(useFIT) {}
+  explicit TOFDPLRecoWorkflowTask(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool useFIT) : mGGCCDBRequest(gr), mUseMC(useMC), mUseFIT(useFIT) {}
 
   void init(framework::InitContext& ic)
   {
-    // nothing special to be set up
-    o2::base::GeometryManager::loadGeometry();
-    o2::base::Propagator::initFieldFromGRP();
-    std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
-    std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
-    if (o2::utils::Str::pathExists(matLUTFile)) {
-      auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
-      o2::base::Propagator::Instance()->setMatLUT(lut);
-      LOG(info) << "Loaded material LUT from " << matLUTFile;
-    } else {
-      LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
-    }
-
+    o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
     mTimer.Stop();
     mTimer.Reset();
   }
@@ -75,6 +64,7 @@ class TOFDPLRecoWorkflowTask
   void run(framework::ProcessingContext& pc)
   {
     mTimer.Start(false);
+    updateTimeDependentParams(pc);
     //>>>---------- attach input data --------------->>>
     const auto clustersRO = pc.inputs().get<gsl::span<o2::tof::Cluster>>("tofcluster");
     const auto tracksRO = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("globaltrack");
@@ -120,8 +110,27 @@ class TOFDPLRecoWorkflowTask
          mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   }
 
+  void updateTimeDependentParams(ProcessingContext& pc)
+  {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    static bool initOnceDone = false;
+    if (!initOnceDone) { // this params need to be queried only once
+      initOnceDone = true;
+      // put here init-once stuff
+    }
+    // we may have other params which need to be queried regularly
+  }
+
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+  {
+    if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+      return;
+    }
+  }
+
  private:
   o2::globaltracking::MatchTOF mMatcher; ///< Cluster finder
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   TStopwatch mTimer;
 };
 
@@ -139,6 +148,14 @@ o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC, bool useFIT)
   if (useFIT) {
     inputs.emplace_back("fitrecpoints", o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   }
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              inputs,
+                                                              true);
 
   outputs.emplace_back(o2::header::gDataOriginTOF, "MTC_ITSTPC", 0, Lifetime::Timeframe);
   if (useMC) {
@@ -150,7 +167,7 @@ o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC, bool useFIT)
     "TOFRecoWorkflow",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFDPLRecoWorkflowTask>(useMC, useFIT)},
+    AlgorithmSpec{adaptFromTask<TOFDPLRecoWorkflowTask>(ggRequest, useMC, useFIT)},
     Options{
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }

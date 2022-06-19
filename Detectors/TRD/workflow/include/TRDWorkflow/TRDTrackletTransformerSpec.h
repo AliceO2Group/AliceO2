@@ -12,6 +12,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 #include "TRDBase/TrackletTransformer.h"
 
@@ -23,7 +24,7 @@ namespace trd
 class TRDTrackletTransformerSpec : public o2::framework::Task
 {
  public:
-  TRDTrackletTransformerSpec(std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, bool trigRecFilterActive, bool applyXOR) : mDataRequest(dataRequest), mTrigRecFilterActive(trigRecFilterActive), mApplyXOR(applyXOR){};
+  TRDTrackletTransformerSpec(std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool trigRecFilterActive, bool applyXOR) : mDataRequest(dataRequest), mGGCCDBRequest(gr), mTrigRecFilterActive(trigRecFilterActive), mApplyXOR(applyXOR){};
   ~TRDTrackletTransformerSpec() override = default;
   void init(o2::framework::InitContext& ic) override;
   void run(o2::framework::ProcessingContext& pc) override;
@@ -33,6 +34,7 @@ class TRDTrackletTransformerSpec : public o2::framework::Task
   void updateTimeDependentParams(framework::ProcessingContext& pc);
 
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mTrigRecFilterActive; ///< if true, transform only TRD tracklets for which ITS data is available
   bool mApplyXOR;            ///< if true, the 8-th bit of position and slope will be inverted before transformation in chamber coordinates
   TrackletTransformer mTransformer;

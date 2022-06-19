@@ -30,6 +30,10 @@ using namespace o2::framework;
 
 namespace o2
 {
+namespace base
+{
+class GRPGeomRequest;
+}
 namespace itsmft
 {
 class Clusterer;
@@ -50,7 +54,7 @@ template <class Mapping>
 class STFDecoder : public Task
 {
  public:
-  STFDecoder(const STFDecoderInp& inp);
+  STFDecoder(const STFDecoderInp& inp, std::shared_ptr<o2::base::GRPGeomRequest> gr);
   STFDecoder() = default;
   ~STFDecoder() override = default;
   void init(InitContext& ic) final;
@@ -86,6 +90,7 @@ class STFDecoder : public Task
   std::string mSelfName;
   std::unique_ptr<RawPixelDecoder<Mapping>> mDecoder;
   std::unique_ptr<Clusterer> mClusterer;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
 };
 
 using STFDecoderITS = STFDecoder<ChipMappingITS>;

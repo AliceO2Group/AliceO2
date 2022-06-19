@@ -25,6 +25,7 @@
 #include "Headers/DataHeader.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "TStopwatch.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -38,7 +39,7 @@ namespace trd
 class TRDTrackBasedCalibDevice : public Task
 {
  public:
-  TRDTrackBasedCalibDevice(std::shared_ptr<DataRequest> dr) : mDataRequest(dr) {}
+  TRDTrackBasedCalibDevice(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr) : mDataRequest(dr), mGGCCDBRequest(gr) {}
   ~TRDTrackBasedCalibDevice() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -49,17 +50,14 @@ class TRDTrackBasedCalibDevice : public Task
   void updateTimeDependentParams(framework::ProcessingContext& pc);
 
   std::shared_ptr<DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   TrackBasedCalib mCalibrator; // gather input data for calibration of vD, ExB and gain
   TStopwatch mTimer;
 };
 
 void TRDTrackBasedCalibDevice::init(InitContext& ic)
 {
-  //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP();
-  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
-  mCalibrator.init();
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mTimer.Stop();
   mTimer.Reset();
 }
@@ -79,14 +77,25 @@ void TRDTrackBasedCalibDevice::run(ProcessingContext& pc)
 
 void TRDTrackBasedCalibDevice::updateTimeDependentParams(ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   pc.inputs().get<o2::trd::NoiseStatusMCM*>("mcmnoisemap"); // just to trigger the finaliseCCDB
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    // init-once stuff
+    mCalibrator.init();
+  }
 }
 
 void TRDTrackBasedCalibDevice::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher("TRD", "MCMNOISEMAP", 0)) {
     LOG(info) << "NoiseStatusMCM object has been updated";
     mCalibrator.setNoiseMapMCM((const o2::trd::NoiseStatusMCM*)obj);
+    return;
   }
 }
 
@@ -116,14 +125,21 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
 
   auto& inputs = dataRequest->inputs;
   inputs.emplace_back("mcmnoisemap", "TRD", "MCMNOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/NoiseMapMCM"));
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              false,                             // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              inputs,
+                                                              true);
   outputs.emplace_back(o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "trd-trackbased-calib",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDTrackBasedCalibDevice>(dataRequest)},
+    AlgorithmSpec{adaptFromTask<TRDTrackBasedCalibDevice>(dataRequest, ggRequest)},
     Options{}};
 }
 

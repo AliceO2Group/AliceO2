@@ -21,10 +21,10 @@
 #include "Framework/ControlService.h"
 #include "DataFormatsTPC/Defs.h"
 #include "SpacePoints/TrackResiduals.h"
-#include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "CommonUtils/StringUtils.h"
 #include "TPCInterpolationWorkflow/TPCResidualReaderSpec.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -36,14 +36,16 @@ namespace tpc
 class TPCResidualReader : public Task
 {
  public:
-  TPCResidualReader() = default;
+  TPCResidualReader(std::shared_ptr<o2::base::GRPGeomRequest> gr) : mGGCCDBRequest(gr) {}
   ~TPCResidualReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(ProcessingContext& pc);
   void connectTree(const std::string& filename);
-
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTreeResiduals;
   std::unique_ptr<TTree> mTreeStats;
@@ -57,16 +59,32 @@ void TPCResidualReader::init(InitContext& ic)
   mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
                                             ic.options().get<std::string>("residuals-infile"));
   connectTree(mFileName);
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+}
 
-  //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP();
+void TPCResidualReader::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
+}
 
-  mTrackResiduals.init(true, o2::base::Propagator::Instance()->getNominalBz());
+void TPCResidualReader::updateTimeDependentParams(ProcessingContext& pc)
+{
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    // other init-once stuff
+
+    mTrackResiduals.init(true, o2::base::Propagator::Instance()->getNominalBz());
+  }
+  // we may have other params which need to be queried regularly
 }
 
 void TPCResidualReader::run(ProcessingContext& pc)
 {
+  updateTimeDependentParams(pc);
   mTrackResiduals.createOutputFile(); // FIXME remove when map output is handled properly
   for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
     auto brStats = mTreeStats->GetBranch(Form("sec%d", iSec));
@@ -114,14 +132,22 @@ void TPCResidualReader::connectTree(const std::string& filename)
 
 DataProcessorSpec getTPCResidualReaderSpec()
 {
+  std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
   // outputs.emplace_back("GLO", "VOXELRESULTS", 0, Lifetime::Timeframe);
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              inputs,
+                                                              true);
   return DataProcessorSpec{
     "tpc-residual-reader",
-    Inputs{},
+    inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCResidualReader>()},
+    AlgorithmSpec{adaptFromTask<TPCResidualReader>(ggRequest)},
     Options{
       {"residuals-infile", VariantType::String, "o2tpc_residuals.root", {"Name of the input file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};

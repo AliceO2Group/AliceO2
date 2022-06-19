@@ -15,57 +15,19 @@
 
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "DetectorsVertexing/VertexTrackMatcher.h"
-#include "DataFormatsParameters/GRPObject.h"
-#include "CommonUtils/NameConf.h"
-#include "TPCBase/ParameterElectronics.h"
-#include "TPCBase/ParameterDetector.h"
-#include "TPCBase/ParameterGas.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
 #include <unordered_map>
 #include <numeric>
 
 using namespace o2::vertexing;
 
-//___________________________________________________________________
-void VertexTrackMatcher::init()
-{
-  mPVParams = &o2::vertexing::PVertexerParams::Instance();
-  updateTimeDependentParams(); // RS FIXME eventually should be set from CCDB for every TF
-}
-
-void VertexTrackMatcher::updateTimeDependentParams()
-{
-  // tpc time bin in microseconds
-  if (mMaxTPCDriftTimeMUS == 0) {
-    auto& gasParam = o2::tpc::ParameterGas::Instance();
-    auto& elParam = o2::tpc::ParameterElectronics::Instance();
-    auto& detParam = o2::tpc::ParameterDetector::Instance();
-    mTPCBin2MUS = elParam.ZbinWidth;
-    mMaxTPCDriftTimeMUS = detParam.TPClength / gasParam.DriftV;
-  }
-  if (mITSROFrameLengthMUS == 0) {
-    std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
-    const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-    mITSROFrameLengthMUS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS) ? alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParams.roFrameLengthTrig * 1.e-3;
-    LOG(info) << "VertexTrackMatcher::ITSROFrameLengthMUS = " << mITSROFrameLengthMUS;
-  }
-  if (mMFTROFrameLengthMUS == 0) {
-    std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
-    const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
-    mMFTROFrameLengthMUS = grp->isDetContinuousReadOut(o2::detectors::DetID::MFT) ? alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParams.roFrameLengthTrig * 1.e-3;
-    LOG(info) << "VertexTrackMatcher::MFTROFrameLengthMUS = " << mMFTROFrameLengthMUS;
-  }
-}
-
 void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoData,
                                  std::vector<VTIndex>& trackIndex,
                                  std::vector<VRef>& vtxRefs)
 {
-  updateTimeDependentParams();
-
   auto vertices = recoData.getPrimaryVertices();
   auto v2tfitIDs = recoData.getPrimaryVertexContributors();
   auto v2tfitRefs = recoData.getPrimaryVertexContributorsRefs();
+  const auto& PVParams = o2::vertexing::PVertexerParams::Instance();
 
   int nv = vertices.size(), nv1 = nv + 1;
   TmpMap tmpMap(nv1);
@@ -86,8 +48,8 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
     }
     const auto& vtx = vertices[iv];
     const auto& vto = vtxOrdBrack.emplace_back(VtxTBracket{
-      {float((vtx.getIRMin().differenceInBC(recoData.startIR) - 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS - mPVParams->timeMarginVertexTime),
-       float((vtx.getIRMax().differenceInBC(recoData.startIR) + 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS + mPVParams->timeMarginVertexTime)},
+      {float((vtx.getIRMin().differenceInBC(recoData.startIR) - 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS - PVParams.timeMarginVertexTime),
+       float((vtx.getIRMax().differenceInBC(recoData.startIR) + 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS + PVParams.timeMarginVertexTime)},
       iv});
     if (vto.tBracket.delta() > maxVtxSpan) {
       maxVtxSpan = vto.tBracket.delta();
@@ -170,14 +132,13 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
   // Scan all inputs and create tracks
 
   mTBrackets.clear();
-
   auto creator = [this, &vcont](auto& _tr, GIndex _origID, float t0, float terr) {
     if constexpr (!(isMFTTrack<decltype(_tr)>() || isMCHTrack<decltype(_tr)>() || isGlobalFwdTrack<decltype(_tr)>())) { // Skip test for forward tracks; do not contribute to vertex
       if (vcont.find(_origID) != vcont.end()) {                                                                         // track is contributor to vertex, already accounted
         return true;
       }
     }
-
+    const auto& PVParams = o2::vertexing::PVertexerParams::Instance();
     if constexpr (isTPCTrack<decltype(_tr)>()) {
       // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
       t0 *= this->mTPCBin2MUS;
@@ -190,10 +151,10 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
       terr *= this->mMFTROFrameLengthMUS;
     } else if constexpr (!(isMCHTrack<decltype(_tr)>() || isGlobalFwdTrack<decltype(_tr)>())) {
       // for all other tracks the time is in \mus with gaussian error
-      terr *= mPVParams->nSigmaTimeTrack; // gaussian errors must be scaled by requested n-sigma
+      terr *= PVParams.nSigmaTimeTrack; // gaussian errors must be scaled by requested n-sigma
     }
 
-    terr += mPVParams->timeMarginTrackTime;
+    terr += PVParams.timeMarginTrackTime;
     mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});
 
     if constexpr (isGlobalFwdTrack<decltype(_tr)>() || isMFTTrack<decltype(_tr)>()) {
