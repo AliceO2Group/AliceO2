@@ -229,7 +229,7 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
       mUsedClusters[iLayer].resize(mUnsortedClusters[iLayer].size(), false);
       mPositionResolution[iLayer] = std::hypot(trkParam.LayerMisalignment[iLayer], trkParam.LayerResolution[iLayer]);
     }
-    mIndexTables.resize(mNrof);
+    mIndexTables.resize(mClusters.size(), std::vector<int>(mNrof * (trkParam.ZBins * trkParam.PhiBins + 1), 0));
     mLines.resize(mNrof);
     mTrackletClusters.resize(mNrof);
     mNTrackletsPerROf.resize(2, std::vector<int>(mNrof + 1, 0));
@@ -237,7 +237,6 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     std::vector<ClusterHelper> cHelper;
     std::vector<int> clsPerBin(trkParam.PhiBins * trkParam.ZBins, 0);
     for (int rof{0}; rof < mNrof; ++rof) {
-      mIndexTables[rof].resize(mClusters.size(), std::vector<int>(trkParam.ZBins * trkParam.PhiBins + 1, 0));
       if ((int)mMultiplicityCutMask.size() == mNrof && !mMultiplicityCutMask[rof]) {
         continue;
       }
@@ -290,10 +289,10 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
         }
 
         for (unsigned int iB{0}; iB < clsPerBin.size(); ++iB) {
-          mIndexTables[rof][iLayer][iB] = lutPerBin[iB];
+          mIndexTables[iLayer][rof * (trkParam.ZBins * trkParam.PhiBins + 1) + iB] = lutPerBin[iB];
         }
-        for (auto iB{clsPerBin.size()}; iB < mIndexTables[rof][iLayer].size(); iB++) {
-          mIndexTables[rof][iLayer][iB] = clustersNum;
+        for (auto iB{clsPerBin.size()}; iB < (trkParam.ZBins * trkParam.PhiBins + 1); iB++) {
+          mIndexTables[iLayer][rof * (trkParam.ZBins * trkParam.PhiBins + 1) + iB] = clustersNum;
         }
       }
     }

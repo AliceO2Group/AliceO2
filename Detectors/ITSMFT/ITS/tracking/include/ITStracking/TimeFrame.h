@@ -97,7 +97,8 @@ class TimeFrame
   gsl::span<Cluster> getClustersOnLayer(int rofId, int layerId);
   gsl::span<const Cluster> getClustersOnLayer(int rofId, int layerId) const;
   gsl::span<const Cluster> getUnsortedClustersOnLayer(int rofId, int layerId) const;
-  index_table_t& getIndexTables(int tf);
+  gsl::span<int> getIndexTable(int rofId, int layerId);
+  std::vector<int>& getIndexTableWhole(int layerId) { return mIndexTables[layerId]; }
   const std::vector<TrackingFrameInfo>& getTrackingFrameInfoOnLayer(int layerId) const;
 
   const TrackingFrameInfo& getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const;
@@ -169,7 +170,7 @@ class TimeFrame
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
   std::vector<std::vector<int>> mClusterExternalIndices;
   std::vector<std::vector<int>> mROframesClusters;
-  std::vector<index_table_t> mIndexTables;
+  std::vector<std::vector<int>> mIndexTables;
   int mNrof = 0;
 
  private:
@@ -313,9 +314,13 @@ inline int TimeFrame::getClusterExternalIndex(int layerId, const int clId) const
   return mClusterExternalIndices[layerId][clId];
 }
 
-inline index_table_t& TimeFrame::getIndexTables(int tf)
+inline gsl::span<int> TimeFrame::getIndexTable(int rofId, int layer)
 {
-  return mIndexTables[tf];
+  if (rofId < 0 || rofId >= mNrof) {
+    return gsl::span<int>();
+  }
+  return {&mIndexTables[layer][rofId * (mIndexTableUtils.getNphiBins() * mIndexTableUtils.getNzBins() + 1)],
+          static_cast<gsl::span<int>::size_type>(mIndexTableUtils.getNphiBins() * mIndexTableUtils.getNzBins() + 1)};
 }
 
 inline std::vector<Line>& TimeFrame::getLines(int tf)

@@ -139,7 +139,7 @@ void VertexerTraits::computeTracklets()
     trackleterKernelSerial<TrackletMode::Layer0Layer1>(
       mTimeFrame->getClustersOnLayer(rofId, 0),
       mTimeFrame->getClustersOnLayer(rofId, 1),
-      mTimeFrame->getIndexTables(rofId)[0].data(),
+      mTimeFrame->getIndexTable(rofId, 0).data(),
       mVrtParams.phiCut,
       mTimeFrame->getTracklets()[0],
       mTimeFrame->getNTrackletsCluster(rofId, 0),
@@ -147,7 +147,7 @@ void VertexerTraits::computeTracklets()
     trackleterKernelSerial<TrackletMode::Layer1Layer2>(
       mTimeFrame->getClustersOnLayer(rofId, 2),
       mTimeFrame->getClustersOnLayer(rofId, 1),
-      mTimeFrame->getIndexTables(rofId)[2].data(),
+      mTimeFrame->getIndexTable(rofId, 2).data(),
       mVrtParams.phiCut,
       mTimeFrame->getTracklets()[1],
       mTimeFrame->getNTrackletsCluster(rofId, 1),
