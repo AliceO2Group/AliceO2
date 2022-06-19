@@ -23,6 +23,7 @@
 
 using namespace o2::ctp;
 //
+const std::map<std::string,std::string> CTPConfiguration::detName2LTG = {{"FV0","1"},{"FT0","2"},{"FDD","3"},{"ITS","4"},{"TOF","5"},{"MFT","6"},{"TPC","7"}, {"MCH","8"}, {"MID","9"},{"TST","10"},{"TRD","13"},{"HMP","14"},{"ZDC","15"},{"PHS","16"},{"EMC","17"},{"CPV","18"}};
 //
 bool CTPConfiguration::isDetector(const o2::detectors::DetID& det)
 {
@@ -389,7 +390,23 @@ std::vector<int> CTPConfiguration::getTriggerClassList() const
   }
   return classlist;
 }
-//
+std::vector<std::string> CTPConfiguration::getDetectorList() const
+{
+  std::vector<std::string> detlist;
+  for( auto const& det:mDetectors) {
+    std::string sdet(det.getName());
+    detlist.push_back(sdet);
+  }
+  return detlist;
+}
+o2::detectors::DetID::mask_t CTPConfiguration::getDetectorMask() const
+{
+  o2::detectors::DetID::mask_t mask = 0;
+  for(auto const& det: mDetectors) {
+    mask |= det.getMask();
+  }
+  return mask;
+}
 //===============================================
 //
 void CTPRunManager::init()
@@ -412,6 +429,8 @@ int CTPRunManager::startRun(const std::string& cfg)
   //
   activerun->scalers.setRunNumber(activerun->cfg.getRunNumber());
   activerun->scalers.setClassMask(activerun->cfg.getTriggerClassMask());
+  o2::detectors::DetID::mask_t detmask = activerun->cfg.getDetectorMask();
+  activerun->scalers.setDetectorMask(detmask);
   //
   mRunInStart = activerun;
   saveRunConfigToCCDB(&activerun->cfg, timeStamp);
@@ -462,12 +481,27 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
     // std::cout << "positions:" << cma << " " <<  mScalerName2Position[cma] << std::endl;
     scalrec.scalers.push_back(scalraw);
   }
+  // detectors
+  //std::vector<std::string> detlist = mActiveRuns[irun]->cfg.getDetectorList();
+  o2::detectors::DetID::mask_t detmask = mActiveRuns[irun]->cfg.getDetectorMask();
+  for(uint32_t i = 0; i < 32; i++) {
+    o2::detectors::DetID::mask_t deti = 1ul << i;
+    bool detin = (detmask & deti).count();
+    if(detin) {
+      std::string detname(o2::detectors::DetID::getName(i));
+      std::string countername = detname + CTPConfiguration::detName2LTG.at(detname)+"_PH";
+      uint32_t detcount = mCounters[mScalerName2Position[countername]];
+      scalrec.scalersDets.push_back(detcount);
+      LOG(info) << "Scaler for detector:" << countername << ":" << detcount;
+    }
+  }
+  //
   scalrec.intRecord.orbit = mCounters[mScalerName2Position[orb]];
   scalrec.intRecord.bc = 0;
   mActiveRuns[irun]->scalers.addScalerRacordRaw(scalrec);
   LOG(info) << "Adding scalers for orbit:" << scalrec.intRecord.orbit;
   // scalrec.printStream(std::cout);
-  printCounters();
+  //printCounters();
   return 0;
 }
 int CTPRunManager::processMessage(std::string& topic, const std::string& message)
