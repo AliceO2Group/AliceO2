@@ -136,18 +136,8 @@ void TimeFrameGPU<NLayers>::loadToDevice(const int maxLayers)
       mClusterExternalIndicesD[iLayer].reset(mClusterExternalIndices[iLayer].data(), static_cast<int>(mClusterExternalIndices[iLayer].size()));
     }
   } else {
-    // flatten vector of vectors into single buffer
-    std::vector<int> flatTables0, flatTables2;
-    flatTables0.reserve(mConfig.nMaxROFs * (ZBins * PhiBins + 1));
-    flatTables2.reserve(mConfig.nMaxROFs * (ZBins * PhiBins + 1));
-    for (size_t rofId{0}; rofId < mNrof; ++rofId) {
-      const auto& v0 = mIndexTables[rofId][0];
-      const auto& v2 = mIndexTables[rofId][2];
-      flatTables0.insert(flatTables0.end(), v0.begin(), v0.end());
-      flatTables2.insert(flatTables2.end(), v2.begin(), v2.end());
-    }
-    mIndexTablesLayer0D.reset(flatTables0.data(), static_cast<int>(flatTables0.size()));
-    mIndexTablesLayer2D.reset(flatTables2.data(), static_cast<int>(flatTables2.size()));
+    mIndexTablesLayer0D.reset(getIndexTableWhole(0).data(), static_cast<int>(getIndexTableWhole(0).size()));
+    mIndexTablesLayer2D.reset(getIndexTableWhole(2).data(), static_cast<int>(getIndexTableWhole(2).size()));
   }
   gpuThrowOnError();
 }
