@@ -50,7 +50,7 @@ namespace its
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-CookedTrackerDPL::CookedTrackerDPL(bool useMC, const std::string& trMode) : mUseMC(useMC), mMode(trMode)
+CookedTrackerDPL::CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, const std::string& trMode) : mGGCCDBRequest(gr), mUseMC(useMC), mMode(trMode)
 {
   mVertexerTraitsPtr = std::make_unique<VertexerTraits>();
   mVertexerPtr = std::make_unique<Vertexer>(mVertexerTraitsPtr.get());
@@ -60,40 +60,9 @@ void CookedTrackerDPL::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   auto nthreads = ic.options().get<int>("nthreads");
   mTracker.setNumberOfThreads(nthreads);
-  auto filename = ic.options().get<std::string>("grp-file");
-  const auto grp = o2::parameters::GRPObject::loadFrom(filename);
-  if (grp) {
-    mVertexerPtr->getGlobalConfiguration();
-
-    mGRP.reset(grp);
-    o2::base::Propagator::initFieldFromGRP(grp);
-    auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-
-    o2::base::GeometryManager::loadGeometry();
-    o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
-    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
-                                                   o2::math_utils::TransformType::T2G));
-    mTracker.setGeometry(geom);
-
-    mTracker.setConfigParams();
-    LOG(info) << "Tracking mode " << mMode;
-    if (mMode == "cosmics") {
-      LOG(info) << "Setting cosmics parameters...";
-      mTracker.setParametersCosmics();
-      mRunVertexer = false;
-    }
-
-    double origD[3] = {0., 0., 0.};
-    mTracker.setBz(field->getBz(origD));
-
-    bool continuous = mGRP->isDetContinuousReadOut("ITS");
-    LOG(info) << "ITSCookedTracker RO: continuous=" << continuous;
-    mTracker.setContinuousMode(continuous);
-  } else {
-    throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
-  }
 }
 
 void CookedTrackerDPL::run(ProcessingContext& pc)
@@ -245,17 +214,38 @@ void CookedTrackerDPL::endOfStream(EndOfStreamContext& ec)
 ///_______________________________________
 void CookedTrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alppar");
+
+    mVertexerPtr->getGlobalConfiguration();
+    o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
+    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
+                                                   o2::math_utils::TransformType::T2G));
+    mTracker.setGeometry(geom);
+    mTracker.setConfigParams();
+    LOG(info) << "Tracking mode " << mMode;
+    if (mMode == "cosmics") {
+      LOG(info) << "Setting cosmics parameters...";
+      mTracker.setParametersCosmics();
+      mRunVertexer = false;
+    }
+    mTracker.setBz(o2::base::Propagator::Instance()->getNominalBz());
+    bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS);
+    LOG(info) << "ITSCookedTracker RO: continuous=" << continuous;
+    mTracker.setContinuousMode(continuous);
   }
 }
 
 ///_______________________________________
 void CookedTrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
@@ -293,15 +283,20 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC, const std::string& trMode)
     outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
   }
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              inputs,
+                                                              true);
   return DataProcessorSpec{
     "its-cooked-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(useMC, trMode)},
-    Options{
-      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"nthreads", VariantType::Int, 1, {"Number of threads"}}}};
+    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(ggRequest, useMC, trMode)},
+    Options{{"nthreads", VariantType::Int, 1, {"Number of threads"}}}};
 }
 
 } // namespace its

@@ -45,6 +45,7 @@
 #include "Framework/Task.h"
 #include "Framework/CCDBParamSpec.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
@@ -59,7 +60,7 @@ namespace globaltracking
 class CosmicsMatchingSpec : public Task
 {
  public:
-  CosmicsMatchingSpec(std::shared_ptr<DataRequest> dr, bool useMC) : mDataRequest(dr), mUseMC(useMC) {}
+  CosmicsMatchingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC) {}
   ~CosmicsMatchingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -69,6 +70,7 @@ class CosmicsMatchingSpec : public Task
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
   std::shared_ptr<DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::globaltracking::MatchCosmics mMatching; // matching engine
   bool mUseMC = true;
   TStopwatch mTimer;
@@ -78,22 +80,7 @@ void CosmicsMatchingSpec::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
-  //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP();
-  o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L));
-
-  // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
-  std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
-  std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
-  if (o2::utils::Str::pathExists(matLUTFile)) {
-    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
-    o2::base::Propagator::Instance()->setMatLUT(lut);
-    LOG(info) << "Loaded material LUT from " << matLUTFile;
-  } else {
-    LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
-  }
-
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mMatching.setDebugFlag(ic.options().get<int>("debug-tree-flags"));
   mMatching.setUseMC(mUseMC);
   //
@@ -116,13 +103,15 @@ void CosmicsMatchingSpec::run(ProcessingContext& pc)
 
 void CosmicsMatchingSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
+    o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L));
 
     // pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // called by the RecoContainer
     // also alpParams is called by the RecoContainer
-    std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
+    auto grp = o2::base::GRPGeomHelper::instance().getGRPECS();
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
     if (!grp->isDetContinuousReadOut(DetID::ITS)) {
       mMatching.setITSROFrameLengthMUS(alpParams.roFrameLengthTrig / 1.e3); // ITS ROFrame duration in \mus
@@ -136,9 +125,13 @@ void CosmicsMatchingSpec::updateTimeDependentParams(ProcessingContext& pc)
 
 void CosmicsMatchingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     mMatching.setITSDict((const o2::itsmft::TopologyDictionary*)obj);
+    return;
   }
 }
 
@@ -162,11 +155,19 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
     outputs.emplace_back("GLO", "COSMICTRC_MC", 0, Lifetime::Timeframe);
   }
 
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              false,                             // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              dataRequest->inputs,
+                                                              true);
   return DataProcessorSpec{
     "cosmics-matcher",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CosmicsMatchingSpec>(dataRequest, useMC)},
+    AlgorithmSpec{adaptFromTask<CosmicsMatchingSpec>(dataRequest, ggRequest, useMC)},
     Options{
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
       {"debug-tree-flags", VariantType::Int, 0, {"DebugFlagTypes bit-pattern for debug tree"}}}};

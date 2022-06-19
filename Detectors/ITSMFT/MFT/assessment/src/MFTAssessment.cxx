@@ -11,7 +11,6 @@
 
 #include "MFTAssessment/MFTAssessment.h"
 #include "Framework/InputSpec.h"
-#include "DetectorsBase/GeometryManager.h"
 #include "MFTBase/GeometryTGeo.h"
 #include "MathUtils/Utils.h"
 #include <Framework/InputRecord.h>
@@ -29,9 +28,6 @@ void MFTAssessment::init(bool finalizeAnalysis)
 {
   mFinalizeAnalysis = finalizeAnalysis;
   createHistos();
-  // get geometry
-  o2::base::GeometryManager::loadGeometry();
-
   mUnusedChips.fill(true);
 }
 

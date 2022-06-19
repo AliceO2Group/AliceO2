@@ -25,6 +25,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsZDC/ZDCEnergy.h"
 #include "DataFormatsZDC/ZDCTDCData.h"
+#include "DataFormatsParameters/GRPECSObject.h"
 #include "CommonUtils/NameConf.h"
 #include "MathUtils/Utils.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -1083,6 +1084,7 @@ void AODProducerWorkflowDPL::fillCaloTable(TEventHandler* caloEventHandler, cons
 void AODProducerWorkflowDPL::init(InitContext& ic)
 {
   mTimer.Stop();
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mLPMProdTag = ic.options().get<string>("lpmp-prod-tag");
   mAnchorPass = ic.options().get<string>("anchor-pass");
   mAnchorProd = ic.options().get<string>("anchor-prod");
@@ -1138,9 +1140,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mFDDAmplitude = 0xFFFFFFFF;
     mT0Amplitude = 0xFFFFFFFF;
   }
-
-  // Needed by MCH track extrapolation
-  o2::base::GeometryManager::loadGeometry();
 
   // initialize zdc helper maps
   for (auto& ChannelName : o2::zdc::ChannelNames) {
@@ -1274,21 +1273,12 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
   auto originCursor = originTableBuilder.cursor<o2::aod::Origins>();
 
-  std::unique_ptr<o2::steer::MCKinematicsReader> mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
-  if (!o2::tof::Utils::hasFillScheme()) {
-    LOG(debug) << "FOUND " << mcReader->getDigitizationContext()->getEventRecords().size()
-               << " records" << mcReader->getDigitizationContext()->getEventParts().size() << " parts";
-    o2::BunchFilling bcf = mcReader->getDigitizationContext()->getBunchFilling();
-    std::bitset<3564> bs = bcf.getBCPattern();
-    for (int i = 0; i < bs.size(); i++) {
-      if (bs.test(i)) {
-        o2::tof::Utils::addInteractionBC(i);
-      }
-    }
-  }
-
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
 
+  std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
+  if (mUseMC) {
+    mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+  }
   std::map<uint64_t, int> bcsMap;
   collectBCs(recoData, mUseMC ? mcReader->getDigitizationContext()->getEventRecords() : std::vector<o2::InteractionTimeRecord>{}, bcsMap);
   if (!primVer2TRefs.empty()) { // if the vertexing was done, the last slot refers to orphan tracks
@@ -1874,18 +1864,27 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
 
 void AODProducerWorkflowDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     // Note: DPLAlpideParam for ITS and MFT will be loaded by the RecoContainer
 
     // apply settings
-    std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()}; // normally will come from CCDB
+    auto grpECS = o2::base::GRPGeomHelper::instance().getGRPECS();
+    o2::BunchFilling bcf = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling();
+    std::bitset<3564> bs = bcf.getBCPattern();
+    for (int i = 0; i < bs.size(); i++) {
+      if (bs.test(i)) {
+        o2::tof::Utils::addInteractionBC(i);
+      }
+    }
+
     const auto& alpParamsITS = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-    mITSROFrameHalfLengthNS = 0.5 * (grp->isDetContinuousReadOut(o2::detectors::DetID::ITS) ? alpParamsITS.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS : alpParamsITS.roFrameLengthTrig);
+    mITSROFrameHalfLengthNS = 0.5 * (grpECS->isDetContinuousReadOut(o2::detectors::DetID::ITS) ? alpParamsITS.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS : alpParamsITS.roFrameLengthTrig);
 
     const auto& alpParamsMFT = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
-    mMFTROFrameHalfLengthNS = 0.5 * (grp->isDetContinuousReadOut(o2::detectors::DetID::MFT) ? alpParamsMFT.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS : alpParamsMFT.roFrameLengthTrig);
+    mMFTROFrameHalfLengthNS = 0.5 * (grpECS->isDetContinuousReadOut(o2::detectors::DetID::MFT) ? alpParamsMFT.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS : alpParamsMFT.roFrameLengthTrig);
 
     // RS FIXME: this is not yet fetched from the CCDB
     auto& elParam = o2::tpc::ParameterElectronics::Instance();
@@ -1901,6 +1900,9 @@ void AODProducerWorkflowDPL::updateTimeDependentParams(ProcessingContext& pc)
 void AODProducerWorkflowDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
   // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher("ITS", "ALPIDEPARAM", 0)) {
     LOG(info) << "ITS Alpide param updated";
     const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
@@ -2043,6 +2045,14 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   if (src[GID::EMC]) {
     dataRequest->requestEMCALCells(useMC);
   }
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                              // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              true,                              // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              dataRequest->inputs,
+                                                              true); // query only once all objects except mag.field
 
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2cascade_001"}, "AOD", "CASCADE_001", 0, Lifetime::Timeframe);
@@ -2076,7 +2086,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     "aod-producer-workflow",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, enableSV, resFile, useMC)},
+    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, ggRequest, enableSV, resFile, useMC)},
     Options{
       ConfigParamSpec{"run-number", VariantType::Int64, -1L, {"The run-number. If left default we try to get it from DPL header."}},
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},

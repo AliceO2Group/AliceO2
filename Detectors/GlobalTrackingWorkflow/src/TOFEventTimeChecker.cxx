@@ -15,10 +15,7 @@
 #include <string>
 #include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "DetectorsBase/GeometryManager.h"
-#include "DetectorsBase/Propagator.h"
 #include "CommonUtils/NameConf.h"
-#include "DataFormatsParameters/GRPObject.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
@@ -40,6 +37,7 @@
 #include "TOFBase/EventTimeMaker.h"
 //#include "GlobalTracking/MatchTOF.h"
 #include "GlobalTrackingWorkflow/TOFEventTimeChecker.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 #include "TSystem.h"
 #include "TFile.h"
@@ -95,15 +93,34 @@ namespace globaltracking
 class TOFEventTimeChecker : public Task
 {
  public:
-  TOFEventTimeChecker(std::shared_ptr<DataRequest> dr, bool useMC) : mDataRequest(dr), mUseMC(useMC) {}
+  TOFEventTimeChecker(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC) {}
   ~TOFEventTimeChecker() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
   void fillMatching(GID gid, float time0, float time0res);
   void processEvent(std::vector<MyTrack>& tracks);
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final
+  {
+    if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+      return;
+    }
+  }
 
  private:
+  void updateTimeDependentParams(ProcessingContext& pc)
+  {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    static bool initOnceDone = false;
+    if (!initOnceDone) { // this params need to be queried only once
+      initOnceDone = true;
+      const auto bcs = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling().getFilledBCs();
+      for (auto bc : bcs) {
+        o2::tof::Utils::addInteractionBC(bc, true);
+      }
+    }
+  }
+
   bool mIsTPC;
   bool mIsTPCTRD;
   bool mIsITSTPCTRD;
@@ -158,6 +175,7 @@ class TOFEventTimeChecker : public Task
   float mTrktimeRes = 0;
   RecoContainer mRecoData;
   std::shared_ptr<DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mUseMC = true;
   TStopwatch mTimer;
 };
@@ -435,7 +453,7 @@ void TOFEventTimeChecker::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
-
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   // extrct orbit from dir
   std::string dir = gSystem->GetWorkingDirectory();
   if (dir.find("orbit") < dir.size()) {
@@ -446,11 +464,6 @@ void TOFEventTimeChecker::init(InitContext& ic)
     }
     sscanf(dir.c_str(), "%d", &mOrbit);
   }
-
-  //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry("", false);
-  o2::base::Propagator::initFieldFromGRP();
-  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
 
   TFile* fsleewing = TFile::Open("localTimeSlewing.root");
   if (fsleewing) {
@@ -529,6 +542,7 @@ void TOFEventTimeChecker::run(ProcessingContext& pc)
   if (!mTOFClustersArrayInp.size()) {
     return;
   }
+  updateTimeDependentParams(pc);
 
   auto creator = [this](auto& trk, GID gid, float time0, float terr) {
     this->fillMatching(gid, time0, terr);
@@ -607,12 +621,19 @@ DataProcessorSpec getTOFEventTimeCheckerSpec(GID::mask_t src, bool useMC)
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestClusters(GID::getSourceMask(GID::TOF), useMC);
   dataRequest->requestTOFMatches(src, useMC);
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+                                                              false,                          // GRPECS=true
+                                                              true,                           // GRPLHCIF
+                                                              false,                          // GRPMagField
+                                                              false,                          // askMatLUT
+                                                              o2::base::GRPGeomRequest::None, // geometry
+                                                              dataRequest->inputs,
+                                                              true);
   return DataProcessorSpec{
     "tof-eventime",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<TOFEventTimeChecker>(dataRequest, useMC)},
+    AlgorithmSpec{adaptFromTask<TOFEventTimeChecker>(dataRequest, ggRequest, useMC)},
     Options{}};
 }
 

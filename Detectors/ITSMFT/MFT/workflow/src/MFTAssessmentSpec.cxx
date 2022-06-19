@@ -32,25 +32,12 @@ namespace mft
 //_____________________________________________________________
 void MFTAssessmentSpec::init(InitContext& ic)
 {
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mMFTAssessment = std::make_unique<o2::mft::MFTAssessment>(mUseMC);
-  auto filename = o2::base::NameConf::getGRPFileName();
-  const auto grp = o2::parameters::GRPObject::loadFrom(filename.c_str());
-  if (grp) {
-    o2::base::Propagator::initFieldFromGRP(grp);
-    auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-    double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
-    auto Bz = field->getBz(centerMFT);
-    LOG(info) << "Setting MFT Assessment Bz = " << Bz;
-    mMFTAssessment->setBz(Bz);
-  } else {
-    LOG(fatal) << "Magnetic field not initialized";
-  }
-
   for (int sw = 0; sw < NStopWatches; sw++) {
     mTimer[sw].Stop();
     mTimer[sw].Reset();
   }
-
   mTimer[SWTot].Start(false);
   mMFTAssessment->init(mFinalizeAnalysis);
 }
@@ -113,12 +100,27 @@ void MFTAssessmentSpec::sendOutput(DataAllocator& output)
 ///_______________________________________
 void MFTAssessmentSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
-  pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+
+    auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+    double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
+    auto Bz = field->getBz(centerMFT);
+    LOG(info) << "Setting MFT Assessment Bz = " << Bz;
+    mMFTAssessment->setBz(Bz);
+    mMFTAssessment->init(mFinalizeAnalysis);
+  }
 }
 
 ///_______________________________________
 void MFTAssessmentSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     mMFTAssessment->setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
@@ -138,7 +140,14 @@ DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen, bool finaliz
   inputs.emplace_back("tracks", "MFT", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackClIdx", "MFT", "TRACKCLSID", 0, Lifetime::Timeframe);
   inputs.emplace_back("cldict", "MFT", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/ClusterDictionary"));
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              false,                             // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              inputs,
+                                                              true);
   if (useMC) {
     inputs.emplace_back("clslabels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
     inputs.emplace_back("trklabels", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe);
@@ -150,7 +159,7 @@ DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen, bool finaliz
     "mft-assessment",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::mft::MFTAssessmentSpec>(useMC, processGen, finalizeAnalysis)},
+    AlgorithmSpec{adaptFromTask<o2::mft::MFTAssessmentSpec>(ggRequest, useMC, processGen, finalizeAnalysis)},
     Options{{}}};
 }
 

@@ -49,7 +49,7 @@ namespace its
 {
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-TrackerDPL::TrackerDPL(bool isMC, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType) : mIsMC{isMC}, mMode{trModeS}, mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)}
+TrackerDPL::TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType) : mGGCCDBRequest(gr), mIsMC{isMC}, mMode{trModeS}, mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)}
 {
   std::transform(mMode.begin(), mMode.end(), mMode.begin(), [](unsigned char c) { return std::tolower(c); });
 }
@@ -58,113 +58,76 @@ void TrackerDPL::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
-
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mChainITS.reset(mRecChain->AddChain<o2::gpu::GPUChainITS>());
   mVertexer = std::make_unique<Vertexer>(mChainITS->GetITSVertexerTraits());
   mTracker = std::make_unique<Tracker>(mChainITS->GetITSTrackerTraits());
+  mRunVertexer = true;
+  mCosmicsProcessing = false;
+  std::vector<TrackingParameters> trackParams;
+  std::vector<MemoryParameters> memParams;
 
-  auto filename = ic.options().get<std::string>("grp-file");
-  const auto grp = parameters::GRPObject::loadFrom(filename);
-  if (grp) {
-    mGRP.reset(grp);
-    base::Propagator::initFieldFromGRP(grp);
-    auto field = static_cast<field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  if (mMode == "async") {
 
-    base::GeometryManager::loadGeometry();
-    GeometryTGeo* geom = GeometryTGeo::Instance();
-    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
-                                                   o2::math_utils::TransformType::T2G));
+    trackParams.resize(2);
+    trackParams[1].TrackletMinPt = 0.2f;
+    trackParams[1].CellDeltaTanLambdaSigma *= 2.;
+    trackParams[1].MinTrackLength = 4;
+    memParams.resize(2);
+    LOG(info) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
 
-    std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
-    std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
-    o2::base::PropagatorImpl<float>::MatCorrType corrType{o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE};
-    if (o2::utils::Str::pathExists(matLUTFile)) {
-      auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
-      o2::base::Propagator::Instance()->setMatLUT(lut);
-      mTracker->setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT); /// TODO: eventually remove this in favour of the one below
-      corrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
-      LOG(info) << "Loaded material LUT from " << matLUTFile;
-    } else {
-      LOG(info) << "Material LUT " << matLUTFile << " file is absent, only heuristic material correction can be used";
-    }
+  } else if (mMode == "sync_misaligned") {
 
-    std::vector<TrackingParameters> trackParams;
-    std::vector<MemoryParameters> memParams;
+    trackParams.resize(1);
+    trackParams[0].PhiBins = 32;
+    trackParams[0].ZBins = 64;
+    trackParams[0].CellDeltaTanLambdaSigma *= 10;
+    trackParams[0].LayerMisalignment[0] = 3.e-2;
+    trackParams[0].LayerMisalignment[1] = 3.e-2;
+    trackParams[0].LayerMisalignment[2] = 3.e-2;
+    trackParams[0].LayerMisalignment[3] = 1.e-1;
+    trackParams[0].LayerMisalignment[4] = 1.e-1;
+    trackParams[0].LayerMisalignment[5] = 1.e-1;
+    trackParams[0].LayerMisalignment[6] = 1.e-1;
+    trackParams[0].FitIterationMaxChi2[0] = 100.;
+    trackParams[0].FitIterationMaxChi2[1] = 50.;
+    trackParams[0].MinTrackLength = 4;
+    memParams.resize(1);
+    LOG(info) << "Initializing tracker in misaligned sync. phase reconstruction with " << trackParams.size() << " passes";
 
-    mRunVertexer = true;
-    mCosmicsProcessing = false;
-    if (mMode == "async") {
+  } else if (mMode == "sync") {
+    memParams.resize(1);
+    trackParams.resize(1);
+    LOG(info) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
+  } else if (mMode == "cosmics") {
+    mCosmicsProcessing = true;
+    mRunVertexer = false;
+    trackParams.resize(1);
+    memParams.resize(1);
+    trackParams[0].MinTrackLength = 4;
+    trackParams[0].CellDeltaTanLambdaSigma *= 10;
+    trackParams[0].PhiBins = 4;
+    trackParams[0].ZBins = 16;
+    trackParams[0].PVres = 1.e5f;
+    trackParams[0].LayerMisalignment[0] = 3.e-2;
+    trackParams[0].LayerMisalignment[1] = 3.e-2;
+    trackParams[0].LayerMisalignment[2] = 3.e-2;
+    trackParams[0].LayerMisalignment[3] = 1.e-1;
+    trackParams[0].LayerMisalignment[4] = 1.e-1;
+    trackParams[0].LayerMisalignment[5] = 1.e-1;
+    trackParams[0].LayerMisalignment[6] = 1.e-1;
+    trackParams[0].FitIterationMaxChi2[0] = 100.;
+    trackParams[0].FitIterationMaxChi2[1] = 50.;
+    LOG(info) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
 
-      trackParams.resize(2);
-      trackParams[1].TrackletMinPt = 0.2f;
-      trackParams[1].CellDeltaTanLambdaSigma *= 2.;
-      trackParams[1].MinTrackLength = 4;
-      memParams.resize(2);
-      LOG(info) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
-
-    } else if (mMode == "sync_misaligned") {
-
-      trackParams.resize(1);
-      trackParams[0].PhiBins = 32;
-      trackParams[0].ZBins = 64;
-      trackParams[0].CellDeltaTanLambdaSigma *= 10;
-      trackParams[0].LayerMisalignment[0] = 3.e-2;
-      trackParams[0].LayerMisalignment[1] = 3.e-2;
-      trackParams[0].LayerMisalignment[2] = 3.e-2;
-      trackParams[0].LayerMisalignment[3] = 1.e-1;
-      trackParams[0].LayerMisalignment[4] = 1.e-1;
-      trackParams[0].LayerMisalignment[5] = 1.e-1;
-      trackParams[0].LayerMisalignment[6] = 1.e-1;
-      trackParams[0].FitIterationMaxChi2[0] = 100.;
-      trackParams[0].FitIterationMaxChi2[1] = 50.;
-      trackParams[0].MinTrackLength = 4;
-      memParams.resize(1);
-      LOG(info) << "Initializing tracker in misaligned sync. phase reconstruction with " << trackParams.size() << " passes";
-
-    } else if (mMode == "sync") {
-      memParams.resize(1);
-      trackParams.resize(1);
-      LOG(info) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
-    } else if (mMode == "cosmics") {
-      mCosmicsProcessing = true;
-      mRunVertexer = false;
-      trackParams.resize(1);
-      memParams.resize(1);
-      trackParams[0].MinTrackLength = 4;
-      trackParams[0].CellDeltaTanLambdaSigma *= 10;
-      trackParams[0].PhiBins = 4;
-      trackParams[0].ZBins = 16;
-      trackParams[0].PVres = 1.e5f;
-      trackParams[0].LayerMisalignment[0] = 3.e-2;
-      trackParams[0].LayerMisalignment[1] = 3.e-2;
-      trackParams[0].LayerMisalignment[2] = 3.e-2;
-      trackParams[0].LayerMisalignment[3] = 1.e-1;
-      trackParams[0].LayerMisalignment[4] = 1.e-1;
-      trackParams[0].LayerMisalignment[5] = 1.e-1;
-      trackParams[0].LayerMisalignment[6] = 1.e-1;
-      trackParams[0].FitIterationMaxChi2[0] = 100.;
-      trackParams[0].FitIterationMaxChi2[1] = 50.;
-      LOG(info) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
-
-    } else {
-      throw std::runtime_error(fmt::format("Unsupported ITS tracking mode {:s} ", mMode));
-    }
-
-    for (auto& params : trackParams) {
-      params.CorrType = corrType;
-    }
-
-    mTracker->setParameters(memParams, trackParams);
-
-    mVertexer->getGlobalConfiguration();
-    mTracker->getGlobalConfiguration();
-    LOG(info) << Form("Using %s for material budget approximation", (mTracker->isMatLUT() ? "lookup table" : "TGeometry"));
-
-    double origD[3] = {0., 0., 0.};
-    mBz = field->getBz(origD);
   } else {
-    throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
+    throw std::runtime_error(fmt::format("Unsupported ITS tracking mode {:s} ", mMode));
   }
+
+  for (auto& params : trackParams) {
+    params.CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
+  }
+  mTracker->setParameters(memParams, trackParams);
 }
 
 void TrackerDPL::run(ProcessingContext& pc)
@@ -208,13 +171,13 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   std::uint32_t roFrame = 0;
 
-  bool continuous = mGRP->isDetContinuousReadOut("ITS");
+  bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS);
   LOG(info) << "ITSTracker RO: continuous=" << continuous;
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
   TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
   mTracker->adoptTimeFrame(*timeFrame);
-  mTracker->setBz(mBz);
+  mTracker->setBz(o2::base::Propagator::Instance()->getNominalBz());
   mVertexer->adoptTimeFrame(*timeFrame);
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
@@ -344,17 +307,26 @@ void TrackerDPL::run(ProcessingContext& pc)
 ///_______________________________________
 void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alppar");
+    GeometryTGeo* geom = GeometryTGeo::Instance();
+    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
+    mTracker->setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT); /// TODO: eventually remove this in favour of the one below
+    mVertexer->getGlobalConfiguration();
+    mTracker->getGlobalConfiguration();
   }
 }
 
 ///_______________________________________
 void TrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
@@ -383,7 +355,14 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& trModeS, o2::gpu
   inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
   inputs.emplace_back("alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              inputs,
+                                                              true);
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
@@ -404,10 +383,8 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& trModeS, o2::gpu
     "its-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC, trModeS, dType)},
-    Options{
-      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
+    AlgorithmSpec{adaptFromTask<TrackerDPL>(ggRequest, useMC, trModeS, dType)},
+    Options{}};
 }
 
 } // namespace its

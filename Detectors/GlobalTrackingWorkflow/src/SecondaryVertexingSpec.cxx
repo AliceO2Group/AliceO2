@@ -21,10 +21,9 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "GlobalTrackingWorkflow/SecondaryVertexingSpec.h"
 #include "SimulationDataFormat/MCEventLabel.h"
-#include "CommonDataFormat/BunchFilling.h"
-#include "SimulationDataFormat/DigitizationContext.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsVertexing/SVertexer.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "TStopwatch.h"
 
 #include "Framework/ConfigParamRegistry.h"
@@ -50,14 +49,17 @@ namespace o2d = o2::dataformats;
 class SecondaryVertexingSpec : public Task
 {
  public:
-  SecondaryVertexingSpec(std::shared_ptr<DataRequest> dr, bool enabCasc) : mDataRequest(dr), mEnableCascades(enabCasc) {}
+  SecondaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enabCasc) : mDataRequest(dr), mGGCCDBRequest(gr), mEnableCascades(enabCasc) {}
   ~SecondaryVertexingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(ProcessingContext& pc);
   std::shared_ptr<DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mEnableCascades = false;
   o2::vertexing::SVertexer mVertexer;
   TStopwatch mTimer;
@@ -65,24 +67,12 @@ class SecondaryVertexingSpec : public Task
 
 void SecondaryVertexingSpec::init(InitContext& ic)
 {
-  //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP();
-  // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
-  std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
-  std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
-  if (o2::utils::Str::pathExists(matLUTFile)) {
-    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
-    o2::base::Propagator::Instance()->setMatLUT(lut);
-    LOG(info) << "Loaded material LUT from " << matLUTFile;
-  } else {
-    LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
-  }
-  mVertexer.setEnableCascades(mEnableCascades);
-  mVertexer.setNThreads(ic.options().get<int>("threads"));
   mTimer.Stop();
   mTimer.Reset();
-  mVertexer.init();
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  //-------- init geometry and field --------//
+  mVertexer.setEnableCascades(mEnableCascades);
+  mVertexer.setNThreads(ic.options().get<int>("threads"));
 }
 
 void SecondaryVertexingSpec::run(ProcessingContext& pc)
@@ -92,6 +82,7 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
 
   o2::globaltracking::RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
+  updateTimeDependentParams(pc);
 
   auto& v0s = pc.outputs().make<std::vector<V0>>(Output{"GLO", "V0S", 0, Lifetime::Timeframe});
   auto& v0Refs = pc.outputs().make<std::vector<RRef>>(Output{"GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe});
@@ -112,6 +103,24 @@ void SecondaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1, mVertexer.getNThreads());
 }
 
+void SecondaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
+}
+
+void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    mVertexer.init();
+  }
+  // we may have other params which need to be queried regularly
+}
+
 DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc)
 {
   std::vector<OutputSpec> outputs;
@@ -120,6 +129,14 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
   bool useMC = false;
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+                                                              true,                           // GRPECS=true
+                                                              false,                          // GRPLHCIF
+                                                              true,                           // GRPMagField
+                                                              true,                           // askMatLUT
+                                                              o2::base::GRPGeomRequest::None, // geometry
+                                                              dataRequest->inputs,
+                                                              true);
 
   outputs.emplace_back("GLO", "V0S", 0, Lifetime::Timeframe);           // found V0s
   outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);   // prim.vertex -> V0s refs
@@ -130,7 +147,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
     "secondary-vertexing",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, enableCasc)},
+    AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, ggRequest, enableCasc)},
     Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
             {"threads", VariantType::Int, 1, {"Number of threads"}}}};
 }

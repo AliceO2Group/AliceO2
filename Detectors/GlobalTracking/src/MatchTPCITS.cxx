@@ -2132,8 +2132,10 @@ void MatchTPCITS::setBunchFilling(const o2::BunchFilling& bf)
   mBunchFilling = bf;
   // find closest (from above) filled bunch
   int minBC = bf.getFirstFilledBC(), maxBC = bf.getLastFilledBC();
-  if (minBC < 0) {
-    throw std::runtime_error("Bunch filling is not set in MatchTPCITS");
+  if (minBC < 0 && mUseBCFilling) {
+    mUseBCFilling = false;
+    LOG(warning) << "Disabling match validation by BunchFilling as no interacting bunches found";
+    return;
   }
   int bcAbove = minBC;
   for (int i = o2::constants::lhc::LHCMaxBunches; i--;) {

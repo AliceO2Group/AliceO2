@@ -97,21 +97,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  if (!o2::tof::Utils::hasFillScheme()) {
-    // check collision context
-    auto mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
-    auto context = mcReader->getDigitizationContext();
-    if (!context) {
-      auto bcf = context->getBunchFilling();
-      std::bitset<3564> isInBC = bcf.getBCPattern();
-      for (int i = 0; i < isInBC.size(); i++) {
-        if (isInBC.test(i)) {
-          o2::tof::Utils::addInteractionBC(i, true);
-        }
-      }
-    }
-  }
-
   LOG(debug) << "TOF EVENTTIME CHECKER WORKFLOW configuration";
   LOG(debug) << "TOF track inputs = " << configcontext.options().get<std::string>("track-sources");
 

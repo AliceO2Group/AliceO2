@@ -31,6 +31,7 @@
 #include "GPUChainITS.h"
 #include "CommonUtils/StringUtils.h"
 #include "TStopwatch.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 namespace o2
 {
@@ -40,7 +41,7 @@ namespace its
 class TrackerDPL : public framework::Task
 {
  public:
-  TrackerDPL(bool isMC, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU); // : mIsMC{isMC} {}
+  TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU); // : mIsMC{isMC} {}
   ~TrackerDPL() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
@@ -54,12 +55,11 @@ class TrackerDPL : public framework::Task
   bool mIsMC = false;
   bool mRunVertexer = true;
   bool mCosmicsProcessing = false;
-  float mBz = 0.f;
   std::string mMode = "sync";
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<o2::gpu::GPUReconstruction> mRecChain = nullptr;
   std::unique_ptr<o2::gpu::GPUChainITS> mChainITS = nullptr;
-  std::unique_ptr<parameters::GRPObject> mGRP = nullptr;
   std::unique_ptr<Tracker> mTracker = nullptr;
   std::unique_ptr<Vertexer> mVertexer = nullptr;
   TStopwatch mTimer;

@@ -23,6 +23,7 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "Framework/Task.h"
 #include "TStopwatch.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -34,7 +35,7 @@ namespace its
 class CookedTrackerDPL : public Task
 {
  public:
-  CookedTrackerDPL(bool useMC, const std::string& trMode);
+  CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, const std::string& trMode);
   ~CookedTrackerDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -45,6 +46,7 @@ class CookedTrackerDPL : public Task
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
 
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   int mState = 0;
   bool mUseMC = true;
   bool mRunVertexer = true;

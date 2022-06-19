@@ -29,10 +29,7 @@ namespace trd
 
 void TRDTrackletTransformerSpec::init(o2::framework::InitContext& ic)
 {
-  mTransformer.init();
-  if (mApplyXOR) {
-    mTransformer.setApplyXOR();
-  }
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
 }
 
 void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
@@ -118,14 +115,29 @@ void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
 
 void TRDTrackletTransformerSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    // init-once stuff
+
+    mTransformer.init();
+    if (mApplyXOR) {
+      mTransformer.setApplyXOR();
+    }
+  }
   pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb"); // just to trigger the finaliseCCDB
 }
 
 void TRDTrackletTransformerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher("TRD", "CALVDRIFTEXB", 0)) {
     LOG(info) << "CalVdriftExB object has been updated";
     mTransformer.setCalVdriftExB((const o2::trd::CalVdriftExB*)obj);
+    return;
   }
 }
 
@@ -139,7 +151,14 @@ o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilte
   inputs.emplace_back("trdtracklets", "TRD", "TRACKLETS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trdtriggerrec", "TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
   inputs.emplace_back("calvdexb", "TRD", "CALVDRIFTEXB", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalVdriftExB"));
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              false,                             // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              false,                             // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              inputs,
+                                                              true);
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("TRD", "CTRACKLETS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "TRIGRECMASK", 0, Lifetime::Timeframe);
@@ -148,7 +167,7 @@ o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilte
     "TRDTRACKLETTRANSFORMER",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDTrackletTransformerSpec>(dataRequest, trigRecFilterActive, applyXOR)},
+    AlgorithmSpec{adaptFromTask<TRDTrackletTransformerSpec>(dataRequest, ggRequest, trigRecFilterActive, applyXOR)},
     Options{}};
 }
 

@@ -19,7 +19,6 @@ using namespace o2::trd::constants;
 
 void TrackletTransformer::init()
 {
-  o2::base::GeometryManager::loadGeometry();
   mGeo = Geometry::instance();
   mGeo->createPadPlaneArray();
   mGeo->createClusterMatrixArray();
