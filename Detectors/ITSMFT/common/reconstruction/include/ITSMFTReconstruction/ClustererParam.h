@@ -37,9 +37,6 @@ struct ClustererParam : public o2::conf::ConfigurableParamHelper<ClustererParam<
   int maxRowColDiffToMask = 0;  ///< pixel may be masked as overflow if such a neighbour in prev frame was fired
   int maxBCDiffToMaskBias = 10; ///< mask if 2 ROFs differ by <= StrobeLength + Bias BCs, use value <0 to disable masking
 
-  std::string dictFilePath{};  ///< optional cluster toplogy dictionary path
-  std::string noiseFilePath{}; ///< optional noise masks file path
-
   O2ParamDef(ClustererParam, getParamName().data());
 
  private:
