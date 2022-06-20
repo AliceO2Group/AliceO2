@@ -164,7 +164,7 @@ uint64_t AODProducerWorkflowDPL::getTFNumber(const o2::InteractionRecord& tfStar
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   o2::ccdb::CcdbApi ccdb_api;
-  const std::string rct_path = "RCT/RunInformation/";
+  const std::string rct_path = "RCT/Info/RunInformation/";
   const std::string start_orbit_path = "Trigger/StartOrbit";
 
   mgr.setURL(o2::base::NameConf::getCCDBServer());
