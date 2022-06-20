@@ -73,8 +73,6 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     LOG(error) << "non-std::exception was thrown in decoder creation";
     throw;
   }
-
-  auto detID = Mapping::getDetID();
   mApplyNoiseMap = !ic.options().get<bool>("ignore-noise-map");
   mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
   try {
@@ -102,31 +100,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   }
 
   if (mDoClusters) {
-    try {
-      mClusterer = std::make_unique<Clusterer>();
-      mClusterer->setNChips(Mapping::getNChips());
-      const auto grp = o2::parameters::GRPObject::loadFrom();
-      if (grp) {
-        mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut(detID));
-      } else {
-        throw std::runtime_error("failed to retrieve GRP");
-      }
-
-      // settings for the fired pixel overflow masking
-      const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
-      const auto& clParams = ClustererParam<Mapping::getDetID()>::Instance();
-      auto nbc = clParams.maxBCDiffToMaskBias;
-      nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
-      mClusterer->setMaxBCSeparationToMask(nbc);
-      mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
-      mClusterer->print();
-    } catch (const std::exception& e) {
-      LOG(error) << "exception was thrown in clustrizer configuration: " << e.what();
-      throw;
-    } catch (...) {
-      LOG(error) << "non-std::exception was thrown in clusterizer configuration";
-      throw;
-    }
+    mClusterer = std::make_unique<Clusterer>();
+    mClusterer->setNChips(Mapping::getNChips());
   }
 }
 
@@ -248,9 +223,27 @@ void STFDecoder<Mapping>::updateTimeDependentParams(ProcessingContext& pc)
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     pc.inputs().get<o2::itsmft::NoiseMap*>("noise");
+
+    const auto grp = o2::parameters::GRPObject::loadFrom();
+    if (grp) {
+      mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut(Mapping::getDetID()));
+    } else {
+      throw std::runtime_error("failed to retrieve GRP");
+    }
+
     if (mDoClusters) {
       pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
       pc.inputs().get<o2::itsmft::DPLAlpideParam<Mapping::getDetID()>*>("alppar");
+      // settings for the fired pixel overflow masking
+      const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
+      const auto& clParams = ClustererParam<Mapping::getDetID()>::Instance();
+      alpParams.printKeyValues();
+      clParams.printKeyValues();
+      auto nbc = clParams.maxBCDiffToMaskBias;
+      nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
+      mClusterer->setMaxBCSeparationToMask(nbc);
+      mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
+      mClusterer->print();
     }
   }
 }
