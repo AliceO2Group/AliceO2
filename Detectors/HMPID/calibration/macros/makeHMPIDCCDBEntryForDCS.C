@@ -25,7 +25,7 @@ using DPID = o2::dcs::DataPointIdentifier;
 int makeHMPIDCCDBEntryForDCS(const std::string url = "localhost:8080")
 {
 
-  //  std::string url(argv[0]);
+  // std::string url(argv[0]);
   // macro to populate CCDB for HMPID with the configuration for DCS
   std::vector<std::string> aliases; // vector of strings that will hold DataPoints identifiers
 

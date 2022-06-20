@@ -87,7 +87,7 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
 
     // LOG(info) << "Listing Data Points for HMPID:";
     // for (auto& i : vect) {
-    //   LOG(info) << i;
+    // LOG(info) << i;
     // }
 
     mProcessor = std::make_unique<o2::hmpid::HMPIDDCSProcessor>();

@@ -232,7 +232,7 @@ class HMPIDDCSProcessor
   // objects to be stored in CCDB:
   // refractive index:
   std::vector<TF1> arNmean; // 43 21* Tin and 21*Tout (1 per radiator, 3 radiators per chambers)
-                            //  + 1 for ePhotMean (mean photon energy)
+  // + 1 for ePhotMean (mean photon energy)
   // Charge Threshold:
   std::vector<TF1> arQthre; // 42 Qthre=f(time) one per sector
 
@@ -260,7 +260,7 @@ class HMPIDDCSProcessor
 
   // procTrans variables ======================================================================
   const double eMeanDefault = 6.675; // Default mean photon energy if
-                                     // DP is invalid or not fetched
+  // DP is invalid or not fetched
 
   double sEnergProb = 0, sProb = 0; // energy probaility, probability
   double eMean = 0;                 // initialize eMean (Photon energy mean) to 0
@@ -285,7 +285,7 @@ class HMPIDDCSProcessor
   double refFreon;
   std::vector<DPCOM> freonRefVec[30];
 
-  //  phototube current for argon cell
+  // phototube current for argon cell
   double cellArgon;
   std::vector<DPCOM> argonCellVec[30];
 
