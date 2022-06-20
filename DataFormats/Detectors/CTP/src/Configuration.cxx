@@ -415,6 +415,8 @@ void CTPRunManager::init()
     r = nullptr;
   }
   loadScalerNames();
+  LOG(info) << "CCDB host:" << mCCDBHost;
+  LOG(info) << "CTP QC:" << mQC;
   LOG(info) << "CTPRunManager initialised.";
 }
 int CTPRunManager::startRun(const std::string& cfg)
@@ -506,6 +508,10 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
 }
 int CTPRunManager::processMessage(std::string& topic, const std::string& message)
 {
+  if( mQC == 1) {
+    LOG(info) << "processMessage: skipping, QC=1";
+    return 1;
+  }
   LOG(info) << "Processing message with topic:" << topic;
   std::string firstcounters;
   if (topic.find("ctpconfig") != std::string::npos) {
@@ -612,7 +618,7 @@ int CTPRunManager::saveRunScalersToCCDB(int i)
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
   metadata["runNumber"] = std::to_string(run->cfg.getRunNumber());
-  api.init(mCcdbHost.c_str());  // or http://localhost:8080 for a local installation
+  api.init(mCCDBHost.c_str());  // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&(run->scalers), mCCDBPathCTPScalers, metadata, tmin, tmax);
   LOG(info) << "CTP scalers saved in ccdb, run:" << run->cfg.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
@@ -631,7 +637,7 @@ int CTPRunManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
   metadata["runNumber"] = std::to_string(cfg->getRunNumber());
-  api.init(mCcdbHost.c_str());  // or http://localhost:8080 for a local installation
+  api.init(mCCDBHost.c_str());  // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(cfg, CCDBPathCTPConfig, metadata, tmin, tmax);
   LOG(info) << "CTP config  saved in ccdb, run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
@@ -640,7 +646,7 @@ int CTPRunManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
 CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run)
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setURL(mCcdbHost);
+  mgr.setURL(mCCDBHost);
   map<string, string> metadata; // can be empty
   metadata["runNumber"] = run;
   auto ctpconfigdb = mgr.getSpecific<CTPConfiguration>(CCDBPathCTPConfig, timestamp, metadata);
@@ -654,7 +660,7 @@ CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string ru
 CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run)
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setURL(mCcdbHost);
+  mgr.setURL(mCCDBHost);
   map<string, string> metadata; // can be empty
   metadata["runNumber"] = run;
   auto ctpscalers = mgr.getSpecific<CTPRunScalers>(mCCDBPathCTPScalers, timestamp, metadata);

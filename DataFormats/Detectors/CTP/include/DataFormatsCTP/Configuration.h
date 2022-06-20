@@ -166,17 +166,16 @@ class CTPRunManager
   CTPConfiguration getConfigFromCCDB(long timestamp, std::string run);
   CTPRunScalers getScalersFromCCDB(long timestamp, std::string);
   int loadScalerNames();
-  void setCcdbHost(std::string host) { mCcdbHost = host; };
   // void setCCDBPathConfig(std::string path) { mCCDBPathCTPConfig = path;};
   void setCCDBPathScalers(std::string path) { mCCDBPathCTPScalers = path; };
-  void setCCDBHost(std::string host) { mCcdbHost = host; };
+  void setCCDBHost(std::string host) { mCCDBHost = host; };
   void setCTPQC(int qc) { mQC = qc; };
   void printCounters();
 
  private:
   /// Database constants
-  std::string mCcdbHost = "http://ccdb-test.cern.ch:8080";
-  // std::string mCcdbHost = "http://o2-ccdb.internal:8080";
+  //std::string mCCDBHost = "http://ccdb-test.cern.ch:8080";
+  std::string mCCDBHost = "http://o2-ccdb.internal:8080";
   std::string mCCDBPathCTPScalers = "CTP/Calib/Scalers";
   std::array<CTPActiveRun*, NRUNS> mActiveRuns;
   std::array<std::uint32_t, NRUNS> mActiveRunNumbers;
