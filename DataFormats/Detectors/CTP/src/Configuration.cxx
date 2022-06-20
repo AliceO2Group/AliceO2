@@ -508,7 +508,7 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
 }
 int CTPRunManager::processMessage(std::string& topic, const std::string& message)
 {
-  if( mQC == 1) {
+  if (mQC == 1) {
     LOG(info) << "processMessage: skipping, QC=1";
     return 1;
   }
@@ -618,7 +618,7 @@ int CTPRunManager::saveRunScalersToCCDB(int i)
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
   metadata["runNumber"] = std::to_string(run->cfg.getRunNumber());
-  api.init(mCCDBHost.c_str());  // or http://localhost:8080 for a local installation
+  api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&(run->scalers), mCCDBPathCTPScalers, metadata, tmin, tmax);
   LOG(info) << "CTP scalers saved in ccdb, run:" << run->cfg.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
@@ -637,7 +637,7 @@ int CTPRunManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
   metadata["runNumber"] = std::to_string(cfg->getRunNumber());
-  api.init(mCCDBHost.c_str());  // or http://localhost:8080 for a local installation
+  api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(cfg, CCDBPathCTPConfig, metadata, tmin, tmax);
   LOG(info) << "CTP config  saved in ccdb, run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;

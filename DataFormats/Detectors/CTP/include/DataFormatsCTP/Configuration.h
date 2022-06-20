@@ -174,7 +174,7 @@ class CTPRunManager
 
  private:
   /// Database constants
-  //std::string mCCDBHost = "http://ccdb-test.cern.ch:8080";
+  // std::string mCCDBHost = "http://ccdb-test.cern.ch:8080";
   std::string mCCDBHost = "http://o2-ccdb.internal:8080";
   std::string mCCDBPathCTPScalers = "CTP/Calib/Scalers";
   std::array<CTPActiveRun*, NRUNS> mActiveRuns;
