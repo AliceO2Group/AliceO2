@@ -439,7 +439,7 @@ bool HMPIDDCSProcessor::evalCorrFactor(double dRefArgon, double dCellArgon, doub
 
   // evaluate 0.5 mm of thickness SiO2 Trans
 
-  // TMath : Double_t	Exp(Double_t x)
+  // TMath : Double_t  Exp(Double_t x)
   aTransSiO2 = TMath::Exp(-0.5 / o2::hmpid::Param::lAbsWin(dPhotEn));
 
   // evaluate 80 cm of thickness Gap (low density CH4) transparency

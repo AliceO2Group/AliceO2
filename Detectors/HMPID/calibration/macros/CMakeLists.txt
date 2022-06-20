@@ -16,8 +16,6 @@ o2_add_test_root_macro(
 o2_add_test_root_macro(
   readHMPIDDCSEntries.C
   PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
-  
-
 
 install(
   FILES makeHMPIDCCDBEntryForDCS.C
