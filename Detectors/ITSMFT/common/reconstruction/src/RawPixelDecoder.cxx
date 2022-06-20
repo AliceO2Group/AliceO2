@@ -62,9 +62,9 @@ void RawPixelDecoder<Mapping>::printReport(bool decstat, bool skipNoErr) const
   LOGP(info, "{} Timing Total:     CPU = {:.3e} Real = {:.3e} in {} slots in {} mode", mSelfName, cpu, real, tmrS.Counter() - 1,
        mDecodeNextAuto ? "AutoDecode" : "ExternalCall");
 
-  LOGP(important, "{} decoded {} hits in {} non-empty chips in {} ROFs with {} threads, {} external triggers", mSelfName, mNPixelsFired, mNChipsFired, mROFCounter, mNThreads, mNExtTriggers);
+  LOGP(info, "{} decoded {} hits in {} non-empty chips in {} ROFs with {} threads, {} external triggers", mSelfName, mNPixelsFired, mNChipsFired, mROFCounter, mNThreads, mNExtTriggers);
   if (decstat) {
-    LOG(important) << "GBT Links decoding statistics" << (skipNoErr ? " (only links with errors are reported)" : "");
+    LOG(info) << "GBT Links decoding statistics" << (skipNoErr ? " (only links with errors are reported)" : "");
     for (auto& lnk : mGBTLinks) {
       lnk.statistics.print(skipNoErr);
       lnk.chipStat.print(skipNoErr);
@@ -190,7 +190,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       if (payloadSize == 0) {
         auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
         if (++contDeadBeef <= maxWarn) {
-          LOGP(alarm, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+          LOGP(warn, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
                dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }
@@ -234,7 +234,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
 
   if (linksAdded) { // new links were added, update link<->RU mapping, usually is done for 1st TF only
     if (nLinks) {
-      LOG(alarm) << mSelfName << " New links appeared although the initialization was already done";
+      LOG(warn) << mSelfName << " New links appeared although the initialization was already done";
       for (auto& ru : mRUDecodeVec) { // reset RU->link references since they may have been changed
         memset(&ru.links[0], -1, RUDecodeData::MaxLinksPerRU * sizeof(int));
       }
@@ -459,7 +459,7 @@ void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::header::D
             ostrm.write(reinterpret_cast<const char*>(piece->data), piece->size);
             entry++;
           }
-          LOG(important) << "produced " << std::filesystem::current_path().c_str() << '/' << fnm;
+          LOG(info) << "produced " << std::filesystem::current_path().c_str() << '/' << fnm;
         }
       }
     }
@@ -478,7 +478,7 @@ void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::header::D
         ostrm.write(reinterpret_cast<const char*>(piece->data), piece->size);
       }
     }
-    LOG(important) << "produced " << std::filesystem::current_path().c_str() << '/' << fnm;
+    LOG(info) << "produced " << std::filesystem::current_path().c_str() << '/' << fnm;
     break;
   }
 }
