@@ -167,6 +167,8 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
                   if (iLayer > 0) {
                     tf->getTrackletsLookupTable()[iLayer - 1][currentSortedIndex]++;
                   }
+                  // printf("%d %d %d %d %d %d %d %d %d %d %f %f %f %f %f \n", maxBinIndex, firstBinIndex, iPhiBin, iPhiCount, phiBinsNum, rof1, rof0, firstRowClusterIndex, maxRowClusterIndex, iNextCluster, nextCluster.xCoordinate, nextCluster.yCoordinate, nextCluster.zCoordinate, deltaPhi, deltaZ);
+
                   const float phi{o2::gpu::GPUCommonMath::ATan2(currentCluster.yCoordinate - nextCluster.yCoordinate,
                                                                 currentCluster.xCoordinate - nextCluster.xCoordinate)};
                   const float tanL{(currentCluster.zCoordinate - nextCluster.zCoordinate) /
@@ -188,6 +190,16 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
   // for (int i{0}; i < 1; ++i) {
   //   std::cout << " === " << std::endl;
   //   for (auto j : tf->getTrackletsLookupTable()[i]) {
+  //     std::cout << j << "\n";
+  //   }
+  //   std::cout << std::endl;
+  // }
+  // std::vector<std::vector<int>> tables(5);
+  // for (int i{0}; i < 1; ++i) {
+  //   tables[i] = tf->getTrackletsLookupTable()[i];
+  //   std::exclusive_scan(tables[i].begin(), tables[i].end(), tables[i].begin(), 0);
+  //   std::cout << " === table " << i << " ===" << std::endl;
+  //   for (auto j : tables[i]) {
   //     std::cout << j << "\n";
   //   }
   //   std::cout << std::endl;

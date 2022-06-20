@@ -102,13 +102,12 @@ template <int NLayers>
 template <unsigned char isTracker>
 void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
 {
-
   for (int iLayer{0}; iLayer < NLayers; ++iLayer) { // Tracker and vertexer
     if (iLayer < NLayers - 1) {
       mTrackletsD[iLayer] = Vector<Tracklet>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
     }
     if (iLayer < NLayers - 1) {
-      mTrackletsLookupTablesD[iLayer].reset(static_cast<int>(mTrackletsLookupTable[iLayer].size()));
+      mTrackletsLookupTablesD[iLayer].resetInt(mClusters[iLayer].size());
     }
   }
 
@@ -154,6 +153,7 @@ void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
     mIndexTablesLayer0D.reset(getIndexTableWhole(0).data(), static_cast<int>(getIndexTableWhole(0).size()));
     mIndexTablesLayer2D.reset(getIndexTableWhole(2).data(), static_cast<int>(getIndexTableWhole(2).size()));
   }
+
   gpuThrowOnError();
 }
 
