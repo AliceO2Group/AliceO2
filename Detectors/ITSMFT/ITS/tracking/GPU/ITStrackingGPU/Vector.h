@@ -56,8 +56,7 @@ class Vector final
   void reset(const size_t, const size_t = 0);
   void reset(const T* const, const size_t, const size_t = 0);
 
-  template <typename U = T, std::enable_if_t<std::is_integral<U>::value, int>>
-  void reset(const size_t, const int value = 0);
+  void resetInt(const size_t, const int value = 0);
   void copyIntoSizedVector(std::vector<T>&);
 
   GPUhd() T* get() const;
@@ -218,8 +217,7 @@ void Vector<T>::reset(const T* const source, const size_t size, const size_t ini
 }
 
 template <typename T>
-template <typename U, std::enable_if_t<std::is_integral<U>::value, int>>
-void Vector<T>::reset(const size_t size, const int value)
+void Vector<T>::resetInt(const size_t size, const int value)
 {
   if (size > mCapacity) {
     if (mArrayPtr != nullptr) {
