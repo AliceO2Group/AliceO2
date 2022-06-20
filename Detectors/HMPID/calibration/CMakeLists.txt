@@ -11,21 +11,21 @@
 
 o2_add_library(HMPIDCalibration
                TARGETVARNAME targetName
-               SOURCES src/HMPIDDCSProcessor.cxx 
+               SOURCES src/HMPIDDCSProcessor.cxx
                PUBLIC_LINK_LIBRARIES O2::HMPIDBase
-				     O2::Framework
+                                     O2::Framework
                                      O2::DataFormatsHMP
                                      O2::HMPIDSimulation
                                      O2::SimulationDataFormat
                                      O2::DetectorsBase
                                      O2::DetectorsCalibration
                                      O2::DetectorsDCS
-				     O2::DetectorsRaw
+                                     O2::DetectorsRaw
                                      O2::CCDB
                                      ROOT::Physics
-				     ROOT::Minuit
-				     O2::Steer
-				     Microsoft.GSL::GSL)
+                                     ROOT::Minuit
+                                     O2::Steer
+                                     Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(HMPIDCalibration
                           HEADERS  include/HMPIDCalibration/HMPIDDCSProcessor.h)
@@ -40,12 +40,12 @@ o2_add_executable(hmpid-dcs-sim-workflow# run with o2-calibration-hmpid-dcs-work
                   COMPONENT_NAME calibration # adds calibration to the above command
                   SOURCES testWorkflow/hmpid-dcs-sim-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
-					O2::HMPIDCalibration
-					O2::DCStestWorkflow)
+                                        O2::HMPIDCalibration
+                                        O2::DCStestWorkflow)
 
 o2_add_executable(hmpid-dcs-workflow # run with o2-calibration-hmpid-dcs-workflow
                   COMPONENT_NAME calibration # adds calibration to the above command
                   SOURCES testWorkflow/hmpid-dcs-data-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
-					O2::HMPIDCalibration
-					O2::DCStestWorkflow)
+                                        O2::HMPIDCalibration
+                                        O2::DCStestWorkflow)
