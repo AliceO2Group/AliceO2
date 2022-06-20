@@ -51,7 +51,6 @@ struct TPCZSHDR {
 };
 struct TPCZSHDRV2 : public TPCZSHDR {
   static constexpr unsigned int TPC_ZS_NBITS_V3 = 12;
-  static constexpr unsigned int TPC_ZS_NBITS_V4 = 12;
   static constexpr bool TIGHTLY_PACKED_V3 = false;
   static constexpr unsigned int SAMPLESPER64BIT = 64 / TPC_ZS_NBITS_V3; // 5 12-bit samples with 4 bit padding per 64 bit word for non-TIGHTLY_PACKED data
 
