@@ -589,9 +589,9 @@ template <typename value_T>
 GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& lt, const o2::track::TrackParametrization<value_type>& trc) const
 {
   value_T xdca = 0., ydca = 0., length = 0.;          // , zdca = 0. // zdca might be used in future
-  if (math_utils::detail::abs<value_T>(mBz) > 1e-3) { // helix
-    o2::math_utils::CircleXY<value_T> c;
-    trc.getCircleParamsLoc(mBz, c);
+  o2::math_utils::CircleXY<value_T> c;
+  trc.getCircleParamsLoc(mBz, c);
+  if (c.rC != 0.) {                                                     // helix
     auto distC = math_utils::detail::sqrt<value_type>(c.getCenterD2()); // distance from the circle center to origin
     if (distC > 1.e-3) {
       auto nrm = (distC - c.rC) / distC;
@@ -605,6 +605,9 @@ GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& 
       }
       // zdca = trc.getZ() + (trc.getSign() > 0. ? c.rC : -c.rC) * trc.getTgl() * ang;
       length = math_utils::detail::abs<value_type>(c.rC * ang * math_utils::detail::sqrt<value_type>(1. + trc.getTgl() * trc.getTgl()));
+    } else { // track with circle center at the origin, and LT makes no sense, take direct distance
+      xdca = trc.getX();
+      ydca = trc.getY();
     }
   } else { // straight line
     auto csp2 = (1.f - trc.getSnp()) * (1.f + trc.getSnp()), csp = math_utils::detail::sqrt<value_type>(csp2);
