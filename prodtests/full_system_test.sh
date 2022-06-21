@@ -18,7 +18,7 @@ if [ "0$O2_ROOT" == "0" ] || [ "0$AEGIS_ROOT" == "0" ]; then
 fi
 
 if [[ $DPL_CONDITION_BACKEND != "http://o2-ccdb.internal" && $DPL_CONDITION_BACKEND != "http://localhost:8084" && $DPL_CONDITION_BACKEND != "http://127.0.0.1:8084" ]]; then
-  alien-token-info >& /dev/null
+  timeout -k 10 10 alien.py ls >& /dev/null
   RETVAL=$?
   if [[ $RETVAL != 0 ]]; then
     echo "command alien-token-init had nonzero exit code $RETVAL" 1>&2
