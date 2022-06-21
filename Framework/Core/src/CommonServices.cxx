@@ -32,6 +32,7 @@
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/Tracing.h"
 #include "Framework/Monitoring.h"
+#include "Framework/AsyncQueue.h"
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
 #include "HTTPParser.h"
@@ -118,6 +119,16 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
     .exit = [](ServiceRegistry& registry, void* service) {
                        Monitoring* monitoring = reinterpret_cast<Monitoring*>(service);
                        delete monitoring; },
+    .kind = ServiceKind::Serial};
+}
+
+// An asyncronous service that executes actions in at the end of the data processing
+o2::framework::ServiceSpec CommonServices::asyncQueue()
+{
+  return ServiceSpec{
+    .name = "async-queue",
+    .init = simpleServiceInit<AsyncQueue, AsyncQueue>(),
+    .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
 }
 
@@ -868,6 +879,7 @@ o2::framework::ServiceSpec CommonServices::objectCache()
 std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 {
   std::vector<ServiceSpec> specs{
+    asyncQueue(),
     timingInfoSpec(),
     timesliceIndex(),
     driverClientSpec(),
