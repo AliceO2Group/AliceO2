@@ -530,11 +530,11 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   } else if (trackID.getSource() == GIndex::MCHMID) { // This is an MCH-MID track
     fwdInfo.trackTypeId = o2::aod::fwdtrack::MuonStandaloneTrack;
     const auto& mchmidMatch = mchmidMatches[trackID.getIndex()];
-    const auto& mchTrackID = mchmidMatch.getMCHRef().getIndex();
+    auto mchTrackID = mchmidMatch.getMCHRef().getIndex();
     if (!extrapMCHTrack(mchTrackID)) {
       LOGF(warn, "Unable to extrapolate MCH track with ID %d! Dummy parameters will be used", mchTrackID);
     }
-    const auto& midTrackID = mchmidMatch.getMIDRef().getIndex();
+    auto midTrackID = mchmidMatch.getMIDRef().getIndex();
     fwdInfo.chi2matchmchmid = mchmidMatch.getMatchChi2OverNDF();
     getMCHBitMap(mchTrackID);
     getMIDBitMapBoards(midTrackID);
