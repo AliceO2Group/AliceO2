@@ -479,12 +479,13 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               } else {
                 mErrorMessagesSuppressed++;
               }
+              // Exclude BUNCH_NOT_OK also from raw error objects
+              if (mCreateRawDataErrors) {
+                mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror), CellID);
+              }
             } else {
               LOG(debug2) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
               nBunchesNotOK++;
-            }
-            if (mCreateRawDataErrors) {
-              mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror), CellID);
             }
           }
         }
@@ -586,6 +587,7 @@ void RawToCellConverterSpec::sendData(framework::ProcessingContext& ctx, const s
   ctx.outputs().snapshot(framework::Output{originEMC, "CELLS", mSubspecification, framework::Lifetime::Timeframe}, cells);
   ctx.outputs().snapshot(framework::Output{originEMC, "CELLSTRGR", mSubspecification, framework::Lifetime::Timeframe}, triggers);
   if (mCreateRawDataErrors) {
+    LOG(debug) << "Sending " << decodingErrors.size() << " decoding errors";
     ctx.outputs().snapshot(framework::Output{originEMC, "DECODERERR", mSubspecification, framework::Lifetime::Timeframe}, decodingErrors);
   }
 }
