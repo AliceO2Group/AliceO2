@@ -22,6 +22,7 @@
 #include "FrameworkGUIDataRelayerUsage.h"
 #include "PaletteHelpers.h"
 #include "FrameworkGUIState.h"
+#include "DebugHelpers.h"
 
 #include <fmt/format.h>
 
@@ -435,7 +436,7 @@ void displayDeviceMetrics(const char* label,
     case MetricsDisplayStyle::Lines: {
       auto xAxisFlags = ImPlotAxisFlags_None;
       auto yAxisFlags = ImPlotAxisFlags_LockMin;
-      //ImPlot::FitNextPlotAxes(true, true, true, true);
+      // ImPlot::FitNextPlotAxes(true, true, true, true);
       if (ImPlot::BeginPlot("##Some plot", "time", "value", {-1, -1}, axisFlags, xAxisFlags, yAxisFlags)) {
         for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
           ImGui::PushID(pi);
@@ -922,21 +923,8 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
   }
   ImGui::SameLine();
   if (ImGui::Button("Debug driver")) {
-    std::string pidStr = std::to_string(pid);
-    setenv("O2DEBUGGEDPID", pidStr.c_str(), 1);
-#ifdef __APPLE__
-    std::string defaultAppleDebugCommand =
-      "osascript -e 'tell application \"Terminal\"'"
-      " -e 'activate'"
-      " -e 'do script \"lldb -p \" & (system attribute \"O2DEBUGGEDPID\") & \"; exit\"'"
-      " -e 'end tell'";
-    setenv("O2DPLDEBUG", defaultAppleDebugCommand.c_str(), 0);
-#else
-    setenv("O2DPLDEBUG", "xterm -hold -e gdb attach $O2DEBUGGEDPID &", 0);
-#endif
-    int retVal = system(getenv("O2DPLDEBUG"));
-    (void)retVal;
-  }
+    DebugHelpers::attachDebugger(pid);
+  };
 
   ImGui::SameLine();
   if (ImGui::Button("Profile")) {

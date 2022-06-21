@@ -19,6 +19,7 @@
 #include "Framework/ChannelSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/DeviceController.h"
+#include "DebugHelpers.h"
 
 #include "DebugGUI/imgui.h"
 #include <cinttypes>
@@ -225,18 +226,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
   ImGui::Text("Rank: %zu/%zu%%%zu/%zu", spec.rank, spec.nSlots, spec.inputTimesliceId, spec.maxInputTimeslices);
 
   if (ImGui::Button("Attach debugger")) {
-    std::string pid = std::to_string(info.pid);
-    setenv("O2DEBUGGEDPID", pid.c_str(), 1);
-#ifdef __APPLE__
-    std::string defaultAppleDebugCommand =
-      "osascript -e 'tell application \"Terminal\" to activate'"
-      " -e 'tell application \"Terminal\" to do script \"lldb -p \" & (system attribute \"O2DEBUGGEDPID\") & \"; exit\"'";
-    setenv("O2DPLDEBUG", defaultAppleDebugCommand.c_str(), 0);
-#else
-    setenv("O2DPLDEBUG", "xterm -hold -e gdb attach $O2DEBUGGEDPID &", 0);
-#endif
-    int retVal = system(getenv("O2DPLDEBUG"));
-    (void)retVal;
+    DebugHelpers::attachDebugger(info.pid);
   }
 
   ImGui::SameLine();
