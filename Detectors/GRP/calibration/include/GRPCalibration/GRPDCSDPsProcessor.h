@@ -131,6 +131,51 @@ struct GRPCollimators {
 
 struct GRPLHCInfo {
 
+  enum CollimatorAliases { LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_downstream,
+                           LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_upstream,
+                           LHC_CollimatorPos_TCLIA_4R2_lvdt_left_downstream,
+                           LHC_CollimatorPos_TCLIA_4R2_lvdt_left_upstream,
+                           LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream,
+                           LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream,
+                           NCollimatorAliases };
+  enum BeamAliases { LHC_IntensityBeam1_totalIntensity,
+                     LHC_IntensityBeam2_totalIntensity,
+                     NBeamAliases };
+  enum BkgAliases { ALI_Background1,
+                    ALI_Background2,
+                    ALI_Background3,
+                    NBkgAliases };
+  enum BPTXAliases { BPTX_deltaT_B1_B2,
+                     BPTX_deltaTRMS_B1_B2,
+                     NBPTXAliases };
+  enum BPTXPhaseAliases { BPTX_Phase_B1,
+                          BPTX_Phase_B2,
+                          NBPTXPhaseAliases };
+  enum BPTXPhaseRMSAliases { BPTX_PhaseRMS_B1,
+                             BPTX_PhaseRMS_B2,
+                             NBPTXPhaseRMSAliases };
+  enum BPTXPhaseShiftAliases { BPTX_Phase_Shift_B1,
+                               BPTX_Phase_Shift_B2,
+                               NBPTXPhaseShiftAliases };
+  enum LumiAliases { ALI_Lumi_Total_Inst,
+                     NLumiAliases };
+  enum LHCStringAliases { ALI_Lumi_Source_Name,
+                          BEAM_MODE,
+                          MACHINE_MODE,
+                          NLHCStringAliases };
+  static constexpr std::string_view collimatorAliases[NCollimatorAliases] = {"LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_downstream", "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_upstream",
+                                                                             "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_downstream", "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_upstream",
+                                                                             "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream", "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream"};
+  static constexpr std::string_view beamAliases[NBeamAliases] = {"LHC_IntensityBeam1_totalIntensity", "LHC_IntensityBeam2_totalIntensity"};
+  static constexpr std::string_view bkgAliases[NBkgAliases] = {"ALI_Background1", "ALI_Background2", "ALI_Background3"};
+  static constexpr std::string_view bptxAliases[NBPTXAliases] = {"BPTX_deltaT_B1_B2", "BPTX_deltaTRMS_B1_B2"};
+  static constexpr std::string_view bptxPhaseAliases[NBPTXPhaseAliases] = {"BPTX_Phase_B1", "BPTX_Phase_B2"};
+  static constexpr std::string_view bptxPhaseRMSAliases[NBPTXPhaseRMSAliases] = {"BPTX_PhaseRMS_B1", "BPTX_PhaseRMS_B2"};
+  static constexpr std::string_view bptxPhaseShiftAliases[NBPTXPhaseShiftAliases] = {"BPTX_Phase_Shift_B1", "BPTX_Phase_Shift_B2"};
+  static constexpr std::string_view lumiAliases[NLumiAliases] = {"ALI_Lumi_Total_Inst"};
+  static constexpr std::string_view lhcStringAliases[NLHCStringAliases] = {"ALI_Lumi_Source_Name", "BEAM_MODE", "MACHINE_MODE"};
+  static constexpr int nAliasesLHC = NCollimatorAliases + NBeamAliases + NBkgAliases + NBPTXAliases + NBPTXPhaseAliases + NBPTXPhaseRMSAliases + NBPTXPhaseShiftAliases + NLumiAliases + NLHCStringAliases;
+
   std::array<std::vector<std::pair<uint64_t, double>>, 2> mIntensityBeam;
   std::array<std::vector<std::pair<uint64_t, double>>, 3> mBackground;
   std::vector<std::pair<uint64_t, double>> mInstLumi;
@@ -169,59 +214,53 @@ struct GRPLHCInfo {
 
   void print()
   {
-    char alias[60];
-    for (int i = 0; i < 2; ++i) {
-      std::sprintf(alias, "LHC_IntensityBeam%d_totalIntensity", i + 1);
-      std::printf("%-30s : n elements %ld\n", alias, mIntensityBeam[i].size());
+    for (int i = 0; i < NBeamAliases; ++i) {
+      std::printf("%-30s : n elements %ld\n", beamAliases[i], mIntensityBeam[i].size());
       for (int iel = 0; iel < mIntensityBeam[i].size(); ++iel) {
         std::printf("timestamp %lu   val %.3e\n", llu2lu(mIntensityBeam[i].at(iel).first), mIntensityBeam[i].at(iel).second);
       }
     }
-    for (int i = 0; i < 3; ++i) {
-      std::sprintf(alias, "ALI_Background%d", i + 1);
-      std::printf("%-30s : n elements %ld\n", alias, mBackground[i].size());
+    for (int i = 0; i < NBkgAliases; ++i) {
+      std::printf("%-30s : n elements %ld\n", bkgAliases[i], mBackground[i].size());
       for (int iel = 0; iel < mBackground[i].size(); ++iel) {
         std::printf("timestamp %lu   val %.3e\n", llu2lu(mBackground[i].at(iel).first), mBackground[i].at(iel).second);
       }
     }
-    std::printf("%-30s : n elements %ld\n", "ALI_Lumi_Total_Inst", mInstLumi.size());
+    std::printf("%-30s : n elements %ld\n", lumiAliases[ALI_Lumi_Total_Inst], mInstLumi.size());
     for (int iel = 0; iel < mInstLumi.size(); ++iel) {
       std::printf("timestamp %lu   val %.3e\n", llu2lu(mInstLumi.at(iel).first), mInstLumi.at(iel).second);
     }
-    std::printf("%-30s : n elements %ld\n", "BPTX_deltaT_B1_B2", mBPTXdeltaT.size());
+    std::printf("%-30s : n elements %ld\n", bptxAliases[BPTX_deltaT_B1_B2], mBPTXdeltaT.size());
     for (int iel = 0; iel < mBPTXdeltaT.size(); ++iel) {
       std::printf("timestamp %lu   val %.3e\n", llu2lu(mBPTXdeltaT.at(iel).first), mBPTXdeltaT.at(iel).second);
     }
-    std::printf("%-30s : n elements %ld\n", "BPTX_deltaTRMS_B1_B2", mBPTXdeltaTRMS.size());
+    std::printf("%-30s : n elements %ld\n", bptxAliases[BPTX_deltaTRMS_B1_B2], mBPTXdeltaTRMS.size());
     for (int iel = 0; iel < mBPTXdeltaTRMS.size(); ++iel) {
       std::printf("timestamp %lu   val %.3e\n", llu2lu(mBPTXdeltaTRMS.at(iel).first), mBPTXdeltaTRMS.at(iel).second);
     }
-    for (int i = 0; i < 2; ++i) {
-      std::sprintf(alias, "BPTX_Phase_B%d", i + 1);
-      std::printf("%-30s : n elements %ld\n", alias, mBPTXPhase[i].size());
+    for (int i = 0; i < NBPTXPhaseAliases; ++i) {
+      std::printf("%-30s : n elements %ld\n", bptxPhaseAliases[i], mBPTXPhase[i].size());
       for (int iel = 0; iel < mBPTXPhase[i].size(); ++iel) {
         std::printf("timestamp %lu   val %.3e\n", llu2lu(mBPTXPhase[i].at(iel).first), mBPTXPhase[i].at(iel).second);
       }
     }
-    for (int i = 0; i < 2; ++i) {
-      std::sprintf(alias, "BPTX_PhaseRMS_B%d", i + 1);
-      std::printf("%-30s : n elements %ld\n", alias, mBPTXPhaseRMS[i].size());
+    for (int i = 0; i < NBPTXPhaseRMSAliases; ++i) {
+      std::printf("%-30s : n elements %ld\n", bptxPhaseRMSAliases[i], mBPTXPhaseRMS[i].size());
       for (int iel = 0; iel < mBPTXPhaseRMS[i].size(); ++iel) {
         std::printf("timestamp %lu   val %.3e\n", llu2lu(mBPTXPhaseRMS[i].at(iel).first), mBPTXPhaseRMS[i].at(iel).second);
       }
     }
-    for (int i = 0; i < 2; ++i) {
-      std::sprintf(alias, "BPTX_Phase_Shift_B%d", i + 1);
-      std::printf("%-30s : n elements %ld\n", alias, mBPTXPhaseShift[i].size());
+    for (int i = 0; i < NBPTXPhaseShiftAliases; ++i) {
+      std::printf("%-30s : n elements %ld\n", bptxPhaseShiftAliases[i], mBPTXPhaseShift[i].size());
       for (int iel = 0; iel < mBPTXPhaseShift[i].size(); ++iel) {
         std::printf("timestamp %lu   val %.3e\n", llu2lu(mBPTXPhaseShift[i].at(iel).first), mBPTXPhaseShift[i].at(iel).second);
       }
     }
-    std::printf("%-30s :\n", "ALI_Lumi_Source_Name");
+    std::printf("%-30s :\n", lhcStringAliases[ALI_Lumi_Source_Name]);
     std::printf("timestamp %lu   val %s\n", llu2lu(mLumiSource.first), mLumiSource.second.c_str());
-    std::printf("%-30s :\n", "BEAM_MODE");
+    std::printf("%-30s :\n", lhcStringAliases[BEAM_MODE]);
     std::printf("timestamp %lu   val %s\n", llu2lu(mBeamMode.first), mBeamMode.second.c_str());
-    std::printf("%-30s :\n", "MACHINE_MODE");
+    std::printf("%-30s :\n", lhcStringAliases[MACHINE_MODE]);
     std::printf("timestamp %lu   val %s\n", llu2lu(mMachineMode.first), mMachineMode.second.c_str());
   }
 
@@ -263,20 +302,9 @@ class GRPDCSDPsProcessor
 
   void resetPIDsLHCIF()
   {
-    std::vector<string> aliasLHCIFDPs = {"LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_downstream", "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_upstream",
-                                         "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_downstream", "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_upstream",
-                                         "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream", "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream",
-                                         "LHC_IntensityBeam1_totalIntensity", "LHC_IntensityBeam2_totalIntensity",
-                                         "ALI_Background1", "ALI_Background2", "ALI_Background3",
-                                         "ALI_Lumi_Total_Inst", "BPTX_deltaT_B1_B2", "BPTX_deltaTRMS_B1_B2",
-                                         "BPTX_Phase_B1", "BPTX_Phase_B2",
-                                         "BPTX_PhaseRMS_B1", "BPTX_PhaseRMS_B2",
-                                         "BPTX_Phase_Shift_B1", "BPTX_Phase_Shift_B2",
-                                         "ALI_Lumi_Source_Name", "BEAM_MODE", "MACHINE_MODE"};
-
     for (auto& it : mPids) {
-      for (const auto& ivect : aliasLHCIFDPs) {
-        if (it.first.get_alias() == ivect) {
+      for (const auto& iArray : mArrLHCAliases) {
+        if (it.first.get_alias() == static_cast<std::string>(iArray).c_str()) {
           it.second = false;
         }
       }
@@ -309,6 +337,7 @@ class GRPDCSDPsProcessor
 
   void setStartValidity(long t) { mStartValidity = t; }
   void useVerboseMode() { mVerbose = true; }
+  void clearVectors() { mClearVectors = true; }
 
   void printVectorInfo(const std::vector<std::pair<uint64_t, double>>& vect, bool afterUpdate);
   void updateVector(const DPID& dpid, std::vector<std::pair<uint64_t, double>>& vect, std::string alias, uint64_t timestamp, double val);
@@ -336,6 +365,9 @@ class GRPDCSDPsProcessor
   GRPLHCInfo mLHCInfo;
   o2::ccdb::CcdbObjectInfo mccdbLHCIFInfo;
   bool mUpdateLHCIFInfo = false;
+
+  bool mClearVectors = false;
+  std::array<std::string_view, GRPLHCInfo::nAliasesLHC> mArrLHCAliases;
 
   ClassDefNV(GRPDCSDPsProcessor, 0);
 };

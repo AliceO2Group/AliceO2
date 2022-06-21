@@ -106,8 +106,13 @@ void GRPDCSDPsDataProcessor::init(o2::framework::InitContext& ic)
   mProcessor = std::make_unique<o2::grp::GRPDCSDPsProcessor>();
   mVerbose = ic.options().get<bool>("use-verbose-mode");
   LOG(info) << " ************************* Verbose?" << mVerbose;
+  bool clearVectors = ic.options().get<bool>("clear-vectors");
+  LOG(info) << " ************************* Clear vectors?" << clearVectors;
   if (mVerbose) {
     mProcessor->useVerboseMode();
+  }
+  if (clearVectors) {
+    mProcessor->clearVectors();
   }
   mProcessor->init(vect);
   mTimer = HighResClock::now();
@@ -278,7 +283,8 @@ DataProcessorSpec getGRPDCSDPsDataProcessorSpec()
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
             {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
             {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
-            {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};
+            {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}},
+            {"clear-vectors", VariantType::Bool, false, {"Clear vectors when starting processing for a new CCDB entry (latest value will not be kept)"}}}};
 }
 
 } // namespace framework
