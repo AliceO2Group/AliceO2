@@ -46,7 +46,8 @@ DataProcessorSpec getHypertrackingWriterSpec()
   auto inpV0ID = InputSpec{"v0s", "HYP", "V0S", 0};
   auto inpTrackID = InputSpec{"hypertrack", "HYP", "HYPERTRACKS", 0};
   auto inpChi2ID = InputSpec{"v0itschi2", "HYP", "CHI2", 0};
-  auto inpHe3Att = InputSpec{"he3updates", "HYP", "HE3UPDATES",0};
+  auto inpR2ID = InputSpec{"v0r2", "HYP", "R2", 0};
+  auto inpClusAtt = InputSpec{"clusupdates", "HYP", "CLUSUPDATES",0};
   auto inpRefID = InputSpec{"itsrefs", "HYP", "ITSREFS", 0};
 
   return MakeRootTreeWriterSpec("hypertracking-writer",
@@ -55,7 +56,8 @@ DataProcessorSpec getHypertrackingWriterSpec()
                                 BranchDefinition<std::vector<V0>>{inpV0ID, "V0s", loggerV},
                                 BranchDefinition<std::vector<o2::track::TrackParCov>>{inpTrackID, "Hypertracks", loggerT},
                                 BranchDefinition<std::vector<float>>{inpChi2ID, "ITSV0Chi2"},
-                                BranchDefinition<std::vector<o2::strangeness_tracking::He3Attachments>>{inpHe3Att, "He3Updates"},
+                                BranchDefinition<std::vector<float>>{inpR2ID, "R2"},
+                                BranchDefinition<std::vector<o2::strangeness_tracking::ClusAttachments>>{inpClusAtt, "ClusUpdates"},
                                 BranchDefinition<std::vector<int>>{inpRefID, "ITSTrackRefs"})();
 }
 
