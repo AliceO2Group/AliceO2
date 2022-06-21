@@ -60,7 +60,7 @@ class DCSDevice : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
 
   template <typename T>
-  void sendObject(DataAllocator& output, T& obj, const CDBType calibType, const DCSProcessor::TimeRange& timeRange);
+  void sendObject(DataAllocator& output, T& obj, const CDBType calibType);
 
   void updateCCDB(DataAllocator& output);
 
@@ -150,13 +150,13 @@ void DCSDevice::run(o2::framework::ProcessingContext& pc)
 }
 
 template <typename T>
-void DCSDevice::sendObject(DataAllocator& output, T& obj, const CDBType calibType, const DCSProcessor::TimeRange& timeRange)
+void DCSDevice::sendObject(DataAllocator& output, T& obj, const CDBType calibType)
 {
   LOGP(info, "Prepare CCDB for {}", CDBTypeMap.at(calibType));
 
   std::map<std::string, std::string> md = mCDBStorage.getMetaData();
   o2::ccdb::CcdbObjectInfo w;
-  o2::calibration::Utils::prepareCCDBobjectInfo(obj, w, CDBTypeMap.at(calibType), md, timeRange.first, timeRange.last);
+  o2::calibration::Utils::prepareCCDBobjectInfo(obj, w, CDBTypeMap.at(calibType), md, mUpdateIntervalStart, mLastCreationTime - 1);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&obj, &w);
 
   LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", w.getPath(), w.getFileName(), image->size(), w.getStartValidityTimestamp(), w.getEndValidityTimestamp());
@@ -166,9 +166,9 @@ void DCSDevice::sendObject(DataAllocator& output, T& obj, const CDBType calibTyp
 
 void DCSDevice::updateCCDB(DataAllocator& output)
 {
-  sendObject(output, mDCS.getTemperature(), CDBType::CalTemperature, mDCS.getTimeTemperature());
-  sendObject(output, mDCS.getHighVoltage(), CDBType::CalHV, mDCS.getTimeHighVoltage());
-  sendObject(output, mDCS.getGas(), CDBType::CalGas, mDCS.getTimeGas());
+  sendObject(output, mDCS.getTemperature(), CDBType::CalTemperature);
+  sendObject(output, mDCS.getHighVoltage(), CDBType::CalHV);
+  sendObject(output, mDCS.getGas(), CDBType::CalGas);
 }
 
 /// ===| create DCS processor |=================================================
