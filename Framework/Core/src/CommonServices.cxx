@@ -176,7 +176,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
         time_t now = time(nullptr);
         auto ltm = gmtime(&now);
         context.lhcPeriod = months[ltm->tm_mon];
-        LOG(warning) << "LHCPeriod is not available, using current month " << context.lhcPeriod;
+        LOG(info) << "LHCPeriod is not available, using current month " << context.lhcPeriod;
       }
 
       auto extRunType = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("run_type", "unspecified");
@@ -652,7 +652,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         // is conservatively the one of the device doing the forwarding.
         if (spec.forwards[fi].channel.rfind("from_", 0) == 0) {
           auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
-          LOGP(info, "Forwarding to channel {} oldest possible timeslice {}", spec.forwards[fi].channel, oldestTimeslice.timeslice.value);
+          LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}", spec.forwards[fi].channel, oldestTimeslice.timeslice.value);
           DataProcessingHelpers::sendOldestPossibleTimeframe(channel, oldestTimeslice.timeslice.value);
         }
       }

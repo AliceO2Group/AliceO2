@@ -185,7 +185,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* nam
       } else if (withPayload == 0) {
         return CompletionPolicy::CompletionOp::Wait;
       }
-      return CompletionPolicy::CompletionOp::ConsumeExisting;
+      return CompletionPolicy::CompletionOp::ConsumeAndRescan;
     }
 
   };
@@ -202,6 +202,14 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, Compl
     return CompletionPolicy::CompletionOp::Wait;
   };
   return CompletionPolicy{name, matcher, callback};
+}
+
+CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(std::string matchName)
+{
+  auto matcher = [matchName](DeviceSpec const& device) -> bool {
+    return std::regex_match(device.name.begin(), device.name.end(), std::regex(matchName));
+  };
+  return consumeWhenAny(matcher);
 }
 
 CompletionPolicy CompletionPolicyHelpers::processWhenAny(const char* name, CompletionPolicy::Matcher matcher)

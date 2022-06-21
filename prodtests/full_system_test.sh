@@ -17,6 +17,16 @@ if [ "0$O2_ROOT" == "0" ] || [ "0$AEGIS_ROOT" == "0" ]; then
   exit 1
 fi
 
+if [[ $DPL_CONDITION_BACKEND != "http://o2-ccdb.internal" && $DPL_CONDITION_BACKEND != "http://localhost:8084" && $DPL_CONDITION_BACKEND != "http://127.0.0.1:8084" ]]; then
+  alien-token-info >& /dev/null
+  RETVAL=$?
+  if [[ $RETVAL != 0 ]]; then
+    echo "command alien-token-init had nonzero exit code $RETVAL" 1>&2
+    echo "FATAL: No alien token present" 1>&2
+    exit 1
+  fi
+fi
+
 # include jobutils, which notably brings
 # --> the taskwrapper as a simple control and monitoring tool
 #     (look inside the jobutils.sh file for documentation)
@@ -47,13 +57,14 @@ RUNFIRSTORBIT=${RUNFIRSTORBIT:-0}
 FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-0}
 OBLIGATORYSOR=${OBLIGATORYSOR:-false}
 FST_TPC_ZSVERSION=${FST_TPC_ZSVERSION:-2}
-RUNNUMBER=300000 # a default un-anchored run number
 if [ $BEAMTYPE == "PbPb" ]; then
   FST_GENERATOR=${FST_GENERATOR:-pythia8hi}
   FST_COLRATE=${FST_COLRATE:-50000}
+  RUNNUMBER=310000 # a default un-anchored Pb-Pb run number
 else
   FST_GENERATOR=${FST_GENERATOR:-pythia8pp}
   FST_COLRATE=${FST_COLRATE:-400000}
+  RUNNUMBER=303000 # a default un-anchored pp run number
 fi
 FST_MC_ENGINE=${FST_MC_ENGINE:-TGeant4}
 
@@ -104,10 +115,11 @@ if [ $SPLITTRDDIGI == "1" ]; then
 else
   DIGITOPTKEY+=$DIGITOPTKEYTRD
 fi
+DIGITDOWNSCALINGTRD=${DIGITDOWNSCALINGTRD:-1000}
 
 taskwrapper sim.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} --seed $O2SIMSEED -n $NEvents --configKeyValues "Diamond.width[2]=6." -g ${FST_GENERATOR} -e ${FST_MC_ENGINE} -j $NJOBS --run ${RUNNUMBER}
 taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents ${DIGIQED} ${NOMCLABELS} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITOPT} --configKeyValues "\"${DIGITOPTKEY}\"" --interactionRate $FST_COLRATE
-[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root --configKeyValues "\"${DIGITOPTKEYTRD}\""
+[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --trd-digit-downscaling ${DIGITDOWNSCALINGTRD} --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root --configKeyValues "\"${DIGITOPTKEYTRD}\""
 touch digiTRD.log_done
 
 if [ "0$GENERATE_ITSMFT_DICTIONARIES" == "01" ]; then

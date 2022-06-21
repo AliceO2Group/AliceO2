@@ -35,6 +35,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
       BandMatrixSolver.cxx
       MultivariatePolynomial.cxx
       MultivariatePolynomialHelper.cxx
+      NDPiecewisePolynomials.cxx
       devtools/IrregularSpline1D.cxx
       devtools/IrregularSpline2D3D.cxx
       devtools/SemiregularSpline2D3D.cxx
@@ -55,7 +56,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                        O2::GPUUtils
                                        Vc::Vc
-                                       ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad
+                                       ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad ROOT::Minuit
                              )
 
   o2_target_root_dictionary(${MODULE}
@@ -83,12 +84,14 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
           SplineDemo.C
           SplineRecoveryDemo.C
           fastTransformQA.C
+          TPCFastTransformInit.C
           generateTPCCorrectionNTuple.C)
     o2_add_test_root_macro(macro/${m}
                            PUBLIC_LINK_LIBRARIES O2::TPCFastTransformation
                                                  O2::DataFormatsTPC
                                                  O2::TPCSimulation
                                                  O2::TPCReconstruction
+                                                 O2::SpacePoints
                           PUBLIC_INCLUDE_DIRECTORIES
                                                  ${CMAKE_BINARY_DIR}/stage/include
                            LABELS gpu tpc COMPILE_ONLY)

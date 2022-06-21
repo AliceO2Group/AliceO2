@@ -59,8 +59,8 @@ class TRDDCSDataProcessor : public o2::framework::Task
     }
     mCurrentsDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval-currents");
     if (mCurrentsDPsUpdateInterval == 0) {
-      LOG(error) << "TRD DPs update interval set to zero seconds --> changed to 60s";
-      mCurrentsDPsUpdateInterval = 60;
+      LOG(error) << "TRD DPs update interval set to zero seconds --> changed to 120s";
+      mCurrentsDPsUpdateInterval = 120;
     }
     mVoltagesDPsUpdateInterval = ic.options().get<int64_t>("DPs-update-interval-voltages");
     if (mVoltagesDPsUpdateInterval == 0) {
@@ -126,19 +126,21 @@ class TRDDCSDataProcessor : public o2::framework::Task
     mTimerVoltages = mTimerGas;
     mTimerCurrents = mTimerGas;
     mTimerEnv = mTimerGas;
+
+    mReportTiming = ic.options().get<bool>("report-timing") || verbosity > 0;
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    TStopwatch sw;
     auto currentTimeStamp = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
     auto timeNow = std::chrono::high_resolution_clock::now();
     if (currentTimeStamp < 1577833200000UL || currentTimeStamp > 2208985200000UL) {
-      LOG(error) << "The creation time of this TF is set to " << currentTimeStamp << ". Overwriting this with current time";
+      LOG(warning) << "The creation time of this TF is set to " << currentTimeStamp << ". Overwriting this with current time";
       // in case it is not set
       currentTimeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
     }
-    LOG(warning) << "Setting current time stamp: " << currentTimeStamp; // TODO REMOVE BEFORE MERGING
     mProcessor->setCurrentTS(currentTimeStamp);
     mProcessor->process(dps);
 
@@ -156,7 +158,7 @@ class TRDDCSDataProcessor : public o2::framework::Task
     }
 
     auto elapsedTimeCurrents = timeNow - mTimerCurrents; // in ns
-    if (elapsedTimeCurrents.count() * 1e-9 >= mVoltagesDPsUpdateInterval) {
+    if (elapsedTimeCurrents.count() * 1e-9 >= mCurrentsDPsUpdateInterval) {
       sendDPsoutputCurrents(pc.outputs());
       mTimerCurrents = timeNow;
     }
@@ -170,6 +172,10 @@ class TRDDCSDataProcessor : public o2::framework::Task
     if (mProcessor->shouldUpdateRun()) {
       sendDPsoutputRun(pc.outputs());
     }
+    sw.Stop();
+    if (mReportTiming) {
+      LOGP(info, "Timing CPU:{:.3e} Real:{:.3e} at slice {}", sw.CpuTime(), sw.RealTime(), pc.services().get<o2::framework::TimingInfo>().timeslice);
+    }
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
@@ -182,6 +188,7 @@ class TRDDCSDataProcessor : public o2::framework::Task
   }
 
  private:
+  bool mReportTiming = false;
   std::unique_ptr<DCSProcessor> mProcessor;
   std::chrono::high_resolution_clock::time_point mTimerGas;
   std::chrono::high_resolution_clock::time_point mTimerVoltages;
@@ -315,8 +322,9 @@ DataProcessorSpec getTRDDCSDataProcessorSpec()
     AlgorithmSpec{adaptFromTask<o2::trd::TRDDCSDataProcessor>()},
     Options{{"ccdb-path", VariantType::String, "http://localhost:8080", {"Path to CCDB"}},
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
+            {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
             {"processor-verbosity", VariantType::Int, 0, {"Increase for more verbose output (max 3)"}},
-            {"DPs-update-interval-currents", VariantType::Int64, 60ll, {"Interval (in s) after which to update the DPs CCDB entry for current parameters"}},
+            {"DPs-update-interval-currents", VariantType::Int64, 120ll, {"Interval (in s) after which to update the DPs CCDB entry for current parameters"}},
             {"DPs-update-interval-voltages", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry for voltage parameters"}},
             {"DPs-update-interval-env", VariantType::Int64, 1800ll, {"Interval (in s) after which to update the DPs CCDB entry for environment parameters"}},
             {"DPs-min-update-interval-voltages", VariantType::Int64, 120ll, {"Minimum range to be covered by voltage CCDB object"}},

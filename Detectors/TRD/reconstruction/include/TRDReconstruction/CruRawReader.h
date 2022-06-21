@@ -162,9 +162,8 @@ class CruRawReader
 
  protected:
   bool processHBFs(int datasizealreadyread = 0, bool verbose = false);
-  bool processHBFsa(int datasizealreadyread = 0, bool verbose = false);
   bool buildCRUPayLoad();
-  int processHalfCRU(int cruhbfstartoffset);
+  int processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU);
   bool processCRULink();
   int parseDigitHCHeader();
   int checkDigitHCHeader();
@@ -176,6 +175,9 @@ class CruRawReader
     if (mRootOutput) {
       mParsingErrors->Fill(hist);
       ((TH2F*)mParsingErrors2d->At(hist))->Fill(sectorside, stack * constants::NLAYER + layer);
+    }
+    if (mDataVerbose) {
+      LOG(info) << "Parsing error: " << hist << " sectorside:" << sectorside << " stack:" << stack << " layer:" << layer;
     }
   }
   void dumpRDHAndNextHeader(const o2::header::RDHAny* rdh);
@@ -233,6 +235,7 @@ class CruRawReader
 
   const o2::header::RDHAny* mDataRDH;
   HalfCRUHeader mCurrentHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on
+  HalfCRUHeader mPreviousHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on
   DigitHCHeader mDigitHCHeader;        // Digit HalfChamber header we are currently on.
   DigitHCHeader1 mDigitHCHeader1;      // this and the next 2 are option are and variable in order, hence
   DigitHCHeader2 mDigitHCHeader2;      // the individual seperation instead of an array.

@@ -40,23 +40,24 @@ void AO2DConverter::init(o2::framework::InitContext& ic)
   mHelper = std::make_shared<EveWorkflowHelper>();
 }
 
-void AO2DConverter::process(o2::aod::Collisions const& collisions, EveWorkflowHelper::AODBarrelTracks const& barrelTracks, EveWorkflowHelper::AODForwardTracks const& fwdTracks, EveWorkflowHelper::AODMFTTracks const& mftTracks)
+void AO2DConverter::process(o2::aod::Collision const& collision, EveWorkflowHelper::AODBarrelTracks const& barrelTracks, EveWorkflowHelper::AODForwardTracks const& fwdTracks, EveWorkflowHelper::AODMFTTracks const& mftTracks)
 {
-  for (auto const& c : collisions) {
-    auto const barrelTracksForCol = barrelTracks.sliceBy(aod::track::collisionId, c.globalIndex());
-    auto const mftTracksForCol = mftTracks.sliceBy(aod::fwdtrack::collisionId, c.globalIndex());
-
-    for (auto const& track : barrelTracksForCol) {
-      mHelper->drawAODBarrel(track, c.collisionTime());
-    }
-
-    for (auto const& track : mftTracksForCol) {
-      mHelper->drawAODMFT(track, c.collisionTime());
-    }
-
-    mHelper->save(jsonPath, collisions.size(), GlobalTrackID::MASK_ALL, GlobalTrackID::MASK_NONE, mRunNumber, mCreationTime);
-    mHelper->clear();
+  for (auto const& track : barrelTracks) {
+    mHelper->drawAODBarrel(track, collision.collisionTime());
   }
+
+  for (auto const& track : mftTracks) {
+    mHelper->drawAODMFT(track, collision.collisionTime());
+  }
+
+  mHelper->mEvent.setClMask(GlobalTrackID::MASK_NONE.to_ulong());
+  mHelper->mEvent.setTrkMask(GlobalTrackID::MASK_ALL.to_ulong());
+  mHelper->mEvent.setRunNumber(mRunNumber);
+  mHelper->mEvent.setTfCounter(mTfCounter);
+  mHelper->mEvent.setFirstTForbit(mTfOrbit);
+
+  mHelper->save(jsonPath, -1, GlobalTrackID::MASK_ALL, GlobalTrackID::MASK_NONE, mRunNumber, collision.collisionTime());
+  mHelper->clear();
 }
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)

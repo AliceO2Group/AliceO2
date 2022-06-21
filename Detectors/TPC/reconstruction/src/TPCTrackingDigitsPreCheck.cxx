@@ -22,6 +22,7 @@
 #include "GPUO2Interface.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "TPCBase/Sector.h"
+#include "Framework/Logger.h"
 
 #include <atomic>
 #include <optional>
@@ -59,14 +60,20 @@ TPCTrackingDigitsPreCheck::precheckModifiedData TPCTrackingDigitsPreCheck::runPr
       if (updateDigits) {
         retVal->gpuDigits[i].reserve(d->nTPCDigits[i]);
       }
+      int lastTime = 0;
       for (int j = 0; j < d->nTPCDigits[i]; j++) {
-        if (maxContTimeBin && d->tpcDigits[i][j].getTimeStamp() >= maxContTimeBin) {
+        int timeBin = d->tpcDigits[i][j].getTimeStamp();
+        if (maxContTimeBin && timeBin >= maxContTimeBin) {
           static bool filterOutOfTF = getenv("TPC_WORKFLOW_FILTER_DIGITS_OUTSIDE_OF_TF") && atoi(getenv("TPC_WORKFLOW_FILTER_DIGITS_OUTSIDE_OF_TF"));
           if (filterOutOfTF) {
             continue;
           }
           throw std::runtime_error("Digit time bin exceeds time frame length");
         }
+        if (timeBin < lastTime) {
+          LOG(fatal) << "Incorrect digit ordering: time(" << j << ") = " << timeBin << " < time(" << (j - 1) << ") = " << lastTime;
+        }
+        lastTime = timeBin;
         if (updateDigits) {
           if (d->tpcDigits[i][j].getChargeFloat() >= zsThreshold) {
             if (d->tpcDigitsMC) {

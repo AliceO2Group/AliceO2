@@ -768,9 +768,9 @@ class RawPixelReader : public PixelReader
 #ifdef _RAW_READER_ERROR_CHECKS_
     if (RDHUtils::getPacketCounter(rdh) > ruLink->packetCounter + 1) {
       ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrPacketCounterJump]++;
-      LOG(alarm) << ruLinkStat.ErrNames[GBTLinkDecodingStat::ErrPacketCounterJump]
-                 << " : FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << ": jump from " << int(ruLink->packetCounter)
-                 << " to " << int(RDHUtils::getPacketCounter(rdh));
+      LOG(warn) << ruLinkStat.ErrNames[GBTLinkDecodingStat::ErrPacketCounterJump]
+                << " : FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << ": jump from " << int(ruLink->packetCounter)
+                << " to " << int(RDHUtils::getPacketCounter(rdh));
       RDHUtils::printRDH(rdh);
     }
 #endif
@@ -1036,9 +1036,9 @@ class RawPixelReader : public PixelReader
 #ifdef _RAW_READER_ERROR_CHECKS_
     if (RDHUtils::getPacketCounter(rdh) > ruLink->packetCounter + 1) {
       ruLinkStat.errorCounts[GBTLinkDecodingStat::ErrPacketCounterJump]++;
-      LOG(alarm) << ruLinkStat.ErrNames[GBTLinkDecodingStat::ErrPacketCounterJump]
-                 << " : FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << ": jump from " << int(ruLink->packetCounter)
-                 << " to " << int(RDHUtils::getPacketCounter(rdh));
+      LOG(warn) << ruLinkStat.ErrNames[GBTLinkDecodingStat::ErrPacketCounterJump]
+                << " : FEEId:" << OUTHEX(RDHUtils::getFEEID(rdh), 4) << ": jump from " << int(ruLink->packetCounter)
+                << " to " << int(RDHUtils::getPacketCounter(rdh));
       RDHUtils::printRDH(rdh);
     }
 #endif

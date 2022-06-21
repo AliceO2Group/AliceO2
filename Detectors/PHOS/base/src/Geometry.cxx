@@ -97,15 +97,15 @@ bool Geometry::truAbsToRelNumbering(short truId, short trigType, char* relid)
       relid[2] = 0;
       return false;
     }
-    relid[1] = 16 * ((2 + ddl) % 4) + 13 - 2 * (truId % 7); // x index
+    relid[1] = 16 * ((2 + ddl) % 4) + 1 + 2 * (truId % 7); // x index
     if (truId < 112) {
       relid[2] = 53 - 2 * (truId / 7); // z index branch 0
     } else {
       truId -= 112;
       relid[2] = 25 - 2 * (truId / 7); // z index branch 1
     }
-  } else {                                                  // 2x2 trigger
-    relid[1] = 16 * ((2 + ddl) % 4) + 15 - 2 * (truId % 8); // x index
+  } else {                                                 // 2x2 trigger
+    relid[1] = 16 * ((2 + ddl) % 4) + 1 + 2 * (truId % 8); // x index
     if (truId < 112) {
       relid[2] = 55 - 2 * (truId / 8); // z index branch 0
     } else {
@@ -127,7 +127,7 @@ short Geometry::truRelToAbsNumbering(const char* relId, short trigType)
     } else {
       absId = 112 + ((25 - relId[2]) / 2) * 7;
     }
-    absId += ((13 - relId[1] % 16) / 2) % 7;
+    absId += (((relId[1] - 1) % 16) / 2) % 7;
     absId += ddl * 224;
     return getTotalNCells() + absId + 1;
   } else { // 2x2
@@ -136,7 +136,7 @@ short Geometry::truRelToAbsNumbering(const char* relId, short trigType)
     } else {
       absId = 112 + ((27 - relId[2]) / 2) * 8;
     }
-    absId += ((15 - (relId[1] % 16)) / 2) % 8;
+    absId += (((relId[1] - 1) % 16) / 2) % 8;
     absId += ddl * 224;
     return getTotalNCells() + absId + 1;
   }

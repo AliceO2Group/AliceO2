@@ -336,6 +336,10 @@ void AlignableVolume::prepareMatrixT2L()
   // for non-sensors we define the fake tracking frame with the alpha angle being
   // the average angle of centers of its children
   //
+  if (isSensor()) {
+    LOGP(fatal, "Sensor {} must provide its own prepareMatrixT2L method", getSymName());
+  }
+
   double tot[3] = {0, 0, 0}, loc[3] = {0, 0, 0}, glo[3];
   int nch = getNChildren();
   for (int ich = nch; ich--;) {
@@ -364,26 +368,6 @@ void AlignableVolume::prepareMatrixT2L()
   const TGeoHMatrix& l2gi = getMatrixL2GIdeal().Inverse();
   mMatT2L.MultiplyLeft(&l2gi);
   //
-}
-
-//____________________________________________
-void AlignableVolume::setMatrixT2L(const TGeoHMatrix& m)
-{
-  // set the T2L matrix and define tracking frame
-  // Note that this method is used for the externally set matrices
-  // (in case of sensors). For other volumes the tracking frame and matrix
-  // is defined in the prepareMatrixT2L method
-  mMatT2L = m;
-  setTrackingFrame();
-}
-
-//__________________________________________________________________
-void AlignableVolume::setTrackingFrame()
-{
-  // Define tracking frame of the sensor
-  // This method should be implemented for sensors, which receive the T2L
-  // matrix from the geometry
-  LOG(error) << "Volume " << GetName() << " was supposed to implement its own method";
 }
 
 //__________________________________________________________________

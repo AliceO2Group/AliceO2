@@ -1796,7 +1796,6 @@ void TrapSimulator::fitTracklet()
           // prepare 64 bit tracklet word directly
           uint64_t trkltWord64 = mTrkltWordEmpty;
           trkltWord64 |= (static_cast<uint64_t>(position & 0x7ff) << Tracklet64::posbs) | (static_cast<uint64_t>(slope & 0xff) << Tracklet64::slopebs) | (q2 << Tracklet64::Q2bs) | (q1 << Tracklet64::Q1bs) | q0;
-          trkltWord64 ^= 0x8080000000UL; // two bits are inverted in before the tracklet is sent / stored
           mTrackletArray64.emplace_back(trkltWord64);
 
           // calculate number of hits and MC label

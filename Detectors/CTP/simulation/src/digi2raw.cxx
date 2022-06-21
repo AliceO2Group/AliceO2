@@ -27,7 +27,7 @@
 namespace bpo = boost::program_options;
 
 void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, const std::string& fileForLink, uint32_t rdhV = 4, bool noEmptyHBF = false,
-              int superPageSizeInB = 1024 * 1024);
+              bool zsIR = true, bool zsClass = true, int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
 {
@@ -49,6 +49,8 @@ int main(int argc, char** argv)
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
+    add_option("no-zs-ir", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not zero-suppress interaction records");
+    add_option("no-zs-class", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not zero-suppress trigger class records");
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
@@ -81,14 +83,16 @@ int main(int argc, char** argv)
            vm["verbosity"].as<int>(),
            vm["file-for"].as<std::string>(),
            vm["rdh-version"].as<uint32_t>(),
-           vm["no-empty-hbf"].as<bool>());
+           vm["no-empty-hbf"].as<bool>(),
+           !vm["no-zs-ir"].as<bool>(),
+           !vm["no-zs-class"].as<bool>());
 
   o2::raw::HBFUtils::Instance().print();
 
   return 0;
 }
 
-void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, const std::string& fileForLink, uint32_t rdhV, bool noEmptyHBF, int superPageSizeInB)
+void digi2raw(const std::string& inpName, const std::string& outDir, int verbosity, const std::string& fileForLink, uint32_t rdhV, bool noEmptyHBF, bool zsIR, bool zsClass, int superPageSizeInB)
 {
   TStopwatch swTot;
   swTot.Start();
@@ -116,6 +120,8 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
     }
   }
   m2r.setOutDir(outDirName);
+  m2r.setZeroSuppressedIntRec(zsIR);
+  m2r.setZeroSuppressedClassRec(zsClass);
   m2r.init();
   m2r.processDigits(inpName);
   wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));

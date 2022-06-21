@@ -56,6 +56,8 @@ void setStyleHistogram(TH1& histo);
 
 // set nice style of histograms in a map of vectors
 void setStyleHistogramsInMap(std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>>& mapOfvectors);
+// set nice style of histograms in a map
+void setStyleHistogramsInMap(std::unordered_map<std::string_view, std::unique_ptr<TH1>>& mapOfHisto);
 /// Check if at least one pad in refPedestal and pedestal differs by 3*refNoise to see if new ZS calibration data should be uploaded to the FECs.
 /// @param refPedestal
 /// @param refNoise

@@ -95,7 +95,7 @@ void PrimaryVertexReader::run(ProcessingContext& pc)
   if (mVerbose) {
     size_t nrec = mPV2MatchIdxRef.size();
     for (size_t cnt = 0; cnt < nrec; cnt++) {
-      if (cnt < mVertices.size() - 1) {
+      if (cnt < mVertices.size()) {
         const auto& vtx = mVertices[cnt];
         Label lb;
         if (mUseMC) {

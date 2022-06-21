@@ -77,6 +77,28 @@ GPUReconstructionCUDABackend::~GPUReconstructionCUDABackend()
   }
 }
 
+int GPUReconstructionCUDABackend::GPUFailedMsgAI(const long long int error, const char* file, int line)
+{
+  // Check for CUDA Error and in the case of an error display the corresponding error string
+  if (error == cudaSuccess) {
+    return (0);
+  }
+  GPUError("CUDA Error: %lld / %s (%s:%d)", error, cudaGetErrorString((cudaError_t)error), file, line);
+  return 1;
+}
+
+void GPUReconstructionCUDABackend::GPUFailedMsgA(const long long int error, const char* file, int line)
+{
+  if (GPUFailedMsgAI(error, file, line)) {
+    static bool runningCallbacks = false;
+    if (IsInitialized() && runningCallbacks == false) {
+      runningCallbacks = true;
+      CheckErrorCodes(false, true);
+    }
+    throw std::runtime_error("CUDA Failure");
+  }
+}
+
 GPUReconstructionCUDA::GPUReconstructionCUDA(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionKernels(cfg)
 {
   mDeviceBackendSettings.deviceType = DeviceType::CUDA;

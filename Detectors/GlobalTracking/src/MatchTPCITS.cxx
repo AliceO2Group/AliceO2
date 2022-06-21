@@ -1823,6 +1823,11 @@ int MatchTPCITS::followABSeed(const o2::track::TrackParCov& seed, const ITSChipC
     // coordinates xCross,yCross,zCross for this central chipIDguess, although we are going to check also neighbours
     float t = 1e9, xCross, yCross;
     const auto& chipC = lad.chips[chipIDguess];
+    if (mFieldON) {
+      chipC.xyEdges.circleCrossParam(trcCircle, t);
+    } else {
+      chipC.xyEdges.lineCrossParam(trcLinPar, t);
+    }
     chipC.xyEdges.eval(t, xCross, yCross);
     float dx = xCross - xCurr, dy = yCross - yCurr, dst2 = dx * dx + dy * dy, dst = sqrtf(dst2);
     // Z-step sign depends on radius decreasing or increasing during the propagation

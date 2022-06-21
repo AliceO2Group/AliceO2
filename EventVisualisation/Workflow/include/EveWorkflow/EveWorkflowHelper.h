@@ -49,6 +49,11 @@ namespace o2::phos
 class Geometry;
 }
 
+namespace o2::emcal
+{
+class Geometry;
+}
+
 namespace o2::event_visualisation
 {
 using GID = o2::dataformats::GlobalTrackID;
@@ -61,56 +66,20 @@ struct TracksSet {
 
 class EveWorkflowHelper
 {
-  static constexpr std::array<std::pair<float, float>, GID::NSources> minmaxR{{
-    {1., 40.},   // ITS
-    {85., 240.}, // TPC
-    {-1, -1},    // TRD (never alone)
-    {-1, -1},    // TOF
-    {-1, -1},    // PHS
-    {-1, -1},    // CPV
-    {-1, -1},    // EMC
-    {-1, -1},    // HMP
-    {-1, -1},    // MFT
-    {-1, -1},    // MCH
-    {-1, -1},    // MID
-    {-1, -1},    // ZDC
-    {-1, -1},    // FT0
-    {-1, -1},    // VF0
-    {-1, -1},    // FDD
-    {1., 240},   // ITSTPC
-    {85., 405.}, // TPCTOF
-    {85., 372.}, // TPCTRD
-    {1., 372.},  // ITSTPCTRD
-    {1., 405.},  // ITSTPCTOF,
-    {85., 405.}, // TPCTRDTOF,
-    {1., 405.},  // ITSTPCTRDTOF, // full barrel track
-    {-1, -1},    // ITSAB,
-  }};
-  static constexpr std::array<std::pair<float, float>, GID::NSources> minmaxZ{{
-    {-74., 74.},   // ITS
-    {-260., 260.}, // TPC
-    {-1, -1},      // TRD (never alone)
-    {-1, -1},      // TOF
-    {-1, -1},      // PHS
-    {-1, -1},      // CPV
-    {-1, -1},      // EMC
-    {-1, -1},      // HMP
-    {-1, -1},      // MFT
-    {-1, -1},      // MCH
-    {-1, -1},      // MID
-    {-1, -1},      // ZDC
-    {-1, -1},      // FT0
-    {-1, -1},      // VF0
-    {-1, -1},      // FDD
-    {-260., 260.}, // ITSTPC
-    {-375., 375.}, // TPCTOF
-    {-375., 375.}, // TPCTRD
-    {-375., 375.}, // ITSTPCTRD
-    {-375., 375.}, // ITSTPCTOF,
-    {-375., 375.}, // TPCTRDTOF,
-    {-375., 375.}, // ITSTPCTRDTOF, // full barrel track
-    {-1, -1},      // ITSAB,
-  }};
+  struct PropagationRange {
+    float minR;
+    float maxR;
+    float minZ;
+    float maxZ;
+  };
+
+  static constexpr EveWorkflowHelper::PropagationRange prITS = {1.f, 40.f, -74.f, 74.f};
+  static constexpr EveWorkflowHelper::PropagationRange prTPC = {85.f, 240.f, -260.f, 260.f};
+  static constexpr EveWorkflowHelper::PropagationRange prTRD = {-1.f, 372.f, -375.f, 375.f};
+  static constexpr EveWorkflowHelper::PropagationRange prTOF = {-1.f, 405.f, -375.f, 375.f};
+
+  static const std::unordered_map<GID::Source, PropagationRange> propagationRanges;
+
   std::unique_ptr<gpu::TPCFastTransform> mTPCFastTransform;
 
  public:
@@ -139,7 +108,7 @@ class EveWorkflowHelper
   static std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep, float minZ = -25000, float maxZ = 25000);
   void selectTracks(const CalibObjectsConst* calib, GID::mask_t maskCl,
                     GID::mask_t maskTrk, GID::mask_t maskMatch, bool trackSorting);
-  void addTrackToEvent(const o2::track::TrackParCov& tr, GID gid, float trackTime, float dz, GID::Source source = GID::NSources, float maxStep = 4.f);
+  void addTrackToEvent(const o2::track::TrackPar& tr, GID gid, float trackTime, float dz, GID::Source source = GID::NSources, float maxStep = 4.f);
   void draw();
   void drawTPC(GID gid, float trackTime);
   void drawITS(GID gid, float trackTime);
@@ -147,13 +116,15 @@ class EveWorkflowHelper
   void drawMCH(GID gid, float trackTime);
   void drawMID(GID gid, float trackTime);
   void drawITSTPC(GID gid, float trackTime, GID::Source source = GID::ITSTPC);
-  void drawITSTPCTOF(GID gid, float trackTime);
-  void drawITSTPCTRD(GID gid, float trackTime);
+  void drawITSTPCTOF(GID gid, float trackTime, GID::Source source = GID::ITSTPCTOF);
+  void drawITSTPCTRD(GID gid, float trackTime, GID::Source source = GID::ITSTPCTRD);
   void drawITSTPCTRDTOF(GID gid, float trackTime);
   void drawTPCTRDTOF(GID gid, float trackTime);
-  void drawTPCTRD(GID gid, float trackTime);
+  void drawTPCTRD(GID gid, float trackTime, GID::Source source = GID::TPCTRD);
   void drawTPCTOF(GID gid, float trackTime);
   void drawPHOS();
+  void drawEMCAL();
+
   void drawAODBarrel(AODBarrelTrack const& track, float trackTime);
   void drawAODMFT(AODMFTTrack const& track, float trackTime);
   void drawITSClusters(GID gid, float trackTime);
@@ -191,6 +162,7 @@ class EveWorkflowHelper
   o2::mft::GeometryTGeo* mMFTGeom;
   o2::its::GeometryTGeo* mITSGeom;
   o2::phos::Geometry* mPHOSGeom;
+  o2::emcal::Geometry* mEMCALGeom;
 
   float mMUS2TPCTimeBins = 5.0098627;
   float mITSROFrameLengthMUS = 0; ///< ITS RO frame in mus

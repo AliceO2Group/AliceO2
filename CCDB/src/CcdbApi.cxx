@@ -862,6 +862,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
       LOG(error) << "Requested resource does not exist: " << url;
       errorflag = true;
     } else {
+      LOG(error) << "Error in fetching object " << url << ", curl response code:" << response_code;
       errorflag = true;
     }
     // cleanup
@@ -925,7 +926,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
     }
     auto res = extractFromLocalFile(snapshotfile, tinfo, headers);
     if (!snapshoting) { // if snapshot was created at this call, the log was already done
-      logReading(path, headers, "retrieve from snapshot");
+      logReading(path, timestamp, headers, "retrieve from snapshot");
     }
     return res;
   }
@@ -937,7 +938,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   // if we are in snapshot mode we can simply open the file; extract the object and return
   if (mInSnapshotMode) {
     return extractFromLocalFile(fullUrl, tinfo, headers);
-    logReading(path, headers, "retrieve from snapshot");
+    logReading(path, timestamp, headers, "retrieve from snapshot");
   }
 
   initHeadersForRetrieve(curl_handle, timestamp, headers, etag, createdNotAfter, createdNotBefore);
@@ -948,7 +949,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
     content = navigateURLsAndRetrieveContent(curl_handle, fullUrl, tinfo, headers);
   }
   if (content) {
-    logReading(path, headers, "retrieve");
+    logReading(path, timestamp, headers, "retrieve");
   }
   curl_easy_cleanup(curl_handle);
   return content;
@@ -1358,8 +1359,40 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
 
   // if we are in snapshot mode we can simply open the file, unless the etag is non-empty:
   // this would mean that the object was is already fetched and in this mode we don't to validity checks!
-  std::string snapshotpath{};
+  bool createSnapshot = considerSnapshot && !mSnapshotCachePath.empty(); // create snaphot if absent
   int fromSnapshot = 0;
+  boost::interprocess::named_semaphore* sem = nullptr;
+  std::string semhashedstring{}, snapshotpath{}, logfile{};
+  std::unique_ptr<std::fstream> logStream;
+  auto sem_release = [&sem, &semhashedstring, path, this]() {
+    if (sem) {
+      sem->post();
+      if (sem->try_wait()) { // if nobody else is waiting remove the semaphore resource
+        sem->post();
+        boost::interprocess::named_semaphore::remove(semhashedstring.c_str());
+      }
+    }
+  };
+
+  if (createSnapshot) { // create named semaphore
+    std::hash<std::string> hasher;
+    semhashedstring = "aliceccdb" + std::to_string(hasher(mSnapshotCachePath + path)).substr(0, 16);
+    try {
+      sem = new boost::interprocess::named_semaphore(boost::interprocess::open_or_create_t{}, semhashedstring.c_str(), 1);
+    } catch (std::exception e) {
+      LOG(warn) << "Exception occurred during CCDB (cache) semaphore setup; Continuing without";
+      sem = nullptr;
+    }
+    if (sem) {
+      sem->wait(); // wait until we can enter (no one else there)
+    }
+    logfile = mSnapshotCachePath + "/log";
+    logStream = std::make_unique<std::fstream>(logfile, ios_base::out | ios_base::app);
+    if (logStream->is_open()) {
+      *logStream.get() << "CCDB-access[" << getpid() << "] of " << mUniqueAgentID << " to " << path << " timestamp " << timestamp << " for load to memory\n";
+    }
+  }
+
   if (mInSnapshotMode) { // file must be there, otherwise a fatal will be produced
     loadFileToMemory(dest, getSnapshotFile(mSnapshotTopPath, path), headers);
     fromSnapshot = 1;
@@ -1385,40 +1418,22 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
   }
 
   if (dest.empty()) {
+    sem_release();
     return; // nothing was fetched: either cached value is good or error was produced
   }
   // !considerSnapshot means that the call was made by retrieve for snapshoting reasons
-  logReading(path, headers, fmt::format("{}{}", considerSnapshot ? "load to memory" : "retrieve", fromSnapshot ? " from snapshot" : ""));
+  logReading(path, timestamp, headers, fmt::format("{}{}", considerSnapshot ? "load to memory" : "retrieve", fromSnapshot ? " from snapshot" : ""));
 
   // are we asked to create a snapshot ?
-  if (considerSnapshot && !mSnapshotCachePath.empty() && fromSnapshot != 2) { // store in the snapshot only if the object was not read from the snapshot
-    if (mInSnapshotMode && mSnapshotTopPath == mSnapshotCachePath) { // do not save to itself
-      return;
-    }
-    // protect this sensitive section by a multi-process named semaphore
-    boost::interprocess::named_semaphore* sem = nullptr;
-    std::hash<std::string> hasher;
-    const auto semhashedstring = "aliceccdb" + std::to_string(hasher(mSnapshotCachePath + path)).substr(0, 16);
-    try {
-      sem = new boost::interprocess::named_semaphore(boost::interprocess::open_or_create_t{}, semhashedstring.c_str(), 1);
-    } catch (std::exception e) {
-      LOG(warn) << "Exception occurred during CCDB (cache) semaphore setup; Continuing without";
-      sem = nullptr;
-    }
-    if (sem) {
-      sem->wait(); // wait until we can enter (no one else there)
-    }
-    std::string logfile = mSnapshotCachePath + "/log";
-    std::fstream out(logfile, ios_base::out | ios_base::app);
+  if (createSnapshot && fromSnapshot != 2 && !(mInSnapshotMode && mSnapshotTopPath == mSnapshotCachePath)) { // store in the snapshot only if the object was not read from the snapshot
     auto snapshotdir = getSnapshotDir(mSnapshotCachePath, path);
     snapshotpath = getSnapshotFile(mSnapshotCachePath, path);
     o2::utils::createDirectoriesIfAbsent(snapshotdir);
-    if (out.is_open()) {
-      out << "CCDB-access[" << getpid() << "] ... " << mUniqueAgentID << " downloading to snapshot " << snapshotpath << " from memory\n";
+    if (logStream->is_open()) {
+      *logStream.get() << "CCDB-access[" << getpid() << "] ... " << mUniqueAgentID << " downloading to snapshot " << snapshotpath << " from memory\n";
     }
     { // dump image to a file
       LOGP(debug, "creating snapshot {} -> {}", path, snapshotpath);
-
       CCDBQuery querysummary(path, metadata, timestamp);
       {
         std::ofstream objFile(snapshotpath, std::ios::out | std::ofstream::binary);
@@ -1438,17 +1453,8 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
       snapshot.Close();
       gErrorIgnoreLevel = oldlevel;
     }
-    if (sem) {
-      sem->post();
-      if (sem->try_wait()) {
-        // if nobody else is waiting remove the semaphore resource
-        sem->post();
-        boost::interprocess::named_semaphore::remove(semhashedstring.c_str());
-      }
-    }
   }
-
-  return;
+  sem_release();
 }
 
 // navigate sequence of URLs until TFile content is found; object is extracted and returned
@@ -1547,6 +1553,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
       LOG(error) << "Requested resource does not exist: " << url;
       signalError();
     } else {
+      LOG(error) << "Error in fetching object " << url << ", curl response code:" << response_code;
       signalError();
     }
   } else {
@@ -1647,7 +1654,7 @@ void CcdbApi::checkMetadataKeys(std::map<std::string, std::string> const& metada
   return;
 }
 
-void CcdbApi::logReading(const std::string& path, const std::map<std::string, std::string>* headers, const std::string& comment) const
+void CcdbApi::logReading(const std::string& path, long ts, const std::map<std::string, std::string>* headers, const std::string& comment) const
 {
   std::string upath{path};
   if (headers) {
@@ -1661,7 +1668,7 @@ void CcdbApi::logReading(const std::string& path, const std::map<std::string, st
     }
   }
   upath.erase(remove(upath.begin(), upath.end(), '\"'), upath.end());
-  LOGP(info, "ccdb reads {}{}{} ({}, agent_id: {}), ", mUrl, mUrl.back() == '/' ? "" : "/", upath, comment, mUniqueAgentID);
+  LOGP(info, "ccdb reads {}{}{} for {} ({}, agent_id: {}), ", mUrl, mUrl.back() == '/' ? "" : "/", upath, ts < 0 ? getCurrentTimestamp() : ts, comment, mUniqueAgentID);
 }
 
 } // namespace o2

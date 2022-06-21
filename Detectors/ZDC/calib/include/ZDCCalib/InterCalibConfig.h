@@ -16,6 +16,7 @@
 #include <Rtypes.h>
 #include <array>
 #include <string>
+#include <limits>
 
 /// \file InterCalibConfig.h
 /// \brief Configuration of ZDC Tower intercalibration procedure

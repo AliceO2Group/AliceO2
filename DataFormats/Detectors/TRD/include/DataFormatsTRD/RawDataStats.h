@@ -71,7 +71,11 @@ enum ParsingErrors { TRDParsingNoError,
                      TRDParsingDigitHeaderWrong4,                              // expected header word but have no idea what we are looking at default of switch statement
                      TRDParsingDigitDataStillOnLink,                           // got to the end of digit parsing and there is still data on link, normally not advancing far enough when dumping data.
                      TRDParsingTrackletIgnoringDataTillEndMarker,              // for some reason we are bouncing to the end word by word, this counts those words
-                     TRDLastParsingError                                       // here as place holder for trivial sizing of structures.
+                     TRDParsingGarbageDataAtEndOfHalfCRU,                      // if the first word of the halfcru is wrong i.e. side, eventype, the half cru header is so wrong its not corrupt, its other garbage
+                     TRDParsingHalfCRUSumLength,                               // if the HalfCRU headers summed lengths wont fit into the buffer, implies corruption, its a faster check than the next one.
+
+                     TRDParsingHalfCRUCorrupt, // if the HalfCRU headers has values out of range, corruption is assumed.
+                     TRDLastParsingError       // here as place holder for trivial sizing of structures.
 };
 
 extern std::vector<std::string> ParsingErrorsString;

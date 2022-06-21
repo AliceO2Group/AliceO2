@@ -63,7 +63,8 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   NElem mNI = 0;                                 //! N info
   std::array<bool, NChannels> isBeg{};           //! Beginning of sequence
   std::array<bool, NChannels> isEnd{};           //! End of sequence
-  o2::zdc::BCRecData mCurB;                      //! Current BC
+  BCRecData mCurB;                               //! Current BC
+  std::vector<float> inter[NChannels];           //! Interpolated samples
 
   // Reconstruction messages
   std::array<bool, NChannels> genericE{};       ///  0 Generic error
@@ -99,6 +100,29 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   void init(const gsl::span<const o2::zdc::BCRecData> RecBC, const gsl::span<const o2::zdc::ZDCEnergy> Energy, const gsl::span<const o2::zdc::ZDCTDCData> TDCData, const gsl::span<const uint16_t> Info);
 
   int next();
+  int at(int ientry);
+
+  void allocate(int isig)
+  {
+    if (inter[isig].size() != NIS) {
+      inter[isig].resize(NIS);
+    }
+  }
+
+  BCRecData& getCurB()
+  {
+    return mCurB;
+  }
+
+  inline int getEntries() const
+  {
+    return mNEntries;
+  }
+
+  inline int getNextEntry() const
+  {
+    return mEntry;
+  }
 
   inline NElem getNEnergy() const
   {

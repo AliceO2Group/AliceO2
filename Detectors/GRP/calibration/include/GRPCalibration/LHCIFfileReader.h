@@ -115,7 +115,7 @@ void LHCIFfileReader::readValue(const std::string& alias, std::string& type, int
     }
 
     LOG(debug) << "timestamp = " << std::stof(tokensStr[shift + nele]);
-    meas.emplace_back(std::stol(tokensStr[shift + nele]) * 1e6, vect); // measurement comes in seconds, we want it in microseconds
+    meas.emplace_back(std::stol(tokensStr[shift + nele]) * 1000, vect); // measurement comes in seconds, we want it in ms
   }
 }
 

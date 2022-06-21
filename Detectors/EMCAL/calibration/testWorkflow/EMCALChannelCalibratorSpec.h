@@ -31,6 +31,8 @@
 #include "CCDB/CcdbObjectInfo.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+// for time measurements
+#include <chrono>
 
 using namespace o2::framework;
 
@@ -59,6 +61,10 @@ class EMCALChannelCalibDevice : public o2::framework::Task
         mTimeCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams, o2::emcal::TimeCalibInitParams>>();
       }
       mTimeCalibrator->SetCalibExtractor(mCalibExtractor);
+      mTimeCalibrator->setSlotLength(EMCALCalibParams::Instance().slotLength);
+      if (EMCALCalibParams::Instance().UpdateAtEndOfRunOnly) {
+        mBadChannelCalibrator->setUpdateAtTheEndOfRunOnly();
+      }
 
     } else { // bad cell calibration
       isBadChannelCalib = true;
@@ -66,7 +72,10 @@ class EMCALChannelCalibDevice : public o2::framework::Task
         mBadChannelCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap, o2::emcal::ChannelCalibInitParams>>();
       }
       mBadChannelCalibrator->SetCalibExtractor(mCalibExtractor);
-      mBadChannelCalibrator->setUpdateAtTheEndOfRunOnly();
+      mBadChannelCalibrator->setSlotLength(EMCALCalibParams::Instance().slotLength);
+      if (EMCALCalibParams::Instance().UpdateAtEndOfRunOnly) {
+        mBadChannelCalibrator->setUpdateAtTheEndOfRunOnly();
+      }
       mBadChannelCalibrator->setIsTest(EMCALCalibParams::Instance().enableTestMode);
       if (EMCALCalibParams::Instance().useScaledHistoForBadChannelMap) {
         mBadChannelCalibrator->getCalibExtractor()->setUseScaledHistoForBadChannels(true);
@@ -82,6 +91,10 @@ class EMCALChannelCalibDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    if (EMCALCalibParams::Instance().enableTimeProfiling) {
+      timeMeas[0] = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    }
+
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mTimeCalibrator->getCurrentTFInfo());
 
@@ -101,16 +114,26 @@ class EMCALChannelCalibDevice : public o2::framework::Task
       }
       gsl::span<const o2::emcal::Cell> eventData(data.data() + trg.getFirstEntry(), trg.getNumberOfObjects());
 
-      if (isBadChannelCalib) {
-        mBadChannelCalibrator->process(eventData);
+      // fast calibration
+      if (EMCALCalibParams::Instance().enableFastCalib) {
+        LOG(debug) << "fast calib not yet available!";
+        // normal calibration procedure
       } else {
-        mTimeCalibrator->process(eventData);
+        if (isBadChannelCalib) {
+          mBadChannelCalibrator->process(eventData);
+        } else {
+          mTimeCalibrator->process(eventData);
+        }
       }
     }
     if (isBadChannelCalib) {
       sendOutput<o2::emcal::BadChannelMap>(pc.outputs());
     } else {
       sendOutput<o2::emcal::TimeCalibrationParams>(pc.outputs());
+    }
+    if (EMCALCalibParams::Instance().enableTimeProfiling) {
+      timeMeas[1] = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+      LOG(info) << "end of run function. Time: " << timeMeas[1] - timeMeas[0] << " [ns] for " << InputTriggerRecord.size() << " events";
     }
   }
 
@@ -134,6 +157,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   std::shared_ptr<o2::emcal::EMCALCalibExtractor> mCalibExtractor;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   bool isBadChannelCalib = true;
+  std::array<double, 2> timeMeas;
 
   //________________________________________________________________
   template <typename DataOutput>

@@ -73,6 +73,7 @@ class Digitizer
 
   void SetChannelOffset(o2::ft0::FT0ChannelTimeCalibrationObject const*
                           caliboffsets) { mCalibOffset = caliboffsets; };
+  double getTimeOffsetWrtBC() const { return mIntRecord.getTimeOffsetWrtBC(); }
 
   struct CFDOutput {
     std::optional<double> particle;

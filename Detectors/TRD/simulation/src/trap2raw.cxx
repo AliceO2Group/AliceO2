@@ -76,7 +76,7 @@ int main(int argc, char** argv)
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(6), "rdh version in use default");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
-    add_option("digitrate", bpo::value<int>()->default_value(1000), "only include digits at 1 per this number");
+    add_option("digitrate", bpo::value<int>()->default_value(1), "only include digits at 1 per this number");
     add_option("verbose,w", bpo::value<bool>()->default_value(false), "verbose");
 
     opt_all.add(opt_general).add(opt_hidden);

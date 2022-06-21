@@ -24,3 +24,5 @@ So, in order to test the workflow independent of the actual CCDB using a local i
 
     root $O2_ROOT/share/macro/makeTRDCCDBEntryForDCS.C+
     o2-calibration-trd-dcs-sim-workflow -b --delta-fraction 0.5 --max-timeframes 10 | o2-calibration-trd-dcs-workflow -b --ccdb-path http://localhost:8080 --use-ccdb-to-configure --processor-verbosity 1 | o2-calibration-ccdb-populator-workflow -b --ccdb-path http://localhost:8080
+
+The macro `readTRDDCSentries.C` shows an example how to read one of the created CCDB objects after processing.

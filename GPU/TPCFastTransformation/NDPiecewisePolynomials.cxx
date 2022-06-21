@@ -9,18 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ZDC_INTERCALIBWORKFLOW_H
-#define O2_ZDC_INTERCALIBWORKFLOW_H
+/// \file  NDPiecewisePolynomials.cxx
+/// \author Matthias Kleiner <mkleiner@ikf.uni-frankfurt.de>
 
-/// @file   InterCalibWorkflow.h
-
-#include "Framework/WorkflowSpec.h"
-
-namespace o2
-{
-namespace zdc
-{
-framework::WorkflowSpec getInterCalibWorkflow(const int verbosity);
-} // namespace zdc
-} // namespace o2
-#endif
+#include "NDPiecewisePolynomials.h"

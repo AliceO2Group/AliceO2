@@ -152,6 +152,9 @@ void DataRequest::requestMFTMCHMatches(bool mc)
 void DataRequest::requestMCHMIDMatches(bool mc)
 {
   addInput({"matchMCHMID", "GLO", "MTC_MCHMID", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"matchMCHMID_MCTR", "GLO", "MCMTC_MCHMID", 0, Lifetime::Timeframe});
+  }
   requestMap["matchMCHMID"] = mc;
 }
 
@@ -445,7 +448,7 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   if (src[GTrackID::MFT]) {
     requestMFTTracks(useMC);
   }
-  if (src[GTrackID::MCH]) {
+  if (src[GTrackID::MCH] || src[GTrackID::MCHMID]) {
     requestMCHTracks(useMC);
   }
   if (src[GTrackID::MID]) {
@@ -459,6 +462,9 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   }
   if (src[GTrackID::MFTMCH]) {
     requestGlobalFwdTracks(useMC);
+  }
+  if (src[GTrackID::MCHMID]) {
+    requestMCHMIDMatches(useMC);
   }
   if (src[GTrackID::TPCTOF]) {
     requestTPCTOFTracks(useMC);
@@ -888,6 +894,9 @@ void RecoContainer::addMFTMCHMatches(ProcessingContext& pc, bool mc)
 void RecoContainer::addMCHMIDMatches(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::MCHMID].registerContainer(pc.inputs().get<gsl::span<o2d::TrackMCHMID>>("matchMCHMID"), MATCHES);
+  if (mc) {
+    commonPool[GTrackID::MCHMID].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("matchMCHMID_MCTR"), MCLABELS);
+  }
 }
 
 //__________________________________________________________
@@ -1303,6 +1312,10 @@ RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) c
     if (parent0.getMIDTrackID() != -1) {
       table[GTrackID::MID] = parent0.getMIDTrackID();
     }
+  } else if (src == GTrackID::MCHMID) {
+    const auto& parent0 = getMCHMIDMatch(gidx);
+    table[GTrackID::MCH] = parent0.getMCHRef();
+    table[GTrackID::MID] = parent0.getMIDRef();
   }
   return std::move(table);
 }

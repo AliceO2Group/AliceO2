@@ -416,13 +416,22 @@ void on_signal_callback(uv_signal_t* handle, int signum)
   context->stats->totalSigusr1 += 1;
 }
 
+extern volatile int region_read_global_dummy_variable;
+volatile int region_read_global_dummy_variable;
+
 /// Invoke the callbacks for the mPendingRegionInfos
 void handleRegionCallbacks(ServiceRegistry& registry, std::vector<fair::mq::RegionInfo>& infos)
 {
   if (infos.empty() == false) {
     std::vector<fair::mq::RegionInfo> toBeNotified;
     toBeNotified.swap(infos); // avoid any MT issue.
+    static bool dummyRead = getenv("DPL_DEBUG_MAP_ALL_SHM_REGIONS") && atoi(getenv("DPL_DEBUG_MAP_ALL_SHM_REGIONS"));
     for (auto const& info : toBeNotified) {
+      if (dummyRead) {
+        for (size_t i = 0; i < info.size / sizeof(region_read_global_dummy_variable); i += 4096 / sizeof(region_read_global_dummy_variable)) {
+          region_read_global_dummy_variable = ((int*)info.ptr)[i];
+        }
+      }
       registry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
     }
   }
@@ -720,14 +729,17 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   for (auto& forwarded : mSpec.forwards) {
     if (strncmp(DataSpecUtils::asConcreteOrigin(forwarded.matcher).str, "AOD", 3) == 0) {
       context.canForwardEarly = false;
+      LOG(detail) << "Cannot forward early because of AOD input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
     if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && mProcessingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
       context.canForwardEarly = false;
+      LOG(detail) << "Cannot forward early because of RAWDATA input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
     if (forwarded.matcher.lifetime == Lifetime::Optional) {
       context.canForwardEarly = false;
+      LOG(detail) << "Cannot forward early because of Optional input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
   }

@@ -41,7 +41,7 @@ void LHCClockDataHisto::fill(const gsl::span<const o2::dataformats::CalibInfoTOF
     auto ch = data[i].getTOFChIndex();
     auto dt = data[i].getDeltaTimePi();
     auto tot = data[i].getTot();
-    auto corr = calibApi->getTimeCalibration(ch, tot); // we take into account LHCphase, offsets and time slewing
+    auto corr = calibApi->getTimeCalibration(ch, tot, 0.); // we take into offsets and time slewing but not lhc phase
     dt -= corr;
 
     //    printf("ch=%d - tot=%f - corr=%f -> dtcorr = %f (range=%f, bin=%d)\n",ch,tot,corr,dt,range,int((dt+range)*v2Bin));

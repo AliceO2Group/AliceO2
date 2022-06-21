@@ -16,6 +16,7 @@ o2_add_library(DataFormatsTRD
                        src/DcsCcdbObjects.cxx
                        src/Tracklet64.cxx
                        src/RawData.cxx
+                       src/HelperMethods.cxx
                        src/RawDataStats.cxx
                        src/CompressedDigit.cxx
                        src/CTF.cxx
