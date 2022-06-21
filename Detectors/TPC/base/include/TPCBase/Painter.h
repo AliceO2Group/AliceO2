@@ -190,6 +190,9 @@ TH3F convertCalDetToTH3(const std::vector<CalDet<DataT>>& calDet, const bool nor
 /// make summary canvases for laser calibration data
 std::vector<TCanvas*> makeSummaryCanvases(const LtrCalibData& ltr, std::vector<TCanvas*>* outputCanvases = nullptr);
 
+/// make a canvas for junk detection data
+TCanvas* makeJunkDetectionCanvas(const TObjArray* data, TCanvas* outputCanvas = nullptr);
+
 /// Adjust the X2 position and the tick length of the color axis
 /// \param h histogram to get z axis
 /// \param x2ndc new x2 value of color axis in NDC

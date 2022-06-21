@@ -25,6 +25,7 @@
 #include "TStyle.h"
 #include "TPaveText.h"
 #include "TPaletteAxis.h"
+#include "TObjArray.h"
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/ROC.h"
@@ -930,6 +931,41 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const LtrCalibData& ltr, std:
   vecCanvases.emplace_back(cLtrCoverage);
   vecCanvases.emplace_back(cCalibValues);
   return vecCanvases;
+}
+
+TCanvas* painter::makeJunkDetectionCanvas(const TObjArray* data, TCanvas* outputCanvas)
+{
+  auto c = outputCanvas;
+  if (!c) {
+    c = new TCanvas("junk_detection", "Junk Detection", 1000, 1000);
+  }
+
+  c->Clear();
+
+  auto strA = (TH2F*)data->At(4);
+  auto strB = (TH2F*)data->At(5);
+
+  double statsA[7];
+  double statsB[7];
+
+  strA->GetStats(statsA);
+  strB->GetStats(statsB);
+
+  auto junkDetectionMsg = new TPaveText(0.1, 0.1, 0.9, 0.9, "NDC");
+  junkDetectionMsg->SetFillColor(0);
+  junkDetectionMsg->SetBorderSize(0);
+  junkDetectionMsg->AddText("Removal Strategy A");
+  junkDetectionMsg->AddText(fmt::format("Number of Clusters before Removal: {}", statsA[2]).data());
+  junkDetectionMsg->AddText(fmt::format("Removed Fraction: {:.2f}%", statsA[4]).data());
+  junkDetectionMsg->AddLine(.0, .5, 1., .5);
+  junkDetectionMsg->AddText("Removal Strategy B");
+  junkDetectionMsg->AddText(fmt::format("Number of Clusters before Removal: {}", statsB[2]).data());
+  junkDetectionMsg->AddText(fmt::format("Removed Fraction: {:.2f}%", statsB[4]).data());
+
+  c->cd();
+  junkDetectionMsg->Draw();
+
+  return c;
 }
 
 void painter::adjustPalette(TH1* h, float x2ndc, float tickLength)
