@@ -128,6 +128,11 @@ void displayHistory(const DeviceInfo& info, DeviceControl& control)
   size_t ji = triggerStartPos % historySize;
   size_t je = triggerStopPos % historySize;
   size_t iterations = 0;
+  // Default color is white
+  auto logLevel = LogParsingHelpers::LogLevel::Unknown;
+  auto previousLogLevel = LogParsingHelpers::LogLevel::Unknown;
+  ImGui::PushStyleColor(ImGuiCol_Text, PaletteHelpers::WHITE);
+  ImGui::PushStyleColor(ImGuiCol_ChildBg, PaletteHelpers::WHITE);
   while (historySize && ((ji % historySize) != je)) {
     assert(iterations < historySize);
     iterations++;
@@ -143,20 +148,22 @@ void displayHistory(const DeviceInfo& info, DeviceControl& control)
     }
     // Print matching lines
     if (strstr(line.c_str(), control.logFilter) != nullptr) {
-      auto color = colorForLogLevel(logLevel);
       // We filter twice, once on input, to reduce the
       // stream, a second time at display time, to avoid
       // showing unrelevant messages from past.
       if (logLevel >= control.logLevel) {
-        if (line.find('%', 0) != std::string::npos) {
-          ImGui::TextUnformatted(line.c_str(), line.c_str() + line.size());
-        } else {
-          ImGui::TextColored(color, line.c_str(), line.c_str() + line.size());
+        if (logLevel != previousLogLevel) {
+          ImGui::PopStyleColor();
+          auto color = colorForLogLevel(logLevel);
+          ImGui::PushStyleColor(ImGuiCol_Text, color);
+          previousLogLevel = logLevel;
         }
+        ImGui::TextUnformatted(line.c_str(), line.c_str() + line.size());
       }
     }
     ji = (ji + 1) % historySize;
   }
+  ImGui::PopStyleColor();
 }
 
 struct HistoData {
