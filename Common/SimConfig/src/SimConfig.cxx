@@ -59,12 +59,13 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)");
 }
 
-bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
+void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules)
 {
   using o2::detectors::DetID;
-  mConfigData.mMCEngine = vm["mcEngine"].as<std::string>();
-  mConfigData.mActiveModules = vm["modules"].as<std::vector<std::string>>();
-  auto& activeModules = mConfigData.mActiveModules;
+
+  // input args is a vector of module strings as obtained from the -m,--modules options
+  // of SimConfig
+  activeModules = inputargs;
   if (activeModules.size() == 1 && activeModules[0] == "all") {
     activeModules.clear();
     for (int d = DetID::First; d <= DetID::Last; ++d) {
@@ -86,19 +87,19 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
     activeModules.emplace_back("SHIL");
   }
   // now we take out detectors listed as skipped
-  auto& skipped = vm["skipModules"].as<std::vector<std::string>>();
-  for (auto& s : skipped) {
+  for (auto& s : skippedModules) {
     auto iter = std::find(activeModules.begin(), activeModules.end(), s);
     if (iter != activeModules.end()) {
       // take it out
       activeModules.erase(iter);
     }
   }
+}
 
-  // find all detectors that should be readout
-  auto enableReadout = vm["readoutDetectors"].as<std::vector<std::string>>();
-  auto& disableReadout = vm["skipReadoutDetectors"].as<std::vector<std::string>>();
-  auto& readoutDetectors = mConfigData.mReadoutDetectors;
+void SimConfig::determineReadoutDetectors(std::vector<std::string> const& activeModules, std::vector<std::string> const& enableReadout, std::vector<std::string> const& disableReadout, std::vector<std::string>& readoutDetectors)
+{
+  using o2::detectors::DetID;
+
   readoutDetectors.clear();
 
   auto isDet = [](std::string const& s) {
@@ -141,6 +142,19 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
       readoutDetectors.erase(iter);
     }
   }
+}
+
+bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
+{
+  using o2::detectors::DetID;
+  mConfigData.mMCEngine = vm["mcEngine"].as<std::string>();
+
+  // get final set of active Modules
+  determineActiveModules(vm["modules"].as<std::vector<std::string>>(), vm["skipModules"].as<std::vector<std::string>>(), mConfigData.mActiveModules);
+  const auto& activeModules = mConfigData.mActiveModules;
+
+  // get final set of detectors which are readout
+  determineReadoutDetectors(activeModules, vm["readoutDetectors"].as<std::vector<std::string>>(), vm["skipReadoutDetectors"].as<std::vector<std::string>>(), mConfigData.mReadoutDetectors);
 
   mConfigData.mGenerator = vm["generator"].as<std::string>();
   mConfigData.mTrigger = vm["trigger"].as<std::string>();
