@@ -43,8 +43,8 @@ void GetScalers(long tmin = 0, long tmax = -1, std::string ccdbHost = "http://cc
   // mng.setCCDBPathScalers("CTP/Scalers");
   scl = mng.getScalersFromCCDB(-1, srun);
   scl.convertRawToO2();
-  //scl.printStream(std::cout);
-  //scl.printRates();
+  // scl.printStream(std::cout);
+  // scl.printRates();
   scl.printIntegrals();
   ctpcfg = mng.getConfigFromCCDB(-1, srun);
   // std::vector<int> clsses;
