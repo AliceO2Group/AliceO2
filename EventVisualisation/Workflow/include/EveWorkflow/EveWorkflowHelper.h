@@ -82,6 +82,8 @@ class EveWorkflowHelper
 
   std::unique_ptr<gpu::TPCFastTransform> mTPCFastTransform;
 
+  static constexpr int TIME_OFFSET = 23000; // max TF time
+
  public:
   using AODBarrelTracks = soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>;
   using AODBarrelTrack = AODBarrelTracks::iterator;
@@ -104,12 +106,12 @@ class EveWorkflowHelper
 
   using Bracket = o2::math_utils::Bracketf_t;
 
-  EveWorkflowHelper(const FilterSet& enabledFilters = {}, std::size_t maxNTracks = -1, const Bracket& timeBracket = {}, const Bracket& etaBracket = {});
+  EveWorkflowHelper(const FilterSet& enabledFilters = {}, std::size_t maxNTracks = -1, const Bracket& timeBracket = {}, const Bracket& etaBracket = {}, bool primaryVertexMode = false);
   static std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep, float minZ = -25000, float maxZ = 25000);
   void selectTracks(const CalibObjectsConst* calib, GID::mask_t maskCl,
-                    GID::mask_t maskTrk, GID::mask_t maskMatch, bool trackSorting);
+                    GID::mask_t maskTrk, GID::mask_t maskMatch);
   void addTrackToEvent(const o2::track::TrackPar& tr, GID gid, float trackTime, float dz, GID::Source source = GID::NSources, float maxStep = 4.f);
-  void draw();
+  void draw(std::size_t primaryVertexIdx, bool sortTracks);
   void drawTPC(GID gid, float trackTime);
   void drawITS(GID gid, float trackTime);
   void drawMFT(GID gid, float trackTime);
@@ -152,11 +154,16 @@ class EveWorkflowHelper
   std::size_t mMaxNTracks;
   Bracket mTimeBracket;
   Bracket mEtaBracket;
+  bool mPrimaryVertexMode;
   o2::globaltracking::RecoContainer mRecoCont;
   o2::globaltracking::RecoContainer& getRecoContainer() { return mRecoCont; }
   TracksSet mTrackSet;
   o2::event_visualisation::VisualisationEvent mEvent;
-  std::unordered_map<o2::dataformats::GlobalTrackID, std::size_t> mTotalTracks;
+  std::unordered_map<GID, std::size_t> mTotalTracks;
+  std::unordered_set<GID> mTotalAcceptedTracks;
+  std::unordered_map<std::size_t, std::vector<GID>> mPrimaryVertexGIDs;
+  std::unordered_map<GID, unsigned int> mGIDTrackTime;
+  std::size_t mTotalPrimaryVertices;
   std::vector<o2::BaseCluster<float>> mITSClustersArray;
   std::vector<o2::BaseCluster<float>> mMFTClustersArray;
   o2::mft::GeometryTGeo* mMFTGeom;

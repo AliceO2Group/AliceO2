@@ -61,6 +61,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"remove-tpc-abs-eta", VariantType::Float, 0.f, {"remove TPC tracks in [-eta, +eta] range"}},
     {"track-sorting", VariantType::Bool, true, {"sort track by track time before applying filters"}},
     {"only-nth-event", VariantType::Int, 0, {"process only every nth event"}},
+    {"primary-vertex-mode", VariantType::Bool, false, {"produce jsons with individual primary vertices, not total time frame data"}},
   };
 
   std::swap(workflowOptions, options);
@@ -100,10 +101,10 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   enabledFilters.set(EveWorkflowHelper::Filter::EtaBracket, this->mRemoveTPCEta);
   enabledFilters.set(EveWorkflowHelper::Filter::TotalNTracks, this->mNumberOfTracks != -1);
 
-  EveWorkflowHelper helper(enabledFilters, this->mNumberOfTracks, this->mTimeBracket, this->mEtaBracket);
+  EveWorkflowHelper helper(enabledFilters, this->mNumberOfTracks, this->mTimeBracket, this->mEtaBracket, this->mPrimaryVertexMode);
 
   helper.getRecoContainer().collectData(pc, *mDataRequest);
-  helper.selectTracks(&(mData.mConfig->configCalib), mClMask, mTrkMask, mTrkMask, mTrackSorting);
+  helper.selectTracks(&(mData.mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
 
   helper.prepareITSClusters(mData.mITSDict);
   helper.prepareMFTClusters(mData.mMFTDict);
@@ -112,40 +113,62 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
   const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
 
-  helper.draw();
+  std::unordered_map<o2::dataformats::GlobalTrackID, std::size_t> savedTracks;
 
-  bool save = true;
-
-  if (this->mMinITSTracks != -1 && helper.mEvent.getDetectorTrackCount(detectors::DetID::ITS) < this->mMinITSTracks) {
-    save = false;
+  for (int i = 0; i < GID::Source::NSources; i++) {
+    savedTracks[i] = 0;
   }
 
-  if (this->mMinTracks != -1 && helper.mEvent.getTrackCount() < this->mMinTracks) {
-    save = false;
+  bool anythingSaved = false;
+
+  for (std::size_t pv = 0; pv < helper.mTotalPrimaryVertices; ++pv) {
+    helper.draw(pv, mTrackSorting);
+
+    bool save = true;
+
+    if (this->mMinITSTracks != -1 && helper.mEvent.getDetectorTrackCount(detectors::DetID::ITS) < this->mMinITSTracks) {
+      save = false;
+    }
+
+    if (this->mMinTracks != -1 && helper.mEvent.getTrackCount() < this->mMinTracks) {
+      save = false;
+    }
+
+    if (save) {
+      helper.mEvent.setClMask(this->mClMask.to_ulong());
+      helper.mEvent.setTrkMask(this->mTrkMask.to_ulong());
+      helper.mEvent.setRunNumber(dh->runNumber);
+      helper.mEvent.setTfCounter(dh->tfCounter);
+      helper.mEvent.setFirstTForbit(dh->firstTForbit);
+      helper.save(this->mJsonPath, this->mNumberOfFiles, this->mTrkMask, this->mClMask, dh->runNumber, dph->creation);
+      anythingSaved = true;
+    }
+
+    helper.clear();
   }
 
-  if (save) {
-    helper.mEvent.setClMask(this->mClMask.to_ulong());
-    helper.mEvent.setTrkMask(this->mTrkMask.to_ulong());
-    helper.mEvent.setRunNumber(dh->runNumber);
-    helper.mEvent.setTfCounter(dh->tfCounter);
-    helper.mEvent.setFirstTForbit(dh->firstTForbit);
-    helper.save(this->mJsonPath, this->mNumberOfFiles, this->mTrkMask, this->mClMask, dh->runNumber, dph->creation);
+  for (const auto& gid : helper.mTotalAcceptedTracks) {
+    savedTracks[gid.getSource()] += 1;
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();
   LOGP(info, "Visualization of TF:{} at orbit {} took {} s.", dh->tfCounter, dh->firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
+
+  if (mPrimaryVertexMode) {
+    LOGP(info, "Primary vertices: {}", helper.mTotalPrimaryVertices);
+  }
+
+  LOGP(info, "JSON saved: {}", anythingSaved ? "YES" : "NO");
 
   std::vector<std::string> sourceStats;
   sourceStats.reserve(GID::Source::NSources);
 
   for (int i = 0; i < GID::Source::NSources; i++) {
     if (mTrkMask[i]) {
-      sourceStats.emplace_back(fmt::format("{}/{} {}", helper.mEvent.getSourceTrackCount(static_cast<GID::Source>(i)), helper.mTotalTracks.at(i), GID::getSourceName(i)));
+      sourceStats.emplace_back(fmt::format("{}/{} {}", savedTracks.at(i), helper.mTotalTracks.at(i), GID::getSourceName(i)));
     }
   }
 
-  LOGP(info, "JSON saved: {}", save ? "YES" : "NO");
   LOGP(info, "Tracks: {}", fmt::join(sourceStats, ", "));
 }
 
@@ -256,12 +279,19 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     dataRequest->requestIRFramesITS();
   }
 
+  auto primaryVertexMode = cfgc.options().get<bool>("primary-vertex-mode");
+
+  if (primaryVertexMode) {
+    dataRequest->requestPrimaryVertertices(useMC);
+  }
+
   InputHelper::addInputSpecs(cfgc, specs, srcCl, srcTrk, srcTrk, useMC);
 
   auto minITSTracks = cfgc.options().get<int>("min-its-tracks");
   auto minTracks = cfgc.options().get<int>("min-tracks");
   auto onlyNthEvent = cfgc.options().get<int>("only-nth-event");
   auto tracksSorting = cfgc.options().get<bool>("track-sorting");
+
   if (numberOfTracks == -1) {
     tracksSorting = false; // do not sort if all tracks are allowed
   }
@@ -270,7 +300,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     "o2-eve-export",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent)}});
+    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent, primaryVertexMode)}});
 
   return std::move(specs);
 }
