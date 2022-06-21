@@ -176,7 +176,7 @@ class DataDecoder
   /// Compute the time of all the digits that have been decoded in the current TimeFrame
   void computeDigitsTimeBCRst();
   void computeDigitsTime();
-  void checkDigitsTime(int minDigitTimeAccepted, int maxDigitTimeAccepted);
+  void checkDigitsTime();
 
   /// Get the vector of digits that have been decoded in the current TimeFrame
   const RawDigitVector& getDigits() const { return mDigits; }

@@ -245,9 +245,7 @@ class DataDecoderTask
       }
     }
     mDecoder->computeDigitsTime();
-    int minDigitOrbitAccepted = CoDecParam::Instance().minDigitOrbitAccepted;
-    int maxDigitOrbitAccepted = CoDecParam::Instance().maxDigitOrbitAccepted;
-    mDecoder->checkDigitsTime(minDigitOrbitAccepted, maxDigitOrbitAccepted);
+    mDecoder->checkDigitsTime();
     auto tEnd = std::chrono::high_resolution_clock::now();
     mTimeDecoding += tEnd - tStart;
 
