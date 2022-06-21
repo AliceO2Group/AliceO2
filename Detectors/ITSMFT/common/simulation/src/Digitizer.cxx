@@ -58,7 +58,7 @@ void Digitizer::init()
 
   // initializing response according to detector and back-bias value
   if (doptMFT.Vbb == 0.0) { // for MFT
-    LOG(fatal) << "Charge-collection table not available yet";
+    //LOG(fatal) << "Charge-collection table not available yet";
     mAlpSimRespMFT = mAlpSimResp;
   } else if (doptMFT.Vbb == 3.0) {
     mAlpSimRespMFT = mAlpSimResp + 1;
@@ -67,7 +67,7 @@ void Digitizer::init()
   }
 
   if (doptITS.IBVbb == 0.0) { // for ITS Inner Barrel
-    LOG(fatal) << "Charge-collection table not available yet";
+    //LOG(fatal) << "Charge-collection table not available yet";
     mAlpSimRespIB = mAlpSimResp;
   } else if (doptITS.IBVbb == 3.0) {
     mAlpSimRespIB = mAlpSimResp + 1;
@@ -75,7 +75,7 @@ void Digitizer::init()
     LOG(fatal) << "Invalid ITS Inner Barrel back-bias value";
   }
   if (doptITS.OBVbb == 0.0) { // for ITS Outter Barrel
-    LOG(fatal) << "Charge-collection table not available yet";
+    //LOG(fatal) << "Charge-collection table not available yet";
     mAlpSimRespOB = mAlpSimResp;
   } else if (doptITS.OBVbb == 3.0) {
     mAlpSimRespOB = mAlpSimResp + 1;
