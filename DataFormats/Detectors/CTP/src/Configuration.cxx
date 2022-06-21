@@ -621,7 +621,7 @@ int CTPRunManager::saveRunScalersToCCDB(int i)
   api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&(run->scalers), mCCDBPathCTPScalers, metadata, tmin, tmax);
-  LOG(info) << "CTP scalers saved in ccdb, run:" << run->cfg.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
+  LOG(info) << "CTP scalers saved in ccdb:" << mCCDBHost << " run:" << run->cfg.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
   return 0;
 }
 int CTPRunManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
@@ -640,7 +640,7 @@ int CTPRunManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
   api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(cfg, CCDBPathCTPConfig, metadata, tmin, tmax);
-  LOG(info) << "CTP config  saved in ccdb, run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
+  LOG(info) << "CTP config  saved in ccdb:" << mCCDBHost << " run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
   return 0;
 }
 CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run)
