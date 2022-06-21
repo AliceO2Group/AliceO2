@@ -375,7 +375,6 @@ constexpr int WaveformCalib_NBA = 6; // Number of bunches acquired after collidi
 constexpr int WaveformCalib_NBT = WaveformCalib_NBB + WaveformCalib_NBA + 1;
 constexpr int WaveformCalib_NW = WaveformCalib_NBT * NIS;
 
-#define O2_ZDC_BASELINE_SIGNED
 using zdcBaseline_t = int16_t;
 constexpr int BaselineMin = -32768, BaselineMax = 32767, BaselineRange = 65536; // 16 bit with sign
 
