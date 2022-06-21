@@ -32,6 +32,57 @@ void GRPDCSDPsProcessor::init(const std::vector<DPID>& pids)
     mPids[it] = false;
   }
   mMagFieldHelper.verbose = mVerbose;
+
+  // initializing vector of aliases for LHC IF DPs
+  int lastFilledElement = 0;
+  for (int i = 0; i < GRPLHCInfo::CollimatorAliases::NCollimatorAliases; ++i) {
+    mArrLHCAliases[i] = GRPLHCInfo::collimatorAliases[i];
+  }
+  lastFilledElement += GRPLHCInfo::CollimatorAliases::NCollimatorAliases;
+
+  for (int i = 0; i < GRPLHCInfo::BeamAliases::NBeamAliases; ++i) {
+    mArrLHCAliases[i + lastFilledElement] = GRPLHCInfo::beamAliases[i];
+  }
+  lastFilledElement += GRPLHCInfo::BeamAliases::NBeamAliases;
+
+  for (int i = 0; i < GRPLHCInfo::BkgAliases::NBkgAliases; ++i) {
+    mArrLHCAliases[i + lastFilledElement] = GRPLHCInfo::bkgAliases[i];
+  }
+  lastFilledElement += GRPLHCInfo::BkgAliases::NBkgAliases;
+
+  for (int i = 0; i < GRPLHCInfo::BPTXAliases::NBPTXAliases; ++i) {
+    mArrLHCAliases[i + lastFilledElement] = GRPLHCInfo::bptxAliases[i];
+  }
+  lastFilledElement += GRPLHCInfo::BPTXAliases::NBPTXAliases;
+
+  for (int i = 0; i < GRPLHCInfo::BPTXPhaseAliases::NBPTXPhaseAliases; ++i) {
+    mArrLHCAliases[i + lastFilledElement] = GRPLHCInfo::bptxPhaseAliases[i];
+  }
+  lastFilledElement += GRPLHCInfo::BPTXPhaseAliases::NBPTXPhaseAliases;
+
+  for (int i = 0; i < GRPLHCInfo::BPTXPhaseRMSAliases::NBPTXPhaseRMSAliases; ++i) {
+    mArrLHCAliases[i + lastFilledElement] = GRPLHCInfo::bptxPhaseRMSAliases[i];
+  }
+  lastFilledElement += GRPLHCInfo::BPTXPhaseRMSAliases::NBPTXPhaseRMSAliases;
+
+  for (int i = 0; i < GRPLHCInfo::BPTXPhaseShiftAliases::NBPTXPhaseShiftAliases; ++i) {
+    mArrLHCAliases[i + lastFilledElement] = GRPLHCInfo::bptxPhaseShiftAliases[i];
+  }
+  lastFilledElement += GRPLHCInfo::BPTXPhaseShiftAliases::NBPTXPhaseShiftAliases;
+
+  for (int i = 0; i < GRPLHCInfo::LumiAliases::NLumiAliases; ++i) {
+    mArrLHCAliases[i + lastFilledElement] = GRPLHCInfo::lumiAliases[i];
+  }
+  lastFilledElement += GRPLHCInfo::LumiAliases::NLumiAliases;
+
+  for (int i = 0; i < GRPLHCInfo::LHCStringAliases::NLHCStringAliases; ++i) {
+    mArrLHCAliases[i + lastFilledElement] = GRPLHCInfo::lhcStringAliases[i];
+  }
+  lastFilledElement += GRPLHCInfo::LHCStringAliases::NLHCStringAliases;
+
+  if (lastFilledElement != GRPLHCInfo::nAliasesLHC) {
+    LOG(fatal) << "Something went wrong definining aliases, expected " << GRPLHCInfo::nAliasesLHC << ", found " << lastFilledElement;
+  }
 }
 //__________________________________________________________________
 
@@ -114,12 +165,12 @@ bool GRPDCSDPsProcessor::processCollimators(const DPCOM& dpcom)
 {
 
   // function to process Data Points that are related to the collimators
-  bool match = processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_downstream", mCollimators.mCollimators) ||
-               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_upstream", mCollimators.mCollimators) ||
-               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_downstream", mCollimators.mCollimators) ||
-               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_left_upstream", mCollimators.mCollimators) ||
-               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream", mCollimators.mCollimators) ||
-               processPairD(dpcom, "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream", mCollimators.mCollimators);
+  bool match = processPairD(dpcom, static_cast<std::string>(GRPLHCInfo::collimatorAliases[GRPLHCInfo::CollimatorAliases::LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_downstream]).c_str(), mCollimators.mCollimators) ||
+               processPairD(dpcom, static_cast<std::string>(GRPLHCInfo::collimatorAliases[GRPLHCInfo::CollimatorAliases::LHC_CollimatorPos_TCLIA_4R2_lvdt_gap_upstream]).c_str(), mCollimators.mCollimators) ||
+               processPairD(dpcom, static_cast<std::string>(GRPLHCInfo::collimatorAliases[GRPLHCInfo::CollimatorAliases::LHC_CollimatorPos_TCLIA_4R2_lvdt_left_downstream]).c_str(), mCollimators.mCollimators) ||
+               processPairD(dpcom, static_cast<std::string>(GRPLHCInfo::collimatorAliases[GRPLHCInfo::CollimatorAliases::LHC_CollimatorPos_TCLIA_4R2_lvdt_left_upstream]).c_str(), mCollimators.mCollimators) ||
+               processPairD(dpcom, static_cast<std::string>(GRPLHCInfo::collimatorAliases[GRPLHCInfo::CollimatorAliases::LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream]).c_str(), mCollimators.mCollimators) ||
+               processPairD(dpcom, static_cast<std::string>(GRPLHCInfo::collimatorAliases[GRPLHCInfo::CollimatorAliases::LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream]).c_str(), mCollimators.mCollimators);
 
   return match;
 }
@@ -230,55 +281,62 @@ bool GRPDCSDPsProcessor::processLHCIFDPs(const DPCOM& dpcom)
     val = o2::dcs::getValue<double>(dpcom);
   }
 
-  for (int ibeam = 1; ibeam <= 2; ++ibeam) {
-    if (aliasStr.find(fmt::format("{}{}", "LHC_IntensityBeam", ibeam)) != string::npos) {
-      updateVector(dpid, mLHCInfo.mIntensityBeam[ibeam - 1], aliasStr, dpcomdata.get_epoch_time(), val);
+  for (int ibeam = 0; ibeam < GRPLHCInfo::BeamAliases::NBeamAliases; ++ibeam) {
+    if (aliasStr.find(static_cast<std::string>(GRPLHCInfo::beamAliases[ibeam])) != string::npos) {
+      updateVector(dpid, mLHCInfo.mIntensityBeam[ibeam], aliasStr, dpcomdata.get_epoch_time(), val);
       return true;
     }
   }
 
   if (aliasStr.find("BPTX") != string::npos) {
-    if (aliasStr == "BPTX_deltaT_B1_B2") {
+    if (aliasStr == static_cast<std::string>(GRPLHCInfo::bptxAliases[GRPLHCInfo::BPTXAliases::BPTX_deltaT_B1_B2])) {
       updateVector(dpid, mLHCInfo.mBPTXdeltaT, aliasStr, dpcomdata.get_epoch_time(), val);
       return true;
     }
-    if (aliasStr == "BPTX_deltaTRMS_B1_B2") {
+    if (aliasStr == static_cast<std::string>(GRPLHCInfo::bptxAliases[GRPLHCInfo::BPTXAliases::BPTX_deltaTRMS_B1_B2])) {
       updateVector(dpid, mLHCInfo.mBPTXdeltaTRMS, aliasStr, dpcomdata.get_epoch_time(), val);
       return true;
     }
-    for (int ibeam = 1; ibeam <= 2; ++ibeam) {
-      if (aliasStr == fmt::format("{}{}", "BPTX_Phase_B", ibeam)) {
-        updateVector(dpid, mLHCInfo.mBPTXPhase[ibeam - 1], aliasStr, dpcomdata.get_epoch_time(), val);
-        return true;
-      } else if (aliasStr == fmt::format("{}{}", "BPTX_PhaseRMS_B", ibeam)) {
-        updateVector(dpid, mLHCInfo.mBPTXPhaseRMS[ibeam - 1], aliasStr, dpcomdata.get_epoch_time(), val);
-        return true;
-      } else if (aliasStr == fmt::format("{}{}", "BPTX_Phase_Shift_B", ibeam)) {
-        updateVector(dpid, mLHCInfo.mBPTXPhaseShift[ibeam - 1], aliasStr, dpcomdata.get_epoch_time(), val);
+    for (int ibeam = 0; ibeam < GRPLHCInfo::BPTXPhaseAliases::NBPTXPhaseAliases; ++ibeam) {
+      if (aliasStr == static_cast<std::string>(GRPLHCInfo::bptxPhaseAliases[ibeam])) {
+        updateVector(dpid, mLHCInfo.mBPTXPhase[ibeam], aliasStr, dpcomdata.get_epoch_time(), val);
         return true;
       }
     }
-    return true;
+    for (int ibeam = 0; ibeam < GRPLHCInfo::BPTXPhaseRMSAliases::NBPTXPhaseRMSAliases; ++ibeam) {
+      if (aliasStr == static_cast<std::string>(GRPLHCInfo::bptxPhaseRMSAliases[ibeam])) {
+        updateVector(dpid, mLHCInfo.mBPTXPhaseRMS[ibeam], aliasStr, dpcomdata.get_epoch_time(), val);
+        return true;
+      }
+    }
+    for (int ibeam = 0; ibeam < GRPLHCInfo::BPTXPhaseShiftAliases::NBPTXPhaseShiftAliases; ++ibeam) {
+      if (aliasStr == static_cast<std::string>(GRPLHCInfo::bptxPhaseShiftAliases[ibeam])) {
+        LOG(info) << "aliasStr = " << aliasStr << " alias to check = " << static_cast<std::string>(GRPLHCInfo::bptxPhaseShiftAliases[ibeam]);
+        updateVector(dpid, mLHCInfo.mBPTXPhaseShift[ibeam], aliasStr, dpcomdata.get_epoch_time(), val);
+        return true;
+      }
+    }
   }
-  if (aliasStr == "ALI_Lumi_Total_Inst") {
+
+  if (aliasStr == static_cast<std::string>(GRPLHCInfo::lumiAliases[GRPLHCInfo::LumiAliases::ALI_Lumi_Total_Inst])) {
     updateVector(dpid, mLHCInfo.mInstLumi, aliasStr, dpcomdata.get_epoch_time(), val);
     return true;
   }
 
-  for (int ibkg = 1; ibkg <= 3; ++ibkg) {
-    if (aliasStr.find(fmt::format("{}{}", "ALI_Background", ibkg)) != string::npos) {
-      updateVector(dpid, mLHCInfo.mBackground[ibkg - 1], aliasStr, dpcomdata.get_epoch_time(), val);
+  for (int ibkg = 0; ibkg < 3; ++ibkg) {
+    if (aliasStr.find(static_cast<std::string>(GRPLHCInfo::bkgAliases[ibkg])) != string::npos) {
+      updateVector(dpid, mLHCInfo.mBackground[ibkg], aliasStr, dpcomdata.get_epoch_time(), val);
       return true;
     }
   }
 
-  if (processPairS(dpcom, "ALI_Lumi_Source_Name", mLHCInfo.mLumiSource, mUpdateLHCIFInfo)) {
+  if (processPairS(dpcom, static_cast<std::string>(GRPLHCInfo::lhcStringAliases[GRPLHCInfo::LHCStringAliases::ALI_Lumi_Source_Name]), mLHCInfo.mLumiSource, mUpdateLHCIFInfo)) {
     return true;
   }
-  if (processPairS(dpcom, "MACHINE_MODE", mLHCInfo.mMachineMode, mUpdateLHCIFInfo)) {
+  if (processPairS(dpcom, static_cast<std::string>(GRPLHCInfo::lhcStringAliases[GRPLHCInfo::LHCStringAliases::MACHINE_MODE]), mLHCInfo.mMachineMode, mUpdateLHCIFInfo)) {
     return true;
   }
-  if (processPairS(dpcom, "BEAM_MODE", mLHCInfo.mBeamMode, mUpdateLHCIFInfo)) {
+  if (processPairS(dpcom, static_cast<std::string>(GRPLHCInfo::lhcStringAliases[GRPLHCInfo::LHCStringAliases::BEAM_MODE]), mLHCInfo.mBeamMode, mUpdateLHCIFInfo)) {
     return true;
   }
 
@@ -375,12 +433,14 @@ void GRPDCSDPsProcessor::updateVector(const DPID& dpid, std::vector<std::pair<ui
   printVectorInfo(vect, 0);
   bool updateFlag = false;
 
-  if (mPids[dpid] == false) { // let's remove the first value when it is the leftover from the previous processing, since we now have a newer one
-    if (mVerbose) {
-      LOG(info) << "We will clear the existing vector, since it is the very first time we receive values for it and we have a dummy one, or the only value present is from the previous processing, so it is old";
+  if (!mClearVectors) {
+    if (mPids[dpid] == false) { // let's remove the first value when it is the leftover from the previous processing, since we now have a newer one
+      if (mVerbose) {
+        LOG(info) << "We will clear the existing vector, since it is the very first time we receive values for it and we have a dummy one, or the only value present is from the previous processing, so it is old";
+      }
+      vect.clear(); // won't hurt if the vector is empty as at the very beginning of the processing
+      updateFlag = true;
     }
-    vect.clear(); // won't hurt if the vector is empty as at the very beginning of the processing
-    updateFlag = true;
   } else { // we are accumulating entries in the vector already
     if (mVerbose) {
       LOG(info) << "We will just update the existing vector without clearing it";
