@@ -31,12 +31,12 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/Output.h"
 #include "Framework/InputRecordWalker.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 
 #include <cstring>
 #include <string>
 #include <vector>
 #include <array>
-#include <iostream>
 #include <numeric>
 
 namespace o2::trd
@@ -493,6 +493,11 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU)
 
   //get eventrecord for event we are looking at
   mIR.bc = mCurrentHalfCRUHeader.BunchCrossing; // correct mIR to have the physics trigger bunchcrossing *NOT* the heartbeat trigger bunch crossing.
+  //shift accordingly
+  mIR.bc = mCurrentHalfCRUHeader.BunchCrossing - o2::ctp::TriggerOffsetsParam::Instance().LM_L0;
+  if (mIR.bc < 0) {
+    mIR.bc = 0;
+  }
   InteractionRecord trdir(mIR);
   mCurrentEvent = &mEventRecords.getEventRecord(trdir);
   //check for cru errors :
