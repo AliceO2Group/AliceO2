@@ -16,6 +16,7 @@
 #include "EventVisualisationBase/ConfigurationManager.h"
 #include "EventVisualisationDataConverter/VisualisationEventSerializer.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "EveWorkflow/FileProducer.h"
 #include "DataFormatsTRD/TrackTRD.h"
 #include "ITStracking/IOUtils.h"
@@ -39,11 +40,6 @@
 
 using namespace o2::event_visualisation;
 
-struct TrackTimeNode {
-  GID trackGID;
-  unsigned int trackTime;
-};
-
 const std::unordered_map<GID::Source, EveWorkflowHelper::PropagationRange> EveWorkflowHelper::propagationRanges = {
   {GID::ITS, EveWorkflowHelper::prITS},
   {GID::TPC, EveWorkflowHelper::prTPC},
@@ -57,9 +53,8 @@ const std::unordered_map<GID::Source, EveWorkflowHelper::PropagationRange> EveWo
 };
 
 void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
-                                     GID::mask_t maskCl, GID::mask_t maskTrk, GID::mask_t maskMatch, bool trackSorting)
+                                     GID::mask_t maskCl, GID::mask_t maskTrk, GID::mask_t maskMatch)
 {
-  std::vector<TrackTimeNode> trackTimeNodes;
   std::vector<Bracket> itsROFBrackets;
 
   if (mEnabledFilters.test(Filter::ITSROF)) {
@@ -117,9 +112,18 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
     return false;
   };
 
-  static constexpr int TIME_OFFSET = 23000; // max TF time
+  auto flagTime = [](float time, GID::Src_t src) {
+    auto flag = static_cast<int>(time) + TIME_OFFSET;
 
-  auto creator = [maskTrk, this, &correctTrackTime, &isInsideITSROF, &trackTimeNodes](auto& trk, GID gid, float time, float terr) {
+    // if it's a tracklet, give it a lower priority in time sort by setting the highest bit
+    if (src <= GID::MID) {
+      flag |= (1 << 31);
+    }
+
+    return flag;
+  };
+
+  auto creator = [maskTrk, this, &correctTrackTime, &isInsideITSROF, &flagTime](auto& trk, GID gid, float time, float terr) {
     const auto src = gid.getSource();
     mTotalTracks[src]++;
 
@@ -137,50 +141,73 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
       return true;
     }
 
-    TrackTimeNode node;
-    node.trackGID = gid;
-    node.trackTime = static_cast<int>(bracket.mean()) + TIME_OFFSET; // offset the time so it's always positive
+    mGIDTrackTime[gid] = flagTime(bracket.mean(), src);
 
-    // if it's a tracklet, give it a lower priority in time sort by setting the highest bit
-    if (src <= GID::MID) {
-      node.trackTime |= (1 << 31);
+    // If the mode is disabled,
+    // add every track to a symbolic "zero" primary vertex
+    if (!mPrimaryVertexMode) {
+      mPrimaryVertexGIDs[0].push_back(gid);
     }
-
-    trackTimeNodes.push_back(node);
 
     return true;
   };
 
   this->mRecoCont.createTracksVariadic(creator);
 
-  if (trackSorting) {
-    std::sort(trackTimeNodes.begin(), trackTimeNodes.end(),
-              [](TrackTimeNode a, TrackTimeNode b) {
-                return a.trackTime < b.trackTime;
+  if (mPrimaryVertexMode) {
+    const auto trackIndex = mRecoCont.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
+    const auto vtxRefs = mRecoCont.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
+    mTotalPrimaryVertices = vtxRefs.size() - 1;                        // The last entry is for unassigned tracks, ignore them
+
+    for (std::size_t iv = 0; iv < mTotalPrimaryVertices; iv++) {
+      const auto& vtref = vtxRefs[iv];
+      int it = vtref.getFirstEntry(), itLim = it + vtref.getEntries();
+      for (; it < itLim; it++) {
+        const auto tvid = trackIndex[it];
+
+        if (!mRecoCont.isTrackSourceLoaded(tvid.getSource())) {
+          continue;
+        }
+
+        // TODO: fix TPC tracks?
+
+        // If a track was not rejected, associate it with its primary vertex
+        if (mGIDTrackTime.find(tvid) != mGIDTrackTime.end()) {
+          mPrimaryVertexGIDs[iv].push_back(tvid);
+        }
+      }
+    }
+  }
+}
+
+void EveWorkflowHelper::draw(std::size_t primaryVertexIdx, bool sortTracks)
+{
+  auto unflagTime = [](unsigned int time) {
+    return static_cast<float>(static_cast<int>(time & ~(1 << 31)) - TIME_OFFSET);
+  };
+
+  auto& tracks = mPrimaryVertexGIDs.at(primaryVertexIdx);
+
+  if (sortTracks) {
+    std::sort(tracks.begin(), tracks.end(),
+              [&](const GID& a, const GID& b) {
+                return mGIDTrackTime.at(a) > mGIDTrackTime.at(b);
               });
   }
 
-  std::size_t trackCount = trackTimeNodes.size();
+  this->drawPHOS();
+  this->drawEMCAL();
+
+  auto trackCount = tracks.size();
+
   if (mEnabledFilters.test(Filter::TotalNTracks) && trackCount >= mMaxNTracks) {
     trackCount = mMaxNTracks;
   }
 
-  for (auto node : gsl::span<const TrackTimeNode>(trackTimeNodes.data(), trackCount)) {
-    mTrackSet.trackGID.push_back(node.trackGID);
-    // return the time value to its original form
-    const auto origTime = static_cast<float>(static_cast<int>(node.trackTime & ~(1 << 31)) - TIME_OFFSET);
-    mTrackSet.trackTime.push_back(origTime);
-  }
-}
-
-void EveWorkflowHelper::draw()
-{
-  this->drawPHOS();
-  this->drawEMCAL();
-
-  for (size_t it = 0; it < mTrackSet.trackGID.size(); it++) {
-    const auto& gid = mTrackSet.trackGID[it];
-    auto tim = mTrackSet.trackTime[it];
+  for (size_t it = 0; it < trackCount; it++) {
+    const auto& gid = tracks[it];
+    auto tim = unflagTime(mGIDTrackTime.at(gid));
+    mTotalAcceptedTracks.insert(gid);
     // LOG(info) << "EveWorkflowHelper::draw " << gid.asString();
     switch (gid.getSource()) {
       case GID::ITS:
@@ -774,7 +801,7 @@ void EveWorkflowHelper::drawTRDClusters(const o2::trd::TrackTRD& tpcTrdTrack, fl
   }
 }
 
-EveWorkflowHelper::EveWorkflowHelper(const FilterSet& enabledFilters, std::size_t maxNTracks, const Bracket& timeBracket, const Bracket& etaBracket) : mEnabledFilters(enabledFilters), mMaxNTracks(maxNTracks), mTimeBracket(timeBracket), mEtaBracket(etaBracket)
+EveWorkflowHelper::EveWorkflowHelper(const FilterSet& enabledFilters, std::size_t maxNTracks, const Bracket& timeBracket, const Bracket& etaBracket, bool primaryVertexMode) : mEnabledFilters(enabledFilters), mMaxNTracks(maxNTracks), mTimeBracket(timeBracket), mEtaBracket(etaBracket), mPrimaryVertexMode(primaryVertexMode), mTotalPrimaryVertices(1)
 {
   o2::mch::TrackExtrap::setField();
   this->mMFTGeom = o2::mft::GeometryTGeo::Instance();
