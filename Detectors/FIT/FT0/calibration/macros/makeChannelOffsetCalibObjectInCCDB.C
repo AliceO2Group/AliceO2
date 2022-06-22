@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <string>
 #include "TFile.h"
 #include "CCDB/CcdbApi.h"
@@ -19,6 +20,7 @@
 #include <iostream>
 #include <array>
 #include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
+#endif
 
 int makeChannelOffsetCalibObjectInCCDB(const std::string url = "http://ccdb-test.cern.ch:8080")
 {
