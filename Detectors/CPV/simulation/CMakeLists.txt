@@ -16,6 +16,7 @@ o2_add_library(CPVSimulation
                        src/RawWriter.cxx
                PUBLIC_LINK_LIBRARIES O2::DetectorsBase
                                      O2::DataFormatsCPV
+                                     O2::DataFormatsCTP
                                      O2::CPVBase
                                      O2::CCDB
                                      O2::SimConfig

@@ -183,8 +183,8 @@ DataProcessorSpec getCPVNoiseCalibratorSpec()
                                                                 inputs);
   std::vector<OutputSpec> outputs;
   // Length of data description ("CPV_Pedestals") must be < 16 characters.
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_BadMap"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_BadMap"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_BadMap", 0}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_BadMap", 0}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "cpv-noise-calibration",
