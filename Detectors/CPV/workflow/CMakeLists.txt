@@ -20,6 +20,7 @@ o2_add_library(CPVWorkflow
                        src/EntropyDecoderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsCPV
+                                     O2::DataFormatsCTP
                                      O2::DPLUtils
                                      O2::CPVBase
                                      O2::CPVSimulation
