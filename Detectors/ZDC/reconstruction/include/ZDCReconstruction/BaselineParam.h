@@ -29,7 +29,7 @@ struct BaselineParam {
 
   BaselineParam();
   std::array<bool, NChannels> modified{};
-  float baseline[NChannels]; // configuration per channel
+  float baseline[NChannels] = {}; // configuration per channel
   void setCalib(uint32_t ich, float val, bool ismodified = true);
   float getCalib(uint32_t ich) const;
   void print(bool printall = true) const;
