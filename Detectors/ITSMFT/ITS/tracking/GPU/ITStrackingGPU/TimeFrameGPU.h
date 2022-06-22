@@ -120,8 +120,6 @@ class TimeFrameGPU : public TimeFrame
   int* getDeviceNTrackletsCluster(int rofId, int combId);
   int* getDeviceIndexTables(const int layerId) { return mIndexTablesD[layerId].get(); }
   int* getDeviceIndexTableAtRof(const int layerId, const int rofId) { return mIndexTablesD[layerId].get() + rofId * (ZBins * PhiBins + 1); }
-  // int* getDeviceIndexTableL0(const int rofId) { return mIndexTablesLayer0D.get() + rofId * (ZBins * PhiBins + 1); }
-  // int* getDeviceIndexTableL2(const int rofId) { return mIndexTablesLayer2D.get() + rofId * (ZBins * PhiBins + 1); }
   unsigned char* getDeviceUsedTracklets(const int rofId);
   Line* getDeviceLines(const int rofId);
   Tracklet* getDeviceTracklets(const int rofId, const int layerId);
@@ -163,8 +161,8 @@ class TimeFrameGPU : public TimeFrame
 
   // Vertexer only
   Vector<Line> mLines;
-  // Vector<int> mIndexTablesLayer0D;
-  // Vector<int> mIndexTablesLayer2D;
+  Vector<int> mIndexTablesLayer0D;
+  Vector<int> mIndexTablesLayer2D;
   Vector<int> mNFoundLines;
   Vector<int> mNExclusiveFoundLines;
   Vector<unsigned char> mUsedTracklets;

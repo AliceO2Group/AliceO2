@@ -60,7 +60,7 @@ class GPUCommonMath
   GPUd() static float ASin(float x);
   GPUd() static float ACos(float x);
   GPUd() static float ATan(float x);
-  GPUd() static float ATan2(float y, float x);
+  GPUhd() static float ATan2(float y, float x);
   GPUd() static float Sin(float x);
   GPUd() static float Cos(float x);
   GPUhdni() static void SinCos(float x, float& s, float& c);
@@ -243,7 +243,7 @@ GPUdi() bool GPUCommonMath::Finite(float x) { return CHOICE(std::isfinite(x), tr
 
 GPUdi() float GPUCommonMath::ATan(float x) { return CHOICE(atanf(x), atanf(x), atan(x)); }
 
-GPUdi() float GPUCommonMath::ATan2(float y, float x) { return CHOICE(atan2f(y, x), atan2f(y, x), atan2(y, x)); }
+GPUhdi() float GPUCommonMath::ATan2(float y, float x) { return CHOICE(atan2f(y, x), atan2f(y, x), atan2(y, x)); }
 
 GPUdi() float GPUCommonMath::Sin(float x) { return CHOICE(sinf(x), sinf(x), sin(x)); }
 

@@ -14,9 +14,11 @@
 #include <sstream>
 #include <iostream>
 
+#include <thrust/execution_policy.h>
+#include <thrust/device_ptr.h>
 #include <thrust/sort.h>
 #include <thrust/functional.h>
-#include <thrust/execution_policy.h>
+#include <thrust/unique.h>
 
 #include "ITStracking/Constants.h"
 #include "ITStracking/Configuration.h"
@@ -119,7 +121,7 @@ GPUg() void computeLayerTrackletsKernel(
 
       const int4 selectedBinsRect{getBinsRect(currentCluster, layerIndex, *utils, zAtRmin, zAtRmax, sigmaZ * trkPars->NSigmaCut, phiCut)};
       // if (!currentClusterIndex) {
-      // printf("%d %d %d %d\n", selectedBinsRect.x, selectedBinsRect.y, selectedBinsRect.z, selectedBinsRect.w);
+      //   printf("%d %d %d %d\n", selectedBinsRect.x, selectedBinsRect.y, selectedBinsRect.z, selectedBinsRect.w);
       // }
       if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
         continue;
@@ -141,7 +143,9 @@ GPUg() void computeLayerTrackletsKernel(
           const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
           const int firstRowClusterIndex = indexTable[rof1 * tableSize + firstBinIndex];
           const int maxRowClusterIndex = indexTable[rof1 * tableSize + maxBinIndex];
-          // printf("%d %d %d %d \n", firstBinIndex, maxBinIndex, firstRowClusterIndex, maxRowClusterIndex);
+          // if (!currentClusterIndex) {
+          //   printf("%d %d %d %d\n", firstBinIndex, maxBinIndex, firstRowClusterIndex, maxRowClusterIndex);
+          // }
           for (int iNextCluster{firstRowClusterIndex}; iNextCluster < maxRowClusterIndex; ++iNextCluster) {
             // printf("%d %d\n", iNextCluster, roFrameClustersNext[rof1 + 1] - roFrameClustersNext[rof1]);
             if (iNextCluster >= (roFrameClustersNext[rof1 + 1] - roFrameClustersNext[rof1])) {
@@ -297,17 +301,17 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
   const Vertex diamondVert({mTrkParams.Diamond[0], mTrkParams.Diamond[1], mTrkParams.Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
   gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
   for (int rof0{0}; rof0 < mTimeFrameGPU->getNrof(); ++rof0) {
-    for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
-      gsl::span<const Vertex> primaryVertices = mTrkParams.UseDiamond ? diamondSpan : mTimeFrameGPU->getPrimaryVertices(rof0); // replace with GPU one
-      std::vector<Vertex> paddedVertices;
-      for (int iVertex{0}; iVertex < mTimeFrameGPU->getConfig().maxVerticesCapacity; ++iVertex) {
-        if (iVertex < primaryVertices.size()) {
-          paddedVertices.emplace_back(primaryVertices[iVertex]);
-        } else {
-          paddedVertices.emplace_back(Vertex());
-        }
+    gsl::span<const Vertex> primaryVertices = mTrkParams.UseDiamond ? diamondSpan : mTimeFrameGPU->getPrimaryVertices(rof0); // replace with GPU one
+    std::vector<Vertex> paddedVertices;
+    for (int iVertex{0}; iVertex < mTimeFrameGPU->getConfig().maxVerticesCapacity; ++iVertex) {
+      if (iVertex < primaryVertices.size()) {
+        paddedVertices.emplace_back(primaryVertices[iVertex]);
+      } else {
+        paddedVertices.emplace_back(Vertex());
       }
-      checkGPUError(cudaMemcpy(mTimeFrameGPU->getDeviceVertices(rof0), paddedVertices.data(), mTimeFrameGPU->getConfig().maxVerticesCapacity * sizeof(Vertex), cudaMemcpyHostToDevice), __FILE__, __LINE__);
+    }
+    checkGPUError(cudaMemcpy(mTimeFrameGPU->getDeviceVertices(rof0), paddedVertices.data(), mTimeFrameGPU->getConfig().maxVerticesCapacity * sizeof(Vertex), cudaMemcpyHostToDevice), __FILE__, __LINE__);
+    for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
       const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getNClustersLayer(rof0, iLayer))};
       const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rof0, iLayer))};
       const float meanDeltaR{mTrkParams.LayerRadii[iLayer + 1] - mTrkParams.LayerRadii[iLayer]};
@@ -316,7 +320,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
         LOGP(info, "Skipping ROF0: {}, no clusters found on layer {}", rof0, iLayer);
         continue;
       }
-      gpu::computeLayerTrackletsKernel<<<blocksGrid, threadsPerBlock , 0, streamArray[iLayer].get()>>>(
+      gpu::computeLayerTrackletsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer].get()>>>(
         rof0,
         mTimeFrameGPU->getNrof(),
         iLayer,
@@ -344,17 +348,17 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
     }
   }
   checkGPUError(cudaDeviceSynchronize(), __FILE__, __LINE__);
-  std::vector<std::vector<int>> tables(NLayers - 1);
-  for (int i{1}; i < /*NLayers - 1*/ 2; ++i) {
-    tables[i].resize(mTimeFrameGPU->mClusters[i].size());
-    checkGPUError(cudaMemcpy(tables[i].data(), mTimeFrameGPU->getDeviceTrackletsLookupTable(0, i), mTimeFrameGPU->mClusters[i].size() * sizeof(int), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-    std::exclusive_scan(tables[i].begin(), tables[i].end(), tables[i].begin(), 0);
-    std::cout << " === table " << i << " ===" << std::endl;
-    for (auto j : tables[i]) {
-      std::cout << j << "\n";
-    }
-    std::cout << std::endl;
-  }
+  // std::vector<std::vector<int>> tables(NLayers - 1);
+  // for (int i{1}; i < /*NLayers - 1*/ 2; ++i) {
+  //   tables[i].resize(mTimeFrameGPU->mClusters[i].size());
+  //   checkGPUError(cudaMemcpy(tables[i].data(), mTimeFrameGPU->getDeviceTrackletsLookupTable(0, i), mTimeFrameGPU->mClusters[i].size() * sizeof(int), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+  //   std::exclusive_scan(tables[i].begin(), tables[i].end(), tables[i].begin(), 0);
+  //   std::cout << " === table " << i << " ===" << std::endl;
+  //   for (auto j : tables[i]) {
+  //     std::cout << j << "\n";
+  //   }
+  //   std::cout << std::endl;
+  // }
   // std::vector<std::vector<Tracklet>> trackletsHost(NLayers - 1, std::vector<Tracklet>(mTimeFrameGPU->getConfig().trackletsCapacity));
   // for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
   //   checkGPUError(cudaMemcpy(trackletsHost[iLayer].data(), mTimeFrameGPU->getDeviceTracklets(0, iLayer), mTimeFrameGPU->getConfig().trackletsCapacity * sizeof(Tracklet), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
@@ -373,25 +377,28 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
   // int* trackletSizesD;
   // int trackletSizeH[6];
   // checkGPUError(cudaMalloc(reinterpret_cast<void**>(&trackletSizesD), (NLayers - 1) * sizeof(int)), __FILE__, __LINE__);
-  // for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
-  //   size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
-  //   discardResult(cub::DeviceReduce::Sum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
-  //                                        bufferSize,                                                         // temp_storage_bytes
-  //                                        mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_in
-  //                                        trackletSizesD + iLayer,                                            // d_out
-  //                                        mTimeFrameGPU->mClusters[iLayer + 1].size()));                      // num_items
-  //   // printf("buffer size: %zu\n", bufferSize);
-  //   checkGPUError(cudaMemcpy(trackletSizeH + iLayer, trackletSizesD + iLayer, sizeof(int), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-  //   // printf("size: %d\n", trackletSizeH[iLayer]);
-  //   if (trackletSizeH[iLayer] == 0) {
-  //     continue;
-  //   }
-  //   discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)),                // d_temp_storage
-  //                                               bufferSize,                                                                        // temp_storage_bytes
-  //                                               mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),                           // d_in
-  //                                               mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),                           // d_out
-  //                                               mTimeFrameGPU->mClusters[iLayer + 1].size() /*, streamArray[iLayer + 1].get()*/)); // num_items
-  // }
+  for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
+    size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
+    auto begin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTracklets(0, iLayer));
+    auto end = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTracklets(0, iLayer) + mTimeFrameGPU->mClusters[iLayer].size());
+    thrust::sort(begin, end);
+    //   discardResult(cub::DeviceReduce::Sum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
+    //                                        bufferSize,                                                         // temp_storage_bytes
+    //                                        mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_in
+    //                                        trackletSizesD + iLayer,                                            // d_out
+    //                                        mTimeFrameGPU->mClusters[iLayer + 1].size()));                      // num_items
+    //   // printf("buffer size: %zu\n", bufferSize);
+    //   checkGPUError(cudaMemcpy(trackletSizeH + iLayer, trackletSizesD + iLayer, sizeof(int), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+    //   // printf("size: %d\n", trackletSizeH[iLayer]);
+    //   if (trackletSizeH[iLayer] == 0) {
+    //     continue;
+    //   }
+    //   discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)),                // d_temp_storage
+    //                                               bufferSize,                                                                        // temp_storage_bytes
+    //                                               mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),                           // d_in
+    //                                               mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),                           // d_out
+    //                                               mTimeFrameGPU->mClusters[iLayer + 1].size() /*, streamArray[iLayer + 1].get()*/)); // num_items
+  }
 }
 
 template <int NLayers>
