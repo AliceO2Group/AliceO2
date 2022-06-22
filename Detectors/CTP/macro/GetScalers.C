@@ -29,8 +29,8 @@ void GetScalers(long tmin = 0, long tmax = -1, std::string ccdbHost = "http://cc
   o2::ccdb::CcdbApi cdb;
   cdb.init("http://alice-ccdb.cern.ch");
   int runNumber = 518420;
-  // std::string srun = "518462";
-  std::string srun = "77781";
+  // std::string srun = "519044";
+  std::string srun = "519045";
   std::map<std::string, std::string> metadata;
   metadata["runNumber"] = srun;
   // auto hd = cdb.retrieveHeaders("RCT/Info/RunInformation", {}, runNumber);
@@ -39,11 +39,13 @@ void GetScalers(long tmin = 0, long tmax = -1, std::string ccdbHost = "http://cc
   CTPConfiguration ctpcfg;
   CTPRunScalers scl;
   CTPRunManager mng;
+  mng.setCCDBHost("http://ccdb-test.cern.ch:8080");
   // mng.setCCDBPathScalers("CTP/Scalers");
   scl = mng.getScalersFromCCDB(-1, srun);
   scl.convertRawToO2();
-  scl.printStream(std::cout);
-  scl.printRates();
+  // scl.printStream(std::cout);
+  // scl.printRates();
+  scl.printIntegrals();
   ctpcfg = mng.getConfigFromCCDB(-1, srun);
   // std::vector<int> clsses;
   // clsses = ctpcfg.getTriggerClassList();

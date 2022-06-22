@@ -21,8 +21,12 @@
 // or submit itself to any jurisdiction.
 
 // example to run:
-// o2-ctp-proxy --ctp-proxy '--channel-config "name=ctp-proxy,type=sub,method=connect,address=tcp://127.0.0.1:5556,rateLogging=1,transport=zeromq"'
-// o2-ctp-proxy --ctp-proxy '--channel-config "name=ctp-proxy,type=sub,method=connect,address=tcp://188.185.88.65:50090,rateLogging=1,transport=zeromq"' -b
+// default: processing , intermal database
+// o2-ctp-proxy --ctp-proxy '--channel-config "name=ctp-proxy,type=sub,method=connect,address=tcp://10.161.64.100:50090,rateLogging=5,transport=zeromq"' -b
+// no processing
+// o2-ctp-proxy --ctp-proxy '--channel-config "name=ctp-proxy,type=sub,method=connect,address=tcp://10.161.64.100:50090,rateLogging=5,transport=zeromq"' --for-qc -b
+// processing, test database
+// o2-ctp-proxy --ctp-proxy '--channel-config "name=ctp-proxy,type=sub,method=connect,address=tcp://10.161.64.100:50090,rateLogging=5,transport=zeromq"' '--ccdb-host=http://ccdb-test.cern.ch:8080' -b
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
@@ -43,10 +47,13 @@
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
-InjectorFunction dcs2dpl()
+InjectorFunction dcs2dpl(bool qc, std::string& ccdbhost)
+// InjectorFunction dcs2dpl()
 {
   auto timesliceId = std::make_shared<size_t>(0);
   auto runMgr = std::make_shared<o2::ctp::CTPRunManager>();
+  runMgr->setCCDBHost(ccdbhost);
+  runMgr->setCTPQC(qc);
   runMgr->init();
   return [timesliceId, runMgr](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
     // make sure just 2 messages received
@@ -93,6 +100,8 @@ InjectorFunction dcs2dpl()
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(ConfigParamSpec{"subscribe-to", VariantType::String, "type=sub,method=connect,address=tcp://188.184.30.57:5556,rateLogging=10,transport=zeromq", {"channel subscribe to"}});
+  workflowOptions.push_back(ConfigParamSpec{"for-qc", VariantType::Bool, false, {"disable processing messages in run manager"}});
+  workflowOptions.push_back(ConfigParamSpec{"ccdb-host", VariantType::String, "http://o2-ccdb.internal:8080", {"ccdb host"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -114,6 +123,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   };
   const std::string devName = "ctp-proxy";
   auto chan = config.options().get<std::string>("subscribe-to");
+  bool qc = config.options().get<bool>("for-qc");
+  std::string ccdbhost = config.options().get<std::string>("ccdb-host");
   if (chan.empty()) {
     throw std::runtime_error("input channel is not provided");
   }
@@ -128,7 +139,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     std::move(ctpCountersOutputs),
     // this is just default, can be overriden by --ctp-config-proxy '--channel-config..'
     chan.c_str(),
-    dcs2dpl());
+    dcs2dpl(qc, ccdbhost));
   LOG(info) << "===> Proxy done";
   WorkflowSpec workflow;
   workflow.emplace_back(ctpProxy);

@@ -84,9 +84,11 @@ class CTPRunScalers
   int checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2& scal1) const;
   int checkConsistency(const CTPScalerRecordO2& rec0, const CTPScalerRecordO2& rec1) const;
   void setClassMask(std::bitset<CTP_NCLASSES> classMask) { mClassMask = classMask; };
+  void setDetectorMask(o2::detectors::DetID::mask_t mask) { mDetectorMask = mask; };
   void setRunNumber(uint32_t rnumber) { mRunNumber = rnumber; };
   void addScalerRacordRaw(CTPScalerRecordRaw& scalerrecordraw) { mScalerRecordRaw.push_back(scalerrecordraw); };
   int printRates();
+  int printIntegrals();
   //
   // static constexpr uint32_t NCOUNTERS = 1052;
   static constexpr uint32_t NCOUNTERS = 1070;

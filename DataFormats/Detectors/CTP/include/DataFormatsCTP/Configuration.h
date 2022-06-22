@@ -68,6 +68,7 @@ struct CTPDescriptor {
 struct CTPDetector {
   CTPDetector() = default;
   o2::detectors::DetID::ID detID;
+  o2::detectors::DetID::mask_t getMask() const { return o2::detectors::DetID(detID).getMask(); }
   const char* getName() const { return o2::detectors::DetID::getName(detID); }
   uint32_t HBaccepted; /// Number of HB frames in TF to be accepted
   std::string mode = "";
@@ -98,6 +99,7 @@ struct CTPClass {
 class CTPConfiguration
 {
  public:
+  const static std::map<std::string, std::string> detName2LTG;
   CTPConfiguration() = default;
   bool isDetector(const o2::detectors::DetID& det);
   void capitaliseString(std::string& str);
@@ -123,6 +125,8 @@ class CTPConfiguration
   uint64_t getTriggerClassMask() const;
   std::vector<int> getTriggerClassList() const;
   uint32_t getRunNumber() { return mRunNumber; };
+  std::vector<std::string> getDetectorList() const;
+  o2::detectors::DetID::mask_t getDetectorMask() const;
 
  private:
   std::string mConfigString = "";
@@ -137,7 +141,7 @@ class CTPConfiguration
   std::vector<CTPCluster> mClusters;
   std::vector<CTPClass> mCTPClasses;
   int processConfigurationLineRun3(std::string& line, int& level);
-  ClassDefNV(CTPConfiguration, 4);
+  ClassDefNV(CTPConfiguration, 5);
 };
 // Run Manager
 struct CTPActiveRun {
@@ -162,15 +166,16 @@ class CTPRunManager
   CTPConfiguration getConfigFromCCDB(long timestamp, std::string run);
   CTPRunScalers getScalersFromCCDB(long timestamp, std::string);
   int loadScalerNames();
-  void setCcdbHost(std::string host) { mCcdbHost = host; };
   // void setCCDBPathConfig(std::string path) { mCCDBPathCTPConfig = path;};
   void setCCDBPathScalers(std::string path) { mCCDBPathCTPScalers = path; };
+  void setCCDBHost(std::string host) { mCCDBHost = host; };
+  void setCTPQC(int qc) { mQC = qc; };
   void printCounters();
 
  private:
   /// Database constants
-  // std::string mCcdbHost = "http://ccdb-test.cern.ch:8080";
-  std::string mCcdbHost = "http://o2-ccdb.internal:8080";
+  // std::string mCCDBHost = "http://ccdb-test.cern.ch:8080";
+  std::string mCCDBHost = "http://o2-ccdb.internal:8080";
   std::string mCCDBPathCTPScalers = "CTP/Calib/Scalers";
   std::array<CTPActiveRun*, NRUNS> mActiveRuns;
   std::array<std::uint32_t, NRUNS> mActiveRunNumbers;
@@ -179,7 +184,8 @@ class CTPRunManager
   CTPActiveRun* mRunInStart = nullptr;
   int mEOX = 0; // redundancy check
   int mCtpcfg = 0;
-  ClassDefNV(CTPRunManager, 3);
+  int mQC = 0; // 1 - no CCDB: used for QC
+  ClassDefNV(CTPRunManager, 4);
 };
 } // namespace ctp
 } // namespace o2

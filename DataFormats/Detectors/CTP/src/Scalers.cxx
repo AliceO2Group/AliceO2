@@ -53,6 +53,10 @@ void CTPScalerRecordRaw::printStream(std::ostream& stream) const
   for (auto const& cnts : scalers) {
     cnts.printStream(stream);
   }
+  for (auto const& dets : scalersDets) {
+    stream << dets << " ";
+  }
+  stream << std::endl;
 }
 void CTPScalerRecordO2::printStream(std::ostream& stream) const
 {
@@ -61,6 +65,10 @@ void CTPScalerRecordO2::printStream(std::ostream& stream) const
   for (auto const& cnts : scalers) {
     cnts.printStream(stream);
   }
+  for (auto const& dets : scalersDets) {
+    stream << dets << " ";
+  }
+  stream << std::endl;
 }
 //
 // CTPRunScalers
@@ -69,6 +77,7 @@ void CTPRunScalers::printStream(std::ostream& stream) const
 {
   stream << "CTP Scalers (version:" << mVersion << ") Run:" << mRunNumber << std::endl;
   printClasses(stream);
+  stream << "Detector mask:" << mDetectorMask << std::endl;
   for (auto const& rec : mScalerRecordRaw) {
     rec.printStream(stream);
   }
@@ -291,6 +300,7 @@ int CTPRunScalers::checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2&
   }
   //
   // LMB >= LMA >= L0B >= L0A >= L1B >= L1A: 5 relations
+  // broken for classes started at L0
   //
   if ((scal1.lmAfter - scal0.lmAfter) > (scal1.lmBefore - scal0.lmBefore)) {
     LOG(error) << "LMA > LMB eerror";
@@ -305,7 +315,7 @@ int CTPRunScalers::checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2&
     ret++;
   }
   if ((scal1.l0Before - scal0.l0Before) > (scal1.lmAfter - scal0.lmAfter)) {
-    LOG(error) << "L0B > LMA error.";
+    LOG(warning) << "L0B > LMA ok if L0 class.";
     ret++;
   }
   if ((scal1.l1Before - scal0.l1Before) > (scal1.l0After - scal0.l0After)) {
@@ -390,6 +400,25 @@ int CTPRunScalers::printRates()
       std::cout << r1B << "   " << r1A;
       std::cout << std::endl;
     }
+    scalrec0 = scalrec1;
+  }
+  return 0;
+}
+int CTPRunScalers::printIntegrals()
+{
+  if (mScalerRecordO2.size() == 0) {
+    LOG(info) << "ScalerRecord is empty, doing nothing";
+    return 0;
+  }
+  LOG(info) << "Scaler Integrals for run:" << mRunNumber;
+
+  for (int i = 0; i < mScalerRecordO2[0].scalers.size(); i++) {
+    std::cout << i << " LMB " << mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].lmBefore - mScalerRecordO2[0].scalers[i].lmBefore << std::endl;
+    std::cout << i << " LMA " << mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].lmAfter - mScalerRecordO2[0].scalers[i].lmAfter << std::endl;
+    std::cout << i << " L0B " << mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l0Before - mScalerRecordO2[0].scalers[i].l0Before << std::endl;
+    std::cout << i << " L0A " << mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l0After - mScalerRecordO2[0].scalers[i].l0After << std::endl;
+    std::cout << i << " L1B " << mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l1Before - mScalerRecordO2[0].scalers[i].l1Before << std::endl;
+    std::cout << i << " L1A " << mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[i].l1After - mScalerRecordO2[0].scalers[i].l1After << std::endl;
   }
   return 0;
 }
