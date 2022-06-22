@@ -114,6 +114,8 @@ void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
   for (auto iComb{0}; iComb < 2; ++iComb) { // Vertexer only
     mNTrackletsPerClusterD[iComb] = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
   }
+  mIndexTablesLayer0D = Vector<int>{mConfig.nMaxROFs * (ZBins * PhiBins + 1), mConfig.nMaxROFs * (ZBins * PhiBins + 1)};
+  mIndexTablesLayer2D = Vector<int>{mConfig.nMaxROFs * (ZBins * PhiBins + 1), mConfig.nMaxROFs * (ZBins * PhiBins + 1)};
   mLines = Vector<Line>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
   mNFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
   mNExclusiveFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
@@ -145,8 +147,8 @@ void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
       mTrackingFrameInfoD[iLayer].reset(mTrackingFrameInfo[iLayer].data(), static_cast<int>(mTrackingFrameInfo[iLayer].size()));
       mClusterExternalIndicesD[iLayer].reset(mClusterExternalIndices[iLayer].data(), static_cast<int>(mClusterExternalIndices[iLayer].size()));
       mROframesClustersD[iLayer].reset(mROframesClusters[iLayer].data(), static_cast<int>(mROframesClusters[iLayer].size()));
-      if (iLayer < NLayers - 1) {
-        mIndexTablesD[iLayer].reset(mFlatIndexTables[iLayer].data(), static_cast<int>(mFlatIndexTables[iLayer].size()));
+      if (iLayer < NLayers) {
+        mIndexTablesD[iLayer].reset(mIndexTables[iLayer].data(), static_cast<int>(mIndexTables[iLayer].size()));
       }
     }
   } else {

@@ -216,7 +216,6 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     mTracklets.resize(std::min(trkParam.TrackletsPerRoad(), maxLayers - 1));
     mTrackletLabels.resize(trkParam.TrackletsPerRoad());
     mTrackletsLookupTable.resize(trkParam.CellsPerRoad());
-    mFlatIndexTables.clear();
     mIndexTableUtils.setTrackingParameters(trkParam);
     mPositionResolution.resize(trkParam.NLayers);
     mBogusClusters.resize(trkParam.NLayers, 0);
