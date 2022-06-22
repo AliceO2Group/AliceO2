@@ -31,7 +31,7 @@ namespace hmpid
 class EntropyEncoderSpec : public o2::framework::Task
 {
  public:
-  EntropyEncoderSpec();
+  EntropyEncoderSpec(bool selIR = false);
   ~EntropyEncoderSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -40,10 +40,11 @@ class EntropyEncoderSpec : public o2::framework::Task
 
  private:
   o2::hmpid::CTFCoder mCTFCoder;
+  bool mSelIR = false;
   TStopwatch mTimer;
 };
 
-EntropyEncoderSpec::EntropyEncoderSpec() : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder)
+EntropyEncoderSpec::EntropyEncoderSpec(bool selIR) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mSelIR(selIR)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -68,10 +69,15 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   mCTFCoder.updateTimeDependentParams(pc);
   auto triggers = pc.inputs().get<gsl::span<Trigger>>("triggers");
   auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
-
+  if (mSelIR) {
+    mCTFCoder.getIRFramesSelector().setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
+  }
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"HMP", "CTFDATA", 0, Lifetime::Timeframe});
   auto iosize = mCTFCoder.encode(buffer, triggers, digits);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
+  if (mSelIR) {
+    mCTFCoder.getIRFramesSelector().clear();
+  }
   mTimer.Stop();
   LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
@@ -82,19 +88,21 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyEncoderSpec()
+DataProcessorSpec getEntropyEncoderSpec(bool selIR)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("triggers", "HMP", "INTRECORDS", 0, Lifetime::Timeframe);
   inputs.emplace_back("digits", "HMP", "DIGITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ctfdict", "HMP", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("HMP/Calib/CTFDictionary"));
-
+  if (selIR) {
+    inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
     "hmpid-entropy-encoder",
     inputs,
     Outputs{{"HMP", "CTFDATA", 0, Lifetime::Timeframe},
             {{"ctfrep"}, "HMP", "CTFENCREP", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
+    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(selIR)},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }

@@ -62,7 +62,7 @@ void CTFCoder::compress(CompressedClusters& cc,
   if (mIRFrameSelector.isSet()) {
     for (size_t ir = 0; ir < rofRecVec.size(); ir++) {
       auto irStart = rofRecVec[ir].getBCData();
-      if (!mIRFrameSelector.check({irStart, irStart + strobeLength - 1})) {
+      if (mIRFrameSelector.check({irStart, irStart + strobeLength - 1}) < 0) {
         reject[ir] = true;
         nrofSel--;
         nClusSel -= rofRecVec[ir].getNEntries();
@@ -70,6 +70,8 @@ void CTFCoder::compress(CompressedClusters& cc,
         firstROF = ir;
       }
     }
+  } else {
+    firstROF = 0;
   }
   if (nrofSel == 0) { // nothing is selected
     return;
@@ -148,6 +150,7 @@ void CTFCoder::compress(CompressedClusters& cc,
     cc.nclusROF[irofOut] = ncl;
     if (!ncl) { // no hits data for this ROF
       cc.firstChipROF[irofOut] = 0;
+      irofOut++;
       continue;
     }
     cc.firstChipROF[irofOut] = cclusVec[rofRec.getFirstEntry()].getChipID();
@@ -181,6 +184,7 @@ void CTFCoder::compress(CompressedClusters& cc,
       }
       iclOut++;
     }
+    irofOut++;
   }
   if (selectPatterns && pattIt != pattIt0) { // copy leftover patterns
     cc.pattMap.insert(cc.pattMap.end(), pattIt0, pattIt);

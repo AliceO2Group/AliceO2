@@ -119,8 +119,6 @@ DataProcessorSpec getEntropyEncoderSpec(o2::header::DataOrigin orig, bool selIR)
   inputs.emplace_back("ROframes", orig, "CLUSTERSROF", 0, Lifetime::Timeframe);
   if (selIR) {
     inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
-  }
-  if (selIR) {
     inputs.emplace_back("cldict", orig, "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", orig.as<std::string>())));
     inputs.emplace_back("alppar", orig, "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Config/AlpideParam", orig.as<std::string>())));
   }
