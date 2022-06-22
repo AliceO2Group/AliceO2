@@ -20,13 +20,54 @@ namespace strangeness_tracking
 {
 using ITSCluster = o2::BaseCluster<float>;
 
+int indexTableUtils::getEtaBin(float eta)
+{
+  float deltaEta = (maxEta - minEta) / (mEtaBins);
+  int bEta = (eta - minEta) / deltaEta; // bins recentered to 0
+  return bEta;
+}
+
+int indexTableUtils::getPhiBin(float phi)
+{
+  float deltaPhi = (maxPhi - minPhi) / (mPhiBins);
+  int bPhi = (phi - minPhi) / deltaPhi; // bin recentered to 0
+  return bPhi;
+}
+
 int indexTableUtils::getBinIndex(float eta, float phi)
 {
-  float deltaPhi = 2 * TMath::Pi() / (mPhiBins);
+  float deltaPhi = (maxPhi - minPhi) / (mPhiBins);
   float deltaEta = (maxEta - minEta) / (mEtaBins);
-  int bEta = (eta + (maxEta - minEta) / 2) / deltaEta;
-  int bPhi = phi / deltaPhi;
-  return abs(eta) > 1.5 ? mEtaBins * mPhiBins : bEta + mEtaBins * bPhi;
+  int bEta = getEtaBin(eta);
+  int bPhi = getPhiBin(phi);
+  return bEta >= mEtaBins || bPhi >= mPhiBins ? mEtaBins * mPhiBins : bEta + mEtaBins * bPhi;
+}
+
+std::vector<int> indexTableUtils::getBinRect(float eta, float phi, float deltaEta, float deltaPhi)
+{
+  std::vector<int> idxVec;
+  int centralBin = getBinIndex(eta, phi);
+  if (centralBin == mPhiBins * mEtaBins) { // condition for overflows
+    idxVec.push_back(centralBin);
+    return idxVec;
+  }
+  int minEtaBin = TMath::Max(0, getEtaBin(eta - deltaEta));
+  int maxEtaBin = getEtaBin(eta + deltaEta);
+  LOG(info) << getPhiBin(phi - deltaPhi);
+  int minPhiBin = TMath::Max(0, getPhiBin(phi - deltaPhi));
+  int maxPhiBin = getPhiBin(phi + deltaPhi);
+  // LOG(info) << minEtaBin << " " << maxEtaBin << " " << minPhiBin << " " << maxPhiBin;
+
+  for (int iPhi{minPhiBin}; iPhi <= maxPhiBin; iPhi++) {
+    if (iPhi >= mPhiBins)
+      break;
+    for (int iEta{minEtaBin}; iEta <= maxEtaBin; iEta++) {
+      if (iEta >= mEtaBins)
+        break;
+      idxVec.push_back(iEta + mEtaBins * iPhi);
+    }
+  }
+  return idxVec;
 }
 
 bool HyperTracker::loadData(gsl::span<const o2::its::TrackITS> InputITStracks, std::vector<ITSCluster>& InputITSclusters, gsl::span<const int> InputITSidxs, gsl::span<const V0> InputV0tracks, o2::its::GeometryTGeo* geomITS)
@@ -49,23 +90,20 @@ void HyperTracker::initialise()
 {
   mTracksIdxTable.clear();
 
-  for (auto& track : mInputITStracks) {
-    mSortedITStracks.push_back(track);
+  for (int iTrack{0}; iTrack < mInputITStracks.size(); iTrack++) {
+    mSortedITStracks.push_back(mInputITStracks[iTrack]);
+    mSortedITSindexes.push_back(iTrack);
   }
 
   mTracksIdxTable.resize(mUtils.mPhiBins * mUtils.mEtaBins + 1);
   std::sort(mSortedITStracks.begin(), mSortedITStracks.end(), [&](o2::its::TrackITS& a, o2::its::TrackITS& b) { return mUtils.getBinIndex(a.getEta(), a.getPhi()) < mUtils.getBinIndex(b.getEta(), b.getPhi()); });
+  std::sort(mSortedITSindexes.begin(), mSortedITSindexes.end(), [&](int i, int j) { return mUtils.getBinIndex(mInputITStracks[i].getEta(), mInputITStracks[i].getPhi()) < mUtils.getBinIndex(mInputITStracks[j].getEta(), mInputITStracks[j].getPhi()); });
+
   for (auto& track : mSortedITStracks) {
     mTracksIdxTable[mUtils.getBinIndex(track.getEta(), track.getPhi())]++;
   }
   std::exclusive_scan(mTracksIdxTable.begin(), mTracksIdxTable.begin() + mUtils.mPhiBins * mUtils.mEtaBins, mTracksIdxTable.begin(), 0);
   mTracksIdxTable[mUtils.mPhiBins * mUtils.mEtaBins] = mSortedITStracks.size();
-  for (int iPhi{0}; iPhi < mUtils.mPhiBins; ++iPhi) {
-    for (int iEta{0}; iEta < mUtils.mEtaBins; ++iEta) {
-      std::cout << mTracksIdxTable[iEta + iPhi * mUtils.mEtaBins] << "\t";
-    }
-    std::cout << std::endl;
-  }
 }
 
 void HyperTracker::process()
@@ -86,85 +124,89 @@ void HyperTracker::process()
 
     auto tmpV0 = mV0;
     auto v0R2 = v0.calcR2();
+    auto iBinsV0 = mUtils.getBinRect(tmpV0.getEta(), tmpV0.getPhi(), 0.1, 0.1);
+    for (int& iBinV0 : iBinsV0) {
+      LOG(info) << "iBinV0: " << iBinV0;
+      for (int iTrack{mTracksIdxTable[iBinV0]}; iTrack < TMath::Min(mTracksIdxTable[iBinV0 + 1], int(mSortedITStracks.size())); iTrack++) {
 
-    int ibinV0 = mUtils.getBinIndex(tmpV0.getEta(), tmpV0.getPhi());
-    // LOG(info) << "V0eta: " << v0.getEta() << " V0phi: " << v0.getPhi() << " V0r2: " << v0R2 << " ibinV0: " << ibinV0;
-    LOG(info) << mTracksIdxTable[ibinV0] << " " << mTracksIdxTable[ibinV0 + 1];
+        mV0 = tmpV0;
+        auto& he3Track = alphaV0 > 0 ? mV0.getProng(0) : mV0.getProng(1);
+        auto& piTrack = alphaV0 < 0 ? mV0.getProng(0) : mV0.getProng(1);
+        auto& ITStrack = mSortedITStracks[iTrack];
+        auto& ITSindexRef = mSortedITSindexes[iTrack];
 
-    for (int iTrack{mTracksIdxTable[ibinV0]}; iTrack < TMath::Min(mTracksIdxTable[ibinV0 + 1], int(mSortedITStracks.size())); iTrack++) {
+        LOG(info) << "V0 pos: " << v0.getProngID(0) << " V0 neg: " << v0.getProngID(1) << " V0pt: " << v0.getPt() << " ITSpt: " << ITStrack.getPt();
+        LOG(info) << "V0 eta: " << v0.getEta() << " V0 phi: " << v0.getPhi() << " ITS eta: " << ITStrack.getEta() << " ITS phi: " << ITStrack.getPhi();
 
-      mV0 = tmpV0;
-      auto& he3Track = alphaV0 > 0 ? mV0.getProng(0) : mV0.getProng(1);
-      auto& piTrack = alphaV0 < 0 ? mV0.getProng(0) : mV0.getProng(1);
-      auto& ITStrack = mSortedITStracks[iTrack];
+        auto trackClusters = getTrackClusters(ITStrack);
+        std::vector<ITSCluster> motherClusters;
+        std::array<unsigned int, 7> nAttachments;
 
-      // LOG(info) << "itrack: " << iTrack <<" V0 eta: " << tmpV0.getEta() << " phi: " << tmpV0.getPhi() << ", ITS eta: " << ITStrack.getEta() << " phi: " << ITStrack.getPhi();
+        int nUpdates = 0;
+        bool isMotherUpdated = false;
 
-      auto trackClusters = getTrackClusters(ITStrack);
-      std::vector<ITSCluster> motherClusters;
-      std::array<unsigned int, 7> nAttachments;
+        for (auto& clus : trackClusters) {
+          auto diffR2 = v0R2 - clus.getX() * clus.getX() - clus.getY() * clus.getY(); // difference between V0 and Layer R2
+          if (diffR2 > -mRadiusTol) {
+            LOG(info) << "Try to attach cluster to V0, layer: " << mGeomITS->getLayer(clus.getSensorID());
+            if (updateTrack(clus, mV0)) {
+              motherClusters.push_back(clus);
+              nAttachments[mGeomITS->getLayer(clus.getSensorID())] = kMother;
+              isMotherUpdated = true;
+              nUpdates++;
+              continue;
+            } else {
+              if (isMotherUpdated == true) {
+                break;
+              } // no daughter clusters can be attached
+            }
+          }
 
-      int nUpdates = 0;
-      bool isMotherUpdated = false;
+          // if V0 is not found, check for daughters compatibility
+          if (diffR2 < mRadiusTol && !isMotherUpdated) {
+            LOG(info) << "Try to attach cluster to daughters, layer: " << mGeomITS->getLayer(clus.getSensorID());
 
-      for (auto& clus : trackClusters) {
-        auto diffR2 = v0R2 - clus.getX() * clus.getX() - clus.getY() * clus.getY(); // difference between V0 and Layer R2
-        if (diffR2 > -mRadiusTol) {
-          // LOG(info) << "Try to attach cluster to V0, layer: " << mGeomITS->getLayer(clus.getSensorID());
-          if (updateTrack(clus, mV0)) {
-            motherClusters.push_back(clus);
-            nAttachments[mGeomITS->getLayer(clus.getSensorID())] = 1;
-            isMotherUpdated = true;
-            nUpdates++;
-            continue;
-          } else {
-            if (isMotherUpdated == true) {
+            if (updateTrack(clus, he3Track))
+              nAttachments[mGeomITS->getLayer(clus.getSensorID())] = kFirstDaughter;
+            else if (updateTrack(clus, piTrack))
+              nAttachments[mGeomITS->getLayer(clus.getSensorID())] = kSecondDaughter;
+            else
               break;
-            } // no daughter clusters can be attached
+            nUpdates++;
           }
         }
 
-        // if V0 is not found, check for daughters compatibility
-        if (diffR2 < mRadiusTol && !isMotherUpdated) {
-          // LOG(info) << "Try to attach cluster to daughters, layer: " << mGeomITS->getLayer(clus.getSensorID());
-          if (updateTrack(clus, he3Track))
-            nAttachments[mGeomITS->getLayer(clus.getSensorID())] = kFirstDaughter;
-          else if (updateTrack(clus, piTrack))
-            nAttachments[mGeomITS->getLayer(clus.getSensorID())] = kSecondDaughter;
-          else
-            break;
-          nUpdates++;
-        }
-      }
+        if (nUpdates < trackClusters.size() || motherClusters.size() == 0)
+          continue;
 
-      if (nUpdates < trackClusters.size() || motherClusters.size() == 0)
-        continue;
+        o2::track::TrackParCov hyperTrack = mV0;
+        mV0.resetCovariance();
+        if (motherClusters.size() >= mMinMotherClus) {   //fill only if at least mMinMotherClus clusters of the mother V0 have been attached
+          std::reverse(motherClusters.begin(), motherClusters.end());
+          for (auto& clus : motherClusters) {
+            if (!updateTrack(clus, mV0))
+              break;
+          }
 
-      o2::track::TrackParCov hyperTrack = mV0;
-      mV0.resetCovariance();
-      std::reverse(motherClusters.begin(), motherClusters.end());
-      for (auto& clus : motherClusters) {
-        if (!updateTrack(clus, mV0))
-          break;
+          // final 3body refit
+          if (refitTopology()) {
+            LOG(info) << "------------------------------------------------------";
+            LOG(info) << "Pushing back v0: " << v0.getProngID(0) << ", " << v0.getProngID(1);
+            LOG(info) << "number of clusters attached: " << motherClusters.size();
+            LOG(info) << "Number of ITS track clusters: " << ITStrack.getNumberOfClusters();
+            LOG(info) << "number of clusters attached to V0: " << nAttachments[0] << ", " << nAttachments[1] << ", " << nAttachments[2] << ", " << nAttachments[3] << ", " << nAttachments[4] << ", " << nAttachments[5] << ", " << nAttachments[6];
+            auto& lastClus = trackClusters[0];
+            LOG(info) << "Matching chi2: " << getMatchingChi2(tmpV0, ITStrack, lastClus);
 
-        // final 3body refit
-        if (refitTopology()) {
-          LOG(debug) << "------------------------------------------------------";
-          LOG(debug) << "Pushing back v0: " << v0.getProngID(0) << ", " << v0.getProngID(1);
-          LOG(debug) << "number of clusters attached: " << motherClusters.size();
-          LOG(debug) << "Number of ITS track clusters: " << ITStrack.getNumberOfClusters();
-          LOG(debug) << "number of clusters attached to V0: " << nAttachments[0] << ", " << nAttachments[1] << ", " << nAttachments[2] << ", " << nAttachments[3] << ", " << nAttachments[4] << ", " << nAttachments[5] << ", " << nAttachments[6];
-          auto& lastClus = trackClusters[0];
-          LOG(debug) << "Matching chi2: " << getMatchingChi2(tmpV0, ITStrack, lastClus);
-
-          mV0s.push_back(mV0);
-          mHyperTracks.push_back(hyperTrack);
-          mChi2.push_back(getMatchingChi2(tmpV0, ITStrack, lastClus));
-          mR2.push_back(mV0.calcR2());
-          mITStrackRef.push_back(iTrack);
-          ClusAttachments structClus;
-          structClus.arr = nAttachments;
-          mClusAttachments.push_back(structClus);
+            mV0s.push_back(mV0);
+            mHyperTracks.push_back(hyperTrack);
+            mChi2.push_back(getMatchingChi2(tmpV0, ITStrack, lastClus));
+            mR2.push_back(mV0.calcR2());
+            mITStrackRef.push_back(ITSindexRef);
+            ClusAttachments structClus;
+            structClus.arr = nAttachments;
+            mClusAttachments.push_back(structClus);
+          }
         }
       }
     }
@@ -190,7 +232,7 @@ bool HyperTracker::updateTrack(const ITSCluster& clus, o2::track::TrackParCov& t
       return false;
   }
   auto chi2 = std::abs(track.getPredictedChi2(clus));
-  // LOG(info) << "chi2" << track.getPredictedChi2(clus);
+  LOG(info) << "chi2: " << track.getPredictedChi2(clus);
   if (chi2 > mMaxChi2 || chi2 < 0)
     return false;
 
