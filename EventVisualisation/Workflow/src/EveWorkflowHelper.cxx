@@ -88,13 +88,11 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
     } else if constexpr (isMFTTrack<decltype(_tr)>()) { // Same for MFT
       t0 += 0.5f * this->mMFTROFrameLengthMUS;
       terr *= this->mMFTROFrameLengthMUS;
-    } else if constexpr (isGlobalFwdTrack<decltype(_tr)>()) {
-      t0 = _tr.getTimeMUS().getTimeStamp();
-      terr = _tr.getTimeMUS().getTimeStampError() * mPVParams->nSigmaTimeTrack; // gaussian errors must be scaled by requested n-sigma
-    } else {
+    } else if constexpr (!(isMCHTrack<decltype(_tr)>() || isMIDTrack<decltype(_tr)>() || isGlobalFwdTrack<decltype(_tr)>())) {
+      // for all other tracks the time is in \mus with gaussian error
       terr *= mPVParams->nSigmaTimeTrack; // gaussian errors must be scaled by requested n-sigma
     }
-    // for all other tracks the time is in \mus with gaussian error
+
     terr += mPVParams->timeMarginTrackTime;
 
     return Bracket{t0 - terr, t0 + terr};

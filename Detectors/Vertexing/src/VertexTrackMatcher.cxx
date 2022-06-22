@@ -188,13 +188,11 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
     } else if constexpr (isMFTTrack<decltype(_tr)>()) { // Same for MFT
       t0 += 0.5 * this->mMFTROFrameLengthMUS;
       terr *= this->mMFTROFrameLengthMUS;
-    } else if constexpr (isGlobalFwdTrack<decltype(_tr)>()) {
-      t0 = _tr.getTimeMUS().getTimeStamp();
-      terr = _tr.getTimeMUS().getTimeStampError() * mPVParams->nSigmaTimeTrack; // gaussian errors must be scaled by requested n-sigma
-    } else {
+    } else if constexpr (!(isMCHTrack<decltype(_tr)>() || isGlobalFwdTrack<decltype(_tr)>())) {
+      // for all other tracks the time is in \mus with gaussian error
       terr *= mPVParams->nSigmaTimeTrack; // gaussian errors must be scaled by requested n-sigma
     }
-    // for all other tracks the time is in \mus with gaussian error
+
     terr += mPVParams->timeMarginTrackTime;
     mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});
 

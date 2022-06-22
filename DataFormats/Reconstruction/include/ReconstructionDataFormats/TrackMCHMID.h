@@ -17,7 +17,10 @@
 #ifndef ALICEO2_TRACKMCHMID_H
 #define ALICEO2_TRACKMCHMID_H
 
+#include <utility>
+
 #include "CommonDataFormat/InteractionRecord.h"
+#include "CommonDataFormat/TimeStamp.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 
 namespace o2
@@ -28,6 +31,8 @@ namespace dataformats
 /// MUON track external format
 class TrackMCHMID
 {
+  using Time = o2::dataformats::TimeStampWithError<float, float>;
+
  public:
   TrackMCHMID() = default;
   TrackMCHMID(const GlobalTrackID& mchID, const GlobalTrackID& midID, const InteractionRecord& midIR, double chi2)
@@ -59,6 +64,9 @@ class TrackMCHMID
   InteractionRecord getIR() const { return mIR; }
   /// set the interaction record associated to this track
   void setIR(const InteractionRecord& ir) { mIR = ir; }
+
+  std::pair<Time, bool> getTimeMUS(const InteractionRecord& startIR, uint32_t nOrbits = 128,
+                                   bool printError = false) const;
 
   /// get the MCH-MID matching chi2/ndf
   double getMatchChi2OverNDF() const { return mMatchNChi2; }

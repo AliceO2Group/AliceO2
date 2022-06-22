@@ -19,8 +19,10 @@
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
+#include "CommonDataFormat/TimeStamp.h"
 
 #include <iosfwd>
+#include <utility>
 
 namespace o2
 {
@@ -33,6 +35,7 @@ class ROFRecord
 {
   using BCData = o2::InteractionRecord;
   using DataRef = o2::dataformats::RangeReference<int, int>;
+  using Time = o2::dataformats::TimeStampWithError<float, float>;
 
  public:
   ROFRecord() = default;
@@ -45,6 +48,8 @@ class ROFRecord
   BCData& getBCData() { return mBCData; }
   /// set the interaction record
   void setBCData(const BCData& bc) { mBCData = bc; }
+
+  std::pair<Time, bool> getTimeMUS(const BCData& startIR, uint32_t nOrbits = 128, bool printError = false) const;
 
   /// get the number of associated objects
   int getNEntries() const { return mDataRef.getEntries(); }
