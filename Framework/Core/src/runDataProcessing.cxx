@@ -693,14 +693,14 @@ void handle_crash(int /* sig */)
   {
     char const* msg = "*** Segmentation fault (O2)\nBacktrace:\n";
     int len = strlen(msg); /* the byte length of the string */
-    write(STDERR_FILENO, msg, len);
+    (void)write(STDERR_FILENO, msg, len);
   }
   demangled_backtrace_symbols(array, size, STDERR_FILENO);
   {
     char const* msg = "Backtrace complete.\n";
     int len = strlen(msg); /* the byte length of the string */
 
-    write(STDERR_FILENO, msg, len);
+    (void)write(STDERR_FILENO, msg, len);
     fsync(STDERR_FILENO);
   }
   _exit(1);
