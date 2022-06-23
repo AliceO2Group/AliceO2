@@ -114,7 +114,15 @@ class TOFDCSProcessor
   const std::bitset<Geo::NCHANNELS>& getHVStatus() const { return mHV; }
   bool isHVUpdated() const { return mUpdateHVStatus; }
 
-  void setStartValidity(long t) { mStartValidity = t; }
+  void setStartValidityDPs(long t) { mStartValidityDPs = t; }
+  void setStartValidityLV(long t) { mStartValidityLV = t; }
+  void setStartValidityHV(long t) { mStartValidityHV = t; }
+  long getStartValidityDPs() const { return mStartValidityDPs; }
+  long getStartValidityLV() const { return mStartValidityLV; }
+  long getStartValidityHV() const { return mStartValidityHV; }
+  void resetStartValidityDPs() { mStartValidityDPs = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; }
+  void resetStartValidityLV() { mStartValidityLV = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; }
+  void resetStartValidityHV() { mStartValidityHV = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; }
   void useVerboseModeDP() { mVerboseDP = true; }
   void useVerboseModeHVLV() { mVerboseHVLV = true; }
 
@@ -151,9 +159,9 @@ class TOFDCSProcessor
   CcdbObjectInfo mccdbDPsInfo;
   CcdbObjectInfo mccdbLVInfo;
   CcdbObjectInfo mccdbHVInfo;
-  long mFirstTime;         // time when a CCDB object was stored first
-  long mStartValidity = 0; // TF index for processing, used to store CCDB object
-  bool mFirstTimeSet = false;
+  long mStartValidityDPs = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; // TF index for processing, used to store CCDB object for DPs
+  long mStartValidityLV = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;  // TF index for processing, used to store CCDB object for LV
+  long mStartValidityHV = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;  // TF index for processing, used to store CCDB object for HV
 
   bool mVerboseDP = false;
   bool mVerboseHVLV = false;
