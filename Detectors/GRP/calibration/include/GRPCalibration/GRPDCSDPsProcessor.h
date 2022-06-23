@@ -215,52 +215,52 @@ struct GRPLHCInfo {
   void print()
   {
     for (int i = 0; i < NBeamAliases; ++i) {
-      std::printf("%-30s : n elements %ld\n", beamAliases[i], mIntensityBeam[i].size());
+      std::printf("%-30s : n elements %ld\n", static_cast<std::string>(beamAliases[i]).c_str(), mIntensityBeam[i].size());
       for (int iel = 0; iel < mIntensityBeam[i].size(); ++iel) {
         std::printf("timestamp %lu   val %.3e\n", llu2lu(mIntensityBeam[i].at(iel).first), mIntensityBeam[i].at(iel).second);
       }
     }
     for (int i = 0; i < NBkgAliases; ++i) {
-      std::printf("%-30s : n elements %ld\n", bkgAliases[i], mBackground[i].size());
+      std::printf("%-30s : n elements %ld\n", static_cast<std::string>(bkgAliases[i]).c_str(), mBackground[i].size());
       for (int iel = 0; iel < mBackground[i].size(); ++iel) {
         std::printf("timestamp %lu   val %.3e\n", llu2lu(mBackground[i].at(iel).first), mBackground[i].at(iel).second);
       }
     }
-    std::printf("%-30s : n elements %ld\n", lumiAliases[ALI_Lumi_Total_Inst], mInstLumi.size());
+    std::printf("%-30s : n elements %ld\n", static_cast<std::string>(lumiAliases[ALI_Lumi_Total_Inst]).c_str(), mInstLumi.size());
     for (int iel = 0; iel < mInstLumi.size(); ++iel) {
       std::printf("timestamp %lu   val %.3e\n", llu2lu(mInstLumi.at(iel).first), mInstLumi.at(iel).second);
     }
-    std::printf("%-30s : n elements %ld\n", bptxAliases[BPTX_deltaT_B1_B2], mBPTXdeltaT.size());
+    std::printf("%-30s : n elements %ld\n", static_cast<std::string>(bptxAliases[BPTX_deltaT_B1_B2]).c_str(), mBPTXdeltaT.size());
     for (int iel = 0; iel < mBPTXdeltaT.size(); ++iel) {
       std::printf("timestamp %lu   val %.3e\n", llu2lu(mBPTXdeltaT.at(iel).first), mBPTXdeltaT.at(iel).second);
     }
-    std::printf("%-30s : n elements %ld\n", bptxAliases[BPTX_deltaTRMS_B1_B2], mBPTXdeltaTRMS.size());
+    std::printf("%-30s : n elements %ld\n", static_cast<std::string>(bptxAliases[BPTX_deltaTRMS_B1_B2]).c_str(), mBPTXdeltaTRMS.size());
     for (int iel = 0; iel < mBPTXdeltaTRMS.size(); ++iel) {
       std::printf("timestamp %lu   val %.3e\n", llu2lu(mBPTXdeltaTRMS.at(iel).first), mBPTXdeltaTRMS.at(iel).second);
     }
     for (int i = 0; i < NBPTXPhaseAliases; ++i) {
-      std::printf("%-30s : n elements %ld\n", bptxPhaseAliases[i], mBPTXPhase[i].size());
+      std::printf("%-30s : n elements %ld\n", static_cast<std::string>(bptxPhaseAliases[i]).c_str(), mBPTXPhase[i].size());
       for (int iel = 0; iel < mBPTXPhase[i].size(); ++iel) {
         std::printf("timestamp %lu   val %.3e\n", llu2lu(mBPTXPhase[i].at(iel).first), mBPTXPhase[i].at(iel).second);
       }
     }
     for (int i = 0; i < NBPTXPhaseRMSAliases; ++i) {
-      std::printf("%-30s : n elements %ld\n", bptxPhaseRMSAliases[i], mBPTXPhaseRMS[i].size());
+      std::printf("%-30s : n elements %ld\n", static_cast<std::string>(bptxPhaseRMSAliases[i]).c_str(), mBPTXPhaseRMS[i].size());
       for (int iel = 0; iel < mBPTXPhaseRMS[i].size(); ++iel) {
         std::printf("timestamp %lu   val %.3e\n", llu2lu(mBPTXPhaseRMS[i].at(iel).first), mBPTXPhaseRMS[i].at(iel).second);
       }
     }
     for (int i = 0; i < NBPTXPhaseShiftAliases; ++i) {
-      std::printf("%-30s : n elements %ld\n", bptxPhaseShiftAliases[i], mBPTXPhaseShift[i].size());
+      std::printf("%-30s : n elements %ld\n", static_cast<std::string>(bptxPhaseShiftAliases[i]).c_str(), mBPTXPhaseShift[i].size());
       for (int iel = 0; iel < mBPTXPhaseShift[i].size(); ++iel) {
         std::printf("timestamp %lu   val %.3e\n", llu2lu(mBPTXPhaseShift[i].at(iel).first), mBPTXPhaseShift[i].at(iel).second);
       }
     }
-    std::printf("%-30s :\n", lhcStringAliases[ALI_Lumi_Source_Name]);
+    std::printf("%-30s :\n", static_cast<std::string>(lhcStringAliases[ALI_Lumi_Source_Name]).c_str());
     std::printf("timestamp %lu   val %s\n", llu2lu(mLumiSource.first), mLumiSource.second.c_str());
-    std::printf("%-30s :\n", lhcStringAliases[BEAM_MODE]);
+    std::printf("%-30s :\n", static_cast<std::string>(lhcStringAliases[BEAM_MODE]).c_str());
     std::printf("timestamp %lu   val %s\n", llu2lu(mBeamMode.first), mBeamMode.second.c_str());
-    std::printf("%-30s :\n", lhcStringAliases[MACHINE_MODE]);
+    std::printf("%-30s :\n", static_cast<std::string>(lhcStringAliases[MACHINE_MODE]).c_str());
     std::printf("timestamp %lu   val %s\n", llu2lu(mMachineMode.first), mMachineMode.second.c_str());
   }
 
@@ -335,7 +335,17 @@ class GRPDCSDPsProcessor
   o2::ccdb::CcdbObjectInfo& getccdbCollimatorsInfo() { return mccdbCollimatorsInfo; }
   void updateCollimatorsCCDB();
 
-  void setStartValidity(long t) { mStartValidity = t; }
+  void setStartValidityMagFi(long t) { mStartValidityMagFi = t; }
+  void setStartValidityLHCIF(long t) { mStartValidityLHCIF = t; }
+  void setStartValidityEnvVa(long t) { mStartValidityEnvVa = t; }
+  void setStartValidityColli(long t) { mStartValidityColli = t; }
+  long getStartValidityLHCIF() const { return mStartValidityLHCIF; }
+  long getStartValidityEnvVa() const { return mStartValidityEnvVa; }
+  long getStartValidityColli() const { return mStartValidityColli; }
+  void resetStartValidityLHCIF() { mStartValidityLHCIF = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; }
+  void resetStartValidityEnvVa() { mStartValidityEnvVa = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; }
+  void resetStartValidityColli() { mStartValidityColli = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; }
+
   void useVerboseMode() { mVerbose = true; }
   void clearVectors() { mClearVectors = true; }
 
@@ -346,9 +356,10 @@ class GRPDCSDPsProcessor
   std::unordered_map<DPID, bool> mPids; // contains all PIDs for the processor, the bool
                                         // will be true if the DP was processed at least once
 
-  long mFirstTime;         // time when a CCDB object was stored first
-  long mStartValidity = 0; // TF index for processing, used to store CCDB object
-  bool mFirstTimeSet = false;
+  long mStartValidityMagFi = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
+  long mStartValidityLHCIF = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
+  long mStartValidityEnvVa = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
+  long mStartValidityColli = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
 
   size_t mCallSlice = 0;
   bool mVerbose = false;
