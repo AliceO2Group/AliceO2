@@ -51,21 +51,19 @@ struct BaselineCalibBinData {
 // is therefore a sign of a hidden problem
 
 struct BaselineCalibSummaryData {
-  BaselineCalibSummaryData()
-  {
-    mOverflowCh.fill(false);
-  }
-  uint64_t mCTimeBeg = 0;                  /// Time of processed time frame
-  uint64_t mCTimeEnd = 0;                  /// Time of processed time frame
-  bool mOverflow = false;                  /// Overflow of one channel
-  std::array<bool, NChannels> mOverflowCh; /// Channel overflow information
-  std::vector<BaselineCalibBinData> mData; /// Data of not empty bins
+  BaselineCalibSummaryData() = default;
+  uint64_t mCTimeBeg = 0;                    /// Time of processed time frame
+  uint64_t mCTimeEnd = 0;                    /// Time of processed time frame
+  bool mOverflow = false;                    /// Overflow of one channel
+  std::array<bool, NChannels> mOverflowCh{}; /// Channel overflow information
+  std::vector<BaselineCalibBinData> mData;   /// Data of not empty bins
   void clear();
   void print() const;
   ClassDefNV(BaselineCalibSummaryData, 1);
 };
 
 struct BaselineCalibChData {
+  BaselineCalibChData() = default;
   static constexpr int NW = BaselineRange; /// 2^16 bins
   std::array<uint32_t, NW> mData = {0};    /// Histogram container
   bool mOverflow = false;                  /// Overflow flag (cannot accept more data)
@@ -78,6 +76,8 @@ struct BaselineCalibChData {
 };
 
 struct BaselineCalibData {
+  BaselineCalibData() = default;
+
   uint64_t mCTimeBeg = 0; /// Time of processed time frame
   uint64_t mCTimeEnd = 0; /// Time of processed time frame
   bool mOverflow = false; /// Overflow at least one ZDC channel

@@ -56,7 +56,7 @@ class BaselineCalib
 
  private:
   BaselineCalibData mData;
-  const BaselineParam* mParam;
+  const BaselineParam* mParam = nullptr;
   BaselineParam mParamUpd;
   bool mInitDone = false;
   bool mSaveDebugHistos = false;

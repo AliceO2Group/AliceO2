@@ -30,11 +30,11 @@ struct WaveformCalibConfig {
 
   WaveformCalibConfig();
 
-  double cutLow[NChannels];         /// Amplitude cut low
-  double cutHigh[NChannels];        /// Amplitude cut high
-  double min_e[NChannels];          /// Minimum entries to compute waveform
-  double cutTimeLow[NTDCChannels];  /// TDC cut low
-  double cutTimeHigh[NTDCChannels]; /// TDC cut high
+  double cutLow[NChannels]{};         /// Amplitude cut low
+  double cutHigh[NChannels]{};        /// Amplitude cut high
+  double min_e[NChannels]{};          /// Minimum entries to compute waveform
+  double cutTimeLow[NTDCChannels]{};  /// TDC cut low
+  double cutTimeHigh[NTDCChannels]{}; /// TDC cut high
   std::string desc = "";
   int ibeg = -WaveformCalib_NBB;
   int iend = WaveformCalib_NBA;

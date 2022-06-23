@@ -9,18 +9,28 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// @file   Helper.h
+/// @brief  ZDC helper functions
+/// @author pietro.cortese@cern.ch
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include <string>
 
-#pragma link C++ class o2::zdc::Geometry + ;
+#ifndef ALICEO2_ZDC_HELPERS_H
+#define ALICEO2_ZDC_HELPERS_H
 
-#pragma link C++ class o2::zdc::Module + ;
-#pragma link C++ class o2::zdc::ModuleConfig + ;
-#pragma link C++ class o2::zdc::TriggerChannelConfig + ;
-#pragma link C++ function o2::zdc::helpers::removeNamespace +;
-#pragma link C++ function o2::zdc::helpers::endsWith +;
-#pragma link C++ function o2::zdc::helpers::ccdbShortcuts +;
+namespace o2
+{
+namespace zdc
+{
+namespace helpers
+{
+
+std::string removeNamespace(const std::string& strin);
+bool endsWith(const std::string& str, const std::string& suffix);
+std::string ccdbShortcuts(std::string ccdbHost, std::string cln, std::string path);
+
+} // namespace helpers
+} // namespace zdc
+} // namespace o2
+
 #endif

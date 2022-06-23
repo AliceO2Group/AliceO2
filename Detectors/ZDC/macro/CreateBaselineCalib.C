@@ -14,20 +14,23 @@
 #include "Framework/Logger.h"
 #include "CCDB/CcdbApi.h"
 #include "ZDCBase/Constants.h"
+#include "ZDCBase/Helpers.h"
 #include "ZDCReconstruction/BaselineParam.h"
 #include <string>
 #include <TFile.h>
+#include <TClass.h>
+#include <TString.h>
 #include <map>
 
 #endif
 
-using namespace o2::zdc;
 using namespace std;
 
 void CreateBaselineCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
 {
+  // Shortcuts: internal, external, test, local, root
 
-  BaselineParam conf;
+  o2::zdc::BaselineParam conf;
 
   // This object allows to provide average pedestals
   // Default object has not valid data = -std::numeric_limits<float>::infinity()
@@ -66,21 +69,19 @@ void CreateBaselineCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "
 
   conf.print();
 
+  std::string ccdb_host = o2::zdc::helpers::ccdbShortcuts(ccdbHost, conf.Class_Name(), CCDBPathBaselineCalib);
+
+  if (o2::zdc::helpers::endsWith(ccdb_host, ".root")) {
+    TFile f(ccdb_host.data(), "recreate");
+    f.WriteObjectAny(&conf, conf.Class_Name(), "ccdb_object");
+    f.Close();
+    return;
+  }
+
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
-  if (ccdbHost.size() == 0 || ccdbHost == "external") {
-    ccdbHost = "http://alice-ccdb.cern.ch:8080";
-  } else if (ccdbHost == "internal") {
-    ccdbHost = "http://o2-ccdb.internal/";
-  } else if (ccdbHost == "test") {
-    ccdbHost = "http://ccdb-test.cern.ch:8080";
-  } else if (ccdbHost == "local") {
-    ccdbHost = "http://localhost:8080";
-  }
-  api.init(ccdbHost.c_str());
+  api.init(ccdb_host.c_str());
   LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&conf, CCDBPathBaselineCalib, metadata, tmin, tmax);
-
-  // return conf;
 }
