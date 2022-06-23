@@ -395,6 +395,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             if (fitResults.getTime() < 0) {
               fitResults.setTime(0.);
             }
+            // Correct the cell time for the bc mod 4 (LHC: 40 MHz clock - ALTRO: 10 MHz clock)
+            // Convention: All times shifted with respect to BC % 4 = 0 for trigger BC
+            int bcmod4 = currentIR.bc % 4;
+            double celltime = fitResults.getTime() - timeshift - 25 * bcmod4;
             double amp = fitResults.getAmp() * CONVADCGEV;
             if (mMergeLGHG) {
               // Handling of HG/LG for ceratin cells
@@ -411,7 +415,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                     if (ampOld > o2::emcal::constants::OVERFLOWCUT) {
                       // High gain digit has energy above overflow cut, use low gain instead
                       res->mCellData.setEnergy(amp * o2::emcal::constants::EMCAL_HGLGFACTOR);
-                      res->mCellData.setTimeStamp(fitResults.getTime() - timeshift);
+                      res->mCellData.setTimeStamp(celltime);
                       res->mCellData.setLowGain();
                     }
                     res->mIsLGnoHG = false;
@@ -425,7 +429,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                   res->mHWAddressHG = chan.getHardwareAddress();
                   if (amp / CONVADCGEV <= o2::emcal::constants::OVERFLOWCUT) {
                     res->mCellData.setEnergy(amp);
-                    res->mCellData.setTimeStamp(fitResults.getTime() - timeshift);
+                    res->mCellData.setTimeStamp(celltime);
                     res->mCellData.setHighGain();
                   }
                 }
@@ -447,7 +451,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                   hwAddressHG = chan.getHardwareAddress();
                 }
                 int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
-                currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, chantype),
+                currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, celltime, chantype),
                                                  lgNoHG,
                                                  hgOutOfRange,
                                                  fecID, feeID, hwAddressLG, hwAddressHG});
@@ -462,7 +466,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                 amp *= o2::emcal::constants::EMCAL_HGLGFACTOR;
               }
               int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
-              currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, chantype),
+              currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, celltime, chantype),
                                                false,
                                                false,
                                                fecID, feeID, hwAddressLG, hwAddressHG});
