@@ -383,7 +383,7 @@ void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::
           }
           if (src == GIndex::Source::MCHMID) {
             const auto& mchmidMatch = mchmidMatches[trackIndex.getIndex()];
-            const auto& mchTrackID = mchmidMatch.getMCHRef().getIndex();
+            const auto mchTrackID = mchmidMatch.getMCHRef().getIndex();
             mIndexTableFwd[mchTrackID] = mIndexFwdID;
           }
           mIndexFwdID++;
