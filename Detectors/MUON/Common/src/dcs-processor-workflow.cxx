@@ -74,14 +74,14 @@ o2::ccdb::CcdbObjectInfo createDefaultInfo(const char* path)
 #if defined(MUON_SUBSYSTEM_MCH)
 #define NOBJECTS 2
 std::array<o2::ccdb::CcdbObjectInfo, NOBJECTS> info{createDefaultInfo("MCH/Calib/HV"), createDefaultInfo("MCH/Calib/LV")};
+std::array<uint64_t, NOBJECTS> t0 = {0, 0};
 #elif defined(MUON_SUBSYSTEM_MID)
 #define NOBJECTS 1
 std::array<o2::ccdb::CcdbObjectInfo, NOBJECTS> info{createDefaultInfo("MID/Calib/HV")};
+std::array<uint64_t, NOBJECTS> t0 = {0};
 #endif
 
 std::array<DPMAP, NOBJECTS> dataPoints;
-
-uint64_t t0{0};
 
 /*
  * Return the data point values with min and max timestamps
@@ -153,15 +153,8 @@ void sendOutput(const DPMAP& dpmap,
     return;
   }
 
-  auto duration = computeDuration(dpmap);
-  if (duration < 10) {
-    // we do _not_ write objects with a duration below 10 seconds
-    return;
-  }
-  // info.setStartValidityTimestamp(startOfValidity);
-  auto range = computeTimeRange(dpmap);
-  info.setStartValidityTimestamp(range.first.get_epoch_time());
-  info.setEndValidityTimestamp(range.second.get_epoch_time());
+  info.setStartValidityTimestamp(startOfValidity);
+  info.setEndValidityTimestamp(startOfValidity + 5 * o2::ccdb::CcdbObjectInfo::DAY);
 
   auto md = info.getMetaData();
   md["upload-reason"] = reason;
@@ -171,6 +164,8 @@ void sendOutput(const DPMAP& dpmap,
     nofValues += did.second.size();
   }
   md["nof-datapoint-values"] = fmt::format("{}", nofValues);
+
+  auto range = computeTimeRange(dpmap);
   md["datapoint-value-first-time"] = range.first.get_timestamp()->c_str();
   md["datapoint-value-last-time"] = range.second.get_timestamp()->c_str();
   info.setMetaData(md);
@@ -194,7 +189,10 @@ void endOfStream(o2::framework::EndOfStreamContext& eosc)
 {
   LOG(debug) << "This is the end. Must write what we have left ?\n";
   for (auto i = 0; i < NOBJECTS; i++) {
-    sendOutput(dataPoints[i], eosc.outputs(), info[i], "end of stream", t0);
+    if (t0[i] == 0) {
+      continue;
+    }
+    sendOutput(dataPoints[i], eosc.outputs(), info[i], "end of stream", t0[i]);
   }
 }
 
@@ -209,7 +207,7 @@ void endOfStream(o2::framework::EndOfStreamContext& eosc)
  * @returns a boolean stating if the dpmap should be output and a string
  * describing why it should be output.
  */
-std::tuple<bool, std::string> needOutput(const DPMAP& dpmap, int maxSize, int maxDuration)
+std::tuple<bool, std::string> needOutput(const DPMAP& dpmap, int maxSize, int maxDuration, uint64_t currentDuration)
 {
   std::string reason;
 
@@ -227,10 +225,9 @@ std::tuple<bool, std::string> needOutput(const DPMAP& dpmap, int maxSize, int ma
   }
 
   if (maxDuration) {
-    auto seconds = computeDuration(dpmap);
-    if (seconds > maxDuration) {
+    if (currentDuration > maxDuration) {
       longEnough = true;
-      reason += fmt::format("[long enough ({} s)]", seconds);
+      reason += fmt::format("[long enough ({} s)]", currentDuration);
     }
   }
 
@@ -262,8 +259,10 @@ void processDataPoints(o2::framework::ProcessingContext& pc,
 {
   TStopwatch sw;
   auto creationTime = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->creation;
-  if (t0 <= 0) {
-    t0 = creationTime;
+  for (auto i = 0; i < NOBJECTS; i++) {
+    if (t0[i] == 0) {
+      t0[i] = creationTime;
+    }
   }
   auto dps = pc.inputs().get<gsl::span<o2::dcs::DataPointCompositeObject>>("input");
   for (auto dp : dps) {
@@ -274,12 +273,14 @@ void processDataPoints(o2::framework::ProcessingContext& pc,
       }
     }
   }
+
   for (auto i = 0; i < NOBJECTS; i++) {
-    auto [shouldOutput, reason] = needOutput(dataPoints[i], maxSize[i], maxDuration[i]);
+    auto duration = creationTime - t0[i];
+    auto [shouldOutput, reason] = needOutput(dataPoints[i], maxSize[i], maxDuration[i], duration);
     if (shouldOutput) {
-      sendOutput(dataPoints[i], pc.outputs(), info[i], reason, t0);
-      t0 = creationTime;
-      dataPoints[i].clear(); // FIXME: here the clear should be more clever and keep at least one value per dp ?
+      sendOutput(dataPoints[i], pc.outputs(), info[i], reason, t0[i]);
+      t0[i] = 0;
+      dataPoints[i].clear();
     }
   }
   sw.Stop();
