@@ -204,6 +204,30 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   if (fieldstring != "ccdb") {
     mConfigData.mField = std::stoi((vm["field"].as<std::string>()).substr(0, (vm["field"].as<std::string>()).rfind("U")));
   }
+  if (!parseFieldString(fieldstring, mConfigData.mField, mConfigData.mFieldMode)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool SimConfig::parseFieldString(std::string const& fieldstring, int& fieldvalue, SimFieldMode& mode)
+{
+  // analyse field options
+  // either: "ccdb" or +-2[U],+-5[U] and 0[U]; +-<intKGaus>U
+  std::regex re("(ccdb)|([+-]?[250]U?)");
+  if (!std::regex_match(fieldstring, re)) {
+    LOG(error) << "Invalid field option";
+    return false;
+  }
+  if (fieldstring == "ccdb") {
+    mode = SimFieldMode::kCCDB;
+  } else if (fieldstring.find("U") != std::string::npos) {
+    mode = SimFieldMode::kUniform;
+  }
+  if (fieldstring != "ccdb") {
+    fieldvalue = std::stoi(fieldstring.substr(0, fieldstring.rfind("U")));
+  }
   return true;
 }
 
