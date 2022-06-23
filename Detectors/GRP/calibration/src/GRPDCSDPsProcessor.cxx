@@ -94,10 +94,6 @@ int GRPDCSDPsProcessor::process(const gsl::span<const DPCOM> dps)
   if (mVerbose) {
     LOG(info) << "\n\n\nProcessing new TF\n-----------------";
   }
-  if (!mFirstTimeSet) {
-    mFirstTime = mStartValidity;
-    mFirstTimeSet = true;
-  }
   mMagFieldHelper.updated = false;
 
   mUpdateLHCIFInfo = false;   // by default, we do not foresee a new entry in the CCDB for the LHCIF DPs
@@ -311,7 +307,6 @@ bool GRPDCSDPsProcessor::processLHCIFDPs(const DPCOM& dpcom)
     }
     for (int ibeam = 0; ibeam < GRPLHCInfo::BPTXPhaseShiftAliases::NBPTXPhaseShiftAliases; ++ibeam) {
       if (aliasStr == static_cast<std::string>(GRPLHCInfo::bptxPhaseShiftAliases[ibeam])) {
-        LOG(info) << "aliasStr = " << aliasStr << " alias to check = " << static_cast<std::string>(GRPLHCInfo::bptxPhaseShiftAliases[ibeam]);
         updateVector(dpid, mLHCInfo.mBPTXPhaseShift[ibeam], aliasStr, dpcomdata.get_epoch_time(), val);
         return true;
       }
@@ -350,7 +345,7 @@ void GRPDCSDPsProcessor::updateMagFieldCCDB()
 {
   // we need to update a CCDB for the B field --> let's prepare the CCDBInfo
   if (mVerbose) {
-    LOG(info) << "At least one DP related to B field changed --> we will update CCDB with startTime " << mStartValidity;
+    LOG(info) << "At least one DP related to B field changed --> we will update CCDB with startTime " << mStartValidityMagFi;
   }
   if (mMagFieldHelper.isSet != (0x1 << 4) - 1) {
     LOG(alarm) << "Magnetic field was updated but not all fields were set: no FBI was seen?";
@@ -361,7 +356,7 @@ void GRPDCSDPsProcessor::updateMagFieldCCDB()
   mMagField.setDipoleCurrent(mMagFieldHelper.negDip ? -mMagFieldHelper.curDip : mMagFieldHelper.curDip);
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mMagField, mccdbMagFieldInfo, "GLO/Config/GRPMagField", md, mStartValidity, mStartValidity + o2::ccdb::CcdbObjectInfo::MONTH);
+  o2::calibration::Utils::prepareCCDBobjectInfo(mMagField, mccdbMagFieldInfo, "GLO/Config/GRPMagField", md, mStartValidityMagFi, mStartValidityMagFi + o2::ccdb::CcdbObjectInfo::MONTH);
 }
 
 //______________________________________________________________________
@@ -372,11 +367,11 @@ void GRPDCSDPsProcessor::updateLHCIFInfoCCDB()
   // we need to update a CCDB for the LHCIF DPs --> let's prepare the CCDBInfo
 
   if (mVerbose) {
-    LOG(info) << "Entry related to LHCIF needs to be updated with startTime " << mStartValidity;
+    LOG(info) << "Entry related to LHCIF needs to be updated with startTime " << mStartValidityLHCIF;
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mLHCInfo, mccdbLHCIFInfo, "GLO/Config/LHCIFDataPoints", md, mStartValidity, mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY); // valid for 3 days
+  o2::calibration::Utils::prepareCCDBobjectInfo(mLHCInfo, mccdbLHCIFInfo, "GLO/Config/LHCIFDataPoints", md, mStartValidityLHCIF, mStartValidityLHCIF + 3 * o2::ccdb::CcdbObjectInfo::DAY); // valid for 3 days
   return;
 }
 
@@ -388,11 +383,11 @@ void GRPDCSDPsProcessor::updateEnvVarsCCDB()
   // we need to update a CCDB for the Env Variables DPs --> let's prepare the CCDBInfo
 
   if (mVerbose) {
-    LOG(info) << "Entry related to Env Vars needs to be updated with startTime " << mStartValidity;
+    LOG(info) << "Entry related to Env Vars needs to be updated with startTime " << mStartValidityEnvVa;
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbEnvVarsInfo, "GLO/Config/EnvVars", md, mStartValidity, mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY); // valid for 3 days
+  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbEnvVarsInfo, "GLO/Config/EnvVars", md, mStartValidityEnvVa, mStartValidityEnvVa + 3 * o2::ccdb::CcdbObjectInfo::DAY); // valid for 3 days
   return;
 }
 
@@ -404,11 +399,11 @@ void GRPDCSDPsProcessor::updateCollimatorsCCDB()
   // we need to update a CCDB for the Env Variables DPs --> let's prepare the CCDBInfo
 
   if (mVerbose) {
-    LOG(info) << "Entry related to Collimators needs to be updated with startTime " << mStartValidity;
+    LOG(info) << "Entry related to Collimators needs to be updated with startTime " << mStartValidityColli;
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbCollimatorsInfo, "GLO/Config/Collimators", md, mStartValidity, mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY); // valid for 3 days
+  o2::calibration::Utils::prepareCCDBobjectInfo(mEnvVars, mccdbCollimatorsInfo, "GLO/Config/Collimators", md, mStartValidityColli, mStartValidityColli + 3 * o2::ccdb::CcdbObjectInfo::DAY); // valid for 3 days
   return;
 }
 

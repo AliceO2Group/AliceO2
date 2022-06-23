@@ -124,13 +124,31 @@ void GRPDCSDPsDataProcessor::run(o2::framework::ProcessingContext& pc)
 {
   mLHCIFupdated = false;
   TStopwatch sw;
-  auto startValidity = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+  auto startValidity = (long)(DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation);
   auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
   auto timeNow = HighResClock::now();
   if (startValidity == 0xffffffffffffffff) {                                                                   // it means it is not set
     startValidity = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
   }
-  mProcessor->setStartValidity(startValidity);
+  mProcessor->setStartValidityMagFi(startValidity);
+  if (mProcessor->getStartValidityLHCIF() == o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP) {
+    if (mVerbose) {
+      LOG(info) << "Change start validity for LHCIF to " << startValidity;
+    }
+    mProcessor->setStartValidityLHCIF(startValidity);
+  }
+  if (mProcessor->getStartValidityEnvVa() == o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP) {
+    if (mVerbose) {
+      LOG(info) << "Change start validity for Env Variables to " << startValidity;
+    }
+    mProcessor->setStartValidityEnvVa(startValidity);
+  }
+  if (mProcessor->getStartValidityColli() == o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP) {
+    if (mVerbose) {
+      LOG(info) << "Change start validity for Collimators to " << startValidity;
+    }
+    mProcessor->setStartValidityColli(startValidity);
+  }
   mProcessor->process(dps);
   Duration elapsedTime = timeNow - mTimer; // in seconds
   if (elapsedTime.count() >= mDPsUpdateInterval || mProcessor->isLHCIFInfoUpdated()) {
@@ -206,6 +224,7 @@ void GRPDCSDPsDataProcessor::sendLHCIFDPsoutput(DataAllocator& output)
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "GRP_LHCIF_DPs", 0}, *image.get());
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "GRP_LHCIF_DPs", 0}, info);
+  mProcessor->resetStartValidityLHCIF();
 }
 //________________________________________________________________
 
@@ -235,6 +254,7 @@ void GRPDCSDPsDataProcessor::sendCollimatorsDPsoutput(DataAllocator& output)
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "GRP_COLLIM_DPs", 0}, *image.get());
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "GRP_COLLIM_DPs", 0}, info);
+  mProcessor->resetStartValidityColli();
 }
 
 //________________________________________________________________
@@ -250,6 +270,7 @@ void GRPDCSDPsDataProcessor::sendEnvVarsDPsoutput(DataAllocator& output)
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "GRP_EVARS_DPs", 0}, *image.get());
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "GRP_EVARS_DPs", 0}, info);
+  mProcessor->resetStartValidityEnvVa();
 }
 
 } // namespace grp
