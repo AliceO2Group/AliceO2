@@ -104,10 +104,7 @@ GPUhdi() unsigned char Tracklet::operator<(const Tracklet& t) const
 
 GPUhdi() void Tracklet::dump()
 {
-  printf("firstClusterIndex: %d", firstClusterIndex);
-  printf("secondClusterIndex: %d", secondClusterIndex);
-  printf("tanLambda: %f", tanLambda);
-  printf("phi: %f", phi);
+  printf("fClIdx: %d sClIdx: %d tanL: %f phi: %f rof1: %hu rof2: %hu\n", firstClusterIndex, secondClusterIndex, tanLambda, phi, rof[0], rof[1]);
 }
 
 } // namespace its

@@ -212,6 +212,14 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
     std::sort(trkl.begin(), trkl.end(), [](const Tracklet& a, const Tracklet& b) {
       return a.firstClusterIndex < b.firstClusterIndex || (a.firstClusterIndex == b.firstClusterIndex && a.secondClusterIndex < b.secondClusterIndex);
     });
+    for (auto& t : tf->getTracklets()[iLayer + 1]) {
+      if (t.isEmpty()) {
+        break;
+      }
+      std::cout << "layer: " << iLayer + 1 << ":\t";
+      t.dump();
+    }
+
     /// Remove duplicates
     auto& lut{tf->getTrackletsLookupTable()[iLayer]};
     int id0{-1}, id1{-1};
@@ -233,6 +241,13 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
     lut.push_back(trkl.size());
   }
   /// Layer 0 is done outside the loop
+  for (auto& t : tf->getTracklets()[0]) {
+    if (t.isEmpty()) {
+      break;
+    }
+    std::cout << "layer: " << 0 << ":\t";
+    t.dump();
+  }
   std::sort(tf->getTracklets()[0].begin(), tf->getTracklets()[0].end(), [](const Tracklet& a, const Tracklet& b) {
     return a.firstClusterIndex < b.firstClusterIndex || (a.firstClusterIndex == b.firstClusterIndex && a.secondClusterIndex < b.secondClusterIndex);
   });
