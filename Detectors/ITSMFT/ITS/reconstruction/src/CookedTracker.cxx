@@ -402,8 +402,8 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
     TrackITSExt best(track);
 
     Int_t volID = -1;
-    TrackITSExt t3(track);
     for (auto& ci3 : selec[3]) {
+      TrackITSExt t3(track);
       if (used[3][ci3]) {
         continue;
       }
@@ -414,8 +414,8 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
         best = t3;
       }
 
-      TrackITSExt t2(t3);
       for (auto& ci2 : selec[2]) {
+        TrackITSExt t2(t3);
         if (used[2][ci2]) {
           continue;
         }
@@ -426,8 +426,8 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
           best = t2;
         }
 
-        TrackITSExt t1(t2);
         for (auto& ci1 : selec[1]) {
+          TrackITSExt t1(t2);
           if (used[1][ci1]) {
             continue;
           }
@@ -438,8 +438,8 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
             best = t1;
           }
 
-          TrackITSExt t0(t1);
           for (auto& ci0 : selec[0]) {
+            TrackITSExt t0(t1);
             if (used[0][ci0]) {
               continue;
             }
