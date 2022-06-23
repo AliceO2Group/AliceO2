@@ -168,6 +168,10 @@ GPUg() void computeLayerTrackletsKernel(
                                (currentCluster.radius - nextCluster.radius)};
               const size_t stride{currentClusterIndex * maxTrackletsPerCluster};
               new (tracklets + stride + storedTracklets) Tracklet{currentSortedIndex, roFrameClustersNext[rof1] + iNextCluster, tanL, phi, rof0, rof1};
+              if (currentSortedIndex == 127 && (roFrameClustersNext[rof1] + iNextCluster) == 145) {
+                tracklets[stride + storedTracklets].dump();
+                printf("id: %lu \n", stride + storedTracklets);
+              }
               ++storedTracklets;
               // printf("%d %d %lf %lf %hu %hu\n", t.firstClusterIndex, t.secondClusterIndex, t.tanLambda, t.phi, t.rof[0], t.rof[1]);
             }
@@ -380,8 +384,43 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
   for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
     size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
     auto begin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTracklets(0, iLayer));
-    auto end = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTracklets(0, iLayer) + mTimeFrameGPU->mClusters[iLayer].size());
-    thrust::sort(begin, end);
+    auto end = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTracklets(0, iLayer) + mTimeFrameGPU->mClusters[iLayer].size() * mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
+    // thrust::sort(begin, end);
+  }
+  std::vector<std::vector<Tracklet>> trackletsHost(NLayers - 1, std::vector<Tracklet>(mTimeFrameGPU->getConfig().trackletsCapacity));
+
+  for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
+    checkGPUError(cudaMemcpy(trackletsHost[iLayer].data(), mTimeFrameGPU->getDeviceTracklets(0, iLayer), mTimeFrameGPU->getConfig().trackletsCapacity * sizeof(Tracklet), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+    // auto it = trackletsHost[iLayer].begin();
+    // do {
+    //   ++it;
+    // } while (!((*it).isEmpty()));
+    // std::sort(trackletsHost[iLayer].begin(), it, [](const Tracklet& a, const Tracklet& b) {
+    //   return a.firstClusterIndex < b.firstClusterIndex || (a.firstClusterIndex == b.firstClusterIndex && a.secondClusterIndex < b.secondClusterIndex);
+    // });
+    int count{0};
+    int count2{0};
+    trackletsHost[0][2650].dump();
+    for (auto& t : trackletsHost[iLayer]) {
+      if (!t.isEmpty()) {
+        ++count;
+      }
+      if (t.firstClusterIndex == 127 && t.secondClusterIndex == 145) {
+        std::cout << "got it at: " << count2 << std::endl;
+        t.dump();
+      }
+      ++count2;
+    }
+    std::sort(trackletsHost[iLayer].begin(), trackletsHost[iLayer].begin() + count, [](const Tracklet& a, const Tracklet& b) {
+      return a.firstClusterIndex < b.firstClusterIndex || (a.firstClusterIndex == b.firstClusterIndex && a.secondClusterIndex < b.secondClusterIndex);
+    });
+    // for (auto& t : trackletsHost[iLayer]) {
+    //   if (t.isEmpty()) {
+    //     continue;
+    //   }
+    //   std::cout << "layer: " << iLayer << ":\t";
+    //   t.dump();
+    // }
     //   discardResult(cub::DeviceReduce::Sum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
     //                                        bufferSize,                                                         // temp_storage_bytes
     //                                        mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_in
