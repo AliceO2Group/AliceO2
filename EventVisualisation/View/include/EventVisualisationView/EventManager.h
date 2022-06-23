@@ -107,7 +107,7 @@ class EventManager final : public TEveEventManager, public TQObject
   void operator=(EventManager const&) = delete;
 
   void displayVisualisationEvent(VisualisationEvent& event, const std::string& detectorName);
-  void displayCalorimeters(VisualisationEvent& event);
+  void displayCalorimeters(VisualisationEvent& event, const std::string& detectorName);
   void saveVisualisationSettings();
   void restoreVisualisationSettings();
 };
