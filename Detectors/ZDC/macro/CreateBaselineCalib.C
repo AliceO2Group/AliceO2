@@ -69,9 +69,9 @@ void CreateBaselineCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "
 
   conf.print();
 
-  std::string ccdb_host = o2::zdc::helpers::ccdbShortcuts(ccdbHost, conf.Class_Name(), CCDBPathBaselineCalib);
+  std::string ccdb_host = o2::zdc::ccdbShortcuts(ccdbHost, conf.Class_Name(), o2::zdc::CCDBPathBaselineCalib);
 
-  if (o2::zdc::helpers::endsWith(ccdb_host, ".root")) {
+  if (o2::zdc::endsWith(ccdb_host, ".root")) {
     TFile f(ccdb_host.data(), "recreate");
     f.WriteObjectAny(&conf, conf.Class_Name(), "ccdb_object");
     f.Close();
@@ -83,5 +83,5 @@ void CreateBaselineCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "
   api.init(ccdb_host.c_str());
   LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
-  api.storeAsTFileAny(&conf, CCDBPathBaselineCalib, metadata, tmin, tmax);
+  api.storeAsTFileAny(&conf, o2::zdc::CCDBPathBaselineCalib, metadata, tmin, tmax);
 }

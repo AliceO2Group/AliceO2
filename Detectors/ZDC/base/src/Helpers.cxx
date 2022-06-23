@@ -15,7 +15,7 @@ using namespace o2::zdc;
 using namespace std;
 
 //______________________________________________________________________________
-std::string o2::zdc::helpers::removeNamespace(const std::string& strin)
+std::string o2::zdc::removeNamespace(const std::string& strin)
 {
   std::string str = strin;
   for (auto pos = str.find(":"); pos != string::npos; pos = str.find(":")) {
@@ -25,13 +25,13 @@ std::string o2::zdc::helpers::removeNamespace(const std::string& strin)
 }
 
 //______________________________________________________________________________
-bool o2::zdc::helpers::endsWith(const std::string& str, const std::string& suffix)
+bool o2::zdc::endsWith(const std::string& str, const std::string& suffix)
 {
   return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
 }
 
 //______________________________________________________________________________
-std::string o2::zdc::helpers::ccdbShortcuts(std::string ccdbHost, std::string cln, std::string path)
+std::string o2::zdc::ccdbShortcuts(std::string ccdbHost, std::string cln, std::string path)
 {
   // Commonly used shortcuts for ccdbHost
   if (ccdbHost.size() == 0 || ccdbHost == "external") {

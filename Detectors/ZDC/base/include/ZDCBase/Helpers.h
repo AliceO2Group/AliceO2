@@ -22,14 +22,11 @@ namespace o2
 {
 namespace zdc
 {
-namespace helpers
-{
 
 std::string removeNamespace(const std::string& strin);
 bool endsWith(const std::string& str, const std::string& suffix);
 std::string ccdbShortcuts(std::string ccdbHost, std::string cln, std::string path);
 
-} // namespace helpers
 } // namespace zdc
 } // namespace o2
 
