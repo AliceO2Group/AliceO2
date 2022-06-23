@@ -111,6 +111,10 @@ fi
 
 
 if [ "$dosim" == "1" ]; then
+  #---- GRP creation ------
+  echo "Creating GRPs ... and publishing in local CCDB overwrite"
+  taskwrapper grp.log o2-grp-simGRP-tool createGRPs --run ${runNumber} --publishto GRP -o mcGRP
+
   #---------------------------------------------------
   echo "Running simulation for $nev $collSyst events with $gener generator and engine $engine and run number $runNumber"
   taskwrapper sim.log o2-sim -n"$nev" --configKeyValues "Diamond.width[2]=6." -g "$gener" -e "$engine" $simWorker --run ${runNumber}
@@ -219,7 +223,7 @@ if [ "$doreco" == "1" ]; then
 
   echo "Running primary vertex finding flow"
   #needs results of TPC-ITS matching and FIT workflows
-  taskwrapper pvfinder.log o2-primary-vertexing-workflow $gloOpt
+  taskwrapper pvfinder.log o2-primary-vertexing-workflow $gloOpt --condition-remap file://./GRP=GLO/Config/GRPECS
   echo "Return status of primary vertexing: $?"
 
   echo "Running secondary vertex finding flow"
