@@ -9,11 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "StrangenessTrackingWorkflow/HypertrackingSpec.h"
-#include "StrangenessTrackingWorkflow/HypertrackingWriterSpec.h"
+#include "StrangenessTrackingWorkflow/StrangenessTrackingSpec.h"
+#include "StrangenessTrackingWorkflow/StrangenessTrackingWriterSpec.h"
 
 #include "CommonUtils/ConfigurableParam.h"
-#include "StrangenessTracking/HypertrackingConfigParam.h"
+#include "StrangenessTracking/StrangenessTrackingConfigParam.h"
 
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
@@ -55,13 +55,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   auto wf = o2::strangeness_tracking::getWorkflow(useMC, useRootInput);
-  wf.emplace_back(getHypertrackingWriterSpec());
+  wf.emplace_back(getStrangenessTrackingWriterSpec());
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
 
   // write the configuration used for the reco workflow
-  o2::conf::ConfigurableParam::writeINI("o2hypertrackingflow_configuration.ini");
+  o2::conf::ConfigurableParam::writeINI("o2strangeness_tracking_workflow_configuration.ini");
 
   return std::move(wf);
 }

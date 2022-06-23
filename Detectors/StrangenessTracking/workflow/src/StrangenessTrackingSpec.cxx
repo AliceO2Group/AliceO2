@@ -13,7 +13,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Field/MagneticField.h"
 
-#include "StrangenessTrackingWorkflow/HypertrackingSpec.h"
+#include "StrangenessTrackingWorkflow/StrangenessTrackingSpec.h"
 #include "ITSWorkflow/ClusterWriterSpec.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
@@ -49,16 +49,16 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useRootInput)
     // auto src = o2::dataformats::GlobalTrackID::Source::ITSTPCTOF | o2::dataformats::GlobalTrackID::Source::ITSTPC | o2::dataformats::GlobalTrackID::Source::TPCTOF;
     // specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, true, false, false, 0));
   }
-  specs.emplace_back(getHyperTrackerSpec());
+  specs.emplace_back(getStrangenessTrackerSpec());
   return specs;
 }
 
-HypertrackerSpec::HypertrackerSpec(bool isMC) : mIsMC{isMC}
+StrangenessTrackerSpec::StrangenessTrackerSpec(bool isMC) : mIsMC{isMC}
 {
   // no ops
 }
 
-void HypertrackerSpec::init(framework::InitContext& ic)
+void StrangenessTrackerSpec::init(framework::InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -86,13 +86,13 @@ void HypertrackerSpec::init(framework::InitContext& ic)
   auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
-  LOG(info) << "Initialized Hypertracker...";
+  LOG(info) << "Initialized strangeness tracker...";
 }
 
-void HypertrackerSpec::run(framework::ProcessingContext& pc)
+void StrangenessTrackerSpec::run(framework::ProcessingContext& pc)
 {
   mTimer.Start(false);
-  LOG(info) << "Running hypertracker...";
+  LOG(info) << "Running strangeness tracker...";
   updateTimeDependentParams(pc);
   // ITS
   auto ITSclus = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
@@ -102,7 +102,8 @@ void HypertrackerSpec::run(framework::ProcessingContext& pc)
   auto ITSTrackClusIdx = pc.inputs().get<gsl::span<int>>("trackITSClIdx");
 
   // V0
-  auto v0vec = pc.inputs().get<gsl::span<o2::dataformats::V0>>("v0s");
+  auto v0Vec = pc.inputs().get<gsl::span<o2::dataformats::V0>>("v0s");
+  auto cascadeVec = pc.inputs().get<gsl::span<o2::dataformats::Cascade>>("cascs");
   auto tpcITSTracks = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("trackTPCITS");
 
   // Monte Carlo
@@ -117,7 +118,8 @@ void HypertrackerSpec::run(framework::ProcessingContext& pc)
        ROFsInput.size(),
        ITSTrackClusIdx.size(),
        tpcITSTracks.size(),
-       v0vec.size(),
+       v0Vec.size(),
+       cascadeVec.size(),
        labITSTPC.size(),
        //  labTPCTOF.size(),
        //  labITSTPCTOF.size(),
@@ -133,22 +135,22 @@ void HypertrackerSpec::run(framework::ProcessingContext& pc)
   double origD[3] = {0., 0., 0.};
   mTracker.setBz(field->getBz(origD));
 
-  mTracker.loadData(ITStracks, ITSClustersArray, ITSTrackClusIdx, v0vec, geom);
+  mTracker.loadData(ITStracks, ITSClustersArray, ITSTrackClusIdx, v0Vec, cascadeVec, geom);
   mTracker.initialise();
   mTracker.process();
 
-  pc.outputs().snapshot(Output{"HYP", "V0S", 0, Lifetime::Timeframe}, mTracker.getV0());
-  pc.outputs().snapshot(Output{"HYP", "HYPERTRACKS", 0, Lifetime::Timeframe}, mTracker.getHyperTracks());
-  pc.outputs().snapshot(Output{"HYP", "CHI2", 0, Lifetime::Timeframe}, mTracker.getChi2vec());
-  pc.outputs().snapshot(Output{"HYP", "R2", 0, Lifetime::Timeframe}, mTracker.getR2vec());
-  pc.outputs().snapshot(Output{"HYP", "CLUSUPDATES", 0, Lifetime::Timeframe}, mTracker.getClusAttachments());
-  pc.outputs().snapshot(Output{"HYP", "ITSREFS", 0, Lifetime::Timeframe}, mTracker.getITStrackRef());
+
+  pc.outputs().snapshot(Output{"STK", "STRTRACKS", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackVec());
+  pc.outputs().snapshot(Output{"STK", "CLUSUPDATES", 0, Lifetime::Timeframe}, mTracker.getClusAttachments());
+  pc.outputs().snapshot(Output{"STK", "ITSREFS", 0, Lifetime::Timeframe}, mTracker.getITStrackRefVec());
+  pc.outputs().snapshot(Output{"STK", "DECREFS", 0, Lifetime::Timeframe}, mTracker.getDecayTrackRefVec());
+
 
   mTimer.Stop();
 }
 
 ///_______________________________________
-void HypertrackerSpec::updateTimeDependentParams(ProcessingContext& pc)
+void StrangenessTrackerSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
@@ -158,7 +160,7 @@ void HypertrackerSpec::updateTimeDependentParams(ProcessingContext& pc)
 }
 
 ///_______________________________________
-void HypertrackerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+void StrangenessTrackerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
@@ -167,13 +169,13 @@ void HypertrackerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-void HypertrackerSpec::endOfStream(framework::EndOfStreamContext& ec)
+void StrangenessTrackerSpec::endOfStream(framework::EndOfStreamContext& ec)
 {
   LOGF(info, "Hypertracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getHyperTrackerSpec()
+DataProcessorSpec getStrangenessTrackerSpec()
 {
   std::vector<InputSpec> inputs;
 
@@ -204,20 +206,17 @@ DataProcessorSpec getHyperTrackerSpec()
   // inputs.emplace_back("clsTOF_TPC_MCTR", "TOF", "MCMTC_TPC", 0, Lifetime::Timeframe);    // MC truth, // Matching input type manually set to 0
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("HYP", "V0S", 0, Lifetime::Timeframe);
-  outputs.emplace_back("HYP", "HYPERTRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("STK", "STRTRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("STK", "CLUSUPDATES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("STK", "ITSREFS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("STK", "DECREFS", 0, Lifetime::Timeframe);
 
-  outputs.emplace_back("HYP", "CHI2", 0, Lifetime::Timeframe);
-  outputs.emplace_back("HYP", "R2", 0, Lifetime::Timeframe);
-
-  outputs.emplace_back("HYP", "CLUSUPDATES", 0, Lifetime::Timeframe);
-  outputs.emplace_back("HYP", "ITSREFS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
-    "hyper-tracker",
+    "strangeness-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<HypertrackerSpec>()},
+    AlgorithmSpec{adaptFromTask<StrangenessTrackerSpec>()},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};

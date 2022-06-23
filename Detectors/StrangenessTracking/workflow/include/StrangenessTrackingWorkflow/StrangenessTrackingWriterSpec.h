@@ -9,15 +9,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// @file   TrackWriterSpec.h
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#ifndef O2_STRANGENESSTRACKINGWRITER
+#define O2_STRANGENESSTRACKINGWRITER
 
-#pragma link C++ class o2::strangeness_tracking::HypertrackerParamConfig + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper <o2::strangeness_tracking::HypertrackerParamConfig> + ;
-#pragma link C++ struct o2::strangeness_tracking::ClusAttachments + ;
-#pragma link C++ class std::vector<o2::strangeness_tracking::ClusAttachments> + ;
+#include "Framework/DataProcessorSpec.h"
 
-#endif
+namespace o2
+{
+namespace strangeness_tracking
+{
+
+/// create a processor spec
+/// write ITS tracks to ROOT file
+o2::framework::DataProcessorSpec getStrangenessTrackingWriterSpec();
+
+} // namespace strangeness_tracking
+} // namespace o2
+
+#endif /* O2_STRANGENESSTRACKINGWRITER */

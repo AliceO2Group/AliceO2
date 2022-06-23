@@ -10,8 +10,9 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(StrangenessTracking
-               SOURCES src/HyperTracker.cxx
-                       src/HypertrackingConfigParam.cxx
+               SOURCES src/StrangenessTracker.cxx
+                       src/StrangenessTrackingConfigParam.cxx
+                       src/IndexTableUtils.cxx
                PUBLIC_LINK_LIBRARIES O2::MathUtils
                                              O2::ITSBase
                                              O2::ITSMFTReconstruction
@@ -24,7 +25,9 @@ o2_add_library(StrangenessTracking
                )
 
 o2_target_root_dictionary(StrangenessTracking
-               HEADERS include/StrangenessTracking/HypertrackingConfigParam.h
-                       include/StrangenessTracking/HyperTracker.h
+               HEADERS include/StrangenessTracking/StrangenessTrackingConfigParam.h
+                       include/StrangenessTracking/IndexTableUtils.h
+                       include/StrangenessTracking/StrangenessTracker.h
 
-               LINKDEF src/HypertrackingLinkDef.h)
+
+               LINKDEF src/StrangenessTrackingLinkDef.h)

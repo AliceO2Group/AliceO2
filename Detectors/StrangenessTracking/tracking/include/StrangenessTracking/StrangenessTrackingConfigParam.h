@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_HYPERTRACKINGPARAM_H_
-#define ALICEO2_HYPERTRACKINGPARAM_H_
+#ifndef ALICEO2_STRANGENESS_TRACKING_PARAM_H_
+#define ALICEO2_STRANGENESS_TRACKING_PARAM_H_
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
@@ -20,10 +20,10 @@ namespace o2
 namespace strangeness_tracking
 {
 
-struct HypertrackerParamConfig : public o2::conf::ConfigurableParamHelper<HypertrackerParamConfig> {
+struct StrangenessTrackingParamConfig : public o2::conf::ConfigurableParamHelper<StrangenessTrackingParamConfig> {
   float dummy = 0;
 
-  O2ParamDef(HypertrackerParamConfig, "HypertrackerParam");
+  O2ParamDef(StrangenessTrackingParamConfig, "StrangenessTrackingParam");
 };
 
 } // namespace strangeness_tracking

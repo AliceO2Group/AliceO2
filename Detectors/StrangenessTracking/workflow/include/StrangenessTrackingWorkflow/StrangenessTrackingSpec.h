@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_HYPERTRACKING_SPEC_H
-#define O2_HYPERTRACKING_SPEC_H
+#ifndef O2_STRANGENESS_SPEC_H
+#define O2_STRANGENESS_SPEC_H
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
@@ -22,19 +22,19 @@
 
 #include "TStopwatch.h"
 
-#include "StrangenessTracking/HyperTracker.h"
+#include "StrangenessTracking/StrangenessTracker.h"
 
 namespace o2
 {
 namespace strangeness_tracking
 {
-class HypertrackerSpec : public framework::Task
+class StrangenessTrackerSpec : public framework::Task
 {
  public:
   using ITSCluster = o2::BaseCluster<float>;
 
-  HypertrackerSpec(bool isMC = false);
-  ~HypertrackerSpec() override = default;
+  StrangenessTrackerSpec(bool isMC = false);
+  ~StrangenessTrackerSpec() override = default;
 
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
@@ -48,12 +48,12 @@ class HypertrackerSpec : public framework::Task
   bool mIsMC = false;
   bool mRecreateV0 = true;
   TStopwatch mTimer;
-  HyperTracker mTracker;
+  StrangenessTracker mTracker;
   std::unique_ptr<parameters::GRPObject> mGRP = nullptr;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
 };
 
-o2::framework::DataProcessorSpec getHyperTrackerSpec();
+o2::framework::DataProcessorSpec getStrangenessTrackerSpec();
 o2::framework::WorkflowSpec getWorkflow(bool upstreamClusters = false, bool upstreamV0s = false);
 
 } // namespace strangeness_tracking

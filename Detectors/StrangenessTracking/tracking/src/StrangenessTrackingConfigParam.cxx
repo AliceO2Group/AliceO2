@@ -9,23 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TrackWriterSpec.h
-
-#ifndef O2_HYPERTRACKINGWRITER
-#define O2_HYPERTRACKINGWRITER
-
-#include "Framework/DataProcessorSpec.h"
+#include "StrangenessTracking/StrangenessTrackingConfigParam.h"
 
 namespace o2
 {
 namespace strangeness_tracking
 {
+static auto& sStrangenessTrackingParam = o2::strangeness_tracking::StrangenessTrackingParamConfig::Instance();
 
-/// create a processor spec
-/// write ITS tracks to ROOT file
-o2::framework::DataProcessorSpec getHypertrackingWriterSpec();
-
+O2ParamImpl(o2::strangeness_tracking::StrangenessTrackingParamConfig);
 } // namespace strangeness_tracking
 } // namespace o2
-
-#endif /* O2_HYPERTRACKINGWRITER */
