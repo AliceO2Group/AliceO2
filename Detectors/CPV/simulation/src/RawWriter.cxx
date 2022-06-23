@@ -42,33 +42,35 @@ void RawWriter::init()
     mRawWriter->registerLink(link.feeId, link.cruId, link.linkId, link.endPointId, rawFileName.data());
   }
 
-  // Lm-L0 delay
-  mLM_L0_delay = o2::ctp::TriggerOffsetsParam::Instance().LM_L0;
-
   // CCDB setup
   const auto& hbfutils = o2::raw::HBFUtils::Instance();
   LOG(info) << "CCDB Url: " << mCcdbUrl;
   auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
   ccdbMgr.setURL(mCcdbUrl);
   bool isCcdbReachable = ccdbMgr.isHostReachable(); // if host is not reachable we can use only dummy calibration
-  if (!isCcdbReachable) {
+  if (!isCcdbReachable) {                           // dummy calibration
     if (mCcdbUrl.compare("localtest") != 0) {
       LOG(error) << "Host " << mCcdbUrl << " is not reachable!!!";
     }
-    LOG(info) << "Using dummy calibration";
+    LOG(info) << "Using dummy calibration and default Lm-L0 delay";
+    mLM_L0_delay = o2::ctp::TriggerOffsetsParam::Instance().LM_L0;
     mCalibParams = new o2::cpv::CalibParams(1);
     mBadMap = new o2::cpv::BadChannelMap(1);
     mPedestals = new o2::cpv::Pedestals(1);
-  } else {
+  } else {                                        // read ccdb
     ccdbMgr.setCaching(true);                     // make local cache of remote objects
     ccdbMgr.setLocalObjectValidityChecking(true); // query objects from remote site only when local one is not valid
     LOG(info) << "Successfully initializated BasicCCDBManager with caching option";
 
     // read calibration from ccdb (for now do it only at the beginning of dataprocessing)
-    // setup timestam according to anchors
+    // setup timestamp according to anchors
     ccdbMgr.setTimestamp(hbfutils.startTime);
     LOG(info) << "Using time stamp " << ccdbMgr.getTimestamp();
 
+    // Lm-L0 delay
+    mLM_L0_delay = ccdbMgr.get<o2::ctp::TriggerOffsetsParam>("CTP/Config/TriggerOffsets")->LM_L0;
+
+    // gains
     LOG(info) << "CCDB: Reading o2::cpv::CalibParams from CPV/Calib/Gains";
     mCalibParams = ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains");
     if (!mCalibParams) {
@@ -76,6 +78,7 @@ void RawWriter::init()
       mCalibParams = new o2::cpv::CalibParams(1);
     }
 
+    // no need to mask bad channels -> they will be thrown away at reconstruntion anyway
     /*
     LOG(info) << "CCDB: Reading o2::cpv::BadChannelMap from CPV/Calib/BadChannelMap";
     mBadMap = ccdbMgr.get<o2::cpv::BadChannelMap>("CPV/Calib/BadChannelMap"));
@@ -85,6 +88,7 @@ void RawWriter::init()
     }
     */
 
+    // pedestals
     LOG(info) << "CCDB: Reading o2::cpv::Pedestals from CPV/Calib/Pedestals";
     mPedestals = ccdbMgr.get<o2::cpv::Pedestals>("CPV/Calib/Pedestals");
     if (!mPedestals) {
@@ -103,7 +107,7 @@ void RawWriter::digitsToRaw(gsl::span<o2::cpv::Digit> digitsbranch, gsl::span<o2
 
   // process digits which belong to same orbit (taking into account )
   int iFirstTrgInCurrentOrbit = 0;
-  unsigned int currentOrbit = triggerbranch[iFirstTrgInCurrentOrbit].getBCData().orbit;
+  unsigned int currentOrbit = (triggerbranch[0].getBCData() + mLM_L0_delay).orbit;
   int nTrgsInCurrentOrbit = 1;
   for (unsigned int iTrg = 1; iTrg < triggerbranch.size(); iTrg++) {
     if ((triggerbranch[iTrg].getBCData() + mLM_L0_delay).orbit != currentOrbit) { // if orbit changed, write previous orbit to file

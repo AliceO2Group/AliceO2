@@ -75,22 +75,22 @@ void RawToDigitConverterSpec::updateTimeDependentParams(framework::ProcessingCon
   if (!updateOnlyOnce) {
     ctx.inputs().get<o2::ctp::TriggerOffsetsParam*>("trigoffset");
 
-    std::decay_t<decltype(ctx.inputs().get<o2::cpv::Pedestals*>("peds"))> pedPtr{};
-    std::decay_t<decltype(ctx.inputs().get<o2::cpv::BadChannelMap*>("badmap"))> badMapPtr{};
-    std::decay_t<decltype(ctx.inputs().get<o2::cpv::CalibParams*>("gains"))> gainsPtr{};
+    // std::decay_t<decltype(ctx.inputs().get<o2::cpv::Pedestals*>("peds"))> pedPtr{};
+    // std::decay_t<decltype(ctx.inputs().get<o2::cpv::BadChannelMap*>("badmap"))> badMapPtr{};
+    // std::decay_t<decltype(ctx.inputs().get<o2::cpv::CalibParams*>("gains"))> gainsPtr{};
 
     if (!mIsPedestalData) {
-      pedPtr = ctx.inputs().get<o2::cpv::Pedestals*>("peds");
+      auto pedPtr = ctx.inputs().get<o2::cpv::Pedestals*>("peds");
       mPedestals = pedPtr.get();
     }
 
     if (mIsUsingBadMap) {
-      badMapPtr = ctx.inputs().get<o2::cpv::BadChannelMap*>("badmap");
+      auto badMapPtr = ctx.inputs().get<o2::cpv::BadChannelMap*>("badmap");
       mBadMap = badMapPtr.get();
     }
 
     if (mIsUsingGainCalibration) {
-      gainsPtr = ctx.inputs().get<o2::cpv::CalibParams*>("gains");
+      auto gainsPtr = ctx.inputs().get<o2::cpv::CalibParams*>("gains");
       mGains = gainsPtr.get();
     }
     updateOnlyOnce = true;
