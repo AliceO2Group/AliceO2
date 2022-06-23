@@ -290,7 +290,7 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
         if (input.lifetime != Lifetime::Condition && mCompletionPolicy.name != "internal-dpl-injected-dummy-sink") {
           LOGP(error, "Dropping {} Lifetime::{} data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
         } else {
-          LOGP(info,
+          LOGP(debug,
                "Silently dropping data {} in pipeline slot {} because it has timeslice {} < {} after receiving data from channel {}."
                "Because Lifetime::Timeframe data not there and not expected (e.g. due to sampling) we drop non sampled, non timeframe data (e.g. Conditions).",
                DataSpecUtils::describe(input), si, timestamp.value, newOldest.timeslice.value,
