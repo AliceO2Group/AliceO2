@@ -117,6 +117,9 @@ class SimConfig
   static void determineActiveModules(std::vector<std::string> const& input, std::vector<std::string> const& skipped, std::vector<std::string>& active);
   static void determineReadoutDetectors(std::vector<std::string> const& active, std::vector<std::string> const& enabledRO, std::vector<std::string> const& skippedRO, std::vector<std::string>& finalRO);
 
+  // helper to parse field option
+  static bool parseFieldString(std::string const& fieldstring, int& fieldvalue, o2::conf::SimFieldMode& mode);
+
   // get selected generator (to be used to select a genconfig)
   std::string getGenerator() const { return mConfigData.mGenerator; }
   std::string getTrigger() const { return mConfigData.mTrigger; }
