@@ -572,7 +572,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->mCheckExactRow = true;
 
   } else if (runtype == THR_SCAN_SHORT || runtype == THR_SCAN_SHORT_100HZ ||
-             runtype == THR_SCAN_SHORT_200HZ) {
+             runtype == THR_SCAN_SHORT_200HZ || runtype == THR_SCAN_SHORT_33 || runtype == THR_SCAN_SHORT_2_10HZ) {
     // threshold_scan_short -- just extract thresholds for each pixel and write to TTree
     // 10 rows per chip
     this->mScanType = 'T';
@@ -939,6 +939,8 @@ void ITSThresholdCalibrator::addDatabaseEntry(
         o2::dcs::addConfigItem(this->mTuning, "Dcol", std::to_string(i));
         o2::dcs::addConfigItem(this->mTuning, "Row", ds);
         o2::dcs::addConfigItem(this->mTuning, "Col", ds);
+
+        dcolIDs += std::to_string(i) + '|'; // prepare string for second object for ccdb prod
       }
     }
 
@@ -965,12 +967,6 @@ void ITSThresholdCalibrator::addDatabaseEntry(
           o2::dcs::addConfigItem(this->mTuning, "Dcol", ds);
           o2::dcs::addConfigItem(this->mTuning, "Row", std::to_string(v[i] % 1000));
           o2::dcs::addConfigItem(this->mTuning, "Col", std::to_string(int((v[i] - v[i] % 1000) / 1000)));
-        }
-
-        for (int i = 0; i < 512; i++) {
-          if (vPixDcolCounter[i] > N_PIX_DCOL) {
-            dcolIDs += std::to_string(i) + '|';
-          }
         }
       }
 
@@ -1139,31 +1135,27 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     name = "PixID";
 
     // Extract hits from the full matrix
-    LOG(info) << "Extracting hits for the full matrix";
     auto itchip = this->mPixelHits.cbegin();
     while (itchip != this->mPixelHits.cend()) { // loop over chips collected
       if (!this->mCheckEos && this->mRunTypeChip[itchip->first] < N_INJ) {
         ++itchip;
         continue;
       }
+      LOG(info) << "Extracting hits for the full matrix of chip " << itchip->first;
       for (short int irow = 0; irow < 512; irow++) {
         this->extractAndUpdate(itchip->first, irow);
       }
       if (this->mVerboseOutput) {
-        LOG(info) << "Chip " << itchip->first << " done";
+        LOG(info) << "Chip " << itchip->first << " hits extracted";
       }
       mRunTypeChip[itchip->first] = 0; // to avoid multiple writes into the tree
       ++itchip;
     }
 
-    LOG(info) << "Extracting noisy pixels in the full matrix";
     auto it = this->mNoisyPixID.cbegin();
     while (it != this->mNoisyPixID.cend()) {
-      if (!this->mCheckEos) {
-        ++it;
-        continue;
-      }
       PixelType = "Noisy";
+      LOG(info) << "Extracting noisy pixels in the full matrix of chip " << it->first;
       this->addDatabaseEntry(it->first, name, 0, 0, 0, 0, 0, false); // all zeros are not used here
       if (this->mVerboseOutput) {
         LOG(info) << "Chip " << it->first << " done";
@@ -1174,13 +1166,10 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
         ++it;
       }
     }
-    LOG(info) << "Extracting dead pixels in the full matrix";
+
     auto it_d = this->mDeadPixID.cbegin();
     while (it_d != this->mDeadPixID.cend()) {
-      if (!this->mCheckEos) {
-        ++it_d;
-        continue;
-      }
+      LOG(info) << "Extracting dead pixels in the full matrix of chip " << it_d->first;
       PixelType = "Dead";
       this->addDatabaseEntry(it_d->first, name, 0, 0, 0, 0, 0, false); // all zeros are not used here
       if (!this->mCheckEos) {
@@ -1190,13 +1179,9 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
       }
     }
 
-    LOG(info) << "Extracting inefficient pixels in the full matrix";
     auto it_ineff = this->mIneffPixID.cbegin();
     while (it_ineff != this->mIneffPixID.cend()) {
-      if (!this->mCheckEos) {
-        ++it_ineff;
-        continue;
-      }
+      LOG(info) << "Extracting inefficient pixels in the full matrix of chip " << it_ineff->first;
       PixelType = "Ineff";
       this->addDatabaseEntry(it_ineff->first, name, 0, 0, 0, 0, 0, false);
       if (!this->mCheckEos) {
@@ -1274,7 +1259,7 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"enable-eos", VariantType::Bool, false, {"Use if endOfStream is available"}},
             {"enable-cw-cnt-check", VariantType::Bool, false, {"Use to enable the check of the calib word counter row by row in addition to the hits"}},
             {"enable-single-pix-tag", VariantType::Bool, false, {"Use to enable tagging of single noisy pix in digital and analogue scan"}},
-            {"ccdb-mgr-url", VariantType::String, "", {"CCDB url"}}}};
+            {"ccdb-mgr-url", VariantType::String, "", {"CCDB url to download confDBmap"}}}};
 }
 } // namespace its
 } // namespace o2
