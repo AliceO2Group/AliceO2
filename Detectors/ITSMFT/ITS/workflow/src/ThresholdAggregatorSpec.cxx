@@ -36,7 +36,7 @@ void ITSThresholdAggregator::init(InitContext& ic)
 
   this->mVerboseOutput = ic.options().get<bool>("verbose");
   this->mCcdbUrl = ic.options().get<std::string>("ccdb-url");
-
+  this->mCcdbUrlProd = ic.options().get<std::string>("ccdb-url-prod");
   return;
 }
 
@@ -71,6 +71,13 @@ void ITSThresholdAggregator::run(ProcessingContext& pc)
     const auto tunString = pc.inputs().get<gsl::span<char>>(inputRef);
     // Merge all strings coming from several sources (EPN)
     std::copy(tunString.begin(), tunString.end(), std::back_inserter(tuningMerge));
+  }
+
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "PIXTYP"}}})) {
+    // Read strings with pixel type info
+    const auto PixTypString = pc.inputs().get<gsl::span<char>>(inputRef);
+    // Merge all strings coming from several sources (EPN)
+    std::copy(PixTypString.begin(), PixTypString.end(), std::back_inserter(PIXTYPMerge));
   }
   for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "QCSTR"}}})) {
     // Read strings with list of completed chips
@@ -117,15 +124,24 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
     md.insert({"runNumber", std::to_string(this->mRunNumber)});
   }
 
+  if (!mCcdbUrlProd.empty()) { // add only if we write here otherwise ccdb-populator-wf add it already
+    md.insert({"runNumber", std::to_string(this->mRunNumber)});
+  }
   std::string path("ITS/Calib/");
   std::string name_str = mScanType == 'V' ? "VCASN" : mScanType == 'I' ? "ITHR"
                                                     : mScanType == 'D' ? "DIG"
                                                     : mScanType == 'A' ? "ANA"
                                                                        : "THR";
   o2::ccdb::CcdbObjectInfo info((path + name_str), "threshold_map", "calib_scan.root", md, tstart, tend);
+  o2::ccdb::CcdbObjectInfo info_pixtyp((path + name_str), "threshold_map", "calib_scan.root", md, tstart, tend);
+
   auto image = o2::ccdb::CcdbApi::createObjectImage(&tuningMerge, &info);
+  auto image_pixtyp = o2::ccdb::CcdbApi::createObjectImage(&PIXTYPMerge, &info_pixtyp);
+
   std::string file_name = "calib_scan_" + name_str + ".root";
+  std::string file_name_pixtyp = "calib_scan_pixel_type_" + name_str + ".root";
   info.setFileName(file_name);
+  info_pixtyp.setFileName(file_name_pixtyp);
 
   if (ec) { // send to ccdb-populator wf only if there is an EndOfStreamContext
     LOG(info) << "Class Name: " << class_name << " | File Name: " << file_name
@@ -146,9 +162,15 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
     } else if (this->mScanType == 'D') {
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DIG", 0}, *image);
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DIG", 0}, info);
+
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DIG", 0}, *image_pixtyp);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DIG", 0}, info_pixtyp);
     } else if (this->mScanType == 'A') {
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ANA", 0}, *image);
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ANA", 0}, info);
+
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ANA", 0}, *image_pixtyp);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ANA", 0}, info_pixtyp);
     } else {
       LOG(error) << "Nothing sent to ccdb-populator, mScanType does not match any known scan type";
     }
@@ -163,6 +185,13 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
                            info.getMetaData(), info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
   }
 
+  if (!mCcdbUrlProd.empty()) { // if url is specified, send object to ccdb from THIS wf
+
+    LOG(info) << "Sending Noisy, Dead and Inefficenct pixel object " << info_pixtyp.getFileName() << " to " << mCcdbUrlProd << "/browse/" << info_pixtyp.getPath() << " from the ITS calib workflow";
+    o2::ccdb::CcdbApi mApiProd;
+    mApiProd.init(mCcdbUrlProd);
+    mApiProd.storeAsBinaryFile(&image_pixtyp->at(0), image_pixtyp->size(), info_pixtyp.getFileName(), info_pixtyp.getObjectType(), info_pixtyp.getPath(), info_pixtyp.getMetaData(), info_pixtyp.getStartValidityTimestamp(), info_pixtyp.getEndValidityTimestamp());
+  }
   return;
 }
 
@@ -228,6 +257,7 @@ DataProcessorSpec getITSThresholdAggregatorSpec()
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tunestring", ConcreteDataTypeMatcher{"ITS", "TSTR"});
+  inputs.emplace_back("PixTypString", ConcreteDataTypeMatcher{"ITS", "PIXTYP"});
   inputs.emplace_back("chipdonestring", ConcreteDataTypeMatcher{"ITS", "QCSTR"});
   inputs.emplace_back("runtype", ConcreteDataTypeMatcher{"ITS", "RUNT"});
   inputs.emplace_back("scantype", ConcreteDataTypeMatcher{"ITS", "SCANT"});
@@ -257,7 +287,8 @@ DataProcessorSpec getITSThresholdAggregatorSpec()
     AlgorithmSpec{adaptFromTask<o2::its::ITSThresholdAggregator>()},
     Options{
       {"verbose", VariantType::Bool, false, {"Use verbose output mode"}},
-      {"ccdb-url", VariantType::String, "", {"CCDB url, default is empty (i.e. no upload to CCDB)"}}}};
+      {"ccdb-url", VariantType::String, "", {"CCDB url, default is empty (i.e. no upload to CCDB)"}},
+      {"ccdb-url-prod", VariantType::String, "", {"CCDB prod url, default is empty (i.e. no upload to CCDB)"}}}};
 }
 } // namespace its
 } // namespace o2

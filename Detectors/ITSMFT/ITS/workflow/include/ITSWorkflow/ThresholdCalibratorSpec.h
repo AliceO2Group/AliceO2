@@ -140,15 +140,12 @@ class ITSThresholdCalibrator : public Task
   std::map<short int, std::deque<short int>> mForbiddenRows;
   // Unordered map for saving sum of values (thr/ithr/vcasn) for avg calculation
   std::map<short int, std::array<int, 5>> mThresholds;
-  // Map including PixID for efficient or correct pixels
-  std::map<short int, std::vector<int>> mCorrectPixID;
   // Map including PixID for noisy pixels
   std::map<short int, std::vector<int>> mNoisyPixID;
   // Map including PixID for Inefficient pixels
   std::map<short int, std::vector<int>> mIneffPixID;
   // Map including PixID for Dead pixels
   std::map<short int, std::vector<int>> mDeadPixID;
-
   // Tree to save threshold info in full threshold scan case
   TFile* mRootOutfile = nullptr;
   TTree* mThresholdTree = nullptr;
@@ -181,8 +178,6 @@ class ITSThresholdCalibrator : public Task
   void findAverage(const std::array<int, 5>&, float&, float&, float&, float&);
   void saveThreshold();
 
-  bool isPixelDead(const unsigned short int*, const short int&);
-
   // Helper functions for writing to the database
   void addDatabaseEntry(const short int&, const char*, const short int&,
                         const float&, const short int&, const float&, bool, bool);
@@ -202,7 +197,7 @@ class ITSThresholdCalibrator : public Task
 
   // How many rows before starting new ROOT file
   unsigned int mFileNumber = 0;
-  static constexpr unsigned int N_ROWS_PER_FILE = 10000;
+  static constexpr unsigned int N_ROWS_PER_FILE = 150000;
   unsigned int mRowCounter = 0;
 
   short int mRunType = -1;
@@ -223,7 +218,8 @@ class ITSThresholdCalibrator : public Task
 
   // DCS config object
   o2::dcs::DCSconfigObject_t mTuning;
-
+  // DCS config object for pixel type
+  o2::dcs::DCSconfigObject_t mPixStat;
   // DCS config object shipped only to QC to know when scan is done
   o2::dcs::DCSconfigObject_t mChipDoneQc;
 
@@ -236,6 +232,8 @@ class ITSThresholdCalibrator : public Task
   // Flag to tag single noisy pix in digital scan
   bool mTagSinglePix = false;
 
+  // flag to set url for ccdb mgr
+  std::string mCcdbMgrUrl = "";
   // Bool to check exact row when counting hits
   bool mCheckExactRow = false;
 
