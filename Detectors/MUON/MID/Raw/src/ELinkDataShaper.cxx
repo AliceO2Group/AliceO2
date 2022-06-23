@@ -41,10 +41,10 @@ ELinkDataShaper::ELinkDataShaper(bool isDebugMode, bool isLoc, uint8_t uniqueId,
     }
   }
   mLocalToBCSelfTrig = mElectronicsDelay.localToBC;
+  mElectronicsDelay.calibToFET += mElectronicsDelay.localToBC;
   if (!isLoc) {
     mLocalToBCSelfTrig -= electronicsDelay.localToReg;
   }
-  mElectronicsDelay.calibToFET += mLocalToBCSelfTrig;
 }
 
 void ELinkDataShaper::set(uint32_t orbit, uint32_t trigger)
