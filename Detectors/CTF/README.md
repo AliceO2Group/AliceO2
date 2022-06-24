@@ -172,3 +172,8 @@ by `ctrl-C`. Periodic incremental saving of so-far accumulated dictionary data d
 ``--save-dict-after <N>``.
 
 When decoding CTF containing dictionary data (i.e. encoded w/o external dictionaries), externally provided dictionaries will be ignored.
+
+To apply TF rate limiting (make sure that no more than N TFs are in processing) provide `--timeframes-rate-limit <N> --timeframes-rate-limit-ipcid <IPCID>`
+too all workflows (e.g. via ARGS_ALL).
+The IPCID is the NUMA domain ID (usually 0 on non-EPN workflow).
+Additionally, one may throttle on the free SHM by providing an option to the reader `--timeframes-shm-limit <shm-size>`.
