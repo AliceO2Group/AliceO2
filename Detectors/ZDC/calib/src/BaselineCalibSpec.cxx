@@ -66,25 +66,21 @@ void BaselineCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
   pc.inputs().get<o2::zdc::BaselineCalibConfig*>("calibconfig");
 }
 
+void BaselineCalibSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ZDC", "MODULECONFIG", 0)) {
+    mWorker.setModuleConfig((const o2::zdc::ModuleConfig*)obj);
+  }
+  if (matcher == ConcreteDataMatcher("ZDC", "BASECALIBCONFIG", 0)) {
+    mWorker.setConfig((const o2::zdc::BaselineCalibConfig*)obj);
+  }
+}
+
 void BaselineCalibSpec::run(ProcessingContext& pc)
 {
-  updateTimeDependentParams(pc);
   if (!mInitialized) {
     mInitialized = true;
-    std::string loadedConfFiles = "Loaded ZDC configuration files:";
-    {
-      // Module configuration
-      auto config = pc.inputs().get<o2::zdc::ModuleConfig*>("moduleconfig");
-      loadedConfFiles += " Moduleconfig";
-      mWorker.setModuleConfig(config.get());
-    }
-    {
-      // Baseline calibration configuration
-      auto config = pc.inputs().get<o2::zdc::BaselineCalibConfig*>("calibconfig");
-      loadedConfFiles += " BaselineCalibConfig";
-      mWorker.setConfig(config.get());
-    }
-    LOG(info) << loadedConfFiles;
+    updateTimeDependentParams(pc);
     mTimer.Stop();
     mTimer.Reset();
     mTimer.Start(false);

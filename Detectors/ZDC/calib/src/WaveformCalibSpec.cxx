@@ -131,7 +131,7 @@ framework::DataProcessorSpec getWaveformCalibSpec()
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("waveformcalibdata", "ZDC", "WAVECALIBDATA", 0, Lifetime::Timeframe);
-  inputs.emplace_back("wavecalibconfig", "ZDC", "WAVECALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathWaveformCalibConfig.data())));
+  inputs.emplace_back("wavecalibconfig", "ZDC", "WAVECALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathWaveformCalibConfig.data()));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDCWaveformCalib"}, Lifetime::Sporadic);

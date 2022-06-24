@@ -19,6 +19,8 @@
 #include <TStopwatch.h>
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataAllocator.h"
+#include "Framework/DataSpecUtils.h"
 #include "Framework/Task.h"
 #include "CommonUtils/NameConf.h"
 #include "ZDCCalib/BaselineCalibData.h"
@@ -38,6 +40,7 @@ class BaselineCalibEPNSpec : public o2::framework::Task
   ~BaselineCalibEPNSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj);
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 

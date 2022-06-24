@@ -68,19 +68,20 @@ void BaselineCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
   pc.inputs().get<o2::zdc::ModuleConfig*>("moduleconfig");
 }
 
+void BaselineCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ZDC", "MODULECONFIG", 0)) {
+    mWorker.setModuleConfig((const o2::zdc::ModuleConfig*)obj);
+  }
+}
+
+
 void BaselineCalibEPNSpec::run(ProcessingContext& pc)
 {
-  updateTimeDependentParams(pc);
   if (!mInitialized) {
     mInitialized = true;
+    updateTimeDependentParams(pc);
     std::string loadedConfFiles = "Loaded ZDC configuration files:";
-    {
-      // Module configuration
-      auto config = pc.inputs().get<o2::zdc::ModuleConfig*>("moduleconfig");
-      loadedConfFiles += " Moduleconfig";
-      mWorker.setModuleConfig(config.get());
-    }
-    LOG(info) << loadedConfFiles;
     mTimer.Stop();
     mTimer.Reset();
     mTimer.Start(false);
@@ -114,7 +115,7 @@ framework::DataProcessorSpec getBaselineCalibEPNSpec()
   using device = o2::zdc::BaselineCalibEPNSpec;
   std::vector<InputSpec> inputs;
   inputs.emplace_back("peds", "ZDC", "DIGITSPD", 0, Lifetime::Timeframe);
-  inputs.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathConfigModule.data())));
+  inputs.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathConfigModule.data()));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);

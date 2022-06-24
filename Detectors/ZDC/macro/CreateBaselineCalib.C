@@ -24,18 +24,17 @@
 #endif
 
 #include "ZDCBase/Helpers.h"
-
+using namespace o2::zdc;
 using namespace std;
 
 void CreateBaselineCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
 {
   // Shortcuts: internal, external, test, local, root
 
-  o2::zdc::BaselineParam conf;
-
   // This object allows to provide average pedestals
   // Default object has not valid data = -std::numeric_limits<float>::infinity()
   // that makes sure the pedestal are not used
+  BaselineParam conf;
 
   // conf.setCalib(IdZNAC, -std::numeric_limits<float>::infinity());
   // conf.setCalib(IdZNA1, -std::numeric_limits<float>::infinity());
@@ -70,9 +69,9 @@ void CreateBaselineCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "
 
   conf.print();
 
-  std::string ccdb_host = o2::zdc::ccdbShortcuts(ccdbHost, conf.Class_Name(), o2::zdc::CCDBPathBaselineCalib);
+  std::string ccdb_host = ccdbShortcuts(ccdbHost, conf.Class_Name(), CCDBPathBaselineCalib);
 
-  if (o2::zdc::endsWith(ccdb_host, ".root")) {
+  if (endsWith(ccdb_host, ".root")) {
     TFile f(ccdb_host.data(), "recreate");
     f.WriteObjectAny(&conf, conf.Class_Name(), "ccdb_object");
     f.Close();
@@ -84,5 +83,5 @@ void CreateBaselineCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "
   api.init(ccdb_host.c_str());
   LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
-  api.storeAsTFileAny(&conf, o2::zdc::CCDBPathBaselineCalib, metadata, tmin, tmax);
+  api.storeAsTFileAny(&conf, CCDBPathBaselineCalib, metadata, tmin, tmax);
 }

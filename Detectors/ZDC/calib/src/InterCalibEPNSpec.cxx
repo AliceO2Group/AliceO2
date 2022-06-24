@@ -130,7 +130,7 @@ framework::DataProcessorSpec getInterCalibEPNSpec()
   inputs.emplace_back("energy", "ZDC", "ENERGY", 0, Lifetime::Timeframe);
   inputs.emplace_back("tdc", "ZDC", "TDCDATA", 0, Lifetime::Timeframe);
   inputs.emplace_back("info", "ZDC", "INFO", 0, Lifetime::Timeframe);
-  inputs.emplace_back("intercalibconfig", "ZDC", "INTERCALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathInterCalibConfig.data())));
+  inputs.emplace_back("intercalibconfig", "ZDC", "INTERCALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathInterCalibConfig.data()));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
