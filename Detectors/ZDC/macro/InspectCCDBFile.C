@@ -18,6 +18,7 @@
 #include "ZDCReconstruction/ZDCTowerParam.h"
 #include "ZDCSimulation/SimCondition.h"
 
+// clang-format off
 void InspectCCDBFile()
 {
   TString dn = gDirectory->GetName();
@@ -35,7 +36,6 @@ void InspectCCDBFile()
   TIter nextkey(gDirectory->GetListOfKeys());
   TKey* key;
   while ((key = (TKey *)nextkey())) {
-    // clang-format off
     TString cn = key->GetClassName();
     if (cn.EqualTo("vector<Long64_t>")) {
       vector<Long64_t>* ob = (vector<Long64_t>*)key->ReadObj();
@@ -98,7 +98,6 @@ void InspectCCDBFile()
     } else {
       printf("%s %s %d %s\n", key->GetClassName(), key->GetName(), key->GetCycle(), key->GetTitle());
     }
-    // clang-format on
   }
   //   TObject *ob = (TObject*)gDirectory->Get("ccdb_object");
   //   if(ob == nullptr){
@@ -107,3 +106,4 @@ void InspectCCDBFile()
   //   }
   //   printf("%s %d\n", ob->Class_Name(), ob->Class_Version());
 }
+// clang-format on
