@@ -75,7 +75,6 @@ void BaselineCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matc
   }
 }
 
-
 void BaselineCalibEPNSpec::run(ProcessingContext& pc)
 {
   if (!mInitialized) {
