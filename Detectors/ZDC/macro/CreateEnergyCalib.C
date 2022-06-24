@@ -29,7 +29,6 @@ void CreateEnergyCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
 {
   // Shortcuts: internal, external, test, local, root
 
-
   // This object allows for the calibration of 4 common photomultipliers and 2 ZEM
   // Optionally also the analog sum can have a calibration coefficient otherwise
   // the coefficient of the common PM will be used
