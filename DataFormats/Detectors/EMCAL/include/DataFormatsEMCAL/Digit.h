@@ -103,7 +103,7 @@ class Digit : public DigitBase
   uint16_t mNoiseLG = 0;     ///< Noise of the low gain digits
   uint16_t mNoiseHG = 0;     ///< Noise of the high gain digits or TRU digits (can never be at the same time)
 
-  ClassDefNV(Digit, 2);
+  ClassDefNV(Digit, 3);
 };
 
 std::ostream& operator<<(std::ostream& stream, const Digit& dig);
