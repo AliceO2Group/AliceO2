@@ -46,6 +46,7 @@ class DigitRecoSpec : public o2::framework::Task
  private:
   DigiReco mWorker;                  // Reconstruction object
   int mVerbosity = 0;                // Verbosity level during recostruction
+  int mMaxWave = 0;                  // Maximum number of waveforms in output
   bool mDebugOut = false;            // Save temporary reconstruction structures on root file
   bool mEnableZDCTDCCorr = true;     // Get ZDCTDCCorr object
   bool mEnableZDCEnergyParam = true; // Get ZDCEnergyParam object

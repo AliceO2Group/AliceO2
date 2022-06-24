@@ -61,6 +61,10 @@ DigitRecoSpec::DigitRecoSpec(const int verbosity, const bool debugOut,
 
 void DigitRecoSpec::init(o2::framework::InitContext& ic)
 {
+  mMaxWave = ic.options().get<int>("max-wave");
+  if (mMaxWave > 0) {
+    LOG(warning) << "Limiting the number of waveforms in ourput to " << mMaxWave;
+  }
 }
 
 void DigitRecoSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -194,6 +198,10 @@ void DigitRecoSpec::run(ProcessingContext& pc)
           ntw++;
         }
       }
+      if (mMaxWave > 0 && ntw >= mMaxWave) {
+        LOG(warning) << "Maximum number of output waveforms per TF reached: " << mMaxWave;
+        break;
+      }
     }
     if (ne > 0) {
       if (toAddBC) {
@@ -276,7 +284,7 @@ framework::DataProcessorSpec getDigitRecoSpec(const int verbosity = 0, const boo
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<DigitRecoSpec>(verbosity, enableDebugOut, enableZDCTDCCorr, enableZDCEnergyParam, enableZDCTowerParam, enableBaselineParam)},
-    o2::framework::Options{}};
+    o2::framework::Options{{"max-wave", o2::framework::VariantType::Int, 0, {"Maximum number of waveforms per TF in output"}}}};
 }
 
 } // namespace zdc
