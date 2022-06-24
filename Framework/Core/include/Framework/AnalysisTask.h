@@ -123,6 +123,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename T, int AI>
   static void appendSomethingWithMetadata(const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, size_t hash)
   {
+    static_assert(std::is_lvalue_reference_v<T>, "Argument to process needs to be a reference (&).");
     using dT = std::decay_t<T>;
     if constexpr (soa::is_soa_filtered_t<dT>::value) {
       eInfos.push_back({AI, hash, dT::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
