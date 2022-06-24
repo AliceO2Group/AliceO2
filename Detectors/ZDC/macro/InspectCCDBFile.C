@@ -18,7 +18,7 @@
 #include "ZDCReconstruction/ZDCTowerParam.h"
 #include "ZDCSimulation/SimCondition.h"
 
-void InspectCCDBFile() 
+void InspectCCDBFile()
 {
   TString dn = gDirectory->GetName();
   auto p_und = dn.First('_');
