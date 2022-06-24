@@ -290,8 +290,6 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
   if (needBCSlice) {
     ambigMFTTracksCursor(0, mTableTrMFTID, bcSlice);
   }
-  //  mGIDToTableMFTID.emplace(trackID, mTableTrMFTID);
-  mTableTrMFTID++;
 }
 
 template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename AmbigTracksCursorType,
@@ -323,14 +321,16 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           if (trackIndex.isAmbiguous() && mGIDToTableMFTID.find(trackIndex) != mGIDToTableMFTID.end()) { // was it already stored ?
             continue;
           }
-          mGIDToTableMFTID.emplace(trackIndex, mIndexMFTID);
           addToMFTTracksTable(mftTracksCursor, ambigMFTTracksCursor, trackIndex, data, collisionID, collisionBC, bcsMap);
+          mGIDToTableMFTID.emplace(trackIndex, mTableTrMFTID);
+          mTableTrMFTID++;
         } else if (src == GIndex::Source::MCH || src == GIndex::Source::MFTMCH || src == GIndex::Source::MCHMID) { // FwdTracks tracks are treated separately since they are stored in a different table
           if (trackIndex.isAmbiguous() && mGIDToTableFwdID.find(trackIndex) != mGIDToTableFwdID.end()) {           // was it already stored ?
             continue;
           }
-          mGIDToTableFwdID.emplace(trackIndex, mIndexFwdID);
           addToFwdTracksTable(fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, trackIndex, data, collisionID, collisionBC, bcsMap);
+          mGIDToTableFwdID.emplace(trackIndex, mTableTrFwdID);
+          mTableTrFwdID++;
         } else {
           // barrel track: normal tracks table
           if (trackIndex.isAmbiguous() && mGIDToTableID.find(trackIndex) != mGIDToTableID.end()) { // was it already stored ?
@@ -380,8 +380,7 @@ void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::
           mGIDToTableFwdID.emplace(trackIndex, mIndexFwdID);
           if (src == GIndex::Source::MCH) {
             mIndexTableFwd[trackIndex.getIndex()] = mIndexFwdID;
-          }
-          if (src == GIndex::Source::MCHMID) {
+          } else if (src == GIndex::Source::MCHMID) {
             const auto& mchmidMatch = mchmidMatches[trackIndex.getIndex()];
             const auto mchTrackID = mchmidMatch.getMCHRef().getIndex();
             mIndexTableFwd[mchTrackID] = mIndexFwdID;
@@ -447,7 +446,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
       vz = v.getZ();
     }
 
-    o2::mch::TrackParam trackParamAtVertex(track.getZ(), track.getParameters());
+    o2::mch::TrackParam trackParamAtVertex(track.getZ(), track.getParameters(), track.getCovariances());
     double errVtx{0.0}; // FIXME: get errors associated with vertex if available
     double errVty{0.0};
     if (!o2::mch::TrackExtrap::extrapToVertex(trackParamAtVertex, vx, vy, vz, errVtx, errVty)) {
@@ -481,7 +480,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     double dphi = std::atan2(py, px);
     double dtanl = pz / pt;
     double dinvqpt = 1.0 / (trackParamAtVertex.getCharge() * pt);
-    double dpdca = trackParamAtVertex.p() * dca;
+    double dpdca = track.getP() * dca;
     double dchi2 = track.getChi2OverNDF();
 
     fwdInfo.x = trackParamAtVertex.getNonBendingCoor();
@@ -633,8 +632,6 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   if (needBCSlice) {
     ambigFwdTracksCursor(0, mTableTrFwdID, bcSlice);
   }
-  //  mGIDToTableFwdID.emplace(trackID, mTableTrFwdID);
-  mTableTrFwdID++;
 }
 
 template <typename MCParticlesCursorType>
@@ -1546,7 +1543,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   int collisionID = 0;
   mIndexTableMFT.resize(recoData.getMFTTracks().size());
-  mIndexTableFwd.resize(recoData.getMCHTracks().size() * 3); // take an upperbound to the size of the FwdTrack table
+  mIndexTableFwd.resize(recoData.getMCHTracks().size());
 
   auto& trackReffwd = primVer2TRefs.back();
   fillIndexTablesPerCollision(trackReffwd, primVerGIs, recoData);
