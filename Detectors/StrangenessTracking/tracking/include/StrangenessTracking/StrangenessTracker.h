@@ -102,12 +102,11 @@ class StrangenessTracker
   bool loadData(gsl::span<const o2::its::TrackITS> InputITStracks, std::vector<ITSCluster>& InputITSclusters, gsl::span<const int> InputITSidxs, gsl::span<const V0> InputV0tracks, gsl::span<const Cascade> InputCascadeTracks, o2::its::GeometryTGeo* geomITS);
   double calcV0alpha(const V0& v0);
   std::vector<ITSCluster> getTrackClusters();
-  float getMatchingChi2(V0 v0, const TrackITS ITSTrack, ITSCluster matchingClus);
+  float getMatchingChi2(o2::track::TrackParCovF, const TrackITS ITSTrack, ITSCluster matchingClus);
   bool recreateV0(const o2::track::TrackParCov& posTrack, const o2::track::TrackParCov& negTrack, const GIndex posID, const GIndex negID, V0& newV0);
 
   bool updateTrack(const ITSCluster& clus, o2::track::TrackParCov& track);
-  bool updateTopology(std::array<unsigned int, 7>& nAttachments, std::vector<ITSCluster>& motherClusters, const std::vector<ITSCluster>& trackClusters, float decayRadius, bool isCascade);
-  bool refitTopology(o2::track::TrackParCovF& ITSmotherTrack);
+  bool matchDecayToITStrack(float decayR2, bool isCascade);
 
 
 
@@ -139,6 +138,7 @@ class StrangenessTracker
   o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE; // use mat correction
   o2::its::GeometryTGeo* mGeomITS;                                                                                       // ITS geometry
   StrangeTrack mStrangeTrack;
+  ClusAttachments mStructClus;
   o2::its::TrackITS mITStrack;
 
   ClassDefNV(StrangenessTracker, 1);

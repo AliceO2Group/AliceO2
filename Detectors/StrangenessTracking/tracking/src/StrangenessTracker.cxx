@@ -59,7 +59,7 @@ void StrangenessTracker::initialise()
 
 void StrangenessTracker::process()
 {
-
+  // Loop over V0s
   for (int iV0{0}; iV0 < mInputV0tracks.size(); iV0++) {
     LOG(info) << "Analysing V0: " << iV0 + 1 << "/" << mInputV0tracks.size();
     auto& DecIndexRef = iV0;
@@ -79,62 +79,71 @@ void StrangenessTracker::process()
     for (int& iBinV0 : iBinsV0) {
       LOG(info) << "iBinV0: " << iBinV0;
       for (int iTrack{mTracksIdxTable[iBinV0]}; iTrack < TMath::Min(mTracksIdxTable[iBinV0 + 1], int(mSortedITStracks.size())); iTrack++) {
-
         mITStrack = mSortedITStracks[iTrack];
         auto& ITSindexRef = mSortedITSindexes[iTrack];
-        auto trackClusters = getTrackClusters();
-        auto& lastClus = trackClusters[0];
-
         mStrangeTrack.mMother = (o2::track::TrackParCovF)correctedV0;
         mStrangeTrack.mDaughterFirst = alphaV0 > 0 ? correctedV0.getProng(0) : correctedV0.getProng(1);
         mStrangeTrack.mDaughterSecond = alphaV0 < 0 ? correctedV0.getProng(0) : correctedV0.getProng(1);
-        mStrangeTrack.mMatchChi2 = getMatchingChi2(correctedV0, mITStrack, lastClus);
+        if (matchDecayToITStrack(v0R2, false)) {
+          LOG(info) << "------------------------------------------------------";
+          LOG(info) << "------------------------------------------------------";
+          LOG(info) << "ITS Track matched with a V0 decay topology ....";
+          LOG(info) << "Number of ITS track clusters attached: " << mITStrack.getNumberOfClusters();
+          mStrangeTrackVec.push_back(mStrangeTrack);
+          mITStrackRefVec.push_back(ITSindexRef);
+          mDecayTrackRefVec.push_back(DecIndexRef);
+          mClusAttachments.push_back(mStructClus);
+        }
+      }
+    }
+  }
 
-        LOG(info) << "V0 pos: " << correctedV0.getProngID(0) << " V0 neg: " << correctedV0.getProngID(1) << " V0pt: " << correctedV0.getPt() << " ITSpt: " << mITStrack.getPt();
-        LOG(info) << "V0 eta: " << correctedV0.getEta() << " V0 phi: " << correctedV0.getPhi() << " ITS eta: " << mITStrack.getEta() << " ITS phi: " << mITStrack.getPhi();
+  // Loop over Cascades
+  for (int iCasc{0}; iCasc < mInputCascadeTracks.size(); iCasc++) {
+    LOG(info) << "Analysing Cascade: " << iCasc + 1 << "/" << mInputCascadeTracks.size();
+    auto& DecIndexRef = iCasc;
+    auto& casc = mInputCascadeTracks[iCasc];
 
-        std::vector<ITSCluster> motherClusters;
-        std::array<unsigned int, 7> nAttachments;
-
-        updateTopology(nAttachments, motherClusters, trackClusters, v0R2, false);
-
-        o2::track::TrackParCov motherTrackClone = mStrangeTrack.mMother; // clone and reset covariance
-        motherTrackClone.resetCovariance();
-
-        if (motherClusters.size() >= mMinMotherClus) { // fill only if at least mMinMotherClus clusters of the mother V0 have been attached
-          std::reverse(motherClusters.begin(), motherClusters.end());
-          for (auto& clus : motherClusters) {
-            if (!updateTrack(clus, motherTrackClone))
-              break;
-          }
-
-          // final 3body refit
-          if (refitTopology(motherTrackClone)) {
-            LOG(info) << "------------------------------------------------------";
-            LOG(info) << "Pushing back v0: " << v0.getProngID(0) << ", " << v0.getProngID(1);
-            LOG(info) << "Number of clusters attached: " << motherClusters.size();
-            LOG(info) << "Number of ITS track clusters: " << mITStrack.getNumberOfClusters();
-            LOG(info) << "Number of clusters attached to V0: " << nAttachments[0] << ", " << nAttachments[1] << ", " << nAttachments[2] << ", " << nAttachments[3] << ", " << nAttachments[4] << ", " << nAttachments[5] << ", " << nAttachments[6];
-            mStrangeTrackVec.push_back(mStrangeTrack);
-            mITStrackRefVec.push_back(ITSindexRef);
-            mDecayTrackRefVec.push_back(DecIndexRef);
-            ClusAttachments structClus;
-            structClus.arr = nAttachments;
-            mClusAttachments.push_back(structClus);
-          }
+    auto cascR2 = casc.calcR2();
+    auto iBinsCasc = mUtils.getBinRect(casc.getEta(), casc.getPhi(), 0.1, 0.1);
+    for (int& iBinCasc : iBinsCasc) {
+      // LOG(info) << "iBinCasc: " << iBinCasc;
+      for (int iTrack{mTracksIdxTable[iBinCasc]}; iTrack < TMath::Min(mTracksIdxTable[iBinCasc + 1], int(mSortedITStracks.size())); iTrack++) {
+        mITStrack = mSortedITStracks[iTrack];
+        auto& ITSindexRef = mSortedITSindexes[iTrack];
+        mStrangeTrack.mMother = (o2::track::TrackParCovF)casc;
+        mStrangeTrack.mDaughterFirst = casc.getV0Track();
+        mStrangeTrack.mBachelor = casc.getBachelorTrack();
+        if (matchDecayToITStrack(cascR2, true)) {
+          LOG(info) << "------------------------------------------------------";
+          LOG(info) << "ITS Track matched with a Cascade decay topology ....";
+          LOG(info) << "Number of ITS track clusters attached: " << mITStrack.getNumberOfClusters();
+          mStrangeTrackVec.push_back(mStrangeTrack);
+          mITStrackRefVec.push_back(ITSindexRef);
+          mDecayTrackRefVec.push_back(DecIndexRef);
+          mClusAttachments.push_back(mStructClus);
         }
       }
     }
   }
 }
 
-bool StrangenessTracker::updateTopology(std::array<unsigned int, 7>& nAttachments, std::vector<ITSCluster>& motherClusters, const std::vector<ITSCluster>& trackClusters, float decayRadius, bool isCascade)
+bool StrangenessTracker::matchDecayToITStrack(float decayR2, bool isCascade)
 {
+
+  auto trackClusters = getTrackClusters();
+  auto& lastClus = trackClusters[0];
+  mStrangeTrack.mMatchChi2 = getMatchingChi2(mStrangeTrack.mMother, mITStrack, lastClus);
+
+  std::vector<ITSCluster> motherClusters;
+  std::array<unsigned int, 7> nAttachments;
+
   int nUpdates = 0;
   bool isMotherUpdated = false;
 
   for (auto& clus : trackClusters) {
-    auto diffR2 = decayRadius - clus.getX() * clus.getX() - clus.getY() * clus.getY(); // difference between decay radius and Layer R2
+    auto diffR2 = decayR2 - clus.getX() * clus.getX() - clus.getY() * clus.getY(); // difference between decay radius and Layer R2
+    // Look for the Mother if the Decay radius allows for it, within a tolerance
     if (diffR2 > -mRadiusTol) {
       LOG(debug) << "Try to attach cluster to Mother, layer: " << mGeomITS->getLayer(clus.getSensorID());
       if (updateTrack(clus, mStrangeTrack.mMother)) {
@@ -172,8 +181,43 @@ bool StrangenessTracker::updateTopology(std::array<unsigned int, 7>& nAttachment
       nUpdates++;
     }
   }
-  if (nUpdates < trackClusters.size() || motherClusters.size() == 0)
+
+  if (nUpdates < trackClusters.size() || motherClusters.size() < mMinMotherClus)
     return false;
+
+  o2::track::TrackParCov motherTrackClone = mStrangeTrack.mMother; // clone and reset covariance for final topology refit
+  motherTrackClone.resetCovariance();
+
+  std::reverse(motherClusters.begin(), motherClusters.end());
+  for (auto& clus : motherClusters) {
+    if (!updateTrack(clus, motherTrackClone))
+      break;
+  }
+
+  // final Topology refit
+
+  int cand = 0; // best V0 candidate
+  int nCand;
+
+  try {
+    nCand = isCascade ? mFitter3Body.process(motherTrackClone, mStrangeTrack.mDaughterFirst, mStrangeTrack.mBachelor) : mFitter3Body.process(motherTrackClone, mStrangeTrack.mDaughterFirst, mStrangeTrack.mDaughterSecond);
+  } catch (std::runtime_error& e) {
+    return false;
+  }
+  if (!nCand)
+    return false;
+
+  mFitter3Body.propagateTracksToVertex();
+
+  mStrangeTrack.mDaughterFirst = mFitter3Body.getTrack(1, 0);
+  if (isCascade)
+    mStrangeTrack.mBachelor = mFitter3Body.getTrack(2, 0);
+  else
+    mStrangeTrack.mDaughterSecond = mFitter3Body.getTrack(2, 0);
+
+  mStrangeTrack.decayVtx = mFitter3Body.getPCACandidatePos();
+  mStrangeTrack.mTopoChi2 = mFitter3Body.getChi2AtPCACandidate();
+  mStructClus.arr = nAttachments;
 
   return true;
 }
@@ -244,30 +288,7 @@ std::vector<o2::strangeness_tracking::StrangenessTracker::ITSCluster> Strangenes
   return outVec;
 };
 
-bool StrangenessTracker::refitTopology(o2::track::TrackParCovF& ITSmotherTrack)
-{
-  int cand = 0; // best V0 candidate
-  int nCand;
-
-  try {
-    nCand = mFitter3Body.process(ITSmotherTrack, mStrangeTrack.mDaughterFirst, mStrangeTrack.mDaughterSecond);
-  } catch (std::runtime_error& e) {
-    return false;
-  }
-  if (!nCand)
-    return false;
-
-  mFitter3Body.propagateTracksToVertex();
-
-  mStrangeTrack.mDaughterFirst = mFitter3Body.getTrack(1, 0);
-  mStrangeTrack.mDaughterSecond = mFitter3Body.getTrack(2, 0);
-  mStrangeTrack.decayVtx = mFitter3Body.getPCACandidatePos();
-  mStrangeTrack.mTopoChi2 = mFitter3Body.getChi2AtPCACandidate();
-
-  return true;
-};
-
-float StrangenessTracker::getMatchingChi2(V0 v0, const TrackITS ITStrack, ITSCluster matchingClus)
+float StrangenessTracker::getMatchingChi2(o2::track::TrackParCovF v0, const TrackITS ITStrack, ITSCluster matchingClus)
 {
   float alpha = mGeomITS->getSensorRefAlpha(matchingClus.getSensorID()), x = matchingClus.getX();
   if (v0.rotate(alpha)) {
