@@ -69,19 +69,23 @@ void WaveformCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
   pc.inputs().get<o2::zdc::WaveformCalibConfig*>("wavecalibconfig");
 }
 
-void WaveformCalibSpec::run(ProcessingContext& pc)
+void WaveformCalibSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
-  updateTimeDependentParams(pc);
-  if (!mInitialized) {
-    mInitialized = true;
-    std::string loadedConfFiles = "Loaded ZDC configuration files:";
-    auto config = pc.inputs().get<o2::zdc::WaveformCalibConfig*>("wavecalibconfig");
-    loadedConfFiles += " WaveformCalibConfig";
+  if (matcher == ConcreteDataMatcher("ZDC", "WAVECALIBCONFIG", 0)) {
+    // InterCalib configuration
+    auto* config = (const o2::zdc::WaveformCalibConfig*)obj;
     if (mVerbosity > DbgZero) {
       config->print();
     }
-    mWorker.setConfig(config.get());
-    LOG(info) << loadedConfFiles;
+    mWorker.setConfig(config);
+  }
+}
+
+void WaveformCalibSpec::run(ProcessingContext& pc)
+{
+  if (!mInitialized) {
+    mInitialized = true;
+    updateTimeDependentParams(pc);
     mTimer.Stop();
     mTimer.Reset();
     mTimer.Start(false);

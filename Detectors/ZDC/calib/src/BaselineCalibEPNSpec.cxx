@@ -71,7 +71,11 @@ void BaselineCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
 void BaselineCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
   if (matcher == ConcreteDataMatcher("ZDC", "MODULECONFIG", 0)) {
-    mWorker.setModuleConfig((const o2::zdc::ModuleConfig*)obj);
+    auto* config = (const o2::zdc::ModuleConfig*)obj;
+    if (mVerbosity > DbgZero) {
+      config->print();
+    }
+    mWorker.setModuleConfig(config);
   }
 }
 
@@ -80,7 +84,6 @@ void BaselineCalibEPNSpec::run(ProcessingContext& pc)
   if (!mInitialized) {
     mInitialized = true;
     updateTimeDependentParams(pc);
-    std::string loadedConfFiles = "Loaded ZDC configuration files:";
     mTimer.Stop();
     mTimer.Reset();
     mTimer.Start(false);

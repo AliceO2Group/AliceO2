@@ -43,6 +43,7 @@ class WaveformCalibSpec : public o2::framework::Task
   ~WaveformCalibSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
   void sendOutput(o2::framework::DataAllocator& output);
