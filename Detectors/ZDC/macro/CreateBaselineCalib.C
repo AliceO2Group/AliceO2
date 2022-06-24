@@ -14,7 +14,6 @@
 #include "Framework/Logger.h"
 #include "CCDB/CcdbApi.h"
 #include "ZDCBase/Constants.h"
-#include "ZDCBase/Helpers.h"
 #include "ZDCReconstruction/BaselineParam.h"
 #include <string>
 #include <TFile.h>
@@ -23,6 +22,8 @@
 #include <map>
 
 #endif
+
+#include "ZDCBase/Helpers.h"
 
 using namespace std;
 
