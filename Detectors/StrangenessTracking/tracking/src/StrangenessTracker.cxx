@@ -28,7 +28,7 @@ bool StrangenessTracker::loadData(gsl::span<const o2::its::TrackITS> InputITStra
   mInputITSidxs = InputITSidxs;
   LOG(info) << "all tracks loaded";
   LOG(info) << "V0 tracks size: " << mInputV0tracks.size();
-  LOG(info) << "V0 tracks size: " << mInputCascadeTracks.size();
+  LOG(info) << "Cascade tracks size: " << mInputCascadeTracks.size();
   LOG(info) << "ITS tracks size: " << mInputITStracks.size();
   LOG(info) << "ITS clusters size: " << mInputITSclusters.size();
   LOG(info) << "ITS idxs size: " << mInputITSidxs.size();
@@ -60,10 +60,10 @@ void StrangenessTracker::initialise()
 void StrangenessTracker::process()
 {
 
-  int counter = 0;
-  for (auto& v0 : mInputV0tracks) {
-    counter++;
-    LOG(debug) << "Analysing V0: " << counter << "/" << mInputV0tracks.size();
+  for (int iV0{0}; iV0 < mInputV0tracks.size(); iV0++) {
+    LOG(info) << "Analysing V0: " << iV0 + 1 << "/" << mInputV0tracks.size();
+    auto& DecIndexRef = iV0;
+    auto& v0 = mInputV0tracks[iV0];
 
     auto posTrack = v0.getProng(0);
     auto negTrack = v0.getProng(1);
@@ -77,8 +77,11 @@ void StrangenessTracker::process()
     auto v0R2 = v0.calcR2();
     auto iBinsV0 = mUtils.getBinRect(correctedV0.getEta(), correctedV0.getPhi(), 0.1, 0.1);
     for (int& iBinV0 : iBinsV0) {
-      LOG(debug) << "iBinV0: " << iBinV0;
+      LOG(info) << "iBinV0: " << iBinV0;
       for (int iTrack{mTracksIdxTable[iBinV0]}; iTrack < TMath::Min(mTracksIdxTable[iBinV0 + 1], int(mSortedITStracks.size())); iTrack++) {
+
+        mITStrack = mSortedITStracks[iTrack];
+        auto& ITSindexRef = mSortedITSindexes[iTrack];
         auto trackClusters = getTrackClusters();
         auto& lastClus = trackClusters[0];
 
@@ -87,11 +90,8 @@ void StrangenessTracker::process()
         mStrangeTrack.mDaughterSecond = alphaV0 < 0 ? correctedV0.getProng(0) : correctedV0.getProng(1);
         mStrangeTrack.mMatchChi2 = getMatchingChi2(correctedV0, mITStrack, lastClus);
 
-        mITStrack = mSortedITStracks[iTrack];
-        auto& ITSindexRef = mSortedITSindexes[iTrack];
-
-        LOG(debug) << "V0 pos: " << correctedV0.getProngID(0) << " V0 neg: " << correctedV0.getProngID(1) << " V0pt: " << correctedV0.getPt() << " ITSpt: " << mITStrack.getPt();
-        LOG(debug) << "V0 eta: " << correctedV0.getEta() << " V0 phi: " << correctedV0.getPhi() << " ITS eta: " << mITStrack.getEta() << " ITS phi: " << mITStrack.getPhi();
+        LOG(info) << "V0 pos: " << correctedV0.getProngID(0) << " V0 neg: " << correctedV0.getProngID(1) << " V0pt: " << correctedV0.getPt() << " ITSpt: " << mITStrack.getPt();
+        LOG(info) << "V0 eta: " << correctedV0.getEta() << " V0 phi: " << correctedV0.getPhi() << " ITS eta: " << mITStrack.getEta() << " ITS phi: " << mITStrack.getPhi();
 
         std::vector<ITSCluster> motherClusters;
         std::array<unsigned int, 7> nAttachments;
@@ -110,16 +110,14 @@ void StrangenessTracker::process()
 
           // final 3body refit
           if (refitTopology(motherTrackClone)) {
-            LOG(debug) << "------------------------------------------------------";
-            LOG(debug) << "Pushing back v0: " << v0.getProngID(0) << ", " << v0.getProngID(1);
-            LOG(debug) << "number of clusters attached: " << motherClusters.size();
-            LOG(debug) << "Number of ITS track clusters: " << mITStrack.getNumberOfClusters();
-            LOG(debug) << "number of clusters attached to V0: " << nAttachments[0] << ", " << nAttachments[1] << ", " << nAttachments[2] << ", " << nAttachments[3] << ", " << nAttachments[4] << ", " << nAttachments[5] << ", " << nAttachments[6];
-            auto& lastClus = trackClusters[0];
-            LOG(debug) << "Matching chi2: " << getMatchingChi2(correctedV0, mITStrack, lastClus);
-
+            LOG(info) << "------------------------------------------------------";
+            LOG(info) << "Pushing back v0: " << v0.getProngID(0) << ", " << v0.getProngID(1);
+            LOG(info) << "Number of clusters attached: " << motherClusters.size();
+            LOG(info) << "Number of ITS track clusters: " << mITStrack.getNumberOfClusters();
+            LOG(info) << "Number of clusters attached to V0: " << nAttachments[0] << ", " << nAttachments[1] << ", " << nAttachments[2] << ", " << nAttachments[3] << ", " << nAttachments[4] << ", " << nAttachments[5] << ", " << nAttachments[6];
             mStrangeTrackVec.push_back(mStrangeTrack);
             mITStrackRefVec.push_back(ITSindexRef);
+            mDecayTrackRefVec.push_back(DecIndexRef);
             ClusAttachments structClus;
             structClus.arr = nAttachments;
             mClusAttachments.push_back(structClus);

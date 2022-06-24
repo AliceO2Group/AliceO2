@@ -12,7 +12,6 @@
 o2_add_library(StrangenessTracking
                SOURCES src/StrangenessTracker.cxx
                        src/StrangenessTrackingConfigParam.cxx
-                       src/IndexTableUtils.cxx
                PUBLIC_LINK_LIBRARIES O2::MathUtils
                                              O2::ITSBase
                                              O2::ITSMFTReconstruction

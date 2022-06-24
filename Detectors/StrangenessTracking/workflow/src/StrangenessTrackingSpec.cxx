@@ -171,7 +171,7 @@ void StrangenessTrackerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
 
 void StrangenessTrackerSpec::endOfStream(framework::EndOfStreamContext& ec)
 {
-  LOGF(info, "Hypertracker total timing: Cpu: %.3e Real: %.3e s in %d slots",
+  LOGF(info, "Strangeness tracking total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 

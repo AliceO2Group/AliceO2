@@ -19,7 +19,7 @@
 #include <gsl/gsl>
 #include <TLorentzVector.h>
 #include "TMath.h"
-#include "IndexTableUtils.h"
+#include "StrangenessTracking/IndexTableUtils.h"
 
 #include "ReconstructionDataFormats/PID.h"
 #include "ReconstructionDataFormats/V0.h"
@@ -121,7 +121,7 @@ class StrangenessTracker
 
   std::vector<o2::its::TrackITS> mSortedITStracks; // sorted ITS tracks
   std::vector<int> mSortedITSindexes;              // indexes of sorted ITS tracks
-  indexTableUtils mUtils;                          // structure for computing eta/phi matching selections
+  IndexTableUtils mUtils;                          // structure for computing eta/phi matching selections
 
   std::vector<StrangeTrack> mStrangeTrackVec;    // structure containing updated mother and daughter tracks
   std::vector<ClusAttachments> mClusAttachments; // # of attached tracks, 1 for mother, 2 for daughter

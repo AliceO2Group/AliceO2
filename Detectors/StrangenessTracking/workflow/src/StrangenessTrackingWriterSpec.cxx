@@ -40,7 +40,7 @@ DataProcessorSpec getStrangenessTrackingWriterSpec()
   };
 
   auto loggerT = [](std::vector<o2::track::TrackParCov> const& v) {
-    LOG(info) << "Hypertracker writer pulled " << v.size() << " tracks";
+    LOG(info) << "Strangeness tracker writer pulled " << v.size() << " tracks";
   };
 
   auto inpStTrkID = InputSpec{"strangetracks", "STK", "STRTRACKS", 0};
