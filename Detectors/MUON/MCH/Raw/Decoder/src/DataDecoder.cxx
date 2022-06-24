@@ -250,7 +250,7 @@ DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandl
 void DataDecoder::logErrorMap(int tfcount) const
 {
   for (auto err : mErrorMap) {
-    LOGP(alarm, "{} ({} time{}) [{} TFs seen]", err.first, err.second,
+    LOGP(warning, "{} ({} time{}) [{} TFs seen]", err.first, err.second,
          err.second > 1 ? "s" : "", tfcount);
   }
 }
