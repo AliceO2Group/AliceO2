@@ -18,7 +18,8 @@
 #include "ZDCReconstruction/ZDCTowerParam.h"
 #include "ZDCSimulation/SimCondition.h"
 
-void InspectCCDBFile() {
+void InspectCCDBFile() 
+{
   TString dn = gDirectory->GetName();
   auto p_und = dn.First('_');
   auto p_dot = dn.Last('.');
@@ -32,7 +33,7 @@ void InspectCCDBFile() {
     }
   }
   TIter nextkey(gDirectory->GetListOfKeys());
-  TKey *key;
+  TKey* key;
   while ((key = (TKey *)nextkey())) {
     // clang-format off
     TString cn = key->GetClassName();
