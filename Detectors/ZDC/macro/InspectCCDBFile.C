@@ -36,7 +36,14 @@ void InspectCCDBFile()
   TKey* key;
   while ((key = (TKey*)nextkey())) {
     TString cn = key->GetClassName();
-    if (cn.EqualTo("o2::zdc::ModuleConfig")) {
+    if (cn.EqualTo("vector<Long64_t>")) {
+      vector<Long64_t>* ob = (vector<Long64_t>*)key->ReadObj();
+      printf("%s %s %d %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle());
+      for (auto val : *ob){
+        printf("%lld\n", val);
+      }
+      //ob->print();
+    } else if (cn.EqualTo("o2::zdc::ModuleConfig")) {
       o2::zdc::ModuleConfig* ob = (o2::zdc::ModuleConfig*)key->ReadObj();
       printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathConfigModule.data());
       ob->print();
