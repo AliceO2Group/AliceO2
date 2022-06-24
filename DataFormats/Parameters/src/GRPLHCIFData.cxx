@@ -36,16 +36,12 @@ void GRPLHCIFData::setBeamAZ(beamDirection beam)
   // set both A and Z of the beam in direction 'beam'
   if (beam == beamDirection::BeamC) {
     auto atomicNum = mZtoA.find(getAtomicNumberB1());
-    if (atomicNum == mZtoA.end()) {
-      LOG(fatal) << "We don't know the Mass Number for Z = " << getAtomicNumberB1();
-    } else {
+    if (atomicNum != mZtoA.end()) {
       mBeamAZ[static_cast<int>(beam)] = (atomicNum->second << 16) + getAtomicNumberB1();
     }
   } else {
     auto atomicNum = mZtoA.find(getAtomicNumberB2());
-    if (atomicNum == mZtoA.end()) {
-      LOG(fatal) << "We don't know the Mass Number for Z = " << getAtomicNumberB2();
-    } else {
+    if (atomicNum != mZtoA.end()) {
       mBeamAZ[static_cast<int>(beam)] = (atomicNum->second << 16) + getAtomicNumberB2();
     }
   }
