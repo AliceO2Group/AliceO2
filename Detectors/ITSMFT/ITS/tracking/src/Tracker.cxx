@@ -73,7 +73,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
   std::stringstream sstream;
   if (constants::DoTimeBenchmarks) {
     sstream << std::setw(2) << " - "
-            << "Timeframe " << mTimeFrameCounter++ << " processing completed in: " << total << "ms" << std::endl;
+            << "Timeframe " << mTimeFrameCounter++ << " processing completed in: " << total << "ms";
   }
   logger(sstream.str());
 
@@ -100,7 +100,7 @@ void Tracker::clustersToTracksGPU(std::function<void(std::string s)> logger)
   std::stringstream sstream;
   if (constants::DoTimeBenchmarks) {
     sstream << std::setw(2) << " - "
-            << "Timeframe " << mTimeFrameCounter++ << " GPU processing completed in: " << total << "ms" << std::endl;
+            << "Timeframe " << mTimeFrameCounter++ << " GPU processing completed in: " << total << "ms";
   }
   logger(sstream.str());
 
