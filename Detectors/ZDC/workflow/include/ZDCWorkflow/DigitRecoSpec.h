@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// @file   DigitRecoSpec.h
-/// @brief  Convert ZDC data to CTF (EncodedBlocks)
+/// @brief  Run ZDC digits reconstruction
 /// @author pietro.cortese@cern.ch
 
 #ifndef O2_ZDC_DIGITRECO_SPEC
