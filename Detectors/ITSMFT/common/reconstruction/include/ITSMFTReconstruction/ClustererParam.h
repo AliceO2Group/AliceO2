@@ -27,7 +27,7 @@ namespace itsmft
 {
 template <int N>
 struct ClustererParam : public o2::conf::ConfigurableParamHelper<ClustererParam<N>> {
-  static_assert(N == o2::detectors::DetID::ITS || N == o2::detectors::DetID::MFT, "only DetID::ITS orDetID:: MFT are allowed");
+  static_assert(N == o2::detectors::DetID::ITS || N == o2::detectors::DetID::MFT, "only DetID::ITS or DetID:: MFT are allowed");
 
   static constexpr std::string_view getParamName()
   {
@@ -43,7 +43,7 @@ struct ClustererParam : public o2::conf::ConfigurableParamHelper<ClustererParam<
   static constexpr int DEFRowColDiffToMask()
   {
     // default neighbourhood definition
-    return N == o2::detectors::DetID::ITS ? 1 : 0; // ITS will suppress also closest neigbours, MFT only same pixel
+    return N == o2::detectors::DetID::ITS ? 1 : 1; // ITS and MFT will suppress also closest neigbours
   }
   static constexpr std::string_view ParamName[2] = {"ITSClustererParam", "MFTClustererParam"};
 };
