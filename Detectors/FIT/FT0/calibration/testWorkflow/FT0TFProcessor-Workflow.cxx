@@ -38,10 +38,9 @@ class FT0TFProcessor final : public o2::framework::Task
     calib_data.reserve(channels.size());
     int nDig = digits.size();
     LOG(debug) << " nDig " << nDig;
-    for (int id = 0; id < nDig; id++) {
-      const auto& digit = digits[id];
-      //     auto chan = digit.getBunchChannelData(channels);
-      for (const auto& channel : channels) {
+    for (const auto& digit : digits) {
+      const auto& chan = digit.getBunchChannelData(channels);
+      for (const auto& channel : chan) {
         if (channel.QTCAmpl > 14 && std::abs(channel.CFDTime) < 100) {
           calib_data.emplace_back(channel.ChId, channel.CFDTime, channel.QTCAmpl, uint64_t(creationTime));
         }
