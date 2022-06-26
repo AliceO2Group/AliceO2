@@ -96,7 +96,7 @@ class MatLayerCyl : public o2::gpu::FlatObject
   GPUd() int getZBinID(float z) const
   {
     int idz = int((z - getZMin()) * getDZInv()); // cannot be negative since before isZOutside is applied
-    return idz < getNZBins() ? idz : getNZBins();
+    return idz < getNZBins() ? idz : getNZBins() - 1;
   }
 
   // lower boundary of Z slice
