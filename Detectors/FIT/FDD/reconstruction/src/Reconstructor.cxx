@@ -26,16 +26,17 @@ o2::fdd::RecPoint Reconstructor::process(o2::fdd::Digit const& digitBC,
                                          gsl::span<const o2::fdd::ChannelData> inChData,
                                          gsl::span<o2::fdd::ChannelDataFloat> outChData)
 {
-  //Compute charge weighted average time
+  // Compute charge weighted average time
   Double_t timeFDA = 0, timeFDC = 0;
   Double_t weightFDA = 0.0, weightFDC = 0.0;
 
   int nch = inChData.size();
   for (int ich = 0; ich < nch; ich++) {
     outChData[ich] = o2::fdd::ChannelDataFloat{inChData[ich].mPMNumber,
-                                               (inChData[ich].mTime) * TimePerTDC,
+                                               (inChData[ich].mTime) * timePerTDC,
                                                (double)inChData[ich].mChargeADC,
-                                               0}; // Fill with ADC number once implemented
+                                               inChData[ich].mFEEBits};
+
     Float_t adc = outChData[ich].mChargeADC;
     Float_t time = outChData[ich].mTime;
     if (time == o2::InteractionRecord::DummyTime) {
@@ -58,7 +59,6 @@ o2::fdd::RecPoint Reconstructor::process(o2::fdd::Digit const& digitBC,
 
   mCollisionTime[o2::fdd::RecPoint::TimeA] = (weightFDA > 1) ? round(timeFDA / weightFDA * nsToPs) : o2::fdd::RecPoint::sDummyCollissionTime;
   mCollisionTime[o2::fdd::RecPoint::TimeC] = (weightFDC > 1) ? round(timeFDC / weightFDC * nsToPs) : o2::fdd::RecPoint::sDummyCollissionTime;
-
   return RecPoint{mCollisionTime, digitBC.ref.getFirstEntry(), digitBC.ref.getEntries(), digitBC.getIntRecord(), digitBC.mTriggers};
 }
 //________________________________________________________

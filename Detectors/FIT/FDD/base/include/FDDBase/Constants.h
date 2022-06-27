@@ -29,14 +29,15 @@ constexpr short Ntriggers = 5;
 constexpr float IntTimeRes = 0.4;
 constexpr float PhotoCathodeEfficiency = 0.18;
 constexpr float ChargePerADC = 0.6e-12;
-constexpr float TimePerTDC = 1. / 0.01302; // time conversion from ns to TDC channels
-constexpr float PMTransitTime = 6.0;       // PM response time (corresponds to 1.9 ns rise time)
-constexpr float PMTransparency = 0.25;     // Transparency of the first dynode of the PM
-constexpr float PMNbOfSecElec = 6.0;       // Number of secondary electrons emitted from first dynode (per ph.e.)
+constexpr float invTimePerTDC = 1. / 0.01302; // time conversion from ns to TDC channels
+constexpr float timePerTDC = 0.01302;         // time conversion from TDC channels to ns
+constexpr float PMTransitTime = 6.0;          // PM response time (corresponds to 1.9 ns rise time)
+constexpr float PMTransparency = 0.25;        // Transparency of the first dynode of the PM
+constexpr float PMNbOfSecElec = 6.0;          // Number of secondary electrons emitted from first dynode (per ph.e.)
 
 constexpr int NTimeBinsPerBC = 256; // number of samples per BC
 
-//Detector TOF correction in ns
+// Detector TOF correction in ns
 constexpr float FDAdist = 1696.67;
 constexpr float FDCdist = 1954.4;
 constexpr float LayerWidth = 1.27;
