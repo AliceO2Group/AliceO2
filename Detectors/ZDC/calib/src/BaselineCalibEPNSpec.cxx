@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   WaveformCalibEPNSpec.cxx
-/// @brief  ZDC waveform calibration
+/// @file   BaselineCalibEPNSpec.cxx
+/// @brief  ZDC baseline calibration
 /// @author pietro.cortese@cern.ch
 
 #include <iostream>
@@ -34,8 +34,8 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
-#include "ZDCCalib/WaveformCalibData.h"
-#include "ZDCCalib/WaveformCalibEPNSpec.h"
+#include "ZDCCalib/BaselineCalibData.h"
+#include "ZDCCalib/BaselineCalibEPNSpec.h"
 
 using namespace o2::framework;
 
@@ -44,43 +44,42 @@ namespace o2
 namespace zdc
 {
 
-WaveformCalibEPNSpec::WaveformCalibEPNSpec()
+BaselineCalibEPNSpec::BaselineCalibEPNSpec()
 {
   mTimer.Stop();
   mTimer.Reset();
 }
 
-WaveformCalibEPNSpec::WaveformCalibEPNSpec(const int verbosity) : mVerbosity(verbosity)
+BaselineCalibEPNSpec::BaselineCalibEPNSpec(const int verbosity) : mVerbosity(verbosity)
 {
   mTimer.Stop();
   mTimer.Reset();
 }
 
-void WaveformCalibEPNSpec::init(o2::framework::InitContext& ic)
+void BaselineCalibEPNSpec::init(o2::framework::InitContext& ic)
 {
   mVerbosity = ic.options().get<int>("verbosity-level");
   mWorker.setVerbosity(mVerbosity);
 }
 
-void WaveformCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
+void BaselineCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   // we call these methods just to trigger finaliseCCDB callback
-  pc.inputs().get<o2::zdc::WaveformCalibConfig*>("wavecalibconfig");
+  pc.inputs().get<o2::zdc::ModuleConfig*>("moduleconfig");
 }
 
-void WaveformCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+void BaselineCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
-  if (matcher == ConcreteDataMatcher("ZDC", "WAVECALIBCONFIG", 0)) {
-    // InterCalib configuration
-    auto* config = (const o2::zdc::WaveformCalibConfig*)obj;
+  if (matcher == ConcreteDataMatcher("ZDC", "MODULECONFIG", 0)) {
+    auto* config = (const o2::zdc::ModuleConfig*)obj;
     if (mVerbosity > DbgZero) {
       config->print();
     }
-    mWorker.setConfig(config);
+    mWorker.setModuleConfig(config);
   }
 }
 
-void WaveformCalibEPNSpec::run(ProcessingContext& pc)
+void BaselineCalibEPNSpec::run(ProcessingContext& pc)
 {
   if (!mInitialized) {
     mInitialized = true;
@@ -92,45 +91,38 @@ void WaveformCalibEPNSpec::run(ProcessingContext& pc)
 
   const auto ref = pc.inputs().getFirstValid(true);
   auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
-  WaveformCalibData& data = mWorker.getData();
+  BaselineCalibData& data = mWorker.getData();
   data.setCreationTime(creationTime);
 
-  auto bcrec = pc.inputs().get<gsl::span<o2::zdc::BCRecData>>("bcrec");
-  auto energy = pc.inputs().get<gsl::span<o2::zdc::ZDCEnergy>>("energy");
-  auto tdc = pc.inputs().get<gsl::span<o2::zdc::ZDCTDCData>>("tdc");
-  auto info = pc.inputs().get<gsl::span<uint16_t>>("info");
-  auto wave = pc.inputs().get<gsl::span<o2::zdc::ZDCWaveform>>("wave");
+  auto peds = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("peds");
 
   // Process reconstructed data
-  mWorker.process(bcrec, energy, tdc, info, wave);
+  mWorker.process(peds);
 
   // Send intermediate calibration data
-  o2::framework::Output output("ZDC", "WAVECALIBDATA", 0, Lifetime::Timeframe);
-  pc.outputs().snapshot(output, mWorker.mData);
+  auto& summary = mWorker.mData.getSummary();
+  o2::framework::Output outputData("ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);
+  pc.outputs().snapshot(outputData, summary);
 }
 
-void WaveformCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
+void BaselineCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
 {
   mWorker.endOfRun();
   mTimer.Stop();
-  LOGF(info, "ZDC EPN Waveform calibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  LOGF(info, "ZDC EPN Baseline calibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-framework::DataProcessorSpec getWaveformCalibEPNSpec()
+framework::DataProcessorSpec getBaselineCalibEPNSpec()
 {
-  using device = o2::zdc::WaveformCalibEPNSpec;
+  using device = o2::zdc::BaselineCalibEPNSpec;
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("bcrec", "ZDC", "BCREC", 0, Lifetime::Timeframe);
-  inputs.emplace_back("energy", "ZDC", "ENERGY", 0, Lifetime::Timeframe);
-  inputs.emplace_back("tdc", "ZDC", "TDCDATA", 0, Lifetime::Timeframe);
-  inputs.emplace_back("info", "ZDC", "INFO", 0, Lifetime::Timeframe);
-  inputs.emplace_back("wave", "ZDC", "WAVE", 0, Lifetime::Timeframe);
-  inputs.emplace_back("wavecalibconfig", "ZDC", "WAVECALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathWaveformCalibConfig.data()));
+  inputs.emplace_back("peds", "ZDC", "DIGITSPD", 0, Lifetime::Timeframe);
+  inputs.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathConfigModule.data()));
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("ZDC", "WAVECALIBDATA", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
-    "zdc-waveformcalib-epn",
+    "zdc-calib-baseline-epn",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},

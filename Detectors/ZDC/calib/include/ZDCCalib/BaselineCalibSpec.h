@@ -10,23 +10,22 @@
 // or submit itself to any jurisdiction.
 
 /// @file   InterCalibSpec.h
-/// @brief  ZDC intercalibration
+/// @brief  ZDC baseline calibration
 /// @author pietro.cortese@cern.ch
 
-#ifndef O2_ZDC_INTERCALIB_SPEC
-#define O2_ZDC_INTERCALIB_SPEC
+#ifndef O2_ZDC_BASELINECALIB_SPEC
+#define O2_ZDC_BASELINECALIB_SPEC
 
 #include <TStopwatch.h>
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataAllocator.h"
+#include "Framework/DataSpecUtils.h"
 #include "Framework/Task.h"
-#include "CommonDataFormat/FlatHisto1D.h"
-#include "CommonDataFormat/FlatHisto2D.h"
 #include "CommonUtils/NameConf.h"
-#include "ZDCCalib/InterCalibData.h"
-#include "ZDCCalib/InterCalib.h"
-#include "ZDCCalib/InterCalibConfig.h"
+#include "ZDCCalib/BaselineCalib.h"
+#include "ZDCCalib/BaselineCalibConfig.h"
+#include "ZDCReconstruction/BaselineParam.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CCDB/CcdbObjectInfo.h"
 
@@ -35,12 +34,12 @@ namespace o2
 namespace zdc
 {
 
-class InterCalibSpec : public o2::framework::Task
+class BaselineCalibSpec : public o2::framework::Task
 {
  public:
-  InterCalibSpec();
-  InterCalibSpec(const int verbosity);
-  ~InterCalibSpec() override = default;
+  BaselineCalibSpec();
+  BaselineCalibSpec(const int verbosity);
+  ~BaselineCalibSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
@@ -51,11 +50,11 @@ class InterCalibSpec : public o2::framework::Task
  private:
   int mVerbosity = DbgMinimal; // Verbosity level
   bool mInitialized = false;   // Connect once to CCDB during initialization
-  InterCalib mWorker;          // Intercalibration object
+  BaselineCalib mWorker;       // Baseline calibration object
   TStopwatch mTimer;
 };
 
-framework::DataProcessorSpec getInterCalibSpec();
+framework::DataProcessorSpec getBaselineCalibSpec();
 
 } // namespace zdc
 } // namespace o2

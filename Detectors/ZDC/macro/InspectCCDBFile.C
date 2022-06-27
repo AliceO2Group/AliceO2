@@ -1,21 +1,24 @@
+#include "TDirectory.h"
+#include "TFile.h"
+#include "TKey.h"
 #include "TObject.h"
 #include "TString.h"
 #include "TSystem.h"
-#include "TKey.h"
-#include "TFile.h"
-#include "TDirectory.h"
-#include "ZDCBase/ModuleConfig.h"
 #include "ZDCBase/Constants.h"
-#include "ZDCSimulation/SimCondition.h"
-#include "ZDCReconstruction/RecoConfigZDC.h"
-#include "ZDCReconstruction/ZDCTDCCorr.h"
-#include "ZDCReconstruction/ZDCTDCParam.h"
-#include "ZDCReconstruction/ZDCEnergyParam.h"
-#include "ZDCReconstruction/ZDCTowerParam.h"
+#include "ZDCBase/ModuleConfig.h"
+#include "ZDCCalib/BaselineCalibConfig.h"
 #include "ZDCCalib/InterCalibConfig.h"
 #include "ZDCCalib/WaveformCalibConfig.h"
 #include "ZDCCalib/WaveformCalibParam.h"
+#include "ZDCReconstruction/BaselineParam.h"
+#include "ZDCReconstruction/RecoConfigZDC.h"
+#include "ZDCReconstruction/ZDCEnergyParam.h"
+#include "ZDCReconstruction/ZDCTDCCorr.h"
+#include "ZDCReconstruction/ZDCTDCParam.h"
+#include "ZDCReconstruction/ZDCTowerParam.h"
+#include "ZDCSimulation/SimCondition.h"
 
+// clang-format off
 void InspectCCDBFile()
 {
   TString dn = gDirectory->GetName();
@@ -32,9 +35,16 @@ void InspectCCDBFile()
   }
   TIter nextkey(gDirectory->GetListOfKeys());
   TKey* key;
-  while ((key = (TKey*)nextkey())) {
+  while ((key = (TKey *)nextkey())) {
     TString cn = key->GetClassName();
-    if (cn.EqualTo("o2::zdc::ModuleConfig")) {
+    if (cn.EqualTo("vector<Long64_t>")) {
+      vector<Long64_t>* ob = (vector<Long64_t>*)key->ReadObj();
+      printf("%s %s %d %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle());
+      for (auto val : *ob){
+        printf("%lld\n", val);
+      }
+      //ob->print();
+    } else if (cn.EqualTo("o2::zdc::ModuleConfig")) {
       o2::zdc::ModuleConfig* ob = (o2::zdc::ModuleConfig*)key->ReadObj();
       printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathConfigModule.data());
       ob->print();
@@ -67,6 +77,14 @@ void InspectCCDBFile()
       o2::zdc::InterCalibConfig* ob = (o2::zdc::InterCalibConfig*)key->ReadObj();
       printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathInterCalibConfig.data());
       ob->print();
+    } else if (cn.EqualTo("o2::zdc::BaselineCalibConfig")) {
+      o2::zdc::BaselineCalibConfig* ob = (o2::zdc::BaselineCalibConfig*)key->ReadObj();
+      printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathBaselineCalibConfig.data());
+      ob->print();
+    } else if (cn.EqualTo("o2::zdc::BaselineParam")) {
+      o2::zdc::BaselineParam* ob = (o2::zdc::BaselineParam*)key->ReadObj();
+      printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathBaselineCalib.data());
+      ob->print();
     } else if (cn.EqualTo("o2::zdc::WaveformCalibConfig")) {
       o2::zdc::WaveformCalibConfig* ob = (o2::zdc::WaveformCalibConfig*)key->ReadObj();
       printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathWaveformCalibConfig.data());
@@ -81,7 +99,6 @@ void InspectCCDBFile()
       printf("%s %s %d %s\n", key->GetClassName(), key->GetName(), key->GetCycle(), key->GetTitle());
     }
   }
-
   //   TObject *ob = (TObject*)gDirectory->Get("ccdb_object");
   //   if(ob == nullptr){
   //     printf("Object not found\n");
@@ -89,3 +106,4 @@ void InspectCCDBFile()
   //   }
   //   printf("%s %d\n", ob->Class_Name(), ob->Class_Version());
 }
+// clang-format on

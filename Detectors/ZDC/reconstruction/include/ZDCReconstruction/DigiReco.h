@@ -22,6 +22,7 @@
 #include "ZDCReconstruction/ZDCTDCCorr.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
+#include "ZDCReconstruction/BaselineParam.h"
 #include "ZDCReconstruction/RecoConfigZDC.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -109,6 +110,8 @@ class DigiReco
   const ZDCEnergyParam* getEnergyParam() { return mEnergyParam; };
   void setTowerParam(const ZDCTowerParam* param) { mTowerParam = param; };
   const ZDCTowerParam* getTowerParam() { return mTowerParam; };
+  void setBaselineParam(const BaselineParam* param) { mPedParam = param; };
+  const BaselineParam* getBaselineParam() { return mPedParam; };
   void setRecoConfigZDC(const RecoConfigZDC* cfg) { mRecoConfigZDC = cfg; };
   const RecoConfigZDC* getRecoConfigZDC() { return mRecoConfigZDC; };
   // Enable or disable low pass filtering
@@ -182,6 +185,7 @@ class DigiReco
   const ZDCTDCCorr* mTDCCorr = nullptr;          /// TDC correction coefficients
   const ZDCEnergyParam* mEnergyParam = nullptr;  /// Energy calibration object
   const ZDCTowerParam* mTowerParam = nullptr;    /// Tower calibration object
+  const BaselineParam* mPedParam = nullptr;      /// Tower calibration object
   uint32_t mTriggerMask = 0;                     /// Mask of triggering channels
   uint32_t mTDCMask[NTDCChannels] = {0};         /// Identify TDC channels in trigger pattern
   uint32_t mChMask[NChannels] = {0};             /// Identify all channels in readout pattern

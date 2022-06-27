@@ -9,19 +9,35 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ZDC_RECOWORKFLOW_H
-#define O2_ZDC_RECOWORKFLOW_H
+#ifndef ZDC_BASELINECALIB_PARAM_H
+#define ZDC_BASELINECALIB_PARAM_H
 
-/// @file   RecoWorkflow.h
+#include "ZDCBase/Constants.h"
+#include <Rtypes.h>
+#include <vector>
 
-#include "Framework/WorkflowSpec.h"
+/// \file BaselineParam.h
+/// \brief Baseline calibration data
+/// \author pietro.cortese@cern.ch
 
 namespace o2
 {
 namespace zdc
 {
-framework::WorkflowSpec getRecoWorkflow(const bool useMC, const bool disableRootInp, const bool disableRootOut, const int verbosity, const bool enableDebugOut,
-                                        const bool enableZDCTDCCorr, const bool enableZDCEnergyParam, const bool enableZDCTowerParam, const bool enableBaselineParam);
+
+struct BaselineParam {
+
+  BaselineParam();
+  std::array<bool, NChannels> modified{};
+  float baseline[NChannels] = {}; // configuration per channel
+  void setCalib(uint32_t ich, float val, bool ismodified = true);
+  float getCalib(uint32_t ich) const;
+  void print(bool printall = true) const;
+
+  ClassDefNV(BaselineParam, 1);
+};
+
 } // namespace zdc
 } // namespace o2
+
 #endif

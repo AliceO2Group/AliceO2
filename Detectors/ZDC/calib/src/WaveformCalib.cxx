@@ -94,6 +94,7 @@ int WaveformCalib::endOfRun()
   uint64_t stopping = mData.mCTimeEnd + 10000; // stop 10 seconds after
   mInfo.setStartValidityTimestamp(starting);
   mInfo.setEndValidityTimestamp(stopping);
+  mInfo.setAdjustableEOV();
 
   if (mSaveDebugHistos) {
     saveDebugHistos();

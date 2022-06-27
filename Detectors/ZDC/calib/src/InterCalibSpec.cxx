@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// @file   InterCalibSpec.cxx
-/// @brief  ZDC reconstruction
+/// @brief  ZDC intercalibration
 /// @author pietro.cortese@cern.ch
 
 #include <iostream>
@@ -61,46 +61,49 @@ void InterCalibSpec::init(o2::framework::InitContext& ic)
 {
   mVerbosity = ic.options().get<int>("verbosity-level");
   mWorker.setVerbosity(mVerbosity);
-  mTimer.Start(false);
 }
 
 void InterCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   // we call these methods just to trigger finaliseCCDB callback
   pc.inputs().get<o2::zdc::InterCalibConfig*>("intercalibconfig");
+  pc.inputs().get<o2::zdc::ZDCEnergyParam*>("energycalib");
+  pc.inputs().get<o2::zdc::ZDCTowerParam*>("towercalib");
+}
+
+void InterCalibSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ZDC", "INTERCALIBCONFIG", 0)) {
+    // InterCalib configuration
+    auto* config = (const o2::zdc::InterCalibConfig*)obj;
+    if (mVerbosity > DbgZero) {
+      config->print();
+    }
+    mWorker.setInterCalibConfig(config);
+  }
+  if (matcher == ConcreteDataMatcher("ZDC", "ENERGYCALIB", 0)) {
+    // Current energy calibration
+    auto* config = (const o2::zdc::ZDCEnergyParam*)obj;
+    if (mVerbosity > DbgZero) {
+      config->print();
+    }
+    mWorker.setEnergyParam(config);
+  }
+  if (matcher == ConcreteDataMatcher("ZDC", "TOWERCALIB", 0)) {
+    // Tower intercalibration
+    auto* config = (const o2::zdc::ZDCTowerParam*)obj;
+    if (mVerbosity > DbgZero) {
+      config->print();
+    }
+    mWorker.setTowerParam(config);
+  }
 }
 
 void InterCalibSpec::run(ProcessingContext& pc)
 {
-  updateTimeDependentParams(pc);
   if (!mInitialized) {
     mInitialized = true;
-    std::string loadedConfFiles = "Loaded ZDC configuration files:";
-    // Energy calibration
-    auto energyParam = pc.inputs().get<o2::zdc::ZDCEnergyParam*>("energycalib");
-    loadedConfFiles += " ZDCEnergyParam";
-    if (mVerbosity > DbgMinimal) {
-      LOG(info) << "Loaded Energy calibration ZDCEnergyParam";
-      energyParam->print();
-    }
-    // Tower calibration
-    auto towerParam = pc.inputs().get<o2::zdc::ZDCTowerParam*>("towercalib");
-    loadedConfFiles += " ZDCTowerParam";
-    if (mVerbosity > DbgMinimal) {
-      LOG(info) << "Loaded Tower calibration ZDCTowerParam";
-      towerParam->print();
-    }
-    // InterCalib configuration
-    auto config = pc.inputs().get<o2::zdc::InterCalibConfig*>("intercalibconfig");
-    loadedConfFiles += " InterCalibConfig";
-    if (mVerbosity > DbgZero) {
-      LOG(info) << "Loaded InterCalib configuration object";
-      config->print();
-    }
-    mWorker.setInterCalibConfig(config.get());
-    mWorker.setEnergyParam(energyParam.get());
-    mWorker.setTowerParam(towerParam.get());
-    LOG(info) << loadedConfFiles;
+    updateTimeDependentParams(pc);
     mTimer.Stop();
     mTimer.Reset();
     mTimer.Start(false);
@@ -152,9 +155,9 @@ framework::DataProcessorSpec getInterCalibSpec()
   using clbUtils = o2::calibration::Utils;
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("intercalibconfig", "ZDC", "INTERCALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathInterCalibConfig.data())));
-  inputs.emplace_back("energycalib", "ZDC", "ENERGYCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathEnergyCalib.data())));
-  inputs.emplace_back("towercalib", "ZDC", "TOWERCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathTowerCalib.data())));
+  inputs.emplace_back("intercalibconfig", "ZDC", "INTERCALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathInterCalibConfig.data()));
+  inputs.emplace_back("energycalib", "ZDC", "ENERGYCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathEnergyCalib.data()));
+  inputs.emplace_back("towercalib", "ZDC", "TOWERCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathTowerCalib.data()));
   inputs.emplace_back("intercalibdata", "ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
 
   char outputa[o2::header::gSizeDataDescriptionString];

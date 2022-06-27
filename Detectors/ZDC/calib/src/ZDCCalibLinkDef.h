@@ -24,5 +24,11 @@
 #pragma link C++ class o2::zdc::WaveformCalibData + ;
 #pragma link C++ class o2::zdc::WaveformCalibChParam + ;
 #pragma link C++ class o2::zdc::WaveformCalibParam + ;
+#pragma link C++ class o2::zdc::BaselineCalibData + ;
+#pragma link C++ class o2::zdc::BaselineCalibBinData + ;
+#pragma link C++ class o2::zdc::BaselineCalibSummaryData + ;
+#pragma link C++ class o2::zdc::BaselineCalibConfig + ;
+#pragma link C++ class std::vector < o2::zdc::BaselineCalibBinData> + ;
+#pragma link C++ class std::vector < o2::zdc::BaselineCalibSummaryData> + ;
 
 #endif

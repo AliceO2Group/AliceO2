@@ -253,6 +253,8 @@ const std::string CCDBPathTowerCalib = "ZDC/Calib/TowerCalib";
 const std::string CCDBPathInterCalibConfig = "ZDC/Calib/InterCalibConfig";
 const std::string CCDBPathWaveformCalib = "ZDC/Calib/WaveformCalib";
 const std::string CCDBPathWaveformCalibConfig = "ZDC/Calib/WaveformCalibConfig";
+const std::string CCDBPathBaselineCalib = "ZDC/Calib/BaselineCalib";
+const std::string CCDBPathBaselineCalibConfig = "ZDC/Calib/BaselineCalibConfig";
 
 enum Ped { PedND = 0,
            PedEv = 1,
@@ -372,6 +374,9 @@ constexpr int WaveformCalib_NBB = 3; // Number of bunches acquired before collid
 constexpr int WaveformCalib_NBA = 6; // Number of bunches acquired after colliding b.c.
 constexpr int WaveformCalib_NBT = WaveformCalib_NBB + WaveformCalib_NBA + 1;
 constexpr int WaveformCalib_NW = WaveformCalib_NBT * NIS;
+
+using zdcBaseline_t = int16_t;
+constexpr int BaselineMin = -32768, BaselineMax = 32767, BaselineRange = 65536; // 16 bit with sign
 
 } // namespace zdc
 } // namespace o2

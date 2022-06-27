@@ -9,53 +9,49 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   InterCalibSpec.h
-/// @brief  ZDC intercalibration
+/// @file   InterCalibEPNSpec.h
+/// @brief  ZDC intercalibration pre-processing on EPN
 /// @author pietro.cortese@cern.ch
 
-#ifndef O2_ZDC_INTERCALIB_SPEC
-#define O2_ZDC_INTERCALIB_SPEC
+#ifndef O2_ZDC_BASELINECALIBEPN_SPEC
+#define O2_ZDC_BASELINECALIBEPN_SPEC
 
 #include <TStopwatch.h>
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataAllocator.h"
+#include "Framework/DataSpecUtils.h"
 #include "Framework/Task.h"
-#include "CommonDataFormat/FlatHisto1D.h"
-#include "CommonDataFormat/FlatHisto2D.h"
 #include "CommonUtils/NameConf.h"
-#include "ZDCCalib/InterCalibData.h"
-#include "ZDCCalib/InterCalib.h"
-#include "ZDCCalib/InterCalibConfig.h"
-#include "DetectorsCalibration/Utils.h"
-#include "CCDB/CcdbObjectInfo.h"
+#include "ZDCCalib/BaselineCalibData.h"
+#include "ZDCCalib/BaselineCalibEPN.h"
+#include "ZDCCalib/BaselineCalibConfig.h"
 
 namespace o2
 {
 namespace zdc
 {
 
-class InterCalibSpec : public o2::framework::Task
+class BaselineCalibEPNSpec : public o2::framework::Task
 {
  public:
-  InterCalibSpec();
-  InterCalibSpec(const int verbosity);
-  ~InterCalibSpec() override = default;
+  BaselineCalibEPNSpec();
+  BaselineCalibEPNSpec(const int verbosity);
+  ~BaselineCalibEPNSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
-  void sendOutput(o2::framework::DataAllocator& output);
 
  private:
-  int mVerbosity = DbgMinimal; // Verbosity level
-  bool mInitialized = false;   // Connect once to CCDB during initialization
-  InterCalib mWorker;          // Intercalibration object
+  int mVerbosity = DbgZero;  // Verbosity level
+  bool mInitialized = false; // Connect once to CCDB during initialization
+  BaselineCalibEPN mWorker;  // Baseline calibration object
   TStopwatch mTimer;
 };
 
-framework::DataProcessorSpec getInterCalibSpec();
+framework::DataProcessorSpec getBaselineCalibEPNSpec();
 
 } // namespace zdc
 } // namespace o2

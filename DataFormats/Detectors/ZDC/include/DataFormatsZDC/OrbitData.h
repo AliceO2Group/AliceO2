@@ -31,7 +31,6 @@ struct OrbitData {
   std::array<int16_t, NChannels> data{};
   std::array<uint16_t, NChannels> scaler{};
 
-  float asFloat(int i) const { return data[i] / 8.; }
   void print() const;
 
   ClassDefNV(OrbitData, 1);

@@ -12,7 +12,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
-#include "ZDCCalib/WaveformCalibEPNSpec.h"
+#include "ZDCCalib/BaselineCalibSpec.h"
 
 using namespace o2::framework;
 
@@ -40,8 +40,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   WorkflowSpec specs;
-  specs.emplace_back(o2::zdc::getWaveformCalibEPNSpec());
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
-  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs); // Needed only if you read from root files
+  specs.emplace_back(o2::zdc::getBaselineCalibSpec());
   return specs;
 }

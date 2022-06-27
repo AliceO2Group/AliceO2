@@ -68,21 +68,23 @@ void InterCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
   pc.inputs().get<o2::zdc::InterCalibConfig*>("intercalibconfig");
 }
 
-void InterCalibEPNSpec::run(ProcessingContext& pc)
+void InterCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
-  updateTimeDependentParams(pc);
-  if (!mInitialized) {
-    mInitialized = true;
-    std::string loadedConfFiles = "Loaded ZDC configuration files:";
+  if (matcher == ConcreteDataMatcher("ZDC", "INTERCALIBCONFIG", 0)) {
     // InterCalib configuration
-    auto config = pc.inputs().get<o2::zdc::InterCalibConfig*>("intercalibconfig");
-    loadedConfFiles += " InterCalibConfig";
+    auto* config = (const o2::zdc::InterCalibConfig*)obj;
     if (mVerbosity > DbgZero) {
-      LOG(info) << "Loaded InterCalib configuration object";
       config->print();
     }
-    mWorker.setInterCalibConfig(config.get());
-    LOG(info) << loadedConfFiles;
+    mWorker.setInterCalibConfig(config);
+  }
+}
+
+void InterCalibEPNSpec::run(ProcessingContext& pc)
+{
+  if (!mInitialized) {
+    mInitialized = true;
+    updateTimeDependentParams(pc);
     mTimer.Stop();
     mTimer.Reset();
     mTimer.Start(false);
@@ -130,7 +132,7 @@ framework::DataProcessorSpec getInterCalibEPNSpec()
   inputs.emplace_back("energy", "ZDC", "ENERGY", 0, Lifetime::Timeframe);
   inputs.emplace_back("tdc", "ZDC", "TDCDATA", 0, Lifetime::Timeframe);
   inputs.emplace_back("info", "ZDC", "INFO", 0, Lifetime::Timeframe);
-  inputs.emplace_back("intercalibconfig", "ZDC", "INTERCALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathInterCalibConfig.data())));
+  inputs.emplace_back("intercalibconfig", "ZDC", "INTERCALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathInterCalibConfig.data()));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);

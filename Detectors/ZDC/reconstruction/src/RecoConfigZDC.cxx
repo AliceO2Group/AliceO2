@@ -84,7 +84,7 @@ void RecoConfigZDC::setPedThreshold(int32_t ich, float high, float low)
   }
 }
 
-void RecoConfigZDC::print()
+void RecoConfigZDC::print() const
 {
   LOGF(info, "RecoConfigZDC:%s%s%s%s",
        (low_pass_filter ? " LowPassFilter" : ""),

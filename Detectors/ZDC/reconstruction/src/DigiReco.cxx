@@ -325,6 +325,15 @@ void DigiReco::init()
   if (mCorrBackground == false) {
     LOG(warning) << "TDC pile-up correction is disabled";
   }
+  if (mPedParam == nullptr) {
+    LOG(warning) << "Missing average pedestals";
+  } else {
+    if (mVerbosity > DbgZero) {
+      mPedParam->print();
+    } else {
+      mPedParam->print(false);
+    }
+  }
 } // init
 
 void DigiReco::prepareInterpolation()
@@ -928,7 +937,7 @@ void DigiReco::updateOffsets(int ibun)
   if (it != mOrbit.end()) {
     auto& orbitdata = mOrbitData[it->second];
     for (int ich = 0; ich < NChannels; ich++) {
-      auto myped = orbitdata.asFloat(ich);
+      auto myped = float(orbitdata.data[ich]) * mModuleConfig->baselineFactor;
       if (myped >= ADCMin && myped <= ADCMax) {
         // Pedestal information is present for this channel
         mOffset[ich] = myped;
@@ -937,7 +946,18 @@ void DigiReco::updateOffsets(int ibun)
     }
   }
 
-  // TODO: use QC pedestal if orbit pedestals are missing
+  // Use average "QC" pedestal if orbit pedestals are missing
+  if (mPedParam != nullptr) {
+    for (int ich = 0; ich < NChannels; ich++) {
+      if (mSource[ich] == PedND) {
+        auto myped = mPedParam->getCalib(ich);
+        if (myped >= ADCMin && myped <= ADCMax) {
+          mOffset[ich] = myped;
+          mSource[ich] = PedQC;
+        }
+      }
+    }
+  }
 
   for (int ich = 0; ich < NChannels; ich++) {
     if (mSource[ich] == PedND) {
@@ -1594,7 +1614,7 @@ void DigiReco::findSignals(int ibeg, int iend)
 #endif
   // Identify TDC signals
   for (int ibun = ibeg; ibun <= iend; ibun++) {
-    updateOffsets(ibun); // Get orbit pedestals or QC fallback
+    updateOffsets(ibun); // Get orbit pedestals or run pedestals as a fallback
     auto& rec = mReco[ibun];
     for (int itdc = 0; itdc < NTDCChannels; itdc++) {
 #ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
