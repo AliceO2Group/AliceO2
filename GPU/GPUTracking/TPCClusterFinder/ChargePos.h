@@ -22,7 +22,7 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 
-#define INVALID_TIME_BIN (-PADDING_TIME - 1)
+#define INVALID_TIME_BIN (-GPUCF_PADDING_TIME - 1)
 
 struct ChargePos {
   tpccf::GlobalPad gpad;
@@ -31,7 +31,7 @@ struct ChargePos {
   GPUdDefault() ChargePos() CON_DEFAULT;
 
   constexpr GPUdi() ChargePos(tpccf::Row row, tpccf::Pad pad, tpccf::TPCFragmentTime t)
-    : gpad(tpcGlobalPadIdx(row, pad)), timePadded(t + PADDING_TIME)
+    : gpad(tpcGlobalPadIdx(row, pad)), timePadded(t + GPUCF_PADDING_TIME)
   {
   }
 
@@ -45,15 +45,15 @@ struct ChargePos {
   GPUdi() bool valid() const { return timePadded >= 0; }
 
   GPUdi() tpccf::Row row() const { return gpad / TPC_PADS_PER_ROW_PADDED; }
-  GPUdi() tpccf::Pad pad() const { return gpad % TPC_PADS_PER_ROW_PADDED - PADDING_PAD; }
-  GPUdi() tpccf::TPCFragmentTime time() const { return timePadded - PADDING_TIME; }
+  GPUdi() tpccf::Pad pad() const { return gpad % TPC_PADS_PER_ROW_PADDED - GPUCF_PADDING_PAD; }
+  GPUdi() tpccf::TPCFragmentTime time() const { return timePadded - GPUCF_PADDING_TIME; }
 
  private:
   // Maps the position of a pad given as row and index in that row to a unique
   // index between 0 and TPC_NUM_OF_PADS.
   static constexpr GPUdi() tpccf::GlobalPad tpcGlobalPadIdx(tpccf::Row row, tpccf::Pad pad)
   {
-    return TPC_PADS_PER_ROW_PADDED * row + pad + PADDING_PAD;
+    return TPC_PADS_PER_ROW_PADDED * row + pad + GPUCF_PADDING_PAD;
   }
 };
 

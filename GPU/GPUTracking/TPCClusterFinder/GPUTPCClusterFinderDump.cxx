@@ -31,14 +31,14 @@ void GPUTPCClusterFinder::DumpDigits(std::ostream& out)
   out << std::dec;
 }
 
-void GPUTPCClusterFinder::DumpChargeMap(std::ostream& out, std::string_view title)
+void GPUTPCClusterFinder::DumpChargeMap(std::ostream& out, std::string_view title, bool doGPU)
 {
   out << "\nClusterer - " << title << " - Slice " << mISlice << " - Fragment " << mPmemory->fragment.index << "\n";
   Array2D<ushort> map(mPchargeMap);
 
   out << std::hex;
 
-  for (TPCFragmentTime i = 0; i < TPC_MAX_FRAGMENT_LEN_PADDED; i++) {
+  for (TPCFragmentTime i = 0; i < TPC_MAX_FRAGMENT_LEN_PADDED(doGPU ? TPC_MAX_FRAGMENT_LEN_GPU : TPC_MAX_FRAGMENT_LEN_HOST); i++) {
     int zeros = 0;
     for (GlobalPad j = 0; j < TPC_NUM_OF_PADS; j++) {
       ushort q = map[{j, i}];
