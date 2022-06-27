@@ -453,11 +453,13 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
   for (unsigned int iSliceBase = 0; iSliceBase < NSLICES; iSliceBase += GetProcessingSettings().nTPCClustererLanes) {
     std::vector<bool> laneHasData(GetProcessingSettings().nTPCClustererLanes, false);
+    const int maxLane = std::min<int>(GetProcessingSettings().nTPCClustererLanes, NSLICES - iSliceBase);
     for (CfFragment fragment = mCFContext->fragmentFirst; !fragment.isEnd(); fragment = fragment.next()) {
       if (GetProcessingSettings().debugLevel >= 3) {
         GPUInfo("Processing time bins [%d, %d) for sectors %d to %d", fragment.start, fragment.last(), iSliceBase, iSliceBase + GetProcessingSettings().nTPCClustererLanes - 1);
       }
-      for (int lane = 0; lane < GetProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
+      GPUCA_OPENMP(parallel for if(!doGPU && GetProcessingSettings().ompKernels != 1) num_threads(mRec->SetAndGetNestedLoopOmpFactor(!doGPU, GetProcessingSettings().nTPCClustererLanes)))
+      for (int lane = 0; lane < maxLane; lane++) {
         if (fragment.index != 0) {
           SynchronizeStream(lane); // Don't overwrite charge map from previous iteration until cluster computation is finished
         }
@@ -555,7 +557,8 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
           TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
         }
       }
-      for (int lane = 0; lane < GetProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
+      GPUCA_OPENMP(parallel for if(!doGPU && GetProcessingSettings().ompKernels != 1) num_threads(mRec->SetAndGetNestedLoopOmpFactor(!doGPU, GetProcessingSettings().nTPCClustererLanes)))
+      for (int lane = 0; lane < maxLane; lane++) {
         unsigned int iSlice = iSliceBase + lane;
         SynchronizeStream(lane);
         if (mIOPtrs.tpcZS) {
@@ -602,7 +605,8 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
         DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpPeaksCompacted, *mDebugFile);
       }
-      for (int lane = 0; lane < GetProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
+      GPUCA_OPENMP(parallel for if(!doGPU && GetProcessingSettings().ompKernels != 1) num_threads(mRec->SetAndGetNestedLoopOmpFactor(!doGPU, GetProcessingSettings().nTPCClustererLanes)))
+      for (int lane = 0; lane < maxLane; lane++) {
         unsigned int iSlice = iSliceBase + lane;
         GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
         GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSlice] : clusterer;
@@ -618,7 +622,8 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         TransferMemoryResourceLinkToHost(RecoStep::TPCClusterFinding, clusterer.mMemoryId, lane);
         DoDebugAndDump(RecoStep::TPCClusterFinding, 0, clusterer, &GPUTPCClusterFinder::DumpSuppressedPeaksCompacted, *mDebugFile);
       }
-      for (int lane = 0; lane < GetProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
+      GPUCA_OPENMP(parallel for if(!doGPU && GetProcessingSettings().ompKernels != 1) num_threads(mRec->SetAndGetNestedLoopOmpFactor(!doGPU, GetProcessingSettings().nTPCClustererLanes)))
+      for (int lane = 0; lane < maxLane; lane++) {
         unsigned int iSlice = iSliceBase + lane;
         GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
         GPUTPCClusterFinder& clustererShadow = doGPU ? processorsShadow()->tpcClusterer[iSlice] : clusterer;
@@ -652,11 +657,12 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
           clusterer.DumpClusters(*mDebugFile);
         }
       }
+      mRec->SetNestedLoopOmpFactor(1);
     }
 
     size_t nClsFirst = nClsTotal;
     bool anyLaneHasData = false;
-    for (int lane = 0; lane < GetProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
+    for (int lane = 0; lane < maxLane; lane++) {
       unsigned int iSlice = iSliceBase + lane;
       std::fill(&tmpNative->nClusters[iSlice][0], &tmpNative->nClusters[iSlice][0] + MAXGLOBALPADROW, 0);
       SynchronizeStream(lane);
@@ -702,7 +708,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       assert(propagateMCLabels ? mcLinearLabels.header.size() == nClsTotal : true);
     }
     if (propagateMCLabels) {
-      for (int lane = 0; lane < GetProcessingSettings().nTPCClustererLanes && iSliceBase + lane < NSLICES; lane++) {
+      for (int lane = 0; lane < maxLane; lane++) {
         processors()->tpcClusterer[iSliceBase + lane].clearMCMemory();
       }
     }
