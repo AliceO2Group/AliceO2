@@ -271,9 +271,11 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (!(mRecoStepsGPU & GPUDataTypes::RecoStep::TPCMerging)) {
     mProcessingSettings.mergerSortTracks = false;
   }
+  if (mProcessingSettings.nTPCClustererLanes == -1) {
+    mProcessingSettings.nTPCClustererLanes = IsGPU() ? 3 : 1;
+  }
   if (!IsGPU()) {
     mProcessingSettings.nDeviceHelperThreads = 0;
-    mProcessingSettings.nTPCClustererLanes = 1;
   }
 
   if (param().rec.nonConsecutiveIDs) {
