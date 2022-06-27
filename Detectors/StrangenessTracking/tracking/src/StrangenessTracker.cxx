@@ -57,7 +57,6 @@ void StrangenessTracker::initialise()
   }
   std::exclusive_scan(mTracksIdxTable.begin(), mTracksIdxTable.begin() + mUtils.mPhiBins * mUtils.mEtaBins, mTracksIdxTable.begin(), 0);
   mTracksIdxTable[mUtils.mPhiBins * mUtils.mEtaBins] = mSortedITStracks.size();
-  mTracksIdxTable.clear();
 }
 
 void StrangenessTracker::process()
