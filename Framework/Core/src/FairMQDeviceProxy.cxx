@@ -287,7 +287,7 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
       if (channelPos == channelNameToChannel.end()) {
         channelIndex = ChannelIndex{(int)mForwardChannelInfos.size()};
         auto& channel = device.fChannels.at(route.channel).at(0);
-        bool dplChannel = (route.channel.rfind("from_", 0) == 0);
+        ChannelAccountingType dplChannel = (route.channel.rfind("from_", 0) == 0) ? ChannelAccountingType::DPL : ChannelAccountingType::RAW;
         mForwardChannelInfos.push_back(ForwardChannelInfo{route.channel, dplChannel, channel});
         channelNameToChannel[route.channel] = channelIndex;
         LOGP(detail, "Binding forward channel {} to channel index {}", route.channel, channelIndex.value);

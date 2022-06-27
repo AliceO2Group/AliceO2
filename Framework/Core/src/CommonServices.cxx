@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/CommonServices.h"
+#include "Framework/AsyncQueue.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/ControlService.h"
 #include "Framework/DriverClient.h"
@@ -37,6 +38,7 @@
 #include "WSDriverClient.h"
 #include "HTTPParser.h"
 #include "../src/DataProcessingStatus.h"
+#include "DecongestionService.h"
 #include "ArrowSupport.h"
 #include "DPLMonitoringBackend.h"
 #include "TDatabasePDG.h"
@@ -594,6 +596,8 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
           break;
         }
       }
+      auto& queue = services.get<AsyncQueue>();
+      decongestion->oldestPossibleTimesliceTask = AsyncQueueHelpers::create(queue, {"oldest-possible-timeslice", 100});
       return ServiceHandle{TypeIdHelpers::uniqueId<DecongestionService>(), decongestion, ServiceKind::Serial};
     },
     .postForwarding = [](ProcessingContext& ctx, void* service) {
@@ -607,7 +611,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       timesliceIndex.updateOldestPossibleOutput();
       auto& proxy = ctx.services().get<FairMQDeviceProxy>();
       auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
-      if (oldestPossibleOutput.timeslice.value == decongestion->lastTimeslice) {
+      if (decongestion->lastTimeslice && oldestPossibleOutput.timeslice.value == decongestion->lastTimeslice) {
         LOGP(debug, "Not sending already sent value");
         return;
       }
@@ -654,20 +658,32 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         return;
       }
       LOGP(debug, "Broadcasting possible output {}", oldestPossibleOutput.timeslice.value);
-      DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
+      auto &queue = services.get<AsyncQueue>();
       DeviceSpec const& spec = services.get<DeviceSpec const>();
-      auto device = services.get<RawDeviceService>().device();
-      for (size_t fi = 0; fi < spec.forwards.size(); fi++) {
-        auto& channel = device->GetChannel(spec.forwards[fi].channel, 0);
-        // The oldest possible timeslice for a forwarded message
-        // is conservatively the one of the device doing the forwarding.
-        if (spec.forwards[fi].channel.rfind("from_", 0) == 0) {
-          auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
-          LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}", spec.forwards[fi].channel, oldestTimeslice.timeslice.value);
-          DataProcessingHelpers::sendOldestPossibleTimeframe(channel, oldestTimeslice.timeslice.value);
-        }
-      }
-      decongestion.lastTimeslice = oldestPossibleOutput.timeslice.value; },
+      auto *device = services.get<RawDeviceService>().device();
+      /// We use the oldest possible timeslice to debuounce, so that only the latest one
+      /// at the end of one iteration is sent.
+      LOGP(info, "Queueing oldest possible timeslice {} propagation for execution.", oldestPossibleOutput.timeslice.value);
+      AsyncQueueHelpers::post(
+        queue, decongestion.oldestPossibleTimesliceTask, [oldestPossibleOutput, &decongestion, &proxy, &spec, device, &timesliceIndex]() {
+          if (decongestion.lastTimeslice >= oldestPossibleOutput.timeslice.value) {
+            LOGP(debug, "Not sending already sent value");
+            return;
+          }
+          LOGP(info, "Running oldest possible timeslice {} propagation.", oldestPossibleOutput.timeslice.value);
+          DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
+          for (size_t fi = 0; fi < spec.forwards.size(); fi++) {
+            auto& channel = device->GetChannel(spec.forwards[fi].channel, 0);
+            // The oldest possible timeslice for a forwarded message
+            // is conservatively the one of the device doing the forwarding.
+            if (spec.forwards[fi].channel.rfind("from_", 0) == 0) {
+              auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
+              DataProcessingHelpers::sendOldestPossibleTimeframe(channel, oldestTimeslice.timeslice.value);
+            }
+          }
+          decongestion.lastTimeslice = oldestPossibleOutput.timeslice.value;
+        },
+        TimesliceId{oldestPossibleTimeslice}, 30); },
     .kind = ServiceKind::Serial};
 }
 
