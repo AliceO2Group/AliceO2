@@ -48,7 +48,6 @@ struct ChannelDataFloat {
 
 class RecPoint
 {
-
  public:
   enum TimeTypeIndex : int { TimeA,
                              TimeC };
@@ -77,7 +76,7 @@ class RecPoint
     // extract the span of channel data for this bunch from the whole TF data
     return mRef.getEntries() ? gsl::span<const ChannelDataFloat>(tfdata).subspan(mRef.getFirstEntry(), mRef.getEntries()) : gsl::span<const ChannelDataFloat>();
   }
-  int static constexpr sDummyCollissionTime = -1024;
+  short static constexpr sDummyCollissionTime = 32767;
 
  private:
   o2::dataformats::RangeReference<int, int> mRef;
