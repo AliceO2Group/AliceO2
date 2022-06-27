@@ -156,7 +156,7 @@ void GPUTPCClusterFinder::PrepareMC()
 
   clearMCMemory();
   mPindexMap = new uint[TPCMapMemoryLayout<decltype(*mPindexMap)>::items()];
-  mPlabelsByRow = new GPUTPCClusterMCInterim[GPUCA_ROW_COUNT * mNMaxClusterPerRow];
+  mPlabelsByRow = new GPUTPCClusterMCInterimArray[GPUCA_ROW_COUNT];
   mPlabelsInRow = new uint[GPUCA_ROW_COUNT];
 }
 
