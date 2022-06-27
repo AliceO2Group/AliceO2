@@ -33,6 +33,7 @@ struct BinningPolicy {
 
   int getBin(std::tuple<typename C::type, typename Cs::type...> const& data) const
   {
+    unsigned int i = 2, j = 2, k = 2;
     if (this->mIgnoreOverflows) {
       // underflow
       if (std::get<0>(data) < this->mBins[0][1]) { // xBins[0] is a dummy VARIABLE_WIDTH
@@ -48,9 +49,12 @@ struct BinningPolicy {
           return -1;
         }
       }
+    } else {
+      i = 1;
+      j = 1;
+      k = 1;
     }
 
-    unsigned int i = 2, j = 2, k = 2;
     for (; i < this->mBins[0].size(); i++) {
       if (std::get<0>(data) < this->mBins[0][i]) {
 
@@ -130,18 +134,58 @@ struct BinningPolicy {
     return getBinAt(i, j, k);
   }
 
+  // Note: Overflow / underflow bin -1 is not included
+  int getXBinsCount() const
+  {
+    return this->mBins[0].size() - 1 - getOverflowShift();
+  }
+
+  // Note: Overflow / underflow bin -1 is not included
+  int getYBinsCount() const
+  {
+    if constexpr (sizeof...(Cs) == 0) {
+      return 0;
+    }
+    return this->mBins[1].size() - 1 - getOverflowShift();
+  }
+
+  // Note: Overflow / underflow bin -1 is not included
+  int getZBinsCount() const
+  {
+    if constexpr (sizeof...(Cs) < 2) {
+      return 0;
+    }
+    return this->mBins[2].size() - 1 - getOverflowShift();
+  }
+
+  // Note: Overflow / underflow bin -1 is not included
+  int getAllBinsCount() const
+  {
+    if constexpr (sizeof...(Cs) == 0) {
+      return getXBinsCount();
+    }
+    if constexpr (sizeof...(Cs) == 1) {
+      return getXBinsCount() * getYBinsCount();
+    }
+    if constexpr (sizeof...(Cs) == 2) {
+      return getXBinsCount() * getYBinsCount() * getZBinsCount();
+    }
+    return -1;
+  }
+
   using persistent_columns_t = framework::selected_pack<o2::soa::is_persistent_t, C, Cs...>;
 
  private:
   // We substract 1 to account for VARIABLE_WIDTH in the bins vector
   // We substract second 1 if we omit values below minima (underflow, mapped to -1)
+  // Otherwise we add 1 and we get the number of bins including those below and over the outer edges
   int getBinAt(unsigned int iRaw, unsigned int jRaw, unsigned int kRaw) const
   {
-    int shiftBinsWithoutOverflow = mIgnoreOverflows ? 1 : 0;
+    int shiftBinsWithoutOverflow = getOverflowShift();
     unsigned int i = iRaw - 1 - shiftBinsWithoutOverflow;
     unsigned int j = jRaw - 1 - shiftBinsWithoutOverflow;
     unsigned int k = kRaw - 1 - shiftBinsWithoutOverflow;
-    auto xBinsCount = this->mBins[0].size() - 1 - shiftBinsWithoutOverflow;
+    auto xBinsCount = getXBinsCount();
     if constexpr (sizeof...(Cs) == 0) {
       return i;
     } else if constexpr (sizeof...(Cs) == 1) {
@@ -151,6 +195,11 @@ struct BinningPolicy {
     } else {
       return -1;
     }
+  }
+
+  int getOverflowShift() const
+  {
+    return mIgnoreOverflows ? 1 : -1;
   }
 
   void expandConstantBinning(std::vector<double> const& bins, int ind)
