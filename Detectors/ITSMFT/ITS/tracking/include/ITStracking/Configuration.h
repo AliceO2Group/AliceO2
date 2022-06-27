@@ -149,7 +149,7 @@ struct TimeFrameGPUConfig {
                      size_t maxTrkCap,
                      size_t maxVertCap);
 
-  size_t tmpCUBBufferSize = 1e5; // In average in pp events there are required 4096 bytes
+  size_t tmpCUBBufferSize = 1e6; // In average in pp events there are required 4096 bytes
   size_t maxTrackletsPerCluster = 50;
   size_t clustersPerLayerCapacity = 5e5;
   size_t clustersPerROfCapacity = 1e4;

@@ -121,6 +121,7 @@ void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
   mNExclusiveFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
   mUsedTracklets = Vector<unsigned char>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
   discardResult(cudaMalloc(&mCUBTmpBuffers, mConfig.nMaxROFs * mConfig.tmpCUBBufferSize));
+  discardResult(cudaMalloc(&mFoundTracklets, (NLayers - 1) * sizeof(int)));
   mXYCentroids = Vector<float>{2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity, 2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity};
   mZCentroids = Vector<float>{mConfig.nMaxROFs * mConfig.maxLinesCapacity, mConfig.nMaxROFs * mConfig.maxLinesCapacity};
   for (size_t i{0}; i < 3; ++i) {
@@ -177,6 +178,7 @@ template <int NLayers>
 TimeFrameGPU<NLayers>::~TimeFrameGPU()
 {
   discardResult(cudaFree(mCUBTmpBuffers));
+  discardResult(cudaFree(mFoundTracklets));
   discardResult(cudaFree(mDeviceTrackingParams));
   discardResult(cudaFree(mDeviceIndexTableUtils));
 }
