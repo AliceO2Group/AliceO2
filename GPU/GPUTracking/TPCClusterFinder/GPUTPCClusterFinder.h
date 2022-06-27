@@ -140,7 +140,7 @@ class GPUTPCClusterFinder : public GPUProcessor
 
 #ifndef GPUCA_GPUCODE
   void DumpDigits(std::ostream& out);
-  void DumpChargeMap(std::ostream& out, std::string_view);
+  void DumpChargeMap(std::ostream& out, std::string_view, bool doGPU);
   void DumpPeaks(std::ostream& out);
   void DumpPeaksCompacted(std::ostream& out);
   void DumpSuppressedPeaks(std::ostream& out);
