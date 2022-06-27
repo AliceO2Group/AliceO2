@@ -1478,7 +1478,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       case DriverState::MATERIALISE_WORKFLOW:
         try {
           auto workflowState = WorkflowHelpers::verifyWorkflow(workflow);
-          if (driverInfo.batch == true && !varmap["dds"].as<bool>() && !varmap["dump-workflow"].as<bool>() && workflowState == WorkflowParsingState::Empty) {
+          if (driverInfo.batch == true && varmap["dds"].as<std::string>().empty() && !varmap["dump-workflow"].as<bool>() && workflowState == WorkflowParsingState::Empty) {
             LOGP(error, "Empty workflow provided while running in batch mode.");
             return 1;
           }
@@ -2228,17 +2228,23 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
       DriverState::IMPORT_CURRENT_WORKFLOW, //
       DriverState::MATERIALISE_WORKFLOW     //
     };
-  } else if (varmap["dds"].as<bool>()) {
+  } else if (!varmap["dds"].as<std::string>().empty()) {
     // Dump a DDS representation of what I will do.
     // Notice that compared to DDS we need to schedule things,
     // because DDS needs to be able to have actual Executions in
     // order to provide a correct configuration.
-    control.callbacks = {[workflowSuffix = varmap["dds-workflow-suffix"]](WorkflowSpec const&,
+    control.callbacks = {[filename = varmap["dds"].as<std::string>(),
+                          workflowSuffix = varmap["dds-workflow-suffix"]](WorkflowSpec const& workflow,
                                                                           DeviceSpecs const& specs,
                                                                           DeviceExecutions const& executions,
-                                                                          DataProcessorInfos&,
+                                                                          DataProcessorInfos& dataProcessorInfos,
                                                                           CommandInfo const& commandInfo) {
-      dumpDeviceSpec2DDS(std::cout, workflowSuffix.as<std::string>(), specs, executions, commandInfo);
+      if (filename == "-") {
+        DDSConfigHelpers::dumpDeviceSpec2DDS(std::cout, workflowSuffix.as<std::string>(), workflow, dataProcessorInfos, specs, executions, commandInfo);
+      } else {
+        std::ofstream out(filename);
+        DDSConfigHelpers::dumpDeviceSpec2DDS(out, workflowSuffix.as<std::string>(), workflow, dataProcessorInfos, specs, executions, commandInfo);
+      }
     }};
     control.forcedTransitions = {
       DriverState::EXIT,                    //
@@ -2441,7 +2447,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graphviz output")                                                                 //                                                                                                                              //
     ("mermaid", bpo::value<std::string>()->default_value(""), "produce graph output in mermaid format in file under specified name or on stdout if argument is \"-\"") //                                                                                                                              //
     ("timeout,t", bpo::value<uint64_t>()->default_value(0), "forced exit timeout (in seconds)")                                                                        //                                                                                                                                //
-    ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                                                                     //                                                                                                                                  //
+    ("dds,D", bpo::value<std::string>()->default_value(""), "create DDS configuration")                                                                                //                                                                                                                                  //
     ("dds-workflow-suffix,D", bpo::value<std::string>()->default_value(""), "suffix for DDS names")                                                                    //                                                                                                                                  //
     ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")                                                           //                                                                                                                                    //
     ("dump-workflow-file", bpo::value<std::string>()->default_value("-"), "file to which do the dump")                                                                 //                                                                                                                                      //
