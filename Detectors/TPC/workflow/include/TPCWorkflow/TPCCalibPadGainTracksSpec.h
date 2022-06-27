@@ -58,6 +58,13 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
     const auto overflowBin = ic.options().get<bool>("overflowBin");
     mPadGainTracks.init(nBins, reldEdxMin, reldEdxMax, underflowBin, overflowBin);
 
+    const auto donotnormalize = ic.options().get<bool>("do-not-normalize");
+    float mindEdx = ic.options().get<float>("mindEdx");
+    float maxdEdx = ic.options().get<float>("maxdEdx");
+    mPadGainTracks.setdEdxMin(mindEdx);
+    mPadGainTracks.setdEdxMax(maxdEdx);
+    mPadGainTracks.doNotNomalize(donotnormalize);
+
     const auto propagateTrack = ic.options().get<bool>("propagateTrack");
     mPadGainTracks.setPropagateTrack(propagateTrack);
 
@@ -224,6 +231,9 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
       {"momMin", VariantType::Float, 0.3f, {"minimum momentum of the tracks which are used for the pad-by-pad gain map"}},
       {"momMax", VariantType::Float, 1.f, {"maximum momentum of the tracks which are used for the pad-by-pad gain map"}},
       {"etaMax", VariantType::Float, 1.f, {"maximum eta of the tracks which are used for the pad-by-pad gain map"}},
+      {"do-not-normalize", VariantType::Bool, false, {"Do not normalize the cluster charge to the dE/dx"}},
+      {"mindEdx", VariantType::Float, 0.f, {"Minimum accepted dE/dx value"}},
+      {"maxdEdx", VariantType::Float, -1.f, {"Maximum accepted dE/dx value (-1=accept all dE/dx)"}},
       {"minClusters", VariantType::Int, 50, {"minimum number of clusters of tracks which are used for the pad-by-pad gain map"}},
       {"gainMapFile", VariantType::String, "", {"file to reference gain map, which will be used for correcting the cluster charge"}},
       {"dedxRegionType", VariantType::Int, 2, {"using the dE/dx per chamber (0), stack (1) or per sector (2)"}},
