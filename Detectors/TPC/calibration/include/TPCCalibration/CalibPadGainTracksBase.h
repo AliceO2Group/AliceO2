@@ -103,13 +103,13 @@ class CalibPadGainTracksBase
   /// \param region region of the TPC
   /// \param lrow local row in region
   /// \param pad pad in row
-  auto getHistogram(const int sector, const int region, const int lrow, const int pad) const;
+  DataTHisto getHistogram(const int sector, const int region, const int lrow, const int pad) const;
 
   /// \return return histogram which is used to extract the gain
   /// \param sector sector of the TPC
   /// \param grow global row in sector
   /// \param pad pad in row
-  auto getHistogram(const int sector, const int grow, const int pad) const;
+  DataTHisto getHistogram(const int sector, const int grow, const int pad) const;
 
   /// draw gain map sector
   /// \param sector sector which will be drawn
