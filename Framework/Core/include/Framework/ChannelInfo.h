@@ -70,7 +70,7 @@ struct ForwardChannelInfo {
   /// The name of the channel
   std::string name = "invalid";
   /// Wether or not it's a DPL internal channel.
-  bool dplChannel = true;
+  ChannelAccountingType channelType = ChannelAccountingType::DPL;
   fair::mq::Channel& channel;
 };
 
