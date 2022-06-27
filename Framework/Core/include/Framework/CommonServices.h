@@ -23,14 +23,6 @@ struct ThreadPool {
   int poolSize;
 };
 
-/// A service to keep provide automated oldest possible timeslice information
-struct DecongestionService {
-  /// Wether we are a source in the processing chain
-  bool isFirstInTopology = true;
-  /// Last timeslice we communicated. Notice this should never go backwards.
-  int64_t lastTimeslice = 0;
-};
-
 /// A few ServiceSpecs for services we know about and that / are needed by
 /// everyone.
 struct CommonServices {
