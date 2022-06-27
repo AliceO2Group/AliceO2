@@ -12,4 +12,15 @@
 o2_add_library(MCHPreClustering
         SOURCES src/PreClusterFinder.cxx
         src/PreClusterFinderMapping.cxx
+        src/PreClusterFinderParam.cxx
+        src/PreClusterFinderSpec.cxx
         PUBLIC_LINK_LIBRARIES O2::MCHMappingInterface O2::MCHBase O2::Framework)
+
+o2_target_root_dictionary(MCHPreClustering
+        HEADERS include/MCHPreClustering/PreClusterFinderParam.h)
+
+o2_add_executable(
+        digits-to-preclusters-workflow
+        SOURCES src/digits-to-preclusters-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHPreClustering O2::MCHMappingImpl4)

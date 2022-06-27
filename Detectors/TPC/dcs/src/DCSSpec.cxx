@@ -18,7 +18,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
-
+#include <TStopwatch.h>
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
@@ -60,7 +60,7 @@ class DCSDevice : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
 
   template <typename T>
-  void sendObject(DataAllocator& output, T& obj, const CDBType calibType, const DCSProcessor::TimeRange& timeRange);
+  void sendObject(DataAllocator& output, T& obj, const CDBType calibType);
 
   void updateCCDB(DataAllocator& output);
 
@@ -104,6 +104,7 @@ class DCSDevice : public o2::framework::Task
   int mFitInterval;
   bool mDebugWritten{false};
   bool mWriteDebug{false};
+  bool mReportTiming{false};
 };
 
 void DCSDevice::init(o2::framework::InitContext& ic)
@@ -126,10 +127,12 @@ void DCSDevice::init(o2::framework::InitContext& ic)
   mCDBStorage.setResponsible("Jens Wiechula (jens.wiechula@cern.ch)");
   mCDBStorage.setIntervention(CDBIntervention::Automatic);
   mCDBStorage.setReason("DCS workflow upload");
+  mReportTiming = ic.options().get<bool>("report-timing") || mWriteDebug;
 }
 
 void DCSDevice::run(o2::framework::ProcessingContext& pc)
 {
+  TStopwatch sw;
   mLastCreationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
   if (mUpdateIntervalStart == 0) {
     mUpdateIntervalStart = mLastCreationTime;
@@ -140,16 +143,20 @@ void DCSDevice::run(o2::framework::ProcessingContext& pc)
   }
   auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
   mDCS.process(dps);
+  sw.Stop();
+  if (mReportTiming) {
+    LOGP(info, "Timing CPU:{:.3e} Real:{:.3e} at slice {}", sw.CpuTime(), sw.RealTime(), pc.services().get<o2::framework::TimingInfo>().timeslice);
+  }
 }
 
 template <typename T>
-void DCSDevice::sendObject(DataAllocator& output, T& obj, const CDBType calibType, const DCSProcessor::TimeRange& timeRange)
+void DCSDevice::sendObject(DataAllocator& output, T& obj, const CDBType calibType)
 {
   LOGP(info, "Prepare CCDB for {}", CDBTypeMap.at(calibType));
 
   std::map<std::string, std::string> md = mCDBStorage.getMetaData();
   o2::ccdb::CcdbObjectInfo w;
-  o2::calibration::Utils::prepareCCDBobjectInfo(obj, w, CDBTypeMap.at(calibType), md, timeRange.first, timeRange.last);
+  o2::calibration::Utils::prepareCCDBobjectInfo(obj, w, CDBTypeMap.at(calibType), md, mUpdateIntervalStart, mLastCreationTime - 1);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&obj, &w);
 
   LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", w.getPath(), w.getFileName(), image->size(), w.getStartValidityTimestamp(), w.getEndValidityTimestamp());
@@ -159,9 +166,9 @@ void DCSDevice::sendObject(DataAllocator& output, T& obj, const CDBType calibTyp
 
 void DCSDevice::updateCCDB(DataAllocator& output)
 {
-  sendObject(output, mDCS.getTemperature(), CDBType::CalTemperature, mDCS.getTimeTemperature());
-  sendObject(output, mDCS.getHighVoltage(), CDBType::CalHV, mDCS.getTimeHighVoltage());
-  sendObject(output, mDCS.getGas(), CDBType::CalGas, mDCS.getTimeGas());
+  sendObject(output, mDCS.getTemperature(), CDBType::CalTemperature);
+  sendObject(output, mDCS.getHighVoltage(), CDBType::CalHV);
+  sendObject(output, mDCS.getGas(), CDBType::CalGas);
 }
 
 /// ===| create DCS processor |=================================================
@@ -187,6 +194,7 @@ DataProcessorSpec getDCSSpec()
     AlgorithmSpec{adaptFromTask<DCSDevice>()},
     Options{
       {"write-debug", VariantType::Bool, false, {"write a debug output tree"}},
+      {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
       {"update-interval", VariantType::Int, 60 * 5, {"update interval in seconds for which ccdb entries are written"}},
       {"fit-interval", VariantType::Int, 60, {"interval in seconds for which to e.g. perform fits of the temperature sensors"}},
       {"round-to-interval", VariantType::Bool, false, {"round fit interval to fixed times e.g. to every 5min in the hour"}},

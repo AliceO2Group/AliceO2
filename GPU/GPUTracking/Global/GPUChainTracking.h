@@ -78,11 +78,12 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int Finalize() override;
   int RunChain() override;
   void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
-  int CheckErrorCodes(bool cpuOnly = false) override;
+  int CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false) override;
   bool SupportsDoublePipeline() override { return true; }
   int FinalizePipelinedProcessing() override;
-  void ClearErrorCodes();
+  void ClearErrorCodes(bool cpuOnly = false);
   void DoQueuedCalibUpdates(int stream); // Forces doing queue calib updates, don't call when you are not sure you are allowed to do so!
+  bool QARanForTF() const { return mFractionalQAEnabled; }
 
   // Structures for input and output data
   GPUTrackingInOutPointers& mIOPtrs;

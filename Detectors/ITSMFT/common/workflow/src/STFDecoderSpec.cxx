@@ -73,8 +73,6 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     LOG(error) << "non-std::exception was thrown in decoder creation";
     throw;
   }
-
-  auto detID = Mapping::getDetID();
   mApplyNoiseMap = !ic.options().get<bool>("ignore-noise-map");
   mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
   try {
@@ -102,31 +100,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   }
 
   if (mDoClusters) {
-    try {
-      mClusterer = std::make_unique<Clusterer>();
-      mClusterer->setNChips(Mapping::getNChips());
-      const auto grp = o2::parameters::GRPObject::loadFrom();
-      if (grp) {
-        mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut(detID));
-      } else {
-        throw std::runtime_error("failed to retrieve GRP");
-      }
-
-      // settings for the fired pixel overflow masking
-      const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
-      const auto& clParams = ClustererParam<Mapping::getDetID()>::Instance();
-      auto nbc = clParams.maxBCDiffToMaskBias;
-      nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
-      mClusterer->setMaxBCSeparationToMask(nbc);
-      mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
-      mClusterer->print();
-    } catch (const std::exception& e) {
-      LOG(error) << "exception was thrown in clustrizer configuration: " << e.what();
-      throw;
-    } catch (...) {
-      LOG(error) << "non-std::exception was thrown in clusterizer configuration";
-      throw;
-    }
+    mClusterer = std::make_unique<Clusterer>();
+    mClusterer->setNChips(Mapping::getNChips());
   }
 }
 
@@ -202,6 +177,8 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     mEstNROF = std::max(mEstNROF, size_t(clusROFVec.size() * 1.2));
   }
 
+  pc.outputs().snapshot(Output{orig, "PHYSTRIG", 0, Lifetime::Timeframe}, mDecoder->getExternalTriggers());
+
   if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE)) {
     mDecoder->produceRawDataDumps(mDumpOnError, DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true)));
   }
@@ -242,9 +219,32 @@ template <class Mapping>
 void STFDecoder<Mapping>::updateTimeDependentParams(ProcessingContext& pc)
 {
   // we call these methods just to trigger finaliseCCDB callback
-  pc.inputs().get<o2::itsmft::NoiseMap*>("noise");
-  if (mDoClusters) {
-    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    pc.inputs().get<o2::itsmft::NoiseMap*>("noise");
+
+    const auto grp = o2::parameters::GRPObject::loadFrom();
+    if (grp) {
+      mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut(Mapping::getDetID()));
+    } else {
+      throw std::runtime_error("failed to retrieve GRP");
+    }
+
+    if (mDoClusters) {
+      pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
+      pc.inputs().get<o2::itsmft::DPLAlpideParam<Mapping::getDetID()>*>("alppar");
+      // settings for the fired pixel overflow masking
+      const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
+      const auto& clParams = ClustererParam<Mapping::getDetID()>::Instance();
+      alpParams.printKeyValues();
+      clParams.printKeyValues();
+      auto nbc = clParams.maxBCDiffToMaskBias;
+      nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
+      mClusterer->setMaxBCSeparationToMask(nbc);
+      mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
+      mClusterer->print();
+    }
   }
 }
 
@@ -257,12 +257,19 @@ void STFDecoder<Mapping>::finaliseCCDB(o2::framework::ConcreteDataMatcher& match
     if (mApplyNoiseMap) {
       AlpideCoder::setNoisyPixels((const NoiseMap*)obj);
     }
+    return;
   }
   if (matcher == ConcreteDataMatcher(Mapping::getOrigin(), "CLUSDICT", 0)) {
     LOG(info) << Mapping::getName() << " cluster dictionary updated" << (!mUseClusterDictionary ? " but its using is disabled" : "");
     if (mUseClusterDictionary) {
       mClusterer->setDictionary((const TopologyDictionary*)obj);
     }
+    return;
+  }
+  // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
+  if (matcher == ConcreteDataMatcher(Mapping::getOrigin(), "ALPIDEPARAM", 0)) {
+    LOG(info) << "Alpide param updated";
+    return;
   }
 }
 
@@ -286,6 +293,7 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
     // if (doClusters && doPatterns)
     outputs.emplace_back(inp.origin, "PATTERNS", 0, Lifetime::Timeframe);
   }
+  outputs.emplace_back(inp.origin, "PHYSTRIG", 0, Lifetime::Timeframe);
 
   if (inp.askSTFDist) {
     for (auto& ins : inputs) { // mark input as optional in order not to block the workflow if our raw data happen to be missing in some TFs
@@ -299,7 +307,9 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
   if (inp.doClusters) {
     inputs.emplace_back("cldict", inp.origin, "CLUSDICT", 0, Lifetime::Condition,
                         o2::framework::ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", inp.origin.as<std::string>())));
+    inputs.emplace_back("alppar", inp.origin, "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Config/AlpideParam", inp.origin.as<std::string>())));
   }
+
   return DataProcessorSpec{
     inp.deviceName,
     inputs,

@@ -129,7 +129,11 @@ void dumpDeviceSpec2DDS(std::ostream& out,
         << fmt::format("<decltask name=\"{}{}\">\n", spec.id, workflowSuffix);
     out << "       "
         << R"(<exe reachable="true">)";
-    out << std::regex_replace(fmt::format("sleep {}; ", timeout) + commandInfo.command, std::regex{"--dds(?!-)"}, "--dump") << " | ";
+    static bool doSleep = !getenv("DPL_DDS_SLEEP") || atoi(getenv("DPL_DDS_SLEEP"));
+    if (doSleep) {
+      out << fmt::format("sleep {}; ", timeout);
+    }
+    out << std::regex_replace(commandInfo.command, std::regex{"--dds(?!-)"}, "--dump") << " | ";
     timeout += 0.2;
     for (auto ei : execution.environ) {
       out << fmt::format(ei,

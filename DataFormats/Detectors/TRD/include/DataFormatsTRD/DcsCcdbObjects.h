@@ -26,15 +26,17 @@ namespace trd
 {
 
 struct TRDDCSMinMaxMeanInfo {
+  uint64_t firstTS{0};  // time stamp of the first point added
+  uint64_t lastTS{0};   // time stamp of the last point added
   float minValue{0.f};  // min value seen by the TRD DCS processor
   float maxValue{0.f};  // max value seen by the TRD DCS processor
   float meanValue{0.f}; // mean value seen by the TRD DCS processor
   int nPoints{0};       // number of values seen by the TRD DCS processor
 
   void print() const;
-  void addPoint(float value);
+  void addPoint(float value, uint64_t ts);
 
-  ClassDefNV(TRDDCSMinMaxMeanInfo, 1);
+  ClassDefNV(TRDDCSMinMaxMeanInfo, 2);
 };
 
 } // namespace trd

@@ -19,12 +19,15 @@
 
 #include <vector>
 #include <string_view>
+#include <unordered_map>
+#include <memory>
 
-//root includes
+// root includes
+#include "TH1.h"
 #include "TH1F.h"
 #include "TH2F.h"
 
-//o2 includes
+// o2 includes
 #include "DataFormatsTPC/Defs.h"
 
 namespace o2
@@ -66,19 +69,38 @@ class Tracks
   /// Dump results to a file
   void dumpToFile(std::string_view filename);
 
+  // To set the elementary track cuts
+  void setTrackCuts(float AbsEta = 1.,
+                    int nClusterCut = 60, float dEdxTot = 20)
+  {
+    mCutAbsEta = AbsEta;
+    mCutMinnCls = nClusterCut;
+    mCutMindEdxTot = dEdxTot;
+  }
+  // Just for backward compatibility with crrent QC, temporary, will be removed in the next PR
   /// get 1D histograms
   std::vector<TH1F>& getHistograms1D() { return mHist1D; }
   const std::vector<TH1F>& getHistograms1D() const { return mHist1D; }
 
+  // Just for backward compatibility with crrent QC, temporary, will be removed in the next PR
   /// get 2D histograms
   std::vector<TH2F>& getHistograms2D() { return mHist2D; }
   const std::vector<TH2F>& getHistograms2D() const { return mHist2D; }
 
+  // Just for backward compatibility with crrent QC, temporary, will be removed in the next PR
   /// get ratios of 1D histograms
   std::vector<TH1F>& getHistogramRatios1D() { return mHistRatio1D; }
   const std::vector<TH1F>& getHistogramRatios1D() const { return mHistRatio1D; }
 
+  /// get ratios of 1D histograms
+  std::unordered_map<std::string_view, std::unique_ptr<TH1>>& getMapHist() { return mMapHist; }
+  const std::unordered_map<std::string_view, std::unique_ptr<TH1>>& getMapHist() const { return mMapHist; }
+
  private:
+  float mCutAbsEta = 1.f;      // Eta cut
+  int mCutMinnCls = 60;        // minimum N clusters
+  float mCutMindEdxTot = 20.f; // dEdxTot min value
+  std::unordered_map<std::string_view, std::unique_ptr<TH1>> mMapHist;
   std::vector<TH1F> mHist1D{};      ///< Initialize vector of 1D histograms
   std::vector<TH2F> mHist2D{};      ///< Initialize vector of 2D histograms
   std::vector<TH1F> mHistRatio1D{}; ///< Initialize vector of ratios of 1D histograms

@@ -17,6 +17,7 @@
 #include "Framework/DataTypes.h"
 #include "CommonConstants/MathConstants.h"
 #include "CommonConstants/PhysicsConstants.h"
+#include "CommonConstants/GeomConstants.h"
 
 using namespace o2::constants::math;
 
@@ -109,6 +110,8 @@ DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //! Pseudorapidity
                               -1.f * nlog(ntan(PIQuarter - 0.5f * natan(aod::track::tgl))));
 DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, //! Transverse momentum of the track in GeV/c
                               nabs(1.f / aod::track::signed1Pt));
+DECLARE_SOA_DYNAMIC_COLUMN(IsWithinBeamPipe, isWithinBeamPipe, //! Is the track within the beam pipe (= successfully propagated to a collision vertex)
+                           [](float x) -> bool { return (std::fabs(x) < o2::constants::geom::XBeamPipeOuterRef); });
 DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign, //! Charge: positive: 1, negative: -1
                            [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, //! Momentum in x-direction in GeV/c
@@ -285,7 +288,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk versi
                        o2::soa::Index<>, track::CollisionId, track::TrackType,
                        track::X, track::Alpha,
                        track::Y, track::Z, track::Snp, track::Tgl,
-                       track::Signed1Pt,
+                       track::Signed1Pt, track::IsWithinBeamPipe<track::X>,
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
@@ -304,7 +307,7 @@ DECLARE_SOA_TABLE_FULL(StoredTracksIU, "Tracks_IU", "AOD", "TRACK_IU", //! On di
                        o2::soa::Index<>, track::CollisionId, track::TrackType,
                        track::X, track::Alpha,
                        track::Y, track::Z, track::Snp, track::Tgl,
-                       track::Signed1Pt,
+                       track::Signed1Pt, track::IsWithinBeamPipe<track::X>,
                        track::Px<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Py<track::Signed1Pt, track::Snp, track::Alpha>,
                        track::Pz<track::Signed1Pt, track::Tgl>,
@@ -966,7 +969,7 @@ namespace soa
 {
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMcParticles_000, aod::StoredMcParticles_001);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksIU);
-}
+} // namespace soa
 
 namespace aod
 {

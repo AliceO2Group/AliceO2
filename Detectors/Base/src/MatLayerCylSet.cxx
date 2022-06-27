@@ -258,6 +258,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
   short lrID = lmax;
   while (lrID >= lmin) { // go from outside to inside
     const auto& lr = getLayer(lrID);
+    int nphiSlices = lr.getNPhiSlices();
     int nc = ray.crossLayer(lr);
     for (int ic = nc; ic--;) {
       float cross1, cross2;
@@ -267,11 +268,11 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
       // account for eventual wrapping around 0
       if (dPhi > 0.f) {
         if (dPhi > o2::constants::math::PI) { // wraps around phi=0
-          phiIDLast += lr.getNPhiSlices();
+          phiIDLast += nphiSlices;
         }
       } else {
         if (dPhi < -o2::constants::math::PI) { // wraps around phi=0
-          phiID += lr.getNPhiSlices();
+          phiID += nphiSlices;
         }
       }
       int stepPhiID = phiID > phiIDLast ? -1 : 1;
@@ -283,7 +284,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
           tEndPhi = cross2;
           checkMorePhi = false;
         } else { // last phi slice still not reached
-          tEndPhi = ray.crossRadial(lr, (stepPhiID > 0 ? phiID + 1 : phiID) % lr.getNPhiSlices());
+          tEndPhi = ray.crossRadial(lr, (stepPhiID > 0 ? phiID + 1 : phiID) % nphiSlices);
           if (tEndPhi == Ray::InvalidT) {
             break; // ray parallel to radial line, abandon check for phi bin change
           }
@@ -312,7 +313,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
             }
             // account materials of this step
             float step = tEndZ > tStartZ ? tEndZ - tStartZ : tStartZ - tEndZ; // the real step is ray.getDist(tEnd-tStart), will rescale all later
-            const auto& cell = lr.getCell(phiID, zID);
+            const auto& cell = lr.getCell(phiID % nphiSlices, zID);
             rval.meanRho += cell.meanRho * step;
             rval.meanX2X0 += cell.meanX2X0 * step;
             rval.length += step;
@@ -323,7 +324,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
             printf(
               "Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d (%3d) |[%+e %+e +%e]:[%+e %+e %+e] "
               "Step: %.3e StrpCor: %.3e\n",
-              lrID, ic, tEndZ, tStartZ, phiID % lr.getNPhiSlices(), zID, zIDLast,
+              lrID, ic, tEndZ, tStartZ, phiID % nphiSlices, zID, zIDLast,
               pos0[0], pos0[1], pos0[2], pos1[0], pos1[1], pos1[2], step, ray.getDist(step));
 #endif
 
@@ -332,7 +333,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
           } while (checkMoreZ);
         } else {
           float step = tEndPhi > tStartPhi ? tEndPhi - tStartPhi : tStartPhi - tEndPhi; // the real step is |ray.getDist(tEnd-tStart)|, will rescale all later
-          const auto& cell = lr.getCell(phiID, zID);
+          const auto& cell = lr.getCell(phiID % nphiSlices, zID);
           rval.meanRho += cell.meanRho * step;
           rval.meanX2X0 += cell.meanX2X0 * step;
           rval.length += step;
@@ -343,7 +344,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
           printf(
             "Lr#%3d / cross#%d : account %f<t<%f at phiSlice %d | Zbin: %3d ----- |[%+e %+e +%e]:[%+e %+e %+e]"
             "Step: %.3e StrpCor: %.3e\n",
-            lrID, ic, tEndPhi, tStartPhi, phiID % lr.getNPhiSlices(), zID,
+            lrID, ic, tEndPhi, tStartPhi, phiID % nphiSlices, zID,
             pos0[0], pos0[1], pos0[2], pos1[0], pos1[1], pos1[2], step, ray.getDist(step));
 #endif
         }

@@ -20,5 +20,7 @@
 #pragma link C++ class o2::zdc::Module + ;
 #pragma link C++ class o2::zdc::ModuleConfig + ;
 #pragma link C++ class o2::zdc::TriggerChannelConfig + ;
-
+#pragma link C++ function o2::zdc::removeNamespace + ;
+#pragma link C++ function o2::zdc::endsWith + ;
+#pragma link C++ function o2::zdc::ccdbShortcuts + ;
 #endif

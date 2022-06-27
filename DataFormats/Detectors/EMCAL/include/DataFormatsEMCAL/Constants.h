@@ -91,6 +91,7 @@ namespace constants
 {
 
 constexpr int OVERFLOWCUT = 950;               ///< sample overflow
+constexpr int LG_SUPPRESSION_CUT = 880;        ///< LG bunch suppression ADC value
 constexpr int ORDER = 2;                       ///< Order of shaping stages of the signal conditioning unit
 constexpr double TAU = 2.35;                   ///< Approximate shaping time
 constexpr Double_t EMCAL_TIMESAMPLE = 100.;    ///< Width of a timebin in nanoseconds

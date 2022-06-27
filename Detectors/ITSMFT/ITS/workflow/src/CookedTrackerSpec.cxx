@@ -150,7 +150,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
 
   for (size_t iRof{0}; iRof < rofspan.size(); ++iRof) {
     auto& rof = rofspan[iRof];
-    bool selROF = !multEstConf.isPassingRandomRejection();
+    bool selROF = multEstConf.isPassingRandomRejection();
     if (!selROF) {
       cutRandomMult++;
     } else if (multEstConf.isMultCutRequested()) { // cut was requested
@@ -177,7 +177,6 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
     vtxROF.setFirstEntry(vertices.size());
     vtxROF.setNEntries(0);
-
     if (!processingMask[iRof]) {
       rof.setFirstEntry(tracks.size());
       rof.setNEntries(0);
@@ -188,6 +187,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     for (auto& v : mTimeFrame.getPrimaryVertices(iRof)) {
       vtxVecLoc.push_back(v);
     }
+
     if (multEstConf.isVtxMultCutRequested()) { // cut was requested
       std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> vtxVecSel;
       vtxVecSel.swap(vtxVecLoc);
@@ -227,7 +227,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     }
   }
 
-  LOG(info) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
+  LOG(info) << "ITSCookedTracker pushed " << tracks.size() << " tracks and " << vertices.size() << " vertices";
 
   if (mUseMC) {
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, trackLabels);

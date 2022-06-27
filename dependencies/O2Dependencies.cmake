@@ -74,7 +74,7 @@ set_package_properties(Microsoft.GSL
                        TYPE REQUIRED
                        PURPOSE "Mainly for its span")
 
-find_package(FairMQ CONFIG)
+find_package(FairMQ 1.4.41 CONFIG)
 set_package_properties(FairMQ PROPERTIES TYPE REQUIRED)
 
 # find_package(protobuf CONFIG)

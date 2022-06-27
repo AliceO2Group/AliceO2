@@ -23,6 +23,7 @@ o2_add_library(TPCWorkflow
                        src/CalDetMergerPublisherSpec.cxx
                        src/KryptonClustererSpec.cxx
                        src/KryptonRawFilterSpec.cxx
+                       src/SACProcessorSpec.cxx
                        src/IDCToVectorSpec.cxx
                        src/CalibdEdxSpec.cxx
                        src/CalibratordEdxSpec.cxx
@@ -91,6 +92,11 @@ o2_add_executable(laser-track-filter
 o2_add_executable(apply-ccdb-calib
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-apply-ccdb-calib.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(sac-processing
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-sac-processing.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_executable(idc-integrate

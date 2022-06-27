@@ -19,7 +19,7 @@ namespace o2
 namespace tof
 {
 
-o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB = 0, bool doCalib = 0, bool isCosmic = 0, std::string ccdb_url = "");
+o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB = 0, bool doCalib = 0, bool isCosmic = 0, std::string ccdb_url = "", bool isForCalib = false);
 
 } // end namespace tof
 } // end namespace o2

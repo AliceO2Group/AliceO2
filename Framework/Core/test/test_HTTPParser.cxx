@@ -198,10 +198,18 @@ BOOST_AUTO_TEST_CASE(HTTPParser1)
     std::vector<uv_buf_t> encoded;
     encode_websocket_frames(encoded, buffer, strlen(buffer) + 1, WebSocketOpCode::Binary, 0);
     BOOST_REQUIRE_EQUAL(encoded.size(), 1);
-    char const* buffer2 = "and again.";
-    encode_websocket_frames(encoded, buffer2, strlen(buffer2) + 1, WebSocketOpCode::Binary, 0);
+    char const* prototype = "and again.";
+    char* buffer2 = (char*)malloc(0x20000);
+    // fill the buffer with the prototype
+    size_t mod = strlen(prototype);
+    for (size_t i = 0; i < 0x20000; i++) {
+      buffer2[i] = prototype[i % mod];
+    }
+    buffer2[0x20000 - 1] = '\0';
+    encode_websocket_frames(encoded, buffer2, 0x20000, WebSocketOpCode::Binary, 0);
     BOOST_REQUIRE_EQUAL(encoded.size(), 2);
-    char* multiBuffer = (char*)malloc(encoded[0].len + encoded[1].len + 4);
+    BOOST_REQUIRE_EQUAL(encoded[1].len, 0x20000 + 10);
+    char* multiBuffer = (char*)malloc(encoded[0].len + encoded[1].len);
     memcpy(multiBuffer, encoded[0].base, encoded[0].len);
     memcpy(multiBuffer + encoded[0].len, encoded[1].base, encoded[1].len);
 
@@ -248,13 +256,10 @@ BOOST_AUTO_TEST_CASE(HTTPParser1)
     BOOST_REQUIRE_EQUAL(encoded.size(), 1);
     char const* buffer2 = "xsanjkcnsadjknc dsjc nsdnc dlscndsck dsc ds clds cds vnlsfl nklnjk nj nju n nio nkmnklfmdkl mkld mkl mkl mkl mlk m lkm klfdnkln jkafdnk nk mkldfm lkdamlkdmlkdmlk m klml km lkm kl.";
     encode_websocket_frames(encoded, buffer2, strlen(buffer2) + 1, WebSocketOpCode::Binary, 0);
-    BOOST_REQUIRE_EQUAL(encoded.size(), 2);
-    char* multiBuffer = (char*)malloc(encoded[0].len + encoded[1].len + 4);
-    memcpy(multiBuffer, encoded[0].base, encoded[0].len);
-    memcpy(multiBuffer + encoded[0].len, encoded[1].base, encoded[1].len);
+    BOOST_REQUIRE_EQUAL(encoded.size(), 1);
 
     TestWSHandler handler;
-    decode_websocket(multiBuffer, encoded[0].len + encoded[1].len, handler);
+    decode_websocket(encoded[0].base, encoded[0].len, handler);
     BOOST_REQUIRE_EQUAL(handler.mFrame.size(), 2);
     BOOST_REQUIRE_EQUAL(handler.mSize.size(), 2);
     BOOST_REQUIRE_EQUAL(std::string(handler.mFrame[0], handler.mSize[0] - 1), std::string(buffer));

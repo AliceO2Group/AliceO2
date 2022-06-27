@@ -49,7 +49,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 #include <boost/algorithm/string.hpp>
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/functional/hash.hpp>
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
 #if defined(__APPLE__)
 struct sysinfo {
   unsigned long freeram = -1;
@@ -88,7 +88,7 @@ std::function<size_t(void)> createFreeMemoryGetter(InitContext& ictx)
 {
   std::string sessionID;
   std::string channelConfig;
-  if (FairMQDevice* device = ictx.services().get<RawDeviceService>().device()) {
+  if (fair::mq::Device* device = ictx.services().get<RawDeviceService>().device()) {
     if (auto options = device->GetConfig()) {
       sessionID = options->GetPropertyAsString("session", "");
       channelConfig = options->GetPropertyAsString("channel-config", "");

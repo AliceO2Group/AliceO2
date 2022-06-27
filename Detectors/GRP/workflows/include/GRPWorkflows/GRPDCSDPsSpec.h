@@ -43,6 +43,8 @@ class GRPDCSDPsDataProcessor : public Task
   std::unique_ptr<GRPDCSDPsProcessor> mProcessor;
   HighResClock::time_point mTimer;
   int64_t mDPsUpdateInterval;
+  bool mReportTiming = false;
+  bool mLHCIFupdated = false;
 };
 } // namespace grp
 

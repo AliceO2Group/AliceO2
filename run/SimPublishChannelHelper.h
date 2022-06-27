@@ -14,6 +14,8 @@
 
 #include <string>
 #include <fairmq/Channel.h>
+#include <fairmq/Message.h>
+#include <fairmq/TransportFactory.h>
 
 namespace o2::simpubsub
 {
@@ -35,11 +37,11 @@ std::string simStatusString(std::string const& origin, std::string const& topic,
 }
 
 // helper function to publish a message to an outside subscriber
-bool publishMessage(FairMQChannel& channel, std::string const& message)
+bool publishMessage(fair::mq::Channel& channel, std::string const& message)
 {
   if (channel.IsValid()) {
     auto text = new std::string(message);
-    std::unique_ptr<FairMQMessage> payload(channel.NewMessage(
+    std::unique_ptr<fair::mq::Message> payload(channel.NewMessage(
       const_cast<char*>(text->c_str()),
       text->length(), [](void* data, void* hint) { delete static_cast<std::string*>(hint); }, text));
     if (channel.Send(payload) > 0) {
@@ -52,14 +54,14 @@ bool publishMessage(FairMQChannel& channel, std::string const& message)
 }
 
 // make channel (transport factory needs to be injected)
-FairMQChannel createPUBChannel(std::string const& address,
-                               std::string const& type = "pub")
+fair::mq::Channel createPUBChannel(std::string const& address,
+                                   std::string const& type = "pub")
 {
-  auto factory = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   static int i = 0;
   std::stringstream str;
   str << "channel" << i++;
-  auto externalpublishchannel = FairMQChannel{str.str(), type, factory};
+  auto externalpublishchannel = fair::mq::Channel{str.str(), type, factory};
   externalpublishchannel.Init();
   if ((type.compare("pub") == 0) || (type.compare("pull") == 0)) {
     externalpublishchannel.Bind(address);

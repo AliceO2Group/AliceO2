@@ -30,12 +30,17 @@ namespace emcal
 struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibParams> {
 
   unsigned int minNEvents = 1e6;              ///< minimum number of events to trigger the calibration
-  unsigned int minNEntries = 1e5;             ///< minimum number of entries to trigger the calibration
+  unsigned int minNEntries = 1e6;             ///< minimum number of entries to trigger the calibration
   bool useNEventsForCalib = true;             ///< use the minimum number of events to trigger the calibration
   std::string calibType = "time";             ///< type of calibration to run
   std::string localRootFilePath = "";         ///< path to local root file in order to store the calibration histograms (off by default, only to be used for testing)
   bool useScaledHistoForBadChannelMap = true; ///< use the scaled histogram for the bad channel map
   bool enableTestMode = false;                ///< enable test mode for calibration
+  float minCellEnergyForTimeCalib = 0.5;      ///< minimum cell energy to enter the time calibration (typical minimum seed energy for clusters), time resolution gets better with rising energy
+  unsigned int slotLength = 0;                ///< Lenght of the slot before calibration is triggered. If set to 0 calibration is triggered when hasEnoughData returns true
+  bool UpdateAtEndOfRunOnly = false;          ///< switsch to enable trigger of calibration only at end of run
+  bool enableTimeProfiling = false;           ///< enable to log how much time is spent in the run function in the calibrator spec. Needed for speed tests offline and at point 2
+  bool enableFastCalib = false;               ///< switch to enable fast calibration. Instead of filling boost histograms, mean and sigma of cells is calculated on the fly
 
   O2ParamDef(EMCALCalibParams, "EMCALCalibParams");
 };

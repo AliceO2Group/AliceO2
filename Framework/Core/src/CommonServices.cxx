@@ -32,6 +32,7 @@
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/Tracing.h"
 #include "Framework/Monitoring.h"
+#include "Framework/AsyncQueue.h"
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
 #include "HTTPParser.h"
@@ -50,7 +51,7 @@
 #include <fairmq/Device.h>
 #include <fairmq/shmem/Monitor.h>
 #include <fairmq/shmem/Common.h>
-#include <options/FairMQProgOptions.h>
+#include <fairmq/ProgOptions.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -121,6 +122,16 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
     .kind = ServiceKind::Serial};
 }
 
+// An asyncronous service that executes actions in at the end of the data processing
+o2::framework::ServiceSpec CommonServices::asyncQueue()
+{
+  return ServiceSpec{
+    .name = "async-queue",
+    .init = simpleServiceInit<AsyncQueue, AsyncQueue>(),
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
+}
+
 // Make it a service so that it can be used easily from the analysis
 // FIXME: Moreover, it makes sense that this will be duplicated on a per thread
 // basis when we get to it.
@@ -176,7 +187,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
         time_t now = time(nullptr);
         auto ltm = gmtime(&now);
         context.lhcPeriod = months[ltm->tm_mon];
-        LOG(warning) << "LHCPeriod is not available, using current month " << context.lhcPeriod;
+        LOG(info) << "LHCPeriod is not available, using current month " << context.lhcPeriod;
       }
 
       auto extRunType = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("run_type", "unspecified");
@@ -652,7 +663,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         // is conservatively the one of the device doing the forwarding.
         if (spec.forwards[fi].channel.rfind("from_", 0) == 0) {
           auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
-          LOGP(info, "Forwarding to channel {} oldest possible timeslice {}", spec.forwards[fi].channel, oldestTimeslice.timeslice.value);
+          LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}", spec.forwards[fi].channel, oldestTimeslice.timeslice.value);
           DataProcessingHelpers::sendOldestPossibleTimeframe(channel, oldestTimeslice.timeslice.value);
         }
       }
@@ -868,6 +879,7 @@ o2::framework::ServiceSpec CommonServices::objectCache()
 std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 {
   std::vector<ServiceSpec> specs{
+    asyncQueue(),
     timingInfoSpec(),
     timesliceIndex(),
     driverClientSpec(),

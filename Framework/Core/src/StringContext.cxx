@@ -16,7 +16,7 @@
 namespace o2::framework
 {
 
-void StringContext::addString(std::unique_ptr<FairMQMessage> header,
+void StringContext::addString(std::unique_ptr<fair::mq::Message> header,
                               std::unique_ptr<std::string> s,
                               RouteIndex routeIndex)
 {

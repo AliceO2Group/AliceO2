@@ -260,6 +260,15 @@ struct AnalysisDataProcessorBuilder {
     using G = std::decay_t<Grouping>;
     auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, processingFunction, infos);
 
+    auto presliceTable = [&task](auto& table) {
+      homogeneous_apply_refs([&table](auto& x) {
+        return PresliceManager<std::decay_t<decltype(x)>>::processTable(x, table);
+      },
+                             task);
+    };
+    // pre-slice grouping table if required
+    presliceTable(groupingTable);
+
     // set filtered tables for partitions with grouping
     homogeneous_apply_refs([&groupingTable](auto& x) {
       PartitionManager<std::decay_t<decltype(x)>>::setPartition(x, groupingTable);
@@ -330,6 +339,12 @@ struct AnalysisDataProcessorBuilder {
 
       if constexpr (soa::is_soa_iterator_t<std::decay_t<G>>::value) {
         // grouping case
+        // pre-slice associated tables
+        std::apply([&presliceTable](auto&... x) {
+          (presliceTable(x), ...);
+        },
+                   associatedTables);
+
         auto slicer = GroupSlicer(groupingTable, associatedTables);
         for (auto& slice : slicer) {
           auto associatedSlices = slice.associatedTables();
@@ -351,6 +366,12 @@ struct AnalysisDataProcessorBuilder {
         }
       } else {
         // non-grouping case
+        // pre-slice associated tables
+        std::apply([&presliceTable](auto&... x) {
+          (presliceTable(x), ...);
+        },
+                   associatedTables);
+
         overwriteInternalIndices(associatedTables, associatedTables);
         // bind partitions and grouping table
         homogeneous_apply_refs([&groupingTable](auto& x) {
@@ -615,13 +636,19 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       for (auto& info : expressionInfos) {
         info.resetSelection = true;
       }
+      // reset pre-slice for the next dataframe
+      homogeneous_apply_refs([](auto& x) { return PresliceManager<std::decay_t<decltype(x)>>::setNewDF(x); }, *(task.get()));
+      // prepare outputs
       homogeneous_apply_refs([&pc](auto&& x) { return OutputManager<std::decay_t<decltype(x)>>::prepare(pc, x); }, *task.get());
+      // execute run()
       if constexpr (has_run_v<T>) {
         task->run(pc);
       }
+      // execture process()
       if constexpr (has_process_v<T>) {
         AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos);
       }
+      // execute optional process()
       homogeneous_apply_refs(
         [&pc, &expressionInfos, &task](auto& x) mutable {
           if constexpr (is_base_of_template<ProcessConfigurable, std::decay_t<decltype(x)>>::value) {
@@ -633,7 +660,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
           return false;
         },
         *task.get());
-
+      // finalize outputs
       homogeneous_apply_refs([&pc](auto&& x) { return OutputManager<std::decay_t<decltype(x)>>::finalize(pc, x); }, *task.get());
     };
   }};

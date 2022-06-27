@@ -14,6 +14,7 @@ o2_add_library(Framework
                        src/ArrowSupport.cxx
                        src/AnalysisDataModel.cxx
                        src/ASoA.cxx
+                       src/AsyncQueue.cxx
                        src/AnalysisHelpers.cxx
                        src/AnalysisDataModelHelpers.cxx
                        src/BoostOptionsRetriever.cxx
@@ -35,6 +36,7 @@ o2_add_library(Framework
                        src/ConfigContext.cxx
                        src/ControlService.cxx
                        src/ControlServiceHelpers.cxx
+                       src/ControlWebSocketHandler.cxx
                        src/CCDBHelpers.cxx
                        src/DispatchPolicy.cxx
                        src/DataSender.cxx
@@ -170,6 +172,7 @@ foreach(t
         AlgorithmSpec
         AnalysisTask
         AnalysisDataModel
+        AsyncQueue
         ASoA
         ASoAHelpers
         BoostOptionsRetriever

@@ -18,6 +18,7 @@
 #include "Framework/Logger.h"
 
 #include "FairRunSim.h"
+#include <FairRootFileSink.h>
 #include "FairRuntimeDb.h"
 #include "FairPrimaryGenerator.h"
 #include "FairBoxGenerator.h"
@@ -76,7 +77,7 @@ DataProcessorSpec sim_tpc()
         FairRunSim* run = new FairRunSim();
 
         run->SetName(mcEngine.c_str());
-        run->SetOutputFile(outFile.c_str()); // Output file
+        run->SetSink(new FairRootFileSink(outFile.c_str())); // Output file
         FairRuntimeDb* rtdb = run->GetRuntimeDb();
 
         // Create media

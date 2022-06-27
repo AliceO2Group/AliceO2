@@ -127,6 +127,7 @@ class GRPECSObject
   void print() const;
 
   static GRPECSObject* loadFrom(const std::string& grpecsFileName = "");
+  static constexpr bool alwaysTriggeredRO(DetID::ID det) { return DefTriggeredDets[det]; }
 
  private:
   timePoint mTimeStart = 0; ///< DAQ_time_start entry from DAQ logbook
@@ -136,11 +137,14 @@ class GRPECSObject
 
   DetID::mask_t mDetsReadout;      ///< mask of detectors which are read out
   DetID::mask_t mDetsContinuousRO; ///< mask of detectors read out in continuos mode
-  DetID::mask_t mDetsTrigger;      ///< mask of detectors which provide trigger
+  DetID::mask_t mDetsTrigger;      ///< mask of detectors which provide trigger input to CTP
   bool mIsMC = false;              ///< flag GRP for MC
   int mRun = 0;                    ///< run identifier
   RunType mRunType = NONE;         ///< run type
   std::string mDataPeriod{};       ///< name of the period
+
+  // detectors which are always readout in triggered mode. Others are continuous by default but exceptionally can be triggered
+  static constexpr DetID::mask_t DefTriggeredDets = DetID::getMask(DetID::TRD) | DetID::getMask(DetID::PHS) | DetID::getMask(DetID::CPV) | DetID::getMask(DetID::EMC) | DetID::getMask(DetID::HMP);
 
   ClassDefNV(GRPECSObject, 4);
 };

@@ -283,21 +283,20 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       continue;
     }
     bool droppingNotCondition = false;
-    for (size_t mi = 0; mi == mInputs.size(); ++mi) {
+    for (size_t mi = 0; mi < mInputs.size(); ++mi) {
       auto& input = mInputs[mi];
       auto& element = mCache[si * mInputs.size() + mi];
-      if (input.lifetime != Lifetime::Condition && element.size() != 0) {
-        LOGP(error, "Dropping Lifetime::{} data in slot {} with timestamp {} < {}.", input.lifetime, si, timestamp.value, newOldest.timeslice.value);
-        droppingNotCondition = true;
-        break;
+      if (element.size() != 0) {
+        if (input.lifetime != Lifetime::Condition && mCompletionPolicy.name != "internal-dpl-injected-dummy-sink") {
+          LOGP(error, "Dropping {} Lifetime::{} data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+        } else {
+          LOGP(debug,
+               "Silently dropping data {} in pipeline slot {} because it has timeslice {} < {} after receiving data from channel {}."
+               "Because Lifetime::Timeframe data not there and not expected (e.g. due to sampling) we drop non sampled, non timeframe data (e.g. Conditions).",
+               DataSpecUtils::describe(input), si, timestamp.value, newOldest.timeslice.value,
+               mTimesliceIndex.getChannelInfo(channel).channel->GetName());
+        }
       }
-    }
-    if (!droppingNotCondition) {
-      LOGP(info,
-           "Silently dropping data in pipeline slot {} because it has timeslice {} < {} after receiving data from channel {}."
-           "Because Lifetime::Timeframe data not there and not expected (e.g. due to sampling) we drop non sampled, non timeframe data (e.g. Conditions).",
-           si, timestamp.value, newOldest.timeslice.value,
-           mTimesliceIndex.getChannelInfo(channel).channel->GetName());
     }
   }
 }
@@ -309,7 +308,7 @@ TimesliceIndex::OldestOutputInfo DataRelayer::getOldestPossibleOutput() const
 
 DataRelayer::RelayChoice
   DataRelayer::relay(void const* rawHeader,
-                     std::unique_ptr<FairMQMessage>* messages,
+                     std::unique_ptr<fair::mq::Message>* messages,
                      size_t nMessages,
                      size_t nPayloads)
 {
@@ -399,7 +398,7 @@ DataRelayer::RelayChoice
     assert(nPayloads > 0);
     for (size_t mi = 0; mi < nMessages; ++mi) {
       assert(mi + nPayloads < nMessages);
-      target.add([&messages, &mi](size_t i) -> FairMQMessagePtr& { return messages[mi + i]; }, nPayloads + 1);
+      target.add([&messages, &mi](size_t i) -> fair::mq::MessagePtr& { return messages[mi + i]; }, nPayloads + 1);
       mi += nPayloads;
     }
   };

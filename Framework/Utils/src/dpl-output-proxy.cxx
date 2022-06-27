@@ -59,8 +59,11 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   static bool doOrdered = getenv("DPL_OUTPUT_PROXY_ORDERED") && atoi(getenv("DPL_OUTPUT_PROXY_ORDERED"));
+  static bool doAny = getenv("DPL_OUTPUT_PROXY_WHENANY") && atoi(getenv("DPL_OUTPUT_PROXY_WHENANY"));
   if (doOrdered) {
     policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*"));
+  } else if (doAny) {
+    policies.push_back(CompletionPolicyHelpers::consumeWhenAny(".*"));
   }
 }
 

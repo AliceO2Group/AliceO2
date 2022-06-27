@@ -20,7 +20,6 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "EveWorkflow/EveConfiguration.h"
 #include "EveWorkflow/EveWorkflowHelper.h"
-#include "Framework/AnalysisTask.h"
 #include <memory>
 
 using GID = o2::dataformats::GlobalTrackID;

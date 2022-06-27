@@ -75,10 +75,10 @@
 #include <InfoLogger/InfoLogger.hxx>
 #include "ResourcesMonitoringHelper.h"
 
-#include "FairMQDevice.h"
+#include <fairmq/Device.h>
 #include <fairmq/DeviceRunner.h>
 #include <fairmq/shmem/Monitor.h>
-#include "options/FairMQProgOptions.h"
+#include <fairmq/ProgOptions.h>
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/options_description.hpp>
@@ -690,7 +690,19 @@ void handle_crash(int /* sig */)
 
   int size = backtrace(array, 1024);
 
+  {
+    char const* msg = "*** Segmentation fault (O2)\nBacktrace:\n";
+    int len = strlen(msg); /* the byte length of the string */
+    (void)write(STDERR_FILENO, msg, len);
+  }
   demangled_backtrace_symbols(array, size, STDERR_FILENO);
+  {
+    char const* msg = "Backtrace complete.\n";
+    int len = strlen(msg); /* the byte length of the string */
+
+    (void)write(STDERR_FILENO, msg, len);
+    fsync(STDERR_FILENO);
+  }
   _exit(1);
 }
 
@@ -1461,7 +1473,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       case DriverState::MATERIALISE_WORKFLOW:
         try {
           auto workflowState = WorkflowHelpers::verifyWorkflow(workflow);
-          if (driverInfo.batch == true && workflowState == WorkflowParsingState::Empty) {
+          if (driverInfo.batch == true && !varmap["dds"].as<bool>() && !varmap["dump-workflow"].as<bool>() && workflowState == WorkflowParsingState::Empty) {
             LOGP(error, "Empty workflow provided while running in batch mode.");
             return 1;
           }

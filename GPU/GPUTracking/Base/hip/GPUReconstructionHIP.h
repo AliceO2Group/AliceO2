@@ -33,6 +33,8 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
 {
  public:
   ~GPUReconstructionHIPBackend() override;
+  int GPUFailedMsgAI(const long long int error, const char* file, int line);
+  void GPUFailedMsgA(const long long int error, const char* file, int line);
 
  protected:
   GPUReconstructionHIPBackend(const GPUSettingsDeviceBackend& cfg);

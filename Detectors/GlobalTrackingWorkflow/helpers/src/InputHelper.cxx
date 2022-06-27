@@ -76,8 +76,8 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskClusters[GID::MFT]) {
     specs.emplace_back(o2::itsmft::getMFTClusterReaderSpec(maskClustersMC[GID::MFT], true));
   }
-  if (maskTracks[GID::MCH]) {
-    specs.emplace_back(o2::mch::getTrackReaderSpec(maskTracksMC[GID::MCH]));
+  if (maskTracks[GID::MCH] || maskMatches[GID::MCHMID]) {
+    specs.emplace_back(o2::mch::getTrackReaderSpec(maskTracksMC[GID::MCH] || maskTracksMC[GID::MCHMID]));
   }
   if (maskTracks[GID::MID]) {
     specs.emplace_back(o2::mid::getTrackReaderSpec(maskTracksMC[GID::MID]));
@@ -109,7 +109,9 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskMatches[GID::TPCTRDTOF] || maskTracks[GID::TPCTRDTOF]) {
     specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTRDTOF], 2, /*maskTracks[GID::ITSTPCTOF]*/ false)); // ITSTPCTOF does not provide tracks, only matchInfo
   }
-  if (maskClusters[GID::TOF] || maskTracks[GID::ITSTPCTOF]) { // Note: maskTracks[GID::ITSTPCTOF] is only here to match the behavior of RecoContainer::requestTracks
+  if (maskClusters[GID::TOF] ||
+      maskTracks[GID::ITSTPCTOF] || maskTracks[GID::ITSTPCTRDTOF] || maskTracks[GID::TPCTRDTOF] ||
+      maskMatches[GID::ITSTPCTOF] || maskMatches[GID::ITSTPCTRDTOF] || maskMatches[GID::TPCTRDTOF]) {
     specs.emplace_back(o2::tof::getClusterReaderSpec(maskClustersMC[GID::TOF]));
   }
   if (maskMatches[GID::TPCTOF]) {

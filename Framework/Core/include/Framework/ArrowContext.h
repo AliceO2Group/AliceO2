@@ -39,7 +39,7 @@ class ArrowContext
 
   struct MessageRef {
     /// The header to be associated with the message
-    std::unique_ptr<FairMQMessage> header;
+    std::unique_ptr<fair::mq::Message> header;
     /// The actual buffer holding the ArrowData
     std::shared_ptr<FairMQResizableBuffer> buffer;
     /// The function to call to finalise the builder into the message
@@ -49,7 +49,7 @@ class ArrowContext
 
   using Messages = std::vector<MessageRef>;
 
-  void addBuffer(std::unique_ptr<FairMQMessage> header,
+  void addBuffer(std::unique_ptr<fair::mq::Message> header,
                  std::shared_ptr<FairMQResizableBuffer> buffer,
                  std::function<void(std::shared_ptr<FairMQResizableBuffer>)> finalize,
                  RouteIndex routeIndex)

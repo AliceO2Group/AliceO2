@@ -34,7 +34,7 @@
 #include <TMemFile.h>
 #include <curl/curl.h>
 
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
 
 #include <cstdlib>
 #include <random>
@@ -453,7 +453,7 @@ ExpirationHandler::Handler
     // Receive parts and put them in the PartRef
     // we know this is not blocking because we were polled
     // on the channel.
-    FairMQParts parts;
+    fair::mq::Parts parts;
     device->Receive(parts, channelName, 0);
     ref.header = std::move(parts.At(0));
     ref.payload = std::move(parts.At(1));
@@ -511,6 +511,7 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
 
     variables.put({data_matcher::FIRSTTFORBIT_POS, dh.firstTForbit});
     variables.put({data_matcher::TFCOUNTER_POS, dh.tfCounter});
+    variables.put({data_matcher::RUNNUMBER_POS, dh.runNumber});
     variables.put({data_matcher::STARTTIME_POS, dph.startTime});
     variables.put({data_matcher::CREATIONTIME_POS, dph.creation});
 

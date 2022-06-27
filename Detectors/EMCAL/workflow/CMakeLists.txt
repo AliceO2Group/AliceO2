@@ -22,7 +22,7 @@ o2_add_library(EMCALWorkflow
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
                        src/StandaloneAODProducerSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsEMCAL O2::EMCALSimulation O2::Steer
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsCTP O2::DataFormatsEMCAL O2::EMCALSimulation O2::Steer
                                      O2::DPLUtils O2::EMCALBase O2::EMCALReconstruction O2::Algorithm O2::MathUtils)
 
 o2_add_executable(reco-workflow

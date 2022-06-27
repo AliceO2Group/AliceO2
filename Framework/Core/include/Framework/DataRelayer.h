@@ -87,7 +87,7 @@ class DataRelayer
   ActivityStats processDanglingInputs(std::vector<ExpirationHandler> const&,
                                       ServiceRegistry& context, bool createNew);
 
-  /// This is to relay a whole set of FairMQMessages, all which are part
+  /// This is to relay a whole set of fair::mq::Messages, all which are part
   /// of the same set of split parts.
   /// @a rawHeader raw header pointer
   /// @a messages pointer to array of messages
@@ -98,7 +98,7 @@ class DataRelayer
   ///              separate parts
   /// Notice that we expect that the header is an O2 Header Stack
   RelayChoice relay(void const* rawHeader,
-                    std::unique_ptr<FairMQMessage>* messages,
+                    std::unique_ptr<fair::mq::Message>* messages,
                     size_t nMessages,
                     size_t nPayloads = 1);
 

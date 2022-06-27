@@ -21,13 +21,21 @@
 
 #endif
 
+#include "ZDCBase/Helpers.h"
 using namespace o2::zdc;
 using namespace std;
 
 void CreateModuleConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
 {
+  // Shortcuts: internal, external, test, local, root
 
   ModuleConfig conf;
+
+  // Conversion factor for baseline
+  conf.nBunchAverage = 2; // Number of bunch crossings in average
+  int bshift = std::ceil(std::log2(double(o2::zdc::NTimeBinsPerBC) * double(conf.nBunchAverage) * double(ADCRange))) - 16;
+  int divisor = 0x1 << bshift;
+  conf.baselineFactor = float(divisor) / float(conf.nBunchAverage) / float(o2::zdc::NTimeBinsPerBC);
 
   int modID;
 
@@ -128,21 +136,19 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = ""
   conf.check();
   conf.print();
 
+  std::string ccdb_host = ccdbShortcuts(ccdbHost, conf.Class_Name(), CCDBPathConfigModule);
+
+  if (endsWith(ccdb_host, ".root")) {
+    TFile f(ccdb_host.data(), "recreate");
+    f.WriteObjectAny(&conf, conf.Class_Name(), "ccdb_object");
+    f.Close();
+    return;
+  }
+
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
-  if (ccdbHost.size() == 0 || ccdbHost == "external") {
-    ccdbHost = "http://alice-ccdb.cern.ch:8080";
-  } else if (ccdbHost == "internal") {
-    ccdbHost = "http://o2-ccdb.internal/";
-  } else if (ccdbHost == "test") {
-    ccdbHost = "http://ccdb-test.cern.ch:8080";
-  } else if (ccdbHost == "local") {
-    ccdbHost = "http://localhost:8080";
-  }
-  api.init(ccdbHost.c_str());
+  api.init(ccdb_host.c_str());
   LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&conf, CCDBPathConfigModule, metadata, tmin, tmax);
-
-  // return conf;
 }

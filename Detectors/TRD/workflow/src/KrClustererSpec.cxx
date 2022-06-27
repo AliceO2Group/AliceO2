@@ -70,15 +70,11 @@ void TRDKrClustererDevice::endOfStream(EndOfStreamContext& ec)
   LOG(info) << "Done with the cluster finding (EoS received)";
 }
 
-DataProcessorSpec getKrClustererSpec(bool digitTrigRec)
+DataProcessorSpec getKrClustererSpec()
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("digits", o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe);
-  if (digitTrigRec) {
-    inputs.emplace_back("triggerRecords", o2::header::gDataOriginTRD, "TRGRDIG", 0, Lifetime::Timeframe);
-  } else {
-    inputs.emplace_back("triggerRecords", o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe);
-  }
+  inputs.emplace_back("digits", ConcreteDataTypeMatcher{o2::header::gDataOriginTRD, "DIGITS"}, Lifetime::Timeframe);
+  inputs.emplace_back("triggerRecords", ConcreteDataTypeMatcher{o2::header::gDataOriginTRD, "TRKTRGRD"}, Lifetime::Timeframe);
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTRD, "KRCLUSTER", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTRD, "TRGKRCLS", 0, Lifetime::Timeframe);

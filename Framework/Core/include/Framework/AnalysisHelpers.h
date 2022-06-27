@@ -642,7 +642,6 @@ struct Partition {
     return mFiltered->size();
   }
 };
-
 } // namespace o2::framework
 
 namespace o2::soa

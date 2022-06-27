@@ -22,7 +22,6 @@
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DeviceSpec.h"
-#include <fairmq/FairMQDevice.h>
 
 using namespace o2::framework;
 

@@ -155,7 +155,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     LOGF(info, "TRD digitization timing: Cpu: %.3e Real: %.3e s", timer.CpuTime(), timer.RealTime());
 
     LOG(info) << "TRD: Sending " << digitsAccum.size() << " digits";
-    pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
+    pc.outputs().snapshot(Output{"TRD", "DIGITS", 1, Lifetime::Timeframe}, digitsAccum);
     if (mctruth) {
       LOG(info) << "TRD: Sending " << labelsAccum.getNElements() << " labels";
       // we are flattening the labels and write to managed shared memory container for further communication
@@ -165,7 +165,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     LOG(info) << "TRD: Sending ROMode= " << mROMode << " to GRPUpdater";
     pc.outputs().snapshot(Output{"TRD", "ROMode", 0, Lifetime::Timeframe}, mROMode);
     LOG(info) << "TRD: Sending trigger records";
-    pc.outputs().snapshot(Output{"TRD", "TRGRDIG", 0, Lifetime::Timeframe}, triggers);
+    pc.outputs().snapshot(Output{"TRD", "TRKTRGRD", 1, Lifetime::Timeframe}, triggers);
     // we should be only called once; tell DPL that this process is ready to exit
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     finished = true;
@@ -186,8 +186,8 @@ o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel, bool mctruth)
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("TRD", "TRGRDIG", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TRD", "DIGITS", 1, Lifetime::Timeframe);
+  outputs.emplace_back("TRD", "TRKTRGRD", 1, Lifetime::Timeframe);
   if (mctruth) {
     outputs.emplace_back("TRD", "LABELS", 0, Lifetime::Timeframe);
   }

@@ -14,8 +14,8 @@
 
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
-#include <fairmq/FairMQParts.h>
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Parts.h>
+#include <fairmq/Device.h>
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
 #include "DetectorsDCS/DataPointCompositeObject.h"
@@ -54,13 +54,14 @@ using DPCOM = o2::dcs::DataPointCompositeObject;
 o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dpid2group, bool fbiFirst, bool verbose = false)
 {
 
-  return [dpid2group, fbiFirst, verbose](o2::framework::TimingInfo& tinfo, FairMQDevice& device, FairMQParts& parts, o2f::ChannelRetriever channelRetriever) {
+  return [dpid2group, fbiFirst, verbose](o2::framework::TimingInfo& tinfo, fair::mq::Device& device, fair::mq::Parts& parts, o2f::ChannelRetriever channelRetriever) {
     static std::unordered_map<DPID, DPCOM> cache; // will keep only the latest measurement in the 1-second wide window for each DPID
-    static auto timer = std::chrono::system_clock::now();
-    static auto timer0 = std::chrono::system_clock::now();
+    static auto timer = std::chrono::high_resolution_clock::now();
+    static auto timer0 = std::chrono::high_resolution_clock::now();
     static bool seenFBI = false;
     static uint32_t localTFCounter = 0;
-
+    static size_t nInp = 0, nInpFBI = 0;
+    static size_t szInp = 0, szInpFBI = 0;
     LOG(debug) << "In lambda function: ********* Size of unordered_map (--> number of defined groups) = " << dpid2group.size();
     // check if we got FBI (Master) or delta (MasterDelta)
     if (!parts.Size()) {
@@ -68,9 +69,12 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
       return;
     }
     std::string firstName = std::string((char*)&(reinterpret_cast<const DPCOM*>(parts.At(0)->GetData()))->id);
+
     bool isFBI = false;
+    nInp++;
     if (o2::utils::Str::endsWith(firstName, "Master")) {
       isFBI = true;
+      nInpFBI++;
       seenFBI = true;
     } else if (o2::utils::Str::endsWith(firstName, "MasterDelta")) {
       isFBI = false;
@@ -83,7 +87,12 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
 
     // We first iterate over the parts of the received message
     for (size_t i = 0; i < parts.Size(); ++i) {             // DCS sends only 1 part, but we should be able to receive more
-      auto nDPCOM = parts.At(i)->GetSize() / sizeof(DPCOM); // number of DPCOM in current part
+      auto sz = parts.At(i)->GetSize();
+      szInp += sz;
+      if (isFBI) {
+        szInpFBI += sz;
+      }
+      auto nDPCOM = sz / sizeof(DPCOM); // number of DPCOM in current part
       for (size_t j = 0; j < nDPCOM; j++) {
         const auto& src = *(reinterpret_cast<const DPCOM*>(parts.At(i)->GetData()) + j);
         // do we want to check if this DP was requested ?
@@ -92,13 +101,13 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
           LOG(info) << "Received DP " << src.id << " (data = " << src.data << "), matched to output-> " << (mapEl == dpid2group.end() ? "none " : mapEl->second.as<std::string>());
         }
         if (mapEl != dpid2group.end()) {
-          auto& dst = cache[src.id] = src; // this is needed in case in the 1s window we get a new value for the same DP
+          cache[src.id] = src; // this is needed in case in the 1s window we get a new value for the same DP
         }
       }
     }
-
-    auto timerNow = std::chrono::system_clock::now();
-    if (fbiFirst && !seenFBI) {
+    auto timerNow = std::chrono::high_resolution_clock::now();
+    if (fbiFirst && nInpFBI < 2) { // 1st FBI might be obsolete
+      seenFBI = false;
       static int prevDelay = 0;
       std::chrono::duration<double, std::ratio<1>> duration = timerNow - timer0;
       int delay = duration.count();
@@ -120,7 +129,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
         }
       }
       std::uint64_t creation = std::chrono::time_point_cast<std::chrono::milliseconds>(timerNow).time_since_epoch().count();
-      std::unordered_map<std::string, std::unique_ptr<FairMQParts>> messagesPerRoute;
+      std::unordered_map<std::string, std::unique_ptr<fair::mq::Parts>> messagesPerRoute;
       // create and send output messages
       for (auto& it : outputs) { // distribute messages per routes
         o2h::DataHeader hdr(it.first, "DCS", 0);
@@ -149,9 +158,9 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
         memcpy(hdMessage->GetData(), headerStack.data(), headerStack.size());
         memcpy(plMessage->GetData(), it.second.data(), hdr.payloadSize);
 
-        FairMQParts* parts2send = messagesPerRoute[channel].get(); // FairMQParts*
+        fair::mq::Parts* parts2send = messagesPerRoute[channel].get(); // fair::mq::Parts*
         if (!parts2send) {
-          messagesPerRoute[channel] = std::make_unique<FairMQParts>();
+          messagesPerRoute[channel] = std::make_unique<fair::mq::Parts>();
           parts2send = messagesPerRoute[channel].get();
         }
         parts2send->AddPart(std::move(hdMessage));
@@ -171,6 +180,10 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
       if (!messagesPerRoute.empty()) {
         localTFCounter++;
       }
+    }
+    if (isFBI) {
+      float runtime = 1e-3 * std::chrono::duration_cast<std::chrono::milliseconds>(timerNow - timer0).count();
+      LOGP(info, "{} inputs ({} bytes) of which {} FBI ({} bytes) seen in {:.3f} s", nInp, fmt::group_digits(szInp), nInpFBI, fmt::group_digits(szInpFBI), runtime);
     }
   };
 }

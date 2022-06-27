@@ -23,6 +23,7 @@
 #include "TRDBase/GeometryFlat.h"
 #include "TOFBase/Geo.h"
 #include "TRDBase/Geometry.h"
+#include "MCHTracking/TrackExtrap.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 
@@ -56,6 +57,8 @@ void DetectorData::init()
                              o2::math_utils::TransformType::T2G,
                              o2::math_utils::TransformType::L2G,
                              o2::math_utils::TransformType::T2L));
+
+  o2::mch::TrackExtrap::setField();
 }
 
 void DetectorData::setITSDict(const o2::itsmft::TopologyDictionary* d)

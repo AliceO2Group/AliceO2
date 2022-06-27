@@ -14,6 +14,7 @@
 #include <fmt/core.h>
 #include <gsl/span>
 #include <TSystem.h>
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "DataFormatsEMCAL/Constants.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/RCUTrailer.h"
@@ -130,7 +131,9 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
 
       bool saturatedBunchHG = false;
       createPayload(channel, ChannelType_t::HIGH_GAIN, srucont.mSRUid, payload, saturatedBunchHG);
-      createPayload(channel, ChannelType_t::LOW_GAIN, srucont.mSRUid, payload, saturatedBunchHG);
+      if (saturatedBunchHG) {
+        createPayload(channel, ChannelType_t::LOW_GAIN, srucont.mSRUid, payload, saturatedBunchHG);
+      }
     }
 
     if (!payload.size()) {
@@ -150,7 +153,7 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     auto ddlid = srucont.mSRUid;
     auto [crorc, link] = mGeometry->getLinkAssignment(ddlid);
     LOG(debug1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
-    mRawWriter->addData(ddlid, crorc, link, 0, trg.getBCData(), payload, false, trg.getTriggerBits());
+    mRawWriter->addData(ddlid, crorc, link, 0, trg.getBCData() + o2::ctp::TriggerOffsetsParam::Instance().LM_L0, payload, false, trg.getTriggerBits());
   }
   LOG(debug) << "Done";
   return true;
@@ -174,7 +177,7 @@ void RawWriter::createPayload(o2::emcal::ChannelData channel, o2::emcal::Channel
     rawbunches.push_back(bunch.mStarttime);
     for (auto adc : bunch.mADCs) {
       rawbunches.push_back(adc);
-      if (adc > o2::emcal::constants::OVERFLOWCUT) {
+      if (adc > o2::emcal::constants::LG_SUPPRESSION_CUT) {
         saturatedBunch = true;
       }
     }

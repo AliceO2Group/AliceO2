@@ -162,6 +162,8 @@ void GRPLHCIFfileProcessor::run(o2::framework::ProcessingContext& pc)
     lhcifdata.setBunchFillingWithTime((bunchConfigB1.back().first + bunchConfigB2.back().first) / 2, bunchFilling);
   }
 
+  lhcifdata.setBeamAZ();
+
   if (mVerbose) {
     LOG(info) << " **** Beam Energy ****";
     for (auto& el : beamEnergy) {

@@ -15,6 +15,7 @@
 
 #include <InfoLogger/InfoLogger.hxx>
 
+#include "CommonConstants/Triggers.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -22,6 +23,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Logger.h"
 #include "Framework/WorkflowSpec.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "DataFormatsEMCAL/Constants.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "DataFormatsEMCAL/ErrorTypeFEE.h"
@@ -120,6 +122,11 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     return;
   }
 
+  // Get the first orbit of the timeframe later used to check whether the corrected
+  // BC is within the timeframe
+  const auto tfOrbitFirst = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ctx.inputs().getFirstValid(true))->firstTForbit;
+  auto lml0delay = o2::ctp::TriggerOffsetsParam::Instance().LM_L0;
+
   // Cache cells from for bunch crossings as the component reads timeframes from many links consecutively
   std::map<o2::InteractionRecord, std::shared_ptr<std::vector<RecCellInfo>>> cellBuffer; // Internal cell buffer
   std::map<o2::InteractionRecord, uint32_t> triggerBuffer;
@@ -144,7 +151,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         rawreader.next();
       } catch (RawDecodingError& e) {
         if (mCreateRawDataErrors) {
-          mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()));
+          mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()), -1);
         }
         if (mNumErrorMessages < mMaxErrorMessages) {
           LOG(alarm) << " Page decoding: " << e.what() << " in FEE ID " << e.getFECID() << std::endl;
@@ -168,6 +175,15 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       auto triggerbits = raw::RDHUtils::getTriggerType(header);
 
       o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
+      // Correct physics triggers for the shift of the BC due to the LM-L0 delay
+      if (triggerbits & o2::trigger::PhT) {
+        if (currentIR.differenceInBC({0, tfOrbitFirst}) >= lml0delay) {
+          currentIR -= lml0delay; // guaranteed to stay in the TF containing the collision
+        } else {
+          // discard the data associated with this IR as it was triggered before the start of timeframe
+          continue;
+        }
+      }
       std::shared_ptr<std::vector<RecCellInfo>> currentCellContainer;
       auto found = cellBuffer.find(currentIR);
       if (found == cellBuffer.end()) {
@@ -232,7 +248,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         }
         if (mCreateRawDataErrors) {
           // fill histograms  with error types
-          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(e.getErrorType()));
+          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(e.getErrorType()), -1);
           mOutputDecoderErrors.push_back(errornum);
         }
         continue;
@@ -248,7 +264,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           } else {
             mErrorMessagesSuppressed++;
           }
-          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, MinorAltroDecodingError::errorTypeToInt(minorerror.getErrorType()));
+          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, MinorAltroDecodingError::errorTypeToInt(minorerror.getErrorType()), -1);
           mOutputDecoderErrors.push_back(errornum);
         }
       }
@@ -333,7 +349,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               mErrorMessagesSuppressed++;
             }
             if (mCreateRawDataErrors) {
-              mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, 0); // 0 -> Cell ID out of range
+              mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, 0, CellID); // 0 -> Cell ID out of range
             }
             continue;
           }
@@ -363,7 +379,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               mErrorMessagesSuppressed++;
             }
             if (mCreateRawDataErrors) {
-              mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, -1); // Geometry error codes will start from 100
+              mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, 2, CellID); // Geometry error codes will start from 100
             }
             continue;
           }
@@ -379,6 +395,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             if (fitResults.getTime() < 0) {
               fitResults.setTime(0.);
             }
+            // Correct the cell time for the bc mod 4 (LHC: 40 MHz clock - ALTRO: 10 MHz clock)
+            // Convention: All times shifted with respect to BC % 4 = 0 for trigger BC
+            int bcmod4 = currentIR.bc % 4;
+            double celltime = fitResults.getTime() - timeshift - 25 * bcmod4;
             double amp = fitResults.getAmp() * CONVADCGEV;
             if (mMergeLGHG) {
               // Handling of HG/LG for ceratin cells
@@ -395,7 +415,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                     if (ampOld > o2::emcal::constants::OVERFLOWCUT) {
                       // High gain digit has energy above overflow cut, use low gain instead
                       res->mCellData.setEnergy(amp * o2::emcal::constants::EMCAL_HGLGFACTOR);
-                      res->mCellData.setTimeStamp(fitResults.getTime() - timeshift);
+                      res->mCellData.setTimeStamp(celltime);
                       res->mCellData.setLowGain();
                     }
                     res->mIsLGnoHG = false;
@@ -409,7 +429,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                   res->mHWAddressHG = chan.getHardwareAddress();
                   if (amp / CONVADCGEV <= o2::emcal::constants::OVERFLOWCUT) {
                     res->mCellData.setEnergy(amp);
-                    res->mCellData.setTimeStamp(fitResults.getTime() - timeshift);
+                    res->mCellData.setTimeStamp(celltime);
                     res->mCellData.setHighGain();
                   }
                 }
@@ -431,7 +451,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                   hwAddressHG = chan.getHardwareAddress();
                 }
                 int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
-                currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, chantype),
+                currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, celltime, chantype),
                                                  lgNoHG,
                                                  hgOutOfRange,
                                                  fecID, feeID, hwAddressLG, hwAddressHG});
@@ -446,7 +466,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                 amp *= o2::emcal::constants::EMCAL_HGLGFACTOR;
               }
               int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
-              currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, fitResults.getTime() - timeshift, chantype),
+              currentCellContainer->push_back({o2::emcal::Cell(CellID, amp, celltime, chantype),
                                                false,
                                                false,
                                                fecID, feeID, hwAddressLG, hwAddressHG});
@@ -463,12 +483,13 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               } else {
                 mErrorMessagesSuppressed++;
               }
+              // Exclude BUNCH_NOT_OK also from raw error objects
+              if (mCreateRawDataErrors) {
+                mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror), CellID);
+              }
             } else {
               LOG(debug2) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
               nBunchesNotOK++;
-            }
-            if (mCreateRawDataErrors) {
-              mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror));
             }
           }
         }
@@ -482,7 +503,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           }
         }
         if (mCreateRawDataErrors) {
-          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(AltroDecoderError::ErrorType_t::ALTRO_MAPPING_ERROR));
+          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(AltroDecoderError::ErrorType_t::ALTRO_MAPPING_ERROR), -1);
         }
       }
     }
@@ -508,7 +529,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             mErrorMessagesSuppressed++;
           }
           if (mCreateRawDataErrors) {
-            mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 0);
+            mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 0, cell.mFecID);
           }
           continue;
         }
@@ -523,7 +544,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             mErrorMessagesSuppressed++;
           }
           if (mCreateRawDataErrors) {
-            mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 1);
+            mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 1, cell.mFecID);
           }
           continue;
         }
@@ -570,6 +591,7 @@ void RawToCellConverterSpec::sendData(framework::ProcessingContext& ctx, const s
   ctx.outputs().snapshot(framework::Output{originEMC, "CELLS", mSubspecification, framework::Lifetime::Timeframe}, cells);
   ctx.outputs().snapshot(framework::Output{originEMC, "CELLSTRGR", mSubspecification, framework::Lifetime::Timeframe}, triggers);
   if (mCreateRawDataErrors) {
+    LOG(debug) << "Sending " << decodingErrors.size() << " decoding errors";
     ctx.outputs().snapshot(framework::Output{originEMC, "DECODERERR", mSubspecification, framework::Lifetime::Timeframe}, decodingErrors);
   }
 }

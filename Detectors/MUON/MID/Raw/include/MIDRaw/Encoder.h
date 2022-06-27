@@ -54,10 +54,12 @@ class Encoder
 
  private:
   void completeWord(std::vector<char>& buffer);
-  void writePayload(uint16_t linkId, const InteractionRecord& ir);
+  void writePayload(uint16_t linkId, const InteractionRecord& ir, bool onlyNonEmpty = false);
   void onOrbitChange(uint32_t orbit);
   /// Returns the interaction record expected for the orbit trigger
   inline InteractionRecord getOrbitIR(uint32_t orbit) const { return {o2::constants::lhc::LHCMaxBunches - 1, orbit}; }
+  /// Initializes the last interaction record
+  void initIR();
 
   o2::raw::RawFileWriter mRawWriter{o2::header::gDataOriginMID}; /// Raw file writer
 

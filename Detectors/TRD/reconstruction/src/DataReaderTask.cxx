@@ -49,28 +49,6 @@ void DataReaderTask::setParsingErrorLabels()
   mParsingErrors->GetXaxis()->SetBinLabel(TRDParsingDigitADCMaskAdvanceToEnd, "TRDParsingDigitADCMaskAdvanceToEnd");
   mParsingErrors->GetXaxis()->SetBinLabel(TRDParsingDigitMCMHeaderBypassButStateMCMHeader, "TRDParsingDigitMCMHeaderBypassButStateMCMHeader");
   mParsingErrors->GetXaxis()->SetBinLabel(TRDParsingDigitEndMarkerStateButReadingMCMADCData, "TRDParsingDigitEndMarkerStateButReadingMCMADCData");
-  /*                       TRDParsingDigitADCChannel21,
-                           TRDParsingDigitADCChannelGT22,
-                           TRDParsingDigitGT10ADCs,
-                           TRDParsingDigitSanityCheck,
-                           TRDParsingDigitExcessTimeBins,
-                           TRDParsingDigitParsingExitInWrongState,
-                           TRDParsingDigitStackMisMatch,
-                           TRDParsingDigitLayerMisMatch,
-                           TRDParsingDigitSectorMisMatch,
-                           TRDParsingTrackletCRUPaddingWhileParsingTracklets,
-                           TRDParsingTrackletBit11NotSetInTrackletHCHeader,
-                           TRDParsingTrackletHCHeaderSanityCheckFailure,
-                           TRDParsingTrackletMCMHeaderSanityCheckFailure,
-                           TRDParsingTrackletMCMHeaderButParsingMCMData,
-                           TRDParsingTrackletStateMCMHeaderButParsingMCMData,
-                           TRDParsingTrackletTrackletCountGTThatDeclaredInMCMHeader,
-                           TRDParsingTrackletInvalidTrackletCount,
-                           TRDParsingTrackletPadRowIncreaseError,
-                           TRDParsingTrackletColIncreaseError,
-                           TRDParsingTrackletNoTrackletEndMarker,
-                           TRDParsingTrackletExitingNoTrackletEndMarker
-                           */
 }
 
 void DataReaderTask::buildHistograms()

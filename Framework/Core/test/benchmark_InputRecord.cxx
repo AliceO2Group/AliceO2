@@ -18,7 +18,7 @@
 #include "Framework/InputRecord.h"
 #include "Framework/InputSpan.h"
 #include <Monitoring/Monitoring.h>
-#include <fairmq/FairMQTransportFactory.h>
+#include <fairmq/TransportFactory.h>
 #include <cstring>
 
 using Monitoring = o2::monitoring::Monitoring;

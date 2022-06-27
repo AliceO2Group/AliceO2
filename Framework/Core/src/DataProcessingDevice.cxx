@@ -12,6 +12,7 @@
 #define TRACY_ENABLE
 #include <tracy/TracyClient.cpp>
 #endif
+#include "Framework/AsyncQueue.h"
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/ChannelMatching.h"
 #include "Framework/ControlService.h"
@@ -50,9 +51,9 @@
 
 #include <Framework/Tracing.h>
 
-#include <fairmq/FairMQParts.h>
-#include <fairmq/FairMQSocket.h>
-#include <options/FairMQProgOptions.h>
+#include <fairmq/Parts.h>
+#include <fairmq/Socket.h>
+#include <fairmq/ProgOptions.h>
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
 #include <TMessage.h>
@@ -239,7 +240,7 @@ struct PollerContext {
   uv_loop_t* loop = nullptr;
   DataProcessingDevice* device = nullptr;
   DeviceState* state = nullptr;
-  FairMQSocket* socket = nullptr;
+  fair::mq::Socket* socket = nullptr;
   InputChannelInfo* channelInfo = nullptr;
   int fd = -1;
   bool read = true;
@@ -416,13 +417,22 @@ void on_signal_callback(uv_signal_t* handle, int signum)
   context->stats->totalSigusr1 += 1;
 }
 
+extern volatile int region_read_global_dummy_variable;
+volatile int region_read_global_dummy_variable;
+
 /// Invoke the callbacks for the mPendingRegionInfos
-void handleRegionCallbacks(ServiceRegistry& registry, std::vector<FairMQRegionInfo>& infos)
+void handleRegionCallbacks(ServiceRegistry& registry, std::vector<fair::mq::RegionInfo>& infos)
 {
   if (infos.empty() == false) {
-    std::vector<FairMQRegionInfo> toBeNotified;
+    std::vector<fair::mq::RegionInfo> toBeNotified;
     toBeNotified.swap(infos); // avoid any MT issue.
+    static bool dummyRead = getenv("DPL_DEBUG_MAP_ALL_SHM_REGIONS") && atoi(getenv("DPL_DEBUG_MAP_ALL_SHM_REGIONS"));
     for (auto const& info : toBeNotified) {
+      if (dummyRead) {
+        for (size_t i = 0; i < info.size / sizeof(region_read_global_dummy_variable); i += 4096 / sizeof(region_read_global_dummy_variable)) {
+          region_read_global_dummy_variable = ((int*)info.ptr)[i];
+        }
+      }
       registry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
     }
   }
@@ -624,7 +634,7 @@ void DataProcessingDevice::InitTask()
     channel.second.at(0).Transport()->SubscribeToRegionEvents([&context = mDeviceContext,
                                                                &registry = mServiceRegistry,
                                                                &pendingRegionInfos = mPendingRegionInfos,
-                                                               &regionInfoMutex = mRegionInfoMutex](FairMQRegionInfo info) {
+                                                               &regionInfoMutex = mRegionInfoMutex](fair::mq::RegionInfo info) {
       std::lock_guard<std::mutex> lock(regionInfoMutex);
       LOG(detail) << ">>> Region info event" << info.event;
       LOG(detail) << "id: " << info.id;
@@ -720,14 +730,17 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   for (auto& forwarded : mSpec.forwards) {
     if (strncmp(DataSpecUtils::asConcreteOrigin(forwarded.matcher).str, "AOD", 3) == 0) {
       context.canForwardEarly = false;
+      LOG(detail) << "Cannot forward early because of AOD input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
     if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && mProcessingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
       context.canForwardEarly = false;
+      LOG(detail) << "Cannot forward early because of RAWDATA input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
     if (forwarded.matcher.lifetime == Lifetime::Optional) {
       context.canForwardEarly = false;
+      LOG(detail) << "Cannot forward early because of Optional input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
   }
@@ -825,6 +838,12 @@ void DataProcessingDevice::Run()
         mState.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
         fair::Logger::SetConsoleSeverity(fair::Severity::trace);
       }
+      // Run the asynchronous queue just before sleeping again, so that:
+      // - we can trigger further events from the queue
+      // - we can guarantee this is the last thing we do in the loop (
+      //   assuming no one else is adding to the queue before this point).
+      auto& queue = mServiceRegistry.get<AsyncQueue>();
+      AsyncQueueHelpers::run(queue);
       uv_run(mState.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
       if ((mState.loopReason & mState.tracingFlags) != 0) {
         mState.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
@@ -1020,7 +1039,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
       LOGP(debug, "Receiving loop called for channel {} ({}) with oldest possible timeslice {}",
            info.channel->GetName(), info.id.value, info.oldestForChannel.value);
       if (info.parts.Size() < 64) {
-        FairMQParts parts;
+        fair::mq::Parts parts;
         info.channel->Receive(parts, 0);
         if (parts.Size()) {
           LOGP(debug, "Receiving some parts {}", parts.Size());
@@ -1597,7 +1616,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     LOGP(debug, "DataProcessingDevice::tryDispatchComputation::forwardInputs");
     assert(record.size() == currentSetOfInputs.size());
     // we collect all messages per forward in a map and send them together
-    std::vector<FairMQParts> forwardedParts;
+    std::vector<fair::mq::Parts> forwardedParts;
     forwardedParts.resize(spec->forwards.size());
 
     std::vector<size_t> forwardMap;

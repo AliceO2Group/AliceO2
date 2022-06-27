@@ -21,20 +21,20 @@ using namespace o2::trd;
 
 void HalfChamberStatusQC::maskChamber(int sec, int stack, int ly)
 {
-  int det = HelperMethods::getDetector(ly, stack, sec);
+  int det = HelperMethods::getDetector(sec, stack, ly);
   mStatus.set(det * 2);
   mStatus.set(det * 2 + 1);
 }
 
 void HalfChamberStatusQC::maskHalfChamberA(int sec, int stack, int ly)
 {
-  int det = HelperMethods::getDetector(ly, stack, sec);
+  int det = HelperMethods::getDetector(sec, stack, ly);
   mStatus.set(det * 2);
 }
 
 void HalfChamberStatusQC::maskHalfChamberB(int sec, int stack, int ly)
 {
-  int det = HelperMethods::getDetector(ly, stack, sec);
+  int det = HelperMethods::getDetector(sec, stack, ly);
   mStatus.set(det * 2 + 1);
 }
 

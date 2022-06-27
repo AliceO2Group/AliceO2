@@ -97,7 +97,8 @@ class TimeFrame
   gsl::span<Cluster> getClustersOnLayer(int rofId, int layerId);
   gsl::span<const Cluster> getClustersOnLayer(int rofId, int layerId) const;
   gsl::span<const Cluster> getUnsortedClustersOnLayer(int rofId, int layerId) const;
-  index_table_t& getIndexTables(int tf);
+  gsl::span<int> getIndexTable(int rofId, int layerId);
+  std::vector<int>& getIndexTableWhole(int layerId) { return mIndexTables[layerId]; }
   const std::vector<TrackingFrameInfo>& getTrackingFrameInfoOnLayer(int layerId) const;
 
   const TrackingFrameInfo& getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const;
@@ -135,7 +136,6 @@ class TimeFrame
 
   // Vertexer
   void computeTrackletsScans();
-  std::vector<int>& getIndexTableL0(int tf);
   int& getNTrackletsROf(int tf, int combId);
   std::vector<Line>& getLines(int tf);
   std::vector<ClusterLines>& getTrackletClusters(int tf);
@@ -148,11 +148,12 @@ class TimeFrame
   const unsigned long long& getRoadLabel(int i) const;
   bool isRoadFake(int i) const;
 
-  void setMultiplicityCutMask(std::vector<bool> cutMask) { mMultiplicityCutMask = cutMask; }
+  void setMultiplicityCutMask(const std::vector<bool>& cutMask) { mMultiplicityCutMask = cutMask; }
 
   int hasBogusClusters() const { return std::accumulate(mBogusClusters.begin(), mBogusClusters.end(), 0); }
 
   void setBz(float bz) { mBz = bz; }
+  float getBz() const { return mBz; }
 
   /// Debug and printing
   void checkTrackletLUTs();
@@ -169,8 +170,7 @@ class TimeFrame
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
   std::vector<std::vector<int>> mClusterExternalIndices;
   std::vector<std::vector<int>> mROframesClusters;
-  std::vector<std::vector<int>> mIndexTablesL0;
-  std::vector<index_table_t> mIndexTables;
+  std::vector<std::vector<int>> mIndexTables;
   int mNrof = 0;
 
  private:
@@ -314,14 +314,13 @@ inline int TimeFrame::getClusterExternalIndex(int layerId, const int clId) const
   return mClusterExternalIndices[layerId][clId];
 }
 
-inline index_table_t& TimeFrame::getIndexTables(int tf)
+inline gsl::span<int> TimeFrame::getIndexTable(int rofId, int layer)
 {
-  return mIndexTables[tf];
-}
-
-inline std::vector<int>& TimeFrame::getIndexTableL0(int tf)
-{
-  return mIndexTablesL0[tf];
+  if (rofId < 0 || rofId >= mNrof) {
+    return gsl::span<int>();
+  }
+  return {&mIndexTables[layer][rofId * (mIndexTableUtils.getNphiBins() * mIndexTableUtils.getNzBins() + 1)],
+          static_cast<gsl::span<int>::size_type>(mIndexTableUtils.getNphiBins() * mIndexTableUtils.getNzBins() + 1)};
 }
 
 inline std::vector<Line>& TimeFrame::getLines(int tf)

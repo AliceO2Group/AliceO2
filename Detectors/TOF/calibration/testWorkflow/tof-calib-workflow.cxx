@@ -14,14 +14,16 @@
 #include "Framework/DataProcessorSpec.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
 #include "DataFormatsTOF/CalibInfoCluster.h"
+#include "Framework/ConfigParamSpec.h"
 using namespace o2::framework;
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
-  workflowOptions.push_back(ConfigParamSpec{"do-lhc-phase", o2::framework::VariantType::Bool, true, {"do LHC clock phase calibration"}});
+  workflowOptions.push_back(ConfigParamSpec{"do-lhc-phase", o2::framework::VariantType::Bool, false, {"do LHC clock phase calibration"}});
   workflowOptions.push_back(ConfigParamSpec{"do-channel-offset", o2::framework::VariantType::Bool, false, {"do TOF channel offset calibration"}});
   workflowOptions.push_back(ConfigParamSpec{"attach-channel-offset-to-lhcphase", o2::framework::VariantType::Bool, false, {"do TOF channel offset calibration using the LHCphase previously calculated in the same workflow"}});
   workflowOptions.push_back(ConfigParamSpec{"cosmics", o2::framework::VariantType::Bool, false, {"for cosmics data"}});
@@ -37,6 +39,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+
   auto useCCDB = configcontext.options().get<bool>("use-ccdb");
   auto doLHCcalib = configcontext.options().get<bool>("do-lhc-phase");
   auto doChannelOffsetCalib = configcontext.options().get<bool>("do-channel-offset");

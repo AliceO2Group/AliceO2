@@ -49,10 +49,13 @@ std::string FileProducer::newFileName() const
   auto result = fmt::format(this->mName, fmt::arg("hostname", hostname), fmt::arg("pid", pid), fmt::arg("timestamp", millisec_since_epoch));
   auto files = DirectoryLoader::load(this->mPath, "_"); // already sorted starting by part of name at pos
 
-  while (files.size() >= this->mFilesInFolder) {
-    auto front = files.front();
-    files.pop_front();
-    std::remove((this->mPath + "/" + front).c_str()); // delete file
+  if (this->mFilesInFolder > 0) {
+    while (files.size() >= this->mFilesInFolder) {
+      auto front = files.front();
+      files.pop_front();
+      std::remove((this->mPath + "/" + front).c_str()); // delete file
+    }
   }
+
   return this->mPath + "/" + result;
 }

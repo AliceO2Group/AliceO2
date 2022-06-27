@@ -37,33 +37,38 @@ std::vector<int> gChildProcesses; // global vector of child pids
 int gMasterProcess = -1;
 int gDriverProcess = -1;
 
+// a handler for error/termination signals
 void sigaction_handler(int signal, siginfo_t* signal_info, void*)
 {
   auto pid = getpid();
   LOG(info) << pid << " caught signal " << signal << " from source " << signal_info->si_pid;
   auto groupid = getpgrp();
   if (pid == gMasterProcess) {
-    killpg(pid, signal); // master kills whole process group
+    // master worker forwards signal to whole worker process group
+    killpg(pid, signal);
   } else {
     if (signal_info->si_pid != gDriverProcess) {
-      // forward to master if coming internally
+      // forward to master worker if coming internally
       kill(groupid, signal);
     }
   }
-  if (signal_info->si_pid == gDriverProcess) {
-    _exit(0); // external requests are not treated as error
-  }
-  if (signal == SIGTERM) {
-    // normal termination is not error
-    // need to wait for children
+
+  if (signal_info->si_pid == gDriverProcess || signal == SIGTERM) {
+    // signal was sent from driver process --> not error
+    // or it was a standard SIGTERM
+
+    // need to wait for potential children before exiting itself
+    // ... in order to have correct resource accounting
     int status, cpid;
     while ((cpid = wait(&status))) {
       if (cpid == -1) {
         break;
       }
     }
+
     _exit(0);
   }
+
   // we treat internal signal interruption as an error
   // because only ordinary termination is good in the context of the distributed system
   _exit(128 + signal);
@@ -80,8 +85,8 @@ void CustomCleanup(void* data, void* hint) { delete static_cast<std::string*>(hi
 bool initializeSim(std::string transport, std::string address, std::unique_ptr<FairRunSim>& simptr)
 {
   // This needs an already running PrimaryServer
-  auto factory = FairMQTransportFactory::CreateTransportFactory(transport);
-  auto channel = FairMQChannel{"o2sim-primserv-info", "req", factory};
+  auto factory = fair::mq::TransportFactory::CreateTransportFactory(transport);
+  auto channel = fair::mq::Channel{"o2sim-primserv-info", "req", factory};
   channel.Connect(address);
   channel.Validate();
 
@@ -99,7 +104,7 @@ o2::devices::O2SimDevice* getDevice()
   return new o2::devices::O2SimDevice(app, vmc);
 }
 
-FairMQDevice* getDevice(const FairMQProgOptions& config)
+fair::mq::Device* getDevice(const fair::mq::ProgOptions& config)
 {
   return getDevice();
 }
@@ -119,7 +124,7 @@ int initAndRunDevice(int argc, char* argv[])
     });
 
     runner.AddHook<InstantiateDevice>([](DeviceRunner& r) {
-      r.fDevice = std::unique_ptr<FairMQDevice>{getDevice(r.fConfig)};
+      r.fDevice = std::unique_ptr<fair::mq::Device>{getDevice(r.fConfig)};
     });
 
     return runner.Run();
@@ -136,24 +141,24 @@ int initAndRunDevice(int argc, char* argv[])
 
 struct KernelSetup {
   o2::devices::O2SimDevice* sim = nullptr;
-  FairMQChannel* primchannel = nullptr;
-  FairMQChannel* datachannel = nullptr;
-  FairMQChannel* primstatuschannel = nullptr;
+  fair::mq::Channel* primchannel = nullptr;
+  fair::mq::Channel* datachannel = nullptr;
+  fair::mq::Channel* primstatuschannel = nullptr;
   int workerID = -1;
 };
 
 KernelSetup initSim(std::string transport, std::string primaddress, std::string primstatusaddress, std::string mergeraddress, int workerID)
 {
-  auto factory = FairMQTransportFactory::CreateTransportFactory(transport);
-  auto primchannel = new FairMQChannel{"primary-get", "req", factory};
+  auto factory = fair::mq::TransportFactory::CreateTransportFactory(transport);
+  auto primchannel = new fair::mq::Channel{"primary-get", "req", factory};
   primchannel->Connect(primaddress);
   primchannel->Validate();
 
-  auto prim_status_channel = new FairMQChannel{"o2sim-primserv-info", "req", factory};
+  auto prim_status_channel = new fair::mq::Channel{"o2sim-primserv-info", "req", factory};
   prim_status_channel->Connect(primstatusaddress);
   prim_status_channel->Validate();
 
-  auto datachannel = new FairMQChannel{"simdata", "push", factory};
+  auto datachannel = new fair::mq::Channel{"simdata", "push", factory};
   datachannel->Connect(mergeraddress);
   datachannel->Validate();
   // the channels are setup
@@ -213,13 +218,13 @@ void pinToCPU(unsigned int cpuid)
 
 bool waitForControlInput()
 {
-  auto factory = FairMQTransportFactory::CreateTransportFactory("zeromq");
-  auto channel = FairMQChannel{"o2sim-control", "sub", factory};
+  auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+  auto channel = fair::mq::Channel{"o2sim-control", "sub", factory};
   auto controlsocketname = getenv("ALICE_O2SIMCONTROL");
   LOG(debug) << "AWAITING CONTROL ON SOCKETNAME " << controlsocketname;
   channel.Connect(std::string(controlsocketname));
   channel.Validate();
-  std::unique_ptr<FairMQMessage> reply(channel.NewMessage());
+  std::unique_ptr<fair::mq::Message> reply(channel.NewMessage());
 
   LOG(debug) << "WAITING FOR INPUT";
   if (channel.Receive(reply) > 0) {
@@ -258,6 +263,10 @@ int main(int argc, char* argv[])
       exit(EXIT_FAILURE);
     }
   }
+
+  // set the fatal callback for the logger to not do a core dump (since this might interfere with process shutdown sequence
+  // since it calls ROOT::TSystem and further child processes)
+  fair::Logger::OnFatal([] { throw fair::FatalException("Fatal error occured. Exiting without core dump..."); });
 
   // extract the path to FairMQ config
   bpo::options_description desc{"Options"};
@@ -342,7 +351,7 @@ int main(int argc, char* argv[])
     }
     // This is a solution based on initializing the simulation once
     // and then fork the process to share the simulation memory across
-    // many processes. Here we are not using FairMQDevices and just setup
+    // many processes. Here we are not using fair::mq::Devices and just setup
     // some channels manually and do our own runloop.
 
     // we init the simulation first
@@ -371,10 +380,10 @@ int main(int argc, char* argv[])
         // Each worker can publish its progress/state on a ZMQ channel.
         // We actually use a push/pull mechanism to collect all messages in the
         // master worker which can then publish using PUB/SUB.
-        // auto factory = FairMQTransportFactory::CreateTransportFactory("zeromq");
+        // auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
         auto collectAndPubThreadFunction = [driverPID, &pubchannel]() {
           auto collectorchannel = o2::simpubsub::createPUBChannel(o2::simpubsub::getPublishAddress("o2sim-workerinternal", driverPID), "pull");
-          std::unique_ptr<FairMQMessage> msg(collectorchannel.NewMessage());
+          std::unique_ptr<fair::mq::Message> msg(collectorchannel.NewMessage());
 
           while (true) {
             if (collectorchannel.Receive(msg) > 0) {
@@ -442,7 +451,7 @@ int main(int argc, char* argv[])
     }
     _exit(0);
   } else {
-    // This the solution where we setup an ordinary FairMQDevice
+    // This the solution where we setup an ordinary fair::mq::Device
     // (each if which will setup its own simulation). Parallelism
     // is achieved outside by instantiating multiple device processes.
     _exit(initAndRunDevice(argc, argv));

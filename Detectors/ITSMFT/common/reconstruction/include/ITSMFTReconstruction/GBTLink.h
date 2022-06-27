@@ -85,6 +85,7 @@ struct GBTLink {
   CollectedDataStatus status = None;
   Format format = NewFormat;
   Verbosity verbosity = VerboseErrors;
+  std::vector<GBTTrigger>* extTrigVec = nullptr;
   uint8_t idInRU = 0;     // link ID within the RU
   uint8_t idInCRU = 0;    // link ID within the CRU
   uint8_t endPointID = 0; // endpoint ID of the CRU
@@ -192,7 +193,6 @@ struct GBTLink {
 template <class Mapping>
 GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
 {
-  int nw = 0;
   status = None;
   auto* currRawPiece = rawData.currentPiece();
   uint8_t errRes = uint8_t(GBTLink::NoError);
@@ -212,9 +212,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       if (verbosity >= VerboseHeaders) {
         RDHUtils::printRDH(rdh);
       }
-      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsRDH(*rdh));     // make sure we are dealing with RDH
-      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsRDHStop(*rdh)); // if new HB starts, the lastRDH must have stop
-      //      GBTLINK_DECODE_ERRORCHECK(checkErrorsRDHStopPageEmpty(*rdh)); // end of HBF should be an empty page with stop
+      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsRDH(*rdh)); // make sure we are dealing with RDH
       hbfEntry = hbfEntrySav; // critical check of RDH passed
       lastRDH = rdh;
       statistics.nPackets++;
@@ -222,6 +220,8 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
         irHBF = RDHUtils::getHeartBeatIR(*rdh);
         hbfEntry = rawData.currentPieceID();
       }
+      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsRDHStop(*rdh)); // if new HB starts, the lastRDH must have stop
+      //      GBTLINK_DECODE_ERRORCHECK(checkErrorsRDHStopPageEmpty(*rdh)); // end of HBF should be an empty page with stop
       dataOffset += sizeof(RDH);
       auto psz = RDHUtils::getMemorySize(*rdh);
       if (psz == sizeof(RDH)) {
@@ -265,37 +265,57 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     // then we expect GBT trigger word (unless we work with old format)
     const GBTTrigger* gbtTrg = nullptr;
     if (format == NewFormat) {
-      gbtTrg = reinterpret_cast<const GBTTrigger*>(&currRawPiece->data[dataOffset]); // process GBT trigger
-      dataOffset += GBTPaddedWordLength;
-      if (verbosity >= VerboseHeaders) {
-        printTrigger(gbtTrg);
+      int ntrig = 0;
+      while (dataOffset < currRawPiece->size) { // we may have multiple trigger words in case there were physics triggers
+        const GBTTrigger* gbtTrgTmp = reinterpret_cast<const GBTTrigger*>(&currRawPiece->data[dataOffset]);
+        if (gbtTrgTmp->isTriggerWord()) {
+          ntrig++;
+          dataOffset += GBTPaddedWordLength;
+          if (verbosity >= VerboseHeaders) {
+            printTrigger(gbtTrgTmp);
+          }
+          if (gbtTrgTmp->noData == 0 || gbtTrgTmp->internal) {
+            gbtTrg = gbtTrgTmp; // this is a trigger describing the following data
+          } else {
+            if (extTrigVec) { // this link collects external triggers
+              extTrigVec->push_back(*gbtTrgTmp);
+            }
+          }
+          continue;
+        }
+        auto gbtC = reinterpret_cast<const o2::itsmft::GBTCalibration*>(&currRawPiece->data[dataOffset]);
+        if (gbtC->isCalibrationWord()) {
+          if (verbosity >= VerboseHeaders) {
+            printCalibrationWord(gbtC);
+          }
+          dataOffset += GBTPaddedWordLength;
+          LOGP(debug, "SetCalibData for RU:{} at bc:{}/orb:{} : [{}/{}]", ruPtr->ruSWID, gbtTrg ? gbtTrg->bc : -1, gbtTrg ? gbtTrg->orbit : -1, gbtC->calibCounter, gbtC->calibUserField);
+          ruPtr->calibData = {gbtC->calibCounter, gbtC->calibUserField};
+          continue;
+        }
+        break;
       }
-      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsTriggerWord(gbtTrg));
+      if (!gbtTrg) {
+        if (!ntrig) { // no ITS trigger word was seen, produce an error, but only if no external trigger was seen either
+          gbtTrg = reinterpret_cast<const GBTTrigger*>(&currRawPiece->data[dataOffset]);
+          dataOffset += GBTPaddedWordLength;
+          GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsTriggerWord(gbtTrg)); // we know there is an error, call this just to register it
+        }
+        return status; // in principle, this should not be reached
+      }
       statistics.nTriggers++;
-      if (gbtTrg->noData) { // emtpy trigger
-        return status;
-      }
       lanesStop = 0;
       lanesWithData = 0;
       ir.bc = gbtTrg->bc;
       ir.orbit = gbtTrg->orbit;
       trigger = gbtTrg->triggerType;
-    }
-    if (format == NewFormat) { // at the moment just check if calibration word is there
-      auto gbtC = reinterpret_cast<const o2::itsmft::GBTCalibration*>(&currRawPiece->data[dataOffset]);
-      if (gbtC->isCalibrationWord()) {
-        if (verbosity >= VerboseHeaders) {
-          printCalibrationWord(gbtC);
-        }
-        dataOffset += GBTPaddedWordLength;
-        LOGP(debug, "SetCalibData for RU:{} at bc:{}/orb:{} : [{}/{}]", ruPtr->ruSWID, gbtTrg->bc, gbtTrg->orbit, gbtC->calibCounter, gbtC->calibUserField);
-        ruPtr->calibData = {gbtC->calibCounter, gbtC->calibUserField};
+      if (gbtTrg->noData) {
+        return status;
       }
     }
     auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(&currRawPiece->data[dataOffset]);
     expectPacketDone = true;
     while (!gbtD->isDataTrailer()) { // start reading real payload
-      nw++;
       if (verbosity >= VerboseData) {
         gbtD->printX();
       }
@@ -320,6 +340,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     if (verbosity >= VerboseHeaders) {
       printTrailer(gbtT);
     }
+
     GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsTrailerWord(gbtT));
     // we finished the GBT page, but there might be continuation on the next CRU page
     if (!gbtT->packetDone) {

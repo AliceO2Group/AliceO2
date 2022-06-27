@@ -20,6 +20,7 @@
 #include "FairPrimaryGenerator.h"
 #include "FairBoxGenerator.h"
 #include "FairParRootFileIo.h"
+#include "FairRootFileSink.h"
 
 #include "DetectorsPassive/Cave.h"
 #include "Field/MagneticField.h"
@@ -71,7 +72,7 @@ DataProcessorSpec sim_its_ALP3()
 
         FairRunSim* run = new FairRunSim();
         run->SetName(mcEngine);
-        run->SetOutputFile(outFile); // Output file
+        run->SetSink(new FairRootFileSink(outFile.Data())); // Output file
         FairRuntimeDb* rtdb = run->GetRuntimeDb();
 
         // Create media

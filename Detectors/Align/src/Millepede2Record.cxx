@@ -84,7 +84,7 @@ void Millepede2Record::dummyRecord(float res, float err, float dGlo, int labGlo)
 }
 
 //_________________________________________________________
-bool Millepede2Record::fillTrack(const AlignmentTrack* trc, const int* id2Lab)
+bool Millepede2Record::fillTrack(AlignmentTrack* trc, const int* id2Lab)
 {
   // fill track info, optionally substitutind glopar par ID by label
   //
@@ -107,7 +107,7 @@ bool Millepede2Record::fillTrack(const AlignmentTrack* trc, const int* id2Lab)
   int nlocd = 0;
   int nglod = 0;
   for (int ip = np; ip--;) {
-    AlignmentPoint* pnt = trc->getPoint(ip);
+    auto pnt = trc->getPoint(ip);
     int ngl = pnt->getNGloDOFs(); // number of DOF's this point depends on
     if (pnt->containsMeasurement()) {
       nres += 2;                    // every point has 2 residuals
@@ -127,7 +127,7 @@ bool Millepede2Record::fillTrack(const AlignmentTrack* trc, const int* id2Lab)
   //
   const int* gloParID = trc->getGloParID(); // IDs of global DOFs this track depends on
   for (int ip = 0; ip < np; ip++) {
-    AlignmentPoint* pnt = trc->getPoint(ip);
+    auto* pnt = trc->getPoint(ip);
     if (pnt->containsMeasurement()) {
       int gloOffs = pnt->getDGloOffs(); // 1st entry of global derivatives for this point
       int nDGlo = pnt->getNGloDOFs();   // number of global derivatives (number of DOFs it depends on)
