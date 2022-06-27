@@ -20,7 +20,6 @@
 #include <TLorentzVector.h>
 #include "TMath.h"
 #include "StrangenessTracking/IndexTableUtils.h"
-
 #include "ReconstructionDataFormats/PID.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
@@ -47,7 +46,6 @@ struct StrangeTrack {
   o2::track::TrackParCovF mMother;
   o2::track::TrackParCovF mDaughterFirst;
   o2::track::TrackParCovF mDaughterSecond;
-  o2::track::TrackParCovF mBachelor;
   std::array<float, 3> decayVtx;
 
   float mMatchChi2;

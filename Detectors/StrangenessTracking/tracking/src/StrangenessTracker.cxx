@@ -40,6 +40,8 @@ bool StrangenessTracker::loadData(gsl::span<const o2::its::TrackITS> InputITStra
 void StrangenessTracker::initialise()
 {
   mTracksIdxTable.clear();
+  mSortedITStracks.clear();
+  mSortedITSindexes.clear();
 
   for (int iTrack{0}; iTrack < mInputITStracks.size(); iTrack++) {
     mSortedITStracks.push_back(mInputITStracks[iTrack]);
@@ -55,6 +57,7 @@ void StrangenessTracker::initialise()
   }
   std::exclusive_scan(mTracksIdxTable.begin(), mTracksIdxTable.begin() + mUtils.mPhiBins * mUtils.mEtaBins, mTracksIdxTable.begin(), 0);
   mTracksIdxTable[mUtils.mPhiBins * mUtils.mEtaBins] = mSortedITStracks.size();
+  mTracksIdxTable.clear();
 }
 
 void StrangenessTracker::process()
@@ -77,7 +80,7 @@ void StrangenessTracker::process()
     auto v0R2 = v0.calcR2();
     auto iBinsV0 = mUtils.getBinRect(correctedV0.getEta(), correctedV0.getPhi(), 0.1, 0.1);
     for (int& iBinV0 : iBinsV0) {
-      LOG(info) << "iBinV0: " << iBinV0;
+      // LOG(info) << "iBinV0: " << iBinV0;
       for (int iTrack{mTracksIdxTable[iBinV0]}; iTrack < TMath::Min(mTracksIdxTable[iBinV0 + 1], int(mSortedITStracks.size())); iTrack++) {
         mITStrack = mSortedITStracks[iTrack];
         auto& ITSindexRef = mSortedITSindexes[iTrack];
@@ -111,9 +114,12 @@ void StrangenessTracker::process()
       for (int iTrack{mTracksIdxTable[iBinCasc]}; iTrack < TMath::Min(mTracksIdxTable[iBinCasc + 1], int(mSortedITStracks.size())); iTrack++) {
         mITStrack = mSortedITStracks[iTrack];
         auto& ITSindexRef = mSortedITSindexes[iTrack];
+
+        mStrangeTrack.isCascade = true;
         mStrangeTrack.mMother = (o2::track::TrackParCovF)casc;
         mStrangeTrack.mDaughterFirst = casc.getV0Track();
-        mStrangeTrack.mBachelor = casc.getBachelorTrack();
+        mStrangeTrack.mDaughterSecond = casc.getBachelorTrack();
+
         if (matchDecayToITStrack(cascR2, true)) {
           LOG(info) << "------------------------------------------------------";
           LOG(info) << "ITS Track matched with a Cascade decay topology ....";
@@ -173,7 +179,7 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR2, bool isCascade)
       }
       // if Mother is not found, check for cascade bachelor compatibility
       else {
-        if (updateTrack(clus, mStrangeTrack.mBachelor))
+        if (updateTrack(clus, mStrangeTrack.mDaughterSecond))
           nAttachments[mGeomITS->getLayer(clus.getSensorID())] = kBachelor;
         else
           break;
@@ -200,7 +206,7 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR2, bool isCascade)
   int nCand;
 
   try {
-    nCand = isCascade ? mFitter3Body.process(motherTrackClone, mStrangeTrack.mDaughterFirst, mStrangeTrack.mBachelor) : mFitter3Body.process(motherTrackClone, mStrangeTrack.mDaughterFirst, mStrangeTrack.mDaughterSecond);
+    nCand = mFitter3Body.process(motherTrackClone, mStrangeTrack.mDaughterFirst, mStrangeTrack.mDaughterSecond);
   } catch (std::runtime_error& e) {
     return false;
   }
@@ -210,10 +216,7 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR2, bool isCascade)
   mFitter3Body.propagateTracksToVertex();
 
   mStrangeTrack.mDaughterFirst = mFitter3Body.getTrack(1, 0);
-  if (isCascade)
-    mStrangeTrack.mBachelor = mFitter3Body.getTrack(2, 0);
-  else
-    mStrangeTrack.mDaughterSecond = mFitter3Body.getTrack(2, 0);
+  mStrangeTrack.mDaughterSecond = mFitter3Body.getTrack(2, 0);
 
   mStrangeTrack.decayVtx = mFitter3Body.getPCACandidatePos();
   mStrangeTrack.mTopoChi2 = mFitter3Body.getChi2AtPCACandidate();

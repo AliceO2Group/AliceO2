@@ -52,7 +52,7 @@ inline int IndexTableUtils::getBinIndex(float eta, float phi)
   float deltaEta = (maxEta - minEta) / (mEtaBins);
   int bEta = getEtaBin(eta);
   int bPhi = getPhiBin(phi);
-  return bEta >= mEtaBins || bPhi >= mPhiBins ? mEtaBins * mPhiBins : bEta + mEtaBins * bPhi;
+  return (bEta >= mEtaBins || bPhi >= mPhiBins || bEta < 0 || bPhi < 0) ? mEtaBins * mPhiBins : bEta + mEtaBins * bPhi;
 }
 
 inline std::vector<int> IndexTableUtils::getBinRect(float eta, float phi, float deltaEta, float deltaPhi)
