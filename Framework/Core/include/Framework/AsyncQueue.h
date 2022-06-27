@@ -11,6 +11,7 @@
 #ifndef O2_FRAMEWORK_ASYNCQUUE_H_
 #define O2_FRAMEWORK_ASYNCQUUE_H_
 
+#include "Framework/TimesliceSlot.h"
 #include <functional>
 #include <string>
 #include <vector>
@@ -35,19 +36,29 @@ struct AsyncTask {
   std::function<void()> task;
   // The associated task spec
   AsyncTaskId id = {-1};
+  TimesliceId timeslice = {TimesliceId::INVALID};
   // Only the task with the highest debounce value will be executed
   int debounce = 0;
+  bool runnable = false;
 };
 
 struct AsyncQueue {
   std::vector<AsyncTaskSpec> prototypes;
   std::vector<AsyncTask> tasks;
+  size_t iteration = 0;
 };
 
 struct AsyncQueueHelpers {
   static AsyncTaskId create(AsyncQueue& queue, AsyncTaskSpec spec);
-  static void post(AsyncQueue& queue, AsyncTaskId, std::function<void()> task, int64_t debounce = 0);
-  static void run(AsyncQueue& queue);
+  // Schedule a task with @a taskId to be executed whenever the timeslice
+  // is past timeslice. If debounce is provided, only execute the task
+  static void post(AsyncQueue& queue, AsyncTaskId taskId, std::function<void()> task, TimesliceId timeslice, int64_t debounce = 0);
+  /// Run all the tasks which are older than the oldestPossible timeslice
+  /// executing them by:
+  /// 1. sorting the tasks by timeslice
+  /// 2. then priority
+  /// 3. only execute the highest (timeslice, debounce) value
+  static void run(AsyncQueue& queue, TimesliceId oldestPossibleTimeslice);
 };
 
 } // namespace o2::framework

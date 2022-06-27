@@ -843,7 +843,9 @@ void DataProcessingDevice::Run()
       // - we can guarantee this is the last thing we do in the loop (
       //   assuming no one else is adding to the queue before this point).
       auto& queue = mServiceRegistry.get<AsyncQueue>();
-      AsyncQueueHelpers::run(queue);
+      auto oldestPossibleTimeslice = mRelayer->getOldestPossibleOutput();
+      AsyncQueueHelpers::run(queue, {oldestPossibleTimeslice.timeslice.value + 1});
+
       uv_run(mState.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
       if ((mState.loopReason & mState.tracingFlags) != 0) {
         mState.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
