@@ -43,7 +43,7 @@ class Digit;
 
 namespace GPUCA_NAMESPACE::gpu
 {
-struct GPUTPCClusterMCInterim;
+struct GPUTPCClusterMCInterimArray;
 struct TPCPadGainCalib;
 
 struct ChargePos;
@@ -112,7 +112,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   uint* mPindexMap = nullptr;
   uint* mPclusterInRow = nullptr;
   tpc::ClusterNative* mPclusterByRow = nullptr;
-  GPUTPCClusterMCInterim* mPlabelsByRow = nullptr;
+  GPUTPCClusterMCInterimArray* mPlabelsByRow = nullptr;
   int* mPbuf = nullptr;
   Memory* mPmemory = nullptr;
 
