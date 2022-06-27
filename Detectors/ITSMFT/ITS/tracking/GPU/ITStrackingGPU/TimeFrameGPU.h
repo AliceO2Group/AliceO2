@@ -123,10 +123,12 @@ class TimeFrameGPU : public TimeFrame
   unsigned char* getDeviceUsedTracklets(const int rofId);
   Line* getDeviceLines(const int rofId);
   Tracklet* getDeviceTracklets(const int rofId, const int layerId);
+  Tracklet* getDeviceTrackletsAll(const int layerId);
   int* getDeviceTrackletsLookupTable(const int rofId, const int layerId);
   int* getDeviceNFoundLines(const int rofId);
   int* getDeviceExclusiveNFoundLines(const int rofId);
   int* getDeviceCUBBuffer(const size_t rofId);
+  int* getDeviceNFoundTracklets() const { return mFoundTracklets; };
   float* getDeviceXYCentroids(const int rofId);
   float* getDeviceZCentroids(const int rofId);
   int* getDeviceXHistograms(const int rofId);
@@ -155,7 +157,8 @@ class TimeFrameGPU : public TimeFrame
   std::array<Vector<Tracklet>, NLayers - 1> mTrackletsD;
   std::array<Vector<int>, NLayers - 1> mTrackletsLookupTablesD;
   std::array<Vector<int>, NLayers> mROframesClustersD; // layers x roframes
-  int* mCUBTmpBuffers;                                 // don't know whether will be used by the tracker
+  int* mCUBTmpBuffers;
+  int* mFoundTracklets;
   gpu::StaticTrackingParameters<NLayers>* mDeviceTrackingParams;
   IndexTableUtils* mDeviceIndexTableUtils;
 
@@ -218,7 +221,13 @@ inline Line* TimeFrameGPU<NLayers>::getDeviceLines(const int rofId)
 template <int NLayers>
 inline Tracklet* TimeFrameGPU<NLayers>::getDeviceTracklets(const int rofId, const int layerId)
 {
-  return getPtrFromRuler(rofId, mTrackletsD[layerId].get(), mROframesClusters[1].data(), mConfig.maxTrackletsPerCluster);
+  return getPtrFromRuler(rofId, mTrackletsD[layerId].get(), mROframesClusters[layerId].data(), mConfig.maxTrackletsPerCluster);
+}
+
+template <int NLayers>
+inline Tracklet* TimeFrameGPU<NLayers>::getDeviceTrackletsAll(const int layerId)
+{
+  return mTrackletsD[layerId].get();
 }
 
 template <int NLayers>

@@ -92,20 +92,18 @@ GPUhdi() bool Tracklet::operator!=(const Tracklet& rhs) const
 
 GPUhdi() unsigned char Tracklet::operator<(const Tracklet& t) const
 {
-  if (isEmpty() && t.isEmpty()) {
+  if (isEmpty()) {
     return false;
-  } else {
-    if (isEmpty()) {
-      return false;
-    }
   }
   return true;
 }
 
 GPUhdi() void Tracklet::dump()
 {
-  printf("fClIdx: %d sClIdx: %d tanL: %f phi: %f rof1: %hu rof2: %hu\n", firstClusterIndex, secondClusterIndex, tanLambda, phi, rof[0], rof[1]);
+  printf("fClIdx: %d sClIdx: %d  rof1: %hu rof2: %hu\n", firstClusterIndex, secondClusterIndex, rof[0], rof[1]);
 }
+// tanL: %f phi: %f
+// tanLambda, phi,
 
 } // namespace its
 } // namespace o2
