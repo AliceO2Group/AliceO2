@@ -60,6 +60,10 @@ o2_add_dpl_workflow(data-query-workflow
                   SOURCES src/o2DataQueryWorkflow.cxx
                   COMPONENT_NAME TestWorkflows)
 
+o2_add_dpl_workflow(python-integration
+	          SOURCES src/o2PythonIntegration.cxx
+                  COMPONENT_NAME TestWorkflows)
+
 # FIXME: given its name, should this one be a test instead of an executable ?
 o2_add_dpl_workflow(test_MakeDPLObjects
                   SOURCES test/test_MakeDPLObjects.cxx
