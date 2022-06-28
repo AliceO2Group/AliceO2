@@ -70,7 +70,7 @@ ADC_t Digit::getADCmax(int& idx) const
 
 std::ostream& operator<<(std::ostream& stream, const Digit& d)
 {
-  stream << "Digit Det: " << d.getDetector() << " ROB: " << d.getROB() << " MCM: " << d.getMCM() << " Channel: " << d.getChannel() << " ADCs:";
+  stream << "Digit Det: " << HelperMethods::getSector(d.getDetector()) << "_" << HelperMethods::getStack(d.getDetector()) << "_" << HelperMethods::getLayer(d.getDetector()) << " pad row: " << d.getPadRow() << " pad column: " << d.getPadCol() << " Channel: " << d.getChannel() << " ADCs:";
   for (int i = 0; i < constants::TIMEBINS; i++) {
     stream << "[" << d.getADC()[i] << "]";
   }
