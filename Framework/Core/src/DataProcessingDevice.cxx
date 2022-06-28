@@ -818,10 +818,14 @@ void DataProcessingDevice::Run()
           }
         } else {
           mState.transitionHandling = TransitionHandlingState::Expired;
-          if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
+          if (timeout == 0 && mProcessingPolicies.termination == TerminationPolicy::QUIT) {
             LOGP(info, "New state requested. No timeout set, quitting immediately as per --completion-policy");
-          } else {
+          } else if (timeout == 0 && mProcessingPolicies.termination != TerminationPolicy::QUIT) {
             LOGP(info, "New state requested. No timeout set, switching to READY state immediately");
+          } else if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
+            LOGP(info, "New state pending and we are already idle, quitting immediately as per --completion-policy");
+          } else {
+            LOGP(info, "New state pending and we are already idle, switching to READY immediately.");
           }
         }
       }
@@ -1076,7 +1080,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
 {
   auto switchState = [&registry = context.registry,
                       &state = context.deviceContext->state](StreamingState newState) {
-    LOG(debug) << "New state " << (int)newState << " old state " << (int)state->streaming;
+    LOG(detail) << "New state " << (int)newState << " old state " << (int)state->streaming;
     state->streaming = newState;
     registry->get<ControlService>().notifyStreamingState(state->streaming);
   };
@@ -1113,7 +1117,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
   }
 
   if (context.deviceContext->state->streaming == StreamingState::EndOfStreaming) {
-    LOGP(debug, "We are in EndOfStreaming. Flushing queues.");
+    LOGP(detail, "We are in EndOfStreaming. Flushing queues.");
     context.registry->get<DriverClient>().flushPending();
     // We keep processing data until we are Idle.
     // FIXME: not sure this is the correct way to drain the queues, but
@@ -1131,6 +1135,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     context.registry->postEOSCallbacks(eosContext);
 
     for (auto& channel : context.deviceContext->spec->outputChannels) {
+      LOGP(detail, "Sending end of stream to {}", channel.name);
       DataProcessingHelpers::sendEndOfStream(*context.deviceContext->device, channel);
     }
     // This is needed because the transport is deleted before the device.
@@ -1142,6 +1147,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
       *context.wasActive = true;
     }
     // On end of stream we shut down all output pollers.
+    LOGP(detail, "Shutting down output pollers");
     for (auto& poller : context.deviceContext->state->activeOutputPollers) {
       uv_poll_stop(poller);
     }
@@ -1150,6 +1156,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
 
   if (context.deviceContext->state->streaming == StreamingState::Idle) {
     // On end of stream we shut down all output pollers.
+    LOGP(detail, "We are in Idle. Shutting down output pollers.");
     for (auto& poller : context.deviceContext->state->activeOutputPollers) {
       uv_poll_stop(poller);
     }
@@ -1226,6 +1233,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
       auto* headerData = parts.At(pi)->GetData();
       auto sih = o2::header::get<SourceInfoHeader*>(headerData);
       if (sih) {
+        LOGP(debug, "Got SourceInfoHeader with state {}", (int)sih->state);
         info.state = sih->state;
         insertInputInfo(pi, 2, InputType::SourceInfo);
         *context.wasActive = true;
@@ -1361,6 +1369,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
           }
         } break;
         case InputType::SourceInfo: {
+          LOGP(detail, "Received SourceInfo");
           *context.wasActive = true;
           auto headerIndex = input.position;
           auto payloadIndex = input.position + 1;
@@ -1921,7 +1930,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   }
   // We now broadcast the end of stream if it was requested
   if (context.deviceContext->state->streaming == StreamingState::EndOfStreaming) {
-    LOGP(debug, "Broadcasting end of stream");
+    LOGP(detail, "Broadcasting end of stream");
     for (auto& channel : context.deviceContext->spec->outputChannels) {
       DataProcessingHelpers::sendEndOfStream(*context.deviceContext->device, channel);
     }

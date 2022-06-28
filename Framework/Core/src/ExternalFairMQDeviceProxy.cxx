@@ -658,6 +658,7 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
         out.AddPart(std::move(headerMessage));
         // add empty payload message
         out.AddPart(device->NewMessageFor(channelName, 0, 0));
+        LOGP(detail, "Forwarding EoS to {}", channelName);
         sendOnChannel(*device, out, channelName, (size_t)-1);
       }
     };
