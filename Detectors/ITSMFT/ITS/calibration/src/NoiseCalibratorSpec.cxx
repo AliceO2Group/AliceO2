@@ -12,15 +12,16 @@
 /// @file   NoiseCalibratorSpec.cxx
 
 #include "CCDB/CcdbApi.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 #include "DetectorsCalibration/Utils.h"
 #include "ITSCalibration/NoiseCalibratorSpec.h"
-#include "ITSMFTBase/DPLAlpideParam.h"
-#include "ITSMFTReconstruction/ClustererParam.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 #include "Framework/Logger.h"
 #include "Framework/ControlService.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DeviceSpec.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
@@ -34,27 +35,25 @@ namespace its
 
 void NoiseCalibratorSpec::init(InitContext& ic)
 {
+  o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   auto onepix = ic.options().get<bool>("1pix-only");
   LOG(info) << "Fast 1=pixel calibration: " << onepix;
   auto probT = ic.options().get<float>("prob-threshold");
-  LOG(info) << "Setting the probability threshold to " << probT;
-
-  mCalibrator = std::make_unique<CALIBRATOR>(onepix, probT);
+  auto probTRelErr = ic.options().get<float>("prob-rel-err");
+  LOGP(info, "Setting the probability threshold to {} with relative error {}", probT, probTRelErr);
+  mStopMeOnly = ic.options().get<bool>("stop-me-only");
+  mCalibrator = std::make_unique<CALIBRATOR>(onepix, probT, probTRelErr);
   mCalibrator->setNThreads(ic.options().get<int>("nthreads"));
 
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mCalibrator->loadDictionary(dictFile);
-    LOG(info) << "ITS NoiseCalibrator is running with a provided dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile
-              << " is absent, ITS NoiseCalibrator expects cluster patterns for all clusters";
+  mValidityDays = ic.options().get<int>("validity-days");
+  if (mValidityDays < 1) {
+    mValidityDays = 1;
   }
 }
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
 {
+  updateTimeDependentParams(pc);
   mTimer.Start(false);
   static bool firstCall = true;
   if (firstCall) {
@@ -82,7 +81,7 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
   if (done) {
     LOG(info) << "Minimum number of noise counts has been reached !";
     sendOutput(pc.outputs());
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
+    pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
   }
 
   mTimer.Stop();
@@ -90,16 +89,22 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
 
 void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
 {
+  static bool done = false;
+  if (done) {
+    return;
+  }
+  done = true;
   mCalibrator->finalize();
 
-  long tstart = 0, tend = 9999999;
+  long tstart = o2::ccdb::getCurrentTimestamp();
+  long tend = o2::ccdb::getFutureTimestamp(3600 * 24 * mValidityDays);
 #ifdef TIME_SLOT_CALIBRATION
   const auto& payload = mCalibrator->getNoiseMap(tstart, tend);
 #else
   const auto& payload = mCalibrator->getNoiseMap();
 #endif
   std::map<std::string, std::string> md;
-  o2::ccdb::CcdbObjectInfo info("ITS/Noise", "NoiseMap", "noise.root", md, tstart, tend);
+  o2::ccdb::CcdbObjectInfo info("ITS/Calib/NoiseMap", "NoiseMap", "noise.root", md, tstart, tend);
 
   auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
@@ -121,6 +126,25 @@ void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
   sendOutput(ec.outputs());
 }
 
+///_______________________________________
+void NoiseCalibratorSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  if (mUseClusters) {
+    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+  }
+}
+
+///_______________________________________
+void NoiseCalibratorSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mCalibrator->setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
+  }
+}
+
 DataProcessorSpec getNoiseCalibratorSpec(bool useClusters)
 {
   std::vector<InputSpec> inputs;
@@ -128,11 +152,18 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useClusters)
     inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
     inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
     inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
+    inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
   } else {
     inputs.emplace_back("digits", "ITS", "DIGITS", 0, Lifetime::Timeframe);
     inputs.emplace_back("ROframes", "ITS", "DIGITSROF", 0, Lifetime::Timeframe);
   }
-
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+                                                                false,                          // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ITS_NOISE"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ITS_NOISE"}, Lifetime::Sporadic);
@@ -141,11 +172,14 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useClusters)
     "its-noise-calibrator",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<NoiseCalibratorSpec>(useClusters)},
+    AlgorithmSpec{adaptFromTask<NoiseCalibratorSpec>(useClusters, ccdbRequest)},
     Options{
       {"1pix-only", VariantType::Bool, false, {"Fast 1-pixel calibration only (cluster input only)"}},
       {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}},
-      {"nthreads", VariantType::Int, 1, {"Number of map-filling threads"}}}};
+      {"prob-rel-err", VariantType::Float, 0.2f, {"Relative error on channel noise to apply the threshold"}},
+      {"nthreads", VariantType::Int, 1, {"Number of map-filling threads"}},
+      {"validity-days", VariantType::Int, 3, {"Validity on days from upload time"}},
+      {"stop-me-only", VariantType::Bool, false, {"At sufficient statistics stop only this device, otherwise whole workflow"}}}};
 }
 
 } // namespace its

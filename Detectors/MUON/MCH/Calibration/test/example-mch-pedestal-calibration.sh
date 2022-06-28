@@ -1,7 +1,7 @@
 o2-raw-tf-reader-workflow --input-data \
-    $HOME/alice/data/ped/StfBuilder-CH9R-pedestals-ul-with_gnd-without_HV-20210617 | \
+    $HOME/alice/data/2022/MAY/514781/raw/1100 --onlyDet MCH --max-tf 10 | \
 o2-mch-pedestal-decoding-workflow | \
-o2-calibration-mch-pedestal-calib-workflow | \
+o2-calibration-mch-badchannel-calib-workflow | \
 o2-calibration-ccdb-populator-workflow \
     --ccdb-path http://localhost:6464 \
     --sspec-min 0 --sspec-max 0 | \

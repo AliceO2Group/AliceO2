@@ -27,12 +27,12 @@
 #include "ITStracking/Definitions.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
+#include "GPUCommonLogger.h"
 
 namespace o2
 {
 namespace its
 {
-
 class IndexTableUtils
 {
  public:
@@ -52,20 +52,21 @@ class IndexTableUtils
   int mNzBins = 0;
   int mNphiBins = 0;
   float mInversePhiBinSize = 0.f;
-  std::vector<float> mLayerZ;
-  std::vector<float> mInverseZBinSize;
+  float mLayerZ[7];
+  float mInverseZBinSize[7];
 };
 
 template <class T>
 inline void IndexTableUtils::setTrackingParameters(const T& params)
 {
   mInversePhiBinSize = params.PhiBins / constants::math::TwoPi;
-  mInverseZBinSize.resize(params.LayerZ.size());
   mNzBins = params.ZBins;
   mNphiBins = params.PhiBins;
-  mLayerZ = params.LayerZ;
-  for (unsigned int iL{0}; iL < mInverseZBinSize.size(); ++iL) {
-    mInverseZBinSize[iL] = 0.5f * params.ZBins / params.LayerZ[iL];
+  for (int iLayer{0}; iLayer < params.LayerZ.size(); ++iLayer) {
+    mLayerZ[iLayer] = params.LayerZ[iLayer];
+  }
+  for (unsigned int iLayer{0}; iLayer < params.LayerZ.size(); ++iLayer) {
+    mInverseZBinSize[iLayer] = 0.5f * params.ZBins / params.LayerZ[iLayer];
   }
 }
 

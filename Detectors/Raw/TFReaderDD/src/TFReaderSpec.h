@@ -41,6 +41,7 @@ struct TFReaderInp {
   int maxLoops = 0;
   int maxTFs = -1;
   bool sendDummyForMissing = true;
+  bool sup0xccdb = false;
   std::vector<o2::header::DataHeader> hdVec;
 };
 

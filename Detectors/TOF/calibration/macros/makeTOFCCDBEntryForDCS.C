@@ -35,11 +35,11 @@ int makeTOFCCDBEntryForDCS(const std::string url = "http://localhost:8080")
 
   DPID dpidtmp;
   for (size_t i = 0; i < expaliases.size(); ++i) {
-    DPID::FILL(dpidtmp, expaliases[i], o2::dcs::DeliveryType::RAW_DOUBLE);
+    DPID::FILL(dpidtmp, expaliases[i], o2::dcs::DeliveryType::DPVAL_DOUBLE);
     dpid2DataDesc[dpidtmp] = "TOFDATAPOINTS";
   }
   for (size_t i = 0; i < expaliasesInt.size(); ++i) {
-    DPID::FILL(dpidtmp, expaliasesInt[i], o2::dcs::DeliveryType::RAW_INT);
+    DPID::FILL(dpidtmp, expaliasesInt[i], o2::dcs::DeliveryType::DPVAL_INT);
     dpid2DataDesc[dpidtmp] = "TOFDATAPOINTS";
   }
 
@@ -47,7 +47,7 @@ int makeTOFCCDBEntryForDCS(const std::string url = "http://localhost:8080")
   api.init(url); // or http://localhost:8080 for a local installation
   std::map<std::string, std::string> md;
   long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-  api.storeAsTFileAny(&dpid2DataDesc, "TOF/Config/DCSDPconfig", md, ts);
+  api.storeAsTFileAny(&dpid2DataDesc, "TOF/Config/DCSDPconfig", md, ts, 99999999999999);
 
   return 0;
 }

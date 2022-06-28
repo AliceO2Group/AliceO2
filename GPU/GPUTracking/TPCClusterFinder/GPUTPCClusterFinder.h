@@ -19,7 +19,6 @@
 #include "GPUProcessor.h"
 #include "GPUDataTypes.h"
 #include "CfFragment.h"
-#include "TPCPadGainCalib.h"
 
 namespace o2
 {
@@ -138,8 +137,6 @@ class GPUTPCClusterFinder : public GPUProcessor
   short mZSId = -1;
   short mZSOffsetId = -1;
   short mOutputId = -1;
-
-  GPUdi() const GPUTPCGeometry* getGeometry() const;
 
 #ifndef GPUCA_GPUCODE
   void DumpDigits(std::ostream& out);

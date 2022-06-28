@@ -17,7 +17,7 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 
-#include "TApplication.h"
+#include "TRint.h"
 
 #include "TPCMonitor/SimpleEventDisplayGUI.h"
 
@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
   std::cout << '\n'
             << '\n';
 
-  TApplication rootApp("TPC Event Monitor", &argc, argv);
+  TRint rootApp("TPC Event Monitor", nullptr, nullptr);
 
   o2::tpc::SimpleEventDisplayGUI g;
   g.runSimpleEventDisplay(file + ":" + std::to_string(lastTimeBin), pedestalFile, firstTimeBin, lastTimeBin, lastTimeBin, verbosity, debugLevel, sector, overview);

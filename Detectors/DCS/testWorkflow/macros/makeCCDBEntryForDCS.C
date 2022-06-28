@@ -35,15 +35,15 @@ int makeCCDBEntryForDCS(const std::string url = "http://localhost:8080")
 
   DPID dpidtmp;
   for (size_t i = 0; i < aliasesCommonStr.size(); ++i) {
-    DPID::FILL(dpidtmp, aliasesCommonStr[i], o2::dcs::DeliveryType::RAW_STRING);
+    DPID::FILL(dpidtmp, aliasesCommonStr[i], o2::dcs::DeliveryType::DPVAL_STRING);
     dpid2DataDesc_Common[dpidtmp] = "COMMON";
   }
   for (size_t i = 0; i < aliasesCommon_1_Int.size(); ++i) {
-    DPID::FILL(dpidtmp, aliasesCommon_1_Int[i], o2::dcs::DeliveryType::RAW_INT);
+    DPID::FILL(dpidtmp, aliasesCommon_1_Int[i], o2::dcs::DeliveryType::DPVAL_INT);
     dpid2DataDesc_Common_1[dpidtmp] = "COMMON1";
   }
   for (size_t i = 0; i < aliasesCommon_1_Str.size(); ++i) {
-    DPID::FILL(dpidtmp, aliasesCommon_1_Str[i], o2::dcs::DeliveryType::RAW_STRING);
+    DPID::FILL(dpidtmp, aliasesCommon_1_Str[i], o2::dcs::DeliveryType::DPVAL_STRING);
     dpid2DataDesc_Common_1[dpidtmp] = "COMMON1";
   }
 

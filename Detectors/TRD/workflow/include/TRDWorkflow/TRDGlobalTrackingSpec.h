@@ -47,10 +47,11 @@ class TRDGlobalTracking : public o2::framework::Task
   TRDGlobalTracking(bool useMC, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, o2::dataformats::GlobalTrackID::mask_t src, bool trigRecFilterActive, bool strict) : mUseMC(useMC), mDataRequest(dataRequest), mTrkMask(src), mTrigRecFilter(trigRecFilterActive), mStrict(strict) {}
   ~TRDGlobalTracking() override = default;
   void init(o2::framework::InitContext& ic) final;
-  void updateTimeDependentParams();
+  void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
   void fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lblSeed, std::vector<o2::MCCompLabel>& lblContainerTrd, std::vector<o2::MCCompLabel>& lblContainerMatch, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkltLabels) const;
   void fillTrackTriggerRecord(const std::vector<TrackTRD>& tracks, std::vector<TrackTriggerRecord>& trigRec, const gsl::span<const o2::trd::TriggerRecord>& trackletTrigRec) const;
   void run(o2::framework::ProcessingContext& pc) final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
   bool refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globaltracking::RecoContainer* recoCont);
   bool refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globaltracking::RecoContainer* recoCont);
   bool refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards);
@@ -62,13 +63,13 @@ class TRDGlobalTracking : public o2::framework::Task
   o2::gpu::GPUChainTracking* mChainTracking{nullptr}; ///< TRD tracker is run in the tracking chain
   std::unique_ptr<GeometryFlat> mFlatGeo{nullptr};    ///< flat TRD geometry
   bool mUseMC{false};                                 ///< MC flag
-  bool mTrigRecFilter{false};                         ///< if true, TRD trigger records without matching ITS IR are filtered out
-  bool mStrict{false};                                ///< preliminary matching in strict mode
   float mTPCTBinMUS{.2f};                             ///< width of a TPC time bin in us
   float mTPCTBinMUSInv{1.f / mTPCTBinMUS};            ///< inverse width of a TPC time bin in 1/us
   float mTPCVdrift{2.58f};                            ///< TPC drift velocity (for shifting TPC tracks along Z)
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< seeding input (TPC-only, ITS-TPC or both)
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;               ///< seeding track sources (TPC, ITS-TPC)
+  bool mTrigRecFilter{false};                                    ///< if true, TRD trigger records without matching ITS IR are filtered out
+  bool mStrict{false};                                           ///< preliminary matching in strict mode
   TStopwatch mTimer;
   // temporary members -> should go into processor (GPUTRDTracker or additional refit processor?)
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter;         ///< TPC refitter used for TPC tracks refit during the reconstruction
@@ -83,7 +84,7 @@ class TRDGlobalTracking : public o2::framework::Task
   gsl::span<const int> mITSTrackClusIdx;                              ///< input ITS track cluster indices span
   gsl::span<const int> mITSABTrackClusIdx;                            ///< input ITSAB track cluster indices span
   std::vector<o2::BaseCluster<float>> mITSClustersArray;              ///< ITS clusters created in run() method from compact clusters
-  o2::itsmft::TopologyDictionary mITSDict;                            ///< cluster patterns dictionary
+  const o2::itsmft::TopologyDictionary* mITSDict = nullptr;           ///< cluster patterns dictionary
 };
 
 /// create a processor spec

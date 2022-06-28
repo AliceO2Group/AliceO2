@@ -25,6 +25,12 @@ namespace o2
 namespace tpc
 {
 
+enum ZSVersion : unsigned char {
+  ZSVersionRowBased10BitADC = 1,
+  ZSVersionRowBased12BitADC = 2,
+  ZSVersionLinkBasedWithMeta = 3,
+};
+
 struct TPCZSHDR {
   static constexpr size_t TPC_ZS_PAGE_SIZE = 8192;
   static constexpr size_t TPC_MAX_SEQ_LEN = 138;
@@ -33,11 +39,26 @@ struct TPCZSHDR {
   static constexpr unsigned int TPC_ZS_NBITS_V1 = 10;
   static constexpr unsigned int TPC_ZS_NBITS_V2 = 12;
 
-  unsigned char version;
-  unsigned char nTimeBins;
-  unsigned short cruID;
-  unsigned short timeOffset;
-  unsigned short nADCsamples;
+  unsigned char version;      // ZS format version:
+                              // 1: original row-based format with 10-bit ADC values
+                              // 2: original row-based format with 12-bit ADC values
+                              // 3: improved link-based format with extra META header
+                              // 4: tightly-packed link based
+  unsigned char nTimeBins;    // Number of time bins in this raw page
+  unsigned short cruID;       // CRU id
+  unsigned short timeOffset;  // Time offset in BC after orbit in RDH
+  unsigned short nADCsamples; // Total number of ADC samples in this raw page
+};
+struct TPCZSHDRV2 : public TPCZSHDR {
+  static constexpr unsigned int TPC_ZS_NBITS_V3 = 12;
+  static constexpr bool TIGHTLY_PACKED_V3 = false;
+  static constexpr unsigned int SAMPLESPER64BIT = 64 / TPC_ZS_NBITS_V3; // 5 12-bit samples with 4 bit padding per 64 bit word for non-TIGHTLY_PACKED data
+
+  unsigned short firstZSDataOffset; // Offset (after the TPCZSHDRV2 header) in 128bit words to first ZS data (in between can be trigger words, etc.)
+  unsigned short nTimebinHeaders;   // Number of timebin headers
+  unsigned short reserved1;         // 16 reserved bits, header is 128 bit
+  unsigned char reserved2;          // 8 reserved bits, header is 128 bit
+  unsigned char magicWord;          // Magic word
 };
 struct TPCZSTBHDR {
   unsigned short rowMask;
@@ -51,7 +72,6 @@ struct ZeroSuppressedContainer { // Struct for the TPC zero suppressed data form
                                  // Time bin information
   unsigned long int rdh[8] = {}; //< 8 * 64 bit RDH (raw data header)
   TPCZSHDR hdr;                  // ZS header
-  TPCZSTBHDR tbhdr;              // ZS timebin header
 };
 
 } // namespace tpc

@@ -22,7 +22,7 @@ namespace GPUCA_NAMESPACE::gpu
 class GPUDisplayFrontendWindows : public GPUDisplayFrontend
 {
  public:
-  GPUDisplayFrontendWindows() = default;
+  GPUDisplayFrontendWindows();
   ~GPUDisplayFrontendWindows() override = default;
 
   int StartDisplay() override;

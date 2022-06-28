@@ -10,3 +10,5 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsCalibration/TimeSlotCalibration.h"
+
+using namespace o2::calibration;

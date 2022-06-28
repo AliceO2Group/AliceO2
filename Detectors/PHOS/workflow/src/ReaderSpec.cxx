@@ -10,6 +10,9 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsPHOS/PHOSBlockHeader.h"
+#include "DataFormatsPHOS/Cell.h"
+#include "DataFormatsPHOS/Digit.h"
+#include "DataFormatsPHOS/TriggerRecord.h"
 #include "PHOSWorkflow/ReaderSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -62,21 +65,20 @@ DataProcessorSpec getDigitsReaderSpec(bool propagateMC)
                                                                      filename.c_str(), // input file name
                                                                      nofEvents,        // number of entries to publish
                                                                      publishingMode,
-                                                                     Output{"PHS", "DIGITS", subSpec, persistency},
-                                                                     "PHOSDigit", // name of data branch
-                                                                     Output{"PHS", "DIGITTRIGREC", subSpec, persistency},
-                                                                     "PHOSDigitTrigRecords", // name of data triggerrecords branch
-                                                                     Output{"PHS", "DIGITSMCTR", subSpec, persistency},
-                                                                     "PHOSDigitMCTruth"); // name of mc label branch
+                                                                     RootTreeReader::BranchDefinition<std::vector<o2::phos::Digit>>{
+                                                                       Output{"PHS", "DIGITS", subSpec, persistency}, "PHOSDigit"},
+                                                                     RootTreeReader::BranchDefinition<std::vector<o2::phos::TriggerRecord>>{
+                                                                       Output{"PHS", "DIGITTRIGREC", subSpec, persistency}, "PHOSDigitTrigRecords"},
+                                                                     Output{"PHS", "DIGITSMCTR", subSpec, persistency}, "PHOSDigitMCTruth"); // name of mc label branch
       } else {
         processAttributes->reader = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
                                                                      filename.c_str(), // input file name
                                                                      nofEvents,        // number of entries to publish
                                                                      publishingMode,
-                                                                     Output{"PHS", "DIGITS", subSpec, persistency},
-                                                                     "PHOSDigit", // name of data branch
-                                                                     Output{"PHS", "DIGITTRIGREC", subSpec, persistency},
-                                                                     "PHOSDigitTrigRecords"); // name of data triggerrecords branch
+                                                                     RootTreeReader::BranchDefinition<std::vector<o2::phos::Digit>>{
+                                                                       Output{"PHS", "DIGITS", subSpec, persistency}, "PHOSDigit"},
+                                                                     RootTreeReader::BranchDefinition<std::vector<o2::phos::TriggerRecord>>{
+                                                                       Output{"PHS", "DIGITTRIGREC", subSpec, persistency}, "PHOSDigitTrigRecords"});
       }
     }
 
@@ -161,10 +163,10 @@ DataProcessorSpec getCellReaderSpec(bool propagateMC)
                                                                      filename.c_str(), // input file name
                                                                      nofEvents,        // number of entries to publish
                                                                      publishingMode,
-                                                                     Output{"PHS", "CELLS", subSpec, persistency},
-                                                                     "PHOSCell", // name of data branch
-                                                                     Output{"PHS", "CELLTRIGREC", subSpec, persistency},
-                                                                     "PHOSCellTrigRec", // name of data triggerrecords branch
+                                                                     RootTreeReader::BranchDefinition<std::vector<o2::phos::Cell>>{
+                                                                       Output{"PHS", "CELLS", subSpec, persistency}, "PHOSCell"},
+                                                                     RootTreeReader::BranchDefinition<std::vector<o2::phos::TriggerRecord>>{
+                                                                       Output{"PHS", "CELLTRIGREC", subSpec, persistency}, "PHOSCellTrigRec"},
                                                                      Output{"PHS", "CELLSMCTR", subSpec, persistency},
                                                                      "PHOSCellTrueMC"); // name of mc label branch
       } else {
@@ -172,10 +174,10 @@ DataProcessorSpec getCellReaderSpec(bool propagateMC)
                                                                      filename.c_str(), // input file name
                                                                      nofEvents,        // number of entries to publish
                                                                      publishingMode,
-                                                                     Output{"PHS", "CELLS", subSpec, persistency},
-                                                                     "PHOSCell", // name of data branch
-                                                                     Output{"PHS", "CELLTRIGREC", subSpec, persistency},
-                                                                     "PHOSCellTrigRec"); // name of data triggerrecords branch
+                                                                     RootTreeReader::BranchDefinition<std::vector<o2::phos::Cell>>{
+                                                                       Output{"PHS", "CELLS", subSpec, persistency}, "PHOSCell"},
+                                                                     RootTreeReader::BranchDefinition<std::vector<o2::phos::TriggerRecord>>{
+                                                                       Output{"PHS", "CELLTRIGREC", subSpec, persistency}, "PHOSCellTrigRec"});
       }
     }
 

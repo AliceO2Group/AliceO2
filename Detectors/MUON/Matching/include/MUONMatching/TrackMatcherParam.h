@@ -13,8 +13,8 @@
 /// \brief Configurable parameters for MCH-MID track matching
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MUON_TRACKMATCHERPARAM_H_
-#define ALICEO2_MUON_TRACKMATCHERPARAM_H_
+#ifndef O2_MUON_TRACKMATCHERPARAM_H_
+#define O2_MUON_TRACKMATCHERPARAM_H_
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
@@ -35,4 +35,4 @@ struct TrackMatcherParam : public o2::conf::ConfigurableParamHelper<TrackMatcher
 } // namespace muon
 } // namespace o2
 
-#endif // ALICEO2_MUON_TRACKMATCHERPARAM_H_
+#endif // O2_MUON_TRACKMATCHERPARAM_H_

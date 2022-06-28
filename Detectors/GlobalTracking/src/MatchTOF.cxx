@@ -352,6 +352,8 @@ void MatchTOF::addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalT
   }
 
   o2::track::TrackLTIntegral intLT0; //mTPCTracksWork.back().getLTIntegralOut(); // we get the integrated length from TPC-ITC outward propagation
+  // compute track length up to now
+  o2::base::Propagator::Instance()->estimateLTFast(intLT0, trc);
 
   if (trc.getX() < o2::constants::geom::XTPCOuterRef - 1.) {
     if (!propagateToRefX(trc, o2::constants::geom::XTPCOuterRef, 10, intLT0) || TMath::Abs(trc.getZ()) > Geo::MAXHZTOF) { // we check that the propagation with the cov matrix worked; CHECK: can it happ

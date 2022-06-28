@@ -29,11 +29,11 @@ class RawDeviceService
  public:
   constexpr static ServiceKind service_kind = ServiceKind::Global;
 
-  virtual FairMQDevice* device() = 0;
-  virtual void setDevice(FairMQDevice* device) = 0;
+  virtual fair::mq::Device* device() = 0;
+  virtual void setDevice(fair::mq::Device* device) = 0;
   virtual DeviceSpec const& spec() const = 0;
-  /// Expose FairMQDevice::WaitFor method to avoid having to include
-  /// FairMQDevice.h.
+  /// Expose fair::mq::Device::WaitFor method to avoid having to include
+  /// <fairmq/Device.h>.
   ///
   ///  @a time in millisecond to sleep
   virtual void waitFor(unsigned int time) = 0;

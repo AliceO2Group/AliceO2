@@ -41,7 +41,7 @@ void LHCClockDataHisto::fill(const gsl::span<const o2::dataformats::CalibInfoTOF
     auto ch = data[i].getTOFChIndex();
     auto dt = data[i].getDeltaTimePi();
     auto tot = data[i].getTot();
-    auto corr = calibApi->getTimeCalibration(ch, tot); // we take into account LHCphase, offsets and time slewing
+    auto corr = calibApi->getTimeCalibration(ch, tot, 0.); // we take into offsets and time slewing but not lhc phase
     dt -= corr;
 
     //    printf("ch=%d - tot=%f - corr=%f -> dtcorr = %f (range=%f, bin=%d)\n",ch,tot,corr,dt,range,int((dt+range)*v2Bin));
@@ -84,8 +84,6 @@ void LHCClockCalibrator::initOutput()
 //_____________________________________________
 void LHCClockCalibrator::finalizeSlot(Slot& slot)
 {
-  static const double TFlength = 1E-3 * o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCOrbitMUS; // in ms
-
   // Extract results for the single slot
   o2::tof::LHCClockDataHisto* c = slot.getContainer();
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with "
@@ -98,19 +96,18 @@ void LHCClockCalibrator::finalizeSlot(Slot& slot)
     LOG(error) << "Fit failed with result = " << fitres;
   }
 
-  // TODO: the timestamp is now given with the TF index, but it will have
-  // to become an absolute time. This is true both for the lhc phase object itself
-  // and the CCDB entry
   std::map<std::string, std::string> md;
   LHCphase l;
   l.addLHCphase(0, fitValues[1]);
-  l.addLHCphase(999999999, fitValues[1]);
+  l.addLHCphase(o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP_SECONDS, fitValues[1]);
   auto clName = o2::utils::MemFileHelper::getClassName(l);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
 
-  uint64_t starting = slot.getTFStart() * TFlength;
-  uint64_t stopping = slot.getTFEnd() * TFlength;
-  LOG(info) << "starting = " << starting * 1E-3 << " - stopping = " << stopping * 1E-3 << " -> phase = " << fitValues[1] << " ps";
+  auto starting = slot.getStartTimeMS();
+  auto stopping = slot.getEndTimeMS() + 5 * getSlotLength() + getMaxSlotsDelay();
+  LOG(info) << "starting = " << starting << " - stopping = " << stopping << " -> phase = " << fitValues[1] << " ps";
+  l.setStartValidity(starting);
+  l.setEndValidity(stopping);
 
   mInfoVector.emplace_back("TOF/Calib/LHCphase", clName, flName, md, starting, stopping);
   mLHCphaseVector.emplace_back(l);

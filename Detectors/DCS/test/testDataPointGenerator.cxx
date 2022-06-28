@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE(GenerateDouble)
   BOOST_CHECK_EQUAL(fbi.size(), 28);
 
   for (auto dp : fbi) {
-    BOOST_CHECK_EQUAL(dp.id.get_type(), o2::dcs::DeliveryType::RAW_DOUBLE);
+    BOOST_CHECK_EQUAL(dp.id.get_type(), o2::dcs::DeliveryType::DPVAL_DOUBLE);
     double value = o2::dcs::getValue<double>(dp);
     BOOST_CHECK(value >= fmin && value <= fmax);
   }
@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(GenerateFloat)
   BOOST_CHECK_EQUAL(fbi.size(), 28);
 
   for (auto dp : fbi) {
-    BOOST_CHECK_EQUAL(dp.id.get_type(), o2::dcs::DeliveryType::RAW_FLOAT);
+    BOOST_CHECK_EQUAL(dp.id.get_type(), o2::dcs::DeliveryType::DPVAL_FLOAT);
     float value = o2::dcs::getValue<float>(dp);
     BOOST_TEST_INFO(fmt::format("value={}", value));
     BOOST_CHECK(value >= fmin && value <= fmax);
@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(GenerateInt)
   BOOST_CHECK_EQUAL(fbi.size(), 28);
 
   for (auto dp : fbi) {
-    BOOST_CHECK_EQUAL(dp.id.get_type(), o2::dcs::DeliveryType::RAW_INT);
+    BOOST_CHECK_EQUAL(dp.id.get_type(), o2::dcs::DeliveryType::DPVAL_INT);
     double value = o2::dcs::getValue<int32_t>(dp);
     BOOST_CHECK(value >= imin && value <= imax);
     BOOST_CHECK_THROW(o2::dcs::getValue<double>(dp), std::runtime_error);
@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(GenerateUInt)
   BOOST_CHECK_EQUAL(fbi.size(), 28);
 
   for (auto dp : fbi) {
-    BOOST_CHECK_EQUAL(dp.id.get_type(), o2::dcs::DeliveryType::RAW_UINT);
+    BOOST_CHECK_EQUAL(dp.id.get_type(), o2::dcs::DeliveryType::DPVAL_UINT);
     double value = o2::dcs::getValue<uint32_t>(dp);
     BOOST_CHECK(value >= imin && value <= imax);
     BOOST_CHECK_THROW(o2::dcs::getValue<double>(dp), std::runtime_error);
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(GenerateBool)
   BOOST_CHECK_EQUAL(fbi.size(), 7);
 
   for (auto dp : fbi) {
-    BOOST_CHECK_EQUAL(dp.id.get_type(), o2::dcs::DeliveryType::RAW_BOOL);
+    BOOST_CHECK_EQUAL(dp.id.get_type(), o2::dcs::DeliveryType::DPVAL_BOOL);
     BOOST_CHECK_NO_THROW(o2::dcs::getValue<bool>(dp));
     BOOST_CHECK_THROW(o2::dcs::getValue<int>(dp), std::runtime_error);
   }
@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(GenerateString)
   BOOST_CHECK_EQUAL(fbi.size(), 7);
 
   for (auto dp : fbi) {
-    BOOST_CHECK_EQUAL(dp.id.get_type(), o2::dcs::DeliveryType::RAW_STRING);
+    BOOST_CHECK_EQUAL(dp.id.get_type(), o2::dcs::DeliveryType::DPVAL_STRING);
     BOOST_CHECK_NO_THROW(o2::dcs::getValue<std::string>(dp));
     BOOST_CHECK_THROW(o2::dcs::getValue<int>(dp), std::runtime_error);
     auto value = o2::dcs::getValue<std::string>(dp);

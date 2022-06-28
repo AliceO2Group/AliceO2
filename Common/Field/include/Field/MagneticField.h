@@ -83,6 +83,8 @@ class MagneticField : public FairField
     return !(mMapType == MagFieldParam::k5kGUniform || mDipoleOnOffFlag == true);
   }
 
+  void rescaleField(float l3Cur, float diCur, bool uniform, int convention = 0);
+
   /// Virtual methods from FairField
 
   /// X component, avoid using since slow
@@ -171,10 +173,10 @@ class MagneticField : public FairField
   // Former MagF methods or their aliases
 
   /// Sets the sign/scale of the current in the L3 according to sPolarityConvention
-  void setFactorSolenoid(Float_t fc = 1.);
+  void setFactorSolenoid(float fc = 1.);
 
   /// Sets the sign*scale of the current in the Dipole according to sPolarityConvention
-  void setFactorDipole(Float_t fc = 1.);
+  void setFactorDipole(float fc = 1.);
 
   /// Returns the sign*scale of the current in the Dipole according to sPolarityConventionthe
   Double_t getFactorSolenoid() const;
@@ -227,14 +229,16 @@ class MagneticField : public FairField
 
   static Int_t getPolarityConvention() { return Int_t(sPolarityConvention); }
 
+  static MagFieldParam::BMap_t getFieldMapScale(float& l3, float& dip, bool uniform, int convention = 0);
+
   /// The magnetic field map, defined externally...
   /// L3 current 30000 A  -> 0.5 T
   /// L3 current 12000 A  -> 0.2 T
   /// dipole current 6000 A
   /// The polarities must match the convention (LHC or DCS2008)
   /// unless the special uniform map was used for MC
-  static MagneticField* createFieldMap(Float_t l3Current = -30000., Float_t diCurrent = -6000., Int_t convention = 0,
-                                       Bool_t uniform = kFALSE, Float_t beamenergy = 7000, const Char_t* btype = "pp",
+  static MagneticField* createFieldMap(float l3Current = -30000., float diCurrent = -6000., Int_t convention = 0,
+                                       Bool_t uniform = kFALSE, float beamenergy = 7000, const Char_t* btype = "pp",
                                        const std::string path = std::string(gSystem->Getenv("VMCWORKDIR")) +
                                                                 std::string("/Common/maps/mfchebKGI_sym.root"));
 
@@ -244,7 +248,7 @@ class MagneticField : public FairField
 
   void setBeamType(MagFieldParam::BeamType_t type) { mBeamType = type; }
 
-  void setBeamEnergy(Float_t energy) { mBeamEnergy = energy; }
+  void setBeamEnergy(float energy) { mBeamEnergy = energy; }
 
  private:
   std::unique_ptr<MagneticWrapperChebyshev> mMeasuredMap; //! Measured part of the field map

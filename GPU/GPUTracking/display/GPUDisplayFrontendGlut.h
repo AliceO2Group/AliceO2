@@ -23,7 +23,7 @@ namespace GPUCA_NAMESPACE::gpu
 class GPUDisplayFrontendGlut : public GPUDisplayFrontend
 {
  public:
-  GPUDisplayFrontendGlut() = default;
+  GPUDisplayFrontendGlut();
   ~GPUDisplayFrontendGlut() override = default;
 
   int StartDisplay() override;
@@ -45,7 +45,7 @@ class GPUDisplayFrontendGlut : public GPUDisplayFrontend
   static void mouseMoveFunc(int x, int y);
   static void mMouseWheelFunc(int button, int dir, int x, int y);
   static void mouseFunc(int button, int state, int x, int y);
-  static void ReSizeGLSceneWrapper(int width, int height);
+  static void ResizeSceneWrapper(int width, int height);
   static int GetKey(int key);
   static void GetKey(int keyin, int& keyOut, int& keyPressOut, bool special);
 

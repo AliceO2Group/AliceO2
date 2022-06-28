@@ -19,6 +19,7 @@ namespace o2::framework
 
 /// A few ServiceSpecs data sending backends
 struct CommonMessageBackends {
+  static ServiceSpec fairMQDeviceProxy();
   static ServiceSpec fairMQBackendSpec();
   static ServiceSpec stringBackendSpec();
   static ServiceSpec rawBufferBackendSpec();

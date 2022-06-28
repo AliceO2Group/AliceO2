@@ -12,76 +12,23 @@
 #ifndef ALICEO2_FDD_DIGIT_H
 #define ALICEO2_FDD_DIGIT_H
 
-#include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/TimeStamp.h"
 #include "DataFormatsFDD/ChannelData.h"
-#include <Framework/Logger.h>
-#include <iosfwd>
+#include "DataFormatsFIT/Triggers.h"
 #include <Rtypes.h>
 #include <gsl/span>
 #include <bitset>
+#include <iostream>
 #include <tuple>
+
 namespace o2
 {
 namespace fdd
 {
-
 class ChannelData;
-
-struct Triggers {
-  enum { bitA,
-         bitC,
-         bitVertex,
-         bitCen,
-         bitSCen };
-  uint8_t triggersignals = 0; // FDD trigger signals
-  int8_t nChanA = 0;          // number of fired channels A side
-  int8_t nChanC = 0;          // number of fired channels A side
-  int32_t amplA = -1024;      // sum amplitude A side
-  int32_t amplC = -1024;      // sum amplitude C side
-  int16_t timeA = 0;          // average time A side
-  int16_t timeC = 0;          // average time C side
-  Triggers() = default;
-  Triggers(uint8_t signals, int8_t chanA, int8_t chanC, int32_t aamplA, int32_t aamplC, int16_t atimeA, int16_t atimeC)
-  {
-    triggersignals = signals;
-    nChanA = chanA;
-    nChanC = chanC;
-    amplA = aamplA;
-    amplC = aamplC;
-    timeA = atimeA;
-    timeC = atimeC;
-  }
-
-  bool getOrA() const { return (triggersignals & (1 << bitA)) != 0; }
-  bool getOrC() const { return (triggersignals & (1 << bitC)) != 0; }
-  bool getVertex() const { return (triggersignals & (1 << bitVertex)) != 0; }
-  bool getCen() const { return (triggersignals & (1 << bitCen)) != 0; }
-  bool getSCen() const { return (triggersignals & (1 << bitSCen)) != 0; }
-
-  void cleanTriggers()
-  {
-    triggersignals = 0;
-    nChanA = nChanC = 0;
-    amplA = amplC = 0;
-    timeA = timeC = 0;
-  }
-  Triggers getTriggers();
-  bool operator==(Triggers const& other) const
-  {
-    return std::tie(triggersignals, nChanA, nChanC, amplA, amplC, timeA, timeC) ==
-           std::tie(other.triggersignals, other.nChanA, other.nChanC, other.amplA, other.amplC, other.timeA, other.timeC);
-  }
-  void printLog() const
-  {
-    LOG(info) << "mTrigger: " << static_cast<uint16_t>(triggersignals);
-    LOG(info) << "nChanA: " << static_cast<uint16_t>(nChanA) << " | nChanC: " << static_cast<uint16_t>(nChanC);
-    LOG(info) << "amplA: " << amplA << " | amplC: " << amplC;
-    LOG(info) << "timeA: " << timeA << " | timeC: " << timeC;
-  }
-  ClassDefNV(Triggers, 1);
-};
+using Triggers = o2::fit::Triggers;
 
 struct DetTrigInput {
   static constexpr char sChannelNameDPL[] = "TRIGGERINPUT";
@@ -106,7 +53,7 @@ struct Digit {
   static constexpr char sChannelNameDPL[] = "DIGITSBC";
   static constexpr char sDigitName[] = "Digit";
   static constexpr char sDigitBranchName[] = "FDDDigit";
-  o2::dataformats::RangeRefComp<5> ref;
+  o2::dataformats::RangeReference<int, int> ref{};
   Triggers mTriggers;               // pattern of triggers  in this BC
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
   Digit() = default;
@@ -136,7 +83,7 @@ struct Digit {
     LOG(info) << "Ref first: " << ref.getFirstEntry() << "| Ref entries: " << ref.getEntries();
     mTriggers.printLog();
   }
-  ClassDefNV(Digit, 3);
+  ClassDefNV(Digit, 4);
 };
 //For TCM extended mode (calibration mode), TCMdataExtended digit
 struct TriggersExt {

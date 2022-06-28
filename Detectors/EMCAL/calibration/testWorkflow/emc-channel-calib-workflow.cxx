@@ -19,16 +19,23 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "Framework/Variant.h"
+#include "Framework/ConfigParamSpec.h"
+#include "DataFormatsEMCAL/Cell.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 #include <string>
 #include <stdexcept>
 #include <unordered_map>
 
+using namespace o2::framework;
+using namespace o2::emcal;
+
 // add workflow options, note that customization needs to be declared before
 // including Framework/runDataProcessing
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  std::vector<o2::framework::ConfigParamSpec> options{
+  std::vector<ConfigParamSpec> options{
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
@@ -36,10 +43,14 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h" // the main driver
 
-o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& cfgc)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
-  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   specs.emplace_back(getEMCALChannelCalibDeviceSpec());
+
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
   return specs;
 }

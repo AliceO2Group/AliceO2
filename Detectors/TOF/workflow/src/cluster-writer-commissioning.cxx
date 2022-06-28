@@ -12,6 +12,7 @@
 #include "TOFWorkflowIO/TOFClusterWriterSplitterSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
 
@@ -24,6 +25,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"ntf", o2::framework::VariantType::Int, 1, {"number of timeframe written for output file"}});
 }
 
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:TOF|tof).*[W,w]riter.*"));
+}
 // ------------------------------------------------------------------
 
 #include "Framework/runDataProcessing.h"

@@ -73,6 +73,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   // implement filling of the matrix cache
   using o2::itsmft::GeometryTGeo::fillMatrixCache;
   void fillMatrixCache(Int_t mask) override;
+  void updateL2GMatrixCache(std::vector<int> chipIDs = {});
 
   /// Exract MFT parameters from TGeo
   void Build(int loadTrans = 0) override;

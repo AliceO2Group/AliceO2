@@ -21,7 +21,7 @@
 #include <fmt/format.h>
 
 #include <fairmq/Tools.h>
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 
 #include "MCHMappingInterface/Segmentation.h"
 #include "CommonConstants/LHCConstants.h"
@@ -189,7 +189,7 @@ o2::InteractionRecord ROFFinder::digitTime2IR(const RawDigit& digit)
     firstOrbit -= 1;
   }
 
-  uint32_t orbit = digit.getTime() / BCINORBIT + firstOrbit;
+  uint32_t orbit = time / BCINORBIT + firstOrbit;
   int32_t bc = time % BCINORBIT;
   return o2::InteractionRecord(bc, orbit);
 }

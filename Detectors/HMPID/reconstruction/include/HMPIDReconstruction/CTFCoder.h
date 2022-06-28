@@ -36,16 +36,16 @@ namespace hmpid
 class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::HMP) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op) : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), o2::detectors::DetID::HMP) {}
   ~CTFCoder() final = default;
 
   /// entropy-encode data to buffer with CTF
   template <typename VEC>
-  void encode(VEC& buff, const gsl::span<const Trigger>& trigData, const gsl::span<const Digit>& digData);
+  o2::ctf::CTFIOSize encode(VEC& buff, const gsl::span<const Trigger>& trigData, const gsl::span<const Digit>& digData);
 
   /// entropy decode data from buffer with CTF
   template <typename VTRG, typename VDIG>
-  void decode(const CTF::base& ec, VTRG& trigVec, VDIG& digVec);
+  o2::ctf::CTFIOSize decode(const CTF::base& ec, VTRG& trigVec, VDIG& digVec);
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
@@ -56,7 +56,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
 /// entropy-encode digits and to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const gsl::span<const Trigger>& trigData, const gsl::span<const Digit>& digData)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const Trigger>& trigData, const gsl::span<const Digit>& digData)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -85,25 +85,29 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const Trigger>& trigData, const
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
+  o2::ctf::CTFIOSize iosize;
 #define ENCODEHMP(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
-  ENCODEHMP(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
-  ENCODEHMP(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
-  ENCODEHMP(helper.begin_entriesDig(),   helper.end_entriesDig(),    CTF::BLC_entriesDig,   0);
+  iosize += ENCODEHMP(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
+  iosize += ENCODEHMP(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
+  iosize += ENCODEHMP(helper.begin_entriesDig(),   helper.end_entriesDig(),    CTF::BLC_entriesDig,   0);
 
-  ENCODEHMP(helper.begin_ChID(),         helper.end_ChID(),          CTF::BLC_ChID,         0);
-  ENCODEHMP(helper.begin_Q(),            helper.end_Q(),             CTF::BLC_Q,            0);
-  ENCODEHMP(helper.begin_Ph(),           helper.end_Ph(),            CTF::BLC_Ph,           0);
-  ENCODEHMP(helper.begin_X(),            helper.end_X(),             CTF::BLC_X,            0);
-  ENCODEHMP(helper.begin_Y(),            helper.end_Y(),             CTF::BLC_Y,            0);
+  iosize += ENCODEHMP(helper.begin_ChID(),         helper.end_ChID(),          CTF::BLC_ChID,         0);
+  iosize += ENCODEHMP(helper.begin_Q(),            helper.end_Q(),             CTF::BLC_Q,            0);
+  iosize += ENCODEHMP(helper.begin_Ph(),           helper.end_Ph(),            CTF::BLC_Ph,           0);
+  iosize += ENCODEHMP(helper.begin_X(),            helper.end_X(),             CTF::BLC_X,            0);
+  iosize += ENCODEHMP(helper.begin_Y(),            helper.end_Y(),             CTF::BLC_Y,            0);
 
   // clang-format on
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
+  finaliseCTFOutput<CTF>(buff);
+  iosize.rawIn = trigData.size() * sizeof(Trigger) + digData.size() * sizeof(Digit);
+  return iosize;
 }
 
 /// decode entropy-encoded data to digits
 template <typename VTRG, typename VDIG>
-void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VDIG& digVec)
+o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VDIG& digVec)
 {
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
@@ -112,17 +116,18 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VDIG& digVec)
   std::vector<uint32_t> orbitInc, entriesDig;
   std::vector<uint8_t> chID, ph, x, y;
 
+  o2::ctf::CTFIOSize iosize;
 #define DECODEHMP(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
-  DECODEHMP(bcInc,       CTF::BLC_bcIncTrig);
-  DECODEHMP(orbitInc,    CTF::BLC_orbitIncTrig);
-  DECODEHMP(entriesDig,  CTF::BLC_entriesDig);
+  iosize += DECODEHMP(bcInc,       CTF::BLC_bcIncTrig);
+  iosize += DECODEHMP(orbitInc,    CTF::BLC_orbitIncTrig);
+  iosize += DECODEHMP(entriesDig,  CTF::BLC_entriesDig);
 
-  DECODEHMP(chID,        CTF::BLC_ChID);
-  DECODEHMP(q,           CTF::BLC_Q);
-  DECODEHMP(ph,          CTF::BLC_Ph);
-  DECODEHMP(x,           CTF::BLC_X);
-  DECODEHMP(y,           CTF::BLC_Y);
+  iosize += DECODEHMP(chID,        CTF::BLC_ChID);
+  iosize += DECODEHMP(q,           CTF::BLC_Q);
+  iosize += DECODEHMP(ph,          CTF::BLC_Ph);
+  iosize += DECODEHMP(x,           CTF::BLC_X);
+  iosize += DECODEHMP(y,           CTF::BLC_Y);
   // clang-format on
   //
   trigVec.clear();
@@ -153,6 +158,8 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VDIG& digVec)
     trigVec.emplace_back(ir, firstEntryDig, entriesDig[itrig]);
   }
   assert(digCount == header.nDigits);
+  iosize.rawIn = trigVec.size() * sizeof(Trigger) + digVec.size() * sizeof(Digit);
+  return iosize;
 }
 
 } // namespace hmpid

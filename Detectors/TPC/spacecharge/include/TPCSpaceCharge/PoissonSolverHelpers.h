@@ -71,6 +71,15 @@ struct TPCParameters {
 };
 
 template <typename DataT = double>
+struct GEMFrameParameters {
+  static constexpr DataT WIDTHFRAME{1};                             ///< width of the frame 1 cm
+  static constexpr DataT LENGTHFRAMEIROCBOTTOM{29.195};             ///< length of the GEM frame on the bottom side of the IROC
+  static constexpr DataT LENGTHFRAMEOROC3TOP{87.048};               ///< length of the GEM frame on the top side of the OROC3
+  static constexpr DataT POSBOTTOM[]{83.65, 133.5, 169.75, 207.85}; ///< local x position of the GEM frame on the bottom side per stack
+  static constexpr DataT POSTOP[]{133.3, 169.75, 207.85, 247.7};    ///< local x position of the GEM frame on the top side per stack
+};
+
+template <typename DataT = double>
 struct GridProperties {
   static constexpr DataT RMIN{TPCParameters<DataT>::IFCRADIUS};                  ///< min radius
   static constexpr DataT ZMIN{0};                                                ///< min z coordinate

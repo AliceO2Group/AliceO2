@@ -83,7 +83,6 @@ void Digitizer::setSimulationParameters()
 
 void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
-  size_t idx = labels.getIndexedSize();
   if (mPileupSignals.size() > 0) {
     // Add the signals, all chambers are keept in the same signal container
     SignalContainer smc = addSignalsFromPileup();
@@ -205,7 +204,6 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
   const int layer = mGeo->getLayer(det);
   const float rowEndROC = padPlane->getRowEndROC();
   const float row0 = padPlane->getRow0ROC();
-  const int nRowMax = padPlane->getNrows();
   const int nColMax = padPlane->getNcols();
 
   // Loop over hits

@@ -14,6 +14,7 @@
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "TPCInterpolationWorkflow/TPCInterpolationSpec.h"
@@ -53,6 +54,8 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   policies.push_back(o2::tpc::TPCSectorCompletionPolicy("tpc-track-interpolation",
                                                         o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll,
                                                         InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}})());
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*tpc-residuals-writer.*"));
 }
 
 // ------------------------------------------------------------------

@@ -51,6 +51,16 @@ struct DataSpecUtils {
                     const o2::header::DataDescription& description,
                     const o2::header::DataHeader::SubSpecificationType& subSpec);
 
+  static bool match(const InputSpec& spec, o2::header::DataHeader const& dh)
+  {
+    return DataSpecUtils::match(spec, dh.dataOrigin, dh.dataDescription, dh.subSpecification);
+  }
+
+  static bool match(const OutputSpec& spec, o2::header::DataHeader const& dh)
+  {
+    return DataSpecUtils::match(spec, dh.dataOrigin, dh.dataDescription, dh.subSpecification);
+  }
+
   /// find a matching spec in the container
   /// @return std::optional with found spec or std::nullopt
   template <typename ContainerT>
@@ -204,6 +214,10 @@ struct DataSpecUtils {
 
   /// Build a DataDescriptMatcher which does not care about the subSpec and origin.
   static data_matcher::DataDescriptorMatcher dataDescriptorMatcherFrom(header::DataDescription const& origin);
+
+  /// return fully qualified ConcreteDataMatcher if DataMatcher is connecting unique properties
+  /// via 'and' operation
+  static std::optional<framework::ConcreteDataMatcher> optionalConcreteDataMatcherFrom(data_matcher::DataDescriptorMatcher const& matcher);
 
   /// Checks if left includes right (or is equal to)
   static bool includes(const InputSpec& left, const InputSpec& right);

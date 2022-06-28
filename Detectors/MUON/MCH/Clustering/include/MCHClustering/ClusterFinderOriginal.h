@@ -14,8 +14,8 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MCH_CLUSTERFINDERORIGINAL_H_
-#define ALICEO2_MCH_CLUSTERFINDERORIGINAL_H_
+#ifndef O2_MCH_CLUSTERFINDERORIGINAL_H_
+#define O2_MCH_CLUSTERFINDERORIGINAL_H_
 
 #include <functional>
 #include <map>
@@ -134,4 +134,4 @@ class ClusterFinderOriginal
 } // namespace mch
 } // namespace o2
 
-#endif // ALICEO2_MCH_CLUSTERFINDERORIGINAL_H_
+#endif // O2_MCH_CLUSTERFINDERORIGINAL_H_

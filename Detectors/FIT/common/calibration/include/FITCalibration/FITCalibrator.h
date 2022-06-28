@@ -38,7 +38,7 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
   //probably will be set via run parameter
   static constexpr unsigned int DEFAULT_MIN_ENTRIES = 1000;
 
-  using TFType = uint64_t;
+  using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<TimeSlotStorageType>;
 
  public:
@@ -85,12 +85,9 @@ void FIT_CALIBRATOR_TYPE::finalizeSlot(Slot& slot)
   static std::map<std::string, std::string> md;
   auto* container = slot.getContainer();
   static const double TFlength = 1E-3 * o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCOrbitMUS; // in ms
-  uint64_t starting;
-  if constexpr (std::is_same_v<decltype(*container), TimeSlotStorageType&>) {
-    starting = container->getFirstCreation();
-  }
-  uint64_t stopping = starting + (slot.getTFEnd() - slot.getTFStart()) * TFlength;
-  LOG(info) << "!!!! TFstart " << slot.getTFStart() << " TFend " << slot.getTFEnd() << "starting = " << starting << " - stopping = " << stopping;
+  auto starting = slot.getStartTimeMS();
+  auto stopping = slot.getEndTimeMS();
+  LOGP(info, "!!!! {}({})<=TF<={}({}), starting: {} stopping {}", slot.getTFStart(), slot.getStartTimeMS(), slot.getTFEnd(), slot.getEndTimeMS(), starting, stopping);
 
   auto calibrationObject = FITCalibrationObjectProducer::generateCalibrationObject<CalibrationObjectType>(*container);
   auto preparedCalibObjects = FITCalibrationApi::prepareCalibrationObjectToSend(calibrationObject, starting, stopping);

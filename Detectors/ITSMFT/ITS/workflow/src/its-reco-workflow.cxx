@@ -16,6 +16,7 @@
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/ConfigContext.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
@@ -29,6 +30,13 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
   o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
 }
 
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:ITS|its).*[W,w]riter.*"));
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*irframe-writer.*"));
+}
+
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
@@ -39,6 +47,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"trackerCA", o2::framework::VariantType::Bool, false, {"use trackerCA (default: trackerCM)"}},
     {"tracking-mode", o2::framework::VariantType::String, "sync", {"sync,async,cosmics"}},
+    {"disable-tracking", o2::framework::VariantType::Bool, false, {"disable tracking step"}},
     {"entropy-encoding", o2::framework::VariantType::Bool, false, {"produce entropy encoded data"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"gpuDevice", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
@@ -62,6 +71,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto extClusters = configcontext.options().get<bool>("clusters-from-upstream");
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
   auto eencode = configcontext.options().get<bool>("entropy-encoding");
+  if (configcontext.options().get<bool>("disable-tracking")) {
+    trmode = "";
+  }
 
   std::transform(trmode.begin(), trmode.end(), trmode.begin(), [](unsigned char c) { return std::tolower(c); });
 

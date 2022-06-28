@@ -51,8 +51,8 @@ class GRPLHCIFData
   void setFillNumberWithTime(std::pair<long, int32_t> p) { mFillNumber = p; }
   void setFillNumberWithTime(long t, int32_t v) { mFillNumber = std::make_pair(t, v); }
 
-  std::pair<long, std::string> getInjectionSchemeWithTime() const { return mInjectionScheme; }
-  std::string getInjectionScheme() const { return mInjectionScheme.second; }
+  const std::pair<long, std::string>& getInjectionSchemeWithTime() const { return mInjectionScheme; }
+  const std::string& getInjectionScheme() const { return mInjectionScheme.second; }
   long getInjectionSchemeTime() const { return mInjectionScheme.first; }
   void setInjectionSchemeWithTime(std::pair<long, std::string> p) { mInjectionScheme = p; }
   void setInjectionSchemeWithTime(long t, std::string v) { mInjectionScheme = std::make_pair(t, v); }
@@ -75,8 +75,8 @@ class GRPLHCIFData
   void setCrossingAngleWithTime(std::pair<long, o2::units::AngleRad_t> p) { mCrossingAngle = p; }
   void setCrossingAngleWithTime(long t, o2::units::AngleRad_t v) { mCrossingAngle = std::make_pair(t, v); }
 
-  std::pair<long, o2::BunchFilling> getBunchFillingWithTime() const { return mBunchFilling; }
-  o2::BunchFilling getBunchFilling() const { return mBunchFilling.second; }
+  const std::pair<long, o2::BunchFilling>& getBunchFillingWithTime() const { return mBunchFilling; }
+  const o2::BunchFilling& getBunchFilling() const { return mBunchFilling.second; }
   long getBunchFillingTime() const { return mBunchFilling.first; }
   void setBunchFillingWithTime(std::pair<long, o2::BunchFilling> p) { mBunchFilling = p; }
   void setBunchFillingWithTime(long t, o2::BunchFilling v) { mBunchFilling = std::make_pair(t, v); }
@@ -95,17 +95,18 @@ class GRPLHCIFData
   /// helper function for BunchFilling
   void translateBucketsToBCNumbers(std::vector<int32_t>& bcNb, std::vector<int32_t>& buckets, int beam);
 
+  void print() const;
   static GRPLHCIFData* loadFrom(const std::string& grpLHCIFFileName = "");
 
  private:
-  std::pair<long, int32_t> mBeamEnergyPerZ; // beam energy per charge
-  std::pair<long, int32_t> mFillNumber;
-  std::pair<long, std::string> mInjectionScheme;
-  std::pair<long, int32_t> mAtomicNumberB1; // clockwise
-  std::pair<long, int32_t> mAtomicNumberB2; // anticlockwise
-  std::pair<long, o2::units::AngleRad_t> mCrossingAngle;
+  std::pair<long, int32_t> mBeamEnergyPerZ{}; // beam energy per charge
+  std::pair<long, int32_t> mFillNumber{};
+  std::pair<long, std::string> mInjectionScheme{};
+  std::pair<long, int32_t> mAtomicNumberB1{}; // clockwise
+  std::pair<long, int32_t> mAtomicNumberB2{}; // anticlockwise
+  std::pair<long, o2::units::AngleRad_t> mCrossingAngle{};
   int mBeamAZ[beamDirection::NBeamDirections] = {0, 0}; ///< A<<16+Z for each beam
-  std::pair<long, o2::BunchFilling> mBunchFilling;      ///To hold bunch filling information
+  std::pair<long, o2::BunchFilling> mBunchFilling{};    /// To hold bunch filling information
 
   ClassDefNV(GRPLHCIFData, 1);
 };

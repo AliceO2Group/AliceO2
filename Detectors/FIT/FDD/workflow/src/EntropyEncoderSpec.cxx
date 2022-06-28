@@ -15,6 +15,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "FDDWorkflow/EntropyEncoderSpec.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 
@@ -25,35 +26,36 @@ namespace o2
 namespace fdd
 {
 
-EntropyEncoderSpec::EntropyEncoderSpec()
+EntropyEncoderSpec::EntropyEncoderSpec() : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder)
 {
   mTimer.Stop();
   mTimer.Reset();
 }
 
+void EntropyEncoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
+    return;
+  }
+}
+
 void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>("ctf-dict");
-  mCTFCoder.setMemMarginFactor(ic.options().get<float>("mem-factor"));
-  if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCodersFromFile<CTF>(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
-  }
+  mCTFCoder.init<CTF>(ic);
 }
 
 void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
+  mCTFCoder.updateTimeDependentParams(pc);
   auto digits = pc.inputs().get<gsl::span<o2::fdd::Digit>>("digits");
   auto channels = pc.inputs().get<gsl::span<o2::fdd::ChannelData>>("channels");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"FDD", "CTFDATA", 0, Lifetime::Timeframe});
-  mCTFCoder.encode(buffer, digits, channels);
-  auto eeb = CTF::get(buffer.data()); // cast to container pointer
-  eeb->compactify();                  // eliminate unnecessary padding
-  buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
+  auto iosize = mCTFCoder.encode(buffer, digits, channels);
   mTimer.Stop();
-  LOG(info) << "Created encoded data of size " << eeb->size() << " for FDD in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -67,13 +69,14 @@ DataProcessorSpec getEntropyEncoderSpec()
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "FDD", "DIGITSBC", 0, Lifetime::Timeframe);
   inputs.emplace_back("channels", "FDD", "DIGITSCH", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict", "FDD", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("FDD/Calib/CTFDictionary"));
 
   return DataProcessorSpec{
     "fdd-entropy-encoder",
     inputs,
     Outputs{{"FDD", "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
-    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF encoding dictionary"}},
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }
 

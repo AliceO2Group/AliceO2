@@ -36,16 +36,16 @@ namespace trd
 class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::TRD) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op) : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), o2::detectors::DetID::TRD) {}
   ~CTFCoder() final = default;
 
   /// entropy-encode data to buffer with CTF
   template <typename VEC>
-  void encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Tracklet64>& trkData, const gsl::span<const Digit>& digData);
+  o2::ctf::CTFIOSize encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Tracklet64>& trkData, const gsl::span<const Digit>& digData);
 
   /// entropy decode data from buffer with CTF
   template <typename VTRG, typename VTRK, typename VDIG>
-  void decode(const CTF::base& ec, VTRG& trigVec, VTRK& trkVec, VDIG& digVec);
+  o2::ctf::CTFIOSize decode(const CTF::base& ec, VTRG& trigVec, VTRK& trkVec, VDIG& digVec);
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
@@ -56,7 +56,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
 /// entropy-encode digits and tracklets to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Tracklet64>& trkData, const gsl::span<const Digit>& digData)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Tracklet64>& trkData, const gsl::span<const Digit>& digData)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -92,33 +92,37 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
+  o2::ctf::CTFIOSize iosize;
 #define ENCODETRD(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
-  ENCODETRD(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
-  ENCODETRD(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
-  ENCODETRD(helper.begin_entriesTrk(),   helper.end_entriesTrk(),    CTF::BLC_entriesTrk,   0);
-  ENCODETRD(helper.begin_entriesDig(),   helper.end_entriesDig(),    CTF::BLC_entriesDig,   0);
+  iosize += ENCODETRD(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
+  iosize += ENCODETRD(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
+  iosize += ENCODETRD(helper.begin_entriesTrk(),   helper.end_entriesTrk(),    CTF::BLC_entriesTrk,   0);
+  iosize += ENCODETRD(helper.begin_entriesDig(),   helper.end_entriesDig(),    CTF::BLC_entriesDig,   0);
 
-  ENCODETRD(helper.begin_HCIDTrk(),      helper.end_HCIDTrk(),       CTF::BLC_HCIDTrk,      0);
-  ENCODETRD(helper.begin_padrowTrk(),    helper.end_padrowTrk(),     CTF::BLC_padrowTrk,    0);
-  ENCODETRD(helper.begin_colTrk(),       helper.end_colTrk(),        CTF::BLC_colTrk,       0);
-  ENCODETRD(helper.begin_posTrk(),       helper.end_posTrk(),        CTF::BLC_posTrk,       0);
-  ENCODETRD(helper.begin_slopeTrk(),     helper.end_slopeTrk(),      CTF::BLC_slopeTrk,     0);
-  ENCODETRD(helper.begin_pidTrk(),       helper.end_pidTrk(),        CTF::BLC_pidTrk,       0);
+  iosize += ENCODETRD(helper.begin_HCIDTrk(),      helper.end_HCIDTrk(),       CTF::BLC_HCIDTrk,      0);
+  iosize += ENCODETRD(helper.begin_padrowTrk(),    helper.end_padrowTrk(),     CTF::BLC_padrowTrk,    0);
+  iosize += ENCODETRD(helper.begin_colTrk(),       helper.end_colTrk(),        CTF::BLC_colTrk,       0);
+  iosize += ENCODETRD(helper.begin_posTrk(),       helper.end_posTrk(),        CTF::BLC_posTrk,       0);
+  iosize += ENCODETRD(helper.begin_slopeTrk(),     helper.end_slopeTrk(),      CTF::BLC_slopeTrk,     0);
+  iosize += ENCODETRD(helper.begin_pidTrk(),       helper.end_pidTrk(),        CTF::BLC_pidTrk,       0);
 
-  ENCODETRD(helper.begin_CIDDig(),       helper.end_CIDDig(),        CTF::BLC_CIDDig,       0);
-  ENCODETRD(helper.begin_ROBDig(),       helper.end_ROBDig(),        CTF::BLC_ROBDig,       0);
-  ENCODETRD(helper.begin_MCMDig(),       helper.end_MCMDig(),        CTF::BLC_MCMDig,       0);
-  ENCODETRD(helper.begin_chanDig(),      helper.end_chanDig(),       CTF::BLC_chanDig,      0);
-  ENCODETRD(helper.begin_ADCDig(),       helper.end_ADCDig(),        CTF::BLC_ADCDig,       0);
+  iosize += ENCODETRD(helper.begin_CIDDig(),       helper.end_CIDDig(),        CTF::BLC_CIDDig,       0);
+  iosize += ENCODETRD(helper.begin_ROBDig(),       helper.end_ROBDig(),        CTF::BLC_ROBDig,       0);
+  iosize += ENCODETRD(helper.begin_MCMDig(),       helper.end_MCMDig(),        CTF::BLC_MCMDig,       0);
+  iosize += ENCODETRD(helper.begin_chanDig(),      helper.end_chanDig(),       CTF::BLC_chanDig,      0);
+  iosize += ENCODETRD(helper.begin_ADCDig(),       helper.end_ADCDig(),        CTF::BLC_ADCDig,       0);
 
   // clang-format on
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
+  finaliseCTFOutput<CTF>(buff);
+  iosize.rawIn = trigData.size() * sizeof(TriggerRecord) + sizeof(Tracklet64) * trkData.size() + sizeof(Digit) * digData.size();
+  return iosize;
 }
 
 /// decode entropy-encoded data to tracklets and digits
 template <typename VTRG, typename VTRK, typename VDIG>
-void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& trkVec, VDIG& digVec)
+o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& trkVec, VDIG& digVec)
 {
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
@@ -127,25 +131,26 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& trkVec, VDIG& di
   std::vector<uint32_t> orbitInc, entriesTrk, entriesDig, pidTrk;
   std::vector<uint8_t> padrowTrk, colTrk, slopeTrk, ROBDig, MCMDig, chanDig;
 
+  o2::ctf::CTFIOSize iosize;
 #define DECODETRD(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
-  DECODETRD(bcInc,       CTF::BLC_bcIncTrig);
-  DECODETRD(orbitInc,    CTF::BLC_orbitIncTrig);
-  DECODETRD(entriesTrk,  CTF::BLC_entriesTrk);
-  DECODETRD(entriesDig,  CTF::BLC_entriesDig);
+  iosize += DECODETRD(bcInc,       CTF::BLC_bcIncTrig);
+  iosize += DECODETRD(orbitInc,    CTF::BLC_orbitIncTrig);
+  iosize += DECODETRD(entriesTrk,  CTF::BLC_entriesTrk);
+  iosize += DECODETRD(entriesDig,  CTF::BLC_entriesDig);
 
-  DECODETRD(HCIDTrk,     CTF::BLC_HCIDTrk);
-  DECODETRD(padrowTrk,   CTF::BLC_padrowTrk);
-  DECODETRD(colTrk,      CTF::BLC_colTrk);
-  DECODETRD(posTrk,      CTF::BLC_posTrk);
-  DECODETRD(slopeTrk,    CTF::BLC_slopeTrk);
-  DECODETRD(pidTrk,      CTF::BLC_pidTrk);
+  iosize += DECODETRD(HCIDTrk,     CTF::BLC_HCIDTrk);
+  iosize += DECODETRD(padrowTrk,   CTF::BLC_padrowTrk);
+  iosize += DECODETRD(colTrk,      CTF::BLC_colTrk);
+  iosize += DECODETRD(posTrk,      CTF::BLC_posTrk);
+  iosize += DECODETRD(slopeTrk,    CTF::BLC_slopeTrk);
+  iosize += DECODETRD(pidTrk,      CTF::BLC_pidTrk);
 
-  DECODETRD(CIDDig,      CTF::BLC_CIDDig);
-  DECODETRD(ROBDig,      CTF::BLC_ROBDig);
-  DECODETRD(MCMDig,      CTF::BLC_MCMDig);
-  DECODETRD(chanDig,     CTF::BLC_chanDig);
-  DECODETRD(ADCDig,      CTF::BLC_ADCDig);
+  iosize += DECODETRD(CIDDig,      CTF::BLC_CIDDig);
+  iosize += DECODETRD(ROBDig,      CTF::BLC_ROBDig);
+  iosize += DECODETRD(MCMDig,      CTF::BLC_MCMDig);
+  iosize += DECODETRD(chanDig,     CTF::BLC_chanDig);
+  iosize += DECODETRD(ADCDig,      CTF::BLC_ADCDig);
   // clang-format on
   //
   trigVec.clear();
@@ -188,6 +193,8 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& trkVec, VDIG& di
     trigVec.emplace_back(ir, firstEntryDig, entriesDig[itrig], firstEntryTrk, entriesTrk[itrig]);
   }
   assert(digCount == header.nDigits && trkCount == header.nTracklets && adcCount == (int)ADCDig.size());
+  iosize.rawIn = trigVec.size() * sizeof(TriggerRecord) + sizeof(Tracklet64) * trkVec.size() + sizeof(Digit) * digVec.size();
+  return iosize;
 }
 
 } // namespace trd

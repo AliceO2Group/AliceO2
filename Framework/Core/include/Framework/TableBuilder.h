@@ -691,7 +691,8 @@ class TableBuilder
     using args_pack_t = framework::pack<ARGS...>;
     if constexpr (sizeof...(ARGS) == 1 &&
                   is_bounded_array<pack_element_t<0, args_pack_t>>::value == false &&
-                  std::is_arithmetic_v<pack_element_t<0, args_pack_t>> == false) {
+                  std::is_arithmetic_v<pack_element_t<0, args_pack_t>> == false &&
+                  framework::is_base_of_template<std::vector, pack_element_t<0, args_pack_t>>::value == false) {
       using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
       using argsPack_t = decltype(tuple_to_pack(framework::to_tuple(std::declval<objType_t>())));
       auto persister = persistTuple(argsPack_t{}, columnNames);
@@ -700,7 +701,8 @@ class TableBuilder
         persister(slot, t);
       };
     } else if constexpr (sizeof...(ARGS) == 1 &&
-                         is_bounded_array<pack_element_t<0, args_pack_t>>::value == true) {
+                         (is_bounded_array<pack_element_t<0, args_pack_t>>::value == true ||
+                          framework::is_base_of_template<std::vector, pack_element_t<0, args_pack_t>>::value == true)) {
       using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
       auto persister = persistTuple(framework::pack<objType_t>{}, columnNames);
       // Callback used to fill the builders

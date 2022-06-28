@@ -24,10 +24,11 @@ namespace tof
 
 class TOFDiagnosticCalibrator final : public o2::calibration::TimeSlotCalibration<o2::tof::Diagnostic, o2::tof::Diagnostic>
 {
-  using TFType = uint64_t;
+  using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<o2::tof::Diagnostic>;
   using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
   using CcdbObjectInfoVector = std::vector<CcdbObjectInfo>;
+  int mRunNumber = -1;
 
  public:
   TOFDiagnosticCalibrator() = default;
@@ -36,6 +37,8 @@ class TOFDiagnosticCalibrator final : public o2::calibration::TimeSlotCalibratio
   void initOutput() final;
   void finalizeSlot(Slot& slot) final;
   Slot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
+  void setRunNumber(int run) { mRunNumber = run; }
+  int getRunNumber() const { return mRunNumber; }
 
   const std::vector<Diagnostic>& getDiagnosticVector() const { return mDiagnosticVector; }
   const CcdbObjectInfoVector& getDiagnosticInfoVector() const { return mccdbInfoVector; }

@@ -59,20 +59,20 @@ BOOST_AUTO_TEST_CASE(TRDRawDataHeaderInternals)
   BOOST_CHECK_EQUAL(halfcruheader.errorflags[1].errorflag, 0xa);
   halfcruheader.word12[1] = 0x00ed000000000000; // should link 14 error flags.
   BOOST_CHECK_EQUAL(halfcruheader.errorflags[14].errorflag, 0xed);
-  BOOST_CHECK_EQUAL(halfcruheader.errorflags[14].errorflag, o2::trd::getlinkerrorflag(halfcruheader, 14));
+  BOOST_CHECK_EQUAL(halfcruheader.errorflags[14].errorflag, o2::trd::getHalfCRULinkErrorFlag(halfcruheader, 14));
   //datasizes
   halfcruheader.word47[0] = 0xbdbd;
   BOOST_CHECK_EQUAL(halfcruheader.datasizes[0].size, 0xbdbd);
-  BOOST_CHECK_EQUAL(halfcruheader.datasizes[0].size, o2::trd::getlinkdatasize(halfcruheader, 0));
+  BOOST_CHECK_EQUAL(halfcruheader.datasizes[0].size, o2::trd::getHalfCRULinkDataSize(halfcruheader, 0));
   halfcruheader.word47[1] = 0xabcd;
   BOOST_CHECK_EQUAL(halfcruheader.datasizes[4].size, 0xabcd);
-  BOOST_CHECK_EQUAL(halfcruheader.datasizes[4].size, o2::trd::getlinkdatasize(halfcruheader, 4));
+  BOOST_CHECK_EQUAL(halfcruheader.datasizes[4].size, o2::trd::getHalfCRULinkDataSize(halfcruheader, 4));
   halfcruheader.word47[2] = 0xaaade127;
   BOOST_CHECK_EQUAL(halfcruheader.datasizes[8].size, 0xe127);
-  BOOST_CHECK_EQUAL(halfcruheader.datasizes[8].size, o2::trd::getlinkdatasize(halfcruheader, 8));
+  BOOST_CHECK_EQUAL(halfcruheader.datasizes[8].size, o2::trd::getHalfCRULinkDataSize(halfcruheader, 8));
   halfcruheader.word47[3] = 0xefaadebc0000;
   BOOST_CHECK_EQUAL(halfcruheader.datasizes[14].size, 0xefaa);
-  BOOST_CHECK_EQUAL(halfcruheader.datasizes[14].size, o2::trd::getlinkdatasize(halfcruheader, 14));
+  BOOST_CHECK_EQUAL(halfcruheader.datasizes[14].size, o2::trd::getHalfCRULinkDataSize(halfcruheader, 14));
   o2::trd::TrackletMCMHeader mcmrawdataheader;
   mcmrawdataheader.word = 0x78000000;
   BOOST_CHECK_EQUAL(mcmrawdataheader.padrow, 15);

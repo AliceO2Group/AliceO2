@@ -20,7 +20,6 @@
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "EveWorkflow/EveConfiguration.h"
 #include "EveWorkflow/EveWorkflowHelper.h"
-#include "Framework/AnalysisTask.h"
 #include <memory>
 
 using GID = o2::dataformats::GlobalTrackID;
@@ -43,9 +42,11 @@ class DetectorData
 {
  public:
   void init();
+  void setITSDict(const o2::itsmft::TopologyDictionary* d);
+  void setMFTDict(const o2::itsmft::TopologyDictionary* d);
 
-  o2::itsmft::TopologyDictionary mITSDict;
-  o2::itsmft::TopologyDictionary mMFTDict;
+  const o2::itsmft::TopologyDictionary* mITSDict = nullptr;
+  const o2::itsmft::TopologyDictionary* mMFTDict = nullptr;
   std::unique_ptr<EveConfiguration> mConfig;
   std::unique_ptr<o2::trd::GeometryFlat> mTrdGeo;
 };

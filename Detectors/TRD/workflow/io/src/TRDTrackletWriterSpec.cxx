@@ -45,12 +45,12 @@ o2::framework::DataProcessorSpec getTRDTrackletWriterSpec(bool useMC)
       output << " 10 " << endl;
   }*/
   //LOG(info) << "before writing out the tracklet size is " << Tracklet->size();
-  return MakeRootTreeWriterSpec("TRDTrkltWrt",
+  return MakeRootTreeWriterSpec("TRD-tracklet-writer",
                                 "trdtracklets.root",
                                 "o2sim",
                                 BranchDefinition<std::vector<o2::trd::Tracklet64>>{InputSpec{"tracklets", "TRD", "TRACKLETS"}, "Tracklet"},
                                 BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"trklabels", "TRD", "TRKLABELS"}, "TRKLabels", (useMC ? 1 : 0), "TRKLABELS"},
-                                BranchDefinition<std::vector<o2::trd::TriggerRecord>>{InputSpec{"tracklettrigs", "TRD", "TRKTRGRD"}, "TrackTrg"})();
+                                BranchDefinition<std::vector<o2::trd::TriggerRecord>>{InputSpec{"tracklettrigs", "TRD", "TRKTRGRD", 0u}, "TrackTrg"})();
 };
 
 } // end namespace trd

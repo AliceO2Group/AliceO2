@@ -22,6 +22,11 @@
 #include "ZDCSimulation/SpatialPhotonResponse.h"
 #include "TParticle.h"
 #include <utility>
+#include "ZDCBase/Constants.h"
+#ifdef ZDC_FASTSIM_ONNX
+#include "FastSimulations.h" // for fastsim module
+#include "Processors.h"      // for fastsim module
+#endif
 
 class FairVolume;
 
@@ -52,7 +57,13 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Detector(Bool_t active = true);
 
+// if building fastsim non trivial destructor is required
+#ifdef ZDC_FASTSIM_ONNX
+  ~Detector() override;
+#endif
+#ifndef ZDC_FASTSIM_ONNX
   ~Detector() override = default;
+#endif
 
   void InitializeO2Detector() final;
 
@@ -214,6 +225,35 @@ class Detector : public o2::base::DetImpl<Detector>
 
   ParticlePhotonResponse mResponses;
   ParticlePhotonResponse* mResponsesPtr = &mResponses;
+
+// fastsim model wrapper
+#ifdef ZDC_FASTSIM_ONNX
+  fastsim::NeuralFastSimulation* mFastSimClassifier = nullptr; //! no ROOT serialization
+  fastsim::NeuralFastSimulation* mFastSimModel = nullptr;      //!
+
+  // Scalers for models inputs
+  fastsim::processors::StandardScaler mClassifierScaler; //!
+  fastsim::processors::StandardScaler mModelScaler;      //!
+
+  // container for fastsim model responses
+  using FastSimResults = std::vector<std::array<long, 5>>; //!
+  FastSimResults mFastSimResults;                          //!
+
+  // converts FastSim model results to Hit
+  bool FastSimToHits(const Ort::Value& response, const TParticle& particle, int detector);
+
+  // determines detector geometry "pixel sizes"
+  constexpr std::pair<const int, const int> determineDetectorSize(int detector)
+  {
+    if (detector == ZNA || detector == ZNC) {
+      return {Geometry::ZNDIVISION[0] * Geometry::ZNSECTORS[0] * 2, Geometry::ZNDIVISION[1] * Geometry::ZNSECTORS[1] * 2};
+    } else if (detector == ZPA || detector == ZPC) {
+      return {Geometry::ZPDIVISION[0] * Geometry::ZPSECTORS[0] * 2, Geometry::ZPDIVISION[1] * Geometry::ZPSECTORS[1] * 2};
+    } else {
+      return {-1, -1};
+    }
+  }
+#endif
 
   template <typename Det>
   friend class o2::base::DetImpl;

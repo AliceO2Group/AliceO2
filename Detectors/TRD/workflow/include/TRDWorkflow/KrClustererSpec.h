@@ -28,7 +28,7 @@ namespace o2
 namespace trd
 {
 /// create a processor spec
-framework::DataProcessorSpec getKrClustererSpec(bool digitTrigRec);
+framework::DataProcessorSpec getKrClustererSpec();
 
 } // namespace trd
 } // namespace o2

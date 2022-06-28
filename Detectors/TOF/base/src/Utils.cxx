@@ -81,8 +81,8 @@ void Utils::computeLHCphase()
 
   auto evtime = evTimeMaker<std::vector<o2::dataformats::CalibInfoTOF>, o2::dataformats::CalibInfoTOF, filterCalib<o2::dataformats::CalibInfoTOF>>(tracks, 6.0f, true);
 
-  if (evtime.eventTimeError < 100) { // udpate LHCphase
-    mPhases[mIsample] = evtime.eventTime;
+  if (evtime.mEventTimeError < 100) { // udpate LHCphase
+    mPhases[mIsample] = evtime.mEventTime;
     mIsample = (mIsample + 1) % 100;
     if (mNsample < 100) {
       mNsample++;

@@ -11,6 +11,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
 
@@ -19,6 +20,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   std::swap(workflowOptions, options);
+}
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*filterer-reco-tf-writer.*"));
 }
 
 #include "Framework/runDataProcessing.h"

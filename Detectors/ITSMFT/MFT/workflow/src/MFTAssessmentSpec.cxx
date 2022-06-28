@@ -13,6 +13,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/Logger.h"
 #include "MFTWorkflow/MFTAssessmentSpec.h"
 #include "DetectorsBase/Propagator.h"
@@ -39,7 +40,10 @@ void MFTAssessmentSpec::init(InitContext& ic)
     auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
     double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
     auto Bz = field->getBz(centerMFT);
+    LOG(info) << "Setting MFT Assessment Bz = " << Bz;
     mMFTAssessment->setBz(Bz);
+  } else {
+    LOG(fatal) << "Magnetic field not initialized";
   }
 
   for (int sw = 0; sw < NStopWatches; sw++) {
@@ -54,7 +58,7 @@ void MFTAssessmentSpec::init(InitContext& ic)
 //_____________________________________________________________
 void MFTAssessmentSpec::run(o2::framework::ProcessingContext& pc)
 {
-
+  updateTimeDependentParams(pc);
   mTimer[SWQCAsync].Start(false);
   mMFTAssessment->runASyncQC(pc);
   mTimer[SWQCAsync].Stop();
@@ -71,7 +75,8 @@ void MFTAssessmentSpec::run(o2::framework::ProcessingContext& pc)
       mTimer[SWGenerated].Stop();
     }
     mTimer[SWRecoAndTrue].Start(false);
-    mMFTAssessment->processRecoAndTrueTracks();
+    mMFTAssessment->processRecoTracks();
+    mMFTAssessment->processTrueTracks();
     mTimer[SWRecoAndTrue].Stop();
   }
 }
@@ -105,6 +110,20 @@ void MFTAssessmentSpec::sendOutput(DataAllocator& output)
   objar.Write();
   f->Close();
 }
+///_______________________________________
+void MFTAssessmentSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+}
+
+///_______________________________________
+void MFTAssessmentSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mMFTAssessment->setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
+  }
+}
 
 //_____________________________________________________________
 DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen, bool finalizeAnalysis)
@@ -118,6 +137,7 @@ DataProcessorSpec getMFTAssessmentSpec(bool useMC, bool processGen, bool finaliz
   inputs.emplace_back("tracksrofs", "MFT", "MFTTrackROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracks", "MFT", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackClIdx", "MFT", "TRACKCLSID", 0, Lifetime::Timeframe);
+  inputs.emplace_back("cldict", "MFT", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/ClusterDictionary"));
 
   if (useMC) {
     inputs.emplace_back("clslabels", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe);

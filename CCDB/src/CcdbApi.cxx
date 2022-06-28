@@ -17,9 +17,11 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CCDBQuery.h"
 #include "CommonUtils/StringUtils.h"
+#include "CommonUtils/FileSystemUtils.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "MemoryResources/MemoryResources.h"
 #include <chrono>
+#include <memory>
 #include <sstream>
 #include <TFile.h>
 #include <TGrid.h>
@@ -35,21 +37,26 @@
 #include <algorithm>
 #include <filesystem>
 #include <boost/algorithm/string.hpp>
+#include <boost/asio/ip/host_name.hpp>
 #include <iostream>
 #include <mutex>
 #include <boost/interprocess/sync/named_semaphore.hpp>
 #include <regex>
 #include <cstdio>
 
-namespace o2
-{
-namespace ccdb
+namespace o2::ccdb
 {
 
 using namespace std;
 
 std::mutex gIOMutex; // to protect TMemFile IO operations
 unique_ptr<TJAlienCredentials> CcdbApi::mJAlienCredentials = nullptr;
+
+CcdbApi::CcdbApi()
+{
+  std::string host = boost::asio::ip::host_name();
+  mUniqueAgentID = fmt::format("{}-{}-{}", host, getCurrentTimestamp() / 1000, o2::utils::Str::getRandomString(6));
+}
 
 CcdbApi::~CcdbApi()
 {
@@ -60,7 +67,7 @@ void CcdbApi::curlInit()
 {
   // todo : are there other things to initialize globally for curl ?
   curl_global_init(CURL_GLOBAL_DEFAULT);
-  CcdbApi::mJAlienCredentials.reset(new TJAlienCredentials());
+  CcdbApi::mJAlienCredentials = std::make_unique<TJAlienCredentials>();
   CcdbApi::mJAlienCredentials->loadCredentials();
   CcdbApi::mJAlienCredentials->selectPreferedCredentials();
 }
@@ -74,16 +81,48 @@ void CcdbApi::init(std::string const& host)
 
   if (host.substr(0, 7).compare(SNAPSHOTPREFIX) == 0) {
     auto path = host.substr(7);
-    LOG(info) << "Initializing CcdbApi in snapshot readonly mode ... reading snapshot from path " << path;
     initInSnapshotMode(path);
   } else {
     initHostsPool(host);
     curlInit();
   }
+  // The environment option ALICEO2_CCDB_LOCALCACHE allows
+  // to reduce the number of queries to the server, by collecting the objects in a local
+  // cache folder, and serving from this folder for repeated queries.
+  // This is useful for instance for MC GRID productions in which we spawn
+  // many isolated processes, all querying the CCDB (for potentially the same objects and same timestamp).
+  // In addition, we can monitor exactly which objects are fetched and what is their content.
+  // One can also distribute so obtained caches to sites without network access.
+  //
+  // When used with the DPL CCDB fetcher (i.e. loadFileToMemory is called), in order to prefer the available snapshot w/o its validity
+  // check an extra variable IGNORE_VALIDITYCHECK_OF_CCDB_LOCALCACHE must be defined, otherwhise the object will be fetched from the
+  // server after the validity check and new snapshot will be created if needed
 
-  // find out if we can can in principle connect to Alien
-  mHaveAlienToken = checkAlienToken();
-  LOG(info) << "Is alien token present?: " << mHaveAlienToken;
+  std::string snapshotReport{};
+  const char* cachedir = getenv("ALICEO2_CCDB_LOCALCACHE");
+  if (cachedir) {
+    if (cachedir[0] == 0) {
+      mSnapshotCachePath = ".";
+    } else {
+      mSnapshotCachePath = cachedir;
+    }
+    snapshotReport = fmt::format("(cache snapshots to dir={}", mSnapshotCachePath);
+  }
+  if (getenv("IGNORE_VALIDITYCHECK_OF_CCDB_LOCALCACHE")) {
+    mPreferSnapshotCache = true;
+    if (mSnapshotCachePath.empty()) {
+      LOGP(fatal, "IGNORE_VALIDITYCHECK_OF_CCDB_LOCALCACHE is defined but the ALICEO2_CCDB_LOCALCACHE is not");
+    }
+    snapshotReport += ", prefer if available";
+  }
+  if (!snapshotReport.empty()) {
+    snapshotReport += ')';
+  }
+
+  mNeedAlienToken = host != "http://o2-ccdb.internal" && host != "http://localhost:8084" && host != "http://127.0.0.1:8084";
+
+  LOGP(info, "Init CcdApi with UserAgentID: {}, Host: {}{}", mUniqueAgentID, host,
+       mInSnapshotMode ? "(snapshot readonly mode)" : snapshotReport.c_str());
 }
 
 /**
@@ -145,18 +184,19 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
                                long startValidityTimestamp, long endValidityTimestamp, std::vector<char>::size_type maxSize) const
 {
   if (maxSize > 0 && size > maxSize) {
+    LOGP(alarm, "Object will not be uploaded to {} since its size {} exceeds max allowed {}", path, size, maxSize);
     return -1;
   }
 
   // Prepare URL
   long sanitizedStartValidityTimestamp = startValidityTimestamp;
   if (startValidityTimestamp == -1) {
-    cout << "Start of Validity not set, current timestamp used." << endl;
+    LOGP(info, "Start of Validity not set, current timestamp used.");
     sanitizedStartValidityTimestamp = getCurrentTimestamp();
   }
   long sanitizedEndValidityTimestamp = endValidityTimestamp;
   if (endValidityTimestamp == -1) {
-    cout << "End of Validity not set, start of validity plus 1 day used." << endl;
+    LOGP(info, "End of Validity not set, start of validity plus 1 day used.");
     sanitizedEndValidityTimestamp = getFutureTimestamp(60 * 60 * 24 * 1);
   }
 
@@ -164,6 +204,9 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
   CURL* curl = nullptr;
   curl = curl_easy_init();
   int returnValue = 0;
+
+  // checking that all metadata keys do not contain invalid characters
+  checkMetadataKeys(metadata);
 
   if (curl != nullptr) {
     struct curl_httppost* formpost = nullptr;
@@ -185,10 +228,11 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
     curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
 
     CURLcode res = CURL_LAST;
 
-    for (int hostIndex = 0; hostIndex < hostsPool.size() && res > 0; hostIndex++) {
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size() && res > 0; hostIndex++) {
       string fullUrl = getFullUrlForStorage(curl, path, objectType, metadata, sanitizedStartValidityTimestamp, sanitizedEndValidityTimestamp, hostIndex);
       LOG(debug3) << "Full URL Encoded: " << fullUrl;
       /* what URL that receives this POST */
@@ -198,8 +242,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
       res = curl_easy_perform(curl);
       /* Check for errors */
       if (res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n",
-                curl_easy_strerror(res));
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
         returnValue = res;
       }
     }
@@ -212,7 +255,7 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     /* free slist */
     curl_slist_free_all(headerlist);
   } else {
-    cerr << "curl initialization failure" << endl;
+    LOGP(alarm, "curl initialization failure");
     returnValue = -2;
   }
   return returnValue;
@@ -257,16 +300,11 @@ string CcdbApi::getFullUrlForStorage(CURL* curl, const string& path, const strin
   return fullUrl;
 }
 
-std::string getSnapshotPath(std::string const& topdir, const string& path)
-{
-  return topdir + "/" + path + "/snapshot.root";
-}
-
 // todo make a single method of the one above and below
 string CcdbApi::getFullUrlForRetrieval(CURL* curl, const string& path, const map<string, string>& metadata, long timestamp, int hostIndex) const
 {
   if (mInSnapshotMode) {
-    return getSnapshotPath(mSnapshotTopPath, path);
+    return getSnapshotFile(mSnapshotTopPath, path);
   }
 
   // Prepare timestamps
@@ -348,7 +386,7 @@ static size_t WriteToFileCallback(void* ptr, size_t size, size_t nmemb, FILE* st
  * @param parm
  * @return
  */
-static CURLcode ssl_ctx_callback(CURL* curl, void* ssl_ctx, void* parm)
+static CURLcode ssl_ctx_callback(CURL*, void*, void* parm)
 {
   std::string msg((const char*)parm);
   int start = 0, end = msg.find('\n');
@@ -391,13 +429,12 @@ void CcdbApi::curlSetSSLOptions(CURL* curl_handle)
   // CURLcode ret = curl_easy_setopt(curl_handle, CURLOPT_SSL_CTX_FUNCTION, *ssl_ctx_callback);
 }
 
-typedef size_t (*CurlWriteCallback)(void*, size_t, size_t, void*);
+using CurlWriteCallback = size_t (*)(void*, size_t, size_t, void*);
 
 void CcdbApi::initCurlOptionsForRetrieve(CURL* curlHandle, void* chunk, CurlWriteCallback writeCallback, bool followRedirect) const
 {
   curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, writeCallback);
   curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, chunk);
-  curl_easy_setopt(curlHandle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
   curl_easy_setopt(curlHandle, CURLOPT_FOLLOWLOCATION, followRedirect ? 1L : 0L);
 }
 
@@ -443,6 +480,8 @@ void CcdbApi::initHeadersForRetrieve(CURL* curlHandle, long timestamp, std::map<
   if (list) {
     curl_easy_setopt(curlHandle, CURLOPT_HTTPHEADER, list);
   }
+
+  curl_easy_setopt(curlHandle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
 }
 
 bool CcdbApi::receiveToFile(FILE* fileHandle, std::string const& path, std::map<std::string, std::string> const& metadata,
@@ -476,15 +515,14 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
     long responseCode = 0;
     CURLcode curlResultCode = CURL_LAST;
 
-    for (int hostIndex = 0; hostIndex < hostsPool.size() && (responseCode >= 400 || curlResultCode > 0); hostIndex++) {
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size() && (responseCode >= 400 || curlResultCode > 0); hostIndex++) {
       string fullUrl = getFullUrlForRetrieval(curlHandle, path, metadata, timestamp, hostIndex);
       curl_easy_setopt(curlHandle, CURLOPT_URL, fullUrl.c_str());
 
       curlResultCode = curl_easy_perform(curlHandle);
 
       if (curlResultCode != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n",
-                curl_easy_strerror(curlResultCode));
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(curlResultCode));
       } else {
         curlResultCode = curl_easy_getinfo(curlHandle, CURLINFO_RESPONSE_CODE, &responseCode);
         if ((curlResultCode == CURLE_OK) && (responseCode < 300)) {
@@ -492,9 +530,9 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
           return true;
         } else {
           if (curlResultCode != CURLE_OK) {
-            cerr << "invalid URL : " << fullUrl << endl;
+            LOGP(alarm, "invalid URL {}", fullUrl);
           } else {
-            cerr << "not found under link: " << fullUrl << endl;
+            LOGP(alarm, "not found under link {}", fullUrl);
           }
         }
       }
@@ -524,7 +562,7 @@ TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::s
     mess.Reset();
     result = (TObject*)(mess.ReadObjectAny(mess.GetClass()));
     if (result == nullptr) {
-      cerr << "couldn't retrieve the object " << path << endl;
+      LOGP(info, "couldn't retrieve the object {}", path);
     }
   }
 
@@ -537,6 +575,8 @@ std::string CcdbApi::generateFileName(const std::string& inp)
 {
   // generate file name for the CCDB object  (for now augment the input string by the timestamp)
   std::string str = inp;
+  str.erase(std::remove_if(str.begin(), str.end(), ::isspace), str.end());
+  str = std::regex_replace(str, std::regex("::"), "-");
   str += "_" + std::to_string(o2::ccdb::getCurrentTimestamp()) + ".root";
   return str;
 }
@@ -555,37 +595,23 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
   // we setup the target path for this blob
   std::string fulltargetdir = targetdir + (preservePath ? ('/' + path) : "");
 
-  if (!std::filesystem::exists(fulltargetdir)) {
-    if (!std::filesystem::create_directories(fulltargetdir)) {
-      LOG(error) << "Could not create target directory " << fulltargetdir;
-    }
-  }
-
-  // retrieveHeaders
-  auto headers = retrieveHeaders(path, metadata, timestamp);
-
-  // extract unique ETag identifier
-  auto ETag_original = headers["ETag"];
-  // if there is no ETag ... something is wrong
-  if (ETag_original.size() == 0) {
-    LOG(error) << "No ETag found in header for path " << path << ". Aborting.";
+  try {
+    o2::utils::createDirectoriesIfAbsent(fulltargetdir);
+  } catch (std::exception e) {
+    LOGP(error, fmt::format("Could not create local snapshot cache directory {}, reason: {}", fulltargetdir, e.what()));
     return false;
   }
 
-  // remove surrounding quotation marks
-  auto ETag = ETag_original.substr(1, ETag_original.size() - 2);
-
-  // extract location property of object
-  auto location = headers["Location"];
-  // See if this resource is on ALIEN or not.
-  // If this is the case, we can't follow the standard curl procedure further below. We'll
-  // have 2 choices:
-  // a) if we have a token --> copy the file from alien using TMemFile::cp (which internally uses the TGrid instance)
-  // b) if we don't have token or a) fails --> try to download from fallback https: resource if it exists
-  bool onAlien = location.find("alien:") != std::string::npos;
-
+  o2::pmr::vector<char> buff;
+  std::map<std::string, std::string> headers;
+  // avoid creating snapshot via loadFileToMemory itself
+  loadFileToMemory(buff, path, metadata, timestamp, &headers, "", "", "", false);
+  if ((headers.count("Error") != 0) || (buff.empty())) {
+    LOGP(error, "Unable to find object {}/{}, Aborting", path, timestamp);
+    return false;
+  }
   // determine local filename --> use user given one / default -- or if empty string determine from content
-  auto getFileName = [&headers, &path]() {
+  auto getFileName = [&headers]() {
     auto& s = headers["Content-Disposition"];
     if (s != "") {
       std::regex re("(.*;)filename=\"(.*)\"");
@@ -600,97 +626,29 @@ bool CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
   };
   auto filename = localFileName.size() > 0 ? localFileName : getFileName();
   std::string targetpath = fulltargetdir + "/" + filename;
-
-  bool success = false;
-  // if resource on Alien and token ok
-  if (onAlien && mHaveAlienToken) {
-    if (initTGrid()) {
-      success = TFile::Cp(location.c_str(), targetpath.c_str());
-      if (!success) {
-        LOG(error) << "Object was marked an ALIEN resource but copy failed.\n";
-      }
-    }
-  }
-
-  if (!success) {
-    FILE* fp = fopen(targetpath.c_str(), "w");
-    if (!fp) {
-      LOG(error) << " Could not open/create target file " << targetpath << "\n";
+  {
+    std::ofstream objFile(targetpath, std::ios::out | std::ofstream::binary);
+    std::copy(buff.begin(), buff.end(), std::ostreambuf_iterator<char>(objFile));
+    if (!objFile.good()) {
+      LOGP(error, "Unable to open local file {}, Aborting", targetpath);
       return false;
     }
-
-    // Prepare CURL
-    CURL* curl_handle;
-    CURLcode res = CURL_LAST;
-    long response_code = 404;
-
-    /* init the curl session */
-    curl_handle = curl_easy_init();
-
-    /* send all data to this function  */
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteToFileCallback);
-
-    /* we pass our file handle to the callback function */
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)fp);
-
-    /* some servers don't like requests that are made without a user-agent
-         field, so we provide one */
-    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-
-    /* if redirected , we tell libcurl to follow redirection */
-    curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
-
-    curlSetSSLOptions(curl_handle);
-
-    for (int i = 0; i < hostsPool.size() && res > 0 && response_code >= 400; i++) {
-      // we can construct download URL direclty from the headers obtained above
-      string fullUrl = getHostUrl(i) + "/download/" + ETag; // getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
-
-      /* specify URL to get */
-      curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
-
-      /* get it! */
-      res = curl_easy_perform(curl_handle);
-
-      void* result = nullptr;
-      success = true;
-      if (res == CURLE_OK) {
-        res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
-        if ((res == CURLE_OK) && (response_code != 404)) {
-        } else {
-          LOG(error) << "Invalid URL : " << fullUrl;
-          success = false;
-        }
-      } else {
-        LOG(error) << "Invalid URL : " << fullUrl;
-        success = false;
-      }
-    }
-
-    if (fp) {
-      fclose(fp);
-    }
-    curl_easy_cleanup(curl_handle);
   }
-
-  if (success) {
-    // append metadata (such as returned headers) to the file so that it can be inspected WHERE/HOW/WHAT IT corresponds to
-    CCDBQuery querysummary(path, metadata, timestamp);
-    {
-      std::lock_guard<std::mutex> guard(gIOMutex);
-      auto oldlevel = gErrorIgnoreLevel;
-      gErrorIgnoreLevel = 6001; // ignoring error messages here (since we catch with IsZombie)
-      TFile snapshotfile(targetpath.c_str(), "UPDATE");
-      // The assumption is that the blob is a ROOT file
-      if (!snapshotfile.IsZombie()) {
-        snapshotfile.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
-        snapshotfile.WriteObjectAny(&headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
-        snapshotfile.Close();
-      }
-      gErrorIgnoreLevel = oldlevel;
+  CCDBQuery querysummary(path, metadata, timestamp);
+  {
+    std::lock_guard<std::mutex> guard(gIOMutex);
+    auto oldlevel = gErrorIgnoreLevel;
+    gErrorIgnoreLevel = 6001; // ignoring error messages here (since we catch with IsZombie)
+    TFile snapshotfile(targetpath.c_str(), "UPDATE");
+    // The assumption is that the blob is a ROOT file
+    if (!snapshotfile.IsZombie()) {
+      snapshotfile.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
+      snapshotfile.WriteObjectAny(&headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
+      snapshotfile.Close();
     }
+    gErrorIgnoreLevel = oldlevel;
   }
-  return success;
+  return true;
 }
 
 void CcdbApi::snapshot(std::string const& ccdbrootpath, std::string const& localDir, long timestamp) const
@@ -703,19 +661,19 @@ void CcdbApi::snapshot(std::string const& ccdbrootpath, std::string const& local
   }
 }
 
-void* CcdbApi::extractFromTFile(TFile& file, TClass const* cl)
+void* CcdbApi::extractFromTFile(TFile& file, TClass const* cl, const char* what)
 {
   if (!cl) {
     return nullptr;
   }
-  auto object = file.GetObjectChecked(CCDBOBJECT_ENTRY, cl);
+  auto object = file.GetObjectChecked(what, cl);
   if (!object) {
     // it could be that object was stored with previous convention
     // where the classname was taken as key
     std::string objectName(cl->GetName());
     o2::utils::Str::trim(objectName);
     object = file.GetObjectChecked(objectName.c_str(), cl);
-    LOG(warn) << "Did not find object under expected name " << CCDBOBJECT_ENTRY;
+    LOG(warn) << "Did not find object under expected name " << what;
     if (!object) {
       return nullptr;
     }
@@ -724,12 +682,12 @@ void* CcdbApi::extractFromTFile(TFile& file, TClass const* cl)
   auto result = object;
   // We need to handle some specific cases as ROOT ties them deeply
   // to the file they are contained in
-  if (cl->InheritsFrom("TObject")) { // RS not sure why cloning is needed, certainly for the histos it it enough to SetDirectory(nullptr)
+  if (cl->InheritsFrom("TObject")) {
     // make a clone
     // detach from the file
     auto tree = dynamic_cast<TTree*>((TObject*)object);
-    if (tree) { // RS At the moment leaving the cloning for TTree
-      tree = (TTree*)tree->Clone();
+    if (tree) {
+      tree->LoadBaskets(0x1L << 32); // make tree memory based
       tree->SetDirectory(nullptr);
       result = tree;
     } else {
@@ -758,43 +716,21 @@ void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info 
       *headers = *storedmeta; // do a simple deep copy
       delete storedmeta;
     }
+    if ((isSnapshotMode() || mPreferSnapshotCache) && headers->find("ETag") == headers->end()) { // generate dummy ETag to profit from the caching
+      (*headers)["ETag"] = filename;
+    }
   }
   return extractFromTFile(f, tcl);
 }
 
-bool CcdbApi::checkAlienToken() const
-{
-#ifdef __APPLE__
-  // not checking for token on Mac because
-  // a) we have seen problems where system call below hangs in some cases
-  // b) not the production plattform where the token would be beneficial
-  return false;
-#endif
-  // a somewhat weird construction to programmatically find out if we
-  // have a GRID token; Can be replaced with something more elegant once
-  // alien-token-info does not ask for passwords interactively
-  if (getenv("JALIEN_TOKEN_CERT")) {
-    return true;
-  }
-  auto returncode = system("alien-token-info > /dev/null 2> /dev/null");
-  if (returncode == -1) {
-    LOG(error) << "system(\"alien-token-info\") call failed with internal fork/wait error";
-  }
-  return returncode == 0;
-}
-
 bool CcdbApi::initTGrid() const
 {
-  if (!mAlienInstance) {
-    if (mHaveAlienToken) {
-      mAlienInstance = TGrid::Connect("alien");
-      static bool errorShown = false;
-      if (!mAlienInstance && errorShown == false) {
-        LOG(error) << "TGrid::Connect returned nullptr despite token present";
-        errorShown = true;
-      }
-    } else {
-      LOG(warn) << "CCDB: Did not find an alien token; Cannot serve objects located on alien://";
+  if (mNeedAlienToken && !mAlienInstance) {
+    mAlienInstance = TGrid::Connect("alien");
+    static bool errorShown = false;
+    if (!mAlienInstance && errorShown == false) {
+      LOG(error) << "TGrid::Connect returned nullptr. May be due to missing alien token";
+      errorShown = true;
     }
   }
   return mAlienInstance != nullptr;
@@ -867,7 +803,6 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
   long response_code = -1;
   void* content = nullptr;
   bool errorflag = false;
-  bool cachingflag = false;
   if (res == CURLE_OK && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code) == CURLE_OK) {
     if (headers) {
       for (auto& p : headerData) {
@@ -882,7 +817,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
       // it since it's already in your possession
 
       // there is nothing to be done here
-      cachingflag = true;
+      LOGP(debug, "Object exists but I am not serving it since it's already in your possession");
     }
     // this is a more general redirection
     else if (300 <= response_code && response_code < 400) {
@@ -917,7 +852,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
       for (auto& l : locs) {
         if (l.size() > 0) {
           LOG(debug) << "Trying content location " << l;
-          content = navigateURLsAndRetrieveContent(curl_handle, l, tinfo, nullptr);
+          content = navigateURLsAndRetrieveContent(curl_handle, l, tinfo, headers);
           if (content /* or other success marker in future */) {
             break;
           }
@@ -927,6 +862,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
       LOG(error) << "Requested resource does not exist: " << url;
       errorflag = true;
     } else {
+      LOG(error) << "Error in fetching object " << url << ", curl response code:" << response_code;
       errorflag = true;
     }
     // cleanup
@@ -934,7 +870,7 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
       free(chunk.memory);
     }
   } else {
-    LOG(error) << "Curl request to " << url << " failed ";
+    LOGP(alarm, "Curl request to {} failed with result {}, response code: {}", url, int(res), response_code);
     errorflag = true;
   }
   // indicate that an error occurred ---> used by caching layers (such as CCDBManager)
@@ -949,20 +885,11 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
                                  std::map<std::string, std::string>* headers, std::string const& etag,
                                  const std::string& createdNotAfter, const std::string& createdNotBefore) const
 {
-  // The environment option ALICEO2_CCDB_LOCALCACHE allows
-  // to reduce the number of queries to the server, by collecting the objects in a local
-  // cache folder, and serving from this folder for repeated queries.
-  // This is useful for instance for MC GRID productions in which we spawn
-  // many isolated processes, all querying the CCDB (for potentially the same objects and same timestamp).
-  // In addition, we can monitor exactly which objects are fetched and what is their content.
-  // One can also distribute so obtained caches to sites without network access.
-  auto cachedir = getenv("ALICEO2_CCDB_LOCALCACHE");
-  if (cachedir) {
+  if (!mSnapshotCachePath.empty()) {
     // protect this sensitive section by a multi-process named semaphore
-    bool use_sema = false;
     boost::interprocess::named_semaphore* sem = nullptr;
     std::hash<std::string> hasher;
-    const auto semhashedstring = "aliceccdb" + std::to_string(hasher(std::string(cachedir) + path)).substr(0, 16);
+    const auto semhashedstring = "aliceccdb" + std::to_string(hasher(mSnapshotCachePath + path)).substr(0, 16);
     try {
       sem = new boost::interprocess::named_semaphore(boost::interprocess::open_or_create_t{}, semhashedstring.c_str(), 1);
     } catch (std::exception e) {
@@ -972,24 +899,22 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
     if (sem) {
       sem->wait(); // wait until we can enter (no one else there)
     }
-    if (!std::filesystem::exists(cachedir)) {
-      if (!std::filesystem::create_directories(cachedir)) {
-        LOG(error) << "Could not create local snapshot cache directory " << cachedir << "\n";
-      }
-    }
-    std::string logfile = std::string(cachedir) + "/log";
+    std::string logfile = mSnapshotCachePath + "/log";
     std::fstream out(logfile, ios_base::out | ios_base::app);
     if (out.is_open()) {
-      out << "CCDB-access[" << getpid() << "] to " << path << " timestamp " << timestamp << "\n";
+      out << "CCDB-access[" << getpid() << "] of " << mUniqueAgentID << " to " << path << " timestamp " << timestamp << "\n";
     }
-    auto snapshotfile = getSnapshotPath(cachedir, path);
-    std::filesystem::exists(snapshotfile);
+    auto snapshotfile = getSnapshotFile(mSnapshotCachePath, path);
+    bool snapshoting = false;
     if (!std::filesystem::exists(snapshotfile)) {
-      out << "CCDB-access[" << getpid() << "]  ... downloading to snapshot " << snapshotfile << "\n";
+      snapshoting = true;
+      out << "CCDB-access[" << getpid() << "] ... " << mUniqueAgentID << " downloading to snapshot " << snapshotfile << "\n";
       // if file not already here and valid --> snapshot it
-      retrieveBlob(path, cachedir, metadata, timestamp);
+      if (!retrieveBlob(path, mSnapshotCachePath, metadata, timestamp)) {
+        out << "CCDB-access[" << getpid() << "] ... " << mUniqueAgentID << " failed to create directory for " << snapshotfile << "\n";
+      }
     } else {
-      out << "CCDB-access[" << getpid() << "]  ... serving from local snapshot " << snapshotfile << "\n";
+      out << "CCDB-access[" << getpid() << "]  ... " << mUniqueAgentID << "serving from local snapshot " << snapshotfile << "\n";
     }
     if (sem) {
       sem->post();
@@ -999,7 +924,11 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
         boost::interprocess::named_semaphore::remove(semhashedstring.c_str());
       }
     }
-    return extractFromLocalFile(snapshotfile, tinfo, headers);
+    auto res = extractFromLocalFile(snapshotfile, tinfo, headers);
+    if (!snapshoting) { // if snapshot was created at this call, the log was already done
+      logReading(path, timestamp, headers, "retrieve from snapshot");
+    }
+    return res;
   }
 
   // normal mode follows
@@ -1009,16 +938,19 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   // if we are in snapshot mode we can simply open the file; extract the object and return
   if (mInSnapshotMode) {
     return extractFromLocalFile(fullUrl, tinfo, headers);
+    logReading(path, timestamp, headers, "retrieve from snapshot");
   }
 
   initHeadersForRetrieve(curl_handle, timestamp, headers, etag, createdNotAfter, createdNotBefore);
   auto content = navigateURLsAndRetrieveContent(curl_handle, fullUrl, tinfo, headers);
 
-  for (int hostIndex = 1; hostIndex < hostsPool.size() && !(content); hostIndex++) {
+  for (size_t hostIndex = 1; hostIndex < hostsPool.size() && !(content); hostIndex++) {
     fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
     content = navigateURLsAndRetrieveContent(curl_handle, fullUrl, tinfo, headers);
   }
-
+  if (content) {
+    logReading(path, timestamp, headers, "retrieve");
+  }
   curl_easy_cleanup(curl_handle);
   return content;
 }
@@ -1058,7 +990,7 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
 
     string fullUrl;
     // Perform the request, res will get the return code
-    for (int hostIndex = 0; hostIndex < hostsPool.size() && res != CURLE_OK; hostIndex++) {
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size() && res != CURLE_OK; hostIndex++) {
       fullUrl = getHostUrl(hostIndex);
       fullUrl += latestOnly ? "/latest/" : "/browse/";
       fullUrl += path;
@@ -1066,7 +998,7 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
 
       res = curl_easy_perform(curl);
       if (res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
       }
     }
     curl_slist_free_all(headers);
@@ -1095,14 +1027,14 @@ void CcdbApi::deleteObject(std::string const& path, long timestamp) const
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
     curlSetSSLOptions(curl);
 
-    for (int hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
       fullUrl << getHostUrl(hostIndex) << "/" << path << "/" << timestampLocal;
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
 
       // Perform the request, res will get the return code
       res = curl_easy_perform(curl);
       if (res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
       }
       curl_easy_cleanup(curl);
     }
@@ -1114,7 +1046,7 @@ void CcdbApi::truncate(std::string const& path) const
   CURL* curl;
   CURLcode res;
   stringstream fullUrl;
-  for (int i = 0; i < hostsPool.size(); i++) {
+  for (size_t i = 0; i < hostsPool.size(); i++) {
     string url = getHostUrl(i);
     fullUrl << url << "/truncate/" << path;
 
@@ -1127,14 +1059,14 @@ void CcdbApi::truncate(std::string const& path) const
       // Perform the request, res will get the return code
       res = curl_easy_perform(curl);
       if (res != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
       }
       curl_easy_cleanup(curl);
     }
   }
 }
 
-size_t write_data(void* buffer, size_t size, size_t nmemb, void* userp)
+size_t write_data(void*, size_t size, size_t nmemb, void*)
 {
   return size * nmemb;
 }
@@ -1147,7 +1079,7 @@ bool CcdbApi::isHostReachable() const
 
   curl = curl_easy_init();
   if (curl) {
-    for (int hostIndex = 0; hostIndex < hostsPool.size() && res != CURLE_OK; hostIndex++) {
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size() && res != CURLE_OK; hostIndex++) {
       curl_easy_setopt(curl, CURLOPT_URL, mUrl.data());
       curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
       curlSetSSLOptions(curl);
@@ -1172,8 +1104,7 @@ std::vector<std::string> CcdbApi::parseSubFolders(std::string const& reply) cons
   size_t numberoflines = std::count(reply.begin(), reply.end(), '\n');
   bool inSubFolderSection = false;
 
-  int counter = 0;
-  for (int linenumber = 0; linenumber < numberoflines; ++linenumber) {
+  for (size_t linenumber = 0; linenumber < numberoflines; ++linenumber) {
     std::getline(ss, line);
     if (inSubFolderSection && line.size() > 0) {
       // remove all white space
@@ -1191,7 +1122,7 @@ namespace
 {
 size_t header_callback(char* buffer, size_t size, size_t nitems, void* userdata)
 {
-  std::vector<std::string>* headers = static_cast<std::vector<std::string>*>(userdata);
+  auto* headers = static_cast<std::vector<std::string>*>(userdata);
   auto header = std::string(buffer, size * nitems);
   headers->emplace_back(std::string(header.data()));
   return size * nitems;
@@ -1216,6 +1147,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_map_callback<>);
     curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
 
     curlSetSSLOptions(curl);
 
@@ -1223,7 +1155,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
 
     long httpCode = 404;
     CURLcode getCodeRes = CURL_LAST;
-    for (int hostIndex = 0; hostIndex < hostsPool.size() && (httpCode >= 400 || res > 0 || getCodeRes > 0); hostIndex++) {
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size() && (httpCode >= 400 || res > 0 || getCodeRes > 0); hostIndex++) {
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.c_str());
       res = curl_easy_perform(curl);
       if (res != CURLE_OK && res != CURLE_UNSUPPORTED_PROTOCOL) {
@@ -1246,7 +1178,7 @@ std::map<std::string, std::string> CcdbApi::retrieveHeaders(std::string const& p
   return headers;
 }
 
-bool CcdbApi::getCCDBEntryHeaders(std::string const& url, std::string const& etag, std::vector<std::string>& headers)
+bool CcdbApi::getCCDBEntryHeaders(std::string const& url, std::string const& etag, std::vector<std::string>& headers, const std::string& agentID)
 {
   auto curl = curl_easy_init();
   headers.clear();
@@ -1265,6 +1197,9 @@ bool CcdbApi::getCCDBEntryHeaders(std::string const& url, std::string const& eta
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
   curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
   curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
+  if (!agentID.empty()) {
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, agentID.c_str());
+  }
 
   curlSetSSLOptions(curl);
 
@@ -1346,14 +1281,17 @@ TClass* CcdbApi::tinfo2TClass(std::type_info const& tinfo)
   return cl;
 }
 
-void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id)
+void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id, long newEOV)
 {
   CURL* curl = curl_easy_init();
   if (curl != nullptr) {
     CURLcode res;
     stringstream fullUrl;
-    for (int hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
       fullUrl << getHostUrl(hostIndex) << "/" << path << "/" << timestamp;
+      if (newEOV > 0) {
+        fullUrl << "/" << newEOV;
+      }
       if (!id.empty()) {
         fullUrl << "/" << id;
       }
@@ -1371,15 +1309,17 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
       }
 
       if (curl != nullptr) {
+        LOG(debug) << "passing to curl: " << fullUrl.str();
         curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT"); // make sure we use PUT
-
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         curlSetSSLOptions(curl);
 
         // Perform the request, res will get the return code
         res = curl_easy_perform(curl);
         if (res != CURLE_OK) {
-          fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+          LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(res));
         }
         curl_easy_cleanup(curl);
       }
@@ -1387,17 +1327,16 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
   }
 }
 
-std::vector<std::string> CcdbApi::splitString(std::string string, const char* delimiters)
+std::vector<std::string> CcdbApi::splitString(const std::string& str, const char* delimiters)
 {
   std::vector<std::string> tokens;
-  char* stringForStrTok = new char[string.length() + 1];
-  strcpy(stringForStrTok, string.c_str());
+  char stringForStrTok[str.length() + 1];
+  strcpy(stringForStrTok, str.c_str());
   char* token = strtok(stringForStrTok, delimiters);
   while (token != nullptr) {
-    tokens.push_back(token);
+    tokens.emplace_back(token);
     token = strtok(nullptr, delimiters);
   }
-  free(stringForStrTok);
   return tokens;
 }
 
@@ -1414,22 +1353,30 @@ std::string CcdbApi::getHostUrl(int hostIndex) const
 void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& path,
                                std::map<std::string, std::string> const& metadata, long timestamp,
                                std::map<std::string, std::string>* headers, std::string const& etag,
-                               const std::string& createdNotAfter, const std::string& createdNotBefore) const
+                               const std::string& createdNotAfter, const std::string& createdNotBefore, bool considerSnapshot) const
 {
-  // The environment option ALICEO2_CCDB_LOCALCACHE allows
-  // to reduce the number of queries to the server, by collecting the objects in a local
-  // cache folder, and serving from this folder for repeated queries.
-  // This is useful for instance for MC GRID productions in which we spawn
-  // many isolated processes, all querying the CCDB (for potentially the same objects and same timestamp).
-  // In addition, we can monitor exactly which objects are fetched and what is their content.
-  // One can also distribute so obtained caches to sites without network access.
-  auto cachedir = getenv("ALICEO2_CCDB_LOCALCACHE");
-  if (cachedir) {
-    // protect this sensitive section by a multi-process named semaphore
-    bool use_sema = false;
-    boost::interprocess::named_semaphore* sem = nullptr;
+  LOGP(debug, "loadFileToMemory {} ETag=[{}]", path, etag);
+
+  // if we are in snapshot mode we can simply open the file, unless the etag is non-empty:
+  // this would mean that the object was is already fetched and in this mode we don't to validity checks!
+  bool createSnapshot = considerSnapshot && !mSnapshotCachePath.empty(); // create snaphot if absent
+  int fromSnapshot = 0;
+  boost::interprocess::named_semaphore* sem = nullptr;
+  std::string semhashedstring{}, snapshotpath{}, logfile{};
+  std::unique_ptr<std::fstream> logStream;
+  auto sem_release = [&sem, &semhashedstring, path, this]() {
+    if (sem) {
+      sem->post();
+      if (sem->try_wait()) { // if nobody else is waiting remove the semaphore resource
+        sem->post();
+        boost::interprocess::named_semaphore::remove(semhashedstring.c_str());
+      }
+    }
+  };
+
+  if (createSnapshot) { // create named semaphore
     std::hash<std::string> hasher;
-    const auto semhashedstring = "aliceccdb" + std::to_string(hasher(std::string(cachedir) + path)).substr(0, 16);
+    semhashedstring = "aliceccdb" + std::to_string(hasher(mSnapshotCachePath + path)).substr(0, 16);
     try {
       sem = new boost::interprocess::named_semaphore(boost::interprocess::open_or_create_t{}, semhashedstring.c_str(), 1);
     } catch (std::exception e) {
@@ -1439,56 +1386,75 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
     if (sem) {
       sem->wait(); // wait until we can enter (no one else there)
     }
-    if (!std::filesystem::exists(cachedir)) {
-      if (!std::filesystem::create_directories(cachedir)) {
-        LOG(error) << "Could not create local snapshot cache directory " << cachedir << "\n";
+    logfile = mSnapshotCachePath + "/log";
+    logStream = std::make_unique<std::fstream>(logfile, ios_base::out | ios_base::app);
+    if (logStream->is_open()) {
+      *logStream.get() << "CCDB-access[" << getpid() << "] of " << mUniqueAgentID << " to " << path << " timestamp " << timestamp << " for load to memory\n";
+    }
+  }
+
+  if (mInSnapshotMode) { // file must be there, otherwise a fatal will be produced
+    loadFileToMemory(dest, getSnapshotFile(mSnapshotTopPath, path), headers);
+    fromSnapshot = 1;
+  } else if (mPreferSnapshotCache && std::filesystem::exists(snapshotpath = getSnapshotFile(mSnapshotCachePath, path))) {
+    // if file is available, use it, otherwise cache it below from the server. Do this only when etag is empty since otherwise the object was already fetched and cached
+    if (etag.empty()) {
+      loadFileToMemory(dest, snapshotpath, headers);
+    }
+    fromSnapshot = 2;
+  } else { // look on the server
+    CURL* curl_handle = curl_easy_init();
+    string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
+
+    initHeadersForRetrieve(curl_handle, timestamp, headers, etag, createdNotAfter, createdNotBefore);
+
+    navigateURLsAndLoadFileToMemory(dest, curl_handle, fullUrl, headers);
+
+    for (size_t hostIndex = 1; hostIndex < hostsPool.size() && isMemoryFileInvalid(dest); hostIndex++) {
+      fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
+      loadFileToMemory(dest, fullUrl, headers); // headers loaded from the file in case of the snapshot reading only
+    }
+    curl_easy_cleanup(curl_handle);
+  }
+
+  if (dest.empty()) {
+    sem_release();
+    return; // nothing was fetched: either cached value is good or error was produced
+  }
+  // !considerSnapshot means that the call was made by retrieve for snapshoting reasons
+  logReading(path, timestamp, headers, fmt::format("{}{}", considerSnapshot ? "load to memory" : "retrieve", fromSnapshot ? " from snapshot" : ""));
+
+  // are we asked to create a snapshot ?
+  if (createSnapshot && fromSnapshot != 2 && !(mInSnapshotMode && mSnapshotTopPath == mSnapshotCachePath)) { // store in the snapshot only if the object was not read from the snapshot
+    auto snapshotdir = getSnapshotDir(mSnapshotCachePath, path);
+    snapshotpath = getSnapshotFile(mSnapshotCachePath, path);
+    o2::utils::createDirectoriesIfAbsent(snapshotdir);
+    if (logStream->is_open()) {
+      *logStream.get() << "CCDB-access[" << getpid() << "] ... " << mUniqueAgentID << " downloading to snapshot " << snapshotpath << " from memory\n";
+    }
+    { // dump image to a file
+      LOGP(debug, "creating snapshot {} -> {}", path, snapshotpath);
+      CCDBQuery querysummary(path, metadata, timestamp);
+      {
+        std::ofstream objFile(snapshotpath, std::ios::out | std::ofstream::binary);
+        std::copy(dest.begin(), dest.end(), std::ostreambuf_iterator<char>(objFile));
       }
-    }
-    std::string logfile = std::string(cachedir) + "/log";
-    std::fstream out(logfile, ios_base::out | ios_base::app);
-    if (out.is_open()) {
-      out << "CCDB-access[" << getpid() << "] to " << path << " timestamp " << timestamp << "\n";
-    }
-    auto snapshotfile = getSnapshotPath(cachedir, path);
-    std::filesystem::exists(snapshotfile);
-    if (!std::filesystem::exists(snapshotfile)) {
-      out << "CCDB-access[" << getpid() << "]  ... downloading to snapshot " << snapshotfile << "\n";
-      // if file not already here and valid --> snapshot it
-      retrieveBlob(path, cachedir, metadata, timestamp);
-    } else {
-      out << "CCDB-access[" << getpid() << "]  ... serving from local snapshot " << snapshotfile << "\n";
-    }
-    if (sem) {
-      sem->post();
-      if (sem->try_wait()) {
-        // if nobody else is waiting remove the semaphore resource
-        sem->post();
-        boost::interprocess::named_semaphore::remove(semhashedstring.c_str());
+      // now open the same file as root file and store metadata
+      std::lock_guard<std::mutex> guard(gIOMutex);
+      auto oldlevel = gErrorIgnoreLevel;
+      gErrorIgnoreLevel = 6001;                       // ignoring error messages here (since we catch with IsZombie)
+      TFile snapshot(snapshotpath.c_str(), "UPDATE"); // the assumption is that the blob is a ROOT file
+      if (!snapshot.IsZombie()) {
+        snapshot.WriteObjectAny(&querysummary, TClass::GetClass(typeid(querysummary)), CCDBQUERY_ENTRY);
+        if (headers) {
+          snapshot.WriteObjectAny(headers, TClass::GetClass(typeid(metadata)), CCDBMETA_ENTRY);
+        }
       }
+      snapshot.Close();
+      gErrorIgnoreLevel = oldlevel;
     }
-    return loadFileToMemory(dest, snapshotfile, headers);
   }
-
-  // normal mode follows
-
-  CURL* curl_handle = curl_easy_init();
-  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
-  // if we are in snapshot mode we can simply open the file; extract the object and return
-  if (mInSnapshotMode) {
-    return loadFileToMemory(dest, fullUrl, headers);
-  }
-
-  initHeadersForRetrieve(curl_handle, timestamp, headers, etag, createdNotAfter, createdNotBefore);
-
-  navigateURLsAndLoadFileToMemory(dest, curl_handle, fullUrl, headers);
-
-  for (int hostIndex = 1; hostIndex < hostsPool.size() && isMemoryFileInvalid(dest); hostIndex++) {
-    fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
-    loadFileToMemory(dest, fullUrl, headers);
-  }
-
-  curl_easy_cleanup(curl_handle);
-  return;
+  sem_release();
 }
 
 // navigate sequence of URLs until TFile content is found; object is extracted and returned
@@ -1501,7 +1467,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
 
   // let's see first of all if the url is something specific that curl cannot handle
   if (url.find("alien:/", 0) != std::string::npos) {
-    return loadFileToMemory(dest, url);
+    return loadFileToMemory(dest, url, nullptr); // headers loaded from the file in case of the snapshot reading only
   }
   // otherwise make an HTTP/CURL request
   bool errorflag = false;
@@ -1534,7 +1500,6 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
 
   auto res = curl_easy_perform(curl_handle);
   long response_code = -1;
-  bool cachingflag = false;
   if (res == CURLE_OK && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code) == CURLE_OK) {
     if (headers) {
       for (auto& p : headerData) {
@@ -1544,10 +1509,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
     if (200 <= response_code && response_code < 300) {
       // good response and the content is directly provided and should have been dumped into "chunk"
     } else if (response_code == 304) {
-      // this means the object exist but I am not serving
-      // it since it's already in your possession
-      // there is nothing to be done here
-      cachingflag = true;
+      LOGP(debug, "Object exists but I am not serving it since it's already in your possession");
     }
     // this is a more general redirection
     else if (300 <= response_code && response_code < 400) {
@@ -1581,7 +1543,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
       for (auto& l : locs) {
         if (l.size() > 0) {
           LOG(debug) << "Trying content location " << l;
-          navigateURLsAndLoadFileToMemory(dest, curl_handle, l, nullptr);
+          navigateURLsAndLoadFileToMemory(dest, curl_handle, l, headers);
           if (dest.size()) { /* or other success marker in future */
             break;
           }
@@ -1591,10 +1553,11 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
       LOG(error) << "Requested resource does not exist: " << url;
       signalError();
     } else {
+      LOG(error) << "Error in fetching object " << url << ", curl response code:" << response_code;
       signalError();
     }
   } else {
-    LOG(error) << "Curl request to " << url << " failed ";
+    LOGP(alarm, "Curl request to {} failed with result {}, response code: {}", url, int(res), response_code);
     signalError();
   }
   // indicate that an error occurred ---> used by caching layers (such as CCDBManager)
@@ -1651,16 +1614,61 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, const std::string& p
     dptr += nread;
     totalread += nread;
   } while (nread == (long)MaxCopySize);
+
   if (localHeaders) {
-    sfile->Seek(0);
-    auto storedmeta = retrieveMetaInfo(*sfile);
+    TMemFile memFile("name", const_cast<char*>(dest.data()), dest.size(), "READ");
+    auto storedmeta = (std::map<std::string, std::string>*)extractFromTFile(memFile, TClass::GetClass("std::map<std::string, std::string>"), CCDBMETA_ENTRY);
     if (storedmeta) {
       *localHeaders = *storedmeta; // do a simple deep copy
       delete storedmeta;
+    }
+    if ((isSnapshotMode() || mPreferSnapshotCache) && localHeaders->find("ETag") == localHeaders->end()) { // generate dummy ETag to profit from the caching
+      (*localHeaders)["ETag"] = path;
     }
   }
   return;
 }
 
-} // namespace ccdb
+void CcdbApi::checkMetadataKeys(std::map<std::string, std::string> const& metadata) const
+{
+
+  // function to check if any key contains invalid characters
+  // if so, a fatal will be issued
+
+  const std::regex regexPatternSearch(R"([ :;.,\\/'?!\(\)\{\}\[\]@<>=+*#$&`|~^%])");
+  bool isInvalid = false;
+
+  for (auto& el : metadata) {
+    auto keyMd = el.first;
+    auto tmp = keyMd;
+    std::smatch searchRes;
+    while (std::regex_search(keyMd, searchRes, regexPatternSearch)) {
+      isInvalid = true;
+      LOG(error) << "Invalid character found in metadata key '" << tmp << "\': '" << searchRes.str() << "\'";
+      keyMd = searchRes.suffix();
+    }
+  }
+  if (isInvalid) {
+    LOG(fatal) << "Some metadata keys have invalid characters, please fix!";
+  }
+  return;
+}
+
+void CcdbApi::logReading(const std::string& path, long ts, const std::map<std::string, std::string>* headers, const std::string& comment) const
+{
+  std::string upath{path};
+  if (headers) {
+    auto ent = headers->find("Valid-From");
+    if (ent != headers->end()) {
+      upath += "/" + ent->second;
+    }
+    ent = headers->find("ETag");
+    if (ent != headers->end()) {
+      upath += "/" + ent->second;
+    }
+  }
+  upath.erase(remove(upath.begin(), upath.end(), '\"'), upath.end());
+  LOGP(info, "ccdb reads {}{}{} for {} ({}, agent_id: {}), ", mUrl, mUrl.back() == '/' ? "" : "/", upath, ts < 0 ? getCurrentTimestamp() : ts, comment, mUniqueAgentID);
+}
+
 } // namespace o2

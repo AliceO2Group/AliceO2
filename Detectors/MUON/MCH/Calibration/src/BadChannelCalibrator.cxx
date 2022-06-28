@@ -9,7 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "CCDB/CcdbApi.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "DetectorsCalibration/Utils.h"
 #include "Framework/Logger.h"
@@ -58,7 +57,7 @@ bool BadChannelCalibrator::hasEnoughData(const Slot& slot) const
 {
   const int minNofEntries = BadChannelCalibratorParam::Instance().minRequiredNofEntriesPerChannel;
   const o2::mch::calibration::PedestalData* pedData = slot.getContainer();
-  auto nofChannels = std::distance(pedData->cbegin(), pedData->cend());
+  auto nofChannels = pedData->size();
   const int requiredChannels = static_cast<int>(BadChannelCalibratorParam::Instance().minRequiredCalibratedFraction * nofChannels);
 
   auto nofCalibrated = std::count_if(pedData->cbegin(), pedData->cend(),

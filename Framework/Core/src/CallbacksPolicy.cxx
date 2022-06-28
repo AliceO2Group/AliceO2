@@ -27,12 +27,25 @@ CallbacksPolicy epnProcessReporting()
   return {
     .matcher = [](DeviceSpec const&, ConfigContext const& context) -> bool {
       /// FIXME:
-      return getenv("DDS_SESSION_ID") != nullptr; },
+      static bool report = getenv("DDS_SESSION_ID") != nullptr || getenv("DPL_REPORT_PROCESSING") != nullptr;
+      return report;
+    },
     .policy = [](CallbackService& callbacks, InitContext& context) -> void {
       callbacks.set(CallbackService::Id::PreProcessing, [](ServiceRegistry& registry, int op) {
         auto& info = registry.get<TimingInfo>();
-        LOGP(info, "Processing timeslice:{}, tfCounter:{}, firstTFOrbit:{}, action:{}",
-             info.timeslice, info.tfCounter, info.firstTFOrbit, op);
+        if ((int)info.firstTFOrbit != -1) {
+          char const* what = (info.timeslice > 1652945069870351) ? "timer" : "timeslice";
+          LOGP(info, "Processing {}:{}, tfCounter:{}, firstTFOrbit:{}, runNumber:{}, creation:{}, action:{}",
+               what, info.timeslice, info.tfCounter, info.firstTFOrbit, info.runNumber, info.creation, op);
+        }
+      });
+      callbacks.set(CallbackService::Id::PostProcessing, [](ServiceRegistry& registry, int op) {
+        auto& info = registry.get<TimingInfo>();
+        if ((int)info.firstTFOrbit != -1) {
+          char const* what = (info.timeslice > 1652945069870351) ? "timer" : "timeslice";
+          LOGP(info, "Done processing {}:{}, tfCounter:{}, firstTFOrbit:{}, runNumber:{}, creation:{}, action:{}",
+               what, info.timeslice, info.tfCounter, info.firstTFOrbit, info.runNumber, info.creation, op);
+        }
       });
     }};
 }
@@ -44,4 +57,3 @@ std::vector<CallbacksPolicy> CallbacksPolicy::createDefaultPolicies()
 }
 
 } // namespace o2::framework
-#pragma GCC diagnostic pop

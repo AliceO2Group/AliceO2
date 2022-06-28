@@ -55,7 +55,7 @@ struct CompressedClusters {
   std::vector<uint16_t> chipInc; /// increment of chipID wrt that of prev. chip
   std::vector<uint16_t> chipMul; /// clusters in chip
   std::vector<uint16_t> row;     /// row of fired pixel
-  std::vector<uint16_t> colInc;  /// increment of pixel column wrt that of prev. pixel
+  std::vector<int16_t> colInc;   /// increment of pixel column wrt that of prev. pixel (sometimes can be slightly negative)
   std::vector<uint16_t> pattID;  /// cluster pattern ID
   std::vector<uint8_t> pattMap;  /// explict patterns container
 

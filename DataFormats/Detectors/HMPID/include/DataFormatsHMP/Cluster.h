@@ -91,8 +91,7 @@ class Cluster
   void setCh(int chamber) { mCh = chamber; }
   void setChi2(float chi2) { mChi2 = chi2; }
   void setStatus(int status) { mSt = status; }
-  void findClusterSize(int i, float* pSigmaCut);            // Find the clusterSize of deconvoluted clusters
-  virtual void clear(const Option_t*) { delete[] & mDigs; } // ===> delete [] fParam; fParam=0; }
+  void findClusterSize(int i, float* pSigmaCut); // Find the clusterSize of deconvoluted clusters
 
   // public:
  protected:
@@ -121,6 +120,16 @@ class Cluster
 };
 
 } // namespace hmpid
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::hmpid::Cluster> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif /* DETECTORS_HMPID_BASE_INCLUDE_HMPIDDATAFORMAT_CLUSTER_H_ */

@@ -16,10 +16,16 @@
 #include "DataFormatsFV0/MCLabel.h"
 #include "FV0Raw/RawReaderFV0Base.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
 
 // ------------------------------------------------------------------
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:FV0|fv0).*[W,w]riter.*"));
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -66,6 +72,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto askSTFDist = !configcontext.options().get<bool>("ignore-dist-stf");
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  LOG(info) << "WorkflowSpec FLPWorkflow";
   //Type aliases
   //using RawReaderFV0trgInput = o2::fit::RawReaderFIT<o2::fv0::RawReaderFV0BaseNorm,true>;
   using RawReaderFV0 = o2::fit::RawReaderFIT<o2::fv0::RawReaderFV0BaseNorm, false>;

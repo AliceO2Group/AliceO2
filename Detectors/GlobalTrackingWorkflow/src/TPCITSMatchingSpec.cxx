@@ -65,11 +65,12 @@ class TPCITSMatchingDPL : public Task
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(ProcessingContext& pc);
   std::shared_ptr<DataRequest> mDataRequest;
   o2::globaltracking::MatchTPCITS mMatching; // matching engine
-  o2::itsmft::TopologyDictionary mITSDict;   // cluster patterns dictionary
   bool mUseFT0 = false;
   bool mCalibMode = false;
   bool mSkipTPCOnly = false; // to use only externally constrained tracks (for test only)
@@ -87,28 +88,13 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
   mMatching.setSkipTPCOnly(mSkipTPCOnly);
   mMatching.setITSTriggered(!grp->isDetContinuousReadOut(o2::detectors::DetID::ITS));
-  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-  if (mMatching.isITSTriggered()) {
-    mMatching.setITSROFrameLengthMUS(alpParams.roFrameLengthTrig / 1.e3); // ITS ROFrame duration in \mus
-  } else {
-    mMatching.setITSROFrameLengthInBC(alpParams.roFrameLengthInBC); // ITS ROFrame duration in \mus
-  }
+
   mMatching.setMCTruthOn(mUseMC);
   mMatching.setUseFT0(mUseFT0);
   mMatching.setVDriftCalib(mCalibMode);
   mMatching.setNThreads(std::max(1, ic.options().get<int>("nthreads")));
   mMatching.setUseBCFilling(!ic.options().get<bool>("ignore-bc-check"));
   //
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mITSDict.readFromFile(dictFile);
-    LOG(info) << "Matching is running with a provided ITS dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
-  }
-  mMatching.setITSDictionary(&mITSDict);
-
   // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
   std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
   std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
@@ -129,17 +115,15 @@ void TPCITSMatchingDPL::init(InitContext& ic)
     const auto& bcfill = digctx->getBunchFilling();
     mMatching.setBunchFilling(bcfill);
   }
-  mMatching.init();
   //
 }
 
 void TPCITSMatchingDPL::run(ProcessingContext& pc)
 {
-  const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
-  LOG(info) << " startOrbit: " << dh->firstTForbit;
   mTimer.Start(false);
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
+  updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
 
   mMatching.run(recoData);
 
@@ -162,6 +146,39 @@ void TPCITSMatchingDPL::endOfStream(EndOfStreamContext& ec)
   mMatching.end();
   LOGF(info, "TPC-ITS matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+}
+
+void TPCITSMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mMatching.setITSDictionary((const o2::itsmft::TopologyDictionary*)obj);
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("ITS", "ALPIDEPARAM", 0)) {
+    LOG(info) << "ITS Alpide param updated";
+    const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    par.printKeyValues();
+    return;
+  }
+}
+
+void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
+{
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+
+    //  Note: ITS/CLUSDICT and ITS/ALPIDEPARAM are requested/loaded by the recocontainer
+    const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    if (mMatching.isITSTriggered()) {
+      mMatching.setITSROFrameLengthMUS(alpParams.roFrameLengthTrig / 1.e3); // ITS ROFrame duration in \mus
+    } else {
+      mMatching.setITSROFrameLengthInBC(alpParams.roFrameLengthInBC); // ITS ROFrame duration in \mus
+    }
+    mMatching.init();
+  }
+  // we may have other params which need to be queried regularly
 }
 
 DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useMC)
@@ -190,6 +207,7 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
     outputs.emplace_back("GLO", "TPCITS_MC", 0, Lifetime::Timeframe);
     outputs.emplace_back("GLO", "TPCITSAB_MC", 0, Lifetime::Timeframe); // AfterBurner ITS tracklet MC
   }
+  // Note: ITS/CLUSDICT and ITS/ALPIDEPARAM are requested/loaded by the recocontainer
 
   return DataProcessorSpec{
     "itstpc-track-matcher",

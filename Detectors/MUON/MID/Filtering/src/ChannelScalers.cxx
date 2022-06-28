@@ -22,7 +22,6 @@ namespace mid
 {
 void ChannelScalers::count(uint8_t deId, uint8_t columnId, int lineId, int cathode, uint16_t pattern)
 {
-  /// Increases strip counter
   for (int istrip = 0; istrip < 16; ++istrip) {
     if (pattern & (1 << istrip)) {
       ++mScalers[getChannelId(deId, columnId, lineId, istrip, cathode)];
@@ -32,11 +31,26 @@ void ChannelScalers::count(uint8_t deId, uint8_t columnId, int lineId, int catho
 
 void ChannelScalers::count(const ColumnData& patterns)
 {
-  //// Increases strip counter
   count(patterns.deId, patterns.columnId, 0, 1, patterns.getNonBendPattern());
   for (int iline = 0; iline < 4; ++iline) {
     count(patterns.deId, patterns.columnId, iline, 0, patterns.getBendPattern(iline));
   }
+}
+
+void ChannelScalers::merge(const ChannelScalers& other)
+{
+  for (auto& item : other.mScalers) {
+    mScalers[item.first] += item.second;
+  }
+}
+
+std::ostream& operator<<(std::ostream& os, const ChannelScalers& channelScalers)
+{
+  auto scalers = channelScalers.getScalers();
+  for (auto& item : scalers) {
+    os << "DeID: " << channelScalers.getDeId(item.first) << "  colID: " << channelScalers.getColumnId(item.first) << "  lineID: " << channelScalers.getLineId(item.first) << "  strip: " << channelScalers.getStrip(item.first) << "  cathode: " << channelScalers.getCathode(item.first) << "  counts: " << item.second << "\n";
+  }
+  return os;
 }
 
 } // namespace mid

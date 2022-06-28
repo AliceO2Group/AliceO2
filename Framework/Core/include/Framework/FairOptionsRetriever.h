@@ -25,14 +25,14 @@ namespace o2::framework
 class FairOptionsRetriever : public ParamRetriever
 {
  public:
-  FairOptionsRetriever(const FairMQProgOptions* opts) : mOpts{opts} {}
+  FairOptionsRetriever(const fair::mq::ProgOptions* opts) : mOpts{opts} {}
 
   void update(std::vector<ConfigParamSpec> const& schema,
               boost::property_tree::ptree& store,
               boost::property_tree::ptree& provenance) override;
 
  private:
-  const FairMQProgOptions* mOpts;
+  const fair::mq::ProgOptions* mOpts;
 };
 
 } // namespace o2::framework

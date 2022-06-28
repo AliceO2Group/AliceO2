@@ -14,8 +14,8 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MCH_TRACKFINDERORIGINAL_H_
-#define ALICEO2_MCH_TRACKFINDERORIGINAL_H_
+#ifndef O2_MCH_TRACKFINDERORIGINAL_H_
+#define O2_MCH_TRACKFINDERORIGINAL_H_
 
 #include <chrono>
 
@@ -55,6 +55,7 @@ class TrackFinderOriginal
   std::list<Track>::iterator findTrackCandidates(int ch1, int ch2, bool skipUsedPairs = false);
   bool areUsed(const Cluster& cl1, const Cluster& cl2);
   void createTrack(const Cluster& cl1, const Cluster& cl2);
+  std::list<Track>::iterator addTrack(const std::list<Track>::iterator& pos, const Track& track);
   bool isAcceptable(const TrackParam& param) const;
   void removeDuplicateTracks();
   void removeConnectedTracks(int stMin, int stMax);
@@ -121,4 +122,4 @@ class TrackFinderOriginal
 } // namespace mch
 } // namespace o2
 
-#endif // ALICEO2_MCH_TRACKFINDERORIGINAL_H_
+#endif // O2_MCH_TRACKFINDERORIGINAL_H_

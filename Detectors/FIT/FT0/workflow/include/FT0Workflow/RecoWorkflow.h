@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_FIT_RECOWORKFLOW_H
-#define O2_FIT_RECOWORKFLOW_H
+#ifndef O2_FT0_RECOWORKFLOW_H
+#define O2_FT0_RECOWORKFLOW_H
 
 /// @file   RecoWorkflow.h
 
@@ -18,9 +18,9 @@
 
 namespace o2
 {
-namespace fit
+namespace ft0
 {
 framework::WorkflowSpec getRecoWorkflow(bool useMC, std::string ccdbpath, bool disableRootInp, bool disableRootOut);
-} // namespace fit
+} // namespace ft0
 } // namespace o2
 #endif

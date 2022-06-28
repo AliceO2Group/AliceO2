@@ -590,7 +590,14 @@ bool RawFileReader::preprocessFile(int ifl)
         lID = getLinkLocalID(rdh, mCurrentFileID);
       }
       bool newSPage = lID != lIDPrev;
-      mLinksData[lID].preprocessCRUPage(rdh, newSPage);
+      try {
+        mLinksData[lID].preprocessCRUPage(rdh, newSPage);
+      } catch (...) {
+        LOG(error) << "Corrupted data, abandoning processing";
+        mStopProcessing = true;
+        break;
+      }
+
       if (mLinksData[lID].nTimeFrames && (mLinksData[lID].nTimeFrames - 1 > mMaxTFToRead)) { // limit reached, discard the last read
         mLinksData[lID].nTimeFrames--;
         mLinksData[lID].blocks.pop_back();
@@ -705,6 +712,10 @@ bool RawFileReader::init()
     if (preprocessFile(i)) {
       mEmpty = false;
     }
+  }
+  if (mStopProcessing) {
+    LOG(error) << "Abandoning processing due to corrupted data";
+    return false;
   }
   mOrderedIDs.resize(mLinksData.size());
   for (int i = mLinksData.size(); i--;) {

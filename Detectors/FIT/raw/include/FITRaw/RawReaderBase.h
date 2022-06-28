@@ -64,15 +64,16 @@ class RawReaderBase
       auto& refDataBlock = vecDataBlocks.emplace_back();
       refDataBlock.decodeBlock(binaryPayload, srcPos);
       srcPos += refDataBlock.mSize;
+      if (refDataBlock.mSize == 16) {
+        //exclude data block in case of single header(no data, total size == 16 bytes)
+        vecDataBlocks.pop_back();
+        continue;
+      }
       if (!refDataBlock.isCorrect()) {
         LOG(warning) << "INCORRECT DATA BLOCK! Byte position: " << srcPos - refDataBlock.mSize << " | Payload size: " << binaryPayload.size() << " | DataBlock size: " << refDataBlock.mSize;
         refDataBlock.print();
         vecDataBlocks.pop_back();
         return srcPos;
-      }
-      if (refDataBlock.getNgbtWords() == 0) {
-        vecDataBlocks.pop_back();
-        continue;
       }
     }
     return srcPos;

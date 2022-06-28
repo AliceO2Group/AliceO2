@@ -14,10 +14,13 @@ o2_add_library(EMCALCalibration
                SOURCES  src/EMCALChannelData.cxx
                         src/EMCALTimeCalibData.cxx
                         src/EMCALCalibExtractor.cxx
+                        src/EMCALCalibParams.cxx
+                        src/EMCDCSProcessor.cxx
                PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase
                                      O2::EMCALCalib
                                      O2::CommonUtils
                                      O2::DetectorsCalibration
+                                     O2::DetectorsDCS
                                      O2::DataFormatsEMCAL
                                      O2::Framework
                                      O2::Algorithm
@@ -29,6 +32,8 @@ o2_target_root_dictionary(EMCALCalibration
                                   include/EMCALCalibration/EMCALChannelCalibrator.h
                                   include/EMCALCalibration/EMCALChannelData.h
                                   include/EMCALCalibration/EMCALTimeCalibData.h
+                                  include/EMCALCalibration/EMCALCalibParams.h
+                                  include/EMCALCalibration/EMCDCSProcessor.h
                           LINKDEF src/EMCALCalibrationLinkDef.h)
 
 o2_add_executable(emcal-channel-calib-workflow
@@ -36,6 +41,7 @@ o2_add_executable(emcal-channel-calib-workflow
                   SOURCES testWorkflow/emc-channel-calib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::EMCALCalibration
+                                        O2::DetectorsRaw
                                         O2::DetectorsCalibration)
 
 o2_add_executable(run-calib-offline
@@ -49,3 +55,11 @@ if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
+
+o2_add_test_root_macro(macros/makeEMCALCCDBEntryForDCS.C
+                                PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB
+                                LABELS emcal COMPILE_ONLY)
+
+o2_add_test_root_macro(macros/readEMCALDCSentries.C
+                                PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB O2::EMCALCalibration
+                                LABELS emcal COMPILE_ONLY)

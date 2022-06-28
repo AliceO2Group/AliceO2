@@ -30,7 +30,7 @@ o2::framework::DataProcessorSpec getTRDCalibratedTrackletWriterSpec(bool useMC)
 {
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
 
-  return MakeRootTreeWriterSpec("calibrated-tracklet-writer",
+  return MakeRootTreeWriterSpec("trd-calibrated-tracklet-writer",
                                 "trdcalibratedtracklets.root",
                                 "ctracklets",
                                 BranchDefinition<std::vector<CalibratedTracklet>>{InputSpec{"ctracklets", "TRD", "CTRACKLETS"}, "CTracklets"},

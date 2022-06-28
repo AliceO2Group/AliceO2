@@ -223,12 +223,24 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     mHitCounter++;
     mElectronCounter += numberOfElectrons;
     currentgroup->addHit(position.X(), position.Y(), position.Z(), time, numberOfElectrons);
+
+    // add last buffered hit, which was not yet added to the currentgroup
+    if (mHitLast.GetEnergyLoss() >= 0) {
+      currentgroup->addHit(mHitLast.GetX(), mHitLast.GetY(), mHitLast.GetZ(), mHitLast.GetTime(), mHitLast.GetEnergyLoss());
+      mHitLast.mELoss = -1;
+      groupCounter++;
+      mHitCounter++;
+      mElectronCounter += mHitLast.GetEnergyLoss();
+    }
   }
   // finish group
   else {
     oldTrackId = trackID;
     oldSectorId = sectorID;
     groupCounter = 0;
+
+    // buffer this hit, otherwise it wouldnt be stored in the HitGroup
+    mHitLast = ElementalHit(position.X(), position.Y(), position.Z(), time, numberOfElectrons);
   }
 
   // LOG(info) << "tpc::AddHit" << FairLogger::endl

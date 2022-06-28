@@ -17,6 +17,9 @@
 #include "Framework/Monitoring.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/LifetimeHelpers.h"
+#include "Framework/TimesliceIndex.h"
+#include "Framework/DataProcessingHelpers.h"
+#include "Framework/CommonServices.h"
 
 #include <fairmq/Device.h>
 
@@ -45,11 +48,11 @@ std::vector<size_t>
 
 DataSender::DataSender(ServiceRegistry& registry,
                        SendingPolicy const& policy)
-  : mContext{registry.get<RawDeviceService>().device()},
+  : mProxy{registry.get<FairMQDeviceProxy>()},
     mRegistry{registry},
     mSpec{registry.get<DeviceSpec const>()},
-    mDistinctRoutesIndex{createDistinctOutputRouteIndex(mSpec.outputs)},
-    mPolicy{policy}
+    mPolicy{policy},
+    mDistinctRoutesIndex{createDistinctOutputRouteIndex(mSpec.outputs)}
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
@@ -69,16 +72,14 @@ DataSender::DataSender(ServiceRegistry& registry,
   }
 }
 
-std::unique_ptr<FairMQMessage> DataSender::create()
+std::unique_ptr<fair::mq::Message> DataSender::create(RouteIndex routeIndex)
 {
-  FairMQDevice* device = (FairMQDevice*)mContext;
-  return device->NewMessage();
+  return mProxy.getOutputTransport(routeIndex)->CreateMessage();
 }
 
-void DataSender::send(FairMQParts& parts, std::string const& channel)
+void DataSender::send(fair::mq::Parts& parts, ChannelIndex channelIndex)
 {
-  FairMQDevice* device = (FairMQDevice*)mContext;
-  mPolicy.send(*device, parts, channel);
+  mPolicy.send(mProxy, parts, channelIndex);
 }
 
 } // namespace o2::framework

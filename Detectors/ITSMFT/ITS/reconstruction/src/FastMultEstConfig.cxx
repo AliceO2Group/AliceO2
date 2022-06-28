@@ -10,5 +10,13 @@
 // or submit itself to any jurisdiction.
 
 #include "ITSReconstruction/FastMultEstConfig.h"
+#include "TRandom.h"
 
 O2ParamImpl(o2::its::FastMultEstConfig);
+
+using namespace o2::its;
+
+bool FastMultEstConfig::isPassingRandomRejection() const
+{
+  return (cutRandomFraction <= 0. || gRandom->Rndm() > cutRandomFraction) ? true : false;
+}

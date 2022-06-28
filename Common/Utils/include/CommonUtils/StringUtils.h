@@ -107,7 +107,7 @@ struct Str {
   }
 
   // return vector of tokens from the string with provided delimiter. If requested, trim the spaces from tokens
-  static std::vector<std::string> tokenize(const std::string& src, char delim, bool trimToken = true);
+  static std::vector<std::string> tokenize(const std::string& src, char delim, bool trimToken = true, bool skipEmpty = true);
 
   // concatenate arbitrary number of strings
   template <typename... Ts>

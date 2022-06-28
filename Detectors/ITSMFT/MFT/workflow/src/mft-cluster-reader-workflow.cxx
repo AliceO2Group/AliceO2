@@ -34,6 +34,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
       o2::framework::VariantType::Bool,
       false,
       {"do not propagate pixel patterns"}});
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}});
   o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 

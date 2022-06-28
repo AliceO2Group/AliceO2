@@ -12,12 +12,14 @@
 o2_add_library(MCHBase
          SOURCES
            src/PreCluster.cxx
+           src/SanityCheck.cxx
            src/TrackBlock.cxx
            src/Trackable.cxx
+           src/TrackerParam.cxx
          PUBLIC_LINK_LIBRARIES O2::DataFormatsMCH)
 
 o2_target_root_dictionary(MCHBase
-  HEADERS include/MCHBase/DecoderError.h)
+  HEADERS include/MCHBase/DecoderError.h include/MCHBase/TrackerParam.h)
 
 o2_add_test(trackable
             SOURCES src/testTrackable.cxx

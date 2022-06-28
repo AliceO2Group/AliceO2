@@ -11,6 +11,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "TRDWorkflow/KrClustererSpec.h"
 #include "TRDWorkflowIO/TRDDigitReaderSpec.h"
 #include "TRDWorkflowIO/KrClusterWriterSpec.h"
@@ -31,6 +32,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::swap(workflowOptions, options);
 }
 
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:TRD|trd).*[W,w]riter.*"));
+}
 // ------------------------------------------------------------------
 
 #include "Framework/runDataProcessing.h"
@@ -44,16 +50,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   o2::framework::WorkflowSpec specs;
 
-  bool useDigitTrigRec = false;
-
   // input
   if (!configcontext.options().get<bool>("disable-root-input")) {
     specs.emplace_back(o2::trd::getTRDDigitReaderSpec(false));
-    useDigitTrigRec = true;
   }
 
   // processing devices
-  specs.emplace_back(o2::trd::getKrClustererSpec(useDigitTrigRec));
+  specs.emplace_back(o2::trd::getKrClustererSpec());
 
   // output devices
   if (!configcontext.options().get<bool>("disable-root-output")) {

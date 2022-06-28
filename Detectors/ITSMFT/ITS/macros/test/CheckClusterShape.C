@@ -20,7 +20,6 @@
 
 using o2::itsmft::Digit;
 using o2::itsmft::SegmentationAlpide;
-using namespace o2::its;
 using namespace std;
 
 //////////////////////////////////////////

@@ -33,7 +33,7 @@ class TriggerRecord
 
  public:
   TriggerRecord() = default;
-  TriggerRecord(const BCData& bunchcrossing, int digitentry, int ndigitentries, int trackletentry = 0, int ntrackletentries = 0) : mBCData(bunchcrossing), mTrackletDataRange(trackletentry, ntrackletentries), mDigitDataRange(digitentry, ndigitentries) {}
+  TriggerRecord(const BCData& bunchcrossing, int digitentry, int ndigitentries, int trackletentry = 0, int ntrackletentries = 0) : mBCData(bunchcrossing), mDigitDataRange(digitentry, ndigitentries), mTrackletDataRange(trackletentry, ntrackletentries) {}
   // The above default of 0 for tracklet info, makes the digitizer look more decent as one can simply not put in the tracklet info as you dont have it.
   ~TriggerRecord() = default;
 

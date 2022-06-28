@@ -12,6 +12,7 @@
 #ifndef FRAMEWORK_ANALYSISMANAGERS_H
 #define FRAMEWORK_ANALYSISMANAGERS_H
 #include "Framework/AnalysisHelpers.h"
+#include "Framework/DataSpecUtils.h"
 #include "Framework/GroupedCombinations.h"
 #include "Framework/ASoA.h"
 #include "Framework/ProcessingContext.h"
@@ -39,17 +40,15 @@ struct GroupedCombinationManager {
   }
 };
 
-template <typename T1, typename GroupingPolicy, typename H, typename G, typename... Us, typename... As>
-struct GroupedCombinationManager<GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...>> {
-  template <typename TH, typename TG, typename... T2s>
-  static void setGroupedCombination(GroupedCombinationsGenerator<T1, GroupingPolicy, H, G, pack<Us...>, As...>& comb, TH& hashes, TG& grouping, std::tuple<T2s...>& associated)
+template <typename T1, typename GroupingPolicy, typename BP, typename G, typename... As>
+struct GroupedCombinationManager<GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, As...>> {
+  template <typename TG, typename... T2s>
+  static void setGroupedCombination(GroupedCombinationsGenerator<T1, GroupingPolicy, BP, G, As...>& comb, TG& grouping, std::tuple<T2s...>& associated)
   {
     static_assert(sizeof...(T2s) > 0, "There must be associated tables in process() for a correct pair");
-    static_assert(!soa::is_soa_iterator_t<std::decay_t<H>>::value, "Only full tables can be in process(), no grouping");
-    if constexpr (std::is_same_v<G, TG> && std::is_same_v<H, TH>) {
-      // Take respective unique associated tables for grouping
-      auto associatedTuple = std::tuple<Us...>(std::get<Us>(associated)...);
-      comb.setTables(hashes, grouping, associatedTuple);
+    if constexpr (std::is_same_v<G, TG>) {
+      static_assert(std::conjunction_v<framework::has_type<As, pack<T2s...>>...>, "You didn't subscribed to all tables requested for mixing");
+      comb.setTables(grouping, associated);
     }
   }
 };
@@ -535,33 +534,14 @@ struct SpawnManager {
   static bool requestInputs(std::vector<InputSpec>&, T const&) { return false; }
 };
 
-namespace
-{
-void updateInputs(std::string type, bool value, std::vector<InputSpec>& inputs, InputSpec& spec)
-{
-  auto locate = std::find_if(inputs.begin(), inputs.end(), [&](InputSpec& input) { return input.binding == spec.binding; });
-  if (locate != inputs.end()) {
-    // amend entry
-    auto& entryMetadata = locate->metadata;
-    entryMetadata.push_back(ConfigParamSpec{std::string{"control:"} + type, VariantType::Bool, value, {"\"\""}});
-    std::sort(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
-    auto new_end = std::unique(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
-    entryMetadata.erase(new_end, entryMetadata.end());
-  } else {
-    //add entry
-    spec.metadata.push_back(ConfigParamSpec{std::string{"control:"} + type, VariantType::Bool, value, {"\"\""}});
-    inputs.emplace_back(spec);
-  }
-}
-} // namespace
-
 template <typename TABLE>
 struct SpawnManager<Spawns<TABLE>> {
   static bool requestInputs(std::vector<InputSpec>& inputs, Spawns<TABLE>& spawns)
   {
     auto base_specs = spawns.base_specs();
-    for (auto& base_spec : base_specs) {
-      updateInputs("spawn", true, inputs, base_spec);
+    for (auto base_spec : base_specs) {
+      base_spec.metadata.push_back(ConfigParamSpec{std::string{"control:spawn"}, VariantType::Bool, true, {"\"\""}});
+      DataSpecUtils::updateInputList(inputs, std::forward<InputSpec>(base_spec));
     }
     return true;
   }
@@ -578,13 +558,45 @@ struct IndexManager<Builds<IDX>> {
   static bool requestInputs(std::vector<InputSpec>& inputs, Builds<IDX>& builds)
   {
     auto base_specs = builds.base_specs();
-    for (auto& base_spec : base_specs) {
-      updateInputs("build", true, inputs, base_spec);
+    for (auto base_spec : base_specs) {
+      base_spec.metadata.push_back(ConfigParamSpec{std::string{"control:build"}, VariantType::Bool, true, {"\"\""}});
+      DataSpecUtils::updateInputList(inputs, std::forward<InputSpec>(base_spec));
     }
     return true;
   }
 };
 
+/// Manager template to handle slice caching
+template <typename T>
+struct PresliceManager {
+  template <typename T1>
+  static bool processTable(T&, T1&)
+  {
+    return false;
+  }
+
+  static bool setNewDF(T&) { return false; };
+};
+
+template <typename T>
+struct PresliceManager<Preslice<T>> {
+  template <typename T1>
+  static bool processTable(Preslice<T>& container, T1& table)
+  {
+    if constexpr (o2::soa::is_binding_compatible_v<T, std::decay_t<T1>>()) {
+      auto status = o2::framework::getSlices(container.index.name.c_str(), table.asArrowTable(), container.mValues, container.mCounts);
+      return status.ok();
+    } else {
+      return false;
+    }
+  }
+
+  static bool setNewDF(Preslice<T>& container)
+  {
+    container.setNewDF();
+    return true;
+  }
+};
 } // namespace o2::framework
 
 #endif // ANALYSISMANAGERS_H

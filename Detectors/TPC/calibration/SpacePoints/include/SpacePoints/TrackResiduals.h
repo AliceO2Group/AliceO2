@@ -199,6 +199,9 @@ class TrackResiduals
   /// Write trees with local residuals to file
   void writeLocalResidualTreesToFile();
 
+  /// Clear the vector of unbinned residuals
+  void resetUnbinnedResiduals();
+
   // -------------------------------------- steering functions --------------------------------------------------
 
   /// Loads residual data from track interpolation and fills vector of unbinned residuals

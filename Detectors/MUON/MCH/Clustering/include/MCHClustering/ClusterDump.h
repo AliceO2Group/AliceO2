@@ -14,8 +14,8 @@
 ///
 /// \author GG, Subatech
 
-#ifndef ALICEO2_MCH_CLUSTERDUMP_H_
-#define ALICEO2_MCH_CLUSTERDUMP_H_
+#ifndef O2_MCH_CLUSTERDUMP_H_
+#define O2_MCH_CLUSTERDUMP_H_
 
 #include <functional>
 #include <map>
@@ -64,4 +64,4 @@ class ClusterDump
 } // namespace mch
 } // namespace o2
 
-#endif // ALICEO2_MCH_CLUSTERDUMP_H_
+#endif // O2_MCH_CLUSTERDUMP_H_

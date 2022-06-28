@@ -10,19 +10,19 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/StringContext.h"
-#include <FairMQMessage.h>
+#include <fairmq/Message.h>
 #include <cassert>
 
 namespace o2::framework
 {
 
-void StringContext::addString(std::unique_ptr<FairMQMessage> header,
+void StringContext::addString(std::unique_ptr<fair::mq::Message> header,
                               std::unique_ptr<std::string> s,
-                              const std::string& channel)
+                              RouteIndex routeIndex)
 {
   mMessages.push_back(std::move(MessageRef{std::move(header),
                                            std::move(s),
-                                           channel}));
+                                           routeIndex}));
 }
 
 void StringContext::clear()

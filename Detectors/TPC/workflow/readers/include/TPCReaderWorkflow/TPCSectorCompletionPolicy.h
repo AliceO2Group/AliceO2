@@ -117,7 +117,7 @@ class TPCSectorCompletionPolicy
               if (inputType == -1) {
                 // we bind to the index of the first match and require all other inputs to match the same spec
                 inputType = idx;
-              } else if (inputType != idx) {
+              } else if (inputType != (int)idx) {
                 std::stringstream error;
                 error << fmt::format("routing error, input messages must all be of the same type previously bound to {} {}/{}/{}",
                                      inputMatchers[inputType],

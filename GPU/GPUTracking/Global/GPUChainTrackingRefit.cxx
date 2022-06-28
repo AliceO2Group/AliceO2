@@ -26,6 +26,7 @@ int GPUChainTracking::RunRefit()
   GPUTrackingRefitProcessor& RefitShadow = doGPU ? processorsShadow()->trackingRefit : Refit;
 
   const auto& threadContext = GetThreadContext();
+  (void)threadContext;
   SetupGPUProcessor(&Refit, false);
   RefitShadow.SetPtrsFromGPUConstantMem(processorsShadow(), doGPU ? &processorsDevice()->param : nullptr);
   RefitShadow.SetPropagator(doGPU ? processorsShadow()->calibObjects.o2Propagator : GetO2Propagator());

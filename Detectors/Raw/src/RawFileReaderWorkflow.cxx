@@ -18,20 +18,25 @@
 #include "Framework/ControlService.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/DataProcessingHelpers.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
+#include "Framework/DomainInfoHeader.h"
 
 #include "DetectorsRaw/RawFileReader.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "Headers/STFHeader.h"
 #include "Headers/Stack.h"
 
 #include "RawFileReaderWorkflow.h" // not installed
 #include <TStopwatch.h>
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
+#include <fairmq/Message.h>
+#include <fairmq/Parts.h>
 
 #include <unistd.h>
 #include <algorithm>
@@ -69,26 +74,23 @@ class RawReaderSpecs : public o2f::Task
   uint32_t mDelayUSec = 0;        // Delay in microseconds between TFs
   uint32_t mMinTFID = 0;          // 1st TF to extract
   uint32_t mMaxTFID = 0xffffffff; // last TF to extrct
+  int mRunNumber = 0;             // run number to pass
   int mVerbosity = 0;
   bool mPreferCalcTF = false;
   size_t mLoopsDone = 0;
   size_t mSentSize = 0;
   size_t mSentMessages = 0;
   bool mPartPerSP = true;                                          // fill part per superpage
+  bool mSup0xccdb = false;                                         // suppress explicit FLP/DISTSUBTIMEFRAME/0xccdb output
   std::string mRawChannelName = "";                                // name of optional non-DPL channel
   std::unique_ptr<o2::raw::RawFileReader> mReader;                 // matching engine
   std::unordered_map<std::string, std::pair<int, int>> mDropTFMap; // allows to drop certain fraction of TFs
-  enum TimerIDs { TimerInit,
-                  TimerTotal,
-                  TimerIO,
-                  NTimers };
-  static constexpr std::string_view TimerName[] = {"Init", "Total", "IO"};
-  TStopwatch mTimer[NTimers];
+  TStopwatch mTimer;
 };
 
 //___________________________________________________________
 RawReaderSpecs::RawReaderSpecs(const ReaderInp& rinp)
-  : mLoop(rinp.loop < 0 ? INT_MAX : (rinp.loop < 1 ? 1 : rinp.loop)), mDelayUSec(rinp.delay_us), mMinTFID(rinp.minTF), mMaxTFID(rinp.maxTF), mPartPerSP(rinp.partPerSP), mReader(std::make_unique<o2::raw::RawFileReader>(rinp.inifile, rinp.verbosity, rinp.bufferSize)), mRawChannelName(rinp.rawChannelConfig), mVerbosity(rinp.verbosity), mPreferCalcTF(rinp.preferCalcTF)
+  : mLoop(rinp.loop < 0 ? INT_MAX : (rinp.loop < 1 ? 1 : rinp.loop)), mDelayUSec(rinp.delay_us), mMinTFID(rinp.minTF), mMaxTFID(rinp.maxTF), mRunNumber(rinp.runNumber), mPartPerSP(rinp.partPerSP), mSup0xccdb(rinp.sup0xccdb), mReader(std::make_unique<o2::raw::RawFileReader>(rinp.inifile, rinp.verbosity, rinp.bufferSize)), mRawChannelName(rinp.rawChannelConfig), mVerbosity(rinp.verbosity), mPreferCalcTF(rinp.preferCalcTF)
 {
   mReader->setCheckErrors(rinp.errMap);
   mReader->setMaxTFToRead(rinp.maxTF);
@@ -98,10 +100,8 @@ RawReaderSpecs::RawReaderSpecs(const ReaderInp& rinp)
   mReader->setPreferCalculatedTFStart(rinp.preferCalcTF);
   LOG(info) << "Will preprocess files with buffer size of " << rinp.bufferSize << " bytes";
   LOG(info) << "Number of loops over whole data requested: " << mLoop;
-  for (int i = NTimers; i--;) {
-    mTimer[i].Stop();
-    mTimer[i].Reset();
-  }
+  mTimer.Stop();
+  mTimer.Reset();
   processDropTF(rinp.dropTF);
 }
 
@@ -140,9 +140,9 @@ void RawReaderSpecs::processDropTF(const std::string& dropTF)
 void RawReaderSpecs::init(o2f::InitContext& ic)
 {
   assert(mReader);
-  mTimer[TimerInit].Start();
+  mTimer.Start();
   mReader->init();
-  mTimer[TimerInit].Stop();
+  mTimer.Stop();
   if (mMaxTFID >= mReader->getNTimeFrames()) {
     mMaxTFID = mReader->getNTimeFrames() ? mReader->getNTimeFrames() - 1 : 0;
   }
@@ -151,14 +151,17 @@ void RawReaderSpecs::init(o2f::InitContext& ic)
     hbfU.setValue("HBFUtils.startTime", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()));
     LOG(warning) << "Run start time is not provided via HBFUtils.startTime, will use now() = " << hbfU.startTime << " ms.";
   }
+  if (mRunNumber == 0 && hbfU.runNumber > 0) {
+    mRunNumber = hbfU.runNumber;
+  }
 }
 
 //___________________________________________________________
 void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
 {
   assert(mReader);
-  auto tTotStart = mTimer[TimerTotal].CpuTime(), tIOStart = mTimer[TimerIO].CpuTime();
-  mTimer[TimerTotal].Start(false);
+  auto tTotStart = mTimer.CpuTime();
+  mTimer.Start(false);
   auto device = ctx.services().get<o2f::RawDeviceService>().device();
   assert(device);
 
@@ -169,24 +172,28 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
       auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
       for (auto& oroute : outputRoutes) {
         LOG(debug) << "comparing with matcher to route " << oroute.matcher << " TSlice:" << oroute.timeslice;
-        if (o2f::DataSpecUtils::match(oroute.matcher, h.dataOrigin, h.dataDescription, h.subSpecification) && ((h.tfCounter % oroute.maxTimeslices) == oroute.timeslice)) {
+        if (o2f::DataSpecUtils::match(oroute.matcher, h.dataOrigin, h.dataDescription, h.subSpecification) && ((mTFCounter % oroute.maxTimeslices) == oroute.timeslice)) {
           LOG(debug) << "picking the route:" << o2f::DataSpecUtils::describe(oroute.matcher) << " channel " << oroute.channel;
           return std::string{oroute.channel};
         }
       }
     }
-    LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin.str, h.dataDescription.str, h.subSpecification, h.tfCounter);
+    LOGP(error, "Failed to find output channel for {}/{}/{} @ timeslice {}", h.dataOrigin, h.dataDescription, h.subSpecification, h.tfCounter);
+    auto outputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs;
+    for (auto& oroute : outputRoutes) {
+      LOGP(info, "Available output routes: {} channel: {}", o2f::DataSpecUtils::describe(oroute.matcher), oroute.channel);
+    }
     return std::string{};
   };
 
   size_t tfNParts = 0, tfSize = 0;
-  std::unordered_map<std::string, std::unique_ptr<FairMQParts>> messagesPerRoute;
+  std::unordered_map<std::string, std::unique_ptr<fair::mq::Parts>> messagesPerRoute;
 
-  auto addPart = [&messagesPerRoute, &tfNParts, &tfSize](FairMQMessagePtr hd, FairMQMessagePtr pl, const std::string& fairMQChannel) {
-    FairMQParts* parts = nullptr;
-    parts = messagesPerRoute[fairMQChannel].get(); // FairMQParts*
+  auto addPart = [&messagesPerRoute, &tfNParts, &tfSize](fair::mq::MessagePtr hd, fair::mq::MessagePtr pl, const std::string& fairMQChannel) {
+    fair::mq::Parts* parts = nullptr;
+    parts = messagesPerRoute[fairMQChannel].get(); // fair::mq::Parts*
     if (!parts) {
-      messagesPerRoute[fairMQChannel] = std::make_unique<FairMQParts>();
+      messagesPerRoute[fairMQChannel] = std::make_unique<fair::mq::Parts>();
       parts = messagesPerRoute[fairMQChannel].get();
     }
     tfSize += pl->GetSize();
@@ -199,17 +206,12 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   auto tfID = mReader->getNextTFToRead();
   int nlinks = mReader->getNLinks();
 
-  if (tfID > mMaxTFID) {
-    if (!mReader->isEmpty() && --mLoop) {
+  if (tfID > mMaxTFID || mReader->isProcessingStopped()) {
+    if (!mReader->isProcessingStopped() && !mReader->isEmpty() && --mLoop) {
       mLoopsDone++;
       tfID = 0;
       LOG(info) << "Starting new loop " << mLoopsDone << " from the beginning of data";
     } else {
-      mTimer[TimerTotal].Stop();
-      LOGF(info, "Finished: payload of %zu bytes in %zu messages sent for %d TFs", mSentSize, mSentMessages, mTFCounter);
-      for (int i = 0; i < NTimers; i++) {
-        LOGF(info, "Timing for %15s: Cpu: %.3e Real: %.3e s in %d slots", TimerName[i], mTimer[i].CpuTime(), mTimer[i].RealTime(), mTimer[i].Counter() - 1);
-      }
       if (!mRawChannelName.empty()) { // send endOfStream message to raw channel
         o2f::SourceInfoHeader exitHdr;
         exitHdr.state = o2::framework::InputChannelState::Completed;
@@ -218,7 +220,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
         auto hdEOSMessage = fmqFactory->CreateMessage(exitStack.size(), fair::mq::Alignment{64});
         auto plEOSMessage = fmqFactory->CreateMessage(0, fair::mq::Alignment{64});
         memcpy(hdEOSMessage->GetData(), exitStack.data(), exitStack.size());
-        FairMQParts eosMsg;
+        fair::mq::Parts eosMsg;
         eosMsg.AddPart(std::move(hdEOSMessage));
         eosMsg.AddPart(std::move(plEOSMessage));
         device->Send(eosMsg, mRawChannelName);
@@ -227,6 +229,8 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
         ctx.services().get<o2f::ControlService>().endOfStream();
       }
       ctx.services().get<o2f::ControlService>().readyToQuit(o2f::QuitRequest::Me);
+      mTimer.Stop();
+      LOGP(info, "Finished: payload of {} bytes in {} messages sent for {} TFs, total timing: Real:{:3f}/CPU:{:3f}", mSentSize, mSentMessages, mTFCounter, mTimer.RealTime(), mTimer.CpuTime());
       return;
     }
   }
@@ -265,6 +269,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
     hdrTmpl.payloadSerializationMethod = o2h::gSerializationMethodNone;
     hdrTmpl.splitPayloadParts = nParts;
     hdrTmpl.tfCounter = mTFCounter;
+    hdrTmpl.runNumber = mRunNumber;
     if (mVerbosity > 1) {
       LOG(info) << link.describe() << " will read " << nParts << " HBFs starting from block " << link.nextBlock2Read;
     }
@@ -278,13 +283,11 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
       hdrTmpl.payloadSize = mPartPerSP ? partsSP[hdrTmpl.splitPayloadIndex].size : link.getNextHBFSize();
       auto hdMessage = fmqFactory->CreateMessage(hstackSize, fair::mq::Alignment{64});
       auto plMessage = fmqFactory->CreateMessage(hdrTmpl.payloadSize, fair::mq::Alignment{64});
-      mTimer[TimerIO].Start(false);
       auto bread = mPartPerSP ? link.readNextSuperPage(reinterpret_cast<char*>(plMessage->GetData()), &partsSP[hdrTmpl.splitPayloadIndex]) : link.readNextHBF(reinterpret_cast<char*>(plMessage->GetData()));
       if (bread != hdrTmpl.payloadSize) {
         LOG(error) << "Link " << il << " read " << bread << " bytes instead of " << hdrTmpl.payloadSize
                    << " expected in TF=" << mTFCounter << " part=" << hdrTmpl.splitPayloadIndex;
       }
-      mTimer[TimerIO].Stop();
       // check if the RDH to send corresponds to expected orbit
       if (hdrTmpl.splitPayloadIndex == 0) {
         auto ir = o2::raw::RDHUtils::getHeartBeatIR(plMessage->GetData());
@@ -302,10 +305,18 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
          mLoopsDone, link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
   }
 
+  auto& timingInfo = ctx.services().get<o2::framework::TimingInfo>();
+  timingInfo.firstTFOrbit = firstOrbit;
+  timingInfo.creation = creationTime;
+  timingInfo.tfCounter = mTFCounter;
+  timingInfo.runNumber = mRunNumber;
+
   // send sTF acknowledge message
-  {
+  unsigned stfSS[2] = {0, 0xccdb};
+  for (int iss = 0; iss < (mSup0xccdb ? 1 : 2); iss++) {
     o2::header::STFHeader stfHeader{mTFCounter, firstOrbit, 0};
-    o2::header::DataHeader stfDistDataHeader(o2::header::gDataDescriptionDISTSTF, o2::header::gDataOriginFLP, 0, sizeof(o2::header::STFHeader), 0, 1);
+    o2::header::DataHeader stfDistDataHeader(o2::header::gDataDescriptionDISTSTF, o2::header::gDataOriginFLP, stfSS[iss], sizeof(o2::header::STFHeader), 0, 1);
+    stfDistDataHeader.runNumber = mRunNumber;
     stfDistDataHeader.payloadSerializationMethod = o2h::gSerializationMethodNone;
     stfDistDataHeader.firstTForbit = stfHeader.firstOrbit;
     stfDistDataHeader.tfCounter = mTFCounter;
@@ -328,14 +339,13 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
     LOG(info) << "Sending " << msgIt.second->Size() / 2 << " parts to channel " << msgIt.first;
     device->Send(*msgIt.second.get(), msgIt.first);
   }
-  mTimer[TimerTotal].Stop();
+  mTimer.Stop();
 
-  LOGP(info, "Sent payload of {} bytes in {} parts in {} messages for TF#{} firstTForbit={} timeStamp={} | Timing (total/IO): {} / {}", tfSize, tfNParts,
-       messagesPerRoute.size(), mTFCounter, firstOrbit, creationTime, mTimer[TimerTotal].CpuTime() - tTotStart, mTimer[TimerIO].CpuTime() - tIOStart);
+  LOGP(info, "Sent payload of {} bytes in {} parts in {} messages for TF#{} firstTForbit={} timeStamp={} | Timing: {}", tfSize, tfNParts,
+       messagesPerRoute.size(), mTFCounter, firstOrbit, creationTime, mTimer.CpuTime() - tTotStart);
 
   mSentSize += tfSize;
   mSentMessages += tfNParts;
-
   mReader->setNextTFToRead(++tfID);
   ++mTFCounter;
 }
@@ -359,6 +369,9 @@ o2f::DataProcessorSpec getReaderSpec(ReaderInp rinp)
     }
     // add output for DISTSUBTIMEFRAME
     spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0});
+    if (!rinp.sup0xccdb) {
+      spec.outputs.emplace_back(o2f::OutputSpec{{"stfDistCCDB"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0xccdb}); // will be added automatically
+    }
   } else {
     auto nameStart = rinp.rawChannelConfig.find("name=");
     if (nameStart == std::string::npos) {

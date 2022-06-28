@@ -25,7 +25,7 @@ class Hit : public o2::BasicXYZQHit<float>
  public:
   using BasicXYZQHit<float>::BasicXYZQHit;
   Hit(float x, float y, float z, float lCol, float lRow, float lTime, float tof, int charge, int trackId, int detId, bool drift)
-    : mInDrift(drift), locC(lCol), locR(lRow), locT(lTime), BasicXYZQHit(x, y, z, tof, charge, trackId, detId){};
+    : BasicXYZQHit(x, y, z, tof, charge, trackId, detId), mInDrift(drift), locC(lCol), locR(lRow), locT(lTime){};
   bool isFromDriftRegion() const { return mInDrift; }
   void setLocalC(float lCol) { locC = lCol; }
   void setLocalR(float lRow) { locR = lRow; }

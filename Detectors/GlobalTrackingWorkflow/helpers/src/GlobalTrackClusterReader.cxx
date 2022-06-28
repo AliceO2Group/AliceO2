@@ -13,7 +13,6 @@
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
-#include "DetectorsRaw/DistSTFSenderSpec.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/ConfigContext.h"
 
@@ -32,8 +31,11 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable visualization of MC data"}},
     {"track-types", VariantType::String, std::string{GlobalTrackID::NONE}, {"comma-separated list of track sources to read"}},
     {"cluster-types", VariantType::String, std::string{GlobalTrackID::NONE}, {"comma-separated list of cluster sources to read"}},
+    {"primary-vertices", VariantType::Bool, false, {"read primary vertices"}},
+    {"secondary-vertices", VariantType::Bool, false, {"read secondary vertices"}},
+    {"cosmic", VariantType::Bool, false, {"read cosmic tracks"}},
+    {"ir-frames-its", VariantType::Bool, false, {"read ITS IR frames"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable reading root files, essentially making this workflow void, but needed for compatibility"}},
-    {"max-dist-stf", o2::framework::VariantType::Int, 0, {"max TFs with DISTSUBTIMEFRAME message (<1 = disable)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -49,17 +51,27 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool useMC = !cfgc.options().get<bool>("disable-mc");
   GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("track-types"));
   GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("cluster-types"));
-  if (!cfgc.helpOnCommandLine() && srcTrk.none() && srcCl.none()) {
-    throw std::runtime_error("no tracks or clusters requested");
+  bool pv = cfgc.options().get<bool>("primary-vertices");
+  bool sv = cfgc.options().get<bool>("secondary-vertices");
+  bool cosm = cfgc.options().get<bool>("cosmic");
+  bool irits = cfgc.options().get<bool>("ir-frames-its");
+
+  if (!cfgc.helpOnCommandLine() && srcTrk.none() && srcCl.none() && !(pv || sv || cosm || irits)) {
+    throw std::runtime_error("nothing requested to read");
   }
-
   auto srcMtc = srcTrk & ~GlobalTrackID::getSourceMask(GlobalTrackID::MFTMCH); // Do not request MFTMCH matches
-
   InputHelper::addInputSpecs(cfgc, specs, srcCl, srcMtc, srcTrk, useMC);
-
-  int maxDistSTF = cfgc.options().get<int>("max-dist-stf");
-  if (maxDistSTF > 0) {
-    specs.push_back(o2::raw::getDistSTFSenderSpec(maxDistSTF));
+  if (pv) {
+    InputHelper::addInputSpecsPVertex(cfgc, specs, useMC);
+  }
+  if (sv) {
+    InputHelper::addInputSpecsSVertex(cfgc, specs);
+  }
+  if (cosm) {
+    InputHelper::addInputSpecsCosmics(cfgc, specs, useMC);
+  }
+  if (irits) {
+    InputHelper::addInputSpecsIRFramesITS(cfgc, specs);
   }
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit

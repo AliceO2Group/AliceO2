@@ -14,12 +14,12 @@
 #include "ITSWorkflow/RecoWorkflow.h"
 #include "ITSWorkflow/ClustererSpec.h"
 #include "ITSWorkflow/ClusterWriterSpec.h"
-#include "ITSWorkflow/IRFrameWriterSpec.h"
 #include "ITSWorkflow/TrackerSpec.h"
 #include "ITSWorkflow/CookedTrackerSpec.h"
 #include "ITSWorkflow/TrackWriterSpec.h"
 #include "ITSMFTWorkflow/EntropyEncoderSpec.h"
 #include "ITSMFTWorkflow/DigitReaderSpec.h"
+#include "GlobalTrackingWorkflowWriters/IRFrameWriterSpec.h"
 
 namespace o2
 {
@@ -44,15 +44,18 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::st
   }
   if (!disableRootOutput) {
     specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
-    specs.emplace_back(o2::its::getTrackWriterSpec(useMC));
-    specs.emplace_back(o2::its::getIRFrameWriterSpec());
   }
-  if (useCAtracker) {
-    specs.emplace_back(o2::its::getTrackerSpec(useMC, trmode, dtype));
-  } else {
-    specs.emplace_back(o2::its::getCookedTrackerSpec(useMC, trmode));
+  if (!trmode.empty()) {
+    if (useCAtracker) {
+      specs.emplace_back(o2::its::getTrackerSpec(useMC, trmode, dtype));
+    } else {
+      specs.emplace_back(o2::its::getCookedTrackerSpec(useMC, trmode));
+    }
+    if (!disableRootOutput) {
+      specs.emplace_back(o2::its::getTrackWriterSpec(useMC));
+      specs.emplace_back(o2::globaltracking::getIRFrameWriterSpec("irfr:ITS/IRFRAMES/0", "o2_its_irframe.root", "irframe-writer-its"));
+    }
   }
-
   if (eencode) {
     specs.emplace_back(o2::itsmft::getEntropyEncoderSpec("ITS"));
   }

@@ -45,7 +45,7 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \param groupLastPadsThreshold minimum number of pads in pad direction for the last group in pad direction for all regions
   /// \param timeFrames number of time frames which will be stored
   /// \param timeframesDeltaIDC number of time frames stored for each DeltaIDC object
-  IDCFactorization(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const unsigned int groupNotnPadsSectorEdges, const unsigned int timeFrames, const unsigned int timeframesDeltaIDC);
+  IDCFactorization(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const unsigned int groupNotnPadsSectorEdges, const unsigned int timeFrames, const unsigned int timeframesDeltaIDC, const std::vector<uint32_t>& crus);
 
   /// default constructor for ROOT I/O
   IDCFactorization() = default;
@@ -55,6 +55,24 @@ class IDCFactorization : public IDCGroupHelperSector
   /// calculate \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   /// \param norm normalize IDCs to pad size
   void factorizeIDCs(const bool norm);
+
+  /// calculate I_0(r,\phi) = <I(r,\phi,t)>_t
+  void calcIDCZero(const bool norm);
+
+  /// fill I_0 values in case of dead pads,FECs etc.
+  void fillIDCZeroDeadPads();
+
+  /// create status map for pads which are dead or delivering extremly high values (static outliers will be mapped)
+  void createStatusMap();
+
+  /// calculate I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
+  void calcIDCOne();
+
+  /// calculate \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
+  void calcIDCDelta();
+
+  /// calculate I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
+  static void calcIDCOne(const std::vector<float>& idcsData, const int idcsPerCRU, const int integrationIntervalOffset, const unsigned int indexOffset, const CRU cru, std::vector<float>& idcOneTmp, std::vector<unsigned int>& weights, const IDCZero* idcZero, const CalDet<PadFlags>* flagMap = nullptr);
 
   /// \return returns the stored grouped and integrated IDC
   /// \param sector sector
@@ -100,10 +118,10 @@ class IDCFactorization : public IDCGroupHelperSector
 
   /// \return returns the number of stored integration intervals for given Delta IDC chunk
   /// \param chunk chunk of Delta IDC
-  unsigned long getNIntegrationIntervals(const unsigned int chunk) const;
+  unsigned long getNIntegrationIntervals(const unsigned int chunk, const int cru) const;
 
   /// \return returns the total number of stored integration intervals
-  unsigned long getNIntegrationIntervals() const;
+  unsigned long getNIntegrationIntervals(const int cru) const;
 
   /// \return returns stored IDC0 I_0(r,\phi) = <I(r,\phi,t)>_t
   /// \param side TPC side
@@ -271,21 +289,7 @@ class IDCFactorization : public IDCGroupHelperSector
   std::unique_ptr<CalDet<float>> mGainMap;                          ///<! static Gain map object used for filling missing IDC_0 values
   std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;                   ///< status flag for each pad (i.e. if the pad is dead)
   bool mInputGrouped{false};                                        ///< flag which is set to true if the input IDCs are grouped (checked via the grouping parameters from the constructor)
-
-  /// calculate I_0(r,\phi) = <I(r,\phi,t)>_t
-  void calcIDCZero(const bool norm);
-
-  /// fill I_0 values in case of dead pads,FECs etc.
-  void fillIDCZeroDeadPads();
-
-  /// create status map for pads which are dead or delivering extremly high values (static outliers will be mapped)
-  void createStatusMap();
-
-  /// calculate I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
-  void calcIDCOne();
-
-  /// calculate \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
-  void calcIDCDelta();
+  const std::vector<uint32_t> mCRUs{};                              ///< CRUs to process in this instance
 
   /// helper function for drawing IDCDelta
   void drawIDCDeltaHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const IDCDeltaCompression compression, const std::string filename, const float minZ, const float maxZ) const;

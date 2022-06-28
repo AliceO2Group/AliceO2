@@ -32,7 +32,7 @@ namespace mid
 class ColumnDataToLocalBoard
 {
  public:
-  void process(gsl::span<const ColumnData> data);
+  void process(gsl::span<const ColumnData> data, bool allowEmpty = false);
   /// Gets the output data as a map
   const std::unordered_map<uint8_t, ROBoard> getDataMap() const { return mLocalBoardsMap; }
   /// Gets vector of ROBoard

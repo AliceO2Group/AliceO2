@@ -15,10 +15,12 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "MFTWorkflow/ClustererSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -32,6 +34,7 @@
 #include "ITSMFTReconstruction/ClustererParam.h"
 
 using namespace o2::framework;
+using namespace o2::itsmft;
 
 namespace o2
 {
@@ -43,6 +46,8 @@ void ClustererDPL::init(InitContext& ic)
 
   mClusterer = std::make_unique<o2::itsmft::Clusterer>();
   mClusterer->setNChips(o2::itsmft::ChipMappingMFT::getNChips());
+  mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
+
   LOG(info) << "MFT ClustererDPL::init total number of sensors " << o2::itsmft::ChipMappingMFT::getNChips() << "\n";
 
   //mClusterer->setMaskOverflowPixels(false);
@@ -61,28 +66,12 @@ void ClustererDPL::init(InitContext& ic)
   mPatterns = !ic.options().get<bool>("no-patterns");
   mNThreads = std::max(1, ic.options().get<int>("nthreads"));
 
-  // settings for the fired pixel overflow masking
-  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
-  const auto& clParams = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance();
-  auto nbc = clParams.maxBCDiffToMaskBias;
-  nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
-  mClusterer->setMaxBCSeparationToMask(nbc);
-  mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
-
-  std::string dictPath = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-  std::string dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mClusterer->loadDictionary(dictFile);
-    LOG(info) << "MFTClusterer running with a provided dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile << " is absent, MFTClusterer expects cluster patterns";
-  }
   mState = 1;
-  mClusterer->print();
 }
 
 void ClustererDPL::run(ProcessingContext& pc)
 {
+  updateTimeDependentParams(pc);
   auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
   auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 
@@ -133,11 +122,61 @@ void ClustererDPL::run(ProcessingContext& pc)
   LOG(debug) << "MFTClusterer pushed " << clusCompVec.size() << " compressed clusters, in " << clusROFVec.size() << " RO frames";
 }
 
+///_______________________________________
+void ClustererDPL::updateTimeDependentParams(ProcessingContext& pc)
+{
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    pc.inputs().get<TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+    pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>*>("alppar");
+    pc.inputs().get<o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>*>("cluspar");
+
+    // settings for the fired pixel overflow masking
+    const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
+    const auto& clParams = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance();
+    auto nbc = clParams.maxBCDiffToMaskBias;
+    nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
+    mClusterer->setMaxBCSeparationToMask(nbc);
+    mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
+    mClusterer->print();
+  }
+  // we may have other params which need to be queried regularly
+}
+
+///_______________________________________
+void ClustererDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated" << (!mUseClusterDictionary ? " but its using is disabled" : "");
+    if (mUseClusterDictionary) {
+      mClusterer->setDictionary((const TopologyDictionary*)obj);
+    }
+    return;
+  }
+  // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
+  if (matcher == ConcreteDataMatcher("MFT", "ALPIDEPARAM", 0)) {
+    LOG(info) << "Alpide param updated";
+    const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
+    par.printKeyValues();
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("MFT", "CLUSPARAM", 0)) {
+    LOG(info) << "Cluster param updated";
+    const auto& par = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance();
+    par.printKeyValues();
+    return;
+  }
+}
+
 DataProcessorSpec getClustererSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "MFT", "DIGITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "MFT", "DIGITSROF", 0, Lifetime::Timeframe);
+  inputs.emplace_back("cldict", "MFT", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/ClusterDictionary"));
+  inputs.emplace_back("cluspar", "MFT", "CLUSPARAM", 0, Lifetime::Condition, ccdbParamSpec("MFT/Config/ClustererParam"));
+  inputs.emplace_back("alppar", "MFT", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("MFT/Config/AlpideParam"));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -159,6 +198,7 @@ DataProcessorSpec getClustererSpec(bool useMC)
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
       {"no-patterns", o2::framework::VariantType::Bool, false, {"Do not save rare cluster patterns"}},
+      {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}},
       {"nthreads", VariantType::Int, 1, {"Number of clustering threads"}}}};
 }
 

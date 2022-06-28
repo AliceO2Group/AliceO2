@@ -14,8 +14,8 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MCH_TRACKPARAM_H_
-#define ALICEO2_MCH_TRACKPARAM_H_
+#ifndef O2_MCH_TRACKPARAM_H_
+#define O2_MCH_TRACKPARAM_H_
 
 #include <memory> // for std::unique_ptr
 #include <TMatrixD.h>
@@ -183,4 +183,4 @@ class TrackParam
 } // namespace mch
 } // namespace o2
 
-#endif // ALICEO2_MCH_TRACKPARAM_H_
+#endif // O2_MCH_TRACKPARAM_H_

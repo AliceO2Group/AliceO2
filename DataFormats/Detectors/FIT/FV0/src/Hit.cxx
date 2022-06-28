@@ -13,7 +13,6 @@
 /// \brief Implementation of the Hit class
 
 #include "DataFormatsFV0/Hit.h"
-
 #include <iostream>
 
 ClassImp(o2::fv0::Hit);

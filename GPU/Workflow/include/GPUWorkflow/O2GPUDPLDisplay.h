@@ -34,6 +34,7 @@ namespace o2::gpu
 class GPUO2InterfaceDisplay;
 struct GPUO2InterfaceConfiguration;
 class TPCFastTransform;
+struct GPUSettingsTF;
 
 class O2GPUDPLDisplaySpec : public o2::framework::Task
 {
@@ -43,9 +44,13 @@ class O2GPUDPLDisplaySpec : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   bool mUseMC = false;
+  bool mUpdateCalib = false;
+  bool mDisplayShutDown = false;
+  bool mFirst = false;
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;
   o2::dataformats::GlobalTrackID::mask_t mClMask;
   std::unique_ptr<GPUO2InterfaceDisplay> mDisplay;
@@ -54,6 +59,7 @@ class O2GPUDPLDisplaySpec : public o2::framework::Task
   std::unique_ptr<o2::trd::GeometryFlat> mTrdGeo;
   std::unique_ptr<o2::itsmft::TopologyDictionary> mITSDict;
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
+  std::unique_ptr<o2::gpu::GPUSettingsTF> mTFSettings;
 };
 
 } // namespace o2::gpu

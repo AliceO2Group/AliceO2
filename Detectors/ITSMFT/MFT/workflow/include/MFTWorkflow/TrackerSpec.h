@@ -35,14 +35,17 @@ class TrackerDPL : public o2::framework::Task
  public:
   TrackerDPL(bool useMC) : mUseMC(useMC) {}
   ~TrackerDPL() override = default;
-  void init(o2::framework::InitContext& ic) final;
-  void run(o2::framework::ProcessingContext& pc) final;
+  void init(framework::InitContext& ic) final;
+  void run(framework::ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(framework::ProcessingContext& pc);
+
   bool mUseMC = false;
   bool mFieldOn = true;
-  o2::itsmft::TopologyDictionary mDict;
+  const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   std::unique_ptr<o2::mft::Tracker<TrackLTF>> mTracker = nullptr;
   std::unique_ptr<o2::mft::Tracker<TrackLTFL>> mTrackerL = nullptr;

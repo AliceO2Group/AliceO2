@@ -12,17 +12,18 @@
 /// \file AO2DConverter.cxx
 /// \author Piotr Nowakowski
 
-#include "EveWorkflow/AO2DConverter.h"
+#include "EveWorkflow/DetectorData.h"
 #include "EveWorkflow/EveWorkflowHelper.h"
+#include "Framework/AnalysisTask.h"
 #include "DetectorsBase/Propagator.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "CommonUtils/NameConf.h"
-#include "TRDBase/GeometryFlat.h"
 #include "TRDBase/Geometry.h"
-#include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/ROFRecord.h"
+
+#include <memory>
 
 using namespace o2::event_visualisation;
 using namespace o2::framework;
@@ -33,27 +34,46 @@ using namespace o2::trd;
 
 #include "Framework/runDataProcessing.h"
 
-void AO2DConverter::init(o2::framework::InitContext& ic)
-{
-  LOG(info) << "------------------------    AO2DConverter::init version " << mWorkflowVersion << "    ------------------------------------";
+struct AO2DConverter {
+  o2::framework::Configurable<std::string> jsonPath{"jsons-folder", "./json", "name of the folder to store json files"};
 
-  mData.init();
-  mHelper = std::make_shared<EveWorkflowHelper>();
-}
+  static constexpr float mWorkflowVersion = 1.00;
+  o2::header::DataHeader::RunNumberType mRunNumber = 0;
+  o2::header::DataHeader::TFCounterType mTfCounter = 0;
+  o2::header::DataHeader::TForbitType mTfOrbit = 0;
+  o2::framework::DataProcessingHeader::CreationTime mCreationTime;
 
-void AO2DConverter::process(o2::aod::Collisions const& collisions, EveWorkflowHelper::AODFullTracks const& tracks)
-{
-  for (auto const& c : collisions) {
-    auto const tracksCol = tracks.sliceBy(aod::track::collisionId, c.globalIndex());
+  DetectorData mData;
+  std::shared_ptr<EveWorkflowHelper> mHelper;
 
-    for (auto const& track : tracksCol) {
-      mHelper->drawAOD(track, c.collisionTime());
+  void init(o2::framework::InitContext& ic)
+  {
+    LOG(info) << "------------------------    AO2DConverter::init version " << mWorkflowVersion << "    ------------------------------------";
+
+    mData.init();
+    mHelper = std::make_shared<EveWorkflowHelper>();
+  }
+
+  void process(o2::aod::Collision const& collision, EveWorkflowHelper::AODBarrelTracks const& barrelTracks, EveWorkflowHelper::AODForwardTracks const& fwdTracks, EveWorkflowHelper::AODMFTTracks const& mftTracks)
+  {
+    for (auto const& track : barrelTracks) {
+      mHelper->drawAODBarrel(track, collision.collisionTime());
     }
 
-    mHelper->save(jsonPath, collisions.size(), GlobalTrackID::MASK_ALL, GlobalTrackID::MASK_NONE, mWorkflowVersion, mRunNumber, mCreationTime);
+    for (auto const& track : mftTracks) {
+      mHelper->drawAODMFT(track, collision.collisionTime());
+    }
+
+    mHelper->mEvent.setClMask(GlobalTrackID::MASK_NONE.to_ulong());
+    mHelper->mEvent.setTrkMask(GlobalTrackID::MASK_ALL.to_ulong());
+    mHelper->mEvent.setRunNumber(mRunNumber);
+    mHelper->mEvent.setTfCounter(mTfCounter);
+    mHelper->mEvent.setFirstTForbit(mTfOrbit);
+
+    mHelper->save(jsonPath, -1, GlobalTrackID::MASK_ALL, GlobalTrackID::MASK_NONE, mRunNumber, collision.collisionTime());
     mHelper->clear();
   }
-}
+};
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {

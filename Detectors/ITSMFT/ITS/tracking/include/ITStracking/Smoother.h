@@ -19,10 +19,6 @@
 #include "DetectorsBase/Propagator.h"
 #include "ITStracking/ROframe.h"
 
-#if defined(CA_DEBUG) || defined(CA_STANDALONE_DEBUGGER)
-#include "ITStracking/StandaloneDebugger.h"
-#endif
-
 namespace o2
 {
 namespace its
@@ -32,7 +28,7 @@ template <unsigned int D>
 class Smoother
 {
  public:
-  Smoother(TrackITSExt& track, int layer, const ROframe& event, float bZ, o2::base::PropagatorF::MatCorrType corr);
+  Smoother(TrackITSExt& track, size_t layer, const ROframe& event, float bZ, o2::base::PropagatorF::MatCorrType corr);
   ~Smoother();
 
   bool isValidInit() const
@@ -52,7 +48,7 @@ class Smoother
   bool smoothTrack();
 
  private:
-  int mLayerToSmooth;                       // Layer to compute smoothing optimization
+  size_t mLayerToSmooth;                    // Layer to compute smoothing optimization
   float mBz;                                // Magnetic field along Z
   bool mInitStatus;                         // State after the initialization
   o2::base::PropagatorF::MatCorrType mCorr; // Type of correction to use
@@ -60,10 +56,6 @@ class Smoother
   TrackITSExt mOutwardsTrack;               // inwards track: from outermost cluster to innermost
   float mBestChi2;                          // Best value of local smoothed chi2
   float mLastChi2 = 1e8;                    // Latest computed chi2
-
-#if defined(CA_DEBUG) || defined(CA_STANDALONE_DEBUGGER)
-  StandaloneDebugger* mDebugger;
-#endif
 };
 } // namespace its
 } // namespace o2

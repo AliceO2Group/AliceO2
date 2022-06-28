@@ -132,6 +132,8 @@ class TrapSimulator
   void setAdditionalBaseline(int adc) { mAdditionalBaseline = adc; }
   int getAdditionalBaseline() const { return mAdditionalBaseline; }
 
+  void setUseFloatingPointForQ() { mUseFloatingPointForQ = true; }
+
   int getDetector() const { return mDetector; }; // Returns Chamber ID (0-539)
   int getRobPos() const { return mRobPos; };     // Returns ROB position (0-7)
   int getMcmPos() const { return mMcmPos; };     // Returns MCM position (0-17) (16,17 are mergers)

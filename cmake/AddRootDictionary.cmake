@@ -130,6 +130,7 @@ function(add_root_dictionary target)
   endif()
 
   set(includeDirs $<TARGET_PROPERTY:${target},INCLUDE_DIRECTORIES>)
+  set(includeDirs $<REMOVE_DUPLICATES:${includeDirs}>)
 
   # add a custom command to generate the dictionary using rootcling
   # cmake-format: off

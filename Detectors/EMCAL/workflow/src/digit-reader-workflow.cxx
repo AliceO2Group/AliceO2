@@ -13,13 +13,21 @@
 #include <vector>
 #include "Framework/Variant.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CallbacksPolicy.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "EMCALWorkflow/PublisherSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::framework;
 using namespace o2::emcal;
+
+// ------------------------------------------------------------------
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)

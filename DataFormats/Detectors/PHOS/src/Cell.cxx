@@ -16,7 +16,8 @@
 using namespace o2::phos;
 
 // split 40 bits as following:
-// 14 bits: address, normal cells. starting from NmaxCell=3.5*56*64+1=14 337 will be TRU cells (3 136 addresses)
+// 14 bits: address, normal cells from 1 to NmaxCell=4*56*64-1792=14 336-1792=12544 will be
+// TRU cells (3 136) addresses from 12545 to 15680
 // 10 bits: time
 // 15 bits: Energy
 // 1 bit:    High/low gain
@@ -33,7 +34,7 @@ void Cell::setAbsId(short absId)
 {
   // 14 bits available
   if (absId < kOffset) {
-    absId = kNmaxCell;
+    absId = kOffset;
   }
   ULong_t t = (ULong_t)(absId - kOffset);
 
@@ -44,9 +45,9 @@ short Cell::getAbsId() const
 {
   ULong_t t = getLong() & 0x3fff; // 14 bits
   short a = kOffset + (short)t;
-  if (a <= kNmaxCell) {
+  if (a <= kNmaxCell) { // readout cells
     return a;
-  } else {
+  } else { // TRU cells
     return 0;
   }
 }
@@ -55,11 +56,7 @@ short Cell::getTRUId() const
 {
   ULong_t t = getLong() & 0x3fff; // 14 bits
   short a = kOffset + (short)t;
-  if (a > kNmaxCell) {
-    return a - kNmaxCell - 1;
-  } else {
-    return 0;
-  }
+  return a;
 }
 
 void Cell::setTime(float time)

@@ -22,6 +22,7 @@
 
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
+#include "DataFormatsTPC/TrackCuts.h"
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
 #include "DetectorsCalibration/Utils.h"
@@ -43,6 +44,17 @@ class TrackAndClusterFilterDevice : public o2::framework::Task
     mTrackDump.outputFileName = ic.options().get<std::string>("output-file");
     mTrackDump.writeTracks = ic.options().get<bool>("write-tracks");
     mTrackDump.writeGlobal = ic.options().get<bool>("write-global-cluster-info");
+    const double mindEdx = ic.options().get<double>("min-dedx");
+    const double maxdEdx = ic.options().get<double>("max-dedx");
+    const double minP = ic.options().get<double>("min-momentum");
+    const double maxP = ic.options().get<double>("max-momentum");
+    const int minClusters = std::max(10, ic.options().get<int>("min-clusters"));
+
+    mCuts.setPMin(minP);
+    mCuts.setPMax(maxP);
+    mCuts.setNClusMin(minClusters);
+    mCuts.setdEdxMin(mindEdx);
+    mCuts.setdEdxMax(maxdEdx);
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -57,7 +69,7 @@ class TrackAndClusterFilterDevice : public o2::framework::Task
 
     std::vector<TrackTPC> filteredTracks;
     std::copy_if(tracks.begin(), tracks.end(), std::back_inserter(filteredTracks),
-                 [this](const auto& track) { return isGood(track); });
+                 [this](const auto& track) { return mCuts.goodTrack(track); });
 
     LOGP(info, "Filtered {} good tracks out of {} total tpc tracks", filteredTracks.size(), tracks.size());
 
@@ -76,23 +88,7 @@ class TrackAndClusterFilterDevice : public o2::framework::Task
 
  private:
   TrackDump mTrackDump;
-
-  bool isGood(const TrackTPC& track)
-  {
-    if (track.getP() < 0.02) {
-      return false;
-    }
-
-    if (track.getNClusters() < 60) {
-      return false;
-    }
-
-    if (track.getdEdx().dEdxTotTPC < 20) {
-      return false;
-    }
-
-    return true;
-  }
+  TrackCuts mCuts{};
 };
 
 DataProcessorSpec getTrackAndClusterFilterSpec()
@@ -112,6 +108,11 @@ DataProcessorSpec getTrackAndClusterFilterSpec()
       {"output-file", VariantType::String, "filtered-track-and-clusters.root", {"output file name"}},
       {"write-tracks", VariantType::Bool, true, {"dump filtered tracks and clusters"}},
       {"write-global-cluster-info", VariantType::Bool, false, {"write simple clusters tree"}},
+      {"min-dedx", VariantType::Double, 20., {"minimum dEdx cut"}},
+      {"max-dedx", VariantType::Double, 1e10, {"maximum dEdx cut"}},
+      {"min-momentum", VariantType::Double, 0.2, {"minimum momentum cut"}},
+      {"max-momentum", VariantType::Double, 1e10, {"maximum momentum cut"}},
+      {"min-clusters", VariantType::Int, 60, {"minimum number of clusters in a track"}},
     } // end Options
   };  // end DataProcessorSpec
 }

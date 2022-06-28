@@ -125,8 +125,11 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   /// Sets the time stamp of the current calibaration
   GPUd() void setTimeStamp(long int v) { mTimeStamp = v; }
 
-  /// Gives pointer to a spline
+  /// Gives const pointer to a spline
   GPUd() const SplineType& getSpline(int slice, int row) const;
+
+  /// Gives pointer to a spline
+  GPUd() SplineType& getSpline(int slice, int row);
 
   /// Gives pointer to spline data
   GPUd() float* getSplineData(int slice, int row, int iSpline = 0);
@@ -212,6 +215,9 @@ class TPCFastSpaceChargeCorrection : public FlatObject
     return mSliceInfo[slice];
   }
 
+  /// temporary method with the an way of calculating 2D spline
+  GPUd() int getCorrectionOld(int slice, int row, float u, float v, float& dx, float& du, float& dv) const;
+
   /// _______________  Data members  _______________________________________________
 
   /// _______________  Construction control  _______________________________________________
@@ -246,6 +252,13 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
 GPUdi() const TPCFastSpaceChargeCorrection::SplineType& TPCFastSpaceChargeCorrection::getSpline(int slice, int row) const
 {
+  /// Gives const pointer to spline
+  const RowInfo& rowInfo = mRowInfoPtr[row];
+  return mScenarioPtr[rowInfo.splineScenarioID];
+}
+
+GPUdi() TPCFastSpaceChargeCorrection::SplineType& TPCFastSpaceChargeCorrection::getSpline(int slice, int row)
+{
   /// Gives pointer to spline
   const RowInfo& rowInfo = mRowInfoPtr[row];
   return mScenarioPtr[rowInfo.splineScenarioID];
@@ -275,6 +288,22 @@ GPUdi() int TPCFastSpaceChargeCorrection::getCorrection(int slice, int row, floa
   sv *= spline.getGridX2().getUmax();
   float dxuv[3];
   spline.interpolateU(splineData, su, sv, dxuv);
+  dx = dxuv[0];
+  du = dxuv[1];
+  dv = dxuv[2];
+  return 0;
+}
+
+GPUdi() int TPCFastSpaceChargeCorrection::getCorrectionOld(int slice, int row, float u, float v, float& dx, float& du, float& dv) const
+{
+  const SplineType& spline = getSpline(slice, row);
+  const float* splineData = getSplineData(slice, row);
+  float su = 0, sv = 0;
+  mGeo.convUVtoScaledUV(slice, row, u, v, su, sv);
+  su *= spline.getGridX1().getUmax();
+  sv *= spline.getGridX2().getUmax();
+  float dxuv[3];
+  spline.interpolateUold(splineData, su, sv, dxuv);
   dx = dxuv[0];
   du = dxuv[1];
   dv = dxuv[2];

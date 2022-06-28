@@ -25,12 +25,10 @@
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Headers/DataHeader.h"
 #include "DetectorsCalibration/Utils.h"
-#include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 #include "CommonUtils/NameConf.h"
-
-using CcdbManager = o2::ccdb::BasicCCDBManager;
 
 namespace o2
 {
@@ -48,9 +46,8 @@ class CCDBPopulator : public o2::framework::Task
     mCCDBpath = ic.options().get<std::string>("ccdb-path");
     mSSpecMin = ic.options().get<std::int64_t>("sspec-min");
     mSSpecMax = ic.options().get<std::int64_t>("sspec-max");
-    auto& mgr = CcdbManager::instance();
-    mgr.setURL(mCCDBpath);
-    mAPI.init(mgr.getURL());
+    mFatalOnFailure = ic.options().get<bool>("no-fatal-on-failure");
+    mAPI.init(mCCDBpath);
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -62,7 +59,6 @@ class CCDBPopulator : public o2::framework::Task
     if (runNoFromDH > 0) {
       runNoStr = std::to_string(runNoFromDH);
     }
-
     std::map<std::string, std::string> metadata;
     for (int isl = 0; isl < nSlots; isl++) {
       auto refWrp = pc.inputs().get("clbWrapper", isl);
@@ -84,13 +80,22 @@ class CCDBPopulator : public o2::framework::Task
 
       LOG(info) << "Storing in ccdb " << wrp->getPath() << "/" << wrp->getFileName() << " of size " << pld.size()
                 << " Valid for " << wrp->getStartValidityTimestamp() << " : " << wrp->getEndValidityTimestamp();
-      mAPI.storeAsBinaryFile(&pld[0], pld.size(), wrp->getFileName(), wrp->getObjectType(), wrp->getPath(),
-                             *md, wrp->getStartValidityTimestamp(), wrp->getEndValidityTimestamp());
+      int res = mAPI.storeAsBinaryFile(&pld[0], pld.size(), wrp->getFileName(), wrp->getObjectType(), wrp->getPath(),
+                                       *md, wrp->getStartValidityTimestamp(), wrp->getEndValidityTimestamp());
+      if (res && mFatalOnFailure) {
+        LOGP(fatal, "failed on uploading to {} / {}", mAPI.getURL(), wrp->getPath());
+      }
+
+      // do we need to override previous object?
+      if (wrp->isAdjustableEOV()) {
+        o2::ccdb::adjustOverriddenEOV(mAPI, *wrp.get());
+      }
     }
   }
 
  private:
   CcdbApi mAPI;
+  bool mFatalOnFailure = true;                             // produce fatal on failed upload
   std::int64_t mSSpecMin = -1;                             // min subspec to accept
   std::int64_t mSSpecMax = -1;                             // max subspec to accept
   std::string mCCDBpath = "http://ccdb-test.cern.ch:8080"; // CCDB path
@@ -115,7 +120,8 @@ DataProcessorSpec getCCDBPopulatorDeviceSpec(const std::string& defCCDB, const s
     Options{
       {"ccdb-path", VariantType::String, defCCDB, {"Path to CCDB"}},
       {"sspec-min", VariantType::Int64, -1L, {"min subspec to accept"}},
-      {"sspec-max", VariantType::Int64, -1L, {"max subspec to accept"}}}};
+      {"sspec-max", VariantType::Int64, -1L, {"max subspec to accept"}},
+      {"no-fatal-on-failure", VariantType::Bool, false, {"do not produce fatal on failed upload"}}}};
 }
 
 } // namespace framework

@@ -9,9 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <stdexcept>
-#include <cstring>
-#include "Framework/Logger.h"
 #include "DataFormatsFV0/CTF.h"
 
 using namespace o2::fv0;
@@ -19,13 +16,15 @@ using namespace o2::fv0;
 ///________________________________
 void CompressedDigits::clear()
 {
+  trigger.clear();
   bcInc.clear();
   orbitInc.clear();
   nChan.clear();
 
   idChan.clear();
-  time.clear();
-  charge.clear();
+  qtcChain.clear();
+  cfdTime.clear();
+  qtcAmpl.clear();
 
   header.nTriggers = 0;
   header.firstOrbit = 0;

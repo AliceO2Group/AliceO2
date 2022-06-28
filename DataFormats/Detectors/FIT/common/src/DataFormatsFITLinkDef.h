@@ -20,4 +20,7 @@
 #pragma link C++ class o2::fit::EntryFEE + ;
 #pragma link C++ class vector < o2::fit::EntryFEE> + ;
 
+#pragma link C++ class o2::fit::Triggers + ;
+#pragma link C++ class vector < o2::fit::Triggers> + ;
+
 #endif

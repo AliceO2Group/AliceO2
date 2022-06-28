@@ -17,11 +17,14 @@
 #include "Framework/InputSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/CommonServices.h"
-#include <FairMQDevice.h>
+#include "Framework/DataTakingContext.h"
+#include "Framework/TimingInfo.h"
+#include <fairmq/Device.h>
 
 #include "CTFWorkflow/CTFWriterSpec.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "CommonUtils/NameConf.h"
+#include "CommonUtils/FileSystemUtils.h"
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
 #include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "CommonUtils/StringUtils.h"
@@ -42,6 +45,7 @@
 #include "DataFormatsCTP/CTF.h"
 #include "rANS/rans.h"
 #include <vector>
+#include <stdexcept>
 #include <array>
 #include <TStopwatch.h>
 #include <vector>
@@ -88,7 +92,7 @@ class CTFWriterSpec : public o2::framework::Task
 {
  public:
   CTFWriterSpec() = delete;
-  CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& outType, int verbosity);
+  CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& outType, int verbosity, int reportInterval);
   ~CTFWriterSpec() final { finalize(); }
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -97,19 +101,17 @@ class CTFWriterSpec : public o2::framework::Task
   bool isPresent(DetID id) const { return mDets[id]; }
 
  private:
+  void updateTimeDependentParams(ProcessingContext& pc);
   template <typename C>
   size_t processDet(o2::framework::ProcessingContext& pc, DetID det, CTFHeader& header, TTree* tree);
   template <typename C>
   void storeDictionary(DetID det, CTFHeader& header);
   void storeDictionaries();
-  void prepareDictionaryTreeAndFile(DetID det);
-  void closeDictionaryTreeAndFile(CTFHeader& header);
-  std::string dictionaryFileName(const std::string& detName = "");
   void closeTFTreeAndFile();
-  void prepareTFTreeAndFile(const o2::header::DataHeader* dh);
+  void prepareTFTreeAndFile();
   size_t estimateCTFSize(ProcessingContext& pc);
   size_t getAvailableDiskSpace(const std::string& path, int level);
-  void createLockFile(const o2::header::DataHeader* dh, int level);
+  void createLockFile(int level);
   void removeLockFile();
   void finalize();
 
@@ -117,40 +119,41 @@ class CTFWriterSpec : public o2::framework::Task
   bool mFinalized = false;
   bool mWriteCTF = true;
   bool mCreateDict = false;
-  bool mDictPerDetector = false;
   bool mCreateRunEnvDir = true;
   bool mStoreMetaFile = false;
+  int mReportInterval = -1;
   int mVerbosity = 0;
-  int mSaveDictAfter = 0; // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
-  int mFlagMinDet = 1;    // append list of detectors to LHC period if their number is <= mFlagMinDet
-  uint64_t mRun = 0;
+  int mSaveDictAfter = 0;          // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
+  uint32_t mPrevDictTimeStamp = 0; // timestamp of the previously stored dictionary
+  uint32_t mDictTimeStamp = 0;     // timestamp of the currently stored dictionary
   size_t mMinSize = 0;               // if > 0, accumulate CTFs in the same tree until the total size exceeds this minimum
   size_t mMaxSize = 0;               // if > MinSize, and accumulated size will exceed this value, stop accumulation (even if mMinSize is not reached)
   size_t mChkSize = 0;               // if > 0 and fallback storage provided, reserve this size per CTF file in production on primary storage
   size_t mAccCTFSize = 0;            // so far accumulated size (if any)
   size_t mCurrCTFSize = 0;           // size of currently processed CTF
   size_t mNCTF = 0;                  // total number of CTFs written
+  size_t mNCTFPrevDict = 0;          // total number of CTFs used for previous dictionary version
   size_t mNAccCTF = 0;               // total number of CTFs accumulated in the current file
   size_t mCTFAutoSave = 0;           // if > 0, autosave after so many TFs
   size_t mNCTFFiles = 0;             // total number of CTF files written
   int mMaxCTFPerFile = 0;            // max CTFs per files to store
   std::vector<uint32_t> mTFOrbits{}; // 1st orbits of TF accumulated in current file
-
+  o2::framework::DataTakingContext mDataTakingContext{};
+  o2::framework::TimingInfo mTimingInfo{};
   std::string mOutputType{}; // RS FIXME once global/local options clash is solved, --output-type will become device option
-  std::string mLHCPeriod{};
-  std::string mEnvironmentID{}; // partition env. id
   std::string mDictDir{};
   std::string mCTFDir{};
+  std::string mHostName{};
   std::string mCTFDirFallBack = "/dev/null";
   std::string mCTFMetaFileDir = "/dev/null";
   std::string mCurrentCTFFileName{};
   std::string mCurrentCTFFileNameFull{};
+  std::string mSizeReport{};
   const std::string LOCKFileDir = "/tmp/ctf-writer-locks";
   std::string mLockFileName{};
   int mLockFD = -1;
   std::unique_ptr<TFile> mCTFFileOut;
   std::unique_ptr<TTree> mCTFTreeOut;
-  std::unique_ptr<o2::dataformats::FileMetaData> mCTFFileMetaData;
 
   std::unique_ptr<TFile> mDictFileOut; // file to store dictionary
   std::unique_ptr<TTree> mDictTreeOut; // tree to store dictionary
@@ -161,6 +164,7 @@ class CTFWriterSpec : public o2::framework::Task
   // The metadata of the block (min,max) will be used for the consistency check at the decoding
   std::array<std::vector<FTrans>, DetID::nDetectors> mFreqsAccumulation;
   std::array<std::vector<o2::ctf::Metadata>, DetID::nDetectors> mFreqsMetaData;
+  std::array<std::bitset<64>, DetID::nDetectors> mIsSaturatedFrequencyTable;
   std::array<std::shared_ptr<void>, DetID::nDetectors> mHeaders;
   TStopwatch mTimer;
 
@@ -170,9 +174,10 @@ class CTFWriterSpec : public o2::framework::Task
 const std::string CTFWriterSpec::TMPFileEnding{".part"};
 
 //___________________________________________________________________
-CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& outType, int verbosity)
-  : mDets(dm), mRun(r), mOutputType(outType), mVerbosity(verbosity)
+CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& outType, int verbosity, int reportInterval)
+  : mDets(dm), mOutputType(outType), mReportInterval(reportInterval), mVerbosity(verbosity)
 {
+  std::for_each(mIsSaturatedFrequencyTable.begin(), mIsSaturatedFrequencyTable.end(), [](auto& bitset) { bitset.reset(); });
   mTimer.Stop();
   mTimer.Reset();
 }
@@ -180,7 +185,6 @@ CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, const std::string& ou
 //___________________________________________________________________
 void CTFWriterSpec::init(InitContext& ic)
 {
-  mDictPerDetector = ic.options().get<bool>("dict-per-det");
   // auto outmode = ic.options().get<std::string>("output-type"); // RS FIXME once global/local options clash is solved, --output-type will become device option
   auto outmode = mOutputType;
   if (outmode == "ctf") {
@@ -212,7 +216,6 @@ void CTFWriterSpec::init(InitContext& ic)
     mCTFMetaFileDir = o2::utils::Str::rectifyDirectory(mCTFMetaFileDir);
     mStoreMetaFile = true;
   }
-  mFlagMinDet = ic.options().get<int>("append-det-to-period");
   mCreateRunEnvDir = !ic.options().get<bool>("ignore-partition-run-dir");
   mMinSize = ic.options().get<int64_t>("min-file-size");
   mMaxSize = ic.options().get<int64_t>("max-file-size");
@@ -226,29 +229,31 @@ void CTFWriterSpec::init(InitContext& ic)
     }
   }
   mChkSize = std::max(size_t(mMinSize * 1.1), mMaxSize);
-  if (!std::filesystem::exists(LOCKFileDir)) {
-    if (!std::filesystem::create_directories(LOCKFileDir)) {
-      usleep(10); // protection in case the directory was created by other process at the time of query
-      if (std::filesystem::exists(LOCKFileDir)) {
-        throw std::runtime_error(fmt::format("Failed to create {} directory", LOCKFileDir));
-      }
-    }
-  }
+  o2::utils::createDirectoriesIfAbsent(LOCKFileDir);
 
   if (mCreateDict) { // make sure that there is no local dictonary
-    for (int id = 0; id < DetID::nDetectors; id++) {
-      DetID det(id);
-      if (isPresent(det)) {
-        auto dictName = dictionaryFileName(det.getName());
-        if (std::filesystem::exists(dictName)) {
-          throw std::runtime_error(o2::utils::Str::concat_string("CTF dictionary creation is requested but ", dictName, " already exists, remove it!"));
-        }
-        if (!mDictPerDetector) {
-          break; // no point in checking further
-        }
-      }
+    std::string dictFileName = fmt::format("{}{}.root", mDictDir, o2::base::NameConf::CTFDICT);
+    if (std::filesystem::exists(dictFileName)) {
+      throw std::runtime_error(o2::utils::Str::concat_string("CTF dictionary creation is requested but ", dictFileName, " already exists, remove it!"));
     }
+    o2::utils::createDirectoriesIfAbsent(mDictDir);
   }
+
+  char hostname[_POSIX_HOST_NAME_MAX];
+  gethostname(hostname, _POSIX_HOST_NAME_MAX);
+  mHostName = hostname;
+  mHostName = mHostName.substr(0, mHostName.find('.'));
+}
+
+//___________________________________________________________________
+void CTFWriterSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  static bool initOnceDone = false;
+  if (!initOnceDone) {
+    initOnceDone = true;
+    mDataTakingContext = pc.services().get<DataTakingContext>();
+  }
+  mTimingInfo = pc.services().get<o2::framework::TimingInfo>();
 }
 
 //___________________________________________________________________
@@ -258,14 +263,17 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
 {
   size_t sz = 0;
   if (!isPresent(det) || !pc.inputs().isValid(det.getName())) {
+    mSizeReport += fmt::format(" {}:N/A", det.getName());
     return sz;
   }
   auto ctfBuffer = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName());
   const auto ctfImage = C::getImage(ctfBuffer.data());
   ctfImage.print(o2::utils::Str::concat_string(det.getName(), ": "), mVerbosity);
   if (mWriteCTF) {
-    sz += ctfImage.appendToTree(*tree, det.getName());
+    sz = ctfImage.appendToTree(*tree, det.getName());
     header.detectors.set(det);
+  } else {
+    sz = ctfBuffer.size();
   }
   if (mCreateDict) {
     if (!mFreqsAccumulation[det].size()) {
@@ -275,20 +283,34 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
     if (!mHeaders[det]) { // store 1st header
       mHeaders[det] = ctfImage.cloneHeader();
       auto& hb = *static_cast<o2::ctf::CTFDictHeader*>(mHeaders[det].get());
-      hb.dictTimeStamp = uint32_t(std::time(nullptr));
       hb.det = det;
     }
     for (int ib = 0; ib < C::getNBlocks(); ib++) {
-      const auto& bl = ctfImage.getBlock(ib);
-      if (bl.getNDict()) {
-        auto& freq = mFreqsAccumulation[det][ib];
-        auto& mdSave = mFreqsMetaData[det][ib];
-        const auto& md = ctfImage.getMetadata(ib);
-        freq.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min);
-        mdSave = o2::ctf::Metadata{0, 0, md.messageWordSize, md.coderType, md.streamSize, md.probabilityBits, md.opt, freq.getMinSymbol(), freq.getMaxSymbol(), (int)freq.size(), 0, 0};
+      if (!mIsSaturatedFrequencyTable[det][ib]) {
+        const auto& bl = ctfImage.getBlock(ib);
+        if (bl.getNDict()) {
+          auto freq = mFreqsAccumulation[det][ib];
+          auto& mdSave = mFreqsMetaData[det][ib];
+          const auto& md = ctfImage.getMetadata(ib);
+          if ([&, this]() {
+                try {
+                  freq.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min);
+                } catch (const std::overflow_error& e) {
+                  LOGP(warning, "unable to frequency table for {}, block {} due to overflow", det.getName(), ib);
+                  mIsSaturatedFrequencyTable[det][ib] = true;
+                  return false;
+                }
+                return true;
+              }()) {
+            auto newProbBits = static_cast<uint8_t>(o2::rans::computeRenormingPrecision(freq));
+            mdSave = o2::ctf::Metadata{0, 0, md.messageWordSize, md.coderType, md.streamSize, newProbBits, md.opt, freq.getMinSymbol(), freq.getMaxSymbol(), static_cast<int32_t>(freq.size()), 0, 0};
+            mFreqsAccumulation[det][ib] = std::move(freq);
+          }
+        }
       }
     }
   }
+  mSizeReport += fmt::format(" {}:{}", det.getName(), fmt::group_digits(sz));
   return sz;
 }
 
@@ -297,28 +319,38 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
 template <typename C>
 void CTFWriterSpec::storeDictionary(DetID det, CTFHeader& header)
 {
+  // create vector whose data contains dictionary in CTF format (EncodedBlock)
   if (!isPresent(det) || !mFreqsAccumulation[det].size()) {
     return;
   }
-  prepareDictionaryTreeAndFile(det);
-  // create vector whose data contains dictionary in CTF format (EncodedBlock)
   auto dictBlocks = C::createDictionaryBlocks(mFreqsAccumulation[det], mFreqsMetaData[det]);
   auto& h = C::get(dictBlocks.data())->getHeader();
   h = *reinterpret_cast<typename std::remove_reference<decltype(h)>::type*>(mHeaders[det].get());
   auto& hb = static_cast<o2::ctf::CTFDictHeader&>(h);
   hb = *static_cast<const o2::ctf::CTFDictHeader*>(mHeaders[det].get());
+  hb.dictTimeStamp = mDictTimeStamp;
+
+  auto getFileName = [this, det, &hb](bool curr) {
+    return fmt::format("{}{}_{}_v{}.{}_{}_{}.root", this->mDictDir, o2::base::NameConf::CTFDICT, det.getName(), int(hb.majorVersion), int(hb.minorVersion),
+                       curr ? this->mDictTimeStamp : this->mPrevDictTimeStamp, curr ? this->mNCTF : this->mNCTFPrevDict);
+  };
 
   C::get(dictBlocks.data())->print(o2::utils::Str::concat_string("Storing dictionary for ", det.getName(), ": "));
-  C::get(dictBlocks.data())->appendToTree(*mDictTreeOut.get(), det.getName()); // cast to EncodedBlock
-  //  mFreqsAccumulation[det].clear();
-  //  mFreqsMetaData[det].clear();
-  if (mDictPerDetector) {
-    header.detectors.reset();
+  auto outName = getFileName(true);
+  TFile flout(outName.c_str(), "recreate");
+  flout.WriteObject(&dictBlocks, o2::base::NameConf::CCDBOBJECT.data());
+  flout.WriteObject(&hb, fmt::format("ctf_dict_header_{}", det.getName()).c_str());
+  flout.Close();
+  LOGP(info, "Saved {} with {} TFs to {}", hb.asString(), mNCTF, outName);
+  if (mPrevDictTimeStamp) {
+    auto outNamePrev = getFileName(false);
+    if (std::filesystem::exists(outNamePrev)) {
+      std::filesystem::remove(outNamePrev);
+      LOGP(info, "Removed previous dictionary version {}", outNamePrev);
+    }
   }
+  C::get(dictBlocks.data())->appendToTree(*mDictTreeOut.get(), det.getName()); // cast to EncodedBlock and attach to dictionaries tree
   header.detectors.set(det);
-  if (mDictPerDetector) {
-    closeDictionaryTreeAndFile(header);
-  }
 }
 
 //___________________________________________________________________
@@ -341,82 +373,36 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   const std::string NAStr = "NA";
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-  const auto ref = pc.inputs().getFirstValid(true);
-  const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-  const auto dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
-  auto oldRun = mRun;
-  if (dh->runNumber != 0) {
-    mRun = dh->runNumber;
-  }
-  // check runNumber with FMQ property, if set, override DH number
-  {
-    auto runNStr = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", NAStr);
-    if (runNStr != NAStr) {
-      size_t nc = 0;
-      auto runNProp = std::stol(runNStr, &nc);
-      if (nc != runNStr.size()) {
-        LOGP(error, "Property runNumber={} is provided but is not a number, ignoring", runNStr);
-      } else {
-        mRun = runNProp;
-      }
-    }
-  }
-  auto oldEnv = mEnvironmentID;
-  {
-    auto envN = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("environment_id", NAStr);
-    if (envN != NAStr) {
-      mEnvironmentID = envN;
-    }
-  }
-  if ((oldRun != 0 && oldRun != mRun) || (!oldEnv.empty() && oldEnv != mEnvironmentID)) {
-    LOGP(warning, "RunNumber/Environment changed from {}/{} to {}/{}", oldRun, oldEnv, mRun, mEnvironmentID);
-    closeTFTreeAndFile();
-  }
-  // check for the LHCPeriod
-  if (mLHCPeriod.empty()) {
-    auto LHCPeriodStr = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("LHCPeriod", NAStr);
-    if (LHCPeriodStr != NAStr) {
-      mLHCPeriod = LHCPeriodStr;
-    } else {
-      const char* months[12] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
-      time_t now = time(nullptr);
-      auto ltm = gmtime(&now);
-      mLHCPeriod = months[ltm->tm_mon];
-      LOG(warning) << "LHCPeriod is not available, using current month " << mLHCPeriod;
-    }
-    if (mDets.count() <= mFlagMinDet) { // flag participating detectors
-      for (auto id = DetID::First; id <= DetID::Last; id++) {
-        if (isPresent(id)) {
-          mLHCPeriod += fmt::format("_{}", DetID::getName(id));
-        }
-      }
-    }
-  }
+  updateTimeDependentParams(pc);
 
   mCurrCTFSize = estimateCTFSize(pc);
   if (mWriteCTF) {
-    prepareTFTreeAndFile(dh);
+    prepareTFTreeAndFile();
   }
 
   // create header
-  CTFHeader header{mRun, dph->creation, dh->firstTForbit};
+  CTFHeader header{mTimingInfo.runNumber, mTimingInfo.creation, mTimingInfo.firstTFOrbit, mTimingInfo.tfCounter};
   size_t szCTF = 0;
+  mSizeReport = "";
   szCTF += processDet<o2::itsmft::CTF>(pc, DetID::ITS, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::itsmft::CTF>(pc, DetID::MFT, header, mCTFTreeOut.get());
   szCTF += processDet<o2::tpc::CTF>(pc, DetID::TPC, header, mCTFTreeOut.get());
   szCTF += processDet<o2::trd::CTF>(pc, DetID::TRD, header, mCTFTreeOut.get());
   szCTF += processDet<o2::tof::CTF>(pc, DetID::TOF, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::phos::CTF>(pc, DetID::PHS, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::cpv::CTF>(pc, DetID::CPV, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::emcal::CTF>(pc, DetID::EMC, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::hmpid::CTF>(pc, DetID::HMP, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::itsmft::CTF>(pc, DetID::MFT, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::mch::CTF>(pc, DetID::MCH, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::mid::CTF>(pc, DetID::MID, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::zdc::CTF>(pc, DetID::ZDC, header, mCTFTreeOut.get());
   szCTF += processDet<o2::ft0::CTF>(pc, DetID::FT0, header, mCTFTreeOut.get());
   szCTF += processDet<o2::fv0::CTF>(pc, DetID::FV0, header, mCTFTreeOut.get());
   szCTF += processDet<o2::fdd::CTF>(pc, DetID::FDD, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::mid::CTF>(pc, DetID::MID, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::mch::CTF>(pc, DetID::MCH, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::emcal::CTF>(pc, DetID::EMC, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::phos::CTF>(pc, DetID::PHS, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::cpv::CTF>(pc, DetID::CPV, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::zdc::CTF>(pc, DetID::ZDC, header, mCTFTreeOut.get());
-  szCTF += processDet<o2::hmpid::CTF>(pc, DetID::HMP, header, mCTFTreeOut.get());
   szCTF += processDet<o2::ctp::CTF>(pc, DetID::CTP, header, mCTFTreeOut.get());
+  if (mReportInterval > 0 && (mTimingInfo.tfCounter % mReportInterval) == 0) {
+    LOGP(important, "CTF {} size report:{}", mTimingInfo.tfCounter, mSizeReport);
+  }
 
   mTimer.Stop();
 
@@ -424,7 +410,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
     szCTF += appendToTree(*mCTFTreeOut.get(), "CTFHeader", header);
     mAccCTFSize += szCTF;
     mCTFTreeOut->SetEntries(++mNAccCTF);
-    mTFOrbits.push_back(dh->firstTForbit);
+    mTFOrbits.push_back(mTimingInfo.firstTFOrbit);
     LOG(info) << "TF#" << mNCTF << ": wrote CTF{" << header << "} of size " << szCTF << " to " << mCurrentCTFFileNameFull << " in " << mTimer.CpuTime() - cput << " s";
     if (mNAccCTF > 1) {
       LOG(info) << "Current CTF tree has " << mNAccCTF << " entries with total size of " << mAccCTFSize << " bytes";
@@ -470,7 +456,7 @@ void CTFWriterSpec::finalize()
 }
 
 //___________________________________________________________________
-void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
+void CTFWriterSpec::prepareTFTreeAndFile()
 {
   if (!mWriteCTF) {
     return;
@@ -488,10 +474,9 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
   }
   if (needToOpen) {
     closeTFTreeAndFile();
-    auto fname = o2::base::NameConf::getCTFFileName(mRun, dh->firstTForbit, dh->tfCounter);
     auto ctfDir = mCTFDir.empty() ? o2::utils::Str::rectifyDirectory("./") : mCTFDir;
     if (mChkSize > 0 && (mCTFDirFallBack != "/dev/null")) {
-      createLockFile(dh, 0);
+      createLockFile(0);
       auto sz = getAvailableDiskSpace(ctfDir, 0); // check main storage
       if (sz < mChkSize) {
         removeLockFile();
@@ -499,23 +484,17 @@ void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
         ctfDir = mCTFDirFallBack;
       }
     }
-    if (mCreateRunEnvDir && !mEnvironmentID.empty()) {
-      ctfDir += fmt::format("{}_{}/", mEnvironmentID, mRun);
-      if (!std::filesystem::exists(ctfDir)) {
-        if (!std::filesystem::create_directories(ctfDir)) {
-          throw std::runtime_error(fmt::format("Failed to create {} directory", ctfDir));
-        } else {
-          LOG(info) << "Created {} directory for CTFs output" << ctfDir;
-        }
+    if (mCreateRunEnvDir && !mDataTakingContext.envId.empty() && (mDataTakingContext.envId != o2::framework::DataTakingContext::UNKNOWN)) {
+      ctfDir += fmt::format("{}_{}/", mDataTakingContext.envId, mDataTakingContext.runNumber);
+      if (!ctfDir.empty()) {
+        o2::utils::createDirectoriesIfAbsent(ctfDir);
+        LOGP(info, "Created {} directory for CTFs output", ctfDir);
       }
     }
-    mCurrentCTFFileName = o2::base::NameConf::getCTFFileName(mRun, dh->firstTForbit, dh->tfCounter);
+    mCurrentCTFFileName = o2::base::NameConf::getCTFFileName(mTimingInfo.runNumber, mTimingInfo.firstTFOrbit, mTimingInfo.tfCounter, mHostName);
     mCurrentCTFFileNameFull = fmt::format("{}{}", ctfDir, mCurrentCTFFileName);
     mCTFFileOut.reset(TFile::Open(fmt::format("{}{}", mCurrentCTFFileNameFull, TMPFileEnding).c_str(), "recreate")); // to prevent premature external usage, use temporary name
     mCTFTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
-    if (mStoreMetaFile) {
-      mCTFFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
-    }
 
     mNCTFFiles++;
   }
@@ -536,27 +515,22 @@ void CTFWriterSpec::closeTFTreeAndFile()
       }
       // write CTF file metaFile data
       if (mStoreMetaFile) {
-        mCTFFileMetaData->fillFileData(mCurrentCTFFileNameFull);
-        mCTFFileMetaData->run = mRun;
-        mCTFFileMetaData->LHCPeriod = mLHCPeriod;
-        mCTFFileMetaData->type = "raw";
-        mCTFFileMetaData->priority = "high";
+        o2::dataformats::FileMetaData ctfMetaData;
+        ctfMetaData.fillFileData(mCurrentCTFFileNameFull);
+        ctfMetaData.setDataTakingContext(mDataTakingContext);
+        ctfMetaData.type = "raw";
+        ctfMetaData.priority = "high";
+        ctfMetaData.tfOrbits.swap(mTFOrbits);
         auto metaFileNameTmp = fmt::format("{}{}.tmp", mCTFMetaFileDir, mCurrentCTFFileName);
         auto metaFileName = fmt::format("{}{}.done", mCTFMetaFileDir, mCurrentCTFFileName);
         try {
           std::ofstream metaFileOut(metaFileNameTmp);
-          metaFileOut << *mCTFFileMetaData.get();
-          metaFileOut << "TFOrbits: ";
-          for (size_t i = 0; i < mTFOrbits.size(); i++) {
-            metaFileOut << fmt::format("{}{}", i ? ", " : "", mTFOrbits[i]);
-          }
-          metaFileOut << '\n';
+          metaFileOut << ctfMetaData;
           metaFileOut.close();
           std::filesystem::rename(metaFileNameTmp, metaFileName);
         } catch (std::exception const& e) {
           LOG(error) << "Failed to store CTF meta data file " << metaFileName << ", reason: " << e.what();
         }
-        mCTFFileMetaData.reset();
       }
     } catch (std::exception const& e) {
       LOG(error) << "Failed to finalize CTF file " << mCurrentCTFFileNameFull << ", reason: " << e.what();
@@ -569,39 +543,18 @@ void CTFWriterSpec::closeTFTreeAndFile()
 }
 
 //___________________________________________________________________
-void CTFWriterSpec::prepareDictionaryTreeAndFile(DetID det)
-{
-  if (mDictPerDetector) {
-    if (mDictTreeOut) {
-      mDictTreeOut->SetEntries(1);
-      mDictTreeOut->Write();
-      mDictTreeOut.reset();
-      mDictFileOut.reset();
-    }
-  }
-  if (!mDictTreeOut) {
-    mDictFileOut.reset(TFile::Open(dictionaryFileName(det.getName()).c_str(), "recreate"));
-    mDictTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFDICT).c_str(), "O2 CTF dictionary");
-  }
-}
-
-//___________________________________________________________________
-std::string CTFWriterSpec::dictionaryFileName(const std::string& detName)
-{
-  if (mDictPerDetector) {
-    if (detName.empty()) {
-      throw std::runtime_error("Per-detector dictionary files are requested but detector name is not provided");
-    }
-    return o2::utils::Str::concat_string(mDictDir, detName, '_', o2::base::NameConf::CTFDICT, ".root");
-  } else {
-    return o2::utils::Str::concat_string(mDictDir, o2::base::NameConf::CTFDICT, ".root");
-  }
-}
-
-//___________________________________________________________________
 void CTFWriterSpec::storeDictionaries()
 {
-  CTFHeader header{mRun, uint32_t(mNCTF)};
+  // monolitic dictionary in tree format
+  mDictTimeStamp = uint32_t(std::time(nullptr));
+  auto getFileName = [this](bool curr) {
+    return fmt::format("{}{}Tree_{}_{}_{}.root", this->mDictDir, o2::base::NameConf::CTFDICT, DetID::getNames(this->mDets, '-'), curr ? this->mDictTimeStamp : this->mPrevDictTimeStamp, curr ? this->mNCTF : this->mNCTFPrevDict);
+  };
+  auto dictFileName = getFileName(true);
+  mDictFileOut.reset(TFile::Open(dictFileName.c_str(), "recreate"));
+  mDictTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFDICT).c_str(), "O2 CTF dictionary");
+
+  CTFHeader header{mTimingInfo.runNumber, uint32_t(mNCTF)};
   storeDictionary<o2::itsmft::CTF>(DetID::ITS, header);
   storeDictionary<o2::itsmft::CTF>(DetID::MFT, header);
   storeDictionary<o2::tpc::CTF>(DetID::TPC, header);
@@ -618,33 +571,35 @@ void CTFWriterSpec::storeDictionaries()
   storeDictionary<o2::zdc::CTF>(DetID::ZDC, header);
   storeDictionary<o2::hmpid::CTF>(DetID::HMP, header);
   storeDictionary<o2::ctp::CTF>(DetID::CTP, header);
-
-  // close remnants
-  if (mDictTreeOut) {
-    closeDictionaryTreeAndFile(header);
+  mDictFileOut->cd();
+  appendToTree(*mDictTreeOut.get(), "CTFHeader", header);
+  mDictTreeOut->SetEntries(1);
+  mDictTreeOut->Write(mDictTreeOut->GetName(), TObject::kSingleKey);
+  mDictTreeOut.reset();
+  mDictFileOut.reset();
+  std::string dictFileNameLnk = fmt::format("{}{}.root", mDictDir, o2::base::NameConf::CTFDICT);
+  if (std::filesystem::exists(dictFileNameLnk)) {
+    std::filesystem::remove(dictFileNameLnk);
   }
-  LOG(info) << "Saved CTF dictionary after " << mNCTF << " TFs processed";
+  std::filesystem::create_symlink(dictFileName, dictFileNameLnk);
+  LOGP(info, "Saved CTF dictionaries tree with {} TFs to {} and linked to {}", mNCTF, dictFileName, dictFileNameLnk);
+  if (mPrevDictTimeStamp) {
+    auto dictFileNamePrev = getFileName(false);
+    if (std::filesystem::exists(dictFileNamePrev)) {
+      std::filesystem::remove(dictFileNamePrev);
+      LOGP(info, "Removed previous dictionary version {}", dictFileNamePrev);
+    }
+  }
+  mNCTFPrevDict = mNCTF;
+  mPrevDictTimeStamp = mDictTimeStamp;
 }
 
 //___________________________________________________________________
-void CTFWriterSpec::closeDictionaryTreeAndFile(CTFHeader& header)
-{
-  if (mDictTreeOut) {
-    mDictFileOut->cd();
-    appendToTree(*mDictTreeOut.get(), "CTFHeader", header);
-    mDictTreeOut->SetEntries(1);
-    mDictTreeOut->Write(mDictTreeOut->GetName(), TObject::kSingleKey);
-    mDictTreeOut.reset();
-    mDictFileOut.reset();
-  }
-}
-
-//___________________________________________________________________
-void CTFWriterSpec::createLockFile(const o2::header::DataHeader* dh, int level)
+void CTFWriterSpec::createLockFile(int level)
 {
   // create lock file for the CTF to be written to the storage of given level
   while (1) {
-    mLockFileName = fmt::format("{}/ctfs{}-{}_{}_{}_{}.lock", LOCKFileDir, level, o2::utils::Str::getRandomString(8), mRun, dh->firstTForbit, dh->tfCounter);
+    mLockFileName = fmt::format("{}/ctfs{}-{}_{}_{}_{}.lock", LOCKFileDir, level, o2::utils::Str::getRandomString(8), mTimingInfo.runNumber, mTimingInfo.firstTFOrbit, mTimingInfo.tfCounter);
     if (!std::filesystem::exists(mLockFileName)) {
       break;
     }
@@ -721,7 +676,7 @@ size_t CTFWriterSpec::getAvailableDiskSpace(const std::string& path, int level)
 }
 
 //___________________________________________________________________
-DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, const std::string& outType, int verbosity)
+DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, const std::string& outType, int verbosity, int reportInterval)
 {
   std::vector<InputSpec> inputs;
   LOG(debug) << "Detectors list:";
@@ -735,16 +690,14 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, const std::
     "ctf-writer",
     inputs,
     Outputs{},
-    AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run, outType, verbosity)}, // RS FIXME once global/local options clash is solved, --output-type will become device option
-    Options{                                                                    //{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries) or both or none"}},
+    AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run, outType, verbosity, reportInterval)}, // RS FIXME once global/local options clash is solved, --output-type will become device option
+    Options{                                                                                    //{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries) or both or none"}},
             {"save-ctf-after", VariantType::Int, 0, {"if > 0, autosave CTF tree with multiple CTFs after every N CTFs"}},
             {"save-dict-after", VariantType::Int, 0, {"if > 0, in dictionary generation mode save it dictionary after certain number of TFs processed"}},
             {"ctf-dict-dir", VariantType::String, "none", {"CTF dictionary directory, must exist"}},
-            {"dict-per-det", VariantType::Bool, false, {"create dictionary file per detector"}},
             {"output-dir", VariantType::String, "none", {"CTF output directory, must exist"}},
             {"output-dir-alt", VariantType::String, "/dev/null", {"Alternative CTF output directory, must exist (if not /dev/null)"}},
             {"meta-output-dir", VariantType::String, "/dev/null", {"CTF metadata output directory, must exist (if not /dev/null)"}},
-            {"append-det-to-period", VariantType::Int, 1, {"Append detectors name to LHCPeriod in metadata if their number is does not exceed this"}},
             {"min-file-size", VariantType::Int64, 0l, {"accumulate CTFs until given file size reached"}},
             {"max-file-size", VariantType::Int64, 0l, {"if > 0, try to avoid exceeding given file size, also used for space check"}},
             {"max-ctf-per-file", VariantType::Int, 0, {"if > 0, avoid storing more than requested CTFs per file"}},

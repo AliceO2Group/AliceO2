@@ -66,7 +66,8 @@ class ErrorTypeFEE
   /// \param FEEID ID of the FEE responsible for the error
   /// \param errortype Type of the error
   /// \param errorCode Error code for the given error type
-  ErrorTypeFEE(int FEEID, ErrorSource_t errortype, int errorCode) : mFEEID(FEEID), mErrorSource(errortype), mErrorCode(errorCode) {}
+  /// \param subspec Subspecification of the error (i.e. FEC ID)
+  ErrorTypeFEE(int FEEID, ErrorSource_t errortype, int errorCode, int subspec) : mFEEID(FEEID), mErrorSource(errortype), mErrorCode(errorCode), mSubspecification(subspec) {}
 
   /// \brief Destructor
   ~ErrorTypeFEE() = default;
@@ -112,6 +113,10 @@ class ErrorTypeFEE
     setErrorCode(errorcode);
   }
 
+  /// \brief Set the subspecification of the error
+  /// \param subspec Subspecification of the error
+  void setSubspecification(int subspec) { mSubspecification = subspec; }
+
   /// \brief Get the FEE ID of the electronics responsible for the error
   /// \return ID of the FEE component
   int getFEEID() const { return mFEEID; }
@@ -144,6 +149,10 @@ class ErrorTypeFEE
   /// \return Error code (-1 in case the object is not a gain type error)
   int getGainTypeErrorType() const { return getRawErrorForType(ErrorSource_t::GAIN_ERROR); }
 
+  /// \brief Get subspecification of the error
+  /// \return Subspecification of the error
+  int getSubspecification() const { return mSubspecification; }
+
   /// \brief Printing information of the error type
   /// \param stream Output stream where to print the error
   ///
@@ -158,6 +167,7 @@ class ErrorTypeFEE
   int mFEEID = -1;                                       ///< FEE ID of the SM responsible for the error
   ErrorSource_t mErrorSource = ErrorSource_t::UNDEFINED; ///< Source of the error
   int mErrorCode = -1;                                   ///< Raw page error type
+  int mSubspecification;                                 ///< Subspecification
 
   ClassDefNV(ErrorTypeFEE, 1);
 };

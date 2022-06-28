@@ -15,9 +15,9 @@
 #include <string>
 #include "TStopwatch.h"
 #include "AlignmentWorkflow/BarrelAlignmentSpec.h"
-
+#include "Align/AlignableDetectorITS.h"
 #include "Align/Controller.h"
-
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -26,6 +26,8 @@
 #include "CommonUtils/NameConf.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
+
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 #include "Headers/DataHeader.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -64,18 +66,21 @@ namespace align
 class BarrelAlignmentSpec : public Task
 {
  public:
-  BarrelAlignmentSpec(std::shared_ptr<DataRequest> dr, DetID::mask_t m) : mDataRequest(dr), mDetMask{m} {}
+  BarrelAlignmentSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> ggrec, DetID::mask_t m)
+    : mDataRequest(dr), mGRPGeomRequest(ggrec), mDetMask{m} {}
   ~BarrelAlignmentSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
-  void updateTimeDependentParams();
+  void updateTimeDependentParams(ProcessingContext& pc);
 
   DetID::mask_t mDetMask{};
   std::unique_ptr<Controller> mController;
   std::shared_ptr<DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGRPGeomRequest;
   TStopwatch mTimer;
 };
 
@@ -83,22 +88,44 @@ void BarrelAlignmentSpec::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
+  o2::base::GRPGeomHelper::instance().setRequest(mGRPGeomRequest);
   mController = std::make_unique<Controller>(mDetMask);
 }
 
-void BarrelAlignmentSpec::updateTimeDependentParams()
+void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
-  //
+  bool initOnceDone = false;
+  if (!initOnceDone) {
+    initOnceDone = true;
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    if (!mController->getInitGeomDone()) {
+      mController->initDetectors();
+    }
+    o2::base::PropagatorD::initFieldFromGRP(); // RS FIXME, do this via GRPGeomHelper once we switch to GRPECS
+  }
+}
+
+void BarrelAlignmentSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    auto* its = mController->getDetector(o2::detectors::DetID::ITS);
+    if (its) {
+      LOG(info) << "cluster dictionary updated";
+      ((AlignableDetectorITS*)its)->setITSDictionary((const o2::itsmft::TopologyDictionary*)obj);
+      return;
+    }
+  }
 }
 
 void BarrelAlignmentSpec::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
-
+  updateTimeDependentParams(pc);
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
-
-  mController->process(recoData);
+  mController->setRecoContainer(&recoData);
+  mController->process();
 
   mTimer.Stop();
 }
@@ -117,15 +144,22 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t src, DetID::mask_t det
 
   dataRequest->requestTracks(src, false);
   dataRequest->requestClusters(src, false);
+  dataRequest->requestPrimaryVertertices(false);
+
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                                 // orbitResetTime
+                                                                true,                                 // GRPECS=true
+                                                                false,                                // GRPLHCIF
+                                                                false,                                // GRPMagField
+                                                                false,                                // askMatLUT
+                                                                o2::base::GRPGeomRequest::Alignments, // geometry
+                                                                dataRequest->inputs);
 
   return DataProcessorSpec{
     "barrel-alignment",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(dataRequest, dets)},
-    Options{
-      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
-      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
+    AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(dataRequest, ccdbRequest, dets)},
+    Options{}};
 }
 
 } // namespace align

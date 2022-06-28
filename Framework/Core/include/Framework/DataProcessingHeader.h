@@ -41,11 +41,17 @@ namespace o2::framework
 ///
 /// @ingroup aliceo2_dataformats_dataheader
 struct DataProcessingHeader : public header::BaseHeader {
-
+  static constexpr uint64_t DUMMY_CREATION_TIME_OFFSET = 0x8000000000000000;
+  /// We return some number of milliseconds, offsetting int by 0x8000000000000000
+  /// to make sure we can understand when the dummy constructor of DataProcessingHeader was
+  /// used without overriding it with an actual real time from epoch.
+  /// This creation time is not meant to be used for anything but to understand the relative
+  /// creation of messages in the flow. Notice that for the case DataProcessingHeader::creation
+  /// has some particular meaning, we expect this function not to be used.
   static uint64_t getCreationTime()
   {
     auto now = std::chrono::steady_clock::now();
-    return std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+    return ((uint64_t)std::chrono::duration<double, std::milli>(now.time_since_epoch()).count()) | DUMMY_CREATION_TIME_OFFSET;
   }
   // Required to do the lookup
   constexpr static const o2::header::HeaderType sHeaderType = "DataFlow";

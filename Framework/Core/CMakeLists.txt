@@ -14,6 +14,7 @@ o2_add_library(Framework
                        src/ArrowSupport.cxx
                        src/AnalysisDataModel.cxx
                        src/ASoA.cxx
+                       src/AsyncQueue.cxx
                        src/AnalysisHelpers.cxx
                        src/AnalysisDataModelHelpers.cxx
                        src/BoostOptionsRetriever.cxx
@@ -35,12 +36,15 @@ o2_add_library(Framework
                        src/ConfigContext.cxx
                        src/ControlService.cxx
                        src/ControlServiceHelpers.cxx
+                       src/ControlWebSocketHandler.cxx
                        src/CCDBHelpers.cxx
                        src/DispatchPolicy.cxx
                        src/DataSender.cxx
+                       src/DomainInfoHeader.cxx
                        src/ProcessingPoliciesHelpers.cxx
                        src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
+                       src/ChannelParamSpec.cxx
                        src/DDSConfigHelpers.cxx
                        src/DataAllocator.cxx
                        src/DataDescriptorMatcher.cxx
@@ -63,6 +67,7 @@ o2_add_library(Framework
                        src/DeviceSpec.cxx
                        src/DeviceController.cxx
                        src/DeviceSpecHelpers.cxx
+                       src/DeviceStateHelpers.cxx
                        src/DPLMonitoringBackend.cxx
                        src/DriverControl.cxx
                        src/DriverClient.cxx
@@ -74,6 +79,7 @@ o2_add_library(Framework
                        src/ConfigurationOptionsRetriever.cxx
                        src/FreePortFinder.cxx
                        src/GraphvizHelpers.cxx
+                       src/MermaidHelpers.cxx
                        src/HTTPParser.cxx
                        src/InputRecord.cxx
                        src/InputRouteHelpers.cxx
@@ -93,6 +99,7 @@ o2_add_library(Framework
                        src/O2ControlHelpers.cxx
                        src/O2ControlLabels.cxx
                        src/OutputSpec.cxx
+                       src/OptionsHelpers.cxx
                        src/PropertyTreeHelpers.cxx
                        src/Plugins.cxx
                        src/RateLimiter.cxx
@@ -112,6 +119,7 @@ o2_add_library(Framework
                        src/TableTreeHelpers.cxx
                        src/TopologyPolicy.cxx
                        src/TextDriverClient.cxx
+                       src/TimesliceIndex.cxx
                        src/DataInputDirector.cxx
                        src/DataOutputDirector.cxx
                        src/Task.cxx
@@ -164,6 +172,7 @@ foreach(t
         AlgorithmSpec
         AnalysisTask
         AnalysisDataModel
+        AsyncQueue
         ASoA
         ASoAHelpers
         BoostOptionsRetriever
@@ -178,6 +187,7 @@ foreach(t
         ConfigParamStore
         ConfigParamRegistry
         DataDescriptorMatcher
+        DataDescriptorQueryBuilder
         DataProcessorSpec
         DataRefUtils
         DataRelayer
@@ -185,6 +195,7 @@ foreach(t
         DeviceMetricsInfo
         DeviceSpec
         DeviceSpecHelpers
+        DeviceStateHelpers
         Expressions
         ExternalFairMQDeviceProxy
         FairMQOptionsRetriever
@@ -204,6 +215,8 @@ foreach(t
         InputSpec
         Kernels
         LogParsingHelpers
+        Mermaid
+        OptionsHelpers
         OverrideLabels
         PtrHelpers
         Root2ArrowTable
@@ -275,6 +288,7 @@ foreach(b
         WorkflowHelpers
         ASoA
         ASoAHelpers
+        EventMixing
         HistogramRegistry
         TableToTree
         TreeToTable
@@ -312,6 +326,7 @@ foreach(w
         Task
         ExternalFairMQDeviceWorkflow
         VariablePayloadSequenceWorkflow
+        DataDescriptorMatcherWorkflow
         )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx

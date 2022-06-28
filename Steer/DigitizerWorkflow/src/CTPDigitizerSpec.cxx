@@ -20,7 +20,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CTPSimulation/Digitizer.h"
 #include "DataFormatsFT0/Digit.h"
-#include "DataFormatsFV0/BCData.h"
+#include "DataFormatsFV0/Digit.h"
 
 #include <TStopwatch.h>
 #include <gsl/span>

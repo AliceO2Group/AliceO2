@@ -453,6 +453,34 @@ void GeometryTGeo::fillMatrixCache(Int_t mask)
 }
 
 //__________________________________________________________________________
+void GeometryTGeo::updateL2GMatrixCache(std::vector<int> chipIDs)
+{
+  // update matrix cache for requested transformations
+  //
+  if (mSize < 1) {
+    LOG(fatal) << "Matrices must be filled beforehand.";
+    return;
+  }
+
+  // build matrices
+  auto& cacheL2G = getCacheL2G();
+  cacheL2G.setSize(mSize);
+  auto setMatrix = [this](auto chipID, auto& cacheL2G) {
+    TGeoHMatrix* hm = extractMatrixSensor(chipID);
+    cacheL2G.setMatrix(hm ? Mat3D(*hm) : Mat3D(), chipID);
+  };
+
+  if (chipIDs.size()) { // Update matrices for provided sensors
+    for (auto& i : chipIDs) {
+      setMatrix(i, cacheL2G);
+    }
+  } else {
+    for (Int_t i = 0; i < mSize; i++) {
+      setMatrix(i, cacheL2G);
+    }
+  }
+}
+//__________________________________________________________________________
 TGeoHMatrix& GeometryTGeo::createT2LMatrix(Int_t index)
 {
   // create for sensor isn the TGeo matrix for Tracking to Local frame transformations

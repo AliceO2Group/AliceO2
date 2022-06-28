@@ -19,9 +19,12 @@
 #include "Steer/HitProcessingManager.h"
 #include "Steer/InteractionSampler.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "CommonUtils/NameConf.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
+#include <DataFormatsParameters/GRPLHCIFData.h>
 #include "DetectorsRaw/HBFUtils.h"
-#include <FairMQLogger.h>
+#include <CCDB/BasicCCDBManager.h>
+#include <FairLogger.h>
 #include <TMessage.h> // object serialization
 #include <memory>     // std::unique_ptr
 #include <cstring>    // memcpy
@@ -30,6 +33,8 @@
 #include <chrono>
 #include <thread>
 #include <algorithm>
+#include <filesystem>
+#include <boost/interprocess/sync/named_semaphore.hpp>
 
 using namespace o2::framework;
 namespace o2lhc = o2::constants::lhc;
@@ -39,6 +44,7 @@ namespace o2
 {
 namespace steer
 {
+
 DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::string>& simprefixes, const std::vector<int>& tpcsectors)
 {
   uint64_t activeSectors = 0;
@@ -74,7 +80,7 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
         OutputRef{"collisioncontext", static_cast<SubSpecificationType>(subchannel)},
         context);
     }
-
+    pc.outputs().snapshot(OutputRef{"bunchFilling"}, mgr.getInteractionSampler().getBunchFilling());
     // digitizer workflow runs only once
     // send endOfData control event and mark the reader as ready to finish
     pc.services().get<ControlService>().endOfStream();
@@ -121,13 +127,27 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       mgr.getInteractionSampler().setFirstIR({0, o2::raw::HBFUtils::Instance().orbitFirstSampled});
       mgr.getDigitizationContext().setFirstOrbitForSampling(o2::raw::HBFUtils::Instance().orbitFirstSampled);
 
+      auto setBCFillingHelper = [](auto& sampler, auto& bcPatternString) {
+        if (bcPatternString == "ccdb") {
+          LOG(info) << "Fetch bcPattern information from CCDB";
+          // fetch the GRP Object
+          auto& ccdb = o2::ccdb::BasicCCDBManager::instance();
+          auto grpLHC = ccdb.get<o2::parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF");
+          LOG(info) << "Fetched injection scheme " << grpLHC->getInjectionScheme() << " from CCDB";
+          sampler.setBunchFilling(grpLHC->getBunchFilling());
+        } else {
+          sampler.setBunchFilling(bcPatternString);
+        }
+      };
+
       auto bcPatternFile = ctx.options().get<std::string>("bcPatternFile");
       if (!bcPatternFile.empty()) {
-        mgr.getInteractionSampler().setBunchFilling(bcPatternFile);
+        setBCFillingHelper(mgr.getInteractionSampler(), bcPatternFile);
       }
 
       mgr.getInteractionSampler().init();
       mgr.getInteractionSampler().print();
+
       // doing a random event selection/subsampling?
       mgr.setRandomEventSequence(ctx.options().get<int>("randomsample") > 0);
 
@@ -145,7 +165,7 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       if (qedprefix.size() > 0) {
         o2::steer::InteractionSampler qedInteractionSampler;
         if (!bcPatternFile.empty()) {
-          qedInteractionSampler.setBunchFilling(bcPatternFile);
+          setBCFillingHelper(qedInteractionSampler, bcPatternFile);
         }
 
         // get first and last "hadronic" interaction records and let
@@ -199,6 +219,8 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
     outputs.emplace_back(
       OutputSpec{{"collisioncontext"}, "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(subchannel), Lifetime::Timeframe});
   }
+
+  outputs.emplace_back(OutputSpec{{"bunchFilling"}, "SIM", "BUNCHFILLING", 0, Lifetime::Timeframe});
 
   return DataProcessorSpec{
     /*ID*/ "SimReader",

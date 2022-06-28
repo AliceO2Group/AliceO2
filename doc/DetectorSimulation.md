@@ -65,6 +65,7 @@ The purpose of the `o2-sim` executable is to simulate the passage of particles e
 | --configKeyValues | Like `--configFile` but allowing to set parameters on the command line as a string sequence. Example `--configKeyValues "Stack.pruneKine=false"`. Takes precedence over `--configFile`. Parameters need to be known ConfigurableParams. |
 | --seed   | The initial seed to (all) random number instances. Default is -1 which leads to random behaviour. |
 | -o,--outPrefix | How output files should be prefixed. Default is o2sim. Example `-o mySignalProduction`.|
+| --noGeant | Switch off Geant transport. Just produce the generator kinematics. |
 
 * **Expert control** via environment variables:
 `o2-sim` is sensitive to the following environment variables:

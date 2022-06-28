@@ -50,12 +50,12 @@ class LinkRecord
   void setSide(const int side) { mLinkId |= ((side << sidebs) & sidemask); }
   void setSpare(const int spare = 0) { mLinkId |= ((spare << sparebs) & sparemask); }
 
-  const uint32_t getLinkId() { return mLinkId; }
+  uint32_t getLinkId() const { return mLinkId; }
   //TODO come backwith a ccdb lookup.  const uint32_t getLinkHCID() { return mLinkId & 0x7ff; } // the last 11 bits.
-  const uint32_t getSector() { return (mLinkId & supermodulemask) >> supermodulebs; }
-  const uint32_t getStack() { return (mLinkId & stackmask) >> stackbs; }
-  const uint32_t getLayer() { return (mLinkId & layermask) >> layerbs; }
-  const uint32_t getSide() { return (mLinkId & sidemask) >> sidebs; }
+  uint32_t getSector() const { return (mLinkId & supermodulemask) >> supermodulebs; }
+  uint32_t getStack() const { return (mLinkId & stackmask) >> stackbs; }
+  uint32_t getLayer() const { return (mLinkId & layermask) >> layerbs; }
+  uint32_t getSide() const { return (mLinkId & sidemask) >> sidebs; }
   int getNumberOfObjects() const { return mDataRange.getEntries(); }
   int getFirstEntry() const { return mDataRange.getFirstEntry(); }
   static uint32_t getHalfChamberLinkId(uint32_t detector, uint32_t rob);

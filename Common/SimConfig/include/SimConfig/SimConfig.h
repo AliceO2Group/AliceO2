@@ -20,6 +20,18 @@ namespace o2
 namespace conf
 {
 
+enum SimFieldMode {
+  kDefault = 0,
+  kUniform = 1,
+  kCCDB = 2
+};
+
+enum TimeStampMode {
+  kNow = 0,
+  kManual = 1,
+  kRun = 2
+};
+
 // configuration struct (which can be passed around)
 struct SimConfigData {
   std::vector<std::string> mActiveModules;    // list of active modules
@@ -49,9 +61,12 @@ struct SimConfigData {
   bool mFilterNoHitEvents = false;            // whether to filter out events not leaving any response
   std::string mCCDBUrl;                       // the URL where to find CCDB
   uint64_t mTimestamp;                        // timestamp in ms to anchor transport simulation to
+  TimeStampMode mTimestampMode = kNow;        // telling of timestamp was given as option or defaulted to now
+  int mRunNumber = -1;                        // ALICE run number (if set != -1); the timestamp should be compatible
   int mField;                                 // L3 field setting in kGauss: +-2,+-5 and 0
-  bool mUniformField = false;                 // uniform magnetic field
+  SimFieldMode mFieldMode = kDefault;         // uniform magnetic field
   bool mAsService = false;                    // if simulation should be run as service/deamon (does not exit after run)
+  bool mNoGeant = false;                      // if Geant transport should be turned off (when one is only interested in the generated events)
 
   ClassDefNV(SimConfigData, 4);
 };
@@ -118,6 +133,8 @@ class SimConfig
   bool isFilterOutNoHitEvents() const { return mConfigData.mFilterNoHitEvents; }
   bool asService() const { return mConfigData.mAsService; }
   uint64_t getTimestamp() const { return mConfigData.mTimestamp; }
+  int getRunNumber() const { return mConfigData.mRunNumber; }
+  bool isNoGeant() const { return mConfigData.mNoGeant; }
 
  private:
   SimConfigData mConfigData; //!

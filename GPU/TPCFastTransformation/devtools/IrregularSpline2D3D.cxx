@@ -15,6 +15,7 @@
 /// \author  Sergey Gorbunov <sergey.gorbunov@cern.ch>
 
 #include "IrregularSpline2D3D.h"
+#include "GPUCommonLogger.h"
 
 #if !defined(GPUCA_GPUCODE)
 #include <iostream>
@@ -139,10 +140,10 @@ void IrregularSpline2D3D::constructRegular(int numberOfKnotsU, int numberOfKnots
 void IrregularSpline2D3D::print() const
 {
 #if !defined(GPUCA_GPUCODE)
-  std::cout << " Irregular Spline 2D3D: " << std::endl;
-  std::cout << " grid U: " << std::endl;
+  LOG(info) << " Irregular Spline 2D3D: ";
+  LOG(info) << " grid U: ";
   mGridU.print();
-  std::cout << " grid V: " << std::endl;
+  LOG(info) << " grid V: ";
   mGridV.print();
 #endif
 }

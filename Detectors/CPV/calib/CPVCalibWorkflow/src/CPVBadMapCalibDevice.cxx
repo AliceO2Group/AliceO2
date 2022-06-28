@@ -163,7 +163,7 @@ void CPVBadMapCalibDevice::sendOutput(DataAllocator& output)
     // TODO: should be changed to time of the run
     time_t now = time(nullptr);
     info.setStartValidityTimestamp(now);
-    info.setEndValidityTimestamp(99999999999999);
+    info.setEndValidityTimestamp(o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     std::map<std::string, std::string> md;
     info.setMetaData(md);
 

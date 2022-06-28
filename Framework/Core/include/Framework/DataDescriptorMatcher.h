@@ -259,6 +259,7 @@ class DataDescriptorMatcher
 {
  public:
   enum struct Op { Just,
+                   Not,
                    Or,
                    And,
                    Xor };
@@ -296,6 +297,8 @@ class DataDescriptorMatcher
 
   Node const& getLeft() const { return mLeft; };
   Node const& getRight() const { return mRight; };
+  Node& getLeft() { return mLeft; };
+  Node& getRight() { return mRight; };
   Op getOp() const { return mOp; };
 
  private:

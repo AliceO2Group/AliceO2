@@ -23,19 +23,22 @@ namespace trd
 class TRDTrackletTransformerSpec : public o2::framework::Task
 {
  public:
-  TRDTrackletTransformerSpec(std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, bool trigRecFilterActive, int timestamp) : mDataRequest(dataRequest), mTrigRecFilterActive(trigRecFilterActive), mTimestamp(timestamp){};
+  TRDTrackletTransformerSpec(std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, bool trigRecFilterActive, bool applyXOR) : mDataRequest(dataRequest), mTrigRecFilterActive(trigRecFilterActive), mApplyXOR(applyXOR){};
   ~TRDTrackletTransformerSpec() override = default;
   void init(o2::framework::InitContext& ic) override;
   void run(o2::framework::ProcessingContext& pc) override;
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
-  bool mTrigRecFilterActive; ///< if true, transform only TRD tracklets for which ITS data is available
+  void updateTimeDependentParams(framework::ProcessingContext& pc);
+
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
-  int mTimestamp;
+  bool mTrigRecFilterActive; ///< if true, transform only TRD tracklets for which ITS data is available
+  bool mApplyXOR;            ///< if true, the 8-th bit of position and slope will be inverted before transformation in chamber coordinates
   TrackletTransformer mTransformer;
 };
 
-o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive, int timestamp);
+o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive, bool applyXOR);
 
 } // end namespace trd
 } // end namespace o2

@@ -1706,7 +1706,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
     unsigned int iOutTrackFirstCluster = CAMath::AtomicAdd(&mMemory->nOutputTrackClusters, (unsigned int)nHits);
     if (iOutTrackFirstCluster >= mNMaxOutputTrackClusters) {
       raiseError(GPUErrors::ERROR_MERGER_HIT_OVERFLOW, iOutTrackFirstCluster, mNMaxOutputTrackClusters);
-      CAMath::AtomicExch(&mMemory->nOutputTrackClusters, 0u);
+      CAMath::AtomicExch(&mMemory->nOutputTrackClusters, mNMaxOutputTrackClusters);
       continue;
     }
 
@@ -1764,7 +1764,7 @@ GPUd() void GPUTPCGMMerger::CollectMergedTracks(int nBlocks, int nThreads, int i
     unsigned int iOutputTrack = CAMath::AtomicAdd(&mMemory->nOutputTracks, 1u);
     if (iOutputTrack >= mNMaxTracks) {
       raiseError(GPUErrors::ERROR_MERGER_TRACK_OVERFLOW, iOutputTrack, mNMaxTracks);
-      CAMath::AtomicExch(&mMemory->nOutputTracks, 0u);
+      CAMath::AtomicExch(&mMemory->nOutputTracks, mNMaxTracks);
       continue;
     }
 
@@ -2008,12 +2008,12 @@ GPUd() void GPUTPCGMMerger::Finalize2(int nBlocks, int nThreads, int iBlock, int
 
 GPUd() void GPUTPCGMMerger::MergeLoopersInit(int nBlocks, int nThreads, int iBlock, int iThread)
 {
-  const float lowPtThresh = Param().rec.tpc.rejectQPt * 1.1f; // Might need to merge tracks above the threshold with parts below the threshold
+  const float lowPtThresh = Param().rec.tpc.rejectQPtB5 * 1.1f; // Might need to merge tracks above the threshold with parts below the threshold
   for (unsigned int i = get_global_id(0); i < mMemory->nOutputTracks; i += get_global_size(0)) {
     const auto& trk = mOutputTracks[i];
     const auto& p = trk.GetParam();
     const float qptabs = CAMath::Abs(p.GetQPt());
-    if (trk.NClusters() && qptabs * Param().par.qptB5Scaler > 5.f && qptabs <= lowPtThresh) {
+    if (trk.NClusters() && qptabs * Param().par.qptB5Scaler > 5.f && qptabs * Param().par.qptB5Scaler <= lowPtThresh) {
       const int slice = mClusters[trk.FirstClusterRef() + trk.NClusters() - 1].slice;
       const float refz = p.GetZ() + (Param().par.earlyTpcTransform ? p.GetTZOffset() : GetConstantMem()->calibObjects.fastTransform->convVertexTimeToZOffset(slice, p.GetTZOffset(), Param().par.continuousMaxTimeBin)) + (trk.CSide() ? -100 : 100);
       float sinA, cosA;
@@ -2030,7 +2030,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopersInit(int nBlocks, int nThreads, int iBlo
       unsigned int myId = CAMath::AtomicAdd(&mMemory->nLooperMatchCandidates, 1u);
       if (myId >= mNMaxLooperMatches) {
         raiseError(GPUErrors::ERROR_LOOPER_MATCH_OVERFLOW, myId, mNMaxLooperMatches);
-        CAMath::AtomicExch(&mMemory->nLooperMatchCandidates, 0u);
+        CAMath::AtomicExch(&mMemory->nLooperMatchCandidates, mNMaxLooperMatches);
         return;
       }
       mLooperCandidates[myId] = MergeLooperParam{refz, gmx, gmy, i};
@@ -2175,7 +2175,7 @@ GPUd() void GPUTPCGMMerger::MergeLoopersMain(int nBlocks, int nThreads, int iBlo
 #endif
       if (EQ) {
         mOutputTracks[params[j].id].SetMergedLooper(true);
-        if (CAMath::Abs(param2.GetQPt()) >= Param().rec.tpc.rejectQPt) {
+        if (CAMath::Abs(param2.GetQPt() * Param().par.qptB5Scaler) >= Param().rec.tpc.rejectQPtB5) {
           mOutputTracks[params[i].id].SetMergedLooper(true);
         }
       }

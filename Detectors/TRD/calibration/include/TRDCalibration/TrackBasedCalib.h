@@ -54,6 +54,9 @@ class TrackBasedCalib
   /// Initialize the input arrays
   void setInput(const o2::globaltracking::RecoContainer& input);
 
+  /// Set the MCM noise map
+  void setNoiseMapMCM(const NoiseStatusMCM* map) { mNoiseCalib = map; };
+
   /// Reset the output
   void reset();
 
@@ -78,7 +81,7 @@ class TrackBasedCalib
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
   RecoParam mRecoParam;                              ///< parameters required for TRD reconstruction
   AngularResidHistos mAngResHistos;                  ///< aggregated data for the track based calibration
-  NoiseStatusMCM* mNoiseCalib{nullptr};              ///< CCDB object with information of noisy MCMs
+  const NoiseStatusMCM* mNoiseCalib{nullptr};        ///< CCDB object with information of noisy MCMs
   // input arrays which should not be modified since they are provided externally
   gsl::span<const TrackTRD> mTracksInITSTPCTRD;        ///< TRD tracks reconstructed from TPC or ITS-TPC seeds
   gsl::span<const TrackTRD> mTracksInTPCTRD;           ///< TRD tracks reconstructed from TPC or TPC seeds

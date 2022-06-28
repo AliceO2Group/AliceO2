@@ -38,6 +38,7 @@ o2_add_library(Generators
 		       src/QEDGenParam.cxx
                        src/GenCosmicsParam.cxx
                        src/GeneratorFactory.cxx
+                       src/GeneratorGeantinos.cxx
                        $<$<BOOL:${pythia6_FOUND}>:src/GeneratorPythia6.cxx>
                        $<$<BOOL:${pythia6_FOUND}>:src/GeneratorPythia6Param.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8.cxx>
@@ -78,7 +79,9 @@ set(headers
     include/Generators/TriggerParticleParam.h
     include/Generators/BoxGunParam.h
     include/Generators/QEDGenParam.h
-    include/Generators/GenCosmicsParam.h)
+    include/Generators/GenCosmicsParam.h
+    include/Generators/GeneratorGeantinos.h
+    )
 
 if (pythia6_FOUND)
    list(APPEND headers include/Generators/GeneratorPythia6.h

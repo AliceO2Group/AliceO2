@@ -50,6 +50,9 @@ class BunchFilling
   // get pattern of interacting BCs (-1) or beams filled BCs at P2 (0,1)
   const auto& getPattern(int dir = -1) const { return dir < 0 ? getBCPattern() : getBeamPattern(dir); }
 
+  // create pattern from filled bucket
+  void buckets2BeamPattern(const std::vector<int>& buckets, int ibeam);
+
   // get number of interacting bunches (-1) and number of filled bunches for clockwise (0, A) and anticlockwise (1, C) beams
   int getNBunches(int dir = -1) const { return dir < 0 ? mPattern.count() : mBeamAC[dir].count(); }
 

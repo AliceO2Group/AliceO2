@@ -29,14 +29,17 @@ namespace calibration
 class MeanVertexCalibDevice : public Task
 {
  public:
+  MeanVertexCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   void sendOutput(DataAllocator& output);
 
   std::unique_ptr<o2::calibration::MeanVertexCalibrator> mCalibrator;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 };
 
 } // namespace calibration

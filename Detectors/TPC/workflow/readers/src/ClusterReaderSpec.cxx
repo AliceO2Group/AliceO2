@@ -19,6 +19,7 @@
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "TPCBase/Sector.h"
+#include <numeric>
 
 using namespace o2::framework;
 

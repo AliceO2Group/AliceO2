@@ -39,6 +39,7 @@ namespace its
 {
 class TrackerTraits;
 class VertexerTraits;
+class TimeFrame;
 } // namespace its
 } // namespace o2
 
@@ -115,6 +116,7 @@ class GPUReconstruction
   static GPUReconstruction* CreateInstance(DeviceType type = DeviceType::CPU, bool forceType = true, GPUReconstruction* master = nullptr);
   static GPUReconstruction* CreateInstance(int type, bool forceType, GPUReconstruction* master = nullptr) { return CreateInstance((DeviceType)type, forceType, master); }
   static GPUReconstruction* CreateInstance(const char* type, bool forceType, GPUReconstruction* master = nullptr);
+  static bool CheckInstanceAvailable(DeviceType type);
 
   // Helpers for kernel launches
   template <class T, int I = 0>
@@ -187,7 +189,7 @@ class GPUReconstruction
   virtual void* getGPUPointer(void* ptr) { return ptr; }
   virtual void startGPUProfiling() {}
   virtual void endGPUProfiling() {}
-  int CheckErrorCodes(bool cpuOnly = false);
+  int CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false);
   void RunPipelineWorker();
   void TerminatePipelineWorker();
 
@@ -221,6 +223,7 @@ class GPUReconstruction
 
   // Helpers to fetch processors from other shared libraries
   virtual void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits);
+  virtual void GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame);
   bool slavesExist() { return mSlaves.size() || mMaster; }
 
   // Getters / setters for parameters

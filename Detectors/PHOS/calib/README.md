@@ -62,7 +62,7 @@ o2-phos-calib-workflow --not-use-ccdb --energy
 ```
 
 ## Bad map calculation
-
+Several methods are used to produce bad map. Method-based maps are stored in PHS/BadMap/Occ for cell-occupancy, PHS/BadMap/Ped for pedestal RMS based bad map and PHS/BadMap/Chi for chi2 of sample fit. Then bad map is calculated by combining different approaches and stored in PHS/Calib/BadMap. The latter is used in clusterization, e.g. in AOD analyses. 
 
 <!-- doxy
 /doxy -->

@@ -250,6 +250,14 @@ struct IDCZero {
 
 ///<struct containing the IDC1
 struct IDCOne {
+
+  /// default constructor
+  IDCOne() = default;
+
+  /// constructor for initializing member with default value (this is used in the IDCFourierTransform class to perform calculation of the fourier coefficients for the first aggregation interval)
+  /// \param nIDC number of IDCs which will be initialized
+  IDCOne(const unsigned int nIDC) : mIDCOne{std::vector<float>(nIDC), std::vector<float>(nIDC)} {};
+
   /// set IDC one for given index
   /// \param idcOne Delta IDC value which will be set
   /// \param side side of the TPC
@@ -290,80 +298,57 @@ struct IDCOne {
   ClassDefNV(IDCOne, 1)
 };
 
-/// struct containing 1D-IDCs
-struct OneDIDC {
-
-  /// default constructor
-  OneDIDC() = default;
-
-  /// constructor for initializing member with default value (this is used in the IDCFourierTransform class to perform calculation of the fourier coefficients for the first aggregation interval)
-  /// \param nIDC number of IDCs which will be initialized
-  OneDIDC(const unsigned int nIDC) : mOneDIDC{std::vector<float>(nIDC), std::vector<float>(nIDC)} {};
-
-  /// \return returns total number of 1D-IDCs for given side
-  /// \param side side of the TPC
-  unsigned int getNIDCs(const o2::tpc::Side side) const { return mOneDIDC[side].size(); }
-
-  std::array<std::vector<float>, o2::tpc::SIDES> mOneDIDC{}; ///< 1D-IDCs = <I(r,\phi,t)>_{r,\phi}
-  ClassDefNV(OneDIDC, 1)
-};
-
 /// Helper class for aggregation of 1D-IDCs from different CRUs
-class OneDIDCAggregator
+class IDCOneAggregator
 {
  public:
-  /// constructor
-  /// nTimeFrames number of time frames which will be aggregated
-  OneDIDCAggregator(const unsigned int nTimeFrames = 1) : mOneDIDCAgg(nTimeFrames), mWeight(nTimeFrames){};
-
   /// aggregate 1D-IDCs
   /// \param side side of the tpcCRUHeader
   /// \param idc vector containing the 1D-IDCs
-  /// \param timeframe of the input 1D-IDC
-  /// \param region region of the TPC
-  void aggregate1DIDCs(const o2::tpc::Side side, const std::vector<float>& idc, const unsigned int timeframe, const unsigned int region)
+  void aggregate1DIDCs(const o2::tpc::Side side, const std::vector<float>& idc)
   {
-    if (mOneDIDCAgg[timeframe].mOneDIDC[side].empty()) {
-      mOneDIDCAgg[timeframe].mOneDIDC[side] = idc;
-      mWeight[timeframe][side] = Mapper::REGIONAREA[region];
+    if (mIDCOneAgg.mIDCOne[side].empty()) {
+      mIDCOneAgg.mIDCOne[side] = idc;
     } else {
-      std::transform(mOneDIDCAgg[timeframe].mOneDIDC[side].begin(), mOneDIDCAgg[timeframe].mOneDIDC[side].end(), idc.begin(), mOneDIDCAgg[timeframe].mOneDIDC[side].begin(), std::plus<>());
-      mWeight[timeframe][side] += Mapper::REGIONAREA[region];
+      std::transform(mIDCOneAgg.mIDCOne[side].begin(), mIDCOneAgg.mIDCOne[side].end(), idc.begin(), mIDCOneAgg.mIDCOne[side].begin(), std::plus<>());
     }
   }
 
-  /// \return returns struct containing aggregated 1D IDCs normalized to number of channels weighted with the relative length of each region
-  OneDIDC getAggregated1DIDCs()
+  void aggregate1DIDCsWeights(const o2::tpc::Side side, const std::vector<unsigned int>& idcCount)
   {
-    OneDIDC oneDIDCTmp;
-    for (int iside = 0; iside < o2::tpc::SIDES; ++iside) {
-      const o2::tpc::Side side = iside == 0 ? o2::tpc::Side::A : o2::tpc::Side::C;
-      for (unsigned int i = 0; i < mOneDIDCAgg.size(); ++i) {
-        std::transform(mOneDIDCAgg[i].mOneDIDC[side].begin(), mOneDIDCAgg[i].mOneDIDC[side].end(), mOneDIDCAgg[i].mOneDIDC[side].begin(), [norm = mWeight[i][side]](auto& val) { return val / norm; });
-        oneDIDCTmp.mOneDIDC[side].insert(oneDIDCTmp.mOneDIDC[side].end(), mOneDIDCAgg[i].mOneDIDC[side].begin(), mOneDIDCAgg[i].mOneDIDC[side].end());
-        mOneDIDCAgg[i].mOneDIDC[side].clear();
-      }
+    if (mWeight[side].empty()) {
+      mWeight[side] = idcCount;
+    } else {
+      std::transform(mWeight[side].begin(), mWeight[side].end(), idcCount.begin(), mWeight[side].begin(), std::plus<>());
     }
-    return oneDIDCTmp;
   }
 
-  const auto& get() const { return mOneDIDCAgg; }
+  void normalizeIDCOne()
+  {
+    normalizeIDCOne(Side::A);
+    normalizeIDCOne(Side::C);
+  }
+
+  /// \return normalize aggregated IDC1 to number of channels
+  void normalizeIDCOne(const o2::tpc::Side side)
+  {
+    std::transform(mIDCOneAgg.mIDCOne[side].begin(), mIDCOneAgg.mIDCOne[side].end(), mWeight[side].begin(), mIDCOneAgg.mIDCOne[side].begin(), std::divides<>());
+  }
+
+  /// \return returns IDC1 data by move and clears weights
+  auto get() &&
+  {
+    mWeight[Side::A].clear();
+    mWeight[Side::C].clear();
+    return std::move(mIDCOneAgg);
+  }
+
+  /// \return returns weights for the stored values
   const auto& getWeight() const { return mWeight; }
 
-  /// \returns vector containing the number of integration intervals for each stored TF
-  std::vector<unsigned int> getIntegrationIntervalsPerTF(const o2::tpc::Side side = o2::tpc::Side::A) const
-  {
-    std::vector<unsigned int> integrationIntervalsPerTF;
-    integrationIntervalsPerTF.reserve(mOneDIDCAgg.size());
-    for (const auto& tf : mOneDIDCAgg) {
-      integrationIntervalsPerTF.emplace_back(tf.getNIDCs(side));
-    }
-    return integrationIntervalsPerTF;
-  }
-
  private:
-  std::vector<OneDIDC> mOneDIDCAgg{};                       ///< 1D-IDCs = <I(r,\phi,t)>_{r,\phi}
-  std::vector<std::array<float, o2::tpc::SIDES>> mWeight{}; ///< integrated pad area of received data used for normalization
+  IDCOne mIDCOneAgg{};                                             ///< 1D-IDCs = <I(r,\phi,t)>_{r,\phi}
+  std::array<std::vector<unsigned int>, o2::tpc::SIDES> mWeight{}; ///< Number of channels used for IDC1 calculation used for normalization
 };
 
 /// struct containing the fourier coefficients calculated from IDC0 for n timeframes

@@ -28,6 +28,7 @@
 #include "DataFormatsMID/ROBoard.h"
 #include "MIDRaw/ColumnDataToLocalBoard.h"
 #include "MIDRaw/CrateParameters.h"
+#include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/GBTUserLogicEncoder.h"
 
@@ -41,7 +42,7 @@ class Encoder
 {
  public:
   void init(std::string_view outDir = ".", std::string_view fileFor = "all", int verbosity = 0, std::vector<ROBoardConfig> configurations = makeDefaultROBoardConfig());
-  void process(gsl::span<const ColumnData> data, const InteractionRecord& ir, EventType eventType = EventType::Standard);
+  void process(gsl::span<const ColumnData> data, InteractionRecord ir, EventType eventType = EventType::Standard);
   /// Sets the maximum size of the superpage
   void setSuperpageSize(int maxSize) { mRawWriter.setSuperPageSize(maxSize); }
 
@@ -53,10 +54,12 @@ class Encoder
 
  private:
   void completeWord(std::vector<char>& buffer);
-  void writePayload(uint16_t linkId, const InteractionRecord& ir);
+  void writePayload(uint16_t linkId, const InteractionRecord& ir, bool onlyNonEmpty = false);
   void onOrbitChange(uint32_t orbit);
   /// Returns the interaction record expected for the orbit trigger
   inline InteractionRecord getOrbitIR(uint32_t orbit) const { return {o2::constants::lhc::LHCMaxBunches - 1, orbit}; }
+  /// Initializes the last interaction record
+  void initIR();
 
   o2::raw::RawFileWriter mRawWriter{o2::header::gDataOriginMID}; /// Raw file writer
 
@@ -65,6 +68,7 @@ class Encoder
   std::unordered_map<uint16_t, std::vector<ROBoard>> mGBTMap; /// ROBoard per GBT link
   FEEIdConfig mFEEIdConfig;                                   /// Crate FEEId mapper
   InteractionRecord mLastIR;                                  /// Last interaction record
+  ElectronicsDelay mElectronicsDelay;                         /// Delays in the electronics
 
   std::array<GBTUserLogicEncoder, crateparams::sNGBTs> mGBTEncoders{}; /// Array of encoders per link
   std::array<std::vector<char>, 4> mOrbitResponse{};                   /// Response to orbit trigger

@@ -80,6 +80,23 @@ class Detector : public o2::base::DetImpl<Detector>
 
   std::vector<TGeoVolume*> mSensitiveVolumes; //!
 
+  // Define volume IDs
+  int mHpad0VolID = -1;
+  int mHpad1VolID = -1;
+  int mHpad2VolID = -1;
+  int mHpad3VolID = -1;
+  int mHpad4VolID = -1;
+  int mHpad5VolID = -1;
+  int mHpad6VolID = -1;
+
+  int mHcel0VolID = -1;
+  int mHcel1VolID = -1;
+  int mHcel2VolID = -1;
+  int mHcel3VolID = -1;
+  int mHcel4VolID = -1;
+  int mHcel5VolID = -1;
+  int mHcel6VolID = -1;
+
   template <typename Det>
   friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);

@@ -34,16 +34,22 @@ o2::framework::DataProcessorSpec getFV0ChannelTimeCalibrationSpec()
 
   std::vector<o2::framework::InputSpec> inputs;
   inputs.emplace_back(DEFAULT_INPUT_LABEL, "FV0", "CALIB_INFO");
-
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
   return o2::framework::DataProcessorSpec{
     "calib-fv0-channel-time",
     inputs,
     outputs,
-    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(DEFAULT_INPUT_LABEL)},
+    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(DEFAULT_INPUT_LABEL, ccdbRequest)},
     o2::framework::Options{
-      {"tf-per-slot", o2::framework::VariantType::Int, 5, {""}},
-      {"max-delay", o2::framework::VariantType::Int, 3, {""}},
-      {"updateInterval", o2::framework::VariantType::Int64, 10ll, {""}}}};
+      {"tf-per-slot", o2::framework::VariantType::UInt32, 5u, {""}},
+      {"max-delay", o2::framework::VariantType::UInt32, 3u, {""}},
+      {"updateInterval", o2::framework::VariantType::UInt32, 10u, {""}}}};
 }
 } // namespace o2::fv0
 

@@ -66,9 +66,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
     if (nFired < nThreads) {
       nThreads = nFired;
     }
-#ifdef WITH_OPENMP
-    omp_set_num_threads(nThreads);
-#else
+#ifndef WITH_OPENMP
     nThreads = 1;
 #endif
     uint16_t chipStep = nThreads > 1 ? (nThreads == 2 ? 20 : (nThreads < 5 ? 5 : 1)) : nFired;
@@ -81,7 +79,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
       }
     }
 #ifdef WITH_OPENMP
-#pragma omp parallel for schedule(dynamic, dynGrp)
+#pragma omp parallel for schedule(dynamic, dynGrp) num_threads(nThreads)
     //>> start of MT region
     for (uint16_t ic = 0; ic < nFired; ic += chipStep) {
       auto ith = omp_get_thread_num();
@@ -248,7 +246,7 @@ void Clusterer::ClustererThread::finishChip(ChipPixelData* curChipData, CompClus
     } else {
       auto warnLeft = MaxHugeClusWarn - parent->mNHugeClus;
       if (warnLeft > 0) {
-        LOGP(alarm, "Splitting a huge cluster: chipID {}, rows {}:{} cols {}:{}{}", bbox.chipID, bbox.rowMin, bbox.rowMax, bbox.colMin, bbox.colMax,
+        LOGP(warn, "Splitting a huge cluster: chipID {}, rows {}:{} cols {}:{}{}", bbox.chipID, bbox.rowMin, bbox.rowMax, bbox.colMin, bbox.colMax,
              warnLeft == 1 ? " (Further warnings will be muted)" : "");
 #ifdef WITH_OPENMP
 #pragma omp critical

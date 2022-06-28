@@ -110,10 +110,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         auto inputDataTpcProcessed = reinterpret_cast<const FakeCluster*>(ctx.inputs().get(
           "TPC_CLUSTERS_P_S").payload);
 
-        const auto* header = DataRefUtils::getHeader<DataHeader*>(ctx.inputs().get("TPC_CLUSTERS_S"));
+        auto ref = ctx.inputs().get("TPC_CLUSTERS_S");
+        const auto* header = DataRefUtils::getHeader<DataHeader*>(ref);
 
         bool dataGood = true;
-        for (int j = 0; j < header->payloadSize / sizeof(FakeCluster); ++j) {
+        for (int j = 0; j < DataRefUtils::getPayloadSize(ref) / sizeof(FakeCluster); ++j) {
           float diff = std::abs(-inputDataTpc[j].x - inputDataTpcProcessed[j].x) +
                        std::abs(2 * inputDataTpc[j].y - inputDataTpcProcessed[j].y) +
                        std::abs(inputDataTpc[j].z * inputDataTpc[j].q - inputDataTpcProcessed[j].z) +

@@ -33,6 +33,19 @@ class DataSource
 {
  protected:
   DataReader* mDataReader = nullptr;
+  float mTimeFrameMinTrackTime = 0;
+  float mTimeFrameMaxTrackTime = 0;
+
+ public:
+  float getTimeFrameMinTrackTime() const
+  {
+    return mTimeFrameMinTrackTime;
+  }
+
+  float getTimeFrameMaxTrackTime() const
+  {
+    return mTimeFrameMaxTrackTime;
+  }
 
  public:
   void registerReader(DataReader* reader) { this->mDataReader = reader; }
@@ -51,17 +64,24 @@ class DataSource
   /// Deleted assignemt operator
   void operator=(DataSource const&) = delete;
 
-  virtual std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> getVisualisationList(int no) = 0;
+  virtual std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> getVisualisationList(int no, float minTime, float maxTime, float range) = 0;
 
   virtual void changeDataFolder(std::string /*newFolder*/){};
   virtual void saveCurrentEvent(std::string /*targetFolder*/){};
   virtual int getRunNumber() const { return 0; }
   virtual void setRunNumber(int) {}
+  virtual int getFirstTForbit() const { return 0; }
+  virtual void setFirstTForbit(int) {}
   virtual std::string getCollisionTime() const { return "not specified"; }
   virtual void setCollisionTime(std::string) {}
+  virtual int getTrackMask() const { return 0; }
+  virtual void setTrackMask(int) {}
+  virtual int getClusterMask() const { return 0; }
+  virtual void setClusterMask(int) {}
+  virtual o2::detectors::DetID::mask_t getDetectorsMask() = 0;
 };
 
 } // namespace event_visualisation
 } // namespace o2
 
-#endif //ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCE_H
+#endif // ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCE_H

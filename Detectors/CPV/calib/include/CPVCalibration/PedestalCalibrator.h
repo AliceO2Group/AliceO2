@@ -29,7 +29,7 @@ using Digit = o2::cpv::Digit;
 class PedestalSpectrum
 {
  public:
-  PedestalSpectrum();
+  PedestalSpectrum(uint16_t toleratedGapWidth = 5, float nSigmasZS = 3., float suspiciousPedestalRMS = 20.);
   ~PedestalSpectrum() = default;
   PedestalSpectrum& operator+=(const PedestalSpectrum& rhs);
   void fill(uint16_t amplitude);
@@ -45,9 +45,9 @@ class PedestalSpectrum
   uint32_t mNEntries = 0;
   uint16_t mNPeaks = 0;
   bool mIsAnalyzed = false;
-  uint16_t mToleratedGapWidth = 5;
-  float mZSnSigmas = 3.;
-  float mSuspiciousPedestalRMS = 20.;
+  uint16_t mToleratedGapWidth;
+  float mZSnSigmas;
+  float mSuspiciousPedestalRMS;
   float mPedestalValue;
   float mPedestalRMS;
   std::vector<float> mMeanOfPeaks, mRMSOfPeaks;
@@ -60,14 +60,14 @@ struct PedestalCalibData {
   int mNEvents = 0;
   std::vector<PedestalSpectrum> mPedestalSpectra;
 
-  PedestalCalibData();
+  PedestalCalibData(uint16_t toleratedGapWidth = 5, float nSigmasZS = 3., float suspiciousPedestalRMS = 20.);
   ~PedestalCalibData() = default;
 
   void fill(const gsl::span<const o2::cpv::Digit> data);
   void merge(const PedestalCalibData* prev);
   void print();
 
-}; //end PedestalCalibData
+}; // end PedestalCalibData
 
 using PedestalTimeSlot = o2::calibration::TimeSlot<o2::cpv::PedestalCalibData>;
 //===================================================================
@@ -94,11 +94,14 @@ class PedestalCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
   }
   void initOutput() final;
   void finalizeSlot(PedestalTimeSlot& slot) final;
-  PedestalTimeSlot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
+  PedestalTimeSlot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
+  void configParameters();
 
  private:
-  int mMinEvents = 100;
+  uint32_t mMinEvents = 100;
   float mZSnSigmas = 3.;
+  uint16_t mToleratedGapWidth = 5;
+  float mSuspiciousPedestalRMS = 20.;
   std::vector<o2::ccdb::CcdbObjectInfo> mCcdbInfoPedestalsVec;
   std::vector<o2::cpv::Pedestals> mPedestalsVec;
   std::vector<o2::ccdb::CcdbObjectInfo> mCcdbInfoThresholdsFEEVec;
@@ -110,7 +113,7 @@ class PedestalCalibrator final : public o2::calibration::TimeSlotCalibration<o2:
   std::vector<o2::ccdb::CcdbObjectInfo> mCcdbInfoPedEfficienciesVec;
   std::vector<std::vector<float>> mPedEfficienciesVec;
 };
-} //end namespace cpv
-} //end namespace o2
+} // end namespace cpv
+} // end namespace o2
 
 #endif /* CPV_PEDESTAL_CALIBRATIOR_H_ */

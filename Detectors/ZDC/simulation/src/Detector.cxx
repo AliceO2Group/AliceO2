@@ -30,7 +30,9 @@
 #include <cassert>
 #include <fstream>
 #include "ZDCSimulation/ZDCSimParam.h"
-#include "ZDCBase/Constants.h"
+#ifdef ZDC_FASTSIM_ONNX
+#include "Utils.h" // for normal_distribution()
+#endif
 
 using namespace o2::zdc;
 
@@ -62,6 +64,38 @@ Detector::Detector(Bool_t active)
   mMediumPMCid = -1; // minus for unitialized
   mMediumPMQid = -2; // different to PMC in any case
   resetHitIndices();
+
+#ifdef ZDC_FASTSIM_ONNX
+  // If FastSim module was disabled, log appropriate message
+  // otherwise check if all necessary parameters were passed, if so try build objects
+  if (!o2::zdc::ZDCSimParam::Instance().useZDCFastSim) {
+    LOG(info) << "FastSim module disabled";
+  } else if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierPath.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales.empty()) {
+    auto eonScales = o2::zdc::fastsim::loadScales(o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales);
+    if (!eonScales.has_value()) {
+      LOG(error) << "Error while reading model scales from: "
+                 << "'" << o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales << "'";
+      LOG(error) << "FastSim module disabled.";
+    } else {
+      mClassifierScaler.setScales(eonScales->first, eonScales->second);
+      mFastSimClassifier = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierPath, 1);
+
+      if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales.empty()) {
+        auto modelScales = o2::zdc::fastsim::loadScales(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales);
+
+        if (!modelScales.has_value()) {
+          LOG(error) << "Error while reading model scales from: "
+                     << "'" << o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales << "'";
+          LOG(error) << "FastSim module disabled";
+        } else {
+          mModelScaler.setScales(modelScales->first, modelScales->second);
+          mFastSimModel = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath, 1);
+          LOG(info) << "FastSim module enabled";
+        }
+      }
+    }
+  }
+#endif
 }
 
 //_____________________________________________________________________________
@@ -70,6 +104,15 @@ Detector::Detector(const Detector& rhs)
     mHits(new std::vector<o2::zdc::Hit>)
 {
 }
+
+//_____________________________________________________________________________
+#ifdef ZDC_FASTSIM_ONNX
+Detector::~Detector()
+{
+  delete (mFastSimClassifier);
+  delete (mFastSimModel);
+}
+#endif
 
 //_____________________________________________________________________________
 template <typename T>
@@ -274,6 +317,11 @@ void Detector::resetHitIndices()
 void Detector::flushSpatialResponse()
 {
   if (o2::zdc::ZDCSimParam::Instance().recordSpatialResponse) {
+    auto c = mNeutronResponseImage.getPhotonsPerChannel();
+    std::fstream output("o2sim-FullSimResult", std::fstream::out | std::fstream::app);
+    output << c[0] << " " << c[1] << " " << c[2] << " " << c[3] << " " << c[4] << "\n";
+    output.close();
+
     // only write non-trivial image pairs
     if (mNeutronResponseImage.getPhotonSum() > 0 || mProtonResponseImage.getPhotonSum() > 0) {
       mResponses.push_back(std::make_pair(mCurrentPrincipalParticle,
@@ -281,6 +329,25 @@ void Detector::flushSpatialResponse()
     }
     mNeutronResponseImage.reset();
     mProtonResponseImage.reset();
+  }
+}
+
+// quick estimates the time of flight to reach this detector (located at z)
+// just based on primary particle properties
+// Meant for the neutron / proton detectors which sit a large z so that speed
+// is essentially the speed in z-direction.
+double estimateTimeOfFlight(TParticle const& part, double z /* needs to be in meters */)
+{
+  const auto m = part.GetMass();
+  constexpr auto SPEED_OF_LIGHT = 299792458.; // m/s
+  if (m == 0.) {
+    return z / SPEED_OF_LIGHT;
+  } else {
+    TLorentzVector lorentz; // could be made member var
+    part.Momentum(lorentz);
+    const auto gamma = lorentz.Gamma();
+    const auto speed = SPEED_OF_LIGHT * std::sqrt(1. - 1. / (gamma * gamma));
+    return z / speed; // could refine this
   }
 }
 
@@ -2387,6 +2454,24 @@ void Detector::FinishPrimary()
   // after each primary we should definitely reset
   mLastPrincipalTrackEntered = -1;
   flushSpatialResponse();
+
+#ifdef ZDC_FASTSIM_ONNX
+  // dump to file only if debugZDCFastSim is set to true
+  if (o2::zdc::ZDCSimParam::Instance().debugZDCFastSim && o2::zdc::ZDCSimParam::Instance().useZDCFastSim && mFastSimModel != nullptr && mFastSimClassifier != nullptr) {
+    std::fstream output("o2sim-FastSimResult", std::fstream::out | std::fstream::app);
+    if (!output.is_open()) {
+      LOG(error) << "Could not open file.";
+    } else {
+
+      for (auto& result : mFastSimResults) {
+        output << result[0] << ", " << result[1] << ", " << result[2] << ", " << result[3] << ", " << result[4];
+        output << std::endl;
+      }
+      mFastSimResults.clear();
+    }
+    output.close();
+  }
+#endif
 }
 
 void Detector::BeginPrimary()
@@ -2398,6 +2483,50 @@ void Detector::BeginPrimary()
   resetHitIndices();
 
   mCurrentPrincipalParticle = *stack->GetCurrentTrack();
+
+#ifdef ZDC_FASTSIM_ONNX
+  if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && mFastSimModel != nullptr && mFastSimClassifier != nullptr) {
+    const std::vector<float> rawInput = {static_cast<float>(mCurrentPrincipalParticle.Energy()),
+                                         static_cast<float>(mCurrentPrincipalParticle.Vx()),
+                                         static_cast<float>(mCurrentPrincipalParticle.Vy()),
+                                         static_cast<float>(mCurrentPrincipalParticle.Vz()),
+                                         static_cast<float>(mCurrentPrincipalParticle.Px()),
+                                         static_cast<float>(mCurrentPrincipalParticle.Py()),
+                                         static_cast<float>(mCurrentPrincipalParticle.Pz()),
+                                         static_cast<float>(mCurrentPrincipalParticle.GetMass() * 1000.0),
+                                         static_cast<float>(mCurrentPrincipalParticle.GetPDG()->Charge())};
+
+    auto scaledClassParticle = mClassifierScaler.scale(rawInput);
+    if (!scaledClassParticle.has_value()) {
+      LOG(error) << "FastSimModule: error occurred on scaling";
+    } else {
+      std::vector<std::vector<float>> classifierInput = {std::move(*scaledClassParticle)};
+      mFastSimClassifier->setInput(classifierInput);
+      mFastSimClassifier->run();
+      if (fastsim::processors::readClassifier(mFastSimClassifier->getResult()[0], 1)[0]) {
+        auto scaledModelParticle = mModelScaler.scale(rawInput);
+        if (!scaledModelParticle.has_value()) {
+          LOG(error) << "FastSimModule: error occurred on scaling";
+        } else {
+          std::vector<std::vector<float>> modelInput = {fastsim::normal_distribution(0.0, 1.0, 10), std::move(*scaledModelParticle)};
+          mFastSimModel->setInput(modelInput);
+          mFastSimModel->run();
+
+          if (o2::zdc::ZDCSimParam::Instance().debugZDCFastSim) {
+            mFastSimResults.push_back(fastsim::processors::calculateChannels(mFastSimModel->getResult()[0], 1)[0]);
+          }
+
+          // produce hits from fast sim result
+          bool forward = mCurrentPrincipalParticle.Pz() > 0.;
+          FastSimToHits(mFastSimModel->getResult()[0], mCurrentPrincipalParticle, forward ? ZNA : ZNC);
+          // TODO: call models for all detectors ZNA + ZPA
+        }
+      } else if (o2::zdc::ZDCSimParam::Instance().debugZDCFastSim) {
+        mFastSimResults.push_back({0, 0, 0, 0, 0});
+      }
+    }
+  }
+#endif
 }
 
 //_____________________________________________________________________________
@@ -2426,3 +2555,99 @@ void Detector::Reset()
   mLastPrincipalTrackEntered = -1;
   resetHitIndices();
 }
+
+//_____________________________________________________________________________
+// The code of this function is taken from createHitsFromImage
+// The changes were made to directly convert FastSim output to Hits
+// TParticle can be used to fill additional data required by Hits
+#ifdef ZDC_FASTSIM_ONNX
+bool Detector::FastSimToHits(const Ort::Value& response, const TParticle& particle, int detector)
+{
+  math_utils::Vector3D<float> xImp(0., 0., 0.); // good value
+
+  // determines dimensions of the detector and binds it
+  auto [Nx, Ny] = determineDetectorSize(detector);
+  // if invalid detector was provided return false
+  if (Nx == -1 || Ny == -1) {
+    return false;
+  }
+
+  // gets model output as const float*
+  auto pixels = response.GetTensorData<float>();
+
+  auto determineSectorID = [&Nx = Nx, &Ny = Ny](int detector, int x, int y) {
+    if (detector == ZNA || detector == ZNC) {
+      if (x < Nx / 2) {
+        if (y < Ny / 2) {
+          return (int)Ch1;
+        } else {
+          return (int)Ch3;
+        }
+      } else {
+        if (y >= Ny / 2) {
+          return (int)Ch4;
+        } else {
+          return (int)Ch2;
+        }
+      }
+    }
+
+    if (detector == ZPA || detector == ZPC) {
+      auto i = (int)(4.f * x / Nx);
+      return (int)(i + 1);
+    }
+    return -1;
+  };
+
+  auto determineMediumID = [this](int detector, int x, int y) {
+    // it is a simple checkerboard pattern
+    return ((x + y) % 2 == 0) ? mMediumPMCid : mMediumPMQid;
+  };
+
+  auto z_pos = 0.;
+  if (detector == ZPA) {
+    z_pos = o2::zdc::Geometry::ZPAPOSITION[2];
+  } else if (detector == ZPC) {
+    z_pos = o2::zdc::Geometry::ZPCPOSITION[2];
+  } else if (detector == ZNA) {
+    z_pos = o2::zdc::Geometry::ZNAPOSITION[2];
+  } else if (detector == ZNC) {
+    z_pos = o2::zdc::Geometry::ZNCPOSITION[2];
+  } else {
+    // should not happen --> we don't have fastsim for other detectors
+    LOG(fatal) << "Unsupported detector in ZDC fast sim";
+  }
+
+  const float tof = estimateTimeOfFlight(particle, std::abs(z_pos));
+
+  // loop over x = columns
+  for (int x = 0; x < Nx; ++x) {
+    // loop over y = rows
+    for (int y = 0; y < Ny; ++y) {
+      // get sector
+      int sector = determineSectorID(detector, x, y);
+      // get medium PMQ and PMC
+      int currentMediumid = determineMediumID(detector, x, y);
+      // LOG(info) << " x " << x << " y " << y << " sec " << sector << " medium " << currentMediumid;
+      // Model output needs to be converted with exp(x)-1 function to be valid
+      int nphe = (int)std::expm1(pixels[Nx * x + y]);
+
+      if (nphe > 0) {
+        float trackenergy = 0; // energy of the primary (need to fill good value)
+        createOrAddHit(detector,
+                       sector,
+                       currentMediumid,
+                       0 /*issecondary ---> don't know in fast sim */,
+                       nphe,
+                       0 /* trackn */,
+                       0 /* parent */,
+                       tof,
+                       trackenergy,
+                       xImp,
+                       0. /* eDep */, 0 /* x */, 0. /* y */, 0. /* z */, 0. /* px */, 0. /* py */, 0. /* pz */);
+      }
+    } // end loop over y
+  }   // end loop over x
+  return true;
+}
+#endif

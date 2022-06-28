@@ -1,0 +1,3 @@
+/cave_1/barrel_1/CPV_0
+/cave_1/barrel_1/CPV_1
+/cave_1/barrel_1/CPV_2

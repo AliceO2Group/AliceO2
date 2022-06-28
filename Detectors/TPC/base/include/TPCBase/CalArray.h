@@ -194,7 +194,7 @@ template <class T>
 inline void CalArray<T>::setValue(const size_t row, const size_t pad, const T& value)
 {
   /// \todo might need check for row, pad or position limits
-  static const auto& mapper = Mapper::instance();
+  const auto& mapper = Mapper::instance();
   size_t position = mapper.getPadNumber(mPadSubset, mPadSubsetNumber, row, pad);
   setValue(position, value);
 }
@@ -204,7 +204,7 @@ template <class T>
 inline const T CalArray<T>::getValue(const size_t row, const size_t pad) const
 {
   /// \todo might need check for row, pad or position limits
-  static const auto& mapper = Mapper::instance();
+  const auto& mapper = Mapper::instance();
   size_t position = mapper.getPadNumber(mPadSubset, mPadSubsetNumber, row, pad);
   return getValue(position);
 }

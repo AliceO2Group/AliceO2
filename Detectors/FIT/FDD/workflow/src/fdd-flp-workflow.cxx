@@ -16,10 +16,16 @@
 #include "DataFormatsFDD/MCLabel.h"
 #include "FDDRaw/RawReaderFDDBase.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
 
 // ------------------------------------------------------------------
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:FDD|fdd).*[W,w]riter.*"));
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)

@@ -56,9 +56,9 @@ o2_add_test_root_macro(g3Config.C
                        PUBLIC_LINK_LIBRARIES O2::SimSetup
                        LABELS simsetup)
 
-o2_add_test_root_macro(g4Config.C
-                       PUBLIC_LINK_LIBRARIES O2::SimSetup
-                       LABELS simsetup)
+#o2_add_test_root_macro(g4Config.C
+#                       PUBLIC_LINK_LIBRARIES O2::SimSetup
+#                       LABELS simsetup)
 
 
 o2_data_file(COPY data  DESTINATION Detectors/gconfig/)

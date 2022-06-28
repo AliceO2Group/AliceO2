@@ -10,13 +10,14 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsBase/GeometryManager.h"
+#include "DataFormatsTRD/Constants.h"
 #include "TRDBase/TrackletTransformer.h"
 #include "TMath.h"
 
 using namespace o2::trd;
 using namespace o2::trd::constants;
 
-TrackletTransformer::TrackletTransformer()
+void TrackletTransformer::init()
 {
   o2::base::GeometryManager::loadGeometry();
   mGeo = Geometry::instance();
@@ -30,27 +31,6 @@ TrackletTransformer::TrackletTransformer()
   // 5mm below cathode plane to reduce error propogation from tracklet fit and driftV
   mXDrift = mGeo->cdrHght() - 0.5;
   mXtb0 = -100;
-}
-
-void TrackletTransformer::loadPadPlane(int detector)
-{
-  int stack = mGeo->getStack(detector);
-  int layer = mGeo->getLayer(detector);
-  mPadPlane = mGeo->getPadPlane(layer, stack);
-}
-
-void TrackletTransformer::loadCalibrationParameters(int timestamp)
-{
-  LOG(info) << "loading calibration parameters with timestamp: " << timestamp;
-
-  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
-  ccdbmgr.setTimestamp(timestamp);
-
-  mCalibration = ccdbmgr.get<o2::trd::CalVdriftExB>("TRD/Calib/CalVdriftExB");
-
-  if (mCalibration == nullptr) {
-    LOG(error) << " failed to get vDrift and ExB parameters from ccdb";
-  }
 }
 
 float TrackletTransformer::calculateY(int hcid, int column, int position)
@@ -78,8 +58,8 @@ float TrackletTransformer::calculateDy(int detector, int slope)
 {
   double padWidth = mPadPlane->getWidthIPad();
 
-  float vDrift = mCalibration->getVdrift(detector);
-  float exb = mCalibration->getExB(detector);
+  float vDrift = mCalVdriftExB->getVdrift(detector);
+  float exb = mCalVdriftExB->getExB(detector);
 
   // dy = slope * nTimeBins * padWidth * GRANULARITYTRKLSLOPE;
   // nTimeBins should be number of timebins in drift region. 1 timebin is 100 nanosecond
@@ -119,11 +99,25 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet)
   auto hcid = tracklet.getHCID();
   auto padrow = tracklet.getPadRow();
   auto column = tracklet.getColumn();
-  auto position = tracklet.getPositionBinSigned();
-  auto slope = tracklet.getSlopeBinSigned();
+  int position;
+  int slope;
+  if (mApplyXOR) {
+    position = tracklet.getPosition() ^ 0x80;
+    if (position & (1 << (constants::NBITSTRKLPOS - 1))) {
+      position = -((~(position - 1)) & ((1 << constants::NBITSTRKLPOS) - 1));
+    }
+    slope = tracklet.getSlope() ^ 0x80;
+    if (slope & (1 << (constants::NBITSTRKLSLOPE - 1))) {
+      slope = -((~(slope - 1)) & ((1 << constants::NBITSTRKLSLOPE) - 1));
+    }
+  } else {
+    position = tracklet.getPositionBinSigned();
+    slope = tracklet.getSlopeBinSigned();
+  }
 
   // calculate raw local chamber space point
-  loadPadPlane(detector);
+  mPadPlane = mGeo->getPadPlane(detector);
+
   float x = getXDrift();
   float y = calculateY(hcid, column, position);
   float z = calculateZ(padrow);
@@ -146,7 +140,7 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet)
 double TrackletTransformer::getTimebin(int detector, double x)
 {
   // calculate timebin from x position within chamber
-  float vDrift = mCalibration->getVdrift(detector);
+  float vDrift = mCalVdriftExB->getVdrift(detector);
   double t0 = 4.0; // time (in timebins) of start of drift region
 
   double timebin;

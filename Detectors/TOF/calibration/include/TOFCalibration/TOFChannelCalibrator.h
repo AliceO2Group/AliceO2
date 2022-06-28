@@ -116,6 +116,8 @@ class TOFChannelData
   void doPerStrip(bool val = true) { mPerStrip = val; }
   void doSafeMode(bool val = true) { mSafeMode = val; }
 
+  void resetAndReRange(float range);
+
  private:
   float mRange = o2::tof::Geo::BC_TIME_INPS * 0.5;
   int mNBins = 1000;
@@ -139,7 +141,7 @@ class TOFChannelData
 template <class T>
 class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T, o2::tof::TOFChannelData>
 {
-  using TFType = uint64_t;
+  using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<o2::tof::TOFChannelData>;
   using CalibTOFapi = o2::tof::CalibTOFapi;
   using TimeSlewing = o2::dataformats::CalibTimeSlewingParamTOF;

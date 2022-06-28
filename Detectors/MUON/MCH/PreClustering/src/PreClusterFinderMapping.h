@@ -11,8 +11,8 @@
 
 /// @brief Flat mapping
 
-#ifndef ALICEO2_MCH_MAPPING_H_
-#define ALICEO2_MCH_MAPPING_H_
+#ifndef O2_MCH_MAPPING_H_
+#define O2_MCH_MAPPING_H_
 
 #include <cstdint>
 #include <memory>
@@ -53,9 +53,10 @@ class Mapping
  private:
   static auto addPad(MpDE& de, const mapping::Segmentation& segmentation);
   static auto addNeighbour(MpPad& pad);
+  static auto removeNeighbouringPadsInCorners(MpDE& de);
 };
 
 } // namespace mch
 } // namespace o2
 
-#endif // ALICEO2_MCH_MAPPING_H_
+#endif // O2_MCH_MAPPING_H_

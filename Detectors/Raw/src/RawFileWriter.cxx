@@ -166,7 +166,7 @@ RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru,
     RDHUtils::setSourceID(linkData.rdhCopy, o2::header::DAQID::O2toDAQ(mOrigin));
   }
   linkData.writer = this;
-  linkData.updateIR = mHBFUtils.getFirstIR();
+  linkData.updateIR = mHBFUtils.obligatorySOR ? mHBFUtils.getFirstIR() : mHBFUtils.getFirstSampledTFIR();
   linkData.buffer.reserve(mSuperPageSize);
   RDHUtils::printRDH(linkData.rdhCopy);
   LOGF(info, "Registered %s with output to %s", linkData.describe(), outFileName);
@@ -186,8 +186,8 @@ void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t e
     LOG(error) << "provided payload size " << data.size() << " is not multiple of GBT word size";
     throw std::runtime_error("payload size is not mutiple of GBT word size");
   }
-  if (ir < mHBFUtils.getFirstIR()) {
-    LOG(warning) << "provided " << ir << " precedes first TF " << mHBFUtils.getFirstIR() << " | discarding data for " << link.describe();
+  if (ir < mHBFUtils.getFirstSampledTFIR()) {
+    LOG(warning) << "provided " << ir << " precedes first sampled TF " << mHBFUtils.getFirstSampledTFIR() << " | discarding data for " << link.describe();
     return;
   }
   if (link.discardData || ir.orbit - mHBFUtils.orbitFirst >= mHBFUtils.maxNOrbits) {
@@ -317,6 +317,9 @@ void RawFileWriter::LinkData::addDataInternal(const IR& ir, const gsl::span<char
   if (writer->mCachingStage) {
     cacheData(ir, data, preformatted, trigger, detField);
     return;
+  }
+  if (startOfRun && ((writer->mHBFUtils.getFirstIRofTF(ir) > writer->mHBFUtils.getFirstIR()) && !writer->mHBFUtils.obligatorySOR)) {
+    startOfRun = false;
   }
 
   if (startOfRun && writer->isRORCDetector()) { // in RORC mode we write separate RDH with SOX in the very beginning of the run
@@ -547,7 +550,8 @@ void RawFileWriter::LinkData::openHBFPage(const RDHAny& rdhn, uint32_t trigger)
   bool forceNewPage = false;
   // for RORC detectors the TF flag is absent, instead the 1st trigger after the start of TF will define the 1st be interpreted as 1st TF
   if ((RDHUtils::getTriggerType(rdhn) & o2::trigger::TF) ||
-      (writer->isRORCDetector() && writer->mHBFUtils.getTF(updateIR - 1) < writer->mHBFUtils.getTF(RDHUtils::getTriggerIR(rdhn)))) {
+      (writer->isRORCDetector() &&
+       (updateIR == writer->mHBFUtils.getFirstIR() || writer->mHBFUtils.getTF(updateIR - 1) < writer->mHBFUtils.getTF(RDHUtils::getTriggerIR(rdhn))))) {
     if (writer->mVerbosity > -10) {
       LOGF(info, "Starting new TF for link FEEId 0x%04x", RDHUtils::getFEEID(rdhn));
     }

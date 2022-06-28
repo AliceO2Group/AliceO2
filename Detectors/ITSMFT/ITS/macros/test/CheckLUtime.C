@@ -20,12 +20,14 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
+#include "CCDB/BasicCCDBManager.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 
 #endif
 
 using namespace std;
 
-void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile = "")
+void CheckLUtime(std::string clusfile = "o2clus_its.root", long timestamp = 0)
 {
   using o2::itsmft::ClusterPattern;
   using o2::itsmft::CompClusterExt;
@@ -33,19 +35,15 @@ void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile 
   using o2::itsmft::LookUp;
   using ROFRec = o2::itsmft::ROFRecord;
 
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL("http://alice-ccdb.cern.ch");
+  mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());
+  const o2::itsmft::TopologyDictionary* dict = mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary");
+
   TStopwatch sw;
   sw.Start();
-
-  if (dictfile.empty()) {
-    dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "");
-  }
-  std::ifstream file(dictfile.c_str());
-  if (file.good()) {
-    LOG(info) << "Running with dictionary: " << dictfile.c_str();
-  } else {
-    LOG(info) << "Running without dictionary !";
-  }
-  LookUp finder(dictfile.c_str());
+  LookUp finder;
+  finder.setDictionary(dict);
   ofstream time_output("time.txt");
 
   ofstream realtime, cputime;

@@ -97,7 +97,6 @@ void dumpDeviceSpec2DDS(std::ostream& out,
   // and address.
   for (size_t di = 0; di < specs.size(); ++di) {
     auto& rewriter = rewriters[di];
-    auto& spec = specs[di];
     auto& execution = executions[di];
     for (size_t cci = 0; cci < execution.args.size(); cci++) {
       const char* arg = execution.args[cci];
@@ -117,6 +116,8 @@ void dumpDeviceSpec2DDS(std::ostream& out,
     }
   }
 
+  float timeout = 0.0;
+
   for (size_t di = 0; di < specs.size(); ++di) {
     auto& spec = specs[di];
     auto& execution = executions[di];
@@ -128,9 +129,14 @@ void dumpDeviceSpec2DDS(std::ostream& out,
         << fmt::format("<decltask name=\"{}{}\">\n", spec.id, workflowSuffix);
     out << "       "
         << R"(<exe reachable="true">)";
+    static bool doSleep = !getenv("DPL_DDS_SLEEP") || atoi(getenv("DPL_DDS_SLEEP"));
+    if (doSleep) {
+      out << fmt::format("sleep {}; ", timeout);
+    }
     out << std::regex_replace(commandInfo.command, std::regex{"--dds(?!-)"}, "--dump") << " | ";
-    for (size_t ei = 0; ei < execution.environ.size(); ++ei) {
-      out << fmt::format(execution.environ[ei],
+    timeout += 0.2;
+    for (auto ei : execution.environ) {
+      out << fmt::format(ei,
                          fmt::arg("timeslice0", spec.inputTimesliceId),
                          fmt::arg("timeslice1", spec.inputTimesliceId + 1),
                          fmt::arg("timeslice4", spec.inputTimesliceId + 4))
@@ -192,8 +198,8 @@ void dumpDeviceSpec2DDS(std::ostream& out,
     out << "   </decltask>\n";
   }
   out << "   <declcollection name=\"DPL\">\n       <tasks>\n";
-  for (size_t di = 0; di < specs.size(); ++di) {
-    out << fmt::format("          <name>{}{}</name>\n", specs[di].id, workflowSuffix);
+  for (const auto& spec : specs) {
+    out << fmt::format("          <name>{}{}</name>\n", spec.id, workflowSuffix);
   }
   out << "       </tasks>\n   </declcollection>\n";
   out << "</topology>\n";

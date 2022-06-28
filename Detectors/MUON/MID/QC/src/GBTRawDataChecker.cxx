@@ -25,10 +25,10 @@ namespace o2
 namespace mid
 {
 
-void GBTRawDataChecker::init(uint16_t feeId, uint8_t mask)
+void GBTRawDataChecker::init(uint16_t gbtUniqueId, uint8_t mask)
 {
   /// Initializer
-  mFeeId = feeId;
+  mGBTUniqueId = gbtUniqueId;
   mCrateMask = mask;
 }
 
@@ -244,14 +244,11 @@ InteractionRecord GBTRawDataChecker::getRawIR(uint8_t id, bool isTrigger, Intera
   if (isTrigger) {
     return ir;
   }
-  ir.bc += mElectronicsDelay.BCToLocal;
+  auto delay = mElectronicsDelay.localToBC;
   if (id >= crateparams::sMaxNBoardsInLink) {
-    ir.bc += mElectronicsDelay.regToLocal;
+    delay -= mElectronicsDelay.localToReg;
   }
-  if (ir.bc >= mResetVal) {
-    ir.bc = ir.bc % mResetVal;
-    ++ir.orbit;
-  }
+  applyElectronicsDelay(ir.orbit, ir.bc, -delay, mResetVal);
   return ir;
 }
 
@@ -424,11 +421,8 @@ bool GBTRawDataChecker::checkEvents(bool isTriggered)
   for (auto& evtIdxItem : orderedIndexes) {
     // All of these boards have the same timestamp
     GBT gbtEvent;
-    // bool busyRaised = false;
     for (auto& evtPair : evtIdxItem.second) {
       auto& boardInfo = boards[evtPair.first][evtPair.second];
-      uint8_t triggerId = boardInfo.board.triggerWord;
-      auto elinkId = getElinkId(boardInfo.board);
 
       if (raw::isLoc(boardInfo.board.statusWord)) {
         gbtEvent.locs.push_back(boardInfo.board);

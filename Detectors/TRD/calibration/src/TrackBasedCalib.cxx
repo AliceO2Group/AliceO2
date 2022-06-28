@@ -19,7 +19,6 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/PadPlane.h"
-#include "CCDB/BasicCCDBManager.h"
 #include "CommonUtils/NameConf.h"
 #include <fairlogger/Logger.h>
 
@@ -34,12 +33,6 @@ void TrackBasedCalib::reset()
 void TrackBasedCalib::init()
 {
   mRecoParam.setBfield(o2::base::Propagator::Instance()->getNominalBz());
-  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
-  ccdbmgr.setURL(o2::base::NameConf::getCCDBServer());
-  mNoiseCalib = ccdbmgr.get<o2::trd::NoiseStatusMCM>("TRD/Calib/NoiseMapMCM");
-  if (!mNoiseCalib) {
-    LOG(error) << "Map of noisy MCMs not available";
-  }
 }
 
 void TrackBasedCalib::setInput(const o2::globaltracking::RecoContainer& input)
@@ -69,6 +62,10 @@ void TrackBasedCalib::calculateAngResHistos()
     return;
   }
 
+  if (!mNoiseCalib) {
+    LOG(alarm) << "No MCM noise map available. Please upload valid object to CCDB.";
+  }
+
   LOGF(info, "As input tracks are available: %lu ITS-TPC-TRD tracks and %lu TPC-TRD tracks", mTracksInITSTPCTRD.size(), mTracksInTPCTRD.size());
 
   int nTracksSuccessITSTPCTRD = doTrdOnlyTrackFits(mTracksInITSTPCTRD);
@@ -93,13 +90,18 @@ int TrackBasedCalib::doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks)
     trkWork.setChi2(0.f);
     trkWork.resetCovariance(20);
 
+    if (std::isnan(trkWork.getSnp())) {
+      LOG(alarm) << "Track with invalid parameters found: " << trkWork.getRefGlobalTrackId();
+      continue;
+    }
+
     // first inward propagation (TRD track fit)
     int currLayer = NLAYER;
     for (int iLayer = NLAYER - 1; iLayer >= 0; --iLayer) {
       if (trkWork.getTrackletIndex(iLayer) == -1) {
         continue;
       }
-      if (mNoiseCalib->isTrackletFromNoisyMCM(mTrackletsRaw[trkWork.getTrackletIndex(iLayer)])) {
+      if (mNoiseCalib && mNoiseCalib->isTrackletFromNoisyMCM(mTrackletsRaw[trkWork.getTrackletIndex(iLayer)])) {
         // ignore tracklets which originate from noisy MCMs
         continue;
       }
@@ -118,7 +120,7 @@ int TrackBasedCalib::doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks)
       if (trkWork.getTrackletIndex(iLayer) == -1) {
         continue;
       }
-      if (mNoiseCalib->isTrackletFromNoisyMCM(mTrackletsRaw[trkWork.getTrackletIndex(iLayer)])) {
+      if (mNoiseCalib && mNoiseCalib->isTrackletFromNoisyMCM(mTrackletsRaw[trkWork.getTrackletIndex(iLayer)])) {
         // ignore tracklets which originate from noisy MCMs
         continue;
       }
@@ -137,7 +139,7 @@ int TrackBasedCalib::doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks)
       if (trkWork.getTrackletIndex(iLayer) == -1) {
         continue;
       }
-      if (mNoiseCalib->isTrackletFromNoisyMCM(mTrackletsRaw[trkWork.getTrackletIndex(iLayer)])) {
+      if (mNoiseCalib && mNoiseCalib->isTrackletFromNoisyMCM(mTrackletsRaw[trkWork.getTrackletIndex(iLayer)])) {
         // ignore tracklets which originate from noisy MCMs
         continue;
       }

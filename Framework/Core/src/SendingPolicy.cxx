@@ -12,6 +12,9 @@
 #include "Framework/SendingPolicy.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/ConfigContext.h"
+#include "Framework/DataRefUtils.h"
+#include "Framework/DataProcessingHeader.h"
+#include "Headers/STFHeader.h"
 #include "DeviceSpecHelpers.h"
 #include <fairmq/Device.h>
 
@@ -32,10 +35,23 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies(ConfigContext co
               } else {
                 return false;
               } },
-            .send = [](FairMQDevice& device, FairMQParts& parts, std::string const& channel) { device.Send(parts, channel, 0, 0); }},
+            .send = [](FairMQDeviceProxy& proxy, fair::mq::Parts& parts, ChannelIndex channelIndex) {
+              auto *channel = proxy.getOutputChannel(channelIndex);
+              channel->Send(parts, 0); 
+           }},
           SendingPolicy{
             .name = "default",
-            .matcher = [](DeviceSpec const& spec, ConfigContext const& ctx) { return true; },
-            .send = [timeout](FairMQDevice& device, FairMQParts& parts, std::string const& channel) { device.Send(parts, channel, 0, timeout); }}};
+            .matcher = [](DeviceSpec const&, ConfigContext const&) { return true; },
+            .send = [](FairMQDeviceProxy& proxy, fair::mq::Parts& parts, ChannelIndex channelIndex) {
+              auto *channel = proxy.getOutputChannel(channelIndex);
+              auto timeout = 1000;
+              auto res = channel->Send(parts, timeout);
+              if (res == (size_t)fair::mq::TransferCode::timeout) {
+                LOGP(warning, "Timed out sending after {}s. Downstream backpressure detected on {}.", timeout/1000, channel->GetName());
+                channel->Send(parts);
+                LOGP(info, "Downstream backpressure on {} recovered.", channel->GetName());
+              } else if (res == (size_t) fair::mq::TransferCode::error) {
+                LOGP(fatal, "Error while sending on channel {}", channel->GetName());
+              } }}};
 }
 } // namespace o2::framework

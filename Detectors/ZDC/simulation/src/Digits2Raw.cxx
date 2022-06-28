@@ -172,14 +172,16 @@ void Digits2Raw::setTriggerMask()
       }
     }
     mPrintTriggerMask += "]";
+#ifdef O2_ZDC_DEBUG
     uint32_t mytmask = mTriggerMask >> (im * NChPerModule);
     printf("Trigger mask for module %d 0123 %s%s%s%s\n", im,
            mytmask & 0x1 ? "T" : "N",
            mytmask & 0x2 ? "T" : "N",
            mytmask & 0x4 ? "T" : "N",
            mytmask & 0x8 ? "T" : "N");
+#endif
   }
-  printf("trigger_mask=0x%08x %s\n", mTriggerMask, mPrintTriggerMask.data());
+  printf("trigger_mask=0x%08x %s", mTriggerMask, mPrintTriggerMask.data());
 }
 
 //______________________________________________________________________________

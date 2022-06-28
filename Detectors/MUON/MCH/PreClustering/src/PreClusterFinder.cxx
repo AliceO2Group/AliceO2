@@ -17,7 +17,7 @@
 #include <vector>
 
 #include <fairmq/Tools.h>
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 
 #include "PreClusterFinderMapping.h"
 
@@ -138,7 +138,7 @@ void PreClusterFinder::loadDigit(const Digit& digit)
 
   // check that the pad is not already fired
   if (de.mapping->pads[iPad].useMe) {
-    LOG(error) << "multiple digits on the same pad (DE " << digit.getDetID() << ", pad " << iPad << ")";
+    LOG(info) << "multiple digits on the same pad (DE " << digit.getDetID() << ", pad " << iPad << ")";
     return;
   }
 

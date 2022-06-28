@@ -28,23 +28,24 @@ namespace tpc
 
 enum class DigitzationMode : char {
   FullMode = 0,         ///< Apply noise, pedestal and saturation
-  SubtractPedestal = 1, ///< Apply noise, pedestal and saturation and then from that subtract the pedestal
-  NoSaturation = 2,     ///< Apply only noise and pedestal
-  PropagateADC = 3      ///< Just propagate the bare ADC value
+  ZeroSuppression = 1,  ///< Apply noise, pedestal and saturation and then from that subtract the pedestal
+  SubtractPedestal = 2, ///< Apply noise, pedestal and saturation and then from that subtract the pedestal
+  NoSaturation = 3,     ///< Apply only noise and pedestal
+  PropagateADC = 4      ///< Just propagate the bare ADC value
 };
 
 struct ParameterElectronics : public o2::conf::ConfigurableParamHelper<ParameterElectronics> {
   static constexpr int TIMEBININBC = 8;
 
-  int NShapedPoints = 8;                                        ///< Number of ADC samples which are taken into account for a given, shaped signal (should fit
-                                                                /// into SSE registers)
-  float PeakingTime = 160e-3f;                                  ///< Peaking time of the SAMPA [us]
-  float ChipGain = 20.f;                                        ///< Gain of the SAMPA [mV/fC] - may be either 20 or 30
-  float ADCdynamicRange = 2200.f;                               ///< Dynamic range of the ADC [mV]
-  float ADCsaturation = 1024.f;                                 ///< ADC saturation [ADC counts]
+  int NShapedPoints = 8;                                                        ///< Number of ADC samples which are taken into account for a given, shaped signal (should fit
+                                                                                /// into SSE registers)
+  float PeakingTime = 160e-3f;                                                  ///< Peaking time of the SAMPA [us]
+  float ChipGain = 20.f;                                                        ///< Gain of the SAMPA [mV/fC] - may be either 20 or 30
+  float ADCdynamicRange = 2200.f;                                               ///< Dynamic range of the ADC [mV]
+  float ADCsaturation = 1024.f;                                                 ///< ADC saturation [ADC counts]
   float ZbinWidth = TIMEBININBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3; ///< Width of a z bin [us]
-  float ElectronCharge = 1.602e-19f;                            ///< Electron charge [C]
-  DigitzationMode DigiMode = DigitzationMode::SubtractPedestal; ///< Digitization mode [full / ... ]
+  float ElectronCharge = 1.602e-19f;                                            ///< Electron charge [C]
+  DigitzationMode DigiMode = DigitzationMode::ZeroSuppression;                  ///< Digitization mode [full / ... ]
 
   /// Average time from the start of the signal shaping to the COG of the sampled distribution
   ///

@@ -55,7 +55,7 @@ class FullCluster : public Cluster
 
   const std::vector<CluElement>* getElementList() const { return &mElementList; }
 
-  //Counts local maxima and returns their positions
+  // Counts local maxima and returns their positions
   char getNumberOfLocalMax(gsl::span<int> maxAt) const;
 
   void purify(); // Removes digits below threshold

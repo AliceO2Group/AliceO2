@@ -50,6 +50,8 @@ void GloFwdAssessment::reset()
 
   if (mUseMC) {
     mPairables.clear();
+    mTrueTracksMap.clear();
+    mPairableTracksMap.clear();
 
     mHistPhiRecVsPhiGen->Reset();
     mHistEtaRecVsEtaGen->Reset();
@@ -69,6 +71,7 @@ void GloFwdAssessment::reset()
     mChargeMatchEff->SetPassedHistogram(*hC, "");
 
     mPairingEtaPt->Reset();
+    mTruePairingEtaPt->Reset();
     for (auto& h : mTH3Histos) {
       h->Reset();
     }
@@ -239,8 +242,8 @@ void GloFwdAssessment::processGeneratedTracks()
   for (auto src = 0; src < mcReader.getNSources(); src++) {
     for (Int_t event = 0; event < mcReader.getNEvents(src); event++) {
       const auto& mcTracks = mcReader.getTracks(src, event);
+      auto evh = mcReader.getMCEventHeader(src, event);
       for (const auto& mcParticle : mcTracks) {
-        auto evh = mcReader.getMCEventHeader(src, event);
         addMCParticletoHistos(&mcParticle, kGen, evh);
       } // mcTracks
       mcReader.releaseTracksForSourceAndEvent(src, event);
@@ -282,28 +285,38 @@ void GloFwdAssessment::processPairables()
     }
   }
 
-  // Identify and process pairables
+  // Identify pairables
+  mPairableTracksMap.resize(mcReader.getNSources());
+  auto src = 0;
+  for (auto& map : mPairableTracksMap) {
+    map.resize(mcReader.getNEvents(src++));
+  }
   for (auto& testPair : mcPairables) {
     auto& boolPair = testPair.second;
     if (boolPair[0] and boolPair[1]) {
       mPairables[testPair.first] = true;
-      auto const* mcParticle = mcReader.getTrack(testPair.first);
-      srcID = testPair.first.getSourceID();
-      evnID = testPair.first.getEventID();
-      auto evH = mcReader.getMCEventHeader(srcID, evnID);
-      addMCParticletoHistos(mcParticle, kPairable, evH);
+      mPairableTracksMap[testPair.first.getSourceID()][testPair.first.getEventID()].push_back(testPair.first);
     }
   }
+
+  // Process pairables per source and event
+  for (auto src = 0; src < mcReader.getNSources(); src++) {
+    for (Int_t event = 0; event < mcReader.getNEvents(src); event++) {
+      auto evH = mcReader.getMCEventHeader(src, event);
+      for (auto& pairable : mPairableTracksMap[src][event]) {
+        auto const* mcParticle = mcReader.getTrack(pairable);
+        addMCParticletoHistos(mcParticle, kPairable, evH);
+      }
+      mcReader.releaseTracksForSourceAndEvent(src, event);
+    } // events
+  }   // sources
 }
-
 //__________________________________________________________
-void GloFwdAssessment::processRecoAndTrueTracks()
+void GloFwdAssessment::processRecoTracks()
 {
-
-  auto trkId = 0;
+  // For this moment this is used for MC-based assessment, but could be merged into runBasicQC(...)
   for (auto fwdTrack : mGlobalFwdTracks) {
     if (mMIDFilterEnabled and (fwdTrack.getMIDMatchingChi2() < 0)) { // MID filter
-      trkId++;
       continue;
     }
     auto pt_Rec = fwdTrack.getPt();
@@ -319,10 +332,9 @@ void GloFwdAssessment::processRecoAndTrueTracks()
     auto matchChi2 = fwdTrack.getMFTMCHMatchingChi2();
     auto matchMatchScore = fwdTrack.getMFTMCHMatchingScore();
 
-    auto TrackType = kReco;
-    mHistPtVsEta[TrackType]->Fill(eta_Rec, pt_Rec);
-    mHistPhiVsEta[TrackType]->Fill(eta_Rec, phi_Rec);
-    mHistPhiVsPt[TrackType]->Fill(pt_Rec, phi_Rec);
+    mHistPtVsEta[kReco]->Fill(eta_Rec, pt_Rec);
+    mHistPhiVsEta[kReco]->Fill(eta_Rec, phi_Rec);
+    mHistPhiVsPt[kReco]->Fill(pt_Rec, phi_Rec);
 
     mTH3Histos[kTH3GMTrackPtEtaChi2]->Fill(pt_Rec, eta_Rec, matchChi2);
     mTH3Histos[kTH3GMTrackPtEtaMatchScore]->Fill(pt_Rec, eta_Rec, matchMatchScore);
@@ -330,68 +342,98 @@ void GloFwdAssessment::processRecoAndTrueTracks()
       mTH3Histos[kTH3GMCloseMatchPtEtaChi2]->Fill(pt_Rec, eta_Rec, matchChi2);
       mTH3Histos[kTH3GMCloseMatchPtEtaMatchScore]->Fill(pt_Rec, eta_Rec, matchMatchScore);
     }
-
-    auto trackLabel = mFwdTrackLabels[trkId];
-    if (trackLabel.isCorrect()) {
-      TrackType = kRecoTrue;
-      auto evH = mcReader.getMCEventHeader(trackLabel.getSourceID(), trackLabel.getEventID());
-      auto zVtx = evH.GetZ();
-
-      auto const* mcParticle = mcReader.getTrack(trackLabel);
-      auto etaGen = std::abs(mcParticle->GetEta());
-      auto phiGen = TMath::ATan2(mcParticle->Py(), mcParticle->Px());
-      auto ptGen = mcParticle->GetPt();
-      auto vxGen = mcParticle->GetStartVertexCoordinatesX();
-      auto vyGen = mcParticle->GetStartVertexCoordinatesY();
-      auto vzGen = mcParticle->GetStartVertexCoordinatesZ();
-      auto tanlGen = mcParticle->Pz() / mcParticle->GetPt();
-
-      auto pdgcode_MC = mcParticle->GetPdgCode();
-      int Q_Gen;
-      if (TDatabasePDG::Instance()->GetParticle(pdgcode_MC)) {
-        Q_Gen = TDatabasePDG::Instance()->GetParticle(pdgcode_MC)->Charge() / 3;
-      } else {
-        continue;
-      }
-      auto invQPtGen = 1.0 * Q_Gen / ptGen;
-      fwdTrack.propagateToZ(vzGen, mBz);
-
-      // Residuals at vertex
-      auto x_res = fwdTrack.getX() - vxGen;
-      auto y_res = fwdTrack.getY() - vyGen;
-      auto eta_res = fwdTrack.getEta() - etaGen;
-      auto phi_res = fwdTrack.getPhi() - phiGen;
-      auto tanl_res = fwdTrack.getTanl() - tanlGen;
-      auto invQPt_res = invQPt_Rec - invQPtGen;
-      mHistPtVsEta[TrackType]->Fill(eta_Rec, pt_Rec);
-      mHistPhiVsEta[TrackType]->Fill(eta_Rec, phi_Rec);
-      mHistPhiVsPt[TrackType]->Fill(pt_Rec, phi_Rec);
-      mHistZvtxVsEta[TrackType]->Fill(eta_Rec, zVtx);
-
-      mHistPhiRecVsPhiGen->Fill(phiGen, phi_Rec);
-      mHistEtaRecVsEtaGen->Fill(etaGen, eta_Rec);
-
-      /// Reco assessment histos
-      auto d_Charge = Q_Rec - Q_Gen;
-      mChargeMatchEff->Fill(!d_Charge, ptGen);
-
-      mTH3Histos[kTH3GMTrackDeltaXVertexPtEta]->Fill(ptGen, etaGen, 1e4 * x_res);
-      mTH3Histos[kTH3GMTrackDeltaYVertexPtEta]->Fill(ptGen, etaGen, 1e4 * y_res);
-      mTH3Histos[kTH3GMTrackDeltaXDeltaYEta]->Fill(etaGen, 1e4 * x_res, 1e4 * y_res);
-      mTH3Histos[kTH3GMTrackDeltaXDeltaYPt]->Fill(ptGen, 1e4 * x_res, 1e4 * y_res);
-      mTH3Histos[kTH3GMTrackXPullPtEta]->Fill(ptGen, etaGen, x_res / sqrt(fwdTrack.getCovariances()(0, 0)));
-      mTH3Histos[kTH3GMTrackYPullPtEta]->Fill(ptGen, etaGen, y_res / sqrt(fwdTrack.getCovariances()(1, 1)));
-      mTH3Histos[kTH3GMTrackPhiPullPtEta]->Fill(ptGen, etaGen, phi_res / sqrt(fwdTrack.getCovariances()(2, 2)));
-      mTH3Histos[kTH3GMTrackTanlPullPtEta]->Fill(ptGen, etaGen, tanl_res / sqrt(fwdTrack.getCovariances()(3, 3)));
-      mTH3Histos[kTH3GMTrackInvQPtPullPtEta]->Fill(ptGen, etaGen, invQPt_res / sqrt(fwdTrack.getCovariances()(4, 4)));
-      mTH3Histos[kTH3GMTrackInvQPtResolutionPtEta]->Fill(ptGen, etaGen, (invQPt_Rec - invQPtGen) / invQPtGen);
-      mTH3Histos[kTH3GMTrackInvQPtResMCHPtEta]->Fill(ptGen, etaGen, (invQPt_MCH - invQPtGen) / invQPtGen);
-      mTH3Histos[kTH3GMTrackReducedChi2PtEta]->Fill(ptGen, etaGen, Chi2_Rec / (2 * nMFTClusters - 5));
-      mTH3Histos[kTH3GMTruePtEtaChi2]->Fill(pt_Rec, eta_Rec, matchChi2);
-      mTH3Histos[kTH3GMTruePtEtaMatchScore]->Fill(pt_Rec, eta_Rec, matchMatchScore);
-    }
-    trkId++;
   }
+}
+
+//__________________________________________________________
+void GloFwdAssessment::processTrueTracks()
+{
+  fillTrueRecoTracksMap();
+  for (auto src = 0; src < mcReader.getNSources(); src++) {
+    for (Int_t event = 0; event < mcReader.getNEvents(src); event++) {
+      const auto& evH = mcReader.getMCEventHeader(src, event);
+      const auto& zVtx = evH.GetZ();
+
+      for (const auto& trueFwdTrackID : mTrueTracksMap[src][event]) {
+        auto fwdTrack = mGlobalFwdTracks[trueFwdTrackID];
+        if (mMIDFilterEnabled and (fwdTrack.getMIDMatchingChi2() < 0)) { // MID filter
+          continue;
+        }
+
+        const auto& trackLabel = mFwdTrackLabels[trueFwdTrackID];
+        if (trackLabel.isCorrect()) {
+
+          auto const* mcParticle = mcReader.getTrack(trackLabel);
+          const auto etaGen = std::abs(mcParticle->GetEta());
+          const auto phiGen = TMath::ATan2(mcParticle->Py(), mcParticle->Px());
+          const auto& ptGen = mcParticle->GetPt();
+          const auto& vxGen = mcParticle->GetStartVertexCoordinatesX();
+          const auto& vyGen = mcParticle->GetStartVertexCoordinatesY();
+          const auto& vzGen = mcParticle->GetStartVertexCoordinatesZ();
+          auto tanlGen = mcParticle->Pz() / mcParticle->GetPt();
+
+          const auto& pdgcode_MC = mcParticle->GetPdgCode();
+          int Q_Gen;
+          if (TDatabasePDG::Instance()->GetParticle(pdgcode_MC)) {
+            Q_Gen = TDatabasePDG::Instance()->GetParticle(pdgcode_MC)->Charge() / 3;
+          } else {
+            continue;
+          }
+          const auto invQPtGen = 1.0 * Q_Gen / ptGen;
+          fwdTrack.propagateToZ(vzGen, mBz);
+
+          const auto& pt_Rec = fwdTrack.getPt();
+          const auto& invQPt_Rec = fwdTrack.getInvQPt();
+          const auto& px_mch = mMCHTracks[fwdTrack.getMCHTrackID()].getPx();
+          const auto& py_mch = mMCHTracks[fwdTrack.getMCHTrackID()].getPy();
+          const auto& invQPt_MCH = mMCHTracks[fwdTrack.getMCHTrackID()].getSign() / sqrt(px_mch * px_mch + py_mch * py_mch);
+          const auto& eta_Rec = std::abs(fwdTrack.getEta());
+          const auto& phi_Rec = fwdTrack.getPhi();
+          const auto& nMFTClusters = mMFTTracks[fwdTrack.getMFTTrackID()].getNumberOfPoints();
+          const auto& Chi2_Rec = fwdTrack.getTrackChi2();
+          const int Q_Rec = fwdTrack.getCharge();
+          const auto& matchChi2 = fwdTrack.getMFTMCHMatchingChi2();
+          const auto& matchMatchScore = fwdTrack.getMFTMCHMatchingScore();
+
+          // Residuals at vertex
+          const auto x_res = fwdTrack.getX() - vxGen;
+          const auto y_res = fwdTrack.getY() - vyGen;
+          const auto eta_res = fwdTrack.getEta() - etaGen;
+          const auto phi_res = fwdTrack.getPhi() - phiGen;
+          const auto tanl_res = fwdTrack.getTanl() - tanlGen;
+          const auto invQPt_res = invQPt_Rec - invQPtGen;
+          mHistPtVsEta[kRecoTrue]->Fill(eta_Rec, pt_Rec);
+          mHistPhiVsEta[kRecoTrue]->Fill(eta_Rec, phi_Rec);
+          mHistPhiVsPt[kRecoTrue]->Fill(pt_Rec, phi_Rec);
+          mHistZvtxVsEta[kRecoTrue]->Fill(eta_Rec, zVtx);
+
+          mHistPhiRecVsPhiGen->Fill(phiGen, phi_Rec);
+          mHistEtaRecVsEtaGen->Fill(etaGen, eta_Rec);
+
+          /// Reco assessment histos
+          auto d_Charge = Q_Rec - Q_Gen;
+          mChargeMatchEff->Fill(!d_Charge, ptGen);
+
+          mTH3Histos[kTH3GMTrackDeltaXVertexPtEta]->Fill(ptGen, etaGen, 1e4 * x_res);
+          mTH3Histos[kTH3GMTrackDeltaYVertexPtEta]->Fill(ptGen, etaGen, 1e4 * y_res);
+          mTH3Histos[kTH3GMTrackDeltaXDeltaYEta]->Fill(etaGen, 1e4 * x_res, 1e4 * y_res);
+          mTH3Histos[kTH3GMTrackDeltaXDeltaYPt]->Fill(ptGen, 1e4 * x_res, 1e4 * y_res);
+          mTH3Histos[kTH3GMTrackXPullPtEta]->Fill(ptGen, etaGen, x_res / sqrt(fwdTrack.getCovariances()(0, 0)));
+          mTH3Histos[kTH3GMTrackYPullPtEta]->Fill(ptGen, etaGen, y_res / sqrt(fwdTrack.getCovariances()(1, 1)));
+          mTH3Histos[kTH3GMTrackPhiPullPtEta]->Fill(ptGen, etaGen, phi_res / sqrt(fwdTrack.getCovariances()(2, 2)));
+          mTH3Histos[kTH3GMTrackTanlPullPtEta]->Fill(ptGen, etaGen, tanl_res / sqrt(fwdTrack.getCovariances()(3, 3)));
+          mTH3Histos[kTH3GMTrackInvQPtPullPtEta]->Fill(ptGen, etaGen, invQPt_res / sqrt(fwdTrack.getCovariances()(4, 4)));
+          mTH3Histos[kTH3GMTrackInvQPtResolutionPtEta]->Fill(ptGen, etaGen, (invQPt_Rec - invQPtGen) / invQPtGen);
+          mTH3Histos[kTH3GMTrackInvQPtResMCHPtEta]->Fill(ptGen, etaGen, (invQPt_MCH - invQPtGen) / invQPtGen);
+          mTH3Histos[kTH3GMTrackReducedChi2PtEta]->Fill(ptGen, etaGen, Chi2_Rec / (2 * nMFTClusters - 5));
+          mTH3Histos[kTH3GMTruePtEtaChi2]->Fill(pt_Rec, eta_Rec, matchChi2);
+          mTH3Histos[kTH3GMTruePtEtaMatchScore]->Fill(pt_Rec, eta_Rec, matchMatchScore);
+          mTH3Histos[kTH3GMTruePtEtaMatchScore_MC]->Fill(ptGen, etaGen, matchMatchScore);
+        }
+      }
+      mcReader.releaseTracksForSourceAndEvent(src, event);
+    } // events
+  }   // sources
 }
 
 //__________________________________________________________
@@ -458,6 +500,11 @@ void GloFwdAssessment::getHistos(TObjArray& objar)
 
     objar.Add(mChargeMatchEff.get());
     objar.Add(mPairingEtaPt.get());
+    objar.Add(mTruePairingEtaPt.get());
+
+    if (mFinalizeAnalysis) {
+      objar.Add(mHistVxtOffsetProjection.get());
+    }
 
     if (mFinalizeAnalysis) {
       for (int slicedCanvas = 0; slicedCanvas < kNSlicedTH3; slicedCanvas++) {
@@ -544,6 +591,11 @@ void GloFwdAssessment::loadHistos()
 //__________________________________________________________
 void GloFwdAssessment::finalizeAnalysis()
 {
+
+  mHistVxtOffsetProjection = std::unique_ptr<TH2F>((TH2F*)mTH3Histos[kTH3GMTrackDeltaXDeltaYEta]->Project3D("colz yz"));
+  mHistVxtOffsetProjection->SetNameTitle("Vertex_XY_OffSet", "Vertex Offset");
+  mHistVxtOffsetProjection->SetOption("COLZ");
+
   finalizeRecoAndPairables();
   finalizePurityAndEff();
 }
@@ -576,15 +628,22 @@ void GloFwdAssessment::finalizeRecoAndPairables()
 
     auto& Reco = mTH3Histos[kTH3GMTrackPtEtaMatchScore];
     auto& hTrue = mTH3Histos[kTH3GMTruePtEtaMatchScore];
+    auto& hTrue_MC = mTH3Histos[kTH3GMTruePtEtaMatchScore_MC];
     auto& hPairable = mTH3Histos[kTH3GMPairablePtEtaZ];
 
     auto RecoEtaPt = (TH2D*)Reco->Project3D("xy COLZ");
+    auto TrueEtaPt_MC = (TH2D*)hTrue_MC->Project3D("xy COLZ");
     auto PairableEtaPt = (TH2D*)hPairable->Project3D("xy COLZ");
 
     mPairingEtaPt = (std::unique_ptr<TH2D>)static_cast<TH2D*>(RecoEtaPt->Clone());
     mPairingEtaPt->Divide(PairableEtaPt);
     mPairingEtaPt->SetNameTitle("GMTrackPairingEffEtaPt", "PairingEffEtaPt");
     mPairingEtaPt->SetOption("COLZ");
+
+    mTruePairingEtaPt = (std::unique_ptr<TH2D>)static_cast<TH2D*>(TrueEtaPt_MC->Clone());
+    mTruePairingEtaPt->Divide(PairableEtaPt);
+    mTruePairingEtaPt->SetNameTitle("GMTrackTruePairingEffEtaPt", "TruePairingEffEtaPt");
+    mTruePairingEtaPt->SetOption("COLZ");
   }
 }
 
@@ -599,6 +658,7 @@ void GloFwdAssessment::finalizePurityAndEff()
 
   auto& Reco = mTH3Histos[kTH3GMTrackPtEtaMatchScore];
   auto& hTrue = mTH3Histos[kTH3GMTruePtEtaMatchScore];
+  auto& hTrue_MC = mTH3Histos[kTH3GMTruePtEtaMatchScore_MC];
   auto& hPairable = mTH3Histos[kTH3GMPairablePtEtaZ];
 
   // Inner pseudorapidity
@@ -609,6 +669,8 @@ void GloFwdAssessment::finalizePurityAndEff()
   auto PairablePtProjOuter = (TH1*)hPairable->ProjectionX("PairableOuter", minBin, midBin);
 
   auto RecoEtaPt = (TH2D*)Reco->Project3D("xy COLZ");
+  auto TrueEtaPt = (TH2D*)hTrue->Project3D("xy COLZ");
+  auto TrueEtaPt_MC = (TH2D*)hTrue_MC->Project3D("xy COLZ");
   auto PairableEtaPt = (TH2D*)hPairable->Project3D("xy COLZ");
   auto PairablePt = (TH1D*)hPairable->Project3D("x");
 
@@ -618,11 +680,13 @@ void GloFwdAssessment::finalizePurityAndEff()
 
     auto RecoPtProj = (TH1*)Reco->ProjectionX(Form("_RecoPtProj%.2f", scoreCut));
     auto TruePtProj = (TH1*)hTrue->ProjectionX(Form("_TruePtProj%.2f", scoreCut));
+    auto TruePtProj_MC = (TH1*)hTrue_MC->ProjectionX(Form("_TruePtProj_MC%.2f", scoreCut));
 
     // Inner pseudorapidity
     auto maxScoreBin = Reco->GetZaxis()->FindBin(scoreCut);
     auto RecoPtProjInner = (TH1*)Reco->ProjectionX(Form("_InnerRecoCut_%.2f", scoreCut), midBin, maxBin, 0, maxScoreBin);
     auto TruePtProjInner = (TH1*)hTrue->ProjectionX(Form("_InnerTrueCut_%.2f", scoreCut), midBin, maxBin, 0, maxScoreBin);
+    auto TruePtProjInner_MC = (TH1*)hTrue_MC->ProjectionX(Form("_InnerTrueCut_MC_%.2f", scoreCut), midBin, maxBin, 0, maxScoreBin);
 
     auto& hPurityInner = mPurityPtInnerVecTH2.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(TruePtProjInner->Clone()));
     hPurityInner->Divide(RecoPtProjInner); // Global Pairing Purity = N_true / N_reco
@@ -642,9 +706,19 @@ void GloFwdAssessment::finalizePurityAndEff()
     hPairingEffInner->SetMinimum(0.0);
     hPairingEffInner->SetMaximum(1.8);
 
+    auto& hTruePairingEffInner = mTruePairingPtInnerVecTH1.emplace_back((std::unique_ptr<TH1D>)static_cast<TH1D*>(TruePtProjInner_MC->Clone()));
+    hTruePairingEffInner->Divide(PairablePtProjInner);
+    hTruePairingEffInner->SetNameTitle(Form("GMTrackTruePairingEffInnerPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
+    hTruePairingEffInner->GetYaxis()->SetTitle("True Pairing Efficiency [ N_{True} / N_{pairable}]");
+    hTruePairingEffInner->SetOption("COLZ");
+    hTruePairingEffInner->SetMarkerStyle(kFullCircle);
+    hTruePairingEffInner->SetMinimum(0.0);
+    hTruePairingEffInner->SetMaximum(1.2);
+
     // Outer pseudorapidity
     auto RecoPtProjOuter = (TH1*)Reco->ProjectionX(Form("_OuterRecoCut_%.2f", scoreCut), minBin, midBin, 0, maxScoreBin);
     auto TruePtProjOuter = (TH1*)hTrue->ProjectionX(Form("_OuterTrueCut_%.2f", scoreCut), minBin, midBin, 0, maxScoreBin);
+    auto TruePtProjOuter_MC = (TH1*)hTrue_MC->ProjectionX(Form("_OuterTrueCut_MC_%.2f", scoreCut), minBin, midBin, 0, maxScoreBin);
 
     auto& hPurityOuter = mPurityPtOuterVecTH2.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(TruePtProjOuter->Clone()));
     hPurityOuter->Divide(RecoPtProjOuter); // Global Pairing Purity = N_true / N_reco
@@ -664,10 +738,24 @@ void GloFwdAssessment::finalizePurityAndEff()
     hPairingEffOuter->SetMinimum(0.0);
     hPairingEffOuter->SetMaximum(1.8);
 
+    auto& hTruePairingEffOuter = mTruePairingPtOuterVecTH1.emplace_back((std::unique_ptr<TH1D>)static_cast<TH1D*>(TruePtProjOuter_MC->Clone()));
+    hTruePairingEffOuter->Divide(PairablePtProjOuter);
+    hTruePairingEffOuter->SetNameTitle(Form("GMTrackTruePairingEffOuterPtCut_%.2f", scoreCut), Form("%.2f cut", scoreCut));
+    hTruePairingEffOuter->GetYaxis()->SetTitle("True Pairing Efficiency [ N_{True} / N_{pairable}]");
+    hTruePairingEffOuter->SetOption("COLZ");
+    hTruePairingEffOuter->SetMarkerStyle(kFullTriangleUp);
+    hTruePairingEffOuter->SetMinimum(0.0);
+    hTruePairingEffOuter->SetMaximum(1.2);
+
     mPairingEtaPtVec.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(RecoEtaPt->Clone()));
     mPairingEtaPtVec.back()->Divide(PairableEtaPt); // Pairing Efficiency = N_reco / N_Pairable
     mPairingEtaPtVec.back()->SetNameTitle(Form("GMTrackPairingEffEtaPtCut_%.2f", scoreCut), Form("%.2f", scoreCut));
     mPairingEtaPtVec.back()->SetOption("COLZ");
+
+    mTruePairingEtaPtVec.emplace_back((std::unique_ptr<TH2D>)static_cast<TH2D*>(TrueEtaPt_MC->Clone()));
+    mTruePairingEtaPtVec.back()->Divide(PairableEtaPt);
+    mTruePairingEtaPtVec.back()->SetNameTitle(Form("GMTrackTruePairingEffEtaPtCut_%.2f", scoreCut), Form("%.2f", scoreCut));
+    mTruePairingEtaPtVec.back()->SetOption("COLZ");
   }
 
   auto nCanvas = kPurityPtOuter;
@@ -682,14 +770,20 @@ void GloFwdAssessment::finalizePurityAndEff()
   std::vector<float> verylowPtInnerPurity;
   std::vector<float> verylowPtOuterEff;
   std::vector<float> verylowPtInnerEff;
+  std::vector<float> veryLowPtOuterTrueEff;
+  std::vector<float> veryLowPtInnerTrueEff;
   std::vector<float> lowPtOuterPurity;
   std::vector<float> lowPtInnerPurity;
   std::vector<float> lowPtOuterEff;
   std::vector<float> lowPtInnerEff;
+  std::vector<float> lowPtOuterTrueEff;
+  std::vector<float> lowPtInnerTrueEff;
   std::vector<float> highPtOuterPurity;
   std::vector<float> highPtInnerPurity;
   std::vector<float> highPtOuterEff;
   std::vector<float> highPtInnerEff;
+  std::vector<float> highPtOuterTrueEff;
+  std::vector<float> highPtInnerTrueEff;
 
   auto veryLowptBin = mPurityPtOuterVecTH2.front()->GetXaxis()->FindBin(0.25);
   auto lowptBin = mPurityPtOuterVecTH2.front()->GetXaxis()->FindBin(0.75);
@@ -806,6 +900,64 @@ void GloFwdAssessment::finalizePurityAndEff()
   mAssessmentCanvas[nCanvas]->SetTicky();
   mAssessmentCanvas[nCanvas]->SetGridy();
 
+  nCanvas = kTruePairingEffPtOuter;
+  canvasName = GMAssesmentNames[nCanvas];
+  mAssessmentCanvas[nCanvas] = new TCanvas(canvasName, canvasName, 1080, 800);
+  mAssessmentCanvas[nCanvas]->UseCurrentStyle();
+  mAssessmentCanvas[nCanvas]->cd();
+  first = true;
+
+  for (auto& th2 : mTruePairingPtOuterVecTH1) {
+    if (first) {
+      option = "hist P PMC";
+    } else {
+      option = "hist SAME P PMC";
+    }
+    first = false;
+    veryLowPtOuterTrueEff.push_back(th2->GetBinContent(veryLowptBin));
+    lowPtOuterTrueEff.push_back(th2->GetBinContent(lowptBin));
+    highPtOuterTrueEff.push_back(th2->GetBinContent(highptBin));
+    th2->Draw(option.c_str());
+  }
+  t = new TPaveText(0.2223748, 0.9069355, 0.7776252, 0.965, "brNDC");
+  t->SetBorderSize(0);
+  t->SetFillColor(gStyle->GetTitleFillColor());
+  t->AddText("Global Muon Track True Pairing Efficiency (2.4 < #eta < 3.0)");
+  t->Draw();
+
+  mAssessmentCanvas[nCanvas]->BuildLegend(.8, .15, .96, .87);
+  mAssessmentCanvas[nCanvas]->SetTicky();
+  mAssessmentCanvas[nCanvas]->SetGridy();
+
+  nCanvas = kTruePairingEffPtInner;
+  canvasName = GMAssesmentNames[nCanvas];
+  mAssessmentCanvas[nCanvas] = new TCanvas(canvasName, canvasName, 1080, 800);
+  mAssessmentCanvas[nCanvas]->UseCurrentStyle();
+  mAssessmentCanvas[nCanvas]->cd();
+  first = true;
+
+  for (auto& th2 : mTruePairingPtInnerVecTH1) {
+    if (first) {
+      option = "hist P PMC";
+    } else {
+      option = "hist SAME P PMC";
+    }
+    first = false;
+    veryLowPtInnerTrueEff.push_back(th2->GetBinContent(veryLowptBin));
+    lowPtInnerTrueEff.push_back(th2->GetBinContent(lowptBin));
+    highPtInnerTrueEff.push_back(th2->GetBinContent(highptBin));
+    th2->Draw(option.c_str());
+  }
+  t = new TPaveText(0.2223748, 0.9069355, 0.7776252, 0.965, "brNDC");
+  t->SetBorderSize(0);
+  t->SetFillColor(gStyle->GetTitleFillColor());
+  t->AddText("Global Muon Track True Pairing Efficiency (3.0 < #eta < 3.6 )");
+  t->Draw();
+
+  mAssessmentCanvas[nCanvas]->BuildLegend(.8, .15, .96, .87);
+  mAssessmentCanvas[nCanvas]->SetTicky();
+  mAssessmentCanvas[nCanvas]->SetGridy();
+
   nCanvas = kPurityVsEfficiency;
   canvasName = GMAssesmentNames[nCanvas];
   mAssessmentCanvas[nCanvas] = new TCanvas(canvasName, canvasName, 1080, 800);
@@ -845,6 +997,50 @@ void GloFwdAssessment::finalizePurityAndEff()
   gr->SetMarkerStyle(kFullTriangleUp);
 
   gr->SetTitle("p_{t} = 0.25 || (2.4 < #eta < 3.0)");
+
+  mAssessmentCanvas[nCanvas]->BuildLegend();
+  mAssessmentCanvas[nCanvas]->SetTicky();
+  mAssessmentCanvas[nCanvas]->SetGridy();
+
+  nCanvas = kPurityVsTrueEfficiency;
+  canvasName = GMAssesmentNames[nCanvas];
+  mAssessmentCanvas[nCanvas] = new TCanvas(canvasName, canvasName, 1080, 800);
+
+  TGraph* gr2 = new TGraph(highPtInnerTrueEff.size(), &highPtInnerTrueEff[0], &highPtInnerPurity[0]);
+  gr2->SetMinimum(0);
+  gr2->SetMaximum(1.01);
+
+  gr2->SetMarkerStyle(kFullCircle);
+  gr2->Draw("A P PMC");
+  gr2->GetXaxis()->SetTitle("Global Muon True Pairing Efficiency [ N_{True} / N_{pairable}]");
+  gr2->GetXaxis()->SetLimits(0.f, 1.01);
+  gr2->GetYaxis()->SetTitle("Pairing Purity [ N_{True} / N_{Rec}]");
+  gr2->SetTitle("p_{t} = 2.25 || (3.0 < #eta < 3.6 )");
+
+  gr2 = new TGraph(highPtOuterTrueEff.size(), &highPtOuterTrueEff[0], &highPtOuterPurity[0]);
+  gr2->Draw("P PMC SAME");
+  gr2->SetMarkerStyle(kFullTriangleUp);
+
+  gr2->SetTitle("p_{t} = 2.25 || (2.4 < #eta < 3.0)");
+
+  gr2 = new TGraph(lowPtInnerTrueEff.size(), &lowPtInnerTrueEff[0], &lowPtInnerPurity[0]);
+  gr2->Draw("P PMC SAME");
+  gr2->SetTitle("p_{t} = 0.75 || (3.0 < #eta < 3.6 )");
+
+  gr2 = new TGraph(lowPtOuterTrueEff.size(), &lowPtOuterTrueEff[0], &lowPtOuterPurity[0]);
+  gr2->Draw("P PMC SAME");
+  gr2->SetMarkerStyle(kFullTriangleUp);
+  gr2->SetTitle("p_{t} = 0.75 || (2.4 < #eta < 3.0)");
+
+  gr2 = new TGraph(veryLowPtInnerTrueEff.size(), &veryLowPtInnerTrueEff[0], &verylowPtInnerPurity[0]);
+  gr2->Draw("P PMC SAME");
+  gr2->SetTitle("p_{t} = 0.25 || (3.0 < #eta < 3.6)");
+
+  gr2 = new TGraph(veryLowPtOuterTrueEff.size(), &veryLowPtOuterTrueEff[0], &verylowPtOuterPurity[0]);
+  gr2->Draw("P PMC SAME");
+  gr2->SetMarkerStyle(kFullTriangleUp);
+
+  gr2->SetTitle("p_{t} = 0.25 || (2.4 < #eta < 3.0)");
 
   mAssessmentCanvas[nCanvas]->BuildLegend();
   mAssessmentCanvas[nCanvas]->SetTicky();

@@ -11,6 +11,7 @@
 
 #include "ZDCWorkflow/ZDCRecoWriterDPLSpec.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
 
@@ -22,6 +23,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
       o2::framework::VariantType::Bool,
       false,
       {"disable MC propagation even if available"}});
+}
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:ZDC|zdc).*[W,w]riter.*"));
 }
 
 #include "Framework/runDataProcessing.h"

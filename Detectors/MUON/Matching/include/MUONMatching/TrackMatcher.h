@@ -14,8 +14,8 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MUON_TRACKMATCHER_H_
-#define ALICEO2_MUON_TRACKMATCHER_H_
+#ifndef O2_MUON_TRACKMATCHER_H_
+#define O2_MUON_TRACKMATCHER_H_
 
 #include <vector>
 
@@ -64,4 +64,4 @@ class TrackMatcher
 } // namespace muon
 } // namespace o2
 
-#endif // ALICEO2_MUON_TRACKMATCHER_H_
+#endif // O2_MUON_TRACKMATCHER_H_

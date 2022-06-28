@@ -16,7 +16,7 @@ namespace o2::mch
 {
 std::string DsChannelId::asString() const
 {
-  return fmt::format("solarid {:4d} dsid {:4d} ch {:2d}",
-                     getSolarId(), getDsId(), getChannel());
+  return fmt::format("solarid {:4d} elinkid {:4d} ch {:2d}",
+                     getSolarId(), getElinkId(), getChannel());
 }
 } // namespace o2::mch

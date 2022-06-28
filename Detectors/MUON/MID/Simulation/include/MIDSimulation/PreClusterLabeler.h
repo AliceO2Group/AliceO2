@@ -21,7 +21,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "MIDClustering/PreCluster.h"
-#include "MIDSimulation/MCLabel.h"
+#include "DataFormatsMID/MCLabel.h"
 
 namespace o2
 {

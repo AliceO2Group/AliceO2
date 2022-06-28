@@ -11,6 +11,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -28,6 +29,12 @@ using GTrackID = o2::dataformats::GlobalTrackID;
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
   o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:TRD|trd).*[W,w]riter.*"));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -82,12 +89,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!configcontext.options().get<bool>("disable-root-output")) {
     if (GTrackID::includesSource(GTrackID::Source::ITSTPC, srcTRD)) {
       specs.emplace_back(o2::trd::getTRDGlobalTrackWriterSpec(useMC));
-      if (configcontext.options().get<bool>("enable-trackbased-calib")) {
-        specs.emplace_back(o2::trd::getTRDCalibWriterSpec());
-      }
     }
     if (GTrackID::includesSource(GTrackID::Source::TPC, srcTRD)) {
       specs.emplace_back(o2::trd::getTRDTPCTrackWriterSpec(useMC, strict));
+    }
+    if (configcontext.options().get<bool>("enable-trackbased-calib")) {
+      specs.emplace_back(o2::trd::getTRDCalibWriterSpec());
     }
   }
 

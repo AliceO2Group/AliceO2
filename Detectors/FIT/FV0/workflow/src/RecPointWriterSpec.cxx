@@ -12,7 +12,6 @@
 /// @file   RecPointWriterSpec.cxx
 
 #include <vector>
-
 #include "FV0Workflow/RecPointWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsFV0/RecPoints.h"

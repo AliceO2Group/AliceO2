@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   MID/Raw/src/ROBoard.cxx
+/// \file   MID/src/ROBoard.cxx
 /// \brief  Structure to store the readout board information
 /// \author Diego Stocco <Diego.Stocco at cern.ch>
 /// \date   19 November 2019
@@ -23,12 +23,11 @@ namespace o2
 {
 namespace mid
 {
-std::ostream& operator<<(std::ostream& os, const ROBoard& loc)
+std::ostream& operator<<(std::ostream& os, const ROBoard& board)
 {
-  /// Stream operator for ROBoard
-  os << fmt::format("Crate ID: {:2d}  {} ID: {:2d}  status: 0x{:2x}  trig: 0x{:2x}  fired: 0x{:1x}", static_cast<int>(raw::getCrateId(loc.boardId)), (raw::isLoc(loc.statusWord) ? "Loc" : "Reg"), static_cast<int>(raw::getLocId(loc.boardId)), static_cast<int>(loc.statusWord), static_cast<int>(loc.triggerWord), static_cast<int>(loc.firedChambers));
+  os << fmt::format("Crate ID: {:2d}  {} ID: {:2d}  status: 0x{:2x}  trig: 0x{:2x}  fired: 0x{:1x}", static_cast<int>(raw::getCrateId(board.boardId)), (raw::isLoc(board.statusWord) ? "Loc" : "Reg"), static_cast<int>(raw::getLocId(board.boardId)), static_cast<int>(board.statusWord), static_cast<int>(board.triggerWord), static_cast<int>(board.firedChambers));
   for (int ich = 0; ich < 4; ++ich) {
-    os << fmt::format("  X: 0x{:4x} Y: 0x{:4x}", loc.patternsBP[ich], loc.patternsNBP[ich]);
+    os << fmt::format("  X: 0x{:4x} Y: 0x{:4x}", board.patternsBP[ich], board.patternsNBP[ich]);
   }
   return os;
 }

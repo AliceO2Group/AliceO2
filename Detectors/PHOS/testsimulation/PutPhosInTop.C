@@ -6,6 +6,7 @@
 #include "DetectorsPassive/Cave.h"
 #include "DetectorsPassive/FrameStructure.h"
 #include "FairRunSim.h"
+#include <FairRootFileSink.h>
 #include "PHOSSimulation/Detector.h"
 #endif
 
@@ -23,7 +24,7 @@ void PutPhosInTop()
 
   // Create simulation run
   FairRunSim* run = new FairRunSim();
-  run->SetOutputFile("foo.root"); // Output file
+  run->SetSink(new FairRootFileSink("foo.root")); // Output file
   run->SetName("TGeant3");        // Transport engine
   // Create media
   run->SetMaterials("media.geo"); // Materials

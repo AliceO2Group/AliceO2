@@ -68,7 +68,7 @@ void o2::tpc::IDCFourierTransform<Type>::calcFourierCoefficientsNaive(const o2::
     return;
   }
 
-  const std::vector<unsigned int> offsetIndex = this->getLastIntervals(side);
+  const auto offsetIndex = this->getLastIntervals(side);
 
   // see: https://en.wikipedia.org/wiki/Discrete_Fourier_transform#Definitiona
   const bool add = mFourierCoefficients.getNCoefficientsPerTF() % 2;

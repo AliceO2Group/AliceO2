@@ -55,7 +55,7 @@ namespace gpu
 {
 //class GPUTRDTrackerGPU;
 class GPUTPCGPUTracker;
-class GPUDisplay;
+class GPUDisplayInterface;
 class GPUQA;
 class GPUTPCClusterStatistics;
 class GPUTRDGeometry;
@@ -78,10 +78,12 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int Finalize() override;
   int RunChain() override;
   void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
-  int CheckErrorCodes(bool cpuOnly = false) override;
+  int CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false) override;
   bool SupportsDoublePipeline() override { return true; }
   int FinalizePipelinedProcessing() override;
-  void ClearErrorCodes();
+  void ClearErrorCodes(bool cpuOnly = false);
+  void DoQueuedCalibUpdates(int stream); // Forces doing queue calib updates, don't call when you are not sure you are allowed to do so!
+  bool QARanForTF() const { return mFractionalQAEnabled; }
 
   // Structures for input and output data
   GPUTrackingInOutPointers& mIOPtrs;
@@ -139,7 +141,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int ConvertNativeToClusterData();
   void ConvertNativeToClusterDataLegacy();
   void ConvertRun2RawToNative();
-  void ConvertZSEncoder(bool zs12bit);
+  void ConvertZSEncoder(int version);
   void ConvertZSFilter(bool zs12bit);
 
   // Getters for external usage of tracker classes
@@ -148,7 +150,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   const GPUTPCTracker* GetTPCSliceTrackers() const { return processors()->tpcTrackers; }
   const GPUTPCGMMerger& GetTPCMerger() const { return processors()->tpcMerger; }
   GPUTPCGMMerger& GetTPCMerger() { return processors()->tpcMerger; }
-  GPUDisplay* GetEventDisplay() { return mEventDisplay.get(); }
+  GPUDisplayInterface* GetEventDisplay() { return mEventDisplay.get(); }
   const GPUQA* GetQA() const { return mQA.get(); }
   GPUQA* GetQA() { return mQA.get(); }
   int ForceInitQA();
@@ -169,6 +171,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // Getters / setters for parameters
   const TPCFastTransform* GetTPCTransform() const { return processors()->calibObjects.fastTransform; }
   const TPCPadGainCalib* GetTPCPadGainCalib() const { return processors()->calibObjects.tpcPadGain; }
+  const TPCZSLinkMapping* GetTPCZSLinkMapping() const { return processors()->calibObjects.tpcZSLinkMapping; }
   const o2::tpc::CalibdEdxContainer* GetdEdxCalibContainer() const { return processors()->calibObjects.dEdxCalibContainer; }
   const o2::base::MatLayerCylSet* GetMatLUT() const { return processors()->calibObjects.matLUT; }
   const GPUTRDGeometry* GetTRDGeometry() const { return (GPUTRDGeometry*)processors()->calibObjects.trdGeometry; }
@@ -197,6 +200,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   const GPUSettingsDisplay* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
   const GPUSettingsQA* mConfigQA = nullptr;           // Abstract pointer to Standalone QA Configuration Structure
+  bool mFractionalQAEnabled = false;
 
  protected:
   struct GPUTrackingFlatObjects : public GPUProcessor {
@@ -251,13 +255,14 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   // Display / QA
   bool mDisplayRunning = false;
-  std::unique_ptr<GPUDisplay> mEventDisplay;
+  std::unique_ptr<GPUDisplayInterface> mEventDisplay;
   std::unique_ptr<GPUQA> mQA;
   std::unique_ptr<GPUTPCClusterStatistics> mCompressionStatistics;
 
   // Ptr to detector / calibration objects
   std::unique_ptr<TPCFastTransform> mTPCFastTransformU;              // Global TPC fast transformation object
   std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibU;                // TPC gain calibration and cluster finder parameters
+  std::unique_ptr<TPCZSLinkMapping> mTPCZSLinkMappingU;              // TPC Mapping data required by ZS Link decoder
   std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainerU; // TPC dEdx calibration container
   std::unique_ptr<o2::base::MatLayerCylSet> mMatLUTU;                // Material Lookup Table
   std::unique_ptr<o2::trd::GeometryFlat> mTRDGeometryU;              // TRD Geometry

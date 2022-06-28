@@ -62,6 +62,10 @@ HBFUtilsInitializer::HBFUtilsInitializer(const o2f::ConfigContext& configcontext
     return confTFInfo;
   };
 
+  if (configcontext.options().hasOption("disable-root-input") && configcontext.options().get<bool>("disable-root-input")) {
+    return; // we apply HBFUtilsInitializer only in case of root readers
+  }
+
   const auto& hbfu = o2::raw::HBFUtils::Instance();
   for (auto& spec : wf) {
     if (spec.inputs.empty()) {
@@ -103,7 +107,7 @@ std::vector<o2::dataformats::TFIDInfo> HBFUtilsInitializer::readTFIDInfoVector(c
 }
 
 //_________________________________________________________
-void HBFUtilsInitializer::assignDataHeader(const std::vector<o2::dataformats::TFIDInfo>& tfinfoVec, o2::header::DataHeader& dh)
+void HBFUtilsInitializer::assignDataHeader(const std::vector<o2::dataformats::TFIDInfo>& tfinfoVec, o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph)
 {
   const auto tfinf = tfinfoVec[dh.tfCounter % tfinfoVec.size()];
   LOGP(debug, "Setting DH for {}/{} from tfCounter={} firstTForbit={} runNumber={} to tfCounter={} firstTForbit={} runNumber={}",
@@ -111,6 +115,7 @@ void HBFUtilsInitializer::assignDataHeader(const std::vector<o2::dataformats::TF
   dh.firstTForbit = tfinf.firstTForbit;
   dh.tfCounter = tfinf.tfCounter;
   dh.runNumber = tfinf.runNumber;
+  dph.creation = tfinf.creation;
 }
 
 //_________________________________________________________
@@ -127,13 +132,14 @@ void HBFUtilsInitializer::addNewTimeSliceCallback(std::vector<o2::framework::Cal
           throw std::runtime_error(fmt::format("file {} does not exist", fname));
         }
         service.set(o2::framework::CallbackService::Id::NewTimeslice,
-                    [tfidinfo = readTFIDInfoVector(fname)](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader&) { assignDataHeader(tfidinfo, dh); });
+                    [tfidinfo = readTFIDInfoVector(fname)](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) { assignDataHeader(tfidinfo, dh, dph); });
       } else { // simple linear enumeration from already updated HBFUtils
         const auto& hbfu = o2::raw::HBFUtils::Instance();
         service.set(o2::framework::CallbackService::Id::NewTimeslice,
                     [offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit), increment = int64_t(hbfu.nHBFPerTF),
-                     startTime = hbfu.startTime, orbitFirst = hbfu.orbitFirst](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
+                     startTime = hbfu.startTime, orbitFirst = hbfu.orbitFirst, runNumber = hbfu.runNumber](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
                       dh.firstTForbit = offset + increment * dh.tfCounter;
+                      dh.runNumber = runNumber;
                       dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
                     });
       }

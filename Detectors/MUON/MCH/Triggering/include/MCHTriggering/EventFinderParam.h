@@ -13,8 +13,8 @@
 /// \brief Configurable parameters to group MCH digits based on MID information
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MCH_EVENTFINDERPARAM_H_
-#define ALICEO2_MCH_EVENTFINDERPARAM_H_
+#ifndef O2_MCH_EVENTFINDERPARAM_H_
+#define O2_MCH_EVENTFINDERPARAM_H_
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
@@ -35,4 +35,4 @@ struct EventFinderParam : public o2::conf::ConfigurableParamHelper<EventFinderPa
 } // namespace mch
 } // namespace o2
 
-#endif // ALICEO2_MCH_EVENTFINDERPARAM_H_
+#endif // O2_MCH_EVENTFINDERPARAM_H_

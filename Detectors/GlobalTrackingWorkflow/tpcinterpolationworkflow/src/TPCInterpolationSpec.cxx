@@ -130,7 +130,9 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"GLO", "TPCINT_RES", 0, Lifetime::Timeframe}, mInterpolation.getClusterResiduals());
   }
   pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0, Lifetime::Timeframe}, mResidualProcessor.getUnbinnedResiduals());
-  mTimer.Stop();
+
+  mInterpolation.reset();
+  mResidualProcessor.resetUnbinnedResiduals();
 }
 
 void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)

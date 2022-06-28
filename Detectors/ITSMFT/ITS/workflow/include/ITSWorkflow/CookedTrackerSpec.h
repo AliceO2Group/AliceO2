@@ -16,6 +16,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "ITSReconstruction/CookedTracker.h"
+#include "ITStracking/TimeFrame.h"
 #include "ITStracking/Vertexer.h"
 #include "ITStracking/VertexerTraits.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -38,13 +39,17 @@ class CookedTrackerDPL : public Task
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
+  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
 
  private:
+  void updateTimeDependentParams(ProcessingContext& pc);
+
   int mState = 0;
   bool mUseMC = true;
   bool mRunVertexer = true;
   std::string mMode = "async";
-  o2::itsmft::TopologyDictionary mDict;
+  const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   o2::its::CookedTracker mTracker;
   std::unique_ptr<VertexerTraits> mVertexerTraitsPtr = nullptr;

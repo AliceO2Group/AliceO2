@@ -33,6 +33,8 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
 {
  public:
   ~GPUReconstructionHIPBackend() override;
+  int GPUFailedMsgAI(const long long int error, const char* file, int line);
+  void GPUFailedMsgA(const long long int error, const char* file, int line);
 
  protected:
   GPUReconstructionHIPBackend(const GPUSettingsDeviceBackend& cfg);
@@ -58,6 +60,7 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
   void RecordMarker(deviceEvent* ev, int stream) override;
 
   void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits) override;
+  void GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame) override;
 
   void PrintKernelOccupancies() override;
 

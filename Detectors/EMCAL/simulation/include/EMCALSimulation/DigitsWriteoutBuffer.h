@@ -19,7 +19,9 @@
 #include <list>
 #include <gsl/span>
 #include "DataFormatsEMCAL/Digit.h"
+#include "CommonDataFormat/InteractionRecord.h"
 #include "EMCALSimulation/LabeledDigit.h"
+#include "EMCALSimulation/DigitsVectorStream.h"
 
 namespace o2
 {
@@ -37,36 +39,74 @@ class DigitsWriteoutBuffer
 {
  public:
   /// Default constructor
-  DigitsWriteoutBuffer(unsigned int nTimeBins = 30, unsigned int binWidth = 100);
+  DigitsWriteoutBuffer(unsigned int nTimeBins = 15);
 
   /// Destructor
   ~DigitsWriteoutBuffer() = default;
 
   /// clear the container
   void clear();
+
+  /// clear DigitsVectorStream
+  void flush() { mDigitStream.clear(); }
+
+  void init();
+
+  /// Reserve space for the future container
   void reserve();
+
+  /// This is for the readout window that was interrupted by the end of the run
+  void finish();
+
+  double getTriggerTime() const { return mTriggerTime; }
+  double getEventTime() const { return mLastEventTime; }
+  bool isLive(double t) const { return ((t - mTriggerTime) < mLiveTime || (t - mTriggerTime) >= (mLiveTime + mBusyTime - mPreTriggerTime)); }
+  bool isLive() const { return ((mLastEventTime - mTriggerTime) < mLiveTime || (mLastEventTime - mTriggerTime) >= (mLiveTime + mBusyTime - mPreTriggerTime)); }
+
+  // function returns true if the collision occurs 600ns before the readout window is open
+  // Look here for more details https://alice.its.cern.ch/jira/browse/EMCAL-681
+  bool preTriggerCollision() const { return ((mLastEventTime - mTriggerTime) >= (mLiveTime + mBusyTime - mPreTriggerTime)); }
 
   /// Add digit to the container
   /// \param towerID Cell ID
   /// \param dig Labaled digit to add
   /// \param eventTime The time of the event (w.r.t Tigger time)
-  void addDigit(unsigned int towerID, LabeledDigit dig, double eventTime);
+  void addDigits(unsigned int towerID, std::vector<LabeledDigit>& digList);
 
-  /// Getter for the last N entries (time samples) in the ring buffer
-  /// \param nsample number of entries to be written
-  /// \return List of map of cell IDs and labeled digits in that cell
-  std::list<std::unordered_map<int, std::list<LabeledDigit>>> getLastNSamples(int nsample = 15);
+  /// This function sets the right time for all digits in the buffer
+  void setSampledDigitsTime();
 
-  void setNumberReadoutSamples(unsigned int nsamples) { mNumberReadoutSamples = nsamples; }
+  /// Setting the buffer size
+  void setBufferSize(unsigned int nsamples) { mBufferSize = nsamples; }
+  unsigned int getBufferSize() const { return mBufferSize; }
 
-  std::deque<std::unordered_map<int, std::list<LabeledDigit>>> getTheWholeSample() { return mTimedDigits; }
+  /// forward the marker for every 100 ns
+  void forwardMarker(o2::InteractionTimeRecord record);
+
+  /// Setters for the live time, busy time, pre-trigger time
+  void setLiveTime(unsigned int liveTime) { mLiveTime = liveTime; }
+  void setBusyTime(unsigned int busyTime) { mBusyTime = busyTime; }
+  void setPreTriggerTime(unsigned int pretriggerTime) { mPreTriggerTime = pretriggerTime; }
+
+  unsigned int getPhase() const { return mPhase; }
+
+  const std::vector<o2::emcal::Digit>& getDigits() const { return mDigitStream.getDigits(); }
+  const std::vector<o2::emcal::TriggerRecord>& getTriggerRecords() const { return mDigitStream.getTriggerRecords(); }
+  const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& getMCLabels() const { return mDigitStream.getMCLabels(); }
 
  private:
-  unsigned int mBufferSize = 30;                                             ///< The size of the buffer, it has to be at least 2 times the size of the readout cycle
-  unsigned int mTimeBinWidth = 100;                                          ///< The size of the time bin (ns)
-  unsigned int mNumberReadoutSamples = 15;                                   ///< The number of smaples in a readout window
-  double mLastEventTime = 1500;                                              ///< The event time of last collisions in the readout window
-  std::deque<std::unordered_map<int, std::list<LabeledDigit>>> mTimedDigits; ///< Container for time sampled digits per tower ID
+  unsigned int mBufferSize = 15;                          ///< The size of the buffer
+  unsigned int mLiveTime = 1500;                          ///< EMCal live time (ns)
+  unsigned int mBusyTime = 35000;                         ///< EMCal busy time (ns)
+  unsigned int mPreTriggerTime = 600;                     ///< EMCal pre-trigger time (ns)
+  unsigned long mTriggerTime = 0;                         ///< Time of the collision that fired the trigger (ns)
+  unsigned long mLastEventTime = 0;                       ///< The event time of last collisions in the readout window
+  unsigned int mPhase = 0;                                ///< The event L1 phase
+  bool mFirstEvent = true;                                ///< Flag to the first event in the run
+  std::deque<o2::emcal::DigitTimebin> mTimedDigitsFuture; ///< Container for time sampled digits per tower ID for future digits
+  std::deque<o2::emcal::DigitTimebin> mTimedDigitsPast;   ///< Container for time sampled digits per tower ID for past digits
+
+  o2::emcal::DigitsVectorStream mDigitStream; ///< Output vector streamer
 
   ClassDefNV(DigitsWriteoutBuffer, 1);
 };

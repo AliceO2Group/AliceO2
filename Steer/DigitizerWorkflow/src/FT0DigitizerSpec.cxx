@@ -27,6 +27,13 @@
 #include "Framework/Task.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
+#include "CCDB/BasicCCDBManager.h"
+#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
+#include "DetectorsRaw/HBFUtils.h"
+#include "Framework/CCDBParamSpec.h"
 #include <TChain.h>
 #include <TStopwatch.h>
 
@@ -44,7 +51,7 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
   using GRP = o2::parameters::GRPObject;
 
  public:
-  FT0DPLDigitizerTask() : o2::base::BaseDPLDigitizer(), mDigitizer() {}
+  FT0DPLDigitizerTask(bool useCCDB) : o2::base::BaseDPLDigitizer(), mDigitizer(), mUseCCDB{useCCDB} {}
   ~FT0DPLDigitizerTask() override = default;
 
   void initDigitizerTask(framework::InitContext& ic) override
@@ -52,6 +59,14 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     mDigitizer.init();
     mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
     mDisableQED = ic.options().get<bool>("disable-qed");
+  }
+
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+  {
+    if (matcher == ConcreteDataMatcher("FT0", "TimeOffset", 0)) {
+      mUpdateCCDB = false;
+      return;
+    }
   }
 
   void run(framework::ProcessingContext& pc)
@@ -66,7 +81,11 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     context->initSimChains(o2::detectors::DetID::FT0, mSimChains);
     const bool withQED = context->isQEDProvided() && !mDisableQED;
     auto& timesview = context->getEventRecords(withQED);
-
+    //set CCDB for miscalibration
+    if (mUseCCDB) {
+      auto caliboffsets = pc.inputs().get<o2::ft0::FT0ChannelTimeCalibrationObject*>("ft0offsets");
+      mDigitizer.SetChannelOffset(caliboffsets.get());
+    }
     // if there is nothing to do ... return
     if (timesview.size() == 0) {
       return;
@@ -138,18 +157,18 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
   //
   bool mDisableQED = false;
-
+  bool mUseCCDB = true;
+  bool mUpdateCCDB = true;
   std::vector<TChain*> mSimChains;
 };
 
-o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel, bool mctruth)
+o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel, bool mctruth, bool useCCDB)
 {
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
-
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("FT0", "DIGITSBC", 0, Lifetime::Timeframe);
   outputs.emplace_back("FT0", "DIGITSCH", 0, Lifetime::Timeframe);
@@ -158,12 +177,18 @@ o2::framework::DataProcessorSpec getFT0DigitizerSpec(int channel, bool mctruth)
     outputs.emplace_back("FT0", "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back("FT0", "ROMode", 0, Lifetime::Timeframe);
-
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  if (useCCDB) {
+    inputs.emplace_back("ft0offsets", "FT0", "TimeOffset", 0,
+                        Lifetime::Condition,
+                        ccdbParamSpec("FT0/Calib/ChannelTimeOffset"));
+  }
   return DataProcessorSpec{
     "FT0Digitizer",
-    Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+    inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<FT0DPLDigitizerTask>()},
+    AlgorithmSpec{adaptFromTask<FT0DPLDigitizerTask>(useCCDB)},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
             {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
 }

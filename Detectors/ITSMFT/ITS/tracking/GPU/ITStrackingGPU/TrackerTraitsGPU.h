@@ -9,41 +9,41 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file TrackerTraitsNV.h
-/// \brief
-///
 
 #ifndef ITSTRACKINGGPU_TRACKERTRAITSGPU_H_
 #define ITSTRACKINGGPU_TRACKERTRAITSGPU_H_
 
-#ifndef GPUCA_GPUCODE_GENRTC
-#include <cub/cub.cuh>
-#include <cstdint>
-#endif
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/TrackerTraits.h"
+#include "ITStrackingGPU/TimeFrameGPU.h"
 
 namespace o2
 {
 namespace its
 {
+namespace gpu
+{
+template <int NLayers>
+struct StaticTrackingParameters;
+}
 
-class PrimaryVertexContext;
-
-class TrackerTraitsNV : public TrackerTraits
+template <int NLayers = 7>
+class TrackerTraitsGPU : public TrackerTraits
 {
  public:
-  TrackerTraitsNV() = default;
-  ~TrackerTraitsNV() override = default;
+  TrackerTraitsGPU() = default;
+  ~TrackerTraitsGPU() override = default;
 
-  void computeLayerCells() final;
+  // void computeLayerCells() final;
   void computeLayerTracklets() final;
-  void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks) override;
-};
+  // void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks) override;
 
-extern "C" TrackerTraits* createTrackerTraitsNV();
+ private:
+  gpu::TimeFrameGPU<NLayers> mTimeFrameGPU;
+  gpu::StaticTrackingParameters<NLayers>* mStaticTrkPars;
+};
 } // namespace its
 } // namespace o2
 
-#endif /* TRACKINGITSU_INCLUDE_TRACKERTRAITS_H_ */
+#endif

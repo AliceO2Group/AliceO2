@@ -14,6 +14,7 @@ o2_add_library(SimConfig
                        src/SimParams.cxx
                        src/SimUserDecay.cxx
                        src/DigiParams.cxx src/G4Params.cxx
+                       src/MatMapParams.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
                                      FairRoot::Base Boost::program_options)
@@ -24,7 +25,8 @@ o2_target_root_dictionary(SimConfig
                                   include/SimConfig/SimParams.h
                                   include/SimConfig/SimUserDecay.h
 		include/SimConfig/DigiParams.h
-                                  include/SimConfig/G4Params.h)
+                                  include/SimConfig/G4Params.h
+                                  include/SimConfig/MatMapParams.h)
 
 o2_add_test(Config
             SOURCES test/TestConfig.cxx

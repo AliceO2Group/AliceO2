@@ -18,6 +18,7 @@
 #define O2_MID_PRECLUSTERIZER_H
 
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <gsl/gsl>
 #include "MIDBase/Mapping.h"
@@ -33,8 +34,14 @@ namespace mid
 class PreClusterizer
 {
  public:
-  bool init();
+  /// Builds the pre-clusters from the strip patterns in the event
+  /// \param stripPatterns Vector of strip patterns per column
+  /// \param accumulate Flag to decide if one needs to reset the output preclusters at each event
   void process(gsl::span<const ColumnData> stripPatterns, bool accumulate = false);
+
+  /// Builds the pre-clusters from the strip patterns in the timeframe
+  /// \param stripPatterns Vector of strip patterns per column
+  /// \param rofRecords RO frame records
   void process(gsl::span<const ColumnData> stripPatterns, gsl::span<const ROFRecord> rofRecords);
 
   /// Gets the vector of reconstructed pre-clusters
@@ -45,21 +52,29 @@ class PreClusterizer
 
  private:
   struct PatternStruct {
-    int deId = 0;                      ///< Detection element ID
+    uint8_t deId = 0;                  ///< Detection element ID
     int firedColumns = 0;              ///< Fired columns
     std::array<ColumnData, 7> columns; ///< Array of strip patterns
   };
 
+  /// Fills the mpDE structure with fired pads
+  /// \param stripPatterns Vector of strip patterns per column
+  /// \return true if stripPatterns is not empty
   bool loadPatterns(gsl::span<const ColumnData>& stripPatterns);
 
+  /// Builds the pre-clusters for the Bending Plane
+  /// \param de structure containing the ordered strip patterns for one Detection Element
   void preClusterizeBP(PatternStruct& de);
+
+  /// Builds the pre-clusters for the Non-Bending Plane
+  /// \param de structure containing the ordered strip patterns for one Detection Element
   void preClusterizeNBP(PatternStruct& de);
 
-  Mapping mMapping;                              ///< Mapping
-  std::unordered_map<int, PatternStruct> mMpDEs; ///< Internal mapping
-  std::unordered_map<int, bool> mActiveDEs;      ///< List of active detection elements for event
-  std::vector<PreCluster> mPreClusters;          ///< List of pre-clusters
-  std::vector<ROFRecord> mROFRecords;            ///< List of pre-clusters RO frame records
+  Mapping mMapping;                                  //!< Mapping
+  std::unordered_map<uint8_t, PatternStruct> mMpDEs; //!< Internal mapping
+  std::unordered_set<uint8_t> mActiveDEs;            //!< List of active detection elements for event
+  std::vector<PreCluster> mPreClusters;              ///< List of pre-clusters
+  std::vector<ROFRecord> mROFRecords;                ///< List of pre-clusters RO frame records
 };
 } // namespace mid
 } // namespace o2

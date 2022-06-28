@@ -12,10 +12,16 @@
 #include "TOFWorkflowIO/TOFDigitWriterSplitterSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
 
 // ------------------------------------------------------------------
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:TOF|tof).*[W,w]riter.*"));
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)

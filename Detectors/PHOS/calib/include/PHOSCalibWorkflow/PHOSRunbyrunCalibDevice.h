@@ -21,6 +21,7 @@
 #include "DataFormatsPHOS/Cluster.h"
 #include "DataFormatsPHOS/BadChannelsMap.h"
 #include "PHOSCalibWorkflow/PHOSRunbyrunCalibrator.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -32,7 +33,7 @@ namespace phos
 class PHOSRunbyrunCalibDevice
 {
  public:
-  PHOSRunbyrunCalibDevice() = default;
+  PHOSRunbyrunCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
 
   void init(o2::framework::InitContext& ic);
 
@@ -40,18 +41,23 @@ class PHOSRunbyrunCalibDevice
 
   void endOfStream(o2::framework::EndOfStreamContext& ec);
 
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  }
+
  protected:
   bool checkFitResult();
 
  private:
   bool mUseCCDB = false;
-  long mRunStartTime = 0;                                 /// start time of the run (sec)
-  std::string mCCDBPath{"http://alice-ccdb.cern.ch"};     /// CCDB path to retrieve current CCDB objects for comparison
-  std::array<float, 8> mRunByRun;                         /// Final calibration object
-  std::unique_ptr<PHOSRunbyrunCalibrator> mCalibrator;    /// Agregator of calibration TimeFrameSlots
+  long mRunStartTime = 0;                              /// start time of the run (sec)
+  std::array<float, 8> mRunByRun;                      /// Final calibration object
+  std::unique_ptr<PHOSRunbyrunCalibrator> mCalibrator; /// Agregator of calibration TimeFrameSlots
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 };
 
-o2::framework::DataProcessorSpec getPHOSRunbyrunCalibDeviceSpec(bool useCCDB, std::string path);
+o2::framework::DataProcessorSpec getPHOSRunbyrunCalibDeviceSpec(bool useCCDB);
 } // namespace phos
 } // namespace o2
 

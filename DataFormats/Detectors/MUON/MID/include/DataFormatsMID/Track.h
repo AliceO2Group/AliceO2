@@ -135,10 +135,13 @@ class Track
   /// \param chamber Chamber ID (from 0 to 3)
   /// \param cathode Cathode (0 or 1)
   /// \return true if the chamber was fired
-  bool idFiredChamber(int chamber, int cathode) const { return mEfficiencyWord & (1 << (4 * cathode + chamber)); }
+  bool isFiredChamber(int chamber, int cathode) const { return mEfficiencyWord & (1 << (4 * cathode + chamber)); }
 
   /// Gets hit map
   uint8_t getHitMap() const { return mEfficiencyWord & 0xFF; }
+
+  /// Gets the word allowing to compute the chamber efficiency
+  uint32_t getEfficiencyWord() const { return mEfficiencyWord; }
 
   /// Sets the fired local board for efficiency calculation
   /// \param locId local board ID in the range 1-234

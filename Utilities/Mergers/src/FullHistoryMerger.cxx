@@ -20,6 +20,7 @@
 
 #include "Headers/DataHeader.h"
 #include "Framework/InputRecordWalker.h"
+#include "Framework/DataRefUtils.h"
 #include "Framework/Logger.h"
 #include <Monitoring/MonitoringFactory.h>
 #include <InfoLogger/InfoLogger.hxx>
@@ -105,7 +106,8 @@ void FullHistoryMerger::clear()
 
 void FullHistoryMerger::updateCache(const DataRef& ref)
 {
-  auto* dh = get<DataHeader*>(ref.header);
+  auto* dh = DataRefUtils::getHeader<DataHeader*>(ref);
+  auto payloadSize = DataRefUtils::getPayloadSize(ref);
   std::string sourceID = std::string(dh->dataOrigin.str) + "/" + std::string(dh->dataDescription.str) + "/" + std::to_string(dh->subSpecification);
 
   // I am not sure if ref.spec is always a concrete spec and not a broader matcher. Comparing it this way should be safer.
@@ -122,8 +124,8 @@ void FullHistoryMerger::updateCache(const DataRef& ref)
     mFirstObjectSerialized.second.spec = new InputSpec(*ref.spec);
     mFirstObjectSerialized.second.header = new char[Stack::headerStackSize(reinterpret_cast<std::byte const*>(dh))];
     memcpy((void*)mFirstObjectSerialized.second.header, ref.header, dh->headerSize);
-    mFirstObjectSerialized.second.payload = new char[dh->payloadSize];
-    memcpy((void*)mFirstObjectSerialized.second.payload, ref.payload, dh->payloadSize);
+    mFirstObjectSerialized.second.payload = new char[payloadSize];
+    memcpy((void*)mFirstObjectSerialized.second.payload, ref.payload, payloadSize);
 
   } else {
     mCache[sourceID] = object_store_helpers::extractObjectFrom(ref);

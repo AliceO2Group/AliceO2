@@ -17,9 +17,7 @@
 #include <functional>
 #include <string>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 WorkflowSpec parallel(DataProcessorSpec original,
@@ -156,5 +154,64 @@ std::vector<InputSpec> select(const char* matcher)
   return DataDescriptorQueryBuilder::parse(matcher);
 }
 
-} // namespace framework
-} // namespace o2
+namespace workflow
+{
+WorkflowSpec combine(char const* name, std::vector<DataProcessorSpec> const& specs, bool doIt)
+{
+  if (!doIt) {
+    return specs;
+  }
+
+  DataProcessorSpec combined;
+  combined.name = name;
+  // add all the inputs to combined
+  for (auto& spec : specs) {
+    for (auto& input : spec.inputs) {
+      combined.inputs.push_back(input);
+    }
+    for (auto& output : spec.outputs) {
+      combined.outputs.push_back(output);
+    }
+    for (auto& option : spec.options) {
+      combined.options.push_back(option);
+    }
+    for (auto& label : spec.labels) {
+      combined.labels.push_back(label);
+    }
+    for (auto& service : spec.requiredServices) {
+      // Insert in the final list of services
+      // only if a spec with the same name is not there
+      // already.
+      bool found = false;
+      for (auto& existing : combined.requiredServices) {
+        if (existing.name == service.name) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        combined.requiredServices.push_back(service);
+      }
+    }
+  }
+
+  combined.algorithm = AlgorithmSpec{[specs](InitContext& ctx) {
+    std::vector<AlgorithmSpec::ProcessCallback> callbacks;
+    for (auto& spec : specs) {
+      if (spec.algorithm.onInit) {
+        callbacks.push_back(spec.algorithm.onInit(ctx));
+      } else if (spec.algorithm.onProcess) {
+        callbacks.push_back(spec.algorithm.onProcess);
+      }
+    }
+    return [callbacks](ProcessingContext& context) {
+      for (auto& callback : callbacks) {
+        callback(context);
+      }
+    };
+  }};
+  return {combined};
+}
+} // namespace workflow
+
+} // namespace o2::framework

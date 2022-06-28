@@ -17,6 +17,7 @@
 #include <thread>
 #include <cmath>
 #include <chrono>
+#include <regex>
 
 using namespace o2::conf;
 namespace bpo = boost::program_options;
@@ -25,7 +26,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
 {
   int nsimworkersdefault = std::max(1u, std::thread::hardware_concurrency() / 2);
   options.add_options()(
-    "mcEngine,e", bpo::value<std::string>()->default_value("TGeant3"), "VMC backend to be used.")(
+    "mcEngine,e", bpo::value<std::string>()->default_value("TGeant4"), "VMC backend to be used.")(
     "generator,g", bpo::value<std::string>()->default_value("boxgen"), "Event generator to be used.")(
     "trigger,t", bpo::value<std::string>()->default_value(""), "Event generator trigger to be used.")(
     "modules,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({"all"}), "all modules"), "list of modules included in geometry")(
@@ -48,12 +49,14 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "chunkSize", bpo::value<unsigned int>()->default_value(500), "max size of primary chunk (subevent) distributed by server")(
     "chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize")(
     "seed", bpo::value<int>()->default_value(-1), "initial seed (default: -1 random)")(
-    "field", bpo::value<std::string>()->default_value("-5"), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0; +-<intKGaus>U for uniform field ")(
+    "field", bpo::value<std::string>()->default_value("-5"), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0; +-<intKGaus>U for uniform field; \"ccdb\" for taking it from CCDB ")(
     "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)")(
     "noemptyevents", "only writes events with at least one hit")(
-    "CCDBUrl", bpo::value<std::string>()->default_value("ccdb-test.cern.ch:8080"), "URL for CCDB to be used.")(
-    "timestamp", bpo::value<uint64_t>(), "global timestamp value in ms (for anchoring) - default is now")(
-    "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode");
+    "CCDBUrl", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "URL for CCDB to be used.")(
+    "timestamp", bpo::value<uint64_t>(), "global timestamp value in ms (for anchoring) - default is now ... or beginning of run if ALICE run number was given")(
+    "run", bpo::value<int>()->default_value(-1), "ALICE run number")(
+    "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode")(
+    "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)");
 }
 
 bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
@@ -66,7 +69,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
     activeModules.clear();
     for (int d = DetID::First; d <= DetID::Last; ++d) {
 #ifdef ENABLE_UPGRADES
-      if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3) {
+      if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT) {
         activeModules.emplace_back(DetID::getName(d));
       }
 #else
@@ -99,12 +102,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   readoutDetectors.clear();
 
   auto isDet = [](std::string const& s) {
-    auto d = DetID::nameToID(s.c_str());
-#ifdef ENABLE_UPGRADES
-    return d >= DetID::First && d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3;
-#else
-    return d >= DetID::First;
-#endif
+    return DetID::nameToID(s.c_str()) >= DetID::First;
   };
 
   if (enableReadout.empty()) {
@@ -163,16 +161,35 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mSimWorkers = vm["nworkers"].as<int>();
   if (vm.count("timestamp")) {
     mConfigData.mTimestamp = vm["timestamp"].as<uint64_t>();
+    mConfigData.mTimestampMode = kManual;
   } else {
     mConfigData.mTimestamp = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    mConfigData.mTimestampMode = kNow;
   }
+  mConfigData.mRunNumber = vm["run"].as<int>();
   mConfigData.mCCDBUrl = vm["CCDBUrl"].as<std::string>();
   mConfigData.mAsService = vm["asservice"].as<bool>();
+  mConfigData.mNoGeant = vm["noGeant"].as<bool>();
   if (vm.count("noemptyevents")) {
     mConfigData.mFilterNoHitEvents = true;
   }
-  mConfigData.mField = std::stoi((vm["field"].as<std::string>()).substr(0, (vm["field"].as<std::string>()).rfind("U")));
-  mConfigData.mUniformField = (vm["field"].as<std::string>()).find("U") != std::string::npos;
+
+  // analyse field options
+  // either: "ccdb" or +-2[U],+-5[U] and 0[U]; +-<intKGaus>U
+  auto& fieldstring = vm["field"].as<std::string>();
+  std::regex re("(ccdb)|([+-]?[250]U?)");
+  if (!std::regex_match(fieldstring, re)) {
+    LOG(error) << "Invalid field option";
+    return false;
+  }
+  if (fieldstring == "ccdb") {
+    mConfigData.mFieldMode = SimFieldMode::kCCDB;
+  } else if (fieldstring.find("U") != std::string::npos) {
+    mConfigData.mFieldMode = SimFieldMode::kUniform;
+  }
+  if (fieldstring != "ccdb") {
+    mConfigData.mField = std::stoi((vm["field"].as<std::string>()).substr(0, (vm["field"].as<std::string>()).rfind("U")));
+  }
   return true;
 }
 

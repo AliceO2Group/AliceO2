@@ -31,5 +31,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #pragma link C++ class o2::mid::MCClusterLabel + ;
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::mid::MCClusterLabel> + ;
+#pragma link C++ class o2::mid::MCLabel + ;
+#pragma link C++ class o2::dataformats::MCTruthContainer < o2::mid::MCLabel> + ;
 
 #endif

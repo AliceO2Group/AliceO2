@@ -15,7 +15,9 @@ o2_add_library(EventVisualisationBase
                        src/DataSourceOffline.cxx
                        src/GeometryManager.cxx
                        src/FileWatcher.cxx
-               PUBLIC_LINK_LIBRARIES ROOT::Eve
+                       src/DirectoryLoader.cxx
+
+        PUBLIC_LINK_LIBRARIES ROOT::Eve
                                      O2::CCDB
                                      O2::EventVisualisationDataConverter
                                      O2::DetectorsBase

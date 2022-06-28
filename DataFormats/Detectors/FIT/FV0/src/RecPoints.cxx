@@ -11,7 +11,6 @@
 
 #include "DataFormatsFV0/RecPoints.h"
 #include <CommonDataFormat/InteractionRecord.h>
-#include <Framework/Logger.h>
 
 using namespace o2::fv0;
 

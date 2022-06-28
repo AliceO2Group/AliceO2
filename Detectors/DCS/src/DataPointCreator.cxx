@@ -31,7 +31,7 @@ namespace o2::dcs
 template <>
 DataPointCompositeObject createDataPointCompositeObject(const std::string& alias, double val, uint32_t seconds, uint16_t msec, uint16_t flags)
 {
-  return createDPCOM(alias, reinterpret_cast<const uint64_t*>(&val), seconds, msec, flags, DeliveryType::RAW_DOUBLE);
+  return createDPCOM(alias, reinterpret_cast<const uint64_t*>(&val), seconds, msec, flags, DeliveryType::DPVAL_DOUBLE);
 }
 
 template <>
@@ -40,34 +40,34 @@ DataPointCompositeObject createDataPointCompositeObject(const std::string& alias
   float tmp[2];
   tmp[0] = val;
   tmp[1] = 0;
-  return createDPCOM(alias, reinterpret_cast<const uint64_t*>(&tmp[0]), seconds, msec, flags, DeliveryType::RAW_FLOAT);
+  return createDPCOM(alias, reinterpret_cast<const uint64_t*>(&tmp[0]), seconds, msec, flags, DeliveryType::DPVAL_FLOAT);
 }
 
 template <>
 DataPointCompositeObject createDataPointCompositeObject(const std::string& alias, int32_t val, uint32_t seconds, uint16_t msec, uint16_t flags)
 {
   int64_t tmp{val};
-  return createDPCOM(alias, reinterpret_cast<const uint64_t*>(&tmp), seconds, msec, flags, DeliveryType::RAW_INT);
+  return createDPCOM(alias, reinterpret_cast<const uint64_t*>(&tmp), seconds, msec, flags, DeliveryType::DPVAL_INT);
 }
 
 template <>
 DataPointCompositeObject createDataPointCompositeObject(const std::string& alias, uint32_t val, uint32_t seconds, uint16_t msec, uint16_t flags)
 {
   uint64_t tmp{val};
-  return createDPCOM(alias, reinterpret_cast<const uint64_t*>(&tmp), seconds, msec, flags, DeliveryType::RAW_UINT);
+  return createDPCOM(alias, reinterpret_cast<const uint64_t*>(&tmp), seconds, msec, flags, DeliveryType::DPVAL_UINT);
 }
 
 template <>
 DataPointCompositeObject createDataPointCompositeObject(const std::string& alias, char val, uint32_t seconds, uint16_t msec, uint16_t flags)
 {
-  return createDPCOM(alias, reinterpret_cast<const uint64_t*>(&val), seconds, msec, flags, DeliveryType::RAW_CHAR);
+  return createDPCOM(alias, reinterpret_cast<const uint64_t*>(&val), seconds, msec, flags, DeliveryType::DPVAL_CHAR);
 }
 
 template <>
 DataPointCompositeObject createDataPointCompositeObject(const std::string& alias, bool val, uint32_t seconds, uint16_t msec, uint16_t flags)
 {
   uint64_t tmp{val};
-  return createDPCOM(alias, reinterpret_cast<const uint64_t*>(&tmp), seconds, msec, flags, DeliveryType::RAW_BOOL);
+  return createDPCOM(alias, reinterpret_cast<const uint64_t*>(&tmp), seconds, msec, flags, DeliveryType::DPVAL_BOOL);
 }
 
 template <>
@@ -76,7 +76,7 @@ DataPointCompositeObject createDataPointCompositeObject(const std::string& alias
   constexpr int N{56};
   char str[N];
   strncpy(str, val.c_str(), N);
-  return createDPCOM(alias, reinterpret_cast<const uint64_t*>(&str[0]), seconds, msec, flags, DeliveryType::RAW_STRING);
+  return createDPCOM(alias, reinterpret_cast<const uint64_t*>(&str[0]), seconds, msec, flags, DeliveryType::DPVAL_STRING);
 }
 
 } // namespace o2::dcs

@@ -99,15 +99,16 @@ bool NoiseSlotCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClust
     }
   }
 
+  noiseMap.addStrobes(rofs.size());
   mNumberOfStrobes += rofs.size();
   return hasEnoughData(slotTF);
 }
 
 // Functions overloaded from the calibration framework
-bool NoiseSlotCalibrator::process(calibration::TFType tf, const gsl::span<const o2::itsmft::CompClusterExt> data)
+bool NoiseSlotCalibrator::process(const gsl::span<const o2::itsmft::CompClusterExt> data)
 {
   LOG(warning) << "Only 1-pix noise calibraton is possible !";
-  return calibration::TimeSlotCalibration<o2::itsmft::CompClusterExt, o2::itsmft::NoiseMap>::process(tf, data);
+  return calibration::TimeSlotCalibration<o2::itsmft::CompClusterExt, o2::itsmft::NoiseMap>::process(data);
 }
 
 // Functions required by the calibration framework
@@ -120,16 +121,16 @@ Slot& NoiseSlotCalibrator::emplaceNewSlot(bool front, calibration::TFType tstart
   return slot;
 }
 
-bool NoiseSlotCalibrator::hasEnoughData(const Slot&) const
+bool NoiseSlotCalibrator::hasEnoughData(const Slot& slot) const
 {
-  return (mNumberOfStrobes * mProbabilityThreshold >= mThreshold) ? true : false;
+  return slot.getContainer()->getNumberOfStrobes() > mMinROFs ? true : false;
 }
 
 void NoiseSlotCalibrator::finalizeSlot(Slot& slot)
 {
-  LOG(info) << "Number of processed strobes is " << mNumberOfStrobes;
   o2::itsmft::NoiseMap* map = slot.getContainer();
-  map->applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
+  LOG(info) << "Number of processed strobes is " << map->getNumberOfStrobes();
+  map->applyProbThreshold(mProbabilityThreshold, map->getNumberOfStrobes(), mProbRelErr);
 }
 
 } // namespace its

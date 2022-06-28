@@ -37,6 +37,9 @@ void SetCuts()
   // \note All following settings could also be set in Cave since it is always loaded.
   // Use MaterialManager to set processes and cuts
   auto& mgr = o2::base::MaterialManager::Instance();
+  // This loads default cuts and processes if they are defined in the MaterialManagerParam.inputFile
+  // The cuts and processes below will only be set if they were not defined in the JSON
+  mgr.loadCutsAndProcessesFromJSON();
   auto& params = o2::GlobalProcessCutSimParam::Instance();
 
   LOG(info) << "Set default settings for processes and cuts.";

@@ -58,7 +58,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"remote-regex", VariantType::String, "^(alien://|)/alice/data/.+", {"regex string to identify remote files"}}); // Use "^/eos/aliceo2/.+" for direct EOS access
   options.push_back(ConfigParamSpec{"max-cached-files", VariantType::Int, 3, {"max CTF files queued (copied for remote source)"}});
   options.push_back(ConfigParamSpec{"allow-missing-detectors", VariantType::Bool, false, {"send empty message if detector is missing in the CTF (otherwise throw)"}});
+  options.push_back(ConfigParamSpec{"send-diststf-0xccdb", VariantType::Bool, false, {"send explicit FLP/DISTSUBTIMEFRAME/0xccdb output"}});
   options.push_back(ConfigParamSpec{"ctf-reader-verbosity", VariantType::Int, 0, {"verbosity level (0: summary per detector, 1: summary per block"}});
+  options.push_back(ConfigParamSpec{"ctf-data-subspec", VariantType::Int, 0, {"subspec to use for decoded CTF messages (use non-0 if CTF writer will be attached downstream)"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
   //
   options.push_back(ConfigParamSpec{"its-digits", VariantType::Bool, false, {"convert ITS clusters to digits"}});
@@ -86,6 +88,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   ctfInput.detMask &= DetID::getMask(allowedDetectors);
   ctfInput.inpdata = configcontext.options().get<std::string>("ctf-input");
+  ctfInput.subspec = (unsigned int)configcontext.options().get<int>("ctf-data-subspec");
   if (ctfInput.inpdata.empty() || ctfInput.inpdata == "none") {
     if (!configcontext.helpOnCommandLine()) {
       throw std::runtime_error("--ctf-input <file,...> is not provided");
@@ -110,58 +113,59 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   ctfInput.tffileRegex = configcontext.options().get<std::string>("ctf-file-regex");
   ctfInput.remoteRegex = configcontext.options().get<std::string>("remote-regex");
   ctfInput.allowMissingDetectors = configcontext.options().get<bool>("allow-missing-detectors");
+  ctfInput.sup0xccdb = !configcontext.options().get<bool>("send-diststf-0xccdb");
 
   specs.push_back(o2::ctf::getCTFReaderSpec(ctfInput));
   int verbosity = configcontext.options().get<int>("ctf-reader-verbosity");
 
   // add decodors for all allowed detectors.
   if (ctfInput.detMask[DetID::ITS]) {
-    specs.push_back(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::ITS), verbosity, configcontext.options().get<bool>("its-digits")));
+    specs.push_back(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::ITS), verbosity, configcontext.options().get<bool>("its-digits"), ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::MFT]) {
-    specs.push_back(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::MFT), verbosity, configcontext.options().get<bool>("mft-digits")));
+    specs.push_back(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::MFT), verbosity, configcontext.options().get<bool>("mft-digits"), ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::TPC]) {
-    specs.push_back(o2::tpc::getEntropyDecoderSpec(verbosity));
+    specs.push_back(o2::tpc::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::TRD]) {
-    specs.push_back(o2::trd::getEntropyDecoderSpec(verbosity));
+    specs.push_back(o2::trd::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::TOF]) {
-    specs.push_back(o2::tof::getEntropyDecoderSpec(verbosity));
+    specs.push_back(o2::tof::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::FT0]) {
-    specs.push_back(o2::ft0::getEntropyDecoderSpec(verbosity));
+    specs.push_back(o2::ft0::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::FV0]) {
-    specs.push_back(o2::fv0::getEntropyDecoderSpec(verbosity));
+    specs.push_back(o2::fv0::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::FDD]) {
-    specs.push_back(o2::fdd::getEntropyDecoderSpec(verbosity));
+    specs.push_back(o2::fdd::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::MID]) {
-    specs.push_back(o2::mid::getEntropyDecoderSpec(verbosity));
+    specs.push_back(o2::mid::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::MCH]) {
-    specs.push_back(o2::mch::getEntropyDecoderSpec(verbosity));
+    specs.push_back(o2::mch::getEntropyDecoderSpec(verbosity, "mch-entropy-decoder", ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::EMC]) {
-    specs.push_back(o2::emcal::getEntropyDecoderSpec(verbosity));
+    specs.push_back(o2::emcal::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::PHS]) {
-    specs.push_back(o2::phos::getEntropyDecoderSpec(verbosity));
+    specs.push_back(o2::phos::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::CPV]) {
-    specs.push_back(o2::cpv::getEntropyDecoderSpec(verbosity));
+    specs.push_back(o2::cpv::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::ZDC]) {
-    specs.push_back(o2::zdc::getEntropyDecoderSpec(verbosity));
+    specs.push_back(o2::zdc::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::HMP]) {
-    specs.push_back(o2::hmpid::getEntropyDecoderSpec(verbosity));
+    specs.push_back(o2::hmpid::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::CTP]) {
-    specs.push_back(o2::ctp::getEntropyDecoderSpec(verbosity));
+    specs.push_back(o2::ctp::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
 
   return std::move(specs);

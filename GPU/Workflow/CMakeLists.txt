@@ -25,12 +25,6 @@ o2_add_library(GPUWorkflow
                                      O2::DataFormatsTRD
                PRIVATE_LINK_LIBRARIES O2::GPUTracking)
 
-if(GPUCA_EVENT_DISPLAY OR
-                      (OPENGL_FOUND AND GLFW_FOUND AND TARGET AliceO2::DebugGUI AND OPENGL_GLU_FOUND
-                      AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
-   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY)
-endif()
-
 o2_add_executable(reco-workflow
        COMPONENT_NAME gpu
        TARGETVARNAME targetName

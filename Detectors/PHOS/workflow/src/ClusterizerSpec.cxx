@@ -15,6 +15,12 @@
 #include "DataFormatsPHOS/PHOSBlockHeader.h"
 #include "PHOSWorkflow/ClusterizerSpec.h"
 #include "Framework/ControlService.h"
+#include "Framework/CCDBParamSpec.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "CommonUtils/NameConf.h"
+#include "CCDB/BasicCCDBManager.h"
+
+#include "Framework/DataRefUtils.h"
 
 using namespace o2::phos::reco_workflow;
 
@@ -22,37 +28,35 @@ void ClusterizerSpec::init(framework::InitContext& ctx)
 {
   LOG(debug) << "[PHOSClusterizer - init] Initialize clusterizer ...";
 
-  //get BadMap and calibration CCDB
-  std::unique_ptr<CalibParams> calibParams; ///! Calibration coefficients
-  std::unique_ptr<BadChannelsMap> badMap;   ///! Bad map
-
-  // if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-  badMap.reset(new BadChannelsMap(1));   // test default map
-  calibParams.reset(new CalibParams(1)); //test calibration map
-  LOG(info) << "No reading BadMap/Calibration from ccdb requested, set default";
-  // } else {
-  //   LOG(info) << "Getting BadMap object from ccdb";
-  //   o2::ccdb::CcdbApi ccdb;
-  //   std::map<std::string, std::string> metadata; // do we want to store any meta data?
-  //   ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
-  //   long bcTime = 1;                             //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
-  // mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelsMap>("PHOS/BadMap", metadata, bcTime);
-  // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, bcTime);
-  // if (!mBadMap) {
-  //   LOG(fatal) << "[PHOSCellConverter - run] can not get Bad Map";
-  // }
-  // if (!mCalibParams) {
-  //   LOG(fatal) << "[PHOSCellConverter - run] can not get CalibParams";
-  // }
-  // }
+  // get BadMap and calibration CCDB
 
   mClusterizer.initialize();
-  mClusterizer.setBadMap(badMap);
-  mClusterizer.setCalibration(calibParams);
+  if (mDefBadMap) {
+    LOG(info) << "No reading BadMap/Calibration from ccdb requested, set default";
+    // create test BadMap and Calib objects. ClusterizerSpec should be owner
+    mCalibParams = std::make_unique<CalibParams>(1); // Create test calibration coefficients
+    mBadMap = std::make_unique<BadChannelsMap>();    // Create empty bad map
+    mClusterizer.setBadMap(mBadMap.get());
+    mClusterizer.setCalibration(mCalibParams.get()); // test calibration map
+    mHasCalib = true;
+  }
 }
 
 void ClusterizerSpec::run(framework::ProcessingContext& ctx)
 {
+
+  // Do not use ccdb if localtest
+  if (!mHasCalib) { // Default map and calibration was not set, use CCDB
+    // update BadMap and calibration if necessary
+    std::decay_t<decltype(ctx.inputs().get<o2::phos::BadChannelsMap*>("badmap"))> badMapPtr{};
+    badMapPtr = ctx.inputs().get<o2::phos::BadChannelsMap*>("badmap");
+    mClusterizer.setBadMap(badMapPtr.get());
+
+    std::decay_t<decltype(ctx.inputs().get<o2::phos::CalibParams*>("calib"))> calibPtr{};
+    calibPtr = ctx.inputs().get<o2::phos::CalibParams*>("calib");
+    mClusterizer.setCalibration(calibPtr.get());
+    mHasCalib = true;
+  }
 
   if (mUseDigits) {
     LOG(debug) << "PHOSClusterizer - run on digits called";
@@ -86,13 +90,10 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
       mClusterizer.process(digits, digitsTR, nullptr, mOutputClusters, mOutputCluElements, mOutputClusterTrigRecs, mOutputTruthCont); // Find clusters on digits (pass by ref)
     }
   } else {
-
-    LOG(debug) << "PHOSClusterizer - run run on cells called";
-
     auto cells = ctx.inputs().get<std::vector<o2::phos::Cell>>("cells");
-    // auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
+    //     auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
     LOG(debug) << "[PHOSClusterizer - run]  Received " << cells.size() << " cells, running clusterizer ...";
-    // auto cellsTR = ctx.inputs().get<gsl::span<o2::phos::TriggerRecord>>("cellTriggerRecords");
+    //     auto cellsTR = ctx.inputs().get<gsl::span<o2::phos::TriggerRecord>>("cellTriggerRecords");
     auto cellsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("cellTriggerRecords");
     if (mPropagateMC) {
       std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>> truthcont(ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("cellsmctr"));
@@ -118,12 +119,16 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
   }
 }
 
-o2::framework::DataProcessorSpec o2::phos::reco_workflow::getClusterizerSpec(bool propagateMC, bool fullClu)
+o2::framework::DataProcessorSpec o2::phos::reco_workflow::getClusterizerSpec(bool propagateMC, bool fullClu, bool defBadMap)
 {
   std::vector<o2::framework::InputSpec> inputs;
   std::vector<o2::framework::OutputSpec> outputs;
   inputs.emplace_back("digits", o2::header::gDataOriginPHS, "DIGITS", 0, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back("digitTriggerRecords", o2::header::gDataOriginPHS, "DIGITTRIGREC", 0, o2::framework::Lifetime::Timeframe);
+  if (!defBadMap) {
+    inputs.emplace_back("badmap", o2::header::gDataOriginPHS, "PHS_BadMap", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/BadMap"));
+    inputs.emplace_back("calib", o2::header::gDataOriginPHS, "PHS_Calib", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/CalibParams"));
+  }
   if (propagateMC) {
     inputs.emplace_back("digitsmctr", "PHS", "DIGITSMCTR", 0, o2::framework::Lifetime::Timeframe);
   }
@@ -139,16 +144,21 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getClusterizerSpec(boo
   return o2::framework::DataProcessorSpec{"PHOSClusterizerSpec",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC, true, fullClu)};
+                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC, true, fullClu, defBadMap),
+                                          o2::framework::Options{}};
 }
 
-o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellClusterizerSpec(bool propagateMC, bool fullClu)
+o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellClusterizerSpec(bool propagateMC, bool fullClu, bool defBadMap)
 {
-  //Cluaterizer with cell input
+  // Cluaterizer with cell input
   std::vector<o2::framework::InputSpec> inputs;
   std::vector<o2::framework::OutputSpec> outputs;
   inputs.emplace_back("cells", o2::header::gDataOriginPHS, "CELLS", 0, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back("cellTriggerRecords", o2::header::gDataOriginPHS, "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe);
+  if (!defBadMap) {
+    inputs.emplace_back("badmap", o2::header::gDataOriginPHS, "PHS_BadMap", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/BadMap"));
+    inputs.emplace_back("calib", o2::header::gDataOriginPHS, "PHS_Calib", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/CalibParams"));
+  }
   if (propagateMC) {
     inputs.emplace_back("cellsmctr", "PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe);
   }
@@ -164,5 +174,6 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellClusterizerSpec
   return o2::framework::DataProcessorSpec{"PHOSClusterizerSpec",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC, false, fullClu)};
+                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC, false, fullClu, defBadMap),
+                                          o2::framework::Options{}};
 }

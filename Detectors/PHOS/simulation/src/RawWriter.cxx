@@ -18,8 +18,10 @@
 #include "PHOSSimulation/RawWriter.h"
 #include "PHOSBase/Mapping.h"
 #include "PHOSBase/PHOSSimParams.h"
-#include "CCDB/CcdbApi.h"
 #include "CommonUtils/NameConf.h"
+#include "CCDB/CcdbApi.h"
+#include "CCDB/BasicCCDBManager.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 
 using namespace o2::phos;
 
@@ -35,17 +37,16 @@ void RawWriter::init()
   short flp, crorc, link;
   for (auto iddl = 0; iddl < o2::phos::Mapping::NDDL; iddl++) {
     // For PHOS set
+    Mapping::ddlToCrorcLink(iddl, flp, crorc, link);
     std::string rawfilename = mOutputLocation;
     switch (mFileFor) {
       case FileFor_t::kFullDet:
         rawfilename += "/phos.raw";
         break;
       case FileFor_t::kCRORC:
-        Mapping::ddlToCrorcLink(iddl, flp, crorc, link);
         rawfilename += fmt::format("/PHS_alio2-cr1-flp{:d}_crorc{:d}.raw", flp, crorc);
         break;
       case FileFor_t::kLink:
-        Mapping::ddlToCrorcLink(iddl, flp, crorc, link);
         rawfilename += fmt::format("/PHS_alio2-cr1-flp{:d}_crorc{:d}_{:d}.raw", flp, crorc, link);
     }
     mRawWriter->registerLink(iddl, crorc, link, 0, rawfilename.data());
@@ -71,18 +72,14 @@ void RawWriter::digitsToRaw(gsl::span<o2::phos::Digit> digitsbranch, gsl::span<o
       LOG(info) << "[RawWriter] No reading calibration from ccdb requested, set default";
     } else {
       LOG(info) << "[RawWriter] getting calibration object from ccdb";
-      o2::ccdb::CcdbApi ccdb;
-      std::map<std::string, std::string> metadata;
-      ccdb.init(o2::base::NameConf::getCCDBServer()); // or http://localhost:8080 for a local installation
-      auto tr = triggerbranch.begin();
-      double eventTime = -1;
-      // if(tr!=triggerbranch.end()){
-      //   eventTime = (*tr).getBCData().getTimeNS() ;
-      // }
-      // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, eventTime);
-      if (!mCalibParams) {
+      auto& ccdbManager = o2::ccdb::BasicCCDBManager::instance();
+      ccdbManager.setURL(o2::base::NameConf::getCCDBServer());
+      LOG(info) << " set-up CCDB " << o2::base::NameConf::getCCDBServer();
+
+      if (!ccdbManager.get<o2::phos::CalibParams>("PHS/Calib/CalibParams")) {
         LOG(fatal) << "[RawWriter] can not get calibration object from ccdb";
       }
+      mCalibParams = std::make_unique<CalibParams>(*(ccdbManager.get<o2::phos::CalibParams>("PHS/Calib/CalibParams")));
     }
   }
 
@@ -93,6 +90,12 @@ void RawWriter::digitsToRaw(gsl::span<o2::phos::Digit> digitsbranch, gsl::span<o
 
 bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, const o2::phos::TriggerRecord& trg)
 {
+  // Account for L0-LM trigger lattency
+  const auto& ctpOffsets = o2::ctp::TriggerOffsetsParam::Instance();
+  o2::InteractionRecord currentIR = trg.getBCData();
+  currentIR += ctpOffsets.LM_L0;
+  // TODO:Should we check if we still within TF?
+
   auto srucont = mSRUdata.begin();
   while (srucont != mSRUdata.end()) {
     srucont->mChannels.clear();
@@ -173,19 +176,19 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       chanhead.mPayloadSize = rawbunches.size();
       chanhead.mMark = 1; // mark channel header
       char* chanheadwords = reinterpret_cast<char*>(&chanhead.mDataWord);
-      for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
+      for (unsigned int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
         payload.emplace_back(chanheadwords[iword]);
       }
       char* channelwords = reinterpret_cast<char*>(encodedbunches.data());
-      for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
+      for (unsigned int iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
         payload.emplace_back(channelwords[iword]);
       }
     }
     if (mTRUdata[ddl].mChannels.size()) { // if there are TRU digits, fill trigger flags
       std::vector<uint32_t> a;
-      for (short chan = 0; chan < Mapping::NTRUBranchReadoutChannels; chan++) {
+      for (unsigned short chan = 0; chan < Mapping::NTRUBranchReadoutChannels; chan++) {
         if (trmask[chan] > 0) {
-          while (a.size() < trmask[chan]) {
+          while (a.size() < static_cast<unsigned short>(trmask[chan])) {
             a.push_back(0);
           }
           a[trmask[chan] - 1] |= (1 << (chan % 10)); // Fill mask for a given channel
@@ -197,11 +200,11 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
           chanhead.mPayloadSize = a.size();
           chanhead.mMark = 1; // mark channel header
           char* chanheadwords = reinterpret_cast<char*>(&chanhead.mDataWord);
-          for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
+          for (unsigned int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
             payload.emplace_back(chanheadwords[iword]);
           }
           char* channelwords = reinterpret_cast<char*>(encodedbunches.data());
-          for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
+          for (unsigned int iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
             payload.emplace_back(channelwords[iword]);
           }
           a.clear();
@@ -211,7 +214,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       for (short i = 0; i < Mapping::NTRUBranchReadoutChannels; i++) {
         short chan = i + Mapping::NTRUBranchReadoutChannels;
         if (trmask[chan] > 0) {
-          while (a.size() < trmask[chan]) {
+          while (a.size() < static_cast<unsigned short>(trmask[chan])) {
             a.push_back(0);
           }
           a[trmask[chan] - 1] |= (1 << (i % 10)); // Fill mask for a given channel
@@ -223,11 +226,11 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
           chanhead.mPayloadSize = a.size();
           chanhead.mMark = 1; // mark channel header
           char* chanheadwords = reinterpret_cast<char*>(&chanhead.mDataWord);
-          for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
+          for (unsigned int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
             payload.emplace_back(chanheadwords[iword]);
           }
           char* channelwords = reinterpret_cast<char*>(encodedbunches.data());
-          for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
+          for (unsigned int iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
             payload.emplace_back(channelwords[iword]);
           }
           a.clear();
@@ -261,12 +264,12 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       chanhead.mPayloadSize = rawbunches.size();
       chanhead.mMark = 1; // mark channel header
       char* chanheadwords = reinterpret_cast<char*>(&chanhead.mDataWord);
-      for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
+      for (unsigned int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
         payload.emplace_back(chanheadwords[iword]);
       }
 
       char* channelwords = reinterpret_cast<char*>(encodedbunches.data());
-      for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
+      for (unsigned int iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
         payload.emplace_back(channelwords[iword]);
       }
 
@@ -292,11 +295,11 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
         chanheadLG.mMark = 1; // mark channel header
 
         chanheadwords = reinterpret_cast<char*>(&chanheadLG.mDataWord);
-        for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
+        for (unsigned int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
           payload.emplace_back(chanheadwords[iword]);
         }
         channelwords = reinterpret_cast<char*>(encodedbunches.data());
-        for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
+        for (unsigned int iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
           payload.emplace_back(channelwords[iword]);
         }
       }
@@ -313,7 +316,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
 
     short flp, crorc, link;
     Mapping::ddlToCrorcLink(ddl, flp, crorc, link);
-    mRawWriter->addData(ddl, crorc, link, 0, trg.getBCData(), payload);
+    mRawWriter->addData(ddl, crorc, link, 0, currentIR, payload);
   }
   return true;
 }
@@ -337,7 +340,7 @@ void RawWriter::createTRUBunches(short truId, const std::vector<o2::phos::Digit*
       currentBunch.mStarttime = time;
       maxAmp = ampADC;
     }
-    while (samples.size() <= time) {
+    while (samples.size() <= static_cast<unsigned short>(time)) {
       samples.push_back(0);
     }
     samples[time] = ampADC;

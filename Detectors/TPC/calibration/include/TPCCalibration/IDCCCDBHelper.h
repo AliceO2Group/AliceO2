@@ -20,6 +20,8 @@
 #include "TPCBase/Sector.h"
 #include "CommonUtils/NameConf.h"
 #include "Rtypes.h"
+#include "TCanvas.h"
+#include "CCDB/BasicCCDBManager.h"
 
 namespace o2::tpc
 {
@@ -27,6 +29,7 @@ namespace o2::tpc
 class IDCGroupHelperSector;
 struct IDCZero;
 struct IDCOne;
+struct FourierCoeff;
 template <typename DataT>
 struct IDCDelta;
 
@@ -48,8 +51,8 @@ struct IDCDelta;
  TODO add drawing of 1D-distributions
 */
 
-/// \tparam DataT the data type for the IDCDelta which are stored in the CCDB (short, char, float)
-template <typename DataT = short>
+/// \tparam DataT the data type for the IDCDelta which are stored in the CCDB (unsigned short, unsigned char, float)
+template <typename DataT = unsigned short>
 class IDCCCDBHelper
 {
  public:
@@ -64,6 +67,9 @@ class IDCCCDBHelper
 
   /// setting the 1D-IDCs
   void setIDCOne(IDCOne* idcOne) { mIDCOne = idcOne; }
+
+  /// setting the fourier coefficients
+  void setFourierCoeffs(FourierCoeff* fourier) { mFourierCoeff = fourier; }
 
   /// setting the grouping parameters
   void setGroupingParameter(IDCGroupHelperSector* helperSector) { mHelperSector = helperSector; }
@@ -136,6 +142,16 @@ class IDCCCDBHelper
   /// \param filename name of the output file. If empty the canvas is drawn.
   void drawIDCSector(const unsigned int sector, const unsigned int integrationInterval, const std::string filename = "IDCSector.pdf") const { drawIDCHelper(false, Sector(sector), integrationInterval, filename); }
 
+  TCanvas* drawIDCZeroCanvas(TCanvas* outputCanvas, std::string_view type, int nbins1D, float xMin1D, float xMax1D, int integrationInterval = -1) const;
+
+  TCanvas* drawIDCZeroRadialProfile(TCanvas* outputCanvas, int nbinsY, float yMin, float yMax) const;
+
+  TCanvas* drawIDCZeroStackCanvas(TCanvas* outputCanvas, Side side, std::string_view type, int nbins1D, float xMin1D, float xMax1D, int integrationInterval = -1) const;
+
+  TCanvas* drawIDCOneCanvas(TCanvas* outputCanvas, int nbins1D, float xMin1D, float xMax1D, int integrationIntervals = -1) const;
+
+  TCanvas* drawFourierCoeff(TCanvas* outputCanvas, Side side, int nbins1D, float xMin1D, float xMax1D) const;
+
   /// dumping the loaded IDCs to a tree for debugging
   /// \param integrationIntervals number of integration intervals which will be dumped to the tree (-1: all integration intervalls)
   /// \param outFileName name of the output file
@@ -146,6 +162,7 @@ class IDCCCDBHelper
   IDCDelta<DataT>* mIDCDelta = nullptr;          ///< compressed or uncompressed Delta IDC: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   IDCOne* mIDCOne = nullptr;                     ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   IDCGroupHelperSector* mHelperSector = nullptr; ///< helper for accessing IDC0 and IDC-Delta
+  FourierCoeff* mFourierCoeff = nullptr;
 
   /// helper function for drawing IDCZero
   /// \param sector sector which will be drawn

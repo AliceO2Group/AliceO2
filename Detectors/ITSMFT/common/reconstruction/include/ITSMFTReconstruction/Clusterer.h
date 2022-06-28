@@ -222,6 +222,7 @@ class Clusterer
 
   ///< load the dictionary of cluster topologies
   void loadDictionary(const std::string& fileName) { mPattIdConverter.loadDictionary(fileName); }
+  void setDictionary(const TopologyDictionary* dict) { mPattIdConverter.setDictionary(dict); }
 
   TStopwatch& getTimer() { return mTimer; } // cannot be const
   TStopwatch& getTimerMerge() { return mTimerMerge; } // cannot be const

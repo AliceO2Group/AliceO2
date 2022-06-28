@@ -96,7 +96,7 @@ int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* dig
 
   //  printf("process event time = %f with %ld hits\n",mEventTime.getTimeNS(),hits->size());
 
-  Int_t readoutwindow = Int_t((mEventTime.getTimeNS() - Geo::BC_TIME * (Geo::OVERLAP_IN_BC + 2)) * Geo::READOUTWINDOW_INV); // event time shifted by 2 BC as safe margin before to change current readout window to account for decalibration
+  uint64_t readoutwindow = uint64_t((mEventTime.getTimeNS() - Geo::BC_TIME * (Geo::OVERLAP_IN_BC + 2)) * Geo::READOUTWINDOW_INV); // event time shifted by 2 BC as safe margin before to change current readout window to account for decalibration
 
   if (mContinuous && readoutwindow > mReadoutWindowCurrent) { // if we are moving in future readout windows flush previous ones (only for continuous readout mode)
     digits->clear();
@@ -1012,12 +1012,12 @@ void Digitizer::checkIfReuseFutureDigits()
       mFutureItrackID.erase(mFutureItrackID.begin() + digit->getLabel());
       mFutureIsource.erase(mFutureIsource.begin() + digit->getLabel());
       mFutureIevent.erase(mFutureIevent.begin() + digit->getLabel());
-      
+
       // adjust labels
       for (auto& digit2 : mFutureDigits) {
-	if (digit2.getLabel() > labelremoved) {
-	  digit2.setLabel(digit2.getLabel() - 1);
-	}
+ if (digit2.getLabel() > labelremoved) {
+   digit2.setLabel(digit2.getLabel() - 1);
+ }
       }
       */
 
@@ -1046,18 +1046,18 @@ void Digitizer::checkIfReuseFutureDigits()
         mFutureDigits.erase(mFutureDigits.begin() + idigit);
 
         /* NOT TO REMOVE LABELS TO SAVE CPU TIME (clear of vector when flushing)
-	// remove also the element from the buffers
-	mFutureItrackID.erase(mFutureItrackID.begin() + digit->getLabel());
-	mFutureIsource.erase(mFutureIsource.begin() + digit->getLabel());
-	mFutureIevent.erase(mFutureIevent.begin() + digit->getLabel());
-	
-	// adjust labels
-	for (auto& digit2 : mFutureDigits) {
-	  if (digit2.getLabel() > labelremoved) {
-	    digit2.setLabel(digit2.getLabel() - 1);
-	  }
-	}
-	*/
+ // remove also the element from the buffers
+ mFutureItrackID.erase(mFutureItrackID.begin() + digit->getLabel());
+ mFutureIsource.erase(mFutureIsource.begin() + digit->getLabel());
+ mFutureIevent.erase(mFutureIevent.begin() + digit->getLabel());
+
+ // adjust labels
+ for (auto& digit2 : mFutureDigits) {
+   if (digit2.getLabel() > labelremoved) {
+     digit2.setLabel(digit2.getLabel() - 1);
+   }
+ }
+ */
       }
     } else {
       bclimit = digit->getBC();

@@ -16,6 +16,7 @@
 
 #include <vector>
 #include <string>
+#include <unistd.h>
 
 namespace o2::utils
 {
@@ -27,6 +28,9 @@ std::vector<std::string> listFiles(std::string const& dir, std::string const& se
 
 // same in the current dir
 std::vector<std::string> listFiles(std::string const& searchpattern);
+
+// create path if absent, account for eventual concurrent creation
+void createDirectoriesIfAbsent(std::string const& path);
 
 } // namespace o2::utils
 

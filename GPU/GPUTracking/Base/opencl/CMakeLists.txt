@@ -66,26 +66,10 @@ add_custom_command(
   IMPLICIT_DEPENDS CXX ${CL_SRC}
   COMMAND_EXPAND_LISTS)
 
-# cmake-format: off
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
-    COMMAND cat ${GPUDIR}/utils/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_common_GPUReconstructionOCL_cl/g" | sed "s,FILENAMENORMAL,${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCL1Code.bin,g" > ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
-    MAIN_DEPENDENCY ${GPUDIR}/utils/include.S
-)
-# cmake-format: on
-
-# make cmake compile the assembler file, add proper dependency on included
-# binary code
-set_source_files_properties(
-  ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
-  PROPERTIES
-  LANGUAGE
-  ASM
-  OBJECT_DEPENDS
-  "${CL_BIN};${GPUDIR}/utils/include.S")
+create_binary_resource(${CL_BIN} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.o)
 
 set(SRCS GPUReconstructionOCL1.cxx
-         ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S)
+    ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.o)
 set(HDRS GPUReconstructionOCL1.h GPUReconstructionOCL1Internals.h)
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")

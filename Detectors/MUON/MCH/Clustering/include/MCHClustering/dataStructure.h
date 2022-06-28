@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_MCH_DATASTRUCTURE_H_
-#define ALICEO2_MCH_DATASTRUCTURE_H_
+#ifndef O2_MCH_DATASTRUCTURE_H_
+#define O2_MCH_DATASTRUCTURE_H_
 
 #include "mathUtil.h"
 
@@ -71,4 +71,4 @@ void printTheta(const char* str, const double* theta, int K);
 
 void printXYdXY(const char* str, const double* xyDxy, int NMax, int N, const double* val1, const double* val2);
 
-#endif // ALICEO2_MCH_DATASTRUCTURE_H
+#endif // O2_MCH_DATASTRUCTURE_H

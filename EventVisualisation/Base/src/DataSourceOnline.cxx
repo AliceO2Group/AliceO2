@@ -28,7 +28,7 @@ namespace o2
 namespace event_visualisation
 {
 
-std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline::getVisualisationList(int no)
+std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline::getVisualisationList(int no, float minTime, float maxTime, float range)
 {
   std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> res;
   if (no < getEventCount()) {
@@ -36,18 +36,28 @@ std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline
 
     mFileWatcher.setCurrentItem(no);
     VisualisationEvent vEvent = this->mDataReader->getEvent(mFileWatcher.currentFilePath());
-    this->setRunNumber(vEvent.getRunNumber());
-    this->setCollisionTime(vEvent.getCollisionTime());
 
-    for(auto filter = EVisualisationGroup::ITS;
-        filter != EVisualisationGroup::NvisualisationGroups;
-        filter = static_cast<EVisualisationGroup>(static_cast<int>(filter) + 1)) {
-      auto filtered = VisualisationEvent(vEvent, filter);
-      res.push_back(std::make_pair(filtered, filter));  // we can switch on/off data
+    this->setRunNumber(vEvent.getRunNumber());
+    this->setFirstTForbit(vEvent.getFirstTForbit());
+    this->setCollisionTime(vEvent.getCollisionTime());
+    this->setTrackMask(vEvent.getTrkMask());
+    this->setClusterMask(vEvent.getClMask());
+
+    double period = vEvent.getMaxTimeOfTracks() - vEvent.getMinTimeOfTracks();
+    if (period > 0) {
+      this->mTimeFrameMinTrackTime = minTime * period / range + vEvent.getMinTimeOfTracks();
+      this->mTimeFrameMaxTrackTime = maxTime * period / range + vEvent.getMinTimeOfTracks();
+    } else {
+      this->mTimeFrameMinTrackTime = vEvent.getMinTimeOfTracks();
+      this->mTimeFrameMaxTrackTime = vEvent.getMaxTimeOfTracks();
     }
 
-    //res.push_back(std::make_pair(vEvent, EVisualisationGroup::ITS)); // temporary
-    //res.push_back(std::make_pair(vEvent, EVisualisationGroup::TPC)); // temporary
+    for (auto filter = EVisualisationGroup::ITS;
+         filter != EVisualisationGroup::NvisualisationGroups;
+         filter = static_cast<EVisualisationGroup>(static_cast<int>(filter) + 1)) {
+      auto filtered = VisualisationEvent(vEvent, filter, this->mTimeFrameMinTrackTime, this->mTimeFrameMaxTrackTime);
+      res.push_back(std::make_pair(filtered, filter)); // we can switch on/off data
+    }
   }
   return res;
 }
@@ -74,6 +84,11 @@ bool DataSourceOnline::refresh()
 Int_t DataSourceOnline::getCurrentEvent()
 {
   return mFileWatcher.getPos();
+}
+
+o2::detectors::DetID::mask_t DataSourceOnline::getDetectorsMask()
+{
+  return o2::dataformats::GlobalTrackID::getSourcesDetectorsMask(mTrackMask);
 }
 
 } // namespace event_visualisation

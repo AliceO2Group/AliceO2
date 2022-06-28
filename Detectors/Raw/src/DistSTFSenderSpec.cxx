@@ -28,11 +28,12 @@ namespace o2::raw
 class DistSTFSender : public Task
 {
  public:
-  DistSTFSender(int m) : mMaxTF(m) {}
+  DistSTFSender(int m, unsigned subsp) : mMaxTF(m), mSubSpec(subsp) {}
   void run(ProcessingContext& ctx) final;
 
  private:
   int mMaxTF = 1;
+  unsigned mSubSpec = 0;
   int mTFCount = 0;
 };
 
@@ -41,9 +42,8 @@ void DistSTFSender::run(ProcessingContext& pc)
 {
   const auto* dh = DataRefUtils::getHeader<DataHeader*>(pc.inputs().getFirstValid(true));
   auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
-  LOG(info) << "DIST STF for run " << dh->runNumber << " orbit " << dh->firstTForbit << " creation " << creationTime << " TFid: " << dh->tfCounter;
   STFHeader stfHeader{dh->tfCounter, dh->firstTForbit, dh->runNumber};
-  pc.outputs().snapshot(o2::framework::Output{gDataOriginFLP, gDataDescriptionDISTSTF, 0}, stfHeader);
+  pc.outputs().snapshot(o2::framework::Output{gDataOriginFLP, gDataDescriptionDISTSTF, mSubSpec}, stfHeader);
   if (++mTFCount >= mMaxTF) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
@@ -51,13 +51,13 @@ void DistSTFSender::run(ProcessingContext& pc)
 }
 
 //_________________________________________________________
-DataProcessorSpec getDistSTFSenderSpec(int maxTF)
+DataProcessorSpec getDistSTFSenderSpec(int maxTF, unsigned subsp)
 {
   return DataProcessorSpec{
     "dist-stf-sender",
     Inputs{},
-    Outputs{OutputSpec{gDataOriginFLP, gDataDescriptionDISTSTF, 0}},
-    AlgorithmSpec{adaptFromTask<DistSTFSender>(maxTF)},
+    Outputs{OutputSpec{gDataOriginFLP, gDataDescriptionDISTSTF, subsp}},
+    AlgorithmSpec{adaptFromTask<DistSTFSender>(maxTF, subsp)},
     Options{}};
 }
 

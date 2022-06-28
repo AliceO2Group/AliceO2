@@ -133,12 +133,66 @@ class SpaceCharge
   /// \param formulaStruct struct containing a method to evaluate the potential
   void setPotentialFromFormula(const AnalyticalFields<DataT>& formulaStruct);
 
+  /// setting the boundary potential of the GEM stack along the radius
+  /// \param potentialFunc potential funtion as a function of the radius
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameAlongR(const std::function<DataT(DataT)>& potentialFunc, const Side side);
+
+  /// setting the boundary potential of the IROC on the bottom along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameIROCBottomAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::IROCgem, true, side); }
+
+  /// setting the boundary potential of the IROC on the top along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameIROCTopAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::IROCgem, false, side); }
+
+  /// setting the boundary potential of the OROC1 on the bottom along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameOROC1BottomAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::OROC1gem, true, side); }
+
+  /// setting the boundary potential of the OROC1 on the top along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameOROC1TopAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::OROC1gem, false, side); }
+
+  /// setting the boundary potential of the OROC2 on the bottom along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameOROC2BottomAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::OROC2gem, true, side); }
+
+  /// setting the boundary potential of the OROC2 on the top along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameOROC2TopAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::OROC2gem, false, side); }
+
+  /// setting the boundary potential of the OROC3 on the bottom along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameOROC3BottomAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::OROC3gem, true, side); }
+
+  /// setting the boundary potential of the OROC3 on the top along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameOROC3TopAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::OROC3gem, false, side); }
+
+  /// setting the boundary potential for the inner TPC radius along r
+  /// \param potentialFunc potential funtion as a function of z
+  /// \side Side of the TPC
+  void setPotentialBoundaryInnerRadius(const std::function<DataT(DataT)>& potentialFunc, const Side side);
+
+  /// setting the boundary potential for the outer TPC radius along r
+  /// \param potentialFunc potential funtion as a function of z
+  /// \side Side of the TPC
+  void setPotentialBoundaryOuterRadius(const std::function<DataT(DataT)>& potentialFunc, const Side side);
+
   /// step 1: use the O2TPCPoissonSolver class to numerically calculate the potential with set space charge density and boundary conditions from potential
   /// \param side side of the TPC
-  /// \param maxIteration maximum number of iterations used in the poisson solver
   /// \param stoppingConvergence stopping criterion used in the poisson solver
   /// \param symmetry use symmetry or not in the poisson solver
-  void poissonSolver(const Side side, const int maxIteration = 300, const DataT stoppingConvergence = 1e-6, const int symmetry = 0);
+  void poissonSolver(const Side side, const DataT stoppingConvergence = 1e-6, const int symmetry = 0);
 
   /// step 2: calculate numerically the electric field from the potential
   /// \param side side of the TPC
@@ -374,6 +428,7 @@ class SpaceCharge
   /// set the density, potential, electric fields, local distortions/corrections, global distortions/corrections from a file. Missing objects in the file are ignored.
   /// \file file containing the stored values for the density, potential, electric fields, local distortions/corrections, global distortions/corrections
   /// \param side side of the TPC
+  template <typename DataTIn = DataT>
   void setFromFile(TFile& file, const Side side);
 
   /// Get grid spacing in r direction
@@ -668,6 +723,7 @@ class SpaceCharge
   /// write all fields etc to a file
   /// \param outf output file
   /// \side side of the TPC
+  template <typename DataTOut = DataT>
   void dumpToFile(TFile& outf, const Side side) const;
 
   /// dump sc density, potential, electric fields, global distortions/corrections to tree
@@ -681,22 +737,32 @@ class SpaceCharge
   /// write electric fields to root file
   /// \param outf output file where the electrical fields will be written to
   /// \side side of the TPC
+  template <typename DataTOut = DataT>
   int dumpElectricFields(TFile& outf, const Side side) const;
 
   /// set electric field from root file
   /// \param inpf input file where the electrical fields are stored
   /// \side side of the TPC
+  template <typename DataTIn = DataT>
   void setElectricFieldsFromFile(TFile& inpf, const Side side);
 
   /// write potential to root file
   /// \param outf output file where the potential will be written to
   /// \side side of the TPC
-  int dumpPotential(TFile& outf, const Side side) const { return mPotential[side].writeToFile(outf, Form("potential_side%s", getSideName(side).data())); }
+  template <typename DataTOut = DataT>
+  int dumpPotential(TFile& outf, const Side side) const
+  {
+    return mPotential[side].template writeToFile<DataTOut>(outf, Form("potential_side%s", getSideName(side).data()));
+  }
 
   /// set potential from root file
   /// \param inpf input file where the potential is stored
   /// \side side of the TPC
-  void setPotentialFromFile(TFile& inpf, const Side side) { mPotential[side].initFromFile(inpf, Form("potential_side%s", getSideName(side).data())); }
+  template <typename DataTIn = DataT>
+  void setPotentialFromFile(TFile& inpf, const Side side)
+  {
+    mPotential[side].template initFromFile<DataTIn>(inpf, Form("potential_side%s", getSideName(side).data()));
+  }
 
   /// set the potential directly
   /// \param potential potential which will be set
@@ -709,14 +775,19 @@ class SpaceCharge
   /// write density to root file
   /// \param outf output file where the charge density will be written to
   /// \side side of the TPC
-  int dumpDensity(TFile& outf, const Side side) const { return mDensity[side].writeToFile(outf, Form("density_side%s", getSideName(side).data())); }
+  template <typename DataTOut = DataT>
+  int dumpDensity(TFile& outf, const Side side) const
+  {
+    return mDensity[side].template writeToFile<DataTOut>(outf, Form("density_side%s", getSideName(side).data()));
+  }
 
   /// set density from root file
   /// \param inpf input file where the charge density is stored
   /// \side side of the TPC
+  template <typename DataTIn = DataT>
   void setDensityFromFile(TFile& inpf, const Side side)
   {
-    mDensity[side].initFromFile(inpf, Form("density_side%s", getSideName(side).data()));
+    mDensity[side].template initFromFile<DataTIn>(inpf, Form("density_side%s", getSideName(side).data()));
     setDensityFilled(side);
   }
 
@@ -735,51 +806,61 @@ class SpaceCharge
   /// write global distortions to root file
   /// \param outf output file where the global distortions will be written to
   /// \side side of the TPC
+  template <typename DataTOut = DataT>
   int dumpGlobalDistortions(TFile& outf, const Side side) const;
 
   /// set global distortions from root file
   /// \param inpf input file where the global distortions are stored
   /// \side side of the TPC
+  template <typename DataTIn = DataT>
   void setGlobalDistortionsFromFile(TFile& inpf, const Side side);
 
   /// write global corrections to root file
   /// \param outf output file where the global corrections will be written to
   /// \side side of the TPC
+  template <typename DataTOut = DataT>
   int dumpGlobalCorrections(TFile& outf, const Side side) const;
 
   /// set global corrections from root file
   /// \param inpf input file where the global corrections are stored
   /// \side side of the TPC
+  template <typename DataTIn = DataT>
   void setGlobalCorrectionsFromFile(TFile& inpf, const Side side);
 
   /// write local corrections to root file
   /// \param outf output file where the local corrections will be written to
   /// \side side of the TPC
+  template <typename DataTOut = DataT>
   int dumpLocalCorrections(TFile& outf, const Side side) const;
 
   /// set local corrections from root file
   /// \param inpf input file where the local corrections are stored
   /// \side side of the TPC
+  template <typename DataTIn = DataT>
   void setLocalCorrectionsFromFile(TFile& inpf, const Side side);
 
   /// write local distortions to root file
   /// \param outf output file where the local distortions will be written to
   /// \side side of the TPC
+  template <typename DataTOut = DataT>
   int dumpLocalDistortions(TFile& outf, const Side side) const;
 
   /// write local distortion vector to root file
   /// \param outf output file where the local distortions will be written to
   /// \side side of the TPC
+  template <typename DataTOut = DataT>
   int dumpLocalDistCorrVectors(TFile& outf, const Side side) const;
 
   /// set local distortions from root file
   /// \param inpf input file where the local distortions are stored
   /// \side side of the TPC
+  template <typename DataTIn = DataT>
   void setLocalDistortionsFromFile(TFile& inpf, const Side side);
 
   /// set local distortion vector from root file
   /// \param inpf input file where the local distortions are stored
   /// \side side of the TPC
+  template <typename DataTIn = DataT>
   void setLocalDistCorrVectorsFromFile(TFile& inpf, const Side side);
 
   /// set z coordinate between min z max z
@@ -973,6 +1054,18 @@ class SpaceCharge
 
   /// dump the created electron tracks with calculateElectronDriftPath function to a tree
   void dumpElectronTracksToTree(const std::vector<std::pair<std::vector<o2::math_utils::Point3D<float>>, std::array<DataT, 3>>>& electronTracks, const int nSamplingPoints, const char* outFile) const;
+
+  /// \return returns nearest phi vertex for given phi position
+  size_t getNearestPhiVertex(const DataT phi, const Side side) const { return std::round(phi / getGridSpacingPhi(side)); }
+
+  /// \return returns nearest r vertex for given radius position
+  size_t getNearestRVertex(const DataT r, const Side side) const { return std::round((r - getRMin(side)) / getGridSpacingR(side)); }
+
+  /// \return returns number of bins in phi direction for the gap between sectors and for the GEM frame
+  std::pair<size_t, size_t> getPhiBinsGapFrame(const Side side) const;
+
+  /// \return setting the boundary potential for given GEM stack
+  void setPotentialBoundaryGEMFrameAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const GEMstack stack, const bool bottom, const Side side);
 };
 
 ///
@@ -1113,6 +1206,204 @@ void SpaceCharge<DataT>::langevinCylindrical(DataT& ddR, DataT& ddPhi, DataT& dd
   ddR = mC0 * localIntErOverEz + mC1 * localIntEPhiOverEz;
   ddPhi = (mC0 * localIntEPhiOverEz - mC1 * localIntErOverEz) / radius;
   ddZ = -localIntDeltaEz * TPCParameters<DataT>::DVDE;
+}
+
+template <typename DataT>
+template <typename DataTOut>
+int SpaceCharge<DataT>::dumpElectricFields(TFile& outf, const Side side) const
+{
+  if (!mIsEfieldSet[side]) {
+    LOGP(warning, "============== E-Fields are not set! returning ==============\n");
+    return 0;
+  }
+  const std::string sideName = getSideName(side);
+  const int er = mElectricFieldEr[side].template writeToFile<DataTOut>(outf, fmt::format("fieldEr_side{}", sideName).data());
+  const int ez = mElectricFieldEz[side].template writeToFile<DataTOut>(outf, fmt::format("fieldEz_side{}", sideName).data());
+  const int ephi = mElectricFieldEphi[side].template writeToFile<DataTOut>(outf, fmt::format("fieldEphi_side{}", sideName).data());
+  return er + ez + ephi;
+}
+
+template <typename DataT>
+template <typename DataTIn>
+void SpaceCharge<DataT>::setElectricFieldsFromFile(TFile& inpf, const Side side)
+{
+  const std::string sideName = getSideName(side);
+  mElectricFieldEr[side].template initFromFile<DataTIn>(inpf, fmt::format("fieldEr_side{}", sideName).data());
+  mElectricFieldEz[side].template initFromFile<DataTIn>(inpf, fmt::format("fieldEz_side{}", sideName).data());
+  mElectricFieldEphi[side].template initFromFile<DataTIn>(inpf, fmt::format("fieldEphi_side{}", sideName).data());
+  mIsEfieldSet[side] = true;
+}
+
+template <typename DataT>
+template <typename DataTOut>
+int SpaceCharge<DataT>::dumpGlobalDistortions(TFile& outf, const Side side) const
+{
+  if (!mIsGlobalDistSet[side]) {
+    LOGP(warning, "============== global distortions are not set! returning ==============\n");
+    return 0;
+  }
+  const std::string sideName = getSideName(side);
+  const int er = mGlobalDistdR[side].template writeToFile<DataTOut>(outf, fmt::format("distR_side{}", sideName).data());
+  const int ez = mGlobalDistdZ[side].template writeToFile<DataTOut>(outf, fmt::format("distZ_side{}", sideName).data());
+  const int ephi = mGlobalDistdRPhi[side].template writeToFile<DataTOut>(outf, fmt::format("distRphi_side{}", sideName).data());
+  return er + ez + ephi;
+}
+
+template <typename DataT>
+template <typename DataTIn>
+void SpaceCharge<DataT>::setGlobalDistortionsFromFile(TFile& inpf, const Side side)
+{
+  mIsGlobalDistSet[side] = true;
+  const std::string sideName = getSideName(side);
+  mGlobalDistdR[side].template initFromFile<DataTIn>(inpf, fmt::format("distR_side{}", sideName).data());
+  mGlobalDistdZ[side].template initFromFile<DataTIn>(inpf, fmt::format("distZ_side{}", sideName).data());
+  mGlobalDistdRPhi[side].template initFromFile<DataTIn>(inpf, fmt::format("distRphi_side{}", sideName).data());
+}
+
+template <typename DataT>
+template <typename DataTOut>
+int SpaceCharge<DataT>::dumpGlobalCorrections(TFile& outf, const Side side) const
+{
+  if (!mIsGlobalCorrSet[side]) {
+    LOGP(warning, "============== global corrections are not set! returning ==============\n");
+    return 0;
+  }
+  const std::string sideName = getSideName(side);
+  const int er = mGlobalCorrdR[side].template writeToFile<DataTOut>(outf, fmt::format("corrR_side{}", sideName).data());
+  const int ez = mGlobalCorrdZ[side].template writeToFile<DataTOut>(outf, fmt::format("corrZ_side{}", sideName).data());
+  const int ephi = mGlobalCorrdRPhi[side].template writeToFile<DataTOut>(outf, fmt::format("corrRPhi_side{}", sideName).data());
+  return er + ez + ephi;
+}
+
+template <typename DataT>
+template <typename DataTIn>
+void SpaceCharge<DataT>::setGlobalCorrectionsFromFile(TFile& inpf, const Side side)
+{
+  mIsGlobalCorrSet[side] = true;
+  const std::string sideName = getSideName(side);
+  mGlobalCorrdR[side].template initFromFile<DataTIn>(inpf, fmt::format("corrR_side{}", sideName).data());
+  mGlobalCorrdZ[side].template initFromFile<DataTIn>(inpf, fmt::format("corrZ_side{}", sideName).data());
+  mGlobalCorrdRPhi[side].template initFromFile<DataTIn>(inpf, fmt::format("corrRPhi_side{}", sideName).data());
+}
+
+template <typename DataT>
+template <typename DataTOut>
+int SpaceCharge<DataT>::dumpLocalCorrections(TFile& outf, const Side side) const
+{
+  if (!mIsLocalCorrSet[side]) {
+    LOGP(warning, "============== local corrections are not set! returning ==============\n");
+    return 0;
+  }
+  const std::string sideName = getSideName(side);
+  const int lCorrdR = mLocalCorrdR[side].template writeToFile<DataTOut>(outf, fmt::format("lcorrR_side{}", sideName).data());
+  const int lCorrdZ = mLocalCorrdZ[side].template writeToFile<DataTOut>(outf, fmt::format("lcorrZ_side{}", sideName).data());
+  const int lCorrdRPhi = mLocalCorrdRPhi[side].template writeToFile<DataTOut>(outf, fmt::format("lcorrRPhi_side{}", sideName).data());
+  return lCorrdR + lCorrdZ + lCorrdRPhi;
+}
+
+template <typename DataT>
+template <typename DataTIn>
+void SpaceCharge<DataT>::setLocalCorrectionsFromFile(TFile& inpf, const Side side)
+{
+  const std::string sideName = getSideName(side);
+  const bool lCorrdR = mLocalCorrdR[side].template initFromFile<DataTIn>(inpf, fmt::format("lcorrR_side{}", sideName).data());
+  const bool lCorrdZ = mLocalCorrdZ[side].template initFromFile<DataTIn>(inpf, fmt::format("lcorrZ_side{}", sideName).data());
+  const bool lCorrdRPhi = mLocalCorrdRPhi[side].template initFromFile<DataTIn>(inpf, fmt::format("lcorrRPhi_side{}", sideName).data());
+  if (lCorrdR && lCorrdZ && lCorrdRPhi) {
+    mIsLocalCorrSet[side] = true;
+  } else {
+    mIsLocalCorrSet[side] = false;
+  }
+}
+
+template <typename DataT>
+template <typename DataTOut>
+int SpaceCharge<DataT>::dumpLocalDistortions(TFile& outf, const Side side) const
+{
+  if (!mIsLocalDistSet[side]) {
+    LOGP(warning, "============== local distortions are not set! returning ==============\n");
+    return 0;
+  }
+  const std::string sideName = getSideName(side);
+  const int lDistdR = mLocalDistdR[side].template writeToFile<DataTOut>(outf, fmt::format("ldistR_side{}", sideName).data());
+  const int lDistdZ = mLocalDistdZ[side].template writeToFile<DataTOut>(outf, fmt::format("ldistZ_side{}", sideName).data());
+  const int lDistdRPhi = mLocalDistdRPhi[side].template writeToFile<DataTOut>(outf, fmt::format("ldistRPhi_side{}", sideName).data());
+  return lDistdR + lDistdZ + lDistdRPhi;
+}
+
+template <typename DataT>
+template <typename DataTOut>
+int SpaceCharge<DataT>::dumpLocalDistCorrVectors(TFile& outf, const Side side) const
+{
+  if (!mIsLocalVecDistSet[side]) {
+    LOGP(warning, "============== local distortion vectors are not set! returning ==============\n");
+    return 0;
+  }
+  const std::string sideName = getSideName(side);
+  const int lVecDistdR = mLocalVecDistdR[side].template writeToFile<DataTOut>(outf, fmt::format("lvecdistR_side{}", sideName).data());
+  const int lVecDistdZ = mLocalVecDistdZ[side].template writeToFile<DataTOut>(outf, fmt::format("lvecdistZ_side{}", sideName).data());
+  const int lVecDistdRPhi = mLocalVecDistdRPhi[side].template writeToFile<DataTOut>(outf, fmt::format("lvecdistRPhi_side{}", sideName).data());
+  return lVecDistdR + lVecDistdZ + lVecDistdRPhi;
+}
+
+template <typename DataT>
+template <typename DataTIn>
+void SpaceCharge<DataT>::setLocalDistortionsFromFile(TFile& inpf, const Side side)
+{
+  const std::string sideName = getSideName(side);
+  const bool lDistdR = mLocalDistdR[side].template initFromFile<DataTIn>(inpf, fmt::format("ldistR_side{}", sideName).data());
+  const bool lDistdZ = mLocalDistdZ[side].template initFromFile<DataTIn>(inpf, fmt::format("ldistZ_side{}", sideName).data());
+  const bool lDistdRPhi = mLocalDistdRPhi[side].template initFromFile<DataTIn>(inpf, fmt::format("ldistRPhi_side{}", sideName).data());
+
+  if (lDistdR && lDistdZ && lDistdRPhi) {
+    mIsLocalDistSet[side] = true;
+  } else {
+    mIsLocalDistSet[side] = false;
+  }
+}
+
+template <typename DataT>
+template <typename DataTIn>
+void SpaceCharge<DataT>::setLocalDistCorrVectorsFromFile(TFile& inpf, const Side side)
+{
+  const std::string sideName = getSideName(side);
+  const bool lVecDistdR = mLocalVecDistdR[side].template initFromFile<DataTIn>(inpf, fmt::format("lvecdistR_side{}", sideName).data());
+  const bool lVecDistdZ = mLocalVecDistdZ[side].template initFromFile<DataTIn>(inpf, fmt::format("lvecdistZ_side{}", sideName).data());
+  const bool lVecDistdRPhi = mLocalVecDistdRPhi[side].template initFromFile<DataTIn>(inpf, fmt::format("lvecdistRPhi_side{}", sideName).data());
+
+  if (lVecDistdR && lVecDistdZ && lVecDistdRPhi) {
+    mIsLocalVecDistSet[side] = true;
+  } else {
+    mIsLocalVecDistSet[side] = false;
+  }
+}
+
+template <typename DataT>
+template <typename DataTOut>
+void SpaceCharge<DataT>::dumpToFile(TFile& file, const Side side) const
+{
+  dumpElectricFields<DataTOut>(file, side);
+  dumpPotential<DataTOut>(file, side);
+  dumpDensity<DataTOut>(file, side);
+  dumpGlobalDistortions<DataTOut>(file, side);
+  dumpGlobalCorrections<DataTOut>(file, side);
+  dumpLocalCorrections<DataTOut>(file, side);
+  dumpLocalDistortions<DataTOut>(file, side);
+  dumpLocalDistCorrVectors<DataTOut>(file, side);
+}
+
+template <typename DataT>
+template <typename DataTIn>
+void SpaceCharge<DataT>::setFromFile(TFile& file, const Side side)
+{
+  setDensityFromFile<DataTIn>(file, side);
+  setPotentialFromFile<DataTIn>(file, side);
+  setElectricFieldsFromFile<DataTIn>(file, side);
+  setLocalDistortionsFromFile<DataTIn>(file, side);
+  setLocalCorrectionsFromFile<DataTIn>(file, side);
+  setGlobalDistortionsFromFile<DataTIn>(file, side);
+  setGlobalCorrectionsFromFile<DataTIn>(file, side);
+  setLocalDistCorrVectorsFromFile<DataTIn>(file, side);
 }
 
 } // namespace tpc

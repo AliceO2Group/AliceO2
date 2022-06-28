@@ -38,7 +38,7 @@ RecPointReader::RecPointReader(bool useMC)
 void RecPointReader::init(InitContext& ic)
 {
   mInputFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                                 ic.options().get<std::string>("ft0-recpoints-infile"));
+                                                 ic.options().get<std::string>("infile"));
   connectTree(mInputFileName);
 }
 
@@ -91,7 +91,7 @@ DataProcessorSpec getRecPointReaderSpec(bool useMC)
     outputSpec,
     AlgorithmSpec{adaptFromTask<RecPointReader>()},
     Options{
-      {"ft0-recpoints-infile", VariantType::String, "o2reco_ft0.root", {"Name of the input file"}},
+      {"infile", VariantType::String, "o2reco_ft0.root", {"Name of the input file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 

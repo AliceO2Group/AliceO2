@@ -46,7 +46,7 @@ struct SizedTrailer {
   unsigned char flags = 0xaa;
   size_t payloadSize = 0;
 
-  SizedTrailer(size_t s, unsigned char f) : payloadSize(s), flags(f) {}
+  SizedTrailer(size_t s, unsigned char f) : flags(f), payloadSize(s) {}
 };
 
 BOOST_AUTO_TEST_CASE(test_forwardparser_header_and_trailer)

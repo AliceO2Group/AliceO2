@@ -18,9 +18,7 @@
 #include <memory>
 #include <cassert>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 //__________________________________________________________________________________________________
@@ -43,10 +41,11 @@ struct SourceInfoHeader : public header::BaseHeader {
   static const uint32_t sVersion = 1;
 
   SourceInfoHeader()
-    : BaseHeader(sizeof(SourceInfoHeader), sHeaderType, header::gSerializationMethodNone, sVersion),
-      state{InputChannelState::Running} {}
+    : BaseHeader(sizeof(SourceInfoHeader), sHeaderType, header::gSerializationMethodNone, sVersion)
+  {
+  }
 
-  InputChannelState state;
+  InputChannelState state = InputChannelState::Running;
 
   SourceInfoHeader(const SourceInfoHeader&) = default;
   static const SourceInfoHeader* Get(const BaseHeader* baseHeader)
@@ -55,7 +54,6 @@ struct SourceInfoHeader : public header::BaseHeader {
   }
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // FRAMEWORK_SOURCEINFOHEADER_H

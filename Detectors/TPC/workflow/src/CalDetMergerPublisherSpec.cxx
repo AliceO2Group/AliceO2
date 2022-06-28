@@ -166,7 +166,7 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
     // perhaps should be changed to time of the run
     const auto now = std::chrono::system_clock::now();
     const long timeStart = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-    const long timeEnd = 99999999999999;
+    const long timeEnd = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
 
     std::map<std::string, std::string> md;
 

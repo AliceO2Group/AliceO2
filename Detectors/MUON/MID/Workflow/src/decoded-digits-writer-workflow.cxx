@@ -18,6 +18,7 @@
 #include <vector>
 #include "Framework/Variant.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
 
@@ -28,6 +29,12 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     options{
       {"output-filename", VariantType::String, "mid-digits-decoded.root", {"Decoded digits output file"}}};
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
+}
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:MID|mid).*[W,w]riter.*"));
 }
 
 #include "Framework/runDataProcessing.h"

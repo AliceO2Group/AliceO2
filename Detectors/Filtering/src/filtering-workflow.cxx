@@ -16,7 +16,6 @@
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
-#include "DetectorsRaw/DistSTFSenderSpec.h"
 #include "Framework/CallbacksPolicy.h"
 
 using namespace o2::framework;
@@ -36,7 +35,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation"}},
     {"disable-secondary-vertices", o2::framework::VariantType::Bool, false, {"disable filling secondary vertices"}},
     {"data-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
-    {"max-dist-stf", o2::framework::VariantType::Int, 1, {"max TFs with DISTSUBTIMEFRAME message (<1 = disable)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -59,12 +57,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
   if (enableSV) {
     o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
-  }
-
-  // if digits reading is requested, generate dist-stf message unless it is explicitly forbidden
-  int maxDistSTF = configcontext.options().get<int>("max-dist-stf");
-  if (maxDistSTF > 0 && !configcontext.options().get<bool>("disable-root-input")) {
-    specs.push_back(o2::raw::getDistSTFSenderSpec(maxDistSTF));
   }
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit

@@ -16,6 +16,7 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "PHOSWorkflow/WriterSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 using namespace o2::framework;
 using namespace o2::phos;
@@ -26,6 +27,12 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{{"disable-mc", VariantType::Bool, false, {"Do not propagate MC labels"}},
                                        {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
+}
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:PHO?S|pho?s).*[W,w]riter.*"));
 }
 
 #include "Framework/runDataProcessing.h"

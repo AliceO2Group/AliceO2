@@ -25,7 +25,7 @@ using namespace o2::framework;
 #include "Framework/Logger.h"
 #include "Framework/InputRecordWalker.h"
 #include "Headers/DataHeader.h"
-#include "fairmq/FairMQDevice.h"
+#include <fairmq/Device.h>
 
 namespace test_config
 {
@@ -173,7 +173,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
       int data = *counter;
       //outputs.make<int>(OutputRef{"data", 0}) = data;
 
-      FairMQDevice& device = *(rds.device());
+      fair::mq::Device& device = *(rds.device());
       auto transport = device.GetChannel(*channelName, 0).Transport();
       auto channelAlloc = o2::pmr::getTransportAllocator(transport);
 
@@ -183,13 +183,13 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
       size_t nPayloads = rand() % 10 + 1;
 
       test_header::MsgModeHeader mmh{msgMode, nPayloads};
-      FairMQParts messages;
+      fair::mq::Parts messages;
       auto insertHeader = [&dph, &mmh, &channelAlloc, &messages](DataHeader const& dh) -> void {
-        FairMQMessagePtr header = o2::pmr::getMessage(Stack{channelAlloc, dh, dph, mmh});
+        fair::mq::MessagePtr header = o2::pmr::getMessage(Stack{channelAlloc, dh, dph, mmh});
         messages.AddPart(std::move(header));
       };
       auto insertPayload = [&transport, &messages, &data](size_t size) -> void {
-        FairMQMessagePtr payload = transport->CreateMessage(size);
+        fair::mq::MessagePtr payload = transport->CreateMessage(size);
         memcpy(payload->GetData(), &data, sizeof(data));
         messages.AddPart(std::move(payload));
       };
@@ -227,7 +227,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
         createSequence(nPayloads, DataHeader{"DATA", "TST", 0});
       }
       // using utility from ExternalFairMQDeviceProxy
-      o2::framework::sendOnChannel(device, messages, *channelName);
+      o2::framework::sendOnChannel(device, messages, *channelName, (size_t)-1);
 
       if (++(*counter) >= nRolls) {
         // send the end of stream signal, this is transferred by the proxies
@@ -246,11 +246,11 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
           SourceInfoHeader sih;
           sih.state = InputChannelState::Completed;
           auto headerMessage = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dhEOS, dph, sih});
-          FairMQParts out;
+          fair::mq::Parts out;
           out.AddPart(std::move(headerMessage));
           // add empty payload message
           out.AddPart(std::move(device.NewMessageFor(*channelName, 0, 0)));
-          o2::framework::sendOnChannel(device, out, *channelName);
+          o2::framework::sendOnChannel(device, out, *channelName, (size_t)-1);
         }
       }
     };
@@ -273,7 +273,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   // the dpl sink proxy process
 
   Inputs sinkInputs = {InputSpec{"external", "TST", "DATA", 0, Lifetime::Timeframe}};
-  auto channelSelector = [](InputSpec const&, const std::unordered_map<std::string, std::vector<FairMQChannel>>&) -> std::string {
+  auto channelSelector = [](InputSpec const&, const std::unordered_map<std::string, std::vector<fair::mq::Channel>>&) -> std::string {
     return "downstream";
   };
   if (proxyMode == ProxyMode::All || proxyMode == ProxyMode::OnlyOutput) {
@@ -344,7 +344,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   // reads the messages from the output proxy via the out-of-band channel
 
   // converter callback for the external FairMQ device proxy ProcessorSpec generator
-  auto converter = [](FairMQDevice& device, FairMQParts& inputs, ChannelRetriever channelRetriever) {
+  auto converter = [](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& inputs, ChannelRetriever channelRetriever) {
     ASSERT_ERROR(inputs.Size() >= 2);
     if (inputs.Size() < 2) {
       return;
@@ -373,7 +373,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     if (channelName.empty()) {
       return;
     }
-    FairMQParts output;
+    fair::mq::Parts output;
     for (; msgidx < inputs.Size(); ++msgidx) {
       auto const* dh = o2::header::get<o2::header::DataHeader*>(inputs.At(msgidx)->GetData());
       if (dh) {
@@ -395,7 +395,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
         output.AddPart(std::move(inputs.At(msgidx)));
       }
     }
-    o2::framework::sendOnChannel(device, output, channelName);
+    o2::framework::sendOnChannel(device, output, channelName, (size_t)-1);
   };
 
   // we use the same spec to build the configuration string, ideally we would have some helpers

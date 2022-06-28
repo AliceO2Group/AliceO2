@@ -19,7 +19,6 @@
 #include "EventVisualisationView/Initializer.h"
 
 #include "EventVisualisationBase/ConfigurationManager.h"
-#include "EventVisualisationBase/GeometryManager.h"
 #include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationDataConverter/VisualisationConstants.h"
@@ -50,7 +49,7 @@ void Initializer::setup()
   TEnv settings;
   ConfigurationManager::getInstance().getConfig(settings);
 
-  const bool fullscreen = settings.GetValue("fullscreen.mode", false);                           // hide left and bottom tabs
+  const bool fullscreen = settings.GetValue("fullscreen.mode", false);                                            // hide left and bottom tabs
   const string ocdbStorage = settings.GetValue("OCDB.default.path", o2::base::NameConf::getCCDBServer().c_str()); // default path to OCDB
   LOG(info) << "Initializer -- OCDB path:" << ocdbStorage;
 
@@ -59,7 +58,7 @@ void Initializer::setup()
 
   auto const options = Options::Instance();
 
-  if (options->online()) {
+  if (options->json()) {
     eventManager.setDataSource(new DataSourceOnline(options->dataFolder()));
   } else {
     eventManager.setDataSource(new DataSourceOffline(options->AODConverterPath(), options->dataFolder(), options->fileName(), options->hideDplGUI()));
@@ -75,6 +74,8 @@ void Initializer::setup()
 
   // Setup windows size, fullscreen and focus
   TEveBrowser* browser = gEve->GetBrowser();
+  std::string title = std::string("o2-eve v:") + o2_eve_version;
+  browser->SetWindowName(title.c_str());
   browser->GetTabRight()->SetTab(1);
   browser->MoveResize(0, 0, gClient->GetDisplayWidth(), gClient->GetDisplayHeight() - 32);
 
@@ -94,7 +95,6 @@ void Initializer::setup()
   // Temporary:
   // Later this will be triggered by button, and finally moved to configuration.
   gEve->AddEvent(&EventManager::getInstance());
-  // eventManager.getDataSource()->refresh();
 
   if (Options::Instance()->online()) {
     frame->StartTimer();
@@ -123,18 +123,19 @@ void Initializer::setupGeometry()
     string detName = gVisualisationGroupName[det];
     LOG(info) << detName;
 
-    if (settings.GetValue((detName + ".draw").c_str(), false)) {
-      if (detName == "TPC" || detName == "MCH" || detName == "MID" || detName == "MFT") { // don't load MUON+MFT and AD and standard TPC to R-Phi view
+    if (detName == "TPC" || detName == "MCH" || detName == "MID" || detName == "MFT") { // don't load MUON+MFT and AD and standard TPC to R-Phi view
+      multiView->drawGeometryForDetector(detName, true, false);
+    } else if (detName == "RPH") { // special TPC geom from R-Phi view
+      multiView->drawGeometryForDetector(detName, false, true, false);
+    } else if (detName != "TST") { // default
+      multiView->drawGeometryForDetector(detName);
+    }
 
-        multiView->drawGeometryForDetector(detName, true, false);
-      } else if (detName == "RPH") { // special TPC geom from R-Phi view
+    const auto geom = multiView->getDetectorGeometry(detName);
+    const auto show = settings.GetValue((detName + ".draw").c_str(), false);
 
-        multiView->drawGeometryForDetector(detName, false, true, false);
-      } else { // default
-        if (detName != "TST") {
-          multiView->drawGeometryForDetector(detName);
-        }
-      }
+    if (geom != nullptr) {
+      geom->SetRnrSelfChildren(show, show);
     }
   }
 }

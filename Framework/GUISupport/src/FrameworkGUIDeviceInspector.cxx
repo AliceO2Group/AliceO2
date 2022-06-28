@@ -123,6 +123,12 @@ void optionsTable(const char* label, std::vector<ConfigParamSpec> const& options
           case VariantType::Int:
             ImGui::Text("%d (default)", option.defaultValue.get<int>());
             break;
+          case VariantType::Int8:
+            ImGui::Text("%d (default)", option.defaultValue.get<int8_t>());
+            break;
+          case VariantType::Int16:
+            ImGui::Text("%d (default)", option.defaultValue.get<int16_t>());
+            break;
           case VariantType::Int64:
             ImGui::Text("%" PRId64 " (default)", option.defaultValue.get<int64_t>());
             break;
@@ -340,6 +346,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
     flagsChanged |= ImGui::CheckboxFlags("NEW_STATE_PENDING", &control.tracingFlags, DeviceState::LoopReason::NEW_STATE_PENDING);
     flagsChanged |= ImGui::CheckboxFlags("PREVIOUSLY_ACTIVE", &control.tracingFlags, DeviceState::LoopReason::PREVIOUSLY_ACTIVE);
     flagsChanged |= ImGui::CheckboxFlags("TRACE_CALLBACKS", &control.tracingFlags, DeviceState::LoopReason::TRACE_CALLBACKS);
+    flagsChanged |= ImGui::CheckboxFlags("TRACE_USERCODE", &control.tracingFlags, DeviceState::LoopReason::TRACE_USERCODE);
     if (flagsChanged && control.controller) {
       std::string cmd = fmt::format("/trace {}", control.tracingFlags);
       control.controller->write(cmd.c_str(), cmd.size());

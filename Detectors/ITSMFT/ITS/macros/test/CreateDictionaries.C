@@ -33,6 +33,8 @@
 #endif
 
 void CreateDictionaries(bool saveDeltas = false,
+                        float probThreshold = 1e-6,
+                        std::string clusDictFile = "",
                         std::string clusfile = "o2clus_its.root",
                         std::string hitfile = "o2sim_HitsITS.root",
                         std::string collContextfile = "collisioncontext.root",
@@ -57,6 +59,11 @@ void CreateDictionaries(bool saveDeltas = false,
   std::unordered_map<int, int> hadronicMCMap;            // mapping from MC event entry to hadronic event ID
   std::vector<HitVec*> hitVecPool;
   std::vector<MC2HITS_map> mc2hitVec;
+  o2::itsmft::TopologyDictionary clusDictOld;
+  if (!clusDictFile.empty()) {
+    clusDictOld.readFromFile(clusDictFile);
+    LOGP(info, "Loaded external cluster dictionary with {} entries from {}", clusDictOld.getSize(), clusDictFile);
+  }
 
   TFile* fout = nullptr;
   TNtuple* nt = nullptr;
@@ -132,6 +139,10 @@ void CreateDictionaries(bool saveDeltas = false,
     clusTree->SetBranchAddress("ITSClustersMC2ROF", &mc2rofVecP);
   }
   clusTree->GetEntry(0);
+  if (clusTree->GetEntries() > 1 && !hitfile.empty()) {
+    LOGP(error, "Hits are provided but the cluster tree containes {} entries, looks like real data");
+    return;
+  }
 
   // Topologies dictionaries: 1) all clusters 2) signal clusters only 3) noise clusters only
   BuildTopologyDictionary completeDictionary;
@@ -165,99 +176,112 @@ void CreateDictionaries(bool saveDeltas = false,
     }
   } // << build min and max MC events used by each ROF
 
-  auto pattIdx = patternsPtr->cbegin();
-  for (int irof = 0; irof < nROFRec; irof++) {
-    const auto& rofRec = rofRecVec[irof];
+  for (Long64_t ient = 0; ient < clusTree->GetEntries(); ient++) {
+    clusTree->GetEntry(ient);
+    nROFRec = (int)rofRecVec.size();
+    LOGP(info, "Processing TF {} with {} ROFs and {} clusters", ient, nROFRec, clusArr->size());
+    auto pattIdx = patternsPtr->cbegin();
+    for (int irof = 0; irof < nROFRec; irof++) {
+      const auto& rofRec = rofRecVec[irof];
 
-    rofRec.print();
+      //      rofRec.print();
 
-    if (clusLabArr) { // >> read and map MC events contributing to this ROF
-      for (int im = mcEvMin[irof]; im <= mcEvMax[irof]; im++) {
-        if (!hitVecPool[im]) {
-          hitTree->SetBranchAddress("ITSHit", &hitVecPool[im]);
-          hitTree->GetEntry(im);
-          auto& mc2hit = mc2hitVec[im];
-          const auto* hitArray = hitVecPool[im];
-          for (int ih = hitArray->size(); ih--;) {
-            const auto& hit = (*hitArray)[ih];
-            uint64_t key = (uint64_t(hit.GetTrackID()) << 32) + hit.GetDetectorID();
-            mc2hit.emplace(key, ih);
+      if (clusLabArr) { // >> read and map MC events contributing to this ROF
+        for (int im = mcEvMin[irof]; im <= mcEvMax[irof]; im++) {
+          if (!hitVecPool[im]) {
+            hitTree->SetBranchAddress("ITSHit", &hitVecPool[im]);
+            hitTree->GetEntry(im);
+            auto& mc2hit = mc2hitVec[im];
+            const auto* hitArray = hitVecPool[im];
+            for (int ih = hitArray->size(); ih--;) {
+              const auto& hit = (*hitArray)[ih];
+              uint64_t key = (uint64_t(hit.GetTrackID()) << 32) + hit.GetDetectorID();
+              mc2hit.emplace(key, ih);
+            }
           }
         }
-      }
-    } // << cache MC events contributing to this ROF
+      } // << cache MC events contributing to this ROF
 
-    for (int icl = 0; icl < rofRec.getNEntries(); icl++) {
-      int clEntry = rofRec.getFirstEntry() + icl; // entry of icl-th cluster of this ROF in the vector of clusters
-      // do we read MC data?
+      for (int icl = 0; icl < rofRec.getNEntries(); icl++) {
+        int clEntry = rofRec.getFirstEntry() + icl; // entry of icl-th cluster of this ROF in the vector of clusters
+        // do we read MC data?
 
-      const auto& cluster = (*clusArr)[clEntry];
+        const auto& cluster = (*clusArr)[clEntry];
+        o2::itsmft::ClusterPattern pattern;
 
-      if (cluster.getPatternID() != CompCluster::InvalidPatternID) {
-        LOG(warning) << "Encountered patternID = " << cluster.getPatternID() << " != " << CompCluster::InvalidPatternID;
-        LOG(warning) << "Clusters have already been generated with a dictionary! Quitting";
-        return;
-      }
+        if (cluster.getPatternID() != CompCluster::InvalidPatternID) {
+          if (clusDictOld.getSize() == 0) {
+            LOG(error) << "Encountered patternID = " << cluster.getPatternID() << " != " << CompCluster::InvalidPatternID;
+            LOG(error) << "Clusters have already been generated with a dictionary which was not provided";
+            return;
+          }
+          if (clusDictOld.isGroup(cluster.getPatternID())) {
+            pattern.acquirePattern(pattIdx);
+          } else {
+            pattern = clusDictOld.getPattern(cluster.getPatternID());
+          }
+        } else {
+          pattern.acquirePattern(pattIdx);
+        }
+        ClusterTopology topology;
+        topology.setPattern(pattern);
 
-      ClusterTopology topology;
-      o2::itsmft::ClusterPattern pattern(pattIdx);
-      topology.setPattern(pattern);
-
-      float dX = BuildTopologyDictionary::IgnoreVal, dZ = BuildTopologyDictionary::IgnoreVal;
-      if (clusLabArr) {
-        const auto& lab = (clusLabArr->getLabels(clEntry))[0];
-        auto srcID = lab.getSourceID();
-        if (lab.isValid() && srcID != QEDSourceID) { // use MC truth info only for non-QED and non-noise clusters
-          auto trID = lab.getTrackID();
-          const auto& mc2hit = mc2hitVec[lab.getEventID()];
-          const auto* hitArray = hitVecPool[lab.getEventID()];
-          Int_t chipID = cluster.getSensorID();
-          uint64_t key = (uint64_t(trID) << 32) + chipID;
-          auto hitEntry = mc2hit.find(key);
-          if (hitEntry != mc2hit.end()) {
-            const auto& hit = (*hitArray)[hitEntry->second];
-            if (minPtMC < 0.f || hit.GetMomentum().Perp2() > minPtMC2) {
-              auto locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
-              auto locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
-              locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
-              const auto locC = o2::itsmft::TopologyDictionary::getClusterCoordinates(cluster, pattern, false);
-              dX = locH.X() - locC.X();
-              dZ = locH.Z() - locC.Z();
-              if (saveDeltas) {
-                nt->Fill(topology.getHash(), dX, dZ);
-              }
-              if (checkOutliers > 0.) {
-                if (std::abs(dX) > topology.getRowSpan() * o2::itsmft::SegmentationAlpide::PitchRow * checkOutliers ||
-                    std::abs(dZ) > topology.getColumnSpan() * o2::itsmft::SegmentationAlpide::PitchCol * checkOutliers) { // ignore outlier
-                  dX = dZ = BuildTopologyDictionary::IgnoreVal;
+        float dX = BuildTopologyDictionary::IgnoreVal, dZ = BuildTopologyDictionary::IgnoreVal;
+        if (clusLabArr) {
+          const auto& lab = (clusLabArr->getLabels(clEntry))[0];
+          auto srcID = lab.getSourceID();
+          if (lab.isValid() && srcID != QEDSourceID) { // use MC truth info only for non-QED and non-noise clusters
+            auto trID = lab.getTrackID();
+            const auto& mc2hit = mc2hitVec[lab.getEventID()];
+            const auto* hitArray = hitVecPool[lab.getEventID()];
+            Int_t chipID = cluster.getSensorID();
+            uint64_t key = (uint64_t(trID) << 32) + chipID;
+            auto hitEntry = mc2hit.find(key);
+            if (hitEntry != mc2hit.end()) {
+              const auto& hit = (*hitArray)[hitEntry->second];
+              if (minPtMC < 0.f || hit.GetMomentum().Perp2() > minPtMC2) {
+                auto locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
+                auto locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
+                locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
+                const auto locC = o2::itsmft::TopologyDictionary::getClusterCoordinates(cluster, pattern, false);
+                dX = locH.X() - locC.X();
+                dZ = locH.Z() - locC.Z();
+                if (saveDeltas) {
+                  nt->Fill(topology.getHash(), dX, dZ);
+                }
+                if (checkOutliers > 0.) {
+                  if (std::abs(dX) > topology.getRowSpan() * o2::itsmft::SegmentationAlpide::PitchRow * checkOutliers ||
+                      std::abs(dZ) > topology.getColumnSpan() * o2::itsmft::SegmentationAlpide::PitchCol * checkOutliers) { // ignore outlier
+                    dX = dZ = BuildTopologyDictionary::IgnoreVal;
+                  }
                 }
               }
+            } else {
+              printf("Failed to find MC hit entry for Tr:%d chipID:%d\n", trID, chipID);
+              lab.print();
             }
+            signalDictionary.accountTopology(topology, dX, dZ);
           } else {
-            printf("Failed to find MC hit entry for Tr:%d chipID:%d\n", trID, chipID);
-            lab.print();
+            noiseDictionary.accountTopology(topology, dX, dZ);
           }
-          signalDictionary.accountTopology(topology, dX, dZ);
-        } else {
-          noiseDictionary.accountTopology(topology, dX, dZ);
         }
+        completeDictionary.accountTopology(topology, dX, dZ);
       }
-      completeDictionary.accountTopology(topology, dX, dZ);
-    }
-    // clean MC cache for events which are not needed anymore
-    if (clusLabArr) {
-      int irfNext = irof;
-      int limMC = irfNext == nROFRec ? hitVecPool.size() : mcEvMin[irfNext]; // can clean events up to this
-      for (int imc = mcEvMin[irof]; imc < limMC; imc++) {
-        delete hitVecPool[imc];
-        hitVecPool[imc] = nullptr;
-        mc2hitVec[imc].clear();
+      // clean MC cache for events which are not needed anymore
+      if (clusLabArr) {
+        int irfNext = irof;
+        int limMC = irfNext == nROFRec ? hitVecPool.size() : mcEvMin[irfNext]; // can clean events up to this
+        for (int imc = mcEvMin[irof]; imc < limMC; imc++) {
+          delete hitVecPool[imc];
+          hitVecPool[imc] = nullptr;
+          mc2hitVec[imc].clear();
+        }
       }
     }
   }
   auto dID = o2::detectors::DetID::ITS;
 
-  completeDictionary.setThreshold(0.0001);
+  completeDictionary.setThreshold(probThreshold);
   completeDictionary.groupRareTopologies();
   completeDictionary.printDictionaryBinary(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, ""));
   completeDictionary.printDictionary(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(dID, "", "txt"));

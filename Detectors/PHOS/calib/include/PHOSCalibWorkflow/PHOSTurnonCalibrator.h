@@ -36,7 +36,7 @@ class PHOSTurnonSlot
  public:
   static constexpr short NCHANNELS = 3136; ///< Number of trigger channels
 
-  PHOSTurnonSlot(bool useCCDB, std::string path);
+  PHOSTurnonSlot(bool useCCDB);
   PHOSTurnonSlot(const PHOSTurnonSlot& other);
 
   ~PHOSTurnonSlot() = default;
@@ -59,7 +59,6 @@ class PHOSTurnonSlot
  private:
   bool mUseCCDB = false;
   long mRunStartTime = 0;                                 /// start time of the run (sec)
-  std::string mCCDBPath{"http://alice-ccdb.cern.ch"};     ///< CCDB server path
   std::bitset<NCHANNELS> mFiredTiles;                     //! Container for bad trigger cells, 1 means bad sell
   std::bitset<NCHANNELS> mNoisyTiles;                     //! Container for bad trigger cells, 1 means bad sell
   std::unique_ptr<TurnOnHistos> mTurnOnHistos;            //! Collection of histos to fill
@@ -78,7 +77,7 @@ class PHOSTurnonCalibrator final : public o2::calibration::TimeSlotCalibration<o
   bool hasEnoughData(const Slot& slot) const final { return true; } //no need to merge Slots
   void initOutput() final {}
   void finalizeSlot(Slot& slot) final;
-  Slot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
+  Slot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
   bool process(uint64_t tf, const gsl::span<const Cell>& cells, const gsl::span<const TriggerRecord>& trs,
                const gsl::span<const Cluster>& clusters, const gsl::span<const TriggerRecord>& cluTR);
 
@@ -91,14 +90,13 @@ class PHOSTurnonCalibrator final : public o2::calibration::TimeSlotCalibration<o
  private:
   bool mUseCCDB = false;
   long mRunStartTime = 0;                                 /// start time of the run (sec)
-  std::string mCCDBPath{"http://alice-ccdb.cern.ch"};     /// CCDB path to retrieve current CCDB objects for comparison
   std::unique_ptr<TurnOnHistos> mTurnOnHistos;            //! Collection of histos to fill
   std::unique_ptr<TriggerMap> mTriggerMap;
 
   ClassDefOverride(PHOSTurnonCalibrator, 1);
 };
 
-o2::framework::DataProcessorSpec getPHOSTunronCalibDeviceSpec(bool useCCDB, std::string path);
+o2::framework::DataProcessorSpec getPHOSTunronCalibDeviceSpec(bool useCCDB);
 } // namespace phos
 } // namespace o2
 

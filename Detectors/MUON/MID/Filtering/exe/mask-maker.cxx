@@ -60,8 +60,8 @@ bool processScalers(const o2::mid::ChannelScalers& scalers, unsigned long nEvent
   std::cout << "\nMask file produced: " << outFilename << std::endl;
   o2::mid::ChannelMasksHandler masksHandler;
   masksHandler.setFromChannelMasks(masks);
-  auto fullMasks = masksHandler.getMasksFull(o2::mid::makeDefaultMasks());
-  colToBoard.process(fullMasks);
+  masksHandler.merge(o2::mid::makeDefaultMasks());
+  colToBoard.process(masksHandler.getMasks());
   roBoardCfgHandler.updateMasks(colToBoard.getData());
   roBoardCfgHandler.write(outFilename);
   return false;

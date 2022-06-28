@@ -10,16 +10,17 @@
 // or submit itself to any jurisdiction.
 
 #include <Steer/O2MCApplication.h>
-#include <FairMQChannel.h>
-#include <FairMQMessage.h>
-#include <FairMQDevice.h>
-#include <FairMQParts.h>
+#include <fairmq/Channel.h>
+#include <fairmq/Message.h>
+#include <fairmq/Device.h>
+#include <fairmq/Parts.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <TMessage.h>
 #include <sstream>
 #include <SimConfig/SimConfig.h>
 #include <DetectorsBase/Detector.h>
 #include "DetectorsBase/Aligner.h"
+#include "DetectorsBase/MaterialManager.h"
 #include <CommonUtils/ShmManager.h>
 #include <cassert>
 #include <SimulationDataFormat/MCEventHeader.h>
@@ -35,14 +36,14 @@ namespace steer
 {
 // helper function to send trivial data
 template <typename T>
-void TypedVectorAttach(const char* name, FairMQChannel& channel, FairMQParts& parts)
+void TypedVectorAttach(const char* name, fair::mq::Channel& channel, fair::mq::Parts& parts)
 {
   static auto mgr = FairRootManager::Instance();
   auto vector = mgr->InitObjectAs<const std::vector<T>*>(name);
   if (vector) {
     auto buffer = (char*)&(*vector)[0];
     auto buffersize = vector->size() * sizeof(T);
-    FairMQMessagePtr message(channel.NewMessage(
+    fair::mq::MessagePtr message(channel.NewMessage(
       buffer, buffersize,
       [](void* data, void* hint) {}, buffer));
     parts.AddPart(std::move(message));
@@ -122,7 +123,12 @@ void O2MCApplicationBase::ConstructGeometry()
 
 void O2MCApplicationBase::InitGeometry()
 {
+  // load special cuts which might be given from the outside first.
+  auto& matMgr = o2::base::MaterialManager::Instance();
+  matMgr.loadCutsAndProcessesFromJSON(o2::base::MaterialManager::ESpecial::kTRUE);
+  // During the following, FairModule::SetSpecialPhysicsCuts will be called for each module
   FairMCApplication::InitGeometry();
+  matMgr.writeCutsAndProcessesToJSON();
   // now the sensitive volumes are set up in fVolMap and we can query them
   for (auto e : fVolMap) {
     // since fVolMap contains multiple entries (if multiple copies), this may
@@ -235,7 +241,7 @@ void O2MCApplication::initLate()
   }
 }
 
-void O2MCApplication::attachSubEventInfo(FairMQParts& parts, o2::data::SubEventInfo const& info) const
+void O2MCApplication::attachSubEventInfo(fair::mq::Parts& parts, o2::data::SubEventInfo const& info) const
 {
   // parts.AddPart(std::move(mSimDataChannel->NewSimpleMessage(info)));
   o2::base::attachTMessage(info, *mSimDataChannel, parts);
@@ -244,7 +250,7 @@ void O2MCApplication::attachSubEventInfo(FairMQParts& parts, o2::data::SubEventI
 // helper function to fetch data from FairRootManager branch and serialize it
 // returns handle to container
 template <typename T>
-const T* attachBranch(std::string const& name, FairMQChannel& channel, FairMQParts& parts)
+const T* attachBranch(std::string const& name, fair::mq::Channel& channel, fair::mq::Parts& parts)
 {
   auto mgr = FairRootManager::Instance();
   // check if branch is present
@@ -268,7 +274,7 @@ void O2MCApplication::setSubEventInfo(o2::data::SubEventInfo* i)
 
 void O2MCApplication::SendData()
 {
-  FairMQParts simdataparts;
+  fair::mq::Parts simdataparts;
 
   // fill these parts ... the receiver has to unpack similary
   // TODO: actually we could just loop over branches in FairRootManager at this moment?

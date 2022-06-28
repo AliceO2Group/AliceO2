@@ -11,3 +11,6 @@
 
 add_subdirectory(calibration)
 add_subdirectory(workflows)
+if(BUILD_TESTING)
+  add_subdirectory(macros)
+endif()

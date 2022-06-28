@@ -14,7 +14,7 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CPVBase/Geometry.h"
-#include "CPVBase/CPVSimParams.h"
+#include "CPVBase/CPVCalibParams.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 
@@ -24,12 +24,11 @@ namespace cpv
 {
 //=======================PedestalSpectrum============================
 //___________________________________________________________________
-PedestalSpectrum::PedestalSpectrum()
+PedestalSpectrum::PedestalSpectrum(uint16_t toleratedGapWidth, float nSigmasZS, float suspiciousPedestalRMS)
 {
-  auto& cpvParams = o2::cpv::CPVSimParams::Instance();
-  mToleratedGapWidth = cpvParams.mPedClbToleratedGapWidth;
-  mZSnSigmas = cpvParams.mZSnSigmas;
-  mSuspiciousPedestalRMS = cpvParams.mPedClbSuspiciousPedestalRMS;
+  mToleratedGapWidth = toleratedGapWidth;
+  mZSnSigmas = nSigmasZS;
+  mSuspiciousPedestalRMS = suspiciousPedestalRMS;
 }
 //___________________________________________________________________
 PedestalSpectrum& PedestalSpectrum::operator+=(const PedestalSpectrum& rhs)
@@ -75,8 +74,10 @@ void PedestalSpectrum::analyze()
   // -------------------------------------------------------------------------->
   // 0            10            ^  20             30               ADC amplitude
   //                       tolerated gap
+  //
   // we want to find all the peaks, determine their mean and rms
   // and mean and rms of all the distribution
+  // pedestal is calculated from peak with most of statistics in it
   std::vector<uint16_t> peakLowEdge, peakHighEdge;
   peakLowEdge.push_back(mSpectrumContainer.begin()->first);
   peakHighEdge.push_back((--mSpectrumContainer.end())->first);
@@ -94,7 +95,7 @@ void PedestalSpectrum::analyze()
     totalSumA += iAmpl->first * iAmpl->second;
     totalSumA2 += (iAmpl->first * iAmpl->first) * iAmpl->second;
 
-    if (iNextAmpl != mSpectrumContainer.end()) {                    //is iAmpl not the last bin?
+    if (iNextAmpl != mSpectrumContainer.end()) {                    // is iAmpl not the last bin?
       if ((iNextAmpl->first - iAmpl->first) > mToleratedGapWidth) { // let's consider |bin1-bin2|<=5 belong to same peak
         // firts, save peak low and high edge (just for the future cases)
         peakHighEdge.push_back(iAmpl->first);
@@ -107,7 +108,7 @@ void PedestalSpectrum::analyze()
         peakSumA2 = 0.;
         peakCounts = 0;
       }
-    } else { //this is last bin
+    } else { // this is last bin
       peakHighEdge.push_back(iAmpl->first);
       mMeanOfPeaks.push_back(peakSumA / peakCounts);
       mRMSOfPeaks.push_back(sqrt(peakSumA2 / peakCounts - mMeanOfPeaks.back() * mMeanOfPeaks.back()));
@@ -120,20 +121,19 @@ void PedestalSpectrum::analyze()
   mRMSOfPeaks.push_back(sqrt(totalSumA2 / totalCounts - mMeanOfPeaks.back() * mMeanOfPeaks.back()));
   mPeakCounts.push_back(totalCounts);
 
-  //final decision on pedestal value and RMS
-  if (mNPeaks == 1) { //everything seems to be good
+  // final decision on pedestal value and RMS
+  if (mNPeaks == 1) { // everything seems to be good
     mPedestalValue = mMeanOfPeaks.back();
     mPedestalRMS = mRMSOfPeaks.back();
-    if ((mPedestalRMS > mSuspiciousPedestalRMS) && ((mPedestalValue + mPedestalRMS * mZSnSigmas) < peakHighEdge.back())) {
-      mPedestalRMS = (peakHighEdge.back() - mPedestalValue) / mZSnSigmas;
+  } else if (mNPeaks > 1) { // there are some problems with several pedestal peaks
+    uint16_t iPeakWithMaxStat = 0;
+    for (auto i = 0; i < mNPeaks; i++) { // find peak with max statistics
+      if (mPeakCounts[iPeakWithMaxStat] < mPeakCounts[i]) {
+        iPeakWithMaxStat = i;
+      }
     }
-  } else if (mNPeaks > 1) {                        // there are some problems with several pedestal peaks
-    mPedestalValue = mMeanOfPeaks.at(mNPeaks - 1); //  mean of last peak
-    //mPedestalValue = mMeanOfPeaks.back();
-    mPedestalRMS = mRMSOfPeaks.back(); // total RMS of distribution
-    if ((mPedestalValue + mPedestalRMS * mZSnSigmas) < peakHighEdge.back()) {
-      mPedestalRMS = (peakHighEdge.back() - mPedestalValue) / mZSnSigmas;
-    }
+    mPedestalValue = mMeanOfPeaks[iPeakWithMaxStat]; //  mean of peak with max statistics
+    mPedestalRMS = mRMSOfPeaks[iPeakWithMaxStat];    // RMS of peak with max statistics
   }
   mIsAnalyzed = true;
 }
@@ -190,10 +190,10 @@ float PedestalSpectrum::getPedestalRMS()
 
 //========================PedestalCalibData==========================
 //___________________________________________________________________
-PedestalCalibData::PedestalCalibData()
+PedestalCalibData::PedestalCalibData(uint16_t toleratedGapWidth, float nSigmasZS, float suspiciousPedestalRMS)
 {
   for (int i = 0; i < Geometry::kNCHANNELS; i++) {
-    mPedestalSpectra.emplace_back();
+    mPedestalSpectra.emplace_back(toleratedGapWidth, nSigmasZS, suspiciousPedestalRMS);
   }
 }
 //___________________________________________________________________
@@ -223,9 +223,23 @@ void PedestalCalibData::print()
 //___________________________________________________________________
 PedestalCalibrator::PedestalCalibrator()
 {
-  auto& cpvParams = o2::cpv::CPVSimParams::Instance();
-  mMinEvents = cpvParams.mPedClbMinEvents;
-  mZSnSigmas = cpvParams.mZSnSigmas;
+  LOG(info) << "PedestalCalibrator::PedestalCalibrator() : pedestal calibrator created!";
+}
+//___________________________________________________________________
+void PedestalCalibrator::configParameters()
+{
+  auto& cpvParams = o2::cpv::CPVCalibParams::Instance();
+  mMinEvents = cpvParams.pedMinEvents;
+  mZSnSigmas = cpvParams.pedZSnSigmas;
+  mToleratedGapWidth = cpvParams.pedToleratedGapWidth;
+  mZSnSigmas = cpvParams.pedZSnSigmas;
+  mSuspiciousPedestalRMS = cpvParams.pedSuspiciousPedestalRMS;
+  LOG(info) << "PedestalCalibrator::configParameters() : following parameters configured:";
+  LOG(info) << "mMinEvents = " << mMinEvents;
+  LOG(info) << "mZSnSigmas = " << mZSnSigmas;
+  LOG(info) << "mToleratedGapWidth = " << mToleratedGapWidth;
+  LOG(info) << "mZSnSigmas = " << mZSnSigmas;
+  LOG(info) << "mSuspiciousPedestalRMS = " << mSuspiciousPedestalRMS;
 }
 //___________________________________________________________________
 void PedestalCalibrator::initOutput()
@@ -248,7 +262,7 @@ void PedestalCalibrator::finalizeSlot(PedestalTimeSlot& slot)
   LOG(info) << "PedestalCalibrator::finalizeSlot() : finalizing slot "
             << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with " << calibData->mNEvents << " events.";
 
-  //o2::cpv::Geometry geo; // CPV geometry object
+  // o2::cpv::Geometry geo; // CPV geometry object
 
   // o2::cpv::Pedestals - calibration object used at reconstruction
   // and efficiencies vector
@@ -273,7 +287,7 @@ void PedestalCalibrator::finalizeSlot(PedestalTimeSlot& slot)
     peds->setPedSigma(i, sigma);
 
     // efficiencies
-    float efficiency = 1. * calibData->mPedestalSpectra[i].getNEntries() / calibData->mNEvents;
+    efficiency = 1. * calibData->mPedestalSpectra[i].getNEntries() / calibData->mNEvents;
     efficiencies.push_back(efficiency);
 
     // dead channels
@@ -298,6 +312,7 @@ void PedestalCalibrator::finalizeSlot(PedestalTimeSlot& slot)
   mPedEfficienciesVec.push_back(efficiencies);
   mDeadChannelsVec.push_back(deadChannels);
   mThresholdsFEEVec.push_back(thresholdsFEE);
+  mThresholdsFEEVec.push_back(thresholdsFEE); // push same FEE thresholds 2 times so one of it goes to ccdb with subspec 0 and another with subspec 1 (for normal and DCS ccdb population)
   mHighPedChannelsVec.push_back(highPedChannels);
 
   // metadata for o2::cpv::Pedestals
@@ -321,6 +336,8 @@ void PedestalCalibrator::finalizeSlot(PedestalTimeSlot& slot)
   className = o2::utils::MemFileHelper::getClassName(thresholdsFEE);
   fileName = o2::ccdb::CcdbApi::generateFileName(className);
   mCcdbInfoThresholdsFEEVec.emplace_back("CPV/PedestalRun/FEEThresholds", className, fileName, metaData, timeStamp, timeStamp + 31536000000); // one year validity time (in milliseconds!)
+  // push same FEE thresholds 2 times so one of it goes to ccdb with subspec 0 and another with subspec 1 (for normal and DCS ccdb population)
+  mCcdbInfoThresholdsFEEVec.emplace_back("CPV/PedestalRun/FEEThresholds", className, fileName, metaData, timeStamp, timeStamp + 31536000000);
 
   // metadata for high pedestal (> 511) channels
   className = o2::utils::MemFileHelper::getClassName(highPedChannels);
@@ -328,7 +345,7 @@ void PedestalCalibrator::finalizeSlot(PedestalTimeSlot& slot)
   mCcdbInfoHighPedChannelsVec.emplace_back("CPV/PedestalRun/HighPedChannels", className, fileName, metaData, timeStamp, timeStamp + 31536000000); // one year validity time (in milliseconds!)
 }
 //___________________________________________________________________
-PedestalTimeSlot& PedestalCalibrator::emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend)
+PedestalTimeSlot& PedestalCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
@@ -336,5 +353,5 @@ PedestalTimeSlot& PedestalCalibrator::emplaceNewSlot(bool front, uint64_t tstart
   return slot;
 }
 //___________________________________________________________________
-} //end namespace cpv
-} //end namespace o2
+} // end namespace cpv
+} // end namespace o2

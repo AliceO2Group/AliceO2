@@ -24,35 +24,32 @@ void CalibTOFapi::resetDia()
   mNoisy.clear();
 }
 
-CalibTOFapi::CalibTOFapi()
-{
-  resetDia();
-  memset(mIsErrorCh, false, Geo::NCHANNELS);
-  memset(mIsOffCh, false, Geo::NCHANNELS);
-  memset(mIsNoisy, false, Geo::NCHANNELS);
-}
-
 //______________________________________________________________________
 
 CalibTOFapi::CalibTOFapi(const std::string url)
 {
-  CalibTOFapi();
   // setting the URL to the CCDB manager
 
   setURL(url);
 }
 
 //______________________________________________________________________
-
 void CalibTOFapi::readActiveMap()
+{
+  auto& mgr = CcdbManager::instance();
+  long timems = long(mTimeStamp) * 1000;
+  LOG(info) << "TOF get active map with timestamp (ms) = " << timems;
+  auto fee = mgr.getForTimeStamp<TOFFEElightInfo>("TOF/Calib/FEELIGHT", timems);
+  loadActiveMap(fee);
+}
+
+//______________________________________________________________________
+void CalibTOFapi::loadActiveMap(TOFFEElightInfo* fee)
 {
   // getting the active TOF map
   memset(mIsOffCh, false, Geo::NCHANNELS);
 
-  auto& mgr = CcdbManager::instance();
-  long timems = long(mTimeStamp) * 1000;
-  auto fee = mgr.getForTimeStamp<TOFFEElightInfo>("TOF/Calib/FEELIGHT", timems);
-  if (mLHCphase) {
+  if (fee) {
     LOG(info) << "read Active map (TOFFEELIGHT) for TOF ";
     for (int ich = 0; ich < TOFFEElightInfo::NCHANNELS; ich++) {
       //printf("%d) Enabled= %d\n",ich,fee->mChannelEnabled[ich]);
@@ -74,6 +71,7 @@ void CalibTOFapi::readLHCphase()
 
   auto& mgr = CcdbManager::instance();
   long timems = long(mTimeStamp) * 1000;
+  LOG(info) << "TOF get LHCphase with timestamp (ms) = " << timems;
   mLHCphase = mgr.getForTimeStamp<LhcPhase>("TOF/Calib/LHCphase", timems);
   if (mLHCphase) {
     LOG(info) << "read LHCphase for TOF " << mLHCphase->getLHCphase(mTimeStamp);
@@ -92,6 +90,7 @@ void CalibTOFapi::readTimeSlewingParam()
 
   auto& mgr = CcdbManager::instance();
   long timems = long(mTimeStamp) * 1000;
+  LOG(info) << "TOF get time calibrations with timestamp (ms) = " << timems;
   mSlewParam = mgr.getForTimeStamp<SlewParam>("TOF/Calib/ChannelCalib", timems);
   if (mSlewParam) {
     LOG(info) << "read TimeSlewingParam for TOF";
@@ -104,17 +103,24 @@ void CalibTOFapi::readTimeSlewingParam()
 
 void CalibTOFapi::readDiagnosticFrequencies()
 {
+  auto& mgr = CcdbManager::instance();
+  long timems = long(mTimeStamp) * 1000;
+  LOG(info) << "TOF get Diagnostics with timestamp (ms) = " << timems;
+  mDiaFreq = mgr.getForTimeStamp<Diagnostic>("TOF/Calib/Diagnostic", timems);
+
+  loadDiagnosticFrequencies();
+}
+//______________________________________________________________________
+
+void CalibTOFapi::loadDiagnosticFrequencies()
+{
+  mDiaFreq->print();
+
   static const int NCH_PER_CRATE = Geo::NSTRIPXSECTOR * Geo::NPADS;
   // getting the Diagnostic Frequency calibration
   // needed for simulation
 
   memset(mIsNoisy, false, Geo::NCHANNELS);
-
-  auto& mgr = CcdbManager::instance();
-  long timems = long(mTimeStamp) * 1000;
-  mDiaFreq = mgr.getForTimeStamp<Diagnostic>("TOF/Calib/Diagnostic", timems);
-
-  //  mDiaFreq->print();
 
   resetDia();
 
@@ -244,7 +250,7 @@ bool CalibTOFapi::isOff(int ich)
 
 //______________________________________________________________________
 
-float CalibTOFapi::getTimeCalibration(int ich, float tot)
+float CalibTOFapi::getTimeCalibration(int ich, float tot) const
 {
 
   // time calibration to correct measured TOF times
@@ -266,7 +272,29 @@ float CalibTOFapi::getTimeCalibration(int ich, float tot)
 
 //______________________________________________________________________
 
-float CalibTOFapi::getTimeDecalibration(int ich, float tot)
+float CalibTOFapi::getTimeCalibration(int ich, float tot, float phase) const
+{
+
+  // time calibration to correct measured TOF times
+
+  float corr = 0;
+  if (!mLHCphase || !mSlewParam) {
+    LOG(warning) << "Either LHC phase or slewing object null: mLHCphase = " << mLHCphase << ", mSlewParam = " << mSlewParam;
+    return corr;
+  }
+  //  printf("LHC phase apply\n");
+  // LHCphase
+  corr += phase; // timestamp that we use in LHCPhase is in seconds
+  // time slewing + channel offset
+  //printf("eval time sleweing calibration: ch=%d   tot=%f (lhc phase = %f)\n",ich,tot,corr);
+  corr += mSlewParam->evalTimeSlewing(ich, tot);
+  //printf("corr = %f\n",corr);
+  return corr;
+}
+
+//______________________________________________________________________
+
+float CalibTOFapi::getTimeDecalibration(int ich, float tot) const
 {
 
   // time decalibration for simulation (it is just the opposite of the calibration)

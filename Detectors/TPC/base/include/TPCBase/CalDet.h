@@ -131,7 +131,7 @@ template <class T>
 inline const T CalDet<T>::getValue(const ROC roc, const size_t row, const size_t pad) const
 {
   // TODO: might need speedup and beautification
-  static const Mapper& mapper = Mapper::instance();
+  const Mapper& mapper = Mapper::instance();
 
   // bind row and pad to the maximum rows and pads in the requested region
   const size_t nRows = mapper.getNumberOfRowsROC(roc);
@@ -163,7 +163,7 @@ template <class T>
 inline const T CalDet<T>::getValue(const CRU cru, const size_t row, const size_t pad) const
 {
   // TODO: might need speedup and beautification
-  static const Mapper& mapper = Mapper::instance();
+  const Mapper& mapper = Mapper::instance();
   const auto& info = mapper.getPadRegionInfo(cru.region());
 
   // bind row and pad to the maximum rows and pads in the requested region

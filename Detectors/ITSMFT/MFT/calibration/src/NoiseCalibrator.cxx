@@ -42,7 +42,7 @@ bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
     }
   }
   mNumberOfStrobes += rofs.size();
-  return (mNumberOfStrobes * mProbabilityThreshold >= mThreshold) ? true : false;
+  return (mNumberOfStrobes > mMinROFs) ? true : false;
 }
 
 bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
@@ -61,7 +61,7 @@ bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
       o2::itsmft::ClusterPattern patt;
       auto row = c.getRow();
       auto col = c.getCol();
-      if (mDict.getSize() == 0) {
+      if (mDict->getSize() == 0) {
         if (pattID == o2::itsmft::CompCluster::InvalidPatternID) {
           patt.acquirePattern(pattIt);
         } else {
@@ -69,14 +69,14 @@ bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
         }
       } else if (pattID == o2::itsmft::CompCluster::InvalidPatternID) {
         patt.acquirePattern(pattIt);
-      } else if (mDict.isGroup(pattID)) {
+      } else if (mDict->isGroup(pattID)) {
         patt.acquirePattern(pattIt);
         float xCOG = 0., zCOG = 0.;
         patt.getCOG(xCOG, zCOG); // for grouped patterns the reference pixel is at COG
         row -= round(xCOG);
         col -= round(zCOG);
       } else {
-        patt = mDict.getPattern(pattID);
+        patt = mDict->getPattern(pattID);
       }
       auto id = c.getSensorID();
       auto colSpan = patt.getColumnSpan();
@@ -115,13 +115,14 @@ bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
     }
   }
   mNumberOfStrobes += rofs.size();
-  return (mNumberOfStrobes * mProbabilityThreshold >= mThreshold) ? true : false;
+  return (mNumberOfStrobes > mMinROFs) ? true : false;
 }
 
 void NoiseCalibrator::finalize()
 {
   LOG(info) << "Number of processed strobes is " << mNumberOfStrobes;
   mNoiseMap.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
+  mNoiseMap.print();
 }
 
 } // namespace mft

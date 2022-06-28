@@ -14,8 +14,8 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MCH_TRACKFINDER_H_
-#define ALICEO2_MCH_TRACKFINDER_H_
+#ifndef O2_MCH_TRACKFINDER_H_
+#define O2_MCH_TRACKFINDER_H_
 
 #include <chrono>
 #include <unordered_map>
@@ -83,6 +83,7 @@ class TrackFinder
   void finalize();
 
   void createTrack(const Cluster& cl1, const Cluster& cl2);
+  std::list<Track>::iterator addTrack(const std::list<Track>::iterator& pos, const Track& track);
 
   bool isAcceptable(const TrackParam& param) const;
 
@@ -92,9 +93,9 @@ class TrackFinder
   bool propagateCurrentParam(Track& track, int chamber);
 
   bool areUsed(const Cluster& cl1, const Cluster& cl2, const std::vector<std::array<uint32_t, 4>>& usedClusters);
-  void excludeClustersFromIdenticalTracks(const std::list<Track>::iterator& itTrack,
-                                          std::unordered_map<int, std::unordered_set<uint32_t>>& excludedClusters,
-                                          const std::list<Track>::iterator& itEndTrack);
+  void excludeClustersFromIdenticalTracks(const std::array<uint32_t, 4>& currentClusters,
+                                          const std::vector<std::array<uint32_t, 8>>& usedClusters,
+                                          std::unordered_map<int, std::unordered_set<uint32_t>>& excludedClusters);
   void moveClusters(std::unordered_map<int, std::unordered_set<uint32_t>>& source, std::unordered_map<int, std::unordered_set<uint32_t>>& destination);
 
   bool isCompatible(const TrackParam& param, const Cluster& cluster, TrackParam& paramAtCluster);
@@ -158,4 +159,4 @@ class TrackFinder
 } // namespace mch
 } // namespace o2
 
-#endif // ALICEO2_MCH_TRACKFINDER_H_
+#endif // O2_MCH_TRACKFINDER_H_

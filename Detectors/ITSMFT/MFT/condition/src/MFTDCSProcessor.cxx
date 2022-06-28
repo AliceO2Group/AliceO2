@@ -63,19 +63,20 @@ int MFTDCSProcessor::process(const gsl::span<const DPCOM> dps)
     mStartTFset = true;
   }
 
-  std::unordered_map<DPID, DPVAL> mapin;
-  for (auto& it : dps) {
-    mapin[it.id] = it.data;
-  }
-  for (auto& it : mPids) {
-    const auto& el = mapin.find(it.first);
-    if (el == mapin.end()) {
-      LOG(debug) << "DP " << it.first << " not found in map";
-    } else {
-      LOG(debug) << "DP " << it.first << " found in map";
+  if (false) { // RS: why do we need to lose CPU on this dummy check?
+    std::unordered_map<DPID, DPVAL> mapin;
+    for (auto& it : dps) {
+      mapin[it.id] = it.data;
+    }
+    for (auto& it : mPids) {
+      const auto& el = mapin.find(it.first);
+      if (el == mapin.end()) {
+        LOG(debug) << "DP " << it.first << " not found in map";
+      } else {
+        LOG(debug) << "DP " << it.first << " found in map";
+      }
     }
   }
-
   // now we process all DPs, one by one
   for (const auto& it : dps) {
     // we process only the DPs defined in the configuration
@@ -86,12 +87,11 @@ int MFTDCSProcessor::process(const gsl::span<const DPCOM> dps)
     }
     /*
     //it.id = DataPointIdentifier
-    //id.data = DataPointValue    
+    //id.data = DataPointValue
     const DPCOM new_it(new_id,it.data);
     processDP(new_it);
     */
     processDP(it);
-
     mPids[it.id] = true;
   }
 
@@ -112,10 +112,10 @@ int MFTDCSProcessor::processDP(const DPCOM& dpcom)
   const auto& type = dpid.get_type();
   auto& val = dpcom.data;
   if (mVerbose) {
-    if (type == RAW_DOUBLE) {
+    if (type == DPVAL_DOUBLE) {
       LOG(info);
       LOG(info) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<double>(dpcom);
-    } else if (type == RAW_INT) {
+    } else if (type == DPVAL_INT) {
       LOG(info);
       LOG(info) << "Processing DP = " << dpcom << ", with value = " << o2::dcs::getValue<int32_t>(dpcom);
     }
@@ -124,10 +124,12 @@ int MFTDCSProcessor::processDP(const DPCOM& dpcom)
   auto flags = val.get_flags();
 
   // now I need to access the correct element
-  if (type == RAW_DOUBLE) {
+  if (type == DPVAL_DOUBLE) {
     // for these DPs, we will store the first, last, mid value, plus the value where the maximum variation occurred
     auto& dvect = mDpsdoublesmap[dpid];
-    LOG(info) << "mDpsdoublesmap[dpid].size() = " << dvect.size();
+    if (mVerbose) {
+      LOG(info) << "mDpsdoublesmap[dpid].size() = " << dvect.size();
+    }
     auto etime = val.get_epoch_time();
     if (dvect.size() == 0 || etime != dvect.back().get_epoch_time()) { // we check
                                                                        // that we did not get the
@@ -146,17 +148,20 @@ void MFTDCSProcessor::updateDPsCCDB()
 {
 
   // here we create the object to then be sent to CCDB
-  LOG(info) << "Finalizing";
+  if (mVerbose) {
+    LOG(info) << "Finalizing";
+  }
   union Converter {
     uint64_t raw_data;
     double double_value;
   } converter0, converter1;
 
-  for (const auto& it : mPids) {
+  for (auto& it : mPids) {
     const auto& type = it.first.get_type();
-    if (type == o2::dcs::RAW_DOUBLE) {
+    if (type == o2::dcs::DPVAL_DOUBLE) {
       auto& mftdcs = mMFTDCS[it.first];
-      if (it.second == true) { // we processed the DP at least 1x
+      if (it.second) {     // we processed the DP at least 1x
+        it.second = false; // once the point was used, reset it
         auto& dpvect = mDpsdoublesmap[it.first];
         mftdcs.firstValue.first = dpvect[0].get_epoch_time();
         converter0.raw_data = dpvect[0].payload_pt1;

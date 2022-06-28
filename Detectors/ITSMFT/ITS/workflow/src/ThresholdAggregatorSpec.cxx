@@ -45,23 +45,45 @@ void ITSThresholdAggregator::init(InitContext& ic)
 // Get DCSconfigObject_t from EPNs and aggregate them in 1 object
 void ITSThresholdAggregator::run(ProcessingContext& pc)
 {
-
   // take run type and scan type at the beginning
-  if (this->mRunType == -1) {
-    mRunType = pc.inputs().get<short int>("runtype");
-    mScanType = pc.inputs().get<char>("scantype");
-    mFitType = pc.inputs().get<char>("fittype");
-    updateRunID(pc); // run number
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "RUNT"}}})) {
+    if (mRunType == -1) {
+      updateRunID(pc);
+      updateLHCPeriod(pc);
+    }
+    mRunType = pc.inputs().get<short int>(inputRef);
+    break;
+  }
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "SCANT"}}})) {
+    mScanType = pc.inputs().get<char>(inputRef);
+    break;
+  }
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "FITT"}}})) {
+    mFitType = pc.inputs().get<char>(inputRef);
+    break;
+  }
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "CONFDBV"}}})) {
+    mDBversion = pc.inputs().get<short int>(inputRef);
+    break;
+  }
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "TSTR"}}})) {
+    // Read strings with tuning info
+    const auto tunString = pc.inputs().get<gsl::span<char>>(inputRef);
+    // Merge all strings coming from several sources (EPN)
+    std::copy(tunString.begin(), tunString.end(), std::back_inserter(tuningMerge));
+  }
+  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "QCSTR"}}})) {
+    // Read strings with list of completed chips
+    const auto chipDoneString = pc.inputs().get<gsl::span<char>>(inputRef);
+    // Merge all strings coming from several sources (EPN)
+    std::copy(chipDoneString.begin(), chipDoneString.end(), std::back_inserter(chipDoneMerge));
   }
 
-  if (mLHCPeriod.empty()) {
-    updateLHCPeriod(pc);
+  if (mVerboseOutput) {
+    LOG(info) << "Chips completed: ";
+    std::string tmpString(chipDoneMerge.begin(), chipDoneMerge.end());
+    LOG(info) << tmpString;
   }
-
-  // Read strings with tuning info
-  const auto tunString = pc.inputs().get<gsl::span<char>>("tunestring");
-  // Merge all strings coming from several sources (EPN)
-  std::copy(tunString.begin(), tunString.end(), std::back_inserter(tuningMerge));
 
   return;
 }
@@ -69,7 +91,9 @@ void ITSThresholdAggregator::run(ProcessingContext& pc)
 //////////////////////////////////////////////////////////////////////////////
 void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
 {
-  LOGF(info, "endOfStream report:", mSelfName);
+  if (ec) {
+    LOGF(info, "endOfStream report:", mSelfName);
+  }
 
   // Below is CCDB stuff
   long tstart = o2::ccdb::getCurrentTimestamp();
@@ -80,8 +104,12 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
   // Create metadata for database object
   std::string ft = this->mFitType == 0 ? "derivative" : this->mFitType == 1 ? "fit"
                                                                             : "hitcounting";
+  if (mScanType == 'D' || mScanType == 'A') {
+    ft = "null";
+  }
+
   std::map<std::string, std::string> md = {
-    {"fittype", ft}, {"runtype", std::to_string(this->mRunType)}};
+    {"fittype", ft}, {"runtype", std::to_string(this->mRunType)}, {"confDBversion", std::to_string(this->mDBversion)}};
   if (!(this->mLHCPeriod.empty())) {
     md.insert({"LHC_period", this->mLHCPeriod});
   }
@@ -90,8 +118,10 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
   }
 
   std::string path("ITS/Calib/");
-  std::string name_str = this->mScanType == 'V' ? "VCASN" : this->mScanType == 'I' ? "ITHR"
-                                                                                   : "THR";
+  std::string name_str = mScanType == 'V' ? "VCASN" : mScanType == 'I' ? "ITHR"
+                                                    : mScanType == 'D' ? "DIG"
+                                                    : mScanType == 'A' ? "ANA"
+                                                                       : "THR";
   o2::ccdb::CcdbObjectInfo info((path + name_str), "threshold_map", "calib_scan.root", md, tstart, tend);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&tuningMerge, &info);
   std::string file_name = "calib_scan_" + name_str + ".root";
@@ -113,6 +143,14 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
     } else if (this->mScanType == 'T') {
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "THR", 0}, *image);
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "THR", 0}, info);
+    } else if (this->mScanType == 'D') {
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DIG", 0}, *image);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DIG", 0}, info);
+    } else if (this->mScanType == 'A') {
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ANA", 0}, *image);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ANA", 0}, info);
+    } else {
+      LOG(error) << "Nothing sent to ccdb-populator, mScanType does not match any known scan type";
     }
   }
 
@@ -189,10 +227,12 @@ void ITSThresholdAggregator::updateRunID(ProcessingContext& pc)
 DataProcessorSpec getITSThresholdAggregatorSpec()
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("tunestring", "ITS", "TSTR", 0);
-  inputs.emplace_back("runtype", "ITS", "RUNT", 0);
-  inputs.emplace_back("scantype", "ITS", "SCANT", 0);
-  inputs.emplace_back("fittype", "ITS", "FITT", 0);
+  inputs.emplace_back("tunestring", ConcreteDataTypeMatcher{"ITS", "TSTR"});
+  inputs.emplace_back("chipdonestring", ConcreteDataTypeMatcher{"ITS", "QCSTR"});
+  inputs.emplace_back("runtype", ConcreteDataTypeMatcher{"ITS", "RUNT"});
+  inputs.emplace_back("scantype", ConcreteDataTypeMatcher{"ITS", "SCANT"});
+  inputs.emplace_back("fittype", ConcreteDataTypeMatcher{"ITS", "FITT"});
+  inputs.emplace_back("confdbversion", ConcreteDataTypeMatcher{"ITS", "CONFDBV"});
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "VCASN"});
@@ -203,6 +243,12 @@ DataProcessorSpec getITSThresholdAggregatorSpec()
 
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "THR"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "THR"});
+
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "DIG"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "DIG"});
+
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ANA"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ANA"});
 
   return DataProcessorSpec{
     "its-aggregator",

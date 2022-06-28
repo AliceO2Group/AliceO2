@@ -34,6 +34,8 @@ class EntropyEncoderSpec : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;

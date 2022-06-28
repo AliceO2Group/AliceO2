@@ -14,8 +14,8 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MCH_EVENTFINDER_H_
-#define ALICEO2_MCH_EVENTFINDER_H_
+#ifndef O2_MCH_EVENTFINDER_H_
+#define O2_MCH_EVENTFINDER_H_
 
 #include <map>
 #include <unordered_map>
@@ -81,4 +81,4 @@ class EventFinder
 } // namespace mch
 } // namespace o2
 
-#endif // ALICEO2_MCH_EVENTFINDER_H_
+#endif // O2_MCH_EVENTFINDER_H_

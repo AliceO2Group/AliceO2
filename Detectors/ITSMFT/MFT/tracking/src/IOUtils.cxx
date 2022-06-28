@@ -37,7 +37,7 @@ namespace mft
 
 //_________________________________________________________
 template <typename T>
-int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels, const o2::mft::Tracker<T>* tracker)
+int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary* dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels, const o2::mft::Tracker<T>* tracker)
 {
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
@@ -52,17 +52,17 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event
     o2::math_utils::Point3D<float> locXYZ;
     float sigmaX2 = ioutils::DefClusError2Row, sigmaY2 = ioutils::DefClusError2Col; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaX2 = dict.getErr2X(pattID); // ALPIDE local X coordinate => MFT global X coordinate (ALPIDE rows)
-      sigmaY2 = dict.getErr2Z(pattID); // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
-      if (!dict.isGroup(pattID)) {
-        locXYZ = dict.getClusterCoordinates(c);
+      sigmaX2 = dict->getErr2X(pattID); // ALPIDE local X coordinate => MFT global X coordinate (ALPIDE rows)
+      sigmaY2 = dict->getErr2Z(pattID); // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
+      if (!dict->isGroup(pattID)) {
+        locXYZ = dict->getClusterCoordinates(c);
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locXYZ = dict.getClusterCoordinates(c, patt);
+        locXYZ = dict->getClusterCoordinates(c, patt);
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict.getClusterCoordinates(c, patt, false);
+      locXYZ = dict->getClusterCoordinates(c, patt, false);
     }
     // Transformation to the local --> global
     auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
@@ -89,7 +89,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event
 void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,
                                      gsl::span<const unsigned char>::iterator& pattIt,
                                      std::vector<o2::BaseCluster<float>>& output,
-                                     const itsmft::TopologyDictionary& dict)
+                                     const itsmft::TopologyDictionary* dict)
 {
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
@@ -100,17 +100,17 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
     o2::math_utils::Point3D<float> locXYZ;
     float sigmaX2 = DefClusError2Row, sigmaY2 = DefClusError2Col;
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaX2 = dict.getErr2X(pattID); // ALPIDE local Y coordinate => MFT global X coordinate (ALPIDE rows)
-      sigmaY2 = dict.getErr2Z(pattID); // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
-      if (!dict.isGroup(pattID)) {
-        locXYZ = dict.getClusterCoordinates(c);
+      sigmaX2 = dict->getErr2X(pattID); // ALPIDE local Y coordinate => MFT global X coordinate (ALPIDE rows)
+      sigmaY2 = dict->getErr2Z(pattID); // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
+      if (!dict->isGroup(pattID)) {
+        locXYZ = dict->getClusterCoordinates(c);
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locXYZ = dict.getClusterCoordinates(c, patt);
+        locXYZ = dict->getClusterCoordinates(c, patt);
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict.getClusterCoordinates(c, patt, false);
+      locXYZ = dict->getClusterCoordinates(c, patt, false);
     }
 
     // Transformation to the local --> global
@@ -121,11 +121,11 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
   }
 }
 template int o2::mft::ioutils::loadROFrameData<o2::mft::TrackLTF>(const o2::itsmft::ROFRecord&, ROframe<o2::mft::TrackLTF>&, gsl::span<const itsmft::CompClusterExt>,
-                                                                  gsl::span<const unsigned char>::iterator&, const itsmft::TopologyDictionary&,
+                                                                  gsl::span<const unsigned char>::iterator&, const itsmft::TopologyDictionary*,
                                                                   const dataformats::MCTruthContainer<MCCompLabel>*, const o2::mft::Tracker<o2::mft::TrackLTF>*);
 
 template int o2::mft::ioutils::loadROFrameData<o2::mft::TrackLTFL>(const o2::itsmft::ROFRecord&, ROframe<o2::mft::TrackLTFL>&, gsl::span<const itsmft::CompClusterExt>,
-                                                                   gsl::span<const unsigned char>::iterator&, const itsmft::TopologyDictionary&,
+                                                                   gsl::span<const unsigned char>::iterator&, const itsmft::TopologyDictionary*,
                                                                    const dataformats::MCTruthContainer<MCCompLabel>*, const o2::mft::Tracker<o2::mft::TrackLTFL>*);
 
 } // namespace mft

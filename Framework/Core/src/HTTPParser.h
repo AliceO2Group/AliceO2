@@ -105,6 +105,15 @@ enum struct WebSocketOpCode : uint8_t {
   Pong = 10
 };
 
+struct WebSocketConstants {
+  /// The maximum size of a WebSocket chunk.
+  /// We always allocate new buffers of this size and then we use
+  /// len to decide how much data was used. This way
+  /// we can simply multiplex multiple messages in the same buffer.
+  /// For larger messages, we can then create the right size buffer.
+  constexpr static size_t MaxChunkSize = 0x10000;
+};
+
 /// Encodes the request handshake for a given path / protocol / version.
 /// @a path is the path of the websocket endpoint
 /// @a protocol is the protocol required for the websocket connection

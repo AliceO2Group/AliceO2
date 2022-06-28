@@ -46,11 +46,11 @@ class Clusterer
 
   void makeClusters(std::vector<Cluster>& clusters, std::vector<o2::phos::CluElement>& cluel);
 
-  void setBadMap(std::unique_ptr<BadChannelsMap>& m) { mBadMap = std::move(m); }
-  void setCalibration(std::unique_ptr<CalibParams>& c) { mCalibParams = std::move(c); }
+  void setBadMap(const o2::phos::BadChannelsMap* m) { mBadMap = m; }
+  void setCalibration(const o2::phos::CalibParams* c) { mCalibParams = c; }
 
  protected:
-  //Calibrate energy
+  // Calibrate energy
   inline float calibrate(float amp, short absId, bool isHighGain)
   {
     if (isHighGain) {
@@ -59,17 +59,17 @@ class Clusterer
       return amp * mCalibParams->getGain(absId) * mCalibParams->getHGLGRatio(absId);
     }
   }
-  //Calibrate time
+  // Calibrate time
   inline float calibrateT(float time, short absId, bool isHighGain)
   {
-    //Calibrate time
+    // Calibrate time
     if (isHighGain) {
       return time - mCalibParams->getHGTimeCalib(absId);
     } else {
       return time - mCalibParams->getLGTimeCalib(absId);
     }
   }
-  //Test Bad map
+  // Test Bad map
   inline bool isBadChannel(short absId) { return (!mBadMap->isChannelGood(absId)); }
 
   char getNumberOfLocalMax(Cluster& clu, std::vector<CluElement>& cluel);
@@ -80,17 +80,17 @@ class Clusterer
 
   double showerShape(double r2, double& deriv); // Parameterization of EM shower
 
-  void makeUnfolding(Cluster& clu, std::vector<Cluster>& clusters, std::vector<o2::phos::CluElement>& cluel); //unfold cluster with few local maxima
+  void makeUnfolding(Cluster& clu, std::vector<Cluster>& clusters, std::vector<o2::phos::CluElement>& cluel); // unfold cluster with few local maxima
   void unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster>& clusters, std::vector<CluElement>& cluelements);
 
  protected:
-  static constexpr short NLOCMAX = 30; //Maximal number of local maxima in cluster
+  static constexpr short NLOCMAX = 30; // Maximal number of local maxima in cluster
   bool mProcessMC = false;
   int miCellLabel = 0;
   bool mFullCluOutput = false;               ///< Write output full of reduced (no contributed digits) clusters
-  Geometry* mPHOSGeom = nullptr;             ///< PHOS geometry
-  std::unique_ptr<CalibParams> mCalibParams; ///! Calibration coefficients
-  std::unique_ptr<BadChannelsMap> mBadMap;   ///! Bad map
+  Geometry* mPHOSGeom = nullptr;             ///! PHOS geometry
+  const CalibParams* mCalibParams = nullptr; ///! Calibration coefficients, Clusterizer not owner
+  const BadChannelsMap* mBadMap = nullptr;   ///! Bad map, Clusterizer not owner
 
   std::vector<CluElement> mCluEl; ///< internal vector of clusters
   std::vector<Digit> mTrigger;    ///< internal vector of clusters

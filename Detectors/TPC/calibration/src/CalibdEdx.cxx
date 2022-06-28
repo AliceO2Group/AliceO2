@@ -13,42 +13,43 @@
 
 #include <algorithm>
 #include <array>
-#include <boost/histogram/algorithm/project.hpp>
+#include <vector>
 #include <cmath>
 #include <cstddef>
 #include <gsl/span>
-#include <limits>
 #include <numeric>
 #include <string_view>
 #include <utility>
 
 // o2 includes
+#include "CommonConstants/PhysicsConstants.h"
+#include "DataFormatsTPC/BetheBlochAleph.h"
+#include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/TrackCuts.h"
-#include "DataFormatsTPC/Defs.h"
 #include "Framework/Logger.h"
+#include "TPCBase/ParameterGas.h"
 
 // root includes
 #include "TFile.h"
-#include "TH2F.h"
+#include "THn.h"
 #include "TTree.h"
 #include "TLinearFitter.h"
 
 // boost includes
 #include <boost/histogram.hpp>
-#include <vector>
 
 using namespace o2::tpc;
 namespace bh = boost::histogram;
 
-CalibdEdx::CalibdEdx(float mindEdx, float maxdEdx, int dEdxBins, int zBins, int angularBins)
+CalibdEdx::CalibdEdx(int dEdxBins, float mindEdx, float maxdEdx, int angularBins, bool fitSnp)
+  : mFitSnp(fitSnp)
 {
-  constexpr float maxZ = 250;
+  const int snpBins = fitSnp ? angularBins : 1;
   mHist = bh::make_histogram(
-    FloatAxis(dEdxBins, mindEdx * mipScale, maxdEdx * mipScale, "dEdx"),
-    FloatAxis(zBins, 0, maxZ, "Z"),
-    FloatAxis(angularBins, -1, 1, "Tgl"),
-    // HistFloatAxis(angleBins, -1, 1, "Snp"),
+    FloatAxis(dEdxBins, mindEdx * MipScale, maxdEdx * MipScale, "dEdx"),
+    FloatAxis(angularBins, 0, 1, "Tgl"),
+    FloatAxis(snpBins, -1, 1, "Snp"),
     IntAxis(0, SECTORSPERSIDE * SIDES, "sector"),
     IntAxis(0, GEMSTACKSPERSECTOR, "stackType"),
     IntAxis(0, CHARGETYPES, "charge"));
@@ -68,25 +69,41 @@ void CalibdEdx::fill(const TrackTPC& track)
   // We need a copy of the track to perform propagations
   auto cpTrack = track;
 
-  for (const GEMstack stack : {IROCgem, OROC1gem, OROC2gem, OROC3gem}) {
-    // These are the x value in cm of the center of the stacks (IROC, OROC1, ...) in the local frame.
+  // Beth-Bloch correction for non MIP tracks
+  const auto& gasParam = ParameterGas::Instance();
+  const float betaGamma = track.getP() / o2::constants::physics::MassPionCharged;
+  const float dEdxScale = MipScale / BetheBlochAleph(betaGamma, gasParam.BetheBlochParam[0],
+                                                     gasParam.BetheBlochParam[1], gasParam.BetheBlochParam[2],
+                                                     gasParam.BetheBlochParam[3], gasParam.BetheBlochParam[4]);
+
+  for (const GEMstack roc : {IROCgem, OROC1gem, OROC2gem, OROC3gem}) {
+    // Local x value of the center pad row of each roc type in cm (IROC, OROC1, ...).
     constexpr std::array<float, 4> xks{108.475f, 151.7f, 188.8f, 227.65f};
 
-    bool ok = cpTrack.propagateTo(xks[stack], mField);
-
+    bool okProp = cpTrack.propagateTo(xks[roc], mField);
+    bool okGlob = false;
+    float sector = std::floor(18.f * o2::math_utils::to02PiGen(track.getXYZGloAt(xks[roc], mField, okGlob).Phi()) / o2::constants::math::TwoPI);
     // Ignore stack if we are not able to find its sector
-    if (!ok) {
+    if (!okProp || !okGlob) {
       continue;
     }
 
-    const float z = abs(cpTrack.getZ());
-    const float tgl = cpTrack.getTgl();
-    // const float snp = cpTrack.getSnp();
-    const float alpha = o2::math_utils::to02PiGen(cpTrack.getAlpha());
-    const auto sector = static_cast<int>(alpha / SECPHIWIDTH) + sideOffset;
+    // If the track was propagated to a different sector we need to rotate the local frame to get the correct Snp value
+    if (mFitSnp) {
+      float localFrame = std::floor(18.f * o2::math_utils::to02PiGen(cpTrack.getAlpha()) / o2::constants::math::TwoPI);
+      if (std::abs(sector - localFrame) > 0.1) {
+        const float alpha = SECPHIWIDTH * (0.5 + sector);
+        cpTrack.rotate(alpha);
+      }
+    }
+    const float snp = cpTrack.getSnp();
+    const float scaledTgl = scaleTgl(std::abs(cpTrack.getTgl()), roc);
+    if (track.hasCSideClusters()) {
+      sector += SECTORSPERSIDE;
+    }
 
-    mHist(dEdxMax[stack] * mipScale, z, tgl, /* snp ,*/ sector, stack, ChargeType::Max);
-    mHist(dEdxTot[stack] * mipScale, z, tgl, /* snp ,*/ sector, stack, ChargeType::Tot);
+    mHist(dEdxMax[roc] * dEdxScale, scaledTgl, snp, sector, roc, ChargeType::Max);
+    mHist(dEdxTot[roc] * dEdxScale, scaledTgl, snp, sector, roc, ChargeType::Tot);
   }
 }
 
@@ -105,7 +122,8 @@ void CalibdEdx::merge(const CalibdEdx* other)
 }
 
 template <typename Hist>
-void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter, const CalibdEdxCorrection* stackMean = nullptr)
+void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
+             const float dEdxCut, const int passes, const CalibdEdxCorrection* stackMean = nullptr)
 {
   using ax = CalibdEdx::Axis;
 
@@ -114,7 +132,6 @@ void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
   for (int i = 0; i < ax::Sector; ++i) {
     stackBins *= hist.axis(i).size();
   }
-
   const bool projSectors = stackMean != nullptr;
 
   constexpr int sectors = SECTORSPERSIDE * SIDES;
@@ -124,64 +141,82 @@ void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
   // number of GEM stacks per fit
   const int fitStacks = projSectors ? sectors : 1;
 
-  auto entry = bh::indexed(hist).begin();
+  for (int fitPass = 0; fitPass < passes; ++fitPass) {
 
-  for (int fit = 0; fit < fitCount; ++fit) {
-    StackID id{};
-    id.type = static_cast<GEMstack>(entry->bin(ax::Stack).center());
-    const auto charge = static_cast<ChargeType>(entry->bin(ax::Charge).center());
+    auto entry = bh::indexed(hist).begin();
+    for (int fit = 0; fit < fitCount; ++fit) {
+      int entries = 0;
+      int outliers = 0;
+      StackID id{};
+      id.type = static_cast<GEMstack>(entry->bin(ax::Stack).center());
+      const auto charge = static_cast<ChargeType>(entry->bin(ax::Charge).center());
+      fitter.ClearPoints();
 
-    for (int stack = 0; stack < fitStacks; ++stack) {
-      id.sector = static_cast<int>(entry->bin(ax::Sector).center());
+      for (int stack = 0; stack < fitStacks; ++stack) {
+        id.sector = static_cast<int>(entry->bin(ax::Sector).center());
 
-      for (int bin = 0; bin < stackBins; ++bin, ++entry) {
-        const float counts = *entry;
-        if (counts == 0) {
-          continue;
+        for (int bin = 0; bin < stackBins; ++bin, ++entry) {
+          const int counts = *entry;
+          // skip empty bin
+          if (counts == 0) {
+            continue;
+          }
+          entries += counts;
+
+          double dEdx = entry->bin(ax::dEdx).center();
+          double inputs[] = {
+            CalibdEdx::recoverTgl(entry->bin(ax::Tgl).center(), id.type),
+            entry->bin(ax::Snp).center()};
+
+          // ignore tracks with dEdx above a threshold defined by previous fit
+          if (fitPass > 0) {
+            float oldCorr = corr.getCorrection(id, charge, inputs[0], inputs[1]);
+            float lowerCut = (1.f - 1.5 * dEdxCut) * oldCorr;
+            float upperCut = (1.f + dEdxCut) * oldCorr;
+            if (dEdx < lowerCut || dEdx > upperCut) {
+              outliers += counts;
+              continue;
+            }
+          }
+
+          // scale fitted dEdx using the stacks mean
+          if (stackMean != nullptr) {
+            dEdx /= stackMean->getCorrection(id, charge);
+          }
+          const double error = 1. / sqrt(counts);
+          fitter.AddPoint(inputs, dEdx, error);
         }
-        std::array<double, 2> values{entry->bin(1).center(),
-                                     entry->bin(2).center()};
-
-        double dEdx = entry->bin(ax::dEdx).center();
-        // scale fit using the stacks mean
-        if (stackMean != nullptr) {
-          dEdx /= stackMean->getCorrection(id, charge);
-        }
-
-        // constexpr float dEdxResolution = 0.05;
-        // const double error = dEdx * dEdxResolution / sqrt(counts);
-        const double error = 1. / sqrt(counts);
-
-        fitter.AddPoint(values.data(), dEdx, error);
       }
-    }
-    fitter.Eval();
+      fitter.Eval();
 
-    constexpr auto paramSize = CalibdEdxCorrection::paramSize;
-    float params[paramSize] = {0};
-    for (int param = 0; param < fitter.GetNumberFreeParameters(); ++param) {
-      params[param] = fitter.GetParameter(param);
-    }
+      const auto paramSize = CalibdEdxCorrection::ParamSize;
+      float params[paramSize] = {0};
+      for (int param = 0; param < fitter.GetNumberFreeParameters(); ++param) {
+        params[param] = fitter.GetParameter(param);
+      }
 
-    // for projected hist, copy the fit to every sector
-    if (projSectors) {
-      for (int i = 0; i < sectors; ++i) {
-        id.sector = i;
-        const float mean = stackMean->getCorrection(id, charge);
+      // with a projected hist, copy the fit to every sector
+      if (projSectors) {
+        for (int i = 0; i < sectors; ++i) {
+          id.sector = i;
+          const float mean = stackMean->getCorrection(id, charge);
 
-        // rescale the params to get the true correction
-        float scaledParams[paramSize];
-        for (int i = 0; i < paramSize; ++i) {
-          scaledParams[i] = params[i] * mean;
+          // rescale the params to get the true correction
+          float scaledParams[paramSize];
+          for (int i = 0; i < paramSize; ++i) {
+            scaledParams[i] = params[i] * mean;
+          }
+          corr.setParams(id, charge, scaledParams);
+          corr.setChi2(id, charge, fitter.GetChisquare());
+          corr.setEntries(id, charge, entries);
         }
-        corr.setParams(id, charge, scaledParams);
+      } else {
+        corr.setParams(id, charge, params);
         corr.setChi2(id, charge, fitter.GetChisquare());
+        corr.setEntries(id, charge, entries);
       }
-    } else {
-      corr.setParams(id, charge, params);
-      corr.setChi2(id, charge, fitter.GetChisquare());
+      LOGP(debug, "Fit pass {} with {} % outliers in {} entries. Fitter Points: {}", fitPass, (float)outliers / (float)entries * 100, entries, fitter.GetNpoints());
     }
-    fitter.ClearPoints();
   }
 }
 
@@ -191,13 +226,12 @@ void CalibdEdx::finalize()
   mCalib.clear();
 
   TLinearFitter fitter(2);
-
   // Choose the fit dimension based on the available statistics
-  if (entries >= mFitCuts[2]) {
-    fitter.SetFormula("1 ++ x ++ x*x ++ y ++ x*y ++ y*y");
+  if (mFitSnp && entries >= m2DThreshold) {
+    fitter.SetFormula("1 ++ x ++ x*x ++ x*x*x ++ x*x*x*x ++ y ++ y*y ++ x*y");
     mCalib.setDims(2);
-  } else if (entries >= mFitCuts[1]) {
-    fitter.SetFormula("1 ++ x ++ x*x");
+  } else if (entries >= m1DThreshold) {
+    fitter.SetFormula("1 ++ x ++ x*x ++ x*x*x ++ x*x*x*x");
     mCalib.setDims(1);
   } else {
     fitter.SetFormula("1");
@@ -205,9 +239,9 @@ void CalibdEdx::finalize()
   }
   LOGP(info, "Fitting {}D dE/dx correction for GEM stacks", mCalib.getDims());
 
-  // if entries bellow minimum threshold, integrate all sectors
-  if (mCalib.getDims() == 0 || entries >= mFitCuts[0]) {
-    fitHist(mHist, mCalib, fitter);
+  // if entries bellow minimum sector threshold, integrate all sectors
+  if (mCalib.getDims() == 0 || entries >= mSectorThreshold) {
+    fitHist(mHist, mCalib, fitter, mFitCut, mFitPasses);
   } else {
     LOGP(info, "Integrating GEM stacks sectors in dE/dx correction due to low statistics");
 
@@ -216,22 +250,21 @@ void CalibdEdx::finalize()
     meanCorr.setDims(0);
     TLinearFitter meanFitter(0);
     meanFitter.SetFormula("1");
-    fitHist(mHist, meanCorr, meanFitter);
+    fitHist(mHist, meanCorr, meanFitter, mFitCut, mFitPasses);
 
-    // get highier dimension corrections with projected sectors
-    fitHist(mHist, mCalib, fitter, &meanCorr);
+    // get higher dimension corrections with projected sectors
+    fitHist(mHist, mCalib, fitter, mFitCut, mFitPasses, &meanCorr);
   }
 }
 
-float CalibdEdx::minStackEntries() const
+int CalibdEdx::minStackEntries() const
 {
-  // sum over the dEdx bins to get the number of entries per stack
-  auto projection = bh::algorithm::project(mHist, std::vector<int>{Axis::Sector, Axis::Stack});
+  // sum over the dEdx and track-param bins to get the number of entries per stack and charge
+  auto projection = bh::algorithm::project(mHist, std::vector<int>{Axis::Sector, Axis::Stack, Axis::Charge});
   auto dEdxCounts = bh::indexed(projection);
   // find the stack with the least number of entries
   auto min_it = std::min_element(dEdxCounts.begin(), dEdxCounts.end());
-  // the count is doubled since we sum qMax and qTot entries
-  return static_cast<float>(*min_it / 2);
+  return *min_it;
 }
 
 bool CalibdEdx::hasEnoughData(float minEntries) const
@@ -239,40 +272,34 @@ bool CalibdEdx::hasEnoughData(float minEntries) const
   return minStackEntries() >= minEntries;
 }
 
-TH2F CalibdEdx::getRootHist(const std::vector<int>& projected_axis) const
+THnF* CalibdEdx::getRootHist() const
 {
-  const float lower = mHist.axis(0).begin()->lower();
-  const float upper = mHist.axis(0).end()->lower();
+  std::vector<int> bins{};
+  std::vector<double> axisMin{};
+  std::vector<double> axisMax{};
 
-  auto projectedHist = getHist(projected_axis);
+  const size_t histRank = mHist.rank();
 
-  const int nBins = mHist.axis(Axis::dEdx).size();
-  const int nHists = projectedHist.size() / nBins;
-
-  TH2F rootHist("hdEdxMIP", "MIP dEdx per GEM stack", nHists, 0, nHists, nBins, lower, upper);
-
-  int stack = 0;
-  float last_center = -1;
-  // fill TH2
-  for (auto&& x : bh::indexed(projectedHist)) {
-    const auto y = x.bin(0).center(); // current bin interval along dEdx axis
-    const auto w = *x;                // "dereference" to get the bin value
-    rootHist.Fill(stack, y, w);
-
-    if (y < last_center) {
-      stack++;
-    }
-    last_center = y;
+  for (size_t i = 0; i < histRank; ++i) {
+    const auto& ax = mHist.axis(i);
+    bins.push_back(ax.size());
+    axisMin.push_back(*ax.begin());
+    axisMax.push_back(*ax.end());
   }
 
-  return rootHist;
-}
+  auto hn = new THnF("hdEdxMIP", "MIP dEdx per GEM stack", histRank, bins.data(), axisMin.data(), axisMax.data());
+  std::vector<double> xs(histRank);
+  for (auto&& entry : bh::indexed(mHist)) {
+    if (*entry == 0) {
+      continue;
+    }
+    for (int i = 0; i < histRank; ++i) {
+      xs[i] = entry.bin(i).center();
+    }
 
-TH2F CalibdEdx::getRootHist() const
-{
-  std::vector<int> keep_all(Axis::Size);
-  std::iota(keep_all.begin(), keep_all.end(), 0);
-  return getRootHist(keep_all);
+    hn->Fill(xs.data(), *entry);
+  }
+  return hn;
 }
 
 void CalibdEdx::print() const
@@ -287,19 +314,27 @@ void CalibdEdx::writeTTree(std::string_view fileName) const
 
   TTree tree("hist", "Saving boost histogram to TTree");
 
+  // FIXME: infer axis type and remove the hardcoded float
   std::vector<float> row(mHist.rank());
   for (int i = 0; i < mHist.rank(); ++i) {
-    // FIXME: infer axis type and remove the hardcoded float
     tree.Branch(mHist.axis(i).metadata().c_str(), &row[i]);
   }
   float count = 0;
   tree.Branch("counts", &count);
 
-  for (const auto& x : indexed(mHist)) {
-    for (int i = 0; i < mHist.rank(); ++i) {
-      row[i] = x.bin(i).center();
+  for (auto&& entry : bh::indexed(mHist)) {
+    if (*entry == 0) {
+      continue;
     }
-    count = *x;
+    for (int i = 0; i < mHist.rank(); ++i) {
+      // Rescale Tgl
+      if (Axis::Tgl == i) {
+        row[i] = recoverTgl(entry.bin(i).center(), static_cast<GEMstack>(entry.bin(Axis::Stack).center()));
+      } else {
+        row[i] = entry.bin(i).center();
+      }
+    }
+    count = *entry;
     tree.Fill();
   }
 

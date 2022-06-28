@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 #ifndef ALICEO2_EMCAL_EVENTDATA_H_
 #define ALICEO2_EMCAL_EVENTDATA_H_
+#include <cstdint>
 #include <gsl/span>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsEMCAL/Cell.h"
@@ -37,6 +38,7 @@ struct EventData {
   gsl::span<const Cluster> mClusters;   ///< EMCAL clusters
   gsl::span<const InputType> mCells;    ///< EMCAL cells / digits
   gsl::span<const int> mCellIndices;    ///< Cell indices in cluster
+  uint64_t mTriggerBits;                ///< Trigger bits for the event
 
   /// \brief Reset event structure with empty interaction record and ranges
   void reset()
@@ -45,6 +47,7 @@ struct EventData {
     mClusters = gsl::span<const Cluster>();
     mCells = gsl::span<const InputType>();
     mCellIndices = gsl::span<const int>();
+    mTriggerBits = 0;
   }
 
   ClassDefNV(EventData, 1);

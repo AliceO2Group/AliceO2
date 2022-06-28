@@ -5,10 +5,11 @@
  *         GNU Lesser General Public Licence version 3 (LGPL) version 3,        *
  *                  copied verbatim in the file "LICENSE"                       *
  ********************************************************************************/
+R__LOAD_LIBRARY(libG4ptl)
 R__LOAD_LIBRARY(libG4zlib)
 R__LOAD_LIBRARY(libG4expat)
 R__LOAD_LIBRARY(libG4clhep)
-R__LOAD_LIBRARY(libG4ptl)
+R__LOAD_LIBRARY(libG4tools)
 R__LOAD_LIBRARY(libG4global)
 R__LOAD_LIBRARY(libG4intercoms)
 R__LOAD_LIBRARY(libG4graphics_reps)
@@ -46,7 +47,6 @@ R__LOAD_LIBRARY(libXmlVGM)
 R__LOAD_LIBRARY(libVMCLibrary)
 R__LOAD_LIBRARY(libg4root)
 R__LOAD_LIBRARY(libgeant4vmc)
-R__LOAD_LIBRARY(libmtroot)
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <iostream>
@@ -77,7 +77,7 @@ void Config()
   ///    where EMonly = emStandard
   ///    Hadron = FTFP_BERT FTFP_BERT_TRV FTFP_BERT_HP FTFP_INCLXX FTFP_INCLXX_HP FTF_BIC LBE QBBC QGSP_BERT
   ///             QGSP_BERT_HP QGSP_BIC QGSP_BIC_HP QGSP_FTFP_BERT QGSP_INCLXX QGSP_INCLXX_HP QGS_BIC
-  ///	          Shielding ShieldingLEND
+  ///                  Shielding ShieldingLEND
   ///    EM =  _EMV _EMX _EMY _EMZ _LIV _PEN
   ///    Extra = extra optical radDecay
   ///    The Extra selections are cumulative, while Hadron selections are exlusive.
@@ -101,6 +101,8 @@ void Config()
   std::cout << "PhysicsSetup wanted " << physicsSetup << "\n";
   auto runConfiguration = new TG4RunConfiguration("geomRoot", physicsSetup, "stepLimiter+specialCuts",
                                                   specialStacking, mtMode);
+  /// avoid the use of G4BACKTRACE (it seems to inferfere with process logic in o2-sim)
+  setenv("G4BACKTRACE", "none", 1);
 
   /// Create the G4 VMC
   TGeant4* geant4 = new TGeant4("TGeant4", "The Geant4 Monte Carlo", runConfiguration);

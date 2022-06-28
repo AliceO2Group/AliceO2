@@ -40,7 +40,8 @@ class RawToCellConverterSpec : public framework::Task
  public:
   /// \brief Constructor
   /// \param subspecification Output subspecification for parallel running on multiple nodes
-  RawToCellConverterSpec(int subspecification) : framework::Task(), mSubspecification(subspecification){};
+  /// \param hasDecodingErrors Option to swich on/off creating raw decoding error objects for later monitoring
+  RawToCellConverterSpec(int subspecification, bool hasDecodingErrors) : framework::Task(), mSubspecification(subspecification), mCreateRawDataErrors(hasDecodingErrors){};
 
   /// \brief Destructor
   ~RawToCellConverterSpec() override;
@@ -122,6 +123,7 @@ class RawToCellConverterSpec : public framework::Task
   bool mMergeLGHG = true;                                            ///< Merge low and high gain cells
   bool mPrintTrailer = false;                                        ///< Print RCU trailer
   bool mDisablePedestalEvaluation = false;                           ///< Disable pedestal evaluation independent of settings in the RCU trailer
+  bool mCreateRawDataErrors = false;                                 ///< Create raw data error objects for monitoring
   std::chrono::time_point<std::chrono::system_clock> mReferenceTime; ///< Reference time for muting messages
   Geometry* mGeometry = nullptr;                                     ///!<! Geometry pointer
   std::unique_ptr<MappingHandler> mMapper = nullptr;                 ///!<! Mapper
@@ -134,7 +136,7 @@ class RawToCellConverterSpec : public framework::Task
 /// \brief Creating DataProcessorSpec for the EMCAL Cell Converter Spec
 ///
 /// Refer to RawToCellConverterSpec::run for input and output specs
-framework::DataProcessorSpec getRawToCellConverterSpec(bool askDISTSTF, int subspecification);
+framework::DataProcessorSpec getRawToCellConverterSpec(bool askDISTSTF, bool disableDecodingErrors, int subspecification);
 
 } // namespace reco_workflow
 

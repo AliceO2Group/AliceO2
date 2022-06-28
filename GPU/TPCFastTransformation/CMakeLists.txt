@@ -17,21 +17,31 @@ set(SRCS
     SplineHelper.cxx
     Spline1DSpec.cxx
     Spline1D.cxx
-    Spline1DHelper.cxx
+    Spline1DHelperOld.cxx
     Spline2DSpec.cxx
     Spline2D.cxx
-    Spline2DHelper.cxx
     ChebyshevFit1D.cxx
-    devtools/IrregularSpline1D.cxx
-    devtools/IrregularSpline2D3D.cxx
-    devtools/SemiregularSpline2D3D.cxx
-    devtools/IrregularSpline2D3DCalibrator.cxx
     TPCFastTransformGeo.cxx
     TPCFastSpaceChargeCorrection.cxx
+    TPCFastSpaceChargeCorrectionMap.cxx
     TPCFastTransform.cxx
-    MultivariatePolynomial.cxx
-    MultivariatePolynomialHelper.cxx
 )
+
+if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+  set(SRCS ${SRCS}
+      Spline1DHelper.cxx
+      Spline2DHelper.cxx
+      SymMatrixSolver.cxx
+      BandMatrixSolver.cxx
+      MultivariatePolynomial.cxx
+      MultivariatePolynomialHelper.cxx
+      NDPiecewisePolynomials.cxx
+      devtools/IrregularSpline1D.cxx
+      devtools/IrregularSpline2D3D.cxx
+      devtools/SemiregularSpline2D3D.cxx
+      devtools/IrregularSpline2D3DCalibrator.cxx
+  )
+endif()
 
 string(REPLACE ".cxx" ".h" HDRS_CINT_O2 "${SRCS}")
 set(HDRS_CINT_O2 ${HDRS_CINT_O2} SplineUtil.h devtools/RegularSpline1D.h)
@@ -40,12 +50,14 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
   o2_add_library(${MODULE}
                  TARGETVARNAME targetName
                  SOURCES ${SRCS}
-                 PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR} devtools
+                 PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}
+                                            devtools
+                                            ${CMAKE_SOURCE_DIR}/GPU/Common
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                        O2::GPUUtils
                                        Vc::Vc
-                                       ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad
-                                       )
+                                       ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad ROOT::Minuit
+                             )
 
   o2_target_root_dictionary(${MODULE}
                             HEADERS ${HDRS_CINT_O2}
@@ -70,14 +82,17 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
 
   foreach(m
           SplineDemo.C
+          SplineRecoveryDemo.C
           fastTransformQA.C
+          TPCFastTransformInit.C
           generateTPCCorrectionNTuple.C)
     o2_add_test_root_macro(macro/${m}
                            PUBLIC_LINK_LIBRARIES O2::TPCFastTransformation
                                                  O2::DataFormatsTPC
                                                  O2::TPCSimulation
                                                  O2::TPCReconstruction
-                                                 PUBLIC_INCLUDE_DIRECTORIES
+                                                 O2::SpacePoints
+                          PUBLIC_INCLUDE_DIRECTORIES
                                                  ${CMAKE_BINARY_DIR}/stage/include
                            LABELS gpu tpc COMPILE_ONLY)
   endforeach()
@@ -101,7 +116,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
 endif()
 
 if(${ALIGPU_BUILD_TYPE} STREQUAL "ALIROOT")
-  add_definitions(-DGPUCA_ALIROOT_LIB)
+  add_definitions(-DGPUCA_ALIROOT_LIB -DGPUCA_NO_FMT)
 
   set(SRCS ${SRCS} TPCFastTransformManager.cxx TPCFastTransformQA.cxx
            ${AliRoot_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx

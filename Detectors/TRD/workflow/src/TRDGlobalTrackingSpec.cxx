@@ -48,6 +48,7 @@
 
 #include <regex>
 #include <algorithm>
+#include <numeric>
 
 using namespace o2::framework;
 using namespace o2::gpu;
@@ -82,16 +83,6 @@ void TRDGlobalTracking::init(InitContext& ic)
     LOG(info) << "Loaded material LUT from " << matLUTFile;
   } else {
     LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
-  }
-
-  // this is a hack to provide ITS dictionary from the local file, in general will be provided by the framework from CCDB
-  auto dictFile = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-  dictFile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictFile);
-  if (o2::utils::Str::pathExists(dictFile)) {
-    mITSDict.readFromFile(dictFile);
-    LOG(info) << "Matching is running with a provided ITS dictionary: " << dictFile;
-  } else {
-    LOG(info) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
   }
 
   //-------- init GPU reconstruction --------//
@@ -130,10 +121,13 @@ void TRDGlobalTracking::init(InitContext& ic)
   mTimer.Reset();
 }
 
-void TRDGlobalTracking::updateTimeDependentParams()
+void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 {
   // strictly speaking, one should do this only in case of the CCDB objects update
   // TODO: add CCDB interface
+
+  // pc.inputs().get<TopologyDictionary*>("cldict"); // called by the RecoContainer to trigger finaliseCCDB
+
   auto& elParam = o2::tpc::ParameterElectronics::Instance();
   auto& gasParam = o2::tpc::ParameterGas::Instance();
   mTPCTBinMUS = elParam.ZbinWidth;
@@ -152,8 +146,7 @@ void TRDGlobalTracking::fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lbl
   // if that is not the case one of the most frequent labels is chosen arbitrarily
   LOG(debug) << "Checking seed with label: " << lblSeed;
   std::unordered_map<o2::MCCompLabel, unsigned int> labelCounter;
-  int nTracklets = 0;
-  unsigned int maxOccurences = 0;
+  int maxOccurences = 0;
   for (int iLy = 0; iLy < constants::NLAYER; ++iLy) {
     auto trkltIndex = trk.getTrackletIndex(iLy);
     if (trkltIndex == -1) {
@@ -260,17 +253,17 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   }
 
   mTracker->Reset();
-  updateTimeDependentParams();
+  updateTimeDependentParams(pc);
   mRec->PrepareEvent();
   mRec->SetupGPUProcessor(mTracker, true);
 
   // check trigger record filter setting
   bool foundFilteredTrigger = false;
-  for (int iTrig = 0; iTrig < mChainTracking->mIOPtrs.nTRDTriggerRecords; ++iTrig) {
+  for (unsigned int iTrig = 0; iTrig < mChainTracking->mIOPtrs.nTRDTriggerRecords; ++iTrig) {
     if (mChainTracking->mIOPtrs.trdTrigRecMask[iTrig] == 0) {
       foundFilteredTrigger = true;
     }
-    LOGF(debug, "TRD trigger %i added with time %f", iTrig, mChainTracking->mIOPtrs.trdTriggerTimes[iTrig]);
+    LOGF(debug, "TRD trigger %u added with time %f", iTrig, mChainTracking->mIOPtrs.trdTriggerTimes[iTrig]);
   }
   if (!foundFilteredTrigger && mTrigRecFilter) {
     static bool warningSent = false;
@@ -287,7 +280,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   int nTracksLoadedITSTPC = 0;
   int nTracksLoadedTPC = 0;
   // load ITS-TPC matched tracks
-  for (int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nTracksTPCITSO2; ++iTrk) {
+  for (unsigned int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nTracksTPCITSO2; ++iTrk) {
     const auto& trkITSTPC = mChainTracking->mIOPtrs.tracksTPCITSO2[iTrk];
     GPUTRDTracker::HelperTrackAttributes trkAttribs;
     trkAttribs.mTime = trkITSTPC.getTimeMUS().getTimeStamp();
@@ -302,7 +295,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     LOGF(debug, "Loaded ITS-TPC track %i with time %f. Window from %f to %f", nTracksLoadedITSTPC, trkAttribs.mTime, trkAttribs.mTime - trkAttribs.mTimeSubMax, trkAttribs.mTime + trkAttribs.mTimeAddMax);
   }
   // load TPC-only tracks
-  for (int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nOutputTracksTPCO2; ++iTrk) {
+  for (unsigned int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nOutputTracksTPCO2; ++iTrk) {
     if (mChainTracking->mIOPtrs.tpcLinkITS && mChainTracking->mIOPtrs.tpcLinkITS[iTrk] != -1) {
       // this TPC tracks has already been matched to ITS and the ITS-TPC track has already been loaded in the tracker
       continue;
@@ -360,7 +353,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     if (trackGID.includesDet(GTrackID::Source::ITS)) {
       // this track is from an ITS-TPC seed
       tracksOutITSTPC.push_back(trdTrack);
-      if (!refitITSTPCTRDTrack(tracksOutITSTPC.back(), mChainTracking->mIOPtrs.trdTriggerTimes[trdTrack.getCollisionId()], &inputTracks)) {
+      if (!refitITSTPCTRDTrack(tracksOutITSTPC.back(), mChainTracking->mIOPtrs.trdTriggerTimes[trdTrack.getCollisionId()], &inputTracks) || std::isnan(tracksOutITSTPC.back().getSnp())) {
         tracksOutITSTPC.pop_back();
         ++nTracksFailedITSTPCTRDRefit;
         continue;
@@ -371,7 +364,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     } else {
       // this track is from a TPC-only seed
       tracksOutTPC.push_back(trdTrack);
-      if (!refitTPCTRDTrack(tracksOutTPC.back(), mChainTracking->mIOPtrs.trdTriggerTimes[trdTrack.getCollisionId()], &inputTracks)) {
+      if (!refitTPCTRDTrack(tracksOutTPC.back(), mChainTracking->mIOPtrs.trdTriggerTimes[trdTrack.getCollisionId()], &inputTracks) || std::isnan(tracksOutTPC.back().getSnp())) {
         tracksOutTPC.pop_back();
         ++nTracksFailedTPCTRDRefit;
         continue;
@@ -618,6 +611,14 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards)
     }
   }
   return true;
+}
+
+void TRDGlobalTracking::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mITSDict = (const o2::itsmft::TopologyDictionary*)obj;
+  }
 }
 
 void TRDGlobalTracking::endOfStream(EndOfStreamContext& ec)

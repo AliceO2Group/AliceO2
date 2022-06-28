@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec1)
   auto offers = rm.getAvailableOffers();
   BOOST_REQUIRE_EQUAL(offers.size(), 1);
   BOOST_CHECK_EQUAL(offers[0].startPort, 22000);
-  BOOST_CHECK_EQUAL(offers[0].rangeSize, 1000);
+  BOOST_CHECK_EQUAL(offers[0].rangeSize, 5000);
 
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
   BOOST_REQUIRE_EQUAL(devices.size(), 2);

@@ -20,10 +20,11 @@
 #include <vector>
 #include <memory>
 
-//o2 includes
+// o2 includes
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/TrackCuts.h"
 #include "DetectorsCalibration/Utils.h"
+#include "Framework/Logger.h"
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -51,12 +52,15 @@ void MIPTrackFilterDevice::init(framework::InitContext& ic)
 {
   const double minP = ic.options().get<double>("min-momentum");
   const double maxP = ic.options().get<double>("max-momentum");
-  assert(minP < maxP);
+  const double mindEdx = ic.options().get<double>("min-dedx");
+  const double maxdEdx = ic.options().get<double>("max-dedx");
   const int minClusters = std::max(10, ic.options().get<int>("min-clusters"));
 
   mCuts.setPMin(minP);
   mCuts.setPMax(maxP);
   mCuts.setNClusMin(minClusters);
+  mCuts.setdEdxMin(mindEdx);
+  mCuts.setdEdxMax(maxdEdx);
 }
 
 void MIPTrackFilterDevice::run(ProcessingContext& pc)
@@ -64,9 +68,9 @@ void MIPTrackFilterDevice::run(ProcessingContext& pc)
   const auto tracks = pc.inputs().get<gsl::span<TrackTPC>>("tracks");
 
   std::copy_if(tracks.begin(), tracks.end(), std::back_inserter(mMIPTracks),
-               [this](const auto& track) { return this->mCuts.goodTrack(track); });
+               [this](const auto& track) { return mCuts.goodTrack(track); });
 
-  LOG(info) << mMIPTracks.size() << " MIP tracks in a total of " << tracks.size() << " tracks";
+  LOGP(info, "Filtered {} MIP tracks out of {} total tpc tracks", mMIPTracks.size(), tracks.size());
 
   pc.outputs().snapshot(Output{"TPC", "MIPS", 0, Lifetime::Timeframe}, mMIPTracks);
   mMIPTracks.clear();
@@ -90,8 +94,10 @@ DataProcessorSpec getMIPTrackFilterSpec()
     outputs,
     adaptFromTask<MIPTrackFilterDevice>(),
     Options{
-      {"min-momentum", VariantType::Double, 0.4, {"minimum momentum cut"}},
-      {"max-momentum", VariantType::Double, 0.6, {"maximum momentum cut"}},
+      {"min-momentum", VariantType::Double, 0.3, {"minimum momentum cut"}},
+      {"max-momentum", VariantType::Double, 0.7, {"maximum momentum cut"}},
+      {"min-dedx", VariantType::Double, 20., {"minimum dEdx cut"}},
+      {"max-dedx", VariantType::Double, 200., {"maximum dEdx cut"}},
       {"min-clusters", VariantType::Int, 60, {"minimum number of clusters in a track"}}}};
 }
 

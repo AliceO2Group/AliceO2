@@ -83,6 +83,36 @@ o2::InteractionRecord EventHandler<CellInputType>::getInteractionRecordForEvent(
 }
 
 template <class CellInputType>
+uint64_t EventHandler<CellInputType>::getTriggerBitsForEvent(int eventID) const
+{
+  std::optional<uint64_t> triggerBitsClusters, triggerBitsCells;
+  if (mTriggerRecordsClusters.size()) {
+    if (eventID >= mTriggerRecordsClusters.size()) {
+      throw RangeException(eventID, mTriggerRecordsClusters.size());
+    }
+    triggerBitsClusters = mTriggerRecordsClusters[eventID].getTriggerBits();
+  }
+  if (mTriggerRecordsCells.size()) {
+    if (eventID >= mTriggerRecordsCells.size()) {
+      throw RangeException(eventID, mTriggerRecordsCells.size());
+    }
+    triggerBitsClusters = mTriggerRecordsCells[eventID].getTriggerBits();
+  }
+  if (triggerBitsClusters && triggerBitsCells) {
+    if (triggerBitsClusters == triggerBitsCells) {
+      return triggerBitsClusters.value();
+    } else {
+      throw TriggerBitsInvalidException(triggerBitsClusters.value(), triggerBitsCells.value());
+    }
+  } else if (triggerBitsClusters) {
+    return triggerBitsClusters.value();
+  } else if (triggerBitsCells) {
+    return triggerBitsCells.value();
+  }
+  throw NotInitializedException();
+}
+
+template <class CellInputType>
 const typename EventHandler<CellInputType>::ClusterRange EventHandler<CellInputType>::getClustersForEvent(int eventID) const
 {
   if (mTriggerRecordsClusters.size()) {
@@ -137,6 +167,7 @@ EventData<CellInputType> EventHandler<CellInputType>::buildEvent(int eventID) co
 {
   EventData<CellInputType> outputEvent;
   outputEvent.mInteractionRecord = getInteractionRecordForEvent(eventID);
+  outputEvent.mTriggerBits = getTriggerBitsForEvent(eventID);
   if (hasClusters()) {
     outputEvent.mClusters = getClustersForEvent(eventID);
   }

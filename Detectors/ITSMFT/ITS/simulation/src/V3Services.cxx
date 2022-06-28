@@ -307,9 +307,7 @@ void V3Services::createOBCYSSCylinder(TGeoVolume* mother, const TGeoManager* mgr
   // Return:
   //
   // Created:      02 Mar 2020  Mario Sitta
-  //
-
-  TGeoVolumeAssembly* cyss = new TGeoVolumeAssembly("CYSS");
+  // Last change:  14 Apr 2022  Matteo Concas
 
   obCYSS11(mother, mgr);
 }

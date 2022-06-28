@@ -219,7 +219,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
     CONSTEXPR unsigned int maxN = 1u << (sizeof(calink) < 3 ? (sizeof(calink) * 8) : 24);
     if (NumberOfClusters >= maxN) {
       if (iThread == 0) {
-        mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_HITINROW_OVERFLOW, rowIndex, NumberOfClusters, maxN);
+        mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_HITINROW_OVERFLOW, iSlice * 1000 + rowIndex, NumberOfClusters, maxN);
       }
       return 1;
     }
@@ -314,7 +314,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
     CONSTEXPR int maxBins = sizeof(calink) < 4 ? (int)(1ul << (sizeof(calink) * 8)) : 0x7FFFFFFF; // NOLINT: false warning
     if (sizeof(calink) < 4 && numberOfBins >= maxBins) {
       if (iThread == 0) {
-        mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_BIN_OVERFLOW, rowIndex, numberOfBins, maxBins);
+        mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_BIN_OVERFLOW, iSlice * 1000 + rowIndex, numberOfBins, maxBins);
       }
       return 1;
     }
@@ -322,7 +322,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
     const unsigned int maxnn = GetGridSize(NumberOfClusters, 1);
     if (nn >= maxnn) {
       if (iThread == 0) {
-        mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_FIRSTHITINBIN_OVERFLOW, nn, maxnn);
+        mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_FIRSTHITINBIN_OVERFLOW, iSlice, nn, maxnn);
       }
       return 1;
     }
@@ -395,7 +395,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
     if (iThread == 0) {
       const float maxAbsZ = CAMath::Max(CAMath::Abs(tmpMinMax[2]), CAMath::Abs(tmpMinMax[3]));
       if (maxAbsZ > 300 && !mem->param.par.continuousTracking) {
-        mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_Z_OVERFLOW, (unsigned int)maxAbsZ);
+        mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_Z_OVERFLOW, iSlice, (unsigned int)maxAbsZ);
         return 1;
       }
     }

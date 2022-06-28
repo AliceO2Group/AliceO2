@@ -103,7 +103,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         const auto* dataHeader = DataRefUtils::getHeader<DataHeader*>(ref);
 
         bool dataGood = true;
-        for (int j = 0; j < dataHeader->payloadSize / sizeof(FakeCluster); ++j) {
+        for (int j = 0; j < DataRefUtils::getPayloadSize(ref) / sizeof(FakeCluster); ++j) {
           float diff = std::abs(-inputDataTpc[j].x - inputDataTpcProcessed[j].x) +
                        std::abs(2 * inputDataTpc[j].y - inputDataTpcProcessed[j].y) +
                        std::abs(inputDataTpc[j].z * inputDataTpc[j].q - inputDataTpcProcessed[j].z) +

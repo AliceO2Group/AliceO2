@@ -131,6 +131,15 @@ void CalibdEdxTrackTopologyPol::construct()
   }
 }
 
+void CalibdEdxTrackTopologyPol::setDefaultPolynomials()
+{
+  for (int i = 0; i < FFits; ++i) {
+    mCalibPolsqTot[i].setParam(0, 1);
+    mCalibPolsqMax[i].setParam(0, 1);
+  }
+  construct();
+}
+
 void CalibdEdxTrackTopologyPol::writeToFile(TFile& outf, const char* name) const
 {
   CalibdEdxTrackTopologyPolContainer cont(mMaxTanTheta, mMaxSinPhi, mThresholdMin, mThresholdMax, mQTotMin, mQTotMax);
@@ -187,6 +196,7 @@ void CalibdEdxTrackTopologyPol::setFromContainer(const CalibdEdxTrackTopologyPol
     mScalingFactorsqTot[i] = container.mScalingFactorsqTot[i];
     mScalingFactorsqMax[i] = container.mScalingFactorsqMax[i];
   }
+  construct();
 }
 
 void CalibdEdxTrackTopologyPol::loadFromFile(const char* fileName, const char* name)
@@ -196,7 +206,6 @@ void CalibdEdxTrackTopologyPol::loadFromFile(const char* fileName, const char* n
   inpf.GetObject(name, polTmp);
   if (polTmp) {
     setFromContainer(*polTmp);
-    construct();
     delete polTmp;
   } else {
     LOGP(info, fmt::format("couldnt load object {} from input file", name));

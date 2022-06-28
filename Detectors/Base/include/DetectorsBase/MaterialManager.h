@@ -133,6 +133,8 @@ class MaterialManager
 
   /// load cuts and process flags from a data file (like AliRoot did)
   void loadCutsAndProcessesFromFile(const char* modname, const char* filename);
+  void loadCutsAndProcessesFromJSON(ESpecial special = ESpecial::kFALSE, std::string const& filename = "");
+  void writeCutsAndProcessesToJSON(std::string const& filename = "");
 
   /// Set flags whether to use special cuts and process settings
   void enableSpecialProcesses(bool val = true) { mApplySpecialProcesses = val; }
@@ -202,17 +204,18 @@ class MaterialManager
   // print out all registered media
   void printMedia() const;
 
-  /// set the density scaling factor
-  void setDensityScalingFactor(float f) { mDensityFactor = f; }
-  /// set the density scaling factor
-  float getDensityScalingFactor() const { return mDensityFactor; }
-
   /// print all tracking media inside a logical volume (specified by name)
   /// and all of its daughters
   static void printContainingMedia(std::string const& volumename);
 
  private:
   MaterialManager() = default;
+
+  bool mDensityMapInitialized = false;
+  std::unordered_map<std::string, float> mDensityMap;
+
+  void initDensityMap();
+  float getDensity(std::string const& modname);
 
   // Hide details by providing these private methods so it cannot happen that special settings
   // are applied as default settings by accident using a boolean flag
@@ -243,9 +246,6 @@ class MaterialManager
 
   std::map<std::string, int> mMaterialNameToGlobalIndexMap; // map of unique material name to global index
   std::map<std::string, int> mMediumNameToGlobalIndexMap;   // map of unique material name to global index
-
-  Float_t mDensityFactor = 1.; //! factor that is multiplied to all material densities (ONLY for
-  // systematic studies)
 
   /// In general, transport cuts and processes are properties of detector media. On the other hand different
   /// engines might provide different cuts and processes. Further, the naming convention might differ among

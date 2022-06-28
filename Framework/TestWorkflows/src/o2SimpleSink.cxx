@@ -16,7 +16,7 @@
 #include <chrono>
 #include <thread>
 #include <vector>
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 #include "Framework/runDataProcessing.h"
 
 using namespace o2::framework;
@@ -26,18 +26,19 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
   return AlgorithmSpec{adaptStateful([what, minDelay]() {
     srand(getpid());
     return adaptStateless([what, minDelay](DataAllocator& outputs, RawDeviceService& device) {
+      LOG(info) << "Callback invoked";
+      outputs.make<int>(OutputRef{what}, 1);
       device.device()->WaitFor(std::chrono::seconds(minDelay));
-      auto& bData = outputs.make<int>(OutputRef{what}, 1);
     });
   })};
 }
 
 // This is how you can define your processing in a declarative way
-WorkflowSpec defineDataProcessing(ConfigContext const& specs)
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
     {"B",
-     {},
+     {InputSpec{{"external"}, "TST", "EXT", 0, Lifetime::OutOfBand}},
      {OutputSpec{{"b1"}, "TST", "B1"}},
      simplePipe("b1", 0)},
     {"D",

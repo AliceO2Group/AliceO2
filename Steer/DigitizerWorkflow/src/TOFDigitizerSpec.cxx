@@ -29,8 +29,13 @@
 #include "TOFBase/CalibTOFapi.h"
 #include "SimConfig/DigiParams.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
+#include "DetectorsRaw/HBFUtils.h"
+#include "TOFBase/Geo.h"
+#include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
+using namespace o2::dataformats;
+
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
 namespace o2
@@ -41,7 +46,7 @@ namespace tof
 class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
  public:
-  TOFDPLDigitizerTask(bool useCCDB, std::string ccdb_url, int timestamp) : mUseCCDB{useCCDB}, mCCDBurl(ccdb_url), mTimestamp(timestamp), o2::base::BaseDPLDigitizer(o2::base::InitServices::FIELD | o2::base::InitServices::GEOM){};
+  TOFDPLDigitizerTask(bool useCCDB, std::string ccdb_url, int timestamp, bool ccdbSA) : mUseCCDB{useCCDB}, mCCDBurl(ccdb_url), mTimestamp(timestamp), mCCDBsa(ccdbSA), o2::base::BaseDPLDigitizer(o2::base::InitServices::FIELD | o2::base::InitServices::GEOM){};
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
@@ -62,6 +67,26 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     mDigitizer->setContinuous(isContinuous);
     mDigitizer->setMCTruthContainer(mLabels.get());
     LOG(info) << "TOF initialization done";
+  }
+
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher matcher, void* obj)
+  {
+    if (matcher == ConcreteDataMatcher("TOF", "DiagnosticCal", 0)) {
+      mUpdateCCDB = true;
+      return;
+    }
+    if (matcher == ConcreteDataMatcher("TOF", "LHCphaseCal", 0)) {
+      mUpdateCCDB = true;
+      return;
+    }
+    if (matcher == ConcreteDataMatcher("TOF", "ChannelCalibCal", 0)) {
+      mUpdateCCDB = true;
+      return;
+    }
+    if (matcher == ConcreteDataMatcher("TOF", "StatusTOF", 0)) {
+      mUpdateCCDB = true;
+      return;
+    }
   }
 
   void run(framework::ProcessingContext& pc)
@@ -89,53 +114,81 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     timer.Start();
 
     LOG(info) << " CALLING TOF DIGITIZATION ";
-    o2::dataformats::CalibLHCphaseTOF lhcPhaseObj;
-    o2::dataformats::CalibTimeSlewingParamTOF channelCalibObj;
+    o2::dataformats::CalibLHCphaseTOF* lhcPhase = new o2::dataformats::CalibLHCphaseTOF;
+    o2::dataformats::CalibTimeSlewingParamTOF* channelCalib = new o2::dataformats::CalibTimeSlewingParamTOF;
 
-    /* 
-   if (mUseCCDB) { // read calibration objects from ccdb
-      // check LHC phase
-      auto lhcPhase = pc.inputs().get<o2::dataformats::CalibLHCphaseTOF*>("tofccdbLHCphase");
-      auto channelCalib = pc.inputs().get<o2::dataformats::CalibTimeSlewingParamTOF*>("tofccdbChannelCalib");
+    if (mUseCCDB && !mUseCCDB) {
+      const auto lhcPhaseIn = pc.inputs().get<o2::dataformats::CalibLHCphaseTOF*>("tofccdbLHCphase");
+      const auto channelCalibIn = pc.inputs().get<o2::dataformats::CalibTimeSlewingParamTOF*>("tofccdbChannelCalib");
+      const auto diagnosticIn = pc.inputs().get<o2::tof::Diagnostic*>("tofccdbDia");
+      const auto statusIn = pc.inputs().get<o2::tof::TOFFEElightInfo*>("tofccdbStatus");
 
-      o2::dataformats::CalibLHCphaseTOF lhcPhaseObjTmp = std::move(*lhcPhase);
-      o2::dataformats::CalibTimeSlewingParamTOF channelCalibObjTmp = std::move(*channelCalib);
+      if (!mCalibApi) {
+        o2::dataformats::CalibLHCphaseTOF* lhcPhase = new o2::dataformats::CalibLHCphaseTOF(std::move(*lhcPhaseIn));
+        o2::dataformats::CalibTimeSlewingParamTOF* channelCalib = new o2::dataformats::CalibTimeSlewingParamTOF(std::move(*channelCalibIn));
+        o2::tof::Diagnostic* diagnostic = new o2::tof::Diagnostic(std::move(*diagnosticIn));
+        o2::tof::TOFFEElightInfo* status = new o2::tof::TOFFEElightInfo(std::move(*statusIn));
 
-      // make a copy in global scope
-      lhcPhaseObj = lhcPhaseObjTmp;
-      channelCalibObj = channelCalibObjTmp;
-    } else { // calibration objects set to zero
-      lhcPhaseObj.addLHCphase(0, 0);
-      lhcPhaseObj.addLHCphase(2000000000, 0);
+        mCalibApi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib, diagnostic);
+        mCalibApi->loadDiagnosticFrequencies();
+        mCalibApi->loadActiveMap(status);
+        mUpdateCCDB = false;
+      } else { // update if necessary
+        if (mUpdateCCDB) {
+          LOG(info) << "Update CCDB objects since new";
+          delete mCalibApi;
+          o2::dataformats::CalibLHCphaseTOF* lhcPhase = new o2::dataformats::CalibLHCphaseTOF(*lhcPhaseIn);
+          o2::dataformats::CalibTimeSlewingParamTOF* channelCalib = new o2::dataformats::CalibTimeSlewingParamTOF(*channelCalibIn);
+          o2::tof::Diagnostic* diagnostic = new o2::tof::Diagnostic(std::move(*diagnosticIn));
+          o2::tof::TOFFEElightInfo* status = new o2::tof::TOFFEElightInfo(std::move(*statusIn));
+          mCalibApi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib, diagnostic);
+          mCalibApi->loadDiagnosticFrequencies();
+          mCalibApi->loadActiveMap(status);
+          mUpdateCCDB = false;
+        } else {
+          // do nothing
+        }
+      }
+    } else if (!mCalibApi) { // calibration objects set to zero
+      auto* lhcPhaseDummy = new o2::dataformats::CalibLHCphaseTOF();
+      auto* channelCalibDummy = new o2::dataformats::CalibTimeSlewingParamTOF();
+
+      lhcPhaseDummy->addLHCphase(0, 0);
+      lhcPhaseDummy->addLHCphase(2000000000, 0);
 
       for (int ich = 0; ich < o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELS; ich++) {
-        channelCalibObj.addTimeSlewingInfo(ich, 0, 0);
+        channelCalibDummy->addTimeSlewingInfo(ich, 0, 0);
         int sector = ich / o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
         int channelInSector = ich % o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
-        channelCalibObj.setFractionUnderPeak(sector, channelInSector, 1);
+        channelCalibDummy->setFractionUnderPeak(sector, channelInSector, 1);
+      }
+      mCalibApi = new o2::tof::CalibTOFapi(long(mTimestamp), lhcPhaseDummy, channelCalibDummy);
+
+      if (mUseCCDB) {
+        mCalibApi->setURL(mCCDBurl);
+        mCalibApi->readDiagnosticFrequencies();
+        mCalibApi->readLHCphase();
+        mCalibApi->readActiveMap();
+        mCalibApi->readTimeSlewingParam();
       }
     }
-*/
 
-    o2::tof::CalibTOFapi calibapi(long(0), &lhcPhaseObj, &channelCalibObj);
-    mDigitizer->setCalibApi(&calibapi);
+    mDigitizer->setCalibApi(mCalibApi);
 
-    if (mUseCCDB) {
-      calibapi.setURL(mCCDBurl.c_str());
-      long ts = mTimestamp;
-      calibapi.setTimeStamp(ts);
-      calibapi.readTimeSlewingParam();
-      calibapi.readDiagnosticFrequencies();
-      calibapi.readActiveMap();
-    }
+    // const auto ref = pc.inputs().getFirstValid(true);
+    // auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation;
+    mCalibApi->setTimeStamp(o2::raw::HBFUtils::Instance().startTime / 1000);
 
     static std::vector<o2::tof::HitType> hits;
 
     auto& eventParts = context->getEventParts();
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
+    // o2::InteractionTimeRecord firstorbit(o2::InteractionRecord(0, o2::raw::HBFUtils::Instance().orbitFirstSampled), 0.0);
     for (int collID = 0; collID < timesview.size(); ++collID) {
-      mDigitizer->setEventTime(timesview[collID]);
+      o2::InteractionTimeRecord orbit(timesview[collID]);
+      // orbit += firstorbit;
+      mDigitizer->setEventTime(orbit);
 
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
@@ -156,8 +209,10 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       }
     }
     if (mDigitizer->isContinuous()) {
+      LOG(info) << "clear all";
       mDigits->clear();
       mLabels->clear();
+      LOG(info) << "finalize";
       mDigitizer->flushOutputContainer(*mDigits.get());
     }
 
@@ -193,6 +248,11 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     finished = true;
   }
 
+  void endOfStream(EndOfStreamContext& ec)
+  {
+    LOGF(debug, "TOF Digitizer endOfStream");
+  }
+
  private:
   std::unique_ptr<std::vector<TChain*>> mSimChains;
   std::unique_ptr<o2::tof::Digitizer> mDigitizer;
@@ -201,9 +261,12 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   bool mUseCCDB = false;
   std::string mCCDBurl;
   int mTimestamp = 0;
+  bool mUpdateCCDB = false;
+  o2::tof::CalibTOFapi* mCalibApi = nullptr;
+  bool mCCDBsa = false;
 };
 
-DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB, bool mctruth, std::string ccdb_url, int timestamp)
+DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB, bool mctruth, std::string ccdb_url, int timestamp, bool ccdbSA)
 {
   // create the full data processor spec using
   //  a name identifier
@@ -216,6 +279,14 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB, bool mctruth, s
   //    inputs.emplace_back("tofccdbLHCphase", o2::header::gDataOriginTOF, "LHCphase");
   //    inputs.emplace_back("tofccdbChannelCalib", o2::header::gDataOriginTOF, "ChannelCalib");
   //  }
+
+  if (useCCDB && !ccdbSA) {
+    inputs.emplace_back("tofccdbStatus", "TOF", "StatusTOF", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/FEELIGHT"));
+    inputs.emplace_back("tofccdbDia", "TOF", "DiagnosticCal", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/Diagnostic"));
+    inputs.emplace_back("tofccdbLHCphase", "TOF", "LHCphaseCal", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/LHCphase"));
+    inputs.emplace_back("tofccdbChannelCalib", "TOF", "ChannelCalibCal", 0, Lifetime::Condition, ccdbParamSpec("TOF/Calib/ChannelCalib"));
+  }
+
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
@@ -229,7 +300,7 @@ DataProcessorSpec getTOFDigitizerSpec(int channel, bool useCCDB, bool mctruth, s
     "TOFDigitizer",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFDPLDigitizerTask>(useCCDB, ccdb_url, timestamp)},
+    AlgorithmSpec{adaptFromTask<TOFDPLDigitizerTask>(useCCDB, ccdb_url, timestamp, ccdbSA)},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}}}
     // I can't use VariantType::Bool as it seems to have a problem
   };

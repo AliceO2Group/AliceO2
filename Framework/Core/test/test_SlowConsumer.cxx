@@ -13,7 +13,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/ControlService.h"
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 #include <InfoLogger/InfoLogger.hxx>
 
 #include <chrono>

@@ -29,12 +29,12 @@
 #pragma link C++ class std::vector < o2::tpc::ClusterHardwareContainerFixedSize < 8192>> + ;
 #pragma link C++ class std::vector < o2::tpc::ClusterHardwareContainer8kb> + ;
 #pragma link C++ class std::vector < o2::tpc::Digit> + ;
-#pragma link C++ class std::vector < o2::tpc::ZeroSuppressedContainer8kb > + ;
+#pragma link C++ class std::vector < o2::tpc::ZeroSuppressedContainer8kb> + ;
 #pragma link C++ class o2::tpc::TrackTPC + ;
 #pragma link C++ class o2::tpc::LaserTrack + ;
 #pragma link C++ class o2::tpc::LaserTrackContainer + ;
 #pragma link C++ class std::vector < o2::tpc::TrackTPC> + ;
-#pragma link C++ class std::vector < o2::tpc::LaserTrack > + ;
+#pragma link C++ class std::vector < o2::tpc::LaserTrack> + ;
 #pragma link C++ class o2::tpc::ClusterNativeHelper + ;
 #pragma link C++ class o2::tpc::ClusterNativeHelper::Reader + ;
 #pragma link C++ class o2::tpc::ClusterNativeHelper::TreeWriter + ;
@@ -52,12 +52,23 @@
 #pragma link C++ enum o2::tpc::StatisticsType;
 #pragma link C++ class o2::tpc::TrackCuts + ;
 #pragma link C++ class o2::tpc::KrCluster + ;
-#pragma link C++ class std::vector<o2::tpc::KrCluster> + ;
-#pragma link C++ class o2::tpc::LtrCalibData +;
-#pragma link C++ class std::vector<o2::tpc::LtrCalibData> +;
+#pragma link C++ class std::vector < o2::tpc::KrCluster> + ;
+#pragma link C++ class o2::tpc::LtrCalibData + ;
+#pragma link C++ class std::vector < o2::tpc::LtrCalibData> + ;
 #pragma link C++ class o2::tpc::CalibdEdxCorrection + ;
 #pragma link C++ class o2::tpc::CalibdEdxTrackTopologyPol + ;
 #pragma link C++ class o2::tpc::CalibdEdxTrackTopologySpline + ;
 #pragma link C++ struct o2::tpc::CalibdEdxTrackTopologyPolContainer + ;
+#pragma link C++ class o2::tpc::dcs::DataPoint < float> + ;
+#pragma link C++ class std::vector < o2::tpc::dcs::DataPoint < float>> + ;
+#pragma link C++ class o2::tpc::dcs::DataPointVector < float> + ;
+#pragma link C++ class o2::tpc::dcs::Temperature + ;
+#pragma link C++ class o2::tpc::dcs::Temperature::Stats + ;
+#pragma link C++ class o2::tpc::dcs::DataPoint < o2::tpc::dcs::Temperature::Stats> + ;
+#pragma link C++ class o2::tpc::dcs::DataPointVector < o2::tpc::dcs::Temperature::Stats> + ;
+#pragma link C++ class o2::tpc::dcs::HV + ;
+#pragma link C++ class o2::tpc::dcs::DataPoint < o2::tpc::dcs::HV::StackState> + ;
+#pragma link C++ class o2::tpc::dcs::DataPointVector < o2::tpc::dcs::HV::StackState> + ;
+#pragma link C++ class o2::tpc::dcs::Gas + ;
 
 #endif

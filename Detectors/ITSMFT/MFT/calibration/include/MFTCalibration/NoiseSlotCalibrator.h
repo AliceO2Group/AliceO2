@@ -41,11 +41,12 @@ class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsm
 
  public:
   NoiseSlotCalibrator() { setUpdateAtTheEndOfRunOnly(); }
-  NoiseSlotCalibrator(float prob)
+  NoiseSlotCalibrator(float prob, float relErr) : mProbabilityThreshold(prob), mProbRelErr(relErr)
   {
-    mProbabilityThreshold = prob;
     setUpdateAtTheEndOfRunOnly();
-    setSlotLength(std::numeric_limits<TFType>::max);
+    setSlotLength(INFINITE_TF);
+    mMinROFs = 1.1 * o2::itsmft::NoiseMap::getMinROFs(prob, relErr);
+    LOGP(info, "At least {} ROFs needed to apply threshold {} with relative error {}", mMinROFs, mProbabilityThreshold, mProbRelErr);
   }
   ~NoiseSlotCalibrator() final = default;
 
@@ -59,6 +60,8 @@ class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsm
                         gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
                         gsl::span<const unsigned char> const& patterns,
                         gsl::span<const o2::itsmft::ROFRecord> const& rofs);
+
+  void setMinROFs(long n) { mMinROFs = n; }
 
   void finalize()
   {
@@ -86,6 +89,8 @@ class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsm
 
  private:
   float mProbabilityThreshold = 1e-6f;
+  float mProbRelErr = 0.2; // relative error on channel noise to apply the threshold
+  long mMinROFs = 0;
   unsigned int mThreshold = 100;
   unsigned int mNumberOfStrobes = 0;
 };

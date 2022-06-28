@@ -55,7 +55,7 @@ o2-calibration-ccdb-populator-workflow --ccdb-path localhost:8080
 
 ## TOF channel calibration:
 
-To obtain the TOF channel offsets (at end of processing). Input from simulation, but is should work if attached to reco+calib flow
+To obtain the TOF channel offsets (at end of processing). Input from simulation, but it should work if attached to reco+calib flow
 
 * simulating reading from ccdb, and using it, with "-b", in "test" mode --> to use this, we need an appropriate CCDB object in the CCDB
 
@@ -108,6 +108,9 @@ o2-calibration-data-generator-workflow --lanes 8 --max-timeframes 5000 --gen-nor
 # Term.3: will produce TFs [16:23], [40:47], [64:71] ...
 o2-calibration-data-generator-workflow --lanes 8 --max-timeframes 5000 --gen-norm 3 --gen-slot 2
 ```
+
+Note that the `o2-calibration-data-generator-workflow` parses the string passed via `--configKeyValues` option and the DataHeaders to generate can be steered using HBFUtils class,
+e.g. the "run start" time as HBFUtils.startTime (if 0, `now()` will be used), starting orbit via HBFUtils.orbitFirstSampled etc.
 
 * To run the calibration with cosmics:
 

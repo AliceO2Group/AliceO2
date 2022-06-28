@@ -29,10 +29,6 @@ struct PedestalChannel {
   double mVariance{0};     // variance
   DsChannelId dsChannelId; // identifier of the channel
 
-  [[deprecated]] double mPedRms;      // temporary : until we remove that access from QC
-  [[deprecated]] double mPedMean;     // temporary : until we remove that access from QC
-  [[deprecated]] DsChannelId mDsChId; // temporary : until we remove that access from QC
-
   /** return the RMS of the pedestal */
   double getRms() const;
 

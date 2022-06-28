@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(test_headerstack)
   dh.payloadSize = 0;
 
   using Name8Header = o2::header::NameHeader<8>;
-  Name8Header nh("NAMEDHDR");
+  Name8Header nh("NAMEHDR");
 
   o2::header::Stack stack(dh, nh);
 

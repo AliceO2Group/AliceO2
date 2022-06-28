@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_MCH_GAUSSIANEM_H_
-#define ALICEO2_MCH_GAUSSIANEM_H_
+#ifndef O2_MCH_GAUSSIANEM_H_
+#define O2_MCH_GAUSSIANEM_H_
 
 extern "C" {
 void computeDiscretizedGaussian2D(const double* xyInfSup, const double* theta,

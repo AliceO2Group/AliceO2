@@ -7,7 +7,7 @@ if [[ -z $1 || -z $2 ]]; then
   exit 1
 fi
 
-if [[ `which StfBuilder 2> /dev/null | wc -l` == "0" || -z $O2_ROOT ]]; then
+if [[ $1 == "DD" && `which StfBuilder 2> /dev/null | wc -l` -eq 0 ]] || [[ -z $O2_ROOT ]]; then
   echo "ERROR: DataDistribution or O2 environment not loaded"
   exit 1
 fi
@@ -17,7 +17,7 @@ if [[ $2 != "LOCAL" && ! -f $2 ]]; then
   exit 1
 fi
 
-for i in EXTINPUT CTFINPUT RAWTFINPUT; do
+for i in EXTINPUT CTFINPUT RAWTFINPUT DIGITINPUT; do
   [[ ! -z ${!i} ]] && { echo "$i must not be set!"; exit 1; }
 done
 
@@ -30,7 +30,7 @@ LOG_PREFIX="log_$(date +%Y%m%d-%H%M%S)_"
 [[ -z $OVERRIDE_SESSION ]] && export OVERRIDE_SESSION=default_$$_$RANDOM
 [[ -z $INRAWCHANNAME ]] && export INRAWCHANNAME=tf-builder-$$-$RANDOM
 
-if [[ "0$IGNORE_EXISTING_SHMFILES" != "01" && `ls /dev/shm/*fmq* 2> /dev/null | wc -l` != "0" ]]; then
+if [[ "0$IGNORE_EXISTING_SHMFILES" != "01" && `ls /dev/shm/*fmq* 2> /dev/null | wc -l` -ne 0 ]]; then
   echo "ERROR: Existing SHM files (you can set IGNORE_EXISTING_SHMFILES=1 to ignore and allow multiple parallel reconstruction sessions)"
   exit 1
 fi
@@ -65,6 +65,8 @@ elif [[ $1 == "CTF" ]]; then
   export CTFINPUT=1
 elif [[ $1 == "TF" ]]; then
   export RAWTFINPUT=1
+elif [[ $1 == "MC" ]]; then
+  export DIGITINPUT=1
 else
   echo "ERROR: Unsupported mode $1 requested"
   exit 1
@@ -80,7 +82,7 @@ if [[ "0$4" != "00" ]]; then
 fi
 
 TIMEOUT_PHASE=0
-while [[ `jobs -rl | grep -v " $PID_LOG Running" | wc -l` != "0" ]]; do
+while [[ `jobs -rl | grep -v " $PID_LOG Running" | wc -l` -ne 0 ]]; do
   sleep 1
   if [[ ! -z $3 && $(date +%s) -ge $(($START_TIME + $TIMEOUT_PHASE * 20 + $3)) ]]; then
     RETVAL=1

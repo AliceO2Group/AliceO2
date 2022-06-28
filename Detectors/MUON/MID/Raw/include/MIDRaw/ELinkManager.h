@@ -36,7 +36,7 @@ class ELinkManager
  public:
   void init(uint16_t feeId, bool isDebugMode, bool isBare = false, const ElectronicsDelay& electronicsDelay = ElectronicsDelay(), const FEEIdConfig& feeIdConfig = FEEIdConfig());
 
-  void set(uint32_t orbit);
+  void set(uint32_t orbit, uint32_t trigger);
 
   /// Main function to be executed when decoding is done
   inline void onDone(const ELinkDecoder& decoder, uint8_t boardUniqueId, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs) { return onDone(decoder, raw::getCrateId(boardUniqueId), raw::getLocId(boardUniqueId), data, rofs); }
@@ -71,6 +71,8 @@ class ELinkManager
   inline uint16_t makeUniqueId(bool isLoc, uint8_t uniqueId) { return (isLoc ? 0 : (1 << 8)) | uniqueId; }
   std::unordered_map<uint16_t, ELinkDataShaper> mDataShapers; /// Data shapers for each loc and reg board
   std::unordered_map<uint16_t, ELinkDecoder> mDecoders;       /// Decoders for each loc and reg board
+  std::unordered_map<uint16_t, unsigned long int> mErrors;    /// Decoding errors
+  uint16_t mFeeId;                                            /// Front End ID
 
 #endif
 };

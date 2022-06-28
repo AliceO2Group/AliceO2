@@ -26,7 +26,6 @@
 #include "Align/AlignmentPoint.h"
 #include "ReconstructionDataFormats/Track.h"
 #include <TObjArray.h>
-#include <TArrayD.h>
 #include <TArrayI.h>
 #include "DetectorsBase/Propagator.h"
 
@@ -39,12 +38,11 @@ class AlignmentTrack : public trackParam_t, public TObject
 {
  public:
   using trackParam_t = o2::track::TrackParametrizationWithError<double>;
-  using Propagator = o2::base::PropagatorImpl<double>;
-  using MatCorrType = Propagator::MatCorrType;
-
+  using PropagatorD = o2::base::PropagatorD;
+  using MatCorrType = PropagatorD::MatCorrType;
+  using trackParam_t::setParam;
   static constexpr double MaxDefStep = 3.0;
   static constexpr double MaxDefSnp = 0.95;
-  static constexpr MatCorrType DefMatCorrType = MatCorrType::USEMatCorrLUT;
 
   enum { kCosmicBit = BIT(14),
          kFieldONBit = BIT(15),
@@ -62,25 +60,27 @@ class AlignmentTrack : public trackParam_t, public TObject
          kParTgl,
          kParQ2Pt
   };
-  AlignmentTrack();
+  AlignmentTrack() = default;
   ~AlignmentTrack() override = default;
   void defineDOFs();
-  double getMass() const { return mMass; }
-  double getMinX2X0Pt2Account() const { return mMinX2X0Pt2Account; }
-  int getNPoints() const { return mPoints.GetEntriesFast(); }
-  AlignmentPoint* getPoint(int i) const { return (AlignmentPoint*)mPoints[i]; }
-  void addPoint(AlignmentPoint* p) { mPoints.AddLast(p); }
-  void setMass(double m) { mMass = m; }
-  void setMinX2X0Pt2Account(double v) { mMinX2X0Pt2Account = v; }
+  int getNPoints() const { return mPoints.size(); }
+  int getInnerPointID() const { return mInnerPointID; }
+  const AlignmentPoint* getInnerPoint() const { return getPoint(mInnerPointID); }
+  AlignmentPoint* getPoint(int i) { return (AlignmentPoint*)mPoints[i]; }
+  const AlignmentPoint* getPoint(int i) const { return mPoints[i]; }
+  auto getPoints() { return mPoints; }
+  auto& addDetectorPoint() { return mDetPoints.emplace_back(); }
+  void setRefPoint(AlignmentPoint* p) { mPoints.emplace_back(p); }
   int getNLocPar() const { return mNLocPar; }
   int getNLocExtPar() const { return mNLocExtPar; }
-  int getInnerPointID() const { return mInnerPointID; }
-  AlignmentPoint* getInnerPoint() const { return getPoint(mInnerPointID); }
   //
   void Clear(Option_t* opt = "") final;
   void Print(Option_t* opt = "") const final;
   virtual void dumpCoordinates() const;
   //
+  template <typename P>
+  void copyFrom(const o2::track::TrackParametrizationWithError<P>& trc);
+
   bool propagateToPoint(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT, track::TrackLTIntegral* tLT = nullptr);
   bool propagateParamToPoint(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT);             // param only
   bool propagateParamToPoint(trackParam_t* trSet, int nTr, const AlignmentPoint* pnt, double maxStep = 3, double maxSnp = 0.95, MatCorrType mt = MatCorrType::USEMatCorrLUT); // params only
@@ -120,10 +120,10 @@ class AlignmentTrack : public trackParam_t, public TObject
   bool applyMatCorr(trackParam_t* trSet, int ntr, const double* corrDiaf, const AlignmentPoint* pnt);
   bool applyMatCorr(trackParam_t& trPar, const double* corrpar);
   //
-  double getResidual(int dim, int pntID) const { return mResidA[dim][pntID]; }
-  double* getDResDLoc(int dim, int pntID) const { return &mDResDLocA[dim][pntID * mNLocPar]; }
-  double* getDResDGlo(int dim, int id) const { return &mDResDGloA[dim][id]; }
-  int* getGloParID() const { return mGloParIDA; }
+  double getResidual(int dim, int pntID) const { return mResid[dim][pntID]; }
+  const double* getDResDLoc(int dim, int pntID) const { return mDResDLoc[dim].data() + (pntID * mNLocPar); }
+  const double* getDResDGlo(int dim, int id) const { return mDResDGlo[dim].data() + id; }
+  const int* getGloParID() const { return mGloParID.data(); }
   //
   void setParams(trackParam_t& tr, double x, double alp, const double* par, bool add);
   void setParams(trackParam_t* trSet, int ntr, double x, double alp, const double* par, bool add);
@@ -135,7 +135,7 @@ class AlignmentTrack : public trackParam_t, public TObject
   void richardsonDeriv(const trackParam_t* trSet, const double* delta,
                        const AlignmentPoint* pnt, double& derY, double& derZ);
   //
-  const double* getLocPars() const { return mLocParA; }
+  const double* getLocPars() const { return mLocPar.data(); }
   void setLocPars(const double* pars);
   //
  protected:
@@ -145,7 +145,7 @@ class AlignmentTrack : public trackParam_t, public TObject
   bool fitLeg(trackParam_t& trc, int pFrom, int pTo, bool& inv);
   bool processMaterials(trackParam_t& trc, int pFrom, int pTo);
   //
-  void checkExpandDerGloBuffer(int minSize);
+  void checkExpandDerGloBuffer(unsigned int minSize);
   //
   static double richardsonExtrap(double* val, int ord = 1);
   static double richardsonExtrap(const double* val, int ord = 1);
@@ -155,29 +155,23 @@ class AlignmentTrack : public trackParam_t, public TObject
   AlignmentTrack& operator=(const AlignmentTrack&);
   //
  protected:
-  int mNLocPar;              // number of local params
-  int mNLocExtPar;           // number of local params for the external track param
-  int mNGloPar;              // number of free global parameters the track depends on
-  int mNDF;                  // number of degrees of freedom
-  int mInnerPointID;         // ID of inner point in sorted track. For 2-leg cosmics - innermost point of lower leg
-  bool mNeedInv[2];          // set if one of cosmic legs need inversion
-  double mMinX2X0Pt2Account; // minimum X2X0/pT accumulated between 2 points worth to account
-  double mMass;              // assumed mass
-  double mChi2;              // chi2 with current residuals
-  double mChi2CosmUp;        // chi2 for cosmic upper leg
-  double mChi2CosmDn;        // chi2 for cosmic down leg
-  double mChi2Ini;           // chi2 with current residuals
-  TObjArray mPoints;         // alignment points
-  TArrayD mResid[2];         // residuals array
-  TArrayD mDResDLoc[2];      // array for derivatives over local params
-  TArrayD mDResDGlo[2];      // array for derivatives over global params
-  TArrayD mLocPar;           // local parameters array
-  TArrayI mGloParID;         // IDs of relevant global params
-  double* mResidA[2];        //! fast access to residuals
-  double* mDResDLocA[2];     //! fast access to local derivatives
-  double* mDResDGloA[2];     //! fast access to global derivatives
-  int* mGloParIDA;           //! fast access to relevant global param IDs
-  double* mLocParA;          //! fast access to local params
+  int mNLocPar = 0;                         // number of local params
+  int mNLocExtPar = 0;                      // number of local params for the external track param
+  int mNGloPar = 0;                         // number of free global parameters the track depends on
+  int mNDF = 0;                             // number of degrees of freedom
+  int mInnerPointID = 0;                    // ID of inner point in sorted track. For 2-leg cosmics - innermost point of lower leg
+  bool mNeedInv[2] = {};                    // set if one of cosmic legs need inversion
+  double mChi2 = 0;                         // chi2 with current residuals
+  double mChi2CosmUp = 0;                   // chi2 for cosmic upper leg
+  double mChi2CosmDn = 0;                   // chi2 for cosmic down leg
+  double mChi2Ini = 0;                      // chi2 with current residuals
+  std::vector<AlignmentPoint*> mPoints{};   // alignment points pointers sorted in X
+  std::vector<AlignmentPoint> mDetPoints{}; // alignment points added by detectors
+  std::vector<double> mResid[2];            // residuals array
+  std::vector<double> mDResDLoc[2];         // array for derivatives over local params
+  std::vector<double> mDResDGlo[2];         // array for derivatives over global params
+  std::vector<double> mLocPar;              // local parameters array
+  std::vector<int> mGloParID;               // IDs of relevant global params
  private:
   bool propagate(trackParam_t& tr, const AlignmentPoint* pnt, double maxStep, double maxSnp, MatCorrType mt, track::TrackLTIntegral* tLT);
   //
@@ -200,14 +194,7 @@ inline void AlignmentTrack::setParams(trackParam_t& tr, double x, double alp, co
     }
   }
   if (!getFieldON()) {
-    const double val = [&]() {
-      if (this->isCosmic()) {
-        return kDefQ2PtCosm;
-      } else {
-        return kDefG2PtColl;
-      }
-    }();
-    tr.setQ2Pt(val); // only 4 params are valid
+    tr.setQ2Pt(isCosmic() ? kDefQ2PtCosm : kDefG2PtColl); // only 4 params are valid
   }
 }
 
@@ -269,6 +256,23 @@ inline void AlignmentTrack::copyFrom(const trackParam_t* etp)
   // assign kinematics
   set(etp->getX(), etp->getAlpha(), etp->getParams(), etp->getCov().data());
 }
+
+//______________________________________________
+template <typename P>
+inline void AlignmentTrack::copyFrom(const o2::track::TrackParametrizationWithError<P>& trc)
+{
+  setX(trc.getX());
+  setAlpha(trc.getAlpha());
+  setAbsCharge(trc.getAbsCharge());
+  setPID(trc.getPID());
+  for (int i = o2::track::kNParams; i--;) {
+    setParam(double(trc.getParam(i)), i);
+  }
+  for (int i = o2::track::kCovMatSize; i--;) {
+    setCov(double(trc.getCov()[i]), i);
+  }
+}
+
 } // namespace align
 } // namespace o2
 #endif

@@ -69,7 +69,7 @@ class O2MCApplication : public O2MCApplicationBase
   /** Define actions at the end of run */
   void FinishRun();
 
-  void attachSubEventInfo(FairMQParts&, o2::data::SubEventInfo const& info) const;
+  void attachSubEventInfo(fair::mq::Parts&, o2::data::SubEventInfo const& info) const;
 
   /** Generate primary particles */
   void GeneratePrimaries() override
@@ -87,12 +87,12 @@ class O2MCApplication : public O2MCApplicationBase
     mPrimaries = p;
   }
 
-  void setSimDataChannel(FairMQChannel* channel) { mSimDataChannel = channel; }
+  void setSimDataChannel(fair::mq::Channel* channel) { mSimDataChannel = channel; }
   void setSubEventInfo(o2::data::SubEventInfo* i);
 
   std::vector<TParticle> mPrimaries; //!
 
-  FairMQChannel* mSimDataChannel;                      //! generic channel on which to send sim data
+  fair::mq::Channel* mSimDataChannel;                  //! generic channel on which to send sim data
   o2::data::SubEventInfo* mSubEventInfo = nullptr;     //! what are we currently processing?
   std::vector<o2::base::Detector*> mActiveO2Detectors; //! active (data taking) o2 detectors
 

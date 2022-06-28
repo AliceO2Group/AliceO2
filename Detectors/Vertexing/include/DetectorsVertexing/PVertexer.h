@@ -137,6 +137,7 @@ class PVertexer
   void dbscan_clusterize();
   void doDBScanDump(const VertexingInput& input, gsl::span<const o2::MCCompLabel> lblTracks);
   void doVtxDump(std::vector<PVertex>& vertices, std::vector<uint32_t> trackIDsLoc, std::vector<V2TRef>& v2tRefsLoc, gsl::span<const o2::MCCompLabel> lblTracks);
+  void doDBGPoolDump(gsl::span<const o2::MCCompLabel> lblTracks);
 
   o2::BunchFilling mBunchFilling;
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
@@ -168,6 +169,7 @@ class PVertexer
 #ifdef _PV_DEBUG_TREE_
   std::unique_ptr<TFile> mDebugDumpFile;
   std::unique_ptr<TTree> mDebugDBScanTree;
+  std::unique_ptr<TTree> mDebugPoolTree;
   std::unique_ptr<TTree> mDebugVtxTree;
   std::unique_ptr<TTree> mDebugVtxCompTree;
 
@@ -231,6 +233,8 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
   for (uint32_t i = 0; i < ntGlo; i++) {
     int id = sortedTrackID[i];
     o2::track::TrackParCov trc = tracks[id];
+    trc.updateCov(mPVParams->sysErrY2, o2::track::kSigY2);
+    trc.updateCov(mPVParams->sysErrZ2, o2::track::kSigZ2);
     if (!relateTrackToMeanVertex(trc, vtxErr2)) {
       continue;
     }

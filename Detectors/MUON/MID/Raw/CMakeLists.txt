@@ -22,7 +22,6 @@ o2_add_library(
           src/ELinkManager.cxx
           src/Encoder.cxx
           src/FEEIdConfig.cxx
-          src/GBTOutputHandler.cxx
           src/GBTUserLogicEncoder.cxx
           src/LinkDecoder.cxx
           src/RawFileReader.cxx

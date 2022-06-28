@@ -33,7 +33,10 @@ struct ROBoard {
   std::array<uint16_t, 4> patternsNBP{}; /// Non-bending plane pattern
 };
 
-std::ostream& operator<<(std::ostream& os, const ROBoard& loc);
+/// Stream operator for ROBoard
+/// \param os Output stream
+/// \param board Readout board
+std::ostream& operator<<(std::ostream& os, const ROBoard& board);
 
 namespace raw
 {
@@ -57,16 +60,29 @@ static constexpr uint8_t sRESET = 1 << 1;
 static constexpr uint8_t sORB = 1;
 
 /// Tests the local card bit
+/// \param statusWord Status word
+/// \return false if this is a regional board
 inline bool isLoc(uint8_t statusWord) { return (statusWord >> 6) & 0x1; }
+
 /// Tests the calibration bit of the card
+/// \param triggerWord Trigger word
+/// \return true if calibration trigger is fired
 inline bool isCalibration(uint8_t triggerWord) { return ((triggerWord & 0xc) == 0x8); }
-/// Tests if this is a Front End Test event
-inline bool isFET(uint8_t triggerWord) { return ((triggerWord & 0xc) == 0xc); }
+
 /// Gets the crate ID from the absolute local board ID
+/// \param uniqueLocId Unique board ID
+/// \return Crate ID
 inline uint8_t getCrateId(uint8_t uniqueLocId) { return (uniqueLocId >> 4) & 0xF; }
+
 /// Gets the loc ID in the crate from the unique local board ID
+/// \param uniqueLocId Unique board ID
+/// \return Local board ID in crate
 inline uint8_t getLocId(uint8_t uniqueLocId) { return uniqueLocId & 0xF; }
+
 /// Builds the unique loc ID from the crate ID and the loc ID in the crate
+/// \param crateId Crate ID
+/// \param locId Board ID
+/// \return Unique board ID
 inline uint8_t makeUniqueLocID(uint8_t crateId, uint8_t locId) { return locId | (crateId << 4); }
 } // namespace raw
 

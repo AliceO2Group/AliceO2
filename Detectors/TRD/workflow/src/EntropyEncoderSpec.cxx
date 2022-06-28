@@ -15,6 +15,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "TRDWorkflow/EntropyEncoderSpec.h"
 #include "TRDReconstruction/CTFCoder.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -35,43 +36,45 @@ class EntropyEncoderSpec : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   o2::trd::CTFCoder mCTFCoder;
   TStopwatch mTimer;
 };
 
-EntropyEncoderSpec::EntropyEncoderSpec()
+EntropyEncoderSpec::EntropyEncoderSpec() : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder)
 {
   mTimer.Stop();
   mTimer.Reset();
 }
 
+void EntropyEncoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
+    return;
+  }
+}
+
 void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>("ctf-dict");
-  mCTFCoder.setMemMarginFactor(ic.options().get<float>("mem-factor"));
-  if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCodersFromFile<CTF>(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
-  }
+  mCTFCoder.init<CTF>(ic);
 }
 
 void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
+  mCTFCoder.updateTimeDependentParams(pc);
   auto triggers = pc.inputs().get<gsl::span<TriggerRecord>>("triggers");
   auto tracklets = pc.inputs().get<gsl::span<Tracklet64>>("tracklets");
   auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"TRD", "CTFDATA", 0, Lifetime::Timeframe});
-  mCTFCoder.encode(buffer, triggers, tracklets, digits);
-  auto eeb = CTF::get(buffer.data()); // cast to container pointer
-  eeb->compactify();                  // eliminate unnecessary padding
-  buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
-  //  eeb->print();
+  auto iosize = mCTFCoder.encode(buffer, triggers, tracklets, digits);
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
-  LOG(info) << "Created encoded data of size " << eeb->size() << " for TRD in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -86,13 +89,15 @@ DataProcessorSpec getEntropyEncoderSpec()
   inputs.emplace_back("triggers", "TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracklets", "TRD", "TRACKLETS", 0, Lifetime::Timeframe);
   inputs.emplace_back("digits", "TRD", "DIGITS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict", "TRD", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CTFDictionary"));
 
   return DataProcessorSpec{
     "trd-entropy-encoder",
     inputs,
-    Outputs{{"TRD", "CTFDATA", 0, Lifetime::Timeframe}},
+    Outputs{{"TRD", "CTFDATA", 0, Lifetime::Timeframe},
+            {{"ctfrep"}, "TRD", "CTFENCREP", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
-    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF encoding dictionary"}},
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }
 

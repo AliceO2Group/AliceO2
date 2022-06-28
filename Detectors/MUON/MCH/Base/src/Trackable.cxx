@@ -10,7 +10,6 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHBase/Trackable.h"
-#include "DataFormatsMCH/Cluster.h"
 #include "DataFormatsMCH/Digit.h"
 
 namespace o2::mch
@@ -39,9 +38,9 @@ bool isTrackable(std::array<int, 10> itemsPerChamber,
   return true;
 }
 
-/** Specialization of perChamber for integers (representing 
-  * detection element ids.
-  */
+/** Specialization of perChamber for integers (representing
+ * detection element ids.
+ */
 template <>
 std::array<int, 10> perChamber(gsl::span<const int> deids)
 {

@@ -75,7 +75,8 @@ void GlobalFwdAssessmentSpec::run(o2::framework::ProcessingContext& pc)
       mTimer[SWGenerated].Stop();
     }
     mTimer[SWRecoAndTrue].Start(false);
-    mGloFwdAssessment->processRecoAndTrueTracks();
+    mGloFwdAssessment->processRecoTracks();
+    mGloFwdAssessment->processTrueTracks();
     mTimer[SWRecoAndTrue].Stop();
   }
 }

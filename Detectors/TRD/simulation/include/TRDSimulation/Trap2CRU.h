@@ -63,7 +63,7 @@ class Trap2CRU
   int writeDigitEndMarker();                                           // write the digit end marker 0x0 0x0
   int writeTrackletEndMarker();                                        // write the tracklet end maker 0x10001000 0x10001000
   int writeDigitHCHeader(const int eventcount, uint32_t linkid);       // write the Digit HalfChamberHeader into the stream, after the tracklet endmarker and before the digits.
-  int writeTrackletHCHeader(const int eventcount, uint32_t linkid);    // write the Tracklet HalfChamberHeader into the stream, at the beginning of data iff there is tracklet data.
+  int writeTrackletHCHeader(const int eventcount);                     // write the Tracklet HalfChamberHeader into the stream, at the beginning of data iff there is tracklet data.
 
   bool digitindexcompare(const o2::trd::Digit& A, const o2::trd::Digit& B);
   //boohhl digitindexcompare(const unsigned int A, const unsigned int B);
@@ -73,10 +73,10 @@ class Trap2CRU
 
  private:
   int mfileGranularity; /// per link or per half cru for each file
-  uint32_t mLinkID;     // always 15 for TRD
+  uint8_t mLinkID;      // always 15 for TRD
   uint16_t mCruID;      // built into the FeeID
-  uint64_t mFeeID;      // front end id defining the cru sm:8 bits, blank 3 bits, side:1,blank 3 bits, end point:1
-  uint32_t mEndPointID; // end point on the cru in question, there are 2 pci end points per cru
+  uint16_t mFeeID;      // front end id defining the cru sm:8 bits, blank 3 bits, side:1,blank 3 bits, end point:1
+  uint8_t mEndPointID;  // end point on the cru in question, there are 2 pci end points per cru
   std::string mFilePer; // how to split up the raw data files, sm:per supermodule, halfcru: per half cru, cru: per cru, all: singular file.
   //  std::string mInputFileName;
   std::string mOutputFileName;

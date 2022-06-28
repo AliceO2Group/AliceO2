@@ -20,7 +20,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include "FairLogger.h"
+#include "Framework/Logger.h"
 
 using namespace o2::tpc;
 
@@ -37,6 +37,7 @@ void SAMPAProcessing::updateParameters()
   auto& cdb = CDBInterface::instance();
   mPedestalMap = &(cdb.getPedestals());
   mNoiseMap = &(cdb.getNoise());
+  mZeroSuppression = &(cdb.getZeroSuppressionThreshold());
 }
 
 void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::vector<float>& signalArray) const

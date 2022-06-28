@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <set>
+#include <deque>
 
 #include <iostream>
 #include <fstream>
@@ -26,6 +28,7 @@
 // Boost library for easy access of host name
 #include <boost/asio/ip/host_name.hpp>
 
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"
@@ -33,7 +36,9 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
-#include <FairMQDevice.h>
+#include "Framework/DataTakingContext.h"
+#include "Framework/TimingInfo.h"
+#include <fairmq/Device.h>
 
 #include <ITSMFTReconstruction/RawPixelDecoder.h> //o2::itsmft::RawPixelDecoder
 #include "DetectorsCalibration/Utils.h"
@@ -59,7 +64,7 @@ constexpr int N_INJ = 50;
 
 // List of the possible run types for reference
 enum RunTypes {
-  THR_SCAN = 41,
+  THR_SCAN = 42,
   THR_SCAN_SHORT = 43,
   THR_SCAN_SHORT_100HZ = 101,
   THR_SCAN_SHORT_200HZ = 102,
@@ -69,6 +74,9 @@ enum RunTypes {
   ITHR150 = 62,
   ITHR100 = 82,
   ITHR100_100HZ = 104,
+  DIGITAL_SCAN = 44,
+  DIGITAL_SCAN_100HZ = 105,
+  ANALOGUE_SCAN = 63,
   END_RUN = 0
 };
 
@@ -76,13 +84,20 @@ enum RunTypes {
 enum FitTypes {
   DERIVATIVE = 0,
   FIT = 1,
-  HITCOUNTING = 2
+  HITCOUNTING = 2,
+  NO_FIT = 3
+};
+
+// To work with parallel chip access
+struct ITSCalibInpConf {
+  int chipModSel = 0;
+  int chipModBase = 1;
 };
 
 class ITSThresholdCalibrator : public Task
 {
  public:
-  ITSThresholdCalibrator();
+  ITSThresholdCalibrator(const ITSCalibInpConf& inpConf);
   ~ITSThresholdCalibrator() override;
 
   using ChipPixelData = o2::itsmft::ChipPixelData;
@@ -94,9 +109,11 @@ class ITSThresholdCalibrator : public Task
 
   void finalize(EndOfStreamContext* ec);
   void stop() final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
   //////////////////////////////////////////////////////////////////
  private:
+  void updateTimeDependentParams(ProcessingContext& pc);
   // detector information
   static constexpr short int N_COL = 1024; // column number in Alpide chip
 
@@ -108,17 +125,23 @@ class ITSThresholdCalibrator : public Task
   static constexpr short int N_VCASN = 51;
   // Number of points in a ITHR tuning (from 30 to 100 inclusive)
   static constexpr short int N_ITHR = 71;
+  // Number of points in a digital scan and analog scan
+  static constexpr short int N_DIGANA = 1;
   // Refernce to one of the above values; updated during runtime
   const short int* N_RANGE = nullptr;
+  // Min number of noisy pix in a dcol for bad dcol tagging
+  static constexpr short int N_PIX_DCOL = 50;
 
   // The x-axis of the correct data fit chosen above
   short int* mX = nullptr;
 
   // Hash tables to store the hit and threshold information per pixel
-  std::unordered_map<short int, short int> mCurrentRow;
-  std::unordered_map<short int, std::vector<std::vector<char>>> mPixelHits;
-  //   Unordered map for saving sum of values (thr/ithr/vcasn) for avg calculation
-  std::unordered_map<short int, std::array<int, 5>> mThresholds;
+  std::map<short int, std::map<int, std::vector<std::vector<unsigned short int>>>> mPixelHits;
+  std::map<short int, std::deque<short int>> mForbiddenRows;
+  // Unordered map for saving sum of values (thr/ithr/vcasn) for avg calculation
+  std::map<short int, std::array<int, 5>> mThresholds;
+  // Map including PixID for noisy pixels
+  std::map<short int, std::vector<int>> mNoisyPixID;
 
   // Tree to save threshold info in full threshold scan case
   TFile* mRootOutfile = nullptr;
@@ -135,29 +158,26 @@ class ITSThresholdCalibrator : public Task
 
   // Some private helper functions
   // Helper functions related to the running over data
-  void extractAndUpdate(const short int&);
+  void extractAndUpdate(const short int&, const short int&);
   void extractThresholdRow(const short int&, const short int&);
   void finalizeOutput();
 
   void setRunType(const short int&);
-  void updateEnvironmentID(ProcessingContext&);
-  void updateRunID(ProcessingContext&);
-  void updateLHCPeriod(ProcessingContext&);
 
   // Helper functions related to threshold extraction
   void initThresholdTree(bool recreate = true);
-  bool findUpperLower(const char*, const short int*, const short int&, short int&, short int&, bool);
-  bool findThreshold(const char*, const short int*, const short int&, float&, float&);
-  bool findThresholdFit(const char*, const short int*, const short int&, float&, float&);
-  bool findThresholdDerivative(const char*, const short int*, const short int&, float&, float&);
-  bool findThresholdHitcounting(const char*, const short int*, const short int&, float&);
-  bool isScanFinished(const short int&);
+  bool findUpperLower(const unsigned short int*, const short int*, const short int&, short int&, short int&, bool);
+  bool findThreshold(const unsigned short int*, const short int*, const short int&, float&, float&);
+  bool findThresholdFit(const unsigned short int*, const short int*, const short int&, float&, float&);
+  bool findThresholdDerivative(const unsigned short int*, const short int*, const short int&, float&, float&);
+  bool findThresholdHitcounting(const unsigned short int*, const short int*, const short int&, float&);
+  bool isScanFinished(const short int&, const short int&, const short int&);
   void findAverage(const std::array<int, 5>&, float&, float&, float&, float&);
   void saveThreshold();
 
   // Helper functions for writing to the database
   void addDatabaseEntry(const short int&, const char*, const short int&,
-                        const float&, const short int&, const float&, bool);
+                        const float&, const short int&, const float&, bool, bool);
   void sendToAggregator(EndOfStreamContext*);
 
   std::string mSelfName;
@@ -166,12 +186,11 @@ class ITSThresholdCalibrator : public Task
 
   bool mVerboseOutput = false;
   std::string mMetaType;
-  std::string mLHCPeriod;
-  std::string mEnvironmentID;
   std::string mOutputDir;
   std::string mMetafileDir = "/dev/null";
   int mNThreads = 1;
-  int mRunNumber = -1;
+  o2::framework::DataTakingContext mDataTakingContext{};
+  o2::framework::TimingInfo mTimingInfo{};
 
   // How many rows before starting new ROOT file
   unsigned int mFileNumber = 0;
@@ -179,7 +198,7 @@ class ITSThresholdCalibrator : public Task
   unsigned int mRowCounter = 0;
 
   short int mRunType = -1;
-  short int mRunTypeUp;
+  short int mRunTypeUp = -1;
   short int mRunTypeChip[24120] = {0};
   bool mIsChipDone[24120] = {false};
   // Either "T" for threshold, "V" for VCASN, or "I" for ITHR
@@ -195,13 +214,32 @@ class ITSThresholdCalibrator : public Task
   // DCS config object
   o2::dcs::DCSconfigObject_t mTuning;
 
+  // DCS config object shipped only to QC to know when scan is done
+  o2::dcs::DCSconfigObject_t mChipDoneQc;
+
   // Flag to check if endOfStream is available
   bool mCheckEos = false;
-  int mCounter = 0;
+
+  // Flag to enable cw counter check
+  bool mCheckCw = false;
+
+  // Flag to tag single noisy pix in digital scan
+  bool mTagSinglePix = false;
+
+  // Bool to check exact row when counting hits
+  bool mCheckExactRow = false;
+
+  // Chip mod selector and chip mod base for parallel chip access
+  int mChipModSel = 0;
+  int mChipModBase = 1;
+
+  // map to get confDB id
+  std::vector<int>* mConfDBmap;
+  short int mConfDBv;
 };
 
 // Create a processor spec
-o2::framework::DataProcessorSpec getITSThresholdCalibratorSpec();
+o2::framework::DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf);
 
 } // namespace its
 } // namespace o2

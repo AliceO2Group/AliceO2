@@ -50,6 +50,7 @@
 //-----------------------------------------------------------------------------
 
 #include "MFTSimulation/GeometryMisAligner.h"
+#include "ITSMFTReconstruction/ChipMappingMFT.h"
 
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
@@ -477,13 +478,14 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
             LOG(error) << "Problem extracting angles from sensor";
           }
           lAP.setSymName(sname);
-          Int_t uid = o2::base::GeometryManager::getSensID(o2::detectors::DetID::MFT, nChip++);
+          Int_t chipID = itsmft::ChipMappingMFT::mChipIDGeoToRO[nChip];
+          Int_t uid = o2::base::GeometryManager::getSensID(o2::detectors::DetID::MFT, chipID);
           lAP.setAlignableID(uid);
           lAP.setLocalParams(localDeltaTransform);
           lAP.applyToGeometry();
           lAPvec.emplace_back(lAP);
           if (verbose) {
-            LOG(info) << "misaligner: " << sname << ", sensor: " << nChip;
+            LOG(info) << sname << ", nChip: " << nChip << ", uid: " << uid;
           }
           nChip++;
         }
@@ -493,9 +495,11 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
 
   if (!ccdbHost.empty()) {
     std::string path = objectPath.empty() ? o2::base::DetectorNameConf::getAlignmentPath(o2::detectors::DetID::MFT) : objectPath;
+    path = "MFT/test_CCDB/MFT"; // testing the ccdb
     LOGP(info, "Storing alignment object on {}/{}", ccdbHost, path);
     o2::ccdb::CcdbApi api;
     std::map<std::string, std::string> metadata; // can be empty
+    metadata["test"] = fmt::format("Misalignment objects for DetID:{}", o2::detectors::DetID::MFT);
     api.init(ccdbHost.c_str());                  // or http://localhost:8080 for a local installation
     // store abitrary user object in strongly typed manner
     api.storeAsTFileAny(&lAPvec, path, metadata, tmin, tmax);

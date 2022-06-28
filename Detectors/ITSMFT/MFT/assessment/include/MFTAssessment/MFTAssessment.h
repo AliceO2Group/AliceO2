@@ -48,6 +48,7 @@ enum mMFTTrackTypes { kReco,
                       kGen,
                       kTrackable,
                       kRecoTrue,
+                      kRecoTrueMC,
                       kNumberOfTrackTypes };
 
 using ClusterLabelsType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
@@ -66,9 +67,25 @@ class MFTAssessment
   void runASyncQC(o2::framework::ProcessingContext& ctx);
   void processTrackables();
   void processGeneratedTracks();
-  void processRecoAndTrueTracks();
+  void processRecoTracks();
+  void processTrueTracks();
   void addMCParticletoHistos(const MCTrack* mcTr, const int TrackType, const o2::dataformats::MCEventHeader& evH);
   void reset();
+  void fillTrueRecoTracksMap()
+  {
+    mTrueTracksMap.resize(mcReader.getNSources());
+    auto src = 0;
+    for (auto& map : mTrueTracksMap) {
+      map.resize(mcReader.getNEvents(src++));
+    }
+    auto id = 0;
+    for (const auto& trackLabel : mMFTTrackLabels) {
+      if (trackLabel.isCorrect()) {
+        mTrueTracksMap[trackLabel.getSourceID()][trackLabel.getEventID()].push_back(id);
+      }
+      id++;
+    }
+  }
 
   bool loadHistos();
   void finalizeAnalysis();
@@ -76,14 +93,14 @@ class MFTAssessment
   void getHistos(TObjArray& objar);
   void deleteHistograms();
   void setBz(float bz) { mBz = bz; }
-
+  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDictionary = d; }
   double orbitToSeconds(uint32_t orbit, uint32_t refOrbit)
   {
     return (orbit - refOrbit) * o2::constants::lhc::LHCOrbitNS / 1E9;
   }
 
  private:
-  o2::itsmft::TopologyDictionary mDictionary; // cluster patterns dictionary
+  const o2::itsmft::TopologyDictionary* mDictionary = nullptr; // cluster patterns dictionary
 
   gsl::span<const o2::mft::TrackMFT> mMFTTracks;
   gsl::span<const o2::itsmft::ROFRecord> mMFTTracksROF;
@@ -94,7 +111,7 @@ class MFTAssessment
   gsl::span<const unsigned char>::iterator pattIt;
   std::vector<o2::BaseCluster<float>> mMFTClustersGlobal;
 
-  std::array<bool, 936> mUnusedChips; //936 chipIDs in total
+  std::array<bool, 936> mUnusedChips; // 936 chipIDs in total
   int mNumberTFs = 0;
 
   // MC Labels
@@ -146,7 +163,8 @@ class MFTAssessment
   std::vector<std::string> mNameOfTrackTypes = {"Rec",
                                                 "Gen",
                                                 "Trackable",
-                                                "RecoTrue"};
+                                                "RecoTrue",
+                                                "RecotrueMC"};
 
   std::unique_ptr<TH2F> mHistPhiRecVsPhiGen = nullptr;
   std::unique_ptr<TH2F> mHistEtaRecVsEtaGen = nullptr;
@@ -160,6 +178,7 @@ class MFTAssessment
   // Histos for reconstruction assessment
 
   std::unique_ptr<TEfficiency> mChargeMatchEff = nullptr;
+  std::unique_ptr<TH2F> mHistVxtOffsetProjection = nullptr;
 
   enum TH3HistosCodes {
     kTH3TrackDeltaXDeltaYEta,
@@ -206,18 +225,18 @@ class MFTAssessment
     {kTH3TrackReducedChi2PtEta, "TH3TrackReducedChi2PtEta"}};
 
   std::map<int, std::array<double, 9>> TH3Binning{
-    {kTH3TrackDeltaXDeltaYEta, {16, 2.2, 3.8, 1000, -1000, 1000, 1000, -1000, 1000}},
+    {kTH3TrackDeltaXDeltaYEta, {16, -3.8, -2.2, 1000, -1000, 1000, 1000, -1000, 1000}},
     {kTH3TrackDeltaXDeltaYPt, {100, 0, 20, 1000, -1000, 1000, 1000, -1000, 1000}},
-    {kTH3TrackDeltaYVertexPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -1000, 1000}},
-    {kTH3TrackDeltaXVertexPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -1000, 1000}},
-    {kTH3TrackInvQPtResolutionPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -50, 50}},
-    {kTH3TrackInvQPtResSeedPtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, -50, 50}},
-    {kTH3TrackXPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
-    {kTH3TrackYPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
-    {kTH3TrackPhiPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
-    {kTH3TrackTanlPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
-    {kTH3TrackInvQPtPullPtEta, {100, 0, 20, 16, 2.2, 3.8, 200, -50, 50}},
-    {kTH3TrackReducedChi2PtEta, {100, 0, 20, 16, 2.2, 3.8, 1000, 0, 100}}};
+    {kTH3TrackDeltaYVertexPtEta, {100, 0, 20, 16, -3.8, -2.2, 1000, -1000, 1000}},
+    {kTH3TrackDeltaXVertexPtEta, {100, 0, 20, 16, -3.8, -2.2, 1000, -1000, 1000}},
+    {kTH3TrackInvQPtResolutionPtEta, {100, 0, 20, 16, -3.8, -2.2, 1000, -50, 50}},
+    {kTH3TrackInvQPtResSeedPtEta, {100, 0, 20, 16, -3.8, -2.2, 1000, -50, 50}},
+    {kTH3TrackXPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 200, -10, 10}},
+    {kTH3TrackYPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 200, -10, 10}},
+    {kTH3TrackPhiPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 200, -10, 10}},
+    {kTH3TrackTanlPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 200, -10, 10}},
+    {kTH3TrackInvQPtPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 1000, -15, 15}},
+    {kTH3TrackReducedChi2PtEta, {100, 0, 20, 16, -3.8, -2.2, 1000, 0, 100}}};
 
   std::map<int, const char*> TH3XaxisTitles{
     {kTH3TrackDeltaXDeltaYEta, R"(\\eta)"},
@@ -328,6 +347,8 @@ class MFTAssessment
   void TH3Slicer(TCanvas* canvas, std::unique_ptr<TH3F>& histo3D, std::vector<float> list, double window, int iPar, float marker_size = 1.5);
 
   std::unordered_map<o2::MCCompLabel, bool> mMFTTrackables;
+  std::vector<std::vector<std::vector<int>>> mTrueTracksMap;                  // Maps srcIDs and eventIDs to true reco tracks
+  std::vector<std::vector<std::vector<o2::MCCompLabel>>> mTrackableTracksMap; // Maps srcIDs and eventIDs to trackable tracks
 
   static constexpr std::array<short, 7> sMinNClustersList = {4, 5, 6, 7, 8, 9, 10};
   uint32_t mRefOrbit = 0; // Reference orbit used in relative time calculation

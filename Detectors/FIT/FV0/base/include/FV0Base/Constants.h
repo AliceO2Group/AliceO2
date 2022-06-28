@@ -26,7 +26,7 @@ namespace fv0
 
 struct Constants {
   static constexpr int nChannelsPerPm = 12; // Fixed now together with the production of PMs - will remain constant
-  static constexpr int nPms = 4;            // Number of processing modules (PMs); 1 PM per ring, 2 PMs needed for ring 5
+  static constexpr int nPms = 6;            // Number of processing modules (PMs); 1 PM per ring, 2 PMs needed for ring 5
   static constexpr int nTcms = 1;           // Number of trigger and clock modules (TCMs)
   static constexpr int nGbtLinks = nPms + nTcms;
   static constexpr int nFv0Channels = Geometry::getNumberOfReadoutChannels();

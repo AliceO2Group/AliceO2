@@ -76,4 +76,44 @@ BOOST_AUTO_TEST_CASE(TestChannelParser)
   TestHandler h3;
   ChannelSpecHelpers::parseChannelConfig("foo:bar=fur,abc=cdf;name=bar,foo=a", h3);
   BOOST_REQUIRE_EQUAL(h3.str.str(), "@name=foobar=furabc=cdf*@name=barfoo=a*");
+
+  // Test the OutputChannelSpecConfigParser::parseChannelConfig method
+  OutputChannelSpecConfigParser p;
+  ChannelSpecHelpers::parseChannelConfig("name=foo", p);
+  BOOST_REQUIRE_EQUAL(p.specs.size(), 1);
+  BOOST_REQUIRE_EQUAL(p.specs.back().name, "foo");
+
+  OutputChannelSpecConfigParser p2;
+  ChannelSpecHelpers::parseChannelConfig("foo:", p2);
+  BOOST_REQUIRE_EQUAL(p2.specs.size(), 1);
+  BOOST_REQUIRE_EQUAL(p2.specs.back().name, "foo");
+
+  OutputChannelSpecConfigParser p3;
+  ChannelSpecHelpers::parseChannelConfig("name=foo,method=bind,type=pub", p3);
+  BOOST_REQUIRE_EQUAL(p3.specs.size(), 1);
+  BOOST_REQUIRE_EQUAL(p3.specs.back().name, "foo");
+  BOOST_REQUIRE_EQUAL(p3.specs.back().method, ChannelMethod::Bind);
+  BOOST_REQUIRE_EQUAL(p3.specs.back().type, ChannelType::Pub);
+
+  // Check the case for a channel with a protocol TPC
+  OutputChannelSpecConfigParser p4;
+  ChannelSpecHelpers::parseChannelConfig("name=foo,method=connect,type=sub,address=tcp://127.0.0.2:8080", p4);
+  BOOST_REQUIRE_EQUAL(p4.specs.size(), 1);
+  BOOST_REQUIRE_EQUAL(p4.specs.back().name, "foo");
+  BOOST_REQUIRE(p4.specs.back().method == ChannelMethod::Connect);
+  BOOST_REQUIRE(p4.specs.back().type == ChannelType::Sub);
+  BOOST_REQUIRE_EQUAL(p4.specs.back().hostname, "127.0.0.2");
+  BOOST_REQUIRE_EQUAL(p4.specs.back().port, 8080);
+  BOOST_REQUIRE(p4.specs.back().protocol == ChannelProtocol::Network);
+
+  // Check the case for a channel with a protocol IPC
+  OutputChannelSpecConfigParser p5;
+  ChannelSpecHelpers::parseChannelConfig("name=foo,method=connect,type=sub,address=ipc://@some_ipc_file_8080", p5);
+  BOOST_REQUIRE_EQUAL(p5.specs.size(), 1);
+  BOOST_REQUIRE_EQUAL(p5.specs.back().name, "foo");
+  BOOST_REQUIRE(p5.specs.back().method == ChannelMethod::Connect);
+  BOOST_REQUIRE(p5.specs.back().type == ChannelType::Sub);
+  BOOST_REQUIRE_EQUAL(p5.specs.back().hostname, "@some_ipc_file_8080");
+  BOOST_REQUIRE_EQUAL(p5.specs.back().port, 0);
+  BOOST_REQUIRE(p5.specs.back().protocol == ChannelProtocol::IPC);
 }

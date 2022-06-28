@@ -19,7 +19,6 @@
 
 // o2 includes
 #include "TPCBase/CalDet.h"
-#include "TPCBase/Mapper.h"
 #include "TPCCalibration/FastHisto.h"
 
 #include <gsl/span>
@@ -38,6 +37,13 @@ namespace tpc
 class CalibPadGainTracksBase
 {
  public:
+  /// normalization type of the extracted gain map
+  enum NormType : unsigned char {
+    none,  ///< no normalization
+    stack, ///< normalization per GEM stack
+    region ///< normalization per region
+  };
+
   using DataTHisto = FastHisto<unsigned int>;
   using DataTHistos = CalDet<DataTHisto>;
 
@@ -47,6 +53,9 @@ class CalibPadGainTracksBase
 
   /// initializing CalPad object for gainmap
   void initCalPadMemory() { mGainMap = std::make_unique<CalPad>("GainMap"); }
+
+  /// initializing CalPad object for std dev map
+  void initCalPadStdDevMemory() { mSigmaMap = std::make_unique<CalPad>("SigmaMap"); }
 
   /// copy constructor
   CalibPadGainTracksBase(const CalibPadGainTracksBase& other) : mPadHistosDet(std::make_unique<DataTHistos>(*other.mPadHistosDet)), mGainMap(std::make_unique<CalPad>(*other.mGainMap)) {}
@@ -69,43 +78,68 @@ class CalibPadGainTracksBase
   /// \param minEntries minimum number of entries in each histogram
   bool hasEnoughData(const int minEntries) const;
 
-  /// get the truncated mean for each histogram and fill the extracted gainvalues in a CalPad object
+  /// get the truncated mean and the sigma for each histogram and fill the extracted values in a CalPad object
+  /// \param minEntries minimum number of entries in pad-by-pad histogram to calculate the mean
+  /// \param minRelgain minimum accpeted relative gain (if the gain is below this value it will be set to 1)
+  /// \param maxRelgain maximum accpeted relative gain (if the gain is above this value it will be set to 1)
   /// \param low lower truncation range for calculating the rel gain
   /// \param high upper truncation range
-  void finalize(const float low = 0.05f, const float high = 0.6f);
+  void finalize(const int minEntries = 10, const float minRelgain = 0.1f, const float maxRelgain = 2.f, const float low = 0.05f, const float high = 0.6f);
 
   /// returns calpad containing pad-by-pad histograms
   const auto& getHistos() const { return mPadHistosDet; }
 
-  /// \return returns the gainmap object
+  /// \return returns the gainmap object as const reference
   const CalPad& getPadGainMap() const { return *mGainMap; }
+
+  /// \return returns the gainmap object as reference
+  CalPad& getPadGainMap() { return *mGainMap; }
+
+  /// \return returns the gainmap object
+  const CalPad& getSigmaMap() const { return *mSigmaMap; }
 
   /// \return return histogram which is used to extract the gain
   /// \param sector sector of the TPC
   /// \param region region of the TPC
   /// \param lrow local row in region
   /// \param pad pad in row
-  auto getHistogram(const int sector, const int region, const int lrow, const int pad) const { return mPadHistosDet->getValue(sector, Mapper::getGlobalPadNumber(lrow, pad, region)); }
+  auto getHistogram(const int sector, const int region, const int lrow, const int pad) const;
 
   /// \return return histogram which is used to extract the gain
   /// \param sector sector of the TPC
   /// \param grow global row in sector
   /// \param pad pad in row
-  auto getHistogram(const int sector, const int grow, const int pad) const { return mPadHistosDet->getValue(sector, Mapper::GLOBALPADOFFSET[Mapper::REGION[grow]] + Mapper::OFFSETCRUGLOBAL[grow] + pad); }
+  auto getHistogram(const int sector, const int grow, const int pad) const;
 
   /// draw gain map sector
   /// \param sector sector which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn
   /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
   /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
-  void drawExtractedGainMapSector(const int sector, const std::string filename = "GainMapSector.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(false, sector, filename, minZ, maxZ); }
+  void drawExtractedGainMapSector(const int sector, const std::string filename = "GainMapSector.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(false, 0, sector, filename, minZ, maxZ); }
 
   /// draw gain map side
   /// \param side side of the TPC which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn
   /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
   /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
-  void drawExtractedGainMapSide(const o2::tpc::Side side, const std::string filename = "GainMapSide.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename, minZ, maxZ); }
+  void drawExtractedGainMapSide(const o2::tpc::Side side, const std::string filename = "GainMapSide.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(true, 0, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename, minZ, maxZ); }
+
+  /// draw sigma map sector
+  /// \param sector sector which will be drawn
+  /// \param norm normalizing the sigma to the extracted gain map
+  /// \param filename name of the output file. If empty the canvas is drawn
+  /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
+  /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
+  void drawExtractedSigmaMapSector(const int sector, const bool norm = false, const std::string filename = "StdDevMapSector.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(false, 1, sector, filename, minZ, maxZ, norm); }
+
+  /// draw sigma map side
+  /// \param side side of the TPC which will be drawn
+  /// \param norm normalizing the sigma to the extracted gain map
+  /// \param filename name of the output file. If empty the canvas is drawn
+  /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
+  /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
+  void drawExtractedSigmaMapSide(const o2::tpc::Side side, const bool norm = false, const std::string filename = "StdDevMapSide.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(true, 1, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename, minZ, maxZ, norm); }
 
   /// draw gain map using painter functionality
   TCanvas* drawExtractedGainMapPainter() const;
@@ -124,6 +158,10 @@ class CalibPadGainTracksBase
   /// \param outName name of the object in the output file
   void dumpToFile(const char* outFileName = "calPadGainTracksBase.root", const char* outName = "calPadGain") const;
 
+  /// dump extracted gain and sigma map to tree
+  /// \filename name of the output file
+  void dumpToTree(const std::string filename = "map_debug.root") const;
+
   /// setting a gain map from a file
   /// \param inpFile input file containing some caldet
   /// \param mapName name of the caldet
@@ -131,6 +169,12 @@ class CalibPadGainTracksBase
 
   /// setting a gain map from a file
   void setGainMap(const CalPad& gainmap) { mGainMap = std::make_unique<CalPad>(gainmap); }
+
+  /// set how the extracted gain map is normalized
+  void setNormalizationType(const NormType type) { mNormType = type; }
+
+  /// \return return how the extracted gain map is normalized
+  auto getNormalizationType() const { return mNormType; }
 
   /// resetting the histograms which are used for extraction of the gain map
   void resetHistos();
@@ -150,10 +194,27 @@ class CalibPadGainTracksBase
 
  private:
   std::unique_ptr<DataTHistos> mPadHistosDet; ///< Calibration object containing for each pad a histogram with normalized charge
-  std::unique_ptr<CalPad> mGainMap;           ///< Gain map object
+  std::unique_ptr<CalPad> mGainMap;           ///< Extracted gain map from tracks
+  std::unique_ptr<CalPad> mSigmaMap;          ///< standard deviation map
+  NormType mNormType = region;                ///< Normalization type for the extracted gain map
 
   /// Helper function for drawing the extracted gain map
-  void drawExtractedGainMapHelper(const bool type, const Sector sector, const std::string filename, const float minZ, const float maxZ) const;
+  void drawExtractedGainMapHelper(const bool type, const int typeMap, const Sector sector, const std::string filename, const float minZ, const float maxZ, const bool norm = false) const;
+
+  /// normalizing an input vector
+  /// \param data vector which will be normalized
+  /// \param nPads intervals which will be used to calculate the median of the data vector for normalization
+  void normalize(std::vector<float>& data, const std::vector<int>& nPads);
+
+  /// normalize calpad per stack or per region
+  /// \calPad Calpad which will be normalized
+  void normalizeGain(CalPad& calPad);
+
+  /// helper function for normalizing the gain
+  std::vector<int> getNPadsForNormalization(const bool iroc) const;
+
+  /// normalize calpad per stack or per region
+  void normalizeGainMap() { normalizeGain(*mGainMap.get()); }
 };
 
 } // namespace tpc

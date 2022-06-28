@@ -24,6 +24,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "fairlogger/Logger.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -44,13 +45,10 @@ namespace trd
 
 using namespace constants;
 
-void TRDDPLTrapSimulatorTask::initTrapConfig()
+void TRDDPLTrapSimulatorTask::initTrapConfig(long timeStamp)
 {
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
-  auto timeStamp = (mRunNumber < 0) ? std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() : mRunNumber;
-  //ccdbmgr.setURL("http://localhost:8080");
-  ccdbmgr.setTimestamp(timeStamp);
-  mTrapConfig = ccdbmgr.get<o2::trd::TrapConfig>("TRD/TrapConfig/" + mTrapConfigName);
+  mTrapConfig = ccdbmgr.getForTimeStamp<o2::trd::TrapConfig>("TRD/TrapConfig/" + mTrapConfigName, timeStamp);
 
   if (mEnableTrapConfigDump) {
     mTrapConfig->DumpTrapConfig2File("run3trapconfig_dump");
@@ -138,12 +136,14 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
   mOnlineGainTableName = ic.options().get<std::string>("trd-onlinegaintable");
   mRunNumber = ic.options().get<int>("trd-runnum");
   mEnableTrapConfigDump = ic.options().get<bool>("trd-dumptrapconfig");
-  //Connect to CCDB for all things needing access to ccdb, trapconfig and online gains
-  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
-  mCalib = std::make_unique<Calibrations>();
-  mCalib->getCCDBObjects(mRunNumber);
-  initTrapConfig();
-  setOnlineGainTables();
+  mUseFloatingPointForQ = ic.options().get<bool>("float-arithmetic");
+
+  if (mUseFloatingPointForQ) {
+    LOG(info) << "Tracklet charges will be calculated using floating point arithmetic";
+  } else {
+    LOG(info) << "Tracklet charges will be calculated using a fixed multiplier";
+  }
+
 #ifdef WITH_OPENMP
   int askedThreads = TRDSimParams::Instance().digithreads;
   int maxThreads = omp_get_max_threads();
@@ -160,6 +160,17 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 {
   // this method steeres the processing of the TRAP simulation
   LOG(info) << "TRD Trap Simulator Device running over incoming message";
+
+  if (!mInitCcdbObjectsDone) {
+    const auto ref = pc.inputs().getFirstValid(true);
+    auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation;
+    auto timeStamp = (mRunNumber < 0) ? creationTime : mRunNumber;
+    mCalib = std::make_unique<Calibrations>();
+    mCalib->getCCDBObjects(timeStamp);
+    initTrapConfig(timeStamp);
+    setOnlineGainTables();
+    mInitCcdbObjectsDone = true;
+  }
 
   // input
   auto digits = pc.inputs().get<gsl::span<o2::trd::Digit>>("digitinput");                       // block of TRD digits
@@ -180,6 +191,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   }
 
   // output
+  std::vector<Digit> digitsOut;                                    // in case downscaling is applied this vector keeps the digits which should not be removed
   std::vector<Tracklet64> tracklets;                               // calculated tracklets
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> lblTracklets; // MC labels for the tracklets, taken from the digits which make up the tracklet (duplicates are removed)
 
@@ -211,7 +223,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(mNumThreads)
 #endif
-  for (int iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
+  for (size_t iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
     int currHCId = -1;
     std::array<TrapSimulator, NMCMHCMAX> trapSimulators{}; //the up to 64 trap simulators for a single half chamber
     for (int iDigit = triggerRecords[iTrig].getFirstDigit(); iDigit < (triggerRecords[iTrig].getFirstDigit() + triggerRecords[iTrig].getNumberOfDigits()); ++iDigit) {
@@ -228,6 +240,9 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       int trapIdx = (digit->getROB() / 2) * NMCMROB + digit->getMCM();
       if (!trapSimulators[trapIdx].isDataSet()) {
         trapSimulators[trapIdx].init(mTrapConfig, digit->getDetector(), digit->getROB(), digit->getMCM());
+        if (mUseFloatingPointForQ) {
+          trapSimulators[trapIdx].setUseFloatingPointForQ();
+        }
       }
       trapSimulators[trapIdx].setData(digit->getChannel(), digit->getADC(), digitIdxArray[iDigit]);
     }
@@ -237,7 +252,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   auto parallelTime = std::chrono::high_resolution_clock::now() - timeParallelStart;
 
   // accumulate results and add MC labels
-  for (int iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
+  for (size_t iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
     if (mUseMC) {
       int currDigitIndex = 0; // counter for all digits which are associated to tracklets
       int trkltIdxStart = tracklets.size();
@@ -272,6 +287,14 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
     }
     tracklets.insert(tracklets.end(), trackletsAccum[iTrig].begin(), trackletsAccum[iTrig].end());
     triggerRecords[iTrig].setTrackletRange(tracklets.size() - nTracklets[iTrig], nTracklets[iTrig]);
+    if ((iTrig % mDigitDownscaling) == 0) {
+      // we keep digits for this trigger
+      digitsOut.insert(digitsOut.end(), digits.begin() + triggerRecords[iTrig].getFirstDigit(), digits.begin() + triggerRecords[iTrig].getFirstDigit() + triggerRecords[iTrig].getNumberOfDigits());
+      triggerRecords[iTrig].setDigitRange(digitsOut.size() - triggerRecords[iTrig].getNumberOfDigits(), triggerRecords[iTrig].getNumberOfDigits());
+    } else {
+      // digits are not kept, we just need to update the trigger record
+      triggerRecords[iTrig].setDigitRange(digitsOut.size(), 0);
+    }
   }
 
   auto processingTime = std::chrono::high_resolution_clock::now() - timeProcessingStart;
@@ -286,6 +309,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
 
   pc.outputs().snapshot(Output{"TRD", "TRACKLETS", 0, Lifetime::Timeframe}, tracklets);
   pc.outputs().snapshot(Output{"TRD", "TRKTRGRD", 0, Lifetime::Timeframe}, triggerRecords);
+  pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, digitsOut);
   if (mUseMC) {
     pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}, lblTracklets);
   }
@@ -293,14 +317,15 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   LOG(debug) << "TRD Trap Simulator Device exiting";
 }
 
-o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC)
+o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC, int digitDownscaling)
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
 
-  inputs.emplace_back("digitinput", "TRD", "DIGITS", 0);
-  inputs.emplace_back("triggerrecords", "TRD", "TRGRDIG", 0);
+  inputs.emplace_back("digitinput", "TRD", "DIGITS", 1);
+  inputs.emplace_back("triggerrecords", "TRD", "TRKTRGRD", 1);
 
+  outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "TRACKLETS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
 
@@ -312,8 +337,9 @@ o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC)
   return DataProcessorSpec{"TRAP",
                            inputs,
                            outputs,
-                           AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>(useMC)},
+                           AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>(useMC, digitDownscaling)},
                            Options{
+                             {"float-arithmetic", VariantType::Bool, false, {"Enable floating point calculation of the tracklet charges instead of using fixed multiplier"}},
                              {"trd-trapconfig", VariantType::String, "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549", {"TRAP config name"}},
                              {"trd-onlinegaincorrection", VariantType::Bool, false, {"Apply online gain calibrations, mostly for back checking to run2 by setting FGBY to 0"}},
                              {"trd-onlinegaintable", VariantType::String, "Krypton_2015-02", {"Online gain table to be use, names found in CCDB, obviously trd-onlinegaincorrection must be set as well."}},

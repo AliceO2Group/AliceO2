@@ -11,7 +11,7 @@
 
 #include "Framework/SimpleRawDeviceService.h"
 
-#include <FairMQDevice.h>
+#include <fairmq/Device.h>
 
 namespace o2::framework
 {

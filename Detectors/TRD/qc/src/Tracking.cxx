@@ -55,9 +55,12 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
   TrackQC qcStruct;
   qcStruct.type = isTPCTRD ? 0 : 1;
   qcStruct.nTracklets = trkTrd.getNtracklets();
+  qcStruct.nLayers = trkTrd.getNlayersFindable();
   qcStruct.chi2 = trkTrd.getChi2();
   qcStruct.reducedChi2 = trkTrd.getReducedChi2();
   qcStruct.pt = trkTrd.getPt();
+  qcStruct.ptSigma2 = trkTrd.getSigma1Pt2();
+  qcStruct.pid = trkTrd.getPID();
 
   LOGF(debug, "Got track with %i tracklets and ID %i", trkTrd.getNtracklets(), trkTrd.getRefGlobalTrackId());
   const auto& trkSeed = isTPCTRD ? mTracksTPC[trkTrd.getRefGlobalTrackId()].getParamOut() : mTracksITSTPC[trkTrd.getRefGlobalTrackId()].getParamOut();
@@ -101,17 +104,27 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
     qcStruct.trackSnp[iLayer] = trk.getSnp();
     qcStruct.trackTgl[iLayer] = trk.getTgl();
     qcStruct.trackQpt[iLayer] = trk.getQ2Pt();
+    qcStruct.trackPhi[iLayer] = trk.getPhi();
+    qcStruct.trackEta[iLayer] = trk.getEta();
     qcStruct.trackletYraw[iLayer] = mTrackletsCalib[trkltId].getY();
     qcStruct.trackletZraw[iLayer] = mTrackletsCalib[trkltId].getZ();
     qcStruct.trackletY[iLayer] = trkltPosUp[0];
     qcStruct.trackletZ[iLayer] = trkltPosUp[1];
     qcStruct.trackletDy[iLayer] = mTrackletsCalib[trkltId].getDy();
-    qcStruct.trackletSlope[iLayer] = mTrackletsRaw[trkltId].getSlopeBinSigned();
+    qcStruct.trackletSlope[iLayer] = mTrackletsRaw[trkltId].getSlope();
+    qcStruct.trackletSlopeSigned[iLayer] = mTrackletsRaw[trkltId].getSlopeBinSigned();
+    qcStruct.trackletPosition[iLayer] = mTrackletsRaw[trkltId].getPosition();
+    qcStruct.trackletPositionSigned[iLayer] = mTrackletsRaw[trkltId].getPositionBinSigned();
     qcStruct.trackletDet[iLayer] = trkltDet;
     qcStruct.trackletHCId[iLayer] = mTrackletsRaw[trkltId].getHCID();
     qcStruct.trackletRob[iLayer] = mTrackletsRaw[trkltId].getROB();
     qcStruct.trackletMcm[iLayer] = mTrackletsRaw[trkltId].getMCM();
     qcStruct.trackletChi2[iLayer] = chi2trklt;
+    qcStruct.trackletCharges[iLayer] = {
+      mTrackletsRaw[trkltId].getQ0(),
+      mTrackletsRaw[trkltId].getQ1(),
+      mTrackletsRaw[trkltId].getQ2(),
+    };
   }
   mTrackQC.push_back(qcStruct);
 }

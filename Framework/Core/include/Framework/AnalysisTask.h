@@ -110,7 +110,7 @@ struct AnalysisDataProcessorBuilder {
       auto inputSources = getInputMetadata<std::decay_t<Arg>>();
       inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
     }
-    auto newInput = InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), Lifetime::Timeframe, inputMetadata};
+    auto newInput = InputSpec{metadata::tableLabel(), metadata::origin(), metadata::description(), metadata::version(), Lifetime::Timeframe, inputMetadata};
     DataSpecUtils::updateInputList(inputs, std::move(newInput));
   }
 
@@ -248,11 +248,26 @@ struct AnalysisDataProcessorBuilder {
     (invokeProcess<o2::framework::has_type_at_v<T>(pack<T...>{})>(task, inputs, std::get<T>(processTuple), infos), ...);
   }
 
+  template <typename... As>
+  static void overwriteInternalIndices(std::tuple<As...>& dest, std::tuple<As...> const& src)
+  {
+    (std::get<As>(dest).bindInternalIndicesTo(&std::get<As>(src)), ...);
+  }
+
   template <typename Task, typename R, typename C, typename Grouping, typename... Associated>
   static void invokeProcess(Task& task, InputRecord& inputs, R (C::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo>& infos)
   {
     using G = std::decay_t<Grouping>;
     auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, processingFunction, infos);
+
+    auto presliceTable = [&task](auto& table) {
+      homogeneous_apply_refs([&table](auto& x) {
+        return PresliceManager<std::decay_t<decltype(x)>>::processTable(x, table);
+      },
+                             task);
+    };
+    // pre-slice grouping table if required
+    presliceTable(groupingTable);
 
     // set filtered tables for partitions with grouping
     homogeneous_apply_refs([&groupingTable](auto& x) {
@@ -316,20 +331,24 @@ struct AnalysisDataProcessorBuilder {
         associatedTables);
 
       // GroupedCombinations bound separately, as they should be set once for all associated tables
-      auto hashes = std::get<0>(associatedTables);
-      auto realAssociated = tuple_tail(associatedTables);
-      homogeneous_apply_refs([&groupingTable, &hashes, &realAssociated](auto& t) {
-        GroupedCombinationManager<std::decay_t<decltype(t)>>::setGroupedCombination(t, hashes, groupingTable, realAssociated);
+      homogeneous_apply_refs([&groupingTable, &associatedTables](auto& t) {
+        GroupedCombinationManager<std::decay_t<decltype(t)>>::setGroupedCombination(t, groupingTable, associatedTables);
         return true;
       },
                              task);
 
       if constexpr (soa::is_soa_iterator_t<std::decay_t<G>>::value) {
         // grouping case
+        // pre-slice associated tables
+        std::apply([&presliceTable](auto&... x) {
+          (presliceTable(x), ...);
+        },
+                   associatedTables);
+
         auto slicer = GroupSlicer(groupingTable, associatedTables);
         for (auto& slice : slicer) {
           auto associatedSlices = slice.associatedTables();
-
+          overwriteInternalIndices(associatedSlices, associatedTables);
           std::apply(
             [&](auto&&... x) {
               (binder(x), ...);
@@ -347,7 +366,13 @@ struct AnalysisDataProcessorBuilder {
         }
       } else {
         // non-grouping case
+        // pre-slice associated tables
+        std::apply([&presliceTable](auto&... x) {
+          (presliceTable(x), ...);
+        },
+                   associatedTables);
 
+        overwriteInternalIndices(associatedTables, associatedTables);
         // bind partitions and grouping table
         homogeneous_apply_refs([&groupingTable](auto& x) {
           PartitionManager<std::decay_t<decltype(x)>>::bindExternalIndices(x, &groupingTable);
@@ -550,11 +575,6 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     },
     *task.get());
 
-  // avoid self-forwarding if process methods subscribe to same tables
-  std::sort(inputs.begin(), inputs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
-  auto last = std::unique(inputs.begin(), inputs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
-  inputs.erase(last, inputs.end());
-
   // request base tables for spawnable extended tables
   // this checks for duplications
   homogeneous_apply_refs([&inputs](auto& x) {
@@ -616,13 +636,19 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       for (auto& info : expressionInfos) {
         info.resetSelection = true;
       }
+      // reset pre-slice for the next dataframe
+      homogeneous_apply_refs([](auto& x) { return PresliceManager<std::decay_t<decltype(x)>>::setNewDF(x); }, *(task.get()));
+      // prepare outputs
       homogeneous_apply_refs([&pc](auto&& x) { return OutputManager<std::decay_t<decltype(x)>>::prepare(pc, x); }, *task.get());
+      // execute run()
       if constexpr (has_run_v<T>) {
         task->run(pc);
       }
+      // execture process()
       if constexpr (has_process_v<T>) {
         AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos);
       }
+      // execute optional process()
       homogeneous_apply_refs(
         [&pc, &expressionInfos, &task](auto& x) mutable {
           if constexpr (is_base_of_template<ProcessConfigurable, std::decay_t<decltype(x)>>::value) {
@@ -634,7 +660,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
           return false;
         },
         *task.get());
-
+      // finalize outputs
       homogeneous_apply_refs([&pc](auto&& x) { return OutputManager<std::decay_t<decltype(x)>>::finalize(pc, x); }, *task.get());
     };
   }};

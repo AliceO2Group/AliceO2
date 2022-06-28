@@ -42,7 +42,7 @@ ObjectStore extractObjectFrom(const framework::DataRef& ref)
     throw std::runtime_error(errorPrefix + "It is not ROOT-serialized");
   }
 
-  o2::framework::FairTMessage ftm(const_cast<char*>(ref.payload), header->payloadSize);
+  o2::framework::FairTMessage ftm(const_cast<char*>(ref.payload), o2::framework::DataRefUtils::getPayloadSize(ref));
   auto* storedClass = ftm.GetClass();
   if (storedClass == nullptr) {
     throw std::runtime_error(errorPrefix + "Unknown stored class");

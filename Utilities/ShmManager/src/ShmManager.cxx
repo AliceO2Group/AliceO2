@@ -59,8 +59,17 @@ struct ShmManager {
   ShmManager(uint64_t _shmId, const vector<string>& _segments, const vector<string>& _regions, bool zero = true)
     : shmId(fair::mq::shmem::makeShmIdStr(_shmId))
   {
+    LOG(info) << "Starting ShmManager for shmId: " << shmId;
+    LOG(info) << "Performing full reset...";
+    FullReset();
+    LOG(info) << "Done.";
+    LOG(info) << "Adding managed segments...";
     AddSegments(_segments, zero);
+    LOG(info) << "Done.";
+    LOG(info) << "Adding unmanaged regions...";
     AddRegions(_regions, zero);
+    LOG(info) << "Done.";
+    LOG(info) << "Shared memory is ready for use.";
   }
 
   void AddSegments(const vector<string>& _segments, bool zero)

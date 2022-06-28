@@ -2,6 +2,7 @@
 o2_add_library(
   DCStestWorkflow
   SOURCES src/DCSRandomDataGeneratorSpec.cxx
+          src/DCSDataReplaySpec.cxx
   PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::Framework)
 
 o2_add_executable(

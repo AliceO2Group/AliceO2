@@ -15,6 +15,7 @@
 #include "ZDCBase/Constants.h"
 #include <Rtypes.h>
 #include <array>
+#include <string>
 
 namespace o2
 {
@@ -51,10 +52,14 @@ struct Module {
 struct ModuleConfig {
   static constexpr int MaxNModules = 8;
   std::array<Module, MaxNModules> modules;
+  float nBunchAverage = 0;
+  float baselineFactor = 1;
 
   void print() const;
   void check() const;
-  ClassDefNV(ModuleConfig, 1);
+  uint32_t getTriggerMask() const;
+  std::string getPrintTriggerMask() const;
+  ClassDefNV(ModuleConfig, 2);
 };
 
 } // namespace zdc

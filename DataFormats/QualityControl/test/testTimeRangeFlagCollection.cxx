@@ -25,8 +25,8 @@ using namespace o2::quality_control;
 
 BOOST_AUTO_TEST_CASE(test_TimeRangeFlagCollection_Methods)
 {
-  TimeRangeFlag trf1{12, 34, FlagReasonFactory::ProcessingError(), "comment", "source"};
-  TimeRangeFlag trf2{10, 34, FlagReasonFactory::ProcessingError(), "comment", "source"};
+  TimeRangeFlag trf1{12, 34, FlagReasonFactory::BadTracking(), "comment", "source"};
+  TimeRangeFlag trf2{10, 34, FlagReasonFactory::BadTracking(), "comment", "source"};
 
   TimeRangeFlagCollection trfc1{"Raw data checks", "TOF", {10, 20000}, 12345, "LHC22k5", "passMC", "qc_mc"};
   trfc1.insert(trf1); // by copy

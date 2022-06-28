@@ -27,6 +27,7 @@ using namespace o2::gpu;
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
 #include "Field/MagneticField.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "DataFormatsParameters/GRPMagField.h"
 #include "DetectorsBase/GeometryManager.h"
 #include <FairRunAna.h> // eventually will get rid of it
 #include <TGeoGlobalMagField.h>
@@ -38,19 +39,29 @@ PropagatorImpl<value_T>::PropagatorImpl(bool uninitialized)
     return;
   }
   ///< construct checking if needed components were initialized
+  updateField();
+}
 
-  mField = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+//____________________________________________________________
+template <typename value_T>
+void PropagatorImpl<value_T>::updateField()
+{
   if (!mField) {
-    LOG(warning) << "No Magnetic Field in TGeoGlobalMagField, checking legacy FairRunAna";
-    mField = dynamic_cast<o2::field::MagneticField*>(FairRunAna::Instance()->GetField());
-  }
-  if (!mField) {
-    LOG(fatal) << "Magnetic field is not initialized!";
+    mField = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+    if (!mField) {
+      LOG(warning) << "No Magnetic Field in TGeoGlobalMagField, checking legacy FairRunAna";
+      mField = dynamic_cast<o2::field::MagneticField*>(FairRunAna::Instance()->GetField());
+    }
+    if (!mField) {
+      LOG(fatal) << "Magnetic field is not initialized!";
+    }
+    if (!mField->getFastField() && mField->fastFieldExists()) {
+      mField->AllowFastField(true);
+      mFieldFast = mField->getFastField();
+    }
   }
   const value_type xyz[3] = {0.};
-  if (!mField->getFastField() && mField->fastFieldExists()) {
-    mField->AllowFastField(true);
-    mFieldFast = mField->getFastField();
+  if (mFieldFast) {
     mFieldFast->GetBz(xyz, mBz);
   } else {
     mBz = mField->GetBz(xyz[0], xyz[1], xyz[2]);
@@ -102,6 +113,34 @@ int PropagatorImpl<value_T>::initFieldFromGRP(const o2::parameters::GRPObject* g
   }
   return 0;
 }
+
+//____________________________________________________________
+template <typename value_T>
+int PropagatorImpl<value_T>::initFieldFromGRP(const o2::parameters::GRPMagField* grp, bool verbose)
+{
+  /// init mag field from GRP data and attach it to TGeoGlobalMagField
+
+  if (TGeoGlobalMagField::Instance()->IsLocked()) {
+    if (TGeoGlobalMagField::Instance()->GetField()->TestBit(o2::field::MagneticField::kOverrideGRP)) {
+      LOG(warning) << "ExpertMode!!! GRP information will be ignored";
+      LOG(warning) << "ExpertMode!!! Running with the externally locked B field";
+      return 0;
+    } else {
+      LOG(info) << "Destroying existing B field instance";
+      delete TGeoGlobalMagField::Instance();
+    }
+  }
+  auto fld = o2::field::MagneticField::createFieldMap(grp->getL3Current(), grp->getDipoleCurrent(), o2::field::MagneticField::kConvLHC, grp->getFieldUniformity());
+  TGeoGlobalMagField::Instance()->SetField(fld);
+  TGeoGlobalMagField::Instance()->Lock();
+  if (verbose) {
+    LOG(info) << "Running with the B field constructed out of GRP";
+    LOG(info) << "Access field via TGeoGlobalMagField::Instance()->Field(xyz,bxyz) or via";
+    LOG(info) << "auto o2field = static_cast<o2::field::MagneticField*>( TGeoGlobalMagField::Instance()->GetField() )";
+  }
+  return 0;
+}
+
 #elif !defined(GPUCA_GPUCODE)
 template <typename value_T>
 PropagatorImpl<value_T>::PropagatorImpl(bool uninitialized)
@@ -550,9 +589,9 @@ template <typename value_T>
 GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& lt, const o2::track::TrackParametrization<value_type>& trc) const
 {
   value_T xdca = 0., ydca = 0., length = 0.;          // , zdca = 0. // zdca might be used in future
-  if (math_utils::detail::abs<value_T>(mBz) > 1e-3) { // helix
-    o2::math_utils::CircleXY<value_T> c;
-    trc.getCircleParamsLoc(mBz, c);
+  o2::math_utils::CircleXY<value_T> c;
+  trc.getCircleParamsLoc(mBz, c);
+  if (c.rC != 0.) {                                                     // helix
     auto distC = math_utils::detail::sqrt<value_type>(c.getCenterD2()); // distance from the circle center to origin
     if (distC > 1.e-3) {
       auto nrm = (distC - c.rC) / distC;
@@ -566,6 +605,9 @@ GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& 
       }
       // zdca = trc.getZ() + (trc.getSign() > 0. ? c.rC : -c.rC) * trc.getTgl() * ang;
       length = math_utils::detail::abs<value_type>(c.rC * ang * math_utils::detail::sqrt<value_type>(1. + trc.getTgl() * trc.getTgl()));
+    } else { // track with circle center at the origin, and LT makes no sense, take direct distance
+      xdca = trc.getX();
+      ydca = trc.getY();
     }
   } else { // straight line
     auto csp2 = (1.f - trc.getSnp()) * (1.f + trc.getSnp()), csp = math_utils::detail::sqrt<value_type>(csp2);

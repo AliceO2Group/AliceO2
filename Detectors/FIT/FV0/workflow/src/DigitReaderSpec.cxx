@@ -12,14 +12,12 @@
 /// @file   DigitReaderSpec.cxx
 
 #include <vector>
-
-#include "TTree.h"
-
+#include <TTree.h>
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 #include "FV0Workflow/DigitReaderSpec.h"
-#include "DataFormatsFV0/BCData.h"
+#include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include "DataFormatsFV0/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -51,11 +49,14 @@ void DigitReader::init(InitContext& ic)
 void DigitReader::run(ProcessingContext& pc)
 {
 
-  std::vector<o2::fv0::BCData> digits, *pdigits = &digits;
+  std::vector<o2::fv0::Digit> digits, *pdigits = &digits;
+  std::vector<o2::fv0::DetTrigInput> trgInput, *ptrTrgInput = &trgInput;
   std::vector<o2::fv0::ChannelData> channels, *pchannels = &channels;
   mTree->SetBranchAddress("FV0DigitBC", &pdigits);
   mTree->SetBranchAddress("FV0DigitCh", &pchannels);
-
+  if (mUseTrgInput) {
+    mTree->SetBranchAddress("TRIGGERINPUT", &ptrTrgInput);
+  }
   o2::dataformats::MCTruthContainer<o2::fv0::MCLabel> labels, *plabels = &labels;
   if (mUseMC) {
     mTree->SetBranchAddress("FV0DigitLabels", &plabels);
@@ -63,12 +64,14 @@ void DigitReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(info) << "FV0DigitReader pushed " << channels.size() << " channels in " << digits.size() << " digits";
-
+  LOG(debug) << "FV0DigitReader pushed " << channels.size() << " channels in " << digits.size() << " digits";
   pc.outputs().snapshot(Output{"FV0", "DIGITSBC", 0, Lifetime::Timeframe}, digits);
   pc.outputs().snapshot(Output{"FV0", "DIGITSCH", 0, Lifetime::Timeframe}, channels);
   if (mUseMC) {
     pc.outputs().snapshot(Output{"FV0", "DIGITSMCTR", 0, Lifetime::Timeframe}, labels);
+  }
+  if (mUseTrgInput) {
+    pc.outputs().snapshot(Output{"FV0", "TRIGGERINPUT", 0, Lifetime::Timeframe}, trgInput);
   }
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
@@ -76,7 +79,7 @@ void DigitReader::run(ProcessingContext& pc)
   }
 }
 
-DataProcessorSpec getDigitReaderSpec(bool useMC)
+DataProcessorSpec getDigitReaderSpec(bool useMC, bool useTrgInput)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("FV0", "DIGITSBC", 0, Lifetime::Timeframe);
@@ -84,12 +87,14 @@ DataProcessorSpec getDigitReaderSpec(bool useMC)
   if (useMC) {
     outputs.emplace_back("FV0", "DIGITSMCTR", 0, Lifetime::Timeframe);
   }
-
+  if (useTrgInput) {
+    outputs.emplace_back("FV0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
     "fv0-digit-reader",
     Inputs{},
     outputs,
-    AlgorithmSpec{adaptFromTask<DigitReader>(useMC)},
+    AlgorithmSpec{adaptFromTask<DigitReader>(useMC, useTrgInput)},
     Options{
       {"fv0-digit-infile", VariantType::String, "fv0digits.root", {"Name of the input file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};

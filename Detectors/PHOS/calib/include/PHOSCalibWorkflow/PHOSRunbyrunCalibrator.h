@@ -80,8 +80,8 @@ class PHOSRunbyrunCalibrator final : public o2::calibration::TimeSlotCalibration
   bool hasEnoughData(const Slot& slot) const final;
   void initOutput() final;
   void finalizeSlot(Slot& slot) final;
-  Slot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
-  bool process(uint64_t tf, const gsl::span<const Cluster>& clu, const gsl::span<const TriggerRecord>& trs);
+  Slot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
+  bool process(TFType tf, const gsl::span<const Cluster>& clu, const gsl::span<const TriggerRecord>& trs);
 
   std::array<float, 8> getCalibration() { return mRunByRun; }
   void endOfStream();

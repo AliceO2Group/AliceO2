@@ -12,7 +12,7 @@
 /// \file GPUReconstructionHIP.hip.cxx
 /// \author David Rohr
 
-#define __HIP_ENABLE_DEVICE_MALLOC__ 1 //Fix SWDEV-239120
+#define __HIP_ENABLE_DEVICE_MALLOC__ 1 // Fix SWDEV-239120
 #define GPUCA_GPUTYPE_VEGA
 #define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##HIP
 #define GPUdic(CUDA, HIP) GPUCA_GPUdic_select_##HIP()
@@ -55,26 +55,35 @@ __global__ void dummyInitKernel(void*) {}
 
 #if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "ITStrackingGPU/VertexerTraitsGPU.h"
+#include "ITStrackingGPU/TrackerTraitsGPU.h"
 #else
 namespace o2::its
 {
 class VertexerTraitsGPU : public VertexerTraits
 {
 };
-class TrackerTraitsHIP : public TrackerTraits
+template <int NLayers = 7>
+class TrackerTraitsGPU : public TrackerTraits
 {
 };
+namespace gpu
+{
+template <int NLayers = 7>
+class TimeFrameGPU : public TimeFrame
+{
+};
+} // namespace gpu
 } // namespace o2::its
 #endif
 
 class GPUDebugTiming
 {
  public:
-  GPUDebugTiming(bool d, void** t, hipStream_t* s, GPUReconstruction::krnlSetup& x, GPUReconstructionHIPBackend* r = nullptr) : mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r), mDo(d)
+  GPUDebugTiming(bool d, void** t, hipStream_t* s, GPUReconstruction::krnlSetup& x, GPUReconstructionHIPBackend* r) : mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r), mDo(d)
   {
     if (mDo) {
       if (mDeviceTimers) {
-        GPUFailedMsg(hipEventRecord((hipEvent_t)mDeviceTimers[0], mStreams[mXYZ.x.stream]));
+        mRec->GPUFailedMsg(hipEventRecord((hipEvent_t)mDeviceTimers[0], mStreams[mXYZ.x.stream]));
       } else {
         mTimer.ResetStart();
       }
@@ -84,13 +93,13 @@ class GPUDebugTiming
   {
     if (mDo) {
       if (mDeviceTimers) {
-        GPUFailedMsg(hipEventRecord((hipEvent_t)mDeviceTimers[1], mStreams[mXYZ.x.stream]));
-        GPUFailedMsg(hipEventSynchronize((hipEvent_t)mDeviceTimers[1]));
+        mRec->GPUFailedMsg(hipEventRecord((hipEvent_t)mDeviceTimers[1], mStreams[mXYZ.x.stream]));
+        mRec->GPUFailedMsg(hipEventSynchronize((hipEvent_t)mDeviceTimers[1]));
         float v;
-        GPUFailedMsg(hipEventElapsedTime(&v, (hipEvent_t)mDeviceTimers[0], (hipEvent_t)mDeviceTimers[1]));
+        mRec->GPUFailedMsg(hipEventElapsedTime(&v, (hipEvent_t)mDeviceTimers[0], (hipEvent_t)mDeviceTimers[1]));
         mXYZ.t = v * 1.e-3;
       } else {
-        GPUFailedMsg(hipStreamSynchronize(mStreams[mXYZ.x.stream]));
+        mRec->GPUFailedMsg(hipStreamSynchronize(mStreams[mXYZ.x.stream]));
         mXYZ.t = mTimer.GetCurrentElapsedTime();
       }
     }
@@ -202,16 +211,43 @@ GPUReconstructionHIPBackend::~GPUReconstructionHIPBackend()
   }
 }
 
+int GPUReconstructionHIPBackend::GPUFailedMsgAI(const long long int error, const char* file, int line)
+{
+  // Check for HIP Error and in the case of an error display the corresponding error string
+  if (error == hipSuccess) {
+    return (0);
+  }
+  GPUError("HIP Error: %lld / %s (%s:%d)", error, hipGetErrorString((hipError_t)error), file, line);
+  return 1;
+}
+
+void GPUReconstructionHIPBackend::GPUFailedMsgA(const long long int error, const char* file, int line)
+{
+  if (GPUFailedMsgAI(error, file, line)) {
+    static bool runningCallbacks = false;
+    if (IsInitialized() && runningCallbacks == false) {
+      runningCallbacks = true;
+      CheckErrorCodes(false, true);
+    }
+    throw std::runtime_error("HIP Failure");
+  }
+}
+
 GPUReconstruction* GPUReconstruction_Create_HIP(const GPUSettingsDeviceBackend& cfg) { return new GPUReconstructionHIP(cfg); }
 
 void GPUReconstructionHIPBackend::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits)
 {
-  // if (trackerTraits) {
-  //   trackerTraits->reset(new o2::its::TrackerTraitsNV);
-  // }
+  if (trackerTraits) {
+    trackerTraits->reset(new o2::its::TrackerTraitsGPU);
+  }
   if (vertexerTraits) {
     vertexerTraits->reset(new o2::its::VertexerTraitsGPU);
   }
+}
+
+void GPUReconstructionHIPBackend::GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame)
+{
+  timeFrame->reset(new o2::its::gpu::TimeFrameGPU);
 }
 
 void GPUReconstructionHIPBackend::UpdateSettings()

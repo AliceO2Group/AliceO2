@@ -19,13 +19,13 @@ bool FeeDCS::operator==(const FeeDCS& other) const
 {
 
   return ((mTrigDCS == other.mTrigDCS) && (mLinks0 == other.mLinks0) && (mLinks1 == other.mLinks1) &&
-          (mSRUFWversion == other.mSRUFWversion) && (mSRUcfg == other.mSRUcfg));
+          (mSRUFWversion == other.mSRUFWversion) && (mSRUcfg == other.mSRUcfg) && (mRunNumber == other.mRunNumber));
 }
 
 bool FeeDCS::isSMactive(int iSM)
 {
 
-  //assert(iSM>19 && "SM index larger than 19!");
+  // assert(iSM>19 && "SM index larger than 19!");
 
   if (iSM == 10 || iSM == 19) { // SMs 10 and 19 have 1 DDL each
     return isDDLactive(2 * iSM);
@@ -38,9 +38,13 @@ bool FeeDCS::isSMactive(int iSM)
 
 std::ostream& o2::emcal::operator<<(std::ostream& stream, const FeeDCS& dcs)
 {
-  stream << "EMCAL FEE config:\n";
   stream << "================================\n";
-  stream << "DDL Link list0: b'" << std::hex << dcs.getDDLlist0() << std::endl;
+  stream << "EMCAL FEE config for run #" << std::dec << dcs.getRunNumber() << ": \n ";
+  stream
+    << "DDL Link list0: b'"
+    << std::hex
+    << dcs.getDDLlist0()
+    << std::endl;
   stream << "DDL Link list1: b'" << std::hex << dcs.getDDLlist1() << std::endl;
 
   for (int i = 0; i < 20; i++) {

@@ -27,7 +27,8 @@ using namespace o2::tpc;
 void CalibratordEdx::initOutput()
 {
   // Here we initialize the vector of our output objects
-  mIntervals.clear();
+  mTFIntervals.clear();
+  mTimeIntervals.clear();
   mCalibs.clear();
 }
 
@@ -43,14 +44,20 @@ void CalibratordEdx::finalizeSlot(Slot& slot)
 
   TFType startTF = slot.getTFStart();
   TFType endTF = slot.getTFEnd();
-  mIntervals.emplace_back(startTF, endTF);
+  auto startTime = slot.getStartTimeMS();
+  auto endTime = slot.getEndTimeMS();
+
+  mTFIntervals.emplace_back(startTF, endTF);
+  mTimeIntervals.emplace_back(startTime, endTime);
 
   if (mDebugOutputStreamer) {
     LOGP(info, "Dumping time slot data to file");
     auto calibCopy = container->getCalib();
     *mDebugOutputStreamer << "CalibdEdx"
-                          << "startTF=" << startTF      // Initial time frame of time slot
-                          << "endTF=" << endTF          // Final time frame of time slot
+                          << "startTF=" << startTF      // Initial time frame ID of time slot
+                          << "endTF=" << endTF          // Final time frame ID of time slot
+                          << "startTime=" << startTime  // Initial time frame time of time slot
+                          << "endTime=" << endTime      // Final time frame time of time slot
                           << "correction=" << calibCopy // dE/dx corretion
                           << "\n";
   }
@@ -61,11 +68,14 @@ CalibratordEdx::Slot& CalibratordEdx::emplaceNewSlot(bool front, TFType tstart, 
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
 
-  auto container = std::make_unique<CalibdEdx>(mMindEdx, mMaxdEdx, mdEdxBins, mZBins, mAngularBins);
+  auto container = std::make_unique<CalibdEdx>(mdEdxBins, mMindEdx, mMaxdEdx, mAngularBins, mFitSnp);
   container->setApplyCuts(mApplyCuts);
   container->setCuts(mCuts);
-  container->setFitCuts(mFitCuts);
+  container->setSectorFitThreshold(mFitThreshold[0]);
+  container->set1DFitThreshold(mFitThreshold[1]);
+  container->set2DFitThreshold(mFitThreshold[2]);
   container->setField(mField);
+  container->setElectronCut(mElectronCut.first, mElectronCut.second);
 
   slot.setContainer(std::move(container));
   return slot;

@@ -8,13 +8,23 @@
 # Note that this might require a production server to run.
 #
 # This script can use additional binary objects which can be optionally provided:
-# - matbud.root + ITSdictionary.bin
+# - matbud.root
 #
 # authors: D. Rohr / S. Wenzel
 
 if [ "0$O2_ROOT" == "0" ] || [ "0$AEGIS_ROOT" == "0" ]; then
   echo Missing O2sim environment
   exit 1
+fi
+
+if [[ $DPL_CONDITION_BACKEND != "http://o2-ccdb.internal" && $DPL_CONDITION_BACKEND != "http://localhost:8084" && $DPL_CONDITION_BACKEND != "http://127.0.0.1:8084" ]]; then
+  alien-token-info >& /dev/null
+  RETVAL=$?
+  if [[ $RETVAL != 0 ]]; then
+    echo "command alien-token-init had nonzero exit code $RETVAL" 1>&2
+    echo "FATAL: No alien token present" 1>&2
+    exit 1
+  fi
 fi
 
 # include jobutils, which notably brings
@@ -45,12 +55,16 @@ SPLITTRDDIGI=${SPLITTRDDIGI:-1}
 NHBPERTF=${NHBPERTF:-128}
 RUNFIRSTORBIT=${RUNFIRSTORBIT:-0}
 FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-0}
+OBLIGATORYSOR=${OBLIGATORYSOR:-false}
+FST_TPC_ZSVERSION=${FST_TPC_ZSVERSION:-2}
 if [ $BEAMTYPE == "PbPb" ]; then
   FST_GENERATOR=${FST_GENERATOR:-pythia8hi}
   FST_COLRATE=${FST_COLRATE:-50000}
+  RUNNUMBER=310000 # a default un-anchored Pb-Pb run number
 else
   FST_GENERATOR=${FST_GENERATOR:-pythia8pp}
   FST_COLRATE=${FST_COLRATE:-400000}
+  RUNNUMBER=303000 # a default un-anchored pp run number
 fi
 FST_MC_ENGINE=${FST_MC_ENGINE:-TGeant4}
 
@@ -73,8 +87,8 @@ echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" " > ${METR
 
 GLOBALDPLOPT="-b" # --monitoring-backend no-op:// is currently removed due to https://alice.its.cern.ch/jira/browse/O2-1887
 
-HBFUTILPARAMS="HBFUtils.nHBFPerTF=${NHBPERTF};HBFUtils.orbitFirst=${RUNFIRSTORBIT};HBFUtils.orbitFirstSampled=${FIRSTSAMPLEDORBIT}"
-[ "0$ALLOW_MULTIPLE_TF" != "01" ] && HBFUTILPARAMS+=";HBFUtils.maxNOrbits=${NHBPERTF};"
+HBFUTILPARAMS="HBFUtils.nHBFPerTF=${NHBPERTF};HBFUtils.orbitFirst=${RUNFIRSTORBIT};HBFUtils.orbitFirstSampled=${FIRSTSAMPLEDORBIT};HBFUtils.obligatorySOR=${OBLIGATORYSOR};HBFUtils.runNumber=${RUNNUMBER}"
+[ "0$ALLOW_MULTIPLE_TF" != "01" ] && HBFUTILPARAMS+=";HBFUtils.maxNOrbits=$((${FIRSTSAMPLEDORBIT} + ${NHBPERTF}));"
 
 ulimit -n 4096 # Make sure we can open sufficiently many files
 [ $? == 0 ] || (echo Failed setting ulimit && exit 1)
@@ -84,23 +98,28 @@ if [ $BEAMTYPE == "PbPb" ]; then
   mkdir -p qed
   cd qed
   PbPbXSec="8."
-  taskwrapper qedsim.log o2-sim --seed $O2SIMSEED -j $NJOBS -n $NEventsQED -m PIPE ITS MFT FT0 FV0 FDD -g extgen -e ${FST_MC_ENGINE} --configKeyValues '"GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/QEDLoader.C;QEDGenParam.yMin=-7;QEDGenParam.yMax=7;QEDGenParam.ptMin=0.001;QEDGenParam.ptMax=1.;Diamond.width[2]=6."'
+  taskwrapper qedsim.log o2-sim --seed $O2SIMSEED -j $NJOBS -n $NEventsQED -m PIPE ITS MFT FT0 FV0 FDD -g extgen -e ${FST_MC_ENGINE} --configKeyValues '"GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/QEDLoader.C;QEDGenParam.yMin=-7;QEDGenParam.yMax=7;QEDGenParam.ptMin=0.001;QEDGenParam.ptMax=1.;Diamond.width[2]=6."' --run ${RUNNUMBER}
   QED2HAD=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qedgenparam.ini | cut -d'=' -f 2`/$PbPbXSec}")
   echo "Obtained ratio of QED to hadronic x-sections = $QED2HAD" >> qedsim.log
   cd ..
   DIGIQED="--simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD}"
 fi
 
-DIGITRDOPTREAL="--configKeyValues \"${HBFUTILPARAMS};TRDSimParams.digithreads=${NJOBS}\" "
+DIGITOPT=
+DIGITOPTKEYTRD="${HBFUTILPARAMS};TRDSimParams.digithreads=${NJOBS};"
+DIGITOPTKEY=${HBFUTILPARAMS}
+[[ ! -z $ITS_STROBE ]] && DIGITOPTKEY+="ITSAlpideParam.roFrameLengthInBC=$ITS_STROBE;"
+[[ ! -z $MFT_STROBE ]] && DIGITOPTKEY+="MFTAlpideParam.roFrameLengthInBC=$MFT_STROBE;"
 if [ $SPLITTRDDIGI == "1" ]; then
-  DIGITRDOPT="--configKeyValues \"${HBFUTILPARAMS}\" --skipDet TRD"
+  DIGITOPT+=" --skipDet TRD"
 else
-  DIGITRDOPT=$DIGITRDOPTREAL
+  DIGITOPTKEY+=$DIGITOPTKEYTRD
 fi
+DIGITDOWNSCALINGTRD=${DIGITDOWNSCALINGTRD:-1000}
 
-taskwrapper sim.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} --seed $O2SIMSEED -n $NEvents --configKeyValues "Diamond.width[2]=6." -g ${FST_GENERATOR} -e ${FST_MC_ENGINE} -j $NJOBS
-taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents ${DIGIQED} ${NOMCLABELS} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT} --interactionRate $FST_COLRATE
-[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
+taskwrapper sim.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} --seed $O2SIMSEED -n $NEvents --configKeyValues "Diamond.width[2]=6." -g ${FST_GENERATOR} -e ${FST_MC_ENGINE} -j $NJOBS --run ${RUNNUMBER}
+taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents ${DIGIQED} ${NOMCLABELS} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITOPT} --configKeyValues "\"${DIGITOPTKEY}\"" --interactionRate $FST_COLRATE
+[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --trd-digit-downscaling ${DIGITDOWNSCALINGTRD} --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root --configKeyValues "\"${DIGITOPTKEYTRD}\""
 touch digiTRD.log_done
 
 if [ "0$GENERATE_ITSMFT_DICTIONARIES" == "01" ]; then
@@ -120,7 +139,7 @@ taskwrapper mftraw.log o2-mft-digi2raw --file-for cru -o raw/MFT
 taskwrapper ft0raw.log o2-ft0-digi2raw --file-for cru -o raw/FT0
 taskwrapper fv0raw.log o2-fv0-digi2raw --file-for cru -o raw/FV0
 taskwrapper fddraw.log o2-fdd-digit2raw --file-for cru -o raw/FDD
-taskwrapper tpcraw.log o2-tpc-digits-to-rawzs --file-for cru -i tpcdigits.root -o raw/TPC
+taskwrapper tpcraw.log o2-tpc-digits-to-rawzs --zs-version ${FST_TPC_ZSVERSION} --file-for cru -i tpcdigits.root -o raw/TPC
 taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --file-for cru --output-type raw --tof-raw-outdir raw/TOF
 taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --file-for cru
 taskwrapper mchraw.log o2-mch-digits-to-raw --input-file mchdigits.root --output-dir raw/MCH --file-for cru
@@ -131,6 +150,17 @@ taskwrapper zdcraw.log o2-zdc-digi2raw --file-for cru -o raw/ZDC
 taskwrapper hmpraw.log o2-hmpid-digits-to-raw-workflow --file-for cru --outdir raw/HMP
 taskwrapper trdraw.log o2-trd-trap2raw -o raw/TRD --file-per cru
 taskwrapper ctpraw.log o2-ctp-digi2raw -o raw/CTP --file-for cru
+
+CHECK_DETECTORS_RAW="ITS MFT FT0 FV0 FDD TPC TOF MID MCH CPV ZDC TRD CTP"
+if [ $BEAMTYPE == "PbPb" ] && [ $NEvents -ge 5 ] ; then
+  CHECK_DETECTORS_RAW+=" EMC PHS HMP"
+fi
+for i in $CHECK_DETECTORS_RAW; do
+  if [ `ls -l raw/$i/*.raw | awk '{print $5}' | grep -v "^0\$" | wc -l` == "0" ]; then
+    echo "ERROR: Full system test did generate no raw data for $i"
+    exit 1
+  fi
+done
 
 cat raw/*/*.cfg > rawAll.cfg
 
@@ -146,8 +176,34 @@ if [ $ENABLE_GPU_TEST != "0" ]; then
 fi
 STAGES+=" ASYNC"
 
-# give a possibility to run the FST with external existing dictionary (i.e. with CREATECTFDICT=0 full_system_test.sh)
-[ ! -z "$CREATECTFDICT" ] && SYNCMODEDOCTFDICT="$CREATECTFDICT" || SYNCMODEDOCTFDICT=1
+# Give a possibility to run the FST with external existing dictionary (i.e. with CREATECTFDICT=0 full_system_test.sh)
+# In order to use CCDB dictionaries, pass CTFDICTFILE=ccdb CREATECTFDICT=0
+[[ ! -z "$CREATECTFDICT" ]] && SYNCMODEDOCTFDICT="$CREATECTFDICT" || SYNCMODEDOCTFDICT=1
+
+# this is default local tree-based CTF dictionary file
+[[ -z "$CTFDICTFILE" ]] && CTFDICTFILE="ctf_dictionary.root"
+
+# if dictionary creation is requested, the encoders should not use any external dictionary, neither the local one (--ctf-dict <file>) nor from the CCDB (empty or --ctf-dict "ccdb")
+[[ "$SYNCMODEDOCTFDICT" = "1" ]] && USECTFDICTFILE="none" || USECTFDICTFILE="$CTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_itsmft_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_ft0_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_fv0_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_mid_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_mch_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_phos_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_cpv_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_emcal_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_zdc_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_fdd_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_hmpid_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_tof_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_trd_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_tpc_reco_workflow+="--ctf-dict $USECTFDICTFILE"
+export ARGS_EXTRA_PROCESS_o2_ctp_entropy_encoder_workflow+="--ctf-dict $USECTFDICTFILE"
+
+# for decoding we use either just produced or externally provided common local file
+export ARGS_EXTRA_PROCESS_o2_ctf_reader_workflow+="--ctf-dict $CTFDICTFILE"
+
 
 for STAGE in $STAGES; do
   logfile=reco_${STAGE}.log
@@ -174,7 +230,7 @@ for STAGE in $STAGES; do
     export SYNCMODE=1
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
     export CTFINPUT=0
-    export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS},CTF"
+    export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS},CALIB,CTF,EVENT_DISPLAY,${FST_SYNC_EXTRA_WORKFLOW_PARAMETERS}"
     unset JOBUTILS_JOB_SKIPCREATEDONE
   fi
   export SHMSIZE

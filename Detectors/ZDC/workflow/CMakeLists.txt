@@ -16,13 +16,15 @@ o2_add_library(ZDCWorkflow
                        src/ZDCDataReaderDPLSpec.cxx
                        src/ZDCDigitWriterDPLSpec.cxx
                        src/ZDCRecoWriterDPLSpec.cxx
-         src/RecEventReaderSpec.cxx
+                       src/RecEventReaderSpec.cxx
                        src/RecoWorkflow.cxx
                        src/DigitRecoSpec.cxx
                        src/DigitReaderSpec.cxx
+                       src/RecoReaderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsZDC
                                      O2::ZDCRaw
+                                     O2::ZDCCalib
                                      O2::SimulationDataFormat
                                      O2::DPLUtils
                                      O2::ZDCReconstruction
@@ -41,6 +43,11 @@ o2_add_executable(entropy-encoder-workflow
 o2_add_executable(digits-read
                   COMPONENT_NAME zdc
                   SOURCES src/digits-reader-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow)
+
+o2_add_executable(reco-read
+                  COMPONENT_NAME zdc
+                  SOURCES src/reco-reader-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow)
 
 o2_add_executable(digits-reco

@@ -14,7 +14,6 @@
 
 #include <cstdio>
 #include "GPUDisplay.h"
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -89,5 +88,3 @@ float GPUDisplay::opengl_spline::evaluate(float x)
   }
   return (retVal);
 }
-
-#endif

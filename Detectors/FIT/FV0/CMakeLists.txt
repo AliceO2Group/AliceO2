@@ -11,8 +11,8 @@
 
 add_subdirectory(base)
 add_subdirectory(raw)
-add_subdirectory(simulation)
 add_subdirectory(reconstruction)
+add_subdirectory(simulation)
 add_subdirectory(workflow)
 add_subdirectory(calibration)
-add_subdirectory(macro)
+add_subdirectory(macros)

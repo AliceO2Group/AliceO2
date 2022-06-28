@@ -29,6 +29,7 @@
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "MCHRawDecoder/OrbitInfo.h"
 #include <fstream>
 #include <iostream>
@@ -47,6 +48,12 @@ constexpr const char* OPTNAME_NO_FILE = "no-file";
 constexpr const char* OPTNAME_BINARY_FORMAT = "binary-file-format";
 constexpr const char* OPTNAME_WITHOUT_ORBITS = "without-orbits";
 constexpr const char* OPTNAME_MAX_SIZE = "max-size";
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  // ordered policies for the writers
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAllOrdered(".*(?:MCH|mch).*[W,w]riter.*"));
+}
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;

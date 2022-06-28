@@ -113,7 +113,7 @@ inline void DigitTime::reset()
 inline float DigitTime::getCommonMode(const GEMstack& gemstack) const
 {
   /// simple case when there is no external capacitance on the ROC
-  static const Mapper& mapper = Mapper::instance();
+  const Mapper& mapper = Mapper::instance();
   const auto nPads = mapper.getNumberOfPads(gemstack);
   return mCommonMode[gemstack] / static_cast<float>(nPads);
 }
@@ -123,7 +123,7 @@ inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataforma
                                            std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin,
                                            float commonMode)
 {
-  static Mapper& mapper = Mapper::instance();
+  Mapper& mapper = Mapper::instance();
   GlobalPadNumber globalPad = 0;
   for (size_t i = 0; i < mCommonMode.size(); ++i) {
     const float cm = getCommonMode(GEMstack(i));

@@ -109,9 +109,6 @@ size_t UserLogicEndpointDecoder<CHARGESUM, VERSION>::append(Payload buffer)
                     (static_cast<uint64_t>(buffer[i + 6]) << 48) |
                     (static_cast<uint64_t>(buffer[i + 7]) << 56);
 
-    if (word == 0) {
-      continue;
-    }
     if (word == 0xFEEDDEEDFEEDDEED) {
       continue;
     }

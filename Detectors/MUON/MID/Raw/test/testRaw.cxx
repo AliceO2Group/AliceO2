@@ -206,14 +206,19 @@ BOOST_AUTO_TEST_CASE(GBTUserLogicDecoder)
   loc.patternsNBP[2] = 0x5;
   inData[bc].emplace_back(loc);
 
+  o2::mid::ElectronicsDelay electronicsDelay;
+
   o2::mid::FEEIdConfig feeIdConfig;
   uint8_t crateId = 5;
   uint8_t linkInCrate = 0;
   uint16_t gbtUniqueId = o2::mid::crateparams::makeGBTUniqueId(crateId, linkInCrate);
   o2::mid::GBTUserLogicEncoder encoder;
   encoder.setConfig(gbtUniqueId, o2::mid::makeNoZSROBoardConfig(gbtUniqueId));
+
   for (auto& item : inData) {
-    encoder.process(item.second, o2::InteractionRecord(item.first, 0));
+    o2::InteractionRecord ir(item.first, 0);
+    o2::mid::applyElectronicsDelay(ir.orbit, ir.bc, -electronicsDelay.localToBC);
+    encoder.process(item.second, ir);
   }
   std::vector<char> buf;
   encoder.flush(buf, o2::InteractionRecord());

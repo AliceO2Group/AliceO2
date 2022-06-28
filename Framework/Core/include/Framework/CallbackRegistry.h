@@ -19,11 +19,8 @@
 #include "Framework/TypeTraits.h"
 #include "Framework/RuntimeError.h"
 #include <tuple>
-#include <utility>   // declval
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 template <typename KeyT, KeyT _id, typename CallbackT>
@@ -45,6 +42,7 @@ class CallbackRegistry
   // - extend to variable return type
 
   static constexpr std::size_t size = sizeof...(Args);
+  using CallbackStore = std::tuple<Args...>;
 
   // set callback for slot
   template <typename U>
@@ -76,71 +74,60 @@ class CallbackRegistry
   // set the callback function of the specified id
   // this iterates over defined slots and sets the matching callback
   template <std::size_t pos, typename U>
-  typename std::enable_if<pos != 0>::type set(CallbackId id, U&& cb)
+  void set(CallbackId id, U&& cb)
   {
-    if (std::tuple_element<pos - 1, decltype(mStore)>::type::id::value != id) {
-      return set<pos - 1>(id, cb);
+    if constexpr (pos != 0) {
+      if (std::tuple_element<pos - 1, CallbackStore>::type::id::value != id) {
+        return set<pos - 1>(id, cb);
+      }
+      // note: there are two substitutions, the one for callback matching the slot type sets the
+      // callback, while the other substitution should never be called
+      setAt<pos - 1, typename std::tuple_element<pos - 1, CallbackStore>::type::type>(cb);
     }
-    // note: there are two substitutions, the one for callback matching the slot type sets the
-    // callback, while the other substitution should never be called
-    setAt<pos - 1, typename std::tuple_element<pos - 1, decltype(mStore)>::type::type>(cb);
-  }
-  // termination of the recursive loop
-  template <std::size_t pos, typename U>
-  typename std::enable_if<pos == 0>::type set(CallbackId id, U&& cb)
-  {
   }
 
   // set the callback at specified slot position
   template <std::size_t pos, typename U, typename F>
-  typename std::enable_if<has_matching_callback<U, F>::value == true>::type setAt(F&& cb)
+  void setAt(F&& cb)
   {
-    // create a new std::function object and init with the callback function
-    std::get<pos>(mStore).callback = (U)(cb);
-  }
-  // substitution for not matching callback
-  template <std::size_t pos, typename U, typename F>
-  typename std::enable_if<has_matching_callback<U, F>::value == false>::type setAt(F&& cb)
-  {
-    throw runtime_error_f("mismatch in function substitution at position %d", pos);
+    if constexpr (has_matching_callback<U, F>::value == true) {
+      // create a new std::function object and init with the callback function
+      std::get<pos>(mStore).callback = (U)(cb);
+    } else {
+      throw runtime_error_f("mismatch in function substitution at position %d", pos);
+    }
   }
 
   // exec callback of specified id
   template <std::size_t pos, typename... TArgs>
-  typename std::enable_if<pos != 0>::type exec(CallbackId id, TArgs&&... args)
+  void exec(CallbackId id, TArgs&&... args)
   {
-    if (std::tuple_element<pos - 1, decltype(mStore)>::type::id::value != id) {
-      return exec<pos - 1>(id, std::forward<TArgs>(args)...);
+    if constexpr (pos != 0) {
+      if (std::tuple_element<pos - 1, CallbackStore>::type::id::value != id) {
+        return exec<pos - 1>(id, std::forward<TArgs>(args)...);
+      }
+      // build a callable function type from the result type of the slot and the
+      // argument pack, this is used to selcet the matching substitution
+      using FunT = typename std::tuple_element<pos - 1, CallbackStore>::type::type;
+      using ResT = typename FunT::result_type;
+      using CheckT = std::function<ResT(TArgs...)>;
+      execAt<pos - 1, FunT, CheckT>(std::forward<TArgs>(args)...);
     }
-    // build a callable function type from the result type of the slot and the
-    // argument pack, this is used to selcet the matching substitution
-    using FunT = typename std::tuple_element<pos - 1, decltype(mStore)>::type::type;
-    using ResT = typename FunT::result_type;
-    using CheckT = std::function<ResT(TArgs...)>;
-    execAt<pos - 1, FunT, CheckT>(std::forward<TArgs>(args)...);
   }
-  // termination of the recursive loop
-  template <std::size_t pos, typename... TArgs>
-  typename std::enable_if<pos == 0>::type exec(CallbackId id, TArgs&&... args)
-  {
-  }
+
   // exec callback at specified slot
   template <std::size_t pos, typename U, typename V, typename... TArgs>
-  typename std::enable_if<std::is_same<U, V>::value == true>::type execAt(TArgs&&... args)
+  void execAt(TArgs&&... args)
   {
-    if (std::get<pos>(mStore).callback) {
-      std::get<pos>(mStore).callback(std::forward<TArgs>(args)...);
+    if constexpr (std::is_same_v<U, V> == true) {
+      if (std::get<pos>(mStore).callback) {
+        std::get<pos>(mStore).callback(std::forward<TArgs>(args)...);
+      }
     }
-  }
-  // substitution for not matching argument pack
-  template <std::size_t pos, typename U, typename V, typename... TArgs>
-  typename std::enable_if<std::is_same<U, V>::value == false>::type execAt(TArgs&&... args)
-  {
   }
 
   // store of RegistryPairs
   std::tuple<Args...> mStore;
 };
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 #endif // FRAMEWORK_CALLBACKREGISTRY_H

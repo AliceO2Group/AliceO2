@@ -55,6 +55,7 @@ void extractDictionary(TTree& tree, o2::detectors::DetID det, DetID::mask_t detM
   std::string outName = fmt::format("ctfdict_{}_v{}.{}_{}.root", det.getName(), int(dictHeader.majorVersion), int(dictHeader.minorVersion), dictHeader.dictTimeStamp);
   TFile flout(outName.c_str(), "recreate");
   flout.WriteObject(&bufVec, o2::base::NameConf::CCDBOBJECT.data());
+  flout.WriteObject(&dictHeader, fmt::format("ctf_dict_header_{}", det.getName()).c_str());
   flout.Close();
   LOG(info) << "Wrote " << dictHeader.asString() << " to " << outName;
 }

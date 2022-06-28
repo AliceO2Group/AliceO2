@@ -40,7 +40,7 @@ class RawToCellConverterSpec : public framework::Task
  public:
   /// \brief Constructor
   /// \param propagateMC If true the MCTruthContainer is propagated to the output
-  RawToCellConverterSpec() : framework::Task(){};
+  RawToCellConverterSpec(unsigned int flpId) : framework::Task(), mflpId(flpId){};
 
   /// \brief Destructor
   ~RawToCellConverterSpec() override = default;
@@ -64,8 +64,9 @@ class RawToCellConverterSpec : public framework::Task
   bool mFillChi2 = false;                                     ///< Fill output with quality of samples
   bool mCombineGHLG = true;                                   ///< Combine or not HG and LG channels (def: combine, LED runs: not combine)
   bool mPedestalRun = false;                                  ///< Analyze pedestal run (calculate pedestal mean and RMS)
+  bool mKeepTrigNoise = false;                                ///< Keep all trigger digits and summary tables for noise scan
   int mLastSize = 0;                                          ///< size of last send list of cells to reserve same in next bunch
-  std::unique_ptr<CalibParams> mCalibParams;                  ///!<! PHOS calibration
+  unsigned int mflpId = 0;                                    ///< subspec of output stream
   std::unique_ptr<AltroDecoder> mDecoder;                     ///!<! Raw decoder
   std::unique_ptr<CaloRawFitter> mRawFitter;                  ///!<! Raw fitter
   std::array<std::vector<Cell>, 14> mTmpCells;                ///< Temporary cells storage to all 14 DLL
@@ -79,7 +80,7 @@ class RawToCellConverterSpec : public framework::Task
 /// \brief Creating DataProcessorSpec for the PHOS Cell Converter Spec
 ///
 /// Refer to RawToCellConverterSpec::run for input and output specs
-framework::DataProcessorSpec getRawToCellConverterSpec(int flpId);
+framework::DataProcessorSpec getRawToCellConverterSpec(unsigned int flpId);
 
 } // namespace reco_workflow
 

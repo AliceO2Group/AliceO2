@@ -37,7 +37,7 @@ o2::framework::DataProcessorSpec getTRDTrapRawWriterSpec()
 {
   //  using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
-  return MakeRootTreeWriterSpec("TRDTrkltRawWrt",
+  return MakeRootTreeWriterSpec("TRDTrkltRawWriter",
                                 "trdtrapraw.root",
                                 "o2sim",
                                 BranchDefinition<std::vector<uint32_t>>{InputSpec{"trapraw", "TRD", "RAWDATA"}, "TrapRaw"},

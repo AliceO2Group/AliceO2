@@ -20,6 +20,8 @@ o2_add_library(PHOSWorkflow
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
                        src/WriterSpec.cxx
+                       src/EventBuilderSpec.cxx
+                       src/StandaloneAODProducerSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsPHOS
                                      O2::DPLUtils
                                      O2::PHOSBase
@@ -40,4 +42,14 @@ o2_add_executable(entropy-encoder-workflow
 o2_add_executable(cell-writer-workflow
                   COMPONENT_NAME phos
                   SOURCES src/cell-writer-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::PHOSWorkflow)
+
+o2_add_executable(event-builder
+                  COMPONENT_NAME phos
+                  SOURCES src/event-builder-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::PHOSWorkflow)
+
+o2_add_executable(standalone-aod-producer-workflow
+                  COMPONENT_NAME phos
+                  SOURCES src/phos-standalone-aod-producer-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::PHOSWorkflow)

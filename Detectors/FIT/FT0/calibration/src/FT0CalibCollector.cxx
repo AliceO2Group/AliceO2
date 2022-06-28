@@ -14,6 +14,7 @@
 #include <cassert>
 #include <iostream>
 #include <sstream>
+#include <numeric>
 #include <TStopwatch.h>
 
 namespace o2

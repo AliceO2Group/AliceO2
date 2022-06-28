@@ -67,6 +67,9 @@ MultiView::MultiView()
     mScenes[i] = gEve->SpawnNewScene(mSceneNames[i].c_str(), mSceneDescriptions[i].c_str());
   }
 
+  // remove window manager from the list
+  gEve->GetWindowManager()->RemoveFromListTree(gEve->GetListTree(), nullptr);
+
   // Projection managers
   mProjections[ProjectionRphi] = new TEveProjectionManager();
   mProjections[ProjectionZrho] = new TEveProjectionManager();
@@ -74,8 +77,8 @@ MultiView::MultiView()
   mProjections[ProjectionRphi]->SetProjection(TEveProjection::kPT_RPhi);
   mProjections[ProjectionZrho]->SetProjection(TEveProjection::kPT_RhoZ);
 
-  gEve->AddToListTree(static_cast<TEveElement*>(mProjections[ProjectionRphi]), false);
-  gEve->AddToListTree(static_cast<TEveElement*>(mProjections[ProjectionZrho]), false);
+  // open scenes
+  gEve->GetScenes()->FindListTreeItem(gEve->GetListTree())->SetOpen(true);
 
   // add axes
   TEnv settings;
@@ -140,6 +143,18 @@ void MultiView::setupMultiview()
   mViews[ViewZrho]->GetGLViewer()->SetCurrentCamera(TGLViewer::kCameraOrthoXOY);
   mViews[ViewZrho]->AddScene(mScenes[SceneZrhoGeom]);
   mViews[ViewZrho]->AddScene(mScenes[SceneZrhoEvent]);
+
+  mAnnotationTop = std::make_unique<TGLAnnotation>(mViews[View3d]->GetGLViewer(), "", 0, 1.0);
+  mAnnotationTop->SetState(TGLOverlayElement::kDisabled); // make the annotation non-interactive
+  mAnnotationTop->SetUseColorSet(false);                  // make the colors individually changeable
+  mAnnotationTop->SetTextColor(0);                        // default color white
+  mAnnotationTop->SetTextSize(0.05f);
+
+  mAnnotationBottom = std::make_unique<TGLAnnotation>(mViews[View3d]->GetGLViewer(), "", 0, 0.07);
+  mAnnotationBottom->SetState(TGLOverlayElement::kDisabled);
+  mAnnotationBottom->SetUseColorSet(false);
+  mAnnotationBottom->SetTextColor(0);
+  mAnnotationBottom->SetTextSize(0.03f);
 }
 
 MultiView::EScenes MultiView::getSceneOfProjection(EProjections projection)
@@ -152,11 +167,23 @@ MultiView::EScenes MultiView::getSceneOfProjection(EProjections projection)
   return NumberOfScenes;
 }
 
+TEveGeoShape* MultiView::getDetectorGeometry(const std::string& detectorName)
+{
+  for (const auto& geom : mDetectors) {
+    if (geom->GetElementName() == detectorName) {
+      return geom;
+    }
+  }
+
+  return nullptr;
+}
+
 void MultiView::drawGeometryForDetector(string detectorName, bool threeD, bool rPhi, bool zRho)
 {
   auto& geometryManager = GeometryManager::getInstance();
   TEveGeoShape* shape = geometryManager.getGeometryForDetector(detectorName);
   registerGeometry(shape, threeD, rPhi, zRho);
+  mDetectors.push_back(shape);
 }
 
 void MultiView::registerGeometry(TEveGeoShape* geom, bool threeD, bool rPhi, bool zRho)
@@ -165,8 +192,6 @@ void MultiView::registerGeometry(TEveGeoShape* geom, bool threeD, bool rPhi, boo
     LOG(error) << "MultiView::registerGeometry -- geometry is NULL!";
     exit(-1);
   }
-  //mGeomVector.push_back(geom);
-
   TEveProjectionManager* projection;
 
   if (threeD) {
@@ -198,6 +223,7 @@ void MultiView::destroyAllGeometries()
   getScene(Scene3dGeom)->DestroyElements();
   getScene(SceneRphiGeom)->DestroyElements();
   getScene(SceneZrhoGeom)->DestroyElements();
+  mDetectors.clear();
 }
 
 void MultiView::registerElement(TEveElement* event)
@@ -205,8 +231,6 @@ void MultiView::registerElement(TEveElement* event)
   gEve->GetCurrentEvent()->AddElement(event);
   getProjection(ProjectionRphi)->ImportElements(event, getScene(SceneRphiEvent));
   getProjection(ProjectionZrho)->ImportElements(event, getScene(SceneZrhoEvent));
-
-  gEve->Redraw3D();
 }
 
 void MultiView::destroyAllEvents()

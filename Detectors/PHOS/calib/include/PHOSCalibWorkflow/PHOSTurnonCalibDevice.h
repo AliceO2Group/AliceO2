@@ -22,6 +22,7 @@
 #include "DataFormatsPHOS/Cluster.h"
 #include "DataFormatsPHOS/TriggerMap.h"
 #include "PHOSCalibWorkflow/PHOSTurnonCalibrator.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -33,7 +34,7 @@ namespace phos
 class PHOSTurnonCalibDevice : public o2::framework::Task
 {
  public:
-  explicit PHOSTurnonCalibDevice(bool useCCDB, std::string path) : mUseCCDB(useCCDB), mCCDBPath(path) {}
+  explicit PHOSTurnonCalibDevice(bool useCCDB, std::shared_ptr<o2::base::GRPGeomRequest> req) : mUseCCDB(useCCDB), mCCDBRequest(req) {}
 
   void init(o2::framework::InitContext& ic) final;
 
@@ -41,18 +42,23 @@ class PHOSTurnonCalibDevice : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  }
+
  protected:
-  bool checkFitResult() { return true; } //TODO!! implement true check
+  bool checkFitResult() { return true; } // TODO!! implement true check
 
  private:
   bool mUseCCDB = false;
-  std::string mCCDBPath{"http://alice-ccdb.cern.ch"};     ///< CCDB server path
-  long mRunStartTime = 0;                                 /// start time of the run (sec)
-  std::unique_ptr<TriggerMap> mTriggerMap;                /// Final calibration object
-  std::unique_ptr<PHOSTurnonCalibrator> mCalibrator;      /// Agregator of calibration TimeFrameSlots
+  long mRunStartTime = 0;                            /// start time of the run (sec)
+  std::unique_ptr<TriggerMap> mTriggerMap;           /// Final calibration object
+  std::unique_ptr<PHOSTurnonCalibrator> mCalibrator; /// Agregator of calibration TimeFrameSlots
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 };
 
-o2::framework::DataProcessorSpec getPHOSTurnonCalibDeviceSpec(bool useCCDB, std::string path);
+o2::framework::DataProcessorSpec getPHOSTurnonCalibDeviceSpec(bool useCCDB);
 } // namespace phos
 } // namespace o2
 

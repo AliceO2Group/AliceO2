@@ -16,6 +16,7 @@
 #include "Framework/Task.h"
 #include <memory>
 #include <string_view>
+#include "DetectorsBase/GRPGeomHelper.h"
 
 namespace o2::framework
 {
@@ -36,7 +37,7 @@ namespace o2::mch::calibration
 class BadChannelCalibrationDevice : public o2::framework::Task
 {
  public:
-  explicit BadChannelCalibrationDevice() = default;
+  explicit BadChannelCalibrationDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
 
   void init(o2::framework::InitContext& ic) final;
 
@@ -46,11 +47,14 @@ class BadChannelCalibrationDevice : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
+
  private:
   void sendOutput(o2::framework::DataAllocator& output, std::string_view reason);
 
  private:
   std::unique_ptr<o2::mch::calibration::BadChannelCalibrator> mCalibrator;
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   uint64_t mTimeStamp;
 
   int mLoggingInterval = {0}; /// time interval between statistics logging messages

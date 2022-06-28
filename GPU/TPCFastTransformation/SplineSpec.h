@@ -354,7 +354,7 @@ class SplineSpec<DataT, XdimT, YdimT, 0> : public SplineContainer<DataT>
 
     for (int i = 0; i < nYdim; i++) {
       S[i] = iParameters[i]; // write into result-array
-      //std::cout<<iParameters[i] <<", ";
+      // LOG(info)<<iParameters[i] <<", ";
     }
   } // end interpolateU
 

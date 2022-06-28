@@ -34,7 +34,7 @@
 /DataFormats/Detectors/GlobalTrackingWorkflow  @shahor02
 /DataFormats/Detectors/HMPID                   @gvolpe79
 /DataFormats/Detectors/ITSMFT                  @iouribelikov @bovulpes @rpezzi
-/DataFormats/Detectors/MUON                    @aphecetche
+/DataFormats/Detectors/MUON                    @AliceO2Group/muon-experts
 /DataFormats/Detectors/PHOS                    @peressounko @kharlov
 /DataFormats/Detectors/Passive                 @sawenzel
 /DataFormats/Detectors/TOF                     @noferini
@@ -63,7 +63,7 @@
 /Detectors/GlobalTrackingWorkflow  @shahor02
 /Detectors/HMPID                   @gvolpe79
 /Detectors/ITSMFT                  @iouribelikov @bovulpes @rpezzi @mconcas
-/Detectors/MUON                    @aphecetche
+/Detectors/MUON                    @AliceO2Group/muon-experts
 /Detectors/PHOS                    @peressounko @kharlov
 /Detectors/Passive                 @sawenzel
 /Detectors/TOF                     @noferini
@@ -125,3 +125,5 @@
 #/Utilities/Tools
 #/Utilities/hough
 /Utilities/rANS               @shahor02 @MichaelLettrich
+
+/scripts/datamodel-doc @jgrosseo @pbuehler

@@ -11,6 +11,7 @@
 #ifndef ALICEO2_EMCAL_EVENTHANDLER_H_
 #define ALICEO2_EMCAL_EVENTHANDLER_H_
 
+#include <cstdint>
 #include <exception>
 #include <iterator>
 #include <gsl/span>
@@ -173,6 +174,39 @@ class EventHandler
     InteractionRecord mInteractionRecordCells;    ///< Interaction record for cells
   };
 
+  /// \class TriggerBitsInvalidException
+  /// \brief Error handling in case the trigger bits from various sources do not match
+  class TriggerBitsInvalidException final : public std::exception
+  {
+   public:
+    /// \brief Constructor initializing the exception
+    /// \param bitsclusters Trigger bits from the cluster trigger record container
+    /// \param bitscells Trigger bits from the cell trigger record container
+    TriggerBitsInvalidException(uint64_t bitsclusters, uint64_t bitscells) : mTriggerBitsClusters(bitsclusters),
+                                                                             mTriggerBitsCells(bitscells)
+    {
+    }
+
+    /// \brief Destructor
+    ~TriggerBitsInvalidException() noexcept final = default;
+
+    /// \brief Creating error message of the exception
+    /// \return Error message of the exception
+    const char* what() const noexcept final { return "Tigger bits for clusters and cells not matching"; }
+
+    /// \brief Get the trigger bits for the cluster subevent
+    /// \return Trigger bits for the cluster subevent
+    uint64_t getTriggerBitsClusters() const { return mTriggerBitsClusters; }
+
+    /// \brief Get the trigger bits for the cells subevent
+    /// \return Trigger bits of the cell subevent
+    uint64_t getTriggerBitsCells() const { return mTriggerBitsCells; }
+
+   private:
+    uint64_t mTriggerBitsClusters; ///< Trigger bits from cluster trigger record container
+    uint64_t mTriggerBitsCells;    ///< Trigger bits from cell trigger record container
+  };
+
   /// \class EventIterataor
   /// \brief Iterator of the event handler
   ///
@@ -290,9 +324,30 @@ class EventHandler
   /// \return Iteration end marker
   EventIterator rend() const { return EventIterator(*this, -1, false); };
 
-  ///
+  /// \brief Get the number of events handled by the event handler
+  /// \return Number of events
+  /// \throw NotInitializedException If the event handler is not initialized
   int getNumberOfEvents() const;
+
+  /// \brief Get the interaction record for the given event
+  /// \param eventID ID of the event in timeframe
+  /// \return Interaction record for the event
+  /// \throw RangeException in case the required event ID exceeds the maximum number of events
+  /// \throw InteractionRecordInvalidException If the interaction record for the same event from differnt containers has different content
+  /// \throw NotInitializedException in case the event handler is not initialized
+  ///
+  /// Requires at least on interaction record container to be set (clusters, cells or cell indices).
   InteractionRecord getInteractionRecordForEvent(int eventID) const;
+
+  /// \brief Get the interaction record for the given event
+  /// \param eventID ID of the event in timeframe
+  /// \return Interaction record for the event
+  /// \throw RangeException in case the required event ID exceeds the maximum number of events
+  /// \throw TriggerBitsInvalidException in case the trigger bits for the same event from differnt containers are different
+  /// \throw NotInitializedException in case the event handler is not initialized
+  ///
+  /// Requires at least on interaction record container to be set (clusters, cells or cell indices).
+  uint64_t getTriggerBitsForEvent(int eventID) const;
 
   /// \brief Get range of clusters belonging to the given event
   /// \param eventID ID of the event

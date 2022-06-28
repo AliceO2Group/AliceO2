@@ -80,9 +80,9 @@ FITCalibrationApi::CalibObjWithInfoType FITCalibrationApi::doSerializationAndPre
   CalibObjWithInfoType result;
   auto clName = o2::utils::MemFileHelper::getClassName(calibrationObject);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
+  stopping = stopping + 86400000; // +1 day
   LOG(info) << " clName " << clName << " flName " << flName;
   result.first = o2::ccdb::CcdbObjectInfo(FITCalibrationApi::getObjectPath<CalibrationObjectType>(), clName, flName, metaData, starting, stopping);
-  stopping = 999999999999;
   result.second = o2::ccdb::CcdbApi::createObjectImage(&calibrationObject, &result.first);
   LOG(info) << " FITCalibrationApi::doSerializationAndPrepareObjectInfo"
             << " start " << starting << " end " << stopping;
@@ -128,18 +128,18 @@ const char* FITCalibrationApi::getObjectPath()
 template <>
 inline const char* FITCalibrationApi::getObjectPath<o2::ft0::FT0ChannelTimeCalibrationObject>()
 {
-  return "FT0/Calibration/ChannelTimeOffset";
+  return "FT0/Calib/ChannelTimeOffset";
 }
 
 template <>
 inline const char* FITCalibrationApi::getObjectPath<o2::ft0::FT0CalibTimeSlewing>()
 {
-  return "FT0/Calibration/SlewingCorrection";
+  return "FT0/Calib/SlewingCorrection";
 }
 template <>
 inline const char* FITCalibrationApi::getObjectPath<o2::ft0::GlobalOffsetsCalibrationObject>()
 {
-  return "FT0/Calibration/GlobalOffsets";
+  return "FT0/Calib/GlobalOffsets";
 }
 
 template <>
@@ -171,7 +171,7 @@ inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::p
 template <>
 inline const char* FITCalibrationApi::getObjectPath<o2::fv0::FV0ChannelTimeCalibrationObject>()
 {
-  return "FV0/Calibration/ChannelTimeOffset";
+  return "FV0/Calib/ChannelTimeOffset";
 }
 
 template <>

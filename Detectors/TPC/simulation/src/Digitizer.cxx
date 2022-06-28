@@ -40,22 +40,25 @@ void Digitizer::init()
   if (mUseSCDistortions) {
     mSpaceCharge->init();
   }
+  auto& gemAmplification = GEMAmplification::instance();
+  gemAmplification.updateParameters();
+  auto& electronTransport = ElectronTransport::instance();
+  electronTransport.updateParameters();
+  auto& sampaProcessing = SAMPAProcessing::instance();
+  sampaProcessing.updateParameters();
 }
 
 void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
                         const int eventID, const int sourceID)
 {
-  const static Mapper& mapper = Mapper::instance();
+  const Mapper& mapper = Mapper::instance();
   auto& detParam = ParameterDetector::Instance();
   auto& eleParam = ParameterElectronics::Instance();
   auto& gemParam = ParameterGEM::Instance();
 
-  static GEMAmplification& gemAmplification = GEMAmplification::instance();
-  gemAmplification.updateParameters();
-  static ElectronTransport& electronTransport = ElectronTransport::instance();
-  electronTransport.updateParameters();
-  static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
-  sampaProcessing.updateParameters();
+  auto& gemAmplification = GEMAmplification::instance();
+  auto& electronTransport = ElectronTransport::instance();
+  auto& sampaProcessing = SAMPAProcessing::instance();
 
   const int nShapedPoints = eleParam.NShapedPoints;
   const auto amplificationMode = gemParam.AmplMode;
@@ -158,7 +161,7 @@ void Digitizer::flush(std::vector<o2::tpc::Digit>& digits,
                       std::vector<o2::tpc::CommonMode>& commonModeOutput,
                       bool finalFlush)
 {
-  static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
+  SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
   mDigitContainer.fillOutputContainer(digits, labels, commonModeOutput, mSector, sampaProcessing.getTimeBinFromTime(mEventTime - mOutputDigitTimeOffset), mIsContinuous, finalFlush);
 }
 
@@ -195,7 +198,7 @@ void Digitizer::setUseSCDistortions(TFile& finp)
 
 void Digitizer::setStartTime(double time)
 {
-  static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
+  SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
   sampaProcessing.updateParameters();
   mDigitContainer.setStartTime(sampaProcessing.getTimeBinFromTime(time - mOutputDigitTimeOffset));
 }

@@ -22,6 +22,7 @@ struct STFHeader { // fake header to mimic DD SubTimeFrame::Header sent with DIS
   uint64_t id = uint64_t(-1);
   uint32_t firstOrbit = uint32_t(-1);
   std::uint32_t runNumber = 0;
+  [[nodiscard]] size_t size() const { return sizeof(STFHeader); }
 
   std::string asString();
 };

@@ -8,6 +8,7 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
+add_compile_options(-O0 -g -fPIC)
 
 o2_add_library(
   DataFormatsGlobalTracking
@@ -25,6 +26,7 @@ o2_add_library(
     O2::DataFormatsFDD
     O2::DataFormatsZDC
     O2::DataFormatsTOF
+    O2::DataFormatsHMP
     O2::DataFormatsEMCAL
     O2::ReconstructionDataFormats
     O2::DataFormatsTRD

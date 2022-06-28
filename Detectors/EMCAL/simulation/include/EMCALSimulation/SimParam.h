@@ -52,20 +52,22 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Float_t getECPrimaryThreshold() const { return mECPrimThreshold; }
 
   Float_t getSignalDelay() const { return mSignalDelay; }
+  unsigned int getTimeBinOffset() const { return mTimeWindowStart; }
   Float_t getLiveTime() const { return mLiveTime; }
   Float_t getBusyTime() const { return mBusyTime; }
+  Float_t getPreTriggerTime() const { return mPreTriggerTime; }
 
   Bool_t doSmearEnergy() const { return mSmearEnergy; }
   Bool_t doSimulateTimeResponse() const { return mSimulateTimeResponse; }
   Bool_t doRemoveDigitsBelowThreshold() const { return mRemoveDigitsBelowThreshold; }
   Bool_t doSimulateNoiseDigits() const { return mSimulateNoiseDigits; }
+  Bool_t doSimulateL1Phase() const { return mSimulateL1Phase; }
 
   Bool_t isDisablePileup() const { return mDisablePileup; }
 
   void PrintStream(std::ostream& stream) const;
 
  private:
-
   // Digitizer
   Int_t mDigitThreshold{3};              ///< Threshold for storing digits in EMC
   Int_t mMeanPhotonElectron{4400};       ///< number of photon electrons per GeV deposited energy
@@ -88,15 +90,18 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Float_t mECPrimThreshold{0.05}; ///< To store primary if EC Shower Elos > threshold
 
   // Timing
-  Float_t mSignalDelay{700}; ///< Signal delay time (ns)
-  Float_t mLiveTime{1500};   ///< EMCal live time (ns)
-  Float_t mBusyTime{35000};  ///< EMCal busy time (ns)
+  Float_t mSignalDelay{600};          ///< Signal delay time (ns)
+  unsigned int mTimeWindowStart{400}; ///< The start of the time window
+  Float_t mLiveTime{1500};            ///< EMCal live time (ns)
+  Float_t mBusyTime{35000};           ///< EMCal busy time (ns)
+  Float_t mPreTriggerTime{600};       ///< EMCal pre-trigger time (ns)
 
-  //Processing
+  // Processing
   Bool_t mSmearEnergy{true};                ///< do time and energy smearing
   Bool_t mSimulateTimeResponse{true};       ///< simulate time response
   Bool_t mRemoveDigitsBelowThreshold{true}; ///< remove digits below threshold
   Bool_t mSimulateNoiseDigits{true};        ///< simulate noise digits
+  bool mSimulateL1Phase{true};              ///< Simulate L1 phase
 
   // DigitizerSpec
   Bool_t mDisablePileup{false}; ///< disable pileup simulation

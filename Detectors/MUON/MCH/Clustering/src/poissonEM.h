@@ -17,8 +17,8 @@
 ///
 /// \author Gilles Grasseau, Subatech
 
-#ifndef ALICEO2_MCH_POISSONEM_H_
-#define ALICEO2_MCH_POISSONEM_H_
+#ifndef O2_MCH_POISSONEM_H_
+#define O2_MCH_POISSONEM_H_
 
 namespace o2
 {
@@ -34,4 +34,4 @@ double computeChiSquare(const Pads& pads, const double* qPredictedPads);
 } // namespace mch
 } // namespace o2
 
-#endif // ALICEO2_MCH_POISSONEM_H_
+#endif // O2_MCH_POISSONEM_H_

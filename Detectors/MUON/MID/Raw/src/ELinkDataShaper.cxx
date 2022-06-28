@@ -17,6 +17,7 @@
 #include "MIDRaw/ELinkDataShaper.h"
 
 #include "CommonConstants/LHCConstants.h"
+#include "CommonConstants/Triggers.h"
 
 namespace o2
 {
@@ -39,26 +40,36 @@ ELinkDataShaper::ELinkDataShaper(bool isDebugMode, bool isLoc, uint8_t uniqueId,
       mOnDone = &ELinkDataShaper::onDoneReg;
     }
   }
+  mLocalToBCSelfTrig = mElectronicsDelay.localToBC;
   if (!isLoc) {
-    mElectronicsDelay.BCToLocal += electronicsDelay.regToLocal;
-    mElectronicsDelay.calibToFET += electronicsDelay.regToLocal;
+    mLocalToBCSelfTrig -= electronicsDelay.localToReg;
   }
+  mElectronicsDelay.calibToFET += mLocalToBCSelfTrig;
 }
 
-void ELinkDataShaper::set(uint32_t orbit)
+void ELinkDataShaper::set(uint32_t orbit, uint32_t trigger)
 {
   /// Sets the orbit and the output data vectors
-  mRDHOrbit = orbit;
 
   if (mIR.isDummy()) {
+    // First initialization
     mIR.bc = 0;
-    // The reset changes depending on the way we synch with the orbit
-    // (see processOrbitTrigger for details)
-    // FIXME: pick one of the two
-    // mIR.orbit = orbit - 1; // with orbit increase
-    mIR.orbit = orbit; // with reset to RDH
-    mLastClock = constants::lhc::LHCMaxBunches;
+    mIR.orbit = orbit - 1;
+    mMaxBunches = constants::lhc::LHCMaxBunches;
+  } else if ((trigger & o2::trigger::TF || trigger & o2::trigger::SOT) && mRDHOrbit != orbit) {
+    // At TF limit, the CRU UL ensures that the first event is the answer of the electronics to a HB trigger,
+    // so it is the right time to synch with the orbit in the RDH.
+    // This also allows to consistently run on EPNs, since EPN receive packets of TFs
+    // and the orbit is not consecutive from one packet to the other.
+    // Notice that we subtract 1 to the orbit value, since the TF starts with the answer to a HB trigger,
+    // and the value will be therefore correctly incremented.
+    // Notice also that we might receive several RDH pages
+    // (at least two since there is always an empty stop page),
+    // but we want to set the orbit only for the first one.
+    // The easiest way to do it is to check that the current orbit differs from the last saved RDH orbit.
+    mIR.orbit = orbit - 1;
   }
+  mRDHOrbit = orbit;
 }
 
 bool ELinkDataShaper::checkLoc(const ELinkDecoder& decoder)
@@ -67,66 +78,43 @@ bool ELinkDataShaper::checkLoc(const ELinkDecoder& decoder)
   return (decoder.getId() == (mUniqueId & 0xF));
 }
 
-EventType ELinkDataShaper::processSelfTriggered(uint16_t localClock, InteractionRecord& ir)
+EventType ELinkDataShaper::processSelfTriggered(InteractionRecord& ir)
 {
   /// Processes the self-triggered event
 
-  // This is a self-triggered events.
+  // This is a self-triggered event.
   // The physics data arrives with a delay compared to the BC,
   // which is due to the travel time of muons up to the MID chambers
   // plus the travel time of the signal to the readout electronics.
   // In the case of regional cards, a further delay is expected
   // since this card needs to wait for the tracklet decision of each local card.
-  // For simplicity, this delay is added to the BCToLocal in the constructor.
+  // For simplicity, this delay is added to the localToBC in the constructor.
   // In both cases, we need to correct for the delay in order to go back to the real BC.
-  if (ir.bc < mElectronicsDelay.BCToLocal) {
-    // If the bc is smaller than the delay, it means that the local clock was reset
-    // This events therefore belongs to the previous orbit.
-    // We therefore add the value of the last BC (+1 to account for the reset)
-    // and we decrease the orbit by 1.
-    ir.bc += mLastClock + 1;
-    --ir.orbit;
-  }
-  // We can now safely subtract the delay, which, thanks to the above protection,
-  // will not result in a negative number
-  ir.bc -= mElectronicsDelay.BCToLocal;
-  if (mReceivedCalibration && (localClock == mExpectedFETClock)) {
-    // Reset the calibration flag for this e-link
-    mReceivedCalibration = false;
+  applyElectronicsDelay(ir.orbit, ir.bc, mLocalToBCSelfTrig, mMaxBunches);
+  if (ir == mExpectedFET) {
     return EventType::FET;
   }
   return EventType::Standard;
 }
 
-EventType ELinkDataShaper::processCalibrationTrigger(uint16_t localClock)
+EventType ELinkDataShaper::processCalibrationTrigger(const InteractionRecord& ir)
 {
   /// Processes the calibration event
-  mExpectedFETClock = localClock + mElectronicsDelay.calibToFET;
-  mReceivedCalibration = true;
+  mExpectedFET = ir;
+  applyElectronicsDelay(mExpectedFET.orbit, mExpectedFET.bc, mElectronicsDelay.calibToFET, mMaxBunches);
   return EventType::Calib;
 }
 
-void ELinkDataShaper::processOrbitTrigger(uint16_t localClock, uint8_t triggerWord)
+void ELinkDataShaper::processHBTrigger(uint16_t localClock, uint8_t triggerWord)
 {
-  /// Processes the orbit trigger event
+  /// Processes the HB trigger event
 
   // The local clock is reset: we are now in synch with the new HB
-  // We have two ways to account for the orbit change:
-  // - increase the orbit counter by 1 for this e-link
-  //   (CAVEAT: synch is lost if we lose some orbit)
-  // - set the orbit to the one found in RDH
-  //   (CAVEAT: synch is lost if we have lot of data, spanning over two orbits)
-  // FIXME: pick one of the two
-  // ++mIR.orbit; // orbit increase
-  mIR.orbit = mRDHOrbit; // reset to RDH
-  if ((triggerWord & raw::sSOX) == 0) {
-    mLastClock = localClock;
-  }
-  // The orbit trigger resets the clock.
-  // If we received a calibration trigger, we need to change the value of the expected clock accordingly
-  if (mReceivedCalibration) {
-    mExpectedFETClock -= (localClock + 1);
-  }
+  ++mIR.orbit;
+  // The local clock value in an answer to the orbit trigger corresponds to the number of clocks elapsed since last reset.
+  // Since the HB trigger is reset at each orbit, this corresponds to the number of bunches.
+  // We need to add one because the local clock starts from 0.
+  mMaxBunches = localClock + 1;
 }
 
 bool ELinkDataShaper::processTrigger(const ELinkDecoder& decoder, EventType& eventType, InteractionRecord& ir)
@@ -147,22 +135,23 @@ bool ELinkDataShaper::processTrigger(const ELinkDecoder& decoder, EventType& eve
 
   if (decoder.getTriggerWord() == 0) {
     // This is a self-triggered event
-    eventType = processSelfTriggered(localClock, ir);
+    eventType = processSelfTriggered(ir);
     return true;
   }
 
   // From here we treat triggered events
   bool goOn = false;
   eventType = EventType::Standard;
-  if (decoder.getTriggerWord() & raw::sCALIBRATE) {
-    // This is an answer to a calibration trigger
-    eventType = processCalibrationTrigger(localClock);
-    goOn = true;
-  }
 
   if (decoder.getTriggerWord() & raw::sORB) {
-    // This is the answer to an orbit trigger
-    processOrbitTrigger(localClock, decoder.getTriggerWord());
+    // This is the answer to an HB trigger
+    processHBTrigger(localClock, decoder.getTriggerWord());
+  }
+
+  if (decoder.getTriggerWord() & raw::sCALIBRATE) {
+    // This is an answer to a calibration trigger
+    eventType = processCalibrationTrigger(ir);
+    goOn = true;
   }
 
   return goOn;

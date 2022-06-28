@@ -15,9 +15,6 @@
 /// \date   05 July 2018
 #include "MIDClustering/PreClusterizer.h"
 
-#include <cassert>
-#include "MIDBase/DetectorParameters.h"
-
 namespace o2
 {
 namespace mid
@@ -26,11 +23,6 @@ namespace mid
 //______________________________________________________________________________
 void PreClusterizer::process(gsl::span<const ColumnData> stripPatterns, bool accumulate)
 {
-  /// Main function: runs on a data containing the strip patterns in an event
-  /// and builds the clusters
-  /// \param stripPatterns Vector of strip patterns per column
-  /// \param accumulate Flag to decide if one needs to reset the output preclusters at each event
-
   // Reset fired DEs and pre-cluster information
   mActiveDEs.clear();
   if (!accumulate) {
@@ -40,9 +32,9 @@ void PreClusterizer::process(gsl::span<const ColumnData> stripPatterns, bool acc
   // Load the stripPatterns to get the fired strips
   if (loadPatterns(stripPatterns)) {
     // Loop only on fired detection elements
-    for (auto& deIndex : mActiveDEs) {
+    for (auto& deId : mActiveDEs) {
       // reset the precluster
-      PatternStruct& de = mMpDEs[deIndex.first];
+      PatternStruct& de = mMpDEs[deId];
 
       preClusterizeNBP(de);
       preClusterizeBP(de);
@@ -54,10 +46,6 @@ void PreClusterizer::process(gsl::span<const ColumnData> stripPatterns, bool acc
 
 void PreClusterizer::process(gsl::span<const ColumnData> stripPatterns, gsl::span<const ROFRecord> rofRecords)
 {
-  /// Main function: runs on a data containing the strip patterns of a timeframe
-  /// and builds the clusters
-  /// \param stripPatterns Vector of strip patterns per column
-  /// \param rofRecords RO frame records
   mPreClusters.clear();
   mROFRecords.clear();
   for (auto& rofRecord : rofRecords) {
@@ -69,38 +57,17 @@ void PreClusterizer::process(gsl::span<const ColumnData> stripPatterns, gsl::spa
 }
 
 //______________________________________________________________________________
-bool PreClusterizer::init()
-{
-  /// Initializes the class
-
-  mMpDEs.reserve(detparams::NDetectionElements);
-  mActiveDEs.reserve(detparams::NDetectionElements);
-  return true;
-}
-
-//______________________________________________________________________________
 bool PreClusterizer::loadPatterns(gsl::span<const ColumnData>& stripPatterns)
 {
-  /// Fills the mpDE structure with fired pads
 
   // Loop on stripPatterns
   for (auto& col : stripPatterns) {
-    int deIndex = col.deId;
-    assert(deIndex < detparams::NDetectionElements);
+    auto& de = mMpDEs[col.deId];
+    de.deId = col.deId;
+    mActiveDEs.emplace(col.deId);
 
-    auto search = mMpDEs.find(deIndex);
-    PatternStruct* de = nullptr;
-    if (search == mMpDEs.end()) {
-      de = &mMpDEs[deIndex];
-      de->deId = col.deId;
-    } else {
-      de = &(search->second);
-    }
-
-    mActiveDEs[deIndex] = true;
-
-    de->firedColumns |= (1 << col.columnId);
-    de->columns[col.columnId] = col;
+    de.firedColumns |= (1 << col.columnId);
+    de.columns[col.columnId] = col;
   }
 
   return (stripPatterns.size() > 0);
@@ -109,7 +76,6 @@ bool PreClusterizer::loadPatterns(gsl::span<const ColumnData>& stripPatterns)
 //______________________________________________________________________________
 void PreClusterizer::preClusterizeNBP(PatternStruct& de)
 {
-  /// PreClusterizes non-bending plane
   PreCluster* pc = nullptr;
   for (int icolumn = 0; icolumn < 7; ++icolumn) {
     if (de.columns[icolumn].getNonBendPattern() == 0) {
@@ -119,7 +85,7 @@ void PreClusterizer::preClusterizeNBP(PatternStruct& de)
     for (int istrip = 0; istrip < nStripsNBP; ++istrip) {
       if (de.columns[icolumn].isNBPStripFired(istrip)) {
         if (!pc) {
-          mPreClusters.push_back({static_cast<uint8_t>(de.deId), 1, static_cast<uint8_t>(icolumn), static_cast<uint8_t>(icolumn), 0, 0, static_cast<uint8_t>(istrip), static_cast<uint8_t>(istrip)});
+          mPreClusters.push_back({de.deId, 1, static_cast<uint8_t>(icolumn), static_cast<uint8_t>(icolumn), 0, 0, static_cast<uint8_t>(istrip), static_cast<uint8_t>(istrip)});
           pc = &mPreClusters.back();
         }
         pc->lastColumn = icolumn;
@@ -135,7 +101,6 @@ void PreClusterizer::preClusterizeNBP(PatternStruct& de)
 //______________________________________________________________________________
 void PreClusterizer::preClusterizeBP(PatternStruct& de)
 {
-  /// PreClusterizes bending plane
   for (int icolumn = mMapping.getFirstColumn(de.deId); icolumn < 7; ++icolumn) {
     if ((de.firedColumns & (1 << icolumn)) == 0) {
       continue;
@@ -150,7 +115,7 @@ void PreClusterizer::preClusterizeBP(PatternStruct& de)
       for (int istrip = 0; istrip < 16; ++istrip) {
         if (de.columns[icolumn].isBPStripFired(istrip, iline)) {
           if (!pc) {
-            mPreClusters.push_back({static_cast<uint8_t>(de.deId), 0, static_cast<uint8_t>(icolumn), static_cast<uint8_t>(icolumn), static_cast<uint8_t>(iline), static_cast<uint8_t>(iline), static_cast<uint8_t>(istrip), static_cast<uint8_t>(istrip)});
+            mPreClusters.push_back({de.deId, 0, static_cast<uint8_t>(icolumn), static_cast<uint8_t>(icolumn), static_cast<uint8_t>(iline), static_cast<uint8_t>(iline), static_cast<uint8_t>(istrip), static_cast<uint8_t>(istrip)});
             pc = &mPreClusters.back();
           }
           pc->lastLine = iline;

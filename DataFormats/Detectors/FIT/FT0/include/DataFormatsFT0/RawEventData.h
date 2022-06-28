@@ -49,8 +49,7 @@ class RawEventData
   static constexpr size_t sPayloadSize = 16;
   int size() const
   {
-    return 1                         // EventHeader
-           + mEventHeader.nGBTWords; // EventData
+    return 1 + mEventHeader.nGBTWords; // EventHeader + EventData size
   }
 
   std::vector<char> to_vector(bool tcm)

@@ -111,6 +111,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
       }
       nActiveInputs++;
     }
+    LOG(info) << "processed " << nActiveInputs << " inputs";
     // since we publish with delays, and two channels are always sent together
     ASSERT_ERROR(nActiveInputs == 2);
   };

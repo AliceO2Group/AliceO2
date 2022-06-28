@@ -60,7 +60,7 @@ class FV0CalibInfoSlot
 
 class FV0CalibCollector final : public o2::calibration::TimeSlotCalibration<o2::fv0::FV0CalibrationInfoObject, o2::fv0::FV0CalibInfoSlot>
 {
-  using TFType = uint64_t;
+  using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<o2::fv0::FV0CalibInfoSlot>;
   static constexpr int NCHANNELS = Constants::nFv0Channels;
 

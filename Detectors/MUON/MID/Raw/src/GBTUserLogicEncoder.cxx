@@ -49,7 +49,6 @@ void GBTUserLogicEncoder::processTrigger(const InteractionRecord& ir, uint8_t tr
 void GBTUserLogicEncoder::process(gsl::span<const ROBoard> data, InteractionRecord ir)
 {
   /// Encode data
-  ir += mElectronicsDelay.BCToLocal;
 
   // Apply zero suppression
   std::vector<ROBoard> zsLocs;
@@ -63,7 +62,8 @@ void GBTUserLogicEncoder::process(gsl::span<const ROBoard> data, InteractionReco
   vec.insert(vec.end(), zsLocs.begin(), zsLocs.end());
 
   // Get regional response
-  auto irReg = ir + mElectronicsDelay.regToLocal;
+  auto irReg = ir;
+  applyElectronicsDelay(irReg.orbit, irReg.bc, mElectronicsDelay.localToReg);
   auto regs = mResponse.getRegionalResponse(zsLocs);
   auto& vecReg = mBoards[irReg];
   vecReg.insert(vecReg.end(), regs.begin(), regs.end());

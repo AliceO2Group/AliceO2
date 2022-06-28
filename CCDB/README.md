@@ -63,6 +63,17 @@ snaptshotapi.init("file:///tmp/CCDBSnapshot");
 auto deadpixelsback = snapshotapi.retrieveFromTFileAny<o2::FOO::DeadPixelMap>("FOO/DeadPixels", metadata);
 ```
 
+## Local object caching and testing feature
+
+A simple mechanism is offered that allows caching CCDB objects on disc. In this mode, the CcdbApi will
+look if an object is already located on the disc. If not, the request is made to the server and the response automically saved locally. If yes, we just
+take the local file. The feature can be activated by exporting a shell variable `export ALICEO2_CCDB_LOCALCACHE=$PWD/.ccdb` which is set to a path on the disc where objects should be put. This mechanism is useful to reduce calls to the server in case multiple processes need the same objects (and the object can be regarded as valid for all requests).
+
+Note that this mechanism also allows for local development and test cycles. Say, some algorithm needs access to object `/Foo/Bar/`.
+Then it suffices to put the ROOT file containing the ccdb-object as filename `snapshot.root` inside the `/Foo/Bar/` directory structure, inside the `ALICEO2_CCDB_LOCALCACHE` folder (so, something like `/home/user/.ccdb/Foo/Bar/snapshot.root`).
+Then testing can proceed without actually having to upload the CCDB object to a server.
+
+
 # BasicCCDBManager
 
 A basic higher level class `BasicCCDBManager` is offered for convenient access to the CCDB from

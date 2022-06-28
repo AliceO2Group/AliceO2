@@ -29,7 +29,7 @@ ComputingResource ComputingResourceHelpers::getLocalhostResource()
   result.memory = getTotalNumberOfBytes();
   result.hostname = "localhost";
   result.startPort = 22000;
-  result.lastPort = 23000;
+  result.lastPort = 27000;
   result.usedPorts = 0;
   return result;
 }

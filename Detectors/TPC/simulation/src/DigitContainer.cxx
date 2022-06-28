@@ -42,6 +42,10 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
           time.fillOutputContainer<DigitzationMode::FullMode>(output, mcTruth, commonModeOutput, sector, timeBin);
           break;
         }
+        case DigitzationMode::ZeroSuppression: {
+          time.fillOutputContainer<DigitzationMode::ZeroSuppression>(output, mcTruth, commonModeOutput, sector, timeBin);
+          break;
+        }
         case DigitzationMode::SubtractPedestal: {
           time.fillOutputContainer<DigitzationMode::SubtractPedestal>(output, mcTruth, commonModeOutput, sector, timeBin);
           break;

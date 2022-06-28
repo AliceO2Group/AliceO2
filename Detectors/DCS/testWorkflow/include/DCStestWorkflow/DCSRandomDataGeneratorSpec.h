@@ -12,6 +12,7 @@
 #ifndef O2_DCS_TEST_WORKFLOW_RANDOM_DATA_GENERATOR_SPEC_H
 #define O2_DCS_TEST_WORKFLOW_RANDOM_DATA_GENERATOR_SPEC_H
 
+#include "DetectorsDCS/DCSDataPointHint.h"
 #include "Framework/DataProcessorSpec.h"
 #include <variant>
 #include <string>
@@ -20,22 +21,6 @@
 
 namespace o2::dcs::test
 {
-/*
- * A compact representation a group of alias to be generated
- */
-template <typename T>
-struct DataPointHint {
-  std::string aliasPattern; // alias pattern e.g. DET/HV/Crate[0..2]/Channel[000..012]/vMon
-  T minValue;               // minimum value to generate
-  T maxValue;               // maximum value to generate
-};
-
-using HintType = std::variant<DataPointHint<double>,
-                              DataPointHint<uint32_t>,
-                              DataPointHint<int32_t>,
-                              DataPointHint<char>,
-                              DataPointHint<bool>,
-                              DataPointHint<std::string>>;
 
 o2::framework::DataProcessorSpec getDCSRandomDataGeneratorSpec(std::vector<HintType> hints = {},
                                                                const char* detName = "TOF");

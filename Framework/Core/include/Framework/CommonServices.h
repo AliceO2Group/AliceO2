@@ -23,6 +23,14 @@ struct ThreadPool {
   int poolSize;
 };
 
+/// A service to keep provide automated oldest possible timeslice information
+struct DecongestionService {
+  /// Wether we are a source in the processing chain
+  bool isFirstInTopology = true;
+  /// Last timeslice we communicated. Notice this should never go backwards.
+  int64_t lastTimeslice = 0;
+};
+
 /// A few ServiceSpecs for services we know about and that / are needed by
 /// everyone.
 struct CommonServices {
@@ -31,7 +39,7 @@ struct CommonServices {
   template <typename I, typename T>
   static ServiceInit simpleServiceInit()
   {
-    return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       return ServiceHandle{TypeIdHelpers::uniqueId<I>(), new T, ServiceKind::Serial, typeid(T).name()};
     };
   }
@@ -40,7 +48,7 @@ struct CommonServices {
   template <typename I, typename T>
   static ServiceInit singletonServiceInit()
   {
-    return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    return [](ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
       return ServiceHandle{TypeIdHelpers::uniqueId<I>(), T::instance(), ServiceKind::Serial, typeid(T).name()};
     };
   }
@@ -65,10 +73,14 @@ struct CommonServices {
   static ServiceSpec dataRelayer();
   static ServiceSpec dataSender();
   static ServiceSpec tracingSpec();
+  static ServiceSpec summaryServiceSpec();
   static ServiceSpec threadPool(int numWorkers);
   static ServiceSpec dataProcessingStats();
   static ServiceSpec objectCache();
   static ServiceSpec timingInfoSpec();
+  static ServiceSpec ccdbSupportSpec();
+  static ServiceSpec decongestionSpec();
+  static ServiceSpec asyncQueue();
 
   static std::vector<ServiceSpec> defaultServices(int numWorkers = 0);
   static std::vector<ServiceSpec> requiredServices();

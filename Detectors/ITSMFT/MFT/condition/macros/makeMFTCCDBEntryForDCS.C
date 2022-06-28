@@ -9,16 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "CommonUtils/NameConf.h"
+#endif
 #include <vector>
 #include <string>
 #include "TFile.h"
-#include "CCDB/CcdbApi.h"
 #include "DetectorsDCS/AliasExpander.h"
 #include "DetectorsDCS/DeliveryType.h"
 #include "DetectorsDCS/DataPointIdentifier.h"
-
 #include <unordered_map>
 #include <chrono>
+#include "CCDB/CcdbApi.h"
 
 using DPID = o2::dcs::DataPointIdentifier;
 
@@ -55,7 +57,7 @@ int makeMFTCCDBEntryForDCS(std::string ccdb_path = o2::base::NameConf::getCCDBSe
 
   DPID dpidtmp;
   for (size_t i = 0; i < expaliases.size(); ++i) {
-    DPID::FILL(dpidtmp, expaliases[i], o2::dcs::DeliveryType::RAW_DOUBLE);
+    DPID::FILL(dpidtmp, expaliases[i], o2::dcs::DeliveryType::DPVAL_DOUBLE);
     dpid2DataDesc[dpidtmp] = "MFTDATAPOINTS";
   }
 

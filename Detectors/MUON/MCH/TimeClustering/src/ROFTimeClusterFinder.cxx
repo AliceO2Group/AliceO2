@@ -23,13 +23,16 @@ using namespace std;
 
 //_________________________________________________________________________________________________
 
-ROFTimeClusterFinder::ROFTimeClusterFinder(gsl::span<const o2::mch::ROFRecord> rofs, uint32_t timeClusterSize, uint32_t nBins, int debug) : mInputROFs(rofs), mTimeClusterSize(timeClusterSize), mNbinsInOneWindow(nBins), mDebug(debug)
+ROFTimeClusterFinder::ROFTimeClusterFinder(gsl::span<const o2::mch::ROFRecord> rofs, gsl::span<const o2::mch::Digit> digits, uint32_t timeClusterSize, uint32_t nBins, bool improvePeakSearch, bool debug)
+  : mInputROFs(rofs), mDigits(digits), mTimeClusterSize(timeClusterSize), mNbinsInOneWindow(nBins), mImprovePeakSearch(improvePeakSearch), mDebug(debug)
 {
   // bin width in bunch crossing units
   mBinWidth = mTimeClusterSize / mNbinsInOneWindow;
   mNbinsInOneTF = sBcInOneTF / mBinWidth + 1;
 
   mTimeBins.resize(mNbinsInOneTF);
+
+  mIsGoodDigit = createDigitFilter(20, true, true);
 }
 
 //_________________________________________________________________________________________________
@@ -66,13 +69,27 @@ void ROFTimeClusterFinder::initTimeBins()
     timeBin.mLastIdx = iRof;
     timeBin.mSize += 1;
     timeBin.mNDigits += rof.getNEntries();
+
+    int nDigitsPS = 0;
+    if (mImprovePeakSearch) {
+      nDigitsPS = 0;
+      auto rofDigits = mDigits.subspan(rof.getFirstIdx(), rof.getNEntries());
+      for (auto& digit : rofDigits) {
+        if (mIsGoodDigit(digit)) {
+          nDigitsPS += 1;
+        }
+      }
+    } else {
+      nDigitsPS = rof.getNEntries();
+    }
+    timeBin.mNDigitsPS += nDigitsPS;
   }
 
   if (mDebug) {
     std::cout << "Peak search histogram:" << std::endl;
     for (int32_t i = 0; i < mNbinsInOneTF; i++) {
       if (mTimeBins[i].mNDigits > 0) {
-        std::cout << fmt::format("bin {}: {}", i, mTimeBins[i].mNDigits) << std::endl;
+        std::cout << fmt::format("bin {}: {}/{}", i, mTimeBins[i].mNDigitsPS, mTimeBins[i].mNDigits) << std::endl;
       }
     }
   }
@@ -117,7 +134,7 @@ int32_t ROFTimeClusterFinder::getNextPeak()
     }
 
     if (mDebug) {
-      std::cout << fmt::format("new peak found at bin {}, entries = {}", i, mTimeBins[i].mNDigits) << std::endl;
+      std::cout << fmt::format("new peak found at bin {}, entries = {}/{}", i, mTimeBins[i].mNDigitsPS, mTimeBins[i].mNDigits) << std::endl;
     }
 
     return i;
@@ -159,7 +176,7 @@ void ROFTimeClusterFinder::storeROF(int32_t firstBin, int32_t lastBin)
     nDigits += timeBin.mNDigits;
 
     if (mDebug) {
-      std::cout << fmt::format("  bin {}: firstIdx={}  size={}  ndigits={}", j, timeBin.mFirstIdx, timeBin.mSize, timeBin.mNDigits) << std::endl;
+      std::cout << fmt::format("  bin {}: firstIdx={}  size={}  ndigits={}/{}", j, timeBin.mFirstIdx, timeBin.mSize, timeBin.mNDigitsPS, timeBin.mNDigits) << std::endl;
     }
   }
 

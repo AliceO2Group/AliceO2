@@ -39,6 +39,12 @@ void ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::itsmf
     for (Int_t i = 0; i < nhits; ++i) {
       row = gRandom->Integer(maxRows);
       col = gRandom->Integer(maxCols);
+      if (mNoiseMap && mNoiseMap->isNoisy(mChipIndex, row, col)) {
+        continue;
+      }
+      if (mDeadChanMap && mDeadChanMap->isNoisy(mChipIndex, row, col)) {
+        continue;
+      }
       // RS TODO: why the noise was added with 0 charge? It should be above the threshold!
       auto key = getOrderingKey(rof, row, col);
       if (!findDigit(key)) {

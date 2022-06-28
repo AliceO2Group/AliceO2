@@ -74,8 +74,8 @@ class bitset
     return *this;
   }
   GPUd() constexpr bitset operator~() const { return (~v) & full_set; }
-  GPUd() constexpr bool operator==(const bitset b) { return v == b.v; }
-  GPUd() constexpr bool operator!=(const bitset b) { return v != b.v; }
+  GPUd() constexpr bool operator==(const bitset b) const { return v == b.v; }
+  GPUd() constexpr bool operator!=(const bitset b) const { return v != b.v; }
 
   GPUd() constexpr bool operator[](unsigned int i) const { return (v >> i) & 1u; }
 

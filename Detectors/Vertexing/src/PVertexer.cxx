@@ -33,6 +33,9 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
                             std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
                             gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx)
 {
+#ifdef _PV_DEBUG_TREE_
+  doDBGPoolDump(lblTracks);
+#endif
   dbscan_clusterize();
   std::vector<PVertex> verticesLoc;
   std::vector<uint32_t> trackIDs;
@@ -49,7 +52,6 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
 #endif
     findVertices(inp, verticesLoc, trackIDs, v2tRefsLoc);
   }
-
   // sort in time
   std::vector<int> vtTimeSortID(verticesLoc.size());
   std::iota(vtTimeSortID.begin(), vtTimeSortID.end(), 0);
@@ -633,6 +635,12 @@ void PVertexer::init()
 
 #ifdef _PV_DEBUG_TREE_
   mDebugDumpFile = std::make_unique<TFile>("pvtxDebug.root", "recreate");
+
+  mDebugPoolTree = std::make_unique<TTree>("pvtxTrackPool", "PVertexer tracks pool debug output");
+  mDebugPoolTree->Branch("trc", &mDebugDumpDBSTrc);
+  mDebugPoolTree->Branch("gid", &mDebugDumpDBSGID);
+  mDebugPoolTree->Branch("mc", &mDebugDumpDBSTrcMC);
+
   mDebugDBScanTree = std::make_unique<TTree>("pvtxDBScan", "PVertexer DBScan debug output");
   mDebugDBScanTree->Branch("trc", &mDebugDumpDBSTrc);
   mDebugDBScanTree->Branch("gid", &mDebugDumpDBSGID);
@@ -655,9 +663,11 @@ void PVertexer::init()
 void PVertexer::end()
 {
 #ifdef _PV_DEBUG_TREE_
+  mDebugPoolTree->Write();
   mDebugDBScanTree->Write();
   mDebugVtxCompTree->Write();
   mDebugVtxTree->Write();
+  mDebugDBScanTree.reset();
   mDebugDBScanTree.reset();
   mDebugVtxCompTree.reset();
   mDebugDumpFile->Close();
@@ -1012,6 +1022,25 @@ void PVertexer::doDBScanDump(const VertexingInput& input, gsl::span<const o2::MC
     }
   }
   mDebugDBScanTree->Fill();
+  mDebugDumpDBSTrc.clear();
+  mDebugDumpDBSGID.clear();
+  mDebugDumpDBSTrcMC.clear();
+#endif
+}
+
+//______________________________________________
+void PVertexer::doDBGPoolDump(gsl::span<const o2::MCCompLabel> lblTracks)
+{
+  // dump tracks of the pool
+#ifdef _PV_DEBUG_TREE_
+  for (const auto& trc : mTracksPool) {
+    mDebugDumpDBSTrc.emplace_back(TrackVFDump{trc.z, trc.sig2ZI, trc.timeEst.getTimeStamp(), trc.timeEst.getTimeStampError(), trc.wghHisto});
+    mDebugDumpDBSGID.push_back(trc.gid);
+    if (lblTracks.size()) {
+      mDebugDumpDBSTrcMC.push_back(lblTracks[trc.entry]);
+    }
+  }
+  mDebugPoolTree->Fill();
   mDebugDumpDBSTrc.clear();
   mDebugDumpDBSGID.clear();
   mDebugDumpDBSTrcMC.clear();

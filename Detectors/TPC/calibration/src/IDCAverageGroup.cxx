@@ -230,7 +230,7 @@ void o2::tpc::IDCAverageGroup<Type>::drawGrouping(const std::string filename)
 template <class Type>
 void o2::tpc::IDCAverageGroup<Type>::drawGroupingInformations(const int region, const int grPads, const int grRows, const int groupLastRowsThreshold, const int groupLastPadsThreshold, const int overlapRows, const int overlapPads, const int nIDCs, const int groupPadsSectorEdges) const
 {
-  static const o2::tpc::Mapper& mapper = Mapper::instance();
+  const o2::tpc::Mapper& mapper = Mapper::instance();
 
   TLatex lat;
   lat.SetTextColor(kBlack);

@@ -109,9 +109,9 @@ MappingHandler::MappingHandler()
   }
 }
 
-Mapper& MappingHandler::getMappingForDDL(int ddl)
+Mapper& MappingHandler::getMappingForDDL(unsigned int ddl)
 {
-  if (ddl > 40) {
+  if (ddl >= 40) {
     throw MappingHandler::DDLInvalid(ddl);
   }
   const int NDDLSM = 2, NSIDES = 2;
@@ -120,8 +120,11 @@ Mapper& MappingHandler::getMappingForDDL(int ddl)
   return mMappings[sideID * NDDLSM + ddlInSM];
 }
 
-int MappingHandler::getFEEForChannelInDDL(int ddl, int channelFEC, int branch)
+int MappingHandler::getFEEForChannelInDDL(unsigned int ddl, unsigned int channelFEC, unsigned int branch)
 {
+  if (ddl >= 40) {
+    throw MappingHandler::DDLInvalid(ddl);
+  }
   int ddlInSupermodule = ddl % 2;
   int fecID = ddlInSupermodule ? 20 : 0;
   if (branch) {

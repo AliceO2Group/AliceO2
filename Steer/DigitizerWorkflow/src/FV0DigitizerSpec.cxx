@@ -11,7 +11,7 @@
 
 #include "FV0DigitizerSpec.h"
 #include "DataFormatsFV0/ChannelData.h"
-#include "DataFormatsFV0/BCData.h"
+#include "DataFormatsFV0/Digit.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataProcessorSpec.h"
@@ -121,7 +121,7 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
   Digitizer mDigitizer;
   std::vector<TChain*> mSimChains;
   std::vector<o2::fv0::ChannelData> mDigitsCh;
-  std::vector<o2::fv0::BCData> mDigitsBC;
+  std::vector<o2::fv0::Digit> mDigitsBC;
   std::vector<o2::fv0::DetTrigInput> mDigitsTrig;
   o2::dataformats::MCTruthContainer<o2::fv0::MCLabel> mLabels; // labels which get filled
 

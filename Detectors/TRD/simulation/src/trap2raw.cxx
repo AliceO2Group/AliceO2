@@ -71,12 +71,12 @@ int main(int argc, char** argv)
     add_option("input-file-tracklets,t", bpo::value<std::string>()->default_value("trdtracklets.root"), "input Trapsim tracklets file");
     add_option("file-per,l", bpo::value<std::string>()->default_value("halfcru"), "all : raw file(false), halfcru : cru end point, cru : one file per cru, sm: one file per supermodule");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
-    add_option("tracklethcheader,x", bpo::value<int>()->default_value(0), "include tracklet half chamber header (for run3). 0 never, 1 if there is tracklet data, 2 always");
+    add_option("tracklethcheader,x", bpo::value<int>()->default_value(2), "include tracklet half chamber header (for run3). 0 never, 1 if there is tracklet data, 2 always");
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(6), "rdh version in use default");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
-    add_option("digitrate", bpo::value<int>()->default_value(1000), "only include digits at 1 per this number");
+    add_option("digitrate", bpo::value<int>()->default_value(1), "only include digits at 1 per this number");
     add_option("verbose,w", bpo::value<bool>()->default_value(false), "verbose");
 
     opt_all.add(opt_general).add(opt_hidden);
@@ -137,7 +137,6 @@ void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsN
   }
 
   mc2raw.setTrackletHCHeader(trackletHCHeader);
-  LOG(info) << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%;";
   mc2raw.readTrapData();
   wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
   //

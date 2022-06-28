@@ -55,7 +55,6 @@ class AbstractRef
   GPUdi() AbstractRef(Idx_t idx, Src_t src) { set(idx, src); }
   GPUdi() AbstractRef(Base_t raw) : mRef(raw) {}
 
-  GPUdDefault() AbstractRef(const AbstractRef& src) = default;
   //
   GPUdi() Idx_t getIndex() const { return static_cast<Idx_t>(mRef & IdxMask); }
   GPUdi() void setIndex(Idx_t idx) { mRef = (mRef & (BaseMask & ~IdxMask)) | (IdxMask & idx); }

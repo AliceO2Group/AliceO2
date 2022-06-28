@@ -127,7 +127,7 @@ class CookedTracker
   using TrackInserter = std::function<int(const TrackITSExt& t)>;
   // These functions must be implemented
   template <typename U, typename V>
-  void process(gsl::span<const CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& it, const o2::itsmft::TopologyDictionary& dict, U& tracks, V& clusIdx, o2::itsmft::ROFRecord& rof)
+  void process(gsl::span<const CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& it, const o2::itsmft::TopologyDictionary* dict, U& tracks, V& clusIdx, o2::itsmft::ROFRecord& rof)
   {
     TrackInserter inserter = [&tracks, &clusIdx, this](const TrackITSExt& t) -> int {
       // convert internal track to output format
@@ -145,7 +145,7 @@ class CookedTracker
     };
     process(clusters, it, dict, inserter, rof);
   }
-  void process(gsl::span<const CompClusterExt> const& clusters, gsl::span<const unsigned char>::iterator& it, const o2::itsmft::TopologyDictionary& dict, TrackInserter& inserter, o2::itsmft::ROFRecord& rof);
+  void process(gsl::span<const CompClusterExt> const& clusters, gsl::span<const unsigned char>::iterator& it, const o2::itsmft::TopologyDictionary* dict, TrackInserter& inserter, o2::itsmft::ROFRecord& rof);
   const Cluster* getCluster(Int_t index) const;
 
   void setGeometry(o2::its::GeometryTGeo* geom);

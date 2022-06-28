@@ -26,13 +26,10 @@ constexpr std::array<double, 3> getInverseSymm2D(const std::array<double, 3>& ma
 
 // Smoother
 template <unsigned int D>
-Smoother<D>::Smoother(TrackITSExt& track, int smoothingLayer, const ROframe& event, float bZ, o2::base::PropagatorF::MatCorrType corr) : mLayerToSmooth{smoothingLayer},
-                                                                                                                                         mBz(bZ),
-                                                                                                                                         mCorr(corr)
+Smoother<D>::Smoother(TrackITSExt& track, size_t smoothingLayer, const ROframe& event, float bZ, o2::base::PropagatorF::MatCorrType corr) : mLayerToSmooth{smoothingLayer},
+                                                                                                                                            mBz(bZ),
+                                                                                                                                            mCorr(corr)
 {
-#if defined(CA_DEBUG) || defined(CA_STANDALONE_DEBUGGER)
-  mDebugger = new StandaloneDebugger("dbg_ITSSmootherCPU.root");
-#endif
 
   auto propInstance = o2::base::Propagator::Instance();
   const TrackingFrameInfo& originalTf = event.getTrackingFrameInfoOnLayer(mLayerToSmooth).at(track.getClusterIndex(mLayerToSmooth));
@@ -115,16 +112,8 @@ Smoother<D>::Smoother(TrackITSExt& track, int smoothingLayer, const ROframe& eve
   }
 }
 
-#if defined(CA_DEBUG) || defined(CA_STANDALONE_DEBUGGER)
-template <unsigned int D>
-Smoother<D>::~Smoother()
-{
-  delete mDebugger;
-}
-#else
 template <unsigned int D>
 Smoother<D>::~Smoother() = default;
-#endif
 
 template <unsigned int D>
 float Smoother<D>::computeSmoothedPredictedChi2(const o2::track::TrackParCov& firstTrack,  // outwards track: from innermost cluster to outermost
@@ -215,7 +204,6 @@ bool Smoother<D>::testCluster(const int clusterId, const ROframe& event)
                                           o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
                                           o2::base::PropagatorImpl<float>::MAX_STEP,
                                           mCorr);
-  bool testStatus = statusOutw && statusInw;
   if (!(statusOutw && statusInw)) {
     LOG(warning) << "Failed propagation in smoother!";
     return false;

@@ -19,6 +19,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/CCDBParamSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
@@ -72,18 +73,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     LOG(error) << "non-std::exception was thrown in decoder creation";
     throw;
   }
-
-  auto detID = Mapping::getDetID();
-  if (detID == o2::detectors::DetID::ITS) {
-    mDictName = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().dictFilePath;
-    mNoiseName = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance().noiseFilePath;
-  } else {
-    mDictName = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().dictFilePath;
-    mNoiseName = o2::itsmft::ClustererParam<o2::detectors::DetID::MFT>::Instance().noiseFilePath;
-  }
-  mNoiseName = o2::base::DetectorNameConf::getNoiseFileName(detID, mNoiseName, "root");
-  mDictName = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(detID, mDictName);
-
+  mApplyNoiseMap = !ic.options().get<bool>("ignore-noise-map");
+  mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
   try {
     mNThreads = std::max(1, ic.options().get<int>("nthreads"));
     mDecoder->setNThreads(mNThreads);
@@ -100,14 +91,6 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     }
     mDecoder->setRawDumpDirectory(dumpDir);
     mDecoder->setFillCalibData(mDoCalibData);
-    if (o2::utils::Str::pathExists(mNoiseName)) {
-      TFile* f = TFile::Open(mNoiseName.data(), "old");
-      auto pnoise = (NoiseMap*)f->Get("ccdb_object");
-      AlpideCoder::setNoisyPixels(pnoise);
-      LOG(info) << mSelfName << " loading noise map file: " << mNoiseName;
-    } else {
-      LOG(info) << mSelfName << " Noise file " << mNoiseName << " is absent, " << Mapping::getName() << " running without noise suppression";
-    }
   } catch (const std::exception& e) {
     LOG(error) << "exception was thrown in decoder configuration: " << e.what();
     throw;
@@ -117,38 +100,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   }
 
   if (mDoClusters) {
-    try {
-      mClusterer = std::make_unique<Clusterer>();
-      mClusterer->setNChips(Mapping::getNChips());
-      const auto grp = o2::parameters::GRPObject::loadFrom();
-      if (grp) {
-        mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut(detID));
-      } else {
-        throw std::runtime_error("failed to retrieve GRP");
-      }
-
-      // settings for the fired pixel overflow masking
-      const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
-      const auto& clParams = ClustererParam<Mapping::getDetID()>::Instance();
-      auto nbc = clParams.maxBCDiffToMaskBias;
-      nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
-      mClusterer->setMaxBCSeparationToMask(nbc);
-      mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
-
-      if (o2::utils::Str::pathExists(mDictName)) {
-        mClusterer->loadDictionary(mDictName);
-        LOG(info) << mSelfName << " clusterer running with a provided dictionary: " << mDictName;
-      } else {
-        LOG(info) << mSelfName << " Dictionary " << mDictName << " is absent, " << Mapping::getName() << " clusterer expects cluster patterns";
-      }
-      mClusterer->print();
-    } catch (const std::exception& e) {
-      LOG(error) << "exception was thrown in clustrizer configuration: " << e.what();
-      throw;
-    } catch (...) {
-      LOG(error) << "non-std::exception was thrown in clusterizer configuration";
-      throw;
-    }
+    mClusterer = std::make_unique<Clusterer>();
+    mClusterer->setNChips(Mapping::getNChips());
   }
 }
 
@@ -156,6 +109,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
 template <class Mapping>
 void STFDecoder<Mapping>::run(ProcessingContext& pc)
 {
+  updateTimeDependentParams(pc);
   static bool firstCall = true;
   if (firstCall) {
     firstCall = false;
@@ -223,6 +177,8 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     mEstNROF = std::max(mEstNROF, size_t(clusROFVec.size() * 1.2));
   }
 
+  pc.outputs().snapshot(Output{orig, "PHYSTRIG", 0, Lifetime::Timeframe}, mDecoder->getExternalTriggers());
+
   if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE)) {
     mDecoder->produceRawDataDumps(mDumpOnError, DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true)));
   }
@@ -238,6 +194,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   LOG(debug) << mSelfName << " Total time for TF " << tfID << '(' << mTFCounter << ") : CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
   mTFCounter++;
 }
+
 ///_______________________________________
 template <class Mapping>
 void STFDecoder<Mapping>::finalize()
@@ -257,9 +214,70 @@ void STFDecoder<Mapping>::finalize()
   }
 }
 
+///_______________________________________
+template <class Mapping>
+void STFDecoder<Mapping>::updateTimeDependentParams(ProcessingContext& pc)
+{
+  // we call these methods just to trigger finaliseCCDB callback
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    pc.inputs().get<o2::itsmft::NoiseMap*>("noise");
+
+    const auto grp = o2::parameters::GRPObject::loadFrom();
+    if (grp) {
+      mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut(Mapping::getDetID()));
+    } else {
+      throw std::runtime_error("failed to retrieve GRP");
+    }
+
+    if (mDoClusters) {
+      pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
+      pc.inputs().get<o2::itsmft::DPLAlpideParam<Mapping::getDetID()>*>("alppar");
+      // settings for the fired pixel overflow masking
+      const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
+      const auto& clParams = ClustererParam<Mapping::getDetID()>::Instance();
+      alpParams.printKeyValues();
+      clParams.printKeyValues();
+      auto nbc = clParams.maxBCDiffToMaskBias;
+      nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
+      mClusterer->setMaxBCSeparationToMask(nbc);
+      mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
+      mClusterer->print();
+    }
+  }
+}
+
+///_______________________________________
+template <class Mapping>
+void STFDecoder<Mapping>::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher(Mapping::getOrigin(), "NOISEMAP", 0)) {
+    LOG(info) << Mapping::getName() << " noise map updated" << (!mApplyNoiseMap ? " but masking is disabled" : "");
+    if (mApplyNoiseMap) {
+      AlpideCoder::setNoisyPixels((const NoiseMap*)obj);
+    }
+    return;
+  }
+  if (matcher == ConcreteDataMatcher(Mapping::getOrigin(), "CLUSDICT", 0)) {
+    LOG(info) << Mapping::getName() << " cluster dictionary updated" << (!mUseClusterDictionary ? " but its using is disabled" : "");
+    if (mUseClusterDictionary) {
+      mClusterer->setDictionary((const TopologyDictionary*)obj);
+    }
+    return;
+  }
+  // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
+  if (matcher == ConcreteDataMatcher(Mapping::getOrigin(), "ALPIDEPARAM", 0)) {
+    LOG(info) << "Alpide param updated";
+    return;
+  }
+}
+
+///_______________________________________
 DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
 {
   std::vector<OutputSpec> outputs;
+  auto inputs = o2::framework::select(inp.inputSpec.c_str());
   if (inp.doDigits) {
     outputs.emplace_back(inp.origin, "DIGITS", 0, Lifetime::Timeframe);
     outputs.emplace_back(inp.origin, "DIGITSROF", 0, Lifetime::Timeframe);
@@ -275,14 +293,21 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
     // if (doClusters && doPatterns)
     outputs.emplace_back(inp.origin, "PATTERNS", 0, Lifetime::Timeframe);
   }
+  outputs.emplace_back(inp.origin, "PHYSTRIG", 0, Lifetime::Timeframe);
 
-  auto inputs = o2::framework::select(inp.inputSpec.c_str());
   if (inp.askSTFDist) {
     for (auto& ins : inputs) { // mark input as optional in order not to block the workflow if our raw data happen to be missing in some TFs
       ins.lifetime = Lifetime::Optional;
     }
     // request the input FLP/DISTSUBTIMEFRAME/0 that is _guaranteed_ to be present, even if none of our raw data is present.
     inputs.emplace_back("stfDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
+  }
+  inputs.emplace_back("noise", inp.origin, "NOISEMAP", 0, Lifetime::Condition,
+                      o2::framework::ccdbParamSpec(fmt::format("{}/Calib/NoiseMap", inp.origin.as<std::string>())));
+  if (inp.doClusters) {
+    inputs.emplace_back("cldict", inp.origin, "CLUSDICT", 0, Lifetime::Condition,
+                        o2::framework::ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", inp.origin.as<std::string>())));
+    inputs.emplace_back("alppar", inp.origin, "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Config/AlpideParam", inp.origin.as<std::string>())));
   }
 
   return DataProcessorSpec{
@@ -296,7 +321,9 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
       {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data) of 1st lane"}},
       {"raw-data-dumps", VariantType::Int, int(GBTLink::RawDataDumps::DUMP_NONE), {"Raw data dumps on error (0: none, 1: HBF for link, 2: whole TF for all links"}},
       {"raw-data-dumps-directory", VariantType::String, "", {"Destination directory for the raw data dumps"}},
-      {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}}}};
+      {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}},
+      {"ignore-noise-map", VariantType::Bool, false, {"do not mask pixels flagged in the noise map"}},
+      {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}}}};
 }
 
 } // namespace itsmft

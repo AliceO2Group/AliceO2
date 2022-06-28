@@ -14,6 +14,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "CCDB/BasicCCDBManager.h"
 #include "Framework/ControlService.h"
 #include "TFile.h"
 #include "TF1.h"
@@ -64,12 +65,12 @@ void PHOSRunbyrunSlot::fill(const gsl::span<const Cluster>& clusters, const gsl:
   if (!mBadMap) {
     if (mUseCCDB) {
       LOG(info) << "Retrieving BadMap from CCDB";
-      o2::ccdb::CcdbApi ccdb;
-      ccdb.init(mCCDBPath); // or http://localhost:8080 for a local installation
-      std::map<std::string, std::string> metadata;
-      mBadMap.reset(ccdb.retrieveFromTFileAny<BadChannelsMap>("PHS/Calib/BadChannels", metadata, mRunStartTime));
+      auto& ccdbManager = o2::ccdb::BasicCCDBManager::instance();
+      ccdbManager.setURL(o2::base::NameConf::getCCDBServer());
+      LOG(info) << " set-up CCDB " << o2::base::NameConf::getCCDBServer();
+      mBadMap = std::make_unique<o2::phos::BadChannelsMap>(*(ccdbManager.get<o2::phos::BadChannelsMap>("PHS/Calib/BadMap")));
 
-      if (!mBadMap) { //was not read from CCDB, but expected
+      if (!mBadMap) { // was not read from CCDB, but expected
         LOG(fatal) << "Can not read BadMap from CCDB, you may use --not-use-ccdb option to create default bad map";
       }
     } else {
@@ -83,7 +84,7 @@ void PHOSRunbyrunSlot::fill(const gsl::span<const Cluster>& clusters, const gsl:
     int firstCluInEvent = tr.getFirstEntry();
     int lastCluInEvent = firstCluInEvent + tr.getNumberOfObjects();
 
-    //TODO!!! Get MFT0 vertex
+    // TODO!!! Get MFT0 vertex
     TVector3 vertex = {0., 0., 0.};
     mBuffer->startNewEvent(); // mark stored clusters to be used for Mixing
     for (int i = firstCluInEvent; i < lastCluInEvent; i++) {
@@ -105,9 +106,9 @@ void PHOSRunbyrunSlot::fill(const gsl::span<const Cluster>& clusters, const gsl:
         const TLorentzVector& vp = mBuffer->getEntry(ip);
         TLorentzVector sum = v + vp;
         if (sum.Pt() > mPtCut) {
-          if (mBuffer->isCurrentEvent(ip)) {      //same (real) event
+          if (mBuffer->isCurrentEvent(ip)) {      // same (real) event
             mReMi[2 * clu.module()](sum.M());     // put all high-pt pairs to bin 4-6 GeV
-          } else {                                //Mixed
+          } else {                                // Mixed
             mReMi[2 * clu.module() + 1](sum.M()); // put all high-pt pairs to bin 4-6 GeV
           }
         }
@@ -118,14 +119,14 @@ void PHOSRunbyrunSlot::fill(const gsl::span<const Cluster>& clusters, const gsl:
 }
 void PHOSRunbyrunSlot::merge(const PHOSRunbyrunSlot* prev)
 {
-  //Not used
+  // Not used
 }
 bool PHOSRunbyrunSlot::checkCluster(const Cluster& clu)
 {
   if (clu.getEnergy() > 1.e-4) {
     return false;
   }
-  //First check BadMap
+  // First check BadMap
   float posX, posZ;
   clu.getLocalPosition(posX, posZ);
   short absId;
@@ -165,7 +166,7 @@ PHOSRunbyrunCalibrator::~PHOSRunbyrunCalibrator()
 
 bool PHOSRunbyrunCalibrator::hasEnoughData(const Slot& slot) const
 {
-  //otherwize will be merged with next Slot
+  // otherwize will be merged with next Slot
   return true;
 }
 void PHOSRunbyrunCalibrator::initOutput()
@@ -177,7 +178,7 @@ void PHOSRunbyrunCalibrator::finalizeSlot(Slot& slot)
   // Extract results for the single slot
   PHOSRunbyrunSlot* c = slot.getContainer();
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
-  //Add histos
+  // Add histos
   for (int mod = 0; mod < 8; mod++) {
     PHOSRunbyrunSlot::boostHisto& tmp = c->getCollectedHistos(mod);
     int indx = 1;
@@ -189,7 +190,7 @@ void PHOSRunbyrunCalibrator::finalizeSlot(Slot& slot)
   c->clear();
 }
 
-Slot& PHOSRunbyrunCalibrator::emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend)
+Slot& PHOSRunbyrunCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType tend)
 {
 
   auto& cont = getSlots();
@@ -198,7 +199,7 @@ Slot& PHOSRunbyrunCalibrator::emplaceNewSlot(bool front, uint64_t tstart, uint64
   return slot;
 }
 
-bool PHOSRunbyrunCalibrator::process(uint64_t tf, const gsl::span<const Cluster>& clu, const gsl::span<const TriggerRecord>& tr)
+bool PHOSRunbyrunCalibrator::process(TFType tf, const gsl::span<const Cluster>& clu, const gsl::span<const TriggerRecord>& tr)
 {
   // if (!mUpdateAtTheEndOfRunOnly) {
   //   int maxDelay = mMaxSlotsDelay * mSlotLength;
@@ -221,11 +222,11 @@ bool PHOSRunbyrunCalibrator::process(uint64_t tf, const gsl::span<const Cluster>
 }
 void PHOSRunbyrunCalibrator::endOfStream()
 {
-  //Merge collected in different slots histograms
+  // Merge collected in different slots histograms
   TF1 fRatio("ratio", this, &PHOSRunbyrunCalibrator::CBRatio, 0, 1, 6, "PHOSRunbyrunCalibrator", "CBRatio");
   TF1 fBg("background", this, &PHOSRunbyrunCalibrator::bg, 0, 1, 6, "PHOSRunbyrunCalibrator", "bg");
   TF1 fSignal("signal", this, &PHOSRunbyrunCalibrator::CBSignal, 0, 1, 6, "PHOSRunbyrunCalibrator", "CBSignal");
-  //fit inv mass distributions
+  // fit inv mass distributions
   TFile fout("mgg.root", "recreate");
   for (int mod = 0; mod < 4; mod++) {
     mReMi[2 * mod]->Sumw2();
@@ -245,7 +246,7 @@ void PHOSRunbyrunCalibrator::endOfStream()
     mReMi[2 * mod]->Write();
     mReMi[2 * mod + 1]->Write();
     delete tmp;
-    //Clear before next period?
+    // Clear before next period?
     mReMi[2 * mod]->Reset();
     mReMi[2 * mod + 1]->Reset();
   }

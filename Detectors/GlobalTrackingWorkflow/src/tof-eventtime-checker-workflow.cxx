@@ -44,8 +44,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
-    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
-    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use: allowed TPC-TOF,ITS-TPC-TOF,TPC-TRD-TOF,ITS-TPC-TRD-TOF (all)"}},
     {"event-time-spread", o2::framework::VariantType::Float, 200.0f, {"Event time spread"}},
     {"lhc-phase", o2::framework::VariantType::Float, 0.0f, {"LHCp phase"}},
@@ -71,8 +69,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2eventtime-check-tof-workflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  auto disableRootIn = configcontext.options().get<bool>("disable-root-input");
-  auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 
   auto spread = configcontext.options().get<float>("event-time-spread");
   auto phase = configcontext.options().get<float>("lhc-phase");
@@ -118,9 +114,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   LOG(debug) << "TOF EVENTTIME CHECKER WORKFLOW configuration";
   LOG(debug) << "TOF track inputs = " << configcontext.options().get<std::string>("track-sources");
-  LOG(debug) << "TOF disable-mc = " << configcontext.options().get<std::string>("disable-mc");
-  LOG(debug) << "TOF disable-root-input = " << disableRootIn;
-  LOG(debug) << "TOF disable-root-output = " << disableRootOut;
 
   GID::mask_t alowedSources = GID::getSourcesMask("ITS-TPC-TOF,TPC-TOF,ITS-TPC-TRD-TOF,TPC-TRD-TOF,ITS-TPC,TPC,ITS-TPC-TRD,TPC-TRD");
 

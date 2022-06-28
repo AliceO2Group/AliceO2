@@ -33,7 +33,7 @@
 #include <TMath.h>
 #include <TRandom.h>
 
-#include <FairMQLogger.h>
+#include <FairLogger.h>
 
 #include "MCHClustering/ClusterizerParam.h"
 #include "PadOriginal.h"
@@ -1288,7 +1288,7 @@ void ClusterFinderOriginal::cleanPixelArray(double threshold, std::vector<double
       }
     }
     if (iNeighbour < 0) {
-      LOG(error) << "There is no pixel above the threshold!?";
+      LOG(info) << "There is no pixel above the threshold!?";
       continue;
     }
 

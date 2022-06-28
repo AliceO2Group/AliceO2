@@ -133,8 +133,8 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
                                                 o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>& labels,
                                                 float commonMode)
 {
-  const static Mapper& mapper = Mapper::instance();
-  static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
+  const Mapper& mapper = Mapper::instance();
+  SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
   const PadPos pad = mapper.padPos(globalPad);
   static std::vector<std::pair<MCCompLabel, int>> labelCollector; // static workspace container for sorting
 

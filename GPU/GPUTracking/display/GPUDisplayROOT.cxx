@@ -12,8 +12,6 @@
 /// \file GPUDisplayROOT.cxx
 /// \author David Rohr
 
-#ifdef GPUCA_BUILD_EVENT_DISPLAY
-
 #include "GPUDisplay.h"
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -56,5 +54,4 @@ int GPUDisplay::buildTrackFilter()
 {
 }
 
-#endif
 #endif

@@ -28,16 +28,16 @@ namespace o2::tpc
 static constexpr float ABSTOLERANCE = 0.01f; // absolute tolerance is taken at small values near 0
 static constexpr float TOLERANCE = 0.4f;     // difference between original 1D-IDC and 1D-IDC from fourier transform -> inverse fourier transform
 
-o2::tpc::OneDIDC get1DIDCs(const std::vector<unsigned int>& integrationIntervals)
+o2::tpc::IDCOne get1DIDCs(const std::vector<unsigned int>& integrationIntervals)
 {
   const unsigned int nIDCs = std::accumulate(integrationIntervals.begin(), integrationIntervals.end(), static_cast<unsigned int>(0));
-  o2::tpc::OneDIDC idcsOut;
+  o2::tpc::IDCOne idcsOut;
   for (unsigned int iside = 0; iside < 2; ++iside) {
     std::vector<float> idcs(nIDCs);
     for (auto& val : idcs) {
       val = gRandom->Gaus(0, 0.2);
     }
-    idcsOut.mOneDIDC[iside] = std::move(idcs);
+    idcsOut.mIDCOne[iside] = std::move(idcs);
   }
   return idcsOut;
 }
@@ -115,7 +115,7 @@ BOOST_AUTO_TEST_CASE(IDCFourierTransformEPN_test)
       idcFourierTransform.calcFourierCoefficients();
       for (unsigned int iSide = 0; iSide < o2::tpc::SIDES; ++iSide) {
         const o2::tpc::Side side = iSide == 0 ? Side::A : Side::C;
-        const std::vector<unsigned int> offsetIndex = idcFourierTransform.getLastIntervals(side);
+        const auto offsetIndex = idcFourierTransform.getLastIntervals(side);
         const auto idcOneExpanded = idcFourierTransform.getExpandedIDCOne(side);
         const auto inverseFourier = idcFourierTransform.inverseFourierTransform(side);
         for (unsigned int interval = 0; interval < idcFourierTransform.getNIntervals(); ++interval) {

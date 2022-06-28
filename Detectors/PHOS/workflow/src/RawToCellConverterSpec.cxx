@@ -27,6 +27,7 @@
 #include "PHOSReconstruction/RawDecodingError.h"
 #include "PHOSWorkflow/RawToCellConverterSpec.h"
 #include "CommonUtils/VerbosityConfig.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 
 using namespace o2::phos::reco_workflow;
 
@@ -36,27 +37,6 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 
   auto path = ctx.options().get<std::string>("mappingpath");
   Mapping::Instance(path);
-
-  if (!mCalibParams) {
-    if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mCalibParams = std::make_unique<CalibParams>(1); // test default calibration
-      LOG(info) << "[RawToCellConverterSpec] No reading calibration from ccdb requested, set default";
-    } else {
-      LOG(info) << "[RawToCellConverterSpec] getting calibration object from ccdb";
-      o2::ccdb::CcdbApi ccdb;
-      std::map<std::string, std::string> metadata;
-      ccdb.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
-      // auto tr = triggerbranch.begin();
-      double eventTime = -1;
-      // if(tr!=triggerbranch.end()){
-      //   eventTime = (*tr).getBCData().getTimeNS() ;
-      // }
-      // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, eventTime);
-      if (!mCalibParams) {
-        LOG(fatal) << "[RawToCellConverterSpec] can not get calibration object from ccdb";
-      }
-    }
-  }
 
   auto fitmethod = ctx.options().get<std::string>("fitmethod");
   if (fitmethod == "default") {
@@ -75,7 +55,7 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 
   mDecoder = std::make_unique<AltroDecoder>();
 
-  mPedestalRun = (ctx.options().get<std::string>("pedestal").find("on") != std::string::npos);
+  mPedestalRun = (ctx.options().get<std::string>("pedestal").compare("on") == 0);
   if (mPedestalRun) {
     mRawFitter->setPedestal();
     mDecoder->setPedestalRun(); // sets also keeping both HG and LG channels
@@ -90,6 +70,12 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   int presamples = ctx.options().get<int>("presamples");
   mDecoder->setPresamples(presamples);
   LOG(info) << "Using " << presamples << " pre-samples";
+
+  mKeepTrigNoise = (ctx.options().get<std::string>("keeptrig").compare("on") == 0);
+  if (mKeepTrigNoise) {
+    mDecoder->setKeepTruNoise(mKeepTrigNoise);
+    LOG(info) << "Both trigger digits and summary tables will be kept";
+  }
 }
 
 void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
@@ -116,14 +102,14 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     if (payloadSize == 0) { // send empty output
       auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
       if (++contDeadBeef <= maxWarn) {
-        LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+        LOGP(alarm, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
              dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
              contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
       }
       mOutputCells.clear();
-      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
+      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", mflpId, o2::framework::Lifetime::Timeframe}, mOutputCells);
       mOutputTriggerRecords.clear();
-      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
+      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", mflpId, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
       mOutputHWErrors.clear();
       ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
       if (mFillChi2) {
@@ -167,13 +153,22 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(header);
       auto ddl = o2::raw::RDHUtils::getFEEID(header);
 
-      if (ddl > o2::phos::Mapping::NDDL || ddl < 0) { // only 14 correct DDLs
+      if (ddl >= o2::phos::Mapping::NDDL) { // only 0..13 correct DDLs
         LOG(error) << "DDL=" << ddl;
         mOutputHWErrors.emplace_back(14, 16, char(ddl)); // Add non-existing DDL as DDL 15
         continue;                                        // skip STU ddl
       }
 
       o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
+      // Correct for L0-LM trigger lattency
+      const auto tfOrbitFirst = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ctx.inputs().getFirstValid(true))->firstTForbit;
+      const auto& ctpOffsets = o2::ctp::TriggerOffsetsParam::Instance();
+      if (currentIR.differenceInBC({0, tfOrbitFirst}) >= ctpOffsets.LM_L0) {
+        currentIR -= ctpOffsets.LM_L0; // guaranteed to stay in the TF containing the collision
+      } else {                         // discard the data associated with this IR as they came from previous TF
+        continue;
+      }
+
       auto irIter = irList.rbegin();
       auto rangeIter = cellTRURanges.rbegin();
       while (irIter != irList.rend() && *irIter != currentIR) {
@@ -200,13 +195,20 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       for (auto a : errs) {
         mOutputHWErrors.emplace_back(a);
       }
+      if (mFillChi2) {
+        const std::vector<short>& chi2list = mDecoder->chi2list();
+        for (auto a : chi2list) {
+          mOutputFitChi.emplace_back(a);
+        }
+      }
+
       // Sort cells according to cell ID
       (*rangeIter)[2 * ddl + 1] = currentCellContainer.size();
       auto itBegin = currentCellContainer.begin() + (*rangeIter)[2 * ddl];
       std::sort(itBegin, currentCellContainer.end(), [](o2::phos::Cell& lhs, o2::phos::Cell& rhs) { return lhs.getAbsId() < rhs.getAbsId(); });
       auto itTrBegin = currentTRUContainer.begin() + (*rangeIter)[28 + 2 * ddl];
       (*rangeIter)[28 + 2 * ddl + 1] = currentTRUContainer.size();
-      std::sort(itTrBegin, currentTRUContainer.end(), [](o2::phos::Cell& lhs, o2::phos::Cell& rhs) { return lhs.getAbsId() < rhs.getAbsId(); });
+      std::sort(itTrBegin, currentTRUContainer.end(), [](o2::phos::Cell& lhs, o2::phos::Cell& rhs) { return lhs.getTRUId() < rhs.getTRUId(); });
     } // RawReader::hasNext
   }
 
@@ -235,20 +237,31 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           if (it2 != cend) {
             if ((*it1).getAbsId() == (*it2).getAbsId()) { // HG and LG channels, if both, copy only HG as more precise
               if ((*it1).getType() == o2::phos::HIGH_GAIN) {
-                mOutputCells.push_back(*it1);
-              } else {
-                mOutputCells.push_back(*it2);
+                if ((*it1).getEnergy() < 1023) { // to avoid saturation in Cell creation
+                  mOutputCells.push_back(*it1);
+                } else {
+                  mOutputCells.push_back(*it2);
+                }
+              } else {                           // it2 is HighGain
+                if ((*it2).getEnergy() < 1023) { // to avoid saturation in Cell creation
+                  mOutputCells.push_back(*it2);
+                } else {
+                  mOutputCells.push_back(*it1);
+                }
               }
               ++it1; // yes increase twice
+              if (it1 == cend) {
+                break;
+              }
               ++it2;
             } else { // no double cells, copy this one
               mOutputCells.push_back(*it1);
             }
+            ++it2;
           } else { // just copy last one
             mOutputCells.push_back(*it1);
           }
           ++it1;
-          ++it2;
         }
       } else {
         mOutputCells.insert(mOutputCells.end(), cbegin, cend);
@@ -259,8 +272,8 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       auto trend = mTmpTRU[iddl].begin() + (*rangeIter)[28 + 2 * iddl + 1];
       // Move trigger cells
       for (auto tri = trbegin; tri != trend; tri++) {
-        if (tri->getEnergy() > 0) {
-          mOutputCells.emplace_back(tri->getAbsId(), tri->getEnergy(), tri->getTime(), tri->getType());
+        if (tri->getEnergy() > 0 || mKeepTrigNoise) {
+          mOutputCells.emplace_back(tri->getTRUId(), tri->getEnergy(), tri->getTime(), tri->getType());
         }
       }
     }
@@ -271,15 +284,15 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   mLastSize = 1.1 * mOutputCells.size();
 
   LOG(debug) << "[PHOSRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
-  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
-  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
+  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", mflpId, o2::framework::Lifetime::Timeframe}, mOutputCells);
+  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", mflpId, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
   if (mFillChi2) {
     ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0, o2::framework::Lifetime::QA}, mOutputFitChi);
   }
 }
 
-o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawToCellConverterSpec(int flpId)
+o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawToCellConverterSpec(unsigned int flpId)
 {
   std::vector<o2::framework::InputSpec> inputs;
   inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Optional);
@@ -289,18 +302,19 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawToCellConverterS
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back("PHS", "CELLS", flpId, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("PHS", "CELLTRIGREC", flpId, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("PHS", "RAWHWERRORS", flpId, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("PHS", "CELLFITQA", flpId, o2::framework::Lifetime::QA);
+  outputs.emplace_back("PHS", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("PHS", "CELLFITQA", 0, o2::framework::Lifetime::QA);
 
   return o2::framework::DataProcessorSpec{"PHOSRawToCellConverterSpec",
                                           inputs, // o2::framework::select("A:PHS/RAWDATA"),
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::RawToCellConverterSpec>(),
+                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::RawToCellConverterSpec>(flpId),
                                           o2::framework::Options{
                                             {"presamples", o2::framework::VariantType::Int, 2, {"presamples time offset"}},
                                             {"fitmethod", o2::framework::VariantType::String, "default", {"Fit method (default or semigaus)"}},
                                             {"mappingpath", o2::framework::VariantType::String, "", {"Path to mapping files"}},
                                             {"fillchi2", o2::framework::VariantType::String, "off", {"Fill sample qualities on/off"}},
                                             {"keepHGLG", o2::framework::VariantType::String, "off", {"keep HighGain and Low Gain signals on/off"}},
-                                            {"pedestal", o2::framework::VariantType::String, "off", {"Analyze as pedestal run on/off"}}}};
+                                            {"pedestal", o2::framework::VariantType::String, "off", {"Analyze as pedestal run on/off"}},
+                                            {"keeptrig", o2::framework::VariantType::String, "off", {"Keep all trig. tiles for noise scan on/off"}}}};
 }

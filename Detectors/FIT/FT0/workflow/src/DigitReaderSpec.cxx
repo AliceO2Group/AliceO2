@@ -12,9 +12,7 @@
 /// @file   DigitReaderSpec.cxx
 
 #include <vector>
-
-#include "TTree.h"
-
+#include <TTree.h>
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"

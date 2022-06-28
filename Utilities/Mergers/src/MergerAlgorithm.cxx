@@ -109,7 +109,7 @@ void merge(TObject* const target, TObject* const other)
       auto targetTreeSize = estimateTreeSize(targetTree);
       auto otherTreeSize = estimateTreeSize(otherTree);
       if (auto totalSize = targetTreeSize + otherTreeSize; totalSize > 100000000) {
-        LOG(warn) << "The tree '" << targetTree << "' would be larger than 100MB (" << totalSize << "B) after merging, skipping to let the system survive";
+        LOG(warn) << "The tree '" << targetTree->GetName() << "' would be larger than 100MB (" << totalSize << "B) after merging, skipping to let the system survive";
         errorCode = 0;
       } else {
         errorCode = targetTree->Merge(&otherCollection);
@@ -119,10 +119,10 @@ void merge(TObject* const target, TObject* const other)
     } else if (target->InheritsFrom(TEfficiency::Class())) {
       errorCode = reinterpret_cast<TEfficiency*>(target)->Merge(&otherCollection);
     } else {
-      LOG(warn) << "Object with type '" + std::string(target->ClassName()) + "' is not one of the mergeable types, skipping";
+      LOG(warn) << "Object '" + std::string(target->GetName()) + "' with type '" + std::string(target->ClassName()) + "' is not one of the mergeable types, skipping";
     }
     if (errorCode == -1) {
-      throw std::runtime_error("Merging object of type '" + std::string(target->ClassName()) + "' failed.");
+      LOG(error) << "Merging object '" + std::string(target->GetName()) + "' of type '" + std::string(target->ClassName()) + "' failed.";
     }
   }
 }

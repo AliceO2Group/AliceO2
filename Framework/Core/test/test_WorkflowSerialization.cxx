@@ -79,4 +79,46 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
   BOOST_REQUIRE_EQUAL(w0.size(), w1.size());
   BOOST_CHECK_EQUAL(firstDump.str(), secondDump.str());
   BOOST_CHECK_EQUAL(commandInfoIn.command, commandInfoOut.command);
+
+  // also check if the conversion to ConcreteDataMatcher is working at import
+  BOOST_CHECK(std::get_if<ConcreteDataMatcher>(&w1[0].inputs[0].matcher) != nullptr);
+}
+
+/// Test a workflow with a single data processor with a single input
+/// which has a wildcard on subspec.
+BOOST_AUTO_TEST_CASE(TestVerifyWildcard)
+{
+  using namespace o2::framework;
+  WorkflowSpec w0{
+    DataProcessorSpec{
+      .name = "A",
+      .inputs = {{"clbPayload", "CLP"}, {"clbWrapper", "CLW"}},
+    }};
+
+  std::vector<DataProcessorInfo> metadataOut{
+    {"A", "test_Framework_test_SerializationWorkflow", {}},
+  };
+
+  CommandInfo commandInfoOut{"o2-dpl-workflow -b --option 1 --option 2"};
+
+  std::vector<DataProcessorInfo> metadataIn{};
+  CommandInfo commandInfoIn;
+
+  std::ostringstream firstDump;
+  WorkflowSerializationHelpers::dump(firstDump, w0, metadataOut, commandInfoOut);
+  std::istringstream is;
+  is.str(firstDump.str());
+  WorkflowSpec w1;
+  WorkflowSerializationHelpers::import(is, w1, metadataIn, commandInfoIn);
+
+  std::ostringstream secondDump;
+  WorkflowSerializationHelpers::dump(secondDump, w1, metadataIn, commandInfoIn);
+
+  BOOST_REQUIRE_EQUAL(w0.size(), 1);
+  BOOST_REQUIRE_EQUAL(w0.size(), w1.size());
+  BOOST_CHECK_EQUAL(firstDump.str(), secondDump.str());
+  BOOST_CHECK_EQUAL(commandInfoIn.command, commandInfoOut.command);
+
+  // also check if the conversion to ConcreteDataMatcher is working at import
+  // BOOST_CHECK(std::get_if<ConcreteDataTypeMatcher>(&w1[0].inputs[0].matcher) != nullptr);
 }

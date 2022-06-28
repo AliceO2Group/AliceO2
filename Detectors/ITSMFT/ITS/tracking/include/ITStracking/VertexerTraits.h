@@ -21,36 +21,28 @@
 #include <vector>
 
 #include "ITStracking/Cluster.h"
-#include "ITStracking/Configuration.h"
 #include "ITStracking/ClusterLines.h"
+#include "ITStracking/Configuration.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/IndexTableUtils.h"
+#include "ITStracking/TimeFrame.h"
 #include "ITStracking/Tracklet.h"
 
-#include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
+#include "GPUCommonMath.h"
 
 namespace o2
 {
 class MCCompLabel;
 
-namespace utils
-{
-class TreeStreamRedirector;
-}
-
 namespace its
 {
-class StandaloneDebugger;
 class ROframe;
 
 using constants::its::LayersNumberVertexer;
 
 struct lightVertex {
   lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp);
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp, int eId, float pur);
-#endif
   float mX;
   float mY;
   float mZ;
@@ -58,10 +50,6 @@ struct lightVertex {
   float mAvgDistance2;
   int mContributors;
   int mTimeStamp;
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  float mPurity;
-  int mEventId;
-#endif
 };
 
 struct ClusterMCLabelInfo {
@@ -79,25 +67,20 @@ enum class VertexerDebug : unsigned int {
   HistCentroids = 0x1 << 5
 };
 
+enum class TrackletMode {
+  Layer0Layer1 = 0,
+  Layer1Layer2 = 2
+};
+
 inline lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp) : mX{x}, mY{y}, mZ{z}, mRMS2{rms2}, mAvgDistance2{avgdis2}, mContributors{cont}, mTimeStamp{stamp}
 {
 }
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-inline lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp, int eId, float pur) : mX{x}, mY{y}, mZ{z}, mRMS2{rms2}, mAvgDistance2{avgdis2}, mContributors{cont}, mTimeStamp{stamp}, mEventId{eId}, mPurity{pur}
-{
-}
-#endif
 
 class VertexerTraits
 {
  public:
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  VertexerTraits();
-  virtual ~VertexerTraits();
-#else
-  VertexerTraits();
-  ~VertexerTraits() = default;
-#endif
+  VertexerTraits() = default;
+  virtual ~VertexerTraits() = default;
 
   GPUhd() static constexpr int4 getEmptyBinsRect()
   {
@@ -110,21 +93,19 @@ class VertexerTraits
   GPUhd() static const int2 getPhiBins(float phi, float deltaPhi, const IndexTableUtils&);
 
   // virtual vertexer interface
-  virtual void reset();
-  virtual void initialise(ROframe*);
+  virtual void initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams);
   virtual void computeTracklets();
   virtual void computeTrackletMatching();
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  virtual void computeMCFiltering();
-  virtual void filterTrackletsWithMC(std::vector<Tracklet>&,
-                                     std::vector<Tracklet>&,
-                                     std::vector<int>&,
-                                     std::vector<int>&,
-                                     const int);
-#endif
-  virtual void computeTrackletsPureMontecarlo();
+  // virtual void computeMCFiltering();
+  // virtual void filterTrackletsWithMC(std::vector<Tracklet>&,
+  //                                    std::vector<Tracklet>&,
+  //                                    std::vector<int>&,
+  //                                    std::vector<int>&,
+  //                                    const int);
+
+  // virtual void computeTrackletsPureMontecarlo();
   virtual void computeVertices();
-  virtual void computeHistVertices();
+  // virtual void computeHistVertices();
 
   void updateVertexingParameters(const VertexingParameters& vrtPar);
   VertexingParameters getVertexingParameters() const { return mVrtParams; }
@@ -134,11 +115,10 @@ class VertexerTraits
   std::vector<lightVertex> getVertices() const { return mVertices; }
 
   // utils
-  void setIsGPU(const unsigned char);
-  unsigned char getIsGPU() const;
+  virtual void adoptTimeFrame(TimeFrame* tf);
+  void setIsGPU(const unsigned char isgpu) { mIsGPU = isgpu; };
+  unsigned char getIsGPU() const { return mIsGPU; };
   void dumpVertexerTraits();
-  void arrangeClusters(ROframe*);
-  std::vector<int> getMClabelsLayer(const int layer) const;
 
   void setDebugFlag(VertexerDebug flag, const unsigned char on);
   unsigned char isDebugFlag(const VertexerDebug& flags) const;
@@ -146,53 +126,24 @@ class VertexerTraits
 
  protected:
   unsigned char mIsGPU;
-
-  std::vector<Line> mTracklets;
-  std::vector<Tracklet> mComb01;
-  std::vector<Tracklet> mComb12;
-  std::vector<int> mFoundTracklets01;
-  std::vector<int> mFoundTracklets12;
-  std::array<std::vector<Cluster>, constants::its::LayersNumberVertexer> mClusters;
-
   unsigned int mDBGFlags = 0;
-
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-  StandaloneDebugger* mDebugger;
-  std::vector<std::array<int, 2>> mAllowedTrackletPairs;
-#endif
 
   VertexingParameters mVrtParams;
   IndexTableUtils mIndexTableUtils;
-  std::array<std::vector<int>, LayersNumberVertexer> mIndexTables;
   std::vector<lightVertex> mVertices;
 
   // Frame related quantities
-  std::array<std::vector<unsigned char>, 2> mUsedClusters;
-  o2::its::ROframe* mEvent;
-  uint32_t mROframe;
-
-  std::array<float, 3> mAverageClustersRadii;
-  float mDeltaRadii10, mDeltaRadii21;
-  float mMaxDirectorCosine3;
-  std::vector<ClusterLines> mTrackletClusters;
+  TimeFrame* mTimeFrame = nullptr;
 };
 
-inline void VertexerTraits::initialise(ROframe* event)
+inline void VertexerTraits::initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams)
 {
-  reset();
   if (!mIndexTableUtils.getNzBins()) {
     updateVertexingParameters(mVrtParams);
   }
-  arrangeClusters(event);
+  mTimeFrame->initialise(0, memParams, trackingParams, 3);
   setIsGPU(false);
 }
-
-inline void VertexerTraits::setIsGPU(const unsigned char isgpu)
-{
-  mIsGPU = isgpu;
-}
-
-inline unsigned char VertexerTraits::getIsGPU() const { return mIsGPU; }
 
 inline void VertexerTraits::updateVertexingParameters(const VertexingParameters& vrtPar)
 {
@@ -201,9 +152,6 @@ inline void VertexerTraits::updateVertexingParameters(const VertexingParameters&
   mVrtParams.phiSpan = static_cast<int>(std::ceil(mIndexTableUtils.getNphiBins() * mVrtParams.phiCut /
                                                   constants::math::TwoPi));
   mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * mIndexTableUtils.getInverseZCoordinate(0)));
-  for (auto& table : mIndexTables) {
-    table.resize(mIndexTableUtils.getNphiBins() * mIndexTableUtils.getNzBins() + 1, 0);
-  }
 }
 
 GPUhdi() const int2 VertexerTraits::getPhiBins(float phi, float dPhi)
@@ -228,7 +176,6 @@ GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, c
 
   if (zRangeMax < -utils.getLayerZ(layerIndex + 1) ||
       zRangeMin > utils.getLayerZ(layerIndex + 1) || zRangeMin > zRangeMax) {
-
     return getEmptyBinsRect();
   }
 
@@ -259,8 +206,8 @@ inline unsigned char VertexerTraits::isDebugFlag(const VertexerDebug& flags) con
   return mDBGFlags & static_cast<unsigned int>(flags);
 }
 
-extern "C" VertexerTraits* createVertexerTraits();
+inline void VertexerTraits::adoptTimeFrame(TimeFrame* tf) { mTimeFrame = tf; }
 
 } // namespace its
 } // namespace o2
-#endif /* O2_ITS_TRACKING_VERTEXER_TRAITS_H_ */
+#endif

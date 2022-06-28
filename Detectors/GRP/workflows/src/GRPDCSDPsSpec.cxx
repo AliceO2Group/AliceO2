@@ -27,6 +27,7 @@
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
 #include "DetectorsDCS/DataPointCompositeObject.h"
+#include <TStopwatch.h>
 
 namespace o2
 {
@@ -78,22 +79,22 @@ void GRPDCSDPsDataProcessor::init(o2::framework::InitContext& ic)
                                                         "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_downstream", "LHC_CollimatorPos_TCLIA_4R2_lvdt_right_upstream"};
 
     for (const auto& i : aliasesBFieldDouble) {
-      vect.emplace_back(i, o2::dcs::RAW_DOUBLE);
+      vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
     }
     for (const auto& i : aliasesBFieldBool) {
-      vect.emplace_back(i, o2::dcs::RAW_BOOL);
+      vect.emplace_back(i, o2::dcs::DPVAL_BOOL);
     }
     for (const auto& i : aliasesEnvVar) {
-      vect.emplace_back(i, o2::dcs::RAW_DOUBLE);
+      vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
     }
     for (const auto& i : aliasesLHCIFDouble) {
-      vect.emplace_back(i, o2::dcs::RAW_DOUBLE);
+      vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
     }
     for (const auto& i : aliasesLHCIFCollimators) {
-      vect.emplace_back(i, o2::dcs::RAW_DOUBLE);
+      vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
     }
     for (const auto& i : aliasesLHCIFString) {
-      vect.emplace_back(i, o2::dcs::RAW_STRING);
+      vect.emplace_back(i, o2::dcs::DPVAL_STRING);
     }
   }
 
@@ -103,18 +104,21 @@ void GRPDCSDPsDataProcessor::init(o2::framework::InitContext& ic)
   }
 
   mProcessor = std::make_unique<o2::grp::GRPDCSDPsProcessor>();
-  bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
-  LOG(info) << " ************************* Verbose?" << useVerboseMode;
-  if (useVerboseMode) {
+  mVerbose = ic.options().get<bool>("use-verbose-mode");
+  LOG(info) << " ************************* Verbose?" << mVerbose;
+  if (mVerbose) {
     mProcessor->useVerboseMode();
   }
   mProcessor->init(vect);
   mTimer = HighResClock::now();
+  mReportTiming = ic.options().get<bool>("report-timing") || mVerbose;
 }
 //__________________________________________________________________
 
 void GRPDCSDPsDataProcessor::run(o2::framework::ProcessingContext& pc)
 {
+  mLHCIFupdated = false;
+  TStopwatch sw;
   auto startValidity = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
   auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
   auto timeNow = HighResClock::now();
@@ -125,18 +129,44 @@ void GRPDCSDPsDataProcessor::run(o2::framework::ProcessingContext& pc)
   mProcessor->process(dps);
   Duration elapsedTime = timeNow - mTimer; // in seconds
   if (elapsedTime.count() >= mDPsUpdateInterval || mProcessor->isLHCIFInfoUpdated()) {
+    // after enough time or after something changed, we store the LHCIF part of the DPs:
+    if (elapsedTime.count() >= mDPsUpdateInterval) {
+      if (mVerbose) {
+        LOG(info) << "enough time passed (" << elapsedTime.count() << " s), sending to CCDB LHCIFDPs";
+      }
+    } else {
+      if (mVerbose) {
+        LOG(info) << "sending to CCDB LHCIFDPs since something changed";
+      }
+    }
+    mProcessor->updateLHCIFInfoCCDB();
     sendLHCIFDPsoutput(pc.outputs());
-    mProcessor->resetLHCIFDPs();
+    mProcessor->resetAndKeepLastLHCIFDPs();
+    mLHCIFupdated = true;
+    mProcessor->resetPIDsLHCIF();
+  }
+  if (elapsedTime.count() >= mDPsUpdateInterval) {
+    // after enough time, we store:
+    // collimators:
+    if (mVerbose) {
+      LOG(info) << "enough time passed (" << elapsedTime.count() << " s), sending to CCDB Env and Coll";
+    }
+    mProcessor->updateCollimatorsCCDB();
+    sendCollimatorsDPsoutput(pc.outputs());
+    mProcessor->resetAndKeepLast(mProcessor->getCollimatorsObj().mCollimators);
+    // env vars:
+    mProcessor->updateEnvVarsCCDB();
+    sendEnvVarsDPsoutput(pc.outputs());
+    mProcessor->resetAndKeepLast(mProcessor->getEnvVarsObj().mEnvVars);
     mTimer = timeNow;
+    mProcessor->resetPIDs();
   }
   if (mProcessor->isMagFieldUpdated()) {
     sendMagFieldDPsoutput(pc.outputs());
   }
-  if (mProcessor->isCollimatorsUpdated()) {
-    sendCollimatorsDPsoutput(pc.outputs());
-  }
-  if (mProcessor->isEnvVarsUpdated()) {
-    sendEnvVarsDPsoutput(pc.outputs());
+  sw.Stop();
+  if (mReportTiming) {
+    LOGP(info, "Timing CPU:{:.3e} Real:{:.3e} at slice {}", sw.CpuTime(), sw.RealTime(), pc.services().get<o2::framework::TimingInfo>().timeslice);
   }
 }
 //________________________________________________________________
@@ -145,13 +175,17 @@ void GRPDCSDPsDataProcessor::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
 
   LOG(info) << " ********** End of Stream **********";
-  mProcessor->updateLHCIFInfoCCDB();
-  sendLHCIFDPsoutput(ec.outputs());
-  /*
-  sendMagFieldDPsoutput(ec.outputs());
+  // we force writing to CCDB the entries for which we accumulate values in vectors (we don't do it for the B field
+  // because this is updated every time on change of any of the 4 DPs related to it)
+  if (!mLHCIFupdated) { // the last TF did not update the LHCIF CCDB entry, let's force it
+    mProcessor->updateLHCIFInfoCCDB();
+    sendLHCIFDPsoutput(ec.outputs());
+  }
+  mProcessor->updateCollimatorsCCDB();
   sendCollimatorsDPsoutput(ec.outputs());
+
+  mProcessor->updateEnvVarsCCDB();
   sendEnvVarsDPsoutput(ec.outputs());
-  */
 }
 
 //________________________________________________________________
@@ -243,6 +277,7 @@ DataProcessorSpec getGRPDCSDPsDataProcessorSpec()
     Options{{"ccdb-path", VariantType::String, "http://localhost:8080", {"Path to CCDB"}},
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
             {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
+            {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
             {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};
 }
 

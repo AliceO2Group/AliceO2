@@ -154,6 +154,9 @@ class Spline1DContainer : public FlatObject
   /// Get Xmin
   GPUd() DataT getXmin() const { return mXmin; }
 
+  /// Get Xmax
+  GPUd() DataT getXmax() const { return mXmin + mUmax / mXtoUscale; }
+
   /// Get XtoUscale
   GPUd() DataT getXtoUscale() const { return mXtoUscale; }
 
@@ -333,6 +336,24 @@ class Spline1DSpec<DataT, YdimT, 0> : public Spline1DContainer<DataT>
      float cDr = v2*vm1*knotL.L;
      return cSl*Sl + cSr*Sr + cDl*Dl + cDr*Dr;
     */
+  }
+
+  template <typename T>
+  GPUd() static void getUderivatives(const Knot& knotL, DataT u,
+                                     T& dSl, T& dDl, T& dSr, T& dDr)
+  {
+    /// Get derivatives of the interpolated value {S(u): 1D -> nYdim} at the segment [knotL, next knotR]
+    /// over the spline values Sl, Sr and the slopes Dl, Dr
+    u = u - knotL.u;
+    T v = u * T(knotL.Li); // scaled u
+    T vm1 = v - 1.;
+    T a = u * vm1;
+    T v2 = v * v;
+    dSr = v2 * (3. - 2 * v);
+    dSl = 1. - dSr;
+    dDl = vm1 * a;
+    dDr = v * a;
+    // F(u) = dSl * Sl + dSr * Sr + dDl * Dl + dDr * Dr;
   }
 
   using TBase::convXtoU;

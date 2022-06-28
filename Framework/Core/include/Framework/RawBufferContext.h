@@ -13,6 +13,7 @@
 #define O2_FRAMEWORK_RAWBUFFERCONTEXT_H_
 
 #include "Framework/FairMQDeviceProxy.h"
+#include "Framework/RoutingIndices.h"
 #include "CommonUtils/BoostSerializer.h"
 #include <vector>
 #include <string>
@@ -28,25 +29,25 @@ namespace o2::framework
 class RawBufferContext
 {
  public:
-  RawBufferContext(FairMQDeviceProxy proxy)
+  RawBufferContext(FairMQDeviceProxy& proxy)
     : mProxy{proxy}
   {
   }
   RawBufferContext(RawBufferContext&& other);
 
   struct MessageRef {
-    std::unique_ptr<FairMQMessage> header;
+    std::unique_ptr<fair::mq::Message> header;
     char* payload;
-    std::string channel;
+    RouteIndex routeIndex;
     std::function<std::ostringstream()> serializeMsg;
     std::function<void()> destroyPayload;
   };
 
   using Messages = std::vector<MessageRef>;
 
-  void addRawBuffer(std::unique_ptr<FairMQMessage> header,
+  void addRawBuffer(std::unique_ptr<fair::mq::Message> header,
                     char* payload,
-                    std::string channel,
+                    RouteIndex routeIndex,
                     std::function<std::ostringstream()> serialize,
                     std::function<void()> destructor);
 
@@ -72,8 +73,10 @@ class RawBufferContext
     return mProxy;
   }
 
+  int countDeviceOutputs(bool excludeDPLOrigin);
+
  private:
-  FairMQDeviceProxy mProxy;
+  FairMQDeviceProxy& mProxy;
   Messages mMessages;
 };
 

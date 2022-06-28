@@ -14,8 +14,8 @@
  * @author Andrea Ferrero
  */
 
-#ifndef ALICEO2_MCH_BASE_ORBITINFO_H_
-#define ALICEO2_MCH_BASE_ORBITINFO_H_
+#ifndef O2_MCH_BASE_ORBITINFO_H_
+#define O2_MCH_BASE_ORBITINFO_H_
 
 #include <gsl/span>
 
@@ -57,4 +57,4 @@ bool operator<(const OrbitInfo& o1, const OrbitInfo& o2);
 
 } //namespace mch
 } //namespace o2
-#endif // ALICEO2_MCH_BASE_ORBITINFO_H_
+#endif // O2_MCH_BASE_ORBITINFO_H_

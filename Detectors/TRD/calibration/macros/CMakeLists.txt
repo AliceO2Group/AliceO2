@@ -9,7 +9,31 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+if(BUILD_TESTING)
 o2_add_test_root_macro(checkNoisyMCMs.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsTRD
                                              O2::CCDB
                        LABELS trd)
+endif()
+
+o2_add_test_root_macro(makeTRDCCDBEntryForDCS.C
+                       PUBLIC_LINK_LIBRARIES O2::DetectorsDCS
+                                             O2::CCDB
+                       LABELS trd)
+
+o2_add_test_root_macro(readTRDDCSentries.C
+                       PUBLIC_LINK_LIBRARIES O2::DetectorsDCS
+                                             O2::CCDB
+                       LABELS trd)
+
+o2_add_test_root_macro(readTRDVoltages.C
+                      PUBLIC_LINK_LIBRARIES O2::DetectorsDCS
+                                            O2::DataFormatsTRD
+                                            O2::CCDB
+                      LABELS trd COMPILE_ONLY)
+
+install(
+  FILES makeTRDCCDBEntryForDCS.C
+  readTRDDCSentries.C
+  readTRDVoltages.C
+  DESTINATION share/macro/)

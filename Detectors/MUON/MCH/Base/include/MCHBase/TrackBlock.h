@@ -14,8 +14,8 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#ifndef ALICEO2_MCH_TRACKBLOCK_H_
-#define ALICEO2_MCH_TRACKBLOCK_H_
+#ifndef O2_MCH_TRACKBLOCK_H_
+#define O2_MCH_TRACKBLOCK_H_
 
 #include <iostream>
 
@@ -40,4 +40,4 @@ std::ostream& operator<<(std::ostream& stream, const TrackParamStruct& trackPara
 } // namespace mch
 } // namespace o2
 
-#endif // ALICEO2_MCH_TRACKBLOCK_H_
+#endif // O2_MCH_TRACKBLOCK_H_

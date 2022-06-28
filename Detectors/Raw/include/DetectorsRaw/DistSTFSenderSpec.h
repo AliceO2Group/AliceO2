@@ -19,6 +19,6 @@
 
 namespace o2::raw
 {
-o2::framework::DataProcessorSpec getDistSTFSenderSpec(int maxTF);
+o2::framework::DataProcessorSpec getDistSTFSenderSpec(int maxTF, unsigned subsp);
 }
 #endif

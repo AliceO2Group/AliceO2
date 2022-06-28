@@ -12,7 +12,7 @@
 o2_add_library(CTFWorkflow
                SOURCES src/CTFWriterSpec.cxx
                        src/CTFReaderSpec.cxx
-         PUBLIC_LINK_LIBRARIES O2::Framework
+               PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DetectorsCommonDataFormats
                                      O2::DataFormatsITSMFT
                                      O2::DataFormatsTPC
@@ -29,6 +29,7 @@ o2_add_library(CTFWorkflow
                                      O2::DataFormatsCTP
                                      O2::DataFormatsParameters
                                      O2::ITSMFTWorkflow
+                                     O2::TOFWorkflowUtils
                                      O2::TPCWorkflow
                                      O2::TRDWorkflow
                                      O2::FT0Workflow

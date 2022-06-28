@@ -37,11 +37,20 @@ class CalibLHCphaseTOF
 
   CalibLHCphaseTOF& operator+=(const CalibLHCphaseTOF& other);
 
+  long getStartValidity() const { return mStartValidity; }
+  long getEndValidity() const { return mEndValidity; }
+
+  void setStartValidity(long validity) { mStartValidity = validity; }
+  void setEndValidity(long validity) { mEndValidity = validity; }
+
  private:
   // LHCphase calibration
-  std::vector<std::pair<int, float>> mLHCphase; ///< <timestamp,LHCphase> from which the LHCphase measurement is valid
+  std::vector<std::pair<int, float>> mLHCphase; ///< <timestamp,LHCphase> from which the LHCphase measurement is valid; timestamp in seconds
 
-  ClassDefNV(CalibLHCphaseTOF, 1);
+  long mStartValidity = 0; ///< start validity of the object when put in CCDB
+  long mEndValidity = 0;   ///< end validity of the object when put in CCDB
+
+  ClassDefNV(CalibLHCphaseTOF, 2);
 };
 } // namespace dataformats
 } // namespace o2

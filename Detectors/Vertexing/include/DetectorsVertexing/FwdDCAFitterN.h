@@ -1058,7 +1058,7 @@ inline o2::track::TrackParFwd FwdDCAFitterN<N, Args...>::FwdgetTrackParamAtPCA(i
     trc.propagateParamToZquadratic(z, mBz);
   }
 
-  return trc;
+  return {trc};
 }
 
 //___________________________________________________________________
