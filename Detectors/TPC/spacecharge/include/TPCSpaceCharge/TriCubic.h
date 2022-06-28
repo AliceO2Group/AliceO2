@@ -19,12 +19,14 @@
 
 #include "TPCSpaceCharge/Vector.h"
 #include "TPCSpaceCharge/RegularGrid3D.h"
-#include "TPCSpaceCharge/DataContainer3D.h"
 
 namespace o2
 {
 namespace tpc
 {
+
+template <typename DataT>
+class DataContainer3D;
 
 /// \class TriCubicInterpolator
 /// The TriCubic class represents tricubic interpolation on a regular 3-Dim grid.

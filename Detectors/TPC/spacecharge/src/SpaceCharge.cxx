@@ -180,7 +180,25 @@ void SpaceCharge<DataT>::setChargeDensityFromFormula(const AnalyticalFields<Data
 }
 
 template <typename DataT>
-std::pair<size_t, size_t> SpaceCharge<DataT>::getPhiBinsGapFrame(const Side side) const
+void SpaceCharge<DataT>::setDefaultStaticDistortionsGEMFrameChargeUp(const Side side, const DataT deltaPotential)
+{
+  std::function<DataT(DataT)> deltaPotFormula = [deltaPotential](const DataT) {
+    return deltaPotential;
+  };
+
+  setPotentialBoundaryGEMFrameAlongR(deltaPotFormula, side);
+  setPotentialBoundaryGEMFrameIROCBottomAlongPhi(deltaPotFormula, side);
+  setPotentialBoundaryGEMFrameIROCTopAlongPhi(deltaPotFormula, side);
+  setPotentialBoundaryGEMFrameOROC1BottomAlongPhi(deltaPotFormula, side);
+  setPotentialBoundaryGEMFrameOROC1TopAlongPhi(deltaPotFormula, side);
+  setPotentialBoundaryGEMFrameOROC2BottomAlongPhi(deltaPotFormula, side);
+  setPotentialBoundaryGEMFrameOROC2TopAlongPhi(deltaPotFormula, side);
+  setPotentialBoundaryGEMFrameOROC3BottomAlongPhi(deltaPotFormula, side);
+  setPotentialBoundaryGEMFrameOROC3TopAlongPhi(deltaPotFormula, side);
+}
+
+template <typename DataT>
+size_t SpaceCharge<DataT>::getPhiBinsGapFrame(const Side side) const
 {
   const auto& regInf = Mapper::instance().getPadRegionInfo(0);
   const float localYEdgeIROC = regInf.getPadsInRowRegion(0) / 2 * regInf.getPadWidth();
@@ -192,14 +210,7 @@ std::pair<size_t, size_t> SpaceCharge<DataT>::getPhiBinsGapFrame(const Side side
     nBinsPhiGap = 1;
   }
 
-  const auto globalPosEdgeIROC = Mapper::LocalToGlobal(LocalPosition2D(regInf.getRadiusFirstRow(), -localYEdgeIROC), Sector(0));
-  const auto phiEdge = std::atan(globalPosEdgeIROC.Y() / globalPosEdgeIROC.X());
-  auto nBinsPhiGEMFrame = getNearestPhiVertex(phiEdge - phiGap, side);
-  if (nBinsPhiGEMFrame == 0) {
-    nBinsPhiGEMFrame = 1;
-  }
-
-  return std::pair<size_t, size_t>(nBinsPhiGap, nBinsPhiGEMFrame);
+  return nBinsPhiGap;
 }
 
 template <typename DataT>
@@ -207,17 +218,46 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongR(const std::function<
 {
   const auto radiusStart = std::sqrt(std::pow(GEMFrameParameters<DataT>::LENGTHFRAMEIROCBOTTOM / 2, 2) + std::pow(GEMFrameParameters<DataT>::POSBOTTOM[0], 2));
   const auto rStart = getNearestRVertex(radiusStart, side);
-  const auto radiusEnd = std::sqrt(std::pow(GEMFrameParameters<DataT>::LENGTHFRAMEOROC3TOP / 2, 2) + std::pow(GEMFrameParameters<DataT>::POSTOP[GEMstack::OROC3gem], 2));
-  const auto rEnd = getNearestRVertex(radiusEnd, side);
-
-  const auto nBinsPhi = getPhiBinsGapFrame(side);
   const int verticesPerSector = mParamGrid.NPhiVertices / SECTORSPERSIDE;
-  for (int sector = 0; sector < SECTORSPERSIDE; ++sector) {
-    for (size_t iPhiTmp = 0; iPhiTmp < nBinsPhi.second; ++iPhiTmp) {
-      const size_t iPhiLeft = sector * verticesPerSector + nBinsPhi.first + iPhiTmp;
-      const size_t iPhiRight = (sector + 1) * verticesPerSector - nBinsPhi.first - iPhiTmp;
-      for (size_t iR = rStart; iR < rEnd; ++iR) {
-        const DataT radius = getRVertex(iR, side);
+  const Mapper& mapper = Mapper::instance();
+
+  const auto& regInf = Mapper::instance().getPadRegionInfo(0);
+  const float localYEdgeIROC = regInf.getPadsInRowRegion(0) / 2 * regInf.getPadWidth();
+  const auto globalPosEdgeIROC = Mapper::LocalToGlobal(LocalPosition2D(regInf.getRadiusFirstRow(), -localYEdgeIROC), Sector(0));
+
+  const int stacks = sizeof(GEMFrameParameters<DataT>::POSTOP) / sizeof(GEMFrameParameters<DataT>::POSTOP[0]);
+
+  std::vector<DataT> radii;
+  for (int stack = 0; stack < stacks; ++stack) {
+    int region = 3;
+    if (stack == 1) {
+      region = 5;
+    } else if (stack == 2) {
+      region = 7;
+    } else if (stack == 3) {
+      region = 9;
+    }
+    const auto& regInf = Mapper::instance().getPadRegionInfo(region);
+    const float localYEdge = regInf.getPadsInRowRegion(region) / 2 * regInf.getPadWidth();
+    radii.emplace_back(std::sqrt(std::pow(GEMFrameParameters<DataT>::POSTOP[stack], 2) + std::pow(localYEdge, 2)));
+  }
+
+  for (size_t iR = rStart; iR < mParamGrid.NRVertices - 1; ++iR) {
+    const DataT radius = getRVertex(iR, side);
+    auto const it = std::lower_bound(radii.begin(), radii.end(), radius);
+    const int stack = (it == radii.end()) ? (stacks - 1) : (it - radii.begin());
+
+    // for stack 4 use the the number of phi bins at the edge
+    const auto radiusCompare = (stack == 4) ? GEMFrameParameters<DataT>::POSTOP[stack] : GEMFrameParameters<DataT>::POSTOP[stack] + (GEMFrameParameters<DataT>::POSTOP[stack] - GEMFrameParameters<DataT>::POSTOP[stack]) / 2;
+    for (size_t iPhiTmp = 0; iPhiTmp < getNPhiVertices(); ++iPhiTmp) {
+      const DataT offsetGlobalY = radiusCompare * iPhiTmp * getGridSpacingPhi(side);
+      if (iPhiTmp > 0 && offsetGlobalY > globalPosEdgeIROC.Y()) {
+        break;
+      }
+
+      for (int sector = 0; sector < SECTORSPERSIDE; ++sector) {
+        const size_t iPhiLeft = sector * verticesPerSector + iPhiTmp;
+        const size_t iPhiRight = (sector + 1) * verticesPerSector - iPhiTmp;
         const size_t iZ = mParamGrid.NZVertices - 1;
         mPotential[side](iZ, iR, iPhiLeft) = potentialFunc(radius);
         mPotential[side](iZ, iR, iPhiRight) = potentialFunc(radius);
@@ -227,7 +267,7 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongR(const std::function<
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const GEMstack stack, const bool bottom, const Side side)
+void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const GEMstack stack, const bool bottom, const Side side, const bool outerFrame)
 {
   int region = 0;
   if (bottom) {
@@ -254,8 +294,16 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::functio
 
   const auto& regInf = Mapper::instance().getPadRegionInfo(region);
   const auto radiusFirstRow = regInf.getRadiusFirstRow();
-  const DataT radiusStart = bottom ? GEMFrameParameters<DataT>::POSBOTTOM[stack] : radiusFirstRow + regInf.getPadHeight() * regInf.getNumberOfPadRows();
+  DataT radiusStart = bottom ? GEMFrameParameters<DataT>::POSBOTTOM[stack] : radiusFirstRow + regInf.getPadHeight() * regInf.getNumberOfPadRows();
+  if (bottom && stack != GEMstack::IROCgem) {
+    radiusStart -= GEMFrameParameters<DataT>::WIDTHFRAME;
+  }
   const auto radiusMax = bottom ? radiusFirstRow : GEMFrameParameters<DataT>::POSTOP[stack];
+
+  if (outerFrame) {
+    radiusStart = radiusMax - 0.5;
+  }
+
   auto nVerticesR = std::round((radiusMax - radiusStart) / getGridSpacingR(side));
   if (nVerticesR == 0) {
     nVerticesR = 1;
@@ -265,18 +313,30 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::functio
   const auto nBinsPhi = getPhiBinsGapFrame(side);
   for (int sector = 0; sector < SECTORSPERSIDE; ++sector) {
     const auto offsetPhi = sector * verticesPerSector + verticesPerSector / 2;
-    for (size_t iPhiLocal = 0; iPhiLocal <= verticesPerSector / 2 - nBinsPhi.first; ++iPhiLocal) {
+    for (size_t iPhiLocal = 0; iPhiLocal <= verticesPerSector / 2 - nBinsPhi; ++iPhiLocal) {
       const auto iPhiLeft = offsetPhi + iPhiLocal;
       const auto iPhiRight = offsetPhi - iPhiLocal;
       const DataT phiLeft = getPhiVertex(iPhiLeft, side);
       const DataT phiRight = getPhiVertex(iPhiRight, side);
       const DataT localphi = getPhiVertex(iPhiLocal, side);
       const DataT radiusBottom = radiusStart / std::cos(localphi);
-      const auto rStart = getNearestRVertex(radiusBottom, side);
-      for (size_t iR = rStart; iR < rStart + nVerticesR; ++iR) {
+      auto rStart = getNearestRVertex(radiusBottom, side);
+      const auto nREnd = outerFrame ? mParamGrid.NRVertices - 1 : rStart + nVerticesR;
+
+      if (rStart == 0) {
+        rStart = 1;
+      }
+
+      for (size_t iR = rStart; iR < nREnd; ++iR) {
         const size_t iZ = mParamGrid.NZVertices - 1;
-        mPotential[side](iZ, iR, iPhiLeft) = potentialFunc(phiLeft);
-        mPotential[side](iZ, iR, iPhiRight) = potentialFunc(phiRight);
+        if (!outerFrame) {
+          mPotential[side](iZ, iR, iPhiLeft) = potentialFunc(phiLeft);
+          mPotential[side](iZ, iR, iPhiRight) = potentialFunc(phiRight);
+        } else {
+          const DataT r = getRVertex(iR, side);
+          mPotential[side](iZ, iR, iPhiLeft) = potentialFunc(r);
+          mPotential[side](iZ, iR, iPhiRight) = potentialFunc(r);
+        }
       }
     }
   }
@@ -854,7 +914,7 @@ void SpaceCharge<DataT>::calcLocalDistortionsCorrections(const SpaceCharge<DataT
             break;
         }
       }
-      //extrapolate local distortion/correction to last/first bin using legendre polynoms with x0=0, x1=1, x2=2 and x=-1. This has to be done to ensure correct interpolation in the last,second last/first,second bin!
+      // extrapolate local distortion/correction to last/first bin using legendre polynoms with x0=0, x1=1, x2=2 and x=-1. This has to be done to ensure correct interpolation in the last,second last/first,second bin!
       switch (type) {
         case Type::Corrections:
           mLocalCorrdR[side](0, iR, iPhi) = 3 * (mLocalCorrdR[side](1, iR, iPhi) - mLocalCorrdR[side](2, iR, iPhi)) + mLocalCorrdR[side](3, iR, iPhi);
@@ -1015,7 +1075,7 @@ void SpaceCharge<DataT>::calcLocalDistortionsCorrectionsRK4(const SpaceCharge<Da
             break;
         }
       }
-      //extrapolate local distortion/correction to last/first bin using legendre polynoms with x0=0, x1=1, x2=2 and x=-1. This has to be done to ensure correct interpolation in the last,second last/first,second bin!
+      // extrapolate local distortion/correction to last/first bin using legendre polynoms with x0=0, x1=1, x2=2 and x=-1. This has to be done to ensure correct interpolation in the last,second last/first,second bin!
       switch (type) {
         case Type::Corrections:
           mLocalCorrdR[side](0, iR, iPhi) = 3 * (mLocalCorrdR[side](1, iR, iPhi) - mLocalCorrdR[side](2, iR, iPhi)) + mLocalCorrdR[side](3, iR, iPhi);

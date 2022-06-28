@@ -16,12 +16,12 @@
 ///
 ///
 /// \author  Matthias Kleiner <mkleiner@ikf.uni-frankfurt.de>
+///          Rifki Sadikin <rifki.sadikin@cern.ch> (original code in AliRoot in AliTPCPoissonSolver.h)
 /// \date Aug 21, 2020
 
 #ifndef ALICEO2_TPC_POISSONSOLVER_H_
 #define ALICEO2_TPC_POISSONSOLVER_H_
 
-#include "TPCSpaceCharge/DataContainer3D.h"
 #include "TPCSpaceCharge/RegularGrid3D.h"
 #include "CommonConstants/MathConstants.h"
 #include "TPCSpaceCharge/SpaceChargeParameter.h"
@@ -34,6 +34,9 @@ namespace tpc
 
 template <typename DataT>
 class Vector3D;
+
+template <typename DataT>
+class DataContainer3D;
 
 /// \class PoissonSolver
 /// The PoissonSolver class represents methods to solve the poisson equation.
@@ -214,7 +217,7 @@ class PoissonSolver
   /// \param oldPhiSlice number of Nphi (in phi-direction) for finer grid
   void restrictBoundary3D(Vector& matricesCurrentCharge, const Vector& residue, const int tnRRow, const int tnZColumn, const int newPhiSlice, const int oldPhiSlice) const;
 
-  ///Relaxation operation for multiGrid
+  /// Relaxation operation for multiGrid
   ///   relaxation used 7 stencil in cylindrical coordinate
   ///
   /// Using the following equations
@@ -399,7 +402,7 @@ class PoissonSolver
   ///
   /// Implementation non-recursive W-cycle for 2D
   ///
-  ///Algorithms:
+  /// Algorithms:
   ///
   /// \param gridFrom finest level of grid
   /// \param gridTo coarsest level of grid
