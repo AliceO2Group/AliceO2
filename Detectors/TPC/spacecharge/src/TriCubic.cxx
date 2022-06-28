@@ -15,6 +15,7 @@
 /// \author  Matthias Kleiner <mkleiner@ikf.uni-frankfurt.de>
 
 #include "TPCSpaceCharge/TriCubic.h"
+#include "TPCSpaceCharge/DataContainer3D.h"
 
 #if defined(WITH_OPENMP) || defined(_OPENMP)
 #include <omp.h>

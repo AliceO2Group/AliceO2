@@ -21,6 +21,7 @@
 #include "TPCSpaceCharge/PoissonSolver.h"
 #include "TPCSpaceCharge/SpaceChargeHelpers.h"
 #include "TPCSpaceCharge/PoissonSolverHelpers.h"
+#include "TPCSpaceCharge/DataContainer3D.h"
 
 namespace o2
 {
