@@ -21,6 +21,17 @@
 using HighResClock = std::chrono::high_resolution_clock;
 using namespace o2::tpc::sac;
 
+void DecodedData::setData(const size_t pos, uint32_t time, const DecodedDataFE& decdata, const int feid)
+{
+  data[pos].time = time;
+  auto& currents = data[pos].currents;
+  std::copy(decdata.currents.begin(), decdata.currents.end(), &currents[0] + feid * ChannelsPerFE);
+  if (fes[pos].test(feid)) {
+    LOGP(warning, "FE {} already set at time {}, position {}", feid, time, pos);
+  }
+  fes[pos].set(feid);
+}
+
 //______________________________________________________________________________
 bool Decoder::process(const char* data, size_t size)
 {
@@ -133,13 +144,18 @@ void Decoder::decode(int feid)
   // fmt::print("================ Processing feid {:2} with size {}  =================\n", feid, data.size());
   while (carry < dataSize) {
     if (!aligned) {
-      while (data[carry] != '\n') {
-        if (carry >= dataSize) {
-          break;
+      // check for re-aligning sequence
+      if ((carry == 0) && (data[0] == '\n') && (data[1] == 's')) {
+        carry += 2;
+      } else {
+        while (data[carry] != '\n') {
+          if (carry >= dataSize) {
+            break;
+          }
+          ++carry;
         }
         ++carry;
       }
-      ++carry;
       aligned = true;
     }
     // fmt::print("Checking position {} / {}, {}\n", carry, dataSize, std::string_view(&data[carry], std::min(size_t(20), dataSize - carry)));
@@ -185,7 +201,7 @@ void Decoder::decode(int feid)
         const auto refTime = timeStamp / SampleDistance;
         auto& currentsTime = mDecodedData.data;
         const auto nSamples = currentsTime.size();
-        const auto firstRefTime = (nSamples > 0) ? currentsTime[0].time : 0;
+        auto firstRefTime = (nSamples > 0) ? currentsTime[0].time : refTime;
         auto& refCount = mTSCountFEs[feid].second;
         if ((refCount == 0) && (refTime > 0)) {
           LOGP(info, "Skipping initial data packet {} with time stamp {} for FE {}", mTSCountFEs[feid].first, timeStamp, feid);
@@ -195,14 +211,15 @@ void Decoder::decode(int feid)
           }
           ++refCount;
           if (refTime < firstRefTime) {
-            currentsTime.insert(currentsTime.begin(), firstRefTime - refTime, DataPoint());
+            // LOGP(info, "FE {}: {} < {}, adding {} DataPoint(s)", feid, refTime, firstRefTime, firstRefTime - refTime);
+            mDecodedData.insertFront(firstRefTime - refTime);
+            firstRefTime = refTime;
           } else if (nSamples < refTime - firstRefTime + 1) {
-            currentsTime.resize(refTime - firstRefTime + 1);
+            // LOGP(info, "FE {}: refTime {}, firstRefTime {}, resize from {} to {}", feid, refTime, firstRefTime, currentsTime.size(), refTime - firstRefTime + 1);
+            mDecodedData.resize(refTime - firstRefTime + 1);
           }
-          auto& currentData = currentsTime[refTime - firstRefTime];
-          currentData.time = refTime;
-          auto& currents = currentData.currents;
-          std::copy(decdata.currents.begin(), decdata.currents.end(), &currents[0] + feid * ChannelsPerFE);
+          // LOGP(info, "FE {}: insert refTime {} at pos {}, with firstRefTime {}", feid, refTime, refTime - firstRefTime, firstRefTime);
+          mDecodedData.setData(refTime - firstRefTime, refTime, decdata, feid);
         }
       }
 
@@ -280,12 +297,17 @@ void Decoder::runDecoding()
 
 void Decoder::streamDecodedData()
 {
-  if (mDebugLevel && (mDebugLevel & (uint32_t)DebugFlags::StreamFinalData)) {
+  if (mDebugStream && (mDebugLevel & (uint32_t)DebugFlags::StreamFinalData)) {
     auto refTime = mDecodedData.referenceTime;
-    for (auto& currentData : mDecodedData.data) {
+    for (size_t ientry = 0; ientry < mDecodedData.getNGoodEntries(); ++ientry) {
+      auto& currentData = mDecodedData.data[ientry];
+      auto fes = mDecodedData.fes[ientry].to_ulong();
+      auto nfes = mDecodedData.fes[ientry].count();
       (*mDebugStream) << "c"
                       << "refTime=" << refTime
                       << "values=" << currentData
+                      << "fes=" << fes
+                      << "nfes=" << nfes
                       << "\n";
     }
   }
@@ -293,7 +315,8 @@ void Decoder::streamDecodedData()
 
 void Decoder::finalize()
 {
-  LOGP(info, "finalize");
+  LOGP(info, "Finalize sac::Decoder with {} good / {} remaining entries",
+       mDecodedData.getNGoodEntries(), mDecodedData.data.size());
 
   if (mDebugLevel & (uint32_t)DebugFlags::DumpFullStream) {
     dumpStreams();
@@ -311,7 +334,13 @@ void Decoder::finalize()
 void Decoder::clearDecodedData()
 {
   streamDecodedData();
-  mDecodedData.data.clear();
+  if (mDebugLevel & (uint32_t)DebugFlags::ProcessingInfo) {
+    auto& data = mDecodedData.data;
+    const auto posGood = mDecodedData.getNGoodEntries();
+    LOGP(info, "Clearing data of size {}, firstTS {}, lastTS {}",
+         posGood, data.front().time, (posGood > 0) ? data[posGood - 1].time : 0);
+  }
+  mDecodedData.clearGoodData();
 }
 
 void Decoder::printPacketInfo(const sac::packet& sac)
@@ -354,10 +383,6 @@ void Decoder::dumpStreams()
     outName += fmt::format(".feid_{}.stream.txt", feid);
     std::ofstream fout(outName.data());
     const auto& data = mDataStrings[feid];
-    // fout << data;
     fout << std::string_view(&data[0], data.size());
-    // for (const auto c : data) {
-    // fout << c;
-    //}
   }
 }
