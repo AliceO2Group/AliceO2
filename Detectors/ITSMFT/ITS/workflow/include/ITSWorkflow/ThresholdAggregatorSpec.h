@@ -74,6 +74,7 @@ class ITSThresholdAggregator : public Task
   bool mStopped = false;
 
   o2::dcs::DCSconfigObject_t tuningMerge;
+  o2::dcs::DCSconfigObject_t PIXTYPMerge;
   o2::dcs::DCSconfigObject_t chipDoneMerge;
   short int mRunType = -1;
   // Either "T" for threshold, "V" for VCASN, or "I" for ITHR
@@ -84,6 +85,7 @@ class ITSThresholdAggregator : public Task
   std::string mLHCPeriod;
   // Ccdb url for ccdb upload withing the wf
   std::string mCcdbUrl = "";
+  std::string mCcdbUrlProd = "";
   // Run number
   int mRunNumber = -1;
   // confDB version
