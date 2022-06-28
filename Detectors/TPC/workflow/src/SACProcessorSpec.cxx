@@ -105,6 +105,7 @@ class SACProcessorDevice : public Task
     }
 
     mDecoder.runDecoding();
+    sendData(pc.outputs());
 
     if (mDebugLevel & (uint32_t)sac::Decoder::DebugFlags::TimingInfo) {
       auto endTime = HighResClock::now();
@@ -115,7 +116,8 @@ class SACProcessorDevice : public Task
 
   void sendData(DataAllocator& output)
   {
-    output.snapshot(Output{"TPC", "DECODEDSAC", 0, Lifetime::Timeframe}, mDecoder.getDecodedData());
+    output.snapshot(Output{"TPC", "REFTIMESAC", 0, Lifetime::Timeframe}, mDecoder.getDecodedData().referenceTime);
+    output.snapshot(Output{"TPC", "DECODEDSAC", 0, Lifetime::Timeframe}, mDecoder.getDecodedData().getGoodData());
     mDecoder.clearDecodedData();
   }
 
@@ -123,6 +125,7 @@ class SACProcessorDevice : public Task
   {
     LOGP(info, "endOfStream");
     mDecoder.finalize();
+    sendData(ec.outputs());
   }
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
@@ -151,6 +154,7 @@ o2::framework::DataProcessorSpec getSACProcessorSpec()
                                                                 inputs);
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("TPC", "DECODEDSAC", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TPC", "REFTIMESAC", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "tpc-sac-processor",
