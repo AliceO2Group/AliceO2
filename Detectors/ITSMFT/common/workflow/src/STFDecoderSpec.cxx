@@ -223,15 +223,13 @@ void STFDecoder<Mapping>::updateTimeDependentParams(ProcessingContext& pc)
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     pc.inputs().get<o2::itsmft::NoiseMap*>("noise");
-
-    const auto grp = o2::parameters::GRPObject::loadFrom();
-    if (grp) {
-      mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut(Mapping::getDetID()));
-    } else {
-      throw std::runtime_error("failed to retrieve GRP");
-    }
-
     if (mDoClusters) {
+      const auto grp = o2::parameters::GRPObject::loadFrom();
+      if (grp) {
+        mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut(Mapping::getDetID()));
+      } else {
+        throw std::runtime_error("failed to retrieve GRP");
+      }
       pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
       pc.inputs().get<o2::itsmft::DPLAlpideParam<Mapping::getDetID()>*>("alppar");
       // settings for the fired pixel overflow masking
