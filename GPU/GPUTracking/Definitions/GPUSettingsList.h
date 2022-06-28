@@ -87,6 +87,7 @@ AddOptionRTC(penaltyChi2, float, 13.f, "", 0, "Chi2 penalty for no available TRD
 AddOptionRTC(chi2StrictCut, float, 10.f, "", 0, "Chi2 cut for strict matching mode")
 AddOptionRTC(chi2SeparationCut, float, 2.5f, "", 0, "Minimum difference between chi2 of winner match and chi2 of second best match")
 AddOptionRTC(nSigmaTerrITSTPC, float, 4.f, "", 0, "Number of sigmas for ITS-TPC track time error estimate")
+AddOptionRTC(addTimeRoadITSTPC, float, 0.f, "", 0, "Increase time search road by X us for ITS-TPC tracks")
 AddOptionRTC(extraRoadY, float, 2.f, "", 0, "Addition to search road around track prolongation along Y in cm")
 AddOptionRTC(extraRoadZ, float, 0.f, "", 0, "Addition to search road around track prolongation along Z in cm")
 AddOptionRTC(trkltResRPhiIdeal, float, 0.04f, "", 0, "Optimal tracklet rphi resolution in cm (in case phi of track = lorentz angle)")
