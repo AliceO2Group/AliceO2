@@ -14,7 +14,7 @@
 ///
 /// \author  Matthias Kleiner <matthias.kleiner@cern.ch>
 
-#include "DataFormatsTPC/CalibdEdxTrackTopologySpline.h"
+#include "CalibdEdxTrackTopologySpline.h"
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
 #include "TFile.h"
@@ -23,19 +23,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
-#if !defined(GPUCA_GPUCODE) && defined(GPUCA_STANDALONE)
-CalibdEdxTrackTopologySpline::CalibdEdxTrackTopologySpline()
-  : FlatObject()
-{
-  /// Empty constructor
-}
-#elif !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-CalibdEdxTrackTopologySpline::CalibdEdxTrackTopologySpline()
-  : FlatObject()
-{
-  /// Default constructor
-  setDefaultSplines();
-}
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
 
 CalibdEdxTrackTopologySpline::CalibdEdxTrackTopologySpline(const char* dEdxSplinesFile, const char* name)
   : FlatObject()

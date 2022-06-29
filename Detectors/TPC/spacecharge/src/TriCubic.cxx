@@ -16,7 +16,26 @@
 
 #include "TPCSpaceCharge/TriCubic.h"
 
+#if defined(WITH_OPENMP) || defined(_OPENMP)
+#include <omp.h>
+#else
+static inline int omp_get_thread_num() { return 0; }
+static inline int omp_get_max_threads() { return 1; }
+#endif
+
 using namespace o2::tpc;
+
+template <typename DataT>
+int TriCubicInterpolator<DataT>::getOMPThreadNum()
+{
+  return omp_get_thread_num();
+}
+
+template <typename DataT>
+int TriCubicInterpolator<DataT>::getOMPMaxThreads()
+{
+  return omp_get_max_threads();
+}
 
 template <typename DataT>
 DataT TriCubicInterpolator<DataT>::operator()(const DataT z, const DataT r, const DataT phi, const InterpolationType type) const
@@ -53,7 +72,7 @@ void TriCubicInterpolator<DataT>::initInterpolator(const unsigned int iz, const 
 template <typename DataT>
 DataT TriCubicInterpolator<DataT>::evalDerivative(const DataT dz, const DataT dr, const DataT dphi, const size_t derz, const size_t derr, const size_t derphi) const
 {
-  //TODO optimize this
+  // TODO optimize this
   DataT ret{};
   for (size_t i = derz; i < 4; i++) {
     for (size_t j = derr; j < 4; j++) {
@@ -271,7 +290,7 @@ const Vector<DataT, 3> TriCubicInterpolator<DataT>::processInp(const Vector<Data
   posRel[FZ] = mGridProperties.clampToGridRel(posRel[FZ], FZ);
   posRel[FR] = mGridProperties.clampToGridRel(posRel[FR], FR);
 
-  const Vector<DataT, FDim> index{floor(posRel)};
+  const Vector<DataT, FDim> index{floor_vec(posRel)};
 
   if (!sparse && (!mInitialized[sThreadnum] || !(mLastInd[sThreadnum] == index))) {
     initInterpolator(index[FZ], index[FR], index[FPHI]);
@@ -376,7 +395,7 @@ template <typename DataT>
 bool TriCubicInterpolator<DataT>::findLine(const int iz, const int ir, const int iphi, GridPos& posType) const
 {
   const int iR = 2;
-  //check line
+  // check line
   if (ir == 0) {
     if (iphi == 0) {
       posType = GridPos::LineA;

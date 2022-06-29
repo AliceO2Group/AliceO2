@@ -422,6 +422,7 @@ AddOption(dEdxDisableResidualGainMap, bool, false, "", 0, "Disable loading of re
 AddOption(dEdxDisableResidualGain, bool, false, "", 0, "Disable loading of residual dE/dx gain correction from CCDB")
 AddOption(dEdxUseFullGainMap, bool, false, "", 0, "Enable using the full gain map for correcting the cluster charge during calculation of the dE/dx")
 AddOption(transformationFile, std::string, "", "", 0, "File name of TPC fast transformation map")
+AddOption(transformationSCFile, std::string, "", "", 0, "File name of TPC space charge correction file (for testing/CPU only)")
 AddOption(matLUTFile, std::string, "", "", 0, "File name of material LUT file")
 AddOption(gainCalibFile, std::string, "", "", 0, "File name of TPC pad gain calibration")
 AddOption(gainCalibDisableCCDB, bool, false, "", 0, "Disabling loading the TPC pad gain calibration from the CCDB")

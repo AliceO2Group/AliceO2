@@ -221,6 +221,13 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       mConfig->configCalib.fastTransform = TPCFastTransform::loadFromFile(mConfParam->transformationFile.c_str());
     } else {
       mFastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
+
+      if (mConfParam->transformationSCFile.size()) {
+        LOG(info) << "Reading TPC space charge corrections from file " << mConfParam->transformationSCFile;
+        TFile fInp(mConfParam->transformationSCFile.data(), "READ");
+        mFastTransform->setSlowTPCSCCorrection(fInp);
+      }
+
       mConfig->configCalib.fastTransform = mFastTransform.get();
     }
     if (mConfig->configCalib.fastTransform == nullptr) {

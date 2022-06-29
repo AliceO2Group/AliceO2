@@ -21,13 +21,6 @@
 #include "TPCSpaceCharge/RegularGrid3D.h"
 #include "TPCSpaceCharge/DataContainer3D.h"
 
-#if (defined(WITH_OPENMP) || defined(_OPENMP)) && !defined(__CLING__)
-#include <omp.h>
-#else
-static inline int omp_get_thread_num() { return 0; }
-static inline int omp_get_max_threads() { return 1; }
-#endif
-
 namespace o2
 {
 namespace tpc
@@ -64,7 +57,7 @@ namespace tpc
 ///   float phiSpacing = 2 * M_PI / phivertices;
 ///
 ///   // create grid and datacontainer object
-///   o2::tpc::RegularGrid3D<float, zvertices, rvertices, phivertices> grid3D(zmin, rmin, phimin, zSpacing, rSpacing, phiSpacing);
+///   o2::tpc::RegularGrid3D<float> grid3D(zmin, rmin, phimin, zSpacing, rSpacing, phiSpacing);
 ///   o2::tpc::DataContainer3D<float> data3D(zvertices, rvertices, phivertices)
 ///
 ///   // fill the DataContainer3D with some values
@@ -160,7 +153,13 @@ class TriCubicInterpolator
   int getThreadNum() const { return sThreadnum; }
 
   /// \return performs a check if the interpolator can be used with maximum number of threads
-  bool checkThreadSafety() const { return sNThreads <= omp_get_max_threads(); }
+  bool checkThreadSafety() const { return sNThreads <= getOMPMaxThreads(); }
+
+  /// \return returns omp thread num
+  static int getOMPThreadNum();
+
+  /// \return returns max threads
+  static int getOMPMaxThreads();
 
  private:
   // matrix containing the 'relationship between the derivatives at the corners of the elements and the coefficients'
@@ -237,8 +236,8 @@ class TriCubicInterpolator
   static constexpr unsigned int FPHI = Grid3D::getFPhi();                                                ///< index for phi coordinate
   const DataContainer& mGridData{};                                                                      ///< adress to the data container of the grid
   const Grid3D& mGridProperties{};                                                                       ///< adress to the properties of the grid
-  inline static thread_local const size_t sThreadnum{static_cast<size_t>(omp_get_thread_num())};         ///< save for each thread the thread number to get fast access to the correct array
-  inline static int sNThreads{omp_get_max_threads()};                                                    ///< number of threads the tricubic interpolator can be used with
+  inline static thread_local const size_t sThreadnum{static_cast<size_t>(getOMPThreadNum())};            ///< save for each thread the thread number to get fast access to the correct array
+  inline static int sNThreads{getOMPMaxThreads()};                                                       ///< number of threads the tricubic interpolator can be used with
   std::unique_ptr<Vector<DataT, 64>[]> mCoefficients = std::make_unique<Vector<DataT, 64>[]>(sNThreads); ///< coefficients needed to interpolate a value
   std::unique_ptr<Vector<DataT, FDim>[]> mLastInd = std::make_unique<Vector<DataT, FDim>[]>(sNThreads);  ///< stores the index for the cell, where the coefficients are already evaluated (only the coefficients for the last cell are stored)
   std::unique_ptr<bool[]> mInitialized = std::make_unique<bool[]>(sNThreads);                            ///< sets the flag if the coefficients are evaluated at least once

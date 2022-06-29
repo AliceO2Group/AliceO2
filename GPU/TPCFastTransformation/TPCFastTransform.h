@@ -26,10 +26,37 @@
 #include <string>
 #endif // !GPUCA_GPUCODE
 
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#include "TPCSpaceCharge/SpaceCharge.h"
+#endif
+
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
+
+/// simple struct to hold the space charge object which can be used for CPU reconstruction only
+struct TPCSlowSpaceChargeCorrection {
+
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+  /// getting the corrections for global coordinates
+  void getCorrections(const float gx, const float gy, const float gz, const int slice, float& gdxC, float& gdyC, float& gdzC) const
+  {
+    const o2::tpc::Side side = (slice < o2::tpc::SECTORSPERSIDE) ? o2::tpc::Side::A : o2::tpc::Side::C;
+    mCorr.getCorrections(gx, gy, gz, side, gdxC, gdyC, gdzC);
+  }
+
+  o2::tpc::SpaceCharge<float> mCorr; ///<! reference space charge corrections
+#else
+  /// setting dummy corrections for GPU
+  GPUd() void getCorrections(const float gx, const float gy, const float gz, const int slice, float& gdxC, float& gdyC, float& gdzC) const
+  {
+    gdxC = 0;
+    gdyC = 0;
+    gdzC = 0;
+  }
+#endif
+};
 
 ///
 /// The TPCFastTransform class represents transformation of raw TPC coordinates to XYZ
@@ -74,8 +101,15 @@ class TPCFastTransform : public FlatObject
   /// Assignment operator: disabled to avoid ambiguity. Use cloneFromObject() instead
   TPCFastTransform& operator=(const TPCFastTransform&) CON_DELETE;
 
-  /// Destructor
+/// Destructor
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+  ~TPCFastTransform()
+  {
+    delete mCorrectionSlow;
+  }
+#else
   ~TPCFastTransform() CON_DEFAULT;
+#endif
 
   /// _____________  FlatObject functionality, see FlatObject class for description  ____________
 
@@ -204,6 +238,19 @@ class TPCFastTransform : public FlatObject
 
   static TPCFastTransform* loadFromFile(std::string inpFName = "", std::string name = "");
 
+  /// setting the reference corrections
+  /// \tparam DataTIn data type of the corrections on the root file (float or double)
+  template <typename DataTIn = double>
+  void setSlowTPCSCCorrection(TFile& inpf)
+  {
+    mCorrectionSlow = new TPCSlowSpaceChargeCorrection;
+    mCorrectionSlow->mCorr.setGlobalCorrectionsFromFile<DataTIn>(inpf, o2::tpc::Side::A);
+    mCorrectionSlow->mCorr.setGlobalCorrectionsFromFile<DataTIn>(inpf, o2::tpc::Side::C);
+  }
+
+  /// \return returns the space charge object which is used for the slow correction
+  const auto& getCorrectionSlow() const { return *mCorrectionSlow; }
+
 #endif // !GPUCA_GPUCODE
 
   /// Print method
@@ -253,6 +300,10 @@ class TPCFastTransform : public FlatObject
   float mTOFcorr;
 
   float mPrimVtxZ; ///< Z of the primary vertex, needed for the Time-Of-Flight correction
+
+  /// Correction of (x,u,v) with tricubic interpolator on a regular grid
+  TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///<! reference space charge corrections
+
 #ifndef GPUCA_ALIROOT_LIB
   ClassDefNV(TPCFastTransform, 1);
 #endif
@@ -370,7 +421,30 @@ GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float ti
 
   if (mApplyCorrection) {
     float dx, du, dv;
-    mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
+
+    if (!mCorrectionSlow) {
+      mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
+    } else {
+      float ly, lz;
+      getGeometry().convUVtoLocal(slice, u, v, ly, lz);
+      float dzTOF = 0;
+      getTOFcorrection(slice, row, x, ly, lz, dzTOF);
+      z += dzTOF;
+
+      float gx, gy, gz;
+      getGeometry().convLocalToGlobal(slice, x, ly, lz, gx, gy, gz);
+
+      float gdxC, gdyC, gdzC;
+      mCorrectionSlow->getCorrections(gx, gy, gz, slice, gdxC, gdyC, gdzC);
+      getGeometry().convGlobalToLocal(slice, gdxC, gdyC, gdzC, dx, du, dv);
+
+      if (slice >= 18) {
+        du = -du; // mirror for c-Side
+      } else {
+        dv = -dv; // mirror z for A-Side
+      }
+    }
+
     x += dx;
     u += du;
     v += dv;
