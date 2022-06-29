@@ -266,6 +266,10 @@ void DataRequest::requestTOFClusters(bool mc)
 
 void DataRequest::requestMCHClusters(bool mc)
 {
+  if (mc) {
+    LOG(warn) << "MCH global clusters do not support MC lables, disabling";
+    mc = false;
+  }
   addInput({"clusMCH", "MCH", "GLOBALCLUSTERS", 0, Lifetime::Timeframe});
   addInput({"clusMCHROF", "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe});
   if (mc) {
