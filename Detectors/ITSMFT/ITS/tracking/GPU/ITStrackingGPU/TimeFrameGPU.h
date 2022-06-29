@@ -251,9 +251,6 @@ inline int* TimeFrameGPU<NLayers>::getDeviceExclusiveNFoundLines(const int rofId
 template <int NLayers>
 inline int* TimeFrameGPU<NLayers>::getDeviceCUBBuffer(const size_t rofId)
 {
-  if (rofId >= mNrof) {
-    LOG(error) << "Invalid rofId: " << rofId << "/" << mNrof << ", returning nullptr";
-  }
   return reinterpret_cast<int*>(reinterpret_cast<char*>(mCUBTmpBuffers) + (static_cast<size_t>(rofId * mConfig.tmpCUBBufferSize) & 0xFFFFFFFFFFFFF000));
 }
 

@@ -102,13 +102,9 @@ template <int NLayers>
 template <unsigned char isTracker>
 void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
 {
-  for (int iLayer{0}; iLayer < NLayers; ++iLayer) { // Tracker and vertexer
-    if (iLayer < NLayers - 1) {
-      mTrackletsD[iLayer] = Vector<Tracklet>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
-    }
-    if (iLayer < NLayers - 1) {
-      mTrackletsLookupTablesD[iLayer].resetInt(mClusters[iLayer].size());
-    }
+  for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) { // Tracker and vertexer
+    mTrackletsD[iLayer] = Vector<Tracklet>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
+    mTrackletsLookupTablesD[iLayer].resetInt(mClusters[iLayer].size());
   }
 
   for (auto iComb{0}; iComb < 2; ++iComb) { // Vertexer only

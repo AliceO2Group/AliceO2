@@ -230,7 +230,7 @@ void Vector<T>::resetInt(const size_t size, const int value)
     utils::host::gpuMalloc(reinterpret_cast<void**>(&mDeviceSizePtr), sizeof(int));
   }
 
-  utils::host::gpuMemset(mArrayPtr, value, size);
+  utils::host::gpuMemset(mArrayPtr, value, size * sizeof(int));
   utils::host::gpuMemcpyHostToDevice(mDeviceSizePtr, &size, sizeof(int));
 }
 
