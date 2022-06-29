@@ -1,6 +1,6 @@
 // Copyright 2019-2020 CERN and copyright holders of ALICE O2.
-// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
-// All rights not expressly granted are reserved.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright
+// holders. All rights not expressly granted are reserved.
 //
 // This software is distributed under the terms of the GNU General Public
 // License v3 (GPL Version 3), copied verbatim in the file "COPYING".
@@ -13,22 +13,19 @@
 #include "HMPIDCalibration/HMPIDDCSProcessor.h"
 #include <TCanvas.h>
 
-namespace o2::hmpid
-{
+namespace o2::hmpid {
 
 // initialize map of DPIDs, function is called once in the
 // HMPIDDCSDataProcessorSpec::init() function
-void HMPIDDCSProcessor::init(const std::vector<DPID> pids)
-{
-  for (const auto& it : pids) {
+void HMPIDDCSProcessor::init(const std::vector<DPID> pids) {
+  for (const auto &it : pids) {
     mPids[it] = false;
   }
 }
 
 // process span of Datapoints, function is called repeatedly in the
 // HMPIDDCSDataProcessorSpec::run() function
-void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
-{
+void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps) {
 
   // if there is no entries in span
   if (dps.size() == 0) {
@@ -46,14 +43,14 @@ void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
   }
 
   // itterate over span of datapoints
-  for (const auto& dp : dps) {
-    const auto& el = mPids.find(dp.id);
+  for (const auto &dp : dps) {
+    const auto &el = mPids.find(dp.id);
 
     // check if datapoint is within the defined map of DPs for HMPID
-    if (el == mPids.end()) {
-      LOG(info) << "DP " << dp.id << "Not found, will not be processed";
-      continue;
-    }
+    // if (el == mPids.end()) {
+    //  LOG(info) << "DP " << dp.id << "Not found, will not be processed";
+    //  continue;
+    //}
     // The aliasstring has been processed:
     mPids[dp.id] = true;
 
@@ -75,8 +72,7 @@ void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
 
 // if the string of the dp contains the HMPID-specifier "HMP_",
 // but not the Transparency-specifier
-void HMPIDDCSProcessor::processHMPID(DPCOM dp)
-{
+void HMPIDDCSProcessor::processHMPID(DPCOM dp) {
 
   const std::string alias(dp.id.get_alias());
   const auto hmpidString = alias.substr(alias.length() - 8);
@@ -101,10 +97,10 @@ void HMPIDDCSProcessor::processHMPID(DPCOM dp)
   }
 }
 
-// if the string of the dp contains the Transparency-specifier "HMP_TRANPLANT_MEASURE_"
-void HMPIDDCSProcessor::processTRANS(DPCOM dp)
-{
-  const auto& dpid = dp.id;
+// if the string of the dp contains the Transparency-specifier
+// "HMP_TRANPLANT_MEASURE_"
+void HMPIDDCSProcessor::processTRANS(DPCOM dp) {
+  const auto &dpid = dp.id;
   const std::string alias(dpid.get_alias());
   const auto transparencyString = alias.substr(alias.length() - 9);
 
@@ -151,13 +147,13 @@ void HMPIDDCSProcessor::processTRANS(DPCOM dp)
   }
 }
 
-// ======Fill DPCOM-entries===========================================================
+// ======Fill
+// DPCOM-entries===========================================================
 
 // fill entries in environment pressure DPCOM-vector
-void HMPIDDCSProcessor::fillEnvPressure(const DPCOM& dpcom)
-{
-  auto& dpid = dpcom.id;
-  const auto& type = dpid.get_type();
+void HMPIDDCSProcessor::fillEnvPressure(const DPCOM &dpcom) {
+  auto &dpid = dpcom.id;
+  const auto &type = dpid.get_type();
 
   // check if datatype is as expected
   if (type == DeliveryType::DPVAL_DOUBLE) {
@@ -168,11 +164,10 @@ void HMPIDDCSProcessor::fillEnvPressure(const DPCOM& dpcom)
 }
 
 // fill entries in chamber-pressure DPCOM-vector
-void HMPIDDCSProcessor::fillChPressure(const DPCOM& dpcom)
-{
+void HMPIDDCSProcessor::fillChPressure(const DPCOM &dpcom) {
 
-  auto& dpid = dpcom.id;
-  const auto& type = dpid.get_type();
+  auto &dpid = dpcom.id;
+  const auto &type = dpid.get_type();
 
   if (type == DeliveryType::DPVAL_DOUBLE) {
 
@@ -189,10 +184,9 @@ void HMPIDDCSProcessor::fillChPressure(const DPCOM& dpcom)
 }
 
 // HV in each chamber_section = 7*3 --> will result in Q_thre
-void HMPIDDCSProcessor::fillHV(const DPCOM& dpcom)
-{
-  auto& dpid = dpcom.id;
-  const auto& type = dpid.get_type();
+void HMPIDDCSProcessor::fillHV(const DPCOM &dpcom) {
+  auto &dpid = dpcom.id;
+  const auto &type = dpid.get_type();
 
   if (type == DeliveryType::DPVAL_DOUBLE) {
     const auto chNum = aliasStringToInt(dpid, indexChHv);
@@ -213,10 +207,9 @@ void HMPIDDCSProcessor::fillHV(const DPCOM& dpcom)
 }
 
 // Temp in (T1)  in each chamber_radiator = 7*3
-void HMPIDDCSProcessor::fillTempIn(const DPCOM& dpcom)
-{
-  auto& dpid = dpcom.id;
-  const auto& type = dpid.get_type();
+void HMPIDDCSProcessor::fillTempIn(const DPCOM &dpcom) {
+  auto &dpid = dpcom.id;
+  const auto &type = dpid.get_type();
 
   if (type == DeliveryType::DPVAL_DOUBLE) {
     auto chNum = aliasStringToInt(dpid, indexChTemp);
@@ -238,10 +231,9 @@ void HMPIDDCSProcessor::fillTempIn(const DPCOM& dpcom)
 }
 
 // Temp out (T2), in each chamber_radiator = 7*3
-void HMPIDDCSProcessor::fillTempOut(const DPCOM& dpcom)
-{
-  auto& dpid = dpcom.id;
-  const auto& type = dpid.get_type();
+void HMPIDDCSProcessor::fillTempOut(const DPCOM &dpcom) {
+  auto &dpid = dpcom.id;
+  const auto &type = dpid.get_type();
 
   if (type == DeliveryType::DPVAL_DOUBLE) {
     auto chNum = aliasStringToInt(dpid, indexChTemp);
@@ -253,7 +245,8 @@ void HMPIDDCSProcessor::fillTempOut(const DPCOM& dpcom)
         dpVecTempOut[3 * chNum + radNum].push_back(dpcom);
 
       } else {
-        LOG(debug) << "Radiator Number out of range for TempOut DP : " << radNum;
+        LOG(debug) << "Radiator Number out of range for TempOut DP : "
+                   << radNum;
       }
     } else {
       LOG(debug) << "Chamber Number out of range for TempOut DP : " << chNum;
@@ -265,39 +258,43 @@ void HMPIDDCSProcessor::fillTempOut(const DPCOM& dpcom)
 
 //==== Calculate mean photon energy=============================================
 
-double HMPIDDCSProcessor::procTrans()
-{
+double HMPIDDCSProcessor::procTrans() {
   for (int i = 0; i < 30; i++) {
 
     photEn = calculateWaveLength(i);
 
-    if (photEn < o2::hmpid::Param::ePhotMin() || photEn > o2::hmpid::Param::ePhotMax()) {
+    if (photEn < o2::hmpid::Param::ePhotMin() ||
+        photEn > o2::hmpid::Param::ePhotMax()) {
       LOG(info) << "photon energy out of range" << photEn;
       continue; // if photon energy is out of range
     }
 
-    // ===== evaluate phototube current for argon reference ==============================================================
+    // ===== evaluate phototube current for argon reference
+    // ==============================================================
     refArgon = dpVector2Double(argonRefVec[i], "ARGONREF", i);
     if (refArgon == eMeanDefault) {
       LOG(info) << "refArgon == defaultEMean()";
       return defaultEMean();
     }
 
-    //===== evaluate phototube current for argon cell  ==================================================================
+    //===== evaluate phototube current for argon cell
+    //==================================================================
     cellArgon = dpVector2Double(argonCellVec[i], "ARGONCELL", i);
     if (cellArgon == eMeanDefault) {
       LOG(info) << "cellArgon == defaultEMean()";
       return defaultEMean();
     }
 
-    //====evaluate phototube current for freon reference ================================================================
+    //====evaluate phototube current for freon reference
+    //================================================================
     refFreon = dpVector2Double(freonRefVec[i], "C6F14REFERENCE", i);
     if (refFreon == eMeanDefault) {
       LOG(info) << "refFreon == defaultEMean()";
       return defaultEMean();
     }
 
-    // ==== evaluate phototube current for freon cell ===================================================================
+    // ==== evaluate phototube current for freon cell
+    // ===================================================================
     cellFreon = dpVector2Double(freonCellVec[i], "C6F14CELL", i);
     if (cellFreon == eMeanDefault) {
       LOG(info) << "cellFreon == defaultEMean()";
@@ -305,7 +302,8 @@ double HMPIDDCSProcessor::procTrans()
     }
 
     // evaluate correction factor to calculate trasparency
-    bool isEvalCorrOk = evalCorrFactor(refArgon, cellArgon, refFreon, cellFreon, photEn, i);
+    bool isEvalCorrOk =
+        evalCorrFactor(refArgon, cellArgon, refFreon, cellFreon, photEn, i);
 
     // Returns false if dRefFreon * dRefArgon < 0
     if (!isEvalCorrOk) {
@@ -345,7 +343,8 @@ double HMPIDDCSProcessor::procTrans()
     return defaultEMean();
   }
 
-  if (eMean < o2::hmpid::Param::ePhotMin() || eMean > o2::hmpid::Param::ePhotMax()) {
+  if (eMean < o2::hmpid::Param::ePhotMin() ||
+      eMean > o2::hmpid::Param::ePhotMax()) {
     LOG(info) << " eMean out of range " << eMean;
     return defaultEMean();
   }
@@ -356,15 +355,14 @@ double HMPIDDCSProcessor::procTrans()
 
 // ==== procTrans help-functions =============================
 
-double HMPIDDCSProcessor::defaultEMean()
-{
+double HMPIDDCSProcessor::defaultEMean() {
   LOG(info) << Form(" Mean energy photon calculated ---> %f eV ", eMeanDefault);
   return eMeanDefault;
 }
 
-//==== evaluate wavelenght =======================================================
-double HMPIDDCSProcessor::calculateWaveLength(int i)
-{
+//==== evaluate wavelenght
+//=======================================================
+double HMPIDDCSProcessor::calculateWaveLength(int i) {
   // if there is no entries
   if (waveLenVec[i].size() == 0) {
     LOG(info) << Form("No Data Point values for %i.waveLenght", i);
@@ -377,12 +375,17 @@ double HMPIDDCSProcessor::calculateWaveLength(int i)
   if (dp.id.get_type() == DeliveryType::DPVAL_DOUBLE) {
     lambda = o2::dcs::getValue<double>(dp);
   } else {
-    LOG(info) << Form("Not correct datatype for HMP_TRANPLANT_MEASURE_%i_WAVELENGTH  --> Default E mean used!", i);
+    LOG(info) << Form(
+        "Not correct datatype for HMP_TRANPLANT_MEASURE_%i_WAVELENGTH  --> "
+        "Default E mean used!",
+        i);
     return defaultEMean();
   }
 
   if (lambda < 150. || lambda > 230.) {
-    LOG(info) << Form("Wrong value for HMP_TRANPLANT_MEASURE_%i_WAVELENGTH  --> Default E mean used!", i);
+    LOG(info) << Form("Wrong value for HMP_TRANPLANT_MEASURE_%i_WAVELENGTH  "
+                      "--> Default E mean used!",
+                      i);
     return defaultEMean();
   }
 
@@ -392,12 +395,14 @@ double HMPIDDCSProcessor::calculateWaveLength(int i)
   return photEn;
 }
 
-double HMPIDDCSProcessor::dpVector2Double(std::vector<DPCOM> dpVec, const char* dpString, int i)
-{
+double HMPIDDCSProcessor::dpVector2Double(std::vector<DPCOM> dpVec,
+                                          const char *dpString, int i) {
 
   double dpVal;
   if (dpVec.size() == 0) {
-    LOG(info) << Form("No Data Point values for HMP_TRANPLANT_MEASURE_%s,%i  ---> Default E mean used!", dpString, i);
+    LOG(info) << Form("No Data Point values for HMP_TRANPLANT_MEASURE_%s,%i  "
+                      "---> Default E mean used!",
+                      dpString, i);
     return defaultEMean();
   }
 
@@ -406,32 +411,37 @@ double HMPIDDCSProcessor::dpVector2Double(std::vector<DPCOM> dpVec, const char* 
   if (dp.id.get_type() == DeliveryType::DPVAL_DOUBLE) {
     dpVal = o2::dcs::getValue<double>(dp);
   } else {
-    LOG(info) << Form("Not correct datatype for HMP_TRANPLANT_MEASURE_%s,%i  -----> Default E mean used!", dpString, i);
+    LOG(info) << Form("Not correct datatype for HMP_TRANPLANT_MEASURE_%s,%i  "
+                      "-----> Default E mean used!",
+                      dpString, i);
     return defaultEMean();
   }
   return dpVal;
 }
 
-bool HMPIDDCSProcessor::evalCorrFactor(double dRefArgon, double dCellArgon, double dRefFreon, double dCellFreon, double dPhotEn, int i)
-{
-  // evaluate correction factor to calculate trasparency (Ref. NIMA 486 (2002) 590-609)
+bool HMPIDDCSProcessor::evalCorrFactor(double dRefArgon, double dCellArgon,
+                                       double dRefFreon, double dCellFreon,
+                                       double dPhotEn, int i) {
+  // evaluate correction factor to calculate trasparency (Ref. NIMA 486 (2002)
+  // 590-609)
 
   // Double_t aN1 = AliHMPIDParam::NIdxRad(photEn,tRefCR5);
   // Double_t aN2 = AliHMPIDParam::NMgF2Idx(photEn);
   // Double_t aN3 = 1;                              // Argon Idx
 
-  // Double_t aR1               = ((aN1 - aN2)*(aN1 - aN2))/((aN1 + aN2)*(aN1 + aN2));
-  // Double_t aR2               = ((aN2 - aN3)*(aN2 - aN3))/((aN2 + aN3)*(aN2 + aN3));
-  // Double_t aT1               = (1 - aR1);
-  // Double_t aT2               = (1 - aR2);
-  // Double_t aCorrFactor       = (aT1*aT1)/(aT2*aT2);
+  // Double_t aR1               = ((aN1 - aN2)*(aN1 - aN2))/((aN1 + aN2)*(aN1 +
+  // aN2)); Double_t aR2               = ((aN2 - aN3)*(aN2 - aN3))/((aN2 +
+  // aN3)*(aN2 + aN3)); Double_t aT1               = (1 - aR1); Double_t aT2 =
+  // (1 - aR2); Double_t aCorrFactor       = (aT1*aT1)/(aT2*aT2);
 
   // evaluate 15 mm of thickness C6F14 Trans
 
   aConvFactor = 1.0 - 0.3 / 1.8;
 
   if (dRefFreon * dRefArgon > 0) {
-    aTransRad = TMath::Power((dCellFreon / dRefFreon) / (dCellArgon / dRefArgon) * aCorrFactor[i], aConvFactor);
+    aTransRad = TMath::Power((dCellFreon / dRefFreon) /
+                                 (dCellArgon / dRefArgon) * aCorrFactor[i],
+                             aConvFactor);
   } else {
     LOG(info) << "dRefFreon*dRefArgon<0" << dRefFreon * dRefArgon;
     return false;
@@ -464,8 +474,7 @@ bool HMPIDDCSProcessor::evalCorrFactor(double dRefArgon, double dCellArgon, doub
 
 // will return false if there is no entry in Environment-pressure
 // DPCOM-vector dpVecEnvPress
-std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeEnvPressure()
-{
+std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeEnvPressure() {
   std::unique_ptr<TF1> pEnv;
   if (dpVecEnv.size() != 0) {
 
@@ -485,7 +494,8 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeEnvPressure()
     // envPrFirstTime = 0;
     if (cntEnvPressure == 1) {
       pGrPenv->GetPoint(0, xP, yP);
-      pEnv.reset(new TF1("Penv", Form("%f", yP), envPrFirstTime, envPrLastTime));
+      pEnv.reset(
+          new TF1("Penv", Form("%f", yP), envPrFirstTime, envPrLastTime));
     } else {
       // envPrLastTime -= envPrFirstTime;
       // envPrFirstTime = 0;
@@ -499,8 +509,7 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeEnvPressure()
 }
 
 // returns nullptr if the element in array of DPCOM-vector has no entries
-std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeChPressure(int iCh)
-{
+std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeChPressure(int iCh) {
 
   std::unique_ptr<TF1> pCh;
   if (dpVecCh[iCh].size() != 0) {
@@ -521,10 +530,12 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeChPressure(int iCh)
     // chPrFirstTime = 0;
     if (cntChPressure == 1) {
       pGrP->GetPoint(0, xP, yP);
-      (pCh).reset(new TF1(Form("P%i", iCh), Form("%f", yP), chPrFirstTime, chPrLastTime));
+      (pCh).reset(new TF1(Form("P%i", iCh), Form("%f", yP), chPrFirstTime,
+                          chPrLastTime));
       pArrCh[iCh] = *(pCh.get());
     } else {
-      (pCh).reset(new TF1(Form("P%i", iCh), "[0] + x*[1]", chPrFirstTime, chPrLastTime));
+      (pCh).reset(new TF1(Form("P%i", iCh), "[0] + x*[1]", chPrFirstTime,
+                          chPrLastTime));
       pGrP->Fit(Form("P%i", iCh), "Q");
       pArrCh[iCh] = *(pCh.get());
     }
@@ -536,8 +547,7 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeChPressure(int iCh)
 }
 
 // returns false if the element in array of DPCOM-vector has no entries
-void HMPIDDCSProcessor::finalizeTempOut(int iCh, int iRad)
-{
+void HMPIDDCSProcessor::finalizeTempOut(int iCh, int iRad) {
   if (dpVecTempOut[3 * iCh + iRad].size() != 0) {
     cntTOut = 0;
 
@@ -555,7 +565,8 @@ void HMPIDDCSProcessor::finalizeTempOut(int iCh, int iRad)
     // maxTime -= minTime;
     // minTime = 0;
     std::unique_ptr<TF1> pTout;
-    pTout.reset(new TF1(Form("Tout%i%i", iCh, iRad), "[0]+[1]*x", minTime, maxTime));
+    pTout.reset(
+        new TF1(Form("Tout%i%i", iCh, iRad), "[0]+[1]*x", minTime, maxTime));
 
     if (cntTOut == 1) {
       pGrTOut->GetPoint(0, xP, yP);
@@ -565,8 +576,10 @@ void HMPIDDCSProcessor::finalizeTempOut(int iCh, int iRad)
     } else {
       pGrTOut->Fit(Form("Tout%i%i", iCh, iRad), "R");
     }
-    pTout->SetTitle(Form("Temp-Out Fit Chamber%i Radiator%i; Time [ms];Temp [C]", iCh, iRad));
-    std::vector<TF1>::iterator itTout = arNmean.begin() + 6 * iCh + 2 * iRad + 1;
+    pTout->SetTitle(Form(
+        "Temp-Out Fit Chamber%i Radiator%i; Time [ms];Temp [C]", iCh, iRad));
+    std::vector<TF1>::iterator itTout =
+        arNmean.begin() + 6 * iCh + 2 * iRad + 1;
     arNmean.insert(itTout, *(pTout.get()));
   } else {
     LOG(info) << Form("No entries in temp-out for ch%irad%i", iCh, iRad);
@@ -574,8 +587,7 @@ void HMPIDDCSProcessor::finalizeTempOut(int iCh, int iRad)
 }
 
 // returns false if the element in array of DPCOM-vector has no entries
-void HMPIDDCSProcessor::finalizeTempIn(int iCh, int iRad)
-{
+void HMPIDDCSProcessor::finalizeTempIn(int iCh, int iRad) {
 
   if (dpVecTempIn[3 * iCh + iRad].size() != 0) {
     cntTin = 0;
@@ -594,7 +606,8 @@ void HMPIDDCSProcessor::finalizeTempIn(int iCh, int iRad)
     // maxTime -= minTime;
     // minTime = 0;
     std::unique_ptr<TF1> pTin;
-    pTin.reset(new TF1(Form("Tin%i%i", iCh, iRad), "[0]+[1]*x", minTime, maxTime));
+    pTin.reset(
+        new TF1(Form("Tin%i%i", iCh, iRad), "[0]+[1]*x", minTime, maxTime));
 
     if (cntTin == 1) {
       pGrTIn->GetPoint(0, xP, yP);
@@ -604,7 +617,8 @@ void HMPIDDCSProcessor::finalizeTempIn(int iCh, int iRad)
       pGrTIn->Fit(Form("Tin%i%i", iCh, iRad), "Q");
     }
 
-    pTin->SetTitle(Form("Temp-In Fit Chamber%i Radiator%i; Time [ms]; Temp [C]", iCh, iRad));
+    pTin->SetTitle(Form("Temp-In Fit Chamber%i Radiator%i; Time [ms]; Temp [C]",
+                        iCh, iRad));
     std::vector<TF1>::iterator itTin = arNmean.begin() + 6 * iCh + 2 * iRad;
     arNmean.insert(itTin, *(pTin.get()));
 
@@ -614,8 +628,7 @@ void HMPIDDCSProcessor::finalizeTempIn(int iCh, int iRad)
 }
 
 // returns false if the element in array of DPCOM-vector has no entries
-std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeHv(int iCh, int iSec)
-{
+std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeHv(int iCh, int iSec) {
   std::unique_ptr<TF1> pHvTF;
   if (dpVecHV[3 * iCh + iSec].size() != 0) {
 
@@ -635,10 +648,12 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeHv(int iCh, int iSec)
     // hvFirstTime = 0;
     if (cntHV == 1) {
       pGrHV->GetPoint(0, xP, yP);
-      (pHvTF).reset(new TF1(Form("HV%i_%i", iCh, iSec), Form("%f", yP), hvFirstTime, hvLastTime));
+      (pHvTF).reset(new TF1(Form("HV%i_%i", iCh, iSec), Form("%f", yP),
+                            hvFirstTime, hvLastTime));
       pArrHv[3 * iCh + iSec] = *(pHvTF.get());
     } else {
-      (pHvTF).reset(new TF1(Form("HV%i_%i", iCh, iSec), "[0]+x*[1]", hvFirstTime, hvLastTime));
+      (pHvTF).reset(new TF1(Form("HV%i_%i", iCh, iSec), "[0]+x*[1]",
+                            hvFirstTime, hvLastTime));
       pGrHV->Fit(Form("HV%i_%i", iCh, iSec), "Q");
       pArrHv[3 * iCh + iSec] = *(pHvTF.get());
     }
@@ -652,8 +667,7 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeHv(int iCh, int iSec)
 // Process all arrays of DPCOM-vectors, perform fits
 // Called At the end of the Stream of DPs, in
 // HMPIDDCSDataProcessorSpec::endOfStream() function
-void HMPIDDCSProcessor::finalize()
-{
+void HMPIDDCSProcessor::finalize() {
 
   std::unique_ptr<TF1> pEnv = finalizeEnvPressure();
   for (int iCh = 0; iCh < 7; iCh++) {
@@ -675,18 +689,21 @@ void HMPIDDCSProcessor::finalize()
       // only fill if envP, chamP and HV datapoints are all fetched
       if (pEnv != nullptr && pChPres != nullptr && pHV != nullptr) {
 
-        const char* hvChar = (pArrHv[3 * iCh + iSec]).GetName();
-        const char* chChar = (pArrCh[iCh]).GetName();
-        const char* envChar = (pEnv.get())->GetName();
-        const char* fFormula = "3*10^(3.01e-3*%s - 4.72)+170745848*exp(-(%s+%s)*0.0162012)";
-        const char* fName = Form(fFormula, hvChar, chChar, envChar);
+        const char *hvChar = (pArrHv[3 * iCh + iSec]).GetName();
+        const char *chChar = (pArrCh[iCh]).GetName();
+        const char *envChar = (pEnv.get())->GetName();
+        const char *fFormula =
+            "3*10^(3.01e-3*%s - 4.72)+170745848*exp(-(%s+%s)*0.0162012)";
+        const char *fName = Form(fFormula, hvChar, chChar, envChar);
 
         auto minTime = std::max({envPrFirstTime, hvFirstTime, chPrFirstTime});
         auto maxTime = std::min({envPrLastTime, hvLastTime, chPrLastTime});
 
         std::unique_ptr<TF1> pQthre;
-        pQthre.reset(new TF1(Form("HMP_QthreC%iS%i", iCh, iSec), fName, minTime, maxTime));
-        pQthre->SetTitle(Form("Charge-Threshold Ch%iSec%i; Time [mS]; Threshold ", iCh, iSec));
+        pQthre.reset(new TF1(Form("HMP_QthreC%iS%i", iCh, iSec), fName, minTime,
+                             maxTime));
+        pQthre->SetTitle(Form(
+            "Charge-Threshold Ch%iSec%i; Time [mS]; Threshold ", iCh, iSec));
 
         std::vector<TF1>::iterator itQthre = arQthre.begin() + 6 * iCh + iSec;
 
@@ -703,7 +720,8 @@ void HMPIDDCSProcessor::finalize()
   double eMean = procTrans();
 
   std::unique_ptr<TF1> pPhotMean;
-  pPhotMean.reset(new TF1("HMP_PhotEmean", Form("%f", eMean), 0, mTimeEMean.last - mTimeEMean.first));
+  pPhotMean.reset(new TF1("HMP_PhotEmean", Form("%f", eMean), 0,
+                          mTimeEMean.last - mTimeEMean.first));
   std::vector<TF1>::iterator itArNmean = arNmean.begin() + 42;
 
   pPhotMean->SetTitle(Form("HMP_PhotEmean; Time [mS]; Photon Energy [eV]"));
@@ -719,14 +737,18 @@ void HMPIDDCSProcessor::finalize()
   md["responsible"] = "CHANGE RESPONSIBLE";
 
   // Refractive index (T_out, T_in, mean photon energy);
-  o2::calibration::Utils::prepareCCDBobjectInfo(arNmean, mccdbRefInfo, "HMP/Calib/RefIndex", md, mStartValidity, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  o2::calibration::Utils::prepareCCDBobjectInfo(
+      arNmean, mccdbRefInfo, "HMP/Calib/RefIndex", md, mStartValidity,
+      o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
   LOG(info) << "mStartValidity = " << mStartValidity;
   // charge threshold;
-  o2::calibration::Utils::prepareCCDBobjectInfo(arQthre, mccdbChargeInfo, "HMP/Calib/ChargeCut", md, mStartValidity, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+  o2::calibration::Utils::prepareCCDBobjectInfo(
+      arQthre, mccdbChargeInfo, "HMP/Calib/ChargeCut", md, mStartValidity,
+      o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
 }
 
-uint64_t HMPIDDCSProcessor::processFlags(const uint64_t flags, const char* pid)
-{
+uint64_t HMPIDDCSProcessor::processFlags(const uint64_t flags,
+                                         const char *pid) {
 
   // function to process the flag. the return code zero means that all is fine.
   // anything else means that there was an issue
@@ -744,8 +766,7 @@ uint64_t HMPIDDCSProcessor::processFlags(const uint64_t flags, const char* pid)
 
 // extract string from DPID, convert char at specified element in string
 // to int
-int HMPIDDCSProcessor::aliasStringToInt(DPID dpid, std::size_t startIndex)
-{
+int HMPIDDCSProcessor::aliasStringToInt(DPID dpid, std::size_t startIndex) {
 
   const std::string inputString(dpid.get_alias());
   char stringPos = inputString.at(startIndex);

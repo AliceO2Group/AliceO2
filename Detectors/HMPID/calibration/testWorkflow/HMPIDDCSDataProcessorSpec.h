@@ -1,6 +1,6 @@
 // Copyright 2019-2020 CERN and copyright holders of ALICE O2.
-// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
-// All rights not expressly granted are reserved.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright
+// holders. All rights not expressly granted are reserved.
 //
 // This software is distributed under the terms of the GNU General Public
 // License v3 (GPL Version 3), copied verbatim in the file "COPYING".
@@ -15,31 +15,29 @@
 /// @file   DCSHMPIDDataProcessorSpec.h
 /// @brief  HMPID Processor for DCS Data Points
 
-#include <unistd.h>
+#include "DetectorsDCS/AliasExpander.h"
+#include "DetectorsDCS/DataPointCompositeObject.h"
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
-#include "DetectorsDCS/DataPointCompositeObject.h"
 #include "DetectorsDCS/DeliveryType.h"
-#include "DetectorsDCS/AliasExpander.h"
 #include "DetectorsDCS/RunStatusChecker.h"
+#include <unistd.h>
 
 #include "HMPIDCalibration/HMPIDDCSProcessor.h"
 
-#include "DetectorsCalibration/Utils.h"
-#include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
+#include "CCDB/CcdbApi.h"
+#include "DataFormatsParameters/GRPECSObject.h"
+#include "DetectorsCalibration/Utils.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "Framework/DeviceSpec.h"
-#include "Framework/WorkflowSpec.h"
 #include "Framework/ControlService.h"
+#include "Framework/DeviceSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/Task.h"
-#include "DataFormatsParameters/GRPECSObject.h"
+#include "Framework/WorkflowSpec.h"
 
-namespace o2
-{
-namespace hmpid
-{
+namespace o2 {
+namespace hmpid {
 
 using DPID = o2::dcs::DataPointIdentifier;
 using DPVAL = o2::dcs::DataPointValue;
@@ -52,33 +50,36 @@ using Duration = std::chrono::duration<double, std::ratio<1, 1>>;
 using namespace o2::framework;
 using RunStatus = o2::dcs::RunStatusChecker::RunStatus;
 
-class HMPIDDCSDataProcessor : public o2::framework::Task
-{
- public:
-  void init(o2::framework::InitContext& ic) final
-  {
+class HMPIDDCSDataProcessor : public o2::framework::Task {
+public:
+  void init(o2::framework::InitContext &ic) final {
     mCheckRunStartStop = ic.options().get<bool>("follow-hmpid-run");
-
+    LOGP(info, "mCheckRunStartStop set {} ", mCheckRunStartStop);
     std::vector<DPID> vect;
 
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
+    LOGP(info, "useCCDBtoConfigure set {} ", useCCDBtoConfigure);
     if (useCCDBtoConfigure) {
       LOG(info) << "Configuring via CCDB";
       std::string ccdbpath = ic.options().get<std::string>("ccdb-path");
-      auto& mgr = CcdbManager::instance();
+      auto &mgr = CcdbManager::instance();
       mgr.setURL(ccdbpath);
       CcdbApi api;
       api.init(mgr.getURL());
-      long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-      std::unordered_map<DPID, std::string>* dpid2DataDesc = mgr.getForTimeStamp<std::unordered_map<DPID, std::string>>("HMP/Config/DCSDPconfig", ts);
-      for (auto& i : *dpid2DataDesc) {
+      long ts = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::system_clock::now().time_since_epoch())
+                    .count();
+      std::unordered_map<DPID, std::string> *dpid2DataDesc =
+          mgr.getForTimeStamp<std::unordered_map<DPID, std::string>>(
+              "HMP/Config/DCSDPconfig", ts);
+      for (auto &i : *dpid2DataDesc) {
         vect.push_back(i.first);
       }
     } else {
       LOG(info) << "Configuring via hardcoded strings";
       std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
 
-      for (const auto& i : expaliases) {
+      for (const auto &i : expaliases) {
         vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
         // LOG(info) << i;
       }
@@ -99,45 +100,80 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
     }
     mProcessor->init(vect);
     mTimer = HighResClock::now();
+
+    auto timeNow = HighResClock::now();
   }
 
   //==========================================================================
 
-  void run(o2::framework::ProcessingContext& pc) final
-  {
+  void run(o2::framework::ProcessingContext &pc) final {
+
     if (mCheckRunStartStop) {
-      const auto* grp = mRunChecker.check(); // check if there is a run with HMP
+      const auto *grp = mRunChecker.check(); // check if there is a run with HMP
       // this is an example of what it will return
       if (mRunChecker.getRunStatus() == RunStatus::NONE) {
         LOGP(info, "No run with is ongoing or finished");
-      } else if (mRunChecker.getRunStatus() == RunStatus::START) { // saw new run with wanted detectors
+      } else if (mRunChecker.getRunStatus() ==
+                 RunStatus::START) { // saw new run with wanted detectors
         LOGP(info, "Run {} has started", mRunChecker.getFollowedRun());
         grp->print();
-      } else if (mRunChecker.getRunStatus() == RunStatus::ONGOING) { // run which was already seen is still ongoing
+        mProcessor->setRunNumberFromGRP(
+            mRunChecker.getFollowedRun()); // ef: just the same as for emcal?
+      } else if (mRunChecker.getRunStatus() ==
+                 RunStatus::ONGOING) { // run which was already seen is still
+                                       // ongoing
         LOGP(info, "Run {} is still ongoing", mRunChecker.getFollowedRun());
-      } else if (mRunChecker.getRunStatus() == RunStatus::STOP) { // run which was already seen was stopped (EOR seen)
+      } else if (mRunChecker.getRunStatus() ==
+                 RunStatus::STOP) { // run which was already seen was stopped
+                                    // (EOR seen)
         LOGP(info, "Run {} was stopped", mRunChecker.getFollowedRun());
       }
+    } else {
+      mProcessor->setRunNumberFromGRP(-2); // ef: just the same as for emcal?
     }
-
-    auto startValidity = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
-
-    auto timeNow = HighResClock::now();
 
     // process datapoints:
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
     mProcessor->process(dps);
-    if (startValidity == 0xffffffffffffffff) {                                                                   // it means it is not set
-      startValidity = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
+
+    //
+    // auto startValidity =
+    // DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+
+    // mProcessor->setStartValidity(startValidity); // works
+
+    // ef: something like this? : (check if run has started)
+    if (mCheckRunStartStop &&
+        (mRunChecker.getRunStatus() == RunStatus::START)) {
+      // ef: has to add something in case mCheckRunStartStop is false?
+      // also, mCheckRunStartStop never runs in simulation
+
+      auto startValidity = DataRefUtils::getHeader<DataProcessingHeader *>(
+                               pc.inputs().getFirstValid(true))
+                               ->creation;
+      mProcessor->setStartValidity(startValidity);
     }
 
-    mProcessor->setStartValidity(startValidity);
+    // ef: something like this? : (send objects when run is ending)
+    if (mCheckRunStartStop && (mRunChecker.getRunStatus() == RunStatus::STOP)) {
+      mProcessor->finalize();
+      //  ef : prepareCCDBObjectInfo is already called in finalize()-function
+
+      sendChargeThresOutput(pc.outputs());
+      sendRefIndexOutput(pc.outputs());
+      // ef: need to also make a function which clears all the vectors? after
+      // the
+      //     CCDB-objects are sent?
+      mProcessor->clearCCDBObjects(); // clears the vectors
+
+      // ef : should the unordered map of DPs also be cleared?
+      // (should init() in this class then be called?)
+    }
   }
 
   //==========================================================================
 
-  void endOfStream(o2::framework::EndOfStreamContext& ec) final
-  {
+  void endOfStream(o2::framework::EndOfStreamContext &ec) final {
     mProcessor->finalize();
 
     sendChargeThresOutput(ec.outputs());
@@ -146,47 +182,59 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
 
   //==========================================================================
 
- private:
+private:
   // fill CCDB with ChargeThresh (arQthre)
-  void sendChargeThresOutput(o2::framework::DataAllocator& output)
-  {
-    const auto& payload = mProcessor->getChargeCutObj();
-    auto& info = mProcessor->getHmpidChargeInfo();
+  void sendChargeThresOutput(o2::framework::DataAllocator &output) {
+    const auto &payload = mProcessor->getChargeCutObj();
+    auto &info = mProcessor->getHmpidChargeInfo();
 
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-              << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ChargeCut", 0}, *image.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ChargeCut", 0}, info);
+    LOG(info) << "Sending object " << info.getPath() << "/"
+              << info.getFileName() << " of size " << image->size()
+              << " bytes, valid for " << info.getStartValidityTimestamp()
+              << " : " << info.getEndValidityTimestamp();
+    output.snapshot(
+        Output{o2::calibration::Utils::gDataOriginCDBPayload, "ChargeCut", 0},
+        *image.get());
+    output.snapshot(
+        Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ChargeCut", 0},
+        info);
   }
 
   // fill CCDB with RefIndex (arrMean)
-  void sendRefIndexOutput(o2::framework::DataAllocator& output)
-  {
+  void sendRefIndexOutput(o2::framework::DataAllocator &output) {
     // fill CCDB with RefIndex (std::vector<TF1> arrMean)
-    const auto& payload = mProcessor->getRefIndexObj();
-    auto& info = mProcessor->getccdbRefInfo();
+    const auto &payload = mProcessor->getRefIndexObj();
+    auto &info = mProcessor->getccdbRefInfo();
 
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-              << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+    LOG(info) << "Sending object " << info.getPath() << "/"
+              << info.getFileName() << " of size " << image->size()
+              << " bytes, valid for " << info.getStartValidityTimestamp()
+              << " : " << info.getEndValidityTimestamp();
 
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "RefIndex", 0}, *image.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "RefIndex", 0}, info);
+    output.snapshot(
+        Output{o2::calibration::Utils::gDataOriginCDBPayload, "RefIndex", 0},
+        *image.get());
+    output.snapshot(
+        Output{o2::calibration::Utils::gDataOriginCDBWrapper, "RefIndex", 0},
+        info);
   }
 
-  std::vector<std::string> aliases =
-    {"HMP_ENV_PENV",
-     "HMP_MP[0..6]_GAS_PMWPC",
-     "HMP_MP[0..6]_LIQ_LOOP_RAD_[0..2]_IN_TEMP",
-     "HMP_MP[0..6]_LIQ_LOOP_RAD_[0..2]_OUT_TEMP",
-     "HMP_MP_[0..6]_SEC_[0..5]_HV_VMON",
-     "HMP_TRANPLANT_MEASURE_[0..29]_WAVELENGHT",
-     "HMP_TRANPLANT_MEASURE_[0..29]_ARGONREFERENCE",
-     "HMP_TRANPLANT_MEASURE_[0..29]_ARGONCELL",
-     "HMP_TRANPLANT_MEASURE_[0..29]_C6F14REFERENCE",
-     "HMP_TRANPLANT_MEASURE_[0..29]_C6F14CELL"};
+  std::vector<std::string> aliases = {
+      "HMP_ENV_PENV",
+      "HMP_MP[0..6]_GAS_PMWPC",
+      "HMP_MP[0..6]_LIQ_LOOP_RAD_[0..2]_IN_TEMP",
+      "HMP_MP[0..6]_LIQ_LOOP_RAD_[0..2]_OUT_TEMP",
+      "HMP_MP_[0..6]_SEC_[0..5]_HV_VMON",
+      "HMP_TRANPLANT_MEASURE_[0..29]_WAVELENGHT",
+      "HMP_TRANPLANT_MEASURE_[0..29]_ARGONREFERENCE",
+      "HMP_TRANPLANT_MEASURE_[0..29]_ARGONCELL",
+      "HMP_TRANPLANT_MEASURE_[0..29]_C6F14REFERENCE",
+      "HMP_TRANPLANT_MEASURE_[0..29]_C6F14CELL"
+      "HMP_RUNNUMBER"};
 
+  bool isRunStarted = false;
   bool mCheckRunStartStop = false;
   o2::dcs::RunStatusChecker mRunChecker{o2::detectors::DetID::getMask("HMP")};
 
@@ -197,30 +245,50 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
 }; // end class HMPIDDCSDataProcessor
 } // namespace hmpid
 
-namespace framework
-{
+namespace framework {
 
-o2::framework::DataProcessorSpec getHMPIDDCSDataProcessorSpec()
-{
+o2::framework::DataProcessorSpec getHMPIDDCSDataProcessorSpec() {
 
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ChargeCut"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ChargeCut"}, Lifetime::Sporadic);
+  outputs.emplace_back(
+      ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload,
+                              "ChargeCut"},
+      Lifetime::Sporadic);
+  outputs.emplace_back(
+      ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper,
+                              "ChargeCut"},
+      Lifetime::Sporadic);
 
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "RefIndex"}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "RefIndex"}, Lifetime::Sporadic);
+  outputs.emplace_back(
+      ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload,
+                              "RefIndex"},
+      Lifetime::Sporadic);
+  outputs.emplace_back(
+      ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper,
+                              "RefIndex"},
+      Lifetime::Sporadic);
 
   return o2::framework::DataProcessorSpec{
-    "hmp-dcs-data-processor",
-    Inputs{{"input", "DCS", "HMPDATAPOINTS"}},
-    outputs,
-    AlgorithmSpec{adaptFromTask<o2::hmpid::HMPIDDCSDataProcessor>()},
-    Options{{"ccdb-path", VariantType::String, "localhost:8080", {"Path to CCDB"}},
-            {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
-            {"follow-hmpid-run", VariantType::Bool, false, {"Check HMPID runs SOR/EOR"}},
-            {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}}}};
+      "hmp-dcs-data-processor", Inputs{{"input", "DCS", "HMPDATAPOINTS"}},
+      outputs, AlgorithmSpec{adaptFromTask<o2::hmpid::HMPIDDCSDataProcessor>()},
+      Options{{"ccdb-path",
+               VariantType::String,
+               "localhost:8080",
+               {"Path to CCDB"}},
+              {"use-ccdb-to-configure",
+               VariantType::Bool,
+               false,
+               {"Use CCDB to configure"}},
+              {"follow-hmpid-run",
+               VariantType::Bool,
+               false,
+               {"Check HMPID runs SOR/EOR"}},
+              {"use-verbose-mode",
+               VariantType::Bool,
+               false,
+               {"Use verbose mode"}}}};
 }
 
 } // namespace framework
