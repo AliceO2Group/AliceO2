@@ -1575,7 +1575,7 @@ typename C::type getSingleRowData(arrow::Table* table, T& rowIterator, uint64_t 
 }
 
 template <typename T, typename... Cs>
-std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, uint64_t ci, uint64_t ai, uint64_t globalIndex)
+std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, framework::pack<Cs...>, uint64_t ci, uint64_t ai, uint64_t globalIndex)
 {
   return std::make_tuple(getSingleRowData<T, Cs>(table, rowIterator, ci, ai, globalIndex)...);
 }
