@@ -965,7 +965,12 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   // to be completed. In the case of data source devices, as they do not have
   // real data input channels, they have to signal EndOfStream themselves.
   context.allDone = std::any_of(context.deviceContext->state->inputChannelInfos.begin(), context.deviceContext->state->inputChannelInfos.end(), [](const auto& info) {
-    return info.parts.fParts.empty() == true && info.state != InputChannelState::Pull;
+    if (info.channel) {
+      LOGP(debug, "Input channel {}{} has {} parts left and is in state {}.", info.channel->GetName(), (info.id.value == ChannelIndex::INVALID ? " (non DPL)" : ""), info.parts.fParts.size(), (int)info.state);
+    } else {
+      LOGP(debug, "External channel {} is in state {}.", info.id.value, (int)info.state);
+    }
+    return (info.parts.fParts.empty() == true && info.state != InputChannelState::Pull);
   });
 
   // Whether or not all the channels are completed
@@ -1014,6 +1019,9 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
         DataProcessingDevice::handleData(context, info);
       }
       LOGP(debug, "Flushing channel {} which is in state {} and has {} parts still pending.", channelSpec.name, (int)info.state, info.parts.Size());
+      continue;
+    }
+    if (info.channel == nullptr) {
       continue;
     }
     auto& socket = info.channel->GetSocket();
