@@ -34,24 +34,6 @@ void expandConstantBinning(std::vector<double> const& bins, std::vector<double>&
     }
   }
 }
-
-int getOverflowShift(bool ignoreOverflows)
-{
-  return ignoreOverflows ? -1 : 1;
-}
-
-// Note: Overflow / underflow bin -1 is not included
-int getBinsCount(std::vector<double> const& bins, bool ignoreOverflows)
-{
-  if (bins.size() == 0) {
-    return 0;
-  }
-  if (bins[0] == VARIABLE_WIDTH) {
-    return bins.size() - 1 + getOverflowShift(ignoreOverflows);
-  }
-  return bins[0] + getOverflowShift(ignoreOverflows);
-}
-
 } // namespace binning_helpers
 
 template <std::size_t N>
@@ -68,13 +50,13 @@ struct BinningPolicyBase {
   int getAllBinsCount() const
   {
     if constexpr (N == 1) {
-      return binning_helpers::getBinsCount(mBins[0], mIgnoreOverflows);
+      return getBinsCount(mBins[0]);
     }
     if constexpr (N == 2) {
-      return binning_helpers::getBinsCount(mBins[0], mIgnoreOverflows) * binning_helpers::getBinsCount(mBins[1], mIgnoreOverflows);
+      return getBinsCount(mBins[0]) * getBinsCount(mBins[1]);
     }
     if constexpr (N == 2) {
-      return binning_helpers::getBinsCount(mBins[0], mIgnoreOverflows) * binning_helpers::getBinsCount(mBins[1], mIgnoreOverflows) * binning_helpers::getBinsCount(mBins[2], mIgnoreOverflows);
+      return getBinsCount(mBins[0]) * getBinsCount(mBins[1]) * getBinsCount(mBins[2]);
     }
     return -1;
   }
@@ -82,7 +64,7 @@ struct BinningPolicyBase {
   // Note: Overflow / underflow bin -1 is not included
   int getXBinsCount() const
   {
-    return binning_helpers::getBinsCount(mBins[0], mIgnoreOverflows);
+    return getBinsCount(mBins[0]);
   }
 
   // Note: Overflow / underflow bin -1 is not included
@@ -91,7 +73,7 @@ struct BinningPolicyBase {
     if constexpr (N == 1) {
       return 0;
     }
-    return binning_helpers::getBinsCount(mBins[1], mIgnoreOverflows);
+    return getBinsCount(mBins[1]);
   }
 
   // Note: Overflow / underflow bin -1 is not included
@@ -100,7 +82,7 @@ struct BinningPolicyBase {
     if constexpr (N < 3) {
       return 0;
     }
-    return binning_helpers::getBinsCount(mBins[2], mIgnoreOverflows);
+    return getBinsCount(mBins[2]);
   }
 
   template <typename... Ts>
@@ -123,11 +105,11 @@ struct BinningPolicyBase {
         if (std::get<2>(data) < mBins[2][1]) { // mBins[2][0] is a dummy VARIABLE_WIDTH
           return -1;
         }
-      } else {
-        i = 1;
-        j = 1;
-        k = 1;
       }
+    } else {
+      i = 1;
+      j = 1;
+      k = 1;
     }
 
     for (; i < mBins[0].size(); i++) {
@@ -218,20 +200,31 @@ struct BinningPolicyBase {
   // Otherwise we add 1 and we get the number of bins including those below and over the outer edges
   int getBinAt(unsigned int iRaw, unsigned int jRaw, unsigned int kRaw) const
   {
-    int shiftBinsWithoutOverflow = binning_helpers::getOverflowShift(mIgnoreOverflows);
+    int shiftBinsWithoutOverflow = getOverflowShift();
     unsigned int i = iRaw - 1 + shiftBinsWithoutOverflow;
     unsigned int j = jRaw - 1 + shiftBinsWithoutOverflow;
     unsigned int k = kRaw - 1 + shiftBinsWithoutOverflow;
-    auto xBinsCount = binning_helpers::getBinsCount(mBins[0], mIgnoreOverflows);
+    auto xBinsCount = getXBinsCount();
     if constexpr (N == 1) {
       return i;
     } else if constexpr (N == 2) {
       return i + j * xBinsCount;
     } else if constexpr (N == 3) {
-      return i + j * xBinsCount + k * xBinsCount * binning_helpers::getBinsCount(mBins[1], mIgnoreOverflows);
+      return i + j * xBinsCount + k * xBinsCount * getYBinsCount();
     } else {
       return -1;
     }
+  }
+
+  int getOverflowShift()
+  {
+    return mIgnoreOverflows ? -1 : 1;
+  }
+
+  // Note: Overflow / underflow bin -1 is not included
+  int getBinsCount(std::vector<double> const& bins)
+  {
+    return bins.size() - 1 + getOverflowShift();
   }
 };
 
