@@ -216,13 +216,13 @@ struct BinningPolicyBase {
     }
   }
 
-  int getOverflowShift()
+  int getOverflowShift() const
   {
     return mIgnoreOverflows ? -1 : 1;
   }
 
   // Note: Overflow / underflow bin -1 is not included
-  int getBinsCount(std::vector<double> const& bins)
+  int getBinsCount(std::vector<double> const& bins) const
   {
     return bins.size() - 1 + getOverflowShift();
   }
