@@ -541,8 +541,23 @@ struct Index : o2::soa::IndexColumn<Index<START, END>> {
 template <typename T>
 using is_dynamic_t = framework::is_specialization<typename T::base, DynamicColumn>;
 
+namespace persistent_type_helper
+{
+// This checks both for the existence of the ::persistent member in the class T as well as the value returned stored in it.
+// Hack: a pointer to any field of type int inside persistent. Both true_type and false_type do not have any int field, but anyways we pass nullptr.
+// The compiler picks the version with exact number of arguments when only it can, i.e., when T::persistent is defined.
+template <class T>
+typename T::persistent test(int T::persistent::*);
+
+template <class>
+std::false_type test(...);
+} // namespace persistent_type_helper
+
 template <typename T>
-using is_persistent_t = typename std::decay_t<T>::persistent::type;
+using is_persistent_t = decltype(persistent_type_helper::test<T>(nullptr));
+
+template <typename T>
+using is_persistent_v = typename is_persistent_t<T>::value;
 
 template <typename T>
 using is_external_index_t = typename std::conditional<is_index_column_v<T>, std::true_type, std::false_type>::type;
@@ -1099,10 +1114,12 @@ class Table
     auto getId() const
     {
       using decayed = std::decay_t<TI>;
-      if constexpr (framework::has_type_v<decayed, bindings_pack_t>) {
+      if constexpr (framework::has_type_v<decayed, bindings_pack_t>) { // index to another table
         constexpr auto idx = framework::has_type_at_v<decayed>(bindings_pack_t{});
         return framework::pack_element_t<idx, external_index_columns_t>::getId();
-      } else if constexpr (std::is_same_v<decayed, Parent>) {
+      } else if constexpr (std::is_same_v<decayed, Parent>) { // self index
+        return this->globalIndex();
+      } else if constexpr (is_index_t<decayed>::value && decayed::mLabel == "Index") { // soa::Index<>
         return this->globalIndex();
       } else {
         return static_cast<int32_t>(-1);
@@ -1484,14 +1501,14 @@ namespace row_helpers
 template <typename... Cs>
 std::array<arrow::ChunkedArray*, sizeof...(Cs)> getArrowColumns(arrow::Table* table, framework::pack<Cs...>)
 {
-  static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
+  static_assert(std::conjunction_v<typename Cs::persistent...>, "Arrow columns: only persistent columns accepted (not dynamic and not index ones");
   return std::array<arrow::ChunkedArray*, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())...};
 }
 
 template <typename... Cs>
 std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table* table, framework::pack<Cs...>, uint64_t ci)
 {
-  static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
+  static_assert(std::conjunction_v<typename Cs::persistent...>, "Arrow chunks: only persistent columns accepted (not dynamic and not index ones");
   return std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci)...};
 }
 
@@ -1520,11 +1537,16 @@ typename C::type getSingleRowData(arrow::Table* table, T& rowIterator, uint64_t 
 {
   using decayed = std::decay_t<C>;
   if constexpr (decayed::persistent::value) {
-    return getSingleRowPersistentData<C>(table, ci, ai);
+    auto val = getSingleRowPersistentData<C>(table, ci, ai);
+    return val;
   } else if constexpr (o2::soa::is_dynamic_t<decayed>()) {
-    return getSingleRowDynamicData<T, C>(rowIterator, globalIndex);
-  } else if constexpr (o2::soa::is_index_column_v<decayed>) {
-    return getSingleRowIndexData<T, C>(rowIterator, globalIndex);
+    auto val = getSingleRowDynamicData<T, C>(rowIterator, globalIndex);
+    return val;
+  } else if constexpr (o2::soa::is_index_t<decayed>::value) {
+    auto val = getSingleRowIndexData<T, C>(rowIterator, globalIndex);
+    return val;
+  } else {
+    static_assert(!sizeof(decayed*), "Unrecognized column kind"); // A trick to delay static_assert until we actually instantiate this branch
   }
 }
 
