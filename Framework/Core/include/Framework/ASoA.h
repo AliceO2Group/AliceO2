@@ -541,9 +541,6 @@ struct Index : o2::soa::IndexColumn<Index<START, END>> {
 template <typename T>
 using is_dynamic_t = framework::is_specialization<typename T::base, DynamicColumn>;
 
-// template <typename T>
-// using is_persistent_t = typename std::decay_t<T>::persistent::type;
-
 namespace persistent_type_helper
 {
 // This checks both for the existence of the ::persistent member in the class T as well as the value returned stored in it.
