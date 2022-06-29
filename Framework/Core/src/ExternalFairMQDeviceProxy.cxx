@@ -21,6 +21,7 @@
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/SourceInfoHeader.h"
+#include "Framework/ChannelInfo.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/RateLimiter.h"
 #include "Framework/TimingInfo.h"
@@ -397,17 +398,27 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
     // will be multiple channels. At least we throw a more informative exception.
     // fair::mq::Device calls the custom init before the channels have been configured
     // so we do the check before starting in a dedicated callback
-    auto channelConfigurationChecker = [channel, device]() {
+    auto channelConfigurationChecker = [channel, device, &services = ctx.services()]() {
+      auto& deviceState = services.get<DeviceState>();
       if (device->fChannels.count(channel) == 0) {
         throw std::runtime_error("the required out-of-band channel '" + channel + "' has not been configured, please check the name in the channel configuration");
       }
+      LOGP(detail, "Injecting channel '{}' into DPL configuration", channel);
+      // Converter should pump messages
+      deviceState.inputChannelInfos.push_back(InputChannelInfo{
+        .state = InputChannelState::Running,
+        .hasPendingEvents = false,
+        .readPolled = false,
+        .channel = nullptr,
+        .id = {ChannelIndex::INVALID},
+      });
     };
     ctx.services().get<CallbackService>().set(CallbackService::Id::Start, channelConfigurationChecker);
-    // Converter should pump messages
 
     auto dataHandler = [device, converter,
                         outputRoutes = std::move(outputRoutes),
                         control = &ctx.services().get<ControlService>(),
+                        deviceState = &ctx.services().get<DeviceState>(),
                         &timingInfo = ctx.services().get<TimingInfo>(),
                         outputChannels = std::move(outputChannels)](fair::mq::Parts& inputs, int) {
       // pass a copy of the outputRoutes
@@ -436,6 +447,10 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       converter(timingInfo, *device, inputs, channelRetriever);
 
       if (doEos) {
+        // Mark all input channels as closed
+        for (auto& info : deviceState->inputChannelInfos) {
+          info.state = InputChannelState::Completed;
+        }
         control->endOfStream();
       }
     };
