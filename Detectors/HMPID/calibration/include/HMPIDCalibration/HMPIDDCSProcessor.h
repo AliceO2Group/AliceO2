@@ -133,7 +133,7 @@ public:
   uint64_t processFlags(const uint64_t flags, const char *pid);
 
   //===== DCS-CCDB methods and members Used in
-  //HMPIDDCSDataProcessor===============================================================
+  // HMPIDDCSDataProcessor===============================================================
 
   CcdbObjectInfo &getccdbRefInfo() { return mccdbRefInfo; }
   std::vector<TF1> getRefIndexObj() { return arNmean; }

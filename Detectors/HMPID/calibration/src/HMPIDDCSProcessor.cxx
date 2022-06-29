@@ -9,7 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// calibration/HMPIDCalibration header-files:
 #include "HMPIDCalibration/HMPIDDCSProcessor.h"
 #include <TCanvas.h>
 

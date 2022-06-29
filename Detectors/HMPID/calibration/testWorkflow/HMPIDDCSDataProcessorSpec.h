@@ -9,11 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_HMPID_DATAPROCESSOR_H
-#define O2_HMPID_DATAPROCESSOR_H
-
 /// @file   DCSHMPIDDataProcessorSpec.h
 /// @brief  HMPID Processor for DCS Data Points
+
+#ifndef O2_HMPID_DATAPROCESSOR_H
+#define O2_HMPID_DATAPROCESSOR_H
 
 #include "DetectorsDCS/AliasExpander.h"
 #include "DetectorsDCS/DataPointCompositeObject.h"
