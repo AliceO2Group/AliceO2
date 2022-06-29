@@ -12,6 +12,9 @@
 /// \file
 /// \author Julian Myrcha
 
+#include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "EveWorkflow/O2DPLDisplay.h"
 #include "EveWorkflow/EveWorkflowHelper.h"
 #include "EventVisualisationBase/ConfigurationManager.h"
@@ -38,6 +41,12 @@ using namespace o2::globaltracking;
 using namespace o2::tpc;
 using namespace o2::trd;
 
+// ------------------------------------------------------------------
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
@@ -63,7 +72,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"only-nth-event", VariantType::Int, 0, {"process only every nth event"}},
     {"primary-vertex-mode", VariantType::Bool, false, {"produce jsons with individual primary vertices, not total time frame data"}},
   };
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -284,7 +293,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   if (primaryVertexMode) {
     dataRequest->requestPrimaryVertertices(useMC);
   }
-
   InputHelper::addInputSpecs(cfgc, specs, srcCl, srcTrk, srcTrk, useMC);
 
   auto minITSTracks = cfgc.options().get<int>("min-its-tracks");
@@ -301,6 +309,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     dataRequest->inputs,
     {},
     AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent, primaryVertexMode)}});
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
 
   return std::move(specs);
 }
