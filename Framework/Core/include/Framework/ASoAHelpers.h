@@ -72,8 +72,8 @@ inline bool diffCategory(BinningIndex const& a, BinningIndex const& b)
   return a.bin >= b.bin;
 }
 
-template <template <typename C, typename... Cs> typename BP, typename T, typename C, typename... Cs>
-std::vector<BinningIndex> groupTable(const T& table, const BP<C, Cs...>& binningPolicy, int minCatSize, int outsider)
+template <template <typename... Cs> typename BP, typename T, typename... Cs>
+std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPolicy, int minCatSize, int outsider)
 {
   arrow::Table* arrowTable = table.asArrowTable().get();
   auto rowIterator = table.begin();
@@ -92,7 +92,7 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<C, Cs...>& binning
     selectedRows = table.getSelectedRows(); // vector<int64_t>
   }
 
-  auto persistentColumns = typename BP<C, Cs...>::persistent_columns_t{};
+  auto persistentColumns = typename BP<Cs...>::persistent_columns_t{};
   constexpr auto persistentColumnsCount = pack_size(persistentColumns);
   auto arrowColumns = o2::soa::row_helpers::getArrowColumns(arrowTable, persistentColumns);
   auto chunksCount = arrowColumns[0]->num_chunks();
