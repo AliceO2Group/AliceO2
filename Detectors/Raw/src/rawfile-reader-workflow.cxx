@@ -43,6 +43,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}});
   options.push_back(ConfigParamSpec{"send-diststf-0xccdb", VariantType::Bool, false, {"send explicit FLP/DISTSUBTIMEFRAME/0xccdb output"}});
   options.push_back(ConfigParamSpec{"hbfutils-config", VariantType::String, std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE), {"configKeyValues ini file for HBFUtils (used if exists)"}});
+  options.push_back(ConfigParamSpec{"timeframes-shm-limit", VariantType::String, "0", {"Minimum amount of SHM required in order to publish data"}});
+  options.push_back(ConfigParamSpec{"metric-feedback-channel-format", VariantType::String, "name=metric-feedback,type=pull,method=connect,address=ipc://@metric-feedback-{},transport=shmem,rateLogging=0", {"format for the metric-feedback channel for TF rate limiting"}});
   // options for error-check suppression
 
   for (int i = 0; i < RawFileReader::NErrorsDefined; i++) {
@@ -82,6 +84,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (configcontext.options().get<bool>(RawFileReader::nochk_opt(ei).c_str()) ? !defOpt : defOpt) { // cmdl option inverts default!
       rinp.errMap |= 0x1 << i;
     }
+  }
+  rinp.minSHM = std::stoul(configcontext.options().get<std::string>("timeframes-shm-limit"));
+  int rateLimitingIPCID = std::stoi(configcontext.options().get<std::string>("timeframes-rate-limit-ipcid"));
+  std::string chanFmt = configcontext.options().get<std::string>("metric-feedback-channel-format");
+  if (rateLimitingIPCID > -1 && !chanFmt.empty()) {
+    rinp.metricChannel = fmt::format(chanFmt, rateLimitingIPCID);
   }
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto hbfini = configcontext.options().get<std::string>("hbfutils-config");
