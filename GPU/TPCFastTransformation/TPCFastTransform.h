@@ -105,9 +105,7 @@ class TPCFastTransform : public FlatObject
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
   ~TPCFastTransform()
   {
-    if (mCorrectionSlow) {
-      delete mCorrectionSlow;
-    }
+    delete mCorrectionSlow;
   }
 #else
   ~TPCFastTransform() CON_DEFAULT;
