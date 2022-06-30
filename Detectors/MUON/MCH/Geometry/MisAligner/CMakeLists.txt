@@ -9,10 +9,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(MisAligner)
-add_subdirectory(Transformer)
-add_subdirectory(Creator)
-if (BUILD_TESTING)
-add_subdirectory(Test)
-endif()
+o2_add_library(MCHGeometryMisAligner
+               SOURCES src/MisAligner.cxx
+               PUBLIC_LINK_LIBRARIES O2::FrameworkLogger
+               O2::DetectorsCommonDataFormats)
 
+o2_target_root_dictionary(
+  MCHGeometryMisAligner
+  HEADERS include/MCHGeometryMisAligner/MisAligner.h
+  LINKDEF src/MCHGeometryMisAlignerLinkDef.h
+)

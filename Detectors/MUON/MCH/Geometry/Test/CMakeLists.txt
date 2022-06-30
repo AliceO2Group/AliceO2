@@ -12,7 +12,7 @@
 o2_add_library(
   MCHGeometryTest
   SOURCES Helpers.cxx
-  PUBLIC_LINK_LIBRARIES O2::MCHGeometryCreator ROOT::RGL)
+  PUBLIC_LINK_LIBRARIES O2::MCHGeometryCreator O2::MCHGeometryMisAligner ROOT::RGL)
 
 o2_target_root_dictionary(MCHGeometryTest HEADERS include/MCHGeometryTest/Helpers.h LINKDEF LinkDef.h)
 
@@ -20,6 +20,13 @@ o2_add_test(
   geometry-creator
   COMPONENT_NAME mch
   SOURCES testGeometryCreator.cxx
+  PUBLIC_LINK_LIBRARIES O2::MCHGeometryTest
+  LABELS muon mch)
+
+o2_add_test(
+  geometry-misaligner
+  COMPONENT_NAME mch
+  SOURCES testGeometryMisAligner.cxx
   PUBLIC_LINK_LIBRARIES O2::MCHGeometryTest
   LABELS muon mch)
 
@@ -41,5 +48,10 @@ o2_add_test(
 
 o2_add_test_root_macro(
   drawMCHGeometry.C
+  PUBLIC_LINK_LIBRARIES O2::MCHGeometryCreator O2::MathUtils
+  LABELS muon mch)
+
+o2_add_test_root_macro(
+  misAlign.C
   PUBLIC_LINK_LIBRARIES O2::MCHGeometryCreator O2::MathUtils
   LABELS muon mch)
