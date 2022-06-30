@@ -228,11 +228,29 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
 {
   // convert digits/channel to their compressed version
   cd.clear();
+  cd.header.det = mDet;
   if (!digitVec.size()) {
     return;
   }
-  const auto& dig0 = digitVec[0];
-  cd.header.det = mDet;
+  uint32_t firstDig = digitVec.size(), nDigSel = digitVec.size(), nChanSel = channelVec.size();
+  std::vector<bool> reject(digitVec.size());
+  if (mIRFrameSelector.isSet()) {
+    for (size_t id = 0; id < digitVec.size(); id++) {
+      if (mIRFrameSelector.check(digitVec[id].mIntRecord) < 0) {
+        reject[id] = true;
+        nDigSel--;
+        nChanSel -= digitVec[id].ref.getEntries();
+      } else if (firstDig == digitVec.size()) {
+        firstDig = id;
+      }
+    }
+  } else {
+    firstDig = 0;
+  }
+  if (nDigSel == 0) { // nothing is selected
+    return;
+  }
+  const auto& dig0 = digitVec[firstDig];
   cd.header.nTriggers = digitVec.size();
   cd.header.firstOrbit = dig0.mIntRecord.orbit;
   cd.header.firstBC = dig0.mIntRecord.bc;
@@ -251,6 +269,9 @@ void CTFCoder::compress(CompressedDigits& cd, const gsl::span<const Digit>& digi
   uint32_t prevOrbit = cd.header.firstOrbit;
   uint32_t ccount = 0;
   for (uint32_t idig = 0; idig < cd.header.nTriggers; idig++) {
+    if (reject[idig]) {
+      continue;
+    }
     const auto& digit = digitVec[idig];
     const auto chanels = digit.getBunchChannelData(channelVec); // we assume the channels are sorted
 

@@ -46,16 +46,10 @@ void CTFCoder::compress(CompressedClusters& cc,
 {
   // store in the header the orbit of 1st ROF
   cc.clear();
+  cc.header.det = mDet;
   if (!rofRecVec.size()) {
     return;
   }
-  cc.header.det = mDet;
-  cc.header.nROFs = 0;
-  cc.header.firstOrbit = 0;
-  cc.header.firstBC = 0;
-  cc.header.nPatternBytes = 0;
-  cc.header.nClusters = 0;
-  cc.header.nChips = 0;
 
   uint32_t firstROF = rofRecVec.size(), nrofSel = rofRecVec.size(), nClusSel = cclusVec.size();
   std::vector<bool> reject(rofRecVec.size());

@@ -87,7 +87,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       LOG(fatal) << "Unknown trigger type requested for events prescaling: " << selTrig;
     }
   }
-  auto wf = o2::its::reco_workflow::getWorkflow(useMC, useCAtracker, trmode, gpuDevice, extDigits, extClusters, disableRootOutput, trType, eencode);
+  auto wf = o2::its::reco_workflow::getWorkflow(useMC, useCAtracker, trmode, gpuDevice, extDigits, extClusters, disableRootOutput, trType);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
