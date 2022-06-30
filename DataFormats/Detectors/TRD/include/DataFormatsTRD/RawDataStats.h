@@ -73,9 +73,23 @@ enum ParsingErrors { TRDParsingNoError,
                      TRDParsingTrackletIgnoringDataTillEndMarker,              // for some reason we are bouncing to the end word by word, this counts those words
                      TRDParsingGarbageDataAtEndOfHalfCRU,                      // if the first word of the halfcru is wrong i.e. side, eventype, the half cru header is so wrong its not corrupt, its other garbage
                      TRDParsingHalfCRUSumLength,                               // if the HalfCRU headers summed lengths wont fit into the buffer, implies corruption, its a faster check than the next one.
-
-                     TRDParsingHalfCRUCorrupt, // if the HalfCRU headers has values out of range, corruption is assumed.
-                     TRDLastParsingError       // here as place holder for trivial sizing of structures.
+                     TRDParsingBadRDHFEEID,                                    // RDH parsing failure for reasons in the word
+                     TRDParsingBadRDHEndPoint,                                 // RDH parsing failure for reasons in the word
+                     TRDParsingBadRDHOrbit,                                    // RDH parsing failure for reasons in the word
+                     TRDParsingBadRDHCRUID,                                    // RDH parsing failure for reasons in the word
+                     TRDParsingBadRDHPacketCounter,                            // RDH parsing failure for reasons in the word
+                     TRDParsingHalfCRUCorrupt,                                 // if the HalfCRU headers has values out of range, corruption is assumed.
+                     TRDParsingDigitHCHeader1,                                 // multiple instances of Digit HC Header 1
+                     TRDParsingDigitHCHeader2,                                 // multiple instances of Digit HC Header 2
+                     TRDParsingDigitHCHeader3,                                 // multiple instances of Digit HC Header 3
+                     TRDProcessingBadPayloadOrOffset,                          // if something is off with the HBFPayload array or its offset into it.
+                     TRDParsingDigitHCHeaderSVNMismatch,                       // svn version information has changed in the DigitHCHeader3.
+                     TRDParsingBadLinkstartend,                                // end - start of tracklet is greater than the maximal length stored in the cru half chamber header field.
+                     TRDParsingTrackletsReturnedMinusOne,                      // trackletparsing returned -1, data was dumped;
+                     TRDFEEIDIsFFFF,                                           // RDH is in error, the FEEID is 0xffff
+                     TRDFEEIDBadSector,                                        // RDH is in error, the FEEID.supermodule is not a valid value.
+                     TRDParsingDigitHCHeaderPreTriggerPhaseOOB,                // pretrigger phase in Digit HC header has to be less than 12, it is not.
+                     TRDLastParsingError
 };
 
 extern std::vector<std::string> ParsingErrorsString;
@@ -99,8 +113,12 @@ enum OptionBits {
   TRDM1Debug
 };
 
+//Data to be stored and accumulated on an event basis.
+//events are spread out with in the data coming in with a halfcruheader per event, per ... half cru.
+//this is looked up via the interaction record (orbit and bunchcrossing).
+//this permits averaging in the data that gets senton per timeframe
 class TRDDataCountersPerEvent
-{ //thisis on a per event basis
+{
  public:
   //TODO this should go into a dpl message for catching by qc ?? I think.
   double mTimeTaken;             // time take to process an event (summed trackletparsing and digitparsing) parts not accounted for.
@@ -110,29 +128,26 @@ class TRDDataCountersPerEvent
   uint64_t mWordsRejected;       // words skipped for various reasons.
   uint16_t mTrackletsFound;      // tracklets found in the event
   uint16_t mDigitsFound;         // digits found in the event
-  //  std::array<uint16_t, o2::trd::constants::NSECTOR*60> mLinkLengths;
 };
 
+//Data to be stored on a timeframe basis to then be sent as a message to be ultimately picked up by qc.
+//Some countes include a average over the numbers stored on a per event basis, e.g. digits per event.
 class TRDDataCountersPerTimeFrame
-{ //thisis on a per event basis
+{
  public:
-  std::array<uint8_t, o2::trd::constants::NSECTOR * 60> mLinkErrorFlag{};                              //status of the error flags for this event, 8bit values from cru halfchamber header.
+  std::array<uint8_t, o2::trd::constants::NSECTOR * 60> mLinkErrorFlag{};                              // status of the error flags for this timeframe, 8bit values from cru halfchamber header.
   std::array<uint16_t, o2::trd::constants::NSECTOR * 60> mLinkNoData;                                  // Link had no data or was not present.
-  std::array<uint16_t, o2::trd::constants::NSECTOR * 60> mLinkWords{};                                 //units of 256bits, read from the cru half chamber header
+  std::array<uint16_t, o2::trd::constants::NSECTOR * 60> mLinkWords{};                                 // units of 256bits, read from the cru half chamber header
   std::array<uint16_t, o2::trd::constants::NSECTOR * 60> mLinkWordsRead{};                             // units of 32 bits the data words read before dumping or finishing
   std::array<uint16_t, o2::trd::constants::NSECTOR * 60> mLinkWordsRejected{};                         // units of 32 bits the data dumped due to some or other error
-                                                                                                       //  std::array<uint16_t, o2::trd::constants::MAXMCMCOUNT> mLinkMCMsWithData{};                            // and its corresponding volume of data.
   std::array<uint16_t, TRDLastParsingError> mParsingErrors{};                                          // errors in parsing, indexed by enum above of ParsingErrors
-  std::array<uint32_t, o2::trd::constants::NSECTOR * 60 * TRDLastParsingError> mParsingErrorsByLink{}; // errors in parsing, indexed by enum above of ParsingErrors
-                                                                                                       //  std::array<uint16_t, constants::MAXMCMCOUNT> mMCMDigitsFound{}; can be reprocessed in qc rather, save work and space,
-                                                                                                       //  std::array<uint16_t, constants::MAXMCMCOUNT> mMCMTrackletsFound{}; sim as above
-  uint16_t mDigitsPerEvent;                                                                            // average digits found per event
-  uint16_t mTrackletsPerEvent;                                                                         // average tracklets found per event
-                                                                                                       //  std::map<uint16_t, uint16_t> mRdhSize;               // sizes of rdhs read   i think tf sizes are plotted some where so not needed anymore i think.
+  std::array<uint32_t, o2::trd::constants::NSECTOR * 60 * TRDLastParsingError + TRDLastParsingError> mParsingErrorsByLink{}; // errors in parsing, indexed by enum above of ParsingErrors
+  uint16_t mDigitsPerEvent;                                                                                                  // average digits found per event in this timeframe, ignoring the no digit events where there is no calibration trigger.
+  uint16_t mTrackletsPerEvent;                                                                                               // average tracklets found per event in this timeframe
   double mTimeTaken;                                                                                   // time taken to process the entire timeframe [ms].
   double mTimeTakenForDigits;                                                                          // time take to process tracklet data blocks [ms].
   double mTimeTakenForTracklets;                                                                       // time take to process digit data blocks [ms].
-  uint32_t mDigitsFound;                                                                               // digit found in the time frame.
+  uint32_t mDigitsFound;                                                                               // digits found in the time frame.
   uint32_t mTrackletsFound;                                                                            // tracklets found in the time frame.
   std::array<uint64_t, 256> mDataFormatRead{};                                                         // We just keep the major version number
   void clear()
@@ -141,7 +156,6 @@ class TRDDataCountersPerTimeFrame
     mLinkWords.fill(0);
     mLinkWordsRead.fill(0);
     mLinkWordsRejected.fill(0);
-    //    mLinkMCMsWithData.fill(0);
     mParsingErrors.fill(0);
     mParsingErrorsByLink.fill(0);
     mDigitsPerEvent = 0;

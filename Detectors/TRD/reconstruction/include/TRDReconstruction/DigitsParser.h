@@ -25,9 +25,6 @@
 #include "TRDReconstruction/EventRecord.h"
 #include <fstream>
 #include <bitset>
-#include "TH1F.h"
-#include "TH2F.h"
-#include "TList.h"
 
 //using namespace o2::framework;
 
@@ -72,21 +69,11 @@ class DigitsParser
   uint64_t getDumpedDataCount() { return mWordsDumped; }
   uint64_t getDataWordsParsed() { return mDataWordsParsed; }
   void OutputIncomingData();
-  void setParsingHisto(TH1F* parsingerrors, TList* parsingerrors2d)
-  {
-    mParsingErrors = parsingerrors;
-    mParsingErrors2d = parsingerrors2d;
-  }
 
   void incParsingError(int error)
   {
-
     if (mOptions[TRDGenerateStats]) {
       mEventRecords->incParsingError(error, mFEEID.supermodule, mHalfChamberSide, mStackLayer);
-    }
-    if (mOptions[TRDEnableRootOutputBit]) {
-      mParsingErrors->Fill(error);
-      ((TH2F*)mParsingErrors2d->At(error))->Fill(mFEEID.supermodule * 2 + mHalfChamberSide, mStack * constants::NLAYER + mLayer);
     }
   }
   void checkNoErr();
@@ -142,8 +129,6 @@ class DigitsParser
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
   std::array<uint16_t, constants::TIMEBINS> mADCValues{};
   int mMaxErrsPrinted;
-  TH1F* mParsingErrors;
-  TList* mParsingErrors2d;
 };
 
 } // namespace o2::trd

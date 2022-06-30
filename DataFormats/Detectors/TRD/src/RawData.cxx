@@ -422,22 +422,31 @@ bool sanityCheckTrackletMCMHeader(o2::trd::TrackletMCMHeader* header)
   return goodheader;
 }
 
-bool sanityCheckTrackletHCHeader(o2::trd::TrackletHCHeader& header)
+bool sanityCheckTrackletHCHeader(o2::trd::TrackletHCHeader& header, bool verbose)
 {
   bool goodheader = true;
-  if (header.one != -1) {
-    goodheader = false;
-  }
   if ((~header.supermodule) > 17) {
+    if (verbose) {
+      LOG(info) << " TrackletHCHeader : 0x" << std::hex << header.word << " failure header.supermodule=" << ~header.supermodule;
+    }
     goodheader = false;
   }
   if ((~header.layer) > 6) {
+    if (verbose) {
+      LOG(info) << " TrackletHCHeader : 0x" << std::hex << header.word << " failure header.layer=" << ~header.layer;
+    }
     goodheader = false;
   }
   if ((~header.stack) > 5) {
+    if (verbose) {
+      LOG(info) << " TrackletHCHeader : 0x" << std::hex << header.word << " failure header.stack=" << ~header.stack;
+    }
     goodheader = false;
   }
-  if (header.one != 0) {
+  if (header.one != 1) {
+    if (verbose) {
+      LOG(info) << " TrackletHCHeader : 0x" << std::hex << header.word << " failure header.one=" << header.one;
+    }
     goodheader = false;
   }
   int trackletmode = (header.format >> 2) & 0x3;
@@ -453,7 +462,6 @@ bool sanityCheckTrackletHCHeader(o2::trd::TrackletHCHeader& header)
       if ((header.format & 0x1) == 0x1) {
         dynamicqrange = true;
       }
-      //LOG(info) << "Tracklet sector:layer:stack " << ((~header.supermodule)&0x1f) <<":" << ((~header.layer)&0x7) << ":" << ((~header.stack)&0x7) << " Tracklet format is : " << std::hex << header.format << " last bit : " << (header.format&0x1) << " trackletmode : " << trackletmode;
       break;
   }
   return goodheader;
@@ -535,13 +543,17 @@ void printDigitMCMData(o2::trd::DigitMCMData& digitmcmdata)
 
 int getDigitHCHeaderWordType(uint32_t word)
 {
+  //  LOG(info) << "getDigitHCHeaderwordtype : " << std::hex << word;
   if ((word & 0x3f) == 0b110001) {
+    //  LOG(info) << "getDigitHCHeaderwordtype  2 : " << std::hex << word << " returning 2 for :" << std::hex << (word&0x3f);
     return 2;
   }
   if ((word & 0x3f) == 0b110101) {
+    //  LOG(info) << "getDigitHCHeaderwordtype 3 : " << std::hex << word << " returning 3 for :" << std::hex << (word&0x3f);
     return 3;
   }
   if ((word & 0x3) == 0b01) {
+    //  LOG(info) << "getDigitHCHeaderwordtype 1 : " << std::hex << word << " returning 1 for :" << std::hex << (word&0x3f);
     return 1;
   }
   return -1;
@@ -584,6 +596,7 @@ void printDigitHCHeader(o2::trd::DigitHCHeader& header, uint32_t headers[3])
       case 1:
         DigitHCHeader1 header1;
         header1.word = headers[countheaderwords];
+        index = 0;
         if (header1.res != 0x1) {
           printDigitHCHeaders(header, headers, index, countheaderwords, false);
         } else {
@@ -593,6 +606,7 @@ void printDigitHCHeader(o2::trd::DigitHCHeader& header, uint32_t headers[3])
       case 2:
         DigitHCHeader2 header2;
         header2.word = headers[countheaderwords];
+        index = 1;
         if (header2.res != 0b110001) {
           printDigitHCHeaders(header, headers, index, countheaderwords, false);
         } else {
@@ -602,6 +616,7 @@ void printDigitHCHeader(o2::trd::DigitHCHeader& header, uint32_t headers[3])
       case 3:
         DigitHCHeader3 header3;
         header3.word = headers[countheaderwords];
+        index = 2;
         if (header3.res != 0b110101) {
           printDigitHCHeaders(header, headers, index, countheaderwords, false);
         } else {

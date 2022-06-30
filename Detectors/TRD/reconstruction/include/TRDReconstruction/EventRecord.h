@@ -128,7 +128,7 @@ class EventStorage
   std::vector<Tracklet64>& getTracklets(InteractionRecord& ir);
   std::vector<Digit>& getDigits(InteractionRecord& ir);
   void printIR();
-  void setHisto(TH1F* packagetime) { mPackagingTime = packagetime; }
+  //  void setHisto(TH1F* packagetime) { mPackagingTime = packagetime; }
 
   //statistics to keep
   void incTrackletTime(double timeadd) { mTFStats.mTimeTakenForTracklets += timeadd; }
@@ -155,21 +155,30 @@ class EventStorage
 
   void incParsingError(int error, int sm, int side, int stacklayer)
   {
-    mTFStats.mParsingErrors[error]++;
-    mTFStats.mParsingErrorsByLink[(sm * 2 + side) * 30 * TRDLastParsingError + TRDLastParsingError * stacklayer + error]++;
+    if (error > TRDLastParsingError) {
+      LOG(info) << "wrong error number to inc ParsingError in TrackletParsing : " << error << " for " << sm << "_" << side << "_" << stacklayer;
+    } else {
+      mTFStats.mParsingErrors[error]++;
+      if (sm >= 0) { // sm=-1 is reserved for those errors where we dont know or cant know the underlying source.
+        if ((sm * 2 + side) * 30 * TRDLastParsingError + TRDLastParsingError * stacklayer + error < o2::trd::constants::NSECTOR * 60 * TRDLastParsingError) {
+          //prevent bounding errors
+          mTFStats.mParsingErrorsByLink[(sm * 2 + side) * 30 * TRDLastParsingError + TRDLastParsingError * stacklayer + error]++;
+        }
+      }
+    }
   } // halfsm and stacklayer are the x and y of the 2d histograms
   void resetCounters();
   void accumulateStats();
 
  private:
   std::vector<EventRecord> mEventRecords;
-  //these 2 are hacks to be able to send bak a blank vector if interaction record is not found.
+  //these 2 are hacks to be able to send back a blank vector if interaction record is not found.
   std::vector<Tracklet64> mDummyTracklets;
   std::vector<Digit> mDummyDigits;
 
   TRDDataCountersPerTimeFrame mTFStats;
 
-  TH1F* mPackagingTime{nullptr};
+  //  TH1F* mPackagingTime{nullptr};
 };
 
 std::ostream& operator<<(std::ostream& stream, const EventRecord& trg);

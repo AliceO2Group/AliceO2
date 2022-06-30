@@ -142,7 +142,7 @@ struct TrackletHCHeader {
       uint32_t layer : 3;
       uint32_t stack : 3;
       uint32_t supermodule : 5;
-      uint32_t one : 1;   //always 0
+      uint32_t one : 1;   //always 1
       uint32_t MCLK : 15; // MCM clock counter 120MHz ... for simulation -- incrementing, and uniform across an event
       uint32_t format : 4;
       //  0 baseline PID 3 time slices, 7 bit each
@@ -492,7 +492,7 @@ void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
 void dumpHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
 void clearHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
 bool sanityCheckTrackletMCMHeader(o2::trd::TrackletMCMHeader* header);
-bool sanityCheckTrackletHCHeader(o2::trd::TrackletHCHeader& header);
+bool sanityCheckTrackletHCHeader(o2::trd::TrackletHCHeader& header, bool verbose = false);
 bool sanityCheckDigitMCMHeader(o2::trd::DigitMCMHeader* header);
 bool sanityCheckDigitMCMADCMask(o2::trd::DigitMCMADCMask& mask, int numberofbitsset);
 bool sanityCheckDigitMCMWord(o2::trd::DigitMCMData* word, int adcchannel);
