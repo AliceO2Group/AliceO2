@@ -45,10 +45,6 @@ class DigitFilteringTask
     mSanityCheck = DigitFilterParam::Instance().sanityCheck;
     int minADC = DigitFilterParam::Instance().minADC;
     bool rejectBackground = DigitFilterParam::Instance().rejectBackground;
-    if (mUseMC) {
-      rejectBackground = false;
-      LOGP(warn, "background rejection not tuned for MC so far : disabling it");
-    }
     mIsGoodDigit = createDigitFilter(minADC, rejectBackground, false);
     // at digit filtering stage it is important to keep the 3rd parameter
     // to false in the call above : the idea is to not cut too much

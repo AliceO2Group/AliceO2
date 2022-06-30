@@ -38,7 +38,7 @@
 // GG
 #include "PadOriginal.h"
 #include "ClusterOriginal.h"
-#include "MathiesonOriginal.h"
+#include "MCHBase/MathiesonOriginal.h"
 #include "mathiesonFit.h"
 
 #define VERBOSE 0
