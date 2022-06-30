@@ -69,7 +69,15 @@ GPUd() float Sq(float q)
 }
 
 template <typename T>
-struct trackletSortLambda : public thrust::binary_function<T, T, bool> {
+struct trackletSortEmptyFunctor : public thrust::binary_function<T, T, bool> {
+  GPUhd() bool operator()(const T& lhs, const T& rhs) const
+  {
+    return lhs.firstClusterIndex > rhs.firstClusterIndex;
+  }
+};
+
+template <typename T>
+struct trackletSortIndexFunctor : public thrust::binary_function<T, T, bool> {
   GPUhd() bool operator()(const T& lhs, const T& rhs) const
   {
     return lhs.firstClusterIndex < rhs.firstClusterIndex || (lhs.firstClusterIndex == rhs.firstClusterIndex && lhs.secondClusterIndex < rhs.secondClusterIndex);
@@ -183,11 +191,12 @@ GPUg() void removeDuplicateTrackletsEntriesLUTKernel(
   const int layerIndex)
 {
   int id0{-1}, id1{-1};
-  if (threadIdx.x == 0) {
-    printf("kernel: %d started\n", layerIndex);
-  }
   for (int iTracklet{0}; iTracklet < nTracklets[layerIndex]; ++iTracklet) {
+    // printf("accessing tracklet %d/%d\n", iTracklet, nTracklets[layerIndex]);
     auto& trk = tracklets[iTracklet];
+    // if (!threadIdx.x) {
+    //   trk.dump();
+    // }
     if (trk.firstClusterIndex == id0 && trk.secondClusterIndex == id1) {
       printf("layer: %d, tracklet: %d/%d, decreasing index: %d\n", layerIndex, iTracklet, nTracklets[layerIndex], id0);
       trackletsLookUpTable[id0]--;
@@ -195,9 +204,6 @@ GPUg() void removeDuplicateTrackletsEntriesLUTKernel(
       id0 = trk.firstClusterIndex;
       id1 = trk.secondClusterIndex;
     }
-  }
-  if (threadIdx.x == 0) {
-    printf("kernel: %d done \n", layerIndex);
   }
 }
 } // namespace gpu
@@ -265,13 +271,14 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
     }
   }
   std::vector<std::vector<Tracklet>> trackletsHost(NLayers - 1, std::vector<Tracklet>(mTimeFrameGPU->getConfig().trackletsCapacity));
+
   std::vector<int> trackletSizeH(NLayers - 1, 0);
   size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
   for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
     // Sort tracklets to put empty ones on the right side of the array.
     auto thrustTrackletsBegin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer));
     auto thrustTrackletsEnd = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer) + mTimeFrameGPU->getConfig().trackletsCapacity);
-    thrust::sort(thrustTrackletsBegin, thrustTrackletsEnd);
+    thrust::sort(thrustTrackletsBegin, thrustTrackletsEnd, gpu::trackletSortEmptyFunctor<o2::its::Tracklet>());
 
     // Get number of found tracklets
     // With thrust:
@@ -286,14 +293,14 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
                                          mTimeFrameGPU->mClusters[iLayer].size(),                            // num_items
                                          streamArray[iLayer].get()));
   }
+  discardResult(cudaDeviceSynchronize());
   checkGPUError(cudaMemcpy(trackletSizeH.data(), mTimeFrameGPU->getDeviceNFoundTracklets(), (NLayers - 1) * sizeof(int), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-
   for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
+
     // Sort tracklets according to cluster ids
-    std::cout << ">>>> " << trackletSizeH[iLayer] << std::endl;
     auto thrustTrackletsBegin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer));
     auto thrustTrackletsEnd = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer) + trackletSizeH[iLayer]);
-    thrust::sort(thrustTrackletsBegin, thrustTrackletsEnd, gpu::trackletSortLambda<o2::its::Tracklet>());
+    thrust::sort(thrustTrackletsBegin, thrustTrackletsEnd, gpu::trackletSortIndexFunctor<o2::its::Tracklet>());
   }
   discardResult(cudaDeviceSynchronize());
   for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
@@ -304,15 +311,17 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
       mTimeFrameGPU->getDeviceNFoundTracklets(),
       iLayer);
   }
-  std::cout << "Here" << std::endl;
-  // // Remove actual tracklet duplicates
-  // for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
-  //   auto begin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer));
-  //   auto end = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer) + trackletSizeH[iLayer]);
+  // Remove actual tracklet duplicates
+  for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
+    std::cout << iLayer << " prima: " << trackletSizeH[iLayer] << std::endl;
+    auto begin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer));
+    auto end = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer) + trackletSizeH[iLayer]);
 
-  //   auto new_end = thrust::unique(begin, end);
-  //   trackletSizeH[iLayer] = new_end - begin;
-  // }
+    auto new_end = thrust::unique(begin, end);
+    trackletSizeH[iLayer] = new_end - begin;
+    std::cout << iLayer << " dopo: " << trackletSizeH[iLayer] << std::endl;
+    discardResult(cudaDeviceSynchronize());
+  }
   discardResult(cudaDeviceSynchronize());
   // for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
 

@@ -13,6 +13,8 @@
 #include <fmt/format.h>
 #include <sstream>
 
+#include <thrust/fill.h>
+
 #include "ITStracking/Constants.h"
 
 #include "ITStrackingGPU/Utils.h"
@@ -104,7 +106,10 @@ void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
 {
   for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) { // Tracker and vertexer
     mTrackletsD[iLayer] = Vector<Tracklet>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
-    mTrackletsLookupTablesD[iLayer].resetInt(mClusters[iLayer].size());
+    auto thrustTrackletsBegin = thrust::device_ptr<Tracklet>(mTrackletsD[iLayer].get());
+    auto thrustTrackletsEnd = thrustTrackletsBegin + mConfig.trackletsCapacity;
+    thrust::fill(thrustTrackletsBegin, thrustTrackletsEnd, Tracklet{});
+    mTrackletsLookupTablesD[iLayer].resetWithInt(mClusters[iLayer].size());
   }
 
   for (auto iComb{0}; iComb < 2; ++iComb) { // Vertexer only
@@ -118,6 +123,7 @@ void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
   mUsedTracklets = Vector<unsigned char>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
   discardResult(cudaMalloc(&mCUBTmpBuffers, mConfig.nMaxROFs * mConfig.tmpCUBBufferSize));
   discardResult(cudaMalloc(&mFoundTracklets, (NLayers - 1) * sizeof(int)));
+  discardResult(cudaMemset(mFoundTracklets, 0, (NLayers - 1) * sizeof(int)));
   mXYCentroids = Vector<float>{2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity, 2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity};
   mZCentroids = Vector<float>{mConfig.nMaxROFs * mConfig.maxLinesCapacity, mConfig.nMaxROFs * mConfig.maxLinesCapacity};
   for (size_t i{0}; i < 3; ++i) {
