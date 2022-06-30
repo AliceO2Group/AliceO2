@@ -192,13 +192,8 @@ GPUg() void removeDuplicateTrackletsEntriesLUTKernel(
 {
   int id0{-1}, id1{-1};
   for (int iTracklet{0}; iTracklet < nTracklets[layerIndex]; ++iTracklet) {
-    // printf("accessing tracklet %d/%d\n", iTracklet, nTracklets[layerIndex]);
     auto& trk = tracklets[iTracklet];
-    // if (!threadIdx.x) {
-    //   trk.dump();
-    // }
     if (trk.firstClusterIndex == id0 && trk.secondClusterIndex == id1) {
-      printf("layer: %d, tracklet: %d/%d, decreasing index: %d\n", layerIndex, iTracklet, nTracklets[layerIndex], id0);
       trackletsLookUpTable[id0]--;
     } else {
       id0 = trk.firstClusterIndex;
@@ -313,52 +308,49 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
   }
   // Remove actual tracklet duplicates
   for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
-    std::cout << iLayer << " prima: " << trackletSizeH[iLayer] << std::endl;
     auto begin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer));
     auto end = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer) + trackletSizeH[iLayer]);
 
     auto new_end = thrust::unique(begin, end);
     trackletSizeH[iLayer] = new_end - begin;
-    std::cout << iLayer << " dopo: " << trackletSizeH[iLayer] << std::endl;
-    discardResult(cudaDeviceSynchronize());
   }
   discardResult(cudaDeviceSynchronize());
-  // for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
+  for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
 
-  //   // Compute LUT
-  //   discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
-  //                                               bufferSize,                                                         // temp_storage_bytes
-  //                                               mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_in
-  //                                               mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_out
-  //                                               mTimeFrameGPU->mClusters[iLayer].size(),                            // num_items
-  //                                               streamArray[iLayer].get()));
-  // }
-  // discardResult(cudaDeviceSynchronize());
+    // Compute LUT
+    discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
+                                                bufferSize,                                                         // temp_storage_bytes
+                                                mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_in
+                                                mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_out
+                                                mTimeFrameGPU->mClusters[iLayer].size(),                            // num_items
+                                                streamArray[iLayer].get()));
+  }
+  discardResult(cudaDeviceSynchronize());
 
-  // // Create tracklets labels, at the moment on the host
-  // if (mTimeFrameGPU->hasMCinformation()) {
-  //   for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
-  //     std::vector<o2::its::Tracklet> tracklets(trackletSizeH[iLayer]);
-  //     checkGPUError(cudaMemcpy(tracklets.data(), mTimeFrameGPU->getDeviceTrackletsAll(iLayer), trackletSizeH[iLayer] * sizeof(o2::its::Tracklet), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
-  //     for (auto& trk : tracklets) {
-  //       MCCompLabel label;
-  //       int currentId{mTimeFrameGPU->mClusters[iLayer][trk.firstClusterIndex].clusterId};
-  //       int nextId{mTimeFrameGPU->mClusters[iLayer + 1][trk.secondClusterIndex].clusterId};
-  //       for (auto& lab1 : mTimeFrameGPU->getClusterLabels(iLayer, currentId)) {
-  //         for (auto& lab2 : mTimeFrameGPU->getClusterLabels(iLayer + 1, nextId)) {
-  //           if (lab1 == lab2 && lab1.isValid()) {
-  //             label = lab1;
-  //             break;
-  //           }
-  //         }
-  //         if (label.isValid()) {
-  //           break;
-  //         }
-  //       }
-  //       mTimeFrameGPU->getTrackletsLabel(iLayer).emplace_back(label);
-  //     }
-  //   }
-  // }
+  // Create tracklets labels, at the moment on the host
+  if (mTimeFrameGPU->hasMCinformation()) {
+    for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
+      std::vector<o2::its::Tracklet> tracklets(trackletSizeH[iLayer]);
+      checkGPUError(cudaMemcpy(tracklets.data(), mTimeFrameGPU->getDeviceTrackletsAll(iLayer), trackletSizeH[iLayer] * sizeof(o2::its::Tracklet), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+      for (auto& trk : tracklets) {
+        MCCompLabel label;
+        int currentId{mTimeFrameGPU->mClusters[iLayer][trk.firstClusterIndex].clusterId};
+        int nextId{mTimeFrameGPU->mClusters[iLayer + 1][trk.secondClusterIndex].clusterId};
+        for (auto& lab1 : mTimeFrameGPU->getClusterLabels(iLayer, currentId)) {
+          for (auto& lab2 : mTimeFrameGPU->getClusterLabels(iLayer + 1, nextId)) {
+            if (lab1 == lab2 && lab1.isValid()) {
+              label = lab1;
+              break;
+            }
+          }
+          if (label.isValid()) {
+            break;
+          }
+        }
+        mTimeFrameGPU->getTrackletsLabel(iLayer).emplace_back(label);
+      }
+    }
+  }
 }
 
 template <int NLayers>
