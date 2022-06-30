@@ -516,7 +516,13 @@ void DataProcessingDevice::initPollers()
         mState.activeOutOfBandPollers.empty() &&
         mState.activeTimers.empty() &&
         mState.activeSignals.empty()) {
-      mDeviceContext.exitTransitionTimeout = 0;
+      // FIXME: this is to make sure we do not reset the output timer
+      // for readout proxies or similar. In principle this should go once
+      // we move to OutOfBand InputSpec.
+      if (mState.inputChannelInfos.empty()) {
+        LOGP(detail, "No input channels. Setting exit transition timeout to 0.");
+        mDeviceContext.exitTransitionTimeout = 0;
+      }
       for (auto& [channelName, channel] : fChannels) {
         if (channelName.rfind(mSpec.channelPrefix + "from_internal-dpl", 0) == 0) {
           LOGP(detail, "{} is an internal channel. Not polling.", channelName);
@@ -551,6 +557,7 @@ void DataProcessingDevice::initPollers()
       }
     }
   } else {
+    LOGP(detail, "This is a fake device so we exit after the first iteration.");
     mDeviceContext.exitTransitionTimeout = 0;
     // This is a fake device, so we can request to exit immediately
     mServiceRegistry.get<ControlService>().readyToQuit(QuitRequest::Me);
