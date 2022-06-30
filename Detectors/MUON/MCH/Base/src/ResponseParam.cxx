@@ -9,19 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// \file ResponseParam.cxx
+/// \brief Configurable parameters for MCH charge induction and signal generation
+/// \author Philippe Pillot, Subatech
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "MCHBase/ResponseParam.h"
 
-#pragma link C++ namespace o2;
-#pragma link C++ namespace o2::mch;
-
-#pragma link C++ class o2::mch::TrackerParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::mch::TrackerParam> + ;
-
-#pragma link C++ class o2::mch::ResponseParam + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::mch::ResponseParam> + ;
-
-#endif
+O2ParamImpl(o2::mch::ResponseParam);

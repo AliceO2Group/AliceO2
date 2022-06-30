@@ -14,7 +14,7 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#include "MathiesonOriginal.h"
+#include "MCHBase/MathiesonOriginal.h"
 
 #include <TMath.h>
 

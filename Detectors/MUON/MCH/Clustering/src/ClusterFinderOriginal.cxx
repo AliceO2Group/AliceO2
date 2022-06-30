@@ -35,10 +35,11 @@
 
 #include <FairLogger.h>
 
+#include "MCHBase/MathiesonOriginal.h"
+#include "MCHBase/ResponseParam.h"
 #include "MCHClustering/ClusterizerParam.h"
 #include "PadOriginal.h"
 #include "ClusterOriginal.h"
-#include "MathiesonOriginal.h"
 
 namespace o2
 {
@@ -95,14 +96,14 @@ void ClusterFinderOriginal::init(bool run2Config)
     mLowestClusterCharge = 2. * mLowestPadCharge;
 
     // Mathieson function for station 1
-    mMathiesons[0].setPitch(ClusterizerParam::Instance().pitchSt1);
-    mMathiesons[0].setSqrtKx3AndDeriveKx2Kx4(ClusterizerParam::Instance().mathiesonSqrtKx3St1);
-    mMathiesons[0].setSqrtKy3AndDeriveKy2Ky4(ClusterizerParam::Instance().mathiesonSqrtKy3St1);
+    mMathiesons[0].setPitch(ResponseParam::Instance().pitchSt1);
+    mMathiesons[0].setSqrtKx3AndDeriveKx2Kx4(ResponseParam::Instance().mathiesonSqrtKx3St1);
+    mMathiesons[0].setSqrtKy3AndDeriveKy2Ky4(ResponseParam::Instance().mathiesonSqrtKy3St1);
 
     // Mathieson function for other stations
-    mMathiesons[1].setPitch(ClusterizerParam::Instance().pitchSt2345);
-    mMathiesons[1].setSqrtKx3AndDeriveKx2Kx4(ClusterizerParam::Instance().mathiesonSqrtKx3St2345);
-    mMathiesons[1].setSqrtKy3AndDeriveKy2Ky4(ClusterizerParam::Instance().mathiesonSqrtKy3St2345);
+    mMathiesons[1].setPitch(ResponseParam::Instance().pitchSt2345);
+    mMathiesons[1].setSqrtKx3AndDeriveKx2Kx4(ResponseParam::Instance().mathiesonSqrtKx3St2345);
+    mMathiesons[1].setSqrtKy3AndDeriveKy2Ky4(ResponseParam::Instance().mathiesonSqrtKy3St2345);
   }
 }
 
