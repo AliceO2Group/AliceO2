@@ -57,7 +57,7 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
   void initDigitizerTask(framework::InitContext& ic) override
   {
     mDigitizer.init();
-    mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
+    mROMode = o2::parameters::GRPObject::ROMode(o2::parameters::GRPObject::TRIGGERING | (mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT));
     mDisableQED = ic.options().get<bool>("disable-qed");
   }
 
