@@ -53,6 +53,11 @@ HBFUtilsInitializer::HBFUtilsInitializer(const o2f::ConfigContext& configcontext
           o2::conf::ConfigurableParam::updateFromFile(conf, "HBFUtils", true); // update only those values which were not touched yet (provenance == kCODE)
           const auto& hbfu = o2::raw::HBFUtils::Instance();
           hbfu.checkConsistency();
+          confTFInfo = HBFUSrc;
+        } else if (opt == HBFOpt::HBFUTILS) {
+          const auto& hbfu = o2::raw::HBFUtils::Instance();
+          hbfu.checkConsistency();
+          confTFInfo = HBFUSrc;
         } else if (opt == HBFOpt::ROOT) {
           confTFInfo = conf;
         }
@@ -87,6 +92,8 @@ HBFUtilsInitializer::HBFOpt HBFUtilsInitializer::getOptType(const std::string& o
       opt = HBFOpt::JSON;
     } else if (o2::utils::Str::endsWith(optString, ".root")) {
       opt = HBFOpt::ROOT;
+    } else if (optString == HBFUSrc) {
+      opt = HBFOpt::HBFUTILS;
     } else if (optString != "none") {
       throw std::runtime_error(fmt::format("invalid option {} for {}", optString, HBFConfOpt));
     }
@@ -128,25 +135,29 @@ void HBFUtilsInitializer::addNewTimeSliceCallback(std::vector<o2::framework::Cal
     [](o2::framework::CallbackService& service, o2::framework::InitContext& context) {
       auto fname = context.options().get<std::string>(HBFTFInfoOpt);
       if (!fname.empty()) {
-        if (!o2::utils::Str::pathExists(fname)) {
-          throw std::runtime_error(fmt::format("file {} does not exist", fname));
+        if (fname == HBFUSrc) { // simple linear enumeration from already updated HBFUtils
+          const auto& hbfu = o2::raw::HBFUtils::Instance();
+          service.set(o2::framework::CallbackService::Id::NewTimeslice,
+                      [offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit), increment = int64_t(hbfu.nHBFPerTF),
+                       startTime = hbfu.startTime, orbitFirst = hbfu.orbitFirst, runNumber = hbfu.runNumber](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
+                        dh.firstTForbit = offset + increment * dh.tfCounter;
+                        dh.runNumber = runNumber;
+                        dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
+                      });
+        } else if (o2::utils::Str::endsWith(fname, ".root")) { // read TFIDinfo from file
+          if (!o2::utils::Str::pathExists(fname)) {
+            throw std::runtime_error(fmt::format("file {} does not exist", fname));
+          }
+          service.set(o2::framework::CallbackService::Id::NewTimeslice,
+                      [tfidinfo = readTFIDInfoVector(fname)](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) { assignDataHeader(tfidinfo, dh, dph); });
+        } else { // do not modify timing info
+          // we may remove the highest bit set on the creation time?
         }
-        service.set(o2::framework::CallbackService::Id::NewTimeslice,
-                    [tfidinfo = readTFIDInfoVector(fname)](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) { assignDataHeader(tfidinfo, dh, dph); });
-      } else { // simple linear enumeration from already updated HBFUtils
-        const auto& hbfu = o2::raw::HBFUtils::Instance();
-        service.set(o2::framework::CallbackService::Id::NewTimeslice,
-                    [offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit), increment = int64_t(hbfu.nHBFPerTF),
-                     startTime = hbfu.startTime, orbitFirst = hbfu.orbitFirst, runNumber = hbfu.runNumber](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
-                      dh.firstTForbit = offset + increment * dh.tfCounter;
-                      dh.runNumber = runNumber;
-                      dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
-                    });
       }
     }});
 }
 
 void HBFUtilsInitializer::addConfigOption(std::vector<o2f::ConfigParamSpec>& opts)
 {
-  o2f::ConfigParamsHelper::addOptionIfMissing(opts, o2f::ConfigParamSpec{HBFConfOpt, o2f::VariantType::String, std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE), {"configKeyValues ini file for HBFUtils, root file with per-TF info or none"}});
+  o2f::ConfigParamsHelper::addOptionIfMissing(opts, o2f::ConfigParamSpec{HBFConfOpt, o2f::VariantType::String, std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE), {R"(ConfigurableParam ini file or "hbfutils" for HBFUtils, root file with per-TF info or "none")"}});
 }
