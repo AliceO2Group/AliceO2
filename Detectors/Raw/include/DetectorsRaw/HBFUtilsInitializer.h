@@ -44,9 +44,11 @@ struct HBFUtilsInitializer {
   enum HBFOpt { NONE,
                 INI,
                 JSON,
+                HBFUTILS,
                 ROOT };
   static constexpr char HBFConfOpt[] = "hbfutils-config";
-  static constexpr char HBFTFInfoOpt[] = "tf-info-file";
+  static constexpr char HBFTFInfoOpt[] = "tf-info-source";
+  static constexpr char HBFUSrc[] = "hbfutils";
 
   HBFUtilsInitializer(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& wf);
   static HBFOpt getOptType(const std::string& optString);
