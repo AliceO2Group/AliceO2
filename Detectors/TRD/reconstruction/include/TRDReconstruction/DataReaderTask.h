@@ -46,9 +46,6 @@ class DataReaderTask : public Task
   bool isTimeFrameEmpty(ProcessingContext& pc);
   void endOfStream(o2::framework::EndOfStreamContext& ec) override;
 
-  void setParsingErrorLabels();
-  void buildHistograms();
-
  private:
   CruRawReader mReader;                  // this will do the parsing, of raw data passed directly through the flp(no compression)
   CompressedRawReader mCompressedReader; //this will handle the incoming compressed data from the flp
@@ -80,27 +77,6 @@ class DataReaderTask : public Task
   o2::trd::TRDDataCountersPerTimeFrame mTimeFrameStats;                                   // TODO for compressed data this is going to come in for each subtimeframe
                                                                                           // and we need to collate them.
 
-  TH2F* LinkError;
-  TH2F* LinkError1;
-  TH2F* LinkError2;
-  TH2F* LinkError3;
-  TH2F* LinkError4;
-  TH2F* LinkError5;
-  TH2F* LinkError6;
-  TH2F* LinkError7;
-  //std::array<TH2F*, constants::MAXLINKERRORHISTOGRAMS> mLinkErrors;
-  //std::array<TH2F*, constants::MAXPARSEERRORHISTOGRAMS> mParseErrors;
-  TList* mLinkErrors;
-  TList* mParseErrors;
-  TH1F* mTimeFrameTime;
-  TH1F* mTrackletParsingTime;
-  TH1F* mDigitParsingTime;
-  TH1F* mCruTime;
-  TH1F* mPackagingTime;
-  TH1F* mDataVersions;
-  TH1F* mDataVersionsMajor;
-  TH1F* mParsingErrors;
-  TFile* mRootFile;
 };
 
 } // namespace o2::trd

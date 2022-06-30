@@ -28,7 +28,6 @@
 #include <array>
 #include <iomanip>
 #include <iostream>
-#include "TH1F.h"
 
 namespace o2::trd
 {
@@ -66,6 +65,17 @@ int TrackletsParser::Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX
   mIgnoreTrackletHCHeader = options[TRDIgnoreTrackletHCHeaderBit];
   mEventRecord = eventrecord;
   mEventRecords = eventrecords;
+  if (std::distance(start, end) > o2::trd::constants::MAXDATAPERLINK32) { // full event is all digits and 3 tracklets per mcm,
+    //sanity check that the length of data to scan is less the possible maximum for a link
+    LOG(error) << "Attempt to parse a block of data for tracklets that is longer than a link can poossibly be : " << std::distance(start, end) << " should be less than : " << o2::trd::constants::MAXDATAPERLINK32 << " dumping this block of data.";
+    return -1;
+  }
+  if (eventrecord == nullptr) {
+    return -1;
+  }
+  if (eventrecords == nullptr) {
+    return -1;
+  }
   return Parse();
 }
 
@@ -104,17 +114,14 @@ int TrackletsParser::Parse()
     OutputIncomingData();
   }
   //mData holds a buffer containing tracklets parse placing tracklets in the output vector.
-  //mData holds 2048 digits.
   mCurrentLink = 0;
   mWordsRead = 0;
   mTrackletsFound = 0;
-  //TODO move this to the reader as done for the digithcheader
-  //TODO this is in fact moved to outside parsing for new reader, left here so as to change as little code as possible.
   if (mTrackletHCHeaderState == 0) {
     // tracklet hc header is never present
     mState = StateTrackletMCMHeader;
     LOG(error) << " This option of TrackletHalfChamberHeader 0 is no longer permitted";
-    return 0;
+    return -1;
   } else {
     if (mTrackletHCHeaderState == 1) {
       // we either have a tracklet half chamber header word or a digit one.
@@ -132,7 +139,7 @@ int TrackletsParser::Parse()
           LOG(info) << "Returning 0 from tracklet parsing " << std::hex << (tmpheader & 0x3) << " supermodule : " << ((tmpheader >> 9) & 0x1f);
         }
 
-        return 0; //mWordsRead;
+        return -1; //mWordsRead;
       }
       //NBNBNBNB
       //digit half chamber header ends with 01b and has the supermodule in position (9-13).
@@ -159,6 +166,11 @@ int TrackletsParser::Parse()
   int trackletloopcount = 0;
   int headertrackletcount = 0;
   bool ignoreDataTillTrackletEndMarker = false;             // used for when we need to dump the rest of the tracklet data.
+  if (std::distance(mStartParse, mEndParse) > o2::trd::constants::MAXDATAPERLINK32) { // full event is all digits and 3 tracklets per mcm,
+    LOG(error) << "Attempt to parse a block of data for tracklets that is longer than a link can poossibly be : " << std::distance(mStartParse, mEndParse) << " should be less than : " << o2::trd::constants::MAXDATAPERLINK32 << " dumping this data.";
+    //sanity check that the length of data to scan is less the possible maximum for a link
+    return -1;
+  }
   for (auto word = mStartParse; word < mEndParse; ++word) { // loop over the entire data buffer (a complete link of tracklets and digits)
 
     if (mState == StateFinished) {
@@ -229,6 +241,7 @@ int TrackletsParser::Parse()
         //sanity check of trackletheader ??
         if (!sanityCheckTrackletHCHeader(mTrackletHCHeader)) {
           incParsingError(TRDParsingTrackletHCHeaderSanityCheckFailure);
+          LOG(warn) << " sanity check failure on TracklHCHeader of 0x" << std::hex << mTrackletHCHeader.word;
         }
         mWordsRead++;
         mState = StateTrackletMCMHeader;                                // now we should read a MCMHeader next time through loop
@@ -341,8 +354,6 @@ int TrackletsParser::Parse()
     trackletloopcount++;
   } //end of for loop
   //sanity check
-  //LOG(warn) << " end of Trackelt parsing but we are exiting with out a tracklet end marker with " << mWordsRead << " 32bit words read";
-  //mEventRecord.ErrorStats[TRDParsingTrackletExitingNoTrackletEndMarker]++;
   incParsingError(TRDParsingTrackletExitingNoTrackletEndMarker);
 
   mTrackletParsingBad = true;
