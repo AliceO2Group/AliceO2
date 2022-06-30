@@ -88,15 +88,13 @@ class MultiView
   /// Removes all geometries
   void destroyAllGeometries();
 
-  /// Registers an element to be drawn
-  void registerElement(TEveElement* event); // override;
+  /// Registers an elements to be drawn
+  void registerElements(TEveElementList* elements[], TEveElementList* phiElements[]);
 
   /// Get annotation pointer
   TGLAnnotation* getAnnotationTop() { return mAnnotationTop.get(); }
   TGLAnnotation* getAnnotationBottom() { return mAnnotationBottom.get(); }
 
-  ///
-  void registerEvent(TEveElement* event) { return registerElement(event); }
   /// Removes all shapes representing current event
   void destroyAllEvents(); // override;
   void redraw3D();
