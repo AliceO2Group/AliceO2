@@ -290,8 +290,6 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
   if (needBCSlice) {
     ambigMFTTracksCursor(0, mTableTrMFTID, bcSlice);
   }
-  //  mGIDToTableMFTID.emplace(trackID, mTableTrMFTID);
-  mTableTrMFTID++;
 }
 
 template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename AmbigTracksCursorType,
@@ -323,14 +321,16 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           if (trackIndex.isAmbiguous() && mGIDToTableMFTID.find(trackIndex) != mGIDToTableMFTID.end()) { // was it already stored ?
             continue;
           }
-          mGIDToTableMFTID.emplace(trackIndex, mIndexMFTID);
           addToMFTTracksTable(mftTracksCursor, ambigMFTTracksCursor, trackIndex, data, collisionID, collisionBC, bcsMap);
+          mGIDToTableMFTID.emplace(trackIndex, mTableTrMFTID);
+          mTableTrMFTID++;
         } else if (src == GIndex::Source::MCH || src == GIndex::Source::MFTMCH || src == GIndex::Source::MCHMID) { // FwdTracks tracks are treated separately since they are stored in a different table
           if (trackIndex.isAmbiguous() && mGIDToTableFwdID.find(trackIndex) != mGIDToTableFwdID.end()) {           // was it already stored ?
             continue;
           }
-          mGIDToTableFwdID.emplace(trackIndex, mIndexFwdID);
           addToFwdTracksTable(fwdTracksCursor, fwdTracksCovCursor, ambigFwdTracksCursor, trackIndex, data, collisionID, collisionBC, bcsMap);
+          mGIDToTableFwdID.emplace(trackIndex, mTableTrFwdID);
+          mTableTrFwdID++;
         } else {
           // barrel track: normal tracks table
           if (trackIndex.isAmbiguous() && mGIDToTableID.find(trackIndex) != mGIDToTableID.end()) { // was it already stored ?
@@ -380,8 +380,7 @@ void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::
           mGIDToTableFwdID.emplace(trackIndex, mIndexFwdID);
           if (src == GIndex::Source::MCH) {
             mIndexTableFwd[trackIndex.getIndex()] = mIndexFwdID;
-          }
-          if (src == GIndex::Source::MCHMID) {
+          } else if (src == GIndex::Source::MCHMID) {
             const auto& mchmidMatch = mchmidMatches[trackIndex.getIndex()];
             const auto mchTrackID = mchmidMatch.getMCHRef().getIndex();
             mIndexTableFwd[mchTrackID] = mIndexFwdID;
@@ -407,7 +406,6 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   FwdTrackInfo fwdInfo;
   FwdTrackCovInfo fwdCovInfo;
   int bcSlice[2] = {-1, -1};
-  bool errGaussian = true; // decide if the errors are gaussian or just an interval
 
   // helper lambda for mch bitmap -- common for global and standalone tracks
   auto getMCHBitMap = [&](int mchTrackID) {
@@ -448,7 +446,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
       vz = v.getZ();
     }
 
-    o2::mch::TrackParam trackParamAtVertex(track.getZ(), track.getParameters());
+    o2::mch::TrackParam trackParamAtVertex(track.getZ(), track.getParameters(), track.getCovariances());
     double errVtx{0.0}; // FIXME: get errors associated with vertex if available
     double errVty{0.0};
     if (!o2::mch::TrackExtrap::extrapToVertex(trackParamAtVertex, vx, vy, vz, errVtx, errVty)) {
@@ -482,7 +480,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     double dphi = std::atan2(py, px);
     double dtanl = pz / pt;
     double dinvqpt = 1.0 / (trackParamAtVertex.getCharge() * pt);
-    double dpdca = trackParamAtVertex.p() * dca;
+    double dpdca = track.getP() * dca;
     double dchi2 = track.getChi2OverNDF();
 
     fwdInfo.x = trackParamAtVertex.getNonBendingCoor();
@@ -523,10 +521,9 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     }
     fwdInfo.trackTypeId = o2::aod::fwdtrack::MCHStandaloneTrack;
     const auto& rof = data.getMCHTracksROFRecords()[mMCHROFs[mchTrackID]];
-    const auto bcWidth = 56; // do like in RecoContainerCreateTracksVariadic::createTracksVariadic
-    fwdInfo.trackTime = (bcWidth / 2 + rof.getBCData().differenceInBC(mStartIR)) * o2::constants::lhc::LHCBunchSpacingNS;
-    fwdInfo.trackTimeRes = o2::constants::lhc::LHCBunchSpacingNS * bcWidth / 2; // half interval
-    errGaussian = false;
+    auto time = rof.getTimeMUS(mStartIR).first;
+    fwdInfo.trackTime = time.getTimeStamp() * 1.e3;
+    fwdInfo.trackTimeRes = time.getTimeStampError() * 1.e3;
   } else if (trackID.getSource() == GIndex::MCHMID) { // This is an MCH-MID track
     fwdInfo.trackTypeId = o2::aod::fwdtrack::MuonStandaloneTrack;
     auto mchmidMatch = mchmidMatches[trackID.getIndex()];
@@ -538,11 +535,9 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     fwdInfo.chi2matchmchmid = mchmidMatch.getMatchChi2OverNDF();
     getMCHBitMap(mchTrackID);
     getMIDBitMapBoards(midTrackID);
-    const auto& intRecord = mchmidMatch.getIR(); // timing from MID match
-    uint64_t bc = intRecord.differenceInBC(mStartIR);
-    // timings according to MCH-MID matches processing in RecoContainerCreateTracksVariadic::createTracksVariadic
-    fwdInfo.trackTime = bc * o2::constants::lhc::LHCBunchSpacingNS;
-    fwdInfo.trackTimeRes = 0.5;
+    auto time = mchmidMatch.getTimeMUS(mStartIR).first;
+    fwdInfo.trackTime = time.getTimeStamp() * 1.e3;
+    fwdInfo.trackTimeRes = time.getTimeStampError() * 1.e3;
   } else { // This is a GlobalMuonTrack or a GlobalForwardTrack
     const auto& track = data.getGlobalFwdTrack(trackID);
     fwdInfo.x = track.getX();
@@ -586,7 +581,7 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   std::uint64_t bcOfTimeRef;
   bool needBCSlice = trackID.isAmbiguous() || collisionID < 0;
   if (needBCSlice) { // need to store BC slice
-    float err = mTimeMarginTrackTime + (errGaussian ? fwdInfo.trackTimeRes * mNSigmaTimeTrack : fwdInfo.trackTimeRes);
+    float err = mTimeMarginTrackTime + fwdInfo.trackTimeRes;
     bcOfTimeRef = fillBCSlice(bcSlice, fwdInfo.trackTime - err, fwdInfo.trackTime + err, bcsMap);
   } else {
     bcOfTimeRef = collisionBC - mStartIR.toLong(); // by default (unambiguous) track time is wrt collision BC
@@ -637,8 +632,6 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
   if (needBCSlice) {
     ambigFwdTracksCursor(0, mTableTrFwdID, bcSlice);
   }
-  //  mGIDToTableFwdID.emplace(trackID, mTableTrFwdID);
-  mTableTrFwdID++;
 }
 
 template <typename MCParticlesCursorType>
@@ -1550,7 +1543,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   int collisionID = 0;
   mIndexTableMFT.resize(recoData.getMFTTracks().size());
-  mIndexTableFwd.resize(recoData.getMCHTracks().size() * 3); // take an upperbound to the size of the FwdTrack table
+  mIndexTableFwd.resize(recoData.getMCHTracks().size());
 
   auto& trackReffwd = primVer2TRefs.back();
   fillIndexTablesPerCollision(trackReffwd, primVerGIs, recoData);
