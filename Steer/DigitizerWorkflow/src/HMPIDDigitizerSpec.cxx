@@ -145,7 +145,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   std::vector<o2::hmpid::Trigger> mIntRecord;
 
   // RS: at the moment using hardcoded flag for continuous readout
-  o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::TRIGGERING; // readout mode
+  o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT; // readout mode
 };
 
 o2::framework::DataProcessorSpec getHMPIDDigitizerSpec(int channel, bool mctruth)
