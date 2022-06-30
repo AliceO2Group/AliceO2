@@ -2658,6 +2658,28 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     printHelp(varmap, executorOptions, physicalWorkflow, currentWorkflowOptions);
     exit(0);
   }
+  /// Set the fair::Logger severity to the one specified in the command line
+  /// We do it by hand here, because FairMQ device is not initialsed until
+  /// much later and we need the logger before that.
+  if (varmap.count("severity")) {
+    auto logLevel = varmap["severity"].as<std::string>();
+    if (logLevel == "debug") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::debug);
+    } else if (logLevel == "detail") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::detail);
+    } else if (logLevel == "info") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::info);
+    } else if (logLevel == "warning") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::warning);
+    } else if (logLevel == "error") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::error);
+    } else if (logLevel == "fatal") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::fatal);
+    } else {
+      LOGP(error, "Invalid log level '{}'", logLevel);
+      exit(1);
+    }
+  }
   DriverControl driverControl;
   initialiseDriverControl(varmap, driverControl);
 
