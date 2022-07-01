@@ -443,7 +443,7 @@ void EveWorkflowHelper::drawEMCAL()
     LOG(info) << "EMCAL index_module_eta: "<< index_module_eta ;
     LOG(info) << "EMCAL      translation: "<< "["<<translation[0]<<","<<translation[1]<<","<<translation[2]<<"]"  ;
     */
-    double rPos[]= {relPosCell.X(),relPosCell.Y(),relPosCell.Z()};
+    double rPos[] = {relPosCell.X(), relPosCell.Y(), relPosCell.Z()};
     double gPos[3];
     matrix->LocalToMaster(rPos, gPos);
     TVector3 vPos(gPos);
