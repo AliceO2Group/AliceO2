@@ -81,14 +81,14 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   uint64_t count = 0;
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     // Proccessing each page
-    count++;
     auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
     if (rdhPtr == nullptr) {
-      LOG(alarm) << "ZDCDataReaderDPLSpec::run - Missing RAWDataHeader on page " << count - 1;
+      LOG(alarm) << "ZDCDataReaderDPLSpec::run - Missing RAWDataHeader on page " << count;
     } else {
       gsl::span<const uint8_t> payload(it.data(), it.size());
       mRawReader.processBinaryData(payload, rdhPtr->linkID);
     }
+    count++;
   }
   LOG(info) << "Pages: " << count;
   mRawReader.accumulateDigits();
