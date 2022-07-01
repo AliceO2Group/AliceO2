@@ -427,6 +427,8 @@ void EveWorkflowHelper::drawEMCAL()
 
     const TGeoHMatrix* matrix = this->mEMCALGeom->GetMatrixForSuperModuleFromGeoManager(sm);
     const Double_t* translation = matrix->GetTranslation();
+    const Double_t* rotation = matrix->GetRotationMatrix();
+
     /*
     LOG(info) << "EMCAL -----------------------------------------------------------------------------------------------";
     LOG(info) << "EMCAL               id: "<< id  <<            "                  emcal.getTower()";
@@ -441,14 +443,15 @@ void EveWorkflowHelper::drawEMCAL()
     LOG(info) << "EMCAL index_module_eta: "<< index_module_eta ;
     LOG(info) << "EMCAL      translation: "<< "["<<translation[0]<<","<<translation[1]<<","<<translation[2]<<"]"  ;
     */
-    TVector3 gPos;
-    gPos[0] = translation[0] + relPosCell.X();
-    gPos[1] = translation[1] + relPosCell.Y();
-    gPos[2] = translation[2] + relPosCell.Z();
+    double rPos[]= {relPosCell.X(),relPosCell.Y(),relPosCell.Z()};
+    double gPos[3];
+    matrix->LocalToMaster(rPos, gPos);
+    TVector3 vPos(gPos);
+
     auto vCalo = mEvent.addCalo({.time = static_cast<float>(emcal.getTimeStamp()),
                                  .energy = emcal.getEnergy(),
-                                 .phi = (float)gPos.Phi(),
-                                 .eta = (float)gPos.Eta(),
+                                 .phi = (float)vPos.Phi(),
+                                 .eta = (float)vPos.Eta(),
                                  .PID = 0,
                                  .gid = GID::getSourceName(GID::EMC),
                                  .source = GID::EMC});
