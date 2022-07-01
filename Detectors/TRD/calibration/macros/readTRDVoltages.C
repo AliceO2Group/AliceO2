@@ -29,23 +29,37 @@
 #include <sstream>
 #include <iomanip>
 
+#else
+
+#error This macro must run in compiled mode
+
 #endif
 
-void readTRDVoltages()
+/*
+Hint: to get a time stamp for a given time, use the date utility like so:
+
+We are interested in the voltage values on 27th of June 2022 at 1:22 am, so we do:
+date -d "01:22 2022-06-27" +%s
+This returns 1656285720. Since this time is given in seconds it has to be multiplied by 1000.
+Then we can do readTRDVoltages(1656285720000)
+*/
+
+void readTRDVoltages(long ts = -1, bool savePlots = false)
 {
   // prepare some histograms for the voltages
-  std::vector<std::unique_ptr<TH2F>> histsAnode;
-  std::vector<std::unique_ptr<TH2F>> histsDrift;
+  std::vector<TH2F*> histsAnode;
+  std::vector<TH2F*> histsDrift;
   for (int iSec = 0; iSec < o2::trd::constants::NSECTOR; ++iSec) {
-    histsAnode.emplace_back(std::make_unique<TH2F>(Form("anodeSec%i", iSec), Form("Anodes sec %i;stack;layer;U(V)", iSec), 5, -0.5, 4.5, 6, -0.5, 5.5));
-    histsDrift.emplace_back(std::make_unique<TH2F>(Form("driftSec%i", iSec), Form("Drift sec %i;stack;layer;U(V)", iSec), 5, -0.5, 4.5, 6, -0.5, 5.5));
+    histsAnode.emplace_back(new TH2F(Form("anodeSec%i", iSec), Form("Anodes sec %i;stack;layer;U(V)", iSec), 5, -0.5, 4.5, 6, -0.5, 5.5));
+    histsDrift.emplace_back(new TH2F(Form("driftSec%i", iSec), Form("Drift sec %i;stack;layer;U(V)", iSec), 5, -0.5, 4.5, 6, -0.5, 5.5));
     histsAnode.back()->SetStats(0);
     histsDrift.back()->SetStats(0);
   }
 
   // now, access the actual calibration object from CCDB
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
-  auto cal = ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, float>>("TRD/Calib/DCSDPsU");
+  // if no ts is supplied we just take the current CCDB object
+  auto cal = (ts < 0) ? ccdbmgr.get<unordered_map<o2::dcs::DataPointIdentifier, float>>("TRD/Calib/DCSDPsU") : ccdbmgr.getForTimeStamp<unordered_map<o2::dcs::DataPointIdentifier, float>>("TRD/Calib/DCSDPsU", ts);
 
   o2::dcs::DataPointIdentifier dpidAnode; // used as key to access the map
   o2::dcs::DataPointIdentifier dpidDrift; // used as key to access the map
@@ -67,7 +81,7 @@ void readTRDVoltages()
   }
 
   // plot the obtained values
-  auto cAnode = std::make_unique<TCanvas>("cAnode", "cAnode", 1800, 1000);
+  auto cAnode = new TCanvas("cAnode", "cAnode", 1800, 1000);
   cAnode->Divide(6, 3);
   for (int iSec = 0; iSec < o2::trd::constants::NSECTOR; ++iSec) {
     auto pad = cAnode->cd(iSec + 1);
@@ -75,9 +89,11 @@ void readTRDVoltages()
     histsAnode[iSec]->GetZaxis()->SetRangeUser(0, 1500);
     histsAnode[iSec]->Draw("colz text");
   }
-  cAnode->SaveAs("anodeVoltages.pdf");
+  if (savePlots) {
+    cAnode->SaveAs("anodeVoltages.pdf");
+  }
 
-  auto cDrift = std::make_unique<TCanvas>("cDrift", "cDrift", 1800, 1000);
+  auto cDrift = new TCanvas("cDrift", "cDrift", 1800, 1000);
   cDrift->Divide(6, 3);
   for (int iSec = 0; iSec < o2::trd::constants::NSECTOR; ++iSec) {
     auto pad = cDrift->cd(iSec + 1);
@@ -85,7 +101,9 @@ void readTRDVoltages()
     histsDrift[iSec]->GetZaxis()->SetRangeUser(0, 2500);
     histsDrift[iSec]->Draw("colz text");
   }
-  cDrift->SaveAs("driftVoltages.pdf");
+  if (savePlots) {
+    cDrift->SaveAs("driftVoltages.pdf");
+  }
 
   return;
 }
