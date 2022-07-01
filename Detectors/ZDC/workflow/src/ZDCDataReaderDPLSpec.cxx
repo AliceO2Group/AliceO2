@@ -80,16 +80,32 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   }
 
   uint64_t count = 0;
+  uint64_t nErr[3] = {0};
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     // Proccessing each page
     auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
     if (rdhPtr == nullptr) {
-      LOG(alarm) << "ZDCDataReaderDPLSpec::run - Missing RAWDataHeader on page " << count;
+      nErr[0]++;
+      if (nErr[0] < 5) {
+        LOG(alarm) << "ZDCDataReaderDPLSpec::run - Missing RAWDataHeader on page " << count;
+      } else if (nErr[0] == 5) {
+        LOG(alarm) << "ZDCDataReaderDPLSpec::run - Missing RAWDataHeader on page " << count << " suppressing further messages";
+      }
     } else {
       if (it.data() == nullptr) {
-        LOG(alarm) << "ZDCDataReaderDPLSpec::run - Null payload pointer on page " << count;
+        nErr[1]++;
+        if (nErr[1] < 5) {
+          LOG(alarm) << "ZDCDataReaderDPLSpec::run - Null payload pointer on page " << count;
+        } else if (nErr[1] == 5) {
+          LOG(alarm) << "ZDCDataReaderDPLSpec::run - Null payload pointer on page " << count << " suppressing further messages";
+        }
       } else if (it.size() == 0) {
-        LOG(alarm) << "ZDCDataReaderDPLSpec::run - No payload on page " << count;
+        nErr[2]++;
+        if (nErr[2] < 5) {
+          LOG(alarm) << "ZDCDataReaderDPLSpec::run - No payload on page " << count;
+        } else if (nErr[2] == 5) {
+          LOG(alarm) << "ZDCDataReaderDPLSpec::run - No payload on page " << count << " suppressing further messages";
+        }
       } else {
         gsl::span<const uint8_t> payload(it.data(), it.size());
         mRawReader.processBinaryData(payload, rdhPtr->linkID);
@@ -98,7 +114,20 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     count++;
   }
   LOG(info) << "Pages: " << count;
-  mRawReader.accumulateDigits();
+  if (nErr[0] > 0) {
+    LOG(alarm) << "ZDCDataReaderDPLSpec::run - Missing RAWDataHeader occurrences " << nErr[0];
+  }
+  if (nErr[1] > 0) {
+    LOG(alarm) << "ZDCDataReaderDPLSpec::run - Null payload pointer occurrences " << nErr[1];
+  }
+  if (nErr[2] > 0) {
+    LOG(alarm) << "ZDCDataReaderDPLSpec::run - Missing RAWDataHeader occurrences " << nErr[2];
+  }
+  if (nErr[0] == 0 && nErr[1] == 0 && nErr[2] == 0) {
+    mRawReader.accumulateDigits();
+  } else {
+    LOG(alarm) << "Not sending output ";
+  }
   mRawReader.makeSnapshot(pc);
 }
 
