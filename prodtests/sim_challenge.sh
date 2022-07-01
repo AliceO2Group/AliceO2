@@ -113,7 +113,7 @@ fi
 if [ "$dosim" == "1" ]; then
   #---- GRP creation ------
   echo "Creating GRPs ... and publishing in local CCDB overwrite"
-  taskwrapper grp.log o2-grp-simGRP-tool createGRPs --run ${runNumber} --publishto GRP -o mcGRP
+  taskwrapper grp.log o2-grp-simgrp-tool createGRPs --run ${runNumber} --publishto GRP -o mcGRP
 
   #---------------------------------------------------
   echo "Running simulation for $nev $collSyst events with $gener generator and engine $engine and run number $runNumber"
