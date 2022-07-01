@@ -95,7 +95,7 @@ void FlatHisto1D<T>::init(const gsl::span<const T> ext)
 }
 
 template <typename T>
-std::unique_ptr<TH1F> FlatHisto1D<T>::createTH1F(const std::string& name)
+std::unique_ptr<TH1F> FlatHisto1D<T>::createTH1F(const std::string& name) const
 {
   auto h = std::make_unique<TH1F>(name.c_str(), name.c_str(), getNBins(), getXMin(), getXMax());
   for (uint32_t i = getNBins(); i--;) {

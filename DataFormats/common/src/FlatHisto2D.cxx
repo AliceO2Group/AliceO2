@@ -112,7 +112,7 @@ void FlatHisto2D<T>::init(const gsl::span<const T> ext)
 }
 
 template <typename T>
-std::unique_ptr<TH2F> FlatHisto2D<T>::createTH2F(const std::string& name)
+std::unique_ptr<TH2F> FlatHisto2D<T>::createTH2F(const std::string& name) const
 {
   auto h = std::make_unique<TH2F>(name.c_str(), name.c_str(), getNBinsX(), getXMin(), getXMax(), getNBinsY(), getYMin(), getYMax());
   for (uint32_t i = getNBinsX(); i--;) {
