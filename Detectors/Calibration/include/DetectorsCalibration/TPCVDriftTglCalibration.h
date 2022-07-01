@@ -84,12 +84,15 @@ class TPCVDriftTglCalibration : public o2::calibration::TimeSlotCalibration<o2::
   std::vector<o2::dataformats::Pair<float, float>>& getVDPerSlot() { return mVDPerSlot; }
   std::vector<o2::ccdb::CcdbObjectInfo>& getCCDBInfoPerSlot() { return mCCDBInfoPerSlot; }
 
+  void setSaveHistosFile(const std::string& f) { mSaveHistosFile = f; }
+
  private:
   size_t mMineEntriesPerSlot = 10000;
-  int mNBinsTgl = 50;
+  int mNBinsTgl = 10;
   int mNBinsDTgl = 100;
   float mMaxTgl = 1.;
   float mMaxDTgl = 0.2;
+  std::string mSaveHistosFile{};
   std::vector<o2::dataformats::Pair<float, float>> mVDPerSlot;
   std::vector<o2::ccdb::CcdbObjectInfo> mCCDBInfoPerSlot;
 

@@ -20,7 +20,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"nbins-tgl", o2::framework::VariantType::Int, 50, {"number of bins in tgL"}},
+    {"nbins-tgl", o2::framework::VariantType::Int, 20, {"number of bins in tgL"}},
     {"max-tgl-its", o2::framework::VariantType::Float, 1.f, {"max range for tgL of ITS tracks"}},
     {"nbins-dtgl", o2::framework::VariantType::Int, 100, {"number of bins in tgL_ITS - tgl_TPC"}},
     {"max-dtgl-itstpc", o2::framework::VariantType::Float, 0.2f, {"max range for tgL_ITS - tgl_TPC"}},

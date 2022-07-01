@@ -38,6 +38,7 @@ class TPCVDriftTglCalibSpec : public Task
   void init(InitContext& ic) final
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
+    mCalibrator->setSaveHistosFile(ic.options().get<std::string>("vdtgl-histos-file-name"));
   };
 
   void run(ProcessingContext& pc) final
@@ -117,7 +118,7 @@ DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, fl
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<o2::calibration::TPCVDriftTglCalibSpec>(ntgl, tglMax, ndtgl, dtglMax, slotL, minEnt, ccdbRequest)},
-    Options{}};
+    Options{{"vdtgl-histos-file-name", VariantType::String, "", {"file to save histos (if name provided)"}}}};
 }
 
 } // namespace calibration
