@@ -80,7 +80,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   }
 
   uint64_t count = 0;
-  uint64_t nErr[3] = {0};
+  static uint64_t nErr[3] = {0};
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     // Proccessing each page
     auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
