@@ -59,7 +59,7 @@ class EPNMonitor
  public:
   EPNMonitor(std::string path, bool infoLogger, int runNumber, std::string partition);
   ~EPNMonitor();
-  void setRunNr(int nr) { mRunNUmber = nr; }
+  void setRunNr(int nr) { mRunNumber = nr; }
 
  private:
   void thread();
@@ -72,7 +72,7 @@ class EPNMonitor
   std::unordered_map<std::string, fileMon> mFiles;
   std::string mPath;
   std::vector<std::regex> mFilters;
-  unsigned int mRunNUmber;
+  volatile unsigned int mRunNumber;
   std::string mPartition;
   unsigned int nLines = 0;
   unsigned int nBytes = 0;
@@ -86,7 +86,7 @@ EPNMonitor::EPNMonitor(std::string path, bool infoLogger, int runNumber, std::st
   mFilters.emplace_back("^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6}");
   mInfoLoggerActive = infoLogger;
   mPath = path;
-  mRunNUmber = runNumber;
+  mRunNumber = runNumber;
   mPartition = partition;
   if (infoLogger) {
     mLogger = std::make_unique<InfoLogger::InfoLogger>();
@@ -116,7 +116,7 @@ void EPNMonitor::sendLog(const std::string& file, const std::string& message)
 {
   if (mInfoLoggerActive) {
     mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::Facility, ("stderr/" + file).substr(0, 31));
-    mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::Run, mRunNUmber == 0 ? std::to_string(mRunNUmber) : "unspecified");
+    mLoggerContext->setField(InfoLogger::InfoLoggerContext::FieldName::Run, mRunNumber == 0 ? std::to_string(mRunNumber) : "unspecified");
     static const InfoLogger::InfoLogger::InfoLoggerMessageOption opt = {InfoLogger::InfoLogger::Severity::Error, 3, InfoLogger::InfoLogger::undefinedMessageOption.errorCode, InfoLogger::InfoLogger::undefinedMessageOption.sourceFile, InfoLogger::InfoLogger::undefinedMessageOption.sourceLine};
     mLogger->log(opt, *mLoggerContext, "stderr: %s", message.c_str());
   } else {
