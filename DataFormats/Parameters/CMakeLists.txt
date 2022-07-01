@@ -25,7 +25,7 @@ o2_target_root_dictionary(DataFormatsParameters
                                   include/DataFormatsParameters/GRPMagField.h
                           LINKDEF src/ParametersDataLinkDef.h)
 
-o2_add_executable(simGRP-tool
+o2_add_executable(simgrp-tool
                   COMPONENT_NAME grp
                   SOURCES src/GRPTool.cxx
                   PUBLIC_LINK_LIBRARIES Boost::program_options O2::DataFormatsParameters)
