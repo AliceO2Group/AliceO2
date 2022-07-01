@@ -226,8 +226,22 @@ void MultiView::destroyAllGeometries()
   mDetectors.clear();
 }
 
+void MultiView::registerElements(TEveElementList* elements[], TEveElementList* phiElements[])
+{
+  for (auto dataType = 0; dataType < EVisualisationDataType::NdataTypes; ++dataType) {
+    TEveElement* event = elements[dataType];
+    gEve->GetCurrentEvent()->AddElement(event);
+    getProjection(ProjectionZrho)->ImportElements(event, getScene(SceneZrhoEvent));
+  }
+  for (auto dataType = 0; dataType < EVisualisationDataType::NdataTypes; ++dataType) {
+    TEveElement* event = phiElements[dataType];
+    getProjection(ProjectionRphi)->ImportElements(event, getScene(SceneRphiEvent));
+  }
+}
+
 void MultiView::registerElement(TEveElement* event)
 {
+  // version which do not remove MFT, MID, MCH in Rphi view
   gEve->GetCurrentEvent()->AddElement(event);
   getProjection(ProjectionRphi)->ImportElements(event, getScene(SceneRphiEvent));
   getProjection(ProjectionZrho)->ImportElements(event, getScene(SceneZrhoEvent));
