@@ -78,6 +78,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     mRawReader.setVerifyTrigger(mVerifyTrigger);
     LOG(info) << "Check of trigger condition during conversion is " << (mVerifyTrigger ? "ON" : "OFF");
   }
+
   uint64_t count = 0;
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     // Proccessing each page
