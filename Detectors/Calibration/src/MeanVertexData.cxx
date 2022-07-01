@@ -69,6 +69,7 @@ void MeanVertexData::fill(const gsl::span<const PVertex> data)
       histoY[biny]++;
       histoZ[binz]++;
       entries++;
+      histoVtx.push_back({x, y, z});
     }
   }
 
@@ -101,6 +102,7 @@ void MeanVertexData::subtract(const MeanVertexData* prev)
   for (int i = histoZ.size(); i--;) {
     histoZ[i] -= prev->histoZ[i];
   }
+  histoVtx.erase(histoVtx.begin(), histoVtx.begin() + prev->entries);
   entries -= prev->entries;
 }
 
@@ -117,6 +119,7 @@ void MeanVertexData::merge(const MeanVertexData* prev)
     histoY[i] += prev->histoY[i];
     histoZ[i] += prev->histoZ[i];
   }
+  histoVtx.insert(histoVtx.end(), prev->histoVtx.begin(), prev->histoVtx.end());
   entries += prev->entries;
 }
 

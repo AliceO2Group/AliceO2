@@ -10,3 +10,29 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsCalibration/MeanVertexObject.h"
+
+namespace o2
+{
+namespace dataformats
+{
+
+std::string MeanVertexObject::asString() const
+{
+  return fmt::format("Slopes {{{:+.4e},{:+.4e}}}", mSlopeX, mSlopeY);
+}
+
+std::ostream& operator<<(std::ostream& os, const o2::dataformats::MeanVertexObject& o)
+{
+  // stream itself
+  os << o.asString();
+  return os;
+}
+
+void MeanVertexObject::print() const
+{
+  VertexBase::print();
+  std::cout << *this << std::endl;
+}
+
+} // namespace dataformats
+} // namespace o2

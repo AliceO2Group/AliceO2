@@ -39,6 +39,7 @@ struct MeanVertexData {
   std::vector<float> histoX{0};
   std::vector<float> histoY{0};
   std::vector<float> histoZ{0};
+  std::vector<std::array<float, 3>> histoVtx{0};
   bool useFit = false;
   bool mVerbose = false;
 
@@ -59,6 +60,7 @@ struct MeanVertexData {
     histoX.clear();
     histoY.clear();
     histoZ.clear();
+    histoVtx.clear();
   }
 
   MeanVertexData(bool buseFit, int nbX, float rX, int nbY, float rY, int nbZ, float rZ) : useFit(buseFit), nbinsX(nbX), rangeX(rX), v2BinX(0), nbinsY(nbY), rangeY(rY), v2BinY(0), nbinsZ(nbZ), rangeZ(rZ), v2BinZ(0)

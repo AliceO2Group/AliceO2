@@ -10,7 +10,10 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(DataFormatsCalibration
-               SOURCES src/MeanVertexObject.cxx)
+               SOURCES src/MeanVertexObject.cxx
+               PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
+                                     O2::Framework)
 
 o2_target_root_dictionary(DataFormatsCalibration
                           HEADERS include/DataFormatsCalibration/MeanVertexObject.h)
+
