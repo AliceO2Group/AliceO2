@@ -232,7 +232,7 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
       id1 = trk.secondClusterIndex;
       newTrk.push_back(trk);
     } else {
-      printf("layer 0: tracklet: %d/%lu, decreasing index %d\n", count, tf->getTracklets()[0].size(), id0);
+      // printf("layer 0: tracklet: %d/%lu, decreasing index %d\n", count, tf->getTracklets()[0].size(), id0);
     }
     count++;
   }

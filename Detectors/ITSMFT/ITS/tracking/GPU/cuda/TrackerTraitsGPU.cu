@@ -27,7 +27,6 @@
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/MathUtils.h"
 
-#include "ITStrackingGPU/Stream.h"
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
 
 #include "GPUCommonLogger.h"
@@ -63,7 +62,7 @@ GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerInde
               utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
 }
 
-GPUd() float Sq(float q)
+GPUhd() float Sq(float q)
 {
   return q * q;
 }
@@ -201,6 +200,34 @@ GPUg() void removeDuplicateTrackletsEntriesLUTKernel(
     }
   }
 }
+
+// Compute cells kernel
+template <int NLayers = 7>
+GPUg() void computeLayerCellsKernel(
+  const Tracklet* trackletsCurrentLayer,
+  const Tracklet* trackletsNextLayer,
+  const int* trackletsCurrentLayerLUT,
+  const int nTracklets)
+{
+  for (int currentTrackletIndex = blockIdx.x * blockDim.x + threadIdx.x; currentTrackletIndex < nTracklets; currentTrackletIndex += blockDim.x * gridDim.x) {
+    const Tracklet& currentTracklet = trackletsCurrentLayer[currentTrackletIndex];
+    const int nextLayerClusterIndex{currentTracklet.secondClusterIndex};
+    const int nextLayerFirstTrackletIndex{trackletsCurrentLayerLUT[nextLayerClusterIndex]};
+    const int nextLayerLastTrackletIndex{trackletsCurrentLayerLUT[nextLayerClusterIndex + 1]};
+
+    if (nextLayerFirstTrackletIndex == nextLayerLastTrackletIndex) {
+      continue;
+    }
+    for (int iNextTracklet{nextLayerFirstTrackletIndex}; iNextTracklet < nextLayerLastTrackletIndex; ++iNextTracklet) {
+      if (trackletsNextLayer[iNextTracklet].firstClusterIndex != nextLayerClusterIndex) {
+        break;
+      }
+      const Tracklet& nextTracklet = trackletsNextLayer[iNextTracklet];
+      const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
+      const float tanLambda{(currentTracklet.tanLambda + nextTracklet.tanLambda) * 0.5f};
+    }
+  }
+}
 } // namespace gpu
 
 template <int NLayers>
@@ -213,10 +240,9 @@ void TrackerTraitsGPU<NLayers>::initialiseTimeFrame(const int iteration, const M
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
 {
-  std::array<gpu::Stream, NLayers - 1> streamArray;
-
   const Vertex diamondVert({mTrkParams.Diamond[0], mTrkParams.Diamond[1], mTrkParams.Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
   gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
+
   for (int rof0{0}; rof0 < mTimeFrameGPU->getNrof(); ++rof0) {
     gsl::span<const Vertex> primaryVertices = mTrkParams.UseDiamond ? diamondSpan : mTimeFrameGPU->getPrimaryVertices(rof0); // replace with GPU one
     std::vector<Vertex> paddedVertices;
@@ -238,7 +264,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
         continue;
       }
 
-      gpu::computeLayerTrackletsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer].get()>>>(
+      gpu::computeLayerTrackletsKernel<<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(
         rof0,
         mTimeFrameGPU->getNrof(),
         iLayer,
@@ -265,9 +291,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
         mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
     }
   }
-  std::vector<std::vector<Tracklet>> trackletsHost(NLayers - 1, std::vector<Tracklet>(mTimeFrameGPU->getConfig().trackletsCapacity));
-
-  std::vector<int> trackletSizeH(NLayers - 1, 0);
+  // std::vector<std::vector<Tracklet>> trackletsHost(NLayers - 1, std::vector<Tracklet>(mTimeFrameGPU->getConfig().trackletsCapacity));
   size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
   for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
     // Sort tracklets to put empty ones on the right side of the array.
@@ -279,28 +303,28 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
     // With thrust:
     // auto thrustTrackletsLUTbegin = thrust::device_ptr<int>(mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer));
     // auto thrustTrackletsLUTend = thrust::device_ptr<int>(mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer) + mTimeFrameGPU->mClusters[iLayer].size());
-    // trackletSizeH[iLayer] = thrust::reduce(thrustTrackletsLUTbegin, thrustTrackletsLUTend, 0);
+    // mTimeFrameGPU->getTrackletSizeHost()[iLayer] = thrust::reduce(thrustTrackletsLUTbegin, thrustTrackletsLUTend, 0);
 
     discardResult(cub::DeviceReduce::Sum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
                                          bufferSize,                                                         // temp_storage_bytes
                                          mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_in
                                          mTimeFrameGPU->getDeviceNFoundTracklets() + iLayer,                 // d_out
                                          mTimeFrameGPU->mClusters[iLayer].size(),                            // num_items
-                                         streamArray[iLayer].get()));
+                                         mTimeFrameGPU->getStream(iLayer).get()));
   }
   discardResult(cudaDeviceSynchronize());
-  checkGPUError(cudaMemcpy(trackletSizeH.data(), mTimeFrameGPU->getDeviceNFoundTracklets(), (NLayers - 1) * sizeof(int), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+  checkGPUError(cudaMemcpy(mTimeFrameGPU->getTrackletSizeHost().data(), mTimeFrameGPU->getDeviceNFoundTracklets(), (NLayers - 1) * sizeof(int), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
   for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
 
     // Sort tracklets according to cluster ids
     auto thrustTrackletsBegin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer));
-    auto thrustTrackletsEnd = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer) + trackletSizeH[iLayer]);
+    auto thrustTrackletsEnd = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer) + mTimeFrameGPU->getTrackletSizeHost()[iLayer]);
     thrust::sort(thrustTrackletsBegin, thrustTrackletsEnd, gpu::trackletSortIndexFunctor<o2::its::Tracklet>());
   }
   discardResult(cudaDeviceSynchronize());
   for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
     // Remove duplicate entries in LUTs, done by single thread so far
-    gpu::removeDuplicateTrackletsEntriesLUTKernel<<<1, 1, 0, streamArray[iLayer].get()>>>(
+    gpu::removeDuplicateTrackletsEntriesLUTKernel<<<1, 1, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(
       mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),
       mTimeFrameGPU->getDeviceTrackletsAll(iLayer),
       mTimeFrameGPU->getDeviceNFoundTracklets(),
@@ -309,10 +333,10 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
   // Remove actual tracklet duplicates
   for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
     auto begin = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer));
-    auto end = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer) + trackletSizeH[iLayer]);
+    auto end = thrust::device_ptr<o2::its::Tracklet>(mTimeFrameGPU->getDeviceTrackletsAll(iLayer) + mTimeFrameGPU->getTrackletSizeHost()[iLayer]);
 
     auto new_end = thrust::unique(begin, end);
-    trackletSizeH[iLayer] = new_end - begin;
+    mTimeFrameGPU->getTrackletSizeHost()[iLayer] = new_end - begin;
   }
   discardResult(cudaDeviceSynchronize());
   for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
@@ -323,15 +347,15 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
                                                 mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_in
                                                 mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),            // d_out
                                                 mTimeFrameGPU->mClusters[iLayer].size(),                            // num_items
-                                                streamArray[iLayer].get()));
+                                                mTimeFrameGPU->getStream(iLayer).get()));
   }
   discardResult(cudaDeviceSynchronize());
 
   // Create tracklets labels, at the moment on the host
   if (mTimeFrameGPU->hasMCinformation()) {
     for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
-      std::vector<o2::its::Tracklet> tracklets(trackletSizeH[iLayer]);
-      checkGPUError(cudaMemcpy(tracklets.data(), mTimeFrameGPU->getDeviceTrackletsAll(iLayer), trackletSizeH[iLayer] * sizeof(o2::its::Tracklet), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+      std::vector<o2::its::Tracklet> tracklets(mTimeFrameGPU->getTrackletSizeHost()[iLayer]);
+      checkGPUError(cudaMemcpy(tracklets.data(), mTimeFrameGPU->getDeviceTrackletsAll(iLayer), mTimeFrameGPU->getTrackletSizeHost()[iLayer] * sizeof(o2::its::Tracklet), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
       for (auto& trk : tracklets) {
         MCCompLabel label;
         int currentId{mTimeFrameGPU->mClusters[iLayer][trk.firstClusterIndex].clusterId};
@@ -356,90 +380,96 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::computeLayerCells()
 {
-  //   PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(nullptr); //TODO: FIX THIS with Time Frames
-  //   std::array<size_t, constants::its2::CellsPerRoad - 1> tempSize;
-  //   std::array<int, constants::its2::CellsPerRoad - 1> trackletsNum;
-  //   std::array<int, constants::its2::CellsPerRoad - 1> cellsNum;
-  //   std::array<gpu::Stream, constants::its2::CellsPerRoad> streamArray;
+  for (int iLayer{0}; iLayer < NLayers - 2 - 1; ++iLayer) {
+    if (!mTimeFrameGPU->getTrackletSizeHost()[iLayer + 1] ||
+        !mTimeFrameGPU->getTrackletSizeHost()[iLayer]) {
+      continue;
+    }
+    float resolution{std::sqrt(gpu::Sq(mTrkParams.LayerMisalignment[iLayer]) + gpu::Sq(mTrkParams.LayerMisalignment[iLayer + 1]) + gpu::Sq(mTrkParams.LayerMisalignment[iLayer + 2])) / mTrkParams.LayerResolution[iLayer]};
+    resolution = resolution > 1.e-12 ? resolution : 1.f;
 
-  //   for (int iLayer{0}; iLayer < constants::its2::CellsPerRoad - 1; ++iLayer) {
-  //     tempSize[iLayer] = 0;
-  //     trackletsNum[iLayer] = primaryVertexContext->getDeviceTracklets()[iLayer + 1].getSizeFromDevice();
-  //     primaryVertexContext->getTempCellArray()[iLayer].reset(
-  //       static_cast<int>(primaryVertexContext->getDeviceCells()[iLayer + 1].capacity()));
-  //     if (trackletsNum[iLayer] == 0) {
-  //       continue;
-  //     }
-  //     cub::DeviceScan::ExclusiveSum(static_cast<void*>(NULL), tempSize[iLayer],
-  //                                   primaryVertexContext->getDeviceCellsPerTrackletTable()[iLayer].get(),
-  //                                   primaryVertexContext->getDeviceCellsLookupTable()[iLayer].get(), trackletsNum[iLayer]);
-  //     primaryVertexContext->getTempTableArray()[iLayer].reset(static_cast<int>(tempSize[iLayer]));
-  //   }
-  //   cudaDeviceSynchronize();
-  //   for (int iLayer{0}; iLayer < constants::its2::CellsPerRoad; ++iLayer) {
-  //     const gpu::DeviceProperties& deviceProperties = gpu::Context::getInstance().getDeviceProperties();
-  //     const int trackletsSize = primaryVertexContext->getDeviceTracklets()[iLayer].getSizeFromDevice();
-  //     if (trackletsSize == 0) {
-  //       continue;
-  //     }
-  //     dim3 threadsPerBlock{gpu::utils::host::getBlockSize(trackletsSize)};
-  //     dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, trackletsSize)};
-  //     if (iLayer == 0) {
-  //       gpu::layerCellsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer].get()>>>(primaryVertexContext->getDeviceContext(),
-  //                                                                                            iLayer, primaryVertexContext->getDeviceCells()[iLayer].getWeakCopy());
-  //     } else {
-  //       gpu::layerCellsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer].get()>>>(primaryVertexContext->getDeviceContext(),
-  //                                                                                            iLayer, primaryVertexContext->getTempCellArray()[iLayer - 1].getWeakCopy());
-  //     }
-  //     cudaError_t error = cudaGetLastError();
-  //     if (error != cudaSuccess) {
-  //       std::ostringstream errorString{};
-  //       errorString << "CUDA API returned error [" << cudaGetErrorString(error) << "] (code " << error << ")"
-  //                   << std::endl;
-  //       throw std::runtime_error{errorString.str()};
-  //     }
-  //   }
-  //   cudaDeviceSynchronize();
-  //   for (int iLayer{0}; iLayer < constants::its2::CellsPerRoad - 1; ++iLayer) {
-  //     cellsNum[iLayer] = primaryVertexContext->getTempCellArray()[iLayer].getSizeFromDevice();
-  //     if (cellsNum[iLayer] == 0) {
-  //       continue;
-  //     }
-  //     primaryVertexContext->getDeviceCells()[iLayer + 1].resize(cellsNum[iLayer]);
-  //     cub::DeviceScan::ExclusiveSum(static_cast<void*>(primaryVertexContext->getTempTableArray()[iLayer].get()), tempSize[iLayer],
-  //                                   primaryVertexContext->getDeviceCellsPerTrackletTable()[iLayer].get(),
-  //                                   primaryVertexContext->getDeviceCellsLookupTable()[iLayer].get(), trackletsNum[iLayer],
-  //                                   streamArray[iLayer + 1].get());
-  //     dim3 threadsPerBlock{gpu::utils::host::getBlockSize(trackletsNum[iLayer])};
-  //     dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, trackletsNum[iLayer])};
-  //     gpu::sortCellsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer + 1].get()>>>(primaryVertexContext->getDeviceContext(),
-  //                                                                                             iLayer + 1, primaryVertexContext->getTempCellArray()[iLayer].getWeakCopy());
-  //     cudaError_t error = cudaGetLastError();
-  //     if (error != cudaSuccess) {
-  //       std::ostringstream errorString{};
-  //       errorString << "CUDA API returned error [" << cudaGetErrorString(error) << "] (code " << error << ")"
-  //                   << std::endl;
-  //       throw std::runtime_error{errorString.str()};
-  //     }
-  //   }
-  //   cudaDeviceSynchronize();
-  //   for (int iLayer{0}; iLayer < constants::its2::CellsPerRoad; ++iLayer) {
-  //     int cellsSize = 0;
-  //     if (iLayer == 0) {
-  //       cellsSize = primaryVertexContext->getDeviceCells()[iLayer].getSizeFromDevice();
-  //       if (cellsSize == 0) {
-  //         continue;
-  //       }
-  //     } else {
-  //       cellsSize = cellsNum[iLayer - 1];
-  //       if (cellsSize == 0) {
-  //         continue;
-  //       }
-  //       primaryVertexContext->getDeviceCellsLookupTable()[iLayer - 1].copyIntoVector(
-  //         primaryVertexContext->getCellsLookupTable()[iLayer - 1], trackletsNum[iLayer - 1]);
-  //     }
-  //     primaryVertexContext->getDeviceCells()[iLayer].copyIntoVector(primaryVertexContext->getCells()[iLayer], cellsSize);
-  //   }
+    gpu::computeLayerCellsKernel<<<1, 1, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(
+      mTimeFrameGPU->getDeviceTrackletsAll(iLayer),
+      mTimeFrameGPU->getDeviceTrackletsAll(iLayer + 1),
+      mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),
+      mTimeFrameGPU->getTrackletSizeHost()[iLayer]);
+    //     tempSize[iLayer] = 0;
+    //     trackletsNum[iLayer] = primaryVertexContext->getDeviceTracklets()[iLayer + 1].getSizeFromDevice();
+    //     primaryVertexContext->getTempCellArray()[iLayer].reset(
+    //       static_cast<int>(primaryVertexContext->getDeviceCells()[iLayer + 1].capacity()));
+    //     if (trackletsNum[iLayer] == 0) {
+    //       continue;
+    //     }
+    //     cub::DeviceScan::ExclusiveSum(static_cast<void*>(NULL), tempSize[iLayer],
+    //                                   primaryVertexContext->getDeviceCellsPerTrackletTable()[iLayer].get(),
+    //                                   primaryVertexContext->getDeviceCellsLookupTable()[iLayer].get(), trackletsNum[iLayer]);
+    //     primaryVertexContext->getTempTableArray()[iLayer].reset(static_cast<int>(tempSize[iLayer]));
+    //   }
+    //   cudaDeviceSynchronize();
+    //   for (int iLayer{0}; iLayer < constants::its2::CellsPerRoad; ++iLayer) {
+    //     const gpu::DeviceProperties& deviceProperties = gpu::Context::getInstance().getDeviceProperties();
+    //     const int trackletsSize = primaryVertexContext->getDeviceTracklets()[iLayer].getSizeFromDevice();
+    //     if (trackletsSize == 0) {
+    //       continue;
+    //     }
+    //     dim3 threadsPerBlock{gpu::utils::host::getBlockSize(trackletsSize)};
+    //     dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, trackletsSize)};
+    //     if (iLayer == 0) {
+    //       gpu::layerCellsKernel<<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(primaryVertexContext->getDeviceContext(),
+    //                                                                                            iLayer, primaryVertexContext->getDeviceCells()[iLayer].getWeakCopy());
+    //     } else {
+    //       gpu::layerCellsKernel<<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(primaryVertexContext->getDeviceContext(),
+    //                                                                                            iLayer, primaryVertexContext->getTempCellArray()[iLayer - 1].getWeakCopy());
+    //     }
+    //     cudaError_t error = cudaGetLastError();
+    //     if (error != cudaSuccess) {
+    //       std::ostringstream errorString{};
+    //       errorString << "CUDA API returned error [" << cudaGetErrorString(error) << "] (code " << error << ")"
+    //                   << std::endl;
+    //       throw std::runtime_error{errorString.str()};
+    //     }
+    //   }
+    //   cudaDeviceSynchronize();
+    //   for (int iLayer{0}; iLayer < constants::its2::CellsPerRoad - 1; ++iLayer) {
+    //     cellsNum[iLayer] = primaryVertexContext->getTempCellArray()[iLayer].getSizeFromDevice();
+    //     if (cellsNum[iLayer] == 0) {
+    //       continue;
+    //     }
+    //     primaryVertexContext->getDeviceCells()[iLayer + 1].resize(cellsNum[iLayer]);
+    //     cub::DeviceScan::ExclusiveSum(static_cast<void*>(primaryVertexContext->getTempTableArray()[iLayer].get()), tempSize[iLayer],
+    //                                   primaryVertexContext->getDeviceCellsPerTrackletTable()[iLayer].get(),
+    //                                   primaryVertexContext->getDeviceCellsLookupTable()[iLayer].get(), trackletsNum[iLayer],
+    //                                   streamArray[iLayer + 1].get());
+    //     dim3 threadsPerBlock{gpu::utils::host::getBlockSize(trackletsNum[iLayer])};
+    //     dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, trackletsNum[iLayer])};
+    //     gpu::sortCellsKernel<<<blocksGrid, threadsPerBlock, 0, streamArray[iLayer + 1].get()>>>(primaryVertexContext->getDeviceContext(),
+    //                                                                                             iLayer + 1, primaryVertexContext->getTempCellArray()[iLayer].getWeakCopy());
+    //     cudaError_t error = cudaGetLastError();
+    //     if (error != cudaSuccess) {
+    //       std::ostringstream errorString{};
+    //       errorString << "CUDA API returned error [" << cudaGetErrorString(error) << "] (code " << error << ")"
+    //                   << std::endl;
+    //       throw std::runtime_error{errorString.str()};
+    //     }
+    //   }
+    //   cudaDeviceSynchronize();
+    //   for (int iLayer{0}; iLayer < constants::its2::CellsPerRoad; ++iLayer) {
+    //     int cellsSize = 0;
+    //     if (iLayer == 0) {
+    //       cellsSize = primaryVertexContext->getDeviceCells()[iLayer].getSizeFromDevice();
+    //       if (cellsSize == 0) {
+    //         continue;
+    //       }
+    //     } else {
+    //       cellsSize = cellsNum[iLayer - 1];
+    //       if (cellsSize == 0) {
+    //         continue;
+    //       }
+    //       primaryVertexContext->getDeviceCellsLookupTable()[iLayer - 1].copyIntoVector(
+    //         primaryVertexContext->getCellsLookupTable()[iLayer - 1], trackletsNum[iLayer - 1]);
+    //     }
+    //     primaryVertexContext->getDeviceCells()[iLayer].copyIntoVector(primaryVertexContext->getCells()[iLayer], cellsSize);
+  }
 }
 
 // void TrackerTraitsGPU::refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
