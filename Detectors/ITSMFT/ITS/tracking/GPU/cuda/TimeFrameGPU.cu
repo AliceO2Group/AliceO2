@@ -104,6 +104,7 @@ template <int NLayers>
 template <unsigned char isTracker>
 void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
 {
+  mTrackletSizeHost.resize(NLayers - 1, 0);
   for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) { // Tracker and vertexer
     mTrackletsD[iLayer] = Vector<Tracklet>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
     auto thrustTrackletsBegin = thrust::device_ptr<Tracklet>(mTrackletsD[iLayer].get());
