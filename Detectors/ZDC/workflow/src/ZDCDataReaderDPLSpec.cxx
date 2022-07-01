@@ -68,7 +68,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     auto& mgr = o2::ccdb::BasicCCDBManager::instance();
     auto moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
     if (!moduleConfig) {
-      LOG(fatal) << "Cannot module configuratio for timestamp " << mgr.getTimestamp();
+      LOG(fatal) << "Cannot retrieve module configuration from " << o2::zdc::CCDBPathConfigModule << " for timestamp " << mgr.getTimestamp();
       return;
     } else {
       LOG(info) << "Loaded module configuration for timestamp " << mgr.getTimestamp();
@@ -80,11 +80,15 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   }
   uint64_t count = 0;
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-    //Proccessing each page
+    // Proccessing each page
     count++;
     auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
-    gsl::span<const uint8_t> payload(it.data(), it.size());
-    mRawReader.processBinaryData(payload, rdhPtr->linkID);
+    if (rdhPtr == nullptr) {
+      LOG(alarm) << "ZDCDataReaderDPLSpec::run - Missing RAWDataHeader on page " << count - 1;
+    } else {
+      gsl::span<const uint8_t> payload(it.data(), it.size());
+      mRawReader.processBinaryData(payload, rdhPtr->linkID);
+    }
   }
   LOG(info) << "Pages: " << count;
   mRawReader.accumulateDigits();
