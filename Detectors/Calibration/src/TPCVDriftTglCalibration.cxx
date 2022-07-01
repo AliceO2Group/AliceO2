@@ -16,6 +16,7 @@
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
 #include <Math/SMatrix.h>
+#include <TH2F.h>
 
 namespace o2
 {
@@ -63,26 +64,32 @@ void TPCVDriftTglCalibration::finalizeSlot(Slot& slot)
     sXY += xb * ybw;
     npval++;
   }
+  if (!mSaveHistosFile.empty()) {
+    TFile savf(mSaveHistosFile.c_str(), "update");
+    auto th2f = h->createTH2F(fmt::format("vdtgl{}_{}", slot.getTFStart(), slot.getTFEnd()));
+    th2f->Write();
+    LOGP(info, "Saved histo for slot {}-{} to {}", slot.getTFStart(), slot.getTFEnd(), mSaveHistosFile);
+  }
   double det = sS * sXX - sX * sX;
   if (!det || npval < 2) {
-    LOG(error) << "VDrift fit failed for slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd()
-               << " with " << cont->entries << " entries";
+    LOGP(alarm, "VDrift fit failed for slot {} ({}<=TF<={}) with {} entries: det={} npoints={}", slot.getTFStart(), slot.getTFEnd(), cont->entries, det, npval);
+  } else {
+    det = 1. / det;
+    double offs = (sXX * sY - sX * sXY) * det, slope = (sS * sXY - sX * sY) * det;
+    double offsErr = sXX * det, slopErr = sS * det;
+    offsErr = offsErr > 0. ? std::sqrt(offsErr) : 0.;
+    slopErr = slopErr > 0. ? std::sqrt(slopErr) : 0.;
+    float corrFact = 1. / (1. - slope);
+    float corrFactErr = corrFact * corrFact * slopErr;
+    mVDPerSlot.emplace_back(corrFact, corrFactErr);
+    auto clName = o2::utils::MemFileHelper::getClassName(mVDPerSlot.back());
+    auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
+    std::map<std::string, std::string> md;
+    mCCDBInfoPerSlot.emplace_back("TPC/Calib/VDriftTgl", clName, flName, md,
+                                  slot.getStartTimeMS() - 10 * o2::ccdb::CcdbObjectInfo::SECOND, slot.getEndTimeMS() + o2::ccdb::CcdbObjectInfo::MONTH);
+    LOGP(info, "Finalize slot {}({})<=TF<={}({}) with {} entries | dTgl vs Tgl_ITS offset: {}+-{} Slope: {}+-{} -> VD corr factor = {}+-{}", slot.getTFStart(), slot.getStartTimeMS(),
+         slot.getTFEnd(), slot.getEndTimeMS(), cont->entries, offs, offsErr, slope, slopErr, corrFact, corrFactErr);
   }
-  det = 1. / det;
-  double offs = (sXX * sY - sX * sXY) * det, slope = (sS * sXY - sX * sY) * det;
-  double offsErr = sXX * det, slopErr = sS * det;
-  offsErr = offsErr > 0. ? std::sqrt(offsErr) : 0.;
-  slopErr = slopErr > 0. ? std::sqrt(slopErr) : 0.;
-  float corrFact = 1. / (1. - slope);
-  float corrFactErr = corrFact * corrFact * slopErr;
-  mVDPerSlot.emplace_back(corrFact, corrFactErr);
-  auto clName = o2::utils::MemFileHelper::getClassName(mVDPerSlot.back());
-  auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  std::map<std::string, std::string> md;
-  mCCDBInfoPerSlot.emplace_back("TPC/Calib/VDriftTgl", clName, flName, md,
-                                slot.getStartTimeMS() - 10 * o2::ccdb::CcdbObjectInfo::SECOND, slot.getEndTimeMS() + o2::ccdb::CcdbObjectInfo::MONTH);
-  LOGP(info, "Finalize slot {}({})<=TF<={}({}) with {} entries | dTgl vs Tgl_ITS offset: {}+-{} Slope: {}+-{} -> VD corr factor = {}+-{}", slot.getTFStart(), slot.getStartTimeMS(),
-       slot.getTFEnd(), slot.getEndTimeMS(), cont->entries, offs, offsErr, slope, slopErr, corrFact, corrFactErr);
 }
 
 //_____________________________________________
