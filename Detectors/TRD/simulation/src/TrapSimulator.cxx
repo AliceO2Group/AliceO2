@@ -60,7 +60,8 @@ void TrapSimulator::init(TrapConfig* trapconfig, int det, int robPos, int mcmPos
   mMcmHeaderEmpty = (1 << 31) | (row << 27) | (column << 25) | 1;
   // prepare the part of the Tracklet64 which is common to all tracklets of this MCM
   uint64_t hcid = 2 * mDetector + (mRobPos % 2);
-  mTrkltWordEmpty = (1UL << Tracklet64::formatbs) | (hcid << Tracklet64::hcidbs) | (row << Tracklet64::padrowbs) | (column << Tracklet64::colbs);
+  uint64_t format = mUseFloatingPointForQ ? 1UL : 0UL;
+  mTrkltWordEmpty = (format << Tracklet64::formatbs) | (hcid << Tracklet64::hcidbs) | (row << Tracklet64::padrowbs) | (column << Tracklet64::colbs);
 
   if (!mInitialized) {
     mTrapConfig = trapconfig;
