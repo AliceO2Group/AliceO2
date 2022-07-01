@@ -17,6 +17,7 @@
 #ifndef TPC_MonitorWorkflowSpec_H_
 #define TPC_MonitorWorkflowSpec_H_
 
+#include <string>
 #include "Framework/DataProcessorSpec.h"
 
 namespace o2::tpc
@@ -24,7 +25,7 @@ namespace o2::tpc
 
 /// create a processor spec
 /// read simulated TPC clusters from file and publish
-o2::framework::DataProcessorSpec getTrackAndClusterFilterSpec();
+o2::framework::DataProcessorSpec getTrackAndClusterFilterSpec(const std::string dataDescriptionStr = "TRACKS");
 
 } // namespace o2::tpc
 
