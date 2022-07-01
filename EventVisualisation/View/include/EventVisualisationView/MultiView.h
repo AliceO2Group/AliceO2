@@ -91,6 +91,10 @@ class MultiView
   /// Registers an elements to be drawn
   void registerElements(TEveElementList* elements[], TEveElementList* phiElements[]);
 
+  /// Registers an element to be drawn
+  void registerElement(TEveElement* event);
+  void registerEvent(TEveElement* event) { return registerElement(event); }
+
   /// Get annotation pointer
   TGLAnnotation* getAnnotationTop() { return mAnnotationTop.get(); }
   TGLAnnotation* getAnnotationBottom() { return mAnnotationBottom.get(); }

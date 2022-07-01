@@ -239,6 +239,14 @@ void MultiView::registerElements(TEveElementList* elements[], TEveElementList* p
   }
 }
 
+void MultiView::registerElement(TEveElement* event)
+{
+  // version which do not remove MFT, MID, MCH in Rphi view
+  gEve->GetCurrentEvent()->AddElement(event);
+  getProjection(ProjectionRphi)->ImportElements(event, getScene(SceneRphiEvent));
+  getProjection(ProjectionZrho)->ImportElements(event, getScene(SceneZrhoEvent));
+}
+
 void MultiView::destroyAllEvents()
 {
   if (gEve->GetCurrentEvent()) {
