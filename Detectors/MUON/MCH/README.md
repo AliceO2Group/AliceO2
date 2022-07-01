@@ -23,4 +23,5 @@ This is a top page for the MCH detector documentation.
 \subpage refDetectorsMUONMCHTracking
 \subpage refDetectorsMUONMCHTriggering
 \subpage refDetectorsMUONMCHWorkflow
+\subpage refDetectorsMUONMCHGlobalMapping
 /doxy -->

@@ -52,6 +52,8 @@ class DsChannelId
 
   std::string asString() const;
 
+  uint32_t value() const { return mChannelId; }
+
  private:
   uint32_t mChannelId{0};
 

@@ -9,22 +9,17 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(Base)
-add_subdirectory(Contour)
-add_subdirectory(Mapping)
-add_subdirectory(DigitFiltering)
-add_subdirectory(ROFFiltering)
-add_subdirectory(Triggering)
-add_subdirectory(TimeClustering)
-add_subdirectory(PreClustering)
-add_subdirectory(Geometry)
-add_subdirectory(Clustering)
-add_subdirectory(Simulation)
-add_subdirectory(Tracking)
-add_subdirectory(Raw)
-add_subdirectory(CTF)
-add_subdirectory(Workflow)
-add_subdirectory(Conditions)
-add_subdirectory(Calibration)
-add_subdirectory(DevIO)
-add_subdirectory(GlobalMapping)
+o2_add_library(MCHGlobalMapping
+        SOURCES src/Mapper.cxx
+        PUBLIC_LINK_LIBRARIES O2::MCHRawElecMap O2::MCHMappingInterface)
+
+o2_add_executable(
+        global-mapper
+        SOURCES src/global-mapper.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES Boost::program_options
+                              O2::DataFormatsMCH
+                              O2::MCHGlobalMapping
+                              O2::MCHMappingImpl4
+                              RapidJSON::RapidJSON)
+
