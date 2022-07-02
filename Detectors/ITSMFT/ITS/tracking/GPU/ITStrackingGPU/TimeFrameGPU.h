@@ -57,8 +57,9 @@ struct StaticTrackingParameters {
   /// Trackleting cuts
   // float TrackletMaxDeltaPhi = 0.3f;
   // float TrackletMaxDeltaZ[NLayers - 1] = {0.1f, 0.1f, 0.3f, 0.3f, 0.3f, 0.3f};
+
   /// Cell finding cuts
-  // float CellMaxDeltaTanLambda = 0.025f;
+  float CellDeltaTanLambdaSigma = 0.007f;
   // float CellMaxDCA[NLayers - 2] = {0.05f, 0.04f, 0.05f, 0.2f, 0.4f};
   // float CellMaxDeltaPhi = 0.14f;
   // float CellMaxDeltaZ[NLayers - 2] = {0.2f, 0.4f, 0.5f, 0.6f, 3.0f};
@@ -77,7 +78,7 @@ void StaticTrackingParameters<NLayers>::set(const TrackingParameters& pars)
   DeltaROF = pars.DeltaROF;
   ZBins = pars.ZBins;
   PhiBins = pars.PhiBins;
-  // TrackletMaxDeltaPhi = pars.TrackletMaxDeltaPhi;
+  CellDeltaTanLambdaSigma = pars.CellDeltaTanLambdaSigma;
   // for (int i = 0; i < NLayers - 1; i++) {
   //   TrackletMaxDeltaZ[i] = pars.TrackletMaxDeltaZ[i];
   // }
@@ -127,7 +128,9 @@ class TimeFrameGPU : public TimeFrame
   Line* getDeviceLines(const int rofId);
   Tracklet* getDeviceTracklets(const int rofId, const int layerId);
   Tracklet* getDeviceTrackletsAll(const int layerId);
+  Cell* getDeviceCells(const int layerId);
   int* getDeviceTrackletsLookupTable(const int rofId, const int layerId);
+  int* getDeviceCellsLookupTable(const int layerId);
   int* getDeviceNFoundLines(const int rofId);
   int* getDeviceExclusiveNFoundLines(const int rofId);
   int* getDeviceCUBBuffer(const size_t rofId);
@@ -161,6 +164,8 @@ class TimeFrameGPU : public TimeFrame
   std::array<Vector<int>, NLayers> mClusterExternalIndicesD;
   std::array<Vector<Tracklet>, NLayers - 1> mTrackletsD;
   std::array<Vector<int>, NLayers - 1> mTrackletsLookupTablesD;
+  std::array<Vector<Cell>, NLayers - 2> mCellsD;
+  std::array<Vector<int>, NLayers - 2> mCellsLookupTablesD;
   std::array<Vector<int>, NLayers> mROframesClustersD; // layers x roframes
   int* mCUBTmpBuffers;
   int* mFoundTracklets;
@@ -236,9 +241,21 @@ inline Tracklet* TimeFrameGPU<NLayers>::getDeviceTrackletsAll(const int layerId)
 }
 
 template <int NLayers>
+inline Cell* TimeFrameGPU<NLayers>::getDeviceCells(const int layerId)
+{
+  return mCellsD[layerId].get();
+}
+
+template <int NLayers>
 inline int* TimeFrameGPU<NLayers>::getDeviceTrackletsLookupTable(const int rofId, const int layerId)
 {
   return getPtrFromRuler(rofId, mTrackletsLookupTablesD[layerId].get(), mROframesClusters[layerId].data());
+}
+
+template <int NLayers>
+inline int* TimeFrameGPU<NLayers>::getDeviceCellsLookupTable(const int layerId)
+{
+  return mCellsLookupTablesD[layerId].get();
 }
 
 template <int NLayers>

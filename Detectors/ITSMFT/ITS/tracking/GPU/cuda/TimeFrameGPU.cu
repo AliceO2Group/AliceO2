@@ -111,6 +111,10 @@ void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
     auto thrustTrackletsEnd = thrustTrackletsBegin + mConfig.trackletsCapacity;
     thrust::fill(thrustTrackletsBegin, thrustTrackletsEnd, Tracklet{});
     mTrackletsLookupTablesD[iLayer].resetWithInt(mClusters[iLayer].size());
+    if (iLayer < NLayers - 2) {
+      mCellsD[iLayer] = Vector<Cell>{mConfig.validatedTrackletsCapacity, mConfig.validatedTrackletsCapacity};
+      mCellsLookupTablesD[iLayer] = Vector<int>{mConfig.cellsLUTsize, mConfig.cellsLUTsize};
+    }
   }
 
   for (auto iComb{0}; iComb < 2; ++iComb) { // Vertexer only

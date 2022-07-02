@@ -147,13 +147,16 @@ struct TimeFrameGPUConfig {
                      size_t cluLayCap,
                      size_t cluROfCap,
                      size_t maxTrkCap,
-                     size_t maxVertCap);
+                     size_t maxVertCap,
+                     size_t maxROFs);
 
   size_t tmpCUBBufferSize = 1e5; // In average in pp events there are required 4096 bytes
   size_t maxTrackletsPerCluster = 50;
   size_t clustersPerLayerCapacity = 5e5;
   size_t clustersPerROfCapacity = 1e4;
   size_t trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
+  size_t validatedTrackletsCapacity = 1e5;
+  size_t cellsLUTsize = validatedTrackletsCapacity;
   size_t maxLinesCapacity = 1e2;
   size_t maxCentroidsXYCapacity = std::ceil(maxLinesCapacity * (maxLinesCapacity - 1) / (float)2);
   size_t maxVerticesCapacity = 10;
@@ -167,12 +170,14 @@ inline TimeFrameGPUConfig::TimeFrameGPUConfig(size_t cubBufferSize,
                                               size_t cluLayCap,
                                               size_t cluROfCap,
                                               size_t maxTrkCap,
-                                              size_t maxVertCap) : tmpCUBBufferSize{cubBufferSize},
-                                                                   maxTrackletsPerCluster{maxTrkClu},
-                                                                   clustersPerLayerCapacity{cluLayCap},
-                                                                   clustersPerROfCapacity{cluROfCap},
-                                                                   maxLinesCapacity{maxTrkCap},
-                                                                   maxVerticesCapacity{maxVertCap}
+                                              size_t maxVertCap,
+                                              size_t maxROFs) : tmpCUBBufferSize{cubBufferSize},
+                                                                maxTrackletsPerCluster{maxTrkClu},
+                                                                clustersPerLayerCapacity{cluLayCap},
+                                                                clustersPerROfCapacity{cluROfCap},
+                                                                maxLinesCapacity{maxTrkCap},
+                                                                maxVerticesCapacity{maxVertCap},
+                                                                nMaxROFs{maxROFs}
 {
   maxCentroidsXYCapacity = std::ceil(maxLinesCapacity * (maxLinesCapacity - 1) / 2);
   trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
