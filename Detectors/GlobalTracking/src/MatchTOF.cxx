@@ -322,7 +322,7 @@ void MatchTOF::addTRDSeed(const o2::trd::TrackTRD& _tr, o2::dataformats::GlobalT
   ; // empty for the moment
 
   // o2::dataformats::TimeStampWithError<float, float>
-  timeEst ts(time0, terr);
+  timeEst ts(time0, terr + mExtraTimeToleranceTRD);
 
   addConstrainedSeed(trc, srcGID, intLT0, ts);
 }
