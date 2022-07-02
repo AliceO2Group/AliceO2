@@ -37,6 +37,7 @@ struct Tracklet final {
     return firstClusterIndex < 0 || secondClusterIndex < 0 && !tanLambda && !phi;
   }
   GPUhdi() void dump();
+  GPUhdi() void dump() const;
   GPUhdi() unsigned char operator<(const Tracklet&) const;
 
   int firstClusterIndex;
@@ -100,6 +101,11 @@ GPUhdi() unsigned char Tracklet::operator<(const Tracklet& t) const
 }
 
 GPUhdi() void Tracklet::dump()
+{
+  printf("fClIdx: %d sClIdx: %d  rof1: %hu rof2: %hu\n", firstClusterIndex, secondClusterIndex, rof[0], rof[1]);
+}
+
+GPUhdi() void Tracklet::dump() const
 {
   printf("fClIdx: %d sClIdx: %d  rof1: %hu rof2: %hu\n", firstClusterIndex, secondClusterIndex, rof[0], rof[1]);
 }

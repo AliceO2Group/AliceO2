@@ -130,9 +130,9 @@ inline const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, int 
   return getBinsRect(layerIndex, currentCluster.phi, maxdeltaphi, z1, z2, maxdeltaz);
 }
 
-inline void TrackerTraits::initialiseTimeFrame(const int iteration, const MemoryParameters& memParams, const TrackingParameters& trackingParams)
+inline void TrackerTraits::initialiseTimeFrame(const int iteration, const TrackingParameters& trackingParams)
 {
-  mTimeFrame->initialise(iteration, memParams, trackingParams, 7);
+  mTimeFrame->initialise(iteration, trackingParams, 7);
   setIsGPU(false);
 }
 
