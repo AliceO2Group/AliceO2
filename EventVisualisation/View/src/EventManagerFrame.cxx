@@ -20,18 +20,17 @@
 #include <TGLabel.h>
 #include <TTimer.h>
 #include <TGDoubleSlider.h>
-#include <TASImage.h>
 #include <EventVisualisationBase/DataSourceOnline.h>
 #include <EventVisualisationView/EventManagerFrame.h>
 #include <EventVisualisationView/MultiView.h>
-#include "EventVisualisationView/Options.h"
+#include <EventVisualisationView/Screenshot.h>
+#include <EventVisualisationView/Options.h>
 #include <Rtypes.h>
 #include <mutex>
 #include <chrono>
 #include <thread>
 #include <filesystem>
 #include <cassert>
-#include <fstream>
 #include <FairLogger.h>
 
 std::mutex mtx; // mutex for critical section
@@ -92,10 +91,12 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
     b = EventManagerFrame::makeButton(f, "Save", 2 * width, "Save current event");
     b->Connect("Clicked()", cls, this, "DoSave()");
     TGHButtonGroup* g = new TGHButtonGroup(f);
-    b = EventManagerFrame::makeRadioButton(g, "Online", 2 * width, "Change data source to online events", Options::Instance()->online());
+    this->mOnlineModeBtn = b = EventManagerFrame::makeRadioButton(g, "Online", 2 * width, "Change data source to online events", Options::Instance()->online());
     b->Connect("Clicked()", cls, this, "DoOnlineMode()");
-    b = EventManagerFrame::makeRadioButton(g, "Saved", 2 * width, "Change data source to saved events", !Options::Instance()->online());
+    this->mSavedModeBtn = b = EventManagerFrame::makeRadioButton(g, "Saved", 2 * width, "Change data source to saved events", !Options::Instance()->online());
     b->Connect("Clicked()", cls, this, "DoSavedMode()");
+    this->mSequentialModeBtn = b = EventManagerFrame::makeRadioButton(g, "Sequential", 2 * width, "Sequentially display saved events", !Options::Instance()->online());
+    b->Connect("Clicked()", cls, this, "DoSequentialMode()");
     f->AddFrame(g, new TGLayoutHints(kLHintsNormal, 0, 0, 0, 0));
 
     f->AddFrame(infoLabel, new TGLayoutHints(kLHintsNormal, 5, 10, 4, 0));
@@ -104,6 +105,7 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
                            this->mTimeFrameSliderMax, "Display the maximum value of the time");
     this->mTimeFrameSlider->Connect("PositionChanged()", cls, this, "DoTimeFrameSliderChanged()");
   }
+  this->mOnlineModeBtn->SetState(kButtonDown);
   SetCleanup(kDeepCleanup);
   Layout();
   MapSubwindows();
@@ -186,9 +188,24 @@ void EventManagerFrame::makeSliderRangeEntries(TGCompositeFrame* parent, int hei
 
 void EventManagerFrame::updateGUI()
 {
+  std::error_code ec{};
+  bool saveFolderExists = std::filesystem::is_directory(Options::Instance()->savedDataFolder(), ec);
+  this->mSavedModeBtn->SetEnabled(saveFolderExists);
+  this->mSequentialModeBtn->SetEnabled(saveFolderExists);
   this->mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
   this->mTimeFrameSliderMin->SetNumber(mEventManager->getDataSource()->getTimeFrameMinTrackTime());
   this->mTimeFrameSliderMax->SetNumber(mEventManager->getDataSource()->getTimeFrameMaxTrackTime());
+  switch (this->mDisplayMode) {
+    case OnlineMode:
+      this->mOnlineModeBtn->SetState(kButtonDown);
+      break;
+    case SavedMode:
+      this->mSavedModeBtn->SetState(kButtonDown);
+      break;
+    case SequentialMode:
+      this->mSequentialModeBtn->SetState(kButtonDown);
+      break;
+  }
 }
 
 void EventManagerFrame::DoTimeFrameSliderChanged()
@@ -250,121 +267,11 @@ void EventManagerFrame::DoScreenshot()
   if (not setInTick()) {
     return;
   }
-  UInt_t width = 3840;
-  UInt_t height = 2160;
-  const char* backgroundColor = "#000000"; // "#19324b";
-  const char* outDirectory = "Screenshots";
+  Screenshot::perform(this->mEventManager->getDataSource()->getDetectorsMask(),
+                      this->mEventManager->getDataSource()->getRunNumber(),
+                      this->mEventManager->getDataSource()->getFirstTForbit(),
+                      this->mEventManager->getDataSource()->getCollisionTime());
 
-  std::string runString = "Run:";
-  std::string timestampString = "Timestamp:";
-  std::string collidingsystemString = "Colliding system:";
-  std::string energyString = "Energy:";
-
-  std::time_t time = std::time(nullptr);
-  char time_str[100];
-  std::strftime(time_str, sizeof(time_str), "%Y_%m_%d_%H_%M_%S", std::localtime(&time));
-
-  TASImage* scaledImage;
-
-  std::ostringstream filepath;
-  filepath << outDirectory << "/Screenshot_" << time_str << ".png";
-
-  TASImage image(width, height);
-  image.FillRectangle(backgroundColor, 0, 0, width, height);
-
-  const auto annotationStateTop = MultiView::getInstance()->getAnnotationTop()->GetState();
-  const auto annotationStateBottom = MultiView::getInstance()->getAnnotationBottom()->GetState();
-  MultiView::getInstance()->getAnnotationTop()->SetState(TGLOverlayElement::kInvisible);
-  MultiView::getInstance()->getAnnotationBottom()->SetState(TGLOverlayElement::kInvisible);
-
-  TImage* view3dImage = MultiView::getInstance()->getView(MultiView::EViews::View3d)->GetGLViewer()->GetPictureUsingBB();
-
-  MultiView::getInstance()->getAnnotationTop()->SetState(annotationStateTop);
-  MultiView::getInstance()->getAnnotationBottom()->SetState(annotationStateBottom);
-
-  scaledImage = ScaleImage((TASImage*)view3dImage, width * 0.65, height * 0.95);
-  if (scaledImage) {
-    CopyImage(&image, scaledImage, width * 0.015, height * 0.025, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
-    delete scaledImage;
-  }
-
-  TImage* viewRphiImage = MultiView::getInstance()->getView(MultiView::EViews::ViewRphi)->GetGLViewer()->GetPictureUsingBB();
-  scaledImage = ScaleImage((TASImage*)viewRphiImage, width * 0.3, height * 0.45);
-  if (scaledImage) {
-    CopyImage(&image, scaledImage, width * 0.68, height * 0.025, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
-    delete scaledImage;
-  }
-
-  TImage* viewZrhoImage = MultiView::getInstance()->getView(MultiView::EViews::ViewZrho)->GetGLViewer()->GetPictureUsingBB();
-  scaledImage = ScaleImage((TASImage*)viewZrhoImage, width * 0.3, height * 0.45);
-  if (scaledImage) {
-    CopyImage(&image, scaledImage, width * 0.68, height * 0.525, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
-    delete scaledImage;
-  }
-
-  bool logo = true;
-  if (logo) {
-    TASImage* aliceLogo = new TASImage("Alice.png");
-    if (aliceLogo->IsValid()) {
-      double ratio = 1434. / 1939.;
-      aliceLogo->Scale(0.08 * width, 0.08 * width / ratio);
-      image.Merge(aliceLogo, "alphablend", 20, 20);
-      delete aliceLogo;
-    }
-  }
-
-  int fontSize = 0.015 * height;
-  int textX;
-  int textLineHeight = 0.015 * height;
-  int textY;
-
-  if (logo) {
-    TASImage* o2Logo = new TASImage("o2.png");
-    if (o2Logo->IsValid()) {
-      double ratio = (double)(o2Logo->GetWidth()) / (double)(o2Logo->GetHeight());
-      int o2LogoX = 0.01 * width;
-      int o2LogoY = 0.01 * width;
-      int o2LogoSize = 0.04 * width;
-      o2Logo->Scale(o2LogoSize, o2LogoSize / ratio);
-      image.Merge(o2Logo, "alphablend", o2LogoX, height - o2LogoSize / ratio - o2LogoY);
-      textX = o2LogoX + o2LogoSize + o2LogoX;
-      textY = height - o2LogoSize / ratio - o2LogoY;
-      delete o2Logo;
-    } else {
-      textX = 229;
-      textY = 1926;
-    }
-  }
-
-  o2::dataformats::GlobalTrackID::mask_t detectorsMask;
-  auto detectorsString = detectors::DetID::getNames(this->mEventManager->getDataSource()->getDetectorsMask());
-
-  std::vector<std::string> lines;
-  std::ifstream input("screenshot.txt");
-  if (input.is_open()) {
-    for (std::string line; getline(input, line);) {
-      lines.push_back(line);
-    }
-  }
-
-  if (!this->mEventManager->getDataSource()->getCollisionTime().empty()) {
-    lines.push_back((std::string)TString::Format("Run number: %d", this->mEventManager->getDataSource()->getRunNumber()));
-    lines.push_back((std::string)TString::Format("First TF orbit: %d", this->mEventManager->getDataSource()->getFirstTForbit()));
-    lines.push_back((std::string)TString::Format("Date: %s", this->mEventManager->getDataSource()->getCollisionTime().c_str()));
-    lines.push_back((std::string)TString::Format("Detectors: %s", detectorsString.c_str()));
-  }
-
-  image.BeginPaint();
-
-  for (int i = 0; i < 4; i++) {
-    image.DrawText(textX, textY + i * textLineHeight, lines[i].c_str(), fontSize, "#BBBBBB", "FreeSansBold.otf");
-  }
-  image.EndPaint();
-
-  if (!std::filesystem::is_directory(outDirectory)) {
-    std::filesystem::create_directory(outDirectory);
-  }
-  image.WriteImage(filepath.str().c_str(), TImage::kPng);
   clearInTick();
 }
 
@@ -397,7 +304,13 @@ void EventManagerFrame::DoTimeTick()
     return;
   }
   checkMemory(); // exits if memory usage too high = prevents freezing long-running machine
-  if (mEventManager->getDataSource()->refresh()) {
+  bool refreshNeeded = mEventManager->getDataSource()->refresh();
+  if (this->mDisplayMode == SequentialMode) {
+    mEventManager->getDataSource()->rollToNext();
+    refreshNeeded = true;
+  }
+
+  if (refreshNeeded) {
     mEventManager->displayCurrentEvent();
   }
   mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
@@ -438,7 +351,10 @@ void EventManagerFrame::DoOnlineMode()
     return;
   }
   this->mEventManager->getDataSource()->changeDataFolder(Options::Instance()->dataFolder());
+  this->mDisplayMode = OnlineMode;
+  this->mEventManager->setShowDate(true);
   clearInTick();
+  mEventManager->GotoEvent(-1);
   mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
 }
 
@@ -449,7 +365,31 @@ void EventManagerFrame::DoSavedMode()
       return;
     }
     this->mEventManager->getDataSource()->changeDataFolder(Options::Instance()->savedDataFolder());
+    this->mDisplayMode = SavedMode;
+    this->mEventManager->setShowDate(true);
+    if (mEventManager->getDataSource()->refresh()) {
+      mEventManager->displayCurrentEvent();
+    }
     clearInTick();
+    mEventManager->GotoEvent(-1);
+    mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
+  }
+}
+
+void EventManagerFrame::DoSequentialMode()
+{
+  if (!Options::Instance()->savedDataFolder().empty()) {
+    if (not setInTick()) {
+      return;
+    }
+    this->mEventManager->getDataSource()->changeDataFolder(Options::Instance()->savedDataFolder());
+    this->mDisplayMode = SequentialMode;
+    this->mEventManager->setShowDate(false);
+    if (mEventManager->getDataSource()->refresh()) {
+      mEventManager->displayCurrentEvent();
+    }
+    clearInTick();
+    mEventManager->GotoEvent(-1);
     mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
   }
 }
@@ -482,97 +422,6 @@ void EventManagerFrame::DoTerminate()
     continue;
   }
   exit(0);
-}
-
-bool EventManagerFrame::CopyImage(TASImage* dst, TASImage* src, Int_t x_dst, Int_t y_dst, Int_t x_src, Int_t y_src,
-                                  UInt_t w_src, UInt_t h_src)
-{
-
-  if (!dst) {
-    return false;
-  }
-  if (!src) {
-    return false;
-  }
-
-  int x = 0;
-  int y = 0;
-  int idx_src = 0;
-  int idx_dst = 0;
-  x_src = x_src < 0 ? 0 : x_src;
-  y_src = y_src < 0 ? 0 : y_src;
-
-  if ((x_src >= (int)src->GetWidth()) || (y_src >= (int)src->GetHeight())) {
-    return false;
-  }
-
-  w_src = x_src + w_src > src->GetWidth() ? src->GetWidth() - x_src : w_src;
-  h_src = y_src + h_src > src->GetHeight() ? src->GetHeight() - y_src : h_src;
-  UInt_t yy = (y_src + y) * src->GetWidth();
-
-  src->BeginPaint(false);
-  dst->BeginPaint(false);
-
-  UInt_t* dst_image_array = dst->GetArgbArray();
-  UInt_t* src_image_array = src->GetArgbArray();
-
-  if (!dst_image_array || !src_image_array) {
-    return false;
-  }
-
-  for (y = 0; y < (int)h_src; y++) {
-    for (x = 0; x < (int)w_src; x++) {
-
-      idx_src = yy + x + x_src;
-      idx_dst = (y_dst + y) * dst->GetWidth() + x + x_dst;
-
-      if ((x + x_dst < 0) || (y_dst + y < 0) ||
-          (x + x_dst >= (int)dst->GetWidth()) || (y + y_dst >= (int)dst->GetHeight())) {
-        continue;
-      }
-
-      dst_image_array[idx_dst] = src_image_array[idx_src];
-    }
-    yy += src->GetWidth();
-  }
-
-  return true;
-}
-
-TASImage* EventManagerFrame::ScaleImage(TASImage* image, UInt_t desiredWidth, UInt_t desiredHeight)
-{
-  if (!image) {
-    return nullptr;
-  }
-  if (desiredWidth == 0 || desiredHeight == 0) {
-    return nullptr;
-  }
-
-  const char* backgroundColor = "#000000";
-
-  UInt_t scaleWidth = desiredWidth;
-  UInt_t scaleHeight = desiredHeight;
-  UInt_t offsetWidth = 0;
-  UInt_t offsetHeight = 0;
-
-  float aspectRatio = (float)image->GetWidth() / (float)image->GetHeight();
-
-  if (desiredWidth >= aspectRatio * desiredHeight) {
-    scaleWidth = (UInt_t)(aspectRatio * desiredHeight);
-    offsetWidth = (desiredWidth - scaleWidth) / 2.0f;
-  } else {
-    scaleHeight = (UInt_t)((1.0f / aspectRatio) * desiredWidth);
-    offsetHeight = (desiredHeight - scaleHeight) / 2.0f;
-  }
-
-  TASImage* scaledImage = new TASImage(desiredWidth, desiredHeight);
-  scaledImage->FillRectangle(backgroundColor, 0, 0, desiredWidth, desiredHeight);
-
-  image->Scale(scaleWidth, scaleHeight);
-
-  CopyImage(scaledImage, image, offsetWidth, offsetHeight, 0, 0, scaleWidth, scaleHeight);
-
-  return scaledImage;
 }
 
 float EventManagerFrame::getMinTimeFrameSliderValue() const

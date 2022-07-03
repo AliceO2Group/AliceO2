@@ -76,6 +76,10 @@ class EventManager final : public TEveEventManager, public TQObject
 
   void DropEvent();
 
+  bool mShowDate = true;
+  bool getShowDate() const { return mShowDate; }
+  void setShowDate(bool value) { this->mShowDate = value; }
+
  private:
   struct Settings {
     bool firstEvent;
