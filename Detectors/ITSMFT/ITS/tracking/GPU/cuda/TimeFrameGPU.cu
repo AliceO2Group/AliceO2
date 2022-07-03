@@ -105,6 +105,7 @@ template <unsigned char isTracker>
 void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
 {
   mTrackletSizeHost.resize(NLayers - 1, 0);
+  mCellSizeHost.resize(NLayers - 2, 0);
   for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) { // Tracker and vertexer
     mTrackletsD[iLayer] = Vector<Tracklet>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
     auto thrustTrackletsBegin = thrust::device_ptr<Tracklet>(mTrackletsD[iLayer].get());
@@ -127,8 +128,10 @@ void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
   mNExclusiveFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
   mUsedTracklets = Vector<unsigned char>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
   discardResult(cudaMalloc(&mCUBTmpBuffers, mConfig.nMaxROFs * mConfig.tmpCUBBufferSize));
-  discardResult(cudaMalloc(&mFoundTracklets, (NLayers - 1) * sizeof(int)));
-  discardResult(cudaMemset(mFoundTracklets, 0, (NLayers - 1) * sizeof(int)));
+  discardResult(cudaMalloc(&mDeviceFoundTracklets, (NLayers - 1) * sizeof(int)));
+  discardResult(cudaMemset(mDeviceFoundTracklets, 0, (NLayers - 1) * sizeof(int)));
+  discardResult(cudaMalloc(&mDeviceFoundCells, (NLayers - 2) * sizeof(int)));
+  discardResult(cudaMemset(mDeviceFoundCells, 0, (NLayers - 2) * sizeof(int)));
   mXYCentroids = Vector<float>{2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity, 2 * mConfig.nMaxROFs * mConfig.maxCentroidsXYCapacity};
   mZCentroids = Vector<float>{mConfig.nMaxROFs * mConfig.maxLinesCapacity, mConfig.nMaxROFs * mConfig.maxLinesCapacity};
   for (size_t i{0}; i < 3; ++i) {
@@ -185,9 +188,10 @@ template <int NLayers>
 TimeFrameGPU<NLayers>::~TimeFrameGPU()
 {
   discardResult(cudaFree(mCUBTmpBuffers));
-  discardResult(cudaFree(mFoundTracklets));
+  discardResult(cudaFree(mDeviceFoundTracklets));
   discardResult(cudaFree(mDeviceTrackingParams));
   discardResult(cudaFree(mDeviceIndexTableUtils));
+  discardResult(cudaFree(mDeviceFoundCells));
 }
 
 template <int NLayers>

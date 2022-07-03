@@ -282,7 +282,6 @@ void TrackerTraits::computeLayerCells(const int iteration)
       const int nextLayerClusterIndex{currentTracklet.secondClusterIndex};
       const int nextLayerFirstTrackletIndex{tf->getTrackletsLookupTable()[iLayer][nextLayerClusterIndex]};
       const int nextLayerLastTrackletIndex{tf->getTrackletsLookupTable()[iLayer][nextLayerClusterIndex + 1]};
-      printf("%d, %d, %d\n", nextLayerClusterIndex, nextLayerFirstTrackletIndex, nextLayerLastTrackletIndex);
 
       if (nextLayerFirstTrackletIndex == nextLayerLastTrackletIndex) {
         continue;
@@ -329,6 +328,7 @@ void TrackerTraits::computeLayerCells(const int iteration)
         MCCompLabel currentLab{tf->getTrackletsLabel(iLayer)[cell.getFirstTrackletIndex()]};
         MCCompLabel nextLab{tf->getTrackletsLabel(iLayer + 1)[cell.getSecondTrackletIndex()]};
         tf->getCellsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
+        std::cout << tf->getCellsLabel(iLayer).back() << std::endl;
       }
     }
   }

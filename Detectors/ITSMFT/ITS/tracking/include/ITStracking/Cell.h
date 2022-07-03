@@ -31,16 +31,17 @@ namespace its
 class Cell final
 {
  public:
+  GPUhd() Cell();
   GPUd() Cell(const int, const int, const int, const int, const int, const float);
 
-  GPUhdni() int getFirstClusterIndex() const { return mFirstClusterIndex; };
-  GPUhdni() int getSecondClusterIndex() const { return mSecondClusterIndex; };
-  GPUhdni() int getThirdClusterIndex() const { return mThirdClusterIndex; };
-  GPUhdni() int getFirstTrackletIndex() const { return mFirstTrackletIndex; };
-  GPUhdni() int getSecondTrackletIndex() const { return mSecondTrackletIndex; };
-  GPUhdni() float getTanLambda() const { return mTanLambda; };
-  int getLevel() const { return mLevel; };
-  void setLevel(const int level) { mLevel = level; };
+  GPUhd() int getFirstClusterIndex() const { return mFirstClusterIndex; };
+  GPUhd() int getSecondClusterIndex() const { return mSecondClusterIndex; };
+  GPUhd() int getThirdClusterIndex() const { return mThirdClusterIndex; };
+  GPUhd() int getFirstTrackletIndex() const { return mFirstTrackletIndex; };
+  GPUhd() int getSecondTrackletIndex() const { return mSecondTrackletIndex; };
+  GPUhd() float getTanLambda() const { return mTanLambda; };
+  GPUhd() int getLevel() const { return mLevel; };
+  GPUhd() void setLevel(const int level) { mLevel = level; };
 
  private:
   const int mFirstClusterIndex;
@@ -52,13 +53,25 @@ class Cell final
   int mLevel;
 };
 
+GPUhdi() Cell::Cell()
+  : mFirstClusterIndex{0},
+    mSecondClusterIndex{0},
+    mThirdClusterIndex{0},
+    mFirstTrackletIndex{0},
+    mSecondTrackletIndex{0},
+    mTanLambda{0},
+    mLevel{0}
+{
+  // Nothing to do
+}
+
 GPUdi() Cell::Cell(const int firstClusterIndex, const int secondClusterIndex, const int thirdClusterIndex,
                    const int firstTrackletIndex, const int secondTrackletIndex, const float tanL)
   : mFirstClusterIndex{firstClusterIndex},
     mSecondClusterIndex{secondClusterIndex},
     mThirdClusterIndex{thirdClusterIndex},
-    mFirstTrackletIndex(firstTrackletIndex),
-    mSecondTrackletIndex(secondTrackletIndex),
+    mFirstTrackletIndex{firstTrackletIndex},
+    mSecondTrackletIndex{secondTrackletIndex},
     mTanLambda{tanL},
     mLevel{1}
 {
