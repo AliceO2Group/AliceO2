@@ -45,7 +45,7 @@ template <int NLayers>
 struct StaticTrackingParameters {
   StaticTrackingParameters<NLayers>& operator=(const StaticTrackingParameters<NLayers>& t) = default;
   void set(const TrackingParameters& pars);
-  // int CellMinimumLevel();
+
   /// General parameters
   int ClusterSharing = 0;
   int MinTrackLength = NLayers;
@@ -54,18 +54,9 @@ struct StaticTrackingParameters {
   int DeltaROF = 0;
   int ZBins{256};
   int PhiBins{128};
-  /// Trackleting cuts
-  // float TrackletMaxDeltaPhi = 0.3f;
-  // float TrackletMaxDeltaZ[NLayers - 1] = {0.1f, 0.1f, 0.3f, 0.3f, 0.3f, 0.3f};
 
   /// Cell finding cuts
   float CellDeltaTanLambdaSigma = 0.007f;
-  // float CellMaxDCA[NLayers - 2] = {0.05f, 0.04f, 0.05f, 0.2f, 0.4f};
-  // float CellMaxDeltaPhi = 0.14f;
-  // float CellMaxDeltaZ[NLayers - 2] = {0.2f, 0.4f, 0.5f, 0.6f, 3.0f};
-  // /// Neighbour finding cuts
-  // float NeighbourMaxDeltaCurvature[NLayers - 3] = {0.008f, 0.0025f, 0.003f, 0.0035f};
-  // float NeighbourMaxDeltaN[NLayers - 3] = {0.002f, 0.0090f, 0.002f, 0.005f};
 };
 
 template <int NLayers>
@@ -79,9 +70,6 @@ void StaticTrackingParameters<NLayers>::set(const TrackingParameters& pars)
   ZBins = pars.ZBins;
   PhiBins = pars.PhiBins;
   CellDeltaTanLambdaSigma = pars.CellDeltaTanLambdaSigma;
-  // for (int i = 0; i < NLayers - 1; i++) {
-  //   TrackletMaxDeltaZ[i] = pars.TrackletMaxDeltaZ[i];
-  // }
 }
 
 template <class T>

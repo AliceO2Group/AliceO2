@@ -115,6 +115,7 @@ void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
     if (iLayer < NLayers - 2) {
       mCellsD[iLayer] = Vector<Cell>{mConfig.validatedTrackletsCapacity, mConfig.validatedTrackletsCapacity};
       mCellsLookupTablesD[iLayer] = Vector<int>{mConfig.cellsLUTsize, mConfig.cellsLUTsize};
+      mCellsLookupTablesD[iLayer].resetWithInt(mConfig.cellsLUTsize);
     }
   }
 

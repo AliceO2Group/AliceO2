@@ -81,7 +81,7 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
           continue;
         }
         const float inverseR0{1.f / currentCluster.radius};
-        int iPrimaryVertex{0};
+
         for (auto& primaryVertex : primaryVertices) {
           const float resolution = std::sqrt(Sq(mTrkParams[iteration].PVres) / primaryVertex.getNContributors() + Sq(tf->getPositionResolution(iLayer)));
 
@@ -105,6 +105,7 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
           if (phiBinsNum < 0) {
             phiBinsNum += mTrkParams[iteration].PhiBins;
           }
+
           for (int rof1{minRof}; rof1 <= maxRof; ++rof1) {
             gsl::span<const Cluster> layer1 = tf->getClustersOnLayer(rof1, iLayer + 1);
             if (layer1.empty()) {
@@ -129,10 +130,11 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
               const int maxRowClusterIndex = tf->getIndexTable(rof1, iLayer + 1)[maxBinIndex];
 
               for (int iNextCluster{firstRowClusterIndex}; iNextCluster < maxRowClusterIndex; ++iNextCluster) {
-                // printf("%d %d\n", iNextCluster, (int)layer1.size());
+
                 if (iNextCluster >= (int)layer1.size()) {
                   break;
                 }
+
                 const Cluster& nextCluster{layer1[iNextCluster]};
                 if (tf->isClusterUsed(iLayer + 1, nextCluster.clusterId)) {
                   continue;
@@ -170,8 +172,7 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
                                                                 currentCluster.xCoordinate - nextCluster.xCoordinate)};
                   const float tanL{(currentCluster.zCoordinate - nextCluster.zCoordinate) /
                                    (currentCluster.radius - nextCluster.radius)};
-                  tf->getTracklets()[iLayer].emplace_back(currentSortedIndex,
-                                                          tf->getSortedIndex(rof1, iLayer + 1, iNextCluster), tanL, phi, rof0, rof1);
+                  tf->getTracklets()[iLayer].emplace_back(currentSortedIndex, tf->getSortedIndex(rof1, iLayer + 1, iNextCluster), tanL, phi, rof0, rof1);
                 }
               }
             }
@@ -190,13 +191,11 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
     std::sort(trkl.begin(), trkl.end(), [](const Tracklet& a, const Tracklet& b) {
       return a.firstClusterIndex < b.firstClusterIndex || (a.firstClusterIndex == b.firstClusterIndex && a.secondClusterIndex < b.secondClusterIndex);
     });
-
     /// Remove duplicates
     auto& lut{tf->getTrackletsLookupTable()[iLayer]};
     int id0{-1}, id1{-1};
     std::vector<Tracklet> newTrk;
     newTrk.reserve(trkl.size());
-    int count{0};
     for (auto& trk : trkl) {
       if (trk.firstClusterIndex == id0 && trk.secondClusterIndex == id1) {
         lut[id0]--;
@@ -205,7 +204,6 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
         id1 = trk.secondClusterIndex;
         newTrk.push_back(trk);
       }
-      count++;
     }
     trkl.swap(newTrk);
 
@@ -220,14 +218,12 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
   int id0{-1}, id1{-1};
   std::vector<Tracklet> newTrk;
   newTrk.reserve(tf->getTracklets()[0].size());
-  int count{0};
   for (auto& trk : tf->getTracklets()[0]) {
     if (trk.firstClusterIndex != id0 || trk.secondClusterIndex != id1) {
       id0 = trk.firstClusterIndex;
       id1 = trk.secondClusterIndex;
       newTrk.push_back(trk);
     }
-    count++;
   }
   tf->getTracklets()[0].swap(newTrk);
 
@@ -270,6 +266,7 @@ void TrackerTraits::computeLayerCells(const int iteration)
         tf->getTracklets()[iLayer].empty()) {
       continue;
     }
+
 #ifdef OPTIMISATION_OUTPUT
     float resolution{std::sqrt(Sq(mTrkParams[iteration].LayerMisalignment[iLayer]) + Sq(mTrkParams[iteration].LayerMisalignment[iLayer + 1]) + Sq(mTrkParams[iteration].LayerMisalignment[iLayer + 2])) / mTrkParams[iteration].LayerResolution[iLayer]};
     resolution = resolution > 1.e-12 ? resolution : 1.f;
@@ -280,8 +277,10 @@ void TrackerTraits::computeLayerCells(const int iteration)
 
       const Tracklet& currentTracklet{tf->getTracklets()[iLayer][iTracklet]};
       const int nextLayerClusterIndex{currentTracklet.secondClusterIndex};
-      const int nextLayerFirstTrackletIndex{tf->getTrackletsLookupTable()[iLayer][nextLayerClusterIndex]};
-      const int nextLayerLastTrackletIndex{tf->getTrackletsLookupTable()[iLayer][nextLayerClusterIndex + 1]};
+      const int nextLayerFirstTrackletIndex{
+        tf->getTrackletsLookupTable()[iLayer][nextLayerClusterIndex]};
+      const int nextLayerLastTrackletIndex{
+        tf->getTrackletsLookupTable()[iLayer][nextLayerClusterIndex + 1]};
 
       if (nextLayerFirstTrackletIndex == nextLayerLastTrackletIndex) {
         continue;
@@ -328,7 +327,6 @@ void TrackerTraits::computeLayerCells(const int iteration)
         MCCompLabel currentLab{tf->getTrackletsLabel(iLayer)[cell.getFirstTrackletIndex()]};
         MCCompLabel nextLab{tf->getTrackletsLabel(iLayer + 1)[cell.getSecondTrackletIndex()]};
         tf->getCellsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
-        std::cout << tf->getCellsLabel(iLayer).back() << std::endl;
       }
     }
   }
