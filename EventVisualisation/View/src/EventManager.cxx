@@ -103,8 +103,12 @@ void EventManager::displayCurrentEvent()
     } else {
       restoreVisualisationSettings();
     }
-
-    multiView->getAnnotationTop()->SetText(TString::Format("Run %d\n%s", dataSource->getRunNumber(), dataSource->getCollisionTime().c_str()));
+    if (this->mShowDate) {
+      multiView->getAnnotationTop()->SetText(
+        TString::Format("Run %d\n%s", dataSource->getRunNumber(), dataSource->getCollisionTime().c_str()));
+    } else {
+      multiView->getAnnotationTop()->SetText(TString::Format("Run %d", dataSource->getRunNumber()));
+    }
     auto detectors = detectors::DetID::getNames(dataSource->getDetectorsMask());
     multiView->getAnnotationBottom()->SetText(TString::Format("TFOrbit: %d\nDetectors: %s", dataSource->getFirstTForbit(), detectors.c_str()));
   }

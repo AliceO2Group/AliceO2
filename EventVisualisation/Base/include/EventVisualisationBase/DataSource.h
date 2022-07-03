@@ -65,7 +65,7 @@ class DataSource
   void operator=(DataSource const&) = delete;
 
   virtual std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> getVisualisationList(int no, float minTime, float maxTime, float range) = 0;
-
+  virtual void rollToNext(){};
   virtual void changeDataFolder(std::string /*newFolder*/){};
   virtual void saveCurrentEvent(std::string /*targetFolder*/){};
   virtual int getRunNumber() const { return 0; }
