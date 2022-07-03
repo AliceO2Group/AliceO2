@@ -61,8 +61,7 @@ void TrackerDPL::init(InitContext& ic)
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mChainITS.reset(mRecChain->AddChain<o2::gpu::GPUChainITS>());
-  mChainITSCPU.reset(mRecChainCPU->AddChain<o2::gpu::GPUChainITS>());
-  mVertexer = std::make_unique<Vertexer>(mChainITSCPU->GetITSVertexerTraits());
+  mVertexer = std::make_unique<Vertexer>(mChainITS->GetITSVertexerTraits());
   mTracker = std::make_unique<Tracker>(mChainITS->GetITSTrackerTraits());
   mRunVertexer = true;
   mCosmicsProcessing = false;

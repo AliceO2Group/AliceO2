@@ -421,6 +421,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells()
                                          mTimeFrameGPU->getDeviceNFoundCells() + iLayer,                     // d_out
                                          mTimeFrameGPU->getTrackletSizeHost()[iLayer],                       // num_items
                                          mTimeFrameGPU->getStream(iLayer).get()));
+
     // Compute LUT
     discardResult(cub::DeviceScan::ExclusiveSum(reinterpret_cast<void*>(mTimeFrameGPU->getDeviceCUBBuffer(iLayer)), // d_temp_storage
                                                 bufferSize,                                                         // temp_storage_bytes
@@ -428,6 +429,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells()
                                                 mTimeFrameGPU->getDeviceCellsLookupTable(iLayer),                   // d_out
                                                 mTimeFrameGPU->getTrackletSizeHost()[iLayer],                       // num_items
                                                 mTimeFrameGPU->getStream(iLayer).get()));
+    discardResult(cudaStreamSynchronize(mTimeFrameGPU->getStream(iLayer).get()));
 
     gpu::computeLayerCellsKernel<false><<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(iLayer).get()>>>(
       mTimeFrameGPU->getDeviceTrackletsAll(iLayer),
@@ -443,14 +445,12 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells()
   /// Create cells labels
   if (mTimeFrameGPU->hasMCinformation()) {
     for (int iLayer{0}; iLayer < NLayers - 2; ++iLayer) {
-      std::cout << "layer " << iLayer << "found cells: " << mTimeFrameGPU->getCellSizeHost()[iLayer] << std::endl;
       std::vector<o2::its::Cell> cells(mTimeFrameGPU->getCellSizeHost()[iLayer]);
       checkGPUError(cudaMemcpy(cells.data(), mTimeFrameGPU->getDeviceCells(iLayer), mTimeFrameGPU->getCellSizeHost()[iLayer] * sizeof(o2::its::Cell), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
       for (auto& cell : cells) {
         MCCompLabel currentLab{mTimeFrameGPU->getTrackletsLabel(iLayer)[cell.getFirstTrackletIndex()]};
         MCCompLabel nextLab{mTimeFrameGPU->getTrackletsLabel(iLayer + 1)[cell.getSecondTrackletIndex()]};
         mTimeFrameGPU->getCellsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
-        std::cout << mTimeFrameGPU->getCellsLabel(iLayer).back() << std::endl;
       }
     }
   }
