@@ -20,6 +20,7 @@
 #include <Rtypes.h>
 #include <filesystem>
 #include <fstream>
+#include <sstream>git
 
 namespace o2
 {
