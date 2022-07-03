@@ -119,6 +119,7 @@ class TimeFrameGPU : public TimeFrame
   TimeFrameGPUConfig& getConfig() { return mConfig; }
   gpu::Stream& getStream(const int iLayer) { return mStreamArray[iLayer]; }
   std::vector<int>& getTrackletSizeHost() { return mTrackletSizeHost; }
+  std::vector<int>& getCellSizeHost() { return mCellSizeHost; }
 
   // Vertexer only
   int* getDeviceNTrackletsCluster(int rofId, int combId);
@@ -134,7 +135,8 @@ class TimeFrameGPU : public TimeFrame
   int* getDeviceNFoundLines(const int rofId);
   int* getDeviceExclusiveNFoundLines(const int rofId);
   int* getDeviceCUBBuffer(const size_t rofId);
-  int* getDeviceNFoundTracklets() const { return mFoundTracklets; };
+  int* getDeviceNFoundTracklets() const { return mDeviceFoundTracklets; };
+  int* getDeviceNFoundCells() const { return mDeviceFoundCells; };
   float* getDeviceXYCentroids(const int rofId);
   float* getDeviceZCentroids(const int rofId);
   int* getDeviceXHistograms(const int rofId);
@@ -155,7 +157,7 @@ class TimeFrameGPU : public TimeFrame
   TimeFrameGPUConfig mConfig;
   std::array<gpu::Stream, NLayers> mStreamArray;
   std::vector<int> mTrackletSizeHost;
-
+  std::vector<int> mCellSizeHost;
   // Per-layer information, do not expand at runtime
   std::array<Vector<Cluster>, NLayers> mClustersD;
   std::array<Vector<unsigned char>, NLayers> mUsedClustersD;
@@ -168,7 +170,8 @@ class TimeFrameGPU : public TimeFrame
   std::array<Vector<int>, NLayers - 2> mCellsLookupTablesD;
   std::array<Vector<int>, NLayers> mROframesClustersD; // layers x roframes
   int* mCUBTmpBuffers;
-  int* mFoundTracklets;
+  int* mDeviceFoundTracklets;
+  int* mDeviceFoundCells;
   gpu::StaticTrackingParameters<NLayers>* mDeviceTrackingParams;
   IndexTableUtils* mDeviceIndexTableUtils;
 
