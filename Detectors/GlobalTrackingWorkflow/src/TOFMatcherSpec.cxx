@@ -55,7 +55,7 @@ namespace globaltracking
 class TOFMatcherSpec : public Task
 {
  public:
-  TOFMatcherSpec(std::shared_ptr<DataRequest> dr, bool useMC, bool useFIT, bool tpcRefit, bool strict) : mDataRequest(dr), mUseMC(useMC), mUseFIT(useFIT), mDoTPCRefit(tpcRefit), mStrict(strict) {}
+  TOFMatcherSpec(std::shared_ptr<DataRequest> dr, bool useMC, bool useFIT, bool tpcRefit, bool strict, float extratolerancetrd = 0.) : mDataRequest(dr), mUseMC(useMC), mUseFIT(useFIT), mDoTPCRefit(tpcRefit), mStrict(strict), mExtraTolTRD(extratolerancetrd) {}
   ~TOFMatcherSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -67,6 +67,7 @@ class TOFMatcherSpec : public Task
   bool mUseFIT = false;
   bool mDoTPCRefit = false;
   bool mStrict = false;
+  float mExtraTolTRD = 0.;
   MatchTOF mMatcher; ///< Cluster finder
   TStopwatch mTimer;
 };
@@ -93,6 +94,7 @@ void TOFMatcherSpec::init(InitContext& ic)
   if (mStrict) {
     mMatcher.setHighPurity();
   }
+  mMatcher.setExtraTimeToleranceTRD(mExtraTolTRD);
 }
 
 void TOFMatcherSpec::run(ProcessingContext& pc)
@@ -169,7 +171,7 @@ void TOFMatcherSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool strict)
+DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool strict, float extratolerancetrd)
 {
   uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   auto dataRequest = std::make_shared<DataRequest>();
@@ -214,7 +216,7 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
     "tof-matcher",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFMatcherSpec>(dataRequest, useMC, useFIT, tpcRefit, strict)},
+    AlgorithmSpec{adaptFromTask<TOFMatcherSpec>(dataRequest, useMC, useFIT, tpcRefit, strict, extratolerancetrd)},
     Options{
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
