@@ -84,10 +84,10 @@ int FT0DCSProcessor::processDP(const DPCOM& dpcom)
   const auto& type = dpid.get_type();
   const auto& val = dpcom.data;
   if (mVerbose) {
-    if (type == DPVAL_FLOAT) {
-      LOG(info) << "Processing DP = " << dpcom << " (epoch " << val.get_epoch_time() << "), with value = " << o2::dcs::getValue<float>(dpcom);
-    } else if (type == DPVAL_INT) {
-      LOG(info) << "Processing DP = " << dpcom << " (epoch " << val.get_epoch_time() << "), with value = " << o2::dcs::getValue<int32_t>(dpcom);
+    if (type == DPVAL_DOUBLE) {
+      LOG(info) << "Processing DP = " << dpcom << " (epoch " << val.get_epoch_time() << "), with value = " << o2::dcs::getValue<double>(dpcom);
+    } else if (type == DPVAL_UINT) {
+      LOG(info) << "Processing DP = " << dpcom << " (epoch " << val.get_epoch_time() << "), with value = " << o2::dcs::getValue<uint>(dpcom);
     }
   }
   auto flags = val.get_flags();
@@ -95,10 +95,10 @@ int FT0DCSProcessor::processDP(const DPCOM& dpcom)
     // Store all DP values
     if (mFT0DCS[dpid].values.empty() || val.get_epoch_time() > mFT0DCS[dpid].values.back().first) {
       converter.raw_data = val.payload_pt1;
-      if (type == DPVAL_FLOAT) {
-        mFT0DCS[dpid].add(val.get_epoch_time(), lround(converter.float_value * 1000)); // store as nA
-      } else if (type == DPVAL_INT) {
-        mFT0DCS[dpid].add(val.get_epoch_time(), converter.int_value);
+      if (type == DPVAL_DOUBLE) {
+        mFT0DCS[dpid].add(val.get_epoch_time(), lround(converter.double_value * 1000)); // store as nA
+      } else if (type == DPVAL_UINT) {
+        mFT0DCS[dpid].add(val.get_epoch_time(), converter.uint_value);
       }
     }
   }

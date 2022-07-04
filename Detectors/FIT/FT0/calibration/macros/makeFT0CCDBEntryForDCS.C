@@ -25,6 +25,7 @@ using DPID = o2::dcs::DataPointIdentifier;
 int makeFT0CCDBEntryForDCS(const std::string url = "http://localhost:8080")
 {
   // Macro to populate CCDB for FT0 with the configuration for DCS
+
   std::unordered_map<DPID, std::string> dpid2DataDesc;
   std::vector<std::string> aliasesHV = {"FT0/HV/FT0_A/MCP_A[1..5]/actual/iMon",
                                         "FT0/HV/FT0_A/MCP_B[1..5]/actual/iMon",
@@ -41,7 +42,7 @@ int makeFT0CCDBEntryForDCS(const std::string url = "http://localhost:8080")
                                         "FT0/HV/FT0_C/MCP_E[1..6]/actual/iMon",
                                         "FT0/HV/FT0_C/MCP_F[2..5]/actual/iMon",
                                         "FT0/HV/MCP_LC/actual/iMon"};
-  std::string aliasesADCZERO = "FT0/PM/channel[000..211]/actual/ADC_ZERO";
+  std::string aliasesADCZERO = "FT0/PM/channel[000..211]/actual/ADC[0..1]_BASELINE";
   std::vector<std::string> expAliasesHV = o2::dcs::expandAliases(aliasesHV);
   std::vector<std::string> expAliasesADCZERO = o2::dcs::expandAlias(aliasesADCZERO);
 
@@ -49,12 +50,12 @@ int makeFT0CCDBEntryForDCS(const std::string url = "http://localhost:8080")
   DPID dpidtmp;
   for (size_t i = 0; i < expAliasesHV.size(); ++i) {
     std::cout << expAliasesHV[i] << std::endl;
-    DPID::FILL(dpidtmp, expAliasesHV[i], o2::dcs::DeliveryType::DPVAL_FLOAT);
+    DPID::FILL(dpidtmp, expAliasesHV[i], o2::dcs::DeliveryType::DPVAL_DOUBLE);
     dpid2DataDesc[dpidtmp] = "FT0DATAPOINTS";
   }
   for (size_t i = 0; i < expAliasesADCZERO.size(); ++i) {
     std::cout << expAliasesADCZERO[i] << std::endl;
-    DPID::FILL(dpidtmp, expAliasesADCZERO[i], o2::dcs::DeliveryType::DPVAL_INT);
+    DPID::FILL(dpidtmp, expAliasesADCZERO[i], o2::dcs::DeliveryType::DPVAL_UINT);
     dpid2DataDesc[dpidtmp] = "FT0DATAPOINTS";
   }
 

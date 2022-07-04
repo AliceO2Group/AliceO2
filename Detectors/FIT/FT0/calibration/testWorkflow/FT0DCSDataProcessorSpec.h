@@ -89,14 +89,14 @@ class FT0DCSDataProcessor : public o2::framework::Task
                                             "FT0/HV/FT0_C/MCP_E[1..6]/actual/iMon",
                                             "FT0/HV/FT0_C/MCP_F[2..5]/actual/iMon",
                                             "FT0/HV/MCP_LC/actual/iMon"};
-      std::string aliasesADCZERO = "FT0/PM/channel[000..211]/actual/ADC_ZERO";
+      std::string aliasesADCZERO = "FT0/PM/channel[000..211]/actual/ADC[0..1]_BASELINE";
       std::vector<std::string> expAliasesHV = o2::dcs::expandAliases(aliasesHV);
       std::vector<std::string> expAliasesADCZERO = o2::dcs::expandAlias(aliasesADCZERO);
       for (const auto& i : expAliasesHV) {
-        vect.emplace_back(i, o2::dcs::DPVAL_FLOAT);
+        vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
       }
       for (const auto& i : expAliasesADCZERO) {
-        vect.emplace_back(i, o2::dcs::DPVAL_INT);
+        vect.emplace_back(i, o2::dcs::DPVAL_UINT);
       }
     }
 

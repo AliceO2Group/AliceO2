@@ -84,8 +84,8 @@ class FT0DCSProcessor
 
   union Converter {
     uint64_t raw_data;
-    float float_value;
-    int int_value;
+    double double_value;
+    uint uint_value;
   } converter;
 
   bool mVerbose = false;
