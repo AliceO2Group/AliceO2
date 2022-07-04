@@ -257,16 +257,17 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     res.setTgl(mCache[iRow].tgl[Int]);
     res.sec = mCache[iRow].clSec;
     res.dRow = deltaRow;
-    res.row = iRow;
     mClRes.push_back(std::move(res));
     ++nMeasurements;
     deltaRow = 1;
   }
 
   trackData.gid = (*mGIDs)[iSeed];
-  trackData.eta = trkTPC.getEta();
-  trackData.phi = trkTPC.getSnp();
-  trackData.qPt = trkTPC.getQ2Pt();
+  trackData.x = (*mSeeds)[iSeed].getX();
+  trackData.alpha = (*mSeeds)[iSeed].getAlpha();
+  for (int i = 0; i < o2::track::kNParams; ++i) {
+    trackData.p[i] = (*mSeeds)[iSeed].getParam(i);
+  }
   trackData.chi2TPC = trkTPC.getChi2();
   trackData.chi2ITS = trkITS.getChi2();
   trackData.nClsTPC = trkTPC.getNClusterReferences();
@@ -313,15 +314,16 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     res.setTgl(trkWork.getTgl());
     res.sec = sector;
     res.dRow = row - rowPrev;
-    res.row = row;
     rowPrev = row;
     mClRes.push_back(std::move(res));
     ++nMeasurements;
   }
   trackData.gid = (*mGIDs)[iSeed];
-  trackData.eta = trkTPC.getEta();
-  trackData.phi = trkTPC.getSnp();
-  trackData.qPt = trkTPC.getQ2Pt();
+  trackData.x = (*mSeeds)[iSeed].getX();
+  trackData.alpha = (*mSeeds)[iSeed].getAlpha();
+  for (int i = 0; i < o2::track::kNParams; ++i) {
+    trackData.p[i] = (*mSeeds)[iSeed].getParam(i);
+  }
   trackData.chi2TPC = trkTPC.getChi2();
   trackData.chi2ITS = trkITS.getChi2();
   trackData.nClsTPC = trkTPC.getNClusterReferences();
