@@ -37,18 +37,25 @@ class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o
   using CcdbObjectInfoVector = std::vector<CcdbObjectInfo>;
 
  public:
-  MeanVertexCalibrator(int minEnt = 500, bool useFit = false, int nBinsX = 100, float rangeX = 1.f,
-                       int nBinsY = 100, float rangeY = 1.f, int nBinsZ = 100, float rangeZ = 20.f,
-                       int nSlotsSMA = 5) : mMinEntries(minEnt), mUseFit(useFit), mNBinsX(nBinsX), mRangeX(rangeX), mNBinsY(nBinsY), mRangeY(rangeY), mNBinsZ(nBinsZ), mRangeZ(rangeZ), mSMAslots(nSlotsSMA)
+  MeanVertexCalibrator(int minEnt = 500, int nBinsX = 100, float rangeX = 1.f,
+                       int nBinsY = 100, float rangeY = 1.f, int nBinsZ = 100, float rangeZ = 20.f, uint32_t nPointsForSlope = 10,
+                       int nSlotsSMA = 5) : mMinEntries(minEnt), mNBinsX(nBinsX), mRangeX(rangeX), mNBinsY(nBinsY), mRangeY(rangeY), mNBinsZ(nBinsZ), mRangeZ(rangeZ), mSMAslots(nSlotsSMA), mNPointsForSlope(nPointsForSlope)
   {
-    mSMAdata.init(useFit, nBinsX, rangeX, nBinsY, rangeY, nBinsZ, rangeZ);
+    mBinWidthX = 2 * rangeX / nBinsX;
+    mBinWidthY = 2 * rangeY / nBinsY;
+    mBinWidthZ = 2 * rangeZ / nBinsZ;
+    mBinWidthXInv = 1. / mBinWidthX;
+    mBinWidthYInv = 1. / mBinWidthY;
+    mBinWidthZInv = 1. / mBinWidthZ;
   }
 
   ~MeanVertexCalibrator() final = default;
 
   bool hasEnoughData(const Slot& slot) const final
   {
-    LOG(info) << "container entries = " << slot.getContainer()->entries << ", minEntries = " << mMinEntries * 2;
+    if (mVerbose) {
+      LOG(info) << "container entries = " << slot.getContainer()->entries << ", minEntries = " << mMinEntries * 2;
+    }
     return slot.getContainer()->entries >= mMinEntries * 2; // we need in fact that the min number of entries is 2x the required ones because we will do the slices in z, and we need at least two to fit
   }
   void initOutput() final;
@@ -70,9 +77,9 @@ class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o
 
   void fitMeanVertex(o2::calibration::MeanVertexData* c, o2::dataformats::MeanVertexObject& mvo);
   void fitMeanVertexCoord(int coordinate, int nbins, float* array, float minRange, float maxRange, o2::dataformats::MeanVertexObject& mvo);
-  void binVector(std::vector<float>& vectOut, const std::vector<float>& vectIn, int nbins, float min, float max);
-  void printVector(std::vector<float>& vect, float minRange, float maxRange);
-  void printVector(float* vect, int sizeVect, float minRange, float maxRange);
+  void binVector(std::vector<float>& vectOut, const std::vector<float>& vectIn, int nbins, float min, float max, float binWidthInv);
+  void printVector(std::vector<float>& vect, float minRange, float maxRange, float binWidth);
+  void printVector(float* vect, int sizeVect, float minRange, float maxRange, float binWidth);
 
  private:
   int mMinEntries = 0;
@@ -82,8 +89,14 @@ class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o
   float mRangeY = 0.;
   int mNBinsZ = 0;
   float mRangeZ = 0.;
-  bool mUseFit = false;
+  float mBinWidthX = 0.;
+  float mBinWidthY = 0.;
+  float mBinWidthZ = 0.;
+  float mBinWidthXInv = 0.;
+  float mBinWidthYInv = 0.;
+  float mBinWidthZInv = 0.;
   uint64_t mSMAslots = 5;
+  uint32_t mNPointsForSlope = 10;
   CcdbObjectInfoVector mInfoVector;                                    // vector of CCDB Infos , each element is filled with the CCDB description
                                                                        // of the accompanying LHCPhase
   MVObjectVector mMeanVertexVector;                                    // vector of Mean Vertex Objects, each element is filled in "process"
@@ -98,9 +111,6 @@ class MeanVertexCalibrator final : public o2::calibration::TimeSlotCalibration<o
                                                                        // simple moving average, start time of used TFs
   std::deque<o2::math_utils::detail::Bracket<long>> mTmpMVobjDqTime;   // This is the deque for the start and end time of the
                                                                        // slots used for the SMA
-  std::deque<MeanVertexData> mTmpMVdataDq;                             // This is the vector of Mean Vertex data to be used for the simple
-                                                                       // moving average
-  MeanVertexData mSMAdata;                                             // This is to do the SMA when we keep the histos
   bool mVerbose = false;                                               // Whether to log in verbose mode
 
   ClassDefOverride(MeanVertexCalibrator, 1);
