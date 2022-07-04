@@ -1033,19 +1033,6 @@ auto select(T const& t, framework::expressions::Filter const& f)
   return Filtered<T>({t.asArrowTable()}, selectionToVector(framework::expressions::createSelection(t.asArrowTable(), f)));
 }
 
-template <typename T>
-auto sliceBy(T const& t, framework::expressions::BindingNode const& node, int value)
-{
-  uint64_t offset = 0;
-  std::shared_ptr<arrow::Table> result = nullptr;
-  auto status = o2::framework::getSliceFor(value, node.name.c_str(), t.asArrowTable(), result, offset);
-  if (status.ok()) {
-    return T({result}, offset);
-  }
-  o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
-  O2_BUILTIN_UNREACHABLE();
-}
-
 arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, const char* label);
 
 /// A Table class which observes an arrow::Table and provides
@@ -1318,14 +1305,6 @@ class Table
     } else {
       static_assert(o2::framework::always_static_assert_v<T1>, "Wrong Preslice<> entry used: incompatible type");
     }
-  }
-
-  auto sliceBy(framework::expressions::BindingNode const& node, int value) const
-  {
-    auto t = o2::soa::sliceBy(*this, node, value);
-    copyIndexBindings(t);
-    t.bindInternalIndicesTo(this);
-    return t;
   }
 
   auto slice(uint64_t start, uint64_t end) const
@@ -2319,8 +2298,6 @@ struct Join : JoinBase<Ts...> {
     return t;
   }
 
-  using table_t::sliceBy;
-
   template <typename T1>
   auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
   {
@@ -2519,9 +2496,10 @@ class FilteredBase : public T
     doCopyIndexBindings(external_index_columns_t{}, dest);
   }
 
-  auto rawSliceBy(framework::expressions::BindingNode const& node, int value) const
+  template <typename T1>
+  auto rawSliceBy(o2::framework::Preslice<T1> const& container, int value) const
   {
-    return (table_t)this->sliceBy(node, value);
+    return (table_t)this->sliceBy(container, value);
   }
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value)
@@ -2577,23 +2555,6 @@ class FilteredBase : public T
     } else {
       static_assert(o2::framework::always_static_assert_v<T1>, "Wrong Preslice<> entry used: incompatible type");
     }
-  }
-
-  auto sliceBy(framework::expressions::BindingNode const& node, int value) const
-  {
-    auto t = o2::soa::sliceBy((table_t)(*this), node, value);
-    auto start = t.offset();
-    auto end = start + t.size();
-    auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
-    auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
-    SelectionVector slicedSelection{start_iterator, stop_iterator};
-    std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                   [&](int64_t idx) {
-                     return idx - static_cast<int64_t>(start);
-                   });
-    self_t result{{t.asArrowTable()}, std::move(slicedSelection), start};
-    copyIndexBindings(result);
-    return result;
   }
 
   auto select(framework::expressions::Filter const& f) const
