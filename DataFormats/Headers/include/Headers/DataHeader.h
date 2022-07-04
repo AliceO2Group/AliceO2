@@ -208,8 +208,8 @@ struct Descriptor {
   static_assert(internal::NumberOfActiveBits<N>::value == 1,
                 "Descriptor size is required to be a power of 2");
   using self_type = Descriptor<N>;
-  static int const size = N;
-  static int const bitcount = size * 8;
+  static int constexpr size = N;
+  static int constexpr bitcount = size * 8;
   static constexpr int arraySize = internal::ArraySize<uint64_t, size>();
   using ItgType = typename internal::TraitsIntType<N>::Type;
 
