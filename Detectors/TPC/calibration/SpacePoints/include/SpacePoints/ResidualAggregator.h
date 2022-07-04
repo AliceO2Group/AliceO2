@@ -42,11 +42,11 @@ struct ResidualsContainer {
   ResidualsContainer& operator=(const ResidualsContainer& src) = delete;
   ~ResidualsContainer();
 
-  void init(const TrackResiduals* residualsEngine, std::string outputDir);
+  void init(const TrackResiduals* residualsEngine, std::string outputDir, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData);
   void fillStatisticsBranches();
   uint64_t getNEntries() const { return nResidualsTotal; }
 
-  void fill(const o2::dataformats::TFIDInfo& ti, const gsl::span<const TrackResiduals::UnbinnedResid> data);
+  void fill(const o2::dataformats::TFIDInfo& ti, const std::pair<gsl::span<const o2::tpc::TrackData>, gsl::span<const TrackResiduals::UnbinnedResid>> data);
   void merge(ResidualsContainer* prev);
   void print();
 
@@ -58,19 +58,27 @@ struct ResidualsContainer {
   uint32_t runNumber;                                                        ///< run number (required for meta data file)
   std::vector<uint32_t> tfOrbits, *tfOrbitsPtr{&tfOrbits};                   ///< first TF orbit
   std::vector<uint32_t> sumOfResiduals, *sumOfResidualsPtr{&sumOfResiduals}; ///< sum of residuals for each TF
+  std::vector<TrackResiduals::UnbinnedResid> unbinnedRes, *unbinnedResPtr{&unbinnedRes}; // unbinned residuals
+  std::vector<TrackData> trkData, *trkDataPtr{&trkData};                                 // track data and cluster ranges
 
   std::string fileName{"o2tpc_residuals"};
   std::string treeNameResiduals{"resid"};
   std::string treeNameStats{"stats"};
   std::string treeNameRecords{"records"};
   std::unique_ptr<TFile> fileOut{nullptr};
+  std::unique_ptr<TTree> treeOutResidualsUnbinned{nullptr};
+  std::unique_ptr<TTree> treeOutTrackData{nullptr};
   std::unique_ptr<TTree> treeOutResiduals{nullptr};
   std::unique_ptr<TTree> treeOutStats{nullptr};
   std::unique_ptr<TTree> treeOutRecords{nullptr};
 
+  bool writeBinnedResid{false};
+  bool writeUnbinnedResiduals{false};
+  bool writeTrackData{false};
+
   uint64_t nResidualsTotal{0};
 
-  ClassDefNV(ResidualsContainer, 1);
+  ClassDefNV(ResidualsContainer, 2);
 };
 
 class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<TrackResiduals::UnbinnedResid, ResidualsContainer>
@@ -89,6 +97,9 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Tra
     mStoreMetaData = true;
   }
   void setLHCPeriod(std::string period) { mLHCPeriod = period; }
+  void setWriteBinnedResiduals(bool f) { mWriteBinnedResiduals = f; }
+  void setWriteUnbinnedResiduals(bool f) { mWriteUnbinnedResiduals = f; }
+  void setWriteTrackData(bool f) { mWriteTrackData = f; }
 
   bool hasEnoughData(const Slot& slot) const final;
   void initOutput() final;
@@ -102,9 +113,12 @@ class ResidualAggregator final : public o2::calibration::TimeSlotCalibration<Tra
   std::string mMetaOutputDir{"none"}; ///< the directory where the meta data file is stored
   std::string mLHCPeriod{""};         ///< the LHC period to be put into the meta file
   bool mStoreMetaData{false};         ///< flag, whether meta file is supposed to be stored
+  bool mWriteBinnedResiduals{false};  ///< flag, whether to write binned residuals to output file
+  bool mWriteUnbinnedResiduals{false}; ///< flag, whether to write unbinned residuals to output file
+  bool mWriteTrackData{false};         ///< flag, whether to write track data to output file
   size_t mMinEntries;             ///< the minimum number of residuals required for the map creation (per voxel)
 
-  ClassDefOverride(ResidualAggregator, 1);
+  ClassDefOverride(ResidualAggregator, 2);
 };
 
 } // namespace tpc

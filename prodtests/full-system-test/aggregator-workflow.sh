@@ -49,6 +49,9 @@ if [[ $BEAMTYPE == "PbPb" ]]; then
   TOF_CHANNELOFFSETS_DELTA_UPDATE=500
 fi
 
+# special settings for aggregator workflows
+if [[ "0$CALIB_TPC_SCDCALIB_SENDTRKDATA" == "01" ]]; then ENABLE_TRACK_INPUT="--enable-track-input"; fi
+
 # Calibration workflows
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   WORKFLOW=
@@ -123,7 +126,7 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then
     # TODO: the residual aggregator should have --output-dir and --meta-output-dir defined
     # without that the residuals will be stored in the local working directory (and deleted after a week)
-    add_W o2-calibration-residual-aggregator ""
+    add_W o2-calibration-residual-aggregator "$ENABLE_TRACK_INPUT --output-type trackParams,unbinnedResid,binnedResid"
   fi
   # TRD
   if [[ $CALIB_TRD_VDRIFTEXB == 1 ]]; then
