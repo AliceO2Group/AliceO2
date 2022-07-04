@@ -102,7 +102,6 @@ class TimeSlotCalibration
 
   template <typename DATA>
   bool process(const DATA& data);
-  virtual bool process(const gsl::span<const Input> data);
   virtual void checkSlotsToFinalize(TFType tf, int maxDelay = 0);
   virtual void finalizeOldestSlot();
 
@@ -202,44 +201,6 @@ bool TimeSlotCalibration<Input, Container>::process(const DATA& data)
   auto& slotTF = getSlotForTF(tf);
   using Cont_t = typename std::remove_pointer<decltype(slotTF.getContainer())>::type;
   if constexpr (has_fill_method<Cont_t, void(const o2::dataformats::TFIDInfo&, const DATA&)>::value) {
-    slotTF.getContainer()->fill(mCurrentTFInfo, data);
-  } else {
-    slotTF.getContainer()->fill(data);
-  }
-  if (tf > mMaxSeenTF) {
-    mMaxSeenTF = tf; // keep track of the most recent TF processed
-  }
-  if (!mUpdateAtTheEndOfRunOnly) { // if you update at the end of run only, you don't check at every TF which slots can be closed
-    // check if some slots are done
-    checkSlotsToFinalize(tf, maxDelay);
-  }
-
-  return true;
-}
-
-//_________________________________________________
-template <typename Input, typename Container>
-bool TimeSlotCalibration<Input, Container>::process(const gsl::span<const Input> data)
-{
-
-  // process current TF
-  TFType tf = mCurrentTFInfo.tfCounter;
-  uint64_t maxDelay64 = uint64_t(mSlotLength) * mMaxSlotsDelay;
-  TFType maxDelay = maxDelay64 > o2::calibration::INFINITE_TF ? o2::calibration::INFINITE_TF : TFType(maxDelay64);
-
-  if (!mUpdateAtTheEndOfRunOnly) {                                                                 // if you update at the end of run only, then you accept everything
-    if (tf < mLastClosedTF || (!mSlots.empty() && getLastSlot().getTFStart() > tf + maxDelay64)) { // ignore TF; note that if you have only 1 timeslot
-                                                                                                   // which is INFINITE_TF wide, then maxDelay
-                                                                                                   // does not matter: you won't accept TFs from the past,
-                                                                                                   // so the first condition will be used
-      LOG(info) << "Ignoring TF " << tf << ", mLastClosedTF = " << mLastClosedTF;
-      return false;
-    }
-  }
-
-  auto& slotTF = getSlotForTF(tf);
-  using Cont_t = typename std::remove_pointer<decltype(slotTF.getContainer())>::type;
-  if constexpr (has_fill_method<Cont_t, void(const o2::dataformats::TFIDInfo&, const gsl::span<const Input>)>::value) {
     slotTF.getContainer()->fill(mCurrentTFInfo, data);
   } else {
     slotTF.getContainer()->fill(data);
