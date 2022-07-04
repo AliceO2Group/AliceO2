@@ -23,6 +23,13 @@ void o2::base::TFIDInfoHelper::fillTFIDInfo(ProcessingContext& pc, o2::dataforma
   const auto ref = pc.inputs().getFirstValid(true);
   const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
   const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
+  static int errCount = 0;
+  if (dh->firstTForbit == -1U || dph->creation == -1) {
+    if (errCount++ < 5) {
+      LOGP(warn, "Ignoring gummy input with orbit {} and creation time {} in fillTFIDInfo", dh->firstTForbit, dph->creation);
+    }
+    return;
+  }
   ti.firstTForbit = dh->firstTForbit;
   ti.tfCounter = dh->tfCounter;
   ti.runNumber = dh->runNumber;
