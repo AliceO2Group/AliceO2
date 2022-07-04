@@ -75,7 +75,7 @@ class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsm
   }
 
   // Functions overloaded from the calibration framework
-  bool process(const gsl::span<const o2::itsmft::CompClusterExt> data) final;
+  bool process(const gsl::span<const o2::itsmft::CompClusterExt> data);
 
   // Functions required by the calibration framework
   void initOutput() final {}
