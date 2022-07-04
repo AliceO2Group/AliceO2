@@ -290,17 +290,22 @@ void WSDPLHandler::endHeaders()
       }
     }
   } else {
-    LOG(info) << "Connection not bound to a PID";
-    GuiRenderer* renderer = new GuiRenderer;
-    renderer->gui = mServerContext->gui;
-    renderer->handler = this;
-    uv_timer_init(mServerContext->loop, &(renderer->drawTimer));
-    renderer->drawTimer.data = renderer;
-    uv_timer_start(&(renderer->drawTimer), remoteGuiCallback, 0, 200);
-    mHandler = std::make_unique<GUIWebSocketHandler>(*mServerContext, renderer);
-    mHandler->headers(mHeaders);
-    mServerContext->gui->renderers.insert(renderer);
-    LOGP(info, "RemoteGUI connected, {} running", mServerContext->gui->renderers.size());
+    if (getenv("DPL_DRIVER_REMOTE_GUI")) {
+      LOG(info) << "Connection not bound to a PID";
+      GuiRenderer* renderer = new GuiRenderer;
+      renderer->gui = mServerContext->gui;
+      renderer->handler = this;
+      uv_timer_init(mServerContext->loop, &(renderer->drawTimer));
+      renderer->drawTimer.data = renderer;
+      uv_timer_start(&(renderer->drawTimer), remoteGuiCallback, 0, 200);
+      mHandler = std::make_unique<GUIWebSocketHandler>(*mServerContext, renderer);
+      mHandler->headers(mHeaders);
+      mServerContext->gui->renderers.insert(renderer);
+      LOGP(info, "RemoteGUI connected, {} running", mServerContext->gui->renderers.size());
+    } else {
+      LOG(warning) << "Connection not bound to a PID however DPL_DRIVER_REMOTE_GUI is not set. Skipping.";
+      throw WSError{418, "Remote GUI not enabled"};
+    }
   }
 }
 
