@@ -54,14 +54,16 @@ void CTPGenerator::printStream(std::ostream& stream) const
   stream << "CTP generator:" << name << " frequency:" << frequency << std::endl;
 }
 //
-CTPInput::CTPInput(std::string& name, std::string& det, uint32_t index) {
+CTPInput::CTPInput(std::string& name, std::string& det, uint32_t index)
+{
   this->name = name;
-  inputMask = (1ull << (index-1));
+  inputMask = (1ull << (index - 1));
   detID = o2::detectors::DetID(det.c_str());
 }
-CTPInput::CTPInput(const char* name, const char* det, uint32_t index) {
+CTPInput::CTPInput(const char* name, const char* det, uint32_t index)
+{
   this->name = std::string(name);
-  inputMask = (1ull << (index-1));
+  inputMask = (1ull << (index - 1));
   detID = o2::detectors::DetID(det);
 }
 void CTPInput::printStream(std::ostream& stream) const
@@ -677,7 +679,7 @@ CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run)
   if (ctpscalers == nullptr) {
     LOG(info) << "CTPRunScalers not in database, timestamp:" << timestamp;
   } else {
-    //ctpscalers->printStream(std::cout);
+    // ctpscalers->printStream(std::cout);
   }
   return *ctpscalers;
 }
@@ -775,31 +777,31 @@ void CTPRunManager::printCounters()
     std::cout << mCounters[i] << " ";
   }
 }
-int CTPInputsConfiguration::createInputsConfigFromFile(std::string& filename) {
+int CTPInputsConfiguration::createInputsConfigFromFile(std::string& filename)
+{
   int ret = 0;
   std::ifstream inpcfg(filename);
-  if(inpcfg.is_open()) {
+  if (inpcfg.is_open()) {
     std::string line;
-    while(std::getline(inpcfg, line)) {
+    while (std::getline(inpcfg, line)) {
       o2::utils::Str::trim(line);
-      if(line.size() == 0) {
+      if (line.size() == 0) {
         continue;
       }
-      if(line[0] == '#') {
+      if (line[0] == '#') {
         continue;
       }
       std::vector<std::string> tokens = o2::utils::Str::tokenize(line, ' ');
       size_t ntokens = tokens.size();
       if (ntokens < 6) {
-        LOG(warning) << "# of tokens < 6 in line:"<< ntokens << ":" << line;
+        LOG(warning) << "# of tokens < 6 in line:" << ntokens << ":" << line;
         ret++;
       } else {
         CTPInput inp;
         uint32_t index = 0;
         try {
           index = std::stoi(tokens[0]);
-        }
-        catch (...) {
+        } catch (...) {
           LOG(warning) << line;
           ret++;
           continue;
@@ -807,18 +809,19 @@ int CTPInputsConfiguration::createInputsConfigFromFile(std::string& filename) {
         std::string det = tokens[1];
         CTPConfiguration::capitaliseString(det);
         std::string name = tokens[2];
-        CTPInputs.push_back(CTPInput(name,det,index));
+        CTPInputs.push_back(CTPInput(name, det, index));
       }
     }
   } else {
     LOG(info) << "Can not open file:" << filename;
     ret++;
   }
-  return ret;;
+  return ret;
+  ;
 }
-void CTPInputsConfiguration::printStream(std::ostream& stream) const 
+void CTPInputsConfiguration::printStream(std::ostream& stream) const
 {
-  for(auto const& input: CTPInputs) {
+  for (auto const& input : CTPInputs) {
     input.printStream(stream);
   }
 }

@@ -30,8 +30,8 @@ void GetScalers(std::string srun, long time, std::string ccdbHost = "http://ccdb
   cdb.init("http://alice-ccdb.cern.ch");
   int runNumber = 518420;
   // std::string srun = "519044";
-  //std::string srun = "519045";
-  //std::string srun = "519502";
+  // std::string srun = "519045";
+  // std::string srun = "519502";
   std::map<std::string, std::string> metadata;
   metadata["runNumber"] = srun;
   // auto hd = cdb.retrieveHeaders("RCT/Info/RunInformation", {}, runNumber);
