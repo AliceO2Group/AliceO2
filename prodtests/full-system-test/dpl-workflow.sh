@@ -90,6 +90,10 @@ if [[ $SYNCMODE == 1 ]]; then
   else
     [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode sync"
   fi
+  # add extra tolerance in sync mode to account for eventual time misalignment
+  if [[ $EPNSYNCMODE == 1 ]]; then
+      PVERTEXING_CONFIG_KEY+="pvertexer.timeMarginVertexTime=1.3;"
+  fi
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
   TRD_CONFIG_KEY+="GPU_proc.ompThreads=1;"
   has_detector ITS && TRD_FILTER_CONFIG+=" --filter-trigrec"
