@@ -137,9 +137,13 @@ void AODJAlienReaderHelpers::dumpFileMetrics(Monitoring& monitoring, TFile* curr
   if (currentFile == nullptr) {
     return;
   }
+  uint64_t wait_time = 0;
+  if (uv_hrtime() > startedAt - ioTime) {
+    wait_time = uv_hrtime() - startedAt - ioTime;
+  }
   std::string monitoringInfo(fmt::format("lfn={},size={},total_df={},read_df={},read_bytes={},read_calls={},io_time={:.1f},wait_time={:.1f}", currentFile->GetName(),
                                          currentFile->GetSize(), dfPerFile, dfRead, currentFile->GetBytesRead(), currentFile->GetReadCalls(),
-                                         ((float)ioTime / 1e9), ((float)(uv_hrtime() - startedAt - ioTime) / 1e9)));
+                                         ((float)ioTime / 1e9), ((float)wait_time / 1e9)));
 #if __has_include(<TJAlienFile.h>)
   auto alienFile = dynamic_cast<TJAlienFile*>(currentFile);
   if (alienFile) {
