@@ -35,6 +35,7 @@ if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
   echo "CALIB_TPC_TIMEGAIN = $CALIB_TPC_TIMEGAIN" 1>&2
   echo "CALIB_TPC_RESPADGAIN = $CALIB_TPC_RESPADGAIN" 1>&2
   echo "CALIB_TPC_SCDCALIB = $CALIB_TPC_SCDCALIB" 1>&2
+  echo "CALIB_CPV_GAIN = $CALIB_CPV_GAIN" 1>&2
 fi
 
 # beamtype dependent settings
@@ -158,6 +159,11 @@ if [[ $AGGREGATOR_TASKS == CALO_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   fi
   if [[ $CALIB_PHS_RUNBYRUNCALIB == 1 ]]; then
     add_W o2-phos-calib-workflow "--runbyrun"
+  fi
+
+  # CPV
+  if [[ $CALIB_CPV_GAIN == 1 ]]; then
+    add_W o2-calibration-cpv-calib-workflow "--gains"
   fi
 fi
 
