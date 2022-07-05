@@ -623,8 +623,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
   const auto& holdData = TPCTrackingDigitsPreCheck::runPrecheck(&ptrs, mConfig.get());
 
-  // check for updates of TPC calibration objects
-  fetchCalibsCCDBTPC(pc);
+  doCalibUpdates(pc);
 
   int retVal = mTracker->RunTracking(&ptrs, &outputRegions);
 
@@ -767,6 +766,17 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   }
   mTimer->Stop();
   LOG(info) << "GPU Reoncstruction time for this TF " << mTimer->CpuTime() - cput << " s (cpu), " << mTimer->RealTime() - realt << " s (wall)";
+}
+
+void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc)
+{
+  GPUCalibObjectsConst newTopologyCalib;
+  GPUNewCalibValues newCalibValues;
+  // check for updates of TPC calibration objects
+  bool needCalibUpdate = fetchCalibsCCDBTPC(pc, newTopologyCalib);
+  if (needCalibUpdate) {
+    mTracker->UpdateCalibration(newTopologyCalib, newCalibValues);
+  }
 }
 
 Inputs GPURecoWorkflowSpec::inputs()
@@ -1040,7 +1050,8 @@ void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* ob
   }
 }
 
-void GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc)
+template <class T>
+bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newTopologyCalib)
 {
   // update calibrations for clustering and tracking
   if ((mSpecConfig.outputTracks || mSpecConfig.caClusterer) && !mConfParam->disableCalibUpdates) {
@@ -1071,21 +1082,15 @@ void GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc)
       }
     }
 
-    if (mdEdxCalibContainerBufferNew || mTPCPadGainCalibBufferNew) {
-      // updating the calibration object
-      GPUCalibObjectsConst newTopologyCalib;
-      GPUNewCalibValues newCalibValues;
-
-      if (mdEdxCalibContainerBufferNew) {
-        newTopologyCalib.dEdxCalibContainer = mdEdxCalibContainerBufferNew.get();
-      }
-
-      if (mTPCPadGainCalibBufferNew) {
-        newTopologyCalib.tpcPadGain = mTPCPadGainCalibBufferNew.get();
-      }
-
-      mTracker->UpdateCalibration(newTopologyCalib, newCalibValues);
+    if (mdEdxCalibContainerBufferNew) {
+      newTopologyCalib.dEdxCalibContainer = mdEdxCalibContainerBufferNew.get();
     }
+
+    if (mTPCPadGainCalibBufferNew) {
+      newTopologyCalib.tpcPadGain = mTPCPadGainCalibBufferNew.get();
+    }
+
+    return mdEdxCalibContainerBufferNew || mTPCPadGainCalibBufferNew;
   }
 }
 

@@ -93,9 +93,12 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   /// storing new calib objects in buffer
   void finaliseCCDBTPC(o2::framework::ConcreteDataMatcher& matcher, void* obj);
   /// asking for newer calib objects
-  void fetchCalibsCCDBTPC(o2::framework::ProcessingContext& pc);
+  template <class T>
+  bool fetchCalibsCCDBTPC(o2::framework::ProcessingContext& pc, T& newTopologyCalib);
   /// storing the new calib objects by overwritting the old calibs
   void storeUpdatedCalibsTPCPtrs();
+
+  void doCalibUpdates(o2::framework::ProcessingContext& pc);
 
   CompletionPolicyData* mPolicyData;
   std::unique_ptr<o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>> mParser;
