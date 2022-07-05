@@ -51,7 +51,7 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
   GPUTPCTrackLinearisation t0(tParam);
   do {
     rowIndex += direction;
-    if (!tParam.TransportToX(tracker.Row(rowIndex).X(), t0, tracker.Param().par.constBz, GPUCA_MAX_SIN_PHI)) {
+    if (!tParam.TransportToX(tracker.Row(rowIndex).X(), t0, tracker.Param().constBz, GPUCA_MAX_SIN_PHI)) {
       return 0; // Reuse t0 linearization until we are in the next sector
     }
     // GPUInfo("Transported X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f (MaxY %f)", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi(), Row(rowIndex).MaxY());
@@ -93,7 +93,7 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
         if (rowHit != CALINK_INVAL) {
           // GPUInfo("New track: entry %d, row %d, hitindex %d", i, rowIndex, mTrackletRowHits[rowIndex * tracker.CommonMemory()->nTracklets]);
           tracker.TrackHits()[hitId + i].Set(rowIndex, rowHit);
-          // if (i == 0) tParam.TransportToX(Row(rowIndex).X(), Param().par.constBz(), GPUCA_MAX_SIN_PHI); //Use transport with new linearisation, we have changed the track in between - NOT needed, fitting will always start at outer end of global track!
+          // if (i == 0) tParam.TransportToX(Row(rowIndex).X(), Param().constBz(), GPUCA_MAX_SIN_PHI); //Use transport with new linearisation, we have changed the track in between - NOT needed, fitting will always start at outer end of global track!
           i++;
         }
         rowIndex++;

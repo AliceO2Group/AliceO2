@@ -53,6 +53,10 @@ struct GPUParam_t {
   T rec;
   S par;
 
+  float bzkG;
+  float constBz;
+  float qptB5Scaler;
+
   GPUTPCGeometry tpcGeometry;              // TPC Geometry
   GPUTPCGMPolynomialField polynomialField; // Polynomial approx. of magnetic field for TPC GM
 
