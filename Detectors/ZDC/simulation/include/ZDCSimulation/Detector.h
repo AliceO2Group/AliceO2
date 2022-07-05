@@ -24,8 +24,10 @@
 #include <utility>
 #include "ZDCBase/Constants.h"
 #ifdef ZDC_FASTSIM_ONNX
+#if !defined(__CLING__) || defined(__ROOTCLING__) // headers should not be visible to ROOT dynamic runtime
 #include "FastSimulations.h" // for fastsim module
 #include "Processors.h"      // for fastsim module
+#endif
 #endif
 
 class FairVolume;
