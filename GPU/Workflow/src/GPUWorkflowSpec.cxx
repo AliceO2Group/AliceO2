@@ -43,6 +43,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "CommonUtils/NameConf.h"
 #include "TPCBase/RDHUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
@@ -93,7 +94,7 @@ using namespace o2::tpc;
 namespace o2::gpu
 {
 
-GPURecoWorkflowSpec::GPURecoWorkflowSpec(GPURecoWorkflowSpec::CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask) : o2::framework::Task(), mPolicyData(policyData), mTPCSectorMask(tpcSectorMask), mTPCSectors(tpcsectors), mSpecConfig(specconfig)
+GPURecoWorkflowSpec::GPURecoWorkflowSpec(GPURecoWorkflowSpec::CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr) : o2::framework::Task(), mPolicyData(policyData), mTPCSectorMask(tpcSectorMask), mTPCSectors(tpcsectors), mSpecConfig(specconfig), mGGR(ggr)
 {
   if (mSpecConfig.outputCAClusters && !mSpecConfig.caClusterer && !mSpecConfig.decompressTPC) {
     throw std::runtime_error("inconsistent configuration: cluster output is only possible if CA clusterer is activated");
@@ -109,29 +110,19 @@ GPURecoWorkflowSpec::~GPURecoWorkflowSpec() = default;
 
 void GPURecoWorkflowSpec::init(InitContext& ic)
 {
+  GRPGeomHelper::instance().setRequest(mGGR);
   GPUO2InterfaceConfiguration& config = *mConfig.get();
   {
     mParser = std::make_unique<o2::algorithm::ForwardParser<ClusterGroupHeader>>();
     mTracker = std::make_unique<GPUO2Interface>();
 
     // Create configuration object and fill settings
-    const auto grp = o2::parameters::GRPObject::loadFrom();
-    o2::base::GeometryManager::loadGeometry();
-    o2::base::Propagator::initFieldFromGRP();
-    if (!grp) {
-      throw std::runtime_error("Failed to initialize run parameters from GRP");
-    }
-    mConfig->configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
-    mTFSettings->hasNHBFPerTF = 1;
-    mTFSettings->nHBFPerTF = grp->getNHBFPerTF();
-    mTFSettings->hasRunStartOrbit = 1;
-    mTFSettings->runStartOrbit = grp->getFirstOrbit();
+    mConfig->configGRP.solenoidBz = 0;
     mTFSettings->hasSimStartOrbit = 1;
     auto& hbfu = o2::raw::HBFUtils::Instance();
     mTFSettings->simStartOrbit = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).orbit;
 
     *mConfParam = mConfig->ReadConfigurableParam();
-    LOG(info) << "Initialized run paramerers bz=" << mConfig->configGRP.solenoidBz << " cont=" << !mConfParam->tpcTriggeredMode;
     mConfig->configInterface.dumpEvents = mConfParam->dump;
     if (mConfParam->display) {
       mDisplayFrontend.reset(GPUDisplayFrontendInterface::getFrontend(mConfig->configDisplay.displayFrontend.c_str()));
@@ -143,8 +134,9 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       }
     }
 
-    if (mConfig->configGRP.continuousMaxTimeBin == -1) {
-      mConfig->configGRP.continuousMaxTimeBin = (mTFSettings->nHBFPerTF * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
+    mAutoContinuousMaxTimeBin = mConfig->configGRP.continuousMaxTimeBin == -1;
+    if (mAutoContinuousMaxTimeBin) {
+      mConfig->configGRP.continuousMaxTimeBin = (256 * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
     }
     if (mConfig->configProcessing.deviceNum == -2) {
       int myId = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
@@ -241,18 +233,15 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       }
     }
 
-    // initialize TPC calib objects
-    initFunctionTPC();
-
-    mConfig->configCalib.o2Propagator = Propagator::Instance();
-
     if (mSpecConfig.readTRDtracklets) {
-      auto gm = o2::trd::Geometry::instance();
-      gm->createPadPlaneArray();
-      gm->createClusterMatrixArray();
-      mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>(*gm);
+      mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>();
       mConfig->configCalib.trdGeometry = mTRDGeometry.get();
     }
+
+    mConfig->configProcessing.internalO2PropagatorGPUField = true;
+
+    // initialize TPC calib objects
+    initFunctionTPC();
 
     if (mConfParam->printSettings) {
       mConfig->PrintParam();
@@ -322,6 +311,10 @@ void GPURecoWorkflowSpec::endOfStream(EndOfStreamContext& ec)
 void GPURecoWorkflowSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
   finaliseCCDBTPC(matcher, obj);
+  if (GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    mGRPGeomUpdated = true;
+    return;
+  }
 }
 
 void GPURecoWorkflowSpec::run(ProcessingContext& pc)
@@ -333,6 +326,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   auto realt = mTimer->RealTime();
   mTimer->Start(false);
 
+  GRPGeomHelper::instance().checkUpdates(pc);
   const auto grp = o2::parameters::GRPObject::loadFrom();
   if (mConfParam->tpcTriggeredMode ^ !grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
     LOG(fatal) << "configKeyValue tpcTriggeredMode does not match GRP isDetContinuousReadOut(TPC) setting";
@@ -597,6 +591,10 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
   mTFSettings->tfStartOrbit = dh->firstTForbit;
   mTFSettings->hasTfStartOrbit = 1;
+  mTFSettings->hasNHBFPerTF = 1;
+  mTFSettings->nHBFPerTF = GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF();
+  mTFSettings->hasRunStartOrbit = 0;
+  // mTFSettings->runStartOrbit = grp->getFirstOrbit();
   if (mVerbosity) {
     LOG(info) << "TF firstTFOrbit " << mTFSettings->tfStartOrbit << " nHBF " << mTFSettings->nHBFPerTF << " runStartOrbit " << mTFSettings->runStartOrbit << " simStartOrbit " << mTFSettings->simStartOrbit;
   }
@@ -770,12 +768,41 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
 void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc)
 {
-  GPUCalibObjectsConst newTopologyCalib;
+  GPUCalibObjectsConst newCalibObjects;
   GPUNewCalibValues newCalibValues;
   // check for updates of TPC calibration objects
-  bool needCalibUpdate = fetchCalibsCCDBTPC(pc, newTopologyCalib);
+  bool needCalibUpdate = fetchCalibsCCDBTPC(pc, newCalibObjects);
+  if (mGRPGeomUpdated) {
+    mGRPGeomUpdated = false;
+    needCalibUpdate = true;
+
+    newCalibValues.newSolenoidField = true;
+    newCalibValues.solenoidField = mConfig->configGRP.solenoidBz = (5.00668f / 30000.f) * GRPGeomHelper::instance().getGRPMagField()->getL3Current();
+    LOG(info) << "Updating solenoid field " << newCalibValues.solenoidField;
+    if (mAutoContinuousMaxTimeBin) {
+      mConfig->configGRP.continuousMaxTimeBin = (mTFSettings->nHBFPerTF * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
+      newCalibValues.newContinuousMaxTimeBin = true;
+      newCalibValues.continuousMaxTimeBin = mConfig->configGRP.continuousMaxTimeBin;
+      LOG(info) << "Updating max time bin " << newCalibValues.continuousMaxTimeBin;
+    }
+
+    if (!mPropagatorInstanceCreated) {
+      newCalibObjects.o2Propagator = mConfig->configCalib.o2Propagator = Propagator::Instance();
+      mPropagatorInstanceCreated = true;
+    }
+
+    if (mSpecConfig.readTRDtracklets && !mGeometryCreated) {
+      auto gm = o2::trd::Geometry::instance();
+      gm->createPadPlaneArray();
+      gm->createClusterMatrixArray();
+      mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>(*gm);
+      newCalibObjects.trdGeometry = mConfig->configCalib.trdGeometry = mTRDGeometry.get();
+      mGeometryCreated = true;
+    }
+  }
   if (needCalibUpdate) {
-    mTracker->UpdateCalibration(newTopologyCalib, newCalibValues);
+    LOG(info) << "Updating GPUReconstruction calibration objects";
+    mTracker->UpdateCalibration(newCalibObjects, newCalibValues);
   }
 }
 
@@ -998,7 +1025,6 @@ void GPURecoWorkflowSpec::initFunctionTPC()
 
 void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* obj)
 {
-  LOGP(info, "checking for newer object....");
   const CalibdEdxContainer* dEdxCalibContainer = mdEdxCalibContainer.get();
 
   auto copyCalibsToBuffer = [this, dEdxCalibContainer]() {
@@ -1092,6 +1118,7 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newTopolo
 
     return mdEdxCalibContainerBufferNew || mTPCPadGainCalibBufferNew;
   }
+  return false;
 }
 
 void GPURecoWorkflowSpec::storeUpdatedCalibsTPCPtrs()

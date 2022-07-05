@@ -80,3 +80,13 @@ void GPUO2InterfaceDisplay::UpdateCalib(const GPUCalibObjectsConst* calib)
 {
   mDisplay->UpdateCalib(calib);
 }
+
+void GPUO2InterfaceDisplay::UpdateGRP(const GPUSettingsGRP* grp)
+{
+  mConfig->configGRP = *grp;
+  mParam->UpdateSettings(&mConfig->configGRP);
+  mDisplay->UpdateParam(mParam.get());
+  if (mConfig->configProcessing.runMC) {
+    mQA->UpdateParam(mParam.get());
+  }
+}

@@ -250,7 +250,7 @@ bool GPUChainTracking::ValidateSteps()
     GPUError("Cannot run TPC ZS Decoder without mapping object. (tpczslinkmapping.dump missing?)");
     return false;
   }
-  if ((GetRecoSteps() & GPUDataTypes::RecoStep::Refit) && !param().rec.trackingRefitGPUModel && (processors()->calibObjects.o2Propagator == nullptr || processors()->calibObjects.matLUT == nullptr)) {
+  if ((GetRecoSteps() & GPUDataTypes::RecoStep::Refit) && !param().rec.trackingRefitGPUModel && ((processors()->calibObjects.o2Propagator == nullptr && !ProcessingSettings().internalO2PropagatorGPUField) || processors()->calibObjects.matLUT == nullptr)) {
     GPUError("Cannot run refit with o2 track model without o2 propagator");
     return false;
   }
@@ -510,6 +510,9 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
   }
   if (mChainTracking->GetO2Propagator()) {
     computePointerWithAlignment(mem, mCalibObjects.o2Propagator, 1);
+  } else if (mChainTracking->GetProcessingSettings().internalO2PropagatorGPUField) {
+    char* dummyPtr;
+    computePointerWithAlignment(mem, dummyPtr, sizeof(*mCalibObjects.o2Propagator));
   }
 #endif
   if (!mChainTracking->mUpdateNewCalibObjects) {
@@ -591,9 +594,14 @@ void GPUChainTracking::DoQueuedCalibUpdates(int stream)
       mRec->ResetRegisteredMemoryPointers(mFlatObjectsShadow.mMemoryResFlat);
       UpdateGPUCalibObjects(stream);
     }
-    if (mNewCalibValues->newSolenoidField) {
+    if (mNewCalibValues->newSolenoidField || mNewCalibValues->newContinuousMaxTimeBin) {
       GPUSettingsGRP grp = mRec->GetGRPSettings();
-      grp.solenoidBz = mNewCalibValues->solenoidField;
+      if (mNewCalibValues->newSolenoidField) {
+        grp.solenoidBz = mNewCalibValues->solenoidField;
+      }
+      if (mNewCalibValues->newContinuousMaxTimeBin) {
+        grp.continuousMaxTimeBin = mNewCalibValues->continuousMaxTimeBin;
+      }
       mRec->UpdateGRPSettings(&grp);
     }
   }
