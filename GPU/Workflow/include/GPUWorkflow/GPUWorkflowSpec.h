@@ -30,6 +30,10 @@
 class TStopwatch;
 namespace o2
 {
+namespace base
+{
+struct GRPGeomRequest;
+} // namespace base
 namespace tpc
 {
 class CalibdEdxContainer;
@@ -77,7 +81,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool readTRDtracklets = false;
   };
 
-  GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask);
+  GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr);
   ~GPURecoWorkflowSpec() override;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -123,6 +127,11 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   bool mUpdateGainMapCCDB = true;
   std::unique_ptr<o2::gpu::GPUSettingsTF> mTFSettings;
   Config mSpecConfig;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGR;
+  bool mGRPGeomUpdated = false;
+  bool mAutoContinuousMaxTimeBin = false;
+  bool mGeometryCreated = false;
+  bool mPropagatorInstanceCreated = false;
 };
 
 } // end namespace gpu

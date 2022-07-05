@@ -35,6 +35,7 @@ class GPUDisplayInterface
   virtual void WaitForNextEvent() = 0;
   virtual void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) = 0;
   virtual void UpdateCalib(const GPUCalibObjectsConst* calib) = 0;
+  virtual void UpdateParam(const GPUParam* param) = 0;
   static GPUDisplayInterface* getDisplay(GPUDisplayFrontendInterface* frontend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr, const GPUCalibObjectsConst* calib = nullptr, const GPUSettingsDisplay* config = nullptr);
 
  protected:

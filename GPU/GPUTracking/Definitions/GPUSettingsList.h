@@ -178,6 +178,7 @@ AddOption(tpcIncreasedMinClustersPerRow, unsigned int, 0, "", 0, "Impose a minim
 AddOption(noGPUMemoryRegistration, bool, false, "", 0, "Do not register input / output memory for GPU dma transfer")
 AddOption(calibObjectsExtraMemorySize, unsigned long, 10ul * 1024 * 1024, "", 0, "Extra spare memory added for calibration object buffer, to allow fow updates with larger objects")
 AddOption(useInternalO2Propagator, bool, false, "", 0, "Uses an internal (in GPUChainTracking) version of o2::Propagator, which internal b-field, matlut, etc.")
+AddOption(lateO2PropagatorProvisioning, bool, false, "", 0, "The user will provide the o2 propagator at runtime before processing the first event, it will not be available at init")
 AddOption(internalO2PropagatorGPUField, bool, true, "", 0, "Makes the internal O2 propagator use the fast GPU polynomial b field approximation")
 AddOption(throttleAlarms, bool, false, "", 0, "Throttle rate at which alarms are sent to the InfoLogger in online runs")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayFrontendInterface*, nullptr)

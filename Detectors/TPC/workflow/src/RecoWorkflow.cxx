@@ -33,6 +33,7 @@
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/CompressedClusters.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -436,10 +437,16 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     cfg.sendClustersPerSector = isEnabled(OutputType::SendClustersPerSector);
     cfg.askDISTSTF = askDISTSTF;
 
-    std::shared_ptr<o2::gpu::GPURecoWorkflowSpec> task = std::make_shared<o2::gpu::GPURecoWorkflowSpec>(policyData, cfg, tpcSectors, tpcSectorMask);
+    Inputs ggInputs;
+    auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true, o2::base::GRPGeomRequest::Aligned, ggInputs, true);
+
+    auto task = std::make_shared<o2::gpu::GPURecoWorkflowSpec>(policyData, cfg, tpcSectors, tpcSectorMask, ggRequest);
+    Inputs taskInputs = task->inputs();
+    std::move(ggInputs.begin(), ggInputs.end(), std::back_inserter(taskInputs));
+
     specs.emplace_back(DataProcessorSpec{
       "tpc-tracker",
-      task->inputs(),
+      taskInputs,
       task->outputs(),
       AlgorithmSpec{adoptTask<o2::gpu::GPURecoWorkflowSpec>(task)}});
   }

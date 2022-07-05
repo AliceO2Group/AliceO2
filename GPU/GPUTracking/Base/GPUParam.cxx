@@ -121,7 +121,7 @@ void GPUParam::SetDefaults(float solenoidBz)
   GPUTPCGMPolynomialFieldManager::GetPolynomialField(bzkG, polynomialField);
 }
 
-void GPUParam::UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
+void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
 {
   if (g) {
     bzkG = g->solenoidBz;
@@ -157,7 +157,7 @@ void GPUParam::SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r, con
       rec.fitPropagateBzOnly = rec.tpc.nWays - 1;
     }
   }
-  UpdateGRPSettings(g, p);
+  UpdateSettings(g, p);
 }
 
 #ifndef GPUCA_ALIROOT_LIB
