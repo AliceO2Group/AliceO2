@@ -330,9 +330,6 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   constexpr static size_t NSectors = Sector::MAXSECTOR;
   constexpr static size_t NEndpoints = o2::gpu::GPUTrackingInOutZS::NENDPOINTS;
 
-  if (mReadyToQuit) {
-    return;
-  }
   auto cput = mTimer->CpuTime();
   auto realt = mTimer->RealTime();
   mTimer->Start(false);
