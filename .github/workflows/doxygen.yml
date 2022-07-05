@@ -23,7 +23,7 @@ jobs:
         add_subdirectory(doc)
         EOF
         cmake .
-        make doc
+        make doc 2>&1 >log.txt
         git add doc/html
         git config --global user.email "github-action-bot@example.com"
         git config --global user.name "GitHub Action Bot"
