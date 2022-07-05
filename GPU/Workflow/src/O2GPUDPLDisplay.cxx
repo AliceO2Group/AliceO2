@@ -61,8 +61,7 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
   o2::base::Propagator::initFieldFromGRP();
   mConfig.reset(new GPUO2InterfaceConfiguration);
   mConfig->configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
-  mConfig->configGRP.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
-  mConfig->ReadConfigurableParam();
+  mConfParam.reset(new GPUSettingsO2(mConfig->ReadConfigurableParam()));
 
   mFastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
   mConfig->configCalib.fastTransform = mFastTransform.get();
@@ -99,6 +98,10 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
 
 void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
 {
+  const auto grp = o2::parameters::GRPObject::loadFrom();
+  if (mConfParam->tpcTriggeredMode ^ !grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
+    LOG(fatal) << "configKeyValue tpcTriggeredMode does not match GRP isDetContinuousReadOut(TPC) setting";
+  }
   if (mDisplayShutDown) {
     return;
   }
