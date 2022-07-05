@@ -449,8 +449,6 @@ EndConfig()
 // Derrived parameters used in GPUParam
 BeginHiddenConfig(GPUSettingsParam, param)
 AddVariableRTC(dAlpha, float, 0.f)           // angular size
-AddVariableRTC(bzkG, float, 0.f)             // constant magnetic field value in kG
-AddVariableRTC(constBz, float, 0.f)          // constant magnetic field value in kG*clight
 AddVariableRTC(assumeConstantBz, char, 0)    // Assume a constant magnetic field
 AddVariableRTC(toyMCEventsFlag, char, 0)     // events were build with home-made event generator
 AddVariableRTC(continuousTracking, char, 0)  // Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
@@ -459,7 +457,6 @@ AddVariableRTC(dodEdx, char, 0)              // Do dEdx computation
 AddVariableRTC(earlyTpcTransform, char, 0)   // do Early TPC transformation
 AddVariableRTC(debugLevel, char, 0)          // Debug level
 AddVariableRTC(continuousMaxTimeBin, int, 0) // Max time bin for continuous tracking
-AddVariableRTC(qptB5Scaler, float, 1.f)      // Scaling factor for QPt to B=0.5T
 EndConfig()
 
 EndNamespace() // gpu
