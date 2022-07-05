@@ -16,6 +16,7 @@ jobs:
     - uses: actions/checkout@v3
       with:
         ref: "dev"
+        persist-credentials: false
     - name: Build docs
       run: |
         cat > CMakeLists.txt <<\EOF
