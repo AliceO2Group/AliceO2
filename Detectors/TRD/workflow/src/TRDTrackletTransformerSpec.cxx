@@ -107,7 +107,7 @@ void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
     }
   }
 
-  LOGF(info, "Found %lu tracklets in %lu trigger records. Applied filter for ITS IR frames: %i. Transformed %i tracklets.", trigRecs.size(), tracklets.size(), mTrigRecFilterActive, nTrackletsTransformed);
+  LOGF(info, "Found %lu tracklets in %lu trigger records. Applied filter for ITS IR frames: %i. Transformed %i tracklets.", tracklets.size(), trigRecs.size(), mTrigRecFilterActive, nTrackletsTransformed);
 
   pc.outputs().snapshot(Output{"TRD", "CTRACKLETS", 0, Lifetime::Timeframe}, calibratedTracklets);
   pc.outputs().snapshot(Output{"TRD", "TRIGRECMASK", 0, Lifetime::Timeframe}, trigRecBitfield);
