@@ -121,7 +121,6 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       throw std::runtime_error("Failed to initialize run parameters from GRP");
     }
     mConfig->configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
-    mConfig->configGRP.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
     mTFSettings->hasNHBFPerTF = 1;
     mTFSettings->nHBFPerTF = grp->getNHBFPerTF();
     mTFSettings->hasRunStartOrbit = 1;
@@ -130,9 +129,8 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     auto& hbfu = o2::raw::HBFUtils::Instance();
     mTFSettings->simStartOrbit = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).orbit;
 
-    LOG(info) << "Initializing run paramerers from GRP bz=" << mConfig->configGRP.solenoidBz << " cont=" << grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
-
     *mConfParam = mConfig->ReadConfigurableParam();
+    LOG(info) << "Initialized run paramerers bz=" << mConfig->configGRP.solenoidBz << " cont=" << !mConfParam->tpcTriggeredMode;
     mConfig->configInterface.dumpEvents = mConfParam->dump;
     if (mConfParam->display) {
       mDisplayFrontend.reset(GPUDisplayFrontendInterface::getFrontend(mConfig->configDisplay.displayFrontend.c_str()));
@@ -333,6 +331,12 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   auto cput = mTimer->CpuTime();
   auto realt = mTimer->RealTime();
   mTimer->Start(false);
+
+  const auto grp = o2::parameters::GRPObject::loadFrom();
+  if (mConfParam->tpcTriggeredMode ^ !grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
+    LOG(fatal) << "configKeyValue tpcTriggeredMode does not match GRP isDetContinuousReadOut(TPC) setting";
+  }
+
   std::vector<gsl::span<const char>> inputs;
 
   const CompressedClustersFlat* pCompClustersFlat = nullptr;
