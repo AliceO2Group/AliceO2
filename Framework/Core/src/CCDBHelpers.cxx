@@ -29,9 +29,11 @@ namespace o2::framework
 
 struct CCDBFetcherHelper {
   struct CCDBCacheInfo {
-    std::string path;
-    int64_t cacheId;
     std::string etag;
+    size_t cacheMiss = 0;
+    size_t cacheHit = 0;
+    size_t minSize = -1ULL;
+    size_t maxSize = 0;
   };
 
   struct RemapMatcher {
@@ -42,13 +44,12 @@ struct CCDBFetcherHelper {
     std::string url;
   };
 
-  std::unordered_map<std::string, std::string> mapURL2UUID;
+  std::unordered_map<std::string, CCDBCacheInfo> mapURL2UUID;
   std::unordered_map<std::string, DataAllocator::CacheId> mapURL2DPLCache;
   std::string createdNotBefore = "0";
   std::string createdNotAfter = "3385078236000";
   std::unordered_map<std::string, o2::ccdb::CcdbApi> apis;
   std::vector<OutputRoute> routes;
-  std::map<int64_t, CCDBCacheInfo> cache;
   std::unordered_map<std::string, std::string> remappings;
   size_t queryDownScaleRate = 1;
   o2::ccdb::CcdbApi& getAPI(const std::string& path)
@@ -199,7 +200,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     }
     const auto url2uuid = helper->mapURL2UUID.find(path);
     if (url2uuid != helper->mapURL2UUID.end()) {
-      etag = url2uuid->second;
+      etag = url2uuid->second.etag;
     } else {
       checkValidity = true; // never skip check if the cache is empty
     }
@@ -217,7 +218,10 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         LOGP(detail, "******** Default entry used for {} ********", path);
       }
       if (etag.empty()) {
-        helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
+        helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
+        helper->mapURL2UUID[path].cacheMiss++;
+        helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
+        helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
         auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;
         LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
@@ -225,7 +229,10 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
       }
       if (v.size()) { // but should be overridden by fresh object
         // somewhere here pruneFromCache should be called
-        helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
+        helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
+        helper->mapURL2UUID[path].cacheMiss++;
+        helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
+        helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
         auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;
         LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
@@ -237,6 +244,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     // cached object is fine
     auto cacheId = helper->mapURL2DPLCache[path];
     LOGP(debug, "Reusing {} for {}", cacheId.value, path);
+    helper->mapURL2UUID[path].cacheHit++;
     allocator.adoptFromCache(output, cacheId, header::gSerializationMethodCCDB);
     // the outputBuffer was not used, can we destroy it?
   }
@@ -244,7 +252,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
 
 AlgorithmSpec CCDBHelpers::fetchFromCCDB()
 {
-  return adaptStateful([](ConfigParamRegistry const& options, DeviceSpec const& spec) {
+  return adaptStateful([](CallbackService& callbacks, ConfigParamRegistry const& options, DeviceSpec const& spec) {
       std::shared_ptr<CCDBFetcherHelper> helper = std::make_shared<CCDBFetcherHelper>();
       std::unordered_map<std::string, bool> accountedSpecs;
       auto defHost = options.get<std::string>("condition-backend");
@@ -288,6 +296,15 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         }
       }
 
+      /// Add a callback on stop which dumps the statistics for the caching per
+      /// path
+      callbacks.set(CallbackService::Id::Stop, [helper]() {
+        LOGP(info, "CCDB cache miss/hit ratio:");
+        for (auto& entry : helper->mapURL2UUID) {
+          LOGP(info, "  {}: {}/{} ({}-{} bytes)", entry.first, entry.second.cacheMiss, entry.second.cacheHit, entry.second.minSize, entry.second.maxSize);
+        }
+      });
+      
       return adaptStateless([helper](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
         static Long64_t orbitResetTime = -1;
         static size_t lastTimeUsed = -1;
@@ -308,7 +325,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           bool checkValidity = timingInfo.timeslice % helper->queryDownScaleRate == 0;
           const auto url2uuid = helper->mapURL2UUID.find(path);
           if (url2uuid != helper->mapURL2UUID.end()) {
-            etag = url2uuid->second;
+            etag = url2uuid->second.etag;
           } else {
             checkValidity = true; // never skip check if the cache is empty
           }
@@ -325,14 +342,20 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
               return;
             }
             if (etag.empty()) {
-              helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
+              helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
+              helper->mapURL2UUID[path].cacheMiss++;
+              helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
+              helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
               newOrbitResetTime = getOrbitResetTime(v);
               auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
               helper->mapURL2DPLCache[path] = cacheId;
               LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
             } else if (v.size()) { // but should be overridden by fresh object
               // somewhere here pruneFromCache should be called
-              helper->mapURL2UUID[path] = headers["ETag"]; // update uuid
+              helper->mapURL2UUID[path].etag = headers["ETag"]; // update uuid
+              helper->mapURL2UUID[path].cacheMiss++;
+              helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
+              helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
               newOrbitResetTime = getOrbitResetTime(v);
               auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
               helper->mapURL2DPLCache[path] = cacheId;
@@ -344,6 +367,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           }
           auto cacheId = helper->mapURL2DPLCache[path];
           LOGP(debug, "Reusing {} for {}", cacheId.value, path);
+          helper->mapURL2UUID[path].cacheHit++;
           allocator.adoptFromCache(output, cacheId, header::gSerializationMethodNone);
           // We need to find a way to get "v" also in this case.
           // orbitResetTime = getOrbitResetTime(v);
