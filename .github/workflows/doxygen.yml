@@ -18,14 +18,15 @@ jobs:
         ref: "dev"
         token: ${{ secrets.ALIBUILD_WORKFLOW_PUSH_TOKEN }}
         persist-credentials: false
-        run: |
-          cat > CMakeLists.txt <<\EOF
-          add_subdirectory(doc)
-          EOF
-          cmake .
-          make doc
-          git add doc/html
-          git config --global user.email "github-action-bot@example.com"
-          git config --global user.name "GitHub Action Bot"
-          git commit -m "Updated README" -a || echo "No changes to commit"
-          git push https://github.com/AliceO2Group/docs `git subtree split --prefix doc/html dev`:refs/heads/main --force
+    - name: Build docs
+      run: |
+        cat > CMakeLists.txt <<\EOF
+        add_subdirectory(doc)
+        EOF
+        cmake .
+        make doc
+        git add doc/html
+        git config --global user.email "github-action-bot@example.com"
+        git config --global user.name "GitHub Action Bot"
+        git commit -m "Updated README" -a || echo "No changes to commit"
+        git push https://github.com/AliceO2Group/docs `git subtree split --prefix doc/html dev`:refs/heads/main --force
