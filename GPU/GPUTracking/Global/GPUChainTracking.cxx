@@ -41,6 +41,7 @@
 #include "GPULogging.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPUTrackingInputProvider.h"
+#include "GPUNewCalibValues.h"
 
 #ifdef GPUCA_HAVE_O2HEADERS
 #include "GPUTPCClusterStatistics.h"
@@ -590,6 +591,11 @@ void GPUChainTracking::DoQueuedCalibUpdates(int stream)
       mRec->ResetRegisteredMemoryPointers(mFlatObjectsShadow.mMemoryResFlat);
       UpdateGPUCalibObjects(stream);
     }
+    if (mNewCalibValues->newSolenoidField) {
+      GPUSettingsGRP grp = mRec->GetGRPSettings();
+      grp.solenoidBz = mNewCalibValues->solenoidField;
+      mRec->UpdateGRPSettings(&grp);
+    }
   }
   if ((mUpdateNewCalibObjects || mRec->slavesExist()) && mRec->IsGPU()) {
     UpdateGPUCalibObjectsPtrs(stream); // Reinitialize
@@ -887,8 +893,9 @@ void GPUChainTracking::SetDefaultInternalO2Propagator(bool useGPUField)
 #endif
 }
 
-void GPUChainTracking::SetUpdateCalibObjects(const GPUCalibObjectsConst& obj)
+void GPUChainTracking::SetUpdateCalibObjects(const GPUCalibObjectsConst& obj, const GPUNewCalibValues& vals)
 {
   mNewCalibObjects = obj;
+  mNewCalibValues.reset(new GPUNewCalibValues(vals));
   mUpdateNewCalibObjects = true;
 }

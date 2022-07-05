@@ -181,8 +181,8 @@ std::unique_ptr<o2::tpc::CalibdEdxContainer> GPUO2Interface::getCalibdEdxContain
   return std::make_unique<o2::tpc::CalibdEdxContainer>();
 }
 
-int GPUO2Interface::UpdateCalibration(const GPUCalibObjectsConst& newCalib)
+int GPUO2Interface::UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals)
 {
-  mChain->SetUpdateCalibObjects(newCalib);
+  mChain->SetUpdateCalibObjects(newCalib, newVals);
   return 0;
 }

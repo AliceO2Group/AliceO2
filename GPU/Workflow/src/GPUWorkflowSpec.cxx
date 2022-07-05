@@ -49,6 +49,7 @@
 #include "GPUO2InterfaceQA.h"
 #include "GPUO2Interface.h"
 #include "CalibdEdxContainer.h"
+#include "GPUNewCalibValues.h"
 #include "TPCPadGainCalib.h"
 #include "TPCZSLinkMapping.h"
 #include "display/GPUDisplayInterface.h"
@@ -1073,6 +1074,7 @@ void GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc)
     if (mdEdxCalibContainerBufferNew || mTPCPadGainCalibBufferNew) {
       // updating the calibration object
       GPUCalibObjectsConst newTopologyCalib;
+      GPUNewCalibValues newCalibValues;
 
       if (mdEdxCalibContainerBufferNew) {
         newTopologyCalib.dEdxCalibContainer = mdEdxCalibContainerBufferNew.get();
@@ -1082,7 +1084,7 @@ void GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc)
         newTopologyCalib.tpcPadGain = mTPCPadGainCalibBufferNew.get();
       }
 
-      mTracker->UpdateCalibration(newTopologyCalib);
+      mTracker->UpdateCalibration(newTopologyCalib, newCalibValues);
     }
   }
 }

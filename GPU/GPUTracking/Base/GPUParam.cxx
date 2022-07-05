@@ -84,6 +84,7 @@ void GPUParam::SetDefaults(float solenoidBz)
   par.dAlpha = 0.349066f;
   bzkG = solenoidBz;
   constBz = bzkG * GPUCA_NAMESPACE::gpu::gpu_common_constants::kCLight;
+  qptB5Scaler = CAMath::Abs(bzkG) > 0.1 ? CAMath::Abs(bzkG) / 5.006680f : 1.f;
   par.dodEdx = 0;
 
   constexpr float plusZmin = 0.0529937;
@@ -123,6 +124,8 @@ void GPUParam::SetDefaults(float solenoidBz)
 void GPUParam::UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
 {
   if (g) {
+    bzkG = g->solenoidBz;
+    constBz = bzkG * GPUCA_NAMESPACE::gpu::gpu_common_constants::kCLight;
     par.assumeConstantBz = g->constBz;
     par.toyMCEventsFlag = g->homemadeEvents;
     par.continuousTracking = g->continuousMaxTimeBin != 0;
