@@ -17,7 +17,6 @@ jobs:
       with:
         ref: "dev"
         token: ${{ secrets.ALIBUILD_WORKFLOW_PUSH_TOKEN }}
-        persist-credentials: false
     - name: Build docs
       run: |
         cat > CMakeLists.txt <<\EOF
