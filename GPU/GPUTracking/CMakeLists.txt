@@ -155,6 +155,7 @@ set(HDRS_INSTALL
     DataTypes/GPUO2DataTypes.h
     DataTypes/GPUHostDataTypes.h
     DataTypes/GPUdEdxInfo.h
+    DataTypes/GPUNewCalibValues.h
     DataTypes/GPUTRDInterfaceO2Track.h
     Base/GPUParam.inc
     Merger/GPUTPCGMMergerTypes.h

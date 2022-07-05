@@ -63,6 +63,7 @@ class TPCFastTransform;
 class GPUTrackingInputProvider;
 struct GPUChainTrackingFinalContext;
 struct GPUTPCCFChainContext;
+struct GPUNewCalibValues;
 
 class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelegateBase
 {
@@ -188,7 +189,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void SetO2Propagator(const o2::base::Propagator* prop) { processors()->calibObjects.o2Propagator = prop; }
   void SetCalibObjects(const GPUCalibObjectsConst& obj) { processors()->calibObjects = obj; }
   void SetCalibObjects(const GPUCalibObjects& obj) { memcpy((void*)&processors()->calibObjects, (const void*)&obj, sizeof(obj)); }
-  void SetUpdateCalibObjects(const GPUCalibObjectsConst& obj);
+  void SetUpdateCalibObjects(const GPUCalibObjectsConst& obj, const GPUNewCalibValues& vals);
   void SetDefaultInternalO2Propagator(bool useGPUField);
   void LoadClusterErrors();
   void SetOutputControlCompressedClusters(GPUOutputControl* v) { mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::compressedClusters)] = v; }
@@ -276,6 +277,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   bool mTPCSliceScratchOnStack = false;
   GPUCalibObjectsConst mNewCalibObjects;
   bool mUpdateNewCalibObjects = false;
+  std::unique_ptr<GPUNewCalibValues> mNewCalibValues;
 
   // Upper bounds for memory allocation
   unsigned int mMaxTPCHits = 0;
