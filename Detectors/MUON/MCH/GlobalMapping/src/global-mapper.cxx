@@ -144,6 +144,10 @@ void solar2json(bool mchview)
           writer.Key("eLinkId");
         }
         writer.Int(dsi.eLinkId);
+        if (dsi.nch != 64) {
+          writer.Key("nch");
+          writer.Int(dsi.nch);
+        }
         if (mchview) {
           writer.Key("dsbin");
           writer.Int(dsi.dsBinX);
@@ -152,10 +156,6 @@ void solar2json(bool mchview)
           writer.Int(dsi.dsBinX);
           writer.Key("bin");
           writer.Int(dsi.dsBin);
-          if (dsi.nch != 64) {
-            writer.Key("nch");
-            writer.Int(dsi.nch);
-          }
           writer.Key("fdci");
           writer.Int(dsi.firstDsChannelId);
         }
