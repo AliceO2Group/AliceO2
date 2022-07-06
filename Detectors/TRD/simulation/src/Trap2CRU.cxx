@@ -25,6 +25,7 @@
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/Constants.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "TRDSimulation/Trap2CRU.h"
@@ -663,6 +664,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
   int endtrackletindex = triggerrecord.getFirstTracklet() + triggerrecord.getNumberOfTracklets();
   int64_t startdigitindex = triggerrecord.getFirstDigit();
   int64_t enddigitindex = triggerrecord.getFirstDigit() + triggerrecord.getNumberOfDigits();
+  const auto& ctpOffsets = o2::ctp::TriggerOffsetsParam::Instance();
 
   for (int halfcru = 0; halfcru < o2::trd::constants::NHALFCRU; halfcru++) {
     int halfcruwordswritten = 0;
@@ -869,15 +871,21 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
     std::vector<char> feeidpayload(halfcruwordswritten * 4);
     memcpy(feeidpayload.data(), &rawdatavector[0], halfcruwordswritten * 4);
     assert(halfcruwordswritten % 8 == 0);
-    mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, triggerrecord.getBCData(), feeidpayload, false, triggercount);
-    if (mVerbosity) {
-      LOG(info) << "written file for trigger : " << triggercount << " feeid of 0x" << std::hex << mFeeID << " cruid : " << mCruID << " and linkid: " << mLinkID << " and EndPoint: " << mEndPointID << " orbit :0x" << std::hex << triggerrecord.getBCData().orbit << " bc:0x" << std::hex << triggerrecord.getBCData().bc << " and payload size of : " << halfcruwordswritten << " with  a half cru of: ";
-      printHalfCRUHeader(halfcruheader);
-      HalfCRUHeader* h;
-      h = (HalfCRUHeader*)feeidpayload.data();
-      HalfCRUHeader h1 = *h;
-      printHalfCRUHeader(h1);
-      LOG(info) << "+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+  ======   end of writing";
+    auto ir = triggerrecord.getBCData();
+    ir += ctpOffsets.LM_L0;
+    if (ctpOffsets.LM_L0 >= 0 || ir.toLong() > -ctpOffsets.LM_L0) {
+      mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, feeidpayload, false, triggercount);
+      if (mVerbosity) {
+        LOG(info) << "written file for trigger : " << triggercount << " feeid of 0x" << std::hex << mFeeID << " cruid : " << mCruID << " and linkid: " << mLinkID << " and EndPoint: " << mEndPointID << " orbit :0x" << std::hex << triggerrecord.getBCData().orbit << " bc:0x" << std::hex << triggerrecord.getBCData().bc << " and payload size of : " << halfcruwordswritten << " with  a half cru of: ";
+        printHalfCRUHeader(halfcruheader);
+        HalfCRUHeader* h;
+        h = (HalfCRUHeader*)feeidpayload.data();
+        HalfCRUHeader h1 = *h;
+        printHalfCRUHeader(h1);
+        LOG(info) << "+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+  ======   end of writing";
+      }
+    } else {
+      LOG(info) << "Skip writing IR " << triggerrecord.getBCData() << " as after applying LM_L0 shift of " << ctpOffsets.LM_L0 << " bunches the orbit would become negative";
     }
   }
 }
