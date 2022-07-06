@@ -59,9 +59,9 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
   LOG(info) << "Task configuration is done.";
 }
 
-void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+void RawToDigitConverterSpec::finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj)
 {
-  if (matcher == ConcreteDataMatcher("CTP", "Trig_Offset", 0)) {
+  if (matcher == framework::ConcreteDataMatcher("CTP", "Trig_Offset", 0)) {
     LOG(info) << "RawToDigitConverterSpec::finaliseCCDB() : CTP/Config/TriggerOffsets updated.";
     const auto& par = o2::ctp::TriggerOffsetsParam::Instance();
     par.printKeyValues();
