@@ -1547,7 +1547,7 @@ typename C::type getSingleRowPersistentData(arrow::Table* table, T& rowIterator,
 template <typename T, typename C>
 typename C::type getSingleRowDynamicData(T& rowIterator, uint64_t globalIndex = -1)
 {
-  if (globalIndex != -1) {
+  if (globalIndex != -1 && globalIndex != *std::get<0>(rowIterator.getIndices())) {
     rowIterator.setCursor(globalIndex);
   }
   return rowIterator.template getDynamicColumn<C>();
@@ -1556,7 +1556,7 @@ typename C::type getSingleRowDynamicData(T& rowIterator, uint64_t globalIndex = 
 template <typename T, typename C>
 typename C::type getSingleRowIndexData(T& rowIterator, uint64_t globalIndex = -1)
 {
-  if (globalIndex != -1) {
+  if (globalIndex != -1 && globalIndex != *std::get<0>(rowIterator.getIndices())) {
     rowIterator.setCursor(globalIndex);
   }
   return rowIterator.template getId<C>();
