@@ -49,9 +49,14 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
+  void setBCShift(int n) { mBCShift = 0; }
+  void setFirstTFOrbit(uint32_t n) { mFirstTFOrbit = n; }
+
  private:
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<TriggerRecord>& trigVec, std::vector<Tracklet64>& trkVec, std::vector<Digit>& digVec);
+  int mBCShift = 0; // shift to apply to decoded IR (i.e. CTP offset if was not corrected on raw data decoding level)
+  uint32_t mFirstTFOrbit = 0;
 };
 
 /// entropy-encode digits and tracklets to buffer with CTF
@@ -159,9 +164,9 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& tr
   trigVec.reserve(header.nTriggers);
   trkVec.reserve(header.nTracklets);
   digVec.reserve(header.nDigits);
-
   uint32_t trkCount = 0, digCount = 0, adcCount = 0;
   o2::InteractionRecord ir(header.firstBC, header.firstOrbit);
+  bool checkIROK = (mBCShift == 0); // need to check if CTP offset correction does not make the local time negative ?
 
   for (uint32_t itrig = 0; itrig < header.nTriggers; itrig++) {
     // restore TrigRecord
@@ -171,26 +176,32 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& tr
     } else {
       ir.bc += bcInc[itrig];
     }
-
-    uint32_t firstEntryTrk = trkVec.size();
-    uint16_t hcid = 0;
-    for (uint32_t it = 0; it < entriesTrk[itrig]; it++) {
-      hcid += HCIDTrk[trkCount]; // 1st tracklet of trigger was encoded with abs HCID, then increments
-      trkVec.emplace_back(header.format, hcid, padrowTrk[trkCount], colTrk[trkCount], posTrk[trkCount], slopeTrk[trkCount], pidTrk[trkCount]);
-      trkCount++;
+    LOGP(debug, "trig{} check={} shift {} differenceInBC:{} 1stOrb {}, ir:{}", itrig, checkIROK, mBCShift, ir.differenceInBC({0, mFirstTFOrbit}), mFirstTFOrbit, ir.asString());
+    if (checkIROK || ir.differenceInBC({0, mFirstTFOrbit}) >= mBCShift) { // correction will be ok
+      checkIROK = true;                                                   // don't check anymore since the following checks will yield same
+      uint32_t firstEntryTrk = trkVec.size();
+      uint16_t hcid = 0;
+      for (uint32_t it = 0; it < entriesTrk[itrig]; it++) {
+        hcid += HCIDTrk[trkCount]; // 1st tracklet of trigger was encoded with abs HCID, then increments
+        trkVec.emplace_back(header.format, hcid, padrowTrk[trkCount], colTrk[trkCount], posTrk[trkCount], slopeTrk[trkCount], pidTrk[trkCount]);
+        trkCount++;
+      }
+      uint32_t firstEntryDig = digVec.size();
+      int16_t cid = 0;
+      for (uint32_t id = 0; id < entriesDig[itrig]; id++) {
+        cid += CIDDig[digCount]; // 1st digit of trigger was encoded with abs CID, then increments
+        auto& dig = digVec.emplace_back(cid, ROBDig[digCount], MCMDig[digCount], chanDig[digCount]);
+        dig.setADC({&ADCDig[adcCount], constants::TIMEBINS});
+        digCount++;
+        adcCount += constants::TIMEBINS;
+      }
+      trigVec.emplace_back(ir - mBCShift, firstEntryDig, entriesDig[itrig], firstEntryTrk, entriesTrk[itrig]);
+    } else { // skip the trigger with negative local time
+      trkCount += entriesTrk[itrig];
+      digCount += entriesDig[itrig];
+      adcCount += constants::TIMEBINS * entriesDig[itrig];
+      continue;
     }
-
-    uint32_t firstEntryDig = digVec.size();
-    int16_t cid = 0;
-    for (uint32_t id = 0; id < entriesDig[itrig]; id++) {
-      cid += CIDDig[digCount]; // 1st digit of trigger was encoded with abs CID, then increments
-      auto& dig = digVec.emplace_back(cid, ROBDig[digCount], MCMDig[digCount], chanDig[digCount]);
-      dig.setADC({&ADCDig[adcCount], constants::TIMEBINS});
-      digCount++;
-      adcCount += constants::TIMEBINS;
-    }
-
-    trigVec.emplace_back(ir, firstEntryDig, entriesDig[itrig], firstEntryTrk, entriesTrk[itrig]);
   }
   assert(digCount == header.nDigits && trkCount == header.nTracklets && adcCount == (int)ADCDig.size());
   iosize.rawIn = trigVec.size() * sizeof(TriggerRecord) + sizeof(Tracklet64) * trkVec.size() + sizeof(Digit) * digVec.size();
