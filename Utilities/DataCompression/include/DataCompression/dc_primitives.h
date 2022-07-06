@@ -246,12 +246,9 @@ class ContiguousAlphabet
   /// name is part of the type definition, defined as a boost mpl string
   constexpr const char* getName() const { return boost::mpl::c_str<NameT>::value; }
 
-  template <typename ValueT>
-  using _iterator_base = std::iterator<std::forward_iterator_tag, ValueT>;
-
   /// a forward iterator to access the list of elements
   template <typename ValueT>
-  class Iterator : public _iterator_base<ValueT>
+  class Iterator
   {
    public:
     Iterator() : mValue(_max), mIsEnd(true) {}
@@ -259,9 +256,11 @@ class ContiguousAlphabet
     ~Iterator() = default;
 
     using self_type = Iterator;
-    using value_type = typename _iterator_base<ValueT>::value_type;
-    using reference = typename _iterator_base<ValueT>::reference;
-    using pointer = typename _iterator_base<ValueT>::pointer;
+    using value_type = ValueT;
+    using reference = ValueT&;
+    using pointer = ValueT*;
+    using difference_type = std::ptrdiff_t;
+    using iterator_category = std::forward_iterator_tag;
 
     // prefix increment
     self_type& operator++()
