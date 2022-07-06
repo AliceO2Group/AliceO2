@@ -42,7 +42,7 @@ class IDCFourierTransform : public IDCFourierTransformBase<Type>
   /// \param timeFrames number of time frames which will be stored
   /// \param nFourierCoefficientsStore number of courier coefficients (real+imag) which will be stored (the maximum can be 'rangeIDC + 2', should be an even number when using naive FT). If less than maximum is setn the inverse fourier transform will not work.
   template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, IDCFourierTransformBaseAggregator>::value)), int>::type = 0>
-  IDCFourierTransform(const unsigned int rangeIDC = 200, const unsigned int timeFrames = 2000, const unsigned int nFourierCoefficientsStore = 200 + 2) : IDCFourierTransformAggregator(rangeIDC, timeFrames), mFourierCoefficients{timeFrames, nFourierCoefficientsStore}, mVal1DIDCs(sNThreads), mCoefficients(sNThreads)
+  IDCFourierTransform(const unsigned int rangeIDC = 200, const unsigned int nFourierCoefficientsStore = 200 + 2) : IDCFourierTransformAggregator(rangeIDC), mFourierCoefficients{1, nFourierCoefficientsStore}, mVal1DIDCs(sNThreads), mCoefficients(sNThreads)
   {
     initFFTW3Members();
   };
@@ -72,7 +72,19 @@ class IDCFourierTransform : public IDCFourierTransformBase<Type>
   }
 
   /// calculate fourier coefficients for one TPC side
-  void calcFourierCoefficients() { sFftw ? calcFourierCoefficientsFFTW3() : calcFourierCoefficientsNaive(); }
+  template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, IDCFourierTransformBaseAggregator>::value)), int>::type = 0>
+  void calcFourierCoefficients(const unsigned int timeFrames = 2000)
+  {
+    mFourierCoefficients.resize(timeFrames);
+    sFftw ? calcFourierCoefficientsFFTW3() : calcFourierCoefficientsNaive();
+  }
+
+  /// calculate fourier coefficients for one TPC side
+  template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, IDCFourierTransformBaseEPN>::value)), int>::type = 0>
+  void calcFourierCoefficients()
+  {
+    sFftw ? calcFourierCoefficientsFFTW3() : calcFourierCoefficientsNaive();
+  }
 
   /// get IDC0 values from the inverse fourier transform. Can be used for debugging. std::vector<std::vector<float>>: first vector interval second vector IDC0 values
   std::vector<std::vector<float>> inverseFourierTransform() const { return sFftw ? inverseFourierTransformFFTW3() : inverseFourierTransformNaive(); }

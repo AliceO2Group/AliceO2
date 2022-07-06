@@ -115,6 +115,11 @@ o2_add_executable(idc-distribute
                   SOURCES src/tpc-distribute-idc.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(sac-distribute
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-distribute-sac.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_executable(idc-ft-aggregator
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-fouriertransform-aggregator.cxx
@@ -128,6 +133,11 @@ o2_add_executable(idc-ft-epn
 o2_add_executable(idc-factorize
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-factorize-idc.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(sac-factorize
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-factorize-sac.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_executable(track-reader

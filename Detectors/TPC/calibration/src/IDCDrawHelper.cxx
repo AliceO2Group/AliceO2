@@ -59,6 +59,8 @@ void o2::tpc::IDCDrawHelper::drawSector(const IDCDraw& idc, const unsigned int s
   painter::drawSectorLocalPadNumberPoly(kBlack);
   painter::drawSectorInformationPoly(kRed, kRed);
 
+  TLatex latex;
+  latex.DrawLatexNDC(.07, .9, fmt::format("Sector {}", sector).data());
   if (!filename.empty()) {
     can->SaveAs(filename.data());
     delete poly;
@@ -80,6 +82,10 @@ void o2::tpc::IDCDrawHelper::drawSide(const IDCDraw& idc, const o2::tpc::Side si
   can->SetLeftMargin(0.1f);
   poly->Draw("colz");
 
+  std::string sideName = (side == Side::A) ? "A-Side" : "C-Side";
+  TLatex latex;
+  latex.DrawLatexNDC(.13, .9, sideName.data());
+
   if (!filename.empty()) {
     can->SaveAs(filename.data());
     delete poly;
@@ -95,7 +101,7 @@ TH2Poly* o2::tpc::IDCDrawHelper::drawSide(const IDCDraw& idc, const o2::tpc::Sid
   poly->SetTitle(nullptr);
   poly->GetXaxis()->SetTitleOffset(1.2f);
   poly->GetYaxis()->SetTitleOffset(1.3f);
-  poly->GetZaxis()->SetTitleOffset(1.4f);
+  poly->GetZaxis()->SetTitleOffset(1.3f);
   poly->GetZaxis()->SetTitle(zAxisTitle.data());
   poly->GetZaxis()->SetMaxDigits(3); // force exponential axis
   poly->SetStats(0);
@@ -228,36 +234,43 @@ void o2::tpc::IDCDrawHelper::drawIDCZeroStackCanvas(const IDCDraw& idc, const o2
   }
 }
 
-std::string o2::tpc::IDCDrawHelper::getZAxisTitle(const IDCType type, const IDCDeltaCompression compression)
+std::string o2::tpc::IDCDrawHelper::getZAxisTitle(const IDCType type, const IDCDeltaCompression compression, const unsigned short dtype)
 {
+  std::string stype = "";
+  if (dtype == 0) {
+    stype = "IDC";
+  } else if (dtype == 1) {
+    stype = "SAC";
+  }
+
   switch (type) {
     case IDCType::IDC:
     default: {
-      return "#it{IDC} (ADC)";
+      return fmt::format("#it{{{}}} (ADC)", stype);
       break;
     }
     case IDCType::IDCZero: {
-      return "#it{IDC_{0}} (ADC)";
+      return fmt::format("#it{{{}_{{0}}}} (ADC)", stype);
       break;
     }
     case IDCType::IDCDelta:
       switch (compression) {
         case IDCDeltaCompression::NO:
         default: {
-          return "#Delta#it{IDC}";
+          return fmt::format("#Delta#it{{{}}}", stype);
           break;
         }
         case IDCDeltaCompression::MEDIUM: {
-          return "#Delta#it{IDC}_{medium compressed}";
+          return fmt::format("#Delta#it{{{}}}_{{medium compressed}}", stype);
           break;
         }
         case IDCDeltaCompression::HIGH: {
-          return "#Delta#it{IDC}_{high compressed}";
+          return fmt::format("#Delta#it{{{}}}_{{high compressed}}", stype);
           break;
         }
       }
     case IDCType::IDCOne: {
-      return "#Delta#it{IDC}_{1}";
+      return fmt::format("#Delta#it{{{}}}_{{1}}", stype);
       break;
     }
   }

@@ -70,6 +70,11 @@ enum class CDBType {
   CalIDCPadStatusMapC, ///< Status map of the pads (dead etc. obatined from CalIDC0)
   CalIDCGroupingParA,  ///< Parameters which were used for the averaging of the CalIDCDelta
   CalIDCGroupingParC,  ///< Parameters which were used for the averaging of the CalIDCDelta
+                       ///
+  CalSAC0,             ///< I_0(r,\phi) = <I(r,\phi,t)>_t
+  CalSAC1,             ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
+  CalSACDelta,         ///< \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
+  CalSACFourier,       ///< Fourier coefficients of CalSAC1
 };
 
 /// Upload intervention type
@@ -113,6 +118,11 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalIDCPadStatusMapC, "TPC/Calib/IDC/PadStatusMap/C"},
   {CDBType::CalIDCGroupingParA, "TPC/Calib/IDC/GROUPINGPAR/A"},
   {CDBType::CalIDCGroupingParC, "TPC/Calib/IDC/GROUPINGPAR/C"},
+  // SACs
+  {CDBType::CalSAC0, "TPC/Calib/SAC/SAC0"},
+  {CDBType::CalSAC1, "TPC/Calib/SAC/SAC1"},
+  {CDBType::CalSACDelta, "TPC/Calib/SAC/SACDELTA"},
+  {CDBType::CalSACFourier, "TPC/Calib/SAC/FOURIER"},
 };
 
 /// Poor enum reflection ...

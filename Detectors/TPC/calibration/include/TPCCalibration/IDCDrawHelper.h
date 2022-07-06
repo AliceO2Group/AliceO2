@@ -66,7 +66,8 @@ class IDCDrawHelper
   /// \return returns z axis title
   /// \param type IDC type
   /// \param compression compression of the IDCs if used (only for IDCDelta)
-  static std::string getZAxisTitle(const IDCType type, const IDCDeltaCompression compression = IDCDeltaCompression::NO);
+  /// \param dtype switch between IDCs and SACs (IDCs=0, SACs=1)
+  static std::string getZAxisTitle(const IDCType type, const IDCDeltaCompression compression = IDCDeltaCompression::NO, const unsigned short dtype = 0);
 
  private:
   static unsigned int getPad(const unsigned int pad, const unsigned int region, const unsigned int row, const Side side);

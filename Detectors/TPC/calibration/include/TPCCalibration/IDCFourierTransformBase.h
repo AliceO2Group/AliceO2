@@ -77,8 +77,7 @@ class IDCFourierTransformBase<IDCFourierTransformBaseAggregator>
 {
  public:
   /// \param rangeIDC number of IDCs for each interval which will be used to calculate the fourier coefficients
-  /// \param timeFrames number of time frames which will be stored
-  IDCFourierTransformBase(const unsigned int rangeIDC, const unsigned int timeFrames) : mRangeIDC{rangeIDC}, mTimeFrames{timeFrames} {};
+  IDCFourierTransformBase(const unsigned int rangeIDC) : mRangeIDC{rangeIDC} {};
 
   /// set input 1D-IDCs which are used to calculate fourier coefficients
   /// \param oneDIDCs 1D-IDCs
@@ -98,8 +97,8 @@ class IDCFourierTransformBase<IDCFourierTransformBaseAggregator>
   /// \return returns number of 1D-IDCs
   unsigned long getNIDCs() const { return mIDCOne[!mBufferIndex].mIDCOne.size(); }
 
-  /// \return returns number of time frames for which the coefficients are obtained
-  unsigned int getNIntervals() const { return mTimeFrames; }
+  /// \return returns number of integration intervals for which the coefficients are obtained
+  unsigned int getNIntervals() const { return mIntegrationIntervalsPerTF[!mBufferIndex].size(); }
 
   /// \return returns struct of stored 1D-IDC
   const IDCOne& getIDCOne() const { return mIDCOne[!mBufferIndex]; }
@@ -111,12 +110,13 @@ class IDCFourierTransformBase<IDCFourierTransformBaseAggregator>
   /// \return returns expanded 1D-IDC vector
   std::vector<float> getExpandedIDCOne() const;
 
+  const auto& getIntegrationIntervalsPerTF(const bool buffer) const { return mIntegrationIntervalsPerTF[buffer]; }
+
   /// allocate memory for variable holding getrangeIDC() IDCs
   float* allocMemFFTW() const;
 
  protected:
   const unsigned int mRangeIDC{};                                        ///< number of IDCs used for the calculation of fourier coefficients
-  const unsigned int mTimeFrames{};                                      ///< number of timeframes which for which teh fourier coefficients are stored
   std::array<IDCOne, 2> mIDCOne{IDCOne(mRangeIDC), IDCOne(mRangeIDC)};   ///< all 1D-IDCs which are used to calculate the fourier coefficients. A buffer for the last aggregation interval is used to calculate the fourier coefficients for the first TFs
   std::array<std::vector<unsigned int>, 2> mIntegrationIntervalsPerTF{}; ///< number of integration intervals per TF used to set the correct range of IDCs. A buffer is needed for the last aggregation interval.
   bool mBufferIndex{true};                                               ///< index for the buffer

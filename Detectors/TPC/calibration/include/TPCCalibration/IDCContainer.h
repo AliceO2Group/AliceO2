@@ -23,6 +23,7 @@
 #include <limits>
 #include "DataFormatsTPC/Defs.h"
 #include "TPCCalibration/IDCGroupingParameter.h"
+#include "TPCCalibration/SACParameter.h"
 
 namespace o2
 {
@@ -143,39 +144,6 @@ struct IDCDelta<float> {
 
   IDCDeltaContainer<float> mIDCDelta{}; ///< storage for uncompressed Delta IDCs
   ClassDefNV(IDCDelta, 2)
-};
-
-/// helper class to compress Delta IDC values
-/// \tparam template parameter specifying the output format of the compressed IDCDelta
-template <typename DataT>
-class IDCDeltaCompressionHelper
-{
- public:
-  IDCDeltaCompressionHelper() = default;
-
-  /// static method to get the compressed Delta IDCs from uncompressed Delta IDCs
-  /// \return returns compressed Delta IDC values
-  /// \param idcDeltaUncompressed uncompressed Delta IDC values
-  static IDCDelta<DataT> getCompressedIDCs(const IDCDelta<float>& idcDeltaUncompressed)
-  {
-    IDCDelta<DataT> idcCompressed{};
-    compress(idcDeltaUncompressed, idcCompressed);
-    return idcCompressed;
-  }
-
- private:
-  static void compress(const IDCDelta<float>& idcDeltaUncompressed, IDCDelta<DataT>& idcCompressed)
-  {
-    idcCompressed.getIDCDelta().reserve(idcDeltaUncompressed.getIDCDelta().size());
-    const auto minmaxIDC = std::minmax_element(std::begin(idcDeltaUncompressed.getIDCDelta()), std::end(idcDeltaUncompressed.getIDCDelta()));
-    const auto& paramIDCGroup = ParameterIDCCompression::Instance();
-    const float minIDCDelta = std::clamp(*minmaxIDC.first, paramIDCGroup.minIDCDeltaValue, paramIDCGroup.maxIDCDeltaValue);
-    const float maxIDCDelta = std::clamp(*minmaxIDC.second, paramIDCGroup.minIDCDeltaValue, paramIDCGroup.maxIDCDeltaValue);
-    idcCompressed.setCompressionFactor(minIDCDelta, maxIDCDelta);
-    for (auto& idc : idcDeltaUncompressed.getIDCDelta()) {
-      idcCompressed.emplace_back(idc);
-    }
-  }
 };
 
 ///< struct containing the IDC0 values
@@ -332,11 +300,115 @@ struct FourierCoeff {
 
   void reset() { std::fill(mFourierCoefficients.begin(), mFourierCoefficients.end(), 0.f); };
 
+  void resize(const unsigned int nTimeFrames) { mFourierCoefficients.resize(nTimeFrames * mCoeffPerTF); }
+
   std::vector<float> mFourierCoefficients{}; ///< fourier coefficients. coefficient real and complex parameters are stored alternating
-  const unsigned int mCoeffPerTF{};          ///< number of real+imag coefficients per TF
+  unsigned int mCoeffPerTF{};                ///< number of real+imag coefficients per TF
   Side mSide{};                              ///< side of the IDCs
 
   ClassDefNV(FourierCoeff, 2)
+};
+
+struct SACZero {
+  float getValueIDCZero(const Side side, const int stackInSector) const { return mSACZero[side].getValueIDCZero(stackInSector); }
+  void clear()
+  {
+    mSACZero[Side::A].clear();
+    mSACZero[Side::C].clear();
+  }
+
+  void resize(const unsigned int size)
+  {
+    mSACZero[Side::A].resize(size);
+    mSACZero[Side::C].resize(size);
+  }
+
+  void setValueSACZero(const float sacZero, const Side side, const unsigned int index) { mSACZero[side].setValueIDCZero(sacZero, index); }
+
+  std::array<IDCZero, SIDES> mSACZero{};
+};
+
+struct SACOne {
+  float getValue(const Side side, const int interval) const { return mSACOne[side].mIDCOne[interval]; }
+  void setValueIDCOne(const float sacOne, const Side side, const unsigned int index) { mSACOne[side].setValueIDCOne(sacOne, index); }
+
+  void clear()
+  {
+    mSACOne[Side::A].clear();
+    mSACOne[Side::C].clear();
+  }
+  void resize(const unsigned int size)
+  {
+    mSACOne[Side::A].resize(size);
+    mSACOne[Side::C].resize(size);
+  }
+  std::array<IDCOne, SIDES> mSACOne{};
+};
+
+template <typename DataT>
+struct SACDelta {
+  float getValue(const Side side, const int index) const { return mSACDelta[side].getValue(index); }
+  void setSACDelta(const Side side, const unsigned int index, const float sacDelta) { mSACDelta[side].setIDCDelta(index, sacDelta); }
+
+  void resize(const unsigned int size)
+  {
+    mSACDelta[Side::A].resize(size);
+    mSACDelta[Side::C].resize(size);
+  }
+  std::array<IDCDelta<DataT>, SIDES> mSACDelta{};
+};
+
+struct FourierCoeffSAC {
+  std::vector<float> mFourierCoefficients{}; ///< fourier coefficients. coefficient real and complex parameters are stored alternating
+  const unsigned int mCoeffPerTF{};          ///< number of real+imag coefficients per TF
+  std::array<FourierCoeff, SIDES> mCoeff{};
+};
+
+/// helper class to compress Delta IDC values
+/// \tparam template parameter specifying the output format of the compressed IDCDelta
+template <typename DataT>
+class IDCDeltaCompressionHelper
+{
+ public:
+  IDCDeltaCompressionHelper() = default;
+
+  /// static method to get the compressed Delta IDCs from uncompressed Delta IDCs
+  /// \return returns compressed Delta IDC values
+  /// \param idcDeltaUncompressed uncompressed Delta IDC values
+  static IDCDelta<DataT> getCompressedIDCs(const IDCDelta<float>& idcDeltaUncompressed)
+  {
+    const auto& paramIDCGroup = ParameterIDCCompression::Instance();
+
+    IDCDelta<DataT> idcCompressed{};
+    compress(idcDeltaUncompressed, idcCompressed, paramIDCGroup.minIDCDeltaValue, paramIDCGroup.maxIDCDeltaValue);
+    return idcCompressed;
+  }
+
+  /// static method to get the compressed SACs from uncompressed Delta SACs
+  /// \return returns compressed Delta SAC values
+  /// \param sacDeltaUncompressed uncompressed Delta SAC values
+  static SACDelta<DataT> getCompressedSACs(const SACDelta<float>& sacDeltaUncompressed)
+  {
+    const auto& paramSAC = ParameterSAC::Instance();
+    SACDelta<DataT> sacCompressed{};
+    compress(sacDeltaUncompressed.mSACDelta[Side::A], sacCompressed.mSACDelta[Side::A], paramSAC.minSACDeltaValue, paramSAC.maxSACDeltaValue);
+    compress(sacDeltaUncompressed.mSACDelta[Side::C], sacCompressed.mSACDelta[Side::C], paramSAC.minSACDeltaValue, paramSAC.maxSACDeltaValue);
+    return sacCompressed;
+  }
+
+ private:
+  static void compress(const IDCDelta<float>& idcDeltaUncompressed, IDCDelta<DataT>& idcCompressed, const float minValue, const float maxValue)
+  {
+    idcCompressed.getIDCDelta().reserve(idcDeltaUncompressed.getIDCDelta().size());
+    const auto minmaxIDC = std::minmax_element(std::begin(idcDeltaUncompressed.getIDCDelta()), std::end(idcDeltaUncompressed.getIDCDelta()));
+    const auto& paramIDCGroup = ParameterIDCCompression::Instance();
+    const float minIDCDelta = std::clamp(*minmaxIDC.first, minValue, maxValue);
+    const float maxIDCDelta = std::clamp(*minmaxIDC.second, minValue, maxValue);
+    idcCompressed.setCompressionFactor(minIDCDelta, maxIDCDelta);
+    for (auto& idc : idcDeltaUncompressed.getIDCDelta()) {
+      idcCompressed.emplace_back(idc);
+    }
+  }
 };
 
 template <typename T>

@@ -66,11 +66,11 @@ BOOST_AUTO_TEST_CASE(IDCFourierTransformAggregator_test)
     FtType::setFFT(fft);
     FtType::setNThreads(2);
 
-    FtType idcFourierTransform{rangeIDC, tfs, nFourierCoeff};
+    FtType idcFourierTransform{rangeIDC, nFourierCoeff};
     const auto intervalsPerTF = getIntegrationIntervalsPerTF(integrationIntervals, tfs);
     idcFourierTransform.setIDCs(get1DIDCs(intervalsPerTF), intervalsPerTF);
     idcFourierTransform.setIDCs(get1DIDCs(intervalsPerTF), intervalsPerTF);
-    idcFourierTransform.calcFourierCoefficients();
+    idcFourierTransform.calcFourierCoefficients(tfs);
 
     const std::vector<unsigned int> offsetIndex = idcFourierTransform.getLastIntervals();
     const auto idcOneExpanded = idcFourierTransform.getExpandedIDCOne();
