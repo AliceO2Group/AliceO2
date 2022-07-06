@@ -411,6 +411,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         .readPolled = false,
         .channel = nullptr,
         .id = {ChannelIndex::INVALID},
+        .channelType = ChannelAccountingType::RAW,
       });
     };
     ctx.services().get<CallbackService>().set(CallbackService::Id::Start, channelConfigurationChecker);
