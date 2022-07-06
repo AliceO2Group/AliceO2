@@ -486,6 +486,7 @@ int GPUChainTracking::Finalize()
 
 void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem)
 {
+  char* dummyPtr;
   if (mChainTracking->GetTPCTransform()) {
     computePointerWithAlignment(mem, mCalibObjects.fastTransform, 1);
     computePointerWithAlignment(mem, mTpcTransformBuffer, mChainTracking->GetTPCTransform()->getFlatBufferSize());
@@ -500,6 +501,8 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
   if (mChainTracking->GetMatLUT()) {
     computePointerWithAlignment(mem, mCalibObjects.matLUT, 1);
     computePointerWithAlignment(mem, mMatLUTBuffer, mChainTracking->GetMatLUT()->getFlatBufferSize());
+  } else if (mChainTracking->GetProcessingSettings().lateO2MatLutProvisioningSize) {
+    computePointerWithAlignment(mem, dummyPtr, mChainTracking->GetProcessingSettings().lateO2MatLutProvisioningSize);
   }
   if (mChainTracking->GetdEdxCalibContainer()) {
     computePointerWithAlignment(mem, mCalibObjects.dEdxCalibContainer, 1);
@@ -511,7 +514,6 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
   if (mChainTracking->GetO2Propagator()) {
     computePointerWithAlignment(mem, mCalibObjects.o2Propagator, 1);
   } else if (mChainTracking->GetProcessingSettings().internalO2PropagatorGPUField) {
-    char* dummyPtr;
     computePointerWithAlignment(mem, dummyPtr, sizeof(*mCalibObjects.o2Propagator));
   }
 #endif

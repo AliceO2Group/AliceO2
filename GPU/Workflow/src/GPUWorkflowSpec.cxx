@@ -231,6 +231,8 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       if (mConfig->configCalib.matLUT == nullptr) {
         LOGF(fatal, "Error loading matlut file");
       }
+    } else {
+      mConfig->configProcessing.lateO2MatLutProvisioningSize = 50 * 1024 * 1024;
     }
 
     if (mSpecConfig.readTRDtracklets) {
@@ -791,12 +793,19 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc)
       mPropagatorInstanceCreated = true;
     }
 
-    if (mSpecConfig.readTRDtracklets && !mGeometryCreated) {
-      auto gm = o2::trd::Geometry::instance();
-      gm->createPadPlaneArray();
-      gm->createClusterMatrixArray();
-      mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>(*gm);
-      newCalibObjects.trdGeometry = mConfig->configCalib.trdGeometry = mTRDGeometry.get();
+    if (!mGeometryCreated) {
+      if (mConfParam->matLUTFile.size() == 0) {
+        newCalibObjects.matLUT = GRPGeomHelper::instance().getMatLUT();
+        LOG(info) << "Loaded material budget lookup table";
+      }
+      if (mSpecConfig.readTRDtracklets) {
+        auto gm = o2::trd::Geometry::instance();
+        gm->createPadPlaneArray();
+        gm->createClusterMatrixArray();
+        mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>(*gm);
+        newCalibObjects.trdGeometry = mConfig->configCalib.trdGeometry = mTRDGeometry.get();
+        LOG(info) << "Loaded TRD geometry";
+      }
       mGeometryCreated = true;
     }
   }
