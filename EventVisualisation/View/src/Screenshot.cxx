@@ -168,8 +168,8 @@ void Screenshot::perform(o2::detectors::DetID::mask_t detectorsMask, int runNumb
     delete scaledImage;
   }
 
-  TImage* viewZrhoImage = MultiView::getInstance()->getView(MultiView::EViews::ViewZrho)->GetGLViewer()->GetPictureUsingBB();
-  scaledImage = ScaleImage((TASImage*)viewZrhoImage, width * 0.3, height * 0.45, backgroundColorHex);
+  TImage* viewZYImage = MultiView::getInstance()->getView(MultiView::EViews::ViewZY)->GetGLViewer()->GetPictureUsingBB();
+  scaledImage = ScaleImage((TASImage*)viewZYImage, width * 0.3, height * 0.45, backgroundColorHex);
   if (scaledImage) {
     CopyImage(&image, scaledImage, width * 0.68, height * 0.525, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
     delete scaledImage;
@@ -220,6 +220,7 @@ void Screenshot::perform(o2::detectors::DetID::mask_t detectorsMask, int runNumb
   }
 
   image.BeginPaint();
+
   for (int i = 0; i < 4; i++) {
     image.DrawText(textX, textY + i * textLineHeight, lines[i].c_str(), fontSize, "#BBBBBB", "FreeSansBold.otf");
   }

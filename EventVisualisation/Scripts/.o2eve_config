@@ -43,7 +43,7 @@ camera.3D.rotation.horizontal:          -0.4
 camera.3D.rotation.vertical:            1.0
 camera.3D.zoom:                         1.0
 camera.R-Phi.zoom:                      1.0
-camera.Rho-Z.zoom:                      1.0
+camera.Z-Y.zoom:                        1.0
 
 simple.geom.default:                    R3
 simple.geom.R3.path:                    /home/jmy/CERN/alice/dev/o2-dev/O2/EventVisualisation/Geometry
