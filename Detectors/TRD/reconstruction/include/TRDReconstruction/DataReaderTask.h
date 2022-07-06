@@ -45,8 +45,10 @@ class DataReaderTask : public Task
   void run(ProcessingContext& pc) final;
   bool isTimeFrameEmpty(ProcessingContext& pc);
   void endOfStream(o2::framework::EndOfStreamContext& ec) override;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(framework::ProcessingContext& pc);
   CruRawReader mReader;                  // this will do the parsing, of raw data passed directly through the flp(no compression)
   CompressedRawReader mCompressedReader; //this will handle the incoming compressed data from the flp
                                          // in both cases we pull the data from the vectors build message and pass on.
