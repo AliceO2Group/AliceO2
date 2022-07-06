@@ -44,7 +44,7 @@ class MultiView
   enum EViews {
     View3d,       ///< 3D view
     ViewRphi,     ///< R-Phi view
-    ViewZrho,     ///< Z-Rho view
+    ViewZY,       ///< Z-Y view
     NumberOfViews ///< Total number of views
   };
 
@@ -52,14 +52,14 @@ class MultiView
     Scene3dGeom,    ///< 3D scene of geometry
     Scene3dEvent,   ///< 3D scene of event
     SceneRphiGeom,  ///< R-Phi scene of geometry
-    SceneZrhoGeom,  ///< Z-Pho scene of geometry
+    SceneZYGeom,    ///< Z-Y scene of geometry
     SceneRphiEvent, ///< R-Phi scene of event
-    SceneZrhoEvent, ///< Z-Rho scene of event
+    SceneZYEvent,   ///< Z-Y scene of event
     NumberOfScenes  ///< Total number of scenes
   };
   enum EProjections {
     ProjectionRphi,     ///< R-Phi projection
-    ProjectionZrho,     ///< Z-Rho projection
+    ProjectionZY,       ///< Z-Y projection
     NumberOfProjections ///< Total number of projections
   };
 
@@ -81,10 +81,10 @@ class MultiView
   /// \param detectorName  The name of the detector to draw geometry of
   /// \param threeD Should 3D view be drawn
   /// \param rPhi Should R-Phi projection be drawn
-  /// \param zRho Should Z-Rho projection be drawn
-  void drawGeometryForDetector(std::string detectorName, bool threeD = true, bool rPhi = true, bool zRho = true);
+  /// \param zy Should Z-Y projection be drawn
+  void drawGeometryForDetector(std::string detectorName, bool threeD = true, bool rPhi = true, bool zy = true);
   /// Registers geometry to be drawn in appropriate views
-  void registerGeometry(TEveGeoShape* geom, bool threeD = true, bool rPhi = true, bool zRho = true);
+  void registerGeometry(TEveGeoShape* geom, bool threeD = true, bool rPhi = true, bool zy = true);
   /// Removes all geometries
   void destroyAllGeometries();
 
