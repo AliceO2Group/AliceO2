@@ -75,7 +75,7 @@ MultiView::MultiView()
   mProjections[ProjectionZrho] = new TEveProjectionManager();
 
   mProjections[ProjectionRphi]->SetProjection(TEveProjection::kPT_RPhi);
-  mProjections[ProjectionZrho]->SetProjection(TEveProjection::kPT_RhoZ);
+  mProjections[ProjectionZrho]->SetProjection(TEveProjection::kPT_ZY);
 
   // open scenes
   gEve->GetScenes()->FindListTreeItem(gEve->GetListTree())->SetOpen(true);
