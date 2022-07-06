@@ -614,7 +614,7 @@ GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& 
       ydca = nrm * c.yC;
       auto v0x = trc.getX() - c.xC, v0y = trc.getY() - c.yC, v1x = xdca - c.xC, v1y = ydca - c.yC;
       auto angcos = (v0x * v1x + v0y * v1y) / (c.rC * c.rC);
-      if (std::abs(angcos) < 1.f) {
+      if (math_utils::detail::abs<value_type>(angcos) < 1.f) {
         auto ang = math_utils::detail::acos<value_type>(angcos);
         if ((trc.getSign() > 0.f) == (mBz > 0.f)) {
           ang = -ang;   // we need signeg angle
