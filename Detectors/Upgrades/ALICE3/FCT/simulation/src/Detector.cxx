@@ -547,15 +547,6 @@ void Detector::createGeometry()
     mLayerID.push_back(layerID);
     LOG(info) << "  mLayerID[" << mLayers[iLayer].getLayerNumber() << "] = " << layerID;
   }
-
-  TCanvas* c1 = new TCanvas();
-  volFCT->Draw();
-  TString output_path = "/misc/alidata131/alice_u/cas/O2/Schematic_layouts/";
-  TDatime* time = new TDatime();
-  TString output_name = "FCT_Layout_";
-  output_name.Append(Form("%d_%d.root", time->GetDate(), time->GetTime()));
-  output_path.Append(output_name);
-  c1->Print(output_path);
 }
 
 //_________________________________________________________________________________________________
