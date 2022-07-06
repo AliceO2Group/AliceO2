@@ -21,6 +21,7 @@
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/Logger.h"
+#include "Framework/CCDBParamSpec.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "TRDWorkflowIO/TRDTrackletWriterSpec.h"
 #include "TRDWorkflowIO/TRDDigitWriterSpec.h"
@@ -52,7 +53,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"histogramsfile", VariantType::String, "histos.root", {"Name of the histogram file, so one can run multiple per node"}},
     {"trd-debugm1", VariantType::Bool, false, {"various output statements specific to debugging m1 problems."}},
     //{"generate-stats", VariantType::Bool, true, {"Generate the state message sent to qc"}},
-    {"trd-datareader-enablebyteswapdata", VariantType::Bool, false, {"byteswap the incoming data, raw data needs it and simulation does not."}}};
+    {"trd-datareader-enablebyteswapdata", VariantType::Bool, false, {"byteswap the incoming data, raw data needs it and simulation does not."}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   std::swap(workflowOptions, options);
 }
 
@@ -64,7 +66,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
 
   //  auto config = cfgc.options().get<std::string>("trd-datareader-config");
-
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   //auto outputspec = cfgc.options().get<std::string>("trd-datareader-outputspec");
   auto verbose = cfgc.options().get<bool>("trd-datareader-verbose");
   auto byteswap = cfgc.options().get<bool>("trd-datareader-enablebyteswapdata");
@@ -120,6 +122,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   if (askSTFDist) {
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
   }
+  inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CTP/Config/TriggerOffsets"));
   workflow.emplace_back(DataProcessorSpec{
     std::string("trd-datareader"), // left as a string cast incase we append stuff to the string
     inputs,

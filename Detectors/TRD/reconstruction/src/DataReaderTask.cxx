@@ -23,7 +23,7 @@
 #include "Framework/InputRecordWalker.h"
 #include "Framework/DataRefUtils.h"
 #include "CommonUtils/VerbosityConfig.h"
-
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "DataFormatsTRD/Constants.h"
 #include <TH3F.h>
 #include "TH2F.h"
@@ -49,6 +49,15 @@ void DataReaderTask::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
 }
 
+void DataReaderTask::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("CTP", "Trig_Offset", 0)) {
+    LOG(info) << " CTP/Config/TriggerOffsets updated.";
+    o2::ctp::TriggerOffsetsParam::Instance().printKeyValues();
+    return;
+  }
+}
+
 void DataReaderTask::sendData(ProcessingContext& pc, bool blankframe)
 {
   if (!blankframe) {
@@ -63,6 +72,15 @@ void DataReaderTask::sendData(ProcessingContext& pc, bool blankframe)
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, digits);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe}, tracklets);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, triggers);
+  }
+}
+
+void DataReaderTask::updateTimeDependentParams(framework::ProcessingContext& pc)
+{
+  static bool updateOnlyOnce = false;
+  if (!updateOnlyOnce) {
+    pc.inputs().get<o2::ctp::TriggerOffsetsParam*>("trigoffset");
+    updateOnlyOnce = true;
   }
 }
 
@@ -95,6 +113,7 @@ void DataReaderTask::run(ProcessingContext& pc)
 {
   //NB this is run per time frame on the epn.
   LOG(info) << "TRD Translator Task run";
+  updateTimeDependentParams(pc);
   auto dataReadStart = std::chrono::high_resolution_clock::now();
 
   if (isTimeFrameEmpty(pc)) {
