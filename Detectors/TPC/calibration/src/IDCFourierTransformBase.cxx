@@ -36,9 +36,9 @@ void o2::tpc::IDCFourierTransformAggregator::setIDCs(IDCOne&& oneDIDCs, const st
 std::vector<unsigned int> o2::tpc::IDCFourierTransformAggregator::getLastIntervals() const
 {
   std::vector<unsigned int> endIndex;
-  endIndex.reserve(mTimeFrames);
+  endIndex.reserve(mIntegrationIntervalsPerTF[!mBufferIndex].size());
   endIndex.emplace_back(0);
-  for (unsigned int interval = 1; interval < mTimeFrames; ++interval) {
+  for (unsigned int interval = 1; interval < mIntegrationIntervalsPerTF[!mBufferIndex].size(); ++interval) {
     endIndex.emplace_back(endIndex[interval - 1] + mIntegrationIntervalsPerTF[!mBufferIndex][interval]);
   }
   return endIndex;
