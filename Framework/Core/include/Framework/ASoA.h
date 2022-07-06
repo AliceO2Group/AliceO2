@@ -1537,14 +1537,11 @@ typename C::type getSingleRowData(arrow::Table* table, T& rowIterator, uint64_t 
 {
   using decayed = std::decay_t<C>;
   if constexpr (decayed::persistent::value) {
-    auto val = getSingleRowPersistentData<C>(table, ci, ai);
-    return val;
+    return getSingleRowPersistentData<C>(table, ci, ai);
   } else if constexpr (o2::soa::is_dynamic_t<decayed>()) {
-    auto val = getSingleRowDynamicData<T, C>(rowIterator, globalIndex);
-    return val;
+    return getSingleRowDynamicData<T, C>(rowIterator, globalIndex);
   } else if constexpr (o2::soa::is_index_t<decayed>::value) {
-    auto val = getSingleRowIndexData<T, C>(rowIterator, globalIndex);
-    return val;
+    return getSingleRowIndexData<T, C>(rowIterator, globalIndex);
   } else {
     static_assert(!sizeof(decayed*), "Unrecognized column kind"); // A trick to delay static_assert until we actually instantiate this branch
   }
