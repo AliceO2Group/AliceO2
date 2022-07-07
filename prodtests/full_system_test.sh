@@ -112,9 +112,9 @@ DIGITOPTKEY=${HBFUTILPARAMS}
 [[ ! -z $ITS_STROBE ]] && DIGITOPTKEY+="ITSAlpideParam.roFrameLengthInBC=$ITS_STROBE;"
 [[ ! -z $MFT_STROBE ]] && DIGITOPTKEY+="MFTAlpideParam.roFrameLengthInBC=$MFT_STROBE;"
 if [ $SPLITTRDDIGI == "1" ]; then
-  DIGITOPT+="--skipDet TRD"
+  DIGITOPT+=" --skipDet TRD"
 else
-  DIGITOPT+="--trd-digit-downscaling ${DIGITDOWNSCALINGTRD}"
+  DIGITOPT+=" --trd-digit-downscaling ${DIGITDOWNSCALINGTRD}"
   DIGITOPTKEY+=$DIGITOPTKEYTRD
 fi
 
