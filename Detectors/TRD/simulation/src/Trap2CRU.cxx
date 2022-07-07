@@ -495,7 +495,7 @@ int Trap2CRU::buildTrackletRawData(const int trackletindex, const int linkid)
   while (linkid == HelperMethods::getLinkIDfromHCID(mTracklets[trackletindex + trackletcounter].getHCID()) && header.col == mTracklets[trackletindex + trackletcounter].getColumn() && header.padrow == mTracklets[trackletindex + trackletcounter].getPadRow()) {
     int trackletoffset = trackletindex + trackletcounter;
     constructTrackletMCMData(trackletdata[trackletcounter], mTracklets[trackletoffset]);
-    unsigned int headerqpart = ((mTracklets[trackletoffset].getQ2() & 0x2f) << 2) + ((mTracklets[trackletoffset].getQ1() >> 6) & 0x3);
+    unsigned int headerqpart = ((mTracklets[trackletoffset].getQ2() & 0x7f) << 1) + ((mTracklets[trackletoffset].getQ1() >> 6) & 0x3);
     //all 6 bits of Q1 and 2 upper bits of 7bit Q1
     if (mVerbosity) {
       if (mTracklets[trackletoffset].getQ2() > 0x3f) {
@@ -539,13 +539,15 @@ int Trap2CRU::buildTrackletRawData(const int trackletindex, const int linkid)
     setNumberOfTrackletsInHeader(header, trackletcounter);
     if (trackletcounter > 0) { // dont write header if there are no tracklets.
       if (mVerbosity) {
-        LOG(info) << " TTT TrackletMCMHeader : 0x" << std::hex << header;
+        LOG(info) << " TTT TrackletMCMHeader : 0x" << std::hex << header << " pid : " << header.pid0 << " pid1: " << header.pid1;
+        printTrackletMCMHeader(header);
       }
       memcpy((char*)mRawDataPtr, (char*)&header, sizeof(TrackletMCMHeader));
       mRawDataPtr += sizeof(TrackletMCMHeader);
       for (int i = 0; i < trackletcounter; ++i) {
         if (mVerbosity) {
           LOG(info) << " TTTx TrackletMCMData : 0x" << std::hex << trackletdata[i];
+          printTrackletMCMData(trackletdata[i]);
         }
         memcpy((char*)mRawDataPtr, (char*)&trackletdata[i], sizeof(TrackletMCMData));
         mRawDataPtr += sizeof(TrackletMCMData);

@@ -278,20 +278,16 @@ void constructTrackletMCMData(TrackletMCMData& trackletword, const int format, c
   trackletword.word = 0;
   // create a tracklet word as it would be sent from the FEE
   // slope and position have the 8-th bit flipped each
-  trackletword.word = 0;
   trackletword.slope = slope ^ 0x80;
   trackletword.pos = pos ^ 0x80;
   trackletword.checkbit = 0;
   if (format & 0x1) {
-    //length of q1 and q2 are 6 with a 2 bit offset.
-    //What happens when q2 and q1 dont share the same offset (upper 2 bits ?) ?
-    LOG(error) << "This tracklet format has not been tested yet";
-    trackletword.pid = (q0 & 0x3f) & ((q1 & 0x1) << 6);
-    //TODO check the 2 bit offset is still valid ... ??
+    //length of q1 and q2 are 6 with a 2 bit offset sitting in the header.
+    trackletword.pid = (q0 & 0x3f) | ((q1 & 0x3f) << 6);
   } else {
-    trackletword.pid = (q0 & 0x3f) & ((q1 & 0x1) << 6);
+    //q2 sits with upper 1 bit of q1 in the header pid word, hence the 0x3f so 6 bits of q1 are used here, shifted up above the 6 bits of q0.
+    trackletword.pid = (int)(q0 & 0x3f) | ((q1 & 0x3f) << 6);
   }
-  //q2 sits with upper 2 bits of q1 in the header pid word, hence the 0x1f so 5 bits are used here.
 }
 
 void constructTrackletMCMData(TrackletMCMData& trackletword, const Tracklet64& tracklet)
@@ -319,7 +315,7 @@ void printTrackletHCHeader(o2::trd::TrackletHCHeader& halfchamber)
 
 void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet)
 {
-  LOGF(info, "TrackletMCMData: Raw:0x%08x pos:%d slope:%d pid:0x%08x checkbit:0x%02x",
+  LOGF(info, "TrackletMCMData: Raw:0x%08x pos:%d slope:%d pid:0x%03x checkbit:0x%02x",
        tracklet.word, tracklet.pos, tracklet.slope, tracklet.pid, tracklet.checkbit);
 }
 void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead)
