@@ -11,6 +11,19 @@ axes.show:                              0
 fullscreen.mode:                        0
 background.color:                       1
 
+# screenshot
+screenshot.path:                        /home/ed/Screenshot
+screenshot.logo.o2:                     /home/ed/alice/O2/EventVisualisation/Scripts/o2.png
+screenshot.logo.alice:                  /home/ed/alice/O2/EventVisualisation/Scripts/alice-white.png
+#screenshot.logo.alice:                  /home/ed/alice/O2/EventVisualisation/Scripts/alice-black.png
+screenshot.width:                       1000
+screenshot.height:                      500
+#screenshot.message.line.0:             Run number: 520144 <- change/comment it in .o2eve_config
+#screenshot.message.line.1:             First TF orbit: 1301515 <- change/comment it in .o2eve_config
+#screenshot.message.line.2:             Date: Tue Jul 5 17:48:51 2022 <- change/comment it in .o2eve_config
+#screenshot.message.line.3:             Detectors: ITS,TPC <- change/comment it in .o2eve_config
+
+# towers
 emcal.barrel.radius:                    500
 emcal.tower.color:                      3
 emcal.tower.noise                       0
@@ -25,7 +38,7 @@ phos.tower.scale:                       1
 phos.tower.size.eta:                    0.0143
 phos.tower.size.phi:                    0.0143
 
-
+#camera
 camera.3D.rotation.horizontal:          -0.4
 camera.3D.rotation.vertical:            1.0
 camera.3D.zoom:                         1.0

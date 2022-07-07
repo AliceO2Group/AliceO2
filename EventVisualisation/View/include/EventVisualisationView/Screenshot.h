@@ -30,7 +30,7 @@ class Screenshot
  private:
   static bool CopyImage(TASImage* dst, TASImage* src, Int_t x_dst, Int_t y_dst, Int_t x_src, Int_t y_src,
                         UInt_t w_src, UInt_t h_src);
-  static TASImage* ScaleImage(TASImage* image, UInt_t desiredWidth, UInt_t desiredHeight);
+  static TASImage* ScaleImage(TASImage* image, UInt_t desiredWidth, UInt_t desiredHeight, const std::string& backgroundColor);
 
  public:
   static void perform(o2::detectors::DetID::mask_t detectorsMask, int runNumber, int firstTFOrbit, std::string collisionTime);

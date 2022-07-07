@@ -17,7 +17,9 @@
 #include <EventVisualisationView/Screenshot.h>
 #include <EventVisualisationView/MultiView.h>
 #include "EventVisualisationView/Options.h"
+#include "EventVisualisationBase/ConfigurationManager.h"
 #include <Rtypes.h>
+#include "TROOT.h"
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -81,7 +83,7 @@ bool Screenshot::CopyImage(TASImage* dst, TASImage* src, Int_t x_dst, Int_t y_ds
   return true;
 }
 
-TASImage* Screenshot::ScaleImage(TASImage* image, UInt_t desiredWidth, UInt_t desiredHeight)
+TASImage* Screenshot::ScaleImage(TASImage* image, UInt_t desiredWidth, UInt_t desiredHeight, const std::string& backgroundColor)
 {
   if (!image) {
     return nullptr;
@@ -89,8 +91,6 @@ TASImage* Screenshot::ScaleImage(TASImage* image, UInt_t desiredWidth, UInt_t de
   if (desiredWidth == 0 || desiredHeight == 0) {
     return nullptr;
   }
-
-  const char* backgroundColor = "#000000";
 
   UInt_t scaleWidth = desiredWidth;
   UInt_t scaleHeight = desiredHeight;
@@ -108,7 +108,7 @@ TASImage* Screenshot::ScaleImage(TASImage* image, UInt_t desiredWidth, UInt_t de
   }
 
   TASImage* scaledImage = new TASImage(desiredWidth, desiredHeight);
-  scaledImage->FillRectangle(backgroundColor, 0, 0, desiredWidth, desiredHeight);
+  scaledImage->FillRectangle(backgroundColor.c_str(), 0, 0, desiredWidth, desiredHeight);
 
   image->Scale(scaleWidth, scaleHeight);
 
@@ -119,15 +119,19 @@ TASImage* Screenshot::ScaleImage(TASImage* image, UInt_t desiredWidth, UInt_t de
 
 void Screenshot::perform(o2::detectors::DetID::mask_t detectorsMask, int runNumber, int firstTFOrbit, std::string collisionTime)
 {
-  UInt_t width = 3840;
-  UInt_t height = 2160;
-  const char* backgroundColor = "#000000"; // "#19324b";
-  const char* outDirectory = "Screenshots";
+  TEnv settings;
+  ConfigurationManager::getInstance().getConfig(settings);
 
-  // std::string runString = "Run:";
-  // std::string timestampString = "Timestamp:";
-  // std::string collidingsystemString = "Colliding system:";
-  // std::string energyString = "Energy:";
+  UInt_t width = settings.GetValue("screenshot.width", 3840);
+  UInt_t height = settings.GetValue("screenshot.height", 2160);
+  int backgroundColor = settings.GetValue("background.color", 1); // black
+  std::string backgroundColorHex = "#000000";                     // "#19324b";
+  TColor* col = gROOT->GetColor(backgroundColor);
+  if (col) {
+    backgroundColorHex = col->AsHexString();
+  }
+
+  std::string outDirectory = settings.GetValue("screenshot.path", "Screenshots");
 
   std::time_t time = std::time(nullptr);
   char time_str[100];
@@ -139,7 +143,7 @@ void Screenshot::perform(o2::detectors::DetID::mask_t detectorsMask, int runNumb
   filepath << outDirectory << "/Screenshot_" << time_str << ".png";
 
   TASImage image(width, height);
-  image.FillRectangle(backgroundColor, 0, 0, width, height);
+  image.FillRectangle(backgroundColorHex.c_str(), 0, 0, width, height);
 
   const auto annotationStateTop = MultiView::getInstance()->getAnnotationTop()->GetState();
   const auto annotationStateBottom = MultiView::getInstance()->getAnnotationBottom()->GetState();
@@ -151,21 +155,21 @@ void Screenshot::perform(o2::detectors::DetID::mask_t detectorsMask, int runNumb
   MultiView::getInstance()->getAnnotationTop()->SetState(annotationStateTop);
   MultiView::getInstance()->getAnnotationBottom()->SetState(annotationStateBottom);
 
-  scaledImage = ScaleImage((TASImage*)view3dImage, width * 0.65, height * 0.95);
+  scaledImage = ScaleImage((TASImage*)view3dImage, width * 0.65, height * 0.95, backgroundColorHex);
   if (scaledImage) {
     CopyImage(&image, scaledImage, width * 0.015, height * 0.025, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
     delete scaledImage;
   }
 
   TImage* viewRphiImage = MultiView::getInstance()->getView(MultiView::EViews::ViewRphi)->GetGLViewer()->GetPictureUsingBB();
-  scaledImage = ScaleImage((TASImage*)viewRphiImage, width * 0.3, height * 0.45);
+  scaledImage = ScaleImage((TASImage*)viewRphiImage, width * 0.3, height * 0.45, backgroundColorHex);
   if (scaledImage) {
     CopyImage(&image, scaledImage, width * 0.68, height * 0.025, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
     delete scaledImage;
   }
 
   TImage* viewZrhoImage = MultiView::getInstance()->getView(MultiView::EViews::ViewZrho)->GetGLViewer()->GetPictureUsingBB();
-  scaledImage = ScaleImage((TASImage*)viewZrhoImage, width * 0.3, height * 0.45);
+  scaledImage = ScaleImage((TASImage*)viewZrhoImage, width * 0.3, height * 0.45, backgroundColorHex);
   if (scaledImage) {
     CopyImage(&image, scaledImage, width * 0.68, height * 0.525, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
     delete scaledImage;
@@ -173,7 +177,7 @@ void Screenshot::perform(o2::detectors::DetID::mask_t detectorsMask, int runNumb
 
   bool logo = true;
   if (logo) {
-    TASImage* aliceLogo = new TASImage("Alice.png");
+    TASImage* aliceLogo = new TASImage(settings.GetValue("screenshot.logo.alice", "alice-white.png"));
     if (aliceLogo->IsValid()) {
       double ratio = 1434. / 1939.;
       aliceLogo->Scale(0.08 * width, 0.08 * width / ratio);
@@ -188,7 +192,7 @@ void Screenshot::perform(o2::detectors::DetID::mask_t detectorsMask, int runNumb
   int textY;
 
   if (logo) {
-    TASImage* o2Logo = new TASImage("o2.png");
+    TASImage* o2Logo = new TASImage(settings.GetValue("screenshot.logo.o2", "o2.png"));
     if (o2Logo->IsValid()) {
       double ratio = (double)(o2Logo->GetWidth()) / (double)(o2Logo->GetHeight());
       int o2LogoX = 0.01 * width;
@@ -208,22 +212,14 @@ void Screenshot::perform(o2::detectors::DetID::mask_t detectorsMask, int runNumb
   auto detectorsString = detectors::DetID::getNames(detectorsMask);
 
   std::vector<std::string> lines;
-  std::ifstream input("screenshot.txt");
-  if (input.is_open()) {
-    for (std::string line; getline(input, line);) {
-      lines.push_back(line);
-    }
-  }
-
   if (!collisionTime.empty()) {
-    lines.push_back((std::string)TString::Format("Run number: %d", runNumber));
-    lines.push_back((std::string)TString::Format("First TF orbit: %d", firstTFOrbit));
-    lines.push_back((std::string)TString::Format("Date: %s", collisionTime.c_str()));
-    lines.push_back((std::string)TString::Format("Detectors: %s", detectorsString.c_str()));
+    lines.push_back((std::string)settings.GetValue("screenshot.message.line.0", TString::Format("Run number: %d", runNumber)));
+    lines.push_back((std::string)settings.GetValue("screenshot.message.line.1", TString::Format("First TF orbit: %d", firstTFOrbit)));
+    lines.push_back((std::string)settings.GetValue("screenshot.message.line.2", TString::Format("Date: %s", collisionTime.c_str())));
+    lines.push_back((std::string)settings.GetValue("screenshot.message.line.3", TString::Format("Detectors: %s", detectorsString.c_str())));
   }
 
   image.BeginPaint();
-
   for (int i = 0; i < 4; i++) {
     image.DrawText(textX, textY + i * textLineHeight, lines[i].c_str(), fontSize, "#BBBBBB", "FreeSansBold.otf");
   }
