@@ -47,6 +47,7 @@ else # Add default steps for async mode
   for i in $LIST_OF_ASYNC_RECO_STEPS; do
     has_detector_reco $i && add_comma_separated WORKFLOW_EXTRA_PROCESSING_STEPS ${i}_RECO
   done
+  add_comma_separated WORKFLOW_EXTRA_PROCESSING_STEPS TPC_DEDX
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------

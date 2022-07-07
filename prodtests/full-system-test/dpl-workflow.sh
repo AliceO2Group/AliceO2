@@ -95,6 +95,7 @@ if [[ $SYNCMODE == 1 ]]; then
       PVERTEXING_CONFIG_KEY+="pvertexer.timeMarginVertexTime=1.3;"
   fi
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
+  has_processing_step TPC_DEDX && GPU_CONFIG_KEY+="GPU_global.rundEdx=1;"
   TRD_CONFIG_KEY+="GPU_proc.ompThreads=1;"
   has_detector ITS && TRD_FILTER_CONFIG+=" --filter-trigrec"
 else
