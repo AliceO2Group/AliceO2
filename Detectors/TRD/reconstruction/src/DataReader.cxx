@@ -100,7 +100,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   binaryoptions[o2::trd::TRDIgnoreTrackletHCHeaderBit] = cfgc.options().get<bool>("ignore-tracklethcheader");
   binaryoptions[o2::trd::TRDEnableRootOutputBit] = cfgc.options().get<bool>("enable-root-output");
   binaryoptions[o2::trd::TRDByteSwapBit] = cfgc.options().get<bool>("trd-datareader-enablebyteswapdata");
-  binaryoptions[o2::trd::TRDFixSM1617Bit] = cfgc.options().get<bool>("fixsm1617");
+  //binaryoptions[o2::trd::TRDFixSM1617Bit] = cfgc.options().get<bool>("fixsm1617");
   binaryoptions[o2::trd::TRDIgnore2StageTrigger] = cfgc.options().get<bool>("fixforoldtrigger");
   //binaryoptions[o2::trd::TRDGenerateStats] = cfgc.options().get<bool>("generate-stats");
   binaryoptions[o2::trd::TRDGenerateStats] = true; //cfgc.options().get<bool>("generate-stats");
