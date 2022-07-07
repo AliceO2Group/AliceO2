@@ -19,10 +19,11 @@
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
 #include "CommonDataFormat/FlatHisto2D.h"
+#include "DataFormatsTPC/VDriftCorrFact.h"
 #include "CommonDataFormat/Pair.h"
 #include "CCDB/CcdbObjectInfo.h"
 
-namespace o2::calibration
+namespace o2::tpc
 {
 struct TPCVDTglContainer {
   std::unique_ptr<o2::dataformats::FlatHisto2D_f> histo;
@@ -79,9 +80,9 @@ class TPCVDriftTglCalibration : public o2::calibration::TimeSlotCalibration<o2::
   void finalizeSlot(Slot& slot) final;
   Slot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
 
-  const std::vector<o2::dataformats::Pair<float, float>>& getVDPerSlot() const { return mVDPerSlot; }
+  const std::vector<o2::tpc::VDriftCorrFact>& getVDPerSlot() const { return mVDPerSlot; }
   const std::vector<o2::ccdb::CcdbObjectInfo>& getCCDBInfoPerSlot() const { return mCCDBInfoPerSlot; }
-  std::vector<o2::dataformats::Pair<float, float>>& getVDPerSlot() { return mVDPerSlot; }
+  std::vector<o2::tpc::VDriftCorrFact>& getVDPerSlot() { return mVDPerSlot; }
   std::vector<o2::ccdb::CcdbObjectInfo>& getCCDBInfoPerSlot() { return mCCDBInfoPerSlot; }
 
   void setSaveHistosFile(const std::string& f) { mSaveHistosFile = f; }
@@ -93,11 +94,11 @@ class TPCVDriftTglCalibration : public o2::calibration::TimeSlotCalibration<o2::
   float mMaxTgl = 1.;
   float mMaxDTgl = 0.2;
   std::string mSaveHistosFile{};
-  std::vector<o2::dataformats::Pair<float, float>> mVDPerSlot;
+  std::vector<o2::tpc::VDriftCorrFact> mVDPerSlot;
   std::vector<o2::ccdb::CcdbObjectInfo> mCCDBInfoPerSlot;
 
   ClassDefNV(TPCVDriftTglCalibration, 1);
 };
 
-} // namespace o2::calibration
+} // namespace o2::tpc
 #endif

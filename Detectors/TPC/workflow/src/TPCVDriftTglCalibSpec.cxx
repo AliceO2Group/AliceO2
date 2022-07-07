@@ -14,8 +14,8 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
-#include "DetectorsCalibration/TPCVDriftTglCalibration.h"
-#include "DetectorsCalibrationWorkflow/TPCVDriftTglCalibSpec.h"
+#include "TPCCalibration/TPCVDriftTglCalibration.h"
+#include "TPCWorkflow/TPCVDriftTglCalibSpec.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
@@ -25,14 +25,14 @@ using namespace o2::framework;
 
 namespace o2
 {
-namespace calibration
+namespace tpc
 {
 class TPCVDriftTglCalibSpec : public Task
 {
  public:
   TPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, size_t minEnt, std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req)
   {
-    mCalibrator = std::make_unique<o2::calibration::TPCVDriftTglCalibration>(ntgl, tglMax, ndtgl, dtglMax, slotL, minEnt);
+    mCalibrator = std::make_unique<o2::tpc::TPCVDriftTglCalibration>(ntgl, tglMax, ndtgl, dtglMax, slotL, minEnt);
   }
 
   void init(InitContext& ic) final
@@ -65,7 +65,7 @@ class TPCVDriftTglCalibSpec : public Task
 
  private:
   void sendOutput(DataAllocator& output);
-  std::unique_ptr<o2::calibration::TPCVDriftTglCalibration> mCalibrator;
+  std::unique_ptr<o2::tpc::TPCVDriftTglCalibration> mCalibrator;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 };
 
@@ -96,7 +96,7 @@ void TPCVDriftTglCalibSpec::sendOutput(DataAllocator& output)
 DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, size_t minEnt)
 {
 
-  using device = o2::calibration::TPCVDriftTglCalibSpec;
+  using device = o2::tpc::TPCVDriftTglCalibSpec;
   using clbUtils = o2::calibration::Utils;
 
   std::vector<InputSpec> inputs;
@@ -117,9 +117,9 @@ DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, fl
     "tpc-vd-tgl-calib",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::calibration::TPCVDriftTglCalibSpec>(ntgl, tglMax, ndtgl, dtglMax, slotL, minEnt, ccdbRequest)},
+    AlgorithmSpec{adaptFromTask<o2::tpc::TPCVDriftTglCalibSpec>(ntgl, tglMax, ndtgl, dtglMax, slotL, minEnt, ccdbRequest)},
     Options{{"vdtgl-histos-file-name", VariantType::String, "", {"file to save histos (if name provided)"}}}};
 }
 
-} // namespace calibration
+} // namespace tpc
 } // namespace o2

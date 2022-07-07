@@ -16,7 +16,6 @@ o2_add_library(DetectorsCalibration
                    src/MeanVertexData.cxx
                    src/MeanVertexCalibrator.cxx
                    src/MeanVertexParams.cxx
-                   src/TPCVDriftTglCalibration.cxx
                PUBLIC_LINK_LIBRARIES O2::Headers
                    O2::CCDB
                    O2::CommonUtils
@@ -34,8 +33,7 @@ o2_target_root_dictionary(DetectorsCalibration
                                   include/DetectorsCalibration/Utils.h
                                   include/DetectorsCalibration/MeanVertexData.h
                                   include/DetectorsCalibration/MeanVertexCalibrator.h
-                                  include/DetectorsCalibration/MeanVertexParams.h
-                                  include/DetectorsCalibration/TPCVDriftTglCalibration.h)
+                                  include/DetectorsCalibration/MeanVertexParams.h)
 
 o2_add_executable(ccdb-populator-workflow
                   COMPONENT_NAME calibration

@@ -17,7 +17,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 
-namespace o2::calibration
+namespace o2::tpc
 {
 
 o2::framework::DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, size_t minEnt);
