@@ -43,6 +43,8 @@ void DataReaderTask::init(InitContext& ic)
   };
   mReader.setMaxErrWarnPrinted(ic.options().get<int>("log-max-errors"), ic.options().get<int>("log-max-warnings"));
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
+  mDigitPreviousTotal = mReader.getDigitsFound();
+  mTrackletsPreviousTotal = mReader.getTrackletsFound();
 }
 
 void DataReaderTask::endOfStream(o2::framework::EndOfStreamContext& ec)
@@ -162,9 +164,12 @@ void DataReaderTask::run(ProcessingContext& pc)
 
   sendData(pc, false);
   std::chrono::duration<double, std::milli> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
-  LOGP(info, "Digits: {}, Tracklets: {}, DataRead in: {:.3f} MB, Rejected: {:.3f} MB for TF {} in {} ms",
-       mReader.getDigitsFound(), mReader.getTrackletsFound(), (float)mWordsRead * 4 / 1024.0 / 1024.0, (float)mWordsRejected * 4 / 1024.0 / 1024.0, tfCount,
+  LOGP(info, "Digits: {} ({} TF), Tracklets: {} ({} TF), DataRead in: {:.3f} MB, Rejected: {:.3f} MB for TF {} in {} ms",
+       mReader.getDigitsFound(), mReader.getDigitsFound() - mDigitPreviousTotal, mReader.getTrackletsFound(),
+       mReader.getTrackletsFound() - mTrackletsPreviousTotal, (float)mWordsRead * 4 / 1024.0 / 1024.0, (float)mWordsRejected * 4 / 1024.0 / 1024.0, tfCount,
        std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count());
+  mDigitPreviousTotal = mReader.getDigitsFound();
+  mTrackletsPreviousTotal = mReader.getTrackletsFound();
 }
 
 } // namespace o2::trd

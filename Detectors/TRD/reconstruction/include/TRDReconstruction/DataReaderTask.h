@@ -76,9 +76,9 @@ class DataReaderTask : public Task
   std::string mHistogramsFilename; // filename to use for histograms.
   o2::header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick
   bool mFixDigitEndCorruption{false};                                                     // fix the parsing of corrupt end of digit data. bounce over it.
-  o2::trd::TRDDataCountersPerTimeFrame mTimeFrameStats;                                   // TODO for compressed data this is going to come in for each subtimeframe
-                                                                                          // and we need to collate them.
-
+  o2::trd::TRDDataCountersPerTimeFrame mTimeFrameStats;                                   // TODO for compressed data this is going to come in for each subtimeframe and we need to collate them.
+  uint64_t mDigitPreviousTotal;                                                           // store the previous timeframes totals for tracklets and digits, to be able to get a diferential total
+  uint64_t mTrackletsPreviousTotal;
 };
 
 } // namespace o2::trd
