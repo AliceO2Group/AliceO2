@@ -290,8 +290,8 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
     // TODO: calculate values based on info available in O2
     static const std::unordered_map<o2::dataformats::GlobalTrackID::Source, CaloInfo> caloInfos =
       {
-        {o2::dataformats::GlobalTrackID::EMC, {"emcal", "emcal.tower.color", kYellow, "emcal.tower.size.eta", 0.0143, "emcal.tower.size.phi", 0.0143, "emcal.tower.noise", 0, "emcal.tower.transparency", 101, "emcal.barel.radius", 500, settings.GetValue("emcal.tower.scale", 1.0)}},
-        {o2::dataformats::GlobalTrackID::PHS, {"phos", "phos.tower.color", kYellow, "phos.tower.size.eta", 0.0046, "phos.tower.size.eta", 0.00478, "phos.tower.noise", 200, "phos.tower.transparency", 101, "phos.barel.radius", 550, settings.GetValue("phos.tower.scale", 1.0)}},
+        {o2::dataformats::GlobalTrackID::EMC, {"emcal", "emcal.tower.color", kYellow, "emcal.tower.size.eta", 0.0143, "emcal.tower.size.phi", 0.0143, "emcal.tower.noise", 0, "emcal.tower.transparency", 101, "emcal.barrel.radius", 500, settings.GetValue("emcal.tower.scale", 1.0)}},
+        {o2::dataformats::GlobalTrackID::PHS, {"phos", "phos.tower.color", kYellow, "phos.tower.size.eta", 0.0046, "phos.tower.size.phi", 0.00478, "phos.tower.noise", 200, "phos.tower.transparency", 101, "phos.barrel.radius", 550, settings.GetValue("phos.tower.scale", 1.0)}},
       };
 
     auto data = new TEveCaloDataVec(1);
