@@ -462,9 +462,15 @@ int CruRawReader::parseDigitHCHeader()
           return -1;
         }
         if (mDigitHCHeader1.ptrigphase > 11) {
-          LOG(alarm) << "Digit HC Header 1 Pretrigger phase is out of bounds : 0x" << std::hex << mDigitHCHeader1.ptrigphase << " raw: 0x" << mDigitHCHeader1.word;
+          //TODO figure out why 0xe happens more than it should. If I leave this in the shifters will be panicing.
+          //This does not appear to be true, its false positive too many times
+          //  LOG(alarm) << "Digit HC Header 1 Pretrigger phase is out of bounds : 0x" << std::hex << mDigitHCHeader1.ptrigphase << " raw: 0x" << mDigitHCHeader1.word;
+          if (mVerbose) {
+            // leave the error in for not running online.
+            LOG(alarm) << "Digit HC Header 1 Pretrigger phase is out of bounds : 0x" << std::hex << mDigitHCHeader1.ptrigphase << " raw: 0x" << mDigitHCHeader1.word;
+          }
           incrementErrors(TRDParsingDigitHCHeaderPreTriggerPhaseOOB);
-          return -1;
+          //  return -1;
         }
         mTimeBins = mDigitHCHeader1.numtimebins;
         if (mTimeBins < 1 && mTimeBins > o2::trd::constants::TIMEBINS) {
