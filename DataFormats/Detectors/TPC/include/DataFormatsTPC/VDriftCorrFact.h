@@ -9,12 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file LtrCalibData.h
+/// \file VDriftCorrFact.h
 /// \brief calibration data from laser track calibration
 ///
-/// This class holds the calibration output data of CalibLaserTracks
+/// This class holds the calibration output data ITS/TPC tgl difference calibration
 ///
-/// \author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
+/// \author ruben.shahoyan@cern.ch
 
 #ifndef AliceO2_TPC_VDRIFT_CORRFACT_H
 #define AliceO2_TPC_VDRIFT_CORRFACT_H
