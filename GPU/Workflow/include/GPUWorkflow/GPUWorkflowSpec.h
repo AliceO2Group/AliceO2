@@ -98,7 +98,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   void finaliseCCDBTPC(o2::framework::ConcreteDataMatcher& matcher, void* obj);
   /// asking for newer calib objects
   template <class T>
-  bool fetchCalibsCCDBTPC(o2::framework::ProcessingContext& pc, T& newTopologyCalib);
+  bool fetchCalibsCCDBTPC(o2::framework::ProcessingContext& pc, T& newCalibObjects);
   /// storing the new calib objects by overwritting the old calibs
   void storeUpdatedCalibsTPCPtrs();
 
@@ -109,6 +109,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::unique_ptr<GPUO2Interface> mTracker;
   std::unique_ptr<GPUDisplayFrontendInterface> mDisplayFrontend;
   std::unique_ptr<TPCFastTransform> mFastTransform;
+  std::unique_ptr<TPCFastTransform> mFastTransformNew;
   std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalib;
   std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibBufferNew;
   std::unique_ptr<TPCZSLinkMapping> mTPCZSLinkMapping;
@@ -132,6 +133,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   bool mAutoContinuousMaxTimeBin = false;
   bool mGeometryCreated = false;
   bool mPropagatorInstanceCreated = false;
+  bool mMustUpdateFastTransform = false;
 };
 
 } // end namespace gpu

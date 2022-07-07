@@ -1083,10 +1083,12 @@ void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* ob
     const auto* residualCorr = static_cast<o2::tpc::CalibdEdxCorrection*>(obj);
     mdEdxCalibContainerBufferNew->setResidualCorrection(*residualCorr);
   }
+
+  mMustUpdateFastTransform = false;
 }
 
 template <class T>
-bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newTopologyCalib)
+bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newCalibObjects)
 {
   // update calibrations for clustering and tracking
   if ((mSpecConfig.outputTracks || mSpecConfig.caClusterer) && !mConfParam->disableCalibUpdates) {
@@ -1115,17 +1117,26 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newTopolo
       if (dEdxCalibContainer->isCorrectionCCDB(CalibsdEdx::CalTimeGain)) {
         pc.inputs().get<o2::tpc::CalibdEdxCorrection*>("tpctimegain");
       }
+
+      if (mMustUpdateFastTransform && mConfParam->transformationFile.size() == 0 && mConfParam->transformationSCFile.size() == 0) {
+        LOG(info) << "Updating TPC fast transform map with new calib";
+        float vDriftFactor = 1.00;
+        mFastTransformNew.reset(new TPCFastTransform);
+        mFastTransformNew->cloneFromObject(*mFastTransform, nullptr);
+        TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformNew, 0, vDriftFactor);
+        newCalibObjects.fastTransform = mFastTransformNew.get();
+      }
     }
 
     if (mdEdxCalibContainerBufferNew) {
-      newTopologyCalib.dEdxCalibContainer = mdEdxCalibContainerBufferNew.get();
+      newCalibObjects.dEdxCalibContainer = mdEdxCalibContainerBufferNew.get();
     }
 
     if (mTPCPadGainCalibBufferNew) {
-      newTopologyCalib.tpcPadGain = mTPCPadGainCalibBufferNew.get();
+      newCalibObjects.tpcPadGain = mTPCPadGainCalibBufferNew.get();
     }
 
-    return mdEdxCalibContainerBufferNew || mTPCPadGainCalibBufferNew;
+    return mdEdxCalibContainerBufferNew || mTPCPadGainCalibBufferNew || mMustUpdateFastTransform;
   }
   return false;
 }
@@ -1138,6 +1149,10 @@ void GPURecoWorkflowSpec::storeUpdatedCalibsTPCPtrs()
 
   if (mTPCPadGainCalibBufferNew) {
     mTPCPadGainCalib = std::move(mTPCPadGainCalibBufferNew);
+  }
+
+  if (mFastTransformNew) {
+    mFastTransform = std::move(mFastTransformNew);
   }
 }
 
