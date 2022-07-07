@@ -82,7 +82,7 @@ if [[ $SYNCMODE == 1 ]]; then
   fi
 
   if [[ $EPNSYNCMODE == 1 ]]; then # add extra tolerance in sync mode to account for eventual time misalignment
-      PVERTEXING_CONFIG_KEY+="pvertexer.timeMarginVertexTime=1.3;"
+    PVERTEXING_CONFIG_KEY+="pvertexer.timeMarginVertexTime=1.3;"
   fi
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
   has_processing_step TPC_DEDX && GPU_CONFIG_KEY+="GPU_global.rundEdx=1;"
