@@ -36,26 +36,27 @@ static constexpr uint32_t ChannelPerTBHeader = 80;
 /// common header definition of the zero suppressed link based data
 struct CommonHeader {
   static constexpr uint32_t MagicWordLinkZS = 0xFC;
-  static constexpr uint32_t MagicWordLinkZSMetaHeader = 0xFD;
+  // static constexpr uint32_t MagicWordLinkZSMetaHeader = 0xFD;
+  static constexpr uint32_t MagicWordLinkZSMetaHeader = 0xDF;
   static constexpr uint32_t MagicWordTrigger = 0xAA;
   static constexpr uint32_t MagicWordTriggerV2 = 0xAB;
 
   union {
-    uint64_t word0 = 0;                        ///< lower 64 bits
-    struct {                                   ///
-      uint64_t bitMaskLow : 64;                ///< lower bits of the 80 bit bitmask
-    };                                         ///
-  };                                           ///
-                                               ///
-  union {                                      ///
-    uint64_t word1 = 0;                        ///< upper bits of the 80 bit bitmask
-    struct {                                   ///
-      uint64_t bitMaskHigh : 16;               ///< higher bits of the 80 bit bitmask
-      uint32_t bunchCrossing : 12;             ///< bunch crossing number
-      uint32_t numWordsPayload : 4;            ///< number of 128bit words with 12bit ADC values
-      uint32_t syncOffsetBC : 8;               ///< sync offset in bunch crossings
-      uint32_t fecInPartition : 16;            ///< fecInPartition, only used in improved link-based format
-      uint32_t magicWord : 8;                  ///< magic word, identifies package
+    uint64_t word0 = 0;             ///< lower 64 bits
+    struct {                        ///
+      uint64_t bitMaskLow : 64;     ///< lower bits of the 80 bit bitmask
+    };                              ///
+  };                                ///
+                                    ///
+  union {                           ///
+    uint64_t word1 = 0;             ///< upper bits of the 80 bit bitmask
+    struct {                        ///
+      uint64_t bitMaskHigh : 16;    ///< higher bits of the 80 bit bitmask
+      uint32_t bunchCrossing : 12;  ///< bunch crossing number
+      uint32_t numWordsPayload : 4; ///< number of 128bit words with 12bit ADC values
+      uint32_t syncOffsetBC : 8;    ///< sync offset in bunch crossings
+      uint32_t fecInPartition : 16; ///< fecInPartition, only used in improved link-based format
+      uint32_t magicWord : 8;       ///< magic word, identifies package
     };
   };
 
@@ -77,7 +78,7 @@ struct Header final : public CommonHeader {
     return std::bitset<80>((std::bitset<80>(bitMaskHigh) << 64) | std::bitset<80>(bitMaskLow));
   }
 
-  bool isFillWord() const { return (word0 == 0xffffffffffffffff) && (word1 == 0xffffffffffffffff); }
+  bool isFillWord() const { return ((word0 == 0xffffffffffffffff) && (word1 == 0xffffffffffffffff)) || ((word0 == 0x0000000000000000) && (word1 == 0x0000000000000000)); }
 };
 
 /// ADC data container

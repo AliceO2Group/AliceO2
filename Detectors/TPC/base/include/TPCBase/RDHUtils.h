@@ -26,6 +26,7 @@ using o2::raw::RDHUtils;
 using FEEIDType = uint16_t;
 static constexpr FEEIDType UserLogicLinkID = 15; ///< virtual link ID for ZS data
 static constexpr FEEIDType IDCLinkID = 20;       ///< Identifier for integrated digital currents
+static constexpr FEEIDType ILBZSLinkID = 21;     ///< Identifier for improved link-based ZS
 static constexpr FEEIDType SACLinkID = 25;       ///< Identifier for sampled analog currents
 
 /// compose feeid from cru, endpoint and link
