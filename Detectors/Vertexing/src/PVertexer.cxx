@@ -629,7 +629,7 @@ void PVertexer::init()
   mPVParams = &PVertexerParams::Instance();
   setTukey(mPVParams->tukey);
   initMeanVertexConstraint();
-
+  mClosestBunchAbove[0] = mClosestBunchBelow[0] = -1;
   auto* prop = o2::base::Propagator::Instance();
   setBz(prop->getNominalBz());
 
@@ -751,7 +751,7 @@ void PVertexer::setBunchFilling(const o2::BunchFilling& bf)
   // find closest (from above) filled bunch
   int minBC = bf.getFirstFilledBC(), maxBC = bf.getLastFilledBC();
   if (minBC < 0) {
-    throw std::runtime_error("Bunch filling is not set in PVertexer");
+    LOG(error) << "Empty bunch filling is provided, all vertices will be rejected";
   }
   int bcAbove = minBC;
   for (int i = o2::constants::lhc::LHCMaxBunches; i--;) {
@@ -773,6 +773,9 @@ void PVertexer::setBunchFilling(const o2::BunchFilling& bf)
 bool PVertexer::setCompatibleIR(PVertex& vtx)
 {
   // assign compatible IRs accounting for the bunch filling scheme
+  if (mClosestBunchAbove[0] < 0) { // empty or no BF was provided
+    return false;
+  }
   const auto& vtxT = vtx.getTimeStamp();
   o2::InteractionRecord irMin(mStartIR), irMax(mStartIR);
   auto rangeT = std::max(mPVParams->minTError, mPVParams->nSigmaTimeCut * std::min(mPVParams->maxTError, vtxT.getTimeStampError())) + mPVParams->timeMarginVertexTime;
