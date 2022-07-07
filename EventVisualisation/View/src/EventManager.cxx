@@ -30,11 +30,16 @@
 #include <TEveElement.h>
 #include <TGListTree.h>
 #include <TEveCalo.h>
-#include "FairLogger.h"
+#include <FairLogger.h>
+#include <rapidjson/document.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
+#include <gsl/span>
 
 #define elemof(e) (unsigned int)(sizeof(e) / sizeof(e[0]))
 
 using namespace std;
+using namespace rapidjson;
 
 namespace o2
 {
@@ -98,11 +103,17 @@ void EventManager::displayCurrentEvent()
     multiView->registerElements(dataTypeLists, dataTypeListsPhi);
 
     if (vizSettings.firstEvent) {
-      saveVisualisationSettings();
+      ifstream s(TEMP_SETTINGS_PATH);
+      if (s.good()) {
+        restoreVisualisationSettings();
+      } else {
+        saveVisualisationSettings();
+      }
       vizSettings.firstEvent = false;
     } else {
       restoreVisualisationSettings();
     }
+
     if (this->mShowDate) {
       multiView->getAnnotationTop()->SetText(
         TString::Format("Run %d\n%s", dataSource->getRunNumber(), dataSource->getCollisionTime().c_str()));
@@ -365,10 +376,122 @@ void EventManager::saveVisualisationSettings()
       vizSettings.clusterSize[i] = clusterSet->GetMarkerSize();
     }
   }
+
+  ofstream settings(TEMP_SETTINGS_PATH);
+
+  if (settings.good()) {
+    Document d;
+    d.SetObject();
+    auto& allocator = d.GetAllocator();
+
+    auto jsonArray = [](const auto& array, auto& allocator) {
+      Value arr(kArrayType);
+
+      for (const auto& value : array) {
+        arr.PushBack(value, allocator);
+      }
+
+      return arr;
+    };
+
+    d.AddMember("trackVisibility", jsonArray(vizSettings.trackVisibility, allocator), allocator);
+    d.AddMember("trackColor", jsonArray(vizSettings.trackColor, allocator), allocator);
+    d.AddMember("trackStyle", jsonArray(vizSettings.trackStyle, allocator), allocator);
+    d.AddMember("trackWidth", jsonArray(vizSettings.trackWidth, allocator), allocator);
+    d.AddMember("clusterVisibility", jsonArray(vizSettings.clusterVisibility, allocator), allocator);
+    d.AddMember("clusterColor", jsonArray(vizSettings.clusterColor, allocator), allocator);
+    d.AddMember("clusterStyle", jsonArray(vizSettings.clusterStyle, allocator), allocator);
+    d.AddMember("clusterSize", jsonArray(vizSettings.clusterSize, allocator), allocator);
+
+    auto jsonCamera = [&jsonArray](MultiView::EViews view, auto& allocator) {
+      Value obj(kObjectType);
+
+      auto& camera = MultiView::getInstance()->getView(view)->GetGLViewer()->CurrentCamera();
+
+      const gsl::span baseSpan(camera.RefCamBase().CArr(), 16);
+      obj.AddMember("base", jsonArray(baseSpan, allocator), allocator);
+
+      const gsl::span transSpan(camera.GetCamTrans().CArr(), 16);
+      obj.AddMember("trans", jsonArray(transSpan, allocator), allocator);
+
+      if (camera.IsOrthographic()) {
+        obj.AddMember("zoom", dynamic_cast<TGLOrthoCamera&>(camera).GetZoom(), allocator);
+      } else if (camera.IsPerspective()) {
+        obj.AddMember("fov", dynamic_cast<TGLPerspectiveCamera&>(camera).GetFOV(), allocator);
+      }
+
+      return obj;
+    };
+
+    d.AddMember("camera3d", jsonCamera(MultiView::View3d, allocator), allocator);
+    d.AddMember("cameraRphi", jsonCamera(MultiView::ViewRphi, allocator), allocator);
+    d.AddMember("cameraZY", jsonCamera(MultiView::ViewZY, allocator), allocator);
+
+    StringBuffer strbuf;
+    Writer<StringBuffer> writer(strbuf);
+    d.Accept(writer);
+
+    settings << strbuf.GetString();
+  }
 }
 
 void EventManager::restoreVisualisationSettings()
 {
+  ifstream settings(TEMP_SETTINGS_PATH);
+
+  if (settings.good()) {
+    string json((istreambuf_iterator<char>(settings)), istreambuf_iterator<char>());
+    Document d;
+    d.Parse(json.c_str());
+
+    auto updateArray = [](auto& array, const auto& document, const char* name, const auto& accessor) {
+      for (size_t i = 0; i < elemof(array); ++i) {
+        array[i] = accessor(document[name][i]);
+      }
+    };
+
+    auto getBool = [](const GenericValue<UTF8<char>>& v) { return v.GetBool(); };
+    auto getUint = [](const GenericValue<UTF8<char>>& v) { return v.GetUint(); };
+    auto getFloat = [](const GenericValue<UTF8<char>>& v) { return v.GetFloat(); };
+
+    updateArray(vizSettings.trackVisibility, d, "trackVisibility", getBool);
+    updateArray(vizSettings.trackColor, d, "trackColor", getUint);
+    updateArray(vizSettings.trackStyle, d, "trackStyle", getUint);
+    updateArray(vizSettings.trackWidth, d, "trackWidth", getUint);
+    updateArray(vizSettings.clusterVisibility, d, "clusterVisibility", getBool);
+    updateArray(vizSettings.clusterColor, d, "clusterColor", getUint);
+    updateArray(vizSettings.clusterStyle, d, "clusterStyle", getUint);
+    updateArray(vizSettings.clusterSize, d, "clusterSize", getFloat);
+
+    auto updateCamera = [getFloat](MultiView::EViews view, const auto& document, const char* name) {
+      auto& camera = MultiView::getInstance()->getView(view)->GetGLViewer()->CurrentCamera();
+
+      std::array<Double_t, 16> values;
+
+      for (size_t i = 0; i < values.size(); ++i) {
+        values[i] = getFloat(document[name]["base"][i]);
+      }
+      camera.RefCamBase() = TGLMatrix(values.data());
+
+      for (size_t i = 0; i < values.size(); ++i) {
+        values[i] = getFloat(document[name]["trans"][i]);
+      }
+      camera.RefCamTrans() = TGLMatrix(values.data());
+
+      if (camera.IsOrthographic()) {
+        dynamic_cast<TGLOrthoCamera&>(camera).SetZoom(getFloat(document[name]["zoom"]));
+      } else if (camera.IsPerspective()) {
+        dynamic_cast<TGLPerspectiveCamera&>(camera).SetFOV(getFloat(document[name]["fov"]));
+      }
+
+      camera.IncTimeStamp();
+    };
+
+    updateCamera(MultiView::View3d, d, "camera3d");
+    updateCamera(MultiView::ViewRphi, d, "cameraRphi");
+    updateCamera(MultiView::ViewZY, d, "cameraZY");
+  }
+
   const auto& tracks = *dataTypeLists[EVisualisationDataType::Tracks];
 
   for (auto elm : tracks.RefChildren()) {
@@ -398,6 +521,8 @@ void EventManager::restoreVisualisationSettings()
       clusterSet->SetMarkerSize(vizSettings.clusterSize[i]);
     }
   }
+
+  MultiView::getInstance()->redraw3D();
 }
 
 } // namespace event_visualisation
