@@ -114,6 +114,8 @@ else
   fi
 fi
 
+PVERTEXING_CONFIG_KEY+="${ITSMFT_STROBES};"
+
 has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",compressed-clusters-ctf"
 
 if workflow_has_parameter QC && has_detector_qc TPC; then
