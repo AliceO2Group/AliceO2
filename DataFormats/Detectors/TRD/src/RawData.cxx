@@ -486,7 +486,7 @@ bool sanityCheckDigitMCMADCMask(o2::trd::DigitMCMADCMask& mask, int numberofbits
   count = (~count) & 0x1f;
   if (count != numberofbitsset) {
     goodadcmask=false;
-    LOG(warn) << "***DigitMCMADCMask bad bit count maskcount:" << ~mask.c << "::" << mask.c << " bitscounting:" << numberofbitsset << " bp: 0x" << std::hex << mask.adcmask;
+    LOG(info) << "***DigitMCMADCMask bad bit count maskcount:" << ((~mask.c) & 0x1f) << " bitscounting:" << numberofbitsset << " bp: 0x" << std::hex << mask.adcmask;
   }
   if (mask.n != 0x1) {
     goodadcmask = false;
