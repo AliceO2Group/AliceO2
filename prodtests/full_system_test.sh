@@ -52,6 +52,7 @@ TFDELAY=${TFDELAY:-100} # Delay in seconds between publishing time frames
 NOMCLABELS="--disable-mc"
 O2SIMSEED=${O2SIMSEED:--1}
 SPLITTRDDIGI=${SPLITTRDDIGI:-1}
+DIGITDOWNSCALINGTRD=${DIGITDOWNSCALINGTRD:-1000}
 NHBPERTF=${NHBPERTF:-128}
 RUNFIRSTORBIT=${RUNFIRSTORBIT:-0}
 FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-0}
@@ -113,9 +114,9 @@ DIGITOPTKEY=${HBFUTILPARAMS}
 if [ $SPLITTRDDIGI == "1" ]; then
   DIGITOPT+=" --skipDet TRD"
 else
+  DIGITOPT+=" --trd-digit-downscaling ${DIGITDOWNSCALINGTRD}"
   DIGITOPTKEY+=$DIGITOPTKEYTRD
 fi
-DIGITDOWNSCALINGTRD=${DIGITDOWNSCALINGTRD:-1000}
 
 taskwrapper sim.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} --seed $O2SIMSEED -n $NEvents --configKeyValues "Diamond.width[2]=6." -g ${FST_GENERATOR} -e ${FST_MC_ENGINE} -j $NJOBS --run ${RUNNUMBER}
 taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents ${DIGIQED} ${NOMCLABELS} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITOPT} --configKeyValues "\"${DIGITOPTKEY}\"" --interactionRate $FST_COLRATE
