@@ -28,7 +28,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
   // To be taken from config database ?
   std::map<std::string, uint64_t> detInputName2Mask =
     //{{"MFV0MB", 1}, {"MFV0MBInner", 2}, {"MFV0MBOuter", 4}, {"MFV0HM", 8}, {"MFT0A", 1}, {"MFT0C", 2}, {"MFT0Vertex", 4}, {"MFT0Cent", 8}, {"MFT0SemiCent", 0x10}};
-    {{"MVBA", 1}, {"MVIR", 0x10}, {"MVOR", 2}, {"MVNC", 4}, {"MVCH", 8}, {"MT0A", 1}, {"MT0C", 2}, {"MTVX", 0x10}, {"MTCE", 8}, {"MTSC", 0x4},{"0U0A", 1}, {"0U0C", 2}, {"0UVX", 0x10}, {"0UCE", 8}, {"0USC", 0x4}};
+    {{"MVBA", 1}, {"MVIR", 0x10}, {"MVOR", 2}, {"MVNC", 4}, {"MVCH", 8}, {"MT0A", 1}, {"MT0C", 2}, {"MTVX", 0x10}, {"MTCE", 8}, {"MTSC", 0x4}, {"0U0A", 1}, {"0U0C", 2}, {"0UVX", 0x10}, {"0UCE", 8}, {"0USC", 0x4}};
   std::map<o2::InteractionRecord, std::vector<const CTPInputDigit*>> predigits;
   for (auto const& inp : detinputs) {
     predigits[inp.intRecord].push_back(&inp);

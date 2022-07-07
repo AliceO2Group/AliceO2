@@ -43,8 +43,8 @@ void CTPConfiguration::capitaliseString(std::string& str)
 }
 bool CTPConfiguration::isNumber(const std::string& s)
 {
-    return !s.empty() && std::find_if(s.begin(), 
-        s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
+  return !s.empty() && std::find_if(s.begin(),
+                                    s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
 }
 //
 void BCMask::printStream(std::ostream& stream) const
@@ -288,45 +288,44 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
       cls.name = tokens[1];
       cls.clusterIndex = mClusters.size() - 1;
       // LOG(info) << "point:" << cls.cluster << " " << &mClusters.front();
-      for(int i = 2; i<tokens.size(); i++) {
+      for (int i = 2; i < tokens.size(); i++) {
         std::string token = tokens[i];
-        bool isGenerator  = 0;
-        for(auto const& gen: CTPGenerator::Generators) {
-          if(token.find(gen) != std::string::npos) {
+        bool isGenerator = 0;
+        for (auto const& gen : CTPGenerator::Generators) {
+          if (token.find(gen) != std::string::npos) {
             isGenerator = 1;
             break;
           }
         }
-        if(isGenerator) {
+        if (isGenerator) {
           CTPDescriptor* desc = new CTPDescriptor;
           desc->name = token;
           mDescriptors.push_back(*desc);
           cls.descriptorIndex = mDescriptors.size() - 1;
-        }
-        else if(token.find("~") != std::string::npos) { // inverted input
-          std::string sinp = token.substr(1,token.size()-1);
-          //uint32_t inp = std::strtoul(sinp);
-          
+        } else if (token.find("~") != std::string::npos) { // inverted input
+          std::string sinp = token.substr(1, token.size() - 1);
+          // uint32_t inp = std::strtoul(sinp);
+
           CTPDescriptor* desc = new CTPDescriptor;
           desc->name = token;
           mDescriptors.push_back(*desc);
           cls.descriptorIndex = mDescriptors.size() - 1;
-        } else if(isNumber(token)) {  // normal input
+        } else if (isNumber(token)) { // normal input
           CTPDescriptor* desc = new CTPDescriptor;
           desc->name = token;
           mDescriptors.push_back(*desc);
           cls.descriptorIndex = mDescriptors.size() - 1;
-        } else if(token.find("0x") != std::string::npos) { //downscale
-        } else { // mask
+        } else if (token.find("0x") != std::string::npos) { // downscale
+        } else {                                            // mask
           int i = 0;
-          for(auto const& bcm: mBCMasks) {
-            if( bcm.name == token ) {
+          for (auto const& bcm : mBCMasks) {
+            if (bcm.name == token) {
               LOG(info) << "Class BCMask found:" << token;
               break;
             }
             i++;
           }
-          if( i == mBCMasks.size()) {
+          if (i == mBCMasks.size()) {
             LOG(error) << "Class BCMask NOT found:" << token;
           }
         }
@@ -871,41 +870,41 @@ void CTPInputsConfiguration::printStream(std::ostream& stream) const
 }
 void CTPInputsConfiguration::initDefaultInputConfig()
 {
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MT0A","FT0",1));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MT0C","FT0",2)); 
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MTVX","FT0",3));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MTSC","FT0",4));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MTCE","FT0",5));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MT0A", "FT0", 1));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MT0C", "FT0", 2));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MTVX", "FT0", 3));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MTSC", "FT0", 4));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MTCE", "FT0", 5));
   //
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MVBA","FV0",6));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MVOR","FV0",7)); 
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MVIR","FV0",8));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MVNC","FV0",9));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MVCH","FV0",10));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MVBA", "FV0", 6));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MVOR", "FV0", 7));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MVIR", "FV0", 8));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MVNC", "FV0", 9));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MVCH", "FV0", 10));
   //
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0UCE","FT0",13));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0USC","FT0",15)); 
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0UVX","FT0",16));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0U0C","FT0",17));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0U0A","FT0",18));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0UCE", "FT0", 13));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0USC", "FT0", 15));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0UVX", "FT0", 16));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0U0C", "FT0", 17));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0U0A", "FT0", 18));
   //
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0DMC","EMC",14));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0DJ1","EMC",41));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0DG1","EMC",42));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0DJ2","EMC",43));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0DG2","EMC",44));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0DMC", "EMC", 14));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0DJ1", "EMC", 41));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0DG1", "EMC", 42));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0DJ2", "EMC", 43));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0DG2", "EMC", 44));
   //
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0EMC","EMC",21));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0EJ1","EMC",37));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0EG1","EMC",38));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0EJ2","EMC",39));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0EG2","EMC",40));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0EMC", "EMC", 21));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0EJ1", "EMC", 37));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0EG1", "EMC", 38));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0EJ2", "EMC", 39));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0EG2", "EMC", 40));
   //
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0PH0","PHS",22));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("1PHL","PHS",27));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("1PHH","PHS",28));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("1PHL","PHM",29));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0PH0", "PHS", 22));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("1PHL", "PHS", 27));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("1PHH", "PHS", 28));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("1PHL", "PHM", 29));
   //
-  defaultInputConfig.CTPInputs.push_back(CTPInput("1ZED","ZDC",25));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("1ZNC","ZDC",26));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("1ZED", "ZDC", 25));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("1ZNC", "ZDC", 26));
 }

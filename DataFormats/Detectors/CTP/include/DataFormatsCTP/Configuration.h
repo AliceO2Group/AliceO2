@@ -110,7 +110,7 @@ struct CTPInputsConfiguration {
 class CTPConfiguration
 {
  public:
-  //static CTPInputsConfiguration mCTPInputsConfiguration;
+  // static CTPInputsConfiguration mCTPInputsConfiguration;
   const static std::map<std::string, std::string> detName2LTG;
   CTPConfiguration() = default;
   bool isDetector(const o2::detectors::DetID& det);
@@ -141,6 +141,7 @@ class CTPConfiguration
   std::vector<std::string> getDetectorList() const;
   o2::detectors::DetID::mask_t getDetectorMask() const;
   void createDefaultInputsConfig();
+
  private:
   std::string mConfigString = "";
   uint32_t mRunNumber = 0;
