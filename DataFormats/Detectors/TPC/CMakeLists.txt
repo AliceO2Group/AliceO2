@@ -59,6 +59,7 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/ZeroSuppressionLinkBased.h
           include/DataFormatsTPC/TrackCuts.h
           include/DataFormatsTPC/LtrCalibData.h
+          include/DataFormatsTPC/VDriftCorrFact.h
           include/DataFormatsTPC/CalibdEdxCorrection.h
           include/DataFormatsTPC/BetheBlochAleph.h)
 
