@@ -904,7 +904,7 @@ o2::framework::ServiceSpec CommonServices::guiMetricsSpec()
       auto& spec = context.services().get<DeviceSpec const>();
       auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
       for (size_t ci; ci < spec.outputChannels.size(); ++ci) {
-        monitoring.send({(uint64_t)oldestPossibleOutput.timeslice.value, fmt::format("oldest_possible_output/{}", ci), o2::monitoring::Verbosity::Debug}); 
+        monitoring.send({(uint64_t)oldestPossibleOutput.timeslice.value, fmt::format("oldest_possible_output/{}", ci), o2::monitoring::Verbosity::Debug});
       } },
     .domainInfoUpdated = [](ServiceRegistry& registry, size_t timeslice, ChannelIndex channel) {
       auto& monitoring = registry.get<Monitoring>();
