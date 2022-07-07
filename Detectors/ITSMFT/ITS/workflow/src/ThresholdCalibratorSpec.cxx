@@ -718,7 +718,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
 
         if (this->mRunType == -1) {
           short int runtype = ((short int)(calib.calibUserField >> 24)) & 0xff;
-          mConfDBv = ((short int)(calib.calibUserField >> 32)) & 0xffff; // confDB version 
+          mConfDBv = ((short int)(calib.calibUserField >> 32)) & 0xffff; // confDB version
           this->setRunType(runtype);
           LOG(info) << "Calibrator will ship these run parameters to aggregator:";
           LOG(info) << "Run type  : " << mRunType;

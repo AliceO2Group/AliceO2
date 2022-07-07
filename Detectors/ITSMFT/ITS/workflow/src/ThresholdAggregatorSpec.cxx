@@ -46,7 +46,7 @@ void ITSThresholdAggregator::init(InitContext& ic)
 void ITSThresholdAggregator::run(ProcessingContext& pc)
 {
   // take run type, scan type, fit type, db version only at the beginning (important for EoS operations!)
-  if(mRunType == -1) {
+  if (mRunType == -1) {
     for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "RUNT"}}})) {
       updateLHCPeriodAndRunNumber(pc);
       mRunType = pc.inputs().get<short int>(inputRef);
@@ -115,7 +115,9 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
   auto class_name = o2::utils::MemFileHelper::getClassName(tuningMerge);
 
   // Create metadata for database object
-  std::string ft = this->mFitType == 0 ? "derivative" : this->mFitType == 1 ? "fit" : this->mFitType == 2 ? "hitcounting" : "null";
+  std::string ft = this->mFitType == 0 ? "derivative" : this->mFitType == 1 ? "fit"
+                                                      : this->mFitType == 2 ? "hitcounting"
+                                                                            : "null";
   if (mScanType == 'D' || mScanType == 'A') {
     ft = "null";
   }

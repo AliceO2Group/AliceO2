@@ -92,10 +92,10 @@ class ITSThresholdAggregator : public Task
   // confDB version
   short int mDBversion = -1;
 
-  // DataTakingContext used to get lhcperiod 
+  // DataTakingContext used to get lhcperiod
   o2::framework::DataTakingContext mDataTakingContext{};
 
-  // Timing info used to get run number 
+  // Timing info used to get run number
   o2::framework::TimingInfo mTimingInfo{};
 };
 
