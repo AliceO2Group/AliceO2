@@ -446,7 +446,7 @@ int Trap2CRU::buildDigitRawData(const int digitstartindex, const int digitendind
     }
     int channel = d->getChannel();
     //set adcmask for the channel we currently have.
-    adcmaskptr->adcmask |= 1UL << channel;
+    incrementADCMask(*adcmaskptr, channel); //adcmaskptr->adcmask |= 1UL << channel;
     for (int timebin = 0; timebin < o2::trd::constants::TIMEBINS; timebin += 3) {
       data.z = adcdata[timebin];
       data.y = adcdata[timebin + 1];
@@ -538,9 +538,15 @@ int Trap2CRU::buildTrackletRawData(const int trackletindex, const int linkid)
   if (!destroytracklets) {
     setNumberOfTrackletsInHeader(header, trackletcounter);
     if (trackletcounter > 0) { // dont write header if there are no tracklets.
+      if (mVerbosity) {
+        LOG(info) << " TTT TrackletMCMHeader : 0x" << std::hex << header;
+      }
       memcpy((char*)mRawDataPtr, (char*)&header, sizeof(TrackletMCMHeader));
       mRawDataPtr += sizeof(TrackletMCMHeader);
       for (int i = 0; i < trackletcounter; ++i) {
+        if (mVerbosity) {
+          LOG(info) << " TTTx TrackletMCMData : 0x" << std::hex << trackletdata[i];
+        }
         memcpy((char*)mRawDataPtr, (char*)&trackletdata[i], sizeof(TrackletMCMData));
         mRawDataPtr += sizeof(TrackletMCMData);
       }
@@ -584,24 +590,23 @@ int Trap2CRU::writeTrackletHCHeader(const int eventcount)
 {
   int wordswritten = 0;
   //from linkid we can get supermodule, stack, layer, side
-  int linkid = mTracklets[mCurrentTracklet].getHCID();
+  int hcid = mTracklets[mCurrentTracklet].getHCID();
   int detector = mTracklets[mCurrentTracklet].getHCID() / 2;
-  TrackletHCHeader trackletheader;
-  trackletheader.supermodule = linkid / 60;
-  trackletheader.stack = (detector % (o2::trd::constants::NLAYER * o2::trd::constants::NSTACK)) / o2::trd::constants::NLAYER;
-  trackletheader.layer = (detector % o2::trd::constants::NLAYER);
-  trackletheader.one = 1;
+  TrackletHCHeader tracklethcheader;
+  unsigned int supermodule = hcid / 60;
+  unsigned int stack = (detector % (o2::trd::constants::NLAYER * o2::trd::constants::NSTACK)) / o2::trd::constants::NLAYER;
+  unsigned int layer = (detector % o2::trd::constants::NLAYER);
+  unsigned int side = (hcid % 2) ? 1 : 0;
+  unsigned int chipclock = eventcount * 42; // just has to be a constant increasing number per event for our purposes in sim to raw.
+  unsigned int format = 12;
+  constructTrackletHCHeader(tracklethcheader, supermodule, stack, layer, side, chipclock, format);
   if (mVerbosity) {
-    LOG(info) << "Tracklet linkid : " << linkid << ":"
-              << " " << trackletheader.supermodule << ":" << trackletheader.stack << ":" << trackletheader.layer << ":" << trackletheader.side;
+    printTrackletHCHeader(tracklethcheader);
   }
-  trackletheader.side = (linkid % 2) ? 1 : 0;
-  trackletheader.MCLK = eventcount * 42; // just has to be a constant increasing number per event for our purposes in sim to raw.
-  trackletheader.format = 12;
   if (mUseTrackletHCHeader) { // run 3 we also have a TrackletHalfChamber.
-    memcpy(mRawDataPtr, (char*)&trackletheader, sizeof(TrackletHCHeader));
+    memcpy(mRawDataPtr, (char*)&tracklethcheader, sizeof(TrackletHCHeader));
     if (mVerbosity) {
-      LOG(info) << "writing tracklethcheader of 0x" << std::hex << trackletheader.word;
+      LOG(info) << "writing tracklethcheader of 0x" << std::hex << tracklethcheader.word;
     }
     mRawDataPtr += 4;
     wordswritten++;
