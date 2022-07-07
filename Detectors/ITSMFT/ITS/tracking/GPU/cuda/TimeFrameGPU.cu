@@ -43,7 +43,7 @@ template <int NLayers>
 TimeFrameGPU<NLayers>::TimeFrameGPU()
 {
   mIsGPU = true;
-  getDeviceMemory();
+  // getDeviceMemory(); To be updated
 }
 
 template <int NLayers>
@@ -159,13 +159,11 @@ void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
       mTrackingFrameInfoD[iLayer].reset(mTrackingFrameInfo[iLayer].data(), static_cast<int>(mTrackingFrameInfo[iLayer].size()));
       mClusterExternalIndicesD[iLayer].reset(mClusterExternalIndices[iLayer].data(), static_cast<int>(mClusterExternalIndices[iLayer].size()));
       mROframesClustersD[iLayer].reset(mROframesClusters[iLayer].data(), static_cast<int>(mROframesClusters[iLayer].size()));
-      if (iLayer < NLayers) {
-        mIndexTablesD[iLayer].reset(mIndexTables[iLayer].data(), static_cast<int>(mIndexTables[iLayer].size()));
-      }
+      mIndexTablesD[iLayer].reset(mIndexTables[iLayer].data(), static_cast<int>(mIndexTables[iLayer].size()));
     }
   } else {
-    mIndexTablesLayer0D.reset(getIndexTableWhole(0).data(), static_cast<int>(getIndexTableWhole(0).size()));
-    mIndexTablesLayer2D.reset(getIndexTableWhole(2).data(), static_cast<int>(getIndexTableWhole(2).size()));
+    mIndexTablesD[0].reset(getIndexTableWhole(0).data(), static_cast<int>(getIndexTableWhole(0).size()));
+    mIndexTablesD[2].reset(getIndexTableWhole(2).data(), static_cast<int>(getIndexTableWhole(2).size()));
   }
 
   gpuThrowOnError();
