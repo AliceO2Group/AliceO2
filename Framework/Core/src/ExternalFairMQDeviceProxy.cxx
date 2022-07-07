@@ -228,6 +228,22 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
     std::vector<std::string> unmatchedDescriptions;
     static int64_t dplCounter = -1;
     dplCounter++;
+    static bool override_creation_env = getenv("DPL_RAWPROXY_OVERRIDE_ORBITRESET");
+    bool override_creation = false;
+    uint64_t creationVal = 0;
+    if (override_creation_env) {
+      static uint64_t creationValBase = std::stoul(getenv("DPL_RAWPROXY_OVERRIDE_ORBITRESET"));
+      creationVal = creationValBase;
+      override_creation = true;
+    } else {
+      std::string orbitResetTimeUrl = device.fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitResetTime");
+      char* err = 0;
+      creationVal = std::strtoll(orbitResetTimeUrl.c_str(), &err, 10);
+      if (err && *err != 0 && creationVal) {
+        override_creation = true;
+      }
+    }
+
     for (int msgidx = 0; msgidx < parts.Size(); msgidx += 2) {
       const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx)->GetData());
       if (!dh) {
@@ -243,10 +259,8 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
         continue;
       }
       const_cast<DataProcessingHeader*>(dph)->startTime = dplCounter;
-      static bool override_creation = getenv("DPL_RAWPROXY_OVERRIDE_ORBITRESET");
       if (override_creation) {
-        static uint64_t creationVal = std::stoul(getenv("DPL_RAWPROXY_OVERRIDE_ORBITRESET")) + (dh->firstTForbit * o2::constants::lhc::LHCOrbitNS * 0.000001f);
-        const_cast<DataProcessingHeader*>(dph)->creation = creationVal;
+        const_cast<DataProcessingHeader*>(dph)->creation = creationVal + (dh->firstTForbit * o2::constants::lhc::LHCOrbitNS * 0.000001f);
       }
       timingInfo.timeslice = dph->startTime;
       timingInfo.creation = dph->creation;

@@ -6,7 +6,12 @@ if [ "0$1" != "0dd" ] && [ "0$1" != "0rr" ] && [ "0$1" != "0tf" ]; then
 fi
 
 if [[ -z "${WORKFLOW_PARAMETERS+x}" ]]; then
-  export WORKFLOW_PARAMETERS="CALIB,QC,EVENT_DISPLAY,CALIB_LOCAL_AGGREGATOR,CALIB_PROXIES"
+  export WORKFLOW_PARAMETERS="CALIB,QC,EVENT_DISPLAY,CALIB_LOCAL_AGGREGATOR"
+  if [[ "0$FST_TMUX_INTEGRATED_AGGREGATOR" == "01" ]]; then
+    export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS},CALIB_LOCAL_INTEGRATED_AGGREGATOR"
+  else
+    export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS},CALIB_PROXIES"
+  fi
   if [[ -z "${GEN_TOPO_WORKDIR}" ]]; then
     mkdir -p gen_topo_tmp
     export GEN_TOPO_WORKDIR=`pwd`/gen_topo_tmp
@@ -66,11 +71,6 @@ elif [ $1 == "tf" ]; then
 elif [ $1 == "rr" ]; then
   export CMD=raw-reader.sh
   export GPU_NUM_MEM_REG_CALLBACKS=$(($NUM_DPL_WORKFLOWS + 1))
-fi
-
-if [ ! -f matbud.root ]; then
-  echo matbud.root missing 1>&2
-  exit 1
 fi
 
 if [ "0$FST_TMUX_NOWAIT" != "01" ]; then

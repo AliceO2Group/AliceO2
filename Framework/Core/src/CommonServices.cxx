@@ -204,24 +204,9 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
       if (extDetectors != "unspecified") {
         context.detectors = extDetectors;
       }
-      // FIXME: we actually need to get the orbit, not only to know where it is
-      std::string orbitResetTimeUrl = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitResetTime");
-      auto is_number = [](const std::string& s) -> bool {
-        return !s.empty() && std::all_of(s.begin(), s.end(), ::isdigit);
-      };
-
-      if (orbitResetTimeUrl.rfind("file://") == 0) {
-        // FIXME: read it from a file
-        context.orbitResetTime = 490917600;
-      } else if (orbitResetTimeUrl.rfind("http://") == 0) {
-        // FIXME: read it from ccdb
-        context.orbitResetTime = 490917600;
-      } else if (is_number(orbitResetTimeUrl)) {
-        context.orbitResetTime = std::stoull(orbitResetTimeUrl.data());
-        // FIXME: specify it from the command line
-      } else {
-        context.orbitResetTime = 490917600;
-      }
+      // Using a ccdb:// url will fetch it from CCDB.
+      // Using an integer will use the value as the orbit reset time directly.
+      context.orbitResetTime = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitReset");
       context.nOrbitsPerTF = services.get<RawDeviceService>().device()->fConfig->GetProperty<uint64_t>("Norbits_per_TF", 128); },
     .kind = ServiceKind::Serial};
 }
