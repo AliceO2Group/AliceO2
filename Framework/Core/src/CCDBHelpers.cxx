@@ -306,6 +306,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
       });
 
       return adaptStateless([helper](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
+        char* err = nullptr;
         static Long64_t orbitResetTime = -1;
         static size_t lastTimeUsed = -1;
         if (timingInfo.creation & DataProcessingHeader::DUMMY_CREATION_TIME_OFFSET) {
@@ -314,11 +315,13 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         }
         lastTimeUsed = timingInfo.creation;
         // Fetch the CCDB object for the CTP
-        {
+        // if the orbitStr starts with ccdb://, then we use the CCDB object for the CTP
+        if (dtc.orbitResetTime.find("ccdb://") == 0) {
           // FIXME: this (the static) is needed because for now I cannot get
           // a pointer for the cachedObject in the fetcher itself.
           // Will be fixed at a later point.
-          std::string path = "CTP/Calib/OrbitReset";
+          // strip the ccdb:// from dtc.orbitResetTime
+          std::string path = dtc.orbitResetTime.substr(7);
           std::map<std::string, std::string> metadata;
           std::map<std::string, std::string> headers;
           std::string etag;
@@ -364,6 +367,12 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
               // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
             }
             // cached object is fine
+          } else if ((orbitResetTime = strtoll(dtc.orbitResetTime.c_str(), &err, 10))) {
+            if (err && *err != '\0') {
+              LOGP(fatal, "Unable to parse orbitResetTime {}", dtc.orbitResetTime);
+            }
+          } else {
+            LOGP(fatal, "Invalid orbitResetTime {}", dtc.orbitResetTime);
           }
           auto cacheId = helper->mapURL2DPLCache[path];
           LOGP(debug, "Reusing {} for {}", cacheId.value, path);

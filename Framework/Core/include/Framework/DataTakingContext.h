@@ -32,7 +32,7 @@ struct DataTakingContext {
   /// How many orbits in a timeframe
   uint64_t nOrbitsPerTF = 128;
   /// The start time of the first orbit
-  uint64_t orbitResetTime = INVALID_RESET_TIME;
+  std::string orbitResetTime = "ccdb://CTP/Calib/OrbitReset";
   // What currently set the orbitResetTime value.
   OrbitResetTimeSource source = OrbitResetTimeSource::Default;
   /// The current lhc period
