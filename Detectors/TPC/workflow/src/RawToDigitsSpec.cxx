@@ -53,6 +53,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
     // parse command line arguments
     mMaxEvents = static_cast<uint32_t>(ic.options().get<int>("max-events"));
     mSyncOffsetReference = ic.options().get<uint32_t>("sync-offset-reference");
+    mDecoderType = ic.options().get<uint32_t>("decoder-type");
     mUseOldSubspec = ic.options().get<bool>("use-old-subspec");
     const bool createOccupancyMaps = ic.options().get<bool>("create-occupancy-maps");
     mForceQuit = ic.options().get<bool>("force-quit");
@@ -140,7 +141,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
     }
 
     auto& reader = mRawReader.getReaders()[0];
-    mActiveSectors = calib_processing_helper::processRawData(pc.inputs(), reader, mUseOldSubspec, std::vector<int>(), nullptr, mSyncOffsetReference);
+    mActiveSectors = calib_processing_helper::processRawData(pc.inputs(), reader, mUseOldSubspec, std::vector<int>(), nullptr, mSyncOffsetReference, mDecoderType);
 
     mDigitDump.incrementNEvents();
     if (mClusterQC) {
@@ -181,6 +182,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
   rawreader::RawReaderCRUManager mRawReader;
   uint32_t mMaxEvents{0};
   uint32_t mSyncOffsetReference{144};
+  uint32_t mDecoderType{0};
   bool mReadyToQuit{false};
   bool mCalibDumped{false};
   bool mUseOldSubspec{false};
@@ -268,6 +270,7 @@ DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, b
       {"remove-ce-digits", VariantType::Bool, false, {"find CE position and remove digits around it"}},
       {"ignore-grp", VariantType::Bool, false, {"ignore GRP file"}},
       {"sync-offset-reference", VariantType::UInt32, 144u, {"Reference BCs used for the global sync offset in the CRUs"}},
+      {"decoder-type", VariantType::UInt32, 1u, {"Decoder to use: 0 - TPC, 1 - GPU"}},
     } // end Options
   };  // end DataProcessorSpec
 }

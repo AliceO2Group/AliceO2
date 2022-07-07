@@ -304,9 +304,9 @@ class GBTFrame
   T bit(T s, T t) const;
 
   // /// get value of specific bit
-  //static constexpr uint32_t getBit(uint32_t value, uint32_t bit)
+  // static constexpr uint32_t getBit(uint32_t value, uint32_t bit)
   //{
-  //return (value & (1 << bit)) >> bit;
+  // return (value & (1 << bit)) >> bit;
   //}
 
   /// shift bit from one position to another
@@ -351,7 +351,7 @@ class RawReaderCRUEventSync
     /// if packet is the first one
     bool isFirstPacket() const { return (PacketPositions.size() == 0); }
   };
-  //using LinkInfoArray_t = std::array<LinkInfo, 24>;
+  // using LinkInfoArray_t = std::array<LinkInfo, 24>;
   using LinkInfoArray_t = std::vector<LinkInfo>;
 
   // ---------------------------------------------------------------------------
@@ -403,7 +403,7 @@ class RawReaderCRUEventSync
 
     LinkInfoArray_t LinkInformation;
   };
-  //using CRUInfoArray_t = std::array<CRUInfo, CRU::MaxCRU>;
+  // using CRUInfoArray_t = std::array<CRUInfo, CRU::MaxCRU>;
   using CRUInfoArray_t = std::vector<CRUInfo>;
 
   // ---------------------------------------------------------------------------
@@ -437,9 +437,13 @@ class RawReaderCRUEventSync
       createEvent(heartbeatOrbit, dataType);
     }
 
+    const auto detField = o2::raw::RDHUtils::getDetectorField(rdh);
     const auto feeId = RDHUtils::getFEEID(rdh);
     const auto endPoint = rdh_utils::getEndPoint(feeId);
-    const auto link = rdh_utils::getLink(feeId);
+    auto link = rdh_utils::getLink(feeId);
+    if (link == 21 && detField == 0x02) {
+      link = 0;
+    }
     const auto globalLink = link + endPoint * 12;
     const auto cru = rdh_utils::getCRU(feeId);
 
@@ -972,7 +976,7 @@ class RawReaderCRUManager
                              uint32_t debugLevel = 0,
                              uint32_t verbosity = 0,
                              const std::string_view outputFilePrefix = "")
-  //RawReaderCRU& createReader(std::string_view fileName, uint32_t numTimeBins)
+  // RawReaderCRU& createReader(std::string_view fileName, uint32_t numTimeBins)
   {
     mRawReadersCRU.emplace_back(std::make_unique<RawReaderCRU>(inputFileName, numTimeBins, 0, stream, debugLevel, verbosity, outputFilePrefix, mRawReadersCRU.size()));
     mRawReadersCRU.back()->setManager(this);

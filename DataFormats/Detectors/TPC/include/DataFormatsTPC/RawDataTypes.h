@@ -22,7 +22,7 @@
 
 namespace o2::tpc::raw_data_types
 {
-enum class Type {
+enum Type : char {
   RAWDATA = 0, ///< GBT raw data
   LinkZS = 1,  ///< Link-based Zero Suppression
   ZS = 2,      ///< final Zero Suppression

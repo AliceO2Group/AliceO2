@@ -17,6 +17,9 @@
 #include <fmt/format.h>
 #include <fmt/chrono.h>
 
+#include "GPUO2Interface.h"
+#include "GPUParam.h"
+#include "GPUReconstructionConvert.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/InputRecordWalker.h"
 #include "Framework/Logger.h"
@@ -24,6 +27,8 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "Headers/DataHeaderHelpers.h"
 #include "DataFormatsTPC/ZeroSuppressionLinkBased.h"
+#include "DataFormatsTPC/RawDataTypes.h"
+#include "DataFormatsTPC/Digit.h"
 
 #include "TPCBase/RDHUtils.h"
 #include "TPCReconstruction/RawReaderCRU.h"
@@ -36,10 +41,10 @@ using namespace o2::framework;
 using RDHUtils = o2::raw::RDHUtils;
 
 void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, const rdh_utils::FEEIDType feeID);
-void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, uint32_t firstOrbit, uint32_t syncOffsetReference);
+void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, uint32_t firstOrbit, uint32_t syncOffsetReference, uint32_t decoderType);
 uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSpec>& filter);
 
-uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec, const std::vector<int>& sectors, size_t* nerrors, uint32_t syncOffsetReference)
+uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec, const std::vector<int>& sectors, size_t* nerrors, uint32_t syncOffsetReference, uint32_t decoderType)
 {
   std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
   size_t errorCount = 0;
@@ -133,7 +138,7 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
         }
         const auto link = RDHUtils::getLinkID(*rdhPtr);
         const auto detField = RDHUtils::getDetectorField(*rdhPtr);
-        if ((link == rdh_utils::UserLogicLinkID) || (detField == 1)) {
+        if ((link == rdh_utils::UserLogicLinkID) || (detField == raw_data_types::LinkZS) || ((linkID == rdh_utils::ILBZSLinkID) && (detField == raw_data_types::ZS))) {
           LOGP(info, "Detected Link-based zero suppression");
           isLinkZS = true;
           if (!reader->getManager() || !reader->getManager()->getLinkZSCallback()) {
@@ -147,7 +152,7 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
       }
 
       if (isLinkZS) {
-        processLinkZS(parser, reader, firstOrbit, syncOffsetReference);
+        processLinkZS(parser, reader, firstOrbit, syncOffsetReference, decoderType);
       } else {
         processGBT(parser, reader, feeID);
       }
@@ -228,7 +233,7 @@ void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU
   reader->runADCDataCallback(rawData);
 }
 
-void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, uint32_t firstOrbit, uint32_t syncOffsetReference)
+void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU>& reader, uint32_t firstOrbit, uint32_t syncOffsetReference, uint32_t decoderType)
 {
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
@@ -243,15 +248,28 @@ void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReader
     // skip all data that is not Link-base zero suppression
     const auto link = RDHUtils::getLinkID(*rdhPtr);
     const auto detField = RDHUtils::getDetectorField(*rdhPtr);
-    if (!((detField == 1) || ((detField == 0 || detField == 0xdeadbeef) && link == rdh_utils::UserLogicLinkID))) {
+    const auto feeID = RDHUtils::getFEEID(*rdhPtr);
+    const auto linkID = rdh_utils::getLink(feeID);
+    if (!((detField == raw_data_types::LinkZS) ||
+          ((detField == raw_data_types::RAWDATA || detField == 0xdeadbeef) && (link == rdh_utils::UserLogicLinkID)) ||
+          ((linkID == rdh_utils::ILBZSLinkID) && (detField == raw_data_types::Type::ZS)))) {
       continue;
     }
 
-    const auto feeID = RDHUtils::getFEEID(*rdhPtr);
-    const auto orbit = RDHUtils::getHeartBeatOrbit(*rdhPtr);
-    const auto data = (const char*)it.data();
-    const auto size = it.size();
-    raw_processing_helpers::processZSdata(data, size, feeID, orbit, firstOrbit, syncOffsetReference, reader->getManager()->getLinkZSCallback());
+    if ((decoderType == 1) && (linkID == rdh_utils::ILBZSLinkID) && (detField == raw_data_types::Type::ZS)) {
+      std::vector<Digit> digits;
+      static o2::gpu::GPUParam gpuParam;
+      static o2::gpu::GPUReconstructionZSDecoder gpuDecoder;
+      gpuDecoder.DecodePage(digits, (const void*)it.raw(), firstOrbit, gpuParam);
+      for (const auto& digit : digits) {
+        reader->getManager()->getLinkZSCallback()(digit.getCRU(), digit.getRow(), digit.getPad(), digit.getTimeStamp(), digit.getChargeFloat());
+      }
+    } else {
+      const auto orbit = RDHUtils::getHeartBeatOrbit(*rdhPtr);
+      const auto data = (const char*)it.data();
+      const auto size = it.size();
+      raw_processing_helpers::processZSdata(data, size, feeID, orbit, firstOrbit, syncOffsetReference, reader->getManager()->getLinkZSCallback());
+    }
   }
 }
 
@@ -280,7 +298,11 @@ uint32_t getBCsyncOffsetReference(InputRecord& inputs, const std::vector<InputSp
       // only process LinkZSdata, only supported for data where this is already set in the UL
       const auto link = RDHUtils::getLinkID(*rdhPtr);
       const auto detField = RDHUtils::getDetectorField(*rdhPtr);
-      if (!((detField == 1) || ((detField == 0 || detField == 0xdeadbeef) && link == rdh_utils::UserLogicLinkID))) {
+      const auto feeID = RDHUtils::getFEEID(*rdhPtr);
+      const auto linkID = rdh_utils::getLink(feeID);
+      if (!((detField == raw_data_types::LinkZS) ||
+            ((detField == raw_data_types::RAWDATA || detField == 0xdeadbeef) && (link == rdh_utils::UserLogicLinkID)) ||
+            ((linkID == rdh_utils::ILBZSLinkID) && (detField == raw_data_types::Type::ZS)))) {
         continue;
       }
 
