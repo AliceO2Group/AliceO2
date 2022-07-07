@@ -133,7 +133,7 @@ struct TrackletHCHeader {
     //             |   |              |    |  |  |---  1-3  stack
     //             |   |              |    |  |------  4-6  layer
     //             |   |              |    |--------  7-11 sector
-    //             |   |              |------------- 12 always 0
+    //             |   |              |------------- 12 always 1
     //             |   ----------------------------- 13-27 MCM Clock counter
     //             --------------------------------- 28-31 tracklet data format number
     uint32_t word;
@@ -496,6 +496,7 @@ bool sanityCheckTrackletHCHeader(o2::trd::TrackletHCHeader& header, bool verbose
 bool sanityCheckDigitMCMHeader(o2::trd::DigitMCMHeader* header);
 bool sanityCheckDigitMCMADCMask(o2::trd::DigitMCMADCMask& mask, int numberofbitsset);
 bool sanityCheckDigitMCMWord(o2::trd::DigitMCMData* word, int adcchannel);
+void incrementADCMask(DigitMCMADCMask& mask, int channel);
 void printDigitMCMHeader(o2::trd::DigitMCMHeader& header);
 int getDigitHCHeaderWordType(uint32_t word);
 void printDigitHCHeaders(o2::trd::DigitHCHeader& header, uint32_t headers[3], int index, int offset, bool good);
@@ -504,7 +505,7 @@ int getNumberOfTrackletsFromHeader(o2::trd::TrackletMCMHeader* header, bool verb
 void setNumberOfTrackletsInHeader(o2::trd::TrackletMCMHeader& header, int numberoftracklets);
 int getNextMCMADCfromBP(uint32_t& bp, int channel);
 
-inline bool isTrackletHCHeader(uint32_t& header) { return (((header >> 11) & 0x1) == 0x1); }
+inline bool isTrackletHCHeader(uint32_t& header) { return (((header >> 12) & 0x1) == 0x1); }
 inline bool isTrackletMCMHeader(uint32_t& header) { return ((header & 0x80000001) == 0x80000001); }
 }
 }

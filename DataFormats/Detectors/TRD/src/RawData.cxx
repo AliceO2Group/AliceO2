@@ -33,10 +33,10 @@ namespace trd
 std::ostream& operator<<(std::ostream& stream, const TrackletHCHeader halfchamberheader)
 {
   stream << "TrackletHCHeader : Raw:0x" << std::hex << halfchamberheader.word << " "
-         << halfchamberheader.format << " ;; " << halfchamberheader.MCLK << " :: "
-         << halfchamberheader.one << " :: (" << halfchamberheader.supermodule << ","
-         << halfchamberheader.stack << "," << halfchamberheader.layer << ") on side :"
-         << halfchamberheader.side << std::endl;
+         << (int)halfchamberheader.format << " ;; " << (int)halfchamberheader.MCLK << " :: "
+         << halfchamberheader.one << " :: (" << (int)halfchamberheader.supermodule << ","
+         << (int)halfchamberheader.stack << "," << (int)halfchamberheader.layer << ") on side :"
+         << (int)halfchamberheader.side << std::endl;
   return stream;
 }
 
@@ -152,14 +152,13 @@ std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru)
 void constructTrackletHCHeader(TrackletHCHeader& header, int sector, int stack, int layer, int side, int chipclock, int format)
 {
   header.word = 0;
-
   header.format = format;
   header.supermodule = ~sector;
   header.stack = ~stack;
   header.layer = ~layer;
   header.side = ~side;
   header.MCLK = chipclock;
-  header.one = 0;
+  header.one = 1;
 }
 
 void constructTrackletHCHeaderd(TrackletHCHeader& header, int detector, int rob, int chipclock, int format)
@@ -315,7 +314,7 @@ DigitMCMADCMask constructBlankADCMask()
 void printTrackletHCHeader(o2::trd::TrackletHCHeader& halfchamber)
 {
   LOGF(info, "TrackletHCHeader: Raw:0x%08x SM : %d stack %d layer %d side : %d MCLK: 0x%0x Format: 0x%0x Always1:0x%0x",
-       halfchamber.supermodule, halfchamber.stack, halfchamber.layer, halfchamber.side, halfchamber.MCLK, halfchamber.format, halfchamber.one);
+       halfchamber.word, (int)(~halfchamber.supermodule) & 0x1f, (int)(~halfchamber.stack) & 0x7, (int)(~halfchamber.layer) & 0x7, (int)(~halfchamber.side) & 0x1, (int)halfchamber.MCLK, (int)halfchamber.format, (int)halfchamber.one);
 }
 
 void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet)
@@ -496,6 +495,14 @@ bool sanityCheckDigitMCMADCMask(o2::trd::DigitMCMADCMask& mask, int numberofbits
     goodadcmask = false;
   }
   return goodadcmask;
+}
+
+void incrementADCMask(DigitMCMADCMask& mask, int channel)
+{
+  mask.adcmask |= 1UL << channel;
+  int bitcount = (~mask.c) & 0x1f;
+  bitcount++;
+  mask.c = ~((bitcount)&0x1f);
 }
 
 bool sanityCheckDigitMCMWord(o2::trd::DigitMCMData* word, int adcchannel)
