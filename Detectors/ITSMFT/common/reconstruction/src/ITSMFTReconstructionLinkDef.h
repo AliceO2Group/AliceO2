@@ -46,7 +46,8 @@
 #pragma link C++ class o2::itsmft::RUDecodeData + ;
 #pragma link C++ class o2::itsmft::RawDecodingStat + ;
 #pragma link C++ class o2::itsmft::ChipStat + ;
-
+#pragma link C++ class o2::itsmft::GBTTriggerR + ;
+#pragma link C++ class std::vector < o2::itsmft::GBTTrigger> + ;
 #pragma link C++ class std::map < unsigned long, std::pair < o2::itsmft::ClusterTopology, unsigned long>> + ;
 
 #pragma link C++ class o2::itsmft::ClustererParam < o2::detectors::DetID::ITS> + ;

@@ -85,7 +85,7 @@ struct GBTLink {
   CollectedDataStatus status = None;
   Format format = NewFormat;
   Verbosity verbosity = VerboseErrors;
-  std::vector<GBTTrigger>* extTrigVec = nullptr;
+  std::vector<GBTTriggerR>* extTrigVec = nullptr;
   uint8_t idInRU = 0;     // link ID within the RU
   uint8_t idInCRU = 0;    // link ID within the CRU
   uint8_t endPointID = 0; // endpoint ID of the CRU
@@ -278,7 +278,8 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
             gbtTrg = gbtTrgTmp; // this is a trigger describing the following data
           } else {
             if (extTrigVec) { // this link collects external triggers
-              extTrigVec->push_back(*gbtTrgTmp);
+              extTrigVec->emplace_back(GBTTriggerR{uint32_t(gbtTrgTmp->orbit), uint16_t(gbtTrgTmp->bc), uint16_t(gbtTrgTmp->triggerType), gbtTrgTmp->internal != 0, gbtTrgTmp->noData != 0});
+              printTrigger(gbtTrgTmp);
             }
           }
           continue;
