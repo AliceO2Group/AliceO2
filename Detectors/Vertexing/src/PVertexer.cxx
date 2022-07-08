@@ -751,7 +751,7 @@ void PVertexer::setBunchFilling(const o2::BunchFilling& bf)
   // find closest (from above) filled bunch
   int minBC = bf.getFirstFilledBC(), maxBC = bf.getLastFilledBC();
   if (minBC < 0) {
-    LOG(alarm) << "Empty bunch filling is provided, all vertices will be rejected";
+    LOG(error) << "Empty bunch filling is provided, all vertices will be rejected";
   }
   int bcAbove = minBC;
   for (int i = o2::constants::lhc::LHCMaxBunches; i--;) {
