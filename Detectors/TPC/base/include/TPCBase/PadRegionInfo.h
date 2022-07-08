@@ -150,6 +150,8 @@ class PadRegionInfo
  private:
   float mPadHeight{0.f};             ///< pad height in this region
   float mPadWidth{0.f};              ///< pad width in this region
+  float mInvPadHeight{0.f};          ///< inverse pad height in this region (to avoid division in some frequent kernels)
+  float mInvPadWidth{0.f};           ///< inverse pad width in this region
   float mRadiusFirstRow{0.f};        ///< radial position of first row
   float mXhelper{0.f};               ///< helper value to calculate pads per row
   unsigned short mNumberOfPads{0};   ///< total number of pads in region
