@@ -1064,7 +1064,7 @@ class Table
 
   static constexpr auto hashes()
   {
-    return std::set{typeid(C).hash_code()...};
+    return std::set{{typeid(C).hash_code()...}};
   }
 
   template <typename IP, typename Parent, typename... T>
