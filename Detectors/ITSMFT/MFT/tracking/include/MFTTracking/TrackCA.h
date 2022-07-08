@@ -73,13 +73,6 @@ class TrackLTFL : public TrackLTF // A track model for B=0
   TrackLTFL(const TrackLTFL& t) = default;
   ~TrackLTFL() = default;
 
-  // Kalman filter/fitting update for linear tracks
-  bool update(const std::array<float, 2>& p, const std::array<float, 2>& cov)
-  {
-    // TODO
-    return true;
-  }
-
  private:
   /// Covariance matrix of track parameters, ordered as follows:    <pre>
   ///  <X,X>          <Y,X>           <SlopeX,X>          <SlopeY,X>

@@ -257,6 +257,8 @@ class ChipMappingMFT
 
   const std::array<MFTChipMappingData, NChips>& getChipMappingData() const { return ChipMappingData; }
 
+  const auto& getModuleMappingData() const { return ModuleMappingData; }
+
   void print() const;
 
   ///< LayerID of each MFT chip

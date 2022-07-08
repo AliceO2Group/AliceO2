@@ -92,141 +92,81 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   std::uint32_t roFrame = 0;
 
+  auto runTracking = [&, this](auto& tracker, auto& event, auto& tempTracks) {
+    // tracking configuration parameters
+    auto& trackingParam = MFTTrackingParam::Instance();
+
+    // snippet to convert found tracks to final output tracks with separate cluster indices
+    auto copyTracks = [&event](auto& new_tracks, auto& allTracks, auto& allClusIdx) {
+      for (auto& trc : new_tracks) {
+        trc.setExternalClusterIndexOffset(allClusIdx.size());
+        int ncl = trc.getNumberOfPoints();
+        for (int ic = 0; ic < ncl; ic++) {
+          auto externalClusterID = trc.getExternalClusterIndex(ic);
+          allClusIdx.push_back(externalClusterID);
+        }
+        allTracks.emplace_back(trc);
+      }
+    };
+
+    gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
+    for (auto& rof : rofs) {
+      mTimer[SWLoadData].Start(false);
+      int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels, tracker.get());
+      mTimer[SWLoadData].Stop();
+      int ntracksROF = 0, firstROFTrackEntry = allTracksMFT.size();
+      if (nclUsed) {
+
+        mTimer[SWLoadData].Start(false);
+        event.setROFrameId(roFrame);
+        event.initialize(trackingParam.FullClusterScan);
+        LOG(debug) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
+        tracker->setROFrame(roFrame);
+        tracker->clearTracks();
+        mTimer[SWLoadData].Stop();
+
+        mTimer[SWFindLTFTracks].Start(false);
+        tracker->findLTFTracks(event);
+        mTimer[SWFindLTFTracks].Stop();
+
+        mTimer[SWFindCATracks].Start(false);
+        tracker->findCATracks(event);
+        mTimer[SWFindCATracks].Stop();
+
+        mTimer[SWFitTracks].Start(false);
+        tracker->fitTracks(event);
+        mTimer[SWFitTracks].Stop();
+
+        tempTracks.swap(event.getTracks());
+        ntracks += tempTracks.size();
+
+        if (mUseMC) {
+          mTimer[SWComputeLabels].Start(false);
+          tracker->computeTracksMClabels(tempTracks);
+          trackLabels.swap(tracker->getTrackLabels());
+          std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+          trackLabels.clear();
+          mTimer[SWComputeLabels].Stop();
+        }
+
+        LOG(debug) << "Found MFT tracks: " << tracks.size();
+        ntracksROF = tempTracks.size();
+        copyTracks(tempTracks, allTracksMFT, allClusIdx);
+      }
+      rof.setFirstEntry(firstROFTrackEntry);
+      rof.setNEntries(ntracksROF);
+      roFrame++;
+    }
+  };
+
   if (mFieldOn) {
     o2::mft::ROframe<TrackLTF> event(0);
-
-    // tracking configuration parameters
-    auto& trackingParam = MFTTrackingParam::Instance();
-
-    // snippet to convert found tracks to final output tracks with separate cluster indices
-    auto copyTracks = [&event](auto& tracks, auto& allTracks, auto& allClusIdx) {
-      for (auto& trc : tracks) {
-        trc.setExternalClusterIndexOffset(allClusIdx.size());
-        int ncl = trc.getNumberOfPoints();
-        for (int ic = 0; ic < ncl; ic++) {
-          auto externalClusterID = trc.getExternalClusterIndex(ic);
-          allClusIdx.push_back(externalClusterID);
-        }
-        allTracks.emplace_back(trc);
-      }
-    };
-
-    gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
-    for (auto& rof : rofs) {
-      mTimer[SWLoadData].Start(false);
-      int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels, mTracker.get());
-      mTimer[SWLoadData].Stop();
-      int ntracksROF = 0, firstROFTrackEntry = allTracksMFT.size();
-      if (nclUsed) {
-        mTimer[SWLoadData].Start(false);
-        event.setROFrameId(roFrame);
-        mTimer[SWLoadData].Stop();
-
-        event.initialize(trackingParam.FullClusterScan);
-        LOG(debug) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
-        mTracker->setROFrame(roFrame);
-        mTracker->clearTracks();
-
-        mTimer[SWFindLTFTracks].Start(false);
-        mTracker->findLTFTracks(event);
-        mTimer[SWFindLTFTracks].Stop();
-
-        mTimer[SWFindCATracks].Start(false);
-        mTracker->findCATracks(event);
-        mTimer[SWFindCATracks].Stop();
-
-        mTimer[SWFitTracks].Start(false);
-        mTracker->fitTracks(event);
-        mTimer[SWFitTracks].Stop();
-
-        tracks.swap(event.getTracks());
-        ntracks += tracks.size();
-
-        if (mUseMC) {
-          mTimer[SWComputeLabels].Start(false);
-          mTracker->computeTracksMClabels(tracks);
-          trackLabels.swap(mTracker->getTrackLabels());
-          std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
-          trackLabels.clear();
-          mTimer[SWComputeLabels].Stop();
-        }
-
-        LOG(debug) << "Found MFT tracks: " << tracks.size();
-        ntracksROF = tracks.size();
-        copyTracks(tracks, allTracksMFT, allClusIdx);
-      }
-      rof.setFirstEntry(firstROFTrackEntry);
-      rof.setNEntries(ntracksROF);
-      roFrame++;
-    }
-  } else { // Use Linear Tracker for Field off
+    runTracking(mTracker, event, tracks);
+  } else {
     o2::mft::ROframe<TrackLTFL> event(0);
-
-    // tracking configuration parameters
-    auto& trackingParam = MFTTrackingParam::Instance();
-
-    // snippet to convert found tracks to final output tracks with separate cluster indices
-    auto copyTracks = [&event](auto& tracks, auto& allTracks, auto& allClusIdx) {
-      for (auto& trc : tracks) {
-        trc.setExternalClusterIndexOffset(allClusIdx.size());
-        int ncl = trc.getNumberOfPoints();
-        for (int ic = 0; ic < ncl; ic++) {
-          auto externalClusterID = trc.getExternalClusterIndex(ic);
-          allClusIdx.push_back(externalClusterID);
-        }
-        allTracks.emplace_back(trc);
-      }
-    };
-
-    gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
-    for (auto& rof : rofs) {
-      mTimer[SWLoadData].Start(false);
-      int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels, mTrackerL.get());
-      mTimer[SWLoadData].Stop();
-      int ntracksROF = 0, firstROFTrackEntry = allTracksMFT.size();
-      if (nclUsed) {
-        event.setROFrameId(roFrame);
-        mTimer[SWLoadData].Start(false);
-        event.initialize(trackingParam.FullClusterScan);
-        mTimer[SWLoadData].Stop();
-
-        LOG(debug) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
-        mTrackerL->setROFrame(roFrame);
-        mTrackerL->clearTracks();
-
-        mTimer[SWFindLTFTracks].Start(false);
-        mTrackerL->findLTFTracks(event);
-        mTimer[SWFindLTFTracks].Stop();
-
-        mTimer[SWFindCATracks].Start(false);
-        mTrackerL->findCATracks(event);
-        mTimer[SWFindCATracks].Stop();
-
-        mTimer[SWFitTracks].Start(false);
-        mTrackerL->fitTracks(event);
-        mTimer[SWFitTracks].Stop();
-
-        tracksL.swap(event.getTracks());
-        ntracks += tracksL.size();
-
-        if (mUseMC) {
-          mTimer[SWComputeLabels].Start(false);
-          mTrackerL->computeTracksMClabels(tracksL);
-          trackLabels.swap(mTrackerL->getTrackLabels());
-          std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
-          trackLabels.clear();
-          mTimer[SWComputeLabels].Stop();
-        }
-
-        LOG(debug) << "Found MFT tracks: " << tracks.size();
-        ntracksROF = tracksL.size();
-        copyTracks(tracksL, allTracksMFT, allClusIdx);
-      }
-      rof.setFirstEntry(firstROFTrackEntry);
-      rof.setNEntries(ntracksROF);
-      roFrame++;
-    }
+    runTracking(mTrackerL, event, tracksL);
   }
+
   LOG(info) << "MFTTracker pushed " << allTracksMFT.size() << " tracks";
 
   if (mUseMC) {
