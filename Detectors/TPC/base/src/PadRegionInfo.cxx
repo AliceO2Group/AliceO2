@@ -27,7 +27,7 @@ PadRegionInfo::PadRegionInfo(const unsigned char region,
                              const unsigned char rowOffset,
                              const float xhelper,
                              const unsigned char globalRowOffset)
-  : mRegion{region}, mPartition{partition}, mNumberOfPadRows{numberOfPadRows}, mPadHeight{padHeight}, mPadWidth{padWidth}, mRadiusFirstRow{radiusFirstRow}, mRowOffset{rowOffset}, mXhelper{xhelper}, mNumberOfPads{0}, mGlobalRowOffset{globalRowOffset}, mPadsPerRow(numberOfPadRows)
+  : mRegion{region}, mPartition{partition}, mNumberOfPadRows{numberOfPadRows}, mPadHeight{padHeight}, mPadWidth{padWidth}, mInvPadHeight{1.f / padHeight}, mInvPadWidth{1.f / padWidth}, mRadiusFirstRow{radiusFirstRow}, mRowOffset{rowOffset}, mXhelper{xhelper}, mNumberOfPads{0}, mGlobalRowOffset{globalRowOffset}, mPadsPerRow(numberOfPadRows)
 {
   init();
 }
@@ -63,13 +63,13 @@ const PadPos PadRegionInfo::findPad(const float localX, const float localY, cons
   // on the A-Side one looks from the back-side, therefore
   // the localY-sign must be changed
   const float localYfactor = (side == Side::A) ? -1.f : 1.f;
-  const unsigned int row = std::floor((localX - mRadiusFirstRow) / mPadHeight);
+  const unsigned int row = std::floor((localX - mRadiusFirstRow) * mInvPadHeight);
   if (row >= mNumberOfPadRows) {
     return PadPos(255, 255);
   }
 
   const unsigned int npads = getPadsInRowRegion(row);
-  const float padfloat = (npads / 2 * mPadWidth - localYfactor * localY) / mPadWidth;
+  const float padfloat = (0.5f * npads * mPadWidth - localYfactor * localY) * mInvPadWidth;
   if (padfloat < 0) {
     return PadPos(255, 255);
   }
