@@ -62,8 +62,7 @@ class Vertexer
   std::vector<Vertex> exportVertices();
   VertexerTraits* getTraits() const { return mTraits; };
 
-  float clustersToVertices(
-    const bool useMc = false, std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
+  float clustersToVertices(std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
   void filterMCTracklets();
   void validateTracklets();
 
@@ -82,15 +81,7 @@ class Vertexer
   // Utils
   void dumpTraits();
   template <typename... T>
-  float evaluateTask(void (Vertexer::*)(T...), bool, const char*, std::function<void(std::string s)> logger, T&&... args);
-
-  // debug
-  void setDebugCombinatorics();
-  void setDebugTrackletSelection();
-  void setDebugLines();
-  void setDebugSummaryLines();
-  void setDebugCentroidsHistograms();
-  // \debug
+  float evaluateTask(void (Vertexer::*)(T...), const char*, std::function<void(std::string s)> logger, T&&... args);
 
  private:
   std::uint32_t mROframe = 0;
@@ -115,11 +106,6 @@ void Vertexer::findTracklets(T&&... args)
 {
   mTraits->computeTracklets(std::forward<T>(args)...);
 }
-
-// inline void Vertexer::findTrivialMCTracklets()
-// {
-//   mTraits->computeTrackletsPureMontecarlo();
-// }
 
 inline VertexingParameters Vertexer::getVertParameters() const
 {
@@ -152,7 +138,7 @@ inline std::vector<Vertex> Vertexer::exportVertices()
 }
 
 template <typename... T>
-float Vertexer::evaluateTask(void (Vertexer::*task)(T...), bool verbose, const char* taskName, std::function<void(std::string s)> logger,
+float Vertexer::evaluateTask(void (Vertexer::*task)(T...), const char* taskName, std::function<void(std::string s)> logger,
                              T&&... args)
 {
   float diff{0.f};
@@ -171,39 +157,12 @@ float Vertexer::evaluateTask(void (Vertexer::*task)(T...), bool verbose, const c
     } else {
       sstream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms";
     }
-    if (verbose) {
-      logger(sstream.str());
-    }
+    logger(sstream.str());
   } else {
     (this->*task)(std::forward<T>(args)...);
   }
 
   return diff;
-}
-
-inline void Vertexer::setDebugCombinatorics()
-{
-  mTraits->setDebugFlag(VertexerDebug::CombinatoricsTreeAll);
-}
-
-inline void Vertexer::setDebugTrackletSelection()
-{
-  mTraits->setDebugFlag(VertexerDebug::TrackletTreeAll);
-}
-
-inline void Vertexer::setDebugLines()
-{
-  mTraits->setDebugFlag(VertexerDebug::LineTreeAll);
-}
-
-inline void Vertexer::setDebugSummaryLines()
-{
-  mTraits->setDebugFlag(VertexerDebug::LineSummaryAll);
-}
-
-inline void Vertexer::setDebugCentroidsHistograms()
-{
-  mTraits->setDebugFlag(VertexerDebug::HistCentroids);
 }
 
 } // namespace its

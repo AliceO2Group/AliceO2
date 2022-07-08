@@ -385,7 +385,7 @@ void VertexerTraitsGPU::computeTracklets()
   for (int rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
     const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getNClustersLayer(rofId, 1))};
     const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rofId, 1))};
-    gpu::trackleterKernel<TrackletMode::Layer0Layer1><<<blocksGrid, threadsPerBlock>>>(
+    gpu::trackleterKernel<TrackletMode::Layer0Layer1><<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(0).get()>>>(
       mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 0),
       mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
       mTimeFrameGPU->getNClustersLayer(rofId, 0),
@@ -397,7 +397,7 @@ void VertexerTraitsGPU::computeTracklets()
       mDeviceIndexTableUtils,
       mTimeFrameGPU->getConfig().maxTrackletsPerCluster);
 
-    gpu::trackleterKernel<TrackletMode::Layer1Layer2><<<blocksGrid, threadsPerBlock>>>(
+    gpu::trackleterKernel<TrackletMode::Layer1Layer2><<<blocksGrid, threadsPerBlock, 0, mTimeFrameGPU->getStream(1).get()>>>(
       mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 2),
       mTimeFrameGPU->getDeviceClustersOnLayer(rofId, 1),
       mTimeFrameGPU->getNClustersLayer(rofId, 2),
@@ -524,7 +524,16 @@ void VertexerTraitsGPU::computeTrackletMatching()
       mVrtParams.tanLambdaCut,
       mVrtParams.phiCut);
     gpuThrowOnError();
+
+    // Code to be removed in case of GPU vertex computing
+    int excLas, nLas, nLines;
+    checkGPUError(cudaMemcpy(&excLas, mTimeFrameGPU->getDeviceExclusiveNFoundLines(rofId) + mTimeFrameGPU->getNClustersLayer(rofId, 1) - 1, sizeof(int), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+    checkGPUError(cudaMemcpy(&nLas, mTimeFrameGPU->getDeviceNFoundLines(rofId) + mTimeFrameGPU->getNClustersLayer(rofId, 1) - 1, sizeof(int), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
+    nLines = excLas + nLas;
+    mTimeFrameGPU->getLines(rofId).resize(nLines);
+    checkGPUError(cudaMemcpy(mTimeFrameGPU->getLines(rofId).data(), mTimeFrameGPU->getDeviceLines(rofId), sizeof(Line) * nLines, cudaMemcpyDeviceToHost), __FILE__, __LINE__);
   }
+  // discardResult(cudaDeviceSynchronize());
 #ifdef VTX_DEBUG
   std::vector<std::vector<int>> NFoundLines(mTimeFrameGPU->getNrof()), ExcNFoundLines(mTimeFrameGPU->getNrof());
   std::ofstream nlines_out("N_lines_gpu.txt");
@@ -560,6 +569,125 @@ void VertexerTraitsGPU::computeTrackletMatching()
 }
 
 void VertexerTraitsGPU::computeVertices()
+{
+#ifdef VTX_DEBUG
+  std::vector<std::vector<ClusterLines>> dbg_clusLines(mTimeFrameGPU->getNrof());
+#endif
+  std::vector<int> noClustersVec(mTimeFrameGPU->getNrof(), 0);
+  for (int rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
+    const int numTracklets{static_cast<int>(mTimeFrameGPU->getLines(rofId).size())};
+    std::vector<bool> usedTracklets(numTracklets, false);
+    for (int tracklet1{0}; tracklet1 < numTracklets; ++tracklet1) {
+      if (usedTracklets[tracklet1]) {
+        continue;
+      }
+      for (int tracklet2{tracklet1 + 1}; tracklet2 < numTracklets; ++tracklet2) {
+        if (usedTracklets[tracklet2]) {
+          continue;
+        }
+        if (Line::getDCA(mTimeFrameGPU->getLines(rofId)[tracklet1], mTimeFrameGPU->getLines(rofId)[tracklet2]) < mVrtParams.pairCut) {
+          mTimeFrameGPU->getTrackletClusters(rofId).emplace_back(tracklet1, mTimeFrameGPU->getLines(rofId)[tracklet1], tracklet2, mTimeFrameGPU->getLines(rofId)[tracklet2]);
+          std::array<float, 3> tmpVertex{mTimeFrameGPU->getTrackletClusters(rofId).back().getVertex()};
+          if (tmpVertex[0] * tmpVertex[0] + tmpVertex[1] * tmpVertex[1] > 4.f) {
+            mTimeFrameGPU->getTrackletClusters(rofId).pop_back();
+            break;
+          }
+          usedTracklets[tracklet1] = true;
+          usedTracklets[tracklet2] = true;
+          for (int tracklet3{0}; tracklet3 < numTracklets; ++tracklet3) {
+            if (usedTracklets[tracklet3]) {
+              continue;
+            }
+            if (Line::getDistanceFromPoint(mTimeFrameGPU->getLines(rofId)[tracklet3], tmpVertex) < mVrtParams.pairCut) {
+              mTimeFrameGPU->getTrackletClusters(rofId).back().add(tracklet3, mTimeFrameGPU->getLines(rofId)[tracklet3]);
+              usedTracklets[tracklet3] = true;
+              tmpVertex = mTimeFrameGPU->getTrackletClusters(rofId).back().getVertex();
+            }
+          }
+          break;
+        }
+      }
+    }
+    std::sort(mTimeFrameGPU->getTrackletClusters(rofId).begin(), mTimeFrameGPU->getTrackletClusters(rofId).end(),
+              [](ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); });
+    noClustersVec[rofId] = static_cast<int>(mTimeFrameGPU->getTrackletClusters(rofId).size());
+    for (int iCluster1{0}; iCluster1 < noClustersVec[rofId]; ++iCluster1) {
+      std::array<float, 3> vertex1{mTimeFrameGPU->getTrackletClusters(rofId)[iCluster1].getVertex()};
+      std::array<float, 3> vertex2{};
+      for (int iCluster2{iCluster1 + 1}; iCluster2 < noClustersVec[rofId]; ++iCluster2) {
+        vertex2 = mTimeFrameGPU->getTrackletClusters(rofId)[iCluster2].getVertex();
+        if (std::abs(vertex1[2] - vertex2[2]) < mVrtParams.clusterCut) {
+          float distance{(vertex1[0] - vertex2[0]) * (vertex1[0] - vertex2[0]) +
+                         (vertex1[1] - vertex2[1]) * (vertex1[1] - vertex2[1]) +
+                         (vertex1[2] - vertex2[2]) * (vertex1[2] - vertex2[2])};
+          if (distance < mVrtParams.pairCut * mVrtParams.pairCut) {
+            for (auto label : mTimeFrameGPU->getTrackletClusters(rofId)[iCluster2].getLabels()) {
+              mTimeFrameGPU->getTrackletClusters(rofId)[iCluster1].add(label, mTimeFrameGPU->getLines(rofId)[label]);
+              vertex1 = mTimeFrameGPU->getTrackletClusters(rofId)[iCluster1].getVertex();
+            }
+          }
+          mTimeFrameGPU->getTrackletClusters(rofId).erase(mTimeFrameGPU->getTrackletClusters(rofId).begin() + iCluster2);
+          --iCluster2;
+          --noClustersVec[rofId];
+        }
+      }
+    }
+  }
+
+  for (int rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
+#ifdef VTX_DEBUG
+    for (auto& cl : mTimeFrameGPU->getTrackletClusters(rofId)) {
+      dbg_clusLines[rofId].push_back(cl);
+    }
+#endif
+    for (int iCluster{0}; iCluster < noClustersVec[rofId]; ++iCluster) {
+      if (mTimeFrameGPU->getTrackletClusters(rofId)[iCluster].getSize() < mVrtParams.clusterContributorsCut && noClustersVec[rofId] > 1) {
+        mTimeFrameGPU->getTrackletClusters(rofId).erase(mTimeFrameGPU->getTrackletClusters(rofId).begin() + iCluster);
+        noClustersVec[rofId]--;
+        continue;
+      }
+      if (mTimeFrameGPU->getTrackletClusters(rofId)[iCluster].getVertex()[0] * mTimeFrameGPU->getTrackletClusters(rofId)[iCluster].getVertex()[0] +
+            mTimeFrameGPU->getTrackletClusters(rofId)[iCluster].getVertex()[1] * mTimeFrameGPU->getTrackletClusters(rofId)[iCluster].getVertex()[1] <
+          1.98 * 1.98) {
+        mVertices.emplace_back(mTimeFrameGPU->getTrackletClusters(rofId)[iCluster].getVertex()[0],
+                               mTimeFrameGPU->getTrackletClusters(rofId)[iCluster].getVertex()[1],
+                               mTimeFrameGPU->getTrackletClusters(rofId)[iCluster].getVertex()[2],
+                               mTimeFrameGPU->getTrackletClusters(rofId)[iCluster].getRMS2(),         // Symm matrix. Diagonal: RMS2 components,
+                                                                                                      // off-diagonal: square mean of projections on planes.
+                               mTimeFrameGPU->getTrackletClusters(rofId)[iCluster].getSize(),         // Contributors
+                               mTimeFrameGPU->getTrackletClusters(rofId)[iCluster].getAvgDistance2(), // In place of chi2
+                               rofId);
+      }
+    }
+
+    mTimeFrameGPU->addPrimaryVertices(mVertices);
+    mVertices.clear();
+  }
+#ifdef VTX_DEBUG
+  TFile* dbg_file = TFile::Open("artefacts_tf.root", "update");
+  TTree* ln_clus_lines_tree = new TTree("clusterlines", "tf");
+  std::vector<o2::its::ClusterLines> cl_lines_vec_pre(0);
+  std::vector<o2::its::ClusterLines> cl_lines_vec_post(0);
+  ln_clus_lines_tree->Branch("cllines_pre", &cl_lines_vec_pre);
+  ln_clus_lines_tree->Branch("cllines_post", &cl_lines_vec_post);
+  for (auto rofId{0}; rofId < mTimeFrameGPU->getNrof(); ++rofId) {
+    cl_lines_vec_pre.clear();
+    cl_lines_vec_post.clear();
+    for (auto& clln : mTimeFrameGPU->getTrackletClusters(rofId)) {
+      cl_lines_vec_post.push_back(clln);
+    }
+    for (auto& cl : dbg_clusLines[rofId]) {
+      cl_lines_vec_pre.push_back(cl);
+    }
+    ln_clus_lines_tree->Fill();
+  }
+  dbg_file->cd();
+  ln_clus_lines_tree->Write();
+  dbg_file->Close();
+#endif
+}
+
+void VertexerTraitsGPU::computeVerticesHist()
 {
   if (!mTimeFrameGPU->getClusters().size()) {
     return;

@@ -139,7 +139,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   mTimeFrame.setMultiplicityCutMask(processingMask);
   float vertexerElapsedTime;
   if (mRunVertexer) {
-    vertexerElapsedTime = mVertexerPtr->clustersToVertices(false, [&](std::string s) { LOG(info) << s; });
+    vertexerElapsedTime = mVertexerPtr->clustersToVertices([&](std::string s) { LOG(info) << s; });
   }
   LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms in {} ROFs", vertexerElapsedTime, rofspan.size());
   for (size_t iRof{0}; iRof < rofspan.size(); ++iRof) {

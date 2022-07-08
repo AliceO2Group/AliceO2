@@ -122,11 +122,11 @@ void TimeFrameGPU<NLayers>::initialiseDevice(const TrackingParameters& trkParam)
   for (auto iComb{0}; iComb < 2; ++iComb) { // Vertexer only
     mNTrackletsPerClusterD[iComb] = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
   }
-  mIndexTablesLayer0D = Vector<int>{mConfig.nMaxROFs * (ZBins * PhiBins + 1), mConfig.nMaxROFs * (ZBins * PhiBins + 1)};
-  mIndexTablesLayer2D = Vector<int>{mConfig.nMaxROFs * (ZBins * PhiBins + 1), mConfig.nMaxROFs * (ZBins * PhiBins + 1)};
   mLines = Vector<Line>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
   mNFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
+  mNFoundLines.resetWithInt(mConfig.clustersPerLayerCapacity);
   mNExclusiveFoundLines = Vector<int>{mConfig.clustersPerLayerCapacity, mConfig.clustersPerLayerCapacity};
+  mNExclusiveFoundLines.resetWithInt(mConfig.clustersPerLayerCapacity);
   mUsedTracklets = Vector<unsigned char>{mConfig.trackletsCapacity, mConfig.trackletsCapacity};
   discardResult(cudaMalloc(&mCUBTmpBuffers, mConfig.nMaxROFs * mConfig.tmpCUBBufferSize));
   discardResult(cudaMalloc(&mDeviceFoundTracklets, (NLayers - 1) * sizeof(int)));

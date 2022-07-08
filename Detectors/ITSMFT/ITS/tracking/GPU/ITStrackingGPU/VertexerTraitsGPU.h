@@ -13,6 +13,7 @@
 /// \brief
 /// \author matteo.concas@cern.ch
 
+// #define VTX_DEBUG
 #ifndef ITSTRACKINGGPU_VERTEXERTRAITSGPU_H_
 #define ITSTRACKINGGPU_VERTEXERTRAITSGPU_H_
 
@@ -45,24 +46,13 @@ class VertexerTraitsGPU : public VertexerTraits
   void computeTracklets() override;
   void computeTrackletMatching() override;
   void computeVertices() override;
+  void computeVerticesHist();
   // void computeMCFiltering() override;
-
-  // GPU-specific getters
-  GPUd() static const int2 getBinsPhiRectWindow(const Cluster&, float maxdeltaphi);
 
  protected:
   IndexTableUtils* mDeviceIndexTableUtils;
   gpu::TimeFrameGPU<7>* mTimeFrameGPU;
 };
-
-inline GPUd() const int2 VertexerTraitsGPU::getBinsPhiRectWindow(const Cluster& currentCluster, float phiCut)
-{
-  // This function returns the lowest PhiBin and the number of phi bins to be spanned, In the form int2{phiBinLow, PhiBinSpan}
-  const int phiBinMin{constants::its2::getPhiBinIndex(
-    math_utils::getNormalizedPhi(currentCluster.phi - phiCut))};
-  const int phiBinSpan{static_cast<int>(MATH_CEIL(phiCut * InversePhiBinSize))};
-  return int2{phiBinMin, phiBinSpan};
-}
 
 inline void VertexerTraitsGPU::adoptTimeFrame(TimeFrame* tf) { mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<7>*>(tf); }
 
