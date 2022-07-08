@@ -152,7 +152,7 @@ void Clusterizer<InputType>::findClusters(const gsl::span<InputType const>& inpu
   //for (auto dig : inputArray) {
   for (int iIndex = 0; iIndex < inputArray.size(); iIndex++) {
 
-    auto & dig = inputArray[iIndex];
+    auto& dig = inputArray[iIndex];
 
     Float_t inputEnergy = dig.getEnergy();
     Float_t time = dig.getTimeStamp();
@@ -169,8 +169,8 @@ void Clusterizer<InputType>::findClusters(const gsl::span<InputType const>& inpu
     int row = 0, column = 0;
     getTopologicalRowColumn(dig, row, column);
     // not referencing dig here to get proper reference and not local copy
-    mInputMap[row][column].mInput = inputArray.data()+iIndex;   //
-    mInputMap[row][column].mIndex = iIndex; // mInputMap saves the position of cells/digits in the input array
+    mInputMap[row][column].mInput = inputArray.data() + iIndex; //
+    mInputMap[row][column].mIndex = iIndex;                     // mInputMap saves the position of cells/digits in the input array
     mSeedList[nCells].energy = inputEnergy;
     mSeedList[nCells].row = row;
     mSeedList[nCells].column = column;
@@ -181,7 +181,7 @@ void Clusterizer<InputType>::findClusters(const gsl::span<InputType const>& inpu
   std::sort(mSeedList.begin(), std::next(std::begin(mSeedList), nCells));
 
   // Take next valid cell/digit in calorimeter as seed (in descending energy order)
-  for (int i = nCells-1; i>=0 ;i--) {
+  for (int i = nCells - 1; i >= 0; i--) {
     int row = mSeedList[i].row, column = mSeedList[i].column;
     // Continue if the cell is already masked (i.e. was already clustered)
     if (mCellMask[row][column]) {
