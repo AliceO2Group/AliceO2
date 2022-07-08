@@ -249,7 +249,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   LOG(info) << ctfHeader;
 
   auto& timingInfo = pc.services().get<o2::framework::TimingInfo>();
-  timingInfo.firstTFOrbit = ctfHeader.firstTForbit;
+  timingInfo.firstTForbit = ctfHeader.firstTForbit;
   timingInfo.creation = ctfHeader.creationTime;
   timingInfo.tfCounter = ctfHeader.tfCounter;
   timingInfo.runNumber = ctfHeader.run;

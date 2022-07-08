@@ -64,8 +64,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     Calibrations simcal;
     // the timestamp can be extracted from the DPL header (it is set in SimReader)
-    const auto ref = pc.inputs().getFirstValid(true);
-    auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation;
+    auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation;
     simcal.getCCDBObjects(creationTime);
     mDigitizer.setCalibrations(&simcal);
 

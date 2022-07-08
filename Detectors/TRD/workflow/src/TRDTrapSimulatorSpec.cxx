@@ -162,8 +162,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   LOG(info) << "TRD Trap Simulator Device running over incoming message";
 
   if (!mInitCcdbObjectsDone) {
-    const auto ref = pc.inputs().getFirstValid(true);
-    auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation;
+    auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation;
     auto timeStamp = (mRunNumber < 0) ? creationTime : mRunNumber;
     mCalib = std::make_unique<Calibrations>();
     mCalib->getCCDBObjects(timeStamp);

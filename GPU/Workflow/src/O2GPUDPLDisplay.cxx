@@ -94,8 +94,7 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
     return;
   }
 
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
-  mTFSettings->tfStartOrbit = dh->firstTForbit;
+  mTFSettings->tfStartOrbit = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
   mTFSettings->hasTfStartOrbit = 1;
   mTFSettings->hasNHBFPerTF = 1;
   mTFSettings->nHBFPerTF = GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF();

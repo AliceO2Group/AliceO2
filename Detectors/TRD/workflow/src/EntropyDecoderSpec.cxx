@@ -83,7 +83,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   if (buff.size()) {
     const auto ctfImage = o2::trd::CTF::getImage(buff.data());
-    mCTFCoder.setFirstTFOrbit(pc.services().get<o2::framework::TimingInfo>().firstTFOrbit);
+    mCTFCoder.setFirstTFOrbit(pc.services().get<o2::framework::TimingInfo>().firstTForbit);
     iosize = mCTFCoder.decode(ctfImage, triggers, tracklets, digits);
   }
   pc.outputs().snapshot({"ctfrep", 0}, iosize);

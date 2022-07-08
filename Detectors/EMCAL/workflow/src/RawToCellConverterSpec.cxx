@@ -124,7 +124,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 
   // Get the first orbit of the timeframe later used to check whether the corrected
   // BC is within the timeframe
-  const auto tfOrbitFirst = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ctx.inputs().getFirstValid(true))->firstTForbit;
+  const auto tfOrbitFirst = ctx.services().get<o2::framework::TimingInfo>().firstTForbit;
   auto lml0delay = o2::ctp::TriggerOffsetsParam::Instance().LM_L0;
 
   // Cache cells from for bunch crossings as the component reads timeframes from many links consecutively

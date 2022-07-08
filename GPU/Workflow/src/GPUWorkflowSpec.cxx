@@ -590,15 +590,15 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     outputRegions.clusterLabels.allocator = [&clustersMCBuffer](size_t size) -> void* { return &clustersMCBuffer; };
   }
 
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
-  mTFSettings->tfStartOrbit = dh->firstTForbit;
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+  mTFSettings->tfStartOrbit = tinfo.firstTForbit;
   mTFSettings->hasTfStartOrbit = 1;
   mTFSettings->hasNHBFPerTF = 1;
   mTFSettings->nHBFPerTF = GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF();
   mTFSettings->hasRunStartOrbit = 0;
   // mTFSettings->runStartOrbit = grp->getFirstOrbit();
   if (mVerbosity) {
-    LOG(info) << "TF firstTFOrbit " << mTFSettings->tfStartOrbit << " nHBF " << mTFSettings->nHBFPerTF << " runStartOrbit " << mTFSettings->runStartOrbit << " simStartOrbit " << mTFSettings->simStartOrbit;
+    LOG(info) << "TF firstTForbit " << mTFSettings->tfStartOrbit << " nHBF " << mTFSettings->nHBFPerTF << " runStartOrbit " << mTFSettings->runStartOrbit << " simStartOrbit " << mTFSettings->simStartOrbit;
   }
   ptrs.settingsTF = mTFSettings.get();
 

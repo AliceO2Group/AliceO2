@@ -51,7 +51,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& ctx)
   DataProcessorSpec producer = o2::fdd::getFDDDigitReaderSpec(ctx.options().get<bool>("disable-mc"));
   specs.push_back(producer);
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(ctx, specs);
 
   return specs;

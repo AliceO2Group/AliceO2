@@ -1273,7 +1273,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
   auto originCursor = originTableBuilder.cursor<o2::aod::Origins>();
 
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
 
   std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
   if (mUseMC) {
@@ -1286,10 +1286,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   uint64_t tfNumber;
-  const int runNumber = (mRunNumber == -1) ? int(dh->runNumber) : mRunNumber;
+  const int runNumber = (mRunNumber == -1) ? int(tinfo.runNumber) : mRunNumber;
   if (mTFNumber == -1L) {
     // TODO has to use absolute time of TF
-    tfNumber = uint64_t(dh->firstTForbit) + (uint64_t(dh->runNumber) << 32); // getTFNumber(mStartIR, runNumber);
+    tfNumber = uint64_t(tinfo.firstTForbit) + (uint64_t(tinfo.runNumber) << 32); // getTFNumber(mStartIR, runNumber);
   } else {
     tfNumber = mTFNumber;
   }

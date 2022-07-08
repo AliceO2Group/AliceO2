@@ -46,8 +46,8 @@ void ITSThresholdAggregator::init(InitContext& ic)
 void ITSThresholdAggregator::run(ProcessingContext& pc)
 {
   // Skip everything in case of garbage (potentially at EoS)
-  if (pc.services().get<o2::framework::TimingInfo>().firstTFOrbit == -1U) {
-    LOG(info) << "Skipping the processing of inputs for timeslice " << pc.services().get<o2::framework::TimingInfo>().timeslice << " (firstTFOrbit is " << pc.services().get<o2::framework::TimingInfo>().firstTFOrbit << ")";
+  if (pc.services().get<o2::framework::TimingInfo>().firstTForbit == -1U) {
+    LOG(info) << "Skipping the processing of inputs for timeslice " << pc.services().get<o2::framework::TimingInfo>().timeslice << " (firstTForbit is " << pc.services().get<o2::framework::TimingInfo>().firstTForbit << ")";
     return;
   }
   // take run type, scan type, fit type, db version only at the beginning (important for EoS operations!)

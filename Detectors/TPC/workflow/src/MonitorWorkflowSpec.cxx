@@ -113,7 +113,7 @@ class TPCMonitorDevice : public o2::framework::Task
     }
     mEventDisplayGUI.resetNextEventReqested();
 
-    const auto tf = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter;
+    const auto tf = pc.services().get<o2::framework::TimingInfo>().tfCounter;
     mEventDisplayGUI.getEventDisplay().setPresentEventNumber(size_t(tf));
     LOGP(info, "processing tF {}", tf);
 

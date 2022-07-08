@@ -58,7 +58,7 @@ void CalibInfoReader::run(ProcessingContext& pc)
   static uint64_t timestamp = 1;
   const auto& hbfu = o2::raw::HBFUtils::Instance();
   auto& timingInfo = pc.services().get<o2::framework::TimingInfo>();
-  timingInfo.firstTFOrbit = hbfu.orbitFirst;
+  timingInfo.firstTForbit = hbfu.orbitFirst;
   timingInfo.creation = timestamp; // set after reading tree
   timingInfo.tfCounter = tf;
   timingInfo.runNumber = hbfu.runNumber;

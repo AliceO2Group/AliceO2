@@ -117,7 +117,7 @@ TASImage* Screenshot::ScaleImage(TASImage* image, UInt_t desiredWidth, UInt_t de
   return scaledImage;
 }
 
-void Screenshot::perform(o2::detectors::DetID::mask_t detectorsMask, int runNumber, int firstTFOrbit, std::string collisionTime)
+void Screenshot::perform(o2::detectors::DetID::mask_t detectorsMask, int runNumber, int firstTForbit, std::string collisionTime)
 {
   TEnv settings;
   ConfigurationManager::getInstance().getConfig(settings);
@@ -214,7 +214,7 @@ void Screenshot::perform(o2::detectors::DetID::mask_t detectorsMask, int runNumb
   std::vector<std::string> lines;
   if (!collisionTime.empty()) {
     lines.push_back((std::string)settings.GetValue("screenshot.message.line.0", TString::Format("Run number: %d", runNumber)));
-    lines.push_back((std::string)settings.GetValue("screenshot.message.line.1", TString::Format("First TF orbit: %d", firstTFOrbit)));
+    lines.push_back((std::string)settings.GetValue("screenshot.message.line.1", TString::Format("First TF orbit: %d", firstTForbit)));
     lines.push_back((std::string)settings.GetValue("screenshot.message.line.2", TString::Format("Date: %s", collisionTime.c_str())));
     lines.push_back((std::string)settings.GetValue("screenshot.message.line.3", TString::Format("Detectors: %s", detectorsString.c_str())));
   }

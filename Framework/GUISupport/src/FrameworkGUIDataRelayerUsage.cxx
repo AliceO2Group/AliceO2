@@ -164,7 +164,7 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
           ImGui::Text("$%zu (tfCounter): %s", vi, value);
           break;
         case o2::framework::data_matcher::FIRSTTFORBIT_POS:
-          ImGui::Text("$%zu (firstTFOrbit): %s", vi, value);
+          ImGui::Text("$%zu (firstTForbit): %s", vi, value);
           break;
         default:
           ImGui::Text("$%zu: %s", vi, value);

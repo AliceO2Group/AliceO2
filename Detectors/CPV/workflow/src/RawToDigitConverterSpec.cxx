@@ -284,7 +284,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   // Loop over BCs, sort digits with increasing digit ID and write to output containers
   mOutputDigits.clear();
   mOutputTriggerRecords.clear();
-  const auto tfOrbitFirst = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ctx.inputs().getFirstValid(true))->firstTForbit;
+  const auto tfOrbitFirst = ctx.services().get<o2::framework::TimingInfo>().firstTForbit;
   const auto& ctpOffsets = o2::ctp::TriggerOffsetsParam::Instance();
   for (auto [bc, digits] : digitBuffer) {
     if (bc.differenceInBC({0, tfOrbitFirst}) < ctpOffsets.LM_L0) {

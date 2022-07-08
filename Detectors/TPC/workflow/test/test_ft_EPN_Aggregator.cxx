@@ -137,7 +137,7 @@ DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std
     outputSpecs,
     AlgorithmSpec{
       [maxTFs, fastgen, nIDCs, cruStart = crus.front(), cruEnde = crus.back()](ProcessingContext& ctx) {
-        const auto tf = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ctx.inputs().getFirstValid(true))->tfCounter;
+        const auto tf = ctx.services().get<o2::framework::TimingInfo>().tfCounter;
 
         for (uint32_t icru = cruStart; icru <= cruEnde; ++icru) {
           const o2::tpc::CRU cruTmp(icru);
@@ -185,15 +185,16 @@ class TPCReceiveEPNSpec : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& ctx) final
   {
+    const auto& tinfo = ctx.services().get<o2::framework::TimingInfo>();
     for (int i = 0; i < o2::tpc::SIDES; ++i) {
       const DataRef ref = ctx.inputs().getByPos(i);
       auto const* tpcFourierCoeffHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       const int side = tpcFourierCoeffHeader->subSpecification;
-      const auto tf = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref)->tfCounter;
+      const auto tf = tinfo.tfCounter;
       mFourierCoeffEPN[tf].mFourierCoefficients[side] = ctx.inputs().get<std::vector<float>>(ref);
     }
 
-    const auto tf = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ctx.inputs().getFirstValid(true))->tfCounter;
+    const auto tf = tinfo.tfCounter;
     if (tf == mMaxTF) {
       ctx.outputs().snapshot(Output{gDataOriginTPC, getDataDescriptionCoeffEPN()}, mFourierCoeffEPN);
     }

@@ -166,7 +166,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
     const auto* dataptr = (*msgMap.begin()->second.get())[0].GetData();
     const auto* hd0 = o2h::get<o2h::DataHeader*>(dataptr);
     const auto* dph = o2h::get<o2f::DataProcessingHeader*>(dataptr);
-    timingInfo.firstTFOrbit = hd0->firstTForbit;
+    timingInfo.firstTForbit = hd0->firstTForbit;
     timingInfo.creation = dph->creation;
     timingInfo.tfCounter = hd0->tfCounter;
     timingInfo.runNumber = hd0->runNumber;

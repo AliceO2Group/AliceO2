@@ -64,7 +64,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   LOG(info) << "WorkflowSpec getRecoWorkflow useMC " << useMC << " CCDB  " << ccdbpath;
   auto wf = o2::ft0::getRecoWorkflow(useMC, ccdbpath, disableRootInp, disableRootOut);
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
 
   return std::move(wf);

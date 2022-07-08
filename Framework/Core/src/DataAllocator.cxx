@@ -102,7 +102,7 @@ fair::mq::MessagePtr DataAllocator::headerMessageFromOutput(Output const& spec, 
   dh.payloadSize = payloadSize;
   dh.payloadSerializationMethod = method;
   dh.tfCounter = timingInfo.tfCounter;
-  dh.firstTForbit = timingInfo.firstTFOrbit;
+  dh.firstTForbit = timingInfo.firstTForbit;
   dh.runNumber = timingInfo.runNumber;
 
   DataProcessingHeader dph{timingInfo.timeslice, 1, timingInfo.creation};
