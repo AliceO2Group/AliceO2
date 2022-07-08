@@ -59,7 +59,7 @@ class Clusterizer
   };
 
   struct InputwithIndex {
-    InputType* mInput;
+    const InputType* mInput;
     ClusterIndex mIndex;
   };
 
