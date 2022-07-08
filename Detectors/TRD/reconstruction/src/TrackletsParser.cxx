@@ -226,9 +226,6 @@ int TrackletsParser::Parse()
           a.word = *word;
           printTrackletHCHeader(a);
         }
-        if ((mFEEID.supermodule > 15) && mOptions[TRDFixSM1617Bit] && mTrackletHCHeaderState == 2) {
-          *word |= 1 << 12; //flip bit twelth bit for the tracklethcheader for the last 2 supermodules (bug/misconfiguration/broken/other) not sure why its like this yet, but it is.
-        }
         //LOG(info) << "mFEEID : 0x"<< std::hex << mFEEID.word << " supermodule : 0x" << (int)mFEEID.supermodule << " tracklethcheader : 0x" << *word;
       }
       //now for Tracklet hc header
