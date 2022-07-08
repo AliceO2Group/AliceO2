@@ -62,6 +62,7 @@ class RawToDigitConverterSpec : public framework::Task
   /// Output cells trigger record: {"CPV", "DIGITTRIGREC", 0, Lifetime::Timeframe}
   /// Output HW errors: {"CPV", "RAWHWERRORS", 0, Lifetime::Timeframe}
   void run(framework::ProcessingContext& ctx) final;
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  protected:
   /// \brief simple check of HW address

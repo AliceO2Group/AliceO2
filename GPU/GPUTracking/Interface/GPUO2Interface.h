@@ -46,6 +46,7 @@ struct GPUO2InterfaceConfiguration;
 struct GPUInterfaceOutputs;
 struct GPUTrackingOutputs;
 struct GPUConstantMem;
+struct GPUNewCalibValues;
 
 class GPUO2Interface
 {
@@ -60,7 +61,7 @@ class GPUO2Interface
   void Clear(bool clearOutputs);
 
   // Updates all calibration objects that are != nullptr in newCalib
-  int UpdateCalibration(const GPUCalibObjectsConst& newCalib);
+  int UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals);
 
   bool GetParamContinuous() { return (mContinuous); }
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const;

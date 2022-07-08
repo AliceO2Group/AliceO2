@@ -89,7 +89,7 @@ class TPCFastTransformHelperO2
   std::unique_ptr<TPCFastTransform> create(Long_t TimeStamp);
 
   /// Updates the transformation with the new time stamp
-  int updateCalibration(TPCFastTransform& transform, Long_t TimeStamp);
+  int updateCalibration(TPCFastTransform& transform, Long_t TimeStamp, float vDriftFactor = 1.f);
 
   /// _______________  Utilities   ________________________
 

@@ -71,7 +71,7 @@ TPCTrackingDigitsPreCheck::precheckModifiedData TPCTrackingDigitsPreCheck::runPr
           throw std::runtime_error("Digit time bin exceeds time frame length");
         }
         if (timeBin < lastTime) {
-          LOG(fatal) << "Incorrect digit ordering: time(" << j << ") = " << timeBin << " < time(" << (j - 1) << ") = " << lastTime;
+          LOG(fatal) << "Incorrect digit ordering: time[" << i << "][" << j << "] = " << timeBin << " < lastTime = " << lastTime;
         }
         lastTime = timeBin;
         if (updateDigits) {

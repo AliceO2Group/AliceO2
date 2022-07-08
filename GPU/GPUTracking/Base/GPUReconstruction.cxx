@@ -1026,7 +1026,8 @@ void GPUReconstruction::DumpSettings(const char* dir)
 
 void GPUReconstruction::UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
 {
-  param().UpdateGRPSettings(g, p);
+  mGRPSettings = *g;
+  param().UpdateSettings(g, p);
   if (mInitialized) {
     WriteConstantParams();
   }
@@ -1041,7 +1042,7 @@ int GPUReconstruction::ReadSettings(const char* dir)
   if (ReadStructFromFile(f.c_str(), &mGRPSettings)) {
     return 1;
   }
-  param().UpdateGRPSettings(&mGRPSettings);
+  param().UpdateSettings(&mGRPSettings);
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->ReadSettings(dir);
   }

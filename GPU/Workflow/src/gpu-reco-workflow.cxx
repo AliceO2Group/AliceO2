@@ -21,6 +21,7 @@
 #include "GPUWorkflow/GPUWorkflowSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "Framework/CallbacksPolicy.h"
 #include "TPCBase/Sector.h"
 #include "Algorithm/RangeTokenizer.h"
@@ -147,10 +148,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   cfg.readTRDtracklets = isEnabled(inputTypes, ioType::TRDTracklets);
   cfg.runTRDTracking = isEnabled(outputTypes, ioType::TRDTracks);
 
-  std::shared_ptr<GPURecoWorkflowSpec> task = std::make_shared<GPURecoWorkflowSpec>(&gPolicyData, cfg, tpcSectors, gTpcSectorMask);
+  Inputs ggInputs;
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true, o2::base::GRPGeomRequest::Aligned, ggInputs, true);
+
+  auto task = std::make_shared<GPURecoWorkflowSpec>(&gPolicyData, cfg, tpcSectors, gTpcSectorMask, ggRequest);
+  Inputs taskInputs = task->inputs();
+  std::move(ggInputs.begin(), ggInputs.end(), std::back_inserter(taskInputs));
+
   specs.emplace_back(DataProcessorSpec{
     "gpu-reconstruction",
-    task->inputs(),
+    taskInputs,
     task->outputs(),
     AlgorithmSpec{adoptTask<GPURecoWorkflowSpec>(task)}});
 
