@@ -13,6 +13,7 @@
 
 #include "MCHSimulation/DigitizerParam.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include <algorithm>
 #include <cmath>
 #include <random>
 
@@ -112,11 +113,18 @@ void DEDigitizer::extractDigitsAndLabels(std::vector<Digit>& digits,
       continue;
     }
     uint32_t adc = std::round(q);
-    // FIXME: we should handle charge saturation here
     if (adc >= DigitizerParam::Instance().minADC) {
       auto time = mIR.differenceInBC(o2::raw::HBFUtils::Instance().orbitFirst);
       auto nSamples = mResponse.nSamples(adc);
-      digits.emplace_back(mDeId, padid, adc, time, nSamples);
+      nSamples = std::min(nSamples, 0x3FFU); // the number of samples must fit within 10 bits
+      bool saturated = false;
+      // the charge sum must fit within 20 bits
+      // FIXME: we should better handle charge saturation here
+      if (adc > 0xFFFFFU) {
+        adc = 0xFFFFFU;
+        saturated = true;
+      }
+      digits.emplace_back(mDeId, padid, adc, time, nSamples, saturated);
       for (auto element : mLabels[padid]) {
         labels.addElement(dataindex, element);
       }
