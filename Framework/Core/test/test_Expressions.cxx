@@ -160,13 +160,6 @@ BOOST_AUTO_TEST_CASE(TestGandivaTreeCreation)
 
   Projector pte = o2::aod::track::Pt::Projector();
   auto ptespecs = createOperations(pte);
-  BOOST_REQUIRE_EQUAL(ptespecs[0].left, (DatumSpec{1u, atype::FLOAT}));
-  BOOST_REQUIRE_EQUAL(ptespecs[0].right, (DatumSpec{}));
-  BOOST_REQUIRE_EQUAL(ptespecs[0].result, (DatumSpec{0u, atype::FLOAT}));
-
-  BOOST_REQUIRE_EQUAL(ptespecs[1].left, (DatumSpec{LiteralNode::var_t{1.f}, atype::FLOAT}));
-  BOOST_REQUIRE_EQUAL(ptespecs[1].right, (DatumSpec{std::string{"fSigned1Pt"}, typeid(o2::aod::track::Signed1Pt).hash_code(), atype::FLOAT}));
-  BOOST_REQUIRE_EQUAL(ptespecs[1].result, (DatumSpec{1u, atype::FLOAT}));
 
   auto infield3 = o2::aod::track::Signed1Pt::asArrowField();
   auto resfield2 = o2::aod::track::Pt::asArrowField();
@@ -174,7 +167,7 @@ BOOST_AUTO_TEST_CASE(TestGandivaTreeCreation)
   auto gandiva_tree2 = createExpressionTree(ptespecs, schema2);
 
   auto gandiva_expression2 = makeExpression(gandiva_tree2, resfield2);
-  BOOST_CHECK_EQUAL(gandiva_expression2->ToString(), "float absf(float divide((const float) 1 raw(3f800000), (float) fSigned1Pt))");
+  BOOST_CHECK_EQUAL(gandiva_expression2->ToString(), "if (bool less_than_or_equal_to(float absf((float) fSigned1Pt), (const float) 1.17549e-38 raw(7fffe1))) { (const float) 8.50709e+37 raw(7e80001f) } else { float absf(float divide((const float) 1 raw(3f800000), (float) fSigned1Pt)) }");
 
   auto projector_b = createProjector(schema2, ptespecs, resfield2);
   auto schema_p = o2::soa::createSchemaFromColumns(o2::aod::Tracks::persistent_columns_t{});
