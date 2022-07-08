@@ -16,7 +16,6 @@
 
 #include "MCHSimulation/Response.h"
 
-#include <algorithm>
 #include <cmath>
 
 #include "MCHBase/ResponseParam.h"
@@ -82,12 +81,11 @@ float Response::chargeCorr() const
 }
 
 //_____________________________________________________________________
-uint16_t Response::nSamples(uint32_t adc) const
+uint32_t Response::nSamples(uint32_t adc) const
 {
   // the main purpose is to the pass the background rejection and signal selection
   // applied in data reconstruction (see MCH/DigitFiltering/src/DigitFilter.cxx).
   // a realistic estimate of nSamples would require a complete simulation of the electronic signal
   double signalParam[3] = {14., 13., 1.5};
-  unsigned int nSamples = std::round(std::pow(double(adc) / signalParam[1], 1. / signalParam[2]) + signalParam[0]);
-  return std::min(nSamples, 0x3FFU); // the number of samples must fit within 10 bits
+  return std::round(std::pow(double(adc) / signalParam[1], 1. / signalParam[2]) + signalParam[0]);
 }
