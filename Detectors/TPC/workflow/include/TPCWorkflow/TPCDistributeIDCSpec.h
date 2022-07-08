@@ -43,8 +43,8 @@ namespace o2::tpc
 class TPCDistributeIDCSpec : public o2::framework::Task
 {
  public:
-  TPCDistributeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int outlanes, const bool loadFromFile, const int firstTF)
-    : mCRUs{crus}, mTimeFrames{timeframes}, mOutLanes{outlanes}, mLoadFromFile{loadFromFile}, mProcessedCRU{{std::vector<unsigned int>(timeframes), std::vector<unsigned int>(timeframes)}}, mDataSent{std::vector<bool>(timeframes), std::vector<bool>(timeframes)}, mTFStart{{firstTF, firstTF + timeframes}}, mTFEnd{{firstTF + timeframes - 1, mTFStart[1] + timeframes - 1}}
+  TPCDistributeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int outlanes, const bool loadFromFile, const int firstTF, const bool sendPrecisetimeStamp)
+    : mCRUs{crus}, mTimeFrames{timeframes}, mOutLanes{outlanes}, mLoadFromFile{loadFromFile}, mProcessedCRU{{std::vector<unsigned int>(timeframes), std::vector<unsigned int>(timeframes)}}, mDataSent{std::vector<bool>(timeframes), std::vector<bool>(timeframes)}, mTFStart{{firstTF, firstTF + timeframes}}, mTFEnd{{firstTF + timeframes - 1, mTFStart[1] + timeframes - 1}}, mSendPrecisetimeStamp{sendPrecisetimeStamp}
   {
 
     // pre calculate data description for output
@@ -105,11 +105,27 @@ class TPCDistributeIDCSpec : public o2::framework::Task
     }
   }
 
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final
+  {
+    LOGP(info, "finaliseCCDB");
+    if (matcher == ConcreteDataMatcher("CTP", "ORBITRESET", 0)) {
+      mOrbitResetTime = (*(std::vector<Long64_t>*)obj).front();
+      LOGP(info, "Updating orbit reset from CCDB to {}", mOrbitResetTime);
+    }
+  }
+
   void run(o2::framework::ProcessingContext& pc) final
   {
     // check which buffer to use for current incoming data
     const auto tf = processing_helpers::getCurrentTF(pc);
 
+    // store precise timestamp for look up later
+    if (mSendPrecisetimeStamp && pc.inputs().isValid("orbitreset")) {
+      pc.inputs().get<std::vector<Long64_t>*>("orbitreset"); // check for new orbitReset
+      if (pc.inputs().countValidInputs() == 1) {
+        return;
+      }
+    }
     // automatically detect firstTF in case firstTF was not specified
     if (mTFStart.front() <= -1) {
       const auto firstTF = tf;
@@ -192,6 +208,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   }
 
   static constexpr header::DataDescription getDataDescriptionIDCRelTF() { return header::DataDescription{"IDCRELTF"}; }
+  static constexpr header::DataDescription getDataDescriptionIDCOrbitReset() { return header::DataDescription{"IDCORBITRESET"}; }
 
  private:
   std::vector<uint32_t> mCRUs{};                                                                                                                                                                         ///< CRUs to process in this instance
@@ -205,15 +222,20 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   std::array<std::vector<std::unordered_map<unsigned int, bool>>, 2> mProcessedCRUs{};                                                                                                                   ///< to keep track of the already processed CRUs ([buffer][relTF][CRU])
   std::array<long, 2> mTFStart{};                                                                                                                                                                        ///< storing of first TF for buffer interval
   std::array<long, 2> mTFEnd{};                                                                                                                                                                          ///< storing of last TF for buffer interval
+  const bool mSendPrecisetimeStamp{true};                                                                                                                                                                ///< use precise time stamp when writing to CCDB
   unsigned int mCurrentOutLane{0};                                                                                                                                                                       ///< index for keeping track of the current output lane
   bool mBuffer{false};                                                                                                                                                                                   ///< buffer index
   bool mCheckMissingData{false};                                                                                                                                                                         ///< perform check for missing data
+  Long64_t mOrbitResetTime{};                                                                                                                                                                            ///< orbit reset time to calculate precise time stamp
   const std::vector<InputSpec> mFilter = {{"idcsgroup", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescriptionIDCGroup()}, Lifetime::Timeframe}}; ///< filter for looping over input data
   std::vector<header::DataDescription> mDataDescrOut{};
 
   void sendOutput(o2::framework::ProcessingContext& pc, const unsigned int currentOutLane, const bool currentBuffer, const unsigned int relTF)
   {
-    // send output data for one TF for all CRUs
+    if (mSendPrecisetimeStamp) {
+      pc.outputs().snapshot(Output{gDataOriginTPC, getDataDescriptionIDCOrbitReset(), header::DataHeader::SubSpecificationType{currentOutLane}}, mOrbitResetTime);
+    }
+
     if (!mLoadFromFile) {
       for (unsigned int i = 0; i < mCRUs.size(); ++i) {
         pc.outputs().adoptContainer(Output{gDataOriginTPC, mDataDescrOut[currentOutLane], header::DataHeader::SubSpecificationType{mCRUs[i]}}, std::move(mIDCs[currentBuffer][mCRUs[i]][relTF]));
@@ -270,7 +292,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   }
 };
 
-DataProcessorSpec getTPCDistributeIDCSpec(const int ilane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int outlanes, const int firstTF, const bool loadFromFile)
+DataProcessorSpec getTPCDistributeIDCSpec(const int ilane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int outlanes, const int firstTF, const bool loadFromFile, const bool sendPrecisetimeStamp = false)
 {
   std::vector<InputSpec> inputSpecs;
   if (!loadFromFile) {
@@ -288,12 +310,19 @@ DataProcessorSpec getTPCDistributeIDCSpec(const int ilane, const std::vector<uin
     outputSpecs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(lane)}, Lifetime::Sporadic);
   }
 
+  if (sendPrecisetimeStamp && (ilane == 0)) {
+    inputSpecs.emplace_back("orbitreset", "CTP", "ORBITRESET", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/OrbitReset"));
+    for (unsigned int lane = 0; lane < outlanes; ++lane) {
+      outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDCOrbitReset(), header::DataHeader::SubSpecificationType{lane}}, Lifetime::Sporadic);
+    }
+  }
+
   const auto id = fmt::format("tpc-distribute-idc-{:02}", ilane);
   DataProcessorSpec spec{
     id.data(),
     inputSpecs,
     outputSpecs,
-    AlgorithmSpec{adaptFromTask<TPCDistributeIDCSpec>(crus, timeframes, outlanes, loadFromFile, firstTF)},
+    AlgorithmSpec{adaptFromTask<TPCDistributeIDCSpec>(crus, timeframes, outlanes, loadFromFile, firstTF, (ilane == 0) ? sendPrecisetimeStamp : false)},
     Options{{"check-for-missing-data", VariantType::Bool, false, {"Perform check if all data is received."}}}}; // end DataProcessorSpec
   spec.rank = ilane;
   return spec;
