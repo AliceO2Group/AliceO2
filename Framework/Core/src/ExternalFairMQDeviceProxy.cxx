@@ -27,6 +27,7 @@
 #include "Framework/TimingInfo.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
+#include "CommonConstants/LHCConstants.h"
 
 #include "./DeviceSpecHelpers.h"
 #include "Framework/DataProcessingHelpers.h"
@@ -242,6 +243,11 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
         continue;
       }
       const_cast<DataProcessingHeader*>(dph)->startTime = dplCounter;
+      static bool override_creation = getenv("DPL_RAWPROXY_OVERRIDE_ORBITRESET");
+      if (override_creation) {
+        static uint64_t creationVal = std::stoul(getenv("DPL_RAWPROXY_OVERRIDE_ORBITRESET")) + (dh->firstTForbit * o2::constants::lhc::LHCOrbitNS * 0.000001f);
+        const_cast<DataProcessingHeader*>(dph)->creation = creationVal;
+      }
       timingInfo.timeslice = dph->startTime;
       timingInfo.creation = dph->creation;
       timingInfo.firstTForbit = dh->firstTForbit;
