@@ -41,41 +41,37 @@ namespace mft
 template <typename T>
 bool TrackFitter<T>::fit(T& track, bool outward)
 {
-  if constexpr (std::is_same<T, o2::mft::TrackLTF>::value) {
-    /// Fit a track using its attached clusters
-    /// Returns false in case of failure
+  /// Fit a track using its attached clusters
+  /// Returns false in case of failure
 
-    auto nClusters = track.getNumberOfPoints();
-    auto lastLayer = track.getLayers()[(outward ? 0 : nClusters - 1)];
+  auto nClusters = track.getNumberOfPoints();
+  auto lastLayer = track.getLayers()[(outward ? 0 : nClusters - 1)];
 
-    if (mVerbose) {
-      std::cout << "Seed covariances: \n"
-                << track.getCovariances() << std::endl
-                << std::endl;
-    }
+  if (mVerbose) {
+    std::cout << "Seed covariances: \n"
+              << track.getCovariances() << std::endl
+              << std::endl;
+  }
 
-    // recursively compute clusters, updating the track parameters
-    if (!outward) { // Inward for vertexing
-      while (nClusters-- > 0) {
-        if (!computeCluster(track, nClusters, lastLayer)) {
-          return false;
-        }
-      }
-    } else { // Outward for MCH matching
-      int ncl = 0;
-      while (ncl < nClusters) {
-        if (!computeCluster(track, ncl, lastLayer)) {
-          return false;
-        }
-        ncl++;
+  // recursively compute clusters, updating the track parameters
+  if (!outward) { // Inward for vertexing
+    while (nClusters-- > 0) {
+      if (!computeCluster(track, nClusters, lastLayer)) {
+        return false;
       }
     }
-    if (mVerbose) {
-      std::cout << "Track Chi2 = " << track.getTrackChi2() << std::endl;
-      std::cout << " ***************************** Done fitting *****************************\n";
+  } else { // Outward for MCH matching
+    int ncl = 0;
+    while (ncl < nClusters) {
+      if (!computeCluster(track, ncl, lastLayer)) {
+        return false;
+      }
+      ncl++;
     }
-  } else { // Magnet off: linear tracks
-    // Do nothing while there is no alignment
+  }
+  if (mVerbose) {
+    std::cout << "Track Chi2 = " << track.getTrackChi2() << std::endl;
+    std::cout << " ***************************** Done fitting *****************************\n";
   }
 
   return true;
@@ -156,11 +152,11 @@ bool TrackFitter<T>::initTrack(T& track, bool outward)
     SMatrix55Sym lastParamCov;
     double qptsigma = TMath::Range(1., 10., std::abs(track.getInvQPt()));
 
-    lastParamCov(0, 0) = 1.;                              // <X,X>
-    lastParamCov(1, 1) = 1.;                              // <Y,Y>
-    lastParamCov(2, 2) = 1.;                              // <PHI,PHI>
-    lastParamCov(3, 3) = 1.;                              // <TANL,TANL>
-    lastParamCov(4, 4) = qptsigma;                        // <INVQPT,INVQPT>
+    lastParamCov(0, 0) = 1.;       // <X,X>
+    lastParamCov(1, 1) = 1.;       // <Y,Y>
+    lastParamCov(2, 2) = 1.;       // <PHI,PHI>
+    lastParamCov(3, 3) = 1.;       // <TANL,TANL>
+    lastParamCov(4, 4) = qptsigma; // <INVQPT,INVQPT>
 
     track.setCovariances(lastParamCov);
     track.setTrackChi2(0.);
@@ -169,7 +165,7 @@ bool TrackFitter<T>::initTrack(T& track, bool outward)
 
     // initialize the starting track parameters
     double chi2invqptquad;
-    auto invQPt0 = 0;
+    auto invQPt0 = 0.;
 
     auto nPoints = track.getNumberOfPoints();
 
@@ -183,7 +179,6 @@ bool TrackFitter<T>::initTrack(T& track, bool outward)
     track.setInvQPt(invQPt0);
 
     /// Compute the initial track parameters to seed the Kalman filter
-    outward = !outward; // Temporary fix for misaligned detector.
     int first_cls, next_cls;
     if (outward) { // MCH matching
       first_cls = 0;
@@ -225,11 +220,11 @@ bool TrackFitter<T>::initTrack(T& track, bool outward)
     SMatrix55Sym lastParamCov;
     double qptsigma = TMath::Range(1., 10., std::abs(track.getInvQPt()));
 
-    lastParamCov(0, 0) = 1.;       // <X,X>
-    lastParamCov(1, 1) = 1.;       // <Y,Y>
-    lastParamCov(2, 2) = 1.;       // <PHI,PHI>
-    lastParamCov(3, 3) = 1.;       // <TANL,TANL>
-    lastParamCov(4, 4) = qptsigma; // <INVQPT,INVQPT>
+    lastParamCov(0, 0) = 1.; // <X,X>
+    lastParamCov(1, 1) = 1.; // <Y,Y>
+    lastParamCov(2, 2) = 1.; // <PHI,PHI>
+    lastParamCov(3, 3) = 1.; // <TANL,TANL>
+    lastParamCov(4, 4) = 0.; // <INVQPT,INVQPT>
 
     track.setCovariances(lastParamCov);
     track.setTrackChi2(0.);
@@ -264,7 +259,7 @@ bool TrackFitter<T>::propagateToZ(T& track, double z)
         break;
     }
   } else {
-    // Do nothing while there is no alignment
+    track.propagateToZlinear(z);
   }
   return true;
 }
@@ -364,8 +359,8 @@ bool TrackFitter<T>::computeCluster(T& track, int cluster, int& startingLayerID)
   const auto& clx = track.getXCoordinates()[cluster];
   const auto& cly = track.getYCoordinates()[cluster];
   const auto& clz = track.getZCoordinates()[cluster];
-  const auto& sigmaX2 = track.getSigmasX2()[cluster];
-  const auto& sigmaY2 = track.getSigmasY2()[cluster];
+  const auto& sigmaX2 = track.getSigmasX2()[cluster] + mAlignResidual;
+  const auto& sigmaY2 = track.getSigmasY2()[cluster] + mAlignResidual;
   const auto& newLayerID = track.getLayers()[cluster];
 
   if (mVerbose) {
@@ -389,7 +384,7 @@ bool TrackFitter<T>::computeCluster(T& track, int cluster, int& startingLayerID)
 
   if (track.update(pos, cov)) {
     if (mVerbose) {
-      std::cout << "   New Cluster: X = " << clx << " Y = " << cly << " Z = " << clz << std::endl;
+      std::cout << "   New Cluster: X = " << clx << " Y = " << cly << " Z = " << clz << " sigmaX2 = " << sigmaX2 << " sigmaY2 = " << sigmaY2 << std::endl;
       std::cout << "   AfterKalman: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " q/pt = " << track.getInvQPt() << std::endl;
       std::cout << std::endl;
       std::cout << "Track covariances after Kalman update: \n"

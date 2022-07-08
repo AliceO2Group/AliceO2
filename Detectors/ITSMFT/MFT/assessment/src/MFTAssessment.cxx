@@ -556,7 +556,12 @@ void MFTAssessment::processTrueTracks()
           auto tanlGen = mcParticle->Pz() / mcParticle->GetPt();
           auto invQPtGen = 1.0 * Q_Gen / ptGen;
 
-          mftTrack.propagateToZ(vzGen, mBz);
+          if (std::abs(mftTrack.getInvQPt()) > o2::constants::math::Almost0) {
+            mftTrack.propagateToZ(vzGen, mBz);
+          } else {
+            mftTrack.propagateToZlinear(vzGen);
+          }
+
           const auto& pt_Rec = mftTrack.getPt();
           const auto& invQPt_Rec = mftTrack.getInvQPt();
           const auto& invQPt_Seed = mftTrack.getInvQPtSeed();
