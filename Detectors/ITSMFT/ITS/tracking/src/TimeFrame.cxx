@@ -51,6 +51,10 @@ namespace o2
 namespace its
 {
 
+lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp) : mX{x}, mY{y}, mZ{z}, mRMS2{rms2}, mAvgDistance2{avgdis2}, mContributors{cont}, mTimeStamp{stamp}
+{
+}
+
 constexpr float DefClusErrorRow = o2::itsmft::SegmentationAlpide::PitchRow * 0.5;
 constexpr float DefClusErrorCol = o2::itsmft::SegmentationAlpide::PitchCol * 0.5;
 constexpr float DefClusError2Row = DefClusErrorRow * DefClusErrorRow;
@@ -91,6 +95,16 @@ void TimeFrame::addPrimaryVertices(const gsl::span<const Vertex>& vertices)
     mBeamPosWeight += w;
   }
   mROframesPV.push_back(mPrimaryVertices.size());
+}
+
+void TimeFrame::addPrimaryVertices(const std::vector<lightVertex>& lVertices)
+{
+  std::vector<Vertex> vertices;
+  for (auto& vertex : lVertices) {
+    vertices.emplace_back(o2::math_utils::Point3D<float>(vertex.mX, vertex.mY, vertex.mZ), vertex.mRMS2, vertex.mContributors, vertex.mAvgDistance2);
+    vertices.back().setTimeStamp(vertex.mTimeStamp);
+  }
+  addPrimaryVertices(vertices);
 }
 
 int TimeFrame::loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,

@@ -38,43 +38,12 @@ class MCCompLabel;
 namespace its
 {
 class ROframe;
-
 using constants::its::LayersNumberVertexer;
-
-struct lightVertex {
-  lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp);
-  float mX;
-  float mY;
-  float mZ;
-  std::array<float, 6> mRMS2;
-  float mAvgDistance2;
-  int mContributors;
-  int mTimeStamp;
-};
-
-struct ClusterMCLabelInfo {
-  int TrackId;
-  int MotherId;
-  int EventId;
-  float Pt;
-};
-
-enum class VertexerDebug : unsigned int {
-  TrackletTreeAll = 0x1 << 1,
-  LineTreeAll = 0x1 << 2,
-  CombinatoricsTreeAll = 0x1 << 3,
-  LineSummaryAll = 0x1 << 4,
-  HistCentroids = 0x1 << 5
-};
 
 enum class TrackletMode {
   Layer0Layer1 = 0,
   Layer1Layer2 = 2
 };
-
-inline lightVertex::lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp) : mX{x}, mY{y}, mZ{z}, mRMS2{rms2}, mAvgDistance2{avgdis2}, mContributors{cont}, mTimeStamp{stamp}
-{
-}
 
 class VertexerTraits
 {
@@ -113,13 +82,8 @@ class VertexerTraits
   unsigned char getIsGPU() const { return mIsGPU; };
   void dumpVertexerTraits();
 
-  void setDebugFlag(VertexerDebug flag, const unsigned char on);
-  unsigned char isDebugFlag(const VertexerDebug& flags) const;
-  unsigned int getDebugFlags() const { return static_cast<unsigned int>(mDBGFlags); }
-
  protected:
   unsigned char mIsGPU;
-  unsigned int mDBGFlags = 0;
 
   VertexingParameters mVrtParams;
   IndexTableUtils mIndexTableUtils;
@@ -182,21 +146,6 @@ GPUhdi() const int4 VertexerTraits::getBinsRect(const Cluster& currentCluster, c
                                                 const float directionZIntersection, float maxdeltaz, float maxdeltaphi)
 {
   return VertexerTraits::getBinsRect(currentCluster, layerIndex, directionZIntersection, maxdeltaz, maxdeltaphi, mIndexTableUtils);
-}
-
-// debug
-inline void VertexerTraits::setDebugFlag(VertexerDebug flag, const unsigned char on = true)
-{
-  if (on) {
-    mDBGFlags |= static_cast<unsigned int>(flag);
-  } else {
-    mDBGFlags &= ~static_cast<unsigned int>(flag);
-  }
-}
-
-inline unsigned char VertexerTraits::isDebugFlag(const VertexerDebug& flags) const
-{
-  return mDBGFlags & static_cast<unsigned int>(flags);
 }
 
 inline void VertexerTraits::adoptTimeFrame(TimeFrame* tf) { mTimeFrame = tf; }

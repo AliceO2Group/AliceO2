@@ -58,6 +58,17 @@ namespace its
 {
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
+struct lightVertex {
+  lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp);
+  float mX;
+  float mY;
+  float mZ;
+  std::array<float, 6> mRMS2;
+  float mAvgDistance2;
+  int mContributors;
+  int mTimeStamp;
+};
+
 class TimeFrame
 {
  public:
@@ -70,6 +81,7 @@ class TimeFrame
   int getPrimaryVerticesNum(int rofID = -1) const;
   void addPrimaryVertices(const std::vector<Vertex>& vertices);
   void addPrimaryVertices(const gsl::span<const Vertex>& vertices);
+  void addPrimaryVertices(const std::vector<lightVertex>&);
   void removePrimaryVerticesInROf(const int rofId);
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);

@@ -36,14 +36,14 @@ Vertexer::Vertexer(VertexerTraits* traits)
   mTraits = traits;
 }
 
-float Vertexer::clustersToVertices(const bool useMc, std::function<void(std::string s)> logger)
+float Vertexer::clustersToVertices(std::function<void(std::string s)> logger)
 {
   float total{0.f};
   TrackingParameters trkPars;
-  total += evaluateTask(&Vertexer::initialiseVertexer, false, "Vertexer initialisation", logger, trkPars);
-  total += evaluateTask(&Vertexer::findTracklets, false, "Tracklet finding", logger);
-  total += evaluateTask(&Vertexer::validateTracklets, false, "Adjacent tracklets validation", logger);
-  total += evaluateTask(&Vertexer::findVertices, false, "Vertex finding", logger);
+  total += evaluateTask(&Vertexer::initialiseVertexer, "Vertexer initialisation", logger, trkPars);
+  total += evaluateTask(&Vertexer::findTracklets, "Tracklet finding", logger);
+  total += evaluateTask(&Vertexer::validateTracklets, "Adjacent tracklets validation", logger);
+  total += evaluateTask(&Vertexer::findVertices, "Vertex finding", logger);
 
   return total;
 }
