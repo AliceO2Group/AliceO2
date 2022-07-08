@@ -95,20 +95,11 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     mTimeStampRangeIDCDelta.resize(mIDCFactorization.getNChunks(mSides.front()));
   }
 
-  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final
-  {
-    LOGP(info, "finaliseCCDB");
-    if (matcher == ConcreteDataMatcher("CTP", "ORBITRESET", 0)) {
-      mOrbitResetTime = (*(std::vector<Long64_t>*)obj).front();
-      LOGP(info, "Updating orbit reset from CCDB to {}", mOrbitResetTime);
-    }
-  }
-
   void run(o2::framework::ProcessingContext& pc) final
   {
     // store precise timestamp for look up later
     if (mUsePrecisetimeStamp && pc.inputs().isValid("orbitreset")) {
-      pc.inputs().get<std::vector<Long64_t>*>("orbitreset"); // check for new orbitReset
+      mOrbitResetTime = pc.inputs().get<Long64_t>("orbitreset");
       if (pc.inputs().countValidInputs() == 1) {
         return;
       }
@@ -139,7 +130,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
     }
 
     if (!(mProcessedCRUs % mTFsMessaged)) {
-      LOGP(info, "mProcessedTFs: {}   currTF: {}  for relTF: {}", mProcessedCRUs / mCRUs.size(), currTF, relTF);
+      LOGP(info, "ProcessedTFs: {}   currTF: {}  relTF: {}   OrbitResetTime: {}", mProcessedCRUs / mCRUs.size(), currTF, relTF, mOrbitResetTime);
     }
 
     if (mProcessedCRUs == mCRUs.size() * mIDCFactorization.getNTimeframes()) {
@@ -173,6 +164,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   static constexpr header::DataDescription getDataDescriptionIntervals() { return header::DataDescription{"INTERVALS"}; }
   static constexpr header::DataDescription getDataDescriptionIDCDelta() { return header::DataDescription{"IDCDELTA"}; }
   static constexpr header::DataDescription getDataDescriptionFourier() { return header::DataDescription{"FOURIER"}; }
+  static constexpr header::DataDescription getDataDescriptionLane() { return header::DataDescription{"IDCLANE"}; }
 
   // for CCDB
   static constexpr header::DataDescription getDataDescriptionCCDBGroupingPar() { return header::DataDescription{"TPC_CalibGrParam"}; }
@@ -201,7 +193,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;                                                                                                                          ///< status flag for each pad (i.e. if the pad is dead). This map is buffered to check if something changed, when a new map is created
   int mLanesDistribute{1};                                                                                                                                                 ///< number of lanes used in the DistributeIDC device
   unsigned int mTFsMessaged{10};                                                                                                                                           ///< send info messages only every mTFsMessaged
-  Long64_t mOrbitResetTime{};                                                                                                                                              ///<
+  Long64_t mOrbitResetTime{};                                                                                                                                              ///< orbit reset time for CCDB time stamp writing
   uint32_t mTFOrbitFirst{};                                                                                                                                                ///< first TF orbit of current aggregation interval
   const std::vector<InputSpec> mFilter = {{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(mLaneId)}, Lifetime::Timeframe}}; ///< filter for looping over input data
 
@@ -270,6 +262,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
       }
       output.snapshot(Output{gDataOriginTPC, getDataDescriptionTimeStamp()}, std::vector<uint64_t>{timeStampStart, timeStampEnd});
       output.snapshot(Output{gDataOriginTPC, getDataDescriptionIntervals()}, mIDCFactorization.getIntegrationIntervalsPerTF());
+      output.snapshot(Output{gDataOriginTPC, getDataDescriptionLane()}, mLaneId);
     }
 
     if (mSendOutCCDB) {
@@ -297,7 +290,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
 
         auto start = timer::now();
         o2::ccdb::CcdbObjectInfo ccdbInfoIDC0(CDBTypeMap.at(sideA ? CDBType::CalIDC0A : CDBType::CalIDC0C), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStart, timeStampEnd);
-        auto imageIDC0 = o2::ccdb::CcdbApi::createObjectImage(&mIDCFactorization.getIDCZero(), &ccdbInfoIDC0);
+        auto imageIDC0 = o2::ccdb::CcdbApi::createObjectImage(&mIDCFactorization.getIDCZero(side), &ccdbInfoIDC0);
         LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", ccdbInfoIDC0.getPath(), ccdbInfoIDC0.getFileName(), imageIDC0->size(), ccdbInfoIDC0.getStartValidityTimestamp(), ccdbInfoIDC0.getEndValidityTimestamp());
         output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBIDC0(), 0}, *imageIDC0.get());
         output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBIDC0(), 0}, ccdbInfoIDC0);
@@ -378,7 +371,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
           o2::ccdb::CcdbObjectInfo ccdbInfoIDCDelta(CDBTypeMap.at(sideA ? CDBType::CalIDCDeltaA : CDBType::CalIDCDeltaC), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStartDelta, timeStampEnd);
 
           auto startCCDBIDCDelta = timer::now();
-          std::unique_ptr<std::__1::vector<char>> imageIDCDelta;
+          std::unique_ptr<std::vector<char>> imageIDCDelta;
 
           switch (mCompressionDeltaIDC) {
             case IDCDeltaCompression::MEDIUM:
@@ -467,13 +460,14 @@ DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint3
     }
     outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeIDCSpec<Type>::getDataDescriptionTimeStamp(), header::DataHeader::SubSpecificationType{0}}, Lifetime::Sporadic);
     outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeIDCSpec<Type>::getDataDescriptionIntervals(), header::DataHeader::SubSpecificationType{0}}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeIDCSpec<Type>::getDataDescriptionLane(), header::DataHeader::SubSpecificationType{0}}, Lifetime::Sporadic);
   }
 
   std::vector<InputSpec> inputSpecs;
   inputSpecs.emplace_back(InputSpec{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(lane)}, Lifetime::Sporadic});
 
   if (usePrecisetimeStamp) {
-    inputSpecs.emplace_back("orbitreset", "CTP", "ORBITRESET", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/OrbitReset"));
+    inputSpecs.emplace_back(InputSpec{"orbitreset", gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDCOrbitReset(), header::DataHeader::SubSpecificationType{static_cast<unsigned int>(lane)}, Lifetime::Sporadic});
   }
 
   const auto& paramIDCGroup = ParameterIDCGroup::Instance();

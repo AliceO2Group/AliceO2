@@ -39,6 +39,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"load-from-file", VariantType::Bool, false, {"load average and grouped IDCs from IDCGroup.root file."}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"lanes", VariantType::Int, 1, {"Number of lanes of this device (CRUs are splitted per line)"}},
+    {"send-precise-timestamp", VariantType::Bool, false, {"Send precise timestamp which can be used for writing to CCDB"}},
     {"output-lanes", VariantType::Int, 2, {"Number of parallel pipelines which will be used in the factorization device."}}};
 
   std::swap(workflowOptions, options);
@@ -61,6 +62,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const auto nLanes = static_cast<unsigned int>(config.options().get<int>("lanes"));
   const auto firstTF = static_cast<unsigned int>(config.options().get<int>("firstTF"));
   const auto loadFromFile = config.options().get<bool>("load-from-file");
+  const bool sendPrecisetimeStamp = config.options().get<bool>("send-precise-timestamp");
 
   const auto crusPerLane = nCRUs / nLanes + ((nCRUs % nLanes) != 0);
   WorkflowSpec workflow;
@@ -71,7 +73,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     }
     const auto last = std::min(tpcCRUs.end(), first + crusPerLane);
     const std::vector<uint32_t> rangeCRUs(first, last);
-    workflow.emplace_back(getTPCDistributeIDCSpec(ilane, rangeCRUs, timeframes, outlanes, firstTF, loadFromFile));
+    workflow.emplace_back(getTPCDistributeIDCSpec(ilane, rangeCRUs, timeframes, outlanes, firstTF, loadFromFile, sendPrecisetimeStamp));
   }
 
   return workflow;

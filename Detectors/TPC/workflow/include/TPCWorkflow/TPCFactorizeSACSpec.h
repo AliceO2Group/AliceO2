@@ -80,6 +80,7 @@ class TPCFactorizeSACSpec : public o2::framework::Task
   static constexpr header::DataDescription getDataDescriptionSAC1() { return header::DataDescription{"SAC1"}; }
   static constexpr header::DataDescription getDataDescriptionTimeStamp() { return header::DataDescription{"FOURIERTS"}; }
   static constexpr header::DataDescription getDataDescriptionFourier() { return header::DataDescription{"FOURIER"}; }
+  static constexpr header::DataDescription getDataDescriptionLane() { return header::DataDescription{"SACLANE"}; }
 
   // for CCDB
   static constexpr header::DataDescription getDataDescriptionCCDBSAC0() { return header::DataDescription{"TPC_CalibSAC0"}; }
@@ -102,6 +103,7 @@ class TPCFactorizeSACSpec : public o2::framework::Task
     output.snapshot(Output{gDataOriginTPC, getDataDescriptionSAC1(), header::DataHeader::SubSpecificationType{Side::A}}, mSACFactorization.getSACOne(Side::A));
     output.snapshot(Output{gDataOriginTPC, getDataDescriptionSAC1(), header::DataHeader::SubSpecificationType{Side::C}}, mSACFactorization.getSACOne(Side::C));
     output.snapshot(Output{gDataOriginTPC, getDataDescriptionTimeStamp()}, std::vector<uint64_t>{timeStampStart, timeStampEnd});
+    output.snapshot(Output{gDataOriginTPC, getDataDescriptionLane()}, mLaneId);
 
     o2::ccdb::CcdbObjectInfo ccdbInfoSAC0(CDBTypeMap.at(CDBType::CalSAC0), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStart, timeStampEnd);
     auto imageSAC0 = o2::ccdb::CcdbApi::createObjectImage(&mSACFactorization.getSACZero(), &ccdbInfoSAC0);
@@ -154,9 +156,10 @@ DataProcessorSpec getTPCFactorizeSACSpec(const int lane, const unsigned int time
   outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, TPCFactorizeSACSpec::getDataDescriptionCCDBSACDelta()}, Lifetime::Sporadic);
   outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, TPCFactorizeSACSpec::getDataDescriptionCCDBSACDelta()}, Lifetime::Sporadic);
 
-  outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeSACSpec::getDataDescriptionSAC1(), header::DataHeader::SubSpecificationType{Side::A}});
-  outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeSACSpec::getDataDescriptionSAC1(), header::DataHeader::SubSpecificationType{Side::C}});
-  outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeSACSpec::getDataDescriptionTimeStamp(), header::DataHeader::SubSpecificationType{0}});
+  outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeSACSpec::getDataDescriptionSAC1(), header::DataHeader::SubSpecificationType{Side::A}}, Lifetime::Sporadic);
+  outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeSACSpec::getDataDescriptionSAC1(), header::DataHeader::SubSpecificationType{Side::C}}, Lifetime::Sporadic);
+  outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeSACSpec::getDataDescriptionTimeStamp(), header::DataHeader::SubSpecificationType{0}}, Lifetime::Sporadic);
+  outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeSACSpec::getDataDescriptionLane(), header::DataHeader::SubSpecificationType{0}}, Lifetime::Sporadic);
 
   std::vector<InputSpec> inputSpecs;
   inputSpecs.emplace_back(InputSpec{"sac", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeSACSpec::getDataDescriptionSACVec(lane)}, Lifetime::Sporadic});

@@ -176,7 +176,6 @@ struct IDCZero {
   auto getNIDC0() const { return mIDCZero.size(); }
 
   std::vector<float> mIDCZero{}; ///< I_0(r,\phi) = <I(r,\phi,t)>_t
-  Side mSide{};                  ///< side of the IDCs
   ClassDefNV(IDCZero, 2)
 };
 
@@ -209,7 +208,6 @@ struct IDCOne {
   void resize(const unsigned int size) { mIDCOne.resize(size); }
 
   std::vector<float> mIDCOne{}; ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
-  Side mSide{};                 ///< side of the IDCs
   ClassDefNV(IDCOne, 2)
 };
 
@@ -304,7 +302,6 @@ struct FourierCoeff {
 
   std::vector<float> mFourierCoefficients{}; ///< fourier coefficients. coefficient real and complex parameters are stored alternating
   unsigned int mCoeffPerTF{};                ///< number of real+imag coefficients per TF
-  Side mSide{};                              ///< side of the IDCs
 
   ClassDefNV(FourierCoeff, 2)
 };
