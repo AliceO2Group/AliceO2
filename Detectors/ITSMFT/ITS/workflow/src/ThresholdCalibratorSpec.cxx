@@ -723,7 +723,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
           LOG(info) << "Calibrator will ship these run parameters to aggregator:";
           LOG(info) << "Run type  : " << mRunType;
           LOG(info) << "Scan type : " << mScanType;
-          LOG(info) << "Fit type  : " << mFitType;
+          LOG(info) << "Fit type  : " << std::to_string(mFitType);
           LOG(info) << "DB version: " << mConfDBv;
         }
         this->mRunTypeUp = ((short int)(calib.calibUserField >> 24)) & 0xff;

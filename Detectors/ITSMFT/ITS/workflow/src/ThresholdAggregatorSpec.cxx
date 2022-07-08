@@ -45,6 +45,11 @@ void ITSThresholdAggregator::init(InitContext& ic)
 // Get DCSconfigObject_t from EPNs and aggregate them in 1 object
 void ITSThresholdAggregator::run(ProcessingContext& pc)
 {
+  // Skip everything in case of garbage (potentially at EoS)
+  if (pc.services().get<o2::framework::TimingInfo>().firstTFOrbit == -1U) {
+    LOG(info) << "Skipping the processing of inputs for timeslice " << pc.services().get<o2::framework::TimingInfo>().timeslice << " (firstTFOrbit is " << pc.services().get<o2::framework::TimingInfo>().firstTFOrbit << ")";
+    return;
+  }
   // take run type, scan type, fit type, db version only at the beginning (important for EoS operations!)
   if (mRunType == -1) {
     for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "RUNT"}}})) {
@@ -69,7 +74,7 @@ void ITSThresholdAggregator::run(ProcessingContext& pc)
     LOG(info) << "Run number: " << mRunNumber;
     LOG(info) << "LHC period: " << mLHCPeriod;
     LOG(info) << "Scan type : " << mScanType;
-    LOG(info) << "Fit type  : " << mFitType;
+    LOG(info) << "Fit type  : " << std::to_string(mFitType);
     LOG(info) << "DB version: " << mDBversion;
   }
   for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "TSTR"}}})) {
