@@ -84,6 +84,9 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
     total += evaluateTask(&Tracker::extendTracks, "Extending tracks", logger);
   }
 
+  total += evaluateTask(&Tracker::findShortPrimaries, "Short primaries finding", logger);
+  ///TODO: Add desperate tracking, aka the extension of short primaries to recover holes in layer 3
+
   std::stringstream sstream;
   if (constants::DoTimeBenchmarks) {
     sstream << std::setw(2) << " - "
@@ -437,6 +440,42 @@ void Tracker::extendTracks()
           mTimeFrame->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
         }
       }
+    }
+  }
+}
+
+void Tracker::findShortPrimaries()
+{
+  for (auto& cell : mTimeFrame->getCells()[0]) {
+    auto& cluster1_glo = mTimeFrame->getClusters()[2][cell.getThirdClusterIndex()];
+    auto& cluster2_glo = mTimeFrame->getClusters()[1][cell.getSecondClusterIndex()];
+    auto& cluster3_glo = mTimeFrame->getClusters()[0][cell.getFirstClusterIndex()];
+    if (mTimeFrame->isClusterUsed(0, cluster1_glo.clusterId) ||
+        mTimeFrame->isClusterUsed(1, cluster2_glo.clusterId) ||
+        mTimeFrame->isClusterUsed(2, cluster3_glo.clusterId)) {
+      continue;
+    }
+
+    const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(0).at(cluster3_glo.clusterId);
+
+    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf, mTimeFrame->getPositionResolution(0))};
+    temporaryTrack.setExternalClusterIndex(0, cluster3_glo.clusterId, true);
+    temporaryTrack.setExternalClusterIndex(1, cluster2_glo.clusterId, true);
+    temporaryTrack.setExternalClusterIndex(2, cluster1_glo.clusterId, true);
+
+    /// add propagation to the primary vertices compatible with the ROF(s) of the cell
+    bool fitSuccess{false};
+
+    temporaryTrack.resetCovariance();
+    fitSuccess = fitTrack(temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].FitIterationMaxChi2[0]);
+    if (!fitSuccess) {
+      continue;
+    }
+    temporaryTrack.getParamOut() = temporaryTrack;
+    temporaryTrack.resetCovariance();
+    fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1], 50.);
+    if (!fitSuccess) {
+      continue;
     }
   }
 }
