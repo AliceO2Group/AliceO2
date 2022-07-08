@@ -104,6 +104,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         double dT = currentTime.getTimeNS() - triggerTime.getTimeNS();
         if (dT < o2::trd::constants::BUSY_TIME) {
           // BUSY_TIME = READOUT_TIME + DEAD_TIME, if less than that, pile up the signals and update the last time
+          LOGF(info, "Not creating new trigger at time %.2f since dT=%.2f < busy time of %.2f", currentTime.getTimeNS(), dT, o2::trd::constants::BUSY_TIME);
           isNewTrigger = false;
           mDigitizer.pileup();
         } else {
