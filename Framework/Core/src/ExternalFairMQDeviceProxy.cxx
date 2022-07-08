@@ -242,6 +242,11 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
         continue;
       }
       const_cast<DataProcessingHeader*>(dph)->startTime = dplCounter;
+      static bool override_creation = getenv("DPL_RAWPROXY_OVERRIDE_CREATIONTIME");
+      if (override_creation) {
+        static uint64_t creationVal = std::stoul(getenv("DPL_RAWPROXY_OVERRIDE_CREATIONTIME"));
+        const_cast<DataProcessingHeader*>(dph)->creation = creationVal;
+      }
       timingInfo.timeslice = dph->startTime;
       timingInfo.creation = dph->creation;
       timingInfo.firstTFOrbit = dh->firstTForbit;
