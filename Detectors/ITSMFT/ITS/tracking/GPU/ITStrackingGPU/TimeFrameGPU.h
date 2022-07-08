@@ -143,7 +143,7 @@ class TimeFrameGPU : public TimeFrame
 
  private:
   TimeFrameGPUConfig mConfig;
-  std::array<gpu::Stream, NLayers> mStreamArray;
+  std::array<gpu::Stream, NLayers + 1> mStreamArray;
   std::vector<int> mTrackletSizeHost;
   std::vector<int> mCellSizeHost;
   // Per-layer information, do not expand at runtime
