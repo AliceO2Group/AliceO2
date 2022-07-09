@@ -645,7 +645,8 @@ void MatchGlobalFwd::setBunchFilling(const o2::BunchFilling& bf)
   // find closest (from above) filled bunch
   int minBC = bf.getFirstFilledBC(), maxBC = bf.getLastFilledBC();
   if (minBC < 0) {
-    throw std::runtime_error("Bunch filling is not set in MatchGlobalFwd");
+    LOG(error) << "Empty bunch filling is provided to MatchGlobalFwd, checks using it should be ignored";
+    return;
   }
   int bcAbove = minBC;
   for (int i = o2::constants::lhc::LHCMaxBunches; i--;) {
@@ -751,9 +752,9 @@ o2::dataformats::GlobalFwdTrack MatchGlobalFwd::MCHtoFwd(const o2::mch::TrackPar
 //_________________________________________________________________________________________________
 MatchGlobalFwd::MatchGlobalFwd()
 {
+  mClosestBunchAbove[0] = mClosestBunchAbove[0] = -1;
 
   // Define built-in matching functions
-
   //________________________________________________________________________________
   mMatchingFunctionMap["matchALL"] = [](const GlobalFwdTrack& mchTrack, const TrackParCovFwd& mftTrack) -> double {
     // Match two tracks evaluating all parameters: X,Y, phi, tanl & q/pt
