@@ -36,8 +36,7 @@ static constexpr uint32_t ChannelPerTBHeader = 80;
 /// common header definition of the zero suppressed link based data
 struct CommonHeader {
   static constexpr uint32_t MagicWordLinkZS = 0xFC;
-  // static constexpr uint32_t MagicWordLinkZSMetaHeader = 0xFD;
-  static constexpr uint32_t MagicWordLinkZSMetaHeader = 0xDF;
+  static constexpr uint32_t MagicWordLinkZSMetaHeader = 0xFD;
   static constexpr uint32_t MagicWordTrigger = 0xAA;
   static constexpr uint32_t MagicWordTriggerV2 = 0xAB;
 
