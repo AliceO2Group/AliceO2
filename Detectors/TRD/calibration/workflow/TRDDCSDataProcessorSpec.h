@@ -133,7 +133,7 @@ class TRDDCSDataProcessor : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
     TStopwatch sw;
-    auto currentTimeStamp = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+    auto currentTimeStamp = pc.services().get<o2::framework::TimingInfo>().creation;
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
     auto timeNow = std::chrono::high_resolution_clock::now();
     if (currentTimeStamp < 1577833200000UL || currentTimeStamp > 2208985200000UL) {

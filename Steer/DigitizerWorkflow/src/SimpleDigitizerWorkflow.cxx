@@ -226,7 +226,7 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
                     const auto startTime = hbfu.startTime;
                     const auto orbitFirst = hbfu.orbitFirst;
                     dh.firstTForbit = offset + increment * dh.tfCounter;
-                    LOG(info) << "Setting firstTFOrbit to " << dh.firstTForbit;
+                    LOG(info) << "Setting firstTForbit to " << dh.firstTForbit;
                     dh.runNumber = hbfu.runNumber;
                     LOG(info) << "Setting runNumber to " << dh.runNumber;
                     dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;

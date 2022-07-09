@@ -81,8 +81,6 @@ void GlobalFwdMatchingDPL::init(InitContext& ic)
 
 void GlobalFwdMatchingDPL::run(ProcessingContext& pc)
 {
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
-  LOG(info) << " startOrbit: " << dh->firstTForbit;
   mTimer.Start(false);
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());

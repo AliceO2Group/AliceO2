@@ -44,7 +44,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cc)
   specs.emplace_back(o2::globaltracking::getIRFrameReaderSpec(origin, (uint32_t)cc.options().get<int>("subspec"),
                                                               cc.options().get<std::string>("device-name"), cc.options().get<std::string>("file-name")));
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cc, specs);
 
   return specs;

@@ -110,10 +110,9 @@ class TOFDPLClustererTask
     auto row = pc.inputs().get<gsl::span<o2::tof::ReadoutWindowData>>("readoutwin");
     auto dia = pc.inputs().get<o2::tof::Diagnostic*>("diafreq");
     auto patterns = pc.inputs().get<pmr::vector<unsigned char>>("patterns");
-    const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
     updateTimeDependentParams(pc);
-
-    mClusterer.setFirstOrbit(dh->firstTForbit);
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+    mClusterer.setFirstOrbit(tinfo.firstTForbit);
 
     auto labelvector = std::make_shared<std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>>();
     if (mUseMC) {
@@ -139,9 +138,7 @@ class TOFDPLClustererTask
       mCalibApi = new o2::tof::CalibTOFapi(long(0), lhcPhaseDummy, channelCalibDummy);
     }
 
-    const auto ref = pc.inputs().getFirstValid(true);
-    auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation;
-    mCalibApi->setTimeStamp(creationTime / 1000);
+    mCalibApi->setTimeStamp(tinfo.creation / 1000);
 
     mClusterer.setCalibApi(mCalibApi);
 

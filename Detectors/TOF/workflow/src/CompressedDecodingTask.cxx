@@ -135,8 +135,7 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
   mCreationTime = std::chrono::high_resolution_clock::now().time_since_epoch().count() / 1000000;
 
   //RS set the 1st orbit of the TF from the O2 header, relying on rdhHandler is not good (in fact, the RDH might be eliminated in the derived data)
-  const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
-  mInitOrbit = dh->firstTForbit;
+  mInitOrbit = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
   if (!mConetMode) {
     mDecoder.setFirstIR({0, mInitOrbit});
   }
@@ -164,7 +163,7 @@ void CompressedDecodingTask::endOfStream(EndOfStreamContext& ec)
 void CompressedDecodingTask::decodeTF(ProcessingContext& pc)
 {
   auto& inputs = pc.inputs();
-
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
   {
@@ -177,7 +176,7 @@ void CompressedDecodingTask::decodeTF(ProcessingContext& pc)
         auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
         if (++contDeadBeef <= maxWarn) {
           LOGP(alarm, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
-               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
+               dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, tinfo.tfCounter, tinfo.firstTForbit, payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }
         return;

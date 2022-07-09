@@ -304,7 +304,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           LOGP(info, "  {}: {}/{} ({}-{} bytes)", entry.first, entry.second.cacheMiss, entry.second.cacheHit, entry.second.minSize, entry.second.maxSize);
         }
       });
-      
+
       return adaptStateless([helper](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
         static Long64_t orbitResetTime = -1;
         static size_t lastTimeUsed = -1;
@@ -380,18 +380,18 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           }
         }
 
-        int64_t timestamp = ceil((timingInfo.firstTFOrbit * o2::constants::lhc::LHCOrbitNS / 1000 + orbitResetTime) / 1000); // RS ceilf precision is not enough
+        int64_t timestamp = ceil((timingInfo.firstTForbit * o2::constants::lhc::LHCOrbitNS / 1000 + orbitResetTime) / 1000); // RS ceilf precision is not enough
         if (timestamp + 5000 < timingInfo.creation) {                                                                        // 5 sec. tolerance
           static bool notWarnedYet = true;
           if (notWarnedYet) {
-            LOGP(warn, "timestamp {} for orbit {} and orbit reset time {} is well behind TF creation time {}, use the latter", timestamp, timingInfo.firstTFOrbit, orbitResetTime / 1000, timingInfo.creation);
+            LOGP(warn, "timestamp {} for orbit {} and orbit reset time {} is well behind TF creation time {}, use the latter", timestamp, timingInfo.firstTForbit, orbitResetTime / 1000, timingInfo.creation);
             notWarnedYet = false;
           }
           timestamp = timingInfo.creation;
         }
         // Fetch the rest of the objects.
-        LOGP(debug, "Fetching objects. Run: {}. OrbitResetTime: {}, Creation: {}, Timestamp: {}, firstTFOrbit: {}",
-             dtc.runNumber, orbitResetTime, timingInfo.creation, timestamp, timingInfo.firstTFOrbit);
+        LOGP(debug, "Fetching objects. Run: {}. OrbitResetTime: {}, Creation: {}, Timestamp: {}, firstTForbit: {}",
+             dtc.runNumber, orbitResetTime, timingInfo.creation, timestamp, timingInfo.firstTForbit);
 
         populateCacheWith(helper, timestamp, timingInfo, dtc, allocator);
       }); });

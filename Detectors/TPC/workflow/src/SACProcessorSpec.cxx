@@ -58,10 +58,8 @@ class SACProcessorDevice : public Task
   void run(ProcessingContext& pc) final
   {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
     const auto startTime = HighResClock::now();
-    const auto firstTForbit = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->firstTForbit;
-    const auto tfCounter = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter;
-    const auto runNumber = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->runNumber;
 
     std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}}; // TODO: Change to SAC when changed in DD
     for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
@@ -78,7 +76,7 @@ class SACProcessorDevice : public Task
         continue;
       }
       if (mDebugLevel & (uint32_t)DebugFlags::HBFInfo) {
-        LOGP(info, "SAC Processing firstTForbit {:9}, tfCounter {:5}, run {:6}, feeId {:6} ({:3}/{}/{:2})", firstTForbit, tfCounter, runNumber, feeId, cruID, endPoint, link);
+        LOGP(info, "SAC Processing firstTForbit {:9}, tfCounter {:5}, run {:6}, feeId {:6} ({:3}/{}/{:2})", tinfo.firstTForbit, tinfo.tfCounter, tinfo.runNumber, feeId, cruID, endPoint, link);
       }
 
       // ---| data loop |---
@@ -93,8 +91,8 @@ class SACProcessorDevice : public Task
           }
           // TODO: should only be done once for the first packet
           if ((mDecoder.getReferenceTime() < 0) && (rdhPtr->packetCounter == 0)) {
-            const double referenceTime = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + firstTForbit * o2::constants::lhc::LHCOrbitMUS * 0.001;
-            LOGP(info, "setting time stamp reset reference to: {}, at tfCounter: {}, firstTForbit: {}", referenceTime, tfCounter, firstTForbit);
+            const double referenceTime = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + tinfo.firstTForbit * o2::constants::lhc::LHCOrbitMUS * 0.001;
+            LOGP(info, "setting time stamp reset reference to: {}, at tfCounter: {}, firstTForbit: {}", referenceTime, tinfo.tfCounter, tinfo.firstTForbit);
             mDecoder.setReferenceTime(referenceTime); // TODO set proper time
           }
           continue;
@@ -110,7 +108,7 @@ class SACProcessorDevice : public Task
     if (mDebugLevel & (uint32_t)sac::Decoder::DebugFlags::TimingInfo) {
       auto endTime = HighResClock::now();
       auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(endTime - startTime);
-      LOGP(info, "Time spent for TF {}, firstTForbit {}: {} s", tfCounter, firstTForbit, elapsed_seconds.count());
+      LOGP(info, "Time spent for TF {}, firstTForbit {}: {} s", tinfo.tfCounter, tinfo.firstTForbit, elapsed_seconds.count());
     }
   }
 

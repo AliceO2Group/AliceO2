@@ -66,7 +66,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     specs.emplace_back(o2::mid::getZeroSuppressionSpec(useMC, outDesc));
   }
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
 
   return specs;

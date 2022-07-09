@@ -369,7 +369,7 @@ ExpirationHandler::Handler
     // * By default we use the time when the data was created.
     // * If an override is specified, we use it.
     // * If the orbit reset time comes from CTP, we use it for precise
-    //   timestamp evaluation via the firstTFOrbit
+    //   timestamp evaluation via the firstTForbit
     uint64_t timestamp = -1;
     if (overrideTimestampMilliseconds) {
       timestamp = overrideTimestampMilliseconds;

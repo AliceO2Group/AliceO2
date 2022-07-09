@@ -133,7 +133,7 @@ void DCSDevice::init(o2::framework::InitContext& ic)
 void DCSDevice::run(o2::framework::ProcessingContext& pc)
 {
   TStopwatch sw;
-  mLastCreationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+  mLastCreationTime = pc.services().get<o2::framework::TimingInfo>().creation;
   if (mUpdateIntervalStart == 0) {
     mUpdateIntervalStart = mLastCreationTime;
   }

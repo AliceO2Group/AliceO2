@@ -182,7 +182,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{orig, "PHYSTRIG", 0, Lifetime::Timeframe}, mDecoder->getExternalTriggers());
 
   if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE)) {
-    mDecoder->produceRawDataDumps(mDumpOnError, DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true)));
+    mDecoder->produceRawDataDumps(mDumpOnError, pc.services().get<o2::framework::TimingInfo>());
   }
 
   if (mDoClusters) {
@@ -192,7 +192,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     LOG(debug) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs";
   }
   mTimer.Stop();
-  auto tfID = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter;
+  auto tfID = pc.services().get<o2::framework::TimingInfo>().tfCounter;
   LOG(debug) << mSelfName << " Total time for TF " << tfID << '(' << mTFCounter << ") : CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
   mTFCounter++;
 }

@@ -315,7 +315,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   }
 
   auto& timingInfo = ctx.services().get<o2f::TimingInfo>();
-  timingInfo.firstTFOrbit = firstOrbit;
+  timingInfo.firstTForbit = firstOrbit;
   timingInfo.creation = creationTime;
   timingInfo.tfCounter = mTFCounter;
   timingInfo.runNumber = mRunNumber;

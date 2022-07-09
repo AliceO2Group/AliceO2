@@ -593,7 +593,7 @@ class FileReaderTask
   {
     auto& timingInfo = pc.services().get<o2::framework::TimingInfo>();
     if (tfid.firstTForbit != -1U) {
-      timingInfo.firstTFOrbit = tfid.firstTForbit;
+      timingInfo.firstTForbit = tfid.firstTForbit;
     }
     if (tfid.tfCounter != -1U) {
       timingInfo.tfCounter = tfid.tfCounter;
@@ -604,7 +604,7 @@ class FileReaderTask
     if (tfid.creation != -1U) {
       timingInfo.creation = tfid.creation;
     }
-    // LOGP(info, "TimingInfo set to : firstTFOrbit {}, tfCounter {}, runNumber {}, creatio {}",  timingInfo.firstTFOrbit, timingInfo.tfCounter, timingInfo.runNumber, timingInfo.creation);
+    // LOGP(info, "TimingInfo set to : firstTForbit {}, tfCounter {}, runNumber {}, creatio {}",  timingInfo.firstTForbit, timingInfo.tfCounter, timingInfo.runNumber, timingInfo.creation);
   }
 
  private:

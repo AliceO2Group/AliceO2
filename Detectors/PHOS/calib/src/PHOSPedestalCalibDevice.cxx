@@ -49,8 +49,7 @@ void PHOSPedestalCalibDevice::run(o2::framework::ProcessingContext& ctx)
   // scan Cells stream, collect mean and RMS then calculate average and post
 
   if (mRunStartTime == 0) {
-    const auto ref = ctx.inputs().getFirstValid(true);
-    mRunStartTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
+    mRunStartTime = ctx.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
   }
   if (!mOldPed) { // Default map and calibration was not set, use CCDB
     LOG(info) << "Getting calib from CCDB";

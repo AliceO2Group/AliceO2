@@ -80,7 +80,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
     specs.emplace_back(o2::muon::getTrackWriterSpec(useMC, "muon-track-writer", "muontracks.root"));
   }
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
   // write the configuration used for the workflow

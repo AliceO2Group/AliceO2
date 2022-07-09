@@ -140,7 +140,7 @@ class DataRelayer
   /// Mark a given slot as done so that the GUI
   /// can reflect that.
   void updateCacheStatus(TimesliceSlot slot, CacheEntryStatus oldStatus, CacheEntryStatus newStatus);
-  /// Get the firstTFOrbit associate to a given slot.
+  /// Get the firstTForbit associate to a given slot.
   uint32_t getFirstTFOrbitForSlot(TimesliceSlot slot);
   /// Get the firstTFCounter associate to a given slot.
   uint32_t getFirstTFCounterForSlot(TimesliceSlot slot);

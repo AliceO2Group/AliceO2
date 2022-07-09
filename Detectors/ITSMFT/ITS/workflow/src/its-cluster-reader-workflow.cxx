@@ -56,7 +56,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cc)
 
   specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(withMC, withPatterns));
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cc, specs);
 
   return specs;

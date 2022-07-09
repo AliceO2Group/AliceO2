@@ -1579,7 +1579,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     auto timeslice = relayer->getTimesliceForSlot(i);
     timingInfo->timeslice = timeslice.value;
     timingInfo->tfCounter = relayer->getFirstTFCounterForSlot(i);
-    timingInfo->firstTFOrbit = relayer->getFirstTFOrbitForSlot(i);
+    timingInfo->firstTForbit = relayer->getFirstTFOrbitForSlot(i);
     timingInfo->runNumber = relayer->getRunNumberForSlot(i);
     timingInfo->creation = relayer->getCreationTimeForSlot(i);
   };

@@ -161,7 +161,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 
       o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
       // Correct for L0-LM trigger lattency
-      const auto tfOrbitFirst = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ctx.inputs().getFirstValid(true))->firstTForbit;
+      const auto tfOrbitFirst = ctx.services().get<o2::framework::TimingInfo>().firstTForbit;
       const auto& ctpOffsets = o2::ctp::TriggerOffsetsParam::Instance();
       if (currentIR.differenceInBC({0, tfOrbitFirst}) >= ctpOffsets.LM_L0) {
         currentIR -= ctpOffsets.LM_L0; // guaranteed to stay in the TF containing the collision
