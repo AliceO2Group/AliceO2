@@ -45,26 +45,37 @@ void ITSThresholdAggregator::init(InitContext& ic)
 // Get DCSconfigObject_t from EPNs and aggregate them in 1 object
 void ITSThresholdAggregator::run(ProcessingContext& pc)
 {
-  // take run type and scan type at the beginning
-  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "RUNT"}}})) {
-    if (mRunType == -1) {
-      updateRunID(pc);
-      updateLHCPeriod(pc);
+  // Skip everything in case of garbage (potentially at EoS)
+  if (pc.services().get<o2::framework::TimingInfo>().firstTFOrbit == -1U) {
+    LOG(info) << "Skipping the processing of inputs for timeslice " << pc.services().get<o2::framework::TimingInfo>().timeslice << " (firstTFOrbit is " << pc.services().get<o2::framework::TimingInfo>().firstTFOrbit << ")";
+    return;
+  }
+  // take run type, scan type, fit type, db version only at the beginning (important for EoS operations!)
+  if (mRunType == -1) {
+    for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "RUNT"}}})) {
+      updateLHCPeriodAndRunNumber(pc);
+      mRunType = pc.inputs().get<short int>(inputRef);
+      break;
     }
-    mRunType = pc.inputs().get<short int>(inputRef);
-    break;
-  }
-  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "SCANT"}}})) {
-    mScanType = pc.inputs().get<char>(inputRef);
-    break;
-  }
-  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "FITT"}}})) {
-    mFitType = pc.inputs().get<char>(inputRef);
-    break;
-  }
-  for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "CONFDBV"}}})) {
-    mDBversion = pc.inputs().get<short int>(inputRef);
-    break;
+    for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "SCANT"}}})) {
+      mScanType = pc.inputs().get<char>(inputRef);
+      break;
+    }
+    for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "FITT"}}})) {
+      mFitType = pc.inputs().get<char>(inputRef);
+      break;
+    }
+    for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "CONFDBV"}}})) {
+      mDBversion = pc.inputs().get<short int>(inputRef);
+      break;
+    }
+    LOG(info) << "Aggregator received the following parameters:";
+    LOG(info) << "Run type  : " << mRunType;
+    LOG(info) << "Run number: " << mRunNumber;
+    LOG(info) << "LHC period: " << mLHCPeriod;
+    LOG(info) << "Scan type : " << mScanType;
+    LOG(info) << "Fit type  : " << std::to_string(mFitType);
+    LOG(info) << "DB version: " << mDBversion;
   }
   for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "TSTR"}}})) {
     // Read strings with tuning info
@@ -110,7 +121,8 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
 
   // Create metadata for database object
   std::string ft = this->mFitType == 0 ? "derivative" : this->mFitType == 1 ? "fit"
-                                                                            : "hitcounting";
+                                                      : this->mFitType == 2 ? "hitcounting"
+                                                                            : "null";
   if (mScanType == 'D' || mScanType == 'A') {
     ft = "null";
   }
@@ -131,7 +143,8 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
   std::string name_str = mScanType == 'V' ? "VCASN" : mScanType == 'I' ? "ITHR"
                                                     : mScanType == 'D' ? "DIG"
                                                     : mScanType == 'A' ? "ANA"
-                                                                       : "THR";
+                                                    : mScanType == 'T' ? "THR"
+                                                                       : "NULL";
   o2::ccdb::CcdbObjectInfo info((path + name_str), "threshold_map", "calib_scan.root", md, tstart, tend);
   o2::ccdb::CcdbObjectInfo info_pixtyp((path + name_str), "threshold_map", "calib_scan.root", md, tstart, tend);
 
@@ -172,7 +185,7 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ANA", 0}, *image_pixtyp);
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ANA", 0}, info_pixtyp);
     } else {
-      LOG(error) << "Nothing sent to ccdb-populator, mScanType does not match any known scan type";
+      LOG(error) << "Nothing sent to ccdb-populator, mScanType" << mScanType << "does not match any known scan type";
     }
   }
 
@@ -187,7 +200,7 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
 
   if (!mCcdbUrlProd.empty()) { // if url is specified, send object to ccdb from THIS wf
 
-    LOG(info) << "Sending Noisy, Dead and Inefficenct pixel object " << info_pixtyp.getFileName() << " to " << mCcdbUrlProd << "/browse/" << info_pixtyp.getPath() << " from the ITS calib workflow";
+    LOG(info) << "Sending Noisy, Dead and Inefficenct pixel object " << info_pixtyp.getFileName() << " (size:" << image_pixtyp->size() << ") to " << mCcdbUrlProd << "/browse/" << info_pixtyp.getPath() << " from the ITS calib workflow";
     o2::ccdb::CcdbApi mApiProd;
     mApiProd.init(mCcdbUrlProd);
     mApiProd.storeAsBinaryFile(&image_pixtyp->at(0), image_pixtyp->size(), info_pixtyp.getFileName(), info_pixtyp.getObjectType(), info_pixtyp.getPath(), info_pixtyp.getMetaData(), info_pixtyp.getStartValidityTimestamp(), info_pixtyp.getEndValidityTimestamp());
@@ -219,11 +232,11 @@ void ITSThresholdAggregator::endOfStream(EndOfStreamContext& ec)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// Search current month  or LHCperiod
-void ITSThresholdAggregator::updateLHCPeriod(ProcessingContext& pc)
+// Search current month  or LHCperiod, and read run number
+void ITSThresholdAggregator::updateLHCPeriodAndRunNumber(ProcessingContext& pc)
 {
-  auto conf = pc.services().get<RawDeviceService>().device()->fConfig;
-  const std::string LHCPeriodStr = conf->GetProperty<std::string>("LHCPeriod", "");
+  mDataTakingContext = pc.services().get<DataTakingContext>();
+  const std::string LHCPeriodStr = mDataTakingContext.lhcPeriod;
   if (!(LHCPeriodStr.empty())) {
     this->mLHCPeriod = LHCPeriodStr;
   } else {
@@ -236,18 +249,9 @@ void ITSThresholdAggregator::updateLHCPeriod(ProcessingContext& pc)
   }
   this->mLHCPeriod += "_ITS";
 
-  return;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// Retrieve Run Number
-void ITSThresholdAggregator::updateRunID(ProcessingContext& pc)
-{
-  const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(
-    pc.inputs().getFirstValid(true));
-  if (dh->runNumber != 0) {
-    this->mRunNumber = dh->runNumber;
-  }
+  // Run number
+  mTimingInfo = pc.services().get<o2::framework::TimingInfo>();
+  this->mRunNumber = mTimingInfo.runNumber;
 
   return;
 }

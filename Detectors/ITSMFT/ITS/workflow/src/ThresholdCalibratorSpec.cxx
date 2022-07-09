@@ -719,8 +719,12 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
         if (this->mRunType == -1) {
           short int runtype = ((short int)(calib.calibUserField >> 24)) & 0xff;
           mConfDBv = ((short int)(calib.calibUserField >> 32)) & 0xffff; // confDB version
-          LOG(info) << "confDB version in use: " << mConfDBv;
           this->setRunType(runtype);
+          LOG(info) << "Calibrator will ship these run parameters to aggregator:";
+          LOG(info) << "Run type  : " << mRunType;
+          LOG(info) << "Scan type : " << mScanType;
+          LOG(info) << "Fit type  : " << std::to_string(mFitType);
+          LOG(info) << "DB version: " << mConfDBv;
         }
         this->mRunTypeUp = ((short int)(calib.calibUserField >> 24)) & 0xff;
         // Divide calibration word (24-bit) by 2^16 to get the first 8 bits
