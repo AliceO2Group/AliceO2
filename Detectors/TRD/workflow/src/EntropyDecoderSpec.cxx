@@ -65,6 +65,9 @@ void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
     mCTFCoder.setBCShift(o2::ctp::TriggerOffsetsParam::Instance().LM_L0);
     LOGP(info, "Decoded IRs will be corrected by -{} BCs, discarded if become prior to 1st orbit", o2::ctp::TriggerOffsetsParam::Instance().LM_L0);
   }
+  int checkBogus = ic.options().get<int>("bogus-trigger-rejection");
+  mCTFCoder.setCheckBogusTrig(checkBogus);
+  LOGP(info, "Bogus triggers rejection flag: {}", checkBogus);
 }
 
 void EntropyDecoderSpec::run(ProcessingContext& pc)
@@ -115,7 +118,8 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"correct-trd-trigger-offset", VariantType::Bool, false, {"Correct decoded IR by TriggerOffsetsParam::LM_L0"}}}};
+            {"correct-trd-trigger-offset", VariantType::Bool, false, {"Correct decoded IR by TriggerOffsetsParam::LM_L0"}},
+            {"bogus-trigger-rejection", VariantType::Int, 10, {">0 : discard, warn N times, <0 : warn only, =0: no check for triggers with no tracklets or bogus IR"}}}};
 }
 
 } // namespace trd
