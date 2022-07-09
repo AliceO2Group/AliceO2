@@ -1512,32 +1512,41 @@ std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table*
   return std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci)...};
 }
 
-template <typename C>
-typename C::type getSingleRowPersistentData(arrow::Table* table, uint64_t ci, uint64_t ai)
+template <typename T, typename C>
+typename C::type getSingleRowPersistentData(arrow::Table* table, T& rowIterator, uint64_t ci = -1, uint64_t ai = -1)
 {
+  if (ci == -1 || ai == -1) {
+    auto colIterator = static_cast<C>(rowIterator).getIterator();
+    ci = colIterator.mCurrentChunk;
+    ai = *(colIterator.mCurrentPos) - colIterator.mFirstIndex;
+  }
   return std::static_pointer_cast<o2::soa::arrow_array_for_t<typename C::type>>(o2::soa::getIndexFromLabel(table, C::columnLabel())->chunk(ci))->raw_values()[ai];
 }
 
 template <typename T, typename C>
-typename C::type getSingleRowDynamicData(T& rowIterator, uint64_t globalIndex)
+typename C::type getSingleRowDynamicData(T& rowIterator, uint64_t globalIndex = -1)
 {
-  rowIterator.setCursor(globalIndex);
+  if (globalIndex != -1 && globalIndex != *std::get<0>(rowIterator.getIndices())) {
+    rowIterator.setCursor(globalIndex);
+  }
   return rowIterator.template getDynamicColumn<C>();
 }
 
 template <typename T, typename C>
-typename C::type getSingleRowIndexData(T& rowIterator, uint64_t globalIndex)
+typename C::type getSingleRowIndexData(T& rowIterator, uint64_t globalIndex = -1)
 {
-  rowIterator.setCursor(globalIndex);
+  if (globalIndex != -1 && globalIndex != *std::get<0>(rowIterator.getIndices())) {
+    rowIterator.setCursor(globalIndex);
+  }
   return rowIterator.template getId<C>();
 }
 
 template <typename T, typename C>
-typename C::type getSingleRowData(arrow::Table* table, T& rowIterator, uint64_t ci, uint64_t ai, uint64_t globalIndex)
+typename C::type getSingleRowData(arrow::Table* table, T& rowIterator, uint64_t ci = -1, uint64_t ai = -1, uint64_t globalIndex = -1)
 {
   using decayed = std::decay_t<C>;
   if constexpr (decayed::persistent::value) {
-    return getSingleRowPersistentData<C>(table, ci, ai);
+    return getSingleRowPersistentData<T, C>(table, rowIterator, ci, ai);
   } else if constexpr (o2::soa::is_dynamic_t<decayed>()) {
     return getSingleRowDynamicData<T, C>(rowIterator, globalIndex);
   } else if constexpr (o2::soa::is_index_t<decayed>::value) {
@@ -1548,7 +1557,7 @@ typename C::type getSingleRowData(arrow::Table* table, T& rowIterator, uint64_t 
 }
 
 template <typename T, typename... Cs>
-std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, uint64_t ci, uint64_t ai, uint64_t globalIndex)
+std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, uint64_t ci = -1, uint64_t ai = -1, uint64_t globalIndex = -1)
 {
   return std::make_tuple(getSingleRowData<T, Cs>(table, rowIterator, ci, ai, globalIndex)...);
 }

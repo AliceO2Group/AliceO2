@@ -125,9 +125,8 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
         selInd = selectedRows[ind];
       }
 
-      auto rowData = o2::soa::row_helpers::getRowData<decltype(rowIterator), Cs...>(arrowTable, rowIterator, ci, ai, ind);
-
-      int val = binningPolicy.getBin(rowData);
+      auto values = binningPolicy.getBinningValues(rowIterator, arrowTable, ci, ai, ind);
+      auto val = binningPolicy.getBin(values);
       if (val != outsider) {
         groupedIndices.emplace_back(val, ind);
       }
