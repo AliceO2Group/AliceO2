@@ -13,12 +13,6 @@ else
   if [[ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]]; then export WORKFLOW_DETECTORS_MATCHING="ALL"; fi # All matching / vertexing enabled in async mode
 fi
 
-if [[ $BEAMTYPE == "PbPb" ]]; then
-  [[ -z $ITS_STROBE ]] && ITS_STROBE="891"
-elif [[ $BEAMTYPE == "pp" ]]; then
-  [[ -z $ITS_STROBE ]] && ITS_STROBE="198"
-fi
-
 MID_FEEID_MAP="$FILEWORKDIR/mid-feeId_mapper.txt"
 
 ITSMFT_STROBES=""
