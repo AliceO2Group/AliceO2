@@ -41,7 +41,7 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
   static std::array<uint32_t, 360 * 24> syncOffsetLinks;
 
   const uint32_t maxBunches = (uint32_t)o2::constants::lhc::LHCMaxBunches;
-  int globalBCOffset = int(orbit - referenceOrbit) * o2::constants::lhc::LHCMaxBunches;
+  const int globalBCOffset = int(orbit - referenceOrbit) * o2::constants::lhc::LHCMaxBunches;
   static int triggerBCOffset = 0;
 
   bool hasData{false};
