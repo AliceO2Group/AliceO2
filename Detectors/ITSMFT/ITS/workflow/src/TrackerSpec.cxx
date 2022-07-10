@@ -118,6 +118,8 @@ void TrackerDPL::init(InitContext& ic)
     trackParams[0].LayerMisalignment[6] = 1.e-1;
     trackParams[0].FitIterationMaxChi2[0] = 100.;
     trackParams[0].FitIterationMaxChi2[1] = 50.;
+    trackParams[0].TrackletsPerClusterLimit = 100.;
+    trackParams[0].CellsPerClusterLimit = 100.;
     LOG(info) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
 
   } else {
