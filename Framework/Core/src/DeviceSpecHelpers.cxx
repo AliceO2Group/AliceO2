@@ -381,7 +381,8 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
                                               const std::vector<OutputSpec>& outputsMatchers,
                                               const std::vector<ChannelConfigurationPolicy>& channelPolicies,
                                               std::string const& channelPrefix,
-                                              ComputingOffer const& defaultOffer)
+                                              ComputingOffer const& defaultOffer,
+                                              OverrideServiceSpecs const& overrideServices)
 {
   // The topology cannot be empty or not connected. If that is the case, than
   // something before this went wrong.
@@ -392,7 +393,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
   // an edge is always the last one created.
   auto deviceForEdge = [&actions, &workflow, &devices,
                         &logicalEdges, &resourceManager,
-                        &defaultOffer, &channelPrefix](size_t ei, ComputingOffer& acceptedOffer) {
+                        &defaultOffer, &channelPrefix, overrideServices](size_t ei, ComputingOffer& acceptedOffer) {
     auto& edge = logicalEdges[ei];
     auto& action = actions[ei];
 
@@ -429,7 +430,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
       device.id = processor.name + "_t" + std::to_string(edge.producerTimeIndex);
     }
     device.algorithm = processor.algorithm;
-    device.services = processor.requiredServices;
+    device.services = ServiceSpecHelpers::filterDisabled(processor.requiredServices, overrideServices);
     device.options = processor.options;
     device.rank = processor.rank;
     device.nSlots = processor.nSlots;
@@ -618,7 +619,8 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
                                              std::vector<LogicalForwardInfo> const& availableForwardsInfo,
                                              std::vector<ChannelConfigurationPolicy> const& channelPolicies,
                                              std::string const& channelPrefix,
-                                             ComputingOffer const& defaultOffer)
+                                             ComputingOffer const& defaultOffer,
+                                             OverrideServiceSpecs const& overrideServices)
 {
   auto const& constDeviceIndex = deviceIndex;
 
@@ -674,7 +676,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
 
   auto createNewDeviceForEdge = [&workflow, &logicalEdges, &devices,
                                  &deviceIndex, &resourceManager, &defaultOffer,
-                                 &channelPrefix](size_t ei, ComputingOffer& acceptedOffer) {
+                                 &channelPrefix, &overrideServices](size_t ei, ComputingOffer& acceptedOffer) {
     auto& edge = logicalEdges[ei];
 
     if (acceptedOffer.hostname != "") {
@@ -706,7 +708,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       device.id += "_t" + std::to_string(edge.timeIndex);
     }
     device.algorithm = processor.algorithm;
-    device.services = processor.requiredServices;
+    device.services = ServiceSpecHelpers::filterDisabled(processor.requiredServices, overrideServices);
     device.options = processor.options;
     device.rank = processor.rank;
     device.nSlots = processor.nSlots;
@@ -930,7 +932,8 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                                                        ConfigContext const& configContext,
                                                        bool optimizeTopology,
                                                        unsigned short resourcesMonitoringInterval,
-                                                       std::string const& channelPrefix)
+                                                       std::string const& channelPrefix,
+                                                       OverrideServiceSpecs const& overrideServices)
 {
   std::vector<LogicalForwardInfo> availableForwardsInfo;
   std::vector<DeviceConnectionEdge> logicalEdges;
@@ -981,13 +984,13 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
   defaultOffer.memory /= deviceCount + 1;
 
   processOutEdgeActions(devices, deviceIndex, connections, resourceManager, outEdgeIndex, logicalEdges,
-                        outActions, workflow, outputs, channelPolicies, channelPrefix, defaultOffer);
+                        outActions, workflow, outputs, channelPolicies, channelPrefix, defaultOffer, overrideServices);
 
   // FIXME: is this not the case???
   std::sort(connections.begin(), connections.end());
 
   processInEdgeActions(devices, deviceIndex, connections, resourceManager, inEdgeIndex, logicalEdges,
-                       inActions, workflow, availableForwardsInfo, channelPolicies, channelPrefix, defaultOffer);
+                       inActions, workflow, availableForwardsInfo, channelPolicies, channelPrefix, defaultOffer, overrideServices);
   // We apply the completion policies here since this is where we have all the
   // devices resolved.
   for (auto& device : devices) {

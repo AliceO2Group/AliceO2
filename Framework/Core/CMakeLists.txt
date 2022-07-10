@@ -111,6 +111,7 @@ o2_add_library(Framework
                        src/ResourcePolicyHelpers.cxx
                        src/SendingPolicy.cxx
                        src/ServiceRegistry.cxx
+                       src/ServiceSpec.cxx
                        src/SimpleResourceManager.cxx
                        src/SimpleRawDeviceService.cxx
                        src/StreamOperators.cxx

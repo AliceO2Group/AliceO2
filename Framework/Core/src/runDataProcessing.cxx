@@ -1579,6 +1579,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             }
           }
 
+          // These allow services customization via an environment variable
+          OverrideServiceSpecs overrides = ServiceSpecHelpers::parseOverrides(getenv("DPL_OVERRIDE_SERVICES"));
           DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(altered_workflow,
                                                             driverInfo.channelPolicies,
                                                             driverInfo.completionPolicies,
@@ -1592,7 +1594,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             *driverInfo.configContext,
                                                             !varmap["no-IPC"].as<bool>(),
                                                             driverInfo.resourcesMonitoringInterval,
-                                                            varmap["channel-prefix"].as<std::string>());
+                                                            varmap["channel-prefix"].as<std::string>(),
+                                                            overrides);
           metricProcessingCallbacks.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
@@ -2503,7 +2506,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   }
 
   /// This is the earlies the services are actually needed
-  std::vector<ServiceSpec> driverServices = CommonDriverServices::defaultServices();
+  OverrideServiceSpecs driverServicesOverride = ServiceSpecHelpers::parseOverrides(getenv("DPL_DRIVER_OVERRIDE_SERVICES"));
+  ServiceSpecs driverServices = ServiceSpecHelpers::filterDisabled(CommonDriverServices::defaultServices(), driverServicesOverride);
   // We insert the hash for the internal devices.
   WorkflowHelpers::injectServiceDevices(physicalWorkflow, configContext);
   auto reader = std::find_if(physicalWorkflow.begin(), physicalWorkflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-reader"; });
