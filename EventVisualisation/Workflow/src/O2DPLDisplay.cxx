@@ -50,7 +50,7 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"jsons-folder", VariantType::String, "/scratch/services/ed/jsons", {"name of the folder to store json files"}},
+    {"jsons-folder", VariantType::String, "jsons", {"name of the folder to store json files"}},
     {"eve-hostname", VariantType::String, "", {"name of the host allowed to produce files (empty means no limit)"}},
     {"eve-dds-collection-index", VariantType::Int, -1, {"number of dpl collection allowed to produce files (-1 means no limit)"}},
     {"number-of_files", VariantType::Int, 150, {"maximum number of json files in folder"}},
