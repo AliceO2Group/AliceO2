@@ -182,7 +182,7 @@ class PreClusterFinderTask
           if (digitsSizesDiffer) {
             static int nAlarms = 0;
             if (nAlarms++ < 5) {
-              LOG(alarm) << "some digits have been lost during the preclustering";
+              LOG(warning) << "some digits have been lost during the preclustering";
             }
           }
           break;

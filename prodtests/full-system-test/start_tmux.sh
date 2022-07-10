@@ -138,7 +138,7 @@ else
     fi
   done
   [[ $FIRST_CALIB == 1 ]] && TMUX_COMMAND+=" select-layout even-vertical ';'"
-  echo "Running $TMUX_COMMAND"
+  # echo "Running $TMUX_COMMAND"
   eval $TMUX_COMMAND
 fi
 
