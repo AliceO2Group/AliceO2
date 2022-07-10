@@ -44,6 +44,14 @@ export DATADIST_NEW_DPL_CHAN=1
 
 workflow_has_parameter QC && export QC_REDIRECT_MERGER_TO_LOCALHOST=1
 
+if [[ -z ${DPL_RAWPROXY_OVERRIDE_ORBITRESET+x} && $1 == "dd" ]]; then
+  if [[ $BEAMTYPE == "PbPb" ]]; then
+    export DPL_RAWPROXY_OVERRIDE_ORBITRESET=1550600800000
+  else
+    export DPL_RAWPROXY_OVERRIDE_ORBITRESET=1547590800000
+  fi
+fi
+
 if [ "0$FST_TMUX_MEM_OVERRIDE" != "0" ]; then
   export SHMSIZE=$(( $FST_TMUX_MEM_OVERRIDE << 30 ))
   export DDSHMSIZE=$(( $FST_TMUX_MEM_OVERRIDE << 10 ))
