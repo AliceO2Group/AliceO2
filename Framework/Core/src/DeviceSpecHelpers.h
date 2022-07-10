@@ -59,7 +59,8 @@ struct DeviceSpecHelpers {
     ConfigContext const& configContext,
     bool optimizeTopology = false,
     unsigned short resourcesMonitoringInterval = 0,
-    std::string const& channelPrefix = "");
+    std::string const& channelPrefix = "",
+    OverrideServiceSpecs const& overrideServices = {});
 
   static void dataProcessorSpecs2DeviceSpecs(
     const WorkflowSpec& workflow,
@@ -72,7 +73,8 @@ struct DeviceSpecHelpers {
     ConfigContext const& configContext,
     bool optimizeTopology = false,
     unsigned short resourcesMonitoringInterval = 0,
-    std::string const& channelPrefix = "")
+    std::string const& channelPrefix = "",
+    OverrideServiceSpecs const& overrideServices = {})
   {
     std::vector<DispatchPolicy> dispatchPolicies = DispatchPolicy::createDefaultPolicies();
     std::vector<ResourcePolicy> resourcePolicies = ResourcePolicy::createDefaultPolicies();
@@ -81,7 +83,7 @@ struct DeviceSpecHelpers {
                                    dispatchPolicies, resourcePolicies, callbacksPolicies,
                                    sendingPolicies, devices,
                                    resourceManager, uniqueWorkflowId, configContext, optimizeTopology,
-                                   resourcesMonitoringInterval, channelPrefix);
+                                   resourcesMonitoringInterval, channelPrefix, overrideServices);
   }
 
   /// Helper to provide the channel configuration string for an input channel
@@ -141,7 +143,8 @@ struct DeviceSpecHelpers {
     const std::vector<OutputSpec>& outputs,
     std::vector<ChannelConfigurationPolicy> const& channelPolicies,
     std::string const& channelPrefix,
-    ComputingOffer const& defaultOffer);
+    ComputingOffer const& defaultOffer,
+    OverrideServiceSpecs const& overrideServices = {});
 
   /// This takes the list of preprocessed edges of a graph
   /// and creates Devices and Channels which are related
@@ -159,7 +162,8 @@ struct DeviceSpecHelpers {
     const std::vector<LogicalForwardInfo>& availableForwardsInfo,
     std::vector<ChannelConfigurationPolicy> const& channelPolicies,
     std::string const& channelPrefix,
-    ComputingOffer const& defaultOffer);
+    ComputingOffer const& defaultOffer,
+    OverrideServiceSpecs const& overrideServices = {});
 
   /// return a description of all options to be forwarded to the device
   /// by default

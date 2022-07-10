@@ -178,8 +178,24 @@ struct ServiceSpec {
   /// Callback invoked when we get updated about the oldest possible timeslice we can process
   ServiceDomainInfoUpdated domainInfoUpdated = nullptr;
 
+  /// Active flag. If set to false, the service will not be used by default.
+  bool active = true;
+
   /// Kind of service being specified.
   ServiceKind kind = ServiceKind::Serial;
+};
+
+struct OverrideServiceSpec {
+  std::string name;
+  bool active;
+};
+
+using OverrideServiceSpecs = std::vector<OverrideServiceSpec>;
+using ServiceSpecs = std::vector<ServiceSpec>;
+
+struct ServiceSpecHelpers {
+  static OverrideServiceSpecs parseOverrides(char const* overrideString);
+  static ServiceSpecs filterDisabled(ServiceSpecs originals, OverrideServiceSpecs const& overrides);
 };
 
 struct ServiceConfigureHandle {
