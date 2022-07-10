@@ -1759,6 +1759,7 @@ void TrapSimulator::fitTracklet()
             temp = q2; // temporarily move to 64bit variable
             temp *= mScaleQ;
             q2 = temp >> 32;
+            q2 >>= 1; // q2 needs additional shift, since we want the same range as q0 and q1 and q2 is only 6 bit wide
 
             // clip the charges
             if (q0 > mMaskQ0Q1) {
