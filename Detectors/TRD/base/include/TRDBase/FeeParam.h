@@ -69,9 +69,6 @@ class FeeParam
   static int getORI(int detector, int readoutboard);
   static void unpackORI(int link, int side, int& stack, int& layer, int& halfchamberside);
   //  void createORILookUpTable();
-  static int getORIinSuperModule(int detector, int readoutboard);
-  static int getLinkIDfromHCID(int hcid);
-  static int getHCIDfromORI(int ori, int readoutboard); // TODO we need more info than just ori, for now readoutboard is there ... might change
 
   // tracklet simulation
   bool getTracklet() const { return mTracklet; }
