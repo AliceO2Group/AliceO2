@@ -754,7 +754,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
         }
         draw_list->AddRectFilled(offset + slotPos - ImVec2{node->oldestPossibleInput[item].textSize + 5.f * NODE_SLOT_RADIUS, 2 * NODE_SLOT_RADIUS},
                                  offset + slotPos + ImVec2{-4.5f * NODE_SLOT_RADIUS, 2 * NODE_SLOT_RADIUS}, NODE_LABEL_BACKGROUND_COLOR, 2., ImDrawFlags_RoundCornersAll);
-        draw_list->AddText(0, 12,
+        draw_list->AddText(nullptr, 12,
                            offset + slotPos - ImVec2{node->oldestPossibleInput[item].textSize + 4.5f * NODE_SLOT_RADIUS, 2 * NODE_SLOT_RADIUS},
                            NODE_LABEL_TEXT_COLOR,
                            node->oldestPossibleInput[item].buffer);
@@ -791,7 +791,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
         auto rectBR = ImVec2{node->oldestPossibleOutput[item].textSize + 5.f * NODE_SLOT_RADIUS, 2 * NODE_SLOT_RADIUS};
         draw_list->AddRectFilled(offset + slotPos + rectTL,
                                  offset + slotPos + rectBR, NODE_LABEL_BACKGROUND_COLOR, 2., ImDrawFlags_RoundCornersAll);
-        draw_list->AddText(0, 12,
+        draw_list->AddText(nullptr, 12,
                            offset + slotPos + rectTL,
                            NODE_LABEL_TEXT_COLOR,
                            node->oldestPossibleOutput[item].buffer);
