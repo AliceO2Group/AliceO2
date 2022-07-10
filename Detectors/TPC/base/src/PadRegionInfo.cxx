@@ -43,44 +43,5 @@ void PadRegionInfo::init()
   }
 }
 
-const PadPos PadRegionInfo::findPad(const LocalPosition3D& pos) const
-{
-  return findPad(pos.X(), pos.Y(), (pos.Z() >= 0) ? Side::A : Side::C);
-}
-
-const PadPos PadRegionInfo::findPad(const LocalPosition2D& pos, const Side side /*=Side::A*/) const
-{
-  return findPad(pos.X(), pos.Y(), side);
-}
-
-const PadPos PadRegionInfo::findPad(const float localX, const float localY, const Side side /*=Side::A*/) const
-{
-  if (!isInRegion(localX)) {
-    return PadPos(255, 255);
-  }
-
-  // the pad coordinate system is for pad-side view.
-  // on the A-Side one looks from the back-side, therefore
-  // the localY-sign must be changed
-  const float localYfactor = (side == Side::A) ? -1.f : 1.f;
-  const unsigned int row = std::floor((localX - mRadiusFirstRow) * mInvPadHeight);
-  if (row >= mNumberOfPadRows) {
-    return PadPos(255, 255);
-  }
-
-  const unsigned int npads = getPadsInRowRegion(row);
-  const float padfloat = (0.5f * npads * mPadWidth - localYfactor * localY) * mInvPadWidth;
-  if (padfloat < 0) {
-    return PadPos(255, 255);
-  }
-  const unsigned int pad = static_cast<unsigned int>(padfloat);
-
-  if (pad >= npads) {
-    return PadPos(255, 255);
-  }
-
-  return PadPos(row, pad);
-}
-
 } // namespace tpc
 } // namespace o2
