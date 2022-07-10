@@ -188,7 +188,6 @@ void TrackerDPL::run(ProcessingContext& pc)
   std::vector<int> savedROF;
   auto logger = [&](std::string s) { LOG(info) << s; };
   auto errorLogger = [&](std::string s) { LOG(error) << s; };
-  int nclUsed = 0;
 
   std::vector<bool> processingMask;
   int cutRandomMult{0}, cutClusterMult{0}, cutVertexMult{0};
@@ -249,10 +248,10 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
   }
   LOG(info) << fmt::format(" - rejected {}/{} ROFs: random:{}, mult.sel:{}, vtx.sel:{}", cutRandomMult + cutClusterMult + cutVertexMult, rofspan.size(), cutRandomMult, cutClusterMult, cutVertexMult);
-  LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} clusters in {} ROFs", vertexerElapsedTime, nclUsed, rofspan.size());
+  LOG(info) << fmt::format(" - Vertex seeding total elapsed time: {} ms for {} vertices found in {} ROFs", vertexerElapsedTime, timeFrame->getPrimaryVerticesNum(), rofspan.size());
   LOG(info) << fmt::format(" - Beam position computed for the TF: {}, {}", timeFrame->getBeamX(), timeFrame->getBeamY());
 
-  if (mCosmicsProcessing && nclUsed > 1500 * rofspan.size()) {
+  if (mCosmicsProcessing && compClusters.size() > 1500 * rofspan.size()) {
     LOG(error) << "Cosmics processing was requested with an average detector occupancy exceeding 1.e-7, skipping TF processing.";
   } else {
 

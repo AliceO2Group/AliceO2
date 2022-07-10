@@ -128,6 +128,10 @@ class TimeFrame
   std::vector<TrackITSExt>& getTracks(int rof) { return mTracks[rof]; }
   std::vector<MCCompLabel>& getTracksLabel(int rof) { return mTracksLabel[rof]; }
 
+  int getNumberOfClusters() const;
+  int getNumberOfCells() const;
+  int getNumberOfTracklets() const;
+
   bool checkMemory(unsigned long max) { return getArtefactsMemory() < max; }
   unsigned long getArtefactsMemory();
   int getROfCutClusterMult() const { return mCutClusterMult; };
@@ -439,6 +443,33 @@ inline gsl::span<const Tracklet> TimeFrame::getFoundTracklets(int rofId, int com
   }
   auto startIdx{mNTrackletsPerROf[combId][rofId]};
   return {&mTracklets[combId][startIdx], static_cast<gsl::span<Tracklet>::size_type>(mNTrackletsPerROf[combId][rofId + 1] - startIdx)};
+}
+
+inline int TimeFrame::getNumberOfClusters() const
+{
+  int nClusters = 0;
+  for (auto& layer : mClusters) {
+    nClusters += layer.size();
+  }
+  return nClusters;
+}
+
+inline int TimeFrame::getNumberOfCells() const
+{
+  int nCells = 0;
+  for (auto& layer : mCells) {
+    nCells += layer.size();
+  }
+  return nCells;
+}
+
+inline int TimeFrame::getNumberOfTracklets() const
+{
+  int nTracklets = 0;
+  for (auto& layer : mTracklets) {
+    nTracklets += layer.size();
+  }
+  return nTracklets;
 }
 
 } // namespace its

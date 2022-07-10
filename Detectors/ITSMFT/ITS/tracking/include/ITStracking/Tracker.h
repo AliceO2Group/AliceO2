@@ -113,6 +113,7 @@ class Tracker
   std::uint32_t mTimeFrameCounter = 0;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 
+  unsigned int mNumberOfRuns{0};
 };
 
 inline void Tracker::setParameters(const std::vector<MemoryParameters>& memPars, const std::vector<TrackingParameters>& trkPars)
