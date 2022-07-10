@@ -446,6 +446,8 @@ void Tracker::extendTracks()
 
 void Tracker::findShortPrimaries()
 {
+  float rBeam{std::hypot(mTimeFrame->getBeamX(), mTimeFrame->getBeamY())};
+  float alphaBeam{std::atan2(mTimeFrame->getBeamY(), mTimeFrame->getBeamX())};
   for (auto& cell : mTimeFrame->getCells()[0]) {
     auto& cluster1_glo = mTimeFrame->getClusters()[2][cell.getThirdClusterIndex()];
     auto& cluster2_glo = mTimeFrame->getClusters()[1][cell.getSecondClusterIndex()];
@@ -455,6 +457,22 @@ void Tracker::findShortPrimaries()
         mTimeFrame->isClusterUsed(2, cluster3_glo.clusterId)) {
       continue;
     }
+
+    std::array<int, 3> rofs{
+      mTimeFrame->getClusterROF(0, cluster3_glo.clusterId),
+      mTimeFrame->getClusterROF(1, cluster2_glo.clusterId),
+      mTimeFrame->getClusterROF(2, cluster1_glo.clusterId)
+    };
+    if (rofs[0] != rofs[1] && rofs[1] != rofs[2] && rofs[0] != rofs[2]) {
+      continue;
+    }
+
+    int rof{rofs[0]};
+    if (rofs[1] == rofs[2]) {
+      rof = rofs[2];
+    }
+
+    auto pvs{mTimeFrame->getPrimaryVertices(rof)};
 
     const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(0).at(cluster3_glo.clusterId);
 
