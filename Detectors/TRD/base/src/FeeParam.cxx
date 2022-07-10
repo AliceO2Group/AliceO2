@@ -406,34 +406,6 @@ void FeeParam::unpackORI(int link, int side, int& stack, int& layer, int& halfch
   }
 }
 
-int FeeParam::getORI(int detector, int readoutboard)
-{
-  ///  LOG(info) << "getORI : " << detector << " :: " << readoutboard << " -- " << getORIinSM(detector, readoutboard) << "   " << getORIinSM(detector, readoutboard) + NCHAMBERPERSEC * 2 * detector;
-  return getORIinSuperModule(detector, readoutboard) + NCHAMBER * 2 * detector; // 60 ORI per supermodule
-}
-
-int FeeParam::getORIinSuperModule(int detector, int readoutboard)
-{
-  return HelperMethods::getORIinSuperModule(detector, readoutboard);
-}
-
-int FeeParam::getLinkIDfromHCID(int hcid)
-{
-  return HelperMethods::getLinkIDfromHCID(hcid);
-  //return a number in range [0:29] for the link related to this hcid with in its respective CRU
-  //lower 15 is endpoint 0 and upper 15 is endpoint 1
-  //a side has 30, c side has 30 to give 60 links for a supermodule
-}
-
-int FeeParam::getHCIDfromORI(int ori, int readoutboard)
-{
-  // ori = 60*SM+offset[0-29 A, 30-59 C]
-  // from the offset, we can derive the stack/layer/side combination giving the decector.
-  //TODO do we need this, currently I dont, others might? come back if need be.
-  //
-  return 1;
-}
-
 short FeeParam::chipmaskToMCMlist(unsigned int cmA, unsigned int cmB, unsigned short linkpair, int* mcmList, int listSize)
 {
   // Converts the chipmask to a list of MCMs
