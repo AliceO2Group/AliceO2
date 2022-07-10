@@ -64,19 +64,19 @@ class IDCCCDBHelper
   IDCCCDBHelper() = default;
 
   /// setting the IDCDelta class member
-  void setIDCDelta(IDCDelta<DataT>* idcDelta, const Side side) { mIDCDelta[side] = idcDelta; }
+  void setIDCDelta(IDCDelta<DataT>* idcDelta, const Side side = Side::A) { mIDCDelta[side] = idcDelta; }
 
   /// setting the 0D-IDCs
-  void setIDCZero(IDCZero* idcZero, const Side side) { mIDCZero[side] = idcZero; }
+  void setIDCZero(IDCZero* idcZero, const Side side = Side::A) { mIDCZero[side] = idcZero; }
 
   /// setting the 1D-IDCs
-  void setIDCOne(IDCOne* idcOne, const Side side) { mIDCOne[side] = idcOne; }
+  void setIDCOne(IDCOne* idcOne, const Side side = Side::A) { mIDCOne[side] = idcOne; }
 
   /// setting the fourier coefficients
-  void setFourierCoeffs(FourierCoeff* fourier, const Side side) { mFourierCoeff[side] = fourier; }
+  void setFourierCoeffs(FourierCoeff* fourier, const Side side = Side::A) { mFourierCoeff[side] = fourier; }
 
   /// setting the grouping parameters
-  void setGroupingParameter(IDCGroupHelperSector* helperSector, const Side side) { mHelperSector[side] = helperSector; }
+  void setGroupingParameter(IDCGroupHelperSector* helperSector, const Side side = Side::A) { mHelperSector[side] = helperSector; }
 
   /// setting the pad status map which is used to filter out long term outliers
   void setPadStatusMap(CalDet<PadFlags>* map) { mPadFlagsMap = map; }
