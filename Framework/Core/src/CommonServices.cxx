@@ -625,16 +625,17 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
            oldestPossibleOutput.slot.index == -1 ? "channel" : "slot",
            oldestPossibleOutput.slot.index == -1 ? oldestPossibleOutput.channel.value: oldestPossibleOutput.slot.index);
       DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
-      DeviceSpec const& spec = ctx.services().get<DeviceSpec const>();
-      auto device = ctx.services().get<RawDeviceService>().device();
-      for (size_t fi = 0; fi < spec.forwards.size(); fi++) {
-        auto& channel = device->GetChannel(spec.forwards[fi].channel, 0);
-        // The oldest possible timeslice for a forwarded message
-        // is conservatively the one of the device doing the forwarding.
-        if (spec.forwards[fi].channel.rfind("from_", 0) == 0) {
-          auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
-          DataProcessingHelpers::sendOldestPossibleTimeframe(channel, oldestTimeslice.timeslice.value);
-          LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}", spec.forwards[fi].channel, oldestTimeslice.timeslice.value);
+
+      for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
+        auto& info = proxy.getForwardChannelInfo(ChannelIndex{fi});
+        auto& state = proxy.getForwardChannelState(ChannelIndex{fi});
+        // TODO: this we could cache in the proxy at the bind moment.
+        if (info.channelType != ChannelAccountingType::DPL) {
+          LOG(debug) << "Skipping channel";
+          continue;
+        }
+        if (DataProcessingHelpers::sendOldestPossibleTimeframe(info, state, oldestPossibleOutput.timeslice.value)) {
+          LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}, prio 20", info.name, oldestPossibleOutput.timeslice.value);
         }
       }
       decongestion->lastTimeslice = oldestPossibleOutput.timeslice.value; },
@@ -672,10 +673,17 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
           }
           LOGP(info, "Running oldest possible timeslice {} propagation.", oldestPossibleOutput.timeslice.value);
           DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
-          for (size_t fi = 0; fi < spec.forwards.size(); fi++) {
-            auto& channel = device->GetChannel(spec.forwards[fi].channel, 0);
-            if (spec.forwards[fi].channel.rfind("from_", 0) == 0) {
-              DataProcessingHelpers::sendOldestPossibleTimeframe(channel, oldestPossibleOutput.timeslice.value);
+
+          for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
+            auto& info = proxy.getForwardChannelInfo(ChannelIndex{fi});
+            auto& state = proxy.getForwardChannelState(ChannelIndex{fi});
+            // TODO: this we could cache in the proxy at the bind moment.
+            if (info.channelType != ChannelAccountingType::DPL) {
+              LOG(debug) << "Skipping channel";
+              continue;
+            }
+            if (DataProcessingHelpers::sendOldestPossibleTimeframe(info, state, oldestPossibleOutput.timeslice.value)) {
+              LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}, prio 20", info.name, oldestPossibleOutput.timeslice.value);
             }
           }
           decongestion.lastTimeslice = oldestPossibleOutput.timeslice.value;
