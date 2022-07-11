@@ -66,7 +66,14 @@ class FairMQDeviceProxy
   fair::mq::Channel* getForwardChannel(ChannelIndex channelIndex) const;
 
   /// Retrieve information associated to a given forward by ChannelIndex
+  OutputChannelInfo const& getOutputChannelInfo(ChannelIndex channelIndex) const;
+  /// Retrieve information associated to a given forward by ChannelIndex
   ForwardChannelInfo const& getForwardChannelInfo(ChannelIndex channelIndex) const;
+
+  /// Retrieve information associated to a given forward by ChannelIndex
+  OutputChannelState& getOutputChannelState(ChannelIndex channelIndex);
+  /// Retrieve information associated to a given forward by ChannelIndex
+  ForwardChannelState& getForwardChannelState(ChannelIndex channelIndex);
 
   std::unique_ptr<fair::mq::Message> createOutputMessage(RouteIndex routeIndex) const;
   std::unique_ptr<fair::mq::Message> createOutputMessage(RouteIndex routeIndex, const size_t size) const;
@@ -76,7 +83,7 @@ class FairMQDeviceProxy
 
   std::unique_ptr<fair::mq::Message> createForwardMessage(RouteIndex routeIndex) const;
 
-  size_t getNumOutputChannels() const { return mOutputChannels.size(); }
+  size_t getNumOutputChannels() const { return mOutputChannelInfos.size(); }
   size_t getNumInputChannels() const { return mInputChannels.size(); }
   size_t getNumForwardChannels() const { return mForwardChannelInfos.size(); }
   size_t getNumForwards() const { return mForwards.size(); }
@@ -86,8 +93,8 @@ class FairMQDeviceProxy
  private:
   std::vector<OutputRoute> mOutputs;
   std::vector<RouteState> mOutputRoutes;
-  std::vector<fair::mq::Channel*> mOutputChannels;
-  std::vector<std::string> mOutputChannelNames;
+  std::vector<OutputChannelInfo> mOutputChannelInfos;
+  std::vector<OutputChannelState> mOutputChannelStates;
 
   std::vector<InputRoute> mInputs;
   std::vector<RouteState> mInputRoutes;
@@ -97,6 +104,7 @@ class FairMQDeviceProxy
   std::vector<ForwardRoute> mForwards;
   std::vector<RouteState> mForwardRoutes;
   std::vector<ForwardChannelInfo> mForwardChannelInfos;
+  std::vector<ForwardChannelState> mForwardChannelStates;
 
   std::function<bool()> mStateChangeCallback;
 };

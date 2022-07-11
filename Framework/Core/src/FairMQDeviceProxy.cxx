@@ -29,8 +29,8 @@ ChannelIndex FairMQDeviceProxy::getOutputChannelIndex(RouteIndex index) const
   assert(mOutputRoutes.size());
   assert(index.value < mOutputRoutes.size());
   assert(mOutputRoutes[index.value].channel.value != -1);
-  assert(mOutputChannels.size());
-  assert(mOutputRoutes[index.value].channel.value < mOutputChannels.size());
+  assert(mOutputChannelInfos.size());
+  assert(mOutputRoutes[index.value].channel.value < mOutputChannelInfos.size());
   return mOutputRoutes[index.value].channel;
 }
 
@@ -56,9 +56,23 @@ ChannelIndex FairMQDeviceProxy::getForwardChannelIndex(RouteIndex index) const
 
 fair::mq::Channel* FairMQDeviceProxy::getOutputChannel(ChannelIndex index) const
 {
-  assert(mOutputChannels.size());
-  assert(index.value < mOutputChannels.size());
-  return mOutputChannels[index.value];
+  assert(mOutputChannelInfos.size());
+  assert(index.value < mOutputChannelInfos.size());
+  return &mOutputChannelInfos[index.value].channel;
+}
+
+OutputChannelInfo const& FairMQDeviceProxy::getOutputChannelInfo(ChannelIndex index) const
+{
+  assert(mOutputChannelInfos.size());
+  assert(index.value < mOutputChannelInfos.size());
+  return mOutputChannelInfos[index.value];
+}
+
+OutputChannelState& FairMQDeviceProxy::getOutputChannelState(ChannelIndex index)
+{
+  assert(mOutputChannelInfos.size());
+  assert(index.value < mOutputChannelInfos.size());
+  return mOutputChannelStates[index.value];
 }
 
 fair::mq::Channel* FairMQDeviceProxy::getInputChannel(ChannelIndex index) const
@@ -80,6 +94,13 @@ ForwardChannelInfo const& FairMQDeviceProxy::getForwardChannelInfo(ChannelIndex 
   assert(mForwardChannelInfos.size());
   assert(index.value < mForwardChannelInfos.size());
   return mForwardChannelInfos[index.value];
+}
+
+ForwardChannelState& FairMQDeviceProxy::getForwardChannelState(ChannelIndex index)
+{
+  assert(mForwardChannelInfos.size());
+  assert(index.value < mForwardChannelStates.size());
+  return mForwardChannelStates[index.value];
 }
 
 ChannelIndex FairMQDeviceProxy::getOutputChannelIndex(OutputSpec const& query, size_t timeslice) const
@@ -115,8 +136,8 @@ ChannelIndex FairMQDeviceProxy::getForwardChannelIndex(header::DataHeader const&
 
 ChannelIndex FairMQDeviceProxy::getOutputChannelIndexByName(std::string const& name) const
 {
-  for (int i = 0; i < mOutputChannels.size(); i++) {
-    if (mOutputChannelNames[i] == name) {
+  for (int i = 0; i < mOutputChannelInfos.size(); i++) {
+    if (mOutputChannelInfos[i].name == name) {
       return {i};
     }
   }
@@ -195,8 +216,8 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
 {
   mOutputs.clear();
   mOutputRoutes.clear();
-  mOutputChannels.clear();
-  mOutputChannelNames.clear();
+  mOutputChannelInfos.clear();
+  mOutputChannelStates.clear();
   mInputs.clear();
   mInputRoutes.clear();
   mInputChannels.clear();
@@ -204,6 +225,7 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
   mForwards.clear();
   mForwardRoutes.clear();
   mForwardChannelInfos.clear();
+  mForwardChannelStates.clear();
   {
     mOutputs = outputs;
     mOutputRoutes.reserve(outputs.size());
@@ -216,9 +238,15 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
       ChannelIndex channelIndex;
 
       if (channelPos == channelNameToChannel.end()) {
-        channelIndex = ChannelIndex{(int)mOutputChannels.size()};
-        mOutputChannels.push_back(&device.fChannels.at(route.channel).at(0));
-        mOutputChannelNames.push_back(route.channel);
+        channelIndex = ChannelIndex{(int)mOutputChannelInfos.size()};
+        ChannelAccountingType dplChannel = (route.channel.rfind("from_", 0) == 0) ? ChannelAccountingType::DPL : ChannelAccountingType::RAW;
+        OutputChannelInfo info{
+          .name = route.channel,
+          .channelType = dplChannel,
+          .channel = device.fChannels.at(route.channel).at(0),
+        };
+        mOutputChannelInfos.push_back(info);
+        mOutputChannelStates.push_back({0});
         channelNameToChannel[route.channel] = channelIndex;
         LOGP(detail, "Binding channel {} to channel index {}", route.channel, channelIndex.value);
       } else {
@@ -231,9 +259,9 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
     }
     for (auto& route : mOutputRoutes) {
       assert(route.channel.value != -1);
-      assert(route.channel.value < mOutputChannels.size());
+      assert(route.channel.value < mOutputChannelInfos.size());
     }
-    LOGP(detail, "Total channels found {}, total routes {}", mOutputChannels.size(), mOutputRoutes.size());
+    LOGP(detail, "Total channels found {}, total routes {}", mOutputChannelInfos.size(), mOutputRoutes.size());
     assert(mOutputRoutes.size() == outputs.size());
   }
 
@@ -289,6 +317,7 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
         auto& channel = device.fChannels.at(route.channel).at(0);
         ChannelAccountingType dplChannel = (route.channel.rfind("from_", 0) == 0) ? ChannelAccountingType::DPL : ChannelAccountingType::RAW;
         mForwardChannelInfos.push_back(ForwardChannelInfo{route.channel, dplChannel, channel});
+        mForwardChannelStates.push_back(ForwardChannelState{0});
         channelNameToChannel[route.channel] = channelIndex;
         LOGP(detail, "Binding forward channel {} to channel index {}", route.channel, channelIndex.value);
       } else {

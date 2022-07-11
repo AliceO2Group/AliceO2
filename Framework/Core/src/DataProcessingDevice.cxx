@@ -568,13 +568,15 @@ static auto forwardInputs = [](ServiceRegistry& registry, TimesliceSlot slot, st
       }
       for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
         auto& info = proxy.getForwardChannelInfo(ChannelIndex{fi});
+        auto& state = proxy.getForwardChannelState(ChannelIndex{fi});
         // TODO: this we could cache in the proxy at the bind moment.
         if (info.channelType != ChannelAccountingType::DPL) {
           LOG(debug) << "Skipping channel";
           continue;
         }
-        DataProcessingHelpers::sendOldestPossibleTimeframe(info.channel, oldestTimeslice.timeslice.value);
-        LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}, prio 20", info.name, oldestTimeslice.timeslice.value);
+        if (DataProcessingHelpers::sendOldestPossibleTimeframe(info, state, oldestTimeslice.timeslice.value)) {
+          LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}, prio 20", info.name, oldestTimeslice.timeslice.value);
+        }
       }
     },
     oldestTimeslice.timeslice, 20);
