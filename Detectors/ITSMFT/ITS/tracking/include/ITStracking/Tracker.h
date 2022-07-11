@@ -85,15 +85,14 @@ class Tracker
  private:
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
                                     const TrackingFrameInfo& tf3, float resolution);
-  template <typename... T>
-  void initialiseTimeFrame(T&&... args);
-  void computeTracklets();
-  void computeCells();
+  void initialiseTimeFrame(int& iteration);
+  void computeTracklets(int& iteration);
+  void computeCells(int& iteration);
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
   void findTracks();
-  void findShortPrimaries();
-  void extendTracks();
+  void findShortPrimaries(int& iteration);
+  void extendTracks(int& iteration);
   bool fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut = o2::constants::math::VeryBig, const float maxQoverPt = o2::constants::math::VeryBig);
   void traverseCellsTree(const int, const int);
   void computeRoadsMClabels();
@@ -128,10 +127,9 @@ inline float Tracker::getBz() const
   return mBz;
 }
 
-template <typename... T>
-void Tracker::initialiseTimeFrame(T&&... args)
+inline void Tracker::initialiseTimeFrame(int& iteration)
 {
-  mTimeFrame->initialise(std::forward<T>(args)...);
+  mTimeFrame->initialise(iteration, mTrkParams[iteration]);
 }
 
 template <typename... T>

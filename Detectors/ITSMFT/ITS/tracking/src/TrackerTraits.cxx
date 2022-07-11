@@ -46,27 +46,27 @@ namespace its
 
 constexpr int debugLevel{0};
 
-void TrackerTraits::computeLayerTracklets()
+void TrackerTraits::computeLayerTracklets(const int iteration)
 {
   TimeFrame* tf = mTimeFrame;
 
 #ifdef OPTIMISATION_OUTPUT
-  static int iteration{0};
-  std::ofstream off(fmt::format("tracklets{}.txt", iteration++));
+  static int iter{0};
+  std::ofstream off(fmt::format("tracklets{}.txt", iter++));
 #endif
 
-  const Vertex diamondVert({mTrkParams.Diamond[0], mTrkParams.Diamond[1], mTrkParams.Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
+  const Vertex diamondVert({mTrkParams[iteration].Diamond[0], mTrkParams[iteration].Diamond[1], mTrkParams[iteration].Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
   gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
   for (int rof0{0}; rof0 < tf->getNrof(); ++rof0) {
-    gsl::span<const Vertex> primaryVertices = mTrkParams.UseDiamond ? diamondSpan : tf->getPrimaryVertices(rof0);
-    int minRof = (rof0 >= mTrkParams.DeltaROF) ? rof0 - mTrkParams.DeltaROF : 0;
-    int maxRof = (rof0 == tf->getNrof() - mTrkParams.DeltaROF) ? rof0 : rof0 + mTrkParams.DeltaROF;
-    for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
+    gsl::span<const Vertex> primaryVertices = mTrkParams[iteration].UseDiamond ? diamondSpan : tf->getPrimaryVertices(rof0);
+    int minRof = (rof0 >= mTrkParams[iteration].DeltaROF) ? rof0 - mTrkParams[iteration].DeltaROF : 0;
+    int maxRof = (rof0 == tf->getNrof() - mTrkParams[iteration].DeltaROF) ? rof0 : rof0 + mTrkParams[iteration].DeltaROF;
+    for (int iLayer{0}; iLayer < mTrkParams[iteration].TrackletsPerRoad(); ++iLayer) {
       gsl::span<const Cluster> layer0 = tf->getClustersOnLayer(rof0, iLayer);
       if (layer0.empty()) {
         continue;
       }
-      float meanDeltaR{mTrkParams.LayerRadii[iLayer + 1] - mTrkParams.LayerRadii[iLayer]};
+      float meanDeltaR{mTrkParams[iteration].LayerRadii[iLayer + 1] - mTrkParams[iteration].LayerRadii[iLayer]};
 
       const int currentLayerClustersNum{static_cast<int>(layer0.size())};
       for (int iCluster{0}; iCluster < currentLayerClustersNum; ++iCluster) {
@@ -79,7 +79,7 @@ void TrackerTraits::computeLayerTracklets()
         const float inverseR0{1.f / currentCluster.radius};
 
         for (auto& primaryVertex : primaryVertices) {
-          const float resolution = std::sqrt(Sq(mTrkParams.PVres) / primaryVertex.getNContributors() + Sq(tf->getPositionResolution(iLayer)));
+          const float resolution = std::sqrt(Sq(mTrkParams[iteration].PVres) / primaryVertex.getNContributors() + Sq(tf->getPositionResolution(iLayer)));
 
           const float tanLambda{(currentCluster.zCoordinate - primaryVertex.getZ()) * inverseR0};
 
@@ -90,7 +90,7 @@ void TrackerTraits::computeLayerTracklets()
           const float sigmaZ{std::sqrt(Sq(resolution) * Sq(tanLambda) * ((Sq(inverseR0) + sqInverseDeltaZ0) * Sq(meanDeltaR) + 1.f) + Sq(meanDeltaR * tf->getMSangle(iLayer)))};
 
           const int4 selectedBinsRect{getBinsRect(currentCluster, iLayer, zAtRmin, zAtRmax,
-                                                  sigmaZ * mTrkParams.NSigmaCut, tf->getPhiCut(iLayer))};
+                                                  sigmaZ * mTrkParams[iteration].NSigmaCut, tf->getPhiCut(iLayer))};
 
           if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
             continue;
@@ -99,7 +99,7 @@ void TrackerTraits::computeLayerTracklets()
           int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
 
           if (phiBinsNum < 0) {
-            phiBinsNum += mTrkParams.PhiBins;
+            phiBinsNum += mTrkParams[iteration].PhiBins;
           }
 
           for (int rof1{minRof}; rof1 <= maxRof; ++rof1) {
@@ -109,13 +109,13 @@ void TrackerTraits::computeLayerTracklets()
             }
 
             for (int iPhiCount{0}; iPhiCount < phiBinsNum; iPhiCount++) {
-              int iPhiBin = (selectedBinsRect.y + iPhiCount) % mTrkParams.PhiBins;
+              int iPhiBin = (selectedBinsRect.y + iPhiCount) % mTrkParams[iteration].PhiBins;
               const int firstBinIndex{tf->mIndexTableUtils.getBinIndex(selectedBinsRect.x, iPhiBin)};
               const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
               if constexpr (debugLevel) {
                 if (firstBinIndex < 0 || firstBinIndex > tf->getIndexTable(rof1, iLayer + 1).size() ||
                     maxBinIndex < 0 || maxBinIndex > tf->getIndexTable(rof1, iLayer + 1).size()) {
-                  std::cout << iLayer << "\t" << iCluster << "\t" << zAtRmin << "\t" << zAtRmax << "\t" << sigmaZ * mTrkParams.NSigmaCut << "\t" << tf->getPhiCut(iLayer) << std::endl;
+                  std::cout << iLayer << "\t" << iCluster << "\t" << zAtRmin << "\t" << zAtRmax << "\t" << sigmaZ * mTrkParams[iteration].NSigmaCut << "\t" << tf->getPhiCut(iLayer) << std::endl;
                   std::cout << currentCluster.zCoordinate << "\t" << primaryVertex.getZ() << "\t" << currentCluster.radius << std::endl;
                   std::cout << tf->getMinR(iLayer + 1) << "\t" << currentCluster.radius << "\t" << currentCluster.zCoordinate << std::endl;
                   std::cout << "Illegal access to IndexTable " << firstBinIndex << "\t" << maxBinIndex << "\t" << selectedBinsRect.z << "\t" << selectedBinsRect.x << std::endl;
@@ -157,7 +157,7 @@ void TrackerTraits::computeLayerTracklets()
                 off << fmt::format("{}\t{:d}\t{}\t{}\t{}\t{}", iLayer, label.isValid(), (tanLambda * (nextCluster.radius - currentCluster.radius) + currentCluster.zCoordinate - nextCluster.zCoordinate) / sigmaZ, tanLambda, resolution, sigmaZ) << std::endl;
 #endif
 
-                if (deltaZ / sigmaZ < mTrkParams.NSigmaCut &&
+                if (deltaZ / sigmaZ < mTrkParams[iteration].NSigmaCut &&
                     (deltaPhi < tf->getPhiCut(iLayer) ||
                      gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < tf->getPhiCut(iLayer))) {
                   if (iLayer > 0) {
@@ -174,14 +174,14 @@ void TrackerTraits::computeLayerTracklets()
           }
         }
       }
-      if (!tf->checkMemory(mTrkParams.MaxMemory)) {
+      if (!tf->checkMemory(mTrkParams[iteration].MaxMemory)) {
         return;
       }
     }
   }
   /// Cold code, fixups
 
-  for (int iLayer{0}; iLayer < mTrkParams.CellsPerRoad(); ++iLayer) {
+  for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
     /// Sort tracklets
     auto& trkl{tf->getTracklets()[iLayer + 1]};
     std::sort(trkl.begin(), trkl.end(), [](const Tracklet& a, const Tracklet& b) {
@@ -225,7 +225,7 @@ void TrackerTraits::computeLayerTracklets()
 
   /// Create tracklets labels
   if (tf->hasMCinformation()) {
-    for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
+    for (int iLayer{0}; iLayer < mTrkParams[iteration].TrackletsPerRoad(); ++iLayer) {
       for (auto& trk : tf->getTracklets()[iLayer]) {
         MCCompLabel label;
         int currentId{tf->getClusters()[iLayer][trk.firstClusterIndex].clusterId};
@@ -247,23 +247,23 @@ void TrackerTraits::computeLayerTracklets()
   }
 }
 
-void TrackerTraits::computeLayerCells()
+void TrackerTraits::computeLayerCells(const int iteration)
 {
 
 #ifdef OPTIMISATION_OUTPUT
-  static int iteration{0};
-  std::ofstream off(fmt::format("cells{}.txt", iteration++));
+  static int iter{0};
+  std::ofstream off(fmt::format("cells{}.txt", iter++));
 #endif
 
   TimeFrame* tf = mTimeFrame;
-  for (int iLayer{0}; iLayer < mTrkParams.CellsPerRoad(); ++iLayer) {
+  for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
 
     if (tf->getTracklets()[iLayer + 1].empty() ||
         tf->getTracklets()[iLayer].empty()) {
       continue;
     }
 
-    float resolution{std::sqrt(Sq(mTrkParams.LayerMisalignment[iLayer]) + Sq(mTrkParams.LayerMisalignment[iLayer + 1]) + Sq(mTrkParams.LayerMisalignment[iLayer + 2])) / mTrkParams.LayerResolution[iLayer]};
+    float resolution{std::sqrt(Sq(mTrkParams[iteration].LayerMisalignment[iLayer]) + Sq(mTrkParams[iteration].LayerMisalignment[iLayer + 1]) + Sq(mTrkParams[iteration].LayerMisalignment[iLayer + 2])) / mTrkParams[iteration].LayerResolution[iLayer]};
     resolution = resolution > 1.e-12 ? resolution : 1.f;
 
     const int currentLayerTrackletsNum{static_cast<int>(tf->getTracklets()[iLayer].size())};
@@ -292,10 +292,10 @@ void TrackerTraits::computeLayerCells()
 #ifdef OPTIMISATION_OUTPUT
         bool good{tf->getTrackletsLabel(iLayer)[iTracklet] == tf->getTrackletsLabel(iLayer + 1)[iNextTracklet]};
         float signedDelta{currentTracklet.tanLambda - nextTracklet.tanLambda};
-        off << fmt::format("{}\t{:d}\t{}\t{}\t{}\t{}", iLayer, good, signedDelta, signedDelta / (mTrkParams.CellDeltaTanLambdaSigma), tanLambda, resolution) << std::endl;
+        off << fmt::format("{}\t{:d}\t{}\t{}\t{}\t{}", iLayer, good, signedDelta, signedDelta / (mTrkParams[iteration].CellDeltaTanLambdaSigma), tanLambda, resolution) << std::endl;
 #endif
 
-        if (deltaTanLambda / mTrkParams.CellDeltaTanLambdaSigma < mTrkParams.NSigmaCut) {
+        if (deltaTanLambda / mTrkParams[iteration].CellDeltaTanLambdaSigma < mTrkParams[iteration].NSigmaCut) {
 
           if (iLayer > 0 && (int)tf->getCellsLookupTable()[iLayer - 1].size() <= iTracklet) {
             tf->getCellsLookupTable()[iLayer - 1].resize(iTracklet + 1, tf->getCells()[iLayer].size());
@@ -310,14 +310,14 @@ void TrackerTraits::computeLayerCells()
     if (iLayer > 0) {
       tf->getCellsLookupTable()[iLayer - 1].resize(currentLayerTrackletsNum + 1, tf->getCells()[iLayer].size());
     }
-    if (!tf->checkMemory(mTrkParams.MaxMemory)) {
+    if (!tf->checkMemory(mTrkParams[iteration].MaxMemory)) {
       return;
     }
   }
 
   /// Create cells labels
   if (tf->hasMCinformation()) {
-    for (int iLayer{0}; iLayer < mTrkParams.CellsPerRoad(); ++iLayer) {
+    for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
       for (auto& cell : tf->getCells()[iLayer]) {
         MCCompLabel currentLab{tf->getTrackletsLabel(iLayer)[cell.getFirstTrackletIndex()]};
         MCCompLabel nextLab{tf->getTrackletsLabel(iLayer + 1)[cell.getSecondTrackletIndex()]};
@@ -327,36 +327,36 @@ void TrackerTraits::computeLayerCells()
   }
 
   if constexpr (debugLevel) {
-    for (int iLayer{0}; iLayer < mTrkParams.CellsPerRoad(); ++iLayer) {
+    for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
       std::cout << "Cells on layer " << iLayer << " " << tf->getCells()[iLayer].size() << std::endl;
     }
   }
 }
 
-void TrackerTraits::refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
+void TrackerTraits::refitTracks(const int iteration, const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
 {
   std::vector<const Cell*> cells;
-  for (int iLayer = 0; iLayer < mTrkParams.CellsPerRoad(); iLayer++) {
+  for (int iLayer = 0; iLayer < mTrkParams[iteration].CellsPerRoad(); iLayer++) {
     cells.push_back(mTimeFrame->getCells()[iLayer].data());
   }
   std::vector<const Cluster*> clusters;
-  for (int iLayer = 0; iLayer < mTrkParams.NLayers; iLayer++) {
+  for (int iLayer = 0; iLayer < mTrkParams[iteration].NLayers; iLayer++) {
     clusters.push_back(mTimeFrame->getClusters()[iLayer].data());
   }
   mChainRunITSTrackFit(*mChain, mTimeFrame->getRoads(), clusters, cells, tf, tracks);
 }
 
-bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
+bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward, const int iteration)
 {
   auto propInstance = o2::base::Propagator::Instance();
   const int step = -1 + outward * 2;
-  const int end = outward ? mTrkParams.NLayers - 1 : 0;
+  const int end = outward ? mTrkParams[iteration].NLayers - 1 : 0;
   std::vector<TrackITSExt> hypotheses(1, *track);
   for (auto& hypo : hypotheses) {
     int iLayer = outward ? track->getLastClusterLayer() : track->getFirstClusterLayer();
     while (iLayer != end) {
       iLayer += step;
-      const float& r = mTrkParams.LayerRadii[iLayer];
+      const float& r = mTrkParams[iteration].LayerRadii[iLayer];
       float x;
       if (!hypo.getXatLabR(r, x, mTimeFrame->getBz(), o2::track::DirAuto)) {
         continue;
@@ -364,14 +364,14 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
       bool success{false};
       auto& hypoParam{outward ? hypo.getParamOut() : hypo.getParamIn()};
       if (!propInstance->propagateToX(hypoParam, x, mTimeFrame->getBz(), PropagatorF::MAX_SIN_PHI,
-                                      PropagatorF::MAX_STEP, mTrkParams.CorrType)) {
+                                      PropagatorF::MAX_STEP, mTrkParams[iteration].CorrType)) {
         continue;
       }
 
-      if (mTrkParams.CorrType == PropagatorF::MatCorrType::USEMatCorrNONE) {
+      if (mTrkParams[iteration].CorrType == PropagatorF::MatCorrType::USEMatCorrNONE) {
         float radl = 9.36f; // Radiation length of Si [cm]
         float rho = 2.33f;  // Density of Si [g/cm^3]
-        if (!hypoParam.correctForMaterial(mTrkParams.LayerxX0[iLayer], mTrkParams.LayerxX0[iLayer] * radl * rho, true)) {
+        if (!hypoParam.correctForMaterial(mTrkParams[iteration].LayerxX0[iLayer], mTrkParams[iteration].LayerxX0[iLayer] * radl * rho, true)) {
           continue;
         }
       }
@@ -379,7 +379,7 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
       const float ePhi{std::sqrt(hypoParam.getSigmaSnp2() / hypoParam.getCsp2())};
       const float z{hypoParam.getZ()};
       const float eZ{std::sqrt(hypoParam.getSigmaZ2())};
-      const int4 selectedBinsRect{getBinsRect(iLayer, phi, mTrkParams.NSigmaCut * ePhi, z, mTrkParams.NSigmaCut * eZ)};
+      const int4 selectedBinsRect{getBinsRect(iLayer, phi, mTrkParams[iteration].NSigmaCut * ePhi, z, mTrkParams[iteration].NSigmaCut * eZ)};
 
       if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
         continue;
@@ -388,7 +388,7 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
       int phiBinsNum{selectedBinsRect.w - selectedBinsRect.y + 1};
 
       if (phiBinsNum < 0) {
-        phiBinsNum += mTrkParams.PhiBins;
+        phiBinsNum += mTrkParams[iteration].PhiBins;
       }
 
       gsl::span<const Cluster> layer1 = mTimeFrame->getClustersOnLayer(rof, iLayer);
@@ -399,7 +399,7 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
       TrackITSExt currentHypo{hypo}, newHypo{hypo};
       bool first{true};
       for (int iPhiCount{0}; iPhiCount < phiBinsNum; iPhiCount++) {
-        int iPhiBin = (selectedBinsRect.y + iPhiCount) % mTrkParams.PhiBins;
+        int iPhiBin = (selectedBinsRect.y + iPhiCount) % mTrkParams[iteration].PhiBins;
         const int firstBinIndex{mTimeFrame->mIndexTableUtils.getBinIndex(selectedBinsRect.x, iPhiBin)};
         const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
         const int firstRowClusterIndex = mTimeFrame->getIndexTable(rof, iLayer)[firstBinIndex];
@@ -429,10 +429,10 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
           }
 
           GPUArray<float, 3> cov{trackingHit.covarianceTrackingFrame};
-          cov[0] = std::hypot(cov[0], mTrkParams.LayerMisalignment[iLayer]);
-          cov[2] = std::hypot(cov[2], mTrkParams.LayerMisalignment[iLayer]);
+          cov[0] = std::hypot(cov[0], mTrkParams[iteration].LayerMisalignment[iLayer]);
+          cov[2] = std::hypot(cov[2], mTrkParams[iteration].LayerMisalignment[iLayer]);
           auto predChi2{tbuParams.getPredictedChi2(trackingHit.positionTrackingFrame, cov)};
-          if (predChi2 >= track->getChi2() * mTrkParams.NSigmaCut) {
+          if (predChi2 >= track->getChi2() * mTrkParams[iteration].NSigmaCut) {
             continue;
           }
 
@@ -455,7 +455,7 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
   TrackITSExt* bestHypo{track};
   bool swapped{false};
   for (auto& hypo : hypotheses) {
-    if (hypo.isBetter(*bestHypo, track->getChi2() * mTrkParams.NSigmaCut)) {
+    if (hypo.isBetter(*bestHypo, track->getChi2() * mTrkParams[iteration].NSigmaCut)) {
       bestHypo = &hypo;
       swapped = true;
     }
@@ -464,6 +464,5 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward)
   return swapped;
 }
 
-TimeFrame* TrackerTraits::getTimeFrameGPU() { return nullptr; }
 } // namespace its
 } // namespace o2
