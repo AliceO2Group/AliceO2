@@ -27,6 +27,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include <DataFormatsITSMFT/PhysTrigger.h>
 #include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsTRD/TriggerRecord.h"
 
 #include "Field/MagneticField.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -51,7 +52,7 @@ namespace its
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-CookedTrackerDPL::CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, const std::string& trMode) : mGGCCDBRequest(gr), mUseMC(useMC), mMode(trMode)
+CookedTrackerDPL::CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool useTRDTriggers, const std::string& trMode) : mGGCCDBRequest(gr), mUseMC(useMC), mUseTRDTriggers{useTRDTriggers}, mMode(trMode)
 {
   mVertexerTraitsPtr = std::make_unique<VertexerTraits>();
   mVertexerPtr = std::make_unique<Vertexer>(mVertexerTraitsPtr.get());
@@ -78,7 +79,21 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   // the output vector however is created directly inside the message memory thus avoiding copy by
   // snapshot
   auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
-  auto physTriggers = pc.inputs().get<gsl::span<o2::itsmft::PhysTrigger>>("phystrig");
+  gsl::span<const o2::itsmft::PhysTrigger> physTriggers;
+  std::vector<o2::itsmft::PhysTrigger> fromTRD;
+  if (mUseTRDTriggers) {
+    o2::InteractionRecord ir{0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
+    auto trdTriggers = pc.inputs().get<gsl::span<o2::trd::TriggerRecord>>("phystrig");
+    for (const auto& trig : trdTriggers) {
+      if (trig.getBCData() >= ir && trig.getNumberOfTracklets()) {
+        ir = trig.getBCData();
+        fromTRD.emplace_back(o2::itsmft::PhysTrigger{ir, 0, false, false});
+      }
+    }
+    physTriggers = gsl::span<const o2::itsmft::PhysTrigger>(fromTRD.data(), fromTRD.size());
+  } else {
+    physTriggers = pc.inputs().get<gsl::span<o2::itsmft::PhysTrigger>>("phystrig");
+  }
 
   auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
@@ -118,7 +133,7 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
   std::vector<bool> processingMask;
-  int cutVertexMult{0}, cutRandomMult = multEst.selectROFs(rofsinput, compClusters, physTriggers, processingMask);
+  int cutVertexMult{0}, cutRandomMult = int(rofsinput.size()) - multEst.selectROFs(rofsinput, compClusters, physTriggers, processingMask);
 
   // auto processingMask_ephemeral = processingMask;
   mTimeFrame.setMultiplicityCutMask(processingMask);
@@ -247,7 +262,7 @@ void CookedTrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-DataProcessorSpec getCookedTrackerSpec(bool useMC, const std::string& trMode)
+DataProcessorSpec getCookedTrackerSpec(bool useMC, bool useTRD, const std::string& trMode)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -255,7 +270,11 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC, const std::string& trMode)
   inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
   inputs.emplace_back("alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
-  inputs.emplace_back("phystrig", "ITS", "PHYSTRIG", 0, Lifetime::Timeframe);
+  if (useTRD) {
+    inputs.emplace_back("phystrig", "TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
+  } else {
+    inputs.emplace_back("phystrig", "ITS", "PHYSTRIG", 0, Lifetime::Timeframe);
+  }
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
@@ -283,7 +302,7 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC, const std::string& trMode)
     "its-cooked-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(ggRequest, useMC, trMode)},
+    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(ggRequest, useMC, useTRD, trMode)},
     Options{{"nthreads", VariantType::Int, 1, {"Number of threads"}}}};
 }
 
