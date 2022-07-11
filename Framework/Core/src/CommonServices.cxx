@@ -616,7 +616,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         return;
       }
       if (oldestPossibleOutput.timeslice.value < decongestion->lastTimeslice) {
-        LOGP(error, "We are trying to send a oldest possible timeslice {} that is older than the last one we already sent {}",
+        LOGP(error, "We are trying to send an oldest possible timeslice {} that is older than the last one we already sent {}",
              oldestPossibleOutput.timeslice.value, decongestion->lastTimeslice);
         return;
       }
@@ -653,7 +653,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         return;
       }
       if (oldestPossibleOutput.timeslice.value < decongestion.lastTimeslice) {
-        LOGP(error, "We are trying to send a timeslice {} that is older than the last one we sent {}",
+        LOGP(error, "We are trying to send an oldest possible timeslice {} that is older than the last one we sent {}",
              oldestPossibleOutput.timeslice.value, decongestion.lastTimeslice);
         return;
       }
@@ -667,18 +667,15 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       AsyncQueueHelpers::post(
         queue, decongestion.oldestPossibleTimesliceTask, [oldestPossibleOutput, &decongestion, &proxy, &spec, device, &timesliceIndex]() {
           if (decongestion.lastTimeslice >= oldestPossibleOutput.timeslice.value) {
-            LOGP(debug, "Not sending already sent value");
+            LOGP(debug, "Not sending already sent value {} >= {}", decongestion.lastTimeslice, oldestPossibleOutput.timeslice.value);
             return;
           }
           LOGP(info, "Running oldest possible timeslice {} propagation.", oldestPossibleOutput.timeslice.value);
           DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
           for (size_t fi = 0; fi < spec.forwards.size(); fi++) {
             auto& channel = device->GetChannel(spec.forwards[fi].channel, 0);
-            // The oldest possible timeslice for a forwarded message
-            // is conservatively the one of the device doing the forwarding.
             if (spec.forwards[fi].channel.rfind("from_", 0) == 0) {
-              auto oldestTimeslice = timesliceIndex.getOldestPossibleOutput();
-              DataProcessingHelpers::sendOldestPossibleTimeframe(channel, oldestTimeslice.timeslice.value);
+              DataProcessingHelpers::sendOldestPossibleTimeframe(channel, oldestPossibleOutput.timeslice.value);
             }
           }
           decongestion.lastTimeslice = oldestPossibleOutput.timeslice.value;
