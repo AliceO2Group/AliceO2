@@ -41,6 +41,7 @@ void GRPECSObject::print() const
   };
   printf("Run %d of type %d, period %s, isMC: %d\n", mRun, int(mRunType), mDataPeriod.c_str(), isMC());
   printf("Start: %s | End: %s\n", timeStr(mTimeStart).c_str(), timeStr(mTimeEnd).c_str());
+  printf("Number of HBF per timframe: %d\n", mNHBFPerTF);
   printf("Detectors: Cont.RO Triggers\n");
   for (auto i = DetID::First; i <= DetID::Last; i++) {
     if (!isDetReadOut(DetID(i))) {

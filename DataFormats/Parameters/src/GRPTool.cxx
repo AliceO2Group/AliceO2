@@ -45,7 +45,7 @@ struct Options {
   std::vector<std::string> readout;
   std::vector<std::string> skipreadout;
   int run;               // run number
-  int orbitsPerTF = 128; // number of orbits per timeframe --> used to calculate start orbit for collisions
+  int orbitsPerTF = 256; // number of orbits per timeframe --> used to calculate start orbit for collisions
   GRPCommand command = GRPCommand::kNONE;
   std::string grpfilename = ""; // generic filename placeholder used by various commands
   std::vector<std::string> continuous = {};
@@ -447,6 +447,7 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     desc.add_options()("readoutDets", bpo::value<std::vector<std::string>>(&optvalues.readout)->multitoken()->default_value(std::vector<std::string>({"all"}), "all Run3 detectors"), "Detector list to be readout/active");
     desc.add_options()("skipReadout", bpo::value<std::vector<std::string>>(&optvalues.skipreadout)->multitoken()->default_value(std::vector<std::string>(), "nothing skipped"), "list of inactive detectors (precendence over --readout)");
     desc.add_options()("run", bpo::value<int>(&optvalues.run)->default_value(-1), "Run number");
+    desc.add_options()("hbfpertf", bpo::value<int>(&optvalues.orbitsPerTF)->default_value(128), "heart beat frames per timeframe (timeframelength)");
     desc.add_options()("field", bpo::value<std::string>(&optvalues.fieldstring)->default_value("-5"), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0; +-<intKGaus>U for uniform field");
     desc.add_options()("outprefix,o", bpo::value<std::string>(&optvalues.outprefix)->default_value("o2sim"), "Prefix for GRP output files");
     desc.add_options()("bcPatternFile", bpo::value<std::string>(&optvalues.bcPatternFile)->default_value(""), "Interacting BC pattern file (e.g. from CreateBCPattern.C)");
