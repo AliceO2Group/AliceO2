@@ -27,12 +27,10 @@
 #include <sstream>
 
 #include "ITStracking/Configuration.h"
-#include "DetectorsBase/MatLayerCylSet.h"
 #include "CommonConstants/MathConstants.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/MathUtils.h"
-#include "DetectorsBase/Propagator.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Road.h"
 
@@ -61,40 +59,30 @@ class Tracker
   ~Tracker();
 
   void adoptTimeFrame(TimeFrame& tf);
-  void setBz(float bz);
-  float getBz() const;
 
   void clustersToTracks(
     std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; }, std::function<void(std::string s)> = [](std::string s) { std::cerr << s << std::endl; });
-  void clustersToTracksGPU(std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
-  void setSmoothing(bool v) { mApplySmoothing = v; }
-  bool getSmoothing() const { return mApplySmoothing; }
-
   std::vector<TrackITSExt>& getTracks();
 
-  void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType& type) { mCorrType = type; }
   void setParameters(const std::vector<TrackingParameters>&);
   void getGlobalConfiguration();
-  bool isMatLUT() const { return o2::base::Propagator::Instance()->getMatLUT() && (mCorrType == o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT); }
-  // GPU-specific interfaces
-  TimeFrame* getTimeFrameGPU();
-  void loadToDevice();
+  void setBz(float);
+  void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType& type);
+  bool isMatLUT() const;
   void setNThreads(int n);
   int getNThreads() const { return mNThreads; }
 
  private:
-  track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
-                                    const TrackingFrameInfo& tf3, float resolution);
   void initialiseTimeFrame(int& iteration);
   void computeTracklets(int& iteration);
   void computeCells(int& iteration);
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
-  void findTracks();
   void findShortPrimaries(int& iteration);
+  void findTracks(int& iteration);
   void extendTracks(int& iteration);
-  bool fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut = o2::constants::math::VeryBig, const float maxQoverPt = o2::constants::math::VeryBig);
-  void traverseCellsTree(const int, const int);
+
+  // MC interaction
   void computeRoadsMClabels();
   void computeTracksMClabels();
   void rectifyClusterIndices();
@@ -106,11 +94,6 @@ class Tracker
   TimeFrame* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
 
   std::vector<TrackingParameters> mTrkParams;
-
-  int mNThreads = 1;
-  bool mApplySmoothing = false;
-  o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
-  float mBz = 5.f;
   std::uint32_t mTimeFrameCounter = 0;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 
@@ -120,11 +103,6 @@ class Tracker
 inline void Tracker::setParameters(const std::vector<TrackingParameters>& trkPars)
 {
   mTrkParams = trkPars;
-}
-
-inline float Tracker::getBz() const
-{
-  return mBz;
 }
 
 inline void Tracker::initialiseTimeFrame(int& iteration)

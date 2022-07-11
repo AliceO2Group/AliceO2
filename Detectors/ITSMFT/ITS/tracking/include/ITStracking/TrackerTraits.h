@@ -26,6 +26,8 @@
 #include <utility>
 #include <functional>
 
+#include "DetectorsBase/Propagator.h"
+#include "DetectorsBase/MatLayerCylSet.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/MathUtils.h"
@@ -50,29 +52,45 @@ class TrackerTraits
 {
  public:
   virtual ~TrackerTraits() = default;
-
-  GPUhd() static constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
-  const int4 getBinsRect(const Cluster&, int layer, float z1, float z2, float maxdeltaz, float maxdeltaphi);
-  const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z, float maxdeltaz);
-  const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z1, float z2, float maxdeltaz);
-
-  void SetRecoChain(o2::gpu::GPUChainITS* chain, FuncRunITSTrackFit_t&& funcRunITSTrackFit)
-  {
-    mChainRunITSTrackFit = funcRunITSTrackFit;
-    mChain = chain;
-  }
-
   virtual void computeLayerTracklets(const int iteration);
   virtual void computeLayerCells(const int iteration);
+  virtual void findCellsNeighbours(const int iteration);
+  virtual void findRoads(const int iteration);
+  virtual void findTracks(const int iteration);
+  virtual void extendTracks(const int iteration);
+  virtual void findShortPrimaries();
   virtual void refitTracks(const int iteration, const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&);
   virtual bool trackFollowing(TrackITSExt* track, int rof, bool outward, const int iteration);
 
   void UpdateTrackingParameters(const std::vector<TrackingParameters>& trkPars);
   TimeFrame* getTimeFrame() { return mTimeFrame; }
   void adoptTimeFrame(TimeFrame* tf) { mTimeFrame = tf; }
+  void setBz(float bz);
+  float getBz() const;
+  void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType& type) { mCorrType = type; }
+  bool isMatLUT() const;
 
-  // GPU-specific interfaces
-  virtual void loadToDevice(){};
+  // Others
+  GPUhd() static constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
+  const int4 getBinsRect(const Cluster&, int layer, float z1, float z2, float maxdeltaz, float maxdeltaphi);
+  const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z, float maxdeltaz);
+  const int4 getBinsRect(int layer, float phi, float maxdeltaphi, float z1, float z2, float maxdeltaz);
+  void SetRecoChain(o2::gpu::GPUChainITS* chain, FuncRunITSTrackFit_t&& funcRunITSTrackFit)
+  {
+    mChainRunITSTrackFit = funcRunITSTrackFit;
+    mChain = chain;
+  }
+  void setSmoothing(bool v) { mApplySmoothing = v; }
+  bool getSmoothing() const { return mApplySmoothing; }
+
+ private:
+  void traverseCellsTree(const int, const int);
+  track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3, const TrackingFrameInfo& tf3, float resolution);
+  bool fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut = o2::constants::math::VeryBig, const float maxQoverPt = o2::constants::math::VeryBig);
+
+  bool mApplySmoothing = false;
+  o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
+  float mBz = 5.f;
 
  protected:
   TimeFrame* mTimeFrame;
@@ -82,19 +100,22 @@ class TrackerTraits
   FuncRunITSTrackFit_t mChainRunITSTrackFit;
 };
 
+inline float TrackerTraits::getBz() const
+{
+  return mBz;
+}
+
 inline void TrackerTraits::UpdateTrackingParameters(const std::vector<TrackingParameters>& trkPars)
 {
   mTrkParams = trkPars;
 }
 
-inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, float maxdeltaphi,
-                                             float z, float maxdeltaz)
+inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, float maxdeltaphi, float z, float maxdeltaz)
 {
   return getBinsRect(layerIndex, phi, maxdeltaphi, z, z, maxdeltaz);
 }
 
-inline const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, int layerIndex,
-                                             float z1, float z2, float maxdeltaz, float maxdeltaphi)
+inline const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, int layerIndex, float z1, float z2, float maxdeltaz, float maxdeltaphi)
 {
   return getBinsRect(layerIndex, currentCluster.phi, maxdeltaphi, z1, z2, maxdeltaz);
 }
