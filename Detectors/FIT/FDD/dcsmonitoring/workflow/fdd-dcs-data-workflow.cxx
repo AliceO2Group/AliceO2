@@ -9,18 +9,26 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file fdd-dcs-data-workflow.cxx
+/// \brief Workflow for FDD DCS data processing
+///
+/// \author Andreas Molander <andreas.molander@cern.ch>, University of Jyvaskyla, Finland
+
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
+#include "FDDDCSDataProcessorSpec.h"
 #include "Framework/TypeTraits.h"
+
 #include <unordered_map>
+
 namespace o2::framework
 {
 template <>
 struct has_root_dictionary<std::unordered_map<o2::dcs::DataPointIdentifier, o2::dcs::DataPointValue>, void> : std::true_type {
 };
 } // namespace o2::framework
+
 #include "Framework/DataProcessorSpec.h"
-#include "FT0DCSDataProcessorSpec.h"
 
 using namespace o2::framework;
 
@@ -29,6 +37,6 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
-  specs.emplace_back(getFT0DCSDataProcessorSpec());
+  specs.emplace_back(getFDDDCSDataProcessorSpec());
   return specs;
 }

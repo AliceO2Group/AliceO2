@@ -23,4 +23,10 @@
 #pragma link C++ class o2::fit::Triggers + ;
 #pragma link C++ class vector < o2::fit::Triggers> + ;
 
+#pragma link C++ std::vector < std::pair < uint64_t, int>> + ;
+#pragma link C++ struct o2::fit::DCSDPValues + ;
+
+// TODO AM: Set this here when unused class warning is solved.
+// #pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::fit::DCSDPValues> + ;
+
 #endif

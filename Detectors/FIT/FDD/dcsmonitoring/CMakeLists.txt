@@ -9,9 +9,25 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+o2_add_library(FDDDCSMonitoring
+               SOURCES src/FDDDCSDataProcessor.cxx
+               PUBLIC_LINK_LIBRARIES O2::FITDCSMonitoring)
+
+o2_add_executable(dcs-sim-workflow
+                  COMPONENT_NAME fdd
+                  SOURCES workflow/fdd-dcs-sim-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::DCStestWorkflow)
+
+o2_add_executable(dcs-workflow
+                  COMPONENT_NAME fdd
+                  SOURCES workflow/fdd-dcs-data-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS
+                                        O2::FDDDCSMonitoring
+                                        O2::Framework)
+
 o2_add_executable(dcs-config-workflow
                   COMPONENT_NAME fdd
                   SOURCES workflow/fdd-dcs-config-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::FITDCSMonitoring
-                                        O2::Framework
-                                        O2::DetectorsCalibration)
+                  PUBLIC_LINK_LIBRARIES O2::DetectorsCalibration
+                                        O2::FITDCSMonitoring
+                                        O2::Framework)

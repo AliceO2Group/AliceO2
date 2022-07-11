@@ -9,40 +9,45 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <FT0Calibration/FT0DCSProcessor.h>
-#include "DetectorsCalibration/Utils.h"
-#include "Rtypes.h"
-#include <deque>
-#include <string>
-#include <algorithm>
-#include <iterator>
-#include <cstring>
-#include <bitset>
+/// \file FITDCSDataReader.cxx
+/// \brief DCS data point reader for FIT
+///
+/// \author Andreas Molander <andreas.molander@cern.ch>, University of Jyvaskyla, Finland
 
-using namespace o2::ft0;
+#include "FITDCSMonitoring/FITDCSDataReader.h"
+
+#include "DetectorsCalibration/Utils.h"
+#include "DetectorsDCS/DataPointCompositeObject.h"
+#include "DetectorsDCS/DataPointIdentifier.h"
+#include "DetectorsDCS/DataPointValue.h"
+
+#include <cstdint>
+#include <gsl/gsl>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+using namespace o2::fit;
 using namespace o2::dcs;
 
-using DeliveryType = o2::dcs::DeliveryType;
 using DPID = o2::dcs::DataPointIdentifier;
-using DPVAL = o2::dcs::DataPointValue;
+using DPCOM = o2::dcs::DataPointCompositeObject;
 
-void FT0DCSProcessor::init(const std::vector<DPID>& pids)
+void FITDCSDataReader::init(const std::vector<DPID>& pids)
 {
-  // fill the array of the DPIDs that will be used by FT0
-  // pids should be provided by CCDB
-
+  // Fill the array of sub-detector specific DPIDs that will be processed
   for (const auto& it : pids) {
     mPids[it] = false;
-    mFT0DCS[it].makeEmpty();
+    mDpData[it].makeEmpty();
   }
 }
 
-int FT0DCSProcessor::process(const gsl::span<const DPCOM> dps)
+int FITDCSDataReader::process(const gsl::span<const DPCOM> dps)
 {
   // first we check which DPs are missing - if some are, it means that
   // the delta map was sent
 
-  if (mVerbose) {
+  if (getVerboseMode()) {
     LOG(info) << "\n\nProcessing new DCS DP map\n-------------------------";
   }
 
@@ -54,9 +59,9 @@ int FT0DCSProcessor::process(const gsl::span<const DPCOM> dps)
     for (auto& it : mPids) {
       const auto& el = mapin.find(it.first);
       if (el == mapin.end()) {
-        LOG(debug) << "DP " << it.first << " not found in map";
+        LOG(debug) << "DP " << it.first << " not found in DPs from DCS";
       } else {
-        LOG(debug) << "DP " << it.first << " found in map";
+        LOG(debug) << "DP " << it.first << " found in DPs from DCS";
       }
     }
   }
@@ -66,7 +71,7 @@ int FT0DCSProcessor::process(const gsl::span<const DPCOM> dps)
     // we process only the DPs defined in the configuration
     const auto& el = mPids.find(it.id);
     if (el == mPids.end()) {
-      LOG(info) << "DP " << it.id << " not found in FT0DCSProcessor, we will not process it";
+      LOG(info) << "DP " << it.id << " not found in FITDCSProcessor, we will not process it";
       continue;
     }
     processDP(it);
@@ -76,36 +81,38 @@ int FT0DCSProcessor::process(const gsl::span<const DPCOM> dps)
   return 0;
 }
 
-int FT0DCSProcessor::processDP(const DPCOM& dpcom)
+int FITDCSDataReader::processDP(const DPCOM& dpcom)
 {
-  // processing a single DP
-
+  // Processing a single DP
   const auto& dpid = dpcom.id;
   const auto& type = dpid.get_type();
   const auto& val = dpcom.data;
-  if (mVerbose) {
+
+  if (getVerboseMode()) {
     if (type == DPVAL_DOUBLE) {
       LOG(info) << "Processing DP = " << dpcom << " (epoch " << val.get_epoch_time() << "), with value = " << o2::dcs::getValue<double>(dpcom);
     } else if (type == DPVAL_UINT) {
       LOG(info) << "Processing DP = " << dpcom << " (epoch " << val.get_epoch_time() << "), with value = " << o2::dcs::getValue<uint>(dpcom);
     }
   }
+
   auto flags = val.get_flags();
   if (processFlags(flags, dpid.get_alias()) == 0) {
     // Store all DP values
-    if (mFT0DCS[dpid].values.empty() || val.get_epoch_time() > mFT0DCS[dpid].values.back().first) {
-      converter.raw_data = val.payload_pt1;
+    if (mDpData[dpid].values.empty() || val.get_epoch_time() > mDpData[dpid].values.back().first) {
+      dpValueConverter.raw_data = val.payload_pt1;
       if (type == DPVAL_DOUBLE) {
-        mFT0DCS[dpid].add(val.get_epoch_time(), lround(converter.double_value * 1000)); // store as nA
+        mDpData[dpid].add(val.get_epoch_time(), lround(dpValueConverter.double_value * 1000)); // store as nA
       } else if (type == DPVAL_UINT) {
-        mFT0DCS[dpid].add(val.get_epoch_time(), converter.uint_value);
+        mDpData[dpid].add(val.get_epoch_time(), dpValueConverter.uint_value);
       }
     }
   }
+
   return 0;
 }
 
-uint64_t FT0DCSProcessor::processFlags(const uint64_t flags, const char* pid)
+uint64_t FITDCSDataReader::processFlags(const uint64_t flags, const char* pid)
 {
   // function to process the flag. the return code zero means that all is fine.
   // anything else means that there was an issue
@@ -116,9 +123,6 @@ uint64_t FT0DCSProcessor::processFlags(const uint64_t flags, const char* pid)
     LOG(debug) << "KEEP_ALIVE_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::END_FLAG) {
-    LOG(debug) << "END_FLAG active for DP " << pid;
-  }
-  if (flags & DataPointValue::FBI_FLAG) {
     LOG(debug) << "FBI_FLAG active for DP " << pid;
   }
   if (flags & DataPointValue::NEW_FLAG) {
@@ -164,11 +168,11 @@ uint64_t FT0DCSProcessor::processFlags(const uint64_t flags, const char* pid)
   return 0;
 }
 
-void FT0DCSProcessor::updateDPsCCDB()
+void FITDCSDataReader::updateCcdbObjectInfo()
 {
   // Prepare the object to be sent to CCDB
-  if (mVerbose) {
-    for (auto& dp : mFT0DCS) {
+  if (getVerboseMode()) {
+    for (auto& dp : mDpData) {
       // if (dp.second.values.empty()) {
       //   continue;
       // }
@@ -177,8 +181,29 @@ void FT0DCSProcessor::updateDPsCCDB()
     }
   }
 
-  std::map<std::string, std::string> md;
-  o2::calibration::Utils::prepareCCDBobjectInfo(mFT0DCS, mccdbDPsInfo, "FT0/Calib/DCSDPs", md, mStartValidity, mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY);
+  std::map<std::string, std::string> metadata;
+  o2::calibration::Utils::prepareCCDBobjectInfo(getDpData(), getccdbDPsInfo(), getCcdbPath(), metadata, getStartValidity(), getEndValidity());
 
   return;
 }
+
+const std::unordered_map<DPID, DCSDPValues>& FITDCSDataReader::getDpData() const { return mDpData; }
+
+void FITDCSDataReader::resetDpData()
+{
+  mDpsMap.clear();
+  mDpData.clear();
+}
+
+const std::string& FITDCSDataReader::getCcdbPath() const { return mCcdbPath; }
+void FITDCSDataReader::setCcdbPath(const std::string& ccdbPath) { mCcdbPath = ccdbPath; }
+long FITDCSDataReader::getStartValidity() const { return mStartValidity; }
+void FITDCSDataReader::setStartValidity(const long startValidity) { mStartValidity = startValidity; }
+bool FITDCSDataReader::isStartValiditySet() const { return mStartValidity != o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; }
+void FITDCSDataReader::resetStartValidity() { mStartValidity = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; }
+long FITDCSDataReader::getEndValidity() const { return mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY; }
+const o2::ccdb::CcdbObjectInfo& FITDCSDataReader::getccdbDPsInfo() const { return mCcdbDpInfo; }
+o2::ccdb::CcdbObjectInfo& FITDCSDataReader::getccdbDPsInfo() { return mCcdbDpInfo; }
+
+bool FITDCSDataReader::getVerboseMode() const { return mVerbose; }
+void FITDCSDataReader::setVerboseMode(bool verboseMode) { mVerbose = verboseMode; }

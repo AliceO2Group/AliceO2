@@ -9,24 +9,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <vector>
-#include <string>
-#include "TFile.h"
-#include "CCDB/CcdbApi.h"
+/// @file  FT0DCSDataProcessor.h
+/// @brief Task for processing FT0 DCS data
+///
+/// \author Andreas Molander <andreas.molander@cern.ch>, University of Jyvaskyla, Finland
+
+#include "FT0DCSMonitoring/FT0DCSDataProcessor.h"
+
 #include "DetectorsDCS/AliasExpander.h"
-#include "DetectorsDCS/DeliveryType.h"
 #include "DetectorsDCS/DataPointIdentifier.h"
 
-#include <unordered_map>
-#include <chrono>
+#include <string>
+#include <vector>
 
-using DPID = o2::dcs::DataPointIdentifier;
-
-int makeFT0CCDBEntryForDCS(const std::string url = "http://localhost:8080")
+std::vector<o2::dcs::DataPointIdentifier> o2::ft0::FT0DCSDataProcessor::getHardCodedDPIDs()
 {
-  // Macro to populate CCDB for FT0 with the configuration for DCS
-
-  std::unordered_map<DPID, std::string> dpid2DataDesc;
+  std::vector<o2::dcs::DataPointIdentifier> vect;
   std::vector<std::string> aliasesHV = {"FT0/HV/FT0_A/MCP_A[1..5]/actual/iMon",
                                         "FT0/HV/FT0_A/MCP_B[1..5]/actual/iMon",
                                         "FT0/HV/FT0_A/MCP_C[1..2]/actual/iMon",
@@ -42,28 +40,14 @@ int makeFT0CCDBEntryForDCS(const std::string url = "http://localhost:8080")
                                         "FT0/HV/FT0_C/MCP_E[1..6]/actual/iMon",
                                         "FT0/HV/FT0_C/MCP_F[2..5]/actual/iMon",
                                         "FT0/HV/MCP_LC/actual/iMon"};
-  std::string aliasesADCZERO = "FT0/PM/channel[000..211]/actual/ADC[0..1]_BASELINE";
+  std::string aliasesADC = "FT0/PM/channel[000..211]/actual/ADC[0..1]_BASELINE";
   std::vector<std::string> expAliasesHV = o2::dcs::expandAliases(aliasesHV);
-  std::vector<std::string> expAliasesADCZERO = o2::dcs::expandAlias(aliasesADCZERO);
-
-  std::cout << "DP aliases:" << std::endl;
-  DPID dpidtmp;
-  for (size_t i = 0; i < expAliasesHV.size(); ++i) {
-    std::cout << expAliasesHV[i] << std::endl;
-    DPID::FILL(dpidtmp, expAliasesHV[i], o2::dcs::DeliveryType::DPVAL_DOUBLE);
-    dpid2DataDesc[dpidtmp] = "FT0DATAPOINTS";
+  std::vector<std::string> expAliasesADC = o2::dcs::expandAlias(aliasesADC);
+  for (const auto& i : expAliasesHV) {
+    vect.emplace_back(i, o2::dcs::DPVAL_DOUBLE);
   }
-  for (size_t i = 0; i < expAliasesADCZERO.size(); ++i) {
-    std::cout << expAliasesADCZERO[i] << std::endl;
-    DPID::FILL(dpidtmp, expAliasesADCZERO[i], o2::dcs::DeliveryType::DPVAL_UINT);
-    dpid2DataDesc[dpidtmp] = "FT0DATAPOINTS";
+  for (const auto& i : expAliasesADC) {
+    vect.emplace_back(i, o2::dcs::DPVAL_UINT);
   }
-
-  o2::ccdb::CcdbApi api;
-  api.init(url); // or http://localhost:8080 for a local installation
-  std::map<std::string, std::string> md;
-  long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-  api.storeAsTFileAny(&dpid2DataDesc, "FT0/Config/DCSDPconfig", md, ts, 99999999999999);
-
-  return 0;
+  return vect;
 }

@@ -11,8 +11,13 @@
 
 o2_add_library(FITDCSMonitoring
                SOURCES src/FITDCSConfigReader.cxx
+                       src/FITDCSDataProcessor.cxx
+                       src/FITDCSDataReader.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsFIT
-                                     O2::DetectorsCalibration)
+                                     O2::DetectorsCalibration
+                                     O2::DetectorsDCS)
 
+# TODO AM: remove include/FITDCSMonitoring/FITDCSDataReader.h when dictionaries are created in DataFormatsFIT instead
 o2_target_root_dictionary(FITDCSMonitoring
-                          HEADERS include/FITDCSMonitoring/FITDCSConfigReader.h)
+                          HEADERS include/FITDCSMonitoring/FITDCSConfigReader.h
+                                  include/FITDCSMonitoring/FITDCSDataReader.h)

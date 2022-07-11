@@ -9,13 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// // we need to add workflow options before including Framework/runDataProcessing
-// void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
-// {
-//   // option allowing to set parameters
-// }
-
-// ------------------------------------------------------------------
+/// \file ft0-dcs-sim-workflow.cxx
+/// \brief Simulate DCS data for FT0
+///
+/// \author Andreas Molander <andreas.molander@cern.ch>, University of Jyvaskyla, Finland
 
 #include "DCStestWorkflow/DCSRandomDataGeneratorSpec.h"
 #include "Framework/runDataProcessing.h"
