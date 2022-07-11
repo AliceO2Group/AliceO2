@@ -93,7 +93,7 @@ class VertexerTraits
   GPUhd() static const int2 getPhiBins(float phi, float deltaPhi, const IndexTableUtils&);
 
   // virtual vertexer interface
-  virtual void initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams);
+  virtual void initialise(const TrackingParameters& trackingParams);
   virtual void computeTracklets();
   virtual void computeTrackletMatching();
   // virtual void computeMCFiltering();
@@ -136,12 +136,12 @@ class VertexerTraits
   TimeFrame* mTimeFrame = nullptr;
 };
 
-inline void VertexerTraits::initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams)
+inline void VertexerTraits::initialise(const TrackingParameters& trackingParams)
 {
   if (!mIndexTableUtils.getNzBins()) {
     updateVertexingParameters(mVrtParams);
   }
-  mTimeFrame->initialise(0, memParams, trackingParams, 3);
+  mTimeFrame->initialise(0, trackingParams, 3);
   setIsGPU(false);
 }
 
