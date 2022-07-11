@@ -143,7 +143,8 @@ void VertexerTraits::computeTracklets()
       mVrtParams.phiCut,
       mTimeFrame->getTracklets()[0],
       mTimeFrame->getNTrackletsCluster(rofId, 0),
-      mIndexTableUtils);
+      mIndexTableUtils,
+      mVrtParams.maxTrackletsPerCluster);
     trackleterKernelSerial<TrackletMode::Layer1Layer2>(
       mTimeFrame->getClustersOnLayer(rofId, 2),
       mTimeFrame->getClustersOnLayer(rofId, 1),
@@ -151,7 +152,8 @@ void VertexerTraits::computeTracklets()
       mVrtParams.phiCut,
       mTimeFrame->getTracklets()[1],
       mTimeFrame->getNTrackletsCluster(rofId, 1),
-      mIndexTableUtils);
+      mIndexTableUtils,
+      mVrtParams.maxTrackletsPerCluster);
     mTimeFrame->getNTrackletsROf(rofId, 0) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId, 0).begin(), mTimeFrame->getNTrackletsCluster(rofId, 0).end(), 0);
     mTimeFrame->getNTrackletsROf(rofId, 1) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId, 1).begin(), mTimeFrame->getNTrackletsCluster(rofId, 1).end(), 0);
   }
