@@ -30,7 +30,7 @@ namespace reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::string& trmode, o2::gpu::GPUDataTypes::DeviceType dtype,
-                                    bool upstreamDigits, bool upstreamClusters, bool disableRootOutput,
+                                    bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, bool useTRD,
                                     bool eencode)
 {
   framework::WorkflowSpec specs;
@@ -47,9 +47,9 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::st
   }
   if (!trmode.empty()) {
     if (useCAtracker) {
-      specs.emplace_back(o2::its::getTrackerSpec(useMC, trmode, dtype));
+      specs.emplace_back(o2::its::getTrackerSpec(useMC, useTRD, trmode, dtype));
     } else {
-      specs.emplace_back(o2::its::getCookedTrackerSpec(useMC, trmode));
+      specs.emplace_back(o2::its::getCookedTrackerSpec(useMC, useTRD, trmode));
     }
     if (!disableRootOutput) {
       specs.emplace_back(o2::its::getTrackWriterSpec(useMC));
