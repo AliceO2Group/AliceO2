@@ -139,6 +139,15 @@ void Screenshot::perform(o2::detectors::DetID::mask_t detectorsMask, int runNumb
 
   TASImage* scaledImage;
 
+  bool monthDirectory = settings.GetValue("screenshot.monthly", 0);
+
+  if (monthDirectory) {
+    char dir_str[32];
+    std::strftime(dir_str, sizeof(dir_str), "%Y-%d", std::localtime(&time));
+    outDirectory = outDirectory + "/" + dir_str;
+    std::filesystem::create_directory(outDirectory);
+  }
+
   std::ostringstream filepath;
   filepath << outDirectory << "/Screenshot_" << time_str << ".png";
 
