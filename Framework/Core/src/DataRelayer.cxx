@@ -283,6 +283,7 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       continue;
     }
     bool droppingNotCondition = false;
+    mPruneOps.push_back(PruneOp{si});
     for (size_t mi = 0; mi < mInputs.size(); ++mi) {
       auto& input = mInputs[mi];
       auto& element = mCache[si * mInputs.size() + mi];
@@ -304,6 +305,14 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
 TimesliceIndex::OldestOutputInfo DataRelayer::getOldestPossibleOutput() const
 {
   return mTimesliceIndex.getOldestPossibleOutput();
+}
+
+void DataRelayer::prunePending(OnDropCallback onDrop)
+{
+  for (auto& op : mPruneOps) {
+    this->pruneCache(op.slot, onDrop);
+  }
+  mPruneOps.clear();
 }
 
 void DataRelayer::pruneCache(TimesliceSlot slot, OnDropCallback onDrop)
@@ -495,6 +504,7 @@ DataRelayer::RelayChoice
     O2_SIGNPOST(O2_PROBE_DATARELAYER, timeslice.value, 0, 0, 0);
     if (needsCleaning) {
       this->pruneCache(slot, onDrop);
+      mPruneOps.erase(std::remove_if(mPruneOps.begin(), mPruneOps.end(), [slot](const auto& x) { return x.slot == slot; }), mPruneOps.end());
     }
     saveInSlot(timeslice, input, slot);
     index.publishSlot(slot);
@@ -571,6 +581,7 @@ DataRelayer::RelayChoice
       // At this point the variables match the new input but the
       // cache still holds the old data, so we prune it.
       this->pruneCache(slot, onDrop);
+      mPruneOps.erase(std::remove_if(mPruneOps.begin(), mPruneOps.end(), [slot](const auto& x) { return x.slot == slot; }), mPruneOps.end());
       saveInSlot(timeslice, input, slot);
       index.publishSlot(slot);
       index.markAsDirty(slot, true);
