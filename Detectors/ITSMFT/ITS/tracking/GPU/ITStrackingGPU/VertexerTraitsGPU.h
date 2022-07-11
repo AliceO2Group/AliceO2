@@ -40,7 +40,7 @@ class VertexerTraitsGPU : public VertexerTraits
  public:
   VertexerTraitsGPU();
   ~VertexerTraitsGPU() override;
-  void initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams) override;
+  void initialise(const TrackingParameters& trackingParams) override;
   void adoptTimeFrame(TimeFrame* tf) override;
   void computeTracklets() override;
   void computeTrackletMatching() override;

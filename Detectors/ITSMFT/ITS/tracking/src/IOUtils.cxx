@@ -44,8 +44,6 @@ namespace its
 
 void to_json(nlohmann::json& j, const TrackingParameters& par);
 void from_json(const nlohmann::json& j, TrackingParameters& par);
-void to_json(nlohmann::json& j, const MemoryParameters& par);
-void from_json(const nlohmann::json& j, MemoryParameters& par);
 
 /// convert compact clusters to 3D spacepoints
 void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clusters,

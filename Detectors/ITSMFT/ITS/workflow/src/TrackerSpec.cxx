@@ -66,7 +66,6 @@ void TrackerDPL::init(InitContext& ic)
   mRunVertexer = true;
   mCosmicsProcessing = false;
   std::vector<TrackingParameters> trackParams;
-  std::vector<MemoryParameters> memParams;
 
   if (mMode == "async") {
 
@@ -76,7 +75,6 @@ void TrackerDPL::init(InitContext& ic)
     trackParams[2].TrackletMinPt = 0.1f;
     trackParams[2].CellDeltaTanLambdaSigma *= 4.;
     trackParams[2].MinTrackLength = 4;
-    memParams.resize(3);
     LOG(info) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
 
   } else if (mMode == "sync_misaligned") {
@@ -98,18 +96,15 @@ void TrackerDPL::init(InitContext& ic)
     trackParams[2] = trackParams[0];
     trackParams[1].MinTrackLength = 6;
     trackParams[2].MinTrackLength = 4;
-    memParams.resize(3);
     LOG(info) << "Initializing tracker in misaligned sync. phase reconstruction with " << trackParams.size() << " passes";
 
   } else if (mMode == "sync") {
-    memParams.resize(1);
     trackParams.resize(1);
     LOG(info) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
   } else if (mMode == "cosmics") {
     mCosmicsProcessing = true;
     mRunVertexer = false;
     trackParams.resize(1);
-    memParams.resize(1);
     trackParams[0].MinTrackLength = 4;
     trackParams[0].CellDeltaTanLambdaSigma *= 10;
     trackParams[0].PhiBins = 4;
@@ -135,7 +130,7 @@ void TrackerDPL::init(InitContext& ic)
   for (auto& params : trackParams) {
     params.CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
   }
-  mTracker->setParameters(memParams, trackParams);
+  mTracker->setParameters(trackParams);
 }
 
 void TrackerDPL::run(ProcessingContext& pc)

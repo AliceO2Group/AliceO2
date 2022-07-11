@@ -112,7 +112,7 @@ class TimeFrame
   std::vector<MCCompLabel>& getCellsLabel(int layer) { return mCellLabels[layer]; }
 
   bool hasMCinformation() const;
-  void initialise(const int iteration, const MemoryParameters& memParam, const TrackingParameters& trkParam, const int maxLayers = 7);
+  void initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers = 7);
 
   bool isClusterUsed(int layer, int clusterId) const;
   void markUsedCluster(int layer, int clusterId);
