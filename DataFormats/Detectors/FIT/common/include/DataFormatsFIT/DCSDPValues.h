@@ -32,6 +32,11 @@ struct DCSDPValues {
     values.push_back(std::pair<uint64_t, int>(timestamp, value));
   }
 
+  bool empty()
+  {
+    return values.empty();
+  }
+
   void makeEmpty()
   {
     values.clear();
@@ -52,7 +57,7 @@ struct DCSDPValues {
     }
   }
 
-  ClassDefNV(DCSDPValues, 1);
+  ClassDefNV(DCSDPValues, 2);
 };
 
 } // namespace fit

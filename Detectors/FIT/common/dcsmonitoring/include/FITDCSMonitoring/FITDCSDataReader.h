@@ -9,90 +9,86 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef DETECTOR_FT0DCSPROCESSOR_H_
-#define DETECTOR_FT0DCSPROCESSOR_H_
+/// \file FITDCSDataReader.h
+/// \brief DCS data point reader for FIT
+///
+/// \author Andreas Molander <andreas.molander@cern.ch>, University of Jyvaskyla, Finland
 
-#include <memory>
-#include <Rtypes.h>
-#include <unordered_map>
-#include <deque>
-#include <numeric>
-#include "Framework/Logger.h"
+#ifndef O2_FIT_DCSDATAREADER_H
+#define O2_FIT_DCSDATAREADER_H
+
+#include "CCDB/CcdbObjectInfo.h"
 #include "DataFormatsFIT/DCSDPValues.h"
 #include "DetectorsDCS/DataPointCompositeObject.h"
 #include "DetectorsDCS/DataPointIdentifier.h"
 #include "DetectorsDCS/DataPointValue.h"
-#include "DetectorsDCS/DeliveryType.h"
-#include "CCDB/CcdbObjectInfo.h"
-#include "CommonUtils/MemFileHelper.h"
-#include "CCDB/CcdbApi.h"
-#include <gsl/gsl>
+#include "Rtypes.h"
 
-/// @brief Class to process DCS data points
+#include <gsl/gsl>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <unordered_map>
 
 namespace o2
 {
-namespace ft0
+namespace fit
 {
 
-using DPID = o2::dcs::DataPointIdentifier;
-using DPVAL = o2::dcs::DataPointValue;
-using DPCOM = o2::dcs::DataPointCompositeObject;
-
-class FT0DCSProcessor
+class FITDCSDataReader
 {
-
  public:
+  using DPID = o2::dcs::DataPointIdentifier;
+  using DPVAL = o2::dcs::DataPointValue;
+  using DPCOM = o2::dcs::DataPointCompositeObject;
   using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
 
-  FT0DCSProcessor() = default;
-  ~FT0DCSProcessor() = default;
+  FITDCSDataReader() = default;
+  ~FITDCSDataReader() = default;
 
   void init(const std::vector<DPID>& pids);
-
   int process(const gsl::span<const DPCOM> dps);
   int processDP(const DPCOM& dpcom);
   uint64_t processFlags(uint64_t flag, const char* pid);
+  void updateCcdbObjectInfo();
 
-  void updateDPsCCDB();
+  const std::unordered_map<DPID, DCSDPValues>& getDpData() const;
+  void resetDpData();
+  const std::string& getCcdbPath() const;
+  void setCcdbPath(const std::string& ccdbPath);
+  long getStartValidity() const;
+  void setStartValidity(long startValidity);
+  bool isStartValiditySet() const;
+  void resetStartValidity();
+  long getEndValidity() const;
+  const CcdbObjectInfo& getccdbDPsInfo() const;
+  CcdbObjectInfo& getccdbDPsInfo();
 
-  const CcdbObjectInfo& getccdbDPsInfo() const { return mccdbDPsInfo; }
-  CcdbObjectInfo& getccdbDPsInfo() { return mccdbDPsInfo; }
-  const std::unordered_map<DPID, o2::fit::DCSDPValues>& getFT0DPsInfo() const { return mFT0DCS; }
-
-  long getStartValidity() { return mStartValidity; }
-  void setStartValidity(long t) { mStartValidity = t; }
-  void resetStartValidity() { mStartValidity = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; }
-
-  void clearDPsinfo()
-  {
-    mDpsMap.clear();
-    mFT0DCS.clear();
-  }
-
-  bool getVerboseMode() { return mVerbose; }
-  void useVerboseMode() { mVerbose = true; }
+  bool getVerboseMode() const;
+  void setVerboseMode(bool verboseMode = true);
 
  private:
-  std::unordered_map<DPID, o2::fit::DCSDPValues> mFT0DCS; // the object that will go to the CCDB
+  std::unordered_map<DPID, o2::fit::DCSDPValues> mDpData; // the object that will go to the CCDB
   std::unordered_map<DPID, bool> mPids;                   // contains all PIDs for the processor, the bool
                                                           // will be true if the DP was processed at least once
   std::unordered_map<DPID, DPVAL> mDpsMap;                // this is the map that will hold the DPs
 
-  CcdbObjectInfo mccdbDPsInfo;
+  std::string mCcdbPath;
   long mStartValidity = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; // TF index for processing, used to store CCDB object for DPs
+  CcdbObjectInfo mCcdbDpInfo;
 
-  union Converter {
+  union DPValueConverter {
     uint64_t raw_data;
     double double_value;
     uint uint_value;
-  } converter;
+  } dpValueConverter;
 
   bool mVerbose = false;
 
-  ClassDefNV(FT0DCSProcessor, 0);
-};
-} // namespace ft0
+  ClassDefNV(FITDCSDataReader, 0);
+}; // end class
+
+} // namespace fit
 } // namespace o2
 
-#endif
+#endif // O2_FIT_DCSDATAREADER_H
