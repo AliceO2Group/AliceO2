@@ -545,7 +545,7 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
     bool detin = (detmask & deti).count();
     if (detin) {
       std::string detname(o2::detectors::DetID::getName(i));
-      std::string countername = detname + CTPConfiguration::detName2LTG.at(detname) + "_PH";
+      std::string countername = "ltg" + CTPConfiguration::detName2LTG.at(detname) + "_PH";
       uint32_t detcount = mCounters[mScalerName2Position[countername]];
       scalrec.scalersDets.push_back(detcount);
       LOG(info) << "Scaler for detector:" << countername << ":" << detcount;
