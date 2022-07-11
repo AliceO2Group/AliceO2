@@ -25,6 +25,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(
     ConfigParamSpec{
+      "suppress-triggers-output",
+      o2::framework::VariantType::Bool,
+      false,
+      {"suppress dummy triggers output"}});
+  workflowOptions.push_back(
+    ConfigParamSpec{
       "with-mc",
       o2::framework::VariantType::Bool,
       false,
@@ -51,10 +57,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cc)
 {
   WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(cc.options().get<std::string>("configKeyValues"));
+  auto withTriggers = !cc.options().get<bool>("suppress-triggers-output");
   auto withMC = cc.options().get<bool>("with-mc");
   auto withPatterns = !cc.options().get<bool>("without-patterns");
 
-  specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(withMC, withPatterns));
+  specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(withMC, withPatterns, withTriggers));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cc, specs);

@@ -109,8 +109,8 @@ class RawPixelDecoder final : public PixelReader
   void setRawDumpDirectory(const std::string& s) { mRawDumpDirectory = s; }
   auto getRawDumpDirectory() const { return mRawDumpDirectory; }
 
-  std::vector<GBTTriggerR>& getExternalTriggers() { return mExtTriggers; }
-  const std::vector<GBTTriggerR>& getExternalTriggers() const { return mExtTriggers; }
+  std::vector<PhysTrigger>& getExternalTriggers() { return mExtTriggers; }
+  const std::vector<PhysTrigger>& getExternalTriggers() const { return mExtTriggers; }
 
   struct LinkEntry {
     int entry = -1;
@@ -130,7 +130,7 @@ class RawPixelDecoder final : public PixelReader
   std::vector<RUDecodeData> mRUDecodeVec;                   // set of active RUs
   std::array<short, Mapping::getNRUs()> mRUEntry;           // entry of the RU with given SW ID in the mRUDecodeVec
   std::vector<ChipPixelData*> mOrderedChipsPtr;             // special ordering helper used for the MFT (its chipID is not contiguous in RU)
-  std::vector<GBTTriggerR> mExtTriggers;                    // external triggers
+  std::vector<PhysTrigger> mExtTriggers;                    // external triggers
   std::string mSelfName{};                                  // self name
   std::string mRawDumpDirectory;                            // destination directory for dumps
   header::DataOrigin mUserDataOrigin = o2::header::gDataOriginInvalid; // alternative user-provided data origin to pick

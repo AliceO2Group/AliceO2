@@ -13,7 +13,7 @@
 
 #include "ITSMFTWorkflow/DigitWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "ITSMFTReconstruction/GBTWord.h"
+#include <DataFormatsITSMFT/PhysTrigger.h>
 #include "Headers/DataHeader.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/ConfigurableParam.h"
@@ -41,16 +41,14 @@ DataProcessorSpec getPhyTrigWriterSpec(DetID detId)
   std::string detStrL = "o2_";
   detStrL += detStr;
   std::transform(detStrL.begin(), detStrL.end(), detStrL.begin(), ::tolower);
-  auto logger = [](std::vector<o2::itsmft::GBTTriggerR> const& inp) {
+  auto logger = [](std::vector<o2::itsmft::PhysTrigger> const& inp) {
     LOG(info) << "Received " << inp.size() << " triggers";
   };
 
   return MakeRootTreeWriterSpec((detStr + "phytrigwriter").c_str(),
                                 (detStrL + "phy-triggers.root").c_str(),
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Physics triggers tree"},
-                                BranchDefinition<std::vector<o2::itsmft::GBTTriggerR>>{InputSpec{"trig",
-                                                                                                 detId == DetID::ITS ? "ITS" : "MFT", "PHYSTRIG", 0},
-                                                                                       (detStr + "Trig").c_str()})();
+                                BranchDefinition<std::vector<o2::itsmft::PhysTrigger>>{InputSpec{"trig", detId == DetID::ITS ? "ITS" : "MFT", "PHYSTRIG", 0}, (detStr + "Trig").c_str()})();
 }
 
 } // end namespace itsmft
