@@ -55,16 +55,6 @@ constexpr uint8_t GBTFlagStatus = 0xe0;
 constexpr int GBTWordLength = 10;       // lentgh in bytes
 constexpr int GBTPaddedWordLength = 16; // lentgh in bytes with padding
 
-// root friendly version of the trigger (root does not support anonymous structs)
-struct GBTTriggerR {
-  uint32_t orbit = 0;
-  uint16_t bc = 0;
-  uint16_t triggerType = 0;
-  bool internal = false;
-  bool noData = false;
-  ClassDefNV(GBTTriggerR, 1);
-};
-
 struct GBTWord {
   /// GBT word of 80 bits, bits 72:79 are reserver for GBT Header flag, the rest depends on specifications
   union {

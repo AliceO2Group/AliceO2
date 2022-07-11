@@ -33,7 +33,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool upstreamDigits, bool upstre
   framework::WorkflowSpec specs;
 
   if (!(upstreamDigits || upstreamClusters)) {
-    specs.emplace_back(o2::itsmft::getMFTDigitReaderSpec(useMC, false, "mftdigits.root"));
+    specs.emplace_back(o2::itsmft::getMFTDigitReaderSpec(useMC, false, true, "mftdigits.root"));
   }
   if (!upstreamClusters) {
     specs.emplace_back(o2::mft::getClustererSpec(useMC));

@@ -36,7 +36,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::st
   framework::WorkflowSpec specs;
 
   if (!(upstreamDigits || upstreamClusters)) {
-    specs.emplace_back(o2::itsmft::getITSDigitReaderSpec(useMC, false, "itsdigits.root"));
+    specs.emplace_back(o2::itsmft::getITSDigitReaderSpec(useMC, false, true, "itsdigits.root"));
   }
 
   if (!upstreamClusters) {

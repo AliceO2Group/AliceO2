@@ -34,7 +34,8 @@ o2_target_root_dictionary(DataFormatsITSMFT
                                   include/DataFormatsITSMFT/ClusterTopology.h
                                   include/DataFormatsITSMFT/TopologyDictionary.h
                                   include/DataFormatsITSMFT/CTF.h
-      include/DataFormatsITSMFT/TrkClusRef.h
+                                  include/DataFormatsITSMFT/TrkClusRef.h
+                                  include/DataFormatsITSMFT/PhysTrigger.h
                           LINKDEF src/ITSMFTDataFormatsLinkDef.h)
 
 o2_add_test(Cluster
