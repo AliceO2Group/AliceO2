@@ -70,6 +70,10 @@ class DataRelayer
     int expiredSlots = 0;
   };
 
+  struct PruneOp {
+    TimesliceSlot slot = {-1ULL};
+  };
+
   struct RecordAction {
     TimesliceSlot slot;
     TimesliceId timeslice;
@@ -91,6 +95,8 @@ class DataRelayer
 
   using OnDropCallback = std::function<void(TimesliceSlot, std::vector<MessageSet>&, TimesliceIndex::OldestOutputInfo info)>;
 
+  /// Prune all the pending entries in the cache.
+  void prunePending(OnDropCallback);
   /// Prune the cache for a given slot
   void pruneCache(TimesliceSlot slot, OnDropCallback onDrop = nullptr);
 
@@ -183,6 +189,7 @@ class DataRelayer
   std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;
   std::vector<data_matcher::VariableContext> mVariableContextes;
   std::vector<CacheEntryStatus> mCachedStateMetrics;
+  std::vector<PruneOp> mPruneOps;
   size_t mMaxLanes;
 
   static std::vector<std::string> sMetricsNames;
