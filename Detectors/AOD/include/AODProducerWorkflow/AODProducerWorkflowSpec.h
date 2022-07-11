@@ -286,13 +286,12 @@ class AODProducerWorkflowDPL : public Task
 
   void addRefGlobalBCsForTOF(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices,
                              const o2::globaltracking::RecoContainer& data, std::map<uint64_t, int>& bcsMap);
-
+  void CTPReadout(const o2::globaltracking::RecoContainer& recoData, gsl::span<o2::ctp::CTPDigit> ctpDigits);
   void collectBCs(const o2::globaltracking::RecoContainer& data,
                   const std::vector<o2::InteractionTimeRecord>& mcRecords,
                   std::map<uint64_t, int>& bcsMap);
 
   uint64_t getTFNumber(const o2::InteractionRecord& tfStartIR, int runNumber);
-
   template <typename TracksCursorType, typename TracksCovCursorType>
   void addToTracksTable(TracksCursorType& tracksCursor, TracksCovCursorType& tracksCovCursor,
                         const o2::track::TrackParCov& track, int collisionID);

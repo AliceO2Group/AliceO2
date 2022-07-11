@@ -92,6 +92,13 @@ using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<dou
 namespace o2::aodproducer
 {
 
+void AODProducerWorkflowDPL::CTPReadout(const o2::globaltracking::RecoContainer& recoData, gsl::span<o2::ctp::CTPDigit> ctpDigits)
+{
+  // Extraxt CTP Config from CCDB
+  // Extract inputs from recoData
+  // construct CTPdigits - classMask
+}
+
 void AODProducerWorkflowDPL::collectBCs(const o2::globaltracking::RecoContainer& data,
                                         const std::vector<o2::InteractionTimeRecord>& mcRecords,
                                         std::map<uint64_t, int>& bcsMap)
@@ -1213,7 +1220,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto caloPHOSCells = recoData.getPHOSCells();
   auto caloPHOSCellsTRGR = recoData.getPHOSTriggers();
 
-  auto ctpDigits = recoData.getCTPDigits();
+  //auto ctpDigits = recoData.getCTPDigits();
+  gsl::span<o2::ctp::CTPDigit> ctpDigits;//getSpan<const o2::ctp::CTPDigit>(GTrackID::CTP, CLUSTERS);
 
   LOG(debug) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(debug) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
