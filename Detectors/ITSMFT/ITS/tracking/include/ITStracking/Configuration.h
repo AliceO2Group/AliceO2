@@ -73,8 +73,10 @@ struct TrackingParameters {
   float PVres = 1.e-2f;
   /// Trackleting cuts
   float TrackletMinPt = 0.3f;
+  float TrackletsPerClusterLimit = 2.f;
   /// Cell finding cuts
   float CellDeltaTanLambdaSigma = 0.007f;
+  float CellsPerClusterLimit = 2.f;
   /// Fitter parameters
   o2::base::PropagatorImpl<float>::MatCorrType CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   unsigned long MaxMemory = 12000000000UL;

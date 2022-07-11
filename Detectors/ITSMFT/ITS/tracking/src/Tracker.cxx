@@ -55,15 +55,29 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
     total += evaluateTask(&Tracker::initialiseTimeFrame, "Timeframe initialisation",
                           logger, iteration, mMemParams[iteration], mTrkParams[iteration]);
     total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger);
+    logger(fmt::format("\t- Number of tracklets: {}", mTimeFrame->getNumberOfTracklets()));
     if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
       error("Too much memory used during trackleting, check the detector status and/or the selections.");
       break;
     }
+    float trackletsPerCluster = mTimeFrame->getNumberOfClusters() > 0 ? float(mTimeFrame->getNumberOfTracklets()) / mTimeFrame->getNumberOfClusters() : 0.f;
+    if (trackletsPerCluster > mTrkParams[iteration].TrackletsPerClusterLimit) {
+      error(fmt::format("Too many tracklets per cluster ({}), check the detector status and/or the selections.", trackletsPerCluster));
+      break;
+    }
+
     total += evaluateTask(&Tracker::computeCells, "Cell finding", logger);
+    logger(fmt::format("\t- Number of Cells: {}", mTimeFrame->getNumberOfCells()));
     if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
       error("Too much memory used during cell finding, check the detector status and/or the selections.");
       break;
     }
+    float cellsPerCluster = mTimeFrame->getNumberOfClusters() > 0 ? float(mTimeFrame->getNumberOfCells()) / mTimeFrame->getNumberOfClusters() : 0.f;
+    if (cellsPerCluster > mTrkParams[iteration].CellsPerClusterLimit) {
+      error(fmt::format("Too many cells per cluster ({}), check the detector status and/or the selections.", cellsPerCluster));
+      break;
+    }
+
     total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", logger, iteration);
     total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
     total += evaluateTask(&Tracker::findTracks, "Track finding", logger);
@@ -81,6 +95,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
     computeTracksMClabels();
   }
   rectifyClusterIndices();
+  mNumberOfRuns++;
 }
 
 void Tracker::clustersToTracksGPU(std::function<void(std::string s)> logger)
@@ -750,6 +765,12 @@ void Tracker::getGlobalConfiguration()
     }
     if (tc.useTrackFollower >= 0) {
       params.UseTrackFollower = tc.useTrackFollower;
+    }
+    if (tc.cellsPerClusterLimit >= 0) {
+      params.CellsPerClusterLimit = tc.cellsPerClusterLimit;
+    }
+    if (tc.trackletsPerClusterLimit >= 0) {
+      params.TrackletsPerClusterLimit = tc.trackletsPerClusterLimit;
     }
   }
 }
