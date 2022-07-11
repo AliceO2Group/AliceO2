@@ -52,11 +52,10 @@ Tracker::~Tracker() = default;
 void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::function<void(std::string s)> error)
 {
   double total{0};
+  mTraits->UpdateTrackingParameters(mTrkParams);
   for (int iteration = 0; iteration < (int)mTrkParams.size(); ++iteration) {
-    mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
-
-    total += evaluateTask(&Tracker::initialiseTimeFrame, "Timeframe initialisation", logger, iteration, mTrkParams[iteration]);
-    total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger);
+    total += evaluateTask(&Tracker::initialiseTimeFrame, "Timeframe initialisation", logger, iteration);
+    total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger, iteration);
     logger(fmt::format("\t- Number of tracklets: {}", mTimeFrame->getNumberOfTracklets()));
     if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
       error("Too much memory used during trackleting, check the detector status and/or the selections.");
@@ -68,7 +67,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
       break;
     }
 
-    total += evaluateTask(&Tracker::computeCells, "Cell finding", logger);
+    total += evaluateTask(&Tracker::computeCells, "Cell finding", logger, iteration);
     logger(fmt::format("\t- Number of Cells: {}", mTimeFrame->getNumberOfCells()));
     if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
       error("Too much memory used during cell finding, check the detector status and/or the selections.");
@@ -84,7 +83,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
     total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
     logger(fmt::format("\t- Number of Roads: {}", mTimeFrame->getRoads().size()));
     total += evaluateTask(&Tracker::findTracks, "Track finding", logger);
-    total += evaluateTask(&Tracker::extendTracks, "Extending tracks", logger);
+    total += evaluateTask(&Tracker::extendTracks, "Extending tracks", logger, iteration);
   }
 
   total += evaluateTask(&Tracker::findShortPrimaries, "Short primaries finding", logger);
@@ -104,46 +103,14 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
   mNumberOfRuns++;
 }
 
-void Tracker::clustersToTracksGPU(std::function<void(std::string s)> logger)
+void Tracker::computeTracklets(int& iteration)
 {
-  double total{0};
-  for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
-    mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
-    total += evaluateTask(&Tracker::loadToDevice, "Device loading", logger);
-    total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger);
-    // total += evaluateTask(&Tracker::computeCells, "Cell finding", logger);
-    // total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", logger, iteration);
-    // total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
-    // total += evaluateTask(&Tracker::findTracks, "Track finding", logger);
-    // total += evaluateTask(&Tracker::extendTracks, "Extending tracks", logger);
-  }
-
-  std::stringstream sstream;
-  if (constants::DoTimeBenchmarks) {
-    sstream << std::setw(2) << " - "
-            << "Timeframe " << mTimeFrameCounter++ << " GPU processing completed in: " << total << "ms";
-  }
-  logger(sstream.str());
-
-  // if (mTimeFrame->hasMCinformation()) {
-  //   computeTracksMClabels();
-  // }
-  // rectifyClusterIndices();
+  mTraits->computeLayerTracklets(iteration);
 }
 
-void Tracker::computeTracklets()
+void Tracker::computeCells(int& iteration)
 {
-  mTraits->computeLayerTracklets();
-}
-
-void Tracker::computeCells()
-{
-  mTraits->computeLayerCells();
-}
-
-TimeFrame* Tracker::getTimeFrameGPU()
-{
-  return (TimeFrame*)mTraits->getTimeFrameGPU();
+  mTraits->computeLayerCells(iteration);
 }
 
 void Tracker::loadToDevice()
@@ -415,7 +382,7 @@ void Tracker::findTracks()
   }
 }
 
-void Tracker::extendTracks()
+void Tracker::extendTracks(int& iteration)
 {
   if (!mTrkParams.back().UseTrackFollower) {
     return;
@@ -427,10 +394,10 @@ void Tracker::extendTracks()
       auto backup{track};
       bool success{false};
       if (track.getLastClusterLayer() != mTrkParams[0].NLayers - 1) {
-        success = success || mTraits->trackFollowing(&track, rof, true);
+        success = success || mTraits->trackFollowing(&track, rof, true, iteration);
       }
       if (track.getFirstClusterLayer() != 0) {
-        success = success || mTraits->trackFollowing(&track, rof, false);
+        success = success || mTraits->trackFollowing(&track, rof, false, iteration);
       }
       if (success) {
         /// We have to refit the track

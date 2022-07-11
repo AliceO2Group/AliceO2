@@ -62,30 +62,29 @@ class TrackerTraits
     mChain = chain;
   }
 
-  virtual void computeLayerTracklets();
-  virtual void computeLayerCells();
-  virtual void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&);
-  virtual bool trackFollowing(TrackITSExt* track, int rof, bool outward);
+  virtual void computeLayerTracklets(const int iteration);
+  virtual void computeLayerCells(const int iteration);
+  virtual void refitTracks(const int iteration, const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&);
+  virtual bool trackFollowing(TrackITSExt* track, int rof, bool outward, const int iteration);
 
-  void UpdateTrackingParameters(const TrackingParameters& trkPar);
+  void UpdateTrackingParameters(const std::vector<TrackingParameters>& trkPars);
   TimeFrame* getTimeFrame() { return mTimeFrame; }
   void adoptTimeFrame(TimeFrame* tf) { mTimeFrame = tf; }
 
   // GPU-specific interfaces
-  virtual TimeFrame* getTimeFrameGPU();
   virtual void loadToDevice(){};
 
  protected:
   TimeFrame* mTimeFrame;
-  TrackingParameters mTrkParams;
+  std::vector<TrackingParameters> mTrkParams;
 
   o2::gpu::GPUChainITS* mChain = nullptr;
   FuncRunITSTrackFit_t mChainRunITSTrackFit;
 };
 
-inline void TrackerTraits::UpdateTrackingParameters(const TrackingParameters& trkPar)
+inline void TrackerTraits::UpdateTrackingParameters(const std::vector<TrackingParameters>& trkPars)
 {
-  mTrkParams = trkPar;
+  mTrkParams = trkPars;
 }
 
 inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, float maxdeltaphi,
@@ -108,8 +107,8 @@ inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, fl
   const float zRangeMax = o2::gpu::GPUCommonMath::Max(z1, z2) + maxdeltaz;
   const float phiRangeMax = phi + maxdeltaphi;
 
-  if (zRangeMax < -mTrkParams.LayerZ[layerIndex + 1] ||
-      zRangeMin > mTrkParams.LayerZ[layerIndex + 1] || zRangeMin > zRangeMax) {
+  if (zRangeMax < -mTrkParams[0].LayerZ[layerIndex + 1] ||
+      zRangeMin > mTrkParams[0].LayerZ[layerIndex + 1] || zRangeMin > zRangeMax) {
 
     return getEmptyBinsRect();
   }
@@ -117,7 +116,7 @@ inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, fl
   const IndexTableUtils& utils{mTimeFrame->mIndexTableUtils};
   return int4{o2::gpu::GPUCommonMath::Max(0, utils.getZBinIndex(layerIndex + 1, zRangeMin)),
               utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMin)),
-              o2::gpu::GPUCommonMath::Min(mTrkParams.ZBins - 1, utils.getZBinIndex(layerIndex + 1, zRangeMax)),
+              o2::gpu::GPUCommonMath::Min(mTrkParams[0].ZBins - 1, utils.getZBinIndex(layerIndex + 1, zRangeMax)), // /!\ trkParams can potentially change across iterations
               utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
 }
 } // namespace its

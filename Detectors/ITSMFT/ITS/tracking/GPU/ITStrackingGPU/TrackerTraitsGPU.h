@@ -36,7 +36,7 @@ class TrackerTraitsGPU : public TrackerTraits
   ~TrackerTraitsGPU() override = default;
 
   // void computeLayerCells() final;
-  void computeLayerTracklets() final;
+  void computeLayerTracklets(const int iteration) final;
   // void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks) override;
 
  private:
