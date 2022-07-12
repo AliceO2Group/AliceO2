@@ -222,7 +222,7 @@ void run_trac_ca_its(bool cosmics = false,
 
   int rofId{0};
   vertexer.adoptTimeFrame(tf);
-  vertexer.clustersToVertices(false);
+  vertexer.clustersToVertices();
 
   tf.printVertices();
 
