@@ -139,7 +139,7 @@ void Detector::ConstructGeometry()
   TGeoMedium* Al = gGeoManager->GetMedium("FT0_Aluminium$");
   TGeoCompositeShape* plateCompositeShape = new TGeoCompositeShape("plateCompositeShape", cPlateShapeString().c_str());
   TGeoVolume* plateVol = new TGeoVolume("plateVol", plateCompositeShape, Al);
-  
+
   for (Int_t itr = Geometry::NCellsA; itr < Geometry::NCellsA + nCellsC; itr++) {
     nameTr = Form("0TR%i", itr + 1);
     nameRot = Form("0Rot%i", itr + 1);
@@ -175,10 +175,10 @@ void Detector::ConstructGeometry()
   }
   //Add C-side frame
   stlinC->AddNode(constructFrameCGeometry(), nCellsA + nCellsC + 1);
- 
+
   TGeoVolume* alice = gGeoManager->GetVolume("barrel");
   //Add A-side detector
-  alice->AddNode(stlinA, 1, new TGeoTranslation(0, 30., zdetA+0.63)); //offset to avoid overlap with FV0
+  alice->AddNode(stlinA, 1, new TGeoTranslation(0, 30., zdetA + 0.63)); //offset to avoid overlap with FV0
 
   //Add C-side detector
   TGeoRotation* rotC = new TGeoRotation("rotC", 90., 0., 90., 90., 180., 0.);
@@ -429,30 +429,30 @@ TGeoVolume* Detector::constructFrameAGeometry()
   Double_t blockdX = 37.1;  //slightly larger in x
   Double_t blockdY = 36.85; //than y
   Double_t blockdZ = 6.95;  //thickness of frame and back plates
-  TGeoBBox* block = new TGeoBBox("block",blockdX/2,blockdY/2,blockdZ/2);
+  TGeoBBox* block = new TGeoBBox("block", blockdX / 2, blockdY / 2, blockdZ / 2);
 
   //To form the outer frame shape with fins that bolt it to the FV0, remove
   //aluminum in six chunks (boxes) from two sides, then reflect these to remove
   //from the other sides.  As viewed from the back side of the detector, count
   //clockwise from bottom left for numbering.
-  Double_t box1dX = 1.57; //narrower
-  Double_t box1dY = 6.55; //than it is tall
-  Double_t box1PosX = -(blockdX/2 - box1dX/2); //placement on the frame block
-  Double_t box1PosY = 0; //starts at the middle
-  TGeoBBox* box1 = new TGeoBBox("box1",box1dX/2,box1dY/2,blockdZ/2);
-  TGeoTranslation* box1Tr1 = new TGeoTranslation("box1Tr1",box1PosX,box1PosY,0);
+  Double_t box1dX = 1.57;                          //narrower
+  Double_t box1dY = 6.55;                          //than it is tall
+  Double_t box1PosX = -(blockdX / 2 - box1dX / 2); //placement on the frame block
+  Double_t box1PosY = 0;                           //starts at the middle
+  TGeoBBox* box1 = new TGeoBBox("box1", box1dX / 2, box1dY / 2, blockdZ / 2);
+  TGeoTranslation* box1Tr1 = new TGeoTranslation("box1Tr1", box1PosX, box1PosY, 0);
   box1Tr1->RegisterYourself();
-  TGeoTranslation* box1Tr2 = new TGeoTranslation("box1Tr2",-box1PosX,-box1PosY,0);
+  TGeoTranslation* box1Tr2 = new TGeoTranslation("box1Tr2", -box1PosX, -box1PosY, 0);
   box1Tr2->RegisterYourself();
-  
+
   Double_t box2dX = 2.9;
   Double_t box2dY = 15.1;
-  Double_t box2PosX = -(blockdX/2 - box2dX/2);
-  Double_t box2PosY = blockdY/2 - box2dY/2;
-  TGeoBBox* box2 = new TGeoBBox("box2",box2dX/2,box2dY/2,blockdZ/2);
-  TGeoTranslation* box2Tr1 = new TGeoTranslation("box2Tr1",box2PosX,box2PosY,0);
+  Double_t box2PosX = -(blockdX / 2 - box2dX / 2);
+  Double_t box2PosY = blockdY / 2 - box2dY / 2;
+  TGeoBBox* box2 = new TGeoBBox("box2", box2dX / 2, box2dY / 2, blockdZ / 2);
+  TGeoTranslation* box2Tr1 = new TGeoTranslation("box2Tr1", box2PosX, box2PosY, 0);
   box2Tr1->RegisterYourself();
-  TGeoTranslation* box2Tr2 = new TGeoTranslation("box2Tr2",-box2PosX,-box2PosY,0);
+  TGeoTranslation* box2Tr2 = new TGeoTranslation("box2Tr2", -box2PosX, -box2PosY, 0);
   box2Tr2->RegisterYourself();
 
   //Box 3 is shallower than the others to preserve the aluminum fin where the
@@ -460,33 +460,33 @@ TGeoVolume* Detector::constructFrameAGeometry()
   Double_t box3dX = 12.7;
   Double_t box3dY = 3;
   Double_t box3dZ = 5.45;
-  Double_t box3PosX = -(blockdX/2 - box2dX - box3dZ/2);
-  Double_t box3PosY = blockdY/2 - box3dY/2;
-  Double_t box3PosZ = blockdZ/2 - box3dZ/2; //subtract from the back, leaving fin on the front
-  TGeoBBox* box3 = new TGeoBBox("box3",box3dX/2,box3dY/2,box3dZ/2);
-  TGeoTranslation* box3Tr1 = new TGeoTranslation("box3Tr1",box3PosX,box3PosY,box3PosZ);
+  Double_t box3PosX = -(blockdX / 2 - box2dX - box3dZ / 2);
+  Double_t box3PosY = blockdY / 2 - box3dY / 2;
+  Double_t box3PosZ = blockdZ / 2 - box3dZ / 2; //subtract from the back, leaving fin on the front
+  TGeoBBox* box3 = new TGeoBBox("box3", box3dX / 2, box3dY / 2, box3dZ / 2);
+  TGeoTranslation* box3Tr1 = new TGeoTranslation("box3Tr1", box3PosX, box3PosY, box3PosZ);
   box3Tr1->RegisterYourself();
-  TGeoTranslation* box3Tr2 = new TGeoTranslation("box3Tr2",-box3PosX,-box3PosY,box3PosZ);
+  TGeoTranslation* box3Tr2 = new TGeoTranslation("box3Tr2", -box3PosX, -box3PosY, box3PosZ);
   box3Tr2->RegisterYourself();
 
   Double_t box4dX = 6.6;
   Double_t box4dY = 1.67;
   Double_t box4PosX = 0;
-  Double_t box4PosY = blockdY/2 - box4dY/2;
-  TGeoBBox* box4 = new TGeoBBox("box4",box4dX/2,box4dY/2,blockdZ/2);
-  TGeoTranslation* box4Tr1 = new TGeoTranslation("box4Tr1",box4PosX,box4PosY,0);
+  Double_t box4PosY = blockdY / 2 - box4dY / 2;
+  TGeoBBox* box4 = new TGeoBBox("box4", box4dX / 2, box4dY / 2, blockdZ / 2);
+  TGeoTranslation* box4Tr1 = new TGeoTranslation("box4Tr1", box4PosX, box4PosY, 0);
   box4Tr1->RegisterYourself();
-  TGeoTranslation* box4Tr2 = new TGeoTranslation("box4Tr2",-box4PosX,-box4PosY,0);
+  TGeoTranslation* box4Tr2 = new TGeoTranslation("box4Tr2", -box4PosX, -box4PosY, 0);
   box4Tr2->RegisterYourself();
 
   Double_t box5dX = 15;
   Double_t box5dY = 3;
-  Double_t box5PosX = blockdX/2 - box5dX/2;
-  Double_t box5PosY = blockdY/2 - box5dY/2;
-  TGeoBBox* box5 = new TGeoBBox("box5",box5dX/2,box5dY/2,blockdZ/2);
-  TGeoTranslation* box5Tr1 = new TGeoTranslation("box5Tr1",box5PosX,box5PosY,0);
+  Double_t box5PosX = blockdX / 2 - box5dX / 2;
+  Double_t box5PosY = blockdY / 2 - box5dY / 2;
+  TGeoBBox* box5 = new TGeoBBox("box5", box5dX / 2, box5dY / 2, blockdZ / 2);
+  TGeoTranslation* box5Tr1 = new TGeoTranslation("box5Tr1", box5PosX, box5PosY, 0);
   box5Tr1->RegisterYourself();
-  TGeoTranslation* box5Tr2 = new TGeoTranslation("box5Tr2",-box5PosX,-box5PosY,0);
+  TGeoTranslation* box5Tr2 = new TGeoTranslation("box5Tr2", -box5PosX, -box5PosY, 0);
   box5Tr2->RegisterYourself();
 
   //Similar to box 3, box 6 is shallower in z to leave aluminum for the fin that
@@ -494,13 +494,13 @@ TGeoVolume* Detector::constructFrameAGeometry()
   Double_t box6dX = 2.9;
   Double_t box6dY = 12.2;
   Double_t box6dZ = 5.45;
-  Double_t box6PosX = blockdX/2 - box6dX/2;
-  Double_t box6PosY = blockdY/2 - box5dY - box6dY/2;
-  Double_t box6PosZ = blockdZ/2 - box6dZ/2; //subtract from the back, leaving fin at the front
-  TGeoBBox* box6 = new TGeoBBox("box6",box6dX/2,box6dY/2,box6dZ/2);
-  TGeoTranslation* box6Tr1 = new TGeoTranslation("box6Tr1",box6PosX,box6PosY,box6PosZ);
+  Double_t box6PosX = blockdX / 2 - box6dX / 2;
+  Double_t box6PosY = blockdY / 2 - box5dY - box6dY / 2;
+  Double_t box6PosZ = blockdZ / 2 - box6dZ / 2; //subtract from the back, leaving fin at the front
+  TGeoBBox* box6 = new TGeoBBox("box6", box6dX / 2, box6dY / 2, box6dZ / 2);
+  TGeoTranslation* box6Tr1 = new TGeoTranslation("box6Tr1", box6PosX, box6PosY, box6PosZ);
   box6Tr1->RegisterYourself();
-  TGeoTranslation* box6Tr2 = new TGeoTranslation("box6Tr2",-box6PosX,-box6PosY,box6PosZ);
+  TGeoTranslation* box6Tr2 = new TGeoTranslation("box6Tr2", -box6PosX, -box6PosY, box6PosZ);
   box6Tr2->RegisterYourself();
 
   //The central hole that accommodates the beam pipe is not the same on all four sides
@@ -510,24 +510,24 @@ TGeoVolume* Detector::constructFrameAGeometry()
   Double_t cbox1dX = 7.175; //horizontal center box
   Double_t cbox1dY = 5.5;
   Double_t cbox1Xoffset = 14.425;
-  Double_t cbox1PosX = -(blockdX/2 - cbox1Xoffset - cbox1dX/2);
+  Double_t cbox1PosX = -(blockdX / 2 - cbox1Xoffset - cbox1dX / 2);
   Double_t cbox1PosY = 0;
-  TGeoBBox* cbox1 = new TGeoBBox("cbox1",cbox1dX/2,cbox1dY/2,blockdZ/2);
-  TGeoTranslation* cbox1Tr1 = new TGeoTranslation("cbox1Tr1",cbox1PosX,cbox1PosY,0);
+  TGeoBBox* cbox1 = new TGeoBBox("cbox1", cbox1dX / 2, cbox1dY / 2, blockdZ / 2);
+  TGeoTranslation* cbox1Tr1 = new TGeoTranslation("cbox1Tr1", cbox1PosX, cbox1PosY, 0);
   cbox1Tr1->RegisterYourself();
-  TGeoTranslation* cbox1Tr2 = new TGeoTranslation("cbox1Tr2",-cbox1PosX,-cbox1PosY,0);
+  TGeoTranslation* cbox1Tr2 = new TGeoTranslation("cbox1Tr2", -cbox1PosX, -cbox1PosY, 0);
   cbox1Tr2->RegisterYourself();
 
   Double_t cbox2dX = 5.75; //vertical center box
-                                                                                                                  
+
   Double_t cbox2dY = 6.575;
   Double_t cbox2Yoffset = 14.425;
   Double_t cbox2PosX = 0;
-  Double_t cbox2PosY = blockdY/2 - cbox2Yoffset - cbox2dY/2;
-  TGeoBBox* cbox2 = new TGeoBBox("cbox2",cbox2dX/2,cbox2dY/2,blockdZ/2);
-  TGeoTranslation* cbox2Tr1 = new TGeoTranslation("cbox2Tr1",cbox2PosX,cbox2PosY,0);
+  Double_t cbox2PosY = blockdY / 2 - cbox2Yoffset - cbox2dY / 2;
+  TGeoBBox* cbox2 = new TGeoBBox("cbox2", cbox2dX / 2, cbox2dY / 2, blockdZ / 2);
+  TGeoTranslation* cbox2Tr1 = new TGeoTranslation("cbox2Tr1", cbox2PosX, cbox2PosY, 0);
   cbox2Tr1->RegisterYourself();
-  TGeoTranslation* cbox2Tr2 = new TGeoTranslation("cbox2Tr2",-cbox2PosX,-cbox2PosY,0);
+  TGeoTranslation* cbox2Tr2 = new TGeoTranslation("cbox2Tr2", -cbox2PosX, -cbox2PosY, 0);
   cbox2Tr2->RegisterYourself();
 
   //The two L-shaped pieces that form the frame have a small 1mm gap between them,
@@ -535,16 +535,15 @@ TGeoVolume* Detector::constructFrameAGeometry()
   //left and lower right, so that for the center column of modules, the upper two
   //are shifted slightly to the right (as viewed from the back) and the lower two
   //are shifted slightly to the left (as viewed from the back)
-  Double_t gapBoxdX=0.1;
-  Double_t gapBoxdY=blockdY/2;
-  Double_t gapPosX=-(sPmtSide/2 + sEps + gapBoxdX/2);
-  Double_t gapPosY=blockdY/4;
-  TGeoBBox* gapBox = new TGeoBBox("gapBox",gapBoxdX/2,gapBoxdY/2,blockdZ/2);
-  TGeoTranslation* gapBoxTr1 = new TGeoTranslation("gapBoxTr1",gapPosX,gapPosY,0);
+  Double_t gapBoxdX = 0.1;
+  Double_t gapBoxdY = blockdY / 2;
+  Double_t gapPosX = -(sPmtSide / 2 + sEps + gapBoxdX / 2);
+  Double_t gapPosY = blockdY / 4;
+  TGeoBBox* gapBox = new TGeoBBox("gapBox", gapBoxdX / 2, gapBoxdY / 2, blockdZ / 2);
+  TGeoTranslation* gapBoxTr1 = new TGeoTranslation("gapBoxTr1", gapPosX, gapPosY, 0);
   gapBoxTr1->RegisterYourself();
-  TGeoTranslation* gapBoxTr2 = new TGeoTranslation("gapBoxTr2",-gapPosX,-gapPosY,0);
+  TGeoTranslation* gapBoxTr2 = new TGeoTranslation("gapBoxTr2", -gapPosX, -gapPosY, 0);
   gapBoxTr2->RegisterYourself();
-
 
   //Create a string to define the complete frame object shape
   //Start from the aluminum block then subtract the boxes
@@ -571,7 +570,7 @@ TGeoVolume* Detector::constructFrameAGeometry()
   Double_t fiberPlatedZ = 0.5; //fiberhead plate is underneath
 
   //Each fiber is guided to a small rectangular opening in the plate
-  Double_t opticalFiberHeaddY = 0.52; //narrow side
+  Double_t opticalFiberHeaddY = 0.52;  //narrow side
   Double_t opticalFiberHeaddX = 1.142; //long side
 
   //The "top" two fiber heads are positioned at slightly different
@@ -595,48 +594,48 @@ TGeoVolume* Detector::constructFrameAGeometry()
   Double_t fh2BotAngle = -30;
 
   // Define cover plate, fiber plate, and optical Fiber Head shapes
-  TGeoBBox* coverPlate = new TGeoBBox("coverPlate", sPmtSide/2 + sEps, sPmtSide/2 + sEps, coverPlatedZ/2);
-  TGeoBBox* fiberPlate = new TGeoBBox("fiberPlate", sPmtSide/2 + sEps, sPmtSide/2 + sEps, fiberPlatedZ/2);
-  TGeoBBox* opticalFiberHead = new TGeoBBox("opticalFiberHead", opticalFiberHeaddX/2, opticalFiberHeaddY/2, fiberPlatedZ/2);
+  TGeoBBox* coverPlate = new TGeoBBox("coverPlate", sPmtSide / 2 + sEps, sPmtSide / 2 + sEps, coverPlatedZ / 2);
+  TGeoBBox* fiberPlate = new TGeoBBox("fiberPlate", sPmtSide / 2 + sEps, sPmtSide / 2 + sEps, fiberPlatedZ / 2);
+  TGeoBBox* opticalFiberHead = new TGeoBBox("opticalFiberHead", opticalFiberHeaddX / 2, opticalFiberHeaddY / 2, fiberPlatedZ / 2);
 
   // Define transformations of optical fiber heads for outer plate
-  TGeoTranslation* coverPlateTr = new TGeoTranslation("coverPlateTr",0,0,fiberPlatedZ/2 + coverPlatedZ/2);
+  TGeoTranslation* coverPlateTr = new TGeoTranslation("coverPlateTr", 0, 0, fiberPlatedZ / 2 + coverPlatedZ / 2);
   coverPlateTr->RegisterYourself();
-  TGeoTranslation* fh1TopTr1 = new TGeoTranslation("fh1TopTr1",fh1TopPosX,fh1TopPosY,0);
+  TGeoTranslation* fh1TopTr1 = new TGeoTranslation("fh1TopTr1", fh1TopPosX, fh1TopPosY, 0);
   fh1TopTr1->RegisterYourself();
-  TGeoTranslation* fh1TopTr2 = new TGeoTranslation("fh1TopTr2",fh1TopPosX,-fh1TopPosY,0);
+  TGeoTranslation* fh1TopTr2 = new TGeoTranslation("fh1TopTr2", fh1TopPosX, -fh1TopPosY, 0);
   fh1TopTr2->RegisterYourself();
-  TGeoCombiTrans* fh1BotTr1 = new TGeoCombiTrans("fh1BotTr1",fh1BotPosX,fh1BotPosY,0,new TGeoRotation("fh1BotRot1",fh1BotAngle,0,0));
+  TGeoCombiTrans* fh1BotTr1 = new TGeoCombiTrans("fh1BotTr1", fh1BotPosX, fh1BotPosY, 0, new TGeoRotation("fh1BotRot1", fh1BotAngle, 0, 0));
   fh1BotTr1->RegisterYourself();
-  TGeoCombiTrans* fh1BotTr2 = new TGeoCombiTrans("fh1BotTr2",fh1BotPosX,-fh1BotPosY,0,new TGeoRotation("fh1BotRot2",-fh1BotAngle,0,0));
+  TGeoCombiTrans* fh1BotTr2 = new TGeoCombiTrans("fh1BotTr2", fh1BotPosX, -fh1BotPosY, 0, new TGeoRotation("fh1BotRot2", -fh1BotAngle, 0, 0));
   fh1BotTr2->RegisterYourself();
-  TGeoCombiTrans* fh2TopTr1 = new TGeoCombiTrans("fh2TopTr1",fh2TopPosX,fh2TopPosY,0,new TGeoRotation("fh2TopRot1",fh2TopAngle+90,0,0));
+  TGeoCombiTrans* fh2TopTr1 = new TGeoCombiTrans("fh2TopTr1", fh2TopPosX, fh2TopPosY, 0, new TGeoRotation("fh2TopRot1", fh2TopAngle + 90, 0, 0));
   fh2TopTr1->RegisterYourself();
-  TGeoCombiTrans* fh2TopTr2 = new TGeoCombiTrans("fh2TopTr2",fh2TopPosX,-fh2TopPosY,0,new TGeoRotation("fh2TopRot2",-fh2TopAngle-90,0,0));
+  TGeoCombiTrans* fh2TopTr2 = new TGeoCombiTrans("fh2TopTr2", fh2TopPosX, -fh2TopPosY, 0, new TGeoRotation("fh2TopRot2", -fh2TopAngle - 90, 0, 0));
   fh2TopTr2->RegisterYourself();
-  TGeoCombiTrans* fh2BotTr1 = new TGeoCombiTrans("fh2BotTr1",fh2BotPosX,fh2BotPosY,0,new TGeoRotation("fh2BotRot1",-fh2BotAngle,0,0));
+  TGeoCombiTrans* fh2BotTr1 = new TGeoCombiTrans("fh2BotTr1", fh2BotPosX, fh2BotPosY, 0, new TGeoRotation("fh2BotRot1", -fh2BotAngle, 0, 0));
   fh2BotTr1->RegisterYourself();
-  TGeoCombiTrans* fh2BotTr2 = new TGeoCombiTrans("fh2BotTr2",fh2BotPosX,-fh2BotPosY,0,new TGeoRotation("fh2BotRot2",fh2BotAngle,0,0));
+  TGeoCombiTrans* fh2BotTr2 = new TGeoCombiTrans("fh2BotTr2", fh2BotPosX, -fh2BotPosY, 0, new TGeoRotation("fh2BotRot2", fh2BotAngle, 0, 0));
   fh2BotTr2->RegisterYourself();
 
   //Create a string that defines the plate group for the outer plates
   std::string outerPlateGroupString = "fiberPlate ";
-  outerPlateGroupString+="- opticalFiberHead:fh1TopTr1 ";
-  outerPlateGroupString+="- opticalFiberHead:fh1TopTr2 ";
-  outerPlateGroupString+="- opticalFiberHead:fh1BotTr1 ";
-  outerPlateGroupString+="- opticalFiberHead:fh1BotTr2 ";
-  outerPlateGroupString+="+ coverPlate:coverPlateTr";
+  outerPlateGroupString += "- opticalFiberHead:fh1TopTr1 ";
+  outerPlateGroupString += "- opticalFiberHead:fh1TopTr2 ";
+  outerPlateGroupString += "- opticalFiberHead:fh1BotTr1 ";
+  outerPlateGroupString += "- opticalFiberHead:fh1BotTr2 ";
+  outerPlateGroupString += "+ coverPlate:coverPlateTr";
 
   //Create the composite shape for the outer plates
   TGeoCompositeShape* outerPlateGroup = new TGeoCompositeShape("outerPlateGroup", outerPlateGroupString.c_str());
 
   //Create a string that defines the plate group for the inner plates
   std::string innerPlateGroupString = "fiberPlate ";
-  innerPlateGroupString+="- opticalFiberHead:fh2TopTr1 ";
-  innerPlateGroupString+="- opticalFiberHead:fh2TopTr2 ";
-  innerPlateGroupString+="- opticalFiberHead:fh2BotTr1 ";
-  innerPlateGroupString+="- opticalFiberHead:fh2BotTr2 ";
-  innerPlateGroupString+="+ coverPlate:coverPlateTr";
+  innerPlateGroupString += "- opticalFiberHead:fh2TopTr1 ";
+  innerPlateGroupString += "- opticalFiberHead:fh2TopTr2 ";
+  innerPlateGroupString += "- opticalFiberHead:fh2BotTr1 ";
+  innerPlateGroupString += "- opticalFiberHead:fh2BotTr2 ";
+  innerPlateGroupString += "+ coverPlate:coverPlateTr";
 
   //Create the composite shape for the inner plates
   TGeoCompositeShape* innerPlateGroup = new TGeoCompositeShape("innerPlateGroup", innerPlateGroupString.c_str());
@@ -644,15 +643,15 @@ TGeoVolume* Detector::constructFrameAGeometry()
   //The sockets that are cut out of the aluminum block for the senitive elements
   //to fit into are offset slightly in z to leave a thin plate of aluminum at the
   //back - the back plate covers
-  Double_t backPlanedZ =  0.25;
+  Double_t backPlanedZ = 0.25;
   Double_t socketdZ = blockdZ - backPlanedZ;
 
   //Define the socket volume as a box of vacuum
-  TGeoVolume* socket = gGeoManager->MakeBox("Socket", Vacuum, sPmtSide / 2 + sEps, sPmtSide / 2 + sEps, socketdZ/2);
+  TGeoVolume* socket = gGeoManager->MakeBox("Socket", Vacuum, sPmtSide / 2 + sEps, sPmtSide / 2 + sEps, socketdZ / 2);
 
   //Define the orientation angles of the plate groups that will cover
   //the sockets holding the sensitive elements
-  Double_t rotAngle[Geometry::NCellsA] = {0,0,-90,-90,-90,0,0,-90,-90,-90,0,0,180,180,90,90,90,180,180,90,90,90,180,180};
+  Double_t rotAngle[Geometry::NCellsA] = {0, 0, -90, -90, -90, 0, 0, -90, -90, -90, 0, 0, 180, 180, 90, 90, 90, 180, 180, 90, 90, 90, 180, 180};
   //Define the socket and plate group translations
   TGeoTranslation* trSocket[Geometry::NCellsA];
   TString nameTrSocket;
@@ -662,39 +661,37 @@ TGeoVolume* Detector::constructFrameAGeometry()
 
   //Loop over the number of modules, subtracting the sockets and adding back in the
   //plate groups at the position of each module
-  for (Int_t itr = 0; itr < Geometry::NCellsA; itr++){
+  for (Int_t itr = 0; itr < Geometry::NCellsA; itr++) {
 
-    nameTrSocket = Form("trSocket%i",itr+1);
-    float z = -backPlanedZ/4.0;
+    nameTrSocket = Form("trSocket%i", itr + 1);
+    float z = -backPlanedZ / 4.0;
     trSocket[itr] = new TGeoTranslation(nameTrSocket.Data(), mPosModuleAx[itr], mPosModuleAy[itr], z);
     trSocket[itr]->RegisterYourself();
-    frameACompositeString+="- Socket:"; //subtract it from the aluminum block
-    frameACompositeString+=nameTrSocket.Data(); //at its corresponding location
+    frameACompositeString += "- Socket:";         //subtract it from the aluminum block
+    frameACompositeString += nameTrSocket.Data(); //at its corresponding location
 
-    nameTrPlateGroup = Form("trPlateGroup%i",itr+1);
-    namePGRot = Form("pgRot%i",itr+1);
-    float z2= -blockdZ/2 + (coverPlatedZ+fiberPlatedZ)/2;
-    trPlateGroup[itr]=new TGeoCombiTrans(nameTrPlateGroup.Data(),mPosModuleAx[itr],mPosModuleAy[itr],z2,new TGeoRotation(namePGRot.Data(),rotAngle[itr],0,0));
+    nameTrPlateGroup = Form("trPlateGroup%i", itr + 1);
+    namePGRot = Form("pgRot%i", itr + 1);
+    float z2 = -blockdZ / 2 + (coverPlatedZ + fiberPlatedZ) / 2;
+    trPlateGroup[itr] = new TGeoCombiTrans(nameTrPlateGroup.Data(), mPosModuleAx[itr], mPosModuleAy[itr], z2, new TGeoRotation(namePGRot.Data(), rotAngle[itr], 0, 0));
     trPlateGroup[itr]->RegisterYourself();
 
-    if (itr==0||itr==2||itr==3||itr==4||itr==5||itr==10||itr==13||itr==18||itr==19||itr==20||itr==21||itr==23){
-      frameACompositeString+=" + outerPlateGroup:"; //add the outer plate group back on to these modules
-      frameACompositeString+=nameTrPlateGroup.Data();
-      frameACompositeString+=" ";
-    }
-    else {
-      frameACompositeString+=" + innerPlateGroup:"; //or add the inner plate group back on to all other modules
-      frameACompositeString+=nameTrPlateGroup.Data();
-      frameACompositeString+=" ";
-
+    if (itr == 0 || itr == 2 || itr == 3 || itr == 4 || itr == 5 || itr == 10 || itr == 13 || itr == 18 || itr == 19 || itr == 20 || itr == 21 || itr == 23) {
+      frameACompositeString += " + outerPlateGroup:"; //add the outer plate group back on to these modules
+      frameACompositeString += nameTrPlateGroup.Data();
+      frameACompositeString += " ";
+    } else {
+      frameACompositeString += " + innerPlateGroup:"; //or add the inner plate group back on to all other modules
+      frameACompositeString += nameTrPlateGroup.Data();
+      frameACompositeString += " ";
     }
   }
 
   //Finally, define the A side frame object from the complete composite shape defined above
-  TGeoVolume* frameA= new TGeoVolume("frameA",new TGeoCompositeShape("frameA",frameACompositeString.c_str()), Al);
+  TGeoVolume* frameA = new TGeoVolume("frameA", new TGeoCompositeShape("frameA", frameACompositeString.c_str()), Al);
 
   //Add the frame object to the mother volume
-  FT0_Frame->AddNode(frameA,1);
+  FT0_Frame->AddNode(frameA, 1);
 
   return FT0_Frame;
 }
@@ -714,16 +711,16 @@ TGeoVolume* Detector::constructFrameCGeometry()
 
   // quartz & PMT C-side transformations
   static constexpr Double_t sensShift = 0.5;
-  static constexpr Double_t sQuartzRadiatorZC = 1.94360;   // Dimension variable (l_{q}
+  static constexpr Double_t sQuartzRadiatorZC = 1.94360;                              // Dimension variable (l_{q}
   static constexpr Double_t sQuartzHeightC = (-sFrameZC / 2 + sQuartzRadiatorZC / 2); // placement variable )
-  static constexpr Double_t sPmtZC = 3.600; // Dimension variable (l_{p}
-  static constexpr Double_t sPmtHeightC = (sFrameZC / 2 - sPmtZC / 2); // placement variable
+  static constexpr Double_t sPmtZC = 3.600;                                           // Dimension variable (l_{p}
+  static constexpr Double_t sPmtHeightC = (sFrameZC / 2 - sPmtZC / 2);                // placement variable
 
   Double_t crad = 82.;
   static constexpr Int_t NCellsC = Geometry::NCellsC;
   static constexpr Int_t NCellsA = Geometry::NCellsA;
 
-  Float_t sweep = 3.5*2;
+  Float_t sweep = 3.5 * 2;
   Float_t rMin = 81.9791;
   Float_t rMax = rMin + sFrameZC;
   Float_t tMin = 0;
@@ -734,8 +731,8 @@ TGeoVolume* Detector::constructFrameCGeometry()
   Float_t pstartC[3] = {20., 20, 5};
 
   Float_t multCorn = 1.275; // multiplication factor for corners
-  Double_t xCorn = multCorn*(-14.75272569);
-  Double_t yCorn = multCorn*(14.9043284);
+  Double_t xCorn = multCorn * (-14.75272569);
+  Double_t yCorn = multCorn * (14.9043284);
   Double_t zCorn = 79.27306024;
 
   Double_t xCorn2 = -xCorn;
@@ -752,7 +749,7 @@ TGeoVolume* Detector::constructFrameCGeometry()
   Double_t exag = 5;
 
   // highest overlap values
-  Double_t errPMTZ = 10*sEps;
+  Double_t errPMTZ = 10 * sEps;
   Double_t errPMTXY = 0.02;
   Double_t errQrdZ = 0.143 + 0.22;
   Double_t errQrdXY = 0.35;
@@ -767,7 +764,7 @@ TGeoVolume* Detector::constructFrameCGeometry()
   TGeoSphere* sphere3 = new TGeoSphere("sphere3", rMin, rMin + backPlateZ, tMin, tMax, pMin, pMax);
   TGeoSphere* sphere4 = new TGeoSphere("sphere4", rMin - sweep, rMax + backPlateZ + sweep, tMin, tMax, pMin, pMax);
 
-  TGeoBBox* insSeat = new TGeoBBox("insSeat", pinstart[0]*2, pinstart[1]*2, pinstart[2]*2);
+  TGeoBBox* insSeat = new TGeoBBox("insSeat", pinstart[0] * 2, pinstart[1] * 2, pinstart[2] * 2);
 
   TGeoBBox* quartzRadiatorSeat = new TGeoBBox("quartzRadiatorSeat",
                                               sQuartzRadiatorSide / 2 + sEps + errQrdXY,
@@ -809,13 +806,13 @@ TGeoVolume* Detector::constructFrameCGeometry()
   reflectC1->ReflectY(true);
   reflectC1->RegisterYourself();
 
-  TGeoRotation* rotCorners= new TGeoRotation("rotCorners", acCorn, bcCorn, gcCorn);
+  TGeoRotation* rotCorners = new TGeoRotation("rotCorners", acCorn, bcCorn, gcCorn);
   rotCorners->RegisterYourself();
 
-  TGeoCombiTrans* comCorners= new TGeoCombiTrans("comCorners", xCorn, yCorn, zCorn, rotCorners);
+  TGeoCombiTrans* comCorners = new TGeoCombiTrans("comCorners", xCorn, yCorn, zCorn, rotCorners);
   comCorners->RegisterYourself();
 
-  TGeoCombiTrans* comCorners2= new TGeoCombiTrans("comCorners2", xCorn2, yCorn2, zCorn2, rotCorners);
+  TGeoCombiTrans* comCorners2 = new TGeoCombiTrans("comCorners2", xCorn2, yCorn2, zCorn2, rotCorners);
   comCorners2->RegisterYourself();
 
   //Create a string that defines the composite shape
@@ -840,26 +837,9 @@ TGeoVolume* Detector::constructFrameCGeometry()
 
   //These could be set up to use the values in the geometry file after some
   //investigation of subtle differences...
-  static constexpr Double_t xi[NCellsC] = {-15.038271418735729, 15.038271418735729,
-                          -15.003757581112167, 15.003757581112167, -9.02690018974363,
-                          9.02690018974363, -9.026897413747076, 9.026897413747076,
-                          -9.026896531935773, 9.026896531935773, -3.0004568618531313,
-                          3.0004568618531313, -3.0270795197907225, 3.0270795197907225,
-                          3.0003978432927543, -3.0003978432927543, 3.0270569670429572,
-                          -3.0270569670429572, 9.026750365564254, -9.026750365564254,
-                          9.026837450695885, -9.026837450695885, 9.026849243816981,
-                          -9.026849243816981, 15.038129472387304, -15.038129472387304,
-                          15.003621961057961, -15.003621961057961};
-  static constexpr Double_t yi[NCellsC] = {3.1599494336464455, -3.1599494336464455,
-                          9.165191680982874, -9.165191680982874, 3.1383331772537426,
-                          -3.1383331772537426, 9.165226363918643, -9.165226363918643,
-                          15.141616002932361, -15.141616002932361, 9.16517861649866,
-                          -9.16517861649866, 15.188854859073416, -15.188854859073416,
-                          9.165053319552113, -9.165053319552113, 15.188703787345304,
-                          -15.188703787345304, 3.138263189805292, -3.138263189805292,
-                          9.165104089644917, -9.165104089644917, 15.141494417823818,
-                          -15.141494417823818, 3.1599158563428644, -3.1599158563428644,
-                          9.165116302773846, -9.165116302773846};
+  static constexpr Double_t xi[NCellsC] = {-15.038271418735729, 15.038271418735729, -15.003757581112167, 15.003757581112167, -9.02690018974363, 9.02690018974363, -9.026897413747076, 9.026897413747076, -9.026896531935773, 9.026896531935773, -3.0004568618531313, 3.0004568618531313, -3.0270795197907225, 3.0270795197907225, 3.0003978432927543, -3.0003978432927543, 3.0270569670429572, -3.0270569670429572, 9.026750365564254, -9.026750365564254, 9.026837450695885, -9.026837450695885, 9.026849243816981, -9.026849243816981, 15.038129472387304, -15.038129472387304, 15.003621961057961, -15.003621961057961};
+  static constexpr Double_t yi[NCellsC] = {3.1599494336464455, -3.1599494336464455, 9.165191680982874, -9.165191680982874, 3.1383331772537426, -3.1383331772537426, 9.165226363918643, -9.165226363918643, 15.141616002932361, -15.141616002932361, 9.16517861649866, -9.16517861649866, 15.188854859073416, -15.188854859073416, 9.165053319552113, -9.165053319552113, 15.188703787345304, -15.188703787345304, 3.138263189805292, -3.138263189805292, 9.165104089644917, -9.165104089644917, 15.141494417823818, -15.141494417823818, 3.1599158563428644, -3.1599158563428644, 9.165116302773846, -9.165116302773846};
+
   Double_t zi[NCellsC];
   for (Int_t ic = 0; ic < NCellsC; ic++) {
     zi[ic] = TMath::Sqrt(TMath::Power(crad, 2) - TMath::Power(xi[ic], 2) - TMath::Power(yi[ic], 2));
@@ -893,17 +873,26 @@ TGeoVolume* Detector::constructFrameCGeometry()
     gc[i] = -1 * ac[i];
   }
 
-
-  Double_t rmag = sqrt(xc2[0]*xc2[0] + yc2[0]*yc2[0] + zc2[0]*zc2[0]);
+  Double_t rmag = sqrt(xc2[0] * xc2[0] + yc2[0] * yc2[0] + zc2[0] * zc2[0]);
 
   Double_t scalePMT = (rmag + (frameHeightC / 2.0) - (sPmtHeightC / 2)) / rmag;
   Double_t scaleQrad = (rmag + (frameHeightC / 2.0) - sPmtHeightC - (sQuartzRadiatorZC / 2.0)) / rmag;
 
-  Double_t xPMT[NCellsC]; Double_t yPMT[NCellsC]; Double_t zPMT[NCellsC];
-  Double_t aPMT[NCellsC]; Double_t bPMT[NCellsC]; Double_t gPMT[NCellsC];
-  
-  Double_t xQrad[NCellsC]; Double_t yQrad[NCellsC]; Double_t zQrad[NCellsC];
-  Double_t aQrad[NCellsC]; Double_t bQrad[NCellsC]; Double_t gQrad[NCellsC];
+  Double_t xPMT[NCellsC];
+  Double_t yPMT[NCellsC];
+  Double_t zPMT[NCellsC];
+
+  Double_t aPMT[NCellsC];
+  Double_t bPMT[NCellsC];
+  Double_t gPMT[NCellsC];
+
+  Double_t xQrad[NCellsC];
+  Double_t yQrad[NCellsC];
+  Double_t zQrad[NCellsC];
+
+  Double_t aQrad[NCellsC];
+  Double_t bQrad[NCellsC];
+  Double_t gQrad[NCellsC];
 
   Double_t rotC[NCellsC];
   Double_t comC[NCellsC];
@@ -939,7 +928,6 @@ TGeoVolume* Detector::constructFrameCGeometry()
     aQrad[i] *= 180 / TMath::Pi();
     bQrad[i] *= 180 / TMath::Pi();
     gQrad[i] = -1 * aQrad[i];
-
   }
 
   TString nameRot;
@@ -956,7 +944,7 @@ TGeoVolume* Detector::constructFrameCGeometry()
 
     // getting even indices to skip reflections -> reflections happen later in
     // frame construction
-    if (ic%2==0){
+    if (ic % 2 == 0) {
       TGeoRotation* rotC = new TGeoRotation(nameRot.Data(), ac[ic], bc[ic], gc[ic]);
       rotC->RegisterYourself();
 
@@ -977,7 +965,7 @@ TGeoVolume* Detector::constructFrameCGeometry()
 
       TGeoCombiTrans* comQuartz = new TGeoCombiTrans(nameComQuartz.Data(),
                                                      xQrad[ic], yQrad[ic],
-                                                     zQrad[ic] - (sQuartzRadiatorZC/2 + 3*sEps),
+                                                     zQrad[ic] - (sQuartzRadiatorZC / 2 + 3 * sEps),
                                                      rotQuartz);
       comQuartz->RegisterYourself();
 
@@ -1007,8 +995,7 @@ TGeoVolume* Detector::constructFrameCGeometry()
   }
 
   // Construct composite shape from boolean
-   TGeoCompositeShape* shellCompShape = new TGeoCompositeShape("shellCompShape",
-                                                                shellString.c_str());
+  TGeoCompositeShape* shellCompShape = new TGeoCompositeShape("shellCompShape", shellString.c_str());
 
   TGeoVolume* shellVol = new TGeoVolume("shellVol", shellCompShape, Al);
 
@@ -1043,14 +1030,13 @@ TGeoVolume* Detector::constructFrameCGeometry()
 std::string Detector::cPlateShapeString()
 {
   Double_t prismHeight = 0.3895; //height of vertical edge of square prism part of base
-  Double_t prismSide = 5.9; //width and length of square prism part of base
-  Double_t radCurve = 81.9469; //radius of curvature of top part of base
-  Double_t delHeight = radCurve*
-                (1.0-TMath::Sqrt(1.0-0.5*TMath::Power(prismSide/radCurve,2.0)));
+  Double_t prismSide = 5.9;      //width and length of square prism part of base
+  Double_t radCurve = 81.9469;   //radius of curvature of top part of base
+  Double_t delHeight = radCurve * (1.0 - TMath::Sqrt(1.0 - 0.5 * TMath::Power(prismSide / radCurve, 2.0)));
   //height from top of square prism to center of curved top surface of base
 
   Double_t heightBase = prismHeight + delHeight; //from center of bottom to center of top
-  Double_t sliceSide = 5.3; //side lengths of slice's flat top
+  Double_t sliceSide = 5.3;                      //side lengths of slice's flat top
   Double_t heightBaseBox = 2 * heightBase;
   Double_t totalHeight = 0.5;
   Double_t sliceHeight = 0.5 - heightBase;
@@ -1065,56 +1051,56 @@ std::string Detector::cPlateShapeString()
   //up and down sholes
   Double_t sHolesBottomEdge = 1.585;
   Double_t sHolesTopEdge = 0.515;
-  Double_t sHolesAvgTopBottom = (sHolesBottomEdge+sHolesTopEdge)/2.0;
-  Double_t sHolesUpFromCenter = ( (sliceSide/2.0) - sHolesAvgTopBottom ); //amount up in x the sholes need to move
+  Double_t sHolesAvgTopBottom = (sHolesBottomEdge + sHolesTopEdge) / 2.0;
+  Double_t sHolesUpFromCenter = ((sliceSide / 2.0) - sHolesAvgTopBottom); //amount up in x the sholes need to move
   //left and right sholes
   Double_t sHolesFarEdge = 1.585;
   Double_t sHolesNearEdge = 1.065;
-  Double_t sHolesAvgNearFar = (sHolesFarEdge+sHolesNearEdge)/2.0;
-  Double_t sHolesLateralFromCenter = ( (sliceSide/2.0) - sHolesAvgNearFar );
+  Double_t sHolesAvgNearFar = (sHolesFarEdge + sHolesNearEdge) / 2.0;
+  Double_t sHolesLateralFromCenter = ((sliceSide / 2.0) - sHolesAvgNearFar);
 
   // Create Boxes
-  TGeoBBox *box = new TGeoBBox("BASE", prismSide/2.0, heightBaseBox/2.0, prismSide/2.0);
+  TGeoBBox* box = new TGeoBBox("BASE", prismSide / 2.0, heightBaseBox / 2.0, prismSide / 2.0);
 
   // Base raw box to be subtracted
-  TGeoBBox *slice = new TGeoBBox("SLICE", sliceSide/2.0, heightBaseBox/2.0, sliceSide/2.0);
-  TGeoBBox *cableHole = new TGeoBBox("CABLE", cableHoleLength/2.0, cableHoleDepth/2.0, cableHoleWidth/2.0);
-  TGeoBBox *cableHole2 = new TGeoBBox("CABLE2", cableHoleWidth/2.0, cableHoleLength/2.0, cableHoleDepth/2.0);
+  TGeoBBox* slice = new TGeoBBox("SLICE", sliceSide / 2.0, heightBaseBox / 2.0, sliceSide / 2.0);
+  TGeoBBox* cableHole = new TGeoBBox("CABLE", cableHoleLength / 2.0, cableHoleDepth / 2.0, cableHoleWidth / 2.0);
+  TGeoBBox* cableHole2 = new TGeoBBox("CABLE2", cableHoleWidth / 2.0, cableHoleLength / 2.0, cableHoleDepth / 2.0);
 
-  TGeoSphere *baseShape = new TGeoSphere("BASE_SUBTRACTION", radCurve, radCurve+5.0, 80, 100, 80, 100);
+  TGeoSphere* baseShape = new TGeoSphere("BASE_SUBTRACTION", radCurve, radCurve + 5.0, 80, 100, 80, 100);
 
-  TGeoTranslation *rTrans= new TGeoTranslation("rTrans",0,radCurve,0);
+  TGeoTranslation* rTrans = new TGeoTranslation("rTrans", 0, radCurve, 0);
   rTrans->RegisterYourself();
 
-  TGeoTranslation *rBackTrans = new TGeoTranslation("rBackTrans",0,-1.0*radCurve,0);
+  TGeoTranslation* rBackTrans = new TGeoTranslation("rBackTrans", 0, -1.0 * radCurve, 0);
   rBackTrans->RegisterYourself();
 
-  TGeoTranslation *subSliceTrans = new TGeoTranslation("subSliceTrans",0,(heightBaseBox/2.0)+sliceHeight,0);
+  TGeoTranslation* subSliceTrans = new TGeoTranslation("subSliceTrans", 0, (heightBaseBox / 2.0) + sliceHeight, 0);
   subSliceTrans->RegisterYourself();
 
-  TGeoTranslation *sHolesTopLeftTrans = new TGeoTranslation("sHolesTopLeftTrans",sHolesUpFromCenter,0,sHolesLateralFromCenter);
+  TGeoTranslation* sHolesTopLeftTrans = new TGeoTranslation("sHolesTopLeftTrans", sHolesUpFromCenter, 0, sHolesLateralFromCenter);
   sHolesTopLeftTrans->RegisterYourself();
 
-  TGeoTranslation *sHolesTopRightTrans = new TGeoTranslation("sHolesTopRightTrans",sHolesUpFromCenter,0,-1.0*sHolesLateralFromCenter);
+  TGeoTranslation* sHolesTopRightTrans = new TGeoTranslation("sHolesTopRightTrans", sHolesUpFromCenter, 0, -1.0 * sHolesLateralFromCenter);
   sHolesTopRightTrans->RegisterYourself();
 
-  TGeoTranslation *testTrans = new TGeoTranslation("testTrans",0.1,0.1,0);
+  TGeoTranslation* testTrans = new TGeoTranslation("testTrans", 0.1, 0.1, 0);
   testTrans->RegisterYourself();
 
-  TGeoRotation *switchToZ = new TGeoRotation("switchToZ",90,90,0);
+  TGeoRotation* switchToZ = new TGeoRotation("switchToZ", 90, 90, 0);
   switchToZ->RegisterYourself();
 
-  TGeoRotation *rotateHolesLeft = new TGeoRotation("rotateHolesLeft",345,0,0);
+  TGeoRotation* rotateHolesLeft = new TGeoRotation("rotateHolesLeft", 345, 0, 0);
   rotateHolesLeft->RegisterYourself();
 
-  TGeoRotation *rotateHolesRight = new TGeoRotation("rotatetHolesRight",15,0,0);
+  TGeoRotation* rotateHolesRight = new TGeoRotation("rotatetHolesRight", 15, 0, 0);
   rotateHolesRight->RegisterYourself();
 
   // Bottom holes rotation and translation with combitrans
-  TGeoCombiTrans *rHolesBottomLeftTrans = new TGeoCombiTrans("rHolesBottomLeftTrans",-1.0*sHolesLateralFromCenter,-1.0*sHolesUpFromCenter,0,rotateHolesLeft);
+  TGeoCombiTrans* rHolesBottomLeftTrans = new TGeoCombiTrans("rHolesBottomLeftTrans", -1.0 * sHolesLateralFromCenter, -1.0 * sHolesUpFromCenter, 0, rotateHolesLeft);
   rHolesBottomLeftTrans->RegisterYourself();
 
-  TGeoCombiTrans *rHolesBottomRightTrans = new TGeoCombiTrans("rHolesBottomRightTrans",sHolesLateralFromCenter,-1.0*sHolesUpFromCenter,0,rotateHolesRight);
+  TGeoCombiTrans* rHolesBottomRightTrans = new TGeoCombiTrans("rHolesBottomRightTrans", sHolesLateralFromCenter, -1.0 * sHolesUpFromCenter, 0, rotateHolesRight);
   rHolesBottomRightTrans->RegisterYourself();
 
   std::string plateString = " ";
@@ -1130,7 +1116,7 @@ std::string Detector::cPlateShapeString()
   plateString += "- (CABLE2:rHolesBottomRightTrans)";
 
   return plateString;
-}  
+}
 //End Support structure code
 ////////////////////////////////////////////
 

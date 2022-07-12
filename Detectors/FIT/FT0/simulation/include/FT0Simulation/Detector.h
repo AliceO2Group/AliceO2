@@ -152,7 +152,7 @@ class Detector : public o2::base::DetImpl<Detector>
   TGeoVolume* constructFrameAGeometry(); //A-side
   TGeoVolume* constructFrameCGeometry(); //C-side
   std::string cPlateShapeString();
-  
+
   // BEGIN: Support structure constants
   // define some error to avoid overlaps
   static constexpr Float_t sEps = 0.05;
