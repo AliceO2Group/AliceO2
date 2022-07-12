@@ -997,5 +997,25 @@ void TrackerTraits::setNThreads(int n)
   mNThreads = 1;
 #endif
 }
+int TrackerTraits::getTFNumberOfClusters() const
+{
+  return mTimeFrame->getNumberOfClusters();
+}
+
+int TrackerTraits::getTFNumberOfTracklets() const
+{
+  return mTimeFrame->getNumberOfTracklets();
+}
+
+int TrackerTraits::getTFNumberOfCells() const
+{
+  return mTimeFrame->getNumberOfCells();
+}
+
+// bool TrackerTraits::checkTFMemory(const int iteration)
+// {
+//   return mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory);
+// }
+
 } // namespace its
 } // namespace o2
