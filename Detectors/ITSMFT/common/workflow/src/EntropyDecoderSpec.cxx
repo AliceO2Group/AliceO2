@@ -20,6 +20,7 @@
 #include "ITSMFTWorkflow/EntropyDecoderSpec.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
+#include "DataFormatsITSMFT/PhysTrigger.h"
 
 using namespace o2::framework;
 
@@ -72,6 +73,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
     mTimer.Stop();
     LOG(info) << "Decoded " << compcl.size() << " clusters in " << rofs.size() << " RO frames, (" << iosize.asString() << ") in " << mTimer.CpuTime() - cput << " s";
   }
+  pc.outputs().make<std::vector<o2::itsmft::PhysTrigger>>(OutputRef{"phystrig"}); // dummy output
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
 }
 
@@ -121,6 +123,9 @@ DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosi
     outputs.emplace_back(OutputSpec{{"patterns"}, orig, "PATTERNS", 0, Lifetime::Timeframe});
   }
   outputs.emplace_back(OutputSpec{{"ctfrep"}, orig, "CTFDECREP", 0, Lifetime::Timeframe});
+
+  // this is a special dummy input which makes sense only in sync workflows
+  outputs.emplace_back(OutputSpec{{"phystrig"}, orig, "PHYSTRIG", 0, Lifetime::Timeframe});
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf", orig, "CTFDATA", sspec, Lifetime::Timeframe);
