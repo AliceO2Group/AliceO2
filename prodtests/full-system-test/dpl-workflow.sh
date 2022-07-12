@@ -471,7 +471,7 @@ if [[ "0$FST_BENCHMARK_STARTUP" == "01" ]]; then
 else
   [[ $WORKFLOWMODE != "print" ]] && WORKFLOW+=" --${WORKFLOWMODE} ${WORKFLOWMODE_FILE}"
   [[ $WORKFLOWMODE == "print" || "0$PRINT_WORKFLOW" == "01" ]] && echo "#Workflow command:\n\n${WORKFLOW}\n" | sed -e "s/\\\\n/\n/g" -e"s/| */| \\\\\n/g" | eval cat $( [[ $WORKFLOWMODE == "dds" ]] && echo '1>&2')
-  [[ $WORKFLOWMODE != "print" ]] && eval $WORKFLOW
+  if [[ $WORKFLOWMODE != "print" ]]; then eval $WORKFLOW; else true; fi
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
