@@ -163,7 +163,6 @@ class EveWorkflowHelper
   std::unordered_set<GID> mTotalAcceptedTracks;
   std::unordered_map<std::size_t, std::vector<GID>> mPrimaryVertexGIDs;
   std::unordered_map<GID, unsigned int> mGIDTrackTime;
-  std::size_t mTotalPrimaryVertices;
   std::vector<o2::BaseCluster<float>> mITSClustersArray;
   std::vector<o2::BaseCluster<float>> mMFTClustersArray;
   o2::mft::GeometryTGeo* mMFTGeom;

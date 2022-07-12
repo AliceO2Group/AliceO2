@@ -155,9 +155,9 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
   if (mPrimaryVertexMode) {
     const auto trackIndex = mRecoCont.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
     const auto vtxRefs = mRecoCont.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
-    mTotalPrimaryVertices = vtxRefs.size() - 1;                        // The last entry is for unassigned tracks, ignore them
+    const auto totalPrimaryVertices = vtxRefs.size() - 1;              // The last entry is for unassigned tracks, ignore them
 
-    for (std::size_t iv = 0; iv < mTotalPrimaryVertices; iv++) {
+    for (std::size_t iv = 0; iv < totalPrimaryVertices; iv++) {
       const auto& vtref = vtxRefs[iv];
       int it = vtref.getFirstEntry(), itLim = it + vtref.getEntries();
       for (; it < itLim; it++) {
@@ -802,7 +802,7 @@ void EveWorkflowHelper::drawTRDClusters(const o2::trd::TrackTRD& tpcTrdTrack, fl
   }
 }
 
-EveWorkflowHelper::EveWorkflowHelper(const FilterSet& enabledFilters, std::size_t maxNTracks, const Bracket& timeBracket, const Bracket& etaBracket, bool primaryVertexMode) : mEnabledFilters(enabledFilters), mMaxNTracks(maxNTracks), mTimeBracket(timeBracket), mEtaBracket(etaBracket), mPrimaryVertexMode(primaryVertexMode), mTotalPrimaryVertices(1)
+EveWorkflowHelper::EveWorkflowHelper(const FilterSet& enabledFilters, std::size_t maxNTracks, const Bracket& timeBracket, const Bracket& etaBracket, bool primaryVertexMode) : mEnabledFilters(enabledFilters), mMaxNTracks(maxNTracks), mTimeBracket(timeBracket), mEtaBracket(etaBracket), mPrimaryVertexMode(primaryVertexMode)
 {
   o2::mch::TrackExtrap::setField();
   this->mMFTGeom = o2::mft::GeometryTGeo::Instance();
