@@ -164,6 +164,7 @@ include_directories(${GPUTRACKING_DIR}/TPCClusterFinder
                     ${O2_DIR}/Common/Field/include
                     ${O2_DIR}/Common/Constants/include
                     ${O2_DIR}/Common/MathUtils/include
+                    ${O2_DIR}/Common/Utils/include
                     ${O2_DIR}/DataFormats/common/include
                     ${O2_DIR}/DataFormats/Detectors/Common/include
                     ${O2_DIR}/DataFormats/Detectors/ITSMFT/common/include
