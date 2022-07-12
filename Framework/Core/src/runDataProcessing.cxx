@@ -2431,8 +2431,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                                                                            //                                                                                                         //
     ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")                                                                    //                                                                                                           //
     ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")                                                              //                                                                                                             //
-    ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(isatty(fileno(stdout)) == 0), "batch processing mode")                                                //                                                                                                               //
-    ("no-batch", bpo::value<bool>()->zero_tokens()->default_value(false), "force gui processing mode")                                                                 //                                                                                                            //
+    ("batch,b", bpo::value<std::vector<std::string>>()->zero_tokens()->composing(), "batch processing mode")                                                           //                                                                                                               //
+    ("no-batch", bpo::value<bool>()->zero_tokens(), "force gui processing mode")                                                                                       //                                                                                                            //
     ("no-cleanup", bpo::value<bool>()->zero_tokens()->default_value(false), "do not cleanup the shm segment")                                                          //                                                                                                               //
     ("hostname", bpo::value<std::string>()->default_value("localhost"), "hostname to deploy")                                                                          //                                                                                                                 //
     ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                                                                //                                                                                                                   //
@@ -2698,6 +2698,21 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   DriverControl driverControl;
   initialiseDriverControl(varmap, driverControl);
 
+  auto evaluateBatchOption = [&varmap]() -> bool {
+    if (varmap.count("no-batch") > 0) {
+      return false;
+    }
+    if (varmap.count("batch") == 0) {
+      // default value
+      return isatty(fileno(stdout)) == 0;
+    }
+    // FIXME: should actually use the last value, but for some reason the
+    // values are not filled into the vector, even if specifying `-b true`
+    // need to find out why the boost program options example is not working
+    // in our case. Might depend on the parser options
+    //auto value = varmap["batch"].as<std::vector<std::string>>();
+    return true;
+  };
   DriverInfo driverInfo{
     .sendingPolicies = sendingPolicies,
     .callbacksPolicies = callbacksPolicies};
@@ -2710,7 +2725,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.resourcePolicies = resourcePolicies;
   driverInfo.argc = argc;
   driverInfo.argv = argv;
-  driverInfo.batch = varmap["no-batch"].defaulted() ? varmap["batch"].as<bool>() : false;
+  driverInfo.batch = evaluateBatchOption();
   driverInfo.noSHMCleanup = varmap["no-cleanup"].as<bool>();
   driverInfo.processingPolicies.termination = varmap["completion-policy"].as<TerminationPolicy>();
   driverInfo.processingPolicies.earlyForward = varmap["early-forward-policy"].as<EarlyForwardPolicy>();
