@@ -131,7 +131,7 @@ bool FileWatcher::refresh()
   LOG(info) << "previous:" << previous;
   LOG(info) << "currentFile:" << this->mCurrentFile;
 
-  this->mFiles = DirectoryLoader::load(this->mDataFolder, "_"); // already sorted according part staring with marker
+  this->mFiles = DirectoryLoader::load(this->mDataFolder, "_", ".json"); // already sorted according part staring with marker
   if (this->mCurrentFile != mEndGuard) {
     if (this->mFiles.empty()) {
       this->mCurrentFile = mEndGuard; // list empty - stick to last element

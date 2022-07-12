@@ -70,6 +70,7 @@ class DataSource
   virtual void saveCurrentEvent(std::string /*targetFolder*/){};
   virtual int getRunNumber() const { return 0; }
   virtual void setRunNumber(int) {}
+  virtual std::string getEventName() { return "event"; };
   virtual int getFirstTForbit() const { return 0; }
   virtual void setFirstTForbit(int) {}
   virtual std::string getCollisionTime() const { return "not specified"; }

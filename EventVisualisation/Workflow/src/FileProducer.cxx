@@ -47,15 +47,16 @@ std::string FileProducer::newFileName() const
 
   auto pid = getpid();
   auto result = fmt::format(this->mName, fmt::arg("hostname", hostname), fmt::arg("pid", pid), fmt::arg("timestamp", millisec_since_epoch));
-  auto files = DirectoryLoader::load(this->mPath, "_"); // already sorted starting by part of name at pos
+  // auto files = DirectoryLoader::load(this->mPath, "_", ".json"); // already sorted starting by part of name at pos
 
-  if (this->mFilesInFolder > 0) {
-    while (files.size() >= this->mFilesInFolder) {
-      auto front = files.front();
-      files.pop_front();
-      std::remove((this->mPath + "/" + front).c_str()); // delete file
-    }
-  }
+  // if (this->mFilesInFolder > 0) {
+  //   while (files.size() >= this->mFilesInFolder) {
+  //     auto front = files.front();
+  //     files.pop_front();
+  //     std::remove((this->mPath + "/" + front).c_str()); // delete file
+  //   }
+  // }
+  DirectoryLoader::reduceNumberOfFiles(this->mPath, DirectoryLoader::load(this->mPath, "_", ".json"), this->mFilesInFolder);
 
   return this->mPath + "/" + result;
 }

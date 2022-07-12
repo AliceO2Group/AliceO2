@@ -33,7 +33,7 @@ class Screenshot
   static TASImage* ScaleImage(TASImage* image, UInt_t desiredWidth, UInt_t desiredHeight, const std::string& backgroundColor);
 
  public:
-  static void perform(o2::detectors::DetID::mask_t detectorsMask, int runNumber, int firstTForbit, std::string collisionTime);
+  static void perform(std::string fileName, o2::detectors::DetID::mask_t detectorsMask, int runNumber, int firstTFOrbit, std::string collisionTime);
 };
 
 } // namespace event_visualisation
