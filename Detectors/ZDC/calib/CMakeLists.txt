@@ -91,12 +91,12 @@ o2_add_executable(baselinecalib-workflow
                   COMPONENT_NAME zdc
                   SOURCES src/zdc-baselinecalib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib O2::DetectorsCalibration)
-                  
+
 o2_add_executable(tdccalib-epn-workflow
                   COMPONENT_NAME zdc
                   SOURCES src/zdc-tdccalib-epn-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCCalib O2::DetectorsCalibration)
-                  
+
 o2_add_executable(tdccalib-workflow
                   COMPONENT_NAME zdc
                   SOURCES src/zdc-tdccalib-workflow.cxx
