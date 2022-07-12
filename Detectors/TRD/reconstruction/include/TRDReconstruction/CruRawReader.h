@@ -156,25 +156,20 @@ class CruRawReader
   void updateLinkErrorGraphs(int currentlinkindex, int supermodule_half, int stack_layer);
   void incrementErrors(int hist, int sector = -1, int side = 0, int stack = 0, int layer = 0)
   {
-    //  LOG(info) << "increment ed parsing error with " << hist << " "<< sectorside/2 <<  " "<< sectorside%2 << " " <<stack*constants::NLAYER+layer << " stack:" << stack << " layer" << layer << " sectorside:" << sectorside;
     if (sector > 17) {
-      LOG(info) << "Parsing error: " << hist << " sector: " << sector << " side:" << side << " stack:" << stack << " layer:" << layer;
       sector = 0;
     }
     if (stack > 4) {
-      LOG(info) << "Parsing error: " << hist << " sector:" << sector << " side:" << side << " stack:" << stack << " layer:" << layer;
       stack = 0;
     }
     if (layer > 5) {
-      LOG(info) << "Parsing error: " << hist << " sector:" << sector << " side:" << side << " stack:" << stack << " layer:" << layer;
       layer = 0;
     }
     if (sector < -1) {
-      LOG(info) << "Parsing error: " << hist << " sector:" << sector << " side:" << side << " stack:" << stack << " layer:" << layer;
       sector = 0;
     }
     mEventRecords.incParsingError(hist, sector, side, stack * constants::NLAYER + layer);
-    if (mDataVerbose) {
+    if (mVerbose) {
       LOG(info) << "Parsing error: " << hist << " sector:" << sector << " side:" << side << " stack:" << stack << " layer:" << layer;
     }
   }
