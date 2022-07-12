@@ -371,19 +371,20 @@ int CruRawReader::checkDigitHCHeader()
   //check rdh info vs half chamber header
   if (!mOptions[TRDIgnoreDigitHCHeaderBit]) { // we take half chamber header as authoritive
     // can use digithcheader for cross checking the sector/stack/layer
-    if (currentstack != mStack[0] || currentstack != mStack[1]) {
+    // the index 1 data is not set sometimes depending on various factors.
+    if (currentstack != mStack[0]) { // || currentstack != mStack[1]) {
       //stack mismatch
       //count these
       //mEventRecord.ErrorStats[TRDParsingDigitStackMismatch]++;
       incrementErrors(TRDParsingDigitStackMismatch, mFEEID.supermodule, mHalfChamberSide[0], mStack[0], mLayer[0]);
     }
-    if (currentlayer != mLayer[0] || currentlayer != mLayer[1]) {
+    if (currentlayer != mLayer[0]) { //|| currentlayer != mLayer[1]) {
       //layer mismatch
       //count these
       //mEventRecord.ErrorStats[TRDParsingDigitLayerMisMatch]++;
       incrementErrors(TRDParsingDigitLayerMismatch, mFEEID.supermodule, mHalfChamberSide[0], mStack[0], mLayer[0]);
     }
-    if (currentsector != mSector[0] || currentsector != mSector[1]) {
+    if (currentsector != mSector[0]) { //} || currentsector != mSector[1]) {
       //sector mismatch, mDetector comes in from a construction via the feeid and ori.
       //count these
       //mEventRecord.ErrorStats[TRDParsingDigitSectorMisMatch]++;
@@ -461,7 +462,7 @@ int CruRawReader::parseDigitHCHeader()
           // numtimebins is unsigned so no need to check for <1
           return -1;
         }
-        if (mDigitHCHeader1.ptrigphase > 11) {
+        /* if (mDigitHCHeader1.ptrigphase > 11) {
           //TODO figure out why 0xe happens more than it should. If I leave this in the shifters will be panicing.
           //This does not appear to be true, its false positive too many times
           //  LOG(alarm) << "Digit HC Header 1 Pretrigger phase is out of bounds : 0x" << std::hex << mDigitHCHeader1.ptrigphase << " raw: 0x" << mDigitHCHeader1.word;
@@ -471,7 +472,7 @@ int CruRawReader::parseDigitHCHeader()
           }
           incrementErrors(TRDParsingDigitHCHeaderPreTriggerPhaseOOB);
           //  return -1;
-        }
+        }*/
         mTimeBins = mDigitHCHeader1.numtimebins;
         if (mTimeBins < 1 && mTimeBins > o2::trd::constants::TIMEBINS) {
           //sanity check on the hcheader settings
@@ -582,8 +583,14 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU,
     if (mVerbose) {
       LOG(info) << "blank rdh payload data at " << cruhbfstartoffset << ": 0x " << std::hex << mHBFPayload[cruhbfstartoffset] << " and 0x" << mHBFPayload[cruhbfstartoffset + 1];
     }
-    incrementErrors(TRDParsingGarbageDataAtEndOfHalfCRU);
-    mHBFoffset32++;
+    // this is not an error its a valid reason to dump, its not garbage, its known.
+    //incrementErrors(TRDParsingGarbageDataAtEndOfHalfCRU);
+    mHBFoffset32++; // increment past the word of the if statement and then any others that might be here.
+    int loopcount = 0;
+    while (mHBFPayload[mHBFoffset32] == o2::trd::constants::CRUPADDING32 && loopcount < 8) { // can only ever be an entire 256 bit word hence a limit of 8 here.
+      mHBFoffset32++;
+      loopcount++;
+    }
     return 2;
   }
   if (mTotalHBFPayLoad == 0) {
@@ -607,14 +614,18 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU,
   if (numberOfPreviousCRU > 0) {
     if (mCurrentHalfCRUHeader.EndPoint != mPreviousHalfCRUHeader.EndPoint) {
       incrementErrors(TRDParsingHalfCRUCorrupt, mFEEID.supermodule, mHalfChamberSide[0], mStack[0], mLayer[0]);
+      LOG(info) << numberOfPreviousCRU << " current endpont : " << mCurrentHalfCRUHeader.EndPoint << " previous end point : " << mPreviousHalfCRUHeader.EndPoint;
       return -2;
     }
-    if (mCurrentHalfCRUHeader.EventType != mPreviousHalfCRUHeader.EventType) {
+    /*if (mCurrentHalfCRUHeader.EventType != mPreviousHalfCRUHeader.EventType) {
       incrementErrors(TRDParsingHalfCRUCorrupt, mFEEID.supermodule, mHalfChamberSide[0], mStack[0], mLayer[0]);
-      return -2;
-    }
+      LOG(info) <<numberOfPreviousCRU <<  " current eventtype : " << mCurrentHalfCRUHeader.EventType << " previous eventtype: " <<  mPreviousHalfCRUHeader.EventType << " raw : 0x" << std::hex << mHBFPayload[cruhbfstartoffset];
+    //  return -2;
+    }*/
+    // event type can change wit in a
     if (mCurrentHalfCRUHeader.StopBit != mPreviousHalfCRUHeader.StopBit) {
       incrementErrors(TRDParsingHalfCRUCorrupt, mFEEID.supermodule, mHalfChamberSide[0], mStack[0], mLayer[0]);
+      LOG(info) << numberOfPreviousCRU << " current stopbit: " << mCurrentHalfCRUHeader.StopBit << " previous stopbit: " << mPreviousHalfCRUHeader.StopBit;
       return -2;
     }
   }
@@ -789,7 +800,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU,
       ** DIGITS NOW ***
       *****************/
       // Check if we have a calibration trigger ergo we do actually have digits data. check if we are now at the end of the data due to bugs, i.e. if trackletparsing read padding words.
-      if (linkstart != linkend && (mCurrentHalfCRUHeader.EventType == o2::trd::constants::ETYPECALIBRATIONTRIGGER || mOptions[TRDIgnore2StageTrigger])) { // calibration trigger
+      if (linkstart != linkend && (mCurrentHalfCRUHeader.EventType == o2::trd::constants::ETYPECALIBRATIONTRIGGER || mOptions[TRDIgnore2StageTrigger]) && (mHBFPayload[cruhbfstartoffset] != o2::trd::constants::CRUPADDING32)) { // calibration trigger and insure we dont come in here if we are on a padding word.
         if (mHeaderVerbose) {
           LOG(info) << "*** Digit Parsing : starting at " << std::hex << linkstart << " at hbfoffset: " << std::dec << mHBFoffset32 << " linkhbf start pos:" << hbfoffsetatstartoflink;
         }
