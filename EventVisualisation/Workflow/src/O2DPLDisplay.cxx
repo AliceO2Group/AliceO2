@@ -128,7 +128,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
 
   bool anythingSaved = false;
 
-  for (std::size_t pv = 0; pv < helper.mTotalPrimaryVertices; ++pv) {
+  for (std::size_t pv = 0; pv < helper.mPrimaryVertexGIDs.size(); ++pv) {
     helper.draw(pv, mTrackSorting);
 
     bool save = true;
@@ -162,7 +162,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   LOGP(info, "Visualization of TF:{} at orbit {} took {} s.", tinfo.tfCounter, tinfo.firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
 
   if (mPrimaryVertexMode) {
-    LOGP(info, "Primary vertices: {}", helper.mTotalPrimaryVertices);
+    LOGP(info, "Primary vertices: {}", helper.mPrimaryVertexGIDs.size());
   }
 
   LOGP(info, "JSON saved: {}", anythingSaved ? "YES" : "NO");
