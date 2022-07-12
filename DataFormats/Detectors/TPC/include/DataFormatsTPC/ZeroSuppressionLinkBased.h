@@ -77,7 +77,7 @@ struct Header final : public CommonHeader {
     return std::bitset<80>((std::bitset<80>(bitMaskHigh) << 64) | std::bitset<80>(bitMaskLow));
   }
 
-  bool isFillWord() const { return ((word0 == 0xffffffffffffffff) && (word1 == 0xffffffffffffffff)) || ((word0 == 0x0000000000000000) && (word1 == 0x0000000000000000)); }
+  bool isFillWord() const { return ((word0 == 0xffffffffffffffff) && (word1 == 0xffffffffffffffff)); }
 };
 
 /// ADC data container
@@ -282,6 +282,37 @@ struct TriggerContainer {
   uint32_t getTriggerType() const { return triggerInfo.getTriggerType(); }
 };
 
+/// Data definition of trigger bits in ILBZS format
+struct TriggerWord {
+  static constexpr uint16_t HasTrigger = 0x8;
+  static constexpr uint16_t LaserTriggerMask = 0x4;
+  static constexpr uint16_t PulserTriggerMask = 0x2;
+  static constexpr uint16_t PhysicsTriggerMask = 0x1;
+
+  union {
+    uint16_t word = 0;
+    struct {
+      uint16_t bunchCrossing : 12;
+      uint16_t triggerType : 4;
+    };
+  };
+
+  bool hasTrigger() const { return triggerType & HasTrigger; }
+  bool hasLaserTrigger() const { return triggerType & LaserTriggerMask; }
+  bool hasPulserTrigger() const { return triggerType & PulserTriggerMask; }
+  bool hasPhysicsTrigger() const { return triggerType & PhysicsTriggerMask; }
+};
+
+/// Trigger word of ILBZS
+///
+/// 128 bits, can hold up to 8 trigger information
+struct TriggerInfoV3 {
+  uint64_t word0 = 0;
+  uint64_t word1 = 0;
+
+  bool hasTrigger() const { return word0 & TriggerWord::HasTrigger; }
+  uint16_t getFirstBC() const { return word0 & 0xFFF; }
+};
 #endif // !defined(GPUCA_GPUCODE)
 
 } // namespace zerosupp_link_based

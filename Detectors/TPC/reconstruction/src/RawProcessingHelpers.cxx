@@ -59,7 +59,7 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
     if (!header.hasCorrectMagicWord()) {
       zsdata = (zerosupp_link_based::ContainerZS*)((const char*)zsdata + sizeof(zerosupp_link_based::Header));
       if (!header.isFillWord()) {
-        LOGP(error, "Bad LinkZS magic word (0x{:08x}), for feeId 0x{:05x} (CRU: {:3}, link: {:2}, EP {}) , skipping data block", header.magicWord, feeId, rdh_utils::getCRU(feeId), rdh_utils::getLink(feeId), rdh_utils::getEndPoint(feeId));
+        LOGP(error, "Bad LinkZS magic word (0x{:08x}), for feeId 0x{:05x} (CRU: {:3}, link: {:2}, EP {}), orbit {} , skipping data block", header.magicWord, feeId, cruID, link, endPoint, orbit);
         LOGP(error, "Full 128b word is: 0x{:016x}{:016x}", header.word1, header.word0);
       }
       continue;
@@ -88,7 +88,15 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
       const auto& metaHDR = *((TPCZSHDRV2*)zsdata);
       zsVersion = metaHDR.version;
       timeOffset = metaHDR.timeOffset;
-      zsdata = (zerosupp_link_based::ContainerZS*)((const char*)zsdata + sizeof(zerosupp_link_based::Header));
+
+      const auto& triggerInfo = *(zerosupp_link_based::TriggerInfoV3*)((const char*)&metaHDR + sizeof(metaHDR));
+      if (triggerInfo.hasTrigger()) {
+        const auto triggerBC = triggerInfo.getFirstBC();
+        const auto triggerOrbit = orbit;
+        triggerBCOffset = (int(triggerOrbit) - int(referenceOrbit)) * maxBunches + triggerBC;
+      }
+
+      zsdata = (zerosupp_link_based::ContainerZS*)((const char*)&triggerInfo + sizeof(triggerInfo));
       continue;
     }
 
@@ -108,7 +116,7 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
     const int bcOffset = timeOffset + globalBCOffset + bunchCrossingHeader - triggerBCOffset;
     if (bcOffset < 0) {
       LOGP(info, "skipping time bin with negative BC offset timeOffset {} + globalBCoffset (({} - {}) * {} = {}) + bunchCrossingHeader ({}) - triggerBCOffset({}) = {}",
-           timeOffset, orbit, referenceOrbit, o2::constants::lhc::LHCMaxBunches, globalBCOffset, bunchCrossingHeader, syncOffsetReference, bunchCrossingHeader, syncOffset, triggerBCOffset, bcOffset);
+           timeOffset, orbit, referenceOrbit, o2::constants::lhc::LHCMaxBunches, globalBCOffset, bunchCrossingHeader, triggerBCOffset, bcOffset);
 
       // go to next time bin
       zsdata = zsdata->next();
