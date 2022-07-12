@@ -215,7 +215,9 @@ void MultivariatePolynomial<Dim, Degree, InteractionOnly>::writeToFile(TFile& ou
   const MultivariatePolynomialContainer cont = getContainer();
   outf.WriteObject(&cont, name);
 }
+#endif
 
+#ifndef GPUCA_GPUCODE
 template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
 void MultivariatePolynomial<Dim, Degree, InteractionOnly>::cloneFromObject(const MultivariatePolynomial<Dim, Degree, InteractionOnly>& obj, char* newFlatBufferPtr)
 {

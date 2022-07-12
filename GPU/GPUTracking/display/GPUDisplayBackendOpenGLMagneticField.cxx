@@ -22,6 +22,9 @@
 #else
 #define gluErrorString(err) ""
 #endif
+#ifndef GPUCA_NO_FMT
+#include <fmt/printf.h>
+#endif
 
 #include "GPUCommonDef.h"
 #include "GPUDisplayMagneticField.h"
@@ -58,6 +61,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 int GPUDisplayBackendOpenGL::InitMagField()
 {
+#ifndef GPUCA_NO_FMT
   mMagneticField = std::make_unique<GPUDisplayMagneticField>();
   mMagneticField->generateSeedPoints(mDisplay->cfgL().bFieldLinesCount);
 
@@ -133,6 +137,9 @@ int GPUDisplayBackendOpenGL::InitMagField()
   CHKERR(glNamedBufferData(mDipoleSegmentsBuffer, sizeof(GPUDisplayMagneticField::DipoleSegmentsUniform), mMagneticField->mDipoleSegments.get(), GL_STREAM_DRAW));
   CHKERR(glCreateBuffers(1, &mDipoleParameterizationBuffer));
   CHKERR(glNamedBufferData(mDipoleParameterizationBuffer, sizeof(GPUDisplayMagneticField::DipoleParameterizationUniform), mMagneticField->mDipoleParameterization.get(), GL_STREAM_DRAW));
+#else
+  throw std::runtime_error("Magnetic field needs fmt");
+#endif
 
   return 0;
 }
@@ -143,7 +150,7 @@ unsigned int GPUDisplayBackendOpenGL::drawField()
     return InitMagField(); // next frame will fill MVP matrix
   }
 
-  if (mMagneticField->mFieldLineSeedPoints.size() != mDisplay->cfgL().bFieldLinesCount) {
+  if (mMagneticField->mFieldLineSeedPoints.size() != (unsigned int)mDisplay->cfgL().bFieldLinesCount) {
     mMagneticField->generateSeedPoints(mDisplay->cfgL().bFieldLinesCount);
     CHKERR(glNamedBufferData(VBO_field, mMagneticField->mFieldLineSeedPoints.size() * sizeof(GPUDisplayMagneticField::vtx), mMagneticField->mFieldLineSeedPoints.data(), GL_STATIC_DRAW));
   }
