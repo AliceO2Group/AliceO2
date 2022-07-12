@@ -105,15 +105,16 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
     }
 #endif
 
-    std::vector<std::pair<CfFragment, std::array<int, 5>>> fragments;
+    std::vector<std::pair<CfFragment, std::array<int, 6>>> fragments;
     fragments.reserve(mCFContext->nFragments);
-    fragments.emplace_back(std::pair<CfFragment, std::array<int, 5>>{fragment, {0, 0, 0, 0, 0}});
+    fragments.emplace_back(std::pair<CfFragment, std::array<int, 6>>{fragment, {0, 0, 0, 0, 0, -1}});
     for (unsigned int i = 1; i < mCFContext->nFragments; i++) {
-      fragments.emplace_back(std::pair<CfFragment, std::array<int, 5>>{fragments.back().first.next(), {0, 0, 0, 0, 0}});
+      fragments.emplace_back(std::pair<CfFragment, std::array<int, 6>>{fragments.back().first.next(), {0, 0, 0, 0, 0, -1}});
     }
 
-    unsigned int emptyPages = 0;
     unsigned int firstPossibleFragment = 0;
+    unsigned int pageCounter = 0;
+    unsigned int emptyPages = 0;
     for (unsigned int k = 0; k < mIOPtrs.tpcZS->slice[iSlice].count[j]; k++) {
       nPages += mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k];
       for (unsigned int l = 0; l < mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k]; l++) {
@@ -129,6 +130,7 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
           emptyPages++;
           continue;
         }
+        pageCounter++;
         const TPCZSHDR* const hdr = (const TPCZSHDR*)(page + sizeof(o2::header::RAWDataHeader));
         if (mCFContext->zsVersion == -1) {
           mCFContext->zsVersion = hdr->version;
@@ -140,28 +142,51 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
         if (timeBin + hdr->nTimeBins > mCFContext->tpcMaxTimeBin) {
           mCFContext->tpcMaxTimeBin = timeBin + hdr->nTimeBins;
         }
+        while (firstPossibleFragment && (unsigned int)fragments[firstPossibleFragment - 1].first.last() > timeBin) {
+          firstPossibleFragment--;
+        }
         for (unsigned int f = firstPossibleFragment; f < mCFContext->nFragments; f++) {
           if (timeBin < (unsigned int)fragments[f].first.last()) {
             if ((unsigned int)fragments[f].first.first() <= timeBin + hdr->nTimeBins) {
-              fragments[f].second[2] = k + 1;
-              fragments[f].second[3] = l + 1;
               if (!fragments[f].second[4]) {
                 fragments[f].second[4] = 1;
                 fragments[f].second[0] = k;
                 fragments[f].second[1] = l;
-              } else if (emptyPages) {
-                mCFContext->fragmentData[f].nPages[iSlice][j] += emptyPages;
-                if (doGPU) {
-                  for (unsigned int m = 0; m < emptyPages; m++) {
-                    mCFContext->fragmentData[f].pageDigits[iSlice][j].emplace_back(0);
+              } else {
+                if (pageCounter > (unsigned int)fragments[f].second[5] + 1) {
+                  mCFContext->fragmentData[f].nPages[iSlice][j] += emptyPages + pageCounter - fragments[f].second[5] - 1;
+                  if (doGPU) {
+                    for (unsigned int k2 = fragments[f].second[2] - 1; k2 <= k; k2++) {
+                      for (unsigned int l2 = ((int)k2 == fragments[f].second[2] - 1) ? fragments[f].second[3] : 0; l2 < (k2 < k ? mIOPtrs.tpcZS->slice[iSlice].nZSPtr[j][k2] : l); l2++) {
+                        const unsigned char* const page2 = ((const unsigned char*)mIOPtrs.tpcZS->slice[iSlice].zsPtr[j][k2]) + l2 * TPCZSHDR::TPC_ZS_PAGE_SIZE;
+                        const o2::header::RAWDataHeader* rdh2 = (const o2::header::RAWDataHeader*)page2;
+                        if (o2::raw::RDHUtils::getMemorySize(*rdh2) == sizeof(o2::header::RAWDataHeader)) {
+                          continue;
+                        }
+                        const TPCZSHDR* const hdr2 = (const TPCZSHDR*)(page2 + sizeof(o2::header::RAWDataHeader));
+                        mCFContext->fragmentData[f].pageDigits[iSlice][j].emplace_back(hdr2->nADCsamples);
+                      }
+                    }
+                  }
+                } else if (emptyPages) {
+                  mCFContext->fragmentData[f].nPages[iSlice][j] += emptyPages;
+                  if (doGPU) {
+                    for (unsigned int m = 0; m < emptyPages; m++) {
+                      mCFContext->fragmentData[f].pageDigits[iSlice][j].emplace_back(0);
+                    }
                   }
                 }
               }
+              fragments[f].second[2] = k + 1;
+              fragments[f].second[3] = l + 1;
+              fragments[f].second[5] = pageCounter;
               mCFContext->fragmentData[f].nPages[iSlice][j]++;
               mCFContext->fragmentData[f].nDigits[iSlice][j] += hdr->nADCsamples;
               if (doGPU) {
                 mCFContext->fragmentData[f].pageDigits[iSlice][j].emplace_back(hdr->nADCsamples);
               }
+            } else {
+              break;
             }
           } else {
             firstPossibleFragment = f + 1;
