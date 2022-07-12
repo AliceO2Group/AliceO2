@@ -339,7 +339,7 @@ void EventManagerFrame::DoTimeTick()
                           this->mEventManager->getDataSource()->getCollisionTime());
       DirectoryLoader::reduceNumberOfFiles(imageFolder, DirectoryLoader::load(imageFolder, "_", ".png"), 10);
 
-      LOG(INFO) << mEventManager->getInstance().getDataSource()->getEventName();
+      LOG(info) << mEventManager->getInstance().getDataSource()->getEventName();
     }
   }
   mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
