@@ -20,9 +20,9 @@
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CCDB/CcdbApi.h"
 #include "Framework/Logger.h"
-#include "Framework/ControlService.h" 
-#include "Framework/ConfigParamRegistry.h" 
-#include "Framework/CCDBParamSpec.h" 
+#include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/ChannelData.h"
@@ -146,7 +146,7 @@ framework::DataProcessorSpec getTDCCalibSpec()
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tdccalibconfig", "ZDC", "TDCCALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathTDCCalibConfig.data())));
   inputs.emplace_back("tdccalib", "ZDC", "TDCCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathTDCCalib.data())));
-  inputs.emplace_back("tdccalibdata", "ZDC", "TDCCALIBDATA", 0, Lifetime::Timeframe); 
+  inputs.emplace_back("tdccalibdata", "ZDC", "TDCCALIBDATA", 0, Lifetime::Timeframe);
 
   char outputa[o2::header::gSizeDataDescriptionString];
   char outputd[o2::header::gSizeDataDescriptionString];
@@ -168,5 +168,5 @@ framework::DataProcessorSpec getTDCCalibSpec()
     Options{{"verbosity-level", o2::framework::VariantType::Int, 1, {"Verbosity level"}}}};
 }
 
-} //zdc
-} //o2
+} // namespace zdc
+} // namespace o2
