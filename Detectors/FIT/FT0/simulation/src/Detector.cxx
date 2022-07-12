@@ -404,7 +404,7 @@ void Detector::addAlignableVolumes() const
   }
 }
 
-//Construction of FT0-A support structure 
+//Construction of FT0-A support structure
 //The frame is constructed by first building a block of Aluminum as a mother volume from which details can
 //be subtracted. First, 6 boxe shapes are subtracted from around the edges and 2 from the center of the frame
 //to create the fin shapes at the edges of the detector and the cross shape at the center of the detector.
