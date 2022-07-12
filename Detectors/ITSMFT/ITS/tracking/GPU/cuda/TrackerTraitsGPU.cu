@@ -470,6 +470,25 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells()
 //   //TODO: restore this
 //   // mChainRunITSTrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
 // }
+
+template <int NLayers>
+int TrackerTraitsGPU<NLayers>::getTFNumberOfClusters() const
+{
+  return mTimeFrameGPU->getNumberOfClusters();
+}
+
+template <int NLayers>
+int TrackerTraitsGPU<NLayers>::getTFNumberOfTracklets() const
+{
+  return mTimeFrameGPU->getNumberOfTracklets();
+}
+
+template <int NLayers>
+int TrackerTraitsGPU<NLayers>::getTFNumberOfCells() const
+{
+  return mTimeFrameGPU->getNumberOfCells();
+}
+
 template class TrackerTraitsGPU<7>;
 } // namespace its
 } // namespace o2

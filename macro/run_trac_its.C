@@ -169,7 +169,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
     tf.loadROFrameData(rofspan, clSpan, pattIt_vertexer, dict, labels);
     tf.setMultiplicityCutMask(processingMask);
     vertexer.adoptTimeFrame(tf);
-    vertexer.clustersToVertices(mcTruth);
+    vertexer.clustersToVertices();
     int iRof = 0;
     for (auto& rof : *rofs) {
       auto it = pattIt;
