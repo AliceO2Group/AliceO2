@@ -151,8 +151,10 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
                 fragments[f].second[1] = l;
               } else if (emptyPages) {
                 mCFContext->fragmentData[f].nPages[iSlice][j] += emptyPages;
-                for (unsigned int m = 0; m < emptyPages; m++) {
-                  mCFContext->fragmentData[f].pageDigits[iSlice][j].emplace_back(0);
+                if (doGPU) {
+                  for (unsigned int m = 0; m < emptyPages; m++) {
+                    mCFContext->fragmentData[f].pageDigits[iSlice][j].emplace_back(0);
+                  }
                 }
               }
               mCFContext->fragmentData[f].nPages[iSlice][j]++;
