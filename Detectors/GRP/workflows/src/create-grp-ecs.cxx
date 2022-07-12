@@ -37,7 +37,10 @@ void createGRPECSObject(const std::string& dataPeriod,
                         const std::string& detsTrigger,
                         long tstart,
                         long tend,
+                        long marginAtSOR,
+                        long marginAtEOR,
                         const std::string& ccdbServer = "",
+                        const std::string& metaDataStr = "",
                         CCDBRefreshMode refresh = CCDBRefreshMode::NONE)
 {
   auto detMask = o2::detectors::DetID::getMask(detsReadout);
@@ -53,13 +56,11 @@ void createGRPECSObject(const std::string& dataPeriod,
   if (tstart == 0) {
     tstart = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
   }
-  auto MarginAtSOR = 4 * o2::ccdb::CcdbObjectInfo::DAY;     // assume that we will never have run longer than 4 days, apply this validity duration when creating SOR version
-  auto MarginAtEOR = 10 * o2::ccdb::CcdbObjectInfo::MINUTE; // when writing EOR version, make it and also SOR version valid this margin after real EOR timestamp
   long tendVal = 0;
   if (tend < tstart) {
-    tendVal = tstart + MarginAtSOR;
+    tendVal = tstart + marginAtSOR;
   } else if (tendVal < tend) {
-    tendVal = tend + MarginAtEOR;
+    tendVal = tend + marginAtEOR;
   }
   GRPECSObject grpecs;
   grpecs.setTimeStart(tstart);
@@ -74,12 +75,28 @@ void createGRPECSObject(const std::string& dataPeriod,
   grpecs.setDataPeriod(dataPeriod);
 
   grpecs.print();
+  std::map<std::string, std::string> metadata;
+
+  auto toKeyValPairs = [&metadata](const std::string& str) {
+    auto v0 = o2::utils::Str::tokenize(str, ';', true);
+    for (auto& token : v0) {
+      auto keyval = o2::utils::Str::tokenize(token, '=', false);
+      if (keyval.size() != 2) {
+        LOG(error) << "Illegal command-line key/value string: " << token;
+        continue;
+      }
+      o2::utils::Str::trim(keyval[1]);
+      LOGP(info, "Adding key {} with value {}", keyval[0], keyval[1]);
+      metadata[keyval[0]] = keyval[1];
+    }
+  };
+
+  toKeyValPairs(metaDataStr);
 
   if (!ccdbServer.empty()) {
     CcdbApi api;
     const std::string objPath{"GLO/Config/GRPECS"};
     api.init(ccdbServer);
-    std::map<std::string, std::string> metadata;
     metadata["responsible"] = "ECS";
     metadata[o2::base::NameConf::CCDBRunTag.data()] = std::to_string(run);
     metadata["EOR"] = fmt::format("{}", tend);
@@ -149,8 +166,10 @@ int main(int argc, char** argv)
     add_option("start-time,s", bpo::value<long>()->default_value(0), "run start time in ms, now() if 0");
     add_option("end-time,e", bpo::value<long>()->default_value(0), "run end time in ms, start-time+3days is used if 0");
     add_option("ccdb-server", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "CCDB server for upload, local file if empty");
+    add_option("meta-data,m", bpo::value<std::string>()->default_value("")->implicit_value(""), "metadata as key1=value1;key2=value2;..");
     add_option("refresh", bpo::value<string>()->default_value("")->implicit_value("async"), R"(refresh server cache after upload: "none" (or ""), "async" (non-blocking) and "sync" (blocking))");
-
+    add_option("marginSOR", bpo::value<long>()->default_value(4 * o2::ccdb::CcdbObjectInfo::DAY), "validity at SOR");
+    add_option("marginEOR", bpo::value<long>()->default_value(10 * o2::ccdb::CcdbObjectInfo::MINUTE), "validity margin to add after EOR");
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
 
@@ -203,6 +222,9 @@ int main(int argc, char** argv)
     vm["triggering"].as<std::string>(),
     vm["start-time"].as<long>(),
     vm["end-time"].as<long>(),
+    vm["marginSOR"].as<long>(),
+    vm["marginEOR"].as<long>(),
     vm["ccdb-server"].as<std::string>(),
+    vm["meta-data"].as<std::string>(),
     refresh);
 }
