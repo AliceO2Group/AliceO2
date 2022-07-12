@@ -57,6 +57,7 @@ bool Options::processCommandLine(int argc, char* argv[])
   eveOptions.add_options()(
     "help,h", "produce help message")(
     "datafolder,d", bpo::value<decltype(this->mDataFolder)>()->default_value("./json"), "name of the data folder")(
+    "imagefolder,i", bpo::value<decltype(this->mImageFolder)>()->default_value(""), "name of the image folder")(
     "filename,f", bpo::value<decltype(this->mFileName)>()->default_value("data.root"), "name of the data file")(
     "json,j", bpo::value<decltype(this->mJSON)>()->zero_tokens()->default_value(false), "use json files as a source")(
     "memorylimit,m", bpo::value<decltype(this->mMemoryLimit)>()->default_value(-1), "memory usage limit (MB) - app will terminate if it is exceeded (pass -1 for no limit)")(
@@ -89,6 +90,7 @@ bool Options::processCommandLine(int argc, char* argv[])
   }
 
   this->mDataFolder = varmap["datafolder"].as<decltype(this->mDataFolder)>();
+  this->mImageFolder = varmap["imagefolder"].as<decltype(this->mImageFolder)>();
   this->mFileName = varmap["filename"].as<decltype(this->mFileName)>();
   this->mJSON = varmap["json"].as<decltype(this->mJSON)>();
   this->mMemoryLimit = varmap["memorylimit"].as<decltype(this->mMemoryLimit)>();

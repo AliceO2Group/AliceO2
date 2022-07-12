@@ -27,7 +27,8 @@ namespace event_visualisation
 class DirectoryLoader
 {
  public:
-  static std::deque<std::string> load(const std::string& path, const std::string& marker);
+  static std::deque<std::string> load(const std::string& path, const std::string& marker, const std::string& ext);
+  static void reduceNumberOfFiles(const std::string& path, const std::deque<std::string>& files, std::size_t filesInFolder);
 };
 
 } // namespace event_visualisation

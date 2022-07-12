@@ -20,11 +20,11 @@
 using namespace std;
 using namespace o2::event_visualisation;
 
-deque<string> DirectoryLoader::load(const std::string& path, const std::string& marker)
+deque<string> DirectoryLoader::load(const std::string& path, const std::string& marker, const std::string& ext)
 {
   deque<string> result;
   for (const auto& entry : std::filesystem::directory_iterator(path)) {
-    if (entry.path().extension() == ".json") {
+    if (entry.path().extension() == ext) {
       result.push_back(entry.path().filename());
     }
   }
@@ -35,4 +35,12 @@ deque<string> DirectoryLoader::load(const std::string& path, const std::string& 
             });
 
   return result;
+}
+
+void DirectoryLoader::reduceNumberOfFiles(const std::string& path, const std::deque<std::string>& files, std::size_t filesInFolder)
+{
+  int items = files.size() - std::min(files.size(), filesInFolder);
+  for (int i = 0; i < items; i++) {
+    std::remove((path + "/" + files[i]).c_str()); // delete file
+  }
 }
