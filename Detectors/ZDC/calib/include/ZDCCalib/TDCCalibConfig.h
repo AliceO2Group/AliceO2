@@ -34,13 +34,13 @@ struct TDCCalibConfig {
                                   std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()};
   //double cutLow[NTDCChannels] = {-std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()};
   //double cutHigh[NTDCChannels] = {std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()};
-  bool enabled[NTDCChannels] = {true,true,true,true,true,true,true,true,true,true}; //ZNAC, ZNAS, ZPAC, ZPAS, ZEM1, ZEM2, ZNCC, ZNCS, ZPCC, ZPCS
-  int nb1[NTDCChannels] = {0};      /// 1D histogram: number of bins
-  double amin1[NTDCChannels] = {0}; /// minimum
-  double amax1[NTDCChannels] = {0}; /// maximum
-  int nb2[NTDCChannels] = {0};      /// 2D histogram: number of bins
-  double amin2[NTDCChannels] = {0}; /// minimum
-  double amax2[NTDCChannels] = {0}; /// maximum
+  bool enabled[NTDCChannels] = {true, true, true, true, true, true, true, true, true, true}; //ZNAC, ZNAS, ZPAC, ZPAS, ZEM1, ZEM2, ZNCC, ZNCS, ZPCC, ZPCS
+  int nb1[NTDCChannels] = {0};                                                               /// 1D histogram: number of bins
+  double amin1[NTDCChannels] = {0};                                                          /// minimum
+  double amax1[NTDCChannels] = {0};                                                          /// maximum
+  int nb2[NTDCChannels] = {0};                                                               /// 2D histogram: number of bins
+  double amin2[NTDCChannels] = {0};                                                          /// minimum
+  double amax2[NTDCChannels] = {0};                                                          /// maximum
   double l_bnd[NTDCChannels] = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
   double u_bnd[NTDCChannels] = {10., 10., 10., 10., 10., 10., 10., 10., 10., 10.};
   double l_bnd_o[NTDCChannels] = {-20., -20., -20., -20., -20., -20., -20., -20., -20., -20.};
@@ -85,7 +85,7 @@ struct TDCCalibConfig {
     enabled[8] = c8;
     enabled[9] = c9;
   }
-  
+
   ClassDefNV(TDCCalibConfig, 3);
 };
 } // namespace zdc

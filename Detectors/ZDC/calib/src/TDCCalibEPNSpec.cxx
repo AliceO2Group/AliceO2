@@ -88,8 +88,8 @@ void TDCCalibEPNSpec::run(ProcessingContext& pc)
     mTimer.Stop();
     mTimer.Reset();
     mTimer.Start(false);
-    } 
-    //auto config = pc.inputs().get<o2::zdc::TDCCalibConfig*>("tdccalibconfig");
+  }
+  //auto config = pc.inputs().get<o2::zdc::TDCCalibConfig*>("tdccalibconfig");
   const auto ref = pc.inputs().getFirstValid(true);
   auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
   mWorker.getData().setCreationTime(creationTime);
@@ -132,19 +132,19 @@ framework::DataProcessorSpec getTDCCalibEPNSpec()
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ZDC", "TDCCALIBDATA", 0, Lifetime::Timeframe); //added by me
   char outputd[o2::header::gSizeDataDescriptionString];
-  
+
   for (int ih = 0; ih < TDCCalibData::NTDC; ih++) {
     snprintf(outputd, o2::header::gSizeDataDescriptionString, "TDC_1DH%d", ih);
     outputs.emplace_back("ZDC", outputd, 0, Lifetime::Timeframe);
   }
-  
+
   return DataProcessorSpec{
-    "zdc-tdccalib-epn", 
+    "zdc-tdccalib-epn",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TDCCalibEPNSpec>()},
     o2::framework::Options{{"verbosity-level", o2::framework::VariantType::Int, 0, {"Verbosity level"}}}};
 }
 
-} //zdc
-} //o2
+} // namespace zdc
+} // namespace o2

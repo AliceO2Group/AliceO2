@@ -45,7 +45,7 @@ void CreateTDCCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = 
   // The version for this macro considers NO energy calibration, i.e. all coefficients = 1
   // It is necessary to set the binning
   conf.setBinning1D(100, -5, 5); //same range as plot_calo_loop 2400, -12.5 to 12.5 altrimenti bin vuoti
-  conf.setBinning2D(50, -5, 5); //same range as plot_calo_loop
+  conf.setBinning2D(50, -5, 5);  //same range as plot_calo_loop
 
   conf.setDescription("Simulated data");
 

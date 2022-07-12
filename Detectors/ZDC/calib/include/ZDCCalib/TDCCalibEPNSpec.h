@@ -44,9 +44,9 @@ class TDCCalibEPNSpec : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  int mVerbosity = DbgMinimal;  // Verbosity level
-  bool mInitialized = false;    // Connect once to CCDB during initialization
-  TDCCalibEPN mWorker;          // TDC calibration object (was mTDCCalibEPN, modified after discussion with Pietro 20 June 2022)
+  int mVerbosity = DbgMinimal; // Verbosity level
+  bool mInitialized = false;   // Connect once to CCDB during initialization
+  TDCCalibEPN mWorker;         // TDC calibration object (was mTDCCalibEPN, modified after discussion with Pietro 20 June 2022)
   TStopwatch mTimer;
 };
 

@@ -37,7 +37,7 @@ namespace zdc
 class TDCCalib //after
 {
 
-	using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo; //added by me
+  using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo; //added by me
 
  public:
   TDCCalib() = default;
@@ -49,12 +49,12 @@ class TDCCalib //after
               const gsl::span<const uint16_t>& info); // Calibration of RUN3 data
   int process(const TDCCalibData& data);              // Calibration of RUN3 data - aggregator node
   int endOfRun();                                     // Perform minimization
-  double extractShift(int ih); 
+  double extractShift(int ih);
   void add(int ih, o2::dataformats::FlatHisto1D<float>& h1);
   int write(const std::string fn = "ZDCTDCCalib.root");
-  
+
   const ZDCTDCParam& getTDCParamUpd() const { return mTDCParamUpd; }; //added by me
-  CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; } //added by me
+  CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; }               //added by me
 
   void setTDCParam(const ZDCTDCParam* param) { mTDCParam = param; };
   const ZDCTDCParam* getTDCParam() const { return mTDCParam; };
@@ -66,7 +66,7 @@ class TDCCalib //after
 
  private:
   std::array<o2::dataformats::FlatHisto1D<float>*, NTDCChannels> mCTDC{}; //array of FlatHisto1D, number of elements = NTDCChannles (= 10), defined in constants.h {} means defined but not initialized
-  std::array<std::unique_ptr<TH1>, NTDCChannels> mHCTDC{}; //copy of flat histo 1D in TH1F to use root functions
+  std::array<std::unique_ptr<TH1>, NTDCChannels> mHCTDC{};                //copy of flat histo 1D in TH1F to use root functions
   bool mInitDone = false;
   bool mSaveDebugHistos = true;
   const TDCCalibConfig* mTDCCalibConfig = nullptr; /// Configuration of TDC calibration, this line has been swapped with the following one to be consistent with intercalibration
@@ -74,10 +74,9 @@ class TDCCalib //after
   int32_t mVerbosity = DbgMinimal;
 
   TDCCalibData mData;
-  ZDCTDCParam mTDCParamUpd;                        /// Updated TDC calibration object, added by me
-	CcdbObjectInfo mInfo;                            /// CCDB Info, added by me
-  void assign(int ih, bool ismod);                 /// Assign updated calibration object, added by me
-   
+  ZDCTDCParam mTDCParamUpd;        /// Updated TDC calibration object, added by me
+  CcdbObjectInfo mInfo;            /// CCDB Info, added by me
+  void assign(int ih, bool ismod); /// Assign updated calibration object, added by me
 };
 } // namespace zdc
 } // namespace o2

@@ -26,9 +26,9 @@ namespace zdc
 {
 
 struct TDCCalibData {
-  static constexpr int NTDC = 10;    /// ZNAC, ZNAS, ZPAC, ZPAS, ZEM1, ZEM2, ZNCC, ZNCS, ZPCC, ZPCS 
-  uint64_t mCTimeBeg = 0;            /// Time of processed time frame
-  uint64_t mCTimeEnd = 0;            /// Time of processed time frame
+  static constexpr int NTDC = 10; /// ZNAC, ZNAS, ZPAC, ZPAS, ZEM1, ZEM2, ZNCC, ZNCS, ZPCC, ZPCS
+  uint64_t mCTimeBeg = 0;         /// Time of processed time frame
+  uint64_t mCTimeEnd = 0;         /// Time of processed time frame
   static constexpr const char* CTDC[NTDC] = {"ZNAC", "ZNAS", "ZPAC", "ZPAS", "ZEM1", "ZEM2", "ZNCC", "ZNCS", "ZPCC", "ZPCS"};
   int entries[NTDC] = {0};
   TDCCalibData& operator+=(const TDCCalibData& other);
