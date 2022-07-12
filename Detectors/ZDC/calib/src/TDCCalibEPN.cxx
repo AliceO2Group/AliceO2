@@ -38,7 +38,7 @@ int TDCCalibEPN::init()
   int ih;
   // clang-format off
   for (int iTDC = 0; iTDC < NTDC; iTDC++) {
-  	mTDC[iTDC] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[iTDC],cfg->amin1[iTDC],cfg->amax1[iTDC]);
+    mTDC[iTDC] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[iTDC],cfg->amin1[iTDC],cfg->amax1[iTDC]);
   }
 
   // clang-format on

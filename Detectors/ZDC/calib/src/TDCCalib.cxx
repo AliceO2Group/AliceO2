@@ -37,8 +37,8 @@ int TDCCalib::init()
   int ih = 0;
   // clang-format off
   for (int i = 0; i < TDCCalibData::NTDC; i++) {
-  	mCTDC[i] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]); //sum of TF histograms
-  	ih++;	
+    mCTDC[i] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]); //sum of TF histograms
+    ih++;
   }
   // clang-format on
   mInitDone = true;
