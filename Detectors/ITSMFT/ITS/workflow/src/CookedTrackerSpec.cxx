@@ -52,7 +52,7 @@ namespace its
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-CookedTrackerDPL::CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool useTRDTriggers, const std::string& trMode) : mGGCCDBRequest(gr), mUseMC(useMC), mUseTRDTriggers{useTRDTriggers}, mMode(trMode)
+CookedTrackerDPL::CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int trgType, const std::string& trMode) : mGGCCDBRequest(gr), mUseMC(useMC), mUseTriggers{trgType}, mMode(trMode)
 {
   mVertexerTraitsPtr = std::make_unique<VertexerTraits>();
   mVertexerPtr = std::make_unique<Vertexer>(mVertexerTraitsPtr.get());
@@ -81,17 +81,17 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
   gsl::span<const o2::itsmft::PhysTrigger> physTriggers;
   std::vector<o2::itsmft::PhysTrigger> fromTRD;
-  if (mUseTRDTriggers) {
+  if (mUseTriggers == 2) { // use TRD triggers
     o2::InteractionRecord ir{0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
     auto trdTriggers = pc.inputs().get<gsl::span<o2::trd::TriggerRecord>>("phystrig");
     for (const auto& trig : trdTriggers) {
       if (trig.getBCData() >= ir && trig.getNumberOfTracklets()) {
         ir = trig.getBCData();
-        fromTRD.emplace_back(o2::itsmft::PhysTrigger{ir, 0, false, false});
+        fromTRD.emplace_back(o2::itsmft::PhysTrigger{ir, 0});
       }
     }
     physTriggers = gsl::span<const o2::itsmft::PhysTrigger>(fromTRD.data(), fromTRD.size());
-  } else {
+  } else if (mUseTriggers == 1) { // use Phys triggers from ITS stream
     physTriggers = pc.inputs().get<gsl::span<o2::itsmft::PhysTrigger>>("phystrig");
   }
 
@@ -262,7 +262,7 @@ void CookedTrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-DataProcessorSpec getCookedTrackerSpec(bool useMC, bool useTRD, const std::string& trMode)
+DataProcessorSpec getCookedTrackerSpec(bool useMC, int trgType, const std::string& trMode)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -270,10 +270,10 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC, bool useTRD, const std::strin
   inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
   inputs.emplace_back("alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
-  if (useTRD) {
-    inputs.emplace_back("phystrig", "TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
-  } else {
+  if (trgType == 1) {
     inputs.emplace_back("phystrig", "ITS", "PHYSTRIG", 0, Lifetime::Timeframe);
+  } else if (trgType == 2) {
+    inputs.emplace_back("phystrig", "TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
   }
 
   std::vector<OutputSpec> outputs;
@@ -302,7 +302,7 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC, bool useTRD, const std::strin
     "its-cooked-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(ggRequest, useMC, useTRD, trMode)},
+    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(ggRequest, useMC, trgType, trMode)},
     Options{{"nthreads", VariantType::Int, 1, {"Number of threads"}}}};
 }
 

@@ -21,10 +21,8 @@ namespace o2::itsmft
 {
 // root friendly version of the trigger (root does not support anonymous structs)
 struct PhysTrigger {
-  o2::InteractionRecord ir;
-  uint16_t triggerType = 0;
-  bool internal = false;
-  bool noData = false;
+  o2::InteractionRecord ir{};
+  uint64_t data = 0;
 
   ClassDefNV(PhysTrigger, 1);
 };
