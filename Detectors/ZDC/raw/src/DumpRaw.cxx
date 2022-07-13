@@ -66,7 +66,7 @@ void DumpRaw::init()
       TString hname = TString::Format("hp%d%d", imod, ich);
       TString htit = TString::Format("Baseline mod. %d ch. %d;Average orbit baseline", imod, ich);
       //mBaseline[i]=new TH1F(hname,htit,ADCRange,ADCMin-0.5,ADCMax+0.5);
-      mBaseline[i] = new TH1F(hname, htit, 16378, -0.125, ADCMax + 0.125);
+      mBaseline[i] = new TH1F(hname, htit, 65536, -32768.5, 32767.5);
     }
     if (mCounts[i]) {
       mCounts[i]->Reset();
@@ -239,9 +239,7 @@ int DumpRaw::process(const EventChData& ch)
     mBunch[ih]->Fill(bc_m, -bc_d);
   }
   if (f.bc == last_bc) {
-    int32_t offset = f.offset - 32768;
-    double foffset = offset / 8.;
-    mBaseline[ih]->Fill(foffset);
+    mBaseline[ih]->Fill(f.offset - 32768.);
     mCounts[ih]->Fill(f.hits);
   }
   return 0;

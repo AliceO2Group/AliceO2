@@ -247,7 +247,9 @@ inline void Digits2Raw::updatePedestalReference(int bc)
         mSumPed[im][ic] += gRandom->Gaus(12. * deltan * base_m, 12. * k * base_s * TMath::Sqrt(deltan / k));
         // Adding in quadrature the RMS of pedestal electronic noise
         mSumPed[im][ic] += gRandom->Gaus(0, base_n * TMath::Sqrt(12. * deltan));
-        double myped = TMath::Nint(8. * mSumPed[im][ic] / double(mEmpty[bc]) / 12. + 32768);
+        double myped = mSumPed[im][ic] / double(mEmpty[bc]) / 12.;          // Average current pedestal
+        myped = TMath::Nint(myped / mModuleConfig->baselineFactor + 32768); // Convert into digitized pedestal
+        // Correct for overflow and underflow
         if (myped < 0) {
           myped = 0;
         }
@@ -534,9 +536,9 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
   uint32_t a = word[0];
   uint32_t b = word[1];
   uint32_t c = word[2];
-  //uint32_t d=(msb>>32)&0xffffffff;
-  //printf("\n%llx %llx ",lsb,msb);
-  //printf("\n%8x %8x %8x %8x ",d,c,b,a);
+  // uint32_t d=(msb>>32)&0xffffffff;
+  // printf("\n%llx %llx ",lsb,msb);
+  // printf("\n%8x %8x %8x %8x ",d,c,b,a);
   if ((a & 0x3) == 0) {
     uint32_t myorbit = (val >> 48) & 0xffffffff;
     uint32_t mybc = (val >> 36) & 0xfff;
@@ -551,7 +553,7 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
     float foffset = offset / 8.;
     uint32_t board = (lsb >> 2) & 0xf;
     uint32_t ch = (lsb >> 6) & 0x3;
-    //printf("orbit %9u bc %4u hits %4u offset %+6i Board %2u Ch %1u", myorbit, mybc, hits, offset, board, ch);
+    // printf("orbit %9u bc %4u hits %4u offset %+6i Board %2u Ch %1u", myorbit, mybc, hits, offset, board, ch);
     printf("orbit %9u bc %4u hits %4u offset %+8.3f Board %2u Ch %1u", myorbit, mybc, hits, foffset, board, ch);
     if (board >= NModules) {
       printf(" ERROR with board");
@@ -605,6 +607,7 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
 //______________________________________________________________________________
 void Digits2Raw::emptyBunches(std::bitset<3564>& bunchPattern)
 {
+  // TODO: get bunch pattern used by acquisition
   const int LHCMaxBunches = o2::constants::lhc::LHCMaxBunches;
   mNEmpty = 0;
   for (int32_t ib = 0; ib < LHCMaxBunches; ib++) {
