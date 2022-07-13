@@ -56,6 +56,9 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   //  const auto ctfImage = o2::itsmft::CTF::getImage(buff.data());
 
+  // this produces weird memory problems in unrelated devices, to be understood
+  // auto& trigs = pc.outputs().make<std::vector<o2::itsmft::PhysTrigger>>(OutputRef{"phystrig"}); // dummy output
+
   auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(OutputRef{"ROframes"});
   if (mGetDigits) {
     auto& digits = pc.outputs().make<std::vector<o2::itsmft::Digit>>(OutputRef{"Digits"});
@@ -73,7 +76,6 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
     mTimer.Stop();
     LOG(info) << "Decoded " << compcl.size() << " clusters in " << rofs.size() << " RO frames, (" << iosize.asString() << ") in " << mTimer.CpuTime() - cput << " s";
   }
-  pc.outputs().make<std::vector<o2::itsmft::PhysTrigger>>(OutputRef{"phystrig"}); // dummy output
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
 }
 
@@ -114,6 +116,11 @@ void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matche
 DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits, unsigned int sspec)
 {
   std::vector<OutputSpec> outputs;
+  // this is a special dummy input which makes sense only in sync workflows
+
+  // this produces weird memory problems in unrelated devices, to be understood
+  // outputs.emplace_back(OutputSpec{{"phystrig"}, orig, "PHYSTRIG", 0, Lifetime::Timeframe});
+
   if (getDigits) {
     outputs.emplace_back(OutputSpec{{"Digits"}, orig, "DIGITS", 0, Lifetime::Timeframe});
     outputs.emplace_back(OutputSpec{{"ROframes"}, orig, "DIGITSROF", 0, Lifetime::Timeframe});
@@ -123,9 +130,6 @@ DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosi
     outputs.emplace_back(OutputSpec{{"patterns"}, orig, "PATTERNS", 0, Lifetime::Timeframe});
   }
   outputs.emplace_back(OutputSpec{{"ctfrep"}, orig, "CTFDECREP", 0, Lifetime::Timeframe});
-
-  // this is a special dummy input which makes sense only in sync workflows
-  outputs.emplace_back(OutputSpec{{"phystrig"}, orig, "PHYSTRIG", 0, Lifetime::Timeframe});
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf", orig, "CTFDATA", sspec, Lifetime::Timeframe);

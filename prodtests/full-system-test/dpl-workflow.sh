@@ -108,9 +108,14 @@ else
   [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
 fi
 
-if has_detector TRD && [[ ! -z ${PRESCALE_ITS_WITH_TRD} ]]; then
-  ITS_CONFIG+=" --select-with-trd "
+if [[ $SYNCMODE == 1 ]]; then
+  if has_detector TRD && [[ ! -z ${PRESCALE_ITS_WITH_TRD} ]]; then
+    ITS_CONFIG+=" --select-with-triggers trd "
+  else
+    ITS_CONFIG+=" --select-with-triggers phys "
+  fi
 fi
+
 
 if [[ $BEAMTYPE == "PbPb" || $BEAMTYPE == "pp" ]]; then
   workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"

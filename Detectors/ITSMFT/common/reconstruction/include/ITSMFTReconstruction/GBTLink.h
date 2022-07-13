@@ -279,8 +279,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
             gbtTrg = gbtTrgTmp; // this is a trigger describing the following data
           } else {
             if (extTrigVec) { // this link collects external triggers
-              extTrigVec->emplace_back(PhysTrigger{o2::InteractionRecord(uint16_t(gbtTrgTmp->bc), uint32_t(gbtTrgTmp->orbit)),
-                                                   uint16_t(gbtTrgTmp->triggerType), gbtTrgTmp->internal != 0, gbtTrgTmp->noData != 0});
+              extTrigVec->emplace_back(PhysTrigger{o2::InteractionRecord(uint16_t(gbtTrgTmp->bc), uint32_t(gbtTrgTmp->orbit)), uint64_t(gbtTrgTmp->triggerType)});
             }
           }
           continue;
