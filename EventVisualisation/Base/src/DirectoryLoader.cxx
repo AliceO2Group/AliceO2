@@ -31,7 +31,7 @@ deque<string> DirectoryLoader::load(const std::string& path, const std::string& 
   // comparison with safety if marker not in the filename (-1+1 gives 0)
   std::sort(result.begin(), result.end(),
             [marker](std::string a, std::string b) {
-              return a.substr(a.find_last_of(marker) + 1) < b.substr(b.find_last_of(marker) + 1);
+              return a.substr(a.find_first_of(marker) + 1) < b.substr(b.find_first_of(marker) + 1);
             });
 
   return result;
