@@ -64,6 +64,10 @@ struct AO2DConverter {
       mHelper->drawAODMFT(track, collision.collisionTime());
     }
 
+    for (auto const& track : fwdTracks) {
+      mHelper->drawAODFwd(track, collision.collisionTime());
+    }
+
     mHelper->mEvent.setClMask(GlobalTrackID::MASK_NONE.to_ulong());
     mHelper->mEvent.setTrkMask(GlobalTrackID::MASK_ALL.to_ulong());
     mHelper->mEvent.setRunNumber(mRunNumber);
