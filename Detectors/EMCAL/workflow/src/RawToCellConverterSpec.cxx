@@ -36,6 +36,7 @@
 #include "EMCALReconstruction/CaloRawFitterGamma2.h"
 #include "EMCALReconstruction/AltroDecoder.h"
 #include "EMCALReconstruction/RawDecodingError.h"
+#include "EMCALReconstruction/RecoParam.h"
 #include "EMCALWorkflow/RawToCellConverterSpec.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -90,7 +91,8 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   mMergeLGHG = !ctx.options().get<bool>("no-mergeHGLG");
   mDisablePedestalEvaluation = ctx.options().get<bool>("no-evalpedestal");
 
-  LOG(info) << "Running gain merging mode: " << (mMergeLGHG ? "yes" : "no") << std::endl;
+  LOG(info) << "Running gain merging mode: " << (mMergeLGHG ? "yes" : "no");
+  LOG(info) << "Using time shift: " << RecoParam::Instance().getCellTimeShiftNanoSec() << " ns";
 
   mRawFitter->setAmpCut(mNoiseThreshold);
   mRawFitter->setL1Phase(0.);
@@ -99,10 +101,10 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(debug) << "[EMCALRawToCellConverter - run] called";
-  const double CONVADCGEV = 0.016;   // Conversion from ADC counts to energy: E = 16 MeV / ADC
-  constexpr double timeshift = 600.; // subtract 600 ns in order to center the time peak around the nominal delay
+  double timeshift = RecoParam::Instance().getCellTimeShiftNanoSec(); // subtract offset in ns in order to center the time peak around the nominal delay
   constexpr auto originEMC = o2::header::gDataOriginEMC;
   constexpr auto descRaw = o2::header::gDataDescriptionRawData;
+  double noiseThresholLGnoHG = RecoParam::Instance().getNoiseThresholdLGnoHG();
 
   // reset message counter after 10 minutes
   auto currenttime = std::chrono::system_clock::now();
@@ -399,7 +401,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             // Convention: All times shifted with respect to BC % 4 = 0 for trigger BC
             int bcmod4 = currentIR.bc % 4;
             double celltime = fitResults.getTime() - timeshift - 25 * bcmod4;
-            double amp = fitResults.getAmp() * CONVADCGEV;
+            double amp = fitResults.getAmp() * o2::emcal::constants::EMCAL_ADCENERGY;
             if (mMergeLGHG) {
               // Handling of HG/LG for ceratin cells
               // Keep the high gain if it is below the threshold, otherwise
@@ -411,7 +413,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                   res->mHWAddressLG = chan.getHardwareAddress();
                   res->mHGOutOfRange = false; // LG is found so it can replace the HG if the HG is out of range
                   if (res->mCellData.getHighGain()) {
-                    double ampOld = res->mCellData.getEnergy() / CONVADCGEV; // cut applied on ADC and not on energy
+                    double ampOld = res->mCellData.getEnergy() / o2::emcal::constants::EMCAL_ADCENERGY; // cut applied on ADC and not on energy
                     if (ampOld > o2::emcal::constants::OVERFLOWCUT) {
                       // High gain digit has energy above overflow cut, use low gain instead
                       res->mCellData.setEnergy(amp * o2::emcal::constants::EMCAL_HGLGFACTOR);
@@ -427,7 +429,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                   res->mIsLGnoHG = false;
                   res->mHGOutOfRange = false;
                   res->mHWAddressHG = chan.getHardwareAddress();
-                  if (amp / CONVADCGEV <= o2::emcal::constants::OVERFLOWCUT) {
+                  if (amp / o2::emcal::constants::EMCAL_ADCENERGY <= o2::emcal::constants::OVERFLOWCUT) {
                     res->mCellData.setEnergy(amp);
                     res->mCellData.setTimeStamp(celltime);
                     res->mCellData.setHighGain();
@@ -445,7 +447,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                   hwAddressLG = chan.getHardwareAddress();
                 } else {
                   // High gain cell: Flag as low gain if above threshold
-                  if (amp / CONVADCGEV > o2::emcal::constants::OVERFLOWCUT) {
+                  if (amp / o2::emcal::constants::EMCAL_ADCENERGY > o2::emcal::constants::OVERFLOWCUT) {
                     hgOutOfRange = true;
                   }
                   hwAddressHG = chan.getHardwareAddress();
@@ -519,17 +521,23 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       std::sort(cells->begin(), cells->end(), [](const RecCellInfo& lhs, const RecCellInfo& rhs) { return lhs.mCellData.getTower() < rhs.mCellData.getTower(); });
       for (const auto& cell : *cells) {
         if (cell.mIsLGnoHG) {
-          if (mNumErrorMessages < mMaxErrorMessages) {
-            LOG(alarm) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressLG << std::dec << " (DDL " << cell.mDDLID << ") has low gain but no high-gain";
-            mNumErrorMessages++;
-            if (mNumErrorMessages == mMaxErrorMessages) {
-              LOG(alarm) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+          // Treat error only in case the LG is above the noise threshold
+          // no HG cell found, we can assume the cell amplitude is the LG amplitude
+          int ampLG = cell.mCellData.getAmplitude() / (o2::emcal::constants::EMCAL_ADCENERGY * o2::emcal::constants::EMCAL_HGLGFACTOR);
+          // use cut at 3 sigma where sigma for the LG digitizer is 0.4 ADC counts (EMCAL-502)
+          if (ampLG > noiseThresholLGnoHG) {
+            if (mNumErrorMessages < mMaxErrorMessages) {
+              LOG(alarm) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressLG << std::dec << " (DDL " << cell.mDDLID << ") has low gain but no high-gain";
+              mNumErrorMessages++;
+              if (mNumErrorMessages == mMaxErrorMessages) {
+                LOG(alarm) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+              }
+            } else {
+              mErrorMessagesSuppressed++;
             }
-          } else {
-            mErrorMessagesSuppressed++;
-          }
-          if (mCreateRawDataErrors) {
-            mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 0, cell.mFecID);
+            if (mCreateRawDataErrors) {
+              mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 0, cell.mFecID);
+            }
           }
           continue;
         }
