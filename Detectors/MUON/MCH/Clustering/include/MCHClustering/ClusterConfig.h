@@ -26,11 +26,19 @@ typedef short Groups_t; // Groups/sub-cluster type
 typedef short Mask_t;   // To build mask
 
 struct ClusterConfig {
+  //
   // Physical-Numerical parameters
-  static constexpr double minChargeOfClusterPerCathode =
-    1.1; // Lowest Charge of a Group
-
+  //
+  // static constexpr double minChargeOfClusterPerCathode = 1.1; // Lowest Charge of a Group
+  static constexpr double minChargeOfClusterPerCathode = 20.0; // Lowest Charge of a Group
+  //
+  // Algorithm limitations
+  //
+  // Limit of pad number  to perform the fitting
+  static constexpr int nbrOfPadsLimitForTheFitting = 100;
+  //
   // Logs
+  //
   enum VerboseMode {
     no = 0x0,     ///< No message
     info = 0x1,   ///< Describes main steps and high level behaviors
@@ -42,19 +50,22 @@ struct ClusterConfig {
   static constexpr VerboseMode padMappingLog = no;
   static constexpr VerboseMode groupsLog = no;
   static constexpr VerboseMode EMLocalMaxLog = no;
-  static constexpr VerboseMode laplacianLocalMaxLog = no;
   static constexpr VerboseMode inspectModelLog = no;
-  // TODO ???
-  // Check, Stat
-  // Check
+  static constexpr VerboseMode laplacianLocalMaxLog = no;
+  //
+  // Checks
+  //
   enum ActivateMode {
     inactive = 0x0, ///< No activation
     active = 0x1,   ///< Describe default activation
   };
-  static constexpr ActivateMode inspectModel = inactive;
-
-  static constexpr bool groupsCheck = false;
+  // Activate/deactivate InspectModel
+  static constexpr ActivateMode inspectModel = active;
+  //
+  static constexpr bool groupsCheck = true;
   static constexpr bool padMappingCheck = true;
+  // TODO ???
+  // Check, Stat
 };
 
 } // namespace mch

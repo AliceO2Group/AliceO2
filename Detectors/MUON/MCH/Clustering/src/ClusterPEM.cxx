@@ -27,8 +27,6 @@
 #include "mathiesonFit.h"
 #include "poissonEM.h"
 
-// ??? maybe better in const header
-
 namespace o2
 {
 namespace mch
@@ -37,9 +35,6 @@ namespace mch
 // doProcess = verbose + (doJacobian << 2) + ( doKhi << 3) + (doStdErr << 4)
 static const int processFitVerbose = 1 + (0 << 2) + (1 << 3) + (1 << 4);
 static const int processFit = 0 + (0 << 2) + (1 << 3) + (1 << 4);
-
-// Limit of pad number  to perform the fitting
-static const int nbrOfPadsLimitForTheFitting = 70;
 
 double epsilonGeometry = 1.0e-4;
 
@@ -116,7 +111,7 @@ ClusterPEM::ClusterPEM(const double* x, const double* y, const double* dx,
   aloneKPads = nullptr;
 
   //
-  if (ClusterConfig::processingLog >= ClusterConfig::detail) {
+  if (ClusterConfig::processingLog >= ClusterConfig::info) {
     printf("-----------------------------\n");
     printf("Starting CLUSTER PROCESSING\n");
     printf("# cath0=%2d, cath1=%2d\n", nbrCath0, nbrCath1);
@@ -150,6 +145,8 @@ ClusterPEM::ClusterPEM(ClusterPEM& cluster, Groups_t g)
                                           cluster.pads[c]->getNbrOfPads(),
                                           maskGrpCath[c]);
     }
+    // inv ??? printf("??? pads in the same group cathode c=%d \n", c);
+    // inv ??? vectorPrintShort("??? maskGrpCath[c]",  maskGrpCath[c], cluster.pads[c]->getNbrOfPads());
     if (nbrPads != 0) {
       // Create the pads of the group g
       pads[c] = new Pads(*cluster.pads[c], maskGrpCath[c]);
@@ -770,9 +767,9 @@ int ClusterPEM::buildGroupOfPads()
   int nbrCath0 = (pads[0]) ? pads[0]->getNbrOfPads() : 0;
   int nbrCath1 = (pads[1]) ? pads[1]->getNbrOfPads() : 0;
 
-  if (ClusterConfig::groupsLog >= ClusterConfig::info) {
+  if (ClusterConfig::groupsLog >= ClusterConfig::info || ClusterConfig::processingLog >= ClusterConfig::info) {
     printf("\n");
-    printf("Group processing\n");
+    printf("[buildGroupOfPads] Group processing\n");
     printf("----------------\n");
   }
   //
@@ -918,8 +915,8 @@ int ClusterPEM::buildGroupOfPads()
     updateProjectionGroups();
   }
 
-  if (ClusterConfig::groupsLog >= ClusterConfig::info) {
-    printf("> Final Groups %d\n", nGroups);
+  if (ClusterConfig::groupsLog >= ClusterConfig::info || ClusterConfig::processingLog >= ClusterConfig::info) {
+    printf("  > Final Groups %d\n", nGroups);
     vectorPrintShort("  cathToGrp[0]", cathGroup[0], nbrCath0);
     vectorPrintShort("  cathToGrp[1]", cathGroup[1], nbrCath1);
   }
@@ -1201,9 +1198,8 @@ int ClusterPEM::assignPadsToGroupFromProj(int nGrp)
   if (ClusterConfig::groupsCheck) {
     for (int c = 0; c < 2; c++) {
       for (int p = 0; p < pads[c]->getNbrOfPads(); p++) {
-        if (cathGroup[c][p] == 0) {
-          printf("  Warning  assignPadsToGroupFromProj: pad %d with no group\n",
-                 p);
+        if (ClusterConfig::groupsLog >= ClusterConfig::info && cathGroup[c][p] == 0) {
+          printf("  [assignPadsToGroupFromProj] pad %d with no group\n", p);
         }
       }
     }
@@ -1254,7 +1250,7 @@ int ClusterPEM::assignGroupToCathPads()
   int nCathGrp = 0;
   //
   if (ClusterConfig::groupsLog >= ClusterConfig::info) {
-    printf("  assignGroupToCathPads\n");
+    printf("  [assignGroupToCathPads]\n");
   }
   //
   PadIdx_t i, j;
@@ -1329,10 +1325,10 @@ int ClusterPEM::assignGroupToCathPads()
   }
 
   if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
-    printf("assignGroupToCathPads nCathGrp=%d\n", nCathGrp);
-    vectorPrintShort("  cath0ToGrpFromProj ??? ", cath0ToGrpFromProj, nCath0);
-    vectorPrintShort("  cath1ToGrpFromProj ??? ", cath1ToGrpFromProj, nCath1);
-    vectorPrintShort("  projGrpToCathGrp ??? ", projGrpToCathGrp, nGrp + 1);
+    printf("  [assignGroupToCathPads] before renumbering nCathGrp=%d\n", nCathGrp);
+    vectorPrintShort("    cath0ToGrpFromProj", cath0ToGrpFromProj, nCath0);
+    vectorPrintShort("    cath1ToGrpFromProj", cath1ToGrpFromProj, nCath1);
+    vectorPrintShort("    projGrpToCathGrp", projGrpToCathGrp, nGrp + 1);
   }
   //
   // Renumering cathodes groups
@@ -1365,6 +1361,19 @@ int ClusterPEM::assignGroupToCathPads()
   return nNewGrp;
 }
 
+int ClusterPEM::getNbrOfPadsInGroup(int g)
+{
+  int nbrOfPads = 0;
+  for (int c = 0; c < 2; c++) {
+    int nbrPads = getNbrOfPads(c);
+    for (int p = 0; p < nbrPads; p++) {
+      if (cathGroup[c][p] == g)
+        nbrOfPads++;
+    }
+  }
+  return nbrOfPads;
+}
+
 void ClusterPEM::removeLowChargedGroups(int nGroups)
 {
   int nbrPadsInGroup[2][nGroups + 1];
@@ -1375,11 +1384,7 @@ void ClusterPEM::removeLowChargedGroups(int nGroups)
   vectorSet(chargeInGroup[1], 0, nGroups);
   int nbrCath = 0;
   //
-  if (ClusterConfig::groupsLog >= ClusterConfig::detail) {
-    printf("> Remove low charge groups [removeLowChargedGroups] nGroups=%d\n",
-           nGroups);
-  }
-
+  // Compute the total charge of a group
   for (int c = 0; c < 2; c++) {
     int nbrPads = pads[c]->getNbrOfPads();
     const double* q = pads[c]->getCharges();
@@ -1400,6 +1405,7 @@ void ClusterPEM::removeLowChargedGroups(int nGroups)
       // Remove groups
       // printf("  Remove group %d, charge=%f\n", g, charge);
       // scanf("%s", str);
+      // Suppress the pads
       for (int c = 0; c < 2; c++) {
         int nbrPads = pads[c]->getNbrOfPads();
         for (int p = 0; p < nbrPads; p++) {
@@ -1407,6 +1413,10 @@ void ClusterPEM::removeLowChargedGroups(int nGroups)
             cathGroup[c][p] = 0;
           }
         }
+      }
+      if (ClusterConfig::groupsLog >= ClusterConfig::detail || ClusterConfig::processingLog >= ClusterConfig::info) {
+        int nbrPads = chargeInGroup[0][g] + chargeInGroup[1][g];
+        printf("> [removeLowChargedGroups] Remove low charge group g=%d, # pads=%d\n", g, nbrPads);
       }
     }
   }
@@ -1416,19 +1426,19 @@ void ClusterPEM::removeLowChargedGroups(int nGroups)
   }
 }
 
+// Remove the seeds outside of the frame delimiting the cluster.
 int ClusterPEM::filterFitModelOnClusterRegion(Pads& pads, double* theta, int K,
                                               Mask_t* maskFilteredTheta)
 {
+  //
   // Spatial filter
   //
-
   const double* x = pads.getX();
   const double* y = pads.getY();
   const double* dx = pads.getDX();
   const double* dy = pads.getDY();
   int N = pads.getNbrOfPads();
-  // Min Max pads
-
+  // compute the frame enclosing the pads Min/Max x/y
   double xyTmp[N];
   int kSpacialFilter = 0;
   vectorAddVector(x, -1.0, dx, N, xyTmp);
@@ -1451,9 +1461,10 @@ int ClusterPEM::filterFitModelOnClusterRegion(Pads& pads, double* theta, int K,
     }
   }
 
-  if ((ClusterConfig::groupsLog >= ClusterConfig::detail) && (kSpacialFilter != K)) {
-    printf("---> Spacial Filter; removing %d hit\n", K - kSpacialFilter);
+  if ((ClusterConfig::fittingLog >= ClusterConfig::info) && (kSpacialFilter != K)) {
+    printf("[filterFitModelOnClusterRegion] ---> Spacial Filter; removing %d hit\n", K - kSpacialFilter);
   }
+  //
   // W filter
   // w cut-off
   double cutOff = 0.02 / kSpacialFilter;
@@ -1472,7 +1483,7 @@ int ClusterPEM::filterFitModelOnClusterRegion(Pads& pads, double* theta, int K,
     maskFilteredTheta[k] = maskFilteredTheta[k] && (w[k] > cutOff);
     kWFilter += (maskFilteredTheta[k] && (w[k] > cutOff));
   }
-  if ((ClusterConfig::groupsLog >= ClusterConfig::detail) && (kSpacialFilter > kWFilter)) {
+  if ((ClusterConfig::fittingLog >= ClusterConfig::detail) && (kSpacialFilter > kWFilter)) {
     printf(
       "[filterFitModelOnClusterRegion] At least one hit such as w[k] < "
       "(0.05 / K) = %8.4f) -> removing %d hit\n",
@@ -1481,74 +1492,99 @@ int ClusterPEM::filterFitModelOnClusterRegion(Pads& pads, double* theta, int K,
   return kWFilter;
 }
 
-int ClusterPEM::filterFitModelOnSpaceVariations(const double* theta0, int K0,
-                                                double* theta, int K,
+// Remove seeds which drift from the EM solutions
+// And remove close seeds
+int ClusterPEM::filterFitModelOnSpaceVariations(const double* thetaEM, int kEM,
+                                                double* thetaFit, int kFit,
                                                 Mask_t* maskFilteredTheta)
 {
-  // K is the same for theta0 & theta
-  // Spatial filter
-  //
+  // Rq: kFit is the same for thetaEM & theta
+  vectorSetShort(maskFilteredTheta, 0, kFit);
   int kSpacialFilter = 0;
-  const double* mu0X = getConstMuX(theta0, K0);
-  const double* mu0Y = getConstMuY(theta0, K0);
-  const double* mu0Dx = getConstVarX(theta0, K0);
-  const double* mu0Dy = getConstVarY(theta0, K0);
-  double* muX = getMuX(theta, K);
-  double* muY = getMuY(theta, K);
-  double xTmp[K0], yTmp[K0];
-  for (int k = 0; k < K; k++) {
-    maskFilteredTheta[k] = 0;
-    // Find the neighbour
-    vectorAddScalar(mu0X, -muX[k], K0, xTmp);
-    vectorMultVector(xTmp, xTmp, K, xTmp);
-    vectorAddScalar(mu0Y, -muY[k], K0, yTmp);
-    vectorMultVector(yTmp, yTmp, K, yTmp);
-    vectorAddVector(xTmp, 1.0, xTmp, K, xTmp);
-    int kMin = vectorArgMin(xTmp, K0);
-    printf("kMin=%d, dx=%f, dy=%f\n", kMin, mu0Dx[k], mu0Dy[k]);
-    double xMin = mu0X[kMin] - 4 * mu0Dx[kMin];
-    double xMax = mu0X[kMin] + 4 * mu0Dx[kMin];
-    double yMin = mu0Y[kMin] - 4 * mu0Dy[kMin];
-    double yMax = mu0Y[kMin] + 4 * mu0Dy[kMin];
+  //
+  // Spatial filter on the theta deplacements
+  //
+  const double* muEMX = getConstMuX(thetaEM, kEM);
+  const double* muEMY = getConstMuY(thetaEM, kEM);
+  const double* muEMDx = getConstVarX(thetaEM, kEM);
+  const double* muEMDy = getConstVarY(thetaEM, kEM);
+  double* muX = getMuX(thetaFit, kFit);
+  double* muY = getMuY(thetaFit, kFit);
+  double xTmp[kEM], yTmp[kEM];
+
+  // The order of thetaEM and thetaFit can be change
+  // So take the the min distance
+  for (int k = 0; k < kFit; k++) {
+    // Find the the nearest seed mu[k](fit) of muEM[k]
+    // Compute the distances to mu[k]
+    vectorAddScalar(muEMX, -muX[k], kEM, xTmp);
+    vectorMultVector(xTmp, xTmp, kEM, xTmp);
+    vectorAddScalar(muEMY, -muY[k], kEM, yTmp);
+    vectorMultVector(yTmp, yTmp, kEM, yTmp);
+    vectorAddVector(xTmp, 1.0, yTmp, kEM, xTmp);
+    // muEM[kMin] is the nearest seeds of mu[k]
+    int kMin = vectorArgMin(xTmp, kEM);
+    // printf("??? kMin=%d, dx=%f, dy=%f\n", kMin, muEMDx[k], muEMDy[k]);
+    //
+    // Build the frame around muEM[kMin] with a border
+    // of 1.5 times the pixel size
+    double xMin = muEMX[kMin] - 3 * muEMDx[kMin];
+    double xMax = muEMX[kMin] + 3 * muEMDx[kMin];
+    double yMin = muEMY[kMin] - 3 * muEMDy[kMin];
+    double yMax = muEMY[kMin] + 3 * muEMDy[kMin];
+    // Select Seeds which didn't move with the fitting
     if (((muX[k] > xMin) && (muX[k] < xMax)) &&
         ((muY[k] > yMin) && (muY[k] < yMax))) {
       maskFilteredTheta[k] = 1;
       kSpacialFilter++;
     } else {
-      if (ClusterConfig::processingLog >= ClusterConfig::detail) {
-        printf("---> Spacial Filter; remove mu=(%f,%f)\n", muX[k], muY[k]);
-        printf("     xMin=(%f,%f) xMin=(%f,%f)\n", xMin, xMax, yMin, yMax);
+      if (ClusterConfig::processingLog >= ClusterConfig::info) {
+        printf("[filterFitModelOnSpaceVariations] ---> too much drift; deltaX/Y=(%6.2f,%6.2f) ---> k=%3d removed\n",
+               muEMX[k] - muX[k], muEMY[k] - muY[k], k);
+        printf("     ??? muEMDx[kMin], muEMDy[kMin] = %f, %f\n", muEMDx[kMin], muEMDy[kMin]);
       }
     }
   }
-  if ((ClusterConfig::processingLog >= ClusterConfig::detail) && (kSpacialFilter != K)) {
-    printf("---> Spacial Filter; removing %d hit\n", K - kSpacialFilter);
+  if ((ClusterConfig::processingLog >= ClusterConfig::info) && (kSpacialFilter != kFit)) {
+    printf("[filterFitModelOnSpaceVariations] ---> %d hit(s) removed\n", kFit - kSpacialFilter);
   }
-  // W filter
-  // w cut-off
-  double cutOff = 0.02 / kSpacialFilter;
   //
-  double* w_ = getW(theta, K);
-  double w[K];
-  double wSum = 0.0;
-  // Normalize new w
-  for (int k = 0; k < K; k++) {
-    wSum += (maskFilteredTheta[k] * w_[k]);
+  // Suppress close seeds ~< 0.5 pad size
+  // ??? inv double* muDX = getVarX(thetaFit, kFit);
+  // ??? double* muDY = getVarY(thetaFit, kFit);
+  double* w = getW(thetaFit, kFit);
+  for (int k = 0; k < kFit; k++) {
+    if (maskFilteredTheta[k]) {
+      for (int l = k + 1; l < kFit; l++) {
+        if (maskFilteredTheta[l]) {
+          // Errror X/Y is the size of a projected pad
+          double maxErrorX = 2.0 * std::fmin(muEMDx[k], muEMDx[l]);
+          double maxErrorY = 2.0 * std::fmin(muEMDy[k], muEMDy[l]);
+          bool xClose = std::fabs(muX[k] - muX[l]) < maxErrorX;
+          bool yClose = std::fabs(muY[k] - muY[l]) < maxErrorY;
+          // printf(" ??? muX k/l= %f, %f, muDX K/l= %f, %f\n",  muX[k], muX[l], muEMDx[k], muEMDx[l]);
+          // printf(" ??? muY k/l= %f, %f, muDY K/l= %f, %f\n",  muY[k], muY[l], muEMDy[k], muEMDy[l]);
+          if (xClose && yClose) {
+            // Supress the weakest weight
+            if (w[k] > w[l]) {
+              maskFilteredTheta[l] = 0;
+              w[k] += w[l];
+            } else {
+              maskFilteredTheta[k] = 0;
+              w[l] += w[k];
+            }
+          }
+        }
+      }
+    }
   }
-  int kWFilter = 0;
-  double norm = 1.0 / wSum;
-  for (int k = 0; k < K; k++) {
-    w[k] = maskFilteredTheta[k] * w_[k] * norm;
-    maskFilteredTheta[k] = maskFilteredTheta[k] && (w[k] > cutOff);
-    kWFilter += (maskFilteredTheta[k] && (w[k] > cutOff));
-  }
-
-  if (ClusterConfig::processingLog >= ClusterConfig::detail && (kSpacialFilter > kWFilter)) {
+  int kCloseFilter = vectorSumShort(maskFilteredTheta, kFit);
+  if (ClusterConfig::processingLog >= ClusterConfig::info && (kSpacialFilter > kCloseFilter)) {
     printf(
-      "---> At least one hit, w[k] < (0.05 / K) = %8.4f); removing %d hit\n",
-      cutOff, kSpacialFilter - kWFilter);
+      "[filterFitModelOnSpaceVariations] ---> removing %d close seeds\n",
+      kSpacialFilter - kCloseFilter);
   }
-  return kWFilter;
+  return kCloseFilter;
 }
 
 DataBlock_t ClusterPEM::fit(double* thetaInit, int kInit)
@@ -1578,7 +1614,8 @@ DataBlock_t ClusterPEM::fit(double* thetaInit, int kInit)
   int finalK = 0;
   // ThetaFit (output)
   double* thetaFit = new double[kInit * 5];
-  if (nFit < nbrOfPadsLimitForTheFitting) {
+  vectorSet(thetaFit, 0, kInit * 5);
+  if (nFit < ClusterConfig::nbrOfPadsLimitForTheFitting) {
     //
     // Preparing the fitting
     //
@@ -1600,7 +1637,7 @@ DataBlock_t ClusterPEM::fit(double* thetaInit, int kInit)
       printf("Starting the fitting\n");
       printf("- # cath0, cath1 for fitting: %2d %2d\n", getNbrOfPads(0),
              getNbrOfPads(1));
-      printTheta("- thetaInit", thetaInit, kInit);
+      printTheta("- thetaInit", 1.0, thetaInit, kInit);
     }
     // Fit
     if ((kInit * 3 - 1) <= nFit) {
@@ -1619,14 +1656,14 @@ DataBlock_t ClusterPEM::fit(double* thetaInit, int kInit)
       vectorCopy(thetaInit, kInit * 5, thetaFit);
     }
     if (ClusterConfig::fittingLog >= ClusterConfig::info) {
-      printTheta("- thetaFit", thetaFit, kInit);
+      printTheta("- thetaFit", 1.0, thetaFit, kInit);
     }
     // Filter Fitting solution
     Mask_t maskFilterFit[kInit];
-    filteredK =
-      filterFitModelOnClusterRegion(*fitPads, thetaFit, kInit, maskFilterFit);
-    // int filteredK = filterFitModelOnSpaceVariations( thetaEMFinal, K,
-    // thetaFit, K, maskFilterFit);
+    // filteredK =
+    //   filterFitModelOnClusterRegion(*fitPads, thetaFit, kInit, maskFilterFit);
+    int filteredK = filterFitModelOnSpaceVariations(thetaInit, kInit,
+                                                    thetaFit, kInit, maskFilterFit);
     double filteredTheta[5 * filteredK];
     if ((filteredK != kInit) && (nFit >= filteredK)) {
       if (ClusterConfig::fittingLog >= ClusterConfig::info) {
@@ -1665,7 +1702,7 @@ DataBlock_t ClusterPEM::fit(double* thetaInit, int kInit)
       printf(
         "[Cluster.fit] Keep the EM Result: nFit=%d >= "
         "nbrOfPadsLimitForTheFitting=%d\n",
-        nFit, nbrOfPadsLimitForTheFitting);
+        nFit, ClusterConfig::nbrOfPadsLimitForTheFitting);
     }
     vectorCopy(thetaInit, kInit * 5, thetaFit);
     finalK = kInit;
@@ -1747,16 +1784,30 @@ int ClusterPEM::findLocalMaxWithPEM(double* thetaL, int nbrOfPadsInTheGroupCath)
   Pads* cath0 = pads[0];
   Pads* cath1 = pads[1];
   Pads* projPads = projectedPads;
+  // Compute the charge weight of each cathode
+  double cWeight0 = getTotalCharge(0);
+  double cWeight1 = getTotalCharge(1);
+  double preClusterCharge = cWeight0 + cWeight1;
+  cWeight0 /= preClusterCharge;
+  cWeight1 /= preClusterCharge;
+  //
   int chId = chamberId;
+  if (ClusterConfig::EMLocalMaxLog >= ClusterConfig::info || ClusterConfig::processingLog >= ClusterConfig::info) {
+    printf("  - [findLocalMaxWithPEM]\n");
+  }
   // Trivial cluster : only 1 pads
   if (projPads->getNbrOfPads() == 1) {
     // Return the unique local maximum : the center of the pads
     double* w = getW(thetaL, nbrOfPadsInTheGroupCath);
     double* muX = getMuX(thetaL, nbrOfPadsInTheGroupCath);
     double* muY = getMuY(thetaL, nbrOfPadsInTheGroupCath);
+    double* muDX = getVarX(thetaL, nbrOfPadsInTheGroupCath);
+    double* muDY = getVarY(thetaL, nbrOfPadsInTheGroupCath);
     w[0] = 1.0;
     muX[0] = projPads->getX()[0];
     muY[0] = projPads->getY()[0];
+    muDX[0] = projPads->getDX()[0] * 0.5;
+    muDY[0] = projPads->getDY()[0] * 0.5;
     return 1;
   }
   int nMaxPads = std::fmax(getNbrOfPads(0), getNbrOfPads(1));
@@ -1800,15 +1851,31 @@ int ClusterPEM::findLocalMaxWithPEM(double* thetaL, int nbrOfPadsInTheGroupCath)
   double criteriom = DBL_MAX;
   bool goon = true;
   int macroIt = 0;
+  if (ClusterConfig::processingLog >= ClusterConfig::info) {
+    printf(
+      "    Macro  nParam    chi2 chi2/ndof chi2/ndof chi2/ndof chi2/ndof  ch2/ndof\n"
+      "     It.      -       -       -       cath-0    cath-1   sum 0/1  weight-sum\n");
+  }
   while (goon) {
     if (localMax != nullptr) {
       saveLocalMax = new Pads(*localMax, o2::mch::Pads::xydxdyMode);
     }
     previousCriteriom = criteriom;
+    if (0) {
+      vectorSet(Cij, 0.0, nPads * nPixels);
+      for (int j = 0; j < nPads; j++) {
+        Cij[nPads * j + j] = 1.0;
+        // for (int i = 0; i < nPixels; i++) {
+        //   qPadPrediction[j] += Cij[nPads * i + j] * qPixels[i];
+        // }
+      }
+    }
     chi2 =
       PoissonEMLoop(*mPads, *pixels, Cij, maskCij, 0, minPadResidues[macroIt],
                     nIterations[macroIt], getNbrOfPads(0));
-    localMax = pixels->clipOnLocalMax(true);
+    // Obsolete
+    // localMax = pixels->clipOnLocalMax(true);
+    localMax = pixels->extractLocalMax();
     nParameters = localMax->getNbrOfPads();
     dof = nMaxPads - 3 * nParameters + 1;
     double chi20 = chi2.first;
@@ -1824,27 +1891,29 @@ int ClusterPEM::findLocalMaxWithPEM(double* thetaL, int nbrOfPadsInTheGroupCath)
     if (dof == 0) {
       dof = 1;
     }
-    if (ClusterConfig::EMLocalMaxLog >= ClusterConfig::info) {
-      printf("???????? cath0=%d, cath1=%d\n", getNbrOfPads(0), getNbrOfPads(1));
-      printf("???????? chi20=%6.2f, chi21=%6.2f\n", chi20, chi21);
+    // Model selection criteriom (nbre of parameters/seeds)
+    // criteriom0 = fabs( (chi20+chi21 / dof));
+    // criteriom1 = fabs(sqrt(chi20 / ndof0) + sqrt(chi21 / ndof1));
+    // printf( "??? cWeight0=%f, cWeight1=%f\n", cWeight0, cWeight1);
+    criteriom = cWeight0 * sqrt(chi20 / ndof0) + cWeight1 * sqrt(chi21 / ndof1);
+
+    if (ClusterConfig::processingLog >= ClusterConfig::info) {
       printf(
-        "  CHI2 step %d: nParam=%d, chi2=%6.2f, sqrt(chi20/ndof0)=%6.2f,  "
-        "sqrt(chi21/ndof1)=%6.2f, chi2/dof=%6.2f, sum ch2i/ndofi=%6.2f\n",
-        macroIt, nParameters, chi20 + chi21, sqrt(chi20 / ndof0),
-        sqrt(chi21 / ndof1), sqrt((chi20 + chi21) / dof),
-        sqrt(chi20 / ndof0) + sqrt(chi21 / ndof1));
+        "     %2d     %3d   %7.2f   %7.2f   %7.2f   %7.2f   %7.2f   %7.2f\n",
+        macroIt, nParameters, chi20 + chi21, sqrt((chi20 + chi21) / dof),
+        sqrt(chi20 / ndof0), sqrt(chi21 / ndof1),
+        sqrt(chi20 / ndof0) + sqrt(chi21 / ndof1),
+        cWeight0 * sqrt(chi20 / ndof0) + cWeight1 * sqrt(chi21 / ndof1));
     }
     if (ClusterConfig::inspectModel >= ClusterConfig::active) {
       inspectSavePixels(macroIt, *pixels);
     }
     macroIt++;
-    // criteriom = fabs( (chi20+chi21 / dof));
-    criteriom = fabs(sqrt(chi20 / ndof0) + sqrt(chi21 / ndof1));
     goon =
-      (criteriom < 1.0 * previousCriteriom) && (macroIt < nMacroIterations);
+      (criteriom < 1.01 * previousCriteriom) && (macroIt < nMacroIterations);
   }
   delete pixels;
-  if (criteriom < 1.0 * previousCriteriom) {
+  if (criteriom < 1.01 * previousCriteriom) {
     delete saveLocalMax;
   } else {
     delete localMax;
@@ -1894,9 +1963,9 @@ int ClusterPEM::findLocalMaxWithPEM(double* thetaL, int nbrOfPadsInTheGroupCath)
   localMax->normalizeCharges();
   removedLocMax -= k;
 
-  if (ClusterConfig::EMLocalMaxLog >= ClusterConfig::info) {
+  if (ClusterConfig::processingLog >= ClusterConfig::info && removedLocMax != 0) {
     printf(
-      "seed selection: Final cut -> %d percent (qcut=%8.2f), number of "
+      "    > seed selection: Final cut -> %d percent (qcut=%8.2f), number of "
       "local max removed = %d\n",
       int(cutRatio * 100), qCut, removedLocMax);
   }

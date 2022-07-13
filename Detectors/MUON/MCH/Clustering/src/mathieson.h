@@ -98,7 +98,7 @@ void maskedCopyToXYInfSup(const double* xyDxy, int ndxyDxy, const Mask_t* mask,
 void maskedCopyTheta(const double* theta, int K, const Mask_t* mask, int nMask,
                      double* maskedTheta, int maskedK);
 
-void printTheta(const char* str, const double* theta, int K);
+void printTheta(const char* str, double meanCharge, const double* theta, int K);
 
 void printXYdXY(const char* str, const double* xyDxy, int NMax, int N,
                 const double* val1, const double* val2);

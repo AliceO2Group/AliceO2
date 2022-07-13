@@ -426,6 +426,33 @@ namespace o2
 {
 namespace mch
 {
+void printState(int iter, gsl_multifit_fdfsolver* s, int K)
+{
+  printf("  Fitting iter=%3d |f(x)|=%g\n", iter, gsl_blas_dnrm2(s->f));
+  printf("    mu (x,y):");
+  int k = 0;
+  for (; k < 2 * K; k++) {
+    printf(" % 7.3f", gsl_vector_get(s->x, k));
+  }
+  printf("\n");
+  double sumW = 0;
+  printf("    w:");
+  for (; k < 3 * K - 1; k++) {
+    double w = gsl_vector_get(s->x, k);
+    sumW += w;
+    printf(" %7.3f", gsl_vector_get(s->x, k));
+  }
+  // Last w : 1.0 - sumW
+  printf(" %7.3f", 1.0 - sumW);
+
+  printf("\n");
+  k = 0;
+  printf("    dx:");
+  for (; k < 2 * K; k++) {
+    printf(" % 7.3f", gsl_vector_get(s->dx, k));
+  }
+  printf("\n");
+}
 
 void fitMathieson(const Pads& iPads, double* thetaInit, int kInit, int mode,
                   double* thetaFinal, double* khi2, double* pError)
@@ -593,7 +620,7 @@ void fitMathieson(const Pads& iPads, double* thetaInit, int kInit, int mode,
     gsl_multifit_fdfsolver_set(s, &f, &params0.vector);
 
     if (ClusterConfig::fittingLog >= ClusterConfig::detail) {
-      printState(-1, s, K);
+      o2::mch::printState(-1, s, K);
     }
     // double initialResidual = gsl_blas_dnrm2(s->f);
     double initialResidual = 0.0;
@@ -618,7 +645,7 @@ void fitMathieson(const Pads& iPads, double* thetaInit, int kInit, int mode,
         printf("  Solver status = %s\n", gsl_strerror(status));
       }
       if (ClusterConfig::fittingLog >= ClusterConfig::detail) {
-        printState(iter, s, K);
+        o2::mch::printState(iter, s, K);
       }
       /* ???? Inv
       if (status) {
@@ -724,3 +751,15 @@ void fitMathieson(const Pads& iPads, double* thetaInit, int kInit, int mode,
 
 } // namespace mch
 } // namespace o2
+
+void fitMathieson(const double* x, const double* y, const double* dx, const double* dy, const double* q,
+                  const o2::mch::Mask_t* cath, const o2::mch::Mask_t* sat, int chId, int nPads,
+                  double* thetaInit, int kInit,
+                  double* thetaFinal, double* khi2, double* pError)
+{
+  //
+  Pads pads = o2::mch::Pads(x, y, dx, dy, q, cath, sat, chId, nPads);
+  int mode = 0;
+  o2::mch::fitMathieson(pads, thetaInit, kInit, mode,
+                        thetaFinal, khi2, pError);
+}

@@ -412,7 +412,7 @@ void copyXYdXY(const double* xyDxy0, int N0, double* xyDxy, int N1, int N)
   vectorCopy(DY0, N, DY);
 }
 
-void printTheta(const char* str, const double* theta, int K)
+void printTheta(const char* str, double meanCharge, const double* theta, int K)
 {
   const double* varX = getConstVarX(theta, K);
   const double* varY = getConstVarY(theta, K);
@@ -421,9 +421,9 @@ void printTheta(const char* str, const double* theta, int K)
   const double* w = getConstW(theta, K);
 
   printf("%s \n", str);
-  printf("    k        w      muX       muY          sigX      sigY\n");
+  printf("    k      charge      w      muX      muY     sigX   sigY\n");
   for (int k = 0; k < K; k++) {
-    printf("  %.2d-th: %7.4g %9.4g %9.4g %9.4g %9.4g\n", k, w[k], muX[k],
+    printf("  %.2d-th: %8.2g %6.3g %8.3g %8.3g %8.3g %8.3g\n", k, w[k] * meanCharge, w[k], muX[k],
            muY[k], sqrt(varX[k]), sqrt(varY[k]));
   }
 }

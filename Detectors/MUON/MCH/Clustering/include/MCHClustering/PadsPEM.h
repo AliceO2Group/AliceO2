@@ -76,6 +76,9 @@ class Pads
   Pads(const double* x_, const double* y_, const double* dx_, const double* dy_,
        const double* q_, const short* cathode, const Mask_t* saturate_,
        short cathID, int chId, PadIdx_t* mapCathPadIdxToPadIdx, int nAllPads);
+  Pads(const double* x_, const double* y_, const double* dx_,
+       const double* dy_, const double* q_, const short* cathode,
+       const Mask_t* saturate_, int chId, int nAllPads);
   // Take the ownership of coordinates (x, y, dx, dy)
   Pads(double* x_, double* y_, double* dx_, double* dy_, int chId, int nPads_);
   inline int getNbrOfPads() const { return nPads; };
@@ -106,7 +109,10 @@ class Pads
   PadIdx_t* buildFirstNeighbors();
   // Building K-Neighbors
   PadIdx_t* buildKFirstsNeighbors(int kernelSize);
+  // Extract local maximima
+  Pads* extractLocalMax();
   // Extract local maximima, with of without a neighboring
+  // Obsolete
   Pads* clipOnLocalMax(bool extractLocalMax);
   // Groups
   int addIsolatedPadInGroups(Mask_t* cathToGrp, Mask_t* grpToGrp, int nGroups);

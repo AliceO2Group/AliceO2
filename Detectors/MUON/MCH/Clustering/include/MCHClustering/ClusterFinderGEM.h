@@ -133,7 +133,11 @@ class ClusterFinderGEM
   void setClusterResolution(Cluster& cluster) const;
   std::unique_ptr<MathiesonOriginal[]> mMathiesons; ///< Mathieson functions for station 1 and the others
   // GG MathiesonOriginal* mMathieson = nullptr;          ///< pointer to the Mathieson function currently used
-
+  //
+  // GG Introduced for run3
+  // function to reinterpret digit ADC as charge
+  std::function<double(uint32_t)> mADCToCharge = [](uint32_t adc) { return static_cast<double>(adc); };
+  //
   std::unique_ptr<ClusterOriginal> mPreCluster; ///< precluster currently processed
   // GG  std::vector<PadOriginal> mPixels;   ///< list of pixels for the current precluster
 

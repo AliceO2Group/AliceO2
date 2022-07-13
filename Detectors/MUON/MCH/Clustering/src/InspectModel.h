@@ -20,6 +20,10 @@
 
 #include <vector>
 
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_multifit_nlin.h>
+#include <gsl/gsl_vector.h>
+
 #include "MCHClustering/ClusterConfig.h"
 #include "MCHClustering/PadsPEM.h"
 #include "MCHClustering/ClusterPEM.h"
@@ -98,5 +102,14 @@ int collectPixels(int which, int N, double* xyDxy, double* q);
 void inspectSavePixels(int which, o2::mch::Pads& pixels);
 int getNbrProjectedPads();
 void setNbrProjectedPads(int n);
+// Only used for old Clusterind analysis
+// Perform a fit with fix coordinates
+int f_ChargeIntegralMag(const gsl_vector* gslParams, void* data,
+                        gsl_vector* residual);
+
+void fitMathiesonMag(const double* xyDxDy, const double* q,
+                     const o2::mch::Mask_t* cath, const o2::mch::Mask_t* sat, int chId,
+                     double* thetaInit, int K, int N,
+                     double* thetaFinal, double* khi2);
 }
 #endif // O2_MCH_INSPECTMODEL_H_

@@ -38,10 +38,13 @@ typedef struct dataFit {
   int chamberId;
   double* zCathTotalCharge_ptr;
   int verbose;
+  double* thetaInit; // Only used by InspectModel
 } funcDescription_t;
 
 void fitMathieson(const Pads& iPads, double* thetaInit, int kInit, int mode,
                   double* thetaFinal, double* khi2, double* pError);
+
+void printState(int iter, gsl_multifit_fdfsolver* s, int K);
 // Notes :
 //  - the intitialization of Mathieson module must be done before
 //  (initMathieson)
@@ -53,6 +56,11 @@ void fitMathieson0(double* muAndWi, double* xyAndDxy, double* z, o2::mch::Mask_t
                    o2::mch::Mask_t* notSaturated, double* zCathTotalCharge, int K, int N,
                    int chamberId, int jacobian, double* muAndWf, double* khi2,
                    double* pError);
+
+void fitMathieson(const double* x, const double* y, const double* dx, const double* dy, const double* q,
+                  const o2::mch::Mask_t* cath, const o2::mch::Mask_t* sat, int chId, int nPads,
+                  double* thetaInit, int kInit,
+                  double* thetaFinal, double* khi2, double* pError);
 
 int f_ChargeIntegral(const gsl_vector* gslParams, void* data,
                      gsl_vector* residual);

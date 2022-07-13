@@ -235,16 +235,16 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
 
     ClusterPEM* subCluster = nullptr;
     // Extract the sub-cluster
-    if (nGroups == 1) {
+    if ((nGroups == 1) && (cluster.getNbrOfPadsInGroup(g) == cluster.getNbrOfPads())) {
       subCluster = &cluster;
     } else {
       subCluster = new ClusterPEM(cluster, g);
     }
-    /* ???
-    if (VERBOSE > 0) {
-      printf("Start findLocalMaxWithPET\n");
+    double meanCharge = 0.5 * (subCluster->getTotalCharge(0) + subCluster->getTotalCharge(1));
+
+    if (ClusterConfig::processingLog >= ClusterConfig::info) {
+      printf("[clusterProcessing] charge-0= %8.2f charge-1= %8.2f\n", subCluster->getTotalCharge(0), subCluster->getTotalCharge(1));
     }
-    */
     int nbrOfPadsInTheGroup =
       subCluster->getNbrOfPads(0) + subCluster->getNbrOfPads(1);
     // Allocation of possible nbr of seeds
@@ -261,7 +261,7 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
       copyTheta(thetaL, nbrOfPadsInTheGroup, thetaExtra, kEM, kEM);
       saveThetaExtraInGroupList(thetaExtra, kEM);
       if (ClusterConfig::inspectModelLog > ClusterConfig::info) {
-        printTheta("Theta findLocalMaxWithBothCathodes", thetaExtra, kEM);
+        printTheta("Theta findLocalMaxWithBothCathodes", meanCharge, thetaExtra, kEM);
       }
     }
     // Add null pads in the neighboring of the sub-cluster
@@ -274,8 +274,8 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
       copyTheta(thetaL, nbrOfPadsInTheGroup, thetaEM, kEM, kEM);
 
       if (ClusterConfig::processingLog >= ClusterConfig::info) {
-        printf("PEM : Find %2d local maxima : \n", kEM);
-        printTheta("  ThetaEM", thetaEM, kEM);
+        printf("[clusterProcessing] Find %2d PEM local maxima : \n", kEM);
+        printTheta("ThetaEM", meanCharge, thetaEM, kEM);
       }
 
       //
@@ -320,12 +320,9 @@ int clusterProcess(const double* xyDxyi_, const Mask_t* cathi_,
       DataBlock_t newSeeds = std::make_pair(finalK, nullptr);
       clusterResults.seedList.push_back(newSeeds);
     }
-    /*
-    if (INSPECTMODEL ) {
-      // ??? printf("??????????????? xyDxyGrp %p\n", xyDxyGrp);
-      savePadsOfSubCluster( xyDxyGrp, chGrp, nbrOfProjPadsInTheGroup);
+    if (ClusterConfig::processingLog >= ClusterConfig::info) {
+      printTheta("ThetaFit:", meanCharge, clusterResults.seedList.back().second, clusterResults.seedList.back().first);
     }
-     */
     // Release pointer for group
     // deleteDouble( xyDxyGrp );
     // deleteDouble( chGrp );
