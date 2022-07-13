@@ -49,10 +49,15 @@ class CalArray;
 namespace painter
 {
 
+enum class Type : int {
+  Pad,   ///< drawing pads
+  Stack, ///< drawing stacks
+};
+
 /// pad corner coordinates
 struct PadCoordinates {
-  std::array<double, 4> xVals;
-  std::array<double, 4> yVals;
+  std::vector<double> xVals = std::vector<double>(4);
+  std::vector<double> yVals = std::vector<double>(4);
 
   void rotate(float angDeg)
   {
@@ -70,6 +75,12 @@ struct PadCoordinates {
 
 /// create a vector of pad corner coordinate for one full sector
 std::vector<PadCoordinates> getPadCoordinatesSector();
+
+/// create a vector of stack corner coordinate for one full sector
+std::vector<PadCoordinates> getStackCoordinatesSector();
+
+/// \return returns coordinates for given type
+std::vector<o2::tpc::painter::PadCoordinates> getCoordinates(const Type type);
 
 /// binning vector with radial pad-row positions (in cm)
 /// \param roc roc number (0-35 IROC, 36-71 OROC, >=72 full sector)
@@ -123,10 +134,12 @@ TH2* getHistogram2D(const CalArray<T>& calArray);
 /// \param xMax maximum x coordinate of the histogram
 /// \param yMin minimum y coordinate of the histogram
 /// \param yMax maximum y coordinate of the histogram
-TH2Poly* makeSectorHist(const std::string_view name = "hSector", const std::string_view title = "Sector;local #it{x} (cm);local #it{y} (cm)", const float xMin = 83.65f, const float xMax = 247.7f, const float yMin = -43.7f, const float yMax = 43.7f);
+/// \param type granularity of the histogram (per pad or per stack)
+TH2Poly* makeSectorHist(const std::string_view name = "hSector", const std::string_view title = "Sector;local #it{x} (cm);local #it{y} (cm)", const float xMin = 83.65f, const float xMax = 247.7f, const float yMin = -43.7f, const float yMax = 43.7f, const Type type = Type::Pad);
 
 /// make a side-wise histogram with correct pad corners
-TH2Poly* makeSideHist(Side side);
+/// \param type granularity of the histogram (per pad or per stack)
+TH2Poly* makeSideHist(Side side, const Type type = Type::Pad);
 
 /// fill existing TH2Poly histogram for CalDet object
 /// \param h2D histogram to fill
