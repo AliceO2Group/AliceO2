@@ -39,6 +39,9 @@ deque<string> DirectoryLoader::load(const std::string& path, const std::string& 
 
 void DirectoryLoader::reduceNumberOfFiles(const std::string& path, const std::deque<std::string>& files, std::size_t filesInFolder)
 {
+  if (filesInFolder == -1) {
+    return; // do not reduce
+  }
   int items = files.size() - std::min(files.size(), filesInFolder);
   for (int i = 0; i < items; i++) {
     std::remove((path + "/" + files[i]).c_str()); // delete file

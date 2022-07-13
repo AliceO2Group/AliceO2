@@ -69,6 +69,7 @@ class EventManagerFrame : public TGMainFrame
   static void makeSliderRangeEntries(TGCompositeFrame* parent, int height,
                                      TGNumberEntryField*& minEntry, const TString& minToolTip,
                                      TGNumberEntryField*& maxEntry, const TString& maxToolTip);
+  void createOutreachScreenshot();
 
  protected:
   o2::event_visualisation::EventManager* mEventManager; // Model object.
