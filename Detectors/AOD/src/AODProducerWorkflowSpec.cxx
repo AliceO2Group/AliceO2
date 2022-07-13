@@ -16,6 +16,7 @@
 #include "DataFormatsFDD/RecPoint.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsCTP/Digits.h"
+#include "DataFormatsCTP/Configuration.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
@@ -92,11 +93,34 @@ using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<dou
 namespace o2::aodproducer
 {
 
-void AODProducerWorkflowDPL::CTPReadout(const o2::globaltracking::RecoContainer& recoData, gsl::span<o2::ctp::CTPDigit> ctpDigits)
+void AODProducerWorkflowDPL::CTPReadout(const o2::globaltracking::RecoContainer& recoData, std::vector<o2::ctp::CTPDigit>& ctpDigits)
 {
   // Extraxt CTP Config from CCDB
+  o2::ctp::CTPConfiguration ctpcfg = o2::ctp::CTPRunManager::getConfigFromCCDB(-1,"1234");  // how to get run
   // Extract inputs from recoData
+  std::map<uint64_t,uint64_t> bcsMapT0triggers;
+  std::map<uint64_t,bool> bcsMapTRDreadout;
+  //const auto& fddRecPoints = recoData.getFDDRecPoints();
+  //const auto& fv0RecPoints = recoData.getFV0RecPoints();
+  const auto& caloEMCCellsTRGR = recoData.getEMCALTriggers();
+  const auto& caloPHOSCellsTRGR = recoData.getPHOSTriggers();
+  const auto& triggerrecordTRD = recoData.getTRDTriggerRecords();
+  //
+  const auto& ft0RecPoints = recoData.getFT0RecPoints();
+  for(auto& ft0RecPoint : ft0RecPoints) {
+      auto t0triggers = ft0RecPoint.getTrigger();
+      if(t0triggers.getVertex()) {
+        uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
+        uint64_t classmask = ctpcfg.getClassMaskForInput(3);
+        bcsMapT0triggers[globalBC] = classmask;
+      }
+  }
+  //for(auto& trdrec : triggerrecordTRD) {
+    //uint64_t globalBC = trdrec.getBCData().toLong();
+    //bcsMapTRDreadout[globalBC] = 1;
+  //}
   // construct CTPdigits - classMask
+
 }
 
 void AODProducerWorkflowDPL::collectBCs(const o2::globaltracking::RecoContainer& data,
@@ -1221,7 +1245,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto caloPHOSCellsTRGR = recoData.getPHOSTriggers();
 
   //auto ctpDigits = recoData.getCTPDigits();
-  gsl::span<o2::ctp::CTPDigit> ctpDigits;//getSpan<const o2::ctp::CTPDigit>(GTrackID::CTP, CLUSTERS);
+  //gsl::span<o2::ctp::CTPDigit> ctpDigits;//getSpan<const o2::ctp::CTPDigit>(GTrackID::CTP, CLUSTERS);
+  std::vector<o2::ctp::CTPDigit> ctpDigits;
+  CTPReadout(recoData, ctpDigits);
 
   LOG(debug) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(debug) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";

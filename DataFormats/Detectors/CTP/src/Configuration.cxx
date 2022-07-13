@@ -23,6 +23,8 @@
 
 using namespace o2::ctp;
 //
+std::string CTPRunManager::mCCDBHost = "http://o2-ccdb.internal";
+const std::map<std::string, std::string> CTPInput::run2DetToRun3Det = {{"T","FT0"}, {"V","FV0"},{"U","FDD"}, {"E","EMC"},{"D", "EMC"}, {"H","TRD"}, {"O","TOF"},{"P","PHS"},{"Z","ZDC"}};
 const std::map<std::string, std::string> CTPConfiguration::detName2LTG = {{"FV0", "1"}, {"FT0", "2"}, {"FDD", "3"}, {"ITS", "4"}, {"TOF", "5"}, {"MFT", "6"}, {"TPC", "7"}, {"MCH", "8"}, {"MID", "9"}, {"TST", "10"}, {"TRD", "13"}, {"HMP", "14"}, {"ZDC", "15"}, {"PHS", "16"}, {"EMC", "17"}, {"CPV", "18"}};
 //
 bool CTPConfiguration::isDetector(const o2::detectors::DetID& det)
@@ -71,9 +73,15 @@ CTPInput::CTPInput(const char* name, const char* det, uint32_t index)
   inputMask = (1ull << (index - 1));
   detID = o2::detectors::DetID(det);
 }
+void CTPInput::setRun3DetName(std::string& run2Name)
+{
+  std::string run3Name = CTPInput::run2DetToRun3Det.at(run2Name);
+  detID = o2::detectors::DetID(run3Name.c_str());
+}
 void CTPInput::printStream(std::ostream& stream) const
 {
-  stream << "CTP Input:" << name << " Detector:" << getInputDetName() << " Level:" << level << " Hardware mask:0x" << std::hex << inputMask << std::dec << std::endl;
+  stream << "CTP Input:" << name << " Detector:" << getInputDetName() << " Level:" << level << " Hardware mask:0x" << std::hex << inputMask << std::dec;
+  stream << " index:" << getIndex() << std::endl;
 }
 //
 std::uint64_t CTPDescriptor::getInputsMask() const
@@ -107,6 +115,14 @@ void CTPCluster::printStream(std::ostream& stream) const
   stream << std::endl;
 }
 //
+uint64_t CTPClass::getClassMaskForInput(int inputindex) const
+{
+  uint64_t clsmask = 0;
+  if ( descriptor != nullptr ) {
+    clsmask = getClassMaskForInput(inputindex);
+  }
+  return clsmask;
+}
 void CTPClass::printStream(std::ostream& stream) const
 {
   stream << "CTP Class:" << name << " Hardware mask:" << classMask << " Cluster index:" << clusterIndex << " Desc index:" << descriptorIndex;
@@ -126,7 +142,7 @@ int CTPConfiguration::loadConfigurationRun3(const std::string& ctpconfiguration)
   mConfigString = ctpconfiguration;
   std::istringstream iss(ctpconfiguration);
   int ret = 0;
-  int level = MASKS;
+  int level = START;
   std::string line;
   while (std::getline(iss, line)) {
     o2::utils::Str::trim(line);
@@ -155,17 +171,14 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
     return 0;
   }
   size_t first;
-  if ((first = line.find("run")) != std::string::npos) {
+  if (((first = line.find("run")) != std::string::npos) && (level == START)) {
     level = RUN;
-  } else if (CTPGenerator::Generators.count(tokens[0])) {
-    if (level != CLASS) {
-      level = GENS;
-    }
+  } else if ((line.find("inp") != std::string::npos) && ((level == RUN) || (level == INPUTS))){
+    level = INPUTS;
+  } else if (((first = line.find("bcm")) != std::string::npos) && ((level == INPUTS) || (level == MASKS))){
+    level = MASKS;
+  } else if (CTPGenerator::Generators.count(tokens[0]) && ((level == INPUTS) || (level == MASKS) || (level == GENS))) {
     level = GENS;
-  } else if ((first = line.find("bcm")) != std::string::npos) {
-    if (level == MASKS) {
-      level = MASKS;
-    }
   } else if ((first = line.find("LTG")) != std::string::npos) {
     level = LTG;
   } else if ((first = line.find("cluster")) != std::string::npos) {
@@ -180,7 +193,23 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
   switch (level) {
     case RUN: {
       mRunNumber = std::stoul(tokens[1]);
-      level = MASKS;
+      level = RUN;
+      break;
+    }
+    case INPUTS: {
+      level = INPUTS;
+      if(tokens.size() < 3) {
+        LOG(error) << "Wrong input line:" << line;
+        break;
+      }
+      CTPInput ctpinp;
+      ctpinp.name = tokens[1];
+      ctpinp.level = tokens[1][0];
+      std::string run2Name{tokens[1][1]};
+      ctpinp.setRun3DetName(run2Name);
+      uint32_t index = std::stoul(tokens[2]);
+      ctpinp.inputMask = (1ull << (index-1));
+      mInputs.push_back(ctpinp);
       break;
     }
     case MASKS: {
@@ -298,23 +327,32 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
           }
         }
         if (isGenerator) {
-          CTPDescriptor* desc = new CTPDescriptor;
-          desc->name = token;
-          mDescriptors.push_back(*desc);
+          CTPDescriptor desc;
+          desc.name = token;
+          mDescriptors.push_back(desc);
           cls.descriptorIndex = mDescriptors.size() - 1;
         } else if (token.find("~") != std::string::npos) { // inverted input
           std::string sinp = token.substr(1, token.size() - 1);
           // uint32_t inp = std::strtoul(sinp);
-
-          CTPDescriptor* desc = new CTPDescriptor;
-          desc->name = token;
-          mDescriptors.push_back(*desc);
-          cls.descriptorIndex = mDescriptors.size() - 1;
+          if(cls.descriptorIndex == 0xff) {
+            CTPDescriptor desc;
+            desc.name = token;
+            std::string inpname;
+            cls.descriptorIndex = mDescriptors.size() - 1;
+          } else {
+            CTPDescriptor desc = mDescriptors.at(cls.descriptorIndex);
+            desc.name += " " + token;
+          }
         } else if (isNumber(token)) { // normal input
-          CTPDescriptor* desc = new CTPDescriptor;
-          desc->name = token;
-          mDescriptors.push_back(*desc);
-          cls.descriptorIndex = mDescriptors.size() - 1;
+          if(cls.descriptorIndex == 0xff) {
+            CTPDescriptor desc;
+            desc.name = token;
+            mDescriptors.push_back(desc);
+            cls.descriptorIndex = mDescriptors.size() - 1;
+          } else {
+            CTPDescriptor desc = mDescriptors.at(cls.descriptorIndex);
+            desc.name += " " + token;
+          }
         } else if (token.find("0x") != std::string::npos) { // downscale
         } else {                                            // mask
           int i = 0;
@@ -340,7 +378,11 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
   }
   for (auto& cls : mCTPClasses) {
     cls.cluster = &mClusters[cls.clusterIndex];
+    if( cls.descriptorIndex != 0xff) {
+      cls.descriptor = &mDescriptors[cls.descriptorIndex];
+    }
   }
+  createInputsInDecriptorsFromNames();
   return 0;
 }
 void CTPConfiguration::printStream(std::ostream& stream) const
@@ -408,6 +450,35 @@ CTPInput* CTPConfiguration::isInputInConfig(const std::string inpname)
   }
   return nullptr;
 }
+CTPInput* CTPConfiguration::isInputInConfig(const int index)
+{
+  for (auto& inp : mInputs) {
+    if (inp.getIndex() == index) {
+      LOG(info) << "Found input:" << inp.name << " index:" << inp.getIndex();
+      return &inp;
+    }
+  }
+  return nullptr;
+}
+void CTPConfiguration::createInputsInDecriptorsFromNames()
+// using run3 convenstion for inputs
+{
+  for(auto & des: mDescriptors) {
+    if( CTPConfiguration::isNumber(des.name)) {
+      // parse here if more inputs
+      uint32_t index = std::stoul(des.name);
+      if(index > 100) {
+        index = index - 100;
+        CTPInput* inp = isInputInConfig(index);
+        if(inp) {
+          des.inputs.push_back(inp);
+        }
+      }
+      } else {
+        LOG(info) << "Input is no a number:" << des.name;
+    }
+  }
+}
 uint64_t CTPConfiguration::getDecrtiptorInputsMask(const std::string& name) const
 {
   for (auto const& desc : mDescriptors) {
@@ -460,6 +531,14 @@ o2::detectors::DetID::mask_t CTPConfiguration::getDetectorMask() const
     mask |= det.getMask();
   }
   return mask;
+}
+uint64_t CTPConfiguration::getClassMaskForInput(int inputindex) const
+{
+  uint64_t clsmask = 0;
+  for(auto const& cls: mCTPClasses) {
+    clsmask += cls.getClassMaskForInput(inputindex);
+  }
+  return clsmask;
 }
 //===============================================
 //
