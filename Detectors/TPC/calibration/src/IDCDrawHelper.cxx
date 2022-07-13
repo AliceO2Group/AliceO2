@@ -234,15 +234,9 @@ void o2::tpc::IDCDrawHelper::drawIDCZeroStackCanvas(const IDCDraw& idc, const o2
   }
 }
 
-std::string o2::tpc::IDCDrawHelper::getZAxisTitle(const IDCType type, const IDCDeltaCompression compression, const unsigned short dtype)
+std::string o2::tpc::IDCDrawHelper::getZAxisTitle(const IDCType type, const IDCDeltaCompression compression)
 {
-  std::string stype = "";
-  if (dtype == 0) {
-    stype = "IDC";
-  } else if (dtype == 1) {
-    stype = "SAC";
-  }
-
+  std::string stype = "IDC";
   switch (type) {
     case IDCType::IDC:
     default: {

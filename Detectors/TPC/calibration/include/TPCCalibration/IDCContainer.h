@@ -37,6 +37,9 @@ enum class IDCType { IDC = 0,     ///< integrated and grouped IDCs
                      IDCDelta = 3 ///< IDCDelta: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
 };
 
+/// define alias for SACs
+using SACType = IDCType;
+
 /// IDC Delta IDC Compression types
 enum class IDCDeltaCompression { NO = 0,     ///< no compression using floats
                                  MEDIUM = 1, ///< medium compression using short (data compression ratio 2 when stored in CCDB)
