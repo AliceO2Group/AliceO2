@@ -42,9 +42,9 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   int nSimSteps = 7;                      ///< number of steps in response simulation
   float energyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
 
-  float Vbb = 3.0;   ///< back bias absolute value for MFT (in Volt)
-  float IBVbb = 3.0; ///< back bias absolute value for ITS Inner Barrel (in Volt)
-  float OBVbb = 3.0; ///< back bias absolute value for ITS Outter Barrel (in Volt)
+  float Vbb = 0.0;   ///< back bias absolute value for MFT (in Volt)
+  float IBVbb = 0.0; ///< back bias absolute value for ITS Inner Barrel (in Volt)
+  float OBVbb = 0.0; ///< back bias absolute value for ITS Outter Barrel (in Volt)
 
   std::string noiseFilePath{}; ///< optional noise masks file path. FIXME to be removed once switch to CCDBFetcher
 
