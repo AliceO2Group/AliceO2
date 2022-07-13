@@ -312,12 +312,36 @@ void EventManagerFrame::checkMemory()
   }
 }
 
+void EventManagerFrame::createOutreachScreenshot()
+{
+  if (!Options::Instance()->imageFolder().empty()) {
+    string fileName = mEventManager->getInstance().getDataSource()->getEventName();
+    if (fileName.size() < 5) {
+      return;
+    }
+    string imageFolder = Options::Instance()->imageFolder();
+    if (!std::filesystem::is_directory(imageFolder)) {
+      std::filesystem::create_directory(imageFolder);
+    }
+    fileName = imageFolder + "/" + fileName.substr(0, fileName.find_last_of('.')) + ".png";
+    if (!std::filesystem::is_regular_file(fileName)) {
+      Screenshot::perform(fileName, this->mEventManager->getDataSource()->getDetectorsMask(),
+                          this->mEventManager->getDataSource()->getRunNumber(),
+                          this->mEventManager->getDataSource()->getFirstTForbit(),
+                          this->mEventManager->getDataSource()->getCollisionTime());
+      DirectoryLoader::reduceNumberOfFiles(imageFolder, DirectoryLoader::load(imageFolder, "_", ".png"), 10);
+    }
+    // LOG(info) << mEventManager->getInstance().getDataSource()->getEventName();
+  }
+}
+
 void EventManagerFrame::DoTimeTick()
 {
   if (not setInTick()) {
     return;
   }
   checkMemory(); // exits if memory usage too high = prevents freezing long-running machine
+  this->createOutreachScreenshot();
   bool refreshNeeded = mEventManager->getDataSource()->refresh();
   if (this->mDisplayMode == SequentialMode) {
     mEventManager->getDataSource()->rollToNext();
@@ -326,21 +350,6 @@ void EventManagerFrame::DoTimeTick()
 
   if (refreshNeeded) {
     mEventManager->displayCurrentEvent();
-    if (!Options::Instance()->imageFolder().empty()) {
-      string fileName = mEventManager->getInstance().getDataSource()->getEventName();
-      string imageFolder = Options::Instance()->imageFolder();
-      if (!std::filesystem::is_directory(imageFolder)) {
-        std::filesystem::create_directory(imageFolder);
-      }
-      fileName = imageFolder + "/" + fileName.substr(0, fileName.find_last_of('.')) + ".png";
-      Screenshot::perform(fileName, this->mEventManager->getDataSource()->getDetectorsMask(),
-                          this->mEventManager->getDataSource()->getRunNumber(),
-                          this->mEventManager->getDataSource()->getFirstTForbit(),
-                          this->mEventManager->getDataSource()->getCollisionTime());
-      DirectoryLoader::reduceNumberOfFiles(imageFolder, DirectoryLoader::load(imageFolder, "_", ".png"), 10);
-
-      LOG(info) << mEventManager->getInstance().getDataSource()->getEventName();
-    }
   }
   mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
   clearInTick();
