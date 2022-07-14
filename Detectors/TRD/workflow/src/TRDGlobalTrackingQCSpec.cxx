@@ -62,6 +62,7 @@ void TRDGlobalTrackingQC::run(ProcessingContext& pc)
 
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
+  updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
   mQC.setInput(recoData);
   mQC.run();
 }
@@ -120,7 +121,7 @@ DataProcessorSpec getTRDGlobalTrackingQCSpec(o2::dataformats::GlobalTrackID::mas
                                                               false,                             // GRPECS=true
                                                               false,                             // GRPLHCIF
                                                               true,                              // GRPMagField
-                                                              false,                             // askMatLUT
+                                                              true,                              // askMatLUT
                                                               o2::base::GRPGeomRequest::Aligned, // geometry
                                                               dataRequest->inputs,
                                                               true);
