@@ -19,6 +19,7 @@
 #pragma link C++ class o2::trd::TrackTriggerRecord + ;
 #pragma link C++ class o2::trd::LinkRecord + ;
 #pragma link C++ struct o2::trd::HalfCRUHeader + ;
+#pragma link C++ struct o2::trd::TRDFeeID + ;
 #pragma link C++ struct o2::trd::TrackletHCHeader + ;
 #pragma link C++ struct o2::trd::TrackletMCMHeader + ;
 #pragma link C++ struct o2::trd::TrackletMCMData + ;

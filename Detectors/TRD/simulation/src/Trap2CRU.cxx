@@ -20,16 +20,10 @@
 
 #include "Headers/RAWDataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
-#include "DataFormatsTRD/TriggerRecord.h"
-#include "DataFormatsTRD/LinkRecord.h"
-#include "DataFormatsTRD/RawData.h"
-#include "DataFormatsTRD/Tracklet64.h"
-#include "DataFormatsTRD/Constants.h"
 #include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "TRDSimulation/Trap2CRU.h"
-#include "TRDSimulation/TrapSimulator.h"
 #include "CommonUtils/StringUtils.h"
 #include "TFile.h"
 #include "TTree.h"
@@ -39,11 +33,9 @@
 #include <iostream>
 #include <iomanip>
 #include <array>
-#include <string>
-#include <bitset>
 #include <vector>
-#include <gsl/span>
 #include <typeinfo>
+#include "fairlogger/Logger.h"
 
 using namespace o2::raw;
 
@@ -297,11 +289,11 @@ void Trap2CRU::readTrapData()
   LOGF(info, "Wrote %lu tracklets and %lu digits into the raw data", mTotalTrackletsWritten, mTotalDigitsWritten);
 }
 
-uint32_t Trap2CRU::buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, const uint32_t halfcru)
+uint32_t Trap2CRU::buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, const uint32_t halfcru, bool isCalibTrigger)
 {
   int bunchcrossing = bc;
   int stopbits = 0x01; // do we care about this and eventtype in simulations?
-  int eventtype = constants::ETYPECALIBRATIONTRIGGER;
+  int eventtype = isCalibTrigger ? constants::ETYPECALIBRATIONTRIGGER : constants::ETYPEPHYSICSTRIGGER;
   int crurdhversion = 6;
   int feeid = 0;
   int cruid = 0;
@@ -522,9 +514,9 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
   // 1. HalfCRUHeader
   // 2. Tracklet data
   // 3. Two tracklet endmarkers
-  // 4. Two digit HC headers
-  // 5. Digit data
-  // 6. Two end markers
+  // 4. Two digit HC headers (only for calibration events)
+  // 5. Digit data (only for calibration events)
+  // 6. Two end markers (only for calibration events)
 
   int rawwords = 0;
   int nLinksWithData = 0;
@@ -536,6 +528,8 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
 
   int endtrackletindex = triggerrecord.getFirstTracklet() + triggerrecord.getNumberOfTracklets();
   int64_t enddigitindex = triggerrecord.getFirstDigit() + triggerrecord.getNumberOfDigits();
+  // with digit downscaling enabled there will be triggers with only tracklets
+  bool isCalibTrigger = triggerrecord.getNumberOfDigits() > 0 ? true : false;
   const auto& ctpOffsets = o2::ctp::TriggerOffsetsParam::Instance();
   auto ir = triggerrecord.getBCData();
   ir += ctpOffsets.LM_L0;
@@ -544,6 +538,10 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
     LOG(info) << "Skip writing IR " << triggerrecord.getBCData() << " as after applying LM_L0 shift of " << ctpOffsets.LM_L0 << " bunches the orbit would become negative";
     mCurrentDigit = enddigitindex;
     mCurrentTracklet = endtrackletindex;
+    return;
+  }
+  if (triggerrecord.getNumberOfTracklets() == 0 && triggerrecord.getNumberOfDigits() == 0) {
+    LOG(info) << "Skip writing trigger " << triggercount << " as there are neither digits nor tracklets";
     return;
   }
 
@@ -560,7 +558,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
     // 15 links per half cru or cru end point.
     HalfCRUHeader halfcruheader;
     //now write the cruheader at the head of all the data for this halfcru.
-    buildHalfCRUHeader(halfcruheader, ir.bc, halfcru);
+    buildHalfCRUHeader(halfcruheader, ir.bc, halfcru, isCalibTrigger);
     halfcruheader.EndPoint = mEndPointID;
     mRawDataPtr = rawdatavector.data();
     HalfCRUHeader* halfcruheaderptr = (HalfCRUHeader*)mRawDataPtr; // store the ptr to the halfcruheader for later adding the link lengths and possibly simulated errors.
@@ -613,32 +611,35 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
         // write 2 tracklet end markers irrespective of there being tracklet data.
         writeTrackletEndMarkers();
         linkwordswritten += 2;
-        // always write 2 digit hc headers, irrespective of whether there are digits or not
-        writeDigitHCHeaders(triggercount, hcid);
-        linkwordswritten += 2;
-        while (mCurrentDigit < enddigitindex && mDigits[mDigitsIndex[mCurrentDigit]].getHCId() == hcid) {
-          // while we are on a single mcm, copy the digits timebins to the array.
-          int digitcounter = 0;
-          int currentROB = mDigits[mDigitsIndex[mCurrentDigit]].getROB();
-          int currentMCM = mDigits[mDigitsIndex[mCurrentDigit]].getMCM();
-          int firstDigitMCM = mCurrentDigit;
-          while (mDigits[mDigitsIndex[mCurrentDigit]].getMCM() == currentMCM &&
-                 mDigits[mDigitsIndex[mCurrentDigit]].getROB() == currentROB &&
-                 mDigits[mDigitsIndex[mCurrentDigit]].getHCId() == hcid) {
-            mCurrentDigit++;
-            digitcounter++;
-            if (mCurrentDigit == enddigitindex) {
-              break;
-            }
-          }
-          // mcm digits are full, now write it out.
-          linkwordswritten += buildDigitRawData(firstDigitMCM, mCurrentDigit, currentMCM, currentROB, triggercount);
-          nDigitsOnLink += (mCurrentDigit - firstDigitMCM);
-        }
 
-        // write the digit end marker so long as we have any data (digits or tracklets).
-        writeDigitEndMarkers();
-        linkwordswritten += 2;
+        if (isCalibTrigger) {
+          // we write two DigitHCHeaders here
+          writeDigitHCHeaders(triggercount, hcid);
+          linkwordswritten += 2;
+          while (mCurrentDigit < enddigitindex && mDigits[mDigitsIndex[mCurrentDigit]].getHCId() == hcid) {
+            // while we are on a single mcm, copy the digits timebins to the array.
+            int digitcounter = 0;
+            int currentROB = mDigits[mDigitsIndex[mCurrentDigit]].getROB();
+            int currentMCM = mDigits[mDigitsIndex[mCurrentDigit]].getMCM();
+            int firstDigitMCM = mCurrentDigit;
+            while (mDigits[mDigitsIndex[mCurrentDigit]].getMCM() == currentMCM &&
+                   mDigits[mDigitsIndex[mCurrentDigit]].getROB() == currentROB &&
+                   mDigits[mDigitsIndex[mCurrentDigit]].getHCId() == hcid) {
+              mCurrentDigit++;
+              digitcounter++;
+              if (mCurrentDigit == enddigitindex) {
+                break;
+              }
+            }
+            // mcm digits are full, now write it out.
+            linkwordswritten += buildDigitRawData(firstDigitMCM, mCurrentDigit, currentMCM, currentROB, triggercount);
+            nDigitsOnLink += (mCurrentDigit - firstDigitMCM);
+          }
+
+          // write the digit end marker so long as we have any data (digits or tracklets).
+          writeDigitEndMarkers();
+          linkwordswritten += 2;
+        } // end isCalibTrigger
 
         // pad up to a whole 256 bit word size (paddingsize is number of 32 bit words to pad)
         int paddingsize = (linkwordswritten % 8 == 0) ? 0 : 8 - (linkwordswritten % 8);
