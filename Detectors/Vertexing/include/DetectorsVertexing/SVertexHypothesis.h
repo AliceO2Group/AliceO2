@@ -79,6 +79,63 @@ class SVertexHypothesis
   ClassDefNV(SVertexHypothesis, 1);
 };
 
+class SVertex3Hypothesis
+{
+
+ public:
+  using PID = o2::track::PID;
+  enum PIDParams { SigmaM,  // sigma of mass res at 0 pt
+                   NSigmaM, // number of sigmas of mass res
+                   MarginM, // additive safety margin in mass cut
+                   CPt };   // pT dependence of mass resolution parameterized as mSigma*(1+mC1*pt);
+
+  static constexpr int NPIDParams = 4;
+
+  void set(PID v0, PID ppos0, PID ppos1, PID pneg, float sig, float nSig, float margin, float cpt, float bz = 0.f);
+  void set(PID v0, PID ppos0, PID ppos1, PID pneg, const float pars[NPIDParams], float bz = 0.f);
+
+  float getMassV0Hyp() const { return PID::getMass(mPIDV0); }
+  float getMassPosProng0() const { return PID::getMass(mPIDPosProng0); }
+  float getMassPosProng1() const { return PID::getMass(mPIDPosProng1); }
+  float getMassNegProng() const { return PID::getMass(mPIDNegProng); }
+
+  float calcMass2(float p2Pos0, float p2Pos1, float p2Neg, float p2V0) const
+  {
+    // calculate v0 mass from squared momentum of its prongs and total momentum
+    float ePos0 = std::sqrt(p2Pos0 + getMass2PosProng0()), ePos1 = std::sqrt(p2Pos1 + getMass2PosProng1()) , eNeg = std::sqrt(p2Neg + getMass2NegProng()), eV0 = ePos0 + ePos1 + eNeg;
+    return eV0 * eV0 - p2V0;
+  }
+
+  float calcMass(float p2Pos0, float p2Pos1, float p2Neg, float p2V0) const { return std::sqrt(calcMass2(p2Pos0, p2Pos1, p2Neg, p2V0)); }
+
+  bool check(float p2Pos0, float p2Pos1, float p2Neg, float p2V0, float ptV0) const
+  { // check if given mass and pt is matching to hypothesis
+    return check(calcMass(p2Pos0, p2Pos1, p2Neg, p2V0), ptV0);
+  }
+
+  bool check(float mass, float pt) const
+  { // check if given mass and pt is matching to hypothesis
+    return std::abs(mass - getMassV0Hyp()) < getMargin(pt);
+  }
+
+  float getSigma(float pt) const { return mPars[SigmaM] * (1.f + mPars[CPt] * pt); }
+  float getMargin(float pt) const { return mPars[NSigmaM] * getSigma(pt) + mPars[MarginM]; }
+
+ private:
+  float getMass2PosProng0() const { return PID::getMass2(mPIDPosProng0); }
+  float getMass2PosProng1() const { return PID::getMass2(mPIDPosProng1); }
+  float getMass2NegProng() const { return PID::getMass2(mPIDNegProng); }
+
+  PID mPIDV0{PID::HyperTriton};
+  PID mPIDPosProng0{PID::Deuteron};
+  PID mPIDPosProng1{PID::Proton};
+  PID mPIDNegProng{PID::Pion};
+
+  std::array<float, NPIDParams> mPars{};
+
+  ClassDefNV(SVertex3Hypothesis, 1);
+};
+
 } // namespace vertexing
 } // namespace o2
 
