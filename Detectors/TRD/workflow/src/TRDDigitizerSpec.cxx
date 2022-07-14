@@ -94,6 +94,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (size_t collID = 0; collID < irecords.size(); ++collID) {
+      LOGF(debug, "Collision %lu out of %lu started processing", collID, irecords.size());
       currentTime = irecords[collID];
       // Trigger logic implemented here
       bool isNewTrigger = true; // flag newly accepted readout trigger
@@ -104,7 +105,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         double dT = currentTime.getTimeNS() - triggerTime.getTimeNS();
         if (dT < o2::trd::constants::BUSY_TIME) {
           // BUSY_TIME = READOUT_TIME + DEAD_TIME, if less than that, pile up the signals and update the last time
-          LOGF(info, "Not creating new trigger at time %.2f since dT=%.2f < busy time of %.2f", currentTime.getTimeNS(), dT, o2::trd::constants::BUSY_TIME);
+          LOGF(debug, "Collision %lu Not creating new trigger at time %.2f since dT=%.2f ns < busy time of %.1f us", collID, currentTime.getTimeNS(), dT, o2::trd::constants::BUSY_TIME / 1000);
           isNewTrigger = false;
           mDigitizer.pileup();
         } else {
@@ -112,6 +113,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
           // flush previous stored digits, labels and keep a trigger record
           // then update the trigger time to the new one
           mDigitizer.flush(digits, labels);
+          LOGF(debug, "Collision %lu we got %lu digits and %lu labels", collID - 1, digits.size(), labels.getNElements());
           assert(digits.size() == labels.getIndexedSize());
           // Add trigger record, and send digits to the accumulator
           triggers.emplace_back(triggerTime, digitsAccum.size(), digits.size());
@@ -122,6 +124,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
           triggerTime = currentTime;
           digits.clear();
           labels.clear();
+          mDigitizer.clearPileupSignals();
         }
       }
 
@@ -138,6 +141,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         // get the hits for this event and this source and process them
         std::vector<o2::trd::Hit> hits;
         context->retrieveHits(mSimChains, "TRDHit", part.sourceID, part.entryID, &hits);
+        LOGF(debug, "Collision %lu processing in total %lu hits", collID, hits.size());
         mDigitizer.process(hits);
       }
     }
