@@ -2617,8 +2617,9 @@ bool Detector::FastSimToHits(const Ort::Value& response, const TParticle& partic
     // should not happen --> we don't have fastsim for other detectors
     LOG(fatal) << "Unsupported detector in ZDC fast sim";
   }
+  z_pos /= 1.e02; //z_pos in m
 
-  const float tof = estimateTimeOfFlight(particle, std::abs(z_pos));
+  const float tof = 1.e09 * estimateTimeOfFlight(particle, std::abs(z_pos)); //TOF in ns
 
   // loop over x = columns
   for (int x = 0; x < Nx; ++x) {
