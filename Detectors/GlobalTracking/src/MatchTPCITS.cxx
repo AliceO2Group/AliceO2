@@ -2252,7 +2252,7 @@ int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const ClusRan
                << " dZ: " << dz << " [" << tolerZ << "| dY: " << trackY - cls.getY() << " [" << tolerY << "]";
     if (dz > tolerZ) {
       float clsZ = cls.getZ();
-      LOG(debug) << "Skip the rest since " << trackZ << " > " << clsZ << "\n";
+      LOG(debug) << "Skip the rest since " << trackZ << " < " << clsZ << "\n";
       break;
     } else if (dz < -tolerZ) {
       LOG(debug) << "Skip cluster dz=" << dz << " Ztr=" << trackZ << " zCl=" << cls.getZ();
