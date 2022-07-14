@@ -52,6 +52,7 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float minRToMeanVertex = 0.5;          ///< min radial distance of V0 from beam line (mean vertex)
   float maxDCAXYToMeanVertex = 0.2;      ///< max DCA of V0 from beam line (mean vertex) for prompt V0 candidates
   float maxDCAXYToMeanVertexV0Casc = 2.; ///< max DCA of V0 from beam line (mean vertex) for cascade V0 candidates
+  float maxDCAXYToMeanVertex3bodyV0 = 0.5;///< max DCA of V0 from beam line (mean vertex) for 3body V0 candidates
   float minPtV0 = 0.01;                  ///< v0 minimum pT
   float maxTglV0 = 2.;                   ///< maximum tgLambda of V0
 
@@ -60,6 +61,7 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
 
   float minCosPAXYMeanVertex = 0.95;      ///< min cos of PA to beam line (mean vertex) in tr. plane for prompt V0 candidates
   float minCosPAXYMeanVertexCascV0 = 0.8; ///< min cos of PA to beam line (mean vertex) in tr. plane for V0 of cascade cand.
+  float minCosPAXYMeanVertex3bodyV0 = 0.8;///< min cos of PA to beam line (mean vertex) in tr. plane for 3body V0 cand.
 
   float maxRToMeanVertexCascV0 = 80; // don't consider as a cascade V0 seed if above this R
   float minCosPACascV0 = 0.8;        // min cos of pointing angle to PV for cascade V0 candidates
@@ -68,11 +70,13 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float minRDiffV0Casc = 0.2; ///< cascade should be at least this radial distance below V0
   float maxRIniCasc = 90.;    // don't consider as a cascade seed (circles/line intersection) if its R exceeds this
 
-  float maxDCAXYCasc = 0.5; // max DCA of cascade to PV in XY // TODO RS: shall we use real chi2 to vertex?
-  float maxDCAZCasc = 0.5;  // max DCA of cascade to PV in Z
+  float maxDCAXYCasc = 0.3; // max DCA of cascade to PV in XY // TODO RS: shall we use real chi2 to vertex?
+  float maxDCAZCasc = 0.3;  // max DCA of cascade to PV in Z
   float minCosPACasc = 0.7; ///< min cos of PA to PV for cascade candidates
   float minPtCasc = 0.01;   // cascade minimum pT
   float maxTglCasc = 2.;    // maximum tgLambda of cascade
+
+  float maxRIni3body = 90.; // don't consider as a 3body seed (circles/line intersection) if its R exceeds this
 
   // cuts on different V0 PID params
   bool checkV0Hypothesis = true;
@@ -86,6 +90,11 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   bool checkCascadeHypothesis = true;
   float pidCutsXiMinus[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.07, 0.5};    // XiMinus
   float pidCutsOmegaMinus[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.07, 0.5}; // OmegaMinus
+  //
+  // cuts on different 3 body PID params
+  bool check3bodyHypothesis = true;
+  float pidCutsH3L3body[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.07, 0.5};   // H3L -> d p pi-
+  float pidCutsHe4L3body[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.07, 0.5};  // He4L -> He3 p pi-
 
   O2ParamDef(SVertexerParams, "svertexer");
 };

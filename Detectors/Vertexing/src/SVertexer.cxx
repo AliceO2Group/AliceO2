@@ -138,6 +138,7 @@ void SVertexer::updateTimeDependentParams()
     mMaxR2ToMeanVertexCascV0 = mSVParams->maxRToMeanVertexCascV0 * mSVParams->maxRToMeanVertexCascV0;
     mMaxDCAXY2ToMeanVertex = mSVParams->maxDCAXYToMeanVertex * mSVParams->maxDCAXYToMeanVertex;
     mMaxDCAXY2ToMeanVertexV0Casc = mSVParams->maxDCAXYToMeanVertexV0Casc * mSVParams->maxDCAXYToMeanVertexV0Casc;
+    mMaxDCAXY2ToMeanVertex3bodyV0 = mSVParams->maxDCAXYToMeanVertex3bodyV0 * mSVParams->maxDCAXYToMeanVertex3bodyV0;
     mMinR2DiffV0Casc = mSVParams->minRDiffV0Casc * mSVParams->minRDiffV0Casc;
     mMinPt2V0 = mSVParams->minPtV0 * mSVParams->minPtV0;
     mMaxTgl2V0 = mSVParams->maxTglV0 * mSVParams->maxTglV0;
@@ -156,13 +157,20 @@ void SVertexer::updateTimeDependentParams()
   mV0Hyps[HypV0::AntiHyperhydrog4].set(PID::Hyperhydrog4, PID::Pion, PID::Alpha, mSVParams->pidCutsHhydrog4, bz);
   mCascHyps[HypCascade::XiMinus].set(PID::XiMinus, PID::Lambda, PID::Pion, mSVParams->pidCutsXiMinus, bz);
   mCascHyps[HypCascade::OmegaMinus].set(PID::OmegaMinus, PID::Lambda, PID::Kaon, mSVParams->pidCutsOmegaMinus, bz);
+
+  m3bodyHyps[Hyp3body::H3L3body].set(PID::HyperTriton, PID::Deuteron, PID::Proton, PID::Pion, mSVParams->pidCutsH3L3body, bz);
+
+  setupThreads();
+
   for (auto& ft : mFitterV0) {
     ft.setBz(bz);
   }
   for (auto& ft : mFitterCasc) {
     ft.setBz(bz);
   }
-}
+  for (auto& ft : mFitter3body) {
+    ft.setBz(bz);
+  }
 
 //______________________________________________
 void SVertexer::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
@@ -211,6 +219,24 @@ void SVertexer::setupThreads()
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
     fitter.setPropagateToPCA(false);
     fitter.setMaxR(mSVParams->maxRIniCasc);
+    fitter.setMinParamChange(mSVParams->minParamChange);
+    fitter.setMinRelChi2Change(mSVParams->minRelChi2Change);
+    fitter.setMaxDZIni(mSVParams->maxDZIni);
+    fitter.setMaxChi2(mSVParams->maxChi2);
+    fitter.setMatCorrType(o2::base::Propagator::MatCorrType(mSVParams->matCorr));
+    fitter.setUsePropagator(mSVParams->usePropagator);
+    fitter.setRefitWithMatCorr(mSVParams->refitWithMatCorr);
+    fitter.setMaxStep(mSVParams->maxStep);
+    fitter.setMaxSnp(mSVParams->maxSnp);
+    fitter.setMinXSeed(mSVParams->minXSeed);
+  }
+
+  mFitter3body.resize(mNThreads);
+  for (auto& fitter : mFitter3body) {
+    fitter.setBz(bz);
+    fitter.setUseAbsDCA(mSVParams->useAbsDCA);
+    fitter.setPropagateToPCA(false);
+    fitter.setMaxR(mSVParams->maxRIni3body);
     fitter.setMinParamChange(mSVParams->minParamChange);
     fitter.setMinRelChi2Change(mSVParams->minRelChi2Change);
     fitter.setMaxDZIni(mSVParams->maxDZIni);
@@ -388,19 +414,30 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   }
 
   bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]));
-  bool rejectIfNotCascade = false;
+  /// we want to reconstruct the 3 body decay of hypernuclei starting from the V0 of the Lambda decay (e.g. H3L->d + (p + pi-), or He4L->He3 + (p + pi-)))
+  bool checkFor3BodyDecays = mEnable3BodyDecays && (!mSVParams->checkV0Hypothesis || (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]));
+  bool rejectIfNotCascade = false, rejectIfNot3BodyDecay = false;
   float dcaX = dxv0 - pV0[0] * tDCAXY, dcaY = dyv0 - pV0[1] * tDCAXY, dca2 = dcaX * dcaX + dcaY * dcaY;
   float cosPAXY = prodXYv0 / std::sqrt(r2v0 * pt2V0);
 
-  if (checkForCascade) { // use loser cuts for cascade v0 candidates
+  if (checkForCascade && !checkFor3BodyDecays) { // use loser cuts for cascade v0 candidates, skip if we check for 3 body decays as they require looser selections
     if (dca2 > mMaxDCAXY2ToMeanVertexV0Casc || cosPAXY < mSVParams->minCosPAXYMeanVertexCascV0) {
       LOG(debug) << "Rej for cascade DCAXY2: " << dca2 << " << cosPAXY: " << cosPAXY;
       return false;
     }
   }
+  if (checkFor3BodyDecays) {
+    if (dca2 > mMaxDCAXY2ToMeanVertex3bodyV0 || cosPAXY < mSVParams->minCosPAXYMeanVertex3bodyV0) {
+      LOG(debug) << "Rej for 3 body decays DCAXY2: " << dca2 << " << cosPAXY: " << cosPAXY;
+      return false;
+    }
+  }
+
   if (dca2 > mMaxDCAXY2ToMeanVertex || cosPAXY < mSVParams->minCosPAXYMeanVertex) {
     if (checkForCascade) {
       rejectIfNotCascade = true;
+    } else if (checkFor3BodyDecays) {
+      rejectIfNot3BodyDecay = true;
     } else {
       return false;
     }
@@ -409,6 +446,8 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   auto vlist = seedP.vBracket.getOverlap(seedN.vBracket); // indices of vertices shared by both seeds
   bool added = false;
   auto bestCosPA = checkForCascade ? mSVParams->minCosPACascV0 : mSVParams->minCosPA;
+  bestCosPA = checkFor3BodyDecays ? std::min(mSVParams->minCosPAXYMeanVertex3bodyV0, bestCosPA) : bestCosPA;
+
   for (int iv = vlist.getMin(); iv <= vlist.getMax(); iv++) {
     const auto& pv = mPVertices[iv];
     const auto v0XYZ = fitterV0.getPCACandidatePos(cand);
@@ -443,7 +482,23 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     if (hypCheckStatus[HypV0::AntiLambda] || !mSVParams->checkCascadeHypothesis) {
       nCascAdded += checkCascades(rv0, pV0, p2V0, iP, POS, vlist, ithread);
     }
-    if (!nCascAdded && rejectIfNotCascade) { // v0 would be accepted only if it creates a cascade
+    if (!nCascAdded && rejectIfNotCascade && !checkFor3BodyDecays) { // v0 would be accepted only if it creates a cascade
+      mV0sTmp[ithread].pop_back();
+      return false;
+    }
+    rejectIfNotCascade = (nCascAdded == 0); // we need it later for 3 body decays
+  }
+
+  // check 3 body decays
+  if (checkFor3BodyDecays) {
+    int n3bodyDecays = 0;
+    if (hypCheckStatus[HypV0::Lambda] || !mSVParams->check3bodyHypothesis) {
+      n3bodyDecays += check3bodyDecays(rv0, pV0, p2V0, iN, NEG, ithread);
+    }
+    if (hypCheckStatus[HypV0::AntiLambda] || !mSVParams->check3bodyHypothesis) {
+      n3bodyDecays += check3bodyDecays(rv0, pV0, p2V0, iP, POS, ithread);
+    }
+    if (!n3bodyDecays && rejectIfNot3BodyDecay && rejectIfNotCascade) { // v0 would be accepted only if it is 3 body decay
       mV0sTmp[ithread].pop_back();
       return false;
     }
@@ -605,6 +660,101 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
     }
   }
 
+  return mCascadesTmp[ithread].size() - nCascIni;
+}
+
+//__________________________________________________________________
+int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, int ithread)
+{
+  // check last added V0 for belonging to cascade
+  auto& fitterCasc = mFitterCasc[ithread];
+  const auto& v0 = mV0sTmp[ithread].back();
+  auto& tracks = mTracksPool[posneg];
+  const auto& pv = mPVertices[v0.getVertexID()];
+  int nCascIni = mCascadesTmp[ithread].size();
+  // start from the 1st track compatible with V0's primary vertex
+  int firstTr = mVtxFirstTrack[posneg][v0.getVertexID()], nTr = tracks.size();
+  if (firstTr < 0) {
+    firstTr = nTr;
+  }
+  for (int it = firstTr; it < nTr; it++) {
+    if (it == avoidTrackID) {
+      continue; // skip the track used by V0
+    }
+    auto& bach = tracks[it];
+    if (bach.vBracket > v0.getVertexID()) {
+      break; // all other bachelor candidates will be also not compatible with this PV
+    }
+    if (bach.vBracket.isOutside(v0.getVertexID())) {
+      LOG(error) << "Incompatible bachelor: PV " << bach.vBracket.asString() << " vs V0 " << v0.getVertexID();
+    }
+    if (bach.minR > rv0 + mSVParams->causalityRTolerance) {
+      continue;
+    }
+    int nCandC = fitterCasc.process(v0, bach);
+    if (nCandC == 0) { // discard this pair
+      continue;
+    }
+    int candC = 0;
+    const auto& cascXYZ = fitterCasc.getPCACandidatePos(candC);
+    // make sure the cascade radius is smaller than that of the vertex
+    float dxc = cascXYZ[0] - pv.getX(), dyc = cascXYZ[1] - pv.getY(), dzc = cascXYZ[2] - pv.getZ(), r2casc = dxc * dxc + dyc * dyc;
+    if (rv0 * rv0 - r2casc < mMinR2DiffV0Casc || r2casc < mMinR2ToMeanVertex) {
+      continue;
+    }
+    // do we want to apply mass cut ?
+    //
+    if (!fitterCasc.isPropagateTracksToVertexDone() && !fitterCasc.propagateTracksToVertex()) {
+      continue;
+    }
+    auto& trNeut = fitterCasc.getTrack(0, candC);
+    auto& trBach = fitterCasc.getTrack(1, candC);
+    trNeut.setPID(o2::track::PID::Lambda);
+    trBach.setPID(o2::track::PID::Pion);
+    std::array<float, 3> pNeut, pBach;
+    trNeut.getPxPyPzGlo(pNeut);
+    trBach.getPxPyPzGlo(pBach);
+    std::array<float, 3> pCasc = {pNeut[0] + pBach[0], pNeut[1] + pBach[1], pNeut[2] + pBach[2]};
+    auto prodPPos = pV0[0] * dxc + pV0[1] * dyc + pV0[2] * dzc;
+    if (prodPPos < 0.) { // causality cut
+      continue;
+    }
+    float pt2Casc = pCasc[0] * pCasc[0] + pCasc[1] * pCasc[1], p2Casc = pt2Casc + pCasc[2] * pCasc[2];
+    if (pt2Casc < mMinPt2Casc) { // pt cut
+      continue;
+    }
+    if (pCasc[2] * pCasc[2] / pt2Casc > mMaxTgl2Casc) { // tgLambda cut
+      continue;
+    }
+    //    LOG(info) << "ptcasc2 " << pt2Casc << " tglcasc2 " << pCasc[2]*pCasc[2] / pt2Casc << " cut " << mMaxTgl2Casc;
+    float cosPA = (pCasc[0] * dxc + pCasc[1] * dyc + pCasc[2] * dzc) / std::sqrt(p2Casc * (r2casc + dzc * dzc));
+    if (cosPA < mSVParams->minCosPACasc) {
+      continue;
+    }
+    float p2Bach = pBach[0] * pBach[0] + pBach[1] * pBach[1] + pBach[2] * pBach[2];
+    float ptCasc = std::sqrt(pt2Casc);
+    bool goodHyp = false;
+    for (int ipid = 0; ipid < NHypCascade; ipid++) {
+      if (mCascHyps[ipid].check(p2V0, p2Bach, p2Casc, ptCasc)) {
+        goodHyp = true;
+        break;
+      }
+    }
+    if (!goodHyp) {
+      continue;
+    }
+    auto& casc = mCascadesTmp[ithread].emplace_back(cascXYZ, pCasc, fitterCasc.calcPCACovMatrixFlat(candC), trNeut, trBach, mV0sTmp[ithread].size() - 1, bach.gid);
+    o2::track::TrackParCov trc = casc;
+    o2::dataformats::DCA dca;
+    if (!trc.propagateToDCA(pv, fitterCasc.getBz(), &dca, 5.) ||
+        std::abs(dca.getY()) > mSVParams->maxDCAXYCasc || std::abs(dca.getZ()) > mSVParams->maxDCAZCasc) {
+      mCascadesTmp[ithread].pop_back();
+      continue;
+    }
+    casc.setCosPA(cosPA);
+    casc.setVertexID(v0.getVertexID());
+    casc.setDCA(fitterCasc.getChi2AtPCACandidate());
+  }
   return mCascadesTmp[ithread].size() - nCascIni;
 }
 

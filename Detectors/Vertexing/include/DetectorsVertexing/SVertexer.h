@@ -20,6 +20,7 @@
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
+#include "ReconstructionDataFormats/DecayNbody.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "CommonDataFormat/RangeReference.h"
@@ -52,6 +53,7 @@ class SVertexer
   using PVertex = const o2::dataformats::PrimaryVertex;
   using V0 = o2::dataformats::V0;
   using Cascade = o2::dataformats::Cascade;
+  using DecayNbody = o2::dataformats::DecayNbody;
   using RRef = o2::dataformats::RangeReference<int, int>;
   using VBracket = o2::math_utils::Bracket<int>;
 
@@ -71,6 +73,13 @@ class SVertexer
     NHypCascade
   };
 
+  enum Hyp3body {
+    H3L3body,
+    He4L3body,
+    He5L3body,
+    NHyp3body
+  };
+
   static constexpr int POS = 0, NEG = 1;
   struct TrackCand : o2::track::TrackParCov {
     GIndex gid{};
@@ -78,9 +87,10 @@ class SVertexer
     float minR = 0; // track lowest point r
   };
 
-  SVertexer(bool enabCascades = true) : mEnableCascades(enabCascades) {}
+  SVertexer(bool enabCascades = true, bool enab3body = true) : mEnableCascades{enabCascades}, mEnable3BodyDecays{enab3body} {}
 
   void setEnableCascades(bool v) { mEnableCascades = v; }
+  void setEnable3BodyDecays(bool v) { mEnable3BodyDecays = v; }
   void init();
   void process(const o2::globaltracking::RecoContainer& recoTracks); // accessor to various tracks
   auto& getMeanVertex() const { return mMeanVertex; }
@@ -96,11 +106,11 @@ class SVertexer
 
   template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCREFCONT>
   void extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs);
-  void initTPCTransform();
 
  private:
   bool checkV0(const TrackCand& seed0, const TrackCand& seed1, int iP, int iN, int ithread);
   int checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, VBracket v0vlist, int ithread);
+  int check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, int ithread);
   void setupThreads();
   void buildT2V(const o2::globaltracking::RecoContainer& recoTracks);
   void updateTimeDependentParams();
@@ -120,6 +130,7 @@ class SVertexer
   gsl::span<const PVertex> mPVertices;
   std::vector<std::vector<V0>> mV0sTmp;
   std::vector<std::vector<Cascade>> mCascadesTmp;
+  std::vector<std::vector<DecayNbody>> m3bodyTmp;
   std::array<std::vector<TrackCand>, 2> mTracksPool{}; // pools of positive and negative seeds sorted in min VtxID
   std::array<std::vector<int>, 2> mVtxFirstTrack{};    // 1st pos. and neg. track of the pools for each vertex
 
@@ -127,30 +138,37 @@ class SVertexer
   const SVertexerParams* mSVParams = nullptr;
   std::array<SVertexHypothesis, NHypV0> mV0Hyps;
   std::array<SVertexHypothesis, NHypCascade> mCascHyps;
+  std::array<SVertex3Hypothesis, NHyp3body> m3bodyHyps;
 
   std::vector<DCAFitterN<2>> mFitterV0;
   std::vector<DCAFitterN<2>> mFitterCasc;
+  std::vector<DCAFitterN<3>> mFitter3body;
   int mNThreads = 1;
   float mMinR2ToMeanVertex = 0;
   float mMaxDCAXY2ToMeanVertex = 0;
   float mMaxDCAXY2ToMeanVertexV0Casc = 0;
   float mMinR2DiffV0Casc = 0;
+  float mMaxR2Diff3bodyV0 = 0;
   float mMaxR2ToMeanVertexCascV0 = 0;
+  float mMaxDCAXY2ToMeanVertex3bodyV0 = 0;
   float mMinPt2V0 = 1e-6;
   float mMaxTgl2V0 = 2. * 2.;
   float mMinPt2Casc = 1e-4;
   float mMaxTgl2Casc = 2. * 2.;
+  float mMinPt23Body = 1e-4;
+  float mMaxTgl23Body = 2.f * 2.f;
   float mMUS2TPCBin = 1.f / (8 * o2::constants::lhc::LHCBunchSpacingMUS);
   float mTPCBin2Z = 0;
   float mTPCVDrift = 0;
   float mTPCVDriftRef = 0;
 
   bool mEnableCascades = true;
+  bool mEnable3BodyDecays = true;
 };
 
 // input containers can be std::vectors or pmr vectors
-template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCREFCONT>
-void SVertexer::extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs)
+template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCREFCONT, typename VTX3BCONT, typename VTX3BREFCONT>
+  void SVertexer::extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs, VTX3BCONT& vtx3, VTX3BREFCONT& vtx3Refs)
 {
   v0s.clear();
   vtx2V0Refs.clear();
@@ -158,16 +176,21 @@ void SVertexer::extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CAS
   cascades.clear();
   vtx2CascRefs.clear();
   vtx2CascRefs.resize(mPVertices.size());
+  vtx3.clear();
+  vtx3Refs.clear();
+  vtx3Refs.resize(mPVertices.size());
 
   auto& tmpV0s = mV0sTmp[0];
   auto& tmpCascs = mCascadesTmp[0];
-  int nv0 = tmpV0s.size(), nCasc = tmpCascs.size();
-  std::vector<int> v0SortID(nv0), v0NewInd(nv0), cascSortID(nCasc);
+  auto& tmp3B = m3bodyTmp[0];
+  int nv0 = tmpV0s.size(), nCasc = tmpCascs.size(), n3body = tmp3B.size();
+  std::vector<int> v0SortID(nv0), v0NewInd(nv0), cascSortID(nCasc), vtx3SortID(n3body);
   std::iota(v0SortID.begin(), v0SortID.end(), 0);
   std::sort(v0SortID.begin(), v0SortID.end(), [&](int i, int j) { return tmpV0s[i].getVertexID() < tmpV0s[j].getVertexID(); });
   std::iota(cascSortID.begin(), cascSortID.end(), 0);
   std::sort(cascSortID.begin(), cascSortID.end(), [&](int i, int j) { return tmpCascs[i].getVertexID() < tmpCascs[j].getVertexID(); });
-
+  std::iota(vtx3SortID.begin(), vtx3SortID.end(), 0);
+  std::sort(vtx3SortID.begin(), vtx3SortID.end(), [&](int i, int j) { return tmp3B[i].getVertexID() < tmp3B[j].getVertexID(); });
   // relate V0s to primary vertices
   int pvID = -1, nForPV = 0;
   for (int iv = 0; iv < nv0; iv++) {
@@ -229,6 +252,37 @@ void SVertexer::extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CAS
       }
     }
   }
+  LOG(info)<<"relate Cascades to primary vertices Finish";
+
+  // relate 3 body decays to primary vertices
+  pvID = -1;
+  nForPV = 0;
+  for (int iv = 0; iv < n3body; iv++) {
+    const auto& vertex3body = tmp3B[vtx3SortID[iv]];
+    if (pvID < vertex3body.getVertexID()) {
+      if (pvID > -1) {
+        vtx3Refs[pvID].setEntries(nForPV);
+      }
+      pvID = vertex3body.getVertexID();
+      vtx3Refs[pvID].setFirstEntry(vtx3.size());
+      nForPV = 0;
+    }
+    vtx3.push_back(vertex3body);
+    nForPV++;
+  }
+  if (pvID != -1) { // finalize
+    vtx3Refs[pvID].setEntries(nForPV);
+    // fill empty slots
+    int ent = vtx3.size();
+    for (int ip = vtx3Refs.size(); ip--;) {
+      if (vtx3Refs[ip].getEntries()) {
+        ent = vtx3Refs[ip].getFirstEntry();
+      } else {
+        vtx3Refs[ip].setFirstEntry(ent);
+      }
+    }
+  }
+  LOG(info)<<"relate 3 body decays to primary vertices Finish";
 }
 
 } // namespace vertexing
