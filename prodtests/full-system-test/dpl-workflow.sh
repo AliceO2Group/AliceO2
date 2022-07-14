@@ -129,7 +129,7 @@ if workflow_has_parameter QC && has_detector_qc TPC; then
   GPU_OUTPUT+=",qa"
   [[ -z $TPC_TRACKING_QC_RUN_FRACTION ]] && TPC_TRACKING_QC_RUN_FRACTION=1
   GPU_CONFIG_KEY+="GPU_QA.clusterRejectionHistograms=1;GPU_proc.qcRunFraction=$TPC_TRACKING_QC_RUN_FRACTION;"
-  [[ $HOSTMEMSIZE == "0" && $TPC_TRACKING_QC_RUN_FRACTION == "100" ]] && HOSTMEMSIZE=$(( 5 << 30 ))
+  [[ $GPUTYPE != "CPU" && $HOSTMEMSIZE == "0" && $TPC_TRACKING_QC_RUN_FRACTION == "100" ]] && HOSTMEMSIZE=$(( 5 << 30 ))
 fi
 
 if [[ -z $DISABLE_ROOT_OUTPUT ]]; then
@@ -463,7 +463,7 @@ fi
 # DPL run binary
 WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
 
-if [[ "0$GEN_TOPO_AUTOSCALE_PROCESSES" == "01" ]]; then
+if [[ "0$GEN_TOPO_AUTOSCALE_PROCESSES" == "01" && $WORKFLOWMODE != "print" ]]; then
   TOTAL_N_PIPELINES=`echo "${WORKFLOW}" | grep -o ':\$((([0-9]*\*\$AUTOSCALE_PROCESS_FACTOR' | grep -o '[0-9]*' | awk '{s+=$1} END {print s}'`
   TOTAL_N_CPUCORES=$(($NUMAGPUIDS == 1 ? 64 : 128))
   AUTOSCALE_PROCESS_FACTOR=$(($TOTAL_N_PIPELINES >= $TOTAL_N_CPUCORES && $TOTAL_N_PIPELINES != 0 ? 100 : ($TOTAL_N_CPUCORES * 100 / $TOTAL_N_PIPELINES)))
