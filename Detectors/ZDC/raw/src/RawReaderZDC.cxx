@@ -110,11 +110,15 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
       for (int32_t im = 0; im < NModules; im++) {
         for (int32_t ic = 0; ic < NChPerModule; ic++) {
           if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
-            // Identify connected channel
-            auto id = mModuleConfig->modules[im].channelID[ic];
-            int offset = ev.data[im][ic].f.offset - 32768;
-            pdata.data[id] = offset;
-            pdata.scaler[id] = ev.data[im][ic].f.hits;
+            // Protection for channels that are not supposed to readout but may be present in payload
+            // just for scaler and pedestal readout at end of orbit.
+            if(mModuleConfig->modules[im].readChannel[ic]){
+              // Identify connected channel
+              auto id = mModuleConfig->modules[im].channelID[ic];
+              int offset = ev.data[im][ic].f.offset - 32768;
+              pdata.data[id] = offset;
+              pdata.scaler[id] = ev.data[im][ic].f.hits;
+            }
           } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {
             // Empty channel
           } else {

@@ -550,11 +550,11 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
     printf("%04x %08x %08x ", c, b, a);
     uint32_t hits = (val >> 24) & 0xfff;
     int32_t offset = (lsb >> 8) & 0xffff - 32768;
-    float foffset = offset / 8.;
+    // float foffset = offset * (moduleConfig == nullptr ? 1 : moduleConfig->baselineFactor);
     uint32_t board = (lsb >> 2) & 0xf;
     uint32_t ch = (lsb >> 6) & 0x3;
-    // printf("orbit %9u bc %4u hits %4u offset %+6i Board %2u Ch %1u", myorbit, mybc, hits, offset, board, ch);
-    printf("orbit %9u bc %4u hits %4u offset %+8.3f Board %2u Ch %1u", myorbit, mybc, hits, foffset, board, ch);
+    printf("orbit %9u bc %4u hits %4u offset %+6i Board %2u Ch %1u", myorbit, mybc, hits, offset, board, ch);
+    // printf("orbit %9u bc %4u hits %4u offset %+9.3f Board %2u Ch %1u", myorbit, mybc, hits, foffset, board, ch);
     if (board >= NModules) {
       printf(" ERROR with board");
     }
@@ -607,21 +607,54 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
 //______________________________________________________________________________
 void Digits2Raw::emptyBunches(std::bitset<3564>& bunchPattern)
 {
-  // TODO: get bunch pattern used by acquisition
-  const int LHCMaxBunches = o2::constants::lhc::LHCMaxBunches;
+  // Check if mModuleConfig object has list of empty bunches
+  if (mModuleConfig->nBunchAverage <= 0) {
+    LOG(fatal) << "nBunchAverage = " << mModuleConfig->nBunchAverage;
+  }
+
+  // Analyze the list of empty bunches that is provided
   mNEmpty = 0;
-  for (int32_t ib = 0; ib < LHCMaxBunches; ib++) {
-    int32_t mb = (ib + 31) % LHCMaxBunches;                // beam gas from back of calorimeter (31 bc earlier than a colliding bunch)
-    int32_t m1 = (ib + 1) % LHCMaxBunches;                 // next bunch is colliding (position -1)
-    int32_t p1 = (ib - 1 + LHCMaxBunches) % LHCMaxBunches; // current bc is 1 bc after colliding (position +1)
-    int32_t p2 = (ib - 2 + LHCMaxBunches) % LHCMaxBunches; // current bc is 2 bc after colliding
-    int32_t p3 = (ib - 3 + LHCMaxBunches) % LHCMaxBunches; // current bc is 3 bc after colliding
-    if (bunchPattern[mb] || bunchPattern[m1] || bunchPattern[ib] || bunchPattern[p1] || bunchPattern[p2] || bunchPattern[p3]) {
-      mEmpty[ib] = mNEmpty;
-    } else {
-      mNEmpty++;
-      mEmpty[ib] = mNEmpty;
+  int ib = 0;
+  uint64_t one = 0x1;
+  for (int i = 0; i < mModuleConfig->NWMap; i++) {
+    uint64_t val = mModuleConfig->emptyMap[i];
+    for (int j = 0; j < 64; j++) {
+      if ((val & (one << j)) != 0) { // Empty bunch
+        mNEmpty++;
+        mEmpty[ib] = mNEmpty;
+      } else { // Not empty
+        mEmpty[ib] = mNEmpty;
+      }
+      ib++;
     }
+  }
+
+  // No list is provided: we prepare a list from collision context
+  if (mNEmpty == 0) {
+    const int LHCMaxBunches = o2::constants::lhc::LHCMaxBunches;
+    for (int32_t ib = 0; ib < LHCMaxBunches; ib++) {
+      int mb = (ib + 31) % o2::constants::lhc::LHCMaxBunches;                                    // beam gas from back of calorimeter (31 b.c. before)
+      int m1 = (ib + 1) % o2::constants::lhc::LHCMaxBunches;                                     // previous bunch (next is colliding)
+      int cb = ib;                                                                               // current bunch crossing
+      int p1 = (ib - 1 + o2::constants::lhc::LHCMaxBunches) % o2::constants::lhc::LHCMaxBunches; // colliding + 1 (-1 is colliding)
+      int p2 = (ib - 2 + o2::constants::lhc::LHCMaxBunches) % o2::constants::lhc::LHCMaxBunches; // colliding + 2 (-2 is colliding)
+      int p3 = (ib - 3 + o2::constants::lhc::LHCMaxBunches) % o2::constants::lhc::LHCMaxBunches; // colliding + 3 (-3 is colliding)
+      int p4 = (ib - 4 + o2::constants::lhc::LHCMaxBunches) % o2::constants::lhc::LHCMaxBunches; // colliding + 4 (-4 is colliding)
+      if (bunchPattern[mb] || bunchPattern[m1] || bunchPattern[ib] || bunchPattern[p1] || bunchPattern[p2] || bunchPattern[p3]) {
+        mEmpty[ib] = mNEmpty;
+      } else {
+        mNEmpty++;
+        mEmpty[ib] = mNEmpty;
+      }
+      if (mNEmpty == mModuleConfig->nBunchAverage) {
+        break;
+      }
+    }
+  }
+
+  // Check if there is a mismatch between requested and actual list
+  if (mNEmpty != 0 && mNEmpty != mModuleConfig->nBunchAverage) {
+    LOG(fatal) << "Mismatch with empty map mNEmpty = " << mNEmpty << " nBunchAverage = " << mModuleConfig->nBunchAverage;
   }
   LOG(info) << "There are " << mNEmpty << " clean empty bunches";
 }
