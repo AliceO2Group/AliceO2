@@ -772,6 +772,9 @@ void Tracker::getGlobalConfiguration()
     if (tc.trackletsPerClusterLimit >= 0) {
       params.TrackletsPerClusterLimit = tc.trackletsPerClusterLimit;
     }
+    if (mTimeFrame) {
+      mTimeFrame->mDumpTimeFrames = tc.dumpTimeFrames;
+    }
   }
 }
 
@@ -779,6 +782,7 @@ void Tracker::adoptTimeFrame(TimeFrame& tf)
 {
   mTimeFrame = &tf;
   mTraits->adoptTimeFrame(&tf);
+  mTimeFrame->mID = mTimeFrameCounter;
 }
 
 void Tracker::setBz(float bz)

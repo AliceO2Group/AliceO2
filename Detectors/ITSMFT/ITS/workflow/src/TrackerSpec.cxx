@@ -136,7 +136,15 @@ void TrackerDPL::init(InitContext& ic)
 void TrackerDPL::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
+
+  /// Setup timeframe, vertexer, tracker and their parameters
+  TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
+  mTracker->adoptTimeFrame(*timeFrame);
+  mVertexer->adoptTimeFrame(*timeFrame);
   updateTimeDependentParams(pc);
+  mTracker->setBz(o2::base::Propagator::Instance()->getNominalBz());
+
+  /// Get the input data
   auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
   gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
   gsl::span<const o2::itsmft::PhysTrigger> physTriggers;
@@ -191,11 +199,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS);
   LOG(info) << "ITSTracker RO: continuous=" << continuous;
-  TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
-  mTracker->adoptTimeFrame(*timeFrame);
 
-  mTracker->setBz(o2::base::Propagator::Instance()->getNominalBz());
-  mVertexer->adoptTimeFrame(*timeFrame);
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
 
   gsl::span<itsmft::ROFRecord> rofspan(rofs);
@@ -318,8 +322,8 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
     mTracker->setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT); /// TODO: eventually remove this in favour of the one below
     mVertexer->getGlobalConfiguration();
-    mTracker->getGlobalConfiguration();
   }
+  mTracker->getGlobalConfiguration();
 }
 
 ///_______________________________________

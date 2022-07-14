@@ -23,6 +23,7 @@
 #include "ITStracking/TrackingConfigParam.h"
 
 #include <iostream>
+#include <fstream>
 
 namespace
 {
@@ -139,6 +140,7 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
+  std::unique_ptr<std::ofstream> outfile{mDumpTimeFrames ? new std::ofstream(fmt::format("TimeFrame_{}.txt", mID).c_str()) : nullptr};
   mNrof = 0;
   for (auto& rof : rofs) {
     for (int clusterId{rof.getFirstEntry()}; clusterId < rof.getFirstEntry() + rof.getNEntries(); ++clusterId) {
@@ -167,7 +169,9 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
       auto trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
       // Transformation to the local --> global
       auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
-
+      if (mDumpTimeFrames) {
+        *outfile << fmt::format("{},{},{},{},{},{},{},{},{}", mNrof, layer, sensorID, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), trkXYZ.x(), trkXYZ.y(), trkXYZ.z()) << std::endl;
+      }
       addTrackingFrameInfoToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), trkXYZ.x(), geom->getSensorRefAlpha(sensorID),
                                   std::array<float, 2>{trkXYZ.y(), trkXYZ.z()},
                                   std::array<float, 3>{sigmaY2, sigmaYZ, sigmaZ2});
@@ -181,7 +185,9 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
     }
     mNrof++;
   }
-
+  if (mDumpTimeFrames) {
+    outfile->close();
+  }
   for (auto& v : mNTrackletsPerCluster) {
     v.resize(mUnsortedClusters[1].size());
   }

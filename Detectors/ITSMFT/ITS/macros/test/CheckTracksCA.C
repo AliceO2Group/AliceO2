@@ -29,19 +29,19 @@
 using namespace std;
 
 struct ParticleInfo {
-  int event;
-  int pdg;
-  float pt;
-  float eta;
-  float phi;
-  int mother;
-  int first;
-  unsigned short clusters = 0u;
-  unsigned char isReco = 0u;
-  unsigned char isFake = 0u;
-  bool isPrimary = 0u;
-  unsigned char storedStatus = 2; /// not stored = 2, fake = 1, good = 0
-  o2::its::TrackITS track;
+  int event;                      ///< Event number
+  int pdg;                        ///< PDG code of the particle
+  float pt;                       ///< MC Transverse momentum of the particle
+  float eta;                      ///< MC Pseudorapidity of the particle
+  float phi;                      ///< MC Azimuthal angle of the particle
+  int mother;                     ///< Self index of the mother particle
+  int first;                      ///<
+  unsigned short clusters = 0u;   ///< Cluster map
+  unsigned char isReco = 0u;      ///< How many times is it reconstructed with good tracks?
+  unsigned char isFake = 0u;      ///< How many times is it reconstructed as a fake track (one or more wrong clusters attached)?
+  bool isPrimary = 0u;            ///< Is it a primary particle?
+  unsigned char storedStatus = 2; ///< not stored = 2, fake = 1, good = 0
+  o2::its::TrackITS track;        ///< ITS reconstructed track
 };
 
 #pragma link C++ class ParticleInfo + ;

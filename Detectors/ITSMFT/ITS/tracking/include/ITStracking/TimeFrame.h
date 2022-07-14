@@ -176,6 +176,8 @@ class TimeFrame
   std::vector<std::vector<int>> mROframesClusters;
   std::vector<std::vector<int>> mIndexTables;
   int mNrof = 0;
+  int mID = 0;
+  bool mDumpTimeFrames = false;
 
  private:
   template <typename... T>
