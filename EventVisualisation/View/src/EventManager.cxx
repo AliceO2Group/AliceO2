@@ -16,6 +16,7 @@
 /// \author  Michal Chwesiuk
 /// \author  Piotr Nowakowski
 
+#include <unordered_map>
 #include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationView/EventManagerFrame.h"
 #include "EventVisualisationView/MultiView.h"
@@ -31,7 +32,6 @@
 #include <TGListTree.h>
 #include <TEveCalo.h>
 #include "FairLogger.h"
-#include <unordered_map>
 
 #define elemof(e) (unsigned int)(sizeof(e) / sizeof(e[0]))
 
