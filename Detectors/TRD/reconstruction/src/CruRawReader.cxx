@@ -751,9 +751,9 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU,
       if (mHeaderVerbose) {
         LOG(info) << "*** Tracklet Parser : starting at " << std::hex << linkstart << " at hbfoffset: " << std::dec << mHBFoffset32 << " linkhbf start pos:" << hbfoffsetatstartoflink;
       }
-      if (std::distance(linkend, linkstart) > mCurrentHalfCRULinkLengths[currentlinkindex]) {
+      if (std::distance(linkstart, linkend) > mCurrentHalfCRULinkLengths[currentlinkindex]) {
         if (mMaxErrsPrinted > 0) {
-          LOG(alarm) << "linkend - linkstart for  LINK # " << currentlinkindex << " an FEEID:" << std::hex << mFEEID.word << " det:" << std::dec << mDetector[1] << " is > the lenght stored in the cruhalfchamber header : " << mCurrentHalfCRULinkLengths[currentlinkindex];
+          LOG(alarm) << "linkstart - linkend for  LINK # " << currentlinkindex << " an FEEID:" << std::hex << mFEEID.word << " det:" << std::dec << mDetector[1] << " is > the lenght stored in the cruhalfchamber header : " << mCurrentHalfCRULinkLengths[currentlinkindex];
           checkNoErr();
         }
         incrementErrors(TRDParsingBadLinkstartend, mFEEID.supermodule, mFEEID.side, mStack[0], mLayer[0]);
