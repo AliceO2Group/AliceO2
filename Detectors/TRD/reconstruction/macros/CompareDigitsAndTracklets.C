@@ -86,7 +86,7 @@ void CompareDigitsAndTracklets(bool ignoreTrkltPid = false,
       const auto& trig = trigRecs->at(iTrig);
       const auto& trigReco = trigRecsReco->at(iTrig);
       if (!(trig == trigReco)) {
-        LOGF(error, "Trigger records don't match at trigger %ul. Reference orbit/bc (%u/%u), orbit/bc (%u/%u)",
+        LOGF(error, "Trigger records don't match at trigger %lu. Reference orbit/bc (%u/%u), orbit/bc (%u/%u)",
              iTrig, trig.getBCData().orbit, trig.getBCData().bc, trigReco.getBCData().orbit, trigReco.getBCData().bc);
         break;
       }
