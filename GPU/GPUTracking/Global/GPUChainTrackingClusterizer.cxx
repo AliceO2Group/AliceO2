@@ -172,6 +172,7 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
                         const unsigned char* const page2 = ((const unsigned char*)mIOPtrs.tpcZS->slice[iSlice].zsPtr[j][k2]) + l2 * TPCZSHDR::TPC_ZS_PAGE_SIZE;
                         const o2::header::RAWDataHeader* rdh2 = (const o2::header::RAWDataHeader*)page2;
                         if (o2::raw::RDHUtils::getMemorySize(*rdh2) == sizeof(o2::header::RAWDataHeader)) {
+                          mCFContext->fragmentData[f].pageDigits[iSlice][j].emplace_back(0);
                           continue;
                         }
                         const TPCZSHDR* const hdr2 = (const TPCZSHDR*)(page2 + sizeof(o2::header::RAWDataHeader));
