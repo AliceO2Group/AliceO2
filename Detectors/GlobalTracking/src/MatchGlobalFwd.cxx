@@ -561,14 +561,6 @@ void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack& gTrack)
   Double_t tanlsigma = TMath::Max(std::abs(mftTrackOut.getTanl()), .5);
   Double_t qptsigma = TMath::Max(std::abs(mftTrackOut.getInvQPt()), .5);
 
-  lastParamCov(0, 0) = 10000. * mftTrackOut.getCovariances()(0, 0); // <X,X>
-  lastParamCov(1, 1) = 10000. * mftTrackOut.getCovariances()(1, 1); // <Y,X>
-  lastParamCov(2, 2) = 10000. * mftTrackOut.getCovariances()(2, 2); // TMath::Pi() * TMath::Pi() / 16 // <PHI,X>
-  lastParamCov(3, 3) = 10000. * mftTrackOut.getCovariances()(3, 3); // 100. * tanlsigma * tanlsigma;  // mftTrack.getCovariances()(3, 3);     // <TANL,X>
-  lastParamCov(4, 4) = gTrack.getCovariances()(4, 4);               // 100. * qptsigma * qptsigma;  // <INVQPT,X>
-
-  gTrack.setCovariances(lastParamCov);
-
   auto lastLayer = mMFTMapping.ChipID2Layer[mMFTClusters[offset + ncls - 1].getSensorID()];
   LOG(debug) << "Starting by MFTCluster offset " << offset + ncls - 1 << " at lastLayer " << lastLayer;
 
