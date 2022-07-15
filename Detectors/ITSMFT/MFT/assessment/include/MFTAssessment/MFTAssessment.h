@@ -73,10 +73,10 @@ class MFTAssessment
   void reset();
   void fillTrueRecoTracksMap()
   {
-    mTrueTracksMap.resize(mcReader.getNSources());
+    mTrueTracksMap.resize(mMCReader.getNSources());
     auto src = 0;
     for (auto& map : mTrueTracksMap) {
-      map.resize(mcReader.getNEvents(src++));
+      map.resize(mMCReader.getNEvents(src++));
     }
     auto id = 0;
     for (const auto& trackLabel : mMFTTrackLabels) {
@@ -120,7 +120,7 @@ class MFTAssessment
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mMFTClusterLabels;
   gsl::span<const o2::MCCompLabel> mMFTTrackLabels;
 
-  o2::steer::MCKinematicsReader mcReader; // reader of MC information
+  o2::steer::MCKinematicsReader mMCReader; // reader of MC information
 
   // Histos for reconstructed tracks
   std::unique_ptr<TH1F> mTrackNumberOfClusters = nullptr;

@@ -196,8 +196,10 @@ void MFTAssessment::createHistos()
   if (mUseMC) {
 
     LOG(info) << "Initializing MC Reader";
-    if (!mcReader.initFromDigitContext("collisioncontext.root")) {
-      throw std::invalid_argument("initialization of MCKinematicsReader failed");
+    if (!mMCReader.isInitialized()) {
+      if (!mMCReader.initFromDigitContext("collisioncontext.root")) {
+        throw std::invalid_argument("initialization of MCKinematicsReader failed");
+      }
     }
 
     mHistPhiRecVsPhiGen = std::make_unique<TH2F>("mHistPhiRecVsPhiGen", "Phi Rec Vs Phi Gen of true reco tracks ", 24, 0, 2 * TMath::Pi(), 24, 0, 2 * TMath::Pi());
@@ -412,14 +414,14 @@ void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
 //__________________________________________________________
 void MFTAssessment::processGeneratedTracks()
 {
-  for (auto src = 0; src < mcReader.getNSources(); src++) {
-    for (Int_t event = 0; event < mcReader.getNEvents(src); event++) {
-      auto evh = mcReader.getMCEventHeader(src, event);
-      const auto& mcTracks = mcReader.getTracks(src, event);
+  for (auto src = 0; src < mMCReader.getNSources(); src++) {
+    for (Int_t event = 0; event < mMCReader.getNEvents(src); event++) {
+      auto evh = mMCReader.getMCEventHeader(src, event);
+      const auto& mcTracks = mMCReader.getTracks(src, event);
       for (const auto& mcParticle : mcTracks) {
         addMCParticletoHistos(&mcParticle, kGen, evh);
       } // mcTracks
-      mcReader.releaseTracksForSourceAndEvent(src, event);
+      mMCReader.releaseTracksForSourceAndEvent(src, event);
     } // events
   }   // sources
 }
@@ -449,10 +451,10 @@ void MFTAssessment::processTrackables()
   } // loop on clusters
 
   // Identify trackables
-  mTrackableTracksMap.resize(mcReader.getNSources());
+  mTrackableTracksMap.resize(mMCReader.getNSources());
   auto src = 0;
   for (auto& map : mTrackableTracksMap) {
-    map.resize(mcReader.getNEvents(src++));
+    map.resize(mMCReader.getNEvents(src++));
   }
 
   for (auto& trackClsInDisk : mcTrackHasClusterInMFTDisks) {
@@ -468,14 +470,14 @@ void MFTAssessment::processTrackables()
   }
 
   // Process trackables
-  for (auto src = 0; src < mcReader.getNSources(); src++) {
-    for (Int_t event = 0; event < mcReader.getNEvents(src); event++) {
-      auto evH = mcReader.getMCEventHeader(src, event);
+  for (auto src = 0; src < mMCReader.getNSources(); src++) {
+    for (Int_t event = 0; event < mMCReader.getNEvents(src); event++) {
+      auto evH = mMCReader.getMCEventHeader(src, event);
       for (auto& trackable : mTrackableTracksMap[src][event]) {
-        auto const* mcParticle = mcReader.getTrack(trackable);
+        auto const* mcParticle = mMCReader.getTrack(trackable);
         addMCParticletoHistos(mcParticle, kTrackable, evH);
       }
-      mcReader.releaseTracksForSourceAndEvent(src, event);
+      mMCReader.releaseTracksForSourceAndEvent(src, event);
     } // events
   }   // sources
 }
@@ -526,16 +528,16 @@ void MFTAssessment::processRecoTracks()
 void MFTAssessment::processTrueTracks()
 {
   fillTrueRecoTracksMap();
-  for (auto src = 0; src < mcReader.getNSources(); src++) {
-    for (Int_t event = 0; event < mcReader.getNEvents(src); event++) {
-      auto evH = mcReader.getMCEventHeader(src, event);
+  for (auto src = 0; src < mMCReader.getNSources(); src++) {
+    for (Int_t event = 0; event < mMCReader.getNEvents(src); event++) {
+      auto evH = mMCReader.getMCEventHeader(src, event);
       auto zVtx = evH.GetZ();
 
       for (const auto& trueMFTTrackID : mTrueTracksMap[src][event]) {
         auto mftTrack = mMFTTracks[trueMFTTrackID];
         const auto& trackLabel = mMFTTrackLabels[trueMFTTrackID];
         if (trackLabel.isCorrect()) {
-          auto const* mcParticle = mcReader.getTrack(trackLabel);
+          auto const* mcParticle = mMCReader.getTrack(trackLabel);
           auto pdgcode_MC = mcParticle->GetPdgCode();
           int Q_Gen;
           if (TDatabasePDG::Instance()->GetParticle(pdgcode_MC)) {
@@ -601,7 +603,7 @@ void MFTAssessment::processTrueTracks()
           mTH3Histos[kTH3TrackReducedChi2PtEta]->Fill(ptGen, etaGen, Chi2_Rec / (2 * nClusters - 5)); // 5: number of fitting parameters
         }
       }
-      mcReader.releaseTracksForSourceAndEvent(src, event);
+      mMCReader.releaseTracksForSourceAndEvent(src, event);
     } // events
   }   // sources
 }
