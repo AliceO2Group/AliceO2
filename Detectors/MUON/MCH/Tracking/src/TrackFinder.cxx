@@ -192,7 +192,7 @@ const std::list<Track>& TrackFinder::findTracks(const std::unordered_map<int, st
     printTracks();
 
   } catch (exception const& e) {
-    LOG(error) << e.what() << " --> abort";
+    LOG(warning) << e.what() << " --> abort";
     mTracks.clear();
     return mTracks;
   }
