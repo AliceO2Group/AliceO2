@@ -28,11 +28,11 @@ void RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkI
   if (0 <= linkID && linkID < 16) {
     size_t payloadSize = payload.size();
     for (int32_t ip = 0; ip < payloadSize; ip += 16) {
-      //o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+      // o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
       processWord((const uint32_t*)&payload[ip]);
     }
   } else {
-    //put here code in case of bad rdh.linkID value
+    // put here code in case of bad rdh.linkID value
     LOG(info) << "WARNING! WRONG LINK ID! " << linkID;
     return;
   }
@@ -92,7 +92,7 @@ void RawReaderZDC::process(const EventChData& ch)
   }
 }
 
-//pop digits
+// pop digits
 int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelData>& digitsCh, std::vector<OrbitData>& orbitData)
 {
   if (mModuleConfig == nullptr) {
@@ -112,7 +112,7 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
           if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
             // Protection for channels that are not supposed to readout but may be present in payload
             // just for scaler and pedestal readout at end of orbit.
-            if(mModuleConfig->modules[im].readChannel[ic]){
+            if (mModuleConfig->modules[im].readChannel[ic]) {
               // Identify connected channel
               auto id = mModuleConfig->modules[im].channelID[ic];
               int offset = ev.data[im][ic].f.offset - 32768;
