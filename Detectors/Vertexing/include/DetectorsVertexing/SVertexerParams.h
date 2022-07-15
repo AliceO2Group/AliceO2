@@ -66,8 +66,9 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float minCosPACascV0 = 0.8;        // min cos of pointing angle to PV for cascade V0 candidates
   float minCosPA = 0.9; ///< min cos of PA to PV for prompt V0 candidates
 
-  float minRDiffV0Casc = 0.2; ///< cascade should be at least this radial distance below V0
-  float maxRIniCasc = 90.;    // don't consider as a cascade seed (circles/line intersection) if its R exceeds this
+  float minRDiffV0Casc = 0.2;  ///< cascade should be at least this radial distance below V0
+  float maxRDiffV03body = 0.2; ///< Maximum difference between V0 and 3body radii
+  float maxRIniCasc = 90.;     // don't consider as a cascade seed (circles/line intersection) if its R exceeds this
 
   float maxDCAXYCasc = 0.3; // max DCA of cascade to PV in XY // TODO RS: shall we use real chi2 to vertex?
   float maxDCAZCasc = 0.3;  // max DCA of cascade to PV in Z

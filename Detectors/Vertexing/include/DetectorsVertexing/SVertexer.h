@@ -20,6 +20,7 @@
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
+#include "ReconstructionDataFormats/DecayNbody.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "CommonDataFormat/RangeReference.h"
@@ -45,6 +46,7 @@ class SVertexer
   using PVertex = const o2::dataformats::PrimaryVertex;
   using V0 = o2::dataformats::V0;
   using Cascade = o2::dataformats::Cascade;
+  using DecayNbody = o2::dataformats::DecayNbody;
   using RRef = o2::dataformats::RangeReference<int, int>;
   using VBracket = o2::math_utils::Bracket<int>;
 
@@ -114,6 +116,7 @@ class SVertexer
   gsl::span<const PVertex> mPVertices;
   std::vector<std::vector<V0>> mV0sTmp;
   std::vector<std::vector<Cascade>> mCascadesTmp;
+  std::vector<std::vector<DecayNbody>> m3bodyTmp;
   std::array<std::vector<TrackCand>, 2> mTracksPool{}; // pools of positive and negative seeds sorted in min VtxID
   std::array<std::vector<int>, 2> mVtxFirstTrack{};    // 1st pos. and neg. track of the pools for each vertex
   o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
@@ -130,6 +133,7 @@ class SVertexer
   float mMaxDCAXY2ToMeanVertex = 0;
   float mMaxDCAXY2ToMeanVertexV0Casc = 0;
   float mMinR2DiffV0Casc = 0;
+  float mMaxR2Diff3bodyV0 = 0;
   float mMaxR2ToMeanVertexCascV0 = 0;
   float mMaxDCAXY2ToMeanVertex3bodyV0 = 0;
   float mMinPt2V0 = 1e-6;

@@ -99,18 +99,18 @@ class SVertex3Hypothesis
   float getMassPosProng1() const { return PID::getMass(mPIDPosProng1); }
   float getMassNegProng() const { return PID::getMass(mPIDNegProng); }
 
-  float calcMass2(float p2Pos0, float p2Pos1, float p2Neg, float p2V0) const
+  float calcMass2(float p2Pos0, float p2Pos1, float p2Neg, float p2tot) const
   {
     // calculate v0 mass from squared momentum of its prongs and total momentum
     float ePos0 = std::sqrt(p2Pos0 + getMass2PosProng0()), ePos1 = std::sqrt(p2Pos1 + getMass2PosProng1()) , eNeg = std::sqrt(p2Neg + getMass2NegProng()), eV0 = ePos0 + ePos1 + eNeg;
-    return eV0 * eV0 - p2V0;
+    return eV0 * eV0 - p2tot;
   }
 
-  float calcMass(float p2Pos0, float p2Pos1, float p2Neg, float p2V0) const { return std::sqrt(calcMass2(p2Pos0, p2Pos1, p2Neg, p2V0)); }
+  float calcMass(float p2Pos0, float p2Pos1, float p2Neg, float p2tot) const { return std::sqrt(calcMass2(p2Pos0, p2Pos1, p2Neg, p2tot)); }
 
-  bool check(float p2Pos0, float p2Pos1, float p2Neg, float p2V0, float ptV0) const
+  bool check(float p2Pos0, float p2Pos1, float p2Neg, float p2tot, float ptV0) const
   { // check if given mass and pt is matching to hypothesis
-    return check(calcMass(p2Pos0, p2Pos1, p2Neg, p2V0), ptV0);
+    return check(calcMass(p2Pos0, p2Pos1, p2Neg, p2tot), ptV0);
   }
 
   bool check(float mass, float pt) const
