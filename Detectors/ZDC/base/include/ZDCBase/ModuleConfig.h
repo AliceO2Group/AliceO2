@@ -60,6 +60,8 @@ struct ModuleConfig {
 
   void print() const;
   void check() const;
+  void resetMap();
+  void addBunch(int ibunch);
   uint32_t getTriggerMask() const;
   std::string getPrintTriggerMask() const;
 

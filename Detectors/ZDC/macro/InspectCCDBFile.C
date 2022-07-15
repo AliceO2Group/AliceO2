@@ -17,6 +17,7 @@
 #include "ZDCReconstruction/ZDCTDCParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
 #include "ZDCSimulation/SimCondition.h"
+#include "DataFormatsParameters/GRPLHCIFData.h"
 
 // clang-format off
 void InspectCCDBFile()
@@ -95,6 +96,10 @@ void InspectCCDBFile()
       printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathWaveformCalib.data());
       ob->print();
       ob->saveDebugHistos("InspectCCDBFile_WaveformCalibParam.root");
+    } else if (cn.EqualTo("o2::parameters::GRPLHCIFData")) {
+      o2::parameters::GRPLHCIFData* ob = (o2::parameters::GRPLHCIFData*)key->ReadObj();
+      printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathWaveformCalibConfig.data());
+      ob->print();
     } else {
       printf("%s %s %d %s\n", key->GetClassName(), key->GetName(), key->GetCycle(), key->GetTitle());
     }
