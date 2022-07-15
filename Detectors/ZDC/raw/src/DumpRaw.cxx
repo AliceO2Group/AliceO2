@@ -65,7 +65,7 @@ void DumpRaw::init()
     } else {
       TString hname = TString::Format("hp%d%d", imod, ich);
       TString htit = TString::Format("Baseline mod. %d ch. %d;Average orbit baseline", imod, ich);
-      //mBaseline[i]=new TH1F(hname,htit,ADCRange,ADCMin-0.5,ADCMax+0.5);
+      // mBaseline[i]=new TH1F(hname,htit,ADCRange,ADCMin-0.5,ADCMax+0.5);
       mBaseline[i] = new TH1F(hname, htit, 65536, -32768.5, 32767.5);
     }
     if (mCounts[i]) {
@@ -185,6 +185,11 @@ int DumpRaw::processWord(const uint32_t* word)
 int DumpRaw::process(const EventChData& ch)
 {
   static constexpr int last_bc = o2::constants::lhc::LHCMaxBunches - 1;
+  union {
+    uint16_t uns;
+    int16_t sig;
+  } word16;
+
   // Not empty event
   auto f = ch.f;
   int ih = getHPos(f.board, f.ch);
@@ -193,6 +198,7 @@ int DumpRaw::process(const EventChData& ch)
       Digits2Raw::print_gbt_word(ch.w[iw]);
     }
   }
+
   uint16_t us[12];
   int16_t s[12];
   us[0] = f.s00;
@@ -213,7 +219,7 @@ int DumpRaw::process(const EventChData& ch)
     } else {
       s[i] = us[i];
     }
-    //printf("%d %u %d\n",i,us[i],s[i]);
+    // printf("%d %u %d\n",i,us[i],s[i]);
   }
   if (f.Alice_3) {
     for (int32_t i = 0; i < 12; i++) {
@@ -239,7 +245,8 @@ int DumpRaw::process(const EventChData& ch)
     mBunch[ih]->Fill(bc_m, -bc_d);
   }
   if (f.bc == last_bc) {
-    mBaseline[ih]->Fill(f.offset - 32768.);
+    word16.uns = f.offset;
+    mBaseline[ih]->Fill(word16.sig);
     mCounts[ih]->Fill(f.hits);
   }
   return 0;

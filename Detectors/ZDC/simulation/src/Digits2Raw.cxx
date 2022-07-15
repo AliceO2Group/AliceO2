@@ -117,11 +117,20 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
   if (digiTree->GetBranchStatus("ZDCDigitLabels")) {
     digiTree->SetBranchStatus("ZDCDigitLabel*", 0);
   }
-
+  int nBCadd = 0;
+  // TODO: fix the conversion logic
+  // If first stored bunch is not in first digitized orbit the empty orbits
+  // at the beginning of the simulation are not converted to raw data
+  // If last orbits are empty they are not inserted in raw data
+  // Logic is not tested if digiTree has more than one entry
+  // The resulting file has less orbits. However the missing orbits have no signals
+  // and threefore are not used in reconstruction -> this fix has low priority
   for (int ient = 0; ient < digiTree->GetEntries(); ient++) {
     digiTree->GetEntry(ient);
     mNbc = mzdcBCData.size();
-    LOG(info) << "Entry " << ient << " : " << mNbc << " BCs stored";
+    if (mVerbosity > 0) {
+      LOG(info) << "Entry " << ient << ": processing " << mNbc << " BCs stored";
+    }
     for (int ibc = 0; ibc < mNbc; ibc++) {
       mBCD = mzdcBCData[ibc];
       convertDigits(ibc);
@@ -130,8 +139,12 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
       if (ibc == (mNbc - 1)) {
         // For last event we need to close last orbit (if it is needed)
         if (mzdcBCData[ibc].ir.bc != 3563) {
+          if (mVerbosity > 1) {
+            LOG(info) << "Closing last orbit " << mzdcBCData[ibc].ir.orbit;
+          }
           insertLastBunch(ibc, mzdcBCData[ibc].ir.orbit);
           writeDigits();
+          nBCadd++;
         }
       } else {
         auto this_orbit = mzdcBCData[ibc].ir.orbit;
@@ -142,11 +155,16 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
         }
         // We may need to insert more than one orbit
         for (auto orbit = this_orbit; orbit < next_orbit; orbit++) {
+          if (mVerbosity > 1) {
+            LOG(info) << "Inserting last bunch for orbit " << orbit;
+          }
           insertLastBunch(ibc, orbit);
           writeDigits();
+          nBCadd++;
         }
       }
     }
+    LOG(info) << "Entry " << ient << " Converted BCs: " << mNbc << " + added@3563:" << nBCadd << " = " << mNbc + nBCadd;
   }
   digiFile->Close();
 }
@@ -194,7 +212,7 @@ inline void Digits2Raw::resetSums(uint32_t orbit)
       mPed[im][ic] = 0;
     }
   }
-  mLastOrbit = orbit;
+  mLatestOrbit = orbit;
   mLastNEmpty = 0;
 }
 
@@ -329,12 +347,14 @@ inline void Digits2Raw::assignTriggerBits(int ibc, uint16_t bc, uint32_t orbit, 
 //______________________________________________________________________________
 void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
 {
+  // Inserting last bunch in the orbit. This is not present in digits because information is stored in the
+  // OrbitData structure
 
   // Orbit and bunch crossing identifiers
   uint16_t bc = 3563;
 
   // Reset scalers at orbit change
-  if (orbit != mLastOrbit) {
+  if (orbit != mLatestOrbit) {
     resetSums(orbit);
   }
 
@@ -387,13 +407,14 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
 //______________________________________________________________________________
 void Digits2Raw::convertDigits(int ibc)
 {
+  // Creating raw data from a bunch crossing that is actually present in digits
 
   // Orbit and bunch crossing identifiers
   uint16_t bc = mBCD.ir.bc;
   uint32_t orbit = mBCD.ir.orbit;
 
   // Reset scalers at orbit change
-  if (orbit != mLastOrbit) {
+  if (orbit != mLatestOrbit) {
     resetSums(orbit);
   }
 
