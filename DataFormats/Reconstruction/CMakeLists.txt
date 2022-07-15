@@ -24,6 +24,7 @@ o2_add_library(ReconstructionDataFormats
                        src/DCA.cxx
                        src/V0.cxx
                        src/Cascade.cxx
+                       src/DecayNbody.cxx
                        src/GlobalTrackID.cxx
                        src/VtxTrackIndex.cxx
                        src/VtxTrackRef.cxx
