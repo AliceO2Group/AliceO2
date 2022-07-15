@@ -99,6 +99,10 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
     LOG(fatal) << "Missing ModuleConfig";
     return 0;
   }
+  union {
+    uint16_t uns;
+    int16_t sig;
+  } word16;
   int bcCounter = mMapData.size();
   LOG(info) << "Processing #bc " << bcCounter;
   for (auto& [ir, ev] : mMapData) {
@@ -115,8 +119,8 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
             if (mModuleConfig->modules[im].readChannel[ic]) {
               // Identify connected channel
               auto id = mModuleConfig->modules[im].channelID[ic];
-              int offset = ev.data[im][ic].f.offset - 32768;
-              pdata.data[id] = offset;
+              word16.uns = ev.data[im][ic].f.offset;
+              pdata.data[id] = word16.sig;
               pdata.scaler[id] = ev.data[im][ic].f.hits;
             }
           } else if (ev.data[im][ic].f.fixed_0 == 0 && ev.data[im][ic].f.fixed_1 == 0 && ev.data[im][ic].f.fixed_2 == 0) {
