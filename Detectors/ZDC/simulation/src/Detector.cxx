@@ -32,6 +32,8 @@
 #include "ZDCSimulation/ZDCSimParam.h"
 #ifdef ZDC_FASTSIM_ONNX
 #include "Utils.h" // for normal_distribution()
+#include "FastSimulations.h" // for fastsim module
+#include "Processors.h"      // for fastsim module
 #endif
 
 using namespace o2::zdc;
@@ -77,7 +79,7 @@ Detector::Detector(Bool_t active)
                  << "'" << o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales << "'";
       LOG(error) << "FastSim module disabled.";
     } else {
-      mClassifierScaler.setScales(eonScales->first, eonScales->second);
+      mClassifierScaler->setScales(eonScales->first, eonScales->second);
       mFastSimClassifier = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierPath, 1);
 
       if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales.empty()) {
@@ -88,7 +90,7 @@ Detector::Detector(Bool_t active)
                      << "'" << o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelScales << "'";
           LOG(error) << "FastSim module disabled";
         } else {
-          mModelScaler.setScales(modelScales->first, modelScales->second);
+          mModelScaler->setScales(modelScales->first, modelScales->second);
           mFastSimModel = new o2::zdc::fastsim::ConditionalModelSimulation(o2::zdc::ZDCSimParam::Instance().ZDCFastSimModelPath, 1);
           LOG(info) << "FastSim module enabled";
         }
@@ -111,6 +113,8 @@ Detector::~Detector()
 {
   delete (mFastSimClassifier);
   delete (mFastSimModel);
+  delete (mClassifierScaler);
+  delete (mModelScaler);
 }
 #endif
 
@@ -178,6 +182,12 @@ void Detector::InitializeO2Detector()
   loadLightTable(mLightTableZP, 2, ZPRADIUSBINS, inputDir + "light22620552209s");
   elements = loadLightTable(mLightTableZP, 3, ZPRADIUSBINS, inputDir + "light22620552210s");
   assert(elements == ZPRADIUSBINS * ANGLEBINS);
+
+  // init some fast sim objects
+#ifdef ZDC_FASTSIM_ONNX
+  mClassifierScaler = new fastsim::processors::StandardScaler;
+  mModelScaler = new fastsim::processors::StandardScaler;
+#endif
 }
 
 //_____________________________________________________________________________
@@ -2496,7 +2506,7 @@ void Detector::BeginPrimary()
                                          static_cast<float>(mCurrentPrincipalParticle.GetMass() * 1000.0),
                                          static_cast<float>(mCurrentPrincipalParticle.GetPDG()->Charge())};
 
-    auto scaledClassParticle = mClassifierScaler.scale(rawInput);
+    auto scaledClassParticle = mClassifierScaler->scale(rawInput);
     if (!scaledClassParticle.has_value()) {
       LOG(error) << "FastSimModule: error occurred on scaling";
     } else {
@@ -2504,7 +2514,7 @@ void Detector::BeginPrimary()
       mFastSimClassifier->setInput(classifierInput);
       mFastSimClassifier->run();
       if (fastsim::processors::readClassifier(mFastSimClassifier->getResult()[0], 1)[0]) {
-        auto scaledModelParticle = mModelScaler.scale(rawInput);
+        auto scaledModelParticle = mModelScaler->scale(rawInput);
         if (!scaledModelParticle.has_value()) {
           LOG(error) << "FastSimModule: error occurred on scaling";
         } else {

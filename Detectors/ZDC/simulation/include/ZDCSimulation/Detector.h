@@ -23,11 +23,21 @@
 #include "TParticle.h"
 #include <utility>
 #include "ZDCBase/Constants.h"
+
+// inclusions and forward decl for fast sim
 #ifdef ZDC_FASTSIM_ONNX
-#if !defined(__CLING__) || defined(__ROOTCLING__) // headers should not be visible to ROOT dynamic runtime
-#include "FastSimulations.h" // for fastsim module
-#include "Processors.h"      // for fastsim module
-#endif
+#include <onnxruntime/core/session/onnxruntime_cxx_api.h>
+namespace o2::zdc
+{
+namespace fastsim
+{
+class NeuralFastSimulation;
+namespace processors
+{
+class StandardScaler;
+}
+} // namespace fastsim
+} // namespace o2::zdc
 #endif
 
 class FairVolume;
@@ -234,8 +244,8 @@ class Detector : public o2::base::DetImpl<Detector>
   fastsim::NeuralFastSimulation* mFastSimModel = nullptr;      //!
 
   // Scalers for models inputs
-  fastsim::processors::StandardScaler mClassifierScaler; //!
-  fastsim::processors::StandardScaler mModelScaler;      //!
+  fastsim::processors::StandardScaler* mClassifierScaler = nullptr; //!
+  fastsim::processors::StandardScaler* mModelScaler = nullptr;      //!
 
   // container for fastsim model responses
   using FastSimResults = std::vector<std::array<long, 5>>; //!
