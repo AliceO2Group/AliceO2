@@ -63,6 +63,8 @@ class ResidualAggregatorDevice : public o2::framework::Task
     if (storeMetaFile) {
       mAggregator->setMetaFileOutputDir(metaFileDir);
     }
+    int autosave = ic.options().get<int>("autosave-interval");
+    mAggregator->setAutosaveInterval(autosave);
     // TODO mAggregator should get an option to set the binning externally (expose TrackResiduals::setBinning methods to user? as command line option?)
     mAggregator->setSlotLength(slotLength);
     mAggregator->setMaxSlotsDelay(delay);
@@ -153,7 +155,8 @@ DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool writeUnbinn
       {"max-delay", VariantType::UInt32, 10u, {"number of slots in past to consider"}},
       {"min-entries", VariantType::Int, 0, {"minimum number of entries on average per voxel"}},
       {"output-dir", VariantType::String, "none", {"Output directory for residuals, must exist"}},
-      {"meta-output-dir", VariantType::String, "/dev/null", {"Residuals metadata output directory, must exist (if not /dev/null)"}}}};
+      {"meta-output-dir", VariantType::String, "/dev/null", {"Residuals metadata output directory, must exist (if not /dev/null)"}},
+      {"autosave-interval", VariantType::Int, 0, {"Write output to file for every n-th TF. 0 means this feature is OFF"}}}};
 }
 
 } // namespace framework
