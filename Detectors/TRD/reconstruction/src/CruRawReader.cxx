@@ -332,10 +332,6 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
           break;
       }
     }
-    //take care of the case where there is an "empty" rdh containing all 0xeeeeeeee as payload.
-    //    if (mTotalHBFPayLoad / 4 - mHBFoffset32 == 8 && mHBFPayload[mHBFoffset32 + 7] == o2::trd::constants::CRUPADDING32) {
-    //      mHBFoffset32 += 8;
-    //    }
     if (halfcruprocess == -2) {
       //dump rest of this rdh payload, something screwed up.
       mHBFoffset32 = mTotalHBFPayLoad / 4;
@@ -589,6 +585,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU,
     int loopcount = 0;
     while (mHBFPayload[mHBFoffset32] == o2::trd::constants::CRUPADDING32 && loopcount < 8) { // can only ever be an entire 256 bit word hence a limit of 8 here.
       mHBFoffset32++;
+      mWordsAccepted++;
       loopcount++;
     }
     return 2;
@@ -600,6 +597,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU,
   auto crustart = std::chrono::high_resolution_clock::now();
   // well then read the halfcruheader.
   memcpy((char*)&mCurrentHalfCRUHeader, (void*)(&mHBFPayload[cruhbfstartoffset]), sizeof(mCurrentHalfCRUHeader));
+  mHBFoffset32 += sizeof(mCurrentHalfCRUHeader) / 4; // advance past the header.
 
   o2::trd::getHalfCRULinkDataSizes(mCurrentHalfCRUHeader, mCurrentHalfCRULinkLengths);
   o2::trd::getHalfCRULinkErrorFlags(mCurrentHalfCRUHeader, mCurrentHalfCRULinkErrorFlags);
@@ -626,6 +624,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU,
     if (mCurrentHalfCRUHeader.StopBit != mPreviousHalfCRUHeader.StopBit) {
       incrementErrors(TRDParsingHalfCRUCorrupt, mFEEID.supermodule, mHalfChamberSide[0], mStack[0], mLayer[0]);
       LOG(info) << numberOfPreviousCRU << " current stopbit: " << mCurrentHalfCRUHeader.StopBit << " previous stopbit: " << mPreviousHalfCRUHeader.StopBit;
+      mWordsRejected += mTotalHalfCRUDataLength32;
       return -2;
     }
   }
@@ -634,6 +633,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU,
   if (mTotalHalfCRUDataLength32 > mTotalHBFPayLoad - mHBFoffset32) {
     LOG(alarm) << "Next HalfCRU header says it contains more data than in the rdh payloads! " << mTotalHalfCRUDataLength32 << " < " << mTotalHBFPayLoad << "-" << mHBFoffset32;
     incrementErrors(TRDParsingHalfCRUSumLength); // zero zero zero as something is very and the sector, side stack and layer are garbage.
+    mWordsRejected += mTotalHalfCRUDataLength32;
 
     return -2;
   }
@@ -642,6 +642,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU,
     // let incrementErrors catch the undefined values of sector side stack and layer as if not set it will go so zero in the method, however if set, it means this is the second half cru header, and we have the values from the last one we read which
     // *SHOULD* be the same as this halfcruheader.
     incrementErrors(TRDParsingHalfCRUCorrupt, mFEEID.supermodule, mHalfChamberSide[0], mStack[0], mLayer[0]);
+    mWordsRejected += mTotalHalfCRUDataLength32;
     return -2;
   }
 
@@ -650,8 +651,14 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU,
   //shift accordingly
   mIR.bc = mCurrentHalfCRUHeader.BunchCrossing - o2::ctp::TriggerOffsetsParam::Instance().LM_L0;
   if (mIR.bc < 0) {
-    mIR.bc = 0;
+    // dump to the end of this cruhalfchamberheader
+    // data to dump is mTotalHalfCruDataLength32
+    mHBFoffset32 += mTotalHalfCRUDataLength32;   // go to the end of this halfcruheader and payload.
+    mWordsRejected += mTotalHalfCRUDataLength32; // add the rejected data to the accounting;
+    incrementErrors(TRDParsingHalfCRUBadBC, mFEEID.supermodule, mHalfChamberSide[0], mStack[0], mLayer[0]);
+    return 1; // nothing particularly wrong with the data, we just dont want it, as a trigger problem
   }
+
   InteractionRecord trdir(mIR);
   mCurrentEvent = &mEventRecords.getEventRecord(trdir);
   //check for cru errors :
@@ -686,7 +693,6 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU,
   // verify cru header vs rdh header
   //FEEID has supermodule/layer/stack/side in it.
   //CRU has
-  mHBFoffset32 += sizeof(mCurrentHalfCRUHeader) / 4;
 
   linkstart = mHBFPayload.begin() + dataoffsetstart32;
   linkend = mHBFPayload.begin() + dataoffsetstart32;

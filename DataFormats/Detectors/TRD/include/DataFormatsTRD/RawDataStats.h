@@ -89,6 +89,7 @@ enum ParsingErrors { TRDParsingNoError,
                      TRDFEEIDIsFFFF,                                           // RDH is in error, the FEEID is 0xffff
                      TRDFEEIDBadSector,                                        // RDH is in error, the FEEID.supermodule is not a valid value.
                      TRDParsingDigitHCHeaderPreTriggerPhaseOOB,                // pretrigger phase in Digit HC header has to be less than 12, it is not.
+                     TRDParsingHalfCRUBadBC,                                   // saw a bc below the L0 trigger
                      TRDLastParsingError
 };
 
