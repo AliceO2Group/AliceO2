@@ -619,16 +619,16 @@ bool MatchTPCITS::prepareITSData()
       // [(Xr*tg(10)-Yr)/(tgPhir+tg70)]^2  / cos(70)^2  // for the next sector
       // [(Xr*tg(10)+Yr)/(tgPhir-tg70)]^2  / cos(70)^2  // for the prev sector
       // Distances to the sector edges in neighbourings sectors (at Xref in theit proper frames)
-      float tgp = trc.getSnp();
+      float trcY = trc.getY(), tgp = trc.getSnp();
       tgp /= std::sqrt((1.f - tgp) * (1.f + tgp)); // tan of track direction XY
 
       // sector up
-      float dy2Up = (YMaxAtXMatchingRef - trc.getY()) / (tgp + Tan70);
+      float dy2Up = (YMaxAtXMatchingRef - trcY) / (tgp + Tan70);
       if ((dy2Up * dy2Up * Cos70I2) < mSectEdgeMargin2) { // need to check this track for matching in sector up
         addLastTrackCloneForNeighbourSector(sector < (o2::constants::math::NSectors - 1) ? sector + 1 : 0);
       }
       // sector down
-      float dy2Dn = (YMaxAtXMatchingRef + trc.getY()) / (tgp - Tan70);
+      float dy2Dn = (YMaxAtXMatchingRef + trcY) / (tgp - Tan70);
       if ((dy2Dn * dy2Dn * Cos70I2) < mSectEdgeMargin2) { // need to check this track for matching in sector down
         addLastTrackCloneForNeighbourSector(sector > 1 ? sector - 1 : o2::constants::math::NSectors - 1);
       }
