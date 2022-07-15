@@ -24,6 +24,7 @@
 #include "DataFormatsMID/Track.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsZDC/ZDCEnergy.h"
 #include "DataFormatsZDC/ZDCTDCData.h"
 #include "DataFormatsParameters/GRPECSObject.h"
@@ -93,10 +94,10 @@ using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<dou
 namespace o2::aodproducer
 {
 
-void AODProducerWorkflowDPL::CTPReadout(const o2::globaltracking::RecoContainer& recoData, std::vector<o2::ctp::CTPDigit>& ctpDigits)
+void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoContainer& recoData, std::vector<o2::ctp::CTPDigit>& ctpDigits, int runNumber)
 {
   // Extraxt CTP Config from CCDB
-  o2::ctp::CTPConfiguration ctpcfg = o2::ctp::CTPRunManager::getConfigFromCCDB(-1,"1234");  // how to get run
+  o2::ctp::CTPConfiguration ctpcfg = o2::ctp::CTPRunManager::getConfigFromCCDB(-1, std::to_string(runNumber));  // how to get run
   // Extract inputs from recoData
   std::map<uint64_t,uint64_t> bcsMapT0triggers;
   std::map<uint64_t,bool> bcsMapTRDreadout;
@@ -115,10 +116,10 @@ void AODProducerWorkflowDPL::CTPReadout(const o2::globaltracking::RecoContainer&
         bcsMapT0triggers[globalBC] = classmask;
       }
   }
-  //for(auto& trdrec : triggerrecordTRD) {
-    //uint64_t globalBC = trdrec.getBCData().toLong();
-    //bcsMapTRDreadout[globalBC] = 1;
-  //}
+  for(auto& trdrec : triggerrecordTRD) {
+    uint64_t globalBC = trdrec.getBCData().toLong();
+    bcsMapTRDreadout[globalBC] = 1;
+  }
   // construct CTPdigits - classMask
 
 }
@@ -1246,8 +1247,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   //auto ctpDigits = recoData.getCTPDigits();
   //gsl::span<o2::ctp::CTPDigit> ctpDigits;//getSpan<const o2::ctp::CTPDigit>(GTrackID::CTP, CLUSTERS);
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
   std::vector<o2::ctp::CTPDigit> ctpDigits;
-  CTPReadout(recoData, ctpDigits);
+  createCTPReadout(recoData, ctpDigits, tinfo.runNumber);
 
   LOG(debug) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(debug) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
@@ -1310,7 +1312,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
   auto originCursor = originTableBuilder.cursor<o2::aod::Origins>();
 
-  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
 
   std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
   if (mUseMC) {
