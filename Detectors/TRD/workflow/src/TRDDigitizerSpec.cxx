@@ -86,7 +86,9 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;  // labels which get filled
 
     o2::InteractionTimeRecord currentTime; // the current time
+    o2::InteractionTimeRecord previousTime; // the time of the previous collision
     o2::InteractionTimeRecord triggerTime; // the time at which the TRD start reading out a signal
+    size_t currTrig = 0;                   // from which collision is the current TRD trigger (only needed for debug information)
     bool firstEvent = true;                // Flag for the first event processed
 
     TStopwatch timer;
@@ -94,7 +96,8 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (size_t collID = 0; collID < irecords.size(); ++collID) {
-      LOGF(debug, "Collision %lu out of %lu started processing", collID, irecords.size());
+      LOGF(debug, "Collision %lu out of %lu at %.1f ns started processing. Current pileup container size: %lu. Current number of digits accumulated: %lu",
+           collID, irecords.size(), irecords[collID].getTimeNS(), mDigitizer.getPileupSignals().size(), digitsAccum.size());
       currentTime = irecords[collID];
       // Trigger logic implemented here
       bool isNewTrigger = true; // flag newly accepted readout trigger
@@ -103,17 +106,21 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         firstEvent = false;
       } else {
         double dT = currentTime.getTimeNS() - triggerTime.getTimeNS();
-        if (dT < o2::trd::constants::BUSY_TIME) {
+        if (dT < constants::BUSY_TIME) {
           // BUSY_TIME = READOUT_TIME + DEAD_TIME, if less than that, pile up the signals and update the last time
-          LOGF(debug, "Collision %lu Not creating new trigger at time %.2f since dT=%.2f ns < busy time of %.1f us", collID, currentTime.getTimeNS(), dT, o2::trd::constants::BUSY_TIME / 1000);
+          LOGF(debug, "Collision %lu Not creating new trigger at time %.2f since dT=%.2f ns < busy time of %.1f us", collID, currentTime.getTimeNS(), dT, constants::BUSY_TIME / 1000);
           isNewTrigger = false;
           mDigitizer.pileup();
         } else {
           // A new signal can be received, and the detector read it out:
           // flush previous stored digits, labels and keep a trigger record
           // then update the trigger time to the new one
+          if (mDigitizer.getPileupSignals().size() > 0) {
+            // in case the pileup container is not empty only signal stored in there is considered
+            mDigitizer.pileup(); // so we have to move the signals from the previous collision into the pileup container here
+          }
           mDigitizer.flush(digits, labels);
-          LOGF(debug, "Collision %lu we got %lu digits and %lu labels", collID - 1, digits.size(), labels.getNElements());
+          LOGF(debug, "Collision %lu we got %lu digits and %lu labels. There are %lu pileup containers remaining", currTrig, digits.size(), labels.getNElements(), mDigitizer.getPileupSignals().size());
           assert(digits.size() == labels.getIndexedSize());
           // Add trigger record, and send digits to the accumulator
           triggers.emplace_back(triggerTime, digitsAccum.size(), digits.size());
@@ -124,13 +131,17 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
           triggerTime = currentTime;
           digits.clear();
           labels.clear();
-          mDigitizer.clearPileupSignals();
+          if (triggerTime.getTimeNS() - previousTime.getTimeNS() > constants::BUSY_TIME) {
+            // we safely clear all pileup signals, because any previous collision cannot contribute signal anymore
+            mDigitizer.clearPileupSignals();
+          }
         }
       }
 
       mDigitizer.setEventTime(triggerTime.getTimeNS());
       if (isNewTrigger) {
         mDigitizer.setTriggerTime(triggerTime.getTimeNS());
+        currTrig = collID;
       }
 
       // for each collision, loop over the constituents event and source IDs
@@ -144,10 +155,16 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         LOGF(debug, "Collision %lu processing in total %lu hits", collID, hits.size());
         mDigitizer.process(hits);
       }
+      previousTime = currentTime;
     }
 
     // Force flush of the digits that remain in the digitizer cache
+    if (mDigitizer.getPileupSignals().size() > 0) {
+      // remember to move signals to pileup container in case it is not empty
+      mDigitizer.pileup();
+    }
     mDigitizer.flush(digits, labels);
+    LOGF(debug, "Collision %lu we got %lu digits and %lu labels. There are %lu pileup containers remaining", currTrig, digits.size(), labels.getNElements(), mDigitizer.getPileupSignals().size());
     assert(digits.size() == labels.getIndexedSize());
     triggers.emplace_back(triggerTime, digitsAccum.size(), digits.size());
     std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));
