@@ -664,14 +664,14 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       auto *device = services.get<RawDeviceService>().device();
       /// We use the oldest possible timeslice to debuounce, so that only the latest one
       /// at the end of one iteration is sent.
-      LOGP(info, "Queueing oldest possible timeslice {} propagation for execution.", oldestPossibleOutput.timeslice.value);
+      LOGP(debug, "Queueing oldest possible timeslice {} propagation for execution.", oldestPossibleOutput.timeslice.value);
       AsyncQueueHelpers::post(
         queue, decongestion.oldestPossibleTimesliceTask, [oldestPossibleOutput, &decongestion, &proxy, &spec, device, &timesliceIndex]() {
           if (decongestion.lastTimeslice >= oldestPossibleOutput.timeslice.value) {
             LOGP(debug, "Not sending already sent value {} >= {}", decongestion.lastTimeslice, oldestPossibleOutput.timeslice.value);
             return;
           }
-          LOGP(info, "Running oldest possible timeslice {} propagation.", oldestPossibleOutput.timeslice.value);
+          LOGP(debug, "Running oldest possible timeslice {} propagation.", oldestPossibleOutput.timeslice.value);
           DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
 
           for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
