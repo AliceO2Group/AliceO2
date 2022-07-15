@@ -140,6 +140,7 @@ void SVertexer::updateTimeDependentParams()
     mMaxDCAXY2ToMeanVertexV0Casc = mSVParams->maxDCAXYToMeanVertexV0Casc * mSVParams->maxDCAXYToMeanVertexV0Casc;
     mMaxDCAXY2ToMeanVertex3bodyV0 = mSVParams->maxDCAXYToMeanVertex3bodyV0 * mSVParams->maxDCAXYToMeanVertex3bodyV0;
     mMinR2DiffV0Casc = mSVParams->minRDiffV0Casc * mSVParams->minRDiffV0Casc;
+    mMaxR2Diff3bodyV0 = mSVParams->maxRDiffV03body * mSVParams->maxRDiffV03body;
     mMinPt2V0 = mSVParams->minPtV0 * mSVParams->minPtV0;
     mMaxTgl2V0 = mSVParams->maxTglV0 * mSVParams->maxTglV0;
     mMinPt2Casc = mSVParams->minPtCasc * mSVParams->minPtCasc;
@@ -577,36 +578,11 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
       continue;
     }
     if (pCasc[2] * pCasc[2] / pt2Casc > mMaxTgl2Casc) { // tgLambda cut
-      LOG(debug) << "Casc tgLambda too high";
       continue;
     }
-
-    // compute primary vertex and cosPA of the cascade
-    auto bestCosPA = mSVParams->minCosPACasc;
-    auto cascVtxID = -1;
-
-    for (int iv = cascVlist.getMin(); iv <= cascVlist.getMax(); iv++) {
-      const auto& pv = mPVertices[iv];
-      // check cos of pointing angle
-      float dx = cascXYZ[0] - pv.getX(), dy = cascXYZ[1] - pv.getY(), dz = cascXYZ[2] - pv.getZ(), prodXYZcasc = dx * pCasc[0] + dy * pCasc[1] + dz * pCasc[2];
-      float cosPA = prodXYZcasc / std::sqrt((dx * dx + dy * dy + dz * dz) * p2Casc);
-      if (cosPA < bestCosPA) {
-        LOG(debug) << "Rej. cosPA: " << cosPA;
-        continue;
-      }
-      cascVtxID = iv;
-      bestCosPA = cosPA;
-    }
-    if (cascVtxID == -1) {
-      LOG(debug) << "Casc not compatible with any vertex";
-      continue;
-    }
-
-    const auto& cascPv = mPVertices[cascVtxID];
-    float dxCasc = cascXYZ[0] - cascPv.getX(), dyCasc = cascXYZ[1] - cascPv.getY(), dzCasc = cascXYZ[2] - cascPv.getZ();
-    auto prodPPos = pV0[0] * dxCasc + pV0[1] * dyCasc + pV0[2] * dzCasc;
-    if (prodPPos < 0.) { // causality cut
-      LOG(debug) << "Casc not causally compatible";
+    //    LOG(info) << "ptcasc2 " << pt2Casc << " tglcasc2 " << pCasc[2]*pCasc[2] / pt2Casc << " cut " << mMaxTgl2Casc;
+    float cosPA = (pCasc[0] * dxc + pCasc[1] * dyc + pCasc[2] * dzc) / std::sqrt(p2Casc * (r2casc + dzc * dzc));
+    if (cosPA < mSVParams->minCosPACasc) {
       continue;
     }
 
@@ -667,11 +643,15 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
 int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, int ithread)
 {
   // check last added V0 for belonging to cascade
-  auto& fitterCasc = mFitterCasc[ithread];
+  auto& fitter3body = mFitter3body[ithread];
   const auto& v0 = mV0sTmp[ithread].back();
   auto& tracks = mTracksPool[posneg];
   const auto& pv = mPVertices[v0.getVertexID()];
-  int nCascIni = mCascadesTmp[ithread].size();
+  int n3BodyIni = m3bodyTmp[ithread].size();
+
+  // If the V0 is a Lambda, we should pair it with all positive particles, and the positive particle in the V0 is a proton.
+  // Otherwise, we should pair it with all negative particles, and the negative particle in the V0 is a antiproton.
+
   // start from the 1st track compatible with V0's primary vertex
   int firstTr = mVtxFirstTrack[posneg][v0.getVertexID()], nTr = tracks.size();
   if (firstTr < 0) {
@@ -691,51 +671,54 @@ int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0,
     if (bach.minR > rv0 + mSVParams->causalityRTolerance) {
       continue;
     }
-    int nCandC = fitterCasc.process(v0, bach);
-    if (nCandC == 0) { // discard this pair
+    int n3bodyVtx = fitter3body.process(v0.getProng(0), v0.getProng(1), bach);
+    if (n3bodyVtx == 0) { // discard this pair
       continue;
     }
-    int candC = 0;
-    const auto& cascXYZ = fitterCasc.getPCACandidatePos(candC);
+    int cand3B = 0;
+    const auto& vertexXYZ = fitter3body.getPCACandidatePos(cand3B);
     // make sure the cascade radius is smaller than that of the vertex
-    float dxc = cascXYZ[0] - pv.getX(), dyc = cascXYZ[1] - pv.getY(), dzc = cascXYZ[2] - pv.getZ(), r2casc = dxc * dxc + dyc * dyc;
-    if (rv0 * rv0 - r2casc < mMinR2DiffV0Casc || r2casc < mMinR2ToMeanVertex) {
+    float dxc = vertexXYZ[0] - pv.getX(), dyc = vertexXYZ[1] - pv.getY(), dzc = vertexXYZ[2] - pv.getZ(), r2vertex = dxc * dxc + dyc * dyc;
+    if (std::abs(rv0 * rv0 - r2vertex) > mMaxR2Diff3bodyV0 || r2vertex < mMinR2ToMeanVertex) {
       continue;
     }
     // do we want to apply mass cut ?
     //
-    if (!fitterCasc.isPropagateTracksToVertexDone() && !fitterCasc.propagateTracksToVertex()) {
+    if (!fitter3body.isPropagateTracksToVertexDone() && !fitter3body.propagateTracksToVertex()) {
       continue;
     }
-    auto& trNeut = fitterCasc.getTrack(0, candC);
-    auto& trBach = fitterCasc.getTrack(1, candC);
-    trNeut.setPID(o2::track::PID::Lambda);
-    trBach.setPID(o2::track::PID::Pion);
-    std::array<float, 3> pNeut, pBach;
-    trNeut.getPxPyPzGlo(pNeut);
-    trBach.getPxPyPzGlo(pBach);
-    std::array<float, 3> pCasc = {pNeut[0] + pBach[0], pNeut[1] + pBach[1], pNeut[2] + pBach[2]};
+    auto& tr0 = fitter3body.getTrack(0, cand3B);
+    auto& tr1 = fitter3body.getTrack(1, cand3B);
+    auto& tr2 = fitter3body.getTrack(2, cand3B);
+    // tr0.setPID(tr0.getCharge() > 0 && posneg ? o2::track::PID::Proton : o2::track::PID::Pion); TOBE DONE
+    // trNeut.setPID(o2::track::PID::Lambda);
+    // trBach.setPID(o2::track::PID::Pion);
+    std::array<float, 3> p0, p1, p2;
+    tr0.getPxPyPzGlo(p0);
+    tr1.getPxPyPzGlo(p1);
+    tr2.getPxPyPzGlo(p2);
+    std::array<float, 3> p3B = {p0[0] + p1[0] + p2[0], p0[1] + p1[1] + p2[1], p0[2] + p1[2] + p2[2]};
     auto prodPPos = pV0[0] * dxc + pV0[1] * dyc + pV0[2] * dzc;
     if (prodPPos < 0.) { // causality cut
       continue;
     }
-    float pt2Casc = pCasc[0] * pCasc[0] + pCasc[1] * pCasc[1], p2Casc = pt2Casc + pCasc[2] * pCasc[2];
-    if (pt2Casc < mMinPt2Casc) { // pt cut
+    float pt2 = p3B[0] * p3B[0] + p3B[1] * p3B[1], p2Casc = pt2 + p3B[2] * p3B[2];
+    if (pt2 < mMinPt2Casc) { // pt cut
       continue;
     }
-    if (pCasc[2] * pCasc[2] / pt2Casc > mMaxTgl2Casc) { // tgLambda cut
+    if (p3B[2] * p3B[2] / pt2 > mMaxTgl2Casc) { // tgLambda cut
       continue;
     }
-    //    LOG(info) << "ptcasc2 " << pt2Casc << " tglcasc2 " << pCasc[2]*pCasc[2] / pt2Casc << " cut " << mMaxTgl2Casc;
-    float cosPA = (pCasc[0] * dxc + pCasc[1] * dyc + pCasc[2] * dzc) / std::sqrt(p2Casc * (r2casc + dzc * dzc));
+    float cosPA = (p3B[0] * dxc + p3B[1] * dyc + p3B[2] * dzc) / std::sqrt(p2Casc * (r2vertex + dzc * dzc));
     if (cosPA < mSVParams->minCosPACasc) {
       continue;
     }
-    float p2Bach = pBach[0] * pBach[0] + pBach[1] * pBach[1] + pBach[2] * pBach[2];
-    float ptCasc = std::sqrt(pt2Casc);
+    float sqP0 = p0[0] * p0[0] + p0[1] * p0[1] + p0[2] * p0[2], sqP1 = p1[0] * p1[0] + p1[1] * p1[1] + p1[2] * p1[2], sqP2 = p2[0] * p2[0] + p2[1] * p2[1] + p2[2] * p2[2];
+    float sqPtot = p3B[0] * p3B[0] + p3B[1] * p3B[1] + p3B[2] * p3B[2];
+    float pt = std::sqrt(pt2);
     bool goodHyp = false;
-    for (int ipid = 0; ipid < NHypCascade; ipid++) {
-      if (mCascHyps[ipid].check(p2V0, p2Bach, p2Casc, ptCasc)) {
+    for (int ipid = 0; ipid < 1; ipid++) { // TODO: expand this loop to cover all the 3body cases
+      if (m3bodyHyps[ipid].check(sqP0, sqP1, sqP2, sqPtot, pt)) {
         goodHyp = true;
         break;
       }
@@ -743,19 +726,19 @@ int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0,
     if (!goodHyp) {
       continue;
     }
-    auto& casc = mCascadesTmp[ithread].emplace_back(cascXYZ, pCasc, fitterCasc.calcPCACovMatrixFlat(candC), trNeut, trBach, mV0sTmp[ithread].size() - 1, bach.gid);
-    o2::track::TrackParCov trc = casc;
+    auto& candidate3B = m3bodyTmp[ithread].emplace_back(PID::HyperTriton, vertexXYZ, p3B, fitter3body.calcPCACovMatrixFlat(cand3B), tr0, tr1, tr2,v0.getProngID(0), v0.getProngID(1), bach.gid);
+    o2::track::TrackParCov trc = candidate3B;
     o2::dataformats::DCA dca;
-    if (!trc.propagateToDCA(pv, fitterCasc.getBz(), &dca, 5.) ||
+    if (!trc.propagateToDCA(pv, fitter3body.getBz(), &dca, 5.) ||
         std::abs(dca.getY()) > mSVParams->maxDCAXYCasc || std::abs(dca.getZ()) > mSVParams->maxDCAZCasc) {
-      mCascadesTmp[ithread].pop_back();
+      m3bodyTmp[ithread].pop_back();
       continue;
     }
-    casc.setCosPA(cosPA);
-    casc.setVertexID(v0.getVertexID());
-    casc.setDCA(fitterCasc.getChi2AtPCACandidate());
+    candidate3B.setCosPA(cosPA);
+    candidate3B.setVertexID(v0.getVertexID());
+    candidate3B.setDCA(fitter3body.getChi2AtPCACandidate());
   }
-  return mCascadesTmp[ithread].size() - nCascIni;
+  return m3bodyTmp[ithread].size() - n3BodyIni;
 }
 
 //__________________________________________________________________
