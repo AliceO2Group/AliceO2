@@ -47,7 +47,7 @@ struct CTPGenerator {
   ClassDefNV(CTPGenerator, 1);
 };
 struct CTPInput {
-  const static std::map<std::string,std::string> run2DetToRun3Det;
+  const static std::map<std::string, std::string> run2DetToRun3Det;
   CTPInput() = default;
   CTPInput(std::string& name, std::string& det, uint32_t index);
   CTPInput(const char* name, const char* det, uint32_t index);
@@ -56,7 +56,7 @@ struct CTPInput {
   std::uint64_t inputMask = 0;
   o2::detectors::DetID::ID detID = 13;
   bool neg = 1;
-  uint32_t getIndex() const { return ((inputMask > 1) ? 2 + log2(inputMask >> 1) : 0);}
+  uint32_t getIndex() const { return ((inputMask > 1) ? 2 + log2(inputMask >> 1) : 0); }
   std::string getInputDetName() const { return o2::detectors::DetID::getName(detID); }
   void setRun3DetName(std::string& run2Name);
   void printStream(std::ostream& strem) const;
@@ -153,6 +153,7 @@ class CTPConfiguration
   o2::detectors::DetID::mask_t getDetectorMask() const;
   void createDefaultInputsConfig();
   uint64_t getClassMaskForInput(int inputindex) const;
+
  private:
   std::string mConfigString = "";
   uint32_t mRunNumber = 0;
