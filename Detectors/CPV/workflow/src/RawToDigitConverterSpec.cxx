@@ -326,9 +326,9 @@ o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getRawToDigitConverterS
     if (useGainCalibration) {
       inputs.emplace_back("gains", "CPV", "CPV_Gains", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CPV/Calib/Gains"));
     }
-    // use BC correction for non-pedestal runs
-    inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CTP/Config/TriggerOffsets"));
   }
+  // for BC correction
+  inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back("CPV", "DIGITS", 0, o2::framework::Lifetime::Timeframe);
