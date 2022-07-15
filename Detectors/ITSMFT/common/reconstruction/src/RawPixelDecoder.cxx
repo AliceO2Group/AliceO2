@@ -201,7 +201,11 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
     contDeadBeef = 0; // if good data, reset the counter
   }
 
-  DPLRawParser parser(inputs, filter);
+  DPLRawParser parser(inputs, filter, o2::conf::VerbosityConfig::Instance().rawParserSeverity);
+  parser.setMaxFailureMessages(o2::conf::VerbosityConfig::Instance().maxWarnRawParser);
+  static size_t cntParserFailures = 0;
+  parser.setExtFailureCounter(&cntParserFailures);
+
   uint32_t currSSpec = 0xffffffff; // dummy starting subspec
   int linksAdded = 0, linksSeen = 0;
   for (auto it = parser.begin(); it != parser.end(); ++it) {
