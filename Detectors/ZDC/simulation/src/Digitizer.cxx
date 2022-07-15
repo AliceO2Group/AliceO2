@@ -688,7 +688,7 @@ void Digitizer::findEmptyBunches(const std::bitset<o2::constants::lhc::LHCMaxBun
     mNEmptyBCs = mModuleConfig->nBunchAverage;
     mPedFactor = 1. / mModuleConfig->baselineFactor;
     LOG(info) << "Empty bunches from ModuleConfig: " << mNEmptyBCs << " Baseline factor: " << mPedFactor;
-  }else{
+  } else {
     LOG(fatal) << "Invalid configuration for baseline computation from ModuleConfig object";
   }
 }
