@@ -78,7 +78,7 @@ auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> vo
   }
   // Keep only the tasks with the highest debounce value for a given id
   auto newEnd = std::unique(order.begin(), order.end(), [&queue](int a, int b) {
-    return queue.tasks[a].runnable == queue.tasks[b].runnable && queue.tasks[a].id.value == queue.tasks[b].id.value;
+    return queue.tasks[a].runnable == queue.tasks[b].runnable && queue.tasks[a].id.value == queue.tasks[b].id.value && queue.tasks[a].debounce >= 0 && queue.tasks[b].debounce >= 0;
   });
   order.erase(newEnd, order.end());
 
