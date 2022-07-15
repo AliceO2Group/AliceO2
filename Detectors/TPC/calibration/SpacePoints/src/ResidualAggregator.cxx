@@ -30,14 +30,25 @@ ResidualsContainer::~ResidualsContainer()
   treeOutTrackData.reset();
   treeOutResiduals.reset();
   treeOutStats.reset();
+  /*
+  FIXME cannot remove the file here, otherwise the following error occurs:
+  [131421:residual-aggregator]: *** Segmentation fault (O2)
+[131421:residual-aggregator]: Backtrace:
+[131421:residual-aggregator]:     /lib/x86_64-linux-gnu/libc.so.6: ()
+[131421:residual-aggregator]:     /home/oschmidt/alice/sw/ubuntu2004_x86-64/ROOT/v6-26-04-patches-alice1-1/lib/libCore.so.6.26: vtable for TString
+[131421:residual-aggregator]: Backtrace complete.
+[ERROR] pid 131421 (residual-aggregator) crashed with 1
+
   if (fileOut) {
     // this slot was not finalized, need to close and remove the file
     fileOut->Close();
     fileOut.reset();
-    if (!std::filesystem::remove(fileName)) {
-      LOG(warning) << "Tried to delete, but could not find file named " << fileName;
+    std::string fileToRemove = fileName + ".part";
+    if (!std::filesystem::remove(fileToRemove)) {
+      LOG(warning) << "Tried to delete, but could not find file named " << fileToRemove;
     }
   }
+  */
 }
 
 ResidualsContainer::ResidualsContainer(const ResidualsContainer& rhs)
@@ -65,12 +76,13 @@ ResidualsContainer::ResidualsContainer(ResidualsContainer&& rhs)
   sumOfResiduals = std::move(rhs.sumOfResiduals);
 }
 
-void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string outputDir, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData)
+void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string outputDir, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, int autosave)
 {
   trackResiduals = residualsEngine;
   writeBinnedResid = wBinnedResid;
   writeUnbinnedResiduals = wUnbinnedResid;
   writeTrackData = wTrackData;
+  autosaveInterval = autosave;
   fileName += std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
   fileName += ".root";
   std::string fileNameTmp = outputDir + fileName;
@@ -183,12 +195,51 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const std::pa
   }
   runNumber = ti.runNumber;
   tfOrbits.push_back(ti.firstTForbit);
+
+  if (autosaveInterval > 0 && (tfOrbits.size() % autosaveInterval) == 0) {
+    writeToFile(false);
+  }
+}
+
+void ResidualsContainer::writeToFile(bool closeFileAfterwards)
+{
+  LOG(info) << "Writing results to file. Closing afterwards? " << closeFileAfterwards;
+  fillStatisticsBranches(); // TODO these would need to be filled only once, so only the last entry is important
+  fileOut->cd();
+  if (writeBinnedResid) {
+    treeOutResiduals->Write();
+    treeOutStats->Write();
+    treeOutRecords->Write();
+  }
+  if (writeUnbinnedResiduals) {
+    treeOutResidualsUnbinned->Write();
+  }
+  if (writeTrackData) {
+    treeOutTrackData->Write();
+  }
+
+  if (closeFileAfterwards) {
+    if (writeBinnedResid) {
+      treeOutResiduals.reset();
+      treeOutStats.reset();
+      treeOutRecords.reset();
+    }
+    if (writeUnbinnedResiduals) {
+      treeOutResidualsUnbinned.reset();
+    }
+    if (writeTrackData) {
+      treeOutTrackData.reset();
+    }
+    fileOut->Close();
+    fileOut.reset();
+  }
 }
 
 void ResidualsContainer::merge(ResidualsContainer* prev)
 {
   // the previous slot is merged to this one and afterwards
   // the previous one will be deleted
+  LOG(info) << "Merging previous slot into current one";
   if (writeBinnedResid) {
     for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
       // merge statistics
@@ -278,26 +329,7 @@ void ResidualAggregator::finalizeSlot(Slot& slot)
   LOG(info) << "Finalizing slot";
   auto cont = slot.getContainer();
   cont->print();
-  cont->fillStatisticsBranches();
-  cont->fileOut->cd();
-  if (mWriteBinnedResiduals) {
-    cont->treeOutResiduals->Write();
-    cont->treeOutResiduals.reset();
-    cont->treeOutStats->Write();
-    cont->treeOutStats.reset();
-    cont->treeOutRecords->Write();
-    cont->treeOutRecords.reset();
-  }
-  if (mWriteUnbinnedResiduals) {
-    cont->treeOutResidualsUnbinned->Write();
-    cont->treeOutResidualsUnbinned.reset();
-  }
-  if (mWriteTrackData) {
-    cont->treeOutTrackData->Write();
-    cont->treeOutTrackData.reset();
-  }
-  cont->fileOut->Close();
-  cont->fileOut.reset();
+  cont->writeToFile(true);
   std::filesystem::rename(o2::utils::Str::concat_string(mOutputDir, cont->fileName, ".part"), mOutputDir + cont->fileName);
   if (mStoreMetaData) {
     o2::dataformats::FileMetaData fileMetaData; // object with information for meta data file
@@ -328,6 +360,6 @@ Slot& ResidualAggregator::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tStart, tEnd) : cont.emplace_back(tStart, tEnd);
   slot.setContainer(std::make_unique<ResidualsContainer>());
-  slot.getContainer()->init(&mTrackResiduals, mOutputDir, mWriteBinnedResiduals, mWriteUnbinnedResiduals, mWriteTrackData);
+  slot.getContainer()->init(&mTrackResiduals, mOutputDir, mWriteBinnedResiduals, mWriteUnbinnedResiduals, mWriteTrackData, mAutosaveInterval);
   return slot;
 }
