@@ -31,12 +31,14 @@ class RecoParam : public o2::conf::ConfigurableParamHelper<RecoParam>
 
   double getCellTimeShiftNanoSec() const { return mCellTimeShiftNanoSec; }
   double getNoiseThresholdLGnoHG() const { return mNoiseThresholdLGnoHG; }
+  int getPhaseBCmod4() const { return mPhaseBCmod4; }
 
   void PrintStream(std::ostream& stream) const;
 
  private:
   double mNoiseThresholdLGnoHG = 10.;  ///< Noise threshold applied to suppress LGnoHG error
   double mCellTimeShiftNanoSec = 600.; ///< Time shift applied on the cell time to center trigger peak around 0
+  int mPhaseBCmod4 = 0;                ///< Rollback of the BC ID in the correction of the cell time for the BC mod 4
 
   O2ParamDef(RecoParam, "EMCRecoParam");
 };

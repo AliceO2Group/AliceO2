@@ -93,6 +93,8 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 
   LOG(info) << "Running gain merging mode: " << (mMergeLGHG ? "yes" : "no");
   LOG(info) << "Using time shift: " << RecoParam::Instance().getCellTimeShiftNanoSec() << " ns";
+  LOG(info) << "Using BCshfit phase:" << RecoParam::Instance().getPhaseBCmod4() << " BCs";
+  LOG(info) << "Using L0LM delay: " << o2::ctp::TriggerOffsetsParam::Instance().LM_L0 << " BCs";
 
   mRawFitter->setAmpCut(mNoiseThreshold);
   mRawFitter->setL1Phase(0.);
@@ -176,16 +178,32 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       auto feeID = raw::RDHUtils::getFEEID(header);
       auto triggerbits = raw::RDHUtils::getTriggerType(header);
 
+      int correctionShiftBCmod4 = 0;
       o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
       // Correct physics triggers for the shift of the BC due to the LM-L0 delay
       if (triggerbits & o2::trigger::PhT) {
         if (currentIR.differenceInBC({0, tfOrbitFirst}) >= lml0delay) {
           currentIR -= lml0delay; // guaranteed to stay in the TF containing the collision
+          // in case we correct for the L0LM delay we need to adjust the BC mod 4, because if the L0LM delay % 4 != 0 it will change the permutation of trigger peaks
+          // we need to add back the correction we applied % 4 to the corrected BC during the correction of the cell time in order to keep the same permutation
+          correctionShiftBCmod4 = lml0delay % 4;
         } else {
           // discard the data associated with this IR as it was triggered before the start of timeframe
           continue;
         }
       }
+      // Correct the cell time for the bc mod 4 (LHC: 40 MHz clock - ALTRO: 10 MHz clock)
+      // Convention: All times shifted with respect to BC % 4 = 0 for trigger BC
+      // Attention: Correction only works for the permutation (0 1 2 3) of the BC % 4, if the permutation is
+      // different the BC for the correction has to be shifted by n BCs to obtain permutation (0 1 2 3)
+      // We apply here the following shifts:
+      // - correction for the L0-LM delay mod 4 in order to restore the original ordering of the BCs mod 4
+      // - phase shift in order to adjust for permutations different from (0 1 2 3)
+      int bcmod4 = (currentIR.bc + correctionShiftBCmod4 + RecoParam::Instance().getPhaseBCmod4()) % 4;
+      LOG(debug) << "Original BC " << triggerBC << ", L0LM corrected " << currentIR.bc;
+      LOG(debug) << "Applying correction for LM delay: " << correctionShiftBCmod4;
+      LOG(debug) << "BC mod original: " << triggerBC % 4 << ", corrected " << bcmod4;
+      LOG(debug) << "Applying time correction: " << -1 * 25 * bcmod4;
       std::shared_ptr<std::vector<RecCellInfo>> currentCellContainer;
       auto found = cellBuffer.find(currentIR);
       if (found == cellBuffer.end()) {
@@ -397,9 +415,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             if (fitResults.getTime() < 0) {
               fitResults.setTime(0.);
             }
-            // Correct the cell time for the bc mod 4 (LHC: 40 MHz clock - ALTRO: 10 MHz clock)
-            // Convention: All times shifted with respect to BC % 4 = 0 for trigger BC
-            int bcmod4 = currentIR.bc % 4;
+            // apply correction for bc mod 4
             double celltime = fitResults.getTime() - timeshift - 25 * bcmod4;
             double amp = fitResults.getAmp() * o2::emcal::constants::EMCAL_ADCENERGY;
             if (mMergeLGHG) {
