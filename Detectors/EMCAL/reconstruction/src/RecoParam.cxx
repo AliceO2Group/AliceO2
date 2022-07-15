@@ -27,5 +27,6 @@ void RecoParam::PrintStream(std::ostream& stream) const
   stream << "EMCAL Reconstruction parameters:"
          << "\n============================================="
          << "\nTime offset (ns):                 " << mCellTimeShiftNanoSec
-         << "\nNoise threshold HGLG suppression: " << mNoiseThresholdLGnoHG;
+         << "\nNoise threshold HGLG suppression: " << mNoiseThresholdLGnoHG
+         << "\nPhase in BC mod 4 correction:     " << mPhaseBCmod4;
 }
