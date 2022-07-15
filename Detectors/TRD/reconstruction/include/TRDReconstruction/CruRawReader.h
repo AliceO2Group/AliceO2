@@ -124,8 +124,8 @@ class CruRawReader
   int getTrackletsFound() { return mTotalTrackletsFound; }
   int sumTrackletsFound() { return mEventRecords.sumTracklets(); }
   int sumDigitsFound() { return mEventRecords.sumDigits(); }
-  int getWordsRead() { return mTotalDigitWordsRead + mTotalTrackletWordsRead; }
-  int getWordsRejected() { return mTotalDigitWordsRejected + mTotalTrackletWordsRejected; }
+  int getWordsRead() { return mWordsAccepted + mTotalDigitWordsRead + mTotalTrackletWordsRead; }
+  int getWordsRejected() { return mWordsRejected + mTotalDigitWordsRejected + mTotalTrackletWordsRejected; }
 
   std::shared_ptr<EventStorage*> getEventStorage() { return std::make_shared<EventStorage*>(&mEventRecords); }
   void clearall()
@@ -270,6 +270,8 @@ class CruRawReader
   uint32_t mTrackletWordsRejected = 0;
   uint32_t mTotalTrackletWordsRejected = 0;
   uint32_t mTotalTrackletWordsRead = 0;
+  uint32_t mWordsRejected = 0; // those words rejected before tracklet and digit parsing together with the digit and tracklet rejected words;
+  uint32_t mWordsAccepted = 0; // those words before before tracklet and digit parsing together with the digit and tracklet rejected words;
   //pointers to the data as we read them in, again no point in copying.
   HalfCRUHeader* mhalfcruheader;
 
