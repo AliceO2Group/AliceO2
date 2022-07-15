@@ -23,6 +23,8 @@ o2_add_library(ITSWorkflow
                        src/ThresholdCalibratorSpec.cxx
                        src/ThresholdAggregatorWorkflow.cxx
                        src/ThresholdAggregatorSpec.cxx
+                       src/DCSParserWorkflow.cxx
+                       src/DCSParserSpec.cxx
          PUBLIC_LINK_LIBRARIES O2::Framework
                                O2::SimConfig
                                O2::DataFormatsITS
@@ -61,6 +63,11 @@ o2_add_executable(threshold-calib-workflow
 
 o2_add_executable(threshold-aggregator-workflow
                   SOURCES src/its-threshold-aggregator-workflow.cxx
+                  COMPONENT_NAME its
+                  PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
+
+o2_add_executable(dcs-parser-workflow
+                  SOURCES src/its-dcs-parser-workflow.cxx
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
 
