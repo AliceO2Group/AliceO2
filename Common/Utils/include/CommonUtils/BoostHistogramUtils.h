@@ -269,15 +269,15 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
   }
 
   if (*xMax < 4) {
-    LOG(error) << "Gaus fit failed! xMax < 4";
+    LOG(warning) << "Gaus fit failed! xMax < 4";
     throw FitGausError_t::FIT_ERROR;
   }
   if (entries < 12) {
-    LOG(error) << "Gaus fit failed! entries < 12";
+    LOG(warning) << "Gaus fit failed! entries < 12";
     throw FitGausError_t::FIT_ERROR;
   }
   if (rms < kTol) {
-    LOG(error) << "Gaus fit failed! rms < kTol";
+    LOG(warning) << "Gaus fit failed! rms < kTol";
     throw FitGausError_t::FIT_ERROR;
   }
 
@@ -338,11 +338,11 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
     }
 
     if (TMath::Abs(par[1]) < kTol) {
-      LOG(error) << "Gaus fit failed! TMath::Abs(par[1]) < kTol";
+      LOG(warning) << "Gaus fit failed! TMath::Abs(par[1]) < kTol";
       throw FitGausError_t::FIT_ERROR;
     }
     if (TMath::Abs(par[2]) < kTol) {
-      LOG(error) << "Gaus fit failed! TMath::Abs(par[2]) < kTol";
+      LOG(warning) << "Gaus fit failed! TMath::Abs(par[2]) < kTol";
       throw FitGausError_t::FIT_ERROR;
     }
 
@@ -352,7 +352,7 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
     result.at(2) = T(1. / TMath::Sqrt(TMath::Abs(-2. * par[2])));
     auto lnparam0 = par[0] - par[1] * par[1] / (4 * par[2]);
     if (lnparam0 > 307) {
-      LOG(error) << "Gaus fit failed! lnparam0 > 307";
+      LOG(warning) << "Gaus fit failed! lnparam0 > 307";
       throw FitGausError_t::FIT_ERROR;
     }
 
