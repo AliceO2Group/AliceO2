@@ -802,7 +802,15 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
     assert(ci < workflow.size());
     assert(ii < workflow[ci].inputs.size());
     auto& input = workflow[ci].inputs[ii];
-    auto matcher = [&input, &constOutputs](const LogicalOutputInfo& outputInfo) -> bool {
+    size_t lastIndex = -1;
+    auto matcher = [&input, &constOutputs, &lastIndex](const LogicalOutputInfo& outputInfo) -> bool {
+      if (lastIndex == outputInfo.outputGlobalIndex) {
+        // If we have already tried to match this output,
+        // we don't need to try again, since the find_if
+        // would have already stopped at the first match.
+        return false;
+      }
+      lastIndex = outputInfo.outputGlobalIndex;
       auto& output = constOutputs[outputInfo.outputGlobalIndex];
       return DataSpecUtils::match(input, output);
     };
@@ -824,7 +832,14 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
   auto findNextOutputFor = [&availableOutputsInfo, &constOutputs, &oif, &workflow](
                              size_t ci, size_t& ii) {
     auto& input = workflow[ci].inputs[ii];
-    auto matcher = [&input, &constOutputs](const LogicalOutputInfo& outputInfo) -> bool {
+    size_t lastIndex = -1;
+    auto matcher = [&input, &constOutputs, &lastIndex](const LogicalOutputInfo& outputInfo) -> bool {
+      if (lastIndex == outputInfo.outputGlobalIndex) {
+        // If we have already tried to match this output,
+        // we don't need to try again, since the find_if
+        // would have already stopped at the first match.
+        return false;
+      }
       auto& output = constOutputs[outputInfo.outputGlobalIndex];
       return DataSpecUtils::match(input, output);
     };
