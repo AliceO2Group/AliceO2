@@ -135,6 +135,7 @@ DataProcessorSpec getVertexTrackMatcherSpec(GTrackID::mask_t src)
   auto dataRequest = std::make_shared<DataRequest>();
 
   dataRequest->requestTracks(src, false);
+  dataRequest->requestClusters(src & GTrackID::getSourcesMask("EMC,PHS,CPV"), false);
   dataRequest->requestPrimaryVerterticesTMP(false);
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime

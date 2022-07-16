@@ -43,11 +43,11 @@ class VertexTrackMatcher
   using TBracket = o2::math_utils::Bracketf_t;
 
   struct TrackTBracket {
-    TBracket tBracket{}; ///< bracketing time in ns
+    TBracket tBracket{}; ///< bracketing time in \mus
     GIndex origID{};     ///< track origin id
   };
   struct VtxTBracket {
-    TBracket tBracket{}; ///< bracketing time in ns
+    TBracket tBracket{}; ///< bracketing time in \mus
     int origID = -1;     ///< vertex origin id
   };
 
