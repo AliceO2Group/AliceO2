@@ -21,10 +21,17 @@
 #include "FairLogger.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/NameConf.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 
 #include <string>
 #include <stdexcept>
 #include <unordered_map>
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // add workflow options, note that customization needs to be declared before
 // including Framework/runDataProcessing
@@ -34,6 +41,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"ninstances", o2::framework::VariantType::Int, 1, {"Number of reader instances"}});
   workflowOptions.push_back(ConfigParamSpec{"tpc-matches", o2::framework::VariantType::Bool, false, {"Made from TOF-TPC matches"}});
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}});
+  o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions, o2::raw::HBFUtilsInitializer::HBFUSrc);
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -78,6 +86,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
 
   LOG(info) << "Number of active devices = " << specs.size();
-
+  if (ninstances == 1) {
+    o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
+  } else {
+    LOG(warning) << "Cannot use HBFUtilsInitializer with multiple instances";
+  }
   return std::move(specs);
 }
