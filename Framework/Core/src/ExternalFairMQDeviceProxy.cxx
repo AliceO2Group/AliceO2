@@ -237,7 +237,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
       override_creation = true;
     } else {
       std::string orbitResetTimeUrl = device.fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitResetTime");
-      char* err = 0;
+      char* err = nullptr;
       creationVal = std::strtoll(orbitResetTimeUrl.c_str(), &err, 10);
       if (err && *err == 0 && creationVal) {
         override_creation = true;
