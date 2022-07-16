@@ -1567,7 +1567,7 @@ int MatchTPCITS::prepareInteractionTimes()
       if (!mFT0Params->isSelected(ft)) {
         continue;
       }
-      auto fitTime = ft.getInteractionRecord().differenceInBCMS(mStartIR);
+      auto fitTime = ft.getInteractionRecord().differenceInBCMUS(mStartIR);
       // find corresponding ITS ROF, works both in cont. and trigg. modes (ignore T0 MeanTime within the BC)
       for (; rof < nITSROFs; rof++) {
         if (mITSROFTimes[rof] < fitTime) {
