@@ -139,7 +139,7 @@ fi
 if [[ $AGGREGATOR_TASKS == BARREL_SPORADIC ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   # TPC
   if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then
-    add_W o2-tpc-calibrator-gainmap-tracks "--tf-per-slot 10000" "" 0
+    add_W o2-tpc-calibrator-gainmap-tracks "--tf-per-slot 10000"
   fi
 fi
 
