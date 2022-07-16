@@ -772,7 +772,7 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
   assert(!workflow.empty());
 
   // This is the state. Oif is the iterator I use for the searches.
-  std::list<LogicalOutputInfo> availableOutputsInfo;
+  std::vector<LogicalOutputInfo> availableOutputsInfo;
   auto const& constOutputs = outputs; // const version of the outputs
   decltype(availableOutputsInfo.begin()) oif;
   // Forwards is a local cache to avoid adding forwards before time.
@@ -804,6 +804,9 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
     auto& input = workflow[ci].inputs[ii];
     size_t lastIndex = -1;
     auto matcher = [&input, &constOutputs, &lastIndex](const LogicalOutputInfo& outputInfo) -> bool {
+      if (outputInfo.enabled == false) {
+        return false;
+      }
       if (lastIndex == outputInfo.outputGlobalIndex) {
         // If we have already tried to match this output,
         // we don't need to try again, since the find_if
@@ -827,13 +830,17 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
     return oif != availableOutputsInfo.end();
   };
 
+  int eraseCount = 0;
   // We have consumed the input, therefore we remove it from the list.
   // We will insert the forwarded inputs only at the end of the iteration.
-  auto findNextOutputFor = [&availableOutputsInfo, &constOutputs, &oif, &workflow](
+  auto findNextOutputFor = [&availableOutputsInfo, &constOutputs, &oif, &workflow, &eraseCount](
                              size_t ci, size_t& ii) {
     auto& input = workflow[ci].inputs[ii];
     size_t lastIndex = -1;
     auto matcher = [&input, &constOutputs, &lastIndex](const LogicalOutputInfo& outputInfo) -> bool {
+      if (outputInfo.enabled == false) {
+        return false;
+      }
       if (lastIndex == outputInfo.outputGlobalIndex) {
         // If we have already tried to match this output,
         // we don't need to try again, since the find_if
@@ -843,8 +850,11 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
       auto& output = constOutputs[outputInfo.outputGlobalIndex];
       return DataSpecUtils::match(input, output);
     };
-    oif = availableOutputsInfo.erase(oif);
-    oif = std::find_if(oif, availableOutputsInfo.end(), matcher);
+    if (oif != availableOutputsInfo.end()) {
+      oif->enabled = false;
+      eraseCount++;
+      oif = std::find_if(oif + 1, availableOutputsInfo.end(), matcher);
+    }
     return oif;
   };
 
@@ -955,6 +965,13 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
           forwardOutputFrom(consumer, uniqueOutputId);
         }
         findNextOutputFor(consumer, input);
+        if (((eraseCount + 1) % 256) == 0) {
+          availableOutputsInfo.erase(
+            std::remove_if(availableOutputsInfo.begin(), availableOutputsInfo.end(), [](auto& info) {
+              return info.enabled == false;
+          }),
+            availableOutputsInfo.end());
+        }
       }
       if (noMatchingOutputFound()) {
         errorDueToMissingOutputFor(consumer, input);

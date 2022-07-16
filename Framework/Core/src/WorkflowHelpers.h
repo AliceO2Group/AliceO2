@@ -49,6 +49,7 @@ struct LogicalOutputInfo {
   size_t specIndex;
   size_t outputGlobalIndex;
   bool forward;
+  bool enabled = true;
 };
 
 // We use this to keep track of the forwards which should
