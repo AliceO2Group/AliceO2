@@ -165,6 +165,33 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
 
   data.createTracksVariadic(creator);
 
+  // add non-tracks
+  unsigned int cntEMC = 0, cntPHS = 0, cntCPV = 0, cntFT0 = 0, cntFV0 = 0, cntFDD = 0;
+  for (const auto& trig : data.getEMCALTriggers()) {
+    auto t = trig.getBCData().differenceInBCMUS(data.startIR);
+    mTBrackets.emplace_back(TrackTBracket{{t, t}, GIndex{cntEMC++, GIndex::EMC}});
+  }
+  for (const auto& trig : data.getPHOSTriggers()) {
+    auto t = trig.getBCData().differenceInBCMUS(data.startIR);
+    mTBrackets.emplace_back(TrackTBracket{{t, t}, GIndex{cntPHS++, GIndex::PHS}});
+  }
+  for (const auto& trig : data.getPHOSTriggers()) {
+    auto t = trig.getBCData().differenceInBCMUS(data.startIR);
+    mTBrackets.emplace_back(TrackTBracket{{t, t}, GIndex{cntCPV++, GIndex::CPV}});
+  }
+  for (const auto& rec : data.getFT0RecPoints()) {
+    auto t = rec.getInteractionRecord().differenceInBCMUS(data.startIR);
+    mTBrackets.emplace_back(TrackTBracket{{t, t}, GIndex{cntFT0++, GIndex::FT0}});
+  }
+  for (const auto& rec : data.getFV0RecPoints()) {
+    auto t = rec.getInteractionRecord().differenceInBCMUS(data.startIR);
+    mTBrackets.emplace_back(TrackTBracket{{t, t}, GIndex{cntFV0++, GIndex::FV0}});
+  }
+  for (const auto& rec : data.getFDDRecPoints()) {
+    auto t = rec.getInteractionRecord().differenceInBCMUS(data.startIR);
+    mTBrackets.emplace_back(TrackTBracket{{t, t}, GIndex{cntFDD++, GIndex::FDD}});
+  }
+
   // sort in increasing min.time
   std::sort(mTBrackets.begin(), mTBrackets.end(), [](const TrackTBracket& a, const TrackTBracket& b) { return a.tBracket.getMin() < b.tBracket.getMin(); });
 
