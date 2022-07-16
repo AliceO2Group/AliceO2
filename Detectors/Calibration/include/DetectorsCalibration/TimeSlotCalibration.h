@@ -151,9 +151,10 @@ class TimeSlotCalibration
 
  protected:
   auto& getSlots() { return mSlots; }
-  int getRunStartOrbit() const {
+  int getRunStartOrbit() const
+  {
     int orb = mCurrentTFInfo.firstTForbit - o2::base::GRPGeomHelper::getNHBFPerTF() * mCurrentTFInfo.tfCounter;
-    if (orb<0) {
+    if (orb < 0) {
       LOGP(alarm, "Negative runStartOrbit = {} deduced for from tfCounter={} and firstTForbit={}, enforcing runStartOrbit to 0", orb, mCurrentTFInfo.tfCounter, mCurrentTFInfo.firstTForbit);
       orb = 0;
     }
