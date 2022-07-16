@@ -623,6 +623,9 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
                                              OverrideServiceSpecs const& overrideServices)
 {
   auto const& constDeviceIndex = deviceIndex;
+  if (!std::is_sorted(constDeviceIndex.cbegin(), constDeviceIndex.cend())) {
+    throw o2::framework::runtime_error("Needs a sorted vector to be correct");
+  }
 
   auto findProducerForEdge = [&logicalEdges, &constDeviceIndex](size_t ei) {
     auto& edge = logicalEdges[ei];
@@ -637,9 +640,6 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
 
   auto findConsumerForEdge = [&logicalEdges, &constDeviceIndex](size_t ei) {
     auto& edge = logicalEdges[ei];
-    if (!std::is_sorted(constDeviceIndex.cbegin(), constDeviceIndex.cend())) {
-      throw o2::framework::runtime_error("Needs a sorted vector to be correct");
-    }
 
     DeviceId pid{edge.consumer, edge.timeIndex, 0};
     auto deviceIt = std::lower_bound(constDeviceIndex.cbegin(), constDeviceIndex.cend(), pid);
