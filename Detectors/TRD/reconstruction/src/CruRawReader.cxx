@@ -759,7 +759,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU,
       }
       if (std::distance(linkstart, linkend) > mCurrentHalfCRULinkLengths[currentlinkindex]) {
         if (mMaxErrsPrinted > 0) {
-          LOG(alarm) << "linkstart - linkend for  LINK # " << currentlinkindex << " an FEEID:" << std::hex << mFEEID.word << " det:" << std::dec << mDetector[1] << " is > the lenght stored in the cruhalfchamber header : " << mCurrentHalfCRULinkLengths[currentlinkindex];
+          LOG(warning) << "linkstart - linkend for  LINK # " << currentlinkindex << " an FEEID:" << std::hex << mFEEID.word << " det:" << std::dec << mDetector[1] << " is > the lenght stored in the cruhalfchamber header : " << mCurrentHalfCRULinkLengths[currentlinkindex];
           checkNoErr();
         }
         incrementErrors(TRDParsingBadLinkstartend, mFEEID.supermodule, mFEEID.side, mStack[0], mLayer[0]);

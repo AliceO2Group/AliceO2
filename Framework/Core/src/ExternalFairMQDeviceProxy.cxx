@@ -550,8 +550,6 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
       spec.forwards.emplace_back(route);
     }
 
-    proxy.bind(spec.outputs, spec.inputs, spec.forwards, *device);
-
     auto forwardEos = [device, lastDataProcessingHeader, outputChannelName](EndOfStreamContext&) {
       // DPL implements an internal end of stream signal, which is propagated through
       // all downstream channels if a source is dry, make it available to other external
