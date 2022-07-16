@@ -18,6 +18,7 @@
 #include <vector>
 #include <string>
 #include "CommonDataFormat/TFIDInfo.h"
+#include "CommonUtils/NameConf.h"
 
 namespace o2
 {
@@ -55,7 +56,7 @@ struct HBFUtilsInitializer {
   static std::vector<o2::dataformats::TFIDInfo> readTFIDInfoVector(const std::string& fname);
   static void assignDataHeader(const std::vector<o2::dataformats::TFIDInfo>& tfinfoVec, o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph);
   static void addNewTimeSliceCallback(std::vector<o2::framework::CallbacksPolicy>& policies);
-  static void addConfigOption(std::vector<o2::framework::ConfigParamSpec>& opts);
+  static void addConfigOption(std::vector<o2::framework::ConfigParamSpec>& opts, const std::string& defOpt = std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE));
 };
 
 } // namespace raw

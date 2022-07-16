@@ -17,7 +17,6 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/StringUtils.h"
-#include "CommonUtils/NameConf.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
@@ -157,7 +156,7 @@ void HBFUtilsInitializer::addNewTimeSliceCallback(std::vector<o2::framework::Cal
     }});
 }
 
-void HBFUtilsInitializer::addConfigOption(std::vector<o2f::ConfigParamSpec>& opts)
+void HBFUtilsInitializer::addConfigOption(std::vector<o2f::ConfigParamSpec>& opts, const std::string& defOpt)
 {
-  o2f::ConfigParamsHelper::addOptionIfMissing(opts, o2f::ConfigParamSpec{HBFConfOpt, o2f::VariantType::String, std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE), {R"(ConfigurableParam ini file or "hbfutils" for HBFUtils, root file with per-TF info or "none")"}});
+  o2f::ConfigParamsHelper::addOptionIfMissing(opts, o2f::ConfigParamSpec{HBFConfOpt, o2f::VariantType::String, defOpt, {R"(ConfigurableParam ini file or "hbfutils" for HBFUtils, root file with per-TF info or "none")"}});
 }
