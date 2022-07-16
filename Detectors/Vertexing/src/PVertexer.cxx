@@ -629,7 +629,6 @@ void PVertexer::init()
   mPVParams = &PVertexerParams::Instance();
   setTukey(mPVParams->tukey);
   initMeanVertexConstraint();
-  mClosestBunchAbove[0] = mClosestBunchBelow[0] = -1;
   auto* prop = o2::base::Propagator::Instance();
   setBz(prop->getNominalBz());
 
@@ -752,6 +751,8 @@ void PVertexer::setBunchFilling(const o2::BunchFilling& bf)
   int minBC = bf.getFirstFilledBC(), maxBC = bf.getLastFilledBC();
   if (minBC < 0) {
     LOG(error) << "Empty bunch filling is provided, all vertices will be rejected";
+    mClosestBunchAbove[0] = mClosestBunchBelow[0] = -1;
+    return;
   }
   int bcAbove = minBC;
   for (int i = o2::constants::lhc::LHCMaxBunches; i--;) {
