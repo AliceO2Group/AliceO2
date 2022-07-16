@@ -149,15 +149,15 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
     specs.emplace_back(o2::ctp::getDigitsReaderSpec(maskTracksMC[GID::CTP] || maskClustersMC[GID::CTP]));
   }
 
-  if (maskTracks[GID::PHS] && maskClusters[GID::PHS]) {
+  if (maskTracks[GID::PHS] || maskClusters[GID::PHS]) {
     specs.emplace_back(o2::phos::getCellReaderSpec(maskTracksMC[GID::PHS] || maskClustersMC[GID::PHS]));
   }
 
-  if (maskTracks[GID::CPV] && maskClusters[GID::CPV]) {
+  if (maskTracks[GID::CPV] || maskClusters[GID::CPV]) {
     specs.emplace_back(o2::cpv::getClustersReaderSpec(maskTracksMC[GID::CPV] || maskClustersMC[GID::CPV]));
   }
 
-  if (maskTracks[GID::EMC] && maskClusters[GID::EMC]) {
+  if (maskTracks[GID::EMC] || maskClusters[GID::EMC]) {
     specs.emplace_back(o2::emcal::getCellReaderSpec(maskTracksMC[GID::EMC] || maskClustersMC[GID::EMC]));
   }
 
