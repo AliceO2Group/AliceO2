@@ -631,18 +631,25 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU,
   memcpy((char*)&mPreviousHalfCRUHeader, (void*)(&mHBFPayload[cruhbfstartoffset]), sizeof(mCurrentHalfCRUHeader));
   //can this half cru length fit into the available space of the rdh accumulated payload
   if (mTotalHalfCRUDataLength32 > mTotalHBFPayLoad - mHBFoffset32) {
-    LOG(alarm) << "Next HalfCRU header says it contains more data than in the rdh payloads! " << mTotalHalfCRUDataLength32 << " < " << mTotalHBFPayLoad << "-" << mHBFoffset32;
+    if (mMaxErrsPrinted > 0) {
+      LOG(alarm) << "Next HalfCRU header says it contains more data than in the rdh payloads! " << mTotalHalfCRUDataLength32 << " < " << mTotalHBFPayLoad << "-" << mHBFoffset32 << " sector:side:stack:layer ::" << mFEEID.supermodule << ":" << mHalfChamberSide[0] << ":" << mStack[0] << ":" << mLayer[0];
+      checkNoErr();
+    }
     incrementErrors(TRDParsingHalfCRUSumLength); // zero zero zero as something is very and the sector, side stack and layer are garbage.
     mWordsRejected += mTotalHalfCRUDataLength32;
 
     return -2;
   }
-  if (halfCRUHeaderSanityCheck(mCurrentHalfCRUHeader, mCurrentHalfCRULinkLengths, mCurrentHalfCRULinkErrorFlags)) {
-    LOG(alarm) << "HalfCRU header failed sanity check";
+  if (!halfCRUHeaderSanityCheck(mCurrentHalfCRUHeader, mCurrentHalfCRULinkLengths, mCurrentHalfCRULinkErrorFlags)) {
+    if (mMaxErrsPrinted > 0) {
+      LOG(alarm) << "HalfCRU header failed sanity check sector:side:stack:layer ::" << (unsigned int)mFEEID.supermodule << ":" << mHalfChamberSide[0] << ":" << mStack[0] << ":" << mLayer[0];
+      checkNoErr();
+    }
     // let incrementErrors catch the undefined values of sector side stack and layer as if not set it will go so zero in the method, however if set, it means this is the second half cru header, and we have the values from the last one we read which
     // *SHOULD* be the same as this halfcruheader.
     incrementErrors(TRDParsingHalfCRUCorrupt, mFEEID.supermodule, mHalfChamberSide[0], mStack[0], mLayer[0]);
     mWordsRejected += mTotalHalfCRUDataLength32;
+    mHBFoffset32 += mTotalHalfCRUDataLength32; // go to the end of this halfcruheader and payload.
     return -2;
   }
 
@@ -757,7 +764,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU,
       if (mHeaderVerbose) {
         LOG(info) << "*** Tracklet Parser : starting at " << std::hex << linkstart << " at hbfoffset: " << std::dec << mHBFoffset32 << " linkhbf start pos:" << hbfoffsetatstartoflink;
       }
-      if (std::distance(linkstart, linkend) > mCurrentHalfCRULinkLengths[currentlinkindex]) {
+      if (std::distance(linkstart, linkend) > mCurrentHalfCRULinkLengths[currentlinkindex] * 8) { //*8 for lengths are stored in units of cru words(256bit) and iterators are 32bit.
         if (mMaxErrsPrinted > 0) {
           LOG(warning) << "linkstart - linkend for  LINK # " << currentlinkindex << " an FEEID:" << std::hex << mFEEID.word << " det:" << std::dec << mDetector[1] << " is > the lenght stored in the cruhalfchamber header : " << mCurrentHalfCRULinkLengths[currentlinkindex];
           checkNoErr();

@@ -187,7 +187,6 @@ uint32_t getChargeFromRawHeaders(const o2::trd::TrackletHCHeader& hcheader, cons
     case 2: //DIS
       //LOG(warn) << "This is a problem  DIS format tracklets ";
       //break;
-      LOG(warn) << "This could be a problem  format tracklets is 0x" << std::hex << datatype << " thcheader:0x" << std::hex << hcheader.word << " tmcmheader:0x" << header->word;
     case 3:
       //PID VERSION 1
       //PID is 20 bits, 8 bits in mcmheader and 12 bits in mcmdata word
@@ -344,22 +343,18 @@ bool halfCRUHeaderSanityCheck(o2::trd::HalfCRUHeader& header, std::array<uint32_
   for (int lengthindex = 0; lengthindex < 15; ++lengthindex) {
     if (lengths[lengthindex] > o2::trd::constants::MAXDATAPERLINK256) {
       // something has gone insane.
-      //LOG(info) << "AAA dumping half cru as : half cru link length > max possible! : " << lengths[lengthindex] << " ?? " << o2::trd::constants::MAXDATAPERLINK256;
       goodheader = false;
     }
   }
   for (int eflagindex = 0; eflagindex < 15; ++eflagindex) {
     if (eflags[eflagindex] > o2::trd::constants::MAXCRUERRORVALUE) {
       // something has gone insane.
-      // LOG(info) << "AAA dumping half cru as : half cru link eflag > max possible! : " << std::hex << eflags[eflagindex] << " ?? " << o2::trd::constants::MAXCRUERRORVALUE;
       goodheader = false;
     }
     if (header.EndPoint > 1) {
       // end point can only be zero or 1, for ach of the 2 pci end points in the cru
       goodheader = false;
     }
-    //LOG(info) << "Header sanity check is : " << goodheader;
-    goodheader = false;
   }
 
   return goodheader;
