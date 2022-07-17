@@ -175,7 +175,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
                        DataAllocator& allocator) -> void
 {
   std::string ccdbMetadataPrefix = "ccdb-metadata-";
-  bool checkValidity = timingInfo.timeslice % helper->queryDownScaleRate == 0;
+  bool checkValidityGlo = timingInfo.timeslice % helper->queryDownScaleRate == 0;
   for (auto& route : helper->routes) {
     LOGP(debug, "Fetching object for route {}", route.matcher);
 
@@ -186,6 +186,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     std::map<std::string, std::string> headers;
     std::string path = "";
     std::string etag = "";
+    bool checkValidity = checkValidityGlo;
     for (auto& meta : route.matcher.metadata) {
       if (meta.name == "ccdb-path") {
         path = meta.defaultValue.get<std::string>();
@@ -196,8 +197,12 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         auto value = meta.defaultValue.get<std::string>();
         LOGP(debug, "Adding metadata {}: {} to the request", key, value);
         metadata[key] = value;
+      } else if (meta.name == "ccdb-query-rate") {
+        checkValidity = (timingInfo.timeslice % meta.defaultValue.get<int64_t>() == 0);
       }
     }
+    LOGP(debug, "checkValidity is {} for slice {} of {}", checkValidity, timingInfo.timeslice, path);
+
     const auto url2uuid = helper->mapURL2UUID.find(path);
     if (url2uuid != helper->mapURL2UUID.end()) {
       etag = url2uuid->second.etag;
