@@ -93,7 +93,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto hbfini = configcontext.options().get<std::string>("hbfutils-config");
-  if (!hbfini.empty() && o2::utils::Str::pathExists(hbfini)) {
+  if (!hbfini.empty() && o2::conf::ConfigurableParam::configFileExists(hbfini)) {
     o2::conf::ConfigurableParam::updateFromFile(hbfini, "HBFUtils", true); // update only those values which were not touched yet (provenance == kCODE)
   }
   return std::move(o2::raw::getRawFileReaderWorkflow(rinp));
