@@ -108,7 +108,6 @@ CaloRawFitterGS::FitStatus CaloRawFitterGS::evalFit(gsl::span<short unsigned int
   float pedMean = 0;
   int nPed = 0;
   if (mPedSubtract) {
-    nSamples = -mPreSamples;
     // remember inverse time order
     for (auto it = signal.rbegin(); (nPed < mPreSamples) && it != signal.rend(); ++it) {
       nPed++;
@@ -116,6 +115,13 @@ CaloRawFitterGS::FitStatus CaloRawFitterGS::evalFit(gsl::span<short unsigned int
     }
     if (nPed > 0) {
       pedMean /= nPed;
+    }
+    nSamples -= mPreSamples;
+    if (nSamples <= 0) { // empty bunch left
+      mAmp = 0;
+      mTime = 0.;
+      mChi2 = 0.;
+      return kEmptyBunch;
     }
   }
 
