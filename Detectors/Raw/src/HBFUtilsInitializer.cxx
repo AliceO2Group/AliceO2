@@ -48,7 +48,7 @@ HBFUtilsInitializer::HBFUtilsInitializer(const o2f::ConfigContext& configcontext
       auto conf = configcontext.options().isSet(HBFConfOpt) ? configcontext.options().get<std::string>(HBFConfOpt) : "";
       if (!conf.empty()) {
         auto opt = getOptType(conf);
-        if ((opt == HBFOpt::INI || opt == HBFOpt::JSON) && (!(helpasked && !o2::utils::Str::pathExists(conf)))) {
+        if ((opt == HBFOpt::INI || opt == HBFOpt::JSON) && (!(helpasked && !o2::conf::ConfigurableParam::configFileExists(conf)))) {
           o2::conf::ConfigurableParam::updateFromFile(conf, "HBFUtils", true); // update only those values which were not touched yet (provenance == kCODE)
           const auto& hbfu = o2::raw::HBFUtils::Instance();
           hbfu.checkConsistency();
