@@ -13,6 +13,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "TStopwatch.h"
@@ -80,6 +81,11 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   context->initSimChains(o2::detectors::DetID::PHS, mSimChains);
   auto& timesview = context->getEventRecords();
   LOG(debug) << "GOT " << timesview.size() << " COLLISSION TIMES";
+
+  if (mInitSimParams) { // trigger reading sim/rec parameters from CCDB, singleton initiated in Fetcher
+    pc.inputs().get<o2::phos::PHOSSimParams*>("recoparams");
+    mInitSimParams = false;
+  }
 
   // if there is nothing to do ... return
   int n = timesview.size();
@@ -182,13 +188,18 @@ DataProcessorSpec getPHOSDigitizerSpec(int channel, bool mctruth)
   }
   outputs.emplace_back("PHS", "ROMode", 0, Lifetime::Timeframe);
 
+  std::vector<o2::framework::InputSpec> inputs;
+  inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  inputs.emplace_back("recoparams", o2::header::gDataOriginPHS, "PHS_RecoParams", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Config/RecoParams"));
+
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
   return DataProcessorSpec{
-    "PHOSDigitizer", Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+    "PHOSDigitizer",
+    inputs,
     outputs,
     AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>()},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
