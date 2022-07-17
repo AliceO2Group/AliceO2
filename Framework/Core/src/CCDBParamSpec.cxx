@@ -26,6 +26,11 @@ ConfigParamSpec ccdbRunDependent(bool defaultValue)
   return ConfigParamSpec{"ccdb-run-dependent", VariantType::Bool, defaultValue, {"Give object for specific run number"}, ConfigParamKind::kGeneric};
 }
 
+ConfigParamSpec ccdbQueryRateSpec(int64_t r)
+{
+  return ConfigParamSpec{"ccdb-query-rate", VariantType::Int64, r, {"Query after once every N TFs"}, ConfigParamKind::kGeneric};
+}
+
 ConfigParamSpec ccdbMetadataSpec(std::string const& key, std::string const& defaultValue)
 {
   return ConfigParamSpec{fmt::format("ccdb-metadata-{}", key),
@@ -35,19 +40,21 @@ ConfigParamSpec ccdbMetadataSpec(std::string const& key, std::string const& defa
                          ConfigParamKind::kGeneric};
 }
 
-std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, std::vector<CCDBMetadata> metadata)
+std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, std::vector<CCDBMetadata> metadata, int64_t qrate)
 {
-  return ccdbParamSpec(path, false, metadata);
+  return ccdbParamSpec(path, false, metadata, qrate);
 }
 
-std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, bool runDependent, std::vector<CCDBMetadata> metadata)
+std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, bool runDependent, std::vector<CCDBMetadata> metadata, int64_t qrate)
 {
   // Add here CCDB objecs which should be considered run dependent
-  static std::vector<std::string> runDependentObjects = {"GLO/GRP"};
-  if (std::any_of(runDependentObjects.begin(), runDependentObjects.end(), [&path](std::string const& s) { return path == s; })) {
-    runDependent = true;
+  std::vector<ConfigParamSpec> result{ccdbPathSpec(path)};
+  if (runDependent) {
+    result.push_back(ccdbRunDependent(runDependent));
   }
-  std::vector<ConfigParamSpec> result{ccdbPathSpec(path), ccdbRunDependent(runDependent)};
+  if (qrate != 0) {
+    result.push_back(ccdbQueryRateSpec(qrate < 0 ? int64_t(std::numeric_limits<int64_t>::max) : qrate));
+  }
   for (auto& [key, value] : metadata) {
     result.push_back(ccdbMetadataSpec(key, value));
   }
