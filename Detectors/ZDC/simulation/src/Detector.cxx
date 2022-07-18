@@ -73,6 +73,12 @@ Detector::Detector(Bool_t active)
   if (!o2::zdc::ZDCSimParam::Instance().useZDCFastSim) {
     LOG(info) << "FastSim module disabled";
   } else if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierPath.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales.empty()) {
+    if (!mClassifierScaler) {
+      mClassifierScaler = new fastsim::processors::StandardScaler;
+    }
+    if (!mModelScaler) {
+      mModelScaler = new fastsim::processors::StandardScaler;
+    }
     auto eonScales = o2::zdc::fastsim::loadScales(o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales);
     if (!eonScales.has_value()) {
       LOG(error) << "Error while reading model scales from: "
@@ -182,12 +188,6 @@ void Detector::InitializeO2Detector()
   loadLightTable(mLightTableZP, 2, ZPRADIUSBINS, inputDir + "light22620552209s");
   elements = loadLightTable(mLightTableZP, 3, ZPRADIUSBINS, inputDir + "light22620552210s");
   assert(elements == ZPRADIUSBINS * ANGLEBINS);
-
-  // init some fast sim objects
-#ifdef ZDC_FASTSIM_ONNX
-  mClassifierScaler = new fastsim::processors::StandardScaler;
-  mModelScaler = new fastsim::processors::StandardScaler;
-#endif
 }
 
 //_____________________________________________________________________________
