@@ -73,10 +73,10 @@ Detector::Detector(Bool_t active)
   if (!o2::zdc::ZDCSimParam::Instance().useZDCFastSim) {
     LOG(info) << "FastSim module disabled";
   } else if (o2::zdc::ZDCSimParam::Instance().useZDCFastSim && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierPath.empty() && !o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales.empty()) {
-    if (!mClassifierScaler){
+    if (!mClassifierScaler) {
       mClassifierScaler = new fastsim::processors::StandardScaler;
     }
-    if (!mModelScaler){
+    if (!mModelScaler) {
       mModelScaler = new fastsim::processors::StandardScaler;
     }
     auto eonScales = o2::zdc::fastsim::loadScales(o2::zdc::ZDCSimParam::Instance().ZDCFastSimClassifierScales);
