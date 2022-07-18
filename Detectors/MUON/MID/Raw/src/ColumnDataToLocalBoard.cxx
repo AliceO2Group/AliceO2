@@ -33,17 +33,27 @@ void ColumnDataToLocalBoard::process(gsl::span<const ColumnData> data, bool allo
   // Each local board gets a unique id.
   for (auto& col : data) {
     for (int iline = mMapping.getFirstBoardBP(col.columnId, col.deId), lastLine = mMapping.getLastBoardBP(col.columnId, col.deId); iline <= lastLine; ++iline) {
-      if (allowEmpty || col.getBendPattern(iline) || col.getNonBendPattern()) {
+      auto bp = col.getBendPattern(iline);
+      auto nbp = col.getNonBendPattern();
+      // Finding the loc ID is time consuming.
+      // So let us first check if we need to fill this board.
+      if (allowEmpty || bp || nbp) {
         auto uniqueLocId = mCrateMapper.deLocalBoardToRO(col.deId, col.columnId, iline);
+        if (nbp && !mCrateMapper.hasDirectInputY(uniqueLocId)) {
+          // If this local board has no non-bending input attached, we set it to 0
+          // But if the bending-plane was 0 and we do not allow empty boards, we can stop here.
+          if (bp == 0 && !allowEmpty) {
+            continue;
+          }
+          nbp = 0;
+        }
         auto& roData = mLocalBoardsMap[uniqueLocId];
         roData.statusWord = raw::sSTARTBIT | raw::sCARDTYPE;
         roData.boardId = uniqueLocId;
         int ich = detparams::getChamber(col.deId);
         roData.firedChambers |= (1 << ich);
-        roData.patternsBP[ich] = col.getBendPattern(iline);
-        if (mCrateMapper.hasDirectInputY(uniqueLocId)) {
-          roData.patternsNBP[ich] = col.getNonBendPattern();
-        }
+        roData.patternsBP[ich] = bp;
+        roData.patternsNBP[ich] = nbp;
       }
     }
   }

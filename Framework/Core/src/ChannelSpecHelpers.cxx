@@ -15,6 +15,7 @@
 #include <cassert>
 #include <cctype>
 #include <regex>
+#include <unistd.h>
 #if __has_include(<filesystem>)
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -324,6 +325,29 @@ void ChannelSpecHelpers::parseChannelConfig(char const* config, FairMQChannelCon
       }
     }
   }
+}
+
+std::string ChannelSpecHelpers::defaultIPCFolder()
+{
+#ifdef __linux__
+  // On linux we can use abstract sockets to avoid the need for a file.
+  // This is not available on macOS.
+  // Notice also that when running inside a docker container, like
+  // when on alien, the abstract socket is not isolated, so we need
+  // to add some unique identifier to avoid collisions.
+  char const* channelPrefix = getenv("ALIEN_PROC_ID");
+  if (channelPrefix) {
+    return fmt::format("@dpl_{}_", channelPrefix);
+  }
+  return "@";
+#else
+  /// Find out a place where we can write the sockets
+  char const* channelPrefix = getenv("TMPDIR");
+  if (channelPrefix) {
+    return {channelPrefix};
+  }
+  return access("/tmp", W_OK) == 0 ? "/tmp/" : "./";
+#endif
 }
 
 } // namespace o2::framework

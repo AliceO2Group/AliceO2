@@ -56,11 +56,17 @@ std::ostream& operator<<(std::ostream& oss, Variant const& val)
     case VariantType::Int:
       oss << val.get<int>();
       break;
+    case VariantType::Int8:
+      oss << (int)val.get<int8_t>();
+      break;
+    case VariantType::Int16:
+      oss << (int)val.get<int16_t>();
+      break;
     case VariantType::UInt8:
-      oss << val.get<uint8_t>();
+      oss << (int)val.get<uint8_t>();
       break;
     case VariantType::UInt16:
-      oss << val.get<uint16_t>();
+      oss << (int)val.get<uint16_t>();
       break;
     case VariantType::UInt32:
       oss << val.get<uint32_t>();

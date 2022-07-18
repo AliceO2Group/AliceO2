@@ -12,18 +12,18 @@
 #include "Framework/Output.h"
 #include "Framework/MessageContext.h"
 #include "Framework/OutputRoute.h"
-#include "fairmq/FairMQDevice.h"
+#include <fairmq/Device.h>
 
 namespace o2::framework
 {
 
-FairMQMessagePtr MessageContext::createMessage(RouteIndex routeIndex, int index, size_t size)
+fair::mq::MessagePtr MessageContext::createMessage(RouteIndex routeIndex, int index, size_t size)
 {
   auto* transport = mProxy.getOutputTransport(routeIndex);
   return transport->CreateMessage(size, fair::mq::Alignment{64});
 }
 
-FairMQMessagePtr MessageContext::createMessage(RouteIndex routeIndex, int index, void* data, size_t size, fairmq_free_fn* ffn, void* hint)
+fair::mq::MessagePtr MessageContext::createMessage(RouteIndex routeIndex, int index, void* data, size_t size, fair::mq::FreeFn* ffn, void* hint)
 {
   auto* transport = mProxy.getOutputTransport(routeIndex);
   return transport->CreateMessage(data, size, ffn, hint);
@@ -100,7 +100,7 @@ int MessageContext::countDeviceOutputs(bool excludeDPLOrigin)
   return noutputs;
 }
 
-int64_t MessageContext::addToCache(std::unique_ptr<FairMQMessage>& toCache)
+int64_t MessageContext::addToCache(std::unique_ptr<fair::mq::Message>& toCache)
 {
   auto&& cached = toCache->GetTransport()->CreateMessage();
   cached->Copy(*toCache);
@@ -110,7 +110,7 @@ int64_t MessageContext::addToCache(std::unique_ptr<FairMQMessage>& toCache)
   return cacheId;
 }
 
-std::unique_ptr<FairMQMessage> MessageContext::cloneFromCache(int64_t id) const
+std::unique_ptr<fair::mq::Message> MessageContext::cloneFromCache(int64_t id) const
 {
   auto& inCache = mMessageCache.at(id);
   auto&& cloned = inCache->GetTransport()->CreateMessage();

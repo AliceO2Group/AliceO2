@@ -32,18 +32,13 @@ namespace mch
 BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE(Response_test)
 {
-  //check transition between energy and charge
-  //check integration via Mathieson
-  //check FEE response
+  // check transition between energy and charge
+  // check integration via Mathieson
+  // check FEE response
   Response r_stat1(Station::Type1);
   Response r_stat2(Station::Type2345);
-  //check threshold
-  float threshold = r_stat1.getChargeThreshold();
-  float threshold_target = 1e-4;
-  float threshold_precision = threshold_target / 10.f;
-  BOOST_CHECK_CLOSE(threshold, threshold_target, threshold_precision);
 
-  //check conversion energy to charge
+  // check conversion energy to charge
   float eloss = 1e-6;
   TH1D hTest("hTest", "", 10000, 0, 1000);
   TF1 gaus("gaus", "gaus");
@@ -56,16 +51,16 @@ BOOST_AUTO_TEST_CASE(Response_test)
   float charge_target = 137.15721769834721;
   float charge_precision = charge_target / 100.f;
   BOOST_CHECK_CLOSE(gaus.GetParameter(1), charge_target, charge_precision);
-  //TODO, if needed
+  // TODO, if needed
   float charge_resolution_target = 21.7099991;
   float charge_resolution_precision = charge_resolution_target / 100.f;
   BOOST_CHECK_CLOSE(gaus.GetParameter(2), charge_resolution_target, charge_resolution_precision);
 
-  //test Mathieson integration on Pad
-  //total charge to be distributed
+  // test Mathieson integration on Pad
+  // total charge to be distributed
   float charge_on_plane = 100.f;
-  //borders with some distance to anode
-  //smallest pad dimension for  stat.
+  // borders with some distance to anode
+  // smallest pad dimension for  stat.
   float xmin = -0.658334;
   float xmax = -0.0283;
   float ymin = -0.0934209;
@@ -77,7 +72,7 @@ BOOST_AUTO_TEST_CASE(Response_test)
   float result_chargeonpad_stat1 = r_stat1.chargePadfraction(xmin, xmax, ymin, ymax) * charge_on_plane;
   BOOST_CHECK_CLOSE(result_chargeonpad_stat1, expected_chargeonpad_stat1, chargeonpad_precision);
 
-  //test r_stat2
+  // test r_stat2
   xmin = -0.428572;
   xmax = 0.285714;
   ymin = -0.108383;
@@ -86,8 +81,8 @@ BOOST_AUTO_TEST_CASE(Response_test)
   chargeonpad_precision = expected_chargeonpad_stat2 / 10.f;
   float result_chargeonpad_stat2 = r_stat2.chargePadfraction(xmin, xmax, ymin, ymax) * charge_on_plane;
   BOOST_CHECK_CLOSE(result_chargeonpad_stat2, expected_chargeonpad_stat2, chargeonpad_precision);
-  //todo some test of chargeCorr? function, not so obvious
-  //getAnod, necessary to do?
+  // todo some test of chargeCorr? function, not so obvious
+  // getAnod, necessary to do?
 }
 
 } // namespace mch

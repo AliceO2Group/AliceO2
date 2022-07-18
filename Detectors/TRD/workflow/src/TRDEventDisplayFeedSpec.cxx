@@ -213,7 +213,6 @@ void TRDEventDisplayFeedSpec::run(o2::framework::ProcessingContext& pc)
   int nEvents = std::min((int)mTrigRecs.size(), mNeventsMax);
 
   for (int iEvent = 0; iEvent < nEvents; ++iEvent) {
-    const auto& trigRec = mTrigRecs[iEvent];
     const auto& trackTrigRec = trackTrigRecs[iEvent];
 
     if (trackTrigRec.getNumberOfTracks() == 0) {
@@ -267,7 +266,7 @@ o2::framework::DataProcessorSpec getTRDEventDisplayFeedSpec(int nEventsMax)
 
   inputs.emplace_back("trdtracks", "TRD", "MATCH_ITSTPC", 0, Lifetime::Timeframe);
   inputs.emplace_back("trdtracklets", "TRD", "TRACKLETS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trddigits", "TRD", "DIGITS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("trddigits", ConcreteDataTypeMatcher{o2::header::gDataOriginTRD, "DIGITS"}, Lifetime::Timeframe);
   inputs.emplace_back("trdtriggerrec", "TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracktriggerrec", "TRD", "TRGREC_ITSTPC", 0, Lifetime::Timeframe);
 

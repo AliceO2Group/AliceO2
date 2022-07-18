@@ -137,10 +137,11 @@ int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutp
     mRec->ClearAllocatedMemory();
     return retVal;
   }
-  if (mConfig->configQA.shipToQC) {
+  if (mConfig->configQA.shipToQC && mChain->QARanForTF()) {
     outputs->qa.hist1 = &mChain->GetQA()->getHistograms1D();
     outputs->qa.hist2 = &mChain->GetQA()->getHistograms2D();
     outputs->qa.hist3 = &mChain->GetQA()->getHistograms1Dd();
+    outputs->qa.newQAHistsCreated = true;
   }
   *data = mChain->mIOPtrs;
 
@@ -180,8 +181,8 @@ std::unique_ptr<o2::tpc::CalibdEdxContainer> GPUO2Interface::getCalibdEdxContain
   return std::make_unique<o2::tpc::CalibdEdxContainer>();
 }
 
-int GPUO2Interface::UpdateCalibration(const GPUCalibObjectsConst& newCalib)
+int GPUO2Interface::UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals)
 {
-  mChain->SetUpdateCalibObjects(newCalib);
+  mChain->SetUpdateCalibObjects(newCalib, newVals);
   return 0;
 }

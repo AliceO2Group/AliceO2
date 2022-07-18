@@ -52,6 +52,7 @@ struct ChannelSpecHelpers {
   /// Parse @a channelConfig option, invoking the correct method of
   /// @a parser
   static void parseChannelConfig(char const* channelConfig, FairMQChannelConfigParser& parser);
+  static std::string defaultIPCFolder();
 };
 
 /// Stream operators so that we can use ChannelType with Boost.Test

@@ -53,6 +53,7 @@ class GPUQA
   bool clusterRemovable(int attach, bool prot) const { return false; }
   void DumpO2MCData(const char* filename) const {}
   int ReadO2MCData(const char* filename) { return 1; }
+  void* AllocateScratchBuffer(size_t nBytes) { return nullptr; }
   static bool QAAvailable() { return false; }
   static bool IsInitialized() { return false; }
 };
@@ -95,6 +96,7 @@ class GPUQA
   GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config = nullptr, const GPUParam* param = nullptr);
   ~GPUQA();
 
+  void UpdateParam(const GPUParam* param) { mParam = param; }
   int InitQA(int tasks = -1);
   void RunQA(bool matchOnly = false, const std::vector<o2::tpc::TrackTPC>* tracksExternal = nullptr, const std::vector<o2::MCCompLabel>* tracksExtMC = nullptr, const o2::tpc::ClusterNativeAccess* clNative = nullptr);
   int DrawQAHistograms(TObjArray* qcout = nullptr);
@@ -116,6 +118,7 @@ class GPUQA
   const std::vector<TH1D>& getHistograms1Dd() const { return *mHist1Dd; }
   void resetHists();
   int loadHistograms(std::vector<TH1F>& i1, std::vector<TH2F>& i2, std::vector<TH1D>& i3, int tasks = -1);
+  void* AllocateScratchBuffer(size_t nBytes);
 
   static constexpr int N_CLS_HIST = 8;
   static constexpr int N_CLS_TYPE = 3;
@@ -213,7 +216,7 @@ class GPUQA
 
   GPUChainTracking* mTracking;
   const GPUSettingsQA& mConfig;
-  const GPUParam& mParam;
+  const GPUParam* mParam;
 
   const char* str_perf_figure_1 = "ALICE Performance 2018/03/20";
   // const char* str_perf_figure_2 = "2015, MC pp, #sqrt{s} = 5.02 TeV";
@@ -309,6 +312,8 @@ class GPUQA
   std::vector<std::vector<int>> mcLabelBuffer;
   std::vector<std::vector<bool>> mGoodTracks;
   std::vector<std::vector<bool>> mGoodHits;
+
+  std::vector<unsigned long int> mTrackingScratchBuffer;
 
   static std::vector<TColor*> mColors;
   static int initColors();

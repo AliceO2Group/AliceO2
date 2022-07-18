@@ -18,6 +18,7 @@
 #include "Framework/Task.h"
 #include "MFTAssessment/MFTAssessment.h"
 #include "TStopwatch.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -28,9 +29,7 @@ namespace mft
 class MFTAssessmentSpec : public Task
 {
  public:
-  MFTAssessmentSpec(bool useMC, bool processGen, bool finalizeAnalysis = false) : mUseMC(useMC),
-                                                                                  mProcessGen(processGen),
-                                                                                  mFinalizeAnalysis(finalizeAnalysis){};
+  MFTAssessmentSpec(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool processGen, bool finalizeAnalysis = false) : mGGCCDBRequest(gr), mUseMC(useMC), mProcessGen(processGen), mFinalizeAnalysis(finalizeAnalysis){};
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
@@ -40,6 +39,7 @@ class MFTAssessmentSpec : public Task
   void updateTimeDependentParams(ProcessingContext& pc);
   void sendOutput(DataAllocator& output);
   std::unique_ptr<o2::mft::MFTAssessment> mMFTAssessment;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mUseMC = true;
   bool mProcessGen = false;
   bool mFinalizeAnalysis = false;

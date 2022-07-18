@@ -36,16 +36,16 @@ namespace zdc
 class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::ZDC) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op) : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), o2::detectors::DetID::ZDC) {}
   ~CTFCoder() final = default;
 
   /// entropy-encode data to buffer with CTF
   template <typename VEC>
-  void encode(VEC& buff, const gsl::span<const BCData>& trgData, const gsl::span<const ChannelData>& chanData, const gsl::span<const OrbitData>& pedData);
+  o2::ctf::CTFIOSize encode(VEC& buff, const gsl::span<const BCData>& trgData, const gsl::span<const ChannelData>& chanData, const gsl::span<const OrbitData>& pedData);
 
   /// entropy decode data from buffer with CTF
   template <typename VTRG, typename VCHAN, typename VPED>
-  void decode(const CTF::base& ec, VTRG& trigVec, VCHAN& chanVec, VPED& pedVec);
+  o2::ctf::CTFIOSize decode(const CTF::base& ec, VTRG& trigVec, VCHAN& chanVec, VPED& pedVec);
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
@@ -56,7 +56,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& trigData, const gsl::span<const ChannelData>& chanData, const gsl::span<const OrbitData>& pedData)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& trigData, const gsl::span<const ChannelData>& chanData, const gsl::span<const OrbitData>& pedData)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -91,30 +91,34 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const BCData>& trigData, const 
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
+  o2::ctf::CTFIOSize iosize;
 #define ENCODEZDC(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
-  ENCODEZDC(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
-  ENCODEZDC(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
-  ENCODEZDC(helper.begin_moduleTrig(),   helper.end_moduleTrig(),    CTF::BLC_moduleTrig,   0);
-  ENCODEZDC(helper.begin_channelsHL(),   helper.end_channelsHL(),    CTF::BLC_channelsHL,   0);
-  ENCODEZDC(helper.begin_triggersHL(),   helper.end_triggersHL(),    CTF::BLC_triggersHL,   0);
-  ENCODEZDC(helper.begin_extTriggers(),  helper.end_extTriggers(),   CTF::BLC_extTriggers,  0);
-  ENCODEZDC(helper.begin_nchanTrig(),    helper.end_nchanTrig(),     CTF::BLC_nchanTrig,    0);
+  iosize += ENCODEZDC(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
+  iosize += ENCODEZDC(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
+  iosize += ENCODEZDC(helper.begin_moduleTrig(),   helper.end_moduleTrig(),    CTF::BLC_moduleTrig,   0);
+  iosize += ENCODEZDC(helper.begin_channelsHL(),   helper.end_channelsHL(),    CTF::BLC_channelsHL,   0);
+  iosize += ENCODEZDC(helper.begin_triggersHL(),   helper.end_triggersHL(),    CTF::BLC_triggersHL,   0);
+  iosize += ENCODEZDC(helper.begin_extTriggers(),  helper.end_extTriggers(),   CTF::BLC_extTriggers,  0);
+  iosize += ENCODEZDC(helper.begin_nchanTrig(),    helper.end_nchanTrig(),     CTF::BLC_nchanTrig,    0);
   //
-  ENCODEZDC(helper.begin_chanID(),       helper.end_chanID(),        CTF::BLC_chanID,       0);
-  ENCODEZDC(helper.begin_chanData(),     helper.end_chanData(),      CTF::BLC_chanData,     0);
+  iosize += ENCODEZDC(helper.begin_chanID(),       helper.end_chanID(),        CTF::BLC_chanID,       0);
+  iosize += ENCODEZDC(helper.begin_chanData(),     helper.end_chanData(),      CTF::BLC_chanData,     0);
   //
-  ENCODEZDC(helper.begin_orbitIncEOD(),  helper.end_orbitIncEOD(),   CTF::BLC_orbitIncEOD,  0);
-  ENCODEZDC(helper.begin_pedData(),      helper.end_pedData(),       CTF::BLC_pedData,      0);
-  ENCODEZDC(helper.begin_sclInc(),       helper.end_sclInc(),        CTF::BLC_sclInc,       0);
+  iosize += ENCODEZDC(helper.begin_orbitIncEOD(),  helper.end_orbitIncEOD(),   CTF::BLC_orbitIncEOD,  0);
+  iosize += ENCODEZDC(helper.begin_pedData(),      helper.end_pedData(),       CTF::BLC_pedData,      0);
+  iosize += ENCODEZDC(helper.begin_sclInc(),       helper.end_sclInc(),        CTF::BLC_sclInc,       0);
 
   // clang-format on
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
+  finaliseCTFOutput<CTF>(buff);
+  iosize.rawIn = sizeof(BCData) * trigData.size() + sizeof(ChannelData) * chanData.size() + sizeof(OrbitData) * pedData.size();
+  return iosize;
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
 template <typename VTRG, typename VCHAN, typename VPED>
-void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& chanVec, VPED& pedVec)
+o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& chanVec, VPED& pedVec)
 {
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
@@ -123,22 +127,23 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& chanVec, VPED& 
   std::vector<uint32_t> orbitIncTrig, orbitIncEOD;
   std::vector<uint8_t> extTriggers, chanID;
 
+  o2::ctf::CTFIOSize iosize;
 #define DECODEZDC(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
-  DECODEZDC(bcIncTrig,      CTF::BLC_bcIncTrig);
-  DECODEZDC(orbitIncTrig,   CTF::BLC_orbitIncTrig);
-  DECODEZDC(moduleTrig,     CTF::BLC_moduleTrig);
-  DECODEZDC(channelsHL,     CTF::BLC_channelsHL);
-  DECODEZDC(triggersHL,     CTF::BLC_triggersHL);
-  DECODEZDC(extTriggers,    CTF::BLC_extTriggers);
-  DECODEZDC(nchanTrig,      CTF::BLC_nchanTrig);
+  iosize += DECODEZDC(bcIncTrig,      CTF::BLC_bcIncTrig);
+  iosize += DECODEZDC(orbitIncTrig,   CTF::BLC_orbitIncTrig);
+  iosize += DECODEZDC(moduleTrig,     CTF::BLC_moduleTrig);
+  iosize += DECODEZDC(channelsHL,     CTF::BLC_channelsHL);
+  iosize += DECODEZDC(triggersHL,     CTF::BLC_triggersHL);
+  iosize += DECODEZDC(extTriggers,    CTF::BLC_extTriggers);
+  iosize += DECODEZDC(nchanTrig,      CTF::BLC_nchanTrig);
   //
-  DECODEZDC(chanID,         CTF::BLC_chanID);
-  DECODEZDC(chanData,       CTF::BLC_chanData);
+  iosize += DECODEZDC(chanID,         CTF::BLC_chanID);
+  iosize += DECODEZDC(chanData,       CTF::BLC_chanData);
   //
-  DECODEZDC(orbitIncEOD,    CTF::BLC_orbitIncEOD);
-  DECODEZDC(pedData,        CTF::BLC_pedData);
-  DECODEZDC(scalerInc,      CTF::BLC_sclInc);
+  iosize += DECODEZDC(orbitIncEOD,    CTF::BLC_orbitIncEOD);
+  iosize += DECODEZDC(pedData,        CTF::BLC_pedData);
+  iosize += DECODEZDC(scalerInc,      CTF::BLC_sclInc);
   // clang-format on
   //
   trigVec.clear();
@@ -203,6 +208,8 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& chanVec, VPED& 
   assert(channelsHLIt == channelsHL.end());
   assert(triggersHLIt == triggersHL.end());
   assert(sclIncIt == scalerInc.end());
+  iosize.rawIn = sizeof(BCData) * trigVec.size() + sizeof(ChannelData) * chanVec.size() + sizeof(OrbitData) * pedVec.size();
+  return iosize;
 }
 
 } // namespace zdc

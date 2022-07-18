@@ -28,12 +28,12 @@ namespace mft
 namespace reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC, bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, bool runAssessment, bool processGen)
+framework::WorkflowSpec getWorkflow(bool useMC, bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, bool runAssessment, bool processGen, bool runTracking)
 {
   framework::WorkflowSpec specs;
 
   if (!(upstreamDigits || upstreamClusters)) {
-    specs.emplace_back(o2::itsmft::getMFTDigitReaderSpec(useMC, false, "mftdigits.root"));
+    specs.emplace_back(o2::itsmft::getMFTDigitReaderSpec(useMC, false, true, "mftdigits.root"));
   }
   if (!upstreamClusters) {
     specs.emplace_back(o2::mft::getClustererSpec(useMC));
@@ -41,14 +41,15 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool upstreamDigits, bool upstre
   if (!disableRootOutput) {
     specs.emplace_back(o2::mft::getClusterWriterSpec(useMC));
   }
-  specs.emplace_back(o2::mft::getTrackerSpec(useMC));
-  if (!disableRootOutput) {
-    specs.emplace_back(o2::mft::getTrackWriterSpec(useMC));
+  if (runTracking) {
+    specs.emplace_back(o2::mft::getTrackerSpec(useMC));
+    if (!disableRootOutput) {
+      specs.emplace_back(o2::mft::getTrackWriterSpec(useMC));
+    }
+    if (runAssessment) {
+      specs.emplace_back(o2::mft::getMFTAssessmentSpec(useMC, processGen));
+    }
   }
-  if (runAssessment) {
-    specs.emplace_back(o2::mft::getMFTAssessmentSpec(useMC, processGen));
-  }
-
   return specs;
 }
 

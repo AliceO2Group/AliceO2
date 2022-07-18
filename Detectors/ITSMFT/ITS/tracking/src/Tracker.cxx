@@ -21,7 +21,6 @@
 #include "ITStracking/Smoother.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/TrackerTraits.h"
-#include "ITStracking/TrackerTraitsCPU.h"
 #include "ITStracking/TrackingConfigParam.h"
 
 #include "ReconstructionDataFormats/Track.h"
@@ -43,37 +42,42 @@ Tracker::Tracker(o2::its::TrackerTraits* traits)
   mTrkParams.resize(1);
   mMemParams.resize(1);
   mTraits = traits;
-#ifdef CA_DEBUG
-  mDebugger = new StandaloneDebugger("dbg_ITSTrackerCPU.root");
-#endif
 }
-#ifdef CA_DEBUG
-Tracker::~Tracker()
-{
-  delete mDebugger;
-}
-#else
+
 Tracker::~Tracker() = default;
-#endif
 
 void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::function<void(std::string s)> error)
 {
   double total{0};
-  for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
+  for (int iteration = 0; iteration < (int)mTrkParams.size(); ++iteration) {
     mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
 
     total += evaluateTask(&Tracker::initialiseTimeFrame, "Timeframe initialisation",
                           logger, iteration, mMemParams[iteration], mTrkParams[iteration]);
     total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger);
+    logger(fmt::format("\t- Number of tracklets: {}", mTimeFrame->getNumberOfTracklets()));
     if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
       error("Too much memory used during trackleting, check the detector status and/or the selections.");
       break;
     }
+    float trackletsPerCluster = mTimeFrame->getNumberOfClusters() > 0 ? float(mTimeFrame->getNumberOfTracklets()) / mTimeFrame->getNumberOfClusters() : 0.f;
+    if (trackletsPerCluster > mTrkParams[iteration].TrackletsPerClusterLimit) {
+      error(fmt::format("Too many tracklets per cluster ({}), check the detector status and/or the selections.", trackletsPerCluster));
+      break;
+    }
+
     total += evaluateTask(&Tracker::computeCells, "Cell finding", logger);
+    logger(fmt::format("\t- Number of Cells: {}", mTimeFrame->getNumberOfCells()));
     if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
       error("Too much memory used during cell finding, check the detector status and/or the selections.");
       break;
     }
+    float cellsPerCluster = mTimeFrame->getNumberOfClusters() > 0 ? float(mTimeFrame->getNumberOfCells()) / mTimeFrame->getNumberOfClusters() : 0.f;
+    if (cellsPerCluster > mTrkParams[iteration].CellsPerClusterLimit) {
+      error(fmt::format("Too many cells per cluster ({}), check the detector status and/or the selections.", cellsPerCluster));
+      break;
+    }
+
     total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", logger, iteration);
     total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
     total += evaluateTask(&Tracker::findTracks, "Track finding", logger);
@@ -83,7 +87,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
   std::stringstream sstream;
   if (constants::DoTimeBenchmarks) {
     sstream << std::setw(2) << " - "
-            << "Timeframe " << mTimeFrameCounter++ << " processing completed in: " << total << "ms" << std::endl;
+            << "Timeframe " << mTimeFrameCounter++ << " processing completed in: " << total << "ms";
   }
   logger(sstream.str());
 
@@ -91,6 +95,34 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
     computeTracksMClabels();
   }
   rectifyClusterIndices();
+  mNumberOfRuns++;
+}
+
+void Tracker::clustersToTracksGPU(std::function<void(std::string s)> logger)
+{
+  double total{0};
+  for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
+    mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
+    total += evaluateTask(&Tracker::loadToDevice, "Device loading", logger);
+    total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger);
+    // total += evaluateTask(&Tracker::computeCells, "Cell finding", logger);
+    // total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", logger, iteration);
+    // total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
+    // total += evaluateTask(&Tracker::findTracks, "Track finding", logger);
+    // total += evaluateTask(&Tracker::extendTracks, "Extending tracks", logger);
+  }
+
+  std::stringstream sstream;
+  if (constants::DoTimeBenchmarks) {
+    sstream << std::setw(2) << " - "
+            << "Timeframe " << mTimeFrameCounter++ << " GPU processing completed in: " << total << "ms";
+  }
+  logger(sstream.str());
+
+  // if (mTimeFrame->hasMCinformation()) {
+  //   computeTracksMClabels();
+  // }
+  // rectifyClusterIndices();
 }
 
 void Tracker::computeTracklets()
@@ -101,6 +133,16 @@ void Tracker::computeTracklets()
 void Tracker::computeCells()
 {
   mTraits->computeLayerCells();
+}
+
+TimeFrame* Tracker::getTimeFrameGPU()
+{
+  return (TimeFrame*)mTraits->getTimeFrameGPU();
+}
+
+void Tracker::loadToDevice()
+{
+  mTraits->loadToDevice();
 }
 
 void Tracker::findCellsNeighbours(int& iteration)
@@ -271,7 +313,7 @@ void Tracker::findTracks()
     }
 
     /// From primary vertex context index to event index (== the one used as input of the tracking code)
-    for (int iC{0}; iC < clusters.size(); iC++) {
+    for (size_t iC{0}; iC < clusters.size(); iC++) {
       if (clusters[iC] != constants::its::UnusedIndex) {
         clusters[iC] = mTimeFrame->getClusters()[iC][clusters[iC]].clusterId;
       }
@@ -357,6 +399,46 @@ void Tracker::findTracks()
 
 void Tracker::extendTracks()
 {
+  if (!mTrkParams.back().UseTrackFollower) {
+    return;
+  }
+  for (int rof{0}; rof < mTimeFrame->getNrof(); ++rof) {
+    for (auto& track : mTimeFrame->getTracks(rof)) {
+      /// TODO: track refitting is missing!
+      int ncl{track.getNClusters()};
+      auto backup{track};
+      bool success{false};
+      if (track.getLastClusterLayer() != mTrkParams[0].NLayers - 1) {
+        success = success || mTraits->trackFollowing(&track, rof, true);
+      }
+      if (track.getFirstClusterLayer() != 0) {
+        success = success || mTraits->trackFollowing(&track, rof, false);
+      }
+      if (success) {
+        /// We have to refit the track
+        track.resetCovariance();
+        bool fitSuccess = fitTrack(track, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].FitIterationMaxChi2[0]);
+        if (!fitSuccess) {
+          track = backup;
+          continue;
+        }
+        track.getParamOut() = track;
+        track.resetCovariance();
+        fitSuccess = fitTrack(track, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1], 50.);
+        if (!fitSuccess) {
+          track = backup;
+          continue;
+        }
+        /// Make sure that the newly attached clusters get marked as used
+        for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
+          if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+            continue;
+          }
+          mTimeFrame->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
+        }
+      }
+    }
+  }
 }
 
 bool Tracker::fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut, const float maxQoverPt)
@@ -549,7 +631,6 @@ void Tracker::computeTracksMClabels()
     for (auto& track : mTimeFrame->getTracks(iROF)) {
       std::vector<std::pair<MCCompLabel, size_t>> occurrences;
       occurrences.clear();
-      bool isFakeTrack{false};
 
       for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
         const int index = track.getClusterIndex(iCluster);
@@ -681,6 +762,15 @@ void Tracker::getGlobalConfiguration()
     params.UseDiamond = tc.useDiamond;
     if (tc.maxMemory) {
       params.MaxMemory = tc.maxMemory;
+    }
+    if (tc.useTrackFollower >= 0) {
+      params.UseTrackFollower = tc.useTrackFollower;
+    }
+    if (tc.cellsPerClusterLimit >= 0) {
+      params.CellsPerClusterLimit = tc.cellsPerClusterLimit;
+    }
+    if (tc.trackletsPerClusterLimit >= 0) {
+      params.TrackletsPerClusterLimit = tc.trackletsPerClusterLimit;
     }
   }
 }

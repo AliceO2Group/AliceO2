@@ -23,8 +23,8 @@
 #include "Framework/Task.h"
 #include "CommonDataFormat/FlatHisto1D.h"
 #include "CommonDataFormat/FlatHisto2D.h"
-#include "DataFormatsZDC/InterCalibData.h"
 #include "CommonUtils/NameConf.h"
+#include "ZDCCalib/InterCalibData.h"
 #include "ZDCCalib/InterCalib.h"
 #include "ZDCCalib/InterCalibConfig.h"
 #include "DetectorsCalibration/Utils.h"
@@ -43,13 +43,15 @@ class InterCalibSpec : public o2::framework::Task
   ~InterCalibSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
   void sendOutput(o2::framework::DataAllocator& output);
 
  private:
   int mVerbosity = DbgMinimal; // Verbosity level
-  InterCalib mInterCalib;      // Intercalibration object
+  bool mInitialized = false;   // Connect once to CCDB during initialization
+  InterCalib mWorker;          // Intercalibration object
   TStopwatch mTimer;
 };
 

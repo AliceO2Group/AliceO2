@@ -40,6 +40,7 @@ class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc
   using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<CalibdEdx>;
   using TFinterval = std::vector<std::pair<TFType, TFType>>;
+  using TimeInterval = std::vector<std::pair<long, long>>;
   using CalibVector = std::vector<CalibdEdxCorrection>;
 
  public:
@@ -76,8 +77,11 @@ class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc
   /// \return the computed calibrations
   const CalibVector& getCalibs() const { return mCalibs; }
 
-  /// \return CCDB output informations
-  const TFinterval& getTFinterval() const { return mIntervals; }
+  /// \return Time frame ID information
+  const TFinterval& getTFinterval() const { return mTFIntervals; }
+
+  /// \return Time frame time information
+  const TimeInterval& getTimeIntervals() const { return mTimeIntervals; }
 
   /// Enable debug output to file of the time slots calibrations outputs and dE/dx histograms
   void enableDebugOutput(std::string_view fileName);
@@ -104,8 +108,9 @@ class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc
   std::pair<float, int> mElectronCut{}; ///< Values passed to CalibdEdx::setElectronCut
   TrackCuts mCuts;                      ///< Cut object
 
-  TFinterval mIntervals; ///< start and end time frames of each calibration time slots
-  CalibVector mCalibs;   ///< vector of MIP positions, each element is filled in "process" when we finalize one slot (multiple can be finalized during the same "process", which is why we have a vector. Each element is to be considered the output of the device
+  TFinterval mTFIntervals;     ///< start and end time frame IDs of each calibration time slots
+  TimeInterval mTimeIntervals; ///< start and end times of each calibration time slots
+  CalibVector mCalibs;         ///< vector of MIP positions, each element is filled in "process" when we finalize one slot (multiple can be finalized during the same "process", which is why we have a vector. Each element is to be considered the output of the device
 
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugOutputStreamer; ///< Debug output streamer
 

@@ -28,12 +28,14 @@
 #include "ITSMFTReconstruction/PixelReader.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/PixelData.h"
+#include "ITSMFTReconstruction/GBTWord.h"
 
 namespace o2
 {
 namespace framework
 {
 class InputRecord;
+class TimingInfo;
 }
 
 namespace itsmft
@@ -87,7 +89,7 @@ class RawPixelDecoder final : public PixelReader
   int getVerbosity() const { return mVerbosity; }
 
   void printReport(bool decstat = true, bool skipNoErr = true) const;
-  void produceRawDataDumps(int dump, const o2::header::DataHeader* dh);
+  void produceRawDataDumps(int dump, const o2::framework::TimingInfo& tinfo);
 
   void clearStat();
 
@@ -107,6 +109,9 @@ class RawPixelDecoder final : public PixelReader
   void setRawDumpDirectory(const std::string& s) { mRawDumpDirectory = s; }
   auto getRawDumpDirectory() const { return mRawDumpDirectory; }
 
+  std::vector<PhysTrigger>& getExternalTriggers() { return mExtTriggers; }
+  const std::vector<PhysTrigger>& getExternalTriggers() const { return mExtTriggers; }
+
   struct LinkEntry {
     int entry = -1;
   };
@@ -125,6 +130,7 @@ class RawPixelDecoder final : public PixelReader
   std::vector<RUDecodeData> mRUDecodeVec;                   // set of active RUs
   std::array<short, Mapping::getNRUs()> mRUEntry;           // entry of the RU with given SW ID in the mRUDecodeVec
   std::vector<ChipPixelData*> mOrderedChipsPtr;             // special ordering helper used for the MFT (its chipID is not contiguous in RU)
+  std::vector<PhysTrigger> mExtTriggers;                    // external triggers
   std::string mSelfName{};                                  // self name
   std::string mRawDumpDirectory;                            // destination directory for dumps
   header::DataOrigin mUserDataOrigin = o2::header::gDataOriginInvalid; // alternative user-provided data origin to pick
@@ -143,6 +149,7 @@ class RawPixelDecoder final : public PixelReader
   uint32_t mNLinksDone = 0;                       // number of links reached end of data
   size_t mNChipsFired = 0;                        // global counter
   size_t mNPixelsFired = 0;                       // global counter
+  size_t mNExtTriggers = 0;                       // global counter
   size_t mInstanceID = 0;                         // pipeline instance
   size_t mNInstances = 1;                         // total number of pipelines
   TStopwatch mTimerTFStart;

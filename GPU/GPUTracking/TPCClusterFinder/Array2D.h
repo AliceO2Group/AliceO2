@@ -63,9 +63,9 @@ class TilingLayout
     return (tileTime * WidthInTiles + tilePad) * (Width * Height) + inTileTime * Width + inTilePad;
   }
 
-  GPUd() static size_t items()
+  GPUd() static size_t items(bool gpu)
   {
-    return (TPC_NUM_OF_PADS + Width - 1) / Width * Width * (TPC_MAX_FRAGMENT_LEN_PADDED + Height - 1) / Height * Height;
+    return (TPC_NUM_OF_PADS + Width - 1) / Width * Width * (TPC_MAX_FRAGMENT_LEN_PADDED(gpu ? TPC_MAX_FRAGMENT_LEN_GPU : TPC_MAX_FRAGMENT_LEN_HOST) + Height - 1) / Height * Height;
   }
 };
 
@@ -77,9 +77,9 @@ class LinearLayout
     return TPC_NUM_OF_PADS * p.timePadded + p.gpad;
   }
 
-  GPUd() static size_t items()
+  GPUd() static size_t items(bool gpu)
   {
-    return TPC_NUM_OF_PADS * TPC_MAX_FRAGMENT_LEN_PADDED;
+    return TPC_NUM_OF_PADS * TPC_MAX_FRAGMENT_LEN_PADDED(gpu ? TPC_MAX_FRAGMENT_LEN_GPU : TPC_MAX_FRAGMENT_LEN_HOST);
   }
 };
 

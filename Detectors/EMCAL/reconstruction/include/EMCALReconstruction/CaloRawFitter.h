@@ -172,6 +172,9 @@ class CaloRawFitter
                        double adcErr = 1,
                        double tau = 2.35) const;
 
+  int getMinTimeIndex() const { return mMinTimeIndex; }
+  int getMaxTimeIndex() const { return mMaxTimeIndex; }
+
  protected:
   std::array<double, constants::EMCAL_MAXTIMEBINS> mReversed; ///< Reversed sequence of samples (pedestalsubtracted)
 
@@ -194,7 +197,7 @@ class CaloRawFitter
   double mAmp; ///< The amplitude in entities of ADC counts
 
   ClassDefNV(CaloRawFitter, 1);
-}; //CaloRawFitter
+}; // CaloRawFitter
 
 } // namespace emcal
 

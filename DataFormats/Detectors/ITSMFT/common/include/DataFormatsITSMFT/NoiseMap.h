@@ -93,15 +93,35 @@ class NoiseMap
     return dumpAboveThreshold(p * mNumOfStrobes);
   }
 
-  void applyProbThreshold(float t, long int n)
+  void applyProbThreshold(float t, long int n, float relErr = 0.2f)
   {
     // Remove from the maps all pixels with the firing probability below the threshold
+    if (n < 1) {
+      LOGP(alarm, "Cannot apply threshold with {} ROFs scanned", n);
+      return;
+    }
     mProbThreshold = t;
     mNumOfStrobes = n;
+    float minFiredForErr = 0.f;
+    if (relErr > 0) {
+      minFiredForErr = relErr * relErr - 1. / n;
+      if (minFiredForErr <= 0.f) {
+        LOGP(alarm, "Noise threshold {} with relative error {} is not reachable with {} ROFs processed, mask all permanently fired pixels", t, relErr, n);
+        minFiredForErr = n;
+      } else {
+        minFiredForErr = 1. / minFiredForErr;
+      }
+    }
+    int minFired = std::ceil(std::max(t * mNumOfStrobes, minFiredForErr)); // min number of fired pixels exceeding requested threshold
+    auto req = getMinROFs(t, relErr);
+    if (n < req) {
+      mProbThreshold = float(minFired) / n;
+      LOGP(alarm, "Requested relative error {} with prob.threshold {} needs > {} ROFs, {} provided: pixels with noise >{} will be masked", relErr, t, req, n, mProbThreshold);
+    }
+
     for (auto& map : mNoisyPixels) {
       for (auto it = map.begin(); it != map.end();) {
-        float prob = float(it->second) / mNumOfStrobes;
-        if (prob < mProbThreshold) {
+        if (it->second < minFired) {
           it = map.erase(it);
         } else {
           ++it;
@@ -154,6 +174,18 @@ class NoiseMap
     assert(chip < (int)mNoisyPixels.size());
     mNoisyPixels[chip].clear();
   }
+
+  static long getMinROFs(float t, float relErr)
+  {
+    // calculate min number of ROFs needed to reach threshold t with relative error relErr
+    relErr = relErr >= 0.f ? relErr : 0.1;
+    t = t >= 0.f ? t : 1e-6;
+    return std::ceil((1. + 1. / t) / (relErr * relErr));
+  }
+
+  void setNumOfStrobes(long n) { mNumOfStrobes = n; }
+  void addStrobes(long n) { mNumOfStrobes += n; }
+  long getNumberOfStrobes() const { return mNumOfStrobes; }
 
  private:
   static constexpr int SHIFT = 10, MASK = (0x1 << SHIFT) - 1;

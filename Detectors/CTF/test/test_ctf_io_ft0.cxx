@@ -15,7 +15,7 @@
 #include <boost/test/unit_test.hpp>
 #include "CommonUtils/NameConf.h"
 #include "FT0Reconstruction/CTFCoder.h"
-#include "FT0Simulation/FT0DigParam.h"
+#include "FT0Base/FT0DigParam.h"
 #include "Framework/Logger.h"
 #include <TFile.h>
 #include <TRandom.h>
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   sw.Start();
   std::vector<o2::ctf::BufferType> vec;
   {
-    CTFCoder coder;
+    CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Encoder);
     coder.encode(vec, digits, channels); // compress
   }
   sw.Stop();
@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   sw.Start();
   const auto ctfImage = o2::ft0::CTF::getImage(vec.data());
   {
-    CTFCoder coder;
+    CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Decoder);
     coder.decode(ctfImage, digitsD, channelsD); // decompress
   }
   sw.Stop();

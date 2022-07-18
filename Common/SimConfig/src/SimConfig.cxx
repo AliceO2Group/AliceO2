@@ -26,7 +26,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
 {
   int nsimworkersdefault = std::max(1u, std::thread::hardware_concurrency() / 2);
   options.add_options()(
-    "mcEngine,e", bpo::value<std::string>()->default_value("TGeant3"), "VMC backend to be used.")(
+    "mcEngine,e", bpo::value<std::string>()->default_value("TGeant4"), "VMC backend to be used.")(
     "generator,g", bpo::value<std::string>()->default_value("boxgen"), "Event generator to be used.")(
     "trigger,t", bpo::value<std::string>()->default_value(""), "Event generator trigger to be used.")(
     "modules,m", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({"all"}), "all modules"), "list of modules included in geometry")(
@@ -53,22 +53,24 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)")(
     "noemptyevents", "only writes events with at least one hit")(
     "CCDBUrl", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "URL for CCDB to be used.")(
-    "timestamp", bpo::value<uint64_t>(), "global timestamp value in ms (for anchoring) - default is now")(
+    "timestamp", bpo::value<uint64_t>(), "global timestamp value in ms (for anchoring) - default is now ... or beginning of run if ALICE run number was given")(
+    "run", bpo::value<int>()->default_value(-1), "ALICE run number")(
     "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode")(
     "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)");
 }
 
-bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
+void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules)
 {
   using o2::detectors::DetID;
-  mConfigData.mMCEngine = vm["mcEngine"].as<std::string>();
-  mConfigData.mActiveModules = vm["modules"].as<std::vector<std::string>>();
-  auto& activeModules = mConfigData.mActiveModules;
+
+  // input args is a vector of module strings as obtained from the -m,--modules options
+  // of SimConfig
+  activeModules = inputargs;
   if (activeModules.size() == 1 && activeModules[0] == "all") {
     activeModules.clear();
     for (int d = DetID::First; d <= DetID::Last; ++d) {
 #ifdef ENABLE_UPGRADES
-      if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3) {
+      if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT) {
         activeModules.emplace_back(DetID::getName(d));
       }
 #else
@@ -85,19 +87,19 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
     activeModules.emplace_back("SHIL");
   }
   // now we take out detectors listed as skipped
-  auto& skipped = vm["skipModules"].as<std::vector<std::string>>();
-  for (auto& s : skipped) {
+  for (auto& s : skippedModules) {
     auto iter = std::find(activeModules.begin(), activeModules.end(), s);
     if (iter != activeModules.end()) {
       // take it out
       activeModules.erase(iter);
     }
   }
+}
 
-  // find all detectors that should be readout
-  auto enableReadout = vm["readoutDetectors"].as<std::vector<std::string>>();
-  auto& disableReadout = vm["skipReadoutDetectors"].as<std::vector<std::string>>();
-  auto& readoutDetectors = mConfigData.mReadoutDetectors;
+void SimConfig::determineReadoutDetectors(std::vector<std::string> const& activeModules, std::vector<std::string> const& enableReadout, std::vector<std::string> const& disableReadout, std::vector<std::string>& readoutDetectors)
+{
+  using o2::detectors::DetID;
+
   readoutDetectors.clear();
 
   auto isDet = [](std::string const& s) {
@@ -140,6 +142,19 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
       readoutDetectors.erase(iter);
     }
   }
+}
+
+bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
+{
+  using o2::detectors::DetID;
+  mConfigData.mMCEngine = vm["mcEngine"].as<std::string>();
+
+  // get final set of active Modules
+  determineActiveModules(vm["modules"].as<std::vector<std::string>>(), vm["skipModules"].as<std::vector<std::string>>(), mConfigData.mActiveModules);
+  const auto& activeModules = mConfigData.mActiveModules;
+
+  // get final set of detectors which are readout
+  determineReadoutDetectors(activeModules, vm["readoutDetectors"].as<std::vector<std::string>>(), vm["skipReadoutDetectors"].as<std::vector<std::string>>(), mConfigData.mReadoutDetectors);
 
   mConfigData.mGenerator = vm["generator"].as<std::string>();
   mConfigData.mTrigger = vm["trigger"].as<std::string>();
@@ -160,9 +175,12 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mSimWorkers = vm["nworkers"].as<int>();
   if (vm.count("timestamp")) {
     mConfigData.mTimestamp = vm["timestamp"].as<uint64_t>();
+    mConfigData.mTimestampMode = kManual;
   } else {
     mConfigData.mTimestamp = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    mConfigData.mTimestampMode = kNow;
   }
+  mConfigData.mRunNumber = vm["run"].as<int>();
   mConfigData.mCCDBUrl = vm["CCDBUrl"].as<std::string>();
   mConfigData.mAsService = vm["asservice"].as<bool>();
   mConfigData.mNoGeant = vm["noGeant"].as<bool>();
@@ -185,6 +203,30 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   }
   if (fieldstring != "ccdb") {
     mConfigData.mField = std::stoi((vm["field"].as<std::string>()).substr(0, (vm["field"].as<std::string>()).rfind("U")));
+  }
+  if (!parseFieldString(fieldstring, mConfigData.mField, mConfigData.mFieldMode)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool SimConfig::parseFieldString(std::string const& fieldstring, int& fieldvalue, SimFieldMode& mode)
+{
+  // analyse field options
+  // either: "ccdb" or +-2[U],+-5[U] and 0[U]; +-<intKGaus>U
+  std::regex re("(ccdb)|([+-]?[250]U?)");
+  if (!std::regex_match(fieldstring, re)) {
+    LOG(error) << "Invalid field option";
+    return false;
+  }
+  if (fieldstring == "ccdb") {
+    mode = SimFieldMode::kCCDB;
+  } else if (fieldstring.find("U") != std::string::npos) {
+    mode = SimFieldMode::kUniform;
+  }
+  if (fieldstring != "ccdb") {
+    fieldvalue = std::stoi(fieldstring.substr(0, fieldstring.rfind("U")));
   }
   return true;
 }

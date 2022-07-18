@@ -28,8 +28,7 @@ class GlobalOffsetsCollectWorkflow final : public o2::framework::Task
  public:
   void run(o2::framework::ProcessingContext& pc) final
   {
-    const auto ref = pc.inputs().getFirstValid(true);
-    auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
+    auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
     auto recpoints = pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("recpoints");
     auto& calib_data = pc.outputs().make<std::vector<o2::ft0::GlobalOffsetsInfoObject>>(o2::framework::OutputRef{"calib", 0});
     for (const auto& recpoint : recpoints) {

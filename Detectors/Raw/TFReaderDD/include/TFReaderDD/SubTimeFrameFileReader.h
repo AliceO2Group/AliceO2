@@ -19,8 +19,8 @@
 #include <Headers/STFHeader.h>
 #include "DetectorsCommonDataFormats/DetID.h"
 #include <Headers/Stack.h>
-#include <fairmq/FairMQParts.h>
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Parts.h>
+#include <fairmq/Device.h>
 #include <Framework/OutputRoute.h>
 #include <boost/filesystem.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
@@ -39,7 +39,7 @@ namespace rawdd
 ////////////////////////////////////////////////////////////////////////////////
 /// SubTimeFrameFileReader
 ////////////////////////////////////////////////////////////////////////////////
-using MessagesPerRoute = std::unordered_map<std::string, std::unique_ptr<FairMQParts>>;
+using MessagesPerRoute = std::unordered_map<std::string, std::unique_ptr<fair::mq::Parts>>;
 
 class SubTimeFrameFileReader
 {
@@ -50,7 +50,7 @@ class SubTimeFrameFileReader
   ~SubTimeFrameFileReader();
 
   /// Read a single TF from the file
-  std::unique_ptr<MessagesPerRoute> read(FairMQDevice* device, const std::vector<o2f::OutputRoute>& outputRoutes, const std::string& rawChannel, bool sup0xccdb, int verbosity);
+  std::unique_ptr<MessagesPerRoute> read(fair::mq::Device* device, const std::vector<o2f::OutputRoute>& outputRoutes, const std::string& rawChannel, bool sup0xccdb, int verbosity);
 
   /// Tell the current position of the file
   inline std::uint64_t position() const { return mFileMapOffset; }

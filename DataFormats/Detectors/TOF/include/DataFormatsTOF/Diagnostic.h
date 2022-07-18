@@ -51,6 +51,7 @@ class Diagnostic
   void merge(const Diagnostic* prev);
   void getNoisyMap(Bool_t* output, int noisyThr = 1) const; // set true in output channel array
   void getNoisyLevelMap(Char_t* output) const;              // set true in output channel array
+  bool isNoisyChannel(int channel, int thr = 0) const;
   unsigned long size() const { return mVector.size(); }
   ULong64_t getPattern(int i) const
   {

@@ -118,7 +118,7 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
 
   const int N = 3;
 
-  float bz = -merger->Param().par.constBz;
+  float bz = -merger->Param().constBz;
 
   float k = mParam.mQPt * bz;
   float dx = (1.f / N) * (lastX - mParam.mX);

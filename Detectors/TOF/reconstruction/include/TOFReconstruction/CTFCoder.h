@@ -35,16 +35,16 @@ namespace tof
 class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::TOF) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op) : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), o2::detectors::DetID::TOF) {}
   ~CTFCoder() final = default;
 
   /// entropy-encode clusters to buffer with CTF
   template <typename VEC>
-  void encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRecVec, const gsl::span<const Digit>& cdigVec, const gsl::span<const uint8_t>& pattVec);
+  o2::ctf::CTFIOSize encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRecVec, const gsl::span<const Digit>& cdigVec, const gsl::span<const uint8_t>& pattVec);
 
   /// entropy decode clusters from buffer with CTF
   template <typename VROF, typename VDIG, typename VPAT>
-  void decode(const CTF::base& ec, VROF& rofRecVec, VDIG& cdigVec, VPAT& pattVec);
+  o2::ctf::CTFIOSize decode(const CTF::base& ec, VROF& rofRecVec, VDIG& cdigVec, VPAT& pattVec);
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
@@ -63,7 +63,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 ///___________________________________________________________________________________
 /// entropy-encode digits to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRecVec, const gsl::span<const Digit>& cdigVec, const gsl::span<const uint8_t>& pattVec)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRecVec, const gsl::span<const Digit>& cdigVec, const gsl::span<const uint8_t>& pattVec)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -94,49 +94,56 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ReadoutWindowData>& rofRe
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
+  o2::ctf::CTFIOSize iosize;
 #define ENCODETOF(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
-  ENCODETOF(cc.bcIncROF,     CTF::BLCbcIncROF,     0);
-  ENCODETOF(cc.orbitIncROF,  CTF::BLCorbitIncROF,  0);
-  ENCODETOF(cc.ndigROF,      CTF::BLCndigROF,      0);
-  ENCODETOF(cc.ndiaROF,      CTF::BLCndiaROF,      0);
-  ENCODETOF(cc.ndiaCrate,    CTF::BLCndiaCrate,    0);
-  ENCODETOF(cc.timeFrameInc, CTF::BLCtimeFrameInc, 0);
-  ENCODETOF(cc.timeTDCInc,   CTF::BLCtimeTDCInc,   0);
-  ENCODETOF(cc.stripID,      CTF::BLCstripID,      0);
-  ENCODETOF(cc.chanInStrip,  CTF::BLCchanInStrip,  0);
-  ENCODETOF(cc.tot,          CTF::BLCtot,          0);
-  ENCODETOF(cc.pattMap,      CTF::BLCpattMap,      0);
+  iosize += ENCODETOF(cc.bcIncROF,     CTF::BLCbcIncROF,     0);
+  iosize += ENCODETOF(cc.orbitIncROF,  CTF::BLCorbitIncROF,  0);
+  iosize += ENCODETOF(cc.ndigROF,      CTF::BLCndigROF,      0);
+  iosize += ENCODETOF(cc.ndiaROF,      CTF::BLCndiaROF,      0);
+  iosize += ENCODETOF(cc.ndiaCrate,    CTF::BLCndiaCrate,    0);
+  iosize += ENCODETOF(cc.timeFrameInc, CTF::BLCtimeFrameInc, 0);
+  iosize += ENCODETOF(cc.timeTDCInc,   CTF::BLCtimeTDCInc,   0);
+  iosize += ENCODETOF(cc.stripID,      CTF::BLCstripID,      0);
+  iosize += ENCODETOF(cc.chanInStrip,  CTF::BLCchanInStrip,  0);
+  iosize += ENCODETOF(cc.tot,          CTF::BLCtot,          0);
+  iosize += ENCODETOF(cc.pattMap,      CTF::BLCpattMap,      0);
   // clang-format on
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
+  finaliseCTFOutput<CTF>(buff);
+  iosize.rawIn = sizeof(ReadoutWindowData) * rofRecVec.size() + sizeof(Digit) * cdigVec.size() + sizeof(uint8_t) * pattVec.size();
+  return iosize;
 }
 
 ///___________________________________________________________________________________
 /// decode entropy-encoded digits to standard compact digits
 template <typename VROF, typename VDIG, typename VPAT>
-void CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VDIG& cdigVec, VPAT& pattVec)
+o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VDIG& cdigVec, VPAT& pattVec)
 {
   CompressedInfos cc;
   ec.print(getPrefix(), mVerbosity);
   cc.header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(cc.header));
+  o2::ctf::CTFIOSize iosize;
 #define DECODETOF(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
-  DECODETOF(cc.bcIncROF,     CTF::BLCbcIncROF);
-  DECODETOF(cc.orbitIncROF,  CTF::BLCorbitIncROF);
-  DECODETOF(cc.ndigROF,      CTF::BLCndigROF);
-  DECODETOF(cc.ndiaROF,      CTF::BLCndiaROF);
-  DECODETOF(cc.ndiaCrate,    CTF::BLCndiaCrate);
+  iosize += DECODETOF(cc.bcIncROF,     CTF::BLCbcIncROF);
+  iosize += DECODETOF(cc.orbitIncROF,  CTF::BLCorbitIncROF);
+  iosize += DECODETOF(cc.ndigROF,      CTF::BLCndigROF);
+  iosize += DECODETOF(cc.ndiaROF,      CTF::BLCndiaROF);
+  iosize += DECODETOF(cc.ndiaCrate,    CTF::BLCndiaCrate);
 
-  DECODETOF(cc.timeFrameInc, CTF::BLCtimeFrameInc);
-  DECODETOF(cc.timeTDCInc,   CTF::BLCtimeTDCInc);
-  DECODETOF(cc.stripID,      CTF::BLCstripID);
-  DECODETOF(cc.chanInStrip,  CTF::BLCchanInStrip);
-  DECODETOF(cc.tot,          CTF::BLCtot);
-  DECODETOF(cc.pattMap,      CTF::BLCpattMap);
+  iosize += DECODETOF(cc.timeFrameInc, CTF::BLCtimeFrameInc);
+  iosize += DECODETOF(cc.timeTDCInc,   CTF::BLCtimeTDCInc);
+  iosize += DECODETOF(cc.stripID,      CTF::BLCstripID);
+  iosize += DECODETOF(cc.chanInStrip,  CTF::BLCchanInStrip);
+  iosize += DECODETOF(cc.tot,          CTF::BLCtot);
+  iosize += DECODETOF(cc.pattMap,      CTF::BLCpattMap);
   // clang-format on
   //
   decompress(cc, rofRecVec, cdigVec, pattVec);
+  iosize.rawIn = sizeof(ReadoutWindowData) * rofRecVec.size() + sizeof(Digit) * cdigVec.size() + sizeof(uint8_t) * pattVec.size();
+  return iosize;
 }
 ///___________________________________________________________________________________
 /// decompress compressed infos to standard compact digits

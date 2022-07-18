@@ -79,6 +79,11 @@ HistPtr HistogramRegistry::insert(const HistogramSpec& histSpec)
 // helper function that checks if histogram name can be used in registry
 void HistogramRegistry::validateHistName(const std::string& name, const uint32_t hash)
 {
+  // check that there are still slots left in the registry
+  if (mRegisteredNames.size() == MAX_REGISTRY_SIZE) {
+    LOGF(fatal, R"(HistogramRegistry "%s" is full! It can hold only %d histograms.)", mName, MAX_REGISTRY_SIZE);
+  }
+
   // validate that hash is unique
   auto it = std::find(mRegistryKey.begin(), mRegistryKey.end(), hash);
   if (it != mRegistryKey.end()) {
@@ -89,8 +94,8 @@ void HistogramRegistry::validateHistName(const std::string& name, const uint32_t
   }
 
   // validate that name contains only allowed characters
-  if (!std::regex_match(name, std::regex("([a-zA-Z0-9])(([\\/_])?[a-zA-Z0-9])*"))) {
-    LOGF(fatal, R"(Histogram name "%s" contains invalid characters.)", name);
+  if (!std::regex_match(name, std::regex("([a-zA-Z0-9])(([\\/_-])?[a-zA-Z0-9])*"))) {
+    LOGF(fatal, R"(Histogram name "%s" contains invalid characters. Only letters, numbers, and (except for the beginning or end of the word) the special characters '/', '_', '-' are allowed.)", name);
   }
 }
 

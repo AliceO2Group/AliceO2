@@ -46,25 +46,25 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   using PMatrix = std::array<std::array<bool, ClusterPattern::MaxRowSpan + 2>, ClusterPattern::MaxColSpan + 2>;
   using RowColBuff = std::vector<PixelData>;
 
-  CTFCoder(o2::detectors::DetID det) : o2::ctf::CTFCoderBase(CTF::getNBlocks(), det) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op, o2::detectors::DetID det) : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), det) {}
   ~CTFCoder() final = default;
 
   /// entropy-encode clusters to buffer with CTF
   template <typename VEC>
-  void encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec);
+  o2::ctf::CTFIOSize encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec);
 
   /// entropy decode clusters from buffer with CTF
   template <typename VROF, typename VCLUS, typename VPAT>
-  void decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec, const NoiseMap* noiseMap, const LookUp& clPattLookup);
+  o2::ctf::CTFIOSize decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec, const NoiseMap* noiseMap, const LookUp& clPattLookup);
 
   /// entropy decode digits from buffer with CTF
   template <typename VROF, typename VDIG>
-  void decode(const CTF::base& ec, VROF& rofRecVec, VDIG& digVec, const NoiseMap* noiseMap, const LookUp& clPattLookup);
+  o2::ctf::CTFIOSize decode(const CTF::base& ec, VROF& rofRecVec, VDIG& digVec, const NoiseMap* noiseMap, const LookUp& clPattLookup);
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
  private:
-  CompressedClusters decodeCompressedClusters(const CTF::base& ec);
+  CompressedClusters decodeCompressedClusters(const CTF::base& ec, o2::ctf::CTFIOSize& sz);
 
   /// compres compact clusters to CompressedClusters
   void compress(CompressedClusters& compCl, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec);
@@ -84,7 +84,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -114,37 +114,46 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, co
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
+  o2::ctf::CTFIOSize iosize;
 #define ENCODEITSMFT(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
-  ENCODEITSMFT(compCl.firstChipROF, CTF::BLCfirstChipROF, 0);
-  ENCODEITSMFT(compCl.bcIncROF, CTF::BLCbcIncROF, 0);
-  ENCODEITSMFT(compCl.orbitIncROF, CTF::BLCorbitIncROF, 0);
-  ENCODEITSMFT(compCl.nclusROF, CTF::BLCnclusROF, 0);
+  iosize += ENCODEITSMFT(compCl.firstChipROF, CTF::BLCfirstChipROF, 0);
+  iosize += ENCODEITSMFT(compCl.bcIncROF, CTF::BLCbcIncROF, 0);
+  iosize += ENCODEITSMFT(compCl.orbitIncROF, CTF::BLCorbitIncROF, 0);
+  iosize += ENCODEITSMFT(compCl.nclusROF, CTF::BLCnclusROF, 0);
   //
-  ENCODEITSMFT(compCl.chipInc, CTF::BLCchipInc, 0);
-  ENCODEITSMFT(compCl.chipMul, CTF::BLCchipMul, 0);
-  ENCODEITSMFT(compCl.row, CTF::BLCrow, 0);
-  ENCODEITSMFT(compCl.colInc, CTF::BLCcolInc, 0);
-  ENCODEITSMFT(compCl.pattID, CTF::BLCpattID, 0);
-  ENCODEITSMFT(compCl.pattMap, CTF::BLCpattMap, 0);
+  iosize += ENCODEITSMFT(compCl.chipInc, CTF::BLCchipInc, 0);
+  iosize += ENCODEITSMFT(compCl.chipMul, CTF::BLCchipMul, 0);
+  iosize += ENCODEITSMFT(compCl.row, CTF::BLCrow, 0);
+  iosize += ENCODEITSMFT(compCl.colInc, CTF::BLCcolInc, 0);
+  iosize += ENCODEITSMFT(compCl.pattID, CTF::BLCpattID, 0);
+  iosize += ENCODEITSMFT(compCl.pattMap, CTF::BLCpattMap, 0);
   // clang-format on
   //CTF::get(buff.data())->print(getPrefix());
+  iosize.rawIn = rofRecVec.size() * sizeof(ROFRecord) + cclusVec.size() * sizeof(CompClusterExt) + pattVec.size() * sizeof(unsigned char);
+  return iosize;
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
 template <typename VROF, typename VCLUS, typename VPAT>
-void CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec, const NoiseMap* noiseMap, const LookUp& clPattLookup)
+o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VCLUS& cclusVec, VPAT& pattVec, const NoiseMap* noiseMap, const LookUp& clPattLookup)
 {
-  auto compCl = decodeCompressedClusters(ec);
+  o2::ctf::CTFIOSize iosize;
+  auto compCl = decodeCompressedClusters(ec, iosize);
   decompress(compCl, rofRecVec, cclusVec, pattVec, noiseMap, clPattLookup);
+  iosize.rawIn = rofRecVec.size() * sizeof(ROFRecord) + cclusVec.size() * sizeof(CompClusterExt) + pattVec.size() * sizeof(unsigned char);
+  return iosize;
 }
 
 /// decode entropy-encoded clusters to digits
 template <typename VROF, typename VDIG>
-void CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VDIG& digVec, const NoiseMap* noiseMap, const LookUp& clPattLookup)
+o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VDIG& digVec, const NoiseMap* noiseMap, const LookUp& clPattLookup)
 {
-  auto compCl = decodeCompressedClusters(ec);
+  o2::ctf::CTFIOSize iosize;
+  auto compCl = decodeCompressedClusters(ec, iosize);
   decompress(compCl, rofRecVec, digVec, noiseMap, clPattLookup);
+  iosize.rawIn += rofRecVec.size() * sizeof(ROFRecord) + digVec.size() * sizeof(Digit);
+  return iosize;
 }
 
 /// decompress compressed clusters to standard compact clusters
@@ -361,11 +370,6 @@ void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VDI
     for (uint32_t icl = 0; icl < compCl.nclusROF[irof]; icl++) {
       if (inChip++ < compCl.chipMul[chipCount]) { // still the same chip
         col += compCl.colInc[clCount];
-#ifdef _CHECK_INCREMENTES_ // RS FIXME with current clusterization column increment can be slightly negative
-//        if (int16_t(compCl.colInc[clCount])<0) {
-//          LOG(warning) << "Negative column increment " << int16_t(compCl.colInc[clCount]) << " -> " << col << " in chip " << chipID;
-//        }
-#endif
       } else { // new chip starts
         // sort digits of previous chip in col/row
         auto added = digVec.size() - chipStartNDig;

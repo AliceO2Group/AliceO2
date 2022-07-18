@@ -29,7 +29,7 @@ namespace trd
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-o2::framework::DataProcessorSpec getTRDDigitWriterSpec(bool mctruth, bool writeTrigRec)
+o2::framework::DataProcessorSpec getTRDDigitWriterSpec(bool mctruth, bool inpFromDigitizer)
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
@@ -74,8 +74,8 @@ o2::framework::DataProcessorSpec getTRDDigitWriterSpec(bool mctruth, bool writeT
                                 "o2sim",
                                 // setting a custom callback for closing the writer
                                 MakeRootTreeWriterSpec::CustomClose(finishWriting),
-                                BranchDefinition<std::vector<o2::trd::Digit>>{InputSpec{"input", "TRD", "DIGITS"}, "TRDDigit"},
-                                BranchDefinition<std::vector<o2::trd::TriggerRecord>>{InputSpec{"trinput", "TRD", "TRGRDIG"}, "TriggerRecord", (writeTrigRec ? 1 : 0)},
+                                BranchDefinition<std::vector<o2::trd::Digit>>{InputSpec{"input", "TRD", "DIGITS", (inpFromDigitizer ? 1u : 0u)}, "TRDDigit"},
+                                BranchDefinition<std::vector<o2::trd::TriggerRecord>>{InputSpec{"trinput", "TRD", "TRKTRGRD", (inpFromDigitizer ? 1u : 0u)}, "TriggerRecord"},
                                 std::move(labelsdef))();
 }
 

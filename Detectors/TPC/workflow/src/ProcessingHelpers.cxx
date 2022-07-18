@@ -15,6 +15,7 @@
 #include "Headers/DataHeader.h"
 #include "Framework/Logger.h"
 #include "Framework/ProcessingContext.h"
+#include "Framework/TimingInfo.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/InputRecord.h"
@@ -32,9 +33,9 @@ uint64_t processing_helpers::getRunNumber(ProcessingContext& pc)
   const std::string NAStr = "NA";
 
   uint64_t run = 0;
-  const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
-  if (dh->runNumber != 0) {
-    run = dh->runNumber;
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+  if (tinfo.runNumber != 0) {
+    run = tinfo.runNumber;
   }
   // check runNumber with FMQ property, if set, override DH number
   {
@@ -60,19 +61,33 @@ uint64_t processing_helpers::getRunNumber(ProcessingContext& pc)
 
 uint32_t processing_helpers::getCurrentTF(o2::framework::ProcessingContext& pc)
 {
-  return o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter;
+  return pc.services().get<o2::framework::TimingInfo>().tfCounter;
+}
+
+uint32_t processing_helpers::getFirstTForbit(o2::framework::ProcessingContext& pc)
+{
+  return pc.services().get<o2::framework::TimingInfo>().firstTForbit;
 }
 
 uint64_t processing_helpers::getCreationTime(o2::framework::ProcessingContext& pc)
 {
-  return DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+  return pc.services().get<o2::framework::TimingInfo>().creation;
+}
+
+uint64_t processing_helpers::getTimeStamp(o2::framework::ProcessingContext& pc, const Long64_t orbitReset)
+{
+  return getTimeStamp(orbitReset, getFirstTForbit(pc));
+}
+
+uint64_t processing_helpers::getTimeStamp(const Long64_t orbitReset, const uint32_t tfOrbitFirst)
+{
+  const long tPrec = orbitReset + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS; // microsecond-precise time stamp
+  return tPrec;
 }
 
 uint64_t processing_helpers::getTimeStamp(o2::framework::ProcessingContext& pc)
 {
-  const auto tfOrbitFirst = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->firstTForbit;
-  const long tPrec = getOrbitReset(pc) + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS; // microsecond-precise time stamp
-  return tPrec;
+  return getTimeStamp(pc, getOrbitReset(pc));
 }
 
 Long64_t processing_helpers::getOrbitReset(o2::framework::ProcessingContext& pc)

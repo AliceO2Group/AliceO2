@@ -155,7 +155,6 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   o2::its::Vertexer vertexer(&vertexerTraits);
 
   int nTFs = itsClusters.GetEntries();
-
   for (int nt = 0; nt < nTFs; nt++) {
     LOGP(info, "Processing timeframe {}/{}", nt, nTFs);
     itsClusters.GetEntry(nt);

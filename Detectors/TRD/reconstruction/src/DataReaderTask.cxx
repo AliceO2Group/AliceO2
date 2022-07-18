@@ -23,7 +23,7 @@
 #include "Framework/InputRecordWalker.h"
 #include "Framework/DataRefUtils.h"
 #include "CommonUtils/VerbosityConfig.h"
-
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "DataFormatsTRD/Constants.h"
 #include <TH3F.h>
 #include "TH2F.h"
@@ -34,126 +34,6 @@
 namespace o2::trd
 {
 
-void DataReaderTask::setParsingErrorLabels()
-{
-  //TODO this is not working, come back at some point fix, not essential.
-  mParsingErrors->GetXaxis()->SetBinLabel(TRDParsingNoError, "TRDParsingNoError");
-  mParsingErrors->GetXaxis()->SetBinLabel(TRDParsingUnrecognisedVersion, "TRDParsingUnrecognisedVersion");
-  mParsingErrors->GetXaxis()->SetBinLabel(TRDParsingBadDigt, "TRDParsingBadDigt");
-  mParsingErrors->GetXaxis()->SetBinLabel(TRDParsingBadTracklet, "TRDParsingBadTracklet");
-  mParsingErrors->GetXaxis()->SetBinLabel(TRDParsingDigitEndMarkerWrongState, "TRDParsingDigitEndMarkerWrongState");
-  mParsingErrors->GetXaxis()->SetBinLabel(TRDParsingDigitMCMHeaderSanityCheckFailure, "TRDParsingDigitMCMHeaderSanityCheckFailure");
-  mParsingErrors->GetXaxis()->SetBinLabel(TRDParsingDigitROBDecreasing, "TRDParsingDigitROBDecreasing");
-  mParsingErrors->GetXaxis()->SetBinLabel(TRDParsingDigitMCMNotIncreasing, "TRDParsingDigitMCMNotIncreasing");
-  mParsingErrors->GetXaxis()->SetBinLabel(TRDParsingDigitADCMaskMismatch, "TRDParsingDigitADCMaskMismatch");
-  mParsingErrors->GetXaxis()->SetBinLabel(TRDParsingDigitADCMaskAdvanceToEnd, "TRDParsingDigitADCMaskAdvanceToEnd");
-  mParsingErrors->GetXaxis()->SetBinLabel(TRDParsingDigitMCMHeaderBypassButStateMCMHeader, "TRDParsingDigitMCMHeaderBypassButStateMCMHeader");
-  mParsingErrors->GetXaxis()->SetBinLabel(TRDParsingDigitEndMarkerStateButReadingMCMADCData, "TRDParsingDigitEndMarkerStateButReadingMCMADCData");
-  /*                       TRDParsingDigitADCChannel21,
-                           TRDParsingDigitADCChannelGT22,
-                           TRDParsingDigitGT10ADCs,
-                           TRDParsingDigitSanityCheck,
-                           TRDParsingDigitExcessTimeBins,
-                           TRDParsingDigitParsingExitInWrongState,
-                           TRDParsingDigitStackMisMatch,
-                           TRDParsingDigitLayerMisMatch,
-                           TRDParsingDigitSectorMisMatch,
-                           TRDParsingTrackletCRUPaddingWhileParsingTracklets,
-                           TRDParsingTrackletBit11NotSetInTrackletHCHeader,
-                           TRDParsingTrackletHCHeaderSanityCheckFailure,
-                           TRDParsingTrackletMCMHeaderSanityCheckFailure,
-                           TRDParsingTrackletMCMHeaderButParsingMCMData,
-                           TRDParsingTrackletStateMCMHeaderButParsingMCMData,
-                           TRDParsingTrackletTrackletCountGTThatDeclaredInMCMHeader,
-                           TRDParsingTrackletInvalidTrackletCount,
-                           TRDParsingTrackletPadRowIncreaseError,
-                           TRDParsingTrackletColIncreaseError,
-                           TRDParsingTrackletNoTrackletEndMarker,
-                           TRDParsingTrackletExitingNoTrackletEndMarker
-                           */
-}
-
-void DataReaderTask::buildHistograms()
-{
-  if (mRootOutput) {
-    mParseErrors = new TList();
-    mLinkErrors = new TList();
-    mRootFile = new TFile(mHistogramsFilename.c_str(), "recreate"); // make this changeable from command line
-    std::array<std::string, 10> linkerrortitles = {"Count of Link had no errors during tf",
-                                                   "Count of # times Linkerrors 0x1 seen per tf",
-                                                   "Count of # time Linkerrors 0x2 seen per tf",
-                                                   "Count of any Linkerror seen during tf",
-                                                   "Link was seen with no data (empty) in a tf",
-                                                   "Link was seen with data during a tf",
-                                                   "Links seen with corrupted data during tf",
-                                                   "Links seen with out corrupted data during tf", "", ""};
-    //lets hack this for some graphs
-    mTimeFrameTime = new TH1F("timeframetime", "Time taken per time frame", 10000, 0, 10000);
-    mTrackletParsingTime = new TH1F("tracklettime", "Time taken per tracklet block", 1000, 0, 1000);
-    mDigitParsingTime = new TH1F("digittime", "Time taken per digit block", 1000, 0, 1000);
-    mCruTime = new TH1F("crutime", "Time taken per cru link", 1000, 0, 1000);
-    mPackagingTime = new TH1F("packagingtime", "Time to package the eventrecord and copy the output", 1000, 0, 1000);
-    mDataVersions = new TH1F("dataversions", "Data versions major.minor seen in data", 65000, 0, 65000);
-    mDataVersionsMajor = new TH1F("dataversionsmajor", "Data versions major", 256, 0, 256);
-    mParsingErrors = new TH1F("parseerrors", "Parsing Errors seen in data", 256, 0, 256);
-    int count = 0;
-    for (int count = 0; count < constants::MAXPARSEERRORHISTOGRAMS; ++count) {
-      std::string label = fmt::format("parsingerrors_{0}", count);
-      std::string title = fmt::format("linkerrors_{0}", count);
-      TH2F* h = new TH2F(label.c_str(), title.c_str(), 36, 0, 36, 30, 0, 30);
-      mParseErrors->Add(h);
-    }
-    count = 0;
-    for (int count = 0; count < constants::MAXLINKERRORHISTOGRAMS; ++count) {
-      std::string label = fmt::format("linkerrors_{0}", count);
-      std::string title = linkerrortitles[count];
-      TH2F* h = new TH2F(label.c_str(), title.c_str(), 36, 0, 36, 30, 0, 30);
-      mLinkErrors->Add(h);
-    }
-    mTimeFrameTime->GetXaxis()->SetTitle("Time taken in ms");
-    mCruTime->GetXaxis()->SetTitle("Time taken in ms");
-    mTrackletParsingTime->GetXaxis()->SetTitle("Time taken in #mus");
-    mDigitParsingTime->GetXaxis()->SetTitle("Time taken in #mus");
-    mPackagingTime->GetXaxis()->SetTitle("Time taken in #mus");
-    mTimeFrameTime->GetYaxis()->SetTitle("Counts");
-    mTrackletParsingTime->GetYaxis()->SetTitle("Counts");
-    mDigitParsingTime->GetYaxis()->SetTitle("Counts");
-    mCruTime->GetYaxis()->SetTitle("Counts");
-    mPackagingTime->GetYaxis()->SetTitle("Counts");
-    mDataVersions->GetYaxis()->SetTitle("Counts");
-    mDataVersions->GetYaxis()->SetTitle("Counts");
-    mDataVersionsMajor->GetYaxis()->SetTitle("Counts");
-    mDataVersionsMajor->GetXaxis()->SetTitle("Version major");
-    mParsingErrors->GetYaxis()->SetTitle("Erorr Types");
-    mParsingErrors->GetXaxis()->SetTitle("Erorr Types");
-    for (int count = 0; count < constants::MAXPARSEERRORHISTOGRAMS; ++count) {
-      TH2F* h = (TH2F*)mParseErrors->At(count);
-      h->GetXaxis()->SetTitle("Sector*2 + side");
-      h->GetXaxis()->CenterTitle(kTRUE);
-      h->GetYaxis()->SetTitle("Stack_Layer");
-      h->GetYaxis()->CenterTitle(kTRUE);
-    }
-    for (int count = 0; count < constants::MAXLINKERRORHISTOGRAMS; ++count) {
-      TH2F* h = (TH2F*)mLinkErrors->At(count);
-      h->GetXaxis()->SetTitle("Sector*2 + side");
-      h->GetXaxis()->CenterTitle(kTRUE);
-      h->GetYaxis()->SetTitle("Stack_Layer");
-      h->GetYaxis()->CenterTitle(kTRUE);
-      for (int s = 0; s < o2::trd::constants::NSTACK; ++s) {
-        for (int l = 0; l < o2::trd::constants::NLAYER; ++l) {
-          std::string label = fmt::format("{0}_{1}", s, l);
-          int pos = s * o2::trd::constants::NLAYER + l + 1;
-          h->GetYaxis()->SetBinLabel(pos, label.c_str());
-        }
-      }
-    }
-    mReader.setHistos(mLinkErrors, mParseErrors);
-    //mReader.setParsingHistos();
-    mReader.setTimeHistos(mTimeFrameTime, mTrackletParsingTime,
-                          mDigitParsingTime, mCruTime, mPackagingTime,
-                          mDataVersions, mDataVersionsMajor, mParsingErrors);
-  }
-}
 void DataReaderTask::init(InitContext& ic)
 {
   LOG(info) << "o2::trd::DataReadTask init";
@@ -162,47 +42,21 @@ void DataReaderTask::init(InitContext& ic)
     mReader.checkSummary();
   };
   mReader.setMaxErrWarnPrinted(ic.options().get<int>("log-max-errors"), ic.options().get<int>("log-max-warnings"));
-  buildHistograms(); // if requested create all the histograms
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
+  mDigitPreviousTotal = mReader.getDigitsFound();
+  mTrackletsPreviousTotal = mReader.getTrackletsFound();
 }
 
 void DataReaderTask::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
-  if (mRootOutput) {
-    mTimeFrameTime->Draw();
-    mTrackletParsingTime->Draw();
-    mDigitParsingTime->Draw();
-    mCruTime->Draw();
-    mPackagingTime->Draw();
-    mDataVersions->Draw();
-    mDataVersionsMajor->Draw();
-    mParsingErrors->Draw();
-    for (int count = 0; count < constants::MAXPARSEERRORHISTOGRAMS; ++count) {
-      TH2F* h = (TH2F*)mParseErrors->At(count);
-      h->Draw();
-    }
-    for (int count = 0; count < constants::MAXLINKERRORHISTOGRAMS; ++count) {
-      TH2F* h = (TH2F*)mLinkErrors->At(count);
-      h->Draw();
-    }
-    for (int count = 0; count < constants::MAXPARSEERRORHISTOGRAMS; ++count) {
-      TH2F* h = (TH2F*)mParseErrors->At(count);
-      h->Write();
-    }
-    for (int count = 0; count < constants::MAXLINKERRORHISTOGRAMS; ++count) {
-      TH2F* h = (TH2F*)mLinkErrors->At(count);
-      h->Write();
-    }
-    mTimeFrameTime->Write();
-    mTrackletParsingTime->Write();
-    mDigitParsingTime->Write();
-    mCruTime->Write();
-    mPackagingTime->Write();
-    mDataVersions->Write();
-    mDataVersionsMajor->Write();
-    mParsingErrors->Write();
+}
 
-    mRootFile->Close();
+void DataReaderTask::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("CTP", "Trig_Offset", 0)) {
+    LOG(info) << " CTP/Config/TriggerOffsets updated.";
+    o2::ctp::TriggerOffsetsParam::Instance().printKeyValues();
+    return;
   }
 }
 
@@ -223,6 +77,15 @@ void DataReaderTask::sendData(ProcessingContext& pc, bool blankframe)
   }
 }
 
+void DataReaderTask::updateTimeDependentParams(framework::ProcessingContext& pc)
+{
+  static bool updateOnlyOnce = false;
+  if (!updateOnlyOnce) {
+    pc.inputs().get<o2::ctp::TriggerOffsetsParam*>("trigoffset");
+    updateOnlyOnce = true;
+  }
+}
+
 bool DataReaderTask::isTimeFrameEmpty(ProcessingContext& pc)
 {
   constexpr auto origin = header::gDataOriginTRD;
@@ -237,7 +100,7 @@ bool DataReaderTask::isTimeFrameEmpty(ProcessingContext& pc)
     if (payloadSize == 0) {
       auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
       if (++contDeadBeef <= maxWarn) {
-        LOGP(warning, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
+        LOGP(alarm, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF{}",
              dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
              contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
       }
@@ -252,6 +115,7 @@ void DataReaderTask::run(ProcessingContext& pc)
 {
   //NB this is run per time frame on the epn.
   LOG(info) << "TRD Translator Task run";
+  updateTimeDependentParams(pc);
   auto dataReadStart = std::chrono::high_resolution_clock::now();
 
   if (isTimeFrameEmpty(pc)) {
@@ -262,11 +126,11 @@ void DataReaderTask::run(ProcessingContext& pc)
 
   std::vector<InputSpec> sel{InputSpec{"filter", ConcreteDataTypeMatcher{"TRD", "RAWDATA"}}};
   uint64_t tfCount = 0;
-  for (const auto& ref : InputRecordWalker(pc.inputs(), sel)) {
+  for (auto& ref : InputRecordWalker(pc.inputs(), sel)) {
     auto inputprocessingstart = std::chrono::high_resolution_clock::now(); // measure total processing time
     const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     tfCount = dh->tfCounter;
-    auto payloadIn = ref.payload;
+    const char* payloadIn = ref.payload;
     auto payloadInSize = DataRefUtils::getPayloadSize(ref);
     if (mHeaderVerbose) {
       LOGP(info, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : ",
@@ -300,12 +164,12 @@ void DataReaderTask::run(ProcessingContext& pc)
 
   sendData(pc, false);
   std::chrono::duration<double, std::milli> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
-  if (mRootOutput) {
-    mTimeFrameTime->Fill((int)std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count());
-  }
-  LOGP(info, "Digits: {}, Tracklets: {}, DataRead in: {:.3f} MB, Rejected: {:.3f} MB for TF {} in {} ms",
-       mReader.getDigitsFound(), mReader.getTrackletsFound(), (float)mWordsRead * 4 / 1024.0 / 1024.0, (float)mWordsRejected * 4 / 1024.0 / 1024.0, tfCount,
+  LOGP(info, "Digits: {} ({} TF), Tracklets: {} ({} TF), DataRead in: {:.3f} MB, Rejected: {:.3f} MB for TF {} in {} ms",
+       mReader.getDigitsFound(), mReader.getDigitsFound() - mDigitPreviousTotal, mReader.getTrackletsFound(),
+       mReader.getTrackletsFound() - mTrackletsPreviousTotal, (float)mWordsRead * 4 / 1024.0 / 1024.0, (float)mWordsRejected * 4 / 1024.0 / 1024.0, tfCount,
        std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count());
+  mDigitPreviousTotal = mReader.getDigitsFound();
+  mTrackletsPreviousTotal = mReader.getTrackletsFound();
 }
 
 } // namespace o2::trd

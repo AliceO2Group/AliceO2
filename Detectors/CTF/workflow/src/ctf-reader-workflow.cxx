@@ -66,6 +66,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"its-digits", VariantType::Bool, false, {"convert ITS clusters to digits"}});
   options.push_back(ConfigParamSpec{"mft-digits", VariantType::Bool, false, {"convert MFT clusters to digits"}});
 
+  options.push_back(ConfigParamSpec{"timeframes-shm-limit", VariantType::String, "0", {"Minimum amount of SHM required in order to publish data"}});
+  options.push_back(ConfigParamSpec{"metric-feedback-channel-format", VariantType::String, "name=metric-feedback,type=pull,method=connect,address=ipc://@metric-feedback-{},transport=shmem,rateLogging=0", {"format for the metric-feedback channel for TF rate limiting"}});
   std::swap(workflowOptions, options);
 }
 
@@ -114,11 +116,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   ctfInput.remoteRegex = configcontext.options().get<std::string>("remote-regex");
   ctfInput.allowMissingDetectors = configcontext.options().get<bool>("allow-missing-detectors");
   ctfInput.sup0xccdb = !configcontext.options().get<bool>("send-diststf-0xccdb");
-
-  specs.push_back(o2::ctf::getCTFReaderSpec(ctfInput));
+  ctfInput.minSHM = std::stoul(configcontext.options().get<std::string>("timeframes-shm-limit"));
   int verbosity = configcontext.options().get<int>("ctf-reader-verbosity");
 
-  // add decodors for all allowed detectors.
+  int rateLimitingIPCID = std::stoi(configcontext.options().get<std::string>("timeframes-rate-limit-ipcid"));
+  std::string chanFmt = configcontext.options().get<std::string>("metric-feedback-channel-format");
+  if (rateLimitingIPCID > -1 && !chanFmt.empty()) {
+    ctfInput.metricChannel = fmt::format(chanFmt, rateLimitingIPCID);
+  }
+
+  specs.push_back(o2::ctf::getCTFReaderSpec(ctfInput));
+
+  // add decoders for all allowed detectors.
   if (ctfInput.detMask[DetID::ITS]) {
     specs.push_back(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::ITS), verbosity, configcontext.options().get<bool>("its-digits"), ctfInput.subspec));
   }

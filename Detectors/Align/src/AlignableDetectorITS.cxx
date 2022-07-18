@@ -19,6 +19,10 @@
 #include "Align/AlignableSensorITS.h"
 #include "Align/Controller.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "ITStracking/IOUtils.h"
 #include <TMath.h>
 #include <cstdio>
 
@@ -37,12 +41,21 @@ const char* AlignableDetectorITS::fgkHitsSel[AlignableDetectorITS::kNSPDSelTypes
 AlignableDetectorITS::AlignableDetectorITS(Controller* ctr) : AlignableDetector(DetID::ITS, ctr)
 {
   // default c-tor
-  defineVolumes();
   setUseErrorParam();
   SetITSSelPatternColl();
   SetITSSelPatternCosm();
 }
-
+/*
+//____________________________________________
+void AlignableDetectorITS::initGeom()
+{
+  if (getInitGeomDone()) {
+    return;
+  }
+  defineVolumes();
+  AlignableDetector::initGeom();
+}
+*/
 //____________________________________________
 void AlignableDetectorITS::defineVolumes()
 {
@@ -59,12 +72,10 @@ void AlignableDetectorITS::defineVolumes()
   //
   int nonSensCnt = 0;
   for (int ilr = 0; ilr < geom->getNumberOfLayers(); ilr++) {
-    addVolume(volLr = new AlignableVolume(geom->composeSymNameLayer(ilr), getNonSensLabel(nonSensCnt++), mController));
-    sym2vol[volLr->getSymName()] = volLr;
-    volLr->setParent(volITS);
-    for (int ihb = 0; ihb < 2; ihb++) {
-      addVolume(volHB = new AlignableVolume(geom->composeSymNameHalfBarrel(ilr, ihb), getNonSensLabel(nonSensCnt++), mController));
-      volHB->setParent(volLr);
+    for (int ihb = 0; ihb < geom->getNumberOfHalfBarrels(); ihb++) {
+      addVolume(volLr = new AlignableVolume(geom->composeSymNameHalfBarrel(ilr, ihb), getNonSensLabel(nonSensCnt++), mController));
+      sym2vol[volLr->getSymName()] = volLr;
+      volLr->setParent(volITS);
       int nstavesHB = geom->getNumberOfStaves(ilr) / 2;
       for (int ist = 0; ist < nstavesHB; ist++) {
         addVolume(volSt = new AlignableVolume(geom->composeSymNameStave(ilr, ihb, ist), getNonSensLabel(nonSensCnt++), mController));
@@ -81,7 +92,7 @@ void AlignableDetectorITS::defineVolumes()
           } // module
         }   //halfstave
       }     // stave
-    }       // halfBarrel
+    }       // layer halfBarrel
   }         // layer
 
   for (int ich = 0; ich < geom->getNumberOfChips(); ich++) {
@@ -99,6 +110,83 @@ void AlignableDetectorITS::defineVolumes()
     sens->setParent(parVol);
   }
   //
+}
+
+//____________________________________________
+int AlignableDetectorITS::processPoints(GIndex gid, bool inv)
+{
+  // Extract the points corresponding to this detector, recalibrate/realign them to the
+  // level of the "starting point" for the alignment/calibration session.
+  // If inv==true, the track propagates in direction of decreasing tracking X
+  // (i.e. upper leg of cosmic track)
+  //
+  auto algTrack = mController->getAlgTrack();
+  auto recoData = mController->getRecoContainer();
+  const auto tracks = recoData->getITSTracks();
+  if (tracks.empty()) {
+    return -1; // source not loaded?
+  }
+  const auto& track = tracks[gid.getIndex()];
+  const auto& clusIdx = recoData->getITSTracksClusterRefs();
+  // do we want to apply some cuts?
+  int clEntry = track.getFirstClusterEntry();
+  mNPoints = 0;
+  mFirstPoint = algTrack->getNPoints();
+  for (int icl = track.getNumberOfClusters(); icl--;) {
+    const auto& clus = mITSClustersArray[clusIdx[clEntry++]];
+    auto* sensor = getSensor(clus.getSensorID());
+    auto& pnt = algTrack->addDetectorPoint();
+
+    if (!getUseErrorParam()) {
+      const auto* sysE = sensor->getAddError(); // additional syst error
+      pnt.setYZErrTracking(clus.getSigmaY2() + sysE[0] * sysE[0], clus.getSigmaYZ(), clus.getSigmaZ2() + sysE[1] * sysE[1]);
+    } else { // errors will be calculated just before using the point in the fit, using track info
+      pnt.setYZErrTracking(0., 0., 0.);
+      pnt.setNeedUpdateFromTrack();
+    }
+    pnt.setXYZTracking(clus.getX(), clus.getY(), clus.getZ());
+    pnt.setSensor(sensor);
+    pnt.setAlphaSens(sensor->getAlpTracking());
+    pnt.setXSens(sensor->getXTracking());
+    pnt.setDetID(mDetID);
+    pnt.setSID(sensor->getSID());
+    //
+    pnt.setContainsMeasurement();
+    pnt.init();
+    mNPoints++;
+  }
+  return track.getNumberOfClusters(); // RS
+}
+
+//____________________________________________
+bool AlignableDetectorITS::prepareDetectorData()
+{
+  // prepare TF data for processing: convert clusters
+  auto recoData = mController->getRecoContainer();
+  const auto clusITS = recoData->getITSClusters();
+  const auto patterns = recoData->getITSClustersPatterns();
+  auto pattIt = patterns.begin();
+  mITSClustersArray.reserve(clusITS.size());
+
+  for (auto& c : clusITS) {
+    auto* sensor = getSensor(c.getSensorID());
+    double sigmaY2, sigmaZ2, sigmaYZ = 0, locXYZC[3], traXYZ[3];
+    auto locXYZ = o2::its::ioutils::extractClusterDataA(c, pattIt, mITSDict, sigmaY2, sigmaZ2); // local ideal coordinates
+    const auto& matAlg = sensor->getMatrixClAlg();                                              // local alignment matrix !!! RS FIXME
+    matAlg.LocalToMaster(locXYZ.data(), locXYZC);                                               // aligned point in the local fram
+    const auto& mat = sensor->getMatrixT2L();                                                   // RS FIXME check if correct
+    mat.MasterToLocal(locXYZC, traXYZ);
+    /*
+    if (applyMisalignment) {
+      auto lrID = chmap.getLayer(c.getSensorID());
+      sigmaY2 += conf.sysErrY2[lrID];
+      sigmaZ2 += conf.sysErrZ2[lrID];
+    }
+    */
+    auto& cl3d = mITSClustersArray.emplace_back(c.getSensorID(), traXYZ[0], traXYZ[1], traXYZ[2], sigmaY2, sigmaZ2, sigmaYZ); // local --> tracking
+  }
+
+  return true;
 }
 
 //____________________________________________

@@ -23,6 +23,7 @@
 // #include "CommonUtils/BoostHistogramUtils.h"
 // #include "EMCALCalib/BadChannelMap.h"
 // #include "EMCALCalib/TimeCalibrationParams.h"
+#include "EMCALCalib/EMCALChannelScaleFactors.h"
 #include "EMCALCalibration/EMCALCalibExtractor.h"
 #include "EMCALCalibration/EMCALCalibParams.h"
 #include "DataFormatsEMCAL/Cell.h"
@@ -107,11 +108,15 @@ class EMCALChannelData
   int getNEvents() const { return mEvents; }
   void setNEvents(int nevt) { mEvents = nevt; }
 
+  long unsigned int getNEntriesInHisto() const { return mNEntriesInHisto; }
+  void setNEntriesInHisto(long unsigned int n) { mNEntriesInHisto = n; }
+
  private:
   float mRange = 0.35; // looked at old QA plots where max was 0.35 GeV, might need to be changed
   int mNBins = 1000;
   boostHisto mHisto;
   int mEvents = 0;
+  long unsigned int mNEntriesInHisto = 0;               ///< Number of entries in the histogram
   boostHisto mEsumHisto;                                ///< contains the average energy per hit for each cell
   boostHisto mEsumHistoScaled;                          ///< contains the average energy (scaled) per hit for each cell
   boostHisto mCellAmplitude;                            ///< is the input for the calibration, hist of cell E vs. ID

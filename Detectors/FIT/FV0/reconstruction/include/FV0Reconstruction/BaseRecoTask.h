@@ -39,7 +39,7 @@ class BaseRecoTask
   int getChannelOffset(int channel);
 
  private:
-  o2::fv0::FV0ChannelTimeCalibrationObject* mCalibOffset;
+  o2::fv0::FV0ChannelTimeCalibrationObject* mCalibOffset = nullptr;
 
   ClassDefNV(BaseRecoTask, 3);
 };

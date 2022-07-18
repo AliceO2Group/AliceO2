@@ -12,6 +12,7 @@
 #include "Framework/ProcessingContext.h"
 #include "Framework/InputRecord.h"
 #include "Framework/DataRefUtils.h"
+#include "Framework/TimingInfo.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Headers/DataHeader.h"
 #include "DetectorsBase/TFIDInfoHelper.h"
@@ -20,12 +21,17 @@ using namespace o2::framework;
 
 void o2::base::TFIDInfoHelper::fillTFIDInfo(ProcessingContext& pc, o2::dataformats::TFIDInfo& ti)
 {
-  const auto ref = pc.inputs().getFirstValid(true);
-  const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-  const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
-  ti.firstTForbit = dh->firstTForbit;
-  ti.tfCounter = dh->tfCounter;
-  ti.runNumber = dh->runNumber;
-  ti.startTime = dph->startTime;
-  ti.creation = dph->creation;
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+  static int errCount = 0;
+  if (tinfo.firstTForbit == -1U || tinfo.creation == -1) {
+    if (errCount++ < 5) {
+      LOGP(warn, "Ignoring gummy input with orbit {} and creation time {} in fillTFIDInfo", tinfo.firstTForbit, tinfo.creation);
+    }
+    return;
+  }
+  ti.firstTForbit = tinfo.firstTForbit;
+  ti.tfCounter = tinfo.tfCounter;
+  ti.runNumber = tinfo.runNumber;
+  ti.startTime = tinfo.timeslice;
+  ti.creation = tinfo.creation;
 }

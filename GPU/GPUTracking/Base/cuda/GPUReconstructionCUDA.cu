@@ -39,15 +39,24 @@ __global__ void dummyInitKernel(void*)
 #if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
 #include "ITStrackingGPU/VertexerTraitsGPU.h"
+#include "ITStrackingGPU/TimeFrameGPU.h"
 #else
 namespace o2::its
 {
-class TrackerTraitsNV : public TrackerTraits
-{
-};
 class VertexerTraitsGPU : public VertexerTraits
 {
 };
+template <int NLayers = 7>
+class TrackerTraitsGPU : public TrackerTraits
+{
+};
+namespace gpu
+{
+template <int NLayers = 7>
+class TimeFrameGPU : public TimeFrame
+{
+};
+} // namespace gpu
 } // namespace o2::its
 #endif
 
@@ -68,6 +77,28 @@ GPUReconstructionCUDABackend::~GPUReconstructionCUDABackend()
   }
 }
 
+int GPUReconstructionCUDABackend::GPUFailedMsgAI(const long long int error, const char* file, int line)
+{
+  // Check for CUDA Error and in the case of an error display the corresponding error string
+  if (error == cudaSuccess) {
+    return (0);
+  }
+  GPUError("CUDA Error: %lld / %s (%s:%d)", error, cudaGetErrorString((cudaError_t)error), file, line);
+  return 1;
+}
+
+void GPUReconstructionCUDABackend::GPUFailedMsgA(const long long int error, const char* file, int line)
+{
+  if (GPUFailedMsgAI(error, file, line)) {
+    static bool runningCallbacks = false;
+    if (IsInitialized() && runningCallbacks == false) {
+      runningCallbacks = true;
+      CheckErrorCodes(false, true);
+    }
+    throw std::runtime_error("CUDA Failure");
+  }
+}
+
 GPUReconstructionCUDA::GPUReconstructionCUDA(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionKernels(cfg)
 {
   mDeviceBackendSettings.deviceType = DeviceType::CUDA;
@@ -83,11 +114,16 @@ GPUReconstruction* GPUReconstruction_Create_CUDA(const GPUSettingsDeviceBackend&
 void GPUReconstructionCUDA::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits)
 {
   if (trackerTraits) {
-    trackerTraits->reset(new o2::its::TrackerTraitsNV);
+    trackerTraits->reset(new o2::its::TrackerTraitsGPU);
   }
   if (vertexerTraits) {
     vertexerTraits->reset(new o2::its::VertexerTraitsGPU);
   }
+}
+
+void GPUReconstructionCUDA::GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame)
+{
+  timeFrame->reset(new o2::its::gpu::TimeFrameGPU);
 }
 
 void GPUReconstructionCUDA::UpdateSettings()

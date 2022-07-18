@@ -14,6 +14,7 @@ o2_add_library(Framework
                        src/ArrowSupport.cxx
                        src/AnalysisDataModel.cxx
                        src/ASoA.cxx
+                       src/AsyncQueue.cxx
                        src/AnalysisHelpers.cxx
                        src/AnalysisDataModelHelpers.cxx
                        src/BoostOptionsRetriever.cxx
@@ -28,6 +29,7 @@ o2_add_library(Framework
                        src/CommonServices.cxx
                        src/CommonMessageBackends.cxx
                        src/CommonDriverServices.cxx
+                       src/ControlWebSocketHandler.cxx
                        src/CompletionPolicy.cxx
                        src/CompletionPolicyHelpers.cxx
                        src/ComputingQuotaEvaluator.cxx
@@ -35,6 +37,7 @@ o2_add_library(Framework
                        src/ConfigContext.cxx
                        src/ControlService.cxx
                        src/ControlServiceHelpers.cxx
+                       src/ControlWebSocketHandler.cxx
                        src/CCDBHelpers.cxx
                        src/DispatchPolicy.cxx
                        src/DataSender.cxx
@@ -108,6 +111,7 @@ o2_add_library(Framework
                        src/ResourcePolicyHelpers.cxx
                        src/SendingPolicy.cxx
                        src/ServiceRegistry.cxx
+                       src/ServiceSpec.cxx
                        src/SimpleResourceManager.cxx
                        src/SimpleRawDeviceService.cxx
                        src/StreamOperators.cxx
@@ -117,6 +121,7 @@ o2_add_library(Framework
                        src/TableTreeHelpers.cxx
                        src/TopologyPolicy.cxx
                        src/TextDriverClient.cxx
+                       src/TimesliceIndex.cxx
                        src/DataInputDirector.cxx
                        src/DataOutputDirector.cxx
                        src/Task.cxx
@@ -169,6 +174,7 @@ foreach(t
         AlgorithmSpec
         AnalysisTask
         AnalysisDataModel
+        AsyncQueue
         ASoA
         ASoAHelpers
         BoostOptionsRetriever
@@ -183,6 +189,7 @@ foreach(t
         ConfigParamStore
         ConfigParamRegistry
         DataDescriptorMatcher
+        DataDescriptorQueryBuilder
         DataProcessorSpec
         DataRefUtils
         DataRelayer
@@ -283,6 +290,7 @@ foreach(b
         WorkflowHelpers
         ASoA
         ASoAHelpers
+        EventMixing
         HistogramRegistry
         TableToTree
         TreeToTable
@@ -320,6 +328,7 @@ foreach(w
         Task
         ExternalFairMQDeviceWorkflow
         VariablePayloadSequenceWorkflow
+        DataDescriptorMatcherWorkflow
         )
   o2_add_test(${w} NAME test_Framework_test_${w}
               SOURCES test/test_${w}.cxx

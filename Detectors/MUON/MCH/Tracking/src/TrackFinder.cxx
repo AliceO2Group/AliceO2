@@ -25,8 +25,8 @@
 #include <TMath.h>
 
 #include "Field/MagneticField.h"
+#include "MCHBase/TrackerParam.h"
 #include "MCHTracking/TrackExtrap.h"
-#include "MCHTracking/TrackerParam.h"
 
 namespace o2
 {
@@ -192,7 +192,7 @@ const std::list<Track>& TrackFinder::findTracks(const std::unordered_map<int, st
     printTracks();
 
   } catch (exception const& e) {
-    LOG(error) << e.what() << " --> abort";
+    LOG(warning) << e.what() << " --> abort";
     mTracks.clear();
     return mTracks;
   }

@@ -43,9 +43,7 @@ void TRDDigitReaderSpec::connectTree()
   mTreeDigits.reset((TTree*)mFile->Get(mDigitTreeName.c_str()));
   assert(mTreeDigits);
   mTreeDigits->SetBranchAddress(mDigitBranchName.c_str(), &mDigitsPtr);
-  if (mTreeDigits->SetBranchAddress(mTriggerRecordBranchName.c_str(), &mTriggerRecordsPtr) != 0) {
-    LOG(error) << "No trigger records available in TRD digits file";
-  }
+  mTreeDigits->SetBranchAddress(mTriggerRecordBranchName.c_str(), &mTriggerRecordsPtr);
   if (mUseMC) {
     mTreeDigits->SetBranchAddress(mMCLabelsBranchName.c_str(), &mLabels);
   }
@@ -58,9 +56,9 @@ void TRDDigitReaderSpec::run(ProcessingContext& pc)
   assert(currEntry < mTreeDigits->GetEntries()); // this should not happen
   mTreeDigits->GetEntry(currEntry);
   LOG(info) << "Pushing " << mTriggerRecords.size() << " TRD trigger records at entry " << currEntry;
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 1, Lifetime::Timeframe}, mTriggerRecords);
   LOG(info) << "Pushing " << mDigits.size() << " digits for these trigger records";
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRGRDIG", 0, Lifetime::Timeframe}, mTriggerRecords);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 1, Lifetime::Timeframe}, mDigits);
   if (mUseMC) {
     auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{o2::header::gDataOriginTRD, "LABELS", 0, Lifetime::Timeframe});
     mLabels->copyandflatten(sharedlabels);
@@ -74,8 +72,8 @@ void TRDDigitReaderSpec::run(ProcessingContext& pc)
 DataProcessorSpec getTRDDigitReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("TRD", "TRGRDIG", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TRD", "DIGITS", 1, Lifetime::Timeframe);
+  outputs.emplace_back("TRD", "TRKTRGRD", 1, Lifetime::Timeframe);
   if (useMC) {
     outputs.emplace_back("TRD", "LABELS", 0, Lifetime::Timeframe);
   }

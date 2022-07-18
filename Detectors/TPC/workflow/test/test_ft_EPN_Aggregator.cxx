@@ -36,7 +36,7 @@ using namespace o2::framework;
   }
 
 DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std::vector<uint32_t>& crus, const bool slowgen);
-DataProcessorSpec ftAggregatorIDC(const unsigned int nFourierCoefficients, const unsigned int rangeIDC, const unsigned int maxTFs, const bool debug, const std::vector<uint32_t>& crus);
+DataProcessorSpec ftAggregatorIDC(const unsigned int nFourierCoefficients, const unsigned int rangeIDC, const unsigned int maxTFs, const bool debug);
 DataProcessorSpec receiveFourierCoeffEPN(const unsigned int maxTFs, const unsigned int nFourierCoefficients);
 DataProcessorSpec compare_EPN_AGG();
 static constexpr o2::header::DataDescription getDataDescriptionCoeffEPN() { return o2::header::DataDescription{"COEFFEPNALL"}; }
@@ -84,7 +84,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const bool onlyIDCGen = config.options().get<bool>("only-idc-gen");
   const bool fastgen = config.options().get<bool>("fast-gen");
   const bool debugFT = config.options().get<bool>("debug");
-  const float sigma = 5;
   const unsigned int firstTF = 0;
   const unsigned int nLanes = 1;
   const bool loadFromFile = false;
@@ -106,7 +105,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     return workflow;
   }
 
-  auto workflowTmp = WorkflowSpec{getTPCFLPIDCSpec<TPCFLPIDCDeviceNoGroup>(0, crus, iondrifttime, debugFT, false), getTPCFourierTransformEPNSpec(crus, iondrifttime, nFourierCoefficients, debugFT), getTPCDistributeIDCSpec(crus, timeframes, nLanes, firstTF, loadFromFile), ftAggregatorIDC(nFourierCoefficients, iondrifttime, timeframes, debugFT, crus), receiveFourierCoeffEPN(timeframes, nFourierCoefficients), compare_EPN_AGG()};
+  auto workflowTmp = WorkflowSpec{getTPCFLPIDCSpec<TPCFLPIDCDeviceNoGroup>(0, crus, iondrifttime, debugFT, false, false, "", true), getTPCFourierTransformEPNSpec(crus, iondrifttime, nFourierCoefficients, debugFT), getTPCDistributeIDCSpec(0, crus, timeframes, nLanes, firstTF, loadFromFile), ftAggregatorIDC(nFourierCoefficients, iondrifttime, timeframes, debugFT), receiveFourierCoeffEPN(timeframes, nFourierCoefficients), compare_EPN_AGG()};
   for (auto& spec : workflowTmp) {
     workflow.emplace_back(spec);
   }
@@ -138,7 +137,7 @@ DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std
     outputSpecs,
     AlgorithmSpec{
       [maxTFs, fastgen, nIDCs, cruStart = crus.front(), cruEnde = crus.back()](ProcessingContext& ctx) {
-        const auto tf = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ctx.inputs().getFirstValid(true))->tfCounter;
+        const auto tf = ctx.services().get<o2::framework::TimingInfo>().tfCounter;
 
         for (uint32_t icru = cruStart; icru <= cruEnde; ++icru) {
           const o2::tpc::CRU cruTmp(icru);
@@ -166,13 +165,13 @@ DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std
       }}};
 }
 
-DataProcessorSpec ftAggregatorIDC(const unsigned int nFourierCoefficients, const unsigned int rangeIDC, const unsigned int maxTFs, const bool debug, const std::vector<uint32_t>& crus)
+DataProcessorSpec ftAggregatorIDC(const unsigned int nFourierCoefficients, const unsigned int rangeIDC, const unsigned int maxTFs, const bool debug)
 {
   std::vector<ConfigParamSpec> options{
     {"ccdb-uri", VariantType::String, "", {"URI for the CCDB access."}},
     {"update-not-grouping-parameter", VariantType::Bool, true, {"Do NOT Update/Writing grouping parameters to CCDB."}}};
 
-  auto spec = getTPCFourierTransformAggregatorSpec(crus, maxTFs, rangeIDC, nFourierCoefficients, debug, true);
+  auto spec = getTPCFourierTransformAggregatorSpec(maxTFs, rangeIDC, nFourierCoefficients, debug, true);
   std::swap(spec.options, options);
 
   return spec;
@@ -186,15 +185,16 @@ class TPCReceiveEPNSpec : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& ctx) final
   {
+    const auto& tinfo = ctx.services().get<o2::framework::TimingInfo>();
     for (int i = 0; i < o2::tpc::SIDES; ++i) {
       const DataRef ref = ctx.inputs().getByPos(i);
       auto const* tpcFourierCoeffHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       const int side = tpcFourierCoeffHeader->subSpecification;
-      const auto tf = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref)->tfCounter;
-      mFourierCoeffEPN[tf].mFourierCoefficients[side] = ctx.inputs().get<std::vector<float>>(ref);
+      const auto tf = tinfo.tfCounter;
+      mFourierCoeffEPN[tf].mFourierCoefficients = ctx.inputs().get<std::vector<float>>(ref);
     }
 
-    const auto tf = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ctx.inputs().getFirstValid(true))->tfCounter;
+    const auto tf = tinfo.tfCounter;
     if (tf == mMaxTF) {
       ctx.outputs().snapshot(Output{gDataOriginTPC, getDataDescriptionCoeffEPN()}, mFourierCoeffEPN);
     }
@@ -218,8 +218,8 @@ class TPCCompareFourierCoeffSpec : public o2::framework::Task
       const o2::tpc::Side side = iside == 0 ? o2::tpc::Side::A : o2::tpc::Side::C;
       for (int tf = 0; tf < fourierCoeffEPN.size(); ++tf) {
         for (int i = 0; i < fourierCoeffEPN[tf].getNCoefficientsPerTF(); ++i) {
-          const float epnval = fourierCoeffEPN[tf](side, i);
-          const float aggval = (*fourierCoeffAgg)(side, fourierCoeffAgg->getIndex(tf, i));
+          const float epnval = fourierCoeffEPN[tf](i);
+          const float aggval = (*fourierCoeffAgg)(fourierCoeffAgg->getIndex(tf, i));
           ASSERT_ERROR((std::abs(std::min(epnval, aggval)) < 1.f) ? isSameZero(epnval, aggval) : isSame(epnval, aggval));
         }
       }

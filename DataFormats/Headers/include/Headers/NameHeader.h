@@ -42,6 +42,7 @@ struct NameHeader : public BaseHeader {
   static const o2::header::SerializationMethod sSerializationMethod;
   NameHeader() : BaseHeader(sizeof(NameHeader), sHeaderType, sSerializationMethod, sVersion), name()
   {
+    static_assert(N > 0, "Can not construct zero-length NameHeader");
     // set length of padding in the last byte
     uint8_t* lastByte = reinterpret_cast<uint8_t*>(this) + sizeof(NameHeader) - 1;
     *lastByte =
@@ -50,20 +51,25 @@ struct NameHeader : public BaseHeader {
     memset(&name[0], '\0', N);
   }
 
-  NameHeader(std::string in) : BaseHeader(sizeof(NameHeader), sHeaderType, sSerializationMethod, sVersion), name()
+  template <size_t S>
+  NameHeader(const char (&in)[S]) : BaseHeader(sizeof(NameHeader), sHeaderType, sSerializationMethod, sVersion), name()
   {
+    static_assert(N > 0, "Can not construct zero-length NameHeader");
+    static_assert(S <= N, "Initializer string is exceeding NameHeader capacity");
     // set length of padding in the last byte
     uint8_t* lastByte = reinterpret_cast<uint8_t*>(this) + sizeof(NameHeader) - 1;
     *lastByte =
       reinterpret_cast<const uint8_t*>(this) + sizeof(NameHeader) - reinterpret_cast<const uint8_t*>(&name[N]);
     // here we actually want a null terminated string
-    strncpy(name, in.c_str(), N);
+    strncpy(name, in, N);
     name[N - 1] = '\0';
   }
 
   const char* getName() const { return name; }
   size_t getNameLength() const
   {
+    // this only applies if the original buffer was created with N != 0
+    // and this is now strictly required in the constructors
     const uint8_t* lastByte = reinterpret_cast<const uint8_t*>(this) + size() - 1;
     return (lastByte - reinterpret_cast<const uint8_t*>(name)) - *lastByte + 1;
   }

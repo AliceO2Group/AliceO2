@@ -61,6 +61,13 @@ GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const TP
   mRefit->SetFastTransform(trans);
 }
 
+void GPUO2InterfaceRefit::updateCalib(const TPCFastTransform* trans, float bz)
+{
+  mParam->SetDefaults(bz);
+  mRefit->SetGPUParam(mParam.get());
+  mRefit->SetFastTransform(trans);
+}
+
 int GPUO2InterfaceRefit::RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward, bool resetCov) { return mRefit->RefitTrackAsGPU(trk, outward, resetCov); }
 int GPUO2InterfaceRefit::RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward, bool resetCov) { return mRefit->RefitTrackAsTrackParCov(trk, outward, resetCov); }
 int GPUO2InterfaceRefit::RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2, bool outward, bool resetCov) { return mRefit->RefitTrackAsGPU(trk, clusRef, time0, chi2, outward, resetCov); }

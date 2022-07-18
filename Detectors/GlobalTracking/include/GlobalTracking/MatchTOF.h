@@ -103,6 +103,10 @@ class MatchTOF
   void setTimeTolerance(float val) { mTimeTolerance = val; }
   ///< get tolerance on track-TOF times comparison
   float getTimeTolerance() const { return mTimeTolerance; }
+  ///< set extra time tolerance on trackTRD-TOF times comparison
+  void setExtraTimeToleranceTRD(float val) { mExtraTimeToleranceTRD = val; }
+  ///< get extra tolerance on trackTRD-TOF times comparison
+  float getExtraTimeToleranceTRD() const { return mExtraTimeToleranceTRD; }
 
   ///< set space tolerance on track-TOF times comparison // this in the old AliRoot was the TOF matching window
   void setSpaceTolerance(float val) { mSpaceTolerance = val; }
@@ -224,10 +228,11 @@ class MatchTOF
   float mTPCTBinMUSInv = 0.; ///< inverse TPC time bin duration in microseconds
   float mTPCBin2Z = 0.;      ///< conversion coeff from TPC time-bin to Z
 
-  bool mIsCosmics = false;    ///< switch on to reconstruct cosmics and match with TPC
-  float mTimeTolerance = 1e3; ///< tolerance in ns for track-TOF time bracket matching
-  float mSpaceTolerance = 10; ///< tolerance in cm for track-TOF time bracket matching
-  int mSigmaTimeCut = 30.;    ///< number of sigmas to cut on time when matching the track to the TOF cluster
+  bool mIsCosmics = false;              ///< switch on to reconstruct cosmics and match with TPC
+  float mTimeTolerance = 1e3;           ///< tolerance in ns for track-TOF time bracket matching
+  float mExtraTimeToleranceTRD = 500E3; ///< extra tolerance in ns for track-TOF time bracket matching
+  float mSpaceTolerance = 10;           ///< tolerance in cm for track-TOF time bracket matching
+  int mSigmaTimeCut = 30.;              ///< number of sigmas to cut on time when matching the track to the TOF cluster
 
   bool mIsFIT = false;
   bool mIsITSTPCused = false;
@@ -303,7 +308,7 @@ class MatchTOF
   TStopwatch mTimerMatchITSTPC;
   TStopwatch mTimerMatchTPC;
   TStopwatch mTimerDBG;
-  ClassDefNV(MatchTOF, 3);
+  ClassDefNV(MatchTOF, 4);
 };
 } // namespace globaltracking
 } // namespace o2

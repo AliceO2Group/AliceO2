@@ -28,10 +28,10 @@ o2-tpc-idc-averagegroup \ # averaging and grouping of IDCs per CRU and calculati
 ```
 
 #### Output proxy
-Sending the (averaged and grouped) IDCs and the 1D-IDCs from the FLPs to the aggregator node:
+Sending the (averaged and grouped) IDCs from the FLPs to the aggregator node:
 
 ```bash
-loc='downstream:TPC/1DIDC;downstream:TPC/IDCGROUP' # output address for 1D-IDCs and IDCs
+loc='downstream:TPC/IDCGROUP' # output address for IDCs
 
 o2-dpl-output-proxy                                                                                        \
 --channel-config "name=downstream,method=connect,address=tcp://localhost:30453,type=push,transport=zeromq" \
@@ -40,11 +40,11 @@ o2-dpl-output-proxy                                                             
 
 ## Aggregator
 
-On the aggregator node the IDCs and the 1D-IDCs from the FLPs are received by an input proxy and aggregated until data from all defined CRUs have been received. After the IDCs for a given number of TFs are received, the factorization of the IDCs (+ the grouping of the factorized DeltaIDCs if the grouping was not performed on the FLPs) and the Fourier transform of the 1D-IDCs is performed. The factorized IDCs, the grouping parameters and the Fourier coefficients are stored in the CCDB.
+On the aggregator node the IDCs from the FLPs are received by an input proxy and aggregated until data from all defined CRUs have been received. After the IDCs for a given number of TFs are received, the factorization of the IDCs (+ the grouping of the factorized DeltaIDCs if the grouping was not performed on the FLPs) and the Fourier transform of the factorized 1D-IDCs is performed. The factorized IDCs, the grouping parameters and the Fourier coefficients are stored in the CCDB.
 
 #### Set global parameters for the workflow:
 ```bash
-crus="0-360"                # expect data from all CRUs from FLPs
+crus="0-359"                # expect data from all CRUs from FLPs
 lanes=2                     # number of parallel devices for the factorization (min. 2 devices should be used)
 nTFs=2000                   # number of TFs which will be used for the factorization and the Fourier transform
 url="http://localhost:8080" # CCDB URI: for local CCDB or use "http://ccdb-test.cern.ch:8080"
@@ -56,20 +56,10 @@ Receiving the IDCs and the 1D-IDCs from the FLPs:
 ```bash
 # input adresses for IDCs and 1D-IDCs
 loc="A:TPC/IDCGROUP/"
-loc1D="A:TPC/1DIDC/"
-maxCRU=360  # receive data from all CRUs
-firstCRU=0  # first CRU index
-
-# define the adresses for all CRUs
-sCRUs="" # string containing the address for the IDCs and 1D-IDCs
-for ((i = ${firstCRU} ; i < ${maxCRU}-1 ; i++)); do
-  sCRUs+="${loc}$((${i}<<7));${loc1D}$((${i}<<7));"
-done
-sCRUs+="${loc}$((${maxCRU}-1<<7));${loc1D}$((${maxCRU}-1<<7))"
 
 # running the output proxy
 o2-dpl-raw-proxy    \
---dataspec ${sCRUs} \
+--dataspec ${loc} \
 --channel-config "name=readout-proxy,type=pull,method=bind,address=tcp://localhost:30453,rateLogging=1,transport=zeromq"
 ```
 
@@ -85,7 +75,7 @@ o2-tpc-idc-distribute  \
 ```
 
 #### Factorization of IDCs
-Perform the factorization of the IDCs i.e. convert the 3D-IDCs to `IDC0`, `IDC1`, `IDCDelta` and store them along with the grouping parameters in the CCDB. If the grouping of the IDCs was skipped on the FLPs, the grouping of the `IDCDelta` can be performed by setting `--groupIDCs true` and specifieng the grouping parameters e.g. `--groupPads "..." --groupRows "..."`.
+Perform the factorization of the IDCs i.e. convert the 3D-IDCs to `IDC0`, `IDC1`, `IDCDelta` and store them along with the grouping parameters in the CCDB. If the grouping of the IDCs was skipped on the FLPs, the grouping of the `IDCDelta` can be performed by setting `--groupIDCs true` and specifying the grouping parameters e.g. `--groupPads "..." --groupRows "..."`.
 
 ```bash
 o2-tpc-idc-factorize                \
@@ -100,11 +90,10 @@ o2-tpc-idc-factorize                \
 ```
 
 #### Fourier transform
-Perform the Fourier transform of the 1D-IDCs and store them in the CCDB:
+Perform the Fourier transform of the `IDC1` and store them in the CCDB:
 
 ```bash
 o2-tpc-idc-ft-aggregator \
---crus=${crus}           \ # expected CRUs
 --rangeIDC 200           \ # number of 1D-IDCs used during the Fourier transform
 --nFourierCoeff 40       \ # number of fourier coefficients which will be stored in the CCDB
 --timeframes ${nTFs}     \ # number of TFs which were send from o2-tpc-idc-distribute
@@ -117,7 +106,7 @@ All the steps which have to be called (on a local machine):
 ```bash
 # FLPs
 crus="0-359"
-loc="downstream:TPC/1DIDC;downstream:TPC/IDCGROUP"
+loc="downstream:TPC/IDCGROUP"
 
 pathToPedestal="/../path/to/pedestal/"
 pathToData="/../path/to/data/"
@@ -143,25 +132,13 @@ nTFs=2000                   # number of TFs which will be used for the factoriza
 url="http://localhost:8080" # CCDB URI: for local CCDB or use "http://ccdb-test.cern.ch:8080"
 
 # input adresses for IDCs and 1D-IDCs
-loc="A:TPC/IDCGROUP/"
-loc1D="A:TPC/1DIDC/"
-maxCRU=360  # receive data from all CRUs
-firstCRU=0  # first CRU index
-
-# define the adresses for all CRUs
-sCRUs="" # string containing the address for the IDCs and 1D-IDCs
-for ((i = ${firstCRU} ; i < ${maxCRU}-1 ; i++)); do
-  sCRUs+="${loc}$((${i}<<7));${loc1D}$((${i}<<7));"
-done
-sCRUs+="${loc}$((${maxCRU}-1<<7));${loc1D}$((${maxCRU}-1<<7))"
-
-echo "CRUs: ${sCRUs}"
+loc="A:TPC/IDCGROUP"
 
 # proxy settings
 configProxy="name=readout-proxy,type=pull,method=bind,address=tcp://localhost:30453,rateLogging=1,transport=zeromq"
 
 o2-dpl-raw-proxy                    \
---dataspec ${sCRUs}                 \
+--dataspec ${loc}                   \
 --channel-config "${configProxy}"   \
 | o2-tpc-idc-distribute             \
 --crus=${crus}                      \
@@ -180,7 +157,6 @@ o2-dpl-raw-proxy                    \
 --groupRows "2,2,2,3,3,3,2,2,2,2"   \
 --configKeyValues 'TPCIDCGroupParam.groupPadsSectorEdges=32211' \
 | o2-tpc-idc-ft-aggregator          \
---crus=${crus}                      \
 --rangeIDC 200                      \
 --nFourierCoeff 40                  \
 --timeframes ${nTFs}                \
@@ -215,31 +191,19 @@ o2-raw-tf-reader-workflow           \
 ```bash
 # Aggregator
 # define global parameters for the work flow
-crus="0-360"                # expect data from all CRUs from FLPs
+crus="0-359"                # expect data from all CRUs from FLPs
 lanes=2                     # number of parallel devices for the factorization (min. 2 devices should be used)
 nTFs=2000                   # number of TFs which will be used for the factorization and the Fourier transform
 url="http://localhost:8080" # CCDB URI: for local CCDB or use "http://ccdb-test.cern.ch:8080"
 
 # input adresses for IDCs and 1D-IDCs
-loc="A:TPC/IDCGROUP/"
-loc1D="A:TPC/1DIDC/"
-maxCRU=360  # receive data from all CRUs
-firstCRU=0  # first CRU index
-
-# define the adresses for all CRUs
-sCRUs="" # string containing the address for the IDCs and 1D-IDCs
-for ((i = ${firstCRU} ; i < ${maxCRU}-1 ; i++)); do
-  sCRUs+="${loc}$((${i}<<7));${loc1D}$((${i}<<7));"
-done
-sCRUs+="${loc}$((${maxCRU}-1<<7));${loc1D}$((${maxCRU}-1<<7))"
-
-echo "CRUs: ${sCRUs}"
+loc="A:TPC/IDCGROUP"
 
 # proxy settings
 configProxy="name=readout-proxy,type=pull,method=bind,address=tcp://localhost:30453,rateLogging=1,transport=zeromq"
 
 o2-dpl-raw-proxy                    \
---dataspec ${sCRUs}                 \
+--dataspec ${loc}                   \
 --channel-config "${configProxy}"   \
 | o2-tpc-idc-distribute             \
 --crus=${crus}                      \
@@ -257,7 +221,6 @@ o2-dpl-raw-proxy                    \
 --groupRows "2,2,2,3,3,3,2,2,2,2"   \
 --configKeyValues 'TPCIDCGroupParam.groupPadsSectorEdges=32211' \
 | o2-tpc-idc-ft-aggregator          \
---crus=${crus}                      \
 --rangeIDC 200                      \
 --nFourierCoeff 40                  \
 --timeframes ${nTFs}                \

@@ -31,12 +31,22 @@ class StandardScaler
   ~StandardScaler() = default;
 
   /**
-   * @brief Scales data with standard scale aalgorithm
+   * @brief Scales data with standard scale algorithm
    *
    * @param data
    * @return std::optional<std::vector<float>>
    */
-  std::optional<std::vector<float>> scale(const std::vector<float>& data) const;
+  [[nodiscard]] std::optional<std::vector<float>> scale(const std::vector<float>& data) const;
+
+  /**
+   * @brief Scales batch of data with standard scale algorithm
+   *
+   * @param data
+   * @return std::optional<std::vector<std::vector<float>>>
+   */
+  [[nodiscard]] std::optional<std::vector<std::vector<float>>> scale_batch(
+    const std::vector<std::vector<float>>& data) const;
+
   /**
    * @brief Sets scales for standard scaler. Checks if sizes of scales are equal.
    *
@@ -45,7 +55,7 @@ class StandardScaler
    * @return true on success
    * @return false on fail
    */
-  bool setScales(const std::vector<float> means, const std::vector<float> scales);
+  bool setScales(const std::vector<float>& means, const std::vector<float>& scales);
 
  private:
   std::vector<float> mMeans;
@@ -56,17 +66,19 @@ class StandardScaler
  * @brief Reads predicted class as int
  *
  * @param value model prediction
- * @return int predicted class
+ * @param batchSize
+ * @return std::vector<int> casted results
  */
-int readClassifier(const Ort::Value& value);
+std::vector<int> readClassifier(const Ort::Value& value, size_t batchSize);
 
 /**
- * @brief Calculate 5 channels values from 44x44 float array
+ * @brief Calculate 5 channels values from 44x44 float array (for every batch)
  *
  * @param value model prediction
- * @return std::array<long, 5> channels
+ * @param batchSize
+ * @return std::vector<std::array<long, 5>> calculated results
  */
-std::array<long, 5> calculateChannels(const Ort::Value& value);
+std::vector<std::array<long, 5>> calculateChannels(const Ort::Value& value, size_t batchSize);
 
 } // namespace o2::zdc::fastsim::processors
-#endif // O2_ZDC_FASTSIMULATIONS_PROCESSORS_H
+#endif // O2_ZDC_FAST_SIMULATIONS_PROCESSORS_H

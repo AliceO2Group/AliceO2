@@ -26,7 +26,7 @@ std::vector<CompletionPolicy>
 {
   return {
     CompletionPolicyHelpers::defineByNameOrigin("internal-dpl-aod-writer", "TFN", CompletionOp::Consume),
-    CompletionPolicyHelpers::consumeExistingWhenAny("internal-dpl-injected-dummy-sink", [](DeviceSpec const& s) { return s.name == "internal-dpl-injected-dummy-sink"; }),
+    CompletionPolicyHelpers::consumeWhenAny("internal-dpl-injected-dummy-sink", [](DeviceSpec const& s) { return s.name == "internal-dpl-injected-dummy-sink"; }),
     CompletionPolicyHelpers::consumeWhenAll()};
 }
 
@@ -47,8 +47,13 @@ std::ostream& operator<<(std::ostream& oss, CompletionPolicy::CompletionOp const
       break;
     case CompletionPolicy::CompletionOp::ConsumeExisting:
       oss << "consumeExisting";
+      break;
     case CompletionPolicy::CompletionOp::ConsumeAndRescan:
       oss << "consumeAndRescan";
+      break;
+    case CompletionPolicy::CompletionOp::Retry:
+      oss << "retry";
+      break;
   };
   return oss;
 }

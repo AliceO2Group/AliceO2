@@ -73,6 +73,10 @@ bool Encoder::open(const std::string& name, const std::string& path, const std::
     RDHUtils::setCRUID(rdh, Geo::getCRUid(crateid));
     RDHUtils::setLinkID(rdh, Geo::getCRUlink(crateid));
     RDHUtils::setEndPointID(rdh, Geo::getCRUendpoint(crateid));
+    const int served = 3;
+    const int received = 3;
+    uint32_t detField = (served << 24) + (received << 16);
+    RDHUtils::setDetectorField(rdh, detField);
     // currently storing each CRU in a separate file
     std::string outFileLink;
     if (mCrateOn[crateid]) {

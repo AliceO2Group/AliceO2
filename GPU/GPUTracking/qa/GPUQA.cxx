@@ -88,20 +88,20 @@ using namespace GPUCA_NAMESPACE::gpu;
 #define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC()
 #endif
 
-#define CHECK_CLUSTER_STATE_INIT()                                                                   \
-  bool unattached = attach == 0;                                                                     \
-  float qpt = 0;                                                                                     \
-  bool lowPt = false;                                                                                \
-  bool mev200 = false;                                                                               \
-  bool mergedLooper = false;                                                                         \
-  int id = attach & gputpcgmmergertypes::attachTrackMask;                                            \
-  if (!unattached) {                                                                                 \
-    qpt = fabsf(mTracking->mIOPtrs.mergedTracks[id].GetParam().GetQPt());                            \
-    lowPt = qpt * mTracking->GetParam().par.qptB5Scaler > mTracking->GetParam().rec.tpc.rejectQPtB5; \
-    mev200 = qpt > 5;                                                                                \
-    mergedLooper = mTracking->mIOPtrs.mergedTracks[id].MergedLooper();                               \
-  }                                                                                                  \
-  bool physics = false, protect = false;                                                             \
+#define CHECK_CLUSTER_STATE_INIT()                                                               \
+  bool unattached = attach == 0;                                                                 \
+  float qpt = 0;                                                                                 \
+  bool lowPt = false;                                                                            \
+  bool mev200 = false;                                                                           \
+  bool mergedLooper = false;                                                                     \
+  int id = attach & gputpcgmmergertypes::attachTrackMask;                                        \
+  if (!unattached) {                                                                             \
+    qpt = fabsf(mTracking->mIOPtrs.mergedTracks[id].GetParam().GetQPt());                        \
+    lowPt = qpt * mTracking->GetParam().qptB5Scaler > mTracking->GetParam().rec.tpc.rejectQPtB5; \
+    mev200 = qpt > 5;                                                                            \
+    mergedLooper = mTracking->mIOPtrs.mergedTracks[id].MergedLooper();                           \
+  }                                                                                              \
+  bool physics = false, protect = false;                                                         \
   CHECK_CLUSTER_STATE_INIT_LEG_BY_MC();
 
 #define CHECK_CLUSTER_STATE()                                                                              \
@@ -282,16 +282,18 @@ void GPUQA::createHist(T*& h, const char* name, Args... args)
   const auto& p = getHistArray<T>();
   if (mHaveExternalHists) {
     if (p.first->size() <= p.second->size()) {
+      GPUError("Array sizes mismatch: Histograms %lu <= Positions %lu", p.first->size(), p.second->size());
       throw std::runtime_error("Incoming histogram array incomplete");
     }
     if (strcmp((*p.first)[p.second->size()].GetName(), name)) {
+      GPUError("Histogram name mismatch: in array %s, trying to create %s", (*p.first)[p.second->size()].GetName(), name);
       throw std::runtime_error("Incoming histogram has incorrect name");
     }
   } else {
     p.first->emplace_back(name, args...);
   }
+  h = &((*p.first)[p.second->size()]);
   p.second->emplace_back(&h);
-  h = &p.first->back();
 }
 
 namespace GPUCA_NAMESPACE::gpu
@@ -310,11 +312,11 @@ T* GPUQA::createGarbageCollected(Args... args)
 }
 void GPUQA::clearGarbagageCollector()
 {
-  std::get<std::vector<std::unique_ptr<TPad>>>(mGarbageCollector->v).clear(); // Make sure to depete TPad first due to ROOT ownership (std::tuple has no defined order in its destructor)
+  std::get<std::vector<std::unique_ptr<TPad>>>(mGarbageCollector->v).clear(); // Make sure to delete TPad first due to ROOT ownership (std::tuple has no defined order in its destructor)
   std::apply([](auto&&... args) { ((args.clear()), ...); }, mGarbageCollector->v);
 }
 
-GPUQA::GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config, const GPUParam* param) : mTracking(chain), mConfig(config ? *config : GPUQA_GetConfig(chain)), mParam(param ? *param : chain->GetParam()), mGarbageCollector(std::make_unique<GPUQAGarbageCollection>())
+GPUQA::GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config, const GPUParam* param) : mTracking(chain), mConfig(config ? *config : GPUQA_GetConfig(chain)), mParam(param ? param : &chain->GetParam()), mGarbageCollector(std::make_unique<GPUQAGarbageCollection>())
 {
   static int initColorsInitialized = initColors();
   (void)initColorsInitialized;
@@ -726,6 +728,10 @@ int GPUQA::InitQA(int tasks)
   mHist2D = new std::vector<TH2F>;
   mHist1Dd = new std::vector<TH1D>;
   mQATasks = tasks;
+
+  if (mTracking->GetProcessingSettings().qcRunFraction != 100.f && mQATasks != taskClusterCounts) {
+    throw std::runtime_error("QA with qcRunFraction only supported for taskClusterCounts");
+  }
 
   if (mTracking) {
     mClNative = mTracking->mIOPtrs.clustersNative;
@@ -1194,7 +1200,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
       GPUTPCGMPropagator prop;
       prop.SetMaxSinPhi(.999);
       prop.SetMaterialTPC();
-      prop.SetPolynomialField(&mParam.polynomialField);
+      prop.SetPolynomialField(&mParam->polynomialField);
 
       for (unsigned int i = 0; i < mTrackMCLabels.size(); i++) {
         if (mConfig.writeMCLabels) {
@@ -1296,11 +1302,11 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           if (tracksExternal) {
             return param.GetZ();
           }
-          if (!mParam.par.continuousMaxTimeBin) {
+          if (!mParam->par.continuousMaxTimeBin) {
             return param.GetZ() - mc1.z;
           }
 #ifdef GPUCA_TPC_GEOMETRY_O2
-          if (!mParam.par.earlyTpcTransform) {
+          if (!mParam->par.earlyTpcTransform) {
             float shift = side == 2 ? 0 : mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSLICES / 2, param.GetTZOffset() - mc1.t0);
             return param.GetZ() + shift - mc1.z;
           }
@@ -1792,6 +1798,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     }
     GPUInfo("Wrote %s,%d clusters in total, %d left, %d to be removed", fname, dumpClTot, dumpClLeft, dumpClRem);
   }
+  mTrackingScratchBuffer.clear();
 }
 
 void GPUQA::GetName(char* fname, int k)
@@ -2718,7 +2725,14 @@ void GPUQA::PrintClusterCount(int mode, int& num, const char* name, unsigned lon
     // do nothing, just count num
   } else if (mode == 1) {
     char name2[128];
-    sprintf(name2, "clusterCount%d", num);
+    sprintf(name2, "clusterCount%d_", num);
+    char* ptr = name2 + strlen(name2);
+    for (unsigned int i = 0; i < strlen(name); i++) {
+      if ((name[i] >= 'a' && name[i] <= 'z') || (name[i] >= 'A' && name[i] <= 'Z') || (name[i] >= '0' && name[i] <= '9')) {
+        *(ptr++) = name[i];
+      }
+    }
+    *ptr = 0;
     createHist(mHistClusterCount[num], name2, name, 1000, 0, mConfig.histMaxNClusters, 1000, 0, 100);
   } else if (mode == 0) {
     if (normalization && mConfig.enableLocalOutput) {
@@ -2726,7 +2740,7 @@ void GPUQA::PrintClusterCount(int mode, int& num, const char* name, unsigned lon
     }
     if (mConfig.clusterRejectionHistograms) {
       float ratio = 100.f * n / std::max(normalization, 1llu);
-      mHistClusterCount[num]->Fill(n, ratio, 1);
+      mHistClusterCount[num]->Fill(normalization, ratio, 1);
     }
   }
   num++;
@@ -2748,6 +2762,7 @@ int GPUQA::DoClusterCounts(unsigned long long int* attachClusterCounts, int mode
     PrintClusterCount(mode, num, "Protected", mClusterCounts.nProt, mClusterCounts.nTotal);
     PrintClusterCount(mode, num, "Unattached", mClusterCounts.nUnattached, mClusterCounts.nTotal);
     PrintClusterCount(mode, num, "Removed (Strategy A)", mClusterCounts.nTotal - mClusterCounts.nUnattached - mClusterCounts.nProt, mClusterCounts.nTotal);
+    PrintClusterCount(mode, num, "Removed (Strategy B)", mClusterCounts.nTotal - mClusterCounts.nProt, mClusterCounts.nTotal);
   }
 
   PrintClusterCount(mode, num, "Merged Loopers (Afterburner)", mClusterCounts.nMergedLooper, mClusterCounts.nTotal);
@@ -2767,4 +2782,10 @@ int GPUQA::DoClusterCounts(unsigned long long int* attachClusterCounts, int mode
     PrintClusterCount(mode, num, "Fake Protect (< 40 MeV)", mClusterCounts.nFakeProtect40, mClusterCounts.nBelow40);
   }
   return num;
+}
+
+void* GPUQA::AllocateScratchBuffer(size_t nBytes)
+{
+  mTrackingScratchBuffer.resize((nBytes + sizeof(mTrackingScratchBuffer[0]) - 1) / sizeof(mTrackingScratchBuffer[0]));
+  return mTrackingScratchBuffer.data();
 }

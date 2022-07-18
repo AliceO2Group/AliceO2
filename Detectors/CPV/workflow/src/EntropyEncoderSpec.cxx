@@ -15,6 +15,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "CPVWorkflow/EntropyEncoderSpec.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 
@@ -25,36 +26,37 @@ namespace o2
 namespace cpv
 {
 
-EntropyEncoderSpec::EntropyEncoderSpec()
+EntropyEncoderSpec::EntropyEncoderSpec() : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder)
 {
   mTimer.Stop();
   mTimer.Reset();
 }
 
+void EntropyEncoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
+    return;
+  }
+}
+
 void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>("ctf-dict");
-  mCTFCoder.setMemMarginFactor(ic.options().get<float>("mem-factor"));
-  if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCodersFromFile<CTF>(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
-  }
+  mCTFCoder.init<CTF>(ic);
 }
 
 void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
+  mCTFCoder.updateTimeDependentParams(pc);
   auto triggers = pc.inputs().get<gsl::span<TriggerRecord>>("triggers");
   auto clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"CPV", "CTFDATA", 0, Lifetime::Timeframe});
-  mCTFCoder.encode(buffer, triggers, clusters);
-  auto eeb = CTF::get(buffer.data()); // cast to container pointer
-  eeb->compactify();                  // eliminate unnecessary padding
-  buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
-  //  eeb->print();
+  auto iosize = mCTFCoder.encode(buffer, triggers, clusters);
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
-  LOG(info) << "Created encoded data of size " << eeb->size() << " for CPV in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -68,13 +70,15 @@ DataProcessorSpec getEntropyEncoderSpec()
   std::vector<InputSpec> inputs;
   inputs.emplace_back("triggers", "CPV", "CLUSTERTRIGRECS", 0, Lifetime::Timeframe);
   inputs.emplace_back("clusters", "CPV", "CLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict", "CPV", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("CPV/Calib/CTFDictionary"));
 
   return DataProcessorSpec{
     "cpv-entropy-encoder",
     inputs,
-    Outputs{{"CPV", "CTFDATA", 0, Lifetime::Timeframe}},
+    Outputs{{"CPV", "CTFDATA", 0, Lifetime::Timeframe},
+            {{"ctfrep"}, "CPV", "CTFENCREP", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
-    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF encoding dictionary"}},
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }
 

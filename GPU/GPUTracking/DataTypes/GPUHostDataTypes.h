@@ -27,6 +27,7 @@
 
 #include <vector>
 #include <array>
+#include <atomic>
 #include "DataFormatsTPC/Constants.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -42,6 +43,11 @@ struct GPUTPCDigitsMCInput {
 
 struct GPUTPCClusterMCInterim {
   std::vector<o2::MCCompLabel> labels;
+};
+
+struct GPUTPCClusterMCInterimArray {
+  std::vector<GPUTPCClusterMCInterim> data;
+  std::atomic_flag lock = ATOMIC_FLAG_INIT;
 };
 
 struct GPUTPCLinearLabels {

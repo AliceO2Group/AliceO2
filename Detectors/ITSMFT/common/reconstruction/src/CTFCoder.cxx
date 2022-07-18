@@ -116,12 +116,7 @@ void CTFCoder::compress(CompressedClusters& cc,
       if (cl.getChipID() == prevChip) { // for the same chip store column increment
         // cc.chipInc[icl] = 0;  // this is the version with chipInc stored for every pixel
         cc.chipMul.back()++; // this is the version with chipInc stored once per new chip
-#ifdef _CHECK_INCREMENTES_   // RS FIXME with current clusterization column increment can be slightly negative
-//        if (cl.getCol() < prevCol) {
-//          LOG(warning) << "Negative Column increment " << cl.getCol() << " -> " << prevCol << " in chip " << prevChip << " of ROF " << irof;
-//        }
-#endif
-        cc.colInc[icl] = cl.getCol() - prevCol;
+        cc.colInc[icl] = int16_t(cl.getCol()) - prevCol;
         prevCol = cl.getCol();
       } else { // for new chips store chipID increment and abs. column
         // cc.chipInc[icl] = cl.getChipID() - prevChip;  // this is the version with chipInc stored for every pixel
@@ -191,7 +186,7 @@ size_t CTFCoder::estimateCompressedSize(const CompressedClusters& cc)
 }
 
 ///________________________________
-CompressedClusters CTFCoder::decodeCompressedClusters(const CTF::base& ec)
+CompressedClusters CTFCoder::decodeCompressedClusters(const CTF::base& ec, o2::ctf::CTFIOSize& iosize)
 {
   CompressedClusters cc;
   cc.header = ec.getHeader();
@@ -199,17 +194,17 @@ CompressedClusters CTFCoder::decodeCompressedClusters(const CTF::base& ec)
   ec.print(getPrefix(), mVerbosity);
 #define DECODEITSMFT(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
-  DECODEITSMFT(cc.firstChipROF, CTF::BLCfirstChipROF);
-  DECODEITSMFT(cc.bcIncROF,     CTF::BLCbcIncROF);
-  DECODEITSMFT(cc.orbitIncROF,  CTF::BLCorbitIncROF);
-  DECODEITSMFT(cc.nclusROF,     CTF::BLCnclusROF);
+  iosize += DECODEITSMFT(cc.firstChipROF, CTF::BLCfirstChipROF);
+  iosize += DECODEITSMFT(cc.bcIncROF,     CTF::BLCbcIncROF);
+  iosize += DECODEITSMFT(cc.orbitIncROF,  CTF::BLCorbitIncROF);
+  iosize += DECODEITSMFT(cc.nclusROF,     CTF::BLCnclusROF);
   //
-  DECODEITSMFT(cc.chipInc,      CTF::BLCchipInc);
-  DECODEITSMFT(cc.chipMul,      CTF::BLCchipMul);
-  DECODEITSMFT(cc.row,          CTF::BLCrow);
-  DECODEITSMFT(cc.colInc,       CTF::BLCcolInc);
-  DECODEITSMFT(cc.pattID,       CTF::BLCpattID);
-  DECODEITSMFT(cc.pattMap,      CTF::BLCpattMap);
+  iosize += DECODEITSMFT(cc.chipInc,      CTF::BLCchipInc);
+  iosize += DECODEITSMFT(cc.chipMul,      CTF::BLCchipMul);
+  iosize += DECODEITSMFT(cc.row,          CTF::BLCrow);
+  iosize += DECODEITSMFT(cc.colInc,       CTF::BLCcolInc);
+  iosize += DECODEITSMFT(cc.pattID,       CTF::BLCpattID);
+  iosize += DECODEITSMFT(cc.pattMap,      CTF::BLCpattMap);
   // clang-format on
   return cc;
 }

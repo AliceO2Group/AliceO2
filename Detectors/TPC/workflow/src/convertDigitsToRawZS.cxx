@@ -55,7 +55,7 @@ constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
 constexpr static size_t NEndpoints = o2::gpu::GPUTrackingInOutZS::NENDPOINTS;
 using DigitArray = std::array<gsl::span<const o2::tpc::Digit>, Sector::MAXSECTOR>;
 
-static constexpr const char* CRU_FLPS[360] = {
+static constexpr const char* CRU_FLPS[361] = {
   "alio2-cr1-flp070", "alio2-cr1-flp069", "alio2-cr1-flp070", "alio2-cr1-flp069", "alio2-cr1-flp072", "alio2-cr1-flp071", "alio2-cr1-flp072", "alio2-cr1-flp071", "alio2-cr1-flp072", "alio2-cr1-flp071", "alio2-cr1-flp002", "alio2-cr1-flp001", "alio2-cr1-flp002", "alio2-cr1-flp001", "alio2-cr1-flp004", "alio2-cr1-flp003", "alio2-cr1-flp004", "alio2-cr1-flp003",
   "alio2-cr1-flp004", "alio2-cr1-flp003", "alio2-cr1-flp006", "alio2-cr1-flp005", "alio2-cr1-flp006", "alio2-cr1-flp005", "alio2-cr1-flp008", "alio2-cr1-flp007", "alio2-cr1-flp008", "alio2-cr1-flp007", "alio2-cr1-flp008", "alio2-cr1-flp007", "alio2-cr1-flp010", "alio2-cr1-flp009", "alio2-cr1-flp010", "alio2-cr1-flp009", "alio2-cr1-flp012", "alio2-cr1-flp011",
   "alio2-cr1-flp012", "alio2-cr1-flp011", "alio2-cr1-flp012", "alio2-cr1-flp011", "alio2-cr1-flp014", "alio2-cr1-flp013", "alio2-cr1-flp014", "alio2-cr1-flp013", "alio2-cr1-flp016", "alio2-cr1-flp015", "alio2-cr1-flp016", "alio2-cr1-flp015", "alio2-cr1-flp016", "alio2-cr1-flp015", "alio2-cr1-flp018", "alio2-cr1-flp017", "alio2-cr1-flp018", "alio2-cr1-flp017",
@@ -75,7 +75,8 @@ static constexpr const char* CRU_FLPS[360] = {
   "alio2-cr1-flp116", "alio2-cr1-flp115", "alio2-cr1-flp118", "alio2-cr1-flp117", "alio2-cr1-flp118", "alio2-cr1-flp117", "alio2-cr1-flp120", "alio2-cr1-flp119", "alio2-cr1-flp120", "alio2-cr1-flp119", "alio2-cr1-flp120", "alio2-cr1-flp119", "alio2-cr1-flp122", "alio2-cr1-flp121", "alio2-cr1-flp122", "alio2-cr1-flp121", "alio2-cr1-flp124", "alio2-cr1-flp123",
   "alio2-cr1-flp124", "alio2-cr1-flp123", "alio2-cr1-flp124", "alio2-cr1-flp123", "alio2-cr1-flp126", "alio2-cr1-flp125", "alio2-cr1-flp126", "alio2-cr1-flp125", "alio2-cr1-flp128", "alio2-cr1-flp127", "alio2-cr1-flp128", "alio2-cr1-flp127", "alio2-cr1-flp128", "alio2-cr1-flp127", "alio2-cr1-flp130", "alio2-cr1-flp129", "alio2-cr1-flp130", "alio2-cr1-flp129",
   "alio2-cr1-flp132", "alio2-cr1-flp131", "alio2-cr1-flp132", "alio2-cr1-flp131", "alio2-cr1-flp132", "alio2-cr1-flp131", "alio2-cr1-flp134", "alio2-cr1-flp133", "alio2-cr1-flp134", "alio2-cr1-flp133", "alio2-cr1-flp136", "alio2-cr1-flp135", "alio2-cr1-flp136", "alio2-cr1-flp135", "alio2-cr1-flp136", "alio2-cr1-flp135", "alio2-cr1-flp138", "alio2-cr1-flp137",
-  "alio2-cr1-flp138", "alio2-cr1-flp137", "alio2-cr1-flp140", "alio2-cr1-flp139", "alio2-cr1-flp140", "alio2-cr1-flp139", "alio2-cr1-flp140", "alio2-cr1-flp139", "alio2-cr1-flp142", "alio2-cr1-flp141", "alio2-cr1-flp142", "alio2-cr1-flp141", "alio2-cr1-flp144", "alio2-cr1-flp143", "alio2-cr1-flp144", "alio2-cr1-flp143", "alio2-cr1-flp144", "alio2-cr1-flp143"};
+  "alio2-cr1-flp138", "alio2-cr1-flp137", "alio2-cr1-flp140", "alio2-cr1-flp139", "alio2-cr1-flp140", "alio2-cr1-flp139", "alio2-cr1-flp140", "alio2-cr1-flp139", "alio2-cr1-flp142", "alio2-cr1-flp141", "alio2-cr1-flp142", "alio2-cr1-flp141", "alio2-cr1-flp144", "alio2-cr1-flp143", "alio2-cr1-flp144", "alio2-cr1-flp143", "alio2-cr1-flp144", "alio2-cr1-flp143",
+  "alio2-cr1-flp145"};
 
 struct ProcessAttributes {
   std::unique_ptr<unsigned long long int[]> zsoutput;
@@ -91,9 +92,8 @@ struct ProcessAttributes {
 void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::raw::RawFileWriter& writer);
 #include "DetectorsRaw/HBFUtils.h"
 void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view outputPath, std::string_view fileFor,
-                            bool sectorBySector, uint32_t rdhV, bool stopPage, bool padding, bool createParentDir)
+                            bool sectorBySector, uint32_t rdhV, uint32_t zsV, bool stopPage, bool padding, bool createParentDir)
 {
-
   // ===| open file and get tree |==============================================
   std::unique_ptr<TFile> o2simDigits(TFile::Open(digitsFile.data()));
   if (!o2simDigits || !o2simDigits->IsOpen() || o2simDigits->IsZombie()) {
@@ -137,22 +137,25 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   writer.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)); // must be set explicitly
   const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
 
-  for (unsigned int i = 0; i < NSectors; i++) {
+  for (unsigned int i = 0; i < NSectors + 1; i++) {
     for (unsigned int j = 0; j < NEndpoints; j++) {
       const unsigned int cruInSector = j / 2;
       const unsigned int cruID = i * 10 + cruInSector;
-      const rdh_utils::FEEIDType feeid = rdh_utils::getFEEID(cruID, j & 1, defaultLink);
+      const rdh_utils::FEEIDType feeid = i == NSectors ? 46208 : rdh_utils::getFEEID(cruID, j & 1, defaultLink);
       std::string outfname;
       if (fileFor == "all") { // single file for all links
         outfname = fmt::format("{}tpc_all.raw", outDir);
       } else if (fileFor == "sector") {
-        outfname = fmt::format("{}tpc_sector{}.raw", outDir, i);
+        outfname = i == NSectors ? fmt::format("{}tpc_iac.raw", outDir) : fmt::format("{}tpc_sector{}.raw", outDir, i);
       } else if (fileFor == "link" || fileFor == "cru") {
         outfname = fmt::format("{}TPC_{}_cru{}_{}.raw", outDir, CRU_FLPS[cruID], cruID, j & 1);
       } else {
         throw std::runtime_error("invalid option provided for file grouping");
       }
       writer.registerLink(feeid, cruID, defaultLink, j & 1, outfname);
+      if (i == NSectors) {
+        break; // Special IAC node
+      }
     }
   }
   if (fileFor != "link") { // in case >1 link goes to the file, we must cache to preserve the TFs ordering
@@ -168,6 +171,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
 
   ProcessAttributes attr;
   attr.padding = padding;
+  attr.version = zsV;
 
   for (int iSecBySec = 0; iSecBySec < Sector::MAXSECTOR; ++iSecBySec) {
     treeSim->ResetBranchAddresses();
@@ -249,6 +253,7 @@ int main(int argc, char** argv)
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
+    add_option("zs-version,r", bpo::value<uint32_t>()->default_value(2), "ZS version to use");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
     opt_all.add(opt_general).add(opt_hidden);
@@ -281,6 +286,7 @@ int main(int argc, char** argv)
     vm["file-for"].as<std::string>(),
     vm["sector-by-sector"].as<bool>(),
     vm["rdh-version"].as<uint32_t>(),
+    vm["zs-version"].as<uint32_t>(),
     vm["stop-page"].as<bool>(),
     vm["padding"].as<bool>(),
     !vm.count("no-parent-directories"));

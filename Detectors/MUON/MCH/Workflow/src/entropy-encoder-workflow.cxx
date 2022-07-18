@@ -15,6 +15,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/Task.h"
 #include "MCHCTF/CTFCoder.h"
 #include <TStopwatch.h>
@@ -35,43 +36,44 @@ class EntropyEncoderSpec : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   o2::mch::CTFCoder mCTFCoder;
   TStopwatch mTimer;
 };
 
-EntropyEncoderSpec::EntropyEncoderSpec()
+EntropyEncoderSpec::EntropyEncoderSpec() : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder)
 {
   mTimer.Stop();
   mTimer.Reset();
 }
 
+void EntropyEncoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
+    return;
+  }
+}
+
 void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>("ctf-dict");
-  mCTFCoder.setMemMarginFactor(ic.options().get<float>("mem-factor"));
-  if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCodersFromFile<CTF>(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
-  }
+  mCTFCoder.init<CTF>(ic);
 }
 
 void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-  auto rofs = pc.inputs().get<gsl::span<o2::mch::ROFRecord>>("rofs");
-  auto digits = pc.inputs().get<gsl::span<o2::mch::Digit>>("digits");
+  mCTFCoder.updateTimeDependentParams(pc);
+  auto rofs = pc.inputs().get<gsl::span<o2::mch::ROFRecord>>("rofs", 0);
+  auto digits = pc.inputs().get<gsl::span<o2::mch::Digit>>("digits", 0);
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"MCH", "CTFDATA", 0, Lifetime::Timeframe});
-  mCTFCoder.encode(buffer, rofs, digits);
-  auto eeb = CTF::get(buffer.data()); // cast to container pointer
-  eeb->compactify();                  // eliminate unnecessary padding
-  buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
-  //  eeb->print();
+  auto iosize = mCTFCoder.encode(buffer, rofs, digits);
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
-  LOG(info) << fmt::format("Created encoded data ({} digits and {} rofs) of size {} ({:5.1f} MB) for MCH in {:5.1f} s ",
-                           digits.size(), rofs.size(), eeb->size(), eeb->size() / 1024.0 / 1024, mTimer.CpuTime() - cput);
+  LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -85,13 +87,15 @@ DataProcessorSpec getEntropyEncoderSpec(const char* specName)
   std::vector<InputSpec> inputs;
   inputs.emplace_back("rofs", "MCH", "DIGITROFS", 0, Lifetime::Timeframe);
   inputs.emplace_back("digits", "MCH", "DIGITS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict", "MCH", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MCH/Calib/CTFDictionary"));
 
   return DataProcessorSpec{
     specName,
     inputs,
-    Outputs{{"MCH", "CTFDATA", 0, Lifetime::Timeframe}},
+    Outputs{{"MCH", "CTFDATA", 0, Lifetime::Timeframe},
+            {{"ctfrep"}, "MCH", "CTFENCREP", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
-    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"Path to pre-computed CTF encoding dictionary to be used for encoding"}},
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }
 

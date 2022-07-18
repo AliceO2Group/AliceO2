@@ -67,7 +67,7 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
 {
   framework::DataProcessorSpec merger;
 
-  merger.name = mergerIdString() + "-" + mName + std::to_string(mLayer) + "l-" + std::to_string(mId);
+  merger.name = mConfig.detectorName + "-" + mergerIdString() + "-" + mName + std::to_string(mLayer) + "l-" + std::to_string(mId);
 
   merger.inputs = mInputSpecs;
 

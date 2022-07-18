@@ -32,7 +32,10 @@ struct Tracklet final {
   GPUdi() Tracklet(const int, const int, float tanL, float phi, int rof0, int rof1);
   bool operator==(const Tracklet&) const;
   bool operator!=(const Tracklet&) const;
-  unsigned char isEmpty() const;
+  GPUhd() unsigned char isEmpty() const
+  {
+    return !firstClusterIndex && !secondClusterIndex && !tanLambda && !phi;
+  }
   void dump();
   unsigned char operator<(const Tracklet&) const;
 
@@ -85,11 +88,6 @@ inline bool Tracklet::operator!=(const Tracklet& rhs) const
          this->secondClusterIndex != rhs.secondClusterIndex ||
          this->tanLambda != rhs.tanLambda ||
          this->phi != rhs.phi;
-}
-
-inline unsigned char Tracklet::isEmpty() const
-{
-  return !firstClusterIndex && !secondClusterIndex && !tanLambda && !phi;
 }
 
 inline unsigned char Tracklet::operator<(const Tracklet& t) const

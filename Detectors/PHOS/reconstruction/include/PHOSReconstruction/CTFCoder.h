@@ -36,16 +36,16 @@ namespace phos
 class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::PHS) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op) : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), o2::detectors::DetID::PHS) {}
   ~CTFCoder() final = default;
 
   /// entropy-encode data to buffer with CTF
   template <typename VEC>
-  void encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Cell>& cellData);
+  o2::ctf::CTFIOSize encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Cell>& cellData);
 
   /// entropy decode data from buffer with CTF
   template <typename VTRG, typename VCELL>
-  void decode(const CTF::base& ec, VTRG& trigVec, VCELL& cellVec);
+  o2::ctf::CTFIOSize decode(const CTF::base& ec, VTRG& trigVec, VCELL& cellVec);
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
@@ -56,7 +56,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Cell>& cellData)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Cell>& cellData)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -84,23 +84,27 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
+  o2::ctf::CTFIOSize iosize;
 #define ENCODEPHS(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
-  ENCODEPHS(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
-  ENCODEPHS(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
-  ENCODEPHS(helper.begin_entriesTrig(),  helper.end_entriesTrig(),   CTF::BLC_entriesTrig,  0);
+  iosize += ENCODEPHS(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
+  iosize += ENCODEPHS(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
+  iosize += ENCODEPHS(helper.begin_entriesTrig(),  helper.end_entriesTrig(),   CTF::BLC_entriesTrig,  0);
 
-  ENCODEPHS(helper.begin_packedID(),    helper.end_packedID(),     CTF::BLC_packedID,    0);
-  ENCODEPHS(helper.begin_time(),        helper.end_time(),         CTF::BLC_time,        0);
-  ENCODEPHS(helper.begin_energy(),      helper.end_energy(),       CTF::BLC_energy,      0);
-  ENCODEPHS(helper.begin_status(),      helper.end_status(),       CTF::BLC_status,      0);
+  iosize += ENCODEPHS(helper.begin_packedID(),    helper.end_packedID(),     CTF::BLC_packedID,    0);
+  iosize += ENCODEPHS(helper.begin_time(),        helper.end_time(),         CTF::BLC_time,        0);
+  iosize += ENCODEPHS(helper.begin_energy(),      helper.end_energy(),       CTF::BLC_energy,      0);
+  iosize += ENCODEPHS(helper.begin_status(),      helper.end_status(),       CTF::BLC_status,      0);
   // clang-format on
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
+  finaliseCTFOutput<CTF>(buff);
+  iosize.rawIn = trigData.size() * sizeof(TriggerRecord) + cellData.size() * sizeof(Cell);
+  return iosize;
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
 template <typename VTRG, typename VCELL>
-void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& cellVec)
+o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& cellVec)
 {
   const auto& header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
@@ -109,16 +113,17 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& cellVec)
   std::vector<uint32_t> orbitInc;
   std::vector<uint8_t> status;
 
+  o2::ctf::CTFIOSize iosize;
 #define DECODEPHOS(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
-  DECODEPHOS(bcInc,       CTF::BLC_bcIncTrig);
-  DECODEPHOS(orbitInc,    CTF::BLC_orbitIncTrig);
-  DECODEPHOS(entries,     CTF::BLC_entriesTrig);
-  DECODEPHOS(packedID,    CTF::BLC_packedID);
+  iosize += DECODEPHOS(bcInc,       CTF::BLC_bcIncTrig);
+  iosize += DECODEPHOS(orbitInc,    CTF::BLC_orbitIncTrig);
+  iosize += DECODEPHOS(entries,     CTF::BLC_entriesTrig);
+  iosize += DECODEPHOS(packedID,    CTF::BLC_packedID);
 
-  DECODEPHOS(cellTime,    CTF::BLC_time);
-  DECODEPHOS(energy,      CTF::BLC_energy);
-  DECODEPHOS(status,      CTF::BLC_status);
+  iosize += DECODEPHOS(cellTime,    CTF::BLC_time);
+  iosize += DECODEPHOS(energy,      CTF::BLC_energy);
+  iosize += DECODEPHOS(status,      CTF::BLC_status);
   // clang-format on
   //
   trigVec.clear();
@@ -148,6 +153,8 @@ void CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& cellVec)
     trigVec.emplace_back(ir, firstEntry, entries[itrig]);
   }
   assert(cellCount == header.nCells);
+  iosize.rawIn = trigVec.size() * sizeof(TriggerRecord) + cellVec.size() * sizeof(Cell);
+  return iosize;
 }
 
 } // namespace phos

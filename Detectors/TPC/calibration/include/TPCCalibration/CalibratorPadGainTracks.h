@@ -54,6 +54,9 @@ class CalibratorPadGainTracks : public o2::calibration::TimeSlotCalibration<Cali
   /// \param minEntries minimum number of entries per pad-by-pad histogram
   void setMinEntries(const size_t minEntries) { mMinEntries = minEntries; }
 
+  /// set how the extracted gain map is normalized
+  void setNormalizationType(const CalibPadGainTracksBase::NormType type) { mNormType = type; }
+
   /// \return returns minimum number of entries per pad-by-pad histogram
   size_t getMinEntries() const { return mMinEntries; }
 
@@ -61,8 +64,18 @@ class CalibratorPadGainTracks : public o2::calibration::TimeSlotCalibration<Cali
   /// \param high upper truncation range
   void setTruncationRange(const float low = 0.05f, const float high = 0.6f);
 
+  /// \param minRelgain minimum accpeted relative gain (if the gain is below this value it will be set to minRelgain)
+  /// \param maxRelgain maximum accpeted relative gain (if the gain is above this value it will be set to maxRelgain)
+  void setRelGainRange(const float minRelgain = 0.1f, const float maxRelgain = 2.f);
+
+  /// minEntries minimum number of entries in pad-by-pad histogram to calculate the mean
+  void setMinEntriesMean(const int minEntriesMean) { mMinEntriesMean = minEntriesMean; }
+
   /// \param writeDebug writting debug output
   void setWriteDebug(const bool writeDebug) { mWriteDebug = writeDebug; }
+
+  /// \param useLastMap buffer last extracted gain map
+  void setUseLastExtractedMapAsReference(const bool useLastMap) { mUseLastExtractedMapAsReference = useLastMap; }
 
   /// \return returns if debug fileswill be written
   bool getWriteDebug() const { return mWriteDebug; }
@@ -77,18 +90,24 @@ class CalibratorPadGainTracks : public o2::calibration::TimeSlotCalibration<Cali
   const TFinterval& getTFinterval() const { return mIntervals; }
 
   /// \return returns calibration objects (pad-by-pad gain maps)
-  const auto& getCalibs() { return mCalibs; }
+  auto getCalibs() && { return std::move(mCalibs); }
 
   /// check if calibration data is available
   bool hasCalibrationData() const { return mCalibs.size() > 0; }
 
  private:
-  TFinterval mIntervals;       ///< start and end time frames of each calibration time slots
-  CalibVector mCalibs;         ///< Calibration object containing for each pad a histogram with normalized charge
-  float mLowTruncation{0.05f}; ///< lower truncation range for calculating mean of the histograms
-  float mUpTruncation{0.6f};   ///< upper truncation range for calculating mean of the histograms
-  size_t mMinEntries{30};      ///< Minimum amount of tracks in each time slot, to get enough statics
-  bool mWriteDebug = false;    ///< if to save debug trees
+  TFinterval mIntervals;                                                      ///< start and end time frames of each calibration time slots
+  CalibVector mCalibs;                                                        ///< Calibration object containing for each pad a histogram with normalized charge
+  float mLowTruncation{0.05f};                                                ///< lower truncation range for calculating mean of the histograms
+  float mUpTruncation{0.6f};                                                  ///< upper truncation range for calculating mean of the histograms
+  float mMinRelgain{0.1f};                                                    ///< minimum accpeted relative gain (if the gain is below this value it will be set to 1)
+  float mMaxRelgain{2.f};                                                     ///< maximum accpeted relative gain (if the gain is above this value it will be set to 1)
+  int mMinEntriesMean{10};                                                    ///< minEntries minimum number of entries in pad-by-pad histogram to calculate the mean
+  size_t mMinEntries{30};                                                     ///< Minimum amount of clusters per pad in each time slot, to get enough statics
+  bool mWriteDebug = false;                                                   ///< if to save debug trees
+  CalibPadGainTracksBase::NormType mNormType{CalibPadGainTracksBase::region}; ///< Normalization type for the extracted gain map
+  bool mUseLastExtractedMapAsReference{false};                                ///< Multiply the current extracted gain map with the last extracted gain map
+  std::unique_ptr<CalPad> mGainMapLastIteration;                              ///< gain map extracted from particle tracks from the last iteration
 
   ClassDefOverride(CalibratorPadGainTracks, 1);
 };

@@ -267,7 +267,6 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
       if (tvid.getSource() == GIndex::TPC && processTPCTrack(recoData.getTPCTrack(tvid), tvid, iv)) { // processTPCTrack may decide that this track does not need special treatment (e.g. it is constrained...)
         continue;
       }
-      std::decay_t<decltype(tmap.find(tvid))> tref{};
       if (tvid.isAmbiguous()) { // was this track already processed?
         auto tref = tmap.find(tvid);
         if (tref != tmap.end()) {

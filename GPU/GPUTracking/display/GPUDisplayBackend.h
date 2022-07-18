@@ -32,6 +32,7 @@ namespace GPUCA_NAMESPACE::gpu
 {
 class GPUDisplay;
 class GPUDisplayFrontend;
+class GPUDisplayMagneticField;
 struct GLfb;
 class GPUDisplayBackend
 {
@@ -75,6 +76,7 @@ class GPUDisplayBackend
   };
 
   virtual unsigned int drawVertices(const vboList& v, const drawType t) = 0;
+  virtual unsigned int drawField() { return 0; }
   virtual void ActivateColor(std::array<float, 4>& color) = 0;
   virtual void setQuality(){};
   virtual void SetVSync(bool enable){};
@@ -126,6 +128,8 @@ class GPUDisplayBackend
 
   backendTypes mBackendType = TYPE_INVALID;
   const char* mBackendName = nullptr;
+
+  std::unique_ptr<GPUDisplayMagneticField> mMagneticField;
 };
 } // namespace GPUCA_NAMESPACE::gpu
 

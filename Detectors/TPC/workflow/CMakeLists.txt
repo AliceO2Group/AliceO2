@@ -23,6 +23,7 @@ o2_add_library(TPCWorkflow
                        src/CalDetMergerPublisherSpec.cxx
                        src/KryptonClustererSpec.cxx
                        src/KryptonRawFilterSpec.cxx
+                       src/SACProcessorSpec.cxx
                        src/IDCToVectorSpec.cxx
                        src/CalibdEdxSpec.cxx
                        src/CalibratordEdxSpec.cxx
@@ -33,6 +34,7 @@ o2_add_library(TPCWorkflow
                        src/ProcessingHelpers.cxx
                        src/TrackAndClusterFilterSpec.cxx
                        src/FileWriterSpec.cxx
+                       src/TPCVDriftTglCalibSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
@@ -93,6 +95,11 @@ o2_add_executable(apply-ccdb-calib
                   SOURCES src/tpc-apply-ccdb-calib.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(sac-processing
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-sac-processing.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_executable(idc-integrate
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-integrate-idc.cxx
@@ -108,6 +115,11 @@ o2_add_executable(idc-distribute
                   SOURCES src/tpc-distribute-idc.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(sac-distribute
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-distribute-sac.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_executable(idc-ft-aggregator
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-fouriertransform-aggregator.cxx
@@ -121,6 +133,11 @@ o2_add_executable(idc-ft-epn
 o2_add_executable(idc-factorize
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-factorize-idc.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(sac-factorize
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-factorize-sac.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_executable(track-reader
@@ -199,5 +216,20 @@ o2_add_executable(calibrator-gainmap-tracks
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-calibrator-gainmap-tracks.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(entropy-encoder-workflow
+                  SOURCES src/entropy-encoder-workflow.cxx
+                  COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(calibration-workflow
+                  COMPONENT_NAME tpc-vdrift-tgl
+                  SOURCES src/tpc-vdrift-tgl-calibration-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                        O2::TPCWorkflow
+                                        O2::DetectorsCalibration
+                                        O2::DetectorsCalibrationWorkflow
+                                        O2::DataFormatsCalibration
+                                        O2::CCDB)
 
 add_subdirectory(readers)

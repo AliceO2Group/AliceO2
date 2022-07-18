@@ -76,7 +76,7 @@ struct fmt::formatter<o2::header::DataHeader> {
                fmt::format("  sub spec.    : {}\n", (long long unsigned int)h.subSpecification) +
                fmt::format("  header size  : {}\n", h.headerSize) +
                fmt::format("  payloadSize  : {}\n", (long long unsigned int)h.payloadSize) +
-               fmt::format("  firstTFOrbit : {}\n", h.firstTForbit) +
+               fmt::format("  firstTForbit : {}\n", h.firstTForbit) +
                fmt::format("  tfCounter    : {}\n", h.tfCounter) +
                fmt::format("  runNumber    : {}\n", h.runNumber);
     return format_to(ctx.out(), "{}", res);

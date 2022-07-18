@@ -29,6 +29,12 @@ void CalibratorPadGainTracks::setTruncationRange(const float low, const float hi
   mUpTruncation = high;
 }
 
+void CalibratorPadGainTracks::setRelGainRange(const float minRelgain, const float maxRelgain)
+{
+  mMinRelgain = minRelgain;
+  mMaxRelgain = maxRelgain;
+}
+
 void CalibratorPadGainTracks::finalizeSlot(Slot& slot)
 {
   const TFType startTF = slot.getTFStart();
@@ -36,10 +42,27 @@ void CalibratorPadGainTracks::finalizeSlot(Slot& slot)
   LOGP(info, "Finalizing slot {} <= TF <= {}", startTF, endTF);
 
   auto& calibPadGainTracks = *slot.getContainer();
-  calibPadGainTracks.finalize(mLowTruncation, mUpTruncation);
+  calibPadGainTracks.setNormalizationType(mNormType);
+  calibPadGainTracks.finalize(mMinEntriesMean, mMinRelgain, mMaxRelgain, mLowTruncation, mUpTruncation);
   mIntervals.emplace_back(startTF, endTF);
-  std::unordered_map<std::string, CalPad> cal({{"GainMap", calibPadGainTracks.getPadGainMap()}, {"SigmaMap", calibPadGainTracks.getSigmaMap()}});
+  auto& extractedGainMap = calibPadGainTracks.getPadGainMap();
+
+  if (mUseLastExtractedMapAsReference) {
+    // multiply extracted gain map with last extracted gain map
+    if (mGainMapLastIteration) {
+      LOGP(info, "Multiplying gain map with the extracted map from the last iteration");
+      extractedGainMap *= *mGainMapLastIteration;
+    }
+  }
+
+  std::unordered_map<std::string, CalPad> cal({{"GainMap", extractedGainMap}, {"SigmaMap", calibPadGainTracks.getSigmaMap()}});
   mCalibs.emplace_back(cal);
+
+  if (mUseLastExtractedMapAsReference) {
+    // buffer current extracted gain map
+    LOGP(info, "Buffering extracted gain map from the current iteration");
+    mGainMapLastIteration = std::make_unique<CalPad>(extractedGainMap);
+  }
 
   if (mWriteDebug) {
     calibPadGainTracks.dumpToFile(fmt::format("calPadGainTracksBase_TF_{}_to_{}.root", startTF, endTF).data());

@@ -228,7 +228,7 @@ class FlatHisto2D
     return binX < getNBinsX() ? gsl::span<const T>(&mDataPtr[offs], getNBinsY()) : gsl::span<const T>();
   }
 
-  std::unique_ptr<TH2F> createTH2F(const std::string& name = "histo2d");
+  std::unique_ptr<TH2F> createTH2F(const std::string& name = "histo2d") const;
 
   std::unique_ptr<TH1F> createSliceXTH1F(uint32_t binY, const std::string& name = "histo2dsliceX") const;
   std::unique_ptr<TH1F> createSliceYTH1F(uint32_t binX, const std::string& name = "histo2dsliceY") const;

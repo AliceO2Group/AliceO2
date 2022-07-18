@@ -61,6 +61,7 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Bool_t doSimulateTimeResponse() const { return mSimulateTimeResponse; }
   Bool_t doRemoveDigitsBelowThreshold() const { return mRemoveDigitsBelowThreshold; }
   Bool_t doSimulateNoiseDigits() const { return mSimulateNoiseDigits; }
+  Bool_t doSimulateL1Phase() const { return mSimulateL1Phase; }
 
   Bool_t isDisablePileup() const { return mDisablePileup; }
 
@@ -89,7 +90,7 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Float_t mECPrimThreshold{0.05}; ///< To store primary if EC Shower Elos > threshold
 
   // Timing
-  Float_t mSignalDelay{700};          ///< Signal delay time (ns)
+  Float_t mSignalDelay{600};          ///< Signal delay time (ns)
   unsigned int mTimeWindowStart{400}; ///< The start of the time window
   Float_t mLiveTime{1500};            ///< EMCal live time (ns)
   Float_t mBusyTime{35000};           ///< EMCal busy time (ns)
@@ -100,6 +101,7 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Bool_t mSimulateTimeResponse{true};       ///< simulate time response
   Bool_t mRemoveDigitsBelowThreshold{true}; ///< remove digits below threshold
   Bool_t mSimulateNoiseDigits{true};        ///< simulate noise digits
+  bool mSimulateL1Phase{true};              ///< Simulate L1 phase
 
   // DigitizerSpec
   Bool_t mDisablePileup{false}; ///< disable pileup simulation

@@ -24,6 +24,8 @@
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
+#include "ITStracking/Tracker.h"
+#include "ITStrackingGPU/TimeFrameGPU.h"
 #include "MathUtils/Utils.h"
 #include "DetectorsBase/Propagator.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -129,10 +131,12 @@ void RunGPUTracking(bool useLUT = true,
   std::unique_ptr<o2::gpu::GPUReconstruction> recCUDA(o2::gpu::GPUReconstruction::CreateInstance(o2::gpu::GPUDataTypes::DeviceType::CUDA, true));
   auto* chainITSCUDA = recCUDA->AddChain<o2::gpu::GPUChainITS>();
   std::unique_ptr<o2::its::Vertexer> vertexerCUDA = std::make_unique<o2::its::Vertexer>(chainITSCUDA->GetITSVertexerTraits());
+  std::unique_ptr<o2::its::Tracker> trackerCUDA = std::make_unique<o2::its::Tracker>(chainITSCUDA->GetITSTrackerTraits());
 
   std::unique_ptr<o2::gpu::GPUReconstruction> recHIP(o2::gpu::GPUReconstruction::CreateInstance(o2::gpu::GPUDataTypes::DeviceType::HIP, true));
   auto* chainITSHIP = recHIP->AddChain<o2::gpu::GPUChainITS>();
   std::unique_ptr<o2::its::Vertexer> vertexerHIP = std::make_unique<o2::its::Vertexer>(chainITSHIP->GetITSVertexerTraits());
+  std::unique_ptr<o2::its::Tracker> trackerHIP = std::make_unique<o2::its::Tracker>(chainITSHIP->GetITSTrackerTraits());
 
   o2::its::VertexingParameters parameters;
   parameters.phiCut = 0.005f;

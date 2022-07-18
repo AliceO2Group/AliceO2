@@ -73,7 +73,7 @@ std::ostream& operator<<(std::ostream& os, const ClusterPattern& pattern)
   unsigned char tempChar = 0;
   int s = 0;
   int ic = 0;
-  for (unsigned int i = 2; i < pattern.getUsedBytes() + 2; i++) {
+  for (int i = 2; i < pattern.getUsedBytes() + 2; i++) {
     tempChar = pattern.mBitmap[i];
     s = 128; // 0b10000000
     while (s > 0) {
@@ -126,7 +126,7 @@ int ClusterPattern::getCOG(int rowSpan, int colSpan, const unsigned char patt[Ma
   if (nBits % 8 != 0) {
     nBytes++;
   }
-  for (unsigned int i = 0; i < nBytes; i++) {
+  for (int i = 0; i < nBytes; i++) {
     unsigned char tempChar = patt[i];
     int s = 128; // 0b10000000
     while (s > 0) {

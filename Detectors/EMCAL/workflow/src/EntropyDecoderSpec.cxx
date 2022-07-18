@@ -15,6 +15,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "EMCALWorkflow/EntropyDecoderSpec.h"
 
 using namespace o2::framework;
@@ -24,26 +25,32 @@ namespace o2
 namespace emcal
 {
 
-EntropyDecoderSpec::EntropyDecoderSpec(int verbosity)
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder)
 {
   mTimer.Stop();
   mTimer.Reset();
   mCTFCoder.setVerbosity(verbosity);
 }
 
+void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
+    return;
+  }
+}
+
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>("ctf-dict");
-  if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCodersFromFile<CTF>(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
-  }
+  mCTFCoder.init<CTF>(ic);
 }
 
 void EntropyDecoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
+  o2::ctf::CTFIOSize iosize;
 
+  mCTFCoder.updateTimeDependentParams(pc);
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
 
   auto& triggers = pc.outputs().make<std::vector<TriggerRecord>>(OutputRef{"triggers"});
@@ -52,10 +59,11 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   if (buff.size()) {
     const auto ctfImage = o2::emcal::CTF::getImage(buff.data());
-    mCTFCoder.decode(ctfImage, triggers, cells);
+    iosize = mCTFCoder.decode(ctfImage, triggers, cells);
   }
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
-  LOG(info) << "Decoded " << cells.size() << " EMCAL cells in " << triggers.size() << " triggers in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << cells.size() << " EMCAL cells in " << triggers.size() << " triggers, (" << iosize.asString() << ") in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -68,14 +76,19 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"triggers"}, "EMC", "CELLSTRGR", 0, Lifetime::Timeframe},
-    OutputSpec{{"cells"}, "EMC", "CELLS", 0, Lifetime::Timeframe}};
+    OutputSpec{{"cells"}, "EMC", "CELLS", 0, Lifetime::Timeframe},
+    OutputSpec{{"ctfrep"}, "EMC", "CTFDECREP", 0, Lifetime::Timeframe}};
+
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("ctf", "EMC", "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict", "EMC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("EMC/Calib/CTFDictionary"));
 
   return DataProcessorSpec{
     "emcal-entropy-decoder",
-    Inputs{InputSpec{"ctf", "EMC", "CTFDATA", sspec, Lifetime::Timeframe}},
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
 }
 
 } // namespace emcal

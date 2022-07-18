@@ -30,6 +30,7 @@
 #include <set>
 #include <string>
 #include <cinttypes>
+#include <numeric>
 
 // Make sure we can use aggregated initialisers.
 #pragma GCC diagnostic push
@@ -37,9 +38,6 @@
 
 // Simplify debugging
 template class std::vector<o2::framework::DeviceMetricsInfo>;
-
-static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
-static inline ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x - rhs.x, lhs.y - rhs.y); }
 
 namespace o2::framework::gui
 {
@@ -228,9 +226,7 @@ void displaySparks(
   for (size_t i = 0; i < visibleMetricsIndex.size(); ++i) {
     auto& index = visibleMetricsIndex[i];
     auto& metricsInfos = *metricStore.metrics[index.storeIndex];
-    auto& nodes = *metricStore.specs[index.storeIndex];
     auto& metricsInfo = metricsInfos[index.deviceIndex];
-    auto& label = metricsInfo.metricLabels[index.metricIndex];
     auto& metric = metricsInfo.metrics[index.metricIndex];
     auto& state = metricDisplayStates[index.stateIndex];
 
@@ -311,7 +307,6 @@ void displayDeviceMetrics(const char* label,
   std::vector<void*> metricsToDisplay;
   std::vector<const char*> deviceNames;
   std::vector<MultiplotData> userData;
-  MetricType metricType;
 #ifdef NDEBUG
   for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
     assert(metricsStore.metrics[si].size() == metricStore.specs[si].size());
@@ -330,14 +325,12 @@ void displayDeviceMetrics(const char* label,
     auto const& specs = *metricStore.specs[si];
     for (int di = 0; di < metricsInfos.size(); ++di) {
       for (size_t mi = 0; mi < metricsInfos[di].metrics.size(); ++mi) {
-        auto& label = metricsInfos[di].metricLabels[mi];
         if (state[gmi].visible == false) {
           gmi++;
           continue;
         }
         auto& metric = metricsInfos[di].metrics[mi];
         deviceNames.push_back(specs[di].label.c_str());
-        metricType = metric.type;
         MultiplotData data;
         data.size = metric.filledMetrics;
         data.mod = std::min(metric.filledMetrics, metricsInfos[di].timestamps[mi].size());
@@ -366,7 +359,6 @@ void displayDeviceMetrics(const char* label,
           case MetricType::String: {
             data.Y = nullptr;
             data.type = MetricType::String;
-            metricType = MetricType::String;
           } break;
         }
 
@@ -380,9 +372,6 @@ void displayDeviceMetrics(const char* label,
   for (size_t ai = 0; ai < 3; ++ai) {
     maxValue[ai] = std::max(minValue[ai] + 1.f, maxValue[ai]);
   }
-
-  static size_t lastMinRange = minDomain;
-  static size_t lastMaxRange = maxDomain;
 
   // Nothing to show.
   if (userData.empty()) {
@@ -444,7 +433,6 @@ void displayDeviceMetrics(const char* label,
         for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
           ImGui::PushID(pi);
           auto data = (const MultiplotData*)metricsToDisplay[pi];
-          const char* label = data->legend;
           ImPlot::SetPlotYAxis(data->axis);
           ImPlot::PlotLineG(data->legend, getterXY, metricsToDisplay[pi], data->mod, 0);
           ImGui::PopID();
@@ -550,7 +538,6 @@ void displayMetrics(gui::WorkspaceGUIState& state,
   auto metricDisplayPos = 0;
   static bool metricSelectorVisible = true;
   static std::vector<MetricDisplayState> metricDisplayState;
-  static bool showInternalMetrics = false;
 
   // Calculate the full timestamp range for the selected metric
   size_t minTime = -1;
@@ -570,6 +557,13 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     size_t gmi = 0;
     std::vector<MetricDisplayState> newMetricDisplayStates;
     newMetricDisplayStates.resize(totalMetrics);
+    static std::vector<int> order;
+    order.resize(metricDisplayState.size());
+    std::iota(order.begin(), order.end(), 0);
+    std::sort(order.begin(), order.end(), [](int a, int b) {
+      return metricDisplayState[a].legend < metricDisplayState[b].legend;
+    });
+
     for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
       auto& metricsInfos = *metricsStore.metrics[si];
       auto& specs = *metricsStore.specs[si];
@@ -578,20 +572,26 @@ void displayMetrics(gui::WorkspaceGUIState& state,
         auto& spec = specs[di];
         for (size_t li = 0; li != metricInfo.metricLabels.size(); ++li) {
           char const* metricLabel = metricInfo.metricLabels[li].label;
+          // find the equal range for the label
+          auto low = std::lower_bound(order.begin(), order.end(), spec.label, [](int a, std::string const& b) {
+            return metricDisplayState[a].legend < b;
+          });
+          auto up = std::upper_bound(low, order.end(), spec.label, [](std::string const& a, int b) {
+            return a < metricDisplayState[b].legend;
+          });
           std::string legend = fmt::format("{}/{}", spec.label, metricLabel);
-          auto hasher = std::hash<std::string>();
-          size_t legendHash = hasher(legend);
-          auto old = std::find_if(metricDisplayState.begin(), metricDisplayState.end(), [&legend, &legendHash](MetricDisplayState const& state) { return state.legendHash == legendHash && state.legend == legend; });
-          if (old != metricDisplayState.end()) {
-            newMetricDisplayStates[gmi].visible = old->visible;
-            newMetricDisplayStates[gmi].axis = old->axis;
+          auto old = std::lower_bound(low, up, legend, [](int a, std::string const& b) {
+            return metricDisplayState[a].legend < b;
+          });
+          if (old != order.end() && metricDisplayState[*old].legend == legend) {
+            newMetricDisplayStates[gmi].visible = metricDisplayState[*old].visible;
+            newMetricDisplayStates[gmi].axis = metricDisplayState[*old].axis;
           } else {
             newMetricDisplayStates[gmi].visible = false;
           }
 
           newMetricDisplayStates[gmi].selected = hasAll(metricLabel, query);
           newMetricDisplayStates[gmi].legend = legend;
-          newMetricDisplayStates[gmi].legendHash = legendHash;
           gmi++;
         }
       }
@@ -607,13 +607,10 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     size_t gmi = 0;
     for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
       auto& metricsInfos = *metricsStore.metrics[si];
-      auto& devices = metricsStore.specs[si];
 
       for (size_t di = 0; di < metricsInfos.size(); ++di) {
         auto& metricInfo = metricsInfos[di];
-        auto& deviceSpec = devices[di];
         for (size_t li = 0; li != metricInfo.metricLabels.size(); ++li) {
-          auto& label = metricInfo.metricLabels[li];
           auto& state = metricDisplayState[gmi];
           if (state.selected) {
             selectedMetricIndex.emplace_back(MetricIndex{si, di, li, gmi});
@@ -650,8 +647,6 @@ void displayMetrics(gui::WorkspaceGUIState& state,
           auto& metricInfo = metricsInfos[index.deviceIndex];
           auto& node = nodes[index.deviceIndex];
           auto& label = metricInfo.metricLabels[index.metricIndex];
-          auto& metric = metricInfo.metrics[index.metricIndex];
-          auto& state = metricDisplayState[index.stateIndex];
           ImGui::PushID(index.stateIndex);
           ImGui::TableNextRow();
           ImGui::TableNextColumn();
@@ -716,7 +711,6 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     ImGui::EndCombo();
   }
   ImGui::PopItemWidth();
-  bool locked = false;
 
   size_t gmi = 0;
   int visibleMetrics = 0;
@@ -733,7 +727,6 @@ void displayMetrics(gui::WorkspaceGUIState& state,
       auto& metricInfo = metricsInfos[di];
       bool deviceVisible = false;
       for (size_t mi = 0; mi < metricInfo.metrics.size(); ++mi) {
-        auto& label = metricInfo.metricLabels[mi];
         auto& state = metricDisplayState[gmi];
         if (state.visible) {
           deviceVisible = true;
@@ -801,7 +794,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
       // The Device name header.
       if (ImGui::BeginTable("##metrics-table", visibleMetricsIndex.size() + 1, ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollX, ImVec2{-1, -1})) {
         ImGui::TableSetupColumn("##close button", ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_WidthFixed, 20);
-        for (auto index : visibleMetricsIndex) {
+        for (int i = 0; i < visibleMetricsIndex.size(); ++i) {
           ImGui::TableSetupColumn("##device-header", ImGuiTableColumnFlags_WidthFixed, 100);
         }
         ImGui::TableSetupScrollFreeze(1, 2);
@@ -812,10 +805,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
         lastDevice = -1;
         for (auto index : visibleMetricsIndex) {
           ImGui::TableNextColumn();
-          auto& metricsInfos = *metricsStore.metrics[index.storeIndex];
           auto& devices = *metricsStore.specs[index.storeIndex];
-          auto& metric = metricsInfos[index.deviceIndex];
-          auto label = metricsInfos[index.deviceIndex].metricLabels[index.metricIndex].label;
           if (lastDevice == index.deviceIndex) {
             continue;
           }
@@ -914,7 +904,6 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
   ImGui::SameLine();
   ImGui::RadioButton("Step", state, static_cast<int>(DriverControlState::STEP));
 
-  auto& registry = driverInfo.configContext->options();
   ImGui::Columns();
 
   ImGui::Text("PID: %d - Control port %d", pid, driverInfo.port);
@@ -1011,7 +1000,7 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
   std::vector<TopologyNodeInfo> driverNodesInfos;
   driverNodesInfos.push_back(TopologyNodeInfo{"driver"});
 
-  return [&guiState, &infos, &devices, &metadata, &controls, &metricsInfos, &driverInfo, &driverControl, deviceNodesInfos, driverNodesInfos]() {
+  return [&infos, &devices, &metadata, &controls, &metricsInfos, &driverInfo, &driverControl, deviceNodesInfos, driverNodesInfos]() {
     ImGuiStyle& style = ImGui::GetStyle();
     style.FrameRounding = 0.;
     style.WindowRounding = 0.;
@@ -1037,8 +1026,6 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
       assert(i < infos.size());
       assert(i < devices.size());
       const DeviceInfo& info = infos[i];
-      const DeviceSpec& spec = devices[i];
-      const DeviceMetricsInfo& metrics = metricsInfos[i];
 
       assert(controls.size() == devices.size());
       DeviceControl& control = controls[i];
@@ -1104,13 +1091,13 @@ void updateWindowSize(int x, int y)
 void keyDown(char key)
 {
   ImGuiIO& io = ImGui::GetIO();
-  io.KeysDown[io.KeyMap[key]] = true;
+  io.KeysDown[io.KeyMap[(int)key]] = true;
 }
 
 void keyUp(char key)
 {
   ImGuiIO& io = ImGui::GetIO();
-  io.KeysDown[io.KeyMap[key]] = false;
+  io.KeysDown[io.KeyMap[(int)key]] = false;
 }
 
 void charIn(char key)
@@ -1120,5 +1107,3 @@ void charIn(char key)
 }
 
 } // namespace o2::framework::gui
-
-#pragma GCC diagnostic pop

@@ -137,6 +137,14 @@ struct ContextElementTraits<DataAllocator> {
   }
 };
 
+template <>
+struct ContextElementTraits<ProcessingContext> {
+  static ProcessingContext& get(ProcessingContext& ctx)
+  {
+    return ctx;
+  }
+};
+
 template <typename... CONTEXTELEMENT>
 AlgorithmSpec::ProcessCallback adaptStatelessF(std::function<void(CONTEXTELEMENT&...)> callback)
 {

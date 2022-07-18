@@ -18,6 +18,7 @@
 #include <typeinfo>
 #include <utility>
 #include <TMemFile.h>
+#include <TTree.h>
 #include "Framework/Logger.h"
 #include "CommonUtils/StringUtils.h"
 
@@ -110,23 +111,38 @@ struct MemFileHelper {
   static std::unique_ptr<TMemFile> createTMemFile(const void* obj, const std::type_info& tinfo, const std::string& fName, const std::string& optName = "")
   {
     std::unique_ptr<TMemFile> uptr;
-    std::string clsName = getClassName(tinfo);
-    if (clsName.empty()) {
+    auto tcl = TClass::GetClass(tinfo);
+    std::string clsName;
+    if (!tcl) {
+      LOG(error) << "Could not retrieve ROOT dictionary for type " << tinfo.name();
       return uptr;
+    } else {
+      clsName = tcl->GetName();
+      o2::utils::Str::trim(clsName);
     }
+    bool isTree = tcl->InheritsFrom("TTree");
+    int compressLevel = isTree ? ROOT::RCompressionSetting::EDefaults::kUseCompiledDefault : ROOT::RCompressionSetting::EDefaults::kUseGeneralPurpose;
+    Long64_t blSize = isTree ? 0LL : 1024LL;
+
     std::string objName = optName.empty() ? clsName : optName;
     std::string fileName = fName.empty() ? (objName + ".root") : fName;
 #if ROOT_VERSION_CODE < ROOT_VERSION(6, 18, 0)
     uptr = std::make_unique<TMemFile>(fileName.c_str(), "RECREATE");
 #else
-    uptr = std::make_unique<TMemFile>(fileName.c_str(), "RECREATE", "", ROOT::RCompressionSetting::EDefaults::kUseGeneralPurpose, 1024);
+    uptr = std::make_unique<TMemFile>(fileName.c_str(), "RECREATE", "", compressLevel, blSize);
 #endif
     if (uptr->IsZombie()) {
       uptr->Close();
       uptr.reset();
       throw std::runtime_error(std::string("Error opening memory file ") + fileName.c_str());
     } else {
+      const TTree* treePtr = nullptr;
+      if (isTree) { // trees are special: need to create a new file-resident tree
+        treePtr = const_cast<TTree*>((const TTree*)obj)->CloneTree(-1, "");
+        obj = treePtr;
+      }
       uptr->WriteObjectAny(obj, clsName.c_str(), objName.c_str());
+      delete treePtr;
       uptr->Close();
     }
     return uptr;

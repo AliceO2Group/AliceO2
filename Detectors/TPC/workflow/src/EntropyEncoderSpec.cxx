@@ -17,6 +17,7 @@
 #include "TPCWorkflow/EntropyEncoderSpec.h"
 #include "DataFormatsTPC/CompressedClusters.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Headers/DataHeader.h"
 
 using namespace o2::framework;
@@ -27,18 +28,22 @@ namespace o2
 namespace tpc
 {
 
+void EntropyEncoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
+    return;
+  }
+}
+
 void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 {
+  mCTFCoder.init<CTF>(ic);
   mCTFCoder.setCombineColumns(!ic.options().get<bool>("no-ctf-columns-combining"));
-  mCTFCoder.setMemMarginFactor(ic.options().get<float>("mem-factor"));
-  std::string dictPath = ic.options().get<std::string>("ctf-dict");
-  if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCodersFromFile<CTF>(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
-  }
 }
 
 void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
+  mCTFCoder.updateTimeDependentParams(pc);
   CompressedClusters clusters;
 
   if (mFromFile) {
@@ -60,13 +65,10 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"TPC", "CTFDATA", 0, Lifetime::Timeframe});
-  mCTFCoder.encode(buffer, clusters);
-  auto encodedBlocks = CTF::get(buffer.data()); // cast to container pointer
-  encodedBlocks->compactify();                  // eliminate unnecessary padding
-  buffer.resize(encodedBlocks->size());         // shrink buffer to strictly necessary size
-  // encodedBlocks->print();
+  auto iosize = mCTFCoder.encode(buffer, clusters);
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
-  LOG(info) << "Created encoded data of size " << encodedBlocks->size() << " for TPC in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -79,12 +81,16 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile)
 {
   std::vector<InputSpec> inputs;
   header::DataDescription inputType = inputFromFile ? header::DataDescription("COMPCLUSTERS") : header::DataDescription("COMPCLUSTERSFLAT");
+  inputs.emplace_back("input", "TPC", inputType, 0, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionary"));
+
   return DataProcessorSpec{
     "tpc-entropy-encoder", // process id
-    Inputs{{"input", "TPC", inputType, 0, Lifetime::Timeframe}},
-    Outputs{{"TPC", "CTFDATA", 0, Lifetime::Timeframe}},
+    inputs,
+    Outputs{{"TPC", "CTFDATA", 0, Lifetime::Timeframe},
+            {{"ctfrep"}, "TPC", "CTFENCREP", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(inputFromFile)},
-    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF encoding dictionary"}},
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"no-ctf-columns-combining", VariantType::Bool, false, {"Do not combine correlated columns in CTF"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }

@@ -33,7 +33,7 @@ int convertRootToCSV(const std::string rootFileName)
 
   for (auto c : *channels) {
     std::cout << fmt::format("{},{},{}\n",
-                             c.getSolarId(), c.getDsId(), c.getChannel());
+                             c.getSolarId(), c.getElinkId(), c.getChannel());
   }
 
   delete f;
@@ -58,7 +58,7 @@ int main(int argc, char** argv)
 
   if (vm.count("help")) {
     std::cout << R"(
-This program converts a Root file containing bad channels information into the 
+This program converts a Root file containing bad channels information into the
 same information in CSV format.
 
 The output file format is :

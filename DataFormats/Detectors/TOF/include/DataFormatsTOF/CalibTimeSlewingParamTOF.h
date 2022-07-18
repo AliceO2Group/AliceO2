@@ -86,6 +86,12 @@ class CalibTimeSlewingParamTOF
   CalibTimeSlewingParamTOF& operator+=(const CalibTimeSlewingParamTOF& other);
   void bind();
 
+  long getStartValidity() const { return mStartValidity; }
+  long getEndValidity() const { return mEndValidity; }
+
+  void setStartValidity(long validity) { mStartValidity = validity; }
+  void setEndValidity(long validity) { mEndValidity = validity; }
+
  private:
   std::array<int, NCHANNELXSECTOR> mChannelStartSec0;
   std::array<float, NCHANNELXSECTOR> mGlobalOffsetSec0;
@@ -202,7 +208,10 @@ class CalibTimeSlewingParamTOF
   std::array<float, NCHANNELXSECTOR>* mFractionUnderPeak[NSECTORS] = {&mFractionUnderPeakSec0, &mFractionUnderPeakSec1, &mFractionUnderPeakSec2, &mFractionUnderPeakSec3, &mFractionUnderPeakSec4, &mFractionUnderPeakSec5, &mFractionUnderPeakSec6, &mFractionUnderPeakSec7, &mFractionUnderPeakSec8, &mFractionUnderPeakSec9, &mFractionUnderPeakSec10, &mFractionUnderPeakSec11, &mFractionUnderPeakSec12, &mFractionUnderPeakSec13, &mFractionUnderPeakSec14, &mFractionUnderPeakSec15, &mFractionUnderPeakSec16, &mFractionUnderPeakSec17}; //! array with the fraction of entries below the peak
   std::array<float, NCHANNELXSECTOR>* mSigmaPeak[NSECTORS] = {&mSigmaPeakSec0, &mSigmaPeakSec1, &mSigmaPeakSec2, &mSigmaPeakSec3, &mSigmaPeakSec4, &mSigmaPeakSec5, &mSigmaPeakSec6, &mSigmaPeakSec7, &mSigmaPeakSec8, &mSigmaPeakSec9, &mSigmaPeakSec10, &mSigmaPeakSec11, &mSigmaPeakSec12, &mSigmaPeakSec13, &mSigmaPeakSec14, &mSigmaPeakSec15, &mSigmaPeakSec16, &mSigmaPeakSec17};                                                                                                                                                         //! array with the sigma of the peak
 
-  ClassDefNV(CalibTimeSlewingParamTOF, 3); // class for TOF time slewing params
+  long mStartValidity = 0; ///< start validity of the object when put in CCDB
+  long mEndValidity = 0;   ///< end validity of the object when put in CCDB
+
+  ClassDefNV(CalibTimeSlewingParamTOF, 4); // class for TOF time slewing params
 };
 } // namespace dataformats
 } // namespace o2

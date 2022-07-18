@@ -9,16 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#if !defined(__CLING__) || defined(__ROOTCLING__)
+#include "CommonUtils/NameConf.h"
+#endif
 #include <vector>
 #include <string>
 #include "TFile.h"
-#include "CCDB/CcdbApi.h"
 #include "DetectorsDCS/AliasExpander.h"
 #include "DetectorsDCS/DeliveryType.h"
 #include "DetectorsDCS/DataPointIdentifier.h"
-
 #include <unordered_map>
 #include <chrono>
+#include "CCDB/CcdbApi.h"
 
 using DPID = o2::dcs::DataPointIdentifier;
 

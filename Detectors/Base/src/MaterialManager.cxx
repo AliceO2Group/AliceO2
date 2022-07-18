@@ -31,6 +31,8 @@
 #include "rapidjson/istreamwrapper.h"
 #include "rapidjson/ostreamwrapper.h"
 #include "rapidjson/prettywriter.h"
+#include <algorithm>
+#include <SimConfig/SimParams.h>
 
 using namespace o2::base;
 namespace rj = rapidjson;
@@ -91,21 +93,65 @@ const std::unordered_map<ECut, const char*> MaterialManager::mCutIDToName = {
   {ECut::kPPCUTM, "PPCUTM"},
   {ECut::kTOFMAX, "TOFMAX"}};
 
+// Constructing a map between module names and local material density values
+void MaterialManager::initDensityMap()
+{
+  auto& globalDensityFactor = o2::conf::SimMaterialParams::Instance().globalDensityFactor;
+  if (globalDensityFactor < 0) {
+    LOG(fatal) << "Negative value "
+               << globalDensityFactor
+               << " found for global material density!\n";
+  }
+  std::string token;
+  std::istringstream input(
+    o2::conf::SimMaterialParams::Instance().localDensityFactor);
+  std::vector<std::string> inputModuleNames;
+  std::vector<std::string> inputDensityValues;
+  while (std::getline(input, token, ',')) {
+    std::size_t pos = token.find(':');
+    inputModuleNames.push_back(token.substr(0, pos));
+    inputDensityValues.push_back(token.substr(pos + 1));
+  }
+  for (std::size_t i = 0; i < inputModuleNames.size(); i++) {
+    if (std::stof(inputDensityValues[i]) < 0) {
+      LOG(fatal) << "Negative value " << std::stof(inputDensityValues[i])
+                 << " found for material density in module "
+                 << inputModuleNames[i] << "!\n";
+    }
+    mDensityMap[inputModuleNames[i]] = std::stof(inputDensityValues[i]);
+  }
+  mDensityMapInitialized = true;
+}
+
+float MaterialManager::getDensity(std::string const& modname)
+{
+  if (!mDensityMapInitialized) {
+    initDensityMap();
+  }
+  if (mDensityMap.find(modname) != mDensityMap.end()) {
+    return mDensityMap[modname];
+  }
+  return o2::conf::SimMaterialParams::Instance().globalDensityFactor;
+}
+
 void MaterialManager::Material(const char* modname, Int_t imat, const char* name, Float_t a, Float_t z, Float_t dens,
                                Float_t radl, Float_t absl, Float_t* buf, Int_t nwbuf)
 {
   TString uniquename = modname;
+  auto densityFactor = getDensity(modname);
   uniquename.Append("_");
   uniquename.Append(name);
   if (TVirtualMC::GetMC()) {
     // Check this!!!
     int kmat = -1;
-    TVirtualMC::GetMC()->Material(kmat, uniquename.Data(), a, z, dens * mDensityFactor, radl, absl, buf, nwbuf);
+    TVirtualMC::GetMC()->Material(kmat, uniquename.Data(), a, z,
+                                  dens * densityFactor, radl, absl, buf, nwbuf);
     mMaterialMap[modname][imat] = kmat;
     insertMaterialName(uniquename.Data(), kmat);
   } else {
     auto uid = gGeoManager->GetListOfMaterials()->GetSize();
-    auto mat = gGeoManager->Material(uniquename.Data(), a, z, dens * mDensityFactor, uid, radl, absl);
+    auto mat = gGeoManager->Material(uniquename.Data(), a, z,
+                                     dens * densityFactor, uid, radl, absl);
     mMaterialMap[modname][imat] = uid;
     insertMaterialName(uniquename.Data(), uid);
   }
@@ -127,13 +173,15 @@ void MaterialManager::Mixture(const char* modname, Int_t imat, const char* name,
                               Int_t nlmat, Float_t* wmat)
 {
   TString uniquename = modname;
+  auto densityFactor = getDensity(modname);
   uniquename.Append("_");
   uniquename.Append(name);
 
   if (TVirtualMC::GetMC()) {
     // Check this!!!
     int kmat = -1;
-    TVirtualMC::GetMC()->Mixture(kmat, uniquename.Data(), a, z, dens * mDensityFactor, nlmat, wmat);
+    TVirtualMC::GetMC()->Mixture(kmat, uniquename.Data(), a, z,
+                                 dens * densityFactor, nlmat, wmat);
     mMaterialMap[modname][imat] = kmat;
     insertMaterialName(uniquename.Data(), kmat);
 
@@ -150,7 +198,8 @@ void MaterialManager::Mixture(const char* modname, Int_t imat, const char* name,
         wmat[i] *= a[i] / amol;
       }
     }
-    auto mix = gGeoManager->Mixture(uniquename.Data(), a, z, dens * mDensityFactor, nlmat, wmat, uid);
+    auto mix = gGeoManager->Mixture(uniquename.Data(), a, z,
+                                    dens * densityFactor, nlmat, wmat, uid);
     mMaterialMap[modname][imat] = uid;
     insertMaterialName(uniquename.Data(), uid);
   }

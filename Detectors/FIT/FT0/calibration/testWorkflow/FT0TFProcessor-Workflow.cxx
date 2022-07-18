@@ -29,8 +29,7 @@ class FT0TFProcessor final : public o2::framework::Task
  public:
   void run(o2::framework::ProcessingContext& pc) final
   {
-    const auto ref = pc.inputs().getFirstValid(true);
-    auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
+    auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
     //    LOG(info)<<" FT0TFProcessor run "<<creationTime;
     auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");
     auto channels = pc.inputs().get<gsl::span<o2::ft0::ChannelData>>("channels");
@@ -38,10 +37,9 @@ class FT0TFProcessor final : public o2::framework::Task
     calib_data.reserve(channels.size());
     int nDig = digits.size();
     LOG(debug) << " nDig " << nDig;
-    for (int id = 0; id < nDig; id++) {
-      const auto& digit = digits[id];
-      //     auto chan = digit.getBunchChannelData(channels);
-      for (const auto& channel : channels) {
+    for (const auto& digit : digits) {
+      const auto& chan = digit.getBunchChannelData(channels);
+      for (const auto& channel : chan) {
         if (channel.QTCAmpl > 14 && std::abs(channel.CFDTime) < 100) {
           calib_data.emplace_back(channel.ChId, channel.CFDTime, channel.QTCAmpl, uint64_t(creationTime));
         }

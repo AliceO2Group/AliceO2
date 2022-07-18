@@ -33,6 +33,7 @@
 #include "TOFBase/Utils.h"
 #include "Steer/MCKinematicsReader.h"
 #include "Framework/CCDBParamSpec.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "TSystem.h"
 
 #include <memory> // for make_shared, make_unique, unique_ptr
@@ -59,18 +60,19 @@ class TOFDPLClustererTask
   bool mIsCosmic = false;
   int mTimeWin = 5000;
   bool mUpdateCCDB = false;
-
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::string mCCDBurl;
   o2::tof::CalibTOFapi* mCalibApi = nullptr;
 
  public:
-  explicit TOFDPLClustererTask(bool useMC, bool useCCDB, bool doCalib, bool isCosmic, std::string ccdb_url) : mUseMC(useMC), mUseCCDB(useCCDB), mIsCalib(doCalib), mIsCosmic(isCosmic), mCCDBurl(ccdb_url) {}
+  explicit TOFDPLClustererTask(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool useCCDB, bool doCalib, bool isCosmic, std::string ccdb_url, bool isForCalib) : mGGCCDBRequest(gr), mUseMC(useMC), mUseCCDB(useCCDB), mIsCalib(doCalib), mIsCosmic(isCosmic), mCCDBurl(ccdb_url), mForCalib(isForCalib) {}
+
   void init(framework::InitContext& ic)
   {
     // nothing special to be set up
     mTimer.Stop();
     mTimer.Reset();
-
+    o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
     mTimeWin = ic.options().get<int>("cluster-time-window");
     LOG(debug) << "Is calibration from cluster on? " << mIsCalib;
     LOG(debug) << "DeltaTime for clusterization = " << mTimeWin << " ps";
@@ -78,27 +80,14 @@ class TOFDPLClustererTask
 
     mClusterer.setCalibFromCluster(mIsCalib);
     mClusterer.setDeltaTforClustering(mTimeWin);
-
-    // initialize collision context
-    if (gSystem->AccessPathName("collisioncontext.root")) {
-      LOG(info) << "collisioncontext.root not available, let's skip it (cosmics?) ";
-    } else {
-      auto mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
-      auto context = mcReader->getDigitizationContext();
-      if (context) {
-        auto bcf = context->getBunchFilling();
-        std::bitset<3564> isInBC = bcf.getBCPattern();
-        for (unsigned int i = 0; i < isInBC.size(); i++) {
-          if (isInBC.test(i)) {
-            o2::tof::Utils::addInteractionBC(i, true);
-          }
-        }
-      }
-    }
+    mClusterer.setCalibStored(mForCalib);
   }
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher matcher, void* obj)
   {
+    if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+      return;
+    }
     if (matcher == ConcreteDataMatcher("TOF", "DiagnosticCal", 0)) {
       mUpdateCCDB = true;
       return;
@@ -112,6 +101,7 @@ class TOFDPLClustererTask
       return;
     }
   }
+
   void run(framework::ProcessingContext& pc)
   {
     mTimer.Start(false);
@@ -120,9 +110,9 @@ class TOFDPLClustererTask
     auto row = pc.inputs().get<gsl::span<o2::tof::ReadoutWindowData>>("readoutwin");
     auto dia = pc.inputs().get<o2::tof::Diagnostic*>("diafreq");
     auto patterns = pc.inputs().get<pmr::vector<unsigned char>>("patterns");
-
-    const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
-    mClusterer.setFirstOrbit(dh->firstTForbit);
+    updateTimeDependentParams(pc);
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+    mClusterer.setFirstOrbit(tinfo.firstTForbit);
 
     auto labelvector = std::make_shared<std::vector<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>>();
     if (mUseMC) {
@@ -132,34 +122,7 @@ class TOFDPLClustererTask
       mClsLabels.clear();
     }
 
-    if (mUseCCDB) { // read calibration objects from ccdb
-      // check LHC phase
-      const auto lhcPhaseIn = pc.inputs().get<o2::dataformats::CalibLHCphaseTOF*>("tofccdbLHCphase");
-      const auto channelCalibIn = pc.inputs().get<o2::dataformats::CalibTimeSlewingParamTOF*>("tofccdbChannelCalib");
-      const auto diagnosticIn = pc.inputs().get<o2::tof::Diagnostic*>("tofccdbDia");
-
-      if (!mCalibApi) {
-        o2::dataformats::CalibLHCphaseTOF* lhcPhase = new o2::dataformats::CalibLHCphaseTOF(std::move(*lhcPhaseIn));
-        o2::dataformats::CalibTimeSlewingParamTOF* channelCalib = new CalibTimeSlewingParamTOF(std::move(*channelCalibIn));
-        o2::tof::Diagnostic* diagnostic = new o2::tof::Diagnostic(std::move(*diagnosticIn));
-        mCalibApi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib, diagnostic);
-        mCalibApi->loadDiagnosticFrequencies();
-        mUpdateCCDB = false;
-      } else { // update if necessary
-        if (mUpdateCCDB) {
-          LOG(info) << "Update CCDB objects since new";
-          delete mCalibApi;
-          o2::dataformats::CalibLHCphaseTOF* lhcPhase = new o2::dataformats::CalibLHCphaseTOF(*lhcPhaseIn);
-          o2::dataformats::CalibTimeSlewingParamTOF* channelCalib = new CalibTimeSlewingParamTOF(*channelCalibIn);
-          o2::tof::Diagnostic* diagnostic = new o2::tof::Diagnostic(std::move(*diagnosticIn));
-          mCalibApi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib, diagnostic);
-          mCalibApi->loadDiagnosticFrequencies();
-          mUpdateCCDB = false;
-        } else {
-          // do nothing
-        }
-      }
-    } else if (!mCalibApi) { // calibration objects set to zero
+    if (!mUseCCDB && !mCalibApi) { // calibration objects set to zero
       auto* lhcPhaseDummy = new o2::dataformats::CalibLHCphaseTOF();
       auto* channelCalibDummy = new o2::dataformats::CalibTimeSlewingParamTOF();
 
@@ -175,9 +138,7 @@ class TOFDPLClustererTask
       mCalibApi = new o2::tof::CalibTOFapi(long(0), lhcPhaseDummy, channelCalibDummy);
     }
 
-    const auto ref = pc.inputs().getFirstValid(true);
-    auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation;
-    mCalibApi->setTimeStamp(creationTime / 1000);
+    mCalibApi->setTimeStamp(tinfo.creation / 1000);
 
     mClusterer.setCalibApi(mCalibApi);
 
@@ -270,6 +231,48 @@ class TOFDPLClustererTask
   }
 
  private:
+  void updateTimeDependentParams(ProcessingContext& pc)
+  {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    static bool initOnceDone = false;
+    if (!initOnceDone) { // this params need to be queried only once
+      initOnceDone = true;
+      const auto bcs = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling().getFilledBCs();
+      for (auto bc : bcs) {
+        o2::tof::Utils::addInteractionBC(bc, true);
+      }
+    }
+
+    if (mUseCCDB) { // read calibration objects from ccdb
+      // check LHC phase
+      const auto lhcPhaseIn = pc.inputs().get<o2::dataformats::CalibLHCphaseTOF*>("tofccdbLHCphase");
+      const auto channelCalibIn = pc.inputs().get<o2::dataformats::CalibTimeSlewingParamTOF*>("tofccdbChannelCalib");
+      const auto diagnosticIn = pc.inputs().get<o2::tof::Diagnostic*>("tofccdbDia");
+
+      if (!mCalibApi) {
+        o2::dataformats::CalibLHCphaseTOF* lhcPhase = new o2::dataformats::CalibLHCphaseTOF(std::move(*lhcPhaseIn));
+        o2::dataformats::CalibTimeSlewingParamTOF* channelCalib = new CalibTimeSlewingParamTOF(std::move(*channelCalibIn));
+        o2::tof::Diagnostic* diagnostic = new o2::tof::Diagnostic(std::move(*diagnosticIn));
+        mCalibApi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib, diagnostic);
+        mCalibApi->loadDiagnosticFrequencies();
+        mUpdateCCDB = false;
+      } else { // update if necessary
+        if (mUpdateCCDB) {
+          LOG(info) << "Update CCDB objects since new";
+          delete mCalibApi;
+          o2::dataformats::CalibLHCphaseTOF* lhcPhase = new o2::dataformats::CalibLHCphaseTOF(*lhcPhaseIn);
+          o2::dataformats::CalibTimeSlewingParamTOF* channelCalib = new CalibTimeSlewingParamTOF(*channelCalibIn);
+          o2::tof::Diagnostic* diagnostic = new o2::tof::Diagnostic(std::move(*diagnosticIn));
+          mCalibApi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib, diagnostic);
+          mCalibApi->loadDiagnosticFrequencies();
+          mUpdateCCDB = false;
+        } else {
+          // do nothing
+        }
+      }
+    }
+  }
+
   DigitDataReader mReader; ///< Digit reader
   Clusterer mClusterer;    ///< Cluster finder
   CosmicProcessor mCosmicProcessor; ///< Cosmics finder
@@ -278,9 +281,10 @@ class TOFDPLClustererTask
   std::vector<Cluster> mClustersArray; ///< Array of clusters
   MCLabelContainer mClsLabels;
   std::vector<CalibInfoCluster> mClusterCalInfo; ///< Array of clusters
+  bool mForCalib = false;
 };
 
-o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB, bool doCalib, bool isCosmic, std::string ccdb_url)
+o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB, bool doCalib, bool isCosmic, std::string ccdb_url, bool isForCalib)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tofdigits", o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
@@ -313,12 +317,19 @@ o2::framework::DataProcessorSpec getTOFClusterizerSpec(bool useMC, bool useCCDB,
     outputs.emplace_back(o2::header::gDataOriginTOF, "INFOTRACKCOS", 0, Lifetime::Timeframe);
     outputs.emplace_back(o2::header::gDataOriginTOF, "INFOTRACKSIZE", 0, Lifetime::Timeframe);
   }
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              true,                              // GRPLHCIF
+                                                              false,                             // GRPMagField
+                                                              false,                             // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              inputs,
+                                                              true);
   return DataProcessorSpec{
     "TOFClusterer",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFDPLClustererTask>(useMC, useCCDB, doCalib, isCosmic, ccdb_url)},
+    AlgorithmSpec{adaptFromTask<TOFDPLClustererTask>(ggRequest, useMC, useCCDB, doCalib, isCosmic, ccdb_url, isForCalib)},
     Options{{"cluster-time-window", VariantType::Int, 5000, {"time window for clusterization in ps"}}}};
 }
 

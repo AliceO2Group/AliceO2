@@ -17,6 +17,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
+#include "Framework/Logger.h"
 
 namespace o2
 {
@@ -24,6 +25,8 @@ namespace conf
 {
 struct VerbosityConfig : public o2::conf::ConfigurableParamHelper<VerbosityConfig> {
   size_t maxWarnDeadBeef = 5; // max amount of consecutive DeadBeef TF messages to report
+  size_t maxWarnRawParser = 5; // max amount of consecutive messages on RawParser creation failure
+  fair::Severity rawParserSeverity = fair::Severity::alarm;
 
   O2ParamDef(VerbosityConfig, "VerbosityConfig");
 };

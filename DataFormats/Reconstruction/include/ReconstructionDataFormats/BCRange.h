@@ -106,6 +106,12 @@ struct bcRanges {
   // merge overlaping ranges
   void merge(bool toForce = false)
   {
+    // return if list of ranges is empty
+    if (size() == 0) {
+      return;
+    }
+
+    // is merging required?
     if (!isMerged || toForce) {
       std::vector<limits> tmpList;
       uint64_t ifirst = 0, ilast;
@@ -158,31 +164,53 @@ struct bcRanges {
 
       // keep adding BCs until the required number has been added
       auto nToAdd = (uint64_t)(nNotCompBCs * fillFac);
-      int cnt = 0;
-      while (nToAdd > 0) {
-        // add BC at the beginning
-        if (mbcRangesList[0].first > 1) {
-          mbcRangesList[0].first--;
-          nToAdd--;
-        }
 
-        // number of BCs to add in this round
-        auto nr = mbcRangesList.size();
-        if (nr > nToAdd) {
-          nr = nToAdd;
-        }
-
-        // add BC after each range
-        for (auto ii = 0; ii < nr; ii++) {
-          if (mbcRangesList[ii].second < nBCs) {
-            mbcRangesList[ii].second++;
+      // special case when list of ranges is empty
+      if (size() == 0) {
+        uint64_t ifirst = (nBCs - nToAdd) / 2;
+        uint64_t ilast = ifirst + nToAdd - 1;
+        add(ifirst, ilast);
+      } else {
+        int cnt = 0;
+        while (nToAdd > 0) {
+          // add BC at the beginning
+          if (mbcRangesList[0].first > 1) {
+            mbcRangesList[0].first--;
             nToAdd--;
           }
+
+          // number of BCs to add in this round
+          auto nr = size();
+          if (nr > nToAdd) {
+            nr = nToAdd;
+          }
+
+          // add BC after each range
+          for (auto ii = 0; ii < nr; ii++) {
+            if (mbcRangesList[ii].second < nBCs) {
+              mbcRangesList[ii].second++;
+              nToAdd--;
+            }
+          }
+          merge(true);
         }
-        merge(true);
       }
       isExtended = true;
     }
+  }
+
+  // check if the value index is in a range
+  // and return true if this is the case
+  bool isInRange(uint64_t index)
+  {
+    // make sure that the list is merged
+    merge(false);
+
+    // find the range in which the value index falls
+    auto range = std::find_if(mbcRangesList.begin(), mbcRangesList.end(), [index](limits a) {
+      return (index >= a.first) && (index <= a.second);
+    });
+    return (range != mbcRangesList.end());
   }
 
   // get BC range

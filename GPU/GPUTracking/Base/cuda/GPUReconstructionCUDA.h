@@ -33,6 +33,8 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
 {
  public:
   ~GPUReconstructionCUDABackend() override;
+  int GPUFailedMsgAI(const long long int error, const char* file, int line);
+  void GPUFailedMsgA(const long long int error, const char* file, int line);
 
  protected:
   GPUReconstructionCUDABackend(const GPUSettingsDeviceBackend& cfg);
@@ -95,6 +97,7 @@ class GPUReconstructionCUDA : public GPUReconstructionKernels<GPUReconstructionC
   void RecordMarker(deviceEvent* ev, int stream) override;
 
   void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits) override;
+  void GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame) override;
 
  private:
   std::vector<void*> mDeviceConstantMemRTC;

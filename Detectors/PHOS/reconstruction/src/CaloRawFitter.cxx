@@ -143,7 +143,7 @@ CaloRawFitter::FitStatus CaloRawFitter::evalKLevel(gsl::span<short unsigned int>
   // Find index posK (kLevel is a level of "timestamp" point Tk):
   int posK = sigLength - 1; //last point before crossing k-level
   float levelK = pedestal + kAmp * mAmp;
-  while (signal[posK] <= levelK && posK >= 0) {
+  while (posK >= 0 && signal[posK] <= levelK) {
     posK--;
   }
   posK++;

@@ -12,6 +12,7 @@
 #include "FairSystemInfo.h"
 #include "FairRuntimeDb.h"
 #include "FairParRootFileIo.h"
+#include <FairRootFileSink.h>
 
 #include "TPCReconstruction/ClustererTask.h"
 #endif
@@ -44,7 +45,7 @@ void run_clus_tpc(std::string outputfile, std::string inputfile, std::string par
   FairRunAna* run = new FairRunAna();
   FairFileSource* fFileSource = new FairFileSource(inputfile.data());
   run->SetSource(fFileSource);
-  run->SetOutputFile(outputfile.data());
+  run->SetSink(new FairRootFileSink(outputfile.c_str()));
 
   // Setup Runtime DB
   FairRuntimeDb* rtdb = run->GetRuntimeDb();

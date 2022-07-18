@@ -11,9 +11,10 @@
 
 o2_add_library(
   MCHGeometryTransformer
-  SOURCES src/Transformations.cxx src/VolumePaths.cxx
+  SOURCES src/Transformations.cxx src/VolumePaths.cxx src/ClusterTransformerSpec.cxx
   PUBLIC_LINK_LIBRARIES ROOT::Geom O2::MathUtils Microsoft.GSL::GSL
-                        RapidJSON::RapidJSON)
+                        RapidJSON::RapidJSON O2::Framework O2::DetectorsBase
+                        O2::DataFormatsMCH)
 
 o2_add_executable(
   convert-geometry
@@ -21,3 +22,15 @@ o2_add_executable(
   PUBLIC_LINK_LIBRARIES ROOT::Geom Microsoft.GSL::GSL Boost::program_options
                         O2::MCHGeometryTransformer
   COMPONENT_NAME mch)
+
+o2_add_executable(
+        clusters-transformer-workflow
+        SOURCES src/clusters-transformer-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES
+           O2::DetectorsBase
+           O2::Framework
+           O2::MCHBase
+           O2::MCHGeometryTransformer
+        )
+

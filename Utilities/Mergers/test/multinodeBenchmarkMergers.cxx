@@ -44,7 +44,7 @@ void customize(std::vector<ConfigParamSpec>& options)
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
-#include <fairmq/FairMQLogger.h>
+#include "Framework/Logger.h"
 #include <TH1.h>
 
 #include "Mergers/MergerInfrastructureBuilder.h"

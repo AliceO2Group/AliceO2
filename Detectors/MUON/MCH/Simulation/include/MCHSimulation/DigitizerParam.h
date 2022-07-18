@@ -20,8 +20,9 @@ namespace o2::mch
 
 struct DigitizerParam : public o2::conf::ConfigurableParamHelper<DigitizerParam> {
 
-  bool continuous = true;           // whether we assume continuous mode or not
-  float noiseProba = 3.1671242e-05; // by default = proba to be above 4*sigma of a gaussian noise
+  bool continuous = true;           ///< whether we assume continuous mode or not
+  float noiseProba = 3.1671242e-05; ///< by default = proba to be above 4*sigma of a gaussian noise
+  uint32_t minADC = 12;             ///< minimum ADC value for a pad to respond
 
   O2ParamDef(DigitizerParam, "MCHDigitizerParam")
 };

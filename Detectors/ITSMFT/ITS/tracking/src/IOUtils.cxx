@@ -23,15 +23,13 @@
 #include <unordered_set>
 #include <utility>
 
-#include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITStracking/Constants.h"
 #include "ITStracking/json.h"
 #include "MathUtils/Utils.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
-#include "Framework/Logger.h"
+#include "GPUCommonLogger.h"
 
 namespace
 {
@@ -67,22 +65,8 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
   }
 
   for (auto& c : clusters) {
-    auto pattID = c.getPatternID();
-    o2::math_utils::Point3D<float> locXYZ;
-    float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
-    if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaY2 = dict->getErr2X(pattID);
-      sigmaZ2 = dict->getErr2Z(pattID);
-      if (!dict->isGroup(pattID)) {
-        locXYZ = dict->getClusterCoordinates(c);
-      } else {
-        o2::itsmft::ClusterPattern patt(pattIt);
-        locXYZ = dict->getClusterCoordinates(c, patt);
-      }
-    } else {
-      o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict->getClusterCoordinates(c, patt, false);
-    }
+    float sigmaY2, sigmaZ2, sigmaYZ = 0;
+    auto locXYZ = extractClusterData(c, pattIt, dict, sigmaY2, sigmaZ2);
     auto& cl3d = output.emplace_back(c.getSensorID(), geom->getMatrixT2L(c.getSensorID()) ^ locXYZ); // local --> tracking
     if (applyMisalignment) {
       auto lrID = chmap.getLayer(c.getSensorID());
@@ -108,23 +92,8 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterE
 
   for (auto& c : clusters) {
     int layer = geom->getLayer(c.getSensorID());
-
-    auto pattID = c.getPatternID();
-    o2::math_utils::Point3D<float> locXYZ;
-    float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
-    if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaY2 = dict->getErr2X(pattID);
-      sigmaZ2 = dict->getErr2Z(pattID);
-      if (!dict->isGroup(pattID)) {
-        locXYZ = dict->getClusterCoordinates(c);
-      } else {
-        o2::itsmft::ClusterPattern patt(pattIt);
-        locXYZ = dict->getClusterCoordinates(c, patt);
-      }
-    } else {
-      o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict->getClusterCoordinates(c, patt, false);
-    }
+    float sigmaY2, sigmaZ2, sigmaYZ = 0;
+    auto locXYZ = extractClusterData(c, pattIt, dict, sigmaY2, sigmaZ2);
     auto sensorID = c.getSensorID();
     // Inverse transformation to the local --> tracking
     auto trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
@@ -158,23 +127,8 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
   auto clusters_in_frame = rof.getROFData(clusters);
   for (auto& c : clusters_in_frame) {
     int layer = geom->getLayer(c.getSensorID());
-
-    auto pattID = c.getPatternID();
-    o2::math_utils::Point3D<float> locXYZ;
-    float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
-    if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaY2 = dict->getErr2X(pattID);
-      sigmaZ2 = dict->getErr2Z(pattID);
-      if (!dict->isGroup(pattID)) {
-        locXYZ = dict->getClusterCoordinates(c);
-      } else {
-        o2::itsmft::ClusterPattern patt(pattIt);
-        locXYZ = dict->getClusterCoordinates(c, patt);
-      }
-    } else {
-      o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict->getClusterCoordinates(c, patt, false);
-    }
+    float sigmaY2, sigmaZ2, sigmaYZ = 0;
+    auto locXYZ = extractClusterData(c, pattIt, dict, sigmaY2, sigmaZ2);
     auto sensorID = c.getSensorID();
     // Inverse transformation to the local --> tracking
     auto trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;

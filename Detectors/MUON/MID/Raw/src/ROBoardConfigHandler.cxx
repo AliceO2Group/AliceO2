@@ -146,25 +146,17 @@ void ROBoardConfigHandler::updateMasks(const std::vector<ROBoard>& masks)
   }
 }
 
-std::vector<ROBoardConfig> makeDefaultROBoardConfig(uint16_t gbtUniqueId)
+std::vector<ROBoardConfig> makeZSROBoardConfig(uint16_t gbtUniqueId)
 {
-  // FIXME: in the current configuration, when an Y strip covers several local boards
-  // the signal is sent to the first board only and no copy of the signal is sent to the others
-  // In this case we cannot implement zero suppression to boards that only receive the X signal.
-  // Originally we applied zero suppression to the board receiving both X and Y signals,
-  // but this leads to a bias.
-  // When the neighbour board is fired, indeed we have that:
-  // - the board with no Y signal transmits its X signal
-  // - the board with Y signal has no X signal. If we require X AND Y we lose the Y signal.
-  // For the moment we decide to require X OR Y by default to all board.
-  // This is equivalent to no zero suppression applied.
-  // In the future, we might apply X AND Y to cases were the Y strip belong to 1 local board only.
+  // In this configuration, data from one local board
+  // (reading the output from 4 detection planes)
+  // is transmitted if at least one strip in X AND Y are fired on the same detection plane.
   std::vector<ROBoardConfig> configurations;
   CrateMapper crateMapper;
   auto locIds = crateMapper.getROBoardIds(gbtUniqueId);
   for (auto& locId : locIds) {
     ROBoardConfig cfg;
-    cfg.configWord = crateconfig::sTxDataMask | crateconfig::sXorY;
+    cfg.configWord = crateconfig::sTxDataMask;
     cfg.boardId = locId;
     configurations.emplace_back(cfg);
   }
@@ -173,14 +165,28 @@ std::vector<ROBoardConfig> makeDefaultROBoardConfig(uint16_t gbtUniqueId)
 
 std::vector<ROBoardConfig> makeNoZSROBoardConfig(uint16_t gbtUniqueId)
 {
-  // FIXME: notice that the current default implies no zero suppression
-  // so this is equivalent to the default
-  // We still keep this in case we change the default behaviour in the future
-  auto configurations = makeDefaultROBoardConfig(gbtUniqueId);
+  // In this configuration, no zero suppression is performed.
+  // Data from one local board are transmitted as soon as one strip in X OR Y is fired.
+  auto configurations = makeZSROBoardConfig(gbtUniqueId);
   for (auto& cfg : configurations) {
     cfg.configWord |= crateconfig::sXorY;
   }
   return configurations;
+}
+
+std::vector<ROBoardConfig> makeDefaultROBoardConfig(uint16_t gbtUniqueId)
+{
+  // Originally, the electronics was configured to apply the zero suppression as explained in makeZSROBoardConfig.
+  // However, this logic implies that, when a Y strip covers several local boards,
+  // the signal is copied to all local boards.
+  // This is not the case in the current electronics setup: when an Y strip covers several local boards
+  // the signal is sent to the first board only and no copy of the signal is sent to the others.
+  // If we try to apply zero suppression with this setup, we have a bias.
+  // Indeed, when a board without direct Y signal is fired, we have that:
+  // - the board only transmits its X signal
+  // - the neighbour board with Y signal has no X signal. If we require X AND Y we lose the Y signal.
+  // If we do not change the setup, we are therefore obliged to release the zero suppression.
+  return makeNoZSROBoardConfig(gbtUniqueId);
 }
 
 } // namespace mid

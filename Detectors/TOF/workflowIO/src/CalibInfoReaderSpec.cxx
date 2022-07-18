@@ -52,7 +52,7 @@ void CalibInfoReader::run(ProcessingContext& pc)
   if (mState != 1) {
     return;
   }
-
+  auto& timingInfo = pc.services().get<o2::framework::TimingInfo>();
   char filename[100];
 
   if ((mTree && mCurrentEntry < mTree->GetEntries()) || fscanf(mFile, "%s", filename) == 1) {
@@ -70,6 +70,13 @@ void CalibInfoReader::run(ProcessingContext& pc)
     }
     if ((mGlobalEntry % mNinstances) == mInstance) {
       mTree->GetEvent(mCurrentEntry);
+
+      if (mVect.size()) {
+        timingInfo.creation = uint64_t(mVect[0].getTimestamp()) * 1000;
+      } else if (mDiagnostic) {
+        timingInfo.creation = uint64_t(mDia.getTimeStamp()) * 1000;
+      }
+
       LOG(debug) << "Current entry " << mCurrentEntry;
       LOG(debug) << "Send " << mVect.size() << " calib infos";
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTOFTPC ? ddCalib_tpc : ddCalib, 0, Lifetime::Timeframe}, mVect);

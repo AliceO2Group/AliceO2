@@ -34,9 +34,10 @@
 #include <TMemFile.h>
 #include <curl/curl.h>
 
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
 
 #include <cstdlib>
+#include <random>
 
 using namespace o2::header;
 using namespace fair;
@@ -56,7 +57,7 @@ size_t getCurrentTime()
 
 ExpirationHandler::Creator LifetimeHelpers::dataDrivenCreation()
 {
-  return [](TimesliceIndex&) -> TimesliceSlot {
+  return [](ChannelIndex, TimesliceIndex&) -> TimesliceSlot {
     return {TimesliceSlot::ANY};
   };
 }
@@ -66,7 +67,7 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
   auto last = std::make_shared<size_t>(start + inputTimeslice * step);
   auto repetition = std::make_shared<size_t>(0);
 
-  return [end, step, last, maxInputTimeslices, maxRepetitions, repetition](TimesliceIndex& index) -> TimesliceSlot {
+  return [end, step, last, maxInputTimeslices, maxRepetitions, repetition](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
     for (size_t si = 0; si < index.size(); si++) {
       if (*last > end) {
         LOGP(debug, "Last greater than end");
@@ -81,6 +82,12 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
         }
         LOGP(debug, "Associating timestamp {} to slot {}", timestamp.value, slot.index);
         index.associate(timestamp, slot);
+        // We know that next association will bring in last
+        // so we can state this will be the latest possible input for the channel
+        // associated with this.
+        LOG(debug) << "Oldest possible input is " << *last;
+        auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+        index.updateOldestPossibleOutput();
         return slot;
       }
     }
@@ -92,14 +99,26 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
 
 ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds period)
 {
-  auto start = getCurrentTime();
+  std::random_device r;
+  std::default_random_engine e1(r());
+  std::uniform_int_distribution<uint64_t> dist(0, period.count() * 0.9);
+
+  // We start with a random offset to avoid all the devices
+  // send their first message at the same time, bring down
+  // the QC machine.
+  // We reduce the first interval rather than increasing it
+  // to avoid having a triggered timer which appears to be in
+  // the future.
+  size_t start = getCurrentTime() - dist(e1) - period.count() * 0.1;
   auto last = std::make_shared<decltype(start)>(start);
   // FIXME: should create timeslices when period expires....
-  return [last, period](TimesliceIndex& index) -> TimesliceSlot {
+  return [last, period](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
     // Nothing to do if the time has not expired yet.
     auto current = getCurrentTime();
     auto delta = current - *last;
     if (delta < period.count()) {
+      auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+      index.updateOldestPossibleOutput();
       return TimesliceSlot{TimesliceSlot::INVALID};
     }
     // We first check if the current time is not already present
@@ -112,6 +131,8 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
       }
       auto& variables = index.getVariablesForSlot(slot);
       if (VariableContextHelpers::getTimeslice(variables).value == current) {
+        auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+        index.updateOldestPossibleOutput();
         return TimesliceSlot{TimesliceSlot::INVALID};
       }
     }
@@ -132,6 +153,9 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
       case TimesliceIndex::ActionTaken::Wait:
         break;
     }
+
+    auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+    index.updateOldestPossibleOutput();
     return slot;
   };
 }
@@ -192,7 +216,7 @@ ExpirationHandler::Checker LifetimeHelpers::expireIfPresent(std::vector<InputRou
 
 ExpirationHandler::Creator LifetimeHelpers::uvDrivenCreation(int requestedLoopReason, DeviceState& state)
 {
-  return [requestedLoopReason, &state](TimesliceIndex& index) -> TimesliceSlot {
+  return [requestedLoopReason, &state](ChannelIndex, TimesliceIndex& index) -> TimesliceSlot {
     /// Not the expected loop reason, return an invalid slot.
     if ((state.loopReason & requestedLoopReason) == 0) {
       LOGP(debug, "No expiration due to a loop event. Requested: {:b}, reported: {:b}, matching: {:b}",
@@ -297,127 +321,6 @@ size_t readToMessage(void* p, size_t size, size_t nmemb, void* userdata)
   return size * nmemb;
 }
 
-/// Fetch an object from CCDB if the record is expired. The actual
-/// name of the object is given by:
-///
-/// "<namespace>/<InputRoute.origin>/<InputRoute.description>"
-///
-/// \todo for the moment we always go to CCDB every time we are expired.
-/// \todo this should really be done in the common fetcher.
-/// \todo provide a way to customize the namespace from the ProcessingContext
-ExpirationHandler::Handler
-  LifetimeHelpers::fetchFromCCDBCache(InputSpec const& spec,
-                                      std::string const& prefix,
-                                      std::string const& overrideTimestamp,
-                                      std::string const& sourceChannel)
-{
-  char* err;
-  uint64_t overrideTimestampMilliseconds = strtoll(overrideTimestamp.c_str(), &err, 10);
-  if (*err != 0) {
-    throw runtime_error("fetchFromCCDBCache: Unable to parse forced timestamp for conditions");
-  }
-  if (overrideTimestampMilliseconds) {
-    LOGP(info, "fetchFromCCDBCache: forcing timestamp for conditions to {} milliseconds from epoch UTC", overrideTimestampMilliseconds);
-  }
-  auto matcher = std::get_if<ConcreteDataMatcher>(&spec.matcher);
-  if (matcher == nullptr) {
-    throw runtime_error("InputSpec for Conditions must be fully qualified");
-  }
-  return [spec, matcher, sourceChannel, serverUrl = prefix, overrideTimestampMilliseconds](ServiceRegistry& services, PartRef& ref, data_matcher::VariableContext& variables) -> void {
-    // We should invoke the handler only once.
-    assert(!ref.header);
-    assert(!ref.payload);
-
-    auto& rawDeviceService = services.get<RawDeviceService>();
-    auto& dataTakingContext = services.get<DataTakingContext>();
-
-    auto&& transport = rawDeviceService.device()->GetChannel(sourceChannel, 0).Transport();
-    auto channelAlloc = o2::pmr::getTransportAllocator(transport);
-    o2::pmr::vector<char> payloadBuffer{transport->GetMemoryResource()};
-    payloadBuffer.reserve(10000); // we begin with messages of 10KB
-
-    CURL* curl = curl_easy_init();
-    if (curl == nullptr) {
-      throw runtime_error("fetchFromCCDBCache: Unable to initialise CURL");
-    }
-    CURLcode res;
-
-    // * By default we use the time when the data was created.
-    // * If an override is specified, we use it.
-    // * If the orbit reset time comes from CTP, we use it for precise
-    //   timestamp evaluation via the firstTFOrbit
-    uint64_t timestamp = -1;
-    if (overrideTimestampMilliseconds) {
-      timestamp = overrideTimestampMilliseconds;
-    } else if (dataTakingContext.source == OrbitResetTimeSource::CTP) {
-      // Orbit reset time is in microseconds, LHCOrbitNS is in nanoseconds, CCDB uses milliseconds
-      timestamp = ceilf((VariableContextHelpers::getFirstTFOrbit(variables) * o2::constants::lhc::LHCOrbitNS / 1000 + dataTakingContext.orbitResetTime) / 1000);
-    } else {
-      // The timestamp used by DPL is in nanoseconds
-      timestamp = ceilf(VariableContextHelpers::getTimeslice(variables).value / 1000);
-    }
-
-    std::string path = "";
-    bool runDependent = false;
-    for (auto& meta : spec.metadata) {
-      if (meta.name == "ccdb-path") {
-        path = meta.defaultValue.get<std::string>();
-      }
-      if (meta.name == "ccdb-run-dependent") {
-        runDependent = meta.defaultValue.get<bool>();
-      }
-    }
-    if (path.empty()) {
-      path = fmt::format("{}/{}", matcher->origin, matcher->description);
-    }
-    std::string url;
-    if (runDependent == false) {
-      url = fmt::format("{}/{}/{}", serverUrl, path, timestamp);
-    } else {
-      url = fmt::format("{}/{}/{}/runNumber={}", serverUrl, path, timestamp, dataTakingContext.runNumber);
-    }
-    LOG(debug) << "fetchFromCCDBCache: Fetching " << url;
-
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &payloadBuffer);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, readToMessage);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
-
-    res = curl_easy_perform(curl);
-    if (res != CURLE_OK) {
-      throw runtime_error_f("fetchFromCCDBCache: Unable to fetch %s from CCDB", url.c_str());
-    }
-    long responseCode;
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-
-    if (responseCode != 200) {
-      throw runtime_error_f("fetchFromCCDBCache: HTTP error %d while fetching %s from CCDB", responseCode, url.c_str());
-    }
-
-    curl_easy_cleanup(curl);
-
-    DataHeader dh;
-    dh.dataOrigin = matcher->origin;
-    dh.dataDescription = matcher->description;
-    dh.subSpecification = matcher->subSpec;
-    // FIXME: should use curl_off_t and CURLINFO_SIZE_DOWNLOAD_T, but
-    //        apparently not there on some platforms.
-    double dl;
-    res = curl_easy_getinfo(curl, CURLINFO_SIZE_DOWNLOAD, &dl);
-    dh.payloadSize = payloadBuffer.size();
-    dh.payloadSerializationMethod = gSerializationMethodCCDB;
-
-    DataProcessingHeader dph{timestamp, 1};
-    auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, dph});
-    auto payload = o2::pmr::getMessage(std::forward<o2::pmr::vector<char>>(payloadBuffer), transport->GetMemoryResource());
-
-    ref.header = std::move(header);
-    ref.payload = std::move(payload);
-
-    return;
-  };
-}
-
 ExpirationHandler::Handler
   LifetimeHelpers::fetchFromFairMQ(InputSpec const& spec,
                                    std::string const& channelName)
@@ -429,7 +332,7 @@ ExpirationHandler::Handler
     // Receive parts and put them in the PartRef
     // we know this is not blocking because we were polled
     // on the channel.
-    FairMQParts parts;
+    fair::mq::Parts parts;
     device->Receive(parts, channelName, 0);
     ref.header = std::move(parts.At(0));
     ref.payload = std::move(parts.At(1));
@@ -487,6 +390,7 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
 
     variables.put({data_matcher::FIRSTTFORBIT_POS, dh.firstTForbit});
     variables.put({data_matcher::TFCOUNTER_POS, dh.tfCounter});
+    variables.put({data_matcher::RUNNUMBER_POS, dh.runNumber});
     variables.put({data_matcher::STARTTIME_POS, dph.startTime});
     variables.put({data_matcher::CREATIONTIME_POS, dph.creation});
 
@@ -500,9 +404,6 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     ref.payload = std::move(payload);
     (*counter)++;
 
-    auto& timesliceIndex = services.get<TimesliceIndex>();
-    auto newOldest = timesliceIndex.setOldestPossibleInput({dph.startTime}, channelIndex);
-    timesliceIndex.updateOldestPossibleOutput();
   };
 }
 
@@ -552,10 +453,6 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
     ref.header = std::move(header);
     auto payload = transport->CreateMessage(0);
     ref.payload = std::move(payload);
-
-    auto& timesliceIndex = services.get<TimesliceIndex>();
-    auto newOldest = timesliceIndex.setOldestPossibleInput({dph.startTime}, channelIndex);
-    timesliceIndex.updateOldestPossibleOutput();
   };
   return f;
 }

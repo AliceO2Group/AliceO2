@@ -569,7 +569,7 @@ bool MatchTPCITS::prepareITSData()
     float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
     float tMax = (nBC + mITSROFrameLengthInBC) * o2::constants::lhc::LHCBunchSpacingMUS;
     if (!mITSTriggered) {
-      auto irofCont = nBC / mITSROFrameLengthInBC;
+      size_t irofCont = nBC / mITSROFrameLengthInBC;
       if (mITSTrackROFContMapping.size() <= irofCont) { // there might be gaps in the non-empty rofs, this will map continuous ROFs index to non empty ones
         mITSTrackROFContMapping.resize((1 + irofCont / 128) * 128, 0);
       }
@@ -619,16 +619,16 @@ bool MatchTPCITS::prepareITSData()
       // [(Xr*tg(10)-Yr)/(tgPhir+tg70)]^2  / cos(70)^2  // for the next sector
       // [(Xr*tg(10)+Yr)/(tgPhir-tg70)]^2  / cos(70)^2  // for the prev sector
       // Distances to the sector edges in neighbourings sectors (at Xref in theit proper frames)
-      float tgp = trc.getSnp();
+      float trcY = trc.getY(), tgp = trc.getSnp();
       tgp /= std::sqrt((1.f - tgp) * (1.f + tgp)); // tan of track direction XY
 
       // sector up
-      float dy2Up = (YMaxAtXMatchingRef - trc.getY()) / (tgp + Tan70);
+      float dy2Up = (YMaxAtXMatchingRef - trcY) / (tgp + Tan70);
       if ((dy2Up * dy2Up * Cos70I2) < mSectEdgeMargin2) { // need to check this track for matching in sector up
         addLastTrackCloneForNeighbourSector(sector < (o2::constants::math::NSectors - 1) ? sector + 1 : 0);
       }
       // sector down
-      float dy2Dn = (YMaxAtXMatchingRef + trc.getY()) / (tgp - Tan70);
+      float dy2Dn = (YMaxAtXMatchingRef + trcY) / (tgp - Tan70);
       if ((dy2Dn * dy2Dn * Cos70I2) < mSectEdgeMargin2) { // need to check this track for matching in sector down
         addLastTrackCloneForNeighbourSector(sector > 1 ? sector - 1 : o2::constants::math::NSectors - 1);
       }
@@ -1392,7 +1392,7 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed)
   // refit track outward in the ITS
   const auto& itsClRefs = mABTrackletRefs[iITSAB];
   int nclRefit = 0, ncl = itsClRefs.getNClusters();
-  uint16_t patt = 0;
+
   float chi2 = 0.f;
   // NOTE: the ITS cluster absolute indices are stored from inner to outer layers
   for (int icl = itsClRefs.getFirstEntry(); icl < itsClRefs.getEntriesBound(); icl++) {
@@ -1465,7 +1465,6 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed)
 bool MatchTPCITS::refitTPCInward(o2::track::TrackParCov& trcIn, float& chi2, float xTgt, int trcID, float timeTB) const
 {
   // inward refit
-  constexpr float TolSNP = 0.99;
   const auto& tpcTrOrig = mTPCTracksArray[trcID];
 
   trcIn = tpcTrOrig.getOuterParam();
@@ -1596,7 +1595,7 @@ void MatchTPCITS::runAfterBurner()
   mTimer[SWABSeeds].Start(false);
   prepareABSeeds();
   int nIntCand = mInteractions.size(), nABSeeds = mTPCABSeeds.size();
-  LOGP(info, "Afterburner will check {} seeds from {} TPC tracks and {} interaction candidates", nABSeeds, mTPCABIndexCache.size(), nIntCand); // TMP
+  LOGP(info, "AfterBurner will check {} seeds from {} TPC tracks and {} interaction candidates with {} threads", nABSeeds, mTPCABIndexCache.size(), nIntCand, mNThreads); // TMP
   mTimer[SWABSeeds].Stop();
   if (!nIntCand || !mTPCABSeeds.size()) {
     return;
@@ -1625,7 +1624,6 @@ void MatchTPCITS::runAfterBurner()
   mTimer[SWABWinners].Start(false);
   int nwin = 0;
   // select winners
-  int iter = 0;
   struct SID {
     int seedID = -1;
     float chi2 = 1e9;
@@ -1664,7 +1662,6 @@ void MatchTPCITS::runAfterBurner()
       continue;
     }
     auto bestID = ABSeed.getBestLinkID();
-    const auto& link = ABSeed.getLink(bestID); // RS FIXME TMP
     if (ABSeed.checkLinkHasUsedClusters(bestID, mABClusterLinkIndex)) {
       ABSeed.setNeedAlternative(); // flag for later processing
       //RSTMP      LOG(info) << "Iter: " << iter << " seed has used clusters " << i << "[" << candAB[i].seedID << "/" << candAB[i].chi2 << "]"  << " last lr: " << int(ABSeed.lowestLayer) << " Ncont: " << int(link.nContLayers);;
@@ -1763,11 +1760,12 @@ void MatchTPCITS::processABSeed(int sid, const ITSChipClustersRefs& itsChipClRef
     while (nextLinkID > MinusOne) {
       const auto& seedLink = ABSeed.getLink(nextLinkID);
       if (seedLink.isDisabled()) {
+        nextLinkID = seedLink.nextOnLr;
         continue;
       }
+      int next2nextLinkID = seedLink.nextOnLr;                            // fetch now since the seedLink may change due to the relocation
       followABSeed(seedLink, itsChipClRefs, nextLinkID, ilr - 1, ABSeed); // check matches on the next layer
-      nextLinkID = seedLink.nextOnLr;
-      // RS FIXME account for possibility of missing a layer
+      nextLinkID = next2nextLinkID;
     }
   }
   /* // RS FIXME remove on final clean-up
@@ -1803,7 +1801,7 @@ int MatchTPCITS::followABSeed(const o2::track::TrackParCov& seed, const ITSChipC
   o2::math_utils::IntervalXYf_t trcLinPar; // line parameters for B OFF data
   float sna, csa;
   // approximate errors
-  float errY = std::sqrt(seedC.getSigmaY2() + mParams->err2ABExtraY), errYFrac = errY * mRGHelper.ladderWidthInv(), errPhi = errY * lr.rInv;
+  float errY = std::sqrt(seedC.getSigmaY2() + mParams->err2ABExtraY), errYFrac = errY * mRGHelper.ladderWidthInv();
   if (mFieldON) {
     seedC.getCircleParams(propagator->getNominalBz(), trcCircle, sna, csa);
   } else {
@@ -1825,7 +1823,11 @@ int MatchTPCITS::followABSeed(const o2::track::TrackParCov& seed, const ITSChipC
     // coordinates xCross,yCross,zCross for this central chipIDguess, although we are going to check also neighbours
     float t = 1e9, xCross, yCross;
     const auto& chipC = lad.chips[chipIDguess];
-    bool res = mFieldON ? chipC.xyEdges.circleCrossParam(trcCircle, t) : chipC.xyEdges.lineCrossParam(trcLinPar, t);
+    if (mFieldON) {
+      chipC.xyEdges.circleCrossParam(trcCircle, t);
+    } else {
+      chipC.xyEdges.lineCrossParam(trcLinPar, t);
+    }
     chipC.xyEdges.eval(t, xCross, yCross);
     float dx = xCross - xCurr, dy = yCross - yCurr, dst2 = dx * dx + dy * dy, dst = sqrtf(dst2);
     // Z-step sign depends on radius decreasing or increasing during the propagation
@@ -1833,7 +1835,7 @@ int MatchTPCITS::followABSeed(const o2::track::TrackParCov& seed, const ITSChipC
 
     for (int ich = -1; ich < 2; ich++) {
       int chipID = chipIDguess + ich;
-      if (chipID < 0 || chipID >= lad.chips.size()) {
+      if (chipID < 0 || chipID >= static_cast<int>(lad.chips.size())) {
         continue;
       }
       if (lad.chips[chipID].zRange.isOutside(zCross, mParams->nABSigmaZ * errZ)) {
@@ -1857,7 +1859,6 @@ int MatchTPCITS::followABSeed(const o2::track::TrackParCov& seed, const ITSChipC
         //trcLC.print();
         break; // the chips of the ladder are practically on the same X and alpha
       }
-      int cntc = 0;
       for (auto clID : chipSelClusters) {
         const auto& cls = mITSClustersArray[clID];
         auto chi2 = trcLC.getPredictedChi2(cls);
@@ -2131,8 +2132,10 @@ void MatchTPCITS::setBunchFilling(const o2::BunchFilling& bf)
   mBunchFilling = bf;
   // find closest (from above) filled bunch
   int minBC = bf.getFirstFilledBC(), maxBC = bf.getLastFilledBC();
-  if (minBC < 0) {
-    throw std::runtime_error("Bunch filling is not set in MatchTPCITS");
+  if (minBC < 0 && mUseBCFilling) {
+    mUseBCFilling = false;
+    LOG(warning) << "Disabling match validation by BunchFilling as no interacting bunches found";
+    return;
   }
   int bcAbove = minBC;
   for (int i = o2::constants::lhc::LHCMaxBunches; i--;) {
@@ -2244,13 +2247,12 @@ int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const ClusRan
   for (int icl = clRange.getEntries(); icl--;) { // note: clusters within a chip are sorted in Z
     int clID = itsChipClRefs.clusterID[icID++];  // so, we go in clusterID increasing direction
     const auto& cls = mITSClustersArray[clID];
-    float dz = trackZ - cls.getZ();
-    auto label = mITSClsLabels->getLabels(clID)[0]; // tmp
+    float dz = cls.getZ() - trackZ;
     LOG(debug) << "cl" << icl << '/' << clID << " "
                << " dZ: " << dz << " [" << tolerZ << "| dY: " << trackY - cls.getY() << " [" << tolerY << "]";
     if (dz > tolerZ) {
       float clsZ = cls.getZ();
-      LOG(debug) << "Skip the rest since " << trackZ << " > " << clsZ << "\n";
+      LOG(debug) << "Skip the rest since " << trackZ << " < " << clsZ << "\n";
       break;
     } else if (dz < -tolerZ) {
       LOG(debug) << "Skip cluster dz=" << dz << " Ztr=" << trackZ << " zCl=" << cls.getZ();

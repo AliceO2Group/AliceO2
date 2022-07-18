@@ -13,6 +13,8 @@
 /// \author Roman Lietava
 
 #include "DataFormatsCTP/Configuration.h"
+#include "CCDB/CcdbApi.h"
+#include "CCDB/BasicCCDBManager.h"
 #include <iostream>
 #include <sstream>
 #include <regex>
@@ -21,6 +23,7 @@
 
 using namespace o2::ctp;
 //
+const std::map<std::string, std::string> CTPConfiguration::detName2LTG = {{"FV0", "1"}, {"FT0", "2"}, {"FDD", "3"}, {"ITS", "4"}, {"TOF", "5"}, {"MFT", "6"}, {"TPC", "7"}, {"MCH", "8"}, {"MID", "9"}, {"TST", "10"}, {"TRD", "13"}, {"HMP", "14"}, {"ZDC", "15"}, {"PHS", "16"}, {"EMC", "17"}, {"CPV", "18"}};
 //
 bool CTPConfiguration::isDetector(const o2::detectors::DetID& det)
 {
@@ -38,10 +41,15 @@ void CTPConfiguration::capitaliseString(std::string& str)
     c = std::toupper(c);
   }
 }
+bool CTPConfiguration::isNumber(const std::string& s)
+{
+  return !s.empty() && std::find_if(s.begin(),
+                                    s.end(), [](unsigned char c) { return !std::isdigit(c); }) == s.end();
+}
 //
 void BCMask::printStream(std::ostream& stream) const
 {
-  stream << "CTP BC mask:" << name << std::endl;
+  stream << "CTP BC mask:" << name << ":" << mask << std::endl;
   /// <<  ":" << BCmask << std::endl;
 }
 //
@@ -51,6 +59,18 @@ void CTPGenerator::printStream(std::ostream& stream) const
   stream << "CTP generator:" << name << " frequency:" << frequency << std::endl;
 }
 //
+CTPInput::CTPInput(std::string& name, std::string& det, uint32_t index)
+{
+  this->name = name;
+  inputMask = (1ull << (index - 1));
+  detID = o2::detectors::DetID(det.c_str());
+}
+CTPInput::CTPInput(const char* name, const char* det, uint32_t index)
+{
+  this->name = std::string(name);
+  inputMask = (1ull << (index - 1));
+  detID = o2::detectors::DetID(det);
+}
 void CTPInput::printStream(std::ostream& stream) const
 {
   stream << "CTP Input:" << name << " Detector:" << getInputDetName() << " Level:" << level << " Hardware mask:0x" << std::hex << inputMask << std::dec << std::endl;
@@ -82,13 +102,14 @@ void CTPDetector::printStream(std::ostream& stream) const
 void CTPCluster::printStream(std::ostream& stream) const
 {
   stream << "CTP Cluster:" << name << " " << getClusterDetNames();
-  stream << " mask:0b" << std::hex << maskCluster << " " << std::dec;
+  stream << " det mask:0b" << std::hex << maskCluster << " " << std::dec;
+  stream << " clust index:" << hwMask;
   stream << std::endl;
 }
 //
 void CTPClass::printStream(std::ostream& stream) const
 {
-  stream << "CTP Class:" << name << " Hardware mask:" << classMask;
+  stream << "CTP Class:" << name << " Hardware mask:" << classMask << " Cluster index:" << clusterIndex << " Desc index:" << descriptorIndex;
   if (descriptor != nullptr) {
     stream << " Descriptor:" << descriptor->name;
   }
@@ -102,6 +123,7 @@ void CTPClass::printStream(std::ostream& stream) const
 int CTPConfiguration::loadConfigurationRun3(const std::string& ctpconfiguration)
 {
   LOG(info) << "Loading CTP configuration.";
+  mConfigString = ctpconfiguration;
   std::istringstream iss(ctpconfiguration);
   int ret = 0;
   int level = MASKS;
@@ -115,24 +137,10 @@ int CTPConfiguration::loadConfigurationRun3(const std::string& ctpconfiguration)
   return ret;
   return 0;
 }
-int CTPConfiguration::loadConfiguration(const std::string& ctpconfiguration)
-{
-  LOG(info) << "Loading CTP configuration.";
-  std::istringstream iss(ctpconfiguration);
-  int ret = 0;
-  int level = 0;
-  std::string line;
-  while (std::getline(iss, line)) {
-    o2::utils::Str::trim(line);
-    if ((ret = processConfigurationLine(line, level)) != 0) {
-      return ret;
-    }
-  }
-  return ret;
-}
 int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level)
 {
-  // LOG(debug) << "line:" << line;
+  LOG(info) << "Processing line";
+  LOG(info) << "line:" << line << " lev:" << level;
   if (line.size() == 0) {
     return 0;
   }
@@ -147,7 +155,9 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
     return 0;
   }
   size_t first;
-  if (CTPGenerator::Generators.count(tokens[0])) {
+  if ((first = line.find("run")) != std::string::npos) {
+    level = RUN;
+  } else if (CTPGenerator::Generators.count(tokens[0])) {
     if (level != CLASS) {
       level = GENS;
     }
@@ -161,13 +171,32 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
   } else if ((first = line.find("cluster")) != std::string::npos) {
     level = CLUSTER;
   } else {
+    bool knownlevels = ((level == LTGitems) || (level == CLASS));
+    if (knownlevels == false) {
+      level = UNKNOWN;
+    }
   }
+  LOG(info) << "Level:" << level;
   switch (level) {
+    case RUN: {
+      mRunNumber = std::stoul(tokens[1]);
+      level = MASKS;
+      break;
+    }
     case MASKS: {
       BCMask bcmask;
+      if (tokens.size() < 3) {
+        LOG(error) << "Wrong bc mask:" << line;
+        break;
+      }
       bcmask.name = tokens[1];
-      std::regex LHdelimiters("[LH]");
-      if (std::regex_search(tokens[2], LHdelimiters)) {
+      for (int i = 2; i < tokens.size(); i++) {
+        bcmask.mask = tokens[i] = " ";
+      }
+      bool coded = tokens[2].find("L") != std::string::npos;
+      coded |= tokens[2].find("H") != std::string::npos;
+      std::cout << "coded:" << coded << std::endl;
+      if (coded) {
         // jusko notation
       } else {
         // list of integers
@@ -242,6 +271,10 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
     }
     case CLASS: {
       // add to the last cluster
+      if (tokens.size() < 3) {
+        LOG(error) << "CTPClass: less than 3 items in class:" << line;
+        break;
+      }
       uint64_t index;
       try {
         index = std::stoull(tokens[0]);
@@ -255,6 +288,49 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
       cls.name = tokens[1];
       cls.clusterIndex = mClusters.size() - 1;
       // LOG(info) << "point:" << cls.cluster << " " << &mClusters.front();
+      for (int i = 2; i < tokens.size(); i++) {
+        std::string token = tokens[i];
+        bool isGenerator = 0;
+        for (auto const& gen : CTPGenerator::Generators) {
+          if (token.find(gen) != std::string::npos) {
+            isGenerator = 1;
+            break;
+          }
+        }
+        if (isGenerator) {
+          CTPDescriptor* desc = new CTPDescriptor;
+          desc->name = token;
+          mDescriptors.push_back(*desc);
+          cls.descriptorIndex = mDescriptors.size() - 1;
+        } else if (token.find("~") != std::string::npos) { // inverted input
+          std::string sinp = token.substr(1, token.size() - 1);
+          // uint32_t inp = std::strtoul(sinp);
+
+          CTPDescriptor* desc = new CTPDescriptor;
+          desc->name = token;
+          mDescriptors.push_back(*desc);
+          cls.descriptorIndex = mDescriptors.size() - 1;
+        } else if (isNumber(token)) { // normal input
+          CTPDescriptor* desc = new CTPDescriptor;
+          desc->name = token;
+          mDescriptors.push_back(*desc);
+          cls.descriptorIndex = mDescriptors.size() - 1;
+        } else if (token.find("0x") != std::string::npos) { // downscale
+        } else {                                            // mask
+          int i = 0;
+          for (auto const& bcm : mBCMasks) {
+            if (bcm.name == token) {
+              LOG(info) << "Class BCMask found:" << token;
+              break;
+            }
+            i++;
+          }
+          if (i == mBCMasks.size()) {
+            LOG(error) << "Class BCMask NOT found:" << token;
+          }
+        }
+      }
+      //
       mCTPClasses.push_back(cls);
       break;
     }
@@ -267,173 +343,10 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
   }
   return 0;
 }
-int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
-{
-  if (line.size() == 0) {
-    return 0;
-  }
-  if (line.at(0) == '#') {
-    return 0;
-  }
-  size_t first;
-  if ((first = line.find("PARTITION:")) != std::string::npos) {
-    mName = o2::utils::Str::trim_copy(line.erase(first, 10));
-    return 0;
-  }
-  if ((first = line.find("VERSION:")) != std::string::npos) {
-    mVersion = o2::utils::Str::trim_copy(line.erase(first, 8));
-    return 0;
-  }
-  if ((first = line.find("INPUTS:")) != std::string::npos) {
-    level = 1;
-    return 0;
-  }
-  if ((first = line.find("DESCRIPTORS:")) != std::string::npos) {
-    level = 3;
-    return 0;
-  }
-  if ((first = line.find("CLUSTERS:")) != std::string::npos) {
-    level = 4;
-    return 0;
-  }
-  if ((first = line.find("CLASSES:")) != std::string::npos) {
-    level = 7;
-    return 0;
-  }
-  /// Do parse levels
-  std::vector<std::string> tokens = o2::utils::Str::tokenize(line, ' ');
-  size_t ntokens = tokens.size();
-  if (ntokens == 0) {
-    return 0;
-  }
-  switch (level) {
-    case 1:
-      /// INPUTS: name det level indexCTP<0:45>
-      {
-        if (ntokens != 4) {
-          LOG(fatal) << "INPUTS syntax error in, wrong number of items, expected 4:" << line;
-          return level;
-        }
-        CTPInput inp;
-        inp.name = tokens[0];
-        std::string detName = tokens[1];
-        inp.level = tokens[2];
-        o2::detectors::DetID det(detName.c_str());
-        isDetector(det);
-        inp.detID = det.getID();
-        //std::cout << "id:" << det.getID() << " ndets:" << det.getNDetectors() << std::endl;
-        try {
-          inp.inputMask = std::stoull(tokens[3], nullptr, 0);
-        } catch (...) {
-          LOG(fatal) << "INPUTS syntax error in mask:" << line;
-          return level;
-        }
-        mInputs.push_back(inp);
-        break;
-      }
-    case 3:
-      /// Descriptors: name input1 , input2, ...
-      {
-        CTPDescriptor desc;
-        desc.name = tokens[0];
-        tokens.erase(tokens.begin());
-        for (auto& item : tokens) {
-          //CTPInput *inp = const_cast<CTPInput*> (isInputInConfig(item));
-          CTPInput* inp = isInputInConfig(item);
-          if (inp == nullptr) {
-            LOG(fatal) << "DESCRIPTOR: input not in INPUTS:" << item << " LINE:" << line;
-          } else {
-            desc.inputs.push_back(inp);
-          }
-        }
-        // Create inputs and mask
-        mDescriptors.push_back(desc);
-        break;
-      }
-    case 4:
-      /// Clusters: name det1 det2 ... det N
-      {
-        CTPCluster cluster;
-        cluster.name = tokens[0];
-        tokens.erase(tokens.begin());
-        o2::detectors::DetID::mask_t mask;
-        for (auto& item : tokens) {
-          o2::detectors::DetID det(item.c_str());
-          isDetector(det);
-          mask |= det.getMask();
-        }
-        cluster.maskCluster = mask;
-        mClusters.push_back(cluster);
-        break;
-      }
-    case 7:
-      /// CLASSES: name mask descriptor cluster LM L0 L1
-      {
-        CTPClass cls;
-        if (ntokens != 4) {
-          LOG(fatal) << "CLASSES syntax error, wrong number of items, expected 4:" << line;
-          return level;
-        }
-        cls.name = tokens[0];
-        try {
-          cls.classMask = std::stoull(tokens[1]);
-        } catch (...) {
-          LOG(fatal) << "CLASSES syntax error in mask:" << line;
-          return level;
-        }
-        std::string token = tokens[2];
-        auto it = std::find_if(mDescriptors.begin(), mDescriptors.end(), [&token](const CTPDescriptor& obj) { return obj.name == token; });
-        if (it != mDescriptors.end()) {
-          cls.descriptor = &*it;
-        } else {
-          ///Internal error
-          LOG(fatal) << "CLASSES syntax error, descriptor not found:" << token;
-        }
-        ///
-        token = tokens[3];
-        auto it2 = std::find_if(mClusters.begin(), mClusters.end(), [&token](const CTPCluster& obj) { return obj.name == token; });
-        if (it2 != mClusters.end()) {
-          cls.cluster = &*it2;
-        } else {
-          ///Internal error
-          LOG(fatal) << "CLASSES syntax error, cluster not found:" << token;
-        }
-        mCTPClasses.push_back(cls);
-        break;
-      }
-    default: {
-      LOG(fatal) << "CTP Config parser Unknown level:" << level;
-    }
-  }
-  return 0;
-}
-void CTPConfiguration::addBCMask(const BCMask& bcmask)
-{
-  mBCMasks.push_back(bcmask);
-}
-void CTPConfiguration::addCTPInput(const CTPInput& input)
-{
-  mInputs.push_back(input);
-}
-void CTPConfiguration::addCTPDescriptor(const CTPDescriptor& descriptor)
-{
-  mDescriptors.push_back(descriptor);
-}
-void CTPConfiguration::addCTPDetector(const CTPDetector& detector)
-{
-  mDetectors.push_back(detector);
-}
-void CTPConfiguration::addCTPCluster(const CTPCluster& cluster)
-{
-  mClusters.push_back(cluster);
-}
-void CTPConfiguration::addCTPClass(const CTPClass& ctpclass)
-{
-  mCTPClasses.push_back(ctpclass);
-}
 void CTPConfiguration::printStream(std::ostream& stream) const
 {
   stream << "Configuration:" << mName << "\n Version:" << mVersion << std::endl;
+  stream << "Run:" << mRunNumber << " cfg name:" << mName;
   stream << "CTP BC  masks:" << std::endl;
   for (const auto& i : mBCMasks) {
     i.printStream(stream);
@@ -530,4 +443,468 @@ std::vector<int> CTPConfiguration::getTriggerClassList() const
     }
   }
   return classlist;
+}
+std::vector<std::string> CTPConfiguration::getDetectorList() const
+{
+  std::vector<std::string> detlist;
+  for (auto const& det : mDetectors) {
+    std::string sdet(det.getName());
+    detlist.push_back(sdet);
+  }
+  return detlist;
+}
+o2::detectors::DetID::mask_t CTPConfiguration::getDetectorMask() const
+{
+  o2::detectors::DetID::mask_t mask = 0;
+  for (auto const& det : mDetectors) {
+    mask |= det.getMask();
+  }
+  return mask;
+}
+//===============================================
+//
+void CTPRunManager::init()
+{
+  for (auto r : mActiveRuns) {
+    r = nullptr;
+  }
+  loadScalerNames();
+  LOG(info) << "CCDB host:" << mCCDBHost;
+  LOG(info) << "CTP QC:" << mQC;
+  LOG(info) << "CTPRunManager initialised.";
+}
+int CTPRunManager::startRun(const std::string& cfg)
+{
+  LOG(info) << "Starting run: " << cfg;
+  const auto now = std::chrono::system_clock::now();
+  const long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+  CTPActiveRun* activerun = new CTPActiveRun;
+  activerun->timeStart = timeStamp;
+  activerun->cfg.loadConfigurationRun3(cfg);
+  activerun->cfg.printStream(std::cout);
+  //
+  activerun->scalers.setRunNumber(activerun->cfg.getRunNumber());
+  activerun->scalers.setClassMask(activerun->cfg.getTriggerClassMask());
+  o2::detectors::DetID::mask_t detmask = activerun->cfg.getDetectorMask();
+  activerun->scalers.setDetectorMask(detmask);
+  //
+  mRunInStart = activerun;
+  saveRunConfigToCCDB(&activerun->cfg, timeStamp);
+  return 0;
+}
+int CTPRunManager::stopRun(uint32_t irun)
+{
+  LOG(info) << "Stopping run index: " << irun;
+  if (mActiveRuns[irun] == nullptr) {
+    LOG(error) << "No config for run index:" << irun;
+    return 1;
+  }
+  const auto now = std::chrono::system_clock::now();
+  const long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+  mActiveRuns[irun]->timeStop = timeStamp;
+  saveRunScalersToCCDB(irun);
+  delete mActiveRuns[irun];
+  mActiveRuns[irun] = nullptr;
+  return 0;
+}
+int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
+{
+  if (mActiveRuns[irun] == nullptr) {
+    LOG(error) << "No config for run index:" << irun;
+    return 1;
+  }
+  std::string orb = "extorb";
+  CTPScalerRecordRaw scalrec;
+  scalrec.epochTime = time;
+  std::vector<int> clslist = mActiveRuns[irun]->cfg.getTriggerClassList();
+  for (auto const& cls : clslist) {
+    std::string cmb = "clamb" + std::to_string(cls + 1);
+    std::string cma = "clama" + std::to_string(cls + 1);
+    std::string c0b = "cla0b" + std::to_string(cls + 1);
+    std::string c0a = "cla0a" + std::to_string(cls + 1);
+    std::string c1b = "cla1b" + std::to_string(cls + 1);
+    std::string c1a = "cla1a" + std::to_string(cls + 1);
+    CTPScalerRaw scalraw;
+    scalraw.classIndex = (uint32_t)cls;
+    // std::cout << "cls:" << cls << " " << scalraw.classIndex << std::endl;
+    scalraw.lmBefore = mCounters[mScalerName2Position[cmb]];
+    scalraw.lmAfter = mCounters[mScalerName2Position[cma]];
+    scalraw.l0Before = mCounters[mScalerName2Position[c0b]];
+    scalraw.l0After = mCounters[mScalerName2Position[c0a]];
+    scalraw.l1Before = mCounters[mScalerName2Position[c1b]];
+    scalraw.l1After = mCounters[mScalerName2Position[c1a]];
+    // std::cout << "positions:" << cmb << " " <<  mScalerName2Position[cmb] << std::endl;
+    // std::cout << "positions:" << cma << " " <<  mScalerName2Position[cma] << std::endl;
+    scalrec.scalers.push_back(scalraw);
+  }
+  // detectors
+  // std::vector<std::string> detlist = mActiveRuns[irun]->cfg.getDetectorList();
+  o2::detectors::DetID::mask_t detmask = mActiveRuns[irun]->cfg.getDetectorMask();
+  for (uint32_t i = 0; i < 32; i++) {
+    o2::detectors::DetID::mask_t deti = 1ul << i;
+    bool detin = (detmask & deti).count();
+    if (detin) {
+      std::string detname(o2::detectors::DetID::getName(i));
+      std::string countername = detname + CTPConfiguration::detName2LTG.at(detname) + "_PH";
+      uint32_t detcount = mCounters[mScalerName2Position[countername]];
+      scalrec.scalersDets.push_back(detcount);
+      LOG(info) << "Scaler for detector:" << countername << ":" << detcount;
+    }
+  }
+  //
+  scalrec.intRecord.orbit = mCounters[mScalerName2Position[orb]];
+  scalrec.intRecord.bc = 0;
+  mActiveRuns[irun]->scalers.addScalerRacordRaw(scalrec);
+  LOG(info) << "Adding scalers for orbit:" << scalrec.intRecord.orbit;
+  // scalrec.printStream(std::cout);
+  // printCounters();
+  return 0;
+}
+int CTPRunManager::processMessage(std::string& topic, const std::string& message)
+{
+  if (mQC == 1) {
+    LOG(info) << "processMessage: skipping, QC=1";
+    return 1;
+  }
+  LOG(info) << "Processing message with topic:" << topic;
+  std::string firstcounters;
+  if (topic.find("ctpconfig") != std::string::npos) {
+    LOG(info) << "ctpcfg received";
+    startRun(message);
+    mCtpcfg = 1;
+    return 0;
+  }
+  if (topic.find("sox") != std::string::npos) {
+    // get config
+    size_t irun = message.find("run");
+    if (irun == std::string::npos) {
+      LOG(error) << "run keyword not found in SOX:\n"
+                 << message;
+      return 1;
+    }
+    LOG(info) << "SOX received, Run keyword position:" << irun;
+    if (mCtpcfg == 0) {
+      std::string cfg = message.substr(irun, message.size() - irun);
+      LOG(info) << "Config:" << cfg;
+      startRun(cfg);
+    } else {
+      mCtpcfg = 0;
+    }
+    firstcounters = message.substr(0, irun);
+  }
+  if (topic.find("eox") != std::string::npos) {
+    LOG(info) << "EOX received";
+    mEOX = 1;
+  }
+  //
+  std::vector<std::string> tokens;
+  if (firstcounters.size() > 0) {
+    tokens = o2::utils::Str::tokenize(firstcounters, ' ');
+  } else {
+    tokens = o2::utils::Str::tokenize(message, ' ');
+  }
+  if (tokens.size() != (CTPRunScalers::NCOUNTERS + 1)) {
+    LOG(error) << "Scalers size wrong:" << tokens.size() << " expected:" << CTPRunScalers::NCOUNTERS + 1;
+    return 1;
+  }
+  double timeStamp = std::stold(tokens.at(0));
+  std::time_t tt = timeStamp;
+  LOG(info) << "Processing scalers, all good, time:" << tokens.at(0) << " " << std::asctime(std::localtime(&tt));
+  for (int i = 1; i < tokens.size(); i++) {
+    mCounters[i - 1] = std::stoull(tokens.at(i));
+    if (i < (NRUNS + 1)) {
+      std::cout << mCounters[i - 1] << " ";
+    }
+  }
+  std::cout << std::endl;
+  LOG(info) << "Counter size:" << tokens.size();
+  //
+  for (uint32_t i = 0; i < NRUNS; i++) {
+    if ((mCounters[i] == 0) && (mActiveRunNumbers[i] == 0)) {
+      // not active
+    } else if ((mCounters[i] != 0) && (mActiveRunNumbers[i] == mCounters[i])) {
+      // active , do scalers
+      LOG(info) << "Run continue:" << mCounters[i];
+      addScalers(i, tt);
+    } else if ((mCounters[i] != 0) && (mActiveRunNumbers[i] == 0)) {
+      LOG(info) << "Run started:" << mCounters[i];
+      mActiveRunNumbers[i] = mCounters[i];
+      if (mRunInStart == nullptr) {
+        LOG(error) << "Internal error in processMessage: nullptr != 0 expected";
+      }
+      mActiveRuns[i] = mRunInStart;
+      mRunInStart = nullptr;
+      addScalers(i, tt);
+    } else if ((mCounters[i] == 0) && (mActiveRunNumbers[i] != 0)) {
+      if (mEOX != 1) {
+        LOG(error) << "Internal error in processMessage: mEOX != 1 expected 0: mEOX:" << mEOX;
+      }
+      LOG(info) << "Run stopped:" << mActiveRunNumbers[i];
+      addScalers(i, tt);
+      mActiveRunNumbers[i] = 0;
+      mEOX = 0;
+      stopRun(i);
+    }
+  }
+  mEOX = 0;
+  printActiveRuns();
+  return 0;
+}
+void CTPRunManager::printActiveRuns() const
+{
+  std::cout << "Active runs:";
+  for (auto const& arun : mActiveRunNumbers) {
+    std::cout << arun << " ";
+  }
+  std::cout << std::endl;
+}
+int CTPRunManager::saveRunScalersToCCDB(int i)
+{
+  // data base
+  CTPActiveRun* run = mActiveRuns[i];
+  using namespace std::chrono_literals;
+  std::chrono::seconds days3 = 259200s;
+  std::chrono::seconds min10 = 600s;
+  long time3days = std::chrono::duration_cast<std::chrono::milliseconds>(days3).count();
+  long time10min = std::chrono::duration_cast<std::chrono::milliseconds>(min10).count();
+  long tmin = run->timeStart - time10min;
+  long tmax = run->timeStop + time3days;
+  o2::ccdb::CcdbApi api;
+  map<string, string> metadata; // can be empty
+  metadata["runNumber"] = std::to_string(run->cfg.getRunNumber());
+  api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
+  // store abitrary user object in strongly typed manner
+  api.storeAsTFileAny(&(run->scalers), mCCDBPathCTPScalers, metadata, tmin, tmax);
+  LOG(info) << "CTP scalers saved in ccdb:" << mCCDBHost << " run:" << run->cfg.getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
+  return 0;
+}
+int CTPRunManager::saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart)
+{
+  // data base
+  using namespace std::chrono_literals;
+  std::chrono::seconds days3 = 259200s;
+  std::chrono::seconds min10 = 600s;
+  long time3days = std::chrono::duration_cast<std::chrono::milliseconds>(days3).count();
+  long time10min = std::chrono::duration_cast<std::chrono::milliseconds>(min10).count();
+  long tmin = timeStart - time10min;
+  long tmax = timeStart + time3days;
+  o2::ccdb::CcdbApi api;
+  map<string, string> metadata; // can be empty
+  metadata["runNumber"] = std::to_string(cfg->getRunNumber());
+  api.init(mCCDBHost.c_str()); // or http://localhost:8080 for a local installation
+  // store abitrary user object in strongly typed manner
+  api.storeAsTFileAny(cfg, CCDBPathCTPConfig, metadata, tmin, tmax);
+  LOG(info) << "CTP config  saved in ccdb:" << mCCDBHost << " run:" << cfg->getRunNumber() << " tmin:" << tmin << " tmax:" << tmax;
+  return 0;
+}
+CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string run)
+{
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL(mCCDBHost);
+  map<string, string> metadata; // can be empty
+  metadata["runNumber"] = run;
+  auto ctpconfigdb = mgr.getSpecific<CTPConfiguration>(CCDBPathCTPConfig, timestamp, metadata);
+  if (ctpconfigdb == nullptr) {
+    LOG(info) << "CTP config not in database, timestamp:" << timestamp;
+  } else {
+    ctpconfigdb->printStream(std::cout);
+  }
+  return *ctpconfigdb;
+}
+CTPRunScalers CTPRunManager::getScalersFromCCDB(long timestamp, std::string run)
+{
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL(mCCDBHost);
+  map<string, string> metadata; // can be empty
+  metadata["runNumber"] = run;
+  auto ctpscalers = mgr.getSpecific<CTPRunScalers>(mCCDBPathCTPScalers, timestamp, metadata);
+  if (ctpscalers == nullptr) {
+    LOG(info) << "CTPRunScalers not in database, timestamp:" << timestamp;
+  } else {
+    // ctpscalers->printStream(std::cout);
+  }
+  return *ctpscalers;
+}
+int CTPRunManager::loadScalerNames()
+{
+  if (CTPRunScalers::NCOUNTERS != CTPRunScalers::scalerNames.size()) {
+    LOG(fatal) << "NCOUNTERS:" << CTPRunScalers::NCOUNTERS << " different from names vector:" << CTPRunScalers::scalerNames.size();
+    return 1;
+  }
+  // try to open files of no success use default
+  for (uint32_t i = 0; i < CTPRunScalers::scalerNames.size(); i++) {
+    mScalerName2Position[CTPRunScalers::scalerNames[i]] = i;
+  }
+  return 0;
+}
+void CTPRunManager::printCounters()
+{
+  int NDET = 18;
+  int NINPS = 48;
+  int NCLKFP = 7;
+  int NLTG_start = NRUNS;
+  int NCLKFP_start = NLTG_start + NDET * 32;
+  int NINPS_start = NCLKFP_start + 7;
+  int NCLS_start = NINPS_start + NINPS;
+  std::cout << "====> CTP counters:" << std::endl;
+  std::cout << "RUNS:" << std::endl;
+  int ipos = 0;
+  for (int i = 0; i < NRUNS; i++) {
+    std::cout << ipos << ":" << mCounters[i] << " ";
+    ipos++;
+  }
+  std::cout << std::endl;
+  for (int i = 0; i < NDET; i++) {
+    std::cout << "LTG" << i + 1 << std::endl;
+    for (int j = NLTG_start + i * 32; j < NLTG_start + (i + 1) * 32; j++) {
+      std::cout << ipos << ":" << mCounters[j] << " ";
+      ipos++;
+    }
+    std::cout << std::endl;
+  }
+  std::cout << "BC40,BC240,Orbit,pulser, fastlm, busy,spare" << std::endl;
+  for (int i = NCLKFP_start; i < NCLKFP_start + 7; i++) {
+    std::cout << ipos << ":" << mCounters[i] << " ";
+    ipos++;
+  }
+  std::cout << std::endl;
+  std::cout << "INPUTS:" << std::endl;
+  for (int i = NINPS_start; i < NINPS_start + NINPS; i++) {
+    std::cout << ipos << ":" << mCounters[i] << " ";
+    ipos++;
+  }
+  std::cout << std::endl;
+  std::cout << "CLASS M Before" << std::endl;
+  for (int i = NCLS_start; i < NCLS_start + 64; i++) {
+    std::cout << ipos << ":" << mCounters[i] << " ";
+    ipos++;
+  }
+  std::cout << std::endl;
+  std::cout << "CLASS M After" << std::endl;
+  for (int i = NCLS_start + 64; i < NCLS_start + 2 * 64; i++) {
+    std::cout << ipos << ":" << mCounters[i] << " ";
+    ipos++;
+  }
+  std::cout << std::endl;
+  std::cout << "CLASS 0 Before" << std::endl;
+  for (int i = NCLS_start + 2 * 64; i < NCLS_start + 3 * 64; i++) {
+    std::cout << ipos << ":" << mCounters[i] << " ";
+    ipos++;
+  }
+  std::cout << std::endl;
+  std::cout << "CLASS 0 After" << std::endl;
+  for (int i = NCLS_start + 3 * 64; i < NCLS_start + 4 * 64; i++) {
+    std::cout << ipos << ":" << mCounters[i] << " ";
+    ipos++;
+  }
+  std::cout << std::endl;
+  std::cout << "CLASS 1 Before" << std::endl;
+  for (int i = NCLS_start + 4 * 64; i < NCLS_start + 5 * 64; i++) {
+    std::cout << ipos << ":" << mCounters[i] << " ";
+    ipos++;
+  }
+  std::cout << std::endl;
+  std::cout << "CLASS 1 After" << std::endl;
+  for (int i = NCLS_start + 5 * 64; i < NCLS_start + 6 * 64; i++) {
+    std::cout << ipos << ":" << mCounters[i] << " ";
+    ipos++;
+  }
+  std::cout << std::endl;
+  std::cout << " REST:" << std::endl;
+  for (int i = NCLS_start + 6 * 64; i < mCounters.size(); i++) {
+    if ((ipos % 10) == 0) {
+      std::cout << std::endl;
+      std::cout << ipos << ":";
+    }
+    std::cout << mCounters[i] << " ";
+  }
+}
+int CTPInputsConfiguration::createInputsConfigFromFile(std::string& filename)
+{
+  int ret = 0;
+  std::ifstream inpcfg(filename);
+  if (inpcfg.is_open()) {
+    std::string line;
+    while (std::getline(inpcfg, line)) {
+      o2::utils::Str::trim(line);
+      if (line.size() == 0) {
+        continue;
+      }
+      if (line[0] == '#') {
+        continue;
+      }
+      std::vector<std::string> tokens = o2::utils::Str::tokenize(line, ' ');
+      size_t ntokens = tokens.size();
+      if (ntokens < 6) {
+        LOG(warning) << "# of tokens < 6 in line:" << ntokens << ":" << line;
+        ret++;
+      } else {
+        CTPInput inp;
+        uint32_t index = 0;
+        try {
+          index = std::stoi(tokens[0]);
+        } catch (...) {
+          LOG(warning) << line;
+          ret++;
+          continue;
+        }
+        std::string det = tokens[1];
+        CTPConfiguration::capitaliseString(det);
+        std::string name = tokens[2];
+        CTPInputs.push_back(CTPInput(name, det, index));
+      }
+    }
+  } else {
+    LOG(info) << "Can not open file:" << filename;
+    ret++;
+  }
+  return ret;
+  ;
+}
+CTPInputsConfiguration CTPInputsConfiguration::defaultInputConfig;
+void CTPInputsConfiguration::printStream(std::ostream& stream) const
+{
+  for (auto const& input : CTPInputs) {
+    input.printStream(stream);
+  }
+}
+void CTPInputsConfiguration::initDefaultInputConfig()
+{
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MT0A", "FT0", 1));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MT0C", "FT0", 2));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MTVX", "FT0", 3));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MTSC", "FT0", 4));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MTCE", "FT0", 5));
+  //
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MVBA", "FV0", 6));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MVOR", "FV0", 7));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MVIR", "FV0", 8));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MVNC", "FV0", 9));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("MVCH", "FV0", 10));
+  //
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0UCE", "FT0", 13));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0USC", "FT0", 15));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0UVX", "FT0", 16));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0U0C", "FT0", 17));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0U0A", "FT0", 18));
+  //
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0DMC", "EMC", 14));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0DJ1", "EMC", 41));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0DG1", "EMC", 42));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0DJ2", "EMC", 43));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0DG2", "EMC", 44));
+  //
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0EMC", "EMC", 21));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0EJ1", "EMC", 37));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0EG1", "EMC", 38));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0EJ2", "EMC", 39));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0EG2", "EMC", 40));
+  //
+  defaultInputConfig.CTPInputs.push_back(CTPInput("0PH0", "PHS", 22));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("1PHL", "PHS", 27));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("1PHH", "PHS", 28));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("1PHL", "PHM", 29));
+  //
+  defaultInputConfig.CTPInputs.push_back(CTPInput("1ZED", "ZDC", 25));
+  defaultInputConfig.CTPInputs.push_back(CTPInput("1ZNC", "ZDC", 26));
 }

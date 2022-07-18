@@ -70,11 +70,11 @@ std::string errorCodeAsString(uint32_t ec)
   if (ec & ErrorUnknownLinkID) {
     append("Unknown Link ID", msg);
   }
-  if (ec & ErrorBadDigitTime) {
-    append("Bad Digit Time", msg);
-  }
   if (ec & ErrorInvalidDigitTime) {
     append("Invalid Digit Time", msg);
+  }
+  if (ec & ErrorNonRecoverableDecodingError) {
+    append("Non Recoverable", msg);
   }
   return msg;
 }

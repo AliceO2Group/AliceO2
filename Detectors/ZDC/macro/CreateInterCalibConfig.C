@@ -18,6 +18,7 @@
 
 #endif
 
+#include "ZDCBase/Helpers.h"
 #include "ZDCBase/Constants.h"
 #include "ZDCCalib/InterCalibConfig.h"
 
@@ -26,10 +27,10 @@ using namespace std;
 
 void CreateInterCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
 {
+  // Shortcuts: internal, external, test, local, root
 
   // This object allows for the configuration of the intercalibration of the 4 towers of each calorimeter
   // and the calibration of ZEM2 relative to ZEM1
-
   InterCalibConfig conf;
 
   // Enable intercalibration for all calorimeters
@@ -49,21 +50,19 @@ void CreateInterCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHost 
 
   conf.print();
 
+  std::string ccdb_host = ccdbShortcuts(ccdbHost, conf.Class_Name(), CCDBPathInterCalibConfig);
+
+  if (endsWith(ccdb_host, ".root")) {
+    TFile f(ccdb_host.data(), "recreate");
+    f.WriteObjectAny(&conf, conf.Class_Name(), "ccdb_object");
+    f.Close();
+    return;
+  }
+
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
-  if (ccdbHost.size() == 0 || ccdbHost == "external") {
-    ccdbHost = "http://alice-ccdb.cern.ch:8080";
-  } else if (ccdbHost == "internal") {
-    ccdbHost = "http://o2-ccdb.internal/";
-  } else if (ccdbHost == "test") {
-    ccdbHost = "http://ccdb-test.cern.ch:8080";
-  } else if (ccdbHost == "local") {
-    ccdbHost = "http://localhost:8080";
-  }
-  api.init(ccdbHost.c_str());
+  api.init(ccdb_host.c_str());
   LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&conf, CCDBPathInterCalibConfig, metadata, tmin, tmax);
-
-  // return conf;
 }

@@ -20,7 +20,8 @@
 #include "DataFormatsCPV/Digit.h"
 #include "CCDB/CcdbApi.h"
 #include "CPVBase/CPVSimParams.h"
-
+#include "CPVBase/CPVCalibParams.h"
+#include <bitset>
 #include "FairLogger.h" // for LOG
 
 using namespace o2::cpv;
@@ -38,10 +39,12 @@ void Clusterer::initialize()
 void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRecord> dtr,
                         const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* dmc,
                         std::vector<Cluster>* clusters, std::vector<TriggerRecord>* trigRec,
-                        o2::dataformats::MCTruthContainer<o2::MCCompLabel>* cluMC)
+                        o2::dataformats::MCTruthContainer<o2::MCCompLabel>* cluMC,
+                        std::vector<Digit>* calibDigits)
 {
-  clusters->clear(); //final out list of clusters
+  clusters->clear(); // final out list of clusters
   trigRec->clear();
+  calibDigits->clear();
   if (mRunMC) {
     cluMC->clear();
   }
@@ -58,11 +61,15 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
     // Collect digits to clusters
     makeClusters(digits);
 
-    // // Unfold overlapped clusters
-    // // Split clusters with several local maxima if necessary
-    // if (o2::cpv::CPVSimParams::Instance().mUnfoldClusters) {
-    //   makeUnfoldings(digits);
-    // }
+    // Unfold overlapped clusters
+    // Split clusters with several local maxima if necessary
+    if (o2::cpv::CPVSimParams::Instance().mUnfoldClusters) {
+      // calibdigits will be prepared in this routine
+      makeUnfoldingsAndCalibDigits(digits, calibDigits);
+    } else {
+      // otherwise prepare calibdigits only
+      makeCalibDigits(calibDigits);
+    }
 
     // Calculate properties of collected clusters (Local position, energy, disp etc.)
     evalCluProperties(digits, clusters, dmc, cluMC);
@@ -90,7 +97,7 @@ void Clusterer::makeClusters(gsl::span<const Digit> digits)
     }
 
     const Digit& digitSeed = digits[i];
-    float digitSeedEnergy = digitSeed.getAmplitude(); //already calibrated digits
+    float digitSeedEnergy = digitSeed.getAmplitude(); // already calibrated digits
     if (digitSeedEnergy < o2::cpv::CPVSimParams::Instance().mDigitMinEnergy) {
       continue;
     }
@@ -116,7 +123,7 @@ void Clusterer::makeClusters(gsl::span<const Digit> digits)
           continue; // look through remaining digits
         }
         const Digit& digitN = digits[j];
-        float digitNEnergy = digitN.getAmplitude(); //Already calibrated digits!
+        float digitNEnergy = digitN.getAmplitude(); // Already calibrated digits!
         if (digitNEnergy < o2::cpv::CPVSimParams::Instance().mDigitMinEnergy) {
           continue;
         }
@@ -144,26 +151,47 @@ void Clusterer::makeClusters(gsl::span<const Digit> digits)
   }   // energy theshold
 }
 //__________________________________________________________________________
-void Clusterer::makeUnfoldings(gsl::span<const Digit> digits)
+void Clusterer::makeCalibDigits(std::vector<Digit>* calibDigits)
 {
-  //Split cluster if several local maxima are found
+  std::array<int, NLMMax> maxAt; // NLMMax:Maximal number of local maxima
+  for (auto& clu : mClusters) {
+    if (clu.getNumberOfLocalMax(maxAt) == 1) { // cluster with only one local maximum
+                                               // and appropriate size
+      if ((o2::cpv::CPVCalibParams::Instance().gainMinClusterMultForCalib <= clu.getMultiplicity()) &&
+          (o2::cpv::CPVCalibParams::Instance().gainMaxClusterMultForCalib >= clu.getMultiplicity())) {
+        const FullCluster::CluElement& maxElement = clu.getElementList()->at(maxAt[0]);
+        calibDigits->emplace_back(maxElement.absId, maxElement.energy, maxElement.label);
+      }
+    }
+  }
+}
+//__________________________________________________________________________
+void Clusterer::makeUnfoldingsAndCalibDigits(gsl::span<const Digit> digits, std::vector<Digit>* calibDigits)
+{
+  // Split cluster if several local maxima are found
 
   std::array<int, NLMMax> maxAt; // NLMMax:Maximal number of local maxima
 
   int numberOfNotUnfolded = mClusters.size();
 
-  for (int i = 0; i < numberOfNotUnfolded; i++) { //can not use iterator here as list can expand
+  for (int i = 0; i < numberOfNotUnfolded; i++) { // can not use iterator here as list can expand
     FullCluster& clu = mClusters[i];
-    if (clu.getNExMax() > -1) { //already unfolded
+    if (clu.getNExMax() > -1) { // already unfolded
       continue;
     }
-    char nMultipl = clu.getMultiplicity();
+    //     char nMultipl = clu.getMultiplicity();
     char nMax = clu.getNumberOfLocalMax(maxAt);
     if (nMax > 1) {
       unfoldOneCluster(clu, nMax, maxAt, digits);
       clu.setEnergy(0); // will be skipped later
     } else {
       clu.setNExMax(nMax); // Only one local maximum
+      // make calib digits from cluster with only one local maximum and appropriate size
+      if ((o2::cpv::CPVCalibParams::Instance().gainMinClusterMultForCalib <= clu.getMultiplicity()) &&
+          (o2::cpv::CPVCalibParams::Instance().gainMaxClusterMultForCalib >= clu.getMultiplicity())) {
+        const FullCluster::CluElement& maxElement = clu.getElementList()->at(maxAt[0]);
+        calibDigits->emplace_back(maxElement.absId, maxElement.energy, maxElement.label);
+      }
     }
   }
 }
@@ -179,7 +207,7 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
   // Take initial cluster and calculate local coordinates of digits
   // To avoid multiple re-calculation of same parameters
   char mult = iniClu.getMultiplicity();
-  if (meInClusters.capacity() < mult) {
+  if (meInClusters.capacity() < static_cast<unsigned int>(mult)) {
     meInClusters.reserve(mult);
     mfij.reserve(mult);
   }
@@ -190,9 +218,8 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
   std::array<float, NLMMax> xMax;
   std::array<float, NLMMax> zMax;
   std::array<float, NLMMax> eMax;
-  std::array<float, NLMMax> deNew;
 
-  //transient variables
+  // transient variables
   std::array<float, NLMMax> a;
   std::array<float, NLMMax> b;
   std::array<float, NLMMax> c;
@@ -213,7 +240,7 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
     std::memset(&a, 0, sizeof a);
     std::memset(&b, 0, sizeof b);
     std::memset(&c, 0, sizeof c);
-    //First calculate shower shapes
+    // First calculate shower shapes
     for (int idig = 0; idig < mult; idig++) {
       auto it = (*cluElist)[idig];
       for (int iclu = 0; iclu < nMax; iclu++) {
@@ -221,7 +248,7 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
       }
     }
 
-    //Fit energies
+    // Fit energies
     for (int idig = 0; idig < mult; idig++) {
       auto it = (*cluElist)[idig];
       for (int iclu = 0; iclu < nMax; iclu++) {
@@ -235,7 +262,7 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
         }
       }
     }
-    //Evaluate new maximal energies
+    // Evaluate new maximal energies
     for (int iclu = 0; iclu < nMax; iclu++) {
       if (a[iclu] != 0.) {
         float eNew = (b[iclu] - c[iclu]) / a[iclu];
@@ -300,7 +327,6 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
     mClusters.emplace_back();
     FullCluster& clu = mClusters.back();
     clu.setNExMax(nMax);
-    int idig = 0;
     for (int idig = 0; idig < mult; idig++) {
       float eDigit = meInClusters[idig][iclu];
       idig++;
@@ -318,7 +344,7 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
                                   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* cluMC)
 {
 
-  if (clusters->capacity() - clusters->size() < mClusters.size()) { //avoid expanding vector per element
+  if (clusters->capacity() - clusters->size() < mClusters.size()) { // avoid expanding vector per element
     clusters->reserve(clusters->size() + mClusters.size());
   }
 
@@ -331,7 +357,7 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
 
   while (clu != mClusters.end()) {
 
-    if (clu->getEnergy() < 1.e-4) { //Marked earlier for removal
+    if (clu->getEnergy() < 1.e-4) { // Marked earlier for removal
       ++clu;
       continue;
     }
@@ -342,34 +368,34 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
     //  LOG(debug) << "Purify done";
     clu->evalAll();
 
-    if (clu->getEnergy() > 1.e-4) { //Non-empty cluster
+    if (clu->getEnergy() > 1.e-4) { // Non-empty cluster
       clusters->emplace_back(*clu);
 
-      if (mRunMC) { //Handle labels
-        //Calculate list of primaries
-        //loop over entries in digit MCTruthContainer
+      if (mRunMC) { // Handle labels
+        // Calculate list of primaries
+        // loop over entries in digit MCTruthContainer
         const std::vector<FullCluster::CluElement>* vl = clu->getElementList();
         auto ll = vl->begin();
         while (ll != vl->end()) {
-          int i = (*ll).label; //index
+          int i = (*ll).label; // index
           if (i < 0) {
             ++ll;
             continue;
           }
           gsl::span<const o2::MCCompLabel> spDigList = dmc->getLabels(i);
-          gsl::span<o2::MCCompLabel> spCluList = cluMC->getLabels(labelIndex); //get updated list
+          gsl::span<o2::MCCompLabel> spCluList = cluMC->getLabels(labelIndex); // get updated list
           auto digL = spDigList.begin();
           while (digL != spDigList.end()) {
             bool exist = false;
             auto cluL = spCluList.begin();
             while (cluL != spCluList.end()) {
-              if (*digL == *cluL) { //exist
+              if (*digL == *cluL) { // exist
                 exist = true;
                 break;
               }
               ++cluL;
             }
-            if (!exist) { //just add label
+            if (!exist) { // just add label
               cluMC->addElement(labelIndex, (*digL));
             }
             ++digL;

@@ -526,6 +526,11 @@ void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterative(const DistCorrInt
           const DataT zCurrPos = getZVertex(nearestiZ, side) + stepZ;
           const DataT phiCurrPos = getPhiVertex(nearestiPhi, side) + stepPhi;
 
+          // abort calculation of drift path if electron reached inner/outer field cage or central electrode
+          if (rCurrPos <= (getRMin(side) - 4 * getGridSpacingR(side)) || rCurrPos >= (getRMax(side) + 2 * getGridSpacingR(side)) || getSide(zCurrPos) != side) {
+            break;
+          }
+
           // interpolate global correction at new point and calculate position of global correction
           // corrdR = globCorr.evalSparsedR(zCurrPos, rCurrPos, phiCurrPos);
           corrdR = globCorr.evaldR(zCurrPos, rCurrPos, phiCurrPos);

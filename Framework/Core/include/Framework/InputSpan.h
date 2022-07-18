@@ -23,7 +23,7 @@ namespace o2::framework
 /// Mapping helper between the store of all inputs being processed and the
 /// actual inputs to be processed in a given go.
 /// In general this will use an helper which returns
-/// `FairMQMessages->GetData()` from the Message cache, but in principle
+/// `fair::mq::Message->GetData()` from the Message cache, but in principle
 /// the mechanism should be flexible enough to allow all kind of input stores.
 class InputSpan
 {

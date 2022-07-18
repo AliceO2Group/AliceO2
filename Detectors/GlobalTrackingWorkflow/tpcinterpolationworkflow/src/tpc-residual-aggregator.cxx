@@ -18,6 +18,11 @@ using namespace o2::framework;
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"output-type", VariantType::String, "binnedResid", {"Comma separated list of outputs (without spaces). Valid strings: unbinnedResid, binnedResid, trackParams"}},
+    {"enable-track-input", VariantType::Bool, false, {"Whether to expect track data from interpolation workflow"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+  std::swap(workflowOptions, options);
 }
 
 // ------------------------------------------------------------------
@@ -26,7 +31,36 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  auto trkInput = configcontext.options().get<bool>("enable-track-input");
+
+  bool writeUnbinnedResiduals = false;
+  bool writeBinnedResiduals = false;
+  bool writeTrackData = false;
+  auto outputType = configcontext.options().get<string>("output-type");
+  std::vector<std::string> outputTypes;
+  size_t pos = 0;
+  while ((pos = outputType.find(",")) != std::string::npos) {
+    outputTypes.push_back(outputType.substr(0, pos));
+    outputType.erase(0, pos + 1);
+  }
+  outputTypes.push_back(outputType);
+  for (const auto& out : outputTypes) {
+    if (out == "unbinnedResid") {
+      writeUnbinnedResiduals = true;
+    } else if (out == "binnedResid") {
+      writeBinnedResiduals = true;
+    } else if (out == "trackParams") {
+      if (!trkInput) {
+        LOG(error) << "Track output will be empty, because it is not configured as input";
+      }
+      writeTrackData = true;
+    } else {
+      LOG(error) << "Invalid output requested: " << out;
+    }
+  }
+
   WorkflowSpec specs;
-  specs.emplace_back(getTPCResidualAggregatorSpec());
+  specs.emplace_back(getTPCResidualAggregatorSpec(trkInput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData));
   return specs;
 }

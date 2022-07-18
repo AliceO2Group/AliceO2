@@ -10,41 +10,43 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(EMCALBase
-               SOURCES src/Geometry.cxx src/Hit.cxx
-                       src/ShishKebabTrd1Module.cxx
-                       src/Mapper.cxx
-                       src/RCUTrailer.cxx
-                       src/ClusterFactory.cxx
-               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::Headers Boost::serialization
-                                     O2::MathUtils O2::DataFormatsEMCAL
-                                     O2::SimulationDataFormat ROOT::Physics)
+        SOURCES src/Geometry.cxx src/Hit.cxx
+        src/ShishKebabTrd1Module.cxx
+        src/Mapper.cxx
+        src/RCUTrailer.cxx
+        src/ClusterFactory.cxx
+        src/TriggerMappingV2.cxx
+        PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::Headers Boost::serialization
+        O2::MathUtils O2::DataFormatsEMCAL
+        O2::SimulationDataFormat ROOT::Physics)
 
 o2_target_root_dictionary(EMCALBase
-                          HEADERS include/EMCALBase/GeometryBase.h
-                                  include/EMCALBase/Geometry.h
-                                  include/EMCALBase/Hit.h
-                                  include/EMCALBase/ShishKebabTrd1Module.h
-                                  include/EMCALBase/Mapper.h
-                                  include/EMCALBase/RCUTrailer.h
-                                  include/EMCALBase/ClusterFactory.h
-                                  )
+        HEADERS include/EMCALBase/GeometryBase.h
+        include/EMCALBase/Geometry.h
+        include/EMCALBase/Hit.h
+        include/EMCALBase/ShishKebabTrd1Module.h
+        include/EMCALBase/Mapper.h
+        include/EMCALBase/RCUTrailer.h
+        include/EMCALBase/TriggerMappingV2.h
+        include/EMCALBase/ClusterFactory.h
+)
 
 o2_data_file(COPY files DESTINATION Detectors/EMC)
 
 o2_add_test(Mapper
-            SOURCES test/testMapper.cxx
-            PUBLIC_LINK_LIBRARIES O2::EMCALBase
-            COMPONENT_NAME emcal
-            LABELS emcal
-            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+        SOURCES test/testMapper.cxx
+        PUBLIC_LINK_LIBRARIES O2::EMCALBase
+        COMPONENT_NAME emcal
+        LABELS emcal
+        ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
 o2_add_test(RCUTrailer
-            SOURCES test/testRCUTrailer.cxx
-            PUBLIC_LINK_LIBRARIES O2::EMCALBase
-            COMPONENT_NAME emcal
-            LABELS emcal
-            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
-            
+        SOURCES test/testRCUTrailer.cxx
+        PUBLIC_LINK_LIBRARIES O2::EMCALBase
+        COMPONENT_NAME emcal
+        LABELS emcal
+        ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+
 o2_add_test_root_macro(test/testGeometryRowColIndexing.C
-            PUBLIC_LINK_LIBRARIES O2::EMCALBase
-            LABELS emcal)
+        PUBLIC_LINK_LIBRARIES O2::EMCALBase
+        LABELS emcal)

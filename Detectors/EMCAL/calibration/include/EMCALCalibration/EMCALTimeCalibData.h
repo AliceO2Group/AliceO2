@@ -54,7 +54,7 @@ class EMCALTimeCalibData
 {
  public:
   using Cells = o2::emcal::Cell;
-  using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::integer<>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
+  using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::regular<>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
 
   o2::emcal::Geometry* mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
   int NCELLS = mGeometry->GetNCells();
@@ -62,7 +62,7 @@ class EMCALTimeCalibData
   EMCALTimeCalibData(const TimeCalibInitParams& par)
   {
     // boost histogram with amplitude vs. cell ID, specify the range and binning of the amplitude axis
-    mTimeHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(par.mTimeBins, par.mTimeRange.at(0), par.mTimeRange.at(1), "t (ns)"), boost::histogram::axis::integer<>(0, NCELLS, "CELL ID"));
+    mTimeHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(par.mTimeBins, par.mTimeRange.at(0), par.mTimeRange.at(1), "t (ns)"), boost::histogram::axis::regular<>(NCELLS, -0.5, NCELLS - 0.5, "CELL ID"));
     LOG(debug) << "initialize time histogram with " << NCELLS << " cells";
   }
 
@@ -87,6 +87,11 @@ class EMCALTimeCalibData
   /// \brief Get number of events currently available for calibration
   int getNEvents() const { return mEvents; }
 
+  /// \brief Get the number of entries in histogram
+  long unsigned int getNEntriesInHisto() const { return mNEntriesInHisto; }
+  /// \brief Set the number of entries in histogram
+  void setNEntriesInHisto(long unsigned int n) { mNEntriesInHisto = n; }
+
   /// \brief Get current histogram
   boostHisto& getHisto() { return mTimeHisto; }
   const boostHisto& getHisto() const { return mTimeHisto; }
@@ -97,10 +102,11 @@ class EMCALTimeCalibData
   o2::emcal::TimeCalibrationParams process();
 
  private:
-  boostHisto mTimeHisto;
-  TimeCalibInitParams mTimeCalibParams;
+  boostHisto mTimeHisto;                ///< histogram with cell time vs. cell ID
+  TimeCalibInitParams mTimeCalibParams; ///< initialization parameters for histogram
 
-  int mEvents = 0;
+  int mEvents = 0;                        ///< current number of events
+  long unsigned int mNEntriesInHisto = 0; ///< number of entries in histogram
 
   ClassDefNV(EMCALTimeCalibData, 1);
 };

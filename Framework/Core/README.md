@@ -9,7 +9,7 @@
 
 ## Status quo and motivation for an O2 Data Processing Layer
 
-FairMQ currently provides a well documented and flexible framework for an actor based computation where each of the actors listens for message-like entities on channels and executes some code as a reaction. The key component which controls this is called a `FairMQDevice` (or *device* from now on) which can use different kind of transports to receive and send messages. In the most generic case, users are allowed to have full control on the state machine governing the message passing and have complete control on how the message handling is done. This of course covers all ALICE usecases in a generic manner, at the cost of extra complexity left to the user to implement. In most cases however a simplified way of creating devices is provided, and the user will simply create its own `FairMQDevice`-derived class, which registers via the `OnData(FairMQParts &parts)` method a callback that is invoked whenever a new message arrives. This however still holds the user responsible for:
+FairMQ currently provides a well documented and flexible framework for an actor based computation where each of the actors listens for message-like entities on channels and executes some code as a reaction. The key component which controls this is called a `fair::mq::Device` (or *device* from now on) which can use different kind of transports to receive and send messages. In the most generic case, users are allowed to have full control on the state machine governing the message passing and have complete control on how the message handling is done. This of course covers all ALICE usecases in a generic manner, at the cost of extra complexity left to the user to implement. In most cases however a simplified way of creating devices is provided, and the user will simply create its own `fair::m::Device`-derived class, which registers via the `OnData(fair::mq::Parts &parts)` method a callback that is invoked whenever a new message arrives. This however still holds the user responsible for:
 
 * Verifying that the required inputs for the computation are all available, both from the actual data flow (being it for readout, reconstruction or analysis) and from the asynchronous stream (e.g. alignment and calibrations).
 * Create the appropriate message which holds the results and send it.
@@ -59,7 +59,7 @@ WorkflowSpec defineDataProcessing(ConfigContext &context) {
 
 See next section, for a more detailed description of the `DataProcessorSpec` class. The code above has to be linked into a single executable together with the Data Processing Layer code to form a so called driver executable which if run will:
 
-* Map all `DataProcessorSpec` to a set of `FairMQDevice`s (using 1-1 correspondence, in the current implementation).
+* Map all `DataProcessorSpec` to a set of `fair::mq::Device`s (using 1-1 correspondence, in the current implementation).
 * Instanciate and start all the devices resulted from the previous step.
 * (Optionally) start a GUI which allows to monitor the running of the system.
 
@@ -304,7 +304,7 @@ auto ctx.services().get<ControlService>().readyToQuit(QuitRequest::All) // In th
 
 #### RawDeviceService
 
-This service allows you to get an hold of the `FairMQDevice` running the DataProcessor computation from with the computation itself. While in general this should not be used, it is handy in case you want to integrate with a pre-existing `FairMQDevice` which potentially does not even follow the O2 Data Model.
+This service allows you to get an hold of the `fair::mq::Device` running the DataProcessor computation from with the computation itself. While in general this should not be used, it is handy in case you want to integrate with a pre-existing `fair::mq::Device` which potentially does not even follow the O2 Data Model.
 
 #### Monitoring service
 
@@ -398,7 +398,7 @@ In order to express those DPL provides the `o2::framework::parallel` and `o2::fr
 
 It can actually happen that you need to interface with native FairMQ devices, either for convenience or because they require a custom behavior which does not map well on top of the Data Processing Layer.
 
-This is fully supported and the DPL provides means to ingest foreign, non-DPL `FairMQDevice` produced messages into a DPL workflow. This is done via the help of a "proxy" data processor which connects to the foreign device, receives its inputs, optionally converts them to a format understood by the Data Processing Layer, and then pumps them to the right Data Processor Specs.
+This is fully supported and the DPL provides means to ingest foreign, non-DPL `fair::mq::Device` produced messages into a DPL workflow. This is done via the help of a "proxy" data processor which connects to the foreign device, receives its inputs, optionally converts them to a format understood by the Data Processing Layer, and then pumps them to the right Data Processor Specs.
 
 This is done using the `FairMQRawDeviceService` which exposes the actual device on which an Algorithm is running, giving the user full control.
 

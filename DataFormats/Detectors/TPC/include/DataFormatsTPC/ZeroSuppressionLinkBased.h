@@ -16,7 +16,11 @@
 #ifndef ALICEO2_DATAFORMATSTPC_ZeroSuppressionLinkBased_H
 #define ALICEO2_DATAFORMATSTPC_ZeroSuppressionLinkBased_H
 
+#include "GPUCommonDef.h"
+
+#ifndef GPUCA_GPUCODE
 #include <bitset>
+#endif
 
 namespace o2
 {
@@ -27,35 +31,43 @@ namespace zerosupp_link_based
 
 static constexpr uint32_t DataWordSizeBits = 128;                   ///< size of header word and data words in bits
 static constexpr uint32_t DataWordSizeBytes = DataWordSizeBits / 8; ///< size of header word and data words in bytes
+static constexpr uint32_t ChannelPerTBHeader = 80;
 
 /// common header definition of the zero suppressed link based data
 struct CommonHeader {
   static constexpr uint32_t MagicWordLinkZS = 0xFC;
+  static constexpr uint32_t MagicWordLinkZSMetaHeader = 0xFD;
   static constexpr uint32_t MagicWordTrigger = 0xAA;
+  static constexpr uint32_t MagicWordTriggerV2 = 0xAB;
 
   union {
-    uint64_t word0 = 0;                        ///< lower 64 bits
-    struct {                                   ///
-      uint64_t bitMaskLow : 64;                ///< lower bits of the 80 bit bitmask
-    };                                         ///
-  };                                           ///
-                                               ///
-  union {                                      ///
-    uint64_t word1 = 0;                        ///< upper bits of the 80 bit bitmask
-    struct {                                   ///
-      uint64_t bitMaskHigh : 16;               ///< higher bits of the 80 bit bitmask
-      uint32_t bunchCrossing : 12;             ///< bunch crossing number
-      uint32_t numWordsPayload : 4;            ///< number of 128bit words with 12bit ADC values
-      uint32_t syncOffsetBC : 8;               ///< sync offset in bunch crossings
-      uint32_t syncOffsetCRUCyclesOrLink : 16; ///< sync offset in 240MHz CRU clock cycles, or link ID in improved format
-      uint32_t magicWord : 8;                  ///< magic word, identifies package
+    uint64_t word0 = 0;             ///< lower 64 bits
+    struct {                        ///
+      uint64_t bitMaskLow : 64;     ///< lower bits of the 80 bit bitmask
+    };                              ///
+  };                                ///
+                                    ///
+  union {                           ///
+    uint64_t word1 = 0;             ///< upper bits of the 80 bit bitmask
+    struct {                        ///
+      uint64_t bitMaskHigh : 16;    ///< higher bits of the 80 bit bitmask
+      uint32_t bunchCrossing : 12;  ///< bunch crossing number
+      uint32_t numWordsPayload : 4; ///< number of 128bit words with 12bit ADC values
+      uint32_t syncOffsetBC : 8;    ///< sync offset in bunch crossings
+      uint32_t fecInPartition : 16; ///< fecInPartition, only used in improved link-based format
+      uint32_t magicWord : 8;       ///< magic word, identifies package
     };
   };
 
-  bool hasCorrectMagicWord() const { return (magicWord == MagicWordLinkZS) || (magicWord == MagicWordTrigger); }
+  bool hasCorrectMagicWord() const { return (magicWord == MagicWordLinkZS) || (magicWord == MagicWordLinkZSMetaHeader) || (magicWord == MagicWordTrigger) || (magicWord == MagicWordTriggerV2); }
   bool isLinkZS() const { return (magicWord == MagicWordLinkZS); }
+  bool isMetaHeader() const { return (magicWord == MagicWordLinkZSMetaHeader); }
   bool isTriggerInfo() const { return (magicWord == MagicWordTrigger); }
+  bool isTriggerInfoV2() const { return (magicWord == MagicWordTriggerV2); }
 };
+
+// GPU Code only requires header definition
+#ifndef GPUCA_GPUCODE
 
 /// header definition of the zero suppressed link based data format
 struct Header final : public CommonHeader {
@@ -65,7 +77,7 @@ struct Header final : public CommonHeader {
     return std::bitset<80>((std::bitset<80>(bitMaskHigh) << 64) | std::bitset<80>(bitMaskLow));
   }
 
-  bool isFillWord() const { return (word0 == 0xffffffffffffffff) && (word1 == 0xffffffffffffffff); }
+  bool isFillWord() const { return ((word0 == 0xffffffffffffffff) && (word1 == 0xffffffffffffffff)); }
 };
 
 /// ADC data container
@@ -240,6 +252,28 @@ struct TriggerInfo {
   uint32_t getTriggerType() const { return (triggerTypeHigh << 20) + triggerTypeLow; }
 };
 
+/// Data definition for the new trigger information after FW update, allowing for interleaved triggers
+struct TriggerInfoV2 {
+  union {
+    uint64_t word0 = 0;             ///< lower 64 bits
+    struct {                        ///
+      uint32_t triggerType;         ///< tigger type
+      uint32_t orbit;               ///< orbit number
+    };                              ///
+  };                                ///
+                                    ///
+  union {                           ///
+    uint64_t word1 = 0;             ///< upper bits of the 80 bit bitmask
+    struct {                        ///
+      uint32_t bunchCrossing : 12;  ///< bunch crossing number
+      uint32_t empty1_0 : 16;       ///< empty
+      uint32_t numWordsPayload : 4; ///< number of 128bit words with 12bit ADC values, should always be 0
+      uint32_t empty1_1 : 24;       ///< empty
+      uint32_t magicWord : 8;       ///< magic word for identification
+    };
+  };
+};
+
 /// Container for Trigger information, header + data
 struct TriggerContainer {
   CommonHeader header;
@@ -247,6 +281,40 @@ struct TriggerContainer {
 
   uint32_t getTriggerType() const { return triggerInfo.getTriggerType(); }
 };
+
+/// Data definition of trigger bits in ILBZS format
+struct TriggerWord {
+  static constexpr uint16_t HasTrigger = 0x8;
+  static constexpr uint16_t LaserTriggerMask = 0x4;
+  static constexpr uint16_t PulserTriggerMask = 0x2;
+  static constexpr uint16_t PhysicsTriggerMask = 0x1;
+
+  union {
+    uint16_t word = 0;
+    struct {
+      uint16_t bunchCrossing : 12;
+      uint16_t triggerType : 4;
+    };
+  };
+
+  bool hasTrigger() const { return triggerType & HasTrigger; }
+  bool hasLaserTrigger() const { return triggerType & LaserTriggerMask; }
+  bool hasPulserTrigger() const { return triggerType & PulserTriggerMask; }
+  bool hasPhysicsTrigger() const { return triggerType & PhysicsTriggerMask; }
+};
+
+/// Trigger word of ILBZS
+///
+/// 128 bits, can hold up to 8 trigger information
+struct TriggerInfoV3 {
+  uint64_t word0 = 0;
+  uint64_t word1 = 0;
+
+  bool hasTrigger() const { return word0 & TriggerWord::HasTrigger; }
+  uint16_t getFirstBC() const { return word0 & 0xFFF; }
+};
+#endif // !defined(GPUCA_GPUCODE)
+
 } // namespace zerosupp_link_based
 } // namespace tpc
 } // namespace o2

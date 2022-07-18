@@ -24,7 +24,7 @@ namespace cpv
 // (mostly used in GEANT stepping and Digitizer)
 struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
 
-  //Parameters used in conversion of deposited energy to APD response
+  // Parameters used in conversion of deposited energy to APD response
   int mnCellX = 128;
   int mnCellZ = 60;
   float mPadSizeX = 1.13;                                 ///<  overall size of CPV active size
@@ -38,7 +38,7 @@ struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
   float mB = 0.7;                                         ///<  Parameter to model CPV response
   inline float CellWr() const { return 0.5 * mPadSizeX; } ///<  Distance between wires (2 wires above 1 pad)
 
-  //Parameters used in electronic noise calculation and thresholds (Digitizer, Calibration)
+  // Parameters used in electronic noise calculation and thresholds (Digitizer, Calibration)
   float mReadoutTime = 5.;        ///< Read-out time in ns for default simulaionts
   float mDeadTime = 20.;          ///< PHOS dead time (includes Read-out time i.e. mDeadTime>=mReadoutTime)
   float mReadoutTimePU = 2000.;   ///< Read-out time in ns if pileup simulation on in DigitizerSpec
@@ -47,8 +47,7 @@ struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
   float mZSnSigmas = 3.;          ///< Zero Suppression threshold
   float mSortingDelta = 0.1;      ///< used in sorting clusters inverse sorting band in cm
 
-  //Parameters used in clusterization
-  //float mDigitMinEnergy = 0.01;       ///< Minimal amplitude of a digit to be used in cluster
+  // Parameters used in clusterization
   float mDigitMinEnergy = 5.;        ///< Minimal amplitude of a digit to be used in cluster
   float mClusteringThreshold = 10.;  ///< Seed digit minimal amplitude
   float mUnfogingEAccuracy = 1.e-3;  ///< Accuracy of energy calculation in unfoding prosedure (GeV)
@@ -58,21 +57,19 @@ struct CPVSimParams : public o2::conf::ConfigurableParamHelper<CPVSimParams> {
   int mNMaxIterations = 10;          ///< Maximal number of iterations in unfolding procedure
   bool mUnfoldClusters = false;      ///< Perform cluster unfolding?
 
-  // Parameters used in pedestal calibration
-  uint16_t mPedClbToleratedGapWidth = 5;    ///< Tolerated gap between bins: if |bin1 - bin2| < width -> bin1 and bin2 belongs to same peak
-  uint32_t mPedClbMinEvents = 100;          ///< Minimal number of events to produce calibration
-  float mPedClbSuspiciousPedestalRMS = 10.; ///< Take additional care for channel if its RMS >  mPedClbSuspiciousPedestalRMS
-
-  // Parameters used in noise scan calibration
-  uint32_t mNoiseClbMinEvents = 100;                    ///< Minimal number of events to produce calibration
-  float mNoiseClbToleratedChannelEfficiencyLow = 0.9;   ///< Tolerated channel efficiency (lower limit)
-  float mNoiseClbToleratedChannelEfficiencyHigh = 1.01; ///< Tolerated channel efficiency (upper limit)
-  uint16_t mNoiseClbThreshold = 10;                     ///< ADC threshold
-  float mNoiseClbFrequencyCriteria = 0.5;               ///< Appearance frequency of noisy channels
-
   O2ParamDef(CPVSimParams, "CPVSimParams");
 };
 } // namespace cpv
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::cpv::CPVSimParams> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif /* O2_CPV_CPVSIMPARAMS_H_ */

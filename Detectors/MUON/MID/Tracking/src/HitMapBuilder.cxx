@@ -59,8 +59,11 @@ int HitMapBuilder::getEffFlag(const std::vector<int>& firedRPCLines, const std::
 
 int HitMapBuilder::getLocId(double xp, double yp, uint8_t deId) const
 {
-  auto stripIndex = mMapping.stripByPosition(xp, yp, 0, deId);
-  return mMapping.getBoardId(stripIndex.line, stripIndex.column, deId);
+  auto stripIndex = mMapping.stripByPosition(xp, yp, 0, deId, false);
+  if (stripIndex.isValid()) {
+    return mMapping.getBoardId(stripIndex.line, stripIndex.column, deId);
+  }
+  return 0;
 }
 
 void HitMapBuilder::buildTrackInfo(Track& track, gsl::span<const Cluster> clusters) const
@@ -69,7 +72,7 @@ void HitMapBuilder::buildTrackInfo(Track& track, gsl::span<const Cluster> cluste
   std::vector<int> firedDeIds, firedRPCLines, nonFiredRPCLines;
   bool outsideAcceptance = false;
   for (int ich = 0; ich < 4; ++ich) {
-    auto icl = track.getClusterMatched(ich);
+    auto icl = track.getClusterMatchedUnchecked(ich);
     if (icl >= 0) {
       auto& cl = clusters[icl];
       firedDeIds.emplace_back(cl.deId);

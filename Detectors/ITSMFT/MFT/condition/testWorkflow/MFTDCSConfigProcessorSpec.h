@@ -82,7 +82,7 @@ class MFTDCSConfigProcessor : public o2::framework::Task
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
 
     std::map<std::string, std::string> md;
-    md.emplace("created by", "dpl");
+    md.emplace("created_by", "dpl");
 
     o2::ccdb::CcdbObjectInfo info("MFT/Config/Params", clName, flName, md, tf, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
 

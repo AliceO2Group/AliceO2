@@ -311,13 +311,9 @@ void Geometry::DefineSamplingFraction(const std::string_view mcname, const std::
   } else if (contains(mcname, "Fluka")) {
     samplingFactorTranportModel = 1.; // To be set
   } else if (contains(mcname, "Geant4")) {
-    if (contains(mctitle, "EMV-EMCAL")) {
-      samplingFactorTranportModel = 0.821; // EMC list but for EMCal, before 0.86
-    } else if (contains(mctitle, "EMV")) {
-      samplingFactorTranportModel = 1.096; // 0.906, 0.896 (OPT)
-    } else {
-      samplingFactorTranportModel = 0.821; // 1.15 (CHIPS), 1.149 (BERT), 1.147 (BERT_CHIPS)
-    }
+    samplingFactorTranportModel = 0.821; // EMC list but for EMCal, before 0.86
+    // @TODO here we will have dedicated samplingFactors for the different physics lists provided for O2
+    //
   }
 
   LOG(info) << "MC modeler <" << mcname << ">, Title <" << mctitle << ">: Sampling " << std::setw(2)
@@ -771,7 +767,7 @@ std::tuple<int, int, int> Geometry::GetModuleIndexesFromCellIndexesInSModule(int
       moduleID = moduleEta * nModulesInSMPhi + modulePhi;
   int etaInModule = etaInSupermodule % mNETAdiv,
       phiInModule = phiInSupermodule % mNPHIdiv;
-  //return std::make_tuple(modulePhi, moduleEta, moduleID);
+  // return std::make_tuple(modulePhi, moduleEta, moduleID);
   return std::make_tuple(phiInModule, etaInModule, moduleID);
 }
 

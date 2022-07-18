@@ -38,16 +38,16 @@ namespace mid
 class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::MID) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op) : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), o2::detectors::DetID::MID) {}
   ~CTFCoder() final = default;
 
   /// entropy-encode data to buffer with CTF
   template <typename VEC>
-  void encode(VEC& buff, const CTFHelper::TFData& tfData);
+  o2::ctf::CTFIOSize encode(VEC& buff, const CTFHelper::TFData& tfData);
 
   /// entropy decode data from buffer with CTF
   template <typename VROF, typename VCOL>
-  void decode(const CTF::base& ec, std::array<VROF, NEvTypes>& rofVec, std::array<VCOL, NEvTypes>& colVec);
+  o2::ctf::CTFIOSize decode(const CTF::base& ec, std::array<VROF, NEvTypes>& rofVec, std::array<VCOL, NEvTypes>& colVec);
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
@@ -58,7 +58,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const CTFHelper::TFData& tfData)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CTFHelper::TFData& tfData)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -85,23 +85,27 @@ void CTFCoder::encode(VEC& buff, const CTFHelper::TFData& tfData)
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
+  o2::ctf::CTFIOSize iosize;
 #define ENCODEMID(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
-  ENCODEMID(helper.begin_bcIncROF(),    helper.end_bcIncROF(),     CTF::BLC_bcIncROF,    0);
-  ENCODEMID(helper.begin_orbitIncROF(), helper.end_orbitIncROF(),  CTF::BLC_orbitIncROF, 0);
-  ENCODEMID(helper.begin_entriesROF(),  helper.end_entriesROF(),   CTF::BLC_entriesROF,  0);
-  ENCODEMID(helper.begin_evtypeROF(),   helper.end_evtypeROF(),    CTF::BLC_evtypeROF,   0);
+  iosize += ENCODEMID(helper.begin_bcIncROF(),    helper.end_bcIncROF(),     CTF::BLC_bcIncROF,    0);
+  iosize += ENCODEMID(helper.begin_orbitIncROF(), helper.end_orbitIncROF(),  CTF::BLC_orbitIncROF, 0);
+  iosize += ENCODEMID(helper.begin_entriesROF(),  helper.end_entriesROF(),   CTF::BLC_entriesROF,  0);
+  iosize += ENCODEMID(helper.begin_evtypeROF(),   helper.end_evtypeROF(),    CTF::BLC_evtypeROF,   0);
 
-  ENCODEMID(helper.begin_pattern(),     helper.end_pattern(),      CTF::BLC_pattern,     0);
-  ENCODEMID(helper.begin_deId(),        helper.end_deId(),         CTF::BLC_deId,        0);
-  ENCODEMID(helper.begin_colId(),       helper.end_colId(),        CTF::BLC_colId,       0);
+  iosize += ENCODEMID(helper.begin_pattern(),     helper.end_pattern(),      CTF::BLC_pattern,     0);
+  iosize += ENCODEMID(helper.begin_deId(),        helper.end_deId(),         CTF::BLC_deId,        0);
+  iosize += ENCODEMID(helper.begin_colId(),       helper.end_colId(),        CTF::BLC_colId,       0);
   // clang-format on
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
+  finaliseCTFOutput<CTF>(buff);
+  iosize.rawIn = iosize.ctfIn;
+  return iosize;
 }
 
 /// decode entropy-encoded clusters to standard compact clusters
 template <typename VROF, typename VCOL>
-void CTFCoder::decode(const CTF::base& ec, std::array<VROF, NEvTypes>& rofVec, std::array<VCOL, NEvTypes>& colVec)
+o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, std::array<VROF, NEvTypes>& rofVec, std::array<VCOL, NEvTypes>& colVec)
 {
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
@@ -110,16 +114,17 @@ void CTFCoder::decode(const CTF::base& ec, std::array<VROF, NEvTypes>& rofVec, s
   std::vector<uint32_t> orbitInc;
   std::vector<uint8_t> evType, deId, colId;
 
+  o2::ctf::CTFIOSize iosize;
 #define DECODEMID(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
-  DECODEMID(bcInc,       CTF::BLC_bcIncROF);
-  DECODEMID(orbitInc,    CTF::BLC_orbitIncROF);
-  DECODEMID(entries,     CTF::BLC_entriesROF);
-  DECODEMID(evType,      CTF::BLC_evtypeROF);
+  iosize += DECODEMID(bcInc,       CTF::BLC_bcIncROF);
+  iosize += DECODEMID(orbitInc,    CTF::BLC_orbitIncROF);
+  iosize += DECODEMID(entries,     CTF::BLC_entriesROF);
+  iosize += DECODEMID(evType,      CTF::BLC_evtypeROF);
 
-  DECODEMID(pattern,     CTF::BLC_pattern);
-  DECODEMID(deId,        CTF::BLC_deId);
-  DECODEMID(colId,       CTF::BLC_colId);
+  iosize += DECODEMID(pattern,     CTF::BLC_pattern);
+  iosize += DECODEMID(deId,        CTF::BLC_deId);
+  iosize += DECODEMID(colId,       CTF::BLC_colId);
   // clang-format on
   //
   for (uint32_t i = 0; i < NEvTypes; i++) {
@@ -150,6 +155,8 @@ void CTFCoder::decode(const CTF::base& ec, std::array<VROF, NEvTypes>& rofVec, s
     rofVec[evType[irof]].emplace_back(ROFRecord{ir, EventType(evType[irof]), firstEntry, entries[irof]});
   }
   assert(colCount == header.nColumns);
+  iosize.rawIn = iosize.ctfIn;
+  return iosize;
 }
 
 } // namespace mid

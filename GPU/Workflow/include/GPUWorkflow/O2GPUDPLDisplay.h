@@ -16,6 +16,10 @@
 #include "Framework/Task.h"
 #include <memory>
 
+namespace o2::base
+{
+struct GRPGeomRequest;
+}
 namespace o2::trd
 {
 class GeometryFlat;
@@ -34,26 +38,38 @@ namespace o2::gpu
 class GPUO2InterfaceDisplay;
 struct GPUO2InterfaceConfiguration;
 class TPCFastTransform;
+struct GPUSettingsTF;
+struct GPUSettingsO2;
 
 class O2GPUDPLDisplaySpec : public o2::framework::Task
 {
  public:
-  O2GPUDPLDisplaySpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest) : mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest) {}
+  O2GPUDPLDisplaySpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> ggr) : mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mGGR(ggr) {}
   ~O2GPUDPLDisplaySpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   bool mUseMC = false;
+  bool mUpdateCalib = false;
+  bool mDisplayShutDown = false;
+  bool mDisplayStarted = false;
+  bool mGRPGeomUpdated = false;
+  bool mAutoContinuousMaxTimeBin = false;
+  bool mGeometryCreated = false;
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;
   o2::dataformats::GlobalTrackID::mask_t mClMask;
   std::unique_ptr<GPUO2InterfaceDisplay> mDisplay;
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
+  std::unique_ptr<GPUSettingsO2> mConfParam;
   std::unique_ptr<TPCFastTransform> mFastTransform;
   std::unique_ptr<o2::trd::GeometryFlat> mTrdGeo;
   std::unique_ptr<o2::itsmft::TopologyDictionary> mITSDict;
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
+  std::unique_ptr<o2::gpu::GPUSettingsTF> mTFSettings;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGR;
 };
 
 } // namespace o2::gpu

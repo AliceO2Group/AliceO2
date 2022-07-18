@@ -28,11 +28,12 @@
 #include "ITSMFTReconstruction/GBTLink.h"
 #include "ITSMFTWorkflow/STFDecoderSpec.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
-#include "DataFormatsParameters/GRPObject.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/StringUtils.h"
+#include "DetectorsBase/GRPGeomHelper.h"
+#include "DataFormatsParameters/GRPECSObject.h"
 
 namespace o2
 {
@@ -43,8 +44,8 @@ using namespace o2::framework;
 
 ///_______________________________________
 template <class Mapping>
-STFDecoder<Mapping>::STFDecoder(const STFDecoderInp& inp)
-  : mDoClusters(inp.doClusters), mDoPatterns(inp.doPatterns), mDoDigits(inp.doDigits), mDoCalibData(inp.doCalib), mAllowReporting(inp.allowReporting), mInputSpec(inp.inputSpec)
+STFDecoder<Mapping>::STFDecoder(const STFDecoderInp& inp, std::shared_ptr<o2::base::GRPGeomRequest> gr)
+  : mDoClusters(inp.doClusters), mDoPatterns(inp.doPatterns), mDoDigits(inp.doDigits), mDoCalibData(inp.doCalib), mAllowReporting(inp.allowReporting), mInputSpec(inp.inputSpec), mGGCCDBRequest(gr)
 {
   mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "STFDecoder");
   mTimer.Stop();
@@ -55,6 +56,7 @@ STFDecoder<Mapping>::STFDecoder(const STFDecoderInp& inp)
 template <class Mapping>
 void STFDecoder<Mapping>::init(InitContext& ic)
 {
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   try {
     mDecoder = std::make_unique<RawPixelDecoder<Mapping>>();
     auto v0 = o2::utils::Str::tokenize(mInputSpec, ':');
@@ -73,8 +75,6 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     LOG(error) << "non-std::exception was thrown in decoder creation";
     throw;
   }
-
-  auto detID = Mapping::getDetID();
   mApplyNoiseMap = !ic.options().get<bool>("ignore-noise-map");
   mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
   try {
@@ -102,31 +102,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   }
 
   if (mDoClusters) {
-    try {
-      mClusterer = std::make_unique<Clusterer>();
-      mClusterer->setNChips(Mapping::getNChips());
-      const auto grp = o2::parameters::GRPObject::loadFrom();
-      if (grp) {
-        mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut(detID));
-      } else {
-        throw std::runtime_error("failed to retrieve GRP");
-      }
-
-      // settings for the fired pixel overflow masking
-      const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
-      const auto& clParams = ClustererParam<Mapping::getDetID()>::Instance();
-      auto nbc = clParams.maxBCDiffToMaskBias;
-      nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
-      mClusterer->setMaxBCSeparationToMask(nbc);
-      mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
-      mClusterer->print();
-    } catch (const std::exception& e) {
-      LOG(error) << "exception was thrown in clustrizer configuration: " << e.what();
-      throw;
-    } catch (...) {
-      LOG(error) << "non-std::exception was thrown in clusterizer configuration";
-      throw;
-    }
+    mClusterer = std::make_unique<Clusterer>();
+    mClusterer->setNChips(Mapping::getNChips());
   }
 }
 
@@ -202,8 +179,10 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     mEstNROF = std::max(mEstNROF, size_t(clusROFVec.size() * 1.2));
   }
 
+  pc.outputs().snapshot(Output{orig, "PHYSTRIG", 0, Lifetime::Timeframe}, mDecoder->getExternalTriggers());
+
   if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE)) {
-    mDecoder->produceRawDataDumps(mDumpOnError, DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true)));
+    mDecoder->produceRawDataDumps(mDumpOnError, pc.services().get<o2::framework::TimingInfo>());
   }
 
   if (mDoClusters) {
@@ -213,7 +192,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     LOG(debug) << mSelfName << " Decoded " << digVec.size() << " Digits in " << digROFVec.size() << " ROFs";
   }
   mTimer.Stop();
-  auto tfID = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter;
+  auto tfID = pc.services().get<o2::framework::TimingInfo>().tfCounter;
   LOG(debug) << mSelfName << " Total time for TF " << tfID << '(' << mTFCounter << ") : CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0;
   mTFCounter++;
 }
@@ -242,9 +221,26 @@ template <class Mapping>
 void STFDecoder<Mapping>::updateTimeDependentParams(ProcessingContext& pc)
 {
   // we call these methods just to trigger finaliseCCDB callback
-  pc.inputs().get<o2::itsmft::NoiseMap*>("noise");
-  if (mDoClusters) {
-    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    pc.inputs().get<o2::itsmft::NoiseMap*>("noise");
+    if (mDoClusters) {
+      mClusterer->setContinuousReadOut(o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(Mapping::getDetID()));
+      pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
+      pc.inputs().get<o2::itsmft::DPLAlpideParam<Mapping::getDetID()>*>("alppar");
+      // settings for the fired pixel overflow masking
+      const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
+      const auto& clParams = ClustererParam<Mapping::getDetID()>::Instance();
+      alpParams.printKeyValues();
+      clParams.printKeyValues();
+      auto nbc = clParams.maxBCDiffToMaskBias;
+      nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
+      mClusterer->setMaxBCSeparationToMask(nbc);
+      mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
+      mClusterer->print();
+    }
   }
 }
 
@@ -252,17 +248,27 @@ void STFDecoder<Mapping>::updateTimeDependentParams(ProcessingContext& pc)
 template <class Mapping>
 void STFDecoder<Mapping>::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher(Mapping::getOrigin(), "NOISEMAP", 0)) {
     LOG(info) << Mapping::getName() << " noise map updated" << (!mApplyNoiseMap ? " but masking is disabled" : "");
     if (mApplyNoiseMap) {
       AlpideCoder::setNoisyPixels((const NoiseMap*)obj);
     }
+    return;
   }
   if (matcher == ConcreteDataMatcher(Mapping::getOrigin(), "CLUSDICT", 0)) {
     LOG(info) << Mapping::getName() << " cluster dictionary updated" << (!mUseClusterDictionary ? " but its using is disabled" : "");
     if (mUseClusterDictionary) {
       mClusterer->setDictionary((const TopologyDictionary*)obj);
     }
+    return;
+  }
+  // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
+  if (matcher == ConcreteDataMatcher(Mapping::getOrigin(), "ALPIDEPARAM", 0)) {
+    LOG(info) << "Alpide param updated";
+    return;
   }
 }
 
@@ -286,6 +292,7 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
     // if (doClusters && doPatterns)
     outputs.emplace_back(inp.origin, "PATTERNS", 0, Lifetime::Timeframe);
   }
+  outputs.emplace_back(inp.origin, "PHYSTRIG", 0, Lifetime::Timeframe);
 
   if (inp.askSTFDist) {
     for (auto& ins : inputs) { // mark input as optional in order not to block the workflow if our raw data happen to be missing in some TFs
@@ -299,12 +306,23 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
   if (inp.doClusters) {
     inputs.emplace_back("cldict", inp.origin, "CLUSDICT", 0, Lifetime::Condition,
                         o2::framework::ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", inp.origin.as<std::string>())));
+    inputs.emplace_back("alppar", inp.origin, "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Config/AlpideParam", inp.origin.as<std::string>())));
   }
+
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+                                                              true,                           // GRPECS=true
+                                                              false,                          // GRPLHCIF
+                                                              false,                          // GRPMagField
+                                                              false,                          // askMatLUT
+                                                              o2::base::GRPGeomRequest::None, // geometry
+                                                              inputs,
+                                                              true); // query only once all objects except mag.field
+
   return DataProcessorSpec{
     inp.deviceName,
     inputs,
     outputs,
-    inp.origin == o2::header::gDataOriginITS ? AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(inp)} : AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(inp)},
+    inp.origin == o2::header::gDataOriginITS ? AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(inp, ggRequest)} : AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(inp, ggRequest)},
     Options{
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
       {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},

@@ -19,6 +19,8 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/InputSpec.h"
+#include "Framework/RawDeviceService.h"
+#include "Framework/RateLimiter.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/FileFetcher.h"
 #include "CTFWorkflow/CTFReaderSpec.h"
@@ -43,6 +45,7 @@
 #include "DataFormatsCTP/CTF.h"
 #include "Algorithm/RangeTokenizer.h"
 #include <TStopwatch.h>
+#include <fairmq/Device.h>
 
 using namespace o2::framework;
 
@@ -82,7 +85,7 @@ class CTFReaderSpec : public o2::framework::Task
   void stopReader();
   template <typename C>
   void processDetector(DetID det, const CTFHeader& ctfHeader, ProcessingContext& pc) const;
-  void setMessageHeader(ProcessingContext& pc, const CTFHeader& ctfHeader, const std::string& lbl, unsigned subspec = 0) const;
+  void setMessageHeader(ProcessingContext& pc, const CTFHeader& ctfHeader, const std::string& lbl, unsigned subspec) const; // keep just for the reference
   void tryToFixCTFHeader(CTFHeader& ctfHeader) const;
   CTFReaderInp mInput{};
   std::unique_ptr<o2::utils::FileFetcher> mFileFetcher;
@@ -94,7 +97,8 @@ class CTFReaderSpec : public o2::framework::Task
   int mNFailedFiles = 0;
   int mFilesRead = 0;
   long mLastSendTime = 0L;
-  long mCurrTreeEntry = 0;
+  long mCurrTreeEntry = 0L;
+  long mImposeRunStartMS = 0L;
   size_t mSelIDEntry = 0; // next CTFID to select from the mInput.ctfIDs (if non-empty)
   TStopwatch mTimer;
 };
@@ -136,6 +140,7 @@ void CTFReaderSpec::init(InitContext& ic)
 {
   mInput.ctfIDs = o2::RangeTokenizer::tokenize<int>(ic.options().get<std::string>("select-ctf-ids"));
   mUseLocalTFCounter = ic.options().get<bool>("local-tf-counter");
+  mImposeRunStartMS = ic.options().get<int64_t>("impose-run-start-timstamp");
   mRunning = true;
   mFileFetcher = std::make_unique<o2::utils::FileFetcher>(mInput.inpdata, mInput.tffileRegex, mInput.remoteRegex, mInput.copyCmd);
   mFileFetcher->setMaxFilesInQueue(mInput.maxFileCache);
@@ -171,10 +176,9 @@ void CTFReaderSpec::openCTFFile(const std::string& flname)
 ///_______________________________________
 void CTFReaderSpec::run(ProcessingContext& pc)
 {
-
-  if (!mCTFCounter) { // RS FIXME: this is a temporary hack to avoid late-starting devices to lose the input
-    LOG(warning) << "This is a hack, sleeping 5 s at startup";
-    usleep(1000000);
+  static bool initOnceDone = false;
+  if (!initOnceDone) {
+    mInput.tfRateLimit = std::stoi(pc.services().get<RawDeviceService>().device()->fConfig->GetValue<std::string>("timeframes-rate-limit"));
   }
 
   std::string tfFileName;
@@ -204,7 +208,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
         mRunning = false;
         break;
       }
-      usleep(5000); // wait 5ms for the files cache to be filled
+      pc.services().get<RawDeviceService>().waitFor(5);
       continue;
     }
     LOG(info) << "Reading CTF input " << ' ' << tfFileName;
@@ -224,9 +228,15 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
 
+  static RateLimiter limiter;
+  limiter.check(pc, mInput.tfRateLimit, mInput.minSHM);
+
   CTFHeader ctfHeader;
   if (!readFromTree(*(mCTFTree.get()), "CTFHeader", ctfHeader, mCurrTreeEntry)) {
     throw std::runtime_error("did not find CTFHeader");
+  }
+  if (mImposeRunStartMS > 0) {
+    ctfHeader.creationTime = mImposeRunStartMS + ctfHeader.firstTForbit * o2::constants::lhc::LHCOrbitMUS * 1e-3;
   }
   if (ctfHeader.creationTime == 0) { // try to repair header with ad hoc data
     tryToFixCTFHeader(ctfHeader);
@@ -238,15 +248,14 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
 
   LOG(info) << ctfHeader;
 
-  auto& timingInfo = pc.services().get<TimingInfo>();
-  timingInfo.firstTFOrbit = ctfHeader.firstTForbit;
+  auto& timingInfo = pc.services().get<o2::framework::TimingInfo>();
+  timingInfo.firstTForbit = ctfHeader.firstTForbit;
   timingInfo.creation = ctfHeader.creationTime;
   timingInfo.tfCounter = ctfHeader.tfCounter;
   timingInfo.runNumber = ctfHeader.run;
 
   // send CTF Header
-  pc.outputs().snapshot({"header"}, ctfHeader);
-  setMessageHeader(pc, ctfHeader, "header");
+  pc.outputs().snapshot({"header", mInput.subspec}, ctfHeader);
 
   processDetector<o2::itsmft::CTF>(DetID::ITS, ctfHeader, pc);
   processDetector<o2::itsmft::CTF>(DetID::MFT, ctfHeader, pc);
@@ -271,24 +280,22 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
     stfDist.id = uint64_t(mCurrTreeEntry);
     stfDist.firstOrbit = ctfHeader.firstTForbit;
     stfDist.runNumber = uint32_t(ctfHeader.run);
-    setMessageHeader(pc, ctfHeader, "TFDist", 0xccdb);
   }
 
   auto entryStr = fmt::format("({} of {} in {})", mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
   checkTreeEntries();
   mTimer.Stop();
+
   // do we need to way to respect the delay ?
   long tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
   auto tDiff = tNow - mLastSendTime;
   if (mCTFCounter) {
     if (tDiff < mInput.delay_us) {
-      usleep(mInput.delay_us - tDiff); // respect requested delay before sending
+      pc.services().get<RawDeviceService>().waitFor((mInput.delay_us - tDiff) / 1000); // respect requested delay before sending
     }
-  } else {
-    mLastSendTime = tNow;
   }
   tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-  LOGP(info, "Read CTF#{} {} in {:.3f} s, {:.4f} s elapsed from previous CTF", mCTFCounter, entryStr, mTimer.CpuTime() - cput, 1e-6 * (tNow - mLastSendTime));
+  LOGP(info, "Read CTF {} {} in {:.3f} s, {:.4f} s elapsed from previous CTF", mCTFCounter, entryStr, mTimer.CpuTime() - cput, 1e-6 * (tNow - mLastSendTime));
   mLastSendTime = tNow;
   mCTFCounter++;
 }
@@ -328,13 +335,13 @@ void CTFReaderSpec::processDetector(DetID det, const CTFHeader& ctfHeader, Proce
 {
   if (mInput.detMask[det]) {
     const auto lbl = det.getName();
-    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({lbl}, ctfHeader.detectors[det] ? sizeof(C) : 0);
+    auto& bufVec = pc.outputs().make<std::vector<o2::ctf::BufferType>>({lbl, mInput.subspec}, ctfHeader.detectors[det] ? sizeof(C) : 0);
     if (ctfHeader.detectors[det]) {
       C::readFromTree(bufVec, *(mCTFTree.get()), lbl, mCurrTreeEntry);
     } else if (!mInput.allowMissingDetectors) {
       throw std::runtime_error(fmt::format("Requested detector {} is missing in the CTF", lbl));
     }
-    setMessageHeader(pc, ctfHeader, lbl);
+    //    setMessageHeader(pc, ctfHeader, lbl);
   }
 }
 
@@ -389,8 +396,9 @@ void CTFReaderSpec::tryToFixCTFHeader(CTFHeader& ctfHeader) const
 DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
 {
   std::vector<OutputSpec> outputs;
+  std::vector<ConfigParamSpec> options;
 
-  outputs.emplace_back(OutputLabel{"header"}, "CTF", "HEADER", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"header"}, "CTF", "HEADER", inp.subspec, Lifetime::Timeframe);
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (inp.detMask[id]) {
       DetID det(id);
@@ -401,13 +409,19 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
     outputs.emplace_back(OutputSpec{{"TFDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0xccdb});
   }
 
+  options.emplace_back(ConfigParamSpec{"select-ctf-ids", VariantType::String, "", {"comma-separated list CTF IDs to inject (from cumulative counter of CTFs seen)"}});
+  options.emplace_back(ConfigParamSpec{"impose-run-start-timstamp", VariantType::Int64, 0L, {"impose run start time stamp (ms), ignored if 0"}});
+  options.emplace_back(ConfigParamSpec{"local-tf-counter", VariantType::Bool, false, {"reassign header.tfCounter from local TF counter"}});
+  if (!inp.metricChannel.empty()) {
+    options.emplace_back(ConfigParamSpec{"channel-config", VariantType::String, inp.metricChannel, {"Out-of-band channel config for TF throttling"}});
+  }
+
   return DataProcessorSpec{
     "ctf-reader",
     Inputs{},
     outputs,
     AlgorithmSpec{adaptFromTask<CTFReaderSpec>(inp)},
-    Options{{"select-ctf-ids", VariantType::String, "", {"comma-separated list CTF IDs to inject (from cumulative counter of CTFs seen)"}},
-            {"local-tf-counter", VariantType::Bool, false, {"reassign header.tfCounter from local TF counter"}}}};
+    options};
 }
 
 } // namespace ctf

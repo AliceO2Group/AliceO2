@@ -345,7 +345,7 @@ struct ExpirationHandlerHelpers {
   }
 };
 
-/// This creates a string to configure channels of a FairMQDevice
+/// This creates a string to configure channels of a fair::mq::Device
 /// FIXME: support shared memory
 std::string DeviceSpecHelpers::inputChannel2String(const InputChannelSpec& channel)
 {
@@ -381,7 +381,8 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
                                               const std::vector<OutputSpec>& outputsMatchers,
                                               const std::vector<ChannelConfigurationPolicy>& channelPolicies,
                                               std::string const& channelPrefix,
-                                              ComputingOffer const& defaultOffer)
+                                              ComputingOffer const& defaultOffer,
+                                              OverrideServiceSpecs const& overrideServices)
 {
   // The topology cannot be empty or not connected. If that is the case, than
   // something before this went wrong.
@@ -392,7 +393,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
   // an edge is always the last one created.
   auto deviceForEdge = [&actions, &workflow, &devices,
                         &logicalEdges, &resourceManager,
-                        &defaultOffer, &channelPrefix](size_t ei, ComputingOffer& acceptedOffer) {
+                        &defaultOffer, &channelPrefix, overrideServices](size_t ei, ComputingOffer& acceptedOffer) {
     auto& edge = logicalEdges[ei];
     auto& action = actions[ei];
 
@@ -429,7 +430,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
       device.id = processor.name + "_t" + std::to_string(edge.producerTimeIndex);
     }
     device.algorithm = processor.algorithm;
-    device.services = processor.requiredServices;
+    device.services = ServiceSpecHelpers::filterDisabled(processor.requiredServices, overrideServices);
     device.options = processor.options;
     device.rank = processor.rank;
     device.nSlots = processor.nSlots;
@@ -618,7 +619,8 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
                                              std::vector<LogicalForwardInfo> const& availableForwardsInfo,
                                              std::vector<ChannelConfigurationPolicy> const& channelPolicies,
                                              std::string const& channelPrefix,
-                                             ComputingOffer const& defaultOffer)
+                                             ComputingOffer const& defaultOffer,
+                                             OverrideServiceSpecs const& overrideServices)
 {
   auto const& constDeviceIndex = deviceIndex;
 
@@ -674,7 +676,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
 
   auto createNewDeviceForEdge = [&workflow, &logicalEdges, &devices,
                                  &deviceIndex, &resourceManager, &defaultOffer,
-                                 &channelPrefix](size_t ei, ComputingOffer& acceptedOffer) {
+                                 &channelPrefix, &overrideServices](size_t ei, ComputingOffer& acceptedOffer) {
     auto& edge = logicalEdges[ei];
 
     if (acceptedOffer.hostname != "") {
@@ -706,7 +708,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       device.id += "_t" + std::to_string(edge.timeIndex);
     }
     device.algorithm = processor.algorithm;
-    device.services = processor.requiredServices;
+    device.services = ServiceSpecHelpers::filterDisabled(processor.requiredServices, overrideServices);
     device.options = processor.options;
     device.rank = processor.rank;
     device.nSlots = processor.nSlots;
@@ -750,7 +752,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     }
     return true;
   };
-  auto appendInputChannelForConsumerDevice = [&devices, &connections, &checkNoDuplicatesFor, &channelPolicies](
+  auto appendInputChannelForConsumerDevice = [&devices, &checkNoDuplicatesFor, &channelPolicies](
                                                size_t pi, size_t ci, unsigned short port) {
     auto const& producerDevice = devices[pi];
     auto& consumerDevice = devices[ci];
@@ -930,7 +932,8 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                                                        ConfigContext const& configContext,
                                                        bool optimizeTopology,
                                                        unsigned short resourcesMonitoringInterval,
-                                                       std::string const& channelPrefix)
+                                                       std::string const& channelPrefix,
+                                                       OverrideServiceSpecs const& overrideServices)
 {
   std::vector<LogicalForwardInfo> availableForwardsInfo;
   std::vector<DeviceConnectionEdge> logicalEdges;
@@ -981,13 +984,13 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
   defaultOffer.memory /= deviceCount + 1;
 
   processOutEdgeActions(devices, deviceIndex, connections, resourceManager, outEdgeIndex, logicalEdges,
-                        outActions, workflow, outputs, channelPolicies, channelPrefix, defaultOffer);
+                        outActions, workflow, outputs, channelPolicies, channelPrefix, defaultOffer, overrideServices);
 
   // FIXME: is this not the case???
   std::sort(connections.begin(), connections.end());
 
   processInEdgeActions(devices, deviceIndex, connections, resourceManager, inEdgeIndex, logicalEdges,
-                       inActions, workflow, availableForwardsInfo, channelPolicies, channelPrefix, defaultOffer);
+                       inActions, workflow, availableForwardsInfo, channelPolicies, channelPrefix, defaultOffer, overrideServices);
   // We apply the completion policies here since this is where we have all the
   // devices resolved.
   for (auto& device : devices) {
@@ -1235,6 +1238,19 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
                                         "--shm-monitor", "false",
                                         "--log-color", "false",
                                         "--color", "false"};
+
+    // we maintain options in a map so that later occurrences of the same
+    // option will overwrite the value. To make unit tests work on all platforms,
+    // we need to make the sequence deterministic and store it in a separate vector
+    std::vector<std::string> deviceOptionsSequence;
+    std::unordered_map<std::string, std::string> uniqueDeviceArgs;
+    auto updateDeviceArguments = [&deviceOptionsSequence, &uniqueDeviceArgs](auto key, auto value) {
+      if (uniqueDeviceArgs.find(key) == uniqueDeviceArgs.end()) {
+        // not yet existing, we add the key to the sequence
+        deviceOptionsSequence.emplace_back(key);
+      }
+      uniqueDeviceArgs[key] = value;
+    };
     std::vector<std::string> tmpEnv;
     if (defaultStopped) {
       tmpArgs.emplace_back("-s");
@@ -1376,15 +1392,25 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
                 stringRep = fmt::format("{}", *v);
               }
               if (varit.first == "channel-config") {
+                // FIXME: the parameter to channel-config can be a list of configurations separated
+                // by semicolon. The individual configurations will be separated and added individually.
+                // The device arguments can then contaoin multiple channel-config entries, but only
+                // one for the last configuration is added to control.options
                 processRawChannelConfig(stringRep);
+                optarg = tmpArgs.back().c_str();
               } else {
-                tmpArgs.emplace_back(fmt::format("--{}", varit.first));
-                // add the token
-                tmpArgs.emplace_back(stringRep);
+                std::string key(fmt::format("--{}", varit.first));
+                if (stringRep.length() == 0) {
+                  // in order to identify options without parameter we add a string
+                  // with one blank for the 'blank' parameter, it is filtered out
+                  // further down and a zero-length string is added to argument list
+                  stringRep = " ";
+                }
+                updateDeviceArguments(key, stringRep);
+                optarg = uniqueDeviceArgs[key].c_str();
               }
-              optarg = tmpArgs.back().c_str();
             } else if (semantic->min_tokens() == 0 && varit.second.as<bool>()) {
-              tmpArgs.emplace_back(fmt::format("--{}", varit.first));
+              updateDeviceArguments(fmt::format("--{}", varit.first), "");
             }
           }
           control.options.insert(std::make_pair(varit.first, optarg));
@@ -1409,29 +1435,36 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
 
     // add the session id if not already specified on command line
     if (!haveSessionArg) {
-      tmpArgs.emplace_back(std::string("--session"));
-      tmpArgs.emplace_back("dpl_" + uniqueWorkflowId);
+      updateDeviceArguments(std::string("--session"), "dpl_" + uniqueWorkflowId);
     }
     // In case we use only ws://, we need to expand the address
     // with the correct port.
     if (useDefaultWS) {
-      auto it = std::find(tmpArgs.begin(), tmpArgs.end(), "--driver-client-backend");
-      if ((it != tmpArgs.end()) && (it + 1 != tmpArgs.end())) {
-        tmpArgs.erase(it, it + 2);
-      }
-      tmpArgs.emplace_back(std::string("--driver-client-backend"));
-      tmpArgs.emplace_back("ws://0.0.0.0:" + std::to_string(driverPort));
+      updateDeviceArguments(std::string("--driver-client-backend"), "ws://0.0.0.0:" + std::to_string(driverPort));
     }
 
     if (spec.resourceMonitoringInterval > 0) {
-      tmpArgs.emplace_back(std::string("--resources-monitoring"));
-      tmpArgs.emplace_back(std::to_string(spec.resourceMonitoringInterval));
+      updateDeviceArguments(std::string("--resources-monitoring"), std::to_string(spec.resourceMonitoringInterval));
     }
 
     // We create the final option list, depending on the channels
     // which are present in a device.
     for (auto& arg : tmpArgs) {
       execution.args.emplace_back(strdup(arg.c_str()));
+    }
+    for (auto& key : deviceOptionsSequence) {
+      execution.args.emplace_back(strdup(key.c_str()));
+      std::string const& value = uniqueDeviceArgs[key];
+      if (value.empty()) {
+        // this option does not have a parameter
+        continue;
+      } else if (value == " ") {
+        // this was a placeholder for zero-length parameter string in order
+        // to separate this from options without parameter
+        execution.args.emplace_back(strdup(""));
+      } else {
+        execution.args.emplace_back(strdup(value.c_str()));
+      }
     }
     // execvp wants a NULL terminated list.
     execution.args.push_back(nullptr);

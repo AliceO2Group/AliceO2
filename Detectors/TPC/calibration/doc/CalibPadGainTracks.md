@@ -13,6 +13,7 @@ Histogram options:
 --reldEdxMax        Maximum x coordinate of the histogram for Q/(dE/dx)
 --underflowBin      Using under flow bin
 --overflowBin       Using under flow bin
+--useEveryNthTF     Use only every nth TF
 
 Track cuts:
 --momMin            Minimum momentum of the tracks
@@ -31,7 +32,6 @@ The workflow `o2-tpc-calibrator-gainmap-tracks` should run in an aggregation nod
 ```
 --tf-per-slot   Number of TFs per calibration slot
 --max-delay     Number of slots in past to consider
---ccdb-uri      URI for the CCDB (default URI will be used)
 
 --min-entries   Minimum number of entries per pad-by-pad histogram which are required
 --lowTrunc      Lower truncation range for calculating the residual gain from the pad-by-pad histogram
@@ -46,8 +46,8 @@ The full residual gainmap extraction workflow can be executed in the following w
 
 ```
 o2-tpc-file-reader --input-type "clusters,tracks" --disable-mc \
-| o2-tpc-calib-gainmap-tracks -b --publish-after-tfs 100 --overflowBin true --debug true \
-| o2-tpc-calibrator-gainmap-tracks --ccdb-uri "http://localhost:8080" --min-entries 30 --tf-per-slot 100 --file-dump true
+| o2-tpc-calib-gainmap-tracks --publish-after-tfs 100 --overflowBin true --condition-tf-per-query -1 --debug true \
+| o2-tpc-calibrator-gainmap-tracks --min-entries 0 --tf-per-slot 100 --file-dump true --shm-segment-size 100000000000 -b
 ```
 
 
@@ -66,6 +66,6 @@ For the EPN start the `o2-tpc-calib-gainmap-tracks` workflow in a new shell:
 
 ```
 o2-tpc-file-reader --input-type "clusters,tracks" --disable-mc \
-| o2-tpc-calib-gainmap-tracks --publish-after-tfs 100 --overflowBin true \
+| o2-tpc-calib-gainmap-tracks --publish-after-tfs 100 --overflowBin true --condition-tf-per-query -1 \
 | o2-dpl-output-proxy --channel-config "name=downstream,method=connect,address=tcp://localhost:30453,type=push,transport=zeromq" --dataspec downstream:TPC/TRACKGAINHISTOS -b
 ```

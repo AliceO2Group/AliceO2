@@ -15,6 +15,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "CTPWorkflow/EntropyDecoderSpec.h"
 
 using namespace o2::framework;
@@ -24,25 +25,31 @@ namespace o2
 namespace ctp
 {
 
-EntropyDecoderSpec::EntropyDecoderSpec(int verbosity)
+EntropyDecoderSpec::EntropyDecoderSpec(int verbosity) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder)
 {
   mTimer.Stop();
   mTimer.Reset();
 }
 
+void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
+    return;
+  }
+}
+
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>("ctf-dict");
-  if (!dictPath.empty() && dictPath != "none") {
-    mCTFCoder.createCodersFromFile<CTF>(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
-  }
+  mCTFCoder.init<CTF>(ic);
 }
 
 void EntropyDecoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
+  o2::ctf::CTFIOSize iosize;
 
+  mCTFCoder.updateTimeDependentParams(pc);
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
 
   auto& digits = pc.outputs().make<std::vector<CTPDigit>>(OutputRef{"digits"});
@@ -50,11 +57,11 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   if (buff.size()) {
     const auto ctfImage = o2::ctp::CTF::getImage(buff.data());
-    mCTFCoder.decode(ctfImage, digits);
+    iosize = mCTFCoder.decode(ctfImage, digits);
   }
-
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
-  LOG(info) << "Decoded " << digits.size() << " CTP digits in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << digits.size() << " CTP digits, (" << iosize.asString() << ") in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -65,14 +72,20 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 
 DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 {
-  std::vector<OutputSpec> outputs{OutputSpec{{"digits"}, "CTP", "DIGITS", 0, Lifetime::Timeframe}};
+  std::vector<OutputSpec> outputs{
+    OutputSpec{{"digits"}, "CTP", "DIGITS", 0, Lifetime::Timeframe},
+    OutputSpec{{"ctfrep"}, "CTP", "CTFDECREP", 0, Lifetime::Timeframe}};
+
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("ctf", "CTP", "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict", "CTP", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/CTFDictionary"));
 
   return DataProcessorSpec{
     "ctp-entropy-decoder",
-    Inputs{InputSpec{"ctf", "CTP", "CTFDATA", sspec, Lifetime::Timeframe}},
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
 }
 
 } // namespace ctp

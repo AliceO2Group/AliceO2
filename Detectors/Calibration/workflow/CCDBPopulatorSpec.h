@@ -25,12 +25,10 @@
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Headers/DataHeader.h"
 #include "DetectorsCalibration/Utils.h"
-#include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 #include "CommonUtils/NameConf.h"
-
-using CcdbManager = o2::ccdb::BasicCCDBManager;
 
 namespace o2
 {
@@ -49,21 +47,18 @@ class CCDBPopulator : public o2::framework::Task
     mSSpecMin = ic.options().get<std::int64_t>("sspec-min");
     mSSpecMax = ic.options().get<std::int64_t>("sspec-max");
     mFatalOnFailure = ic.options().get<bool>("no-fatal-on-failure");
-    auto& mgr = CcdbManager::instance();
-    mgr.setURL(mCCDBpath);
-    mAPI.init(mgr.getURL());
+    mAPI.init(mCCDBpath);
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
     int nSlots = pc.inputs().getNofParts(0);
     assert(pc.inputs().getNofParts(1) == nSlots);
-    auto runNoFromDH = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->runNumber;
+    auto runNoFromDH = pc.services().get<o2::framework::TimingInfo>().runNumber;
     std::string runNoStr;
     if (runNoFromDH > 0) {
       runNoStr = std::to_string(runNoFromDH);
     }
-
     std::map<std::string, std::string> metadata;
     for (int isl = 0; isl < nSlots; isl++) {
       auto refWrp = pc.inputs().get("clbWrapper", isl);
@@ -89,6 +84,11 @@ class CCDBPopulator : public o2::framework::Task
                                        *md, wrp->getStartValidityTimestamp(), wrp->getEndValidityTimestamp());
       if (res && mFatalOnFailure) {
         LOGP(fatal, "failed on uploading to {} / {}", mAPI.getURL(), wrp->getPath());
+      }
+
+      // do we need to override previous object?
+      if (wrp->isAdjustableEOV()) {
+        o2::ccdb::adjustOverriddenEOV(mAPI, *wrp.get());
       }
     }
   }

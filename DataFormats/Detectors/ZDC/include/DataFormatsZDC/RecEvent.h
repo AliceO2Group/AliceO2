@@ -17,6 +17,7 @@
 #include "DataFormatsZDC/BCRecData.h"
 #include "DataFormatsZDC/ZDCEnergy.h"
 #include "DataFormatsZDC/ZDCTDCData.h"
+#include "DataFormatsZDC/ZDCWaveform.h"
 #include "DataFormatsZDC/RecEventAux.h"
 #include "ZDCBase/Constants.h"
 #include "MathUtils/Cartesian.h"
@@ -34,20 +35,23 @@ namespace o2
 namespace zdc
 {
 struct RecEvent {
-  std::vector<o2::zdc::BCRecData> mRecBC;    /// Interaction record and references to data
-  std::vector<o2::zdc::ZDCEnergy> mEnergy;   /// ZDC energy
-  std::vector<o2::zdc::ZDCTDCData> mTDCData; /// ZDC TDC
-  std::vector<uint16_t> mInfo;               /// Event quality information
+  std::vector<o2::zdc::BCRecData> mRecBC;      /// Interaction record and references to data
+  std::vector<o2::zdc::ZDCEnergy> mEnergy;     /// ZDC energy
+  std::vector<o2::zdc::ZDCTDCData> mTDCData;   /// ZDC TDC
+  std::vector<uint16_t> mInfo;                 /// Event quality information
+  std::vector<o2::zdc::ZDCWaveform> mWaveform; /// ZDC waveform
+
   // Add new bunch crossing
   inline void addBC(const RecEventAux& reca)
   {
 #ifdef O2_ZDC_DEBUG
     printf("addBC %u.%-4u En_start:%-2lu TDC_start:%-2lu Info_start:%-2lu ch=0x%08x tr=0x%08x\n", reca.ir.orbit, reca.ir.bc, mEnergy.size(), mTDCData.size(), mInfo.size(), reca.channels, reca.triggers);
 #endif
-    mRecBC.emplace_back(mEnergy.size(), mTDCData.size(), mInfo.size(), reca.ir);
+    mRecBC.emplace_back(mEnergy.size(), mTDCData.size(), mInfo.size(), mWaveform.size(), reca.ir);
     mRecBC.back().channels = reca.channels;
     mRecBC.back().triggers = reca.triggers;
   }
+
   // Add energy
   inline void addEnergy(uint8_t ch, float energy)
   {
@@ -57,6 +61,7 @@ struct RecEvent {
     mEnergy.emplace_back(ch, energy);
     mRecBC.back().addEnergy();
   }
+
   // Add TDC - int16_t
   inline void addTDC(uint8_t ch, int16_t val, int16_t amp, bool isbeg = false, bool isend = false)
   {
@@ -66,6 +71,7 @@ struct RecEvent {
     mTDCData.emplace_back(ch, val, amp, isbeg, isend);
     mRecBC.back().addTDC();
   }
+
   // Add TDC - float
   inline void addTDC(uint8_t ch, float val, float amp, bool isbeg = false, bool isend = false)
   {
@@ -75,6 +81,7 @@ struct RecEvent {
     mTDCData.emplace_back(ch, val, amp, isbeg, isend);
     mRecBC.back().addTDC();
   }
+
   // Add event information
   inline void addInfo(uint16_t info)
   {
@@ -102,9 +109,23 @@ struct RecEvent {
   uint32_t addInfo(const RecEventAux& reca, const std::array<bool, NChannels>& vec, const uint16_t code);
   uint32_t addInfos(const RecEventAux& reca);
 
+  // Add waveform
+  inline void addWaveform(uint8_t ch, std::vector<float>& wave)
+  {
+#ifdef O2_ZDC_DEBUG
+    printf("ch:%-2u [%s] Waveform\n", ch, ChannelNames[ch].data());
+#endif
+    if (wave.size() == NIS) {
+      mWaveform.emplace_back(ch, wave.data());
+      mRecBC.back().addWaveform();
+    } else {
+      LOG(error) << __func__ << ": ch " << int(ch) << " inconsistent waveform size " << wave.size();
+    }
+  }
+
   void print() const;
   // TODO: remove persitency of this object (here for debugging)
-  ClassDefNV(RecEvent, 1);
+  ClassDefNV(RecEvent, 2);
 };
 
 } // namespace zdc

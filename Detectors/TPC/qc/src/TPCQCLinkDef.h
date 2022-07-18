@@ -20,6 +20,7 @@
 #pragma link C++ class o2::tpc::qc::Clusters+;
 #pragma link C++ class o2::tpc::qc::Tracks+;
 #pragma link C++ class o2::tpc::qc::CalPadWrapper+;
+#pragma link C++ class o2::tpc::qc::DCSPTemperature + ;
 #pragma link C++ function o2::tpc::qc::helpers::makeLogBinning+;
 #pragma link C++ function o2::tpc::qc::helpers::setStyleHistogram1D+;
 #pragma link C++ function o2::tpc::qc::helpers::setStyleHistogram2D+;

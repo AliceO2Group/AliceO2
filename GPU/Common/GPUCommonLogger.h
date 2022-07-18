@@ -58,10 +58,15 @@ struct DummyLogger {
   {                                     \
     printf(string "\n", ##__VA_ARGS__); \
   }
+#ifdef GPUCA_ALIROOT_LIB
+#define LOGP(...)
+#else
 #define LOGP(type, string, ...) \
   {                             \
-    printf(string "\n");        \
+    printf("%s", string);       \
+    printf("\n");               \
   }
+#endif
 
 #else
 #include <Framework/Logger.h>

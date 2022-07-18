@@ -29,6 +29,7 @@ namespace calibration
 void MeanVertexCalibDevice::init(InitContext& ic)
 {
 
+  o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   const o2::calibration::MeanVertexParams* params = &o2::calibration::MeanVertexParams::Instance();
   int minEnt = params->minEntries;
   int nbX = params->nbinsX;
@@ -44,19 +45,31 @@ void MeanVertexCalibDevice::init(InitContext& ic)
   mCalibrator = std::make_unique<o2::calibration::MeanVertexCalibrator>(minEnt, useFit, nbX, rangeX, nbY, rangeY, nbZ, rangeZ, nSlots4SMA);
   mCalibrator->setSlotLength(slotL);
   mCalibrator->setMaxSlotsDelay(delay);
+  bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
+  LOG(info) << " ************************* Verbose? " << useVerboseMode;
+  if (useVerboseMode) {
+    mCalibrator->useVerboseMode(true);
+  }
 }
 
 //_____________________________________________________________
 
 void MeanVertexCalibDevice::run(o2::framework::ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   auto data = pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("input");
   o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
-  LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " tracks";
+  LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " vertices";
   mCalibrator->process(data);
   sendOutput(pc.outputs());
   const auto& infoVec = mCalibrator->getMeanVertexObjectInfoVector();
   LOG(info) << "Created " << infoVec.size() << " objects for TF " << mCalibrator->getCurrentTFInfo().tfCounter;
+}
+
+//_________________________________________________________________
+void MeanVertexCalibDevice::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
 }
 
 //_____________________________________________________________
@@ -105,6 +118,15 @@ DataProcessorSpec getMeanVertexCalibDeviceSpec()
 
   using device = o2::calibration::MeanVertexCalibDevice;
   using clbUtils = o2::calibration::Utils;
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("input", "GLO", "PVTX");
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
+                                                                true,                           // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                false,                          // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                inputs);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MEANVERTEX"}, Lifetime::Sporadic);
@@ -112,11 +134,10 @@ DataProcessorSpec getMeanVertexCalibDeviceSpec()
 
   return DataProcessorSpec{
     "mean-vertex-calibration",
-    Inputs{{"input", "GLO", "PVTX"}},
+    inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>()},
-    Options{
-      {}}};
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
+    Options{{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}}}};
 }
 
 } // namespace framework

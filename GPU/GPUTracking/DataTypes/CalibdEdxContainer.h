@@ -20,8 +20,8 @@
 #include "GPUCommonDef.h"
 #include "GPUCommonMath.h"
 #include "DataFormatsTPC/CalibdEdxCorrection.h"
-#include "DataFormatsTPC/CalibdEdxTrackTopologyPol.h"
-#include "DataFormatsTPC/CalibdEdxTrackTopologySpline.h"
+#include "CalibdEdxTrackTopologyPol.h"
+#include "CalibdEdxTrackTopologySpline.h"
 #include "FlatObject.h"
 #include "TPCPadGainCalib.h"
 

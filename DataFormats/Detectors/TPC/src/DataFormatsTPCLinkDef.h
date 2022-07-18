@@ -55,10 +55,9 @@
 #pragma link C++ class std::vector < o2::tpc::KrCluster> + ;
 #pragma link C++ class o2::tpc::LtrCalibData + ;
 #pragma link C++ class std::vector < o2::tpc::LtrCalibData> + ;
+#pragma link C++ class o2::tpc::VDriftCorrFact + ;
+#pragma link C++ class std::vector < o2::tpc::VDriftCorrFact> + ;
 #pragma link C++ class o2::tpc::CalibdEdxCorrection + ;
-#pragma link C++ class o2::tpc::CalibdEdxTrackTopologyPol + ;
-#pragma link C++ class o2::tpc::CalibdEdxTrackTopologySpline + ;
-#pragma link C++ struct o2::tpc::CalibdEdxTrackTopologyPolContainer + ;
 #pragma link C++ class o2::tpc::dcs::DataPoint < float> + ;
 #pragma link C++ class std::vector < o2::tpc::dcs::DataPoint < float>> + ;
 #pragma link C++ class o2::tpc::dcs::DataPointVector < float> + ;

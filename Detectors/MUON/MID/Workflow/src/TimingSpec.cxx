@@ -27,7 +27,7 @@
 #include "DataFormatsMID/ROFRecord.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "MIDRaw/ElectronicsDelay.h"
-#include "MIDSimulation/MCLabel.h"
+#include "DataFormatsMID/MCLabel.h"
 #include "MIDWorkflow/ColumnDataSpecsUtils.h"
 
 namespace of = o2::framework;
@@ -56,9 +56,14 @@ class TimingDeviceDPL
     std::array<std::vector<ROFRecord>, NEvTypes> outRofs;
 
     for (size_t idx = 0; idx < NEvTypes; ++idx) {
-      for (auto rof : inRofs[idx]) {
-        applyElectronicsDelay(rof.interactionRecord.orbit, rof.interactionRecord.bc, mLocalToBC, mMaxBunches);
-        outRofs[idx].emplace_back(rof);
+      if (idx == static_cast<size_t>(EventType::Calib)) {
+        // Delays do not apply to triggered events
+        outRofs[idx].insert(outRofs[idx].end(), inRofs[idx].begin(), inRofs[idx].end());
+      } else {
+        for (auto rof : inRofs[idx]) {
+          applyElectronicsDelay(rof.interactionRecord.orbit, rof.interactionRecord.bc, mLocalToBC, mMaxBunches);
+          outRofs[idx].emplace_back(rof);
+        }
       }
       pc.outputs().snapshot(mOutputs[idx], outRofs[idx]);
     }

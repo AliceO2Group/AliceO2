@@ -152,6 +152,7 @@ bool MatchGlobalFwd::prepareMCHData()
     int nBC = rofRec.getBCData().differenceInBC(mStartIR);
     float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
     float tMax = (nBC + rofRec.getBCWidth()) * o2::constants::lhc::LHCBunchSpacingMUS;
+    auto mchTime = rofRec.getTimeMUS(mStartIR).first;
 
     mMCHROFTimes.emplace_back(tMin, tMax); // MCH ROF min/max time
     LOG(debug) << "MCH ROF # " << irof << " [tMin;tMax] = [" << tMin << ";" << tMax << "]";
@@ -168,6 +169,7 @@ bool MatchGlobalFwd::prepareMCHData()
       auto convertedTrack = MCHtoFwd(tempParam);
       auto& thisMCHTrack = mMCHWork.emplace_back(TrackLocMCH{convertedTrack, {tMin, tMax}});
       thisMCHTrack.setMCHTrackID(it);
+      thisMCHTrack.setTimeMUS(mchTime);
     }
   }
   return true;
@@ -191,8 +193,9 @@ bool MatchGlobalFwd::processMCHMIDMatches()
       const auto& IR = MIDMatch.getIR();
       int nBC = IR.differenceInBC(mStartIR);
       float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
-      float tMax = tMin + o2::constants::lhc::LHCBunchSpacingMUS;
+      float tMax = (nBC + 1) * o2::constants::lhc::LHCBunchSpacingMUS;
       thisMuonTrack.setMIDTrackID(MIDId);
+      thisMuonTrack.setTimeMUS(MIDMatch.getTimeMUS(mStartIR).first);
       thisMuonTrack.tBracket.set(tMin, tMax);
       thisMuonTrack.setMIDMatchingChi2(MIDMatch.getMatchChi2OverNDF());
     }
@@ -355,7 +358,6 @@ void MatchGlobalFwd::doMatching()
         }
 
         thisMCHTrack.setMFTTrackID(bestMFTMatchID);
-        thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
         LOG(debug) << "    thisMCHTrack.getMFTTrackID() = " << thisMCHTrack.getMFTTrackID()
                    << "; thisMCHTrack.getMFTMCHMatchingChi2() = " << thisMCHTrack.getMFTMCHMatchingChi2();
 
@@ -418,7 +420,6 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
         }
         if constexpr (saveAllMode == SaveMode::kSaveAll) { // In saveAllmode save all pairs to output container
           thisMCHTrack.setMFTTrackID(MFTId);
-          thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
           mMatchedTracks.emplace_back(thisMCHTrack);
           mMatchingInfo.emplace_back(thisMCHTrack);
           if (mMCTruthON) {
@@ -429,7 +430,6 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
 
         if constexpr (saveAllMode == SaveMode::kSaveTrainingData) { // In save training data mode store track parameters at matching plane
           thisMCHTrack.setMFTTrackID(MFTId);
-          thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
           mMatchingInfo.emplace_back(thisMCHTrack);
           mMCHMatchPlaneParams.emplace_back(thisMCHTrack);
           mMFTMatchPlaneParams.emplace_back(static_cast<o2::mft::TrackMFT>(thisMFTTrack));
@@ -490,7 +490,6 @@ void MatchGlobalFwd::doMCMatching()
         auto chi2 = mMatchFunc(thisMCHTrack, thisMFTTrack);
         thisMCHTrack.setMFTTrackID(MFTId);
         thisMCHTrack.setMFTMCHMatchingChi2(chi2);
-        thisMCHTrack.setTimeMUS(thisMCHTrack.tBracket.getMin(), thisMCHTrack.tBracket.delta());
         mMatchedTracks.emplace_back(thisMCHTrack);
         mMatchingInfo.emplace_back(thisMCHTrack);
         mMatchLabels.push_back(matchLabel);
@@ -646,7 +645,8 @@ void MatchGlobalFwd::setBunchFilling(const o2::BunchFilling& bf)
   // find closest (from above) filled bunch
   int minBC = bf.getFirstFilledBC(), maxBC = bf.getLastFilledBC();
   if (minBC < 0) {
-    throw std::runtime_error("Bunch filling is not set in MatchGlobalFwd");
+    LOG(error) << "Empty bunch filling is provided to MatchGlobalFwd, checks using it should be ignored";
+    return;
   }
   int bcAbove = minBC;
   for (int i = o2::constants::lhc::LHCMaxBunches; i--;) {
@@ -752,9 +752,9 @@ o2::dataformats::GlobalFwdTrack MatchGlobalFwd::MCHtoFwd(const o2::mch::TrackPar
 //_________________________________________________________________________________________________
 MatchGlobalFwd::MatchGlobalFwd()
 {
+  mClosestBunchAbove[0] = mClosestBunchAbove[0] = -1;
 
   // Define built-in matching functions
-
   //________________________________________________________________________________
   mMatchingFunctionMap["matchALL"] = [](const GlobalFwdTrack& mchTrack, const TrackParCovFwd& mftTrack) -> double {
     // Match two tracks evaluating all parameters: X,Y, phi, tanl & q/pt

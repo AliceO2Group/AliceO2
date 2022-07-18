@@ -179,6 +179,7 @@ class ConfigurableParam
   static boost::property_tree::ptree readINI(std::string const& filepath);
   static boost::property_tree::ptree readJSON(std::string const& filepath);
   static boost::property_tree::ptree readConfigFile(std::string const& filepath);
+  static bool configFileExists(std::string const& filepath);
 
   // writes a human readable JSON file of all parameters
   static void writeJSON(std::string const& filename, std::string const& keyOnly = "");

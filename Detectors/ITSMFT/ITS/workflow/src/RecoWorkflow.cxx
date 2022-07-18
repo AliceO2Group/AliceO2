@@ -30,13 +30,12 @@ namespace reco_workflow
 {
 
 framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::string& trmode, o2::gpu::GPUDataTypes::DeviceType dtype,
-                                    bool upstreamDigits, bool upstreamClusters, bool disableRootOutput,
+                                    bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, int useTrig,
                                     bool eencode)
 {
   framework::WorkflowSpec specs;
-
   if (!(upstreamDigits || upstreamClusters)) {
-    specs.emplace_back(o2::itsmft::getITSDigitReaderSpec(useMC, false, "itsdigits.root"));
+    specs.emplace_back(o2::itsmft::getITSDigitReaderSpec(useMC, false, true, "itsdigits.root"));
   }
 
   if (!upstreamClusters) {
@@ -44,15 +43,18 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::st
   }
   if (!disableRootOutput) {
     specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
-    specs.emplace_back(o2::its::getTrackWriterSpec(useMC));
-    specs.emplace_back(o2::globaltracking::getIRFrameWriterSpec("irfr:ITS/IRFRAMES/0", "o2_its_irframe.root", "irframe-writer-its"));
   }
-  if (useCAtracker) {
-    specs.emplace_back(o2::its::getTrackerSpec(useMC, trmode, dtype));
-  } else {
-    specs.emplace_back(o2::its::getCookedTrackerSpec(useMC, trmode));
+  if (!trmode.empty()) {
+    if (useCAtracker) {
+      specs.emplace_back(o2::its::getTrackerSpec(useMC, useTrig, trmode, dtype));
+    } else {
+      specs.emplace_back(o2::its::getCookedTrackerSpec(useMC, useTrig, trmode));
+    }
+    if (!disableRootOutput) {
+      specs.emplace_back(o2::its::getTrackWriterSpec(useMC));
+      specs.emplace_back(o2::globaltracking::getIRFrameWriterSpec("irfr:ITS/IRFRAMES/0", "o2_its_irframe.root", "irframe-writer-its"));
+    }
   }
-
   if (eencode) {
     specs.emplace_back(o2::itsmft::getEntropyEncoderSpec("ITS"));
   }

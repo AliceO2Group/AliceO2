@@ -51,21 +51,27 @@ class VertexTrackMatcher
     int origID = -1;     ///< vertex origin id
   };
 
-  void init();
   void process(const o2::globaltracking::RecoContainer& recoData,
                std::vector<VTIndex>& trackIndex, // Global ID's for associated tracks
                std::vector<VRef>& vtxRefs);      // references on these tracks
 
+  void setITSROFrameLengthMUS(float v) { mITSROFrameLengthMUS = v; }
+  void setMFTROFrameLengthMUS(float v) { mMFTROFrameLengthMUS = v; }
+  void setMaxTPCDriftTimeMUS(float v) { mMaxTPCDriftTimeMUS = v; }
+  void setTPCBin2MUS(float v) { mTPCBin2MUS = v; }
+
+  float getITSROFrameLengthMUS() const { return mITSROFrameLengthMUS; }
+  float getMFTROFrameLengthMUS() const { return mMFTROFrameLengthMUS; }
+  float getMaxTPCDriftTimeMUS() const { return mMaxTPCDriftTimeMUS; }
+  float getTPCBin2MUS() const { return mTPCBin2MUS; }
+
  private:
-  void updateTimeDependentParams();
   void extractTracks(const o2::globaltracking::RecoContainer& data, const std::unordered_map<GIndex, bool>& vcont);
   std::vector<TrackTBracket> mTBrackets;
   float mITSROFrameLengthMUS = 0;       ///< ITS RO frame in mus
   float mMFTROFrameLengthMUS = 0;       ///< MFT RO frame in mus
   float mMaxTPCDriftTimeMUS = 0;
   float mTPCBin2MUS = 0;
-  const o2::vertexing::PVertexerParams* mPVParams = nullptr;
-
 };
 
 } // namespace vertexing

@@ -26,6 +26,7 @@
 #if !defined(GPUCA_GPUCODE) || defined(__OPENCL_HOST__) // For host / ROOT dictionary
   #define GPUd()                                    // device function
   #define GPUdDefault()                             // default (constructor / operator) device function
+  #define GPUhdDefault()                            // default (constructor / operator) host device function
   #define GPUdi() inline                            // to-be-inlined device function
   #define GPUdii()                                  // Only on GPU to-be-inlined (forced) device function
   #define GPUdni()                                  // Device function, not-to-be-inlined
@@ -72,6 +73,7 @@
 #elif defined(__OPENCL__) // Defines for OpenCL
   #define GPUd()
   #define GPUdDefault()
+  #define GPUhdDefault()
   #define GPUdi() inline
   #define GPUdii() inline
   #define GPUdni()
@@ -129,6 +131,7 @@
 #elif defined(__HIPCC__) //Defines for HIP
   #define GPUd() __device__
   #define GPUdDefault() __device__
+  #define GPUhdDefault() __host__ __device__
   #define GPUdi() __device__ inline
   #define GPUdii() __device__ __forceinline__
   #define GPUdni() __device__ __attribute__((noinline))
@@ -159,6 +162,7 @@
 #elif defined(__CUDACC__) //Defines for CUDA
   #define GPUd() __device__
   #define GPUdDefault()
+  #define GPUhdDefault()
   #define GPUdi() __device__ inline
   #define GPUdii() __device__ inline
   #define GPUdni() __device__ __attribute__((noinline))

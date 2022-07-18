@@ -23,12 +23,18 @@ class FairMQDeviceProxy;
 /// Generic helpers for DataProcessing releated functions.
 struct DataProcessingHelpers {
   /// Send EndOfStream message to a given channel
-  /// @param device the FairMQDevice which needs to send the EndOfStream message
+  /// @param device the fair::mq::Device which needs to send the EndOfStream message
   /// @param channel the OutputChannelSpec of the channel which needs to be signaled
   ///        for EndOfStream
-  static void sendEndOfStream(FairMQDevice& device, OutputChannelSpec const& channel);
-  static void sendOldestPossibleTimeframe(fair::mq::Channel& channel, size_t timeslice);
+  static void sendEndOfStream(fair::mq::Device& device, OutputChannelSpec const& channel);
+  /// @returns true if we did send the oldest possible timeslice message, false otherwise.
+  static bool sendOldestPossibleTimeframe(ForwardChannelInfo const& info, ForwardChannelState& state, size_t timeslice);
+  /// @returns true if we did send the oldest possible timeslice message, false otherwise.
+  static bool sendOldestPossibleTimeframe(OutputChannelInfo const& info, OutputChannelState& state, size_t timeslice);
   static void broadcastOldestPossibleTimeslice(FairMQDeviceProxy& proxy, size_t timeslice);
+
+ private:
+  static void sendOldestPossibleTimeframe(fair::mq::Channel& channel, size_t timeslice);
 };
 
 } // namespace o2::framework

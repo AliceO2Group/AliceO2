@@ -91,11 +91,18 @@ class TrackAndClusterFilterDevice : public o2::framework::Task
   TrackCuts mCuts{};
 };
 
-DataProcessorSpec getTrackAndClusterFilterSpec()
+DataProcessorSpec getTrackAndClusterFilterSpec(const std::string dataDescriptionStr)
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
-  inputs.emplace_back("trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe);
+  o2::header::DataDescription dataDescription;
+  if (dataDescriptionStr.size() > dataDescription.size + 1) {
+    LOGP(fatal, "Size of {} is larger than {}", dataDescriptionStr, dataDescription.size);
+  }
+  for (size_t i = 0; i < dataDescriptionStr.size(); ++i) {
+    dataDescription.str[i] = dataDescriptionStr[i];
+  }
+  inputs.emplace_back("trackTPC", "TPC", dataDescription, 0, Lifetime::Timeframe);
   inputs.emplace_back("trackTPCClRefs", "TPC", "CLUSREFS", 0, Lifetime::Timeframe);
   inputs.emplace_back("clusTPC", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe);
 

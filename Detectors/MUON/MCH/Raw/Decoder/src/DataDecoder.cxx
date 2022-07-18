@@ -24,6 +24,7 @@
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "MCHBase/DecoderError.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "Framework/Logger.h"
 #include "MCHRawDecoder/ErrorCodes.h"
@@ -239,10 +240,9 @@ bool DataDecoder::TimeFrameStartRecord::check(int32_t orbit, uint32_t bc, int32_
 //_________________________________________________________________________________________________
 
 DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler,
-                         uint32_t sampaBcOffset,
                          std::string mapCRUfile, std::string mapFECfile,
                          bool ds2manu, bool verbose, bool useDummyElecMap, TimeRecoMode timeRecoMode)
-  : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mSampaTimeOffset(sampaBcOffset), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose), mUseDummyElecMap(useDummyElecMap), mTimeRecoMode(timeRecoMode)
+  : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose), mUseDummyElecMap(useDummyElecMap), mTimeRecoMode(timeRecoMode)
 {
   init();
 }
@@ -250,7 +250,7 @@ DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandl
 void DataDecoder::logErrorMap(int tfcount) const
 {
   for (auto err : mErrorMap) {
-    LOGP(alarm, "{} ({} time{}) [{} TFs seen]", err.first, err.second,
+    LOGP(warning, "{} ({} time{}) [{} TFs seen]", err.first, err.second,
          err.second > 1 ? "s" : "", tfcount);
   }
 }
@@ -264,7 +264,7 @@ void DataDecoder::setFirstOrbitInTF(uint32_t orbit)
 
 //_________________________________________________________________________________________________
 
-void DataDecoder::decodeBuffer(gsl::span<const std::byte> buf)
+bool DataDecoder::decodeBuffer(gsl::span<const std::byte> buf)
 {
   if (mDebug) {
     std::cout << "\n\n============================\nStart of new buffer\n";
@@ -289,7 +289,12 @@ void DataDecoder::decodeBuffer(gsl::span<const std::byte> buf)
     auto pageSize = o2::raw::RDHUtils::getOffsetToNext(rdh);
 
     gsl::span<const std::byte> page(reinterpret_cast<const std::byte*>(rdh), pageSize);
-    decodePage(page);
+    try {
+      decodePage(page);
+    } catch (const std::exception& e) {
+      mErrors.emplace_back(DecoderError(0, 0, 0, ErrorNonRecoverableDecodingError));
+      return false;
+    }
 
     pageStart += pageSize;
   }
@@ -300,6 +305,7 @@ void DataDecoder::decodeBuffer(gsl::span<const std::byte> buf)
     std::cout << "[decodeBuffer] mDigits size: " << mDigits.size() << std::endl;
     dumpDigits();
   }
+  return true;
 }
 
 //_________________________________________________________________________________________________
@@ -374,7 +380,7 @@ uint64_t DataDecoder::getMergerChannelBitmask(DualSampaChannelId channel)
 
 bool DataDecoder::mergeDigits(uint32_t mergerChannelId, uint32_t mergerBoardId, uint64_t mergerChannelBitmask, o2::mch::raw::SampaCluster& sc)
 {
-  static constexpr uint32_t BCROLLOVER = (1 << 20);
+  uint32_t BCROLLOVER = (mTimeRecoMode == TimeRecoMode::BCReset) ? (mBcInOrbit * mOrbitsInTF) : (1 << 20);
   static constexpr uint32_t ONEADCCLOCK = 4;
   static constexpr uint32_t MAXNOFSAMPLES = 0x3FF;
   static constexpr uint32_t TWENTYBITSATONE = 0xFFFFF;
@@ -525,20 +531,6 @@ uint64_t DataDecoder::getChipId(uint32_t solar, uint32_t ds, uint32_t chip)
 
 //_________________________________________________________________________________________________
 
-uint32_t DataDecoder::subtractBcOffset(uint32_t bc, uint32_t offset)
-{
-  int64_t bcTF = static_cast<int64_t>(bc) - offset;
-
-  if (bcTF < 0) {
-    bcTF += bcRollOver;
-  }
-  uint32_t bc20bits = static_cast<uint32_t>(bcTF & twentyBitsAtOne);
-
-  return bc20bits;
-}
-
-//_________________________________________________________________________________________________
-
 void DataDecoder::updateTimeFrameStartRecord(uint64_t chipId, uint32_t mFirstOrbitInTF, uint32_t bcTF)
 {
   if (chipId < DataDecoder::sReadoutChipsNum) {
@@ -560,23 +552,21 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
     auto solar = dsElecId.solarId();
     uint64_t chipId = getChipId(solar, ds, chip);
 
-    uint32_t bcTF = subtractBcOffset(bunchCrossing, mSampaTimeOffset);
-
     if (mDebug) {
       auto s = asString(dsElecId);
-      LOGP(info, "HeartBeat: {}-CHIP{} -> {}/{} offset {} -> bcTF {}",
-           s, chip, mFirstOrbitInTF, bunchCrossing, mSampaTimeOffset, bcTF);
+      LOGP(info, "HeartBeat: {}-CHIP{} -> {}/{}",
+           s, chip, mFirstOrbitInTF, bunchCrossing);
     }
 
     if (chipId >= DataDecoder::sReadoutChipsNum) {
       return;
     }
 
-    if (!mTimeFrameStartRecords[chipId].update(mFirstOrbitInTF, bcTF)) {
+    if (!mTimeFrameStartRecords[chipId].update(mFirstOrbitInTF, bunchCrossing)) {
       if (mErrorCount < MCH_DECODER_MAX_ERROR_COUNT) {
         auto s = asString(dsElecId);
         LOGP(warning, "Bad HeartBeat packet received: {}-CHIP{} {}/{} (last {}/{})",
-             s, chip, mFirstOrbitInTF, bcTF, mTimeFrameStartRecords[chipId].mOrbitPrev, mTimeFrameStartRecords[chipId].mBunchCrossingPrev);
+             s, chip, mFirstOrbitInTF, bunchCrossing, mTimeFrameStartRecords[chipId].mOrbitPrev, mTimeFrameStartRecords[chipId].mBunchCrossingPrev);
         mErrorCount += 1;
       }
     }
@@ -806,8 +796,6 @@ void DataDecoder::computeDigitsTimeBCRst()
 
     tfTime = DataDecoder::getDigitTimeBCRst(orbitTF, bcTF, orbitDigit, bcDigit);
 
-    tfTime -= mSampaTimeOffset;
-
     if (mDebug && tfTime < (-2 * mBcInOrbit)) {
       int solar = info.solar;
       int ds = info.ds;
@@ -824,12 +812,8 @@ void DataDecoder::computeDigitsTimeBCRst()
 
 //_________________________________________________________________________________________________
 
-void DataDecoder::checkDigitsTime(int minDigitOrbitAccepted, int maxDigitOrbitAccepted)
+void DataDecoder::checkDigitsTime()
 {
-  if (maxDigitOrbitAccepted < 0) {
-    maxDigitOrbitAccepted = mOrbitsInTF - 1;
-  }
-
   for (auto& digit : mDigits) {
     auto& d = digit.digit;
     auto& info = digit.info;
@@ -837,12 +821,6 @@ void DataDecoder::checkDigitsTime(int minDigitOrbitAccepted, int maxDigitOrbitAc
     if (tfTime == DataDecoder::tfTimeInvalid) {
       // add invalid digit time error
       mErrors.emplace_back(o2::mch::DecoderError(info.solar, info.ds, info.chip, ErrorInvalidDigitTime));
-    } else {
-      auto orbit = tfTime / o2::constants::lhc::LHCMaxBunches;
-      if (orbit < minDigitOrbitAccepted || orbit > maxDigitOrbitAccepted) {
-        // add bad digit time error
-        mErrors.emplace_back(o2::mch::DecoderError(info.solar, info.ds, info.chip, ErrorBadDigitTime));
-      }
     }
   }
 }

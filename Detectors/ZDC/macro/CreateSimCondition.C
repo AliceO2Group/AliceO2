@@ -18,13 +18,15 @@
 #include <TRandom.h>
 #endif
 
-#include "ZDCSimulation/SimCondition.h"
 #include "ZDCBase/Constants.h"
-
+#include "ZDCSimulation/SimCondition.h"
+#include "ZDCBase/Helpers.h"
 using namespace std;
 
 void CreateSimCondition(long tmin = 0, long tmax = -1, std::string ccdbHost = "", std::string sourceDataPath = "signal_shapes.root")
 {
+  // Shortcuts: internal, external, test, local, root
+
   TFile sourceData(sourceDataPath.c_str());
   if (!sourceData.IsOpen() || sourceData.IsZombie()) {
     LOG(fatal) << "Failed to open input file " << sourceDataPath;
@@ -83,6 +85,10 @@ void CreateSimCondition(long tmin = 0, long tmax = -1, std::string ccdbHost = ""
     int det = o2::zdc::toDet(ic, tower); // detector ID for this channel
     //
     channel.gain = (tower != o2::zdc::Sum) ? fudgeFactor * Gains[det - 1] : 1.0;
+    if (ic == o2::zdc::IdZPA4 || ic == o2::zdc::IdZPC4) {
+      channel.gainInSum = 0.5;
+      channel.gain = channel.gain / channel.gainInSum;
+    }
     //
     std::string histoShapeName = "hw_" + ShapeName[ic];
     TH1* histoShape = (TH1*)sourceData.GetObjectUnchecked(histoShapeName.c_str());
@@ -132,21 +138,19 @@ void CreateSimCondition(long tmin = 0, long tmax = -1, std::string ccdbHost = ""
 
   conf.print();
 
+  std::string ccdb_host = o2::zdc::ccdbShortcuts(ccdbHost, conf.Class_Name(), o2::zdc::CCDBPathConfigSim);
+
+  if (o2::zdc::endsWith(ccdb_host, ".root")) {
+    TFile f(ccdb_host.data(), "recreate");
+    f.WriteObjectAny(&conf, conf.Class_Name(), "ccdb_object");
+    f.Close();
+    return;
+  }
+
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
-  if (ccdbHost.size() == 0 || ccdbHost == "external") {
-    ccdbHost = "http://alice-ccdb.cern.ch:8080";
-  } else if (ccdbHost == "internal") {
-    ccdbHost = "http://o2-ccdb.internal/";
-  } else if (ccdbHost == "test") {
-    ccdbHost = "http://ccdb-test.cern.ch:8080";
-  } else if (ccdbHost == "local") {
-    ccdbHost = "http://localhost:8080";
-  }
-  api.init(ccdbHost.c_str());
+  api.init(ccdb_host.c_str());
   LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&conf, o2::zdc::CCDBPathConfigSim, metadata, tmin, tmax);
-
-  //  return conf;
 }

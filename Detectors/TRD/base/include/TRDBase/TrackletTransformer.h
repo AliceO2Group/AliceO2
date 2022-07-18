@@ -41,6 +41,7 @@ class TrackletTransformer
   void setXtb0(float x) { mXtb0 = x; }
 
   void setCalVdriftExB(const CalVdriftExB* cal) { mCalVdriftExB = cal; };
+  void setApplyXOR() { mApplyXOR = true; }
 
   float calculateY(int hcid, int column, int position);
 
@@ -59,6 +60,7 @@ class TrackletTransformer
  private:
   Geometry* mGeo{nullptr};
   const PadPlane* mPadPlane{nullptr};
+  bool mApplyXOR{false};
 
   float mXCathode;
   float mXAnode;

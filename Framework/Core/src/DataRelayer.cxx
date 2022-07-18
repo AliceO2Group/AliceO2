@@ -25,6 +25,7 @@
 #include "Framework/Signpost.h"
 #include "Framework/RoutingIndices.h"
 #include "Framework/VariableContextHelpers.h"
+#include "Framework/FairMQDeviceProxy.h"
 #include "DataProcessingStatus.h"
 #include "DataRelayerHelpers.h"
 #include "InputRouteHelpers.h"
@@ -35,6 +36,7 @@
 #include <Monitoring/Metric.h>
 #include <Monitoring/Monitoring.h>
 
+#include <fairmq/Channel.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 #include <gsl/span>
@@ -51,16 +53,16 @@ namespace o2::framework
 
 constexpr int INVALID_INPUT = -1;
 
-// 16 is just some reasonable numer
+// 128 is just some reasonable numer
 // The number should really be tuned at runtime for each processor.
-constexpr int DEFAULT_PIPELINE_LENGTH = 32;
+constexpr int DEFAULT_PIPELINE_LENGTH = 128;
 
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
                          monitoring::Monitoring& metrics,
                          TimesliceIndex& index)
-  : mTimesliceIndex{index},
-    mMetrics{metrics},
+  : mMetrics{metrics},
+    mTimesliceIndex{index},
     mCompletionPolicy{policy},
     mDistinctRoutesIndex{DataRelayerHelpers::createDistinctRouteIndex(routes)},
     mInputMatchers{DataRelayerHelpers::createInputMatchers(routes)},
@@ -69,7 +71,9 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
   if (policy.configureRelayer == nullptr) {
-    setPipelineLength(DEFAULT_PIPELINE_LENGTH);
+    char* defaultPipelineLengthTxt = getenv("DPL_DEFAULT_PIPELINE_LENGTH");
+    int defaultPipelineLength = defaultPipelineLengthTxt ? std::stoi(defaultPipelineLengthTxt) : DEFAULT_PIPELINE_LENGTH;
+    setPipelineLength(defaultPipelineLength);
   } else {
     policy.configureRelayer(*this);
   }
@@ -102,6 +106,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
 {
   LOGP(debug, "DataRelayer::processDanglingInputs");
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+  auto& deviceProxy = services.get<FairMQDeviceProxy>();
 
   ActivityStats activity;
   /// Nothing to do if nothing can expire.
@@ -115,12 +120,21 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
     LOGP(debug, "Creating new slot");
     for (auto& handler : expirationHandlers) {
       LOGP(debug, "handler.creator for {}", handler.name);
-      slotsCreatedByHandlers.push_back(handler.creator(mTimesliceIndex));
+      auto channelIndex = deviceProxy.getInputChannelIndex(handler.routeIndex);
+      slotsCreatedByHandlers.push_back(handler.creator(channelIndex, mTimesliceIndex));
     }
   }
-  if (slotsCreatedByHandlers.empty() == false) {
+  // Count how many slots are not invalid
+  auto validSlots = 0;
+  for (auto slot : slotsCreatedByHandlers) {
+    if (slot.index == TimesliceSlot::INVALID) {
+      continue;
+    }
+    validSlots++;
+  }
+  if (validSlots > 0) {
     activity.newSlots++;
-    LOGP(debug, "DataRelayer::processDanglingInputs: {} slots created by handler", slotsCreatedByHandlers.size());
+    LOGP(debug, "DataRelayer::processDanglingInputs: {} slots created by handler", validSlots);
   } else {
     LOGP(debug, "DataRelayer::processDanglingInputs: no slots created by handler");
   }
@@ -268,18 +282,22 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       }
       continue;
     }
-    bool hasTimeframe = false;
-    for (size_t mi = 0; mi == mInputs.size(); ++mi) {
+    bool droppingNotCondition = false;
+    mPruneOps.push_back(PruneOp{si});
+    for (size_t mi = 0; mi < mInputs.size(); ++mi) {
       auto& input = mInputs[mi];
       auto& element = mCache[si * mInputs.size() + mi];
-      if (input.lifetime == Lifetime::Timeframe && element.size() != 0) {
-        LOGP(error, "Dropping Lifetime::Timeframe data in slot {} with timestamp {} < {}.", si, timestamp.value, newOldest.timeslice.value);
-        hasTimeframe = true;
-        break;
+      if (element.size() != 0) {
+        if (input.lifetime != Lifetime::Condition && mCompletionPolicy.name != "internal-dpl-injected-dummy-sink") {
+          LOGP(error, "Dropping {} Lifetime::{} data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+        } else {
+          LOGP(debug,
+               "Silently dropping data {} in pipeline slot {} because it has timeslice {} < {} after receiving data from channel {}."
+               "Because Lifetime::Timeframe data not there and not expected (e.g. due to sampling) we drop non sampled, non timeframe data (e.g. Conditions).",
+               DataSpecUtils::describe(input), si, timestamp.value, newOldest.timeslice.value,
+               mTimesliceIndex.getChannelInfo(channel).channel->GetName());
+        }
       }
-    }
-    if (!hasTimeframe) {
-      LOGP(debug, "Silently dropping data in slot {} because it has timestamp {} < {}. Lifetime::Timeframe data not expected.", si, timestamp.value, newOldest.timeslice.value);
     }
   }
 }
@@ -289,11 +307,64 @@ TimesliceIndex::OldestOutputInfo DataRelayer::getOldestPossibleOutput() const
   return mTimesliceIndex.getOldestPossibleOutput();
 }
 
+void DataRelayer::prunePending(OnDropCallback onDrop)
+{
+  for (auto& op : mPruneOps) {
+    this->pruneCache(op.slot, onDrop);
+  }
+  mPruneOps.clear();
+}
+
+void DataRelayer::pruneCache(TimesliceSlot slot, OnDropCallback onDrop)
+{
+  // We need to prune the cache from the old stuff, if any. Otherwise we
+  // simply store the payload in the cache and we mark relevant bit in the
+  // hence the first if.
+  auto pruneCache = [&onDrop,
+                     &cache = mCache,
+                     &cachedStateMetrics = mCachedStateMetrics,
+                     numInputTypes = mDistinctRoutesIndex.size(),
+                     &index = mTimesliceIndex,
+                     &metrics = mMetrics](TimesliceSlot slot) {
+    if (onDrop) {
+      auto oldestPossibleTimeslice = index.getOldestPossibleOutput();
+      // State of the computation
+      std::vector<MessageSet> dropped(numInputTypes);
+      for (size_t ai = 0, ae = numInputTypes; ai != ae; ++ai) {
+        auto cacheId = slot.index * numInputTypes + ai;
+        cachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
+        // TODO: in the original implementation of the cache, there have been only two messages per entry,
+        // check if the 2 above corresponds to the number of messages.
+        if (cache[cacheId].size() > 0) {
+          dropped[ai] = std::move(cache[cacheId]);
+        }
+      }
+      bool anyDropped = std::any_of(dropped.begin(), dropped.end(), [](auto& m) { return m.size(); });
+      if (anyDropped) {
+        onDrop(slot, dropped, oldestPossibleTimeslice);
+      }
+    }
+    assert(cache.empty() == false);
+    assert(index.size() * numInputTypes == cache.size());
+    // Prune old stuff from the cache, hopefully deleting it...
+    // We set the current slot to the timeslice value, so that old stuff
+    // will be ignored.
+    assert(numInputTypes * slot.index < cache.size());
+    for (size_t ai = slot.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
+      cache[ai].clear();
+      cachedStateMetrics[ai] = CacheEntryStatus::EMPTY;
+    }
+  };
+
+  pruneCache(slot);
+}
+
 DataRelayer::RelayChoice
   DataRelayer::relay(void const* rawHeader,
-                     std::unique_ptr<FairMQMessage>* messages,
+                     std::unique_ptr<fair::mq::Message>* messages,
                      size_t nMessages,
-                     size_t nPayloads)
+                     size_t nPayloads,
+                     std::function<void(TimesliceSlot, std::vector<MessageSet>&, TimesliceIndex::OldestOutputInfo)> onDrop)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
   DataProcessingHeader const* dph = o2::header::get<DataProcessingHeader*>(rawHeader);
@@ -301,12 +372,7 @@ DataRelayer::RelayChoice
   // This is the class level state of the relaying. If we start supporting
   // multithreading this will have to be made thread safe before we can invoke
   // relay concurrently.
-  auto& index = mTimesliceIndex;
-
-  auto& cache = mCache;
   auto const& readonlyCache = mCache;
-  auto& metrics = mMetrics;
-  auto numInputTypes = mDistinctRoutesIndex.size();
 
   // IMPLEMENTATION DETAILS
   //
@@ -320,7 +386,7 @@ DataRelayer::RelayChoice
   auto getInputTimeslice = [&matchers = mInputMatchers,
                             &distinctRoutes = mDistinctRoutesIndex,
                             &rawHeader,
-                            &index](VariableContext& context)
+                            &index = mTimesliceIndex](VariableContext& context)
     -> std::tuple<int, TimesliceId> {
     /// FIXME: for the moment we only use the first context and reset
     /// between one invokation and the other.
@@ -345,34 +411,14 @@ DataRelayer::RelayChoice
     };
   };
 
-  // We need to prune the cache from the old stuff, if any. Otherwise we
-  // simply store the payload in the cache and we mark relevant bit in the
-  // hence the first if.
-  auto pruneCache = [&cache,
-                     &cachedStateMetrics = mCachedStateMetrics,
-                     &numInputTypes,
-                     &index,
-                     &metrics](TimesliceSlot slot) {
-    assert(cache.empty() == false);
-    assert(index.size() * numInputTypes == cache.size());
-    // Prune old stuff from the cache, hopefully deleting it...
-    // We set the current slot to the timeslice value, so that old stuff
-    // will be ignored.
-    assert(numInputTypes * slot.index < cache.size());
-    for (size_t ai = slot.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
-      cache[ai].clear();
-      cachedStateMetrics[ai] = CacheEntryStatus::EMPTY;
-    }
-  };
-
   // Actually save the header / payload in the slot
   auto saveInSlot = [&cachedStateMetrics = mCachedStateMetrics,
                      &messages,
                      &nMessages,
                      &nPayloads,
-                     &cache,
-                     &numInputTypes,
-                     &metrics](TimesliceId timeslice, int input, TimesliceSlot slot) {
+                     &cache = mCache,
+                     numInputTypes = mDistinctRoutesIndex.size(),
+                     &metrics = mMetrics](TimesliceId timeslice, int input, TimesliceSlot slot) {
     auto cacheIdx = numInputTypes * slot.index + input;
     MessageSet& target = cache[cacheIdx];
     cachedStateMetrics[cacheIdx] = CacheEntryStatus::PENDING;
@@ -381,7 +427,7 @@ DataRelayer::RelayChoice
     assert(nPayloads > 0);
     for (size_t mi = 0; mi < nMessages; ++mi) {
       assert(mi + nPayloads < nMessages);
-      target.add([&messages, &mi](size_t i) -> FairMQMessagePtr& { return messages[mi + i]; }, nPayloads + 1);
+      target.add([&messages, &mi](size_t i) -> fair::mq::MessagePtr& { return messages[mi + i]; }, nPayloads + 1);
       mi += nPayloads;
     }
   };
@@ -415,6 +461,7 @@ DataRelayer::RelayChoice
   auto input = INVALID_INPUT;
   auto timeslice = TimesliceId{TimesliceId::INVALID};
   auto slot = TimesliceSlot{TimesliceSlot::INVALID};
+  auto& index = mTimesliceIndex;
 
   bool needsCleaning = false;
   // First look for matching slots which already have some
@@ -456,7 +503,8 @@ DataRelayer::RelayChoice
   if (input != INVALID_INPUT && TimesliceId::isValid(timeslice) && TimesliceSlot::isValid(slot)) {
     O2_SIGNPOST(O2_PROBE_DATARELAYER, timeslice.value, 0, 0, 0);
     if (needsCleaning) {
-      pruneCache(slot);
+      this->pruneCache(slot, onDrop);
+      mPruneOps.erase(std::remove_if(mPruneOps.begin(), mPruneOps.end(), [slot](const auto& x) { return x.slot == slot; }), mPruneOps.end());
     }
     saveInSlot(timeslice, input, slot);
     index.publishSlot(slot);
@@ -532,7 +580,8 @@ DataRelayer::RelayChoice
     case TimesliceIndex::ActionTaken::ReplaceObsolete:
       // At this point the variables match the new input but the
       // cache still holds the old data, so we prune it.
-      pruneCache(slot);
+      this->pruneCache(slot, onDrop);
+      mPruneOps.erase(std::remove_if(mPruneOps.begin(), mPruneOps.end(), [slot](const auto& x) { return x.slot == slot; }), mPruneOps.end());
       saveInSlot(timeslice, input, slot);
       index.publishSlot(slot);
       index.markAsDirty(slot, true);
@@ -565,9 +614,13 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
   // These two are trivial, but in principle the whole loop could be parallelised
   // or vectorised so "completed" could be a thread local variable which needs
   // merging at the end.
-  auto updateCompletionResults = [&completed](TimesliceSlot li, CompletionPolicy::CompletionOp op) {
-    LOGP(debug, "Doing action {} for slot {}", op, li.index);
-    completed.emplace_back(RecordAction{li, op});
+  auto updateCompletionResults = [&completed](TimesliceSlot li, uint64_t const* timeslice, CompletionPolicy::CompletionOp op) {
+    if (timeslice) {
+      LOGP(debug, "Doing action {} for slot {} (timeslice: {})", op, li.index, *timeslice);
+      completed.emplace_back(RecordAction{li, {*timeslice}, op});
+    } else {
+      LOGP(debug, "No timeslice associated with slot ", li.index);
+    }
   };
 
   // THE OUTER LOOP
@@ -627,37 +680,46 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     } else {
       throw std::runtime_error("No completion policy found");
     }
+    auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
+    auto timeslice = std::get_if<uint64_t>(&variables.get(0));
     switch (action) {
       case CompletionPolicy::CompletionOp::Consume:
         countConsume++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::ConsumeAndRescan:
         // This is just like Consume, but we also mark all slots as dirty
         countConsume++;
         action = CompletionPolicy::CompletionOp::Consume;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
         mTimesliceIndex.rescan();
         break;
       case CompletionPolicy::CompletionOp::ConsumeExisting:
         countConsumeExisting++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::Process:
         countProcess++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
       case CompletionPolicy::CompletionOp::Discard:
         countDiscard++;
-        updateCompletionResults(slot, action);
+        updateCompletionResults(slot, timeslice, action);
+        mTimesliceIndex.markAsDirty(slot, false);
+        break;
+      case CompletionPolicy::CompletionOp::Retry:
+        countWait++;
+        mTimesliceIndex.markAsDirty(slot, true);
+        action = CompletionPolicy::CompletionOp::Wait;
         break;
       case CompletionPolicy::CompletionOp::Wait:
         countWait++;
+        mTimesliceIndex.markAsDirty(slot, false);
         break;
     }
-    // Given we have created an action for this cacheline, we need to wait for
-    // a new message before we look again into the given cacheline.
-    mTimesliceIndex.markAsDirty(slot, false);
   }
   mTimesliceIndex.updateOldestPossibleOutput();
   LOGP(debug, "DataRelayer::getReadyToProcess results notDirty:{}, consume:{}, consumeExisting:{}, process:{}, discard:{}, wait:{}",

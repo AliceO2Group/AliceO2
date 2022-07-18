@@ -24,19 +24,10 @@ void CalibTOFapi::resetDia()
   mNoisy.clear();
 }
 
-CalibTOFapi::CalibTOFapi()
-{
-  resetDia();
-  memset(mIsErrorCh, false, Geo::NCHANNELS);
-  memset(mIsOffCh, false, Geo::NCHANNELS);
-  memset(mIsNoisy, false, Geo::NCHANNELS);
-}
-
 //______________________________________________________________________
 
 CalibTOFapi::CalibTOFapi(const std::string url)
 {
-  CalibTOFapi();
   // setting the URL to the CCDB manager
 
   setURL(url);
@@ -259,7 +250,7 @@ bool CalibTOFapi::isOff(int ich)
 
 //______________________________________________________________________
 
-float CalibTOFapi::getTimeCalibration(int ich, float tot)
+float CalibTOFapi::getTimeCalibration(int ich, float tot) const
 {
 
   // time calibration to correct measured TOF times
@@ -281,7 +272,29 @@ float CalibTOFapi::getTimeCalibration(int ich, float tot)
 
 //______________________________________________________________________
 
-float CalibTOFapi::getTimeDecalibration(int ich, float tot)
+float CalibTOFapi::getTimeCalibration(int ich, float tot, float phase) const
+{
+
+  // time calibration to correct measured TOF times
+
+  float corr = 0;
+  if (!mLHCphase || !mSlewParam) {
+    LOG(warning) << "Either LHC phase or slewing object null: mLHCphase = " << mLHCphase << ", mSlewParam = " << mSlewParam;
+    return corr;
+  }
+  //  printf("LHC phase apply\n");
+  // LHCphase
+  corr += phase; // timestamp that we use in LHCPhase is in seconds
+  // time slewing + channel offset
+  //printf("eval time sleweing calibration: ch=%d   tot=%f (lhc phase = %f)\n",ich,tot,corr);
+  corr += mSlewParam->evalTimeSlewing(ich, tot);
+  //printf("corr = %f\n",corr);
+  return corr;
+}
+
+//______________________________________________________________________
+
+float CalibTOFapi::getTimeDecalibration(int ich, float tot) const
 {
 
   // time decalibration for simulation (it is just the opposite of the calibration)

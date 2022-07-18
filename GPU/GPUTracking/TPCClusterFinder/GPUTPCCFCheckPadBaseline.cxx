@@ -42,7 +42,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int nBlocks, int nThreads, int i
   }
 
 #ifdef GPUCA_GPUCODE
-  static_assert(TPC_MAX_FRAGMENT_LEN % NumOfCachedTimebins == 0);
+  static_assert(TPC_MAX_FRAGMENT_LEN_GPU % NumOfCachedTimebins == 0);
 
   int totalCharges = 0;
   int consecCharges = 0;

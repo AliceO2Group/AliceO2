@@ -16,7 +16,7 @@
 #define GPURECONSTRUCTIONINCLDUESITS_H
 
 #if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
-#include "ITStracking/TrackerTraitsCPU.h"
+#include "ITStracking/TrackerTraits.h"
 #include "ITStracking/VertexerTraits.h"
 #else
 namespace o2

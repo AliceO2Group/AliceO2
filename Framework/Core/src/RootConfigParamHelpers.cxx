@@ -230,28 +230,28 @@ ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember* dm, void
   if (dt != nullptr) {
     switch (dt->GetType()) {
       case kChar_t: {
-        return ConfigParamSpec{tname, VariantType::Int, *(char*)ptr, {"No help"}};
+        return ConfigParamSpec{tname, VariantType::Int8, *(char*)ptr, {"No help"}};
       }
       case kUChar_t: {
-        return ConfigParamSpec{tname, VariantType::Int, *(unsigned char*)ptr, {"No help"}};
+        return ConfigParamSpec{tname, VariantType::UInt8, *(unsigned char*)ptr, {"No help"}};
       }
       case kShort_t: {
-        return ConfigParamSpec{tname, VariantType::Int, *(short*)ptr, {"No help"}};
+        return ConfigParamSpec{tname, VariantType::Int16, *(short*)ptr, {"No help"}};
       }
       case kUShort_t: {
-        return ConfigParamSpec{tname, VariantType::Int, *(unsigned short*)ptr, {"No help"}};
+        return ConfigParamSpec{tname, VariantType::UInt16, *(unsigned short*)ptr, {"No help"}};
       }
       case kInt_t: {
         return ConfigParamSpec{tname, VariantType::Int, *(int*)ptr, {"No help"}};
       }
       case kUInt_t: {
-        return ConfigParamSpec{tname, VariantType::Int, *(unsigned int*)ptr, {"No help"}};
+        return ConfigParamSpec{tname, VariantType::UInt32, *(unsigned int*)ptr, {"No help"}};
       }
       case kLong_t: {
-        return ConfigParamSpec{tname, VariantType::Int, *(long*)ptr, {"No help"}};
+        return ConfigParamSpec{tname, VariantType::Int64, *(long*)ptr, {"No help"}};
       }
       case kULong_t: {
-        return ConfigParamSpec{tname, VariantType::Int, *(unsigned long*)ptr, {"No help"}};
+        return ConfigParamSpec{tname, VariantType::UInt64, *(unsigned long*)ptr, {"No help"}};
       }
       case kFloat_t: {
         return ConfigParamSpec{tname, VariantType::Float, *(float*)ptr, {"No help"}};
@@ -267,7 +267,7 @@ ConfigParamSpec memberToConfigParamSpec(const char* tname, TDataMember* dm, void
         return ConfigParamSpec{tname, VariantType::Int64, *(int64_t*)ptr, {"No help"}};
       }
       case kULong64_t: {
-        return ConfigParamSpec{tname, VariantType::Int64, *(uint64_t*)ptr, {"No help"}};
+        return ConfigParamSpec{tname, VariantType::UInt64, *(uint64_t*)ptr, {"No help"}};
       }
       default: {
         break;

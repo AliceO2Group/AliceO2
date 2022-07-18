@@ -15,19 +15,22 @@
 #include "ZDCWorkflow/DigitReaderSpec.h"
 #include "ZDCWorkflow/ZDCRecoWriterDPLSpec.h"
 #include "ZDCWorkflow/DigitRecoSpec.h"
+#include "ZDCCalib/BaselineCalibEPNSpec.h"
 
 namespace o2
 {
 namespace zdc
 {
 
-framework::WorkflowSpec getRecoWorkflow(const bool useMC, const bool disableRootInp, const bool disableRootOut, const int verbosity, const bool enableDebugOut)
+framework::WorkflowSpec getRecoWorkflow(const bool useMC, const bool disableRootInp, const bool disableRootOut, const int verbosity, const bool enableDebugOut,
+                                        const bool enableZDCTDCCorr, const bool enableZDCEnergyParam, const bool enableZDCTowerParam, const bool enableBaselineParam)
 {
   framework::WorkflowSpec specs;
   if (!disableRootInp) {
     specs.emplace_back(o2::zdc::getDigitReaderSpec(useMC));
   }
-  specs.emplace_back(o2::zdc::getDigitRecoSpec(verbosity, enableDebugOut));
+  specs.emplace_back(o2::zdc::getDigitRecoSpec(verbosity, enableDebugOut, enableZDCTDCCorr, enableZDCEnergyParam, enableZDCTowerParam, enableBaselineParam));
+  specs.emplace_back(o2::zdc::getBaselineCalibEPNSpec());
   if (!disableRootOut) {
     specs.emplace_back(o2::zdc::getZDCRecoWriterDPLSpec());
   }

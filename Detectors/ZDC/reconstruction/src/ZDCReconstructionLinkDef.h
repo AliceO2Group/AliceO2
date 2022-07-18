@@ -20,6 +20,7 @@
 #pragma link C++ class o2::zdc::ZDCTDCParam + ;
 #pragma link C++ class o2::zdc::ZDCEnergyParam + ;
 #pragma link C++ class o2::zdc::ZDCTowerParam + ;
+#pragma link C++ class o2::zdc::BaselineParam + ;
 #pragma link C++ class o2::zdc::ZDCTDCCorr + ;
 
 #endif

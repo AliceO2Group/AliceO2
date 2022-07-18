@@ -36,27 +36,28 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
         continue;
       }
       ++nProcessedTimeBins;
-
-      switch (digitizationMode) {
-        case DigitzationMode::FullMode: {
-          time.fillOutputContainer<DigitzationMode::FullMode>(output, mcTruth, commonModeOutput, sector, timeBin);
-          break;
-        }
-        case DigitzationMode::ZeroSuppression: {
-          time.fillOutputContainer<DigitzationMode::ZeroSuppression>(output, mcTruth, commonModeOutput, sector, timeBin);
-          break;
-        }
-        case DigitzationMode::SubtractPedestal: {
-          time.fillOutputContainer<DigitzationMode::SubtractPedestal>(output, mcTruth, commonModeOutput, sector, timeBin);
-          break;
-        }
-        case DigitzationMode::NoSaturation: {
-          time.fillOutputContainer<DigitzationMode::NoSaturation>(output, mcTruth, commonModeOutput, sector, timeBin);
-          break;
-        }
-        case DigitzationMode::PropagateADC: {
-          time.fillOutputContainer<DigitzationMode::PropagateADC>(output, mcTruth, commonModeOutput, sector, timeBin);
-          break;
+      if (time) {
+        switch (digitizationMode) {
+          case DigitzationMode::FullMode: {
+            time->fillOutputContainer<DigitzationMode::FullMode>(output, mcTruth, commonModeOutput, sector, timeBin);
+            break;
+          }
+          case DigitzationMode::ZeroSuppression: {
+            time->fillOutputContainer<DigitzationMode::ZeroSuppression>(output, mcTruth, commonModeOutput, sector, timeBin);
+            break;
+          }
+          case DigitzationMode::SubtractPedestal: {
+            time->fillOutputContainer<DigitzationMode::SubtractPedestal>(output, mcTruth, commonModeOutput, sector, timeBin);
+            break;
+          }
+          case DigitzationMode::NoSaturation: {
+            time->fillOutputContainer<DigitzationMode::NoSaturation>(output, mcTruth, commonModeOutput, sector, timeBin);
+            break;
+          }
+          case DigitzationMode::PropagateADC: {
+            time->fillOutputContainer<DigitzationMode::PropagateADC>(output, mcTruth, commonModeOutput, sector, timeBin);
+            break;
+          }
         }
       }
     } else {
@@ -67,7 +68,11 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
   if (nProcessedTimeBins > 0) {
     mFirstTimeBin += nProcessedTimeBins;
     while (nProcessedTimeBins--) {
+      auto popped = mTimeBins.front();
       mTimeBins.pop_front();
+      if (popped) {
+        delete popped;
+      }
     }
   }
 }

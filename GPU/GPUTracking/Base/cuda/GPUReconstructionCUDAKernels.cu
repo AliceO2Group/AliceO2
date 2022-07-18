@@ -29,11 +29,11 @@ texture<calink, cudaTextureType1D, cudaReadModeElementType> gAliTexRefu;
 class GPUDebugTiming
 {
  public:
-  GPUDebugTiming(bool d, void** t, cudaStream_t* s, GPUReconstruction::krnlSetup& x, GPUReconstructionCUDABackend* r = nullptr) : mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r), mDo(d)
+  GPUDebugTiming(bool d, void** t, cudaStream_t* s, GPUReconstruction::krnlSetup& x, GPUReconstructionCUDABackend* r) : mDeviceTimers(t), mStreams(s), mXYZ(x), mRec(r), mDo(d)
   {
     if (mDo) {
       if (mDeviceTimers) {
-        GPUFailedMsg(cudaEventRecord((cudaEvent_t)mDeviceTimers[0], mStreams[mXYZ.x.stream]));
+        mRec->GPUFailedMsg(cudaEventRecord((cudaEvent_t)mDeviceTimers[0], mStreams[mXYZ.x.stream]));
       } else {
         mTimer.ResetStart();
       }
@@ -43,13 +43,13 @@ class GPUDebugTiming
   {
     if (mDo) {
       if (mDeviceTimers) {
-        GPUFailedMsg(cudaEventRecord((cudaEvent_t)mDeviceTimers[1], mStreams[mXYZ.x.stream]));
-        GPUFailedMsg(cudaEventSynchronize((cudaEvent_t)mDeviceTimers[1]));
+        mRec->GPUFailedMsg(cudaEventRecord((cudaEvent_t)mDeviceTimers[1], mStreams[mXYZ.x.stream]));
+        mRec->GPUFailedMsg(cudaEventSynchronize((cudaEvent_t)mDeviceTimers[1]));
         float v;
-        GPUFailedMsg(cudaEventElapsedTime(&v, (cudaEvent_t)mDeviceTimers[0], (cudaEvent_t)mDeviceTimers[1]));
+        mRec->GPUFailedMsg(cudaEventElapsedTime(&v, (cudaEvent_t)mDeviceTimers[0], (cudaEvent_t)mDeviceTimers[1]));
         mXYZ.t = v * 1.e-3;
       } else {
-        GPUFailedMsg(cudaStreamSynchronize(mStreams[mXYZ.x.stream]));
+        mRec->GPUFailedMsg(cudaStreamSynchronize(mStreams[mXYZ.x.stream]));
         mXYZ.t = mTimer.GetCurrentElapsedTime();
       }
     }
@@ -117,7 +117,7 @@ static void getArgPtrs(const void** pArgs, const T& arg, const Args&... args)
 template <class T, int I, typename... Args>
 void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
 {
-  GPUDebugTiming timer(mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0, (void**)mDebugEvents, mInternals->Streams, _xyz);
+  GPUDebugTiming timer(mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0, (void**)mDebugEvents, mInternals->Streams, _xyz, this);
   if (mProcessingSettings.rtc.enable) {
     auto& x = _xyz.x;
     auto& y = _xyz.y;

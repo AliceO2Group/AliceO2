@@ -9,7 +9,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-
 o2_add_library(TRDReconstruction
                SOURCES src/CTFCoder.cxx
                        src/CTFHelper.cxx
@@ -27,6 +26,7 @@ o2_add_library(TRDReconstruction
                                      O2::ReconstructionDataFormats
                                      O2::DetectorsRaw
                                      O2::rANS
+                                     O2::DataFormatsCTP
                                      Microsoft.GSL::GSL)
 
 

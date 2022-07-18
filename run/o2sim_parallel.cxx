@@ -204,17 +204,17 @@ void launchControlThread()
   setenv("ALICE_O2SIMCONTROL", internalcontroladdress.c_str(), 1);
 
   auto lambda = [controladdress, internalcontroladdress]() {
-    auto factory = FairMQTransportFactory::CreateTransportFactory("zeromq");
+    auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
 
-    auto internalchannel = FairMQChannel{"o2sim-control", "pub", factory};
+    auto internalchannel = fair::mq::Channel{"o2sim-control", "pub", factory};
     internalchannel.Bind(internalcontroladdress);
     internalchannel.Validate();
-    std::unique_ptr<FairMQMessage> message(internalchannel.NewMessage());
+    std::unique_ptr<fair::mq::Message> message(internalchannel.NewMessage());
 
-    auto outsidechannel = FairMQChannel{"o2sim-outside-exchange", "rep", factory};
+    auto outsidechannel = fair::mq::Channel{"o2sim-outside-exchange", "rep", factory};
     outsidechannel.Bind(controladdress);
     outsidechannel.Validate();
-    std::unique_ptr<FairMQMessage> request(outsidechannel.NewMessage());
+    std::unique_ptr<fair::mq::Message> request(outsidechannel.NewMessage());
 
     bool keepgoing = true;
     while (keepgoing) {
@@ -227,7 +227,7 @@ void launchControlThread()
         int code = -1;
         if (isBusy()) {
           code = 1; // code = 1 --> busy
-          std::unique_ptr<FairMQMessage> reply(outsidechannel.NewSimpleMessage(code));
+          std::unique_ptr<fair::mq::Message> reply(outsidechannel.NewSimpleMessage(code));
           outsidechannel.Send(reply);
         } else {
           code = 0; // code = 0 --> ok
@@ -238,7 +238,7 @@ void launchControlThread()
             LOG(warn) << "CONTROL REQUEST COULD NOT BE PARSED";
             code = 2; // code = 2 --> error with request data
           }
-          std::unique_ptr<FairMQMessage> reply(outsidechannel.NewSimpleMessage(code));
+          std::unique_ptr<fair::mq::Message> reply(outsidechannel.NewSimpleMessage(code));
           outsidechannel.Send(reply);
 
           if (code == 0) {
@@ -263,15 +263,15 @@ void launchWorkerListenerThread()
 {
   static std::vector<std::thread> threads;
   auto lambda = []() {
-    auto factory = FairMQTransportFactory::CreateTransportFactory("zeromq");
+    auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
 
-    auto listenchannel = FairMQChannel{"channel0", "sub", factory};
+    auto listenchannel = fair::mq::Channel{"channel0", "sub", factory};
     listenchannel.Init();
     std::stringstream address;
     address << "ipc:///tmp/o2sim-worker-notifications-" << getpid();
     listenchannel.Connect(address.str());
     listenchannel.Validate();
-    std::unique_ptr<FairMQMessage> message(listenchannel.NewMessage());
+    std::unique_ptr<fair::mq::Message> message(listenchannel.NewMessage());
 
     while (true) {
       if (listenchannel.Receive(message) > 0) {
@@ -360,7 +360,7 @@ int main(int argc, char* argv[])
   out.close();
 
   // create a channel for outside event notifications --> factor out into common function
-  // auto factory = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  // auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   auto externalpublishchannel = o2::simpubsub::createPUBChannel(o2::simpubsub::getPublishAddress("o2sim-notifications"));
 
   auto& conf = o2::conf::SimConfig::Instance();

@@ -18,7 +18,6 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "CommonUtils/NameConf.h"
-#include "DataFormatsParameters/GRPObject.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "Framework/Task.h"
@@ -32,11 +31,13 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackTPCTOF.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 // from TOF
 #include "DataFormatsTOF/Cluster.h"
 #include "GlobalTracking/MatchTOF.h"
 #include "GlobalTrackingWorkflow/TOFMatcherSpec.h"
+#include "TOFBase/Utils.h"
 
 using namespace o2::framework;
 // using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
@@ -55,18 +56,22 @@ namespace globaltracking
 class TOFMatcherSpec : public Task
 {
  public:
-  TOFMatcherSpec(std::shared_ptr<DataRequest> dr, bool useMC, bool useFIT, bool tpcRefit, bool strict) : mDataRequest(dr), mUseMC(useMC), mUseFIT(useFIT), mDoTPCRefit(tpcRefit), mStrict(strict) {}
+  TOFMatcherSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool useFIT, bool tpcRefit, bool strict) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC), mUseFIT(useFIT), mDoTPCRefit(tpcRefit), mStrict(strict) {}
   ~TOFMatcherSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(ProcessingContext& pc);
   std::shared_ptr<DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mUseMC = true;
   bool mUseFIT = false;
   bool mDoTPCRefit = false;
   bool mStrict = false;
+  float mExtraTolTRD = 0.;
   MatchTOF mMatcher; ///< Cluster finder
   TStopwatch mTimer;
 };
@@ -75,23 +80,32 @@ void TOFMatcherSpec::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
-  //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP();
-  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
-
-  // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
-  std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
-  std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
-  if (o2::utils::Str::pathExists(matLUTFile)) {
-    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
-    o2::base::Propagator::Instance()->setMatLUT(lut);
-    LOG(debug) << "Loaded material LUT from " << matLUTFile;
-  } else {
-    LOG(debug) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
-  }
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   if (mStrict) {
     mMatcher.setHighPurity();
+  }
+  mMatcher.setExtraTimeToleranceTRD(mExtraTolTRD);
+}
+
+void TOFMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    const auto bcs = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling().getFilledBCs();
+    for (auto bc : bcs) {
+      o2::tof::Utils::addInteractionBC(bc, true);
+    }
+    initOnceDone = true;
+    // put here init-once stuff
+  }
+  // we may have other params which need to be queried regularly
+}
+
+void TOFMatcherSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
   }
 }
 
@@ -101,8 +115,8 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
 
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
-
-  auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+  updateTimeDependentParams(pc);
+  auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation;
 
   LOG(debug) << "isTrackSourceLoaded: TPC -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPC);
   LOG(debug) << "isTrackSourceLoaded: ITSTPC -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPC);
@@ -169,7 +183,7 @@ void TOFMatcherSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool strict)
+DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool strict, float extratolerancetrd)
 {
   uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   auto dataRequest = std::make_shared<DataRequest>();
@@ -181,6 +195,15 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
   if (useFIT) {
     dataRequest->requestClusters(GID::getSourceMask(GID::FT0), false);
   }
+
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              true,                              // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              dataRequest->inputs,
+                                                              true);
 
   std::vector<OutputSpec> outputs;
   if (GID::includesSource(GID::TPC, src)) {
@@ -214,9 +237,8 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
     "tof-matcher",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFMatcherSpec>(dataRequest, useMC, useFIT, tpcRefit, strict)},
-    Options{
-      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
+    AlgorithmSpec{adaptFromTask<TOFMatcherSpec>(dataRequest, ggRequest, useMC, useFIT, tpcRefit, strict)},
+    Options{}};
 }
 
 } // namespace globaltracking

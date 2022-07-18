@@ -139,11 +139,14 @@ class TPCFastTransformGeo
   /// convert Scaled UV -> UV
   GPUd() void convScaledUVtoUV(int slice, int row, float su, float sv, float& u, float& v) const;
 
+  /// convert Scaled UV -> Local c.s.
+  GPUd() void convScaledUVtoLocal(int slice, int row, float su, float sv, float& ly, float& lz) const;
+
   /// convert Pad coordinate -> U
-  GPUd() void convPadToU(int row, float pad, float& u) const;
+  GPUd() float convPadToU(int row, float pad) const;
 
   /// convert U -> Pad coordinate
-  GPUd() void convUtoPad(int row, float u, float& pad) const;
+  GPUd() float convUtoPad(int row, float u) const;
 
   /// Print method
   void print() const;
@@ -279,18 +282,26 @@ GPUdi() void TPCFastTransformGeo::convScaledUVtoUV(int slice, int row, float su,
   }
 }
 
-GPUdi() void TPCFastTransformGeo::convPadToU(int row, float pad, float& u) const
+GPUdi() void TPCFastTransformGeo::convScaledUVtoLocal(int slice, int row, float su, float sv, float& ly, float& lz) const
+{
+  /// convert Scaled UV -> Local c.s.
+  float u, v;
+  convScaledUVtoUV(slice, row, su, sv, u, v);
+  convUVtoLocal(slice, u, v, ly, lz);
+}
+
+GPUdi() float TPCFastTransformGeo::convPadToU(int row, float pad) const
 {
   /// convert Pad coordinate -> U
   const RowInfo& rowInfo = getRowInfo(row);
-  u = (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;
+  return (pad - 0.5 * rowInfo.maxPad) * rowInfo.padWidth;
 }
 
-GPUdi() void TPCFastTransformGeo::convUtoPad(int row, float u, float& pad) const
+GPUdi() float TPCFastTransformGeo::convUtoPad(int row, float u) const
 {
   /// convert U -> Pad coordinate
   const RowInfo& rowInfo = getRowInfo(row);
-  pad = u / rowInfo.padWidth + 0.5 * rowInfo.maxPad;
+  return u / rowInfo.padWidth + 0.5 * rowInfo.maxPad;
 }
 
 } // namespace gpu

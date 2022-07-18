@@ -102,14 +102,15 @@ struct MergedColumnsDecoder {
 class CTFCoder : public o2::ctf::CTFCoderBase
 {
  public:
-  CTFCoder() : o2::ctf::CTFCoderBase(CTF::getNBlocks(), o2::detectors::DetID::TPC) {}
+  CTFCoder(o2::ctf::CTFCoderBase::OpType op) : o2::ctf::CTFCoderBase(op, CTF::getNBlocks(), o2::detectors::DetID::TPC) {}
+  ~CTFCoder() final = default;
 
   /// entropy-encode compressed clusters to flat buffer
   template <typename VEC>
-  void encode(VEC& buff, const CompressedClusters& ccl);
+  o2::ctf::CTFIOSize encode(VEC& buff, const CompressedClusters& ccl);
 
   template <typename VEC>
-  void decode(const CTF::base& ec, VEC& buff);
+  o2::ctf::CTFIOSize decode(const CTF::base& ec, VEC& buff);
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
@@ -160,7 +161,7 @@ void CTFCoder::buildCoder(ctf::CTFCoderBase::OpType coderType, const CTF::contai
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-void CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
 {
   using MD = o2::ctf::Metadata::OptStore;
   using namespace detail;
@@ -206,10 +207,11 @@ void CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
   ec->getANSHeader().majorVersion = 0;
   ec->getANSHeader().minorVersion = 1;
 
-  auto encodeTPC = [&buff, &optField, &coders = mCoders, mfc = this->getMemMarginFactor()](auto begin, auto end, CTF::Slots slot, size_t probabilityBits) {
+  o2::ctf::CTFIOSize iosize;
+  auto encodeTPC = [&buff, &optField, &coders = mCoders, mfc = this->getMemMarginFactor(), &iosize](auto begin, auto end, CTF::Slots slot, size_t probabilityBits) {
     // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
     const auto slotVal = static_cast<int>(slot);
-    CTF::get(buff.data())->encode(begin, end, slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal].get(), mfc);
+    iosize += CTF::get(buff.data())->encode(begin, end, slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal].get(), mfc);
   };
 
   if (mCombineColumns) {
@@ -275,11 +277,14 @@ void CTFCoder::encode(VEC& buff, const CompressedClusters& ccl)
   encodeTPC(ccl.nTrackClusters, ccl.nTrackClusters + ccl.nTracks, CTF::BLCnTrackClusters, 0);
   encodeTPC(ccl.nSliceRowClusters, ccl.nSliceRowClusters + ccl.nSliceRows, CTF::BLCnSliceRowClusters, 0);
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
+  finaliseCTFOutput<CTF>(buff);
+  iosize.rawIn = iosize.ctfIn;
+  return iosize;
 }
 
 /// decode entropy-encoded bloks to TPC CompressedClusters into the externally provided vector (e.g. PMR vector from DPL)
 template <typename VEC>
-void CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
+o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
 {
   using namespace detail;
   CompressedClusters cc;
@@ -301,9 +306,10 @@ void CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
   ec.print(getPrefix(), mVerbosity);
 
   // decode encoded data directly to destination buff
-  auto decodeTPC = [&ec, &coders = mCoders](auto begin, CTF::Slots slot) {
+  o2::ctf::CTFIOSize iosize;
+  auto decodeTPC = [&ec, &coders = mCoders, &iosize](auto begin, CTF::Slots slot) {
     const auto slotVal = static_cast<int>(slot);
-    ec.decode(begin, slotVal, coders[slotVal].get());
+    iosize += ec.decode(begin, slotVal, coders[slotVal].get());
   };
 
   if (mCombineColumns) {
@@ -358,6 +364,8 @@ void CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
 
   decodeTPC(cc.nTrackClusters, CTF::BLCnTrackClusters);
   decodeTPC(cc.nSliceRowClusters, CTF::BLCnSliceRowClusters);
+  iosize.rawIn = iosize.ctfIn;
+  return iosize;
 }
 
 } // namespace tpc

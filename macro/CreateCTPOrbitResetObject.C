@@ -14,7 +14,7 @@ void CreateCTPOrbitResetObject(const std::string& ccdbHost = "http://ccdb-test.c
     t = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
   }
   std::vector<Long64_t> rt{t};
-  const std::string objName{"CTP/OrbitReset"};
+  const std::string objName{"CTP/Calib/OrbitReset"};
   o2::ccdb::CcdbApi api;
   api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
   map<string, string> metadata; // can be empty

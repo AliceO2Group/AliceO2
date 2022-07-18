@@ -37,7 +37,7 @@ class ClusterReader : public Task
 {
  public:
   ClusterReader() = delete;
-  ClusterReader(o2::detectors::DetID id, bool useMC, bool usePatterns = true);
+  ClusterReader(o2::detectors::DetID id, bool useMC, bool usePatterns = true, bool triggers = true);
   ~ClusterReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -58,6 +58,7 @@ class ClusterReader : public Task
 
   bool mUseMC = true;     // use MC truth
   bool mUsePatterns = true; // send patterns
+  bool mTriggerOut = true;  // send dummy triggers vector
 
   std::string mDetName = "";
   std::string mDetNameLC = "";
@@ -73,8 +74,8 @@ class ClusterReader : public Task
 class ITSClusterReader : public ClusterReader
 {
  public:
-  ITSClusterReader(bool useMC = true, bool usePatterns = true)
-    : ClusterReader(o2::detectors::DetID::ITS, useMC, usePatterns)
+  ITSClusterReader(bool useMC = true, bool usePatterns = true, bool triggerOut = true)
+    : ClusterReader(o2::detectors::DetID::ITS, useMC, usePatterns, triggerOut)
   {
     mOrigin = o2::header::gDataOriginITS;
   }
@@ -83,8 +84,8 @@ class ITSClusterReader : public ClusterReader
 class MFTClusterReader : public ClusterReader
 {
  public:
-  MFTClusterReader(bool useMC = true, bool usePatterns = true)
-    : ClusterReader(o2::detectors::DetID::MFT, useMC, usePatterns)
+  MFTClusterReader(bool useMC = true, bool usePatterns = true, bool triggerOut = true)
+    : ClusterReader(o2::detectors::DetID::MFT, useMC, usePatterns, triggerOut)
   {
     mOrigin = o2::header::gDataOriginMFT;
   }
@@ -92,8 +93,8 @@ class MFTClusterReader : public ClusterReader
 
 /// create a processor spec
 /// read ITS/MFT cluster data from a root file
-framework::DataProcessorSpec getITSClusterReaderSpec(bool useMC = true, bool usePatterns = true);
-framework::DataProcessorSpec getMFTClusterReaderSpec(bool useMC = true, bool usePatterns = true);
+framework::DataProcessorSpec getITSClusterReaderSpec(bool useMC = true, bool usePatterns = true, bool useTriggers = true);
+framework::DataProcessorSpec getMFTClusterReaderSpec(bool useMC = true, bool usePatterns = true, bool useTriggers = true);
 
 } // namespace itsmft
 } // namespace o2

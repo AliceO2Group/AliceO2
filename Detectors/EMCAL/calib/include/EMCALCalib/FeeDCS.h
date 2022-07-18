@@ -55,6 +55,7 @@ class FeeDCS
   unsigned int getSRUFWversion(int ism = 0) const { return mSRUFWversion.at(ism); }
   unsigned int getSRUconfig(int ism = 0) const { return mSRUcfg.at(ism); }
   int getNSRUbuffers(int ism = 0) const { return (mSRUcfg.at(ism) >> 1 & 0x7); }
+  int getRunNumber() const { return mRunNumber; }
 
   void setTRUDCS(Int_t iTRU, o2::emcal::TriggerTRUDCS tru) { mTrigDCS.setTRU(iTRU, tru); }
   void setSTUEMCal(o2::emcal::TriggerSTUDCS stu) { mTrigDCS.setSTUEMCal(stu); }
@@ -63,6 +64,7 @@ class FeeDCS
   void setDDLlist1(unsigned int a) { mLinks1 = std::bitset<14>(a); }
   void setSRUFWversion(int ism, unsigned int ver) { mSRUFWversion.at(ism) = ver; }
   void setSRUconfig(int ism, unsigned int ver) { mSRUcfg.at(ism) = ver; }
+  void setRunNumber(int rn) { mRunNumber = rn; }
 
   bool isDDLactive(int iDDL) { return (iDDL < 32 ? mLinks0.test(iDDL) : mLinks1.test(iDDL - 32)); }
   bool isSMactive(int iSM);
@@ -70,6 +72,7 @@ class FeeDCS
   bool isDCalSTUactive() { return mLinks1.test(13); }  // EMCAL STU FEEID is 45
 
  private:
+  int mRunNumber = 0;                         ///< Run Number
   o2::emcal::TriggerDCS mTrigDCS;             ///< TRU and STU config
   std::bitset<32> mLinks0;                    ///< info on first 32 DDLs included in RO, 1 means the DDL is active
   std::bitset<14> mLinks1;                    ///< info on remining 14 DDLs included in RO, 1 means the DDL is active
