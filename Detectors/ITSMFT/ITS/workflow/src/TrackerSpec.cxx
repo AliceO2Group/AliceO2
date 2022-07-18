@@ -70,11 +70,13 @@ void TrackerDPL::init(InitContext& ic)
 
   if (mMode == "async") {
 
-    trackParams.resize(2);
+    trackParams.resize(3);
     trackParams[1].TrackletMinPt = 0.2f;
     trackParams[1].CellDeltaTanLambdaSigma *= 2.;
-    trackParams[1].MinTrackLength = 4;
-    memParams.resize(2);
+    trackParams[2].TrackletMinPt = 0.1f;
+    trackParams[2].CellDeltaTanLambdaSigma *= 4.;
+    trackParams[2].MinTrackLength = 4;
+    memParams.resize(3);
     LOG(info) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
 
   } else if (mMode == "sync_misaligned") {

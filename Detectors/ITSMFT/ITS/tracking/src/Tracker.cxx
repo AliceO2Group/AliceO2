@@ -446,8 +446,12 @@ void Tracker::extendTracks()
 
 void Tracker::findShortPrimaries()
 {
-  float rBeam{std::hypot(mTimeFrame->getBeamX(), mTimeFrame->getBeamY())};
-  float alphaBeam{std::atan2(mTimeFrame->getBeamY(), mTimeFrame->getBeamX())};
+  if (!mTrkParams[0].FindShortTracks) {
+    return;
+  }
+  auto propagator = o2::base::Propagator::Instance();
+  mTimeFrame->fillPrimaryVerticesXandAlpha();
+
   for (auto& cell : mTimeFrame->getCells()[0]) {
     auto& cluster1_glo = mTimeFrame->getClusters()[2][cell.getThirdClusterIndex()];
     auto& cluster2_glo = mTimeFrame->getClusters()[1][cell.getSecondClusterIndex()];
@@ -473,9 +477,9 @@ void Tracker::findShortPrimaries()
     }
 
     auto pvs{mTimeFrame->getPrimaryVertices(rof)};
+    auto pvsXAlpha{mTimeFrame->getPrimaryVerticesXAlpha(rof)};
 
     const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(0).at(cluster3_glo.clusterId);
-
     TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf, mTimeFrame->getPositionResolution(0))};
     temporaryTrack.setExternalClusterIndex(0, cluster3_glo.clusterId, true);
     temporaryTrack.setExternalClusterIndex(1, cluster2_glo.clusterId, true);
@@ -484,17 +488,45 @@ void Tracker::findShortPrimaries()
     /// add propagation to the primary vertices compatible with the ROF(s) of the cell
     bool fitSuccess{false};
 
-    temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].FitIterationMaxChi2[0]);
+    TrackITSExt bestTrack{temporaryTrack}, backup{temporaryTrack};
+    float bestChi2{std::numeric_limits<float>::max()};
+    for (int iV{0}; iV < (int)pvs.size(); ++iV) {
+      temporaryTrack = backup;
+      if (!temporaryTrack.rotate(pvsXAlpha[iV][1])) {
+        continue;
+      }
+      if (!propagator->propagateTo(temporaryTrack, pvsXAlpha[iV][0], true)) {
+        continue;
+      }
+
+      float pvRes{mTrkParams[0].PVres / std::sqrt(float(pvs[iV].getNContributors()))};
+      const float posVtx[2]{0.f, pvs[iV].getZ()};
+      const float covVtx[3]{pvRes, 0.f, pvRes};
+      float chi2 = temporaryTrack.getPredictedChi2(posVtx, covVtx);
+      if (chi2 < bestChi2) {
+        if (!temporaryTrack.track::TrackParCov::update(posVtx, covVtx)) {
+          continue;
+        }
+        bestTrack = temporaryTrack;
+        bestChi2 = chi2;
+      }
+    }
+
+    bestTrack.resetCovariance();
+    fitSuccess = fitTrack(bestTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].FitIterationMaxChi2[0]);
     if (!fitSuccess) {
       continue;
     }
-    temporaryTrack.getParamOut() = temporaryTrack;
-    temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1], 50.);
+    bestTrack.getParamOut() = bestTrack;
+    bestTrack.resetCovariance();
+    fitSuccess = fitTrack(bestTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1], 50.);
     if (!fitSuccess) {
       continue;
     }
+    mTimeFrame->markUsedCluster(0, bestTrack.getClusterIndex(0));
+    mTimeFrame->markUsedCluster(1, bestTrack.getClusterIndex(1));
+    mTimeFrame->markUsedCluster(2, bestTrack.getClusterIndex(2));
+    mTimeFrame->getTracks(rof).emplace_back(bestTrack);
   }
 }
 
@@ -828,6 +860,9 @@ void Tracker::getGlobalConfiguration()
     }
     if (tc.trackletsPerClusterLimit >= 0) {
       params.TrackletsPerClusterLimit = tc.trackletsPerClusterLimit;
+    }
+    if (tc.findShortTracks >=0) {
+      params.FindShortTracks = tc.findShortTracks;
     }
   }
 }

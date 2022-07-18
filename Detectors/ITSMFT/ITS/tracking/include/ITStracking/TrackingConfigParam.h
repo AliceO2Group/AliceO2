@@ -55,6 +55,7 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   int useTrackFollower = -1;
   float cellsPerClusterLimit = -1.f;
   float trackletsPerClusterLimit = -1.f;
+  int findShortTracks = -1;
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };

@@ -82,6 +82,7 @@ struct TrackingParameters {
   unsigned long MaxMemory = 12000000000UL;
   std::array<float, 2> FitIterationMaxChi2 = {50, 20};
   bool UseTrackFollower = false;
+  bool FindShortTracks = false;
 };
 
 struct MemoryParameters {
