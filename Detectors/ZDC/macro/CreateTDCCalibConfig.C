@@ -29,7 +29,7 @@ using namespace std;
 void CreateTDCCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
 {
 
-  // This object allows for the configuration of the TDC calibration of the common PM 
+  // This object allows for the configuration of the TDC calibration of the common PM
   // and the sum of each calorimeter and the two ZEMs
 
   TDCCalibConfig conf;
@@ -41,8 +41,8 @@ void CreateTDCCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = 
   conf.enable(true, true, true, true, true, true, true, true, true, true);
 
   // Set the binning
-  conf.setBinning1D(100, -5, 5); 
-  conf.setBinning2D(50, -5, 5);  
+  conf.setBinning1D(100, -5, 5);
+  conf.setBinning2D(50, -5, 5);
 
   conf.setDescription("Simulated data");
 

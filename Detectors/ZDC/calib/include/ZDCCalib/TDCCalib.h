@@ -53,8 +53,8 @@ class TDCCalib //after
   void add(int ih, o2::dataformats::FlatHisto1D<float>& h1);
   int write(const std::string fn = "ZDCTDCCalib.root");
 
-  const ZDCTDCParam& getTDCParamUpd() const { return mTDCParamUpd; }; 
-  CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; }               
+  const ZDCTDCParam& getTDCParamUpd() const { return mTDCParamUpd; };
+  CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; }
 
   void setTDCParam(const ZDCTDCParam* param) { mTDCParam = param; };
   const ZDCTDCParam* getTDCParam() const { return mTDCParam; };
