@@ -190,7 +190,7 @@ fi
 
 if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH"; fi
 
-if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
+if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR && [[ ! -z $WORKFLOW ]]; then
   WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
   [[ $WORKFLOWMODE != "print" ]] && WORKFLOW+=" --${WORKFLOWMODE} ${WORKFLOWMODE_FILE}"
   [[ $WORKFLOWMODE == "print" || "0$PRINT_WORKFLOW" == "01" ]] && echo "#Aggregator Workflow command:\n\n${WORKFLOW}\n" | sed -e "s/\\\\n/\n/g" -e"s/| */| \\\\\n/g" | eval cat $( [[ $WORKFLOWMODE == "dds" ]] && echo '1>&2')
