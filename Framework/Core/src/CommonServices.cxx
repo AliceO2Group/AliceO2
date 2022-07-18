@@ -705,12 +705,12 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
 namespace
 {
 /// This will send metrics for the relayer at regular intervals of
-/// 5 seconds, in order to avoid overloading the system.
+/// 15 seconds, in order to avoid overloading the system.
 auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
 {
   auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastSlowMetricSentTimestamp;
   auto timeSinceLastLongUpdate = stats.beginIterationTimestamp - stats.lastVerySlowMetricSentTimestamp;
-  if (timeSinceLastUpdate < 5000) {
+  if (timeSinceLastUpdate < 15000) {
     return;
   }
   // Derive the amount of shared memory used
