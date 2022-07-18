@@ -104,12 +104,12 @@ void TDCCalib::assign(int ih, bool ismod)
       auto val = oldval;
       auto shift = extractShift(ih);
       //Change wrt previous shift
-        val = val + shift;
+      val = val + shift;
       if (val < 0) { //negative value or = 25ns shift is not acceptable
         LOGF(error, "Negative value of shift: %8.6f not acceptable", val);
       }
 
-      else if (val >= 25) { 
+      else if (val >= 25) {
         LOGF(error, "Value of shift: %8.6f >= 25 ns not acceptable", val);
       }
 
