@@ -12,6 +12,14 @@
 /// \file   NDRegression.h
 /// \author Gabor Biro, biro.gabor@wigner.hu
 
+/*
+  Related task: https://alice.its.cern.ch/jira/browse/ATO-569
+
+  The following incomplete implementation is largely based on the original
+  AliNDLocalRegression class, described by the following task:
+  https://alice.its.cern.ch/jira/browse/ATO-193
+*/
+
 #ifndef ALICEO2_NDREGRESSION_H
 #define ALICEO2_NDREGRESSION_H
 
@@ -35,6 +43,7 @@
 
 class TreeStreamRedirector;
 class THn;
+
 
 namespace o2
 {
