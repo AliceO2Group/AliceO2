@@ -326,11 +326,12 @@ void EventManagerFrame::createOutreachScreenshot()
     }
     fileName = imageFolder + "/" + fileName.substr(0, fileName.find_last_of('.')) + ".png";
     if (!std::filesystem::is_regular_file(fileName)) {
+      DirectoryLoader::removeOldestFiles(imageFolder, ".png", 10);
+      LOG(info) << "Outreach screenshot: " << fileName;
       Screenshot::perform(fileName, this->mEventManager->getDataSource()->getDetectorsMask(),
                           this->mEventManager->getDataSource()->getRunNumber(),
                           this->mEventManager->getDataSource()->getFirstTForbit(),
                           this->mEventManager->getDataSource()->getCollisionTime());
-      DirectoryLoader::removeOldestFiles(imageFolder, ".png", 10);
     }
     // LOG(info) << mEventManager->getInstance().getDataSource()->getEventName();
   }

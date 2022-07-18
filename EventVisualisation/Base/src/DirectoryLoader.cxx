@@ -17,6 +17,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <climits>
+#include <FairLogger.h>
 
 using namespace std;
 using namespace o2::event_visualisation;
@@ -87,6 +88,7 @@ std::string DirectoryLoader::getLatestFile(std::string& path, std::string& ext)
 void DirectoryLoader::removeOldestFiles(std::string& path, std::string ext, int remaining)
 {
   while (getNumberOfFiles(path, ext) > remaining) {
+    LOG(info) << "removing oldest file in folder: " << path << " : " << getLatestFile(path, ext);
     filesystem::remove(path + "/" + getLatestFile(path, ext));
   }
 }
