@@ -701,14 +701,13 @@ void Digitizer::updatePedestalReference(OrbitData& pdata)
     auto base_m = mSimCondition->channels[id].pedestal;      // Average pedestal
     auto base_s = mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
     auto base_n = mSimCondition->channels[id].pedestalNoise; // Electronic noise
-    // We don't know the time scale of the fluctuations of the baseline. As a
-    // rough guess we consider two bunch crossings
+    // We don't know the time scale of the fluctuations of the baseline. As a rough guess we consider two bunch crossings
     // sum = 12 * (mNEmptyBCs/2) * (2*base_m) = 12 * mNEmptyBCs * base_m
     float mean_sum = 12. * mNEmptyBCs * base_m;                     // Adding 12 samples for bunch crossing
     float rms_sum = 12. * 2. * base_s * std::sqrt(mNEmptyBCs / 2.); // 2 for fluctuation every 2 BCs
     float rms_noise_sum = base_n * std::sqrt(12. * mNEmptyBCs);
     float ped = gRandom->Gaus(mean_sum, rms_sum) + gRandom->Gaus(0, rms_noise_sum);
-    int16_t peds = std::round(mPedFactor * ped / mNEmptyBCs / 12.);
+    int16_t peds = std::round(ped / mNEmptyBCs / 12. / mModuleConfig->baselineFactor);
     if (peds < SHRT_MIN) {
       peds = SHRT_MIN;
     } else if (peds > SHRT_MAX) {

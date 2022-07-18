@@ -35,6 +35,14 @@ void DigitizerTest::init()
   }
   LOG(info) << "Loaded SimCondition for timestamp " << mgr.getTimestamp();
   mSimCondition->print();
+
+  mModuleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
+  if (!mModuleConfig) {
+    LOG(fatal) << "Missing ModuleConfig configuration object @ " << o2::zdc::CCDBPathConfigModule;
+    return;
+  }
+  LOG(info) << "Loaded ModuleConfig for timestamp " << mgr.getTimestamp();
+  mModuleConfig->print();
 }
 
 //______________________________________________________________________________
@@ -115,6 +123,7 @@ double DigitizerTest::add(int ic, float myAmp, const o2::InteractionRecord irpk,
 //______________________________________________________________________________
 void DigitizerTest::digitize()
 {
+  float nba = mModuleConfig->nBunchAverage;
   for (auto bc = mCache.begin(); bc != mCache.end(); bc++) {
     if (zdcOrbitData.empty() || bc->orbit != zdcOrbitData.back().ir.orbit) {
       auto& od = zdcOrbitData.emplace_back();
@@ -122,10 +131,23 @@ void DigitizerTest::digitize()
       od.ir.bc = o2::constants::lhc::LHCMaxBunches - 1;
       // Rough estimate of pedestal fluctuations to fill orbit data
       for (int ic = 0; ic < NChannels; ic++) {
-        // 20 is a guess (imagine that pedestal is computed with an average over 400 empty bunch crossings)
-        od.data[ic] = TMath::Nint(FOffset *
-                                  gRandom->Gaus(mSimCondition->channels[ic].pedestal,
-                                                mSimCondition->channels[ic].pedestalFluct / 20.));
+        auto base_m = mSimCondition->channels[ic].pedestal;      // Average pedestal
+        auto base_s = mSimCondition->channels[ic].pedestalFluct; // Baseline oscillations
+        auto base_n = mSimCondition->channels[ic].pedestalNoise; // Electronic noise
+        // We don't know the time scale of the fluctuations of the baseline. As a
+        // rough guess we consider two bunch crossings
+        // sum = 12 * (mNEmptyBCs/2) * (2*base_m) = 12 * mNEmptyBCs * base_m
+        float mean_sum = 12. * nba * base_m;                     // Adding 12 samples for bunch crossing
+        float rms_sum = 12. * 2. * base_s * std::sqrt(nba / 2.); // 2 for fluctuation every 2 BCs
+        float rms_noise_sum = base_n * std::sqrt(12. * nba);
+        float ped = gRandom->Gaus(mean_sum, rms_sum) + gRandom->Gaus(0, rms_noise_sum);
+        int16_t peds = std::round(ped / nba / 12. / mModuleConfig->baselineFactor);
+        if (peds < SHRT_MIN) {
+          peds = SHRT_MIN;
+        } else if (peds > SHRT_MAX) {
+          peds = SHRT_MAX;
+        }
+        od.data[ic] = peds;
       }
       // printf("Adding data for orbit=%u\n", od.ir.orbit);
     }
