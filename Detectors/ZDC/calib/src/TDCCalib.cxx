@@ -53,7 +53,6 @@ int TDCCalib::endOfRun()
     LOGF(info, "Computing TDC Calibration coefficients");
   }
   for (int ih = 0; ih < TDCCalibData::NTDC; ih++) {
-    //LOGF(info, "%s %g events and cuts (%g:%g)", TDCCalibData::CTDC[ih], mData.mSum[ih][5][5], mTDCCalibConfig->cutLow[ih], mTDCCalibConfig->cutHigh[ih]);
     LOGF(info, "%s %i events and cuts (%g:%g)", TDCCalibData::CTDC[ih], mData.entries[ih], mTDCCalibConfig->cutLow[ih], mTDCCalibConfig->cutHigh[ih]);
 
     if (!mTDCCalibConfig->enabled[ih]) {
@@ -104,14 +103,14 @@ void TDCCalib::assign(int ih, bool ismod)
     if (ismod == true) {                   //ismod == true
       auto val = oldval;
       auto shift = extractShift(ih);
-      //If final shift < 0 -> put log error!!!!! Or if it's bigger than 25 (whole bx)
-      //Accept only tdcs of colliding bunches
-      if (shift >= 0) { //previous shift is positive
+      //Change wrt previous shift
         val = val + shift;
+      if (val < 0) { //negative value or = 25ns shift is not acceptable
+        LOGF(error, "Negative value of shift: %8.6f not acceptable", val);
       }
 
-      else if (shift < 0) { //previous shift is negative
-        val = val /*12.5*/ - TMath::Abs(shift);
+      else if (val >= 25) { 
+        LOGF(error, "Value of shift: %8.6f >= 25 ns not acceptable", val);
       }
 
       if (mVerbosity > DbgZero) {

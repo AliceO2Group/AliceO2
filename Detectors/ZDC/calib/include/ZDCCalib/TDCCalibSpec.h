@@ -51,7 +51,7 @@ class TDCCalibSpec : public o2::framework::Task
  private:
   int mVerbosity = DbgMinimal; // Verbosity level
   bool mInitialized = false;   // Connect once to CCDB during initialization
-  TDCCalib mWorker;            // TDC calibration object (was mTDCCalib, modified after discussion with Pietro 20 June 2022)
+  TDCCalib mWorker;            // TDC calibration object
   TStopwatch mTimer;
 };
 

@@ -29,23 +29,20 @@ using namespace std;
 void CreateTDCCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
 {
 
-  // This object allows for the configuration of the TDC calibration of the common PM of each calorimeter
-  // and ZEM
+  // This object allows for the configuration of the TDC calibration of the common PM 
+  // and the sum of each calorimeter and the two ZEMs
 
   TDCCalibConfig conf;
 
   // Enable TDC calibration for all calorimeters
   // If TDC calibration is disabled the calibration coefficients
   // are copied from previous valid object and flagged as not modified
-  //                            ZNAC  ZNAS  ZPAC  ZPAS  ZEM1  ZECM2 ZNCC  ZNCS  ZPCC  ZPCS
-  //bool enabled[NTDCChannels] = {true, true, true, true, true, true, true, true, true, true};
-  //conf.enable(enabled);
+  //          ZNAC  ZNAS  ZPAC  ZPAS  ZEM1  ZECM2 ZNCC  ZNCS  ZPCC  ZPCS
   conf.enable(true, true, true, true, true, true, true, true, true, true);
 
-  // The version for this macro considers NO energy calibration, i.e. all coefficients = 1
-  // It is necessary to set the binning
-  conf.setBinning1D(100, -5, 5); //same range as plot_calo_loop 2400, -12.5 to 12.5 altrimenti bin vuoti
-  conf.setBinning2D(50, -5, 5);  //same range as plot_calo_loop
+  // Set the binning
+  conf.setBinning1D(100, -5, 5); 
+  conf.setBinning2D(50, -5, 5);  
 
   conf.setDescription("Simulated data");
 
@@ -54,7 +51,6 @@ void CreateTDCCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = 
   conf.print();
 
   std::string ccdb_host = ccdbShortcuts(ccdbHost, conf.Class_Name(), CCDBPathTDCCalibConfig);
-  //std::string ccdb_host = "http://localhost:8080";
 
   if (endsWith(ccdb_host, ".root")) {
     TFile f(ccdb_host.data(), "recreate");
@@ -69,20 +65,4 @@ void CreateTDCCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = 
   LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&conf, CCDBPathTDCCalibConfig, metadata, tmin, tmax);
-
-  /*o2::ccdb::CcdbApi api;
-  map<string, string> metadata; // can be empty
-  if (ccdbHost.size() == 0 || ccdbHost == "external") {
-    ccdbHost = "http://alice-ccdb.cern.ch:8080";
-  } else if (ccdbHost == "internal") {
-    ccdbHost = "http://o2-ccdb.internal/";
-  } else if (ccdbHost == "test") {
-    ccdbHost = "http://ccdb-test.cern.ch:8080";
-  } else if (ccdbHost == "local") {
-    ccdbHost = "http://localhost:8080";
-  }
-  api.init(ccdbHost.c_str());
-  LOG(info) << "CCDB server: " << api.getURL();
-  // store abitrary user object in strongly typed manner
-  api.storeAsTFileAny(&conf, CCDBPathTDCCalibConfig, metadata, tmin, tmax);*/
 }

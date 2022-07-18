@@ -32,8 +32,6 @@ struct TDCCalibConfig {
                                  -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()};
   double cutHigh[NTDCChannels] = {std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(),
                                   std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()};
-  //double cutLow[NTDCChannels] = {-std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()};
-  //double cutHigh[NTDCChannels] = {std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()};
   bool enabled[NTDCChannels] = {true, true, true, true, true, true, true, true, true, true}; //ZNAC, ZNAS, ZPAC, ZPAS, ZEM1, ZEM2, ZNCC, ZNCS, ZPCC, ZPCS
   int nb1[NTDCChannels] = {0};                                                               /// 1D histogram: number of bins
   double amin1[NTDCChannels] = {0};                                                          /// minimum
@@ -68,10 +66,6 @@ struct TDCCalibConfig {
   void setBinning1D(int ih, int nb, double amin, double amax);
   void setBinning2D(int ih, int nb, double amin, double amax);
   void setDescription(std::string d) { desc = d; }
-  //void enable(bool enTDC[]) { //added by me
-  //  for (int i = 0; i < NTDCChannels; i++) {
-  //    enabled[i] = enTDC[i];
-  //  }
   void enable(bool c0, bool c1, bool c2, bool c3, bool c4, bool c5, bool c6, bool c7, bool c8, bool c9)
   {
     enabled[0] = c0;

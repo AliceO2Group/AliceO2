@@ -57,11 +57,9 @@ int TDCCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
     init();
   }
   LOG(info) << "o2::zdc::TDCCalibEPN processing " << RecBC.size() << " b.c. @ TS " << mData.mCTimeBeg << " : " << mData.mCTimeEnd;
-  //std::cout << "Sono qui!" << std::endl;
   o2::zdc::RecEventFlat ev;
   ev.init(RecBC, Energy, TDCData, Info);
   while (ev.next()) {
-    //std::cout << "Sto processando evento" << std::endl;
     if (ev.getNInfo() > 0) {
       auto& decodedInfo = ev.getDecodedInfo();
       for (uint16_t info : decodedInfo) {
@@ -103,7 +101,6 @@ int TDCCalibEPN::endOfRun()
     LOGF(info, "TDCCalibEPN::endOfRun ts (%llu:%llu)", mData.mCTimeBeg, mData.mCTimeEnd);
     std::cout << "End of run here" << std::endl;
     for (int ih = 0; ih < NTDC; ih++) {
-      //LOGF(info, "%s %g events and cuts (%g:%g)", TDCCalibData::CTDC[ih], mData.mSum[ih][5][5], mTDCCalibConfig->cutLow[ih], mTDCCalibConfig->cutHigh[ih]);
       LOGF(info, "%s %i events and cuts (%g:%g)", TDCCalibData::CTDC[ih], mData.entries[ih], mTDCCalibConfig->cutLow[ih], mTDCCalibConfig->cutHigh[ih]);
     }
   }
@@ -135,18 +132,13 @@ void TDCCalibEPN::fill1D(int iTDC, int nHits, o2::zdc::RecEventFlat ev)
   float tdcVal[nHits];
   for (int i = 0; i < nHits; i++) {
     tdcVal[i] = ev.tdcV(iTDC, i);
-    //std::cout << ev.tdcV(iTDC,i) << std::endl;
-    std::cout << tdcVal[i] << std::endl;
   }
 
   //Fill histo
   for (int hit = 0; hit < nHits; hit++) {
     mTDC[iTDC]->fill(tdcVal[hit]);
   }
-  //mData.entries[iTDC] += (mTDC[iTDC]->createTH1F(TDCCalibData::CTDC[iTDC]))->GetEntries(); //cumulate number of entries of TF histograms
-  //std::cout << nHits << std::endl;
   mData.entries[iTDC] += nHits;
-  //std::cout << "TDC# " << iTDC << " TDC name " << TDCCalibData::CTDC[iTDC] << " events " << (mTDC[iTDC]->createTH1F(TDCCalibData::CTDC[iTDC]))->GetEntries() << std::endl;
 }
 
 //----//
