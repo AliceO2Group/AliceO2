@@ -197,7 +197,7 @@ class TimeFrame
   std::vector<bool> mMultiplicityCutMask;
   std::vector<int> mROframesPV = {0};
   std::vector<Vertex> mPrimaryVertices;
-  std::vector<std::array<float, 2>> mPValphaX;  /// PV x and alpha for track propagation
+  std::vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
   std::vector<std::vector<Cluster>> mUnsortedClusters;
   std::vector<std::vector<bool>> mUsedClusters;
   const dataformats::MCTruthContainer<MCCompLabel>* mClusterLabels = nullptr;

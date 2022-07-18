@@ -465,8 +465,7 @@ void Tracker::findShortPrimaries()
     std::array<int, 3> rofs{
       mTimeFrame->getClusterROF(0, cluster3_glo.clusterId),
       mTimeFrame->getClusterROF(1, cluster2_glo.clusterId),
-      mTimeFrame->getClusterROF(2, cluster1_glo.clusterId)
-    };
+      mTimeFrame->getClusterROF(2, cluster1_glo.clusterId)};
     if (rofs[0] != rofs[1] && rofs[1] != rofs[2] && rofs[0] != rofs[2]) {
       continue;
     }
@@ -861,7 +860,7 @@ void Tracker::getGlobalConfiguration()
     if (tc.trackletsPerClusterLimit >= 0) {
       params.TrackletsPerClusterLimit = tc.trackletsPerClusterLimit;
     }
-    if (tc.findShortTracks >=0) {
+    if (tc.findShortTracks >= 0) {
       params.FindShortTracks = tc.findShortTracks;
     }
   }

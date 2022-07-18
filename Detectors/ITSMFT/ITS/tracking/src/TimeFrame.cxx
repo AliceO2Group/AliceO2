@@ -356,7 +356,8 @@ unsigned long TimeFrame::getArtefactsMemory()
   return size + sizeof(Road) * mRoads.size();
 }
 
-void TimeFrame::fillPrimaryVerticesXandAlpha() {
+void TimeFrame::fillPrimaryVerticesXandAlpha()
+{
   if (mPValphaX.size()) {
     mPValphaX.clear();
   }
