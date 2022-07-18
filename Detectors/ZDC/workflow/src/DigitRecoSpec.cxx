@@ -169,7 +169,9 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   // Transfer wafeform
   bool fullinter = mWorker.getFullInterpolation();
   RecEvent recEvent;
-  LOGF(info, "BC processed during reconstruction %d%s", recAux.size(), (fullinter ? " FullInterpolation" : ""));
+  if (mVerbosity > 0 || fullinter ) {
+    LOGF(info, "BC processed during reconstruction %d%s", recAux.size(), (fullinter ? " FullInterpolation" : ""));
+  }
   uint32_t nte = 0, ntt = 0, nti = 0, ntw = 0;
   for (auto reca : recAux) {
     bool toAddBC = true;

@@ -491,7 +491,9 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   // that do not span the entire range
   int seq_beg = 0;
   int seq_end = 0;
-  LOG(info) << "Processing ZDC reconstruction for " << mNBC << " bunch crossings";
+  if (mVerbosity >= DbgZero) {
+    LOG(info) << "Processing ZDC reconstruction for " << mNBC << " bunch crossings";
+  }
 
   // TDC reconstruction
   for (int ibc = 0; ibc < mNBC; ibc++) {
