@@ -772,6 +772,12 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
     BOOST_CHECK_EQUAL(g1[i].globalIndex(), aa[i]);
   }
 
+  // Check the X coordinate of the points in the pointGroup
+  // for the first point.
+  for (auto& p : it.pointGroup_as<Points3Ds>()) {
+    BOOST_CHECK_EQUAL(p.x(), -1 * p.globalIndex());
+  }
+
   ++it;
   auto s2 = it.pointSlice();
   auto g2 = it.pointGroup();
