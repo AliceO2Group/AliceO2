@@ -50,7 +50,6 @@ class CruRawReader
   // top-level method, takes the full payload data of the DPL raw data message and delegates to processHBFs()
   // probably this method can be removed and we can directly go to processHBFs()
   void run();
-
   // configure the raw reader, currently done for each TF and should be done only once (change DataReaderTask::run() method)
   void configure(int tracklethcheader, int halfchamberwords, int halfchambermajor, std::bitset<16> options);
 
@@ -68,11 +67,6 @@ class CruRawReader
 
   // set the input data buffer size in bytes
   void setDataBufferSize(long val) { mDataBufferSize = val; }
-
-  // verbosity settings
-  void setVerbose(bool verbose) { mVerbose = verbose; }
-  void setDataVerbose(bool verbose) { mDataVerbose = verbose; }
-  void setHeaderVerbose(bool verbose) { mHeaderVerbose = verbose; }
 
   // probably better to make mEventRecords available to the outside and then use that directly, can clean up this header a lot more
   void buildDPLOutputs(o2::framework::ProcessingContext& outputs);
@@ -115,18 +109,18 @@ class CruRawReader
   // - whenever we don't know the half-chamber, fill it for HCID == 1080 so that we can still disentangle errors from half-chamber 0?
   // - probably enough to only pass the half-chamber ID, if we know it
   // - or what about being more granular? dump ROB or MCM, if we know it?
-  void incrementErrors(int hist, int sector = -1, int side = 0, int stack = 0, int layer = 0);
+  void incrementErrors(int error, int hcid = -1, std::string message = "");
 
   // helper function to dump the whole input payload including RDH headers
   void dumpInputPayload() const;
+
+  // dump out a link with in a half cru buffer
+  void outputLinkRawData(int link);
 
   // ###############################################################
   // ## class member variables
   // ###############################################################
 
-  bool mVerbose{false};
-  bool mHeaderVerbose{false};
-  bool mDataVerbose{false};
   bool mFixDigitEndCorruption{false};
   int mTrackletHCHeaderState{0};
   int mHalfChamberWords{0};
@@ -148,6 +142,7 @@ class CruRawReader
   const char* mCurrRdhPtr = nullptr;    // points inside the payload data at the current RDH position
   uint32_t mTotalHBFPayLoad = 0;        // total data payload of the heart beat frame in question (up to wich array index mHBFPayload is filled with data)
   uint32_t mHBFoffset32 = 0;            // points to the current position inside mHBFPayload we are currently reading
+  uint32_t mHalfCRUStartOffset = 0;     // store the start of the halfcru we are currently on.
 
   HalfCRUHeader mCurrentHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on
   HalfCRUHeader mPreviousHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on

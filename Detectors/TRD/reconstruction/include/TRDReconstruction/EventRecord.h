@@ -152,16 +152,20 @@ class EventStorage
     mTFStats.mMCMDigitsFound[hcid / 2 * constants::NROBC1 * constants::NMCMROB + rob * constants::NMCMROB + mcm] += count;
   }*/
 
-  void incParsingError(int error, int sm, int side, int stacklayer)
+  void incParsingError(int error, int hcid)
   {
-    if (error > TRDLastParsingError) {
-      LOG(info) << "wrong error number to inc ParsingError in TrackletParsing : " << error << " for " << sm << "_" << side << "_" << stacklayer;
+    bool detailGraphs = true;
+    if (hcid < 0) {
+      detailGraphs = false;
+    }
+    if (error > LastParsingError) {
+      LOG(info) << "wrong error number to inc ParsingError in TrackletParsing : error" << error << " for hcid:" << hcid;
     } else {
       mTFStats.mParsingErrors[error]++;
-      if (sm >= 0) { // sm=-1 is reserved for those errors where we dont know or cant know the underlying source.
-        if ((sm * 2 + side) * 30 * TRDLastParsingError + TRDLastParsingError * stacklayer + error < o2::trd::constants::NSECTOR * 60 * TRDLastParsingError) {
+      if (detailGraphs) { // sm=-1 is reserved for those errors where we dont know or cant know the underlying source.
+        if (hcid * LastParsingError + error < o2::trd::constants::NCHAMBER * 2 * LastParsingError) {
           //prevent bounding errors
-          mTFStats.mParsingErrorsByLink[(sm * 2 + side) * 30 * TRDLastParsingError + TRDLastParsingError * stacklayer + error]++;
+          mTFStats.mParsingErrorsByLink[hcid * LastParsingError + error]++;
         }
       }
     }

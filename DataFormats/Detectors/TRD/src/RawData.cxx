@@ -60,12 +60,16 @@ std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& mcmhead)
 
 void dumpHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
 {
-  std::array<uint64_t, 8> raw{};
+  std::array<uint32_t, 16> raw{};
   memcpy(&raw[0], &halfcru, sizeof(halfcru));
   for (int i = 0; i < 2; i++) {
-    int index = 4 * i;
-    LOGF(info, "[1/2CRUHeader %d] 0x%08x 0x%08x 0x%08x 0x%08x", i, raw[index + 3], raw[index + 2],
-         raw[index + 1], raw[index + 0]);
+    std::stringstream message;
+    int index = 8 * i;
+    message << "[1/2CRUHeader:" << i << "] : ";
+    for (int z = 0; z < 8; ++z) {
+      message << "::0x" << std::hex << std::setw(8) << std::setfill('0') << raw[z + index] << " ";
+    }
+    LOG(info) << message.str();
   }
 }
 
@@ -171,7 +175,7 @@ uint32_t getHCIDFromTrackletHCHeader(const TrackletHCHeader& header)
   return header.layer * 2 + header.stack * constants::NLAYER * 2 + header.supermodule * constants::NLAYER * constants::NSTACK * 2 + header.side;
 }
 
-int getNumberOfTrackletsFromHeader(const o2::trd::TrackletMCMHeader* header, bool verbose)
+int getNumberOfTrackletsFromHeader(const o2::trd::TrackletMCMHeader* header)
 {
   int headertrackletcount = 0;
   if (header->pid0 != 0xff) { // pid of cpu0
@@ -301,11 +305,9 @@ void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet)
 }
 void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead)
 {
-  LOG(info) << " about to print mcm raw header";
   LOGF(info, "MCMRawHeader: Raw:0x%08x 1:%d padrow: 0x%02x col: 0x%01x pid2 0x%02x pid1: 0x%02x pid0: 0x%02x 1:%d",
        mcmhead.word, mcmhead.onea, mcmhead.padrow, mcmhead.col,
        mcmhead.pid2, mcmhead.pid1, mcmhead.pid0, mcmhead.oneb);
-  LOG(info) << " printed mcm raw header";
 }
 
 void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
@@ -495,6 +497,11 @@ void printDigitMCMData(o2::trd::DigitMCMData& digitmcmdata)
   LOGF(info, "DigitMCMRawData: Raw:0x%08x res(0xc):0x%02x x: 0x%04x y: 0x%04x z 0x%04x ",
        digitmcmdata.word, digitmcmdata.c, digitmcmdata.x, digitmcmdata.y, digitmcmdata.z);
 }
+void printDigitMCMADCMask(o2::trd::DigitMCMADCMask& digitmcmadcmask)
+{
+  LOGF(info, "DigitMCMADCMask: Raw:0x%08x j(0xc):0x%01x mask: 0x%05x count: 0x%02x n(0x1) 0x%01x ",
+       digitmcmadcmask.word, digitmcmadcmask.j, digitmcmadcmask.adcmask, digitmcmadcmask.c, digitmcmadcmask.n);
+}
 
 int getDigitHCHeaderWordType(uint32_t word)
 {
@@ -545,7 +552,7 @@ void printDigitHCHeader(o2::trd::DigitHCHeader& header, uint32_t headers[3])
   printDigitHCHeaders(header, headers, -1, 0, true);
   int countheaderwords = header.numberHCW;
   int index;
-  //for the currently 3 implemeented other header words, they can come in any order, and are identified by their reserved portion
+  //for the currently 3 implemented other header words, they can come in any order, and are identified by their reserved portion
   for (int countheaderwords = 0; countheaderwords < header.numberHCW; ++countheaderwords) {
     switch (getDigitHCHeaderWordType(headers[countheaderwords])) {
       case 1:
