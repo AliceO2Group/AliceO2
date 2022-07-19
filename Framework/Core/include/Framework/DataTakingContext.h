@@ -33,6 +33,8 @@ struct DataTakingContext {
   std::string envId{UNKNOWN};
   /// The list of detectors taking part in the run
   std::string detectors{UNKNOWN};
+  /// ECS declared run data storage type as raw
+  bool forcedRaw{false};
 };
 
 } // namespace o2::framework
