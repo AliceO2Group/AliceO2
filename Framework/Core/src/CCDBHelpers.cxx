@@ -320,13 +320,8 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         }
         lastTimeUsed = timingInfo.creation;
         // Fetch the CCDB object for the CTP
-        // if the orbitStr starts with ccdb://, then we use the CCDB object for the CTP
-        if (dtc.orbitResetTime.find("ccdb://") == 0) {
-          // FIXME: this (the static) is needed because for now I cannot get
-          // a pointer for the cachedObject in the fetcher itself.
-          // Will be fixed at a later point.
-          // strip the ccdb:// from dtc.orbitResetTime
-          std::string path = dtc.orbitResetTime.substr(7);
+        {
+          const std::string path = "CTP/Calib/OrbitReset";
           std::map<std::string, std::string> metadata;
           std::map<std::string, std::string> headers;
           std::string etag;
@@ -372,25 +367,16 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
               // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
             }
             // cached object is fine
-          } else if ((orbitResetTime = strtoll(dtc.orbitResetTime.c_str(), &err, 10))) {
-            if (err && *err != '\0') {
-              LOGP(fatal, "Unable to parse orbitResetTime {}", dtc.orbitResetTime);
-            }
-          } else {
-            LOGP(fatal, "Invalid orbitResetTime {}", dtc.orbitResetTime);
           }
           auto cacheId = helper->mapURL2DPLCache[path];
           LOGP(debug, "Reusing {} for {}", cacheId.value, path);
           helper->mapURL2UUID[path].cacheHit++;
           allocator.adoptFromCache(output, cacheId, header::gSerializationMethodNone);
-          // We need to find a way to get "v" also in this case.
-          // orbitResetTime = getOrbitResetTime(v);
-          // the outputBuffer was not used, can we destroy it?
 
           if (newOrbitResetTime != orbitResetTime) {
-            LOGP(debug, "Orbit reset time now at {} (was {})",
-                 newOrbitResetTime, orbitResetTime);
+            LOGP(debug, "Orbit reset time now at {} (was {})", newOrbitResetTime, orbitResetTime);
             orbitResetTime = newOrbitResetTime;
+            dtc.orbitResetTimeMUS = orbitResetTime;
           }
         }
 
@@ -400,6 +386,8 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
           if (notWarnedYet) {
             LOGP(warn, "timestamp {} for orbit {} and orbit reset time {} is well behind TF creation time {}, use the latter", timestamp, timingInfo.firstTForbit, orbitResetTime / 1000, timingInfo.creation);
             notWarnedYet = false;
+            // apparently the orbit reset time from the CTP object makes no sense (i.e. orbit was reset for this run w/o create an object, as it happens for technical runs)
+            dtc.orbitResetTimeMUS = 1000 * timingInfo.creation - timingInfo.firstTForbit * o2::constants::lhc::LHCOrbitNS / 1000;
           }
           timestamp = timingInfo.creation;
         }
