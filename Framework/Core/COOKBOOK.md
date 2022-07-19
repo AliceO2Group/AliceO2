@@ -100,7 +100,7 @@ option, where `<signal>` can be: all, segv, bus, ill, abrt, fpe and sys.
 
 ### Debug GUI
 
-The demonstator also includes a simple GUI to help debugging problems:
+DPL also includes a simple GUI to help debugging problems:
 
 ![](https://user-images.githubusercontent.com/10544/29307499-75bb8550-81a2-11e7-9aa6-96b7613288b5.png)
 
@@ -110,6 +110,26 @@ The GUI provides the following facilities:
 * One log window  per DataProcessor, allowing filtering and  triggering on log
   messages
 * Metrics inspector
+* A Device Inspector
+
+by default the GUI runs as natively on your Linux desktop (using OpenGL) or
+on macOS (using Metal as a back end). It is also possible to run the GUI
+remotely by exporting the environment variable `DPL_DRIVER_REMOTE_GUI`, e.g.:
+
+```bash
+export DPL_DRIVER_REMOTE_GUI=1
+```
+
+and you can then connect on the control port of the driver:
+
+
+
+by going to https://aliceo2group.github.io/DebugGUI/remote/remote.html and passing it to the GUI:
+
+
+
+Notice that in this setup, you might have to adjust your browser sensibility
+to [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
 
 ### Integrating with non-DPL devices
 
