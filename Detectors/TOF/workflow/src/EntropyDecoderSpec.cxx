@@ -17,6 +17,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "TOFWorkflowUtils/EntropyDecoderSpec.h"
+#include "DetectorsBase/TFIDInfoHelper.h"
 
 using namespace o2::framework;
 
@@ -75,6 +76,10 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto diagnostic = mFiller.getDiagnosticFrequency();
   auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation;
   diagnostic.setTimeStamp(creationTime / 1000);
+  // add TFIDInfo
+  o2::dataformats::TFIDInfo tfinfo;
+  o2::base::TFIDInfoHelper::fillTFIDInfo(pc, tfinfo);
+  diagnostic.setTFIDInfo(tfinfo);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe}, diagnostic);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
