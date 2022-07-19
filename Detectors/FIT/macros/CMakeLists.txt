@@ -28,3 +28,7 @@ o2_add_test_root_macro(readFV0hits.C
 o2_add_test_root_macro(readFV0digits.C
                        PUBLIC_LINK_LIBRARIES O2::FV0Simulation
                        LABELS fit)
+
+o2_add_test_root_macro(readFITBadChannelMap.C
+                       PUBLIC_LINK_LIBRARIES O2::CCDB
+                       LABELS fit)

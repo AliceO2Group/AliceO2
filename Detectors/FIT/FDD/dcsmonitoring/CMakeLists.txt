@@ -9,14 +9,9 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(dcsmonitoring)
-add_subdirectory(raw)
-add_subdirectory(reconstruction)
-add_subdirectory(simulation)
-add_subdirectory(workflow)
-add_subdirectory(calibration)
-add_subdirectory(macros)
-if(BUILD_TESTING)
-    add_subdirectory(calibration/macros)
-endif()
+o2_add_executable(dcs-config-workflow
+                  COMPONENT_NAME fdd
+                  SOURCES workflow/fdd-dcs-config-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::FITDCSMonitoring
+                                        O2::Framework
+                                        O2::DetectorsCalibration)
