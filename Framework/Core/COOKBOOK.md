@@ -122,11 +122,11 @@ export DPL_DRIVER_REMOTE_GUI=1
 
 and you can then connect on the control port of the driver:
 
-
+<img src="https://user-images.githubusercontent.com/10544/179854428-c5a1f2b0-2247-408d-a6e9-3381cc1caaf7.png" width="400px">
 
 by going to https://aliceo2group.github.io/DebugGUI/remote/remote.html and passing it to the GUI:
 
-
+<img src="https://user-images.githubusercontent.com/10544/179854512-22ab8994-9f7f-4f68-a778-768fd4a97eec.png" width="400px">
 
 Notice that in this setup, you might have to adjust your browser sensibility
 to [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
