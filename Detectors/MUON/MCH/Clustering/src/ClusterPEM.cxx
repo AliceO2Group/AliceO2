@@ -1367,8 +1367,9 @@ int ClusterPEM::getNbrOfPadsInGroup(int g)
   for (int c = 0; c < 2; c++) {
     int nbrPads = getNbrOfPads(c);
     for (int p = 0; p < nbrPads; p++) {
-      if (cathGroup[c][p] == g)
+      if (cathGroup[c][p] == g) {
         nbrOfPads++;
+      }
     }
   }
   return nbrOfPads;
