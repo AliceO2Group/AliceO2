@@ -51,7 +51,7 @@ int BaselineCalibEPN::process(const gsl::span<const o2::zdc::OrbitData>& orbitda
       // 0x8fff that is in overflow. Data loss in orbit has most significant bit
       // set to 1
       // TODO: relax this condition?
-      if (myorbit.scaler[ich] < o2::constants::lhc::LHCMaxBunches) {
+      if (myorbit.scaler[ich] <= o2::constants::lhc::LHCMaxBunches) {
         auto myped = float(myorbit.data[ich]) * mModuleConfig->baselineFactor;
         if (myped >= ADCMin && myped <= ADCMax) {
           mData.addEntry(ich, myorbit.data[ich]);

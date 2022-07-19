@@ -93,7 +93,7 @@ class DigiReco
       LOG(info) << "Detected " << mNLonely << " lonely bunches";
       for (int ib = 0; ib < o2::constants::lhc::LHCMaxBunches; ib++) {
         if (mLonely[ib]) {
-          LOG(info) << "lonely_" << ib << " " << mLonely[ib] << " T " << mLonelyTrig[ib];
+          LOG(info) << "lonely " << ib << " " << mLonely[ib] << " T " << mLonelyTrig[ib];
         }
       }
     }

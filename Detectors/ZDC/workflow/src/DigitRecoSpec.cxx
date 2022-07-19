@@ -159,6 +159,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   }
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
+
   auto bcdata = pc.inputs().get<gsl::span<o2::zdc::BCData>>("trig");
   auto chans = pc.inputs().get<gsl::span<o2::zdc::ChannelData>>("chan");
   auto peds = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("peds");
@@ -224,7 +225,8 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     // Event information
     nti += recEvent.addInfos(reca);
   }
-  LOG(info) << "Reconstructed " << ntt << " signal TDCs and " << nte << " ZDC energies and "
+  LOG(info) << bcdata.size() << " BC " << chans.size() << " CH " << peds.size() << " OD "
+            << " Reconstructed " << ntt << " signal TDCs and " << nte << " ZDC energies and "
             << nti << " info messages in " << recEvent.mRecBC.size() << "/" << recAux.size() << " b.c. and "
             << ntw << " waveform chunks";
   // TODO: rate information for all channels
