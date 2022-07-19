@@ -94,8 +94,8 @@ class SVertexer
     mMUS2TPCBin = 1.f / (nbc * o2::constants::lhc::LHCBunchSpacingMUS);
   }
 
-  template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCREFCONT>
-  void extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs);
+  template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCREFCONT, typename VTX3BCONT, typename VTX3BREFCONT>
+  void extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs, VTX3BCONT& vtx3, VTX3BREFCONT& vtx3Refs);
 
  private:
   bool checkV0(const TrackCand& seed0, const TrackCand& seed1, int iP, int iN, int ithread);
@@ -149,8 +149,8 @@ class SVertexer
 };
 
 // input containers can be std::vectors or pmr vectors
-template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCREFCONT>
-void SVertexer::extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs)
+template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCREFCONT, typename VTX3BCONT, typename VTX3BREFCONT>
+  void SVertexer::extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs, VTX3BCONT& vtx3, VTX3BREFCONT& vtx3Refs)
 {
   v0s.clear();
   vtx2V0Refs.clear();
@@ -158,16 +158,21 @@ void SVertexer::extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CAS
   cascades.clear();
   vtx2CascRefs.clear();
   vtx2CascRefs.resize(mPVertices.size());
+  vtx3.clear();
+  vtx3Refs.clear();
+  vtx3Refs.resize(mPVertices.size());
 
   auto& tmpV0s = mV0sTmp[0];
   auto& tmpCascs = mCascadesTmp[0];
-  int nv0 = tmpV0s.size(), nCasc = tmpCascs.size();
-  std::vector<int> v0SortID(nv0), v0NewInd(nv0), cascSortID(nCasc);
+  auto& tmp3B = m3bodyTmp[0];
+  int nv0 = tmpV0s.size(), nCasc = tmpCascs.size(), n3body = tmp3B.size();
+  std::vector<int> v0SortID(nv0), v0NewInd(nv0), cascSortID(nCasc), vtx3SortID(n3body);
   std::iota(v0SortID.begin(), v0SortID.end(), 0);
   std::sort(v0SortID.begin(), v0SortID.end(), [&](int i, int j) { return tmpV0s[i].getVertexID() < tmpV0s[j].getVertexID(); });
   std::iota(cascSortID.begin(), cascSortID.end(), 0);
   std::sort(cascSortID.begin(), cascSortID.end(), [&](int i, int j) { return tmpCascs[i].getVertexID() < tmpCascs[j].getVertexID(); });
-
+  std::iota(vtx3SortID.begin(), vtx3SortID.end(), 0);
+  std::sort(vtx3SortID.begin(), vtx3SortID.end(), [&](int i, int j) { return tmp3B[i].getVertexID() < tmp3B[j].getVertexID(); });
   // relate V0s to primary vertices
   int pvID = -1, nForPV = 0;
   for (int iv = 0; iv < nv0; iv++) {
@@ -226,6 +231,35 @@ void SVertexer::extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CAS
         ent = vtx2CascRefs[ip].getFirstEntry();
       } else {
         vtx2CascRefs[ip].setFirstEntry(ent);
+      }
+    }
+  }
+
+  // relate 3 body decays to primary vertices
+  pvID = -1;
+  nForPV = 0;
+  for (int iv = 0; iv < nv0; iv++) {
+    const auto& vertex3body = tmp3B[vtx3SortID[iv]];
+    if (pvID < vertex3body.getVertexID()) {
+      if (pvID > -1) {
+        vtx3Refs[pvID].setEntries(nForPV);
+      }
+      pvID = vertex3body.getVertexID();
+      vtx3Refs[pvID].setFirstEntry(vtx3.size());
+      nForPV = 0;
+    }
+    vtx3.push_back(vertex3body);
+    nForPV++;
+  }
+  if (pvID != -1) { // finalize
+    vtx3Refs[pvID].setEntries(nForPV);
+    // fill empty slots
+    int ent = vtx3.size();
+    for (int ip = vtx3Refs.size(); ip--;) {
+      if (vtx3Refs[ip].getEntries()) {
+        ent = vtx3Refs[ip].getFirstEntry();
+      } else {
+        vtx3Refs[ip].setFirstEntry(ent);
       }
     }
   }
