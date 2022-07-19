@@ -9,14 +9,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(dcsmonitoring)
-add_subdirectory(raw)
-add_subdirectory(reconstruction)
-add_subdirectory(simulation)
-add_subdirectory(workflow)
-add_subdirectory(calibration)
-add_subdirectory(macros)
-if(BUILD_TESTING)
-    add_subdirectory(calibration/macros)
-endif()
+o2_add_library(FITDCSMonitoring
+               SOURCES src/FITDCSConfigReader.cxx
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsFIT
+                                     O2::DetectorsCalibration)
+
+o2_target_root_dictionary(FITDCSMonitoring
+                          HEADERS include/FITDCSMonitoring/FITDCSConfigReader.h)

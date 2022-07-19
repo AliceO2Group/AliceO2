@@ -10,6 +10,7 @@
 # or submit itself to any jurisdiction.
 
 add_subdirectory(base)
+add_subdirectory(dcsmonitoring)
 add_subdirectory(raw)
 add_subdirectory(simulation)
 add_subdirectory(reconstruction)
