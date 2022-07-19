@@ -47,10 +47,10 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   bool refitWithMatCorr = false;                                        ///< refit V0 applying material corrections
   //
   int maxPVContributors = 2;              ///< max number PV contributors to allow in V0
-  float minDCAToPV = 0.1;                 ///< min DCA to PV of single track to accept
+  float minDCAToPV = 0.01;                 ///< min DCA to PV of single track to accept
   float minRToMeanVertex = 0.5;           ///< min radial distance of V0 from beam line (mean vertex)
   float maxDCAXYToMeanVertex = 0.2;       ///< max DCA of V0 from beam line (mean vertex) for prompt V0 candidates
-  float maxDCAXYToMeanVertexV0Casc = 0.5; ///< max DCA of V0 from beam line (mean vertex) for cascade V0 candidates
+  float maxDCAXYToMeanVertexV0Casc = 5.; ///< max DCA of V0 from beam line (mean vertex) for cascade V0 candidates
   float minPtV0 = 0.01;                   ///< v0 minimum pT
   float maxTglV0 = 2.;                    ///< maximum tgLambda of V0
 
