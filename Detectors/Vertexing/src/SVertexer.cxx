@@ -37,6 +37,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
   int ntrP = mTracksPool[POS].size(), ntrN = mTracksPool[NEG].size(), iThread = 0;
   mV0sTmp[0].clear();
   mCascadesTmp[0].clear();
+  m3bodyTmp[0].clear();
 #ifdef WITH_OPENMP
   int dynGrp = std::min(4, std::max(1, mNThreads / 2));
 #pragma omp parallel for schedule(dynamic, dynGrp) num_threads(mNThreads)
@@ -69,14 +70,16 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
     int entry;
     int vtxID;
   };
-  size_t nv0 = 0, ncsc = 0;
+  size_t nv0 = 0, ncsc = 0, n3body;
   for (int i = 0; i < mNThreads; i++) {
     nv0 += mV0sTmp[0].size();
     ncsc += mCascadesTmp[i].size();
+    n3body += m3bodyTmp[i].size();
   }
-  std::vector<vid> v0SortID, cascSortID;
+  std::vector<vid> v0SortID, cascSortID, nbodySortID;
   v0SortID.reserve(nv0);
   cascSortID.reserve(ncsc);
+  nbodySortID.reserve(n3body);
   for (int i = 0; i < mNThreads; i++) {
     for (int j = 0; j < (int)mV0sTmp[i].size(); j++) {
       v0SortID.emplace_back(vid{i, j, mV0sTmp[i][j].getVertexID()});
@@ -84,9 +87,13 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
     for (int j = 0; j < (int)mCascadesTmp[i].size(); j++) {
       cascSortID.emplace_back(vid{i, j, mCascadesTmp[i][j].getVertexID()});
     }
+    for (int j = 0; j < (int)m3bodyTmp[i].size(); j++) {
+      nbodySortID.emplace_back(vid{i, j, m3bodyTmp[i][j].getVertexID()});
+    }
   }
   std::sort(v0SortID.begin(), v0SortID.end(), [](const vid& a, const vid& b) { return a.vtxID > b.vtxID; });
   std::sort(cascSortID.begin(), cascSortID.end(), [](const vid& a, const vid& b) { return a.vtxID > b.vtxID; });
+  std::sort(nbodySortID.begin(), nbodySortID.end(), [](const vid& a, const vid& b) { return a.vtxID > b.vtxID; });
   // sorted V0s
   std::vector<V0> bufV0;
   bufV0.reserve(nv0);
@@ -108,14 +115,25 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
   for (const auto& id : cascSortID) {
     bufCasc.push_back(mCascadesTmp[id.thrID][id.entry]);
   }
+  // sorted 3 body decays
+  std::vector<DecayNbody> buf3body;
+  buf3body.reserve(n3body);
+  for (const auto& id : nbodySortID) {
+    auto& v0 = m3bodyTmp[id.thrID][id.entry];
+    int pos = bufV0.size();
+    buf3body.push_back(v0);
+    v0.setVertexID(pos); // this v0 copy will be discarded, use its vertexID to store the new position of final V0
+  }
   //
   mV0sTmp[0].swap(bufV0);               // the final result is fetched from here
   mCascadesTmp[0].swap(bufCasc);        // the final result is fetched from here
+  m3bodyTmp[0].swap(buf3body);          // the final result is fetched from here
   for (int i = 1; i < mNThreads; i++) { // clean unneeded s.vertices
     mV0sTmp[i].clear();
     mCascadesTmp[i].clear();
+    m3bodyTmp[i].clear();
   }
-  LOG(debug) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size();
+  LOG(debug) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size() << " " << m3bodyTmp[0].size();
 }
 
 //__________________________________________________________________
@@ -140,6 +158,8 @@ void SVertexer::updateTimeDependentParams()
   mMaxTgl2V0 = mSVParams->maxTglV0 * mSVParams->maxTglV0;
   mMinPt2Casc = mSVParams->minPtCasc * mSVParams->minPtCasc;
   mMaxTgl2Casc = mSVParams->maxTglCasc * mSVParams->maxTglCasc;
+  mMinPt23Body =  mSVParams->minPt3Body * mSVParams->minPt3Body;
+  mMaxTgl23Body = mSVParams->maxTgl3Body * mSVParams->maxTgl3Body;
 
   auto bz = o2::base::Propagator::Instance()->getNominalBz();
 
@@ -179,6 +199,7 @@ void SVertexer::setupThreads()
   }
   mV0sTmp.resize(mNThreads);
   mCascadesTmp.resize(mNThreads);
+  m3bodyTmp.resize(mNThreads);
   mFitterV0.resize(mNThreads);
   auto bz = o2::base::Propagator::Instance()->getNominalBz();
   for (auto& fitter : mFitterV0) {
@@ -428,7 +449,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   auto vlist = seedP.vBracket.getOverlap(seedN.vBracket); // indices of vertices shared by both seeds
   bool added = false;
   auto bestCosPA = checkForCascade ? mSVParams->minCosPACascV0 : mSVParams->minCosPA;
-  bestCosPA = checkFor3BodyDecays ? std::min(mSVParams->minCosPAXYMeanVertex3bodyV0, bestCosPA) : bestCosPA;
+  bestCosPA = checkFor3BodyDecays ? std::min(mSVParams->minCosPA3body, bestCosPA) : bestCosPA;
 
   for (int iv = vlist.getMin(); iv <= vlist.getMax(); iv++) {
     const auto& pv = mPVertices[iv];
@@ -647,15 +668,15 @@ int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0,
     if (prodPPos < 0.) { // causality cut
       continue;
     }
-    float pt2 = p3B[0] * p3B[0] + p3B[1] * p3B[1], p2Casc = pt2 + p3B[2] * p3B[2];
-    if (pt2 < mMinPt2Casc) { // pt cut
+    float pt2 = p3B[0] * p3B[0] + p3B[1] * p3B[1], p2candidate = pt2 + p3B[2] * p3B[2];
+    if (pt2 < mMinPt23Body) { // pt cut
       continue;
     }
-    if (p3B[2] * p3B[2] / pt2 > mMaxTgl2Casc) { // tgLambda cut
+    if (p3B[2] * p3B[2] / pt2 > mMaxTgl23Body) { // tgLambda cut
       continue;
     }
-    float cosPA = (p3B[0] * dxc + p3B[1] * dyc + p3B[2] * dzc) / std::sqrt(p2Casc * (r2vertex + dzc * dzc));
-    if (cosPA < mSVParams->minCosPACasc) {
+    float cosPA = (p3B[0] * dxc + p3B[1] * dyc + p3B[2] * dzc) / std::sqrt(p2candidate * (r2vertex + dzc * dzc));
+    if (cosPA < mSVParams->minCosPA3body) {
       continue;
     }
     float sqP0 = p0[0] * p0[0] + p0[1] * p0[1] + p0[2] * p0[2], sqP1 = p1[0] * p1[0] + p1[1] * p1[1] + p1[2] * p1[2], sqP2 = p2[0] * p2[0] + p2[1] * p2[1] + p2[2] * p2[2];
@@ -675,7 +696,7 @@ int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0,
     o2::track::TrackParCov trc = candidate3B;
     o2::dataformats::DCA dca;
     if (!trc.propagateToDCA(pv, fitter3body.getBz(), &dca, 5.) ||
-        std::abs(dca.getY()) > mSVParams->maxDCAXYCasc || std::abs(dca.getZ()) > mSVParams->maxDCAZCasc) {
+        std::abs(dca.getY()) > mSVParams->maxDCAXY3Body || std::abs(dca.getZ()) > mSVParams->maxDCAXY3Body) {
       m3bodyTmp[ithread].pop_back();
       continue;
     }

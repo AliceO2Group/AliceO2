@@ -72,9 +72,14 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
 
   float maxDCAXYCasc = 0.3; // max DCA of cascade to PV in XY // TODO RS: shall we use real chi2 to vertex?
   float maxDCAZCasc = 0.3;  // max DCA of cascade to PV in Z
+  float maxDCAXY3Body = 0.3; // max DCA of 3 body decay to PV in XY // TODO RS: shall we use real chi2 to vertex?
+  float maxDCAZ3Body = 0.3;  // max DCA of 3 body decay to PV in Z
   float minCosPACasc = 0.7; // min cos of PA to PV for cascade candidates
+  float minCosPA3body = 0.7; // min cos of PA to PV for 3body V0
   float minPtCasc = 0.01;   // cascade minimum pT
   float maxTglCasc = 2.;    // maximum tgLambda of cascade
+  float minPt3Body = 0.01;  // minimum pT of 3body V0
+  float maxTgl3Body = 2.;    // maximum tgLambda of 3body V0
 
   float maxRIni3body = 90.; // don't consider as a 3body seed (circles/line intersection) if its R exceeds this
 

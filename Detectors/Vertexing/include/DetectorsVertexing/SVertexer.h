@@ -140,6 +140,8 @@ class SVertexer
   float mMaxTgl2V0 = 2. * 2.;
   float mMinPt2Casc = 1e-4;
   float mMaxTgl2Casc = 2. * 2.;
+  float mMinPt23Body = 1e-4;
+  float mMaxTgl23Body = 2.f * 2.f;
   float mMUS2TPCBin = 1.f / (8 * o2::constants::lhc::LHCBunchSpacingMUS);
   float mTPCBin2Z = 0;
   bool mEnableCascades = true;
