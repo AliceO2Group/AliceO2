@@ -441,7 +441,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                   res->mHGOutOfRange = false; // LG is found so it can replace the HG if the HG is out of range
                   if (res->mCellData.getHighGain()) {
                     double ampOld = res->mCellData.getEnergy() / o2::emcal::constants::EMCAL_ADCENERGY; // cut applied on ADC and not on energy
-                    if (ampOld > o2::emcal::constants::OVERFLOWCUT) {
+                    if (ampOld > o2::emcal::constants::EMCAL_HGLGTRANSITION) {
                       // High gain digit has energy above overflow cut, use low gain instead
                       res->mCellData.setEnergy(amp * o2::emcal::constants::EMCAL_HGLGFACTOR);
                       res->mCellData.setTimeStamp(celltime);
@@ -456,7 +456,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                   res->mIsLGnoHG = false;
                   res->mHGOutOfRange = false;
                   res->mHWAddressHG = chan.getHardwareAddress();
-                  if (amp / o2::emcal::constants::EMCAL_ADCENERGY <= o2::emcal::constants::OVERFLOWCUT) {
+                  if (amp / o2::emcal::constants::EMCAL_ADCENERGY <= o2::emcal::constants::EMCAL_HGLGTRANSITION) {
                     res->mCellData.setEnergy(amp);
                     res->mCellData.setTimeStamp(celltime);
                     res->mCellData.setHighGain();
@@ -474,7 +474,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                   hwAddressLG = chan.getHardwareAddress();
                 } else {
                   // High gain cell: Flag as low gain if above threshold
-                  if (amp / o2::emcal::constants::EMCAL_ADCENERGY > o2::emcal::constants::OVERFLOWCUT) {
+                  if (amp / o2::emcal::constants::EMCAL_ADCENERGY > o2::emcal::constants::EMCAL_HGLGTRANSITION) {
                     hgOutOfRange = true;
                   }
                   hwAddressHG = chan.getHardwareAddress();
