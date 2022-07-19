@@ -121,12 +121,12 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
               auto id = mModuleConfig->modules[im].channelID[ic];
               word16.uns = ev.data[im][ic].f.offset;
               pdata.data[id] = word16.sig;
-              if(ev.data[im][ic].f.dLoss){
+              if (ev.data[im][ic].f.dLoss) {
                 // Produce a scaler overflow to signal a problem
                 // Most significant bit indicates data loss
                 // Default initializer 0x8fff will indicate that orbit data is lost
                 pdata.scaler[id] = ev.data[im][ic].f.hits | 0x8000;
-              }else{
+              } else {
                 pdata.scaler[id] = ev.data[im][ic].f.hits;
               }
             }
