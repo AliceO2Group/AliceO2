@@ -21,6 +21,7 @@
 #include "Framework/TimingInfo.h"
 #include <fairmq/Device.h>
 
+#include "DataFormatsParameters/GRPECSObject.h"
 #include "CTFWorkflow/CTFWriterSpec.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "CommonUtils/NameConf.h"
@@ -152,6 +153,7 @@ class CTFWriterSpec : public o2::framework::Task
   std::string mCurrentCTFFileName{};
   std::string mCurrentCTFFileNameFull{};
   std::string mSizeReport{};
+  std::string mMetaDataType{};
   const std::string LOCKFileDir = "/tmp/ctf-writer-locks";
   std::string mLockFileName{};
   int mLockFD = -1;
@@ -259,9 +261,12 @@ void CTFWriterSpec::init(InitContext& ic)
 void CTFWriterSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   static bool initOnceDone = false;
+  using GRPECS = o2::parameters::GRPECSObject;
   if (!initOnceDone) {
     initOnceDone = true;
     mDataTakingContext = pc.services().get<DataTakingContext>();
+    // determine the output type for the CTF metadata
+    mMetaDataType = GRPECS::getRawDataPersistencyMode(mDataTakingContext.runType, mDataTakingContext.forcedRaw);
   }
   mTimingInfo = pc.services().get<o2::framework::TimingInfo>();
 }
@@ -527,7 +532,7 @@ void CTFWriterSpec::closeTFTreeAndFile()
         o2::dataformats::FileMetaData ctfMetaData;
         ctfMetaData.fillFileData(mCurrentCTFFileNameFull);
         ctfMetaData.setDataTakingContext(mDataTakingContext);
-        ctfMetaData.type = "raw";
+        ctfMetaData.type = mMetaDataType;
         ctfMetaData.priority = "high";
         ctfMetaData.tfOrbits.swap(mTFOrbits);
         auto metaFileNameTmp = fmt::format("{}{}.tmp", mCTFMetaFileDir, mCurrentCTFFileName);
