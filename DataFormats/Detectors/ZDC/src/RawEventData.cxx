@@ -13,7 +13,7 @@
 
 using namespace o2::zdc;
 
-//ClassImp(EventData);
+// ClassImp(EventData);
 
 //______________________________________________________________________________
 void EventChData::reset()
@@ -32,7 +32,7 @@ void EventData::print() const
         auto f = data[im][ic].f;
         // Word 0
         printf("%04x %08x %08x ", data[im][ic].w[0][2], data[im][ic].w[0][1], data[im][ic].w[0][0]);
-        printf("orbit %-9u bc %-4u hits %-4u offset %+6i Board %2u Ch %1u\n", f.orbit, f.bc, f.hits, f.offset, f.ch, f.board);
+        printf("orbit %-9u bc %-4u hits %-4u offset %+6i Board %2u Ch %1u\n", f.orbit, f.bc, f.hits, f.offset - 32768, f.ch, f.board);
         // Word 1
         printf("%04x %08x %08x ", data[im][ic].w[1][2], data[im][ic].w[1][1], data[im][ic].w[1][0]);
         printf("     %s %s %s %s 0-5 ", f.Alice_0 ? "A0" : "  ", f.Alice_1 ? "A1" : "  ", f.Alice_2 ? "A2" : "  ", f.Alice_3 ? "A3" : "  ");

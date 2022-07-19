@@ -89,7 +89,14 @@ class DigiReco
       mDbg->Close();
       mDbg.reset();
     }
-    LOG(info) << "Detected " << mNLonely << " lonely bunches and " << mNLastLonely << " at end of orbit";
+    if (mNLonely > 0) {
+      LOG(info) << "Detected " << mNLonely << " lonely bunches";
+      for (int ib = 0; ib < o2::constants::lhc::LHCMaxBunches; ib++) {
+        if (mLonely[ib]) {
+          LOG(info) << "lonely " << ib << " " << mLonely[ib] << " T " << mLonelyTrig[ib];
+        }
+      }
+    }
   }
 
   uint8_t getTriggerCondition() { return mTriggerCondition; }
@@ -207,7 +214,8 @@ class DigiReco
   RecEventAux mRec;                                 /// Debug reconstruction event
   int mNBC = 0;
   int mNLonely = 0;
-  int mNLastLonely = 0;
+  int mLonely[o2::constants::lhc::LHCMaxBunches] = {0};
+  int mLonelyTrig[o2::constants::lhc::LHCMaxBunches] = {0};
   int16_t tdc_shift[NTDCChannels] = {0};                          /// TDC correction (units of 1/96 ns)
   float tdc_calib[NTDCChannels] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; /// TDC correction factor
   constexpr static uint16_t mMask[NTimeBinsPerBC] = {0x0001, 0x002, 0x004, 0x008, 0x0010, 0x0020, 0x0040, 0x0080, 0x0100, 0x0200, 0x0400, 0x0800};

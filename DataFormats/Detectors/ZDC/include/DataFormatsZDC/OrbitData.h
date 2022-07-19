@@ -31,6 +31,23 @@ struct OrbitData {
   std::array<int16_t, NChannels> data{};
   std::array<uint16_t, NChannels> scaler{};
 
+  OrbitData()
+  {
+    // Scaler value can be in the range 0-3563 and therefore
+    // i.e. 0x0 - 0xdeb, therefore larger values can represent
+    // not initialized array
+    for (int i = 0; i < NChannels; i++) {
+      scaler[i] = 0x8fff;
+    }
+  }
+
+  OrbitData(const o2::InteractionRecord irn, std::array<int16_t, NChannels> datan, std::array<uint16_t, NChannels> scalern)
+  {
+    ir = irn;
+    data = datan;
+    scaler = scalern;
+  }
+
   void print() const;
 
   ClassDefNV(OrbitData, 1);

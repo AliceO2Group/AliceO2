@@ -41,8 +41,7 @@ void DigiRecoTest::init()
   // CCDB server has been initialized in DigitizerTest
   long timeStamp = mgr.getTimestamp();
 
-  auto* moduleConfig =
-    mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
+  auto* moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
   if (!moduleConfig) {
     LOG(fatal) << "Missing ModuleConfig configuration object @ " << o2::zdc::CCDBPathConfigModule;
     return;
@@ -51,8 +50,7 @@ void DigiRecoTest::init()
   moduleConfig->print();
 
   // Configuration parameters for ZDC reconstruction
-  auto* recoConfigZDC =
-    mgr.get<o2::zdc::RecoConfigZDC>(o2::zdc::CCDBPathRecoConfigZDC);
+  auto* recoConfigZDC = mgr.get<o2::zdc::RecoConfigZDC>(o2::zdc::CCDBPathRecoConfigZDC);
   if (!recoConfigZDC) {
     LOG(fatal) << "Missing RecoConfigZDC object";
     return;
@@ -81,14 +79,12 @@ void DigiRecoTest::init()
   }
 
   // Energy calibration
-  auto* energyParam =
-    mgr.get<o2::zdc::ZDCEnergyParam>(o2::zdc::CCDBPathEnergyCalib);
+  auto* energyParam = mgr.get<o2::zdc::ZDCEnergyParam>(o2::zdc::CCDBPathEnergyCalib);
   if (!energyParam) {
     LOG(warning)
       << "Missing ZDCEnergyParam calibration object - using default";
   } else {
-    LOG(info) << "Loaded Energy calibration ZDCEnergyParam for timestamp "
-              << timeStamp;
+    LOG(info) << "Loaded Energy calibration ZDCEnergyParam for timestamp " << timeStamp;
     energyParam->print();
   }
 
@@ -99,8 +95,7 @@ void DigiRecoTest::init()
     LOG(warning)
       << "Missing ZDCTowerParam calibration object - using default";
   } else {
-    LOG(info) << "Loaded Tower calibration ZDCTowerParam for timestamp "
-              << timeStamp;
+    LOG(info) << "Loaded Tower calibration ZDCTowerParam for timestamp " << timeStamp;
     towerParam->print();
   }
 
