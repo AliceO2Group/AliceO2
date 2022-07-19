@@ -372,12 +372,6 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
               // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
             }
             // cached object is fine
-          } else if ((orbitResetTime = strtoll(dtc.orbitResetTime.c_str(), &err, 10))) {
-            if (err && *err != '\0') {
-              LOGP(fatal, "Unable to parse orbitResetTime {}", dtc.orbitResetTime);
-            }
-          } else {
-            LOGP(fatal, "Invalid orbitResetTime {}", dtc.orbitResetTime);
           }
           auto cacheId = helper->mapURL2DPLCache[path];
           LOGP(debug, "Reusing {} for {}", cacheId.value, path);
@@ -392,6 +386,12 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
                  newOrbitResetTime, orbitResetTime);
             orbitResetTime = newOrbitResetTime;
           }
+        } else if ((orbitResetTime = strtoll(dtc.orbitResetTime.c_str(), &err, 10))) {
+          if (err && *err != '\0') {
+            LOGP(fatal, "Unable to parse orbitResetTime {}", dtc.orbitResetTime);
+          }
+        } else {
+          LOGP(fatal, "Invalid orbitResetTime {}", dtc.orbitResetTime);
         }
 
         int64_t timestamp = ceil((timingInfo.firstTForbit * o2::constants::lhc::LHCOrbitNS / 1000 + orbitResetTime) / 1000); // RS ceilf precision is not enough

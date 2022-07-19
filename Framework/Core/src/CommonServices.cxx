@@ -154,24 +154,24 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
     .configure = noConfiguration(),
     .preProcessing = [](ProcessingContext& processingContext, void* service) {
       auto& context = processingContext.services().get<DataTakingContext>();
-      // Only on the first message
-      if (context.source == OrbitResetTimeSource::Data) {
-        return;
-      }
-      // Only if we do not have already the proper number from CTP
-      if (context.source == OrbitResetTimeSource::CTP) {
-        return;
-      }
-      context.source = OrbitResetTimeSource::Data;
-      context.orbitResetTime = -1;
+      //// Only on the first message
+      // if (context.source == OrbitResetTimeSource::Data) {
+      //   return;
+      // }
+      //  Only if we do not have already the proper number from CTP
+      // if (context.source == OrbitResetTimeSource::CTP) {
+      //   return;
+      // }
+      // context.source = OrbitResetTimeSource::Data;
+      // context.orbitResetTime = std::to_string(-1);
       for (auto const& ref : processingContext.inputs()) {
         const o2::framework::DataProcessingHeader *dph = o2::header::get<DataProcessingHeader*>(ref.header);
         const auto* dh = o2::header::get<o2::header::DataHeader*>(ref.header);
         if (!dph || !dh) {
           continue;
         }
-        LOGP(debug, "Orbit reset time from data: {} ", dph->creation);
-        context.orbitResetTime = dph->creation;
+        // LOGP(debug, "Orbit reset time from data: {} ", dph->creation);
+        // context.orbitResetTime = std::to_string(dph->creation);
         context.runNumber = fmt::format("{}", dh->runNumber);
         break;
       } },
