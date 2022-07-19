@@ -93,7 +93,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
           fitResults = mRawFitter->evaluate(channelData.mChannelsBunchesHG);
 
           // If the high gain bunch is saturated then fit the low gain
-          if (fitResults.getAmp() > o2::emcal::constants::OVERFLOWCUT) {
+          if (fitResults.getAmp() > o2::emcal::constants::EMCAL_HGLGTRANSITION) {
             fitResults = mRawFitter->evaluate(channelData.mChannelsBunchesLG);
             fitResults.setAmp(fitResults.getAmp() * o2::emcal::constants::EMCAL_HGLGFACTOR);
             channelType = ChannelType_t::LOW_GAIN;

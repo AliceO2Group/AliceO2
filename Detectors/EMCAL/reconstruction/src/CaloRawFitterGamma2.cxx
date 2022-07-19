@@ -48,7 +48,7 @@ CaloFitResults CaloRawFitterGamma2::evaluate(const gsl::span<const Bunch> bunchl
     int timebinOffset = bunchlist[bunchIndex].getStartTime() - (bunchlist[bunchIndex].getBunchLength() - 1);
     amp = ampEstimate;
 
-    if (nsamples > 2 && maxADC < constants::OVERFLOWCUT) {
+    if (nsamples > 2 && maxADC < constants::EMCAL_HGLGTRANSITION) {
       std::tie(amp, time) = doParabolaFit(timeEstimate - 1);
       mNiter = 0;
       try {

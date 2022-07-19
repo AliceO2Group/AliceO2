@@ -66,7 +66,7 @@ CaloFitResults CaloRawFitterStandard::evaluate(const gsl::span<const Bunch> bunc
     int timebinOffset = bunchlist[bunchIndex].getStartTime() - (bunchlist[bunchIndex].getBunchLength() - 1);
     amp = ampEstimate;
 
-    if (nsamples > 1 && maxADC < constants::OVERFLOWCUT) {
+    if (nsamples > 1 && maxADC < constants::EMCAL_HGLGTRANSITION) {
       try {
         std::tie(amp, time, chi2) = fitRaw(first, last);
         time += timebinOffset;
