@@ -19,7 +19,6 @@
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "TRDReconstruction/CruRawReader.h"
-#include "TRDReconstruction/CompressedRawReader.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Digit.h"
@@ -34,7 +33,7 @@ namespace o2::trd
 class DataReaderTask : public Task
 {
  public:
-  DataReaderTask(int tracklethcheader, int halfchamberwords, int halfchambermajor, std::string histofilename, std::bitset<16> option) : mCompressedData(option[TRDCompressedDataBit]), mByteSwap(option[TRDByteSwapBit]), mFixDigitEndCorruption(option[TRDFixDigitCorruptionBit]), mTrackletHCHeaderState(tracklethcheader), mHalfChamberWords(halfchamberwords), mHalfChamberMajor(halfchambermajor), mVerbose(option[TRDVerboseBit]), mHeaderVerbose(option[TRDHeaderVerboseBit]), mDataVerbose(option[TRDDataVerboseBit]), mIgnoreTrackletHCHeader(option[TRDIgnoreTrackletHCHeaderBit]), mIgnoreDigitHCHeader(option[TRDIgnoreDigitHCHeaderBit]), mOptions(option) {}
+  DataReaderTask(int tracklethcheader, int halfchamberwords, int halfchambermajor, std::bitset<16> option) : mTrackletHCHeaderState(tracklethcheader), mHalfChamberWords(halfchamberwords), mHalfChamberMajor(halfchambermajor), mOptions(option) {}
   ~DataReaderTask() override = default;
   void init(InitContext& ic) final;
   void sendData(ProcessingContext& pc, bool blankframe = false);
@@ -45,11 +44,9 @@ class DataReaderTask : public Task
 
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
-  CruRawReader mReader;                  // this will do the parsing, of raw data passed directly through the flp(no compression)
-  CompressedRawReader mCompressedReader; //this will handle the incoming compressed data from the flp
-                                         // in both cases we pull the data from the vectors build message and pass on.
-                                         // they will internally produce a vector of digits and a vector tracklets and associated indexing.
-                                         // TODO templatise this and 2 versions of datareadertask, instantiated with the relevant parser.
+  CruRawReader mReader; // this will do the parsing, of raw data passed directly through the flp(no compression)
+                        // we pull the data from the vectors build message and pass on.
+                        // they will internally produce a vector of digits and a vector tracklets and associated indexing.
 
   bool mVerbose{false};          // verbos output general debuggign and info output.
   bool mDataVerbose{false};      // verbose output of data unpacking

@@ -34,7 +34,6 @@ void DataReaderTask::init(InitContext& ic)
   LOG(info) << "o2::trd::DataReadTask init";
 
   mReader.setMaxErrWarnPrinted(ic.options().get<int>("log-max-errors"), ic.options().get<int>("log-max-warnings"));
-
   mDigitPreviousTotal = 0;
   mTrackletsPreviousTotal = 0;
   mWordsRead = 0;
@@ -125,23 +124,19 @@ void DataReaderTask::run(ProcessingContext& pc)
     tfCount = dh->tfCounter;
     const char* payloadIn = ref.payload;
     auto payloadInSize = DataRefUtils::getPayloadSize(ref);
-    if (mHeaderVerbose) {
+    if (mOptions[TRDVerboseBit]) {
       LOGP(info, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : ",
            dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadInSize);
     }
-    if (!mCompressedData) { // we have raw data coming in from flp
-      mReader.setDataBuffer(payloadIn);
-      mReader.setDataBufferSize(payloadInSize);
-      mReader.configure(mTrackletHCHeaderState, mHalfChamberWords, mHalfChamberMajor, mOptions);
-      mReader.run();
-      if (mVerbose) {
-        LOG(info) << "relevant vectors to read : " << mReader.sumTrackletsFound() << " tracklets and " << mReader.sumDigitsFound() << " compressed digits";
-      }
-    } else { // we have compressed data coming in from flp.
-      mCompressedReader.setDataBuffer(payloadIn);
-      mCompressedReader.setDataBufferSize(payloadInSize);
-      mCompressedReader.configure(mOptions);
-      mCompressedReader.run();
+    mReader.setDataBuffer(payloadIn);
+    mReader.setDataBufferSize(payloadInSize);
+    mReader.configure(mTrackletHCHeaderState, mHalfChamberWords, mHalfChamberMajor, mOptions);
+    //mReader.setStats(&mTimeFrameStats);
+    mReader.run();
+    mWordsRead += mReader.getWordsRead();
+    mWordsRejected += mReader.getWordsRejected();
+    if (mOptions[TRDVerboseBit]) {
+      LOG(info) << "relevant vectors to read : " << mReader.sumTrackletsFound() << " tracklets and " << mReader.sumDigitsFound() << " compressed digits";
     }
   }
   mWordsRead += mReader.getWordsRead();
