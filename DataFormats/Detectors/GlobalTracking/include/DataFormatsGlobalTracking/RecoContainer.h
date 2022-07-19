@@ -19,6 +19,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "ReconstructionDataFormats/GlobalTrackAccessor.h"
 #include "CommonDataFormat/RangeReference.h"
+#include "ReconstructionDataFormats/DecayNbody.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ReconstructionDataFormats/MatchingType.h"
 #include "CommonDataFormat/AbstractRefAccessor.h"
@@ -280,6 +281,8 @@ struct RecoContainer {
                    PVTX_V0REFS,   // PV -> V0 references
                    CASCS,         // Cascade objects
                    PVTX_CASCREFS, // PV -> Cascade reference
+                   DECAY3BODY,    // 3-body decay objects
+                   PVTX_DECAY3BODYREFS, // PV -> 3-body decay references
                    NSVTXSLOTS };
 
   // slots for cosmics
@@ -664,6 +667,8 @@ struct RecoContainer {
   auto getPV2V0Refs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_V0REFS); }
   auto getCascades() const { return svtxPool.getSpan<o2::dataformats::Cascade>(CASCS); }
   auto getPV2CascadesRefs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_CASCREFS); }
+  auto getDecays3body() const { return svtxPool.getSpan<o2::dataformats::DecayNbody>(DECAY3BODY); }
+  auto getPV2Decays3bodyRefs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_DECAY3BODYREFS); }
 
   const o2::dataformats::TrackCosmics& getCosmicTrack(int i) const { return cosmPool.get_as<o2::dataformats::TrackCosmics>(COSM_TRACKS, i); }
   auto getCosmicTrackMCLabel(int i) const { return cosmPool.get_as<o2::MCCompLabel>(COSM_TRACKS_MC, i); }
