@@ -104,8 +104,8 @@ class SVertexer
   }
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
 
-  template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCREFCONT>
-  void extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs);
+  template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCREFCONT, typename VTX3BCONT, typename VTX3BREFCONT>
+  void extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs, VTX3BCONT& vtx3, VTX3BREFCONT& vtx3Refs);
 
  private:
   bool checkV0(const TrackCand& seed0, const TrackCand& seed1, int iP, int iN, int ithread);
@@ -252,7 +252,6 @@ template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCR
       }
     }
   }
-  LOG(info)<<"relate Cascades to primary vertices Finish";
 
   // relate 3 body decays to primary vertices
   pvID = -1;
@@ -282,7 +281,6 @@ template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCR
       }
     }
   }
-  LOG(info)<<"relate 3 body decays to primary vertices Finish";
 }
 
 } // namespace vertexing
