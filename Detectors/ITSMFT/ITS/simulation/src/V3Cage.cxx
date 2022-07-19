@@ -23,9 +23,9 @@
 //#include <TGeoArb8.h>           // for TGeoArb8
 //#include <TGeoBBox.h>    // for TGeoBBox
 //#include <TGeoCone.h>    // for TGeoConeSeg, TGeoCone
-#include <TGeoPcon.h>           // for TGeoPcon
-#include <TGeoManager.h>        // for TGeoManager, gGeoManager
-#include <TGeoMatrix.h>         // for TGeoCombiTrans, TGeoRotation, etc
+#include <TGeoPcon.h>    // for TGeoPcon
+#include <TGeoManager.h> // for TGeoManager, gGeoManager
+#include <TGeoMatrix.h>  // for TGeoCombiTrans, TGeoRotation, etc
 //#include <TGeoTrd1.h>           // for TGeoTrd1
 #include <TGeoTube.h>           // for TGeoTube, TGeoTubeSeg
 #include <TGeoVolume.h>         // for TGeoVolume, TGeoVolumeAssembly
@@ -340,24 +340,24 @@ TGeoVolume* V3Cage::createCageEndCap(const TGeoManager* mgr)
   xlen = (sCageEndCapDext - sCageEndCapXWidth) / 2;
   ylen = 0.6 * rmax;
 
-  TGeoBBox* sideCut = new TGeoBBox(xlen, ylen, 2*zlen);
+  TGeoBBox* sideCut = new TGeoBBox(xlen, ylen, 2 * zlen);
   sideCut->SetName("endCapBoxCut");
 
-  TGeoTube* sideHole = new TGeoTube(0, sCageEndCapSideHoleR, 2*zlen);
+  TGeoTube* sideHole = new TGeoTube(0, sCageEndCapSideHoleR, 2 * zlen);
   sideHole->SetName("endCapSideHole");
 
   xlen = sCageEndCapCableCutWid / 2;
   ylen = rmax - sCageEndCapCableCutR;
 
-  TGeoBBox* cableCut = new TGeoBBox(xlen, ylen, 2*zlen);
+  TGeoBBox* cableCut = new TGeoBBox(xlen, ylen, 2 * zlen);
   cableCut->SetName("endCapCableCut");
 
   // Some matrices to create the composite shapes
   xpos = rmax;
-  
+
   TGeoTranslation* boxCutTr1 = new TGeoTranslation("boxCutTr1", xpos, 0, 0);
   boxCutTr1->RegisterYourself();
-  
+
   TGeoTranslation* boxCutTr2 = new TGeoTranslation("boxCutTr2", -xpos, 0, 0);
   boxCutTr2->RegisterYourself();
 
@@ -451,7 +451,7 @@ TGeoVolume* V3Cage::createCageEndCap(const TGeoManager* mgr)
   endCapVol->AddNode(cblCrosVol, 2, new TGeoCombiTrans(-xpos, ypos, 0, new TGeoRotation("", sCageEndCapCableCutPhi, 0, 0)));
   endCapVol->AddNode(cblCrosVol, 3, new TGeoCombiTrans(xpos, -ypos, 0, new TGeoRotation("", -180 + sCageEndCapCableCutPhi, 0, 0)));
   endCapVol->AddNode(cblCrosVol, 4, new TGeoCombiTrans(-xpos, -ypos, 0, new TGeoRotation("", 180 - sCageEndCapCableCutPhi, 0, 0)));
-  
+
   // Finally return the end cap volume
   return endCapVol;
 }
@@ -571,4 +571,3 @@ TGeoCompositeShape* V3Cage::createCageEndCapCableCross(const TGeoManager* mgr)
 
   return cableCross;
 }
-
