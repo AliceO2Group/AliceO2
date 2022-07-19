@@ -19,10 +19,12 @@
 #include "Framework/MessageSet.h"
 #include "Framework/TimesliceIndex.h"
 #include "Framework/Tracing.h"
+#include "Framework/TimesliceSlot.h"
 
 #include <cstddef>
 #include <mutex>
 #include <vector>
+#include <functional>
 
 #include <fairmq/FwdDecls.h>
 
@@ -68,6 +70,10 @@ class DataRelayer
     int expiredSlots = 0;
   };
 
+  struct PruneOp {
+    TimesliceSlot slot = {-1ULL};
+  };
+
   struct RecordAction {
     TimesliceSlot slot;
     TimesliceId timeslice;
@@ -87,6 +93,13 @@ class DataRelayer
   ActivityStats processDanglingInputs(std::vector<ExpirationHandler> const&,
                                       ServiceRegistry& context, bool createNew);
 
+  using OnDropCallback = std::function<void(TimesliceSlot, std::vector<MessageSet>&, TimesliceIndex::OldestOutputInfo info)>;
+
+  /// Prune all the pending entries in the cache.
+  void prunePending(OnDropCallback);
+  /// Prune the cache for a given slot
+  void pruneCache(TimesliceSlot slot, OnDropCallback onDrop = nullptr);
+
   /// This is to relay a whole set of fair::mq::Messages, all which are part
   /// of the same set of split parts.
   /// @a rawHeader raw header pointer
@@ -96,11 +109,13 @@ class DataRelayer
   ///              which is the standard header-payload message pair, in this
   ///              case nMessages / 2 pairs will be inserted and considered
   ///              separate parts
+  /// @a onDrop function to be called if an message is dropped
   /// Notice that we expect that the header is an O2 Header Stack
   RelayChoice relay(void const* rawHeader,
                     std::unique_ptr<fair::mq::Message>* messages,
                     size_t nMessages,
-                    size_t nPayloads = 1);
+                    size_t nPayloads = 1,
+                    OnDropCallback onDrop = nullptr);
 
   /// This is to set the oldest possible @a timeslice this relayer can
   /// possibly see on an input channel @a channel.
@@ -174,6 +189,7 @@ class DataRelayer
   std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;
   std::vector<data_matcher::VariableContext> mVariableContextes;
   std::vector<CacheEntryStatus> mCachedStateMetrics;
+  std::vector<PruneOp> mPruneOps;
   size_t mMaxLanes;
 
   static std::vector<std::string> sMetricsNames;

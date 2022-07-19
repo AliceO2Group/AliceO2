@@ -63,6 +63,7 @@ class ClusterizerSpec : public framework::Task
   bool mFullCluOutput = false;      ///< Write full of reduced (no contributed digits) clusters
   bool mHasCalib = false;           ///< Were calibration objects received
   bool mDefBadMap = false;          ///< Use default bad map and calibration or extract from CCDB
+  bool mInitSimParams = true;       ///< read sim params
   o2::phos::Clusterer mClusterizer; ///< Clusterizer object
   std::unique_ptr<CalibParams> mCalibParams;
   std::unique_ptr<BadChannelsMap> mBadMap;

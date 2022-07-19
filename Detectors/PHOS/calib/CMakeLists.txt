@@ -51,4 +51,9 @@ o2_add_executable(calib-workflow
                                         O2::PHOSCalibWorkflow
                                         O2::DetectorsCalibration)
 
-
+o2_add_executable(recalibrator
+                  COMPONENT_NAME phos
+                  PUBLIC_LINK_LIBRARIES O2::DataFormatsPHOS
+                                        O2::PHOSCalibWorkflow
+                                        O2::PHOSBase
+                  SOURCES src/recalibrator.cxx)

@@ -63,15 +63,15 @@ BOOST_AUTO_TEST_CASE(TestOldestTimeslice)
     queue, taskId1, [&count]() { count += 10; }, TimesliceId{1});
   AsyncQueueHelpers::post(
     queue, taskId2, [&count]() { count += 20; }, TimesliceId{0});
-  AsyncQueueHelpers::run(queue, TimesliceId{1});
+  AsyncQueueHelpers::run(queue, TimesliceId{0});
+  BOOST_CHECK_EQUAL(count, 20);
+  AsyncQueueHelpers::run(queue, TimesliceId{0});
   BOOST_CHECK_EQUAL(count, 20);
   AsyncQueueHelpers::run(queue, TimesliceId{1});
-  BOOST_CHECK_EQUAL(count, 20);
-  AsyncQueueHelpers::run(queue, TimesliceId{2});
   BOOST_CHECK_EQUAL(count, 30);
 }
 
-// Make sure we execute tasks only up to the timeslice provided to run.
+// Make sure we execute tasks only up to the timeslice provided to run with bouncing enabled.
 BOOST_AUTO_TEST_CASE(TestOldestTimesliceWithBounce)
 {
   using namespace o2::framework;
@@ -81,11 +81,11 @@ BOOST_AUTO_TEST_CASE(TestOldestTimesliceWithBounce)
   // Push two tasks on the queue with the same id
   auto count = 0;
   AsyncQueueHelpers::post(
-    queue, taskId1, [&count]() { count += 10; }, TimesliceId{1});
+    queue, taskId1, [&count]() { count += 10; }, TimesliceId{2});
   AsyncQueueHelpers::post(
-    queue, taskId2, [&count]() { count += 20; }, TimesliceId{0}, 10);
+    queue, taskId2, [&count]() { count += 20; }, TimesliceId{1}, 10);
   AsyncQueueHelpers::post(
-    queue, taskId2, [&count]() { count += 30; }, TimesliceId{0}, 20);
+    queue, taskId2, [&count]() { count += 30; }, TimesliceId{1}, 20);
   AsyncQueueHelpers::run(queue, TimesliceId{0});
   BOOST_CHECK_EQUAL(count, 0);
   BOOST_CHECK_EQUAL(queue.tasks.size(), 3);
@@ -94,6 +94,32 @@ BOOST_AUTO_TEST_CASE(TestOldestTimesliceWithBounce)
   BOOST_CHECK_EQUAL(queue.tasks.size(), 1);
   AsyncQueueHelpers::run(queue, TimesliceId{2});
   BOOST_CHECK_EQUAL(count, 40);
+  BOOST_CHECK_EQUAL(queue.tasks.size(), 0);
+}
+
+// test bouncing disabled with negative value
+BOOST_AUTO_TEST_CASE(TestOldestTimesliceWithNegativeBounce)
+{
+  using namespace o2::framework;
+  AsyncQueue queue;
+  auto taskId1 = AsyncQueueHelpers::create(queue, {.name = "test1", .score = 10});
+  auto taskId2 = AsyncQueueHelpers::create(queue, {.name = "test2", .score = 20});
+  // Push two tasks on the queue with the same id
+  auto count = 0;
+  AsyncQueueHelpers::post(
+    queue, taskId1, [&count]() { count += 10; }, TimesliceId{2});
+  AsyncQueueHelpers::post(
+    queue, taskId2, [&count]() { count += 20; }, TimesliceId{1}, -10);
+  AsyncQueueHelpers::post(
+    queue, taskId2, [&count]() { count += 30; }, TimesliceId{1}, -20);
+  AsyncQueueHelpers::run(queue, TimesliceId{0});
+  BOOST_CHECK_EQUAL(count, 0);
+  BOOST_CHECK_EQUAL(queue.tasks.size(), 3);
+  AsyncQueueHelpers::run(queue, TimesliceId{1});
+  BOOST_CHECK_EQUAL(count, 50);
+  BOOST_CHECK_EQUAL(queue.tasks.size(), 1);
+  AsyncQueueHelpers::run(queue, TimesliceId{2});
+  BOOST_CHECK_EQUAL(count, 60);
   BOOST_CHECK_EQUAL(queue.tasks.size(), 0);
 }
 
@@ -106,13 +132,13 @@ BOOST_AUTO_TEST_CASE(TestOldestTimeslicePerTimeslice)
   // Push two tasks on the queue with the same id
   auto count = 0;
   AsyncQueueHelpers::post(
-    queue, taskId1, [&count]() { count += 10; }, TimesliceId{0});
+    queue, taskId1, [&count]() { count += 10; }, TimesliceId{1});
   BOOST_CHECK_EQUAL(queue.tasks.size(), 1);
   AsyncQueueHelpers::run(queue, TimesliceId{0});
   BOOST_CHECK_EQUAL(queue.tasks.size(), 1);
   BOOST_CHECK_EQUAL(count, 0);
   AsyncQueueHelpers::post(
-    queue, taskId1, [&count]() { count += 20; }, TimesliceId{1});
+    queue, taskId1, [&count]() { count += 20; }, TimesliceId{2});
   BOOST_CHECK_EQUAL(queue.tasks.size(), 2);
   AsyncQueueHelpers::run(queue, TimesliceId{1});
   BOOST_CHECK_EQUAL(queue.tasks.size(), 1);

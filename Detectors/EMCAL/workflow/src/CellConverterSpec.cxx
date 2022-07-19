@@ -21,6 +21,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "EMCALReconstruction/CaloRawFitterStandard.h"
 #include "EMCALReconstruction/CaloRawFitterGamma2.h"
+#include "EMCALReconstruction/RecoParam.h"
 
 using namespace o2::emcal::reco_workflow;
 
@@ -45,13 +46,13 @@ void CellConverterSpec::init(framework::InitContext& ctx)
   }
   mRawFitter->setAmpCut(0.);
   mRawFitter->setL1Phase(0.);
+  LOG(info) << "Using time shift: " << RecoParam::Instance().getCellTimeShiftNanoSec() << " ns";
 }
 
 void CellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(debug) << "[EMCALCellConverter - run] called";
-  const double CONVADCGEV = 0.016;   // Conversion from ADC counts to energy: E = 16 MeV / ADC
-  constexpr double timeshift = 600.; // subtract 600 ns in order to center the time peak around the nominal delay
+  double timeshift = RecoParam::Instance().getCellTimeShiftNanoSec(); // subtract offset in ns in order to center the time peak around the nominal delay
 
   mOutputCells.clear();
   mOutputLabels.clear();
@@ -106,7 +107,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
           if (fitResults.getTime() < 0) {
             fitResults.setTime(0.);
           }
-          mOutputCells.emplace_back(tower, fitResults.getAmp() * CONVADCGEV, fitResults.getTime() - timeshift, channelType);
+          mOutputCells.emplace_back(tower, fitResults.getAmp() * o2::emcal::constants::EMCAL_ADCENERGY, fitResults.getTime() - timeshift, channelType);
 
           if (mPropagateMC) {
             Int_t LabelIndex = mOutputLabels.getIndexedSize();

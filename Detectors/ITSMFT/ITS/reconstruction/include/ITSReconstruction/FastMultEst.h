@@ -17,7 +17,9 @@
 #define ALICEO2_ITS_FASTMULTEST_
 
 #include "ITSMFTReconstruction/ChipMappingITS.h"
+#include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITSMFT/CompCluster.h"
+#include <DataFormatsITSMFT/PhysTrigger.h>
 #include "ITSReconstruction/FastMultEstConfig.h"
 #include <gsl/span>
 #include <array>
@@ -37,6 +39,9 @@ struct FastMultEst {
   float chi2 = 0.;                         /// chi2
   int nLayersUsed = 0;                     /// number of layers actually used
   std::array<int, NLayers> nClPerLayer{0}; // measured N Cl per layer
+
+  int selectROFs(const gsl::span<const o2::itsmft::ROFRecord> rofs, const gsl::span<const o2::itsmft::CompClusterExt> clus,
+                 const gsl::span<const o2::itsmft::PhysTrigger> trig, std::vector<bool>& sel);
 
   void fillNClPerLayer(const gsl::span<const o2::itsmft::CompClusterExt>& clusters);
   float process(const std::array<int, NLayers> ncl)

@@ -65,6 +65,30 @@ struct InputChannelInfo {
   TimesliceId oldestForChannel;
 };
 
+/// Output channel information
+struct OutputChannelInfo {
+  std::string name = "invalid";
+  ChannelAccountingType channelType = ChannelAccountingType::DPL;
+  fair::mq::Channel& channel;
+};
+
+struct OutputChannelState {
+  TimesliceId oldestForChannel = {0};
+};
+
+/// Forward channel information
+struct ForwardChannelInfo {
+  /// The name of the channel
+  std::string name = "invalid";
+  /// Wether or not it's a DPL internal channel.
+  ChannelAccountingType channelType = ChannelAccountingType::DPL;
+  fair::mq::Channel& channel;
+};
+
+struct ForwardChannelState {
+  TimesliceId oldestForChannel = {0};
+};
+
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_CHANNELINFO_H_

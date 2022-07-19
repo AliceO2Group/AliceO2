@@ -151,7 +151,16 @@ class TimeSlotCalibration
 
  protected:
   auto& getSlots() { return mSlots; }
-  int getRunStartOrbit() const { return mCurrentTFInfo.firstTForbit - o2::base::GRPGeomHelper::getNHBFPerTF() * mCurrentTFInfo.tfCounter; }
+  int getRunStartOrbit() const
+  {
+    int orb = mCurrentTFInfo.firstTForbit - o2::base::GRPGeomHelper::getNHBFPerTF() * mCurrentTFInfo.tfCounter;
+    if (orb < 0) {
+      LOGP(alarm, "Negative runStartOrbit = {} deduced for from tfCounter={} and firstTForbit={}, enforcing runStartOrbit to 0", orb, mCurrentTFInfo.tfCounter, mCurrentTFInfo.firstTForbit);
+      orb = 0;
+    }
+    return orb;
+  }
+
   TFType tf2SlotMin(TFType tf) const;
 
   std::deque<Slot> mSlots;

@@ -64,12 +64,32 @@ void DataProcessingHelpers::sendOldestPossibleTimeframe(fair::mq::Channel& chann
   }
 }
 
+bool DataProcessingHelpers::sendOldestPossibleTimeframe(ForwardChannelInfo const& info, ForwardChannelState& state, size_t timeslice)
+{
+  if (state.oldestForChannel.value >= timeslice) {
+    return false;
+  }
+  sendOldestPossibleTimeframe(info.channel, timeslice);
+  state.oldestForChannel = {timeslice};
+  return true;
+}
+
+bool DataProcessingHelpers::sendOldestPossibleTimeframe(OutputChannelInfo const& info, OutputChannelState& state, size_t timeslice)
+{
+  if (state.oldestForChannel.value >= timeslice) {
+    return false;
+  }
+  sendOldestPossibleTimeframe(info.channel, timeslice);
+  state.oldestForChannel = {timeslice};
+  return true;
+}
+
 void DataProcessingHelpers::broadcastOldestPossibleTimeslice(FairMQDeviceProxy& proxy, size_t timeslice)
 {
   for (int ci = 0; ci < proxy.getNumOutputChannels(); ++ci) {
-    auto* channel = proxy.getOutputChannel({ci});
-    assert(channel);
-    sendOldestPossibleTimeframe(*channel, timeslice);
+    auto& info = proxy.getOutputChannelInfo({ci});
+    auto& state = proxy.getOutputChannelState({ci});
+    sendOldestPossibleTimeframe(info, state, timeslice);
   }
 }
 

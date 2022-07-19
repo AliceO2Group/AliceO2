@@ -75,6 +75,7 @@ class CellConverterSpec : public framework::Task
   bool mPropagateMC = false;                                   ///< Switch whether to process MC true labels
   bool mDefBadMap = false;                                     ///< Use default bad map and calibration or extract from CCDB
   bool mHasCalib = false;                                      ///< Were calibration objects received
+  bool mInitSimParams = true;                                  ///< Sim/RecoParams to be initialized
   std::vector<Cell> mOutputCells;                              ///< Container with output cells
   std::vector<TriggerRecord> mOutputCellTrigRecs;              ///< Container with trigger records for output cells
   o2::dataformats::MCTruthContainer<MCLabel> mOutputTruthCont; ///< output MC labels

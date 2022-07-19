@@ -105,7 +105,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     return workflow;
   }
 
-  auto workflowTmp = WorkflowSpec{getTPCFLPIDCSpec<TPCFLPIDCDeviceNoGroup>(0, crus, iondrifttime, debugFT, false, false, "", true), getTPCFourierTransformEPNSpec(crus, iondrifttime, nFourierCoefficients, debugFT), getTPCDistributeIDCSpec(crus, timeframes, nLanes, firstTF, loadFromFile), ftAggregatorIDC(nFourierCoefficients, iondrifttime, timeframes, debugFT), receiveFourierCoeffEPN(timeframes, nFourierCoefficients), compare_EPN_AGG()};
+  auto workflowTmp = WorkflowSpec{getTPCFLPIDCSpec<TPCFLPIDCDeviceNoGroup>(0, crus, iondrifttime, debugFT, false, false, "", true), getTPCFourierTransformEPNSpec(crus, iondrifttime, nFourierCoefficients, debugFT), getTPCDistributeIDCSpec(0, crus, timeframes, nLanes, firstTF, loadFromFile), ftAggregatorIDC(nFourierCoefficients, iondrifttime, timeframes, debugFT), receiveFourierCoeffEPN(timeframes, nFourierCoefficients), compare_EPN_AGG()};
   for (auto& spec : workflowTmp) {
     workflow.emplace_back(spec);
   }
@@ -191,7 +191,7 @@ class TPCReceiveEPNSpec : public o2::framework::Task
       auto const* tpcFourierCoeffHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       const int side = tpcFourierCoeffHeader->subSpecification;
       const auto tf = tinfo.tfCounter;
-      mFourierCoeffEPN[tf].mFourierCoefficients[side] = ctx.inputs().get<std::vector<float>>(ref);
+      mFourierCoeffEPN[tf].mFourierCoefficients = ctx.inputs().get<std::vector<float>>(ref);
     }
 
     const auto tf = tinfo.tfCounter;
@@ -218,8 +218,8 @@ class TPCCompareFourierCoeffSpec : public o2::framework::Task
       const o2::tpc::Side side = iside == 0 ? o2::tpc::Side::A : o2::tpc::Side::C;
       for (int tf = 0; tf < fourierCoeffEPN.size(); ++tf) {
         for (int i = 0; i < fourierCoeffEPN[tf].getNCoefficientsPerTF(); ++i) {
-          const float epnval = fourierCoeffEPN[tf](side, i);
-          const float aggval = (*fourierCoeffAgg)(side, fourierCoeffAgg->getIndex(tf, i));
+          const float epnval = fourierCoeffEPN[tf](i);
+          const float aggval = (*fourierCoeffAgg)(fourierCoeffAgg->getIndex(tf, i));
           ASSERT_ERROR((std::abs(std::min(epnval, aggval)) < 1.f) ? isSameZero(epnval, aggval) : isSame(epnval, aggval));
         }
       }

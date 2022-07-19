@@ -97,10 +97,10 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const TriggerReco
       bcPrev = trig.getBCData().bc;
       orbitPrev = trig.getBCData().orbit;
       if (trig.getBCData().orbit < orbitPrevT || trig.getBCData().bc >= o2::constants::lhc::LHCMaxBunches || (trig.getBCData().orbit == orbitPrevT && trig.getBCData().bc < bcPrevT)) {
-        LOGP(alarm, "Bogus TRD trigger at bc:{}/orbit:{} (previous was {}/{}), with {} tracklets and {} digits",
+        LOGP(warning, "Bogus TRD trigger at bc:{}/orbit:{} (previous was {}/{}), with {} tracklets and {} digits",
              trig.getBCData().bc, trig.getBCData().orbit, bcPrevT, orbitPrevT, trig.getNumberOfTracklets(), trig.getNumberOfDigits());
         if (++bogusWarnMsg >= mCheckBogusTrig) {
-          LOGP(alarm, "Max amount of warnings ({}) was issued, will not warn anymore", size_t(mCheckBogusTrig));
+          LOGP(warning, "Max amount of warnings ({}) was issued, will not warn anymore", size_t(mCheckBogusTrig));
           break;
         }
       }
@@ -206,12 +206,12 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& tr
     bool triggerOK = true;
     if (mCheckBogusTrig && (bc >= o2::constants::lhc::LHCMaxBunches || orbitInc[itrig] < 0 || bcInc[itrig] < 0 || orbit < orbitPrevGood || (entriesTrk[itrig] == 0 && entriesDig[itrig] == 0))) {
       if (countDiscardMsg < size_t(mCheckBogusTrig) || mCheckBogusTrig < 0) {
-        LOGP(alarm, "Bogus TRD trigger at bc:{}/orbit:{} (increments: {}/{}, 1st TF orbit: {}) with {} tracklets and {} digits{}: {}",
+        LOGP(warning, "Bogus TRD trigger at bc:{}/orbit:{} (increments: {}/{}, 1st TF orbit: {}) with {} tracklets and {} digits{}: {}",
              bc, orbit, bcInc[itrig], orbitInc[itrig], mFirstTFOrbit, entriesTrk[itrig], entriesDig[itrig],
              orbitInc[itrig] < 0 ? " (decreasing orbit!) " : "",
              mCheckBogusTrig > 0 ? "discarding" : "discarding disabled");
         if (++countDiscardMsg == size_t(mCheckBogusTrig) && mCheckBogusTrig > 0) {
-          LOGP(alarm, "Max amount of warnings ({}) was issued, will not warn anymore", size_t(mCheckBogusTrig));
+          LOGP(warning, "Max amount of warnings ({}) was issued, will not warn anymore", size_t(mCheckBogusTrig));
         }
       }
       if (mCheckBogusTrig > 0) {

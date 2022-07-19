@@ -79,16 +79,19 @@ class TPCFourierTransformEPNSpec : public o2::framework::Task
     // perform fourier transform of 1D-IDCs
     LOGP(debug, "normalize IDCs");
     mIDCOneAggregator.normalizeIDCOne();
-    mIDCFourierTransform.setIDCs(std::move(mIDCOneAggregator).get());
-    LOGP(debug, "calculate fourier coefficients");
-    mIDCFourierTransform.calcFourierCoefficients();
+    for (int iSide = 0; iSide < 2; ++iSide) {
+      const o2::tpc::Side side = (iSide == 0) ? Side::A : Side::C;
+      mIDCFourierTransform.setIDCs(std::move(mIDCOneAggregator).get(side));
+      LOGP(debug, "calculate fourier coefficients");
+      mIDCFourierTransform.calcFourierCoefficients();
 
-    if (mDebug) {
-      LOGP(info, "dumping FT to file");
-      mIDCFourierTransform.dumpToFile(fmt::format("FourierEPN_{:02}.root", pc.services().get<o2::framework::TimingInfo>().tfCounter).data());
+      if (mDebug) {
+        LOGP(info, "dumping FT to file");
+        mIDCFourierTransform.dumpToFile(fmt::format("FourierEPN_{:02}_side{}.root", pc.services().get<o2::framework::TimingInfo>().tfCounter, iSide).data());
+      }
+
+      sendOutput(pc.outputs(), side);
     }
-
-    sendOutput(pc.outputs());
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
@@ -109,10 +112,9 @@ class TPCFourierTransformEPNSpec : public o2::framework::Task
   const std::vector<InputSpec> mFilter = {{"1didcepn", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDCEPN()}, Lifetime::Timeframe},
                                           {"1didcepnweights", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDCEPNWeights()}, Lifetime::Timeframe}}; ///< filter for looping over input data
 
-  void sendOutput(DataAllocator& output)
+  void sendOutput(DataAllocator& output, const Side side)
   {
-    output.snapshot(Output{gDataOriginTPC, getDataDescription(), header::DataHeader::SubSpecificationType{Side::A}, Lifetime::Timeframe}, mIDCFourierTransform.getFourierCoefficients().getFourierCoefficients(Side::A));
-    output.snapshot(Output{gDataOriginTPC, getDataDescription(), header::DataHeader::SubSpecificationType{Side::C}, Lifetime::Timeframe}, mIDCFourierTransform.getFourierCoefficients().getFourierCoefficients(Side::C));
+    output.snapshot(Output{gDataOriginTPC, getDataDescription(), header::DataHeader::SubSpecificationType{side}, Lifetime::Timeframe}, mIDCFourierTransform.getFourierCoefficients().getFourierCoefficients());
   }
 };
 

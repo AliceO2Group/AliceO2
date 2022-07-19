@@ -26,6 +26,7 @@
 #include "ITSMFTReconstruction/RUDecodeData.h"
 #include "ITSMFTReconstruction/DecodingStat.h"
 #include "ITSMFTReconstruction/RUInfo.h"
+#include "DataFormatsITSMFT/PhysTrigger.h"
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -85,7 +86,7 @@ struct GBTLink {
   CollectedDataStatus status = None;
   Format format = NewFormat;
   Verbosity verbosity = VerboseErrors;
-  std::vector<GBTTriggerR>* extTrigVec = nullptr;
+  std::vector<PhysTrigger>* extTrigVec = nullptr;
   uint8_t idInRU = 0;     // link ID within the RU
   uint8_t idInCRU = 0;    // link ID within the CRU
   uint8_t endPointID = 0; // endpoint ID of the CRU
@@ -278,8 +279,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
             gbtTrg = gbtTrgTmp; // this is a trigger describing the following data
           } else {
             if (extTrigVec) { // this link collects external triggers
-              extTrigVec->emplace_back(GBTTriggerR{uint32_t(gbtTrgTmp->orbit), uint16_t(gbtTrgTmp->bc), uint16_t(gbtTrgTmp->triggerType), gbtTrgTmp->internal != 0, gbtTrgTmp->noData != 0});
-              printTrigger(gbtTrgTmp);
+              extTrigVec->emplace_back(PhysTrigger{o2::InteractionRecord(uint16_t(gbtTrgTmp->bc), uint32_t(gbtTrgTmp->orbit)), uint64_t(gbtTrgTmp->triggerType)});
             }
           }
           continue;

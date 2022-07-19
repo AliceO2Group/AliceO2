@@ -16,6 +16,7 @@
 /// \author  Michal Chwesiuk
 /// \author  Piotr Nowakowski
 
+#include <unordered_map>
 #include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationView/EventManagerFrame.h"
 #include "EventVisualisationView/MultiView.h"
@@ -319,9 +320,23 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
     const auto dPhi = settings.GetValue(info.configSizePhi.c_str(), info.sizePhi) / 2.0;
     const float barrelRadius = settings.GetValue(info.configBarrelRadius.c_str(), info.defaultBarrelRadius);
 
+    struct pair_hash {
+      std::size_t operator()(const std::pair<float, float>& pair) const
+      {
+        return std::hash<float>()(pair.first + 1000.0 * pair.second);
+      }
+    };
+    std::unordered_map<std::pair<float, float>, int, pair_hash> map; // sum up entries for the same tower
     for (const auto& calo : event.getCalorimetersSpan()) {
-      data->AddTower(calo.getEta() - dEta, calo.getEta() + dEta, calo.getPhi() - dPhi, calo.getPhi() + dPhi);
-      data->FillSlice(0, info.scale * calo.getEnergy());
+      auto key = std::make_pair(calo.getEta(), calo.getPhi());
+      map.try_emplace(key, 0);
+      map[key] = map[key] + info.scale * calo.getEnergy();
+    }
+
+    for (const auto& entry : map) {
+      auto [eta, phi] = entry.first;
+      data->AddTower(eta - dEta, eta + dEta, phi - dPhi, phi + dPhi);
+      data->FillSlice(0, entry.second);
     }
 
     // remove artefacts

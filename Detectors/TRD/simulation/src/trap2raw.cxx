@@ -21,11 +21,6 @@
 
 #include "fairlogger/Logger.h"
 
-#include <DataFormatsTRD/RawData.h>
-#include <DataFormatsTRD/Tracklet64.h>
-#include <DataFormatsTRD/LinkRecord.h>
-#include <DataFormatsTRD/TriggerRecord.h>
-
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/NameConf.h"
@@ -35,17 +30,11 @@
 
 #include <boost/program_options.hpp>
 #include <filesystem>
-#include <TFile.h>
 #include <TStopwatch.h>
 #include <string>
 #include <iomanip>
 #include <iostream>
 #include <iomanip>
-#include "TCanvas.h"
-#include <TTree.h>
-#include <TFile.h>
-#include <ostream>
-#include <fstream>
 
 namespace bpo = boost::program_options;
 

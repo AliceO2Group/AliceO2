@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <iostream>
+#include "fairlogger/Logger.h"
 #include "DataFormatsTRD/LinkRecord.h"
 #include "DataFormatsTRD/Constants.h"
 

@@ -175,7 +175,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
                        DataAllocator& allocator) -> void
 {
   std::string ccdbMetadataPrefix = "ccdb-metadata-";
-  bool checkValidity = timingInfo.timeslice % helper->queryDownScaleRate == 0;
+  bool checkValidityGlo = timingInfo.timeslice % helper->queryDownScaleRate == 0;
   for (auto& route : helper->routes) {
     LOGP(debug, "Fetching object for route {}", route.matcher);
 
@@ -186,6 +186,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
     std::map<std::string, std::string> headers;
     std::string path = "";
     std::string etag = "";
+    bool checkValidity = checkValidityGlo;
     for (auto& meta : route.matcher.metadata) {
       if (meta.name == "ccdb-path") {
         path = meta.defaultValue.get<std::string>();
@@ -196,8 +197,12 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         auto value = meta.defaultValue.get<std::string>();
         LOGP(debug, "Adding metadata {}: {} to the request", key, value);
         metadata[key] = value;
+      } else if (meta.name == "ccdb-query-rate") {
+        checkValidity = (timingInfo.timeslice % meta.defaultValue.get<int64_t>() == 0);
       }
     }
+    LOGP(debug, "checkValidity is {} for slice {} of {}", checkValidity, timingInfo.timeslice, path);
+
     const auto url2uuid = helper->mapURL2UUID.find(path);
     if (url2uuid != helper->mapURL2UUID.end()) {
       etag = url2uuid->second.etag;
@@ -306,6 +311,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
       });
 
       return adaptStateless([helper](DataTakingContext& dtc, DataAllocator& allocator, TimingInfo& timingInfo) {
+        char* err = nullptr;
         static Long64_t orbitResetTime = -1;
         static size_t lastTimeUsed = -1;
         if (timingInfo.creation & DataProcessingHeader::DUMMY_CREATION_TIME_OFFSET) {
@@ -314,11 +320,13 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
         }
         lastTimeUsed = timingInfo.creation;
         // Fetch the CCDB object for the CTP
-        {
+        // if the orbitStr starts with ccdb://, then we use the CCDB object for the CTP
+        if (dtc.orbitResetTime.find("ccdb://") == 0) {
           // FIXME: this (the static) is needed because for now I cannot get
           // a pointer for the cachedObject in the fetcher itself.
           // Will be fixed at a later point.
-          std::string path = "CTP/Calib/OrbitReset";
+          // strip the ccdb:// from dtc.orbitResetTime
+          std::string path = dtc.orbitResetTime.substr(7);
           std::map<std::string, std::string> metadata;
           std::map<std::string, std::string> headers;
           std::string etag;
@@ -364,6 +372,12 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
               // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
             }
             // cached object is fine
+          } else if ((orbitResetTime = strtoll(dtc.orbitResetTime.c_str(), &err, 10))) {
+            if (err && *err != '\0') {
+              LOGP(fatal, "Unable to parse orbitResetTime {}", dtc.orbitResetTime);
+            }
+          } else {
+            LOGP(fatal, "Invalid orbitResetTime {}", dtc.orbitResetTime);
           }
           auto cacheId = helper->mapURL2DPLCache[path];
           LOGP(debug, "Reusing {} for {}", cacheId.value, path);

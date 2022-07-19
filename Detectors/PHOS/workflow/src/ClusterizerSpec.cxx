@@ -13,6 +13,7 @@
 #include "DataFormatsPHOS/Digit.h"
 #include "DataFormatsPHOS/Cluster.h"
 #include "DataFormatsPHOS/PHOSBlockHeader.h"
+#include "PHOSBase/PHOSSimParams.h"
 #include "PHOSWorkflow/ClusterizerSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/CCDBParamSpec.h"
@@ -56,6 +57,10 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
     calibPtr = ctx.inputs().get<o2::phos::CalibParams*>("calib");
     mClusterizer.setCalibration(calibPtr.get());
     mHasCalib = true;
+  }
+  if (mInitSimParams) { // trigger reading sim/rec parameters from CCDB, singleton initiated in Fetcher
+    ctx.inputs().get<o2::phos::PHOSSimParams*>("recoparams");
+    mInitSimParams = false;
   }
 
   if (mUseDigits) {
@@ -129,6 +134,7 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getClusterizerSpec(boo
     inputs.emplace_back("badmap", o2::header::gDataOriginPHS, "PHS_BadMap", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/BadMap"));
     inputs.emplace_back("calib", o2::header::gDataOriginPHS, "PHS_Calib", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/CalibParams"));
   }
+  inputs.emplace_back("recoparams", o2::header::gDataOriginPHS, "PHS_RecoParams", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Config/RecoParams"));
   if (propagateMC) {
     inputs.emplace_back("digitsmctr", "PHS", "DIGITSMCTR", 0, o2::framework::Lifetime::Timeframe);
   }
@@ -159,6 +165,7 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellClusterizerSpec
     inputs.emplace_back("badmap", o2::header::gDataOriginPHS, "PHS_BadMap", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/BadMap"));
     inputs.emplace_back("calib", o2::header::gDataOriginPHS, "PHS_Calib", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/CalibParams"));
   }
+  inputs.emplace_back("recoparams", o2::header::gDataOriginPHS, "PHS_RecoParams", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Config/RecoParams"));
   if (propagateMC) {
     inputs.emplace_back("cellsmctr", "PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe);
   }

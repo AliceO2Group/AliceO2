@@ -218,6 +218,12 @@ std::string defaultConditionBackend()
   return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "http://alice-ccdb.cern.ch";
 }
 
+// get the default value for condition query rate
+int64_t defaultConditionQueryRate()
+{
+  return getenv("DPL_CONDITION_QUERY_RATE") ? std::stoll(getenv("DPL_CONDITION_QUERY_RATE")) : 1;
+}
+
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
 {
   auto fakeCallback = AlgorithmSpec{[](InitContext& ic) {
@@ -240,7 +246,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
                 {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
                 {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
                 {"condition-remap", VariantType::String, "", {"remap condition path in CCDB based on the provided string."}},
-                {"condition-tf-per-query", VariantType::Int64, 1ll, {"check condition validity per requested number of TFs, fetch only once if <0"}},
+                {"condition-tf-per-query", VariantType::Int64, defaultConditionQueryRate(), {"check condition validity per requested number of TFs, fetch only once if <0"}},
                 {"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
                 {"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
                 {"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
@@ -772,7 +778,7 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
   assert(!workflow.empty());
 
   // This is the state. Oif is the iterator I use for the searches.
-  std::list<LogicalOutputInfo> availableOutputsInfo;
+  std::vector<LogicalOutputInfo> availableOutputsInfo;
   auto const& constOutputs = outputs; // const version of the outputs
   decltype(availableOutputsInfo.begin()) oif;
   // Forwards is a local cache to avoid adding forwards before time.
@@ -802,7 +808,18 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
     assert(ci < workflow.size());
     assert(ii < workflow[ci].inputs.size());
     auto& input = workflow[ci].inputs[ii];
-    auto matcher = [&input, &constOutputs](const LogicalOutputInfo& outputInfo) -> bool {
+    size_t lastIndex = -1;
+    auto matcher = [&input, &constOutputs, &lastIndex](const LogicalOutputInfo& outputInfo) -> bool {
+      if (outputInfo.enabled == false) {
+        return false;
+      }
+      if (lastIndex == outputInfo.outputGlobalIndex) {
+        // If we have already tried to match this output,
+        // we don't need to try again, since the find_if
+        // would have already stopped at the first match.
+        return false;
+      }
+      lastIndex = outputInfo.outputGlobalIndex;
       auto& output = constOutputs[outputInfo.outputGlobalIndex];
       return DataSpecUtils::match(input, output);
     };
@@ -819,17 +836,31 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
     return oif != availableOutputsInfo.end();
   };
 
+  int eraseCount = 0;
   // We have consumed the input, therefore we remove it from the list.
   // We will insert the forwarded inputs only at the end of the iteration.
-  auto findNextOutputFor = [&availableOutputsInfo, &constOutputs, &oif, &workflow](
+  auto findNextOutputFor = [&availableOutputsInfo, &constOutputs, &oif, &workflow, &eraseCount](
                              size_t ci, size_t& ii) {
     auto& input = workflow[ci].inputs[ii];
-    auto matcher = [&input, &constOutputs](const LogicalOutputInfo& outputInfo) -> bool {
+    size_t lastIndex = -1;
+    auto matcher = [&input, &constOutputs, &lastIndex](const LogicalOutputInfo& outputInfo) -> bool {
+      if (outputInfo.enabled == false) {
+        return false;
+      }
+      if (lastIndex == outputInfo.outputGlobalIndex) {
+        // If we have already tried to match this output,
+        // we don't need to try again, since the find_if
+        // would have already stopped at the first match.
+        return false;
+      }
       auto& output = constOutputs[outputInfo.outputGlobalIndex];
       return DataSpecUtils::match(input, output);
     };
-    oif = availableOutputsInfo.erase(oif);
-    oif = std::find_if(oif, availableOutputsInfo.end(), matcher);
+    if (oif != availableOutputsInfo.end()) {
+      oif->enabled = false;
+      eraseCount++;
+      oif = std::find_if(oif + 1, availableOutputsInfo.end(), matcher);
+    }
     return oif;
   };
 
@@ -940,6 +971,13 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
           forwardOutputFrom(consumer, uniqueOutputId);
         }
         findNextOutputFor(consumer, input);
+        if (((eraseCount + 1) % 256) == 0) {
+          availableOutputsInfo.erase(
+            std::remove_if(availableOutputsInfo.begin(), availableOutputsInfo.end(), [](auto& info) {
+              return info.enabled == false;
+          }),
+            availableOutputsInfo.end());
+        }
       }
       if (noMatchingOutputFound()) {
         errorDueToMissingOutputFor(consumer, input);

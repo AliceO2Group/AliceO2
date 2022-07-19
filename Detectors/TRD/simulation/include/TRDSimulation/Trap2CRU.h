@@ -20,9 +20,8 @@
 #define ALICE_O2_TRD_TRAP2CRU_H
 
 #include <string>
-#include "DataFormatsTRD/TriggerRecord.h"
-#include "DataFormatsTRD/LinkRecord.h"
 #include "DataFormatsTRD/RawData.h"
+#include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/Constants.h"
@@ -60,7 +59,7 @@ class Trap2CRU
   // make the writer available in trap2raw.cxx for configuration
   o2::raw::RawFileWriter& getWriter() { return mWriter; }
   // build the half cru header holding the lengths of all links amongst other things.
-  uint32_t buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, const uint32_t halfcru);
+  uint32_t buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, const uint32_t halfcru, bool isCalibTrigger);
 
   // write digits for single MCM into raw stream (include DigitMCMHeader and ADC mask)
   int buildDigitRawData(const int digitstartindex, const int digitendindex, const int mcm, const int rob, const uint32_t triggercount);

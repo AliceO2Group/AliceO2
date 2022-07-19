@@ -22,6 +22,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
+#include "DataFormatsITSMFT/PhysTrigger.h"
 #include "CommonUtils/NameConf.h"
 #include <cassert>
 
@@ -33,7 +34,7 @@ namespace o2
 namespace itsmft
 {
 
-DigitReader::DigitReader(o2::detectors::DetID id, bool useMC, bool useCalib)
+DigitReader::DigitReader(o2::detectors::DetID id, bool useMC, bool useCalib, bool triggerOut)
 {
   assert(id == o2::detectors::DetID::ITS || id == o2::detectors::DetID::MFT);
   mDetNameLC = mDetName = id.getName();
@@ -45,7 +46,7 @@ DigitReader::DigitReader(o2::detectors::DetID id, bool useMC, bool useCalib)
 
   mDigtMCTruthBranchName = mDetName + mDigtMCTruthBranchName;
   mDigtMC2ROFBranchName = mDetName + mDigtMC2ROFBranchName;
-
+  mTriggerOut = triggerOut;
   mUseMC = useMC;
   mUseCalib = useCalib;
   std::transform(mDetNameLC.begin(), mDetNameLC.end(), mDetNameLC.begin(), ::tolower);
@@ -78,7 +79,10 @@ void DigitReader::run(ProcessingContext& pc)
   if (mUseCalib) {
     pc.outputs().snapshot(Output{mOrigin, "GBTCALIB", 0, Lifetime::Timeframe}, mCalib);
   }
-
+  if (mTriggerOut) {
+    std::vector<o2::itsmft::PhysTrigger> dummyTrig;
+    pc.outputs().snapshot(Output{mOrigin, "PHYSTRIG", 0, Lifetime::Timeframe}, dummyTrig);
+  }
   if (mUseMC) {
     auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{mOrigin, "DIGITSMCTR", 0, Lifetime::Timeframe});
     plabels->copyandflatten(sharedlabels);
@@ -117,7 +121,7 @@ void DigitReader::connectTree(const std::string& filename)
   LOG(info) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
-DataProcessorSpec getITSDigitReaderSpec(bool useMC, bool useCalib, std::string defname)
+DataProcessorSpec getITSDigitReaderSpec(bool useMC, bool useCalib, bool useTriggers, std::string defname)
 {
   std::vector<OutputSpec> outputSpec;
   outputSpec.emplace_back("ITS", "DIGITS", 0, Lifetime::Timeframe);
@@ -129,7 +133,9 @@ DataProcessorSpec getITSDigitReaderSpec(bool useMC, bool useCalib, std::string d
     outputSpec.emplace_back("ITS", "DIGITSMCTR", 0, Lifetime::Timeframe);
     outputSpec.emplace_back("ITS", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
   }
-
+  if (useTriggers) {
+    outputSpec.emplace_back("ITS", "PHYSTRIG", 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
     "its-digit-reader",
     Inputs{},
@@ -140,7 +146,7 @@ DataProcessorSpec getITSDigitReaderSpec(bool useMC, bool useCalib, std::string d
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
-DataProcessorSpec getMFTDigitReaderSpec(bool useMC, bool useCalib, std::string defname)
+DataProcessorSpec getMFTDigitReaderSpec(bool useMC, bool useCalib, bool useTriggers, std::string defname)
 {
   std::vector<OutputSpec> outputSpec;
   outputSpec.emplace_back("MFT", "DIGITS", 0, Lifetime::Timeframe);
@@ -152,7 +158,9 @@ DataProcessorSpec getMFTDigitReaderSpec(bool useMC, bool useCalib, std::string d
     outputSpec.emplace_back("MFT", "DIGITSMCTR", 0, Lifetime::Timeframe);
     outputSpec.emplace_back("MFT", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
   }
-
+  if (useTriggers) {
+    outputSpec.emplace_back("MFT", "PHYSTRIG", 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
     "mft-digit-reader",
     Inputs{},

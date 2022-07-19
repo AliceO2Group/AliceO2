@@ -65,6 +65,7 @@ class RawToCellConverterSpec : public framework::Task
   bool mCombineGHLG = true;                                   ///< Combine or not HG and LG channels (def: combine, LED runs: not combine)
   bool mPedestalRun = false;                                  ///< Analyze pedestal run (calculate pedestal mean and RMS)
   bool mKeepTrigNoise = false;                                ///< Keep all trigger digits and summary tables for noise scan
+  bool mInitSimParams = true;                                 ///< Sim/RecoParams to be initialized
   int mLastSize = 0;                                          ///< size of last send list of cells to reserve same in next bunch
   unsigned int mflpId = 0;                                    ///< subspec of output stream
   std::unique_ptr<AltroDecoder> mDecoder;                     ///!<! Raw decoder

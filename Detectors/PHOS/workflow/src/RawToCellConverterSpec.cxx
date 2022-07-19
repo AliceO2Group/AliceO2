@@ -11,6 +11,7 @@
 #include <string>
 #include "FairLogger.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
@@ -120,6 +121,11 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     }
   }
   contDeadBeef = 0; // if good data, reset the counter
+
+  if (mInitSimParams) { // trigger reading sim/rec parameters from CCDB, singleton initiated in Fetcher
+    ctx.inputs().get<o2::phos::PHOSSimParams*>("recoparams");
+    mInitSimParams = false;
+  }
 
   std::vector<o2::framework::InputSpec> inputFilter{o2::framework::InputSpec{"filter", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Timeframe}};
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs(), inputFilter)) {
@@ -298,6 +304,7 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawToCellConverterS
   inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Optional);
   // receive at least 1 guaranteed input (which will allow to acknowledge the TF)
   inputs.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("recoparams", o2::header::gDataOriginPHS, "PHS_RecoParams", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Config/RecoParams"));
 
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back("PHS", "CELLS", flpId, o2::framework::Lifetime::Timeframe);

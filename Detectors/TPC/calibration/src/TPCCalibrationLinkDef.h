@@ -45,6 +45,7 @@
 #pragma link C++ class o2::tpc::IDCAverageGroupBase < o2::tpc::IDCAverageGroupCRU> + ;
 #pragma link C++ class o2::tpc::IDCAverageGroupBase < o2::tpc::IDCAverageGroupTPC> + ;
 #pragma link C++ class o2::tpc::IDCFactorization + ;
+#pragma link C++ class o2::tpc::SACFactorization + ;
 #pragma link C++ struct o2::tpc::IDCDelta < float> + ;
 #pragma link C++ struct o2::tpc::IDCDelta < unsigned short> + ;
 #pragma link C++ struct o2::tpc::IDCDelta < unsigned char> + ;
@@ -89,6 +90,13 @@
 #pragma link C++ class o2::tpc::sac::DataPoint + ;
 #pragma link C++ class o2::tpc::sac::DecodedData + ;
 #pragma link C++ class o2::tpc::sac::Decoder;
+#pragma link C++ struct o2::tpc::ParameterSAC + ;
+#pragma link C++ struct o2::tpc::SACDelta < float> + ;
+#pragma link C++ struct o2::tpc::SACDelta < unsigned short> + ;
+#pragma link C++ struct o2::tpc::SACDelta < unsigned char> + ;
+#pragma link C++ struct o2::tpc::SACZero + ;
+#pragma link C++ struct o2::tpc::SACOne + ;
+#pragma link C++ struct o2::tpc::FourierCoeffSAC + ;
 
 #pragma link C++ class o2::calibration::TimeSlot < o2::tpc::TPCVDTglContainer> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::dataformats::Pair < float, float>, o2::tpc::TPCVDTglContainer> + ;

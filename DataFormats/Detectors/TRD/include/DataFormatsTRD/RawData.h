@@ -12,19 +12,19 @@
 #ifndef ALICEO2_TRD_RAWDATA_H
 #define ALICEO2_TRD_RAWDATA_H
 
-#include "fairlogger/Logger.h"
-
-#include <bitset>
-
 /// \class TRDRDH
 /// \brief Header for TRD raw data header
 //  this is the header added by the CRU
+
+#include <array>
+#include <cstdint>
+#include <ostream>
 
 namespace o2
 {
 namespace trd
 {
-class Tracklet64;
+
 /// \structure HalfCRUHeader
 /// \brief Header for half a cru, each cru has 2 output, 1 for each pciid.
 //         This comes at the top of the data stream for each event and 1/2cru
@@ -421,7 +421,6 @@ struct DigitMCMData {
 
 uint32_t setHalfCRUHeader(HalfCRUHeader& cruhead, int crurdhversion, int bunchcrossing, int stopbits, int endpoint, int eventtype, int feeid, int cruid);
 uint32_t setHalfCRUHeaderLinkData(HalfCRUHeader& cruhead, int link, int size, int errors);
-void buildTrackletMCMData(TrackletMCMData& trackletword, const uint slope, const uint pos, const uint q0, const uint q1, const uint q2);
 uint32_t getlinkerrorflag(const HalfCRUHeader& cruhead, const uint32_t link);
 uint32_t getlinkdatasize(const HalfCRUHeader& cruhead, const uint32_t link);
 uint32_t getlinkerrorflags(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linkerrorflags);
