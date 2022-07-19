@@ -726,12 +726,13 @@ int DigiReco::reconstruct(int ibeg, int iend)
 #endif
   // Process consecutive BCs
   if (ibeg == iend) {
-    if (mReco[ibeg].ir.bc == (o2::constants::lhc::LHCMaxBunches - 1)) {
-      mNLastLonely++;
-    } else {
-      mNLonely++;
-      LOG(info) << "Lonely bunch " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc;
+    mNLonely++;
+    mLonely[mReco[ibeg].ir.bc]++;
+    if (mBCData[ibeg].triggers != 0x0) {
+      mLonelyTrig[mReco[ibeg].ir.bc]++;
     }
+    // Cannot reconstruct lonely bunch
+    // LOG(info) << "Lonely bunch " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc;
     return 0;
   }
 #ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
