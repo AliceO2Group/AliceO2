@@ -154,19 +154,24 @@ class CruRawReader
   bool checkRDH(const o2::header::RDHAny* rdh);
   bool skipRDH();
   void updateLinkErrorGraphs(int currentlinkindex, int supermodule_half, int stack_layer);
+
   void incrementErrors(int hist, int sector = -1, int side = 0, int stack = 0, int layer = 0)
   {
-    if (sector > 17) {
+    if (sector > 17 || sector < -1) {
       sector = 0;
     }
-    if (stack > 4) {
+    if (stack > 4 || stack < 0) {
       stack = 0;
     }
-    if (layer > 5) {
+    if (layer > 5 || layer < 0) {
       layer = 0;
     }
-    if (sector < -1) {
-      sector = 0;
+    if (sector == -1) {
+      sector = (unsigned int)mFEEID.supermodule;
+      side = (unsigned int)mFEEID.side;
+      layer = 0;
+      stack = (unsigned int)mFEEID.endpoint;
+      // encode the endpoint into the stack for the 2d plots. This is for those situations where you can not know stack/layer at the time of the error.
     }
     mEventRecords.incParsingError(hist, sector, side, stack * constants::NLAYER + layer);
     if (mVerbose) {
