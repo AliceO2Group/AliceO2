@@ -11,6 +11,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/ChannelSpecHelpers.h"
 #include "Framework/Logger.h"
 #include <string>
 #include <bitset>
@@ -42,7 +43,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}});
 
   options.push_back(ConfigParamSpec{"timeframes-shm-limit", VariantType::String, "0", {"Minimum amount of SHM required in order to publish data"}});
-  options.push_back(ConfigParamSpec{"metric-feedback-channel-format", VariantType::String, "name=metric-feedback,type=pull,method=connect,address=ipc://@metric-feedback-{},transport=shmem,rateLogging=0", {"format for the metric-feedback channel for TF rate limiting"}});
+  options.push_back(ConfigParamSpec{"metric-feedback-channel-format", VariantType::String, "name=metric-feedback,type=pull,method=connect,address=ipc://{}metric-feedback-{},transport=shmem,rateLogging=0", {"format for the metric-feedback channel for TF rate limiting"}});
 
   // options for error-check suppression
 
@@ -78,7 +79,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   int rateLimitingIPCID = std::stoi(configcontext.options().get<std::string>("timeframes-rate-limit-ipcid"));
   std::string chanFmt = configcontext.options().get<std::string>("metric-feedback-channel-format");
   if (rateLimitingIPCID > -1 && !chanFmt.empty()) {
-    rinp.metricChannel = fmt::format(chanFmt, rateLimitingIPCID);
+    rinp.metricChannel = fmt::format(chanFmt, o2::framework::ChannelSpecHelpers::defaultIPCFolder(), rateLimitingIPCID);
   }
 
   WorkflowSpec specs;
