@@ -58,8 +58,11 @@ void Initializer::setup()
 
   auto const options = Options::Instance();
 
+  EventManagerFrame::RunMode runMode = EventManagerFrame::decipherRunMode(settings.GetValue("data.default", "SYNTHETIC"));
+
   if (options->json()) {
-    eventManager.setDataSource(new DataSourceOnline(options->dataFolder()));
+    runMode = EventManagerFrame::decipherRunMode(options->dataFolder(), runMode);
+    eventManager.setDataSource(new DataSourceOnline(EventManagerFrame::getSourceDirectory(runMode).Data()));
   } else {
     eventManager.setDataSource(new DataSourceOffline(options->AODConverterPath(), options->dataFolder(), options->fileName(), options->hideDplGUI()));
   }

@@ -50,12 +50,15 @@ class EventManagerFrame : public TGMainFrame
   TGTextButton* mOnlineModeBtn;            // needed as we would like to make it selected
   TGTextButton* mSavedModeBtn;             // needed as we would like to make it shared
   TGTextButton* mSequentialModeBtn;        // needed as we would like to make it shared
+  TGRadioButton* mSyntheticRunBtn;         // needed as we would like to control button state
+  TGRadioButton* mCosmicsRunBtn;           // needed as we would like to control button state
+  TGRadioButton* mPhysicsRunBtn;           // needed as we would like to control button state
 
   Float_t mTime;  // Auto-load time in seconds
   TTimer* mTimer; // Timer for automatic event loading
   bool mTimerRunning;
   bool inTick = false;
-  DisplayMode mDisplayMode = EventManagerFrame::OnlineMode;
+  TString mDefaultDataDirectory;
   bool setInTick();   // try set inTick, return true if set, false if already set
   void clearInTick(); // safely clears inTick
   void checkMemory(); // check memory used end exit(-1) if it is too much
@@ -83,9 +86,18 @@ class EventManagerFrame : public TGMainFrame
   float getMinTimeFrameSliderValue() const;
   float getMaxTimeFrameSliderValue() const;
 
+  enum RunMode { SyntheticRun,
+                 CosmicsRun,
+                 PhysicsRun };
+  void setRunMode(EventManagerFrame::RunMode runMode, Bool_t emit = kTRUE);
+
   EventManagerFrame(o2::event_visualisation::EventManager& eventManager);
   ~EventManagerFrame() override;
   ClassDefOverride(EventManagerFrame, 0); // GUI window for AliEveEventManager.
+
+ private:
+  RunMode mRunMode = EventManagerFrame::SyntheticRun;
+  DisplayMode mDisplayMode = EventManagerFrame::OnlineMode;
 
  public: // slots
   void DoFirstEvent();
@@ -99,10 +111,17 @@ class EventManagerFrame : public TGMainFrame
   void DoSavedMode();
   void DoTimeTick();
   void DoSequentialMode();
+  void DoSyntheticData();
+  void DoCosmicsData();
+  void DoPhysicsData();
   void DoTerminate();
   void StopTimer();
   void StartTimer();
   void DoTimeFrameSliderChanged();
+
+ public: // static functions
+  static TString getSourceDirectory(EventManagerFrame::RunMode runMode);
+  static RunMode decipherRunMode(TString name, RunMode defaultRun = SyntheticRun);
 };
 
 } // namespace event_visualisation
