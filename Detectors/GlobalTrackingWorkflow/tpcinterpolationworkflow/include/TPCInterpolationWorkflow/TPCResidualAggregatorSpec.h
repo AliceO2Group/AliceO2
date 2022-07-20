@@ -38,7 +38,7 @@ namespace calibration
 class ResidualAggregatorDevice : public o2::framework::Task
 {
  public:
-  ResidualAggregatorDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool trackInput, bool writeUnbinnedResiduals, bool writeBinnedResiduals, bool writeTrackData) : mCCDBRequest(req), mTrackInput(trackInput), mWriteUnbinnedResiduals(writeUnbinnedResiduals), mWriteBinnedResiduals(writeBinnedResiduals), mWriteTrackData(writeTrackData) {}
+  ResidualAggregatorDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool trackInput, bool writeOutput, bool writeUnbinnedResiduals, bool writeBinnedResiduals, bool writeTrackData) : mCCDBRequest(req), mTrackInput(trackInput), mWriteOutput(writeOutput), mWriteUnbinnedResiduals(writeUnbinnedResiduals), mWriteBinnedResiduals(writeBinnedResiduals), mWriteTrackData(writeTrackData) {}
 
   void init(o2::framework::InitContext& ic) final
   {
@@ -51,17 +51,25 @@ class ResidualAggregatorDevice : public o2::framework::Task
     auto updateInterval = ic.options().get<uint32_t>("updateInterval");
     auto delay = ic.options().get<uint32_t>("max-delay");
 
-    std::string outputDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("output-dir"));
+    std::string outputDirConf = ic.options().get<std::string>("output-dir");
+    std::string outputDir = o2::utils::Str::rectifyDirectory(outputDirConf);
     std::string metaFileDir = ic.options().get<std::string>("meta-output-dir");
     bool storeMetaFile = false;
     if (metaFileDir != "/dev/null") {
       metaFileDir = o2::utils::Str::rectifyDirectory(metaFileDir);
       storeMetaFile = true;
     }
+    if (!mWriteOutput && (outputDirConf != "none" || storeMetaFile)) {
+      LOGF(alarm, "File output is disabled, but output directory %s was specified and meta file storage is set to %i", outputDirConf, storeMetaFile);
+      storeMetaFile = false;
+    }
     mAggregator = std::make_unique<o2::tpc::ResidualAggregator>(minEnt);
     mAggregator->setOutputDir(outputDir);
     if (storeMetaFile) {
       mAggregator->setMetaFileOutputDir(metaFileDir);
+    }
+    if (!mWriteOutput) {
+      mAggregator->disableFileWriting();
     }
     int autosave = ic.options().get<int>("autosave-interval");
     mAggregator->setAutosaveInterval(autosave);
@@ -120,6 +128,7 @@ class ResidualAggregatorDevice : public o2::framework::Task
   std::unique_ptr<o2::tpc::ResidualAggregator> mAggregator; ///< the TimeSlotCalibration device
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   bool mTrackInput{false};             ///< flag whether to expect track data as input
+  bool mWriteOutput{true};             ///< if false, no output file will be written
   bool mWriteBinnedResiduals{false};   ///< flag, whether to write binned residuals to output file
   bool mWriteUnbinnedResiduals{false}; ///< flag, whether to write unbinned residuals to output file
   bool mWriteTrackData{false};         ///< flag, whether to write track data to output file
@@ -130,7 +139,7 @@ class ResidualAggregatorDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool writeUnbinnedResiduals, bool writeBinnedResiduals, bool writeTrackData)
+DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool writeOutput, bool writeUnbinnedResiduals, bool writeBinnedResiduals, bool writeTrackData)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("unbinnedRes", "GLO", "UNBINNEDRES");
@@ -148,7 +157,7 @@ DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool writeUnbinn
     "residual-aggregator",
     inputs,
     Outputs{},
-    AlgorithmSpec{adaptFromTask<o2::calibration::ResidualAggregatorDevice>(ccdbRequest, trackInput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData)},
+    AlgorithmSpec{adaptFromTask<o2::calibration::ResidualAggregatorDevice>(ccdbRequest, trackInput, writeOutput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData)},
     Options{
       {"tf-per-slot", VariantType::UInt32, 6'000u, {"number of TFs per calibration time slot (put 0 for infinite slot length)"}},
       {"updateInterval", VariantType::UInt32, 6'000u, {"update interval in number of TFs in case slot length is infinite"}},

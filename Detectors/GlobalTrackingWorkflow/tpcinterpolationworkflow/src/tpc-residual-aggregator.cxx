@@ -21,6 +21,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<o2::framework::ConfigParamSpec> options{
     {"output-type", VariantType::String, "binnedResid", {"Comma separated list of outputs (without spaces). Valid strings: unbinnedResid, binnedResid, trackParams"}},
     {"enable-track-input", VariantType::Bool, false, {"Whether to expect track data from interpolation workflow"}},
+    {"disable-root-output", VariantType::Bool, false, {"Disables ROOT file writing"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
@@ -60,7 +61,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
+  auto fileOutput = !configcontext.options().get<bool>("disable-root-output");
+
   WorkflowSpec specs;
-  specs.emplace_back(getTPCResidualAggregatorSpec(trkInput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData));
+  specs.emplace_back(getTPCResidualAggregatorSpec(trkInput, fileOutput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData));
   return specs;
 }
