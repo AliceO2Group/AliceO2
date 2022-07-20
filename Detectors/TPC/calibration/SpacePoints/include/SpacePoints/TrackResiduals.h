@@ -205,6 +205,9 @@ class TrackResiduals
   /// Clear the vector of unbinned residuals
   void resetUnbinnedResiduals();
 
+  /// Clear the vector with track data belonging to residuals
+  void resetTrackData() { mTrackDataOut.clear(); }
+
   // -------------------------------------- steering functions --------------------------------------------------
 
   /// Loads residual data from track interpolation and fills vector of unbinned residuals

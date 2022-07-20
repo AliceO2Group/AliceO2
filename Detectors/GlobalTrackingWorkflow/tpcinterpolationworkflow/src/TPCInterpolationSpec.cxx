@@ -155,6 +155,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
 
   mInterpolation.reset();
   mResidualProcessor.resetUnbinnedResiduals();
+  mResidualProcessor.resetTrackData();
 }
 
 void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
