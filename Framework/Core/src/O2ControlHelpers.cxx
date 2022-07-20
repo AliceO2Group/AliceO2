@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 #include "O2ControlHelpers.h"
 #include "Framework/O2ControlLabels.h"
-#include "ChannelSpecHelpers.h"
+#include "Framework/ChannelSpecHelpers.h"
 #include "Framework/Logger.h"
 
 #include <iostream>

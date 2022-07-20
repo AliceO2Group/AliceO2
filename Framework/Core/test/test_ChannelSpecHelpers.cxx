@@ -14,7 +14,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
-#include "../src/ChannelSpecHelpers.h"
+#include "Framework/ChannelSpecHelpers.h"
 
 using namespace o2::framework;
 
