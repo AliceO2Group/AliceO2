@@ -665,8 +665,8 @@ struct RecoContainer {
   auto getPV2V0Refs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_V0REFS); }
   auto getCascades() const { return svtxPool.getSpan<o2::dataformats::Cascade>(CASCS); }
   auto getPV2CascadesRefs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_CASCREFS); }
-  auto getDecays3body() const { return svtxPool.getSpan<o2::dataformats::DecayNbody>(DECAY3BODY); }
-  auto getPV2Decays3bodyRefs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_DECAY3BODYREFS); }
+  auto getDecays3Body() const { return svtxPool.getSpan<o2::dataformats::DecayNbody>(DECAY3BODY); }
+  auto getPV2Decays3BodyRefs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_DECAY3BODYREFS); }
 
   const o2::dataformats::TrackCosmics& getCosmicTrack(int i) const { return cosmPool.get_as<o2::dataformats::TrackCosmics>(COSM_TRACKS, i); }
   auto getCosmicTrackMCLabel(int i) const { return cosmPool.get_as<o2::MCCompLabel>(COSM_TRACKS_MC, i); }

@@ -910,12 +910,13 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(const MCTrackLabelCursorType
   }
 }
 
-template <typename V0CursorType, typename CascadeCursorType>
-void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::RecoContainer& recoData, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor)
+template <typename V0CursorType, typename CascadeCursorType, typename Decay3BodyCursorType>
+void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::RecoContainer& recoData, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3BodyCursorType& decay3BodyCursor)
 {
 
   auto v0s = recoData.getV0s();
   auto cascades = recoData.getCascades();
+  auto decays3Body = recoData.getDecays3Body();
 
   // filling v0s table
   for (size_t iv0 = 0; iv0 < v0s.size(); iv0++) {
@@ -970,6 +971,38 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
       continue;
     }
     cascadeCursor(0, collID, v0tableID, bachTableIdx);
+  }
+
+  // filling 3 body decays table
+  for (size_t i3Body = 0; i3Body < decays3Body.size(); i3Body++) {
+    const auto& decay3Body = decays3Body[i3Body];
+    int trIDs[3]{
+      decay3Body.getProngID(0),
+      decay3Body.getProngID(1),
+      decay3Body.getProngID(2)
+    };
+    int tableIdx[3]{-1, -1, -1}, collID = -1;
+    bool missing{false};
+    for (int i{0}; i < 3; ++i) {
+      auto item = mGIDToTableID.find(trIDs[i]);
+      if (item != mGIDToTableID.end()) {
+        tableIdx[i] = item->second;
+      } else {
+        LOG(warn) << fmt::format("Could not find a track index for prong ID {}", trIDs[i]);
+        missing = true;
+      }
+    }
+    auto itemV = mVtxToTableCollID.find(decay3Body.getVertexID());
+    if (itemV == mVtxToTableCollID.end()) {
+      LOG(warn) << "Could not find 3 body collisionID for the vertex ID " << decay3Body.getVertexID();
+      missing = true;
+    } else {
+      collID = itemV->second;
+    }
+    if (missing) {
+      continue;
+    }
+    decay3BodyCursor(0, collID, tableIdx[0], tableIdx[1], tableIdx[2]);
   }
 }
 
@@ -1222,6 +1255,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& cascadesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CASCADE_001"});
   auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
+  auto& decay3BodyBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "DECAY3BODY"});
   auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD_001"});
   auto& ft0Builder = pc.outputs().make<TableBuilder>(Output{"AOD", "FT0"});
   auto& fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
@@ -1249,6 +1283,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
   auto cascadesCursor = cascadesBuilder.cursor<o2::aod::Cascades>();
   auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
+  auto decay3BodyCursor = decay3BodyBuilder.cursor<o2::aod::Decays3Body>();
   auto fddCursor = fddBuilder.cursor<o2::aod::FDDs>();
   auto ft0Cursor = ft0Builder.cursor<o2::aod::FT0s>();
   auto fv0aCursor = fv0aBuilder.cursor<o2::aod::FV0As>();
@@ -1599,7 +1634,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     collisionID++;
   }
 
-  fillSecondaryVertices(recoData, v0sCursor, cascadesCursor);
+  fillSecondaryVertices(recoData, v0sCursor, cascadesCursor, decay3BodyCursor);
 
   // helper map for fast search of a corresponding class mask for a bc
   std::unordered_map<uint64_t, uint64_t> bcToClassMask;
@@ -2057,6 +2092,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2cascade_001"}, "AOD", "CASCADE_001", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2decay3body"}, "AOD", "DECAY3BODY", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2fdd_001"}, "AOD", "FDD_001", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2ft0"}, "AOD", "FT0", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2fv0a"}, "AOD", "FV0A", 0, Lifetime::Timeframe);
