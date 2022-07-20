@@ -301,6 +301,7 @@ void EventManagerFrame::checkMemory()
       fclose(f);
       if (success == 1) {       // properly readed
         size = 4 * size / 1024; // in MB
+        this->memoryUsedInfo = size;
         LOG(info) << "Memory used: " << size << " memory allowed: " << memoryLimit;
         if (size > memoryLimit) {
           LOG(error) << "Memory used: " << size << " exceeds memory allowed: "
@@ -325,11 +326,12 @@ void EventManagerFrame::createOutreachScreenshot()
     }
     fileName = imageFolder + "/" + fileName.substr(0, fileName.find_last_of('.')) + ".png";
     if (!std::filesystem::is_regular_file(fileName)) {
+      DirectoryLoader::removeOldestFiles(imageFolder, ".png", 10);
+      LOG(info) << "Outreach screenshot: " << fileName;
       Screenshot::perform(fileName, this->mEventManager->getDataSource()->getDetectorsMask(),
                           this->mEventManager->getDataSource()->getRunNumber(),
                           this->mEventManager->getDataSource()->getFirstTForbit(),
                           this->mEventManager->getDataSource()->getCollisionTime());
-      DirectoryLoader::reduceNumberOfFiles(imageFolder, DirectoryLoader::load(imageFolder, "_", ".png"), 10);
     }
     // LOG(info) << mEventManager->getInstance().getDataSource()->getEventName();
   }

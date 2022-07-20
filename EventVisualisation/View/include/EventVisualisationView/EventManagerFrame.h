@@ -55,6 +55,7 @@ class EventManagerFrame : public TGMainFrame
   TTimer* mTimer; // Timer for automatic event loading
   bool mTimerRunning;
   bool inTick = false;
+  long memoryUsedInfo = 0L; // used to track memory leaks
   DisplayMode mDisplayMode = EventManagerFrame::OnlineMode;
   bool setInTick();   // try set inTick, return true if set, false if already set
   void clearInTick(); // safely clears inTick
