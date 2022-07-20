@@ -76,18 +76,21 @@ ResidualsContainer::ResidualsContainer(ResidualsContainer&& rhs)
   sumOfResiduals = std::move(rhs.sumOfResiduals);
 }
 
-void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string outputDir, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, int autosave)
+void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string outputDir, bool wFile, bool wBinnedResid, bool wUnbinnedResid, bool wTrackData, int autosave)
 {
   trackResiduals = residualsEngine;
+  writeToRootFile = wFile;
   writeBinnedResid = wBinnedResid;
   writeUnbinnedResiduals = wUnbinnedResid;
   writeTrackData = wTrackData;
   autosaveInterval = autosave;
-  fileName += std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-  fileName += ".root";
-  std::string fileNameTmp = outputDir + fileName;
-  fileNameTmp += ".part"; // to prevent premature external usage of the file use temporary name
-  fileOut = std::make_unique<TFile>(fileNameTmp.c_str(), "recreate");
+  if (writeToRootFile) {
+    fileName += std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    fileName += ".root";
+    std::string fileNameTmp = outputDir + fileName;
+    fileNameTmp += ".part"; // to prevent premature external usage of the file use temporary name
+    fileOut = std::make_unique<TFile>(fileNameTmp.c_str(), "recreate");
+  }
   if (writeUnbinnedResiduals) {
     treeOutResidualsUnbinned = std::make_unique<TTree>("unbinnedResid", "TPC unbinned residuals");
     treeOutResidualsUnbinned->Branch("res", &unbinnedResPtr);
@@ -196,7 +199,7 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const std::pa
   runNumber = ti.runNumber;
   tfOrbits.push_back(ti.firstTForbit);
 
-  if (autosaveInterval > 0 && (tfOrbits.size() % autosaveInterval) == 0) {
+  if (autosaveInterval > 0 && (tfOrbits.size() % autosaveInterval) == 0 && writeToRootFile) {
     writeToFile(false);
   }
 }
@@ -329,6 +332,10 @@ void ResidualAggregator::finalizeSlot(Slot& slot)
   LOG(info) << "Finalizing slot";
   auto cont = slot.getContainer();
   cont->print();
+  if (!mWriteOutput) {
+    LOG(info) << "Skip writing output, since file output is disabled";
+    return;
+  }
   cont->writeToFile(true);
   std::filesystem::rename(o2::utils::Str::concat_string(mOutputDir, cont->fileName, ".part"), mOutputDir + cont->fileName);
   if (mStoreMetaData) {
@@ -360,6 +367,6 @@ Slot& ResidualAggregator::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
   auto& cont = getSlots();
   auto& slot = front ? cont.emplace_front(tStart, tEnd) : cont.emplace_back(tStart, tEnd);
   slot.setContainer(std::make_unique<ResidualsContainer>());
-  slot.getContainer()->init(&mTrackResiduals, mOutputDir, mWriteBinnedResiduals, mWriteUnbinnedResiduals, mWriteTrackData, mAutosaveInterval);
+  slot.getContainer()->init(&mTrackResiduals, mOutputDir, mWriteOutput, mWriteBinnedResiduals, mWriteUnbinnedResiduals, mWriteTrackData, mAutosaveInterval);
   return slot;
 }
