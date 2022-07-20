@@ -320,7 +320,7 @@ EventRecord& EventStorage::getEventRecord(InteractionRecord& ir)
 void EventRecord::popTracklets(int popcount)
 {
   if (popcount > 3 || popcount < 0) {
-    LOG(error) << " been asked to pop more than 3 tracklets:" << popcount;
+    LOG(warn) << " been asked to pop more than 3 tracklets:" << popcount;
   } else {
     while (popcount > 0) {
       mTracklets.pop_back();

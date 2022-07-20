@@ -295,7 +295,7 @@ int DigitsParser::Parse(bool verbose)
                   incParsingError(TRDParsingDigitADCChannel21);
                 }
                 if (mCurrentADCChannel > 22) {
-                  LOG(error) << "invalid bitpattern (read a zero) for this mcm 0x" << std::hex << mADCMask << " at offset " << std::distance(mStartParse, word);
+                  LOG(warn) << "invalid bitpattern (read a zero) for this mcm 0x" << std::hex << mADCMask << " at offset " << std::distance(mStartParse, word);
                   incParsingError(TRDParsingDigitADCChannelGT22);
                   mCurrentADCChannel = 100 * bitsinmask + overchannelcount++;
                   if (mHeaderVerbose) {

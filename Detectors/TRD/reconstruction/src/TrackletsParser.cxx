@@ -67,7 +67,7 @@ int TrackletsParser::Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX
   mEventRecords = eventrecords;
   if (std::distance(start, end) > o2::trd::constants::MAXDATAPERLINK32) { // full event is all digits and 3 tracklets per mcm,
     //sanity check that the length of data to scan is less the possible maximum for a link
-    LOG(error) << "Attempt to parse a block of data for tracklets that is longer than a link can poossibly be : " << std::distance(start, end) << " should be less than : " << o2::trd::constants::MAXDATAPERLINK32 << " dumping this block of data.";
+    LOG(warn) << "Attempt to parse a block of data for tracklets that is longer than a link can poossibly be : " << std::distance(start, end) << " should be less than : " << o2::trd::constants::MAXDATAPERLINK32 << " dumping this block of data.";
     return -1;
   }
   if (eventrecord == nullptr) {
@@ -167,7 +167,7 @@ int TrackletsParser::Parse()
   int headertrackletcount = 0;
   bool ignoreDataTillTrackletEndMarker = false;             // used for when we need to dump the rest of the tracklet data.
   if (std::distance(mStartParse, mEndParse) > o2::trd::constants::MAXDATAPERLINK32) { // full event is all digits and 3 tracklets per mcm,
-    LOG(error) << "Attempt to parse a block of data for tracklets that is longer than a link can poossibly be : " << std::distance(mStartParse, mEndParse) << " should be less than : " << o2::trd::constants::MAXDATAPERLINK32 << " dumping this data.";
+    LOG(warn) << "Attempt to parse a block of data for tracklets that is longer than a link can poossibly be : " << std::distance(mStartParse, mEndParse) << " should be less than : " << o2::trd::constants::MAXDATAPERLINK32 << " dumping this data.";
     //sanity check that the length of data to scan is less the possible maximum for a link
     return -1;
   }

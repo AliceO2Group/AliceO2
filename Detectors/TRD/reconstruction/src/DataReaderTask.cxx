@@ -45,6 +45,8 @@ void DataReaderTask::init(InitContext& ic)
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
   mDigitPreviousTotal = mReader.getDigitsFound();
   mTrackletsPreviousTotal = mReader.getTrackletsFound();
+  mWordsRead = 0;
+  mWordsRejected = 0;
 }
 
 void DataReaderTask::endOfStream(o2::framework::EndOfStreamContext& ec)
@@ -140,17 +142,13 @@ void DataReaderTask::run(ProcessingContext& pc)
       if (mVerbose) {
         LOG(info) << " parsing non compressed data in the data reader task with a payload of " << payloadInSize << " payload size";
       }
-      //          LOG(info) << "start of data is at ref.payload=0x"<< std::hex << " payloadSize:0x" << payloadInSize <<" dh->headerSize:0x" <<dh->headerSize;
       total1 += payloadInSize;
       total2 += dh->headerSize;
-      //          LOG(info) << "start of data is at ref.payload=0x"<< std::hex << " total1:0x" << total1 <<" total2:0x" <<total2;
       mReader.setDataBuffer(payloadIn);
       mReader.setDataBufferSize(payloadInSize);
       mReader.configure(mTrackletHCHeaderState, mHalfChamberWords, mHalfChamberMajor, mOptions);
       //mReader.setStats(&mTimeFrameStats);
       mReader.run();
-      mWordsRead += mReader.getWordsRead();
-      mWordsRejected += mReader.getWordsRejected();
       if (mVerbose) {
         LOG(info) << "relevant vectors to read : " << mReader.sumTrackletsFound() << " tracklets and " << mReader.sumDigitsFound() << " compressed digits";
       }
@@ -161,6 +159,8 @@ void DataReaderTask::run(ProcessingContext& pc)
       mCompressedReader.run();
     }
   }
+  mWordsRead += mReader.getWordsRead();
+  mWordsRejected += mReader.getWordsRejected();
 
   sendData(pc, false);
   std::chrono::duration<double, std::milli> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
