@@ -46,6 +46,7 @@ namespace o2
 
 namespace tpc
 {
+class VDriftCorrFact;
 
 /// Structure used to store the TPC cluster residuals
 struct TPCClusterResiduals {
@@ -143,6 +144,7 @@ class TrackInterpolation
   void reset();
 
   // -------------------------------------- settings --------------------------------------------------
+  void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
 
   /// Sets the maximum phi angle at which track extrapolation is aborted
   void setMaxSnp(float snp) { mMaxSnp = snp; }
@@ -161,6 +163,8 @@ class TrackInterpolation
   float mSigYZ2TOF{.75f};    ///< for now assume cluster error for TOF equal for all clusters in both Y and Z
   float mMaxSnp{.85f};          ///< max snp when propagating ITS tracks
   float mMaxStep{2.f};          ///< maximum step for propagation
+  float mTPCVDriftRef = -1.;    ///< TPC nominal drift speed in cm/microseconds
+  float mTPCVDrift = -1.;       ///< TPC drift speed in cm/microseconds
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
   o2::trd::RecoParam mRecoParam;                     ///< parameters required for TRD refit
   o2::trd::Geometry* mGeoTRD;                        ///< TRD geometry instance (needed for tilted pad correction)

@@ -23,7 +23,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "TRDBase/PadPlane.h"
 #include "TMath.h"
-
+#include "DataFormatsTPC/VDriftCorrFact.h"
 #include <fairlogger/Logger.h>
 #include <set>
 
@@ -43,8 +43,7 @@ void TrackInterpolation::init()
   const auto& elParam = ParameterElectronics::Instance();
   mTPCTimeBinMUS = elParam.ZbinWidth;
 
-  std::unique_ptr<TPCFastTransform> fastTransform = (TPCFastTransformHelperO2::instance()->create(0));
-  mFastTransform = std::move(fastTransform);
+  mFastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
 
   mRecoParam.setBfield(o2::base::Propagator::Instance()->getNominalBz());
   mGeoTRD = o2::trd::Geometry::instance();
@@ -339,4 +338,16 @@ void TrackInterpolation::reset()
   mTrackData.clear();
   mClRes.clear();
   mGIDsSuccess.clear();
+}
+
+//______________________________________________
+void TrackInterpolation::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
+{
+  mTPCVDrift = v.refVDrift * v.corrFact;
+  // Attention! For the refit we are using reference VDrift rather than high-rate calibrated, since we want to have fixed reference over the run
+  if (v.refVDrift != mTPCVDriftRef) {
+    mTPCVDriftRef = v.refVDrift;
+    LOGP(info, "Imposing reference VDrift={} for TPC residuals extraction", mTPCVDriftRef);
+    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransform, 0, 1.0, mTPCVDriftRef);
+  }
 }
