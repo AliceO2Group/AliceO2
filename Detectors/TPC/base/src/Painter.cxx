@@ -81,6 +81,75 @@ std::vector<painter::PadCoordinates> painter::getPadCoordinatesSector()
   return padCoords;
 }
 
+std::vector<painter::PadCoordinates> painter::getStackCoordinatesSector()
+{
+  std::vector<painter::PadCoordinates> padCoords;
+  const auto& regInf = Mapper::instance().getMapPadRegionInfo();
+
+  std::vector<GEMstack> stacks;
+  stacks.reserve(CRU::CRUperSector);
+  for (int cru = 0; cru < CRU::CRUperSector; ++cru) {
+    stacks.emplace_back(CRU(cru).gemStack());
+  }
+
+  for (int stack = 0; stack < GEMSTACKSPERSECTOR; ++stack) {
+    auto& padCoord = padCoords.emplace_back();
+    padCoord.xVals.resize(0);
+    padCoord.yVals.resize(0);
+
+    const GEMstack currentStack = static_cast<GEMstack>(stack);
+    const auto first = std::find(stacks.cbegin(), stacks.cend(), currentStack);
+    const auto last = std::find(stacks.crbegin(), stacks.crend(), currentStack);
+    const int firstRegion = std::distance(stacks.cbegin(), first);
+    const int lastRegion = (stacks.size() - std::distance(stacks.crbegin(), last) - 1);
+
+    for (int region = firstRegion; region <= lastRegion; ++region) {
+      const auto& padReg = regInf[region];
+      const auto npr = padReg.getNumberOfPadRows();
+      const auto ro = padReg.getRowOffset();
+      const auto xm = padReg.getXhelper();
+      const auto ph = padReg.getPadHeight();
+      const auto pw = padReg.getPadWidth();
+      const auto yro = padReg.getRadiusFirstRow();
+      const auto ks = ph / pw * std::tan(1.74532925199432948e-01);
+
+      for (int irow = 0; irow < npr; ++irow) {
+        const auto npads = std::floor(ks * (irow + ro) + xm);
+        const int ipad = -npads;
+        const auto xPadBottomRight = yro + ph * irow;
+        const auto xPadTopRight = yro + ph * (irow + 1);
+        const auto ri = xPadBottomRight;
+        const auto yPadBottomRight = pw * ipad * xPadBottomRight / (ri + ph / 2);
+        const auto yPadTopRight = pw * ipad * xPadTopRight / (ri + ph / 2);
+        const auto yPadBottomLeft = pw * (ipad + 1) * xPadBottomRight / (ri + ph / 2);
+        const auto yPadTopLeft = pw * (ipad + 1) * xPadTopRight / (ri + ph / 2);
+        padCoord.xVals.emplace_back(xPadBottomRight);
+        padCoord.yVals.emplace_back(yPadBottomRight);
+        padCoord.xVals.emplace_back(xPadTopRight);
+        padCoord.yVals.emplace_back(yPadTopRight);
+      }
+    }
+    // mirror coordinates
+    for (int i = padCoord.xVals.size() - 1; i >= 0; i--) {
+      padCoord.xVals.emplace_back(padCoord.xVals[i]);
+      padCoord.yVals.emplace_back(std::abs(padCoord.yVals[i]));
+    }
+  }
+  return padCoords;
+}
+
+std::vector<o2::tpc::painter::PadCoordinates> painter::getCoordinates(const Type type)
+{
+  if (type == Type::Pad) {
+    return painter::getPadCoordinatesSector();
+  } else if (type == Type::Stack) {
+    return painter::getStackCoordinatesSector();
+  } else {
+    LOGP(warning, "Wrong Type provided!");
+    return std::vector<o2::tpc::painter::PadCoordinates>();
+  }
+}
+
 std::vector<double> painter::getRowBinningCM(uint32_t roc)
 {
   const Mapper& mapper = Mapper::instance();
@@ -479,11 +548,11 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const std::string_view fileNa
 }
 
 //______________________________________________________________________________
-TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_view title, const float xMin, const float xMax, const float yMin, const float yMax)
+TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_view title, const float xMin, const float xMax, const float yMin, const float yMax, const Type type)
 {
   auto poly = new TH2Poly(name.data(), title.data(), xMin, xMax, yMin, yMax);
 
-  auto coords = painter::getPadCoordinatesSector();
+  auto coords = painter::getCoordinates(type);
   for (const auto& coord : coords) {
     poly->AddBin(coord.xVals.size(), coord.xVals.data(), coord.yVals.data());
   }
@@ -492,12 +561,12 @@ TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_
 }
 
 //______________________________________________________________________________
-TH2Poly* painter::makeSideHist(Side side)
+TH2Poly* painter::makeSideHist(Side side, const Type type)
 {
   const auto s = (side == Side::A) ? "A" : "C";
   auto poly = new TH2Poly(fmt::format("hSide_{}", s).data(), fmt::format("{}-Side;#it{{x}} (cm);#it{{y}} (cm)", s).data(), -270., 270., -270., 270.);
 
-  auto coords = painter::getPadCoordinatesSector();
+  auto coords = painter::getCoordinates(type);
   for (int isec = 0; isec < 18; ++isec) {
     const float angDeg = 10.f + isec * 20;
     for (auto coord : coords) {

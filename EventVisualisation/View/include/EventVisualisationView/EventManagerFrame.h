@@ -59,6 +59,7 @@ class EventManagerFrame : public TGMainFrame
   bool mTimerRunning;
   bool inTick = false;
   TString mDefaultDataDirectory;
+  long memoryUsedInfo = 0L; // used to track memory leaks
   bool setInTick();   // try set inTick, return true if set, false if already set
   void clearInTick(); // safely clears inTick
   void checkMemory(); // check memory used end exit(-1) if it is too much

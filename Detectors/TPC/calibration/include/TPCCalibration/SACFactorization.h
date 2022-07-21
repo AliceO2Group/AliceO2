@@ -215,8 +215,8 @@ class SACFactorization
   /// \return returns side for given GEM stack
   Side getSide(const unsigned int gemStack) const { return (gemStack < GEMSTACKSPERSIDE) ? Side::A : Side::C; }
 
-  /// \return returns stack for given sector and region
-  unsigned int getStack(const unsigned int sector, const unsigned int region) const { return static_cast<unsigned int>(CRU(Sector(sector), region).gemStack()) + sector * GEMSTACKSPERSECTOR; }
+  /// \return returns stack for given sector and stack
+  unsigned int getStack(const unsigned int sector, const unsigned int stack) const { return static_cast<unsigned int>(stack + sector * GEMSTACKSPERSECTOR); }
 
   /// helper function for drawing SACDelta
   void drawSACDeltaHelper(const bool type, const Sector sector, const unsigned int interval, const SACDeltaCompression compression, const std::string filename, const float minZ, const float maxZ) const;

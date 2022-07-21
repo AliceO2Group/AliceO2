@@ -11,7 +11,7 @@
 
 #include "TPCCalibration/SACFactorization.h"
 #include "CommonUtils/TreeStreamRedirector.h"
-#include "TPCCalibration/IDCDrawHelper.h"
+#include "TPCCalibration/SACDrawHelper.h"
 #include "TPCCalibration/RobustAverage.h"
 #include "TPCCalibration/SACParameter.h"
 #include "Framework/Logger.h"
@@ -165,37 +165,37 @@ void o2::tpc::SACFactorization::reset()
 
 void o2::tpc::SACFactorization::drawSACDeltaHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const SACDeltaCompression compression, const std::string filename, const float minZ, const float maxZ) const
 {
-  std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> SACFunc;
+  std::function<float(const unsigned int, const unsigned int)> SACFunc;
 
-  const std::string zAxisTitle = IDCDrawHelper::getZAxisTitle(IDCType::IDCDelta, compression, 1);
+  const std::string zAxisTitle = SACDrawHelper::getZAxisTitle(SACType::IDCDelta);
 
-  IDCDrawHelper::IDCDraw drawFun;
+  SACDrawHelper::SACDraw drawFun;
   switch (compression) {
     case SACDeltaCompression::NO:
     default: {
-      SACFunc = [this, integrationInterval](const unsigned int sector, const unsigned int region, const unsigned int, const unsigned int) {
-        return this->getSACDeltaVal(getStack(sector, region), integrationInterval);
+      SACFunc = [this, integrationInterval](const unsigned int sector, const unsigned int stack) {
+        return this->getSACDeltaVal(getStack(sector, stack), integrationInterval);
       };
-      drawFun.mIDCFunc = SACFunc;
-      type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitle, filename, minZ, maxZ);
+      drawFun.mSACFunc = SACFunc;
+      type ? SACDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : SACDrawHelper::drawSector(drawFun, sector, zAxisTitle, filename, minZ, maxZ);
       break;
     }
     case SACDeltaCompression::MEDIUM: {
       const auto SACDeltaMedium = this->getSACDeltaMediumCompressed();
-      SACFunc = [this, &SACDeltaMedium, integrationInterval = integrationInterval](const unsigned int sector, const unsigned int region, const unsigned int, const unsigned int) {
-        return SACDeltaMedium.getValue(Sector(sector).side(), getSACDeltaIndex(getStack(sector, region), integrationInterval));
+      SACFunc = [this, &SACDeltaMedium, integrationInterval = integrationInterval](const unsigned int sector, const unsigned int stack) {
+        return SACDeltaMedium.getValue(Sector(sector).side(), getSACDeltaIndex(getStack(sector, stack), integrationInterval));
       };
-      drawFun.mIDCFunc = SACFunc;
-      type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitle, filename, minZ, maxZ);
+      drawFun.mSACFunc = SACFunc;
+      type ? SACDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : SACDrawHelper::drawSector(drawFun, sector, zAxisTitle, filename, minZ, maxZ);
       break;
     }
     case SACDeltaCompression::HIGH: {
       const auto SACDeltaHigh = this->getSACDeltaHighCompressed();
-      SACFunc = [this, &SACDeltaHigh, integrationInterval](const unsigned int sector, const unsigned int region, const unsigned int, const unsigned int) {
-        return SACDeltaHigh.getValue(Sector(sector).side(), getSACDeltaIndex(getStack(sector, region), integrationInterval));
+      SACFunc = [this, &SACDeltaHigh, integrationInterval](const unsigned int sector, const unsigned int stack) {
+        return SACDeltaHigh.getValue(Sector(sector).side(), getSACDeltaIndex(getStack(sector, stack), integrationInterval));
       };
-      drawFun.mIDCFunc = SACFunc;
-      type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitle, filename, minZ, maxZ);
+      drawFun.mSACFunc = SACFunc;
+      type ? SACDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : SACDrawHelper::drawSector(drawFun, sector, zAxisTitle, filename, minZ, maxZ);
       break;
     }
   }
@@ -203,39 +203,39 @@ void o2::tpc::SACFactorization::drawSACDeltaHelper(const bool type, const Sector
 
 void o2::tpc::SACFactorization::drawSACZeroHelper(const bool type, const Sector sector, const std::string filename, const float minZ, const float maxZ) const
 {
-  std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> SACFunc = [this](const unsigned int sector, const unsigned int region, const unsigned int, const unsigned int) {
-    return this->getSACZeroVal(getStack(sector, region));
+  std::function<float(const unsigned int, const unsigned int)> SACFunc = [this](const unsigned int sector, const unsigned int stack) {
+    return this->getSACZeroVal(getStack(sector, stack));
   };
 
-  IDCDrawHelper::IDCDraw drawFun;
-  drawFun.mIDCFunc = SACFunc;
-  const std::string zAxisTitle = IDCDrawHelper::getZAxisTitle(IDCType::IDCZero, SACDeltaCompression::NO, 1);
-  type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitle, filename, minZ, maxZ);
+  SACDrawHelper::SACDraw drawFun;
+  drawFun.mSACFunc = SACFunc;
+  const std::string zAxisTitle = SACDrawHelper::getZAxisTitle(SACType::IDCZero);
+  type ? SACDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : SACDrawHelper::drawSector(drawFun, sector, zAxisTitle, filename, minZ, maxZ);
 }
 
 void o2::tpc::SACFactorization::drawSACZeroOutlierHelper(const bool type, const Sector sector, const std::string filename, const float minZ, const float maxZ) const
 {
-  std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> SACFunc = [this](const unsigned int sector, const unsigned int region, const unsigned int, const unsigned int) {
-    return this->mOutlierMap[getStack(sector, region)];
+  std::function<float(const unsigned int, const unsigned int)> SACFunc = [this](const unsigned int sector, const unsigned int stack) {
+    return this->mOutlierMap[getStack(sector, stack)];
   };
 
-  IDCDrawHelper::IDCDraw drawFun;
-  drawFun.mIDCFunc = SACFunc;
-  const std::string zAxisTitle = IDCDrawHelper::getZAxisTitle(IDCType::IDCZero, SACDeltaCompression::NO, 1) + " outlier";
-  type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitle, filename, minZ, maxZ);
+  SACDrawHelper::SACDraw drawFun;
+  drawFun.mSACFunc = SACFunc;
+  const std::string zAxisTitle = SACDrawHelper::getZAxisTitle(SACType::IDCZero) + " outlier";
+  type ? SACDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : SACDrawHelper::drawSector(drawFun, sector, zAxisTitle, filename, minZ, maxZ);
 }
 
 void o2::tpc::SACFactorization::drawSACHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename, const float minZ, const float maxZ) const
 {
-  std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> SACFunc = [this, integrationInterval](const unsigned int sector, const unsigned int region, const unsigned int irow, const unsigned int pad) {
-    return this->getSACValue(getStack(sector, region), integrationInterval);
+  std::function<float(const unsigned int, const unsigned int)> SACFunc = [this, integrationInterval](const unsigned int sector, const unsigned int stack) {
+    return this->getSACValue(getStack(sector, stack), integrationInterval);
   };
 
-  IDCDrawHelper::IDCDraw drawFun;
-  drawFun.mIDCFunc = SACFunc;
+  SACDrawHelper::SACDraw drawFun;
+  drawFun.mSACFunc = SACFunc;
 
-  const std::string zAxisTitle = IDCDrawHelper::getZAxisTitle(IDCType::IDC, SACDeltaCompression::NO, 1);
-  type ? IDCDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : IDCDrawHelper::drawSector(drawFun, 0, Mapper::NREGIONS, sector, zAxisTitle, filename, minZ, maxZ);
+  const std::string zAxisTitle = SACDrawHelper::getZAxisTitle(SACType::IDC);
+  type ? SACDrawHelper::drawSide(drawFun, sector.side(), zAxisTitle, filename, minZ, maxZ) : SACDrawHelper::drawSector(drawFun, sector, zAxisTitle, filename, minZ, maxZ);
 }
 
 void o2::tpc::SACFactorization::createStatusMap()

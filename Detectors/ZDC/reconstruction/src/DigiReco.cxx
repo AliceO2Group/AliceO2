@@ -383,12 +383,26 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   if (mVerbosity >= DbgFull) {
     LOG(info) << "Dump of pedestal data lookup table";
   }
+  // TODO: send scalers to aggregator
+  uint32_t scaler[NChannels] = {0};
   for (int iorb = 0; iorb < norb; iorb++) {
     mOrbit[mOrbitData[iorb].ir.orbit] = iorb;
     if (mVerbosity >= DbgFull) {
       LOG(info) << "mOrbitData[" << mOrbitData[iorb].ir.orbit << "] = " << iorb;
     }
+    // TODO: add only if orbit is good. Here we check only the individual scaler values
+    for (int ich = 0; ich < NChannels; ich++) {
+      if (mOrbitData[iorb].scaler[ich] <= o2::constants::lhc::LHCMaxBunches) {
+        scaler[ich] += mOrbitData[iorb].scaler[ich];
+      }
+    }
   }
+  for (int ich = 0; ich < NChannels; ich++) {
+    if (mVerbosity > DbgZero) {
+      LOG(info) << ChannelNames[ich] << ": " << scaler[ich];
+    }
+  }
+
   mNBC = mBCData.size();
   mReco.clear();
   mReco.resize(mNBC);
@@ -491,7 +505,9 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   // that do not span the entire range
   int seq_beg = 0;
   int seq_end = 0;
-  LOG(info) << "Processing ZDC reconstruction for " << mNBC << " bunch crossings";
+  if (mVerbosity > DbgMinimal) {
+    LOG(info) << "Processing ZDC reconstruction for " << mNBC << " bunch crossings";
+  }
 
   // TDC reconstruction
   for (int ibc = 0; ibc < mNBC; ibc++) {
@@ -724,12 +740,13 @@ int DigiReco::reconstruct(int ibeg, int iend)
 #endif
   // Process consecutive BCs
   if (ibeg == iend) {
-    if (mReco[ibeg].ir.bc == (o2::constants::lhc::LHCMaxBunches - 1)) {
-      mNLastLonely++;
-    } else {
-      mNLonely++;
-      LOG(info) << "Lonely bunch " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc;
+    mNLonely++;
+    mLonely[mReco[ibeg].ir.bc]++;
+    if (mBCData[ibeg].triggers != 0x0) {
+      mLonelyTrig[mReco[ibeg].ir.bc]++;
     }
+    // Cannot reconstruct lonely bunch
+    // LOG(info) << "Lonely bunch " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc;
     return 0;
   }
 #ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG

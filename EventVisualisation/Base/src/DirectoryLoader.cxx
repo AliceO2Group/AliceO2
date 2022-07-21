@@ -16,6 +16,8 @@
 #include "EventVisualisationBase/DirectoryLoader.h"
 #include <filesystem>
 #include <algorithm>
+#include <climits>
+#include <FairLogger.h>
 
 using namespace std;
 using namespace o2::event_visualisation;
@@ -45,5 +47,48 @@ void DirectoryLoader::reduceNumberOfFiles(const std::string& path, const std::de
   int items = files.size() - std::min(files.size(), filesInFolder);
   for (int i = 0; i < items; i++) {
     std::remove((path + "/" + files[i]).c_str()); // delete file
+  }
+}
+
+template <typename TP>
+std::time_t to_time_t(TP tp)
+{
+  using namespace std::chrono;
+  auto sctp = time_point_cast<system_clock::duration>(tp - TP::clock::now() + system_clock::now());
+  return system_clock::to_time_t(sctp);
+}
+
+int DirectoryLoader::getNumberOfFiles(std::string& path, std::string& ext)
+{
+  int res = 0;
+  for (const auto& entry : std::filesystem::directory_iterator(path)) {
+    if (entry.path().extension() == ext) {
+      res++;
+    }
+  }
+  return res;
+}
+std::string DirectoryLoader::getLatestFile(std::string& path, std::string& ext)
+{
+  std::string oldest_file_name = "";
+  std::time_t oldest_file_time = LONG_MAX;
+  for (const auto& entry : std::filesystem::directory_iterator(path)) {
+    if (entry.path().extension() == ext) {
+      auto file_time = entry.last_write_time();
+      std::time_t tt = to_time_t(file_time);
+      if (tt < oldest_file_time) {
+        oldest_file_time = tt;
+        oldest_file_name = entry.path().filename();
+      }
+    }
+  }
+  return oldest_file_name;
+}
+
+void DirectoryLoader::removeOldestFiles(std::string& path, std::string ext, int remaining)
+{
+  while (getNumberOfFiles(path, ext) > remaining) {
+    LOG(info) << "removing oldest file in folder: " << path << " : " << getLatestFile(path, ext);
+    filesystem::remove(path + "/" + getLatestFile(path, ext));
   }
 }

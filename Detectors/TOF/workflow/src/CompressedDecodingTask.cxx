@@ -29,6 +29,7 @@
 #include "Framework/InputRecordWalker.h"
 #include "Framework/DataRefUtils.h"
 #include "CommonUtils/VerbosityConfig.h"
+#include "DetectorsBase/TFIDInfoHelper.h"
 
 using namespace o2::framework;
 
@@ -118,6 +119,11 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
 
   auto diagnosticFrequency = mDecoder.getDiagnosticFrequency();
   diagnosticFrequency.setTimeStamp(mCreationTime / 1000);
+  // add TFIDInfo
+  o2::dataformats::TFIDInfo tfinfo;
+  o2::base::TFIDInfoHelper::fillTFIDInfo(pc, tfinfo);
+  diagnosticFrequency.setTFIDInfo(tfinfo);
+
   //diagnosticFrequency.print();
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe}, diagnosticFrequency);
 

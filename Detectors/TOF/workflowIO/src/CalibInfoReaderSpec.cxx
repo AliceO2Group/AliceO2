@@ -71,10 +71,16 @@ void CalibInfoReader::run(ProcessingContext& pc)
     if ((mGlobalEntry % mNinstances) == mInstance) {
       mTree->GetEvent(mCurrentEntry);
 
-      if (mVect.size()) {
+      if (mDiagnostic) {
+        // add TFIDInfo
+        const auto& info = mDia.getTFIDInfo();
+        timingInfo.firstTForbit = info.firstTForbit;
+        timingInfo.tfCounter = info.tfCounter;
+        timingInfo.runNumber = info.runNumber;
+        timingInfo.timeslice = info.startTime;
+        timingInfo.creation = info.creation;
+      } else if (mVect.size()) {
         timingInfo.creation = uint64_t(mVect[0].getTimestamp()) * 1000;
-      } else if (mDiagnostic) {
-        timingInfo.creation = uint64_t(mDia.getTimeStamp()) * 1000;
       }
 
       LOG(debug) << "Current entry " << mCurrentEntry;

@@ -80,7 +80,7 @@ class Digits2Raw
   const ModuleConfig* mModuleConfig = nullptr;                          /// Trigger/readout configuration object
   const SimCondition* mSimCondition = nullptr;                          /// Pedestal/noise configuration object
   uint16_t mScalers[NModules][NChPerModule] = {0};                      /// ZDC orbit scalers
-  uint32_t mLastOrbit = 0;                                              /// Last processed orbit
+  uint32_t mLatestOrbit = 0;                                            /// Latest processed orbit
   uint32_t mTriggerMask = 0;                                            /// Trigger mask from ModuleConfig
   std::string mPrintTriggerMask = "";                                   /// Nice printout of trigger mask
   int32_t mNEmpty = -1;                                                 /// Number of clean empty bunches for pedestal evaluation
