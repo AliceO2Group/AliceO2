@@ -31,6 +31,7 @@
 #include "GlobalTracking/MatchTPCITS.h"
 #include "CommonConstants/GeomConstants.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
+#include "DataFormatsTPC/VDriftCorrFact.h"
 #include <algorithm>
 #include <numeric>
 
@@ -532,6 +533,7 @@ void MatchCosmics::updateTimeDependentParams()
 void MatchCosmics::init()
 {
   mMatchParams = &o2::globaltracking::MatchCosmicsParams::Instance();
+  mTPCTransform = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
 
 #ifdef _ALLOW_DEBUG_TREES_COSM
   // debug streamer
@@ -573,6 +575,14 @@ void MatchCosmics::setDebugFlag(UInt_t flag, bool on)
   } else {
     mDBGFlags &= ~flag;
   }
+}
+
+//______________________________________________
+void MatchCosmics::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
+{
+  mTPCVDrift = v.refVDrift * v.corrFact;
+  mTPCVDriftRef = v.refVDrift;
+  o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCTransform, 0, v.corrFact, v.refVDrift);
 }
 
 #endif
