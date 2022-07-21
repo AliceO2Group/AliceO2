@@ -19,16 +19,19 @@
 #ifndef AliceO2_TPC_VDRIFT_CORRFACT_H
 #define AliceO2_TPC_VDRIFT_CORRFACT_H
 
+#include "GPUCommonRtypes.h"
+
 namespace o2::tpc
 {
 
 struct VDriftCorrFact {
-  long firstTime{};    ///< first time stamp of processed TFs
-  long lastTime{};     ///< last time stamp of processed TFs
-  long creationTime{}; ///< time of creation
-  float corrFact{};    ///< drift velocity correction factor (multiplicative)
-  float corrFactErr{}; ///< stat error of correction factor
-  float refVDrift{};   ///< reference vdrift for which factor was extracted
+  long firstTime{};       ///< first time stamp of processed TFs
+  long lastTime{};        ///< last time stamp of processed TFs
+  long creationTime{};    ///< time of creation
+  float corrFact{1.0};    ///< drift velocity correction factor (multiplicative)
+  float corrFactErr{0.0}; ///< stat error of correction factor
+  float refVDrift{0.};    ///< reference vdrift for which factor was extracted
+
   ClassDefNV(VDriftCorrFact, 1);
 };
 
