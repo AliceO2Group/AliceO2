@@ -38,6 +38,7 @@ namespace tpc
 {
 class CalibdEdxContainer;
 struct ClusterGroupHeader;
+class VDriftHelper;
 } // namespace tpc
 
 namespace trd
@@ -115,6 +116,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::unique_ptr<TPCZSLinkMapping> mTPCZSLinkMapping;
   std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainer;
   std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainerBufferNew;
+  std::unique_ptr<o2::tpc::VDriftHelper> mTPCVDriftHelper;
   std::unique_ptr<o2::trd::GeometryFlat> mTRDGeometry;
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
   std::unique_ptr<GPUSettingsO2> mConfParam;
