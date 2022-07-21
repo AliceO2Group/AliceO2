@@ -35,6 +35,8 @@ void readMFTDCSConfigEntries(long ts = 9999999999000, std::string ccdb_path = o2
 
   std::vector<o2::mft::DCSConfigInfo>* obj = api.retrieveFromTFileAny<std::vector<o2::mft::DCSConfigInfo>>("MFT/Config/Params", metadata, ts);
 
+  bool flag = false;
+
   std::cout << "Stored in CCDB server (o2::mft::DCSConfigInfo)" << endl;
   for (auto& i : *obj) {
 
@@ -46,24 +48,39 @@ void readMFTDCSConfigEntries(long ts = 9999999999000, std::string ccdb_path = o2
     add = i.getAdd();
     ver = i.getVersion();
 
-    std::cout << "   Parameter type = " << type << " (RU=0, ALPIDE=1),   Address (decimal) = " << add << ",   Data =  " << data << ",   Config ver. = " << ver << std::endl;
+    if (flag == false) {
+      std::cout << "Version: " << ver << std::endl;
+      flag = true;
+    }
+
+    std::cout << "   Type = " << type << ",   Address = " << add << ",   Data =  " << data << std::endl;
   }
 
+  flag = false;
+  std::cout << std::endl;
   std::cout << "Human-friendly format (o2::mft::DCSConfigInfo + o2::mft::DCSConfigUtils)" << endl;
   for (auto& i : *obj) {
 
     auto utils = std::make_unique<o2::mft::DCSConfigUtils>();
-    utils->init(i);
+    utils->init();
 
     int data, add, type;
     std::string ver;
     std::string typestr, name;
 
     data = i.getData();
+    type = i.getType();
+    add = i.getAdd();
     ver = i.getVersion();
-    typestr = utils->getTypeStr();
-    name = utils->getName();
-    std::cout << "   Parameter type = " << typestr << ",   Name = " << name << ",   Data =  " << data << ",   Config ver. = " << ver << std::endl;
+    if (flag == false) {
+      std::cout << "Version: " << ver << std::endl;
+      flag = true;
+    }
+
+    typestr = utils->getTypeName(type);
+    name = utils->getName(add, typestr);
+
+    std::cout << "   Type = " << typestr << ",   Name = " << name << ",   Data =  " << data << std::endl;
   }
 
   return;
