@@ -19,7 +19,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "DetectorsBase/Propagator.h"
-
+#include "DataFormatsTPC/VDriftCorrFact.h"
 #include "MathUtils/Cartesian.h"
 #include "MathUtils/Utils.h"
 #include "CommonConstants/MathConstants.h"
@@ -144,6 +144,15 @@ void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
   LOGF(info, "Timing Do Matching Constrained: Cpu: %.3e s Real: %.3e s in %d slots", mTimerMatchITSTPC.CpuTime(), mTimerMatchITSTPC.RealTime(), mTimerMatchITSTPC.Counter() - 1);
   LOGF(info, "Timing Do Matching TPC        : Cpu: %.3e s Real: %.3e s in %d slots", mTimerMatchTPC.CpuTime(), mTimerMatchTPC.RealTime(), mTimerMatchTPC.Counter() - 1);
 }
+
+//______________________________________________
+void MatchTOF::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
+{
+  mTPCVDrift = v.refVDrift * v.corrFact;
+  mTPCVDriftRef = v.refVDrift;
+  o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCTransform, 0, v.corrFact, v.refVDrift);
+}
+
 //______________________________________________
 void MatchTOF::print() const
 {
@@ -689,9 +698,7 @@ void MatchTOF::doMatching(int sec)
 //______________________________________________
 void MatchTOF::doMatchingForTPC(int sec)
 {
-  auto& gasParam = o2::tpc::ParameterGas::Instance();
-  float vdrift = gasParam.DriftV;
-  float vdriftInBC = Geo::BC_TIME_INPS * 1E-6 * vdrift;
+  float vdriftInBC = Geo::BC_TIME_INPS * 1E-6 * mTPCVDrift;
 
   int bc_grouping = 40;
   int bc_grouping_tolerance = bc_grouping + mTimeTolerance / 25;
@@ -842,9 +849,9 @@ void MatchTOF::doMatchingForTPC(int sec)
         }
 
         if (side > 0) {
-          posFloat[2] = pos[2] - vdrift * (trackWork.second.getTimeStamp() - BCcand[ibc] * Geo::BC_TIME_INPS * 1E-6);
+          posFloat[2] = pos[2] - mTPCVDrift * (trackWork.second.getTimeStamp() - BCcand[ibc] * Geo::BC_TIME_INPS * 1E-6);
         } else if (side < 0) {
-          posFloat[2] = pos[2] + vdrift * (trackWork.second.getTimeStamp() - BCcand[ibc] * Geo::BC_TIME_INPS * 1E-6);
+          posFloat[2] = pos[2] + mTPCVDrift * (trackWork.second.getTimeStamp() - BCcand[ibc] * Geo::BC_TIME_INPS * 1E-6);
         } else {
           posFloat[2] = pos[2];
         }
@@ -1007,7 +1014,7 @@ void MatchTOF::doMatchingForTPC(int sec)
             foundCluster = true;
             // set event indexes (to be checked)
             int eventIndexTOFCluster = mTOFClusSectIndexCache[indices[0]][itof];
-            mMatchedTracksPairs.emplace_back(cacheTrk[itrk], eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[ibc][iPropagation], mTrackGid[trkType::UNCONS][cacheTrk[itrk]], trkType::UNCONS, resZ / vdrift * side, trefTOF.getZ(), resX, resZ); // TODO: check if this is correct!
+            mMatchedTracksPairs.emplace_back(cacheTrk[itrk], eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[ibc][iPropagation], mTrackGid[trkType::UNCONS][cacheTrk[itrk]], trkType::UNCONS, resZ / mTPCVDrift * side, trefTOF.getZ(), resX, resZ); // TODO: check if this is correct!
           }
         }
       }
@@ -1324,10 +1331,9 @@ void MatchTOF::updateTimeDependentParams()
 {
   ///< update parameters depending on time (once per TF)
   auto& elParam = o2::tpc::ParameterElectronics::Instance();
-  auto& gasParam = o2::tpc::ParameterGas::Instance();
   mTPCTBinMUS = elParam.ZbinWidth; // TPC bin in microseconds
   mTPCTBinMUSInv = 1. / mTPCTBinMUS;
-  mTPCBin2Z = mTPCTBinMUS * gasParam.DriftV;
+  mTPCBin2Z = mTPCTBinMUS * mTPCVDrift;
 
   mBz = o2::base::Propagator::Instance()->getNominalBz();
   mMaxInvPt = abs(mBz) > 0.1 ? 1. / (abs(mBz) * 0.05) : 999.;
@@ -1405,4 +1411,10 @@ void MatchTOF::checkRefitter()
                                                                   mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(),
                                                                   nullptr, o2::base::Propagator::Instance());
   }
+}
+
+//_________________________________________________________
+void MatchTOF::initTPCTransform()
+{
+  mTPCTransform = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
 }

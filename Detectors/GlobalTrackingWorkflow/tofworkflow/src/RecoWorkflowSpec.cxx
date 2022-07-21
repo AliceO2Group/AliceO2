@@ -27,6 +27,7 @@
 #include "CommonUtils/NameConf.h"
 #include <gsl/span>
 #include "TStopwatch.h"
+#include "TPCCalibration/VDriftHelper.h"
 
 // from FIT
 #include "DataFormatsFT0/RecPoints.h"
@@ -57,6 +58,7 @@ class TOFDPLRecoWorkflowTask
   void init(framework::InitContext& ic)
   {
     o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+    mMatcher.initTPCTransform();
     mTimer.Stop();
     mTimer.Reset();
   }
@@ -113,12 +115,19 @@ class TOFDPLRecoWorkflowTask
   void updateTimeDependentParams(ProcessingContext& pc)
   {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    o2::tpc::VDriftHelper::extractCCDBInputs(pc);
     static bool initOnceDone = false;
     if (!initOnceDone) { // this params need to be queried only once
       initOnceDone = true;
       // put here init-once stuff
     }
     // we may have other params which need to be queried regularly
+    if (mTPCVDriftHelper.isUpdated()) {
+      LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
+           mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+      mMatcher.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
+      mTPCVDriftHelper.acknowledgeUpdate();
+    }
   }
 
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
@@ -126,11 +135,15 @@ class TOFDPLRecoWorkflowTask
     if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
       return;
     }
+    if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
+      return;
+    }
   }
 
  private:
   o2::globaltracking::MatchTOF mMatcher; ///< Cluster finder
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
+  o2::tpc::VDriftHelper mTPCVDriftHelper{};
   TStopwatch mTimer;
 };
 
@@ -156,6 +169,7 @@ o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC, bool useFIT)
                                                               o2::base::GRPGeomRequest::Aligned, // geometry
                                                               inputs,
                                                               true);
+  o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
 
   outputs.emplace_back(o2::header::gDataOriginTOF, "MTC_ITSTPC", 0, Lifetime::Timeframe);
   if (useMC) {
