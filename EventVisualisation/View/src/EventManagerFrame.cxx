@@ -590,6 +590,8 @@ TString EventManagerFrame::getSourceDirectory(EventManagerFrame::RunMode runMode
       return settings.GetValue("data.cosmics.run.dir", "jsons/cosmics");
     case EventManagerFrame::PhysicsRun:
       return settings.GetValue("data.physics.run.dir", "jsons/physics");
+    default:
+      return settings.GetValue("data.synthetic.run.dir", "jsons/synthetic");
   }
 }
 
