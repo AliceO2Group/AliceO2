@@ -79,6 +79,8 @@ class Tracker
   // GPU-specific interfaces
   TimeFrame* getTimeFrameGPU();
   void loadToDevice();
+  void setNThreads(int n);
+  int getNThreads() const { return mNThreads; }
 
  private:
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3,
@@ -107,6 +109,7 @@ class Tracker
   std::vector<MemoryParameters> mMemParams;
   std::vector<TrackingParameters> mTrkParams;
 
+  int mNThreads = 1;
   bool mCUDA = false;
   bool mApplySmoothing = false;
   o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;

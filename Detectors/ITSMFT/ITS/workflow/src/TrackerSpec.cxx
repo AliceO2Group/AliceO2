@@ -81,7 +81,7 @@ void TrackerDPL::init(InitContext& ic)
 
   } else if (mMode == "sync_misaligned") {
 
-    trackParams.resize(1);
+    trackParams.resize(3);
     trackParams[0].PhiBins = 32;
     trackParams[0].ZBins = 64;
     trackParams[0].CellDeltaTanLambdaSigma *= 3.;
@@ -94,8 +94,11 @@ void TrackerDPL::init(InitContext& ic)
     trackParams[0].LayerMisalignment[6] = 3.e-2;
     trackParams[0].FitIterationMaxChi2[0] = 50.;
     trackParams[0].FitIterationMaxChi2[1] = 25.;
-    trackParams[0].MinTrackLength = 4;
-    memParams.resize(1);
+    trackParams[1] = trackParams[0];
+    trackParams[2] = trackParams[0];
+    trackParams[1].MinTrackLength = 6;
+    trackParams[2].MinTrackLength = 4;
+    memParams.resize(3);
     LOG(info) << "Initializing tracker in misaligned sync. phase reconstruction with " << trackParams.size() << " passes";
 
   } else if (mMode == "sync") {
