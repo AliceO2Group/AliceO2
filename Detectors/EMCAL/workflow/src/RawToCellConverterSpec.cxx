@@ -155,7 +155,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         rawreader.next();
       } catch (RawDecodingError& e) {
         if (mCreateRawDataErrors) {
-          mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()), -1);
+          mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()), -1, -1);
         }
         if (mNumErrorMessages < mMaxErrorMessages) {
           LOG(warning) << " Page decoding: " << e.what() << " in FEE ID " << e.getFECID() << std::endl;
@@ -268,7 +268,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         }
         if (mCreateRawDataErrors) {
           // fill histograms  with error types
-          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(e.getErrorType()), -1);
+          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(e.getErrorType()), -1, -1);
           mOutputDecoderErrors.push_back(errornum);
         }
         continue;
@@ -284,7 +284,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           } else {
             mErrorMessagesSuppressed++;
           }
-          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, MinorAltroDecodingError::errorTypeToInt(minorerror.getErrorType()), -1);
+          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, MinorAltroDecodingError::errorTypeToInt(minorerror.getErrorType()), -1, -1);
           mOutputDecoderErrors.push_back(errornum);
         }
       }
@@ -369,7 +369,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               mErrorMessagesSuppressed++;
             }
             if (mCreateRawDataErrors) {
-              mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, 0, CellID); // 0 -> Cell ID out of range
+              mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, 0, CellID, chan.getHardwareAddress()); // 0 -> Cell ID out of range
             }
             continue;
           }
@@ -399,7 +399,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               mErrorMessagesSuppressed++;
             }
             if (mCreateRawDataErrors) {
-              mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, 2, CellID); // Geometry error codes will start from 100
+              mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, 2, CellID, chan.getHardwareAddress()); // Geometry error codes will start from 100
             }
             continue;
           }
@@ -503,7 +503,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               }
               // Exclude BUNCH_NOT_OK also from raw error objects
               if (mCreateRawDataErrors) {
-                mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror), CellID);
+                mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror), CellID, chan.getHardwareAddress());
               }
             } else {
               LOG(debug2) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
@@ -521,7 +521,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           }
         }
         if (mCreateRawDataErrors) {
-          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(AltroDecoderError::ErrorType_t::ALTRO_MAPPING_ERROR), -1);
+          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(AltroDecoderError::ErrorType_t::ALTRO_MAPPING_ERROR), -1, -1);
         }
       }
     }
@@ -552,7 +552,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               mErrorMessagesSuppressed++;
             }
             if (mCreateRawDataErrors) {
-              mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 0, cell.mFecID);
+              mOutputDecoderErrors.emplace_back(cell.mDDLID, ErrorTypeFEE::GAIN_ERROR, 0, cell.mFecID, cell.mHWAddressLG);
             }
           }
           continue;
@@ -568,7 +568,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             mErrorMessagesSuppressed++;
           }
           if (mCreateRawDataErrors) {
-            mOutputDecoderErrors.emplace_back(cell.mFecID, ErrorTypeFEE::GAIN_ERROR, 1, cell.mFecID);
+            mOutputDecoderErrors.emplace_back(cell.mDDLID, ErrorTypeFEE::GAIN_ERROR, 1, cell.mFecID, cell.mHWAddressHG);
           }
           continue;
         }

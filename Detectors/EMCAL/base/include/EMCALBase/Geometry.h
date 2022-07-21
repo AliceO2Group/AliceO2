@@ -375,7 +375,7 @@ class Geometry
   /// \param col Global col ID
   /// \return Position in supermodule: [0 - supermodule ID, 1 - row in supermodule - col in supermodule]
   /// \throw RowColException
-  std::tuple<int, int, int> GetPositionInSupermoduleFromGlobalRowCol(int col, int row) const;
+  std::tuple<int, int, int> GetPositionInSupermoduleFromGlobalRowCol(int row, int col) const;
 
   /// \brief Get the cell indices from global position in the EMCAL
   /// \param row Global row ID
