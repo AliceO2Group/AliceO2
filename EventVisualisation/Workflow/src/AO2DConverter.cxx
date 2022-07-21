@@ -74,7 +74,7 @@ struct AO2DConverter {
     mHelper->mEvent.setTfCounter(mTfCounter);
     mHelper->mEvent.setFirstTForbit(mTfOrbit);
 
-    mHelper->save(jsonPath, -1, GlobalTrackID::MASK_ALL, GlobalTrackID::MASK_NONE, mRunNumber, collision.collisionTime());
+    mHelper->save(jsonPath, ".root", -1, GlobalTrackID::MASK_ALL, GlobalTrackID::MASK_NONE, mRunNumber, collision.collisionTime());
     mHelper->clear();
   }
 };

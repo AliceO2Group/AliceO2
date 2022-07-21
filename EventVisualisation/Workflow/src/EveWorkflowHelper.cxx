@@ -323,11 +323,11 @@ void EveWorkflowHelper::draw(std::size_t primaryVertexIdx, bool sortTracks)
   }
 }
 
-void EveWorkflowHelper::save(const std::string& jsonPath, int numberOfFiles,
+void EveWorkflowHelper::save(const std::string& jsonPath, const std::string& ext, int numberOfFiles,
                              o2::dataformats::GlobalTrackID::mask_t trkMask, o2::dataformats::GlobalTrackID::mask_t clMask,
                              o2::header::DataHeader::RunNumberType runNumber, o2::framework::DataProcessingHeader::CreationTime creation)
 {
-  mEvent.setWorkflowVersion(o2_eve_version);
+  mEvent.setEveVersion(o2_eve_version);
   mEvent.setRunNumber(runNumber);
   std::time_t timeStamp = std::time(nullptr);
   std::string asciiTimeStamp = std::asctime(std::localtime(&timeStamp));
@@ -339,8 +339,8 @@ void EveWorkflowHelper::save(const std::string& jsonPath, int numberOfFiles,
   asciiCreationTime.pop_back(); // remove trailing \n
   mEvent.setCollisionTime(asciiCreationTime);
 
-  FileProducer producer(jsonPath, numberOfFiles);
-  VisualisationEventSerializer::getInstance()->toFile(mEvent, producer.newFileName());
+  FileProducer producer(jsonPath, ext, numberOfFiles);
+  VisualisationEventSerializer::getInstance(ext)->toFile(mEvent, producer.newFileName());
 }
 
 std::vector<PNT> EveWorkflowHelper::getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep, float minZ, float maxZ)

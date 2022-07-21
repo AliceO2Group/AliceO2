@@ -18,6 +18,7 @@
 
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
 #include <string>
+#include <map>
 
 namespace o2
 {
@@ -26,19 +27,14 @@ namespace event_visualisation
 
 class VisualisationEventSerializer
 {
-  static VisualisationEventSerializer* instance;
+  static std::map<std::string, VisualisationEventSerializer*> instances;
 
  protected:
   VisualisationEventSerializer() = default;
   static std::string fileNameIndexed(const std::string fileName, const int index);
 
  public:
-  static VisualisationEventSerializer* getInstance() { return instance; }
-  static void setInstance(VisualisationEventSerializer* newInstance)
-  { // take ownership
-    delete instance;
-    instance = newInstance;
-  }
+  static VisualisationEventSerializer* getInstance(std::string ext) { return instances[ext]; }
   virtual bool fromFile(VisualisationEvent& event, std::string fileName) = 0;
   virtual void toFile(const VisualisationEvent& event, std::string fileName) = 0;
   virtual ~VisualisationEventSerializer() = default;

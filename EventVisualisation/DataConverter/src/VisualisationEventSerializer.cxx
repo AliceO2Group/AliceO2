@@ -16,6 +16,7 @@
 
 #include "EventVisualisationDataConverter/VisualisationEventSerializer.h"
 #include "EventVisualisationDataConverter/VisualisationEventJSONSerializer.h"
+#include "EventVisualisationDataConverter/VisualisationEventROOTSerializer.h"
 #include "FairLogger.h"
 #include <iostream>
 #include <iomanip>
@@ -24,8 +25,9 @@ namespace o2
 {
 namespace event_visualisation
 {
-
-VisualisationEventSerializer* VisualisationEventSerializer::instance = new VisualisationEventJSONSerializer();
+std::map<std::string, VisualisationEventSerializer*> VisualisationEventSerializer::instances = {
+  {".json", new o2::event_visualisation::VisualisationEventJSONSerializer()},
+  {".root", new o2::event_visualisation::VisualisationEventROOTSerializer()}};
 
 std::string VisualisationEventSerializer::fileNameIndexed(const std::string fileName, const int index)
 {

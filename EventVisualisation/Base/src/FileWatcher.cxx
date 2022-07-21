@@ -28,7 +28,7 @@ using namespace o2::event_visualisation;
 const char* FileWatcher::mLowGuard = " 0"; /// start guard
 const char* FileWatcher::mEndGuard = "~0"; /// stop guard
 
-FileWatcher::FileWatcher(const string& path)
+FileWatcher::FileWatcher(const string& path, std::vector<std::string> ext)
 {
   //LOG(info) << "FileWatcher::FileWatcher(" << path << ")";
   this->mDataFolder = path;
@@ -36,6 +36,7 @@ FileWatcher::FileWatcher(const string& path)
   this->mFiles.clear();
   this->mFiles.push_front(mLowGuard);
   this->mFiles.push_back(mEndGuard);
+  this->mExt = ext;
   //LOG(info) << "FileWatcher" << this->getSize();
 }
 
@@ -131,7 +132,7 @@ bool FileWatcher::refresh()
   LOG(info) << "previous:" << previous;
   LOG(info) << "currentFile:" << this->mCurrentFile;
 
-  this->mFiles = DirectoryLoader::load(this->mDataFolder, "_", ".json"); // already sorted according part staring with marker
+  this->mFiles = DirectoryLoader::load(this->mDataFolder, "_", this->mExt); // already sorted according part staring with marker
   if (this->mCurrentFile != mEndGuard) {
     if (this->mFiles.empty()) {
       this->mCurrentFile = mEndGuard; // list empty - stick to last element

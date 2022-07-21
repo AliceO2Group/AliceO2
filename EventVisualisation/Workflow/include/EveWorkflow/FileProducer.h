@@ -29,10 +29,11 @@ class FileProducer
   size_t mFilesInFolder;
   std::string mPath;
   std::string mName;
+  std::string mExt;
 
  public:
-  explicit FileProducer(const std::string& path, int filesInFolder = -1,
-                        const std::string& name = "tracks_{timestamp}_{hostname}_{pid}.json");
+  explicit FileProducer(const std::string& path, const std::string& ext, int filesInFolder = -1,
+                        const std::string& name = "tracks_{timestamp}_{hostname}_{pid}{ext}");
 
   [[nodiscard]] std::string newFileName() const;
 };
