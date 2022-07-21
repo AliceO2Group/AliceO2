@@ -65,6 +65,8 @@ class TimeFrame
   const Vertex& getPrimaryVertex(const int) const;
   gsl::span<const Vertex> getPrimaryVertices(int tf) const;
   gsl::span<const Vertex> getPrimaryVertices(int romin, int romax) const;
+  gsl::span<const std::array<float, 2>> getPrimaryVerticesXAlpha(int tf) const;
+  void fillPrimaryVerticesXandAlpha();
   int getPrimaryVerticesNum(int rofID = -1) const;
   void addPrimaryVertices(const std::vector<Vertex>& vertices);
   void addPrimaryVertices(const gsl::span<const Vertex>& vertices);
@@ -195,6 +197,7 @@ class TimeFrame
   std::vector<bool> mMultiplicityCutMask;
   std::vector<int> mROframesPV = {0};
   std::vector<Vertex> mPrimaryVertices;
+  std::vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
   std::vector<std::vector<Cluster>> mUnsortedClusters;
   std::vector<std::vector<bool>> mUsedClusters;
   const dataformats::MCTruthContainer<MCCompLabel>* mClusterLabels = nullptr;
@@ -237,6 +240,14 @@ inline gsl::span<const Vertex> TimeFrame::getPrimaryVertices(int rof) const
 inline gsl::span<const Vertex> TimeFrame::getPrimaryVertices(int romin, int romax) const
 {
   return {&mPrimaryVertices[mROframesPV[romin]], static_cast<gsl::span<const Vertex>::size_type>(mROframesPV[romax + 1] - mROframesPV[romin])};
+}
+
+inline gsl::span<const std::array<float, 2>> TimeFrame::getPrimaryVerticesXAlpha(int rof) const
+{
+  const int start = mROframesPV[rof];
+  const int stop_idx = rof >= mNrof - 1 ? mNrof : rof + 1;
+  int delta = mMultiplicityCutMask[rof] ? mROframesPV[stop_idx] - start : 0; // return empty span if Rof is excluded
+  return {&(mPValphaX[start]), static_cast<gsl::span<const std::array<float, 2>>::size_type>(delta)};
 }
 
 inline int TimeFrame::getPrimaryVerticesNum(int rofID) const

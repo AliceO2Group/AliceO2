@@ -356,6 +356,17 @@ unsigned long TimeFrame::getArtefactsMemory()
   return size + sizeof(Road) * mRoads.size();
 }
 
+void TimeFrame::fillPrimaryVerticesXandAlpha()
+{
+  if (mPValphaX.size()) {
+    mPValphaX.clear();
+  }
+  mPValphaX.reserve(mPrimaryVertices.size());
+  for (auto& pv : mPrimaryVertices) {
+    mPValphaX.emplace_back(std::array<float, 2>{std::hypot(pv.getX(), pv.getY()), math_utils::computePhi(pv.getX(), pv.getY())});
+  }
+}
+
 void TimeFrame::checkTrackletLUTs()
 {
   for (uint32_t iLayer{0}; iLayer < getTracklets().size(); ++iLayer) {
