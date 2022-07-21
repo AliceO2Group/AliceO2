@@ -13,6 +13,7 @@
 /// \brief This class contains the algorithms for calculation the distortions and corrections
 ///
 /// \author  Matthias Kleiner <mkleiner@ikf.uni-frankfurt.de>
+///          Rifki Sadikin <rifki.sadikin@cern.ch> (original code in AliRoot in AliTPCSpaceCharge3DCalc.h)
 /// \date Aug 21, 2020
 
 #ifndef ALICEO2_TPC_SPACECHARGE_H_
@@ -133,6 +134,11 @@ class SpaceCharge
   /// \param formulaStruct struct containing a method to evaluate the potential
   void setPotentialFromFormula(const AnalyticalFields<DataT>& formulaStruct);
 
+  /// setting default potential (same potential for all GEM frames. The default value of 1000V are matched to distortions observed in laser data without X-Ray etc.
+  /// \param side side of the TPC where the potential will be set
+  /// \param deltaPotential delta potential which will be set at the GEM frames
+  void setDefaultStaticDistortionsGEMFrameChargeUp(const Side side, const DataT deltaPotential = 1000);
+
   /// setting the boundary potential of the GEM stack along the radius
   /// \param potentialFunc potential funtion as a function of the radius
   /// \side Side of the TPC
@@ -177,6 +183,11 @@ class SpaceCharge
   /// \param potentialFunc potential funtion as a function of global phi
   /// \side Side of the TPC
   void setPotentialBoundaryGEMFrameOROC3TopAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::OROC3gem, false, side); }
+
+  /// setting the boundary potential of the OROC3 on the top along phi
+  /// \param potentialFunc potential funtion as a function of global phi
+  /// \side Side of the TPC
+  void setPotentialBoundaryGEMFrameOROC3ToOFCPhi(const std::function<DataT(DataT)>& potentialFunc, const Side side) { setPotentialBoundaryGEMFrameAlongPhi(potentialFunc, GEMstack::OROC3gem, false, side, true); }
 
   /// setting the boundary potential for the inner TPC radius along r
   /// \param potentialFunc potential funtion as a function of z
@@ -1062,10 +1073,10 @@ class SpaceCharge
   size_t getNearestRVertex(const DataT r, const Side side) const { return std::round((r - getRMin(side)) / getGridSpacingR(side)); }
 
   /// \return returns number of bins in phi direction for the gap between sectors and for the GEM frame
-  std::pair<size_t, size_t> getPhiBinsGapFrame(const Side side) const;
+  size_t getPhiBinsGapFrame(const Side side) const;
 
   /// \return setting the boundary potential for given GEM stack
-  void setPotentialBoundaryGEMFrameAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const GEMstack stack, const bool bottom, const Side side);
+  void setPotentialBoundaryGEMFrameAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const GEMstack stack, const bool bottom, const Side side, const bool outerFrame = false);
 };
 
 ///

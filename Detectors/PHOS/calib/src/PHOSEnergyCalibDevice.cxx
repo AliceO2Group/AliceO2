@@ -105,9 +105,9 @@ void PHOSEnergyCalibDevice::run(o2::framework::ProcessingContext& pc)
 
   LOG(debug) << "[PHOSEnergyCalibDevice - run]  Received " << cluTR.size() << " TRs and " << clusters.size() << " clusters, running calibration";
   if (mRunStartTime == 0) {
-    const auto ref = pc.inputs().getFirstValid(true);
-    mRunStartTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
-    mRunNumber = DataRefUtils::getHeader<o2::header::DataHeader*>(ref)->runNumber;
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+    mRunStartTime = tinfo.creation; // approximate time in ms
+    mRunNumber = tinfo.runNumber;
 
     auto LHCPeriodStr = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("LHCPeriod", "");
     if (!(LHCPeriodStr.empty())) {

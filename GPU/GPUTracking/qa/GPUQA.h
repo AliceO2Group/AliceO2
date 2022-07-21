@@ -96,6 +96,7 @@ class GPUQA
   GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config = nullptr, const GPUParam* param = nullptr);
   ~GPUQA();
 
+  void UpdateParam(const GPUParam* param) { mParam = param; }
   int InitQA(int tasks = -1);
   void RunQA(bool matchOnly = false, const std::vector<o2::tpc::TrackTPC>* tracksExternal = nullptr, const std::vector<o2::MCCompLabel>* tracksExtMC = nullptr, const o2::tpc::ClusterNativeAccess* clNative = nullptr);
   int DrawQAHistograms(TObjArray* qcout = nullptr);
@@ -215,7 +216,7 @@ class GPUQA
 
   GPUChainTracking* mTracking;
   const GPUSettingsQA& mConfig;
-  const GPUParam& mParam;
+  const GPUParam* mParam;
 
   const char* str_perf_figure_1 = "ALICE Performance 2018/03/20";
   // const char* str_perf_figure_2 = "2015, MC pp, #sqrt{s} = 5.02 TeV";

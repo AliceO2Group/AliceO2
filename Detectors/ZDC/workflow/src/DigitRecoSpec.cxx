@@ -159,6 +159,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   }
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
+
   auto bcdata = pc.inputs().get<gsl::span<o2::zdc::BCData>>("trig");
   auto chans = pc.inputs().get<gsl::span<o2::zdc::ChannelData>>("chan");
   auto peds = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("peds");
@@ -169,7 +170,9 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   // Transfer wafeform
   bool fullinter = mWorker.getFullInterpolation();
   RecEvent recEvent;
-  LOGF(info, "BC processed during reconstruction %d%s", recAux.size(), (fullinter ? " FullInterpolation" : ""));
+  if (mVerbosity > 0 || fullinter) {
+    LOGF(info, "BC processed during reconstruction %d%s", recAux.size(), (fullinter ? " FullInterpolation" : ""));
+  }
   uint32_t nte = 0, ntt = 0, nti = 0, ntw = 0;
   for (auto reca : recAux) {
     bool toAddBC = true;
@@ -222,7 +225,8 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     // Event information
     nti += recEvent.addInfos(reca);
   }
-  LOG(info) << "Reconstructed " << ntt << " signal TDCs and " << nte << " ZDC energies and "
+  LOG(info) << bcdata.size() << " BC " << chans.size() << " CH " << peds.size() << " OD "
+            << " Reconstructed " << ntt << " signal TDCs and " << nte << " ZDC energies and "
             << nti << " info messages in " << recEvent.mRecBC.size() << "/" << recAux.size() << " b.c. and "
             << ntw << " waveform chunks";
   // TODO: rate information for all channels

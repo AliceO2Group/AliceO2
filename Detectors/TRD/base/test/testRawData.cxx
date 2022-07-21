@@ -45,7 +45,6 @@ BOOST_AUTO_TEST_CASE(TRDRawDataHeaderSizes)
 BOOST_AUTO_TEST_CASE(TRDRawDataHeaderInternals)
 {
   o2::trd::TrackletMCMData tracklet;
-  o2::trd::TrackletHCHeader halfchamberheader;
   o2::trd::HalfCRUHeader halfcruheader;
   // changed as now nothing spans a 32 or 16 bit boundary
   halfcruheader.word0 = 0x22200; //bc is at 0x0000000fff00

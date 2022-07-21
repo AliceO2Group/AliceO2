@@ -161,7 +161,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
     LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
 
     if (mUseCCDB) { // setting the timestamp to get the LHCPhase correction; if we don't use CCDB, then it can stay to 0 as set when creating the calibTOFapi above
-      const auto tfOrbitFirst = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->firstTForbit;
+      const auto tfOrbitFirst = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
       mcalibTOFapi->setTimeStamp(0.001 * (o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS * 0.001)); // in seconds
     }
 

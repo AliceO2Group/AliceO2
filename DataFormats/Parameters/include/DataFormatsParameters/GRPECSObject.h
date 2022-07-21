@@ -54,8 +54,29 @@ class GRPECSObject
     CALIBRATION_ANALOG_SCAN,
     CALIBRATION_FHR,
     CALIBRATION_ALPIDE_SCAN,
+    CALIBRATION,
+    COSMICS,
+    SYNTHETIC,
     NRUNTYPES
   };
+  static constexpr std::array<std::string_view, NRUNTYPES> RunTypeNames = {
+    "NONE",
+    "PHYSICS",
+    "TECHNICAL",
+    "PEDESTAL",
+    "PULSER",
+    "LASER",
+    "CALIBRATION_ITHR_TUNING",
+    "CALIBRATION_VCASN_TUNING",
+    "CALIBRATION_THR_SCAN",
+    "CALIBRATION_DIGITAL_SCAN",
+    "CALIBRATION_ANALOG_SCAN",
+    "CALIBRATION_FHR",
+    "CALIBRATION_ALPIDE_SCAN",
+    "CALIBRATION",
+    "COSMICS",
+    "SYNTHETIC"};
+
   GRPECSObject() = default;
   ~GRPECSObject() = default;
 
@@ -128,6 +149,8 @@ class GRPECSObject
 
   static GRPECSObject* loadFrom(const std::string& grpecsFileName = "");
   static constexpr bool alwaysTriggeredRO(DetID::ID det) { return DefTriggeredDets[det]; }
+  static RunType string2RunType(const std::string& rts);
+  static std::string getRawDataPersistencyMode(const std::string& runType, bool imposeRaw = false);
 
  private:
   timePoint mTimeStart = 0; ///< DAQ_time_start entry from DAQ logbook

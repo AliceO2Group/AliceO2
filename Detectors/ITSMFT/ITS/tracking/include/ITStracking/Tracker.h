@@ -90,6 +90,7 @@ class Tracker
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
   void findTracks();
+  void findShortPrimaries();
   void extendTracks();
   bool fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut = o2::constants::math::VeryBig, const float maxQoverPt = o2::constants::math::VeryBig);
   void traverseCellsTree(const int, const int);
@@ -113,6 +114,7 @@ class Tracker
   std::uint32_t mTimeFrameCounter = 0;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 
+  unsigned int mNumberOfRuns{0};
 };
 
 inline void Tracker::setParameters(const std::vector<MemoryParameters>& memPars, const std::vector<TrackingParameters>& trkPars)

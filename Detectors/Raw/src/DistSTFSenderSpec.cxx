@@ -40,9 +40,8 @@ class DistSTFSender : public Task
 //___________________________________________________________
 void DistSTFSender::run(ProcessingContext& pc)
 {
-  const auto* dh = DataRefUtils::getHeader<DataHeader*>(pc.inputs().getFirstValid(true));
-  auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
-  STFHeader stfHeader{dh->tfCounter, dh->firstTForbit, dh->runNumber};
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+  STFHeader stfHeader{tinfo.tfCounter, tinfo.firstTForbit, tinfo.runNumber};
   pc.outputs().snapshot(o2::framework::Output{gDataOriginFLP, gDataDescriptionDISTSTF, mSubSpec}, stfHeader);
   if (++mTFCount >= mMaxTF) {
     pc.services().get<ControlService>().endOfStream();

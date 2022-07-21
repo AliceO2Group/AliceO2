@@ -18,6 +18,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicyHelpers.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 // for TRD
 #include "TRDWorkflow/TRDTrapSimulatorSpec.h"
@@ -31,6 +32,11 @@
 using namespace o2::framework;
 
 // ------------------------------------------------------------------
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   // ordered policies for the writers
@@ -43,6 +49,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowoptions)
   workflowoptions.push_back(ConfigParamSpec{"disable-root-input", o2::framework::VariantType::Bool, false, {"Disable root-files input readers"}});
   workflowoptions.push_back(ConfigParamSpec{"disable-root-output", o2::framework::VariantType::Bool, false, {"Disable root-files output writers"}});
   workflowoptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TRDSimParams.digithreads=4;...')"}});
+  o2::raw::HBFUtilsInitializer::addConfigOption(workflowoptions);
 }
 
 #include "Framework/runDataProcessing.h"
@@ -64,5 +71,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!disableRootOutput) {
     specs.emplace_back(o2::trd::getTRDTrackletWriterSpec(useMC));
   }
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
+
   return specs;
 }

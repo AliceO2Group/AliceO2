@@ -88,20 +88,20 @@ using namespace GPUCA_NAMESPACE::gpu;
 #define CHECK_CLUSTER_STATE_INIT_LEG_BY_MC()
 #endif
 
-#define CHECK_CLUSTER_STATE_INIT()                                                                   \
-  bool unattached = attach == 0;                                                                     \
-  float qpt = 0;                                                                                     \
-  bool lowPt = false;                                                                                \
-  bool mev200 = false;                                                                               \
-  bool mergedLooper = false;                                                                         \
-  int id = attach & gputpcgmmergertypes::attachTrackMask;                                            \
-  if (!unattached) {                                                                                 \
-    qpt = fabsf(mTracking->mIOPtrs.mergedTracks[id].GetParam().GetQPt());                            \
-    lowPt = qpt * mTracking->GetParam().par.qptB5Scaler > mTracking->GetParam().rec.tpc.rejectQPtB5; \
-    mev200 = qpt > 5;                                                                                \
-    mergedLooper = mTracking->mIOPtrs.mergedTracks[id].MergedLooper();                               \
-  }                                                                                                  \
-  bool physics = false, protect = false;                                                             \
+#define CHECK_CLUSTER_STATE_INIT()                                                               \
+  bool unattached = attach == 0;                                                                 \
+  float qpt = 0;                                                                                 \
+  bool lowPt = false;                                                                            \
+  bool mev200 = false;                                                                           \
+  bool mergedLooper = false;                                                                     \
+  int id = attach & gputpcgmmergertypes::attachTrackMask;                                        \
+  if (!unattached) {                                                                             \
+    qpt = fabsf(mTracking->mIOPtrs.mergedTracks[id].GetParam().GetQPt());                        \
+    lowPt = qpt * mTracking->GetParam().qptB5Scaler > mTracking->GetParam().rec.tpc.rejectQPtB5; \
+    mev200 = qpt > 5;                                                                            \
+    mergedLooper = mTracking->mIOPtrs.mergedTracks[id].MergedLooper();                           \
+  }                                                                                              \
+  bool physics = false, protect = false;                                                         \
   CHECK_CLUSTER_STATE_INIT_LEG_BY_MC();
 
 #define CHECK_CLUSTER_STATE()                                                                              \
@@ -316,7 +316,7 @@ void GPUQA::clearGarbagageCollector()
   std::apply([](auto&&... args) { ((args.clear()), ...); }, mGarbageCollector->v);
 }
 
-GPUQA::GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config, const GPUParam* param) : mTracking(chain), mConfig(config ? *config : GPUQA_GetConfig(chain)), mParam(param ? *param : chain->GetParam()), mGarbageCollector(std::make_unique<GPUQAGarbageCollection>())
+GPUQA::GPUQA(GPUChainTracking* chain, const GPUSettingsQA* config, const GPUParam* param) : mTracking(chain), mConfig(config ? *config : GPUQA_GetConfig(chain)), mParam(param ? param : &chain->GetParam()), mGarbageCollector(std::make_unique<GPUQAGarbageCollection>())
 {
   static int initColorsInitialized = initColors();
   (void)initColorsInitialized;
@@ -1200,7 +1200,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
       GPUTPCGMPropagator prop;
       prop.SetMaxSinPhi(.999);
       prop.SetMaterialTPC();
-      prop.SetPolynomialField(&mParam.polynomialField);
+      prop.SetPolynomialField(&mParam->polynomialField);
 
       for (unsigned int i = 0; i < mTrackMCLabels.size(); i++) {
         if (mConfig.writeMCLabels) {
@@ -1302,11 +1302,11 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
           if (tracksExternal) {
             return param.GetZ();
           }
-          if (!mParam.par.continuousMaxTimeBin) {
+          if (!mParam->par.continuousMaxTimeBin) {
             return param.GetZ() - mc1.z;
           }
 #ifdef GPUCA_TPC_GEOMETRY_O2
-          if (!mParam.par.earlyTpcTransform) {
+          if (!mParam->par.earlyTpcTransform) {
             float shift = side == 2 ? 0 : mTracking->GetTPCTransform()->convDeltaTimeToDeltaZinTimeFrame(side * GPUChainTracking::NSLICES / 2, param.GetTZOffset() - mc1.t0);
             return param.GetZ() + shift - mc1.z;
           }

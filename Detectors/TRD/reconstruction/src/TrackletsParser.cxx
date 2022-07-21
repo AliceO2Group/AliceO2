@@ -212,7 +212,6 @@ int TrackletsParser::Parse()
       word = mEndParse;
       //TODO remove tracklets already added erroneously
       continue; // bail out
-
     } else {
       if (ignoreDataTillTrackletEndMarker) {
         mWordsDumped++;
@@ -221,9 +220,13 @@ int TrackletsParser::Parse()
       }
       //fix to missing bit on supermodule 16 and 17, to set the uniquely identifying bit.
       if (mState == StateTrackletHCHeader) {
-        if ((mFEEID.supermodule > 15) && mOptions[TRDFixSM1617Bit] && mTrackletHCHeaderState == 2) {
-          *word |= 1 << 11; //flip bit eleven for the tracklethcheader for the last 2 supermodules (bug/misconfiguration/broken/other) not sure why its like this yet, but it is.
+        if (mVerbose) {
+          LOG(info) << "mFEEID : 0x" << std::hex << mFEEID.word << " supermodule : 0x" << (int)mFEEID.supermodule << " tracklethcheader : 0x" << *word;
+          TrackletHCHeader a;
+          a.word = *word;
+          printTrackletHCHeader(a);
         }
+        //LOG(info) << "mFEEID : 0x"<< std::hex << mFEEID.word << " supermodule : 0x" << (int)mFEEID.supermodule << " tracklethcheader : 0x" << *word;
       }
       //now for Tracklet hc header
       if ((isTrackletHCHeader(*word)) && !mIgnoreTrackletHCHeader && mState == StateTrackletHCHeader) { //TrackletHCHeader has bit 11 set to 1 always. Check for state because raw data can have bit 11 set!
@@ -236,12 +239,12 @@ int TrackletsParser::Parse()
         }
         //we actually have a header word.
         mTrackletHCHeader.word = *word;
-        //        LOG(info) << "TrackletHCHeader : " << std::hex << mTrackletHCHeader.word;
-        //mTrackletHCHeader = (TrackletHCHeader*)&word;
         //sanity check of trackletheader ??
         if (!sanityCheckTrackletHCHeader(mTrackletHCHeader)) {
           incParsingError(TRDParsingTrackletHCHeaderSanityCheckFailure);
           LOG(warn) << " sanity check failure on TracklHCHeader of 0x" << std::hex << mTrackletHCHeader.word;
+          //sanityCheckTrackletHCHeader(mTrackletHCHeader,true);
+          //now dump and run
         }
         mWordsRead++;
         mState = StateTrackletMCMHeader;                                // now we should read a MCMHeader next time through loop
@@ -299,7 +302,7 @@ int TrackletsParser::Parse()
           // take the header and this data word and build the underlying 64bit tracklet.
           int q0, q1, q2;
           if (mcmtrackletcount > 2) {
-            LOG(alarm) << "mcmtrackletcount is not in [0:2] count=" << mcmtrackletcount << " headertrackletcount=" << headertrackletcount << " something very wrong parsing the TrackletMCMData fields with data of : 0x" << std::hex << *word;
+            LOG(info) << "mcmtrackletcount is not in [0:2] count=" << mcmtrackletcount << " headertrackletcount=" << headertrackletcount << " something very wrong parsing the TrackletMCMData fields with data of : 0x" << std::hex << *word;
             incParsingError(TRDParsingTrackletInvalidTrackletCount);
             //this should have been caught above by the headertrackletcount to mcmtrackletcount
             ignoreDataTillTrackletEndMarker = true;
@@ -321,7 +324,6 @@ int TrackletsParser::Parse()
             int hcid = mDetector * 2 + mHalfChamberSide;
             if (mHeaderVerbose) {
               if (mTrackletHCHeaderState) {
-                //LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mHalfChamberSide << " " << mTrackletMCMHeader->padrow << ":" << mTrackletMCMHeader->col << " ---- " << mTrackletHCHeader->supermodule << ":" << mTrackletHCHeader->stack << ":" << mTrackletHCHeader->layer << ":" << mTrackletHCHeader->side << " rawhcheader : 0x" << std::hex << std::hex << mTrackletHCHeader->word;
                 LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mHalfChamberSide << " " << mTrackletMCMHeader->padrow << ":" << mTrackletMCMHeader->col << " ---- " << mTrackletHCHeader.supermodule << ":" << mTrackletHCHeader.stack << ":" << mTrackletHCHeader.layer << ":" << mTrackletHCHeader.side << " rawhcheader : 0x" << std::hex << std::hex << mTrackletHCHeader.word;
               } else {
                 LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mHalfChamberSide << " " << mTrackletMCMHeader->padrow << ":" << mTrackletMCMHeader->col;

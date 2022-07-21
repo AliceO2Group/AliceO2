@@ -9,13 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "DDSConfigHelpers.h"
-#include "ChannelSpecHelpers.h"
+#include "Framework/ChannelSpecHelpers.h"
+#include "WorkflowSerializationHelpers.h"
 #include <map>
 #include <iostream>
 #include <cstring>
 #include <regex>
 #include <fmt/format.h>
 #include <libgen.h>
+#include <regex>
 
 namespace o2::framework
 {
@@ -80,14 +82,51 @@ struct ChannelRewriter : FairMQChannelConfigParser {
   std::vector<bool> hasAddress;
 };
 
-void dumpDeviceSpec2DDS(std::ostream& out,
-                        std::string const& workflowSuffix,
-                        const std::vector<DeviceSpec>& specs,
-                        const std::vector<DeviceExecution>& executions,
-                        const CommandInfo& commandInfo)
+// encode &, ', ", < and > as &amp;, &apos;, &quot;, &lt; and &gt; respectively
+std::string xmlEncode(std::string const& source)
 {
+  std::string result;
+  result.reserve(source.size() * 2);
+  for (char c : source) {
+    switch (c) {
+      case '&':
+        result += "&amp;";
+        break;
+      case '\'':
+        result += "&apos;";
+        break;
+      case '"':
+        result += "&quot;";
+        break;
+      case '<':
+        result += "&lt;";
+        break;
+      case '>':
+        result += "&gt;";
+        break;
+      default:
+        result += c;
+    }
+  }
+  return result;
+}
+
+void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
+                                          std::string const& workflowSuffix,
+                                          std::vector<DataProcessorSpec> const& workflow,
+                                          std::vector<DataProcessorInfo> const& dataProcessorInfos,
+                                          const std::vector<DeviceSpec>& specs,
+                                          const std::vector<DeviceExecution>& executions,
+                                          const CommandInfo& commandInfo)
+{
+  std::ostringstream asset;
+  WorkflowSerializationHelpers::dump(asset, workflow, dataProcessorInfos, commandInfo);
   out << R"(<topology name="o2-dataflow">)"
-         "\n";
+         "\n"
+      << fmt::format(R"(<asset name="dpl_json{}" type="inline" visibility="global" value="{}"/>)",
+                     workflowSuffix,
+                     xmlEncode(asset.str()))
+      << "\n";
   assert(specs.size() == executions.size());
   std::vector<ChannelRewriter> rewriters;
   rewriters.resize(specs.size());
@@ -116,8 +155,6 @@ void dumpDeviceSpec2DDS(std::ostream& out,
     }
   }
 
-  float timeout = 0.0;
-
   for (size_t di = 0; di < specs.size(); ++di) {
     auto& spec = specs[di];
     auto& execution = executions[di];
@@ -128,13 +165,10 @@ void dumpDeviceSpec2DDS(std::ostream& out,
     out << "   "
         << fmt::format("<decltask name=\"{}{}\">\n", spec.id, workflowSuffix);
     out << "       "
+        << fmt::format(R"(<assets><name>dpl_json{}</name></assets>)", workflowSuffix) << "\n";
+    out << "       "
         << R"(<exe reachable="true">)";
-    static bool doSleep = !getenv("DPL_DDS_SLEEP") || atoi(getenv("DPL_DDS_SLEEP"));
-    if (doSleep) {
-      out << fmt::format("sleep {}; ", timeout);
-    }
-    out << std::regex_replace(commandInfo.command, std::regex{"--dds(?!-)"}, "--dump") << " | ";
-    timeout += 0.2;
+    out << fmt::format("cat ${{DDS_LOCATION}}/dpl_json{}.asset | ", workflowSuffix);
     for (auto ei : execution.environ) {
       out << fmt::format(ei,
                          fmt::arg("timeslice0", spec.inputTimesliceId),

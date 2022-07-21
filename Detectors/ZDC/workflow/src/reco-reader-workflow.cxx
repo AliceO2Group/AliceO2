@@ -48,7 +48,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   DataProcessorSpec producer = o2::zdc::getRecoReaderSpec();
   specs.push_back(producer);
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
   return specs;

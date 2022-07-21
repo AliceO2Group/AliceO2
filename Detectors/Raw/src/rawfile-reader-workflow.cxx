@@ -13,6 +13,7 @@
 #include "DetectorsRaw/RawFileReader.h"
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "Framework/ChannelSpecHelpers.h"
 #include "Framework/Logger.h"
 #include <string>
 #include <bitset>
@@ -44,7 +45,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"send-diststf-0xccdb", VariantType::Bool, false, {"send explicit FLP/DISTSUBTIMEFRAME/0xccdb output"}});
   options.push_back(ConfigParamSpec{"hbfutils-config", VariantType::String, std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE), {"configKeyValues ini file for HBFUtils (used if exists)"}});
   options.push_back(ConfigParamSpec{"timeframes-shm-limit", VariantType::String, "0", {"Minimum amount of SHM required in order to publish data"}});
-  options.push_back(ConfigParamSpec{"metric-feedback-channel-format", VariantType::String, "name=metric-feedback,type=pull,method=connect,address=ipc://@metric-feedback-{},transport=shmem,rateLogging=0", {"format for the metric-feedback channel for TF rate limiting"}});
+  options.push_back(ConfigParamSpec{"metric-feedback-channel-format", VariantType::String, "name=metric-feedback,type=pull,method=connect,address=ipc://{}metric-feedback-{},transport=shmem,rateLogging=0", {"format for the metric-feedback channel for TF rate limiting"}});
   // options for error-check suppression
 
   for (int i = 0; i < RawFileReader::NErrorsDefined; i++) {
@@ -89,11 +90,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   int rateLimitingIPCID = std::stoi(configcontext.options().get<std::string>("timeframes-rate-limit-ipcid"));
   std::string chanFmt = configcontext.options().get<std::string>("metric-feedback-channel-format");
   if (rateLimitingIPCID > -1 && !chanFmt.empty()) {
-    rinp.metricChannel = fmt::format(chanFmt, rateLimitingIPCID);
+    rinp.metricChannel = fmt::format(chanFmt, o2::framework::ChannelSpecHelpers::defaultIPCFolder(), rateLimitingIPCID);
   }
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto hbfini = configcontext.options().get<std::string>("hbfutils-config");
-  if (!hbfini.empty() && o2::utils::Str::pathExists(hbfini)) {
+  if (!hbfini.empty() && o2::conf::ConfigurableParam::configFileExists(hbfini)) {
     o2::conf::ConfigurableParam::updateFromFile(hbfini, "HBFUtils", true); // update only those values which were not touched yet (provenance == kCODE)
   }
   return std::move(o2::raw::getRawFileReaderWorkflow(rinp));

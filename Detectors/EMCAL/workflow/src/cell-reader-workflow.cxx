@@ -56,7 +56,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                                                  o2::framework::OutputSpec{"EMC", "CELLSMCTR"}},
                                                                                !disableMC));
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
   return specs;
 }

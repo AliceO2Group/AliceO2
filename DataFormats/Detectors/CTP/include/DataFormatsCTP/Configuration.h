@@ -48,10 +48,12 @@ struct CTPGenerator {
 };
 struct CTPInput {
   CTPInput() = default;
+  CTPInput(std::string& name, std::string& det, uint32_t index);
+  CTPInput(const char* name, const char* det, uint32_t index);
   std::string name = "";
   std::string level = "";
   std::uint64_t inputMask = 0;
-  o2::detectors::DetID::ID detID;
+  o2::detectors::DetID::ID detID = 0;
   std::string getInputDetName() const { return o2::detectors::DetID::getName(detID); }
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPInput, 2);
@@ -96,13 +98,24 @@ struct CTPClass {
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPClass, 3);
 };
+struct CTPInputsConfiguration {
+  CTPInputsConfiguration() = default;
+  std::vector<CTPInput> CTPInputs;
+  int createInputsConfigFromFile(std::string& filename);
+  void printStream(std::ostream& strem) const;
+  static CTPInputsConfiguration defaultInputConfig;
+  static void initDefaultInputConfig();
+  ClassDefNV(CTPInputsConfiguration, 0);
+};
 class CTPConfiguration
 {
  public:
+  // static CTPInputsConfiguration mCTPInputsConfiguration;
   const static std::map<std::string, std::string> detName2LTG;
   CTPConfiguration() = default;
   bool isDetector(const o2::detectors::DetID& det);
-  void capitaliseString(std::string& str);
+  static void capitaliseString(std::string& str);
+  static bool isNumber(const std::string& s);
   enum ConfigPart { RUN,
                     MASKS,
                     GENS,
@@ -127,6 +140,7 @@ class CTPConfiguration
   uint32_t getRunNumber() { return mRunNumber; };
   std::vector<std::string> getDetectorList() const;
   o2::detectors::DetID::mask_t getDetectorMask() const;
+  void createDefaultInputsConfig();
 
  private:
   std::string mConfigString = "";
@@ -141,7 +155,7 @@ class CTPConfiguration
   std::vector<CTPCluster> mClusters;
   std::vector<CTPClass> mCTPClasses;
   int processConfigurationLineRun3(std::string& line, int& level);
-  ClassDefNV(CTPConfiguration, 5);
+  ClassDefNV(CTPConfiguration, 6);
 };
 // Run Manager
 struct CTPActiveRun {
@@ -175,7 +189,7 @@ class CTPRunManager
  private:
   /// Database constants
   // std::string mCCDBHost = "http://ccdb-test.cern.ch:8080";
-  std::string mCCDBHost = "http://o2-ccdb.internal:8080";
+  std::string mCCDBHost = "http://o2-ccdb.internal";
   std::string mCCDBPathCTPScalers = "CTP/Calib/Scalers";
   std::array<CTPActiveRun*, NRUNS> mActiveRuns;
   std::array<std::uint32_t, NRUNS> mActiveRunNumbers;
@@ -187,6 +201,7 @@ class CTPRunManager
   int mQC = 0; // 1 - no CCDB: used for QC
   ClassDefNV(CTPRunManager, 4);
 };
+
 } // namespace ctp
 } // namespace o2
 #endif //_CTP_CONFIGURATION_H_

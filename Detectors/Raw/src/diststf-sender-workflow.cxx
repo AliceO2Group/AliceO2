@@ -46,7 +46,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   int maxTF = configcontext.options().get<int>("max-tf");
   unsigned subSpec = static_cast<unsigned>(configcontext.options().get<int>("dist-tf-subspec"));
   specs.push_back(o2::raw::getDistSTFSenderSpec(maxTF > 0 ? maxTF : 1, subSpec));
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
   return specs;
 }

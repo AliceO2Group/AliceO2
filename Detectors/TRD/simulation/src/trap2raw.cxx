@@ -21,11 +21,6 @@
 
 #include "fairlogger/Logger.h"
 
-#include <DataFormatsTRD/RawData.h>
-#include <DataFormatsTRD/Tracklet64.h>
-#include <DataFormatsTRD/LinkRecord.h>
-#include <DataFormatsTRD/TriggerRecord.h>
-
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/NameConf.h"
@@ -35,22 +30,16 @@
 
 #include <boost/program_options.hpp>
 #include <filesystem>
-#include <TFile.h>
 #include <TStopwatch.h>
 #include <string>
 #include <iomanip>
 #include <iostream>
 #include <iomanip>
-#include "TCanvas.h"
-#include <TTree.h>
-#include <TFile.h>
-#include <ostream>
-#include <fstream>
 
 namespace bpo = boost::program_options;
 
 void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName,
-              const std::string& outDir, int digitrate, bool verbose, std::string filePerLink,
+              const std::string& outDir, int verbosity, std::string filePerLink,
               uint32_t rdhV = 6, bool noEmptyHBF = false, int tracklethcheader = 0, int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
@@ -66,7 +55,6 @@ int main(int argc, char** argv)
     auto add_option = opt_general.add_options();
     add_option("help,h", "Print this help message");
     add_option("verbosity,v", bpo::value<int>()->default_value(0), "verbosity level");
-    //    add_option("input-file,i", bpo::value<std::string>()->default_value("trdtrapraw.root"), "input Trapsim raw file");
     add_option("input-file-digits,d", bpo::value<std::string>()->default_value("trddigits.root"), "input Trapsim digits file");
     add_option("input-file-tracklets,t", bpo::value<std::string>()->default_value("trdtracklets.root"), "input Trapsim tracklets file");
     add_option("file-per,l", bpo::value<std::string>()->default_value("halfcru"), "all : raw file(false), halfcru : cru end point, cru : one file per cru, sm: one file per supermodule");
@@ -76,8 +64,6 @@ int main(int argc, char** argv)
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(6), "rdh version in use default");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
-    add_option("digitrate", bpo::value<int>()->default_value(1), "only include digits at 1 per this number");
-    add_option("verbose,w", bpo::value<bool>()->default_value(false), "verbose");
 
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
@@ -103,13 +89,12 @@ int main(int argc, char** argv)
   }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
 
-  std::cout << "yay it ran" << std::endl;
-  trap2raw(vm["input-file-digits"].as<std::string>(), vm["input-file-tracklets"].as<std::string>(), vm["output-dir"].as<std::string>(), vm["digitrate"].as<int>(), vm["verbosity"].as<int>(), vm["file-per"].as<std::string>(), vm["rdh-version"].as<uint32_t>(), vm["no-empty-hbf"].as<bool>(), vm["tracklethcheader"].as<int>());
+  trap2raw(vm["input-file-digits"].as<std::string>(), vm["input-file-tracklets"].as<std::string>(), vm["output-dir"].as<std::string>(), vm["verbosity"].as<int>(), vm["file-per"].as<std::string>(), vm["rdh-version"].as<uint32_t>(), vm["no-empty-hbf"].as<bool>(), vm["tracklethcheader"].as<int>());
 
   return 0;
 }
 
-void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName, const std::string& outDir, int digitrate, bool verbose, std::string filePer, uint32_t rdhV, bool noEmptyHBF, int trackletHCHeader, int superPageSizeInB)
+void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName, const std::string& outDir, int verbosity, std::string filePer, uint32_t rdhV, bool noEmptyHBF, int trackletHCHeader, int superPageSizeInB)
 {
   TStopwatch swTot;
   swTot.Start();
@@ -117,9 +102,8 @@ void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsN
   o2::trd::Trap2CRU mc2raw(outDir, inpDigitsName, inpTrackletsName); //,superPageSizeInB);
   LOG(info) << "class instantiated";
   mc2raw.setFilePer(filePer);
-  mc2raw.setVerbosity(verbose);
+  mc2raw.setVerbosity(verbosity);
   mc2raw.setTrackletHCHeader(trackletHCHeader); // run3 or run2
-  mc2raw.setDigitRate(digitrate);               // run3 or run2
   auto& wr = mc2raw.getWriter();
   std::string inputGRP = o2::base::NameConf::getGRPFileName();
   const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);

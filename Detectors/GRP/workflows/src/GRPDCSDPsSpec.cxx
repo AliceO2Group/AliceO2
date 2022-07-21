@@ -124,7 +124,7 @@ void GRPDCSDPsDataProcessor::run(o2::framework::ProcessingContext& pc)
 {
   mLHCIFupdated = false;
   TStopwatch sw;
-  auto startValidity = (long)(DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation);
+  auto startValidity = (long)(pc.services().get<o2::framework::TimingInfo>().creation);
   auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
   auto timeNow = HighResClock::now();
   if (startValidity == 0xffffffffffffffff) {                                                                   // it means it is not set

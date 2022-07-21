@@ -11,7 +11,7 @@
 
 #include <iomanip>
 #include <iostream>
-#include <iomanip>
+#include "fairlogger/Logger.h"
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/LinkRecord.h"
 #include "DataFormatsTRD/Constants.h"
@@ -33,10 +33,10 @@ namespace trd
 std::ostream& operator<<(std::ostream& stream, const TrackletHCHeader halfchamberheader)
 {
   stream << "TrackletHCHeader : Raw:0x" << std::hex << halfchamberheader.word << " "
-         << halfchamberheader.format << " ;; " << halfchamberheader.MCLK << " :: "
-         << halfchamberheader.one << " :: (" << halfchamberheader.supermodule << ","
-         << halfchamberheader.stack << "," << halfchamberheader.layer << ") on side :"
-         << halfchamberheader.side << std::endl;
+         << (int)halfchamberheader.format << " ;; " << (int)halfchamberheader.MCLK << " :: "
+         << halfchamberheader.one << " :: (" << (int)halfchamberheader.supermodule << ","
+         << (int)halfchamberheader.stack << "," << (int)halfchamberheader.layer << ") on side :"
+         << (int)halfchamberheader.side << std::endl;
   return stream;
 }
 
@@ -149,26 +149,21 @@ std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru)
 
 //Tracklet HC Header
 
-void constructTrackletHCHeader(TrackletHCHeader& header, int sector, int stack, int layer, int side, int chipclock, int format)
+void constructTrackletHCHeader(TrackletHCHeader& header, int hcid, int chipclock, int format)
 {
+  int detector = hcid / 2;
+  int sector = (detector % (constants::NLAYER * constants::NSTACK));
+  int stack = (detector % constants::NLAYER);
+  int layer = ((detector % (constants::NLAYER * constants::NSTACK)) / constants::NLAYER);
+  int side = hcid % 2;
   header.word = 0;
-
   header.format = format;
   header.supermodule = ~sector;
   header.stack = ~stack;
   header.layer = ~layer;
   header.side = ~side;
   header.MCLK = chipclock;
-  header.one = 0;
-}
-
-void constructTrackletHCHeaderd(TrackletHCHeader& header, int detector, int rob, int chipclock, int format)
-{
-  int sector = (detector % (constants::NLAYER * constants::NSTACK));
-  int stack = (detector % constants::NLAYER);
-  int layer = ((detector % (constants::NLAYER * constants::NSTACK)) / constants::NLAYER);
-  int side = rob % 2;
-  constructTrackletHCHeader(header, sector, stack, layer, side, chipclock, format);
+  header.one = 1;
 }
 
 uint32_t getHCIDFromTrackletHCHeader(const TrackletHCHeader& header)
@@ -176,17 +171,11 @@ uint32_t getHCIDFromTrackletHCHeader(const TrackletHCHeader& header)
   return header.layer * 2 + header.stack * constants::NLAYER * 2 + header.supermodule * constants::NLAYER * constants::NSTACK * 2 + header.side;
 }
 
-uint32_t getHCIDFromTrackletHCHeader(const uint32_t& headerword)
-{
-  TrackletHCHeader header;
-  header.word = headerword;
-  return header.layer * 2 + header.stack * constants::NLAYER * 2 + header.supermodule * constants::NLAYER * constants::NSTACK * 2 + header.side;
-}
-
 uint32_t getChargeFromRawHeaders(const o2::trd::TrackletHCHeader& hcheader, const o2::trd::TrackletMCMHeader* header, const std::array<o2::trd::TrackletMCMData, 3>& data, int pidindex, int trackletindex)
 {
   uint32_t pid = 0;
-  uint32_t highPID, lowPID; // highPID holds the 8 bits from the mcmheader, and lowPID holds the 12 bits from mcmdata
+  uint32_t highPID = 0; // highPID holds the 8 bits from the mcmheader
+  uint32_t lowPID = 0;  // lowPID holds the 12 bits from mcmdata
   uint32_t datatype = (hcheader.format) >> 2;
   switch (datatype) {
     case 0: //Cosmic
@@ -198,7 +187,6 @@ uint32_t getChargeFromRawHeaders(const o2::trd::TrackletHCHeader& hcheader, cons
     case 2: //DIS
       //LOG(warn) << "This is a problem  DIS format tracklets ";
       //break;
-      LOG(warn) << "This could be a problem  format tracklets is 0x" << std::hex << datatype << " thcheader:0x" << std::hex << hcheader.word << " tmcmheader:0x" << header->word;
     case 3:
       //PID VERSION 1
       //PID is 20 bits, 8 bits in mcmheader and 12 bits in mcmdata word
@@ -220,14 +208,14 @@ uint32_t getChargeFromRawHeaders(const o2::trd::TrackletHCHeader& hcheader, cons
       }
       lowPID = data[trackletindex].pid;
       //lowPID is 6 bits Q0 and 6 bits of Q1
-      int pidword = (highPID << 12) + lowPID;       // the entire original 20 bit pid in the trap chips
+      uint32_t pidword = (highPID << 12) | lowPID;  // the entire original 20 bit pid in the trap chips
       int dynamicq = hcheader.format & 0x1;         // last bit of format (lsb) defines the version of tracklet charge calculation
       uint32_t pidoffset = ((pidword >> 18) & 0x3); //<<6; // used for dynamic ranged charge windows, may or may not be used below.
       //pidword is here to make this code more readible and less error prone.
       switch (pidindex) {
         case 2: //Q2
           if (!dynamicq) {
-            pid = (pidword >> 13) & 0x7f; // 7 bits at the top of all of pid (MSB)
+            pid = (pidword >> 14) & 0x3f; // 6 bits at the top of all of pid (MSB)
           } else {
             pid = (pidword >> 12) & 0x3f; // 6 bits of Q2 and a shift
             pid |= pidoffset << 6;
@@ -236,7 +224,7 @@ uint32_t getChargeFromRawHeaders(const o2::trd::TrackletHCHeader& hcheader, cons
           break;
         case 1: //Q1
           if (!dynamicq) {
-            pid = (pidword >> 6) & 0x7f; // 7 bits Q1 above the 6 bits of Q0
+            pid = (pidword >> 7) & 0x7f; // 7 bits Q1 above the 7 bits of Q0
           } else {
             pid = (pidword >> 6) & 0x3f; // 6 bits of Q1 and a shift
             pid |= pidoffset << 6;
@@ -245,7 +233,7 @@ uint32_t getChargeFromRawHeaders(const o2::trd::TrackletHCHeader& hcheader, cons
           break;
         case 0: //Q0
           if (!dynamicq) {
-            pid = pidword & 0x3f; // 6 least significant bits
+            pid = pidword & 0x7f; // 7 least significant bits
           } else {
             pid = pidword & 0x3f; // 6 bits of Q0
             pid |= pidoffset << 6;
@@ -274,32 +262,6 @@ uint16_t constructTRDFeeID(int supermodule, int side, int endpoint)
   return feeid.word;
 }
 
-void constructTrackletMCMData(TrackletMCMData& trackletword, const int format, const uint slope, const uint pos, const uint q0, const uint q1, const uint q2)
-{
-  trackletword.word = 0;
-  // create a tracklet word as it would be sent from the FEE
-  // slope and position have the 8-th bit flipped each
-  trackletword.word = 0;
-  trackletword.slope = slope ^ 0x80;
-  trackletword.pos = pos ^ 0x80;
-  trackletword.checkbit = 0;
-  if (format & 0x1) {
-    //length of q1 and q2 are 6 with a 2 bit offset.
-    //What happens when q2 and q1 dont share the same offset (upper 2 bits ?) ?
-    LOG(error) << "This tracklet format has not been tested yet";
-    trackletword.pid = (q0 & 0x3f) & ((q1 & 0x1) << 6);
-    //TODO check the 2 bit offset is still valid ... ??
-  } else {
-    trackletword.pid = (q0 & 0x3f) & ((q1 & 0x1) << 6);
-  }
-  //q2 sits with upper 2 bits of q1 in the header pid word, hence the 0x1f so 5 bits are used here.
-}
-
-void constructTrackletMCMData(TrackletMCMData& trackletword, const Tracklet64& tracklet)
-{
-  constructTrackletMCMData(trackletword, tracklet.getFormat(), tracklet.getSlope(), tracklet.getPosition(), tracklet.getQ0(), tracklet.getQ1(), tracklet.getQ2());
-}
-
 DigitMCMADCMask constructBlankADCMask()
 {
   //set the default values for the mask.
@@ -308,6 +270,7 @@ DigitMCMADCMask constructBlankADCMask()
   mask.c = 0x1f;
   mask.n = 0x1;
   mask.j = 0xc;
+  mask.adcmask = 0;
   // actual mask will beset somewhere else, the above values are *always* that.
   return mask;
 }
@@ -315,12 +278,12 @@ DigitMCMADCMask constructBlankADCMask()
 void printTrackletHCHeader(o2::trd::TrackletHCHeader& halfchamber)
 {
   LOGF(info, "TrackletHCHeader: Raw:0x%08x SM : %d stack %d layer %d side : %d MCLK: 0x%0x Format: 0x%0x Always1:0x%0x",
-       halfchamber.supermodule, halfchamber.stack, halfchamber.layer, halfchamber.side, halfchamber.MCLK, halfchamber.format, halfchamber.one);
+       halfchamber.word, (int)(~halfchamber.supermodule) & 0x1f, (int)(~halfchamber.stack) & 0x7, (int)(~halfchamber.layer) & 0x7, (int)(~halfchamber.side) & 0x1, (int)halfchamber.MCLK, (int)halfchamber.format, (int)halfchamber.one);
 }
 
 void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet)
 {
-  LOGF(info, "TrackletMCMData: Raw:0x%08x pos:%d slope:%d pid:0x%08x checkbit:0x%02x",
+  LOGF(info, "TrackletMCMData: Raw:0x%08x pos:%d slope:%d pid:0x%03x checkbit:0x%02x",
        tracklet.word, tracklet.pos, tracklet.slope, tracklet.pid, tracklet.checkbit);
 }
 void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead)
@@ -380,22 +343,18 @@ bool halfCRUHeaderSanityCheck(o2::trd::HalfCRUHeader& header, std::array<uint32_
   for (int lengthindex = 0; lengthindex < 15; ++lengthindex) {
     if (lengths[lengthindex] > o2::trd::constants::MAXDATAPERLINK256) {
       // something has gone insane.
-      //LOG(info) << "AAA dumping half cru as : half cru link length > max possible! : " << lengths[lengthindex] << " ?? " << o2::trd::constants::MAXDATAPERLINK256;
       goodheader = false;
     }
   }
   for (int eflagindex = 0; eflagindex < 15; ++eflagindex) {
     if (eflags[eflagindex] > o2::trd::constants::MAXCRUERRORVALUE) {
       // something has gone insane.
-      // LOG(info) << "AAA dumping half cru as : half cru link eflag > max possible! : " << std::hex << eflags[eflagindex] << " ?? " << o2::trd::constants::MAXCRUERRORVALUE;
       goodheader = false;
     }
     if (header.EndPoint > 1) {
       // end point can only be zero or 1, for ach of the 2 pci end points in the cru
       goodheader = false;
     }
-    //LOG(info) << "Header sanity check is : " << goodheader;
-    goodheader = false;
   }
 
   return goodheader;
@@ -449,21 +408,6 @@ bool sanityCheckTrackletHCHeader(o2::trd::TrackletHCHeader& header, bool verbose
     }
     goodheader = false;
   }
-  int trackletmode = (header.format >> 2) & 0x3;
-  bool dynamicqrange = false;
-  switch (trackletmode) {
-    case 0: //Cosmic
-      break;
-    case 1: //TPT
-      break;
-    case 2: //DIS
-      break;
-    case 3: //3Q Mode
-      if ((header.format & 0x1) == 0x1) {
-        dynamicqrange = true;
-      }
-      break;
-  }
   return goodheader;
 }
 
@@ -487,7 +431,7 @@ bool sanityCheckDigitMCMADCMask(o2::trd::DigitMCMADCMask& mask, int numberofbits
   count = (~count) & 0x1f;
   if (count != numberofbitsset) {
     goodadcmask=false;
-    LOG(warn) << "***DigitMCMADCMask bad bit count maskcount:" << ~mask.c << "::" << mask.c << " bitscounting:" << numberofbitsset << " bp: 0x" << std::hex << mask.adcmask;
+    LOG(info) << "***DigitMCMADCMask bad bit count maskcount:" << ((~mask.c) & 0x1f) << " bitscounting:" << numberofbitsset << " bp: 0x" << std::hex << mask.adcmask;
   }
   if (mask.n != 0x1) {
     goodadcmask = false;
@@ -496,6 +440,14 @@ bool sanityCheckDigitMCMADCMask(o2::trd::DigitMCMADCMask& mask, int numberofbits
     goodadcmask = false;
   }
   return goodadcmask;
+}
+
+void incrementADCMask(DigitMCMADCMask& mask, int channel)
+{
+  mask.adcmask |= 1UL << channel;
+  int bitcount = (~mask.c) & 0x1f;
+  bitcount++;
+  mask.c = ~((bitcount)&0x1f);
 }
 
 bool sanityCheckDigitMCMWord(o2::trd::DigitMCMData* word, int adcchannel)
@@ -663,30 +615,6 @@ int getNumberOfTrackletsFromHeader(o2::trd::TrackletMCMHeader* header, bool verb
     }
   }
   return headertrackletcount;
-}
-
-void setNumberOfTrackletsInHeader(o2::trd::TrackletMCMHeader& header, int numberoftracklets)
-{
-  //header.word |= 0xff<< (1+numberoftracklets*8);
-  switch (numberoftracklets) {
-    case 0:
-      LOG(error) << "tracklet header but no tracklets???";
-      header.pid0 = 0xff;
-      header.pid1 = 0xff;
-      header.pid2 = 0xff;
-      break;
-    case 1:
-      header.pid1 = 0xff;
-      header.pid2 = 0xff;
-      break;
-    case 2:
-      header.pid2 = 0xff;
-      break;
-    case 3:
-      break;
-    default:
-      LOG(error) << "we have more than 3 tracklets for an mcm in " << __func__ << ". This should never happen: tracklet count=" << numberoftracklets;
-  }
 }
 
 int getNextMCMADCfromBP(uint32_t& bp, int channel)

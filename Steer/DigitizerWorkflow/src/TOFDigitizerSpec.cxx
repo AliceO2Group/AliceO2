@@ -175,8 +175,6 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     mDigitizer->setCalibApi(mCalibApi);
 
-    // const auto ref = pc.inputs().getFirstValid(true);
-    // auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation;
     mCalibApi->setTimeStamp(o2::raw::HBFUtils::Instance().startTime / 1000);
 
     static std::vector<o2::tof::HitType> hits;

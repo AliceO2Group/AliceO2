@@ -21,6 +21,7 @@
 #include "Framework/TimingInfo.h"
 #include <fairmq/Device.h>
 
+#include "DataFormatsParameters/GRPECSObject.h"
 #include "CTFWorkflow/CTFWriterSpec.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "CommonUtils/NameConf.h"
@@ -152,6 +153,7 @@ class CTFWriterSpec : public o2::framework::Task
   std::string mCurrentCTFFileName{};
   std::string mCurrentCTFFileNameFull{};
   std::string mSizeReport{};
+  std::string mMetaDataType{};
   const std::string LOCKFileDir = "/tmp/ctf-writer-locks";
   std::string mLockFileName{};
   int mLockFD = -1;
@@ -259,9 +261,12 @@ void CTFWriterSpec::init(InitContext& ic)
 void CTFWriterSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   static bool initOnceDone = false;
+  using GRPECS = o2::parameters::GRPECSObject;
   if (!initOnceDone) {
     initOnceDone = true;
     mDataTakingContext = pc.services().get<DataTakingContext>();
+    // determine the output type for the CTF metadata
+    mMetaDataType = GRPECS::getRawDataPersistencyMode(mDataTakingContext.runType, mDataTakingContext.forcedRaw);
   }
   mTimingInfo = pc.services().get<o2::framework::TimingInfo>();
 }
@@ -390,7 +395,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
     prepareTFTreeAndFile();
   }
   // create header
-  CTFHeader header{mTimingInfo.runNumber, mTimingInfo.creation, mTimingInfo.firstTFOrbit, mTimingInfo.tfCounter};
+  CTFHeader header{mTimingInfo.runNumber, mTimingInfo.creation, mTimingInfo.firstTForbit, mTimingInfo.tfCounter};
   size_t szCTF = 0;
   mSizeReport = "";
   szCTF += processDet<o2::itsmft::CTF>(pc, DetID::ITS, header, mCTFTreeOut.get());
@@ -419,7 +424,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
     szCTF += appendToTree(*mCTFTreeOut.get(), "CTFHeader", header);
     mAccCTFSize += szCTF;
     mCTFTreeOut->SetEntries(++mNAccCTF);
-    mTFOrbits.push_back(mTimingInfo.firstTFOrbit);
+    mTFOrbits.push_back(mTimingInfo.firstTForbit);
     LOG(info) << "TF#" << mNCTF << ": wrote CTF{" << header << "} of size " << szCTF << " to " << mCurrentCTFFileNameFull << " in " << mTimer.CpuTime() - cput << " s";
     if (mNAccCTF > 1) {
       LOG(info) << "Current CTF tree has " << mNAccCTF << " entries with total size of " << mAccCTFSize << " bytes";
@@ -500,7 +505,7 @@ void CTFWriterSpec::prepareTFTreeAndFile()
         LOGP(info, "Created {} directory for CTFs output", ctfDir);
       }
     }
-    mCurrentCTFFileName = o2::base::NameConf::getCTFFileName(mTimingInfo.runNumber, mTimingInfo.firstTFOrbit, mTimingInfo.tfCounter, mHostName);
+    mCurrentCTFFileName = o2::base::NameConf::getCTFFileName(mTimingInfo.runNumber, mTimingInfo.firstTForbit, mTimingInfo.tfCounter, mHostName);
     mCurrentCTFFileNameFull = fmt::format("{}{}", ctfDir, mCurrentCTFFileName);
     mCTFFileOut.reset(TFile::Open(fmt::format("{}{}", mCurrentCTFFileNameFull, TMPFileEnding).c_str(), "recreate")); // to prevent premature external usage, use temporary name
     mCTFTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
@@ -527,7 +532,7 @@ void CTFWriterSpec::closeTFTreeAndFile()
         o2::dataformats::FileMetaData ctfMetaData;
         ctfMetaData.fillFileData(mCurrentCTFFileNameFull);
         ctfMetaData.setDataTakingContext(mDataTakingContext);
-        ctfMetaData.type = "raw";
+        ctfMetaData.type = mMetaDataType;
         ctfMetaData.priority = "high";
         ctfMetaData.tfOrbits.swap(mTFOrbits);
         auto metaFileNameTmp = fmt::format("{}{}.tmp", mCTFMetaFileDir, mCurrentCTFFileName);
@@ -608,7 +613,7 @@ void CTFWriterSpec::createLockFile(int level)
 {
   // create lock file for the CTF to be written to the storage of given level
   while (1) {
-    mLockFileName = fmt::format("{}/ctfs{}-{}_{}_{}_{}.lock", LOCKFileDir, level, o2::utils::Str::getRandomString(8), mTimingInfo.runNumber, mTimingInfo.firstTFOrbit, mTimingInfo.tfCounter);
+    mLockFileName = fmt::format("{}/ctfs{}-{}_{}_{}_{}.lock", LOCKFileDir, level, o2::utils::Str::getRandomString(8), mTimingInfo.runNumber, mTimingInfo.firstTForbit, mTimingInfo.tfCounter);
     if (!std::filesystem::exists(mLockFileName)) {
       break;
     }

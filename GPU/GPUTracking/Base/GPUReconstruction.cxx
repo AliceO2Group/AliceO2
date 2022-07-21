@@ -546,7 +546,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
     memorypool = (void*)((char*)memorypool + GPUProcessor::getAlignment<GPUCA_MEMALIGN>(memorypool));
   }
   if (memorypoolend ? (memorypool > memorypoolend) : ((size_t)((char*)memorypool - (char*)memorybase) > memorysize)) {
-    std::cout << "Memory pool size exceeded (" << device << ") (" << res->mName << ": " << (memorypoolend ? (memorysize + ((char*)memorypool - (char*)memorypoolend)) : (char*)memorypool - (char*)memorybase) << " < " << memorysize << "\n";
+    std::cerr << "Memory pool size exceeded (" << device << ") (" << res->mName << ": " << (memorypoolend ? (memorysize + ((char*)memorypool - (char*)memorypoolend)) : (char*)memorypool - (char*)memorybase) << " < " << memorysize << "\n";
     throw std::bad_alloc();
   }
   if (mProcessingSettings.allocDebugLevel >= 2) {
@@ -715,7 +715,7 @@ void GPUReconstruction::ResetRegisteredMemoryPointers(short ires)
     void* basePtr = res->mReuse >= 0 ? mMemoryResources[res->mReuse].mPtr : res->mPtr;
     size_t size = (char*)res->SetPointers(basePtr) - (char*)basePtr;
     if (basePtr && size > std::max(res->mSize, res->mOverrideSize)) {
-      std::cout << "Updated pointers exceed available memory size: " << size << " > " << std::max(res->mSize, res->mOverrideSize) << " - host - " << res->mName << "\n";
+      std::cerr << "Updated pointers exceed available memory size: " << size << " > " << std::max(res->mSize, res->mOverrideSize) << " - host - " << res->mName << "\n";
       throw std::bad_alloc();
     }
   }
@@ -723,7 +723,7 @@ void GPUReconstruction::ResetRegisteredMemoryPointers(short ires)
     void* basePtr = res->mReuse >= 0 ? mMemoryResources[res->mReuse].mPtrDevice : res->mPtrDevice;
     size_t size = (char*)res->SetDevicePointers(basePtr) - (char*)basePtr;
     if (basePtr && size > std::max(res->mSize, res->mOverrideSize)) {
-      std::cout << "Updated pointers exceed available memory size: " << size << " > " << std::max(res->mSize, res->mOverrideSize) << " - GPU - " << res->mName << "\n";
+      std::cerr << "Updated pointers exceed available memory size: " << size << " > " << std::max(res->mSize, res->mOverrideSize) << " - GPU - " << res->mName << "\n";
       throw std::bad_alloc();
     }
   }
@@ -1026,7 +1026,8 @@ void GPUReconstruction::DumpSettings(const char* dir)
 
 void GPUReconstruction::UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
 {
-  param().UpdateGRPSettings(g, p);
+  mGRPSettings = *g;
+  param().UpdateSettings(g, p);
   if (mInitialized) {
     WriteConstantParams();
   }
@@ -1041,7 +1042,7 @@ int GPUReconstruction::ReadSettings(const char* dir)
   if (ReadStructFromFile(f.c_str(), &mGRPSettings)) {
     return 1;
   }
-  param().UpdateGRPSettings(&mGRPSettings);
+  param().UpdateSettings(&mGRPSettings);
   for (unsigned int i = 0; i < mChains.size(); i++) {
     mChains[i]->ReadSettings(dir);
   }

@@ -21,6 +21,8 @@
 #include <TTimer.h>
 #include <TGDoubleSlider.h>
 #include <EventVisualisationBase/DataSourceOnline.h>
+#include <EventVisualisationBase/ConfigurationManager.h>
+#include <EventVisualisationBase/DirectoryLoader.h>
 #include <EventVisualisationView/EventManagerFrame.h>
 #include <EventVisualisationView/MultiView.h>
 #include <EventVisualisationView/Screenshot.h>
@@ -267,7 +269,19 @@ void EventManagerFrame::DoScreenshot()
   if (not setInTick()) {
     return;
   }
-  Screenshot::perform(this->mEventManager->getDataSource()->getDetectorsMask(),
+
+  std::time_t time = std::time(nullptr);
+  char time_str[100];
+  std::strftime(time_str, sizeof(time_str), "%Y_%m_%d_%H_%M_%S", std::localtime(&time));
+  TEnv settings;
+  ConfigurationManager::getInstance().getConfig(settings);
+  std::string outDirectory = settings.GetValue("screenshot.path", "Screenshots");
+  std::ostringstream filepath;
+  filepath << outDirectory << "/Screenshot_" << time_str << ".png";
+  if (!std::filesystem::is_directory(outDirectory)) {
+    std::filesystem::create_directory(outDirectory);
+  }
+  Screenshot::perform(filepath.str(), this->mEventManager->getDataSource()->getDetectorsMask(),
                       this->mEventManager->getDataSource()->getRunNumber(),
                       this->mEventManager->getDataSource()->getFirstTForbit(),
                       this->mEventManager->getDataSource()->getCollisionTime());
@@ -287,6 +301,7 @@ void EventManagerFrame::checkMemory()
       fclose(f);
       if (success == 1) {       // properly readed
         size = 4 * size / 1024; // in MB
+        this->memoryUsedInfo = size;
         LOG(info) << "Memory used: " << size << " memory allowed: " << memoryLimit;
         if (size > memoryLimit) {
           LOG(error) << "Memory used: " << size << " exceeds memory allowed: "
@@ -298,12 +313,37 @@ void EventManagerFrame::checkMemory()
   }
 }
 
+void EventManagerFrame::createOutreachScreenshot()
+{
+  if (!Options::Instance()->imageFolder().empty()) {
+    string fileName = mEventManager->getInstance().getDataSource()->getEventName();
+    if (fileName.size() < 5) {
+      return;
+    }
+    string imageFolder = Options::Instance()->imageFolder();
+    if (!std::filesystem::is_directory(imageFolder)) {
+      std::filesystem::create_directory(imageFolder);
+    }
+    fileName = imageFolder + "/" + fileName.substr(0, fileName.find_last_of('.')) + ".png";
+    if (!std::filesystem::is_regular_file(fileName)) {
+      DirectoryLoader::removeOldestFiles(imageFolder, ".png", 10);
+      LOG(info) << "Outreach screenshot: " << fileName;
+      Screenshot::perform(fileName, this->mEventManager->getDataSource()->getDetectorsMask(),
+                          this->mEventManager->getDataSource()->getRunNumber(),
+                          this->mEventManager->getDataSource()->getFirstTForbit(),
+                          this->mEventManager->getDataSource()->getCollisionTime());
+    }
+    // LOG(info) << mEventManager->getInstance().getDataSource()->getEventName();
+  }
+}
+
 void EventManagerFrame::DoTimeTick()
 {
   if (not setInTick()) {
     return;
   }
   checkMemory(); // exits if memory usage too high = prevents freezing long-running machine
+  this->createOutreachScreenshot();
   bool refreshNeeded = mEventManager->getDataSource()->refresh();
   if (this->mDisplayMode == SequentialMode) {
     mEventManager->getDataSource()->rollToNext();

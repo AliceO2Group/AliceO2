@@ -681,7 +681,7 @@ inline const DigitPos Mapper::findDigitPosFromLocalPosition(const LocalPosition3
   CRU cru;
   for (const PadRegionInfo& padRegion : mMapPadRegionInfo) {
     cru = CRU(sec, padRegion.getRegion());
-    pad = padRegion.findPad(pos);
+    pad = padRegion.findPad(pos.X(), pos.Y(), (pos.Z() >= 0) ? Side::A : Side::C); // <--- to avoid calling a non-inlined library function layer for LocalPosition3D
     if (pad.isValid()) {
       break;
     }

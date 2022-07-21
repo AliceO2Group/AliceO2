@@ -122,7 +122,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::vertexing::getPrimaryVertexWriterSpec(srcVT.none(), useMC));
   }
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   if (srcPV.any() && !configcontext.options().get<bool>("disable-root-output")) {
     o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
   }

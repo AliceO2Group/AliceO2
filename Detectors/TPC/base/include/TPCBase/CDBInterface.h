@@ -37,33 +37,44 @@ class ParameterGEM;
 
 /// Calibration and parameter types for CCDB
 enum class CDBType {
-  CalPedestal,        ///< Pedestal calibration
-  CalNoise,           ///< Noise calibration
-  CalPedestalNoise,   ///< Pedestal and Noise calibration
-  CalPulser,          ///< Pulser calibration
-  CalCE,              ///< Laser CE calibration
-  CalPadGainFull,     ///< Full pad gain calibration
-  CalPadGainResidual, ///< ResidualpPad gain calibration (e.g. from tracks)
-  CalLaserTracks,     ///< Laser track calibration data
-  CalTimeGain,        ///< Gain variation over time
-  CalGas,             ///< DCS gas measurements
-  CalTemperature,     ///< DCS temperature measurements
-  CalHV,              ///< DCS HV measurements
-  CalTopologyGain,    ///< Q cluster topology correction
-                      ///
-  ConfigFEEPad,       ///< FEE pad-by-pad configuration map
-                      ///
-  ParDetector,        ///< Parameter for Detector
-  ParElectronics,     ///< Parameter for Electronics
-  ParGas,             ///< Parameter for Gas
-  ParGEM,             ///< Parameter for GEM
-                      ///
-  CalIDC0,            ///< I_0(r,\phi) = <I(r,\phi,t)>_t
-  CalIDC1,            ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
-  CalIDCDelta,        ///< \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
-  CalIDCFourier,      ///< Fourier coefficients of CalIDC1
-  CalIDCPadStatusMap, ///< Status map of the pads (dead etc. obatined from CalIDC0)
-  CalIDCGroupingPar,  ///< Parameters which were used for the averaging of the CalIDCDelta
+  CalPedestal,         ///< Pedestal calibration
+  CalNoise,            ///< Noise calibration
+  CalPedestalNoise,    ///< Pedestal and Noise calibration
+  CalPulser,           ///< Pulser calibration
+  CalCE,               ///< Laser CE calibration
+  CalPadGainFull,      ///< Full pad gain calibration
+  CalPadGainResidual,  ///< ResidualpPad gain calibration (e.g. from tracks)
+  CalLaserTracks,      ///< Laser track calibration data
+  CalTimeGain,         ///< Gain variation over time
+  CalGas,              ///< DCS gas measurements
+  CalTemperature,      ///< DCS temperature measurements
+  CalHV,               ///< DCS HV measurements
+  CalTopologyGain,     ///< Q cluster topology correction
+                       ///
+  ConfigFEEPad,        ///< FEE pad-by-pad configuration map
+                       ///
+  ParDetector,         ///< Parameter for Detector
+  ParElectronics,      ///< Parameter for Electronics
+  ParGas,              ///< Parameter for Gas
+  ParGEM,              ///< Parameter for GEM
+                       ///
+  CalIDC0A,            ///< I_0(r,\phi) = <I(r,\phi,t)>_t
+  CalIDC0C,            ///< I_0(r,\phi) = <I(r,\phi,t)>_t
+  CalIDC1A,            ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
+  CalIDC1C,            ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
+  CalIDCDeltaA,        ///< \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
+  CalIDCDeltaC,        ///< \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
+  CalIDCFourierA,      ///< Fourier coefficients of CalIDC1
+  CalIDCFourierC,      ///< Fourier coefficients of CalIDC1
+  CalIDCPadStatusMapA, ///< Status map of the pads (dead etc. obatined from CalIDC0)
+  CalIDCPadStatusMapC, ///< Status map of the pads (dead etc. obatined from CalIDC0)
+  CalIDCGroupingParA,  ///< Parameters which were used for the averaging of the CalIDCDelta
+  CalIDCGroupingParC,  ///< Parameters which were used for the averaging of the CalIDCDelta
+                       ///
+  CalSAC0,             ///< I_0(r,\phi) = <I(r,\phi,t)>_t
+  CalSAC1,             ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
+  CalSACDelta,         ///< \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
+  CalSACFourier,       ///< Fourier coefficients of CalSAC1
 };
 
 /// Upload intervention type
@@ -95,12 +106,23 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::ParGas, "TPC/Parameter/Gas"},
   {CDBType::ParGEM, "TPC/Parameter/GEM"},
   // IDCs
-  {CDBType::CalIDC0, "TPC/Calib/IDC/IDC0"},
-  {CDBType::CalIDC1, "TPC/Calib/IDC/IDC1"},
-  {CDBType::CalIDCDelta, "TPC/Calib/IDC/IDCDELTA"},
-  {CDBType::CalIDCFourier, "TPC/Calib/IDC/FOURIER"},
-  {CDBType::CalIDCPadStatusMap, "TPC/Calib/IDC/PadStatusMap"},
-  {CDBType::CalIDCGroupingPar, "TPC/Calib/IDC/GROUPINGPAR"},
+  {CDBType::CalIDC0A, "TPC/Calib/IDC/IDC0/A"},
+  {CDBType::CalIDC0C, "TPC/Calib/IDC/IDC0/C"},
+  {CDBType::CalIDC1A, "TPC/Calib/IDC/IDC1/A"},
+  {CDBType::CalIDC1C, "TPC/Calib/IDC/IDC1/C"},
+  {CDBType::CalIDCDeltaA, "TPC/Calib/IDC/IDCDELTA/A"},
+  {CDBType::CalIDCDeltaC, "TPC/Calib/IDC/IDCDELTA/C"},
+  {CDBType::CalIDCFourierA, "TPC/Calib/IDC/FOURIER/A"},
+  {CDBType::CalIDCFourierC, "TPC/Calib/IDC/FOURIER/C"},
+  {CDBType::CalIDCPadStatusMapA, "TPC/Calib/IDC/PadStatusMap/A"},
+  {CDBType::CalIDCPadStatusMapC, "TPC/Calib/IDC/PadStatusMap/C"},
+  {CDBType::CalIDCGroupingParA, "TPC/Calib/IDC/GROUPINGPAR/A"},
+  {CDBType::CalIDCGroupingParC, "TPC/Calib/IDC/GROUPINGPAR/C"},
+  // SACs
+  {CDBType::CalSAC0, "TPC/Calib/SAC/SAC0"},
+  {CDBType::CalSAC1, "TPC/Calib/SAC/SAC1"},
+  {CDBType::CalSACDelta, "TPC/Calib/SAC/SACDELTA"},
+  {CDBType::CalSACFourier, "TPC/Calib/SAC/FOURIER"},
 };
 
 /// Poor enum reflection ...

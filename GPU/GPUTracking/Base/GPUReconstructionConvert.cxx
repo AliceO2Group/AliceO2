@@ -446,7 +446,7 @@ void zsEncoderRow::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const z
       for (int n = 0; n < nSeqRead; n++) {
         const int decSeqLen = rowData[(n + 1) * 2] - (n ? rowData[n * 2] : 0);
         for (int o = 0; o < decSeqLen; o++) {
-          outputBuffer.emplace_back(o2::tpc::Digit{0, decBuffer[posXbits++] * decodeBitsFactor, (tpccf::Row)(rowOffset + m), (tpccf::Pad)(rowData[n * 2 + 1] + o), timeBin + l});
+          outputBuffer.emplace_back(o2::tpc::Digit{cruid, decBuffer[posXbits++] * decodeBitsFactor, (tpccf::Row)(rowOffset + m), (tpccf::Pad)(rowData[n * 2 + 1] + o), timeBin + l});
         }
       }
       rowPos++;
@@ -664,7 +664,7 @@ void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputB
     o2::tpc::CRU cru = cruid % 10;
     const int feeLink = tbHdr->fecInPartition - (decEndpoint & 1) * ((mapper.getPartitionInfo(cru.partition()).getNumberOfFECs() + 1) / 2);
     auto fillADC = [&outputBuffer](int cru, int rowInSector, int padInRow, int timeBin, float adcValue) {
-      outputBuffer.emplace_back(o2::tpc::Digit{0, adcValue, rowInSector, padInRow, timeBin});
+      outputBuffer.emplace_back(o2::tpc::Digit{cruid, adcValue, rowInSector, padInRow, timeBin});
       return true;
     };
     size_t size = sizeof(*tbHdr) + tbHdr->numWordsPayload * 16;
@@ -701,7 +701,7 @@ void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputB
         mapper.getSampaAndChannelOnFEC(cruid, j, sampaOnFEC, channelOnSAMPA);
         const auto padSecPos = mapper.padSecPos(cruid, tbHdr->fecInPartition, sampaOnFEC, channelOnSAMPA);
         const auto& padPos = padSecPos.getPadPos();
-        outputBuffer.emplace_back(o2::tpc::Digit{0, decBuffer[k++] * decodeBitsFactor, (tpccf::Row)padPos.getRow(), (tpccf::Pad)padPos.getPad(), timeBin});
+        outputBuffer.emplace_back(o2::tpc::Digit{cruid, decBuffer[k++] * decodeBitsFactor, (tpccf::Row)padPos.getRow(), (tpccf::Pad)padPos.getPad(), timeBin});
       }
     }
 #endif
@@ -878,7 +878,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
           mapper.getSampaAndChannelOnFEC(cruid, j, sampaOnFEC, channelOnSAMPA);
           const auto padSecPos = mapper.padSecPos(cruid, decLink, sampaOnFEC, channelOnSAMPA);
           const auto& padPos = padSecPos.getPadPos();
-          outputBuffer.emplace_back(o2::tpc::Digit{0, decBuffer[k++] * decodeBitsFactor, (tpccf::Row)padPos.getRow(), (tpccf::Pad)padPos.getPad(), timeBin});
+          outputBuffer.emplace_back(o2::tpc::Digit{cruid, decBuffer[k++] * decodeBitsFactor, (tpccf::Row)padPos.getRow(), (tpccf::Pad)padPos.getPad(), timeBin});
         }
       }
     }

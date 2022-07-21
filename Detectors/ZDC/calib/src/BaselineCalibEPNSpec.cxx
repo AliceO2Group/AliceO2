@@ -89,8 +89,7 @@ void BaselineCalibEPNSpec::run(ProcessingContext& pc)
     mTimer.Start(false);
   }
 
-  const auto ref = pc.inputs().getFirstValid(true);
-  auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
+  auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
   BaselineCalibData& data = mWorker.getData();
   data.setCreationTime(creationTime);
 

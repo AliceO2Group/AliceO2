@@ -109,7 +109,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(Phi, phi, float,     //! Phi of the track, in radi
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //! Pseudorapidity
                               -1.f * nlog(ntan(PIQuarter - 0.5f * natan(aod::track::tgl))));
 DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, //! Transverse momentum of the track in GeV/c
-                              nabs(1.f / aod::track::signed1Pt));
+                              ifnode(nabs(aod::track::signed1Pt) <= Almost0, VeryBig, nabs(1.f / aod::track::signed1Pt)));
 DECLARE_SOA_DYNAMIC_COLUMN(IsWithinBeamPipe, isWithinBeamPipe, //! Is the track within the beam pipe (= successfully propagated to a collision vertex)
                            [](float x) -> bool { return (std::fabs(x) < o2::constants::geom::XBeamPipeOuterRef); });
 DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign, //! Charge: positive: 1, negative: -1
@@ -137,11 +137,10 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //! Momentum in z-direction in GeV/c
                            });
 
 DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //! Momentum in Gev/c
-                              0.5f * (ntan(PIQuarter - 0.5f * natan(aod::track::tgl)) + 1.f / ntan(PIQuarter - 0.5f * natan(aod::track::tgl))) / nabs(aod::track::signed1Pt));
+                              ifnode(nabs(aod::track::signed1Pt) <= Almost0, VeryBig, 0.5f * (ntan(PIQuarter - 0.5f * natan(aod::track::tgl)) + 1.f / ntan(PIQuarter - 0.5f * natan(aod::track::tgl))) / nabs(aod::track::signed1Pt)));
 DECLARE_SOA_DYNAMIC_COLUMN(Energy, energy, //! Track energy, computed under the mass assumption given as input
                            [](float signed1Pt, float tgl, float mass) -> float {
                              const auto pt = 1.f / std::abs(signed1Pt);
-                             const auto pz = pt * tgl;
                              const auto p = 0.5f * (tan(PIQuarter - 0.5f * atan(tgl)) + 1.f / tan(PIQuarter - 0.5f * atan(tgl))) * pt;
                              return sqrt(p * p + mass * mass);
                            });

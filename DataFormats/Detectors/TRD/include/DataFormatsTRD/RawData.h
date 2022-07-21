@@ -12,19 +12,19 @@
 #ifndef ALICEO2_TRD_RAWDATA_H
 #define ALICEO2_TRD_RAWDATA_H
 
-#include "fairlogger/Logger.h"
-
-#include <bitset>
-
 /// \class TRDRDH
 /// \brief Header for TRD raw data header
 //  this is the header added by the CRU
+
+#include <array>
+#include <cstdint>
+#include <ostream>
 
 namespace o2
 {
 namespace trd
 {
-class Tracklet64;
+
 /// \structure HalfCRUHeader
 /// \brief Header for half a cru, each cru has 2 output, 1 for each pciid.
 //         This comes at the top of the data stream for each event and 1/2cru
@@ -133,7 +133,7 @@ struct TrackletHCHeader {
     //             |   |              |    |  |  |---  1-3  stack
     //             |   |              |    |  |------  4-6  layer
     //             |   |              |    |--------  7-11 sector
-    //             |   |              |------------- 12 always 0
+    //             |   |              |------------- 12 always 1
     //             |   ----------------------------- 13-27 MCM Clock counter
     //             --------------------------------- 28-31 tracklet data format number
     uint32_t word;
@@ -192,7 +192,7 @@ struct TrackletMCMData {
     struct {
       uint8_t checkbit : 1; //
       uint16_t slope : 8;   // Deflection angle of tracklet
-      uint16_t pid : 12;    // Particle Identity 7 bits of Q0 and 5 bits of Q1
+      uint16_t pid : 12;    // Particle Identity 6 bits of Q0 and 6 bits of Q1
       uint16_t pos : 11;    // Position of tracklet, signed 11 bits, granularity 1/80 pad widths, -12.80 to +12.80, relative to centre of pad 10
     } __attribute__((__packed__));
   };
@@ -421,14 +421,11 @@ struct DigitMCMData {
 
 uint32_t setHalfCRUHeader(HalfCRUHeader& cruhead, int crurdhversion, int bunchcrossing, int stopbits, int endpoint, int eventtype, int feeid, int cruid);
 uint32_t setHalfCRUHeaderLinkData(HalfCRUHeader& cruhead, int link, int size, int errors);
-void buildTrackletMCMData(TrackletMCMData& trackletword, const uint slope, const uint pos, const uint q0, const uint q1, const uint q2);
 uint32_t getlinkerrorflag(const HalfCRUHeader& cruhead, const uint32_t link);
 uint32_t getlinkdatasize(const HalfCRUHeader& cruhead, const uint32_t link);
 uint32_t getlinkerrorflags(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linkerrorflags);
 uint32_t getlinkdatasizes(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linksizes);
 uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader* header, const o2::trd::TrackletMCMData* data, int pidindex, int trackletindex);
-uint32_t getHCIDFromTrackletHCHeader(const TrackletHCHeader& header);
-uint32_t getHCIDFromTrackletHCHeader(const uint32_t& headerword);
 std::ostream& operator<<(std::ostream& stream, const TrackletHCHeader& halfchamberheader);
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& mcmhead);
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMData& tracklet);
@@ -436,9 +433,6 @@ void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet);
 void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead);
 void printHalfChamber(o2::trd::TrackletHCHeader& halfchamber);
 void dumpHalfChamber(o2::trd::TrackletHCHeader& halfchamber);
-void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
-void dumpHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
-void clearHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
 std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru);
 bool trackletMCMHeaderSanityCheck(o2::trd::TrackletMCMHeader& header);
 bool trackletHCHeaderSanityCheck(o2::trd::TrackletHCHeader& header);
@@ -452,13 +446,10 @@ void printDigitHCHeader(o2::trd::DigitHCHeader& header, uint32_t headers[3]);
 
 //functions updated/checked/new for new raw reader.
 //above methods left for cross checking what changes have occured.
-void constructTrackletHCHeader(TrackletHCHeader& header, int sector, int stack, int layer, int side, int chipclock, int format);
-void constructTrackletHCHeaderd(TrackletHCHeader& header, int detector, int rob, int chipclock, int format);
+void constructTrackletHCHeader(TrackletHCHeader& header, int hcid, int chipclock, int format);
 uint16_t constructTRDFeeID(int supermodule, int side, int endpoint);
 uint32_t setHalfCRUHeaderFirstWord(HalfCRUHeader& cruhead, int crurdhversion, int bunchcrossing, int stopbits, int endpoint, int eventtype, int feeid, int cruid);
 void setHalfCRUHeaderLinkSizeAndFlags(HalfCRUHeader& cruhead, int link, int size, int errors);
-void constructTrackletMCMData(TrackletMCMData& trackletword, const int format, const uint slope, const uint pos, const uint q0, const uint q1, const uint q2);
-void constructTrackletMCMData(TrackletMCMData& trackletword, const Tracklet64& tracklet);
 DigitMCMADCMask constructBlankADCMask();
 
 uint32_t getHalfCRULinkInfo(const HalfCRUHeader& cruhead, const uint32_t link, const bool data);
@@ -468,7 +459,6 @@ void getHalfCRULinkErrorFlags(const HalfCRUHeader& cruheader, std::array<uint32_
 void getHalfCRULinkDataSizes(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linksizes);
 uint32_t getChargeFromRawHeaders(const o2::trd::TrackletHCHeader& hcheader, const o2::trd::TrackletMCMHeader* header, const std::array<o2::trd::TrackletMCMData, 3>& data, int pidindex, int trackletindex);
 uint32_t getHCIDFromTrackletHCHeader(const TrackletHCHeader& header);
-uint32_t getHCIDFromTrackletHCHeader(const uint32_t& headerword);
 std::ostream& operator<<(std::ostream& stream, const TrackletHCHeader& halfchamberheader);
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& tracklmcmhead);
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMData& trackletmcmdata);
@@ -496,15 +486,15 @@ bool sanityCheckTrackletHCHeader(o2::trd::TrackletHCHeader& header, bool verbose
 bool sanityCheckDigitMCMHeader(o2::trd::DigitMCMHeader* header);
 bool sanityCheckDigitMCMADCMask(o2::trd::DigitMCMADCMask& mask, int numberofbitsset);
 bool sanityCheckDigitMCMWord(o2::trd::DigitMCMData* word, int adcchannel);
+void incrementADCMask(DigitMCMADCMask& mask, int channel);
 void printDigitMCMHeader(o2::trd::DigitMCMHeader& header);
 int getDigitHCHeaderWordType(uint32_t word);
 void printDigitHCHeaders(o2::trd::DigitHCHeader& header, uint32_t headers[3], int index, int offset, bool good);
 void printDigitHCHeader(o2::trd::DigitHCHeader& header, uint32_t headers[3]);
 int getNumberOfTrackletsFromHeader(o2::trd::TrackletMCMHeader* header, bool verbose = false);
-void setNumberOfTrackletsInHeader(o2::trd::TrackletMCMHeader& header, int numberoftracklets);
 int getNextMCMADCfromBP(uint32_t& bp, int channel);
 
-inline bool isTrackletHCHeader(uint32_t& header) { return (((header >> 11) & 0x1) == 0x1); }
+inline bool isTrackletHCHeader(uint32_t& header) { return (((header >> 12) & 0x1) == 0x1); }
 inline bool isTrackletMCMHeader(uint32_t& header) { return ((header & 0x80000001) == 0x80000001); }
 }
 }

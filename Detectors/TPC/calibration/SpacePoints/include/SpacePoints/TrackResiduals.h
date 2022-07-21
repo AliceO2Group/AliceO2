@@ -193,6 +193,9 @@ class TrackResiduals
   /// Returns the collected unbinned residuals after outlier rejection is applied
   std::vector<UnbinnedResid>& getUnbinnedResiduals() { return mUnbinnedResiduals; }
 
+  /// Returns the track parameters and cluster range reference for validated tracks (this is a subset of the input mTrackDataPtr)
+  std::vector<TrackData>& getTrackDataOut() { return mTrackDataOut; }
+
   /// Create output files for each sector with trees for local residuals
   void prepareLocalResidualTrees();
 
@@ -556,7 +559,7 @@ class TrackResiduals
   TTree* mTreeInTracks{nullptr};                        ///< tree with input track information
   std::vector<TrackData>* mTrackDataPtr{nullptr};       ///< vector with input track information
   TTree* mTreeInClRes{nullptr};                         ///< tree with TPC cluster residuals
-  std::vector<TPCClusterResiduals>* mClResPtr{nullptr}; ///< vector with TPC cluster residuals
+  std::vector<TPCClusterResiduals>* mClResPtr{nullptr}; ///< vector with unbinned TPC cluster residuals
   std::vector<LocalResid> mLocalResidualsIn;            ///< binned local residuals from aggregator
   std::vector<VoxStats> mVoxStatsIn, *mVoxStatsInPtr{&mVoxStatsIn}; ///< the statistics information for each voxel from the aggregator
   // output data
@@ -564,6 +567,7 @@ class TrackResiduals
   std::unique_ptr<TTree> mTreeOut; ///< tree holding debug output
   std::vector<UnbinnedResid> mUnbinnedResiduals; ///< large vector for the unbinned residual data which is sent to the aggregator
   std::vector<UnbinnedResid>* mUnbinnedResidualsPtr{&mUnbinnedResiduals};
+  std::vector<TrackData> mTrackDataOut; // the same as mTrackDataPtr, but the rejected tracks are removed, to be sent to the aggregator
   // status flags
   bool mIsInitialized{}; ///< initialize only once
   bool mPrintMem{};      ///< turn on to print memory usage at certain points
@@ -630,7 +634,7 @@ class TrackResiduals
   float mMaxRejFrac{.15f}; ///< if the fraction of rejected clusters of a track is higher, the full track is invalidated
   float mMaxRMSLong{.8f};  ///< maximum variance of the cluster residuals wrt moving avarage for a track to be considered
 
-  ClassDefNV(TrackResiduals, 1);
+  ClassDefNV(TrackResiduals, 2);
 };
 
 //_____________________________________________________

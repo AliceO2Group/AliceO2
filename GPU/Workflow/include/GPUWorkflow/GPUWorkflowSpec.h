@@ -30,6 +30,10 @@
 class TStopwatch;
 namespace o2
 {
+namespace base
+{
+struct GRPGeomRequest;
+} // namespace base
 namespace tpc
 {
 class CalibdEdxContainer;
@@ -77,7 +81,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool readTRDtracklets = false;
   };
 
-  GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask);
+  GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr);
   ~GPURecoWorkflowSpec() override;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -93,15 +97,19 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   /// storing new calib objects in buffer
   void finaliseCCDBTPC(o2::framework::ConcreteDataMatcher& matcher, void* obj);
   /// asking for newer calib objects
-  void fetchCalibsCCDBTPC(o2::framework::ProcessingContext& pc);
+  template <class T>
+  bool fetchCalibsCCDBTPC(o2::framework::ProcessingContext& pc, T& newCalibObjects);
   /// storing the new calib objects by overwritting the old calibs
   void storeUpdatedCalibsTPCPtrs();
+
+  void doCalibUpdates(o2::framework::ProcessingContext& pc);
 
   CompletionPolicyData* mPolicyData;
   std::unique_ptr<o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>> mParser;
   std::unique_ptr<GPUO2Interface> mTracker;
   std::unique_ptr<GPUDisplayFrontendInterface> mDisplayFrontend;
   std::unique_ptr<TPCFastTransform> mFastTransform;
+  std::unique_ptr<TPCFastTransform> mFastTransformNew;
   std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalib;
   std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibBufferNew;
   std::unique_ptr<TPCZSLinkMapping> mTPCZSLinkMapping;
@@ -117,10 +125,15 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::vector<int> mTPCSectors;
   unsigned long mTPCSectorMask = 0;
   int mVerbosity = 0;
-  bool mReadyToQuit = false;
   bool mUpdateGainMapCCDB = true;
   std::unique_ptr<o2::gpu::GPUSettingsTF> mTFSettings;
   Config mSpecConfig;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGR;
+  bool mGRPGeomUpdated = false;
+  bool mAutoContinuousMaxTimeBin = false;
+  bool mGeometryCreated = false;
+  bool mPropagatorInstanceCreated = false;
+  bool mMustUpdateFastTransform = false;
 };
 
 } // end namespace gpu

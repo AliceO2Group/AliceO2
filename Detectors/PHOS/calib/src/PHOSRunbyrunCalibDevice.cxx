@@ -35,8 +35,7 @@ void PHOSRunbyrunCalibDevice::run(o2::framework::ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   if (mRunStartTime == 0) {
-    const auto ref = pc.inputs().getFirstValid(true);
-    mRunStartTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
+    mRunStartTime = pc.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
   }
   auto tfcounter = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("clusters").header)->tfCounter;
   auto clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");

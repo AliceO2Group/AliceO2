@@ -32,7 +32,7 @@ namespace o2::ft0
 class FT0ChannelTimeTimeSlotContainer final
 {
 
-  //ranges to be discussed
+  // ranges to be discussed
   static constexpr int HISTOGRAM_RANGE = 500;
   static constexpr unsigned int NUMBER_OF_HISTOGRAM_BINS = HISTOGRAM_RANGE;
   static constexpr int NCHANNELS = o2::ft0::Geometry::Nchannels;
@@ -52,6 +52,10 @@ class FT0ChannelTimeTimeSlotContainer final
   {
     if (creation < mFirstCreation) {
       mFirstCreation = creation;
+      for (int iCh = 0; iCh < NCHANNELS; iCh++) {
+        std::string histName = std::string{mHistogram[iCh]->GetName()} + "_" + std::to_string(mFirstCreation);
+        mHistogram[iCh]->SetName(histName.c_str());
+      }
     }
   }
   void resetFirstCreation()
@@ -74,4 +78,4 @@ class FT0ChannelTimeTimeSlotContainer final
 
 } // namespace o2::ft0
 
-#endif //O2_FT0CHANNELTIMETIMESLOTCONTAINER_H
+#endif // O2_FT0CHANNELTIMETIMESLOTCONTAINER_H

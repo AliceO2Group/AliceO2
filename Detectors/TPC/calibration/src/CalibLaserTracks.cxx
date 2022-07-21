@@ -18,6 +18,7 @@
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCCalibration/CalibLaserTracks.h"
 #include "TLinearFitter.h"
+#include <chrono>
 
 using namespace o2::tpc;
 void CalibLaserTracks::fill(std::vector<TrackTPC> const& tracks)
@@ -304,7 +305,8 @@ void CalibLaserTracks::fillCalibData(LtrCalibData& calibData, const std::vector<
 {
   auto dvA = fit(pairsA);
   auto dvC = fit(pairsC);
-
+  calibData.creationTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  calibData.refVDrift = mDriftV;
   calibData.dvOffsetA = dvA.x1;
   calibData.dvCorrectionA = dvA.x2;
   calibData.nTracksA = uint16_t(pairsA.size());

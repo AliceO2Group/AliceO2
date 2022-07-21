@@ -13,12 +13,6 @@ else
   if [[ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]]; then export WORKFLOW_DETECTORS_MATCHING="ALL"; fi # All matching / vertexing enabled in async mode
 fi
 
-if [[ $BEAMTYPE == "PbPb" ]]; then
-  [[ -z $ITS_STROBE ]] && ITS_STROBE="891"
-elif [[ $BEAMTYPE == "pp" ]]; then
-  [[ -z $ITS_STROBE ]] && ITS_STROBE="198"
-fi
-
 MID_FEEID_MAP="$FILEWORKDIR/mid-feeId_mapper.txt"
 
 ITSMFT_STROBES=""
@@ -47,6 +41,7 @@ else # Add default steps for async mode
   for i in $LIST_OF_ASYNC_RECO_STEPS; do
     has_detector_reco $i && add_comma_separated WORKFLOW_EXTRA_PROCESSING_STEPS ${i}_RECO
   done
+  add_comma_separated WORKFLOW_EXTRA_PROCESSING_STEPS TPC_DEDX
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -87,7 +82,7 @@ get_N() # USAGE: get_N [processor-name] [DETECTOR_NAME] [RAW|CTF|REST] [threads,
   local NAME_PROC="MULTIPLICITY_FACTOR_PROCESS_${1//-/_}"
   local NAME_DEFAULT="N_$5"
   local MULT=${!NAME_PROC:-$((${!NAME_FACTOR} * ${!NAME_DET:-1} * ${!NAME_DEFAULT:-1}))}
-  if [[ "0$GEN_TOPO_AUTOSCALE_PROCESSES" == "01" && $4 != 0 ]]; then
+  if [[ "0$GEN_TOPO_AUTOSCALE_PROCESSES" == "01" && $WORKFLOWMODE != "print" && $4 != 0 ]]; then
     echo $1:\$\(\(\($MULT*\$AUTOSCALE_PROCESS_FACTOR/100\) \< 16 ? \($MULT*\$AUTOSCALE_PROCESS_FACTOR/100\) : 16\)\)
   else
     echo $1:$MULT

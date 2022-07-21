@@ -12,20 +12,19 @@
 ///////////////////////////////////////////////////////////////////////////////
 //                                                                           //
 //  TRD Trap2CRU class                                                       //
-//  Class to take the trap output that arrives at the cru and produce        //
-//  the cru output. I suppose a cru simulator                                //
+//  Convert simulated digits and tracklets into a CRU data stream            //
+//                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef ALICE_O2_TRD_TRAP2CRU_H
 #define ALICE_O2_TRD_TRAP2CRU_H
 
 #include <string>
-#include "DataFormatsTRD/TriggerRecord.h"
-#include "DataFormatsTRD/LinkRecord.h"
 #include "DataFormatsTRD/RawData.h"
+#include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/Digit.h"
-//#include "DetectorsRaw/HBFUtils.h"
+#include "DataFormatsTRD/Constants.h"
 #include "DetectorsRaw/RawFileWriter.h"
 
 namespace o2
@@ -38,87 +37,80 @@ class Trap2CRU
  public:
   Trap2CRU() = default;
   Trap2CRU(const std::string& outputDir, const std::string& inputDigitsFilename, const std::string& inputTrackletsFilename);
-  //Trap2CRU(const std::string& outputDir, const std::string& inputFilename, const std::string& inputDigitsFilename, const std::string& inputTrackletsFilename);
+
+  // entry point for processing, is called from trap2raw.cxx
   void readTrapData();
-  void convertTrapData(o2::trd::TriggerRecord const& trigrecord, const int& triggercount);
-  // default for now will be file per half cru as per the files Guido did for us.
-  void setFilePer(std::string fileper) { mFilePer = fileper; };
-  std::string getFilePer() { return mFilePer; };
-  void setOutputDir(std::string outdir) { mOutputDir = outdir; };
-  std::string getOutputDir() { return mOutputDir; };
-  void setDigitRate(int digitrate) { mDigitRate = digitrate; };
-  int getDigitRate() { return mDigitRate; };
-  int getVerbosity() { return mVerbosity; }
-  void setVerbosity(int verbosity) { mVerbosity = verbosity; }
+
+  // sort digits and tracklets by link ID
   void sortDataToLinks();
-  o2::raw::RawFileWriter& getWriter() { return mWriter; }
-  uint32_t buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, const uint32_t halfcru); // build the half cru header holding the lengths of all links amongst other things.
-  void linkSizePadding(uint32_t linksize, uint32_t& crudatasize, uint32_t& padding);             // pad the link data stream to align with 256 bit words.
+
+  // open digits and tracklets files for reading
   void openInputFiles();
+
+  // main processing function, called for every TRD trigger and creates the raw data stream for each half CRU
+  void convertTrapData(o2::trd::TriggerRecord const& trigrecord, const int& triggercount);
+
+  // settings
+  void setFilePer(std::string fileper) { mFilePer = fileper; };
+  void setOutputDir(std::string outdir) { mOutputDir = outdir; };
+  void setVerbosity(int verbosity) { mVerbosity = verbosity; }
   void setTrackletHCHeader(int tracklethcheader) { mUseTrackletHCHeader = tracklethcheader; }
-  bool isTrackletOnLink(int link, int trackletpos); // is the current tracklet on the the current link
-  bool isDigitOnLink(int link, int digitpos);       // is the current digit on the current link
+
+  // make the writer available in trap2raw.cxx for configuration
+  o2::raw::RawFileWriter& getWriter() { return mWriter; }
+  // build the half cru header holding the lengths of all links amongst other things.
+  uint32_t buildHalfCRUHeader(HalfCRUHeader& header, const uint32_t bc, const uint32_t halfcru, bool isCalibTrigger);
+
+  // write digits for single MCM into raw stream (include DigitMCMHeader and ADC mask)
   int buildDigitRawData(const int digitstartindex, const int digitendindex, const int mcm, const int rob, const uint32_t triggercount);
-  int buildTrackletRawData(const int trackletindex, const int linkid); // from the current position in the tracklet vector, build the outgoing data for the current mcm the tracklet is on.
-  int writeDigitEndMarker();                                           // write the digit end marker 0x0 0x0
-  int writeTrackletEndMarker();                                        // write the tracklet end maker 0x10001000 0x10001000
-  int writeDigitHCHeader(const int eventcount, uint32_t linkid);       // write the Digit HalfChamberHeader into the stream, after the tracklet endmarker and before the digits.
-  int writeTrackletHCHeader(const int eventcount);                     // write the Tracklet HalfChamberHeader into the stream, at the beginning of data iff there is tracklet data.
-
-  bool digitindexcompare(const o2::trd::Digit& A, const o2::trd::Digit& B);
-  //boohhl digitindexcompare(const unsigned int A, const unsigned int B);
-  o2::trd::Digit& getDigitAt(const int i) { return mDigits[mDigitsIndex[i]]; };
-
-  void mergetriggerDigitRanges();
+  // write tracklets for single MCM into raw stream (includes TrackletMCMHeader)
+  int buildTrackletRawData(int trackletIndexStart);
+  // write two digit end markers
+  void writeDigitEndMarkers();
+  // write two tracklet end markers
+  void writeTrackletEndMarkers();
+  // write digit HC header (two headers are written)
+  void writeDigitHCHeaders(const int eventcount, uint32_t hcId);
+  // write tracklet HC header
+  void writeTrackletHCHeader(int hcid, int eventcount);
 
  private:
-  int mfileGranularity; /// per link or per half cru for each file
-  uint8_t mLinkID;      // always 15 for TRD
-  uint16_t mCruID;      // built into the FeeID
-  uint16_t mFeeID;      // front end id defining the cru sm:8 bits, blank 3 bits, side:1,blank 3 bits, end point:1
-  uint8_t mEndPointID;  // end point on the cru in question, there are 2 pci end points per cru
-  std::string mFilePer; // how to split up the raw data files, sm:per supermodule, halfcru: per half cru, cru: per cru, all: singular file.
-  //  std::string mInputFileName;
-  std::string mOutputFileName;
-  int mVerbosity{0};
-  std::string mOutputDir;
-  uint32_t mSuperPageSizeInB;
-  int mDigitRate = 1000;
-  int mEventDigitCount = 0;
-  //HalfCRUHeader mHalfCRUHeader;
-  //TrackletMCMHeader mTrackletMCMHeader;
-  // TrackletMCMData mTrackletMCMData;
-  int mUseTrackletHCHeader{0};
-  std::vector<char> mRawData; // store for building data event for a single half cru
-  uint32_t mRawDataPos = 0;
-  char* mRawDataPtr{nullptr};
-  // locations to store the incoming data branches
+  uint8_t mLinkID{constants::TRDLINKID}; // always 15 for TRD
+  uint16_t mCruID{0};                    // built into the FeeID
+  uint16_t mFeeID{0};                    // front end id defining the cru sm:8 bits, blank 3 bits, side:1,blank 3 bits, end point:1
+  uint8_t mEndPointID{0};                // end point on the cru in question, there are 2 pci end points per cru
 
-  // incoming digit information
+  // settings
+  std::string mFilePer; // how to split up the raw data files, sm:per supermodule, halfcru: per half cru, cru: per cru, all: singular file.
+  int mVerbosity{0};    // currently only 2 levels: 0 - OFF, 1 - verbose output
+  std::string mOutputDir;
+  int mUseTrackletHCHeader{0}; // 0 - don't write header, 1 - write header if tracklets available, 2 - always write header
+
+  // input
+  // digits
   std::string mInputDigitsFileName;
   TFile* mDigitsFile;
   TTree* mDigitsTree;
   std::vector<Digit> mDigits, *mDigitsPtr = &mDigits;
-  std::vector<uint32_t> mDigitsIndex;
-  std::vector<o2::trd::TriggerRecord> mDigitTriggerRecords;
-  std::vector<o2::trd::TriggerRecord>* mDigitTriggerRecordsPtr = &mDigitTriggerRecords;
-
-  //incoming tracklet information
+  // tracklets and trigger records
   std::string mInputTrackletsFileName;
   TFile* mTrackletsFile;
   TTree* mTrackletsTree;
-  std::vector<Tracklet64> mTracklets;
-  std::vector<Tracklet64>* mTrackletsPtr = &mTracklets;
-  std::vector<uint32_t> mTrackletsIndex;
-  std::vector<o2::trd::TriggerRecord> mTrackletTriggerRecords;
-  std::vector<o2::trd::TriggerRecord>* mTrackletTriggerRecordsPtr = &mTrackletTriggerRecords;
+  std::vector<Tracklet64> mTracklets, *mTrackletsPtr{&mTracklets};
+  std::vector<o2::trd::TriggerRecord> mTrackletTriggerRecords, *mTrackletTriggerRecordsPtr{&mTrackletTriggerRecords};
+
+  // helpers
+  std::vector<uint32_t> mDigitsIndex; // input digits are sorted using this index array
+  char* mRawDataPtr{nullptr};         // points to the current position in the raw data where we are writing
   uint64_t mCurrentTracklet{0}; //the tracklet we are currently busy adding
   uint64_t mCurrentDigit{0};    //the digit we are currently busy adding
+  uint64_t mTotalTrackletsWritten{0}; // count the total number of tracklets written to the raw data
+  uint64_t mTotalDigitsWritten{0};    // count the total number of digits written to the raw data
 
   const o2::raw::HBFUtils& mSampler = o2::raw::HBFUtils::Instance();
   o2::raw::RawFileWriter mWriter{"TRD"};
 
-  ClassDefNV(Trap2CRU, 3);
+  ClassDefNV(Trap2CRU, 4);
 };
 
 } // end namespace trd

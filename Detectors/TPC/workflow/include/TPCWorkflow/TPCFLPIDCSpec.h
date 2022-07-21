@@ -96,8 +96,8 @@ class TPCFLPIDCDevice : public o2::framework::Task
       }
     } else if (!mLoadIDC0CCDB) {
       LOGP(info, "setting standard IDC0 values");
-      mIDCZero.mIDCZero[Side::A] = std::vector<float>(Mapper::getPadsInSector() * SECTORSPERSIDE, 1);
-      mIDCZero.mIDCZero[Side::C] = std::vector<float>(Mapper::getPadsInSector() * SECTORSPERSIDE, 1);
+      mIDCZero.mIDCZero = std::vector<float>(Mapper::getPadsInSector() * SECTORSPERSIDE, 1);
+      // mIDCZero.mIDCZero[Side::C] = std::vector<float>(Mapper::getPadsInSector() * SECTORSPERSIDE, 1);
     }
   }
 
@@ -320,14 +320,15 @@ DataProcessorSpec getTPCFLPIDCSpec(const int ilane, const std::vector<uint32_t>&
     outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPIDCDevice<Type>::getDataDescription1DIDCEPNWeights(), subSpec});
   }
 
+  const Side side = CRU(crus.front()).side();
   if (loadStatusMap) {
     LOGP(info, "Using pad status map from CCDB");
-    inputSpecs.emplace_back("tpcpadmap", gDataOriginTPC, "PADSTATUSMAP", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalIDCPadStatusMap)));
+    inputSpecs.emplace_back("tpcpadmap", gDataOriginTPC, "PADSTATUSMAP", 0, Lifetime::Condition, ccdbParamSpec((side == Side::A) ? CDBTypeMap.at(CDBType::CalIDCPadStatusMapA) : CDBTypeMap.at(CDBType::CalIDCPadStatusMapC)));
   }
 
   const bool loadIDC0CCDB = !disableIDC0CCDB && idc0File.empty();
   if (loadIDC0CCDB) {
-    inputSpecs.emplace_back("idczero", gDataOriginTPC, "IDC0", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalIDC0)));
+    inputSpecs.emplace_back("idczero", gDataOriginTPC, "IDC0", 0, Lifetime::Condition, ccdbParamSpec((side == Side::A) ? CDBTypeMap.at(CDBType::CalIDC0A) : CDBTypeMap.at(CDBType::CalIDC0C)));
   }
 
   const auto id = fmt::format("tpc-flp-idc-{:02}", ilane);

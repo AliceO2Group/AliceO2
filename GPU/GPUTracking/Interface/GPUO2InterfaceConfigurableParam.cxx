@@ -100,6 +100,8 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam_internal()
   configQA = QA;
   if (global.continuousMaxTimeBin) {
     configGRP.continuousMaxTimeBin = global.continuousMaxTimeBin;
+  } else {
+    configGRP.continuousMaxTimeBin = global.tpcTriggeredMode ? 0 : -1;
   }
   if (global.solenoidBz > -1e6f) {
     configGRP.solenoidBz = global.solenoidBz;

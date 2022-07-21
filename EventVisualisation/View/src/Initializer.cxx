@@ -153,7 +153,7 @@ void Initializer::setupCamera()
   double zoom[MultiView::NumberOfViews];
   zoom[MultiView::View3d] = settings.GetValue("camera.3D.zoom", 1.0);
   zoom[MultiView::ViewRphi] = settings.GetValue("camera.R-Phi.zoom", 1.0);
-  zoom[MultiView::ViewZrho] = settings.GetValue("camera.Rho-Z.zoom", 1.0);
+  zoom[MultiView::ViewZY] = settings.GetValue("camera.Z-Y.zoom", 1.0);
 
   // get necessary elements of the multiview and set camera position
   auto multiView = MultiView::getInstance();

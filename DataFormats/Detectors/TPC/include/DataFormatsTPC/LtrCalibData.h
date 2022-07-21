@@ -26,10 +26,12 @@ struct LtrCalibData {
   size_t processedTFs{};               ///< number of processed TFs with laser track candidates
   uint64_t firstTime{};                ///< first time stamp of processed TFs
   uint64_t lastTime{};                 ///< last time stamp of processed TFs
-  float dvCorrectionA{};               ///< drift velocity correction factor A-Side
-  float dvCorrectionC{};               ///< drift velocity correction factor C-Side
+  long creationTime{};                 ///< time of creation
+  float dvCorrectionA{};               ///< drift velocity correction factor A-Side (inverse multiplicative)
+  float dvCorrectionC{};               ///< drift velocity correction factor C-Side (inverse multiplicative)
   float dvOffsetA{};                   ///< drift velocity trigger offset A-Side
   float dvOffsetC{};                   ///< drift velocity trigger offset C-Side
+  float refVDrift{};                   ///< reference vdrift for which factor was extracted
   uint16_t nTracksA{};                 ///< number of tracks used for A-Side fit
   uint16_t nTracksC{};                 ///< number of tracks used for C-Side fit
   std::vector<uint16_t> matchedLtrIDs; ///< list of matched laser track IDs
@@ -41,6 +43,7 @@ struct LtrCalibData {
     processedTFs = 0;
     firstTime = 0;
     lastTime = 0;
+    creationTime = 0;
     dvCorrectionA = 0;
     dvCorrectionC = 0;
     dvOffsetA = 0;
@@ -51,7 +54,7 @@ struct LtrCalibData {
     matchedLtrIDs.clear();
   }
 
-  ClassDefNV(LtrCalibData, 1);
+  ClassDefNV(LtrCalibData, 2);
 };
 
 } // namespace o2::tpc

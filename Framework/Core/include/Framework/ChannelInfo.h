@@ -33,6 +33,15 @@ enum struct InputChannelState {
   Pull
 };
 
+enum struct ChannelAccountingType {
+  /// A channel which was not explicitly set
+  Unknown,
+  /// The channel is a normal input channel
+  DPL,
+  /// A raw FairMQ channel which is not accounted by the framework
+  RAW
+};
+
 /// This represent the current state of an input channel.  Its values can be
 /// updated by Control or by the by the incoming flow of messages.
 struct InputChannelInfo {
@@ -50,8 +59,34 @@ struct InputChannelInfo {
   /// backpressure to start with.
   bool backpressureNotified = false;
   ChannelIndex id = {-1};
+  /// Wether its a normal channel or one which
+  ChannelAccountingType channelType = ChannelAccountingType::DPL;
   /// Oldest possible timeslice for the given channel
   TimesliceId oldestForChannel;
+};
+
+/// Output channel information
+struct OutputChannelInfo {
+  std::string name = "invalid";
+  ChannelAccountingType channelType = ChannelAccountingType::DPL;
+  fair::mq::Channel& channel;
+};
+
+struct OutputChannelState {
+  TimesliceId oldestForChannel = {0};
+};
+
+/// Forward channel information
+struct ForwardChannelInfo {
+  /// The name of the channel
+  std::string name = "invalid";
+  /// Wether or not it's a DPL internal channel.
+  ChannelAccountingType channelType = ChannelAccountingType::DPL;
+  fair::mq::Channel& channel;
+};
+
+struct ForwardChannelState {
+  TimesliceId oldestForChannel = {0};
 };
 
 } // namespace o2::framework

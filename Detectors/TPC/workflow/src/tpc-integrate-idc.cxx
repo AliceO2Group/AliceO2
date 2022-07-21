@@ -30,6 +30,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   const int defaultlanes = std::max(1u, std::thread::hardware_concurrency() / 2);
 
   std::vector<ConfigParamSpec> options{
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"nOrbits", VariantType::Int, 12, {"number of orbits for which the IDCs are integrated"}},
     {"outputFormat", VariantType::String, "Sim", {"setting the output format type: 'Sim'=IDC simulation format, 'Real'=real output format of CRUs (not implemented yet)"}},
     {"debug", VariantType::Bool, false, {"create debug tree"}},
@@ -53,6 +54,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   if (!confDig.empty() && confDig != "none") {
     o2::conf::ConfigurableParam::updateFromFile(confDig, "HBFUtils");
   }
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   o2::conf::ConfigurableParam::writeINI("o2tpcintegrateidc_configuration.ini");
 
   const auto& hbfu = o2::raw::HBFUtils::Instance();

@@ -11,17 +11,13 @@
 
 #include "CalibdEdxTrackTopologyPol.h"
 
-#if !defined(GPUCA_GPUCODE) // code invisible on GPU and in the standalone compilation
 #include <cstddef>
 #include <string_view>
 #if !defined(GPUCA_STANDALONE)
 #include "TFile.h"
 #endif
-#endif
 
 using namespace o2::tpc;
-
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
 
 void CalibdEdxTrackTopologyPol::cloneFromObject(const CalibdEdxTrackTopologyPol& obj, char* newFlatBufferPtr)
 {
@@ -59,8 +55,6 @@ void CalibdEdxTrackTopologyPol::moveBufferTo(char* newFlatBufferPtr)
   mFlatBufferPtr = oldFlatBufferPtr;
   setActualBufferAddress(currFlatBufferPtr);
 }
-
-#endif
 
 void CalibdEdxTrackTopologyPol::destroy()
 {
@@ -100,7 +94,7 @@ void CalibdEdxTrackTopologyPol::setFutureBufferAddress(char* futureFlatBufferPtr
   FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
 }
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#if !defined(GPUCA_STANDALONE)
 
 void CalibdEdxTrackTopologyPol::construct()
 {

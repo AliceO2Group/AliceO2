@@ -16,6 +16,7 @@
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "Framework/InputRecordWalker.h"
+#include "Framework/TimingInfo.h"
 #include "Framework/DataRefUtils.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/VerbosityConfig.h"
@@ -200,7 +201,11 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
     contDeadBeef = 0; // if good data, reset the counter
   }
 
-  DPLRawParser parser(inputs, filter);
+  DPLRawParser parser(inputs, filter, o2::conf::VerbosityConfig::Instance().rawParserSeverity);
+  parser.setMaxFailureMessages(o2::conf::VerbosityConfig::Instance().maxWarnRawParser);
+  static size_t cntParserFailures = 0;
+  parser.setExtFailureCounter(&cntParserFailures);
+
   uint32_t currSSpec = 0xffffffff; // dummy starting subspec
   int linksAdded = 0, linksSeen = 0;
   for (auto it = parser.begin(); it != parser.end(); ++it) {
@@ -422,7 +427,7 @@ void RawPixelDecoder<Mapping>::clearStat()
 
 ///______________________________________________________________________
 template <class Mapping>
-void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::header::DataHeader* dh)
+void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::framework::TimingInfo& tinfo)
 {
   bool dumpFullTF = false;
   for (auto& ru : mRUDecodeVec) {
@@ -441,10 +446,10 @@ void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::header::D
             allHBFs = true;
             entry = 0;
             fnm = fmt::format("{}{}rawdump_{}_run{}_tf_orb{}_full_feeID{:#06x}.raw", mRawDumpDirectory, mRawDumpDirectory.empty() ? "" : "/",
-                              Mapping::getName(), dh->runNumber, dh->firstTForbit, lnk.feeID);
+                              Mapping::getName(), tinfo.runNumber, tinfo.firstTForbit, lnk.feeID);
           } else {
             fnm = fmt::format("{}{}rawdump_{}_run{}_tf_orb{}_hbf_orb{}_feeID{:#06x}.raw", mRawDumpDirectory, mRawDumpDirectory.empty() ? "" : "/",
-                              Mapping::getName(), dh->runNumber, dh->firstTForbit, it.second, lnk.feeID);
+                              Mapping::getName(), tinfo.runNumber, tinfo.firstTForbit, it.second, lnk.feeID);
           }
           std::ofstream ostrm(fnm, std::ios::binary);
           if (!ostrm.good()) {
@@ -466,7 +471,7 @@ void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::header::D
   }
   while (dumpFullTF) {
     std::string fnm = fmt::format("rawdump_{}_run{}_tf_orb{}_full.raw",
-                                  Mapping::getName(), dh->runNumber, dh->firstTForbit);
+                                  Mapping::getName(), tinfo.runNumber, tinfo.firstTForbit);
     std::ofstream ostrm(fnm, std::ios::binary);
     if (!ostrm.good()) {
       LOG(error) << "failed to open " << fnm;

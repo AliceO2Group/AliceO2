@@ -17,12 +17,15 @@
 #define ALICE_O2_EVENTVISUALISATION_WORKFLOW_EVEWORKFLOWHELPER_H
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "ReconstructionDataFormats/TrackFwd.h"
 #include "Framework/DataProcessingHeader.h"
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "EveWorkflow/EveConfiguration.h"
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
 #include "MFTBase/GeometryTGeo.h"
+#include "MIDBase/GeometryParameters.h"
+#include "MCHTracking/TrackParam.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "TPCFastTransform.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
@@ -84,11 +87,37 @@ class EveWorkflowHelper
 
   static constexpr int TIME_OFFSET = 23000; // max TF time
 
+  static constexpr std::array<const double, 4> mftZPositions = {-40., -45., -65., -85.};
+
+  static constexpr std::array<const double, 20> mchZPositions = {
+    -526.1599731445312,
+    -526.1599731445312,
+    -545.239990234375,
+    -545.239990234375,
+    -676.4,
+    -676.4,
+    -695.4,
+    -695.4,
+    -959.75,
+    -975.25,
+    -990.75,
+    -1006.25,
+    -1259.75,
+    -1284.25,
+    -1299.75,
+    -1315.25,
+    -1398.85,
+    -1414.35,
+    -1429.85,
+    -1445.35};
+
+  static constexpr std::array<const double, 4> midZPositions = o2::mid::geoparams::DefaultChamberZ;
+
  public:
-  using AODBarrelTracks = soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>;
+  using AODBarrelTracks = soa::Join<aod::Tracks, aod::TracksExtra>;
   using AODBarrelTrack = AODBarrelTracks::iterator;
 
-  using AODForwardTracks = soa::Join<aod::FwdTracks, aod::FwdTracksCov>;
+  using AODForwardTracks = aod::FwdTracks;
   using AODForwardTrack = AODForwardTracks::iterator;
 
   using AODMFTTracks = aod::MFTTracks;
@@ -117,18 +146,25 @@ class EveWorkflowHelper
   void drawMFT(GID gid, float trackTime);
   void drawMCH(GID gid, float trackTime);
   void drawMID(GID gid, float trackTime);
+  void drawMFTMCH(GID gid, float trackTime);
   void drawITSTPC(GID gid, float trackTime, GID::Source source = GID::ITSTPC);
   void drawITSTPCTOF(GID gid, float trackTime, GID::Source source = GID::ITSTPCTOF);
   void drawITSTPCTRD(GID gid, float trackTime, GID::Source source = GID::ITSTPCTRD);
   void drawITSTPCTRDTOF(GID gid, float trackTime);
   void drawTPCTRDTOF(GID gid, float trackTime);
+  void drawMFTMCHMID(GID gid, float trackTime);
   void drawTPCTRD(GID gid, float trackTime, GID::Source source = GID::TPCTRD);
   void drawTPCTOF(GID gid, float trackTime);
+  void drawMCHMID(GID gid, float trackTime);
   void drawPHOS();
   void drawEMCAL();
 
   void drawAODBarrel(AODBarrelTrack const& track, float trackTime);
   void drawAODMFT(AODMFTTrack const& track, float trackTime);
+  void drawAODFwd(AODForwardTrack const& track, float trackTime);
+
+  void drawMFTTrack(o2::track::TrackParFwd track, float trackTime);
+  void drawForwardTrack(mch::TrackParam track, const std::string& gidString, GID::Source source, float startZ, float endZ, float trackTime);
   void drawITSClusters(GID gid, float trackTime);
   void drawTPCClusters(GID gid, float trackTime);
   void drawMFTClusters(GID gid, float trackTime);
@@ -142,6 +178,9 @@ class EveWorkflowHelper
   void clear() { mEvent.clear(); }
 
   GID::Source detectorMapToGIDSource(uint8_t dm);
+  o2::mch::TrackParam forwardTrackToMCHTrack(const o2::track::TrackParFwd& track);
+  float findLastMIDClusterPosition(const o2::mid::Track& track);
+  float findLastMCHClusterPosition(const o2::mch::TrackMCH& track);
 
   void save(const std::string& jsonPath,
             int numberOfFiles,
@@ -163,7 +202,6 @@ class EveWorkflowHelper
   std::unordered_set<GID> mTotalAcceptedTracks;
   std::unordered_map<std::size_t, std::vector<GID>> mPrimaryVertexGIDs;
   std::unordered_map<GID, unsigned int> mGIDTrackTime;
-  std::size_t mTotalPrimaryVertices;
   std::vector<o2::BaseCluster<float>> mITSClustersArray;
   std::vector<o2::BaseCluster<float>> mMFTClustersArray;
   o2::mft::GeometryTGeo* mMFTGeom;

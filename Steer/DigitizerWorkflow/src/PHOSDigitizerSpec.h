@@ -65,6 +65,7 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer
 
   float mReadoutTime = 0.;                                  ///< PHOS readout time
   float mDeadTime = 0.;                                     ///< PHOS dead time
+  bool mInitSimParams = true;                               ///< To initialize SimParams
   Digitizer mDigitizer;                                     ///< Digitizer object
   std::vector<TChain*> mSimChains;                          ///< Chain of files for background/signal events
   std::vector<Hit>* mHits = nullptr;                        ///< Vector with input hits from Signal event

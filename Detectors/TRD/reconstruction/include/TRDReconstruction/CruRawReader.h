@@ -124,8 +124,8 @@ class CruRawReader
   int getTrackletsFound() { return mTotalTrackletsFound; }
   int sumTrackletsFound() { return mEventRecords.sumTracklets(); }
   int sumDigitsFound() { return mEventRecords.sumDigits(); }
-  int getWordsRead() { return mTotalDigitWordsRead + mTotalTrackletWordsRead; }
-  int getWordsRejected() { return mTotalDigitWordsRejected + mTotalTrackletWordsRejected; }
+  int getWordsRead() { return mWordsAccepted + mTotalDigitWordsRead + mTotalTrackletWordsRead; }
+  int getWordsRejected() { return mWordsRejected + mTotalDigitWordsRejected + mTotalTrackletWordsRejected; }
 
   std::shared_ptr<EventStorage*> getEventStorage() { return std::make_shared<EventStorage*>(&mEventRecords); }
   void clearall()
@@ -156,25 +156,20 @@ class CruRawReader
   void updateLinkErrorGraphs(int currentlinkindex, int supermodule_half, int stack_layer);
   void incrementErrors(int hist, int sector = -1, int side = 0, int stack = 0, int layer = 0)
   {
-    //  LOG(info) << "increment ed parsing error with " << hist << " "<< sectorside/2 <<  " "<< sectorside%2 << " " <<stack*constants::NLAYER+layer << " stack:" << stack << " layer" << layer << " sectorside:" << sectorside;
     if (sector > 17) {
-      LOG(info) << "Parsing error: " << hist << " sector: " << sector << " side:" << side << " stack:" << stack << " layer:" << layer;
       sector = 0;
     }
     if (stack > 4) {
-      LOG(info) << "Parsing error: " << hist << " sector:" << sector << " side:" << side << " stack:" << stack << " layer:" << layer;
       stack = 0;
     }
     if (layer > 5) {
-      LOG(info) << "Parsing error: " << hist << " sector:" << sector << " side:" << side << " stack:" << stack << " layer:" << layer;
       layer = 0;
     }
     if (sector < -1) {
-      LOG(info) << "Parsing error: " << hist << " sector:" << sector << " side:" << side << " stack:" << stack << " layer:" << layer;
       sector = 0;
     }
     mEventRecords.incParsingError(hist, sector, side, stack * constants::NLAYER + layer);
-    if (mDataVerbose) {
+    if (mVerbose) {
       LOG(info) << "Parsing error: " << hist << " sector:" << sector << " side:" << side << " stack:" << stack << " layer:" << layer;
     }
   }
@@ -275,6 +270,8 @@ class CruRawReader
   uint32_t mTrackletWordsRejected = 0;
   uint32_t mTotalTrackletWordsRejected = 0;
   uint32_t mTotalTrackletWordsRead = 0;
+  uint32_t mWordsRejected = 0; // those words rejected before tracklet and digit parsing together with the digit and tracklet rejected words;
+  uint32_t mWordsAccepted = 0; // those words before before tracklet and digit parsing together with the digit and tracklet rejected words;
   //pointers to the data as we read them in, again no point in copying.
   HalfCRUHeader* mhalfcruheader;
 

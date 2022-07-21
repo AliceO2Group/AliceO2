@@ -122,7 +122,7 @@ class FT0DCSDataProcessor : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
     auto timeNow = HighResClock::now();
-    long dataTime = (long)(DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation);
+    long dataTime = (long)(pc.services().get<o2::framework::TimingInfo>().creation);
     if (dataTime == 0xffffffffffffffff) {                                                                   // it means it is not set
       dataTime = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
     }

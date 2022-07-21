@@ -108,8 +108,8 @@ struct TCMdata {
     cen : 1,               // 3 bit
     vertex : 1,            // 4 bit
     laser : 1,             // 5 bit
-    dataIsValid : 1,       // 6 bit
-    outputsAreBlocked : 1, // 7 bit
+    outputsAreBlocked : 1, // 6 bit
+    dataIsValid : 1,       // 7 bit
     nChanA : 7,            // 8 bit(1 byte)
     reservedField2 : 1,    // 15 bit
     nChanC : 7,            // 16 bit(2 byte)

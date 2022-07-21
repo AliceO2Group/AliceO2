@@ -58,7 +58,7 @@ GPUdii() void GPUTPCTrackletSelector::Thread<0>(int nBlocks, int nThreads, int i
     int gap = 0;
     int nShared = 0;
     int nHits = 0;
-    const int minHits = tracker.Param().rec.tpc.minNTrackClusters == -1 ? GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tracklet.Param().QPt() * tracker.Param().par.qptB5Scaler) : tracker.Param().rec.tpc.minNTrackClusters;
+    const int minHits = tracker.Param().rec.tpc.minNTrackClusters == -1 ? GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tracklet.Param().QPt() * tracker.Param().qptB5Scaler) : tracker.Param().rec.tpc.minNTrackClusters;
 
     GPUCA_UNROLL(, U(1))
     for (irow = firstRow; irow <= lastRow && lastRow - irow + nHits >= minHits; irow++) {

@@ -68,17 +68,17 @@ class MatLayerCylSet;
      ...
    }
    void init(o2::framework::InitContext& ic) {
-     GRPGeomHelper::instance()->setRequest(mCCDBReq);
+     GRPGeomHelper::instance().setRequest(mCCDBReq);
      ...
    }
    void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) {
-     if (GRPGeomHelper::instance()->finaliseCCDB(matcher, obj)) {
+     if (GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
        return;
      }
      ...
    }
    void run(ProcessingContext& pc) {
-     GRPGeomHelper::instance()->checkUpdates(pc);
+     GRPGeomHelper::instance().checkUpdates(pc);
      ...
    }
    protected:

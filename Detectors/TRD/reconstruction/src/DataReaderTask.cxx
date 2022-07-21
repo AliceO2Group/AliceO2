@@ -23,7 +23,7 @@
 #include "Framework/InputRecordWalker.h"
 #include "Framework/DataRefUtils.h"
 #include "CommonUtils/VerbosityConfig.h"
-
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "DataFormatsTRD/Constants.h"
 #include <TH3F.h>
 #include "TH2F.h"
@@ -43,10 +43,21 @@ void DataReaderTask::init(InitContext& ic)
   };
   mReader.setMaxErrWarnPrinted(ic.options().get<int>("log-max-errors"), ic.options().get<int>("log-max-warnings"));
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
+  mDigitPreviousTotal = mReader.getDigitsFound();
+  mTrackletsPreviousTotal = mReader.getTrackletsFound();
 }
 
 void DataReaderTask::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
+}
+
+void DataReaderTask::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("CTP", "Trig_Offset", 0)) {
+    LOG(info) << " CTP/Config/TriggerOffsets updated.";
+    o2::ctp::TriggerOffsetsParam::Instance().printKeyValues();
+    return;
+  }
 }
 
 void DataReaderTask::sendData(ProcessingContext& pc, bool blankframe)
@@ -63,6 +74,15 @@ void DataReaderTask::sendData(ProcessingContext& pc, bool blankframe)
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, digits);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe}, tracklets);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, triggers);
+  }
+}
+
+void DataReaderTask::updateTimeDependentParams(framework::ProcessingContext& pc)
+{
+  static bool updateOnlyOnce = false;
+  if (!updateOnlyOnce) {
+    pc.inputs().get<o2::ctp::TriggerOffsetsParam*>("trigoffset");
+    updateOnlyOnce = true;
   }
 }
 
@@ -95,6 +115,7 @@ void DataReaderTask::run(ProcessingContext& pc)
 {
   //NB this is run per time frame on the epn.
   LOG(info) << "TRD Translator Task run";
+  updateTimeDependentParams(pc);
   auto dataReadStart = std::chrono::high_resolution_clock::now();
 
   if (isTimeFrameEmpty(pc)) {
@@ -143,9 +164,12 @@ void DataReaderTask::run(ProcessingContext& pc)
 
   sendData(pc, false);
   std::chrono::duration<double, std::milli> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
-  LOGP(info, "Digits: {}, Tracklets: {}, DataRead in: {:.3f} MB, Rejected: {:.3f} MB for TF {} in {} ms",
-       mReader.getDigitsFound(), mReader.getTrackletsFound(), (float)mWordsRead * 4 / 1024.0 / 1024.0, (float)mWordsRejected * 4 / 1024.0 / 1024.0, tfCount,
+  LOGP(info, "Digits: {} ({} TF), Tracklets: {} ({} TF), DataRead in: {:.3f} MB, Rejected: {:.3f} MB for TF {} in {} ms",
+       mReader.getDigitsFound(), mReader.getDigitsFound() - mDigitPreviousTotal, mReader.getTrackletsFound(),
+       mReader.getTrackletsFound() - mTrackletsPreviousTotal, (float)mWordsRead * 4 / 1024.0 / 1024.0, (float)mWordsRejected * 4 / 1024.0 / 1024.0, tfCount,
        std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count());
+  mDigitPreviousTotal = mReader.getDigitsFound();
+  mTrackletsPreviousTotal = mReader.getTrackletsFound();
 }
 
 } // namespace o2::trd

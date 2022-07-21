@@ -32,6 +32,10 @@ struct IDCOne;
 struct FourierCoeff;
 template <typename DataT>
 struct IDCDelta;
+enum class PadFlags : unsigned short;
+
+template <class T>
+class CalDet;
 
 /*
  Usage
@@ -60,19 +64,22 @@ class IDCCCDBHelper
   IDCCCDBHelper() = default;
 
   /// setting the IDCDelta class member
-  void setIDCDelta(IDCDelta<DataT>* idcDelta) { mIDCDelta = idcDelta; }
+  void setIDCDelta(IDCDelta<DataT>* idcDelta, const Side side = Side::A) { mIDCDelta[side] = idcDelta; }
 
   /// setting the 0D-IDCs
-  void setIDCZero(IDCZero* idcZero) { mIDCZero = idcZero; }
+  void setIDCZero(IDCZero* idcZero, const Side side = Side::A) { mIDCZero[side] = idcZero; }
 
   /// setting the 1D-IDCs
-  void setIDCOne(IDCOne* idcOne) { mIDCOne = idcOne; }
+  void setIDCOne(IDCOne* idcOne, const Side side = Side::A) { mIDCOne[side] = idcOne; }
 
   /// setting the fourier coefficients
-  void setFourierCoeffs(FourierCoeff* fourier) { mFourierCoeff = fourier; }
+  void setFourierCoeffs(FourierCoeff* fourier, const Side side = Side::A) { mFourierCoeff[side] = fourier; }
 
   /// setting the grouping parameters
-  void setGroupingParameter(IDCGroupHelperSector* helperSector) { mHelperSector = helperSector; }
+  void setGroupingParameter(IDCGroupHelperSector* helperSector, const Side side = Side::A) { mHelperSector[side] = helperSector; }
+
+  /// setting the pad status map which is used to filter out long term outliers
+  void setPadStatusMap(CalDet<PadFlags>* map) { mPadFlagsMap = map; }
 
   /// \return returns the number of integration intervals for IDCDelta
   unsigned int getNIntegrationIntervalsIDCDelta(const o2::tpc::Side side) const;
@@ -111,36 +118,48 @@ class IDCCCDBHelper
   /// draw IDC zero I_0(r,\phi) = <I(r,\phi,t)>_t
   /// \param side side which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawIDCZeroSide(const o2::tpc::Side side, const std::string filename = "IDCZeroSide.pdf") const { drawIDCZeroHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename); }
+  void drawIDCZeroSide(const o2::tpc::Side side, const std::string filename = "IDCZeroSide.pdf", const float minZ = 0, const float maxZ = -1) const { drawIDCZeroHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename, minZ, maxZ); }
 
   /// draw IDCDelta for one side for one integration interval
   /// \param side side which will be drawn
   /// \param integrationInterval which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawIDCDeltaSide(const o2::tpc::Side side, const unsigned int integrationInterval, const std::string filename = "IDCDeltaSide.pdf") const { drawIDCDeltaHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), integrationInterval, filename); }
+  void drawIDCDeltaSide(const o2::tpc::Side side, const unsigned int integrationInterval, const std::string filename = "IDCDeltaSide.pdf", const float minZ = 0, const float maxZ = -1) const { drawIDCDeltaHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), integrationInterval, filename, minZ, maxZ); }
 
   /// draw IDCs which is calculated with: (IDCDelta + 1) * IDCOne * IDCZero
   /// \param side side which will be drawn
   /// \param integrationInterval which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawIDCSide(const o2::tpc::Side side, const unsigned int integrationInterval, const std::string filename = "IDCSide.pdf") const { drawIDCHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), integrationInterval, filename); }
+  void drawIDCSide(const o2::tpc::Side side, const unsigned int integrationInterval, const std::string filename = "IDCSide.pdf", const float minZ = 0, const float maxZ = -1) const { drawIDCHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), integrationInterval, filename, minZ, maxZ); }
 
   /// draw IDC zero I_0(r,\phi) = <I(r,\phi,t)>_t
   /// \param sector sector which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawIDCZeroSector(const unsigned int sector, const std::string filename = "IDCZeroSector.pdf") const { drawIDCZeroHelper(false, Sector(sector), filename); }
+  void drawIDCZeroSector(const unsigned int sector, const std::string filename = "IDCZeroSector.pdf", const float minZ = 0, const float maxZ = -1) const { drawIDCZeroHelper(false, Sector(sector), filename, minZ, maxZ); }
 
   /// draw IDCDelta for one sector for one integration interval
   /// \param sector sector which will be drawn
   /// \param integrationInterval which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawIDCDeltaSector(const unsigned int sector, const unsigned int integrationInterval, const std::string filename = "IDCDeltaSector.pdf") const { drawIDCDeltaHelper(false, Sector(sector), integrationInterval, filename); }
+  void drawIDCDeltaSector(const unsigned int sector, const unsigned int integrationInterval, const std::string filename = "IDCDeltaSector.pdf", const float minZ = 0, const float maxZ = -1) const { drawIDCDeltaHelper(false, Sector(sector), integrationInterval, filename, minZ, maxZ); }
 
   /// draw IDC zero I_0(r,\phi) = <I(r,\phi,t)>_t
   /// \param sector sector which will be drawn
   /// \param integrationInterval which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawIDCSector(const unsigned int sector, const unsigned int integrationInterval, const std::string filename = "IDCSector.pdf") const { drawIDCHelper(false, Sector(sector), integrationInterval, filename); }
+  void drawIDCSector(const unsigned int sector, const unsigned int integrationInterval, const std::string filename = "IDCSector.pdf", const float minZ = 0, const float maxZ = -1) const { drawIDCHelper(false, Sector(sector), integrationInterval, filename, minZ, maxZ); }
+
+  /// draw the status map for the flags (for debugging) for a sector
+  /// \param sector sector which will be drawn
+  /// \flag flag which will be drawn
+  /// \param filename name of the output file. If empty the canvas is drawn.
+  void drawPadStatusFlagsMapSector(const unsigned int sector, const PadFlags flag, const std::string filename = "PadStatusFlags_Sector.pdf") const { drawPadFlagMap(false, Sector(sector), filename, flag); }
+
+  /// draw the status map for the flags (for debugging) for a full side
+  /// \param side side which will be drawn
+  /// \flag flag which will be drawn
+  /// \param filename name of the output file. If empty the canvas is drawn.
+  void drawPadStatusFlagsMapSide(const o2::tpc::Side side, const PadFlags flag, const std::string filename = "PadStatusFlags_Side.pdf") const { drawPadFlagMap(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename, flag); }
 
   TCanvas* drawIDCZeroCanvas(TCanvas* outputCanvas, std::string_view type, int nbins1D, float xMin1D, float xMax1D, int integrationInterval = -1) const;
 
@@ -152,34 +171,43 @@ class IDCCCDBHelper
 
   TCanvas* drawFourierCoeff(TCanvas* outputCanvas, Side side, int nbins1D, float xMin1D, float xMax1D) const;
 
-  /// dumping the loaded IDCs to a tree for debugging
-  /// \param integrationIntervals number of integration intervals which will be dumped to the tree (-1: all integration intervalls)
+  /// dumping the loaded IDC0, IDC1 to a tree for debugging
   /// \param outFileName name of the output file
-  void dumpToTree(int integrationIntervals = -1, const char* outFileName = "IDCCCDBTree.root") const;
+  void dumpToTree(const char* outFileName = "IDCCCDBTree.root") const;
+
+  /// dumping the loaded fourier coefficients to a tree
+  /// \param outFileName name of the output file
+  void dumpToFourierCoeffToTree(const char* outFileName = "FourierCCDBTree.root") const;
+
+  // TODO dump ICDelta to separate tree...
 
  private:
-  IDCZero* mIDCZero = nullptr;                   ///< 0D-IDCs: ///< I_0(r,\phi) = <I(r,\phi,t)>_t
-  IDCDelta<DataT>* mIDCDelta = nullptr;          ///< compressed or uncompressed Delta IDC: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
-  IDCOne* mIDCOne = nullptr;                     ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
-  IDCGroupHelperSector* mHelperSector = nullptr; ///< helper for accessing IDC0 and IDC-Delta
-  FourierCoeff* mFourierCoeff = nullptr;
+  std::array<IDCZero*, SIDES> mIDCZero = {nullptr, nullptr};                   ///< 0D-IDCs: ///< I_0(r,\phi) = <I(r,\phi,t)>_t
+  std::array<IDCDelta<DataT>*, SIDES> mIDCDelta = {nullptr, nullptr};          ///< compressed or uncompressed Delta IDC: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
+  std::array<IDCOne*, SIDES> mIDCOne = {nullptr, nullptr};                     ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
+  std::array<IDCGroupHelperSector*, SIDES> mHelperSector = {nullptr, nullptr}; ///< helper for accessing IDC0 and IDC-Delta
+  std::array<FourierCoeff*, SIDES> mFourierCoeff = {nullptr, nullptr};         ///< fourier coefficients of IDCOne
+  CalDet<PadFlags>* mPadFlagsMap = nullptr;                                    ///< status flag for each pad (i.e. if the pad is dead)
 
   /// helper function for drawing IDCZero
   /// \param sector sector which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawIDCZeroHelper(const bool type, const Sector sector, const std::string filename) const;
+  void drawIDCZeroHelper(const bool type, const Sector sector, const std::string filename, const float minZ, const float maxZ) const;
 
   /// helper function for drawing IDCDelta
   /// \param sector sector which will be drawn
   /// \param integrationInterval which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawIDCDeltaHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename) const;
+  void drawIDCDeltaHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename, const float minZ, const float maxZ) const;
 
   /// helper function for drawing IDC
   /// \param sector sector which will be drawn
   /// \param integrationInterval which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawIDCHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename) const;
+  void drawIDCHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename, const float minZ, const float maxZ) const;
+
+  /// helper function for drawing
+  void drawPadFlagMap(const bool type, const Sector sector, const std::string filename, const PadFlags flag) const;
 
   /// \return returns index to data from ungrouped pad and row
   /// \param sector sector
@@ -189,7 +217,7 @@ class IDCCCDBHelper
   /// \param integrationInterval integration interval
   unsigned int getUngroupedIndexGlobal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int integrationInterval) const;
 
-  ClassDefNV(IDCCCDBHelper, 1)
+  ClassDefNV(IDCCCDBHelper, 3)
 };
 
 } // namespace o2::tpc

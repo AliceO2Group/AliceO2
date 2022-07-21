@@ -11,6 +11,7 @@
 
 o2_add_library(MCHBase
          SOURCES
+           src/ErrorMap.cxx
            src/MathiesonOriginal.cxx
            src/PreCluster.cxx
            src/SanityCheck.cxx
@@ -25,6 +26,12 @@ o2_target_root_dictionary(MCHBase
 
 o2_add_test(trackable
             SOURCES src/testTrackable.cxx
+            COMPONENT_NAME mch
+            PUBLIC_LINK_LIBRARIES O2::MCHBase
+            LABELS muon;mch)
+
+o2_add_test(errormap
+            SOURCES src/testErrorMap.cxx
             COMPONENT_NAME mch
             PUBLIC_LINK_LIBRARIES O2::MCHBase
             LABELS muon;mch)

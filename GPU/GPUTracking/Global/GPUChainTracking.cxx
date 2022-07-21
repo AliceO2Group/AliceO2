@@ -41,6 +41,7 @@
 #include "GPULogging.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPUTrackingInputProvider.h"
+#include "GPUNewCalibValues.h"
 
 #ifdef GPUCA_HAVE_O2HEADERS
 #include "GPUTPCClusterStatistics.h"
@@ -76,7 +77,7 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
 {
   mFlatObjectsShadow.InitGPUProcessor(mRec, GPUProcessor::PROCESSOR_TYPE_SLAVE);
   mFlatObjectsDevice.InitGPUProcessor(mRec, GPUProcessor::PROCESSOR_TYPE_DEVICE, &mFlatObjectsShadow);
-  mFlatObjectsShadow.mMemoryResFlat = mRec->RegisterMemoryAllocation(&mFlatObjectsShadow, &GPUTrackingFlatObjects::SetPointersFlatObjects, GPUMemoryResource::MEMORY_PERMANENT, "Processors");
+  mFlatObjectsShadow.mMemoryResFlat = mRec->RegisterMemoryAllocation(&mFlatObjectsShadow, &GPUTrackingFlatObjects::SetPointersFlatObjects, GPUMemoryResource::MEMORY_PERMANENT, "CalibObjects");
 
   mRec->RegisterGPUProcessor(mInputsHost.get(), mRec->IsGPU());
   if (GetRecoSteps() & RecoStep::TPCSliceTracking) {
@@ -249,7 +250,7 @@ bool GPUChainTracking::ValidateSteps()
     GPUError("Cannot run TPC ZS Decoder without mapping object. (tpczslinkmapping.dump missing?)");
     return false;
   }
-  if ((GetRecoSteps() & GPUDataTypes::RecoStep::Refit) && !param().rec.trackingRefitGPUModel && (processors()->calibObjects.o2Propagator == nullptr || processors()->calibObjects.matLUT == nullptr)) {
+  if ((GetRecoSteps() & GPUDataTypes::RecoStep::Refit) && !param().rec.trackingRefitGPUModel && ((processors()->calibObjects.o2Propagator == nullptr && !ProcessingSettings().internalO2PropagatorGPUField) || processors()->calibObjects.matLUT == nullptr)) {
     GPUError("Cannot run refit with o2 track model without o2 propagator");
     return false;
   }
@@ -485,6 +486,7 @@ int GPUChainTracking::Finalize()
 
 void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem)
 {
+  char* dummyPtr;
   if (mChainTracking->GetTPCTransform()) {
     computePointerWithAlignment(mem, mCalibObjects.fastTransform, 1);
     computePointerWithAlignment(mem, mTpcTransformBuffer, mChainTracking->GetTPCTransform()->getFlatBufferSize());
@@ -499,6 +501,8 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
   if (mChainTracking->GetMatLUT()) {
     computePointerWithAlignment(mem, mCalibObjects.matLUT, 1);
     computePointerWithAlignment(mem, mMatLUTBuffer, mChainTracking->GetMatLUT()->getFlatBufferSize());
+  } else if (mChainTracking->GetProcessingSettings().lateO2MatLutProvisioningSize) {
+    computePointerWithAlignment(mem, dummyPtr, mChainTracking->GetProcessingSettings().lateO2MatLutProvisioningSize);
   }
   if (mChainTracking->GetdEdxCalibContainer()) {
     computePointerWithAlignment(mem, mCalibObjects.dEdxCalibContainer, 1);
@@ -509,6 +513,8 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
   }
   if (mChainTracking->GetO2Propagator()) {
     computePointerWithAlignment(mem, mCalibObjects.o2Propagator, 1);
+  } else if (mChainTracking->GetProcessingSettings().internalO2PropagatorGPUField) {
+    computePointerWithAlignment(mem, dummyPtr, sizeof(*mCalibObjects.o2Propagator));
   }
 #endif
   if (!mChainTracking->mUpdateNewCalibObjects) {
@@ -589,6 +595,16 @@ void GPUChainTracking::DoQueuedCalibUpdates(int stream)
     if (mRec->IsGPU()) {
       mRec->ResetRegisteredMemoryPointers(mFlatObjectsShadow.mMemoryResFlat);
       UpdateGPUCalibObjects(stream);
+    }
+    if (mNewCalibValues->newSolenoidField || mNewCalibValues->newContinuousMaxTimeBin) {
+      GPUSettingsGRP grp = mRec->GetGRPSettings();
+      if (mNewCalibValues->newSolenoidField) {
+        grp.solenoidBz = mNewCalibValues->solenoidField;
+      }
+      if (mNewCalibValues->newContinuousMaxTimeBin) {
+        grp.continuousMaxTimeBin = mNewCalibValues->continuousMaxTimeBin;
+      }
+      mRec->UpdateGRPSettings(&grp);
     }
   }
   if ((mUpdateNewCalibObjects || mRec->slavesExist()) && mRec->IsGPU()) {
@@ -887,8 +903,9 @@ void GPUChainTracking::SetDefaultInternalO2Propagator(bool useGPUField)
 #endif
 }
 
-void GPUChainTracking::SetUpdateCalibObjects(const GPUCalibObjectsConst& obj)
+void GPUChainTracking::SetUpdateCalibObjects(const GPUCalibObjectsConst& obj, const GPUNewCalibValues& vals)
 {
   mNewCalibObjects = obj;
+  mNewCalibValues.reset(new GPUNewCalibValues(vals));
   mUpdateNewCalibObjects = true;
 }

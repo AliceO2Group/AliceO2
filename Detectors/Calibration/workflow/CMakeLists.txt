@@ -11,7 +11,6 @@
 
 o2_add_library(DetectorsCalibrationWorkflow
                SOURCES src/MeanVertexCalibratorSpec.cxx
-                       src/TPCVDriftTglCalibSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                      O2::Headers
                      O2::CCDB
@@ -30,12 +29,3 @@ o2_add_executable(mean-vertex-calibration-workflow
                     O2::ReconstructionDataFormats
                     O2::DataFormatsCalibration
                     O2::CCDB)
-
-o2_add_executable(calibration-workflow
-                  COMPONENT_NAME tpc-vdrift-tgl
-                  SOURCES src/tpc-vdrift-tgl-calibration-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
-                                        O2::DetectorsCalibration
-                                        O2::DetectorsCalibrationWorkflow
-                                        O2::DataFormatsCalibration
-                                        O2::CCDB)

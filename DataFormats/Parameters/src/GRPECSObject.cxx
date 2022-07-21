@@ -41,6 +41,7 @@ void GRPECSObject::print() const
   };
   printf("Run %d of type %d, period %s, isMC: %d\n", mRun, int(mRunType), mDataPeriod.c_str(), isMC());
   printf("Start: %s | End: %s\n", timeStr(mTimeStart).c_str(), timeStr(mTimeEnd).c_str());
+  printf("Number of HBF per timframe: %d\n", mNHBFPerTF);
   printf("Detectors: Cont.RO Triggers\n");
   for (auto i = DetID::First; i <= DetID::Last; i++) {
     if (!isDetReadOut(DetID(i))) {
@@ -106,4 +107,48 @@ GRPECSObject* GRPECSObject::loadFrom(const std::string& grpecsFileName)
     throw std::runtime_error(fmt::format("Failed to load GRPECS object from {}", fname));
   }
   return grp;
+}
+
+//_______________________________________________
+GRPECSObject::RunType GRPECSObject::string2RunType(const std::string& rts)
+{
+  int rt = -1;
+  for (int i = 0; i < int(RunType::NRUNTYPES); i++) {
+    if (rts == RunTypeNames[i]) {
+      rt = i;
+      break;
+    }
+  }
+  return GRPECSObject::RunType(rt);
+}
+
+//_______________________________________________
+std::string GRPECSObject::getRawDataPersistencyMode(const std::string& runType, bool imposeRaw)
+{
+  if (imposeRaw) {
+    return "raw";
+  }
+  std::string ret = "other";
+  auto rt = string2RunType(runType);
+  switch (rt) {
+    case RunType::PHYSICS:
+    case RunType::COSMICS:
+      ret = "raw";
+      break;
+    case RunType::PEDESTAL:
+    case RunType::PULSER:
+    case RunType::LASER:
+    case RunType::CALIBRATION_ITHR_TUNING:
+    case RunType::CALIBRATION_VCASN_TUNING:
+    case RunType::CALIBRATION_THR_SCAN:
+    case RunType::CALIBRATION_DIGITAL_SCAN:
+    case RunType::CALIBRATION_ANALOG_SCAN:
+    case RunType::CALIBRATION_FHR:
+    case RunType::CALIBRATION_ALPIDE_SCAN:
+    case RunType::CALIBRATION:
+      ret = "calib";
+    default:
+      break;
+  }
+  return ret;
 }

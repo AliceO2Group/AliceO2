@@ -162,8 +162,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   LOG(info) << "TRD Trap Simulator Device running over incoming message";
 
   if (!mInitCcdbObjectsDone) {
-    const auto ref = pc.inputs().getFirstValid(true);
-    auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation;
+    auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation;
     auto timeStamp = (mRunNumber < 0) ? creationTime : mRunNumber;
     mCalib = std::make_unique<Calibrations>();
     mCalib->getCCDBObjects(timeStamp);
@@ -252,6 +251,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   auto parallelTime = std::chrono::high_resolution_clock::now() - timeParallelStart;
 
   // accumulate results and add MC labels
+  int nDigitsRejected = 0;
   for (size_t iTrig = 0; iTrig < triggerRecords.size(); ++iTrig) {
     if (mUseMC) {
       int currDigitIndex = 0; // counter for all digits which are associated to tracklets
@@ -293,6 +293,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       triggerRecords[iTrig].setDigitRange(digitsOut.size() - triggerRecords[iTrig].getNumberOfDigits(), triggerRecords[iTrig].getNumberOfDigits());
     } else {
       // digits are not kept, we just need to update the trigger record
+      nDigitsRejected += triggerRecords[iTrig].getNumberOfDigits();
       triggerRecords[iTrig].setDigitRange(digitsOut.size(), 0);
     }
   }
@@ -300,6 +301,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   auto processingTime = std::chrono::high_resolution_clock::now() - timeProcessingStart;
 
   LOG(info) << "Trap simulator found " << tracklets.size() << " tracklets from " << digits.size() << " Digits.";
+  LOG(info) << "In total " << nDigitsRejected << " digits were rejected due to digit downscaling factor of " << mDigitDownscaling;
   if (mUseMC) {
     LOG(info) << "In total " << lblTracklets.getNElements() << " MC labels are associated to the " << lblTracklets.getIndexedSize() << " tracklets";
   }

@@ -303,23 +303,23 @@ int CTPRunScalers::checkConsistency(const CTPScalerO2& scal0, const CTPScalerO2&
   // broken for classes started at L0
   //
   if ((scal1.lmAfter - scal0.lmAfter) > (scal1.lmBefore - scal0.lmBefore)) {
-    LOG(error) << "LMA > LMB eerror";
+    LOG(error) << "LMA > LMB eerror:" << ((scal1.lmAfter - scal0.lmAfter) - (scal1.lmBefore - scal0.lmBefore));
     ret++;
   }
   if ((scal1.l0After - scal0.l0After) > (scal1.l0Before - scal0.l0Before)) {
-    LOG(error) << "L0A > L0B error";
+    LOG(error) << "L0A > L0B error:" << ((scal1.l0After - scal0.l0After) - (scal1.l0Before - scal0.l0Before));
     ret++;
   }
   if ((scal1.l1After - scal0.l1After) > (scal1.l1Before - scal0.l1Before)) {
-    LOG(error) << "L1A > L1B error";
+    LOG(error) << "L1A > L1B error:" << ((scal1.l0After - scal0.l0After) - (scal1.l0Before - scal0.l0Before));
     ret++;
   }
   if ((scal1.l0Before - scal0.l0Before) > (scal1.lmAfter - scal0.lmAfter)) {
-    LOG(warning) << "L0B > LMA ok if L0 class.";
-    ret++;
+    // LOG(warning) << "L0B > LMA ok if L0 class.";
+    // ret++;
   }
   if ((scal1.l1Before - scal0.l1Before) > (scal1.l0After - scal0.l0After)) {
-    LOG(error) << "L1B > L0A Before error.";
+    LOG(error) << "L1B > L0A Before error:" << ((scal1.l1Before - scal0.l1Before) - (scal1.l0After - scal0.l0After));
     ret++;
   }
   //

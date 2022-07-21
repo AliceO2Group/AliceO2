@@ -619,16 +619,16 @@ bool MatchTPCITS::prepareITSData()
       // [(Xr*tg(10)-Yr)/(tgPhir+tg70)]^2  / cos(70)^2  // for the next sector
       // [(Xr*tg(10)+Yr)/(tgPhir-tg70)]^2  / cos(70)^2  // for the prev sector
       // Distances to the sector edges in neighbourings sectors (at Xref in theit proper frames)
-      float tgp = trc.getSnp();
+      float trcY = trc.getY(), tgp = trc.getSnp();
       tgp /= std::sqrt((1.f - tgp) * (1.f + tgp)); // tan of track direction XY
 
       // sector up
-      float dy2Up = (YMaxAtXMatchingRef - trc.getY()) / (tgp + Tan70);
+      float dy2Up = (YMaxAtXMatchingRef - trcY) / (tgp + Tan70);
       if ((dy2Up * dy2Up * Cos70I2) < mSectEdgeMargin2) { // need to check this track for matching in sector up
         addLastTrackCloneForNeighbourSector(sector < (o2::constants::math::NSectors - 1) ? sector + 1 : 0);
       }
       // sector down
-      float dy2Dn = (YMaxAtXMatchingRef + trc.getY()) / (tgp - Tan70);
+      float dy2Dn = (YMaxAtXMatchingRef + trcY) / (tgp - Tan70);
       if ((dy2Dn * dy2Dn * Cos70I2) < mSectEdgeMargin2) { // need to check this track for matching in sector down
         addLastTrackCloneForNeighbourSector(sector > 1 ? sector - 1 : o2::constants::math::NSectors - 1);
       }
@@ -2247,12 +2247,12 @@ int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const ClusRan
   for (int icl = clRange.getEntries(); icl--;) { // note: clusters within a chip are sorted in Z
     int clID = itsChipClRefs.clusterID[icID++];  // so, we go in clusterID increasing direction
     const auto& cls = mITSClustersArray[clID];
-    float dz = trackZ - cls.getZ();
+    float dz = cls.getZ() - trackZ;
     LOG(debug) << "cl" << icl << '/' << clID << " "
                << " dZ: " << dz << " [" << tolerZ << "| dY: " << trackY - cls.getY() << " [" << tolerY << "]";
     if (dz > tolerZ) {
       float clsZ = cls.getZ();
-      LOG(debug) << "Skip the rest since " << trackZ << " > " << clsZ << "\n";
+      LOG(debug) << "Skip the rest since " << trackZ << " < " << clsZ << "\n";
       break;
     } else if (dz < -tolerZ) {
       LOG(debug) << "Skip cluster dz=" << dz << " Ztr=" << trackZ << " zCl=" << cls.getZ();

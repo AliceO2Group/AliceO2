@@ -9,18 +9,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TPCVDRIFTTGL_CALIB_DEVICE_H
-#define O2_TPCVDRIFTTGL_CALIB_DEVICE_H
+/// \file PhysTrigger.h
+/// \brief Definition Physics trigger record extracted from the ITS/MFT stream
 
-/// @file   TPCVDriftTglCalibratorSpec.h
-/// @brief  Device to calibrate vdrift with tg_lambda
+#ifndef ALICEO2_ITSMFT_PHYSTRIGGER_H
+#define ALICEO2_ITSMFT_PHYSTRIGGER_H
 
-#include "Framework/DataProcessorSpec.h"
+#include "CommonDataFormat/InteractionRecord.h"
 
-namespace o2::calibration
+namespace o2::itsmft
 {
+// root friendly version of the trigger (root does not support anonymous structs)
+struct PhysTrigger {
+  o2::InteractionRecord ir{};
+  uint64_t data = 0;
 
-o2::framework::DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, size_t minEnt);
-}
+  ClassDefNV(PhysTrigger, 1);
+};
+
+} // namespace o2::itsmft
 
 #endif

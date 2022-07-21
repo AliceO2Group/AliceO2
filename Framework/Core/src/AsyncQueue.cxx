@@ -44,7 +44,7 @@ auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> vo
   std::iota(order.begin(), order.end(), 0);
   // Decide wether or not they can run as a first thing
   for (auto& task : queue.tasks) {
-    if (task.timeslice.value < oldestPossible.value) {
+    if (task.timeslice.value <= oldestPossible.value) {
       task.runnable = true;
     }
   }
@@ -70,7 +70,7 @@ auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> vo
     }
   });
   for (auto i : order) {
-    if (queue.tasks[i].timeslice.value < oldestPossible.value) {
+    if (queue.tasks[i].runnable) {
       LOGP(debug, "AsyncQueue: Running task {}, timeslice {}, score {}, debounce {}", queue.tasks[i].id.value, queue.tasks[i].timeslice.value, queue.prototypes[queue.tasks[i].id.value].score, queue.tasks[i].debounce);
     } else {
       LOGP(debug, "AsyncQueue: Skipping task {}, timeslice {}, score {}, debounce {}", queue.tasks[i].id.value, queue.tasks[i].timeslice.value, queue.prototypes[queue.tasks[i].id.value].score, queue.tasks[i].debounce);
@@ -78,7 +78,7 @@ auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> vo
   }
   // Keep only the tasks with the highest debounce value for a given id
   auto newEnd = std::unique(order.begin(), order.end(), [&queue](int a, int b) {
-    return queue.tasks[a].runnable == queue.tasks[b].runnable && queue.tasks[a].id.value == queue.tasks[b].id.value;
+    return queue.tasks[a].runnable == queue.tasks[b].runnable && queue.tasks[a].id.value == queue.tasks[b].id.value && queue.tasks[a].debounce >= 0 && queue.tasks[b].debounce >= 0;
   });
   order.erase(newEnd, order.end());
 
@@ -92,8 +92,8 @@ auto AsyncQueueHelpers::run(AsyncQueue& queue, TimesliceId oldestPossible) -> vo
   bool obsolete = true;
 
   for (auto i : order) {
-    if (queue.tasks[i].timeslice.value < oldestPossible.value) {
-      // If a timeslice is obsolete, we can run the task and remove it from the queue
+    if (queue.tasks[i].runnable) {
+      // If a task is runable, we can run the task and remove it from the queue
       LOGP(debug, "Running task {} ({})", queue.prototypes[queue.tasks[i].id.value].name, i);
       queue.tasks[i].task();
       LOGP(debug, "Done running {}", i);

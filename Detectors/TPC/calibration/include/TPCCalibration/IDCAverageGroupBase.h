@@ -123,7 +123,7 @@ class IDCAverageGroupBase<IDCAverageGroupCRU>
   const Sector mSector{};                    ///< sector of averaged and grouped IDCs (used for debugging)
 };
 
-/// class for averaging and grouping the DeltaIDCs (grouping of A- and C-side)
+/// class for averaging and grouping the DeltaIDCs (grouping of A- or C-side)
 template <>
 class IDCAverageGroupBase<IDCAverageGroupTPC>
 {
@@ -138,8 +138,7 @@ class IDCAverageGroupBase<IDCAverageGroupTPC>
     : mIDCGroupHelperSector(groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupNotnPadsSectorEdges), mRobustAverage(nThreads){};
 
   /// \return returns number of integration intervalls stored in this object
-  /// \param side side of the TPC
-  unsigned int getNIntegrationIntervals(const o2::tpc::Side side) const { return mIDCsUngrouped.getIDCDelta(side).size() / Mapper::getNumberOfPadsPerSide(); }
+  unsigned int getNIntegrationIntervals() const { return mIDCsUngrouped.getIDCDelta().size() / Mapper::getNumberOfPadsPerSide(); }
 
   /// \return returns grouped IDCDelta object
   const auto& getIDCGroupData() const& { return mIDCsGrouped; }
@@ -167,7 +166,7 @@ class IDCAverageGroupBase<IDCAverageGroupTPC>
   /// \param urow row of the ungrouped IDCs
   /// \param upad pad number of the ungrouped IDCs
   /// \param integrationInterval integration interval
-  float getGroupedIDCDeltaVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int integrationInterval) const { return mIDCsGrouped.getValue(Sector(sector).side(), mIDCGroupHelperSector.getIndexUngrouped(sector, region, urow, upad, integrationInterval)); }
+  float getGroupedIDCDeltaVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int integrationInterval) const { return mIDCsGrouped.getValue(mIDCGroupHelperSector.getIndexUngrouped(sector, region, urow, upad, integrationInterval)); }
 
   /// \return returns the stored DeltaIDC value for local ungrouped pad row and ungrouped pad
   /// \param sector sector
@@ -175,7 +174,7 @@ class IDCAverageGroupBase<IDCAverageGroupTPC>
   /// \param urow row of the ungrouped IDCs
   /// \param upad pad number of the ungrouped IDCs
   /// \param integrationInterval integration interval
-  float getUngroupedIDCDeltaVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int integrationInterval) const { return mIDCsUngrouped.getValue(Sector(sector).side(), getUngroupedIndexGlobal(sector, region, urow, upad, integrationInterval)); }
+  float getUngroupedIDCDeltaVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int integrationInterval) const { return mIDCsUngrouped.getValue(getUngroupedIndexGlobal(sector, region, urow, upad, integrationInterval)); }
 
   /// draw IDCDelta for one sector for one integration interval
   /// \param sector sector which will be drawn
@@ -190,27 +189,30 @@ class IDCAverageGroupBase<IDCAverageGroupTPC>
   void drawUngroupedIDCsSector(const unsigned int sector, const unsigned int integrationInterval, const std::string filename = "IDCDeltaUngroupedSector.pdf") const { drawIDCDeltaHelper(false, Sector(sector), integrationInterval, false, filename); }
 
   /// draw IDCs for one side for one integration interval
-  /// \param side side which will be drawn
   /// \param integrationInterval which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawGroupedIDCsSide(const o2::tpc::Side side, const unsigned int integrationInterval, const std::string filename = "IDCDeltaGroupedSide.pdf") const { drawIDCDeltaHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), integrationInterval, true, filename); }
+  void drawGroupedIDCsSide(const unsigned int integrationInterval, const std::string filename = "IDCDeltaGroupedSide.pdf") const { drawIDCDeltaHelper(true, (mSide == Side::A) ? Sector(0) : Sector(Sector::MAXSECTOR - 1), integrationInterval, true, filename); }
 
   /// draw IDCs for one side for one integration interval
-  /// \param side side which will be drawn
   /// \param integrationInterval which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
-  void drawUngroupedIDCsSide(const o2::tpc::Side side, const unsigned int integrationInterval, const std::string filename = "IDCDeltaUngroupedSide.pdf") const { drawIDCDeltaHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), integrationInterval, false, filename); }
+  void drawUngroupedIDCsSide(const unsigned int integrationInterval, const std::string filename = "IDCDeltaUngroupedSide.pdf") const { drawIDCDeltaHelper(true, (mSide == Side::A) ? Sector(0) : Sector(Sector::MAXSECTOR - 1), integrationInterval, false, filename); }
 
   /// setting the ungrouped IDCs using copy constructor
   /// \param idcs vector containing the ungrouped IDCs
-  void setIDCs(const IDCDelta<float>& idcs);
+  /// \param side TPC side of the IDCs
+  void setIDCs(const IDCDelta<float>& idcs, const Side side);
 
   /// setting the ungrouped IDCs using move semantics
   /// \param idcs vector containing the ungrouped IDCs
-  void setIDCs(IDCDelta<float>&& idcs);
+  /// \param side TPC side of the IDCs
+  void setIDCs(IDCDelta<float>&& idcs, const Side side);
+
+  /// \return returns side of the stored delta IDCs
+  Side getSide() const { return mSide; }
 
   /// resetting the grouped IDCs
-  void resetGroupedIDCs(const Side side);
+  void resetGroupedIDCs();
 
  protected:
   IDCDelta<float> mIDCsGrouped{};                                 ///< grouped and averaged IDC values
@@ -219,13 +221,10 @@ class IDCAverageGroupBase<IDCAverageGroupTPC>
   std::array<std::vector<float>, Mapper::NREGIONS> mWeightsPad{}; ///< storage of the weights in pad direction used if mOverlapPads>0
   std::array<std::vector<float>, Mapper::NREGIONS> mWeightsRow{}; ///< storage of the weights in row direction used if mOverlapRows>0
   IDCDelta<float> mIDCsUngrouped{};                               ///< integrated ungrouped IDC values per pad
+  Side mSide{};                                                   ///< side of the ungrouped Delta IDCs
 
   /// set correct size for grouped IDCs
   void resizeGroupedIDCs();
-
-  /// set correct size for grouped IDCs
-  /// \param side side of the TPC
-  void resizeGroupedIDCs(const Side side);
 
   /// helper function for drawing IDCDelta
   void drawIDCDeltaHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const bool grouped, const std::string filename) const;

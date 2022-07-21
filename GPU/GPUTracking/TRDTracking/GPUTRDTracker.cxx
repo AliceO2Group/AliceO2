@@ -129,7 +129,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::InitializeProcessor()
     GPUError("TRD geometry must be provided externally");
   }
 
-  float Bz = Param().par.bzkG;
+  float Bz = Param().bzkG;
   float resRPhiIdeal2 = Param().rec.trd.trkltResRPhiIdeal * Param().rec.trd.trkltResRPhiIdeal;
   GPUInfo("Initializing with B-field: %f kG", Bz);
   if (CAMath::Abs(CAMath::Abs(Bz) - 2) < 0.1) {

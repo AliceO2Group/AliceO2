@@ -40,7 +40,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"filter-trigrec", o2::framework::VariantType::Bool, false, {"ignore interaction records without ITS data"}},
     {"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing CTFs from 2021 pilot beam)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-  o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -73,7 +73,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!configcontext.options().get<bool>("disable-root-output")) {
     spec.emplace_back(o2::trd::getTRDCalibratedTrackletWriterSpec(useMC));
   }
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, spec);
 
   return spec;

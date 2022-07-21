@@ -53,7 +53,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"jsons-folder", VariantType::String, "jsons", {"name of the folder to store json files"}},
     {"eve-hostname", VariantType::String, "", {"name of the host allowed to produce files (empty means no limit)"}},
     {"eve-dds-collection-index", VariantType::Int, -1, {"number of dpl collection allowed to produce files (-1 means no limit)"}},
-    {"number-of_files", VariantType::Int, 300, {"maximum number of json files in folder"}},
+    {"number-of_files", VariantType::Int, 150, {"maximum number of json files in folder"}},
     {"number-of_tracks", VariantType::Int, -1, {"maximum number of track stored in json file (-1 means no limit)"}},
     {"time-interval", VariantType::Int, 5000, {"time interval in milliseconds between stored files"}},
     {"disable-mc", VariantType::Bool, false, {"disable visualization of MC data"}},
@@ -118,9 +118,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   helper.prepareITSClusters(mData.mITSDict);
   helper.prepareMFTClusters(mData.mMFTDict);
 
-  const auto& ref = pc.inputs().getFirstValid(true);
-  const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-  const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
 
   std::unordered_map<o2::dataformats::GlobalTrackID, std::size_t> savedTracks;
 
@@ -130,7 +128,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
 
   bool anythingSaved = false;
 
-  for (std::size_t pv = 0; pv < helper.mTotalPrimaryVertices; ++pv) {
+  for (std::size_t pv = 0; pv < helper.mPrimaryVertexGIDs.size(); ++pv) {
     helper.draw(pv, mTrackSorting);
 
     bool save = true;
@@ -146,10 +144,10 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
     if (save) {
       helper.mEvent.setClMask(this->mClMask.to_ulong());
       helper.mEvent.setTrkMask(this->mTrkMask.to_ulong());
-      helper.mEvent.setRunNumber(dh->runNumber);
-      helper.mEvent.setTfCounter(dh->tfCounter);
-      helper.mEvent.setFirstTForbit(dh->firstTForbit);
-      helper.save(this->mJsonPath, this->mNumberOfFiles, this->mTrkMask, this->mClMask, dh->runNumber, dph->creation);
+      helper.mEvent.setRunNumber(tinfo.runNumber);
+      helper.mEvent.setTfCounter(tinfo.tfCounter);
+      helper.mEvent.setFirstTForbit(tinfo.firstTForbit);
+      helper.save(this->mJsonPath, this->mNumberOfFiles, this->mTrkMask, this->mClMask, tinfo.runNumber, tinfo.creation);
       anythingSaved = true;
     }
 
@@ -161,10 +159,10 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   }
 
   auto endTime = std::chrono::high_resolution_clock::now();
-  LOGP(info, "Visualization of TF:{} at orbit {} took {} s.", dh->tfCounter, dh->firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
+  LOGP(info, "Visualization of TF:{} at orbit {} took {} s.", tinfo.tfCounter, tinfo.firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
 
   if (mPrimaryVertexMode) {
-    LOGP(info, "Primary vertices: {}", helper.mTotalPrimaryVertices);
+    LOGP(info, "Primary vertices: {}", helper.mPrimaryVertexGIDs.size());
   }
 
   LOGP(info, "JSON saved: {}", anythingSaved ? "YES" : "NO");
@@ -310,7 +308,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     {},
     AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent, primaryVertexMode)}});
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
 
   return std::move(specs);

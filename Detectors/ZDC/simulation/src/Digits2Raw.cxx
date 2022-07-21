@@ -117,11 +117,20 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
   if (digiTree->GetBranchStatus("ZDCDigitLabels")) {
     digiTree->SetBranchStatus("ZDCDigitLabel*", 0);
   }
-
+  int nBCadd = 0;
+  // TODO: fix the conversion logic
+  // If first stored bunch is not in first digitized orbit the empty orbits
+  // at the beginning of the simulation are not converted to raw data
+  // If last orbits are empty they are not inserted in raw data
+  // Logic is not tested if digiTree has more than one entry
+  // The resulting file has less orbits. However the missing orbits have no signals
+  // and threefore are not used in reconstruction -> this fix has low priority
   for (int ient = 0; ient < digiTree->GetEntries(); ient++) {
     digiTree->GetEntry(ient);
     mNbc = mzdcBCData.size();
-    LOG(info) << "Entry " << ient << " : " << mNbc << " BCs stored";
+    if (mVerbosity > 0) {
+      LOG(info) << "Entry " << ient << ": processing " << mNbc << " BCs stored";
+    }
     for (int ibc = 0; ibc < mNbc; ibc++) {
       mBCD = mzdcBCData[ibc];
       convertDigits(ibc);
@@ -130,8 +139,12 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
       if (ibc == (mNbc - 1)) {
         // For last event we need to close last orbit (if it is needed)
         if (mzdcBCData[ibc].ir.bc != 3563) {
+          if (mVerbosity > 1) {
+            LOG(info) << "Closing last orbit " << mzdcBCData[ibc].ir.orbit;
+          }
           insertLastBunch(ibc, mzdcBCData[ibc].ir.orbit);
           writeDigits();
+          nBCadd++;
         }
       } else {
         auto this_orbit = mzdcBCData[ibc].ir.orbit;
@@ -142,11 +155,16 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
         }
         // We may need to insert more than one orbit
         for (auto orbit = this_orbit; orbit < next_orbit; orbit++) {
+          if (mVerbosity > 1) {
+            LOG(info) << "Inserting last bunch for orbit " << orbit;
+          }
           insertLastBunch(ibc, orbit);
           writeDigits();
+          nBCadd++;
         }
       }
     }
+    LOG(info) << "Entry " << ient << " Converted BCs: " << mNbc << " + added@3563:" << nBCadd << " = " << mNbc + nBCadd;
   }
   digiFile->Close();
 }
@@ -194,7 +212,7 @@ inline void Digits2Raw::resetSums(uint32_t orbit)
       mPed[im][ic] = 0;
     }
   }
-  mLastOrbit = orbit;
+  mLatestOrbit = orbit;
   mLastNEmpty = 0;
 }
 
@@ -247,7 +265,9 @@ inline void Digits2Raw::updatePedestalReference(int bc)
         mSumPed[im][ic] += gRandom->Gaus(12. * deltan * base_m, 12. * k * base_s * TMath::Sqrt(deltan / k));
         // Adding in quadrature the RMS of pedestal electronic noise
         mSumPed[im][ic] += gRandom->Gaus(0, base_n * TMath::Sqrt(12. * deltan));
-        double myped = TMath::Nint(8. * mSumPed[im][ic] / double(mEmpty[bc]) / 12. + 32768);
+        double myped = mSumPed[im][ic] / double(mEmpty[bc]) / 12.;          // Average current pedestal
+        myped = TMath::Nint(myped / mModuleConfig->baselineFactor + 32768); // Convert into digitized pedestal
+        // Correct for overflow and underflow
         if (myped < 0) {
           myped = 0;
         }
@@ -327,12 +347,14 @@ inline void Digits2Raw::assignTriggerBits(int ibc, uint16_t bc, uint32_t orbit, 
 //______________________________________________________________________________
 void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
 {
+  // Inserting last bunch in the orbit. This is not present in digits because information is stored in the
+  // OrbitData structure
 
   // Orbit and bunch crossing identifiers
   uint16_t bc = 3563;
 
   // Reset scalers at orbit change
-  if (orbit != mLastOrbit) {
+  if (orbit != mLatestOrbit) {
     resetSums(orbit);
   }
 
@@ -385,13 +407,14 @@ void Digits2Raw::insertLastBunch(int ibc, uint32_t orbit)
 //______________________________________________________________________________
 void Digits2Raw::convertDigits(int ibc)
 {
+  // Creating raw data from a bunch crossing that is actually present in digits
 
   // Orbit and bunch crossing identifiers
   uint16_t bc = mBCD.ir.bc;
   uint32_t orbit = mBCD.ir.orbit;
 
   // Reset scalers at orbit change
-  if (orbit != mLastOrbit) {
+  if (orbit != mLatestOrbit) {
     resetSums(orbit);
   }
 
@@ -534,9 +557,9 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
   uint32_t a = word[0];
   uint32_t b = word[1];
   uint32_t c = word[2];
-  //uint32_t d=(msb>>32)&0xffffffff;
-  //printf("\n%llx %llx ",lsb,msb);
-  //printf("\n%8x %8x %8x %8x ",d,c,b,a);
+  // uint32_t d=(msb>>32)&0xffffffff;
+  // printf("\n%llx %llx ",lsb,msb);
+  // printf("\n%8x %8x %8x %8x ",d,c,b,a);
   if ((a & 0x3) == 0) {
     uint32_t myorbit = (val >> 48) & 0xffffffff;
     uint32_t mybc = (val >> 36) & 0xfff;
@@ -548,11 +571,11 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
     printf("%04x %08x %08x ", c, b, a);
     uint32_t hits = (val >> 24) & 0xfff;
     int32_t offset = (lsb >> 8) & 0xffff - 32768;
-    float foffset = offset / 8.;
+    // float foffset = offset * (moduleConfig == nullptr ? 1 : moduleConfig->baselineFactor);
     uint32_t board = (lsb >> 2) & 0xf;
     uint32_t ch = (lsb >> 6) & 0x3;
-    //printf("orbit %9u bc %4u hits %4u offset %+6i Board %2u Ch %1u", myorbit, mybc, hits, offset, board, ch);
-    printf("orbit %9u bc %4u hits %4u offset %+8.3f Board %2u Ch %1u", myorbit, mybc, hits, foffset, board, ch);
+    printf("orbit %9u bc %4u hits %4u offset %+6i Board %2u Ch %1u", myorbit, mybc, hits, offset, board, ch);
+    // printf("orbit %9u bc %4u hits %4u offset %+9.3f Board %2u Ch %1u", myorbit, mybc, hits, foffset, board, ch);
     if (board >= NModules) {
       printf(" ERROR with board");
     }
@@ -605,20 +628,54 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
 //______________________________________________________________________________
 void Digits2Raw::emptyBunches(std::bitset<3564>& bunchPattern)
 {
-  const int LHCMaxBunches = o2::constants::lhc::LHCMaxBunches;
+  // Check if mModuleConfig object has list of empty bunches
+  if (mModuleConfig->nBunchAverage <= 0) {
+    LOG(fatal) << "nBunchAverage = " << mModuleConfig->nBunchAverage;
+  }
+
+  // Analyze the list of empty bunches that is provided
   mNEmpty = 0;
-  for (int32_t ib = 0; ib < LHCMaxBunches; ib++) {
-    int32_t mb = (ib + 31) % LHCMaxBunches;                // beam gas from back of calorimeter (31 bc earlier than a colliding bunch)
-    int32_t m1 = (ib + 1) % LHCMaxBunches;                 // next bunch is colliding (position -1)
-    int32_t p1 = (ib - 1 + LHCMaxBunches) % LHCMaxBunches; // current bc is 1 bc after colliding (position +1)
-    int32_t p2 = (ib - 2 + LHCMaxBunches) % LHCMaxBunches; // current bc is 2 bc after colliding
-    int32_t p3 = (ib - 3 + LHCMaxBunches) % LHCMaxBunches; // current bc is 3 bc after colliding
-    if (bunchPattern[mb] || bunchPattern[m1] || bunchPattern[ib] || bunchPattern[p1] || bunchPattern[p2] || bunchPattern[p3]) {
-      mEmpty[ib] = mNEmpty;
-    } else {
-      mNEmpty++;
-      mEmpty[ib] = mNEmpty;
+  int ib = 0;
+  uint64_t one = 0x1;
+  for (int i = 0; i < mModuleConfig->NWMap; i++) {
+    uint64_t val = mModuleConfig->emptyMap[i];
+    for (int j = 0; j < 64; j++) {
+      if ((val & (one << j)) != 0) { // Empty bunch
+        mNEmpty++;
+        mEmpty[ib] = mNEmpty;
+      } else { // Not empty
+        mEmpty[ib] = mNEmpty;
+      }
+      ib++;
     }
+  }
+
+  // No list is provided: we prepare a list from collision context
+  if (mNEmpty == 0) {
+    const int LHCMaxBunches = o2::constants::lhc::LHCMaxBunches;
+    for (int32_t ib = 0; ib < LHCMaxBunches; ib++) {
+      int mb = (ib + 31) % o2::constants::lhc::LHCMaxBunches;                                    // beam gas from back of calorimeter (31 b.c. before)
+      int m1 = (ib + 1) % o2::constants::lhc::LHCMaxBunches;                                     // previous bunch (next is colliding)
+      int cb = ib;                                                                               // current bunch crossing
+      int p1 = (ib - 1 + o2::constants::lhc::LHCMaxBunches) % o2::constants::lhc::LHCMaxBunches; // colliding + 1 (-1 is colliding)
+      int p2 = (ib - 2 + o2::constants::lhc::LHCMaxBunches) % o2::constants::lhc::LHCMaxBunches; // colliding + 2 (-2 is colliding)
+      int p3 = (ib - 3 + o2::constants::lhc::LHCMaxBunches) % o2::constants::lhc::LHCMaxBunches; // colliding + 3 (-3 is colliding)
+      int p4 = (ib - 4 + o2::constants::lhc::LHCMaxBunches) % o2::constants::lhc::LHCMaxBunches; // colliding + 4 (-4 is colliding)
+      if (bunchPattern[mb] || bunchPattern[m1] || bunchPattern[ib] || bunchPattern[p1] || bunchPattern[p2] || bunchPattern[p3]) {
+        mEmpty[ib] = mNEmpty;
+      } else {
+        mNEmpty++;
+        mEmpty[ib] = mNEmpty;
+      }
+      if (mNEmpty == mModuleConfig->nBunchAverage) {
+        break;
+      }
+    }
+  }
+
+  // Check if there is a mismatch between requested and actual list
+  if (mNEmpty != 0 && mNEmpty != mModuleConfig->nBunchAverage) {
+    LOG(fatal) << "Mismatch with empty map mNEmpty = " << mNEmpty << " nBunchAverage = " << mModuleConfig->nBunchAverage;
   }
   LOG(info) << "There are " << mNEmpty << " clean empty bunches";
 }

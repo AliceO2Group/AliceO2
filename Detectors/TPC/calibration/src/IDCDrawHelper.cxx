@@ -17,6 +17,11 @@
 #include "TLatex.h"
 #include <fmt/format.h>
 
+unsigned int o2::tpc::IDCDrawHelper::getPad(const unsigned int pad, const unsigned int region, const unsigned int row, const Side side)
+{
+  return (side == Side::A) ? pad : (Mapper::PADSPERROW[region][row] - pad - 1); // C-Side is mirrored
+}
+
 void o2::tpc::IDCDrawHelper::drawSector(const IDCDraw& idc, const unsigned int startRegion, const unsigned int endRegion, const unsigned int sector, const std::string zAxisTitle, const std::string filename, const float minZ, const float maxZ)
 {
   const auto coords = o2::tpc::painter::getPadCoordinatesSector();
@@ -54,6 +59,8 @@ void o2::tpc::IDCDrawHelper::drawSector(const IDCDraw& idc, const unsigned int s
   painter::drawSectorLocalPadNumberPoly(kBlack);
   painter::drawSectorInformationPoly(kRed, kRed);
 
+  TLatex latex;
+  latex.DrawLatexNDC(.07, .9, fmt::format("Sector {}", sector).data());
   if (!filename.empty()) {
     can->SaveAs(filename.data());
     delete poly;
@@ -75,6 +82,10 @@ void o2::tpc::IDCDrawHelper::drawSide(const IDCDraw& idc, const o2::tpc::Side si
   can->SetLeftMargin(0.1f);
   poly->Draw("colz");
 
+  std::string sideName = (side == Side::A) ? "A-Side" : "C-Side";
+  TLatex latex;
+  latex.DrawLatexNDC(.13, .9, sideName.data());
+
   if (!filename.empty()) {
     can->SaveAs(filename.data());
     delete poly;
@@ -90,7 +101,7 @@ TH2Poly* o2::tpc::IDCDrawHelper::drawSide(const IDCDraw& idc, const o2::tpc::Sid
   poly->SetTitle(nullptr);
   poly->GetXaxis()->SetTitleOffset(1.2f);
   poly->GetYaxis()->SetTitleOffset(1.3f);
-  poly->GetZaxis()->SetTitleOffset(1.4f);
+  poly->GetZaxis()->SetTitleOffset(1.3f);
   poly->GetZaxis()->SetTitle(zAxisTitle.data());
   poly->GetZaxis()->SetMaxDigits(3); // force exponential axis
   poly->SetStats(0);
@@ -107,7 +118,7 @@ TH2Poly* o2::tpc::IDCDrawHelper::drawSide(const IDCDraw& idc, const o2::tpc::Sid
           coordinate.rotate(angDeg);
           const float yPos = static_cast<float>(coordinate.yVals[0] + coordinate.yVals[1] + coordinate.yVals[2] + coordinate.yVals[3]) / 4;
           const float xPos = static_cast<float>(coordinate.xVals[0] + coordinate.xVals[1] + coordinate.xVals[2] + coordinate.xVals[3]) / 4;
-          const auto padTmp = (side == Side::A) ? ipad : (Mapper::PADSPERROW[region][irow] - ipad); // C-Side is mirrored
+          const auto padTmp = getPad(ipad, region, irow, side);
           poly->Fill(xPos, yPos, idc.getIDC(sector, region, irow, padTmp));
         }
       }
@@ -131,7 +142,7 @@ TH1F* o2::tpc::IDCDrawHelper::drawSide(const IDCDraw& idc, std::string_view type
     for (unsigned int region = 0; region < Mapper::NREGIONS; ++region) {
       for (unsigned int irow = 0; irow < Mapper::ROWSPERREGION[region]; ++irow) {
         for (unsigned int ipad = 0; ipad < Mapper::PADSPERROW[region][irow]; ++ipad) {
-          const auto padTmp = (side == Side::A) ? ipad : (Mapper::PADSPERROW[region][irow] - ipad); // C-Side is mirrored
+          const auto padTmp = getPad(ipad, region, irow, side);
           h->Fill(idc.getIDC(sector, region, irow, padTmp));
         }
       }
@@ -151,7 +162,7 @@ void o2::tpc::IDCDrawHelper::drawRadialProfile(const IDCDraw& idc, TH2F& hist, c
     for (unsigned int region = 0; region < Mapper::NREGIONS; ++region) {
       for (unsigned int irow = 0; irow < Mapper::ROWSPERREGION[region]; ++irow) {
         for (unsigned int ipad = 0; ipad < Mapper::PADSPERROW[region][irow]; ++ipad) {
-          const auto padTmp = (side == Side::A) ? ipad : (Mapper::PADSPERROW[region][irow] - ipad); // C-Side is mirrored
+          const auto padTmp = getPad(ipad, region, irow, side);
           const auto padNum = Mapper::getGlobalPadNumber(irow, ipad, region);
           const float padX = mapper.padCentre(padNum).x();
           hist.Fill(padX, idc.getIDC(sector, region, irow, padTmp));
@@ -177,7 +188,7 @@ void o2::tpc::IDCDrawHelper::drawIDCZeroStackCanvas(const IDCDraw& idc, const o2
     for (unsigned int region = 0; region < Mapper::NREGIONS; ++region) {
       for (unsigned int irow = 0; irow < Mapper::ROWSPERREGION[region]; ++irow) {
         for (unsigned int ipad = 0; ipad < Mapper::PADSPERROW[region][irow]; ++ipad) {
-          const auto padTmp = (side == Side::A) ? ipad : (Mapper::PADSPERROW[region][irow] - ipad); // C-Side is mirrored
+          const auto padTmp = getPad(ipad, region, irow, side);
           if (region < 4) {
             hIROC->Fill(idc.getIDC(sector, region, irow, padTmp));
           } else if (region < 6) {
@@ -225,34 +236,35 @@ void o2::tpc::IDCDrawHelper::drawIDCZeroStackCanvas(const IDCDraw& idc, const o2
 
 std::string o2::tpc::IDCDrawHelper::getZAxisTitle(const IDCType type, const IDCDeltaCompression compression)
 {
+  std::string stype = "IDC";
   switch (type) {
     case IDCType::IDC:
     default: {
-      return "#it{IDC} (ADC)";
+      return fmt::format("#it{{{}}} (ADC)", stype);
       break;
     }
     case IDCType::IDCZero: {
-      return "#it{IDC_{0}} (ADC)";
+      return fmt::format("#it{{{}_{{0}}}} (ADC)", stype);
       break;
     }
     case IDCType::IDCDelta:
       switch (compression) {
         case IDCDeltaCompression::NO:
         default: {
-          return "#Delta#it{IDC}";
+          return fmt::format("#Delta#it{{{}}}", stype);
           break;
         }
         case IDCDeltaCompression::MEDIUM: {
-          return "#Delta#it{IDC}_{medium compressed}";
+          return fmt::format("#Delta#it{{{}}}_{{medium compressed}}", stype);
           break;
         }
         case IDCDeltaCompression::HIGH: {
-          return "#Delta#it{IDC}_{high compressed}";
+          return fmt::format("#Delta#it{{{}}}_{{high compressed}}", stype);
           break;
         }
       }
     case IDCType::IDCOne: {
-      return "#Delta#it{IDC}_{1}";
+      return fmt::format("#Delta#it{{{}}}_{{1}}", stype);
       break;
     }
   }

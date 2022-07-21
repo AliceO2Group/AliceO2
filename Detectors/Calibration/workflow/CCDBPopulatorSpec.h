@@ -54,7 +54,7 @@ class CCDBPopulator : public o2::framework::Task
   {
     int nSlots = pc.inputs().getNofParts(0);
     assert(pc.inputs().getNofParts(1) == nSlots);
-    auto runNoFromDH = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->runNumber;
+    auto runNoFromDH = pc.services().get<o2::framework::TimingInfo>().runNumber;
     std::string runNoStr;
     if (runNoFromDH > 0) {
       runNoStr = std::to_string(runNoFromDH);

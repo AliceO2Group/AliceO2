@@ -29,8 +29,8 @@ namespace mid
 ///
 /// The delays are in local clocks, and correspond to the LHC clocks (aka BCs)
 struct ElectronicsDelay {
-  int16_t calibToFET{20}; ///< Delay between FET and calibration event
-  int16_t localToBC{92};  ///< Delay between collision BC and local clock
+  int16_t calibToFET{21}; ///< Delay between FET and calibration event
+  int16_t localToBC{90};  ///< Delay between collision BC and local clock
   int16_t localToReg{6};  ///< Delay between regional board and local board answers
 };
 

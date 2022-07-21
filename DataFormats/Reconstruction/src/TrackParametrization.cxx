@@ -682,11 +682,11 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
         t += t > 0.f ? -det : det; // chose the solution requiring the smalest step
       } else if (dir > 0) {        // go in increasing mX direction. ( t+-det > 0)
         if (t >= -det) {
-          t += -det; // take minimal step giving t>0
+          t += det; // take minimal step giving t>0
         } else {
           return false; // both solutions have negative t
         }
-      } else { // go in increasing mX direction. (t+-det < 0)
+      } else { // go in decreasing mX direction. (t+-det < 0)
         if (t < det) {
           t -= det; // take minimal step giving t<0
         } else {

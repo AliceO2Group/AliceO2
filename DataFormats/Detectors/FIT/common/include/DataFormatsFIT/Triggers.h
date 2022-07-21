@@ -39,8 +39,8 @@ class Triggers
          bitVertex = 4,                      // alias of bitAIn (FT0/FDD)
          bitAIn = 4,                         // alias of bitVertex (FV0)
          bitLaser = 5,                       // indicates the laser was triggered in this BC
-         bitDataIsValid = 6,                 // data is valid for processing
-         bitOutputsAreBlocked = 7 };         // indicates that laser-induced pulses should arrive from detector to FEE in this BC (and trigger outputs are blocked)
+         bitOutputsAreBlocked = 6,           // indicates that laser-induced pulses should arrive from detector to FEE in this BC (and trigger outputs are blocked)
+         bitDataIsValid = 7 };               // data is valid for processing
   static const int16_t DEFAULT_TIME = -5000; // for average of one side (A or C)
   static const int16_t DEFAULT_AMP = 0;
   static const int16_t DEFAULT_ZERO = 0;

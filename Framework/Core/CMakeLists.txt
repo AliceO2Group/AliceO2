@@ -29,6 +29,7 @@ o2_add_library(Framework
                        src/CommonServices.cxx
                        src/CommonMessageBackends.cxx
                        src/CommonDriverServices.cxx
+                       src/ControlWebSocketHandler.cxx
                        src/CompletionPolicy.cxx
                        src/CompletionPolicyHelpers.cxx
                        src/ComputingQuotaEvaluator.cxx
@@ -110,6 +111,7 @@ o2_add_library(Framework
                        src/ResourcePolicyHelpers.cxx
                        src/SendingPolicy.cxx
                        src/ServiceRegistry.cxx
+                       src/ServiceSpec.cxx
                        src/SimpleResourceManager.cxx
                        src/SimpleRawDeviceService.cxx
                        src/StreamOperators.cxx

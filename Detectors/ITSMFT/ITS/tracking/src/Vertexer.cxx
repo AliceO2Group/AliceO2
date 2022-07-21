@@ -74,6 +74,7 @@ void Vertexer::getGlobalConfiguration()
   verPar.histPairCut = vc.histPairCut;
   verPar.tanLambdaCut = vc.tanLambdaCut;
   verPar.clusterContributorsCut = vc.clusterContributorsCut;
+  verPar.maxTrackletsPerCluster = vc.maxTrackletsPerCluster;
   verPar.phiSpan = vc.phiSpan;
 
   mTraits->updateVertexingParameters(verPar);

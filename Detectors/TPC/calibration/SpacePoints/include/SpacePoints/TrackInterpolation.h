@@ -57,22 +57,22 @@ struct TPCClusterResiduals {
   float tgl{};          ///< dip angle of track
   unsigned char sec{};  ///< sector number 0..35
   unsigned char dRow{}; ///< distance to previous row in units of pad rows
-  short row{};          ///< TPC pad row (absolute units)
   void setDY(float val) { dy = fabs(val) < param::MaxResid ? val : std::copysign(param::MaxResid, val); }
   void setDZ(float val) { dz = fabs(val) < param::MaxResid ? val : std::copysign(param::MaxResid, val); }
   void setY(float val) { y = fabs(val) < param::MaxY ? val : std::copysign(param::MaxY, val); }
   void setZ(float val) { z = fabs(val) < param::MaxZ ? val : std::copysign(param::MaxZ, val); }
   void setPhi(float val) { phi = fabs(val) < param::MaxTgSlp ? val : std::copysign(param::MaxTgSlp, val); }
   void setTgl(float val) { tgl = fabs(val) < param::MaxTgSlp ? val : std::copysign(param::MaxTgSlp, val); }
-  ClassDefNV(TPCClusterResiduals, 1);
+  ClassDefNV(TPCClusterResiduals, 2);
 };
 
 /// Structure filled for each track with track quality information and a vector with TPCClusterResiduals
 struct TrackData {
   o2::dataformats::GlobalTrackID gid{}; ///< global track ID for seeding track
-  float eta{};                 ///< track dip angle
-  float phi{};                 ///< track azimuthal angle
-  float qPt{};                 ///< track q/pT
+  // the track parameters are taken from the ITS track
+  float x{};                                  ///< track X position
+  float alpha{};                              ///< track alpha angle
+  std::array<float, o2::track::kNParams> p{}; ///< track parameters
   float chi2TPC{};             ///< chi2 of TPC track
   float chi2ITS{};             ///< chi2 of ITS track
   unsigned short nClsTPC{};    ///< number of attached TPC clusters

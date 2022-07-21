@@ -45,7 +45,7 @@ struct Options {
   std::vector<std::string> readout;
   std::vector<std::string> skipreadout;
   int run;               // run number
-  int orbitsPerTF = 128; // number of orbits per timeframe --> used to calculate start orbit for collisions
+  int orbitsPerTF = 256; // number of orbits per timeframe --> used to calculate start orbit for collisions
   GRPCommand command = GRPCommand::kNONE;
   std::string grpfilename = ""; // generic filename placeholder used by various commands
   std::vector<std::string> continuous = {};
@@ -184,9 +184,8 @@ bool publish(std::string const& filename, std::string const& path, std::string C
 }
 
 // download a set of basic GRP files based on run number/time
-bool anchor_GRPs(Options const& opts)
+bool anchor_GRPs(Options const& opts, std::vector<std::string> const& paths = {"GLO/Config/GRPECS", "GLO/Config/GRPMagField", "GLO/Config/GRPLHCIF"})
 {
-  std::cout << "Fetching GRP from CCDB\n";
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
   auto soreor = ccdbmgr.getRunDuration(opts.run);
   // fix the timestamp early
@@ -199,8 +198,8 @@ bool anchor_GRPs(Options const& opts)
   const std::string filename("snapshot.root");
   std::map<std::string, std::string> filter;
   bool success = true;
-  for (auto& p : std::vector<std::string>{"GLO/Config/GRPECS", "GLO/Config/GRPMagField", "GLO/Config/GRPLHCIF"}) {
-    std::cout << "path " << p << "\n";
+  for (auto& p : paths) {
+    LOG(info) << "Fetching " << p << " from CCDB";
     success &= api.retrieveBlob(p, opts.publishto, filter, runStart, preserve_path, filename);
   }
   return success;
@@ -265,37 +264,43 @@ bool create_GRPs(Options const& opts)
       return false;
     }
 
-    // let's not create an actual mag field object for this
-    // we only need to lookup the currents from the possible
-    // values of mag field
-    // +-2,+-5,0 and uniform
+    if (fieldmode == o2::conf::SimFieldMode::kCCDB) {
+      // we download the object from CCDB
+      LOG(info) << "Downloading mag field directly from CCDB";
+      anchor_GRPs(opts, {"GLO/Config/GRPMagField"});
+    } else {
+      // let's not create an actual mag field object for this
+      // we only need to lookup the currents from the possible
+      // values of mag field
+      // +-2,+-5,0 and uniform
 
-    const std::unordered_map<int, std::pair<int, int>> field_to_current = {{2, {12000, 6000}},
-                                                                           {5, {30000, 6000}},
-                                                                           {-2, {-12000, -6000}},
-                                                                           {-5, {-30000, -6000}},
-                                                                           {0, {0, 0}}};
+      const std::unordered_map<int, std::pair<int, int>> field_to_current = {{2, {12000, 6000}},
+                                                                             {5, {30000, 6000}},
+                                                                             {-2, {-12000, -6000}},
+                                                                             {-5, {-30000, -6000}},
+                                                                             {0, {0, 0}}};
 
-    auto currents_iter = field_to_current.find(fieldvalue);
-    if (currents_iter == field_to_current.end()) {
-      LOG(error) << " Could not lookup currents for fieldvalue " << fieldvalue;
-      return false;
-    }
+      auto currents_iter = field_to_current.find(fieldvalue);
+      if (currents_iter == field_to_current.end()) {
+        LOG(error) << " Could not lookup currents for fieldvalue " << fieldvalue;
+        return false;
+      }
 
-    o2::units::Current_t currDip = (*currents_iter).second.first;
-    o2::units::Current_t currL3 = (*currents_iter).second.second;
-    grp.setL3Current(currL3);
-    grp.setDipoleCurrent(currDip);
-    grp.setFieldUniformity(fieldmode == o2::conf::SimFieldMode::kUniform);
-    if (opts.print) {
-      grp.print();
-    }
-    std::string grpfilename = o2::base::NameConf::getGRPMagFieldFileName(opts.outprefix);
-    TFile grpF(grpfilename.c_str(), "recreate");
-    grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
-    grpF.Close();
-    if (opts.publishto.size() > 0) {
-      publish(grpfilename, opts.publishto, "/GLO/Config/GRPMagField");
+      o2::units::Current_t currDip = (*currents_iter).second.second;
+      o2::units::Current_t currL3 = (*currents_iter).second.first;
+      grp.setL3Current(currL3);
+      grp.setDipoleCurrent(currDip);
+      grp.setFieldUniformity(fieldmode == o2::conf::SimFieldMode::kUniform);
+      if (opts.print) {
+        grp.print();
+      }
+      std::string grpfilename = o2::base::NameConf::getGRPMagFieldFileName(opts.outprefix);
+      TFile grpF(grpfilename.c_str(), "recreate");
+      grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
+      grpF.Close();
+      if (opts.publishto.size() > 0) {
+        publish(grpfilename, opts.publishto, "/GLO/Config/GRPMagField");
+      }
     }
   }
 
@@ -447,6 +452,7 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     desc.add_options()("readoutDets", bpo::value<std::vector<std::string>>(&optvalues.readout)->multitoken()->default_value(std::vector<std::string>({"all"}), "all Run3 detectors"), "Detector list to be readout/active");
     desc.add_options()("skipReadout", bpo::value<std::vector<std::string>>(&optvalues.skipreadout)->multitoken()->default_value(std::vector<std::string>(), "nothing skipped"), "list of inactive detectors (precendence over --readout)");
     desc.add_options()("run", bpo::value<int>(&optvalues.run)->default_value(-1), "Run number");
+    desc.add_options()("hbfpertf", bpo::value<int>(&optvalues.orbitsPerTF)->default_value(128), "heart beat frames per timeframe (timeframelength)");
     desc.add_options()("field", bpo::value<std::string>(&optvalues.fieldstring)->default_value("-5"), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0; +-<intKGaus>U for uniform field");
     desc.add_options()("outprefix,o", bpo::value<std::string>(&optvalues.outprefix)->default_value("o2sim"), "Prefix for GRP output files");
     desc.add_options()("bcPatternFile", bpo::value<std::string>(&optvalues.bcPatternFile)->default_value(""), "Interacting BC pattern file (e.g. from CreateBCPattern.C)");

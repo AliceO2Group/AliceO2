@@ -46,8 +46,7 @@ void PHOSHGLGRatioCalibDevice::run(o2::framework::ProcessingContext& ctx)
 
   // scan Cells stream, collect HG/LG pairs
   if (mRunStartTime == 0) {
-    const auto ref = ctx.inputs().getFirstValid(true);
-    mRunStartTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
+    mRunStartTime = ctx.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
   }
 
   if (mStatistics <= 0) { // skip the rest of the run

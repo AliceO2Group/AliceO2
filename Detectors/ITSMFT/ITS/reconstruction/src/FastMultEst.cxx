@@ -14,8 +14,10 @@
 /// \author ruben.shahoyan@cern.ch
 
 #include "ITSReconstruction/FastMultEst.h"
-#include <cstring>
+#include "ITSMFTBase/DPLAlpideParam.h"
 #include "Framework/Logger.h"
+#include <cstring>
+#include <TRandom.h>
 
 using namespace o2::its;
 
@@ -126,4 +128,67 @@ float FastMultEst::processNoiseImposed(const std::array<int, NLayers> ncl)
   }
   chi2 = nLayersUsed > 2 ? chi2 / (nLayersUsed - 2) : 0.;
   return mult > 0 ? mult : 0;
+}
+
+int FastMultEst::selectROFs(const gsl::span<const o2::itsmft::ROFRecord> rofs, const gsl::span<const o2::itsmft::CompClusterExt> clus,
+                            const gsl::span<const o2::itsmft::PhysTrigger> trig, std::vector<bool>& sel)
+{
+  int nrof = rofs.size(), nsel = 0;
+  const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
+  sel.clear();
+  sel.resize(nrof, true); // by default select all
+
+  if (multEstConf.isMultCutRequested()) {
+    for (uint32_t irof = 0; irof < nrof; irof++) {
+      nsel += sel[irof] = multEstConf.isPassingMultCut(process(rofs[irof].getROFData(clus)));
+    }
+  } else {
+    nsel = nrof;
+  }
+  using IdNT = std::pair<int, int>;
+  if (multEstConf.cutRandomFraction > 0.) {
+    int ntrig = trig.size(), currTrig = 0;
+    if (multEstConf.preferTriggered) {
+      const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+      std::vector<IdNT> nTrigROF;
+      nTrigROF.reserve(nrof);
+      for (uint32_t irof = 0; irof < nrof; irof++) {
+        if (sel[irof]) {
+          if (nsel && gRandom->Rndm() < multEstConf.cutRandomFraction) {
+            nsel--;
+          }
+          auto irROF = rofs[irof].getBCData();
+          while (currTrig < ntrig && trig[currTrig].ir < irROF) { // triggers are sorted, jump to 1st one not less than current ROF
+            currTrig++;
+          }
+          auto& trof = nTrigROF.emplace_back(irof, 0);
+          irROF += alpParams.roFrameLengthInBC;
+          while (currTrig < ntrig && trig[currTrig].ir < irROF) {
+            trof.second++;
+            currTrig++;
+          }
+        }
+      }
+      if (nsel > 0) {
+        sort(nTrigROF.begin(), nTrigROF.end(), [](const IdNT& a, const IdNT& b) { return a.second > b.second; }); // order in number of triggers
+        auto last = nTrigROF.begin() + nsel;
+        sort(nTrigROF.begin(), last, [](const IdNT& a, const IdNT& b) { return a.first < b.first; }); // order in ROF ID first nsel ROFs
+      }
+      for (int i = nsel; i < int(nTrigROF.size()); i++) { // reject ROFs in the tail
+        sel[nTrigROF[i].first] = false;
+      }
+    } else { // dummy random rejection
+      for (int irof = 0; irof < nrof; irof++) {
+        if (sel[irof]) {
+          if (gRandom->Rndm() < multEstConf.cutRandomFraction) {
+            sel[irof] = false;
+            nsel--;
+          }
+        }
+      }
+    }
+  }
+  LOGP(debug, "NSel = {} of {} rofs", nsel, nrof);
+
+  return nsel;
 }

@@ -17,7 +17,6 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/StringUtils.h"
-#include "CommonUtils/NameConf.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
@@ -49,7 +48,7 @@ HBFUtilsInitializer::HBFUtilsInitializer(const o2f::ConfigContext& configcontext
       auto conf = configcontext.options().isSet(HBFConfOpt) ? configcontext.options().get<std::string>(HBFConfOpt) : "";
       if (!conf.empty()) {
         auto opt = getOptType(conf);
-        if ((opt == HBFOpt::INI || opt == HBFOpt::JSON) && (!(helpasked && !o2::utils::Str::pathExists(conf)))) {
+        if ((opt == HBFOpt::INI || opt == HBFOpt::JSON) && (!(helpasked && !o2::conf::ConfigurableParam::configFileExists(conf)))) {
           o2::conf::ConfigurableParam::updateFromFile(conf, "HBFUtils", true); // update only those values which were not touched yet (provenance == kCODE)
           const auto& hbfu = o2::raw::HBFUtils::Instance();
           hbfu.checkConsistency();
@@ -157,7 +156,7 @@ void HBFUtilsInitializer::addNewTimeSliceCallback(std::vector<o2::framework::Cal
     }});
 }
 
-void HBFUtilsInitializer::addConfigOption(std::vector<o2f::ConfigParamSpec>& opts)
+void HBFUtilsInitializer::addConfigOption(std::vector<o2f::ConfigParamSpec>& opts, const std::string& defOpt)
 {
-  o2f::ConfigParamsHelper::addOptionIfMissing(opts, o2f::ConfigParamSpec{HBFConfOpt, o2f::VariantType::String, std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE), {R"(ConfigurableParam ini file or "hbfutils" for HBFUtils, root file with per-TF info or "none")"}});
+  o2f::ConfigParamsHelper::addOptionIfMissing(opts, o2f::ConfigParamSpec{HBFConfOpt, o2f::VariantType::String, defOpt, {R"(ConfigurableParam ini file or "hbfutils" for HBFUtils, root file with per-TF info or "none")"}});
 }

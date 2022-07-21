@@ -82,8 +82,9 @@ void GPUParam::SetDefaults(float solenoidBz)
   }
 
   par.dAlpha = 0.349066f;
-  par.bzkG = solenoidBz;
-  par.constBz = solenoidBz * GPUCA_NAMESPACE::gpu::gpu_common_constants::kCLight;
+  bzkG = solenoidBz;
+  constBz = bzkG * GPUCA_NAMESPACE::gpu::gpu_common_constants::kCLight;
+  qptB5Scaler = CAMath::Abs(bzkG) > 0.1 ? CAMath::Abs(bzkG) / 5.006680f : 1.f;
   par.dodEdx = 0;
 
   constexpr float plusZmin = 0.0529937;
@@ -117,25 +118,27 @@ void GPUParam::SetDefaults(float solenoidBz)
   par.earlyTpcTransform = false;
 
   polynomialField.Reset(); // set very wrong initial value in order to see if the field was not properly initialised
-  GPUTPCGMPolynomialFieldManager::GetPolynomialField(par.bzkG, polynomialField);
+  GPUTPCGMPolynomialFieldManager::GetPolynomialField(bzkG, polynomialField);
 }
 
-void GPUParam::UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
+void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
 {
   if (g) {
+    bzkG = g->solenoidBz;
+    constBz = bzkG * GPUCA_NAMESPACE::gpu::gpu_common_constants::kCLight;
     par.assumeConstantBz = g->constBz;
     par.toyMCEventsFlag = g->homemadeEvents;
     par.continuousTracking = g->continuousMaxTimeBin != 0;
     par.continuousMaxTimeBin = g->continuousMaxTimeBin == -1 ? GPUSettings::TPC_MAX_TF_TIME_BIN : g->continuousMaxTimeBin;
     polynomialField.Reset();
     if (par.assumeConstantBz) {
-      GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialFieldManager::kUniform, par.bzkG, polynomialField);
+      GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialFieldManager::kUniform, bzkG, polynomialField);
     } else {
-      GPUTPCGMPolynomialFieldManager::GetPolynomialField(par.bzkG, polynomialField);
+      GPUTPCGMPolynomialFieldManager::GetPolynomialField(bzkG, polynomialField);
     }
   }
   par.earlyTpcTransform = rec.tpc.forceEarlyTransform == -1 ? (!par.continuousTracking) : rec.tpc.forceEarlyTransform;
-  par.qptB5Scaler = CAMath::Abs(par.bzkG) > 0.1 ? CAMath::Abs(par.bzkG) / 5.006680f : 1.f;
+  qptB5Scaler = CAMath::Abs(bzkG) > 0.1 ? CAMath::Abs(bzkG) / 5.006680f : 1.f;
   if (p) {
     par.debugLevel = p->debugLevel;
     par.resetTimers = p->resetTimers;
@@ -154,7 +157,7 @@ void GPUParam::SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r, con
       rec.fitPropagateBzOnly = rec.tpc.nWays - 1;
     }
   }
-  UpdateGRPSettings(g, p);
+  UpdateSettings(g, p);
 }
 
 #ifndef GPUCA_ALIROOT_LIB

@@ -16,21 +16,21 @@
 
 #include "CalibdEdxTrackTopologySpline.h"
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+#if !defined(GPUCA_STANDALONE)
 #include "TFile.h"
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
-
+#if !defined(GPUCA_STANDALONE)
 CalibdEdxTrackTopologySpline::CalibdEdxTrackTopologySpline(const char* dEdxSplinesFile, const char* name)
   : FlatObject()
 {
   TFile dEdxFile(dEdxSplinesFile);
   setFromFile(dEdxFile, name);
 }
+#endif
 
 CalibdEdxTrackTopologySpline::CalibdEdxTrackTopologySpline(const CalibdEdxTrackTopologySpline& obj)
   : FlatObject()
@@ -46,7 +46,6 @@ CalibdEdxTrackTopologySpline& CalibdEdxTrackTopologySpline::operator=(const Cali
   return *this;
 }
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
 void CalibdEdxTrackTopologySpline::recreate(const int nKnots[])
 {
   /// Default constructor
@@ -77,7 +76,6 @@ void CalibdEdxTrackTopologySpline::recreate(const int nKnots[])
     mCalibSplinesqTot[i].moveBufferTo(mFlatBufferPtr + offsets2[i]);
   }
 }
-#endif
 
 void CalibdEdxTrackTopologySpline::cloneFromObject(const CalibdEdxTrackTopologySpline& obj, char* newFlatBufferPtr)
 {
@@ -98,7 +96,7 @@ void CalibdEdxTrackTopologySpline::cloneFromObject(const CalibdEdxTrackTopologyS
   mMaxTanTheta = obj.mMaxTanTheta;
   mMaxSinPhi = obj.mMaxSinPhi;
 
-  for (int i = 0; i < FSplines; ++i) {
+  for (unsigned int i = 0; i < FSplines; ++i) {
     mScalingFactorsqTot[i] = obj.mScalingFactorsqTot[i];
     mScalingFactorsqMax[i] = obj.mScalingFactorsqMax[i];
   }
@@ -113,7 +111,6 @@ void CalibdEdxTrackTopologySpline::moveBufferTo(char* newFlatBufferPtr)
   mFlatBufferPtr = oldFlatBufferPtr;
   setActualBufferAddress(currFlatBufferPtr);
 }
-#endif
 
 void CalibdEdxTrackTopologySpline::destroy()
 {
@@ -158,7 +155,7 @@ void CalibdEdxTrackTopologySpline::setFutureBufferAddress(char* futureFlatBuffer
   FlatObject::setFutureBufferAddress(futureFlatBufferPtr);
 }
 
-#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
+#if !defined(GPUCA_STANDALONE)
 
 CalibdEdxTrackTopologySpline* CalibdEdxTrackTopologySpline::readFromFile(
   TFile& inpf, const char* name)

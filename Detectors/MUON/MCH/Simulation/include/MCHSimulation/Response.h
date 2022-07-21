@@ -62,7 +62,7 @@ class Response
   float chargeCorr() const;
 
   /// compute the number of samples corresponding to the ADC value
-  uint16_t nSamples(uint32_t adc) const;
+  uint32_t nSamples(uint32_t adc) const;
 
  private:
   MathiesonOriginal mMathieson{}; ///< Mathieson function

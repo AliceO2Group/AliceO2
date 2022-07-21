@@ -95,6 +95,16 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   O2ParamDef(PHOSSimParams, "PHOSSimParams");
 };
 } // namespace phos
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::phos::PHOSSimParams> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif /* O2_PHOS_PHOSSIMPARAMS_H_ */

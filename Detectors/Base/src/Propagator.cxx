@@ -590,6 +590,21 @@ GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& 
 {
   value_T xdca = 0., ydca = 0., length = 0.;          // , zdca = 0. // zdca might be used in future
   o2::math_utils::CircleXY<value_T> c;
+  constexpr float TinyF = 1e-9;
+  auto straigh_line_approx = [&]() {
+    auto csp2 = (1.f - trc.getSnp()) * (1.f + trc.getSnp());
+    if (csp2 > TinyF) {
+      auto csp = math_utils::detail::sqrt<value_type>(csp2);
+      auto tgp = trc.getSnp() / csp, f = trc.getX() * tgp - trc.getY();
+      xdca = tgp * f * csp2;
+      ydca = -f * csp2;
+      auto dx = xdca - trc.getX(), dy = ydca - trc.getY(), dz = dx * trc.getTgl() / csp;
+      return math_utils::detail::sqrt<value_type>(dx * dx + dy * dy + dz * dz);
+    } else {                                                                                                                           //  track is parallel to Y axis
+      xdca = trc.getX();                                                                                                               // ydca = 0
+      return math_utils::detail::abs<value_type>(trc.getY() * math_utils::detail::sqrt<value_type>(1. + trc.getTgl() * trc.getTgl())); // distance from the current point to DCA
+    }
+  };
   trc.getCircleParamsLoc(mBz, c);
   if (c.rC != 0.) {                                                     // helix
     auto distC = math_utils::detail::sqrt<value_type>(c.getCenterD2()); // distance from the circle center to origin
@@ -598,25 +613,24 @@ GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& 
       xdca = nrm * c.xC; // coordinates of the DCA to 0,0 in the local frame
       ydca = nrm * c.yC;
       auto v0x = trc.getX() - c.xC, v0y = trc.getY() - c.yC, v1x = xdca - c.xC, v1y = ydca - c.yC;
-      auto ang = math_utils::detail::acos<value_type>((v0x * v1x + v0y * v1y) / (c.rC * c.rC));
-      if ((trc.getSign() > 0.f) == (mBz > 0.f)) {
-        ang = -ang;   // we need signeg angle
-        c.rC = -c.rC; // we need signed curvature for zdca
+      auto angcos = (v0x * v1x + v0y * v1y) / (c.rC * c.rC);
+      if (math_utils::detail::abs<value_type>(angcos) < 1.f) {
+        auto ang = math_utils::detail::acos<value_type>(angcos);
+        if ((trc.getSign() > 0.f) == (mBz > 0.f)) {
+          ang = -ang;   // we need signeg angle
+          c.rC = -c.rC; // we need signed curvature for zdca
+        }
+        // zdca = trc.getZ() + (trc.getSign() > 0. ? c.rC : -c.rC) * trc.getTgl() * ang;
+        length = math_utils::detail::abs<value_type>(c.rC * ang * math_utils::detail::sqrt<value_type>(1. + trc.getTgl() * trc.getTgl()));
+      } else { // calculation of the arc length between the position and DCA makes no sense
+        length = straigh_line_approx();
       }
-      // zdca = trc.getZ() + (trc.getSign() > 0. ? c.rC : -c.rC) * trc.getTgl() * ang;
-      length = math_utils::detail::abs<value_type>(c.rC * ang * math_utils::detail::sqrt<value_type>(1. + trc.getTgl() * trc.getTgl()));
     } else { // track with circle center at the origin, and LT makes no sense, take direct distance
       xdca = trc.getX();
       ydca = trc.getY();
     }
   } else { // straight line
-    auto csp2 = (1.f - trc.getSnp()) * (1.f + trc.getSnp()), csp = math_utils::detail::sqrt<value_type>(csp2);
-    auto tgp = trc.getSnp() / csp, f = trc.getX() * tgp - trc.getY();
-    xdca = tgp * f * csp2;
-    ydca = -f * csp2;
-    auto dx = xdca - trc.getX(), dy = ydca - trc.getY(), dz = dx * trc.getTgl() / csp;
-    // zdca = trc.getZ() + dz;
-    length = math_utils::detail::sqrt<value_type>(dx * dx + dy * dy + dz * dz);
+    length = straigh_line_approx();
   }
   // since we assume the track or its parent comes from the beam-line or decay, add XY(?) distance to it
   length += math_utils::detail::sqrt<value_type>(xdca * xdca + ydca * ydca);

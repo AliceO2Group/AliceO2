@@ -570,6 +570,8 @@ bool RawFileReader::preprocessFile(int ifl)
   LinkSpec_t specPrev = 0xffffffffffffffff;
   int lIDPrev = -1;
   mMultiLinkFile = false;
+  fseek(fl, 0L, SEEK_END);
+  const auto fileSize = ftell(fl);
   rewind(fl);
   long int nr = 0;
   mPosInFile = 0;
@@ -579,6 +581,11 @@ bool RawFileReader::preprocessFile(int ifl)
     boffs = 0;
     while (1) {
       auto& rdh = *reinterpret_cast<RDHUtils::RDHAny*>(&buffer[boffs]);
+      if ((mPosInFile + RDHUtils::getOffsetToNext(rdh)) > fileSize) {
+        LOGP(warning, "File {} truncated current file pos {} + offsetToNext {} > fileSize {}", ifl, mPosInFile, RDHUtils::getOffsetToNext(rdh), fileSize);
+        readMore = false;
+        break;
+      }
       nRDHread++;
       LinkSpec_t spec = createSpec(std::get<0>(mDataSpecs[mCurrentFileID]), RDHUtils::getSubSpec(rdh));
       int lID = lIDPrev;

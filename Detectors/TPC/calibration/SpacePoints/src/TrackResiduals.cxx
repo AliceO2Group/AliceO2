@@ -18,6 +18,7 @@
 
 #include "SpacePoints/TrackResiduals.h"
 #include "CommonConstants/MathConstants.h"
+#include "ReconstructionDataFormats/Track.h"
 #include "MathUtils/fit.h"
 
 #include "TMatrixDSym.h"
@@ -379,6 +380,9 @@ void TrackResiduals::doOutlierRejection(bool writeToFile)
     if (!validateTrack(trk, params) && mFilterOutliers) {
       continue;
     }
+    TrackData trkDataOut = trk; // this track will be forwarded to the aggregator, but we still need to adapt the cluster range reference
+    int nClValidated = 0;
+    trkDataOut.clIdx.setFirstEntry(mUnbinnedResiduals.size());
     ++nTracksValidated;
     int iRow = 0;
     for (int iCl = 0; iCl < trk.clIdx.getEntries(); ++iCl) {
@@ -388,8 +392,11 @@ void TrackResiduals::doOutlierRejection(bool writeToFile)
         // skip masked cluster residual
         continue;
       }
+      ++nClValidated;
       mUnbinnedResiduals.emplace_back(clRes[clIdx].dy, clRes[clIdx].dz, clRes[clIdx].tgl, clRes[clIdx].y, clRes[clIdx].z, iRow, clRes[clIdx].sec);
     }
+    trkDataOut.clIdx.setEntries(nClValidated);
+    mTrackDataOut.push_back(trkDataOut);
   }
 
   LOGF(info, "Could validate %i tracks out of %lu", nTracksValidated, mTrackDataPtr->size());
@@ -546,7 +553,7 @@ bool TrackResiduals::compareToHelix(const TrackData& trk, TrackParams& params) c
   std::array<float, param::NPadRows> yLab;
   std::array<float, param::NPadRows> sPath;
 
-  float curvature = fabsf(trk.qPt * mBz * o2::constants::physics::LightSpeedCm2S * 1e-14f);
+  float curvature = fabsf(trk.p[o2::track::ParLabels::kQ2Pt] * mBz * o2::constants::physics::LightSpeedCm2S * 1e-14f);
   int clIdxFirst = trk.clIdx.getFirstEntry();
   int nCl = trk.clIdx.getEntries();
   int secFirst = (*mClResPtr)[clIdxFirst].sec;

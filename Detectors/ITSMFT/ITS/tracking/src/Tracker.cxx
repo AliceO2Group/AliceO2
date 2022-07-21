@@ -55,20 +55,37 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
     total += evaluateTask(&Tracker::initialiseTimeFrame, "Timeframe initialisation",
                           logger, iteration, mMemParams[iteration], mTrkParams[iteration]);
     total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger);
+    logger(fmt::format("\t- Number of tracklets: {}", mTimeFrame->getNumberOfTracklets()));
     if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
       error("Too much memory used during trackleting, check the detector status and/or the selections.");
       break;
     }
+    float trackletsPerCluster = mTimeFrame->getNumberOfClusters() > 0 ? float(mTimeFrame->getNumberOfTracklets()) / mTimeFrame->getNumberOfClusters() : 0.f;
+    if (trackletsPerCluster > mTrkParams[iteration].TrackletsPerClusterLimit) {
+      error(fmt::format("Too many tracklets per cluster ({}), check the detector status and/or the selections.", trackletsPerCluster));
+      break;
+    }
+
     total += evaluateTask(&Tracker::computeCells, "Cell finding", logger);
+    logger(fmt::format("\t- Number of Cells: {}", mTimeFrame->getNumberOfCells()));
     if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
       error("Too much memory used during cell finding, check the detector status and/or the selections.");
       break;
     }
+    float cellsPerCluster = mTimeFrame->getNumberOfClusters() > 0 ? float(mTimeFrame->getNumberOfCells()) / mTimeFrame->getNumberOfClusters() : 0.f;
+    if (cellsPerCluster > mTrkParams[iteration].CellsPerClusterLimit) {
+      error(fmt::format("Too many cells per cluster ({}), check the detector status and/or the selections.", cellsPerCluster));
+      break;
+    }
+
     total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", logger, iteration);
     total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
     total += evaluateTask(&Tracker::findTracks, "Track finding", logger);
     total += evaluateTask(&Tracker::extendTracks, "Extending tracks", logger);
   }
+
+  total += evaluateTask(&Tracker::findShortPrimaries, "Short primaries finding", logger);
+  ///TODO: Add desperate tracking, aka the extension of short primaries to recover holes in layer 3
 
   std::stringstream sstream;
   if (constants::DoTimeBenchmarks) {
@@ -81,6 +98,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
     computeTracksMClabels();
   }
   rectifyClusterIndices();
+  mNumberOfRuns++;
 }
 
 void Tracker::clustersToTracksGPU(std::function<void(std::string s)> logger)
@@ -426,6 +444,91 @@ void Tracker::extendTracks()
   }
 }
 
+void Tracker::findShortPrimaries()
+{
+  if (!mTrkParams[0].FindShortTracks) {
+    return;
+  }
+  auto propagator = o2::base::Propagator::Instance();
+  mTimeFrame->fillPrimaryVerticesXandAlpha();
+
+  for (auto& cell : mTimeFrame->getCells()[0]) {
+    auto& cluster1_glo = mTimeFrame->getClusters()[2][cell.getThirdClusterIndex()];
+    auto& cluster2_glo = mTimeFrame->getClusters()[1][cell.getSecondClusterIndex()];
+    auto& cluster3_glo = mTimeFrame->getClusters()[0][cell.getFirstClusterIndex()];
+    if (mTimeFrame->isClusterUsed(0, cluster1_glo.clusterId) ||
+        mTimeFrame->isClusterUsed(1, cluster2_glo.clusterId) ||
+        mTimeFrame->isClusterUsed(2, cluster3_glo.clusterId)) {
+      continue;
+    }
+
+    std::array<int, 3> rofs{
+      mTimeFrame->getClusterROF(0, cluster3_glo.clusterId),
+      mTimeFrame->getClusterROF(1, cluster2_glo.clusterId),
+      mTimeFrame->getClusterROF(2, cluster1_glo.clusterId)};
+    if (rofs[0] != rofs[1] && rofs[1] != rofs[2] && rofs[0] != rofs[2]) {
+      continue;
+    }
+
+    int rof{rofs[0]};
+    if (rofs[1] == rofs[2]) {
+      rof = rofs[2];
+    }
+
+    auto pvs{mTimeFrame->getPrimaryVertices(rof)};
+    auto pvsXAlpha{mTimeFrame->getPrimaryVerticesXAlpha(rof)};
+
+    const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(0).at(cluster3_glo.clusterId);
+    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf, mTimeFrame->getPositionResolution(0))};
+    temporaryTrack.setExternalClusterIndex(0, cluster3_glo.clusterId, true);
+    temporaryTrack.setExternalClusterIndex(1, cluster2_glo.clusterId, true);
+    temporaryTrack.setExternalClusterIndex(2, cluster1_glo.clusterId, true);
+
+    /// add propagation to the primary vertices compatible with the ROF(s) of the cell
+    bool fitSuccess{false};
+
+    TrackITSExt bestTrack{temporaryTrack}, backup{temporaryTrack};
+    float bestChi2{std::numeric_limits<float>::max()};
+    for (int iV{0}; iV < (int)pvs.size(); ++iV) {
+      temporaryTrack = backup;
+      if (!temporaryTrack.rotate(pvsXAlpha[iV][1])) {
+        continue;
+      }
+      if (!propagator->propagateTo(temporaryTrack, pvsXAlpha[iV][0], true)) {
+        continue;
+      }
+
+      float pvRes{mTrkParams[0].PVres / std::sqrt(float(pvs[iV].getNContributors()))};
+      const float posVtx[2]{0.f, pvs[iV].getZ()};
+      const float covVtx[3]{pvRes, 0.f, pvRes};
+      float chi2 = temporaryTrack.getPredictedChi2(posVtx, covVtx);
+      if (chi2 < bestChi2) {
+        if (!temporaryTrack.track::TrackParCov::update(posVtx, covVtx)) {
+          continue;
+        }
+        bestTrack = temporaryTrack;
+        bestChi2 = chi2;
+      }
+    }
+
+    bestTrack.resetCovariance();
+    fitSuccess = fitTrack(bestTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].FitIterationMaxChi2[0]);
+    if (!fitSuccess) {
+      continue;
+    }
+    bestTrack.getParamOut() = bestTrack;
+    bestTrack.resetCovariance();
+    fitSuccess = fitTrack(bestTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1], 50.);
+    if (!fitSuccess) {
+      continue;
+    }
+    mTimeFrame->markUsedCluster(0, bestTrack.getClusterIndex(0));
+    mTimeFrame->markUsedCluster(1, bestTrack.getClusterIndex(1));
+    mTimeFrame->markUsedCluster(2, bestTrack.getClusterIndex(2));
+    mTimeFrame->getTracks(rof).emplace_back(bestTrack);
+  }
+}
+
 bool Tracker::fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut, const float maxQoverPt)
 {
   auto propInstance = o2::base::Propagator::Instance();
@@ -754,6 +857,15 @@ void Tracker::getGlobalConfiguration()
     }
     if (tc.useTrackFollower >= 0) {
       params.UseTrackFollower = tc.useTrackFollower;
+    }
+    if (tc.cellsPerClusterLimit >= 0) {
+      params.CellsPerClusterLimit = tc.cellsPerClusterLimit;
+    }
+    if (tc.trackletsPerClusterLimit >= 0) {
+      params.TrackletsPerClusterLimit = tc.trackletsPerClusterLimit;
+    }
+    if (tc.findShortTracks >= 0) {
+      params.FindShortTracks = tc.findShortTracks;
     }
   }
 }

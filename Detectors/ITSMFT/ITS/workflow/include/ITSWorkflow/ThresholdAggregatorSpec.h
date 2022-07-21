@@ -33,6 +33,8 @@
 #include "CCDB/CcdbApi.h"
 #include "DataFormatsDCS/DCSConfigObject.h"
 #include "Framework/InputRecordWalker.h"
+#include "Framework/DataTakingContext.h"
+#include "Framework/TimingInfo.h"
 
 using namespace o2::framework;
 using namespace o2::itsmft;
@@ -58,8 +60,7 @@ class ITSThresholdAggregator : public Task
   //////////////////////////////////////////////////////////////////
  private:
   void finalizeOutput();
-  void updateLHCPeriod(ProcessingContext&);
-  void updateRunID(ProcessingContext&);
+  void updateLHCPeriodAndRunNumber(ProcessingContext&);
 
   std::unique_ptr<o2::ccdb::CcdbObjectInfo> mWrapper = nullptr;
   std::string mOutputStr;
@@ -90,6 +91,12 @@ class ITSThresholdAggregator : public Task
   int mRunNumber = -1;
   // confDB version
   short int mDBversion = -1;
+
+  // DataTakingContext used to get lhcperiod
+  o2::framework::DataTakingContext mDataTakingContext{};
+
+  // Timing info used to get run number
+  o2::framework::TimingInfo mTimingInfo{};
 };
 
 // Create a processor spec

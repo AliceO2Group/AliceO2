@@ -197,19 +197,13 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
   return std::move(fastTransformPtr);
 }
 
-int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform, Long_t TimeStamp)
+int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform, Long_t TimeStamp, float vDriftFactor)
 {
   // Update the calibration with the new time stamp
 
   if (!mIsInitialized) {
     init();
   }
-
-  Long_t lastTS = fastTransform.getTimeStamp();
-
-  // deinitialize
-
-  fastTransform.setTimeStamp(-1);
 
   if (TimeStamp < 0) {
     return 0;
@@ -221,25 +215,11 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
   auto& gasParam = ParameterGas::Instance();
   auto& elParam = ParameterElectronics::Instance();
 
-  // calibration found, set the initialized status back
-
-  fastTransform.setTimeStamp(lastTS);
-
-  // less than 60 seconds from the previois time stamp, don't do anything
-
-  if (lastTS >= 0 && TMath::Abs(lastTS - TimeStamp) < 60) {
-    return 0;
-  }
-
   // start the initialization
 
   fastTransform.setTimeStamp(TimeStamp);
 
-  // find last calibrated time bin
-
-  const double vDrift = elParam.ZbinWidth * gasParam.DriftV; // cm/timebin
-
-  //mLastTimeBin = detParam.getTPClength() / vDrift  + 1;
+  const double vDrift = elParam.ZbinWidth * gasParam.DriftV * vDriftFactor; // cm/timebin
 
   // fast transform formula:
   // L = (t-t0)*(mVdrift + mVdriftCorrY*yLab ) + mLdriftCorr

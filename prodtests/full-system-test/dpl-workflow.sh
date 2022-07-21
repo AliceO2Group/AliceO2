@@ -77,42 +77,51 @@ fi
 if [[ $SYNCMODE == 1 ]]; then
   if [[ $BEAMTYPE == "PbPb" ]]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
-    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode sync"
-    [[ -z ${PVERTEXING_CONFIG_KEY+x} ]] && PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=2000;"
-    workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"
   elif [[ $BEAMTYPE == "pp" ]]; then
-    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=-1;fastMultConfig.cutMultClusHigh=-1;fastMultConfig.cutMultVtxHigh=-1;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2"
-    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode sync"
-    [[ -z ${PVERTEXING_CONFIG_KEY+x} ]] && PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=10;"
-    workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"
-  elif [[ $BEAMTYPE == "cosmic" ]]; then
-    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode cosmics"
-  else
-    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode sync"
+    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=-1;fastMultConfig.cutMultClusHigh=-1;fastMultConfig.cutMultVtxHigh=-1;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;fastMultConfig.cutRandomFraction=0.8;"
   fi
-  # add extra tolerance in sync mode to account for eventual time misalignment
-  if [[ $EPNSYNCMODE == 1 ]]; then
-      PVERTEXING_CONFIG_KEY+="pvertexer.timeMarginVertexTime=1.3;"
+
+  if [[ $EPNSYNCMODE == 1 ]]; then # add extra tolerance in sync mode to account for eventual time misalignment
+    PVERTEXING_CONFIG_KEY+="pvertexer.timeMarginVertexTime=1.3;"
   fi
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
+  has_processing_step TPC_DEDX && GPU_CONFIG_KEY+="GPU_global.rundEdx=1;"
   TRD_CONFIG_KEY+="GPU_proc.ompThreads=1;"
   has_detector ITS && TRD_FILTER_CONFIG+=" --filter-trigrec"
 else
-  if [[ $BEAMTYPE == "PbPb" ]]; then
-    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
-    [[ -z ${PVERTEXING_CONFIG_KEY+x} ]] && PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=2000;"
-    workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"
-  elif [[ $BEAMTYPE == "pp" ]]; then
-    ITS_CONFIG_KEY+="ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2"
-    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
-    [[ -z ${PVERTEXING_CONFIG_KEY+x} ]] && PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=10;"
-    workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"
-  elif [[ $BEAMTYPE == "cosmic" ]]; then
-    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode cosmics"
-  else
-    [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
+  if [[ $BEAMTYPE == "pp" ]]; then
+    ITS_CONFIG_KEY+="ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;"
   fi
 fi
+
+if [[ $BEAMTYPE == "PbPb" ]]; then
+  PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=2000;"
+elif [[ $BEAMTYPE == "pp" ]]; then
+  PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=10;"
+fi
+
+if [[ $BEAMTYPE == "cosmic" ]]; then
+  [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode cosmics"
+elif [[ $SYNCMODE == 1 ]]; then
+  [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode sync"
+else
+  [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
+fi
+
+if [[ $SYNCMODE == 1 ]]; then
+  if has_detector TRD && [[ ! -z ${PRESCALE_ITS_WITH_TRD} ]]; then
+    ITS_CONFIG+=" --select-with-triggers trd "
+  else
+    ITS_CONFIG+=" --select-with-triggers phys "
+  fi
+fi
+
+
+if [[ $BEAMTYPE == "PbPb" || $BEAMTYPE == "pp" ]]; then
+  workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"
+fi
+
+PVERTEXING_CONFIG_KEY+="${ITSMFT_STROBES};"
 
 has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",compressed-clusters-ctf"
 
@@ -120,7 +129,7 @@ if workflow_has_parameter QC && has_detector_qc TPC; then
   GPU_OUTPUT+=",qa"
   [[ -z $TPC_TRACKING_QC_RUN_FRACTION ]] && TPC_TRACKING_QC_RUN_FRACTION=1
   GPU_CONFIG_KEY+="GPU_QA.clusterRejectionHistograms=1;GPU_proc.qcRunFraction=$TPC_TRACKING_QC_RUN_FRACTION;"
-  [[ $HOSTMEMSIZE == "0" && $TPC_TRACKING_QC_RUN_FRACTION == "100" ]] && HOSTMEMSIZE=$(( 5 << 30 ))
+  [[ $GPUTYPE != "CPU" && $HOSTMEMSIZE == "0" && $TPC_TRACKING_QC_RUN_FRACTION == "100" ]] && HOSTMEMSIZE=$(( 5 << 30 ))
 fi
 
 if [[ -z $DISABLE_ROOT_OUTPUT ]]; then
@@ -326,13 +335,13 @@ fi
 # ---------------------------------------------------------------------------------------------------------------------
 # Raw decoder workflows - disabled in async mode
 if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
-  if has_detector TPC && [[ $EPNSYNCMODE == 1 || "0$TPC_CONVERT_LINKZS_TO_RAW" == "01" ]] && [[ "0$TPC_NO_CONVERT_LINKZS_TO_RAW" != "01" ]]; then
+  if has_detector TPC && [[ "0$TPC_CONVERT_LINKZS_TO_RAW" == "01" ]] && [[ "0$TPC_NO_CONVERT_LINKZS_TO_RAW" != "01" ]]; then
     GPU_INPUT=zsonthefly
     add_W o2-tpc-raw-to-digits-workflow "--input-spec \"\" --remove-duplicates --pipeline $(get_N tpc-raw-to-digits-0 TPC RAW 1 TPCRAWDEC)"
     add_W o2-tpc-reco-workflow "--input-type digitizer --output-type zsraw,disable-writer --pipeline $(get_N tpc-zsEncoder TPC RAW 1 TPCRAWDEC)"
   fi
-  has_detector ITS && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NITSDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N its-stf-decoder ITS RAW 1 ITSRAWDEC)" "$ITSMFT_STROBES"
-  has_detector MFT && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NMFTDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N mft-stf-decoder MFT RAW 1 MFTRAWDEC) --runmft true" "$ITSMFT_STROBES"
+  has_detector ITS && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NITSDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N its-stf-decoder ITS RAW 1 ITSRAWDEC)" "$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
+  has_detector MFT && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NMFTDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N mft-stf-decoder MFT RAW 1 MFTRAWDEC) --runmft true" "$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
   has_detector FT0 && ! has_detector_flp_processing FT0 && add_W o2-ft0-flp-dpl-workflow "$DISABLE_ROOT_OUTPUT --pipeline $(get_N ft0-datareader-dpl FT0 RAW 1)"
   has_detector FV0 && ! has_detector_flp_processing FV0 && add_W o2-fv0-flp-dpl-workflow "$DISABLE_ROOT_OUTPUT --pipeline $(get_N fv0-datareader-dpl FV0 RAW 1)"
   has_detector MID && add_W o2-mid-raw-to-digits-workflow "$MIDDEC_CONFIG --pipeline $(get_N MIDRawDecoder MID RAW 1),$(get_N MIDDecodedDataAggregator MID RAW 1)"
@@ -370,7 +379,8 @@ has_detector FV0 && has_processing_step FV0_RECO && add_W o2-fv0-reco-workflow "
 has_detector ZDC && has_processing_step ZDC_RECO && add_W o2-zdc-digits-reco "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
 has_detector HMP && has_processing_step HMP_RECO && add_W o2-hmpid-digits-to-clusters-workflow
 has_detectors_reco MCH MID && has_detector_matching MCHMID && add_W o2-muon-tracks-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_MC $DISABLE_ROOT_OUTPUT --pipeline $(get_N muon-track-matcher MATCH REST 1)"
-has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N globalfwd-track-matcher MATCH REST 1)"
+has_detector_reco MID && has_detector_matching MCHMID && MFTMCHConf="FwdMatching.useMIDMatch=true;" || MFTMCHConf="FwdMatching.useMIDMatch=false;"
+has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N globalfwd-track-matcher MATCH REST 1)" "$MFTMCHConf"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Reconstruction workflows needed only in case QC or CALIB was requested
@@ -439,7 +449,7 @@ workflow_has_parameter GPU_DISPLAY && [[ $NUMAID == 0 ]] && add_W o2-gpu-display
 # ---------------------------------------------------------------------------------------------------------------------
 # AOD
 [[ -z "$AOD_INPUT" ]] && AOD_INPUT=$TRACK_SOURCES
-[[ $BEAMTYPE == "cosmic" ]] && AODPROD_OPT+="--disable-secondary-vertices"
+( ! has_detector_matching SECVTX || [[ $BEAMTYPE == "cosmic" ]]) && AODPROD_OPT+="--disable-secondary-vertices"
 workflow_has_parameter AOD && [[ ! -z "$AOD_INPUT" ]] && add_W o2-aod-producer-workflow "$AODPROD_OPT --info-sources $AOD_INPUT $DISABLE_DIGIT_ROOT_INPUT --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE $DISABLE_MC"
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -454,7 +464,7 @@ fi
 # DPL run binary
 WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
 
-if [[ "0$GEN_TOPO_AUTOSCALE_PROCESSES" == "01" ]]; then
+if [[ "0$GEN_TOPO_AUTOSCALE_PROCESSES" == "01" && $WORKFLOWMODE != "print" ]]; then
   TOTAL_N_PIPELINES=`echo "${WORKFLOW}" | grep -o ':\$((([0-9]*\*\$AUTOSCALE_PROCESS_FACTOR' | grep -o '[0-9]*' | awk '{s+=$1} END {print s}'`
   TOTAL_N_CPUCORES=$(($NUMAGPUIDS == 1 ? 64 : 128))
   AUTOSCALE_PROCESS_FACTOR=$(($TOTAL_N_PIPELINES >= $TOTAL_N_CPUCORES && $TOTAL_N_PIPELINES != 0 ? 100 : ($TOTAL_N_CPUCORES * 100 / $TOTAL_N_PIPELINES)))
@@ -471,7 +481,7 @@ if [[ "0$FST_BENCHMARK_STARTUP" == "01" ]]; then
 else
   [[ $WORKFLOWMODE != "print" ]] && WORKFLOW+=" --${WORKFLOWMODE} ${WORKFLOWMODE_FILE}"
   [[ $WORKFLOWMODE == "print" || "0$PRINT_WORKFLOW" == "01" ]] && echo "#Workflow command:\n\n${WORKFLOW}\n" | sed -e "s/\\\\n/\n/g" -e"s/| */| \\\\\n/g" | eval cat $( [[ $WORKFLOWMODE == "dds" ]] && echo '1>&2')
-  [[ $WORKFLOWMODE != "print" ]] && eval $WORKFLOW
+  if [[ $WORKFLOWMODE != "print" ]]; then eval $WORKFLOW; else true; fi
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------

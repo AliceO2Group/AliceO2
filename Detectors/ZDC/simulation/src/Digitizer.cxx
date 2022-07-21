@@ -684,32 +684,13 @@ void Digitizer::Finalize(std::vector<BCData>& bcData, std::vector<o2::zdc::Orbit
 void Digitizer::findEmptyBunches(const std::bitset<o2::constants::lhc::LHCMaxBunches>& bunchPattern)
 {
   // Baseline parameters from CTP -> DCS -> ModuleConfig
-  if (mModuleConfig->nBunchAverage > 0) {
+  if (mModuleConfig->nBunchAverage > 0 || mModuleConfig->baselineFactor == 0) {
     mNEmptyBCs = mModuleConfig->nBunchAverage;
     mPedFactor = 1. / mModuleConfig->baselineFactor;
     LOG(info) << "Empty bunches from ModuleConfig: " << mNEmptyBCs << " Baseline factor: " << mPedFactor;
-    return;
+  } else {
+    LOG(fatal) << "Invalid configuration for baseline computation from ModuleConfig object";
   }
-  // Counting clean empty bunches from filling scheme
-  // N.B. You will need a correct mModuleConfig->baselineFactor in order to reconstruct correctly
-  mNEmptyBCs = 0;
-  for (int ib = 0; ib < o2::constants::lhc::LHCMaxBunches; ib++) {
-    int mb = (ib + 31) % o2::constants::lhc::LHCMaxBunches;                                    // beam gas from back of calorimeter (31 b.c. before)
-    int m1 = (ib + 1) % o2::constants::lhc::LHCMaxBunches;                                     // previous bunch (next is colliding)
-    int cb = ib;                                                                               // current bunch crossing
-    int p1 = (ib - 1 + o2::constants::lhc::LHCMaxBunches) % o2::constants::lhc::LHCMaxBunches; // colliding + 1 (-1 is colliding)
-    int p2 = (ib - 2 + o2::constants::lhc::LHCMaxBunches) % o2::constants::lhc::LHCMaxBunches; // colliding + 2 (-2 is colliding)
-    int p3 = (ib - 3 + o2::constants::lhc::LHCMaxBunches) % o2::constants::lhc::LHCMaxBunches; // colliding + 3 (-3 is colliding)
-    int p4 = (ib - 4 + o2::constants::lhc::LHCMaxBunches) % o2::constants::lhc::LHCMaxBunches; // colliding + 4 (-4 is colliding)
-    if (!(bunchPattern[mb] || bunchPattern[m1] || bunchPattern[cb] || bunchPattern[p1] || bunchPattern[p2] || bunchPattern[p3] || bunchPattern[p4])) {
-      mNEmptyBCs++;
-    }
-  }
-  // Computing divisor as done in DCS and transmitted to firmware
-  int bshift = std::ceil(std::log2(double(o2::zdc::NTimeBinsPerBC) * double(mNEmptyBCs) * double(ADCRange))) - 16;
-  int divisor = 0x1 << bshift;
-  mPedFactor = float(mNEmptyBCs) * float(o2::zdc::NTimeBinsPerBC) / float(divisor);
-  LOG(info) << "Clean empty bunches from filling scheme: " << mNEmptyBCs << " Baseline factor: " << mPedFactor;
 }
 
 //______________________________________________________________________________
@@ -720,14 +701,13 @@ void Digitizer::updatePedestalReference(OrbitData& pdata)
     auto base_m = mSimCondition->channels[id].pedestal;      // Average pedestal
     auto base_s = mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
     auto base_n = mSimCondition->channels[id].pedestalNoise; // Electronic noise
-    // We don't know the time scale of the fluctuations of the baseline. As a
-    // rough guess we consider two bunch crossings
+    // We don't know the time scale of the fluctuations of the baseline. As a rough guess we consider two bunch crossings
     // sum = 12 * (mNEmptyBCs/2) * (2*base_m) = 12 * mNEmptyBCs * base_m
     float mean_sum = 12. * mNEmptyBCs * base_m;                     // Adding 12 samples for bunch crossing
     float rms_sum = 12. * 2. * base_s * std::sqrt(mNEmptyBCs / 2.); // 2 for fluctuation every 2 BCs
     float rms_noise_sum = base_n * std::sqrt(12. * mNEmptyBCs);
     float ped = gRandom->Gaus(mean_sum, rms_sum) + gRandom->Gaus(0, rms_noise_sum);
-    int16_t peds = std::round(mPedFactor * ped / mNEmptyBCs / 12.);
+    int16_t peds = std::round(ped / mNEmptyBCs / 12. / mModuleConfig->baselineFactor);
     if (peds < SHRT_MIN) {
       peds = SHRT_MIN;
     } else if (peds > SHRT_MAX) {

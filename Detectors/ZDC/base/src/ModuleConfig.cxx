@@ -59,6 +59,43 @@ void ModuleConfig::print() const
       md.printTrig();
     }
   }
+  int ib = 0, nb = 0;
+  uint64_t one = 0x1;
+  std::string blist;
+  for (int i = 0; i < NWMap; i++) {
+    uint64_t val = emptyMap[i];
+    for (int j = 0; j < 64; j++) {
+      if ((val & (one << j)) != 0) { // Empty bunch
+        blist += (" " + std::to_string(ib));
+        nb++;
+      }
+      ib++;
+      if (ib == o2::constants::lhc::LHCMaxBunches) {
+        break;
+      }
+    }
+  }
+  LOG(info) << "Bunch list for baseline calculation:" << (nb == 0 ? " EMPTY" : blist);
+}
+
+//______________________________________________________________________________
+void ModuleConfig::resetMap()
+{
+  for (int i = 0; i < NWMap; i++) {
+    emptyMap[i] = 0;
+  }
+}
+
+//______________________________________________________________________________
+void ModuleConfig::addBunch(int ibunch)
+{
+  if (ibunch < 0 || ibunch >= o2::constants::lhc::LHCMaxBunches) {
+    LOG(fatal) << "ModuleConfig::addBunch out of range [0:3563] " << ibunch;
+  }
+  int iw = ibunch / 64;
+  int is = ibunch % 64;
+  uint64_t one = 0x1;
+  emptyMap[iw] = emptyMap[iw] | (one << is);
 }
 
 //______________________________________________________________________________

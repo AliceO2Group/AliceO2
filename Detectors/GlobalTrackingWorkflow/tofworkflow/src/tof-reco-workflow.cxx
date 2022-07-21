@@ -207,7 +207,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   LOG(debug) << "Number of active devices = " << specs.size();
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
 
   return std::move(specs);

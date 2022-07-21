@@ -37,6 +37,10 @@ void CreateModuleConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = ""
   int divisor = 0x1 << bshift;
   conf.baselineFactor = float(divisor) / float(conf.nBunchAverage) / float(o2::zdc::NTimeBinsPerBC);
 
+  // Bunch list for baseline calculation e.g.:
+  // conf.resetMap();
+  // conf.addBunch(3563);
+
   int modID;
 
   //-------------------------------------------

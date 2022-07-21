@@ -50,16 +50,22 @@ struct Module {
 };
 
 struct ModuleConfig {
-  static constexpr int MaxNModules = 8;
+  static constexpr int MaxNModules = 8, NWMap = 56;
+
   std::array<Module, MaxNModules> modules;
-  float nBunchAverage = 0;
-  float baselineFactor = 1;
+
+  float nBunchAverage = 0;                    // Number of bunches used in average
+  float baselineFactor = 1;                   // Baseline conversion factor
+  std::array<uint64_t, NWMap> emptyMap = {0}; // Map of bunches used in the average (empty for simulations)
 
   void print() const;
   void check() const;
+  void resetMap();
+  void addBunch(int ibunch);
   uint32_t getTriggerMask() const;
   std::string getPrintTriggerMask() const;
-  ClassDefNV(ModuleConfig, 2);
+
+  ClassDefNV(ModuleConfig, 3);
 };
 
 } // namespace zdc

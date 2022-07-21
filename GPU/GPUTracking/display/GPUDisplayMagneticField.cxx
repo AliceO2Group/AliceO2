@@ -17,6 +17,7 @@
 
 #include <fstream>
 #include <random>
+#include <cassert>
 
 #ifndef GPUCA_NO_ROOT
 #include <TGeoGlobalMagField.h>
@@ -29,7 +30,7 @@ GPUDisplayMagneticField::GPUDisplayMagneticField()
   initializeUniforms();
 }
 
-#ifdef GPUCA_HAVE_O2HEADERS
+#ifdef GPUCA_O2_LIB
 GPUDisplayMagneticField::GPUDisplayMagneticField(o2::field::MagneticField* field)
 {
   initializeUniformsFromField(field);
@@ -124,7 +125,7 @@ std::tuple<std::size_t, std::size_t, std::size_t, std::size_t> loadParams(std::i
   return std::make_tuple(NParams, NRows, NColumns, NCoefficients);
 }
 
-#ifndef GPUCA_HAVE_O2HEADERS
+#ifndef GPUCA_O2_LIB
 int GPUDisplayMagneticField::initializeUniforms()
 {
   mSolenoidSegments = std::make_unique<SolenoidSegmentsUniform>();
@@ -170,8 +171,7 @@ int GPUDisplayMagneticField::initializeUniforms()
 }
 #endif
 
-#ifndef GPUCA_NO_ROOT
-#ifdef GPUCA_HAVE_O2HEADERS
+#if !defined(GPUCA_NO_ROOT) && defined(GPUCA_O2_LIB)
 int GPUDisplayMagneticField::initializeUniforms()
 {
   mRenderConstantsUniform = std::make_unique<RenderConstantsUniform>();
@@ -470,5 +470,4 @@ int GPUDisplayMagneticField::initializeUniformsFromField(o2::field::MagneticFiel
 
   return 0;
 }
-#endif
 #endif
