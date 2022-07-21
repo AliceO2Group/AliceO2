@@ -26,10 +26,11 @@ ElectronTransport::ElectronTransport() : mRandomGaus(), mRandomFlat(RandomRing<>
   updateParameters();
 }
 
-void ElectronTransport::updateParameters()
+void ElectronTransport::updateParameters(float vdrift)
 {
   mGasParam = &(ParameterGas::Instance());
   mDetParam = &(ParameterDetector::Instance());
+  mVDrift = vdrift > 0 ? vdrift : mGasParam->DriftV;
 }
 
 GlobalPosition3D ElectronTransport::getElectronDrift(GlobalPosition3D posEle, float& driftTime)

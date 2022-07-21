@@ -49,7 +49,7 @@ class SAMPAProcessing
   ~SAMPAProcessing() = default;
 
   /// Update the OCDB parameters cached in the class. To be called once per event
-  void updateParameters();
+  void updateParameters(float vdrift = 0);
 
   /// Conversion from a given number of electrons into ADC value without taking into account saturation (vectorized)
   /// \param nElectrons Number of electrons in time bin
@@ -129,7 +129,6 @@ class SAMPAProcessing
 
  private:
   SAMPAProcessing();
-
   const ParameterGas* mGasParam;             ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterDetector* mDetParam;        ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterElectronics* mEleParam;     ///< Caching of the parameter class to avoid multiple CDB calls
@@ -137,6 +136,7 @@ class SAMPAProcessing
   const CalPad* mPedestalMap;                ///< Caching of the parameter class to avoid multiple CDB calls
   const CalPad* mZeroSuppression;            ///< Caching of the parameter class to avoid multiple CDB calls
   math_utils::RandomRing<> mRandomNoiseRing; ///< Ring with random number for noise
+  float mVDrift = 0;                         ///< VDrift for current timestamp
 };
 
 template <typename T>
@@ -226,13 +226,13 @@ inline T SAMPAProcessing::getGamma4(T time, T startTime, T ADC) const
 
 inline TimeBin SAMPAProcessing::getTimeBin(float zPos) const
 {
-  return static_cast<TimeBin>((mDetParam->TPClength - std::abs(zPos)) / (mGasParam->DriftV * mEleParam->ZbinWidth));
+  return static_cast<TimeBin>((mDetParam->TPClength - std::abs(zPos)) / (mVDrift * mEleParam->ZbinWidth));
 }
 
 inline float SAMPAProcessing::getZfromTimeBin(float timeBin, Side s) const
 {
   const float zSign = (s == 0) ? 1 : -1;
-  return zSign * (mDetParam->TPClength - (timeBin * mGasParam->DriftV * mEleParam->ZbinWidth));
+  return zSign * (mDetParam->TPClength - (timeBin * mVDrift * mEleParam->ZbinWidth));
 }
 
 inline TimeBin SAMPAProcessing::getTimeBinFromTime(float time) const
