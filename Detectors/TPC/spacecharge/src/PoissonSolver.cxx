@@ -24,6 +24,7 @@
 #include <numeric>
 #include <fmt/core.h>
 #include "TPCSpaceCharge/Vector3D.h"
+#include "TPCSpaceCharge/DataContainer3D.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>

@@ -49,7 +49,8 @@ struct __attribute__((__packed__)) ChannelDataV0 {
 
   // Second GBT word
   unsigned fixed_1 : 2;
-  unsigned error : 2;
+  unsigned dLoss : 1;
+  unsigned error : 1;
   unsigned Alice_0 : 1;
   unsigned Alice_1 : 1;
   unsigned Alice_2 : 1;

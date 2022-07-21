@@ -27,6 +27,8 @@ class TGeoCombiTrans;
 
 class TGeoVolume;
 
+class TGeoCompositeShape;
+
 namespace o2
 {
 namespace its
@@ -63,6 +65,14 @@ class V3Cage : public V11Geometry
   /// \param mgr  The GeoManager (used only to get the proper material)
   TGeoVolume* createCageCoverRib(const TGeoManager* mgr = gGeoManager);
 
+  /// Creates the Cage End Cap element
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  TGeoVolume* createCageEndCap(const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the Al frame of Cage End Cap Cable Crossing hole
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  TGeoCompositeShape* createCageEndCapCableCross(const TGeoManager* mgr = gGeoManager);
+
   // Parameters
   static const Double_t sCageYInBarrel; ///< Global Y translation
 
@@ -84,6 +94,28 @@ class V3Cage : public V11Geometry
   static const Double_t sCageCoverRibXBaseInt; ///< Cover rib internal Base X
   static const Double_t sCageCoverRibYBaseHi;  ///< Cover rib Base Height on Y
   static const Double_t sCageCoverRibFoldHi;   ///< Cover rib Fold Height
+
+  static const Double_t sCageEndCapDext;        ///< End Cap ext diameter
+  static const Double_t sCageEndCapDint;        ///< End Cap int diameter
+  static const Double_t sCageEndCapFoamThick;   ///< End Cap foam thickness
+  static const Double_t sCageEndCapFabThick;    ///< End Cap fabric thickness
+  static const Double_t sCageEndCapXWidth;      ///< End Cap Width along X
+  static const Double_t sCageEndCapSideHoleR;   ///< End Cap Side Hole rad
+  static const Double_t sCageEndCapSideHoleX;   ///< End Cap Side Hole X dist
+  static const Double_t sCageEndCapCableCutWid; ///< End Cap Width of cable cut
+  static const Double_t sCageEndCapCableCutR;   ///< End Cap R pos of cable cut
+  static const Double_t sCageEndCapCableCutPhi; ///< End Cap angle of cable cut
+  static const Double_t sCageECRoundCrossDmin;  ///< End Cap min D of Al ring
+  static const Double_t sCageECRoundCrossDmid;  ///< End Cap mid D of Al ring
+  static const Double_t sCageECRoundCrossDmax;  ///< End Cap max D of Al ring
+  static const Double_t sCageECRoundCrossZext;  ///< End Cap ext Z of Al ring
+  static const Double_t sCageECRoundCrossZint;  ///< End Cap int Z of Al ring
+  static const Double_t sCageECCableCrosTotHi;  ///< EC Cable Cut total height
+  static const Double_t sCageECCableCrosTotZ;   ///< EC Cable Cut total Z len
+  static const Double_t sCageECCableCrosInXWid; ///< EC Cable Cut inner width
+  static const Double_t sCageECCableCrosInThik; ///< EC Cable Cut inner thick
+  static const Double_t sCageECCableCrosInZLen; ///< EC Cable Cut inner length
+  static const Double_t sCageECCableCrosSidWid; ///< EC Cable Cut Y side len
 
   ClassDefOverride(V3Cage, 0); // ITS v3 support geometry
 };

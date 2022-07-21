@@ -151,8 +151,9 @@ void Screenshot::perform(std::string fileName, o2::detectors::DetID::mask_t dete
   std::ostringstream filepath;
   filepath << outDirectory << "/Screenshot_" << time_str << ".png";
 
-  TASImage image(width, height);
-  image.FillRectangle(backgroundColorHex.c_str(), 0, 0, width, height);
+  TASImage* image = new TASImage(width, height);
+
+  image->FillRectangle(backgroundColorHex.c_str(), 0, 0, width, height);
 
   const auto annotationStateTop = MultiView::getInstance()->getAnnotationTop()->GetState();
   const auto annotationStateBottom = MultiView::getInstance()->getAnnotationBottom()->GetState();
@@ -165,22 +166,25 @@ void Screenshot::perform(std::string fileName, o2::detectors::DetID::mask_t dete
   MultiView::getInstance()->getAnnotationBottom()->SetState(annotationStateBottom);
 
   scaledImage = ScaleImage((TASImage*)view3dImage, width * 0.65, height * 0.95, backgroundColorHex);
+  delete view3dImage;
   if (scaledImage) {
-    CopyImage(&image, scaledImage, width * 0.015, height * 0.025, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
+    CopyImage(image, scaledImage, width * 0.015, height * 0.025, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
     delete scaledImage;
   }
 
   TImage* viewRphiImage = MultiView::getInstance()->getView(MultiView::EViews::ViewRphi)->GetGLViewer()->GetPictureUsingBB();
   scaledImage = ScaleImage((TASImage*)viewRphiImage, width * 0.3, height * 0.45, backgroundColorHex);
+  delete viewRphiImage;
   if (scaledImage) {
-    CopyImage(&image, scaledImage, width * 0.68, height * 0.025, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
+    CopyImage(image, scaledImage, width * 0.68, height * 0.025, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
     delete scaledImage;
   }
 
   TImage* viewZYImage = MultiView::getInstance()->getView(MultiView::EViews::ViewZY)->GetGLViewer()->GetPictureUsingBB();
   scaledImage = ScaleImage((TASImage*)viewZYImage, width * 0.3, height * 0.45, backgroundColorHex);
+  delete viewZYImage;
   if (scaledImage) {
-    CopyImage(&image, scaledImage, width * 0.68, height * 0.525, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
+    CopyImage(image, scaledImage, width * 0.68, height * 0.525, 0, 0, scaledImage->GetWidth(), scaledImage->GetHeight());
     delete scaledImage;
   }
 
@@ -190,9 +194,9 @@ void Screenshot::perform(std::string fileName, o2::detectors::DetID::mask_t dete
     if (aliceLogo->IsValid()) {
       double ratio = 1434. / 1939.;
       aliceLogo->Scale(0.08 * width, 0.08 * width / ratio);
-      image.Merge(aliceLogo, "alphablend", 20, 20);
-      delete aliceLogo;
+      image->Merge(aliceLogo, "alphablend", 20, 20);
     }
+    delete aliceLogo;
   }
 
   int fontSize = 0.015 * height;
@@ -208,14 +212,14 @@ void Screenshot::perform(std::string fileName, o2::detectors::DetID::mask_t dete
       int o2LogoY = 0.01 * width;
       int o2LogoSize = 0.04 * width;
       o2Logo->Scale(o2LogoSize, o2LogoSize / ratio);
-      image.Merge(o2Logo, "alphablend", o2LogoX, height - o2LogoSize / ratio - o2LogoY);
+      image->Merge(o2Logo, "alphablend", o2LogoX, height - o2LogoSize / ratio - o2LogoY);
       textX = o2LogoX + o2LogoSize + o2LogoX;
       textY = height - o2LogoSize / ratio - o2LogoY;
-      delete o2Logo;
     } else {
       textX = 229;
       textY = 1926;
     }
+    delete o2Logo;
   }
 
   auto detectorsString = detectors::DetID::getNames(detectorsMask);
@@ -228,14 +232,15 @@ void Screenshot::perform(std::string fileName, o2::detectors::DetID::mask_t dete
     lines.push_back((std::string)settings.GetValue("screenshot.message.line.3", TString::Format("Detectors: %s", detectorsString.c_str())));
   }
 
-  image.BeginPaint();
+  image->BeginPaint();
 
   for (int i = 0; i < 4; i++) {
-    image.DrawText(textX, textY + i * textLineHeight, lines[i].c_str(), fontSize, "#BBBBBB", "FreeSansBold.otf");
+    image->DrawText(textX, textY + i * textLineHeight, lines[i].c_str(), fontSize, "#BBBBBB", "FreeSansBold.otf");
   }
-  image.EndPaint();
+  image->EndPaint();
 
-  image.WriteImage(fileName.c_str(), TImage::kPng);
+  image->WriteImage(fileName.c_str(), TImage::kPng);
+  delete image;
 }
 
 } // namespace event_visualisation

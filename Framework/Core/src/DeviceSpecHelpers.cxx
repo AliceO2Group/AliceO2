@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "DeviceSpecHelpers.h"
-#include "ChannelSpecHelpers.h"
+#include "Framework/ChannelSpecHelpers.h"
 #include <wordexp.h>
 #include <algorithm>
 #include <boost/program_options.hpp>

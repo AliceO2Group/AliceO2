@@ -29,7 +29,7 @@ namespace dataformats
 struct FileMetaData {        // https://docs.google.com/document/d/1nH9EZEFBSpuZwOWs3RBcfy-6aRChgAqClBv6G06MjH4/edit
   std::string LHCPeriod{};   // 1, LHC data taking period + detector name, in case of individual detector data stream, required
   std::string lurl{};        // 3, the local EPN path to the CTF or calibration file, required
-  std::string type{};        // 4, raw or calib; default is raw, optional
+  std::string type{};        // 4, raw or calib or other; default is other, optional
   std::string guid{};        // 7, default is auto-generated, optional
   std::string surl{};        // 8, the remote storage path where we store the data file, optional
   std::string curl{};        // 9, the Grid catalogue path, optional

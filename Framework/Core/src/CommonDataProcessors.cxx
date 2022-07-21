@@ -35,7 +35,7 @@
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/ChannelSpec.h"
-#include "ChannelSpecHelpers.h"
+#include "Framework/ChannelSpecHelpers.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/RuntimeError.h"
 #include <Monitoring/Monitoring.h>
