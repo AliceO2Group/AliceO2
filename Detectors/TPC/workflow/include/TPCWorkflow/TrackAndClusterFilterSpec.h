@@ -25,7 +25,7 @@ namespace o2::tpc
 
 /// create a processor spec
 /// read simulated TPC clusters from file and publish
-o2::framework::DataProcessorSpec getTrackAndClusterFilterSpec(const std::string dataDescriptionStr = "TRACKS");
+o2::framework::DataProcessorSpec getTrackAndClusterFilterSpec(const std::string dataDescriptionStr = "TRACKS", const bool writeMC = false);
 
 } // namespace o2::tpc
 

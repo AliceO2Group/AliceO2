@@ -41,6 +41,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     // {"use-digit-input", VariantType::Bool, false, {"use TPC digits as input, instead of raw data"}},
     {"data-description", VariantType::String, "TRACKS", {"Can be used to select filterd tracks, e.g. 'LASERTRACKS', 'MIPS'"}},
+    {"write-mc", VariantType::Bool, false, {"Can be used to write mc labels, e.g. 'TPCTracksMCTruth'"}},
   };
 
   std::swap(workflowOptions, options);
@@ -52,10 +53,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfg)
 {
   // const bool useDigitsAsInput = cfg.options().get<bool>("use-digit-input");
   const auto dataDescription = cfg.options().get<std::string>("data-description");
+  const auto writeMC = cfg.options().get<bool>("write-mc");
 
   WorkflowSpec specs;
 
-  specs.emplace_back(o2::tpc::getTrackAndClusterFilterSpec(dataDescription));
+  specs.emplace_back(o2::tpc::getTrackAndClusterFilterSpec(dataDescription, writeMC));
 
   return specs;
 }

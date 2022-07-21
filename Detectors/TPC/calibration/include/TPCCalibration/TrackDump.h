@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "DataFormatsTPC/TrackTPC.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 
 /// \file TrackDump.h
@@ -76,12 +77,13 @@ class TrackDump
     ClassDefNV(TrackInfo, 1);
   };
 
-  void filter(const gsl::span<const TrackTPC> tracks, ClusterNativeAccess const& clusterIndex, const gsl::span<const o2::tpc::TPCClRefElem> clRefs);
+  void filter(const gsl::span<const TrackTPC> tracks, ClusterNativeAccess const& clusterIndex, const gsl::span<const o2::tpc::TPCClRefElem> clRefs, const gsl::span<const MCCompLabel> mcLabels);
   void finalize();
 
   std::string outputFileName{"filtered-tracks-and-clusters.root"}; ///< Name of the output file with the tree
   bool writeTracks{true};                                          ///< write global cluster information for quick drawing
   bool writeGlobal{false};                                         ///< write global cluster information for quick drawing
+  bool writeMC{false};                                             ///< write MC track information for quick drawing
  private:
   std::unique_ptr<o2::utils::TreeStreamRedirector> mTreeDump; ///< Tree writer
 };
