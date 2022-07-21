@@ -49,6 +49,7 @@ void TPCInterpolationDPL::init(InitContext& ic)
 void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
@@ -58,11 +59,20 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
     mResidualProcessor.init(false, o2::base::Propagator::Instance()->getNominalBz()); // initialize but skip the binning which is needed only later
   }
   // we may have other params which need to be queried regularly
+  if (mTPCVDriftHelper.isUpdated()) {
+    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
+         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    mInterpolation.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
+    mTPCVDriftHelper.acknowledgeUpdate();
+  }
 }
 
 void TPCInterpolationDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
   if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
+  if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
     return;
   }
 }
@@ -184,6 +194,7 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool
                                                               o2::base::GRPGeomRequest::Aligned, // geometry
                                                               dataRequest->inputs,
                                                               true);
+  o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
   if (writeResiduals) {
     outputs.emplace_back("GLO", "TPCINT_TRK", 0, Lifetime::Timeframe);
     outputs.emplace_back("GLO", "TPCINT_RES", 0, Lifetime::Timeframe);

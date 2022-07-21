@@ -22,6 +22,7 @@
 #include "TStopwatch.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "TPCCalibration/VDriftHelper.h"
 
 using namespace o2::framework;
 
@@ -50,6 +51,7 @@ class TPCInterpolationDPL : public Task
   o2::tpc::TrackResiduals mResidualProcessor;                    ///< conversion and avg. distortion map creation engine
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< steers the input
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
+  o2::tpc::VDriftHelper mTPCVDriftHelper{};
   bool mUseMC{false}; ///< MC flag
   bool mProcessITSTPConly{false}; ///< should also tracks without outer point (ITS-TPC only) be processed?
   bool mWriteResiduals{false};    ///< whether or not the unbinned unfiltered residuals should be sent out
