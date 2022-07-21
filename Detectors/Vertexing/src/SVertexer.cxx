@@ -574,7 +574,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
       v0clone.setCosPA(cosPA);
       v0clone.setVertexID(cascVtxID);
       mV0sTmp[ithread].push_back(v0clone);
-      casc.setV0ID(mV0sTmp[ithread].size() - 1);  // set the new V0 index in the cascade
+      casc.setV0ID(mV0sTmp[ithread].size() - 1); // set the new V0 index in the cascade
     }
   }
 
