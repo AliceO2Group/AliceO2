@@ -25,6 +25,7 @@
 #include "DetectorsVertexing/SVertexer.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TStopwatch.h"
+#include "TPCCalibration/VDriftHelper.h"
 
 #include "Framework/ConfigParamRegistry.h"
 
@@ -60,6 +61,7 @@ class SecondaryVertexingSpec : public Task
   void updateTimeDependentParams(ProcessingContext& pc);
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
+  o2::tpc::VDriftHelper mTPCVDriftHelper{};
   bool mEnableCascades = false;
   o2::vertexing::SVertexer mVertexer;
   TStopwatch mTimer;
@@ -108,17 +110,27 @@ void SecondaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
   if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
     return;
   }
+  if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
+    return;
+  }
 }
 
 void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     mVertexer.init();
   }
   // we may have other params which need to be queried regularly
+  if (mTPCVDriftHelper.isUpdated()) {
+    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
+         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    mVertexer.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
+    mTPCVDriftHelper.acknowledgeUpdate();
+  }
 }
 
 DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc)
@@ -137,6 +149,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
                                                               o2::base::GRPGeomRequest::None, // geometry
                                                               dataRequest->inputs,
                                                               true);
+  o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
 
   outputs.emplace_back("GLO", "V0S", 0, Lifetime::Timeframe);           // found V0s
   outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);   // prim.vertex -> V0s refs
