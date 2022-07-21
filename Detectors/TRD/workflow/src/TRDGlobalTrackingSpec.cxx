@@ -22,7 +22,6 @@
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Constants.h"
 #include "TPCBase/ParameterElectronics.h"
-#include "TPCBase/ParameterGas.h"
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "GPUWorkflowHelper/GPUWorkflowHelper.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -65,6 +64,7 @@ namespace trd
 void TRDGlobalTracking::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  mTPCTransform = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
   mTimer.Stop();
   mTimer.Reset();
 }
@@ -72,6 +72,7 @@ void TRDGlobalTracking::init(InitContext& ic)
 void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
   // pc.inputs().get<TopologyDictionary*>("cldict"); // called by the RecoContainer to trigger finaliseCCDB
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
@@ -107,8 +108,6 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
       LOG(fatal) << "GPUReconstruction could not be initialized";
     }
 
-    std::unique_ptr<o2::gpu::TPCFastTransform> fastTransform = (o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
-    mTPCTransform = std::move(fastTransform);
     mRecoParam.setBfield(o2::base::Propagator::Instance()->getNominalBz());
 
     mTracker->PrintSettings();
@@ -116,17 +115,26 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     LOGF(info, "The search road in time for ITS-TPC tracks is set to %.1f sigma and %.2f us are added to it on top",
          mRec->GetParam().rec.trd.nSigmaTerrITSTPC, mRec->GetParam().rec.trd.addTimeRoadITSTPC);
   }
-  auto& elParam = o2::tpc::ParameterElectronics::Instance();
-  auto& gasParam = o2::tpc::ParameterGas::Instance();
-  mTPCTBinMUS = elParam.ZbinWidth;
-  mTPCTBinMUSInv = 1. / mTPCTBinMUS;
-  mTPCVdrift = gasParam.DriftV;
-  mTracker->SetTPCVdrift(mTPCVdrift);
+  if (mTPCVDriftHelper.isUpdated()) {
+    auto& elParam = o2::tpc::ParameterElectronics::Instance();
+    mTPCTBinMUS = elParam.ZbinWidth;
+    mTPCTBinMUSInv = 1. / mTPCTBinMUS;
+    auto& vd = mTPCVDriftHelper.getVDriftObject();
+    mTPCVdrift = vd.refVDrift * vd.corrFact;
+    LOGP(info, "Updating TPC VDrift with factor of {} wrt reference {} from source {}",
+         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCTransform, 0, vd.corrFact, vd.refVDrift);
+    mTracker->SetTPCVdrift(mTPCVdrift);
+    mTPCVDriftHelper.acknowledgeUpdate();
+  }
 }
 
 void TRDGlobalTracking::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
   if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
+  if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
@@ -646,6 +654,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
                                                               o2::base::GRPGeomRequest::Aligned, // geometry
                                                               inputs,
                                                               true);
+  o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
 
   if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {
     outputs.emplace_back(o2::header::gDataOriginTRD, "MATCH_ITSTPC", 0, Lifetime::Timeframe);
