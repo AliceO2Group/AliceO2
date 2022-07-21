@@ -158,10 +158,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()), -1);
         }
         if (mNumErrorMessages < mMaxErrorMessages) {
-          LOG(alarm) << " Page decoding: " << e.what() << " in FEE ID " << e.getFECID() << std::endl;
+          LOG(warning) << " Page decoding: " << e.what() << " in FEE ID " << e.getFECID() << std::endl;
           mNumErrorMessages++;
           if (mNumErrorMessages == mMaxErrorMessages) {
-            LOG(alarm) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+            LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
           }
         } else {
           mErrorMessagesSuppressed++;
@@ -258,10 +258,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             default:
               break;
           };
-          LOG(alarm) << " EMCAL raw task: " << errormessage << " in DDL " << feeID << std::endl;
+          LOG(warning) << " EMCAL raw task: " << errormessage << " in DDL " << feeID << std::endl;
           mNumErrorMessages++;
           if (mNumErrorMessages == mMaxErrorMessages) {
-            LOG(alarm) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+            LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
           }
         } else {
           mErrorMessagesSuppressed++;
@@ -276,10 +276,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       if (mCreateRawDataErrors) {
         for (auto minorerror : decoder.getMinorDecodingErrors()) {
           if (mNumErrorMessages < mMaxErrorMessages) {
-            LOG(alarm) << " EMCAL raw task - Minor error in DDL " << feeID << ": " << minorerror.what() << std::endl;
+            LOG(warning) << " EMCAL raw task - Minor error in DDL " << feeID << ": " << minorerror.what() << std::endl;
             mNumErrorMessages++;
             if (mNumErrorMessages == mMaxErrorMessages) {
-              LOG(alarm) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+              LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
             }
           } else {
             mErrorMessagesSuppressed++;
@@ -326,10 +326,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             chantype = map.getChannelType(chan.getHardwareAddress());
           } catch (Mapper::AddressNotFoundException& ex) {
             if (mNumErrorMessages < mMaxErrorMessages) {
-              LOG(alarm) << "Mapping error DDL " << feeID << ": " << ex.what();
+              LOG(warning) << "Mapping error DDL " << feeID << ": " << ex.what();
               mNumErrorMessages++;
               if (mNumErrorMessages == mMaxErrorMessages) {
-                LOG(alarm) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+                LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
               }
             } else {
               mErrorMessagesSuppressed++;
@@ -360,10 +360,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                   celltypename = "LEDMON";
                   break;
               };
-              LOG(alarm) << "Sending invalid cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
+              LOG(warning) << "Sending invalid cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
               mNumErrorMessages++;
               if (mNumErrorMessages == mMaxErrorMessages) {
-                LOG(alarm) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+                LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
               }
             } else {
               mErrorMessagesSuppressed++;
@@ -390,10 +390,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
                   celltypename = "LEDMON";
                   break;
               };
-              LOG(alarm) << "Sending negative cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
+              LOG(warning) << "Sending negative cell ID " << CellID << "(SM " << iSM << ", row " << iRow << " - shift " << phishift << ", col " << iCol << " - shift " << etashift << ") of type " << celltypename;
               mNumErrorMessages++;
               if (mNumErrorMessages == mMaxErrorMessages) {
-                LOG(alarm) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+                LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
               }
             } else {
               mErrorMessagesSuppressed++;
@@ -493,10 +493,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             if (fiterror != CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK) {
               // Display
               if (mNumErrorMessages < mMaxErrorMessages) {
-                LOG(alarm) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+                LOG(warning) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
                 mNumErrorMessages++;
                 if (mNumErrorMessages == mMaxErrorMessages) {
-                  LOG(alarm) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+                  LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
                 }
               } else {
                 mErrorMessagesSuppressed++;
@@ -543,10 +543,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           // use cut at 3 sigma where sigma for the LG digitizer is 0.4 ADC counts (EMCAL-502)
           if (ampLG > noiseThresholLGnoHG) {
             if (mNumErrorMessages < mMaxErrorMessages) {
-              LOG(alarm) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressLG << std::dec << " (DDL " << cell.mDDLID << ") has low gain but no high-gain";
+              LOG(warning) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressLG << std::dec << " (DDL " << cell.mDDLID << ") has low gain but no high-gain";
               mNumErrorMessages++;
               if (mNumErrorMessages == mMaxErrorMessages) {
-                LOG(alarm) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+                LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
               }
             } else {
               mErrorMessagesSuppressed++;
@@ -559,10 +559,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         }
         if (cell.mHGOutOfRange) {
           if (mNumErrorMessages < mMaxErrorMessages) {
-            LOG(alarm) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressHG << std::dec << " (DDL " << cell.mDDLID << ") has only high-gain out-of-range";
+            LOG(warning) << "FEC " << cell.mFecID << ": 0x" << std::hex << cell.mHWAddressHG << std::dec << " (DDL " << cell.mDDLID << ") has only high-gain out-of-range";
             mNumErrorMessages++;
             if (mNumErrorMessages == mMaxErrorMessages) {
-              LOG(alarm) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+              LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
             }
           } else {
             mErrorMessagesSuppressed++;
