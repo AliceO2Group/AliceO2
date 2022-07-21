@@ -67,7 +67,8 @@ class ErrorTypeFEE
   /// \param errortype Type of the error
   /// \param errorCode Error code for the given error type
   /// \param subspec Subspecification of the error (i.e. FEC ID)
-  ErrorTypeFEE(int FEEID, ErrorSource_t errortype, int errorCode, int subspec) : mFEEID(FEEID), mErrorSource(errortype), mErrorCode(errorCode), mSubspecification(subspec) {}
+  /// \param hardwareAddress Hardware address of the channel
+  ErrorTypeFEE(int FEEID, ErrorSource_t errortype, int errorCode, int subspec, int hardwareAddress) : mFEEID(FEEID), mErrorSource(errortype), mErrorCode(errorCode), mSubspecification(subspec), mHardwareAddress(hardwareAddress) {}
 
   /// \brief Destructor
   ~ErrorTypeFEE() = default;
@@ -117,9 +118,16 @@ class ErrorTypeFEE
   /// \param subspec Subspecification of the error
   void setSubspecification(int subspec) { mSubspecification = subspec; }
 
+  /// \brief Set the hardware address of the error
+  /// \param hardwareAddress Hardware address of the error
+  void setHardwareAddress(int hardwareAddress) { mHardwareAddress = hardwareAddress; }
+
   /// \brief Get the FEE ID of the electronics responsible for the error
   /// \return ID of the FEE component
-  int getFEEID() const { return mFEEID; }
+  int getFEEID() const
+  {
+    return mFEEID;
+  }
 
   /// \brief Get the type of the error handled by the object
   /// \return Error type
@@ -153,6 +161,10 @@ class ErrorTypeFEE
   /// \return Subspecification of the error
   int getSubspecification() const { return mSubspecification; }
 
+  /// \brief Get the hardware address of the error
+  /// \return Hardware address of the error
+  int getHarwareAddress() const { return mHardwareAddress; }
+
   /// \brief Printing information of the error type
   /// \param stream Output stream where to print the error
   ///
@@ -168,6 +180,7 @@ class ErrorTypeFEE
   ErrorSource_t mErrorSource = ErrorSource_t::UNDEFINED; ///< Source of the error
   int mErrorCode = -1;                                   ///< Raw page error type
   int mSubspecification;                                 ///< Subspecification
+  int mHardwareAddress;                                  ///< Hardware address of the channel
 
   ClassDefNV(ErrorTypeFEE, 1);
 };
