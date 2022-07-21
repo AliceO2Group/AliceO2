@@ -21,7 +21,6 @@
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterDetector.h"
-#include "TPCBase/ParameterGas.h"
 #include "MathUtils/Cartesian.h"
 #include "MathUtils/Utils.h"
 #include "CommonConstants/MathConstants.h"
@@ -36,6 +35,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "DataFormatsTPC/VDriftCorrFact.h"
 #include "CommonUtils/NameConf.h"
 #include "ReconstructionDataFormats/Vertex.h"
 #include "GlobalTracking/MatchTPCITS.h"
@@ -170,6 +170,14 @@ void MatchTPCITS::clear()
 }
 
 //______________________________________________
+void MatchTPCITS::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
+{
+  mTPCVDrift = v.refVDrift * v.corrFact;
+  mTPCVDriftRef = v.refVDrift;
+  o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCTransform, 0, v.corrFact, v.refVDrift);
+}
+
+//______________________________________________
 void MatchTPCITS::init()
 {
   ///< perform initizalizations, precalculate what is needed
@@ -195,8 +203,6 @@ void MatchTPCITS::init()
   o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L));
 
   mSectEdgeMargin2 = mParams->crudeAbsDiffCut[o2::track::kY] * mParams->crudeAbsDiffCut[o2::track::kY]; ///< precalculated ^2
-  std::unique_ptr<TPCTransform> fastTransform = (o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
-  mTPCTransform = std::move(fastTransform);
 
 #ifdef _ALLOW_DEBUG_TREES_
   // debug streamer
@@ -204,6 +210,7 @@ void MatchTPCITS::init()
     mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(mDebugTreeFileName.data(), "recreate");
   }
 #endif
+  mTPCTransform = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
 
   mRGHelper.init(); // prepare helper for TPC track / ITS clusters matching
 
@@ -220,18 +227,16 @@ void MatchTPCITS::init()
 void MatchTPCITS::updateTimeDependentParams()
 {
   ///< update parameters depending on time (once per TF)
-  auto& gasParam = o2::tpc::ParameterGas::Instance();
   auto& elParam = o2::tpc::ParameterElectronics::Instance();
   auto& detParam = o2::tpc::ParameterDetector::Instance();
   mTPCTBinMUS = elParam.ZbinWidth;
   mTPCTBinNS = mTPCTBinMUS * 1e3;
-  mTPCVDrift0 = gasParam.DriftV;
   mTPCZMax = detParam.TPClength;
   mTPCTBinMUSInv = 1. / mTPCTBinMUS;
   assert(mITSROFrameLengthMUS > 0.0f);
-  mTPCBin2Z = mTPCTBinMUS * mTPCVDrift0;
+  mTPCBin2Z = mTPCTBinMUS * mTPCVDrift;
   mZ2TPCBin = 1. / mTPCBin2Z;
-  mTPCVDrift0Inv = 1. / mTPCVDrift0;
+  mTPCVDriftInv = 1. / mTPCVDrift;
   mNTPCBinsFullDrift = mTPCZMax * mZ2TPCBin;
   mTPCTimeEdgeTSafeMargin = z2TPCBin(mParams->safeMarginTPCTimeEdge);
   mTPCExtConstrainedNSigmaInv = 1.f / mParams->tpcExtConstrainedNSigma;
@@ -740,7 +745,7 @@ void MatchTPCITS::doMatching(int sec)
       }
 
       // is corrected TPC track time compatible with ITS ROF expressed
-      auto deltaT = (trefITS.getZ() - trefTPC.getZ()) * mTPCVDrift0Inv;                                                   // drift time difference corresponding to Z differences
+      auto deltaT = (trefITS.getZ() - trefTPC.getZ()) * mTPCVDriftInv;                                                    // drift time difference corresponding to Z differences
       auto timeCorr = trefTPC.getCorrectedTime(deltaT);                                                                   // TPC time required to match to Z of ITS track
       auto timeCorrErr = std::sqrt(trefITS.getSigmaZ2() + trefTPC.getSigmaZ2()) * t2nbs + mParams->safeMarginTimeCorrErr; // nsigma*error
       if (mVDriftCalibOn) {
@@ -1244,9 +1249,9 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   if (!mCompareTracksDZ) {
     trfit.setZ(tITS.getZ()); // fix the seed Z
   }
-  float deltaT = (trfit.getZ() - tTPC.getZ()) * mTPCVDrift0Inv;                                                                                   // time correction in \mus
+  float deltaT = (trfit.getZ() - tTPC.getZ()) * mTPCVDriftInv;                                                                                    // time correction in \mus
   float timeC = tTPC.getCorrectedTime(deltaT);                                                                                                    /// precise time estimate
-  float timeErr = tTPC.constraint == TrackLocTPC::Constrained ? tTPC.timeErr : std::sqrt(tITS.getSigmaZ2() + tTPC.getSigmaZ2()) * mTPCVDrift0Inv; // estimate the error on time
+  float timeErr = tTPC.constraint == TrackLocTPC::Constrained ? tTPC.timeErr : std::sqrt(tITS.getSigmaZ2() + tTPC.getSigmaZ2()) * mTPCVDriftInv;  // estimate the error on time
   if (timeC < 0) {                                                                                                                                // RS TODO similar check is needed for other edge of TF
     if (timeC + std::min(timeErr, mParams->tfEdgeTimeToleranceMUS * mTPCTBinMUSInv) < 0) {
       mMatchedTracks.pop_back(); // destroy failed track
@@ -1540,7 +1545,7 @@ int MatchTPCITS::prepareABSeeds()
       }
       // we beed to create seed from this TPC track and interaction candidate
       float dt = trc.getSignedDT(tic - trc.time0);
-      float dz = dt * mTPCVDrift0, z = trc.getZ() + dz;
+      float dz = dt * mTPCVDrift, z = trc.getZ() + dz;
       if (outerLr.zRange.isOutside(z, std::sqrt(trc.getSigmaZ2()) + 2.)) { // RS FIXME introduce margin as parameter?
         continue;
       }
