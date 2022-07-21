@@ -15,7 +15,8 @@
 
 #include "DetectorsVertexing/SVertexer.h"
 #include "DetectorsBase/Propagator.h"
-#include "TPCBase/ParameterGas.h"
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "DataFormatsTPC/VDriftCorrFact.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -121,47 +122,59 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
 //__________________________________________________________________
 void SVertexer::init()
 {
+  initTPCTransform();
 }
 
 //__________________________________________________________________
 void SVertexer::updateTimeDependentParams()
 {
   // TODO RS: strictly speaking, one should do this only in case of the CCDB objects update
-  mSVParams = &SVertexerParams::Instance();
-  // precalculated selection cuts
-  mMinR2ToMeanVertex = mSVParams->minRToMeanVertex * mSVParams->minRToMeanVertex;
-  mMaxR2ToMeanVertexCascV0 = mSVParams->maxRToMeanVertexCascV0 * mSVParams->maxRToMeanVertexCascV0;
-  mMaxDCAXY2ToMeanVertex = mSVParams->maxDCAXYToMeanVertex * mSVParams->maxDCAXYToMeanVertex;
-  mMaxDCAXY2ToMeanVertexV0Casc = mSVParams->maxDCAXYToMeanVertexV0Casc * mSVParams->maxDCAXYToMeanVertexV0Casc;
-  mMinR2DiffV0Casc = mSVParams->minRDiffV0Casc * mSVParams->minRDiffV0Casc;
-  mMinPt2V0 = mSVParams->minPtV0 * mSVParams->minPtV0;
-  mMaxTgl2V0 = mSVParams->maxTglV0 * mSVParams->maxTglV0;
-  mMinPt2Casc = mSVParams->minPtCasc * mSVParams->minPtCasc;
-  mMaxTgl2Casc = mSVParams->maxTglCasc * mSVParams->maxTglCasc;
-
+  static bool updatedOnce = false;
+  if (!updatedOnce) {
+    updatedOnce = true;
+    mSVParams = &SVertexerParams::Instance();
+    // precalculated selection cuts
+    mMinR2ToMeanVertex = mSVParams->minRToMeanVertex * mSVParams->minRToMeanVertex;
+    mMaxR2ToMeanVertexCascV0 = mSVParams->maxRToMeanVertexCascV0 * mSVParams->maxRToMeanVertexCascV0;
+    mMaxDCAXY2ToMeanVertex = mSVParams->maxDCAXYToMeanVertex * mSVParams->maxDCAXYToMeanVertex;
+    mMaxDCAXY2ToMeanVertexV0Casc = mSVParams->maxDCAXYToMeanVertexV0Casc * mSVParams->maxDCAXYToMeanVertexV0Casc;
+    mMinR2DiffV0Casc = mSVParams->minRDiffV0Casc * mSVParams->minRDiffV0Casc;
+    mMinPt2V0 = mSVParams->minPtV0 * mSVParams->minPtV0;
+    mMaxTgl2V0 = mSVParams->maxTglV0 * mSVParams->maxTglV0;
+    mMinPt2Casc = mSVParams->minPtCasc * mSVParams->minPtCasc;
+    mMaxTgl2Casc = mSVParams->maxTglCasc * mSVParams->maxTglCasc;
+    setupThreads();
+  }
   auto bz = o2::base::Propagator::Instance()->getNominalBz();
-
   mV0Hyps[HypV0::Photon].set(PID::Photon, PID::Electron, PID::Electron, mSVParams->pidCutsPhoton, bz);
   mV0Hyps[HypV0::K0].set(PID::K0, PID::Pion, PID::Pion, mSVParams->pidCutsK0, bz);
   mV0Hyps[HypV0::Lambda].set(PID::Lambda, PID::Proton, PID::Pion, mSVParams->pidCutsLambda, bz);
   mV0Hyps[HypV0::AntiLambda].set(PID::Lambda, PID::Pion, PID::Proton, mSVParams->pidCutsLambda, bz);
   mV0Hyps[HypV0::HyperTriton].set(PID::HyperTriton, PID::Helium3, PID::Pion, mSVParams->pidCutsHTriton, bz);
   mV0Hyps[HypV0::AntiHyperTriton].set(PID::HyperTriton, PID::Pion, PID::Helium3, mSVParams->pidCutsHTriton, bz);
-
   mCascHyps[HypCascade::XiMinus].set(PID::XiMinus, PID::Lambda, PID::Pion, mSVParams->pidCutsXiMinus, bz);
   mCascHyps[HypCascade::OmegaMinus].set(PID::OmegaMinus, PID::Lambda, PID::Kaon, mSVParams->pidCutsOmegaMinus, bz);
-
-  setupThreads();
-
   for (auto& ft : mFitterV0) {
     ft.setBz(bz);
   }
   for (auto& ft : mFitterCasc) {
     ft.setBz(bz);
   }
+}
 
-  auto& gasParam = o2::tpc::ParameterGas::Instance();
-  mTPCBin2Z = gasParam.DriftV / mMUS2TPCBin;
+//______________________________________________
+void SVertexer::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
+{
+  mTPCVDrift = v.refVDrift * v.corrFact;
+  mTPCVDriftRef = v.refVDrift;
+  o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCTransform, 0, v.corrFact, v.refVDrift);
+  mTPCBin2Z = mTPCVDrift / mMUS2TPCBin;
+}
+
+//_________________________________________________________
+void SVertexer::initTPCTransform()
+{
+  mTPCTransform = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
 }
 
 //__________________________________________________________________
