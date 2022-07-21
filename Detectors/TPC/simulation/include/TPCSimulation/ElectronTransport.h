@@ -45,7 +45,7 @@ class ElectronTransport
   ~ElectronTransport() = default;
 
   /// Update the OCDB parameters cached in the class. To be called once per event
-  void updateParameters();
+  void updateParameters(float vdrift = 0);
 
   /// Drift of electrons in electric field taking into account diffusion
   /// \param posEle GlobalPosition3D with start position of the electrons
@@ -79,9 +79,9 @@ class ElectronTransport
   math_utils::RandomRing<> mRandomGaus;
   /// Circular random buffer containing flat random values to take into account electron attachment during drift
   math_utils::RandomRing<> mRandomFlat;
-
   const ParameterDetector* mDetParam; ///< Caching of the parameter class to avoid multiple CDB calls
   const ParameterGas* mGasParam;      ///< Caching of the parameter class to avoid multiple CDB calls
+  float mVDrift = 0;                  ///< VDrift for current timestamp
 };
 
 inline bool ElectronTransport::isElectronAttachment(float driftTime)
@@ -95,7 +95,7 @@ inline bool ElectronTransport::isElectronAttachment(float driftTime)
 
 inline float ElectronTransport::getDriftTime(float zPos, float signChange) const
 {
-  float time = (mDetParam->TPClength - signChange * std::abs(zPos)) / mGasParam->DriftV;
+  float time = (mDetParam->TPClength - signChange * std::abs(zPos)) / mVDrift;
   return time;
 }
 } // namespace tpc

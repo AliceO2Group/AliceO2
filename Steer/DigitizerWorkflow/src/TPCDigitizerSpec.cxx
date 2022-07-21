@@ -39,6 +39,7 @@
 #include "TPCSimulation/Detector.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DetectorsBase/Detector.h"
+#include "TPCCalibration/VDriftHelper.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "SimConfig/DigiParams.h"
 #include <filesystem>
@@ -229,6 +230,13 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     }
   }
 
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj)
+  {
+    if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
+      return;
+    }
+  }
+
   void run(framework::ProcessingContext& pc)
   {
     LOG(info) << "Processing TPC digitization";
@@ -236,6 +244,15 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     /// For the time being use the defaults for the CDB
     auto& cdb = o2::tpc::CDBInterface::instance();
     cdb.setUseDefaults(!mUseCalibrationsFromCCDB);
+    // whatever are global settings for CCDB usage, we have to extract the TPC vdrift from CCDB for anchored simulations
+    //    o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+    if (mTPCVDriftHelper.isUpdated()) {
+      const auto& vd = mTPCVDriftHelper.getVDriftObject();
+      LOGP(info, "Updating TPC VDrift with factor of {} wrt reference {} from source {}", vd.corrFact, vd.refVDrift, mTPCVDriftHelper.getSourceName());
+      mDigitizer.setVDrift(vd.corrFact * vd.refVDrift);
+      mTPCVDriftHelper.acknowledgeUpdate();
+    }
+
     if (std::filesystem::exists("GainMap.root")) {
       LOG(info) << "TPC: Using gain map from 'GainMap.root'";
       cdb.setGainMapFromFile("GainMap.root");
@@ -243,6 +260,9 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
 
     for (auto it = pc.inputs().begin(), end = pc.inputs().end(); it != end; ++it) {
       for (auto const& inputref : it) {
+        if (inputref.spec->lifetime == o2::framework::Lifetime::Condition) { // process does not need conditions
+          continue;
+        }
         process(pc, inputref);
         if (mInternalWriter) {
           mInternalROOTFlushTTree->SetEntries(mFlushCounter);
@@ -454,6 +474,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
 
  private:
   o2::tpc::Digitizer mDigitizer;
+  o2::tpc::VDriftHelper mTPCVDriftHelper{};
   std::vector<TChain*> mSimChains;
   std::vector<o2::tpc::Digit> mDigits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
@@ -496,9 +517,10 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP,
     LOG(debug) << "TPC: Channel " << channel << " will supply ROMode";
   }
 
+  std::vector<InputSpec> inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}};
   return DataProcessorSpec{
     id.str().c_str(),
-    Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>(internalwriter)},
     Options{
@@ -522,6 +544,9 @@ o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> con
   WorkflowSpec pipelines = parallelPipeline(
     pipelineTemplate, nLanes, [size = sectors.size()]() { return size; }, [&sectors](size_t index) { return sectors[index]; });
   // add the channel for the GRP information to the first processor
+  for (auto& spec : pipelines) {
+    o2::tpc::VDriftHelper::requestCCDBInputs(spec.inputs); // add the same CCDB request to each pipeline
+  }
   pipelines[0].outputs.emplace_back("TPC", "ROMode", 0, Lifetime::Timeframe);
   return pipelines;
 }
