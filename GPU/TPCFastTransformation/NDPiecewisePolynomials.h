@@ -24,6 +24,7 @@
 #include <vector>
 #if !defined(GPUCA_STANDALONE)
 #include "TLinearFitter.h"
+#include "CommonUtils/TreeStreamRedirector.h"
 #include <TFile.h>
 #endif
 #endif
@@ -193,6 +194,13 @@ class NDPiecewisePolynomials : public FlatObject
   /// \param max maximum coordinates of the grid (note: the resulting polynomials can NOT be evaluated at the maximum coordinates: only at min <= X < max)
   /// \param n number of vertices: defines number of fits per dimension: nFits = n - 1. n should be at least 2 to perform one fit
   void init(const float min[/* Dim */], const float max[/* Dim */], const unsigned int n[/* Dim */]);
+
+  /// dump the polynomials to tree for visualisation
+  /// \param nSamplingPoints number of sampling points per dimension
+  /// \param outName name of the output file
+  /// \param treeName name of the tree
+  /// \param recreateFile create new output file or update the output file
+  void dumpToTree(const unsigned int nSamplingPoints[/* Dim */], const char* outName = "debug.root", const char* treeName = "tree", const bool recreateFile = true) const;
 
   /// \return returns total number of polynomial fits
   unsigned int getNPolynomials() const;
@@ -411,7 +419,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setFutureBufferAddres
 
 template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
 template <unsigned int DimTmp>
-unsigned int NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::getDataIndex(const int ix[/* Dim */]) const
+GPUdi() unsigned int NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::getDataIndex(const int ix[/* Dim */]) const
 {
   if constexpr (DimTmp > 0) {
     return ix[DimTmp] * getTerms(DimTmp) + getDataIndex<DimTmp - 1>(ix);
@@ -421,7 +429,7 @@ unsigned int NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::getDataIndex(
 
 template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
 template <unsigned int DimTmp>
-void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setIndex(const float x[/* Dim */], int index[/* Dim */]) const
+GPUdi() void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setIndex(const float x[/* Dim */], int index[/* Dim */]) const
 {
   index[DimTmp] = getVertex(x[DimTmp], DimTmp);
   if constexpr (DimTmp > 0) {
@@ -432,7 +440,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setIndex(const float 
 
 template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
 template <unsigned int DimTmp>
-void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::clamp(float x[/* Dim */], int index[/* Dim */]) const
+GPUdi() void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::clamp(float x[/* Dim */], int index[/* Dim */]) const
 {
   if (index[DimTmp] <= 0) {
     index[DimTmp] = 0;
@@ -578,6 +586,45 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::fitInnerGrid(const st
   const unsigned int index = getDataIndex(currentIndex);
   std::copy(params.begin(), params.end(), &mParams[index]);
 }
+
+template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
+void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::dumpToTree(const unsigned int nSamplingPoints[/* Dim */], const char* outName, const char* treeName, const bool recreateFile) const
+{
+  o2::utils::TreeStreamRedirector pcstream(outName, recreateFile ? "RECREATE" : "UPDATE");
+
+  double factor[Dim]{};
+  for (unsigned int iDim = 0; iDim < Dim; ++iDim) {
+    factor[iDim] = (mMax[iDim] - mMin[iDim]) / (nSamplingPoints[iDim] - 1);
+  }
+
+  std::vector<float> x(Dim);
+  std::vector<unsigned int> ix(Dim);
+  int pos[Dim + 1]{0};
+
+  for (;;) {
+    checkPos(nSamplingPoints, pos);
+
+    if (pos[Dim] == 1) {
+      break;
+    }
+
+    for (unsigned int iDim = 0; iDim < Dim; ++iDim) {
+      ix[iDim] = pos[iDim];
+      x[iDim] = mMin[iDim] + pos[iDim] * factor[iDim];
+    }
+
+    float value = eval(x.data());
+    pcstream << treeName
+             << "ix=" << ix
+             << "x=" << x
+             << "value=" << value
+             << "\n";
+
+    ++pos[0];
+  }
+  pcstream.Close();
+}
+
 #endif
 
 } // namespace GPUCA_NAMESPACE::gpu

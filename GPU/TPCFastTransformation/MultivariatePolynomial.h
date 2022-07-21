@@ -119,7 +119,7 @@ class MultivariatePolynomial : public FlatObject, public MultivariatePolynomialH
   /// write parameters to file
   /// \param outf output file
   /// \param name name of the output object
-  void writeToFile(TFile& outf, const char* name);
+  void writeToFile(TFile& outf, const char* name) const;
 
   /// performs fit of input point
   /// \param x position of the points of length 'Dim * nPoints' (structured as in https://root.cern.ch/doc/master/classTLinearFitter.html)
@@ -210,7 +210,7 @@ void MultivariatePolynomial<Dim, Degree, InteractionOnly>::setFromContainer(cons
 }
 
 template <unsigned int Dim, unsigned int Degree, bool InteractionOnly>
-void MultivariatePolynomial<Dim, Degree, InteractionOnly>::writeToFile(TFile& outf, const char* name)
+void MultivariatePolynomial<Dim, Degree, InteractionOnly>::writeToFile(TFile& outf, const char* name) const
 {
   const MultivariatePolynomialContainer cont = getContainer();
   outf.WriteObject(&cont, name);
