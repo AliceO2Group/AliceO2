@@ -360,11 +360,11 @@ void Tracker::findTracks()
       continue;
     }
     // temporaryTrack.setROFrame(rof);
-    #ifdef WITH_OPENMP
+#ifdef WITH_OPENMP
     int iThread = omp_get_thread_num();
-    #else
+#else
     int iThread = 0;
-    #endif
+#endif
     tracks[iThread].emplace_back(temporaryTrack);
   }
 
