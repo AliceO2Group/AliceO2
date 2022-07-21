@@ -728,6 +728,10 @@ void Tracker::getGlobalConfiguration()
   auto& tc = o2::its::TrackerParamConfig::Instance();
   if (tc.useMatCorrTGeo) {
     setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
+  } else if (tc.useFastMaterial) {
+    setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE);
+  } else {
+    setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
   }
   for (auto& params : mTrkParams) {
     if (params.NLayers == 7) {
