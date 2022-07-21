@@ -215,7 +215,7 @@ class MultivariatePolynomialHelper<0, 0, false> : public MultivariatePolynomialP
   unsigned int getDegree() const { return mDegree; }
 
   /// \return returns whether only interaction terms are considered
-  bool isInteractionOnly() { return mInteractionOnly; }
+  bool isInteractionOnly() const { return mInteractionOnly; }
 
  protected:
   unsigned int mDim{};     ///< dimensionality of the polynomial
