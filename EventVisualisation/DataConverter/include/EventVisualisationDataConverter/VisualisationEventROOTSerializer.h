@@ -30,9 +30,10 @@ namespace event_visualisation
 class VisualisationEventROOTSerializer : public VisualisationEventSerializer
 {
   static void save(const char* name, int value);
-  static int readInt(TFile &f,const char* name);
+  static int readInt(TFile& f, const char* name);
   static void save(const char* name, const std::string& value);
-  static std::string readString(TFile &f,const char* name);
+  static std::string readString(TFile& f, const char* name);
+
  public:
   bool fromFile(VisualisationEvent& event, std::string fileName) override;
   void toFile(const VisualisationEvent& event, std::string fileName) override;

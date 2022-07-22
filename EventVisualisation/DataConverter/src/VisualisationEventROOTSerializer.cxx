@@ -30,14 +30,16 @@ namespace event_visualisation
 {
 constexpr int ROOT_FILE_VERSION = 1;
 
-void VisualisationEventROOTSerializer::save(const char* name, const std::string& value){
-  TNamed obj(name,value);
+void VisualisationEventROOTSerializer::save(const char* name, const std::string& value)
+{
+  TNamed obj(name, value);
   obj.Write();
 }
 
-std::string VisualisationEventROOTSerializer::readString(TFile &f,const char* name) {
+std::string VisualisationEventROOTSerializer::readString(TFile& f, const char* name)
+{
   TNamed* v = (TNamed*)f.Get(name);
-  if(v == nullptr) {
+  if (v == nullptr) {
     return 0;
   }
   std::string result = v->GetTitle();
@@ -45,15 +47,17 @@ std::string VisualisationEventROOTSerializer::readString(TFile &f,const char* na
   return result;
 }
 
-void VisualisationEventROOTSerializer::save(const char* name, int value) {
+void VisualisationEventROOTSerializer::save(const char* name, int value)
+{
   TParameter<int> obj;
   obj.SetVal(value);
   obj.Write(name);
 }
 
-int VisualisationEventROOTSerializer::readInt(TFile &f, const char* name) {
+int VisualisationEventROOTSerializer::readInt(TFile& f, const char* name)
+{
   TParameter<int>* v = (TParameter<int>*)f.Get(name);
-  if(v == nullptr) {
+  if (v == nullptr) {
     return 0;
   }
   int result = v->GetVal();
@@ -63,7 +67,7 @@ int VisualisationEventROOTSerializer::readInt(TFile &f, const char* name) {
 
 void VisualisationEventROOTSerializer::toFile(const VisualisationEvent& event, std::string fileName)
 {
-  TFile f(fileName.c_str(),"recreate");
+  TFile f(fileName.c_str(), "recreate");
 
   save("runNumber", event.mRunNumber);
   save("clMask", event.mClMask);
@@ -76,27 +80,27 @@ void VisualisationEventROOTSerializer::toFile(const VisualisationEvent& event, s
   save("workflowParameters", event.mWorkflowParameters);
 
   // clusters
-  TNtuple xyz("xyz","xyz","x:y:z");
+  TNtuple xyz("xyz", "xyz", "x:y:z");
   long xyzPos = 0L;
-  TTree clusters("clusters","Clusters");
+  TTree clusters("clusters", "Clusters");
   long cluster_xyz;
   int cluster_source;
   float cluster_time;
-  clusters.Branch("source",&cluster_source);
-  clusters.Branch("time",&cluster_time);
-  clusters.Branch("xyz",&cluster_xyz);
+  clusters.Branch("source", &cluster_source);
+  clusters.Branch("time", &cluster_time);
+  clusters.Branch("xyz", &cluster_xyz);
   for (auto cluster : event.getClustersSpan()) {
     cluster_source = cluster.getSource();
     cluster_time = cluster.Time();
     cluster_xyz = xyzPos;
-    xyz.Fill(cluster.X(),cluster.Y(),cluster.Z());
+    xyz.Fill(cluster.X(), cluster.Y(), cluster.Z());
     xyzPos++;
     clusters.Fill();
   }
 
   // Tracks
-  long track_xyz;   // first track point
-  int track_points; // number of track points
+  long track_xyz;     // first track point
+  int track_points;   // number of track points
   int track_clusters; // number of track clusters
   int track_source;
   std::string track_GID;
@@ -107,18 +111,18 @@ void VisualisationEventROOTSerializer::toFile(const VisualisationEvent& event, s
   float track_eta;
   int track_PID;
 
-  TTree tracks("tracks","Tracks");
-  tracks.Branch("xyz",&track_xyz);
-  tracks.Branch("time",&track_time);
-  tracks.Branch("charge",&track_charge);
-  tracks.Branch("theta",&track_theta);
-  tracks.Branch("phi",&track_phi);
-  tracks.Branch("eta",&track_eta);
-  tracks.Branch("PID",&track_PID);
-  tracks.Branch("GID",&track_GID);
-  tracks.Branch("source",&track_source);
-  tracks.Branch("points",&track_points);
-  tracks.Branch("clusters",&track_clusters);
+  TTree tracks("tracks", "Tracks");
+  tracks.Branch("xyz", &track_xyz);
+  tracks.Branch("time", &track_time);
+  tracks.Branch("charge", &track_charge);
+  tracks.Branch("theta", &track_theta);
+  tracks.Branch("phi", &track_phi);
+  tracks.Branch("eta", &track_eta);
+  tracks.Branch("PID", &track_PID);
+  tracks.Branch("GID", &track_GID);
+  tracks.Branch("source", &track_source);
+  tracks.Branch("points", &track_points);
+  tracks.Branch("clusters", &track_clusters);
 
   for (auto track : event.getTracksSpan()) {
     track_xyz = xyzPos;
@@ -131,24 +135,24 @@ void VisualisationEventROOTSerializer::toFile(const VisualisationEvent& event, s
     track_GID = track.mGID;
     track_source = track.mSource;
 
-    xyz.Fill(track.mStartCoordinates[0],track.mStartCoordinates[1],track.mStartCoordinates[2]);
+    xyz.Fill(track.mStartCoordinates[0], track.mStartCoordinates[1], track.mStartCoordinates[2]);
     xyzPos++;
     track_points = track.getPointCount();
 
     for (size_t i = 0; i < track.getPointCount(); i++) {
-      xyz.Fill(track.mPolyX[i],track.mPolyY[i],track.mPolyZ[i]);
+      xyz.Fill(track.mPolyX[i], track.mPolyY[i], track.mPolyZ[i]);
       xyzPos++;
     }
     track_clusters = track.getClusterCount();
     for (auto cluster : track.getClustersSpan()) {
-      xyz.Fill(cluster.X(),cluster.Y(),cluster.Z());
+      xyz.Fill(cluster.X(), cluster.Y(), cluster.Z());
       xyzPos++;
     }
     tracks.Fill();
   }
 
   // calorimeters
-  TTree calo("calo","Calorimeters");
+  TTree calo("calo", "Calorimeters");
   int calo_source;
   float calo_time;
   float calo_energy;
@@ -157,13 +161,13 @@ void VisualisationEventROOTSerializer::toFile(const VisualisationEvent& event, s
   std::string calo_GID;
   int calo_PID;
 
-  calo.Branch("source",&calo_source);
-  calo.Branch("time",&calo_time);
-  calo.Branch("energy",&calo_energy);
-  calo.Branch("eta",&calo_eta);
-  calo.Branch("phi",&calo_phi);
-  calo.Branch("GID",&calo_GID);
-  calo.Branch("PID",&calo_PID);
+  calo.Branch("source", &calo_source);
+  calo.Branch("time", &calo_time);
+  calo.Branch("energy", &calo_energy);
+  calo.Branch("eta", &calo_eta);
+  calo.Branch("phi", &calo_phi);
+  calo.Branch("GID", &calo_GID);
+  calo.Branch("PID", &calo_PID);
 
   for (auto calorimeter : event.getCalorimetersSpan()) {
     calo_source = calorimeter.getSource();
@@ -190,26 +194,26 @@ bool VisualisationEventROOTSerializer::fromFile(VisualisationEvent& event, std::
 
   TFile f(fileName.c_str());
 
-  event.setRunNumber(readInt(f,"runNumber"));
+  event.setRunNumber(readInt(f, "runNumber"));
   event.setClMask(readInt(f, "clMask"));
   event.setTrkMask(readInt(f, "trkMask"));
   event.setTfCounter(readInt(f, "tfCounter"));
   event.setFirstTForbit(readInt(f, "firstTForbit"));
 
-  event.setCollisionTime(readString(f,"collisionTime"));
-  event.mEveVersion = readString(f,"eveVersion");
-  event.mWorkflowParameters = readString(f,"workflowParameters");
+  event.setCollisionTime(readString(f, "collisionTime"));
+  event.mEveVersion = readString(f, "eveVersion");
+  event.mWorkflowParameters = readString(f, "workflowParameters");
 
   // xyz
-  TNtuple *xyz = (TNtuple*)f.Get("xyz");
+  TNtuple* xyz = (TNtuple*)f.Get("xyz");
 
   // tracks
-  TTree *tracks = (TTree*)f.Get("tracks");
-  long track_xyz;   // first track point
-  int track_points; // number of track points
+  TTree* tracks = (TTree*)f.Get("tracks");
+  long track_xyz;     // first track point
+  int track_points;   // number of track points
   int track_clusters; // number of track clusters
   int track_source;
-  std::string *track_GID = 0;
+  std::string* track_GID = 0;
   float track_time;
   int track_charge;
   float track_theta;
@@ -217,20 +221,20 @@ bool VisualisationEventROOTSerializer::fromFile(VisualisationEvent& event, std::
   float track_eta;
   int track_PID;
 
-  tracks->SetBranchAddress("xyz",&track_xyz);
-  tracks->SetBranchAddress("time",&track_time);
-  tracks->SetBranchAddress("charge",&track_charge);
-  tracks->SetBranchAddress("theta",&track_theta);
-  tracks->SetBranchAddress("phi",&track_phi);
-  tracks->SetBranchAddress("eta",&track_eta);
-  tracks->SetBranchAddress("PID",&track_PID);
-  tracks->SetBranchAddress("GID",&track_GID);
-  tracks->SetBranchAddress("source",&track_source);
-  tracks->SetBranchAddress("points",&track_points);
-  tracks->SetBranchAddress("clusters",&track_clusters);
+  tracks->SetBranchAddress("xyz", &track_xyz);
+  tracks->SetBranchAddress("time", &track_time);
+  tracks->SetBranchAddress("charge", &track_charge);
+  tracks->SetBranchAddress("theta", &track_theta);
+  tracks->SetBranchAddress("phi", &track_phi);
+  tracks->SetBranchAddress("eta", &track_eta);
+  tracks->SetBranchAddress("PID", &track_PID);
+  tracks->SetBranchAddress("GID", &track_GID);
+  tracks->SetBranchAddress("source", &track_source);
+  tracks->SetBranchAddress("points", &track_points);
+  tracks->SetBranchAddress("clusters", &track_clusters);
 
   Int_t tracksNoOfEntries = (Int_t)tracks->GetEntries();
-  for (Int_t i=0; i<tracksNoOfEntries; i++) {
+  for (Int_t i = 0; i < tracksNoOfEntries; i++) {
     tracks->GetEntry(i);
     VisualisationTrack track;
     track.mTime = track_time;
@@ -243,12 +247,12 @@ bool VisualisationEventROOTSerializer::fromFile(VisualisationEvent& event, std::
     track.mSource = (o2::dataformats::GlobalTrackID::Source)track_source;
     xyz->GetEntry(track_xyz);
     track.addStartCoordinates(xyz->GetArgs());
-    for(size_t i=0; i < track_points; i++) {
-      xyz->GetEntry(track_xyz+1+i);
+    for (size_t i = 0; i < track_points; i++) {
+      xyz->GetEntry(track_xyz + 1 + i);
       track.addPolyPoint(xyz->GetArgs());
     }
-    for(size_t i=0; i < track_clusters; i++) {
-      xyz->GetEntry(track_xyz+1+track_points+i);
+    for (size_t i = 0; i < track_clusters; i++) {
+      xyz->GetEntry(track_xyz + 1 + track_points + i);
       VisualisationCluster cluster(xyz->GetArgs(), track.mTime);
       cluster.mSource = track.mSource;
       track.mClusters.emplace_back(cluster);
@@ -277,7 +281,7 @@ bool VisualisationEventROOTSerializer::fromFile(VisualisationEvent& event, std::
   }
 
   // calorimeters
-  TTree *calo = (TTree*)f.Get("calo");
+  TTree* calo = (TTree*)f.Get("calo");
   int calo_source;
   float calo_time;
   float calo_energy;
@@ -286,16 +290,16 @@ bool VisualisationEventROOTSerializer::fromFile(VisualisationEvent& event, std::
   std::string* calo_GID = 0;
   int calo_PID;
 
-  calo->SetBranchAddress("source",&calo_source);
-  calo->SetBranchAddress("time",&calo_time);
-  calo->SetBranchAddress("energy",&calo_energy);
-  calo->SetBranchAddress("eta",&calo_eta);
-  calo->SetBranchAddress("phi",&calo_phi);
-  calo->SetBranchAddress("GID",&calo_GID);
-  calo->SetBranchAddress("PID",&calo_PID);
+  calo->SetBranchAddress("source", &calo_source);
+  calo->SetBranchAddress("time", &calo_time);
+  calo->SetBranchAddress("energy", &calo_energy);
+  calo->SetBranchAddress("eta", &calo_eta);
+  calo->SetBranchAddress("phi", &calo_phi);
+  calo->SetBranchAddress("GID", &calo_GID);
+  calo->SetBranchAddress("PID", &calo_PID);
 
   Int_t nentries = (Int_t)calo->GetEntries();
-  for (Int_t i=0; i<nentries; i++) {
+  for (Int_t i = 0; i < nentries; i++) {
     calo->GetEntry(i);
     VisualisationCalo calorimeter;
     calorimeter.mSource = (o2::dataformats::GlobalTrackID::Source)calo_source;
@@ -303,7 +307,7 @@ bool VisualisationEventROOTSerializer::fromFile(VisualisationEvent& event, std::
     calorimeter.mEnergy = calo_energy;
     calorimeter.mEta = calo_eta;
     calorimeter.mPhi = calo_phi;
-    if(calo_GID) {
+    if (calo_GID) {
       calorimeter.mGID = *calo_GID;
     }
     calorimeter.mPID = calo_PID;

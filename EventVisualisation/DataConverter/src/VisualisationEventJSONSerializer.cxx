@@ -255,10 +255,10 @@ VisualisationTrack VisualisationEventJSONSerializer::trackFromJSON(rapidjson::Va
   rapidjson::Value& jsonPolyZ = tree["mPolyZ"];
   rapidjson::Value& count = tree["count"];
   track.mCharge = getIntOrDefault(tree, "charge", 0);
-  track.mTheta = getFloatOrDefault(tree,"theta",0);
-  track.mPhi = getFloatOrDefault(tree,"phi",0);
-  track.mEta = getFloatOrDefault(tree,"eta",0);
-  track.mSource = (o2::dataformats::GlobalTrackID::Source)getIntOrDefault(tree,"source", (int)o2::dataformats::GlobalTrackID::TPC);
+  track.mTheta = getFloatOrDefault(tree, "theta", 0);
+  track.mPhi = getFloatOrDefault(tree, "phi", 0);
+  track.mEta = getFloatOrDefault(tree, "eta", 0);
+  track.mSource = (o2::dataformats::GlobalTrackID::Source)getIntOrDefault(tree, "source", (int)o2::dataformats::GlobalTrackID::TPC);
   track.mPID = getIntOrDefault(tree, "PID", 0);
   track.mTime = tree["time"].GetFloat();
   track.mGID = getStringOrDefault(tree, "gid", "track");
