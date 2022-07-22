@@ -36,7 +36,7 @@ using boost::histogram::indexed;
 //_____________________________________________
 void EMCALTimeCalibData::PrintStream(std::ostream& stream) const
 {
-  stream << "EMCAL Cell ID:  " << mTimeHisto << "\n";
+  // stream << "EMCAL Cell ID:  " << mTimeHisto << "\n";
 }
 //_____________________________________________
 void EMCALTimeCalibData::print()
@@ -55,6 +55,10 @@ void EMCALTimeCalibData::merge(const EMCALTimeCalibData* prev)
   mEvents += prev->getNEvents();
   mNEntriesInHisto += prev->getNEntriesInHisto();
   mTimeHisto += prev->getHisto();
+  const auto statAccPrevious = prev->getAccumulator();
+  for (int i = 0; i < NCELLS; ++i) {
+    mStatAccummulator[i] += statAccPrevious[i];
+  }
 }
 //_____________________________________________
 bool EMCALTimeCalibData::hasEnoughData() const
@@ -85,7 +89,11 @@ void EMCALTimeCalibData::fill(const gsl::span<const o2::emcal::Cell> data)
     int id = cell.getTower();
     if (cellEnergy > EMCALCalibParams::Instance().minCellEnergyForTimeCalib) {
       LOG(debug) << "inserting in cell ID " << id << ": cellTime = " << cellTime;
-      mTimeHisto(cellTime, id);
+      if (EMCALCalibParams::Instance().enableFastCalib) {
+        mStatAccummulator[id].add(cellTime);
+      } else {
+        mTimeHisto(cellTime, id);
+      }
       mNEntriesInHisto++;
     }
   }

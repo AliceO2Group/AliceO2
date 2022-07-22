@@ -15,6 +15,9 @@
 #include "RStringView.h"
 #include "CCDB/CcdbApi.h"
 
+#ifndef EMCALCALIBDB_H_
+#define EMCALCALIBDB_H_
+
 namespace o2
 {
 
@@ -343,3 +346,5 @@ class CalibDB
 } // namespace emcal
 
 } // namespace o2
+
+#endif

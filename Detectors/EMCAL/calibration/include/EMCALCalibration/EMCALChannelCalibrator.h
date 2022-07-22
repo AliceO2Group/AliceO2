@@ -131,17 +131,22 @@ void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::finalizeSlot(
     mInfoVector.emplace_back(CalibDB::getCDBPathBadChannelMap(), clName, flName, md, slot.getStartTimeMS(), o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     mCalibObjectVector.push_back(bcm);
   } else if constexpr (std::is_same<DataInput, o2::emcal::EMCALTimeCalibData>::value) {
-    auto tcd = mCalibrator->calibrateTime(c->getHisto());
+
+    o2::emcal::TimeCalibrationParams tcd;
+    if (o2::emcal::EMCALCalibParams::Instance().enableFastCalib) {
+      tcd = mCalibrator->calibrateTime(c->getAccumulator());
+    } else {
+      tcd = mCalibrator->calibrateTime(c->getHisto());
+    }
 
     // for the CCDB entry
     auto clName = o2::utils::MemFileHelper::getClassName(slot);
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-
     //prepareCCDBobjectInfo
     mInfoVector.emplace_back(CalibDB::getCDBPathTimeCalibrationParams(), clName, flName, md, slot.getStartTimeMS(), o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     mCalibObjectVector.push_back(tcd);
 
-    if ((EMCALCalibParams::Instance().localRootFilePath).find(".root") != std::string::npos) {
+    if ((EMCALCalibParams::Instance().localRootFilePath).find(".root") != std::string::npos && !EMCALCalibParams::Instance().enableFastCalib) {
       TFile fLocalStorage((EMCALCalibParams::Instance().localRootFilePath).c_str(), "update");
       fLocalStorage.cd();
       TH1F* histTCparams = (TH1F*)tcd.getHistogramRepresentation(false);

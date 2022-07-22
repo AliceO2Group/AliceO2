@@ -24,6 +24,7 @@
 #include "EMCALCalib/TimeCalibrationParams.h"
 #include "CommonUtils/BoostHistogramUtils.h"
 #include "EMCALBase/Geometry.h"
+#include "MathUtils/detail/StatAccumulator.h"
 #include <boost/histogram.hpp>
 
 #if (defined(WITH_OPENMP) && !defined(__CLING__))
@@ -106,7 +107,7 @@ class EMCALCalibExtractor
   /// \param maxTime -- max. time considered for fit
   /// \param restrictFitRangeToMax -- restrict the fit range to the maximum entry in the histogram in the range +-restrictFitRangeToMax (default: 25ns)
   template <typename... axes>
-  o2::emcal::TimeCalibrationParams calibrateTime(boost::histogram::histogram<axes...>& hist, double minTime = 0, double maxTime = 1000, double restrictFitRangeToMax = 25)
+  o2::emcal::TimeCalibrationParams calibrateTime(const boost::histogram::histogram<axes...>& hist, double minTime = 0, double maxTime = 1000, double restrictFitRangeToMax = 25)
   {
 
     auto histReduced = boost::histogram::algorithm::reduce(hist, boost::histogram::algorithm::shrink(minTime, maxTime), boost::histogram::algorithm::shrink(0, mNcells));
@@ -152,6 +153,18 @@ class EMCALCalibExtractor
       } catch (o2::utils::FitGausError_t) {
         TCP.addTimeCalibParam(i, mean, 0); // take calib value of last cell; or 400 ns shift default value
       }
+    }
+    return TCP;
+  }
+
+  o2::emcal::TimeCalibrationParams calibrateTime(std::array<o2::math_utils::detail::StatAccumulator, 17664> arrStatAccumulator)
+  {
+    LOG(info) << "do calibration based on StatAccumulator";
+    o2::emcal::TimeCalibrationParams TCP;
+    for (int i = 0; i < mNcells; ++i) {
+      LOG(debug) << "calibrate cell " << i;
+      auto tmpParams = arrStatAccumulator[i].getMeanRMS2();
+      TCP.addTimeCalibParam(i, std::get<0>(tmpParams), 0);
     }
     return TCP;
   }
