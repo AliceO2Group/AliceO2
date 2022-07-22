@@ -78,7 +78,7 @@ class Tracker
   void computeCells(int& iteration);
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
-  void findShortPrimaries(int& iteration);
+  void findShortPrimaries();
   void findTracks(int& iteration);
   void extendTracks(int& iteration);
 
