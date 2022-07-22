@@ -43,6 +43,7 @@ if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
   echo "CALIB_TPC_TIMEGAIN = $CALIB_TPC_TIMEGAIN" 1>&2
   echo "CALIB_TPC_RESPADGAIN = $CALIB_TPC_RESPADGAIN" 1>&2
   echo "CALIB_TPC_SCDCALIB = $CALIB_TPC_SCDCALIB" 1>&2
+  echo "CALIB_TPC_VDRIFTTGL = $CALIB_TPC_VDRIFTTGL" 1>&2
   echo "CALIB_CPV_GAIN = $CALIB_CPV_GAIN" 1>&2
 fi
 
@@ -136,6 +137,10 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
     # TODO: the residual aggregator should have --output-dir and --meta-output-dir defined
     # without that the residuals will be stored in the local working directory (and deleted after a week)
     add_W o2-calibration-residual-aggregator "$ENABLE_TRACK_INPUT --output-type trackParams,unbinnedResid,binnedResid --autosave-interval $RESIDUAL_AGGREGATOR_AUTOSAVE"
+  fi
+  if [[ $CALIB_TPC_VDRIFTTGL == 1 ]]; then
+    # options available via ARGS_EXTRA_PROCESS_o2_tpc_vdrift_tgl_calibration_workflow="--nbins-tgl 20 --nbins-dtgl 50 --max-tgl-its 2. --max-dtgl-itstpc 0.15 --min-entries-per-slot 1000 --time-slot-seconds 600 <--vdtgl-histos-file-name name> "
+    add_W o2-tpc-vdrift-tgl-calibration-workflow ""
   fi
   # TRD
   if [[ $CALIB_TRD_VDRIFTEXB == 1 ]]; then
