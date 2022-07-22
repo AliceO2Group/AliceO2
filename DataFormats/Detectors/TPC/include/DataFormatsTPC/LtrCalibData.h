@@ -19,6 +19,9 @@
 #ifndef AliceO2_TPC_LtrCalibData_H_
 #define AliceO2_TPC_LtrCalibData_H_
 
+#include <FairLogger.h>
+#include <Rtypes.h>
+
 namespace o2::tpc
 {
 
@@ -38,6 +41,20 @@ struct LtrCalibData {
 
   float getDriftVCorrection() const { return 0.5f * (dvCorrectionA + dvCorrectionC); }
 
+  // renormalize reference and correction either to provided new reference (if >0) or to correction 1 wrt current reference
+  void normalize(float newVRef = 0.f)
+  {
+    if (refVDrift == 0.) {
+      LOG(fatal) << "LtrCalibData data has no reference";
+    }
+    if (newVRef == 0.) {
+      newVRef = refVDrift / getDriftVCorrection();
+    }
+    float fact = newVRef / refVDrift;
+    dvCorrectionA *= fact;
+    dvCorrectionC *= fact;
+  }
+
   void reset()
   {
     processedTFs = 0;
@@ -50,7 +67,7 @@ struct LtrCalibData {
     dvOffsetC = 0;
     nTracksA = 0;
     nTracksC = 0;
-
+    refVDrift = 0;
     matchedLtrIDs.clear();
   }
 
