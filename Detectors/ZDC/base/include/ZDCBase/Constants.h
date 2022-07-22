@@ -247,6 +247,7 @@ const std::string CCDBPathConfigSim = "ZDC/Config/Sim";
 const std::string CCDBPathConfigModule = "ZDC/Config/Module";
 const std::string CCDBPathRecoConfigZDC = "ZDC/Calib/RecoConfigZDC";
 const std::string CCDBPathTDCCalib = "ZDC/Calib/TDCCalib";
+const std::string CCDBPathTDCCalibConfig = "ZDC/Calib/TDCCalibConfig";
 const std::string CCDBPathTDCCorr = "ZDC/Calib/TDCCorr";
 const std::string CCDBPathEnergyCalib = "ZDC/Calib/EnergyCalib";
 const std::string CCDBPathTowerCalib = "ZDC/Calib/TowerCalib";

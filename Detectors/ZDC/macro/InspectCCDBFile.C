@@ -78,6 +78,10 @@ void InspectCCDBFile()
       o2::zdc::InterCalibConfig* ob = (o2::zdc::InterCalibConfig*)key->ReadObj();
       printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathInterCalibConfig.data());
       ob->print();
+    } else if (cn.EqualTo("o2::zdc::TDCCalibConfig")) {
+      o2::zdc::TDCCalibConfig* ob = (o2::zdc::TDCCalibConfig*)key->ReadObj();
+      printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathTDCCalibConfig.data());
+      ob->print();
     } else if (cn.EqualTo("o2::zdc::BaselineCalibConfig")) {
       o2::zdc::BaselineCalibConfig* ob = (o2::zdc::BaselineCalibConfig*)key->ReadObj();
       printf("%s %s %d %s @ %s\n", "OBJ", key->GetName(), key->GetCycle(), key->GetTitle(), o2::zdc::CCDBPathBaselineCalibConfig.data());
