@@ -81,21 +81,24 @@ void TrackerDPL::init(InitContext& ic)
 
   } else if (mMode == "sync_misaligned") {
 
-    trackParams.resize(1);
+    trackParams.resize(3);
     trackParams[0].PhiBins = 32;
     trackParams[0].ZBins = 64;
-    trackParams[0].CellDeltaTanLambdaSigma *= 10;
-    trackParams[0].LayerMisalignment[0] = 3.e-2;
-    trackParams[0].LayerMisalignment[1] = 3.e-2;
-    trackParams[0].LayerMisalignment[2] = 3.e-2;
-    trackParams[0].LayerMisalignment[3] = 1.e-1;
-    trackParams[0].LayerMisalignment[4] = 1.e-1;
-    trackParams[0].LayerMisalignment[5] = 1.e-1;
-    trackParams[0].LayerMisalignment[6] = 1.e-1;
-    trackParams[0].FitIterationMaxChi2[0] = 100.;
-    trackParams[0].FitIterationMaxChi2[1] = 50.;
-    trackParams[0].MinTrackLength = 4;
-    memParams.resize(1);
+    trackParams[0].CellDeltaTanLambdaSigma *= 3.;
+    trackParams[0].LayerMisalignment[0] = 1.e-2;
+    trackParams[0].LayerMisalignment[1] = 1.e-2;
+    trackParams[0].LayerMisalignment[2] = 1.e-2;
+    trackParams[0].LayerMisalignment[3] = 3.e-2;
+    trackParams[0].LayerMisalignment[4] = 3.e-2;
+    trackParams[0].LayerMisalignment[5] = 3.e-2;
+    trackParams[0].LayerMisalignment[6] = 3.e-2;
+    trackParams[0].FitIterationMaxChi2[0] = 50.;
+    trackParams[0].FitIterationMaxChi2[1] = 25.;
+    trackParams[1] = trackParams[0];
+    trackParams[2] = trackParams[0];
+    trackParams[1].MinTrackLength = 6;
+    trackParams[2].MinTrackLength = 4;
+    memParams.resize(3);
     LOG(info) << "Initializing tracker in misaligned sync. phase reconstruction with " << trackParams.size() << " passes";
 
   } else if (mMode == "sync") {
@@ -112,15 +115,15 @@ void TrackerDPL::init(InitContext& ic)
     trackParams[0].PhiBins = 4;
     trackParams[0].ZBins = 16;
     trackParams[0].PVres = 1.e5f;
-    trackParams[0].LayerMisalignment[0] = 3.e-2;
-    trackParams[0].LayerMisalignment[1] = 3.e-2;
-    trackParams[0].LayerMisalignment[2] = 3.e-2;
-    trackParams[0].LayerMisalignment[3] = 1.e-1;
-    trackParams[0].LayerMisalignment[4] = 1.e-1;
-    trackParams[0].LayerMisalignment[5] = 1.e-1;
-    trackParams[0].LayerMisalignment[6] = 1.e-1;
-    trackParams[0].FitIterationMaxChi2[0] = 100.;
-    trackParams[0].FitIterationMaxChi2[1] = 50.;
+    trackParams[0].LayerMisalignment[0] = 1.e-2;
+    trackParams[0].LayerMisalignment[1] = 1.e-2;
+    trackParams[0].LayerMisalignment[2] = 1.e-2;
+    trackParams[0].LayerMisalignment[3] = 3.e-2;
+    trackParams[0].LayerMisalignment[4] = 3.e-2;
+    trackParams[0].LayerMisalignment[5] = 3.e-2;
+    trackParams[0].LayerMisalignment[6] = 3.e-2;
+    trackParams[0].FitIterationMaxChi2[0] = 50.;
+    trackParams[0].FitIterationMaxChi2[1] = 25.;
     trackParams[0].TrackletsPerClusterLimit = 100.;
     trackParams[0].CellsPerClusterLimit = 100.;
     LOG(info) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
@@ -318,7 +321,6 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alppar");
     GeometryTGeo* geom = GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
-    mTracker->setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT); /// TODO: eventually remove this in favour of the one below
     mVertexer->getGlobalConfiguration();
     mTracker->getGlobalConfiguration();
   }
