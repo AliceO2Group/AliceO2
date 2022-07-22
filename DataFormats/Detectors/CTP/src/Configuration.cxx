@@ -231,7 +231,7 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
       }
       bool coded = tokens[2].find("L") != std::string::npos;
       coded |= tokens[2].find("H") != std::string::npos;
-      //std::cout << "coded:" << coded << std::endl;
+      // std::cout << "coded:" << coded << std::endl;
       if (coded) {
         // jusko notation
       } else {
@@ -338,9 +338,9 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
           desc.name = token;
           mDescriptors.push_back(desc);
           cls.descriptorIndex = mDescriptors.size() - 1;
-          LOG(info) << "Class generator found:" << desc.name ;
+          LOG(info) << "Class generator found:" << desc.name;
         } else if (token.find("~") != std::string::npos) { // inverted input
-          //std::cout << "Inverted input" << std::endl;
+          // std::cout << "Inverted input" << std::endl;
           std::string sinp = token.substr(1, token.size() - 1);
           // uint32_t inp = std::strtoul(sinp);
           if (cls.descriptorIndex == 0xff) {
@@ -353,7 +353,7 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
             desc.name += " " + token;
           }
         } else if (isNumber(token)) { // normal input
-          //std::cout << "Normal input" << std::endl;
+          // std::cout << "Normal input" << std::endl;
           if (cls.descriptorIndex == 0xff) {
             CTPDescriptor desc;
             desc.name = token;
@@ -365,10 +365,10 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
           }
           LOG(info) << "Class input descriptor:" << mDescriptors[mDescriptors.size() - 1].name;
         } else if (token.find("0x") != std::string::npos) { // downscale
-          //std::cout << "Downscale" << std::endl;
+          // std::cout << "Downscale" << std::endl;
           cls.downScale = std::stoul(token, nullptr, 16);
         } else {                                            // mask
-          //std::cout << "Mask" << std::endl;
+          // std::cout << "Mask" << std::endl;
           int i = 0;
           for (auto const& bcm : mBCMasks) {
             if (bcm.name == token) {
@@ -433,7 +433,7 @@ uint64_t CTPConfiguration::getInputMask(const std::string& name) const
 int CTPConfiguration::getInputIndex(const std::string& name) const
 {
   const CTPInput* inp = isInputInConfig(name);
-  if(inp == nullptr) {
+  if (inp == nullptr) {
     return 0xff;
   } else {
     return inp->getIndex();
@@ -459,7 +459,7 @@ bool CTPConfiguration::isBCMaskInConfig(const std::string maskname) const
 }
 const CTPInput* CTPConfiguration::isInputInConfig(const std::string inpname) const
 {
-  for ( const auto &inp : mInputs) {
+  for (const auto& inp : mInputs) {
     if (inp.name == inpname) {
       return &inp;
     }
@@ -468,8 +468,8 @@ const CTPInput* CTPConfiguration::isInputInConfig(const std::string inpname) con
 }
 const CTPInput* CTPConfiguration::isInputInConfig(const int index) const
 {
-  for ( const auto &inp : mInputs) {
-    //std::cout << "isInputINConfig:" << inp.name << " " << inp.getIndex() << " " << index << std::endl;
+  for (const auto& inp : mInputs) {
+    // std::cout << "isInputINConfig:" << inp.name << " " << inp.getIndex() << " " << index << std::endl;
     if (inp.getIndex() == index) {
       LOG(info) << "Found input:" << inp.name << " index:" << inp.getIndex();
       return &inp;

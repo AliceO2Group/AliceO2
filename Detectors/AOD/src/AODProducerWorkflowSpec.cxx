@@ -101,8 +101,8 @@ void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoCont
   // Extract inputs from recoData
   std::map<uint64_t, uint64_t> bcsMapT0triggers;
   std::map<uint64_t, bool> bcsMapTRDreadout;
-  //const auto& fddRecPoints = recoData.getFDDRecPoints();
-  //const auto& fv0RecPoints = recoData.getFV0RecPoints();
+  // const auto& fddRecPoints = recoData.getFDDRecPoints();
+  // const auto& fv0RecPoints = recoData.getFV0RecPoints();
   const auto& caloEMCCellsTRGR = recoData.getEMCALTriggers();
   const auto& caloPHOSCellsTRGR = recoData.getPHOSTriggers();
   const auto& triggerrecordTRD = recoData.getTRDTriggerRecords();
@@ -120,7 +120,7 @@ void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoCont
   for (auto& trdrec : triggerrecordTRD) {
     uint64_t globalBC = trdrec.getBCData().toLong();
     bcsMapTRDreadout[globalBC] = 1;
-    if(bcsMapT0triggers.count(globalBC) > 0) {
+    if (bcsMapT0triggers.count(globalBC) > 0) {
       o2::ctp::CTPDigit ctpdig;
       ctpdig.intRecord.setFromLong(globalBC);
       ctpdig.CTPClassMask = bcsMapT0triggers[globalBC];
@@ -1255,7 +1255,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto ctpDigits = recoData.getCTPDigits();
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
 
-  if(mCTPReadout == 1) {
+  if (mCTPReadout == 1) {
     std::vector<o2::ctp::CTPDigit> ctpDigitsCreated;
     createCTPReadout(recoData, ctpDigitsCreated, tinfo.runNumber);
     ctpDigits = ctpDigitsCreated;
@@ -1320,7 +1320,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto caloCellsCursor = caloCellsBuilder.cursor<o2::aod::Calos>();
   auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
   auto originCursor = originTableBuilder.cursor<o2::aod::Origins>();
-
 
   std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
   if (mUseMC) {

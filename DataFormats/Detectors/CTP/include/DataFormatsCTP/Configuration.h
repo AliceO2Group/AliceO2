@@ -67,7 +67,7 @@ struct CTPDescriptor {
   std::string name = "";
   std::vector<CTPInput*> inputs;
   std::uint64_t getInputsMask() const;
-  //void createInputsFromName();
+  // void createInputsFromName();
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPDescriptor, 2)
 };
@@ -155,6 +155,7 @@ class CTPConfiguration
   void createDefaultInputsConfig();
   uint64_t getClassMaskForInput(int inputindex) const;
   uint64_t getClassMaskForInput(const std::string& name) const;
+
  private:
   std::string mConfigString = "";
   uint32_t mRunNumber = 0;
