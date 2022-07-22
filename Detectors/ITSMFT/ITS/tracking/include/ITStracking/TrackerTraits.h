@@ -56,7 +56,7 @@ class TrackerTraits
   virtual void computeLayerCells(const int iteration);
   virtual void findCellsNeighbours(const int iteration);
   virtual void findRoads(const int iteration);
-  virtual void findTracks(const int iteration);
+  virtual void findTracks();
   virtual void extendTracks(const int iteration);
   virtual void findShortPrimaries();
   virtual void refitTracks(const int iteration, const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&);
@@ -67,7 +67,7 @@ class TrackerTraits
   void adoptTimeFrame(TimeFrame* tf) { mTimeFrame = tf; }
   void setBz(float bz);
   float getBz() const;
-  void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType& type) { mCorrType = type; }
+  void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType type) { mCorrType = type; }
   bool isMatLUT() const;
 
   // Others
@@ -82,12 +82,15 @@ class TrackerTraits
   }
   void setSmoothing(bool v) { mApplySmoothing = v; }
   bool getSmoothing() const { return mApplySmoothing; }
+  void setNThreads(int n);
+  int getNThreads() const { return mNThreads; }
 
  private:
   void traverseCellsTree(const int, const int);
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3, const TrackingFrameInfo& tf3, float resolution);
   bool fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut = o2::constants::math::VeryBig, const float maxQoverPt = o2::constants::math::VeryBig);
 
+  int mNThreads = 1;
   bool mApplySmoothing = false;
   o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
   float mBz = 5.f;

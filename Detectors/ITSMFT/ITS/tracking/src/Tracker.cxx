@@ -31,10 +31,6 @@
 #include <string>
 #include <climits>
 
-#ifdef WITH_OPENMP
-#include <omp.h>
-#endif
-
 namespace o2
 {
 namespace its
@@ -82,7 +78,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
     total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", logger, iteration);
     total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
     logger(fmt::format("\t- Number of Roads: {}", mTimeFrame->getRoads().size()));
-    total += evaluateTask(&Tracker::findTracks, "Track finding", logger, iteration);
+    total += evaluateTask(&Tracker::findTracks, "Track finding", logger);
     total += evaluateTask(&Tracker::extendTracks, "Extending tracks", logger, iteration);
   }
 
@@ -92,7 +88,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
   std::stringstream sstream;
   if (constants::DoTimeBenchmarks) {
     sstream << std::setw(2) << " - "
-            << "Timeframe " << mTimeFrameCounter++ << " processing completed in: " << total << "ms using " << mNThreads << " threads.";
+            << "Timeframe " << mTimeFrameCounter++ << " processing completed in: " << total << "ms using " << mTraits->getNThreads() << " threads.";
   }
   logger(sstream.str());
 
@@ -123,9 +119,9 @@ void Tracker::findRoads(int& iteration)
   mTraits->findRoads(iteration);
 }
 
-void Tracker::findTracks(int& iteration)
+void Tracker::findTracks()
 {
-  mTraits->findTracks(iteration);
+  mTraits->findTracks();
 }
 
 void Tracker::extendTracks(int& iteration)
@@ -370,7 +366,7 @@ void Tracker::setBz(float bz)
   mTraits->setBz(bz);
 }
 
-void Tracker::setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType& type)
+void Tracker::setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType type)
 {
   mTraits->setCorrType(type);
 }
@@ -382,12 +378,12 @@ bool Tracker::isMatLUT() const
 
 void Tracker::setNThreads(int n)
 {
-#ifdef WITH_OPENMP
-  mNThreads = n > 0 ? n : 1;
-#else
-  mNThreads = 1;
-#endif
+  mTraits->setNThreads(n);
 }
 
+int Tracker::getNThreads() const
+{
+  return mTraits->getNThreads();
+}
 } // namespace its
 } // namespace o2

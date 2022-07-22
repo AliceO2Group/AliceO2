@@ -29,6 +29,10 @@
 #include "ITStracking/Tracklet.h"
 #include "ReconstructionDataFormats/Track.h"
 
+#ifdef WITH_OPENMP
+#include <omp.h>
+#endif
+
 using o2::base::PropagatorF;
 
 namespace
@@ -442,11 +446,14 @@ void TrackerTraits::findRoads(const int iteration)
   }
 }
 
-void TrackerTraits::findTracks(const int iteration)
+void TrackerTraits::findTracks()
 {
-  std::vector<TrackITSExt> tracks;
-  tracks.reserve(mTimeFrame->getRoads().size());
+  std::vector<std::vector<TrackITSExt>> tracks(mNThreads);
+  for (auto& tracksV : tracks) {
+    tracksV.reserve(mTimeFrame->getRoads().size() / mNThreads);
+  }
 
+#pragma omp parallel for num_threads(mNThreads)
   for (auto& road : mTimeFrame->getRoads()) {
     std::vector<int> clusters(mTrkParams[0].NLayers, constants::its::UnusedIndex);
     int lastCellLevel = constants::its::UnusedIndex;
@@ -537,16 +544,25 @@ void TrackerTraits::findTracks(const int iteration)
       continue;
     }
     // temporaryTrack.setROFrame(rof);
-    tracks.emplace_back(temporaryTrack);
+#ifdef WITH_OPENMP
+    int iThread = omp_get_thread_num();
+#else
+    int iThread = 0;
+#endif
+    tracks[iThread].emplace_back(temporaryTrack);
+  }
+
+  for (int iV{1}; iV < mNThreads; ++iV) {
+    tracks[0].insert(tracks[0].end(), tracks[iV].begin(), tracks[iV].end());
   }
 
   if (mApplySmoothing) {
     // Smoothing tracks
   }
-  std::sort(tracks.begin(), tracks.end(),
+  std::sort(tracks[0].begin(), tracks[0].end(),
             [](TrackITSExt& track1, TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });
 
-  for (auto& track : tracks) {
+  for (auto& track : tracks[0]) {
     int nShared = 0;
     for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
       if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
@@ -972,5 +988,13 @@ void TrackerTraits::setBz(float bz)
 
 bool TrackerTraits::isMatLUT() const { return o2::base::Propagator::Instance()->getMatLUT() && (mCorrType == o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT); }
 
+void TrackerTraits::setNThreads(int n)
+{
+#ifdef WITH_OPENMP
+  mNThreads = n > 0 ? n : 1;
+#else
+  mNThreads = 1;
+#endif
+}
 } // namespace its
 } // namespace o2
