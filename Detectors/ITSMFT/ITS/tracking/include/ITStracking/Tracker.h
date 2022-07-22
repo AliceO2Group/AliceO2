@@ -67,10 +67,10 @@ class Tracker
   void setParameters(const std::vector<TrackingParameters>&);
   void getGlobalConfiguration();
   void setBz(float);
-  void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType& type);
+  void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType type);
   bool isMatLUT() const;
   void setNThreads(int n);
-  int getNThreads() const { return mNThreads; }
+  int getNThreads() const;
 
  private:
   void initialiseTimeFrame(int& iteration);
@@ -79,7 +79,7 @@ class Tracker
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
   void findShortPrimaries();
-  void findTracks(int& iteration);
+  void findTracks();
   void extendTracks(int& iteration);
 
   // MC interaction
