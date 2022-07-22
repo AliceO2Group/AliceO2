@@ -19,7 +19,8 @@ o2_add_library(DataFormatsParameters
                                      O2::DetectorsCommonDataFormats O2::SimConfig)
 
 o2_target_root_dictionary(DataFormatsParameters
-                          HEADERS include/DataFormatsParameters/GRPObject.h
+                          HEADERS include/DataFormatsParameters/ECSDataAdapters.h
+                                  include/DataFormatsParameters/GRPObject.h
                                   include/DataFormatsParameters/GRPLHCIFData.h
                                   include/DataFormatsParameters/GRPECSObject.h
                                   include/DataFormatsParameters/GRPMagField.h

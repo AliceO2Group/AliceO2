@@ -261,7 +261,7 @@ void CTFWriterSpec::init(InitContext& ic)
 void CTFWriterSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   static bool initOnceDone = false;
-  using GRPECS = o2::parameters::GRPECSObject;
+  namespace GRPECS = o2::parameters::GRPECS;
   if (!initOnceDone) {
     initOnceDone = true;
     mDataTakingContext = pc.services().get<DataTakingContext>();
