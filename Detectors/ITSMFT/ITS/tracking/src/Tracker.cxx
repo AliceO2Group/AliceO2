@@ -318,15 +318,11 @@ void Tracker::getGlobalConfiguration()
 {
   auto& tc = o2::its::TrackerParamConfig::Instance();
   if (tc.useMatCorrTGeo) {
-<<<<<<< HEAD
-    setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
-  } else if (tc.useFastMaterial) {
-    setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE);
-  } else {
-    setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
-=======
     mTraits->setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
->>>>>>> Move core tracking functions to traits
+  } else if (tc.useFastMaterial) {
+    mTraits->setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE);
+  } else {
+    mTraits->setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
   }
   setNThreads(tc.nThreads);
   for (auto& params : mTrkParams) {
