@@ -13,7 +13,15 @@ source $O2DPG_ROOT/DATA/common/setenv_calib.sh
 if [[ -z $WORKFLOW_DETECTORS ]]; then echo "WORKFLOW_DETECTORS must be defined" 1>&2; exit 1; fi
 
 # CCDB destination for uploads
-[[ -z ${CCDB_POPULATOR_UPLOAD_PATH+x} ]] && CCDB_POPULATOR_UPLOAD_PATH="none"
+if [[ -z ${CCDB_POPULATOR_UPLOAD_PATH+x} ]]; then
+  if [[ $RUNTYPE == "SYNTHETIC" ]]; then
+    CCDB_POPULATOR_UPLOAD_PATH="http://ccdb-test.cern.ch:8080"
+  elif [[ $RUNTYPE == "PHYSICS" ]]; then
+    CCDB_POPULATOR_UPLOAD_PATH="http://ccdb-test.cern.ch:8080"
+  else
+    CCDB_POPULATOR_UPLOAD_PATH="none"
+  fi
+fi
 if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
   echo "CCDB_POPULATOR_UPLOAD_PATH = $CCDB_POPULATOR_UPLOAD_PATH" 1>&2
 fi
