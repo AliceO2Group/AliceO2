@@ -52,7 +52,7 @@ class PHOSTurnonCalibDevice : public o2::framework::Task
 
  private:
   bool mUseCCDB = false;
-  long mRunStartTime = 0;                            /// start time of the run (sec)
+  long mRunStartTime = 0;                            /// start time of the run (ms)
   std::unique_ptr<TriggerMap> mTriggerMap;           /// Final calibration object
   std::unique_ptr<PHOSTurnonCalibrator> mCalibrator; /// Agregator of calibration TimeFrameSlots
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;

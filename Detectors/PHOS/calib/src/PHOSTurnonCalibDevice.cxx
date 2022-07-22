@@ -39,6 +39,10 @@ void PHOSTurnonCalibDevice::init(o2::framework::InitContext& ic)
 }
 void PHOSTurnonCalibDevice::run(o2::framework::ProcessingContext& pc)
 {
+  auto crTime = pc.services().get<o2::framework::TimingInfo>().creation;
+  if (mRunStartTime == 0 || crTime < mRunStartTime) {
+    mRunStartTime = crTime;
+  }
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("clusters").header)->startTime; // is this the timestamp of the current TF?
   auto cells = pc.inputs().get<gsl::span<Cell>>("cells");
@@ -60,7 +64,8 @@ void PHOSTurnonCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
     // Calculate and send final object to CCDB
     auto flName = o2::ccdb::CcdbApi::generateFileName("TriggerMap");
     std::map<std::string, std::string> md;
-    o2::ccdb::CcdbObjectInfo info("PHS/Calib/TriggerMap", "TriggerMap", flName, md, mRunStartTime, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+    o2::ccdb::CcdbObjectInfo info("PHS/Calib/TriggerMap", "TriggerMap", flName, md,
+                                  mRunStartTime - o2::ccdb::CcdbObjectInfo::MINUTE, mRunStartTime + o2::ccdb::CcdbObjectInfo::YEAR);
     info.setMetaData(md);
     auto image = o2::ccdb::CcdbApi::createObjectImage(mTriggerMap.get(), &info);
 
@@ -69,9 +74,8 @@ void PHOSTurnonCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
               << " bytes, valid for " << info.getStartValidityTimestamp()
               << " : " << info.getEndValidityTimestamp();
 
-    header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
-    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Tunron", subSpec}, *image.get());
-    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Tunron", subSpec}, info);
+    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Turnon", 0}, *image.get());
+    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_Turnon", 0}, info);
   } else {
     LOG(error) << "Incorrect fit results";
   }
@@ -97,10 +101,8 @@ o2::framework::DataProcessorSpec o2::phos::getPHOSTurnonCalibDeviceSpec(bool use
                                                                 inputs);
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(
-    ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_Tunron"}, Lifetime::Sporadic);
-  outputs.emplace_back(
-    ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_Tunron"}, Lifetime::Sporadic);
+  outputs.emplace_back(clbUtils::gDataOriginCDBPayload, "PHOS_Turnon", 0, Lifetime::Sporadic);
+  outputs.emplace_back(clbUtils::gDataOriginCDBWrapper, "PHOS_Turnon", 0, Lifetime::Sporadic);
   // stream for QC data
   // outputs.emplace_back("PHS", "TRIGGERQC", 0, o2::framework::Lifetime::Timeframe);
 
