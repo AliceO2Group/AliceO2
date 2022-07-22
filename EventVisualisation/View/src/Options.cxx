@@ -101,11 +101,6 @@ bool Options::processCommandLine(int argc, char* argv[])
   this->mHideDplGUI = varmap["hidedplgui"].as<decltype(this->mHideDplGUI)>();
   this->mAODConverterPath = varmap["aodconverter"].as<decltype(this->mAODConverterPath)>();
 
-  if (this->mOnline && varmap["datafolder"].defaulted()) {
-    LOGP(error, "If online mode is enabled, the --datafolder option must be specified!");
-    return false;
-  }
-
   if (save) {
     this->saveToJSON("o2eve.json");
     return false;

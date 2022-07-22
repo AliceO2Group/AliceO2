@@ -67,7 +67,14 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
 
   const TString cls("o2::event_visualisation::EventManagerFrame");
   TGTextButton* b = nullptr;
-  TGHorizontalFrame* f = new TGHorizontalFrame(this);
+  TGRadioButton* r = nullptr;
+  TGHorizontalFrame* f = nullptr;
+
+  auto const options = Options::Instance();
+
+  this->mRunMode = decipherRunMode(options->dataFolder());
+
+  f = new TGHorizontalFrame(this);
   {
     Int_t width = 50;
     this->AddFrame(f, new TGLayoutHints(kLHintsExpandX, 0, 0, 2, 2));
@@ -81,8 +88,6 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
                                  TGNumberFormat::kNELLimitMinMax, 0, 10000);
     f->AddFrame(mEventId, new TGLayoutHints(kLHintsNormal, 10, 5, 0, 0));
     mEventId->Connect("ValueSet(Long_t)", cls, this, "DoSetEvent()");
-    TGLabel* infoLabel = new TGLabel(f);
-    f->AddFrame(infoLabel, new TGLayoutHints(kLHintsNormal, 5, 10, 4, 0));
 
     b = EventManagerFrame::makeButton(f, "Next", width, "Go to the next event");
     b->Connect("Clicked()", cls, this, "DoNextEvent()");
@@ -92,6 +97,7 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
     b->Connect("Clicked()", cls, this, "DoScreenshot()");
     b = EventManagerFrame::makeButton(f, "Save", 2 * width, "Save current event");
     b->Connect("Clicked()", cls, this, "DoSave()");
+
     TGHButtonGroup* g = new TGHButtonGroup(f);
     this->mOnlineModeBtn = b = EventManagerFrame::makeRadioButton(g, "Online", 2 * width, "Change data source to online events", Options::Instance()->online());
     b->Connect("Clicked()", cls, this, "DoOnlineMode()");
@@ -100,13 +106,33 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
     this->mSequentialModeBtn = b = EventManagerFrame::makeRadioButton(g, "Sequential", 2 * width, "Sequentially display saved events", !Options::Instance()->online());
     b->Connect("Clicked()", cls, this, "DoSequentialMode()");
     f->AddFrame(g, new TGLayoutHints(kLHintsNormal, 0, 0, 0, 0));
+  }
+
+  f = new TGHorizontalFrame(this);
+  {
+    Int_t width = 50;
+    this->AddFrame(f, new TGLayoutHints(kLHintsExpandX, 0, 0, 2, 2));
+
+    TGLabel* infoLabel = new TGLabel(f);
+    f->AddFrame(infoLabel, new TGLayoutHints(kLHintsNormal, 5, 10, 4, 0));
 
     f->AddFrame(infoLabel, new TGLayoutHints(kLHintsNormal, 5, 10, 4, 0));
     this->mTimeFrameSlider = EventManagerFrame::makeSlider(f, "Time", 8 * width);
     makeSliderRangeEntries(f, 30, this->mTimeFrameSliderMin, "Display the minimum value of the time",
                            this->mTimeFrameSliderMax, "Display the maximum value of the time");
     this->mTimeFrameSlider->Connect("PositionChanged()", cls, this, "DoTimeFrameSliderChanged()");
+
+    TGHButtonGroup* g = new TGHButtonGroup(f);
+    mSyntheticRunBtn = r = EventManagerFrame::makeRadioButton(g, "Synthetic", 2 * width, "Change source directory to synthetic run", Options::Instance()->online());
+    r->Connect("Clicked()", cls, this, "DoSyntheticData()");
+    mCosmicsRunBtn = r = EventManagerFrame::makeRadioButton(g, "Cosmics", 2 * width, "Change source directory to cosmics run", !Options::Instance()->online());
+    r->Connect("Clicked()", cls, this, "DoCosmicsData()");
+    mPhysicsRunBtn = r = EventManagerFrame::makeRadioButton(g, "Physics", 2 * width, "Change source directory to physics run", !Options::Instance()->online());
+    r->Connect("Clicked()", cls, this, "DoPhysicsData()");
+    f->AddFrame(g, new TGLayoutHints(kLHintsNormal, 0, 0, 0, 0));
   }
+
+  this->setRunMode(mRunMode, kFALSE);
   this->mOnlineModeBtn->SetState(kButtonDown);
   SetCleanup(kDeepCleanup);
   Layout();
@@ -390,7 +416,7 @@ void EventManagerFrame::DoOnlineMode()
   if (not setInTick()) {
     return;
   }
-  this->mEventManager->getDataSource()->changeDataFolder(Options::Instance()->dataFolder());
+  this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
   this->mDisplayMode = OnlineMode;
   this->mEventManager->setShowDate(true);
   clearInTick();
@@ -404,7 +430,7 @@ void EventManagerFrame::DoSavedMode()
     if (not setInTick()) {
       return;
     }
-    this->mEventManager->getDataSource()->changeDataFolder(Options::Instance()->savedDataFolder());
+    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
     this->mDisplayMode = SavedMode;
     this->mEventManager->setShowDate(true);
     if (mEventManager->getDataSource()->refresh()) {
@@ -422,9 +448,63 @@ void EventManagerFrame::DoSequentialMode()
     if (not setInTick()) {
       return;
     }
-    this->mEventManager->getDataSource()->changeDataFolder(Options::Instance()->savedDataFolder());
+    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
     this->mDisplayMode = SequentialMode;
     this->mEventManager->setShowDate(false);
+    if (mEventManager->getDataSource()->refresh()) {
+      mEventManager->displayCurrentEvent();
+    }
+    clearInTick();
+    mEventManager->GotoEvent(-1);
+    mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
+  }
+}
+
+void EventManagerFrame::DoSyntheticData()
+{
+  TEnv settings;
+  ConfigurationManager::getInstance().getConfig(settings);
+
+  if (this->mRunMode != EventManagerFrame::SyntheticRun) {
+    this->mRunMode = EventManagerFrame::SyntheticRun;
+    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
+
+    if (mEventManager->getDataSource()->refresh()) {
+      mEventManager->displayCurrentEvent();
+    }
+    clearInTick();
+    mEventManager->GotoEvent(-1);
+    mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
+  }
+}
+
+void EventManagerFrame::DoCosmicsData()
+{
+  TEnv settings;
+  ConfigurationManager::getInstance().getConfig(settings);
+
+  if (this->mRunMode != EventManagerFrame::CosmicsRun) {
+    this->mRunMode = EventManagerFrame::CosmicsRun;
+    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
+
+    if (mEventManager->getDataSource()->refresh()) {
+      mEventManager->displayCurrentEvent();
+    }
+    clearInTick();
+    mEventManager->GotoEvent(-1);
+    mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
+  }
+}
+
+void EventManagerFrame::DoPhysicsData()
+{
+  TEnv settings;
+  ConfigurationManager::getInstance().getConfig(settings);
+
+  if (this->mRunMode != EventManagerFrame::PhysicsRun) {
+    this->mRunMode = EventManagerFrame::PhysicsRun;
+    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
+
     if (mEventManager->getDataSource()->refresh()) {
       mEventManager->displayCurrentEvent();
     }
@@ -472,6 +552,62 @@ float EventManagerFrame::getMinTimeFrameSliderValue() const
 float EventManagerFrame::getMaxTimeFrameSliderValue() const
 {
   return mTimeFrameSlider->GetMaxPosition();
+}
+
+void EventManagerFrame::setRunMode(EventManagerFrame::RunMode runMode, Bool_t emit)
+{
+  if (emit) {
+    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
+  } else {
+    mSyntheticRunBtn->SetState(EButtonState::kButtonUp, kFALSE);
+    mCosmicsRunBtn->SetState(EButtonState::kButtonUp, kFALSE);
+    mPhysicsRunBtn->SetState(EButtonState::kButtonUp, kFALSE);
+  }
+
+  switch (runMode) {
+    case EventManagerFrame::SyntheticRun:
+      this->mRunMode = CosmicsRun;
+      mSyntheticRunBtn->SetState(EButtonState::kButtonDown, emit);
+      break;
+    case EventManagerFrame::CosmicsRun:
+      this->mRunMode = PhysicsRun;
+      mCosmicsRunBtn->SetState(EButtonState::kButtonDown, emit);
+      break;
+    case EventManagerFrame::PhysicsRun:
+      this->mRunMode = SyntheticRun;
+      mPhysicsRunBtn->SetState(EButtonState::kButtonDown, emit);
+      break;
+  }
+}
+
+TString EventManagerFrame::getSourceDirectory(EventManagerFrame::RunMode runMode)
+{
+  TEnv settings;
+  ConfigurationManager::getInstance().getConfig(settings);
+
+  switch (runMode) {
+    case EventManagerFrame::SyntheticRun:
+      return settings.GetValue("data.synthetic.run.dir", "jsons/synthetic");
+    case EventManagerFrame::CosmicsRun:
+      return settings.GetValue("data.cosmics.run.dir", "jsons/cosmics");
+    case EventManagerFrame::PhysicsRun:
+      return settings.GetValue("data.physics.run.dir", "jsons/physics");
+    default:
+      return settings.GetValue("data.synthetic.run.dir", "jsons/synthetic");
+  }
+}
+
+EventManagerFrame::RunMode EventManagerFrame::decipherRunMode(TString name, RunMode defaultRun)
+{
+  if (name == "SYNTHETIC") {
+    return SyntheticRun;
+  } else if (name == "COSMICS") {
+    return CosmicsRun;
+  } else if (name == "PHYSICS") {
+    return PhysicsRun;
+  } else {
+    return defaultRun;
+  }
 }
 
 } // namespace event_visualisation

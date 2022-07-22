@@ -48,6 +48,11 @@ camera.Z-Y.zoom:                        1.0
 simple.geom.default:                    R3
 simple.geom.R3.path:                    /home/jmy/CERN/alice/dev/o2-dev/O2/EventVisualisation/Geometry
 
+data.synthetic.run.dir                  /home/ed/jsons/synthetic
+data.cosmics.run.dir                    /home/ed/jsons/cosmics
+data.physics.run.dir                    /home/ed/jsons/physics
+data.default                            SYNTHETIC
+
 tracks.width:                           2
 
 tracks.byType.electron:                 600
