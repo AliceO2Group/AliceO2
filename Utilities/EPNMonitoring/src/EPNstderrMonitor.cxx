@@ -45,13 +45,17 @@ struct fileMon {
   bool stopped = false;
 
   fileMon(const std::string& path, const std::string& filename);
+  fileMon(const std::string& filename, std::ifstream&& f);
 };
 
-fileMon::fileMon(const std::string& path, const std::string& filename)
+fileMon::fileMon(const std::string& path, const std::string& filename) : name(filename)
 {
   printf("Monitoring file %s\n", filename.c_str());
-  name = filename;
   file.open(path + "/" + filename, std::ifstream::in);
+}
+
+fileMon::fileMon(const std::string& filename, std::ifstream&& f) : file(std::move(f)), name(filename)
+{
 }
 
 class EPNMonitor
@@ -129,6 +133,15 @@ void EPNMonitor::sendLog(const std::string& file, const std::string& message)
 void EPNMonitor::thread()
 {
   printf("EPN stderr Monitor active\n");
+
+  try {
+    std::string syslogfile = "/var/log/infologger_syslog";
+    std::ifstream file;
+    file.open(syslogfile, std::ifstream::in);
+    file.seekg(0, file.end);
+    mFiles.emplace(std::piecewise_construct, std::forward_as_tuple(syslogfile), std::forward_as_tuple(std::string("SYSLOG"), std::move(file)));
+  } catch (...) {
+  }
 
   int fd;
   int wd;
