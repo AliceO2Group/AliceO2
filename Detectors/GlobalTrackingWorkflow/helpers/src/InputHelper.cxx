@@ -145,9 +145,6 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskTracks[GID::TPCTRD] || maskTracks[GID::TPCTRDTOF]) {
     specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(maskTracksMC[GID::TPCTRD], subSpecStrict));
   }
-  if (maskTracks[GID::MFTMCH]) {
-    specs.emplace_back(o2::globaltracking::getGlobalFwdTrackReaderSpec(maskTracksMC[GID::MFTMCH]));
-  }
   if (maskTracks[GID::CTP] && maskClusters[GID::CTP]) {
     specs.emplace_back(o2::ctp::getDigitsReaderSpec(maskTracksMC[GID::CTP] || maskClustersMC[GID::CTP]));
   }
