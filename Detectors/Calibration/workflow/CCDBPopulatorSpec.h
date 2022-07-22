@@ -46,14 +46,20 @@ class CCDBPopulator : public o2::framework::Task
     mCCDBpath = ic.options().get<std::string>("ccdb-path");
     mSSpecMin = ic.options().get<std::int64_t>("sspec-min");
     mSSpecMax = ic.options().get<std::int64_t>("sspec-max");
-    mFatalOnFailure = ic.options().get<bool>("no-fatal-on-failure");
+    mFatalOnFailure = ic.options().get<bool>("fatal-on-failure");
     mAPI.init(mCCDBpath);
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
     int nSlots = pc.inputs().getNofParts(0);
-    assert(pc.inputs().getNofParts(1) == nSlots);
+    if (nSlots != pc.inputs().getNofParts(1)) {
+      LOGP(alarm, "Number of slots={} in part0 is different from that ({}) in part1", nSlots, pc.inputs().getNofParts(1));
+      return;
+    } else if (nSlots == 0) {
+      LOG(alarm) << "0 slots received";
+      return;
+    }
     auto runNoFromDH = pc.services().get<o2::framework::TimingInfo>().runNumber;
     std::string runNoStr;
     if (runNoFromDH > 0) {
@@ -63,6 +69,14 @@ class CCDBPopulator : public o2::framework::Task
     for (int isl = 0; isl < nSlots; isl++) {
       auto refWrp = pc.inputs().get("clbWrapper", isl);
       auto refPld = pc.inputs().get("clbPayload", isl);
+      if (!o2::framework::DataRefUtils::isValid(refWrp)) {
+        LOGP(info, "Wrapper is not valid for slot {}", isl);
+        continue;
+      }
+      if (!o2::framework::DataRefUtils::isValid(refPld)) {
+        LOGP(info, "Payload is not valid for slot {}", isl);
+        continue;
+      }
       if (mSSpecMin >= 0 && mSSpecMin <= mSSpecMax) { // there is a selection
         auto ss = std::int64_t(o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(refWrp)->subSpecification);
         if (ss < mSSpecMin || ss > mSSpecMax) {
@@ -71,6 +85,11 @@ class CCDBPopulator : public o2::framework::Task
       }
       const auto wrp = pc.inputs().get<CcdbObjectInfo*>(refWrp);
       const auto pld = pc.inputs().get<gsl::span<char>>(refPld); // this is actually an image of TMemFile
+      if (!wrp) {
+        LOGP(alarm, "No CcdbObjectInfo info for {} at slot {}",
+             o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(refWrp)->dataDescription.as<std::string>(), isl);
+        continue;
+      }
       const auto* md = &wrp->getMetaData();
       if (runNoFromDH > 0 && md->find(o2::base::NameConf::CCDBRunTag.data()) == md->end()) { // if valid run number is provided and it is not filled in the metadata, add it to the clone
         metadata = *md;                                                                      // clone since the md from the message is const
@@ -91,6 +110,11 @@ class CCDBPopulator : public o2::framework::Task
         o2::ccdb::adjustOverriddenEOV(mAPI, *wrp.get());
       }
     }
+  }
+
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final
+  {
+    LOG(info) << "EndOfStream received";
   }
 
  private:
@@ -121,7 +145,7 @@ DataProcessorSpec getCCDBPopulatorDeviceSpec(const std::string& defCCDB, const s
       {"ccdb-path", VariantType::String, defCCDB, {"Path to CCDB"}},
       {"sspec-min", VariantType::Int64, -1L, {"min subspec to accept"}},
       {"sspec-max", VariantType::Int64, -1L, {"max subspec to accept"}},
-      {"no-fatal-on-failure", VariantType::Bool, false, {"do not produce fatal on failed upload"}}}};
+      {"fatal-on-failure", VariantType::Bool, false, {"do not produce fatal on failed upload"}}}};
 }
 
 } // namespace framework

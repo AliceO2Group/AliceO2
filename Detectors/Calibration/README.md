@@ -102,7 +102,7 @@ o2-calibration-ccdb-populator-workflow --sspec-min 0 --sspec-max 1  -b
 then the `ObjA` will be uploaded only to the default server (`http://alice-ccdb.cern.ch`), `ObjB` will be uploaded to both default and `local` server and
 `ObjC` will be uploaded to the `local` server only.
 
-But default the ccdb-populator-workflow will produce `fatal` on failed upload. To avoid this a switch `--no-fatal-on-failure` can be used.
+By default the ccdb-populator-workflow will not produce `fatal` on failed upload. To require it an option `--fatal-on-failure` can be used.
 <!-- doxy
 * \subpage refDetectorsCalibrationtestMacros
 /doxy -->
