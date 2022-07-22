@@ -112,15 +112,23 @@ void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoCont
     auto t0triggers = ft0RecPoint.getTrigger();
     if (t0triggers.getVertex()) {
       uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
-      uint64_t classmask = ctpcfg.getClassMaskForInput(3);
+      uint64_t classmask = ctpcfg.getClassMaskForInput("MTVTX");
       bcsMapT0triggers[globalBC] = classmask;
     }
   }
+  // find trd redaout and add CTPDigit if trigger there
   for (auto& trdrec : triggerrecordTRD) {
     uint64_t globalBC = trdrec.getBCData().toLong();
     bcsMapTRDreadout[globalBC] = 1;
+    if(bcsMapT0triggers.count(globalBC) > 0) {
+      o2::ctp::CTPDigit ctpdig;
+      ctpdig.intRecord.setFromLong(globalBC);
+      ctpdig.CTPClassMask = bcsMapT0triggers[globalBC];
+      ctpDigits.push_back(ctpdig);
+    } else {
+      LOG(warning) << "Found trd and no MTVX:" << globalBC;
+    }
   }
-  // construct CTPdigits - classMask
 }
 
 void AODProducerWorkflowDPL::collectBCs(const o2::globaltracking::RecoContainer& data,
@@ -1127,6 +1135,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mRecoOnly = ic.options().get<int>("reco-mctracks-only");
   mTruncate = ic.options().get<int>("enable-truncation");
   mRunNumber = ic.options().get<int>("run-number");
+  mCTPReadout = ic.options().get<int>("ctpreadout-create");
 
   if (mTFNumber == -1L) {
     LOG(info) << "TFNumber will be obtained from CCDB";
@@ -1243,13 +1252,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   auto caloPHOSCells = recoData.getPHOSCells();
   auto caloPHOSCellsTRGR = recoData.getPHOSTriggers();
-
-  //auto ctpDigits = recoData.getCTPDigits();
-  //gsl::span<o2::ctp::CTPDigit> ctpDigits;//getSpan<const o2::ctp::CTPDigit>(GTrackID::CTP, CLUSTERS);
+  auto ctpDigits = recoData.getCTPDigits();
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
-  std::vector<o2::ctp::CTPDigit> ctpDigits;
-  createCTPReadout(recoData, ctpDigits, tinfo.runNumber);
 
+  if(mCTPReadout == 1) {
+    std::vector<o2::ctp::CTPDigit> ctpDigitsCreated;
+    createCTPReadout(recoData, ctpDigitsCreated, tinfo.runNumber);
+    ctpDigits = ctpDigitsCreated;
+  }
   LOG(debug) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(debug) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
   LOG(debug) << "FOUND " << fv0RecPoints.size() << " FV0 rec. points";

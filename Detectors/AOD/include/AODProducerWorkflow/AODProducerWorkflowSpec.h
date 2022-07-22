@@ -202,7 +202,7 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mV0Amplitude = 0xFFFFF000;          // 11 bits
   uint32_t mFDDAmplitude = 0xFFFFF000;         // 11 bits
   uint32_t mT0Amplitude = 0xFFFFF000;          // 11 bits
-
+  int mCTPReadout = 0;   // 0 = use CTP readout from CTP; 1 = create CTP readout
   // helper struct for extra info in fillTrackTablesPerCollision()
   struct TrackExtraInfo {
     float tpcInnerParam = 0.f;
