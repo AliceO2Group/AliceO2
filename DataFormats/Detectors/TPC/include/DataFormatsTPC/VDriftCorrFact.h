@@ -32,6 +32,21 @@ struct VDriftCorrFact {
   float corrFactErr{0.0}; ///< stat error of correction factor
   float refVDrift{0.};    ///< reference vdrift for which factor was extracted
 
+  float getVDrift() const { return refVDrift * corrFact; }
+  float getVDriftError() const { return refVDrift * corrFactErr; }
+
+  // renormalize reference and correction either to provided new reference (if >0) or to correction 1 wrt current reference
+  void normalize(float newVRef = 0.f)
+  {
+    if (newVRef == 0.f) {
+      newVRef = refVDrift * corrFact;
+    }
+    float fact = refVDrift / newVRef;
+    refVDrift = newVRef;
+    corrFactErr *= fact;
+    corrFact *= fact;
+  }
+
   ClassDefNV(VDriftCorrFact, 1);
 };
 

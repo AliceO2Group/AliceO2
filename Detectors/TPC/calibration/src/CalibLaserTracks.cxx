@@ -367,7 +367,7 @@ void CalibLaserTracks::print() const
 {
   if (mFinalized) {
     LOGP(info,
-         "Processed {} TFs from {} - {}; found tracks: {} / {}; T0 offsets: {} / {}; dv correction factors: {} / {} for A- / C-Side",
+         "Processed {} TFs from {} - {}; found tracks: {} / {}; T0 offsets: {} / {}; dv correction factors: {} / {} for A- / C-Side, reference: {}",
          mCalibData.processedTFs,
          mCalibData.firstTime,
          mCalibData.lastTime,
@@ -376,7 +376,8 @@ void CalibLaserTracks::print() const
          mCalibData.dvOffsetA,
          mCalibData.dvOffsetC,
          mCalibData.dvCorrectionA,
-         mCalibData.dvCorrectionC);
+         mCalibData.dvCorrectionC,
+         mCalibData.refVDrift);
   } else {
     LOGP(info,
          "Processed {} TFs from {} - {}; **Not finalized**",
@@ -385,7 +386,7 @@ void CalibLaserTracks::print() const
          mCalibData.lastTime);
 
     LOGP(info,
-         "Last processed TF from {} - {}; found tracks: {} / {}; T0 offsets: {} / {}; dv correction factors: {} / {} for A- / C-Side",
+         "Last processed TF from {} - {}; found tracks: {} / {}; T0 offsets: {} / {}; dv correction factors: {} / {} for A- / C-Side, reference: {}",
          mCalibDataTF.firstTime,
          mCalibDataTF.lastTime,
          mCalibDataTF.nTracksA,
@@ -393,6 +394,7 @@ void CalibLaserTracks::print() const
          mCalibDataTF.dvOffsetA,
          mCalibDataTF.dvOffsetC,
          mCalibDataTF.dvCorrectionA,
-         mCalibDataTF.dvCorrectionC);
+         mCalibDataTF.dvCorrectionC,
+         mCalibDataTF.refVDrift);
   }
 }
