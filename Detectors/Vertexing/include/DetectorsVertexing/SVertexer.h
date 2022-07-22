@@ -107,6 +107,8 @@ class SVertexer
   std::vector<std::vector<Cascade>> mCascadesTmp;
   std::array<std::vector<TrackCand>, 2> mTracksPool{}; // pools of positive and negative seeds sorted in min VtxID
   std::array<std::vector<int>, 2> mVtxFirstTrack{};    // 1st pos. and neg. track of the pools for each vertex
+  std::array<std::vector<int>, 2> mVtxLastTrack{};    // last pos. and neg. track of the pools for each vertex
+
   o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
   const SVertexerParams* mSVParams = nullptr;
   std::array<SVertexHypothesis, NHypV0> mV0Hyps;

@@ -567,13 +567,13 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
 
     // clone the V0, set new cosPA and VerteXID, add it to the list of V0s
     if (cascVtxID != v0.getVertexID()) {
-      auto v0clone = v0;
+      mV0sTmp[ithread].push_back(v0);
+      auto& v0clone = mV0sTmp[ithread].back();
       const auto& pv = mPVertices[cascVtxID];
       float dx = v0.getX() - pv.getX(), dy = v0.getY() - pv.getY(), dz = v0.getZ() - pv.getZ(), prodXYZ = dx * pV0[0] + dy * pV0[1] + dz * pV0[2];
       float cosPA = prodXYZ / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0);
       v0clone.setCosPA(cosPA);
       v0clone.setVertexID(cascVtxID);
-      mV0sTmp[ithread].push_back(v0clone);
       casc.setV0ID(mV0sTmp[ithread].size() - 1); // set the new V0 index in the cascade
     }
   }
@@ -600,7 +600,7 @@ bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int 
   }
   const auto& vtx = mPVertices[vtxid];
   auto twe = vtx.getTimeStamp();
-  int posneg = trTPC.getSign() < 0 ? 1 : 0;
+  int posneg = trTPC.getSign() < 0 ? 1 : 0;^^^
   auto trLoc = mTracksPool[posneg].emplace_back(TrackCand{trTPC, gid, {vtxid, vtxid}, 0.});
   auto err = correctTPCTrack(trLoc, trTPC, twe.getTimeStamp(), twe.getTimeStampError());
   if (err < 0) {
