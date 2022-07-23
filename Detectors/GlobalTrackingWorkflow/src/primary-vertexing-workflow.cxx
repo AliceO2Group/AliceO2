@@ -95,7 +95,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   specs.emplace_back(o2::vertexing::getPrimaryVertexingSpec(srcPV, skip, validateWithFT0, useMC));
   specs.emplace_back(o2::vertexing::getVertexTrackMatcherSpec(srcVT));
 
-  auto srcMtc = srcComb & ~GID::getSourceMask(GID::MFTMCH); // Do not request MFTMCH matches
+  auto srcMtc = srcComb;
 
   // only TOF clusters are needed if TOF is involved, no clusters MC needed
   WorkflowSpec inputspecs;

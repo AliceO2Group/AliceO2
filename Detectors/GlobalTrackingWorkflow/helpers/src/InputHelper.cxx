@@ -103,10 +103,10 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskMatches[GID::ITSTPCTOF] || maskTracks[GID::ITSTPCTOF]) {
     specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::ITSTPCTOF], 1, /*maskTracks[GID::ITSTPCTOF]*/ false)); // ITSTPCTOF does not provide tracks, only matchInfo
   }
-  if (maskMatches[GID::MFTMCH]) {
+  if (maskMatches[GID::MFTMCH] || maskTracks[GID::MFTMCH]) {
     specs.emplace_back(o2::globaltracking::getGlobalFwdTrackReaderSpec(maskTracksMC[GID::MFTMCH])); // MFTMCH matches does not provide tracks, only matchInfo
   }
-  if (maskMatches[GID::MCHMID]) {
+  if (maskMatches[GID::MCHMID] || maskTracks[GID::MCHMID]) {
     specs.emplace_back(o2::globaltracking::getMCHMIDMatchedReaderSpec(maskTracksMC[GID::MCHMID])); // MCHMID matches does not provide tracks, only matchInfo
   }
   if (maskMatches[GID::ITSTPCTRDTOF] || maskTracks[GID::ITSTPCTRDTOF]) {

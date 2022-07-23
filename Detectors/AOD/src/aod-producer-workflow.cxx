@@ -59,7 +59,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, enableSV, useMC, resFile));
 
   auto srcCls = src & ~(GID::getSourceMask(GID::MCH) | GID::getSourceMask(GID::MID)); // Don't read global MID and MCH clusters (those attached to tracks are always read)
-  auto srcMtc = src & ~GID::getSourceMask(GID::MFTMCH); // Do not request MFTMCH matches
+  auto srcMtc = src;
 
   WorkflowSpec inputspecs;
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, inputspecs, srcCls, srcMtc, src, useMC, src);
