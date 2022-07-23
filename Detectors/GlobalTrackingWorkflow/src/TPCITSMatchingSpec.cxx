@@ -164,7 +164,11 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
     mMatching.setMCTruthOn(mUseMC);
     mMatching.setUseFT0(mUseFT0);
     mMatching.setVDriftCalib(mCalibMode);
-    mMatching.setBunchFilling(o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling());
+    if (o2::base::GRPGeomHelper::instance().getGRPECS()->getRunType() != o2::parameters::GRPECSObject::RunType::COSMICS) {
+      mMatching.setBunchFilling(o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling());
+    } else {
+      mMatching.setCosmics(true);
+    }
     mMatching.init();
   }
   // we may have other params which need to be queried regularly
