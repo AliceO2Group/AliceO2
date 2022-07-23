@@ -71,7 +71,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"track-sorting", VariantType::Bool, true, {"sort track by track time before applying filters"}},
     {"only-nth-event", VariantType::Int, 0, {"process only every nth event"}},
     {"primary-vertex-mode", VariantType::Bool, false, {"produce jsons with individual primary vertices, not total time frame data"}},
-  };
+    {"max-primary-vertices", VariantType::Int, 5, {"maximum number of primary vertices to draw per time frame"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -126,9 +126,14 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
     savedTracks[i] = 0;
   }
 
-  bool anythingSaved = false;
+  std::size_t jsonsSaved = 0;
 
-  for (std::size_t pv = 0; pv < helper.mPrimaryVertexGIDs.size(); ++pv) {
+  for (const auto& keyVal : helper.mPrimaryVertexGIDs) {
+    if (jsonsSaved >= mMaxPrimaryVertices) {
+      break;
+    }
+
+    const auto pv = keyVal.first;
     helper.draw(pv, mTrackSorting);
 
     bool save = true;
@@ -147,8 +152,9 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
       helper.mEvent.setRunNumber(tinfo.runNumber);
       helper.mEvent.setTfCounter(tinfo.tfCounter);
       helper.mEvent.setFirstTForbit(tinfo.firstTForbit);
+      helper.mEvent.setPrimaryVertex(pv);
       helper.save(this->mJsonPath, this->mNumberOfFiles, this->mTrkMask, this->mClMask, tinfo.runNumber, tinfo.creation);
-      anythingSaved = true;
+      jsonsSaved++;
     }
 
     helper.clear();
@@ -161,11 +167,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   auto endTime = std::chrono::high_resolution_clock::now();
   LOGP(info, "Visualization of TF:{} at orbit {} took {} s.", tinfo.tfCounter, tinfo.firstTForbit, std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
 
-  if (mPrimaryVertexMode) {
-    LOGP(info, "Primary vertices: {}", helper.mPrimaryVertexGIDs.size());
-  }
-
-  LOGP(info, "JSON saved: {}", anythingSaved ? "YES" : "NO");
+  LOGP(info, "JSONs saved: {}/{}", jsonsSaved, helper.mPrimaryVertexGIDs.size());
 
   std::vector<std::string> sourceStats;
   sourceStats.reserve(GID::Source::NSources);
@@ -287,6 +289,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
 
   auto primaryVertexMode = cfgc.options().get<bool>("primary-vertex-mode");
+  auto maxPrimaryVertices = cfgc.options().get<int>("max-primary-vertices");
 
   if (primaryVertexMode) {
     dataRequest->requestPrimaryVertertices(useMC);
@@ -306,7 +309,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     "o2-eve-export",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent, primaryVertexMode)}});
+    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent, primaryVertexMode, maxPrimaryVertices)}});
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

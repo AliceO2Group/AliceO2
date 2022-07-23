@@ -245,7 +245,7 @@ void EveWorkflowHelper::draw(std::size_t primaryVertexIdx, bool sortTracks)
   if (sortTracks) {
     std::sort(tracks.begin(), tracks.end(),
               [&](const GID& a, const GID& b) {
-                return mGIDTrackTime.at(a) > mGIDTrackTime.at(b);
+                return mGIDTrackTime.at(a) < mGIDTrackTime.at(b);
               });
   }
 
@@ -411,7 +411,7 @@ void EveWorkflowHelper::addTrackToEvent(const o2::track::TrackPar& tr, GID gid, 
 
   const bool rangeNotFound = (it == propagationRanges.cend());
   if (rangeNotFound) {
-    LOGF(error, "Track source %s has no defined propagation ranges");
+    LOGF(error, "Track source %s has no defined propagation ranges", GID::getSourceName(source));
     return;
   }
 
