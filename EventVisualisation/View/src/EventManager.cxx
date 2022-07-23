@@ -294,7 +294,10 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
       int defaultTransparency;
       std::string configBarrelRadius;
       int defaultBarrelRadius;
-      double scale;
+      std::string configTowerMaxHeight;
+      float defaultTowerMaxHeight;
+      std::string configMaxValAbs;
+      float defaultMaxValAbs;
     };
     TEnv settings;
     ConfigurationManager::getInstance().getConfig(settings);
@@ -302,8 +305,8 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
     // TODO: calculate values based on info available in O2
     static const std::unordered_map<o2::dataformats::GlobalTrackID::Source, CaloInfo> caloInfos =
       {
-        {o2::dataformats::GlobalTrackID::EMC, {"emcal", "emcal.tower.color", kYellow, "emcal.tower.size.eta", 0.0143, "emcal.tower.size.phi", 0.0143, "emcal.tower.noise", 0, "emcal.tower.transparency", 101, "emcal.barrel.radius", 500, settings.GetValue("emcal.tower.scale", 1.0)}},
-        {o2::dataformats::GlobalTrackID::PHS, {"phos", "phos.tower.color", kYellow, "phos.tower.size.eta", 0.0046, "phos.tower.size.phi", 0.00478, "phos.tower.noise", 200, "phos.tower.transparency", 101, "phos.barrel.radius", 550, settings.GetValue("phos.tower.scale", 1.0)}},
+        {o2::dataformats::GlobalTrackID::EMC, {"emcal", "emcal.tower.color", kYellow, "emcal.tower.size.eta", 0.0143, "emcal.tower.size.phi", 0.0143, "emcal.tower.noise", 0, "emcal.tower.transparency", 101, "emcal.barrel.radius", 500, "emcal.tower.max.height", 80, "emcal.tower.max.val.abs", 100}},
+        {o2::dataformats::GlobalTrackID::PHS, {"phos", "phos.tower.color", kYellow, "phos.tower.size.eta", 0.0046, "phos.tower.size.phi", 0.00478, "phos.tower.noise", 200, "phos.tower.transparency", 101, "phos.barrel.radius", 550, "phos.tower.max.height", 80, "phos.tower.max.val.abs", 100}},
       };
 
     auto data = new TEveCaloDataVec(1);
@@ -330,7 +333,7 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
     for (const auto& calo : event.getCalorimetersSpan()) {
       auto key = std::make_pair(calo.getEta(), calo.getPhi());
       map.try_emplace(key, 0);
-      map[key] = map[key] + info.scale * calo.getEnergy();
+      map[key] = map[key] + calo.getEnergy();
     }
 
     for (const auto& entry : map) {
@@ -352,6 +355,10 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
 
     auto calo3d = new TEveCalo3D(data);
     calo3d->SetName(detectorName.c_str());
+    calo3d->SetScaleAbs(kTRUE);
+    calo3d->SetMaxTowerH(settings.GetValue(info.configTowerMaxHeight.c_str(), info.defaultTowerMaxHeight));
+    calo3d->SetMaxValAbs(settings.GetValue(info.configMaxValAbs.c_str(), info.defaultMaxValAbs));
+    // calo3d->SetAutoRange(kTRUE);
 
     calo3d->SetBarrelRadius(barrelRadius);
     calo3d->SetEndCapPos(barrelRadius);
