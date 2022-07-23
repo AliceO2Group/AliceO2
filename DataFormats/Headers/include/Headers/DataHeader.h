@@ -185,13 +185,13 @@ constexpr T String2(const char (&str)[N])
                 "String parameter is longer than the size of the data type");
   // clang-format off
   return ((T)str[0 + pos] |
-         (str[0 + pos] && sizeof(T) >= 2 ? ((T)str[1 + pos] << (sizeof(T) >= 2 ? 8 : 0) |
-         (str[1 + pos] && sizeof(T) >= 4 ? ((T)str[2 + pos] << (sizeof(T) >= 4 ? 16 : 0) |
-         (str[2 + pos] && sizeof(T) >= 4 ? ((T)str[3 + pos] << (sizeof(T) >= 4 ? 24 : 0) |
-         (str[3 + pos] && sizeof(T) >= 8 ? ((T)str[4 + pos] << (sizeof(T) >= 8 ? 32 : 0) |
-         (str[4 + pos] && sizeof(T) >= 8 ? ((T)str[5 + pos] << (sizeof(T) >= 8 ? 40 : 0) |
-         (str[5 + pos] && sizeof(T) >= 8 ? ((T)str[6 + pos] << (sizeof(T) >= 8 ? 48 : 0) |
-         (str[6 + pos] && sizeof(T) >= 8 ? ((T)str[7 + pos] << (sizeof(T) >= 8 ? 56 : 0))
+         (sizeof(T) >= 2 && str[0 + pos] ? ((T)str[1 + pos] << (sizeof(T) >= 2 ? 8  : 0) |
+         (sizeof(T) >= 4 && str[1 + pos] ? ((T)str[2 + pos] << (sizeof(T) >= 4 ? 16 : 0) |
+         (sizeof(T) >= 4 && str[2 + pos] ? ((T)str[3 + pos] << (sizeof(T) >= 4 ? 24 : 0) |
+         (sizeof(T) >= 8 && str[3 + pos] ? ((T)str[4 + pos] << (sizeof(T) >= 8 ? 32 : 0) |
+         (sizeof(T) >= 8 && str[4 + pos] ? ((T)str[5 + pos] << (sizeof(T) >= 8 ? 40 : 0) |
+         (sizeof(T) >= 8 && str[5 + pos] ? ((T)str[6 + pos] << (sizeof(T) >= 8 ? 48 : 0) |
+         (sizeof(T) >= 8 && str[6 + pos] ? ((T)str[7 + pos] << (sizeof(T) >= 8 ? 56 : 0))
          : 0)) : 0)) : 0)) : 0)) : 0)) : 0)) : 0));
   // clang-format on
 }
