@@ -2148,6 +2148,7 @@ void MatchTPCITS::setBunchFilling(const o2::BunchFilling& bf)
     LOG(warning) << "Disabling match validation by BunchFilling as no interacting bunches found";
     return;
   }
+  mUseBCFilling = true;
   int bcAbove = minBC;
   for (int i = o2::constants::lhc::LHCMaxBunches; i--;) {
     if (bf.testBC(i)) {

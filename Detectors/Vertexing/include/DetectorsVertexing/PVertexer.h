@@ -140,8 +140,8 @@ class PVertexer
   void doDBGPoolDump(gsl::span<const o2::MCCompLabel> lblTracks);
 
   o2::BunchFilling mBunchFilling;
-  std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
-  std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchBelow; // closest filled bunch from below
+  std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove{-1}; // closest filled bunch from above, 1st element -1 to disable usage by default
+  std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchBelow{-1}; // closest filled bunch from below, 1st element -1 to disable usage by default
   o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.5 * 0.5, 0., 0.5 * 0.5, 0., 0., 6. * 6.}};
   std::array<float, 3> mXYConstraintInvErr = {1.0f, 0.f, 1.0f}; ///< nominal vertex constraint inverted errors^2
   //

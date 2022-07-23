@@ -142,7 +142,9 @@ void GlobalFwdMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
     LOG(info) << "Setting Global forward matching Bz = " << Bz;
     mMatching.setBz(Bz);
     mMatching.setMFTTriggered(!o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::MFT));
-    mMatching.setBunchFilling(o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling());
+    if (o2::base::GRPGeomHelper::instance().getGRPECS()->getRunType() != o2::parameters::GRPECSObject::RunType::COSMICS) {
+      mMatching.setBunchFilling(o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling());
+    }
 
     // apply needed settings
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();

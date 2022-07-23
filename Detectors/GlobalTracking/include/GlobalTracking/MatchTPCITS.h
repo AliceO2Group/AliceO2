@@ -521,7 +521,7 @@ class MatchTPCITS
   const o2::ft0::InteractionTag* mFT0Params = nullptr;
 
   MatCorrType mUseMatCorrFlag = MatCorrType::USEMatCorrTGeo;
-  bool mUseBCFilling = true;  ///< use BC filling for candidates validation
+  bool mUseBCFilling = false; ///< use BC filling for candidates validation
   bool mSkipTPCOnly = false;  ///< for test only: don't use TPC only tracks, use only external ones
   bool mITSTriggered = false; ///< ITS readout is triggered
   bool mUseFT0 = false;       ///< FT0 information is available
