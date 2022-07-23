@@ -40,7 +40,7 @@ std::string VisualisationEventROOTSerializer::readString(TFile& f, const char* n
 {
   TNamed* v = (TNamed*)f.Get(name);
   if (v == nullptr) {
-    return 0;
+    return "";
   }
   std::string result = v->GetTitle();
   free(v);
@@ -213,7 +213,7 @@ bool VisualisationEventROOTSerializer::fromFile(VisualisationEvent& event, std::
   int track_points;   // number of track points
   int track_clusters; // number of track clusters
   int track_source;
-  std::string* track_GID = 0;
+  std::string* track_GID = nullptr;
   float track_time;
   int track_charge;
   float track_theta;
@@ -287,7 +287,7 @@ bool VisualisationEventROOTSerializer::fromFile(VisualisationEvent& event, std::
   float calo_energy;
   float calo_eta;
   float calo_phi;
-  std::string* calo_GID = 0;
+  std::string* calo_GID = nullptr;
   int calo_PID;
 
   calo->SetBranchAddress("source", &calo_source);

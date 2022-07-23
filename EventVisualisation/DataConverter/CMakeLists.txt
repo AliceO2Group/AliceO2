@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(EventVisualisationDataConverter
-               SOURCES src/VisualisationEvent.cxx 
+               SOURCES src/VisualisationEvent.cxx
                        src/VisualisationTrack.cxx
                        src/VisualisationCluster.cxx
                        src/VisualisationCalo.cxx
