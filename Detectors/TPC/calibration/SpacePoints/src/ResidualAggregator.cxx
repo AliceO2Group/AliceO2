@@ -30,15 +30,7 @@ ResidualsContainer::~ResidualsContainer()
   treeOutTrackData.reset();
   treeOutResiduals.reset();
   treeOutStats.reset();
-  /*
-  FIXME cannot remove the file here, otherwise the following error occurs:
-  [131421:residual-aggregator]: *** Segmentation fault (O2)
-[131421:residual-aggregator]: Backtrace:
-[131421:residual-aggregator]:     /lib/x86_64-linux-gnu/libc.so.6: ()
-[131421:residual-aggregator]:     /home/oschmidt/alice/sw/ubuntu2004_x86-64/ROOT/v6-26-04-patches-alice1-1/lib/libCore.so.6.26: vtable for TString
-[131421:residual-aggregator]: Backtrace complete.
-[ERROR] pid 131421 (residual-aggregator) crashed with 1
-
+  treeOutRecords.reset();
   if (fileOut) {
     // this slot was not finalized, need to close and remove the file
     fileOut->Close();
@@ -48,7 +40,6 @@ ResidualsContainer::~ResidualsContainer()
       LOG(warning) << "Tried to delete, but could not find file named " << fileToRemove;
     }
   }
-  */
 }
 
 ResidualsContainer::ResidualsContainer(const ResidualsContainer& rhs)
