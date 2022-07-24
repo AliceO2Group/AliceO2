@@ -94,10 +94,11 @@ using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<dou
 namespace o2::aodproducer
 {
 
-void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoContainer& recoData, std::vector<o2::ctp::CTPDigit>& ctpDigits, int runNumber)
+void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoContainer& recoData, std::vector<o2::ctp::CTPDigit>& ctpDigits, ProcessingContext& pc)
 {
   // Extraxt CTP Config from CCDB
-  o2::ctp::CTPConfiguration ctpcfg = o2::ctp::CTPRunManager::getConfigFromCCDB(-1, std::to_string(runNumber)); // how to get run
+  const auto ctpcfg = pc.inputs().get<o2::ctp::CTPConfiguration*>("ctpconfig");
+  //o2::ctp::CTPConfiguration ctpcfg = o2::ctp::CTPRunManager::getConfigFromCCDB(-1, std::to_string(runNumber)); // how to get run
   // Extract inputs from recoData
   std::map<uint64_t, uint64_t> bcsMapT0triggers;
   std::map<uint64_t, bool> bcsMapTRDreadout;
@@ -112,23 +113,35 @@ void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoCont
     auto t0triggers = ft0RecPoint.getTrigger();
     if (t0triggers.getVertex()) {
       uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
-      uint64_t classmask = ctpcfg.getClassMaskForInput("MTVTX");
+      uint64_t classmask = ctpcfg->getClassMaskForInput("MTVTX");
       bcsMapT0triggers[globalBC] = classmask;
     }
   }
   // find trd redaout and add CTPDigit if trigger there
+  int cntwarnings = 0;
+  uint32_t orbitPrev = 0;
+  uint16_t bcPrev = 0;
   for (auto& trdrec : triggerrecordTRD) {
-    uint64_t globalBC = trdrec.getBCData().toLong();
-    bcsMapTRDreadout[globalBC] = 1;
-    if (bcsMapT0triggers.count(globalBC) > 0) {
-      o2::ctp::CTPDigit ctpdig;
-      ctpdig.intRecord.setFromLong(globalBC);
-      ctpdig.CTPClassMask = bcsMapT0triggers[globalBC];
-      ctpDigits.push_back(ctpdig);
+    auto orbitPrevT = orbitPrev;
+    auto bcPrevT = bcPrev;
+    bcPrev = trdrec.getBCData().bc;
+    orbitPrev = trdrec.getBCData().orbit;
+    if (orbitPrev < orbitPrevT || bcPrev >= o2::constants::lhc::LHCMaxBunches || (orbitPrev == orbitPrevT && bcPrev < bcPrevT)) {
+      cntwarnings++;
+      //LOGP(warning, "Bogus TRD trigger at bc:{}/orbit:{} (previous was {}/{}), with {} tracklets and {} digits",bcPrev, orbitPrev, bcPrevT, orbitPrevT, trig.getNumberOfTracklets(), trig.getNumberOfDigits());
     } else {
-      LOG(warning) << "Found trd and no MTVX:" << globalBC;
+      uint64_t globalBC = trdrec.getBCData().toLong();
+      auto t0entry = bcsMapT0triggers.find(globalBC);
+      if ( t0entry != bcsMapT0triggers.end()) {
+        auto& ctpdig = ctpDigits.emplace_back();
+        ctpdig.intRecord.setFromLong(globalBC);
+        ctpdig.CTPClassMask = t0entry->second;
+      } else {
+        LOG(warning) << "Found trd and no MTVX:" << globalBC;
+      }
     }
   }
+  LOG(info) << "# of TRD bogus triggers:" << cntwarnings;
 }
 
 void AODProducerWorkflowDPL::collectBCs(const o2::globaltracking::RecoContainer& data,
@@ -1257,8 +1270,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   if (mCTPReadout == 1) {
     std::vector<o2::ctp::CTPDigit> ctpDigitsCreated;
-    createCTPReadout(recoData, ctpDigitsCreated, tinfo.runNumber);
-    ctpDigits = ctpDigitsCreated;
+    createCTPReadout(recoData, ctpDigitsCreated,  pc);
+    ctpDigits = std::move(ctpDigitsCreated);
   }
   LOG(debug) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(debug) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
@@ -2072,6 +2085,8 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
+
+  dataRequest->inputs.emplace_back("ctpconfig","CTP","CTPCONFIG",0,Lifetime::Condition,ccdbParamSpec("CTP/Config/Config", true));
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
