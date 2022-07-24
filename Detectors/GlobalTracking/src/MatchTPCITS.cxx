@@ -74,16 +74,19 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp)
   if (!mInitDone) {
     LOG(fatal) << "init() was not done yet";
   }
+  clear();
   mRecoCont = &inp;
   mStartIR = inp.startIR;
   updateTimeDependentParams();
 
   mTimer[SWTot].Start(false);
 
-  clear();
   while (1) {
     if (!prepareITSData() || !prepareTPCData() || !prepareFITData()) {
       break;
+    }
+    if (mVDriftCalibOn) { // in the beginning of the output vector we send the full and reference VDrift used for this TF
+      mTglITSTPC.emplace_back(mTPCVDrift, mTPCVDriftRef);
     }
 
     mTimer[SWDoMatching].Start(false);

@@ -28,6 +28,9 @@ namespace o2::tpc
 struct TPCVDTglContainer {
   std::unique_ptr<o2::dataformats::FlatHisto2D_f> histo;
   size_t entries = 0;
+  size_t nTFProc = 0;
+  double driftVFullMean = 0.;
+  static float driftVRef;
 
   TPCVDTglContainer(int ntgl, float tglMax, int ndtgl, float dtglMax)
   {
@@ -42,16 +45,33 @@ struct TPCVDTglContainer {
 
   void fill(const gsl::span<const o2::dataformats::Pair<float, float>> data)
   {
-    for (auto p : data) {
-      histo->fill(p.first, p.first - p.second);
+    if (data.size() < 2) { // last entry always contains the full and reference VDrift used for the TF
+      return;
     }
-    entries += data.size();
+    for (size_t i = 1; i < data.size(); i++) {
+      auto& p = data[i];
+      auto bin = histo->fill(p.first, p.first - p.second);
+      LOGP(debug, "fill #{} : {} for {} {}", i - 1, bin, p.first, p.first - p.second);
+      if (bin > -1) {
+        entries++;
+      }
+    }
+    //
+    float vfull = data[0].first, vref = data[0].second;
+    if (driftVRef == 0.f) {
+      driftVRef = vref;
+    } else if (driftVRef != vref) {
+      LOGP(warn, "data with VDriftRef={} were received while initially was set to {}, keep old one", vref, driftVRef);
+    }
+    driftVFullMean = (driftVFullMean * nTFProc + vfull) / (nTFProc + 1);
+    nTFProc++;
   }
 
   void merge(const TPCVDTglContainer* other)
   {
     entries += other->entries;
     histo->add(*(other->histo));
+    LOGP(debug, "Old entries:{} New entries:{} oldSum: {} newSum: {}", other->entries, entries, other->histo->getSum(), histo->getSum());
   }
 
   void print() const
@@ -67,10 +87,10 @@ class TPCVDriftTglCalibration : public o2::calibration::TimeSlotCalibration<o2::
 
  public:
   TPCVDriftTglCalibration() = default;
-  TPCVDriftTglCalibration(int ntgl, float tglMax, int ndtgl, float dtglMax, uint32_t slotL, size_t minEnt) : mNBinsTgl(ntgl), mMaxTgl(tglMax), mNBinsDTgl(ndtgl), mMaxDTgl(dtglMax), mMineEntriesPerSlot(minEnt)
+  TPCVDriftTglCalibration(int ntgl, float tglMax, int ndtgl, float dtglMax, uint32_t slotL, float maxDelay, size_t minEnt) : mNBinsTgl(ntgl), mMaxTgl(tglMax), mNBinsDTgl(ndtgl), mMaxDTgl(dtglMax), mMineEntriesPerSlot(minEnt)
   {
-    setSlotLength(slotL);
-    setMaxSlotsDelay(10);
+    setSlotLengthInSeconds(slotL);
+    setMaxSlotsDelay(maxDelay);
   }
 
   ~TPCVDriftTglCalibration() final = default;
