@@ -43,8 +43,8 @@ class TimeSlotCalibration
 
   TimeSlotCalibration() = default;
   virtual ~TimeSlotCalibration() = default;
-  TFType getMaxSlotsDelay() const { return mMaxSlotsDelay; }
-  void setMaxSlotsDelay(TFType v) { mMaxSlotsDelay = v; }
+  float getMaxSlotsDelay() const { return mMaxSlotsDelay; }
+  void setMaxSlotsDelay(float v) { mMaxSlotsDelay = v > 0. ? v : 0.; }
 
   TFType getSlotLength() const { return mSlotLength; }
   void setSlotLength(TFType v)
@@ -172,7 +172,6 @@ class TimeSlotCalibration
   TFType mFirstTF = 0;
   TFType mMaxSeenTF = 0;                        // largest TF processed
   TFType mSlotLength = 1;                       // slot length in TFs
-  TFType mMaxSlotsDelay = 3;                    // difference between the current TF slot ID and the oldest slot to account for the TF
   TFType mCheckIntervalInfiniteSlot = 1;        // will be used if the TF length is INFINITE_TF_int64 to decide
                                                 // when to check if to call the finalize; otherwise it is called
                                                 // at every new TF; note that this is an approximation,
@@ -182,6 +181,8 @@ class TimeSlotCalibration
   TFType mCheckDeltaIntervalInfiniteSlot = 1;   // will be used if the TF length is INFINITE_TF_int64 when
                                                 // the check on the statistics returned false, to determine
                                                 // after how many TF to check again.
+  float mMaxSlotsDelay = 3.0;                   // difference in slot units between the current TF and oldest slot (end TF) to account for the TF
+
   bool mWasCheckedInfiniteSlot = false;         // flag to know whether the statistics of the infinite slot was already checked
   bool mUpdateAtTheEndOfRunOnly = false;
   bool mFinalizeWhenReady = false; // if true: single bin is filled until ready, then closed and new one is added
@@ -193,10 +194,15 @@ template <typename Input, typename Container>
 template <typename DATA>
 bool TimeSlotCalibration<Input, Container>::process(const DATA& data)
 {
+  static bool firstCall = true;
+  if (firstCall) {
+    firstCall = false;
+    checkSlotLength();
+  }
 
   // process current TF
   TFType tf = mCurrentTFInfo.tfCounter;
-  uint64_t maxDelay64 = uint64_t(mSlotLength) * mMaxSlotsDelay;
+  uint64_t maxDelay64 = uint64_t(mSlotLength * mMaxSlotsDelay);
   TFType maxDelay = maxDelay64 > o2::calibration::INFINITE_TF ? o2::calibration::INFINITE_TF : TFType(maxDelay64);
   if (!mUpdateAtTheEndOfRunOnly) {                                                               // if you update at the end of run only, then you accept everything
     if (tf < mLastClosedTF || (!mSlots.empty() && getLastSlot().getTFStart() > tf + maxDelay64)) { // ignore TF; note that if you have only 1 timeslot
@@ -331,7 +337,6 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
 {
 
   LOG(debug) << "Getting slot for TF " << tf;
-  checkSlotLength();
   if (mUpdateAtTheEndOfRunOnly) {
     if (!mSlots.empty() && mSlots.back().getTFEnd() < tf) {
       mSlots.back().setTFEnd(tf);
