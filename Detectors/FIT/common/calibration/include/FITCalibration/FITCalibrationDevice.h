@@ -38,6 +38,7 @@ class FITCalibrationDevice : public o2::framework::Task
 {
 
   static constexpr const char* DEFAULT_INPUT_DATA_LABEL = "calib";
+  static constexpr const char* sDEFAULT_CCDB_URL = "http://localhost:8080";
   using CalibratorType = FITCalibrator<InputCalibrationInfoType, TimeSlotStorageType, CalibrationObjectType>;
 
  public:
@@ -76,7 +77,7 @@ void FIT_CALIBRATION_DEVICE_TYPE::init(o2::framework::InitContext& context)
   mCalibrator->setSlotLength(slotL);
   mCalibrator->setMaxSlotsDelay(delay);
 
-  FITCalibrationApi::init();
+  o2::ccdb::BasicCCDBManager::instance().setURL(sDEFAULT_CCDB_URL);
 }
 
 FIT_CALIBRATION_DEVICE_TEMPLATES
@@ -94,7 +95,7 @@ FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::endOfStream(o2::framework::EndOfStreamContext& context)
 {
 
-  //nope, we have to check if we can finalize slot anyway - scenario with one batch
+  // nope, we have to check if we can finalize slot anyway - scenario with one batch
   mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
   _sendCalibrationObjectIfSlotFinalized(context.outputs());
 }
@@ -128,4 +129,4 @@ void FIT_CALIBRATION_DEVICE_TYPE::_sendOutputs(o2::framework::DataAllocator& out
 
 } // namespace o2::fit
 
-#endif //O2_FITCALIBRATIONDEVICE_H
+#endif // O2_FITCALIBRATIONDEVICE_H

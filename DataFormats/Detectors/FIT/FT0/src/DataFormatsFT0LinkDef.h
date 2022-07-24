@@ -42,10 +42,9 @@
 #pragma link C++ class o2::ft0::CTF + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::ft0::CTFHeader, 9, uint32_t> + ;
 
+#pragma link C++ class o2::ft0::FT0CalibrationInfoObject + ;
+#pragma link C++ class o2::ft0::FT0ChannelTimeCalibrationObject + ;
 #pragma link C++ class o2::ft0::GlobalOffsetsCalibrationObject + ;
-#pragma link C++ class o2::ft0::GlobalOffsetsContainer + ;
 #pragma link C++ class o2::ft0::RecoCalibInfoObject + ;
 #pragma link C++ class o2::ft0::GlobalOffsetsInfoObject + ;
-#include "DetectorsCalibration/TimeSlotCalibration.h"
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::ft0::GlobalOffsetsInfoObject, o2::ft0::GlobalOffsetsContainer> + ;
 #endif

@@ -16,35 +16,47 @@
 #include "Framework/Task.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/Digit.h"
-#include "DataFormatsFT0/FT0CalibrationInfoObject.h"
-
+#include "CommonDataFormat/FlatHisto2D.h"
 using namespace o2::framework;
 
 namespace o2::ft0
 {
 
-class FT0TFProcessor final : public o2::framework::Task
+class FT0TimeSpectraProcessor final : public o2::framework::Task
 {
 
  public:
+  FT0TimeSpectraProcessor() = default;
+  ~FT0TimeSpectraProcessor() = default;
+  int mAmpThreshold{5};
+  int mTimeRange{153};
+  //  uint8_t mPMbitsToCheck{0b11111110};
+  //  uint8_t mPMbitsGood{0b01001000};
+  //  uint8_t mTrgBitsToCheck{0b11110000};
+  //  uint8_t mTrgBitsGood{0b10010000};
+  uint8_t mPMbitsToCheck{0};
+  uint8_t mPMbitsGood{0};
+  uint8_t mTrgBitsToCheck{0};
+  uint8_t mTrgBitsGood{0};
+
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
-    //    LOG(info)<<" FT0TFProcessor run "<<creationTime;
+    const auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
     auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");
     auto channels = pc.inputs().get<gsl::span<o2::ft0::ChannelData>>("channels");
-    auto& calib_data = pc.outputs().make<std::vector<o2::ft0::FT0CalibrationInfoObject>>(o2::framework::OutputRef{"calib", 0});
-    calib_data.reserve(channels.size());
-    int nDig = digits.size();
-    LOG(debug) << " nDig " << nDig;
+    o2::dataformats::FlatHisto2D<float> timeSpectraInfoObject(208, 0, 208, 400, -200, 200);
     for (const auto& digit : digits) {
+      if (digit.mTriggers.triggersignals & mTrgBitsToCheck != mTrgBitsGood) {
+        continue;
+      }
       const auto& chan = digit.getBunchChannelData(channels);
       for (const auto& channel : chan) {
-        if (channel.QTCAmpl > 14 && std::abs(channel.CFDTime) < 100) {
-          calib_data.emplace_back(channel.ChId, channel.CFDTime, channel.QTCAmpl, uint64_t(creationTime));
+        if (channel.QTCAmpl > mAmpThreshold && std::abs(channel.CFDTime) < mTimeRange && (channel.ChainQTC & mPMbitsToCheck == mPMbitsGood)) {
+          const auto result = timeSpectraInfoObject.fill(channel.ChId, channel.CFDTime);
         }
       }
     }
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "CALIB_INFO", 0, o2::framework::Lifetime::Timeframe}, timeSpectraInfoObject.getBase());
   }
 };
 
@@ -70,11 +82,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     inputs.push_back(InputSpec{{"digits"}, "FT0", "DIGITSBC"});
   }
   DataProcessorSpec dataProcessorSpec{
-    "FT0TFProcessor",
+    "FT0TimeSpectraProcessor",
     inputs,
     Outputs{
       {{"calib"}, "FT0", "CALIB_INFO"}},
-    AlgorithmSpec{adaptFromTask<o2::ft0::FT0TFProcessor>()},
+    AlgorithmSpec{adaptFromTask<o2::ft0::FT0TimeSpectraProcessor>()},
     Options{}};
 
   WorkflowSpec workflow;

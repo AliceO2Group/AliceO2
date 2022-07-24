@@ -15,7 +15,6 @@ o2_add_library(FT0Reconstruction
                        src/InteractionTag.cxx
                PUBLIC_LINK_LIBRARIES O2::FT0Base
                                      O2::FT0Simulation
-                                     O2::FT0Calibration
                                      O2::DataFormatsFT0
                                      O2::SimulationDataFormat
                                      O2::Framework

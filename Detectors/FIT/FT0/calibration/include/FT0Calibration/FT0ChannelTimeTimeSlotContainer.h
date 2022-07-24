@@ -18,12 +18,10 @@
 #include <memory>
 #include <vector>
 #include <gsl/span>
-#include "FT0Calibration/FT0CalibrationInfoObject.h"
-#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
-#include "DataFormatsFT0/RawEventData.h"
-#include "DataFormatsFT0/ChannelData.h"
+#include "DataFormatsFT0/FT0CalibrationInfoObject.h"
+#include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
+#include "FT0Base/Geometry.h"
 #include "Rtypes.h"
-#include <boost/histogram.hpp>
 #include <TH1F.h>
 
 namespace o2::ft0
@@ -48,6 +46,7 @@ class FT0ChannelTimeTimeSlotContainer final
   [[nodiscard]] int16_t getMeanGaussianFitValue(std::size_t channelID) const;
   void merge(FT0ChannelTimeTimeSlotContainer* prev);
   void print() const;
+  FT0ChannelTimeCalibrationObject generateCalibrationObject() const;
   void updateFirstCreation(std::uint64_t creation)
   {
     if (creation < mFirstCreation) {

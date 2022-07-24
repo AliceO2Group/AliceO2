@@ -9,12 +9,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef O2_FV0CHANNELTIMECALIBRATIONOBJECT_H
+#define O2_FV0CHANNELTIMECALIBRATIONOBJECT_H
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include <array>
+#include "Rtypes.h"
+#include "FV0Base/Constants.h"
 
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::ft0::FT0CalibrationInfoObject, o2::ft0::FT0ChannelTimeTimeSlotContainer>;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::fv0::FV0CalibrationInfoObject, o2::fv0::FV0ChannelTimeTimeSlotContainer>;
-#endif
+namespace o2::fv0
+{
+
+struct FV0ChannelTimeCalibrationObject {
+
+  std::array<int16_t, Constants::nFv0Channels> mTimeOffsets{};
+  static constexpr const char* getObjectPath() { return "FV0/Calib/ChannelTimeOffset"; }
+  ClassDefNV(FV0ChannelTimeCalibrationObject, 1);
+};
+} // namespace o2::fv0
+
+#endif // O2_FV0CHANNELTIMECALIBRATIONOBJECT_H

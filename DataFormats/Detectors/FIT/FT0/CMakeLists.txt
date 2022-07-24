@@ -15,15 +15,12 @@ o2_add_library(DataFormatsFT0
           src/RecPoints.cxx
           src/RawEventData.cxx
           src/CTF.cxx
-          src/GlobalOffsetsCalibrationObject.cxx
-          src/GlobalOffsetsContainer.cxx
   PUBLIC_LINK_LIBRARIES O2::FT0Base
                         O2::DataFormatsFIT
                         O2::SimulationDataFormat
                         O2::CommonDataFormat
                         O2::Headers
                         O2::CCDB
-                        O2::DetectorsCalibration
 )
 
 o2_target_root_dictionary(DataFormatsFT0
@@ -36,7 +33,8 @@ o2_target_root_dictionary(DataFormatsFT0
           include/DataFormatsFT0/LookUpTable.h
           include/DataFormatsFT0/CTF.h
           include/DataFormatsFT0/RecoCalibInfoObject.h
+          include/DataFormatsFT0/FT0CalibrationInfoObject.h
+          include/DataFormatsFT0/FT0ChannelTimeCalibrationObject.h
           include/DataFormatsFT0/GlobalOffsetsInfoObject.h
           include/DataFormatsFT0/GlobalOffsetsCalibrationObject.h
-          include/DataFormatsFT0/GlobalOffsetsContainer.h
 )

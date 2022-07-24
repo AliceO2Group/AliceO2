@@ -15,21 +15,18 @@
 #include <array>
 #include <vector>
 #include <gsl/span>
-#include "FV0Calibration/FV0CalibrationInfoObject.h"
-#include "FV0Calibration/FV0ChannelTimeCalibrationObject.h"
-#include "DataFormatsFV0/RawEventData.h"
-#include "DataFormatsFV0/ChannelData.h"
+#include "DataFormatsFV0/FV0CalibrationInfoObject.h"
+#include "DataFormatsFV0/FV0ChannelTimeCalibrationObject.h"
 #include "FV0Base/Constants.h"
 #include "Rtypes.h"
 #include <boost/histogram.hpp>
-
 namespace o2::fv0
 {
 
 class FV0ChannelTimeTimeSlotContainer final
 {
 
-  //ranges to be discussed
+  // ranges to be discussed
   static constexpr int HISTOGRAM_RANGE = 2000;
   static constexpr unsigned int NUMBER_OF_HISTOGRAM_BINS = 2 * HISTOGRAM_RANGE;
 
@@ -59,6 +56,7 @@ class FV0ChannelTimeTimeSlotContainer final
   {
     return mFirstCreation;
   }
+  FV0ChannelTimeCalibrationObject generateCalibrationObject() const;
 
  private:
   std::size_t mMinEntries;
@@ -71,4 +69,4 @@ class FV0ChannelTimeTimeSlotContainer final
 
 } // namespace o2::fv0
 
-#endif //O2_FV0CHANNELTIMETIMESLOTCONTAINER_H
+#endif // O2_FV0CHANNELTIMETIMESLOTCONTAINER_H

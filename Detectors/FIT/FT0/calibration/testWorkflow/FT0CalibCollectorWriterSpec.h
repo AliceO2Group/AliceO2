@@ -15,7 +15,7 @@
 /// @file   FT0CalibCollectorWriterSpec.h
 /// @brief  Device to write to tree the information for FT0 time slewing calibration.
 
-#include "FT0Calibration/FT0CalibrationInfoObject.h"
+#include "DataFormatsFT0/FT0CalibrationInfoObject.h"
 #include <TTree.h>
 #include <gsl/span>
 #include "FairLogger.h"

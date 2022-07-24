@@ -13,9 +13,9 @@
 #define O2_FT0CHANNELTIMECALIBRATIONSPEC_H
 
 #include "Framework/DataProcessorSpec.h"
+#include "DataFormatsFT0/FT0CalibrationInfoObject.h"
+#include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
 #include "FITCalibration/FITCalibrationDevice.h"
-#include "FT0Calibration/FT0CalibrationInfoObject.h"
-#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 #include "FT0Calibration/FT0ChannelTimeTimeSlotContainer.h"
 
 namespace o2::ft0
@@ -51,4 +51,4 @@ o2::framework::DataProcessorSpec getFT0ChannelTimeCalibrationSpec()
 }
 } // namespace o2::ft0
 
-#endif //O2_FT0CHANNELTIMECALIBRATIONSPEC_H
+#endif // O2_FT0CHANNELTIMECALIBRATIONSPEC_H

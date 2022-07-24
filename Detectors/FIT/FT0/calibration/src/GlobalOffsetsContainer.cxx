@@ -14,7 +14,7 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
-#include "DataFormatsFT0/GlobalOffsetsContainer.h"
+#include "FT0Calibration//GlobalOffsetsContainer.h"
 #include "DataFormatsFT0/GlobalOffsetsInfoObject.h"
 #include <numeric>
 #include <algorithm>
@@ -74,6 +74,14 @@ int GlobalOffsetsContainer::getMeanGaussianFitValue() const
     LOG(warning) << "Fit failed with result = " << fitres;
     return 0;
   }
+}
+GlobalOffsetsCalibrationObject GlobalOffsetsContainer::generateCalibrationObject() const
+{
+  GlobalOffsetsCalibrationObject calibrationObject;
+  calibrationObject.mCollisionTimeOffsets = getMeanGaussianFitValue();
+  LOG(info) << "GlobalOffsetsCalibrationObjectAlgorithm generate CalibrationObject for T0"
+            << " = " << calibrationObject.mCollisionTimeOffsets;
+  return calibrationObject;
 }
 
 void GlobalOffsetsContainer::print() const

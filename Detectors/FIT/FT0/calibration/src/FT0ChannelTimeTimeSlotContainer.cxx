@@ -100,8 +100,16 @@ int16_t FT0ChannelTimeTimeSlotContainer::getMeanGaussianFitValue(std::size_t cha
 
   return static_cast<int16_t>(outputGaussianFitValues);
 }
+FT0ChannelTimeCalibrationObject FT0ChannelTimeTimeSlotContainer::generateCalibrationObject() const
+{
+  FT0ChannelTimeCalibrationObject calibrationObject;
+  for (unsigned int iCh = 0; iCh < o2::ft0::Geometry::Nchannels; ++iCh) {
+    calibrationObject.mTimeOffsets[iCh] = getMeanGaussianFitValue(iCh);
+  }
+  return calibrationObject;
+}
 
 void FT0ChannelTimeTimeSlotContainer::print() const
 {
-  //QC will do that part
+  // QC will do that part
 }
