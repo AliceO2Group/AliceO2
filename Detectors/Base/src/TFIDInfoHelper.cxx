@@ -25,7 +25,7 @@ void o2::base::TFIDInfoHelper::fillTFIDInfo(ProcessingContext& pc, o2::dataforma
   static int errCount = 0;
   if (tinfo.firstTForbit == -1U || tinfo.creation == -1) {
     if (errCount++ < 5) {
-      LOGP(warn, "Ignoring gummy input with orbit {} and creation time {} in fillTFIDInfo", tinfo.firstTForbit, tinfo.creation);
+      LOGP(warn, "Ignoring dummy input with orbit {} and creation time {} in fillTFIDInfo", tinfo.firstTForbit, tinfo.creation);
     }
     return;
   }
