@@ -64,8 +64,9 @@ class VDriftHelper
   static void addInput(std::vector<o2::framework::InputSpec>& inputs, o2::framework::InputSpec&& isp);
 
   VDriftCorrFact mVD{};
-  Source mSource{};      // update source
-  bool mUpdated = false; // signal update, must be reset once new value is fetched
+  Source mSource{};       // update source
+  bool mUpdated = false;  // signal update, must be reset once new value is fetched
+  bool mMayRenorm = true; // if starting VDrift correction != 1, we will renorm reference in such a way that initial correction is 1.0
 
   ClassDefNV(VDriftHelper, 1);
 };

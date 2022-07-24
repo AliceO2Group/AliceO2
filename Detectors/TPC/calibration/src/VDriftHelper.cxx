@@ -55,10 +55,22 @@ void VDriftHelper::accountLaserCalibration(const LtrCalibData* calib, long fallB
   float ref = calib->refVDrift > 0. ? calib->refVDrift : o2::tpc::ParameterGas::Instance().DriftV;
   float corr = calib->getDriftVCorrection();
   if (corr > 0.) { // laser correction is inverse multiplicative
+    static bool firstCall = true;
+    auto prevRef = mVD.refVDrift;
     mVD.refVDrift = ref;
     mVD.corrFact = 1. / corr;
     mUpdated = true;
     mSource = Source::Laser;
+    if (mMayRenorm) {    // this was 1st setting?
+      if (corr != 1.f) { // this may happen if old-style (non-normalized) standalone or non-normalized run-time laset calibration is used
+        LOGP(warn, "VDriftHelper: renorming initinal TPC refVDrift={}/correction={} to {}/1.0, source: {}", mVD.refVDrift, mVD.corrFact, mVD.getVDrift(), getSourceName());
+        mVD.normalize(); // renorm reference to have correction = 1.
+      }
+      mMayRenorm = false;
+    } else if (ref != prevRef) { // we want to keep the same reference over the run, this may happen if run-time laser calibration is supplied
+      LOGP(warn, "VDriftHelper: renorming updated TPC refVDrift={}/correction={} previous refVDrift {}, source: {}", mVD.refVDrift, mVD.corrFact, prevRef, getSourceName());
+      mVD.normalize(prevRef);
+    }
   }
 }
 
@@ -69,9 +81,20 @@ void VDriftHelper::accountDriftCorrectionITSTPCTgl(const VDriftCorrFact* calib)
   if (!calib || calib->creationTime < mVD.creationTime) { // prefer current value
     return;
   }
+  auto prevRef = mVD.refVDrift;
   mVD = *calib;
   mUpdated = true;
   mSource = Source::ITSTPCTgl;
+  if (mMayRenorm) {            // this was 1st setting?
+    if (mVD.corrFact != 1.f) { // this may happen if calibration from prevous run is used
+      LOGP(warn, "VDriftHelper: renorming initinal TPC refVDrift={}/correction={} to {}/1.0, source: {}", mVD.refVDrift, mVD.corrFact, mVD.getVDrift(), getSourceName());
+      mVD.normalize(); // renorm reference to have correction = 1.
+    }
+    mMayRenorm = false;
+  } else if (mVD.refVDrift != prevRef) { // we want to keep the same reference over the run, this should not happen!
+    LOGP(alarm, "VDriftHelper: renorming updated TPC refVDrift={}/correction={} previous refVDrift {}, source: {}", mVD.refVDrift, mVD.corrFact, prevRef, getSourceName());
+    mVD.normalize(prevRef);
+  }
 }
 
 //________________________________________________________
