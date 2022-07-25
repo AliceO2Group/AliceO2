@@ -287,13 +287,13 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
         rof0,
         mTimeFrameGPU->getNrof(),
         iLayer,
-        mTimeFrameGPU->getDeviceClustersOnLayer(rof0, iLayer),       // :check:
-        mTimeFrameGPU->getDeviceClustersOnLayer(0, iLayer + 1),      // :check:
-        mTimeFrameGPU->getDeviceIndexTables(iLayer + 1),             // :check:
-        mTimeFrameGPU->getDeviceROframesClustersOnLayer(iLayer),     // :check:
-        mTimeFrameGPU->getDeviceROframesClustersOnLayer(iLayer + 1), // :check:
-        mTimeFrameGPU->getDeviceUsedClustersOnLayer(0, iLayer),      // :check:
-        mTimeFrameGPU->getDeviceUsedClustersOnLayer(0, iLayer + 1),  // :check:
+        mTimeFrameGPU->getDeviceClustersOnLayer(rof0, iLayer),       // :checked:
+        mTimeFrameGPU->getDeviceClustersOnLayer(0, iLayer + 1),      // :checked:
+        mTimeFrameGPU->getDeviceIndexTables(iLayer + 1),             // :checked:
+        mTimeFrameGPU->getDeviceROframesClustersOnLayer(iLayer),     // :checked:
+        mTimeFrameGPU->getDeviceROframesClustersOnLayer(iLayer + 1), // :checked:
+        mTimeFrameGPU->getDeviceUsedClustersOnLayer(0, iLayer),      // :checked:
+        mTimeFrameGPU->getDeviceUsedClustersOnLayer(0, iLayer + 1),  // :checked:
         mTimeFrameGPU->getDeviceVertices(rof0),
         mTimeFrameGPU->getDeviceTrackletsLookupTable(0, iLayer),
         mTimeFrameGPU->getDeviceTracklets(rof0, iLayer),

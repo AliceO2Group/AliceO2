@@ -67,9 +67,9 @@ class VertexerTraits
   virtual void computeTrackletMatching();
   virtual void computeVertices();
   virtual void adoptTimeFrame(TimeFrame* tf);
+  virtual void updateVertexingParameters(const VertexingParameters& vrtPar);
   // virtual void computeHistVertices();
 
-  void updateVertexingParameters(const VertexingParameters& vrtPar);
   VertexingParameters getVertexingParameters() const { return mVrtParams; }
   static const std::vector<std::pair<int, int>> selectClusters(const int* indexTable,
                                                                const std::array<int, 4>& selectedBinsRect,
@@ -100,15 +100,6 @@ inline void VertexerTraits::initialise(const TrackingParameters& trackingParams)
   }
   mTimeFrame->initialise(0, trackingParams, 3);
   setIsGPU(false);
-}
-
-inline void VertexerTraits::updateVertexingParameters(const VertexingParameters& vrtPar)
-{
-  mVrtParams = vrtPar;
-  mIndexTableUtils.setTrackingParameters(vrtPar);
-  mVrtParams.phiSpan = static_cast<int>(std::ceil(mIndexTableUtils.getNphiBins() * mVrtParams.phiCut /
-                                                  constants::math::TwoPi));
-  mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * mIndexTableUtils.getInverseZCoordinate(0)));
 }
 
 GPUhdi() const int2 VertexerTraits::getPhiBins(float phi, float dPhi)
