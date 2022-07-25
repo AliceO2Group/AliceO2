@@ -50,8 +50,8 @@ class Cluster
   static void fitFunc(int& iNpars, double* deriv, double& chi2, double* par, int iflag); // fit function to be used by MINUIT
   void coG();                                                                            // calculates center of gravity
   void corrSin();                                                                        // sinoidal correction
-  void digAdd(o2::hmpid::Digit* pDig);                                                   // add new digit to the cluster
-  o2::hmpid::Digit* dig(int i) { return mDigs.at(i); }                                   // pointer to i-th digi
+  void digAdd(const o2::hmpid::Digit* pDig);                                             // add new digit to the cluster
+  const o2::hmpid::Digit* dig(int i) const { return mDigs[i]; }                          // pointer to i-th digi
   inline bool isInPc();                                                                  // check if is in the current PC
   void reset();                                                                          // cleans the cluster
   // void setClusterParams(float xL, float yL, int iCh); //Set AliCluster3D part
@@ -110,13 +110,13 @@ class Cluster
   double mYY;                           // local y postion, [cm]
   double mErrY;                         // error on y postion, [cm]
   double mChi2;                         // some estimator of the fit quality
-  std::vector<o2::hmpid::Digit*> mDigs; //! list of digits forming this cluster
+  std::vector<const o2::hmpid::Digit*> mDigs; //! list of digits forming this cluster
 
  public:
   static bool fgDoCorrSin; // flag to switch on/off correction for Sinusoidal to cluster reco
   Param* mParam;           //! Pointer to AliHMPIDParam
 
-  ClassDefNV(Cluster, 2);
+  ClassDefNV(Cluster, 3);
 };
 
 } // namespace hmpid
