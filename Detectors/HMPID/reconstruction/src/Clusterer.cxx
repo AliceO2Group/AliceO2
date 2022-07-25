@@ -30,7 +30,7 @@ using namespace o2::hmpid;
   // mClus = {nullptr};
 }*/
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void Clusterer::Dig2Clu(std::vector<o2::hmpid::Digit>* mDigs, std::vector<o2::hmpid::Cluster>* mClus, float* pUserCut, bool isTryUnfold)
+void Clusterer::Dig2Clu(gsl::span<const o2::hmpid::Digit> digs, std::vector<o2::hmpid::Cluster>& clus, float* pUserCut, bool isUnfold)
 {
   // Finds all clusters for a given digits list provided not empty. Currently digits list is a list of all digits for a single chamber.
   // Puts all found clusters in separate lists, one per clusters.
@@ -43,50 +43,44 @@ void Clusterer::Dig2Clu(std::vector<o2::hmpid::Digit>* mDigs, std::vector<o2::hm
 
   int pUsedDig = -1;
   int padChX = 0, padChY = 0, module = 0;
-  o2::hmpid::Cluster* clu; // tmp cluster to be used as current
 
   for (int iCh = Param::kMinCh; iCh <= Param::kMaxCh; iCh++) { // chambers loop
     padMap = (Float_t)-1;                                      // reset map to -1 (means no digit for this pad)
-    for (int iDig = 0; iDig < mDigs->size(); iDig++) {         // digits loop for current chamber
-      o2::hmpid::Digit::pad2Absolute(mDigs->at(iDig).getPadID(), &module, &padChX, &padChY);
-      if (module != iCh) {
-        continue;
+    for (size_t iDig = 0; iDig < digs.size(); iDig++) {
+      o2::hmpid::Digit::pad2Absolute(digs[iDig].getPadID(), &module, &padChX, &padChY);
+      if (module == iCh) {
+        padMap(padChX, padChY) = iDig; // fill the map for the given chamber, (padx,pady) cell takes digit index
       }
-      padMap(padChX, padChY) = iDig; // fill the map for the given chamber, (padx,pady) cell takes digit index
-    }                                // digits loop for current chamber
-
-    for (int iDig = 0; iDig < mDigs->size(); iDig++) { // digits loop for current chamber
-      o2::hmpid::Digit::pad2Absolute(mDigs->at(iDig).getPadID(), &module, &padChX, &padChY);
-      if (module != iCh) {
-        continue;
-      }
-      pUsedDig = UseDig(padChX, padChY, &padMap);
-      if (pUsedDig == -1) {
-        continue;
-      } // this digit is already taken in FormClu(), go after next digit
-      clu = new o2::hmpid::Cluster;
-      clu->setCh(iCh);
-      FormClu(clu, pUsedDig, mDigs, &padMap);   // form cluster starting from this digit by recursion
-      clu->solve(mClus, pUserCut, isTryUnfold); // solve this cluster and add all unfolded clusters to provided list
-      //  clu.reset();                                                                      //empty current cluster
     } // digits loop for current chamber
+
+    for (size_t iDig = 0; iDig < digs.size(); iDig++) { // digits loop for current chamber
+      o2::hmpid::Digit::pad2Absolute(digs[iDig].getPadID(), &module, &padChX, &padChY);
+      if (module != iCh || (pUsedDig = UseDig(padChX, padChY, padMap)) == -1) { // this digit is from other module or already taken in FormClu(), go after next digit
+        continue;
+      }
+      Cluster clu;
+      clu.setCh(iCh);
+      FormClu(clu, pUsedDig, digs, padMap); // form cluster starting from this digit by recursion
+      clu.solve(&clus, pUserCut, isUnfold); // solve this cluster and add all unfolded clusters to provided list
+    }                                       // digits loop for current chamber
   }   // chambers loop
   return;
 } // Dig2Clu()
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void Clusterer::FormClu(Cluster* pClu, int pDig, std::vector<o2::hmpid::Digit>* pDigList, TMatrixF* pDigMap)
+void Clusterer::FormClu(Cluster& pClu, int pDig, gsl::span<const o2::hmpid::Digit> digs, TMatrixF& pDigMap)
 {
   // Forms the initial cluster as a combination of all adjascent digits. Starts from the given digit then calls itself recursevly  for all neighbours.
   // Arguments: pClu - pointer to cluster being formed
   //   Returns: none
-  pClu->digAdd(&pDigList->at(pDig)); // take this digit in cluster
+  pClu.digAdd(&digs[pDig]); // take this digit in cluster
   int cnt = 0;
   int cx[4];
   int cy[4];
   int padChX = 0;
   int padChY = 0;
   int module = 0;
-  o2::hmpid::Digit::pad2Absolute(pDigList->at(pDig).getPadID(), &module, &padChX, &padChY);
+  o2::hmpid::Digit::pad2Absolute(digs[pDig].getPadID(), &module, &padChX, &padChY);
 
   if (padChX > Param::kMinPx) {
     cx[cnt] = padChX - 1;
@@ -112,12 +106,13 @@ void Clusterer::FormClu(Cluster* pClu, int pDig, std::vector<o2::hmpid::Digit>* 
   for (int i = 0; i < cnt; i++) { // neighbours loop
     pDig = UseDig(cx[i], cy[i], pDigMap);
     if (pDig != -1) {
-      FormClu(pClu, pDig, pDigList, pDigMap);
+      FormClu(pClu, pDig, digs, pDigMap);
     } // check if this neighbour pad fired and mark it as taken
   }   // neighbours loop
 } // FormClu()
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-int Clusterer::UseDig(int padX, int padY, TMatrixF* pPadMap)
+int Clusterer::UseDig(int padX, int padY, TMatrixF& pPadMap)
 {
   // Digit map contains a matrix if digit numbers.
   // Main operation in forming initial cluster is done here. Requested digit pointer is returned and this digit marked as taken.
@@ -125,8 +120,8 @@ int Clusterer::UseDig(int padX, int padY, TMatrixF* pPadMap)
   //            pDigLst   - list of digits for one sector
   //            pDigMap   - map of those digits
   //   Returns: index to digit if not yet used or -1 if used
-  int iDig = (int)(*pPadMap)(padX, padY);
-  (*pPadMap)(padX, padY) = -1; // take digit number from the map and reset this map cell to -1
+  int iDig = (int)pPadMap(padX, padY);
+  pPadMap(padX, padY) = -1; // take digit number from the map and reset this map cell to -1
   return iDig;
 }
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

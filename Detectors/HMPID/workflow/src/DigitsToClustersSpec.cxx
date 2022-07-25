@@ -73,7 +73,6 @@ void DigitsToClustersTask::strToFloatsSplit(std::string s, std::string delimiter
     }
   }
   res[index++] = (std::stof(s.substr(pos_start)));
-  return;
 }
 
 //=======================
@@ -89,63 +88,37 @@ void DigitsToClustersTask::init(framework::InitContext& ic)
   mDigitsReceived = 0;
   mRec = new o2::hmpid::Clusterer();
   mExTimer.start();
-  return;
 }
 
 void DigitsToClustersTask::run(framework::ProcessingContext& pc)
 {
-  LOG(info) << "[HMPID DClusterization - run() ] Enter ...";
-  std::vector<o2::hmpid::Trigger> triggers;
-  std::vector<o2::hmpid::Digit> digits;
-  std::vector<o2::hmpid::Digit> oneEventDigits;
-  std::vector<o2::hmpid::Cluster> oneEventClusters;
+  LOG(debug) << "[HMPID DClusterization - run() ] Enter ...";
+  auto triggers = pc.inputs().get<gsl::span<o2::hmpid::Trigger>>("intrecord");
+  auto digits = pc.inputs().get<gsl::span<o2::hmpid::Digit>>("digits");
   std::vector<o2::hmpid::Cluster> clusters;
-  std::vector<o2::hmpid::Trigger> clustersTrigger;
+  std::vector<o2::hmpid::Trigger> clusterTriggers;
 
-  for (auto const& ref : InputRecordWalker(pc.inputs())) {
-    if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{gDataOriginHMP, "INTRECORDS"}})) {
-      triggers = pc.inputs().get<std::vector<o2::hmpid::Trigger>>(ref);
-      LOG(info) << "We receive triggers =" << triggers.size();
+  for (const auto& trig : triggers) {
+    if (trig.getNumberOfObjects()) {
+      gsl::span<const o2::hmpid::Digit> trigDigits{digits.data() + trig.getFirstEntry(), size_t(trig.getNumberOfObjects())};
+      size_t clStart = clusters.size();
+      mRec->Dig2Clu(trigDigits, clusters, mSigmaCut, true);
+      clusterTriggers.emplace_back(trig.getIr(), clStart, clusters.size() - clStart);
     }
-    if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{gDataOriginHMP, "DIGITS"}})) {
-      digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>(ref);
-      LOG(info) << "The size of the vector =" << digits.size();
-      mDigitsReceived += digits.size();
-    }
-
-    clustersTrigger.clear();
-    for (int i = 0; i < triggers.size(); i++) {
-      oneEventDigits.clear();
-      LOG(info) << "Trigger Event     Orbit = " << triggers[i].getOrbit() << "  BC = " << triggers[i].getBc();
-      for (int j = triggers[i].getFirstEntry(); j <= triggers[i].getLastEntry(); j++) {
-        oneEventDigits.push_back(digits[j]);
-      }
-      // ------ Now we have the Digit Array for one Trigger event
-      oneEventClusters.clear();
-      mRec->Dig2Clu(&oneEventDigits, &oneEventClusters, mSigmaCut, true);
-      if (oneEventClusters.size() > 0) {                                               // we have something to store
-        clustersTrigger.push_back(triggers[i]);                                        // copy the Interaction record in the new triggers vector
-        clustersTrigger.back().setDataRange(clusters.size(), oneEventClusters.size()); // set the data range to the chunch of clusters
-        for (int j = 0; j < oneEventClusters.size(); j++) {
-          clusters.push_back(oneEventClusters[j]);
-        } // append clusters
-      }
-      LOG(info) << "Clusters for event = " << oneEventClusters.size();
-    }
-
-    pc.outputs().snapshot(o2::framework::Output{"HMP", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, clusters);
-    pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS1", 0, o2::framework::Lifetime::Timeframe}, clustersTrigger);
   }
+  LOGP(info, "Received {} triggers with {} digits -> {} triggers with {} clusters", triggers.size(), digits.size(), clusterTriggers.size(), clusters.size());
+  mDigitsReceived += digits.size();
+
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, clusters);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS1", 0, o2::framework::Lifetime::Timeframe}, clusterTriggers);
 
   mExTimer.elapseMes("Clusterization of Digits received = " + std::to_string(mDigitsReceived));
-  return;
 }
 
 void DigitsToClustersTask::endOfStream(framework::EndOfStreamContext& ec)
 {
   mExTimer.stop();
   mExTimer.logMes("End Clusterization !  digits = " + std::to_string(mDigitsReceived));
-  return;
 }
 
 //_________________________________________________________________________________________________
