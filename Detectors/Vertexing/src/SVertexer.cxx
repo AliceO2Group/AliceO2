@@ -252,7 +252,10 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
   for (int i = 0; i < 2; i++) {
     mTracksPool[i].clear();
     mVtxFirstTrack[i].clear();
+    mTrackSortVtxMax[i].clear();
+    mVtxMaxLUT[i].clear();
     mVtxFirstTrack[i].resize(nv, -1);
+    mVtxMaxLUT[i].resize(nv, -1);
   }
   for (int iv = 0; iv < nv; iv++) {
     const auto& vtref = vtxRefs[iv];
@@ -297,11 +300,20 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
 
   for (int pn = 0; pn < 2; pn++) {
     auto& vtxFirstT = mVtxFirstTrack[pn];
+    auto& vtxLastT = mTrackSortVtxMax[pn];
+    auto& vtxLastLUT = mVtxMaxLUT[pn];
     const auto& tracksPool = mTracksPool[pn];
+    // prepare sorted by max vtx index for bachelor association
+    vtxLastT.resize(tracksPool.size(), -1);
+    std::iota(vtxLastT.begin(), vtxLastT.end(), 0);
+    std::sort(vtxLastT.begin(), vtxLastT.end(), [tracksPool](int i, int j) { return tracksPool[i].vBracket.getMax() < tracksPool[j].vBracket.getMax(); });
     for (unsigned i = 0; i < tracksPool.size(); i++) {
       const auto& t = tracksPool[i];
       if (vtxFirstT[t.vBracket.getMin()] == -1) {
         vtxFirstT[t.vBracket.getMin()] = i;
+      }
+      if (vtxLastLUT[t.vBracket.getMax()] == -1) {
+        vtxLastLUT[t.vBracket.getMax()] = i;
       }
     }
   }
@@ -443,21 +455,32 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
   auto& fitterCasc = mFitterCasc[ithread];
   const auto& v0 = mV0sTmp[ithread].back();
   auto& tracks = mTracksPool[posneg];
-
   int nCascIni = mCascadesTmp[ithread].size();
-  // start from the 1st track compatible with V0's primary vertex
-  int firstIdx = v0vlist.getMin() - mSVParams->marginBachPV > 0 ? v0vlist.getMin() - mSVParams->marginBachPV : 0;
-  int firstTr = mVtxFirstTrack[posneg][firstIdx], nTr = tracks.size();
-  if (firstTr < 0) {
-    firstTr = nTr;
-  }
-  for (int it = firstTr; it < nTr; it++) {
-    auto& bach = tracks[it];
 
-    if (it == avoidTrackID) {
+  // check if a given PV has already been used in a cascade
+  std::unordered_map<int, int> pvMap;
+
+  // start from the 1st bachelor track compatible with V0's primary vertex
+  // minimum intersection of V0 and bachelor track --> min V0 vert and max bachelor vert
+  auto v0Idx = v0vlist.getMin();
+  int firstIdx = mVtxMaxLUT[posneg][v0Idx];
+
+  while (firstIdx < 0 || firstIdx >= mTrackSortVtxMax[posneg].size()) {
+    v0Idx++;
+    firstIdx = mVtxMaxLUT[posneg][v0Idx];
+  }
+
+  int firstTr = mTrackSortVtxMax[posneg][firstIdx], nTr = tracks.size();
+
+  for (int it = firstTr; it < nTr; it++) {
+    auto& trackInd = mTrackSortVtxMax[posneg][it];
+    auto& bach = tracks[trackInd];
+
+    if (trackInd == avoidTrackID) {
       continue; // skip the track used by V0
     }
     if (bach.vBracket.getMin() > v0vlist.getMax()) {
+      LOG(info) << "Skipping";
       break; // all other bachelor candidates will be also not compatible with this PV
     }
     auto cascVlist = v0vlist.getOverlap(bach.vBracket); // indices of vertices shared by V0 and bachelor
@@ -567,14 +590,22 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
 
     // clone the V0, set new cosPA and VerteXID, add it to the list of V0s
     if (cascVtxID != v0.getVertexID()) {
-      mV0sTmp[ithread].push_back(v0);
-      auto& v0clone = mV0sTmp[ithread].back();
+      auto v0clone = v0;
       const auto& pv = mPVertices[cascVtxID];
+
       float dx = v0.getX() - pv.getX(), dy = v0.getY() - pv.getY(), dz = v0.getZ() - pv.getZ(), prodXYZ = dx * pV0[0] + dy * pV0[1] + dz * pV0[2];
       float cosPA = prodXYZ / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0);
       v0clone.setCosPA(cosPA);
       v0clone.setVertexID(cascVtxID);
-      casc.setV0ID(mV0sTmp[ithread].size() - 1); // set the new V0 index in the cascade
+
+      auto pvIdx = pvMap.find(cascVtxID);
+      if (pvIdx != pvMap.end()) {
+        casc.setV0ID(pvIdx->second); // V0 already exists, add reference to the cascade
+      } else {
+        mV0sTmp[ithread].push_back(v0clone);
+        casc.setV0ID(mV0sTmp[ithread].size() - 1);      // set the new V0 index in the cascade
+        pvMap[cascVtxID] = mV0sTmp[ithread].size() - 1; // add the new V0 index to the map
+      }
     }
   }
 
@@ -600,7 +631,7 @@ bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int 
   }
   const auto& vtx = mPVertices[vtxid];
   auto twe = vtx.getTimeStamp();
-  int posneg = trTPC.getSign() < 0 ? 1 : 0;^^^
+  int posneg = trTPC.getSign() < 0 ? 1 : 0;
   auto trLoc = mTracksPool[posneg].emplace_back(TrackCand{trTPC, gid, {vtxid, vtxid}, 0.});
   auto err = correctTPCTrack(trLoc, trTPC, twe.getTimeStamp(), twe.getTimeStampError());
   if (err < 0) {
