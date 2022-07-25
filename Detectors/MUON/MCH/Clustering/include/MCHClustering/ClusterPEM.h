@@ -57,7 +57,7 @@ class ClusterPEM
   };
   inline const double* getCharges(int c)
   {
-    return (pads[c] == nullptr ? 0 : pads[c]->getCharges());
+    return (pads[c] == nullptr) ? 0 : pads[c]->getCharges();
   }
   inline const Pads* getPads(int c) { return pads[c]; };
   inline const Groups_t* getCathGroup(int c) { return cathGroup[c]; };
