@@ -24,8 +24,6 @@
 #include <ostream>
 #endif
 
-// #define VTX_DEBUG
-
 namespace o2
 {
 namespace its
@@ -131,6 +129,15 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const int*
       utils.countRowSelectedBins(indexTable, iPhiBin, selectedBinsRect[0], selectedBinsRect[2]));
   }
   return filteredBins;
+}
+
+void VertexerTraits::updateVertexingParameters(const VertexingParameters& vrtPar)
+{
+  mVrtParams = vrtPar;
+  mIndexTableUtils.setTrackingParameters(vrtPar);
+  mVrtParams.phiSpan = static_cast<int>(std::ceil(mIndexTableUtils.getNphiBins() * mVrtParams.phiCut /
+                                                  constants::math::TwoPi));
+  mVrtParams.zSpan = static_cast<int>(std::ceil(mVrtParams.zCut * mIndexTableUtils.getInverseZCoordinate(0)));
 }
 
 void VertexerTraits::computeTracklets()

@@ -46,8 +46,10 @@ class VertexerTraitsGPU : public VertexerTraits
   void computeTracklets() override;
   void computeTrackletMatching() override;
   void computeVertices() override;
-  void computeVerticesHist();
+  void updateVertexingParameters(const VertexingParameters& vrtPar) override;
   // void computeMCFiltering() override;
+
+  void computeVerticesHist();
 
  protected:
   IndexTableUtils* mDeviceIndexTableUtils;
