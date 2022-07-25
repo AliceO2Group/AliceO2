@@ -113,7 +113,7 @@ void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoCont
     auto t0triggers = ft0RecPoint.getTrigger();
     if (t0triggers.getVertex()) {
       uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
-      uint64_t classmask = ctpcfg->getClassMaskForInput("MTVTX");
+      uint64_t classmask = ctpcfg->getClassMaskForInput("MTVX");
       bcsMapT0triggers[globalBC] = classmask;
     }
   }
@@ -1267,11 +1267,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto caloPHOSCellsTRGR = recoData.getPHOSTriggers();
   auto ctpDigits = recoData.getCTPDigits();
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
-
+  std::vector<o2::ctp::CTPDigit> ctpDigitsCreated;
   if (mCTPReadout == 1) {
-    std::vector<o2::ctp::CTPDigit> ctpDigitsCreated;
     createCTPReadout(recoData, ctpDigitsCreated, pc);
-    ctpDigits = std::move(ctpDigitsCreated);
+    ctpDigits = gsl::span<o2::ctp::CTPDigit>(ctpDigitsCreated);
   }
   LOG(debug) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(debug) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
