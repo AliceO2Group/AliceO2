@@ -74,7 +74,7 @@ void VisualisationEventROOTSerializer::toFile(const VisualisationEvent& event, s
   save("trkMask", event.mTrkMask);
   save("tfCounter", event.mTfCounter);
   save("firstTForbit", event.mFirstTForbit);
-
+  save("primaryVertex", event.mPrimaryVertex);
   save("collisionTime", event.mCollisionTime);
   save("eveVersion", event.mEveVersion);
   save("workflowParameters", event.mWorkflowParameters);
@@ -199,6 +199,7 @@ bool VisualisationEventROOTSerializer::fromFile(VisualisationEvent& event, std::
   event.setTrkMask(readInt(f, "trkMask"));
   event.setTfCounter(readInt(f, "tfCounter"));
   event.setFirstTForbit(readInt(f, "firstTForbit"));
+  event.mPrimaryVertex = readInt(f, "primaryVertex");
 
   event.setCollisionTime(readString(f, "collisionTime"));
   event.mEveVersion = readString(f, "eveVersion");
