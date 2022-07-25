@@ -200,18 +200,18 @@ namespace o2
 namespace base
 {
 // this goes into the source
-void attachMessageBufferToParts(FairMQParts& parts, FairMQChannel& channel, void* data, size_t size,
+void attachMessageBufferToParts(fair::mq::Parts& parts, fair::mq::Channel& channel, void* data, size_t size,
                                 void (*free_func)(void* data, void* hint), void* hint)
 {
-  std::unique_ptr<FairMQMessage> message(channel.NewMessage(data, size, free_func, hint));
+  std::unique_ptr<fair::mq::Message> message(channel.NewMessage(data, size, free_func, hint));
   parts.AddPart(std::move(message));
 }
-void attachDetIDHeaderMessage(int id, FairMQChannel& channel, FairMQParts& parts)
+void attachDetIDHeaderMessage(int id, fair::mq::Channel& channel, fair::mq::Parts& parts)
 {
-  std::unique_ptr<FairMQMessage> message(channel.NewSimpleMessage(id));
+  std::unique_ptr<fair::mq::Message> message(channel.NewSimpleMessage(id));
   parts.AddPart(std::move(message));
 }
-void attachShmMessage(void* hits_ptr, FairMQChannel& channel, FairMQParts& parts, bool* busy_ptr)
+void attachShmMessage(void* hits_ptr, fair::mq::Channel& channel, fair::mq::Parts& parts, bool* busy_ptr)
 {
   struct shmcontext {
     int id;
@@ -225,10 +225,10 @@ void attachShmMessage(void* hits_ptr, FairMQChannel& channel, FairMQParts& parts
   LOG(debug) << "-- OBJ PTR -- " << info.object_ptr << " ";
   assert(instance.isPointerOk(info.object_ptr));
 
-  std::unique_ptr<FairMQMessage> message(channel.NewSimpleMessage(info));
+  std::unique_ptr<fair::mq::Message> message(channel.NewSimpleMessage(info));
   parts.AddPart(std::move(message));
 }
-void* decodeShmCore(FairMQParts& dataparts, int index, bool*& busy)
+void* decodeShmCore(fair::mq::Parts& dataparts, int index, bool*& busy)
 {
   auto rawmessage = std::move(dataparts.At(index));
   struct shmcontext {
@@ -243,7 +243,7 @@ void* decodeShmCore(FairMQParts& dataparts, int index, bool*& busy)
   return info->object_ptr;
 }
 
-void* decodeTMessageCore(FairMQParts& dataparts, int index)
+void* decodeTMessageCore(fair::mq::Parts& dataparts, int index)
 {
   class TMessageWrapper : public TMessage
   {

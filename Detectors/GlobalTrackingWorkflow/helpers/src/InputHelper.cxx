@@ -62,6 +62,12 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (!useMC) {
     maskClustersMC = GID::getSourcesMask(GID::NONE);
     maskTracksMC = GID::getSourcesMask(GID::NONE);
+  } else {
+    // some detectors do not support MC labels
+    if (maskClustersMC[GID::MCH]) {
+      LOG(warn) << "MCH global clusters do not support MC lables, disabling";
+      maskClustersMC &= ~GID::getSourceMask(GID::MCH);
+    }
   }
 
   if (maskTracks[GID::ITS]) {
@@ -76,8 +82,8 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskClusters[GID::MFT]) {
     specs.emplace_back(o2::itsmft::getMFTClusterReaderSpec(maskClustersMC[GID::MFT], true));
   }
-  if (maskTracks[GID::MCH]) {
-    specs.emplace_back(o2::mch::getTrackReaderSpec(maskTracksMC[GID::MCH]));
+  if (maskTracks[GID::MCH] || maskMatches[GID::MCHMID]) {
+    specs.emplace_back(o2::mch::getTrackReaderSpec(maskTracksMC[GID::MCH] || maskTracksMC[GID::MCHMID]));
   }
   if (maskTracks[GID::MID]) {
     specs.emplace_back(o2::mid::getTrackReaderSpec(maskTracksMC[GID::MID]));
@@ -97,10 +103,10 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskMatches[GID::ITSTPCTOF] || maskTracks[GID::ITSTPCTOF]) {
     specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::ITSTPCTOF], 1, /*maskTracks[GID::ITSTPCTOF]*/ false)); // ITSTPCTOF does not provide tracks, only matchInfo
   }
-  if (maskMatches[GID::MFTMCH]) {
-    specs.emplace_back(o2::globaltracking::getMFTMCHMatchedReaderSpec(maskTracksMC[GID::MFTMCH])); // MFTMCH matches does not provide tracks, only matchInfo
+  if (maskMatches[GID::MFTMCH] || maskTracks[GID::MFTMCH]) {
+    specs.emplace_back(o2::globaltracking::getGlobalFwdTrackReaderSpec(maskTracksMC[GID::MFTMCH])); // MFTMCH matches does not provide tracks, only matchInfo
   }
-  if (maskMatches[GID::MCHMID]) {
+  if (maskMatches[GID::MCHMID] || maskTracks[GID::MCHMID]) {
     specs.emplace_back(o2::globaltracking::getMCHMIDMatchedReaderSpec(maskTracksMC[GID::MCHMID])); // MCHMID matches does not provide tracks, only matchInfo
   }
   if (maskMatches[GID::ITSTPCTRDTOF] || maskTracks[GID::ITSTPCTRDTOF]) {
@@ -109,7 +115,9 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskMatches[GID::TPCTRDTOF] || maskTracks[GID::TPCTRDTOF]) {
     specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTRDTOF], 2, /*maskTracks[GID::ITSTPCTOF]*/ false)); // ITSTPCTOF does not provide tracks, only matchInfo
   }
-  if (maskClusters[GID::TOF] || maskTracks[GID::ITSTPCTOF]) { // Note: maskTracks[GID::ITSTPCTOF] is only here to match the behavior of RecoContainer::requestTracks
+  if (maskClusters[GID::TOF] ||
+      maskTracks[GID::ITSTPCTOF] || maskTracks[GID::ITSTPCTRDTOF] || maskTracks[GID::TPCTRDTOF] ||
+      maskMatches[GID::ITSTPCTOF] || maskMatches[GID::ITSTPCTRDTOF] || maskMatches[GID::TPCTRDTOF]) {
     specs.emplace_back(o2::tof::getClusterReaderSpec(maskClustersMC[GID::TOF]));
   }
   if (maskMatches[GID::TPCTOF]) {
@@ -137,22 +145,19 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskTracks[GID::TPCTRD] || maskTracks[GID::TPCTRDTOF]) {
     specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(maskTracksMC[GID::TPCTRD], subSpecStrict));
   }
-  if (maskTracks[GID::MFTMCH]) {
-    specs.emplace_back(o2::globaltracking::getGlobalFwdTrackReaderSpec(maskTracksMC[GID::MFTMCH]));
-  }
   if (maskTracks[GID::CTP] && maskClusters[GID::CTP]) {
     specs.emplace_back(o2::ctp::getDigitsReaderSpec(maskTracksMC[GID::CTP] || maskClustersMC[GID::CTP]));
   }
 
-  if (maskTracks[GID::PHS] && maskClusters[GID::PHS]) {
+  if (maskTracks[GID::PHS] || maskClusters[GID::PHS]) {
     specs.emplace_back(o2::phos::getCellReaderSpec(maskTracksMC[GID::PHS] || maskClustersMC[GID::PHS]));
   }
 
-  if (maskTracks[GID::CPV] && maskClusters[GID::CPV]) {
+  if (maskTracks[GID::CPV] || maskClusters[GID::CPV]) {
     specs.emplace_back(o2::cpv::getClustersReaderSpec(maskTracksMC[GID::CPV] || maskClustersMC[GID::CPV]));
   }
 
-  if (maskTracks[GID::EMC] && maskClusters[GID::EMC]) {
+  if (maskTracks[GID::EMC] || maskClusters[GID::EMC]) {
     specs.emplace_back(o2::emcal::getCellReaderSpec(maskTracksMC[GID::EMC] || maskClustersMC[GID::EMC]));
   }
 

@@ -15,6 +15,7 @@
 /// \author Luca Barioglio, University and INFN of Torino
 
 #include "ITSMFTReconstruction/LookUp.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 
 ClassImp(o2::itsmft::LookUp);
 
@@ -68,27 +69,24 @@ int LookUp::groupFinder(int nRow, int nCol)
 int LookUp::findGroupID(int nRow, int nCol, const unsigned char patt[ClusterPattern::MaxPatternBytes]) const
 {
   int nBits = nRow * nCol;
-  // Small topology
-  if (nBits < 9) {
+  if (nBits < 9) { // Small unique topology
     int ID = mDictionary.mSmallTopologiesLUT[(nCol - 1) * 255 + (int)patt[0]];
     if (ID >= 0) {
       return ID;
-    } else { //small rare topology (inside groups)
-      int index = groupFinder(nRow, nCol);
-      auto res = mDictionary.mGroupMap.find(index);
-      return res == mDictionary.mGroupMap.end() ? -1 : res->second;
+    }
+  } else { // Big unique topology
+    unsigned long hash = ClusterTopology::getCompleteHash(nRow, nCol, patt);
+    auto ret = mDictionary.mCommonMap.find(hash);
+    if (ret != mDictionary.mCommonMap.end()) {
+      return ret->second;
     }
   }
-  // Big topology
-  unsigned long hash = ClusterTopology::getCompleteHash(nRow, nCol, patt);
-  auto ret = mDictionary.mCommonMap.find(hash);
-  if (ret != mDictionary.mCommonMap.end()) {
-    return ret->second;
-  } else { // Big rare topology (inside groups)
+  if (!mDictionary.mGroupMap.empty()) { // rare valid topology group
     int index = groupFinder(nRow, nCol);
     auto res = mDictionary.mGroupMap.find(index);
-    return res == mDictionary.mGroupMap.end() ? -1 : res->second;
+    return res == mDictionary.mGroupMap.end() ? CompCluster::InvalidPatternID : res->second;
   }
+  return CompCluster::InvalidPatternID;
 }
 
 } // namespace itsmft

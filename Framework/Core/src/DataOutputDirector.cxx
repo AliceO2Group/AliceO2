@@ -55,12 +55,15 @@ DataOutputDescriptor::DataOutputDescriptor(std::string inString)
   if (!std::string(tableItems[2]).empty()) {
     tablename = tableItems[2];
   }
+  if (!std::string(tableItems[3]).empty() && std::atoi(std::string(tableItems[3]).c_str()) > 0) {
+    version = std::string{"_"}.append(std::string(3 - std::string(tableItems[3]).length(), '0')).append(std::string(tableItems[3]));
+  }
 
   // get the tree name
   // default tree name is the O2 + table name (lower case)
   treename = tablename;
   std::transform(treename.begin(), treename.end(), treename.begin(), [](unsigned char c) { return std::tolower(c); });
-  treename = std::string("O2") + treename;
+  treename = std::string("O2") + treename + version;
   ++iter1;
   if (iter1 == end) {
     return;

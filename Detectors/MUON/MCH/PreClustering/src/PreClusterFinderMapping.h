@@ -53,6 +53,7 @@ class Mapping
  private:
   static auto addPad(MpDE& de, const mapping::Segmentation& segmentation);
   static auto addNeighbour(MpPad& pad);
+  static auto removeNeighbouringPadsInCorners(MpDE& de);
 };
 
 } // namespace mch

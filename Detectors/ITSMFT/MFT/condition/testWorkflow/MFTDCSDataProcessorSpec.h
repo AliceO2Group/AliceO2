@@ -78,8 +78,6 @@ class MFTDCSDataProcessor : public o2::framework::Task
 
       auto& mgr = CcdbManager::instance();
       mgr.setURL(o2::base::NameConf::getCCDBServer());
-      CcdbApi api;
-      api.init(mgr.getURL());
       long ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
       std::unordered_map<DPID, std::string>* dpid2DataDesc = mgr.getForTimeStamp<std::unordered_map<DPID, std::string>>("MFT/Config/DCSDPconfig", ts);
       for (auto& i : *dpid2DataDesc) {
@@ -135,11 +133,13 @@ class MFTDCSDataProcessor : public o2::framework::Task
     mProcessor->init(vect);
 
     mTimer = HighResClock::now();
+    mReportTiming = ic.options().get<bool>("report-timing") || useVerboseMode;
   }
 
   //________________________________________________________________
   void run(o2::framework::ProcessingContext& pc) final
   {
+    TStopwatch sw;
     auto tfid = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
 
@@ -148,10 +148,13 @@ class MFTDCSDataProcessor : public o2::framework::Task
 
     auto timeNow = HighResClock::now();
     Duration elapsedTime = timeNow - mTimer; // in seconds
-
     if (elapsedTime.count() >= mDPsUpdateInterval) {
       sendDPsoutput(pc.outputs());
       mTimer = timeNow;
+    }
+    sw.Stop();
+    if (mReportTiming) {
+      LOGP(info, "Timing CPU:{:.3e} Real:{:.3e} at slice {}", sw.CpuTime(), sw.RealTime(), pc.services().get<o2::framework::TimingInfo>().timeslice);
     }
   }
 
@@ -162,10 +165,10 @@ class MFTDCSDataProcessor : public o2::framework::Task
   }
 
  private:
+  bool mReportTiming = false;
   std::unique_ptr<MFTDCSProcessor> mProcessor;
   HighResClock::time_point mTimer;
   int64_t mDPsUpdateInterval;
-
   long mStart;
   long mEnd;
 
@@ -185,8 +188,7 @@ class MFTDCSDataProcessor : public o2::framework::Task
     }
 
     if (tend == -1) {
-      constexpr long SECONDSPERYEAR = 365 * 24 * 60 * 60;
-      tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
+      tend = tstart + o2::ccdb::CcdbObjectInfo::MONTH;
     }
 
     info.setStartValidityTimestamp(tstart);
@@ -226,6 +228,7 @@ DataProcessorSpec getMFTDCSDataProcessorSpec()
       {"tend", VariantType::Int64, -1ll, {"End of validity timestamp"}},
       {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
       {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
+      {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
       //{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
       {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};
 }

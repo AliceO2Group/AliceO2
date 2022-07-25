@@ -27,6 +27,8 @@ template <typename T>
 constexpr auto isSimpleType()
 {
   return std::is_same_v<T, int> ||
+         std::is_same_v<T, int8_t> ||
+         std::is_same_v<T, int16_t> ||
          std::is_same_v<T, uint8_t> ||
          std::is_same_v<T, uint16_t> ||
          std::is_same_v<T, uint32_t> ||

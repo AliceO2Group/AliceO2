@@ -58,6 +58,7 @@ install(FILES CheckDigits_mft.C
               CreateGRPECSObject.C
               CreateGRPMagFieldObject.C
               CreateGRPLHCIFObject.C
+              getTimeStamp.C
         DESTINATION share/macro/)
 
 # FIXME: a lot of macros that are here should really be elsewhere. Those which
@@ -112,7 +113,7 @@ o2_add_test_root_macro(analyzeOriginHits.C
                                              O2::DetectorsCommonDataFormats)
 
 if(ENABLE_UPGRADES)
-  set(upgradeTargets O2::Alice3DetectorsPassive O2::ITS3Simulation O2::TRKSimulation O2::FT3Simulation)
+  set(upgradeTargets O2::Alice3DetectorsPassive O2::ITS3Simulation O2::TRKSimulation O2::FT3Simulation O2::FCTSimulation)
 endif()
 
 o2_add_test_root_macro(build_geometry.C
@@ -370,7 +371,12 @@ o2_add_test_root_macro(UploadMatBudLUT.C
                                              O2::CCDB
                                              O2::DataFormatsParameters
                                              O2::DetectorsBase
-          O2::CommonUtils)
+                                             O2::CommonUtils)
+
+o2_add_test_root_macro(getTimeStamp.C
+                       PUBLIC_LINK_LIBRARIES O2::CommonConstants
+                                             O2::CCDB
+                                             O2::CommonUtils)
 
 #
 # NOTE: commented out until unit testing reenabled FIXME : re-enable or delete ?

@@ -27,10 +27,17 @@ using namespace o2::zdc::fastsim;
 NeuralFastSimulation::NeuralFastSimulation(const std::string& modelPath,
                                            Ort::SessionOptions sessionOptions,
                                            OrtAllocatorType allocatorType,
-                                           OrtMemType memoryType) : mSession(mEnv, modelPath.c_str(), sessionOptions),
-                                                                    mMemoryInfo(Ort::MemoryInfo::CreateCpu(allocatorType, memoryType))
+                                           OrtMemType memoryType,
+                                           int64_t batchSize) : mSession(mEnv, modelPath.c_str(), sessionOptions),
+                                                                mMemoryInfo(Ort::MemoryInfo::CreateCpu(allocatorType, memoryType)),
+                                                                mBatchSize(batchSize)
 {
   setInputOutputData();
+}
+
+size_t NeuralFastSimulation::getBatchSize() const
+{
+  return mBatchSize;
 }
 
 void NeuralFastSimulation::setInputOutputData()
@@ -50,7 +57,9 @@ void NeuralFastSimulation::setInputOutputData()
   // shape has to be figured out by library. In C++ this is illegal
   for (auto& shape : mInputShapes) {
     for (auto& elem : shape) {
-      elem = std::abs(elem);
+      if (elem < 0) {
+        elem = mBatchSize;
+      }
     }
   }
 }
@@ -64,7 +73,7 @@ void NeuralFastSimulation::setTensors(std::vector<std::vector<float>>& input)
 }
 
 //---------------------------------------------------------Conditional-------------------------------------------------------
-ConditionalModelSimulation::ConditionalModelSimulation(const std::string& modelPath) : NeuralFastSimulation(modelPath, Ort::SessionOptions{nullptr}, OrtDeviceAllocator, OrtMemTypeCPU) {}
+ConditionalModelSimulation::ConditionalModelSimulation(const std::string& modelPath, const int64_t batchSize) : NeuralFastSimulation(modelPath, Ort::SessionOptions{nullptr}, OrtDeviceAllocator, OrtMemTypeCPU, batchSize) {}
 
 bool ConditionalModelSimulation::setInput(std::vector<std::vector<float>>& input)
 {
@@ -93,21 +102,44 @@ const std::vector<Ort::Value>& ConditionalModelSimulation::getResult()
   return mModelOutput;
 }
 
+//------------------------------------------------------BatchHandler---------------------------------------------------------
+
+BatchHandler::BatchHandler(size_t batchSize) : mBatchSize(batchSize) {}
+
+BatchHandler& o2::zdc::fastsim::BatchHandler::getInstance(size_t batchSize)
+{
+  static o2::zdc::fastsim::BatchHandler instance(batchSize);
+  return instance;
+}
+
+std::optional<std::vector<std::vector<float>>> BatchHandler::getBatch(const std::vector<float>& input)
+{
+  std::scoped_lock guard(mMutex);
+  mBatch.emplace_back(input);
+  if (mBatch.size() == mBatchSize) {
+    auto value = std::optional(std::move(mBatch));
+    mBatch.clear();
+    return value;
+  } else {
+    return std::nullopt;
+  }
+}
+
 //---------------------------------------------------------Utils-------------------------------------------------------------
 std::optional<std::pair<std::vector<float>, std::vector<float>>> o2::zdc::fastsim::loadScales(const std::string& path)
 {
-  std::fstream file(path, file.in);
+  std::fstream file(path, std::fstream::in);
   if (!file.is_open()) {
     return std::nullopt;
   }
 
   auto means = parse_block(file, "#means");
-  if (means.size() == 0) {
+  if (means.empty()) {
     return std::nullopt;
   }
 
   auto scales = parse_block(file, "#scales");
-  if (scales.size() == 0) {
+  if (scales.empty()) {
     return std::nullopt;
   }
 

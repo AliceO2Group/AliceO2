@@ -21,9 +21,11 @@
 
 #include "EventVisualisationDataConverter/VisualisationTrack.h"
 #include "EventVisualisationDataConverter/VisualisationCluster.h"
+#include "EventVisualisationDataConverter/VisualisationCalo.h"
 #include "EventVisualisationDataConverter/VisualisationConstants.h"
 #include <forward_list>
 #include <ctime>
+#include <gsl/span>
 
 namespace o2
 {
@@ -39,19 +41,16 @@ namespace event_visualisation
 
 class VisualisationEvent
 {
+  friend class VisualisationEventJSONSerializer;
+  friend class VisualisationEventROOTSerializer;
+
  public:
   struct GIDVisualisation {
     bool contains[o2::dataformats::GlobalTrackID::NSources][o2::event_visualisation::EVisualisationGroup::NvisualisationGroups];
   };
   static GIDVisualisation mVis;
-  std::string toJson();
-  void fromJson(std::string json);
-  bool fromFile(std::string fileName);
   VisualisationEvent();
-  VisualisationEvent(std::string fileName);
   VisualisationEvent(const VisualisationEvent& source, EVisualisationGroup filter, float minTime, float maxTime);
-  void toFile(std::string fileName);
-  static std::string fileNameIndexed(const std::string fileName, const int index);
 
   /// constructor parametrisation (Value Object) for VisualisationEvent class
   ///
@@ -67,6 +66,8 @@ class VisualisationEvent
   };
   // Default constructor
   VisualisationEvent(const VisualisationEventVO vo);
+
+  void appendAnotherEventCalo(const VisualisationEvent& another);
 
   VisualisationTrack* addTrack(VisualisationTrack::VisualisationTrackVO vo)
   {
@@ -87,6 +88,12 @@ class VisualisationEvent
     return mTracks.back().addCluster(pos);
   }
 
+  VisualisationCalo* addCalo(VisualisationCalo::VisualisationCaloVO vo)
+  {
+    mCalo.emplace_back(vo);
+    return &mCalo.back();
+  }
+
   // Multiplicity getter
   int GetMultiplicity() const
   {
@@ -105,20 +112,60 @@ class VisualisationEvent
     return mTracks.size();
   }
 
+  gsl::span<const VisualisationCluster> getClustersSpan() const
+  {
+    return mClusters;
+  }
+
+  gsl::span<const VisualisationTrack> getTracksSpan() const
+  {
+    return mTracks;
+  }
+
+  gsl::span<const VisualisationCalo> getCalorimetersSpan() const
+  {
+    return mCalo;
+  }
+
+  size_t getCaloCount() const
+  {
+    return mCalo.size();
+  }
+
+  // Returns number of tracks with detector contribution (including standalone)
+  size_t getDetectorTrackCount(o2::detectors::DetID::ID id) const
+  {
+    return getDetectorsTrackCount(o2::detectors::DetID::getMask(id));
+  }
+
+  // Returns number of tracks with any detector contribution (including standalone) from the list
+  size_t getDetectorsTrackCount(o2::detectors::DetID::mask_t mdet) const
+  {
+    return std::count_if(mTracks.begin(), mTracks.end(), [&](const auto& t) {
+      return (o2::dataformats::GlobalTrackID::getSourceDetectorsMask(t.getSource()) & mdet).any();
+    });
+  }
+
+  // Returns number of tracks from a given source
+  size_t getSourceTrackCount(o2::dataformats::GlobalTrackID::Source src) const
+  {
+    return std::count_if(mTracks.begin(), mTracks.end(), [&](const auto& t) {
+      return t.getSource() == src;
+    });
+  }
+
   // Clears event from stored data (tracks, collisions)
   void clear()
   {
     mTracks.clear();
     mClusters.clear();
+    mCalo.clear();
   }
 
   const VisualisationCluster& getCluster(int i) const { return mClusters[i]; };
   size_t getClusterCount() const { return mClusters.size(); } // Returns number of clusters
-  void setWorkflowVersion(float workflowVersion) { this->mWorkflowVersion = workflowVersion; }
+  void setWorkflowVersion(const std::string& workflowVersion) { this->mWorkflowVersion = workflowVersion; }
   void setWorkflowParameters(const std::string& workflowParameters) { this->mWorkflowParameters = workflowParameters; }
-
-  o2::header::DataHeader::RunNumberType getRunNumber() const { return this->mRunNumber; }
-  void setRunNumber(o2::header::DataHeader::RunNumberType runNumber) { this->mRunNumber = runNumber; }
 
   std::string getCollisionTime() const { return this->mCollisionTime; }
   void setCollisionTime(std::string collisionTime) { this->mCollisionTime = collisionTime; }
@@ -128,19 +175,43 @@ class VisualisationEvent
 
   bool isEmpty() const { return getTrackCount() == 0 && getClusterCount() == 0; }
 
+  int getClMask() const { return mClMask; }
+  void setClMask(int value) { mClMask = value; }
+
+  int getTrkMask() const { return mTrkMask; }
+  void setTrkMask(int value) { mTrkMask = value; }
+
+  o2::header::DataHeader::RunNumberType getRunNumber() const { return this->mRunNumber; }
+  void setRunNumber(o2::header::DataHeader::RunNumberType runNumber) { this->mRunNumber = runNumber; }
+
+  o2::header::DataHeader::TFCounterType getTfCounter() const { return this->mTfCounter; }
+  void setTfCounter(o2::header::DataHeader::TFCounterType value) { this->mTfCounter = value; }
+
+  o2::header::DataHeader::TForbitType getFirstTForbit() const { return this->mFirstTForbit; }
+  void setFirstTForbit(o2::header::DataHeader::TForbitType value) { this->mFirstTForbit = value; }
+
+  void setPrimaryVertex(std::size_t pv) { this->mPrimaryVertex = pv; }
+
  private:
+  int mClMask;                                      /// clusters requested during aquisition
+  int mTrkMask;                                     /// tracks requested during aquisition
+  o2::header::DataHeader::RunNumberType mRunNumber; /// run number
+  o2::header::DataHeader::TFCounterType mTfCounter;
+  o2::header::DataHeader::TForbitType mFirstTForbit;
+  std::size_t mPrimaryVertex;
+
   float mMinTimeOfTracks;                           /// minimum time of tracks in the event
   float mMaxTimeOfTracks;                           /// maximum time of tracks in the event
-  float mWorkflowVersion;                           /// workflow version used to generate this Event
+  std::string mWorkflowVersion;                     /// workflow version used to generate this Event
   std::string mWorkflowParameters;                  /// workflow parameters used to generate this Event
   int mEventNumber;                                 /// event number in file
-  o2::header::DataHeader::RunNumberType mRunNumber; /// run number
   double mEnergy;                                   /// energy of the collision
   int mMultiplicity;                                /// number of particles reconstructed
   std::string mCollidingSystem;                     /// colliding system (e.g. proton-proton)
   std::string mCollisionTime;                       /// collision timestamp
   std::vector<VisualisationTrack> mTracks;          /// an array of visualisation tracks
   std::vector<VisualisationCluster> mClusters;      /// an array of visualisation clusters
+  std::vector<VisualisationCalo> mCalo;             /// an array of visualisation calorimeters
 };
 
 } // namespace event_visualisation

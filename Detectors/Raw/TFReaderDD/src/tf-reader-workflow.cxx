@@ -11,6 +11,7 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/ChannelSpecHelpers.h"
 #include "Framework/Logger.h"
 #include <string>
 #include <bitset>
@@ -40,6 +41,10 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"send-diststf-0xccdb", VariantType::Bool, false, {"send explicit FLP/DISTSUBTIMEFRAME/0xccdb output"}});
   options.push_back(ConfigParamSpec{"disable-dummy-output", VariantType::Bool, false, {"Disable sending empty output if corresponding data is not found in the data"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"semicolon separated key=value strings"}});
+
+  options.push_back(ConfigParamSpec{"timeframes-shm-limit", VariantType::String, "0", {"Minimum amount of SHM required in order to publish data"}});
+  options.push_back(ConfigParamSpec{"metric-feedback-channel-format", VariantType::String, "name=metric-feedback,type=pull,method=connect,address=ipc://{}metric-feedback-{},transport=shmem,rateLogging=0", {"format for the metric-feedback channel for TF rate limiting"}});
+
   // options for error-check suppression
 
   std::swap(workflowOptions, options);
@@ -70,6 +75,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   rinp.sendDummyForMissing = !configcontext.options().get<bool>("disable-dummy-output");
   rinp.sup0xccdb = !configcontext.options().get<bool>("send-diststf-0xccdb");
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  rinp.minSHM = std::stoul(configcontext.options().get<std::string>("timeframes-shm-limit"));
+  int rateLimitingIPCID = std::stoi(configcontext.options().get<std::string>("timeframes-rate-limit-ipcid"));
+  std::string chanFmt = configcontext.options().get<std::string>("metric-feedback-channel-format");
+  if (rateLimitingIPCID > -1 && !chanFmt.empty()) {
+    rinp.metricChannel = fmt::format(chanFmt, o2::framework::ChannelSpecHelpers::defaultIPCFolder(), rateLimitingIPCID);
+  }
 
   WorkflowSpec specs;
   specs.emplace_back(o2::rawdd::getTFReaderSpec(rinp));

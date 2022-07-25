@@ -25,8 +25,9 @@ namespace rdh_utils
 using o2::raw::RDHUtils;
 using FEEIDType = uint16_t;
 static constexpr FEEIDType UserLogicLinkID = 15; ///< virtual link ID for ZS data
-static constexpr FEEIDType IDCLinkID = 20;       ///< Identifier for digital currents
-static constexpr FEEIDType IACLinkID = 25;       ///< Identifier for analog currents
+static constexpr FEEIDType IDCLinkID = 20;       ///< Identifier for integrated digital currents
+static constexpr FEEIDType ILBZSLinkID = 21;     ///< Identifier for improved link-based ZS
+static constexpr FEEIDType SACLinkID = 25;       ///< Identifier for sampled analog currents
 
 /// compose feeid from cru, endpoint and link
 static constexpr FEEIDType getFEEID(const FEEIDType cru, const FEEIDType endpoint, const FEEIDType link) { return FEEIDType((cru << 7) | ((endpoint & 1) << 6) | (link & 0x3F)); }

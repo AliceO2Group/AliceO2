@@ -74,6 +74,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option to disable MC truth
   workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable  mc-truth"}});
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}});
+  o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
 // ------------------------------------------------------------------
@@ -293,7 +294,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   std::iota(lanes.begin(), lanes.end(), 0);
   specs.emplace_back(o2::tpc::getSpec(lanes, tpcsectors, mctruth));
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
   return specs;
 }

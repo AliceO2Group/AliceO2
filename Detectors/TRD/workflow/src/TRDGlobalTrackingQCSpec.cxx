@@ -24,6 +24,7 @@
 #include "TRDQC/Tracking.h"
 #include <TFile.h>
 #include <TTree.h>
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -37,24 +38,23 @@ namespace trd
 class TRDGlobalTrackingQC : public Task
 {
  public:
-  TRDGlobalTrackingQC(std::shared_ptr<DataRequest> dr) : mDataRequest(dr) {}
+  TRDGlobalTrackingQC(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr) : mDataRequest(dr), mGGCCDBRequest(gr) {}
   ~TRDGlobalTrackingQC() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(framework::ProcessingContext& pc);
   std::shared_ptr<DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   Tracking mQC;
 };
 
 void TRDGlobalTrackingQC::init(InitContext& ic)
 {
-  //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP();
-  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
-  mQC.init();
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
 }
 
 void TRDGlobalTrackingQC::run(ProcessingContext& pc)
@@ -62,6 +62,7 @@ void TRDGlobalTrackingQC::run(ProcessingContext& pc)
 
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
+  updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
   mQC.setInput(recoData);
   mQC.run();
 }
@@ -78,6 +79,24 @@ void TRDGlobalTrackingQC::endOfStream(EndOfStreamContext& ec)
   tree->Write();
   tree.reset();
   fOut->Close();
+}
+
+void TRDGlobalTrackingQC::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
+}
+
+void TRDGlobalTrackingQC::updateTimeDependentParams(ProcessingContext& pc)
+{
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+
+    mQC.init();
+  }
 }
 
 DataProcessorSpec getTRDGlobalTrackingQCSpec(o2::dataformats::GlobalTrackID::mask_t src)
@@ -98,12 +117,19 @@ DataProcessorSpec getTRDGlobalTrackingQCSpec(o2::dataformats::GlobalTrackID::mas
   std::cout << src << std::endl;
   dataRequest->requestTracks(src, false);
   dataRequest->requestClusters(srcClu, false);
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              false,                             // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              dataRequest->inputs,
+                                                              true);
   return DataProcessorSpec{
     "trd-tracking-qc",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDGlobalTrackingQC>(dataRequest)},
+    AlgorithmSpec{adaptFromTask<TRDGlobalTrackingQC>(dataRequest, ggRequest)},
     Options{}};
 }
 

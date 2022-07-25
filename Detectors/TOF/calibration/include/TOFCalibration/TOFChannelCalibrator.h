@@ -116,6 +116,8 @@ class TOFChannelData
   void doPerStrip(bool val = true) { mPerStrip = val; }
   void doSafeMode(bool val = true) { mSafeMode = val; }
 
+  void resetAndReRange(float range);
+
  private:
   float mRange = o2::tof::Geo::BC_TIME_INPS * 0.5;
   int mNBins = 1000;

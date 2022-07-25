@@ -11,16 +11,19 @@
 
 o2_add_library(FDDReconstruction
                SOURCES src/Reconstructor.cxx
-                       src/ReadRaw.cxx
                        src/CTFCoder.cxx
                PUBLIC_LINK_LIBRARIES O2::FDDBase
-                O2::DataFormatsFDD
-                O2::DetectorsRaw)
+                                     O2::DataFormatsFDD
+                                     O2::DetectorsRaw)
 
-o2_target_root_dictionary(
-  FDDReconstruction
-  HEADERS include/FDDReconstruction/Reconstructor.h
-          include/FDDReconstruction/ReadRaw.h)
+o2_target_root_dictionary(FDDReconstruction
+  HEADERS include/FDDReconstruction/Reconstructor.h)
+
+o2_add_executable(
+  test-raw-conversion
+  COMPONENT_NAME fdd
+  SOURCES src/test-raw-conversion.cxx
+  PUBLIC_LINK_LIBRARIES O2::FDDReconstruction)
 
 o2_add_executable(
   test-raw2digit

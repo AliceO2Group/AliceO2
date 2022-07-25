@@ -100,7 +100,7 @@ option, where `<signal>` can be: all, segv, bus, ill, abrt, fpe and sys.
 
 ### Debug GUI
 
-The demonstator also includes a simple GUI to help debugging problems:
+DPL also includes a simple GUI to help debugging problems:
 
 ![](https://user-images.githubusercontent.com/10544/29307499-75bb8550-81a2-11e7-9aa6-96b7613288b5.png)
 
@@ -110,10 +110,30 @@ The GUI provides the following facilities:
 * One log window  per DataProcessor, allowing filtering and  triggering on log
   messages
 * Metrics inspector
+* A Device Inspector
+
+by default the GUI runs as natively on your Linux desktop (using OpenGL) or
+on macOS (using Metal as a back end). It is also possible to run the GUI
+remotely by exporting the environment variable `DPL_DRIVER_REMOTE_GUI`, e.g.:
+
+```bash
+export DPL_DRIVER_REMOTE_GUI=1
+```
+
+and you can then connect on the control port of the driver:
+
+<img src="https://user-images.githubusercontent.com/10544/179854428-c5a1f2b0-2247-408d-a6e9-3381cc1caaf7.png" width="400px">
+
+by going to https://aliceo2group.github.io/DebugGUI/remote/remote.html and passing it to the GUI:
+
+<img src="https://user-images.githubusercontent.com/10544/179854512-22ab8994-9f7f-4f68-a778-768fd4a97eec.png" width="400px">
+
+Notice that in this setup, you might have to adjust your browser sensibility
+to [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
 
 ### Integrating with non-DPL devices
 
-Given the Data Processing Layer comes somewhat later in the design of O2, it's possible that you already have some topology of devices which you want to integrate, without having to port them to the DPL itself. Alternatively, your devices might not satisfy the requirements of the Data Processing Layer and therefore require a "raw" `FairMQDevice`, fully customised to your needs. This is fully supported and we provide means to ingest foreign, non-DPL FairMQDevices produced, messages into a DPL workflow. This is done via the help of a "proxy" data processor which connects to the foreign device, receives its inputs, optionally converts them to a format understood by the Data Processing Layer, and then pumps them to the right Data Processor Specs. In order to have such a device in your workflow, you can use the [`specifyExternalFairMQDeviceProxy`][specifyExternalFairMQDeviceProxy] helper to instanciate it. For an example of how to use it you can look at
+Given the Data Processing Layer comes somewhat later in the design of O2, it's possible that you already have some topology of devices which you want to integrate, without having to port them to the DPL itself. Alternatively, your devices might not satisfy the requirements of the Data Processing Layer and therefore require a "raw" `fair::mq::Device`, fully customised to your needs. This is fully supported and we provide means to ingest foreign, non-DPL FairMQ devices produced, messages into a DPL workflow. This is done via the help of a "proxy" data processor which connects to the foreign device, receives its inputs, optionally converts them to a format understood by the Data Processing Layer, and then pumps them to the right Data Processor Specs. In order to have such a device in your workflow, you can use the [`specifyExternalFairMQDeviceProxy`][specifyExternalFairMQDeviceProxy] helper to instanciate it. For an example of how to use it you can look at
 [`Framework/TestWorkflows/src/test_RawDeviceInjector.cxx`][rawDeviceInjectorExample]. The `specifyExternalFairMQDeviceProxy` takes four arguments:
 
 ```cpp
@@ -268,6 +288,23 @@ InputSpec{"*", "CLUSTERS"}, InputSpec{"*", "TRACKS"}
 
 i.e. the first message which arrives will define the wildcard for all the other input
 spec in the definition.
+
+## Building a data query by string
+
+The C++ API is not the only way an InputSpec can be constructed. This can be done
+also by string via the `DataDescriptorQueryBuilder::parse` method. E.g.:
+
+
+```cpp
+DataDescriptorQueryBuilder::parse("label:orig/description/0?lifetime=condition");
+```
+
+is equivalent of:
+
+```cpp
+InputSpec{"label", "orig", "description", 0, Lifetime::Condition};
+```
+
 
 ### Data flow parallelism
 

@@ -24,6 +24,8 @@
 #include "TLatex.h"
 #include "TStyle.h"
 #include "TPaveText.h"
+#include "TPaletteAxis.h"
+#include "TObjArray.h"
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/ROC.h"
@@ -77,6 +79,114 @@ std::vector<painter::PadCoordinates> painter::getPadCoordinatesSector()
   }
 
   return padCoords;
+}
+
+std::vector<painter::PadCoordinates> painter::getStackCoordinatesSector()
+{
+  std::vector<painter::PadCoordinates> padCoords;
+  const auto& regInf = Mapper::instance().getMapPadRegionInfo();
+
+  std::vector<GEMstack> stacks;
+  stacks.reserve(CRU::CRUperSector);
+  for (int cru = 0; cru < CRU::CRUperSector; ++cru) {
+    stacks.emplace_back(CRU(cru).gemStack());
+  }
+
+  for (int stack = 0; stack < GEMSTACKSPERSECTOR; ++stack) {
+    auto& padCoord = padCoords.emplace_back();
+    padCoord.xVals.resize(0);
+    padCoord.yVals.resize(0);
+
+    const GEMstack currentStack = static_cast<GEMstack>(stack);
+    const auto first = std::find(stacks.cbegin(), stacks.cend(), currentStack);
+    const auto last = std::find(stacks.crbegin(), stacks.crend(), currentStack);
+    const int firstRegion = std::distance(stacks.cbegin(), first);
+    const int lastRegion = (stacks.size() - std::distance(stacks.crbegin(), last) - 1);
+
+    for (int region = firstRegion; region <= lastRegion; ++region) {
+      const auto& padReg = regInf[region];
+      const auto npr = padReg.getNumberOfPadRows();
+      const auto ro = padReg.getRowOffset();
+      const auto xm = padReg.getXhelper();
+      const auto ph = padReg.getPadHeight();
+      const auto pw = padReg.getPadWidth();
+      const auto yro = padReg.getRadiusFirstRow();
+      const auto ks = ph / pw * std::tan(1.74532925199432948e-01);
+
+      for (int irow = 0; irow < npr; ++irow) {
+        const auto npads = std::floor(ks * (irow + ro) + xm);
+        const int ipad = -npads;
+        const auto xPadBottomRight = yro + ph * irow;
+        const auto xPadTopRight = yro + ph * (irow + 1);
+        const auto ri = xPadBottomRight;
+        const auto yPadBottomRight = pw * ipad * xPadBottomRight / (ri + ph / 2);
+        const auto yPadTopRight = pw * ipad * xPadTopRight / (ri + ph / 2);
+        const auto yPadBottomLeft = pw * (ipad + 1) * xPadBottomRight / (ri + ph / 2);
+        const auto yPadTopLeft = pw * (ipad + 1) * xPadTopRight / (ri + ph / 2);
+        padCoord.xVals.emplace_back(xPadBottomRight);
+        padCoord.yVals.emplace_back(yPadBottomRight);
+        padCoord.xVals.emplace_back(xPadTopRight);
+        padCoord.yVals.emplace_back(yPadTopRight);
+      }
+    }
+    // mirror coordinates
+    for (int i = padCoord.xVals.size() - 1; i >= 0; i--) {
+      padCoord.xVals.emplace_back(padCoord.xVals[i]);
+      padCoord.yVals.emplace_back(std::abs(padCoord.yVals[i]));
+    }
+  }
+  return padCoords;
+}
+
+std::vector<o2::tpc::painter::PadCoordinates> painter::getCoordinates(const Type type)
+{
+  if (type == Type::Pad) {
+    return painter::getPadCoordinatesSector();
+  } else if (type == Type::Stack) {
+    return painter::getStackCoordinatesSector();
+  } else {
+    LOGP(warning, "Wrong Type provided!");
+    return std::vector<o2::tpc::painter::PadCoordinates>();
+  }
+}
+
+std::vector<double> painter::getRowBinningCM(uint32_t roc)
+{
+  const Mapper& mapper = Mapper::instance();
+
+  int firstRegion = 0, lastRegion = 10;
+  if (roc < 36) {
+    firstRegion = 0;
+    lastRegion = 4;
+  } else if (roc < 72) {
+    firstRegion = 4;
+    lastRegion = 10;
+  }
+
+  std::vector<double> binning;
+
+  float lastPadHeight = mapper.getPadRegionInfo(firstRegion).getPadHeight();
+  float localX = mapper.getPadRegionInfo(firstRegion).getRadiusFirstRow();
+  binning.emplace_back(localX - 3);
+  binning.emplace_back(localX);
+  for (int iregion = firstRegion; iregion < lastRegion; ++iregion) {
+    const auto& regionInfo = mapper.getPadRegionInfo(iregion);
+    const auto padHeight = regionInfo.getPadHeight();
+
+    if (std::abs(padHeight - lastPadHeight) > 1e-5) {
+      lastPadHeight = padHeight;
+      localX = regionInfo.getRadiusFirstRow();
+      binning.emplace_back(localX);
+    }
+
+    for (int irow = 0; irow < regionInfo.getNumberOfPadRows(); ++irow) {
+      localX += lastPadHeight;
+      binning.emplace_back(localX);
+    }
+  }
+  binning.emplace_back(localX + 3);
+
+  return binning;
 }
 
 std::string painter::getROCTitle(const int rocNumber)
@@ -438,11 +548,11 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const std::string_view fileNa
 }
 
 //______________________________________________________________________________
-TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_view title, const float xMin, const float xMax, const float yMin, const float yMax)
+TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_view title, const float xMin, const float xMax, const float yMin, const float yMax, const Type type)
 {
   auto poly = new TH2Poly(name.data(), title.data(), xMin, xMax, yMin, yMax);
 
-  auto coords = painter::getPadCoordinatesSector();
+  auto coords = painter::getCoordinates(type);
   for (const auto& coord : coords) {
     poly->AddBin(coord.xVals.size(), coord.xVals.data(), coord.yVals.data());
   }
@@ -451,12 +561,12 @@ TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_
 }
 
 //______________________________________________________________________________
-TH2Poly* painter::makeSideHist(Side side)
+TH2Poly* painter::makeSideHist(Side side, const Type type)
 {
   const auto s = (side == Side::A) ? "A" : "C";
   auto poly = new TH2Poly(fmt::format("hSide_{}", s).data(), fmt::format("{}-Side;#it{{x}} (cm);#it{{y}} (cm)", s).data(), -270., 270., -270., 270.);
 
-  auto coords = painter::getPadCoordinatesSector();
+  auto coords = painter::getCoordinates(type);
   for (int isec = 0; isec < 18; ++isec) {
     const float angDeg = 10.f + isec * 20;
     for (auto coord : coords) {
@@ -890,6 +1000,51 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const LtrCalibData& ltr, std:
   vecCanvases.emplace_back(cLtrCoverage);
   vecCanvases.emplace_back(cCalibValues);
   return vecCanvases;
+}
+
+TCanvas* painter::makeJunkDetectionCanvas(const TObjArray* data, TCanvas* outputCanvas)
+{
+  auto c = outputCanvas;
+  if (!c) {
+    c = new TCanvas("junk_detection", "Junk Detection", 1000, 1000);
+  }
+
+  c->Clear();
+
+  auto strA = (TH2F*)data->At(4);
+  auto strB = (TH2F*)data->At(5);
+
+  double statsA[7];
+  double statsB[7];
+
+  strA->GetStats(statsA);
+  strB->GetStats(statsB);
+
+  auto junkDetectionMsg = new TPaveText(0.1, 0.1, 0.9, 0.9, "NDC");
+  junkDetectionMsg->SetFillColor(0);
+  junkDetectionMsg->SetBorderSize(0);
+  junkDetectionMsg->AddText("Removal Strategy A");
+  junkDetectionMsg->AddText(fmt::format("Number of Clusters before Removal: {}", statsA[2]).data());
+  junkDetectionMsg->AddText(fmt::format("Removed Fraction: {:.2f}%", statsA[4]).data());
+  junkDetectionMsg->AddLine(.0, .5, 1., .5);
+  junkDetectionMsg->AddText("Removal Strategy B");
+  junkDetectionMsg->AddText(fmt::format("Number of Clusters before Removal: {}", statsB[2]).data());
+  junkDetectionMsg->AddText(fmt::format("Removed Fraction: {:.2f}%", statsB[4]).data());
+
+  c->cd();
+  junkDetectionMsg->Draw();
+
+  return c;
+}
+
+void painter::adjustPalette(TH1* h, float x2ndc, float tickLength)
+{
+  gPad->Modified();
+  gPad->Update();
+  auto palette = (TPaletteAxis*)h->GetListOfFunctions()->FindObject("palette");
+  palette->SetX2NDC(x2ndc);
+  auto ax = h->GetZaxis();
+  ax->SetTickLength(tickLength);
 }
 
 // ===| explicit instantiations |===============================================

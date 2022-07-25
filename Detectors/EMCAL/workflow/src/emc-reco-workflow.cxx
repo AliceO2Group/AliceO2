@@ -86,7 +86,7 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
                                                   cfgc.options().get<bool>("disable-root-output"),
                                                   cfgc.options().get<bool>("disable-decoding-errors"));
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);
 
   return std::move(wf);

@@ -1,8 +1,7 @@
 #===============================================================#
-#           This is o2-eve config file.                         #
+#           This is Event Display config file.                  #
 #                                                               #
 # You can copy it to your home directory and set custom values. #
-#      please remember to change paths                          #
 #                                                               #
 #===============================================================#
 
@@ -12,14 +11,47 @@ axes.show:                              0
 fullscreen.mode:                        0
 background.color:                       1
 
+# screenshot
+screenshot.path:                        /home/ed/Screenshot
+screenshot.logo.o2:                     /home/ed/alice/O2/EventVisualisation/Scripts/o2.png
+screenshot.logo.alice:                  /home/ed/alice/O2/EventVisualisation/Scripts/alice-white.png
+#screenshot.logo.alice:                  /home/ed/alice/O2/EventVisualisation/Scripts/alice-black.png
+screenshot.width:                       1000
+screenshot.height:                      500
+#screenshot.message.line.0:             Run number: 520144 <- change/comment it in .o2eve_config
+#screenshot.message.line.1:             First TF orbit: 1301515 <- change/comment it in .o2eve_config
+#screenshot.message.line.2:             Date: Tue Jul 5 17:48:51 2022 <- change/comment it in .o2eve_config
+#screenshot.message.line.3:             Detectors: ITS,TPC <- change/comment it in .o2eve_config
+
+# towers
+emcal.barrel.radius:                    500
+emcal.tower.color:                      3
+emcal.tower.noise                       0
+emcal.tower.scale:                      1
+emcal.tower.size.eta:                   0.0143
+emcal.tower.size.phi:                   0.0143
+
+phos.barrel.radius:                     550
+phos.tower.color:                       65
+phos.tower.noise                        1
+phos.tower.scale:                       1
+phos.tower.size.eta:                    0.0143
+phos.tower.size.phi:                    0.0143
+
+#camera
 camera.3D.rotation.horizontal:          -0.4
 camera.3D.rotation.vertical:            1.0
 camera.3D.zoom:                         1.0
 camera.R-Phi.zoom:                      1.0
-camera.Rho-Z.zoom:                      1.0
+camera.Z-Y.zoom:                        1.0
 
 simple.geom.default:                    R3
-simple.geom.R3.path:                    /home/ed/geom/O2
+simple.geom.R3.path:                    /home/jmy/CERN/alice/dev/o2-dev/O2/EventVisualisation/Geometry
+
+data.synthetic.run.dir                  /home/ed/jsons/synthetic
+data.cosmics.run.dir                    /home/ed/jsons/cosmics
+data.physics.run.dir                    /home/ed/jsons/physics
+data.default                            SYNTHETIC
 
 tracks.width:                           2
 
@@ -30,67 +62,49 @@ tracks.byType.kaon:                     400
 tracks.byType.proton:                   797
 tracks.byType.unknown:                  920
 
-PHS.draw:                               1
-TPC.draw:                               1
-HMP.draw:                               1
-TRD.draw:                               1
-MCH.draw:                               1
-EMC.draw:                               1
-ACO.draw:                               1
 ITS.draw:                               1
+TPC.draw:                               1
+TRD.draw:                               1
 TOF.draw:                               1
 MFT.draw:                               1
-T00.draw:                               1
-FIT.draw:                               1
-AD0.draw:                               1
-FMD.draw:                               1
+MCH.draw:                               1
+MID.draw:                               1
+PHS.draw:                               1
+EMC.draw:                               1
+CPV.draw:                               1
 
-PHS.color:                              53
-TPC.color:                              3
-HMP.color:                              5
-TRD.color:                              921
-MCH.color:                              920
-EMC.color:                              53
-ACO.color:                              920
 ITS.color:                              634
-TOF.color:                              634
+TPC.color:                              3
+TRD.color:                              800
+TOF.color:                              3
 MFT.color:                              920
-T00.color:                              2
-FIT.color:                              2
-AD0.color:                              5
-FMD.color:                              906
+MCH.color:                              2
+MID.color:                              4
+PHS.color:                              5
+EMC.color:                              53
+CPV.color:                              920
 
-PHS.trans:                              70
-TPC.trans:                              60
-HMP.trans:                              70
-TRD.trans:                              80
+ITS.trans:                              70
+TPC.trans:                              70
+TRD.trans:                              50
+TOF.trans:                              50
+MFT.trans:                              10
 MCH.trans:                              80
-EMC.trans:                              80
-ACO.trans:                              50
-ITS.trans:                              50
-TOF.trans:                              60
-MFT.trans:                              80
-T00.trans:                              70
-FIT.trans:                              40
-AD0.trans:                              40
-FMD.trans:                              50
+MID.trans:                              80
+PHS.trans:                              50
+EMC.trans:                              50
+CPV.trans:                              50
 
-MCH.line.color:                         920
+ITS.line.color:                         1
 TPC.line.color:                         1
-HMP.line.color:                         1
-PHS.line.color:                         1
 TRD.line.color:                         1
 TOF.line.color:                         1
+MFT.line.color:                         1
+MCH.line.color:                         920
+MID.line.color:                         1
+PHS.line.color:                         1
 EMC.line.color:                         1
-ITS.line.color:                         1
-MFT.line.color:                         0
-T00.line.color:                         1
-FIT.line.color:                         1
-AD0.line.color:                         1
-FMD.line.color:                         907
-
-OCDB.default.path:                      local:///home/ed/cdb
-
+CPV.line.color:                         1
 
 #Gui.DefaultFont:                        -*-helvetica-medium-r-*-*-20-*-*-*-*-*-iso8859-1
 #Gui.MenuFont:                           -*-helvetica-medium-r-*-*-20-*-*-*-*-*-iso8859-1

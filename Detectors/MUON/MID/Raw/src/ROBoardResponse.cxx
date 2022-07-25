@@ -74,7 +74,36 @@ std::vector<ROBoard> ROBoardResponse::getTriggerResponse(uint8_t triggerWord) co
     }
   }
   auto regBoards = getRegionalResponse(locBoards);
-  locBoards.insert(locBoards.begin(), regBoards.begin(), regBoards.end());
+
+  // The regional response is built out of the local board response.
+  // This mimics what happens for the self-triggered events.
+  // However each GBT link has two regional responses, each collecting 4 boards.
+  // Even if the local boards are not there, the answer of the regional board to the trigger will still be present.
+  // We therefore complete the regional response.
+  std::vector<ROBoard> completeRegs;
+  completeRegs.reserve(regBoards.size());
+  for (auto regIt1 = regBoards.begin(), end = regBoards.end(); regIt1 != end; ++regIt1) {
+    completeRegs.emplace_back(*regIt1);
+    auto crateId1 = raw::getCrateId(regIt1->boardId);
+    auto locId1 = raw::getLocId(regIt1->boardId);
+    auto locId2 = locId1 % 8 == 0 ? locId1 + 1 : locId1 - 1;
+    auto boardId2 = raw::makeUniqueLocID(crateId1, locId2);
+    bool hasOther = false;
+    for (auto regIt2 = regBoards.begin(); regIt2 != end; ++regIt2) {
+
+      if (regIt2->boardId == boardId2) {
+        hasOther = true;
+        break;
+      }
+    }
+    if (!hasOther) {
+      completeRegs.emplace_back(*regIt1);
+      completeRegs.back().boardId = boardId2;
+      completeRegs.back().firedChambers = 0;
+    }
+  }
+
+  locBoards.insert(locBoards.begin(), completeRegs.begin(), completeRegs.end());
   return locBoards;
 }
 

@@ -70,7 +70,10 @@ class DPLRawParser
   using buffer_type = typename rawparser_type::buffer_type;
 
   DPLRawParser() = delete;
-  DPLRawParser(InputRecord& inputs, std::vector<InputSpec> filterSpecs = {}) : mInputs(inputs), mFilterSpecs(filterSpecs) {}
+  DPLRawParser(InputRecord& inputs, std::vector<InputSpec> filterSpecs = {}, fair::Severity sev = fair::Severity::alarm) : mInputs(inputs), mFilterSpecs(filterSpecs), mSeverity(sev) {}
+
+  void setMaxFailureMessages(size_t n) { mMaxFailureMessages = n; }
+  void setExtFailureCounter(size_t* cnt) { mExtFailureCounter = cnt; }
 
   // this is a dummy default buffer used to initialize the RawParser in the iterator
   // constructor
@@ -98,8 +101,8 @@ class DPLRawParser
 
     Iterator() = delete;
 
-    Iterator(InputRecord& parent, input_iterator it, input_iterator end, std::vector<InputSpec> const& filterSpecs)
-      : mParent(parent), mInputIterator(it), mEnd(end), mPartIterator(mInputIterator.begin()), mParser(std::make_unique<parser_type>(reinterpret_cast<const char*>(&initializer), sizeof(initializer))), mCurrent(mParser->begin()), mFilterSpecs(filterSpecs)
+    Iterator(InputRecord& parent, input_iterator it, input_iterator end, std::vector<InputSpec> const& filterSpecs, fair::Severity sev = fair::Severity::alarm, size_t maxErrMsg = -1, size_t* cntErrMsg = nullptr)
+      : mParent(parent), mInputIterator(it), mEnd(end), mPartIterator(mInputIterator.begin()), mParser(std::make_unique<parser_type>(reinterpret_cast<const char*>(&initializer), sizeof(initializer))), mCurrent(mParser->begin()), mFilterSpecs(filterSpecs), mMaxFailureMessages(maxErrMsg), mExtFailureCounter(cntErrMsg), mSeverity(sev)
     {
       mParser.reset();
       next();
@@ -231,6 +234,22 @@ class DPLRawParser
 
     bool next()
     {
+
+      auto logFailure = [this](const std::string& msg, const std::runtime_error& e) {
+     if (!this->mExtFailureCounter || (*this->mExtFailureCounter)++ < this->mMaxFailureMessages) {
+       if (this->mSeverity == fair::Severity::alarm) {
+         LOG(alarm) << msg << (*this->mInputIterator).spec->binding << " : " << e.what();
+       } else if (this->mSeverity == fair::Severity::warn) {
+         LOG(warn) << msg << (*this->mInputIterator).spec->binding << " : " << e.what();
+       } else if (this->mSeverity == fair::Severity::fatal) {
+         LOG(fatal) << msg << (*this->mInputIterator).spec->binding << " : " << e.what();
+       } else if (this->mSeverity == fair::Severity::info) {
+         LOG(info) << msg << (*this->mInputIterator).spec->binding << " : " << e.what();
+       } else {
+         LOG(debug) << msg << (*this->mInputIterator).spec->binding << " : " << e.what();
+       }
+     } };
+
       while (mInputIterator != mEnd) {
         bool isInitial = mParser == nullptr;
         while (mPartIterator != mInputIterator.end()) {
@@ -262,9 +281,7 @@ class DPLRawParser
           try {
             raw = mParent.get<gsl::span<char>>(*mPartIterator);
           } catch (const std::runtime_error& e) {
-            // TODO: need some better handling to avoid to be spammed by error messages
-            LOG(error) << "failed to read data from " << (*mInputIterator).spec->binding;
-            LOG(error) << e.what();
+            logFailure("failed to read data from ", e);
           }
           if (raw.size() == 0) {
             continue;
@@ -273,8 +290,7 @@ class DPLRawParser
           try {
             mParser = std::make_unique<parser_type>(raw.data(), raw.size());
           } catch (const std::runtime_error& e) {
-            LOG(alarm) << "can not create raw parser form input data";
-            LOG(alarm) << e.what();
+            logFailure("can not create raw parser from ", e);
           }
 
           if (mParser != nullptr) {
@@ -295,18 +311,21 @@ class DPLRawParser
     std::unique_ptr<parser_type> mParser;
     parser_iterator mCurrent;
     std::vector<InputSpec> const& mFilterSpecs;
+    size_t mMaxFailureMessages = -1;
+    size_t* mExtFailureCounter = nullptr; // external optionally provided counter to throttle error messages
+    fair::Severity mSeverity = fair::Severity::alarm;
   };
 
   using const_iterator = Iterator<DataRef const>;
 
   const_iterator begin() const
   {
-    return const_iterator(mInputs, mInputs.begin(), mInputs.end(), mFilterSpecs);
+    return const_iterator(mInputs, mInputs.begin(), mInputs.end(), mFilterSpecs, mSeverity, mMaxFailureMessages, mExtFailureCounter);
   }
 
   const_iterator end() const
   {
-    return const_iterator(mInputs, mInputs.end(), mInputs.end(), mFilterSpecs);
+    return const_iterator(mInputs, mInputs.end(), mInputs.end(), mFilterSpecs, mSeverity, mMaxFailureMessages, mExtFailureCounter);
   }
 
   /// Format helper for stream output of the iterator content,
@@ -316,6 +335,9 @@ class DPLRawParser
  private:
   InputRecord& mInputs;
   std::vector<InputSpec> mFilterSpecs;
+  size_t mMaxFailureMessages = -1;
+  size_t* mExtFailureCounter = nullptr; // external optionally provided counter to throttle error messages
+  fair::Severity mSeverity = fair::Severity::alarm;
 };
 
 } // namespace o2::framework

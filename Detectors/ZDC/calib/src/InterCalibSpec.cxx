@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// @file   InterCalibSpec.cxx
-/// @brief  ZDC reconstruction
+/// @brief  ZDC intercalibration
 /// @author pietro.cortese@cern.ch
 
 #include <iostream>
@@ -59,84 +59,71 @@ InterCalibSpec::InterCalibSpec(const int verbosity) : mVerbosity(verbosity)
 
 void InterCalibSpec::init(o2::framework::InitContext& ic)
 {
-  //     int minEnt = std::max(300, ic.options().get<int>("min-entries"));
-  //     int nb = std::max(500, ic.options().get<int>("nbins"));
-  //     int slotL = ic.options().get<int>("tf-per-slot");
-  //     int delay = ic.options().get<int>("max-delay");
   mVerbosity = ic.options().get<int>("verbosity-level");
-  mInterCalib.setVerbosity(mVerbosity);
-  mTimer.CpuTime();
-  mTimer.Start(false);
+  mWorker.setVerbosity(mVerbosity);
 }
 
 void InterCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   // we call these methods just to trigger finaliseCCDB callback
-  std::string loadedConfFiles = "Loaded ZDC configuration files:";
-  // Energy calibration
-  auto energyParam = pc.inputs().get<o2::zdc::ZDCEnergyParam*>("energycalib");
-  if (!energyParam) {
-    LOG(fatal) << "Missing ZDCEnergyParam calibration object";
-    return;
-  } else {
-    loadedConfFiles += " ZDCEnergyParam";
-    if (mVerbosity > DbgMinimal) {
-      LOG(info) << "Loaded Energy calibration ZDCEnergyParam";
-      energyParam->print();
+  pc.inputs().get<o2::zdc::InterCalibConfig*>("intercalibconfig");
+  pc.inputs().get<o2::zdc::ZDCEnergyParam*>("energycalib");
+  pc.inputs().get<o2::zdc::ZDCTowerParam*>("towercalib");
+}
+
+void InterCalibSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == ConcreteDataMatcher("ZDC", "INTERCALIBCONFIG", 0)) {
+    // InterCalib configuration
+    auto* config = (const o2::zdc::InterCalibConfig*)obj;
+    if (mVerbosity > DbgZero) {
+      config->print();
     }
+    mWorker.setInterCalibConfig(config);
   }
-
-  // Tower calibration
-  auto towerParam = pc.inputs().get<o2::zdc::ZDCTowerParam*>("towercalib");
-  if (!towerParam) {
-    LOG(fatal) << "Missing ZDCTowerParam calibration object";
-    return;
-  } else {
-    loadedConfFiles += " ZDCTowerParam";
-    if (mVerbosity > DbgMinimal) {
-      LOG(info) << "Loaded Tower calibration ZDCTowerParam";
-      towerParam->print();
+  if (matcher == ConcreteDataMatcher("ZDC", "ENERGYCALIB", 0)) {
+    // Current energy calibration
+    auto* config = (const o2::zdc::ZDCEnergyParam*)obj;
+    if (mVerbosity > DbgZero) {
+      config->print();
     }
+    mWorker.setEnergyParam(config);
   }
-
-  // InterCalib configuration
-  auto interConfig = pc.inputs().get<o2::zdc::InterCalibConfig*>("intercalibconfig");
-  if (!interConfig) {
-    LOG(fatal) << "Missing InterCalibConfig calibration InterCalibConfig";
-    return;
-  } else {
-    loadedConfFiles += " InterCalibConfig";
-    if (mVerbosity > DbgMinimal) {
-      LOG(info) << "Loaded InterCalib configuration object";
-      interConfig->print();
+  if (matcher == ConcreteDataMatcher("ZDC", "TOWERCALIB", 0)) {
+    // Tower intercalibration
+    auto* config = (const o2::zdc::ZDCTowerParam*)obj;
+    if (mVerbosity > DbgZero) {
+      config->print();
     }
+    mWorker.setTowerParam(config);
   }
-
-  LOG(info) << loadedConfFiles;
-
-  mInterCalib.setEnergyParam(energyParam.get());
-  mInterCalib.setTowerParam(towerParam.get());
-  mInterCalib.setInterCalibConfig(interConfig.get());
 }
 
 void InterCalibSpec::run(ProcessingContext& pc)
 {
-  updateTimeDependentParams(pc);
+  if (!mInitialized) {
+    mInitialized = true;
+    updateTimeDependentParams(pc);
+    mTimer.Stop();
+    mTimer.Reset();
+    mTimer.Start(false);
+  }
+
   auto data = pc.inputs().get<InterCalibData>("intercalibdata");
-  mInterCalib.process(data);
+  mWorker.process(data);
   for (int ih = 0; ih < (2 * InterCalibData::NH); ih++) {
     o2::dataformats::FlatHisto1D<float> histoView(pc.inputs().get<gsl::span<float>>(fmt::format("inter_1dh{}", ih).data()));
-    mInterCalib.add(ih, histoView);
+    mWorker.add(ih, histoView);
   }
   for (int ih = 0; ih < InterCalibData::NH; ih++) {
     o2::dataformats::FlatHisto2D<float> histoView(pc.inputs().get<gsl::span<float>>(fmt::format("inter_2dh{}", ih).data()));
-    mInterCalib.add(ih, histoView);
+    mWorker.add(ih, histoView);
   }
 }
 
 void InterCalibSpec::endOfStream(EndOfStreamContext& ec)
 {
-  mInterCalib.endOfRun();
+  mWorker.endOfRun();
   mTimer.Stop();
   sendOutput(ec.outputs());
   LOGF(info, "ZDC Intercalibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
@@ -148,18 +135,18 @@ void InterCalibSpec::sendOutput(o2::framework::DataAllocator& output)
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
   using clbUtils = o2::calibration::Utils;
-  const auto& payload = mInterCalib.getTowerParamUpd();
-  auto& info = mInterCalib.getCcdbObjectInfo();
+  const auto& payload = mWorker.getTowerParamUpd();
+  auto& info = mWorker.getCcdbObjectInfo();
   auto image = o2::ccdb::CcdbApi::createObjectImage<ZDCTowerParam>(&payload, &info);
+  LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+            << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   if (mVerbosity > DbgMinimal) {
     payload.print();
   }
-  LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
-            << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_Intercalib", 0}, *image.get()); // vector<char>
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_Intercalib", 0}, info);         // root-serialized
   // TODO: reset the outputs once they are already sent (is it necessary?)
-  // mInterCalib.init();
+  // mWorker.init();
 }
 
 framework::DataProcessorSpec getInterCalibSpec()
@@ -168,9 +155,9 @@ framework::DataProcessorSpec getInterCalibSpec()
   using clbUtils = o2::calibration::Utils;
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("intercalibconfig", "ZDC", "INTERCALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathInterCalibConfig.data())));
-  inputs.emplace_back("energycalib", "ZDC", "ENERGYCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathEnergyCalib.data())));
-  inputs.emplace_back("towercalib", "ZDC", "TOWERCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathTowerCalib.data())));
+  inputs.emplace_back("intercalibconfig", "ZDC", "INTERCALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathInterCalibConfig.data()));
+  inputs.emplace_back("energycalib", "ZDC", "ENERGYCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathEnergyCalib.data()));
+  inputs.emplace_back("towercalib", "ZDC", "TOWERCALIB", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathTowerCalib.data()));
   inputs.emplace_back("intercalibdata", "ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
 
   char outputa[o2::header::gSizeDataDescriptionString];
@@ -195,11 +182,7 @@ framework::DataProcessorSpec getInterCalibSpec()
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
-    Options{
-      {"tf-per-slot", VariantType::Int, 5, {"number of TFs per calibration time slot"}},
-      {"max-delay", VariantType::Int, 3, {"number of slots in past to consider"}},
-      {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit single time slot"}},
-      {"verbosity-level", o2::framework::VariantType::Int, 1, {"Verbosity level"}}}};
+    Options{{"verbosity-level", o2::framework::VariantType::Int, 1, {"Verbosity level"}}}};
 }
 
 } // namespace zdc

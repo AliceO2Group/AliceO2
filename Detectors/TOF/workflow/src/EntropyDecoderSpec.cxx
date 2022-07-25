@@ -17,6 +17,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "TOFWorkflowUtils/EntropyDecoderSpec.h"
+#include "DetectorsBase/TFIDInfoHelper.h"
 
 using namespace o2::framework;
 
@@ -48,6 +49,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
+  o2::ctf::CTFIOSize iosize;
 
   mCTFCoder.updateTimeDependentParams(pc);
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
@@ -61,7 +63,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   if (buff.size()) {
     const auto ctfImage = o2::tof::CTF::getImage(buff.data());
-    mCTFCoder.decode(ctfImage, row, digits, patterns);
+    iosize = mCTFCoder.decode(ctfImage, row, digits, patterns);
   }
 
   // fill diagnostic frequencies
@@ -72,12 +74,16 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mFiller.setReadoutWindowData(row, patterns);
   mFiller.fillDiagnosticFrequency();
   auto diagnostic = mFiller.getDiagnosticFrequency();
-  auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+  auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation;
   diagnostic.setTimeStamp(creationTime / 1000);
+  // add TFIDInfo
+  o2::dataformats::TFIDInfo tfinfo;
+  o2::base::TFIDInfoHelper::fillTFIDInfo(pc, tfinfo);
+  diagnostic.setTFIDInfo(tfinfo);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe}, diagnostic);
-
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
-  LOG(info) << "Decoded " << digits.size() << " digits in " << row.size() << " ROF in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << "Decoded " << digits.size() << " digits in " << row.size() << " ROF, (" << iosize.asString() << ") in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -93,7 +99,8 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
     OutputSpec{{"digits"}, o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe},
     OutputSpec{{"row"}, o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe},
     OutputSpec{{"patterns"}, o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe},
-    OutputSpec{{"diafreq"}, o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe}};
+    OutputSpec{{"diafreq"}, o2::header::gDataOriginTOF, "DIAFREQ", 0, Lifetime::Timeframe},
+    OutputSpec{{"ctfrep"}, o2::header::gDataOriginTOF, "CTFDECREP", 0, Lifetime::Timeframe}};
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf", "TOF", "CTFDATA", sspec, Lifetime::Timeframe);

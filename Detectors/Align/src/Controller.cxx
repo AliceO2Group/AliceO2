@@ -29,6 +29,10 @@
 #include "Align/ResidualsControllerFast.h"
 #include "Align/GeometricalConstraint.h"
 #include "Align/DOFStatistics.h"
+#include "ReconstructionDataFormats/VtxTrackIndex.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "ReconstructionDataFormats/VtxTrackRef.h"
 //#include "AliTrackerBase.h"
 //#include "AliESDCosmicTrack.h"
 //#include "AliESDtrack.h"
@@ -58,7 +62,7 @@ using namespace o2::align::utils;
 using namespace o2::dataformats;
 using namespace o2::globaltracking;
 
-using std::ifstream;
+using GIndex = o2::dataformats::VtxTrackIndex;
 
 namespace o2
 {
@@ -89,18 +93,7 @@ const Char_t* Controller::sHStatName[Controller::kNHVars] = {
 Controller::Controller(DetID::mask_t detmask)
   : mDetMask(detmask)
 {
-  // def c-tor
-
-  //  SetOutCDBRunRange();   FIXME(milettri): needs OCDB
   init();
-
-  // run config macro if provided
-  if (!getInitDOFsDone()) {
-    initDOFs();
-  }
-  if (!getNDOFs()) {
-    LOG(fatal) << "No DOFs found, initialization failed";
-  }
 }
 
 //________________________________________________________________
@@ -134,29 +127,86 @@ void Controller::init()
 }
 
 //________________________________________________________________
-void Controller::process(const RecoContainer& recodata)
+void Controller::process()
 {
-  /*
-  auto creator = [](auto& _tr, GTrackID _origID, float t0, float terr) {
-    if (!_origID.includesDet(DetID::ITS)) {
-      return true; // just in case this selection was not done on RecoContainer filling level
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    auto* det = getDetector(id);
+    if (det) {
+      det->prepareDetectorData(); // in case the detector needs to preprocess the RecoContainer data
     }
-    if constexpr (isITSTrack<decltype(_tr)>()) {
-      t0 += halfROFITS;  // ITS time is supplied in \mus as beginning of ROF
-      terr *= hw2ErrITS; // error is supplied as a half-ROF duration, convert to \mus
+  }
+  auto primVertices = mRecoData->getPrimaryVertices();
+  auto primVer2TRefs = mRecoData->getPrimaryVertexMatchedTrackRefs();
+  auto primVerGIs = mRecoData->getPrimaryVertexMatchedTracks();
+  const auto& algConf = AlignConfig::Instance();
+  // process vertices with contributor tracks
+  std::unordered_map<GIndex, char> mAmbigTable;
+  int nvRefs = primVer2TRefs.size();
+  bool fieldON = std::abs(o2::base::PropagatorD::Instance()->getNominalBz()) > 0.1;
+  for (int ivref = 0; ivref < nvRefs; ivref++) {
+    const o2::dataformats::PrimaryVertex* vtx = (ivref < nvRefs - 1) ? &primVertices[ivref] : nullptr;
+    bool useVertexConstrain = false;
+    if (vtx) {
+      auto nContrib = vtx->getNContributors();
+      useVertexConstrain = nContrib >= algConf.vtxMinCont && nContrib <= algConf.vtxMaxCont;
     }
-    // for all other tracks the time is in \mus with gaussian error
-    if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(_tr)>>) {
-      if (terr < maxTrackTimeError) {
-        tracks.emplace_back(TrackWithTimeStamp{_tr, {t0, terr}});
-        gids.emplace_back(_origID);
+    auto& trackRef = primVer2TRefs[ivref];
+    LOGP(info, "processing vtref {} of {}, with {} tracks ", ivref, nvRefs, trackRef.getEntries());
+
+    for (int src = GIndex::NSources; src--;) {
+      if ((GIndex::getSourceDetectorsMask(src) & mDetMask).none()) { // do we need this source?
+        continue;
+      }
+      int start = trackRef.getFirstEntryOfSource(src), end = start + trackRef.getEntriesOfSource(src);
+      for (int ti = start; ti < end; ti++) {
+        auto& trackIndex = primVerGIs[ti];
+        int npnt = 0;
+        LOGP(info, "processing track {} {} of vtref {}, use vertex: {}", ti, trackIndex.asString(), ivref, useVertexConstrain);
+        if (trackIndex.isAmbiguous() && mAmbigTable.find(trackIndex) != mAmbigTable.end()) { // was it already processed?
+          continue;
+        }
+        auto contributorsGID = mRecoData->getSingleDetectorRefs(trackIndex);
+        resetForNextTrack();
+
+        const auto& trcKin = mRecoData->getTrackParam(trackIndex); // RS FIXME : make sure this is a barrel track
+        // check detectors contributions
+        AlignableDetector* det = nullptr;
+        if ((det = getDetector(DetID::ITS)) && contributorsGID[GIndex::ITS].isIndexSet()) {
+          npnt += det->processPoints(trackIndex, false); // collision tracks -> no inversion
+        }
+        // other detectors
+        if (npnt < algConf.minPointTotal) {
+          continue;
+        }
+
+        mAlgTrack->setRefPoint(mRefPoint.get());
+        if (npnt && trackIndex.isPVContributor() && useVertexConstrain) {
+          addVertexConstraint(*vtx);
+        }
+        // RS FIXME Account stat.
+        mAlgTrack->copyFrom(trcKin); // copy kinematices
+        mAlgTrack->setFieldON(fieldON);
+        mAlgTrack->sortPoints();
+
+        int pntMeas = mAlgTrack->getInnerPointID() - 1;
+        if (pntMeas < 0) { // this should not happen
+          mAlgTrack->Print("p meas");
+          LOG(error) << "AliAlgTrack->GetInnerPointID() cannot be 0";
+        }
+        if (!mAlgTrack->iniFit()) {
+          continue;
+        }
+        if (!mAlgTrack->processMaterials()) {
+          continue;
+        }
+        mAlgTrack->defineDOFs();
+        if (!mAlgTrack->calcResidDeriv()) {
+          continue;
+        }
+        mAlgTrack->Print("ldrcu");
       }
     }
-
-    return true;
-  };
-  recoData.createTracksVariadic(creator); // create track sample considered for vertexing
-*/
+  }
 }
 
 //________________________________________________________________
@@ -167,8 +217,6 @@ void Controller::initDetectors()
   if (getInitGeomDone()) {
     return;
   }
-  //
-
   //
   mAlgTrack = std::make_unique<AlignmentTrack>();
   mRefPoint = std::make_unique<AlignmentPoint>();
@@ -198,7 +246,7 @@ void Controller::initDetectors()
     if (!det || det->isDisabled()) {
       continue;
     }
-    det->cacheReferenceOCDB();
+    det->cacheReferenceCCDB();
   }
   //
   assignDOFs();
@@ -230,7 +278,7 @@ void Controller::initDOFs()
     if (det && !det->isDisabled()) {
       det->initDOFs();
       nact++;
-      ndfAct += det->getNDOFsTot();
+      ndfAct += det->getNDOFs();
     }
   }
   for (int i = 0; i < NTrackTypes; i++) {
@@ -262,7 +310,7 @@ void Controller::assignDOFs()
     if (!det) {
       continue;
     }
-    ndofTOT += det->getNDOFsTot();
+    ndofTOT += det->getNDOFs();
   }
   mGloParVal.clear();
   mGloParErr.clear();
@@ -282,10 +330,10 @@ void Controller::assignDOFs()
     if (!det) {
       continue;
     }
-    mNDOFs += det->assignDOFs();
+    det->assignDOFs();
   }
   LOG(info) << "Assigned parameters/labels arrays for " << mNDOFs << " DOFs";
-  if (ndfOld > -1 && ndfOld != mNDOFs) {
+  if (ndfOld > 0 && ndfOld != mNDOFs) {
     LOG(error) << "Recalculated NDOFs=" << mNDOFs << " not equal to saved NDOFs=" << ndfOld;
   }
   //
@@ -1036,14 +1084,15 @@ void Controller::printStatistics() const
 }
 
 //________________________________________________________
-void Controller::resetDetectors()
+void Controller::resetForNextTrack()
 {
   // reset detectors for next track
-  mRefPoint->Clear();
+  mRefPoint->clear();
+  mAlgTrack->Clear();
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     AlignableDetector* det = getDetector(id);
     if (det) {
-      det->resetPool(); // reset used alignment points
+      det->reset();
     }
   }
 }
@@ -1098,62 +1147,62 @@ bool Controller::testLocalSolution()
   return true;
 }
 
-//FIXME(milettri): needs AliSymMatrix
+// FIXME(milettri): needs AliSymMatrix
 ////____________________________________________
-//AliSymMatrix* Controller::BuildMatrix(TVectorD& vec)
+// AliSymMatrix* Controller::BuildMatrix(TVectorD& vec)
 //{
-//  // build matrix/vector for local track
-//  int npnt = mAlgTrack->getNPoints();
-//  int nlocpar = mAlgTrack->getNLocPar();
-//  //
-//  vec.ResizeTo(nlocpar);
-//  memset(vec.GetMatrixArray(), 0, nlocpar * sizeof(double));
-//  AliSymMatrix* matp = new AliSymMatrix(nlocpar);
-//  AliSymMatrix& mat = *matp;
-//  //
-//  for (int ip = npnt; ip--;) {
-//    AlignmentPoint* pnt = mAlgTrack->getPoint(ip);
-//    //
-//    if (pnt->containsMeasurement()) {
-//      //      pnt->Print("meas");
-//      for (int idim = 2; idim--;) {                       // each point has 2 position residuals
-//        double sigma2 = pnt->getErrDiag(idim);            // residual error
-//        double resid = mAlgTrack->getResidual(idim, ip);  // residual
-//        double* deriv = mAlgTrack->getDResDLoc(idim, ip); // array of Dresidual/Dparams
-//        //
-//        double sg2inv = 1. / sigma2;
-//        for (int parI = nlocpar; parI--;) {
-//          vec[parI] -= deriv[parI] * resid * sg2inv;
-//          //  printf("%d %d %d %+e %+e %+e -> %+e\n",ip,idim,parI,sg2inv,deriv[parI],resid,vec[parI]);
-//          //   for (int parJ=nlocpar;parJ--;) {
-//          for (int parJ = parI + 1; parJ--;) {
-//            mat(parI, parJ) += deriv[parI] * deriv[parJ] * sg2inv;
-//          }
-//        }
-//      } // loop over 2 orthogonal measurements at the point
-//    }   // derivarives at measured points
-//    //
-//    // if the point contains material, consider its expected kinks, eloss
-//    // as measurements
-//    if (pnt->containsMaterial()) {
-//      // at least 4 parameters: 2 spatial + 2 angular kinks with 0 expectaction
-//      int npm = pnt->getNMatPar();
-//      // const float* expMatCorr = pnt->getMatCorrExp(); // expected correction (diagonalized)
-//      const float* expMatCov = pnt->getMatCorrCov(); // its error
-//      int offs = pnt->getMaxLocVarID() - npm;
-//      for (int ipar = 0; ipar < npm; ipar++) {
-//        int parI = offs + ipar;
-//        // expected
-//        // vec[parI] -= expMatCorr[ipar]/expMatCov[ipar]; // consider expectation as measurement
-//        mat(parI, parI) += 1. / expMatCov[ipar]; // this measurement is orthogonal to all others
-//                                                 //printf("Pnt:%3d MatVar:%d DOF %3d | ExpVal: %+e Cov: %+e\n",ip,ipar,parI, expMatCorr[ipar], expMatCov[ipar]);
-//      }
-//    } // material effect descripotion params
-//    //
-//  } // loop over track points
-//  //
-//  return matp;
-//}
+//   // build matrix/vector for local track
+//   int npnt = mAlgTrack->getNPoints();
+//   int nlocpar = mAlgTrack->getNLocPar();
+//   //
+//   vec.ResizeTo(nlocpar);
+//   memset(vec.GetMatrixArray(), 0, nlocpar * sizeof(double));
+//   AliSymMatrix* matp = new AliSymMatrix(nlocpar);
+//   AliSymMatrix& mat = *matp;
+//   //
+//   for (int ip = npnt; ip--;) {
+//     AlignmentPoint* pnt = mAlgTrack->getPoint(ip);
+//     //
+//     if (pnt->containsMeasurement()) {
+//       //      pnt->Print("meas");
+//       for (int idim = 2; idim--;) {                       // each point has 2 position residuals
+//         double sigma2 = pnt->getErrDiag(idim);            // residual error
+//         double resid = mAlgTrack->getResidual(idim, ip);  // residual
+//         const double* deriv = mAlgTrack->getDResDLoc(idim, ip); // array of Dresidual/Dparams
+//         //
+//         double sg2inv = 1. / sigma2;
+//         for (int parI = nlocpar; parI--;) {
+//           vec[parI] -= deriv[parI] * resid * sg2inv;
+//           //  printf("%d %d %d %+e %+e %+e -> %+e\n",ip,idim,parI,sg2inv,deriv[parI],resid,vec[parI]);
+//           //   for (int parJ=nlocpar;parJ--;) {
+//           for (int parJ = parI + 1; parJ--;) {
+//             mat(parI, parJ) += deriv[parI] * deriv[parJ] * sg2inv;
+//           }
+//         }
+//       } // loop over 2 orthogonal measurements at the point
+//     }   // derivarives at measured points
+//     //
+//     // if the point contains material, consider its expected kinks, eloss
+//     // as measurements
+//     if (pnt->containsMaterial()) {
+//       // at least 4 parameters: 2 spatial + 2 angular kinks with 0 expectaction
+//       int npm = pnt->getNMatPar();
+//       // const float* expMatCorr = pnt->getMatCorrExp(); // expected correction (diagonalized)
+//       const float* expMatCov = pnt->getMatCorrCov(); // its error
+//       int offs = pnt->getMaxLocVarID() - npm;
+//       for (int ipar = 0; ipar < npm; ipar++) {
+//         int parI = offs + ipar;
+//         // expected
+//         // vec[parI] -= expMatCorr[ipar]/expMatCov[ipar]; // consider expectation as measurement
+//         mat(parI, parI) += 1. / expMatCov[ipar]; // this measurement is orthogonal to all others
+//                                                  //printf("Pnt:%3d MatVar:%d DOF %3d | ExpVal: %+e Cov: %+e\n",ip,ipar,parI, expMatCorr[ipar], expMatCov[ipar]);
+//       }
+//     } // material effect descripotion params
+//     //
+//   } // loop over track points
+//   //
+//   return matp;
+// }
 
 //____________________________________________
 void Controller::initMPRecOutput()
@@ -1302,52 +1351,31 @@ void Controller::setObligatoryDetector(DetID detID, int trtype, bool v)
 }
 
 //____________________________________________
-bool Controller::addVertexConstraint()
+bool Controller::addVertexConstraint(const o2::dataformats::PrimaryVertex& vtx)
 {
-  LOG(fatal) << __PRETTY_FUNCTION__ << " is disabled";
-  //FIXME(milettri): needs AliESDtrack
-  //  // if vertex is set and if particle is primary, add vertex as a meared point
-  //  //
-  //  const AliESDtrack* esdTr = fESDTrack[0];
-  //  if (!fVertex || !esdTr){
-  //    return false;}
-  //  //
-  //  if (esdTr->GetNcls(0) < mMinITSClforVC){
-  //    return false;} // not enough ITS clusters
-  //  if (!AlignableDetectorITS::CheckHitPattern(esdTr, mITSPattforVC)){
-  //    return false;}
-  //  //
-  //  AliExternalTrackParam trc = *esdTr;
-  //  double dz[2], dzCov[3];
-  //  if (!trc.PropagateToDCA(fVertex, AliTrackerBase::GetBz(), 2 * mMaxDCAforVC[0], dz, dzCov)){
-  //    return false;}
-  //  //
-  //  // check if primary candidate
-  //  if (Abs(dz[0]) > mMaxDCAforVC[0] || Abs(dz[1]) > mMaxDCAforVC[1]){
-  //    return false;}
-  //  double covar[6];
-  //  fVertex->GetCovMatrix(covar);
-  //  double p[2] = {trc.GetParameter()[0] - dz[0], trc.GetParameter()[1] - dz[1]};
-  //  double c[3] = {0.5 * (covar[0] + covar[2]), 0., covar[5]};
-  //  double chi2 = trc.GetPredictedChi2(p, c);
-  //  if (chi2 > mMaxChi2forVC){
-  //    return false;}
-  //  //
-  //  // assing measured vertex rotated to VtxSens frame as reference point
-  //  double xyz[3], xyzT[3];
-  //  fVertex->GetXYZ(xyz);
-  //  mVtxSens->setAlpha(trc.GetAlpha());
-  //  // usually translation from GLO to TRA frame should go via matrix T2G
-  //  // but for the VertexSensor Local and Global are the same frames
-  //  mVtxSens->applyCorrection(xyz);
-  //  mVtxSens->getMatrixT2L().MasterToLocal(xyz, xyzT);
-  //  mRefPoint->setSensor(mVtxSens);
-  //  mRefPoint->setAlphaSens(mVtxSens->getAlpTracking());
-  //  mRefPoint->setXYZTracking(xyzT);
-  //  mRefPoint->setYZErrTracking(c);
-  //  mRefPoint->setContainsMeasurement(true);
-  //  mRefPoint->init();
-  //  //
+  LOG(info) << "adding vtx constraint";
+  auto* prop = o2::base::PropagatorD::Instance();
+  const auto& conf = AlignConfig::Instance();
+  o2::dataformats::DCA dcaInfo;
+  AlignmentTrack::trackParam_t trcDCA(*mAlgTrack.get());
+  if (prop->propagateToDCABxByBz(vtx, trcDCA, conf.maxStep, conf.matCorType, &dcaInfo)) {
+    return false;
+  }
+  // RS FIXME do selections if needed
+  mVtxSens->setAlpha(trcDCA.getAlpha());
+  double xyz[3] = {vtx.getX(), vtx.getY(), vtx.getZ()}, xyzT[3];
+  double c[3] = {0.5 * (vtx.getSigmaX2() + vtx.getSigmaY2()), 0., vtx.getSigmaZ2()};
+
+  mVtxSens->applyCorrection(xyz);
+  mVtxSens->getMatrixT2L().MasterToLocal(xyz, xyzT);
+
+  mRefPoint->setSensor(mVtxSens.get());
+  // RS FIXME the Xsensor is 0 ?
+  mRefPoint->setXYZTracking(xyzT);
+  mRefPoint->setYZErrTracking(c);
+  mRefPoint->setAlphaSens(mVtxSens->getAlpTracking()); // RS FIXME Cannot this be done in setSensor?
+  mRefPoint->setContainsMeasurement(true);
+  mRefPoint->init();
   return true;
 }
 
@@ -1575,7 +1603,7 @@ bool Controller::readParameters(const char* parfile, bool useErrors)
   if (mNDOFs < 1 || mGloParVal.size() || mGloParErr.size()) {
     LOG(error) << "Something is wrong in init: mNDOFs=" << mNDOFs << " N GloParVal=" << mGloParVal.size() << " N GloParErr=" << mGloParErr.size();
   }
-  ifstream inpf(parfile);
+  std::ifstream inpf(parfile);
   if (!inpf.good()) {
     printf("Failed on input filename %s\n", parfile);
     return false;

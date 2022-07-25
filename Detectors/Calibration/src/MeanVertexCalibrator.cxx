@@ -58,7 +58,7 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     if (fitres >= 0) {
       LOG(info) << "X: Fit result (of single Slot) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
     } else {
-      LOG(error) << "X: Fit failed with result = " << fitres;
+      LOG(warning) << "X: Fit failed with result = " << fitres;
     }
     mvo.setX(fitValues[1]);
     mvo.setSigmaX(fitValues[2]);
@@ -75,7 +75,7 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     if (fitres >= 0) {
       LOG(info) << "Y: Fit result (of single Slot) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
     } else {
-      LOG(error) << "Y: Fit failed with result = " << fitres;
+      LOG(warning) << "Y: Fit failed with result = " << fitres;
     }
     mvo.setY(fitValues[1]);
     mvo.setSigmaY(fitValues[2]);
@@ -92,7 +92,7 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     if (fitres >= 0) {
       LOG(info) << "Z: Fit result (of single Slot) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
     } else {
-      LOG(error) << "Z: Fit failed with result = " << fitres;
+      LOG(warning) << "Z: Fit failed with result = " << fitres;
     }
     mvo.setZ(fitValues[1]);
     mvo.setSigmaZ(fitValues[2]);
@@ -127,7 +127,7 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     if (fitres >= 0) {
       LOG(info) << "X: Fit result (of merged Slots) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
     } else {
-      LOG(error) << "X: Fit failed with result = " << fitres;
+      LOG(warning) << "X: Fit failed with result = " << fitres;
     }
     mSMAMVobj.setX(fitValues[1]);
     mSMAMVobj.setSigmaX(fitValues[2]);
@@ -144,7 +144,7 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     if (fitres >= 0) {
       LOG(info) << "Y: Fit result (of merged Slots) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
     } else {
-      LOG(error) << "Y: Fit failed with result = " << fitres;
+      LOG(warning) << "Y: Fit failed with result = " << fitres;
     }
     mSMAMVobj.setY(fitValues[1]);
     mSMAMVobj.setSigmaY(fitValues[2]);
@@ -161,7 +161,7 @@ void MeanVertexCalibrator::finalizeSlot(Slot& slot)
     if (fitres >= 0) {
       LOG(info) << "Z: Fit result (of merged Slots) => " << fitres << ". Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
     } else {
-      LOG(error) << "Z: Fit failed with result = " << fitres;
+      LOG(warning) << "Z: Fit failed with result = " << fitres;
     }
     mSMAMVobj.setZ(fitValues[1]);
     mSMAMVobj.setSigmaZ(fitValues[2]);

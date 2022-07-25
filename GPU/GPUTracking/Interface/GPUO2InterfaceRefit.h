@@ -79,6 +79,7 @@ class GPUO2InterfaceRefit
   void setGPUTrackFitInProjections(bool v = true);
   void setTrackReferenceX(float v);
   void setIgnoreErrorsAtTrackEnds(bool v);
+  void updateCalib(const TPCFastTransform* trans, float bz);
 
   static void fillSharedClustersMap(const o2::tpc::ClusterNativeAccess* cl, const gsl::span<const o2::tpc::TrackTPC> trks, const o2::tpc::TPCClRefElem* trackRef, unsigned char* shmap);
 

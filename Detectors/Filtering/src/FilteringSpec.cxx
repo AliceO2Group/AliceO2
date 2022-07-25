@@ -56,7 +56,6 @@
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
-#include "SimulationDataFormat/DigitizationContext.h"
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -86,9 +85,9 @@ namespace o2::filtering
 void FilteringSpec::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
-  updateTimeDependentParams(pc);
   o2::globaltracking::RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest);
+  updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
   mStartIR = recoData.startIR;
 
   auto primVer2TRefs = recoData.getPrimaryVertexMatchedTrackRefs();
@@ -124,13 +123,10 @@ void FilteringSpec::run(ProcessingContext& pc)
 
   if (mNeedToSave) {
     fillData(recoData);
-    auto dref = pc.inputs().getFirstValid(true);
-    const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(dref);
-    const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(dref);
-
-    mFTF.header.run = dh->runNumber;
-    mFTF.header.firstTForbit = dh->firstTForbit;
-    mFTF.header.creationTime = dph->creation;
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+    mFTF.header.run = tinfo.runNumber;
+    mFTF.header.firstTForbit = tinfo.firstTForbit;
+    mFTF.header.creationTime = tinfo.creation;
 
     pc.outputs().snapshot(Output{"GLO", "FILTERED_RECO_TF", 0}, mFTF);
     clear(); // clear caches, safe after the snapshot
@@ -143,6 +139,8 @@ void FilteringSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
   if (matcher == ConcreteDataMatcher("ITS", "CLUSTERDICT", 0)) {
     LOG(info) << "ITS cluster dictionary updated";
+    mDictITS = (o2::itsmft::TopologyDictionary*)obj;
+    return;
   }
 }
 
@@ -315,7 +313,10 @@ void FilteringSpec::endOfStream(EndOfStreamContext& ec)
 
 void FilteringSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
-  mDictITS = pc.inputs().get<o2::itsmft::TopologyDictionary*>("itsDict").get();
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+  }
 }
 
 DataProcessorSpec getDataFilteringSpec(GID::mask_t src, bool enableSV, bool useMC)
@@ -340,8 +341,6 @@ DataProcessorSpec getDataFilteringSpec(GID::mask_t src, bool enableSV, bool useM
   if (src[GID::EMC]) {
     dataRequest->requestEMCALCells(useMC);
   }
-
-  dataRequest->inputs.emplace_back("itsDict", "ITS", "CLUSTERDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
 
   return DataProcessorSpec{
     "reco-data-filter",

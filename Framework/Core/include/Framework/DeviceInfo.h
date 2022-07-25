@@ -72,6 +72,13 @@ struct DeviceInfo {
   Metric2DViewIndex queriesViewIndex;
   /// Index for the queries of each input route.
   Metric2DViewIndex outputsViewIndex;
+  /// Index for the metrics to be displayed associated to
+  /// each input channel of the device.
+  Metric2DViewIndex inputChannelMetricsViewIndex;
+  /// Index for the metrics to be displayed associated to
+  /// each input channel of the device.
+  Metric2DViewIndex outputChannelMetricsViewIndex;
+
   /// Current configuration for the device
   boost::property_tree::ptree currentConfig;
   /// Current provenance for the configuration keys

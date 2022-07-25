@@ -33,6 +33,7 @@ class Options
   std::string mFileName;         // -f 'data.root'
   std::string mDataFolder;       // -d './'
   std::string mSavedDataFolder;  // -s './'
+  std::string mImageFolder;      // -i './'
   long mMemoryLimit;             // -m 1500 (MB) = 1.5GB
   bool mHideDplGUI;              // -hg
   std::string mAODConverterPath; // -a 'o2-eve-aodconverter'
@@ -51,6 +52,7 @@ class Options
   bool json() { return this->mJSON; }
   bool online() { return this->mOnline; }
   std::string dataFolder() { return this->mDataFolder; }
+  std::string imageFolder() { return this->mImageFolder; }
   std::string savedDataFolder() { return this->mSavedDataFolder; }
   std::string fileName() { return this->mFileName; }
   bool randomTracks() { return this->mRandomTracks; }

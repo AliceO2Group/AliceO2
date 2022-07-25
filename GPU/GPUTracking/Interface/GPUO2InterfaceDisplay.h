@@ -28,6 +28,7 @@
 
 #include <memory>
 #include <vector>
+#include "GPUDataTypes.h"
 
 namespace o2::gpu
 {
@@ -36,6 +37,7 @@ class GPUQA;
 struct GPUParam;
 struct GPUTrackingInOutPointers;
 struct GPUO2InterfaceConfiguration;
+struct GPUSettingsGRP;
 class GPUDisplayFrontendInterface;
 class GPUO2InterfaceDisplay
 {
@@ -43,6 +45,8 @@ class GPUO2InterfaceDisplay
   GPUO2InterfaceDisplay(const GPUO2InterfaceConfiguration* config = nullptr);
   ~GPUO2InterfaceDisplay();
 
+  void UpdateCalib(const GPUCalibObjectsConst* calib);
+  void UpdateGRP(const GPUSettingsGRP* grp);
   int startDisplay();
   int show(const GPUTrackingInOutPointers* ptrs);
   int endDisplay();

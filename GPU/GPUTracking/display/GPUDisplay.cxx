@@ -2187,6 +2187,10 @@ void GPUDisplay::DrawGLScene_internal(float animateTime, bool renderToMixBuffer)
     DrawGLScene_drawCommands();
   }
 
+  if (mCfgL.drawField) {
+    mBackend->drawField();
+  }
+
   mUpdateDrawCommands = mUpdateRenderPipeline = 0;
   mBackend->finishDraw(doScreenshot, renderToMixBuffer, mixSlaveImage);
 

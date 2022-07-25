@@ -87,7 +87,7 @@ CaloFitResults CaloRawFitterGamma2::evaluate(const gsl::span<const Bunch> bunchl
     time = time * constants::EMCAL_TIMESAMPLE;
     time -= mL1Phase;
 
-    return CaloFitResults(maxADC, pedEstimate, mAlgo, amp, time, (int)time, chi2, ndf);
+    return CaloFitResults(maxADC, pedEstimate, 0, amp, time, (int)time, chi2, ndf);
   }
   // Fit failed, rethrow error
   throw RawFitterError_t::FIT_ERROR;
@@ -98,7 +98,7 @@ float CaloRawFitterGamma2::doFit_1peak(int firstTimeBin, int nSamples, float& am
 
   float chi2(0.);
 
-  // fit using gamma-2 function 	(ORDER =2 assumed)
+  // fit using gamma-2 function   (ORDER =2 assumed)
   if (nSamples < 3) {
     throw RawFitterError_t::FIT_ERROR;
   }

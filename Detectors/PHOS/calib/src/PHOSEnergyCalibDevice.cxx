@@ -35,7 +35,7 @@ void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
   mOutputDir = o2::utils::Str::rectifyDirectory(mOutputDir);
   mMetaFileDir = ic.options().get<std::string>("meta-output-dir");
   mMetaFileDir = o2::utils::Str::rectifyDirectory(mMetaFileDir);
-  LOG(error) << "Meta dir=" << mMetaFileDir;
+  LOG(info) << "Meta dir=" << mMetaFileDir;
 
   mPtMin = ic.options().get<float>("ptminmgg");
   mEminHGTime = ic.options().get<float>("eminhgtime");
@@ -70,9 +70,20 @@ void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
   Geometry::GetInstance("Run3");
 }
 
+//___________________________________________________________________
+void PHOSEnergyCalibDevice::updateTimeDependentParams(ProcessingContext& pc)
+{
+  static bool initOnceDone = false;
+  if (!initOnceDone) {
+    initOnceDone = true;
+    mDataTakingContext = pc.services().get<DataTakingContext>();
+  }
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+}
+
 void PHOSEnergyCalibDevice::run(o2::framework::ProcessingContext& pc)
 {
-  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  updateTimeDependentParams(pc);
 
   // Do not use ccdb if already created
   if (!mHasCalib) { // Default map and calibration was not set, use CCDB
@@ -94,9 +105,9 @@ void PHOSEnergyCalibDevice::run(o2::framework::ProcessingContext& pc)
 
   LOG(debug) << "[PHOSEnergyCalibDevice - run]  Received " << cluTR.size() << " TRs and " << clusters.size() << " clusters, running calibration";
   if (mRunStartTime == 0) {
-    const auto ref = pc.inputs().getFirstValid(true);
-    mRunStartTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
-    mRunNumber = DataRefUtils::getHeader<o2::header::DataHeader*>(ref)->runNumber;
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+    mRunStartTime = tinfo.creation; // approximate time in ms
+    mRunNumber = tinfo.runNumber;
 
     auto LHCPeriodStr = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("LHCPeriod", "");
     if (!(LHCPeriodStr.empty())) {
@@ -119,9 +130,6 @@ void PHOSEnergyCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
   mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
   mCalibrator->endOfStream();
-  if (mPostHistos) {
-    postHistosCCDB(ec);
-  }
   writeOutFile();
 }
 
@@ -145,6 +153,9 @@ void PHOSEnergyCalibDevice::fillOutputTree()
     mFileOut = std::make_unique<TFile>(mFileName.c_str(), "recreate");
     mTreeOut = std::make_unique<TTree>("phosCalibDig", "O2 PHOS calib tree");
     mFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
+    mHistoFileName = mOutputDir + fmt::format("PHOS_CalibHistos_{}.root", mRunNumber);
+    mHistoFileOut = std::make_unique<TFile>(mHistoFileName.c_str(), "recreate");
+    mHistoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
   }
   auto* br = mTreeOut->GetBranch("PHOSCalib");
   auto* pptr = &mOutputDigits;
@@ -155,7 +166,7 @@ void PHOSEnergyCalibDevice::fillOutputTree()
     LOG(info) << " Create new branch";
     br = mTreeOut->Branch("PHOSCalib", &pptr);
   }
-  int res = mTreeOut->Fill();
+  mTreeOut->Fill();
   br->ResetAddress();
 }
 
@@ -175,8 +186,7 @@ void PHOSEnergyCalibDevice::writeOutFile()
 
   // write metaFile data
   mFileMetaData->fillFileData(mFileName);
-  mFileMetaData->run = mRunNumber;
-  mFileMetaData->LHCPeriod = mLHCPeriod;
+  mFileMetaData->setDataTakingContext(mDataTakingContext);
   mFileMetaData->type = "calib";
   mFileMetaData->priority = "high";
 
@@ -192,24 +202,31 @@ void PHOSEnergyCalibDevice::writeOutFile()
   }
   LOG(info) << "Stored metadate file " << mFileName << ".done";
   mFileMetaData.reset();
-}
-void PHOSEnergyCalibDevice::postHistosCCDB(o2::framework::EndOfStreamContext& ec)
-{
-  // prepare all info to be sent to CCDB
-  auto flName = o2::ccdb::CcdbApi::generateFileName("TimeEnHistos");
-  std::map<std::string, std::string> md;
-  o2::ccdb::CcdbObjectInfo info("PHS/Calib/TimeEnHistos", "TimeEnHistos", flName, md, mRunStartTime, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
-  info.setMetaData(md);
-  auto image = o2::ccdb::CcdbApi::createObjectImage(mCalibrator->getCollectedHistos(), &info);
 
-  LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName()
-            << " of size " << image->size()
-            << " bytes, valid for " << info.getStartValidityTimestamp()
-            << " : " << info.getEndValidityTimestamp();
+  LOG(info) << "Writing calibration histograms";
+  mHistoFileOut->cd();
+  mHistoFileOut->WriteObjectAny(mCalibrator->getCollectedHistos(), "o2::phos::ETCalibHistos", "histos");
+  mHistoFileOut->Close();
+  mHistoFileOut.reset();
 
-  header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
-  ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_TEHistos", subSpec}, *image.get());
-  ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_TEHistos", subSpec}, info);
+  // write metaFile data
+  mHistoFileMetaData->fillFileData(mHistoFileName);
+  mHistoFileMetaData->setDataTakingContext(mDataTakingContext);
+  mHistoFileMetaData->type = "calib";
+  mHistoFileMetaData->priority = "high";
+
+  metaFileNameTmp = mMetaFileDir + fmt::format("PHOS_CalibHistos_{}.tmp", mRunNumber);
+  metaFileName = mMetaFileDir + fmt::format("PHOS_CalibHistos_{}.done", mRunNumber);
+  try {
+    std::ofstream metaFileOut(metaFileNameTmp);
+    metaFileOut << *mHistoFileMetaData.get();
+    metaFileOut.close();
+    std::filesystem::rename(metaFileNameTmp, metaFileName);
+  } catch (std::exception const& e) {
+    LOG(error) << "Failed to store PHOS histos meta data file " << metaFileName << ", reason: " << e.what();
+  }
+  LOG(info) << "Stored histos metadate file " << mHistoFileName << ".done";
+  mHistoFileMetaData.reset();
 }
 o2::framework::DataProcessorSpec o2::phos::getPHOSEnergyCalibDeviceSpec(bool useCCDB)
 {
@@ -231,8 +248,6 @@ o2::framework::DataProcessorSpec o2::phos::getPHOSEnergyCalibDeviceSpec(bool use
                                                                 inputs);
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_TEHistos"}, o2::framework::Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_TEHistos"}, o2::framework::Lifetime::Sporadic);
 
   return o2::framework::DataProcessorSpec{"PHOSEnergyCalibDevice",
                                           inputs,

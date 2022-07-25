@@ -15,6 +15,7 @@
 #define O2_MFT_TRACKERDPL_H_
 
 #include "MFTTracking/Tracker.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "MFTTracking/TrackCA.h"
@@ -33,7 +34,7 @@ class TrackerDPL : public o2::framework::Task
 {
 
  public:
-  TrackerDPL(bool useMC) : mUseMC(useMC) {}
+  TrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC) : mGGCCDBRequest(gr), mUseMC(useMC) {}
   ~TrackerDPL() override = default;
   void init(framework::InitContext& ic) final;
   void run(framework::ProcessingContext& pc) final;
@@ -45,6 +46,7 @@ class TrackerDPL : public o2::framework::Task
 
   bool mUseMC = false;
   bool mFieldOn = true;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   std::unique_ptr<o2::parameters::GRPObject> mGRP = nullptr;
   std::unique_ptr<o2::mft::Tracker<TrackLTF>> mTracker = nullptr;

@@ -23,7 +23,7 @@
 using namespace o2::tpc;
 using namespace o2::tpc::constants;
 
-void TrackDump::filter(const gsl::span<const TrackTPC> tracks, ClusterNativeAccess const& clusterIndex, const gsl::span<const o2::tpc::TPCClRefElem> clRefs)
+void TrackDump::filter(const gsl::span<const TrackTPC> tracks, ClusterNativeAccess const& clusterIndex, const gsl::span<const o2::tpc::TPCClRefElem> clRefs, const gsl::span<const o2::MCCompLabel> mcLabels)
 {
   if (!mTreeDump && outputFileName.size()) {
     mTreeDump = std::make_unique<utils::TreeStreamRedirector>(outputFileName.data(), "recreate");
@@ -32,6 +32,7 @@ void TrackDump::filter(const gsl::span<const TrackTPC> tracks, ClusterNativeAcce
   std::vector<TrackInfo> tpcTracks;
   std::vector<std::vector<ClusterGlobal>> clustersGlobalEvent;
   std::vector<ClusterGlobal>* clustersGlobal{};
+  std::vector<o2::MCCompLabel> tpcTracksMCTruth;
 
   GPUCA_NAMESPACE::gpu::GPUTPCGeometry gpuGeom;
 
@@ -57,6 +58,11 @@ void TrackDump::filter(const gsl::span<const TrackTPC> tracks, ClusterNativeAcce
       }
     }
   }
+  if (writeMC) {
+    for (const auto& mcLabel : mcLabels) {
+      tpcTracksMCTruth.emplace_back(mcLabel);
+    }
+  }
 
   if (mTreeDump) {
     auto& tree = (*mTreeDump) << "tpcrec";
@@ -66,6 +72,9 @@ void TrackDump::filter(const gsl::span<const TrackTPC> tracks, ClusterNativeAcce
     }
     if (writeGlobal) {
       tree << "cls" << clustersGlobalEvent;
+    }
+    if (writeMC) {
+      tree << "TPCTracksMCTruth=" << tpcTracksMCTruth;
     }
     tree << "\n";
     //  << "clusters=" << clInfoVec

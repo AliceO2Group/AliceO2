@@ -1,0 +1,25 @@
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
+#
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
+
+o2_add_library(MCHGlobalMapping
+        SOURCES src/Mapper.cxx
+        PUBLIC_LINK_LIBRARIES O2::MCHRawElecMap O2::MCHMappingInterface)
+
+o2_add_executable(
+        global-mapper
+        SOURCES src/global-mapper.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES Boost::program_options
+                              O2::DataFormatsMCH
+                              O2::MCHGlobalMapping
+                              O2::MCHMappingImpl4
+                              RapidJSON::RapidJSON)
+

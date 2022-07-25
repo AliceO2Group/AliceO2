@@ -14,7 +14,7 @@
 
 #include "Mocking.h"
 #include <boost/test/unit_test.hpp>
-#include "../src/ChannelSpecHelpers.h"
+#include "Framework/ChannelSpecHelpers.h"
 #include "../src/DeviceSpecHelpers.h"
 #include "../src/GraphvizHelpers.h"
 #include "../src/WorkflowHelpers.h"

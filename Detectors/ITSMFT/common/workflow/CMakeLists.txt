@@ -45,3 +45,8 @@ o2_add_executable(digit-reader-workflow
                   SOURCES src/digit-reader-workflow.cxx
                   COMPONENT_NAME itsmft
                   PUBLIC_LINK_LIBRARIES O2::ITSMFTWorkflow)
+
+o2_add_executable(trigges-writer-workflow
+                  SOURCES src/trigger-writer-workflow.cxx
+                  COMPONENT_NAME itsmft
+                  PUBLIC_LINK_LIBRARIES O2::ITSMFTWorkflow)

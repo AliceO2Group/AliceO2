@@ -378,7 +378,7 @@ The standard use case of this workflow is to provide the input for other worfklo
 ```cpp
 o2-raw-file-reader-workflow --input-conf myConf.cfg | o2-dpl-raw-parser
 ```
-Option `--raw-channel-config <confstring> forces the reader to send all data (single FairMQParts containing the whole TF) to raw FairMQ channel, emulating the messages from the DataDistribution.
+Option `--raw-channel-config <confstring> forces the reader to send all data (single `fair::mq::Parts` containing the whole TF) to raw FairMQ channel, emulating the messages from the DataDistribution.
 To inject such a data to DPL one should use a parallel process starting with `o2-dpl-raw-proxy`. An example (note `--session default` added to every executable):
 
 ```bash
@@ -534,6 +534,13 @@ list of detectors for which non-raw outputs (if any) are discarded.
 list of detectors for which raw outputs are discarded.
 
 The raw data will be propagated (if present) only if the detector is selected in `--onlyDet` and `NOT` selected in `--non-raw-only-det`. The non-raw data will be propagated (if defined for the given detector and present in the file) only if the detector is selected in `--onlyDet` and `NOT` selected in `--raw-only-det`.
+
+## TF rate limiting
+
+To apply TF rate limiting (i.e. make sure that no more than N TFs are in processing) provide `--timeframes-rate-limit <N> --timeframes-rate-limit-ipcid <IPCID>`
+too all workflows (e.g. via ARGS_ALL).
+The IPCID is the NUMA domain ID (usually 0 on non-EPN workflow).
+Additionally, one may throttle on the free SHM by providing an option to the reader `--timeframes-shm-limit <shm-size>`.
 
 ## Miscellaneous macros
 

@@ -138,7 +138,6 @@ will decode ITS and MFT data, decompose on the fly ITS clusters to digits, mask 
 o2-ctf-reader-workflow --ctf-input <ctfFiles> --onlyDet ITS,MFT --mft-digits --mft-entropy-decoder ' --mask-noise' | ...
 ```
 will send decompose clusters to digits and send ben out after masking the noise for the MFT, while ITS clusters will be sent as decoded.
-Note that the necessary cluster topology dictionary and noise mask file paths need to be provided via corresponding `o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>.dictFilePath` and `o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>.noiseFilePath` configurables (same for the MFT).
 
 By default an exception will be thrown if detector is requested but missing in the CTF. To enable injection of the empty output in such case one should use option `--allow-missing-detectors`.
 
@@ -173,3 +172,8 @@ by `ctrl-C`. Periodic incremental saving of so-far accumulated dictionary data d
 ``--save-dict-after <N>``.
 
 When decoding CTF containing dictionary data (i.e. encoded w/o external dictionaries), externally provided dictionaries will be ignored.
+
+To apply TF rate limiting (make sure that no more than N TFs are in processing) provide `--timeframes-rate-limit <N> --timeframes-rate-limit-ipcid <IPCID>`
+too all workflows (e.g. via ARGS_ALL).
+The IPCID is the NUMA domain ID (usually 0 on non-EPN workflow).
+Additionally, one may throttle on the free SHM by providing an option to the reader `--timeframes-shm-limit <shm-size>`.

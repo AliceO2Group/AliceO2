@@ -48,28 +48,28 @@ class TriggerMap
   /// \brief tests if cell is in active trigger region
   /// \param cellID Absolute ID of cell
   /// \return true if cell is in active trigger region
-  bool isGood2x2(short cellID) const { return !mTrigger2x2Map.test(cellID); }
+  bool isGood2x2(short cellID) const { return !mTrigger2x2Map.test(cellID - OFFSET); }
 
   /// \brief Add bad triger cell to the container
   /// \param cellID Absolute ID of the bad channel
-  void addBad2x2Channel(short cellID) { mTrigger2x2Map.set(cellID); } //set bit to true
+  void addBad2x2Channel(short cellID) { mTrigger2x2Map.set(cellID - OFFSET); } // set bit to true
 
   /// \brief Mark trigger channel as good
   /// \param cellID Absolute ID of the channel
-  void set2x2ChannelGood(short cellID) { mTrigger2x2Map.set(cellID, false); }
+  void set2x2ChannelGood(short cellID) { mTrigger2x2Map.set(cellID - OFFSET, false); }
 
   /// \brief tests if cell is in active trigger region
   /// \param cellID Absolute ID of cell
   /// \return true if cell is in active trigger region
-  bool isGood4x4(short cellID) const { return !mTrigger4x4Map.test(cellID); }
+  bool isGood4x4(short cellID) const { return !mTrigger4x4Map.test(cellID - OFFSET); }
 
   /// \brief Add bad triger cell to the container
   /// \param cellID Absolute ID of the bad channel
-  void addBad4x4Channel(short cellID) { mTrigger4x4Map.set(cellID); } //set bit to true
+  void addBad4x4Channel(short cellID) { mTrigger4x4Map.set(cellID - OFFSET); } // set bit to true
 
   /// \brief Mark trigger channel as good
   /// \param cellID Absolute ID of the channel
-  void set4x4ChannelGood(short cellID) { mTrigger2x2Map.set(cellID, false); }
+  void set4x4ChannelGood(short cellID) { mTrigger2x2Map.set(cellID - OFFSET, false); }
 
   void setTurnOnCurvesVestion(int v = 0);
 
@@ -93,10 +93,11 @@ class TriggerMap
 
  private:
   static constexpr short NCHANNELS = 3136; ///< Number of trigger channels
+  static constexpr short OFFSET = 14337;   ///< Offset: number of readout channels
   std::bitset<NCHANNELS> mTrigger2x2Map;   ///< Container for bad trigger cells, 1 means bad sell
   std::bitset<NCHANNELS> mTrigger4x4Map;   ///< Container for bad trigger cells, 1 means bad sell
 
-  short mVersion;                       //current parameterization of turn-on curves
+  short mVersion;                       // current parameterization of turn-on curves
   static constexpr short NDDL = 14;     ///< Non-existing channels 56*64*1.5+1
   static constexpr short NMAXPAR = 10;  ///< Non-existing channels 56*64*1.5+1
   std::vector<std::string> mParamDescr; ///< Names of available parameterizations

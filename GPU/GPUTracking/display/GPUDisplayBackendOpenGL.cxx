@@ -269,7 +269,7 @@ void GPUDisplayBackendOpenGL::setFrameBuffer(unsigned int newID)
   }
 }
 
-static int checkShaderStatus(unsigned int shader)
+int GPUDisplayBackendOpenGL::checkShaderStatus(unsigned int shader)
 {
   int status, loglen;
   glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
@@ -285,8 +285,29 @@ static int checkShaderStatus(unsigned int shader)
   return 0;
 }
 
+int GPUDisplayBackendOpenGL::checkProgramStatus(unsigned int program)
+{
+  int status, loglen;
+  glGetProgramiv(program, GL_LINK_STATUS, &status);
+  if (!status) {
+    printf("failed to link program\n");
+    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &loglen);
+    std::vector<char> buf(loglen + 1);
+    glGetProgramInfoLog(program, loglen, nullptr, buf.data());
+    buf[loglen] = 0;
+    printf("%s\n", buf.data());
+    return 1;
+  }
+  return 0;
+}
+
 int GPUDisplayBackendOpenGL::InitBackendA()
 {
+  if (mDisplay->param()->par.debugLevel >= 2) {
+    auto renderer = glGetString(GL_RENDERER);
+    GPUInfo("Renderer: %s", renderer);
+  }
+
   int glVersion[2] = {0, 0};
   glGetIntegerv(GL_MAJOR_VERSION, &glVersion[0]);
   glGetIntegerv(GL_MINOR_VERSION, &glVersion[1]);
@@ -338,6 +359,9 @@ int GPUDisplayBackendOpenGL::InitBackendA()
   CHKERR(glAttachShader(mShaderProgram, mVertexShader));
   CHKERR(glAttachShader(mShaderProgram, mFragmentShader));
   CHKERR(glLinkProgram(mShaderProgram));
+  if (checkProgramStatus(mShaderProgram)) {
+    return 1;
+  }
   if (mSPIRVShaders) {
     CHKERR(glGenBuffers(1, &mSPIRVModelViewBuffer));
     CHKERR(glGenBuffers(1, &mSPIRVColorBuffer));
@@ -349,12 +373,18 @@ int GPUDisplayBackendOpenGL::InitBackendA()
   CHKERR(glAttachShader(mShaderProgramText, mVertexShaderTexture));
   CHKERR(glAttachShader(mShaderProgramText, mFragmentShaderText));
   CHKERR(glLinkProgram(mShaderProgramText));
+  if (checkProgramStatus(mShaderProgramText)) {
+    return 1;
+  }
   CHKERR(mModelViewProjIdText = glGetUniformLocation(mShaderProgramText, "projection"));
   CHKERR(mColorIdText = glGetUniformLocation(mShaderProgramText, "textColor"));
   CHKERR(mShaderProgramTexture = glCreateProgram());
   CHKERR(glAttachShader(mShaderProgramTexture, mVertexShaderTexture));
   CHKERR(glAttachShader(mShaderProgramTexture, mFragmentShaderTexture));
   CHKERR(glLinkProgram(mShaderProgramTexture));
+  if (checkProgramStatus(mShaderProgramTexture)) {
+    return 1;
+  }
   CHKERR(mModelViewProjIdTexture = glGetUniformLocation(mShaderProgramTexture, "projection"));
   CHKERR(mAlphaIdTexture = glGetUniformLocation(mShaderProgramTexture, "alpha"));
   CHKERR(glGenVertexArrays(1, &mVertexArray));
@@ -369,7 +399,7 @@ int GPUDisplayBackendOpenGL::InitBackendA()
   CHKERR(glBindBuffer(GL_ARRAY_BUFFER, 0));
 
   CHKERR(glBindVertexArray(0));
-  return (0); // Initialization Went OK
+  return 0;
 }
 
 void GPUDisplayBackendOpenGL::ExitBackendA()
@@ -401,6 +431,9 @@ void GPUDisplayBackendOpenGL::ExitBackendA()
   if (mSPIRVShaders) {
     CHKERR(glDeleteBuffers(1, &mSPIRVModelViewBuffer));
     CHKERR(glDeleteBuffers(1, &mSPIRVColorBuffer));
+  }
+  if (mMagneticField) {
+    ExitMagField();
   }
 }
 
@@ -499,6 +532,9 @@ void GPUDisplayBackendOpenGL::prepareDraw(const hmm_mat4& proj, const hmm_mat4& 
     } else {
       CHKERR(glUniformMatrix4fv(mModelViewProjId, 1, GL_FALSE, &modelViewProj.Elements[0][0]));
     }
+    if (mMagneticField) {
+      CHKERR(glNamedBufferSubData(mFieldModelViewBuffer, 0, sizeof(modelViewProj), &modelViewProj));
+    }
   }
 }
 
@@ -510,7 +546,7 @@ void GPUDisplayBackendOpenGL::finishDraw(bool doScreenshot, bool toMixBuffer, fl
   } else
 #endif
   {
-    CHKERR(glDisableVertexAttribArray(0));
+    CHKERR(glBindVertexArray(0));
     CHKERR(glUseProgram(0));
   }
 
@@ -785,6 +821,8 @@ void GPUDisplayBackendOpenGL::updateRenderer(bool withScreenshot)
 GPUDisplayBackendOpenGL::GPUDisplayBackendOpenGL()
 {
 }
+int GPUDisplayBackendOpenGL::checkShaderStatus(unsigned int shader) { return 0; }
+int GPUDisplayBackendOpenGL::checkProgramStatus(unsigned int program) { return 0; }
 int GPUDisplayBackendOpenGL::ExtInit() { throw std::runtime_error("Insufficnet OpenGL version"); }
 bool GPUDisplayBackendOpenGL::CoreProfile() { return false; }
 unsigned int GPUDisplayBackendOpenGL::DepthBits() { return 0; }

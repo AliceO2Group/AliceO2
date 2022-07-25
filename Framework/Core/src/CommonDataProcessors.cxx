@@ -28,13 +28,14 @@
 #include "Framework/Logger.h"
 #include "Framework/OutputSpec.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/TimesliceIndex.h"
 #include "Framework/Variant.h"
 #include "../../../Algorithm/include/Algorithm/HeaderStack.h"
 #include "Framework/OutputObjHeader.h"
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/ChannelSpec.h"
-#include "ChannelSpecHelpers.h"
+#include "Framework/ChannelSpecHelpers.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/RuntimeError.h"
 #include <Monitoring/Monitoring.h>
@@ -508,19 +509,24 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
     .name = "internal-dpl-injected-dummy-sink",
     .inputs = danglingOutputInputs,
     .algorithm = AlgorithmSpec{adaptStateful([](CallbackService& callbacks) {
-      auto dataConsumed = [](ServiceRegistry& services) {
-        services.get<DataProcessingStats>().consumedTimeframes++;
+      auto domainInfoUpdated = [](ServiceRegistry& services, size_t timeslice, ChannelIndex channelIndex) {
+        LOGP(debug, "Domain info updated with timeslice {}", timeslice);
+        static size_t lastTimeslice = -1;
+        auto& timesliceIndex = services.get<TimesliceIndex>();
         auto device = services.get<RawDeviceService>().device();
         auto channel = device->fChannels.find("metric-feedback");
         if (channel != device->fChannels.end()) {
-          FairMQMessagePtr payload(device->NewMessage());
-          int64_t* consumed = (int64_t*)malloc(sizeof(int64_t));
-          *consumed = services.get<DataProcessingStats>().consumedTimeframes;
-          payload->Rebuild(consumed, sizeof(int64_t), nullptr, nullptr);
-          channel->second[0].Send(payload);
+          fair::mq::MessagePtr payload(device->NewMessage());
+          size_t* consumed = (size_t*)malloc(sizeof(size_t));
+          *consumed = timesliceIndex.getOldestPossibleOutput().timeslice.value;
+          if (*consumed != lastTimeslice) {
+            payload->Rebuild(consumed, sizeof(int64_t), nullptr, nullptr);
+            channel->second[0].Send(payload);
+            lastTimeslice = *consumed;
+          }
         }
       };
-      callbacks.set(CallbackService::Id::DataConsumed, dataConsumed);
+      callbacks.set(CallbackService::Id::DomainInfoUpdated, domainInfoUpdated);
 
       return adaptStateless([]() {
       });

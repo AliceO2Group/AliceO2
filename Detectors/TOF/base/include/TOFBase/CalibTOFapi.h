@@ -39,9 +39,9 @@ class CalibTOFapi
 
  public:
   void resetDia();
-  CalibTOFapi();
+  CalibTOFapi() = default;
   CalibTOFapi(const std::string url);
-  CalibTOFapi(long timestamp, o2::dataformats::CalibLHCphaseTOF* phase, o2::dataformats::CalibTimeSlewingParamTOF* slew, Diagnostic* dia = nullptr) : mTimeStamp(timestamp), mLHCphase(phase), mSlewParam(slew), mDiaFreq(dia) { CalibTOFapi(); }
+  CalibTOFapi(long timestamp, o2::dataformats::CalibLHCphaseTOF* phase, o2::dataformats::CalibTimeSlewingParamTOF* slew, Diagnostic* dia = nullptr) : mTimeStamp(timestamp), mLHCphase(phase), mSlewParam(slew), mDiaFreq(dia) {}
   ~CalibTOFapi()
   {
     if (mLHCphase) {
@@ -72,17 +72,22 @@ class CalibTOFapi
   void loadActiveMap(TOFFEElightInfo* fee);
   void writeLHCphase(LhcPhase* phase, std::map<std::string, std::string> metadataLHCphase, uint64_t minTimeSTamp, uint64_t maxTimeStamp);
   void writeTimeSlewingParam(SlewParam* param, std::map<std::string, std::string> metadataChannelCalib, uint64_t minTimeSTamp, uint64_t maxTimeStamp = 0);
-  float getTimeCalibration(int ich, float tot);
-  float getTimeDecalibration(int ich, float tot);
+  float getTimeCalibration(int ich, float tot) const;
+  float getTimeCalibration(int ich, float tot, float phase) const;
+  float getTimeDecalibration(int ich, float tot) const;
   bool isProblematic(int ich);
   bool isNoisy(int ich);
   bool isOff(int ich);
   float getFractionUnderPeak(int ich) const { return mSlewParam->getFractionUnderPeak(ich); }
+  float currentLHCphase() const { return mLHCphase->getLHCphase(mTimeStamp); }
 
   SlewParam* getSlewParam() { return mSlewParam; }
   SlewParam& getSlewParamObj() { return *mSlewParam; }
+  void setSlewParam(SlewParam* obj) { mSlewParam = obj; }
   LhcPhase* getLhcPhase() { return mLHCphase; }
+  void setLhcPhase(LhcPhase* obj) { mLHCphase = obj; }
   Diagnostic* getDiagnostic() { return mDiaFreq; }
+  void setDiagnostic(Diagnostic* obj) { mDiaFreq = obj; }
 
   int getNoisyThreshold() const { return mNoisyThreshold; }
   void setNoisyThreshold(int val) { mNoisyThreshold = val; }
@@ -106,15 +111,15 @@ class CalibTOFapi
   // info from diagnostic
   int mNoisyThreshold = 1;                          ///< threshold to be noisy
   float mEmptyTOF = 0;                              ///< probability to have TOF fully empty
-  float mEmptyCrateProb[Geo::kNCrate];              ///< probability to have an empty crate in the current readout window
+  float mEmptyCrateProb[Geo::kNCrate] = {};         ///< probability to have an empty crate in the current readout window
   std::vector<std::pair<int, float>> mNoisy;        ///< probTRMerror
   std::vector<std::pair<int, float>> mTRMerrorProb; ///< probTRMerror
   std::vector<int> mTRMmask;                        ///< mask error for TRM
 
-  bool mIsErrorCh[Geo::NCHANNELS];  ///< channels in error (TRM)
-  std::vector<int> mFillErrChannel; ///< last error channels filled
-  bool mIsOffCh[Geo::NCHANNELS];    ///< channels in error (TRM)
-  bool mIsNoisy[Geo::NCHANNELS];    ///< noisy channels
+  bool mIsErrorCh[Geo::NCHANNELS] = {}; ///< channels in error (TRM)
+  std::vector<int> mFillErrChannel;     ///< last error channels filled
+  bool mIsOffCh[Geo::NCHANNELS] = {};   ///< channels in error (TRM)
+  bool mIsNoisy[Geo::NCHANNELS] = {};   ///< noisy channels
 
   ClassDefNV(CalibTOFapi, 1);
 };

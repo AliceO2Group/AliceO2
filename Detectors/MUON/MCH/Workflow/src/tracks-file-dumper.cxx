@@ -9,21 +9,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "SimulationDataFormat/MCCompLabel.h"
+#include "DataFormatsMCH/Cluster.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
-#include "DataFormatsMCH/Cluster.h"
 #include "MCHBase/TrackBlock.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "TrackAtVtxStruct.h"
 #include "TrackTreeReader.h"
 #include "boost/program_options.hpp"
 #include <TFile.h>
+#include <TGrid.h>
 #include <TTree.h>
 #include <filesystem>
 #include <fmt/format.h>
 #include <fstream>
 #include <gsl/span>
 #include <iostream>
+#include <regex>
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
@@ -123,6 +125,9 @@ int dumpBinary(std::string inputFile)
 
 int dumpRoot(std::string inputFile)
 {
+  if (std::regex_search(inputFile, std::regex("^alien://"))) {
+    TGrid::Connect("alien");
+  }
   std::unique_ptr<TFile> fin(TFile::Open(inputFile.c_str()));
   TTree* tree = static_cast<TTree*>(fin->Get("o2sim"));
 

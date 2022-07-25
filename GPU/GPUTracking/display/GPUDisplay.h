@@ -48,6 +48,8 @@ class GPUDisplay : public GPUDisplayInterface
   void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr) override;
   void WaitForNextEvent() override;
   void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) override;
+  void UpdateCalib(const GPUCalibObjectsConst* calib) override { mCalib = calib; }
+  void UpdateParam(const GPUParam* param) override { mParam = param; }
 
   void HandleKey(unsigned char key);
   int DrawGLScene();

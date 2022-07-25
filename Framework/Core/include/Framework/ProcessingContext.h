@@ -30,8 +30,11 @@ class ProcessingContext
   {
   }
 
+  /// The inputs associated with this processing context.
   InputRecord& inputs() { return mInputs; }
+  /// The services registry associated with this processing context.
   ServiceRegistry& services() { return mServices; }
+  /// The data allocator is used to allocate memory for the output data.
   DataAllocator& outputs() { return mAllocator; }
 
   InputRecord& mInputs;

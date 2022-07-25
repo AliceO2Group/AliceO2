@@ -34,6 +34,18 @@ void Clusterer::initialize()
   }
   mFirstElememtInEvent = 0;
   mLastElementInEvent = -1;
+  LOG(info) << "Clusterizer parameters";
+  const PHOSSimParams& sp = o2::phos::PHOSSimParams::Instance();
+  LOG(info) << "mLogWeight = " << sp.mLogWeight;
+  LOG(info) << "mDigitMinEnergy = " << sp.mDigitMinEnergy;
+  LOG(info) << "mClusteringThreshold = " << sp.mClusteringThreshold;
+  LOG(info) << "mLocalMaximumCut = " << sp.mLocalMaximumCut;
+  LOG(info) << "mUnfoldMaxSize = " << sp.mUnfoldMaxSize;
+  LOG(info) << "mUnfoldClusters = " << sp.mUnfoldClusters;
+  LOG(info) << "mUnfogingEAccuracy = " << sp.mUnfogingEAccuracy;
+  LOG(info) << "mUnfogingXZAccuracy = " << sp.mUnfogingXZAccuracy;
+  LOG(info) << "mUnfogingChi2Accuracy = " << sp.mUnfogingChi2Accuracy;
+  LOG(info) << "mNMaxIterations = " << sp.mNMaxIterations;
 }
 //____________________________________________________________________________
 void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRecord> dtr,
@@ -97,8 +109,9 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
 {
   // Transform input Cells to digits and run standard recontruction
   clusters.clear(); // final out list of clusters
-  trigRec.clear();
+  cluelements.clear();
   cluelements.reserve(cells.size());
+  trigRec.clear();
   cluMC.clear();
   mProcessMC = (dmc != nullptr);
   miCellLabel = 0;
@@ -289,7 +302,7 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
       mzB[iclu] = 0;
     }
     // Fill matrix and vector
-    for (int idig = firstCE; idig < lastCE; idig++) {
+    for (uint32_t idig = firstCE; idig < lastCE; idig++) {
       CluElement& ce = cluelements[idig];
       double sumA = 0.;
       for (int iclu = nMax; iclu--;) {
@@ -365,15 +378,15 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
     if (bk.Decompose()) {
       if (bk.Solve(C)) {
         for (int iclu = 0; iclu < nMax; iclu++) {
-          double eOld = meMax[iclu];
           meMax[iclu] = C(iclu);
+          // double eOld = meMax[iclu];
           // insuficientAccuracy|=fabs(meMax[iclu]-eOld)> meMax[iclu]*o2::phos::PHOSSimParams::Instance().mUnfogingEAccuracy ;
         }
       } else {
-        LOG(warning) << "Failed to decompose matrix of size " << nMax;
+        LOG(warning) << "Failed to decompose matrix of size " << int(nMax);
       }
     } else {
-      LOG(warning) << "Failed to decompose matrix of size " << nMax;
+      LOG(warning) << "Failed to decompose matrix of size " << int(nMax);
     }
     insuficientAccuracy &= (chi2 > o2::phos::PHOSSimParams::Instance().mUnfogingChi2Accuracy * nMax);
     nIterations++;
@@ -384,8 +397,7 @@ void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster
     // copy cluElements to the final list
     int start = cluelements.size();
     int nce = 0;
-    for (int idig = firstCE; idig < lastCE; idig++) {
-      float eDigit = eInClusters[idig - firstCE][iclu];
+    for (uint32_t idig = firstCE; idig < lastCE; idig++) {
       CluElement& el = cluelements[idig];
       float ei = el.energy * mProp[(idig - firstCE) * nMax + iclu];
       if (ei > o2::phos::PHOSSimParams::Instance().mDigitMinEnergy) {
@@ -610,13 +622,22 @@ void Clusterer::evalAll(Cluster& clu, std::vector<CluElement>& cluel) const
 
   for (auto& trd : mTrigger) {
     char trurelid[3];
-    Geometry::truAbsToRelNumbering(trd.getAbsId(), trurelid);
+    short trtype = trd.is2x2Tile() ? 0 : 1;
+    Geometry::truAbsToRelNumbering(trd.getAbsId(), trtype, trurelid);
 
+    // Trigger tile coordinates of lower left corner (smallest x,z)
     int dx = relId[1] - trurelid[1];
     int dz = relId[2] - trurelid[2];
-    if (dx > -2 && dx < 3 && dz > -2 && dz < 3) {
-      clu.setFiredTrigger(trd.isHighGain());
-      break;
+    if (trtype == 0) { // 2x2
+      if (dx >= 0 && dx < 2 && dz >= 0 && dz < 2) {
+        clu.setFiredTrigger(trd.isHighGain());
+        break;
+      }
+    } else { // 4x4
+      if (dx >= 0 && dx < 4 && dz >= 0 && dz < 4) {
+        clu.setFiredTrigger(trd.isHighGain());
+        break;
+      }
     }
   }
 }
@@ -639,7 +660,7 @@ char Clusterer::getNumberOfLocalMax(Cluster& clu, std::vector<CluElement>& cluel
 
   LOG(debug) << "mIsLocalMax size=" << mIsLocalMax.size();
   for (uint32_t i = iFirst; i < iLast - 1; i++) {
-    for (int j = i + 1; j < iLast; j++) {
+    for (uint32_t j = i + 1; j < iLast; j++) {
 
       if (Geometry::areNeighbours(cluel[i].absId, cluel[j].absId) == 1) {
         if (cluel[i].energy > cluel[j].energy) {
@@ -661,12 +682,15 @@ char Clusterer::getNumberOfLocalMax(Cluster& clu, std::vector<CluElement>& cluel
 
   LOG(debug) << " Filled mIsLocalMax";
   int iDigitN = 0;
-  for (int i = 0; i < mIsLocalMax.size(); i++) {
+  for (std::size_t i = 0; i < mIsLocalMax.size(); i++) {
     if (mIsLocalMax[i]) {
       mMaxAt[iDigitN] = i + iFirst;
       iDigitN++;
       if (iDigitN >= NLOCMAX) { // Note that size of output arrays is limited:
-        LOG(error) << "Too many local maxima, cluster multiplicity " << mIsLocalMax.size();
+        static int nAlarms = 0;
+        if (nAlarms++ < 5) {
+          LOG(alarm) << "Too many local maxima, cluster multiplicity " << mIsLocalMax.size();
+        }
         return -2;
       }
     }

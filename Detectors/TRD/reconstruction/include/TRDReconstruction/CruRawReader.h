@@ -64,7 +64,6 @@ class CruRawReader
   void resetCounters();
   void configure(int tracklethcheader, int halfchamberwords, int halfchambermajor, std::bitset<16> options)
   {
-    mByteSwap = options[TRDByteSwapBit];
     mVerbose = options[TRDVerboseBit];
     mHeaderVerbose = options[TRDHeaderVerboseBit];
     mDataVerbose = options[TRDDataVerboseBit];
@@ -76,6 +75,9 @@ class CruRawReader
     mEnableTimeInfo = options[TRDEnableTimeInfoBit];
     mEnableStats = options[TRDEnableStatsBit];
     mOptions = options;
+    mTimeBins = constants::TIMEBINS; // set to value from constants incase the DigitHCHeader1 header is not present.
+    mPreviousDigitHCHeadersvnver = 0xffffffff;
+    mPreviousDigitHCHeadersvnrver = 0xffffffff;
   }
 
   void setMaxErrWarnPrinted(int nerr, int nwar)
@@ -122,8 +124,8 @@ class CruRawReader
   int getTrackletsFound() { return mTotalTrackletsFound; }
   int sumTrackletsFound() { return mEventRecords.sumTracklets(); }
   int sumDigitsFound() { return mEventRecords.sumDigits(); }
-  int getWordsRead() { return mTotalDigitWordsRead + mTotalTrackletWordsRead; }
-  int getWordsRejected() { return mTotalDigitWordsRejected + mTotalTrackletWordsRejected; }
+  int getWordsRead() { return mWordsAccepted + mTotalDigitWordsRead + mTotalTrackletWordsRead; }
+  int getWordsRejected() { return mWordsRejected + mTotalDigitWordsRejected + mTotalTrackletWordsRejected; }
 
   std::shared_ptr<EventStorage*> getEventStorage() { return std::make_shared<EventStorage*>(&mEventRecords); }
   void clearall()
@@ -139,43 +141,41 @@ class CruRawReader
   void OutputHalfCruRawData();
   // void setStats(o2::trd::TRDDataCountersPerTimeFrame* trdstats){mTimeFrameStats=trdstats;}
   //void setHistos(std::array<TH2F*, 10> hist, std::array<TH2F*, constants::MAXPARSEERRORHISTOGRAMS> parsingerrors2d)
-  void setHistos(TList* hist, TList* parsingerrors2d)
-  {
-    mLinkErrors = hist;
-    mParsingErrors2d = parsingerrors2d;
-  };
-
-  void setTimeHistos(TH1F* timeframetime, TH1F* trackletparsingtime, TH1F* digitparsingtime,
-                     TH1F* crutime, TH1F* packagingtime, TH1F* versions, TH1F* versionsmajor,
-                     TH1F* parsingerrors)
-  {
-    mTimeFrameTime = timeframetime;
-    mTrackletTiming = trackletparsingtime;
-    mDigitTiming = digitparsingtime;
-    mCruTime = crutime;
-    mEventRecords.setHisto(packagingtime);
-    mDataVersions = versions;
-    mDataVersionsMajor = versionsmajor;
-    mParsingErrors = parsingerrors;
-    mTrackletsParser.setErrorHistos(parsingerrors, mParsingErrors2d);
-  };
 
  protected:
   bool processHBFs(int datasizealreadyread = 0, bool verbose = false);
-  bool processHBFsa(int datasizealreadyread = 0, bool verbose = false);
   bool buildCRUPayLoad();
-  int processHalfCRU(int cruhbfstartoffset);
+  int processHalfCRU(int cruhbfstartoffset, int numberOfPreviousCRU, unsigned int maxdatawrittentobuffer);
   bool processCRULink();
   int parseDigitHCHeader();
   int checkDigitHCHeader();
   int checkTrackletHCHeader();
+  bool compareRDH(const o2::header::RDHAny* firstrdh, const o2::header::RDHAny* rdh);
+  bool checkRDH(const o2::header::RDHAny* rdh);
   bool skipRDH();
   void updateLinkErrorGraphs(int currentlinkindex, int supermodule_half, int stack_layer);
-  void increment2dHist(int hist, int sectorside, int stack, int layer)
+
+  void incrementErrors(int hist, int sector = -1, int side = 0, int stack = 0, int layer = 0)
   {
-    if (mRootOutput) {
-      mParsingErrors->Fill(hist);
-      ((TH2F*)mParsingErrors2d->At(hist))->Fill(sectorside, stack * constants::NLAYER + layer);
+    if (sector > 17 || sector < -1) {
+      sector = 0;
+    }
+    if (stack > 4 || stack < 0) {
+      stack = 0;
+    }
+    if (layer > 5 || layer < 0) {
+      layer = 0;
+    }
+    if (sector == -1) {
+      sector = (unsigned int)mFEEID.supermodule;
+      side = (unsigned int)mFEEID.side;
+      layer = 0;
+      stack = (unsigned int)mFEEID.endpoint;
+      // encode the endpoint into the stack for the 2d plots. This is for those situations where you can not know stack/layer at the time of the error.
+    }
+    mEventRecords.incParsingError(hist, sector, side, stack * constants::NLAYER + layer);
+    if (mVerbose) {
+      LOG(info) << "Parsing error: " << hist << " sector:" << sector << " side:" << side << " stack:" << stack << " layer:" << layer;
     }
   }
   void dumpRDHAndNextHeader(const o2::header::RDHAny* rdh);
@@ -192,7 +192,6 @@ class CruRawReader
   bool mVerbose{false};
   bool mHeaderVerbose{false};
   bool mDataVerbose{false};
-  bool mByteSwap{false};
   bool mFixDigitEndCorruption{false};
   int mTrackletHCHeaderState{0};
   int mHalfChamberWords{0};
@@ -233,10 +232,14 @@ class CruRawReader
 
   const o2::header::RDHAny* mDataRDH;
   HalfCRUHeader mCurrentHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on
+  HalfCRUHeader mPreviousHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on
   DigitHCHeader mDigitHCHeader;        // Digit HalfChamber header we are currently on.
   DigitHCHeader1 mDigitHCHeader1;      // this and the next 2 are option are and variable in order, hence
+  uint16_t mTimeBins;
   DigitHCHeader2 mDigitHCHeader2;      // the individual seperation instead of an array.
   DigitHCHeader3 mDigitHCHeader3;
+  uint32_t mPreviousDigitHCHeadersvnver;  // svn ver in the digithalfchamber header, used for validity checks
+  uint32_t mPreviousDigitHCHeadersvnrver; // svn release ver also used for validity checks
   TrackletHCHeader mTrackletHCHeader;  // Tracklet HalfChamber header we are currently on.
   uint16_t mCurrentLink;               // current link within the halfcru we are parsing 0-14
   uint16_t mCRUEndpoint;               // the upper or lower half of the currently parsed cru 0-14 or 15-29
@@ -272,6 +275,8 @@ class CruRawReader
   uint32_t mTrackletWordsRejected = 0;
   uint32_t mTotalTrackletWordsRejected = 0;
   uint32_t mTotalTrackletWordsRead = 0;
+  uint32_t mWordsRejected = 0; // those words rejected before tracklet and digit parsing together with the digit and tracklet rejected words;
+  uint32_t mWordsAccepted = 0; // those words before before tracklet and digit parsing together with the digit and tracklet rejected words;
   //pointers to the data as we read them in, again no point in copying.
   HalfCRUHeader* mhalfcruheader;
 
@@ -296,14 +301,6 @@ class CruRawReader
 
   bool mReturnBlob{0};        // whether to return blobs or vectors;
   o2::trd::TRDDataCountersRunning mStatCountersRunning;
-  TList* mLinkErrors;
-  //std::array<TH2F*, constants::MAXLINKERRORHISTOGRAMS> mLinkErrors;
-  TH2F *hist7, *hist8;                                              // a hack !
-  TH1F *mTimeFrameTime, *mTrackletTiming, *mDigitTiming, *mCruTime; // a hack !
-  TH1F *mDataVersions, *mDataVersionsMajor;                         // a hack !
-  TH1F* mParsingErrors;                                             // a hack !
-  TList* mParsingErrors2d;
-  //std::array<TH2F*, constants::MAXPARSEERRORHISTOGRAMS> mParsingErrors2d;
 };
 
 } // namespace o2::trd

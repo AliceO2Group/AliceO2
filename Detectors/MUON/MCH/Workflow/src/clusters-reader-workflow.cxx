@@ -12,8 +12,16 @@
 #include <vector>
 #include "Framework/ConfigParamSpec.h"
 #include "MCHWorkflow/ClusterReaderSpec.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "Framework/CallbacksPolicy.h"
 
 using namespace o2::framework;
+
+// ------------------------------------------------------------------
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
@@ -21,6 +29,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   workflowOptions.emplace_back("enable-mc", VariantType::Bool, false, ConfigParamSpec::HelpString{"Propagate MC info"});
   workflowOptions.emplace_back("local", VariantType::Bool, false, ConfigParamSpec::HelpString{"Read clusters in local reference frame"});
   workflowOptions.emplace_back("digits", VariantType::Bool, false, ConfigParamSpec::HelpString{"Read the associated digits"});
+  o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
 #include "Framework/runDataProcessing.h"
@@ -30,5 +39,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& config)
   bool useMC = config.options().get<bool>("enable-mc");
   bool global = !config.options().get<bool>("local");
   bool digits = config.options().get<bool>("digits");
-  return WorkflowSpec{o2::mch::getClusterReaderSpec(useMC, "mch-cluster-reader", global, digits)};
+  WorkflowSpec wf{o2::mch::getClusterReaderSpec(useMC, "mch-cluster-reader", global, digits)};
+  o2::raw::HBFUtilsInitializer hbfIni(config, wf);
+  return wf;
 }

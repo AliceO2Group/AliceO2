@@ -92,6 +92,9 @@ using ServiceMetricHandling = std::function<void(ServiceRegistry&,
 /// Callback executed in the child after dispatching happened.
 using ServicePostDispatching = std::function<void(ProcessingContext&, void*)>;
 
+/// Callback executed in the child after late forwarding happened.
+using ServicePostForwarding = std::function<void(ProcessingContext&, void*)>;
+
 /// Callback invoked when the driver enters the init phase.
 using ServiceDriverInit = std::function<void(ServiceRegistry&, boost::program_options::variables_map const&)>;
 
@@ -103,6 +106,9 @@ using ServiceTopologyInject = std::function<void(WorkflowSpecNode&, ConfigContex
 
 /// Callback invoked when we amend the topology
 using ServiceTopologyAdjust = std::function<void(WorkflowSpecNode&, ConfigContext const&)>;
+
+/// Callback invoked whenever we get updated about the oldest possible timeslice we can process
+using ServiceDomainInfoUpdated = std::function<void(ServiceRegistry&, size_t tileslice, ChannelIndex channel)>;
 
 /// A specification for a Service.
 /// A Service is a utility class which does not perform
@@ -150,6 +156,8 @@ struct ServiceSpec {
   /// dispatched.
   ServicePostDispatching postDispatching = nullptr;
 
+  ServicePostForwarding postForwarding = nullptr;
+
   /// Callback invoked on Start
   ServiceStartCallback start = nullptr;
   /// Callback invoked on Start
@@ -167,8 +175,27 @@ struct ServiceSpec {
   /// Callback invoked when finalising topology creation
   ServiceTopologyAdjust adjustTopology = nullptr;
 
+  /// Callback invoked when we get updated about the oldest possible timeslice we can process
+  ServiceDomainInfoUpdated domainInfoUpdated = nullptr;
+
+  /// Active flag. If set to false, the service will not be used by default.
+  bool active = true;
+
   /// Kind of service being specified.
   ServiceKind kind = ServiceKind::Serial;
+};
+
+struct OverrideServiceSpec {
+  std::string name;
+  bool active;
+};
+
+using OverrideServiceSpecs = std::vector<OverrideServiceSpec>;
+using ServiceSpecs = std::vector<ServiceSpec>;
+
+struct ServiceSpecHelpers {
+  static OverrideServiceSpecs parseOverrides(char const* overrideString);
+  static ServiceSpecs filterDisabled(ServiceSpecs originals, OverrideServiceSpecs const& overrides);
 };
 
 struct ServiceConfigureHandle {
@@ -201,6 +228,12 @@ struct ServiceDispatchingHandle {
   void* service;
 };
 
+struct ServiceForwardingHandle {
+  ServiceSpec const& spec;
+  ServicePostForwarding callback;
+  void* service;
+};
+
 struct ServiceStartHandle {
   ServiceSpec const& spec;
   ServiceStartCallback callback;
@@ -216,6 +249,12 @@ struct ServiceStopHandle {
 struct ServiceExitHandle {
   ServiceSpec const& spec;
   ServiceExitCallback callback;
+  void* service;
+};
+
+struct ServiceDomainInfoHandle {
+  ServiceSpec const& spec;
+  ServiceDomainInfoUpdated callback;
   void* service;
 };
 

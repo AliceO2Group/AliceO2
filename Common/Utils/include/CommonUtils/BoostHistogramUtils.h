@@ -47,6 +47,9 @@
 using boostHisto2d = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
 using boostHisto1d = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
 
+using boostHisto2d_VarAxis = boost::histogram::histogram<std::tuple<boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>, boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>>>;
+using boostHisto1d_VarAxis = boost::histogram::histogram<std::tuple<boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>>>;
+
 namespace o2
 {
 namespace utils
@@ -266,15 +269,15 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
   }
 
   if (*xMax < 4) {
-    LOG(error) << "Gaus fit failed! xMax < 4";
+    LOG(warning) << "Gaus fit failed! xMax < 4";
     throw FitGausError_t::FIT_ERROR;
   }
   if (entries < 12) {
-    LOG(error) << "Gaus fit failed! entries < 12";
+    LOG(warning) << "Gaus fit failed! entries < 12";
     throw FitGausError_t::FIT_ERROR;
   }
   if (rms < kTol) {
-    LOG(error) << "Gaus fit failed! rms < kTol";
+    LOG(warning) << "Gaus fit failed! rms < kTol";
     throw FitGausError_t::FIT_ERROR;
   }
 
@@ -335,11 +338,11 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
     }
 
     if (TMath::Abs(par[1]) < kTol) {
-      LOG(error) << "Gaus fit failed! TMath::Abs(par[1]) < kTol";
+      LOG(warning) << "Gaus fit failed! TMath::Abs(par[1]) < kTol";
       throw FitGausError_t::FIT_ERROR;
     }
     if (TMath::Abs(par[2]) < kTol) {
-      LOG(error) << "Gaus fit failed! TMath::Abs(par[2]) < kTol";
+      LOG(warning) << "Gaus fit failed! TMath::Abs(par[2]) < kTol";
       throw FitGausError_t::FIT_ERROR;
     }
 
@@ -349,7 +352,7 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
     result.at(2) = T(1. / TMath::Sqrt(TMath::Abs(-2. * par[2])));
     auto lnparam0 = par[0] - par[1] * par[1] / (4 * par[2]);
     if (lnparam0 > 307) {
-      LOG(error) << "Gaus fit failed! lnparam0 > 307";
+      LOG(warning) << "Gaus fit failed! lnparam0 > 307";
       throw FitGausError_t::FIT_ERROR;
     }
 
@@ -396,10 +399,10 @@ std::vector<double> fitBoostHistoWithGaus(boost::histogram::histogram<axes...>& 
 }
 
 /// \brief Convert a 1D root histogram to a Boost histogram
-boostHisto1d boosthistoFromRoot_1D(TH1D* inHist1D);
+boostHisto1d_VarAxis boosthistoFromRoot_1D(TH1D* inHist1D);
 
 /// \brief Convert a 2D root histogram to a Boost histogram
-boostHisto2d boostHistoFromRoot_2D(TH2D* inHist2D);
+boostHisto2d_VarAxis boostHistoFromRoot_2D(TH2D* inHist2D);
 
 /// \brief Convert a 2D boost histogram to a root histogram
 template <class BoostHist>

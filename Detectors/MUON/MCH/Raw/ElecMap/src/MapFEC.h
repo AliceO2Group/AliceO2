@@ -41,6 +41,7 @@ class MapFEC
   static constexpr int sMaxLinkId = 0x7ff;
   static constexpr int sMaxDs = 40;
   std::array<MapDualSampa, (sMaxLinkId + 1) * sMaxDs> mDsMap;
+  size_t mSize = 0;
 };
 
 } // namespace o2::mch::raw

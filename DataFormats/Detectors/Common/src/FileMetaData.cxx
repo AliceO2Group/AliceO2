@@ -12,6 +12,7 @@
 /// @brief meta data of the file produced by O2
 
 #include "DetectorsCommonDataFormats/FileMetaData.h"
+#include "Framework/DataTakingContext.h"
 #include <Framework/Logger.h>
 #include <TMD5.h>
 #include <filesystem>
@@ -77,7 +78,28 @@ std::string FileMetaData::asString() const
   if (!priority.empty()) {
     ms += fmt::format("priority: {}\n", priority);
   }
+  if (persistent) {
+    ms += fmt::format("persistent: {}\n", persistent);
+  }
+  if (!detComposition.empty()) {
+    ms += fmt::format("det_composition: {}\n", detComposition);
+  }
+  if (!tfOrbits.empty()) {
+    ms += fmt::format("TFOrbits: {}", tfOrbits[0]);
+    for (size_t i = 1; i < tfOrbits.size(); i++) {
+      ms += fmt::format(",{}", tfOrbits[i]);
+    }
+    ms += "\n";
+  }
+
   return ms;
+}
+
+void FileMetaData::setDataTakingContext(const o2::framework::DataTakingContext& dtc)
+{
+  LHCPeriod = dtc.lhcPeriod;
+  detComposition = dtc.detectors;
+  run = dtc.runNumber;
 }
 
 std::ostream& o2::dataformats::operator<<(std::ostream& stream, const FileMetaData& h)

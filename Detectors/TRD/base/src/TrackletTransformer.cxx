@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsBase/GeometryManager.h"
+#include "DataFormatsTRD/Constants.h"
 #include "TRDBase/TrackletTransformer.h"
 #include "TMath.h"
 
@@ -18,7 +19,6 @@ using namespace o2::trd::constants;
 
 void TrackletTransformer::init()
 {
-  o2::base::GeometryManager::loadGeometry();
   mGeo = Geometry::instance();
   mGeo->createPadPlaneArray();
   mGeo->createClusterMatrixArray();
@@ -98,8 +98,21 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet)
   auto hcid = tracklet.getHCID();
   auto padrow = tracklet.getPadRow();
   auto column = tracklet.getColumn();
-  auto position = tracklet.getPositionBinSigned();
-  auto slope = tracklet.getSlopeBinSigned();
+  int position;
+  int slope;
+  if (mApplyXOR) {
+    position = tracklet.getPosition() ^ 0x80;
+    if (position & (1 << (constants::NBITSTRKLPOS - 1))) {
+      position = -((~(position - 1)) & ((1 << constants::NBITSTRKLPOS) - 1));
+    }
+    slope = tracklet.getSlope() ^ 0x80;
+    if (slope & (1 << (constants::NBITSTRKLSLOPE - 1))) {
+      slope = -((~(slope - 1)) & ((1 << constants::NBITSTRKLSLOPE) - 1));
+    }
+  } else {
+    position = tracklet.getPositionBinSigned();
+    slope = tracklet.getSlopeBinSigned();
+  }
 
   // calculate raw local chamber space point
   mPadPlane = mGeo->getPadPlane(detector);

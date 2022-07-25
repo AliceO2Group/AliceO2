@@ -22,6 +22,7 @@
 #include "ZDCReconstruction/ZDCTDCCorr.h"
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
+#include "ZDCReconstruction/BaselineParam.h"
 #include "ZDCReconstruction/RecoConfigZDC.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -33,6 +34,14 @@
 
 #ifndef ALICEO2_ZDC_DIGI_RECO_H
 #define ALICEO2_ZDC_DIGI_RECO_H
+
+//#define ALICEO2_ZDC_DIGI_RECO_DEBUG
+#ifdef O2_ZDC_DEBUG
+#ifndef ALICEO2_ZDC_DIGI_RECO_DEBUG
+#define ALICEO2_ZDC_DIGI_RECO_DEBUG
+#endif
+#endif
+
 namespace o2
 {
 namespace zdc
@@ -80,7 +89,14 @@ class DigiReco
       mDbg->Close();
       mDbg.reset();
     }
-    LOG(info) << "Detected " << mNLonely << " lonely bunches and " << mNLastLonely << " at end of orbit";
+    if (mNLonely > 0) {
+      LOG(info) << "Detected " << mNLonely << " lonely bunches";
+      for (int ib = 0; ib < o2::constants::lhc::LHCMaxBunches; ib++) {
+        if (mLonely[ib]) {
+          LOG(info) << "lonely " << ib << " " << mLonely[ib] << " T " << mLonelyTrig[ib];
+        }
+      }
+    }
   }
 
   uint8_t getTriggerCondition() { return mTriggerCondition; }
@@ -101,6 +117,8 @@ class DigiReco
   const ZDCEnergyParam* getEnergyParam() { return mEnergyParam; };
   void setTowerParam(const ZDCTowerParam* param) { mTowerParam = param; };
   const ZDCTowerParam* getTowerParam() { return mTowerParam; };
+  void setBaselineParam(const BaselineParam* param) { mPedParam = param; };
+  const BaselineParam* getBaselineParam() { return mPedParam; };
   void setRecoConfigZDC(const RecoConfigZDC* cfg) { mRecoConfigZDC = cfg; };
   const RecoConfigZDC* getRecoConfigZDC() { return mRecoConfigZDC; };
   // Enable or disable low pass filtering
@@ -111,6 +129,13 @@ class DigiReco
     LOG(warn) << __func__ << " Configuration of low pass filtering: " << (mLowPassFilter ? "enabled" : "disabled");
   };
   bool getLowPassFilter() { return mLowPassFilter; };
+  void setFullInterpolation(bool val = true)
+  {
+    mFullInterpolation = val;
+    mFullInterpolationSet = true;
+    LOG(warn) << __func__ << " Full waveform interpolation: " << (mFullInterpolation ? "enabled" : "disabled");
+  };
+  bool getFullInterpolation() { return mFullInterpolation; };
   // Enable or disable TDC corrections
   void setCorrSignal(bool val = true)
   {
@@ -140,9 +165,12 @@ class DigiReco
   void processTrigger(int itdc, int ibeg, int iend);         /// Replay of trigger algorithm on acquired data
   void processTriggerExtended(int itdc, int ibeg, int iend); /// Replay of trigger algorithm on acquired data
   void interpolate(int itdc, int ibeg, int iend);            /// Interpolation of samples to evaluate signal amplitude and arrival time
+  void fullInterpolation(int itdc, int ibeg, int iend);      /// Interpolation of samples
   void correctTDCPile();                                     /// Correction of pile-up in TDC
   bool mLowPassFilter = true;                                /// Enable low pass filtering
   bool mLowPassFilterSet = false;                            /// Low pass filtering set via function call
+  bool mFullInterpolation = false;                           /// Full waveform interpolation
+  bool mFullInterpolationSet = false;                        /// Full waveform interpolation set via function call
   bool mCorrSignal = true;                                   /// Enable TDC signal correction
   bool mCorrSignalSet = false;                               /// TDC signal correction set via function call
   bool mCorrBackground = true;                               /// Enable TDC pile-up correction
@@ -152,9 +180,7 @@ class DigiReco
   int correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& tdc);                                            /// TDC amplitude and time corrections due to pile-up from previous bunches
 
   O2_ZDC_DIGIRECO_FLT getPoint(int itdc, int ibeg, int iend, int i); /// Interpolation for current TDC
-#ifdef O2_ZDC_INTERP_DEBUG
-  void setPoint(int itdc, int ibeg, int iend, int i); /// Interpolation for current TDC
-#endif
+  void setPoint(int itdc, int ibeg, int iend, int i);                /// Interpolation for current TDC
 
   void assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float amp); /// Set reconstructed TDC values
   void findSignals(int ibeg, int iend);                                       /// Find signals around main-main that satisfy condition on TDC
@@ -166,8 +192,10 @@ class DigiReco
   const ZDCTDCCorr* mTDCCorr = nullptr;          /// TDC correction coefficients
   const ZDCEnergyParam* mEnergyParam = nullptr;  /// Energy calibration object
   const ZDCTowerParam* mTowerParam = nullptr;    /// Tower calibration object
-  uint32_t mTDCMask[NTDCChannels] = {0};         /// Identify TDC channels in trigger mask
-  uint32_t mChMask[NChannels] = {0};             /// Identify channels
+  const BaselineParam* mPedParam = nullptr;      /// Tower calibration object
+  uint32_t mTriggerMask = 0;                     /// Mask of triggering channels
+  uint32_t mTDCMask[NTDCChannels] = {0};         /// Identify TDC channels in trigger pattern
+  uint32_t mChMask[NChannels] = {0};             /// Identify all channels in readout pattern
   const RecoConfigZDC* mRecoConfigZDC = nullptr; /// CCDB configuration parameters
   int32_t mVerbosity = DbgMinimal;
   O2_ZDC_DIGIRECO_FLT mTS[NTS];                     /// Tapered sinc function
@@ -186,7 +214,8 @@ class DigiReco
   RecEventAux mRec;                                 /// Debug reconstruction event
   int mNBC = 0;
   int mNLonely = 0;
-  int mNLastLonely = 0;
+  int mLonely[o2::constants::lhc::LHCMaxBunches] = {0};
+  int mLonelyTrig[o2::constants::lhc::LHCMaxBunches] = {0};
   int16_t tdc_shift[NTDCChannels] = {0};                          /// TDC correction (units of 1/96 ns)
   float tdc_calib[NTDCChannels] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; /// TDC correction factor
   constexpr static uint16_t mMask[NTimeBinsPerBC] = {0x0001, 0x002, 0x004, 0x008, 0x0010, 0x0020, 0x0040, 0x0080, 0x0100, 0x0200, 0x0400, 0x0800};

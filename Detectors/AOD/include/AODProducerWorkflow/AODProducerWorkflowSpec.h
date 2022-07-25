@@ -27,6 +27,7 @@
 #include "DataFormatsZDC/BCRecData.h"
 #include "DataFormatsEMCAL/EventHandler.h"
 #include "DataFormatsPHOS/EventHandler.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
@@ -53,104 +54,6 @@ using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2::aodproducer
 {
-
-using TracksTable = o2::soa::Table<o2::aod::track::CollisionId,
-                                   o2::aod::track::TrackType,
-                                   o2::aod::track::X,
-                                   o2::aod::track::Alpha,
-                                   o2::aod::track::Y,
-                                   o2::aod::track::Z,
-                                   o2::aod::track::Snp,
-                                   o2::aod::track::Tgl,
-                                   o2::aod::track::Signed1Pt>;
-
-using TracksCovTable = o2::soa::Table<o2::aod::track::SigmaY,
-                                      o2::aod::track::SigmaZ,
-                                      o2::aod::track::SigmaSnp,
-                                      o2::aod::track::SigmaTgl,
-                                      o2::aod::track::Sigma1Pt,
-                                      o2::aod::track::RhoZY,
-                                      o2::aod::track::RhoSnpY,
-                                      o2::aod::track::RhoSnpZ,
-                                      o2::aod::track::RhoTglY,
-                                      o2::aod::track::RhoTglZ,
-                                      o2::aod::track::RhoTglSnp,
-                                      o2::aod::track::Rho1PtY,
-                                      o2::aod::track::Rho1PtZ,
-                                      o2::aod::track::Rho1PtSnp,
-                                      o2::aod::track::Rho1PtTgl>;
-
-using TracksExtraTable = o2::soa::Table<o2::aod::track::TPCInnerParam,
-                                        o2::aod::track::Flags,
-                                        o2::aod::track::ITSClusterMap,
-                                        o2::aod::track::TPCNClsFindable,
-                                        o2::aod::track::TPCNClsFindableMinusFound,
-                                        o2::aod::track::TPCNClsFindableMinusCrossedRows,
-                                        o2::aod::track::TPCNClsShared,
-                                        o2::aod::track::TRDPattern,
-                                        o2::aod::track::ITSChi2NCl,
-                                        o2::aod::track::TPCChi2NCl,
-                                        o2::aod::track::TRDChi2,
-                                        o2::aod::track::TOFChi2,
-                                        o2::aod::track::TPCSignal,
-                                        o2::aod::track::TRDSignal,
-                                        o2::aod::track::Length,
-                                        o2::aod::track::TOFExpMom,
-                                        o2::aod::track::TrackEtaEMCAL,
-                                        o2::aod::track::TrackPhiEMCAL,
-                                        o2::aod::track::TrackTime,
-                                        o2::aod::track::TrackTimeRes>;
-
-using MFTTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
-                                      o2::aod::fwdtrack::X,
-                                      o2::aod::fwdtrack::Y,
-                                      o2::aod::fwdtrack::Z,
-                                      o2::aod::fwdtrack::Phi,
-                                      o2::aod::fwdtrack::Tgl,
-                                      o2::aod::fwdtrack::Signed1Pt,
-                                      o2::aod::fwdtrack::NClusters,
-                                      o2::aod::fwdtrack::Chi2,
-                                      o2::aod::fwdtrack::TrackTime,
-                                      o2::aod::fwdtrack::TrackTimeRes>;
-
-using FwdTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
-                                      o2::aod::fwdtrack::TrackType,
-                                      o2::aod::fwdtrack::X,
-                                      o2::aod::fwdtrack::Y,
-                                      o2::aod::fwdtrack::Z,
-                                      o2::aod::fwdtrack::Phi,
-                                      o2::aod::fwdtrack::Tgl,
-                                      o2::aod::fwdtrack::Signed1Pt,
-                                      o2::aod::fwdtrack::NClusters,
-                                      o2::aod::fwdtrack::PDca,
-                                      o2::aod::fwdtrack::RAtAbsorberEnd,
-                                      o2::aod::fwdtrack::Chi2,
-                                      o2::aod::fwdtrack::Chi2MatchMCHMID,
-                                      o2::aod::fwdtrack::Chi2MatchMCHMFT,
-                                      o2::aod::fwdtrack::MatchScoreMCHMFT,
-                                      o2::aod::fwdtrack::MFTTrackId,
-                                      o2::aod::fwdtrack::MCHTrackId,
-                                      o2::aod::fwdtrack::MCHBitMap,
-                                      o2::aod::fwdtrack::MIDBitMap,
-                                      o2::aod::fwdtrack::MIDBoards,
-                                      o2::aod::fwdtrack::TrackTime,
-                                      o2::aod::fwdtrack::TrackTimeRes>;
-
-using FwdTracksCovTable = o2::soa::Table<o2::aod::fwdtrack::SigmaX,
-                                         o2::aod::fwdtrack::SigmaY,
-                                         o2::aod::fwdtrack::SigmaPhi,
-                                         o2::aod::fwdtrack::SigmaTgl,
-                                         o2::aod::fwdtrack::Sigma1Pt,
-                                         o2::aod::fwdtrack::RhoXY,
-                                         o2::aod::fwdtrack::RhoPhiX,
-                                         o2::aod::fwdtrack::RhoPhiY,
-                                         o2::aod::fwdtrack::RhoTglX,
-                                         o2::aod::fwdtrack::RhoTglY,
-                                         o2::aod::fwdtrack::RhoTglPhi,
-                                         o2::aod::fwdtrack::Rho1PtX,
-                                         o2::aod::fwdtrack::Rho1PtY,
-                                         o2::aod::fwdtrack::Rho1PtPhi,
-                                         o2::aod::fwdtrack::Rho1PtTgl>;
 
 typedef boost::tuple<int, int, int> Triplet_t;
 
@@ -179,10 +82,11 @@ typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> Triple
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, bool enableSV, std::string resFile, bool useMC = true) : mInputSources(src), mDataRequest(dataRequest), mEnableSV(enableSV), mResFile{resFile}, mUseMC(useMC) {}
+  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enableSV, std::string resFile, bool useMC = true) : mInputSources(src), mDataRequest(dataRequest), mGGCCDBRequest(gr), mEnableSV(enableSV), mResFile{resFile}, mUseMC(useMC) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
@@ -230,6 +134,13 @@ class AODProducerWorkflowDPL : public Task
   std::unordered_map<GIndex, int> mV0ToTableID;
   int mTableV0ID{0};
 
+  //  std::unordered_map<int, int> mIndexTableFwd;
+  std::vector<int> mIndexTableFwd;
+  int mIndexFwdID{0};
+  //  std::unordered_map<int, int> mIndexTableMFT;
+  std::vector<int> mIndexTableMFT;
+  int mIndexMFTID{0};
+
   // zdc helper maps to avoid a number of "if" statements
   // when filling ZDC table
   map<string, float> mZDCEnergyMap; // mapping detector name to a corresponding energy
@@ -252,6 +163,7 @@ class AODProducerWorkflowDPL : public Task
   TMap mMetaData;
 
   std::shared_ptr<DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
 
   static constexpr int TOFTimePrecPS = 16; // required max error in ps for TOF tracks
   // truncation is enabled by default
@@ -316,6 +228,50 @@ class AODProducerWorkflowDPL : public Task
     int bcSlice[2] = {-1, -1};
   };
 
+  // helper struct for addToFwdTracksTable()
+  struct FwdTrackInfo {
+    uint8_t trackTypeId = 0;
+    float x = 0.f;
+    float y = 0.f;
+    float z = 0.f;
+    float rabs = 0.f;
+    float phi = 0.f;
+    float tanl = 0.f;
+    float invqpt = 0.f;
+    float chi2 = 0.f;
+    float pdca = 0.f;
+    int nClusters = -1;
+    float chi2matchmchmid = -1.0;
+    float chi2matchmchmft = -1.0;
+    float matchscoremchmft = -1.0;
+    int matchmfttrackid = -1;
+    int matchmchtrackid = -1;
+    uint16_t mchBitMap = 0;
+    uint8_t midBitMap = 0;
+    uint32_t midBoards = 0;
+    float trackTime = -999.f;
+    float trackTimeRes = -999.f;
+  };
+
+  // helper struct for addToFwdTracksTable()
+  struct FwdTrackCovInfo {
+    float sigX = 0.f;
+    float sigY = 0.f;
+    float sigPhi = 0.f;
+    float sigTgl = 0.f;
+    float sig1Pt = 0.f;
+    int8_t rhoXY = 0;
+    int8_t rhoPhiX = 0;
+    int8_t rhoPhiY = 0;
+    int8_t rhoTglX = 0;
+    int8_t rhoTglY = 0;
+    int8_t rhoTglPhi = 0;
+    int8_t rho1PtX = 0;
+    int8_t rho1PtY = 0;
+    int8_t rho1PtPhi = 0;
+    int8_t rho1PtTgl = 0;
+  };
+
   // helper struct for mc track labels
   // using -1 as dummies for AOD
   struct MCLabels {
@@ -378,6 +334,8 @@ class AODProducerWorkflowDPL : public Task
                                    FwdTracksCovCursorType& fwdTracksCovCursor,
                                    AmbigFwdTracksCursorType& ambigFwdTracksCursor,
                                    const std::map<uint64_t, int>& bcsMap);
+
+  void fillIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices, const o2::globaltracking::RecoContainer& data);
 
   template <typename V0CursorType, typename CascadeCursorType>
   void fillSecondaryVertices(const o2::globaltracking::RecoContainer& data, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor);

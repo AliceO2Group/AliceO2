@@ -29,7 +29,7 @@
 #pragma link C++ class o2::fv0::RawEventData + ;
 #pragma link C++ class o2::fv0::CTFHeader + ;
 #pragma link C++ class o2::fv0::CTF + ;
-#pragma link C++ class o2::ctf::EncodedBlocks < o2::fv0::CTFHeader, 7, uint32_t> + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::fv0::CTFHeader, 8, uint32_t> + ;
 
 #pragma link C++ class o2::fv0::RecPoints + ;
 #pragma link C++ class vector < o2::fv0::RecPoints> + ;

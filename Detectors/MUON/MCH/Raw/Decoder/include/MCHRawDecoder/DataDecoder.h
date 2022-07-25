@@ -148,7 +148,6 @@ class DataDecoder
   using RawDigitVector = std::vector<RawDigit>;
 
   DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler,
-              uint32_t sampaBcOffset,
               std::string mapCRUfile, std::string mapFECfile,
               bool ds2manu, bool verbose, bool useDummyElecMap, TimeRecoMode timeRecoMode = TimeRecoMode::HBPackets);
 
@@ -165,13 +164,6 @@ class DataDecoder
    */
   bool decodeBuffer(gsl::span<const std::byte> buf);
 
-  /// Functions to set and get the calibration offset for the SAMPA time computation
-  void setSampaBcOffset(uint32_t offset) { mSampaTimeOffset = offset; }
-  uint32_t getSampaBcOffset() const { return mSampaTimeOffset; }
-  /// Helper function for subtracting the calibration offset from a given BC counter value
-  /// Returns the BC counter value after the offset correction
-  static uint32_t subtractBcOffset(uint32_t bc, uint32_t offset);
-
   /// For a given SAMPA chip, update the information about the BC counter value at the beginning of the TimeFrame
   void updateTimeFrameStartRecord(uint64_t chipId, uint32_t mFirstOrbitInTF, uint32_t bcTF);
   /// Convert a Solar/Ds/Chip triplet into an unique chip index
@@ -184,7 +176,7 @@ class DataDecoder
   /// Compute the time of all the digits that have been decoded in the current TimeFrame
   void computeDigitsTimeBCRst();
   void computeDigitsTime();
-  void checkDigitsTime(int minDigitTimeAccepted, int maxDigitTimeAccepted);
+  void checkDigitsTime();
 
   /// Get the vector of digits that have been decoded in the current TimeFrame
   const RawDigitVector& getDigits() const { return mDigits; }

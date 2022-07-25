@@ -20,7 +20,6 @@
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "DataFormatsPHOS/Cell.h"
 #include "PHOSBase/Mapping.h"
-#include <TFile.h>
 #include "Framework/ConfigParamRegistry.h"
 #include "CommonUtils/NameConf.h"
 
@@ -58,8 +57,7 @@ void PHOSBadMapCalibDevice::init(o2::framework::InitContext& ic)
 void PHOSBadMapCalibDevice::run(o2::framework::ProcessingContext& ctx)
 {
   if (mRunStartTime == 0) {
-    const auto ref = ctx.inputs().getFirstValid(true);
-    mRunStartTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
+    mRunStartTime = ctx.services().get<o2::framework::TimingInfo>().creation;
     mValidityTime = mRunStartTime + 31622400000;                                   // one year validity range
   }
 
@@ -98,7 +96,14 @@ void PHOSBadMapCalibDevice::run(o2::framework::ProcessingContext& ctx)
     }
   }
 
-  if (mMode == 2) { // Pedestals
+  if (mMode == 2) {         // Pedestals
+    if (mStatistics <= 0) { // skip the rest of the run
+      return;
+    }
+    if (mStatistics % 100 == 0) {
+      LOG(info) << mStatistics << " left to produce pedestal BadMap";
+    }
+
     auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
     LOG(debug) << "[PHOSBadMapCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
     for (const auto& c : cells) {
@@ -112,6 +117,13 @@ void PHOSBadMapCalibDevice::run(o2::framework::ProcessingContext& ctx)
         mLGNorm->Fill(c.getAbsId() - 1792, 1.);
       }
     }
+    --mStatistics;
+    if (mStatistics <= 0) {
+      LOG(info) << "Start calculating bad map";
+      calculateBadMap();
+      checkBadMap();
+      sendOutput(ctx.outputs());
+    }
   }
 }
 
@@ -120,6 +132,9 @@ void PHOSBadMapCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 
   LOG(info) << "[PHOSBadMapCalibDevice - endOfStream]";
   // calculate stuff here
+  if (mMode == 2 && mStatistics <= 0) { // already calculated, do nothing
+    return;
+  }
   if (calculateBadMap()) {
     checkBadMap();
     sendOutput(ec.outputs());
@@ -162,7 +177,7 @@ void PHOSBadMapCalibDevice::sendOutput(DataAllocator& output)
 
   // Send change to QC
   LOG(info) << "[PHOSBadMapCalibDevice - run] Sending QC ";
-  output.snapshot(o2::framework::Output{"PHS", "CALIBDIFF", 0, o2::framework::Lifetime::Timeframe}, mBadMapDiff);
+  output.snapshot(o2::framework::Output{"PHS", "BADMAPDIFF", 0, o2::framework::Lifetime::Timeframe}, mBadMapDiff);
 }
 
 bool PHOSBadMapCalibDevice::calculateBadMap()
@@ -181,7 +196,7 @@ bool PHOSBadMapCalibDevice::calculateBadMap()
 
     float nMean, nRMS;
     calculateLimits(mMeanLow.get(), nMean, nRMS); // for low E occupamcy
-    float nMinLow = std::max(float(1.), nMean - 6 * nRMS);
+    float nMinLow = std::max(float(0.), nMean - 6 * nRMS);
     float nMaxLow = nMean + 6 * nRMS;
     LOG(info) << "Limits for low E histo: " << nMinLow << "<n<" << nMaxLow;
     for (int i = 1; i <= mMeanLow->GetNbinsX(); i++) {
@@ -191,7 +206,7 @@ bool PHOSBadMapCalibDevice::calculateBadMap()
       }
     }
     calculateLimits(mMeanHigh.get(), nMean, nRMS); // for high
-    float nMinHigh = std::max(float(1.), nMean - 6 * nRMS);
+    float nMinHigh = std::max(float(0.), nMean - 6 * nRMS);
     float nMaxHigh = nMean + 6 * nRMS;
     LOG(info) << "Limits for high E histo: " << nMinHigh << "<n<" << nMaxHigh;
     for (int i = 1; i <= mMeanHigh->GetNbinsX(); i++) {
@@ -402,7 +417,7 @@ o2::framework::DataProcessorSpec o2::phos::getBadMapCalibSpec(int mode)
 
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(o2::header::gDataOriginPHS, "CALIBDIFF", 0, o2::framework::Lifetime::Sporadic);
+  outputs.emplace_back(o2::header::gDataOriginPHS, "BADMAPDIFF", 0, o2::framework::Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHS_BadMap"}, o2::framework::Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHS_BadMap"}, o2::framework::Lifetime::Sporadic);
   return o2::framework::DataProcessorSpec{"BadMapCalibSpec",

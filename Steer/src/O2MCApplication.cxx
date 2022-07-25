@@ -36,14 +36,14 @@ namespace steer
 {
 // helper function to send trivial data
 template <typename T>
-void TypedVectorAttach(const char* name, FairMQChannel& channel, FairMQParts& parts)
+void TypedVectorAttach(const char* name, fair::mq::Channel& channel, fair::mq::Parts& parts)
 {
   static auto mgr = FairRootManager::Instance();
   auto vector = mgr->InitObjectAs<const std::vector<T>*>(name);
   if (vector) {
     auto buffer = (char*)&(*vector)[0];
     auto buffersize = vector->size() * sizeof(T);
-    FairMQMessagePtr message(channel.NewMessage(
+    fair::mq::MessagePtr message(channel.NewMessage(
       buffer, buffersize,
       [](void* data, void* hint) {}, buffer));
     parts.AddPart(std::move(message));
@@ -241,7 +241,7 @@ void O2MCApplication::initLate()
   }
 }
 
-void O2MCApplication::attachSubEventInfo(FairMQParts& parts, o2::data::SubEventInfo const& info) const
+void O2MCApplication::attachSubEventInfo(fair::mq::Parts& parts, o2::data::SubEventInfo const& info) const
 {
   // parts.AddPart(std::move(mSimDataChannel->NewSimpleMessage(info)));
   o2::base::attachTMessage(info, *mSimDataChannel, parts);
@@ -250,7 +250,7 @@ void O2MCApplication::attachSubEventInfo(FairMQParts& parts, o2::data::SubEventI
 // helper function to fetch data from FairRootManager branch and serialize it
 // returns handle to container
 template <typename T>
-const T* attachBranch(std::string const& name, FairMQChannel& channel, FairMQParts& parts)
+const T* attachBranch(std::string const& name, fair::mq::Channel& channel, fair::mq::Parts& parts)
 {
   auto mgr = FairRootManager::Instance();
   // check if branch is present
@@ -274,7 +274,7 @@ void O2MCApplication::setSubEventInfo(o2::data::SubEventInfo* i)
 
 void O2MCApplication::SendData()
 {
-  FairMQParts simdataparts;
+  fair::mq::Parts simdataparts;
 
   // fill these parts ... the receiver has to unpack similary
   // TODO: actually we could just loop over branches in FairRootManager at this moment?

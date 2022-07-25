@@ -126,20 +126,20 @@ class ReadOut
     LinkAddr Id;
     uint32_t LinkUId;
   };
-  static constexpr Lnk mEq[Geo::MAXEQUIPMENTS] = {{0, 221, 0, 160, "alio2-cr1-flp160"},
-                                                  {1, 221, 1, 160, "alio2-cr1-flp160"},
-                                                  {2, 221, 2, 160, "alio2-cr1-flp160"},
-                                                  {3, 221, 3, 160, "alio2-cr1-flp160"},
-                                                  {4, 222, 0, 160, "alio2-cr1-flp160"},
-                                                  {5, 222, 1, 160, "alio2-cr1-flp160"},
-                                                  {8, 222, 2, 160, "alio2-cr1-flp160"},
-                                                  {9, 222, 3, 160, "alio2-cr1-flp160"},
-                                                  {6, 288, 0, 161, "alio2-cr1-flp161"},
-                                                  {7, 288, 1, 161, "alio2-cr1-flp161"},
-                                                  {10, 288, 2, 161, "alio2-cr1-flp161"},
-                                                  {11, 51, 0, 161, "alio2-cr1-flp161"},
-                                                  {12, 51, 1, 161, "alio2-cr1-flp161"},
-                                                  {13, 51, 2, 161, "alio2-cr1-flp161"}};
+  static constexpr Lnk mEq[Geo::MAXEQUIPMENTS] = {{0, 121, 0, 160, "alio2-cr1-flp160"},
+                                                  {1, 121, 1, 160, "alio2-cr1-flp160"},
+                                                  {2, 121, 2, 160, "alio2-cr1-flp160"},
+                                                  {3, 121, 3, 160, "alio2-cr1-flp160"},
+                                                  {4, 120, 0, 160, "alio2-cr1-flp160"},
+                                                  {5, 120, 1, 160, "alio2-cr1-flp160"},
+                                                  {8, 120, 2, 160, "alio2-cr1-flp160"},
+                                                  {9, 120, 3, 160, "alio2-cr1-flp160"},
+                                                  {6, 123, 0, 161, "alio2-cr1-flp161"},
+                                                  {7, 123, 1, 161, "alio2-cr1-flp161"},
+                                                  {10, 123, 2, 161, "alio2-cr1-flp161"},
+                                                  {11, 122, 0, 161, "alio2-cr1-flp161"},
+                                                  {12, 122, 1, 161, "alio2-cr1-flp161"},
+                                                  {13, 122, 2, 161, "alio2-cr1-flp161"}};
 
   static inline int FeeId(unsigned int idx) { return (idx >= Geo::MAXEQUIPMENTS) ? -1 : mEq[idx].Id.Fee; };
   static inline int CruId(unsigned int idx) { return (idx >= Geo::MAXEQUIPMENTS) ? -1 : mEq[idx].Id.Cru; };

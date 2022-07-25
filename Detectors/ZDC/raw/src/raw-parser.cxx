@@ -72,30 +72,28 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
             size_t offset = it.offset();
             // Note: the following code is only for printing out raw page information
             const auto* dh = it.o2DataHeader();
-            if (loglevel > 0) {
-              if (dh != lastDataHeader) {
-                // print the DataHeader information only for the first part or if we have high verbosity
-                if (loglevel > 1 || dh->splitPayloadIndex == 0) {
-                  rdhprintout << fmt::format("{}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification)
-                              << "  ";
-                  // at high verbosity print part number, otherwise only the total number of parts
-                  if (loglevel > 1) {
-                    rdhprintout << "part " + std::to_string(dh->splitPayloadIndex) + " of " + std::to_string(dh->splitPayloadParts);
-                  } else {
-                    rdhprintout << " " + std::to_string(dh->splitPayloadParts) + " part(s)";
-                  }
-                  rdhprintout << " payload size " << payloadSize << std::endl;
+            if (dh != lastDataHeader) {
+              // print the DataHeader information only for the first part or if we have high verbosity
+              if (loglevel > 1 || dh->splitPayloadIndex == 0) {
+                rdhprintout << fmt::format("{}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification)
+                            << "  ";
+                // at high verbosity print part number, otherwise only the total number of parts
+                if (loglevel > 1) {
+                  rdhprintout << "part " + std::to_string(dh->splitPayloadIndex) + " of " + std::to_string(dh->splitPayloadParts);
+                } else {
+                  rdhprintout << " " + std::to_string(dh->splitPayloadParts) + " part(s)";
                 }
-                if (!rdhprintout.str().empty()) {
-                  LOG(info) << rdhprintout.str();
-                  rdhprintout.str(std::string());
-                }
+                rdhprintout << " payload size " << payloadSize << std::endl;
               }
-              if (payload != nullptr) {
-                for (int32_t ip = 0; ip < payloadSize; ip += 16) {
-                  //o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
-                  zdc_dr.processWord((const uint32_t*)&payload[ip]);
-                }
+              if (!rdhprintout.str().empty()) {
+                LOG(info) << rdhprintout.str();
+                rdhprintout.str(std::string());
+              }
+            }
+            if (payload != nullptr) {
+              for (int32_t ip = 0; ip < payloadSize; ip += 16) {
+                //o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+                zdc_dr.processWord((const uint32_t*)&payload[ip]);
               }
             }
             lastDataHeader = dh;

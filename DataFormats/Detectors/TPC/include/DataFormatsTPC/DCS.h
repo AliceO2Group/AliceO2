@@ -183,6 +183,8 @@ struct Temperature {
   void clear()
   {
     doClear(raw);
+    statsA.clear();
+    statsC.clear();
   }
 
   ClassDefNV(Temperature, 1);

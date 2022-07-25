@@ -16,6 +16,7 @@
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/OrbitData.h"
+#include "ZDCBase/ModuleConfig.h"
 #include "ZDCSimulation/Digitizer.h"
 #include "ZDCSimulation/SimCondition.h"
 #include "ZDCSimulation/ZDCSimParam.h"
@@ -56,7 +57,8 @@ class DigitizerTest
   // TODO: these should be common with Digitizer.h
   static constexpr int BCCacheMin = -1, BCCacheMax = 5, NBC2Cache = 1 + BCCacheMax - BCCacheMin;
   std::string mCCDBServer = "";
-  o2::zdc::SimCondition* mSimCondition = nullptr;
+  SimCondition* mSimCondition = nullptr;
+  ModuleConfig* mModuleConfig = nullptr;
   uint32_t mMask[NChannels] = {0};
   std::deque<Digitizer::BCCache> mCache; // cached BCs data
   BCData& getCreateBCData(const o2::InteractionRecord& ir);

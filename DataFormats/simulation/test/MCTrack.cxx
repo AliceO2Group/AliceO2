@@ -52,6 +52,12 @@ BOOST_AUTO_TEST_CASE(MCTrack_test)
   BOOST_CHECK(track.leftTrace(1) == true);
   BOOST_CHECK(track.getNumDet() == 1);
 
+  // check process encoding
+  track.setProcess(TMCProcess::kPPrimary);
+  BOOST_CHECK(track.getProcess() == TMCProcess::kPPrimary);
+  track.setProcess(TMCProcess::kPTransportation);
+  BOOST_CHECK(track.getProcess() == TMCProcess::kPTransportation);
+
   {
     // serialize it
     TFile f("MCTrackOut.root", "RECREATE");

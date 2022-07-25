@@ -50,17 +50,23 @@ void BoostOptionsRetriever::update(std::vector<ConfigParamSpec> const& specs,
       case VariantType::Int:
         options = options(name, bpo::value<int>()->default_value(spec.defaultValue.get<int>()), help);
         break;
+      case VariantType::Int8:
+        options = options(name, bpo::value<int8_t>()->default_value(spec.defaultValue.get<int8_t>()), help);
+        break;
+      case VariantType::Int16:
+        options = options(name, bpo::value<int16_t>()->default_value(spec.defaultValue.get<int16_t>()), help);
+        break;
       case VariantType::UInt8:
-        options = options(name, bpo::value<int>()->default_value(spec.defaultValue.get<uint8_t>()), help);
+        options = options(name, bpo::value<uint8_t>()->default_value(spec.defaultValue.get<uint8_t>()), help);
         break;
       case VariantType::UInt16:
-        options = options(name, bpo::value<int>()->default_value(spec.defaultValue.get<uint16_t>()), help);
+        options = options(name, bpo::value<uint16_t>()->default_value(spec.defaultValue.get<uint16_t>()), help);
         break;
       case VariantType::UInt32:
-        options = options(name, bpo::value<int>()->default_value(spec.defaultValue.get<uint32_t>()), help);
+        options = options(name, bpo::value<uint32_t>()->default_value(spec.defaultValue.get<uint32_t>()), help);
         break;
       case VariantType::UInt64:
-        options = options(name, bpo::value<int>()->default_value(spec.defaultValue.get<uint64_t>()), help);
+        options = options(name, bpo::value<uint64_t>()->default_value(spec.defaultValue.get<uint64_t>()), help);
         break;
       case VariantType::Int64:
         options = options(name, bpo::value<int64_t>()->default_value(spec.defaultValue.get<int64_t>()), help);

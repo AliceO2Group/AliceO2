@@ -261,10 +261,6 @@ void CookedTracker::makeSeeds(std::vector<TrackITSExt>& seeds, Int_t first, Int_
   const Double_t kpWinD = 2 * (TMath::ASin(gmaxDCAxy / layer2.getR()) - TMath::ASin(gmaxDCAxy / layer1.getR()));
   const Double_t kpWin = std::max(kpWinC, kpWinD);
 
-  // Int_t nClusters1 = layer1.getNumberOfClusters();
-  Int_t nClusters2 = layer2.getNumberOfClusters();
-  Int_t nClusters3 = layer3.getNumberOfClusters();
-
   for (Int_t n1 = first; n1 < last; n1++) {
     const Cluster* c1 = layer1.getCluster(n1);
     //
@@ -406,9 +402,8 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
     TrackITSExt best(track);
 
     Int_t volID = -1;
-    Int_t ci = -1;
-    TrackITSExt t3(track);
     for (auto& ci3 : selec[3]) {
+      TrackITSExt t3(track);
       if (used[3][ci3]) {
         continue;
       }
@@ -419,8 +414,8 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
         best = t3;
       }
 
-      TrackITSExt t2(t3);
       for (auto& ci2 : selec[2]) {
+        TrackITSExt t2(t3);
         if (used[2][ci2]) {
           continue;
         }
@@ -431,8 +426,8 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
           best = t2;
         }
 
-        TrackITSExt t1(t2);
         for (auto& ci1 : selec[1]) {
+          TrackITSExt t1(t2);
           if (used[1][ci1]) {
             continue;
           }
@@ -443,8 +438,8 @@ void CookedTracker::trackSeeds(std::vector<TrackITSExt>& seeds)
             best = t1;
           }
 
-          TrackITSExt t0(t1);
           for (auto& ci0 : selec[0]) {
+            TrackITSExt t0(t1);
             if (used[0][ci0]) {
               continue;
             }
@@ -521,7 +516,7 @@ void CookedTracker::process(gsl::span<const o2::itsmft::CompClusterExt> const& c
 
     auto pattID = comp.getPatternID();
     o2::math_utils::Point3D<float> locXYZ;
-    float sigmaY2 = gSigma2, sigmaZ2 = gSigma2, sigmaYZ = 0;
+    float sigmaY2 = gSigma2, sigmaZ2 = gSigma2;
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
       sigmaY2 = gSigma2; //dict.getErr2X(pattID);
       sigmaZ2 = gSigma2; //dict.getErr2Z(pattID);
@@ -688,7 +683,7 @@ int CookedTracker::loadClusters()
       auto f = std::async(std::launch::async, &CookedTracker::Layer::init, sLayers + (l + t));
       fut.push_back(std::move(f));
     }
-    for (Int_t t = 0; t < fut.size(); t++) {
+    for (size_t t = 0; t < fut.size(); t++) {
       fut[t].wait();
     }
   }

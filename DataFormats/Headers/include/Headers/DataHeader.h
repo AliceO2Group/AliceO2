@@ -35,7 +35,7 @@
 #include <cstdint>
 #include <memory>
 #include <cassert>
-#include <cstring>   //needed for memcmp
+#include <cstring> //needed for memcmp
 #include <string>
 #include <stdexcept>
 #include <climits>
@@ -90,7 +90,7 @@ struct DataHeader;
 struct DataIdentifier;
 
 //__________________________________________________________________________________________________
-///helper function to print a hex/ASCII dump of some memory
+/// helper function to print a hex/ASCII dump of some memory
 void hexDump(const char* desc, const void* voidaddr, size_t len, size_t max = 0);
 
 //__________________________________________________________________________________________________
@@ -185,13 +185,13 @@ constexpr T String2(const char (&str)[N])
                 "String parameter is longer than the size of the data type");
   // clang-format off
   return ((T)str[0 + pos] |
-         (str[0 + pos] && sizeof(T) >= 2 ? ((T)str[1 + pos] << (sizeof(T) >= 2 ? 8 : 0) |
-         (str[1 + pos] && sizeof(T) >= 4 ? ((T)str[2 + pos] << (sizeof(T) >= 4 ? 16 : 0) |
-         (str[2 + pos] && sizeof(T) >= 4 ? ((T)str[3 + pos] << (sizeof(T) >= 4 ? 24 : 0) |
-         (str[3 + pos] && sizeof(T) >= 8 ? ((T)str[4 + pos] << (sizeof(T) >= 8 ? 32 : 0) |
-         (str[4 + pos] && sizeof(T) >= 8 ? ((T)str[5 + pos] << (sizeof(T) >= 8 ? 40 : 0) |
-         (str[5 + pos] && sizeof(T) >= 8 ? ((T)str[6 + pos] << (sizeof(T) >= 8 ? 48 : 0) |
-         (str[6 + pos] && sizeof(T) >= 8 ? ((T)str[7 + pos] << (sizeof(T) >= 8 ? 56 : 0))
+         (sizeof(T) >= 2 && str[0 + pos] ? ((T)str[1 + pos] << (sizeof(T) >= 2 ? 8  : 0) |
+         (sizeof(T) >= 4 && str[1 + pos] ? ((T)str[2 + pos] << (sizeof(T) >= 4 ? 16 : 0) |
+         (sizeof(T) >= 4 && str[2 + pos] ? ((T)str[3 + pos] << (sizeof(T) >= 4 ? 24 : 0) |
+         (sizeof(T) >= 8 && str[3 + pos] ? ((T)str[4 + pos] << (sizeof(T) >= 8 ? 32 : 0) |
+         (sizeof(T) >= 8 && str[4 + pos] ? ((T)str[5 + pos] << (sizeof(T) >= 8 ? 40 : 0) |
+         (sizeof(T) >= 8 && str[5 + pos] ? ((T)str[6 + pos] << (sizeof(T) >= 8 ? 48 : 0) |
+         (sizeof(T) >= 8 && str[6 + pos] ? ((T)str[7 + pos] << (sizeof(T) >= 8 ? 56 : 0))
          : 0)) : 0)) : 0)) : 0)) : 0)) : 0)) : 0));
   // clang-format on
 }
@@ -208,8 +208,8 @@ struct Descriptor {
   static_assert(internal::NumberOfActiveBits<N>::value == 1,
                 "Descriptor size is required to be a power of 2");
   using self_type = Descriptor<N>;
-  static int const size = N;
-  static int const bitcount = size * 8;
+  static int constexpr size = N;
+  static int constexpr bitcount = size * 8;
   static constexpr int arraySize = internal::ArraySize<uint64_t, size>();
   using ItgType = typename internal::TraitsIntType<N>::Type;
 
@@ -312,7 +312,7 @@ const uint64_t gInvalidToken64 = 0xFFFFFFFFFFFFFFFF;
 using HeaderType = Descriptor<gSizeHeaderDescriptionString>;
 using SerializationMethod = Descriptor<gSizeSerializationMethodString>;
 
-//possible serialization types
+// possible serialization types
 constexpr o2::header::SerializationMethod gSerializationMethodAny{"*******"};
 constexpr o2::header::SerializationMethod gSerializationMethodInvalid{"INVALID"};
 constexpr o2::header::SerializationMethod gSerializationMethodNone{"NONE"};
@@ -363,8 +363,8 @@ struct BaseHeader {
   union {
     uint32_t flags;
     struct {
-      uint32_t flagsNextHeader : 1, //do we have a next header after this one?
-        flagsUnused : 31;           //currently unused
+      uint32_t flagsNextHeader : 1, // do we have a next header after this one?
+        flagsUnused : 31;           // currently unused
     };
   };
 
@@ -546,7 +546,7 @@ using DataDescription = Descriptor<gSizeDataDescriptionString>;
 /// @{
 
 //__________________________________________________________________________________________________
-//possible data origins
+// possible data origins
 constexpr o2::header::DataOrigin gDataOriginAny{"***"};
 constexpr o2::header::DataOrigin gDataOriginInvalid{"NIL"};
 constexpr o2::header::DataOrigin gDataOriginFLP{"FLP"};
@@ -572,8 +572,9 @@ constexpr o2::header::DataOrigin gDataOriginACO{"ACO"}; // for bwd compatibility
 constexpr o2::header::DataOrigin gDataOriginIT3{"IT3"};
 constexpr o2::header::DataOrigin gDataOriginTRK{"TRK"};
 constexpr o2::header::DataOrigin gDataOriginFT3{"FT3"};
+constexpr o2::header::DataOrigin gDataOriginFCT{"FCT"};
 
-//possible data types
+// possible data types
 constexpr o2::header::DataDescription gDataDescriptionAny{"***************"};
 constexpr o2::header::DataDescription gDataDescriptionInvalid{"INVALID_DESC"};
 constexpr o2::header::DataDescription gDataDescriptionRawData{"RAWDATA"};
@@ -607,7 +608,7 @@ struct DataHeader : public BaseHeader {
   using TFCounterType = uint32_t;
   using RunNumberType = uint32_t;
 
-  //static data for this header type/version
+  // static data for this header type/version
   static constexpr uint32_t sVersion{3};
   static constexpr o2::header::HeaderType sHeaderType{String2<uint64_t>("DataHead")};
   static constexpr o2::header::SerializationMethod sSerializationMethod{gSerializationMethodNone};
@@ -715,12 +716,12 @@ struct DataHeader : public BaseHeader {
   }
 
   DataHeader(const DataHeader&) = default;
-  DataHeader& operator=(const DataHeader&) = default; //assignment
+  DataHeader& operator=(const DataHeader&) = default; // assignment
 
-  bool operator==(const DataHeader&) const;          //comparison
-  bool operator==(const DataOrigin&) const;          //comparison
-  bool operator==(const DataDescription&) const;     //comparison
-  bool operator==(const SerializationMethod&) const; //comparison
+  bool operator==(const DataHeader&) const;          // comparison
+  bool operator==(const DataOrigin&) const;          // comparison
+  bool operator==(const DataDescription&) const;     // comparison
+  bool operator==(const SerializationMethod&) const; // comparison
 
   static const DataHeader* Get(const BaseHeader* baseHeader)
   {
@@ -737,7 +738,7 @@ struct DataHeader : public BaseHeader {
 ///
 /// @ingroup aliceo2_dataformats_dataheader
 struct DataIdentifier {
-  //a full data identifier combining origin and description
+  // a full data identifier combining origin and description
   DataDescription dataDescription;
   DataOrigin dataOrigin;
   DataIdentifier();
@@ -752,8 +753,8 @@ struct DataIdentifier {
 };
 
 //__________________________________________________________________________________________________
-///compile time checks for the basic structures
-/// use hardcoded numbers as these are fundamental assumption
+/// compile time checks for the basic structures
+///  use hardcoded numbers as these are fundamental assumption
 static_assert(sizeof(HeaderType) == 8,
               "HeaderType struct must be of size 8");
 static_assert(sizeof(SerializationMethod) == 8,
@@ -777,6 +778,6 @@ template <std::size_t S>
 struct is_descriptor<o2::header::Descriptor<S>> : std::true_type {
 };
 
-} //namespace o2::header
+} // namespace o2::header
 
 #endif

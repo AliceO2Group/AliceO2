@@ -18,6 +18,7 @@
 #ifndef ALICE_O2_EVENTVISUALISATION_VIEW_MULTIVIEW_H
 #define ALICE_O2_EVENTVISUALISATION_VIEW_MULTIVIEW_H
 
+#include <TGLAnnotation.h>
 #include <TGLViewer.h>
 #include <TEveGeoShape.h>
 #include <TEveScene.h>
@@ -43,7 +44,7 @@ class MultiView
   enum EViews {
     View3d,       ///< 3D view
     ViewRphi,     ///< R-Phi view
-    ViewZrho,     ///< Z-Rho view
+    ViewZY,       ///< Z-Y view
     NumberOfViews ///< Total number of views
   };
 
@@ -51,14 +52,14 @@ class MultiView
     Scene3dGeom,    ///< 3D scene of geometry
     Scene3dEvent,   ///< 3D scene of event
     SceneRphiGeom,  ///< R-Phi scene of geometry
-    SceneZrhoGeom,  ///< Z-Pho scene of geometry
+    SceneZYGeom,    ///< Z-Y scene of geometry
     SceneRphiEvent, ///< R-Phi scene of event
-    SceneZrhoEvent, ///< Z-Rho scene of event
+    SceneZYEvent,   ///< Z-Y scene of event
     NumberOfScenes  ///< Total number of scenes
   };
   enum EProjections {
     ProjectionRphi,     ///< R-Phi projection
-    ProjectionZrho,     ///< Z-Rho projection
+    ProjectionZY,       ///< Z-Y projection
     NumberOfProjections ///< Total number of projections
   };
 
@@ -80,18 +81,24 @@ class MultiView
   /// \param detectorName  The name of the detector to draw geometry of
   /// \param threeD Should 3D view be drawn
   /// \param rPhi Should R-Phi projection be drawn
-  /// \param zRho Should Z-Rho projection be drawn
-  void drawGeometryForDetector(std::string detectorName, bool threeD = true, bool rPhi = true, bool zRho = true);
+  /// \param zy Should Z-Y projection be drawn
+  void drawGeometryForDetector(std::string detectorName, bool threeD = true, bool rPhi = true, bool zy = true);
   /// Registers geometry to be drawn in appropriate views
-  void registerGeometry(TEveGeoShape* geom, bool threeD = true, bool rPhi = true, bool zRho = true);
+  void registerGeometry(TEveGeoShape* geom, bool threeD = true, bool rPhi = true, bool zy = true);
   /// Removes all geometries
   void destroyAllGeometries();
 
-  /// Registers an element to be drawn
-  void registerElement(TEveElement* event); // override;
+  /// Registers an elements to be drawn
+  void registerElements(TEveElementList* elements[], TEveElementList* phiElements[]);
 
-  ///
+  /// Registers an element to be drawn
+  void registerElement(TEveElement* event);
   void registerEvent(TEveElement* event) { return registerElement(event); }
+
+  /// Get annotation pointer
+  TGLAnnotation* getAnnotationTop() { return mAnnotationTop.get(); }
+  TGLAnnotation* getAnnotationBottom() { return mAnnotationBottom.get(); }
+
   /// Removes all shapes representing current event
   void destroyAllEvents(); // override;
   void redraw3D();
@@ -108,6 +115,8 @@ class MultiView
   TEveScene* mScenes[NumberOfScenes];                       ///< Array of all geometry and event scenes
   TEveProjectionManager* mProjections[NumberOfProjections]; ///< Array of all projection managers
   std::vector<TEveGeoShape*> mDetectors;                    ///< Vector of detector geometries
+  std::unique_ptr<TGLAnnotation> mAnnotationTop;            ///< 3D view annotation (top)
+  std::unique_ptr<TGLAnnotation> mAnnotationBottom;         ///< 3D view annotation (bottom)
 
   std::string mSceneNames[NumberOfScenes];        ///< Names of event and geometry scenes
   std::string mSceneDescriptions[NumberOfScenes]; ///< Descriptions of event and geometry scenes

@@ -33,7 +33,7 @@ namespace o2::framework
 /// is used to decide when to sent the scheduled messages via the actual dispatch
 /// callback.
 struct DispatchControl {
-  using DispatchCallback = std::function<void(FairMQParts&& message, ChannelIndex index, int)>;
+  using DispatchCallback = std::function<void(fair::mq::Parts&& message, ChannelIndex index, int)>;
   using DispatchTrigger = std::function<bool(o2::header::DataHeader const&)>;
   // dispatcher callback
   DispatchCallback dispatch;

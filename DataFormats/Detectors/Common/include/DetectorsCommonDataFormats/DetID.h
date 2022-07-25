@@ -81,7 +81,8 @@ class DetID
   static constexpr ID IT3 = 17;
   static constexpr ID TRK = 18;
   static constexpr ID FT3 = 19;
-  static constexpr ID Last = FT3;
+  static constexpr ID FCT = 20;
+  static constexpr ID Last = FCT;
 #else
   static constexpr ID Last = CTP; ///< if extra detectors added, update this !!!
 #endif
@@ -115,7 +116,7 @@ class DetID
   // we need default c-tor only for root persistency, code must use c-tor with argument
   DetID() : mID(First) {}
 
-  /// get derector id
+  /// get detector id
   GPUdi() ID getID() const { return mID; }
   /// get detector mask
   GPUdi() mask_t getMask() const { return getMask(mID); }
@@ -175,7 +176,7 @@ class DetID
   // detector names, will be defined in DataSources
   static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
 #ifdef ENABLE_UPGRADES
-    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "TST", "CTP", "IT3", "TRK", "FT3", nullptr};
+    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "TST", "CTP", "IT3", "TRK", "FT3", "FCT", nullptr};
 #else
     {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "TST", "CTP", nullptr};
 #endif
@@ -188,7 +189,7 @@ class DetID
      o2h::gDataOriginTST, o2h::gDataOriginCTP
 #ifdef ENABLE_UPGRADES
      ,
-     o2h::gDataOriginIT3, o2h::gDataOriginTRK, o2h::gDataOriginFT3
+     o2h::gDataOriginIT3, o2h::gDataOriginTRK, o2h::gDataOriginFT3, o2h::gDataOriginFCT
 #endif
   };
 #endif // GPUCA_GPUCODE_DEVICE
@@ -206,7 +207,7 @@ GPUconstexpr() DetID::mask_t sMasks[DetID::nDetectors] = ///< detectot masks
    DetID::mask_t(math_utils::bit2Mask(DetID::TST)), DetID::mask_t(math_utils::bit2Mask(DetID::CTP))
 #ifdef ENABLE_UPGRADES
                                                       ,
-   DetID::mask_t(math_utils::bit2Mask(DetID::IT3)), DetID::mask_t(math_utils::bit2Mask(DetID::TRK)), DetID::mask_t(math_utils::bit2Mask(DetID::FT3))
+   DetID::mask_t(math_utils::bit2Mask(DetID::IT3)), DetID::mask_t(math_utils::bit2Mask(DetID::TRK)), DetID::mask_t(math_utils::bit2Mask(DetID::FT3)), DetID::mask_t(math_utils::bit2Mask(DetID::FCT))
 #endif
 };
 } // namespace detid_internal

@@ -16,15 +16,20 @@ o2_add_library(DataFormatsParameters
                        src/GRPMagField.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::CommonConstants
                                      O2::CommonTypes
-                                     O2::DetectorsCommonDataFormats)
+                                     O2::DetectorsCommonDataFormats O2::SimConfig)
 
 o2_target_root_dictionary(DataFormatsParameters
-                          HEADERS include/DataFormatsParameters/GRPObject.h
+                          HEADERS include/DataFormatsParameters/ECSDataAdapters.h
+                                  include/DataFormatsParameters/GRPObject.h
                                   include/DataFormatsParameters/GRPLHCIFData.h
                                   include/DataFormatsParameters/GRPECSObject.h
                                   include/DataFormatsParameters/GRPMagField.h
                           LINKDEF src/ParametersDataLinkDef.h)
 
+o2_add_executable(simgrp-tool
+                  COMPONENT_NAME grp
+                  SOURCES src/GRPTool.cxx
+                  PUBLIC_LINK_LIBRARIES Boost::program_options O2::DataFormatsParameters)
 
 # note we are explicitely giving the LINKDEF parameter as the LinkDef does not
 # follow the usual naming scheme [module]LinkDef.h

@@ -29,16 +29,16 @@ namespace trd
 
 void TRDTrackletTransformerSpec::init(o2::framework::InitContext& ic)
 {
-  mTransformer.init();
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
 }
 
 void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
 {
-  LOG(info) << "Running tracklet transformer";
-  updateTimeDependentParams(pc);
+  LOG(debug) << "Running tracklet transformer";
 
   o2::globaltracking::RecoContainer inputData;
   inputData.collectData(pc, *mDataRequest);
+  updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
 
   auto tracklets = pc.inputs().get<gsl::span<Tracklet64>>("trdtracklets");
   auto trigRecs = pc.inputs().get<gsl::span<TriggerRecord>>("trdtriggerrec");
@@ -50,9 +50,12 @@ void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
 
   if (mTrigRecFilterActive) {
     const auto irFrames = inputData.getIRFramesITS();
-    int lastMatchedIdx = 0; // ITS IR are sorted in time and do not overlap
+    size_t lastMatchedIdx = 0; // ITS IR are sorted in time and do not overlap
     for (const auto& irFrame : irFrames) {
-      for (int j = lastMatchedIdx; j < trigRecs.size(); ++j) {
+      if (!irFrame.info) { // skip IRFrames where ITS did not find any track
+        continue;
+      }
+      for (auto j = lastMatchedIdx; j < trigRecs.size(); ++j) {
         const auto& trigRec = trigRecs[j];
         if (trigRec.getBCData() >= irFrame.getMin()) {
           if (trigRec.getBCData() <= irFrame.getMax()) {
@@ -85,7 +88,7 @@ void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
 
   if (mTrigRecFilterActive) {
     // skip tracklets from TRD triggers without ITS data
-    for (int iTrig = 0; iTrig < trigRecs.size(); ++iTrig) {
+    for (size_t iTrig = 0; iTrig < trigRecs.size(); ++iTrig) {
       if (!trigRecBitfield[iTrig]) {
         continue;
       } else {
@@ -98,13 +101,13 @@ void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
     }
   } else {
     // transform all tracklets
-    for (int iTrklt = 0; iTrklt < tracklets.size(); ++iTrklt) {
+    for (size_t iTrklt = 0; iTrklt < tracklets.size(); ++iTrklt) {
       calibratedTracklets[iTrklt] = mTransformer.transformTracklet(tracklets[iTrklt]);
       ++nTrackletsTransformed;
     }
   }
 
-  LOGF(info, "Found %lu tracklets. Applied filter for ITS IR frames: %i. Transformed %i tracklets.", tracklets.size(), mTrigRecFilterActive, nTrackletsTransformed);
+  LOGF(info, "Found %lu tracklets in %lu trigger records. Applied filter for ITS IR frames: %i. Transformed %i tracklets.", tracklets.size(), trigRecs.size(), mTrigRecFilterActive, nTrackletsTransformed);
 
   pc.outputs().snapshot(Output{"TRD", "CTRACKLETS", 0, Lifetime::Timeframe}, calibratedTracklets);
   pc.outputs().snapshot(Output{"TRD", "TRIGRECMASK", 0, Lifetime::Timeframe}, trigRecBitfield);
@@ -112,18 +115,33 @@ void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
 
 void TRDTrackletTransformerSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    // init-once stuff
+
+    mTransformer.init();
+    if (mApplyXOR) {
+      mTransformer.setApplyXOR();
+    }
+  }
   pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb"); // just to trigger the finaliseCCDB
 }
 
 void TRDTrackletTransformerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher("TRD", "CALVDRIFTEXB", 0)) {
     LOG(info) << "CalVdriftExB object has been updated";
     mTransformer.setCalVdriftExB((const o2::trd::CalVdriftExB*)obj);
+    return;
   }
 }
 
-o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive)
+o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive, bool applyXOR)
 {
   std::shared_ptr<DataRequest> dataRequest = std::make_shared<DataRequest>();
   if (trigRecFilterActive) {
@@ -133,7 +151,14 @@ o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilte
   inputs.emplace_back("trdtracklets", "TRD", "TRACKLETS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trdtriggerrec", "TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
   inputs.emplace_back("calvdexb", "TRD", "CALVDRIFTEXB", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalVdriftExB"));
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              false,                             // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              false,                             // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              inputs,
+                                                              true);
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("TRD", "CTRACKLETS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "TRIGRECMASK", 0, Lifetime::Timeframe);
@@ -142,7 +167,7 @@ o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilte
     "TRDTRACKLETTRANSFORMER",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDTrackletTransformerSpec>(dataRequest, trigRecFilterActive)},
+    AlgorithmSpec{adaptFromTask<TRDTrackletTransformerSpec>(dataRequest, ggRequest, trigRecFilterActive, applyXOR)},
     Options{}};
 }
 

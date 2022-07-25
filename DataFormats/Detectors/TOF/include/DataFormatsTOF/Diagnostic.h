@@ -18,6 +18,7 @@
 #include <map>
 #include <TObject.h>
 #include <gsl/gsl>
+#include "CommonDataFormat/TFIDInfo.h"
 
 namespace o2
 {
@@ -51,6 +52,7 @@ class Diagnostic
   void merge(const Diagnostic* prev);
   void getNoisyMap(Bool_t* output, int noisyThr = 1) const; // set true in output channel array
   void getNoisyLevelMap(Char_t* output) const;              // set true in output channel array
+  bool isNoisyChannel(int channel, int thr = 0) const;
   unsigned long size() const { return mVector.size(); }
   ULong64_t getPattern(int i) const
   {
@@ -88,11 +90,15 @@ class Diagnostic
   int getTimeStamp() const { return mTimestamp; }
   void setTimeStamp(int val) { mTimestamp = val; }
 
+  void setTFIDInfo(const o2::dataformats::TFIDInfo& val) { mTFinfo = val; }
+  const o2::dataformats::TFIDInfo& getTFIDInfo() const { return mTFinfo; }
+
  private:
   std::map<ULong64_t, uint32_t> mVector; // diagnostic frequency vector (key/pattern , frequency)
-  int mTimestamp = 0;                    // timestamp in seconds
+  int mTimestamp = 0;                    //! timestamp in seconds
+  o2::dataformats::TFIDInfo mTFinfo;     // TF id info
 
-  ClassDefNV(Diagnostic, 2);
+  ClassDefNV(Diagnostic, 3);
 };
 
 } // namespace tof

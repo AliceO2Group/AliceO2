@@ -51,6 +51,12 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
     }
     return;
   }
+
+  if (mInitSimParams) { // trigger reading sim/rec parameters from CCDB, singleton initiated in Fetcher
+    ctx.inputs().get<o2::phos::PHOSSimParams*>("recoparams");
+    mInitSimParams = false;
+  }
+
   mOutputCells.clear();
   mOutputCellTrigRecs.clear();
 
@@ -76,7 +82,6 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
 
   mOutputCells.reserve(digits.size()); // most of digits will be copied
   int icell = 0;
-  int labelIndex = 0;
   for (const auto& tr : digitsTR) {
     int iFirstDigit = tr.getFirstEntry();
     int iLastDigit = iFirstDigit + tr.getNumberOfObjects();
@@ -138,6 +143,8 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellConverterSpec(b
   if (!defBadMap) {
     inputs.emplace_back("badmap", o2::header::gDataOriginPHS, "PHS_Calib_BadMap", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Calib/BadMap"));
   }
+  inputs.emplace_back("recoparams", o2::header::gDataOriginPHS, "PHS_RecoParams", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Config/RecoParams"));
+
   outputs.emplace_back("PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe);
   if (propagateMC) {

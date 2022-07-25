@@ -19,7 +19,6 @@
 #include "GPUProcessor.h"
 #include "GPUDataTypes.h"
 #include "CfFragment.h"
-#include "TPCPadGainCalib.h"
 
 namespace o2
 {
@@ -44,7 +43,7 @@ class Digit;
 
 namespace GPUCA_NAMESPACE::gpu
 {
-struct GPUTPCClusterMCInterim;
+struct GPUTPCClusterMCInterimArray;
 struct TPCPadGainCalib;
 
 struct ChargePos;
@@ -113,7 +112,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   uint* mPindexMap = nullptr;
   uint* mPclusterInRow = nullptr;
   tpc::ClusterNative* mPclusterByRow = nullptr;
-  GPUTPCClusterMCInterim* mPlabelsByRow = nullptr;
+  GPUTPCClusterMCInterimArray* mPlabelsByRow = nullptr;
   int* mPbuf = nullptr;
   Memory* mPmemory = nullptr;
 
@@ -139,11 +138,9 @@ class GPUTPCClusterFinder : public GPUProcessor
   short mZSOffsetId = -1;
   short mOutputId = -1;
 
-  GPUdi() const GPUTPCGeometry* getGeometry() const;
-
 #ifndef GPUCA_GPUCODE
   void DumpDigits(std::ostream& out);
-  void DumpChargeMap(std::ostream& out, std::string_view);
+  void DumpChargeMap(std::ostream& out, std::string_view, bool doGPU);
   void DumpPeaks(std::ostream& out);
   void DumpPeaksCompacted(std::ostream& out);
   void DumpSuppressedPeaks(std::ostream& out);

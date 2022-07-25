@@ -150,7 +150,7 @@ class Spline1D
 
   /// Assignment operator
   Spline1D() = default;
-  Spline1D(const Spline1D& v)
+  Spline1D(const Spline1D& v) : TBase(v)
   {
     TVeryBase::cloneFromObject(v, nullptr);
   }

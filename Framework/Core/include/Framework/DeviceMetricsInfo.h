@@ -13,6 +13,7 @@
 #define O2_FRAMEWORK_DEVICEMETRICSINFO_H_
 
 #include "Framework/RuntimeError.h"
+#include "Framework/Traits.h"
 #include <array>
 #include <cstddef>
 #include <string>
@@ -53,7 +54,19 @@ struct MetricLabel {
   char label[MAX_METRIC_LABEL_SIZE];
 };
 
+struct MetricPrefix {
+  static constexpr size_t MAX_METRIC_PREFIX_SIZE = 256 - sizeof(unsigned char); // Maximum size for a metric name.
+  unsigned char size = 0;
+  char prefix[MAX_METRIC_PREFIX_SIZE];
+  int begin = 0;
+  int end = 0;
+};
+
 struct MetricLabelIndex {
+  size_t index;
+};
+
+struct MetricPrefixIndex {
   size_t index;
 };
 
@@ -87,9 +100,29 @@ struct DeviceMetricsInfo {
   std::vector<size_t> minDomain;
   std::vector<size_t> maxDomain;
   std::vector<MetricLabel> metricLabels;
+  std::vector<MetricPrefix> metricPrefixes;
   std::vector<MetricLabelIndex> metricLabelsAlphabeticallySortedIdx;
+  std::vector<MetricPrefixIndex> metricLabelsPrefixesSortedIdx;
   std::vector<MetricInfo> metrics;
   std::vector<bool> changed;
+};
+
+struct DeviceMetricsInfoHelpers {
+  template <typename T>
+  static std::array<T, 1024> const& get(DeviceMetricsInfo const& info, size_t metricIdx)
+  {
+    if constexpr (std::is_same_v<T, int>) {
+      return info.intMetrics[metricIdx];
+    } else if constexpr (std::is_same_v<T, uint64_t>) {
+      return info.uint64Metrics[metricIdx];
+    } else if constexpr (std::is_same_v<T, StringMetric>) {
+      return info.stringMetrics[metricIdx];
+    } else if constexpr (std::is_same_v<T, float>) {
+      return info.floatMetrics[metricIdx];
+    } else {
+      static_assert(always_static_assert_v<T>, "Unsupported type");
+    }
+  }
 };
 
 } // namespace o2::framework

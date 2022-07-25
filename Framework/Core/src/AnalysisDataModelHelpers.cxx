@@ -26,12 +26,16 @@ namespace o2::aod::datamodel
 {
 std::string getTreeName(header::DataHeader dh)
 {
-  std::string description = std::string(dh.dataDescription.str);
-  std::string origin = std::string(dh.dataOrigin.str);
+  auto description = std::string(dh.dataDescription.str);
+  auto origin = std::string(dh.dataOrigin.str);
+  auto iver = (float)dh.subSpecification;
 
   // lower case of first part of description
-  auto found = description.find_first_of(":");
+  auto found = description.find_first_of(':');
   std::string treeName = str_tolower(description).substr(0, found);
+  if (iver > 0) {
+    treeName += std::string{"_"}.append(std::string(2 - (int)std::log10(iver), '0')).append(std::to_string((int)iver));
+  }
 
   // add prefix according to origin
   if (origin == "AOD") {

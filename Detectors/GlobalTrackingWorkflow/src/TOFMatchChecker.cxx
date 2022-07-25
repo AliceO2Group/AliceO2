@@ -15,10 +15,8 @@
 #include <string>
 #include "TStopwatch.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "CommonUtils/NameConf.h"
-#include "DataFormatsParameters/GRPObject.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
@@ -32,6 +30,7 @@
 #include "GlobalTracking/MatchTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTRD/TrackTRD.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 // from TOF
 #include "TOFBase/Geo.h"
@@ -56,14 +55,16 @@ namespace globaltracking
 class TOFMatchChecker : public Task
 {
  public:
-  TOFMatchChecker(std::shared_ptr<DataRequest> dr, bool useMC) : mDataRequest(dr), mUseMC(useMC) {}
+  TOFMatchChecker(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC) {}
   ~TOFMatchChecker() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
   void checkMatching(GID gid);
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(ProcessingContext& pc);
   bool mIsTPC;
   bool mIsTPCTRD;
   bool mIsITSTPCTRD;
@@ -72,6 +73,7 @@ class TOFMatchChecker : public Task
 
   RecoContainer mRecoData;
   std::shared_ptr<DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mUseMC = true;
   TStopwatch mTimer;
 };
@@ -174,10 +176,7 @@ void TOFMatchChecker::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
-  //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry("", false);
-  o2::base::Propagator::initFieldFromGRP();
-  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
 }
 
 void TOFMatchChecker::run(ProcessingContext& pc)
@@ -185,6 +184,7 @@ void TOFMatchChecker::run(ProcessingContext& pc)
   mTimer.Start(false);
 
   mRecoData.collectData(pc, *mDataRequest.get());
+  updateTimeDependentParams(pc);
 
   mIsTPC = (mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF) && mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTOF));
   mIsITSTPC = (mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) && mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF));
@@ -218,6 +218,24 @@ void TOFMatchChecker::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
+void TOFMatchChecker::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
+}
+
+void TOFMatchChecker::updateTimeDependentParams(ProcessingContext& pc)
+{
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    // put here one-time inits
+  }
+  // we may have other params which need to be queried regularly
+}
+
 DataProcessorSpec getTOFMatchCheckerSpec(GID::mask_t src, bool useMC)
 {
   auto dataRequest = std::make_shared<DataRequest>();
@@ -226,12 +244,19 @@ DataProcessorSpec getTOFMatchCheckerSpec(GID::mask_t src, bool useMC)
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestClusters(GID::getSourceMask(GID::TOF), useMC);
   dataRequest->requestTOFMatches(src, useMC);
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              false,                             // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              false,                             // GRPMagField
+                                                              false,                             // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              dataRequest->inputs,
+                                                              true);
   return DataProcessorSpec{
     "tof-matcher",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<TOFMatchChecker>(dataRequest, useMC)},
+    AlgorithmSpec{adaptFromTask<TOFMatchChecker>(dataRequest, ggRequest, useMC)},
     Options{}};
 }
 

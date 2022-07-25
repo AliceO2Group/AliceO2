@@ -16,8 +16,9 @@ using namespace o2::zdc;
 
 void OrbitData::print() const
 {
+  // N.B. print encoded baseline because decoding requires ModuleConfig object
   printf("Orbit %9u bc %4u\n", ir.orbit, ir.bc);
   for (int i = 0; i < NChannels; i++) {
-    printf("%2d %s: %9.3f cnt: %4u\n", i, ChannelNames[i].data(), asFloat(i), scaler[i]);
+    printf("%2d %s: %6d cnt: %4u\n", i, ChannelNames[i].data(), data[i], scaler[i]);
   }
 }

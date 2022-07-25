@@ -129,27 +129,64 @@ class PadRegionInfo
     return localX - mRadiusFirstRow - border > 0.f && localX - mRadiusFirstRow < (mNumberOfPadRows + 1) * mPadHeight + border;
   }
 
+#ifndef GPUCA_ALIGPUCODE // LocalPosition.. = ROOT:Cartesian.. is not available on the GPU
   /// Find the pad and row for a local 3D position
   /// \param pos 3D position in local coordinates
   /// \return pad and row for a local 3D position
-  const PadPos findPad(const LocalPosition3D& pos) const;
+  const PadPos findPad(const LocalPosition3D& pos) const
+  {
+    return findPad(pos.X(), pos.Y(), (pos.Z() >= 0) ? Side::A : Side::C);
+  }
 
   /// Find the pad and row for a local 2D position and readout side
   /// \param pos 2D position in local coordinates
   /// \param side readout side
   /// \return pad and row for a local 2D position and return side
-  const PadPos findPad(const LocalPosition2D& pos, const Side side = Side::A) const;
+  const PadPos findPad(const LocalPosition2D& pos, const Side side = Side::A) const
+  {
+    return findPad(pos.X(), pos.Y(), side);
+  }
+#endif
 
   /// Find the pad and row for a local X and Y position and readout side
   /// \param localX local X position in local coordinates
   /// \param localY local Y position in local coordinates
   /// \param side readout side
   /// \return pad and row for a local X and Y position and readout side
-  const PadPos findPad(const float localX, const float localY, const Side side = Side::A) const;
+  const PadPos findPad(const float localX, const float localY, const Side side /*=Side::A*/) const
+  {
+    if (!isInRegion(localX)) {
+      return PadPos(255, 255);
+    }
+
+    // the pad coordinate system is for pad-side view.
+    // on the A-Side one looks from the back-side, therefore
+    // the localY-sign must be changed
+    const float localYfactor = (side == Side::A) ? -1.f : 1.f;
+    const unsigned int row = (localX - mRadiusFirstRow) * mInvPadHeight;
+    if (row >= mNumberOfPadRows) {
+      return PadPos(255, 255);
+    }
+
+    const unsigned int npads = getPadsInRowRegion(row);
+    const float padfloat = (0.5f * npads * mPadWidth - localYfactor * localY) * mInvPadWidth;
+    if (padfloat < 0) {
+      return PadPos(255, 255);
+    }
+    const unsigned int pad = static_cast<unsigned int>(padfloat);
+
+    if (pad >= npads) {
+      return PadPos(255, 255);
+    }
+
+    return PadPos(row, pad);
+  }
 
  private:
   float mPadHeight{0.f};             ///< pad height in this region
   float mPadWidth{0.f};              ///< pad width in this region
+  float mInvPadHeight{0.f};          ///< inverse pad height in this region (to avoid division in some frequent kernels)
+  float mInvPadWidth{0.f};           ///< inverse pad width in this region
   float mRadiusFirstRow{0.f};        ///< radial position of first row
   float mXhelper{0.f};               ///< helper value to calculate pads per row
   unsigned short mNumberOfPads{0};   ///< total number of pads in region

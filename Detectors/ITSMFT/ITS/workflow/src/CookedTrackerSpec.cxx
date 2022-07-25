@@ -25,7 +25,9 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include <DataFormatsITSMFT/PhysTrigger.h>
 #include "ITSMFTBase/DPLAlpideParam.h"
+#include "DataFormatsTRD/TriggerRecord.h"
 
 #include "Field/MagneticField.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -50,7 +52,7 @@ namespace its
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-CookedTrackerDPL::CookedTrackerDPL(bool useMC, const std::string& trMode) : mUseMC(useMC), mMode(trMode)
+CookedTrackerDPL::CookedTrackerDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, int trgType, const std::string& trMode) : mGGCCDBRequest(gr), mUseMC(useMC), mUseTriggers{trgType}, mMode(trMode)
 {
   mVertexerTraitsPtr = std::make_unique<VertexerTraits>();
   mVertexerPtr = std::make_unique<Vertexer>(mVertexerTraitsPtr.get());
@@ -60,40 +62,9 @@ void CookedTrackerDPL::init(InitContext& ic)
 {
   mTimer.Stop();
   mTimer.Reset();
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   auto nthreads = ic.options().get<int>("nthreads");
   mTracker.setNumberOfThreads(nthreads);
-  auto filename = ic.options().get<std::string>("grp-file");
-  const auto grp = o2::parameters::GRPObject::loadFrom(filename);
-  if (grp) {
-    mVertexerPtr->getGlobalConfiguration();
-
-    mGRP.reset(grp);
-    o2::base::Propagator::initFieldFromGRP(grp);
-    auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-
-    o2::base::GeometryManager::loadGeometry();
-    o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
-    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
-                                                   o2::math_utils::TransformType::T2G));
-    mTracker.setGeometry(geom);
-
-    mTracker.setConfigParams();
-    LOG(info) << "Tracking mode " << mMode;
-    if (mMode == "cosmics") {
-      LOG(info) << "Setting cosmics parameters...";
-      mTracker.setParametersCosmics();
-      mRunVertexer = false;
-    }
-
-    double origD[3] = {0., 0., 0.};
-    mTracker.setBz(field->getBz(origD));
-
-    bool continuous = mGRP->isDetContinuousReadOut("ITS");
-    LOG(info) << "ITSCookedTracker RO: continuous=" << continuous;
-    mTracker.setContinuousMode(continuous);
-  } else {
-    throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
-  }
 }
 
 void CookedTrackerDPL::run(ProcessingContext& pc)
@@ -108,6 +79,22 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   // the output vector however is created directly inside the message memory thus avoiding copy by
   // snapshot
   auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
+  gsl::span<const o2::itsmft::PhysTrigger> physTriggers;
+  std::vector<o2::itsmft::PhysTrigger> fromTRD;
+  if (mUseTriggers == 2) { // use TRD triggers
+    o2::InteractionRecord ir{0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
+    auto trdTriggers = pc.inputs().get<gsl::span<o2::trd::TriggerRecord>>("phystrig");
+    for (const auto& trig : trdTriggers) {
+      if (trig.getBCData() >= ir && trig.getNumberOfTracklets()) {
+        ir = trig.getBCData();
+        fromTRD.emplace_back(o2::itsmft::PhysTrigger{ir, 0});
+      }
+    }
+    physTriggers = gsl::span<const o2::itsmft::PhysTrigger>(fromTRD.data(), fromTRD.size());
+  } else if (mUseTriggers == 1) { // use Phys triggers from ITS stream
+    physTriggers = pc.inputs().get<gsl::span<o2::itsmft::PhysTrigger>>("phystrig");
+  }
+
   auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
@@ -117,8 +104,6 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     // get the array as read-onlt span, a snapshot is send forward
     mc2rofs = pc.inputs().get<gsl::span<itsmft::MC2ROFRecord>>("MC2ROframes");
   }
-  const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
-  FastMultEst multEst;                                     // mult estimator
   TimeFrame mTimeFrame;
 
   LOG(info) << "ITSCookedTracker pulled " << compClusters.size() << " clusters, in " << rofs.size() << " RO frames";
@@ -145,23 +130,11 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   gsl::span<itsmft::ROFRecord> rofspan(rofs);
   mTimeFrame.loadROFrameData(rofspan, compClusters, pattIt_timeframe, mDict, labels.get());
 
+  const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
+  FastMultEst multEst;                                     // mult estimator
   std::vector<bool> processingMask;
-  int cutClusterMult{0}, cutVertexMult{0}, cutTotalMult{0};
+  int cutVertexMult{0}, cutRandomMult = int(rofsinput.size()) - multEst.selectROFs(rofsinput, compClusters, physTriggers, processingMask);
 
-  for (size_t iRof{0}; iRof < rofspan.size(); ++iRof) {
-    auto& rof = rofspan[iRof];
-    bool multCut = (multEstConf.cutMultClusLow <= 0 && multEstConf.cutMultClusHigh <= 0); // cut was requested
-    if (!multCut) {
-      float mult = multEst.process(rof.getROFData(compClusters));
-      multCut = mult >= multEstConf.cutMultClusLow && mult <= multEstConf.cutMultClusHigh;
-      if (!multCut) {
-        LOG(info) << "Estimated cluster mult. " << mult << " is outside of requested range "
-                  << multEstConf.cutMultClusLow << " : " << multEstConf.cutMultClusHigh << " | ROF " << rof.getBCData();
-      }
-      cutClusterMult += !multCut;
-    }
-    processingMask.push_back(multCut);
-  }
   // auto processingMask_ephemeral = processingMask;
   mTimeFrame.setMultiplicityCutMask(processingMask);
   float vertexerElapsedTime;
@@ -175,7 +148,6 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
     vtxROF.setFirstEntry(vertices.size());
     vtxROF.setNEntries(0);
-
     if (!processingMask[iRof]) {
       rof.setFirstEntry(tracks.size());
       rof.setNEntries(0);
@@ -186,16 +158,22 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     for (auto& v : mTimeFrame.getPrimaryVertices(iRof)) {
       vtxVecLoc.push_back(v);
     }
-    if (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0) { // cut was requested
+
+    if (multEstConf.isVtxMultCutRequested()) { // cut was requested
       std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> vtxVecSel;
       vtxVecSel.swap(vtxVecLoc);
+      int nv = vtxVecSel.size(), nrej = 0;
       for (const auto& vtx : vtxVecSel) {
-        if (vtx.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && vtx.getNContributors() > multEstConf.cutMultVtxHigh)) {
-          LOG(info) << "Found vertex mult. " << vtx.getNContributors() << " is outside of requested range "
-                    << multEstConf.cutMultVtxLow << " : " << multEstConf.cutMultVtxHigh << " | ROF " << rof.getBCData();
+        if (!multEstConf.isPassingVtxMultCut(vtx.getNContributors())) {
+          LOG(info) << "Found vertex mult. " << vtx.getNContributors() << " is outside of requested range " << multEstConf.cutMultVtxLow << " : " << multEstConf.cutMultVtxHigh << " | ROF " << rof.getBCData();
+          nrej++;
           continue; // skip vertex of unwanted multiplicity
         }
         vtxVecLoc.push_back(vtx);
+      }
+      if (nv && (nrej == nv)) { // all vertices were rejected
+        cutVertexMult++;
+        processingMask[iRof] = false;
       }
     }
     if (vtxVecLoc.empty()) {
@@ -215,12 +193,12 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
 
     mTracker.setVertices(vtxVecLoc);
     mTracker.process(compClusters, pattIt_tracker, mDict, tracks, clusIdx, rof);
-    if (tracks.size()) {
-      irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1);
+    if (processingMask[iRof]) {
+      irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1).info = tracks.size();
     }
   }
-
-  LOG(info) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
+  LOGP(info, " - rejected {}/{} ROFs: random/mult.sel:{}, vtx.sel:{}", cutRandomMult + cutVertexMult, rofspan.size(), cutRandomMult, cutVertexMult);
+  LOG(info) << "ITSCookedTracker pushed " << tracks.size() << " tracks and " << vertices.size() << " vertices";
 
   if (mUseMC) {
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, trackLabels);
@@ -238,25 +216,65 @@ void CookedTrackerDPL::endOfStream(EndOfStreamContext& ec)
 ///_______________________________________
 void CookedTrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
-  pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+    pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alppar");
+
+    mVertexerPtr->getGlobalConfiguration();
+    o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
+    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
+                                                   o2::math_utils::TransformType::T2G));
+    mTracker.setGeometry(geom);
+    mTracker.setConfigParams();
+    LOG(info) << "Tracking mode " << mMode;
+    if (mMode == "cosmics") {
+      LOG(info) << "Setting cosmics parameters...";
+      mTracker.setParametersCosmics();
+      mRunVertexer = false;
+    }
+    mTracker.setBz(o2::base::Propagator::Instance()->getNominalBz());
+    bool continuous = o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS);
+    LOG(info) << "ITSCookedTracker RO: continuous=" << continuous;
+    mTracker.setContinuousMode(continuous);
+  }
 }
 
 ///_______________________________________
 void CookedTrackerDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
+    return;
+  }
+  // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
+  if (matcher == ConcreteDataMatcher("ITS", "ALPIDEPARAM", 0)) {
+    LOG(info) << "Alpide param updated";
+    const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+    par.printKeyValues();
+    return;
   }
 }
 
-DataProcessorSpec getCookedTrackerSpec(bool useMC, const std::string& trMode)
+DataProcessorSpec getCookedTrackerSpec(bool useMC, int trgType, const std::string& trMode)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
   inputs.emplace_back("patterns", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
   inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
+  inputs.emplace_back("alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
+  if (trgType == 1) {
+    inputs.emplace_back("phystrig", "ITS", "PHYSTRIG", 0, Lifetime::Timeframe);
+  } else if (trgType == 2) {
+    inputs.emplace_back("phystrig", "TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
+  }
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
@@ -272,15 +290,20 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC, const std::string& trMode)
     outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
   }
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              inputs,
+                                                              true);
   return DataProcessorSpec{
     "its-cooked-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(useMC, trMode)},
-    Options{
-      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"nthreads", VariantType::Int, 1, {"Number of threads"}}}};
+    AlgorithmSpec{adaptFromTask<CookedTrackerDPL>(ggRequest, useMC, trgType, trMode)},
+    Options{{"nthreads", VariantType::Int, 1, {"Number of threads"}}}};
 }
 
 } // namespace its

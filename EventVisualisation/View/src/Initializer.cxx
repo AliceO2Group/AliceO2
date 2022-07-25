@@ -19,7 +19,6 @@
 #include "EventVisualisationView/Initializer.h"
 
 #include "EventVisualisationBase/ConfigurationManager.h"
-#include "EventVisualisationBase/GeometryManager.h"
 #include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationDataConverter/VisualisationConstants.h"
@@ -59,8 +58,11 @@ void Initializer::setup()
 
   auto const options = Options::Instance();
 
+  EventManagerFrame::RunMode runMode = EventManagerFrame::decipherRunMode(settings.GetValue("data.default", "SYNTHETIC"));
+
   if (options->json()) {
-    eventManager.setDataSource(new DataSourceOnline(options->dataFolder()));
+    runMode = EventManagerFrame::decipherRunMode(options->dataFolder(), runMode);
+    eventManager.setDataSource(new DataSourceOnline(EventManagerFrame::getSourceDirectory(runMode).Data()));
   } else {
     eventManager.setDataSource(new DataSourceOffline(options->AODConverterPath(), options->dataFolder(), options->fileName(), options->hideDplGUI()));
   }
@@ -75,6 +77,8 @@ void Initializer::setup()
 
   // Setup windows size, fullscreen and focus
   TEveBrowser* browser = gEve->GetBrowser();
+  std::string title = std::string("o2-eve v:") + o2_eve_version;
+  browser->SetWindowName(title.c_str());
   browser->GetTabRight()->SetTab(1);
   browser->MoveResize(0, 0, gClient->GetDisplayWidth(), gClient->GetDisplayHeight() - 32);
 
@@ -94,7 +98,6 @@ void Initializer::setup()
   // Temporary:
   // Later this will be triggered by button, and finally moved to configuration.
   gEve->AddEvent(&EventManager::getInstance());
-  // eventManager.getDataSource()->refresh();
 
   if (Options::Instance()->online()) {
     frame->StartTimer();
@@ -153,7 +156,7 @@ void Initializer::setupCamera()
   double zoom[MultiView::NumberOfViews];
   zoom[MultiView::View3d] = settings.GetValue("camera.3D.zoom", 1.0);
   zoom[MultiView::ViewRphi] = settings.GetValue("camera.R-Phi.zoom", 1.0);
-  zoom[MultiView::ViewZrho] = settings.GetValue("camera.Rho-Z.zoom", 1.0);
+  zoom[MultiView::ViewZY] = settings.GetValue("camera.Z-Y.zoom", 1.0);
 
   // get necessary elements of the multiview and set camera position
   auto multiView = MultiView::getInstance();

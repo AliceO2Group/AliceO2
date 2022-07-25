@@ -20,6 +20,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/CallbacksPolicy.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "MCHWorkflow/TrackReaderSpec.h"
@@ -28,6 +29,12 @@
 #include "TrackWriterSpec.h"
 
 using namespace o2::framework;
+
+// ------------------------------------------------------------------
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
 
 void customize(std::vector<CompletionPolicy>& policies)
 {
@@ -47,6 +54,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
                                ConfigParamSpec::HelpString{"disable MC propagation even if available"});
   workflowOptions.emplace_back("configKeyValues", VariantType::String, "",
                                ConfigParamSpec::HelpString{"Semicolon separated key=value strings"});
+  o2::raw::HBFUtilsInitializer::addConfigOption(workflowOptions);
 }
 
 #include "Framework/runDataProcessing.h"
@@ -66,13 +74,13 @@ WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
     specs.emplace_back(o2::mid::getTrackReaderSpec(useMC, "mid-track-reader"));
   }
 
-  specs.emplace_back(o2::muon::getTrackMatcherSpec("muon-track-matcher"));
+  specs.emplace_back(o2::muon::getTrackMatcherSpec(useMC, "muon-track-matcher"));
 
   if (!disableRootOutput) {
-    specs.emplace_back(o2::muon::getTrackWriterSpec("muon-track-writer", "muontracks.root"));
+    specs.emplace_back(o2::muon::getTrackWriterSpec(useMC, "muon-track-writer", "muontracks.root"));
   }
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
   // write the configuration used for the workflow

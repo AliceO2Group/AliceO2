@@ -97,7 +97,7 @@ int main(int argc, const char** argv)
   TTreeReaderValue<std::vector<o2::cpv::TriggerRecord>> triggerbranch(*treereader, "CPVDigitTrigRecords");
 
   o2::cpv::RawWriter::FileFor_t granularity = o2::cpv::RawWriter::FileFor_t::kFullDet;
-  if ((filefor == "all") || (filefor == "cru")) { //CPV has only 1 cru so "all" is identical to "cru"
+  if ((filefor == "all") || (filefor == "cru")) { // CPV has only 1 cru so "all" is identical to "cru"
     granularity = o2::cpv::RawWriter::FileFor_t::kFullDet;
   } else if (filefor == "link") {
     granularity = o2::cpv::RawWriter::FileFor_t::kLink;
@@ -114,12 +114,11 @@ int main(int argc, const char** argv)
   rawwriter.getWriter().setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::CPV)); // must be set explicitly
 
   // Loop over all entries in the tree, where each tree entry corresponds to a time frame
-  for (auto en : *treereader) {
-    LOG(debug) << "RawCreator::main() : I call rawwriter.digitsToRaw(). "
-               << "Sending following tree: ";
-    for (int i = 0; i < (*triggerbranch).size(); i++) {
-      LOG(debug) << (*triggerbranch)[i];
-    }
+  // First version of for loop causes fault Optimizer???
+  //  for (auto evnt = treereader->begin(); evnt != treereader->end(); ++evnt) {
+  // for (auto evnt : *treereader) {
+  while (treereader->Next()) {
+    // (void*)evnt;
     rawwriter.digitsToRaw(*digitbranch, *triggerbranch);
   }
   rawwriter.getWriter().writeConfFile("CPV", "RAWDATA", o2::utils::Str::concat_string(outputdir, "/CPVraw.cfg"));

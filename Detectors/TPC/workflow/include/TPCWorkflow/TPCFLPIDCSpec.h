@@ -96,8 +96,8 @@ class TPCFLPIDCDevice : public o2::framework::Task
       }
     } else if (!mLoadIDC0CCDB) {
       LOGP(info, "setting standard IDC0 values");
-      mIDCZero.mIDCZero[Side::A] = std::vector<float>(Mapper::getPadsInSector() * SECTORSPERSIDE, 1);
-      mIDCZero.mIDCZero[Side::C] = std::vector<float>(Mapper::getPadsInSector() * SECTORSPERSIDE, 1);
+      mIDCZero.mIDCZero = std::vector<float>(Mapper::getPadsInSector() * SECTORSPERSIDE, 1);
+      // mIDCZero.mIDCZero[Side::C] = std::vector<float>(Mapper::getPadsInSector() * SECTORSPERSIDE, 1);
     }
   }
 
@@ -273,12 +273,14 @@ class TPCFLPIDCDevice : public o2::framework::Task
 
     // TODO use this and fix #include <boost/container/pmr/polymorphic_allocator.hpp> in ROOT CINT
     // output.adoptContainer(Output{gDataOriginTPC, getDataDescriptionIDCGroup(), subSpec, Lifetime::Timeframe}, std::move(mIDCs[cru]).getIDCGroupData());
+    LOGP(info, "Sending IDCs of size {}", mIDCStruct.getData(cru).size());
     output.snapshot(Output{gDataOriginTPC, getDataDescriptionIDCGroup(), subSpec, Lifetime::Timeframe}, mIDCStruct.getData(cru));
 
     mBuffer1DIDCs[cru].emplace_back(std::move(idcOne));
     mBuffer1DIDCs[cru].pop_front(); // removing oldest 1D-IDCs
 
     fill1DIDCs(cru);
+    LOGP(info, "Sending 1D-IDCs to EPNs of size {} and weights of size {}", mOneDIDCs.first.size(), mOneDIDCs.second.size());
     output.snapshot(Output{gDataOriginTPC, getDataDescription1DIDCEPN(), subSpec, Lifetime::Timeframe}, mOneDIDCs.first);
     output.snapshot(Output{gDataOriginTPC, getDataDescription1DIDCEPNWeights(), subSpec, Lifetime::Timeframe}, mOneDIDCs.second);
   }
@@ -318,14 +320,15 @@ DataProcessorSpec getTPCFLPIDCSpec(const int ilane, const std::vector<uint32_t>&
     outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPIDCDevice<Type>::getDataDescription1DIDCEPNWeights(), subSpec});
   }
 
+  const Side side = CRU(crus.front()).side();
   if (loadStatusMap) {
     LOGP(info, "Using pad status map from CCDB");
-    inputSpecs.emplace_back("tpcpadmap", gDataOriginTPC, "PADSTATUSMAP", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalIDCPadStatusMap)));
+    inputSpecs.emplace_back("tpcpadmap", gDataOriginTPC, "PADSTATUSMAP", 0, Lifetime::Condition, ccdbParamSpec((side == Side::A) ? CDBTypeMap.at(CDBType::CalIDCPadStatusMapA) : CDBTypeMap.at(CDBType::CalIDCPadStatusMapC)));
   }
 
   const bool loadIDC0CCDB = !disableIDC0CCDB && idc0File.empty();
   if (loadIDC0CCDB) {
-    inputSpecs.emplace_back("idczero", gDataOriginTPC, "IDC0", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalIDC0)));
+    inputSpecs.emplace_back("idczero", gDataOriginTPC, "IDC0", 0, Lifetime::Condition, ccdbParamSpec((side == Side::A) ? CDBTypeMap.at(CDBType::CalIDC0A) : CDBTypeMap.at(CDBType::CalIDC0C)));
   }
 
   const auto id = fmt::format("tpc-flp-idc-{:02}", ilane);

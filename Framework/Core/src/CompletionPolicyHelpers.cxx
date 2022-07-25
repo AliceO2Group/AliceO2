@@ -97,6 +97,9 @@ CompletionPolicy CompletionPolicyHelpers::defineByName(std::string const& name, 
     case CompletionPolicy::CompletionOp::ConsumeAndRescan:
       return CompletionPolicy{"always-rescan", matcher, callback};
       break;
+    case CompletionPolicy::CompletionOp::Retry:
+      return CompletionPolicy{"retry", matcher, callback};
+      break;
   }
   O2_BUILTIN_UNREACHABLE();
 }
@@ -123,7 +126,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAllOrdered(const char* name
         return CompletionPolicy::CompletionOp::Wait;
       }
       if (framework::DataRefUtils::isValid(input) && framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input)->startTime != *nextTimeSlice) {
-        return CompletionPolicy::CompletionOp::Wait;
+        return CompletionPolicy::CompletionOp::Retry;
       }
     }
     (*nextTimeSlice)++;
@@ -182,7 +185,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* nam
       } else if (withPayload == 0) {
         return CompletionPolicy::CompletionOp::Wait;
       }
-      return CompletionPolicy::CompletionOp::ConsumeExisting;
+      return CompletionPolicy::CompletionOp::ConsumeAndRescan;
     }
 
   };
@@ -199,6 +202,14 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, Compl
     return CompletionPolicy::CompletionOp::Wait;
   };
   return CompletionPolicy{name, matcher, callback};
+}
+
+CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(std::string matchName)
+{
+  auto matcher = [matchName](DeviceSpec const& device) -> bool {
+    return std::regex_match(device.name.begin(), device.name.end(), std::regex(matchName));
+  };
+  return consumeWhenAny(matcher);
 }
 
 CompletionPolicy CompletionPolicyHelpers::processWhenAny(const char* name, CompletionPolicy::Matcher matcher)

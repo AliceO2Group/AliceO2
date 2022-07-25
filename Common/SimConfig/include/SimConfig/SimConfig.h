@@ -26,6 +26,12 @@ enum SimFieldMode {
   kCCDB = 2
 };
 
+enum TimeStampMode {
+  kNow = 0,
+  kManual = 1,
+  kRun = 2
+};
+
 // configuration struct (which can be passed around)
 struct SimConfigData {
   std::vector<std::string> mActiveModules;    // list of active modules
@@ -55,6 +61,8 @@ struct SimConfigData {
   bool mFilterNoHitEvents = false;            // whether to filter out events not leaving any response
   std::string mCCDBUrl;                       // the URL where to find CCDB
   uint64_t mTimestamp;                        // timestamp in ms to anchor transport simulation to
+  TimeStampMode mTimestampMode = kNow;        // telling of timestamp was given as option or defaulted to now
+  int mRunNumber = -1;                        // ALICE run number (if set != -1); the timestamp should be compatible
   int mField;                                 // L3 field setting in kGauss: +-2,+-5 and 0
   SimFieldMode mFieldMode = kDefault;         // uniform magnetic field
   bool mAsService = false;                    // if simulation should be run as service/deamon (does not exit after run)
@@ -103,6 +111,15 @@ class SimConfig
   // get selected active detectors
   std::vector<std::string> const& getActiveModules() const { return mConfigData.mActiveModules; }
   std::vector<std::string> const& getReadoutDetectors() const { return mConfigData.mReadoutDetectors; }
+
+  // static helper functions to determine list of active / readout modules
+  // can also be used from outside
+  static void determineActiveModules(std::vector<std::string> const& input, std::vector<std::string> const& skipped, std::vector<std::string>& active);
+  static void determineReadoutDetectors(std::vector<std::string> const& active, std::vector<std::string> const& enabledRO, std::vector<std::string> const& skippedRO, std::vector<std::string>& finalRO);
+
+  // helper to parse field option
+  static bool parseFieldString(std::string const& fieldstring, int& fieldvalue, o2::conf::SimFieldMode& mode);
+
   // get selected generator (to be used to select a genconfig)
   std::string getGenerator() const { return mConfigData.mGenerator; }
   std::string getTrigger() const { return mConfigData.mTrigger; }
@@ -125,6 +142,7 @@ class SimConfig
   bool isFilterOutNoHitEvents() const { return mConfigData.mFilterNoHitEvents; }
   bool asService() const { return mConfigData.mAsService; }
   uint64_t getTimestamp() const { return mConfigData.mTimestamp; }
+  int getRunNumber() const { return mConfigData.mRunNumber; }
   bool isNoGeant() const { return mConfigData.mNoGeant; }
 
  private:

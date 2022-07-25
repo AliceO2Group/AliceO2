@@ -16,11 +16,20 @@ Reconstruction is made up of different parts. There are things that run on the f
 
 - Generate raw data from montecarlo:
 ```
-o2-sim -n 200 -g pythia8 --skipModules ZDC
-o2-sim-digitizer-workflow -b
-o2-trd-trap2raw -d trddigits.root -t trdtracklets.root -l halfcru -o ./ -x -r 6 -e
+o2-sim -n 200 -g pythia8pp --skipModules ZDC
+o2-sim-digitizer-workflow -b --onlyDet TRD
+o2-trd-trap2raw -o raw/TRD --file-per cru |& tee trdraw.log
 ```
+
 - Parse raw data :
+
+In order to simply read the generated raw data and extract the digits and tracklets you can do the following. Remember to first rename the original digits and tracklets files in order not to overwrite them. This way you can compare afterwards that you in fact read back the same data that you have put in.
+
+```
+mv trddigits.root trddigitsOrig.root
+mv trdtracklets.root trdtrackletsOrig.root
+o2-raw-file-reader-workflow --detect-tf0 --delay 100  --max-tf 0 --input-conf raw/TRD/TRDraw.cfg | o2-trd-datareader  -b | o2-trd-digittracklet-writer --run |& tee trdrec.log
+```
 
     You will need the datadistribution installed as well which has an O2 dependency.
 
@@ -54,4 +63,3 @@ o2-dpl-raw-proxy --session default -b --dataspec "A:TRD/RAWDATA" --channel-confi
 ```
 StfSender --id stfs --session default --transport shmem --stand-alone --input-channel-name=from-dpl --channel-config "name=from-dpl,type=pull,method=connect,address=ipc:///tmp/dpl-to-stfs,rateLogging=1,transport=shmem"
  ```
-

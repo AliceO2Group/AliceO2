@@ -27,7 +27,7 @@ namespace phos
 {
 
 constexpr int kOffset = 1792;                                             // offset due to missing half of module 1: 56*32
-constexpr int kNmaxCell = 14337;                                          // 56*64*4 + 1 - kOffset
+constexpr int kNmaxCell = 14336;                                          // maximal readout channel address 56*64*4
                                                                           //  -1500<t<-800 ns, 1.  ns binning =>  700 bin
                                                                           //   -800<t<-200 ns, 0.6 ns binning => 1000 bin
                                                                           //   -200<t< 200 ns, 0.2 ns binning => 2000 bin

@@ -58,7 +58,7 @@ MEM_CLASS_PRE23()
 GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThreads*/, int /*iBlock*/, int /*iThread*/, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & s, GPUTPCThreadMemory& GPUrestrict() r, GPUconstantref() MEM_LG2(GPUTPCTracker) & GPUrestrict() tracker, MEM_LG3(GPUTPCTrackParam) & GPUrestrict() tParam, calink* rowHits)
 {
   // reconstruction of tracklets, tracklet store step
-  if (r.mNHits == 0 || (r.mNHits < GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tParam.QPt() * tracker.Param().par.qptB5Scaler) || !CheckCov(tParam) || CAMath::Abs(tParam.GetQPt() * tracker.Param().par.qptB5Scaler) > tracker.Param().rec.maxTrackQPtB5)) {
+  if (r.mNHits == 0 || (r.mNHits < GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(tParam.QPt() * tracker.Param().qptB5Scaler) || !CheckCov(tParam) || CAMath::Abs(tParam.GetQPt() * tracker.Param().qptB5Scaler) > tracker.Param().rec.maxTrackQPtB5)) {
     return;
   }
 
@@ -66,19 +66,17 @@ GPUd() void GPUTPCTrackletConstructor::StoreTracklet(int /*nBlocks*/, int /*nThr
           tParam.Cov()[0], tParam.Cov()[1], tParam.Cov()[2], tParam.Cov()[3], tParam.Cov()[4], tParam.Cov()[5], tParam.Cov()[6], tParam.Cov()[7], tParam.Cov()[8], tParam.Cov()[9],
           tParam.Cov()[10], tParam.Cov()[11], tParam.Cov()[12], tParam.Cov()[13], tParam.Cov()[14]);*/
 
-  unsigned int itrout = CAMath::AtomicAdd(tracker.NTracklets(), 1u);
   const unsigned int nHits = r.mLastRow + 1 - r.mFirstRow;
   unsigned int hitout = CAMath::AtomicAdd(tracker.NRowHits(), nHits);
-  if (itrout >= tracker.NMaxTracklets() || hitout + nHits > tracker.NMaxRowHits()) {
-    if (itrout >= tracker.NMaxTracklets()) {
-      tracker.raiseError(GPUErrors::ERROR_TRACKLET_OVERFLOW, tracker.ISlice(), itrout, tracker.NMaxTracklets());
-    } else {
-      tracker.raiseError(GPUErrors::ERROR_TRACKLET_HIT_OVERFLOW, tracker.ISlice(), hitout + nHits, tracker.NMaxRowHits());
-    }
-    CAMath::AtomicExch(tracker.NTracklets(), 0u);
-    if (hitout + nHits > tracker.NMaxRowHits()) {
-      CAMath::AtomicExch(tracker.NRowHits(), tracker.NMaxRowHits());
-    }
+  if (hitout + nHits > tracker.NMaxRowHits()) {
+    tracker.raiseError(GPUErrors::ERROR_TRACKLET_HIT_OVERFLOW, tracker.ISlice(), hitout + nHits, tracker.NMaxRowHits());
+    CAMath::AtomicExch(tracker.NRowHits(), tracker.NMaxRowHits());
+    return;
+  }
+  unsigned int itrout = CAMath::AtomicAdd(tracker.NTracklets(), 1u);
+  if (itrout >= tracker.NMaxTracklets()) {
+    tracker.raiseError(GPUErrors::ERROR_TRACKLET_OVERFLOW, tracker.ISlice(), itrout, tracker.NMaxTracklets());
+    CAMath::AtomicExch(tracker.NTracklets(), tracker.NMaxTracklets());
     return;
   }
 
@@ -187,7 +185,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
         }
         CADEBUG(
           printf("%14s: FIT TRACK ROW %3d X %8.3f -", "", iRow, tParam.X()); for (int i = 0; i < 5; i++) { printf(" %8.3f", tParam.Par()[i]); } printf(" -"); for (int i = 0; i < 15; i++) { printf(" %8.3f", tParam.Cov()[i]); } printf("\n"));
-        if (!tParam.TransportToX(x, sinPhi, cosPhi, tracker.Param().par.constBz, GPUCA_MAX_SIN_PHI)) {
+        if (!tParam.TransportToX(x, sinPhi, cosPhi, tracker.Param().constBz, GPUCA_MAX_SIN_PHI)) {
           rowHit = CALINK_INVAL;
           break;
         }
@@ -258,7 +256,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
       float err2Y, err2Z;
       CADEBUG(
         printf("%14s: SEA TRACK ROW %3d X %8.3f -", "", iRow, tParam.X()); for (int i = 0; i < 5; i++) { printf(" %8.3f", tParam.Par()[i]); } printf(" -"); for (int i = 0; i < 15; i++) { printf(" %8.3f", tParam.Cov()[i]); } printf("\n"));
-      if (!tParam.TransportToX(x, tParam.SinPhi(), tParam.GetCosPhi(), tracker.Param().par.constBz, GPUCA_MAX_SIN_PHI_LOW)) {
+      if (!tParam.TransportToX(x, tParam.SinPhi(), tParam.GetCosPhi(), tracker.Param().constBz, GPUCA_MAX_SIN_PHI_LOW)) {
         r.mGo = 0;
         rowHit = CALINK_INVAL;
         break;
@@ -392,7 +390,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::DoTracklet(GPUconstantref() MEM_GLO
       StoreTracklet(0, 0, 0, 0, s, r, tracker, tParam, rowHits);
     } else {
       r.mNMissed = 0;
-      if ((r.mGo = (tParam.TransportToX(tracker.Row(r.mEndRow).X(), tracker.Param().par.constBz, GPUCA_MAX_SIN_PHI) && tParam.Filter(r.mLastY, r.mLastZ, tParam.Err2Y() * 0.5f, tParam.Err2Z() * 0.5f, GPUCA_MAX_SIN_PHI_LOW, true)))) {
+      if ((r.mGo = (tParam.TransportToX(tracker.Row(r.mEndRow).X(), tracker.Param().constBz, GPUCA_MAX_SIN_PHI) && tParam.Filter(r.mLastY, r.mLastZ, tParam.Err2Y() * 0.5f, tParam.Err2Z() * 0.5f, GPUCA_MAX_SIN_PHI_LOW, true)))) {
         CADEBUG(
           printf("%14s: SEA BACK  ROW %3d X %8.3f -", "", iRow, tParam.X()); for (int i = 0; i < 5; i++) { printf(" %8.3f", tParam.Par()[i]); } printf(" -"); for (int i = 0; i < 15; i++) { printf(" %8.3f", tParam.Cov()[i]); } printf("\n"));
         float err2Y, err2Z;

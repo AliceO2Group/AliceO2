@@ -17,11 +17,11 @@
 #include "Framework/Task.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/CCDBParamSpec.h"
 #include "CommonUtils/StringUtils.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/DigitizationContext.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -34,6 +34,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "TGeoGlobalMagField.h"
 #include "Field/MagneticField.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
@@ -47,8 +48,8 @@ namespace globaltracking
 class GlobalFwdMatchingDPL : public Task
 {
  public:
-  GlobalFwdMatchingDPL(std::shared_ptr<DataRequest> dr, bool useMC, bool MatchRootOutput)
-    : mDataRequest(dr), mUseMC(useMC), mMatchRootOutput(MatchRootOutput) {}
+  GlobalFwdMatchingDPL(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool MatchRootOutput)
+    : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC), mMatchRootOutput(MatchRootOutput) {}
   ~GlobalFwdMatchingDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -56,7 +57,9 @@ class GlobalFwdMatchingDPL : public Task
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(ProcessingContext& pc);
   std::shared_ptr<DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mMatchRootOutput = false;
   o2::globaltracking::MatchGlobalFwd mMatching;             // Forward matching engine
   const o2::itsmft::TopologyDictionary* mMFTDict = nullptr; // cluster patterns dictionary
@@ -67,47 +70,21 @@ class GlobalFwdMatchingDPL : public Task
 
 void GlobalFwdMatchingDPL::init(InitContext& ic)
 {
-  //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry();
-  const auto grp = o2::parameters::GRPObject::loadFrom();
-  o2::base::Propagator::initFieldFromGRP(grp);
-  auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-  double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
-  auto Bz = field->getBz(centerMFT);
-  LOG(info) << "Setting Global forward matching Bz = " << Bz;
-  mMatching.setBz(Bz);
-
-  mMatching.setMFTTriggered(!grp->isDetContinuousReadOut(o2::detectors::DetID::MFT));
-  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
-  if (mMatching.isMFTTriggered()) {
-    mMatching.setMFTROFrameLengthMUS(alpParams.roFrameLengthTrig / 1.e3); // MFT ROFrame duration in \mus
-  } else {
-    mMatching.setMFTROFrameLengthInBC(alpParams.roFrameLengthInBC); // MFT ROFrame duration in \mus
-  }
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mMatching.setMCTruthOn(mUseMC);
 
-  // set bunch filling. Eventually, this should come from CCDB
-  const auto* digctx = o2::steer::DigitizationContext::loadFromFile();
-  const auto& bcfill = digctx->getBunchFilling();
-  mMatching.setBunchFilling(bcfill);
-
   const auto& matchingParam = GlobalFwdMatchingParam::Instance();
-
   if (matchingParam.isMatchUpstream() && mMatchRootOutput) {
     LOG(fatal) << "Invalid MFTMCH matching configuration: matchUpstream and enable-match-output";
   }
-
-  mMatching.init();
 }
 
 void GlobalFwdMatchingDPL::run(ProcessingContext& pc)
 {
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
-  LOG(info) << " startOrbit: " << dh->firstTForbit;
   mTimer.Start(false);
-
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
+  updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
 
   mMatching.run(recoData);
 
@@ -138,10 +115,48 @@ void GlobalFwdMatchingDPL::endOfStream(EndOfStreamContext& ec)
 
 void GlobalFwdMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     mMatching.setMFTDictionary((const o2::itsmft::TopologyDictionary*)obj);
+    return;
   }
+  if (matcher == ConcreteDataMatcher("MFT", "ALPIDEPARAM", 0)) {
+    LOG(info) << "MFT Alpide param updated";
+    return;
+  }
+}
+
+void GlobalFwdMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
+{
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+
+    auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+    double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
+    auto Bz = field->getBz(centerMFT);
+    LOG(info) << "Setting Global forward matching Bz = " << Bz;
+    mMatching.setBz(Bz);
+    mMatching.setMFTTriggered(!o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::MFT));
+    if (o2::base::GRPGeomHelper::instance().getGRPECS()->getRunType() != o2::parameters::GRPECSObject::RunType::COSMICS) {
+      mMatching.setBunchFilling(o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling());
+    }
+
+    // apply needed settings
+    const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
+    if (mMatching.isMFTTriggered()) {
+      mMatching.setMFTROFrameLengthMUS(alpParams.roFrameLengthTrig / 1.e3); // MFT ROFrame duration in \mus
+    } else {
+      mMatching.setMFTROFrameLengthInBC(alpParams.roFrameLengthInBC); // MFT ROFrame duration in \mus
+    }
+
+    mMatching.init();
+  }
+  // we may have other params which need to be queried regularly
 }
 
 DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC, bool matchRootOutput)
@@ -162,8 +177,16 @@ DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC, bool matchRootOutput)
   }
 
   if (matchingParam.useMIDMatch) {
-    dataRequest->requestMCHMIDMatches(useMC); // Request MCHMID Matches
+    dataRequest->requestMCHMIDMatches(false); // Request MCHMID Matches. Labels are not used
   }
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              true,                              // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              false,                             // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              dataRequest->inputs,
+                                                              true); // query only once all objects except mag.field
 
   if (matchingParam.saveMode == kSaveTrainingData) {
     outputs.emplace_back("GLO", "GLFWDMFT", 0, Lifetime::Timeframe);
@@ -185,7 +208,7 @@ DataProcessorSpec getGlobalFwdMatchingSpec(bool useMC, bool matchRootOutput)
     "globalfwd-track-matcher",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<GlobalFwdMatchingDPL>(dataRequest, useMC, matchRootOutput)},
+    AlgorithmSpec{adaptFromTask<GlobalFwdMatchingDPL>(dataRequest, ggRequest, useMC, matchRootOutput)},
     Options{}};
 }
 

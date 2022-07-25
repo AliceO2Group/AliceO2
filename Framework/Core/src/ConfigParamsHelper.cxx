@@ -41,6 +41,12 @@ void ConfigParamsHelper::populateBoostProgramOptions(
       case VariantType::Int:
         addConfigSpecOption<VariantType::Int>(spec, options);
         break;
+      case VariantType::Int8:
+        addConfigSpecOption<VariantType::Int8>(spec, options);
+        break;
+      case VariantType::Int16:
+        addConfigSpecOption<VariantType::Int16>(spec, options);
+        break;
       case VariantType::Int64:
         addConfigSpecOption<VariantType::Int64>(spec, options);
         break;

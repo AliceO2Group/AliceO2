@@ -62,6 +62,10 @@ int GPUO2InterfaceDisplay::show(const GPUTrackingInOutPointers* ptrs)
   do {
     usleep(10000);
   } while (mFrontend->getDisplayControl() == 0);
+  if (mFrontend->getDisplayControl() == 2) {
+    return 1;
+  }
+  mFrontend->setDisplayControl(0);
   mDisplay->WaitForNextEvent();
   return 0;
 }
@@ -70,4 +74,19 @@ int GPUO2InterfaceDisplay::endDisplay()
 {
   mFrontend->DisplayExit();
   return 0;
+}
+
+void GPUO2InterfaceDisplay::UpdateCalib(const GPUCalibObjectsConst* calib)
+{
+  mDisplay->UpdateCalib(calib);
+}
+
+void GPUO2InterfaceDisplay::UpdateGRP(const GPUSettingsGRP* grp)
+{
+  mConfig->configGRP = *grp;
+  mParam->UpdateSettings(&mConfig->configGRP);
+  mDisplay->UpdateParam(mParam.get());
+  if (mConfig->configProcessing.runMC) {
+    mQA->UpdateParam(mParam.get());
+  }
 }

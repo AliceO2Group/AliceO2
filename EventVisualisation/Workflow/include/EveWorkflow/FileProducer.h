@@ -26,15 +26,13 @@ namespace event_visualisation
 class FileProducer
 {
  private:
-  static std::deque<std::string> load(const std::string& path);
-
   size_t mFilesInFolder;
   std::string mPath;
   std::string mName;
 
  public:
-  explicit FileProducer(const std::string& path, int filesInFolder = 10,
-                        const std::string& name = "tracks{}.json");
+  explicit FileProducer(const std::string& path, int filesInFolder = -1,
+                        const std::string& name = "tracks_{timestamp}_{hostname}_{pid}.json");
 
   [[nodiscard]] std::string newFileName() const;
 };
@@ -42,4 +40,4 @@ class FileProducer
 } // namespace event_visualisation
 } // namespace o2
 
-#endif //ALICE_O2_EVENTVISUALISATION_WORKFLOW_FILEPRODUCER_H
+#endif // ALICE_O2_EVENTVISUALISATION_WORKFLOW_FILEPRODUCER_H

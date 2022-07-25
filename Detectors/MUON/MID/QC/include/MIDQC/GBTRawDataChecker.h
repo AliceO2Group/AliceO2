@@ -33,7 +33,7 @@ namespace mid
 class GBTRawDataChecker
 {
  public:
-  void init(uint16_t feeId, uint8_t mask);
+  void init(uint16_t gbtUniqueId, uint8_t mask);
   bool process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords, gsl::span<const ROFRecord> pageRecords);
   /// Gets the number of processed events
   unsigned int getNEventsProcessed() const { return mStatistics[0]; }
@@ -43,6 +43,8 @@ class GBTRawDataChecker
   unsigned int getNBusyRaised() const { return mStatistics[2]; }
   /// Gets the
   std::string getDebugMessage() const { return mDebugMsg; }
+  /// Returns the GBTUniqueId
+  uint16_t getGBTUniqueId() const { return mGBTUniqueId; }
   void clear(bool all = false);
 
   /// Sets the delay in the electronics
@@ -96,7 +98,7 @@ class GBTRawDataChecker
   std::array<unsigned long int, 3> mStatistics{}; /// Processed events statistics
   std::unordered_map<uint8_t, Mask> mMasks;       /// Masks
   uint8_t mCrateMask{0xFF};                       /// Crate mask
-  uint16_t mFeeId{0};                             /// FeeId
+  uint16_t mGBTUniqueId{0};                       /// GBTUniqueId
   uint16_t mResetVal{0};                          /// Reset value
   ElectronicsDelay mElectronicsDelay{};           /// Delays in the electronics
   uint32_t mSyncTrigger{raw::sORB};               /// Trigger for synchronization

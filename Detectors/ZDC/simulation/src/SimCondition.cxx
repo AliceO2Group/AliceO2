@@ -15,8 +15,8 @@ using namespace o2::zdc;
 
 void ChannelSimCondition::print() const
 {
-  printf("Shape min at bin %d, Pedestal:{%+e,%+e,%+e}, Gain:%.4f, TimeJitter: %.4f TimePos: %.2f\n",
-         ampMinID, pedestal, pedestalNoise, pedestalFluct, gain, timeJitter, timePosition);
+  printf("Shape min at bin %d, Pedestal:{%+e,%+e,%+e}, Gain:%.4f, GainInSum:%.4f, TimeJitter: %.4f TimePos: %.2f\n",
+         ampMinID, pedestal, pedestalNoise, pedestalFluct, gain, gainInSum, timeJitter, timePosition);
 }
 
 void SimCondition::print() const

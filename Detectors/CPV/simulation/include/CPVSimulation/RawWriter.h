@@ -64,7 +64,7 @@ struct padCharge {
   padCharge(short a, short b) : charge(a),
                                 pad(b)
   {
-  } //for std::vector::emplace_back functionality
+  } // for std::vector::emplace_back functionality
 };
 
 class RawWriter
@@ -100,7 +100,7 @@ class RawWriter
   CalibParams* mCalibParams = nullptr;                            ///< CPV calibration
   Pedestals* mPedestals = nullptr;                                ///< CPV pedestals
   BadChannelMap* mBadMap = nullptr;                               ///< CPV bad channel map
-
+  int64_t mLM_L0_delay = 15;                                      ///< LM-L0 delay
   std::vector<char> mPayload[kNGBTLinks];                         ///< Preformatted payload for every link to be written
   gsl::span<o2::cpv::Digit> mDigits;                              ///< Digits input vector - must be in digitized format
   std::unique_ptr<o2::raw::RawFileWriter> mRawWriter;             ///< Raw writer

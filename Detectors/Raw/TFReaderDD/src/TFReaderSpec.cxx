@@ -20,11 +20,14 @@
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
+#include "Framework/DataProcessingHelpers.h"
+#include "Framework/RateLimiter.h"
 #include "Headers/DataHeaderHelpers.h"
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include <TStopwatch.h>
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
+#include <fairmq/Parts.h>
 #include "TFReaderSpec.h"
 #include "TFReaderDD/SubTimeFrameFileReader.h"
 #include "TFReaderDD/SubTimeFrameFile.h"
@@ -54,7 +57,7 @@ class TFReaderSpec : public o2f::Task
     int count = -1;
   };
 
-  using TFMap = std::unordered_map<std::string, std::unique_ptr<FairMQParts>>; // map of channel / TFparts
+  using TFMap = std::unordered_map<std::string, std::unique_ptr<fair::mq::Parts>>; // map of channel / TFparts
 
   explicit TFReaderSpec(const TFReaderInp& rinp);
   void init(o2f::InitContext& ic) final;
@@ -66,7 +69,7 @@ class TFReaderSpec : public o2f::Task
   void TFBuilder();
 
  private:
-  FairMQDevice* mDevice = nullptr;
+  fair::mq::Device* mDevice = nullptr;
   std::vector<o2f::OutputRoute> mOutputRoutes;
   std::unique_ptr<o2::utils::FileFetcher> mFileFetcher;
   o2::utils::FIFO<std::unique_ptr<TFMap>> mTFQueue{}; // queued TFs
@@ -99,10 +102,6 @@ void TFReaderSpec::init(o2f::InitContext& ic)
 //___________________________________________________________
 void TFReaderSpec::run(o2f::ProcessingContext& ctx)
 {
-  if (!mTFCounter) { // RS FIXME: this is a temporary hack to avoid late-starting devices to lose the input
-    LOG(warning) << "This is a hack, sleeping 2 s at startup";
-    usleep(2000000);
-  }
   if (!mDevice) {
     mDevice = ctx.services().get<o2f::RawDeviceService>().device();
     mOutputRoutes = ctx.services().get<o2f::RawDeviceService>().spec().outputs; // copy!!!
@@ -117,12 +116,20 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
   if (device != mDevice) {
     throw std::runtime_error(fmt::format("FMQDevice has changed, old={} new={}", fmt::ptr(mDevice), fmt::ptr(device)));
   }
-
-  auto acknowledgeOutput = [this](FairMQParts& parts) {
+  static bool initOnceDone = false;
+  if (!initOnceDone) {
+    mInput.tfRateLimit = std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit"));
+  }
+  auto acknowledgeOutput = [this](fair::mq::Parts& parts) {
     int np = parts.Size();
     for (int ip = 0; ip < np; ip += 2) {
       const auto& msgh = parts[ip];
       const auto* hd = o2h::get<o2h::DataHeader*>(msgh.GetData());
+      const auto* dph = o2h::get<o2f::DataProcessingHeader*>(msgh.GetData());
+      if (dph->startTime != this->mTFCounter) {
+        LOGP(fatal, "Local tf counter {} != TF timeslice {} for {}", this->mTFCounter, dph->startTime,
+             o2::framework::DataSpecUtils::describe(o2::framework::OutputSpec{hd->dataOrigin, hd->dataDescription, hd->subSpecification}));
+      }
       if (hd->splitPayloadIndex == 0) { // check the 1st one only
         auto& entry = this->mSeenOutputMap[{hd->dataDescription.str, hd->dataOrigin.str}];
         if (entry.count != this->mTFCounter) {
@@ -155,11 +162,11 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
     return std::string{};
   };
   auto setTimingInfo = [&ctx](TFMap& msgMap) {
-    auto& timingInfo = ctx.services().get<TimingInfo>();
+    auto& timingInfo = ctx.services().get<o2::framework::TimingInfo>();
     const auto* dataptr = (*msgMap.begin()->second.get())[0].GetData();
     const auto* hd0 = o2h::get<o2h::DataHeader*>(dataptr);
     const auto* dph = o2h::get<o2f::DataProcessingHeader*>(dataptr);
-    timingInfo.firstTFOrbit = hd0->firstTForbit;
+    timingInfo.firstTForbit = hd0->firstTForbit;
     timingInfo.creation = dph->creation;
     timingInfo.tfCounter = hd0->tfCounter;
     timingInfo.runNumber = hd0->runNumber;
@@ -190,9 +197,9 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       auto hdMessage = fmqFactory->CreateMessage(headerStack.size(), fair::mq::Alignment{64});
       auto plMessage = fmqFactory->CreateMessage(0, fair::mq::Alignment{64});
       memcpy(hdMessage->GetData(), headerStack.data(), headerStack.size());
-      FairMQParts* parts = msgMap[fmqChannel].get();
+      fair::mq::Parts* parts = msgMap[fmqChannel].get();
       if (!parts) {
-        msgMap[fmqChannel] = std::make_unique<FairMQParts>();
+        msgMap[fmqChannel] = std::make_unique<fair::mq::Parts>();
         parts = msgMap[fmqChannel].get();
       }
       parts->AddPart(std::move(hdMessage));
@@ -206,6 +213,9 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       break;
     }
     if (mTFQueue.size()) {
+      static o2f::RateLimiter limiter;
+      limiter.check(ctx, mInput.tfRateLimit, mInput.minSHM);
+
       auto tfPtr = std::move(mTFQueue.front());
       mTFQueue.pop();
       if (!tfPtr) {
@@ -283,7 +293,7 @@ void TFReaderSpec::stopProcessing(o2f::ProcessingContext& ctx)
     auto hdEOSMessage = fmqFactory->CreateMessage(exitStack.size(), fair::mq::Alignment{64});
     auto plEOSMessage = fmqFactory->CreateMessage(0, fair::mq::Alignment{64});
     memcpy(hdEOSMessage->GetData(), exitStack.data(), exitStack.size());
-    FairMQParts eosMsg;
+    fair::mq::Parts eosMsg;
     eosMsg.AddPart(std::move(hdEOSMessage));
     eosMsg.AddPart(std::move(plEOSMessage));
     device->Send(eosMsg, mInput.rawChannelConfig);
@@ -308,7 +318,7 @@ void TFReaderSpec::TFBuilder()
     tfFileName = mFileFetcher ? mFileFetcher->getNextFileInQueue() : "";
     if (!mRunning || (tfFileName.empty() && !mFileFetcher->isRunning()) || mTFBuilderCounter >= mInput.maxTFs) {
       // stopped or no more files in the queue is expected or needed
-      LOG(info) << "TFBuilder stops processing";
+      LOG(info) << "TFReader stops processing";
       if (mFileFetcher) {
         mFileFetcher->stop();
       }
@@ -408,6 +418,9 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
     if (!rinp.sup0xccdb) {
       spec.outputs.emplace_back(o2f::OutputSpec{{"stfDistCCDB"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0xccdb});
     }
+    if (!rinp.metricChannel.empty()) {
+      spec.options.emplace_back(o2f::ConfigParamSpec{"channel-config", o2f::VariantType::String, rinp.metricChannel, {"Out-of-band channel config for TF throttling"}});
+    }
   } else {
     auto nameStart = rinp.rawChannelConfig.find("name=");
     if (nameStart == std::string::npos) {
@@ -420,6 +433,10 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
     }
     spec.options = {o2f::ConfigParamSpec{"channel-config", o2f::VariantType::String, rinp.rawChannelConfig, {"Out-of-band channel config"}}};
     rinp.rawChannelConfig = rinp.rawChannelConfig.substr(nameStart, nameEnd - nameStart);
+    if (!rinp.metricChannel.empty()) {
+      LOGP(alarm, "Cannot apply TF rate limiting when publishing to raw channel, limiting must be applied on the level of the input raw proxy");
+      LOGP(alarm, R"(To avoid reader filling shm buffer use "--shm-throw-bad-alloc 0 --shm-segment-id 2")");
+    }
   }
 
   spec.algorithm = o2f::adaptFromTask<TFReaderSpec>(rinp);

@@ -55,6 +55,17 @@ class GPUKernelTemplate
   };
 
   template <class T, int I>
+  struct GPUSharedMemoryWarpScan64 {
+    // Provides the shared memory resources for warp wide CUB collectives
+#if (defined(__CUDACC__) || defined(__HIPCC__)) && defined(GPUCA_GPUCODE) && !defined(GPUCA_GPUCODE_HOSTONLY)
+    typedef GPUCA_CUB::WarpScan<T> WarpScan;
+    union {
+      typename WarpScan::TempStorage cubWarpTmpMem;
+    };
+#endif
+  };
+
+  template <class T, int I>
   struct GPUSharedMemoryScan64 {
     // Provides the shared memory resources for CUB collectives
 #if (defined(__CUDACC__) || defined(__HIPCC__)) && defined(GPUCA_GPUCODE) && !defined(GPUCA_GPUCODE_HOSTONLY)

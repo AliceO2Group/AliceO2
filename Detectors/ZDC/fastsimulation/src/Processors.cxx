@@ -25,14 +25,34 @@ std::optional<std::vector<float>> StandardScaler::scale(const std::vector<float>
   if (data.size() != mMeans.size()) {
     return std::nullopt;
   }
-  std::vector<float> scaledData;
-  for (size_t i = 0; i < data.size(); ++i) {
-    scaledData.emplace_back((data[i] - mMeans[i]) / mScales[i]);
+
+  std::vector<float> scaledData(mMeans.size(), 0);
+  for (size_t i = 0; i < mMeans.size(); ++i) {
+    scaledData.at(i) = (data[i] - mMeans[i]) / mScales[i];
+  }
+
+  return scaledData;
+}
+
+std::optional<std::vector<std::vector<float>>> StandardScaler::scale_batch(
+  const std::vector<std::vector<float>>& data) const
+{
+
+  std::vector<std::vector<float>> scaledData;
+  for (auto& particleData : data) {
+    if (particleData.size() != mMeans.size()) {
+      return std::nullopt;
+    }
+    std::vector<float> scaledParticleData(mMeans.size(), 0);
+    for (size_t i = 0; i < mMeans.size(); ++i) {
+      scaledParticleData.at(i) = (particleData[i] - mMeans[i]) / mScales[i];
+    }
+    scaledData.emplace_back(std::move(scaledParticleData));
   }
   return scaledData;
 }
 
-bool StandardScaler::setScales(const std::vector<float> means, const std::vector<float> scales)
+bool StandardScaler::setScales(const std::vector<float>& means, const std::vector<float>& scales)
 {
   if (means.size() != scales.size()) {
     return false;
@@ -42,38 +62,47 @@ bool StandardScaler::setScales(const std::vector<float> means, const std::vector
   return true;
 }
 
-int o2::zdc::fastsim::processors::readClassifier(const Ort::Value& value)
+std::vector<int> o2::zdc::fastsim::processors::readClassifier(const Ort::Value& value, const size_t batchSize)
 {
-  auto predictedClass = value.GetTensorData<float>();
-  return std::round(*predictedClass);
+  std::vector<int> results;
+  auto predictedClasses = value.GetTensorData<float>();
+  for (size_t i = 0; i < batchSize; ++i) {
+    results.emplace_back(std::round(*(i + predictedClasses)));
+  }
+  return std::move(results);
 }
 
-std::array<long, 5> o2::zdc::fastsim::processors::calculateChannels(const Ort::Value& value)
+std::vector<std::array<long, 5>> o2::zdc::fastsim::processors::calculateChannels(const Ort::Value& value,
+                                                                                 const size_t batchSize)
 {
+  std::vector<std::array<long, 5>> results;               // results vector
   std::array<float, 5> channels = {0};                    // 5 photon channels
   auto flattedImageVector = value.GetTensorData<float>(); // Converts Ort::Value to flat const float*
 
-  // Model output needs to be converted with exp(x)-1 function to be valid
-  for (int i = 0; i < 44; i++) {
-    for (int j = 0; j < 44; j++) {
-      if (i % 2 == j % 2) {
-        if (i < 22 && j < 22) {
-          channels[0] += std::expm1(flattedImageVector[j + i * 44]);
-        } else if (i < 22 && j >= 22) {
-          channels[1] += std::expm1(flattedImageVector[j + i * 44]);
-        } else if (i >= 22 && j < 22) {
-          channels[2] += std::expm1(flattedImageVector[j + i * 44]);
-        } else if (i >= 22 && j >= 22) {
-          channels[3] += std::expm1(flattedImageVector[j + i * 44]);
+  for (size_t batch = 0; batch < batchSize; ++batch) {
+    // Model output needs to be converted with exp(x)-1 function to be valid
+    for (int i = 0; i < 44; i++) {
+      for (int j = 0; j < 44; j++) {
+        if (i % 2 == j % 2) {
+          if (i < 22 && j < 22) {
+            channels[0] += std::expm1(flattedImageVector[j + i * 44 + (batch * 44 * 44)]);
+          } else if (i < 22 && j >= 22) {
+            channels[1] += std::expm1(flattedImageVector[j + i * 44 + (batch * 44 * 44)]);
+          } else if (i >= 22 && j < 22) {
+            channels[2] += std::expm1(flattedImageVector[j + i * 44 + (batch * 44 * 44)]);
+          } else if (i >= 22 && j >= 22) {
+            channels[3] += std::expm1(flattedImageVector[j + i * 44 + (batch * 44 * 44)]);
+          }
+        } else {
+          channels[4] += std::expm1(flattedImageVector[j + i * 44 + (batch * 44 * 44)]);
         }
-      } else {
-        channels[4] += std::expm1(flattedImageVector[j + i * 44]);
       }
     }
+    results.emplace_back(std::array<long, 5>{0});
+    for (int ch = 0; ch < 5; ++ch) {
+      results.back()[ch] = std::lround(channels[ch]);
+      channels[ch] = 0;
+    }
   }
-  std::array<long, 5> channels_integers = {0};
-  for (int ch = 0; ch < 5; ++ch) {
-    channels_integers[ch] = std::lround(channels[ch]);
-  }
-  return channels_integers;
+  return std::move(results);
 }

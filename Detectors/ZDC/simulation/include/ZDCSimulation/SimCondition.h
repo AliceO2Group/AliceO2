@@ -26,21 +26,22 @@ struct ChannelSimCondition {
   // Note: we don't use here correct BC spacing.
   // Shapes were measured with digitizer synchronized to a 100 MHz clock
   // As soon as we will have shapes acquired with the production digitizer we
-  // will need to replace 25 with o2::constants::lhc::LHCBunchSpacingNS
-  static constexpr float ShapeBinWidth = 25. / NTimeBinsPerBC / 200;
+  // will need to replace 25 with o2::constants::lhc::LHCBunchSpacingNS -> Done on 220609
+  static constexpr float ShapeBinWidth = o2::constants::lhc::LHCBunchSpacingNS / NTimeBinsPerBC / 200;
   static constexpr float ShapeBinWidthInv = 1. / ShapeBinWidth;
 
   Histo shape;
   int ampMinID = 0;
-  float pedestal = 0.f;
-  float pedestalNoise = 0.f;
-  float pedestalFluct = 0.f;
+  float pedestal = 0.f;      /// Average baseline
+  float pedestalNoise = 0.f; /// Baseline noise (high frequency)
+  float pedestalFluct = 0.f; /// Baseline oscillations (low frequency)
   float gain = 0.f;
+  float gainInSum = 1.f;
   float timeJitter = 0.f;   // in ns
   float timePosition = 0.f; // in ns
 
   void print() const;
-  ClassDefNV(ChannelSimCondition, 1);
+  ClassDefNV(ChannelSimCondition, 2);
 };
 
 struct SimCondition {
@@ -49,7 +50,7 @@ struct SimCondition {
 
   void print() const;
 
-  ClassDefNV(SimCondition, 1);
+  ClassDefNV(SimCondition, 2);
 };
 
 }; // namespace zdc

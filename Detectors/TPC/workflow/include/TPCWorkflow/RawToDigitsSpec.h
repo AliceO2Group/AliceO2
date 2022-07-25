@@ -27,7 +27,7 @@ namespace tpc
 
 /// create a processor spec
 /// read simulated TPC clusters from file and publish
-o2::framework::DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, std::vector<int> const& tpcSectors, bool sendCEdigits = false);
+o2::framework::DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, bool ignoreDistStf, std::vector<int> const& tpcSectors, bool sendCEdigits = false);
 
 } // end namespace tpc
 } // end namespace o2

@@ -13,6 +13,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "TStopwatch.h"
@@ -39,11 +40,11 @@ void DigitizerSpec::initDigitizerTask(framework::InitContext& ic)
 
   auto simulatePileup = ic.options().get<int>("pileup");
   if (simulatePileup) {                                                // set readout time and dead time parameters
-    mReadoutTime = o2::phos::PHOSSimParams::Instance().mReadoutTimePU; //PHOS readout time in ns
-    mDeadTime = o2::phos::PHOSSimParams::Instance().mDeadTimePU;       //PHOS dead time (should include readout => mReadoutTime< mDeadTime)
+    mReadoutTime = o2::phos::PHOSSimParams::Instance().mReadoutTimePU; // PHOS readout time in ns
+    mDeadTime = o2::phos::PHOSSimParams::Instance().mDeadTimePU;       // PHOS dead time (should include readout => mReadoutTime< mDeadTime)
   } else {
-    mReadoutTime = o2::phos::PHOSSimParams::Instance().mReadoutTime; //PHOS readout time in ns
-    mDeadTime = o2::phos::PHOSSimParams::Instance().mDeadTime;       //PHOS dead time (should include readout => mReadoutTime< mDeadTime)
+    mReadoutTime = o2::phos::PHOSSimParams::Instance().mReadoutTime; // PHOS readout time in ns
+    mDeadTime = o2::phos::PHOSSimParams::Instance().mDeadTime;       // PHOS dead time (should include readout => mReadoutTime< mDeadTime)
   }
 
   // init digitizer
@@ -81,6 +82,11 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   auto& timesview = context->getEventRecords();
   LOG(debug) << "GOT " << timesview.size() << " COLLISSION TIMES";
 
+  if (mInitSimParams) { // trigger reading sim/rec parameters from CCDB, singleton initiated in Fetcher
+    pc.inputs().get<o2::phos::PHOSSimParams*>("recoparams");
+    mInitSimParams = false;
+  }
+
   // if there is nothing to do ... return
   int n = timesview.size();
   if (n == 0) {
@@ -90,9 +96,9 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
   TStopwatch timer;
   timer.Start();
 
-  if (mDigitizer.runStartTime() == 0) { //not set yet
+  if (mDigitizer.runStartTime() == 0) { // not set yet
     long runStartTime = timesview[0].getTimeNS();
-    mDigitizer.setRunStartTime(runStartTime); //set timestamp to access CCDB if necessary
+    mDigitizer.setRunStartTime(runStartTime); // set timestamp to access CCDB if necessary
   }
 
   LOG(info) << " CALLING PHOS DIGITIZATION ";
@@ -100,28 +106,28 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
 
   int indexStart = mDigitsOut.size();
   auto& eventParts = context->getEventParts();
-  //if this is last stream of hits and we can write directly to final vector of digits? Otherwize use temporary vectors
+  // if this is last stream of hits and we can write directly to final vector of digits? Otherwize use temporary vectors
   mDigitsFinal.clear();
   mDigitsTmp.clear();
   bool isLastStream = true;
-  double eventTime = timesview[0].getTimeNS() - o2::phos::PHOSSimParams::Instance().mDeadTime; //checked above that list not empty
-  int eventId;
+  double eventTime = timesview[0].getTimeNS() - o2::phos::PHOSSimParams::Instance().mDeadTime; // checked above that list not empty
+  int eventId = 0;
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
   for (int collID = 0; collID < n; ++collID) {
-    double dt = timesview[collID].getTimeNS() - eventTime; //start new PHOS readout, continue current or dead time?
-    if (dt > mReadoutTime && dt < mDeadTime) {             //dead time, skip event
+    double dt = timesview[collID].getTimeNS() - eventTime; // start new PHOS readout, continue current or dead time?
+    if (dt > mReadoutTime && dt < mDeadTime) {             // dead time, skip event
       continue;
     }
 
     if (dt >= o2::phos::PHOSSimParams::Instance().mDeadTime) { // start new event
-      //new event
+      // new event
       eventTime = timesview[collID].getTimeNS();
       dt = 0.;
       eventId = collID;
     }
 
-    //Check if next event has to be added to this read-out
+    // Check if next event has to be added to this read-out
     if (collID < n - 1) {
       isLastStream = (timesview[collID + 1].getTimeNS() - eventTime > mReadoutTime);
     } else {
@@ -138,14 +144,14 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
       int entry = part->entryID;
       retrieveHits("PHSHit", source, entry);
       part++;
-      if (part == eventParts[collID].end() && isLastStream) { //last stream, copy digits directly to output vector
+      if (part == eventParts[collID].end() && isLastStream) { // last stream, copy digits directly to output vector
         mDigitizer.processHits(mHits, mDigitsFinal, mDigitsOut, mLabels, entry, source, dt);
         mDigitsFinal.clear();
-        //finalyze previous event and clean
-        // Add trigger record
+        // finalyze previous event and clean
+        //  Add trigger record
         triggers.emplace_back(timesview[eventId], indexStart, mDigitsOut.size() - indexStart);
         indexStart = mDigitsOut.size();
-      } else { //Fill intermediate digitvector
+      } else { // Fill intermediate digitvector
         mDigitsTmp.swap(mDigitsFinal);
         mDigitizer.processHits(mHits, mDigitsTmp, mDigitsFinal, mLabels, entry, source, dt);
         mDigitsTmp.clear();
@@ -182,13 +188,18 @@ DataProcessorSpec getPHOSDigitizerSpec(int channel, bool mctruth)
   }
   outputs.emplace_back("PHS", "ROMode", 0, Lifetime::Timeframe);
 
+  std::vector<o2::framework::InputSpec> inputs;
+  inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  inputs.emplace_back("recoparams", o2::header::gDataOriginPHS, "PHS_RecoParams", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("PHS/Config/RecoParams"));
+
   // create the full data processor spec using
   //  a name identifier
   //  input description
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
   return DataProcessorSpec{
-    "PHOSDigitizer", Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+    "PHOSDigitizer",
+    inputs,
     outputs,
     AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>()},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},

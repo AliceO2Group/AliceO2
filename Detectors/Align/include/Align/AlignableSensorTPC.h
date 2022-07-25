@@ -33,14 +33,12 @@ class AlignableSensorTPC : public AlignableSensor
 {
  public:
   AlignableSensorTPC(const char* name = 0, int vid = 0, int iid = 0, int isec = 0);
-  virtual ~AlignableSensorTPC();
+  ~AlignableSensorTPC() = final;
   //
   int GetSector() const { return fSector; }
   void SetSector(uint32_t sc) { fSector = (uint8_t)sc; }
   //
-  virtual AlignmentPoint* TrackPoint2AlgPoint(int pntId, const AliTrackPointArray* trpArr, const AliESDtrack* t);
-  //  virtual void   setTrackingFrame();
-  virtual void prepareMatrixT2L();
+  void prepareMatrixT2L() final;
   //
  protected:
   //

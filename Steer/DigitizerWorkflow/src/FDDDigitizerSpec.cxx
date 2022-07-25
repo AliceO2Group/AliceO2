@@ -127,7 +127,7 @@ class FDDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   std::vector<o2::fdd::DetTrigInput> mDigitsTrig;
 
   // RS: at the moment using hardcoded flag for continuous readout
-  o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
+  o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::ROMode(o2::parameters::GRPObject::CONTINUOUS | o2::parameters::GRPObject::TRIGGERING); // readout mode
 };
 
 o2::framework::DataProcessorSpec getFDDDigitizerSpec(int channel, bool mctruth)

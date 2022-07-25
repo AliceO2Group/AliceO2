@@ -38,7 +38,7 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
                         o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels)
 {
   // loop over all hits and produce digits
-  //LOG(info) << "Processing IR = " << mIntRecord << " | NHits = " << hits.size();
+  // LOG(info) << "Processing IR = " << mIntRecord << " | NHits = " << hits.size();
 
   flush(digitsBC, digitsCh, digitsTrig, labels); // flush cached signal which cannot be affect by new event
 
@@ -46,8 +46,8 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
   std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::fdd::Hit const& a, o2::fdd::Hit const& b) {
     return a.GetTrackID() < b.GetTrackID();
   });
-  //LOG(info) << "Pulse";
-  //Conversion of hits to the analogue pulse shape
+  // LOG(info) << "Pulse";
+  // Conversion of hits to the analogue pulse shape
   for (auto& hit : sorted_hits) {
     if (hit.GetTime() > 20e3) {
       const int maxWarn = 10;
@@ -81,7 +81,7 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
     }
     // if digit for this sector does not exist, create one otherwise add to it
     createPulse(nPhotoElectrons, hit.GetTrackID(), timeHit, cachedIR, nCachedIR, iChannel);
-  } //hit loop
+  } // hit loop
 }
 
 //_____________________________________________________________________________
@@ -99,7 +99,7 @@ void Digitizer::createPulse(int nPhE, int parID, double timeHit, std::array<o2::
     timeDiff += parameters.TimeDelayFDA;
   }
 
-  //LOG(info) <<"Ch = "<<channel<<" NphE = " << nPhE <<" timeDiff "<<timeDiff;
+  // LOG(info) <<"Ch = "<<channel<<" NphE = " << nPhE <<" timeDiff "<<timeDiff;
   float charge = TMath::Qe() * parameters.PmGain * mBinSize / (mPmtTimeIntegral * ChargePerADC);
 
   Bool_t added[nCachedIR];
@@ -112,7 +112,7 @@ void Digitizer::createPulse(int nPhE, int parID, double timeHit, std::array<o2::
     float tPhE = timeDiff + mRndSignalShape.getNextValue();
     int const firstBin = roundVc(TMath::Max((int)0, (int)((tPhE - PMTransitTime) * BinSizeInv)));
     int const lastBin = TMath::Min((int)NBC2Cache * NTimeBinsPerBC - 1, (int)((tPhE + 2.0 * PMTransitTime) * BinSizeInv));
-    //LOG(info) << "firstBin = "<<firstBin<<" lastbin "<<lastBin;
+    // LOG(info) << "firstBin = "<<firstBin<<" lastbin "<<lastBin;
 
     float const tempT = mBinSize * (0.5f + firstBin) - tPhE;
     long iStart = std::lround((tempT + 2.0f * PMTransitTime) * BinSizeInv);
@@ -169,20 +169,20 @@ void Digitizer::flush(std::vector<o2::fdd::Digit>& digitsBC,
   }
   if (mIntRecord.differenceInBC(mCache.back()) > -BCCacheMin) {
     LOG(debug) << "Generating new pedestal BL fluct. for BC range " << mCache.front() << " : " << mCache.back();
-    //generatePedestal();
+    // generatePedestal();
   } else {
     return;
   }
-  //o2::InteractionRecord ir0(mCache.front());
-  //int cacheSpan = 1 + mCache.back().differenceInBC(ir0);
-  //LOG(info) << "Cache spans " << cacheSpan << " with " << nCached << " BCs cached";
+  // o2::InteractionRecord ir0(mCache.front());
+  // int cacheSpan = 1 + mCache.back().differenceInBC(ir0);
+  // LOG(info) << "Cache spans " << cacheSpan << " with " << nCached << " BCs cached";
 
   for (int ibc = 0; ibc < nCached; ibc++) { // digitize BCs which might not be affected by future events
     auto& bc = mCache[ibc];
     storeBC(bc, digitsBC, digitsCh, digitsTrig, labels);
   }
   // clean cache for BCs which are not needed anymore
-  //LOG(info) << "Cleaning cache";
+  // LOG(info) << "Cleaning cache";
   mCache.erase(mCache.begin(), mCache.end());
 }
 //_____________________________________________________________________________
@@ -191,7 +191,7 @@ void Digitizer::storeBC(const BCCache& bc,
                         std::vector<o2::fdd::DetTrigInput>& digitsTrig,
                         o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels)
 {
-  //LOG(info) << "Storing BC " << bc;
+  // LOG(info) << "Storing BC " << bc;
 
   int first = digitsCh.size(), nStored = 0;
   for (int ic = 0; ic < Nchannels; ic++) {
@@ -201,7 +201,7 @@ void Digitizer::storeBC(const BCCache& bc,
       nStored++;
     }
   }
-  //bc.print();
+  // bc.print();
 
   if (nStored != 0) {
     int nBC = digitsBC.size();
@@ -219,15 +219,15 @@ float Digitizer::integrateCharge(const ChannelBCDataF& pulse)
 {
   float chargeADC = 0;
   for (int iBin = 0; iBin < NTimeBinsPerBC; ++iBin) {
-    //pulse[iBin] /= ChargePerADC;
+    // pulse[iBin] /= ChargePerADC;
     chargeADC += pulse[iBin];
   }
-  //saturation
+  // saturation
   if (chargeADC > 4095) {
     chargeADC = 4095;
   }
 
-  //LOG(info) <<" Charge " << chargeADC;
+  // LOG(info) <<" Charge " << chargeADC;
   return std::lround(chargeADC);
 }
 //_____________________________________________________________________________
@@ -238,7 +238,7 @@ float Digitizer::simulateTimeCFD(const ChannelBCDataF& pulse)
   float timeCFD = -1024;
   int binShift = TMath::Nint(parameters.TimeShiftCFD / mBinSize);
   for (int iBin = 0; iBin < NTimeBinsPerBC; ++iBin) {
-    //if (mTime[channel][iBin] != 0) std::cout << mTime[channel][iBin] / parameters.mChargePerADC << ", ";
+    // if (mTime[channel][iBin] != 0) std::cout << mTime[channel][iBin] / parameters.mChargePerADC << ", ";
     if (iBin >= binShift) {
       mTimeCFD[iBin] = 5.0 * pulse[iBin - binShift] - pulse[iBin];
     } else {
@@ -251,8 +251,8 @@ float Digitizer::simulateTimeCFD(const ChannelBCDataF& pulse)
       break;
     }
   }
-  //LOG(info) <<" Time " << timeCFD;
-  timeCFD *= TimePerTDC; //ns -> counts
+  // LOG(info) <<" Time " << timeCFD;
+  timeCFD *= invTimePerTDC; // ns -> counts
   return std::lround(timeCFD);
 }
 //_____________________________________________________________________________
@@ -297,7 +297,7 @@ o2::fdd::Digitizer::BCCache* Digitizer::getBCCache(const o2::InteractionRecord& 
 //_____________________________________________________________________________
 void Digitizer::setTriggers(o2::fdd::Digit* digit)
 {
-  //mTriggers.set
+  // mTriggers.set
 }
 //_______________________________________________________________________
 void Digitizer::init()

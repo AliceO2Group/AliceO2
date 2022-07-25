@@ -20,6 +20,7 @@
 #include "GPUCommonMath.h"
 #include "GPUParam.h"
 #include "GPUdEdxInfo.h"
+#include "CommonUtils/DebugStreamer.h"
 #if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_OPENCL1)
 #include "DataFormatsTPC/Defs.h"
 #include "CalibdEdxContainer.h"
@@ -86,6 +87,7 @@ class GPUdEdx
   unsigned char mCount = 0;
   unsigned char mLastROC = 255;
   char mNSubThresh = 0;
+  o2::utils::DebugStreamer mStreamer;
 };
 
 GPUdi() void GPUdEdx::checkSubThresh(int roc)
@@ -181,6 +183,40 @@ GPUdnii() void GPUdEdx::fillCluster(float qtot, float qmax, int padRow, unsigned
   }
   if (qmax < mSubThreshMinMax) {
     mSubThreshMinMax = qmax;
+  }
+
+  using Streamer = o2::utils::DebugStreamer;
+  if (Streamer::checkStream(o2::utils::StreamFlags::streamdEdx)) {
+    mStreamer.setStreamer("debug_dedx", "UPDATE");
+    int regionTmp = region;
+    float absRelPadTmp = absRelPad;
+    float thresholdTmp = threshold;
+    float qMaxTopologyCorrTmp = qMaxTopologyCorr;
+    float qTotTopologyCorrTmp = qTotTopologyCorr;
+    float qMaxResidualCorrTmp = qMaxResidualCorr;
+    float qTotResidualCorrTmp = qTotResidualCorr;
+    float residualGainMapGainTmp = residualGainMapGain;
+    float fullGainMapGainTmp = fullGainMapGain;
+    mStreamer.getStreamer() << mStreamer.getUniqueTreeName("tree").data()
+                            << "qTot=" << mChargeTot[mCount - 1]
+                            << "qMax=" << mChargeMax[mCount - 1]
+                            << "region=" << regionTmp
+                            << "padRow=" << padRow
+                            << "tanTheta=" << tanTheta
+                            << "trackTgl=" << trackTgl
+                            << "sinPhi=" << trackSnp
+                            << "z=" << z
+                            << "absRelPad=" << absRelPadTmp
+                            << "relTime=" << relTime
+                            << "threshold=" << thresholdTmp
+                            << "qTotIn=" << qTotIn
+                            << "qMaxTopologyCorr=" << qMaxTopologyCorrTmp
+                            << "qTotTopologyCorr=" << qTotTopologyCorrTmp
+                            << "qMaxResidualCorr=" << qMaxResidualCorrTmp
+                            << "qTotResidualCorr=" << qTotResidualCorrTmp
+                            << "residualGainMapGain=" << residualGainMapGainTmp
+                            << "fullGainMapGain=" << fullGainMapGainTmp
+                            << "\n";
   }
 }
 

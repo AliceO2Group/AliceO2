@@ -15,6 +15,7 @@
 
 #include <fmt/format.h>
 #include <chrono>
+#include "Framework/TimingInfo.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "CommonDataFormat/TimeStamp.h"
 #include "CommonDataFormat/IRFrame.h"
@@ -30,6 +31,7 @@
 #include "ReconstructionDataFormats/TrackMCHMID.h"
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 // FIXME: ideally, the data formats definition should be independent of the framework
 // collectData is using the input of ProcessingContext to extract the first valid
 // header and the TF orbit from it
@@ -65,6 +67,7 @@ void DataRequest::requestITSTracks(bool mc)
   addInput({"trackITS", "ITS", "TRACKS", 0, Lifetime::Timeframe});
   addInput({"trackITSROF", "ITS", "ITSTrackROF", 0, Lifetime::Timeframe});
   addInput({"trackITSClIdx", "ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
+  addInput({"alpparITS", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam")});
   if (mc) {
     addInput({"trackITSMCTR", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe});
   }
@@ -76,6 +79,7 @@ void DataRequest::requestMFTTracks(bool mc)
   addInput({"trackMFT", "MFT", "TRACKS", 0, Lifetime::Timeframe});
   addInput({"trackMFTROF", "MFT", "MFTTrackROF", 0, Lifetime::Timeframe});
   addInput({"trackMFTClIdx", "MFT", "TRACKCLSID", 0, Lifetime::Timeframe});
+  addInput({"alpparMFT", "MFT", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("MFT/Config/AlpideParam")});
   if (mc) {
     addInput({"trackMFTMCTR", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe});
   }
@@ -149,6 +153,9 @@ void DataRequest::requestMFTMCHMatches(bool mc)
 void DataRequest::requestMCHMIDMatches(bool mc)
 {
   addInput({"matchMCHMID", "GLO", "MTC_MCHMID", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"matchMCHMID_MCTR", "GLO", "MCMTC_MCHMID", 0, Lifetime::Timeframe});
+  }
   requestMap["matchMCHMID"] = mc;
 }
 
@@ -217,6 +224,7 @@ void DataRequest::requestITSClusters(bool mc)
   addInput({"clusITSPatt", "ITS", "PATTERNS", 0, Lifetime::Timeframe});
   addInput({"clusITSROF", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe});
   addInput({"cldictITS", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary")});
+  addInput({"alpparITS", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam")});
   if (mc) {
     addInput({"clusITSMC", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
   }
@@ -229,6 +237,7 @@ void DataRequest::requestMFTClusters(bool mc)
   addInput({"clusMFTPatt", "MFT", "PATTERNS", 0, Lifetime::Timeframe});
   addInput({"clusMFTROF", "MFT", "CLUSTERSROF", 0, Lifetime::Timeframe});
   addInput({"cldictMFT", "MFT", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("MFT/Calib/ClusterDictionary")});
+  addInput({"alpparMFT", "MFT", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("MFT/Config/AlpideParam")});
   if (mc) {
     addInput({"clusMFTMC", "MFT", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
   }
@@ -258,12 +267,26 @@ void DataRequest::requestTOFClusters(bool mc)
 
 void DataRequest::requestMCHClusters(bool mc)
 {
+  if (mc) {
+    LOG(warn) << "MCH global clusters do not support MC lables, disabling";
+    mc = false;
+  }
   addInput({"clusMCH", "MCH", "GLOBALCLUSTERS", 0, Lifetime::Timeframe});
   addInput({"clusMCHROF", "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe});
   if (mc) {
     addInput({"clusMCHMC", "MCH", "CLUSTERLABELS", 0, Lifetime::Timeframe});
   }
   requestMap["clusMCH"] = mc;
+}
+
+void DataRequest::requestHMPClusters(bool mc)
+{
+  addInput({"hmpidcluster", "HMP", "CLUSTERS", 0, Lifetime::Timeframe});
+  addInput({"hmpidtriggers", "HMP", "CLUSREFS", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"hmpidclusterlabel", "HMP", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
+  }
+  requestMap["clusHMP"] = mc;
 }
 
 void DataRequest::requestMIDClusters(bool mc)
@@ -410,6 +433,17 @@ void DataRequest::requestEMCALCells(bool mc)
   requestMap["EMCCells"] = mc;
 }
 
+void DataRequest::requestHMPMatches(bool mc)
+{
+  addInput({"matchHMP", "HMP", "MATCHES", 0, Lifetime::Timeframe});
+  addInput({"matchTriggerHMP", "HMP", "TRACKREFS", 0, Lifetime::Timeframe});
+  addInput({"matchPhotsCharge", "HMP", "PATTERNS", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"clsHMP_GLO_MCTR", "HMP", "MCLABELS", 0, Lifetime::Timeframe});
+  }
+  requestMap["matchHMP"] = mc;
+}
+
 void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
 {
   // request tracks for sources probided by the mask
@@ -419,7 +453,7 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   if (src[GTrackID::MFT]) {
     requestMFTTracks(useMC);
   }
-  if (src[GTrackID::MCH]) {
+  if (src[GTrackID::MCH] || src[GTrackID::MCHMID]) {
     requestMCHTracks(useMC);
   }
   if (src[GTrackID::MID]) {
@@ -433,6 +467,9 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   }
   if (src[GTrackID::MFTMCH]) {
     requestGlobalFwdTracks(useMC);
+  }
+  if (src[GTrackID::MCHMID]) {
+    requestMCHMIDMatches(useMC);
   }
   if (src[GTrackID::TPCTOF]) {
     requestTPCTOFTracks(useMC);
@@ -461,6 +498,9 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   }
   if (GTrackID::includesDet(DetID::CTP, src)) {
     requestCTPDigits(false); // RS FIXME: at the moment does not support MC
+  }
+  if (src[GTrackID::HMP]) {
+    requestHMPMatches(useMC);
   }
 }
 
@@ -499,6 +539,9 @@ void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
   if (GTrackID::includesDet(DetID::MCH, src)) {
     requestMCHClusters(useMC);
   }
+  if (GTrackID::includesDet(DetID::HMP, src)) {
+    requestHMPClusters(useMC);
+  }
 }
 
 //__________________________________________________________________
@@ -506,8 +549,7 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
 {
   auto& reqMap = requests.requestMap;
 
-  const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
-  startIR = {0, dh->firstTForbit};
+  startIR = {0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
 
   auto req = reqMap.find("trackITS");
   if (req != reqMap.end()) {
@@ -604,6 +646,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addTOFClusters(pc, req->second);
   }
 
+  req = reqMap.find("clusHMP");
+  if (req != reqMap.end()) {
+    addHMPClusters(pc, req->second);
+  }
+
   req = reqMap.find("CTPDigits");
   if (req != reqMap.end()) {
     addCTPDigits(pc, req->second);
@@ -683,6 +730,10 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   if (req != reqMap.end()) {
     addIRFramesITS(pc);
   }
+  req = reqMap.find("matchHMP");
+  if (req != reqMap.end()) {
+    addHMPMatches(pc, req->second);
+  }
 }
 
 //____________________________________________________________
@@ -735,6 +786,11 @@ void RecoContainer::addCosmicTracks(ProcessingContext& pc, bool mc)
 //____________________________________________________________
 void RecoContainer::addITSTracks(ProcessingContext& pc, bool mc)
 {
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alpparITS"); // note: configurable param does not need finaliseCCDB
+  }
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS"), TRACKS);
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<int>>("trackITSClIdx"), INDICES);
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackITSROF"), TRACKREFS);
@@ -752,6 +808,11 @@ void RecoContainer::addIRFramesITS(ProcessingContext& pc)
 //____________________________________________________________
 void RecoContainer::addMFTTracks(ProcessingContext& pc, bool mc)
 {
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>*>("alpparMFT"); // note: configurable param does not need finaliseCCDB
+  }
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::mft::TrackMFT>>("trackMFT"), TRACKS);
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<int>>("trackMFTClIdx"), INDICES);
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackMFTROF"), TRACKREFS);
@@ -837,6 +898,9 @@ void RecoContainer::addMFTMCHMatches(ProcessingContext& pc, bool mc)
 void RecoContainer::addMCHMIDMatches(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::MCHMID].registerContainer(pc.inputs().get<gsl::span<o2d::TrackMCHMID>>("matchMCHMID"), MATCHES);
+  if (mc) {
+    commonPool[GTrackID::MCHMID].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("matchMCHMID_MCTR"), MCLABELS);
+  }
 }
 
 //__________________________________________________________
@@ -897,12 +961,27 @@ void RecoContainer::addTOFMatchesITSTPCTRD(ProcessingContext& pc, bool mc)
 }
 
 //__________________________________________________________
+void RecoContainer::addHMPMatches(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoHMP>>("matchHMP"), MATCHES);           //  HMPID match info, no real tracks
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::hmpid::Trigger>>("matchTriggerHMP"), TRACKREFS); //  HMPID triggers
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<float>>("matchPhotsCharge"), PATTERNS);              //  HMPID photon cluster charges
+  if (mc) {
+    commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsHMP_GLO_MCTR"), MCLABELS);
+  }
+}
+//__________________________________________________________
 void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
 {
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictITS");                        // just to trigger the finaliseCCDB
+    pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alpparITS"); // note: configurable param does not need finaliseCCDB
+  }
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusITSROF"), CLUSREFS);
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusITS"), CLUSTERS);
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<unsigned char>>("clusITSPatt"), PATTERNS);
-  pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictITS"); // just to trigger the finaliseCCDB
   if (mc) {
     mcITSClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("clusITSMC");
   }
@@ -911,10 +990,18 @@ void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
 //__________________________________________________________
 void RecoContainer::addMFTClusters(ProcessingContext& pc, bool mc)
 {
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictMFT");                        // just to trigger the finaliseCCDB
+    pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>*>("alpparMFT"); // note: configurable param does not need finaliseCCDB
+  }
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusMFTROF"), CLUSREFS);
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusMFT"), CLUSTERS);
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<unsigned char>>("clusMFTPatt"), PATTERNS);
-  pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictMFT"); // just to trigger the finaliseCCDB
+  if (mc) {
+    mcITSClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("clusMFTMC");
+  }
 }
 
 //__________________________________________________________
@@ -941,6 +1028,15 @@ void RecoContainer::addTOFClusters(ProcessingContext& pc, bool mc)
   }
 }
 
+//__________________________________________________________
+void RecoContainer::addHMPClusters(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::hmpid::Cluster>>("hmpidcluster"), CLUSTERS);
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::hmpid::Trigger>>("hmpidtriggers"), CLUSREFS);
+  if (mc) {
+    mcHMPClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("hmpidclusterlabel");
+  }
+}
 //__________________________________________________________
 void RecoContainer::addMCHClusters(ProcessingContext& pc, bool mc)
 {
@@ -1219,6 +1315,10 @@ RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) c
     if (parent0.getMIDTrackID() != -1) {
       table[GTrackID::MID] = parent0.getMIDTrackID();
     }
+  } else if (src == GTrackID::MCHMID) {
+    const auto& parent0 = getMCHMIDMatch(gidx);
+    table[GTrackID::MCH] = parent0.getMCHRef();
+    table[GTrackID::MID] = parent0.getMIDRef();
   }
   return std::move(table);
 }

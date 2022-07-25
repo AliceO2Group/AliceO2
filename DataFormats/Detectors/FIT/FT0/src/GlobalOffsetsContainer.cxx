@@ -71,7 +71,7 @@ int GlobalOffsetsContainer::getMeanGaussianFitValue() const
     LOG(info) << "Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2] << " size " << mEntries << " mean " << sum / mEntries;
     return (static_cast<int>(std::round(fitValues[1])));
   } else {
-    LOG(error) << "Fit failed with result = " << fitres;
+    LOG(warning) << "Fit failed with result = " << fitres;
     return 0;
   }
 }

@@ -87,8 +87,10 @@ AddOptionRTC(penaltyChi2, float, 13.f, "", 0, "Chi2 penalty for no available TRD
 AddOptionRTC(chi2StrictCut, float, 10.f, "", 0, "Chi2 cut for strict matching mode")
 AddOptionRTC(chi2SeparationCut, float, 2.5f, "", 0, "Minimum difference between chi2 of winner match and chi2 of second best match")
 AddOptionRTC(nSigmaTerrITSTPC, float, 4.f, "", 0, "Number of sigmas for ITS-TPC track time error estimate")
+AddOptionRTC(addTimeRoadITSTPC, float, 0.f, "", 0, "Increase time search road by X us for ITS-TPC tracks")
 AddOptionRTC(extraRoadY, float, 2.f, "", 0, "Addition to search road around track prolongation along Y in cm")
 AddOptionRTC(extraRoadZ, float, 0.f, "", 0, "Addition to search road around track prolongation along Z in cm")
+AddOptionRTC(trkltResRPhiIdeal, float, 0.04f, "", 0, "Optimal tracklet rphi resolution in cm (in case phi of track = lorentz angle)")
 AddOptionRTC(applyDeflectionCut, unsigned char, 0, "", 0, "Set to 1 to enable tracklet selection based on deflection")
 AddOptionRTC(stopTrkAfterNMissLy, unsigned char, 6, "", 0, "Abandon track following after N layers without a TRD match")
 AddOptionRTC(useExternalO2DefaultPropagator, unsigned char, 0, "", 0, "Use the default instance of the o2::Propagator, instead of the GPU Reconstruciton one with GPU B field")
@@ -150,7 +152,7 @@ AddOption(ompKernels, unsigned char, 2, "", 0, "Parallelize with OMP inside kern
 AddOption(ompAutoNThreads, bool, true, "", 0, "Auto-adjust number of OMP threads, decreasing the number for small input data")
 AddOption(nDeviceHelperThreads, int, 1, "", 0, "Number of CPU helper threads for CPU processing")
 AddOption(nStreams, char, 8, "", 0, "Number of GPU streams / command queues")
-AddOption(nTPCClustererLanes, char, 3, "", 0, "Number of TPC clusterers that can run in parallel")
+AddOption(nTPCClustererLanes, char, -1, "", 0, "Number of TPC clusterers that can run in parallel (-1 = autoset)")
 AddOption(trackletSelectorSlices, char, -1, "", 0, "Number of slices to processes in parallel at max")
 AddOption(trackletConstructorInPipeline, char, -1, "", 0, "Run tracklet constructor in the pipeline")
 AddOption(trackletSelectorInPipeline, char, -1, "", 0, "Run tracklet selector in the pipeline")
@@ -166,6 +168,7 @@ AddOption(doublePipelineClusterizer, bool, true, "", 0, "Include the input data 
 AddOption(prefetchTPCpageScan, char, 0, "", 0, "Prefetch Data for TPC page scan in CPU cache")
 AddOption(runMC, bool, false, "", 0, "Process MC labels")
 AddOption(runQA, int, 0, "qa", 'q', "Enable tracking QA (negative number to provide bitmask for QA tasks)", message("Running QA: %s"), def(1))
+AddOption(qcRunFraction, float, 100.f, "", 0, "Percentage of events to process with QC")
 AddOption(outputSharedClusterMap, bool, false, "", 0, "Ship optional shared cluster map as output for further use")
 AddOption(disableTPCNoisyPadFilter, bool, false, "", 0, "Disables all TPC noisy pad filters (Not the normal noise filter!)")
 AddOption(createO2Output, char, 2, "", 0, "Create Track output in O2 format (2 = skip non-O2 output in GPU track format (reverts to =1 if QA is requested))")
@@ -173,9 +176,12 @@ AddOption(clearO2OutputFromGPU, bool, false, "", 0, "Free the GPU memory used fo
 AddOption(ignoreNonFatalGPUErrors, bool, false, "", 0, "Continue running after having received non fatal GPU errors, e.g. abort due to overflow")
 AddOption(tpcIncreasedMinClustersPerRow, unsigned int, 0, "", 0, "Impose a minimum buffer size for the clustersPerRow during TPC clusterization")
 AddOption(noGPUMemoryRegistration, bool, false, "", 0, "Do not register input / output memory for GPU dma transfer")
-AddOption(calibObjectsExtraMemorySize, unsigned long, 10ul * 1024 * 1024, "", 0, "Extra spare memory added for calibration object buffer, to allow fow updates with larger objects")
 AddOption(useInternalO2Propagator, bool, false, "", 0, "Uses an internal (in GPUChainTracking) version of o2::Propagator, which internal b-field, matlut, etc.")
 AddOption(internalO2PropagatorGPUField, bool, true, "", 0, "Makes the internal O2 propagator use the fast GPU polynomial b field approximation")
+AddOption(calibObjectsExtraMemorySize, unsigned int, 10u * 1024 * 1024, "", 0, "Extra spare memory added for calibration object buffer, to allow fow updates with larger objects")
+AddOption(lateO2PropagatorProvisioning, bool, false, "", 0, "The user will provide the o2 propagator at runtime before processing the first event, it will not be available at init")
+AddOption(lateO2MatLutProvisioningSize, unsigned int, 0u, "", 0, "Memory size to reserve for late provisioning of matlut table")
+AddOption(throttleAlarms, bool, false, "", 0, "Throttle rate at which alarms are sent to the InfoLogger in online runs")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayFrontendInterface*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddHelp("help", 'h')
@@ -210,6 +216,10 @@ AddOption(drawTPC, bool, true, "", 0, "Enable drawing TPC data")
 AddOption(drawTRD, bool, true, "", 0, "Enabale drawing TRD data")
 AddOption(drawTOF, bool, true, "", 0, "Enabale drawing TOF data")
 AddOption(drawITS, bool, true, "", 0, "Enabale drawing ITS data")
+AddOption(drawField, bool, true, "", 0, "Enable drawing magnetic field")
+AddOption(bFieldStepSize, float, 5.0f, "", 0, "Set field line step size")
+AddOption(bFieldStepCount, int, 100, "", 0, "Set field line step count")
+AddOption(bFieldLinesCount, int, 2000, "", 0, "Set field lines count")
 AddOption(invertColors, bool, false, "", 0, "Invert colors")
 AddHelp("help", 'h')
 EndConfig()
@@ -419,6 +429,7 @@ AddOption(dEdxDisableResidualGainMap, bool, false, "", 0, "Disable loading of re
 AddOption(dEdxDisableResidualGain, bool, false, "", 0, "Disable loading of residual dE/dx gain correction from CCDB")
 AddOption(dEdxUseFullGainMap, bool, false, "", 0, "Enable using the full gain map for correcting the cluster charge during calculation of the dE/dx")
 AddOption(transformationFile, std::string, "", "", 0, "File name of TPC fast transformation map")
+AddOption(transformationSCFile, std::string, "", "", 0, "File name of TPC space charge correction file (for testing/CPU only)")
 AddOption(matLUTFile, std::string, "", "", 0, "File name of material LUT file")
 AddOption(gainCalibFile, std::string, "", "", 0, "File name of TPC pad gain calibration")
 AddOption(gainCalibDisableCCDB, bool, false, "", 0, "Disabling loading the TPC pad gain calibration from the CCDB")
@@ -431,6 +442,8 @@ AddOption(gpuDisplayfilterMacro, std::string, "", "", 0, "File name of ROOT macr
 AddOption(benchmarkMemoryRegistration, bool, false, "", 0, "Time-benchmark for memory registration")
 AddOption(registerSelectedSegmentIds, int, -1, "", 0, "Register only a specific managed shm segment id (-1 = all)")
 AddOption(disableCalibUpdates, bool, false, "", 0, "Disable all calibration updates")
+AddOption(partialOutputForNonFatalErrors, bool, false, "", 0, "In case of a non-fatal error that is ignored (ignoreNonFatalGPUErrors=true), forward the partial output that was created instead of shipping an empty TF")
+AddOption(tpcTriggeredMode, bool, false, "", 0, "In case we have triggered TPC data, this must be set to true")
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE
@@ -438,8 +451,6 @@ EndConfig()
 // Derrived parameters used in GPUParam
 BeginHiddenConfig(GPUSettingsParam, param)
 AddVariableRTC(dAlpha, float, 0.f)           // angular size
-AddVariableRTC(bzkG, float, 0.f)             // constant magnetic field value in kG
-AddVariableRTC(constBz, float, 0.f)          // constant magnetic field value in kG*clight
 AddVariableRTC(assumeConstantBz, char, 0)    // Assume a constant magnetic field
 AddVariableRTC(toyMCEventsFlag, char, 0)     // events were build with home-made event generator
 AddVariableRTC(continuousTracking, char, 0)  // Continuous tracking, estimate bz and errors for abs(z) = 125cm during seeding
@@ -448,7 +459,6 @@ AddVariableRTC(dodEdx, char, 0)              // Do dEdx computation
 AddVariableRTC(earlyTpcTransform, char, 0)   // do Early TPC transformation
 AddVariableRTC(debugLevel, char, 0)          // Debug level
 AddVariableRTC(continuousMaxTimeBin, int, 0) // Max time bin for continuous tracking
-AddVariableRTC(qptB5Scaler, float, 1.f)      // Scaling factor for QPt to B=0.5T
 EndConfig()
 
 EndNamespace() // gpu

@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/CommonServices.h"
+#include "Framework/AsyncQueue.h"
 #include "Framework/ParallelContext.h"
 #include "Framework/ControlService.h"
 #include "Framework/DriverClient.h"
@@ -25,16 +26,19 @@
 #include "Framework/DataProcessingStats.h"
 #include "Framework/CommonMessageBackends.h"
 #include "Framework/DanglingContext.h"
+#include "Framework/DataProcessingHelpers.h"
 #include "InputRouteHelpers.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/Tracing.h"
 #include "Framework/Monitoring.h"
+#include "Framework/AsyncQueue.h"
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
 #include "HTTPParser.h"
 #include "../src/DataProcessingStatus.h"
+#include "DecongestionService.h"
 #include "ArrowSupport.h"
 #include "DPLMonitoringBackend.h"
 #include "TDatabasePDG.h"
@@ -49,7 +53,7 @@
 #include <fairmq/Device.h>
 #include <fairmq/shmem/Monitor.h>
 #include <fairmq/shmem/Common.h>
-#include <options/FairMQProgOptions.h>
+#include <fairmq/ProgOptions.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -120,6 +124,16 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
     .kind = ServiceKind::Serial};
 }
 
+// An asyncronous service that executes actions in at the end of the data processing
+o2::framework::ServiceSpec CommonServices::asyncQueue()
+{
+  return ServiceSpec{
+    .name = "async-queue",
+    .init = simpleServiceInit<AsyncQueue, AsyncQueue>(),
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Serial};
+}
+
 // Make it a service so that it can be used easily from the analysis
 // FIXME: Moreover, it makes sense that this will be duplicated on a per thread
 // basis when we get to it.
@@ -140,24 +154,12 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
     .configure = noConfiguration(),
     .preProcessing = [](ProcessingContext& processingContext, void* service) {
       auto& context = processingContext.services().get<DataTakingContext>();
-      // Only on the first message
-      if (context.source == OrbitResetTimeSource::Data) {
-        return;
-      }
-      // Only if we do not have already the proper number from CTP
-      if (context.source == OrbitResetTimeSource::CTP) {
-        return;
-      }
-      context.source = OrbitResetTimeSource::Data;
-      context.orbitResetTime = -1;
       for (auto const& ref : processingContext.inputs()) {
         const o2::framework::DataProcessingHeader *dph = o2::header::get<DataProcessingHeader*>(ref.header);
         const auto* dh = o2::header::get<o2::header::DataHeader*>(ref.header);
         if (!dph || !dh) {
           continue;
         }
-        LOGP(debug, "Orbit reset time from data: {} ", dph->creation);
-        context.orbitResetTime = dph->creation;
         context.runNumber = fmt::format("{}", dh->runNumber);
         break;
       } },
@@ -167,24 +169,32 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
       if (extRunNumber != "unspecified" || context.runNumber == "0") {
         context.runNumber = extRunNumber;
       }
-      // FIXME: we actually need to get the orbit, not only to know where it is
-      std::string orbitResetTimeUrl = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitResetTime");
-      auto is_number = [](const std::string& s) -> bool {
-        return !s.empty() && std::all_of(s.begin(), s.end(), ::isdigit);
-      };
-
-      if (orbitResetTimeUrl.rfind("file://") == 0) {
-        // FIXME: read it from a file
-        context.orbitResetTime = 490917600;
-      } else if (orbitResetTimeUrl.rfind("http://") == 0) {
-        // FIXME: read it from ccdb
-        context.orbitResetTime = 490917600;
-      } else if (is_number(orbitResetTimeUrl)) {
-        context.orbitResetTime = std::stoull(orbitResetTimeUrl.data());
-        // FIXME: specify it from the command line
+      auto extLHCPeriod = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("lhc_period", "unspecified");
+      if (extLHCPeriod != "unspecified") {
+        context.lhcPeriod = extLHCPeriod;
       } else {
-        context.orbitResetTime = 490917600;
+        static const char* months[12] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+        time_t now = time(nullptr);
+        auto ltm = gmtime(&now);
+        context.lhcPeriod = months[ltm->tm_mon];
+        LOG(info) << "LHCPeriod is not available, using current month " << context.lhcPeriod;
       }
+
+      auto extRunType = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("run_type", "unspecified");
+      if (extRunType != "unspecified") {
+        context.runType = extRunType;
+      }
+      auto extEnvId = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("environment_id", "unspecified");
+      if (extEnvId != "unspecified") {
+        context.envId = extEnvId;
+      }
+      auto extDetectors = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("detectors", "unspecified");
+      if (extDetectors != "unspecified") {
+        context.detectors = extDetectors;
+      }
+      auto forcedRaw = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("force_run_as_raw", "false");
+      context.forcedRaw = forcedRaw == "true";
+
       context.nOrbitsPerTF = services.get<RawDeviceService>().device()->fConfig->GetProperty<uint64_t>("Norbits_per_TF", 128); },
     .kind = ServiceKind::Serial};
 }
@@ -306,7 +316,22 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                              .name = "infologger"};
       }
       auto infoLoggerContext = &services.get<InfoLoggerContext>();
-      infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, std::string("dpl/") + services.get<DeviceSpec const>().name);
+      // Only print the first 10 characters and the last 18 if the
+      // string length is greater than 32 bytes.
+      auto truncate = [](std::string in) -> std::string {
+        if (in.size() < 32) {
+          return in;
+        }
+        char name[32];
+        memcpy(name, in.data(), 10);
+        name[10] = '.';
+        name[11] = '.';
+        name[12] = '.';
+        memcpy(name + 13, in.data() + in.size() - 18, 18);
+        name[31] = 0;
+        return name;
+      };
+      infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, truncate(services.get<DeviceSpec const>().name));
       infoLoggerContext->setField(InfoLoggerContext::FieldName::System, std::string("DPL"));
       infoLoggerService->setContext(*infoLoggerContext);
 
@@ -402,10 +427,10 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
 {
   return ServiceSpec{
     .name = "timesliceindex",
-    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+    .init = [](ServiceRegistry& services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
       auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<TimesliceIndex>(),
-                           new TimesliceIndex(InputRouteHelpers::maxLanes(spec.inputs), spec.inputChannels.size())};
+                           new TimesliceIndex(InputRouteHelpers::maxLanes(spec.inputs), state.inputChannelInfos)};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
@@ -527,6 +552,119 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
     .kind = ServiceKind::Global};
 }
 
+// Decongestion service
+// If we do not have any Timeframe input, it means we must be creating timeslices
+// in order and that we should propagate the oldest possible timeslice at the end
+// of each processing step.
+o2::framework::ServiceSpec CommonServices::decongestionSpec()
+{
+  return ServiceSpec{
+    .name = "decongestion",
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      DecongestionService* decongestion = new DecongestionService();
+      for (auto& input : services.get<DeviceSpec const>().inputs) {
+        if (input.matcher.lifetime == Lifetime::Timeframe) {
+          LOGP(detail, "Found a Timeframe input, we cannot update the oldest possible timeslice");
+          decongestion->isFirstInTopology = false;
+          break;
+        }
+      }
+      auto& queue = services.get<AsyncQueue>();
+      decongestion->oldestPossibleTimesliceTask = AsyncQueueHelpers::create(queue, {"oldest-possible-timeslice", 100});
+      return ServiceHandle{TypeIdHelpers::uniqueId<DecongestionService>(), decongestion, ServiceKind::Serial};
+    },
+    .postForwarding = [](ProcessingContext& ctx, void* service) {
+      DecongestionService* decongestion = reinterpret_cast<DecongestionService*>(service);
+      if (decongestion->isFirstInTopology == false) {
+        LOGP(debug, "We are not the first in the topology, do not update the oldest possible timeslice");
+        return;
+      }
+      auto& timesliceIndex = ctx.services().get<TimesliceIndex>();
+      auto& relayer = ctx.services().get<DataRelayer>();
+      timesliceIndex.updateOldestPossibleOutput();
+      auto& proxy = ctx.services().get<FairMQDeviceProxy>();
+      auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
+      if (decongestion->lastTimeslice && oldestPossibleOutput.timeslice.value == decongestion->lastTimeslice) {
+        LOGP(debug, "Not sending already sent value");
+        return;
+      }
+      if (oldestPossibleOutput.timeslice.value < decongestion->lastTimeslice) {
+        LOGP(error, "We are trying to send an oldest possible timeslice {} that is older than the last one we already sent {}",
+             oldestPossibleOutput.timeslice.value, decongestion->lastTimeslice);
+        return;
+      }
+
+      LOGP(debug, "Broadcasting possible output {} due to {} ({})", oldestPossibleOutput.timeslice.value,
+           oldestPossibleOutput.slot.index == -1 ? "channel" : "slot",
+           oldestPossibleOutput.slot.index == -1 ? oldestPossibleOutput.channel.value: oldestPossibleOutput.slot.index);
+      DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
+
+      for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
+        auto& info = proxy.getForwardChannelInfo(ChannelIndex{fi});
+        auto& state = proxy.getForwardChannelState(ChannelIndex{fi});
+        // TODO: this we could cache in the proxy at the bind moment.
+        if (info.channelType != ChannelAccountingType::DPL) {
+          LOG(debug) << "Skipping channel";
+          continue;
+        }
+        if (DataProcessingHelpers::sendOldestPossibleTimeframe(info, state, oldestPossibleOutput.timeslice.value)) {
+          LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}, prio 20", info.name, oldestPossibleOutput.timeslice.value);
+        }
+      }
+      decongestion->lastTimeslice = oldestPossibleOutput.timeslice.value; },
+    .domainInfoUpdated = [](ServiceRegistry& services, size_t oldestPossibleTimeslice, ChannelIndex channel) {
+      DecongestionService& decongestion = services.get<DecongestionService>();
+      auto& relayer = services.get<DataRelayer>();
+      auto& timesliceIndex = services.get<TimesliceIndex>();
+      auto& proxy = services.get<FairMQDeviceProxy>();
+      LOGP(debug, "Received oldest possible timeframe {} from channel {}", oldestPossibleTimeslice, channel.value);
+      relayer.setOldestPossibleInput({oldestPossibleTimeslice}, channel);
+      timesliceIndex.updateOldestPossibleOutput();
+      auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
+
+      if (oldestPossibleOutput.timeslice.value == decongestion.lastTimeslice) {
+        LOGP(debug, "Not sending already sent value");
+        return;
+      }
+      if (oldestPossibleOutput.timeslice.value < decongestion.lastTimeslice) {
+        LOGP(error, "We are trying to send an oldest possible timeslice {} that is older than the last one we sent {}",
+             oldestPossibleOutput.timeslice.value, decongestion.lastTimeslice);
+        return;
+      }
+      LOGP(debug, "Broadcasting possible output {}", oldestPossibleOutput.timeslice.value);
+      auto &queue = services.get<AsyncQueue>();
+      DeviceSpec const& spec = services.get<DeviceSpec const>();
+      auto *device = services.get<RawDeviceService>().device();
+      /// We use the oldest possible timeslice to debuounce, so that only the latest one
+      /// at the end of one iteration is sent.
+      LOGP(debug, "Queueing oldest possible timeslice {} propagation for execution.", oldestPossibleOutput.timeslice.value);
+      AsyncQueueHelpers::post(
+        queue, decongestion.oldestPossibleTimesliceTask, [oldestPossibleOutput, &decongestion, &proxy, &spec, device, &timesliceIndex]() {
+          if (decongestion.lastTimeslice >= oldestPossibleOutput.timeslice.value) {
+            LOGP(debug, "Not sending already sent value {} >= {}", decongestion.lastTimeslice, oldestPossibleOutput.timeslice.value);
+            return;
+          }
+          LOGP(debug, "Running oldest possible timeslice {} propagation.", oldestPossibleOutput.timeslice.value);
+          DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
+
+          for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
+            auto& info = proxy.getForwardChannelInfo(ChannelIndex{fi});
+            auto& state = proxy.getForwardChannelState(ChannelIndex{fi});
+            // TODO: this we could cache in the proxy at the bind moment.
+            if (info.channelType != ChannelAccountingType::DPL) {
+              LOG(debug) << "Skipping channel";
+              continue;
+            }
+            if (DataProcessingHelpers::sendOldestPossibleTimeframe(info, state, oldestPossibleOutput.timeslice.value)) {
+              LOGP(debug, "Forwarding to channel {} oldest possible timeslice {}, prio 20", info.name, oldestPossibleOutput.timeslice.value);
+            }
+          }
+          decongestion.lastTimeslice = oldestPossibleOutput.timeslice.value;
+        },
+        TimesliceId{oldestPossibleTimeslice}, -1); },
+    .kind = ServiceKind::Serial};
+}
+
 // FIXME: allow configuring the default number of threads per device
 //        This should probably be done by overriding the preFork
 //        callback and using the boost program options there to
@@ -555,12 +693,12 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
 namespace
 {
 /// This will send metrics for the relayer at regular intervals of
-/// 5 seconds, in order to avoid overloading the system.
+/// 15 seconds, in order to avoid overloading the system.
 auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -> void
 {
   auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastSlowMetricSentTimestamp;
   auto timeSinceLastLongUpdate = stats.beginIterationTimestamp - stats.lastVerySlowMetricSentTimestamp;
-  if (timeSinceLastUpdate < 5000) {
+  if (timeSinceLastUpdate < 15000) {
     return;
   }
   // Derive the amount of shared memory used
@@ -720,6 +858,39 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
     .kind = ServiceKind::Serial};
 }
 
+struct GUIMetrics {
+};
+
+o2::framework::ServiceSpec CommonServices::guiMetricsSpec()
+{
+  return ServiceSpec{
+    .name = "gui-metrics",
+    .init = [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
+      GUIMetrics* stats = new GUIMetrics();
+      auto& monitoring = services.get<Monitoring>();
+      auto& spec = services.get<DeviceSpec const>();
+      monitoring.send({(int)spec.inputChannels.size(), fmt::format("oldest_possible_timeslice/h"), o2::monitoring::Verbosity::Debug});
+      monitoring.send({(int)1, fmt::format("oldest_possible_timeslice/w"), o2::monitoring::Verbosity::Debug});
+      monitoring.send({(int)spec.outputChannels.size(), fmt::format("oldest_possible_output/h"), o2::monitoring::Verbosity::Debug});
+      monitoring.send({(int)1, fmt::format("oldest_possible_output/w"), o2::monitoring::Verbosity::Debug});
+      return ServiceHandle{TypeIdHelpers::uniqueId<GUIMetrics>(), stats};
+    },
+    .configure = noConfiguration(),
+    .postProcessing = [](ProcessingContext& context, void* service) {
+      auto& relayer = context.services().get<DataRelayer>();
+      auto& monitoring = context.services().get<Monitoring>();
+      auto& spec = context.services().get<DeviceSpec const>();
+      auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
+      for (size_t ci; ci < spec.outputChannels.size(); ++ci) {
+        monitoring.send({(uint64_t)oldestPossibleOutput.timeslice.value, fmt::format("oldest_possible_output/{}", ci), o2::monitoring::Verbosity::Debug});
+      } },
+    .domainInfoUpdated = [](ServiceRegistry& registry, size_t timeslice, ChannelIndex channel) {
+      auto& monitoring = registry.get<Monitoring>();
+      monitoring.send({(uint64_t)timeslice, fmt::format("oldest_possible_timeslice/{}", channel.value), o2::monitoring::Verbosity::Debug}); },
+    .active = false,
+    .kind = ServiceKind::Serial};
+}
+
 o2::framework::ServiceSpec CommonServices::objectCache()
 {
   return ServiceSpec{
@@ -735,6 +906,7 @@ o2::framework::ServiceSpec CommonServices::objectCache()
 std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 {
   std::vector<ServiceSpec> specs{
+    asyncQueue(),
     timingInfoSpec(),
     timesliceIndex(),
     driverClientSpec(),
@@ -756,7 +928,11 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     CommonMessageBackends::fairMQBackendSpec(),
     ArrowSupport::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),
+    decongestionSpec(),
     CommonMessageBackends::rawBufferBackendSpec()};
+
+  // I should make it optional depending wether the GUI is there or not...
+  specs.push_back(CommonServices::guiMetricsSpec());
   if (numThreads) {
     specs.push_back(threadPool(numThreads));
   }

@@ -19,7 +19,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "DataFormatsMID/ColumnData.h"
-#include "MIDSimulation/MCLabel.h"
+#include "DataFormatsMID/MCLabel.h"
 
 namespace o2
 {

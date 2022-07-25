@@ -16,6 +16,7 @@
 /mcDet/setMaxStepInLowDensityMaterials 10 m
 /mcMagField/setConstDistance 1 mm
 /mcDet/setIsZeroMagField true
+/mcControl/useRootRandom true # couple G4 random seed to gRandom
 
 # optical
 

@@ -9,6 +9,7 @@
 #include "TGeoManager.h"
 
 #include "FairRunSim.h"
+#include <FairRootFileSink.h>
 #include "FairRuntimeDb.h"
 #include "FairPrimaryGenerator.h"
 #include "FairBoxGenerator.h"
@@ -58,7 +59,7 @@ void run_sim_emcal(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   FairRunSim* run = new FairRunSim();
 
   run->SetName(mcEngine);      // Transport engine
-  run->SetOutputFile(outFile); // Output file
+  run->SetSink(new FairRootFileSink(outFile.Data())); // Output file
   FairRuntimeDb* rtdb = run->GetRuntimeDb();
 
   // Create media

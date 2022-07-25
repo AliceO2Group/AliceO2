@@ -45,11 +45,10 @@ class DataReaderTask : public Task
   void run(ProcessingContext& pc) final;
   bool isTimeFrameEmpty(ProcessingContext& pc);
   void endOfStream(o2::framework::EndOfStreamContext& ec) override;
-
-  void setParsingErrorLabels();
-  void buildHistograms();
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void updateTimeDependentParams(framework::ProcessingContext& pc);
   CruRawReader mReader;                  // this will do the parsing, of raw data passed directly through the flp(no compression)
   CompressedRawReader mCompressedReader; //this will handle the incoming compressed data from the flp
                                          // in both cases we pull the data from the vectors build message and pass on.
@@ -77,30 +76,9 @@ class DataReaderTask : public Task
   std::string mHistogramsFilename; // filename to use for histograms.
   o2::header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick
   bool mFixDigitEndCorruption{false};                                                     // fix the parsing of corrupt end of digit data. bounce over it.
-  o2::trd::TRDDataCountersPerTimeFrame mTimeFrameStats;                                   // TODO for compressed data this is going to come in for each subtimeframe
-                                                                                          // and we need to collate them.
-
-  TH2F* LinkError;
-  TH2F* LinkError1;
-  TH2F* LinkError2;
-  TH2F* LinkError3;
-  TH2F* LinkError4;
-  TH2F* LinkError5;
-  TH2F* LinkError6;
-  TH2F* LinkError7;
-  //std::array<TH2F*, constants::MAXLINKERRORHISTOGRAMS> mLinkErrors;
-  //std::array<TH2F*, constants::MAXPARSEERRORHISTOGRAMS> mParseErrors;
-  TList* mLinkErrors;
-  TList* mParseErrors;
-  TH1F* mTimeFrameTime;
-  TH1F* mTrackletParsingTime;
-  TH1F* mDigitParsingTime;
-  TH1F* mCruTime;
-  TH1F* mPackagingTime;
-  TH1F* mDataVersions;
-  TH1F* mDataVersionsMajor;
-  TH1F* mParsingErrors;
-  TFile* mRootFile;
+  o2::trd::TRDDataCountersPerTimeFrame mTimeFrameStats;                                   // TODO for compressed data this is going to come in for each subtimeframe and we need to collate them.
+  uint64_t mDigitPreviousTotal;                                                           // store the previous timeframes totals for tracklets and digits, to be able to get a diferential total
+  uint64_t mTrackletsPreviousTotal;
 };
 
 } // namespace o2::trd

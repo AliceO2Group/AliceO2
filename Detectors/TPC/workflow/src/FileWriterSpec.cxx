@@ -31,6 +31,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/InputRecordWalker.h"
+#include "Framework/DataTakingContext.h"
 
 #include "Headers/DataHeader.h"
 #include "CommonUtils/NameConf.h"
@@ -118,45 +119,23 @@ class FileWriterDevice : public Task
 
   void run(ProcessingContext& pc) final
   {
-    const std::string NAStr = "NA";
+    static bool initOnceDone = false;
+    if (!initOnceDone) {
+      initOnceDone = true;
+      mDataTakingContext = pc.services().get<DataTakingContext>();
+    }
 
-    const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
+    const std::string NAStr = "NA";
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
     auto oldRun = mRun;
     auto oldTF = mPresentTF;
     mRun = processing_helpers::getRunNumber(pc);
-    mPresentTF = dh->tfCounter;
-    mFirstTForbit = dh->firstTForbit;
-
-    auto oldEnv = mEnvironmentID;
-    {
-      auto envN = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("environment_id", NAStr);
-      if (envN != NAStr) {
-        mEnvironmentID = envN;
-      }
-    }
-    if ((oldRun != 0 && oldRun != mRun) || (!oldEnv.empty() && oldEnv != mEnvironmentID)) {
-      LOGP(warning, "RunNumber/Environment changed from {}/{} to {}/{}", oldRun, oldEnv, mRun, mEnvironmentID);
-      closeTreeAndFile();
-    }
-
-    // check for the LHCPeriod
-    if (mLHCPeriod.empty()) {
-      auto LHCPeriodStr = pc.services().get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("LHCPeriod", NAStr);
-      if (LHCPeriodStr != NAStr) {
-        mLHCPeriod = LHCPeriodStr;
-      } else {
-        const char* months[12] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
-        time_t now = time(nullptr);
-        auto ltm = gmtime(&now);
-        mLHCPeriod = months[ltm->tm_mon];
-        LOG(warning) << "LHCPeriod is not available, using current month " << mLHCPeriod;
-      }
-      mLHCPeriod += fmt::format("_{}", DetID::getName(DetID::TPC));
-    }
+    mPresentTF = tinfo.tfCounter;
+    mFirstTForbit = tinfo.firstTForbit;
 
     if (mWrite) {
       if (!mCollectedData.size() || mCollectedData.find(mPresentTF) == mCollectedData.end()) {
-        prepareTreeAndFile(dh);
+        prepareTreeAndFile(tinfo);
       }
 
       fillData();
@@ -209,11 +188,9 @@ class FileWriterDevice : public Task
   std::unique_ptr<TTree> mTreeOut;                         ///< output tree
   std::unique_ptr<FileMetaData> mFileMetaData;             ///< meta data file for eos and alien file creation
   std::string mOutDir{};                                   ///< file output direcotry
-  std::string mLHCPeriod{};                                ///< LHC period under which to register the data on eos and alien
   std::string mMetaFileDir{"/dev/null"};                   ///< output directory for meta data file
   std::string mCurrentFileName{};                          ///< current file name
   std::string mCurrentFileNameFull{};                      ///< current file name with full directory
-  std::string mEnvironmentID{};                            ///< partition env. id
   uint64_t mRun = 0;                                       ///< present run number
   uint32_t mPresentTF = 0;                                 ///< present TF number
   uint32_t mFirstTForbit = 0;                              ///< first orbit of present tf
@@ -225,15 +202,15 @@ class FileWriterDevice : public Task
   bool mWrite = true;                                      ///< write data
   bool mCreateRunEnvDir = true;                            ///< create the output directory structure?
   BranchType mBranchType;                                  ///< output branch type
-
+  o2::framework::DataTakingContext mDataTakingContext{};
   static constexpr std::string_view TMPFileEnding{".part"};
 
-  void prepareTreeAndFile(const o2::header::DataHeader* dh);
+  void prepareTreeAndFile(const o2::framework::TimingInfo& tinfo);
   void closeTreeAndFile();
 };
 //___________________________________________________________________
 template <typename T>
-void FileWriterDevice<T>::prepareTreeAndFile(const o2::header::DataHeader* dh)
+void FileWriterDevice<T>::prepareTreeAndFile(const o2::framework::TimingInfo& tinfo)
 {
   if (!mWrite) {
     return;
@@ -249,7 +226,7 @@ void FileWriterDevice<T>::prepareTreeAndFile(const o2::header::DataHeader* dh)
   if (needToOpen) {
     LOGP(info, "opening new file");
     closeTreeAndFile();
-    // auto fname = o2::base::NameConf::getCTFFileName(mRun, dh->firstTForbit, dh->tfCounter, "tpc_krypton");
+    // auto fname = o2::base::NameConf::getCTFFileName(mRun, tinfo.firstTForbit, tinfo.tfCounter, "tpc_krypton");
     auto ctfDir = mOutDir.empty() ? o2::utils::Str::rectifyDirectory("./") : mOutDir;
     // if (mChkSize > 0 && (mDirFallBack != "/dev/null")) {
     // createLockFile(dh, 0);
@@ -260,8 +237,8 @@ void FileWriterDevice<T>::prepareTreeAndFile(const o2::header::DataHeader* dh)
     // ctfDir = mDirFallBack;
     // }
     // }
-    if (mCreateRunEnvDir && !mEnvironmentID.empty()) {
-      ctfDir += fmt::format("{}_{}/", mEnvironmentID, mRun);
+    if (mCreateRunEnvDir && !mDataTakingContext.envId.empty() && (mDataTakingContext.envId != o2::framework::DataTakingContext::UNKNOWN)) {
+      ctfDir += fmt::format("{}_{}/", mDataTakingContext.envId, mDataTakingContext.runNumber);
       if (!std::filesystem::exists(ctfDir)) {
         if (!std::filesystem::create_directories(ctfDir)) {
           throw std::runtime_error(fmt::format("Failed to create {} directory", ctfDir));
@@ -270,7 +247,7 @@ void FileWriterDevice<T>::prepareTreeAndFile(const o2::header::DataHeader* dh)
         }
       }
     }
-    mCurrentFileName = o2::base::NameConf::getCTFFileName(mRun, dh->firstTForbit, dh->tfCounter, "tpc_krypton");
+    mCurrentFileName = o2::base::NameConf::getCTFFileName(mRun, tinfo.firstTForbit, tinfo.tfCounter, "tpc_krypton");
     mCurrentFileNameFull = fmt::format("{}{}", ctfDir, mCurrentFileName);
     mFileOut.reset(TFile::Open(fmt::format("{}{}", mCurrentFileNameFull, TMPFileEnding).c_str(), "recreate")); // to prevent premature external usage, use temporary name
     mTreeOut = std::make_unique<TTree>(TreeName.at(mBranchType).data(), "O2 tree");
@@ -307,8 +284,7 @@ void FileWriterDevice<T>::closeTreeAndFile()
     // write  file metaFile data
     if (mStoreMetaFile) {
       mFileMetaData->fillFileData(mCurrentFileNameFull);
-      mFileMetaData->run = mRun;
-      mFileMetaData->LHCPeriod = mLHCPeriod;
+      mFileMetaData->setDataTakingContext(mDataTakingContext);
       mFileMetaData->type = "raw";
       auto metaFileNameTmp = fmt::format("{}{}.tmp", mMetaFileDir, mCurrentFileName);
       auto metaFileName = fmt::format("{}{}.done", mMetaFileDir, mCurrentFileName);

@@ -53,6 +53,28 @@ GPUReconstructionOCL::~GPUReconstructionOCL()
   }
 }
 
+int GPUReconstructionOCL::GPUFailedMsgAI(const long int error, const char* file, int line)
+{
+  // Check for OPENCL Error and in the case of an error display the corresponding error string
+  if (error == CL_SUCCESS) {
+    return (0);
+  }
+  GPUError("OCL Error: %ld / %s (%s:%d)", error, opencl_error_string(error), file, line);
+  return 1;
+}
+
+void GPUReconstructionOCL::GPUFailedMsgA(const long int error, const char* file, int line)
+{
+  if (GPUFailedMsgAI(error, file, line)) {
+    static bool runningCallbacks = false;
+    if (IsInitialized() && runningCallbacks == false) {
+      runningCallbacks = true;
+      CheckErrorCodes(false, true);
+    }
+    throw std::runtime_error("OpenCL Failure");
+  }
+}
+
 void GPUReconstructionOCL::UpdateSettings()
 {
   GPUCA_GPUReconstructionUpdateDefailts();
@@ -296,8 +318,9 @@ int GPUReconstructionOCL::InitDevice_Runtime()
     if (GPUFailedMsgI(ocl_error)) {
       quit("Error creating kernel");
     }
-    OCLsetKernelParameters(kernel, mInternals->mem_gpu, mInternals->mem_constant, mInternals->mem_host);
-    if (GPUFailedMsgI(clExecuteKernelA(mInternals->command_queue[0], kernel, 16, 16, nullptr)) ||
+
+    if (GPUFailedMsgI(OCLsetKernelParameters(kernel, mInternals->mem_gpu, mInternals->mem_constant, mInternals->mem_host)) ||
+        GPUFailedMsgI(clExecuteKernelA(mInternals->command_queue[0], kernel, 16, 16, nullptr)) ||
         GPUFailedMsgI(clFinish(mInternals->command_queue[0])) ||
         GPUFailedMsgI(clReleaseKernel(kernel)) ||
         GPUFailedMsgI(clReleaseProgram(program))) {

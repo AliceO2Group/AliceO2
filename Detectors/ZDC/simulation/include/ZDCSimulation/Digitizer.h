@@ -152,6 +152,7 @@ class Digitizer
   uint32_t mTriggerMask = 0;                                     // Trigger mask from ModuleConfig
   uint32_t mReadoutMask = 0;                                     // Readout mask from ModuleConfig
   int32_t mNEmptyBCs = -1;                                       // Number of clean empty bunches for pedestal evaluation
+  float mPedFactor = 1;                                          // Pedestal scaling factor in digitization
   bool mMaskTriggerBits = true;                                  // Mask trigger bits with readout mask
   bool mSkipMCLabels = false;                                    // Skip MC labels in output
 

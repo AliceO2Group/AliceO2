@@ -23,10 +23,10 @@
 
 using namespace o2::framework;
 
-void sendEndOfStream(FairMQDevice& device, std::string channel)
+void sendEndOfStream(fair::mq::Device& device, std::string channel)
 {
-  FairMQParts parts;
-  FairMQMessagePtr payload(device.NewMessage());
+  fair::mq::Parts parts;
+  fair::mq::MessagePtr payload(device.NewMessage());
   SourceInfoHeader sih;
   sih.state = InputChannelState::Completed;
   o2::header::DataHeader dh;
@@ -70,9 +70,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
          o2::header::Stack headerStack{dh, dph};
 
          auto channelAlloc = o2::pmr::getTransportAllocator(service.device()->fChannels["downstream"][0].Transport());
-         FairMQMessagePtr headerMessage = o2::pmr::getMessage(std::move(headerStack), channelAlloc);
+         fair::mq::MessagePtr headerMessage = o2::pmr::getMessage(std::move(headerStack), channelAlloc);
 
-         FairMQParts out;
+         fair::mq::Parts out;
          out.AddPart(std::move(headerMessage));
          out.AddPart(std::move(msg));
          o2::header::hexDump("header", out.At(0)->GetData(), out.At(0)->GetSize(), 100);

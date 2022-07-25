@@ -89,8 +89,8 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
                                                 cfgc.options().get<std::string>("input-type"),
                                                 cfgc.options().get<std::string>("output-type"));
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);
 
-  return std::move(wf);
+  return wf;
 }

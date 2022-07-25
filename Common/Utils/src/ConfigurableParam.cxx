@@ -191,6 +191,13 @@ void ConfigurableParam::writeINI(std::string const& filename, std::string const&
 
 // ------------------------------------------------------------------
 
+bool ConfigurableParam::configFileExists(std::string const& filepath)
+{
+  return std::filesystem::exists(o2::utils::Str::concat_string(sInputDir, filepath));
+}
+
+// ------------------------------------------------------------------
+
 boost::property_tree::ptree ConfigurableParam::readConfigFile(std::string const& filepath)
 {
   auto inpfilename = o2::utils::Str::concat_string(sInputDir, filepath);

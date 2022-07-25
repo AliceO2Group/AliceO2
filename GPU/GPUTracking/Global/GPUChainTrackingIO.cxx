@@ -32,6 +32,7 @@
 #include "GPUReconstructionConvert.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPUTrackingInputProvider.h"
+#include "TPCZSLinkMapping.h"
 
 #ifdef GPUCA_HAVE_O2HEADERS
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -91,9 +92,14 @@ void GPUChainTracking::DumpData(const char* filename)
       const char* ptrs[NSLICES];
       size_t sizes[NSLICES];
       for (unsigned int i = 0; i < NSLICES; i++) {
-        const auto& buffer = mIOPtrs.tpcPackedDigits->tpcDigitsMC->v[i]->getBuffer();
-        ptrs[i] = buffer.data();
-        sizes[i] = buffer.size();
+        if (mIOPtrs.tpcPackedDigits->tpcDigitsMC->v[i]) {
+          const auto& buffer = mIOPtrs.tpcPackedDigits->tpcDigitsMC->v[i]->getBuffer();
+          ptrs[i] = buffer.data();
+          sizes[i] = buffer.size();
+        } else {
+          ptrs[i] = nullptr;
+          sizes[i] = 0;
+        }
       }
       DumpData(fp, ptrs, sizes, InOutPointerType::TPC_DIGIT_MC);
     }
@@ -196,8 +202,12 @@ int GPUChainTracking::ReadData(const char* filename)
       mIOMem.tpcDigitMCMap = std::make_unique<GPUTPCDigitsMCInput>();
       mIOMem.tpcDigitMCView.reset(new ConstMCLabelContainerView[NSLICES]);
       for (unsigned int i = 0; i < NSLICES; i++) {
-        mIOMem.tpcDigitMCView.get()[i] = gsl::span<const char>(ptrs[i], ptrs[i] + sizes[i]);
-        mIOMem.tpcDigitMCMap->v[i] = mIOMem.tpcDigitMCView.get() + i;
+        if (sizes[i]) {
+          mIOMem.tpcDigitMCView.get()[i] = gsl::span<const char>(ptrs[i], ptrs[i] + sizes[i]);
+          mIOMem.tpcDigitMCMap->v[i] = mIOMem.tpcDigitMCView.get() + i;
+        } else {
+          mIOMem.tpcDigitMCMap->v[i] = nullptr;
+        }
       }
       mIOMem.digitMap->tpcDigitsMC = mIOMem.tpcDigitMCMap.get();
     }
@@ -286,6 +296,11 @@ void GPUChainTracking::DumpSettings(const char* dir)
     f += "tpcpadgaincalib.dump";
     DumpStructToFile(processors()->calibObjects.tpcPadGain, f.c_str());
   }
+  if (processors()->calibObjects.tpcZSLinkMapping != nullptr) {
+    f = dir;
+    f += "tpczslinkmapping.dump";
+    DumpStructToFile(processors()->calibObjects.tpcZSLinkMapping, f.c_str());
+  }
 #ifdef GPUCA_HAVE_O2HEADERS
   if (processors()->calibObjects.dEdxCalibContainer != nullptr) {
     f = dir;
@@ -316,6 +331,10 @@ void GPUChainTracking::ReadSettings(const char* dir)
   f += "tpcpadgaincalib.dump";
   mTPCPadGainCalibU = ReadStructFromFile<TPCPadGainCalib>(f.c_str());
   processors()->calibObjects.tpcPadGain = mTPCPadGainCalibU.get();
+  f = dir;
+  f += "tpczslinkmapping.dump";
+  mTPCZSLinkMappingU = ReadStructFromFile<TPCZSLinkMapping>(f.c_str());
+  processors()->calibObjects.tpcZSLinkMapping = mTPCZSLinkMappingU.get();
 #ifdef GPUCA_HAVE_O2HEADERS
   f = dir;
   f += "dEdxCalibContainer.dump";

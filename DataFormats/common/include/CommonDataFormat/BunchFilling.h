@@ -79,7 +79,10 @@ class BunchFilling
   int getLastFilledBC(int dir = -1) const;
 
   // print pattern of bunches, dir=0,1: for C,A beams, dir=-1: for interacting BCs, otherwise: all
-  void print(int dir = -2, int bcPerLine = 100) const;
+  void print(int dir = -2, bool filledOnly = true, int bcPerLine = 20) const;
+
+  // get vector with filled BCs
+  std::vector<int> getFilledBCs(int dir = -1) const;
 
   // set BC filling a la TPC TDR, 12 50ns trains of 48 BCs
   // but instead of uniform train spacing we add 96empty BCs after each train

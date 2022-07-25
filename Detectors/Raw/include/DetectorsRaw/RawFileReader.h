@@ -39,8 +39,10 @@ struct ReaderInp {
   std::string inifile{};
   std::string rawChannelConfig{};
   std::string dropTF{};
+  std::string metricChannel{};
   size_t spSize = 1024L * 1024L;
   size_t bufferSize = 1024L * 1024L;
+  size_t minSHM = 0;
   int loop = 1;
   int runNumber = 0;
   uint32_t delay_us = 0;

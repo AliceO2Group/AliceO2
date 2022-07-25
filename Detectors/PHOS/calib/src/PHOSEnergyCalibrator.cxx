@@ -60,7 +60,6 @@ void PHOSEnergySlot::fill(const gsl::span<const Cluster>& clusters, const gsl::s
     mDigits.push_back(h.mDataWord);
     mDigits.push_back(tr.getBCData().orbit);
 
-    int iclu = 0;
     int firstCluInEvent = tr.getFirstEntry();
     int lastCluInEvent = firstCluInEvent + tr.getNumberOfObjects();
 
@@ -74,7 +73,7 @@ void PHOSEnergySlot::fill(const gsl::span<const Cluster>& clusters, const gsl::s
 
       uint32_t firstCE = clu.getFirstCluEl();
       uint32_t lastCE = clu.getLastCluEl();
-      for (int idig = firstCE; idig < lastCE; idig++) {
+      for (uint32_t idig = firstCE; idig < lastCE; idig++) {
         const CluElement& ce = cluelements[idig];
         if (ce.energy < mDigitEmin) {
           continue;
@@ -112,7 +111,7 @@ void PHOSEnergySlot::fillTimeMassHisto(const Cluster& clu, const gsl::span<const
   uint32_t firstCE = clu.getFirstCluEl();
   uint32_t lastCE = clu.getLastCluEl();
 
-  for (int idig = firstCE; idig < lastCE; idig++) {
+  for (uint32_t idig = firstCE; idig < lastCE; idig++) {
     const CluElement& ce = cluelements[idig];
     short absId = ce.absId;
     if (ce.isHG) {

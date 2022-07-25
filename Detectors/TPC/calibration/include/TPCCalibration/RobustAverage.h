@@ -76,6 +76,9 @@ class RobustAverage
   /// \return returns mean of stored values
   float getMean() const { return mValues.empty() ? 0 : getMean(mValues.begin(), mValues.end()); }
 
+  /// \return returns the median
+  float getMedian();
+
   /// \return returns weighted mean of stored values
   float getWeightedMean() const { return getWeightedMean(mValues.begin(), mValues.end(), mWeights.begin(), mWeights.end()); }
 

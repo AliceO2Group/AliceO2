@@ -45,6 +45,10 @@
 
 namespace o2
 {
+namespace tpc
+{
+class VDriftCorrFact;
+}
 
 namespace globaltracking
 {
@@ -103,6 +107,10 @@ class MatchTOF
   void setTimeTolerance(float val) { mTimeTolerance = val; }
   ///< get tolerance on track-TOF times comparison
   float getTimeTolerance() const { return mTimeTolerance; }
+  ///< set extra time tolerance on trackTRD-TOF times comparison
+  void setExtraTimeToleranceTRD(float val) { mExtraTimeToleranceTRD = val; }
+  ///< get extra tolerance on trackTRD-TOF times comparison
+  float getExtraTimeToleranceTRD() const { return mExtraTimeToleranceTRD; }
 
   ///< set space tolerance on track-TOF times comparison // this in the old AliRoot was the TOF matching window
   void setSpaceTolerance(float val) { mSpaceTolerance = val; }
@@ -138,6 +146,10 @@ class MatchTOF
   std::vector<o2::dataformats::CalibInfoTOF>& getCalibVector() { return mCalibInfoTOF; }
 
   std::vector<o2::MCCompLabel>& getMatchedTOFLabelsVector(trkType index) { return mOutTOFLabels[index]; } ///< get vector of TOF label of matched tracks
+
+  void initTPCTransform();
+
+  void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
 
   ///< set input TPC tracks cluster indices
   void setTPCTrackClusIdxInp(const gsl::span<const o2::tpc::TPCClRefElem> inp)
@@ -216,6 +228,9 @@ class MatchTOF
   bool mMCTruthON = false; ///< flag availability of MC truth
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
+  float mTPCVDriftRef = -1.; ///< TPC nominal drift speed in cm/microseconds
+  float mTPCVDrift = -1.;    ///< TPC drift speed in cm/microseconds
+
   float mBz = 0;          ///< nominal Bz
   float mMaxInvPt = 999.; ///< derived from nominal Bz
 
@@ -224,10 +239,11 @@ class MatchTOF
   float mTPCTBinMUSInv = 0.; ///< inverse TPC time bin duration in microseconds
   float mTPCBin2Z = 0.;      ///< conversion coeff from TPC time-bin to Z
 
-  bool mIsCosmics = false;    ///< switch on to reconstruct cosmics and match with TPC
-  float mTimeTolerance = 1e3; ///< tolerance in ns for track-TOF time bracket matching
-  float mSpaceTolerance = 10; ///< tolerance in cm for track-TOF time bracket matching
-  int mSigmaTimeCut = 30.;    ///< number of sigmas to cut on time when matching the track to the TOF cluster
+  bool mIsCosmics = false;              ///< switch on to reconstruct cosmics and match with TPC
+  float mTimeTolerance = 1e3;           ///< tolerance in ns for track-TOF time bracket matching
+  float mExtraTimeToleranceTRD = 500E3; ///< extra tolerance in ns for track-TOF time bracket matching
+  float mSpaceTolerance = 10;           ///< tolerance in cm for track-TOF time bracket matching
+  int mSigmaTimeCut = 30.;              ///< number of sigmas to cut on time when matching the track to the TOF cluster
 
   bool mIsFIT = false;
   bool mIsITSTPCused = false;
@@ -250,6 +266,7 @@ class MatchTOF
   gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdx;            ///< input TPC track cluster indices span
   gsl::span<const unsigned char> mTPCRefitterShMap;                   ///< externally set TPC clusters sharing map
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
+
   std::unique_ptr<o2::gpu::TPCFastTransform> mTPCTransform;           ///< TPC cluster transformation
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter;         ///< TPC refitter used for TPC tracks refit during the reconstruction
 
@@ -303,7 +320,7 @@ class MatchTOF
   TStopwatch mTimerMatchITSTPC;
   TStopwatch mTimerMatchTPC;
   TStopwatch mTimerDBG;
-  ClassDefNV(MatchTOF, 3);
+  ClassDefNV(MatchTOF, 4);
 };
 } // namespace globaltracking
 } // namespace o2

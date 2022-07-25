@@ -155,13 +155,14 @@ void Detector::ConstructGeometry()
   SpaceFrame emcalframe;
   emcalframe.CreateGeometry();
 
-  //CreateEmcalEnvelope();
+  // CreateEmcalEnvelope();
 
   // COMPACT, TRD1
   LOG(debug2) << "Shish-Kebab geometry : " << GetTitle();
   CreateShiskebabGeometry();
 
   geom->DefineSamplingFraction(TVirtualMC::GetMC()->GetName(), TVirtualMC::GetMC()->GetTitle());
+  LOG(info) << "Using EMCAL sampling fraction " << geom->GetSampling() << " for " << TVirtualMC::GetMC()->GetName() << " / " << TVirtualMC::GetMC()->GetTitle();
 
   gGeoManager->CheckGeometry();
 }
@@ -251,24 +252,24 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     //
     Int_t smNumber = offset + copySmod - 1, smTypeID = 1;
     auto [iphi, ieta] = geom->GetCellPhiEtaIndexInSModule(smNumber, copyMod - 1, copyPhi - 1, copyEta - 1);
-    //iphi = std::get<0>(posetaphi);
-    //ieta = std::get<1>(posetaphi);
+    // iphi = std::get<0>(posetaphi);
+    // ieta = std::get<1>(posetaphi);
     if (smNumber % 2 == 0) {
       if (supermoduletype == DCAL_STANDARD) {
-        smTypeID = 3; //DCal supermodule. previous design/idea
+        smTypeID = 3; // DCal supermodule. previous design/idea
       } else {
         smTypeID = 2;
       }
       ieta = ((geom->GetCentersOfCellsEtaDir()).size() * 2 / smTypeID - 1) - ieta; // 47/31-ieta, revert the ordering on A side in order to keep convention.
     } else {
       if (supermoduletype == EMCAL_HALF) {
-        smTypeID = 2; //half supermodule. previous design/idea
+        smTypeID = 2; // half supermodule. previous design/idea
       }
       if (supermoduletype == EMCAL_THIRD) {
-        smTypeID = 3; //one third (installed in 2012) supermodule
+        smTypeID = 3; // one third (installed in 2012) supermodule
       }
       if (supermoduletype == DCAL_EXT) {
-        smTypeID = 3; //one third (installed in 2012) supermodule
+        smTypeID = 3; // one third (installed in 2012) supermodule
       }
       iphi = ((geom->GetCentersOfCellsPhiDir()).size() / smTypeID - 1) - iphi; // 23/7-iphi, revert the ordering on C side in order to keep convention.
     }

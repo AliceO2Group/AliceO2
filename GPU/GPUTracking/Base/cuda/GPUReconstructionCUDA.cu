@@ -46,14 +46,17 @@ namespace o2::its
 class VertexerTraitsGPU : public VertexerTraits
 {
 };
-template <int NLayers>
+template <int NLayers = 7>
 class TrackerTraitsGPU : public TrackerTraits
 {
 };
-template <int NLayers>
-class gpu::TimeFrameGPU : public TimeFrame
+namespace gpu
+{
+template <int NLayers = 7>
+class TimeFrameGPU : public TimeFrame
 {
 };
+} // namespace gpu
 } // namespace o2::its
 #endif
 
@@ -71,6 +74,28 @@ GPUReconstructionCUDABackend::~GPUReconstructionCUDABackend()
       cuModuleUnload(*mInternals->rtcModules[i]);
     }
     delete mInternals;
+  }
+}
+
+int GPUReconstructionCUDABackend::GPUFailedMsgAI(const long long int error, const char* file, int line)
+{
+  // Check for CUDA Error and in the case of an error display the corresponding error string
+  if (error == cudaSuccess) {
+    return (0);
+  }
+  GPUError("CUDA Error: %lld / %s (%s:%d)", error, cudaGetErrorString((cudaError_t)error), file, line);
+  return 1;
+}
+
+void GPUReconstructionCUDABackend::GPUFailedMsgA(const long long int error, const char* file, int line)
+{
+  if (GPUFailedMsgAI(error, file, line)) {
+    static bool runningCallbacks = false;
+    if (IsInitialized() && runningCallbacks == false) {
+      runningCallbacks = true;
+      CheckErrorCodes(false, true);
+    }
+    throw std::runtime_error("CUDA Failure");
   }
 }
 

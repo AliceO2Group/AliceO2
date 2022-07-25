@@ -21,8 +21,12 @@
 // or submit itself to any jurisdiction.
 
 // example to run:
-// o2-ctp-proxy --ctp-proxy '--channel-config "name=ctp-proxy,type=sub,method=connect,address=tcp://127.0.0.1:5556,rateLogging=1,transport=zeromq"'
-// o2-ctp-proxy --ctp-proxy '--channel-config "name=ctp-proxy,type=sub,method=connect,address=tcp://188.185.88.65:50090,rateLogging=1,transport=zeromq"' -b
+// default: processing , intermal database
+// o2-ctp-proxy --ctp-proxy '--channel-config "name=ctp-proxy,type=sub,method=connect,address=tcp://10.161.64.100:50090,rateLogging=5,transport=zeromq"' -b
+// no processing
+// o2-ctp-proxy --ctp-proxy '--channel-config "name=ctp-proxy,type=sub,method=connect,address=tcp://10.161.64.100:50090,rateLogging=5,transport=zeromq"' --for-qc -b
+// processing, test database
+// o2-ctp-proxy --ctp-proxy '--channel-config "name=ctp-proxy,type=sub,method=connect,address=tcp://10.161.64.100:50090,rateLogging=5,transport=zeromq"' '--ccdb-host=http://ccdb-test.cern.ch:8080' -b
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
@@ -34,22 +38,24 @@
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Headers/DataHeaderHelpers.h"
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Device.h>
+#include <fairmq/Parts.h>
 #include "CommonUtils/StringUtils.h"
 #include "DataFormatsCTP/Configuration.h"
-#include "CCDB/CcdbApi.h"
-#include "CCDB/BasicCCDBManager.h"
 #include <vector>
 #include <string>
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
-InjectorFunction dcs2dpl()
+InjectorFunction dcs2dpl(bool qc, std::string& ccdbhost)
+// InjectorFunction dcs2dpl()
 {
-
   auto timesliceId = std::make_shared<size_t>(0);
-
-  return [timesliceId](TimingInfo&, FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
+  auto runMgr = std::make_shared<o2::ctp::CTPRunManager>();
+  runMgr->setCCDBHost(ccdbhost);
+  runMgr->setCTPQC(qc);
+  runMgr->init();
+  return [timesliceId, runMgr](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
     // make sure just 2 messages received
     if (parts.Size() != 2) {
       LOG(error) << "received " << parts.Size() << " instead of 2 expected";
@@ -59,51 +65,34 @@ InjectorFunction dcs2dpl()
     size_t dataSize = parts.At(1)->GetSize();
     std::string messageData{static_cast<const char*>(parts.At(1)->GetData()), parts.At(1)->GetSize()};
     LOG(info) << "received message " << messageHeader << " of size " << dataSize; // << " Payload:" << messageData;
-    if ((messageHeader.find("ctpconfig") != std::string::npos) && (dataSize < 2000)) {
-      LOG(info) << "CTP config received";
-      o2::ctp::CTPConfiguration ctpconfig;
-      ctpconfig.loadConfigurationRun3(messageData);
-      // data base
-      long tmin = 0;
-      long tmax = -1;
-      std::string ccdbHost = "http://ccdb-test.cern.ch:8080";
-      o2::ccdb::CcdbApi api;
-      map<string, string> metadata; // can be empty
-      api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
-      // store abitrary user object in strongly typed manner
-      api.storeAsTFileAny(&ctpconfig, o2::ctp::CCDBPathCTPConfig, metadata, tmin, tmax);
-      LOG(info) << "CTP config in database" << std::endl
-                << std::flush;
-    } else {
-      o2::header::DataHeader hdrF("CTP_COUNTERS", o2::header::gDataOriginCTP, 0);
-      OutputSpec outsp{hdrF.dataOrigin, hdrF.dataDescription, hdrF.subSpecification};
-      auto channel = channelRetriever(outsp, *timesliceId);
-      if (channel.empty()) {
-        LOG(error) << "No output channel found for OutputSpec " << outsp;
-        return;
-      }
-
-      hdrF.tfCounter = *timesliceId; // this also
-      hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
-      hdrF.splitPayloadParts = 1;
-      hdrF.splitPayloadIndex = 0;
-      hdrF.payloadSize = parts.At(1)->GetSize();
-      hdrF.firstTForbit = 0; // this should be irrelevant for Counters ? Orbit is in payload
-
-      auto fmqFactory = device.GetChannel(channel).Transport();
-
-      o2::header::Stack headerStackF{hdrF, DataProcessingHeader{*timesliceId, 1}};
-      auto hdMessageF = fmqFactory->CreateMessage(headerStackF.size(), fair::mq::Alignment{64});
-      auto plMessageF = fmqFactory->CreateMessage(hdrF.payloadSize, fair::mq::Alignment{64});
-      memcpy(hdMessageF->GetData(), headerStackF.data(), headerStackF.size());
-      memcpy(plMessageF->GetData(), parts.At(1)->GetData(), hdrF.payloadSize);
-
-      FairMQParts outParts;
-      outParts.AddPart(std::move(hdMessageF));
-      outParts.AddPart(std::move(plMessageF));
-      sendOnChannel(device, outParts, channel, *timesliceId);
-      LOG(info) << "Sent CTP counters DPL message" << std::flush;
+    o2::header::DataHeader hdrF("CTP_COUNTERS", o2::header::gDataOriginCTP, 0);
+    OutputSpec outsp{hdrF.dataOrigin, hdrF.dataDescription, hdrF.subSpecification};
+    auto channel = channelRetriever(outsp, *timesliceId);
+    if (channel.empty()) {
+      LOG(error) << "No output channel found for OutputSpec " << outsp;
+      return;
     }
+    runMgr->processMessage(messageHeader, messageData);
+    hdrF.tfCounter = *timesliceId; // this also
+    hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
+    hdrF.splitPayloadParts = 1;
+    hdrF.splitPayloadIndex = 0;
+    hdrF.payloadSize = parts.At(1)->GetSize();
+    hdrF.firstTForbit = 0; // this should be irrelevant for Counters ? Orbit is in payload
+
+    auto fmqFactory = device.GetChannel(channel).Transport();
+
+    o2::header::Stack headerStackF{hdrF, DataProcessingHeader{*timesliceId, 1}};
+    auto hdMessageF = fmqFactory->CreateMessage(headerStackF.size(), fair::mq::Alignment{64});
+    auto plMessageF = fmqFactory->CreateMessage(hdrF.payloadSize, fair::mq::Alignment{64});
+    memcpy(hdMessageF->GetData(), headerStackF.data(), headerStackF.size());
+    memcpy(plMessageF->GetData(), parts.At(1)->GetData(), hdrF.payloadSize);
+
+    fair::mq::Parts outParts;
+    outParts.AddPart(std::move(hdMessageF));
+    outParts.AddPart(std::move(plMessageF));
+    sendOnChannel(device, outParts, channel, *timesliceId);
+    LOG(info) << "Sent CTP counters DPL message" << std::flush;
   };
 }
 
@@ -111,6 +100,8 @@ InjectorFunction dcs2dpl()
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(ConfigParamSpec{"subscribe-to", VariantType::String, "type=sub,method=connect,address=tcp://188.184.30.57:5556,rateLogging=10,transport=zeromq", {"channel subscribe to"}});
+  workflowOptions.push_back(ConfigParamSpec{"for-qc", VariantType::Bool, false, {"disable processing messages in run manager"}});
+  workflowOptions.push_back(ConfigParamSpec{"ccdb-host", VariantType::String, "http://o2-ccdb.internal:8080", {"ccdb host"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -132,6 +123,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   };
   const std::string devName = "ctp-proxy";
   auto chan = config.options().get<std::string>("subscribe-to");
+  bool qc = config.options().get<bool>("for-qc");
+  std::string ccdbhost = config.options().get<std::string>("ccdb-host");
   if (chan.empty()) {
     throw std::runtime_error("input channel is not provided");
   }
@@ -146,7 +139,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     std::move(ctpCountersOutputs),
     // this is just default, can be overriden by --ctp-config-proxy '--channel-config..'
     chan.c_str(),
-    dcs2dpl());
+    dcs2dpl(qc, ccdbhost));
   LOG(info) << "===> Proxy done";
   WorkflowSpec workflow;
   workflow.emplace_back(ctpProxy);

@@ -15,6 +15,7 @@ o2_add_library(CPVCalibration
                TARGETVARNAME targetName
                SOURCES src/NoiseCalibrator.cxx
                        src/PedestalCalibrator.cxx
+                       src/GainCalibrator.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsCPV
                                      O2::CPVBase
                                      O2::DetectorsCalibration
@@ -22,7 +23,8 @@ o2_add_library(CPVCalibration
 
 o2_target_root_dictionary(CPVCalibration
                           HEADERS include/CPVCalibration/NoiseCalibrator.h
-                                  include/CPVCalibration/PedestalCalibrator.h)
+                                  include/CPVCalibration/PedestalCalibrator.h
+                                  include/CPVCalibration/GainCalibrator.h)
 
 o2_add_executable(cpv-calib-workflow
                   COMPONENT_NAME calibration
@@ -30,15 +32,24 @@ o2_add_executable(cpv-calib-workflow
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::CPVCalibration
                                         O2::DetectorsCalibration
+                                        O2::CPVBase
                                         O2::DataFormatsCPV)
 
 if(BUILD_TESTING)
   o2_add_test_root_macro(macros/readPedestalsFromCCDB.C
-                         PUBLIC_LINK_LIBRARIES O2::CCDB O2::DataFormatsCPV
+                         PUBLIC_LINK_LIBRARIES O2::CCDB O2::CPVBase O2::DataFormatsCPV
                          LABELS CPV COMPILE_ONLY)
 
   o2_add_test_root_macro(macros/readBadChannelMapFromCCDB.C
                          PUBLIC_LINK_LIBRARIES O2::CCDB O2::CPVBase O2::DataFormatsCPV
+                         LABELS CPV COMPILE_ONLY)
+
+  o2_add_test_root_macro(macros/readCalibParamsFromCCDB.C
+                         PUBLIC_LINK_LIBRARIES O2::CCDB O2::CPVBase O2::DataFormatsCPV
+                         LABELS CPV COMPILE_ONLY)
+
+  o2_add_test_root_macro(macros/readGainCalibDataFromCCDB.C
+                         PUBLIC_LINK_LIBRARIES O2::CCDB O2::CPVBase O2::CPVCalibration
                          LABELS CPV COMPILE_ONLY)
 
   o2_add_test_root_macro(macros/readPedEfficienciesFromCCDB.C

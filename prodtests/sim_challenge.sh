@@ -10,10 +10,11 @@
 if [ -z "$SHMSIZE" ]; then export SHMSIZE=10000000000; fi
 
 # default run number
+# (for now set to a pilot beam run until we have all CCDB objects for default unanchored MC)
 runNumDef=300000
 
-# default time stamp
-startTimeDef=$(($(date +%s%N)/1000000))
+# default time stamp --> will be determined from run number during the sim stage
+# startTimeDef=$(($(date +%s%N)/1000000))
 
 # default number of events
 nevPP=10
@@ -110,9 +111,13 @@ fi
 
 
 if [ "$dosim" == "1" ]; then
+  #---- GRP creation ------
+  echo "Creating GRPs ... and publishing in local CCDB overwrite"
+  taskwrapper grp.log o2-grp-simgrp-tool createGRPs --run ${runNumber} --publishto GRP -o mcGRP
+
   #---------------------------------------------------
-  echo "Running simulation for $nev $collSyst events with $gener generator and engine $engine"
-  taskwrapper sim.log o2-sim -n"$nev" --configKeyValues "Diamond.width[2]=6." -g "$gener" -e "$engine" $simWorker
+  echo "Running simulation for $nev $collSyst events with $gener generator and engine $engine and run number $runNumber"
+  taskwrapper sim.log o2-sim -n"$nev" --configKeyValues "Diamond.width[2]=6." -g "$gener" -e "$engine" $simWorker --run ${runNumber}
 
   ##------ extract number of hits
   taskwrapper hitstats.log root -q -b -l ${O2_ROOT}/share/macro/analyzeHits.C
@@ -121,7 +126,7 @@ fi
 if [ "$dodigi" == "1" ]; then
   echo "Running digitization for $intRate kHz interaction rate"
   intRate=$((1000*(intRate)));
-  taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes --configKeyValues \""HBFUtils.startTime=$startTime;HBFUtils.runNumber=$runNumber;"\"
+  taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes --configKeyValues "HBFUtils.runNumber=${runNumber}"
   echo "Return status of digitization: $?"
   # existing checks
   #root -b -q O2/Detectors/ITSMFT/ITS/macros/test/CheckDigits.C+
@@ -216,16 +221,6 @@ if [ "$doreco" == "1" ]; then
   taskwrapper tofmatch_qa.log root -b -q -l $O2_ROOT/share/macro/checkTOFMatching.C
   echo "Return status of TOF matching qa: $?"
 
-  echo "Running primary vertex finding flow"
-  #needs results of TPC-ITS matching and FIT workflows
-  taskwrapper pvfinder.log o2-primary-vertexing-workflow $gloOpt
-  echo "Return status of primary vertexing: $?"
-
-  echo "Running secondary vertex finding flow"
-  #needs results of all trackers + P.Vertexer
-  taskwrapper svfinder.log o2-secondary-vertexing-workflow $gloOpt
-  echo "Return status of secondary vertexing: $?"
-
   echo "Running ZDC reconstruction"
   #need ZDC digits
   taskwrapper zdcreco.log o2-zdc-digits-reco $gloOpt
@@ -245,6 +240,16 @@ if [ "$doreco" == "1" ]; then
   #need CPV digits
   taskwrapper cpvreco.log o2-cpv-reco-workflow $gloOpt
   echo "Return status of CPV reconstruction: $?"
+
+  echo "Running primary vertex finding flow"
+  #needs results of TPC-ITS matching and FIT workflows
+  taskwrapper pvfinder.log o2-primary-vertexing-workflow $gloOpt --condition-remap file://./GRP=GLO/Config/GRPECS
+  echo "Return status of primary vertexing: $?"
+
+  echo "Running secondary vertex finding flow"
+  #needs results of all trackers + P.Vertexer
+  taskwrapper svfinder.log o2-secondary-vertexing-workflow $gloOpt
+  echo "Return status of secondary vertexing: $?"
 
   echo "Producing AOD"
   taskwrapper aod.log o2-aod-producer-workflow $gloOpt --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1 --run-number 300000

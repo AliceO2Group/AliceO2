@@ -19,6 +19,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/DataTakingContext.h"
 #include "DetectorsCommonDataFormats/FileMetaData.h"
 #include "DataFormatsPHOS/Cluster.h"
 #include "DataFormatsPHOS/BadChannelsMap.h"
@@ -54,12 +55,14 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
   }
 
  protected:
+  void updateTimeDependentParams(ProcessingContext& pc);
   void postHistosCCDB(o2::framework::EndOfStreamContext& ec);
   void fillOutputTree();
   void writeOutFile();
 
  private:
   static constexpr short kMaxCluInEvent = 64; /// maximal number of clusters per event to separate digits from them (6 bits in digit map)
+  o2::framework::DataTakingContext mDataTakingContext{};
   bool mUseCCDB = false;
   bool mHasCalib = false;
   bool mPostHistos = true; /// post colllected histos to ccdb
@@ -69,9 +72,10 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
   float mEminLGTime = 5.;
   float mEDigMin = 0.05;
   float mECluMin = 0.4;
-  std::string mOutputDir;   /// where to write calibration digits
-  std::string mFileName;    /// file name of output calib digits
-  std::string mMetaFileDir; /// where to store meta files
+  std::string mOutputDir;     /// where to write calibration digits
+  std::string mFileName;      /// file name of output calib digits
+  std::string mHistoFileName; /// file name of output calib digits
+  std::string mMetaFileDir;   /// where to store meta files
   std::string mLHCPeriod;
   int mRunNumber = -1;
   std::unique_ptr<PHOSEnergyCalibrator> mCalibrator; /// Agregator of calibration TimeFrameSlots
@@ -79,8 +83,10 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
   std::unique_ptr<const CalibParams> mCalibParams;   /// Latest bad channels map
   std::vector<uint32_t> mOutputDigits;               /// accumulated output digits
   std::unique_ptr<TFile> mFileOut;                   /// File to store output calib digits
+  std::unique_ptr<TFile> mHistoFileOut;              /// File to store output histograms
   std::unique_ptr<TTree> mTreeOut;                   /// Tree to store output calib digits
   std::unique_ptr<o2::dataformats::FileMetaData> mFileMetaData;
+  std::unique_ptr<o2::dataformats::FileMetaData> mHistoFileMetaData;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 };
 

@@ -17,6 +17,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #if defined(GPUCA_ALIROOT_LIB) & !defined(GPUCA_GPUCODE)
 
+#include "GPUCommonConstants.h"
 #include <iostream>
 #include <iomanip>
 #include <limits>

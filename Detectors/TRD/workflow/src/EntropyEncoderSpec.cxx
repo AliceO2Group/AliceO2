@@ -59,6 +59,8 @@ void EntropyEncoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matche
 void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 {
   mCTFCoder.init<CTF>(ic);
+  int checkBogus = ic.options().get<int>("bogus-trigger-check");
+  mCTFCoder.setCheckBogusTrig(checkBogus < 0 ? 0x7fffffff : checkBogus);
 }
 
 void EntropyEncoderSpec::run(ProcessingContext& pc)
@@ -69,12 +71,12 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto triggers = pc.inputs().get<gsl::span<TriggerRecord>>("triggers");
   auto tracklets = pc.inputs().get<gsl::span<Tracklet64>>("tracklets");
   auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
-
+  mCTFCoder.setFirstTFOrbit(pc.services().get<o2::framework::TimingInfo>().firstTForbit);
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"TRD", "CTFDATA", 0, Lifetime::Timeframe});
-  mCTFCoder.encode(buffer, triggers, tracklets, digits);
-  auto sz = mCTFCoder.finaliseCTFOutput<CTF>(buffer);
+  auto iosize = mCTFCoder.encode(buffer, triggers, tracklets, digits);
+  pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
-  LOG(info) << "Created encoded data of size " << sz << " for TRD in " << mTimer.CpuTime() - cput << " s";
+  LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -94,10 +96,12 @@ DataProcessorSpec getEntropyEncoderSpec()
   return DataProcessorSpec{
     "trd-entropy-encoder",
     inputs,
-    Outputs{{"TRD", "CTFDATA", 0, Lifetime::Timeframe}},
+    Outputs{{"TRD", "CTFDATA", 0, Lifetime::Timeframe},
+            {{"ctfrep"}, "TRD", "CTFENCREP", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
+            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
+            {"bogus-trigger-check", VariantType::Int, 10, {"max bogus triggers to report, all if < 0"}}}};
 }
 
 } // namespace trd

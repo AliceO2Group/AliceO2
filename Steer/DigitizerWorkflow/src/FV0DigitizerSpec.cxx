@@ -126,7 +126,7 @@ class FV0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
   o2::dataformats::MCTruthContainer<o2::fv0::MCLabel> mLabels; // labels which get filled
 
   // RS: at the moment using hardcoded flag for continuous readout
-  o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
+  o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::ROMode(o2::parameters::GRPObject::CONTINUOUS | o2::parameters::GRPObject::TRIGGERING); // readout mode
   bool mDisableQED = false;
 };
 

@@ -20,7 +20,8 @@
 BOOST_AUTO_TEST_CASE(TestBasics)
 {
   using namespace o2::framework;
-  TimesliceIndex index{1, 1};
+  std::vector<InputChannelInfo> infos{1};
+  TimesliceIndex index{1, infos};
   TimesliceSlot slot;
 
   BOOST_REQUIRE_EQUAL(index.size(), 0);
@@ -52,7 +53,8 @@ BOOST_AUTO_TEST_CASE(TestBasics)
 BOOST_AUTO_TEST_CASE(TestLRUReplacement)
 {
   using namespace o2::framework;
-  TimesliceIndex index{1, 1};
+  std::vector<InputChannelInfo> infos{1};
+  TimesliceIndex index{1, infos};
   index.resize(3);
   data_matcher::VariableContext context;
 
@@ -105,7 +107,8 @@ BOOST_AUTO_TEST_CASE(TestLRUReplacement)
 BOOST_AUTO_TEST_CASE(TestOldestPossibleTimeslice)
 {
   using namespace o2::framework;
-  TimesliceIndex index{2, 2};
+  std::vector<InputChannelInfo> infos{2};
+  TimesliceIndex index{2, infos};
 
   index.resize(3);
 

@@ -45,8 +45,7 @@ void Geo::Init()
   LOG(info) << "tof::Geo: Initialization of TOF rotation parameters";
 
   if (!gGeoManager) {
-    LOG(info) << " no TGeo! Loading it";
-    o2::base::GeometryManager::loadGeometry();
+    LOG(fatal) << "geometry is not loaded";
   }
 
   int det[5];

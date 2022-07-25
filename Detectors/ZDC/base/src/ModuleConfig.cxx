@@ -48,7 +48,7 @@ void Module::print() const
 
 void ModuleConfig::print() const
 {
-  printf("Modules configuration:\n");
+  printf("Modules configuration: baselineFactor = %f\n", baselineFactor);
   for (const auto& md : modules) {
     if (md.id >= 0) {
       md.printCh();
@@ -59,6 +59,43 @@ void ModuleConfig::print() const
       md.printTrig();
     }
   }
+  int ib = 0, nb = 0;
+  uint64_t one = 0x1;
+  std::string blist;
+  for (int i = 0; i < NWMap; i++) {
+    uint64_t val = emptyMap[i];
+    for (int j = 0; j < 64; j++) {
+      if ((val & (one << j)) != 0) { // Empty bunch
+        blist += (" " + std::to_string(ib));
+        nb++;
+      }
+      ib++;
+      if (ib == o2::constants::lhc::LHCMaxBunches) {
+        break;
+      }
+    }
+  }
+  LOG(info) << "Bunch list for baseline calculation:" << (nb == 0 ? " EMPTY" : blist);
+}
+
+//______________________________________________________________________________
+void ModuleConfig::resetMap()
+{
+  for (int i = 0; i < NWMap; i++) {
+    emptyMap[i] = 0;
+  }
+}
+
+//______________________________________________________________________________
+void ModuleConfig::addBunch(int ibunch)
+{
+  if (ibunch < 0 || ibunch >= o2::constants::lhc::LHCMaxBunches) {
+    LOG(fatal) << "ModuleConfig::addBunch out of range [0:3563] " << ibunch;
+  }
+  int iw = ibunch / 64;
+  int is = ibunch % 64;
+  uint64_t one = 0x1;
+  emptyMap[iw] = emptyMap[iw] | (one << is);
 }
 
 //______________________________________________________________________________
@@ -107,4 +144,40 @@ void Module::setChannel(int slot, int8_t chID, int16_t fID, bool read, bool trig
     trigChannelConf[slot].shift = tS;
     trigChannelConf[slot].threshold = tT;
   }
+}
+
+//______________________________________________________________________________
+uint32_t ModuleConfig::getTriggerMask() const
+{
+  uint32_t triggermask = 0;
+  for (int im = 0; im < NModules; im++) {
+    for (int ic = 0; ic < NChPerModule; ic++) {
+      if (modules[im].trigChannel[ic]) {
+        uint32_t tmask = 0x1 << (im * NChPerModule + ic);
+        triggermask = triggermask | tmask;
+      }
+    }
+  }
+  return triggermask;
+}
+
+std::string ModuleConfig::getPrintTriggerMask() const
+{
+  std::string printTriggerMask{};
+  for (int im = 0; im < NModules; im++) {
+    if (im > 0) {
+      printTriggerMask += " ";
+    }
+    printTriggerMask += std::to_string(im);
+    printTriggerMask += "[";
+    for (int ic = 0; ic < NChPerModule; ic++) {
+      if (modules[im].trigChannel[ic]) {
+        printTriggerMask += "T";
+      } else {
+        printTriggerMask += " ";
+      }
+    }
+    printTriggerMask += "]";
+  }
+  return printTriggerMask;
 }

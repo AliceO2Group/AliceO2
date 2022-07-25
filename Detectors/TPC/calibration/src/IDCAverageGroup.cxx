@@ -126,12 +126,15 @@ void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupTPC>::processIDCs(const Ca
     idcStruct[thread].setThreadNum(thread);
   }
 
+  const int cruStart = (mSide == Side::A) ? 0 : CRU::MaxCRU / 2;
+  const int cruEnd = (mSide == Side::A) ? CRU::MaxCRU / 2 : CRU::MaxCRU;
+
 #pragma omp parallel for num_threads(sNThreads)
-  for (unsigned int iCRU = 0; iCRU < CRU::MaxCRU; ++iCRU) {
+  for (unsigned int i = 0; i < cruEnd; ++i) {
     const unsigned int threadNum = omp_get_thread_num();
-    const CRU cru(iCRU);
+    const CRU cru(i);
     idcStruct[threadNum].setCRU(cru);
-    for (unsigned int integrationInterval = 0; integrationInterval < this->getNIntegrationIntervals(cru.side()); ++integrationInterval) {
+    for (unsigned int integrationInterval = 0; integrationInterval < this->getNIntegrationIntervals(); ++integrationInterval) {
       idcStruct[threadNum].setIntegrationInterval(integrationInterval);
       loopOverGroups(idcStruct[threadNum], padStatusFlags);
     }
@@ -440,7 +443,11 @@ bool o2::tpc::IDCAverageGroup<Type>::setFromFile(const char* fileName, const cha
     LOGP(error, "Failed to load {} from {}", name, inpf.GetName());
     return false;
   }
-  this->setIDCs(idcAverageGroupTmp->getIDCsUngrouped());
+  if constexpr (std::is_same_v<Type, IDCAverageGroupCRU>) {
+    this->setIDCs(idcAverageGroupTmp->getIDCsUngrouped());
+  } else {
+    this->setIDCs(idcAverageGroupTmp->getIDCsUngrouped(), idcAverageGroupTmp->getSide());
+  }
 
   delete idcAverageGroupTmp;
   return true;
@@ -468,7 +475,7 @@ void o2::tpc::IDCAverageGroup<o2::tpc::IDCAverageGroupTPC>::createDebugTree(cons
   for (unsigned int iCRU = 0; iCRU < CRU::MaxCRU; ++iCRU) {
     const CRU cru(iCRU);
     idcStruct.setCRU(cru);
-    for (unsigned int integrationInterval = 0; integrationInterval < this->getNIntegrationIntervals(cru.side()); ++integrationInterval) {
+    for (unsigned int integrationInterval = 0; integrationInterval < this->getNIntegrationIntervals(); ++integrationInterval) {
       idcStruct.setIntegrationInterval(integrationInterval);
       createDebugTree(idcStruct, pcstream);
     }

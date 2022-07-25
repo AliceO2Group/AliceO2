@@ -29,15 +29,14 @@
 #include "DataFormatsParameters/GRPLHCIFData.h"
 #include "DataFormatsParameters/GRPECSObject.h"
 #include "DataFormatsParameters/GRPMagField.h"
-#include "DataFormatsParameters/GRPMagField.h"
 
 using DetID = o2::detectors::DetID;
 using namespace o2::base;
 using namespace o2::framework;
 namespace o2d = o2::dataformats;
 
-GRPGeomRequest::GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs)
-  : askGRPECS(GRPECS), askGRPLHCIF(GRPLHCIF), askGRPMagField(GRPMagField), askMatLUT(askMatLUT), askTime(orbitResetTime)
+GRPGeomRequest::GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs, bool askOnce)
+  : askGRPECS(GRPECS), askGRPLHCIF(GRPLHCIF), askGRPMagField(GRPMagField), askMatLUT(askMatLUT), askTime(orbitResetTime), askOnceAllButField(askOnce)
 {
   if (geom == Aligned) {
     askGeomAlign = true;
@@ -50,7 +49,7 @@ GRPGeomRequest::GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, 
     askAlignments = true;
     for (auto id = DetID::First; id <= DetID::Last; id++) {
       std::string binding = fmt::format("align{}", DetID::getName(id));
-      addInput({binding, DetID::getDataOrigin(id), "ALIGNMENT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/Align"), DetID::getName(id))}, inputs);
+      addInput({binding, DetID::getDataOrigin(id), "ALIGNMENT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/Align", DetID::getName(id)))}, inputs);
     }
   }
   if (askMatLUT) {
@@ -60,13 +59,13 @@ GRPGeomRequest::GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, 
     addInput({"orbitReset", "CTP", "ORBITRESET", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/OrbitReset")}, inputs);
   }
   if (askGRPECS) {
-    addInput({"grpecs", "GLO", "GRPECS", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/GRPECS")}, inputs);
+    addInput({"grpecs", "GLO", "GRPECS", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/GRPECS", true)}, inputs); // Run dependent !!!
   }
   if (askGRPLHCIF) {
     addInput({"grplhcif", "GLO", "GRPLHCIF", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/GRPLHCIF")}, inputs);
   }
   if (askGRPMagField) {
-    addInput({"grpfield", "GLO", "GRPMAGFIELD", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/GRPMagField")}, inputs);
+    addInput({"grpfield", "GLO", "GRPMAGFIELD", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/GRPMagField", {}, 1)}, inputs); // query every TF
   }
 }
 
@@ -87,9 +86,9 @@ void GRPGeomHelper::setRequest(std::shared_ptr<GRPGeomRequest> req)
   mRequest = req;
 }
 
-void GRPGeomHelper::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+bool GRPGeomHelper::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
-  if (mRequest->askGRPMagField && matcher == ConcreteDataMatcher("GRP", "GRPMAGFIELD", 0)) {
+  if (mRequest->askGRPMagField && matcher == ConcreteDataMatcher("GLO", "GRPMAGFIELD", 0)) {
     bool needInit = mGRPMagField == nullptr;
     mGRPMagField = (o2::parameters::GRPMagField*)obj;
     LOG(info) << "GRP MagField object updated";
@@ -102,36 +101,36 @@ void GRPGeomHelper::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
       }
       o2::base::Propagator::Instance(false)->updateField();
     }
-    return;
+    return true;
   }
-  if (mRequest->askGRPECS && matcher == ConcreteDataMatcher("GRP", "GRPECS", 0)) {
+  if (mRequest->askGRPECS && matcher == ConcreteDataMatcher("GLO", "GRPECS", 0)) {
     mGRPECS = (o2::parameters::GRPECSObject*)obj;
     LOG(info) << "GRP ECS object updated";
-    return;
+    return true;
   }
-  if (mRequest->askGRPLHCIF && matcher == ConcreteDataMatcher("GRP", "GRPLHCIF", 0)) {
+  if (mRequest->askGRPLHCIF && matcher == ConcreteDataMatcher("GLO", "GRPLHCIF", 0)) {
     mGRPLHCIF = (o2::parameters::GRPLHCIFData*)obj;
     LOG(info) << "GRP LHCIF object updated";
-    return;
+    return true;
   }
   if (mRequest->askTime && matcher == ConcreteDataMatcher("CTP", "ORBITRESET", 0)) {
     mOrbitResetTimeMS = (*(std::vector<Long64_t>*)obj)[0] / 1000;
     LOG(info) << "orbit reset time updated to " << mOrbitResetTimeMS;
-    return;
+    return true;
   }
   if (mRequest->askMatLUT && matcher == ConcreteDataMatcher("GLO", "MATLUT", 0)) {
     LOG(info) << "material LUT updated";
     mMatLUT = o2::base::MatLayerCylSet::rectifyPtrFromFile((o2::base::MatLayerCylSet*)obj);
     o2::base::Propagator::Instance(false)->setMatLUT(mMatLUT);
-    return;
+    return true;
   }
   if (mRequest->askGeomAlign && matcher == ConcreteDataMatcher("GLO", "GEOMALIGN", 0)) {
     LOG(info) << "aligned geometry updated";
-    return;
+    return true;
   }
   if (mRequest->askGeomIdeal && matcher == ConcreteDataMatcher("GLO", "GEOMIDEAL", 0)) {
     LOG(info) << "ideal geometry updated";
-    return;
+    return true;
   }
   constexpr o2::header::DataDescription algDesc{"ALIGNMENT"};
   if (mRequest->askAlignments && matcher.description == algDesc) {
@@ -142,38 +141,43 @@ void GRPGeomHelper::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
         break;
       }
     }
-    return;
+    return true;
   }
+  return false;
 }
 
 void GRPGeomHelper::checkUpdates(ProcessingContext& pc) const
 {
   // request input just to trigger finaliseCCDB if there was an update
+  static bool initOnceDone = false;
   if (mRequest->askGRPMagField) {
     pc.inputs().get<o2::parameters::GRPMagField*>("grpfield");
   }
-  if (mRequest->askGRPLHCIF) {
+  if (mRequest->askGRPLHCIF && !initOnceDone) {
     pc.inputs().get<o2::parameters::GRPLHCIFData*>("grplhcif");
   }
-  if (mRequest->askGRPECS) {
+  if (mRequest->askGRPECS && !initOnceDone) {
     pc.inputs().get<o2::parameters::GRPECSObject*>("grpecs");
   }
-  if (mRequest->askTime) {
+  if (mRequest->askTime && !initOnceDone) {
     pc.inputs().get<std::vector<Long64_t>*>("orbitReset");
   }
-  if (mRequest->askMatLUT) {
+  if (mRequest->askMatLUT && !initOnceDone) {
     pc.inputs().get<o2::base::MatLayerCylSet*>("matLUT");
   }
-  if (mRequest->askGeomAlign) {
+  if (mRequest->askGeomAlign && !initOnceDone) {
     pc.inputs().get<TGeoManager*>("geomAlp");
   } else if (mRequest->askGeomIdeal) {
     pc.inputs().get<TGeoManager*>("geomIdeal");
   }
-  if (mRequest->askAlignments) {
+  if (mRequest->askAlignments && !initOnceDone) {
     for (auto id = DetID::First; id <= DetID::Last; id++) {
       std::string binding = fmt::format("align{}", DetID::getName(id));
       pc.inputs().get<std::vector<o2::detectors::AlignParam>*>(binding);
     }
+  }
+  if (!initOnceDone) {
+    initOnceDone = mRequest->askOnceAllButField;
   }
 }
 

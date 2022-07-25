@@ -23,6 +23,7 @@
 #include "CommonUtils/NameConf.h"
 #include "DetectorsCommonDataFormats/CTFDictHeader.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
+#include "DetectorsCommonDataFormats/CTFIOSize.h"
 #include "rANS/rans.h"
 #include <filesystem>
 #include "Framework/InitContext.h"
@@ -56,6 +57,9 @@ class CTFCoderBase
   virtual ~CTFCoderBase() = default;
 
   virtual void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) = 0;
+
+  // detector coder need to redefine this method if uses no default version, see comment in the cxx file
+  virtual void assignDictVersion(CTFDictHeader& h) const;
 
   template <typename CTF>
   std::vector<char> readDictionaryFromFile(const std::string& dictPath, bool mayFail = false);
@@ -112,12 +116,6 @@ class CTFCoderBase
 
  protected:
   std::string getPrefix() const { return o2::utils::Str::concat_string(mDet.getName(), "_CTF: "); }
-  void assignDictVersion(CTFDictHeader& h) const
-  {
-    if (mExtHeader.isValidDictTimeStamp()) {
-      h = mExtHeader;
-    }
-  }
 
   void checkDictVersion(const CTFDictHeader& h) const;
 

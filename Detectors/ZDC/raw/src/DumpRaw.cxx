@@ -60,34 +60,46 @@ void DumpRaw::init()
   for (uint32_t i = 0; i < NDigiChannels; i++) {
     uint32_t imod = i / NChPerModule;
     uint32_t ich = i % NChPerModule;
-    if (mBaseline[i]) {
-      mBaseline[i]->Reset();
-    } else {
+    {
       TString hname = TString::Format("hp%d%d", imod, ich);
-      TString htit = TString::Format("Baseline mod. %d ch. %d;Average orbit baseline", imod, ich);
-      //mBaseline[i]=new TH1F(hname,htit,ADCRange,ADCMin-0.5,ADCMax+0.5);
-      mBaseline[i] = new TH1F(hname, htit, 16378, -0.125, ADCMax + 0.125);
+      if (mBaseline[i] == nullptr) {
+        mBaseline[i] = (TH1*)gROOT->FindObject(hname);
+      }
+      if (mBaseline[i] == nullptr) {
+        TString htit = TString::Format("Baseline mod. %d ch. %d;Average orbit baseline", imod, ich);
+        // mBaseline[i]=new TH1F(hname,htit,ADCRange,ADCMin-0.5,ADCMax+0.5);
+        mBaseline[i] = new TH1F(hname, htit, 65536, -32768.5, 32767.5);
+      }
     }
-    if (mCounts[i]) {
-      mCounts[i]->Reset();
-    } else {
+    {
       TString hname = TString::Format("hc%d%d", imod, ich);
-      TString htit = TString::Format("Counts mod. %d ch. %d; Orbit hits", imod, ich);
-      mCounts[i] = new TH1F(hname, htit, o2::constants::lhc::LHCMaxBunches + 1, -0.5, o2::constants::lhc::LHCMaxBunches + 0.5);
+      if (mCounts[i] == nullptr) {
+        mCounts[i] = (TH1*)gROOT->FindObject(hname);
+      }
+      if (mCounts[i] == nullptr) {
+        TString htit = TString::Format("Counts mod. %d ch. %d; Orbit hits", imod, ich);
+        mCounts[i] = new TH1F(hname, htit, o2::constants::lhc::LHCMaxBunches + 1, -0.5, o2::constants::lhc::LHCMaxBunches + 0.5);
+      }
     }
-    if (mSignal[i]) {
-      mSignal[i]->Reset();
-    } else {
+    {
       TString hname = TString::Format("hs%d%d", imod, ich);
-      TString htit = TString::Format("Signal mod. %d ch. %d; Sample; ADC", imod, ich);
-      mSignal[i] = new TH2F(hname, htit, nbx, xmin, xmax, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
+      if (mSignal[i] == nullptr) {
+        mSignal[i] = (TH2*)gROOT->FindObject(hname);
+      }
+      if (mSignal[i] == nullptr) {
+        TString htit = TString::Format("Signal mod. %d ch. %d; Sample; ADC", imod, ich);
+        mSignal[i] = new TH2F(hname, htit, nbx, xmin, xmax, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
+      }
     }
-    if (mBunch[i]) {
-      mBunch[i]->Reset();
-    } else {
+    {
       TString hname = TString::Format("hb%d%d", imod, ich);
-      TString htit = TString::Format("Bunch mod. %d ch. %d; Sample; ADC", imod, ich);
-      mBunch[i] = new TH2F(hname, htit, 100, -0.5, 99.5, 36, -35.5, 0.5);
+      if (mBunch[i] == nullptr) {
+        mBunch[i] = (TH2*)gROOT->FindObject(hname);
+      }
+      if (mBunch[i] == nullptr) {
+        TString htit = TString::Format("Bunch mod. %d ch. %d; Sample; ADC", imod, ich);
+        mBunch[i] = new TH2F(hname, htit, 100, -0.5, 99.5, 36, -35.5, 0.5);
+      }
     }
   }
   // Word id not present in payload
@@ -185,6 +197,11 @@ int DumpRaw::processWord(const uint32_t* word)
 int DumpRaw::process(const EventChData& ch)
 {
   static constexpr int last_bc = o2::constants::lhc::LHCMaxBunches - 1;
+  union {
+    uint16_t uns;
+    int16_t sig;
+  } word16;
+
   // Not empty event
   auto f = ch.f;
   int ih = getHPos(f.board, f.ch);
@@ -193,6 +210,7 @@ int DumpRaw::process(const EventChData& ch)
       Digits2Raw::print_gbt_word(ch.w[iw]);
     }
   }
+
   uint16_t us[12];
   int16_t s[12];
   us[0] = f.s00;
@@ -213,7 +231,7 @@ int DumpRaw::process(const EventChData& ch)
     } else {
       s[i] = us[i];
     }
-    //printf("%d %u %d\n",i,us[i],s[i]);
+    // printf("%d %u %d\n",i,us[i],s[i]);
   }
   if (f.Alice_3) {
     for (int32_t i = 0; i < 12; i++) {
@@ -239,9 +257,8 @@ int DumpRaw::process(const EventChData& ch)
     mBunch[ih]->Fill(bc_m, -bc_d);
   }
   if (f.bc == last_bc) {
-    int32_t offset = f.offset - 32768;
-    double foffset = offset / 8.;
-    mBaseline[ih]->Fill(foffset);
+    word16.uns = f.offset;
+    mBaseline[ih]->Fill(word16.sig);
     mCounts[ih]->Fill(f.hits);
   }
   return 0;

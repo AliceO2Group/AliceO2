@@ -19,4 +19,4 @@ o2_add_executable(
         tracks-writer-workflow
         SOURCES src/TrackWriterSpec.cxx src/tracks-writer-workflow.cxx
         COMPONENT_NAME muon
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::ReconstructionDataFormats)
+        PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::ReconstructionDataFormats O2::SimulationDataFormat)

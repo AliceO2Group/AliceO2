@@ -42,7 +42,7 @@ bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
     }
   }
   mNumberOfStrobes += rofs.size();
-  return (mNumberOfStrobes * mProbabilityThreshold >= mThreshold) ? true : false;
+  return (mNumberOfStrobes > mMinROFs) ? true : false;
 }
 
 bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
@@ -115,13 +115,14 @@ bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
     }
   }
   mNumberOfStrobes += rofs.size();
-  return (mNumberOfStrobes * mProbabilityThreshold >= mThreshold) ? true : false;
+  return (mNumberOfStrobes > mMinROFs) ? true : false;
 }
 
 void NoiseCalibrator::finalize()
 {
   LOG(info) << "Number of processed strobes is " << mNumberOfStrobes;
   mNoiseMap.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes);
+  mNoiseMap.print();
 }
 
 } // namespace mft

@@ -66,6 +66,7 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   short mPreSamples = 2;                ///< number of pre-samples readout before sample (if no pedestal subtrauction)
   short mMCOverflow = 970;              ///< Overflow level for MC simulations: 1023-(pedestal~50)
   float mTimeTick = 100.;               ///< ns to PHOS digitization step conversion
+  float mTRUTimeTick = 25.;             ///< ns to PHOS TRU digitization step
   float mSampleTimeFitAccuracy = 1.e-3; // Abs accuracy of time fit of saturated samples (in 100ns tick units)
   float mSampleAmpFitAccuracy = 1.e-2;  // Relative accuracy of amp. fit
   short mNIterations = 5;               ///< maximal number of iterations in oveflow sample fit
@@ -94,6 +95,16 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   O2ParamDef(PHOSSimParams, "PHOSSimParams");
 };
 } // namespace phos
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::phos::PHOSSimParams> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif /* O2_PHOS_PHOSSIMPARAMS_H_ */

@@ -36,7 +36,7 @@ class DigitReader : public Task
 {
  public:
   DigitReader() = delete;
-  DigitReader(o2::detectors::DetID id, bool useMC, bool useCalib);
+  DigitReader(o2::detectors::DetID id, bool useMC, bool useCalib, bool triggerOut);
   ~DigitReader() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -53,10 +53,9 @@ class DigitReader : public Task
 
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
-
   bool mUseMC = true;    // use MC truth
   bool mUseCalib = true; // send calib data
-
+  bool mTriggerOut = true; // send dummy triggers vector
   std::string mDetName = "";
   std::string mDetNameLC = "";
   std::string mFileName = "";
@@ -72,8 +71,8 @@ class DigitReader : public Task
 class ITSDigitReader : public DigitReader
 {
  public:
-  ITSDigitReader(bool useMC = true, bool useCalib = false)
-    : DigitReader(o2::detectors::DetID::ITS, useMC, useCalib)
+  ITSDigitReader(bool useMC = true, bool useCalib = false, bool useTriggers = true)
+    : DigitReader(o2::detectors::DetID::ITS, useMC, useCalib, useTriggers)
   {
     mOrigin = o2::header::gDataOriginITS;
   }
@@ -82,8 +81,8 @@ class ITSDigitReader : public DigitReader
 class MFTDigitReader : public DigitReader
 {
  public:
-  MFTDigitReader(bool useMC = true, bool useCalib = false)
-    : DigitReader(o2::detectors::DetID::MFT, useMC, useCalib)
+  MFTDigitReader(bool useMC = true, bool useCalib = false, bool useTriggers = true)
+    : DigitReader(o2::detectors::DetID::MFT, useMC, useCalib, useTriggers)
   {
     mOrigin = o2::header::gDataOriginMFT;
   }
@@ -91,8 +90,8 @@ class MFTDigitReader : public DigitReader
 
 /// create a processor spec
 /// read ITS/MFT Digit data from a root file
-framework::DataProcessorSpec getITSDigitReaderSpec(bool useMC = true, bool useCalib = false, std::string defname = "o2_itsdigits.root");
-framework::DataProcessorSpec getMFTDigitReaderSpec(bool useMC = true, bool useCalib = false, std::string defname = "o2_mftdigits.root");
+framework::DataProcessorSpec getITSDigitReaderSpec(bool useMC = true, bool useCalib = false, bool useTriggers = true, std::string defname = "o2_itsdigits.root");
+framework::DataProcessorSpec getMFTDigitReaderSpec(bool useMC = true, bool useCalib = false, bool useTriggers = true, std::string defname = "o2_mftdigits.root");
 
 } // namespace itsmft
 } // namespace o2

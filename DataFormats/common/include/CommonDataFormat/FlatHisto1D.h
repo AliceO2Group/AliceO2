@@ -169,7 +169,7 @@ class FlatHisto1D
     return mContainer.size() > NServiceSlots;
   }
 
-  std::unique_ptr<TH1F> createTH1F(const std::string& name = "histo1d");
+  std::unique_ptr<TH1F> createTH1F(const std::string& name = "histo1d") const;
 
   const std::vector<T>& getBase() const { return mContainer; }
   gsl::span<const T> getView() const { return mContainerView; }

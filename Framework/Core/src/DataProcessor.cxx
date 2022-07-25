@@ -23,8 +23,8 @@
 #include "Headers/DataHeaderHelpers.h"
 
 #include <Monitoring/Monitoring.h>
-#include <fairmq/FairMQParts.h>
-#include <fairmq/FairMQDevice.h>
+#include <fairmq/Parts.h>
+#include <fairmq/Device.h>
 #include <arrow/io/memory.h>
 #include <arrow/ipc/writer.h>
 #include <cstddef>
@@ -38,12 +38,12 @@ namespace o2::framework
 void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceRegistry& services)
 {
   auto& proxy = services.get<FairMQDeviceProxy>();
-  std::vector<FairMQParts> outputsPerChannel;
+  std::vector<fair::mq::Parts> outputsPerChannel;
   outputsPerChannel.resize(proxy.getNumOutputChannels());
   auto contextMessages = context.getMessagesForSending();
   for (auto& message : contextMessages) {
     //     monitoringService.send({ message->parts.Size(), "outputs/total" });
-    FairMQParts parts = message->finalize();
+    fair::mq::Parts parts = message->finalize();
     assert(message->empty());
     assert(parts.Size() == 2);
     for (auto& part : parts) {
@@ -63,8 +63,8 @@ void DataProcessor::doSend(DataSender& sender, StringContext& context, ServiceRe
 {
   FairMQDeviceProxy& proxy = services.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
-    FairMQParts parts;
-    FairMQMessagePtr payload(sender.create(messageRef.routeIndex));
+    fair::mq::Parts parts;
+    fair::mq::MessagePtr payload(sender.create(messageRef.routeIndex));
     auto a = messageRef.payload.get();
     // Rebuild the message using the string as input. For now it involves a copy.
     payload->Rebuild(reinterpret_cast<void*>(const_cast<char*>(strdup(a->data()))), a->size(), nullptr, nullptr);
@@ -90,12 +90,12 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
   std::regex invalid_metric(" ");
   FairMQDeviceProxy& proxy = registry.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
-    FairMQParts parts;
+    fair::mq::Parts parts;
     // Depending on how the arrow table is constructed, we finalize
     // the writing here.
     messageRef.finalize(messageRef.buffer);
 
-    std::unique_ptr<FairMQMessage> payload = messageRef.buffer->Finalise();
+    std::unique_ptr<fair::mq::Message> payload = messageRef.buffer->Finalise();
     // FIXME: for the moment we simply send empty bodies.
     const DataHeader* cdh = o2::header::get<DataHeader*>(messageRef.header->GetData());
     // sigh... See if we can avoid having it const by not
@@ -151,8 +151,8 @@ void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, Servic
 {
   FairMQDeviceProxy& proxy = registry.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
-    FairMQParts parts;
-    FairMQMessagePtr payload(sender.create(messageRef.routeIndex));
+    fair::mq::Parts parts;
+    fair::mq::MessagePtr payload(sender.create(messageRef.routeIndex));
     auto buffer = messageRef.serializeMsg().str();
     // Rebuild the message using the serialized ostringstream as input. For now it involves a copy.
     size_t size = buffer.length();

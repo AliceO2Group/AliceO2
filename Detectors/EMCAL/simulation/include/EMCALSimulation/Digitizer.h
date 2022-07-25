@@ -28,9 +28,14 @@
 #include "EMCALSimulation/DigitsWriteoutBuffer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
+#include "CommonUtils/TreeStreamRedirector.h"
 
 namespace o2
 {
+namespace utils
+{
+class TreeStreamRedirector;
+}
 namespace emcal
 {
 
@@ -67,6 +72,7 @@ class Digitizer : public TObject
   bool isLive() const { return mDigits.isLive(); }
 
   void setWindowStartTime(int time) { mTimeWindowStart = time; }
+  void setDebugStreaming(bool doStreaming) { mEnableDebugStreaming = doStreaming; }
 
   // function returns true if the collision occurs 600ns before the readout window is open
   bool preTriggerCollision() const { return mDigits.preTriggerCollision(); }
@@ -104,6 +110,9 @@ class Digitizer : public TObject
 
   int mTimeWindowStart = 7; ///< The start of the time window
   int mDelay = 7;           ///< number of (full) time bins corresponding to the signal time delay
+
+  std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream = nullptr;
+  bool mEnableDebugStreaming = false;
 
   ClassDefOverride(Digitizer, 1);
 };

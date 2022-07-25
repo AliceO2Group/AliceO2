@@ -48,6 +48,8 @@ enum class VariantType : int { Int = 0,
                                UInt16,
                                UInt32,
                                UInt64,
+                               Int8,
+                               Int16,
                                Empty,
                                Dict,
                                Unknown };
@@ -82,6 +84,8 @@ template <VariantType V>
 constexpr auto isSimpleVariant()
 {
   return (V == VariantType::Int) ||
+         (V == VariantType::Int8) ||
+         (V == VariantType::Int16) ||
          (V == VariantType::Int64) ||
          (V == VariantType::UInt8) ||
          (V == VariantType::UInt16) ||
@@ -102,6 +106,8 @@ struct variant_trait : std::integral_constant<VariantType, VariantType::Unknown>
   };
 
 DECLARE_VARIANT_TRAIT(int, Int);
+DECLARE_VARIANT_TRAIT(int8_t, Int8);
+DECLARE_VARIANT_TRAIT(int16_t, Int16);
 DECLARE_VARIANT_TRAIT(long int, Int64);
 DECLARE_VARIANT_TRAIT(long long int, Int64);
 DECLARE_VARIANT_TRAIT(uint8_t, UInt8);
@@ -184,6 +190,8 @@ struct variant_type {
   };
 
 DECLARE_VARIANT_TYPE(int, Int);
+DECLARE_VARIANT_TYPE(int8_t, Int8);
+DECLARE_VARIANT_TYPE(int16_t, Int16);
 DECLARE_VARIANT_TYPE(int64_t, Int64);
 DECLARE_VARIANT_TYPE(uint8_t, UInt8);
 DECLARE_VARIANT_TYPE(uint16_t, UInt16);
@@ -273,7 +281,8 @@ struct variant_helper<S, std::string> {
 /// Variant for configuration parameter storage. Owns stored data.
 class Variant
 {
-  using storage_t = std::aligned_union<8, int, int64_t, uint8_t, uint16_t, uint32_t, uint64_t,
+  using storage_t = std::aligned_union<8, int, int8_t, int16_t, int64_t,
+                                       uint8_t, uint16_t, uint32_t, uint64_t,
                                        const char*, float, double, bool,
                                        int*, float*, double*, bool*,
                                        Array2D<int>, Array2D<float>, Array2D<double>,
