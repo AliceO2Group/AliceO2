@@ -62,7 +62,6 @@ class RawReaderZDC
   void setVerbosity(int v)
   {
     mVerbosity = v;
-    printf("mVerbosity = %d\n", mVerbosity);
   }
   int getVerbosity() const { return mVerbosity; }
   void setTriggerMask();
