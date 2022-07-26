@@ -173,6 +173,17 @@ struct ChipStat {
   ClassDefNV(ChipStat, 1);
 };
 
+struct ChipError {
+  uint32_t id = -1;
+  uint32_t nerrors = 0;
+  uint32_t errors = 0;
+
+  int16_t getChipID() const { return int16_t(id & 0xffff); }
+  uint16_t getFEEID() const { return uint16_t(id >> 16); }
+  static uint32_t composeID(uint16_t feeID, int16_t chipID) { return uint32_t(feeID) << 16 | uint16_t(chipID); }
+  ClassDefNV(ChipError, 1);
+};
+
 /// Statistics for per-link decoding
 struct GBTLinkDecodingStat {
   /// counters for format checks
@@ -202,7 +213,7 @@ struct GBTLinkDecodingStat {
   };
   static constexpr std::array<std::string_view, NErrorsDefined> ErrNames = {
     "Page data not start with expected RDH",                             // ErrNoRDHAtStart
-    "RDH is stopped, but the time is not matching the ~stop packet",     // ErrPageNotStopped
+    "RDH is stopped, but the time is not matching the stop packet",      // ErrPageNotStopped
     "Page with RDH.stop does not contain diagnostic word only",          // ErrStopPageNotEmpty
     "RDH page counters for the same RU/trigger are not continuous",      // ErrPageCounterDiscontinuity
     "RDH and GBT header page counters are not consistent",               // ErrRDHvsGBTHPageCnt
@@ -223,8 +234,7 @@ struct GBTLinkDecodingStat {
     "Wrong cable ID"                                                     // ErrWrongeCableID
   };
 
-  uint32_t ruLinkID = 0; // Link ID within RU
-
+  uint16_t feeID = 0; // FeeID
   // Note: packet here is meant as a group of CRU pages belonging to the same trigger
   uint32_t nPackets = 0;                                                        // total number of packets (RDH pages)
   uint32_t nTriggers = 0;                                                       // total number of triggers (ROFs)
@@ -241,7 +251,7 @@ struct GBTLinkDecodingStat {
 
   void print(bool skipNoErr = true) const;
 
-  ClassDefNV(GBTLinkDecodingStat, 2);
+  ClassDefNV(GBTLinkDecodingStat, 3);
 };
 
 } // namespace itsmft

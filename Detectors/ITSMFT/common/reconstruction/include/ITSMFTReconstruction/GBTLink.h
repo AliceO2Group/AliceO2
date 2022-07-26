@@ -90,6 +90,7 @@ struct GBTLink {
   uint8_t idInRU = 0;     // link ID within the RU
   uint8_t idInCRU = 0;    // link ID within the CRU
   uint8_t endPointID = 0; // endpoint ID of the CRU
+  bool gbtErrStatUpadated = false;
   uint16_t cruID = 0;     // CRU ID
   uint16_t feeID = 0;     // FEE ID
   uint16_t channelID = 0; // channel ID in the reader input

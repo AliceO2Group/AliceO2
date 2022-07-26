@@ -179,6 +179,10 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     mEstNROF = std::max(mEstNROF, size_t(clusROFVec.size() * 1.2));
   }
 
+  auto& linkErrors = pc.outputs().make<std::vector<GBTLinkDecodingStat>>(Output{orig, "LinkErrors", 0, Lifetime::Timeframe});
+  auto& decErrors = pc.outputs().make<std::vector<ChipError>>(Output{orig, "ChipErrors", 0, Lifetime::Timeframe});
+  mDecoder->collectDecodingErrors(linkErrors, decErrors);
+
   pc.outputs().snapshot(Output{orig, "PHYSTRIG", 0, Lifetime::Timeframe}, mDecoder->getExternalTriggers());
 
   if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE)) {
@@ -293,6 +297,9 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
     outputs.emplace_back(inp.origin, "PATTERNS", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back(inp.origin, "PHYSTRIG", 0, Lifetime::Timeframe);
+
+  outputs.emplace_back(inp.origin, "LinkErrors", 0, Lifetime::Timeframe);
+  outputs.emplace_back(inp.origin, "ChipErrors", 0, Lifetime::Timeframe);
 
   if (inp.askSTFDist) {
     for (auto& ins : inputs) { // mark input as optional in order not to block the workflow if our raw data happen to be missing in some TFs

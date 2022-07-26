@@ -47,7 +47,7 @@ struct RUDecodeData {
   int lastChipChecked = 0; // last chips checked among nChipsFired
   int verbosity = 0;       // verbosity level, for -1,0 print only summary data, for 1: print once every error
   GBTCalibData calibData{}; // calibration info from GBT calibration word
-
+  std::unordered_map<uint32_t, std::pair<uint32_t, uint32_t>> chipErrorsTF; // vector of chip decoding errors seen in the given TF
   const RUInfo* ruInfo = nullptr;
 
   RUDecodeData()

@@ -100,7 +100,7 @@ void GBTLinkDecodingStat::print(bool skipNoErr) const
     nErr += errorCounts[i];
   }
   if (!skipNoErr || nErr) {
-    std::string rep = fmt::format("FEEID#{:#04x} Packet States Statistics (total packets: {}, triggers: {})", ruLinkID, nPackets, nTriggers);
+    std::string rep = fmt::format("FEEID#{:#04x} Packet States Statistics (total packets: {}, triggers: {})", feeID, nPackets, nTriggers);
     bool countsSeen = false;
     for (int i = 0; i < GBTDataTrailer::MaxStateCombinations; i++) {
       if (packetStates[i]) {
