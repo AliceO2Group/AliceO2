@@ -39,6 +39,7 @@ class DumpRaw
  private:
   void setStat(TH1* h);
   int mVerbosity = 1;
+  TH2* mTransmitted = nullptr;
   TH1* mBaseline[NDigiChannels] = {nullptr};
   TH1* mCounts[NDigiChannels] = {nullptr};
   TH2* mSignal[NDigiChannels] = {nullptr};

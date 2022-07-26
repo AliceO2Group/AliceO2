@@ -57,6 +57,12 @@ void DumpRaw::init()
   int nbx = (sopt.nBCAheadTrig + 1) * NTimeBinsPerBC;
   double xmin = -sopt.nBCAheadTrig * NTimeBinsPerBC - 0.5;
   double xmax = NTimeBinsPerBC - 0.5;
+  if (mTransmitted == nullptr) {
+    mTransmitted = (TH2*)gROOT->FindObject("ht");
+  }
+  if (mTransmitted == nullptr) {
+    mTransmitted = new TH2F("ht", "Transmitted channels", NModules, -0.5, NModules - 0.5, NChPerModule, -0.5, NChPerModule - 0.5);
+  }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
     uint32_t imod = i / NChPerModule;
     uint32_t ich = i % NChPerModule;
@@ -139,6 +145,7 @@ void DumpRaw::write()
       mSignal[i]->Write();
     }
   }
+  mTransmitted->Write();
   f->Close();
 }
 
@@ -210,6 +217,8 @@ int DumpRaw::process(const EventChData& ch)
       Digits2Raw::print_gbt_word(ch.w[iw]);
     }
   }
+
+  mTransmitted->Fill(f.board, f.ch);
 
   uint16_t us[12];
   int16_t s[12];
