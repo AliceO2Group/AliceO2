@@ -105,7 +105,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
       } else {
         gsl::span<const uint8_t> payload(it.data(), it.size());
 #ifdef O2_ZDC_DEBUG
-        LOG(INFO) << count << " processBinaryData: size=" << it.size() << " link=" << rdhPtr->linkID;
+        LOG(info) << count << " processBinaryData: size=" << it.size() << " link=" << rdhPtr->linkID;
 #endif
         mRawReader.processBinaryData(payload, rdhPtr->linkID);
       }
