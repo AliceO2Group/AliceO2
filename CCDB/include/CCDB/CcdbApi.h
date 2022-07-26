@@ -371,7 +371,7 @@ class CcdbApi //: public DatabaseInterface
    */
   void initInSnapshotMode(std::string const& snapshotpath)
   {
-    mSnapshotTopPath = snapshotpath;
+    mSnapshotTopPath = snapshotpath.empty() ? "." : snapshotpath;
     mInSnapshotMode = true;
   }
 
@@ -510,8 +510,11 @@ class CcdbApi //: public DatabaseInterface
    */
   void checkMetadataKeys(std::map<std::string, std::string> const& metadata) const;
 
-  std::string getSnapshotDir(const std::string& topdir, const string& path) const { return topdir + "/" + path; }
-  std::string getSnapshotFile(const std::string& topdir, const string& path) const { return getSnapshotDir(topdir, path) + "/snapshot.root"; }
+  std::string getSnapshotDir(const std::string& topdir, const std::string& path) const { return topdir + "/" + path; }
+  std::string getSnapshotFile(const std::string& topdir, const std::string& path, const std::string& sfile = "snapshot.root") const
+  {
+    return getSnapshotDir(topdir, path) + '/' + sfile;
+  }
 
   /// Base URL of the CCDB (with port)
   std::string mUniqueAgentID{}; // Unique User-Agent ID communicated to server for logging
