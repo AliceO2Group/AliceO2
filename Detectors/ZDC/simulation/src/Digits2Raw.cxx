@@ -603,7 +603,7 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
       }
       val = val >> 12;
     }
-    printf(" %5d %5d %5d %5d %5d %5d%s%s", s[0], s[1], s[2], s[3], s[4], s[5], (a&0x4) ? " DLOSS" : "", (a&0x8) ? " ERROR" : "");
+    printf(" %5d %5d %5d %5d %5d %5d%s%s", s[0], s[1], s[2], s[3], s[4], s[5], (a & 0x4) ? " DLOSS" : "", (a & 0x8) ? " ERROR" : "");
   } else if ((a & 0x3) == 2) {
     printf("%04x %08x %08x ", c, b, a);
     printf("%s %s %s %s %s %s ", a & 0x4 ? "H" : " ", a & 0x8 ? "TM" : "  ", a & 0x10 ? "T0" : "  ", a & 0x20 ? "T1" : "  ", a & 0x40 ? "T2" : "  ", a & 0x80 ? "T3" : "  ");

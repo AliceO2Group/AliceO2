@@ -48,7 +48,7 @@ class RawReaderZDC
   std::vector<o2::zdc::OrbitData> mOrbitData;      // Digitized orbit data
   bool mDumpData = false;                          // Enable printout of all data
   int mVerbosity = 0;                              // Verbosity level
-  uint32_t mEvents[NModules][NChPerModule]={0};    // Debug words per module
+  uint32_t mEvents[NModules][NChPerModule] = {0};  // Debug words per module
 
  public:
   RawReaderZDC(bool dumpData) : mDumpData(dumpData) {}
@@ -59,7 +59,11 @@ class RawReaderZDC
 
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
-  void setVerbosity(int v) { mVerbosity = v; printf("mVerbosity = %d\n",mVerbosity);}
+  void setVerbosity(int v)
+  {
+    mVerbosity = v;
+    printf("mVerbosity = %d\n", mVerbosity);
+  }
   int getVerbosity() const { return mVerbosity; }
   void setTriggerMask();
   void setVerifyTrigger(const bool verifyTrigger) { mVerifyTrigger = verifyTrigger; };
