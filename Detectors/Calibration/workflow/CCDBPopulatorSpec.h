@@ -106,7 +106,7 @@ class CCDBPopulator : public o2::framework::Task
       }
 
       // do we need to override previous object?
-      if (wrp->isAdjustableEOV()) {
+      if (wrp->isAdjustableEOV() && !mAPI.isSnapshotMode()) {
         o2::ccdb::adjustOverriddenEOV(mAPI, *wrp.get());
       }
     }
