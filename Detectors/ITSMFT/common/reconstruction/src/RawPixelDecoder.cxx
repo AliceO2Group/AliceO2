@@ -136,6 +136,7 @@ void RawPixelDecoder<Mapping>::startNewTF(InputRecord& inputs)
   }
   for (auto& ru : mRUDecodeVec) {
     ru.clear();
+    // ru.chipErrorsTF.clear(); // will be cleared in the collectDecodingErrors
     ru.linkHBFToDump.clear();
   }
   setupLinks(inputs);
