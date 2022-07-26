@@ -277,12 +277,13 @@ if has_processing_step MUON_SYNC_RECO; then
     elif [[ $RUNTYPE == "SYNTHETIC" ]]; then
       CONFIG_EXTRA_PROCESS_o2_mch_reco_workflow="MCHTimeClusterizer.peakSearchSignalOnly=false;MCHDigitFilter.rejectBackground=false;MCHClustering.defaultClusterResolution=0.4;MCHTracking.chamberResolutionX=0.4;MCHTracking.chamberResolutionY=0.4;MCHTracking.sigmaCutForTracking=7.;MCHTracking.sigmaCutForImprovement=6."
     fi
-    has_detector_reco ITS && CONFIG_EXTRA_PROCESS_o2_mch_reco_workflow+="MCHTimeClusterizer.irFramesOnly=true;"
+    has_detector_reco ITS && [[ $RUNTYPE != "COSMICS" ]] && CONFIG_EXTRA_PROCESS_o2_mch_reco_workflow+="MCHTimeClusterizer.irFramesOnly=true;"
   fi
   [[ $RUNTYPE == "COSMICS" ]] && [[ -z $CONFIG_EXTRA_PROCESS_o2_mft_reco_workflow ]] && CONFIG_EXTRA_PROCESS_o2_mft_reco_workflow="MFTTracking.LTFclsRCut=0.2;MFTTracking.forceZeroField=true;MFTTracking.FullClusterScan=true"
 fi
 [[ "0$ED_VERTEX_MODE" == "01" ]] && has_detectors_reco ITS && has_detector_matching PRIMVTX && [[ ! -z "$VERTEXING_SOURCES" ]] && EVE_CONFIG+=" --primary-vertex-mode"
 [[ $EPNSYNCMODE == 1 ]] && [[ -z $CONFIG_EXTRA_PROCESS_o2_trd_global_tracking ]] && CONFIG_EXTRA_PROCESS_o2_trd_global_tracking='GPU_rec_trd.maxChi2=25;GPU_rec_trd.penaltyChi2=20;GPU_rec_trd.extraRoadY=4;GPU_rec_trd.extraRoadZ=10;GPU_rec_trd.applyDeflectionCut=0;GPU_rec_trd.trkltResRPhiIdeal=1'
+[[ $EPNSYNCMODE == 1 ]] && [[ -z $ARGS_EXTRA_PROCESS_o2_phos_reco_workflow ]] && ARGS_EXTRA_PROCESS_o2_phos_reco_workflow='--presamples 2 --fitmethod semigaus'
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Start of workflow command generation
