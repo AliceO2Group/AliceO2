@@ -83,6 +83,7 @@ class Cluster;
 namespace tpc
 {
 class TrackTPC;
+class VDriftCorrFact;
 }
 
 namespace gpu
@@ -348,6 +349,7 @@ class MatchTPCITS
   {
     mVDriftCalibOn = v;
   }
+  void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
 
   ///< print settings
   void print() const;
@@ -519,7 +521,7 @@ class MatchTPCITS
   const o2::ft0::InteractionTag* mFT0Params = nullptr;
 
   MatCorrType mUseMatCorrFlag = MatCorrType::USEMatCorrTGeo;
-  bool mUseBCFilling = true;  ///< use BC filling for candidates validation
+  bool mUseBCFilling = false; ///< use BC filling for candidates validation
   bool mSkipTPCOnly = false;  ///< for test only: don't use TPC only tracks, use only external ones
   bool mITSTriggered = false; ///< ITS readout is triggered
   bool mUseFT0 = false;       ///< FT0 information is available
@@ -536,8 +538,9 @@ class MatchTPCITS
   int mITSROFrameLengthInBC = 0;    ///< ITS RO frame in BC (for ITS cont. mode only)
   float mITSROFrameLengthMUS = -1.; ///< ITS RO frame in \mus
   float mITSROFrameLengthMUSInv = -1.; ///< ITS RO frame in \mus inverse
-  float mTPCVDrift0 = -1.;          ///< TPC nominal drift speed in cm/microseconds
-  float mTPCVDrift0Inv = -1.;       ///< inverse TPC nominal drift speed in cm/microseconds
+  float mTPCVDriftRef = -1.;           ///< TPC nominal drift speed in cm/microseconds
+  float mTPCVDrift = -1.;              ///< TPC drift speed in cm/microseconds
+  float mTPCVDriftInv = -1.;           ///< inverse TPC nominal drift speed in cm/microseconds
   float mTPCTBinMUS = 0.;           ///< TPC time bin duration in microseconds
   float mTPCTBinNS = 0.;            ///< TPC time bin duration in ns
   float mTPCTBinMUSInv = 0.;        ///< inverse TPC time bin duration in microseconds
@@ -552,7 +555,8 @@ class MatchTPCITS
 
   bool mVDriftCalibOn = false;                                ///< flag to produce VDrift calibration data
 
-  std::unique_ptr<TPCTransform> mTPCTransform;         ///< TPC cluster transformation
+  std::unique_ptr<TPCTransform> mTPCTransform; ///< TPC cluster transformation
+
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   o2::BunchFilling mBunchFilling;

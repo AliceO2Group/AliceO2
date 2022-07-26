@@ -71,6 +71,7 @@ std::string VisualisationEventJSONSerializer::toJson(const VisualisationEvent& e
   tree.AddMember("trkMask", rapidjson::Value().SetInt(event.mTrkMask), allocator);
   tree.AddMember("tfCounter", rapidjson::Value().SetInt(event.mTfCounter), allocator);
   tree.AddMember("firstTForbit", rapidjson::Value().SetInt(event.mFirstTForbit), allocator);
+  tree.AddMember("primaryVertex", rapidjson::Value().SetInt(event.mPrimaryVertex), allocator);
 
   tree.AddMember("collisionTime", rapidjson::Value().SetString(event.mCollisionTime.c_str(), event.mCollisionTime.size()), allocator);
   tree.AddMember("workflowVersion", rapidjson::Value().SetString(event.mWorkflowVersion.c_str(), event.mWorkflowVersion.size()), allocator);
@@ -147,6 +148,7 @@ void VisualisationEventJSONSerializer::fromJson(VisualisationEvent& event, std::
   event.setTrkMask(getIntOrDefault(tree, "trkMask"));
   event.setTfCounter(getIntOrDefault(tree, "tfCounter"));
   event.setFirstTForbit(getIntOrDefault(tree, "firstTForbit"));
+  event.setPrimaryVertex(getIntOrDefault(tree, "primaryVertex"));
 
   auto collisionTime = "not specified";
   if (tree.HasMember("collisionTime")) {

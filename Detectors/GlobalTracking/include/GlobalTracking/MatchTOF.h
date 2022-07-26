@@ -45,6 +45,10 @@
 
 namespace o2
 {
+namespace tpc
+{
+class VDriftCorrFact;
+}
 
 namespace globaltracking
 {
@@ -143,6 +147,10 @@ class MatchTOF
 
   std::vector<o2::MCCompLabel>& getMatchedTOFLabelsVector(trkType index) { return mOutTOFLabels[index]; } ///< get vector of TOF label of matched tracks
 
+  void initTPCTransform();
+
+  void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
+
   ///< set input TPC tracks cluster indices
   void setTPCTrackClusIdxInp(const gsl::span<const o2::tpc::TPCClRefElem> inp)
   {
@@ -220,6 +228,9 @@ class MatchTOF
   bool mMCTruthON = false; ///< flag availability of MC truth
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
+  float mTPCVDriftRef = -1.; ///< TPC nominal drift speed in cm/microseconds
+  float mTPCVDrift = -1.;    ///< TPC drift speed in cm/microseconds
+
   float mBz = 0;          ///< nominal Bz
   float mMaxInvPt = 999.; ///< derived from nominal Bz
 
@@ -255,6 +266,7 @@ class MatchTOF
   gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdx;            ///< input TPC track cluster indices span
   gsl::span<const unsigned char> mTPCRefitterShMap;                   ///< externally set TPC clusters sharing map
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
+
   std::unique_ptr<o2::gpu::TPCFastTransform> mTPCTransform;           ///< TPC cluster transformation
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter;         ///< TPC refitter used for TPC tracks refit during the reconstruction
 

@@ -202,7 +202,7 @@ int TimeFrame::getTotalClusters() const
   return int(totalClusters);
 }
 
-void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam, const TrackingParameters& trkParam, const int maxLayers)
+void TimeFrame::initialise(const int iteration, const TrackingParameters& trkParam, const int maxLayers)
 {
   if (iteration == 0) {
     mTracks.clear();

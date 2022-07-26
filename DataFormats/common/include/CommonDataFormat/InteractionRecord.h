@@ -105,7 +105,7 @@ struct InteractionRecord {
     return differenceInBC(other) * o2::constants::lhc::LHCBunchSpacingNS;
   }
 
-  float differenceInBCMS(const InteractionRecord& other) const
+  float differenceInBCMUS(const InteractionRecord& other) const
   {
     // return difference in bunch-crossings in ms
     return differenceInBC(other) * o2::constants::lhc::LHCBunchSpacingMUS;

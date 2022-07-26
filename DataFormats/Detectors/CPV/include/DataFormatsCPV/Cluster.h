@@ -118,7 +118,18 @@ class Cluster
 
   ClassDefNV(Cluster, 1);
 };
+
 } // namespace cpv
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::cpv::Cluster> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif

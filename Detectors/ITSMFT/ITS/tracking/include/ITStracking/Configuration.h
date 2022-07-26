@@ -85,14 +85,6 @@ struct TrackingParameters {
   bool FindShortTracks = false;
 };
 
-struct MemoryParameters {
-  /// Memory coefficients
-  MemoryParameters& operator=(const MemoryParameters& t) = default;
-  int MemoryOffset = 256;
-  std::vector<float> CellsMemoryCoefficients = {2.3208e-08f, 2.104e-08f, 1.6432e-08f, 1.2412e-08f, 1.3543e-08f};
-  std::vector<float> TrackletsMemoryCoefficients = {0.0016353f, 0.0013627f, 0.000984f, 0.00078135f, 0.00057934f, 0.00052217f};
-};
-
 inline int TrackingParameters::CellMinimumLevel()
 {
   return MinTrackLength - constants::its::ClustersPerCell + 1;

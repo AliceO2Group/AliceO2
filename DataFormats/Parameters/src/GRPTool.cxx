@@ -237,7 +237,7 @@ bool create_GRPs(Options const& opts)
       }
     }
     grp.setIsMC(true);
-    grp.setRunType(o2::parameters::GRPECSObject::PHYSICS);
+    grp.setRunType(o2::parameters::GRPECSObject::RunType::PHYSICS);
     // grp.setDataPeriod("mc"); // decide what to put here
     std::string grpfilename = o2::base::NameConf::getGRPECSFileName(opts.outprefix);
     TFile grpF(grpfilename.c_str(), "recreate");

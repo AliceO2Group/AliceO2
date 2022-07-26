@@ -197,10 +197,10 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
   return std::move(fastTransformPtr);
 }
 
-int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform, Long_t TimeStamp, float vDriftFactor)
+int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform, Long_t TimeStamp, float vDriftFactor, float vDriftRef)
 {
   // Update the calibration with the new time stamp
-
+  LOGP(debug, "Updating calibration: timestamp:{} vdriftFactor:{} vdriftRef:{}", TimeStamp, vDriftFactor, vDriftRef);
   if (!mIsInitialized) {
     init();
   }
@@ -218,8 +218,10 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
   // start the initialization
 
   fastTransform.setTimeStamp(TimeStamp);
-
-  const double vDrift = elParam.ZbinWidth * gasParam.DriftV * vDriftFactor; // cm/timebin
+  if (vDriftRef == 0) {
+    vDriftRef = ParameterGas::Instance().DriftV;
+  }
+  const double vDrift = elParam.ZbinWidth * vDriftRef * vDriftFactor; // cm/timebin
 
   // fast transform formula:
   // L = (t-t0)*(mVdrift + mVdriftCorrY*yLab ) + mLdriftCorr

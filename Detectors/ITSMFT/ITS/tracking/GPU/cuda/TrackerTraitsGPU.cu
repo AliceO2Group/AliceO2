@@ -320,7 +320,7 @@ __constant__ StaticTrackingParameters<7> kTrkPar;
 // }
 
 template <int NLayers>
-void TrackerTraitsGPU<NLayers>::computeLayerTracklets()
+void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
 {
   //   PrimaryVertexContextNV* primaryVertexContext = static_cast<PrimaryVertexContextNV*>(nullptr); //TODO: FIX THIS with Time Frames
 

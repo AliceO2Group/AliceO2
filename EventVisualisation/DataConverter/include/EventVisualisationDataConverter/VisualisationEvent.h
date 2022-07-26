@@ -190,12 +190,15 @@ class VisualisationEvent
   o2::header::DataHeader::TForbitType getFirstTForbit() const { return this->mFirstTForbit; }
   void setFirstTForbit(o2::header::DataHeader::TForbitType value) { this->mFirstTForbit = value; }
 
+  void setPrimaryVertex(std::size_t pv) { this->mPrimaryVertex = pv; }
+
  private:
   int mClMask;                                      /// clusters requested during aquisition
   int mTrkMask;                                     /// tracks requested during aquisition
   o2::header::DataHeader::RunNumberType mRunNumber; /// run number
   o2::header::DataHeader::TFCounterType mTfCounter;
   o2::header::DataHeader::TForbitType mFirstTForbit;
+  std::size_t mPrimaryVertex;
 
   float mMinTimeOfTracks;                           /// minimum time of tracks in the event
   float mMaxTimeOfTracks;                           /// maximum time of tracks in the event

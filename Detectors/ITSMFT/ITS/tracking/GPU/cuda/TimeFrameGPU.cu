@@ -144,11 +144,10 @@ void TimeFrameGPU<NLayers>::loadToDevice(const int maxLayers)
 
 template <int NLayers>
 void TimeFrameGPU<NLayers>::initialise(const int iteration,
-                                       const MemoryParameters& memParam,
                                        const TrackingParameters& trkParam,
                                        const int maxLayers)
 {
-  o2::its::TimeFrame::initialise(iteration, memParam, trkParam, maxLayers);
+  o2::its::TimeFrame::initialise(iteration, trkParam, maxLayers);
   checkBufferSizes();
   loadToDevice(maxLayers);
 }

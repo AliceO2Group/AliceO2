@@ -238,7 +238,7 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
       grp.addDetReadOut(o2::detectors::DetID::CTP);
     }
     grp.setIsMC(true);
-    grp.setRunType(o2::parameters::GRPECSObject::PHYSICS);
+    grp.setRunType(o2::parameters::GRPECSObject::RunType::PHYSICS);
     // grp.setDataPeriod("mc"); // decide what to put here
     std::string grpfilename = o2::base::NameConf::getGRPECSFileName(confref.getOutPrefix());
     TFile grpF(grpfilename.c_str(), "recreate");

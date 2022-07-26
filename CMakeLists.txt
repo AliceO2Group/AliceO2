@@ -75,6 +75,11 @@ if (DPL_ENABLE_TRACING)
   add_definitions(-DDPL_ENABLE_TRACING)
 endif()
 
+if(DEFINED ENV{ENABLE_DEBUG_STREAMER})
+  add_definitions(-DDEBUG_STREAMER)
+  MESSAGE(STATUS "Enable debug streamer")
+endif()
+
 # include macros and functions that are used in the following subdirectories'
 # CMakeLists.txt
 include(O2AddExecutable)

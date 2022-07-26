@@ -57,6 +57,7 @@
 #include "TPCBase/Sector.h"
 #include "TPCBase/Utils.h"
 #include "TPCBase/CDBInterface.h"
+#include "TPCCalibration/VDriftHelper.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Algorithm/Parser.h"
@@ -822,6 +823,7 @@ Inputs GPURecoWorkflowSpec::inputs()
     inputs.emplace_back("tpctimegain", gDataOriginTPC, "TIMEGAIN", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalTimeGain)));
     inputs.emplace_back("tpctopologygain", gDataOriginTPC, "TOPOLOGYGAIN", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalTopologyGain)));
     inputs.emplace_back("tpcthreshold", gDataOriginTPC, "PADTHRESHOLD", 0, Lifetime::Condition, ccdbParamSpec("TPC/Config/FEEPad"));
+    o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
   }
   if (mSpecConfig.decompressTPC) {
     inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, mSpecConfig.decompressTPCFromROOT ? o2::header::DataDescription("COMPCLUSTERS") : o2::header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});
@@ -925,6 +927,7 @@ Outputs GPURecoWorkflowSpec::outputs()
 void GPURecoWorkflowSpec::initFunctionTPC()
 {
   mdEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
+  mTPCVDriftHelper.reset(new o2::tpc::VDriftHelper());
 
   if (mConfParam->dEdxDisableTopologyPol) {
     LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB");
@@ -1079,15 +1082,15 @@ void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* ob
     copyCalibsToBuffer();
     const auto* residualCorr = static_cast<o2::tpc::CalibdEdxCorrection*>(obj);
     mdEdxCalibContainerBufferNew->setResidualCorrection(*residualCorr);
+  } else if (mTPCVDriftHelper->accountCCDBInputs(matcher, obj)) {
   }
-
-  mMustUpdateFastTransform = false;
 }
 
 template <class T>
 bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newCalibObjects)
 {
   // update calibrations for clustering and tracking
+  mMustUpdateFastTransform = false;
   if ((mSpecConfig.outputTracks || mSpecConfig.caClusterer) && !mConfParam->disableCalibUpdates) {
     const CalibdEdxContainer* dEdxCalibContainer = mdEdxCalibContainer.get();
 
@@ -1115,13 +1118,17 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newCalibO
         pc.inputs().get<o2::tpc::CalibdEdxCorrection*>("tpctimegain");
       }
 
-      if (mMustUpdateFastTransform && mConfParam->transformationFile.size() == 0 && mConfParam->transformationSCFile.size() == 0) {
-        LOG(info) << "Updating TPC fast transform map with new calib";
-        float vDriftFactor = 1.00;
+      o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+
+      if (mTPCVDriftHelper->isUpdated() && mConfParam->transformationFile.size() == 0 && mConfParam->transformationSCFile.size() == 0) {
+        LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
+             mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift, mTPCVDriftHelper->getSourceName());
+        mTPCVDriftHelper->acknowledgeUpdate();
         mFastTransformNew.reset(new TPCFastTransform);
         mFastTransformNew->cloneFromObject(*mFastTransform, nullptr);
-        TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformNew, 0, vDriftFactor);
+        TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformNew, 0, mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift);
         newCalibObjects.fastTransform = mFastTransformNew.get();
+        mMustUpdateFastTransform = true;
       }
     }
 

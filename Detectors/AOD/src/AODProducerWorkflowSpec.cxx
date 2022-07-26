@@ -313,6 +313,9 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
                                                          const std::map<uint64_t, int>& bcsMap)
 {
   for (int src = GIndex::NSources; src--;) {
+    if (!GIndex::isTrackSource(src)) {
+      continue;
+    }
     int start = trackRef.getFirstEntryOfSource(src);
     int end = start + trackRef.getEntriesOfSource(src);
     for (int ti = start; ti < end; ti++) {

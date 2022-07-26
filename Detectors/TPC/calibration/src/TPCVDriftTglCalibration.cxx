@@ -27,6 +27,8 @@ namespace tpc
 using Slot = o2::calibration::TimeSlot<TPCVDTglContainer>;
 using clbUtils = o2::calibration::Utils;
 
+float TPCVDTglContainer::driftVRef = 0.f;
+
 //_____________________________________________
 void TPCVDriftTglCalibration::initOutput()
 {
@@ -82,19 +84,22 @@ void TPCVDriftTglCalibration::finalizeSlot(Slot& slot)
     slopErr = slopErr > 0. ? std::sqrt(slopErr) : 0.;
     float corrFact = 1. / (1. - slope);
     float corrFactErr = corrFact * corrFact * slopErr;
-    const auto& vd = mVDPerSlot.emplace_back(o2::tpc::VDriftCorrFact{slot.getStartTimeMS(),
-                                                                     slot.getEndTimeMS(),
-                                                                     std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(),
-                                                                     corrFact,
-                                                                     corrFactErr,
-                                                                     ParameterGas::Instance().DriftV});
+    auto& vd = mVDPerSlot.emplace_back(o2::tpc::VDriftCorrFact{slot.getStartTimeMS(),
+                                                               slot.getEndTimeMS(),
+                                                               std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count(),
+                                                               corrFact,
+                                                               corrFactErr,
+                                                               float(cont->driftVFullMean)});
+    // at this stage the correction object is defined wrt average corrected drift used for the slot processing, we want to redefine it to run-constant reference vdrift
+    vd.normalize(cont->driftVRef);
+
     auto clName = o2::utils::MemFileHelper::getClassName(mVDPerSlot.back());
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
     std::map<std::string, std::string> md;
     mCCDBInfoPerSlot.emplace_back("TPC/Calib/VDriftTgl", clName, flName, md,
                                   vd.firstTime - 10 * o2::ccdb::CcdbObjectInfo::SECOND, vd.lastTime + o2::ccdb::CcdbObjectInfo::MONTH);
-    LOGP(info, "Finalize slot {}({})<=TF<={}({}) with {} entries | dTgl vs Tgl_ITS offset: {}+-{} Slope: {}+-{} -> VD corr factor = {}+-{}", slot.getTFStart(), slot.getStartTimeMS(),
-         slot.getTFEnd(), slot.getEndTimeMS(), cont->entries, offs, offsErr, slope, slopErr, corrFact, corrFactErr);
+    LOGP(info, "Finalize slot {}({})<=TF<={}({}) with {} entries | dTgl vs Tgl_ITS offset: {:.4f}+-{:.4f} Slope: {:.4f}+-{:.4f} -> Corr factor = {:.4f}+-{:.4f} wrt <VD>={:.4f} -> {:.4f} wrt {:.4f}",
+         slot.getTFStart(), slot.getStartTimeMS(), slot.getTFEnd(), slot.getEndTimeMS(), cont->entries, offs, offsErr, slope, slopErr, corrFact, corrFactErr, cont->driftVFullMean, vd.corrFact, vd.refVDrift);
   }
 }
 

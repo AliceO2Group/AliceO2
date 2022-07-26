@@ -82,9 +82,10 @@ class GlobalTrackID : public AbstractRef<25, 5, 2>
   static constexpr mask_t MASK_NONE = 0;
 
   // methods for detector level manipulations
-  GPUd() static constexpr DetID::mask_t getSourceDetectorsMask(int i);
-  GPUd() static constexpr DetID::mask_t getSourcesDetectorsMask(GlobalTrackID::mask_t srcm);
-  GPUd() static bool includesDet(DetID id, GlobalTrackID::mask_t srcm);
+  GPUdi() static constexpr DetID::mask_t getSourceDetectorsMask(int i);
+  GPUdi() static constexpr DetID::mask_t getSourcesDetectorsMask(GlobalTrackID::mask_t srcm);
+  GPUdi() static bool includesDet(DetID id, GlobalTrackID::mask_t srcm);
+  GPUdi() static bool isTrackSource(int s);
   GPUdi() auto getSourceDetectorsMask() const { return getSourceDetectorsMask(getSource()); }
   GPUdi() bool includesDet(DetID id) const { return (getSourceDetectorsMask() & DetID::getMask(id)).any(); }
 
@@ -161,10 +162,25 @@ GPUconstexpr() GlobalTrackID::mask_t sMasks[GlobalTrackID::NSources] = ///< dete
     GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::CTP)),
     GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MCHMID)) // Temporary ordering
 };
+
+#ifndef __OPENCL__
+GPUconstexpr() GlobalTrackID::mask_t sTrackSources =
+  sMasks[GlobalTrackID::ITS] | sMasks[GlobalTrackID::TPC] | sMasks[GlobalTrackID::MFT] | sMasks[GlobalTrackID::MCH] | sMasks[GlobalTrackID::ITSTPC] | sMasks[GlobalTrackID::TPCTOF] |
+  sMasks[GlobalTrackID::TPCTRD] | sMasks[GlobalTrackID::MFTMCH] | sMasks[GlobalTrackID::ITSTPCTRD] | sMasks[GlobalTrackID::ITSTPCTOF] | sMasks[GlobalTrackID::TPCTRDTOF] |
+  sMasks[GlobalTrackID::MFTMCHMID] | sMasks[GlobalTrackID::ITSTPCTRDTOF] | sMasks[GlobalTrackID::ITSAB] | sMasks[GlobalTrackID::MCHMID];
+#endif
+
 } // namespace globaltrackid_internal
 
 GPUdi() constexpr GlobalTrackID::DetID::mask_t GlobalTrackID::getSourceDetectorsMask(int i) { return globaltrackid_internal::SourceDetectorsMasks[i]; }
 GPUdi() constexpr GlobalTrackID::mask_t GlobalTrackID::getSourceMask(int s) { return globaltrackid_internal::sMasks[s]; }
+
+#ifndef __OPENCL__
+GPUdi() bool GlobalTrackID::isTrackSource(int s)
+{
+  return globaltrackid_internal::sTrackSources[s];
+}
+#endif
 
 GPUdi() bool GlobalTrackID::includesDet(DetID id, GlobalTrackID::mask_t srcm)
 {

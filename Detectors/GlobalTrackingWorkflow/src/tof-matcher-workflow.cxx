@@ -60,7 +60,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}},
     {"strict-matching", o2::framework::VariantType::Bool, false, {"High purity preliminary matching"}},
     {"output-type", o2::framework::VariantType::String, "matching-info,calib-info", {"matching-info, calib-info"}},
-    {"enable-dia", o2::framework::VariantType::Bool, false, {"to require diagnostic freq and then write to calib outputs"}},
+    {"enable-dia", o2::framework::VariantType::Bool, false, {"to require diagnostic freq and then write to calib outputs (obsolete since now default)"}},
     {"trd-extra-tolerance", o2::framework::VariantType::Float, 500.0f, {"Extra time tolerance for TRD tracks in ns"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-devices", o2::framework::VariantType::Bool, false, {"merge DPL source/writer devices"}}};
@@ -98,6 +98,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   if (outputType.rfind("calib-info") < outputType.size()) {
     writecalib = 1;
+    if (!diagnostic) {
+      diagnostic = true;
+      LOG(info) << "Diagnostic switched on since required for calibInfo time";
+    }
   }
 
   if (!writecalib) {

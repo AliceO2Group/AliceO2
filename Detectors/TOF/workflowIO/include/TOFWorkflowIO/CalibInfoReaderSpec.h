@@ -49,9 +49,9 @@ class CalibInfoReader : public Task
   bool mTOFTPC = false;
   int mCurrentEntry = 0;
   int mGlobalEntry = 0;
-  bool mDiagnostic = false;
   std::vector<o2::dataformats::CalibInfoTOF> mVect, *mPvect = &mVect;
   o2::tof::Diagnostic mDia, *mPdia = &mDia;
+  std::vector<std::pair<int, unsigned long>> mIndices;
 };
 
 /// create a processor spec

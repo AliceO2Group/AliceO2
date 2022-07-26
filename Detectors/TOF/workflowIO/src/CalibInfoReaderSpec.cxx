@@ -35,7 +35,6 @@ constexpr o2::header::DataDescription ddCalib{"CALIBDATA"}, ddCalib_tpc{"CALIBDA
 
 void CalibInfoReader::init(InitContext& ic)
 {
-  mDiagnostic = ic.options().get<bool>("enable-dia");
   LOG(debug) << "Init CalibInfo reader!";
   auto fname = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")), mFileName);
   mFile = fopen(fname.c_str(), "r");
@@ -61,34 +60,39 @@ void CalibInfoReader::run(ProcessingContext& pc)
       mTree = (TTree*)fin->Get("calibTOF");
       mCurrentEntry = 0;
       mTree->SetBranchAddress("TOFCalibInfo", &mPvect);
-
-      if (mDiagnostic) {
-        mTree->SetBranchAddress("TOFDiaInfo", &mPdia);
-      }
+      mTree->SetBranchAddress("TOFDiaInfo", &mPdia);
 
       LOG(debug) << "Open " << filename;
+
+      mIndices.clear();
+      for (unsigned long i = 0; i < mTree->GetEntries(); i++) { // check time order inside the tree
+        mTree->GetEvent(i);
+        const auto& info = mDia.getTFIDInfo();
+        mIndices.push_back(std::make_pair(i, info.tfCounter));
+      }
+      std::sort(mIndices.begin(), mIndices.end(),
+                [&](const auto& a, const auto& b) {
+                  return a.second < b.second;
+                });
     }
     if ((mGlobalEntry % mNinstances) == mInstance) {
-      mTree->GetEvent(mCurrentEntry);
+      mTree->GetEvent(mIndices[mCurrentEntry].first);
 
-      if (mDiagnostic) {
-        // add TFIDInfo
-        const auto& info = mDia.getTFIDInfo();
-        timingInfo.firstTForbit = info.firstTForbit;
-        timingInfo.tfCounter = info.tfCounter;
-        timingInfo.runNumber = info.runNumber;
-        timingInfo.timeslice = info.startTime;
-        timingInfo.creation = info.creation;
-      } else if (mVect.size()) {
-        timingInfo.creation = uint64_t(mVect[0].getTimestamp()) * 1000;
-      }
+      // add TFIDInfo
+      const auto& info = mDia.getTFIDInfo();
+      timingInfo.firstTForbit = info.firstTForbit;
+      timingInfo.tfCounter = info.tfCounter;
+      timingInfo.runNumber = info.runNumber;
+      //    timingInfo.timeslice = info.startTime; // NOT TO BE SET (done by DPL)
+      timingInfo.creation = info.creation;
+      //        printf("TF=%ld, creationTime=%ld: firstTForbit=%ld, runNumber=%d, startTime=%ld\n",timingInfo.tfCounter,timingInfo.creation,timingInfo.firstTForbit,timingInfo.runNumber,timingInfo.timeslice);
 
       LOG(debug) << "Current entry " << mCurrentEntry;
       LOG(debug) << "Send " << mVect.size() << " calib infos";
+
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, mTOFTPC ? ddCalib_tpc : ddCalib, 0, Lifetime::Timeframe}, mVect);
 
       pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, ddDia, 0, Lifetime::Timeframe}, mDia);
-
       usleep(100);
     }
     mGlobalEntry++;
@@ -120,7 +124,7 @@ DataProcessorSpec getCalibInfoReaderSpec(int instance, int ninstances, const cha
     Inputs{},
     outputs,
     AlgorithmSpec{adaptFromTask<CalibInfoReader>(instance, ninstances, filename)},
-    Options{{"input-dir", VariantType::String, "none", {"Input directory"}}, {"enable-dia", VariantType::Bool, false, {"read also diagnostic frequency"}}}};
+    Options{{"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 } // namespace tof
 } // namespace o2

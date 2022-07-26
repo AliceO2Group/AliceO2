@@ -32,6 +32,11 @@
 
 namespace o2
 {
+namespace tpc
+{
+class VDriftCorrFact;
+}
+
 namespace globaltracking
 {
 
@@ -77,6 +82,7 @@ class MatchCosmics
     GTrackID origID;        ///< track origin id
     int matchID = MinusOne; ///< entry (none if MinusOne) of its match in the vector of matches
   };
+  void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
   void setITSROFrameLengthMUS(float fums) { mITSROFrameLengthMUS = fums; }
   void setITSDict(const o2::itsmft::TopologyDictionary* dict) { mITSDict = dict; }
   void process(const o2::globaltracking::RecoContainer& data);
@@ -131,6 +137,8 @@ class MatchCosmics
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr; // cluster patterns dictionary
 
   int mTFCount = 0;
+  float mTPCVDriftRef = -1.; ///< TPC nominal drift speed in cm/microseconds
+  float mTPCVDrift = -1.;    ///< TPC drift speed in cm/microseconds
   float mTPCTBinMUS = 0.; ///< TPC time bin duration in microseconds
   float mBz = 0;          ///< nominal Bz
   bool mFieldON = true;

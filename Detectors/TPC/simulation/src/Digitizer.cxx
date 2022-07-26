@@ -43,9 +43,9 @@ void Digitizer::init()
   auto& gemAmplification = GEMAmplification::instance();
   gemAmplification.updateParameters();
   auto& electronTransport = ElectronTransport::instance();
-  electronTransport.updateParameters();
+  electronTransport.updateParameters(mVDrift);
   auto& sampaProcessing = SAMPAProcessing::instance();
-  sampaProcessing.updateParameters();
+  sampaProcessing.updateParameters(mVDrift);
 }
 
 void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,

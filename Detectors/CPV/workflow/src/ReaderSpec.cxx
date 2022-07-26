@@ -10,6 +10,11 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsCPV/CPVBlockHeader.h"
+#include "DataFormatsCPV/Cluster.h"
+#include "DataFormatsCPV/Digit.h"
+#include "DataFormatsCPV/TriggerRecord.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 #include "CPVWorkflow/ReaderSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -54,28 +59,22 @@ DataProcessorSpec getDigitsReaderSpec(bool propagateMC)
       processAttributes->terminateOnEod = ic.options().get<bool>("terminate-on-eod");
       processAttributes->finished = false;
       processAttributes->datatype = "CPVDigit";
-      constexpr auto persistency = Lifetime::Timeframe;
       o2::header::DataHeader::SubSpecificationType subSpec = 0;
       if (propagateMC) {
         processAttributes->reader = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
                                                                      filename.c_str(), // input file name
                                                                      nofEvents,        // number of entries to publish
                                                                      publishingMode,
-                                                                     Output{"CPV", "DIGITS", subSpec, persistency},
-                                                                     "CPVDigit", // name of data branch
-                                                                     Output{"CPV", "DIGITTRIGREC", subSpec, persistency},
-                                                                     "CPVDigitTrigRecords", // name of data triggerrecords branch
-                                                                     Output{"CPV", "DIGITSMCTR", subSpec, persistency},
-                                                                     "CPVDigitMCTruth"); // name of mc label branch
+                                                                     RootTreeReader::BranchDefinition<std::vector<Digit>>{Output{"CPV", "DIGITS", subSpec}, "CPVDigit"},
+                                                                     RootTreeReader::BranchDefinition<std::vector<TriggerRecord>>{Output{"CPV", "DIGITTRIGREC", subSpec}, "CPVDigitTrigRecords"},
+                                                                     RootTreeReader::BranchDefinition<dataformats::MCTruthContainer<MCCompLabel>>{Output{"CPV", "DIGITSMCTR", subSpec}, "CPVDigitMCTruth"});
       } else {
         processAttributes->reader = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
                                                                      filename.c_str(), // input file name
                                                                      nofEvents,        // number of entries to publish
                                                                      publishingMode,
-                                                                     Output{"CPV", "DIGITS", subSpec, persistency},
-                                                                     "CPVDigit", // name of data branch
-                                                                     Output{"CPV", "DIGITTRIGREC", subSpec, persistency},
-                                                                     "CPVDigitTrigRecords"); // name of data triggerrecords branch
+                                                                     RootTreeReader::BranchDefinition<std::vector<Digit>>{Output{"CPV", "DIGITS", subSpec}, "CPVDigit"},
+                                                                     RootTreeReader::BranchDefinition<std::vector<TriggerRecord>>{Output{"CPV", "DIGITTRIGREC", subSpec}, "CPVDigitTrigRecords"});
       }
     }
 
@@ -157,21 +156,16 @@ DataProcessorSpec getClustersReaderSpec(bool propagateMC)
                                                                      filename.c_str(), // input file name
                                                                      nofEvents,        // number of entries to publish
                                                                      publishingMode,
-                                                                     Output{"CPV", "CLUSTERS", subSpec, persistency},
-                                                                     "CPVCluster", // name of data branch
-                                                                     Output{"CPV", "CLUSTERTRIGRECS", subSpec, persistency},
-                                                                     "CPVClusterTrigRec", // name of data triggerrecords branch
-                                                                     Output{"CPV", "CLUSTERTRUEMC", subSpec, persistency},
-                                                                     "CPVClusterTrueMC"); // name of mc label branch
+                                                                     RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"CPV", "CLUSTERS", subSpec}, "CPVCluster"},
+                                                                     RootTreeReader::BranchDefinition<std::vector<TriggerRecord>>{Output{"CPV", "CLUSTERTRIGRECS", subSpec}, "CPVClusterTrigRec"},
+                                                                     RootTreeReader::BranchDefinition<dataformats::MCTruthContainer<MCCompLabel>>{Output{"CPV", "CLUSTERTRUEMC", subSpec}, "CPVClusterTrueMC"});
       } else {
         processAttributes->reader = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
                                                                      filename.c_str(), // input file name
                                                                      nofEvents,        // number of entries to publish
                                                                      publishingMode,
-                                                                     Output{"CPV", "CLUSTERS", subSpec, persistency},
-                                                                     "CPVCluster", // name of data branch
-                                                                     Output{"CPV", "CLUSTERTRIGRECS", subSpec, persistency},
-                                                                     "CPVClusterTrueMC"); // name of data triggerrecords branch
+                                                                     RootTreeReader::BranchDefinition<std::vector<Cluster>>{Output{"CPV", "CLUSTERS", subSpec}, "CPVCluster"},
+                                                                     RootTreeReader::BranchDefinition<std::vector<TriggerRecord>>{Output{"CPV", "CLUSTERTRIGRECS", subSpec}, "CPVClusterTrigRec"});
       }
     }
 

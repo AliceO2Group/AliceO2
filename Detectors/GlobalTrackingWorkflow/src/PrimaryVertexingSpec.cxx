@@ -180,7 +180,9 @@ void PrimaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
     } else {
       mITSROFrameLengthMUS = alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3; // ITS ROFrame duration in \mus
     }
-    mVertexer.setBunchFilling(o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling());
+    if (o2::base::GRPGeomHelper::instance().getGRPECS()->getRunType() != o2::parameters::GRPECSObject::RunType::COSMICS) {
+      mVertexer.setBunchFilling(o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling());
+    }
     mVertexer.setITSROFrameLength(mITSROFrameLengthMUS);
     mVertexer.init();
   }

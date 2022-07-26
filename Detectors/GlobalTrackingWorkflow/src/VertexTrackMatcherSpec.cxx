@@ -20,7 +20,7 @@
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterDetector.h"
-#include "TPCBase/ParameterGas.h"
+#include "TPCCalibration/VDriftHelper.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "TStopwatch.h"
 
@@ -48,6 +48,7 @@ class VertexTrackMatcherSpec : public Task
   void updateTimeDependentParams(ProcessingContext& pc);
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
+  o2::tpc::VDriftHelper mTPCVDriftHelper{};
   o2::vertexing::VertexTrackMatcher mMatcher;
   TStopwatch mTimer;
 };
@@ -85,6 +86,7 @@ void VertexTrackMatcherSpec::run(ProcessingContext& pc)
 void VertexTrackMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
@@ -97,16 +99,24 @@ void VertexTrackMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
   }
   // we may have other params which need to be queried regularly
   // VDrift may change from time to time
-  auto& gasParam = o2::tpc::ParameterGas::Instance();
-  auto& elParam = o2::tpc::ParameterElectronics::Instance();
-  auto& detParam = o2::tpc::ParameterDetector::Instance();
-  mMatcher.setTPCBin2MUS(elParam.ZbinWidth);
-  mMatcher.setMaxTPCDriftTimeMUS(detParam.TPClength / gasParam.DriftV);
+  if (mTPCVDriftHelper.isUpdated()) {
+    auto& elParam = o2::tpc::ParameterElectronics::Instance();
+    auto& detParam = o2::tpc::ParameterDetector::Instance();
+    mMatcher.setTPCBin2MUS(elParam.ZbinWidth);
+    auto& vd = mTPCVDriftHelper.getVDriftObject();
+    mMatcher.setMaxTPCDriftTimeMUS(detParam.TPClength / (vd.refVDrift * vd.corrFact));
+    LOGP(info, "Updating TPC VDrift with factor of {} wrt reference {} from source {}",
+         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    mTPCVDriftHelper.acknowledgeUpdate();
+  }
 }
 
 void VertexTrackMatcherSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
   if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
+  if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "ALPIDEPARAM", 0)) {
@@ -135,6 +145,7 @@ DataProcessorSpec getVertexTrackMatcherSpec(GTrackID::mask_t src)
   auto dataRequest = std::make_shared<DataRequest>();
 
   dataRequest->requestTracks(src, false);
+  dataRequest->requestClusters(src & GTrackID::getSourcesMask("EMC,PHS,CPV"), false);
   dataRequest->requestPrimaryVerterticesTMP(false);
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
@@ -145,6 +156,7 @@ DataProcessorSpec getVertexTrackMatcherSpec(GTrackID::mask_t src)
                                                               o2::base::GRPGeomRequest::None, // geometry
                                                               dataRequest->inputs,
                                                               true);
+  o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
 
   outputs.emplace_back("GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe);
   outputs.emplace_back("GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe);

@@ -49,7 +49,6 @@ class TimeFrameGPU : public TimeFrame
 
   void checkBufferSizes();
   void initialise(const int iteration,
-                  const MemoryParameters& memParam,
                   const TrackingParameters& trkParam,
                   const int maxLayers);
   /// Getters

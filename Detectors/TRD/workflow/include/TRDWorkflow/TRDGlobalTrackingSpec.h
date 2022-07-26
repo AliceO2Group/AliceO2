@@ -28,7 +28,7 @@
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include <memory>
 #include "DetectorsBase/GRPGeomHelper.h"
-
+#include "TPCCalibration/VDriftHelper.h"
 #include "GPUO2InterfaceRefit.h"
 #include "TPCFastTransform.h"
 #include "TRDBase/RecoParam.h"
@@ -70,6 +70,7 @@ class TRDGlobalTracking : public o2::framework::Task
   float mTPCVdrift{2.58f};                            ///< TPC drift velocity (for shifting TPC tracks along Z)
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< seeding input (TPC-only, ITS-TPC or both)
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
+  o2::tpc::VDriftHelper mTPCVDriftHelper{};
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;               ///< seeding track sources (TPC, ITS-TPC)
   bool mTrigRecFilter{false};                                    ///< if true, TRD trigger records without matching ITS IR are filtered out
   bool mStrict{false};                                           ///< preliminary matching in strict mode

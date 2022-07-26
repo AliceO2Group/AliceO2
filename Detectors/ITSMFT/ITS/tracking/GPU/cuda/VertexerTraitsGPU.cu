@@ -89,13 +89,13 @@ VertexerTraitsGPU::~VertexerTraitsGPU()
   gpu::utils::host::gpuFree(mDeviceIndexTableUtils);
 }
 
-void VertexerTraitsGPU::initialise(const MemoryParameters& memParams, const TrackingParameters& trackingParams)
+void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams)
 {
   if (!mIndexTableUtils.getNzBins()) {
     updateVertexingParameters(mVrtParams);
   }
   gpu::utils::host::gpuMemcpyHostToDevice(mDeviceIndexTableUtils, &mIndexTableUtils, sizeof(mIndexTableUtils));
-  mTimeFrameGPU->initialise(0, memParams, trackingParams, 3);
+  mTimeFrameGPU->initialise(0, trackingParams, 3);
   setIsGPU(true);
 }
 

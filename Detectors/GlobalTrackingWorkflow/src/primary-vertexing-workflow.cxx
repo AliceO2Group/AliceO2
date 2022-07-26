@@ -72,7 +72,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   WorkflowSpec specs;
 
   GID::mask_t allowedSourcesPV = GID::getSourcesMask("ITS,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
-  GID::mask_t allowedSourcesVT = GID::getSourcesMask("ITS,MFT,TPC,MCH,MCH-MID,MFT-MCH,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
+  GID::mask_t allowedSourcesVT = GID::getSourcesMask("ITS,MFT,TPC,MCH,MCH-MID,MFT-MCH,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF,EMC,PHS,CPV,FT0,FV0,FDD");
 
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
@@ -95,7 +95,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   specs.emplace_back(o2::vertexing::getPrimaryVertexingSpec(srcPV, skip, validateWithFT0, useMC));
   specs.emplace_back(o2::vertexing::getVertexTrackMatcherSpec(srcVT));
 
-  auto srcMtc = srcComb & ~GID::getSourceMask(GID::MFTMCH); // Do not request MFTMCH matches
+  auto srcMtc = srcComb;
 
   // only TOF clusters are needed if TOF is involved, no clusters MC needed
   WorkflowSpec inputspecs;

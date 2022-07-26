@@ -29,7 +29,7 @@ SAMPAProcessing::SAMPAProcessing() : mRandomNoiseRing()
   updateParameters();
 }
 
-void SAMPAProcessing::updateParameters()
+void SAMPAProcessing::updateParameters(float vdrift)
 {
   mGasParam = &(ParameterGas::Instance());
   mDetParam = &(ParameterDetector::Instance());
@@ -38,6 +38,7 @@ void SAMPAProcessing::updateParameters()
   mPedestalMap = &(cdb.getPedestals());
   mNoiseMap = &(cdb.getNoise());
   mZeroSuppression = &(cdb.getZeroSuppressionThreshold());
+  mVDrift = vdrift > 0 ? vdrift : mGasParam->DriftV;
 }
 
 void SAMPAProcessing::getShapedSignal(float ADCsignal, float driftTime, std::vector<float>& signalArray) const

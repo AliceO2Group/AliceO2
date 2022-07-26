@@ -30,9 +30,9 @@ namespace tpc
 class TPCVDriftTglCalibSpec : public Task
 {
  public:
-  TPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, size_t minEnt, std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req)
+  TPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, float maxDelay, size_t minEnt, std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req)
   {
-    mCalibrator = std::make_unique<o2::tpc::TPCVDriftTglCalibration>(ntgl, tglMax, ndtgl, dtglMax, slotL, minEnt);
+    mCalibrator = std::make_unique<o2::tpc::TPCVDriftTglCalibration>(ntgl, tglMax, ndtgl, dtglMax, slotL, maxDelay, minEnt);
   }
 
   void init(InitContext& ic) final
@@ -46,7 +46,7 @@ class TPCVDriftTglCalibSpec : public Task
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     auto data = pc.inputs().get<gsl::span<o2::dataformats::Pair<float, float>>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
-    LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " tracks";
+    LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() - 1 << " tracks"; // 1st entry is for VDrift
     mCalibrator->process(data);
     sendOutput(pc.outputs());
   }
@@ -93,7 +93,7 @@ void TPCVDriftTglCalibSpec::sendOutput(DataAllocator& output)
 }
 
 //_____________________________________________________________
-DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, size_t minEnt)
+DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, float dtglMax, size_t slotL, float maxDelay, size_t minEnt)
 {
 
   using device = o2::tpc::TPCVDriftTglCalibSpec;
@@ -117,7 +117,7 @@ DataProcessorSpec getTPCVDriftTglCalibSpec(int ntgl, float tglMax, int ndtgl, fl
     "tpc-vd-tgl-calib",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::tpc::TPCVDriftTglCalibSpec>(ntgl, tglMax, ndtgl, dtglMax, slotL, minEnt, ccdbRequest)},
+    AlgorithmSpec{adaptFromTask<o2::tpc::TPCVDriftTglCalibSpec>(ntgl, tglMax, ndtgl, dtglMax, slotL, maxDelay, minEnt, ccdbRequest)},
     Options{{"vdtgl-histos-file-name", VariantType::String, "", {"file to save histos (if name provided)"}}}};
 }
 
