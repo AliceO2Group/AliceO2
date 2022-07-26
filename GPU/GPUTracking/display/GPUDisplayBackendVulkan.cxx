@@ -294,7 +294,7 @@ double GPUDisplayBackendVulkan::checkDevice(vk::PhysicalDevice device, const std
     break;
   }
   if (!found) {
-    GPUInfo("%s ignored due to missing queue properties", deviceProperties.deviceName.data());
+    GPUInfo("%s ignored due to missing queue properties", &deviceProperties.deviceName[0]);
     return (-1);
   }
 
@@ -309,13 +309,13 @@ double GPUDisplayBackendVulkan::checkDevice(vk::PhysicalDevice device, const std
     }
   }
   if (extensionsFound < reqDeviceExtensions.size()) {
-    GPUInfo("%s ignored due to missing extensions", deviceProperties.deviceName.data());
+    GPUInfo("%s ignored due to missing extensions", &deviceProperties.deviceName[0]);
     return (-1);
   }
 
   updateSwapChainDetails(device);
   if (mSwapChainDetails.formats.empty() || mSwapChainDetails.presentModes.empty()) {
-    GPUInfo("%s ignored due to incompatible swap chain", deviceProperties.deviceName.data());
+    GPUInfo("%s ignored due to incompatible swap chain", &deviceProperties.deviceName[0]);
     return (-1);
   }
 
@@ -429,7 +429,7 @@ void GPUDisplayBackendVulkan::createDevice()
     double score = checkDevice(devices[i], reqDeviceExtensions);
     if (mDisplay->param()->par.debugLevel >= 2) {
       vk::PhysicalDeviceProperties deviceProperties = devices[i].getProperties();
-      GPUInfo("Available Vulkan device %d: %s - Score %f", i, deviceProperties.deviceName.data(), score);
+      GPUInfo("Available Vulkan device %d: %s - Score %f", i, &deviceProperties.deviceName[0], score);
     }
     if (score > bestScore && score > 0) {
       mPhysicalDevice = devices[i];
@@ -447,7 +447,7 @@ void GPUDisplayBackendVulkan::createDevice()
   vk::FormatProperties depth32FormatProperties = mPhysicalDevice.getFormatProperties(vk::Format::eD32Sfloat);
   vk::FormatProperties depth64FormatProperties = mPhysicalDevice.getFormatProperties(vk::Format::eD32SfloatS8Uint);
   vk::FormatProperties formatProperties = mPhysicalDevice.getFormatProperties(mSurfaceFormat.format);
-  GPUInfo("Using physical Vulkan device %s", deviceProperties.deviceName.data());
+  GPUInfo("Using physical Vulkan device %s", &deviceProperties.deviceName[0]);
   mMaxMSAAsupported = getMaxUsableSampleCount(deviceProperties);
   mZSupported = (bool)(depth32FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
   mStencilSupported = (bool)(depth64FormatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment);
