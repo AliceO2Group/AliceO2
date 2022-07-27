@@ -263,13 +263,13 @@ int TrackletsParser::Parse()
           }
           headertrackletcount = getNumberOfTrackletsFromHeader(mTrackletMCMHeader);
           if (headertrackletcount > 0) {
-            mState = StateTrackletMCMData; // afrter reading a header we should then have data for next round through the loop
+            mState = StateTrackletMCMData; // after reading a header we should then have data for next round through the loop
           } else {
             mState = StateTrackletMCMHeader;
           }
 
           mcmtrackletcount = 0;
-          std::memset(mTrackletMCMData.data(), 0, 3);
+          std::fill(mTrackletMCMData.begin(), mTrackletMCMData.end(), TrackletMCMData{0});
           mWordsRead++;
         } else {
           if (mState == StateTrackletMCMHeader || (mState == StateTrackletHCHeader && !mOptions[mIgnoreTrackletHCHeader])) {
