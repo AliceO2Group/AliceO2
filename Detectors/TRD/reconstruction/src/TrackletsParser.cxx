@@ -127,7 +127,7 @@ int TrackletsParser::Parse()
       // we either have a tracklet half chamber header word or a digit one.
       // digit has 01 at the end last 2 bits and the supermodule in bits 9 to 13 [0:17]
       // tracklet has bit 11 (zero based) set to 1
-      //we have tracklet data so no TracletHCHeader
+      //we have tracklet data so no TrackletHCHeader
       mState = StateTrackletHCHeader;
       TrackletHCHeader hcheader;
 
@@ -191,7 +191,7 @@ int TrackletsParser::Parse()
 
     if (*word == 0x10001000 && nextwordcopy == 0x10001000) {
       if (!StateTrackletEndMarker && !StateTrackletHCHeader) {
-        LOG(warn) << "State should be trackletend marker current ?= end marker  ?? " << mState << " ?=" << StateTrackletEndMarker;
+        LOG(warn) << "State should be TrackletEndMarker, current ?= end marker  ?? " << mState << " ?=" << StateTrackletEndMarker;
       }
 
       mWordsRead += 2;
@@ -294,7 +294,7 @@ int TrackletsParser::Parse()
             ignoreDataTillTrackletEndMarker = true;
             //dump the rest of the data ... undo any tracklets already written?
             //cant dump till mEndParse and digits are after the tracklets
-            //we can assume the mcmtrackletcountth (n from the end) last tracklets in the vector are to be removed.
+            //we can assume the mcmtrackletcount (n from the end) last tracklets in the vector are to be removed.
             incParsingError(TRDParsingTrackletTrackletCountGTThatDeclaredInMCMHeader);
             mEventRecord->popTracklets(mcmtrackletcount); // our format is always 4
             //TODO count remove warning
@@ -329,7 +329,7 @@ int TrackletsParser::Parse()
                 LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mHalfChamberSide << " " << mTrackletMCMHeader->padrow << ":" << mTrackletMCMHeader->col;
               }
             }
-            //TODO cross reference hcid to somewhere for a check. mDetector is assigned at the time of parser init.
+            //TODO cross reference hcid to somewhere for a check. mDetector is assigned at the time of parser initialization.
             if (mDataVerbose) {
               LOG(info) << "TTT format : " << (int)mTrackletHCHeader.format << " hcid: " << hcid << " padrow:" << padrow << " col:" << col << " pos:" << pos << " slope:" << slope << " q::" << q0 << " " << q1 << " " << q2;
             }
@@ -342,7 +342,7 @@ int TrackletsParser::Parse()
               // next to come can either be an mcmheaderword or a trackletendmarker.
               // check next word if its a trackletendmarker
               auto nextdataword = std::next(word, 1);
-              // the check is unambigous between trackletendmarker and mcmheader
+              // the check is unambiguous between trackletendmarker and mcmheader
               if ((*nextdataword) == constants::TRACKLETENDMARKER) {
                 mState = StateTrackletEndMarker;
               } else {
