@@ -60,10 +60,10 @@ class EventManagerFrame : public TGMainFrame
   bool inTick = false;
   TString mDefaultDataDirectory;
   long memoryUsedInfo = 0L; // used to track memory leaks
-  bool setInTick();   // try set inTick, return true if set, false if already set
-  void clearInTick(); // safely clears inTick
-  void checkMemory(); // check memory used end exit(-1) if it is too much
-  void updateGUI();   // updates
+  bool setInTick();         // try set inTick, return true if set, false if already set
+  void clearInTick();       // safely clears inTick
+  void checkMemory();       // check memory used end exit(-1) if it is too much
+  void updateGUI();         // updates
   static TGTextButton* makeButton(TGCompositeFrame* p, const char* txt, Int_t width = 0, const char* txttooltip = nullptr,
                                   Int_t lo = 8, Int_t ro = 8, Int_t to = 4, Int_t bo = 4);
   static TGRadioButton* makeRadioButton(TGButtonGroup* g, const char* txt, Int_t width = 0, const char* txttooltip = nullptr, bool checked = false,
@@ -123,6 +123,7 @@ class EventManagerFrame : public TGMainFrame
  public: // static functions
   static TString getSourceDirectory(EventManagerFrame::RunMode runMode);
   static RunMode decipherRunMode(TString name, RunMode defaultRun = SyntheticRun);
+  static TString getRunTypeString(EventManagerFrame::RunMode runMode);
 };
 
 } // namespace event_visualisation

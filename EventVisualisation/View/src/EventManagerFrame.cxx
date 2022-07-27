@@ -303,7 +303,7 @@ void EventManagerFrame::DoScreenshot()
   ConfigurationManager::getInstance().getConfig(settings);
   std::string outDirectory = settings.GetValue("screenshot.path", "Screenshots");
   std::ostringstream filepath;
-  filepath << outDirectory << "/Screenshot_" << time_str << ".png";
+  filepath << outDirectory << "/Screenshot_" << time_str << "_" << getRunTypeString(mRunMode) << ".png";
   if (!std::filesystem::is_directory(outDirectory)) {
     std::filesystem::create_directory(outDirectory);
   }
@@ -608,6 +608,20 @@ EventManagerFrame::RunMode EventManagerFrame::decipherRunMode(TString name, RunM
     return PhysicsRun;
   } else {
     return defaultRun;
+  }
+}
+
+TString EventManagerFrame::getRunTypeString(EventManagerFrame::RunMode runMode)
+{
+  switch (runMode) {
+    case EventManagerFrame::SyntheticRun:
+      return "synthetic";
+    case EventManagerFrame::CosmicsRun:
+      return "cosmics";
+    case EventManagerFrame::PhysicsRun:
+      return "physics";
+    default:
+      return "";
   }
 }
 
