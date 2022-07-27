@@ -221,7 +221,7 @@ std::string defaultConditionBackend()
 // get the default value for condition query rate
 int64_t defaultConditionQueryRate()
 {
-  return getenv("DPL_CONDITION_QUERY_RATE") ? std::stoll(getenv("DPL_CONDITION_QUERY_RATE")) : 1;
+  return getenv("DPL_CONDITION_QUERY_RATE") ? std::stoll(getenv("DPL_CONDITION_QUERY_RATE")) : 0;
 }
 
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
