@@ -54,10 +54,6 @@ class ITSDCSParser : public Task
 
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
-  void endOfStream(EndOfStreamContext& ec) final;
-
-  void finalize(EndOfStreamContext* ec);
-  void stop() final;
 
   //////////////////////////////////////////////////////////////////
  private:
@@ -66,7 +62,7 @@ class ITSDCSParser : public Task
   void updateMemoryFromInputString(const std::string&);
   void saveToOutput();
   void resetMemory();
-  void pushToCCDB(EndOfStreamContext*);
+  void pushToCCDB(ProcessingContext&);
   void updateAndCheck(int&, const int);
   void updateAndCheck(short int&, const short int);
   void writeChipInfo(o2::dcs::DCSconfigObject_t&, const std::string&, const unsigned short int);

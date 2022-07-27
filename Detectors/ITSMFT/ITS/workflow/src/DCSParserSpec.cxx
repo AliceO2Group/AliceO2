@@ -60,7 +60,7 @@ void ITSDCSParser::run(ProcessingContext& pc)
   }
 
   if (this->mConfigDCS.size()) {
-    this->pushToCCDB(nullptr);
+    this->pushToCCDB(pc);
     this->mConfigDCS.clear();
   }
 
@@ -343,7 +343,7 @@ void ITSDCSParser::writeChipInfo(
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void ITSDCSParser::pushToCCDB(EndOfStreamContext* ec)
+void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
 {
   // Timestamps for CCDB entry
   long tstart = o2::ccdb::getCurrentTimestamp();
@@ -363,16 +363,15 @@ void ITSDCSParser::pushToCCDB(EndOfStreamContext* ec)
   auto image = o2::ccdb::CcdbApi::createObjectImage(&mConfigDCS, &info);
   info.setFileName(filename);
 
-  if (ec) { // send to ccdb-populator wf only if there is an EndOfStreamContext
-    LOG(info) << "Class Name: " << class_name << " | File Name: " << filename
-              << "\nSending to ccdb-populator the object " << info.getPath() << "/" << info.getFileName()
-              << " of size " << image->size() << " bytes, valid for "
-              << info.getStartValidityTimestamp() << " : "
-              << info.getEndValidityTimestamp();
+  // Send to ccdb-populator wf
+  LOG(info) << "Class Name: " << class_name << " | File Name: " << filename
+            << "\nSending to ccdb-populator the object " << info.getPath() << "/" << info.getFileName()
+            << " of size " << image->size() << " bytes, valid for "
+            << info.getStartValidityTimestamp() << " : "
+            << info.getEndValidityTimestamp();
 
-    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_CONFIG", 0}, *image);
-    ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DCS_CONFIG", 0}, info);
-  }
+  pc.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_CONFIG", 0}, *image);
+  pc.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DCS_CONFIG", 0}, info);
 
   if (!mCcdbUrl.empty()) { // if url is specified, send object to ccdb from THIS wf
 
@@ -385,43 +384,6 @@ void ITSDCSParser::pushToCCDB(EndOfStreamContext* ec)
       info.getMetaData(), info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
   }
 
-  return;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-void ITSDCSParser::finalize(EndOfStreamContext* ec)
-{
-  if (ec) {
-    LOGF(info, "endOfStream report:", mSelfName);
-  }
-
-  if (this->mConfigDCS.size()) {
-    this->pushToCCDB(ec);
-  }
-
-  return;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// fairMQ functionality; called automatically when the DDS stops processing
-void ITSDCSParser::stop()
-{
-  if (!mStopped) {
-    this->finalize(nullptr);
-    this->mStopped = true;
-  }
-  return;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// O2 functionality allowing to do post-processing when the upstream device
-// tells that there will be no more input data
-void ITSDCSParser::endOfStream(EndOfStreamContext& ec)
-{
-  if (!mStopped) {
-    this->finalize(&ec);
-    this->mStopped = true;
-  }
   return;
 }
 
