@@ -30,11 +30,12 @@ using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 using std::chrono::system_clock;
 
-FileProducer::FileProducer(const std::string& path, int filesInFolder, const std::string& name)
+FileProducer::FileProducer(const std::string& path, const std::string& ext, int filesInFolder, const std::string& name)
 {
   this->mFilesInFolder = filesInFolder;
   this->mPath = path;
   this->mName = name;
+  this->mExt = ext;
   o2::utils::createDirectoriesIfAbsent(path); // create folder if not exists (fails if no rights)
 }
 
@@ -46,17 +47,13 @@ std::string FileProducer::newFileName() const
   gethostname(hostname, _POSIX_HOST_NAME_MAX);
 
   auto pid = getpid();
-  auto result = fmt::format(this->mName, fmt::arg("hostname", hostname), fmt::arg("pid", pid), fmt::arg("timestamp", millisec_since_epoch));
-  // auto files = DirectoryLoader::load(this->mPath, "_", ".json"); // already sorted starting by part of name at pos
-
-  // if (this->mFilesInFolder > 0) {
-  //   while (files.size() >= this->mFilesInFolder) {
-  //     auto front = files.front();
-  //     files.pop_front();
-  //     std::remove((this->mPath + "/" + front).c_str()); // delete file
-  //   }
-  // }
-  DirectoryLoader::reduceNumberOfFiles(this->mPath, DirectoryLoader::load(this->mPath, "_", ".json"), this->mFilesInFolder);
+  auto result = fmt::format(this->mName,
+                            fmt::arg("hostname", hostname),
+                            fmt::arg("pid", pid),
+                            fmt::arg("timestamp", millisec_since_epoch),
+                            fmt::arg("ext", this->mExt));
+  std::vector<std::string> ext = {".json", ".root"};
+  DirectoryLoader::reduceNumberOfFiles(this->mPath, DirectoryLoader::load(this->mPath, "_", ext), this->mFilesInFolder);
 
   return this->mPath + "/" + result;
 }

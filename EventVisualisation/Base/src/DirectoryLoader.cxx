@@ -22,11 +22,11 @@
 using namespace std;
 using namespace o2::event_visualisation;
 
-deque<string> DirectoryLoader::load(const std::string& path, const std::string& marker, const std::string& ext)
+deque<string> DirectoryLoader::load(const std::string& path, const std::string& marker, const std::vector<std::string>& ext)
 {
   deque<string> result;
   for (const auto& entry : std::filesystem::directory_iterator(path)) {
-    if (entry.path().extension() == ext) {
+    if (std::find(ext.begin(), ext.end(), entry.path().extension()) != ext.end()) {
       result.push_back(entry.path().filename());
     }
   }
@@ -58,22 +58,22 @@ std::time_t to_time_t(TP tp)
   return system_clock::to_time_t(sctp);
 }
 
-int DirectoryLoader::getNumberOfFiles(std::string& path, std::string& ext)
+int DirectoryLoader::getNumberOfFiles(std::string& path, std::vector<std::string>& ext)
 {
   int res = 0;
   for (const auto& entry : std::filesystem::directory_iterator(path)) {
-    if (entry.path().extension() == ext) {
+    if (std::find(ext.begin(), ext.end(), entry.path().extension()) != ext.end()) {
       res++;
     }
   }
   return res;
 }
-std::string DirectoryLoader::getLatestFile(std::string& path, std::string& ext)
+std::string DirectoryLoader::getLatestFile(std::string& path, std::vector<std::string>& ext)
 {
   std::string oldest_file_name = "";
   std::time_t oldest_file_time = LONG_MAX;
   for (const auto& entry : std::filesystem::directory_iterator(path)) {
-    if (entry.path().extension() == ext) {
+    if (std::find(ext.begin(), ext.end(), entry.path().extension()) != ext.end()) {
       auto file_time = entry.last_write_time();
       std::time_t tt = to_time_t(file_time);
       if (tt < oldest_file_time) {
@@ -85,7 +85,7 @@ std::string DirectoryLoader::getLatestFile(std::string& path, std::string& ext)
   return oldest_file_name;
 }
 
-void DirectoryLoader::removeOldestFiles(std::string& path, std::string ext, int remaining)
+void DirectoryLoader::removeOldestFiles(std::string& path, std::vector<std::string>& ext, int remaining)
 {
   while (getNumberOfFiles(path, ext) > remaining) {
     LOG(info) << "removing oldest file in folder: " << path << " : " << getLatestFile(path, ext);

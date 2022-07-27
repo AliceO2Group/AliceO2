@@ -162,13 +162,16 @@ class VisualisationEvent
     mCalo.clear();
   }
 
+  void afterLoading(); // compute internal fields which are not persisted
+
   const VisualisationCluster& getCluster(int i) const { return mClusters[i]; };
   size_t getClusterCount() const { return mClusters.size(); } // Returns number of clusters
-  void setWorkflowVersion(const std::string& workflowVersion) { this->mWorkflowVersion = workflowVersion; }
   void setWorkflowParameters(const std::string& workflowParameters) { this->mWorkflowParameters = workflowParameters; }
 
   std::string getCollisionTime() const { return this->mCollisionTime; }
   void setCollisionTime(std::string collisionTime) { this->mCollisionTime = collisionTime; }
+
+  void setEveVersion(std::string eveVersion) { this->mEveVersion = eveVersion; }
 
   float getMinTimeOfTracks() const { return this->mMinTimeOfTracks; }
   float getMaxTimeOfTracks() const { return this->mMaxTimeOfTracks; } /// maximum time of tracks in the event
@@ -202,7 +205,7 @@ class VisualisationEvent
 
   float mMinTimeOfTracks;                           /// minimum time of tracks in the event
   float mMaxTimeOfTracks;                           /// maximum time of tracks in the event
-  std::string mWorkflowVersion;                     /// workflow version used to generate this Event
+  std::string mEveVersion;                          /// workflow version used to generate this Event
   std::string mWorkflowParameters;                  /// workflow parameters used to generate this Event
   int mEventNumber;                                 /// event number in file
   double mEnergy;                                   /// energy of the collision

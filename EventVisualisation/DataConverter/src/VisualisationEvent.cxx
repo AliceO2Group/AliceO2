@@ -143,5 +143,15 @@ VisualisationEvent::VisualisationEvent()
   this->mCollisionTime = ""; // collision time not set
 }
 
+void VisualisationEvent::afterLoading()
+{
+  this->mMinTimeOfTracks = std::numeric_limits<float>::max();
+  this->mMaxTimeOfTracks = std::numeric_limits<float>::min();
+  for (auto& v : this->mTracks) {
+    this->mMinTimeOfTracks = std::min(this->mMinTimeOfTracks, v.getTime());
+    this->mMaxTimeOfTracks = std::max(this->mMaxTimeOfTracks, v.getTime());
+  }
+}
+
 } // namespace event_visualisation
 } // namespace o2

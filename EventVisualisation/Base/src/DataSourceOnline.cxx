@@ -65,7 +65,7 @@ std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline
   return res;
 }
 
-DataSourceOnline::DataSourceOnline(const std::string path) : mFileWatcher(path)
+DataSourceOnline::DataSourceOnline(const std::string path) : mFileWatcher(path, {".json", ".root"})
 {
 }
 
