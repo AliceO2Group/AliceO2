@@ -34,7 +34,7 @@ struct Tracklet final {
   GPUhdi() bool operator!=(const Tracklet&) const;
   GPUhdi() unsigned char isEmpty() const
   {
-    return firstClusterIndex < 0 || secondClusterIndex < 0 && !tanLambda && !phi;
+    return firstClusterIndex < 0 || secondClusterIndex < 0;
   }
   GPUhdi() void dump();
   GPUhdi() void dump() const;

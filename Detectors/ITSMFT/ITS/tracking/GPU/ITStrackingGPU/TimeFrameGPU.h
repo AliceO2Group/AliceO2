@@ -115,6 +115,7 @@ class TimeFrameGPU : public TimeFrame
   int* getDeviceIndexTableAtRof(const int layerId, const int rofId) { return mIndexTablesD[layerId].get() + rofId * (ZBins * PhiBins + 1); }
   unsigned char* getDeviceUsedTracklets(const int rofId);
   Line* getDeviceLines(const int rofId);
+  Tracklet* getDeviceTrackletsVertexerOnly(const int rofId, const int layerId); // this method uses the cluster table for layer 1 for any layer. It is used for the vertexer only.
   Tracklet* getDeviceTracklets(const int rofId, const int layerId);
   Tracklet* getDeviceTrackletsAll(const int layerId);
   Cell* getDeviceCells(const int layerId);
@@ -217,6 +218,12 @@ template <int NLayers>
 inline Line* TimeFrameGPU<NLayers>::getDeviceLines(const int rofId)
 {
   return getPtrFromRuler(rofId, mLines.get(), mROframesClusters[1].data());
+}
+
+template <int NLayers>
+inline Tracklet* TimeFrameGPU<NLayers>::getDeviceTrackletsVertexerOnly(const int rofId, const int layerId)
+{
+  return getPtrFromRuler(rofId, mTrackletsD[layerId].get(), mROframesClusters[1].data(), mConfig.maxTrackletsPerCluster);
 }
 
 template <int NLayers>
