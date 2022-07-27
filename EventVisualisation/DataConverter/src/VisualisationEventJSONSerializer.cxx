@@ -155,9 +155,9 @@ void VisualisationEventJSONSerializer::fromJson(VisualisationEvent& event, std::
   event.setTfCounter(getIntOrDefault(tree, "tfCounter"));
   event.setFirstTForbit(getIntOrDefault(tree, "firstTForbit"));
   event.setPrimaryVertex(getIntOrDefault(tree, "primaryVertex"));
-  event.setCollisionTime(getStringOrDefault(tree,"collisionTime", "not specified"));
-  event.mEveVersion = getStringOrDefault(tree,"eveVersion", "0.0");
-  event.setWorkflowParameters(getStringOrDefault(tree,"workflowParameters", "1.0"));
+  event.setCollisionTime(getStringOrDefault(tree, "collisionTime", "not specified"));
+  event.mEveVersion = getStringOrDefault(tree, "eveVersion", "0.0");
+  event.setWorkflowParameters(getStringOrDefault(tree, "workflowParameters", "1.0"));
 
   rapidjson::Value& trackCount = tree["trackCount"];
   event.mTracks.reserve(trackCount.GetInt());
