@@ -38,7 +38,9 @@ struct __attribute__((__packed__)) ModuleTriggerMap {
   unsigned Auto_1 : 1;
   unsigned Auto_2 : 1;
   unsigned Auto_3 : 1;
-  unsigned empty : 7;
+  unsigned AliceErr : 1;
+  unsigned AutoErr : 1;
+  unsigned empty : 5;
 };
 
 union ModuleTriggerMapData {

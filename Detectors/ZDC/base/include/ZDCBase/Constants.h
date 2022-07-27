@@ -237,6 +237,7 @@ constexpr int DbgZero = 0;
 constexpr int DbgMinimal = 1;
 constexpr int DbgMedium = 2;
 constexpr int DbgFull = 3;
+constexpr int DbgExtra = 4;
 
 // paths to CCDB objects
 // TODO: eventually these paths should be retrieved from NameConfigurator class

@@ -34,7 +34,7 @@ void RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkI
     size_t payloadSize = payload.size();
     for (int32_t ip = 0; ip < payloadSize; ip += 16) {
 #ifndef O2_ZDC_DEBUG
-      if (mVerbosity >= DbgFull) {
+      if (mVerbosity >= DbgExtra) {
         o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
       }
 #else
@@ -186,7 +186,6 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
       ModuleTriggerMapData mt;
       mt.w = 0;
       bool filled_module = false;
-      bool inconsistent_module = false;
       for (int32_t ic = 0; ic < NChPerModule; ic++) {
         // Check if payload is present for channel
         if (ev.data[im][ic].f.fixed_0 == Id_w0 && ev.data[im][ic].f.fixed_1 == Id_w1 && ev.data[im][ic].f.fixed_2 == Id_w2) {
@@ -232,6 +231,7 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
           } else if (alice_0 != ch.f.Alice_0 || alice_1 != ch.f.Alice_1 || alice_2 != ch.f.Alice_2 || alice_3 != ch.f.Alice_3) {
             inconsistent_event = true;
             inconsistent_alice_trig = true;
+            mt.f.AliceErr = true;
             if (mVerbosity > DbgMinimal) {
               if (alice_0 != ch.f.Alice_0) {
                 printf("im=%d ic=%d Alice_0 mt=%u ch=%u\n", im, ic, mt.f.Alice_0, ch.f.Alice_0);
@@ -259,7 +259,7 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
             mt.f.Alice_3 = ch.f.Alice_3;
             filled_module = true;
           } else if (mt.f.Auto_m != ch.f.Auto_m || mt.f.Auto_0 != ch.f.Auto_0 || mt.f.Auto_1 != ch.f.Auto_1 || mt.f.Auto_2 != ch.f.Auto_2 || mt.f.Auto_3 != ch.f.Auto_3) {
-            inconsistent_module = true;
+            mt.f.AutoErr = true;
             inconsistent_auto_trig = true;
           }
           // Verify trigger condition (if requested)
@@ -280,7 +280,7 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
         }
       }
       bcdata.moduleTriggers[im] = mt.w;
-      if (inconsistent_module == true) {
+      if (mt.f.AutoErr == true) {
         inconsistent_event = true;
       }
     }

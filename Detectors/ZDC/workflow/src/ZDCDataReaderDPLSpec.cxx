@@ -34,7 +34,8 @@ void ZDCDataReaderDPLSpec::init(InitContext& ic)
   // 0: minimal output
   // 1: event summary per channel
   // 2: debug inconsistencies
-  // 3: dump of input data raw and associated to bunch crossing
+  // 3: dump of associated input data
+  // 4: dump of raw input data
   o2::ccdb::BasicCCDBManager::instance().setURL(mccdbHost);
 }
 
