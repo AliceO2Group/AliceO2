@@ -76,6 +76,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     mCheckMissingData = ic.options().get<bool>("check-for-missing-data");
+    mNFactorTFs = ic.options().get<int>("nFactorTFs");
 
     if (mLoadFromFile) {
       TFile fInp("IDCGroup.root", "READ");
@@ -188,6 +189,15 @@ class TPCDistributeIDCSpec : public o2::framework::Task
     }
 
     if (mProcessedTFs[currentBuffer] == mTimeFrames) {
+      if (mNFactorTFs > 0) {
+        // ToDo: Find better fix
+        for (int ilane = currentOutLane; ilane < mOutLanes; ++ilane) {
+          auto& deviceProxy = pc.services().get<FairMQDeviceProxy>();
+          auto& state = deviceProxy.getOutputChannelState({static_cast<int>(ilane)});
+          const unsigned int oldest = tf + mNFactorTFs * (mOutLanes - 1) * mTimeFrames;
+          state.oldestForChannel = {oldest};
+        }
+      }
       LOGP(info, "All TFs {} for current buffer received. Clearing buffer", tf);
       clearBuffer(currentBuffer);
     }
@@ -227,6 +237,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   bool mBuffer{false};                                                                                                                                                                                   ///< buffer index
   bool mCheckMissingData{false};                                                                                                                                                                         ///< perform check for missing data
   Long64_t mOrbitResetTime{};                                                                                                                                                                            ///< orbit reset time to calculate precise time stamp
+  int mNFactorTFs{0};                                                                                                                                                                                    ///< Number of TFs to skip for sending oldest TF
   const std::vector<InputSpec> mFilter = {{"idcsgroup", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescriptionIDCGroup()}, Lifetime::Timeframe}}; ///< filter for looping over input data
   std::vector<header::DataDescription> mDataDescrOut{};
 
@@ -323,7 +334,8 @@ DataProcessorSpec getTPCDistributeIDCSpec(const int ilane, const std::vector<uin
     inputSpecs,
     outputSpecs,
     AlgorithmSpec{adaptFromTask<TPCDistributeIDCSpec>(crus, timeframes, outlanes, loadFromFile, firstTF, (ilane == 0) ? sendPrecisetimeStamp : false)},
-    Options{{"check-for-missing-data", VariantType::Bool, false, {"Perform check if all data is received."}}}}; // end DataProcessorSpec
+    Options{{"check-for-missing-data", VariantType::Bool, false, {"Perform check if all data is received."}},
+            {"nFactorTFs", VariantType::Int, 0, {"Number of TFs to skip for sending oldest TF."}}}}; // end DataProcessorSpec
   spec.rank = ilane;
   return spec;
 }
