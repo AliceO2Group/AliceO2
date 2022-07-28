@@ -328,7 +328,7 @@ int DumpRaw::process(const EventChData& ch)
   }
   if (f.Alice_3) {
     mBits->Fill(ih, 9);
-    if(f.Hit){
+    if (f.Hit) {
       mBitsH->Fill(ih, 9);
     }
     for (int32_t i = 0; i < 12; i++) {
@@ -337,7 +337,7 @@ int DumpRaw::process(const EventChData& ch)
   }
   if (f.Alice_2) {
     mBits->Fill(ih, 8);
-    if(f.Hit){
+    if (f.Hit) {
       mBitsH->Fill(ih, 8);
     }
     for (int32_t i = 0; i < 12; i++) {
@@ -346,7 +346,7 @@ int DumpRaw::process(const EventChData& ch)
   }
   if (f.Alice_1) {
     mBits->Fill(ih, 7);
-    if(f.Hit){
+    if (f.Hit) {
       mBitsH->Fill(ih, 7);
     }
     for (int32_t i = 0; i < 12; i++) {
@@ -355,7 +355,7 @@ int DumpRaw::process(const EventChData& ch)
   }
   if (f.Alice_0) {
     mBits->Fill(ih, 6);
-    if(f.Hit){
+    if (f.Hit) {
       mBitsH->Fill(ih, 6);
     }
     for (int32_t i = 0; i < 12; i++) {
@@ -367,7 +367,7 @@ int DumpRaw::process(const EventChData& ch)
   }
   if (f.Auto_3) {
     mBits->Fill(ih, 5);
-    if(f.Hit){
+    if (f.Hit) {
       mBitsH->Fill(ih, 5);
     }
     for (int32_t i = 0; i < 12; i++) {
@@ -376,7 +376,7 @@ int DumpRaw::process(const EventChData& ch)
   }
   if (f.Auto_2) {
     mBits->Fill(ih, 4);
-    if(f.Hit){
+    if (f.Hit) {
       mBitsH->Fill(ih, 4);
     }
     for (int32_t i = 0; i < 12; i++) {
@@ -385,7 +385,7 @@ int DumpRaw::process(const EventChData& ch)
   }
   if (f.Auto_1) {
     mBits->Fill(ih, 3);
-    if(f.Hit){
+    if (f.Hit) {
       mBitsH->Fill(ih, 3);
     }
     for (int32_t i = 0; i < 12; i++) {
@@ -394,7 +394,7 @@ int DumpRaw::process(const EventChData& ch)
   }
   if (f.Auto_0) {
     mBits->Fill(ih, 2);
-    if(f.Hit){
+    if (f.Hit) {
       mBitsH->Fill(ih, 2);
     }
     for (int32_t i = 0; i < 12; i++) {
@@ -406,7 +406,7 @@ int DumpRaw::process(const EventChData& ch)
   }
   if (f.Auto_m) {
     mBits->Fill(ih, 1);
-    if(f.Hit){
+    if (f.Hit) {
       mBitsH->Fill(ih, 1);
     }
     for (int32_t i = 0; i < 12; i++) {
@@ -415,7 +415,7 @@ int DumpRaw::process(const EventChData& ch)
   }
   if (!(f.Alice_3 || f.Alice_2 || f.Alice_1 || f.Alice_0 || f.Alice_1 || f.Auto_3 || f.Auto_2 || f.Auto_1 || f.Auto_0 || f.Auto_m)) {
     mBits->Fill(ih, 0);
-    if(f.Hit){
+    if (f.Hit) {
       mBitsH->Fill(ih, 0);
     }
   }
