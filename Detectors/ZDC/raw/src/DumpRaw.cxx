@@ -12,6 +12,7 @@
 #include <TROOT.h>
 #include <TPad.h>
 #include <TString.h>
+#include <TAxis.h>
 #include <TStyle.h>
 #include <TPaveStats.h>
 #include "ZDCRaw/DumpRaw.h"
@@ -56,12 +57,34 @@ void DumpRaw::init()
   auto& sopt = ZDCSimParam::Instance();
   int nbx = (sopt.nBCAheadTrig + 1) * NTimeBinsPerBC;
   double xmin = -sopt.nBCAheadTrig * NTimeBinsPerBC - 0.5;
-  double xmax = NTimeBinsPerBC - 0.5;
+  double xmax = 2 * NTimeBinsPerBC - 0.5;
   if (mTransmitted == nullptr) {
     mTransmitted = (TH2*)gROOT->FindObject("ht");
   }
   if (mTransmitted == nullptr) {
     mTransmitted = new TH2F("ht", "Transmitted channels", NModules, -0.5, NModules - 0.5, NChPerModule, -0.5, NChPerModule - 0.5);
+  }
+  if (mBits == nullptr) {
+    mBits = (TH2*)gROOT->FindObject("hb");
+  }
+  if (mBits == nullptr) {
+    mBits = new TH2F("hb", "Trigger bits", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5, 10, -0.5, 9.5);
+    mBits->GetYaxis()->SetBinLabel(10, "Alice_3");
+    mBits->GetYaxis()->SetBinLabel(9, "Alice_2");
+    mBits->GetYaxis()->SetBinLabel(8, "Alice_1");
+    mBits->GetYaxis()->SetBinLabel(7, "Alice_0");
+    mBits->GetYaxis()->SetBinLabel(6, "Auto_3");
+    mBits->GetYaxis()->SetBinLabel(5, "Auto_2");
+    mBits->GetYaxis()->SetBinLabel(4, "Auto_1");
+    mBits->GetYaxis()->SetBinLabel(3, "Auto_0");
+    mBits->GetYaxis()->SetBinLabel(2, "Auto_m");
+    mBits->GetYaxis()->SetBinLabel(1, "None");
+    for (int im = 0; im < NModules; im++) {
+      for (int ic = 0; ic < NChPerModule; ic++) {
+        mBits->GetXaxis()->SetBinLabel(im * NChPerModule + ic + 1, TString::Format("%d%d", im, ic));
+      }
+    }
+    mBits->GetYaxis()->SetBinLabel(0, "None");
   }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
     uint32_t imod = i / NChPerModule;
@@ -146,6 +169,7 @@ void DumpRaw::write()
     }
   }
   mTransmitted->Write();
+  mBits->Write();
   f->Close();
 }
 
@@ -204,6 +228,7 @@ int DumpRaw::processWord(const uint32_t* word)
 int DumpRaw::process(const EventChData& ch)
 {
   static constexpr int last_bc = o2::constants::lhc::LHCMaxBunches - 1;
+
   union {
     uint16_t uns;
     int16_t sig;
@@ -212,6 +237,10 @@ int DumpRaw::process(const EventChData& ch)
   // Not empty event
   auto f = ch.f;
   int ih = getHPos(f.board, f.ch);
+  if (ih < 0) {
+    return -1;
+  }
+
   if (mVerbosity > 0) {
     for (int32_t iw = 0; iw < NWPerBc; iw++) {
       Digits2Raw::print_gbt_word(ch.w[iw]);
@@ -243,11 +272,41 @@ int DumpRaw::process(const EventChData& ch)
     // printf("%d %u %d\n",i,us[i],s[i]);
   }
   if (f.Alice_3) {
+    mBits->Fill(ih, 9);
+  }
+  if (f.Alice_2) {
+    mBits->Fill(ih, 8);
+  }
+  if (f.Alice_1) {
+    mBits->Fill(ih, 7);
+  }
+  if (f.Alice_0) {
+    mBits->Fill(ih, 6);
+  }
+  if (f.Auto_3) {
+    mBits->Fill(ih, 5);
+  }
+  if (f.Auto_2) {
+    mBits->Fill(ih, 4);
+  }
+  if (f.Auto_1) {
+    mBits->Fill(ih, 3);
+  }
+  if (f.Auto_0) {
+    mBits->Fill(ih, 2);
+  }
+  if (f.Auto_m) {
+    mBits->Fill(ih, 1);
+  }
+  if (!(f.Alice_3 || f.Alice_2 || f.Alice_1 || f.Alice_0 || f.Alice_1 || f.Auto_3 || f.Auto_2 || f.Auto_1 || f.Auto_0 || f.Auto_m)) {
+    mBits->Fill(ih, 0);
+  }
+  if (f.Alice_3 || f.Auto_3) {
     for (int32_t i = 0; i < 12; i++) {
       mSignal[ih]->Fill(i - 36., double(s[i]));
     }
   }
-  if (f.Alice_2) {
+  if (f.Alice_2 || f.Auto_2) {
     for (int32_t i = 0; i < 12; i++) {
       mSignal[ih]->Fill(i - 24., double(s[i]));
     }
@@ -265,6 +324,12 @@ int DumpRaw::process(const EventChData& ch)
     double bc_m = uint32_t(f.bc % 100);
     mBunch[ih]->Fill(bc_m, -bc_d);
   }
+  if (f.Auto_m) {
+    for (int32_t i = 0; i < 12; i++) {
+      mSignal[ih]->Fill(i + 12., double(s[i]));
+    }
+  }
+
   if (f.bc == last_bc) {
     word16.uns = f.offset;
     mBaseline[ih]->Fill(word16.sig);
