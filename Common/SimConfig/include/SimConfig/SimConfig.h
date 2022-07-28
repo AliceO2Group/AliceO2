@@ -67,6 +67,7 @@ struct SimConfigData {
   SimFieldMode mFieldMode = kDefault;         // uniform magnetic field
   bool mAsService = false;                    // if simulation should be run as service/deamon (does not exit after run)
   bool mNoGeant = false;                      // if Geant transport should be turned off (when one is only interested in the generated events)
+  bool mIsRun5 = false;			// true if the simulation is for Run 5
 
   ClassDefNV(SimConfigData, 4);
 };
@@ -82,6 +83,9 @@ class SimConfig
   SimConfig()
   {
     // activate from default parameters
+    #if SIM_RUN5
+    setRun5();
+    #endif
     char* argv[] = {};
     resetFromArguments(1, argv);
   };
@@ -114,7 +118,7 @@ class SimConfig
 
   // static helper functions to determine list of active / readout modules
   // can also be used from outside
-  static void determineActiveModules(std::vector<std::string> const& input, std::vector<std::string> const& skipped, std::vector<std::string>& active);
+  static void determineActiveModules(std::vector<std::string> const& input, std::vector<std::string> const& skipped, std::vector<std::string>& active, bool& isrun5);
   static void determineReadoutDetectors(std::vector<std::string> const& active, std::vector<std::string> const& enabledRO, std::vector<std::string> const& skippedRO, std::vector<std::string>& finalRO);
 
   // helper to parse field option
@@ -144,6 +148,7 @@ class SimConfig
   uint64_t getTimestamp() const { return mConfigData.mTimestamp; }
   int getRunNumber() const { return mConfigData.mRunNumber; }
   bool isNoGeant() const { return mConfigData.mNoGeant; }
+  void setRun5() { mConfigData.mIsRun5 = true; }
 
  private:
   SimConfigData mConfigData; //!

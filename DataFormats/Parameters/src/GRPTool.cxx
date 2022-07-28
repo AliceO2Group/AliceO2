@@ -220,12 +220,13 @@ bool create_GRPs(Options const& opts)
     // if
     auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
     auto soreor = ccdbmgr.getRunDuration(opts.run);
+    bool isRun5 = false;
     runStart = soreor.first;
     grp.setTimeStart(runStart);
     grp.setTimeEnd(runStart + 3600000);
     grp.setNHBFPerTF(opts.orbitsPerTF);
     std::vector<std::string> modules{};
-    o2::conf::SimConfig::determineActiveModules(opts.readout, std::vector<std::string>(), modules);
+    o2::conf::SimConfig::determineActiveModules(opts.readout, std::vector<std::string>(), modules, isRun5);
     std::vector<std::string> readout{};
     o2::conf::SimConfig::determineReadoutDetectors(modules, std::vector<std::string>(), opts.skipreadout, readout);
     for (auto& detstr : readout) {
