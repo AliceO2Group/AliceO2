@@ -312,8 +312,10 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
       if (vtxFirstT[t.vBracket.getMin()] == -1) {
         vtxFirstT[t.vBracket.getMin()] = i;
       }
-      if (vtxLastLUT[t.vBracket.getMax()] == -1) {
-        vtxLastLUT[t.vBracket.getMax()] = i;
+      const auto& sortIdx = vtxLastT[i];
+      const auto& trcSort = tracksPool[sortIdx];
+      if (vtxLastLUT[trcSort.vBracket.getMax()] == -1) {
+        vtxLastLUT[trcSort.vBracket.getMax()] = i;
       }
     }
   }
@@ -469,10 +471,8 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
     v0Idx++;
     firstIdx = mVtxMaxLUT[posneg][v0Idx];
   }
-
-  int firstTr = mTrackSortVtxMax[posneg][firstIdx], nTr = tracks.size();
-
-  for (int it = firstTr; it < nTr; it++) {
+  auto firstTr = mTrackSortVtxMax[posneg][firstIdx];
+  for (int it = firstIdx; it < tracks.size(); it++) {
     auto& trackInd = mTrackSortVtxMax[posneg][it];
     auto& bach = tracks[trackInd];
 
@@ -480,7 +480,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
       continue; // skip the track used by V0
     }
     if (bach.vBracket.getMin() > v0vlist.getMax()) {
-      LOG(info) << "Skipping";
+      LOG(debug) << "Skipping";
       break; // all other bachelor candidates will be also not compatible with this PV
     }
     auto cascVlist = v0vlist.getOverlap(bach.vBracket); // indices of vertices shared by V0 and bachelor
@@ -503,7 +503,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
     const auto& cascXYZ = fitterCasc.getPCACandidatePos(candC);
 
     // make sure the cascade radius is smaller than that of the mean vertex
-    float dxc = cascXYZ[0] - mMeanVertex.getX(), dyc = cascXYZ[1] - mMeanVertex.getY(), dzc = cascXYZ[2] - mMeanVertex.getZ(), r2casc = dxc * dxc + dyc * dyc;
+    float dxc = cascXYZ[0] - mMeanVertex.getX(), dyc = cascXYZ[1] - mMeanVertex.getY(), r2casc = dxc * dxc + dyc * dyc;
     if (rv0 * rv0 - r2casc < mMinR2DiffV0Casc || r2casc < mMinR2ToMeanVertex) {
       continue;
     }
@@ -521,11 +521,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
     trNeut.getPxPyPzGlo(pNeut);
     trBach.getPxPyPzGlo(pBach);
     std::array<float, 3> pCasc = {pNeut[0] + pBach[0], pNeut[1] + pBach[1], pNeut[2] + pBach[2]};
-    auto prodPPos = pV0[0] * dxc + pV0[1] * dyc + pV0[2] * dzc;
-    if (prodPPos < 0.) { // causality cut
-      LOG(debug) << "Casc not causally compatible";
-      continue;
-    }
+
     float pt2Casc = pCasc[0] * pCasc[0] + pCasc[1] * pCasc[1], p2Casc = pt2Casc + pCasc[2] * pCasc[2];
     if (pt2Casc < mMinPt2Casc) { // pt cut
       LOG(debug) << "Casc pt too low";
@@ -558,6 +554,12 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
     }
 
     const auto& cascPv = mPVertices[cascVtxID];
+    float dxCasc = cascXYZ[0] - cascPv.getX(), dyCasc = cascXYZ[1] - cascPv.getY(), dzCasc = cascXYZ[2] - cascPv.getZ();
+    auto prodPPos = pV0[0] * dxCasc + pV0[1] * dyCasc + pV0[2] * dzCasc;
+    if (prodPPos < 0.) { // causality cut
+      LOG(debug) << "Casc not causally compatible";
+      continue;
+    }
 
     float p2Bach = pBach[0] * pBach[0] + pBach[1] * pBach[1] + pBach[2] * pBach[2];
     float ptCasc = std::sqrt(pt2Casc);
