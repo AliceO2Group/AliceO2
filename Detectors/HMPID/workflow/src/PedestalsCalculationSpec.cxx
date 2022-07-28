@@ -252,7 +252,7 @@ void PedestalsCalculationTask::recordPedInDcsCcdb()
 
   auto filename = fmt::format("{}_{}.dat", mPedestalsBasePath, PedestalFixedTag);
   mExTimer.logMes("File name = >" + filename + "< (" + mPedestalsCCDBBasePath + "," + PedestalFixedTag);
-  
+
   mDbMetadata.emplace("Tag", PedestalFixedTag.c_str());
   mDCSDBapi.storeAsTFileAny(&pedestalsConfig, filename.c_str(), mDbMetadata, minTimeStamp, maxTimeStamp);
 
