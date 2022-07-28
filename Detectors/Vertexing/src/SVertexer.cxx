@@ -471,7 +471,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
     v0Idx++;
     firstIdx = mVtxMaxLUT[posneg][v0Idx];
   }
-  auto firstTr = mTrackSortVtxMax[posneg][firstIdx];
+
   for (int it = firstIdx; it < tracks.size(); it++) {
     auto& trackInd = mTrackSortVtxMax[posneg][it];
     auto& bach = tracks[trackInd];
