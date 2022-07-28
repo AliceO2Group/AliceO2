@@ -65,6 +65,10 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
                                                              "ITSTrackMCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""},
+                                BranchDefinition<LabelsType>{InputSpec{"labelsVertices", "ITS", "VERTICESMCTR", 0},
+                                                             "ITSVertexMCTruth",
+                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
+                                                             ""},
                                 BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "ITS", "ITSTrackMC2ROF", 0},
                                                              "ITSTracksMC2ROF",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
