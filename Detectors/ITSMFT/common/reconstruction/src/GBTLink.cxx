@@ -75,63 +75,63 @@ void GBTLink::clear(bool resetStat, bool resetTFRaw)
 }
 
 ///_________________________________________________________________
-void GBTLink::printTrigger(const GBTTrigger* gbtTrg)
+void GBTLink::printTrigger(const GBTTrigger* gbtTrg, int offs)
 {
-  gbtTrg->printX();
   std::bitset<12> trb(gbtTrg->triggerType);
-  LOG(info) << "Trigger : Orbit " << gbtTrg->orbit << " BC: " << gbtTrg->bc << " Trigger: " << trb << " noData:" << gbtTrg->noData << " internal:" << gbtTrg->internal;
+  LOG(info) << "Offs: " << offs << " Trigger : Orbit " << gbtTrg->orbit << " BC: " << gbtTrg->bc << " Trigger: " << trb << " noData:" << gbtTrg->noData << " internal:" << gbtTrg->internal << " on " << describe();
+  gbtTrg->printX();
 }
 
 ///_________________________________________________________________
-void GBTLink::printCalibrationWord(const GBTCalibration* gbtCal)
+void GBTLink::printCalibrationWord(const GBTCalibration* gbtCal, int offs)
 {
+  LOGP(info, "Offs: {} Calibration word {:5} | user_data {:#08x} on {}", offs, gbtCal->calibCounter, gbtCal->calibUserField, describe());
   gbtCal->printX();
-  LOGF(info, "Calibration word %5d | user_data 0x%06lx", gbtCal->calibCounter, gbtCal->calibUserField);
 }
 
 ///_________________________________________________________________
-void GBTLink::printHeader(const GBTDataHeader* gbtH)
+void GBTLink::printHeader(const GBTDataHeader* gbtH, int offs)
 {
-  gbtH->printX();
   std::bitset<28> LA(gbtH->activeLanes);
-  LOG(info) << "Header : Active Lanes " << LA;
-}
-
-///_________________________________________________________________
-void GBTLink::printHeader(const GBTDataHeaderL* gbtH)
-{
+  LOG(info) << "Offs: " << offs << " Header : Active Lanes " << LA << " on " << describe();
   gbtH->printX();
+}
+
+///_________________________________________________________________
+void GBTLink::printHeader(const GBTDataHeaderL* gbtH, int offs)
+{
   std::bitset<28> LA(gbtH->activeLanesL);
-  LOG(info) << "HeaderL : Active Lanes " << LA;
+  LOG(info) << "Offs: " << offs << " HeaderL : Active Lanes " << LA << " on " << describe();
+  gbtH->printX();
 }
 
 ///_________________________________________________________________
-void GBTLink::printTrailer(const GBTDataTrailer* gbtT)
+void GBTLink::printTrailer(const GBTDataTrailer* gbtT, int offs)
 {
-  gbtT->printX();
   std::bitset<28> LT(gbtT->lanesTimeout), LS(gbtT->lanesStops); // RSTODO
-  LOG(info) << "Trailer: Done=" << gbtT->packetDone << " Lanes TO: " << LT << " | Lanes ST: " << LS;
+  LOG(info) << "Offs: " << offs << " Trailer: Done=" << gbtT->packetDone << " Lanes TO: " << LT << " | Lanes ST: " << LS << " on " << describe();
+  gbtT->printX();
 }
 
 ///_________________________________________________________________
-void GBTLink::printDiagnostic(const GBTDiagnostic* gbtD)
+void GBTLink::printDiagnostic(const GBTDiagnostic* gbtD, int offs)
 {
+  LOG(info) << "Offs: " << offs << " Diagnostic word on " << describe();
   gbtD->printX();
-  LOG(info) << "Diagnostic word";
 }
 
 ///_________________________________________________________________
 void GBTLink::printCableDiagnostic(const GBTCableDiagnostic* gbtD)
 {
+  LOGP(info, "Diagnostic for {} Lane {} | errorID: {} data {:#018x} on {}", gbtD->isIB() ? "IB" : "OB", gbtD->getCableID(), gbtD->laneErrorID, gbtD->diagnosticData, describe());
   gbtD->printX();
-  LOGF(info, "Diagnostic for %s Lane %d | errorID: %d data 0x%016lx", gbtD->isIB() ? "IB" : "OB", gbtD->getCableID(), gbtD->laneErrorID, gbtD->diagnosticData);
 }
 
 ///_________________________________________________________________
 void GBTLink::printCableStatus(const GBTCableStatus* gbtS)
 {
+  LOGP(info, "Status data, not processed at the moment, on {}", describe());
   gbtS->printX();
-  LOGF(info, "Status data, not processed at the moment");
 }
 
 ///====================================================================
