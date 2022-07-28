@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_FV0CHANNELTIMETIMESLOTCONTAINER_H
-#define O2_FV0CHANNELTIMETIMESLOTCONTAINER_H
+#ifndef O2_FV0CHANNELTIMEOFFSETSLOTCONTAINER_H
+#define O2_FV0CHANNELTIMEOFFSETSLOTCONTAINER_H
 
 #include <array>
 #include <vector>
@@ -23,7 +23,7 @@
 namespace o2::fv0
 {
 
-class FV0ChannelTimeTimeSlotContainer final
+class FV0ChannelTimeOffsetSlotContainer final
 {
 
   // ranges to be discussed
@@ -35,11 +35,11 @@ class FV0ChannelTimeTimeSlotContainer final
                                                          boost::histogram::unlimited_storage<std::allocator<char>>>;
 
  public:
-  explicit FV0ChannelTimeTimeSlotContainer(std::size_t minEntries);
+  explicit FV0ChannelTimeOffsetSlotContainer(std::size_t minEntries);
   [[nodiscard]] bool hasEnoughEntries() const;
   void fill(const gsl::span<const FV0CalibrationInfoObject>& data);
   [[nodiscard]] int16_t getMeanGaussianFitValue(std::size_t channelID) const;
-  void merge(FV0ChannelTimeTimeSlotContainer* prev);
+  void merge(FV0ChannelTimeOffsetSlotContainer* prev);
   void print() const;
   static int sGausFitBins;
   void updateFirstCreation(std::uint64_t creation)
@@ -64,9 +64,9 @@ class FV0ChannelTimeTimeSlotContainer final
   BoostHistogramType mHistogram;
   std::uint64_t mFirstCreation = std::numeric_limits<std::uint64_t>::max();
 
-  ClassDefNV(FV0ChannelTimeTimeSlotContainer, 2);
+  ClassDefNV(FV0ChannelTimeOffsetSlotContainer, 2);
 };
 
 } // namespace o2::fv0
 
-#endif // O2_FV0CHANNELTIMETIMESLOTCONTAINER_H
+#endif // O2_FV0CHANNELTIMEOFFSETSLOTCONTAINER_H

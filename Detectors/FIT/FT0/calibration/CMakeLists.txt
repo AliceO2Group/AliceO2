@@ -11,7 +11,8 @@
 
 o2_add_library(FT0Calibration
         SOURCES
-        src/FT0ChannelTimeTimeSlotContainer.cxx
+        src/CalibParam.cxx
+        src/FT0ChannelTimeOffsetSlotContainer.cxx
         src/FT0TimeOffsetSlotContainer.cxx
         src/GlobalOffsetsContainer.cxx
         src/FT0CalibTimeSlewing.cxx
@@ -25,14 +26,13 @@ o2_add_library(FT0Calibration
          O2::DetectorsCalibration
          O2::DetectorsDCS
          O2::DataFormatsGlobalTracking
-         O2::FITCalibration
-         O2::DataFormatsFT0
          ROOT::Minuit
          Microsoft.GSL::GSL
            )
        o2_target_root_dictionary(FT0Calibration
         HEADERS
-        include/FT0Calibration/FT0ChannelTimeTimeSlotContainer.h
+        include/FT0Calibration/CalibParam.h
+        include/FT0Calibration/FT0ChannelTimeOffsetSlotContainer.h
         include/FT0Calibration/FT0TimeOffsetSlotContainer.h
         include/FT0Calibration/GlobalOffsetsContainer.h
         include/FT0Calibration/FT0CalibTimeSlewing.h
@@ -43,13 +43,13 @@ o2_add_library(FT0Calibration
         COMPONENT_NAME calibration
         SOURCES testWorkflow/FT0ChannelTimeCalibration-Workflow.cxx
         PUBLIC_LINK_LIBRARIES
-        O2::FT0Calibration
+        O2::FT0Calibration O2::FITCalibration
         )
       o2_add_executable(ft0-time-offset-calibration
         COMPONENT_NAME calibration
         SOURCES testWorkflow/FT0TimeOffsetCalibration-Workflow.cxx
         PUBLIC_LINK_LIBRARIES
-        O2::FT0Calibration
+        O2::FT0Calibration O2::FITCalibration
         )
       o2_add_executable(ft0-tf-processor
         COMPONENT_NAME calibration
@@ -73,7 +73,7 @@ o2_add_library(FT0Calibration
         COMPONENT_NAME calibration
         SOURCES testWorkflow/GlobalOffsetsCalibrationWorkflow.cxx
         PUBLIC_LINK_LIBRARIES
-        O2::FT0Calibration
+        O2::FT0Calibration O2::FITCalibration
         )
      o2_add_executable(ft0-collect-global-offsets-workflow
         COMPONENT_NAME calibration

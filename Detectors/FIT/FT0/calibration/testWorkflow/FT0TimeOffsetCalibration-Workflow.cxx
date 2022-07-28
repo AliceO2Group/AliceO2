@@ -15,6 +15,7 @@
 #include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
 #include "FITCalibration/FITCalibrationDevice.h"
 #include "FT0Calibration/FT0TimeOffsetSlotContainer.h"
+#include "FT0Calibration/CalibParam.h"
 
 using namespace o2::framework;
 
@@ -30,7 +31,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   using CalibrationDeviceType = o2::fit::FITCalibrationDevice<float,
                                                               o2::ft0::FT0TimeOffsetSlotContainer, o2::ft0::FT0ChannelTimeCalibrationObject>;
-
+  o2::ft0::CalibParam::Instance().printKeyValues();
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "FIT_CALIB"}, o2::framework::Lifetime::Sporadic);
   outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "FIT_CALIB"}, o2::framework::Lifetime::Sporadic);

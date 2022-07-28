@@ -9,15 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "FT0Calibration/CalibParam.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
-
-#pragma link C++ class o2::fv0::FV0ChannelTimeOffsetSlotContainer + ;
-#pragma link C++ class o2::fv0::FV0CalibCollector + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::fv0::FV0CalibrationInfoObject, o2::fv0::FV0CalibInfoSlot>;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::fv0::FV0CalibrationInfoObject, o2::fv0::FV0ChannelTimeOffsetSlotContainer>;
-
-#endif
+using namespace o2::ft0;
+O2ParamImpl(CalibParam);

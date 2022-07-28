@@ -12,18 +12,13 @@
 #ifndef O2_FT0TIMEOFFSETSLOTCONTAINER_H
 #define O2_FT0TIMEOFFSETSLOTCONTAINER_H
 
+#include <bitset>
 #include <array>
-#include <cstdint>
-#include <limits>
-#include <memory>
-#include <vector>
-#include <gsl/span>
+
 #include "CommonDataFormat/FlatHisto2D.h"
 #include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
 
 #include "Rtypes.h"
-#include <TH1F.h>
-
 namespace o2::ft0
 {
 
@@ -32,10 +27,10 @@ class FT0TimeOffsetSlotContainer final
   static constexpr int sNCHANNELS = o2::ft0::Geometry::Nchannels;
 
  public:
-  explicit FT0TimeOffsetSlotContainer(std::size_t minEntries);
-  FT0TimeOffsetSlotContainer(FT0TimeOffsetSlotContainer const&);
+  FT0TimeOffsetSlotContainer(std::size_t minEntries); // constructor is needed due to current version of FITCalibration library, should be removed
+  FT0TimeOffsetSlotContainer(FT0TimeOffsetSlotContainer const&) = default;
   FT0TimeOffsetSlotContainer(FT0TimeOffsetSlotContainer&&) = default;
-  FT0TimeOffsetSlotContainer& operator=(FT0TimeOffsetSlotContainer const&);
+  FT0TimeOffsetSlotContainer& operator=(FT0TimeOffsetSlotContainer const&) = default;
   FT0TimeOffsetSlotContainer& operator=(FT0TimeOffsetSlotContainer&&) = default;
   bool hasEnoughEntries() const;
   void fill(const gsl::span<const float>& data);
@@ -43,12 +38,23 @@ class FT0TimeOffsetSlotContainer final
   void merge(FT0TimeOffsetSlotContainer* prev);
   void print() const;
   FT0ChannelTimeCalibrationObject generateCalibrationObject() const;
+  typedef float FlatHistoValue_t;
+  typedef o2::dataformats::FlatHisto2D<FlatHistoValue_t> FlatHisto2D_t;
 
  private:
-  std::size_t mMinEntries = 1000;
+  // Slot number
+  uint8_t mCurrentSlot = 0;
+  // Status of channels, pending channels = !(good | bad)
+  std::bitset<sNCHANNELS> mBitsetBadChIDs;
+  std::bitset<sNCHANNELS> mBitsetGoodChIDs;
+  // For hist init, for making hist ranges dynamic
   bool mIsFirstTF{true};
-  std::array<uint64_t, sNCHANNELS> mEntriesPerChannel{};
-  o2::dataformats::FlatHisto2D<float> mHistogram; // Contains all information about time spectra
+  // For slot finalizing
+  bool mIsReady{false};
+  // Once it is upper than max entry threshold it stops increasing
+  std::array<std::size_t, sNCHANNELS> mArrEntries{};
+  // Contains all information about time spectra
+  FlatHisto2D_t mHistogram;
   ClassDefNV(FT0TimeOffsetSlotContainer, 1);
 };
 } // namespace o2::ft0

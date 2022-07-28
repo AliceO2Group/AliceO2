@@ -16,14 +16,14 @@
 #include "DataFormatsFT0/FT0CalibrationInfoObject.h"
 #include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
 #include "FITCalibration/FITCalibrationDevice.h"
-#include "FT0Calibration/FT0ChannelTimeTimeSlotContainer.h"
+#include "FT0Calibration/FT0ChannelTimeOffsetSlotContainer.h"
 
 namespace o2::ft0
 {
 o2::framework::DataProcessorSpec getFT0ChannelTimeCalibrationSpec()
 {
   using CalibrationDeviceType = o2::fit::FITCalibrationDevice<o2::ft0::FT0CalibrationInfoObject,
-                                                              o2::ft0::FT0ChannelTimeTimeSlotContainer, o2::ft0::FT0ChannelTimeCalibrationObject>;
+                                                              o2::ft0::FT0ChannelTimeOffsetSlotContainer, o2::ft0::FT0ChannelTimeCalibrationObject>;
 
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "FIT_CALIB"}, o2::framework::Lifetime::Sporadic);

@@ -14,8 +14,10 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Task.h"
+#include "FT0Base/Geometry.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/DigitFilterParam.h"
 #include "CommonDataFormat/FlatHisto2D.h"
 using namespace o2::framework;
 
@@ -28,30 +30,43 @@ class FT0TimeSpectraProcessor final : public o2::framework::Task
  public:
   FT0TimeSpectraProcessor() = default;
   ~FT0TimeSpectraProcessor() = default;
-  int mAmpThreshold{5};
-  int mTimeRange{153};
-  //  uint8_t mPMbitsToCheck{0b11111110};
-  //  uint8_t mPMbitsGood{0b01001000};
-  //  uint8_t mTrgBitsToCheck{0b11110000};
-  //  uint8_t mTrgBitsGood{0b10010000};
-  uint8_t mPMbitsToCheck{0};
-  uint8_t mPMbitsGood{0};
-  uint8_t mTrgBitsToCheck{0};
-  uint8_t mTrgBitsGood{0};
-
+  static constexpr int sNCHANNELS = o2::ft0::Geometry::Nchannels;
+  int mNbinsY{400};
+  float mMinY{-200.};
+  float mMaxY{200.};
+  int mAmpThreshold{10};
+  int mTimeWindow{153};
+  uint8_t mPMbitsToCheck{0b11111110};
+  uint8_t mPMbitsGood{0b01001000};
+  uint8_t mTrgBitsToCheck{0b11110000};
+  uint8_t mTrgBitsGood{0b10010000};
+  void init(o2::framework::InitContext& ic) final
+  {
+    mNbinsY = ic.options().get<int>("number-bins");
+    mMinY = ic.options().get<int>("low-edge");
+    mMaxY = ic.options().get<int>("upper-edge");
+    const auto& param = o2::ft0::DigitFilterParam::Instance();
+    param.printKeyValues();
+    mAmpThreshold = param.mAmpThreshold;
+    mTimeWindow = param.mTimeWindow;
+    mPMbitsGood = param.mPMbitsGood;
+    mPMbitsToCheck = param.mPMbitsToCheck;
+    mTrgBitsGood = param.mTrgBitsGood;
+    mTrgBitsToCheck = param.mTrgBitsToCheck;
+  }
   void run(o2::framework::ProcessingContext& pc) final
   {
     const auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
     auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");
     auto channels = pc.inputs().get<gsl::span<o2::ft0::ChannelData>>("channels");
-    o2::dataformats::FlatHisto2D<float> timeSpectraInfoObject(208, 0, 208, 400, -200, 200);
+    o2::dataformats::FlatHisto2D<float> timeSpectraInfoObject(sNCHANNELS, 0, sNCHANNELS, mNbinsY, mMinY, mMaxY);
     for (const auto& digit : digits) {
       if (digit.mTriggers.triggersignals & mTrgBitsToCheck != mTrgBitsGood) {
         continue;
       }
       const auto& chan = digit.getBunchChannelData(channels);
       for (const auto& channel : chan) {
-        if (channel.QTCAmpl > mAmpThreshold && std::abs(channel.CFDTime) < mTimeRange && (channel.ChainQTC & mPMbitsToCheck == mPMbitsGood)) {
+        if (channel.QTCAmpl > mAmpThreshold && std::abs(channel.CFDTime) < mTimeWindow && (channel.ChainQTC & mPMbitsToCheck == mPMbitsGood)) {
           const auto result = timeSpectraInfoObject.fill(channel.ChId, channel.CFDTime);
         }
       }
@@ -66,6 +81,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options;
   options.push_back(ConfigParamSpec{"dispatcher-mode", VariantType::Bool, false, {"Dispatcher mode (FT0/SUB_DIGITSCH and FT0/SUB_DIGITSBC DPL channels should be applied as dispatcher output)."}});
+  options.push_back(ConfigParamSpec{"number-bins", VariantType::Int, 400, {"Number of bins along Y-axis"}});
+  options.push_back(ConfigParamSpec{"low-edge", VariantType::Float, -200., {"Lower edge of first bin along Y-axis"}});
+  options.push_back(ConfigParamSpec{"upper-edge", VariantType::Float, 200., {"Upper edge of last bin along Y-axis"}});
   std::swap(workflowOptions, options);
 }
 
