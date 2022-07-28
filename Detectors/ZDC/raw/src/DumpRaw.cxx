@@ -86,6 +86,28 @@ void DumpRaw::init()
     }
     mBits->GetYaxis()->SetBinLabel(0, "None");
   }
+  if (mBitsH == nullptr) {
+    mBitsH = (TH2*)gROOT->FindObject("hbh");
+  }
+  if (mBitsH == nullptr) {
+    mBitsH = new TH2F("hbh", "Trigger bits HIT", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5, 10, -0.5, 9.5);
+    mBitsH->GetYaxis()->SetBinLabel(10, "Alice_3");
+    mBitsH->GetYaxis()->SetBinLabel(9, "Alice_2");
+    mBitsH->GetYaxis()->SetBinLabel(8, "Alice_1");
+    mBitsH->GetYaxis()->SetBinLabel(7, "Alice_0");
+    mBitsH->GetYaxis()->SetBinLabel(6, "Auto_3");
+    mBitsH->GetYaxis()->SetBinLabel(5, "Auto_2");
+    mBitsH->GetYaxis()->SetBinLabel(4, "Auto_1");
+    mBitsH->GetYaxis()->SetBinLabel(3, "Auto_0");
+    mBitsH->GetYaxis()->SetBinLabel(2, "Auto_m");
+    mBitsH->GetYaxis()->SetBinLabel(1, "None");
+    for (int im = 0; im < NModules; im++) {
+      for (int ic = 0; ic < NChPerModule; ic++) {
+        mBitsH->GetXaxis()->SetBinLabel(im * NChPerModule + ic + 1, TString::Format("%d%d", im, ic));
+      }
+    }
+    mBitsH->GetYaxis()->SetBinLabel(0, "None");
+  }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
     uint32_t imod = i / NChPerModule;
     uint32_t ich = i % NChPerModule;
@@ -111,23 +133,43 @@ void DumpRaw::init()
       }
     }
     {
-      TString hname = TString::Format("hs%d%d", imod, ich);
-      if (mSignal[i] == nullptr) {
-        mSignal[i] = (TH2*)gROOT->FindObject(hname);
+      TString hname = TString::Format("hsa%d%d", imod, ich);
+      if (mSignalA[i] == nullptr) {
+        mSignalA[i] = (TH2*)gROOT->FindObject(hname);
       }
-      if (mSignal[i] == nullptr) {
-        TString htit = TString::Format("Signal mod. %d ch. %d; Sample; ADC", imod, ich);
-        mSignal[i] = new TH2F(hname, htit, nbx, xmin, xmax, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
+      if (mSignalA[i] == nullptr) {
+        TString htit = TString::Format("Signal mod. %d ch. %d ALICET; Sample; ADC", imod, ich);
+        mSignalA[i] = new TH2F(hname, htit, nbx, xmin, xmax, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
       }
     }
     {
-      TString hname = TString::Format("hb%d%d", imod, ich);
-      if (mBunch[i] == nullptr) {
-        mBunch[i] = (TH2*)gROOT->FindObject(hname);
+      TString hname = TString::Format("hst%d%d", imod, ich);
+      if (mSignalT[i] == nullptr) {
+        mSignalT[i] = (TH2*)gROOT->FindObject(hname);
       }
-      if (mBunch[i] == nullptr) {
-        TString htit = TString::Format("Bunch mod. %d ch. %d; Sample; ADC", imod, ich);
-        mBunch[i] = new TH2F(hname, htit, 100, -0.5, 99.5, 36, -35.5, 0.5);
+      if (mSignalT[i] == nullptr) {
+        TString htit = TString::Format("Signal mod. %d ch. %d AUTOT; Sample; ADC", imod, ich);
+        mSignalT[i] = new TH2F(hname, htit, nbx, xmin, xmax, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
+      }
+    }
+    {
+      TString hname = TString::Format("hba%d%d", imod, ich);
+      if (mBunchA[i] == nullptr) {
+        mBunchA[i] = (TH2*)gROOT->FindObject(hname);
+      }
+      if (mBunchA[i] == nullptr) {
+        TString htit = TString::Format("Bunch mod. %d ch. %d ALICET; Sample; ADC", imod, ich);
+        mBunchA[i] = new TH2F(hname, htit, 100, -0.5, 99.5, 36, -35.5, 0.5);
+      }
+    }
+    {
+      TString hname = TString::Format("hbt%d%d", imod, ich);
+      if (mBunchT[i] == nullptr) {
+        mBunchT[i] = (TH2*)gROOT->FindObject(hname);
+      }
+      if (mBunchT[i] == nullptr) {
+        TString htit = TString::Format("Bunch mod. %d ch. %d AUTOT; Sample; ADC", imod, ich);
+        mBunchT[i] = new TH2F(hname, htit, 100, -0.5, 99.5, 36, -35.5, 0.5);
       }
     }
   }
@@ -145,9 +187,15 @@ void DumpRaw::write()
     return;
   }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
-    if (mBunch[i] && mBunch[i]->GetEntries() > 0) {
-      setStat(mBunch[i]);
-      mBunch[i]->Write();
+    if (mBunchA[i] && mBunchA[i]->GetEntries() > 0) {
+      setStat(mBunchA[i]);
+      mBunchA[i]->Write();
+    }
+  }
+  for (uint32_t i = 0; i < NDigiChannels; i++) {
+    if (mBunchT[i] && mBunchT[i]->GetEntries() > 0) {
+      setStat(mBunchT[i]);
+      mBunchT[i]->Write();
     }
   }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
@@ -163,13 +211,20 @@ void DumpRaw::write()
     }
   }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
-    if (mSignal[i] && mSignal[i]->GetEntries() > 0) {
-      setStat(mSignal[i]);
-      mSignal[i]->Write();
+    if (mSignalA[i] && mSignalA[i]->GetEntries() > 0) {
+      setStat(mSignalA[i]);
+      mSignalA[i]->Write();
+    }
+  }
+  for (uint32_t i = 0; i < NDigiChannels; i++) {
+    if (mSignalT[i] && mSignalT[i]->GetEntries() > 0) {
+      setStat(mSignalT[i]);
+      mSignalT[i]->Write();
     }
   }
   mTransmitted->Write();
   mBits->Write();
+  mBitsH->Write();
   f->Close();
 }
 
@@ -273,60 +328,95 @@ int DumpRaw::process(const EventChData& ch)
   }
   if (f.Alice_3) {
     mBits->Fill(ih, 9);
+    if(f.Hit){
+      mBitsH->Fill(ih, 9);
+    }
+    for (int32_t i = 0; i < 12; i++) {
+      mSignalA[ih]->Fill(i - 36., double(s[i]));
+    }
   }
   if (f.Alice_2) {
     mBits->Fill(ih, 8);
+    if(f.Hit){
+      mBitsH->Fill(ih, 8);
+    }
+    for (int32_t i = 0; i < 12; i++) {
+      mSignalA[ih]->Fill(i - 24., double(s[i]));
+    }
   }
   if (f.Alice_1) {
     mBits->Fill(ih, 7);
+    if(f.Hit){
+      mBitsH->Fill(ih, 7);
+    }
+    for (int32_t i = 0; i < 12; i++) {
+      mSignalA[ih]->Fill(i - 12., double(s[i]));
+    }
   }
   if (f.Alice_0) {
     mBits->Fill(ih, 6);
-  }
-  if (f.Auto_3) {
-    mBits->Fill(ih, 5);
-  }
-  if (f.Auto_2) {
-    mBits->Fill(ih, 4);
-  }
-  if (f.Auto_1) {
-    mBits->Fill(ih, 3);
-  }
-  if (f.Auto_0) {
-    mBits->Fill(ih, 2);
-  }
-  if (f.Auto_m) {
-    mBits->Fill(ih, 1);
-  }
-  if (!(f.Alice_3 || f.Alice_2 || f.Alice_1 || f.Alice_0 || f.Alice_1 || f.Auto_3 || f.Auto_2 || f.Auto_1 || f.Auto_0 || f.Auto_m)) {
-    mBits->Fill(ih, 0);
-  }
-  if (f.Alice_3 || f.Auto_3) {
-    for (int32_t i = 0; i < 12; i++) {
-      mSignal[ih]->Fill(i - 36., double(s[i]));
+    if(f.Hit){
+      mBitsH->Fill(ih, 6);
     }
-  }
-  if (f.Alice_2 || f.Auto_2) {
     for (int32_t i = 0; i < 12; i++) {
-      mSignal[ih]->Fill(i - 24., double(s[i]));
-    }
-  }
-  if (f.Alice_1 || f.Auto_1) {
-    for (int32_t i = 0; i < 12; i++) {
-      mSignal[ih]->Fill(i - 12., double(s[i]));
-    }
-  }
-  if (f.Alice_0 || f.Auto_0) {
-    for (int32_t i = 0; i < 12; i++) {
-      mSignal[ih]->Fill(i + 0., double(s[i]));
+      mSignalA[ih]->Fill(i + 0., double(s[i]));
     }
     double bc_d = uint32_t(f.bc / 100);
     double bc_m = uint32_t(f.bc % 100);
-    mBunch[ih]->Fill(bc_m, -bc_d);
+    mBunchA[ih]->Fill(bc_m, -bc_d);
+  }
+  if (f.Auto_3) {
+    mBits->Fill(ih, 5);
+    if(f.Hit){
+      mBitsH->Fill(ih, 5);
+    }
+    for (int32_t i = 0; i < 12; i++) {
+      mSignalT[ih]->Fill(i - 36., double(s[i]));
+    }
+  }
+  if (f.Auto_2) {
+    mBits->Fill(ih, 4);
+    if(f.Hit){
+      mBitsH->Fill(ih, 4);
+    }
+    for (int32_t i = 0; i < 12; i++) {
+      mSignalT[ih]->Fill(i - 24., double(s[i]));
+    }
+  }
+  if (f.Auto_1) {
+    mBits->Fill(ih, 3);
+    if(f.Hit){
+      mBitsH->Fill(ih, 3);
+    }
+    for (int32_t i = 0; i < 12; i++) {
+      mSignalT[ih]->Fill(i - 12., double(s[i]));
+    }
+  }
+  if (f.Auto_0) {
+    mBits->Fill(ih, 2);
+    if(f.Hit){
+      mBitsH->Fill(ih, 2);
+    }
+    for (int32_t i = 0; i < 12; i++) {
+      mSignalT[ih]->Fill(i + 0., double(s[i]));
+    }
+    double bc_d = uint32_t(f.bc / 100);
+    double bc_m = uint32_t(f.bc % 100);
+    mBunchT[ih]->Fill(bc_m, -bc_d);
   }
   if (f.Auto_m) {
+    mBits->Fill(ih, 1);
+    if(f.Hit){
+      mBitsH->Fill(ih, 1);
+    }
     for (int32_t i = 0; i < 12; i++) {
-      mSignal[ih]->Fill(i + 12., double(s[i]));
+      mSignalT[ih]->Fill(i + 12., double(s[i]));
+    }
+  }
+  if (!(f.Alice_3 || f.Alice_2 || f.Alice_1 || f.Alice_0 || f.Alice_1 || f.Auto_3 || f.Auto_2 || f.Auto_1 || f.Auto_0 || f.Auto_m)) {
+    mBits->Fill(ih, 0);
+    if(f.Hit){
+      mBitsH->Fill(ih, 0);
     }
   }
 

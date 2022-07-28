@@ -41,10 +41,13 @@ class DumpRaw
   int mVerbosity = 1;
   TH2* mTransmitted = nullptr;
   TH2* mBits = nullptr;
+  TH2* mBitsH = nullptr;
   TH1* mBaseline[NDigiChannels] = {nullptr};
   TH1* mCounts[NDigiChannels] = {nullptr};
-  TH2* mSignal[NDigiChannels] = {nullptr};
-  TH2* mBunch[NDigiChannels] = {nullptr};
+  TH2* mSignalA[NDigiChannels] = {nullptr};
+  TH2* mSignalT[NDigiChannels] = {nullptr};
+  TH2* mBunchA[NDigiChannels] = {nullptr};
+  TH2* mBunchT[NDigiChannels] = {nullptr};
   EventChData mCh;
 };
 } // namespace zdc
