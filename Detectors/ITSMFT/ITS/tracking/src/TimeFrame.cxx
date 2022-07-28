@@ -221,8 +221,11 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
   if (iteration == 0) {
     mTracks.clear();
     mTracksLabel.clear();
+    mLinesLabels.clear();
+    mVerticesLabels.clear();
     mTracks.resize(mNrof);
     mTracksLabel.resize(mNrof);
+    mLinesLabels.resize(mNrof);
     mCells.resize(trkParam.CellsPerRoad());
     mCellsLookupTable.resize(trkParam.CellsPerRoad() - 1);
     mCellsNeighbours.resize(trkParam.CellsPerRoad() - 1);

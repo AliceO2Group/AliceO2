@@ -50,6 +50,7 @@ class TrackReader : public o2::framework::Task
   std::vector<Vertex> mVertices, *mVerticesInp = &mVertices;
   std::vector<int> mClusInd, *mClusIndInp = &mClusInd;
   std::vector<o2::MCCompLabel> mMCTruth, *mMCTruthInp = &mMCTruth;
+  std::vector<o2::MCCompLabel> mMCVertTruth, *mMCVTruthInp = &mMCTruth;
 
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginITS;
 
@@ -65,6 +66,7 @@ class TrackReader : public o2::framework::Task
   std::string mVertexBranchName = "Vertices";
   std::string mVertexROFBranchName = "VerticesROF";
   std::string mTrackMCTruthBranchName = "ITSTrackMCTruth";
+  std::string mTrackMCVertTruthBranchName = "ITSVertexMCTruth";
 };
 
 /// create a processor spec

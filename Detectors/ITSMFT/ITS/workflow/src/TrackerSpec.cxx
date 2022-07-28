@@ -181,8 +181,10 @@ void TrackerDPL::run(ProcessingContext& pc)
   std::vector<o2::its::TrackITSExt> tracks;
   auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
   std::vector<o2::MCCompLabel> trackLabels;
+  std::vector<MCCompLabel> verticesLabels;
   auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe});
   std::vector<o2::MCCompLabel> allTrackLabels;
+  std::vector<o2::MCCompLabel> allVerticesLabels;
 
   auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
@@ -223,12 +225,17 @@ void TrackerDPL::run(ProcessingContext& pc)
       auto vtxSpan = timeFrame->getPrimaryVertices(iRof);
       vtxROF.setNEntries(vtxSpan.size());
       bool selROF = vtxSpan.size() == 0;
-      for (auto& v : vtxSpan) {
+      for (auto iV{0}; iV < vtxSpan.size(); ++iV) {
+        auto& v = vtxSpan[iV];
         if (multEstConf.isVtxMultCutRequested() && !multEstConf.isPassingVtxMultCut(v.getNContributors())) {
           continue; // skip vertex of unwanted multiplicity
         }
         selROF = true;
         vertices.push_back(v);
+        if (mIsMC) {
+          auto vLabels = timeFrame->getPrimaryVerticesLabels(iRof)[iV];
+          std::copy(vLabels.begin(), vLabels.end(), std::back_inserter(allVerticesLabels));
+        }
       }
       if (processingMask[iRof] && !selROF) { // passed selection in clusters and not in vertex multiplicity
         LOG(debug) << fmt::format("ROF {} rejected by the vertex multiplicity selection [{},{}]",
@@ -297,7 +304,10 @@ void TrackerDPL::run(ProcessingContext& pc)
     LOGP(info, "ITSTracker pushed {} tracks and {} vertices", allTracks.size(), vertices.size());
     if (mIsMC) {
       LOGP(info, "ITSTracker pushed {} track labels", allTrackLabels.size());
+      LOGP(info, "ITSTracker pushed {} vertex labels", allVerticesLabels.size());
+
       pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
+      pc.outputs().snapshot(Output{"ITS", "VERTICESMCTR", 0, Lifetime::Timeframe}, allVerticesLabels);
       pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
     }
   }
@@ -378,6 +388,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, int trgType, const std::string& trM
   if (useMC) {
     inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
     inputs.emplace_back("MC2ROframes", "ITS", "CLUSTERSMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "VERTICESMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
     outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);

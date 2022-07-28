@@ -40,6 +40,7 @@ void trackleterKernelSerial(
   std::vector<Tracklet>& Tracklets,
   gsl::span<int> foundTracklets,
   const IndexTableUtils& utils,
+  const int rof,
   const int maxTrackletsPerCluster = static_cast<int>(2e3))
 {
   const int PhiBins{utils.getNphiBins()};
@@ -65,9 +66,9 @@ void trackleterKernelSerial(
           if (o2::gpu::GPUCommonMath::Abs(currentCluster.phi - nextCluster.phi) < phiCut) {
             if (storedTracklets < maxTrackletsPerCluster) {
               if constexpr (Mode == TrackletMode::Layer0Layer1) {
-                Tracklets.emplace_back(iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster);
+                Tracklets.emplace_back(iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster, rof, rof);
               } else {
-                Tracklets.emplace_back(iCurrentLayerClusterIndex, iNextLayerClusterIndex, currentCluster, nextCluster);
+                Tracklets.emplace_back(iCurrentLayerClusterIndex, iNextLayerClusterIndex, currentCluster, nextCluster, rof, rof);
               }
               ++storedTracklets;
             }
@@ -87,6 +88,8 @@ void trackletSelectionKernelSerial(
   const gsl::span<int> foundTracklets01,
   const gsl::span<int> foundTracklets12,
   std::vector<Line>& destTracklets,
+  const gsl::span<const MCCompLabel>& trackletLabels,
+  std::vector<MCCompLabel>& linesLabels,
   const float tanLambdaCut = 0.025f,
   const float phiCut = 0.005f,
   const int maxTracklets = static_cast<int>(1e2))
@@ -102,6 +105,9 @@ void trackletSelectionKernelSerial(
         if (!usedTracklets[iTracklet01] && deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
           usedTracklets[iTracklet01] = true;
           destTracklets.emplace_back(tracklets01[iTracklet01], clusters0.data(), clusters1.data());
+          if (trackletLabels.size()) {
+            linesLabels.emplace_back(trackletLabels[iTracklet01]);
+          }
           ++validTracklets;
         }
       }
@@ -151,6 +157,7 @@ void VertexerTraits::computeTracklets()
       mTimeFrame->getTracklets()[0],
       mTimeFrame->getNTrackletsCluster(rofId, 0),
       mIndexTableUtils,
+      rofId,
       mVrtParams.maxTrackletsPerCluster);
     trackleterKernelSerial<TrackletMode::Layer1Layer2>(
       mTimeFrame->getClustersOnLayer(rofId, 2),
@@ -160,11 +167,33 @@ void VertexerTraits::computeTracklets()
       mTimeFrame->getTracklets()[1],
       mTimeFrame->getNTrackletsCluster(rofId, 1),
       mIndexTableUtils,
+      rofId,
       mVrtParams.maxTrackletsPerCluster);
     mTimeFrame->getNTrackletsROf(rofId, 0) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId, 0).begin(), mTimeFrame->getNTrackletsCluster(rofId, 0).end(), 0);
     mTimeFrame->getNTrackletsROf(rofId, 1) = std::accumulate(mTimeFrame->getNTrackletsCluster(rofId, 1).begin(), mTimeFrame->getNTrackletsCluster(rofId, 1).end(), 0);
   }
   mTimeFrame->computeTrackletsScans();
+
+  /// Create tracklets labels for L0-L1, information is as flat as in tracklets vector (no rofId)
+  if (mTimeFrame->hasMCinformation()) {
+    for (auto& trk : mTimeFrame->getTracklets()[0]) {
+      MCCompLabel label;
+      int sortedId0{mTimeFrame->getSortedIndex(trk.rof[0], 0, trk.firstClusterIndex)};
+      int sortedId1{mTimeFrame->getSortedIndex(trk.rof[0], 1, trk.secondClusterIndex)};
+      for (auto& lab0 : mTimeFrame->getClusterLabels(0, mTimeFrame->getClusters()[0][sortedId0].clusterId)) {
+        for (auto& lab1 : mTimeFrame->getClusterLabels(1, mTimeFrame->getClusters()[1][sortedId1].clusterId)) {
+          if (lab0 == lab1 && lab0.isValid()) {
+            label = lab0;
+            break;
+          }
+        }
+        if (label.isValid()) {
+          break;
+        }
+      }
+      mTimeFrame->getTrackletsLabel(0).emplace_back(label);
+    }
+  }
 
 #ifdef VTX_DEBUG
   // Dump on file
@@ -215,6 +244,8 @@ void VertexerTraits::computeTrackletMatching()
       mTimeFrame->getNTrackletsCluster(rofId, 0),
       mTimeFrame->getNTrackletsCluster(rofId, 1),
       mTimeFrame->getLines(rofId),
+      mTimeFrame->getLabelsFoundTracklets(rofId, 0),
+      mTimeFrame->getLinesLabel(rofId),
       mVrtParams.tanLambdaCut,
       mVrtParams.phiCut);
   }
@@ -259,23 +290,23 @@ void VertexerTraits::computeVertices()
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
     const int numTracklets{static_cast<int>(mTimeFrame->getLines(rofId).size())};
     std::vector<bool> usedTracklets(numTracklets, false);
-    for (int tracklet1{0}; tracklet1 < numTracklets; ++tracklet1) {
-      if (usedTracklets[tracklet1]) {
+    for (int line1{0}; line1 < numTracklets; ++line1) {
+      if (usedTracklets[line1]) {
         continue;
       }
-      for (int tracklet2{tracklet1 + 1}; tracklet2 < numTracklets; ++tracklet2) {
-        if (usedTracklets[tracklet2]) {
+      for (int line2{line1 + 1}; line2 < numTracklets; ++line2) {
+        if (usedTracklets[line2]) {
           continue;
         }
-        if (Line::getDCA(mTimeFrame->getLines(rofId)[tracklet1], mTimeFrame->getLines(rofId)[tracklet2]) < mVrtParams.pairCut) {
-          mTimeFrame->getTrackletClusters(rofId).emplace_back(tracklet1, mTimeFrame->getLines(rofId)[tracklet1], tracklet2, mTimeFrame->getLines(rofId)[tracklet2]);
+        if (Line::getDCA(mTimeFrame->getLines(rofId)[line1], mTimeFrame->getLines(rofId)[line2]) < mVrtParams.pairCut) {
+          mTimeFrame->getTrackletClusters(rofId).emplace_back(line1, mTimeFrame->getLines(rofId)[line1], line2, mTimeFrame->getLines(rofId)[line2]);
           std::array<float, 3> tmpVertex{mTimeFrame->getTrackletClusters(rofId).back().getVertex()};
           if (tmpVertex[0] * tmpVertex[0] + tmpVertex[1] * tmpVertex[1] > 4.f) {
             mTimeFrame->getTrackletClusters(rofId).pop_back();
             break;
           }
-          usedTracklets[tracklet1] = true;
-          usedTracklets[tracklet2] = true;
+          usedTracklets[line1] = true;
+          usedTracklets[line2] = true;
           for (int tracklet3{0}; tracklet3 < numTracklets; ++tracklet3) {
             if (usedTracklets[tracklet3]) {
               continue;
@@ -339,6 +370,12 @@ void VertexerTraits::computeVertices()
                                mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize(),         // Contributors
                                mTimeFrame->getTrackletClusters(rofId)[iCluster].getAvgDistance2(), // In place of chi2
                                rofId);
+        if (mTimeFrame->hasMCinformation()) {
+          mTimeFrame->getVerticesLabels().emplace_back();
+          for (auto& index : mTimeFrame->getTrackletClusters(rofId)[iCluster].getLabels()) {
+            mTimeFrame->getVerticesLabels().back().push_back(mTimeFrame->getLinesLabel(rofId)[index]); // then we can use nContributors from vertices to get the labels
+          }
+        }
       }
     }
     std::vector<Vertex> vertices;
