@@ -249,21 +249,21 @@ GPUg() void computeLayerCellsKernel(
 } // namespace gpu
 
 template <int NLayers>
-void TrackerTraitsGPU<NLayers>::initialiseTimeFrame(const int iteration, const TrackingParameters& trackingParams)
+void TrackerTraitsGPU<NLayers>::initialiseTimeFrame(const int iteration)
 {
-  mTimeFrameGPU->initialise(iteration, trackingParams, NLayers);
+  mTimeFrameGPU->initialise(iteration, mTrkParams[iteration], NLayers);
   setIsGPU(true);
 }
 
 template <int NLayers>
 void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
 {
-  const Vertex diamondVert({mTrkParams.Diamond[0], mTrkParams.Diamond[1], mTrkParams.Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
+  const Vertex diamondVert({mTrkParams[iteration].Diamond[0], mTrkParams[iteration].Diamond[1], mTrkParams[iteration].Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
   gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
   size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
 
   for (int rof0{0}; rof0 < mTimeFrameGPU->getNrof(); ++rof0) {
-    gsl::span<const Vertex> primaryVertices = mTrkParams.UseDiamond ? diamondSpan : mTimeFrameGPU->getPrimaryVertices(rof0); // replace with GPU one
+    gsl::span<const Vertex> primaryVertices = mTrkParams[iteration].UseDiamond ? diamondSpan : mTimeFrameGPU->getPrimaryVertices(rof0); // replace with GPU one
     std::vector<Vertex> paddedVertices;
     for (int iVertex{0}; iVertex < mTimeFrameGPU->getConfig().maxVerticesCapacity; ++iVertex) {
       if (iVertex < primaryVertices.size()) {
@@ -276,7 +276,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
     for (int iLayer{0}; iLayer < NLayers - 1; ++iLayer) {
       const dim3 threadsPerBlock{gpu::utils::host::getBlockSize(mTimeFrameGPU->getNClustersLayer(rof0, iLayer))};
       const dim3 blocksGrid{gpu::utils::host::getBlocksGrid(threadsPerBlock, mTimeFrameGPU->getNClustersLayer(rof0, iLayer))};
-      const float meanDeltaR{mTrkParams.LayerRadii[iLayer + 1] - mTrkParams.LayerRadii[iLayer]};
+      const float meanDeltaR{mTrkParams[iteration].LayerRadii[iLayer + 1] - mTrkParams[iteration].LayerRadii[iLayer]};
 
       if (!mTimeFrameGPU->getClustersOnLayer(rof0, iLayer).size()) {
         LOGP(info, "Skipping ROF0: {}, no clusters found on layer {}", rof0, iLayer);
@@ -370,7 +370,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
 
   // Create tracklets labels, at the moment on the host
   if (mTimeFrameGPU->hasMCinformation()) {
-    for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
+    for (int iLayer{0}; iLayer < mTrkParams[iteration].TrackletsPerRoad(); ++iLayer) {
       std::vector<o2::its::Tracklet> tracklets(mTimeFrameGPU->getTrackletSizeHost()[iLayer]);
       checkGPUError(cudaMemcpy(tracklets.data(), mTimeFrameGPU->getDeviceTrackletsAll(iLayer), mTimeFrameGPU->getTrackletSizeHost()[iLayer] * sizeof(o2::its::Tracklet), cudaMemcpyDeviceToHost), __FILE__, __LINE__);
       for (auto& trk : tracklets) {
@@ -395,7 +395,7 @@ void TrackerTraitsGPU<NLayers>::computeLayerTracklets(const int iteration)
 }
 
 template <int NLayers>
-void TrackerTraitsGPU<NLayers>::computeLayerCells()
+void TrackerTraitsGPU<NLayers>::computeLayerCells(const int iteration)
 {
   size_t bufferSize = mTimeFrameGPU->getConfig().tmpCUBBufferSize;
   for (int iLayer{0}; iLayer < NLayers - 2; ++iLayer) {
@@ -470,6 +470,25 @@ void TrackerTraitsGPU<NLayers>::computeLayerCells()
 //   //TODO: restore this
 //   // mChainRunITSTrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
 // }
+
+template <int NLayers>
+void TrackerTraitsGPU<NLayers>::findCellsNeighbours(const int iteration){};
+
+template <int NLayers>
+void TrackerTraitsGPU<NLayers>::findRoads(const int iteration){};
+
+template <int NLayers>
+void TrackerTraitsGPU<NLayers>::findTracks(){};
+
+template <int NLayers>
+void TrackerTraitsGPU<NLayers>::extendTracks(const int iteration){};
+
+template <int NLayers>
+void TrackerTraitsGPU<NLayers>::setBz(float bz)
+{
+  mBz = bz;
+  mTimeFrameGPU->setBz(bz);
+}
 
 template <int NLayers>
 int TrackerTraitsGPU<NLayers>::getTFNumberOfClusters() const

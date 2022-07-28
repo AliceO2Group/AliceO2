@@ -32,9 +32,14 @@ class TrackerTraitsGPU : public TrackerTraits
 
   // void computeLayerCells() final;
   void adoptTimeFrame(TimeFrame* tf) override;
-  void initialiseTimeFrame(const int iteration, const TrackingParameters& trackingParams) override;
+  void initialiseTimeFrame(const int iteration) override;
   void computeLayerTracklets(const int iteration) final;
   void computeLayerCells(const int iteration) override;
+  void setBz(float) override;
+  void findCellsNeighbours(const int iteration) override;
+  void findRoads(const int iteration) override;
+  void findTracks() override;
+  void extendTracks(const int iteration) override;
   // void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks) override;
 
   // TimeFrameGPU information forwarding

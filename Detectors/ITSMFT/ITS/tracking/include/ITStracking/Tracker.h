@@ -105,16 +105,6 @@ inline void Tracker::setParameters(const std::vector<TrackingParameters>& trkPar
   mTrkParams = trkPars;
 }
 
-inline void Tracker::initialiseTimeFrame(int& iteration)
-{
-  mTimeFrame->initialise(iteration, mTrkParams[iteration]);
-}
-
-inline float Tracker::getBz() const
-{
-  return mBz;
-}
-
 template <typename... T>
 float Tracker::evaluateTask(void (Tracker::*task)(T...), const char* taskName, std::function<void(std::string s)> logger,
                             T&&... args)
