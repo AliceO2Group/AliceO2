@@ -133,6 +133,7 @@ class TrapSimulator
   int getAdditionalBaseline() const { return mAdditionalBaseline; }
 
   void setUseFloatingPointForQ() { mUseFloatingPointForQ = true; }
+  void setChargeScalingFactor(int scale) { mScaleQ = (1UL << 32UL) / scale; }
 
   int getDetector() const { return mDetector; }; // Returns Chamber ID (0-539)
   int getRobPos() const { return mRobPos; };     // Returns ROB position (0-7)
