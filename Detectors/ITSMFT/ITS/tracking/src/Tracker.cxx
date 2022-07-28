@@ -99,10 +99,9 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
   mNumberOfRuns++;
 }
 
-template <typename... T>
-void Tracker::initialiseTimeFrame(T&&... args)
+void Tracker::initialiseTimeFrame(int& iteration)
 {
-  mTraits->initialiseTimeFrame(std::forward<T>(args)...);
+  mTraits->initialiseTimeFrame(iteration);
 }
 
 void Tracker::computeTracklets(int& iteration)
