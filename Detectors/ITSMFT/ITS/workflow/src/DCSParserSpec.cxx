@@ -370,10 +370,12 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
             << info.getStartValidityTimestamp() << " : "
             << info.getEndValidityTimestamp();
 
-  pc.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_CONFIG", 0}, *image);
-  pc.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DCS_CONFIG", 0}, info);
+  if (mCcdbUrl.empty()) {
 
-  if (!mCcdbUrl.empty()) { // if url is specified, send object to ccdb from THIS wf
+    pc.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_CONFIG", 0}, *image);
+    pc.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DCS_CONFIG", 0}, info);
+
+  } else { // if url is specified, send object to ccdb from THIS wf
 
     LOG(info) << "Sending object " << info.getFileName() << " to " << mCcdbUrl << "/browse/"
               << info.getPath() << " from the ITS string parser workflow";
@@ -396,8 +398,8 @@ DataProcessorSpec getITSDCSParserSpec()
   inputs.emplace_back("nameString", detOrig, "DCS_CONFIG_NAME", 0, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_CONFIG"});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "DCS_CONFIG"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_CONFIG"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "DCS_CONFIG"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "its-parser",
@@ -405,7 +407,7 @@ DataProcessorSpec getITSDCSParserSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<o2::its::ITSDCSParser>()},
     Options{
-      {"ccdb-url", VariantType::String, "", {"CCDB url, default is empty (i.e. no upload to CCDB)"}}}};
+      {"ccdb-url", VariantType::String, "", {"CCDB url, default is empty (i.e. send output to CCDB populator workflow)"}}}};
 }
 } // namespace its
 } // namespace o2
