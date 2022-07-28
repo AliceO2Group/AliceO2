@@ -106,6 +106,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
       mCurRUDecodeID = 0; // getNextChipData will start from here
       mLastReadChipID = -1;
       // set IR and trigger from the 1st non empty link
+      int cnt = 0;
       for (const auto& link : mGBTLinks) {
         if (link.status == GBTLink::DataSeen) {
           mInteractionRecord = link.ir;
