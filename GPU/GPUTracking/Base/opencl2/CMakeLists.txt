@@ -68,22 +68,16 @@ endif()
 if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
   # executes clang to create llvm IL code
   add_custom_command(
-      OUTPUT ${CL_BIN}.bc
+      OUTPUT ${CL_BIN}.spirv
       COMMAND ${LLVM_CLANG}
               -O0
-              -emit-llvm --target=spir64-unknown-unknown
+              --target=spirv64
               ${OCL_FLAGS}
               ${OCL_DEFINECL}
-              -o ${CL_BIN}.bc -c ${CL_SRC}
+              -o ${CL_BIN}.spirv -c ${CL_SRC}
       MAIN_DEPENDENCY ${CL_SRC}
       IMPLICIT_DEPENDS CXX ${CL_SRC}
       COMMAND_EXPAND_LISTS)
-
-  # executes converter to create spirv IL code
-  add_custom_command(
-      OUTPUT ${CL_BIN}.spirv
-      COMMAND ${LLVM_SPIRV} ${CL_BIN}.bc -o=${CL_BIN}.spirv
-      MAIN_DEPENDENCY ${CL_BIN}.bc)
 
   create_binary_resource(${CL_BIN}.spirv ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.o)
   set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.o)
