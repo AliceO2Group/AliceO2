@@ -78,7 +78,8 @@ void GBTLink::clear(bool resetStat, bool resetTFRaw)
 void GBTLink::printTrigger(const GBTTrigger* gbtTrg, int offs)
 {
   std::bitset<12> trb(gbtTrg->triggerType);
-  LOG(info) << "Offs: " << offs << " Trigger : Orbit " << gbtTrg->orbit << " BC: " << gbtTrg->bc << " Trigger: " << trb << " noData:" << gbtTrg->noData << " internal:" << gbtTrg->internal << " on " << describe();
+  LOG(info) << "Offs: " << offs << " Trigger : Orbit " << gbtTrg->orbit << " BC: " << gbtTrg->bc << " Trigger: " << trb << " noData:"
+            << gbtTrg->noData << " internal:" << gbtTrg->internal << " continuation:" << gbtTrg->continuation << " on " << describe();
   gbtTrg->printX();
 }
 
