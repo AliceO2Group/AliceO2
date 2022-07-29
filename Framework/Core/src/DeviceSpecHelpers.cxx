@@ -323,7 +323,7 @@ struct ExpirationHandlerHelpers {
   /// This will always exipire an optional record when no data is received.
   static RouteConfigurator::DanglingConfigurator danglingOptionalConfigurator(std::vector<InputRoute> const& routes)
   {
-    return [routes](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireIfPresent(routes, ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", 0}); };
+    return [&routes](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::expireIfPresent(routes, ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", 0}); };
   }
 
   /// When the record expires, simply create a dummy entry.
