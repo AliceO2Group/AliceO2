@@ -36,9 +36,7 @@ class DCSConfigUtils
     init();
   }
 
-  ~DCSConfigUtils()
-  {
-  }
+  ~DCSConfigUtils() = default;
 
   void init()
   {
