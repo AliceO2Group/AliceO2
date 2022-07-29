@@ -107,48 +107,49 @@ int TrackletsParser::Parse()
   mCurrentLink = 0;
   mWordsRead = 0;
   mTrackletsFound = 0;
+
   if (mTrackletHCHeaderState == 0) {
     // tracklet hc header is never present
     mState = StateTrackletMCMHeader;
     LOG(error) << " This option of TrackletHalfChamberHeader 0 is no longer permitted";
     return -1;
-  } else {
-    if (mTrackletHCHeaderState == 1) {
-      // we either have a tracklet half chamber header word or a digit one.
-      // digit has 01 at the end last 2 bits and the supermodule in bits 9 to 13 [0:17]
-      // tracklet has bit 11 (zero based) set to 1
-      // we have tracklet data so no TrackletHCHeader
-      mState = StateTrackletHCHeader;
-      TrackletHCHeader hcheader;
+  }
 
-      hcheader.word = *mStartParse;
-      uint32_t tmpheader = *mStartParse;
-      if (!sanityCheckTrackletHCHeader(hcheader)) {
-        // we dont have a tracklethcheader so no tracklet data.
-        if (mOptions[TRDHeaderVerboseBit]) {
-          LOG(info) << "Returning 0 from tracklet parsing " << std::hex << (tmpheader & 0x3) << " supermodule : " << ((tmpheader >> 9) & 0x1f);
-        }
+  if (mTrackletHCHeaderState == 1) {
+    // we either have a tracklet half chamber header word or a digit one.
+    // digit has 01 at the end last 2 bits and the supermodule in bits 9 to 13 [0:17]
+    // tracklet has bit 11 (zero based) set to 1
+    // we have tracklet data so no TrackletHCHeader
+    mState = StateTrackletHCHeader;
+    TrackletHCHeader hcheader;
 
-        return -1; // mWordsRead;
+    hcheader.word = *mStartParse;
+    uint32_t tmpheader = *mStartParse;
+    if (!sanityCheckTrackletHCHeader(hcheader)) {
+      // we dont have a tracklethcheader so no tracklet data.
+      if (mOptions[TRDHeaderVerboseBit]) {
+        LOG(info) << "Returning 0 from tracklet parsing " << std::hex << (tmpheader & 0x3) << " supermodule : " << ((tmpheader >> 9) & 0x1f);
       }
-      // NBNBNBNB
-      // digit half chamber header ends with 01b and has the supermodule in position (9-13).
-      // this of course can conflict with a tracklet hc header, hence should not be used!
-      // NBNBNBNB
-      if ((tmpheader & 0x3) == 0x1 && (((tmpheader >> 9) & 0x1f) == mHCID / 30)) {
-        if (mOptions[TRDHeaderVerboseBit]) {
-          LOG(info) << " we seem to be on a digit halfchamber header";
-        }
-        return 0;
-      }
-      mState = StateTrackletHCHeader;
-    } else {
-      if (mTrackletHCHeaderState != 2) {
-        LOG(warn) << "Unknown TrackletHCHeaderState of " << mTrackletHCHeaderState;
-      }
-      // tracklet hc header is always present
-      mState = StateTrackletHCHeader; // we start with a trackletMCMHeader
+
+      return -1; // mWordsRead;
     }
+    // NBNBNBNB
+    // digit half chamber header ends with 01b and has the supermodule in position (9-13).
+    // this of course can conflict with a tracklet hc header, hence should not be used!
+    // NBNBNBNB
+    if ((tmpheader & 0x3) == 0x1 && (((tmpheader >> 9) & 0x1f) == mHCID / 30)) {
+      if (mOptions[TRDHeaderVerboseBit]) {
+        LOG(info) << " we seem to be on a digit halfchamber header";
+      }
+      return 0;
+    }
+    mState = StateTrackletHCHeader;
+  } else {
+    if (mTrackletHCHeaderState != 2) {
+      LOG(warn) << "Unknown TrackletHCHeaderState of " << mTrackletHCHeaderState;
+    }
+    // tracklet hc header is always present
+    mState = StateTrackletHCHeader; // we start with a trackletMCMHeader
   }
 
   int currentLinkStart = 0;
