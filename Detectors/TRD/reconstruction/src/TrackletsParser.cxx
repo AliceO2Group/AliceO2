@@ -122,13 +122,11 @@ int TrackletsParser::Parse()
     // we have tracklet data so no TrackletHCHeader
     mState = StateTrackletHCHeader;
     TrackletHCHeader hcheader;
-
     hcheader.word = *mStartParse;
-    uint32_t tmpheader = *mStartParse;
     if (!sanityCheckTrackletHCHeader(hcheader)) {
       // we dont have a tracklethcheader so no tracklet data.
       if (mOptions[TRDHeaderVerboseBit]) {
-        LOG(info) << "Returning 0 from tracklet parsing " << std::hex << (tmpheader & 0x3) << " supermodule : " << ((tmpheader >> 9) & 0x1f);
+        LOG(info) << "Returning 0 from tracklet parsing " << std::hex << (hcheader.format & 0x3) << " supermodule : " << hcheader.supermodule;
       }
 
       return -1; // mWordsRead;
@@ -137,7 +135,7 @@ int TrackletsParser::Parse()
     // digit half chamber header ends with 01b and has the supermodule in position (9-13).
     // this of course can conflict with a tracklet hc header, hence should not be used!
     // NBNBNBNB
-    if ((tmpheader & 0x3) == 0x1 && (((tmpheader >> 9) & 0x1f) == mHCID / 30)) {
+    if ((hcheader.format & 0x3) == 0x1 && hcheader.supermodule == mHCID / 30) {
       if (mOptions[TRDHeaderVerboseBit]) {
         LOG(info) << " we seem to be on a digit halfchamber header";
       }
