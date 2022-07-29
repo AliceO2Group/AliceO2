@@ -45,7 +45,12 @@ struct LtrCalibData {
   void normalize(float newVRef = 0.f)
   {
     if (refVDrift == 0.) {
-      LOG(fatal) << "LtrCalibData data has no reference";
+      LOG(error) << "LtrCalibData data has no reference";
+      return;
+    }
+    if (getDriftVCorrection() == 0) {
+      LOGP(error, "Drift correction is 0: dvCorrectionA={}, dvCorrectionC={}, nTracksA={}, nTracksC={}", dvCorrectionA, dvCorrectionC, nTracksA, nTracksC);
+      return;
     }
     if (newVRef == 0.) {
       newVRef = refVDrift / getDriftVCorrection();
