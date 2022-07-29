@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(FITCalibration
-        SOURCES 
+        SOURCES
         src/FITCalibrationDevice.cxx
         src/FITCalibrator.cxx
         PUBLIC_LINK_LIBRARIES
