@@ -123,29 +123,32 @@ int TrackletsParser::Parse()
     mState = StateTrackletHCHeader;
     TrackletHCHeader hcheader;
     hcheader.word = *mStartParse;
+
+    // we dont have a tracklethcheader so no tracklet data.
     if (!sanityCheckTrackletHCHeader(hcheader)) {
-      // we dont have a tracklethcheader so no tracklet data.
       if (mOptions[TRDHeaderVerboseBit]) {
         LOG(info) << "Returning 0 from tracklet parsing " << std::hex << (hcheader.format & 0x3) << " supermodule : " << hcheader.supermodule;
       }
 
       return -1; // mWordsRead;
     }
-    // NBNBNBNB
+
     // digit half chamber header ends with 01b and has the supermodule in position (9-13).
     // this of course can conflict with a tracklet hc header, hence should not be used!
-    // NBNBNBNB
     if ((hcheader.format & 0x3) == 0x1 && hcheader.supermodule == mHCID / 30) {
       if (mOptions[TRDHeaderVerboseBit]) {
         LOG(info) << " we seem to be on a digit halfchamber header";
       }
+
       return 0;
     }
+
     mState = StateTrackletHCHeader;
   } else {
     if (mTrackletHCHeaderState != 2) {
       LOG(warn) << "Unknown TrackletHCHeaderState of " << mTrackletHCHeaderState;
     }
+
     // tracklet hc header is always present
     mState = StateTrackletHCHeader; // we start with a trackletMCMHeader
   }
