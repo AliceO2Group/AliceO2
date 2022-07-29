@@ -99,9 +99,10 @@ int TrackletsParser::Parse()
   // producing a vector of digits.
 
   mTrackletParsingBad = false;
-  if (mOptions[TRDHeaderVerboseBit]) {
+  if (mOptions[TRDHeaderVerboseBit]) { // prints the incoming data, for debugging.
     OutputIncomingData();
   }
+
   // mData holds a buffer containing tracklets parse placing tracklets in the output vector.
   mCurrentLink = 0;
   mWordsRead = 0;
