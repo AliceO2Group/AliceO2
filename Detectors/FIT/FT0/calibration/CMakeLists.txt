@@ -45,7 +45,7 @@ o2_add_library(FT0Calibration
         PUBLIC_LINK_LIBRARIES
         O2::FT0Calibration O2::FITCalibration
         )
-      o2_add_executable(ft0-time-offset-calibration
+      o2_add_executable(ft0-time-offset-calib
         COMPONENT_NAME calibration
         SOURCES testWorkflow/FT0TimeOffsetCalibration-Workflow.cxx
         PUBLIC_LINK_LIBRARIES

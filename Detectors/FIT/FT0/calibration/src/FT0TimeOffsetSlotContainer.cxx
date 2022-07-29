@@ -24,20 +24,32 @@ FT0TimeOffsetSlotContainer::FT0TimeOffsetSlotContainer(std::size_t minEntries) {
 
 bool FT0TimeOffsetSlotContainer::hasEnoughEntries() const
 {
-  if (mCurrentSlot > CalibParam::Instance().mNExtraSlots || mIsReady) {
+  if (mIsReady) {
+    // ready : bad+good == NChannels (i.e. no pending channel)
+    LOG(info) << "RESULT: ready";
+    print();
+    return true;
+  } else if (mCurrentSlot > CalibParam::Instance().mNExtraSlots) {
+    LOG(info) << "RESULT: Extra slots are used";
+    print();
     return true;
   } else if (mCurrentSlot == 0) {
     for (int iCh = 0; iCh < sNCHANNELS; iCh++) {
       const auto nEntries = mArrEntries[iCh];
       if (nEntries >= CalibParam::Instance().mMinEntriesThreshold && nEntries < CalibParam::Instance().mMaxEntriesThreshold) {
         // Check if there are any pending channel in first slot
+        LOG(info) << "RESULT: pending channels";
         return false;
       }
     }
     // If sum of bad+good == NChannels (i.e. no pending channel in first slot)
+    LOG(info) << "RESULT: NO pending channels";
+    print();
     return true;
   } else {
     // Probably will never happen, all other conditions are already checked
+    LOG(info) << "RESULT: should be never happen";
+    print();
     return false;
   }
 }
@@ -45,14 +57,13 @@ bool FT0TimeOffsetSlotContainer::hasEnoughEntries() const
 void FT0TimeOffsetSlotContainer::fill(const gsl::span<const float>& data)
 {
   // Per TF procedure
+  const FlatHisto2D_t histView(data);
   if (mIsFirstTF) {
     // To make histogram parameters dynamic, depending on TimeSpectraProcessor output
-    mHistogram.adoptExternal(data);
+    mHistogram.init(histView.getNBinsX(), histView.getXMin(), histView.getXMax(), histView.getNBinsY(), histView.getYMin(), histView.getYMax());
     mIsFirstTF = false;
-  } else {
-    FlatHisto2D_t hist(data);
-    mHistogram.add(hist);
   }
+  mHistogram.add(histView);
   if (!mIsReady) {
     // This part should at the stage `hasEnoughData()` but it is const method
     for (int iCh = 0; iCh < sNCHANNELS; iCh++) {
@@ -60,8 +71,11 @@ void FT0TimeOffsetSlotContainer::fill(const gsl::span<const float>& data)
         // No need in checking entries at channels with enough data or at channels which marked as bad in first slot
         continue;
       }
-      o2::dataformats::FlatHisto1D<FlatHistoValue_t> flatHist1D(mHistogram.getSliceY(iCh));
-      const auto nEntries = flatHist1D.getSum();
+      auto sliceChID = mHistogram.getSliceY(iCh);
+      FlatHistoValue_t nEntries{};
+      for (auto& en : sliceChID) {
+        nEntries += en;
+      }
       mArrEntries[iCh] = nEntries;
       if (nEntries >= CalibParam::Instance().mMaxEntriesThreshold) {
         mBitsetGoodChIDs.set(iCh);
@@ -76,6 +90,8 @@ void FT0TimeOffsetSlotContainer::fill(const gsl::span<const float>& data)
 
 void FT0TimeOffsetSlotContainer::merge(FT0TimeOffsetSlotContainer* prev)
 {
+  LOG(info) << "MERGING";
+  *this = *prev;
   if (mCurrentSlot == 0) {
     // This part should at the stage `hasEnoughData()` but it is const method
     for (int iCh = 0; iCh < sNCHANNELS; iCh++) {
@@ -85,29 +101,32 @@ void FT0TimeOffsetSlotContainer::merge(FT0TimeOffsetSlotContainer* prev)
       }
     }
   }
+  this->print();
   mCurrentSlot++;
-  *this = *prev;
 }
 
 int16_t FT0TimeOffsetSlotContainer::getMeanGaussianFitValue(std::size_t channelID) const
 {
-  int meanGaus{0};
-  int sigmaGaus{0};
+  double meanGaus{0};
+  double sigmaGaus{0};
+  double minFitRange{0};
+  double maxFitRange{0};
   auto hist = mHistogram.createSliceYTH1F(channelID);
   const auto meanHist = hist->GetMean();
   const auto rmsHist = hist->GetRMS();
-  double minFitRange = CalibParam::Instance().mMinFitRange;
-  double maxFitRange = CalibParam::Instance().mMaxFitRange;
   if (CalibParam::Instance().mUseDynamicRange) {
     minFitRange = meanHist - CalibParam::Instance().mRangeInRMS * rmsHist;
     maxFitRange = meanHist + CalibParam::Instance().mRangeInRMS * rmsHist;
+  } else {
+    minFitRange = CalibParam::Instance().mMinFitRange;
+    maxFitRange = CalibParam::Instance().mMaxFitRange;
   }
   TFitResultPtr resultFit = hist->Fit("gaus", "0SQ", "", minFitRange, maxFitRange);
-  if ((Int_t)resultFit == 0) {
-    meanGaus = int(resultFit->Parameters()[1]);
-    sigmaGaus = int(resultFit->Parameters()[2]);
+  if (((int)resultFit) == 0) {
+    meanGaus = resultFit->Parameters()[1];
+    sigmaGaus = resultFit->Parameters()[2];
   }
-  if (resultFit != 0 || std::abs(meanGaus - meanHist) > CalibParam::Instance().mMaxDiffMean || rmsHist < CalibParam::Instance().mMinRMS || sigmaGaus > CalibParam::Instance().mMaxSigma) { // to be used fot test with laser
+  if (((int)resultFit) != 0 || std::abs(meanGaus - meanHist) > CalibParam::Instance().mMaxDiffMean || rmsHist < CalibParam::Instance().mMinRMS || sigmaGaus > CalibParam::Instance().mMaxSigma) {
     LOG(debug) << "Bad gaus fit: meanGaus " << meanGaus << " sigmaGaus " << sigmaGaus << " meanHist " << meanHist << " rmsHist " << rmsHist << "resultFit " << ((int)resultFit);
     meanGaus = meanHist;
   }
@@ -118,11 +137,11 @@ FT0ChannelTimeCalibrationObject FT0TimeOffsetSlotContainer::generateCalibrationO
 {
   FT0ChannelTimeCalibrationObject calibrationObject;
   for (unsigned int iCh = 0; iCh < sNCHANNELS; ++iCh) {
-    if (mBitsetBadChIDs.test(iCh)) {
+    if (mBitsetGoodChIDs.test(iCh)) {
+      calibrationObject.mTimeOffsets[iCh] = getMeanGaussianFitValue(iCh);
+    } else {
       // If channel is bad, set zero offset(or use histogram mean?). Later will be hidden value for tagging as bad channel
       calibrationObject.mTimeOffsets[iCh] = 0;
-    } else {
-      calibrationObject.mTimeOffsets[iCh] = getMeanGaussianFitValue(iCh);
     }
   }
   return calibrationObject;
@@ -130,5 +149,12 @@ FT0ChannelTimeCalibrationObject FT0TimeOffsetSlotContainer::generateCalibrationO
 
 void FT0TimeOffsetSlotContainer::print() const
 {
+  LOG(info) << "Total entries: " << mHistogram.getSum();
+  LOG(info) << "Hist " << mHistogram.getNBinsX() << " " << mHistogram.getXMin() << " " << mHistogram.getXMax() << " " << mHistogram.getNBinsY() << " " << mHistogram.getYMin() << " " << mHistogram.getYMax();
+  LOG(info) << "Number of good channels: " << mBitsetGoodChIDs.count();
+  LOG(info) << "Number of bad channels: " << mBitsetBadChIDs.count();
+  LOG(info) << "Number of pending channels: " << sNCHANNELS - (mBitsetGoodChIDs.count() + mBitsetBadChIDs.count());
+  LOG(info) << "mIsFirstTF " << mIsFirstTF;
+  LOG(info) << "mIsReady " << mIsReady;
   // QC will do that part
 }
