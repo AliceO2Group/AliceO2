@@ -151,7 +151,7 @@ int TrackletsParser::Parse()
       mState = StateTrackletHCHeader;
     } else {
       if (mTrackletHCHeaderState != 2) {
-        LOG(warn) << "unknwon TrackletHCHeaderState of " << mIgnoreTrackletHCHeader;
+        LOG(warn) << "Unknown TrackletHCHeaderState of " << mTrackletHCHeaderState;
       }
       // tracklet hc header is always present
       mState = StateTrackletHCHeader; // we start with a trackletMCMHeader
