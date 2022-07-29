@@ -447,6 +447,12 @@ GPUd() void GPUTPCCFDecodeZSLink::WriteCharge(processorType& clusterer, unsigned
 {
   const unsigned int slice = clusterer.mISlice;
   ChargePos* positions = clusterer.mPpositions;
+  if (padAndRow.getRow() >= GPUCA_ROW_COUNT) { // FIXME: to be removed once TPC does not send corrupt data any more
+    constexpr ChargePos INVALID_POS(UCHAR_MAX, UCHAR_MAX, INVALID_TIME_BIN);
+    positions[positionOffset] = INVALID_POS;
+    return;
+  }
+
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
 
   ChargePos pos(padAndRow.getRow(), padAndRow.getPad(), localTime);
