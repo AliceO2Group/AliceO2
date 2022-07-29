@@ -200,7 +200,6 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
   uint8_t errRes = uint8_t(GBTLink::NoError);
   bool expectPacketDone = false;
   ir.clear();
-  const GBTTrigger* gbtTrg = nullptr;
   while (currRawPiece) { // we may loop over multiple CRU page
     if (dataOffset >= currRawPiece->size) {
       dataOffset = 0;                              // start of the RDH
@@ -268,6 +267,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     // then we expect GBT trigger word (unless we work with old format)
     if (format == NewFormat) {
       int ntrig = 0;
+      const GBTTrigger* gbtTrg = nullptr;
       while (dataOffset < currRawPiece->size) { // we may have multiple trigger words in case there were physics triggers
         const GBTTrigger* gbtTrgTmp = reinterpret_cast<const GBTTrigger*>(&currRawPiece->data[dataOffset]);
         if (gbtTrgTmp->isTriggerWord()) {
@@ -298,12 +298,14 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
         break;
       }
       if (gbtTrg) {
-        statistics.nTriggers++;
-        lanesStop = 0;
-        lanesWithData = 0;
-        ir.bc = gbtTrg->bc;
-        ir.orbit = gbtTrg->orbit;
-        trigger = gbtTrg->triggerType;
+        if (!gbtTrg->continuation) { // this is a continuation from the previous CRU page
+          statistics.nTriggers++;
+          lanesStop = 0;
+          lanesWithData = 0;
+          ir.bc = gbtTrg->bc;
+          ir.orbit = gbtTrg->orbit;
+          trigger = gbtTrg->triggerType;
+        }
         if (gbtTrg->noData) {
           if (verbosity >= VerboseHeaders) {
             LOGP(info, "Offs {} Returning with status {} for {}", dataOffset, int(status), describe());
