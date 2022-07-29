@@ -109,9 +109,20 @@ class MeanVertexObject : public VertexBase
   void print() const;
   std::string asString() const;
 
+  VertexBase getMeanVertex(float z)
+  {
+    VertexBase v = *this;
+    v.setXYZ(getXAtZ(z), getYAtZ(z), z);
+  }
+
+  const VertexBase& getMeanVertex() const
+  {
+    return (const VertexBase&)(*this);
+  }
+
  private:
-  float mSlopeX; // slope of x = f(z)
-  float mSlopeY; // slope of y = f(z)
+  float mSlopeX{0.f}; // slope of x = f(z)
+  float mSlopeY{0.f}; // slope of y = f(z)
 
   ClassDefNV(MeanVertexObject, 1);
 };

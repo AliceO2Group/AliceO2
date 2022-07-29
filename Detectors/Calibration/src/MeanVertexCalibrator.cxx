@@ -99,7 +99,7 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
   std::vector<double> meanZvect;
   int startZ = 0;
   int counter = 0;
-  int minEntriesPerPoint = std::max(uint64_t(mMinEntries), c->histoVtx.size() / mNPointsForSlope);
+  auto minEntriesPerPoint = std::max((unsigned long int)mMinEntries, c->histoVtx.size() / mNPointsForSlope);
   if (mVerbose) {
     LOG(info) << "Beginning: startZ = " << startZ << " c->histoVtx.size() = " << c->histoVtx.size();
   }
@@ -246,9 +246,9 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
     lf.AddPoint(&meanZvect[i], fitResSlicesX[i][1]);
   }
   lf.Eval();
-  double slopeX = lf.GetParameter(0);
+  double slopeX = lf.GetParameter(1);
   mvo.setSlopeX(slopeX);
-  mvo.setX(mvo.getZ() * slopeX + lf.GetParameter(1));
+  mvo.setX(mvo.getZ() * slopeX + lf.GetParameter(0));
   lf.ClearPoints();
 
   // now slope for the y-coordinate dependence on z
@@ -259,9 +259,9 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
     lf.AddPoint(&meanZvect[i], fitResSlicesY[i][1]);
   }
   lf.Eval();
-  double slopeY = lf.GetParameter(0);
+  double slopeY = lf.GetParameter(1);
   mvo.setSlopeY(slopeY);
-  mvo.setY(mvo.getZ() * slopeY + lf.GetParameter(1));
+  mvo.setY(mvo.getZ() * slopeY + lf.GetParameter(0));
   if (mVerbose) {
     LOG(info) << "slope X = " << slopeX;
     LOG(info) << "slope Y = " << slopeY;
