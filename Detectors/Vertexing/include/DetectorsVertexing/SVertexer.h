@@ -61,6 +61,8 @@ class SVertexer
                AntiLambda,
                HyperTriton,
                AntiHyperTriton,
+               Hyperhydrog4,
+               AntiHyperhydrog4,
                NHypV0 };
 
   enum HypCascade {

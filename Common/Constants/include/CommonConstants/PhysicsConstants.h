@@ -37,6 +37,7 @@ constexpr float MassTriton = 2.8089211;
 constexpr float MassHelium3 = 2.8083916;
 constexpr float MassAlpha = 3.7273794;
 constexpr float MassHyperTriton = 2.992;
+constexpr float MassHyperhydrog4 = 3.931;
 constexpr float MassXiMinus = 1.32171;
 constexpr float MassOmegaMinus = 1.67245;
 
