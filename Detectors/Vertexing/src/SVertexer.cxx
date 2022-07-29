@@ -32,9 +32,12 @@ using TrackTPC = o2::tpc::TrackTPC;
 //__________________________________________________________________
 void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // accessor to various reconstrucred data types
 {
+  LOG(info) << "Process Start!";
   updateTimeDependentParams(); // TODO RS: strictly speaking, one should do this only in case of the CCDB objects update
+  LOG(info) << "Update Params Finish!";
   mPVertices = recoData.getPrimaryVertices();
   buildT2V(recoData); // build track->vertex refs from vertex->track (if other workflow will need this, consider producing a message in the VertexTrackMatcher)
+  LOG(info) << "BuildT2V Finish!";
   int ntrP = mTracksPool[POS].size(), ntrN = mTracksPool[NEG].size(), iThread = 0;
   mV0sTmp[0].clear();
   mCascadesTmp[0].clear();
@@ -62,25 +65,32 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
       if (mSVParams->maxPVContributors < 2 && seedP.gid.isPVContributor() + seedN.gid.isPVContributor() > mSVParams->maxPVContributors) {
         continue;
       }
+      LOG(info) << "Start CheckV0!";
       checkV0(seedP, seedN, itp, itn, iThread);
     }
   }
+  LOG(info) << "CheckV0 Loop Finish!";
   // sort V0s and Cascades in vertex id
   struct vid {
     int thrID;
     int entry;
     int vtxID;
   };
-  size_t nv0 = 0, ncsc = 0, n3body;
+  size_t nv0 = 0, ncsc = 0, n3body = 0;
   for (int i = 0; i < mNThreads; i++) {
     nv0 += mV0sTmp[0].size();
     ncsc += mCascadesTmp[i].size();
     n3body += m3bodyTmp[i].size();
   }
+  LOG(info) << "Reserve Start!";
   std::vector<vid> v0SortID, cascSortID, nbodySortID;
+  LOG(info) << "V0SortID Reserve Start!  nv0:"<<nv0;
   v0SortID.reserve(nv0);
+  LOG(info) << "CascSortID Reserve Start!  ncsc:"<<ncsc;
   cascSortID.reserve(ncsc);
+  LOG(info) << "NbodySortID Reserve Start!  n3body:"<<n3body;
   nbodySortID.reserve(n3body);
+  LOG(info) << "Emplace_back Start!";
   for (int i = 0; i < mNThreads; i++) {
     for (int j = 0; j < (int)mV0sTmp[i].size(); j++) {
       v0SortID.emplace_back(vid{i, j, mV0sTmp[i][j].getVertexID()});
@@ -92,9 +102,12 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
       nbodySortID.emplace_back(vid{i, j, m3bodyTmp[i][j].getVertexID()});
     }
   }
+  LOG(info) << "Emplace_back Finish!";
+  LOG(info) << "Start Sort!";
   std::sort(v0SortID.begin(), v0SortID.end(), [](const vid& a, const vid& b) { return a.vtxID > b.vtxID; });
   std::sort(cascSortID.begin(), cascSortID.end(), [](const vid& a, const vid& b) { return a.vtxID > b.vtxID; });
   std::sort(nbodySortID.begin(), nbodySortID.end(), [](const vid& a, const vid& b) { return a.vtxID > b.vtxID; });
+  LOG(info) << "Sort Finish!";
   // sorted V0s
   std::vector<V0> bufV0;
   bufV0.reserve(nv0);
@@ -125,6 +138,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
     buf3body.push_back(v0);
     v0.setVertexID(pos); // this v0 copy will be discarded, use its vertexID to store the new position of final V0
   }
+  LOG(info) << "Buf Pushback Finish!";
   //
   mV0sTmp[0].swap(bufV0);               // the final result is fetched from here
   mCascadesTmp[0].swap(bufCasc);        // the final result is fetched from here
@@ -134,6 +148,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
     mCascadesTmp[i].clear();
     m3bodyTmp[i].clear();
   }
+  LOG(info) << "Process Finish!";
   LOG(debug) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size() << " " << m3bodyTmp[0].size();
 }
 
