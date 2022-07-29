@@ -914,6 +914,7 @@ template <typename V0CursorType, typename CascadeCursorType, typename Decay3Body
 void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::RecoContainer& recoData, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3BodyCursorType& decay3BodyCursor)
 {
 
+  LOG(info) << " Fill SecondaryVertices Start ";
   auto v0s = recoData.getV0s();
   auto cascades = recoData.getCascades();
   auto decays3Body = recoData.getDecays3Body();
@@ -973,6 +974,7 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
     cascadeCursor(0, collID, v0tableID, bachTableIdx);
   }
 
+  LOG(info) << " Fill 3body decays table Start ";
   // filling 3 body decays table
   for (size_t i3Body = 0; i3Body < decays3Body.size(); i3Body++) {
     const auto& decay3Body = decays3Body[i3Body];
@@ -1004,6 +1006,7 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
     }
     decay3BodyCursor(0, collID, tableIdx[0], tableIdx[1], tableIdx[2]);
   }
+  LOG(info) << " Fill Secondary Vertices Finish ";
 }
 
 void AODProducerWorkflowDPL::countTPCClusters(const o2::tpc::TrackTPC& track,
@@ -1213,10 +1216,14 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
 
 void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 {
+  LOG(info) << "Produce Workflow Start ";
   mTimer.Start(false);
   o2::globaltracking::RecoContainer recoData;
+  LOG(info) << " recodata collectData";
   recoData.collectData(pc, *mDataRequest);
+  LOG(info) << " Call for UpdatetimeDependentParams";
   updateTimeDependentParams(pc); // Make sure that this is called after the RecoContainer collect data, since some condition objects are fetched there
+  LOG(info) << "UpdatetimeDependentParams Finish ";
 
   mStartIR = recoData.startIR;
 
@@ -1252,6 +1259,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   LOG(debug) << "FOUND " << caloEMCCells.size() << " EMC cells";
   LOG(debug) << "FOUND " << caloEMCCellsTRGR.size() << " EMC Trigger Records";
 
+  LOG(info) << "FOUND " << primVertices.size() << " primary vertices";
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& cascadesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CASCADE_001"});
   auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
@@ -1280,6 +1288,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& caloCellsTRGTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALOTRIGGER"});
   auto& originTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ORIGIN"});
 
+  LOG(info) << " Cursor Init Start ";
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
   auto cascadesCursor = cascadesBuilder.cursor<o2::aod::Cascades>();
   auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
@@ -1634,6 +1643,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     collisionID++;
   }
 
+  LOG(info) << " Call for Fill SecondaryVertices Start ";
   fillSecondaryVertices(recoData, v0sCursor, cascadesCursor, decay3BodyCursor);
 
   // helper map for fast search of a corresponding class mask for a bc
@@ -1723,6 +1733,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
 
   mTimer.Stop();
+  LOG(info) << "Produce Workflow Start ";
 }
 
 void AODProducerWorkflowDPL::cacheTriggers(const o2::globaltracking::RecoContainer& recoData)
@@ -2070,6 +2081,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   }
   if (enableSV) {
     dataRequest->requestSecondaryVertertices(useMC);
+    LOGF(info, "requestSecondaryVertertices Finish");
   }
   if (src[GID::TPC]) {
     dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false); // no need to ask for TOF clusters as they are requested with TOF tracks
@@ -2118,6 +2130,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputLabel{"O2origin"}, "AOD", "ORIGIN", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
 
+  LOGF(info, "Call for DataProcessorSPec aod-produce-workflow");
   return DataProcessorSpec{
     "aod-producer-workflow",
     dataRequest->inputs,
@@ -2133,6 +2146,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"anchor-prod", VariantType::String, "", {"AnchorProduction"}},
       ConfigParamSpec{"reco-pass", VariantType::String, "", {"RecoPassName"}},
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}}}};
+  LOGF(info, "DataProcessorSPec aod-produce-workflow Finish");
 }
 
 } // namespace o2::aodproducer
