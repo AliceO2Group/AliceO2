@@ -56,6 +56,7 @@ struct LtrCalibData {
       newVRef = refVDrift / getDriftVCorrection();
     }
     float fact = newVRef / refVDrift;
+    refVDrift = newVRef;
     dvCorrectionA *= fact;
     dvCorrectionC *= fact;
   }
