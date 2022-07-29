@@ -41,6 +41,9 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   bool UpdateAtEndOfRunOnly = false;          ///< switsch to enable trigger of calibration only at end of run
   bool enableTimeProfiling = false;           ///< enable to log how much time is spent in the run function in the calibrator spec. Needed for speed tests offline and at point 2
   bool enableFastCalib = false;               ///< switch to enable fast calibration. Instead of filling boost histograms, mean and sigma of cells is calculated on the fly
+  int minTimeForFit = -300;                   ///< minimum cell time considered for the time calibration in ns
+  int maxTimeForFit = 300;                    ///< maximum cell time considered for the time calibration in ns
+  int restrictFitRangeToMax = 25;             ///< window around the largest entry within the minTimeForFit in which the fit is performed in ns
 
   O2ParamDef(EMCALCalibParams, "EMCALCalibParams");
 };
