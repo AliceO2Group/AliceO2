@@ -258,12 +258,6 @@ void EveWorkflowHelper::draw(std::size_t primaryVertexIdx, bool sortTracks)
     trackCount = mMaxNTracks;
   }
 
-  auto isMFTMCHMID = [&](GID gid) {
-    const auto& match = mRecoCont.getMFTMCHMatches()[gid.getIndex()];
-
-    return match.getMIDTrackID() >= 0;
-  };
-
   for (size_t it = 0; it < trackCount; it++) {
     const auto& gid = tracks[it];
     auto tim = unflagTime(mGIDTrackTime.at(gid));
@@ -295,12 +289,10 @@ void EveWorkflowHelper::draw(std::size_t primaryVertexIdx, bool sortTracks)
         drawTPCTRD(gid, tim);
         break;
       case GID::MFTMCH:
+        drawMFTMCH(gid, tim);
+        break;
       case GID::MFTMCHMID:
-        if (isMFTMCHMID(gid)) {
-          drawMFTMCHMID(gid, tim);
-        } else {
-          drawMFTMCH(gid, tim);
-        }
+        drawMFTMCHMID(gid, tim);
         break;
       case GID::ITSTPCTRD:
         drawITSTPCTRD(gid, tim);
@@ -595,11 +587,10 @@ void EveWorkflowHelper::drawTPCTOF(GID gid, float trackTime)
 void EveWorkflowHelper::drawMFTMCH(GID gid, float trackTime)
 {
   const auto& trMFTMCH = mRecoCont.getGlobalFwdTrack(gid);
-  const auto& match = mRecoCont.getMFTMCHMatches()[gid.getIndex()];
 
   const auto& trackParam = forwardTrackToMCHTrack(trMFTMCH);
 
-  const auto mchGID = GID{static_cast<unsigned int>(match.getMCHTrackID()), GID::MCH};
+  const auto mchGID = GID{static_cast<unsigned int>(trMFTMCH.getMCHTrackID()), GID::MCH};
 
   const auto& mchTrack = mRecoCont.getMCHTrack(mchGID);
 
@@ -607,18 +598,17 @@ void EveWorkflowHelper::drawMFTMCH(GID gid, float trackTime)
 
   drawForwardTrack(trackParam, gid.asString(), static_cast<GID::Source>(gid.getSource()), mftZPositions.front(), endZ, trackTime);
 
-  drawMFTClusters(GID{static_cast<unsigned int>(match.getMFTTrackID()), GID::MFT}, trackTime);
+  drawMFTClusters(GID{static_cast<unsigned int>(trMFTMCH.getMFTTrackID()), GID::MFT}, trackTime);
   drawMCHClusters(mchGID, trackTime);
 }
 
 void EveWorkflowHelper::drawMFTMCHMID(GID gid, float trackTime)
 {
   const auto& trMFTMCHMID = mRecoCont.getGlobalFwdTrack(gid);
-  const auto& match = mRecoCont.getMFTMCHMatches()[gid.getIndex()];
 
   const auto& trackParam = forwardTrackToMCHTrack(trMFTMCHMID);
 
-  const auto midGID = GID{static_cast<unsigned int>(match.getMIDTrackID()), GID::MID};
+  const auto midGID = GID{static_cast<unsigned int>(trMFTMCHMID.getMIDTrackID()), GID::MID};
 
   const auto& midTrack = mRecoCont.getMIDTrack(midGID);
 
@@ -626,8 +616,8 @@ void EveWorkflowHelper::drawMFTMCHMID(GID gid, float trackTime)
 
   drawForwardTrack(trackParam, gid.asString(), static_cast<GID::Source>(gid.getSource()), mftZPositions.front(), endZ, trackTime);
 
-  drawMFTClusters(GID{static_cast<unsigned int>(match.getMFTTrackID()), GID::MFT}, trackTime);
-  drawMCHClusters(GID{static_cast<unsigned int>(match.getMCHTrackID()), GID::MCH}, trackTime);
+  drawMFTClusters(GID{static_cast<unsigned int>(trMFTMCHMID.getMFTTrackID()), GID::MFT}, trackTime);
+  drawMCHClusters(GID{static_cast<unsigned int>(trMFTMCHMID.getMCHTrackID()), GID::MCH}, trackTime);
   drawMIDClusters(midGID, trackTime);
 }
 
