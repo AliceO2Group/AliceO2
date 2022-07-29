@@ -38,18 +38,9 @@ class TrackletsParser
   int Parse(); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, TRDFeeID feeid, int robside,
             int detector, int stack, int layer, EventRecord* eventrecord, EventStorage* eventrecords, std::bitset<16> option, bool cleardigits = false, int usetracklethcheader = 0);
-  void setVerbose(bool verbose, bool header = false, bool data = false)
-  {
-    mVerbose = verbose;
-    mHeaderVerbose = header;
-    mDataVerbose = data;
-  }
-  void setByteSwap(bool swap) { mByteOrderFix = swap; }
   int getDataWordsRead() { return mWordsRead; }
   int getDataWordsDumped() { return mWordsDumped; }
   int getTrackletsFound() { return mTrackletsFound; }
-  void setIgnoreTrackletHCHeader(bool ignore) { mIgnoreTrackletHCHeader = ignore; }
-  bool getIgnoreTrackletHCHeader() { return mIgnoreTrackletHCHeader; }
   enum TrackletParserState { StateTrackletHCHeader, // always the start of a half chamber.
                              StateTrackletMCMHeader,
                              StateTrackletMCMData,
@@ -97,24 +88,19 @@ class TrackletsParser
   TrackletMCMHeader* mTrackletMCMHeader;
   std::array<TrackletMCMData, 3> mTrackletMCMData;
 
-  int mState{0};               // state that the parser is currently in.
-  int mWordsRead{0};           // number of words read from buffer
-  uint64_t mWordsDumped{0};    // number of words ignored from buffer
-  int mTrackletsFound{0};      // tracklets found in the data block, mostly used for debugging.
-  int mPaddingWordsCounter{0}; // count of padding words encountered
-  Tracklet64 mCurrentTrack;    // the current track we are looking at, used to accumulate the possibly 3 tracks from the parsing 4 incoming data words
-  bool mVerbose{false};        // user verbose output, put debug statement in output from commandline.
-  bool mHeaderVerbose{false};
-  bool mDataVerbose{false};
-  int mTrackletHCHeaderState{0};       // what to with the tracklet half chamber header 0,1,2
-  bool mIgnoreTrackletHCHeader{false}; // Is the data with out the tracklet HC Header? defaults to having it in.
-  bool mByteOrderFix{false};           // simulated data is not byteswapped, real is, so deal with it accordingly.
+  int mState{0};            // state that the parser is currently in.
+  int mWordsRead{0};        // number of words read from buffer
+  uint64_t mWordsDumped{0}; // number of words ignored from buffer
+  int mTrackletsFound{0};   // tracklets found in the data block, mostly used for debugging.
+  int mPaddingWordsCounter{0}; // count of padding words encoutnered
+  Tracklet64 mCurrentTrack; // the current track we are looking at, used to accumulate the possibly 3 tracks from the parsing 4 incoming data words
+  int mTrackletHCHeaderState{0}; //what to with the tracklet half chamber header 0,1,2
   std::bitset<16> mOptions;
   bool mTrackletParsingBad{false}; // store weather we should dump the rest of the link buffer after working through this tracklet buffer.
   uint16_t mEventCounter{0};
   std::chrono::duration<double> mTrackletparsetime;                                        // store the time it takes to parse
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
-  // uint32_t mCurrentLinkDataPosition256;                // count of data read for current link in units of 256 bits
+  //uint32_t mCurrentLinkDataPosition256;                // count of data read for current link in units of 256 bits
   EventRecord* mEventRecord;
   EventStorage* mEventRecords;
 
