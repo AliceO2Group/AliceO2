@@ -42,7 +42,7 @@ class MisAligner : public TObject
 
   MisAligner();
 
-  virtual ~MisAligner() = default;
+  ~MisAligner() final = default;
 
   //_________________________________________________________________
   // methods
