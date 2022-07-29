@@ -16,6 +16,7 @@
 #define TRACKINGITS_DEFINITIONS_H_
 
 // #define CA_DEBUG
+// #define VTX_DEBUG
 
 template <typename T>
 void discardResult(const T&)

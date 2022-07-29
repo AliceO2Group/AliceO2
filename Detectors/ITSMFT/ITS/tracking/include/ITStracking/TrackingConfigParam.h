@@ -30,7 +30,7 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   float histPairCut = 0.04f;
   float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
   int clusterContributorsCut = 16;
-  int maxTrackletsPerCluster = 2e3;
+  int maxTrackletsPerCluster = 1e2;
   int phiSpan = -1;
   int zSpan = -1;
 

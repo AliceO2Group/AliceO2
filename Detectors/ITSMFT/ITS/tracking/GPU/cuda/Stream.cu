@@ -21,7 +21,7 @@ namespace gpu
 
 Stream::Stream()
 {
-  discardResult(cudaStreamCreateWithFlags(&mStream, cudaStreamNonBlocking));
+  discardResult(cudaStreamCreateWithFlags(&mStream, cudaStreamDefault));
 }
 // usles
 Stream::~Stream()

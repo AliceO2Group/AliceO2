@@ -209,11 +209,10 @@ void TrackerDPL::run(ProcessingContext& pc)
   std::vector<bool> processingMask;
   int cutVertexMult{0}, cutRandomMult = int(rofs.size()) - multEst.selectROFs(rofs, compClusters, physTriggers, processingMask);
   timeFrame->setMultiplicityCutMask(processingMask);
-
   float vertexerElapsedTime{0.f};
   if (mRunVertexer) {
     // Run seeding vertexer
-    vertexerElapsedTime = mVertexer->clustersToVertices(false, logger);
+    vertexerElapsedTime = mVertexer->clustersToVertices(logger);
   }
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   for (auto iRof{0}; iRof < rofspan.size(); ++iRof) {
@@ -258,13 +257,13 @@ void TrackerDPL::run(ProcessingContext& pc)
   } else {
 
     timeFrame->setMultiplicityCutMask(processingMask);
+    // Run CA tracker
     mTracker->clustersToTracks(logger, errorLogger);
     if (timeFrame->hasBogusClusters()) {
       LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", timeFrame->hasBogusClusters());
     }
 
     for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
-
       auto& rof{rofs[iROF]};
       tracks = timeFrame->getTracks(iROF);
       trackLabels = timeFrame->getTracksLabel(iROF);

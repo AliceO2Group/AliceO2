@@ -52,6 +52,8 @@ class TrackerTraits
 {
  public:
   virtual ~TrackerTraits() = default;
+  virtual void adoptTimeFrame(TimeFrame* tf);
+  virtual void initialiseTimeFrame(const int iteration);
   virtual void computeLayerTracklets(const int iteration);
   virtual void computeLayerCells(const int iteration);
   virtual void findCellsNeighbours(const int iteration);
@@ -60,12 +62,13 @@ class TrackerTraits
   virtual void extendTracks(const int iteration);
   virtual void findShortPrimaries();
   virtual void refitTracks(const int iteration, const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&);
+  virtual void setBz(float bz);
   virtual bool trackFollowing(TrackITSExt* track, int rof, bool outward, const int iteration);
 
   void UpdateTrackingParameters(const std::vector<TrackingParameters>& trkPars);
   TimeFrame* getTimeFrame() { return mTimeFrame; }
-  void adoptTimeFrame(TimeFrame* tf) { mTimeFrame = tf; }
-  void setBz(float bz);
+
+  void setIsGPU(const unsigned char isgpu) { mIsGPU = isgpu; };
   float getBz() const;
   void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType type) { mCorrType = type; }
   bool isMatLUT() const;
@@ -85,6 +88,13 @@ class TrackerTraits
   void setNThreads(int n);
   int getNThreads() const { return mNThreads; }
 
+  // TimeFrame information forwarding
+  virtual int getTFNumberOfClusters() const;
+  virtual int getTFNumberOfTracklets() const;
+  virtual int getTFNumberOfCells() const;
+
+  float mBz = 5.f;
+
  private:
   void traverseCellsTree(const int, const int);
   track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3, const TrackingFrameInfo& tf3, float resolution);
@@ -93,12 +103,13 @@ class TrackerTraits
   int mNThreads = 1;
   bool mApplySmoothing = false;
   o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE;
-  float mBz = 5.f;
+
+  // virtual bool checkTFMemory(const int iteration);
 
  protected:
   TimeFrame* mTimeFrame;
   std::vector<TrackingParameters> mTrkParams;
-
+  bool mIsGPU = false;
   o2::gpu::GPUChainITS* mChain = nullptr;
   FuncRunITSTrackFit_t mChainRunITSTrackFit;
 };
@@ -121,6 +132,12 @@ inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, fl
 inline const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, int layerIndex, float z1, float z2, float maxdeltaz, float maxdeltaphi)
 {
   return getBinsRect(layerIndex, currentCluster.phi, maxdeltaphi, z1, z2, maxdeltaz);
+}
+
+inline void TrackerTraits::initialiseTimeFrame(const int iteration)
+{
+  mTimeFrame->initialise(iteration, mTrkParams[iteration], 7);
+  setIsGPU(false);
 }
 
 inline const int4 TrackerTraits::getBinsRect(const int layerIndex, float phi, float maxdeltaphi,

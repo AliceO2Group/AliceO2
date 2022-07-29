@@ -43,6 +43,7 @@ void VisualisationEventJSONSerializer::toFile(const VisualisationEvent& event, s
 
 bool VisualisationEventJSONSerializer::fromFile(VisualisationEvent& event, std::string fileName)
 {
+  LOG(info) << "VisualisationEventJSONSerializer <- " << fileName;
   if (FILE* file = fopen(fileName.c_str(), "r")) {
     fclose(file); // file exists
   } else {
@@ -65,7 +66,6 @@ std::string VisualisationEventJSONSerializer::toJson(const VisualisationEvent& e
   Document::AllocatorType& allocator = tree.GetAllocator();
 
   // compatibility verification
-  tree.AddMember("fileVersion", rapidjson::Value().SetInt(JSON_FILE_VERSION), allocator);
   tree.AddMember("runNumber", rapidjson::Value().SetInt(event.mRunNumber), allocator);
   tree.AddMember("clMask", rapidjson::Value().SetInt(event.mClMask), allocator);
   tree.AddMember("trkMask", rapidjson::Value().SetInt(event.mTrkMask), allocator);
@@ -74,7 +74,7 @@ std::string VisualisationEventJSONSerializer::toJson(const VisualisationEvent& e
   tree.AddMember("primaryVertex", rapidjson::Value().SetInt(event.mPrimaryVertex), allocator);
 
   tree.AddMember("collisionTime", rapidjson::Value().SetString(event.mCollisionTime.c_str(), event.mCollisionTime.size()), allocator);
-  tree.AddMember("workflowVersion", rapidjson::Value().SetString(event.mWorkflowVersion.c_str(), event.mWorkflowVersion.size()), allocator);
+  tree.AddMember("eveVersion", rapidjson::Value().SetString(event.mEveVersion.c_str(), event.mEveVersion.size()), allocator);
   tree.AddMember("workflowParameters", rapidjson::Value().SetString(event.mWorkflowParameters.c_str(), event.mWorkflowParameters.size()), allocator);
   // Tracks
   tree.AddMember("trackCount", rapidjson::Value().SetInt(event.getTrackCount()), allocator);
@@ -122,6 +122,24 @@ int VisualisationEventJSONSerializer::getIntOrDefault(rapidjson::Value& tree, co
   return defaultValue;
 }
 
+float VisualisationEventJSONSerializer::getFloatOrDefault(rapidjson::Value& tree, const char* key, float defaultValue)
+{
+  if (tree.HasMember(key)) {
+    rapidjson::Value& jsonValue = tree[key];
+    return jsonValue.GetFloat();
+  }
+  return defaultValue;
+}
+
+std::string VisualisationEventJSONSerializer::getStringOrDefault(rapidjson::Value& tree, const char* key, const char* defaultValue)
+{
+  if (tree.HasMember(key)) {
+    rapidjson::Value& jsonValue = tree[key];
+    return jsonValue.GetString();
+  }
+  return defaultValue;
+}
+
 void VisualisationEventJSONSerializer::fromJson(VisualisationEvent& event, std::string json)
 {
   event.mTracks.clear();
@@ -131,31 +149,15 @@ void VisualisationEventJSONSerializer::fromJson(VisualisationEvent& event, std::
   rapidjson::Document tree;
   tree.Parse(json.c_str());
 
-  auto version = 1;
-  if (tree.HasMember("fileVersion")) {
-    rapidjson::Value& jsonFileVersion = tree["fileVersion"];
-    version = jsonFileVersion.GetInt();
-  }
-
-  o2::header::DataHeader::RunNumberType runNumber = 0;
-  if (tree.HasMember("runNumber")) {
-    rapidjson::Value& jsonRunNumber = tree["runNumber"];
-    runNumber = jsonRunNumber.GetInt();
-  }
-  event.setRunNumber(runNumber);
-
+  event.setRunNumber(getIntOrDefault(tree, "runNumber", 0));
   event.setClMask(getIntOrDefault(tree, "clMask"));
   event.setTrkMask(getIntOrDefault(tree, "trkMask"));
   event.setTfCounter(getIntOrDefault(tree, "tfCounter"));
   event.setFirstTForbit(getIntOrDefault(tree, "firstTForbit"));
   event.setPrimaryVertex(getIntOrDefault(tree, "primaryVertex"));
-
-  auto collisionTime = "not specified";
-  if (tree.HasMember("collisionTime")) {
-    rapidjson::Value& jsonCollisionTime = tree["collisionTime"];
-    collisionTime = jsonCollisionTime.GetString();
-  }
-  event.setCollisionTime(collisionTime);
+  event.setCollisionTime(getStringOrDefault(tree, "collisionTime", "not specified"));
+  event.mEveVersion = getStringOrDefault(tree, "eveVersion", "0.0");
+  event.setWorkflowParameters(getStringOrDefault(tree, "workflowParameters", "1.0"));
 
   rapidjson::Value& trackCount = tree["trackCount"];
   event.mTracks.reserve(trackCount.GetInt());
@@ -173,19 +175,13 @@ void VisualisationEventJSONSerializer::fromJson(VisualisationEvent& event, std::
     }
   }
 
-  event.mMinTimeOfTracks = std::numeric_limits<float>::max();
-  event.mMaxTimeOfTracks = std::numeric_limits<float>::min();
-  for (auto& v : event.mTracks) {
-    event.mMinTimeOfTracks = std::min(event.mMinTimeOfTracks, v.getTime());
-    event.mMaxTimeOfTracks = std::max(event.mMaxTimeOfTracks, v.getTime());
-  }
-
   rapidjson::Value& clusterCount = tree["clusterCount"];
   event.mClusters.reserve(clusterCount.GetInt());
   rapidjson::Value& jsonClusters = tree["mClusters"];
   for (auto& v : jsonClusters.GetArray()) {
     event.mClusters.emplace_back(clusterFromJSON(v));
   }
+  event.afterLoading();
 }
 
 VisualisationCluster VisualisationEventJSONSerializer::clusterFromJSON(rapidjson::Value& tree)
@@ -253,27 +249,26 @@ VisualisationTrack VisualisationEventJSONSerializer::trackFromJSON(rapidjson::Va
 {
   VisualisationTrack track;
   track.mClusters.clear();
+  rapidjson::Value& jsonStartingXYZ = tree["jsonStartingXYZ"];
   rapidjson::Value& jsonPolyX = tree["mPolyX"];
   rapidjson::Value& jsonPolyY = tree["mPolyY"];
   rapidjson::Value& jsonPolyZ = tree["mPolyZ"];
   rapidjson::Value& count = tree["count"];
-  track.mCharge = 0;
-
-  if (tree.HasMember("source")) {
-    track.mSource = (o2::dataformats::GlobalTrackID::Source)tree["source"].GetInt();
-  } else {
-    track.mSource = o2::dataformats::GlobalTrackID::TPC; // temporary
-  }
-  track.mPID = tree["source"].GetInt();
+  track.mCharge = getIntOrDefault(tree, "charge", 0);
+  track.mTheta = getFloatOrDefault(tree, "theta", 0);
+  track.mPhi = getFloatOrDefault(tree, "phi", 0);
+  track.mEta = getFloatOrDefault(tree, "eta", 0);
+  track.mSource = (o2::dataformats::GlobalTrackID::Source)getIntOrDefault(tree, "source", (int)o2::dataformats::GlobalTrackID::TPC);
+  track.mPID = getIntOrDefault(tree, "PID", 0);
   track.mTime = tree["time"].GetFloat();
-  if (tree.HasMember("gid")) {
-    track.mGID = tree["gid"].GetString();
-  } else {
-    track.mGID = "track";
-  }
+  track.mGID = getStringOrDefault(tree, "gid", "track");
   track.mPolyX.reserve(count.GetInt());
   track.mPolyY.reserve(count.GetInt());
   track.mPolyZ.reserve(count.GetInt());
+  auto startingXYZ = jsonStartingXYZ.GetArray();
+  track.mStartCoordinates[0] = startingXYZ[0].GetFloat();
+  track.mStartCoordinates[1] = startingXYZ[1].GetFloat();
+  track.mStartCoordinates[2] = startingXYZ[2].GetFloat();
   for (auto& v : jsonPolyX.GetArray()) {
     track.mPolyX.push_back(v.GetDouble());
   }

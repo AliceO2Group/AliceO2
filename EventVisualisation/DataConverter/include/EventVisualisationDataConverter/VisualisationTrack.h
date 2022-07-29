@@ -75,6 +75,7 @@ class VisualisationTrack
   void addChild(int childID);
   // Add xyz coordinates of the point along the track
   void addPolyPoint(float x, float y, float z);
+  void addPolyPoint(const float p[]);
   // Time getter
   float getTime() const { return mTime; }
   // Charge getter

@@ -137,9 +137,23 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
   mRunNumber = ic.options().get<int>("trd-runnum");
   mEnableTrapConfigDump = ic.options().get<bool>("trd-dumptrapconfig");
   mUseFloatingPointForQ = ic.options().get<bool>("float-arithmetic");
-
+  mChargeScalingFactor = ic.options().get<int>("scale-q");
+  if (mChargeScalingFactor != -1) {
+    if (mChargeScalingFactor < 1) {
+      LOG(error) << "Charge scaling factor < 1 defined. Setting it to 1";
+      // careful, scaling factor is an int! actuallty values smaller than 3 don't yield a valid factor since scaling factor = 2^32 / 3
+      mChargeScalingFactor = 1;
+    } else if (mChargeScalingFactor > 1024) {
+      LOG(error) << "Charge scaling factor > 1024 defined. Setting it to 1024";
+      // no technical reason, but with 10 bit ADC values 1024 is already way to high for scaling...
+      mChargeScalingFactor = 1024;
+    }
+  }
   if (mUseFloatingPointForQ) {
     LOG(info) << "Tracklet charges will be calculated using floating point arithmetic";
+    if (mChargeScalingFactor != -1) {
+      LOG(error) << "Charge scaling factor defined, but floating point arithmetic configured. Charge scaling has no effect";
+    }
   } else {
     LOG(info) << "Tracklet charges will be calculated using a fixed multiplier";
   }
@@ -241,9 +255,14 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
         trapSimulators[trapIdx].init(mTrapConfig, digit->getDetector(), digit->getROB(), digit->getMCM());
         if (mUseFloatingPointForQ) {
           trapSimulators[trapIdx].setUseFloatingPointForQ();
+        } else if (mChargeScalingFactor != -1) {
+          trapSimulators[trapIdx].setChargeScalingFactor(mChargeScalingFactor);
         }
       }
-      trapSimulators[trapIdx].setData(digit->getChannel(), digit->getADC(), digitIdxArray[iDigit]);
+      if (digit->getChannel() != 22) {
+        // 22 signals invalid digit read by raw reader
+        trapSimulators[trapIdx].setData(digit->getChannel(), digit->getADC(), digitIdxArray[iDigit]);
+      }
     }
     // take care of the TRAPs for the last half chamber
     processTRAPchips(nTracklets[iTrig], trackletsAccum[iTrig], trapSimulators, digitCountsAccum[iTrig], digitIndicesAccum[iTrig]);
@@ -341,6 +360,7 @@ o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC, int digitDo
                            outputs,
                            AlgorithmSpec{adaptFromTask<TRDDPLTrapSimulatorTask>(useMC, digitDownscaling)},
                            Options{
+                             {"scale-q", VariantType::Int, -1, {"Divide tracklet charges by this number. For -1 the value from the TRAP config will be taken instead"}},
                              {"float-arithmetic", VariantType::Bool, false, {"Enable floating point calculation of the tracklet charges instead of using fixed multiplier"}},
                              {"trd-trapconfig", VariantType::String, "cf_pg-fpnp32_zs-s16-deh_tb30_trkl-b5n-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5549", {"TRAP config name"}},
                              {"trd-onlinegaincorrection", VariantType::Bool, false, {"Apply online gain calibrations, mostly for back checking to run2 by setting FGBY to 0"}},

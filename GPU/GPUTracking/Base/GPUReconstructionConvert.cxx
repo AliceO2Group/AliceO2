@@ -891,7 +891,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
 
 template <class T>
 struct zsEncoderRun : public T {
-  unsigned int run(std::vector<zsPage>* buffer, std::vector<o2::tpc::Digit>& tmpBuffer);
+  unsigned int run(std::vector<zsPage>* buffer, std::vector<o2::tpc::Digit>& tmpBuffer, size_t* totalSize = nullptr);
   size_t compare(std::vector<zsPage>* buffer, std::vector<o2::tpc::Digit>& tmpBuffer);
 
   using T::bcShiftInFirstHBF;
@@ -926,7 +926,7 @@ struct zsEncoderRun : public T {
 };
 
 template <class T>
-inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vector<o2::tpc::Digit>& tmpBuffer)
+inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vector<o2::tpc::Digit>& tmpBuffer, size_t* totalSize)
 {
   unsigned int totalPages = 0;
   zsPage singleBuffer;
@@ -971,6 +971,9 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
 
       if (page && mustWritePage) {
         const rdh_utils::FEEIDType rawfeeid = rdh_utils::getFEEID(rawcru, rawendpoint, rawlnk);
+        if (totalSize) {
+          *totalSize += (lastEndpoint == -1 || hbf == nexthbf) ? TPCZSHDR::TPC_ZS_PAGE_SIZE : (pagePtr - (unsigned char*)page);
+        }
         size_t size = (padding || lastEndpoint == -1 || hbf == nexthbf) ? TPCZSHDR::TPC_ZS_PAGE_SIZE : (pagePtr - (unsigned char*)page);
         size = CAMath::nextMultipleOf<o2::raw::RDHUtils::GBTWord>(size);
 #ifdef GPUCA_O2_LIB
@@ -1001,6 +1004,9 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
         if (buffer[endpoint].size() == 0 && nexthbf > orbitShift) {
           buffer[endpoint].emplace_back();
           ZSfillEmpty(&buffer[endpoint].back(), bcShiftInFirstHBF, rdh_utils::getFEEID(iSector * 10 + endpoint / 2, endpoint & 1, rawlnk), orbitShift); // Emplace empty page with RDH containing beginning of TF
+          if (totalSize) {
+            *totalSize += sizeof(o2::header::RAWDataHeader);
+          }
           totalPages++;
         }
         buffer[endpoint].emplace_back();
@@ -1095,6 +1101,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
 #ifdef GPUCA_TPC_GEOMETRY_O2
   std::vector<zsPage> buffer[NSLICES][GPUTrackingInOutZS::NENDPOINTS];
   unsigned int totalPages = 0;
+  size_t totalSize = 0;
   size_t nErrors = 0;
   // clang-format off
   GPUCA_OPENMP(parallel for reduction(+ : totalPages) reduction(+ : nErrors))
@@ -1112,7 +1119,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
     auto runZS = [&](auto& encoder) {
       encoder.zsVersion = version;
       encoder.init();
-      totalPages += encoder.run(buffer[i], tmpBuffer);
+      totalPages += encoder.run(buffer[i], tmpBuffer, &totalSize);
       if (verify) {
         nErrors += encoder.compare(buffer[i], tmpBuffer); // Verification
       }

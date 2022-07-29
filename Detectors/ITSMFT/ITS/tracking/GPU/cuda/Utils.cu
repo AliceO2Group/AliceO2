@@ -60,7 +60,8 @@ void utils::host::checkGPUError(const cudaError_t error, const char* file, const
 {
   if (error != cudaSuccess) {
     std::ostringstream errorString{};
-    errorString << file << ":" << line << GPU_ARCH << " API returned error [" << cudaGetErrorString(error) << "] (code "
+    errorString << file << ":" << line << std::endl
+                << GPU_ARCH << " API returned error [" << cudaGetErrorString(error) << "] (code "
                 << error << ")" << std::endl;
     throw std::runtime_error{errorString.str()};
   }

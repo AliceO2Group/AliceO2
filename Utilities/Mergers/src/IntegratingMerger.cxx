@@ -62,13 +62,13 @@ void IntegratingMerger::run(framework::ProcessingContext& ctx)
     if (ref.header != timerHeader) {
       auto other = object_store_helpers::extractObjectFrom(ref);
       if (std::holds_alternative<std::monostate>(mMergedObject)) {
+        LOG(debug) << "Received the first input object in the run or after the last moving window reset";
         mMergedObject = std::move(object_store_helpers::extractObjectFrom(ref));
       } else if (std::holds_alternative<TObjectPtr>(mMergedObject)) {
         // We expect that if the first object was TObject, then all should.
         auto targetAsTObject = std::get<TObjectPtr>(mMergedObject);
         auto otherAsTObject = std::get<TObjectPtr>(other);
         algorithm::merge(targetAsTObject.get(), otherAsTObject.get());
-
       } else if (std::holds_alternative<MergeInterfacePtr>(mMergedObject)) {
         // We expect that if the first object inherited MergeInterface, then all should.
         auto otherAsMergeInterface = std::get<MergeInterfacePtr>(other);

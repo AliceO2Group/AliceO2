@@ -112,9 +112,9 @@ void FullHistoryMerger::updateCache(const DataRef& ref)
 
   // I am not sure if ref.spec is always a concrete spec and not a broader matcher. Comparing it this way should be safer.
   if (mFirstObjectSerialized.first.empty() || mFirstObjectSerialized.first == sourceID) {
-
     // We store one object in the serialized form, so we can take it as the first object to be merged (multiple times).
     // If we kept it deserialized, we would need to require implementing a clone() method in MergeInterface.
+    LOG(debug) << "Received the first input object in the run or after the last moving window reset";
 
     delete mFirstObjectSerialized.second.spec;
     delete mFirstObjectSerialized.second.header;

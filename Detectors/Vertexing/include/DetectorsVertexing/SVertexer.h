@@ -61,6 +61,8 @@ class SVertexer
                AntiLambda,
                HyperTriton,
                AntiHyperTriton,
+               Hyperhydrog4,
+               AntiHyperhydrog4,
                NHypV0 };
 
   enum HypCascade {
@@ -98,7 +100,7 @@ class SVertexer
 
  private:
   bool checkV0(const TrackCand& seed0, const TrackCand& seed1, int iP, int iN, int ithread);
-  int checkCascades(float rv0, std::array<float, 3> pV0, float p2v0, int avoidTrackID, int posneg, int ithread);
+  int checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, VBracket v0vlist, int ithread);
   void setupThreads();
   void buildT2V(const o2::globaltracking::RecoContainer& recoTracks);
   void updateTimeDependentParams();
@@ -120,6 +122,9 @@ class SVertexer
   std::vector<std::vector<Cascade>> mCascadesTmp;
   std::array<std::vector<TrackCand>, 2> mTracksPool{}; // pools of positive and negative seeds sorted in min VtxID
   std::array<std::vector<int>, 2> mVtxFirstTrack{};    // 1st pos. and neg. track of the pools for each vertex
+  std::array<std::vector<int>, 2> mTrackSortVtxMax{};  // pos. and neg. track indices sorted by max VtxID
+  std::array<std::vector<int>, 2> mVtxMaxLUT{};        // pos. and neg. max vtx ID track LUT for each vertex
+
   o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
   const SVertexerParams* mSVParams = nullptr;
   std::array<SVertexHypothesis, NHypV0> mV0Hyps;

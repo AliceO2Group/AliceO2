@@ -58,6 +58,17 @@ namespace its
 {
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
+struct lightVertex {
+  lightVertex(float x, float y, float z, std::array<float, 6> rms2, int cont, float avgdis2, int stamp);
+  float mX;
+  float mY;
+  float mZ;
+  std::array<float, 6> mRMS2;
+  float mAvgDistance2;
+  int mContributors;
+  int mTimeStamp;
+};
+
 class TimeFrame
 {
  public:
@@ -70,6 +81,7 @@ class TimeFrame
   int getPrimaryVerticesNum(int rofID = -1) const;
   void addPrimaryVertices(const std::vector<Vertex>& vertices);
   void addPrimaryVertices(const gsl::span<const Vertex>& vertices);
+  void addPrimaryVertices(const std::vector<lightVertex>&);
   void removePrimaryVerticesInROf(const int rofId);
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
@@ -84,6 +96,7 @@ class TimeFrame
   bool empty() const;
 
   int getSortedIndex(int rof, int layer, int i) const;
+  int getSortedStartIndex(const int, const int) const;
   int getNrof() const;
 
   void resetBeamXY(const float x, const float y, const float w = 0);
@@ -172,11 +185,14 @@ class TimeFrame
 
   IndexTableUtils mIndexTableUtils;
 
+  bool mIsGPU = false;
   std::vector<std::vector<Cluster>> mClusters;
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
   std::vector<std::vector<int>> mClusterExternalIndices;
   std::vector<std::vector<int>> mROframesClusters;
   std::vector<std::vector<int>> mIndexTables;
+  std::vector<std::vector<int>> mTrackletsLookupTable;
+  std::vector<std::vector<unsigned char>> mUsedClusters;
   int mNrof = 0;
 
  private:
@@ -199,7 +215,6 @@ class TimeFrame
   std::vector<Vertex> mPrimaryVertices;
   std::vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
   std::vector<std::vector<Cluster>> mUnsortedClusters;
-  std::vector<std::vector<bool>> mUsedClusters;
   const dataformats::MCTruthContainer<MCCompLabel>* mClusterLabels = nullptr;
   std::vector<std::vector<MCCompLabel>> mTrackletLabels;
   std::vector<std::vector<MCCompLabel>> mCellLabels;
@@ -212,7 +227,6 @@ class TimeFrame
   std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
 
   std::vector<std::vector<Tracklet>> mTracklets;
-  std::vector<std::vector<int>> mTrackletsLookupTable;
 
   std::vector<std::pair<unsigned long long, bool>> mRoadLabels;
   int mCutClusterMult;
@@ -258,6 +272,8 @@ inline int TimeFrame::getPrimaryVerticesNum(int rofID) const
 inline bool TimeFrame::empty() const { return getTotalClusters() == 0; }
 
 inline int TimeFrame::getSortedIndex(int rof, int layer, int index) const { return mROframesClusters[layer][rof] + index; }
+
+inline int TimeFrame::getSortedStartIndex(const int rof, const int layer) const { return mROframesClusters[layer][rof]; }
 
 inline int TimeFrame::getNrof() const { return mNrof; }
 

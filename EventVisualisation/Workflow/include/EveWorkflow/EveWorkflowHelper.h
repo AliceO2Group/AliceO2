@@ -183,6 +183,7 @@ class EveWorkflowHelper
   float findLastMCHClusterPosition(const o2::mch::TrackMCH& track);
 
   void save(const std::string& jsonPath,
+            const std::string& ext,
             int numberOfFiles,
             o2::dataformats::GlobalTrackID::mask_t trkMask,
             o2::dataformats::GlobalTrackID::mask_t clMask,

@@ -82,6 +82,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   {
     mUpdateGroupingPar = mLaneId == 0 ? !(ic.options().get<bool>("update-not-grouping-parameter")) : false;
     mIDCFactorization.setUsePadStatusMap(ic.options().get<bool>("enablePadStatusMap"));
+    mDisableWritingPadStatusMap = ic.options().get<bool>("disableWritingPadStatusMap");
     mLanesDistribute = ic.options().get<int>("lanesDistribute");
     mTFsMessaged = ic.options().get<int>("nTFsMessage") * mCRUs.size();
 
@@ -195,6 +196,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   unsigned int mTFsMessaged{10};                                                                                                                                           ///< send info messages only every mTFsMessaged
   Long64_t mOrbitResetTime{};                                                                                                                                              ///< orbit reset time for CCDB time stamp writing
   uint32_t mTFOrbitFirst{};                                                                                                                                                ///< first TF orbit of current aggregation interval
+  bool mDisableWritingPadStatusMap{false};                                                                                                                                 ///< do not store the pad status map in the CCDB
   const std::vector<InputSpec> mFilter = {{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(mLaneId)}, Lifetime::Timeframe}}; ///< filter for looping over input data
 
   /// \return returns first TF for validity range when storing to CCDB
@@ -315,31 +317,33 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
           start = timer::now();
 
           // store map in case it is nullptr
-          if (!mPadFlagsMap) {
-            mPadFlagsMap = std::move(padStatusMap);
-            LOGP(info, "Writing pad status map to CCDB.");
-            o2::ccdb::CcdbObjectInfo ccdbInfoPadFlags(CDBTypeMap.at(sideA ? CDBType::CalIDCPadStatusMapA : CDBType::CalIDCPadStatusMapC), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStart, timeStampEnd);
-            auto imageFlagMap = o2::ccdb::CcdbApi::createObjectImage(mPadFlagsMap.get(), &ccdbInfoPadFlags);
-            LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", ccdbInfoPadFlags.getPath(), ccdbInfoPadFlags.getFileName(), imageFlagMap->size(), ccdbInfoPadFlags.getStartValidityTimestamp(), ccdbInfoPadFlags.getEndValidityTimestamp());
-            output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBIDCPadFlag(), 0}, *imageFlagMap.get());
-            output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBIDCPadFlag(), 0}, ccdbInfoPadFlags);
-            LOGP(info, "Pad status map written to CCDB");
-          } else {
-            // check if map changed. if it changed update the map in the CCDB and store new map in buffer
-            if (!(*padStatusMap.get() == *mPadFlagsMap.get())) {
-              LOGP(info, "Pad status map changed");
-              LOGP(info, "Writing pad status map to CCDB");
+          if (!mDisableWritingPadStatusMap) {
+            if (!mPadFlagsMap) {
+              mPadFlagsMap = std::move(padStatusMap);
+              LOGP(info, "Writing pad status map to CCDB.");
               o2::ccdb::CcdbObjectInfo ccdbInfoPadFlags(CDBTypeMap.at(sideA ? CDBType::CalIDCPadStatusMapA : CDBType::CalIDCPadStatusMapC), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStart, timeStampEnd);
               auto imageFlagMap = o2::ccdb::CcdbApi::createObjectImage(mPadFlagsMap.get(), &ccdbInfoPadFlags);
               LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", ccdbInfoPadFlags.getPath(), ccdbInfoPadFlags.getFileName(), imageFlagMap->size(), ccdbInfoPadFlags.getStartValidityTimestamp(), ccdbInfoPadFlags.getEndValidityTimestamp());
               output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBIDCPadFlag(), 0}, *imageFlagMap.get());
               output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBIDCPadFlag(), 0}, ccdbInfoPadFlags);
               LOGP(info, "Pad status map written to CCDB");
+            } else {
+              // check if map changed. if it changed update the map in the CCDB and store new map in buffer
+              if (!(*padStatusMap.get() == *mPadFlagsMap.get())) {
+                LOGP(info, "Pad status map changed");
+                LOGP(info, "Writing pad status map to CCDB");
+                o2::ccdb::CcdbObjectInfo ccdbInfoPadFlags(CDBTypeMap.at(sideA ? CDBType::CalIDCPadStatusMapA : CDBType::CalIDCPadStatusMapC), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStart, timeStampEnd);
+                auto imageFlagMap = o2::ccdb::CcdbApi::createObjectImage(mPadFlagsMap.get(), &ccdbInfoPadFlags);
+                LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", ccdbInfoPadFlags.getPath(), ccdbInfoPadFlags.getFileName(), imageFlagMap->size(), ccdbInfoPadFlags.getStartValidityTimestamp(), ccdbInfoPadFlags.getEndValidityTimestamp());
+                output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBIDCPadFlag(), 0}, *imageFlagMap.get());
+                output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBIDCPadFlag(), 0}, ccdbInfoPadFlags);
+                LOGP(info, "Pad status map written to CCDB");
+              }
+              stop = timer::now();
+              time = stop - start;
+              LOGP(info, "Pad status map CCDB time: {}", time.count());
+              totalTime += time.count();
             }
-            stop = timer::now();
-            time = stop - start;
-            LOGP(info, "Pad status map CCDB time: {}", time.count());
-            totalTime += time.count();
           }
           stop = timer::now();
           time = stop - start;
@@ -490,6 +494,7 @@ DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint3
             {"lanesDistribute", VariantType::Int, 1, {"Number of lanes which were used in the DistributeIDC device."}},
             {"nTFsMessage", VariantType::Int, 200, {"Send messages only every nTFs."}},
             {"enablePadStatusMap", VariantType::Bool, false, {"Enabling the usage of the pad-by-pad status map during factorization."}},
+            {"disableWritingPadStatusMap", VariantType::Bool, false, {"Do not write the pad status map to CCDB."}},
             {"update-not-grouping-parameter", VariantType::Bool, false, {"Do NOT Update/Writing grouping parameters to CCDB."}}}}; // end DataProcessorSpec
   spec.rank = lane;
   return spec;

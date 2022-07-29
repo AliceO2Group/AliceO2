@@ -66,10 +66,6 @@ o2_add_test_root_macro(CheckTracksCA.C
                                              O2::DataFormatsITSMFT
                        LABELS its)
 
-o2_add_test_root_macro(RunGPUTracking.C
-                       PUBLIC_LINK_LIBRARIES O2::GPUTracking
-                       LABELS its)
-
 o2_add_test_root_macro(DisplayTrack.C
                        PUBLIC_LINK_LIBRARIES O2::ITSBase
                                              O2::DataFormatsITSMFT
@@ -94,4 +90,7 @@ o2_add_test_root_macro(run_digi2rawVarPage_its.C
 o2_add_test_root_macro(ITSMisaligner.C
                        PUBLIC_LINK_LIBRARIES O2::CCDB
                                              O2::ITSReconstruction
+                       LABELS its)
+
+o2_add_test_root_macro(CompareArtefacts.C
                        LABELS its)

@@ -106,6 +106,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
       mCurRUDecodeID = 0; // getNextChipData will start from here
       mLastReadChipID = -1;
       // set IR and trigger from the 1st non empty link
+      int cnt = 0;
       for (const auto& link : mGBTLinks) {
         if (link.status == GBTLink::DataSeen) {
           mInteractionRecord = link.ir;
@@ -136,6 +137,7 @@ void RawPixelDecoder<Mapping>::startNewTF(InputRecord& inputs)
   }
   for (auto& ru : mRUDecodeVec) {
     ru.clear();
+    // ru.chipErrorsTF.clear(); // will be cleared in the collectDecodingErrors
     ru.linkHBFToDump.clear();
   }
   setupLinks(inputs);

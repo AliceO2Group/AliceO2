@@ -31,6 +31,7 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
 
   // parameters
   bool useAbsDCA = true;        ///< use abs dca minimization
+  bool selectBestV0 = false;    ///< match only the best v0 for each cascade candidate
   float maxChi2 = 2.;           ///< max dca from prongs to vertex
   float minParamChange = 1e-3;  ///< stop when tracks X-params being minimized change by less that this value
   float minRelChi2Change = 0.9; ///< stop when chi2 changes by less than this value
@@ -62,7 +63,7 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
 
   float maxRToMeanVertexCascV0 = 80; // don't consider as a cascade V0 seed if above this R
   float minCosPACascV0 = 0.8;        // min cos of pointing angle to PV for cascade V0 candidates
-  float minCosPA = 0.9; ///< min cos of PA to PV for prompt V0 candidates
+  float minCosPA = 0.9;              ///< min cos of PA to PV for prompt V0 candidates
 
   float minRDiffV0Casc = 0.2; ///< cascade should be at least this radial distance below V0
   float maxRIniCasc = 90.;    // don't consider as a cascade seed (circles/line intersection) if its R exceeds this
@@ -79,6 +80,7 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float pidCutsK0[SVertexHypothesis::NPIDParams] = {0.003, 20, 0.07, 0.5};       // K0
   float pidCutsLambda[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.07, 0.5};   // Lambda
   float pidCutsHTriton[SVertexHypothesis::NPIDParams] = {0.0025, 14, 0.07, 0.5}; // HyperTriton
+  float pidCutsHhydrog4[SVertexHypothesis::NPIDParams] = {0.0025, 14, 0.07, 0.5}; // Hyperhydrog4 - Need to update
   //
   // cuts on different Cascade PID params
   bool checkCascadeHypothesis = true;

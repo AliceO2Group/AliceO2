@@ -12,6 +12,7 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CCDBQuery.h"
 #include "CCDB/CCDBTimeStampUtils.h"
+#include "CCDB/CcdbObjectInfo.h"
 #include <map>
 #include "TFile.h"
 #include "TTree.h"
@@ -163,10 +164,14 @@ int main(int argc, char* argv[])
     auto ti = tcl->GetTypeInfo();
 
     std::cout << " Uploading an object of type " << key->GetClassName()
-              << " to path " << path << " with timestamp validy from " << starttimestamp
+              << " to path " << path << " with timestamp validity from " << starttimestamp
               << " to " << endtimestamp << "\n";
 
     api.storeAsTFile_impl(object, *ti, path, meta, starttimestamp, endtimestamp);
+    if (!api.isSnapshotMode() && meta.find("adjustableEOV") != meta.end() && meta.find("default") == meta.end()) {
+      o2::ccdb::CcdbObjectInfo oi(path, classname, filename, meta, starttimestamp, endtimestamp);
+      o2::ccdb::adjustOverriddenEOV(api, oi);
+    }
   } else {
     std::cerr << "Key " << keyname << " does not exist\n";
   }

@@ -130,11 +130,12 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
               const int maxRowClusterIndex = tf->getIndexTable(rof1, iLayer + 1)[maxBinIndex];
 
               for (int iNextCluster{firstRowClusterIndex}; iNextCluster < maxRowClusterIndex; ++iNextCluster) {
+
                 if (iNextCluster >= (int)layer1.size()) {
                   break;
                 }
-                const Cluster& nextCluster{layer1[iNextCluster]};
 
+                const Cluster& nextCluster{layer1[iNextCluster]};
                 if (tf->isClusterUsed(iLayer + 1, nextCluster.clusterId)) {
                   continue;
                 }
@@ -183,7 +184,6 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
       }
     }
   }
-  /// Cold code, fixups
 
   for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
     /// Sort tracklets
@@ -267,9 +267,10 @@ void TrackerTraits::computeLayerCells(const int iteration)
       continue;
     }
 
+#ifdef OPTIMISATION_OUTPUT
     float resolution{std::sqrt(Sq(mTrkParams[iteration].LayerMisalignment[iLayer]) + Sq(mTrkParams[iteration].LayerMisalignment[iLayer + 1]) + Sq(mTrkParams[iteration].LayerMisalignment[iLayer + 2])) / mTrkParams[iteration].LayerResolution[iLayer]};
     resolution = resolution > 1.e-12 ? resolution : 1.f;
-
+#endif
     const int currentLayerTrackletsNum{static_cast<int>(tf->getTracklets()[iLayer].size())};
 
     for (int iTracklet{0}; iTracklet < currentLayerTrackletsNum; ++iTracklet) {
@@ -996,5 +997,30 @@ void TrackerTraits::setNThreads(int n)
   mNThreads = 1;
 #endif
 }
+int TrackerTraits::getTFNumberOfClusters() const
+{
+  return mTimeFrame->getNumberOfClusters();
+}
+
+int TrackerTraits::getTFNumberOfTracklets() const
+{
+  return mTimeFrame->getNumberOfTracklets();
+}
+
+int TrackerTraits::getTFNumberOfCells() const
+{
+  return mTimeFrame->getNumberOfCells();
+}
+
+void TrackerTraits::adoptTimeFrame(TimeFrame* tf)
+{
+  mTimeFrame = tf;
+}
+
+// bool TrackerTraits::checkTFMemory(const int iteration)
+// {
+//   return mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory);
+// }
+
 } // namespace its
 } // namespace o2

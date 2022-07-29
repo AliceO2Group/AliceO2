@@ -179,6 +179,10 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     mEstNROF = std::max(mEstNROF, size_t(clusROFVec.size() * 1.2));
   }
 
+  auto& linkErrors = pc.outputs().make<std::vector<GBTLinkDecodingStat>>(Output{orig, "LinkErrors", 0, Lifetime::Timeframe});
+  auto& decErrors = pc.outputs().make<std::vector<ChipError>>(Output{orig, "ChipErrors", 0, Lifetime::Timeframe});
+  mDecoder->collectDecodingErrors(linkErrors, decErrors);
+
   pc.outputs().snapshot(Output{orig, "PHYSTRIG", 0, Lifetime::Timeframe}, mDecoder->getExternalTriggers());
 
   if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE)) {
@@ -230,6 +234,7 @@ void STFDecoder<Mapping>::updateTimeDependentParams(ProcessingContext& pc)
       mClusterer->setContinuousReadOut(o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(Mapping::getDetID()));
       pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
       pc.inputs().get<o2::itsmft::DPLAlpideParam<Mapping::getDetID()>*>("alppar");
+      pc.inputs().get<o2::itsmft::ClustererParam<Mapping::getDetID()>*>("cluspar");
       // settings for the fired pixel overflow masking
       const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
       const auto& clParams = ClustererParam<Mapping::getDetID()>::Instance();
@@ -294,6 +299,9 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
   }
   outputs.emplace_back(inp.origin, "PHYSTRIG", 0, Lifetime::Timeframe);
 
+  outputs.emplace_back(inp.origin, "LinkErrors", 0, Lifetime::Timeframe);
+  outputs.emplace_back(inp.origin, "ChipErrors", 0, Lifetime::Timeframe);
+
   if (inp.askSTFDist) {
     for (auto& ins : inputs) { // mark input as optional in order not to block the workflow if our raw data happen to be missing in some TFs
       ins.lifetime = Lifetime::Optional;
@@ -304,9 +312,9 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
   inputs.emplace_back("noise", inp.origin, "NOISEMAP", 0, Lifetime::Condition,
                       o2::framework::ccdbParamSpec(fmt::format("{}/Calib/NoiseMap", inp.origin.as<std::string>())));
   if (inp.doClusters) {
-    inputs.emplace_back("cldict", inp.origin, "CLUSDICT", 0, Lifetime::Condition,
-                        o2::framework::ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", inp.origin.as<std::string>())));
+    inputs.emplace_back("cldict", inp.origin, "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", inp.origin.as<std::string>())));
     inputs.emplace_back("alppar", inp.origin, "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Config/AlpideParam", inp.origin.as<std::string>())));
+    inputs.emplace_back("cluspar", inp.origin, "CLUSPARAM", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Config/ClustererParam", inp.origin.as<std::string>())));
   }
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime

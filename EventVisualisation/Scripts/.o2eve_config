@@ -15,7 +15,7 @@ background.color:                       1
 screenshot.path:                        /home/ed/Screenshot
 screenshot.logo.o2:                     /home/ed/alice/O2/EventVisualisation/Scripts/o2.png
 screenshot.logo.alice:                  /home/ed/alice/O2/EventVisualisation/Scripts/alice-white.png
-#screenshot.logo.alice:                  /home/ed/alice/O2/EventVisualisation/Scripts/alice-black.png
+#screenshot.logo.alice:                 /home/ed/alice/O2/EventVisualisation/Scripts/alice-black.png
 screenshot.width:                       1000
 screenshot.height:                      500
 #screenshot.message.line.0:             Run number: 520144 <- change/comment it in .o2eve_config
@@ -30,6 +30,8 @@ emcal.tower.noise                       0
 emcal.tower.scale:                      1
 emcal.tower.size.eta:                   0.0143
 emcal.tower.size.phi:                   0.0143
+emcal.tower.max.height:                 80
+emcal.tower.max.val.abs:                50
 
 phos.barrel.radius:                     550
 phos.tower.color:                       65
@@ -37,6 +39,8 @@ phos.tower.noise                        1
 phos.tower.scale:                       1
 phos.tower.size.eta:                    0.0143
 phos.tower.size.phi:                    0.0143
+phos.tower.max.height:                  80
+phos.tower.max.val.abs:                 50
 
 #camera
 camera.3D.rotation.horizontal:          -0.4
@@ -48,10 +52,10 @@ camera.Z-Y.zoom:                        1.0
 simple.geom.default:                    R3
 simple.geom.R3.path:                    /home/jmy/CERN/alice/dev/o2-dev/O2/EventVisualisation/Geometry
 
-data.synthetic.run.dir                  /home/ed/jsons/synthetic
-data.cosmics.run.dir                    /home/ed/jsons/cosmics
-data.physics.run.dir                    /home/ed/jsons/physics
-data.default                            SYNTHETIC
+data.synthetic.run.dir:                 /home/ed/jsons/synthetic
+data.cosmics.run.dir:                   /home/ed/jsons/cosmics
+data.physics.run.dir:                   /home/ed/jsons/physics
+data.default:                           SYNTHETIC
 
 tracks.width:                           2
 

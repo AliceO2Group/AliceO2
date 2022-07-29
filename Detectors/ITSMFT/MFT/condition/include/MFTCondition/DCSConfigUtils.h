@@ -16,9 +16,11 @@
 /// @brief  MFT Processor for DCS Config
 
 #include <TString.h>
-#include <unordered_map>
+#include "Framework/Logger.h"
+#include <map>
 #include <iostream>
-#include "MFTCondition/DCSConfigInfo.h"
+#include <fstream>
+#include <sstream>
 
 namespace o2
 {
@@ -29,110 +31,249 @@ class DCSConfigUtils
 {
 
  public:
-  void init(const DCSConfigInfo& info)
+  DCSConfigUtils()
   {
-    mData = info.getData();
-    mAdd = info.getAdd();
-    mType = info.getType();
-    mVersion = info.getVersion();
-    connectNameAdd();
+    init();
+  }
+
+  ~DCSConfigUtils() = default;
+
+  void init()
+  {
+    initDictionary();
   }
 
   void clear()
   {
-    mData = 0;
-    mAdd = 0;
-    mType = 0;
-    mVersion = "";
   }
 
-  const int& getData() const
+  auto getAddress(const std::string name, const std::string type)
   {
-    return mData;
+    return static_cast<int>((mNameDictType[type])[name]);
   }
-  const int& getAdd() const
+
+  const std::string getName(int add, const std::string type)
   {
-    return mAdd;
+    return static_cast<const std::string>((mAddressDictType[type])[add]);
   }
-  const int& getType() const
+
+  std::map<int, const std::string>& getAddressMap(const std::string type)
   {
-    return mType;
+    return mAddressDictType[type];
   }
-  const std::string& getVersion() const
+
+  std::map<int, const std::string>& getAddressMap(int type)
+  {
+    return mAddressDictType[getTypeName(type)];
+  }
+
+  std::map<const std::string, int>& getNameMap(const std::string type)
+  {
+    return mNameDictType[type];
+  }
+
+  std::map<const std::string, int>& getNameMap(int type)
+  {
+    return mNameDictType[getTypeName(type)];
+  }
+
+  const std::string getTypeName(int type)
+  {
+    if (type == 0) {
+      return "RU";
+    } else if (type == 1) {
+      return "ALPIDE";
+    } else if (type == 2) {
+      return "UBB";
+    } else if (type == 3) {
+      return "DeadMap";
+    } else {
+      LOG(error) << "You can select 0 (RU), 1 (ALPIDE), 2 (UBB), 3 (DeadMap)";
+      return "Unknown";
+    }
+  }
+
+  const int getType(const std::string type)
+  {
+    if (type == "RU") {
+      return 0;
+    } else if (type == "ALPIDE") {
+      return 1;
+    } else if (type == "UBB") {
+      return 2;
+    } else if (type == "DeadMap") {
+      return 3;
+    } else {
+      LOG(error) << "You can select RU (0), ALPIDE (1), UBB (2), DeadMap (3)";
+      return -999;
+    }
+  }
+
+  const std::string& getVersion()
   {
     return mVersion;
   }
-  const std::string& getName() const
-  {
-    if (mType == 0) {
-      return mMapAddNameRU.find(mAdd)->second;
-    } else {
-      return mMapAddNameALPIDE.find(mAdd)->second;
-    }
-  }
 
-  const std::string& getTypeStr() const
+  auto& getVersionNameLineInCsv() const
   {
-    if (mType == 0 || mType == 1) {
-      return mTypeNameList[mType];
-    } else {
-      return mTypeNameList[2];
-    }
+    return mVersionNameLine;
+  }
+  auto& getRuConfigAddressLineInCsv() const
+  {
+    return mRuConfigAddressLine;
+  }
+  auto& getRuConfigValueLineInCsv() const
+  {
+    return mRuConfigValueLine;
+  }
+  auto& getAlpideConfigAddressLineInCsv() const
+  {
+    return mAlpideConfigAddressLine;
+  }
+  auto& getAlpideConfigValueLineInCsv() const
+  {
+    return mAlpideConfigValueLine;
+  }
+  auto& getUbbConfigNameLineInCsv() const
+  {
+    return mUbbNameLine;
+  }
+  auto& getUbbConfigValueLineInCsv() const
+  {
+    return mUbbValueLine;
+  }
+  auto& getDeadMapLineInCsv() const
+  {
+    return mDeadMapLine;
   }
 
  private:
-  int mData;
-  int mAdd;
-  int mType;
+  const int mVersionNameLine = 0;
+  const int mAlpideConfigAddressLine = 1;
+  const int mAlpideConfigValueLine = 2;
+  const int mRuConfigAddressLine = 3;
+  const int mRuConfigValueLine = 4;
+  const int mUbbNameLine = 5;
+  const int mUbbValueLine = 6;
+  const int mDeadMapLine = 7;
 
-  std::string mVersion;
+  const std::string mVersion;
 
-  std::string mTypeNameList[3] = {"RU", "ALPIDE", "UNKNOWN"};
+  std::map<const std::string, std::map<const std::string, int>> mNameDictType;
+  std::map<const std::string, int> mNameDictRu;
+  std::map<const std::string, int> mNameDictAlpide;
+  std::map<const std::string, int> mNameDictUbb;
+  std::map<const std::string, int> mNameDictDeadMap;
 
-  std::unordered_map<int, std::string> mMapAddNameRU;
-  std::unordered_map<int, std::string> mMapAddNameALPIDE;
+  std::map<const std::string, std::map<int, const std::string>> mAddressDictType;
+  std::map<int, const std::string> mAddressDictRu;
+  std::map<int, const std::string> mAddressDictAlpide;
+  std::map<int, const std::string> mAddressDictUbb;
+  std::map<int, const std::string> mAddressDictDeadMap;
 
-  void connectNameAdd()
+  void initDictionary()
   {
-    mMapAddNameRU.clear();
-    mMapAddNameALPIDE.clear();
+    mNameDictType.clear();
+    mNameDictRu.clear();
+    mNameDictAlpide.clear();
+    mNameDictUbb.clear();
+    mNameDictDeadMap.clear();
 
-    mMapAddNameRU[1046] = "MANCHESTER";
-    mMapAddNameRU[4096] = "ENABLE";
-    mMapAddNameRU[4097] = "TRIGGER_PERIOD";
-    mMapAddNameRU[4098] = "PULSE_nTRIGGER";
-    mMapAddNameRU[4099] = "TRIGGER_MIN_DISTANCE";
-    mMapAddNameRU[4101] = "OPCODE_GATING";
-    mMapAddNameRU[4102] = "TRIGGER_DELAY";
-    mMapAddNameRU[4103] = "ENABLE_PACKER_0";
-    mMapAddNameRU[4104] = "ENABLE_PACKER_1";
-    mMapAddNameRU[4105] = "ENABLE_PACKER_2";
-    mMapAddNameRU[4106] = "TRIG_SOURCE";
-    mMapAddNameRU[5376] = "TIMEOUT_TO_START";
-    mMapAddNameRU[5377] = "TIMEOUT_TO_STOP";
-    mMapAddNameRU[5378] = "TIMEOUT_IN_IDLE";
-    mMapAddNameRU[5631] = "GBT_LOAD_BALANCING";
+    mAddressDictType.clear();
+    mAddressDictRu.clear();
+    mAddressDictAlpide.clear();
+    mAddressDictUbb.clear();
+    mAddressDictDeadMap.clear();
 
-    mMapAddNameALPIDE[1] = "Mode Control Register";
-    mMapAddNameALPIDE[4] = "FROMU Configration Register 1";
-    mMapAddNameALPIDE[5] = "FROMU Configration Register 2";
-    mMapAddNameALPIDE[6] = "FROMU Configration Register 3";
-    mMapAddNameALPIDE[7] = "FROMU Pulsing Register 1";
-    mMapAddNameALPIDE[8] = "FROMU Pulsing Register 2";
-    mMapAddNameALPIDE[16] = "CMU&DMU Configration Register";
-    mMapAddNameALPIDE[20] = "DTU Configration Register";
-    mMapAddNameALPIDE[21] = "DTU DACs Register";
-    mMapAddNameALPIDE[24] = "DTU Test Register 1";
-    mMapAddNameALPIDE[25] = "DTU Test Register 2";
-    mMapAddNameALPIDE[26] = "DTU Test Register 3";
-    mMapAddNameALPIDE[1539] = "VCASP";
-    mMapAddNameALPIDE[1544] = "VCLIP";
-    mMapAddNameALPIDE[1549] = "IBIAS";
-    mMapAddNameALPIDE[255] = "VPULSEH";
-    mMapAddNameALPIDE[0] = "VPULSEL";
-    mMapAddNameALPIDE[1538] = "VRESETD";
-    mMapAddNameALPIDE[1548] = "IDB";
-    mMapAddNameALPIDE[65535] = "AUTO_ROF, NOISE_MASK, MASK_LEV, MC_HIT, MC_ID";
+    std::vector<std::pair<const std::string, uint>> pairRu;
+    pairRu.push_back(std::make_pair("MANCHESTER", 1046));
+    pairRu.push_back(std::make_pair("ENABLE", 4096));
+    pairRu.push_back(std::make_pair("TRIGGER_PERIOD", 4097));
+    pairRu.push_back(std::make_pair("PULSE_nTRIGGER", 4098));
+    pairRu.push_back(std::make_pair("TRIGGER_MIN_DISTANCE", 4099));
+    pairRu.push_back(std::make_pair("OPCODE_GATING", 4101));
+    pairRu.push_back(std::make_pair("TRIGGER_DELAY", 4102));
+    pairRu.push_back(std::make_pair("ENABLE_PACKER_0", 4103));
+    pairRu.push_back(std::make_pair("ENABLE_PACKER_1", 4104));
+    pairRu.push_back(std::make_pair("ENABLE_PACKER_2", 4105));
+    pairRu.push_back(std::make_pair("TRIG_SOURCE", 4106));
+    pairRu.push_back(std::make_pair("TIMEOUT_TO_START", 5376));
+    pairRu.push_back(std::make_pair("TIMEOUT_TO_STOP", 5377));
+    pairRu.push_back(std::make_pair("TIMEOUT_IN_IDLE", 5378));
+    pairRu.push_back(std::make_pair("GBT_LOAD_BALANCING", 5631));
+
+    std::vector<std::pair<const std::string, uint>> pairAlpide;
+    pairAlpide.push_back(std::make_pair("Mode_Control_Register", 1));
+    pairAlpide.push_back(std::make_pair("FROMU_Configration_Register_1", 4));
+    pairAlpide.push_back(std::make_pair("FROMU_Configration_Register_2", 5));
+    pairAlpide.push_back(std::make_pair("FROMU_Configration_Register_3", 6));
+    pairAlpide.push_back(std::make_pair("FROMU_Pulsing_Register_1", 7));
+    pairAlpide.push_back(std::make_pair("FROMU_Pulsing_Register_2", 8));
+    pairAlpide.push_back(std::make_pair("CMUandDMU_Configration_Register", 16));
+    pairAlpide.push_back(std::make_pair("DTU_Configration_Register", 20));
+    pairAlpide.push_back(std::make_pair("DTU_DACs_Register", 21));
+    pairAlpide.push_back(std::make_pair("DTU_Test_Register_1", 24));
+    pairAlpide.push_back(std::make_pair("DTU_Test_Register_2", 25));
+    pairAlpide.push_back(std::make_pair("DTU_Test_Register_3", 26));
+    pairAlpide.push_back(std::make_pair("VCASP", 1539));
+    pairAlpide.push_back(std::make_pair("VCLIP", 1544));
+    pairAlpide.push_back(std::make_pair("IBIAS", 1549));
+    pairAlpide.push_back(std::make_pair("VPULSEH", 255));
+    pairAlpide.push_back(std::make_pair("VPULSEL", 0));
+    pairAlpide.push_back(std::make_pair("VRESETD", 1538));
+    pairAlpide.push_back(std::make_pair("IDB", 1548));
+    pairAlpide.push_back(std::make_pair("AUTO_ROF__NOISE_MASK__MASK_LEV__MC_HIT__MC_ID", 65535));
+
+    std::vector<std::pair<const std::string, uint>> pairUbb;
+    int idUbb = 0;
+    for (int iH = 0; iH <= 1; ++iH) {
+      for (int iD = 0; iD <= 4; ++iD) {
+        for (int iF = 0; iF <= 1; ++iF) {
+          for (int iZ = 0; iZ <= 3; ++iZ) {
+            pairUbb.push_back(std::make_pair(Form("U_BB_H%dD%dF%dZ%d", iH, iD, iF, iZ), idUbb));
+            ++idUbb;
+          }
+        }
+      }
+    }
+
+    std::vector<std::pair<const std::string, uint>> pairDeadMap;
+    int idDeadMap = 0;
+    for (int iC = 0; iC < 936; ++iC) {
+      pairDeadMap.push_back(std::make_pair(Form("ChipID%d", iC), idDeadMap));
+      ++idDeadMap;
+    }
+
+    for (int iRu = 0; iRu < pairRu.size(); ++iRu) {
+      std::pair<const std::string, int> p = pairRu[iRu];
+      mAddressDictRu.emplace(p.second, p.first);
+      mNameDictRu.emplace(p.first, p.second);
+    }
+    for (int iAlpide = 0; iAlpide < pairAlpide.size(); ++iAlpide) {
+      std::pair<const std::string, int> p = pairAlpide[iAlpide];
+      mAddressDictAlpide.emplace(p.second, p.first);
+      mNameDictAlpide.emplace(p.first, p.second);
+    }
+    for (int iUbb = 0; iUbb < pairUbb.size(); ++iUbb) {
+      std::pair<const std::string, int> p = pairUbb[iUbb];
+      mAddressDictUbb.emplace(p.second, p.first);
+      mNameDictUbb.emplace(p.first, p.second);
+    }
+    for (int iDeadMap = 0; iDeadMap < pairDeadMap.size(); ++iDeadMap) {
+      std::pair<const std::string, int> p = pairDeadMap[iDeadMap];
+      mAddressDictDeadMap.emplace(p.second, p.first);
+      mNameDictDeadMap.emplace(p.first, p.second);
+    }
+
+    mNameDictType.emplace("RU", mNameDictRu);
+    mNameDictType.emplace("ALPIDE", mNameDictAlpide);
+    mNameDictType.emplace("UBB", mNameDictUbb);
+    mNameDictType.emplace("DeadMap", mNameDictDeadMap);
+
+    mAddressDictType.emplace("RU", mAddressDictRu);
+    mAddressDictType.emplace("ALPIDE", mAddressDictAlpide);
+    mAddressDictType.emplace("UBB", mAddressDictUbb);
+    mAddressDictType.emplace("DeadMap", mAddressDictDeadMap);
   }
 
   ClassDefNV(DCSConfigUtils, 1);

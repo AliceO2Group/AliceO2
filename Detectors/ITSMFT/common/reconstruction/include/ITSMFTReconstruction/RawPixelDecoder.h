@@ -69,6 +69,9 @@ class RawPixelDecoder final : public PixelReader
   template <class CalibContainer>
   void fillCalibData(CalibContainer& calib);
 
+  template <class LinkErrors, class DecErrors>
+  void collectDecodingErrors(LinkErrors& linkErrors, DecErrors& decErrors);
+
   const RUDecodeData* getRUDecode(int ruSW) const { return mRUEntry[ruSW] < 0 ? nullptr : &mRUDecodeVec[mRUEntry[ruSW]]; }
   const GBTLink* getGBTLink(int i) const { return i < 0 ? nullptr : &mGBTLinks[i]; }
   int getNLinks() const { return mGBTLinks.size(); }
@@ -218,6 +221,25 @@ void RawPixelDecoder<Mapping>::fillCalibData(CalibContainer& calib)
     for (unsigned int iru = 0; iru < mRUDecodeVec.size(); iru++) {
       calib[curSize + mRUDecodeVec[iru].ruSWID] = mRUDecodeVec[iru].calibData;
     }
+  }
+}
+
+///______________________________________________________________________
+template <class Mapping>
+template <class LinkErrors, class DecErrors>
+void RawPixelDecoder<Mapping>::collectDecodingErrors(LinkErrors& linkErrors, DecErrors& decErrors)
+{
+  for (auto& lnk : mGBTLinks) {
+    if (lnk.gbtErrStatUpadated) {
+      linkErrors.push_back(lnk.statistics);
+      lnk.gbtErrStatUpadated = false;
+    }
+  }
+  for (auto& ru : mRUDecodeVec) {
+    for (const auto& err : ru.chipErrorsTF) {
+      decErrors.emplace_back(ChipError{err.first, err.second.first, err.second.second}); // id, nerrors, errorFlags
+    }
+    ru.chipErrorsTF.clear();
   }
 }
 

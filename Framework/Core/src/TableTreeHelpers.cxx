@@ -26,7 +26,7 @@ namespace o2::framework
 {
 auto arrowTypeFromROOT(EDataType type, int size)
 {
-  auto typeGenerator = [](std::shared_ptr<arrow::DataType>&& type, int size) -> std::shared_ptr<arrow::DataType> {
+  auto typeGenerator = [](std::shared_ptr<arrow::DataType> const& type, int size) -> std::shared_ptr<arrow::DataType> {
     switch (size) {
       case -1:
         return arrow::list(type);
