@@ -104,6 +104,10 @@ class CalibLaserTracksDevice : public o2::framework::Task
       ltrCalib.normalize(0.);
       LOGP(info, "After normalization: correction factors: {} / {} for A- / C-Side, reference: {}", ltrCalib.dvCorrectionA, ltrCalib.dvCorrectionC, ltrCalib.refVDrift);
     }
+    if (ltrCalib.getDriftVCorrection() == 0) {
+      LOG(error) << "Extracted drift correction is 0, something is wrong, will not upload the object";
+      return;
+    }
 
     o2::ccdb::CcdbObjectInfo w;
     auto image = o2::ccdb::CcdbApi::createObjectImage(&ltrCalib, &w);
