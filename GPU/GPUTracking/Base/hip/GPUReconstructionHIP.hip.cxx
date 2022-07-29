@@ -619,7 +619,7 @@ void* GPUReconstructionHIPBackend::getGPUPointer(void* ptr)
 
 void GPUReconstructionHIPBackend::PrintKernelOccupancies()
 {
-  int maxBlocks, threads, suggestedBlocks;
+  int maxBlocks = 0, threads = 0, suggestedBlocks = 0;
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                                                         \
   GPUFailedMsg(hipOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)), 0, 0));  \
