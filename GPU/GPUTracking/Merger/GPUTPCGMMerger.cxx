@@ -91,7 +91,7 @@ struct MergeLooperParam {
 #include "GPUMemorySizeScalers.h"
 
 GPUTPCGMMerger::GPUTPCGMMerger()
-  : mTrackLinks(nullptr), mNMaxSliceTracks(0), mNMaxTracks(0), mNMaxSingleSliceTracks(0), mNMaxOutputTrackClusters(0), mNMaxClusters(0), mMemoryResMemory(-1), mNClusters(0), mOutputTracks(nullptr), mSliceTrackInfos(nullptr), mSliceTrackInfoIndex(nullptr), mClusters(nullptr), mClustersXYZ(nullptr), mGlobalClusterIDs(nullptr), mClusterAttachment(nullptr), mOutputTracksTPCO2(nullptr), mOutputClusRefsTPCO2(nullptr), mOutputTracksTPCO2MC(nullptr), mTrackOrderAttach(nullptr), mTrackOrderProcess(nullptr), mBorderMemory(nullptr), mBorderRangeMemory(nullptr), mMemory(nullptr), mRetryRefitIds(nullptr), mLoopData(nullptr)
+  : mTrackLinks(nullptr), mNTotalSliceTracks(0), mNMaxTracks(0), mNMaxSingleSliceTracks(0), mNMaxOutputTrackClusters(0), mNMaxClusters(0), mMemoryResMemory(-1), mNClusters(0), mOutputTracks(nullptr), mSliceTrackInfos(nullptr), mSliceTrackInfoIndex(nullptr), mClusters(nullptr), mClustersXYZ(nullptr), mGlobalClusterIDs(nullptr), mClusterAttachment(nullptr), mOutputTracksTPCO2(nullptr), mOutputClusRefsTPCO2(nullptr), mOutputTracksTPCO2MC(nullptr), mTrackOrderAttach(nullptr), mTrackOrderProcess(nullptr), mBorderMemory(nullptr), mBorderRangeMemory(nullptr), mMemory(nullptr), mRetryRefitIds(nullptr), mLoopData(nullptr)
 {
   //* constructor
 
@@ -259,15 +259,15 @@ void GPUTPCGMMerger::InitializeProcessor() {}
 
 void* GPUTPCGMMerger::SetPointersMerger(void* mem)
 {
-  computePointerWithAlignment(mem, mSliceTrackInfos, mNMaxSliceTracks);
+  computePointerWithAlignment(mem, mSliceTrackInfos, mNTotalSliceTracks);
   computePointerWithAlignment(mem, mSliceTrackInfoIndex, NSLICES * 2 + 1);
   if (mRec->GetParam().rec.nonConsecutiveIDs) {
     computePointerWithAlignment(mem, mGlobalClusterIDs, mNMaxOutputTrackClusters);
   }
 
   void* memBase = mem;
-  computePointerWithAlignment(mem, mBorderMemory, 2 * mNMaxSliceTracks); // MergeBorders & Resolve
-  computePointerWithAlignment(mem, mBorderRangeMemory, 2 * mNMaxSliceTracks);
+  computePointerWithAlignment(mem, mBorderMemory, 2 * mNTotalSliceTracks); // MergeBorders & Resolve
+  computePointerWithAlignment(mem, mBorderRangeMemory, 2 * mNTotalSliceTracks);
   int nTracks = 0;
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
     const int n = mRec->GetParam().rec.tpc.mergerReadFromTrackerDirectly ? *mRec->GetConstantMem().tpcTrackers[iSlice].NTracks() : mkSlices[iSlice]->NTracks();
@@ -276,8 +276,8 @@ void* GPUTPCGMMerger::SetPointersMerger(void* mem)
     mBorderRange[iSlice] = mBorderRangeMemory + 2 * nTracks;
     nTracks += n;
   }
-  computePointerWithAlignment(mem, mTrackLinks, mNMaxSliceTracks);
-  computePointerWithAlignment(mem, mTrackCCRoots, mNMaxSliceTracks);
+  computePointerWithAlignment(mem, mTrackLinks, mNTotalSliceTracks);
+  computePointerWithAlignment(mem, mTrackCCRoots, mNTotalSliceTracks);
   void* memMax = mem;
   mem = memBase;
   computePointerWithAlignment(mem, mTrackIDs, mNMaxTracks); // UnpackResetIds - RefitSliceTracks - UnpackSliceGlobal
@@ -391,19 +391,23 @@ void GPUTPCGMMerger::RegisterMemoryAllocation()
 
 void GPUTPCGMMerger::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  mNMaxSliceTracks = 0;
+  mNTotalSliceTracks = 0;
   mNClusters = 0;
   mNMaxSingleSliceTracks = 0;
   for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
     unsigned int ntrk = mRec->GetParam().rec.tpc.mergerReadFromTrackerDirectly ? *mRec->GetConstantMem().tpcTrackers[iSlice].NTracks() : mkSlices[iSlice]->NTracks();
-    mNMaxSliceTracks += ntrk;
+    mNTotalSliceTracks += ntrk;
     mNClusters += mRec->GetParam().rec.tpc.mergerReadFromTrackerDirectly ? *mRec->GetConstantMem().tpcTrackers[iSlice].NTrackHits() : mkSlices[iSlice]->NTrackClusters();
     if (mNMaxSingleSliceTracks < ntrk) {
       mNMaxSingleSliceTracks = ntrk;
     }
   }
   mNMaxOutputTrackClusters = mRec->MemoryScalers()->NTPCMergedTrackHits(mNClusters);
-  mNMaxTracks = mRec->MemoryScalers()->NTPCMergedTracks(mNMaxSliceTracks);
+  if (CAMath::Abs(Param().polynomialField.GetNominalBz()) < (0.01f * gpu_common_constants::kCLight)) {
+    mNMaxTracks = mRec->MemoryScalers()->getValue(mNTotalSliceTracks, mNTotalSliceTracks);
+  } else {
+    mNMaxTracks = mRec->MemoryScalers()->NTPCMergedTracks(mNTotalSliceTracks);
+  }
   if (io.clustersNative) {
     mNMaxClusters = io.clustersNative->nClustersTotal;
   } else if (mRec->GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking) {
