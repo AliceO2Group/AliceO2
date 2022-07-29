@@ -131,7 +131,7 @@ void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::finalizeSlot(
     mInfoVector.emplace_back(CalibDB::getCDBPathBadChannelMap(), clName, flName, md, slot.getStartTimeMS(), o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     mCalibObjectVector.push_back(bcm);
   } else if constexpr (std::is_same<DataInput, o2::emcal::EMCALTimeCalibData>::value) {
-    auto tcd = mCalibrator->calibrateTime(c->getHisto());
+    auto tcd = mCalibrator->calibrateTime(c->getHisto(), EMCALCalibParams::Instance().minTimeForFit, EMCALCalibParams::Instance().maxTimeForFit, EMCALCalibParams::Instance().restrictFitRangeToMax);
 
     // for the CCDB entry
     auto clName = o2::utils::MemFileHelper::getClassName(slot);
