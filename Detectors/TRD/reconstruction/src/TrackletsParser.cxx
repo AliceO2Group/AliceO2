@@ -32,14 +32,6 @@
 namespace o2::trd
 {
 
-inline void TrackletsParser::swapByteOrder(unsigned int& ui)
-{
-  ui = (ui >> 24) |
-       ((ui << 8) & 0x00FF0000) |
-       ((ui >> 8) & 0x0000FF00) |
-       (ui << 24);
-}
-
 int TrackletsParser::Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data,
                            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
                            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end,
@@ -182,8 +174,8 @@ int TrackletsParser::Parse()
     uint32_t nextwordcopy = *nextword;
 
     if (mOptions[TRDByteSwapBit]) {
-      swapByteOrder(*word);
-      swapByteOrder(nextwordcopy);
+      HelperMethods::swapByteOrder(*word);
+      HelperMethods::swapByteOrder(nextwordcopy);
     }
 
     if (*word == 0x10001000 && nextwordcopy == 0x10001000) {

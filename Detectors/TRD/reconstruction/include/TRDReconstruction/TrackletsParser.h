@@ -48,7 +48,6 @@ class TrackletsParser
                              StateTrackletEndMarker,
                              StateFinished };
   std::vector<Tracklet64>& getTracklets() { return mTracklets; }
-  inline void swapByteOrder(unsigned int& ui);
   bool getTrackletParsingState() { return mTrackletParsingBad; }
   void clear()
   {
