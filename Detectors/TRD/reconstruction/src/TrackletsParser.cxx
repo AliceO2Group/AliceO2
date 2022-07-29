@@ -269,7 +269,7 @@ int TrackletsParser::Parse()
           std::fill(mTrackletMCMData.begin(), mTrackletMCMData.end(), TrackletMCMData{0});
           mWordsRead++;
         } else {
-          if (mState == StateTrackletMCMHeader || (mState == StateTrackletHCHeader && !mOptions[mIgnoreTrackletHCHeader])) {
+          if (mState == StateTrackletMCMHeader || (mState == StateTrackletHCHeader && !mOptions[TRDIgnoreTrackletHCHeaderBit])) {
             // if we are here something is wrong, dump the data. The else of line 227 should imply we are in StateTrackletMCMData;
             ignoreDataTillTrackletEndMarker = true;
             incParsingError(TRDParsingTrackletStateMCMHeaderButParsingMCMData);
