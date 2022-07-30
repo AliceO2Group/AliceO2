@@ -24,7 +24,7 @@ namespace dataformats
 class CalibInfoTOFshort
 {
  public:
-  CalibInfoTOFshort(int timestamp, float DeltaTimePi, float tot, int flags = 0) : mTimestamp(timestamp), mDeltaTimePi(DeltaTimePi), mTot(tot), mFlags(flags){};
+  CalibInfoTOFshort(int timestamp, float DeltaTimePi, float tot, int mask, int flags = 0) : mTimestamp(timestamp), mDeltaTimePi(DeltaTimePi), mTot(tot), mMask(mask), mFlags(flags){};
   CalibInfoTOFshort() = default;
   void setTOFChIndex(int index) {}
   int getTOFChIndex() const { return 0; }
@@ -46,8 +46,9 @@ class CalibInfoTOFshort
   float mDeltaTimePi;   // raw tof time - expected time for pi hypotesis
   float mTot;           // time-over-threshold
   unsigned char mFlags; // bit mask with quality flags (to be defined)
+  int mMask;            // mask for int BC used
 
-  ClassDefNV(CalibInfoTOFshort, 1);
+  ClassDefNV(CalibInfoTOFshort, 2);
 };
 } // namespace dataformats
 } // namespace o2
