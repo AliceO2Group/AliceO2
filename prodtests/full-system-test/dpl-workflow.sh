@@ -139,6 +139,7 @@ fi
 if [[ -z $DISABLE_ROOT_OUTPUT ]]; then
   # enable only if root output is written, because it slows down the processing
   GPU_OUTPUT+=",send-clusters-per-sector"
+  ENABLE_ROOT_OUTPUT="--enable-root-output"
 fi
 
 has_detector_flp_processing CPV && CPV_INPUT=digits
@@ -373,7 +374,7 @@ if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
   has_detector MCH && add_W o2-mch-raw-to-digits-workflow "--pipeline $(get_N mch-data-decoder MCH RAW 1)"
   has_detector TOF && ! has_detector_flp_processing TOF && add_W o2-tof-compressor "--pipeline $(get_N tof-compressor-0 TOF RAW 1)"
   has_detector FDD && ! has_detector_flp_processing FDD && add_W o2-fdd-flp-dpl-workflow "$DISABLE_ROOT_OUTPUT --pipeline $(get_N fdd-datareader-dpl FDD RAW 1)"
-  has_detector TRD && add_W o2-trd-datareader "$TRD_DECODER_OPTIONS --pipeline $(get_N trd-datareader TRD RAW 1 TRDRAWDEC)" "" 0
+  has_detector TRD && add_W o2-trd-datareader "$TRD_DECODER_OPTIONS $ENABLE_ROOT_OUTPUT --pipeline $(get_N trd-datareader TRD RAW 1 TRDRAWDEC)" "" 0
   has_detector ZDC && add_W o2-zdc-raw2digits "$DISABLE_ROOT_OUTPUT --pipeline $(get_N zdc-datareader-dpl ZDC RAW 1)"
   has_detector HMP && add_W o2-hmpid-raw-to-digits-stream-workflow "--pipeline $(get_N HMP-RawStreamDecoder HMP RAW 1)"
   has_detector CTP && add_W o2-ctp-reco-workflow "--pipeline $(get_N CTP-RawStreamDecoder CTP RAW 1)"
