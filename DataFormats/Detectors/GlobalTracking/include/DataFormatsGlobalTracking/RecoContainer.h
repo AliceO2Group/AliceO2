@@ -222,7 +222,7 @@ struct DataRequest {
   void requestMCHClusters(bool mc);
   void requestMIDClusters(bool mc);
   void requestHMPClusters(bool mc);
-  void requestHMPMatches(bool mc);
+  //  void requestHMPMatches(bool mc); // no input available at the moment
 
   void requestCTPDigits(bool mc);
 
@@ -338,7 +338,7 @@ struct RecoContainer {
   void addTOFMatchesTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
   void addTOFMatchesITSTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
 
-  void addHMPMatches(o2::framework::ProcessingContext& pc, bool mc);
+  //  void addHMPMatches(o2::framework::ProcessingContext& pc, bool mc); // no input available for the moment
 
   void addMFTMCHMatches(o2::framework::ProcessingContext& pc, bool mc);
   void addMCHMIDMatches(o2::framework::ProcessingContext& pc, bool mc);
@@ -594,11 +594,13 @@ struct RecoContainer {
   auto getITSTPCTRDTOFMatches() const { return getSpan<o2::dataformats::MatchInfoTOF>(GTrackID::ITSTPCTRDTOF, MATCHES); }
   auto getITSTPCTRDTOFMatchesMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::ITSTPCTRDTOF, MCLABELS); }
 
+  /* no input available for the moment
   // HMPID matches
   auto getHMPMatchTriggers() const { return getSpan<o2::hmpid::Trigger>(GTrackID::HMP, TRACKREFS); }
   auto getHMPMatches() const { return getSpan<o2::dataformats::MatchInfoHMP>(GTrackID::HMP, MATCHES); }
   auto getHMPPhotsClusterCharges() const { return getSpan<float>(GTrackID::HMP, PATTERNS); }
   auto getHMPMatchesMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::HMP, MCLABELS); }
+  */
 
   // TOF clusters
   auto getTOFClusters() const { return getSpan<o2::tof::Cluster>(GTrackID::TOF, CLUSTERS); }
