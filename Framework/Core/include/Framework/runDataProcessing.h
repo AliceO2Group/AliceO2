@@ -249,19 +249,20 @@ int main(int argc, char** argv)
       doUnknownException("", argv[0]);
       throw;
     }
-
-    char* idstring = nullptr;
-    for (int argi = 0; argi < argc; argi++) {
-      if (strcmp(argv[argi], "--id") == 0 && argi + 1 < argc) {
-        idstring = argv[argi + 1];
-        break;
-      }
-    }
-    o2::framework::OnWorkflowTerminationHook onWorkflowTerminationHook;
-    UserCustomizationsHelper::userDefinedCustomization(onWorkflowTerminationHook, 0);
-    onWorkflowTerminationHook(idstring);
-    doDefaultWorkflowTerminationHook();
   }
+
+  char* idstring = nullptr;
+  for (int argi = 0; argi < argc; argi++) {
+    if (strcmp(argv[argi], "--id") == 0 && argi + 1 < argc) {
+      idstring = argv[argi + 1];
+      break;
+    }
+  }
+  o2::framework::OnWorkflowTerminationHook onWorkflowTerminationHook;
+  UserCustomizationsHelper::userDefinedCustomization(onWorkflowTerminationHook, 0);
+  onWorkflowTerminationHook(idstring);
+  doDefaultWorkflowTerminationHook();
+
   return result;
 }
 #endif
