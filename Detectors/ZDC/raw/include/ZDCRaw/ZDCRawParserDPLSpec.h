@@ -42,7 +42,7 @@ class ZDCRawParserDPLSpec : public o2::framework::Task
  private:
   int mVerbosity = DbgZero;  // Verbosity level
   bool mInitialized = false; // Connect once to CCDB during initialization
-  DumpRaw mWorker;      // Baseline calibration object
+  DumpRaw mWorker;           // Baseline calibration object
   TStopwatch mTimer;
 };
 
