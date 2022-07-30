@@ -194,12 +194,14 @@ void TOFEventTimeChecker::processEvent(std::vector<MyTrack>& tracks)
       int bcStarOrbit = int(localTime * o2::tof::Geo::BC_TIME_INPS_INV);
       bcStarOrbit = (bcStarOrbit / o2::constants::lhc::LHCMaxBunches) * o2::constants::lhc::LHCMaxBunches; // truncation
       localTime -= bcStarOrbit * o2::tof::Geo::BC_TIME_INPS;
-      track.mSignal = o2::tof::Utils::subtractInteractionBC(localTime);
+      int mask = 0;
+      track.mSignal = o2::tof::Utils::subtractInteractionBC(localTime, mask);
       localTime = track.mTrktime;
       bcStarOrbit = int(localTime * o2::tof::Geo::BC_TIME_INPS_INV);
       bcStarOrbit = (bcStarOrbit / o2::constants::lhc::LHCMaxBunches) * o2::constants::lhc::LHCMaxBunches; // truncation
       localTime -= bcStarOrbit * o2::tof::Geo::BC_TIME_INPS;
-      track.mTrktime = o2::tof::Utils::subtractInteractionBC(localTime);
+      mask = 0;
+      track.mTrktime = o2::tof::Utils::subtractInteractionBC(localTime, mask);
     }
   }
 
