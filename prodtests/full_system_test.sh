@@ -49,7 +49,7 @@ ENABLE_GPU_TEST=${ENABLE_GPU_TEST:-0} # Run the full system test also on the GPU
 GPUMEMSIZE=${GPUMEMSIZE:-6000000000} # Size of GPU memory to use in case ENABBLE_GPU_TEST=1
 NTIMEFRAMES=${NTIMEFRAMES:-1} # Number of time frames to process
 TFDELAY=${TFDELAY:-100} # Delay in seconds between publishing time frames
-NOMCLABELS="--disable-mc"
+[[ -z ${NOMCLABELS+x} ]] && NOMCLABELS="--disable-mc"
 O2SIMSEED=${O2SIMSEED:--1}
 SPLITTRDDIGI=${SPLITTRDDIGI:-1}
 DIGITDOWNSCALINGTRD=${DIGITDOWNSCALINGTRD:-1000}
