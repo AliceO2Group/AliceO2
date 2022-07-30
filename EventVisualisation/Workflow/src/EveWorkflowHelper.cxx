@@ -22,6 +22,7 @@
 #include "ITStracking/IOUtils.h"
 #include "MFTTracking/IOUtils.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "DetectorsBase/Propagator.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "DataFormatsTPC/Defs.h"
@@ -75,7 +76,7 @@ o2::mch::TrackParam EveWorkflowHelper::forwardTrackToMCHTrack(const o2::track::T
 
 float EveWorkflowHelper::findLastMIDClusterPosition(const o2::mid::Track& track)
 {
-  const auto& midClusters = mRecoCont.getMIDTrackClusters();
+  const auto& midClusters = mRecoCont->getMIDTrackClusters();
 
   int icl = -1;
 
@@ -98,7 +99,7 @@ float EveWorkflowHelper::findLastMIDClusterPosition(const o2::mid::Track& track)
 
 float EveWorkflowHelper::findLastMCHClusterPosition(const o2::mch::TrackMCH& track)
 {
-  const auto& mchClusters = mRecoCont.getMCHTrackClusters();
+  const auto& mchClusters = mRecoCont->getMCHTrackClusters();
 
   auto noOfClusters = track.getNClusters();
   auto offset = track.getFirstClusterIdx();
@@ -114,12 +115,12 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
   std::vector<Bracket> itsROFBrackets;
 
   if (mEnabledFilters.test(Filter::ITSROF)) {
-    const auto irFrames = getRecoContainer().getIRFramesITS();
+    const auto irFrames = getRecoContainer()->getIRFramesITS();
 
     static int BCDiffErrCount = 0;
     constexpr int MAXBCDiffErrCount = 5;
 
-    auto bcDiffToTFTimeMUS = [startIR = getRecoContainer().startIR](const o2::InteractionRecord& ir) {
+    auto bcDiffToTFTimeMUS = [startIR = getRecoContainer()->startIR](const o2::InteractionRecord& ir) {
       auto bcd = ir.differenceInBC(startIR);
       if (uint64_t(bcd) > o2::constants::lhc::LHCMaxBunches * 256 && BCDiffErrCount < MAXBCDiffErrCount) {
         LOGP(alarm, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}", bcd, ir, startIR);
@@ -206,11 +207,11 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
     return true;
   };
 
-  this->mRecoCont.createTracksVariadic(creator);
+  this->mRecoCont->createTracksVariadic(creator);
 
   if (mPrimaryVertexMode) {
-    const auto trackIndex = mRecoCont.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
-    const auto vtxRefs = mRecoCont.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
+    const auto trackIndex = mRecoCont->getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
+    const auto vtxRefs = mRecoCont->getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
     const auto totalPrimaryVertices = vtxRefs.size() - 1;              // The last entry is for unassigned tracks, ignore them
 
     for (std::size_t iv = 0; iv < totalPrimaryVertices; iv++) {
@@ -219,7 +220,7 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
       for (; it < itLim; it++) {
         const auto tvid = trackIndex[it];
 
-        if (!mRecoCont.isTrackSourceLoaded(tvid.getSource())) {
+        if (!mRecoCont->isTrackSourceLoaded(tvid.getSource())) {
           continue;
         }
 
@@ -418,10 +419,10 @@ void EveWorkflowHelper::addTrackToEvent(const o2::track::TrackPar& tr, GID gid, 
 
 void EveWorkflowHelper::prepareITSClusters(const o2::itsmft::TopologyDictionary* dict)
 {
-  const auto& ITSClusterROFRec = mRecoCont.getITSClustersROFRecords();
-  const auto& clusITS = mRecoCont.getITSClusters();
+  const auto& ITSClusterROFRec = mRecoCont->getITSClustersROFRecords();
+  const auto& clusITS = mRecoCont->getITSClusters();
   if (clusITS.size() && ITSClusterROFRec.size()) {
-    const auto& patterns = mRecoCont.getITSClustersPatterns();
+    const auto& patterns = mRecoCont->getITSClustersPatterns();
     auto pattIt = patterns.begin();
     mITSClustersArray.reserve(clusITS.size());
     o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, dict);
@@ -430,10 +431,10 @@ void EveWorkflowHelper::prepareITSClusters(const o2::itsmft::TopologyDictionary*
 
 void EveWorkflowHelper::prepareMFTClusters(const o2::itsmft::TopologyDictionary* dict) // do we also have something as ITS...dict?
 {
-  const auto& MFTClusterROFRec = this->mRecoCont.getMFTClustersROFRecords();
-  const auto& clusMFT = this->mRecoCont.getMFTClusters();
+  const auto& MFTClusterROFRec = this->mRecoCont->getMFTClustersROFRecords();
+  const auto& clusMFT = this->mRecoCont->getMFTClusters();
   if (clusMFT.size() && MFTClusterROFRec.size()) {
-    const auto& patterns = this->mRecoCont.getMFTClustersPatterns();
+    const auto& patterns = this->mRecoCont->getMFTClustersPatterns();
     auto pattIt = patterns.begin();
     this->mMFTClustersArray.reserve(clusMFT.size());
     o2::mft::ioutils::convertCompactClusters(clusMFT, pattIt, this->mMFTClustersArray, dict);
@@ -442,7 +443,7 @@ void EveWorkflowHelper::prepareMFTClusters(const o2::itsmft::TopologyDictionary*
 
 void EveWorkflowHelper::drawPHOS()
 {
-  for (auto phos : mRecoCont.getPHOSCells()) {
+  for (auto phos : mRecoCont->getPHOSCells()) {
     char relativeLocalPositionInModule[3]; // relative (local) position within module
     float x, z;
     o2::phos::Geometry::absToRelNumbering(phos.getAbsId(), relativeLocalPositionInModule);
@@ -464,8 +465,8 @@ void EveWorkflowHelper::drawPHOS()
 
 void EveWorkflowHelper::drawEMCAL()
 {
-  // LOG(info) <<  mRecoCont.getEMCALCells().size() << "----------------------------------------------------------------------------- !mRecoCont.getEMCALCells().size()";
-  auto triggers = mRecoCont.getEMCALTriggers();
+  // LOG(info) <<  mRecoCont->getEMCALCells().size() << "----------------------------------------------------------------------------- !mRecoCont->getEMCALCells().size()";
+  auto triggers = mRecoCont->getEMCALTriggers();
   for (auto trigger : triggers) {
     // trigger.getBCData().toLong() // timestamp in ns
     // trigger.getFirstEntry()
@@ -473,7 +474,7 @@ void EveWorkflowHelper::drawEMCAL()
     //   this will be towers belongs to BC (the same for emcal/phos) ++mattermost
   }
 
-  for (auto emcal : mRecoCont.getEMCALCells()) {
+  for (auto emcal : mRecoCont->getEMCALCells()) {
     int id = emcal.getTower();
     // supermodule ID, module number, index of cell in module in phi, index of cell in module in eta
     auto index = this->mEMCALGeom->GetCellIndex(id);
@@ -524,7 +525,7 @@ void EveWorkflowHelper::drawEMCAL()
 void EveWorkflowHelper::drawITSTPC(GID gid, float trackTime, GID::Source source)
 {
   // LOG(info) << "EveWorkflowHelper::drawITSTPC " << gid;
-  const auto& track = mRecoCont.getTPCITSTrack(gid);
+  const auto& track = mRecoCont->getTPCITSTrack(gid);
   addTrackToEvent(track, gid, trackTime, 0., source);
   drawITSClusters(track.getRefITS(), trackTime);
   drawTPCClusters(track.getRefTPC(), trackTime * mMUS2TPCTimeBins);
@@ -532,7 +533,7 @@ void EveWorkflowHelper::drawITSTPC(GID gid, float trackTime, GID::Source source)
 
 void EveWorkflowHelper::drawITSTPCTOF(GID gid, float trackTime, GID::Source source)
 {
-  const auto& track = mRecoCont.getITSTPCTOFTrack(gid);
+  const auto& track = mRecoCont->getITSTPCTOFTrack(gid);
   addTrackToEvent(track, gid, trackTime, 0., source);
   drawITSClusters(track.getRefITS(), trackTime);
   drawTPCClusters(track.getRefTPC(), trackTime * mMUS2TPCTimeBins);
@@ -542,7 +543,7 @@ void EveWorkflowHelper::drawITSTPCTOF(GID gid, float trackTime, GID::Source sour
 void EveWorkflowHelper::drawTPCTRD(GID gid, float trackTime, GID::Source source)
 {
   // LOG(info) << "EveWorkflowHelper::drawTPCTRD " << gid;
-  const auto& tpcTrdTrack = mRecoCont.getTPCTRDTrack<o2::trd::TrackTRD>(gid);
+  const auto& tpcTrdTrack = mRecoCont->getTPCTRDTrack<o2::trd::TrackTRD>(gid);
   addTrackToEvent(tpcTrdTrack, gid, trackTime, 0., source);
   drawTPCClusters(tpcTrdTrack.getRefGlobalTrackId(), trackTime * mMUS2TPCTimeBins);
   drawTRDClusters(tpcTrdTrack, trackTime);
@@ -551,7 +552,7 @@ void EveWorkflowHelper::drawTPCTRD(GID gid, float trackTime, GID::Source source)
 void EveWorkflowHelper::drawITSTPCTRD(GID gid, float trackTime, GID::Source source)
 {
   // LOG(info) << "EveWorkflowHelper::drawITSTPCTRD " << gid;
-  const auto& itsTpcTrdTrack = mRecoCont.getITSTPCTRDTrack<o2::trd::TrackTRD>(gid);
+  const auto& itsTpcTrdTrack = mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gid);
   drawITSTPC(itsTpcTrdTrack.getRefGlobalTrackId(), trackTime, source);
   drawTRDClusters(itsTpcTrdTrack, trackTime);
 }
@@ -559,7 +560,7 @@ void EveWorkflowHelper::drawITSTPCTRD(GID gid, float trackTime, GID::Source sour
 void EveWorkflowHelper::drawITSTPCTRDTOF(GID gid, float trackTime)
 {
   // LOG(info) << "EveWorkflowHelper::drawITSTPCTRDTOF " << gid;
-  const auto& match = mRecoCont.getITSTPCTRDTOFMatches()[gid.getIndex()];
+  const auto& match = mRecoCont->getITSTPCTRDTOFMatches()[gid.getIndex()];
   auto gidITSTPCTRD = match.getTrackRef();
   drawITSTPCTRD(gidITSTPCTRD, trackTime, GID::ITSTPCTRDTOF);
   drawTOFClusters(gid, trackTime);
@@ -568,7 +569,7 @@ void EveWorkflowHelper::drawITSTPCTRDTOF(GID gid, float trackTime)
 void EveWorkflowHelper::drawTPCTRDTOF(GID gid, float trackTime)
 {
   // LOG(info) << "EveWorkflowHelper::drawTPCTRDTOF " << gid;
-  const auto& match = mRecoCont.getTPCTRDTOFMatches()[gid.getIndex()];
+  const auto& match = mRecoCont->getTPCTRDTOFMatches()[gid.getIndex()];
   auto gidTPCTRD = match.getTrackRef();
   drawTPCTRD(gidTPCTRD, trackTime, GID::TPCTRDTOF);
   drawTOFClusters(gid, trackTime);
@@ -577,8 +578,8 @@ void EveWorkflowHelper::drawTPCTRDTOF(GID gid, float trackTime)
 void EveWorkflowHelper::drawTPCTOF(GID gid, float trackTime)
 {
   //  LOG(info) << "EveWorkflowHelper::drawTPCTRDTOF " << gid;
-  const auto& trTPCTOF = mRecoCont.getTPCTOFTrack(gid);
-  const auto& match = mRecoCont.getTPCTOFMatch(gid.getIndex());
+  const auto& trTPCTOF = mRecoCont->getTPCTOFTrack(gid);
+  const auto& match = mRecoCont->getTPCTOFMatch(gid.getIndex());
   addTrackToEvent(trTPCTOF, gid, trackTime, 0);
   drawTPCClusters(match.getTrackRef(), trackTime * mMUS2TPCTimeBins);
   drawTOFClusters(gid, trackTime);
@@ -586,13 +587,13 @@ void EveWorkflowHelper::drawTPCTOF(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawMFTMCH(GID gid, float trackTime)
 {
-  const auto& trMFTMCH = mRecoCont.getGlobalFwdTrack(gid);
+  const auto& trMFTMCH = mRecoCont->getGlobalFwdTrack(gid);
 
   const auto& trackParam = forwardTrackToMCHTrack(trMFTMCH);
 
   const auto mchGID = GID{static_cast<unsigned int>(trMFTMCH.getMCHTrackID()), GID::MCH};
 
-  const auto& mchTrack = mRecoCont.getMCHTrack(mchGID);
+  const auto& mchTrack = mRecoCont->getMCHTrack(mchGID);
 
   const auto endZ = findLastMCHClusterPosition(mchTrack);
 
@@ -604,13 +605,13 @@ void EveWorkflowHelper::drawMFTMCH(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawMFTMCHMID(GID gid, float trackTime)
 {
-  const auto& trMFTMCHMID = mRecoCont.getGlobalFwdTrack(gid);
+  const auto& trMFTMCHMID = mRecoCont->getGlobalFwdTrack(gid);
 
   const auto& trackParam = forwardTrackToMCHTrack(trMFTMCHMID);
 
   const auto midGID = GID{static_cast<unsigned int>(trMFTMCHMID.getMIDTrackID()), GID::MID};
 
-  const auto& midTrack = mRecoCont.getMIDTrack(midGID);
+  const auto& midTrack = mRecoCont->getMIDTrack(midGID);
 
   const auto endZ = findLastMIDClusterPosition(midTrack);
 
@@ -623,9 +624,9 @@ void EveWorkflowHelper::drawMFTMCHMID(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawMCHMID(GID gid, float trackTime)
 {
-  const auto& match = mRecoCont.getMCHMIDMatches()[gid.getIndex()];
-  const auto& mchTrack = mRecoCont.getMCHTrack(match.getMCHRef());
-  const auto& midTrack = mRecoCont.getMIDTrack(match.getMIDRef());
+  const auto& match = mRecoCont->getMCHMIDMatches()[gid.getIndex()];
+  const auto& mchTrack = mRecoCont->getMCHTrack(match.getMCHRef());
+  const auto& midTrack = mRecoCont->getMIDTrack(match.getMIDRef());
 
   auto trackParam = mch::TrackParam(mchTrack.getZ(), mchTrack.getParameters(), mchTrack.getCovariances());
 
@@ -738,11 +739,11 @@ void EveWorkflowHelper::drawForwardTrack(mch::TrackParam track, const std::strin
 
 void EveWorkflowHelper::drawTOFClusters(GID gid, float trackTime)
 {
-  auto tOFClustersArray = mRecoCont.getTOFClusters();
+  auto tOFClustersArray = mRecoCont->getTOFClusters();
   if (!gid.includesDet(o2::dataformats::GlobalTrackID::Source::TOF)) {
     return;
   }
-  const o2::dataformats::MatchInfoTOF& match = mRecoCont.getTOFMatch(gid);
+  const o2::dataformats::MatchInfoTOF& match = mRecoCont->getTOFMatch(gid);
   int tofcl = match.getIdxTOFCl();
   int sector = tOFClustersArray[tofcl].getSector();
   float x = tOFClustersArray[tofcl].getX();
@@ -762,8 +763,8 @@ void EveWorkflowHelper::drawITSClusters(GID gid, float trackTime)
   // LOG(info) << "EveWorkflowHelper::drawITSClusters" << gid;
   if (gid.getSource() == GID::ITS) { // this is for for full standalone tracks
     // LOG(info) << "EveWorkflowHelper::drawITSClusters ITS " << gid;
-    const auto& trc = mRecoCont.getITSTrack(gid);
-    auto refs = mRecoCont.getITSTracksClusterRefs();
+    const auto& trc = mRecoCont->getITSTrack(gid);
+    auto refs = mRecoCont->getITSTracksClusterRefs();
     int ncl = trc.getNumberOfClusters();
     int offset = trc.getFirstClusterEntry();
     for (int icl = 0; icl < ncl; icl++) {
@@ -773,8 +774,8 @@ void EveWorkflowHelper::drawITSClusters(GID gid, float trackTime)
     }
   } else if (gid.getSource() == GID::ITSAB) { // this is for ITS tracklets from ITS-TPC afterburner
     // LOG(info) << "EveWorkflowHelper::drawITSClusters ITSAB " << gid;
-    const auto& trc = mRecoCont.getITSABRef(gid);
-    const auto& refs = mRecoCont.getITSABClusterRefs();
+    const auto& trc = mRecoCont->getITSABRef(gid);
+    const auto& refs = mRecoCont->getITSABClusterRefs();
     int ncl = trc.getNClusters();
     int offset = trc.getFirstEntry();
     for (int icl = 0; icl < ncl; icl++) {
@@ -788,9 +789,9 @@ void EveWorkflowHelper::drawITSClusters(GID gid, float trackTime)
 // TPC cluseters for given TPC track (gid)
 void EveWorkflowHelper::drawTPCClusters(GID gid, float trackTimeTB)
 {
-  const auto& trc = mRecoCont.getTPCTrack(gid);
-  auto mTPCTracksClusIdx = mRecoCont.getTPCTracksClusterRefs();
-  auto mTPCClusterIdxStruct = &mRecoCont.getTPCClusters();
+  const auto& trc = mRecoCont->getTPCTrack(gid);
+  auto mTPCTracksClusIdx = mRecoCont->getTPCTracksClusterRefs();
+  auto mTPCClusterIdxStruct = &mRecoCont->getTPCClusters();
 
   // store the TPC cluster positions
   for (int iCl = trc.getNClusterReferences(); iCl--;) {
@@ -806,10 +807,10 @@ void EveWorkflowHelper::drawTPCClusters(GID gid, float trackTimeTB)
 
 void EveWorkflowHelper::drawMFTClusters(GID gid, float trackTime)
 {
-  const auto& mftTrack = mRecoCont.getMFTTrack(gid);
+  const auto& mftTrack = mRecoCont->getMFTTrack(gid);
   auto noOfClusters = mftTrack.getNumberOfPoints();       // number of clusters in MFT Track
   auto offset = mftTrack.getExternalClusterIndexOffset(); // first external cluster index offset:
-  auto refs = mRecoCont.getMFTTracksClusterRefs();        // list of references to clusters, offset:offset+no
+  auto refs = mRecoCont->getMFTTracksClusterRefs();       // list of references to clusters, offset:offset+no
   for (int icl = noOfClusters - 1; icl > -1; --icl) {
     const auto& thisCluster = mMFTClustersArray[refs[offset + icl]];
     drawPoint(thisCluster.getX(), thisCluster.getY(), thisCluster.getZ(), trackTime);
@@ -818,7 +819,7 @@ void EveWorkflowHelper::drawMFTClusters(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawTPC(GID gid, float trackTime)
 {
-  const auto& tr = mRecoCont.getTPCTrack(gid);
+  const auto& tr = mRecoCont->getTPCTrack(gid);
 
   if (mEnabledFilters.test(Filter::EtaBracket) && mEtaBracket.isOutside(tr.getEta()) == Bracket::Relation::Inside) {
     return;
@@ -831,7 +832,7 @@ void EveWorkflowHelper::drawTPC(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawITS(GID gid, float trackTime)
 {
-  const auto& tr = mRecoCont.getITSTrack(gid);
+  const auto& tr = mRecoCont->getITSTrack(gid);
   addTrackToEvent(tr, gid, trackTime, 1.f, GID::ITS);
 
   drawITSClusters(gid, trackTime);
@@ -840,7 +841,7 @@ void EveWorkflowHelper::drawITS(GID gid, float trackTime)
 void EveWorkflowHelper::drawMFT(GID gid, float trackTime)
 {
   // LOG(info) << "EveWorkflowHelper::drawMFT " << gid;
-  auto tr = mRecoCont.getMFTTrack(gid);
+  auto tr = mRecoCont->getMFTTrack(gid);
 
   drawMFTTrack(tr, trackTime);
   drawMFTClusters(gid, trackTime);
@@ -849,7 +850,7 @@ void EveWorkflowHelper::drawMFT(GID gid, float trackTime)
 void EveWorkflowHelper::drawMCH(GID gid, float trackTime)
 {
   //  LOG(info) << "EveWorkflowHelper::drawMCH " << gid;
-  const auto& track = mRecoCont.getMCHTrack(gid);
+  const auto& track = mRecoCont->getMCHTrack(gid);
   auto trackParam = mch::TrackParam(track.getZ(), track.getParameters(), track.getCovariances());
 
   const auto endZ = findLastMCHClusterPosition(track);
@@ -861,10 +862,10 @@ void EveWorkflowHelper::drawMCH(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawMCHClusters(GID gid, float trackTime)
 {
-  const auto& mchTrack = mRecoCont.getMCHTrack(gid);
+  const auto& mchTrack = mRecoCont->getMCHTrack(gid);
   auto noOfClusters = mchTrack.getNClusters();               // number of clusters in MCH Track
   auto offset = mchTrack.getFirstClusterIdx();               // first external cluster index offset:
-  const auto& mchClusters = mRecoCont.getMCHTrackClusters(); // list of references to clusters, offset:offset+no
+  const auto& mchClusters = mRecoCont->getMCHTrackClusters(); // list of references to clusters, offset:offset+no
   for (int icl = noOfClusters - 1; icl > -1; --icl) {
     const auto& cluster = mchClusters[offset + icl];
     drawPoint(cluster.x, cluster.y, cluster.z, trackTime);
@@ -874,8 +875,8 @@ void EveWorkflowHelper::drawMCHClusters(GID gid, float trackTime)
 void EveWorkflowHelper::drawMID(GID gid, float trackTime)
 {
   // LOG(info) << "EveWorkflowHelper::drawMID --------------------------------" << gid;
-  const auto& midTrack = mRecoCont.getMIDTrack(gid);         // MID track
-  const auto& midClusters = mRecoCont.getMIDTrackClusters(); // MID clusters
+  const auto& midTrack = mRecoCont->getMIDTrack(gid);         // MID track
+  const auto& midClusters = mRecoCont->getMIDTrackClusters(); // MID clusters
 
   auto vTrack = mEvent.addTrack({.time = static_cast<float>(trackTime),
                                  .charge = (int)0,
@@ -899,8 +900,8 @@ void EveWorkflowHelper::drawMID(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawMIDClusters(GID gid, float trackTime)
 {
-  const auto& midTrack = mRecoCont.getMIDTrack(gid);         // MID track
-  const auto& midClusters = mRecoCont.getMIDTrackClusters(); // MID clusters
+  const auto& midTrack = mRecoCont->getMIDTrack(gid);         // MID track
+  const auto& midClusters = mRecoCont->getMIDTrackClusters(); // MID clusters
 
   for (int ich = 0; ich < 4; ++ich) {
     auto icl = midTrack.getClusterMatched(ich);
@@ -913,12 +914,12 @@ void EveWorkflowHelper::drawMIDClusters(GID gid, float trackTime)
 
 void EveWorkflowHelper::drawTRDClusters(const o2::trd::TrackTRD& tpcTrdTrack, float trackTime)
 {
-  const auto& tpcTrdTracks = mRecoCont.getTPCTRDTracks<o2::trd::TrackTRD>();
-  const auto& tpcTrdTriggerRecords = mRecoCont.getTPCTRDTriggers();
-  const auto& itsTpcTrdTracks = mRecoCont.getITSTPCTRDTracks<o2::trd::TrackTRD>();
-  const auto& itsTpcTrdTriggerRecords = mRecoCont.getITSTPCTRDTriggers();
-  const auto& trdTracklets = mRecoCont.getTRDTracklets();
-  const auto& trdCalibratedTracklets = mRecoCont.getTRDCalibratedTracklets();
+  const auto& tpcTrdTracks = mRecoCont->getTPCTRDTracks<o2::trd::TrackTRD>();
+  const auto& tpcTrdTriggerRecords = mRecoCont->getTPCTRDTriggers();
+  const auto& itsTpcTrdTracks = mRecoCont->getITSTPCTRDTracks<o2::trd::TrackTRD>();
+  const auto& itsTpcTrdTriggerRecords = mRecoCont->getITSTPCTRDTriggers();
+  const auto& trdTracklets = mRecoCont->getTRDTracklets();
+  const auto& trdCalibratedTracklets = mRecoCont->getTRDCalibratedTracklets();
 
   for (int iLayer = 0; iLayer < 6; ++iLayer) {
     if (tpcTrdTrack.getTrackletIndex(iLayer) >= 0) {
@@ -954,9 +955,7 @@ EveWorkflowHelper::EveWorkflowHelper(const FilterSet& enabledFilters, std::size_
   const auto& elParams = o2::tpc::ParameterElectronics::Instance();
   mMUS2TPCTimeBins = 1. / elParams.ZbinWidth;
   mTPCBin2MUS = elParams.ZbinWidth;
-
-  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
-
+  const auto grp = o2::base::GRPGeomHelper::instance().getGRPECS();
   const auto& alpParamsITS = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
   mITSROFrameLengthMUS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS) ? alpParamsITS.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParamsITS.roFrameLengthTrig * 1.e-3;
 

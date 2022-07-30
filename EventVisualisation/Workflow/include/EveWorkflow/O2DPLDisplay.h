@@ -18,6 +18,7 @@
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "EveWorkflow/DetectorData.h"
 #include "Framework/Task.h"
 #include <memory>
@@ -51,12 +52,14 @@ class O2DPLDisplaySpec : public o2::framework::Task
 
   O2DPLDisplaySpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t trkMask,
                    o2::dataformats::GlobalTrackID::mask_t clMask,
-                   std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, const std::string& jsonPath, const std::string& ext,
+                   std::shared_ptr<o2::globaltracking::DataRequest> dataRequest,
+                   std::shared_ptr<o2::base::GRPGeomRequest> gr,
+                   const std::string& jsonPath, const std::string& ext,
                    std::chrono::milliseconds timeInterval, int numberOfFiles, int numberOfTracks,
                    bool eveHostNameMatch, int minITSTracks, int minTracks, bool filterITSROF, bool filterTime,
                    const EveWorkflowHelper::Bracket& timeBracket, bool removeTPCEta,
                    const EveWorkflowHelper::Bracket& etaBracket, bool trackSorting, int onlyNthEvent, bool primaryVertex, int maxPrimaryVertices)
-    : mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mJsonPath(jsonPath), mExt(ext), mTimeInterval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch), mMinITSTracks(minITSTracks), mMinTracks(minTracks), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket), mRemoveTPCEta(removeTPCEta), mEtaBracket(etaBracket), mTrackSorting(trackSorting), mOnlyNthEvent(onlyNthEvent), mPrimaryVertexMode(primaryVertex), mMaxPrimaryVertices(maxPrimaryVertices)
+    : mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mGGCCDBRequest(gr), mJsonPath(jsonPath), mExt(ext), mTimeInterval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch), mMinITSTracks(minITSTracks), mMinTracks(minTracks), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket), mRemoveTPCEta(removeTPCEta), mEtaBracket(etaBracket), mTrackSorting(trackSorting), mOnlyNthEvent(onlyNthEvent), mPrimaryVertexMode(primaryVertex), mMaxPrimaryVertices(maxPrimaryVertices)
 
   {
     this->mTimeStamp = std::chrono::high_resolution_clock::now() - timeInterval; // first run meets condition
@@ -95,6 +98,7 @@ class O2DPLDisplaySpec : public o2::framework::Task
   o2::dataformats::GlobalTrackID::mask_t mClMask;
   DetectorData mData;
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
 };
 
 } // namespace o2::event_visualisation

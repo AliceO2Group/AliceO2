@@ -81,9 +81,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 void O2DPLDisplaySpec::init(InitContext& ic)
 {
   LOG(info) << "------------------------    O2DPLDisplay::init version " << o2_eve_version << "    ------------------------------------";
-  mData.init();
-
-  mData.mConfig->configProcessing.runMC = mUseMC;
+  mData.mConfig.configProcessing.runMC = mUseMC;
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
 }
 
 void O2DPLDisplaySpec::run(ProcessingContext& pc)
@@ -102,7 +101,9 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
     return; // skip this run - it is too often
   }
   this->mTimeStamp = currentTime;
-  updateTimeDependentParams(pc);
+  o2::globaltracking::RecoContainer recoCont;
+  recoCont.collectData(pc, *mDataRequest);
+  updateTimeDependentParams(pc); // Make sure that this is called after the RecoContainer collect data, since some condition objects are fetched there
 
   EveWorkflowHelper::FilterSet enabledFilters;
 
@@ -112,9 +113,9 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   enabledFilters.set(EveWorkflowHelper::Filter::TotalNTracks, this->mNumberOfTracks != -1);
 
   EveWorkflowHelper helper(enabledFilters, this->mNumberOfTracks, this->mTimeBracket, this->mEtaBracket, this->mPrimaryVertexMode);
+  helper.setRecoContainer(&recoCont);
 
-  helper.getRecoContainer().collectData(pc, *mDataRequest);
-  helper.selectTracks(&(mData.mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
+  helper.selectTracks(&(mData.mConfig.configCalib), mClMask, mTrkMask, mTrkMask);
 
   helper.prepareITSClusters(mData.mITSDict);
   helper.prepareMFTClusters(mData.mMFTDict);
@@ -188,19 +189,31 @@ void O2DPLDisplaySpec::endOfStream(EndOfStreamContext& ec)
 
 void O2DPLDisplaySpec::updateTimeDependentParams(ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    auto grpECS = o2::base::GRPGeomHelper::instance().getGRPECS(); // RS
+    mData.init();
+  }
   // pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictITS"); // called by the RecoContainer
   // pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictMFT"); // called by the RecoContainer
 }
 
 void O2DPLDisplaySpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "ITS cluster dictionary updated";
     mData.setITSDict((const o2::itsmft::TopologyDictionary*)obj);
+    return;
   }
   if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
     LOG(info) << "MFT cluster dictionary updated";
     mData.setMFTDict((const o2::itsmft::TopologyDictionary*)obj);
+    return;
   }
 }
 
@@ -311,12 +324,20 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   if (numberOfTracks == -1) {
     tracksSorting = false; // do not sort if all tracks are allowed
   }
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              dataRequest->inputs,
+                                                              true); // query only once all objects except mag.field
 
   specs.emplace_back(DataProcessorSpec{
     "o2-eve-export",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, jsonFolder, ext, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent, primaryVertexMode, maxPrimaryVertices)}});
+    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, ggRequest, jsonFolder, ext, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent, primaryVertexMode, maxPrimaryVertices)}});
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

@@ -195,8 +195,9 @@ class EveWorkflowHelper
   Bracket mTimeBracket;
   Bracket mEtaBracket;
   bool mPrimaryVertexMode;
-  o2::globaltracking::RecoContainer mRecoCont;
-  o2::globaltracking::RecoContainer& getRecoContainer() { return mRecoCont; }
+  const o2::globaltracking::RecoContainer* mRecoCont = nullptr;
+  const o2::globaltracking::RecoContainer* getRecoContainer() const { return mRecoCont; }
+  void setRecoContainer(const o2::globaltracking::RecoContainer* rc) { mRecoCont = rc; }
   TracksSet mTrackSet;
   o2::event_visualisation::VisualisationEvent mEvent;
   std::unordered_map<GID, std::size_t> mTotalTracks;
