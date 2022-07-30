@@ -296,6 +296,8 @@ o2::framework::DataProcessorSpec getClusterFinderGEMSpec(const char* specName)
       {"mch-config", VariantType::String, "", {"JSON or INI file with clustering parameters"}},
       {"run2-config", VariantType::Bool, false, {"Setup for run2 data"}},
       {"mode", VariantType::Int, ClusterFinderGEMTask::DoGEM | ClusterFinderGEMTask::GEMOutputStream, {"Running mode"}},
+      //{"mode", VariantType::Int, ClusterFinderGEMTask::DoGEM | ClusterFinderGEMTask::DumpGEM | ClusterFinderGEMTask::GEMOutputStream, {"Running mode"}},
+      //{"mode", VariantType::Int, ClusterFinderGEMTask::DoOriginal | ClusterFinderGEMTask::DumpOriginal | ClusterFinderGEMTask::GEMOutputStream, {"Running mode"}},
       // {"mode", VariantType::Int, ClusterFinderGEMTask::DoGEM, {"Running mode"}},
 
       // {"mode", VariantType::Int, ClusterFinderGEMTask::DoOriginal, {"Running mode"}},

@@ -9,16 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_MATHUTIL_H_
-#define O2_MCH_MATHUTIL_H_
+#ifndef O2_MCH_MATHUTIL_H
+#define O2_MCH_MATHUTIL_H
 
-#include <cmath>
-#include <climits>
-#include <cfloat>
-#include <cstddef>
 #include <algorithm>
+#include <cfloat>
+#include <climits>
+#include <cmath>
+#include <cstddef>
 
-typedef short Mask_t;
+#include "MCHClustering/PadsPEM.h"
+
+namespace o2
+{
+namespace mch
+{
 
 inline static void vectorSetZero(double* u, int N)
 {
@@ -37,6 +42,14 @@ inline static void vectorSetZeroInt(int* u, int N)
 }
 
 inline static void vectorSetZeroShort(short* u, int N)
+{
+  for (int i = 0; i < N; i++) {
+    u[i] = 0;
+  }
+  return;
+}
+
+inline static void vectorSetZeroChar(char* u, int N)
 {
   for (int i = 0; i < N; i++) {
     u[i] = 0;
@@ -84,7 +97,8 @@ inline static void vectorCopyShort(const short* src, int N, short* dest)
   return;
 }
 
-inline static void vectorAddVector(const double* u, double cst, const double* v, int N, double* res)
+inline static void vectorAddVector(const double* u, double cst, const double* v,
+                                   int N, double* res)
 {
   for (int i = 0; i < N; i++) {
     res[i] = u[i] + cst * v[i];
@@ -100,7 +114,8 @@ inline static void vectorAbs(const double* u, int N, double* res)
   return;
 }
 
-inline static void vectorAddScalar(const double* u, double cst, int N, double* res)
+inline static void vectorAddScalar(const double* u, double cst, int N,
+                                   double* res)
 {
   for (int i = 0; i < N; i++) {
     res[i] = u[i] + cst;
@@ -108,7 +123,8 @@ inline static void vectorAddScalar(const double* u, double cst, int N, double* r
   return;
 }
 
-inline static void vectorMultVector(const double* u, const double* v, int N, double* res)
+inline static void vectorMultVector(const double* u, const double* v, int N,
+                                    double* res)
 {
   for (int i = 0; i < N; i++) {
     res[i] = u[i] * v[i];
@@ -116,7 +132,17 @@ inline static void vectorMultVector(const double* u, const double* v, int N, dou
   return;
 }
 
-inline static void vectorMultScalar(const double* u, double cst, int N, double* res)
+inline static void vectorMultVectorShort(const short* u, const short* v, int N,
+                                         short* res)
+{
+  for (int i = 0; i < N; i++) {
+    res[i] = u[i] * v[i];
+  }
+  return;
+}
+
+inline static void vectorMultScalar(const double* u, double cst, int N,
+                                    double* res)
 {
   for (int i = 0; i < N; i++) {
     res[i] = u[i] * cst;
@@ -160,6 +186,15 @@ inline static int vectorSumShort(const short* u, int N)
   return res;
 }
 
+inline static int vectorSumChar(const char* u, int N)
+{
+  int res = 0;
+  for (int i = 0; i < N; i++) {
+    res += u[i];
+  }
+  return res;
+}
+
 inline static int vectorSumRowInt(const int* matrix, int N, int M)
 {
   int res = 0;
@@ -170,6 +205,24 @@ inline static int vectorSumRowInt(const int* matrix, int N, int M)
 }
 
 inline static int vectorSumColumnInt(const int* matrix, int N, int M)
+{
+  int res = 0;
+  for (int i = 0; i < N; i++) {
+    res += matrix[i * M];
+  }
+  return res;
+}
+
+inline static int vectorSumRowChar(const char* matrix, int N, int M)
+{
+  int res = 0;
+  for (int j = 0; j < M; j++) {
+    res += matrix[j];
+  }
+  return res;
+}
+
+inline static int vectorSumColumnChar(const char* matrix, int N, int M)
 {
   int res = 0;
   for (int i = 0; i < N; i++) {
@@ -218,7 +271,8 @@ inline static void vectorNotShort(const short* src, int N, short* dest)
 //
 // Compare oparations
 //
-inline static int vectorSumOfGreater(const double* src, double cmpValue, int N)
+inline static int vectorSumOfGreater(const double* src, double cmpValue,
+                                     int N)
 {
   int count = 0;
   for (int i = 0; i < N; i++) {
@@ -256,7 +310,8 @@ inline static int vectorArgMin(const double* u, int N)
 //
 // Mask operations
 //
-inline static int vectorBuildMaskEqualShort(const short* src, short value, int N, short* mask)
+inline static int vectorBuildMaskEqualShort(const short* src, short value,
+                                            int N, short* mask)
 {
   int count = 0;
   for (int i = 0; i < N; i++) {
@@ -266,7 +321,8 @@ inline static int vectorBuildMaskEqualShort(const short* src, short value, int N
   return count;
 }
 
-inline static void vectorBuildMaskGreater(const double* src, double value, int N, short* mask)
+inline static void vectorBuildMaskGreater(const double* src, double value,
+                                          int N, short* mask)
 {
   for (int i = 0; i < N; i++) {
     mask[i] = (src[i] > value);
@@ -274,7 +330,8 @@ inline static void vectorBuildMaskGreater(const double* src, double value, int N
   return;
 }
 
-inline static void vectorBuildMaskEqual(const double* src, double value, int N, short* mask)
+inline static void vectorBuildMaskEqual(const double* src, double value, int N,
+                                        short* mask)
 {
   for (int i = 0; i < N; i++) {
     mask[i] = (src[i] == value);
@@ -282,7 +339,8 @@ inline static void vectorBuildMaskEqual(const double* src, double value, int N, 
   return;
 }
 
-inline static int vectorGetIndexFromMaskInt(const Mask_t* mask, int N, int* indexVector)
+inline static int vectorGetIndexFromMaskInt(const Mask_t* mask, int N,
+                                            int* indexVector)
 {
   int k = 0;
   for (int i = 0; i < N; i++) {
@@ -293,9 +351,11 @@ inline static int vectorGetIndexFromMaskInt(const Mask_t* mask, int N, int* inde
   }
   return k;
 }
-// int k=0;for (int i=0; i < N; i++) { indexVector[i] = ( mask[i] == 1) ? k : -1; k++;} return k;}
+// int k=0;for (int i=0; i < N; i++) { indexVector[i] = ( mask[i] == 1) ? k :
+// -1; k++;} return k;}
 
-inline static void vectorAppyMapIdxInt(const int* vect, const int* map, int N, int* mappedVect)
+inline static void vectorAppyMapIdxInt(const int* vect, const int* map, int N,
+                                       int* mappedVect)
 {
   for (int i = 0; i < N; i++) {
     mappedVect[i] = map[vect[i]];
@@ -303,7 +363,8 @@ inline static void vectorAppyMapIdxInt(const int* vect, const int* map, int N, i
   return;
 }
 
-inline static int vectorGather(const double* v, const Mask_t* mask, int N, double* gatherVector)
+inline static int vectorGather(const double* v, const Mask_t* mask, int N,
+                               double* gatherVector)
 {
   int k = 0;
   for (int i = 0; i < N; i++) {
@@ -314,7 +375,8 @@ inline static int vectorGather(const double* v, const Mask_t* mask, int N, doubl
   return k;
 }
 
-inline static int vectorScatter(const double* v, const Mask_t* mask, int N, double* scatterVec)
+inline static int vectorScatter(const double* v, const Mask_t* mask, int N,
+                                double* scatterVec)
 {
   int k = 0;
   for (int i = 0; i < N; i++) {
@@ -324,7 +386,8 @@ inline static int vectorScatter(const double* v, const Mask_t* mask, int N, doub
   }
   return k;
 }
-inline static int vectorScatterShort(const short* v, const Mask_t* mask, int N, short* scatterVec)
+inline static int vectorScatterShort(const short* v, const Mask_t* mask, int N,
+                                     short* scatterVec)
 {
   int k = 0;
   for (int i = 0; i < N; i++) {
@@ -335,7 +398,8 @@ inline static int vectorScatterShort(const short* v, const Mask_t* mask, int N, 
   return k;
 }
 
-inline static int vectorGatherShort(const short* v, const Mask_t* mask, int N, short* gatherVector)
+inline static int vectorGatherShort(const short* v, const Mask_t* mask, int N,
+                                    short* gatherVector)
 {
   int k = 0;
   for (int i = 0; i < N; i++) {
@@ -346,7 +410,8 @@ inline static int vectorGatherShort(const short* v, const Mask_t* mask, int N, s
   return k;
 }
 
-inline static int vectorGetIndexFromMaskShort(const Mask_t* mask, int N, short* index)
+inline static int vectorGetIndexFromMaskShort(const Mask_t* mask, int N,
+                                              short* index)
 {
   int k = 0;
   for (int i = 0; i < N; i++) {
@@ -357,7 +422,8 @@ inline static int vectorGetIndexFromMaskShort(const Mask_t* mask, int N, short* 
   return k;
 }
 
-inline static int vectorGetIndexFromMask(const Mask_t* mask, int N, int* index)
+inline static int vectorGetIndexFromMask(const Mask_t* mask, int N,
+                                         int* index)
 {
   int k = 0;
   for (int i = 0; i < N; i++) {
@@ -368,7 +434,8 @@ inline static int vectorGetIndexFromMask(const Mask_t* mask, int N, int* index)
   return k;
 }
 
-inline static void vectorMaskedSet(const Mask_t* mask, const double* vTrue, const double* vFalse, int N, double* vR)
+inline static void vectorMaskedSet(const Mask_t* mask, const double* vTrue,
+                                   const double* vFalse, int N, double* vR)
 {
   for (int i = 0; i < N; i++) {
     vR[i] = (mask[i]) ? vTrue[i] : vFalse[i];
@@ -376,7 +443,8 @@ inline static void vectorMaskedSet(const Mask_t* mask, const double* vTrue, cons
   return;
 }
 
-inline static void vectorMaskedUpdate(const Mask_t* mask, const double* vTrue, int N, double* vR)
+inline static void vectorMaskedUpdate(const Mask_t* mask, const double* vTrue,
+                                      int N, double* vR)
 {
   for (int i = 0; i < N; i++) {
     vR[i] = (mask[i]) ? vTrue[i] : vR[i];
@@ -384,26 +452,30 @@ inline static void vectorMaskedUpdate(const Mask_t* mask, const double* vTrue, i
   return;
 }
 
-inline static double vectorMaskedSum(const double* v, const Mask_t* mask, int N)
+inline static double vectorMaskedSum(const double* v, const Mask_t* mask,
+                                     int N)
 {
   double sum = 0;
-  for (int i = 0, k = 0; i < N; i++) {
+  for (int i = 0; i < N; i++) {
     sum += v[i] * mask[i];
   }
   return sum;
 }
 
-inline static void vectorMaskedMult(const double* v, const Mask_t* mask, int N, double* res)
+inline static void vectorMaskedMult(const double* v, const Mask_t* mask, int N,
+                                    double* res)
 {
-  for (int i = 0, k = 0; i < N; i++) {
+  for (int i = 0; i < N; i++) {
     res[i] = v[i] * mask[i];
   }
   return;
 }
 
-inline static void vectorMaskedMultScalar(double* v, const Mask_t* mask, double trueVal, double falseVal, int N)
+inline static void vectorMaskedMultScalar(double* v, const Mask_t* mask,
+                                          double trueVal, double falseVal,
+                                          int N)
 {
-  for (int i = 0, k = 0; i < N; i++) {
+  for (int i = 0; i < N; i++) {
     v[i] = (mask[i]) ? v[i] * trueVal : v[i] * falseVal;
   }
   return;
@@ -416,9 +488,43 @@ inline static void vectorMapShort(short* array, const short* map, int N)
   }
 }
 
+inline void deleteDouble(double* ptr)
+{
+  if (ptr != nullptr) {
+    delete[] ptr;
+    ptr = nullptr;
+  }
+}
+
+inline void deleteInt(int* ptr)
+{
+  if (ptr != nullptr) {
+    delete[] ptr;
+    ptr = nullptr;
+  }
+}
+
+inline void deleteShort(short* ptr)
+{
+  if (ptr != nullptr) {
+    delete[] ptr;
+    ptr = nullptr;
+  }
+}
+
 void vectorPrint(const char* str, const double* x, int N);
 void vectorPrintInt(const char* str, const int* x, int N);
 void vectorPrintShort(const char* str, const short* x, int N);
-void vectorPrint2Columns(const char* str, const double* x, const double* y, int N);
+void vectorPrint2Columns(const char* str, const double* x, const double* y,
+                         int N);
+
+void printMatrixInt(const char* str, const int* matrix, int N, int M);
+void printMatrixShort(const char* str, const short* matrix, int N, int M);
+void printMatrixChar(const char* str, const char* matrix, int N, int M);
+
+void printInterMap(const char* str, const PadIdx_t* inter, int N);
+
+} // namespace mch
+} // namespace o2
 
 #endif // O2_MCH_MATHUTIL_H
