@@ -84,7 +84,6 @@ void DumpRaw::init()
         mBits->GetXaxis()->SetBinLabel(im * NChPerModule + ic + 1, TString::Format("%d%d", im, ic));
       }
     }
-    mBits->GetYaxis()->SetBinLabel(0, "None");
   }
   if (mBitsH == nullptr) {
     mBitsH = (TH2*)gROOT->FindObject("hbh");
@@ -106,7 +105,6 @@ void DumpRaw::init()
         mBitsH->GetXaxis()->SetBinLabel(im * NChPerModule + ic + 1, TString::Format("%d%d", im, ic));
       }
     }
-    mBitsH->GetYaxis()->SetBinLabel(0, "None");
   }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
     uint32_t imod = i / NChPerModule;
