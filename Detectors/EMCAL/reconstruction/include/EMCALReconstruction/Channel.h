@@ -95,7 +95,7 @@ class Channel
 
   /// \brief Get the size of the payload
   /// \return Size of the payload as number of 10-bit samples (1/3rd words)
-  uint8_t getPayloadSize() const { return mPayloadSize; }
+  uint16_t getPayloadSize() const { return mPayloadSize; }
 
   /// \brief Get list of bunches in the channel
   /// \return List of bunches
@@ -172,7 +172,7 @@ class Channel
 
  private:
   int32_t mHardwareAddress = -1; ///< Hardware address
-  uint8_t mPayloadSize = 0;      ///< Payload size
+  uint16_t mPayloadSize = 0;     ///< Payload size
   bool mBadChannel;              ///< Bad channel status
   std::vector<Bunch> mBunches;   ///< Bunches in channel;
 

@@ -89,7 +89,8 @@ class MinorAltroDecodingError
   enum class ErrorType_t {
     BUNCH_HEADER_NULL,            ///< Bunch header is 0
     CHANNEL_END_PAYLOAD_UNEXPECT, ///< Unexpected end of payload (channel or trailer word in bunch words)
-    CHANNEL_PAYLOAD_EXCEED        ///< Exceeding channel payload block
+    CHANNEL_PAYLOAD_EXCEED,       ///< Exceeding channel payload block
+    BUNCH_LENGTH_EXCEED           ///< Bunch length exceeding channel payload size
   };
 
   /// \brief Dummy constructor
