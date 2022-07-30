@@ -93,7 +93,7 @@ void LHCClockCalibrator::finalizeSlot(Slot& slot)
   if (fitres >= 0) {
     LOG(info) << "Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
   } else {
-    LOG(error) << "Fit failed with result = " << fitres;
+    LOG(warning) << "Fit failed with result = " << fitres;
   }
 
   std::map<std::string, std::string> md;
