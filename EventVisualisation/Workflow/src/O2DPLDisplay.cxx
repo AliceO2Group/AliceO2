@@ -297,10 +297,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto primaryVertexMode = cfgc.options().get<bool>("primary-vertex-mode");
   auto maxPrimaryVertices = cfgc.options().get<int>("max-primary-vertices");
 
+  InputHelper::addInputSpecs(cfgc, specs, srcCl, srcTrk, srcTrk, useMC);
   if (primaryVertexMode) {
     dataRequest->requestPrimaryVertertices(useMC);
+    InputHelper::addInputSpecsPVertex(cfgc, specs, useMC);
   }
-  InputHelper::addInputSpecs(cfgc, specs, srcCl, srcTrk, srcTrk, useMC);
 
   auto minITSTracks = cfgc.options().get<int>("min-its-tracks");
   auto minTracks = cfgc.options().get<int>("min-tracks");
