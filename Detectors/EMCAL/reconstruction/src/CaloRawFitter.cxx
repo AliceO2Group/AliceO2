@@ -281,6 +281,11 @@ std::tuple<int, int, float, short, short, float, int, int> CaloRawFitter::preFit
   mReversed.fill(0);
 
   // select the bunch with the highest amplitude unless any time constraints is set
+  for (unsigned int i = 0; i < bunchvector.size(); i++) {
+    if (bunchvector[i].getBunchLength() > bunchvector[i].getADC().size()) {
+      throw RawFitterError_t::FIT_ERROR;
+    }
+  }
   auto [bunchindex, indexMaxADC, adcMAX] = selectMaximumBunch(bunchvector);
 
   // something valid was found, and non-zero amplitude
