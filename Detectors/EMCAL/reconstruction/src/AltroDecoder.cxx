@@ -68,23 +68,28 @@ void AltroDecoder::readChannels()
     if (currentword >> 30 != 1) {
       continue;
     }
-    // starting a new channel
+
+    // decode channel header
     auto channelheader = currentword;
-    mChannels.emplace_back(currentword & 0xFFF, (currentword >> 16) & 0x3FF);
-    auto& currentchannel = mChannels.back();
-    currentchannel.setBadChannel((currentword >> 29) & 0x1);
+    int32_t hwaddress = channelheader & 0xFFF;
+    uint16_t payloadsize = (channelheader >> 16) & 0x3FF;
+    bool badchannel = (channelheader >> 29) & 0x1;
 
     /// decode all words for channel
-    int numberofwords = (currentchannel.getPayloadSize() + 2) / 3;
+    bool foundChannelError = false;
+    int numberofwords = (payloadsize + 2) / 3;
     std::vector<uint16_t> bunchwords;
     for (int iword = 0; iword < numberofwords; iword++) {
       if (currentpos >= maxpayloadsize) {
         mMinorDecodingErrors.emplace_back(MinorAltroDecodingError::ErrorType_t::CHANNEL_PAYLOAD_EXCEED, channelheader, currentword);
+        foundChannelError = true;
         break; // Must break here in order not to prevent a buffer overrun
       }
       currentword = buffer[currentpos++];
       if ((currentword >> 30) != 0) {
+        // word is a new channel header
         mMinorDecodingErrors.emplace_back(MinorAltroDecodingError::ErrorType_t::CHANNEL_END_PAYLOAD_UNEXPECT, channelheader, currentword);
+        foundChannelError = true;
         currentpos--;
         continue;
       }
@@ -92,6 +97,14 @@ void AltroDecoder::readChannels()
       bunchwords.push_back((currentword >> 10) & 0x3FF);
       bunchwords.push_back(currentword & 0x3FF);
     }
+    if (foundChannelError) {
+      // do not decode bunch if channel payload is corrupted
+      continue;
+    }
+    // Payload decoding for channel good - starting a new channel object
+    mChannels.emplace_back(hwaddress, payloadsize);
+    auto& currentchannel = mChannels.back();
+    currentchannel.setBadChannel(badchannel);
 
     // decode bunches
     int currentsample = 0;
@@ -103,6 +116,12 @@ void AltroDecoder::readChannels()
       }
       int bunchlength = bunchwords[currentsample] - 2, // remove words for bunchlength and starttime
         starttime = bunchwords[currentsample + 1];
+      // Raise minor decoding error in case the bunch length exceeds the channel payload and skip the bunch
+      if ((unsigned long)bunchlength > bunchwords.size() - currentsample - 2) {
+        mMinorDecodingErrors.emplace_back(MinorAltroDecodingError::ErrorType_t::BUNCH_LENGTH_EXCEED, channelheader, 0);
+        // we must break here as well, the bunch is cut and the pointer would be set to invalid memory
+        break;
+      }
       auto& currentbunch = currentchannel.createBunch(bunchlength, starttime);
       currentbunch.initFromRange(gsl::span<uint16_t>(&bunchwords[currentsample + 2], std::min((unsigned long)bunchlength, bunchwords.size() - currentsample - 2)));
       currentsample += bunchlength + 2;
@@ -216,6 +235,9 @@ std::string MinorAltroDecodingError::what() const noexcept
     case ErrorType_t::BUNCH_HEADER_NULL:
       result << "Bunch header 0 or not configured!";
       break;
+    case ErrorType_t::BUNCH_LENGTH_EXCEED:
+      result << "Bunch length exceeding channel payload size!";
+      break;
   };
   auto address = mChannelHeader & 0xFFF,
        payload = (mChannelHeader >> 16) & 0x3FF;
@@ -244,7 +266,10 @@ int MinorAltroDecodingError::errorTypeToInt(MinorAltroErrType errortype)
     case MinorAltroErrType::BUNCH_HEADER_NULL:
       errorNumber = 2;
       break;
-  }
+    case MinorAltroErrType::BUNCH_LENGTH_EXCEED:
+      errorNumber = 3;
+      break;
+  };
 
   return errorNumber;
 }
@@ -263,6 +288,9 @@ MinorAltroErrType MinorAltroDecodingError::intToErrorType(int errornumber)
       break;
     case 2:
       errorType = MinorAltroErrType::BUNCH_HEADER_NULL;
+      break;
+    case 3:
+      errorType = MinorAltroErrType::BUNCH_LENGTH_EXCEED;
       break;
     default:
       break;
