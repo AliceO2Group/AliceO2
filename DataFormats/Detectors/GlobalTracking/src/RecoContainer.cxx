@@ -505,6 +505,18 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   if (GTrackID::includesDet(DetID::CTP, src)) {
     requestCTPDigits(false); // RS FIXME: at the moment does not support MC
   }
+  if (GTrackID::includesDet(DetID::CPV, src)) {
+    requestCPVClusters(useMC);
+  }
+  if (GTrackID::includesDet(DetID::PHS, src)) {
+    requestPHOSCells(useMC);
+  }
+  if (GTrackID::includesDet(DetID::EMC, src)) {
+    requestEMCALCells(useMC);
+  }
+  if (GTrackID::includesDet(DetID::HMP, src)) {
+    requestHMPClusters(useMC);
+  }
   //  if (src[GTrackID::HMP]) {
   //    requestHMPMatches(useMC);
   //  }
