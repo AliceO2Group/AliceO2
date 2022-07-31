@@ -109,31 +109,48 @@ float EveWorkflowHelper::findLastMCHClusterPosition(const o2::mch::TrackMCH& tra
   return lastCluster.getZ();
 }
 
+int EveWorkflowHelper::BCDiffErrCount = 0;
+
+double EveWorkflowHelper::bcDiffToTFTimeMUS(const o2::InteractionRecord& ir)
+{
+  auto startIR = mRecoCont->startIR;
+  auto bcd = ir.differenceInBC(startIR);
+
+  if (uint64_t(bcd) > o2::constants::lhc::LHCMaxBunches * 256 && BCDiffErrCount < MAXBCDiffErrCount) {
+    LOGP(alarm, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}", bcd, ir, startIR);
+    BCDiffErrCount++;
+  }
+
+  return bcd * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+}
+
+bool EveWorkflowHelper::isInsideITSROF(const Bracket& br)
+{
+  return std::any_of(mItsROFBrackets.cbegin(), mItsROFBrackets.cend(), [&](const auto& rof) {
+    return rof.getOverlap(br).isValid();
+  });
+}
+
+bool EveWorkflowHelper::isInsideTimeBracket(const Bracket& br)
+{
+  return mTimeBracket.getOverlap(br).isValid();
+}
+
+bool EveWorkflowHelper::isInsideITSROF(float t)
+{
+  return std::any_of(mItsROFBrackets.cbegin(), mItsROFBrackets.cend(), [&](const auto& rof) {
+    return rof.isOutside(t) == Bracket::Relation::Inside;
+  });
+}
+
+bool EveWorkflowHelper::isInsideTimeBracket(float t)
+{
+  return mTimeBracket.isOutside(t) == Bracket::Relation::Inside;
+}
+
 void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
                                      GID::mask_t maskCl, GID::mask_t maskTrk, GID::mask_t maskMatch)
 {
-  std::vector<Bracket> itsROFBrackets;
-
-  if (mEnabledFilters.test(Filter::ITSROF)) {
-    const auto irFrames = getRecoContainer()->getIRFramesITS();
-
-    static int BCDiffErrCount = 0;
-    constexpr int MAXBCDiffErrCount = 5;
-
-    auto bcDiffToTFTimeMUS = [startIR = getRecoContainer()->startIR](const o2::InteractionRecord& ir) {
-      auto bcd = ir.differenceInBC(startIR);
-      if (uint64_t(bcd) > o2::constants::lhc::LHCMaxBunches * 256 && BCDiffErrCount < MAXBCDiffErrCount) {
-        LOGP(alarm, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}", bcd, ir, startIR);
-        BCDiffErrCount++;
-      }
-      return bcd * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
-    };
-
-    for (const auto& irFrame : irFrames) {
-      itsROFBrackets.emplace_back(bcDiffToTFTimeMUS(irFrame.getMin()), bcDiffToTFTimeMUS(irFrame.getMax()));
-    }
-  }
-
   auto correctTrackTime = [this](auto& _tr, float t0, float terr) {
     if constexpr (isTPCTrack<decltype(_tr)>()) {
       // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
@@ -155,18 +172,6 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
     return Bracket{t0 - terr, t0 + terr};
   };
 
-  auto isInsideITSROF = [&itsROFBrackets](const Bracket& br) {
-    for (const auto& ir : itsROFBrackets) {
-      const auto overlap = ir.getOverlap(br);
-
-      if (overlap.isValid()) {
-        return true;
-      }
-    }
-
-    return false;
-  };
-
   auto flagTime = [](float time, GID::Src_t src) {
     auto flag = static_cast<int>(time) + TIME_OFFSET;
 
@@ -178,9 +183,9 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
     return flag;
   };
 
-  auto creator = [maskTrk, this, &correctTrackTime, &isInsideITSROF, &flagTime](auto& trk, GID gid, float time, float terr) {
+  auto creator = [maskTrk, this, &correctTrackTime, &flagTime](auto& trk, GID gid, float time, float terr) {
     const auto src = gid.getSource();
-    mTotalTracks[src]++;
+    mTotalDataTypes[src]++;
 
     if (!maskTrk[src]) {
       return true;
@@ -188,7 +193,7 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
 
     auto bracket = correctTrackTime(trk, time, terr);
 
-    if (mEnabledFilters.test(Filter::TimeBracket) && mTimeBracket.getOverlap(bracket).isInvalid()) {
+    if (mEnabledFilters.test(Filter::TimeBracket) && !isInsideTimeBracket(bracket)) {
       return true;
     }
 
@@ -201,7 +206,7 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
     // If the mode is disabled,
     // add every track to a symbolic "zero" primary vertex
     if (!mPrimaryVertexMode) {
-      mPrimaryVertexGIDs[0].push_back(gid);
+      mPrimaryVertexTrackGIDs[0].push_back(gid);
     }
 
     return true;
@@ -212,13 +217,12 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
   if (mPrimaryVertexMode) {
     const auto trackIndex = mRecoCont->getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
     const auto vtxRefs = mRecoCont->getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
-    const auto totalPrimaryVertices = vtxRefs.size() - 1;              // The last entry is for unassigned tracks, ignore them
+    const auto totalPrimaryVertices = vtxRefs.size() - 1;               // The last entry is for unassigned tracks, ignore them
 
     for (std::size_t iv = 0; iv < totalPrimaryVertices; iv++) {
       const auto& vtref = vtxRefs[iv];
-      int it = vtref.getFirstEntry(), itLim = it + vtref.getEntries();
-      for (; it < itLim; it++) {
-        const auto tvid = trackIndex[it];
+      const gsl::span tracksForVertex(trackIndex.data() + vtref.getFirstEntry(), vtref.getEntries());
+      for (const auto& tvid : tracksForVertex) {
 
         if (!mRecoCont->isTrackSourceLoaded(tvid.getSource())) {
           continue;
@@ -228,90 +232,195 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
 
         // If a track was not rejected, associate it with its primary vertex
         if (mGIDTrackTime.find(tvid) != mGIDTrackTime.end()) {
-          mPrimaryVertexGIDs[iv].push_back(tvid);
+          mPrimaryVertexTrackGIDs[iv].push_back(tvid);
         }
       }
     }
   }
 }
 
-void EveWorkflowHelper::draw(std::size_t primaryVertexIdx, bool sortTracks)
+void EveWorkflowHelper::selectTowers()
 {
-  auto unflagTime = [](unsigned int time) {
-    return static_cast<float>(static_cast<int>(time & ~(1 << 31)) - TIME_OFFSET);
+  const auto& allTriggersPHOS = mRecoCont->getPHOSTriggers();
+  const auto& allTriggersEMCAL = mRecoCont->getEMCALTriggers();
+
+  auto filterTrigger = [&](const auto& trig) {
+    const auto time = bcDiffToTFTimeMUS(trig.getBCData());
+
+    if (mEnabledFilters.test(Filter::TimeBracket) && !isInsideTimeBracket(time)) {
+      return false;
+    }
+
+    if (mEnabledFilters.test(Filter::ITSROF) && !isInsideITSROF(time)) {
+      return false;
+    }
+
+    return true;
   };
 
-  auto& tracks = mPrimaryVertexGIDs.at(primaryVertexIdx);
+  if (mPrimaryVertexMode) {
+    const auto trackIndex = mRecoCont->getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
+    const auto vtxRefs = mRecoCont->getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
+    const auto totalPrimaryVertices = vtxRefs.size() - 1;               // The last entry is for unassigned tracks, ignore them
 
-  if (sortTracks) {
-    std::sort(tracks.begin(), tracks.end(),
-              [&](const GID& a, const GID& b) {
-                return mGIDTrackTime.at(a) < mGIDTrackTime.at(b);
-              });
+    for (std::size_t iv = 0; iv < totalPrimaryVertices; iv++) {
+      const auto& vtref = vtxRefs[iv];
+
+      const auto triggersPHOS = gsl::span(trackIndex.data() + vtref.getFirstEntryOfSource(GID::PHS), vtref.getEntriesOfSource(GID::PHS));
+
+      for (const auto& tvid : triggersPHOS) {
+        mTotalDataTypes[GID::PHS]++;
+        const auto& trig = allTriggersPHOS[tvid.getIndex()];
+
+        if (filterTrigger(trig)) {
+          mPrimaryVertexTriggerGIDs[iv].emplace_back(tvid);
+        }
+      }
+
+      const auto triggersEMCAL = gsl::span(trackIndex.data() + vtref.getFirstEntryOfSource(GID::EMC), vtref.getEntriesOfSource(GID::EMC));
+
+      for (const auto& tvid : triggersEMCAL) {
+        mTotalDataTypes[GID::EMC]++;
+        const auto& trig = allTriggersEMCAL[tvid.getIndex()];
+
+        if (filterTrigger(trig)) {
+          mPrimaryVertexTriggerGIDs[iv].emplace_back(tvid);
+        }
+      }
+    }
+  } else {
+    for (std::size_t i = 0; i < allTriggersPHOS.size(); i++) {
+      mTotalDataTypes[GID::PHS]++;
+      const auto& trig = allTriggersPHOS[i];
+
+      if (filterTrigger(trig)) {
+        mPrimaryVertexTriggerGIDs[0].emplace_back(GID{static_cast<unsigned int>(i), GID::PHS});
+      }
+    }
+
+    for (std::size_t i = 0; i < allTriggersEMCAL.size(); i++) {
+      mTotalDataTypes[GID::EMC]++;
+      const auto& trig = allTriggersEMCAL[i];
+
+      if (filterTrigger(trig)) {
+        mPrimaryVertexTriggerGIDs[0].emplace_back(GID{static_cast<unsigned int>(i), GID::EMC});
+      }
+    }
+  }
+}
+
+void EveWorkflowHelper::setITSROFs()
+{
+  if (mEnabledFilters.test(Filter::ITSROF)) {
+    const auto& irFrames = mRecoCont->getIRFramesITS();
+
+    for (const auto& irFrame : irFrames) {
+      mItsROFBrackets.emplace_back(bcDiffToTFTimeMUS(irFrame.getMin()), bcDiffToTFTimeMUS(irFrame.getMax()));
+    }
+  }
+}
+
+void EveWorkflowHelper::draw(std::size_t primaryVertexIdx, bool sortTracks)
+{
+  if (mPrimaryVertexTrackGIDs.find(primaryVertexIdx) == mPrimaryVertexTrackGIDs.end()) {
+    LOGF(info, "Primary vertex %d has no tracks", primaryVertexIdx);
+  } else {
+    auto unflagTime = [](unsigned int time) {
+      return static_cast<float>(static_cast<int>(time & ~(1 << 31)) - TIME_OFFSET);
+    };
+
+    auto& tracks = mPrimaryVertexTrackGIDs.at(primaryVertexIdx);
+
+    if (sortTracks) {
+      std::sort(tracks.begin(), tracks.end(),
+                [&](const GID& a, const GID& b) {
+                  return mGIDTrackTime.at(a) < mGIDTrackTime.at(b);
+                });
+    }
+
+    auto trackCount = tracks.size();
+
+    if (mEnabledFilters.test(Filter::TotalNTracks) && trackCount >= mMaxNTracks) {
+      trackCount = mMaxNTracks;
+    }
+
+    for (std::size_t it = 0; it < trackCount; it++) {
+      const auto& gid = tracks[it];
+      auto tim = unflagTime(mGIDTrackTime.at(gid));
+      mTotalAcceptedDataTypes.insert(gid);
+      // LOG(info) << "EveWorkflowHelper::draw " << gid.asString();
+      switch (gid.getSource()) {
+        case GID::ITS:
+          drawITS(gid, tim);
+          break;
+        case GID::TPC:
+          drawTPC(gid, tim);
+          break;
+        case GID::MFT:
+          drawMFT(gid, tim);
+          break;
+        case GID::MCH:
+          drawMCH(gid, tim);
+          break;
+        case GID::MID:
+          drawMID(gid, tim);
+          break;
+        case GID::ITSTPC:
+          drawITSTPC(gid, tim);
+          break;
+        case GID::TPCTOF:
+          drawTPCTOF(gid, tim);
+          break;
+        case GID::TPCTRD:
+          drawTPCTRD(gid, tim);
+          break;
+        case GID::MFTMCH:
+          drawMFTMCH(gid, tim);
+          break;
+        case GID::MFTMCHMID:
+          drawMFTMCHMID(gid, tim);
+          break;
+        case GID::ITSTPCTRD:
+          drawITSTPCTRD(gid, tim);
+          break;
+        case GID::ITSTPCTOF:
+          drawITSTPCTOF(gid, tim);
+          break;
+        case GID::TPCTRDTOF:
+          drawTPCTRDTOF(gid, tim);
+          break;
+        case GID::ITSTPCTRDTOF:
+          drawITSTPCTRDTOF(gid, tim);
+          break;
+        case GID::MCHMID:
+          drawMCHMID(gid, tim);
+          break;
+        default:
+          LOGF(info, "Track type %s not handled", gid.getSourceName());
+          break;
+      }
+    }
   }
 
-  this->drawPHOS();
-  this->drawEMCAL();
+  if (mPrimaryVertexTriggerGIDs.find(primaryVertexIdx) == mPrimaryVertexTriggerGIDs.end()) {
+    LOGF(info, "Primary vertex %d has no triggers", primaryVertexIdx);
+  } else {
+    const auto& triggers = mPrimaryVertexTriggerGIDs.at(primaryVertexIdx);
 
-  auto trackCount = tracks.size();
-
-  if (mEnabledFilters.test(Filter::TotalNTracks) && trackCount >= mMaxNTracks) {
-    trackCount = mMaxNTracks;
-  }
-
-  for (size_t it = 0; it < trackCount; it++) {
-    const auto& gid = tracks[it];
-    auto tim = unflagTime(mGIDTrackTime.at(gid));
-    mTotalAcceptedTracks.insert(gid);
-    // LOG(info) << "EveWorkflowHelper::draw " << gid.asString();
-    switch (gid.getSource()) {
-      case GID::ITS:
-        drawITS(gid, tim);
-        break;
-      case GID::TPC:
-        drawTPC(gid, tim);
-        break;
-      case GID::MFT:
-        drawMFT(gid, tim);
-        break;
-      case GID::MCH:
-        drawMCH(gid, tim);
-        break;
-      case GID::MID:
-        drawMID(gid, tim);
-        break;
-      case GID::ITSTPC:
-        drawITSTPC(gid, tim);
-        break;
-      case GID::TPCTOF:
-        drawTPCTOF(gid, tim);
-        break;
-      case GID::TPCTRD:
-        drawTPCTRD(gid, tim);
-        break;
-      case GID::MFTMCH:
-        drawMFTMCH(gid, tim);
-        break;
-      case GID::MFTMCHMID:
-        drawMFTMCHMID(gid, tim);
-        break;
-      case GID::ITSTPCTRD:
-        drawITSTPCTRD(gid, tim);
-        break;
-      case GID::ITSTPCTOF:
-        drawITSTPCTOF(gid, tim);
-        break;
-      case GID::TPCTRDTOF:
-        drawTPCTRDTOF(gid, tim);
-        break;
-      case GID::ITSTPCTRDTOF:
-        drawITSTPCTRDTOF(gid, tim);
-        break;
-      case GID::MCHMID:
-        drawMCHMID(gid, tim);
-        break;
-      default:
-        LOG(info) << "Track type " << gid.getSource() << " not handled";
+    for (std::size_t it = 0; it < triggers.size(); it++) {
+      const auto& gid = triggers[it];
+      mTotalAcceptedDataTypes.insert(gid);
+      switch (gid.getSource()) {
+        case GID::PHS:
+          drawPHS(gid);
+          break;
+        case GID::EMC:
+          drawEMC(gid);
+          break;
+        default:
+          LOGF(info, "Trigger type %s not handled", gid.getSourceName());
+          break;
+      }
     }
   }
 }
@@ -441,20 +550,26 @@ void EveWorkflowHelper::prepareMFTClusters(const o2::itsmft::TopologyDictionary*
   }
 }
 
-void EveWorkflowHelper::drawPHOS()
+void EveWorkflowHelper::drawPHS(GID gid)
 {
-  for (auto phos : mRecoCont->getPHOSCells()) {
-    char relativeLocalPositionInModule[3]; // relative (local) position within module
+  const auto& cells = mRecoCont->getPHOSCells();
+
+  const auto& trig = mRecoCont->getPHOSTriggers()[gid.getIndex()];
+  const auto time = bcDiffToTFTimeMUS(trig.getBCData());
+  const gsl::span cellsForTrigger(cells.data() + trig.getFirstEntry(), trig.getNumberOfObjects());
+
+  for (const auto& cell : cellsForTrigger) {
+    std::array<char, 3> relativeLocalPositionInModule; // relative (local) position within module
     float x, z;
-    o2::phos::Geometry::absToRelNumbering(phos.getAbsId(), relativeLocalPositionInModule);
-    o2::phos::Geometry::absIdToRelPosInModule(phos.getAbsId(), x, z);
+    o2::phos::Geometry::absToRelNumbering(cell.getAbsId(), relativeLocalPositionInModule.data());
+    o2::phos::Geometry::absIdToRelPosInModule(cell.getAbsId(), x, z);
     TVector3 gPos;
 
     // convert local position in module to global position in ALICE including actual mis-aslignment read with GetInstance("Run3")
     this->mPHOSGeom->local2Global(relativeLocalPositionInModule[0], x, z, gPos);
 
-    auto vCalo = mEvent.addCalo({.time = static_cast<float>(phos.getTime()),
-                                 .energy = phos.getEnergy(),
+    auto vCalo = mEvent.addCalo({.time = static_cast<float>(time),
+                                 .energy = cell.getEnergy(),
                                  .phi = (float)gPos.Phi(),
                                  .eta = (float)gPos.Eta(),
                                  .PID = 0,
@@ -463,57 +578,29 @@ void EveWorkflowHelper::drawPHOS()
   }
 }
 
-void EveWorkflowHelper::drawEMCAL()
+void EveWorkflowHelper::drawEMC(GID gid)
 {
-  // LOG(info) <<  mRecoCont->getEMCALCells().size() << "----------------------------------------------------------------------------- !mRecoCont->getEMCALCells().size()";
-  auto triggers = mRecoCont->getEMCALTriggers();
-  for (auto trigger : triggers) {
-    // trigger.getBCData().toLong() // timestamp in ns
-    // trigger.getFirstEntry()
-    // trigger.getFirstEntry() range in the emcal cell vector in RecoContainer
-    //   this will be towers belongs to BC (the same for emcal/phos) ++mattermost
-  }
+  const auto& cells = mRecoCont->getEMCALCells();
 
-  for (auto emcal : mRecoCont->getEMCALCells()) {
-    int id = emcal.getTower();
-    // supermodule ID, module number, index of cell in module in phi, index of cell in module in eta
-    auto index = this->mEMCALGeom->GetCellIndex(id);
+  const auto& trig = mRecoCont->getEMCALTriggers()[gid.getIndex()];
+  const auto time = bcDiffToTFTimeMUS(trig.getBCData());
+  const gsl::span cellsForTrigger(cells.data() + trig.getFirstEntry(), trig.getNumberOfObjects());
+
+  for (const auto& cell : cellsForTrigger) {
+    const auto id = cell.getTower();
     // Point3D with x,y,z coordinates of cell with absId inside SM
-    auto relPosCell = this->mEMCALGeom->RelPosCellInSModule(id);
-    TGeoNode* node = gGeoManager->GetTopVolume()->FindNode("XEN1");
-    auto nSupermodules = this->mEMCALGeom->GetNumberOfSuperModules();
-    auto fPhiTileSize = this->mEMCALGeom->GetPhiTileSize();
-    auto fEtaTileSize = this->mEMCALGeom->GetEtaTileSize();
-    auto sm = std::get<0>(index);
-    auto module_number = std::get<1>(index);
-    auto index_module_phi = std::get<2>(index);
-    auto index_module_eta = std::get<3>(index);
+    const auto relPosCell = this->mEMCALGeom->RelPosCellInSModule(id);
+    std::array<double, 3> rPos{relPosCell.X(), relPosCell.Y(), relPosCell.Z()};
+    std::array<double, 3> gPos{};
 
-    const TGeoHMatrix* matrix = this->mEMCALGeom->GetMatrixForSuperModuleFromGeoManager(sm);
-    const Double_t* translation = matrix->GetTranslation();
-    const Double_t* rotation = matrix->GetRotationMatrix();
+    // supermodule ID, module number, index of cell in module in phi, index of cell in module in eta
+    const auto& [sm_id, module_number, index_module_phi, index_module_eta] = this->mEMCALGeom->GetCellIndex(id);
+    const auto matrix = this->mEMCALGeom->GetMatrixForSuperModuleFromGeoManager(sm_id);
+    matrix->LocalToMaster(rPos.data(), gPos.data());
+    TVector3 vPos(gPos.data());
 
-    /*
-    LOG(info) << "EMCAL -----------------------------------------------------------------------------------------------";
-    LOG(info) << "EMCAL               id: "<< id  <<            "                  emcal.getTower()";
-    LOG(info) << "EMCAL       relPosCell: "<< relPosCell  <<    "                  this->mEMCALGeom->RelPosCellInSModule(id);";
-    LOG(info) << "EMCAL    nSupermodules: "<< nSupermodules  << "                  this->mEMCALGeom->GetNumberOfSuperModules()";
-    LOG(info) << "EMCAL     fPhiTileSize: "<< fPhiTileSize <<   "                  this->mEMCALGeom->GetPhiTileSize()";
-    LOG(info) << "EMCAL     fEtaTileSize: "<< fEtaTileSize <<   "                  this->mEMCALGeom->GetEtaTileSize();" ;
-    LOG(info) << "EMCAL             node: "<< node ;
-    LOG(info) << "EMCAL               sm: "<< sm ;
-    LOG(info) << "EMCAL    module_number: "<< module_number ;
-    LOG(info) << "EMCAL index_module_phi: "<< index_module_phi ;
-    LOG(info) << "EMCAL index_module_eta: "<< index_module_eta ;
-    LOG(info) << "EMCAL      translation: "<< "["<<translation[0]<<","<<translation[1]<<","<<translation[2]<<"]"  ;
-    */
-    double rPos[] = {relPosCell.X(), relPosCell.Y(), relPosCell.Z()};
-    double gPos[3];
-    matrix->LocalToMaster(rPos, gPos);
-    TVector3 vPos(gPos);
-
-    auto vCalo = mEvent.addCalo({.time = static_cast<float>(emcal.getTimeStamp()),
-                                 .energy = emcal.getEnergy(),
+    auto vCalo = mEvent.addCalo({.time = static_cast<float>(time),
+                                 .energy = cell.getEnergy(),
                                  .phi = (float)vPos.Phi(),
                                  .eta = (float)vPos.Eta(),
                                  .PID = 0,
@@ -863,8 +950,8 @@ void EveWorkflowHelper::drawMCH(GID gid, float trackTime)
 void EveWorkflowHelper::drawMCHClusters(GID gid, float trackTime)
 {
   const auto& mchTrack = mRecoCont->getMCHTrack(gid);
-  auto noOfClusters = mchTrack.getNClusters();               // number of clusters in MCH Track
-  auto offset = mchTrack.getFirstClusterIdx();               // first external cluster index offset:
+  auto noOfClusters = mchTrack.getNClusters();                // number of clusters in MCH Track
+  auto offset = mchTrack.getFirstClusterIdx();                // first external cluster index offset:
   const auto& mchClusters = mRecoCont->getMCHTrackClusters(); // list of references to clusters, offset:offset+no
   for (int icl = noOfClusters - 1; icl > -1; --icl) {
     const auto& cluster = mchClusters[offset + icl];
@@ -965,7 +1052,7 @@ EveWorkflowHelper::EveWorkflowHelper(const FilterSet& enabledFilters, std::size_
   mPVParams = &o2::vertexing::PVertexerParams::Instance();
 
   for (int i = 0; i < GID::Source::NSources; i++) {
-    mTotalTracks[i] = 0;
+    mTotalDataTypes[i] = 0;
   }
 }
 
