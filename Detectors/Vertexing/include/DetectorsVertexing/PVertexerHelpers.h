@@ -200,6 +200,8 @@ struct TrackVF {
     sigYZI = -src.getSigmaZY() * detI;
     wghHisto = 1. / ((src.getSigmaZ2() + addHZErr2) * (t_est.getTimeStampError() * t_est.getTimeStampError() + addHTErr2));
   }
+
+  ClassDefNV(TrackVF, 1);
 };
 
 struct SeedHistoTZ : public o2::dataformats::FlatHisto2D_f {

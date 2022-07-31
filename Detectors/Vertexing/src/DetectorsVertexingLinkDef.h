@@ -34,6 +34,9 @@
 #pragma link C++ class o2::vertexing::TrackVFDump + ;
 #pragma link C++ class std::vector < o2::vertexing::TrackVFDump> + ;
 
+#pragma link C++ class o2::vertexing::TrackVF + ;
+#pragma link C++ class std::vector < o2::vertexing::TrackVF> + ;
+
 #pragma link C++ class o2::vertexing::PVtxCompDump + ;
 #pragma link C++ class std::vector < o2::vertexing::PVtxCompDump> + ;
 
