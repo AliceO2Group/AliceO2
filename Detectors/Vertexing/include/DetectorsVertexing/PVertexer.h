@@ -34,6 +34,7 @@
 #include <numeric>
 #include <TTree.h>
 #include <TFile.h>
+#include <TStopwatch.h>
 
 //TODO: MeanVertex and parameters input from CCDB
 
@@ -103,6 +104,19 @@ class PVertexer
 
   PVertex refitVertex(const std::vector<bool> useTrack, const o2d::VertexBase& vtxSeed);
 
+  auto getNTZClusters() const { return mNTZClustersIni; }
+  auto getTotTrials() const { return mTotTrials; }
+  auto getMaxTrialsPerCluster() const { return mMaxTrialPerCluster; }
+  auto getLongestClusterMult() const { return mLongestClusterMult; }
+  auto getLongestClusterTimeMS() const { return mLongestClusterTimeMS; }
+
+  TStopwatch& getTimeDBScan() { return mTimeDBScan; }
+  TStopwatch& getTimeVertexing() { return mTimeVertexing; }
+  TStopwatch& getTimeDebris() { return mTimeDebris; }
+  TStopwatch& getTimeReAttach() { return mTimeReAttach; }
+
+  void setPoolDumpDirectory(const std::string& d) { mPoolDumpDirectory = d; }
+
  private:
   static constexpr int DBS_UNDEF = -2, DBS_NOISE = -1, DBS_INCHECK = -10;
 
@@ -138,6 +152,7 @@ class PVertexer
   void doDBScanDump(const VertexingInput& input, gsl::span<const o2::MCCompLabel> lblTracks);
   void doVtxDump(std::vector<PVertex>& vertices, std::vector<uint32_t> trackIDsLoc, std::vector<V2TRef>& v2tRefsLoc, gsl::span<const o2::MCCompLabel> lblTracks);
   void doDBGPoolDump(gsl::span<const o2::MCCompLabel> lblTracks);
+  void dumpPool();
 
   o2::BunchFilling mBunchFilling;
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove{-1}; // closest filled bunch from above, 1st element -1 to disable usage by default
@@ -165,7 +180,17 @@ class PVertexer
   static constexpr float kHugeF = 1.e12;     ///< very large float
   static constexpr float kAlmost0F = 1e-12;  ///< tiny float
   static constexpr double kAlmost0D = 1e-16; ///< tiny double
-
+  size_t mNTZClustersIni = 0;
+  size_t mTotTrials = 0;
+  size_t mMaxTrialPerCluster = 0;
+  long mLongestClusterTimeMS = 0;
+  int mLongestClusterMult = 0;
+  bool mPoolDumpProduced = false;
+  TStopwatch mTimeDBScan;
+  TStopwatch mTimeVertexing;
+  TStopwatch mTimeDebris;
+  TStopwatch mTimeReAttach;
+  std::string mPoolDumpDirectory{};
 #ifdef _PV_DEBUG_TREE_
   std::unique_ptr<TFile> mDebugDumpFile;
   std::unique_ptr<TTree> mDebugDBScanTree;
