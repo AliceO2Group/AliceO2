@@ -88,7 +88,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
       throw std::runtime_error(fmt::format("unknown raw data dump level {} requested", mDumpOnError));
     }
     auto dumpDir = ic.options().get<std::string>("raw-data-dumps-directory");
-    if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE) && o2::utils::Str::pathIsDirectory(dumpDir)) {
+    if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE) && (!dumpDir.empty() && !o2::utils::Str::pathIsDirectory(dumpDir))) {
       throw std::runtime_error(fmt::format("directory {} for raw data dumps does not exist", dumpDir));
     }
     mDecoder->setRawDumpDirectory(dumpDir);
