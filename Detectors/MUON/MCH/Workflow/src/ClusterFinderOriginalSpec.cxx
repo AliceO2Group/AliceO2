@@ -58,6 +58,7 @@ class ClusterFinderOriginalTask
     /// Prepare the clusterizer
     LOG(info) << "initializing cluster finder";
 
+    auto tStart = std::chrono::high_resolution_clock::now();
     auto config = ic.options().get<std::string>("mch-config");
     if (!config.empty()) {
       o2::conf::ConfigurableParam::updateFromFile(config, "MCHClustering", true);
@@ -67,9 +68,15 @@ class ClusterFinderOriginalTask
 
     mAttachInitalPrecluster = ic.options().get<bool>("attach-initial-precluster");
 
+    auto tEnd = std::chrono::high_resolution_clock::now();
+    mTimeInit = tEnd - tStart;
+
     /// Print the timer and clear the clusterizer when the processing is over
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, [this]() {
-      LOG(info) << "cluster finder duration = " << mTimeClusterFinder.count() << " s";
+      LOG(info) << "cluster finder initialization   = " << mTimeInit.count() << " s";
+      LOG(info) << "cluster finder total duration   = " << mTimeClusterFinder.count() << " s in " << mTFcount << " time  frames";
+      LOG(info) << "cluster finder average duration = "
+                << ((mTFcount > 0) ? (mTimeClusterFinder.count() / mTFcount) : 0.0) << " s / TF";
       this->mClusterFinder.deinit();
     });
   }
@@ -123,6 +130,8 @@ class ClusterFinderOriginalTask
                                preClusterROF.getBCWidth());
     }
 
+    mTFcount += 1;
+
     LOGP(info, "Found {:4d} clusters from {:4d} preclusters in {:2d} ROFs",
          clusters.size(), preClusters.size(), preClusterROFs.size());
   }
@@ -172,7 +181,9 @@ class ClusterFinderOriginalTask
 
   bool mAttachInitalPrecluster = false;               ///< attach all digits of initial precluster to cluster
   ClusterFinderOriginal mClusterFinder{};             ///< clusterizer
+  std::chrono::duration<double> mTimeInit{};          ///< timer
   std::chrono::duration<double> mTimeClusterFinder{}; ///< timer
+  int mTFcount{};                                     ///< number of processed TF
 };
 
 //_________________________________________________________________________________________________
