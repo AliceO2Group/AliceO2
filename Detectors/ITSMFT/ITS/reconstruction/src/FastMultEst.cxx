@@ -16,10 +16,26 @@
 #include "ITSReconstruction/FastMultEst.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "Framework/Logger.h"
+#include <ctime>
 #include <cstring>
 #include <TRandom.h>
 
 using namespace o2::its;
+
+bool FastMultEst::sSeedSet = false;
+
+///______________________________________________________
+FastMultEst::FastMultEst()
+{
+  if (!sSeedSet && FastMultEstConfig::Instance().cutRandomFraction > 0.f) {
+    sSeedSet = true;
+    if (FastMultEstConfig::Instance().randomSeed > 0) {
+      gRandom->SetSeed(FastMultEstConfig::Instance().randomSeed);
+    } else if (FastMultEstConfig::Instance().randomSeed < 0) {
+      gRandom->SetSeed(std::time(nullptr) % 0xffff);
+    }
+  }
+}
 
 ///______________________________________________________
 /// find multiplicity for given set of clusters
@@ -137,7 +153,7 @@ int FastMultEst::selectROFs(const gsl::span<const o2::itsmft::ROFRecord> rofs, c
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   sel.clear();
   sel.resize(nrof, true); // by default select all
-
+  lastRandomSeed = gRandom->GetSeed();
   if (multEstConf.isMultCutRequested()) {
     for (uint32_t irof = 0; irof < nrof; irof++) {
       nsel += sel[irof] = multEstConf.isPassingMultCut(process(rofs[irof].getROFData(clus)));
@@ -180,6 +196,7 @@ int FastMultEst::selectROFs(const gsl::span<const o2::itsmft::ROFRecord> rofs, c
     } else { // dummy random rejection
       for (int irof = 0; irof < nrof; irof++) {
         if (sel[irof]) {
+          float sr = gRandom->Rndm();
           if (gRandom->Rndm() < multEstConf.cutRandomFraction) {
             sel[irof] = false;
             nsel--;
@@ -188,7 +205,7 @@ int FastMultEst::selectROFs(const gsl::span<const o2::itsmft::ROFRecord> rofs, c
       }
     }
   }
-  LOGP(debug, "NSel = {} of {} rofs", nsel, nrof);
+  LOGP(debug, "NSel = {} of {} rofs Seeds: before {} after {}", nsel, nrof, lastRandomSeed, gRandom->GetSeed());
 
   return nsel;
 }
