@@ -315,8 +315,10 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
     const auto& tracksPool = mTracksPool[pn];
     for (unsigned i = 0; i < tracksPool.size(); i++) {
       const auto& t = tracksPool[i];
-      if (vtxFirstT[t.vBracket.getMin()] == -1) {
-        vtxFirstT[t.vBracket.getMin()] = i;
+      for (int j{t.vBracket.getMin()}; j <= t.vBracket.getMax(); ++j) {
+        if (vtxFirstT[j] == -1) {
+          vtxFirstT[j] = i;
+        }
       }
     }
   }
