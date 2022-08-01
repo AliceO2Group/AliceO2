@@ -272,18 +272,27 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         }
         continue;
       }
-      if (mCreateRawDataErrors) {
-        for (auto minorerror : decoder.getMinorDecodingErrors()) {
-          if (mNumErrorMessages < mMaxErrorMessages) {
-            LOG(warning) << " EMCAL raw task - Minor error in DDL " << feeID << ": " << minorerror.what();
-            mNumErrorMessages++;
-            if (mNumErrorMessages == mMaxErrorMessages) {
-              LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
-            }
-          } else {
-            mErrorMessagesSuppressed++;
+      for (auto minorerror : decoder.getMinorDecodingErrors()) {
+        if (mNumErrorMessages < mMaxErrorMessages) {
+          LOG(warning) << " EMCAL raw task - Minor error in DDL " << feeID << ": " << minorerror.what();
+          mNumErrorMessages++;
+          if (mNumErrorMessages == mMaxErrorMessages) {
+            LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
           }
-          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::MINOR_ALTRO_ERROR, MinorAltroDecodingError::errorTypeToInt(minorerror.getErrorType()), -1, -1);
+        } else {
+          mErrorMessagesSuppressed++;
+        }
+        if (mCreateRawDataErrors) {
+          int fecID = -1, hwaddress = -1;
+          try {
+            hwaddress = Channel::getHardwareAddressFromChannelHeader(minorerror.getChannelHeader());
+            fecID = mMapper->getFEEForChannelInDDL(feeID, Channel::getFecIndexFromHwAddress(hwaddress), Channel::getBranchIndexFromHwAddress(hwaddress));
+          } catch (Mapper::AddressNotFoundException& e) {
+            // Unfortunately corrupted FEC IDs will not have useful information, so we need to initalize with -1
+          } catch (MappingHandler::DDLInvalid& e) {
+            // Unfortunately corrupted FEC IDs will not have useful information, so we need to initalize with -1
+          }
+          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::MINOR_ALTRO_ERROR, MinorAltroDecodingError::errorTypeToInt(minorerror.getErrorType()), fecID, hwaddress);
           mOutputDecoderErrors.push_back(errornum);
         }
       }
