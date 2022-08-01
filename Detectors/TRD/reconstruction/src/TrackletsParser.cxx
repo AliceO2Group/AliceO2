@@ -230,15 +230,16 @@ int TrackletsParser::Parse()
         if (mOptions[TRDHeaderVerboseBit]) {
           LOG(info) << "*** TrackletHCHeader : 0x" << std::hex << *word << " at offset :0x" << std::distance(mStartParse, word);
         }
+
         // we actually have a header word.
         mTrackletHCHeader.word = *word;
+
         // sanity check of trackletheader ??
         if (!sanityCheckTrackletHCHeader(mTrackletHCHeader)) {
           incParsingError(TRDParsingTrackletHCHeaderSanityCheckFailure);
-          LOG(warn) << " sanity check failure on TracklHCHeader of 0x" << std::hex << mTrackletHCHeader.word;
-          // sanityCheckTrackletHCHeader(mTrackletHCHeader,true);
-          // now dump and run
+          LOG(warn) << " sanity check failure on TrackletHCHeader of 0x" << std::hex << mTrackletHCHeader.word;
         }
+
         mWordsRead++;
         mState = StateTrackletMCMHeader;                                      // now we should read a MCMHeader next time through loop
       } else {                                                                // not TrackletHCHeader
