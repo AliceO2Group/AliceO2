@@ -30,5 +30,7 @@
 #pragma link C++ class o2::emcal::ElmbData + ;
 #pragma link C++ class o2::emcal::ElmbMeasurement + ;
 #pragma link C++ class o2::emcal::EMCALChannelScaleFactors + ;
+#pragma link C++ class o2::emcal::EnergyIntervals + ;
+#pragma link C++ class std::map < o2::emcal::EnergyIntervals, float> + ;
 
 #endif
