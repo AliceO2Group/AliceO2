@@ -21,6 +21,7 @@
 #include <iostream>
 #include <memory>
 #include "FairLogger.h"
+#include <nlohmann/json.hpp>
 
 using namespace o2::itsmft;
 using namespace std;
@@ -37,7 +38,7 @@ void AlpideSimResponse::initData(int tableNumber)
    */
   if (tableNumber == 0) // 0V back bias
   {
-    const std::string newDataPath = mDataPath + "Vbb-0.0V"; 
+    const std::string newDataPath = mDataPath + "Vbb-0.0V";
     setDataPath(newDataPath);                               // setting the new data path
   } else if (tableNumber == 1)                              // -3V back bias
   {
@@ -104,15 +105,19 @@ void AlpideSimResponse::initData(int tableNumber)
   mDptMax = -2.e9;
   mDptMin = 2.e9;
   const int npix = AlpideRespSimMat::getNPix();
+  std::string jsonFile = mDataPath + "charge_collection_tables.json";
+  inpGrid.open(jsonFile, std::ifstream::in);
+  if (inpGrid.fail()) {
+    LOG(fatal) << "Failed to open file " << "charge_collection_tables.json";
+  }
+  nlohmann::json j;	// declare JSON object
+  inpGrid >> j; // affect the elements of the JSON file to the JSON object
+  inpGrid.close();
 
   for (int ix = 0; ix < mNBinCol; ix++) {
     for (int iy = 0; iy < mNBinRow; iy++) {
       inpfname = composeDataName(ix, iy);
-      inpGrid.open(inpfname, std::ifstream::in);
-      if (inpGrid.fail()) {
-        LOG(fatal) << "Failed to open file " << inpfname;
-      }
-      inpGrid >> nz;
+      nz = j[inpfname]["nz"];
       if (cnt == 0) {
         mNBinDpt = nz;
         dataSize = mNBinCol * mNBinRow * mNBinDpt;
@@ -128,16 +133,18 @@ void AlpideSimResponse::initData(int tableNumber)
 
         std::array<float, AlpideRespSimMat::MatSize>* arr = mat.getArray();
         for (int ip = 0; ip < npix * npix; ip++) {
-          inpGrid >> val;
+          val = j[inpfname][std::to_string(iz)]["val"][ip];
           (*arr)[ip] = val;
           cnt++;
         }
-        inpGrid >> lost >> dead >> untrck >> nele >> gx >> gy >> gz;
+        lost = j[inpfname][std::to_string(iz)]["lost"];
+        dead = j[inpfname][std::to_string(iz)]["dead"];
+        untrck = j[inpfname][std::to_string(iz)]["untrck"];
+        nele = j[inpfname][std::to_string(iz)]["nele"];
+        gx = j[inpfname][std::to_string(iz)]["gx"];
+        gy = j[inpfname][std::to_string(iz)]["gy"];
+        gz = j[inpfname][std::to_string(iz)]["gz"];
 
-        if (inpGrid.bad()) {
-          LOG(fatal) << "Failed reading data for depth(Z) slice " << iz << " from "
-                     << inpfname;
-        }
         if (!nele) {
           LOG(fatal) << "Wrong normalization Nele=" << nele << "for  depth(Z) slice "
                      << iz << " from " << inpfname;
@@ -157,9 +164,6 @@ void AlpideSimResponse::initData(int tableNumber)
         }
         mData.push_back(mat); // store in the final container
       }                       // loop over z
-
-      inpGrid.close();
-
     } // loop over y
   }   // loop over x
 
@@ -208,7 +212,7 @@ string AlpideSimResponse::composeDataName(int colBin, int rowBin)
   size_t size = snprintf(nullptr, 0, mColRowDataFmt.data(), vcol, vrow) + 1;
   unique_ptr<char[]> tmp(new char[size]);
   snprintf(tmp.get(), size, mColRowDataFmt.data(), vcol, vrow);
-  return mDataPath + string(tmp.get(), tmp.get() + size - 1);
+  return string(tmp.get(), tmp.get() + size - 1);
 }
 
 //____________________________________________________________
