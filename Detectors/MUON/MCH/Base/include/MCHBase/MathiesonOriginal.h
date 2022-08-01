@@ -40,9 +40,53 @@ class MathiesonOriginal
   void setSqrtKx3AndDeriveKx2Kx4(float sqrtKx3);
   void setSqrtKy3AndDeriveKy2Ky4(float sqrtKy3);
 
+  void setFastIntegral(bool fastIntegral) { mFastIntegral = fastIntegral; }
+
+  void init();
+
   float integrate(float xMin, float yMin, float xMax, float yMax) const;
 
  private:
+  struct LUT
+  {
+    LUT() = default;
+    LUT(int size, double min, double max);
+    ~LUT();
+    void init(int size, double min, double max);
+    double getX(int i) const { return ((mStep * i) + mMin); }
+    double getY(int j) const { return ((mStep * j) + mMin); }
+    void set(int i, int j, double val)
+    {
+      if(mSize > 0) {
+        mTable[j][i] = val;
+      }
+    }
+    bool get(double x, double y, double& val) const;
+    bool isIncluded(double x, double y) const
+    {
+      if (x <= mMin || x >= mMax) {
+        return false;
+      }
+      if (y <= mMin || y >= mMax) {
+        return false;
+      }
+      return true;
+    }
+
+
+    //std::vector<std::vector<double>> mTable{};
+    double** mTable{ nullptr };
+    int mSize{ 0 };
+    double mMin{ 0 };
+    double mMax{ 0 };
+    double mStep{ 0 };
+    double mInverseStep{ 0 };
+    double mInverseWidth{ 0 };
+  } mLUT;
+
+  float integrateAnalytic(float xMin, float yMin, float xMax, float yMax) const;
+  float integrateLUT(float xMin, float yMin, float xMax, float yMax) const;
+
   float mSqrtKx3 = 0.;      ///< Mathieson Sqrt(Kx3)
   float mKx2 = 0.;          ///< Mathieson Kx2
   float mKx4 = 0.;          ///< Mathieson Kx4 = Kx1/Kx2/Sqrt(Kx3)
@@ -50,6 +94,8 @@ class MathiesonOriginal
   float mKy2 = 0.;          ///< Mathieson Ky2
   float mKy4 = 0.;          ///< Mathieson Ky4 = Ky1/Ky2/Sqrt(Ky3)
   float mInversePitch = 0.; ///< 1 / anode-cathode pitch
+
+  bool mFastIntegral = true; ///< use a fast approximation to compute the charge integral
 };
 
 } // namespace mch
