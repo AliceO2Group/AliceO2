@@ -297,8 +297,9 @@ int TrackletsParser::Parse()
             mEventRecord->popTracklets(mcmtrackletcount); // our format is always 4
             // TODO count remove warning
           }
+
           // take the header and this data word and build the underlying 64bit tracklet.
-          int q0, q1, q2;
+          uint32_t q0, q1, q2;
           if (mcmtrackletcount > 2) {
             LOG(info) << "mcmtrackletcount is not in [0:2] count=" << mcmtrackletcount << " headertrackletcount=" << headertrackletcount << " something very wrong parsing the TrackletMCMData fields with data of : 0x" << std::hex << *word;
             incParsingError(TRDParsingTrackletInvalidTrackletCount);
@@ -310,10 +311,11 @@ int TrackletsParser::Parse()
             q0 = getChargeFromRawHeaders(mTrackletHCHeader, mTrackletMCMHeader, mTrackletMCMData, 0, mcmtrackletcount);
             q1 = getChargeFromRawHeaders(mTrackletHCHeader, mTrackletMCMHeader, mTrackletMCMData, 1, mcmtrackletcount);
             q2 = getChargeFromRawHeaders(mTrackletHCHeader, mTrackletMCMHeader, mTrackletMCMData, 2, mcmtrackletcount);
-            int padrow = mTrackletMCMHeader->padrow;
-            int col = mTrackletMCMHeader->col;
-            int pos = mTrackletMCMData[mcmtrackletcount].pos;
-            int slope = mTrackletMCMData[mcmtrackletcount].slope;
+            uint32_t padrow = mTrackletMCMHeader->padrow;
+            uint32_t col = mTrackletMCMHeader->col;
+            uint32_t pos = mTrackletMCMData[mcmtrackletcount].pos;
+            uint32_t slope = mTrackletMCMData[mcmtrackletcount].slope;
+
             // The 8-th bit of position and slope are always flipped in the FEE.
             // We flip them back while reading the raw data so that they are stored
             // without flipped bits in the CTFs
