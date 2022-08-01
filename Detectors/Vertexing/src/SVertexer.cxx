@@ -267,10 +267,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
   for (int i = 0; i < 2; i++) {
     mTracksPool[i].clear();
     mVtxFirstTrack[i].clear();
-    mTrackSortVtxMax[i].clear();
-    mVtxMaxLUT[i].clear();
     mVtxFirstTrack[i].resize(nv, -1);
-    mVtxMaxLUT[i].resize(nv, -1);
   }
   for (int iv = 0; iv < nv; iv++) {
     const auto& vtref = vtxRefs[iv];
@@ -315,22 +312,11 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
 
   for (int pn = 0; pn < 2; pn++) {
     auto& vtxFirstT = mVtxFirstTrack[pn];
-    auto& vtxLastT = mTrackSortVtxMax[pn];
-    auto& vtxLastLUT = mVtxMaxLUT[pn];
     const auto& tracksPool = mTracksPool[pn];
-    // prepare sorted by max vtx index for bachelor association
-    vtxLastT.resize(tracksPool.size(), -1);
-    std::iota(vtxLastT.begin(), vtxLastT.end(), 0);
-    std::sort(vtxLastT.begin(), vtxLastT.end(), [tracksPool](int i, int j) { return tracksPool[i].vBracket.getMax() < tracksPool[j].vBracket.getMax(); });
     for (unsigned i = 0; i < tracksPool.size(); i++) {
       const auto& t = tracksPool[i];
       if (vtxFirstT[t.vBracket.getMin()] == -1) {
         vtxFirstT[t.vBracket.getMin()] = i;
-      }
-      const auto& sortIdx = vtxLastT[i];
-      const auto& trcSort = tracksPool[sortIdx];
-      if (vtxLastLUT[trcSort.vBracket.getMax()] == -1) {
-        vtxLastLUT[trcSort.vBracket.getMax()] = i;
       }
     }
   }
@@ -477,23 +463,16 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
   // check if a given PV has already been used in a cascade
   std::unordered_map<int, int> pvMap;
 
-  // start from the 1st bachelor track compatible with V0's primary vertex
-  // minimum intersection of V0 and bachelor track --> min V0 vert and max bachelor vert
-  auto v0Idx = v0vlist.getMin();
-  int firstIdx = mVtxMaxLUT[posneg][v0Idx];
-
-  while (firstIdx < 0 || firstIdx >= mTrackSortVtxMax[posneg].size()) {
-    v0Idx++;
-    firstIdx = mVtxMaxLUT[posneg][v0Idx];
+  // start from the 1st bachelor track compatible with earliest vertex in the v0vlist
+  int firstTr = mVtxFirstTrack[posneg][v0vlist.getMin()], nTr = tracks.size();
+  if (firstTr < 0) {
+    firstTr = nTr;
   }
-
-  for (int it = firstIdx; it < tracks.size(); it++) {
-    auto& trackInd = mTrackSortVtxMax[posneg][it];
-    auto& bach = tracks[trackInd];
-
-    if (trackInd == avoidTrackID) {
+  for (int it = firstTr; it < nTr; it++) {
+    if (it == avoidTrackID) {
       continue; // skip the track used by V0
     }
+    auto& bach = tracks[it];
     if (bach.vBracket.getMin() > v0vlist.getMax()) {
       LOG(debug) << "Skipping";
       break; // all other bachelor candidates will be also not compatible with this PV
