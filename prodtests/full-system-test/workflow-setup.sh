@@ -22,7 +22,7 @@ ITSMFT_STROBES=""
 LIST_OF_ASYNC_RECO_STEPS="MID MCH MFT FDD FV0 ZDC HMP"
 
 DISABLE_DIGIT_ROOT_INPUT="--disable-root-input"
-DISABLE_DIGIT_CLUSTER_INPUT="--clusters-from-upstream"
+if [[ -z ${DISABLE_DIGIT_CLUSTER_INPUT+x} ]]; then DISABLE_DIGIT_CLUSTER_INPUT="--clusters-from-upstream"; fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Set active reconstruction steps (defaults added according to SYNCMODE)
