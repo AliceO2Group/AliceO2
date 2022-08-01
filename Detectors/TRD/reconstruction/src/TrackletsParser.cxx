@@ -159,15 +159,16 @@ int TrackletsParser::Parse()
   int headertrackletcount = 0;
   bool ignoreDataTillTrackletEndMarker = false;                                       // used for when we need to dump the rest of the tracklet data.
   if (std::distance(mStartParse, mEndParse) > o2::trd::constants::MAXDATAPERLINK32) { // full event is all digits and 3 tracklets per mcm,
-    LOG(warn) << "Attempt to parse a block of data for tracklets that is longer than a link can poossibly be : " << std::distance(mStartParse, mEndParse) << " should be less than : " << o2::trd::constants::MAXDATAPERLINK32 << " dumping this data.";
+    LOG(warn) << "Attempt to parse a block of data for tracklets that is longer than a link can possibly be : " << std::distance(mStartParse, mEndParse) << " should be less than : " << o2::trd::constants::MAXDATAPERLINK32 << " dumping this data.";
     // sanity check that the length of data to scan is less the possible maximum for a link
     return -1;
   }
-  for (auto word = mStartParse; word < mEndParse; ++word) { // loop over the entire data buffer (a complete link of tracklets and digits)
 
+  for (auto word = mStartParse; word < mEndParse; ++word) { // loop over the entire data buffer (a complete link of tracklets and digits)
     if (mState == StateFinished) {
       return mWordsRead;
     }
+
     // loop over all the words ...
     // check for tracklet end marker 0x1000 0x1000
     int index = std::distance(mStartParse, word);
