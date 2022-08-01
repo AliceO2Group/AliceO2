@@ -91,4 +91,7 @@
 #pragma link C++ class o2::dataformats::Cascade + ;
 #pragma link C++ class std::vector < o2::dataformats::Cascade> + ;
 
+#pragma link C++ class o2::dataformats::DecayNbody + ;
+#pragma link C++ class std::vector < o2::dataformats::DecayNbody> + ;
+
 #endif
