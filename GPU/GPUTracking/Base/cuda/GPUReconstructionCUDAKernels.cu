@@ -181,7 +181,7 @@ void* GPUReconstructionCUDABackend::GetBackendConstSymbolAddress()
 
 void GPUReconstructionCUDABackend::PrintKernelOccupancies()
 {
-  int maxBlocks, threads, suggestedBlocks;
+  int maxBlocks = 0, threads = 0, suggestedBlocks = 0;
   cudaFuncAttributes attr;
   GPUFailedMsg(cuCtxPushCurrent(mInternals->CudaContext));
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)

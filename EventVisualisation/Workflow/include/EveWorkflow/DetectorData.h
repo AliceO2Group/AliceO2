@@ -47,7 +47,7 @@ class DetectorData
 
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr;
   const o2::itsmft::TopologyDictionary* mMFTDict = nullptr;
-  std::unique_ptr<EveConfiguration> mConfig;
+  EveConfiguration mConfig{};
   std::unique_ptr<o2::trd::GeometryFlat> mTrdGeo;
 };
 

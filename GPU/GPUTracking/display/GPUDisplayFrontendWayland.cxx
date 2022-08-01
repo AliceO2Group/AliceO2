@@ -227,7 +227,10 @@ int GPUDisplayFrontendWayland::FrontendMain()
       ((GPUDisplayFrontendWayland*)data)->mMouseWheel += wl_fixed_to_double(value) * (-100.f / 15.f);
     }
   };
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
   const wl_pointer_listener pointer_listener = {.enter = pointer_enter, .leave = pointer_leave, .motion = pointer_motion, .button = pointer_button, .axis = pointer_axis, .frame = nullptr, .axis_source = nullptr, .axis_stop = nullptr, .axis_discrete = nullptr};
+#pragma GCC diagnostic pop
 
   auto keyboard_keymap = [](void* data, wl_keyboard* wl_keyboard, uint format, int fd, uint size) {
     GPUDisplayFrontendWayland* me = (GPUDisplayFrontendWayland*)data;
@@ -360,6 +363,8 @@ int GPUDisplayFrontendWayland::FrontendMain()
     ((GPUDisplayFrontendWayland*)data)->mDisplayControl = 2;
   };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
   const xdg_surface_listener xdg_surface_listener = {
     .configure = xdg_surface_handle_configure,
   };
@@ -368,6 +373,7 @@ int GPUDisplayFrontendWayland::FrontendMain()
     .configure = xdg_toplevel_handle_configure,
     .close = xdg_toplevel_handle_close,
     .configure_bounds = nullptr};
+#pragma GCC diagnostic pop
 
   xdg_surface_add_listener(mXdgSurface, &xdg_surface_listener, this);
   xdg_toplevel_add_listener(mXdgToplevel, &xdg_toplevel_listener, this);

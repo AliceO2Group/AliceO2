@@ -281,8 +281,12 @@ void DataRequest::requestMCHClusters(bool mc)
 
 void DataRequest::requestHMPClusters(bool mc)
 {
+  if (mc) { // RS: remove this once labels will be available
+    LOG(warn) << "HMP clusters do not support MC lables, disabling";
+    mc = false;
+  }
   addInput({"hmpidcluster", "HMP", "CLUSTERS", 0, Lifetime::Timeframe});
-  addInput({"hmpidtriggers", "HMP", "CLUSREFS", 0, Lifetime::Timeframe});
+  addInput({"hmpidtriggers", "HMP", "INTRECORDS1", 0, Lifetime::Timeframe});
   if (mc) {
     addInput({"hmpidclusterlabel", "HMP", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
   }
@@ -433,6 +437,7 @@ void DataRequest::requestEMCALCells(bool mc)
   requestMap["EMCCells"] = mc;
 }
 
+/*
 void DataRequest::requestHMPMatches(bool mc)
 {
   addInput({"matchHMP", "HMP", "MATCHES", 0, Lifetime::Timeframe});
@@ -443,6 +448,7 @@ void DataRequest::requestHMPMatches(bool mc)
   }
   requestMap["matchHMP"] = mc;
 }
+*/
 
 void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
 {
@@ -499,9 +505,21 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   if (GTrackID::includesDet(DetID::CTP, src)) {
     requestCTPDigits(false); // RS FIXME: at the moment does not support MC
   }
-  if (src[GTrackID::HMP]) {
-    requestHMPMatches(useMC);
+  if (GTrackID::includesDet(DetID::CPV, src)) {
+    requestCPVClusters(useMC);
   }
+  if (GTrackID::includesDet(DetID::PHS, src)) {
+    requestPHOSCells(useMC);
+  }
+  if (GTrackID::includesDet(DetID::EMC, src)) {
+    requestEMCALCells(useMC);
+  }
+  if (GTrackID::includesDet(DetID::HMP, src)) {
+    requestHMPClusters(useMC);
+  }
+  //  if (src[GTrackID::HMP]) {
+  //    requestHMPMatches(useMC);
+  //  }
 }
 
 void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
@@ -730,10 +748,10 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   if (req != reqMap.end()) {
     addIRFramesITS(pc);
   }
-  req = reqMap.find("matchHMP");
-  if (req != reqMap.end()) {
-    addHMPMatches(pc, req->second);
-  }
+  //  req = reqMap.find("matchHMP");
+  //  if (req != reqMap.end()) {
+  //    addHMPMatches(pc, req->second);
+  //  }
 }
 
 //____________________________________________________________
@@ -960,6 +978,7 @@ void RecoContainer::addTOFMatchesITSTPCTRD(ProcessingContext& pc, bool mc)
   }
 }
 
+/*
 //__________________________________________________________
 void RecoContainer::addHMPMatches(ProcessingContext& pc, bool mc)
 {
@@ -970,6 +989,8 @@ void RecoContainer::addHMPMatches(ProcessingContext& pc, bool mc)
     commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsHMP_GLO_MCTR"), MCLABELS);
   }
 }
+*/
+
 //__________________________________________________________
 void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
 {

@@ -38,10 +38,19 @@
 // GG
 #include "PadOriginal.h"
 #include "ClusterOriginal.h"
+// ??? <<<<<<< HEAD
 #include "MCHBase/MathiesonOriginal.h"
-#include "mathiesonFit.h"
+// #include "mathiesonFit.h"
+// =======
+// #include "MathiesonOriginal.h"
+#include "MCHClustering/ClusterConfig.h"
+#include "MCHClustering/clusterProcessing.h"
+#include "mathUtil.h"
+#include "mathieson.h"
+#include "InspectModel.h"
+// >>>>>>> 12c0a2e670... High-level Refactoring
 
-#define VERBOSE 0
+#define VERBOSE 1
 
 namespace o2
 {
@@ -65,7 +74,7 @@ ClusterFinderGEM::ClusterFinderGEM()
   mMathiesons[1].setSqrtKy3AndDeriveKy2Ky4(0.7642);
   // GG
   // init Mathieson
-  initMathieson();
+  o2::mch::initMathieson();
   nPads = 0;
   xyDxy = nullptr;
   cathode = nullptr;
@@ -168,8 +177,9 @@ void ClusterFinderGEM::dumpPreCluster(ClusterDump* dumpFile, gsl::span<const Dig
     double dx = mSegmentation->padSizeX(padID) / 2.;
     double dy = mSegmentation->padSizeY(padID) / 2.;
     uint32_t adc = digit.getADC();
-    float charge(0.);
-    std::memcpy(&charge, &adc, sizeof(adc));
+    // float charge(0.);
+    // std::memcpy(&charge, &adc, sizeof(adc));
+    double charge = mADCToCharge(adc);
     bool isSaturated = digit.isSaturated();
     int plane = mSegmentation->isBendingPad(padID) ? 0 : 1;
 
@@ -288,15 +298,15 @@ void ClusterFinderGEM::fillGEMInputData(gsl::span<const Digit>& digits, uint16_t
     double dx = mSegmentation->padSizeX(padID) / 2.;
     double dy = mSegmentation->padSizeY(padID) / 2.;
     uint32_t adc = digit.getADC();
-    float charge(0.);
-    std::memcpy(&charge, &adc, sizeof(adc));
+    // float charge(0.);
+    // std::memcpy(&charge, &adc, sizeof(adc));
+    double charge = mADCToCharge(adc);
     bool isSaturated = digit.isSaturated();
     int plane = mSegmentation->isBendingPad(padID) ? 0 : 1;
 
     if (charge <= 0.) {
       throw std::runtime_error("The precluster contains a digit with charge <= 0");
     }
-
     mPreCluster->addPad(x, y, dx, dy, charge, isSaturated, plane, iDigit, PadOriginal::kZero);
     // GG
     // Initialisation for GEM processing
@@ -359,11 +369,11 @@ void ClusterFinderGEM::findClusters(gsl::span<const Digit> digits,
     return;
   }
   uint32_t nPreviousCluster = mClusters.size();
-  if (VERBOSE > 0) {
+  if (ClusterConfig::processingLog >= ClusterConfig::info) {
     printf("----------------------------------------\n");
     std::cout << "  [GEM] PreCluster BC=" << bunchCrossing
               << ", orbit = " << orbit
-              << "iPreCluster,  = " << iPreCluster
+              << ", iPreCluster,  = " << iPreCluster
               << std::endl;
     printf("----------------------------------------\n");
   }
@@ -380,19 +390,22 @@ void ClusterFinderGEM::findClusters(gsl::span<const Digit> digits,
   int chId = DEId / 100;
   int nbrOfHits = clusterProcess(xyDxy, cathode, saturated, padCharge, chId, nPads);
   double theta[nbrOfHits * 5];
-  Group_t thetaToGroup[nbrOfHits];
-  collectTheta(theta, thetaToGroup, nbrOfHits);
+  Groups_t thetaToGroup[nbrOfHits];
+  /// collectTheta(theta, thetaToGroup, nbrOfHits);
+  collectSeeds(theta, thetaToGroup, nbrOfHits);
   // std::cout << "  [GEM] Seeds found by GEM " << nbrOfHits << " / nPads = " << nPads << std::endl;
   double* muX = getMuX(theta, nbrOfHits);
   double* muY = getMuY(theta, nbrOfHits);
   double* w = getW(theta, nbrOfHits);
   // Find subClusters with there seeds
   //
-  Group_t padToCathGrp[nPads];
-  collectPadToCathGroup(padToCathGrp, nPads);
+  /// ??? to fuse with collectSeeds
+  Groups_t padToCathGrp[nPads];
+  collectGroupMapping(padToCathGrp, nPads);
+  // vectorPrintShort( "padToCathGrp ???", padToCathGrp, nPads);
   // Take care the number of groups can be !=
   // between thetaToGroup
-  Group_t nCathGrp = vectorMaxShort(padToCathGrp, nPads);
+  Groups_t nCathGrp = vectorMaxShort(padToCathGrp, nPads);
   int nPadStored = 0;
   // Index of the first store digit of the group
   uint32_t firstDigit;
@@ -434,7 +447,12 @@ void ClusterFinderGEM::findClusters(gsl::span<const Digit> digits,
             dy = SDefaultClusterResolution;
           }
            */
-        uint32_t uid = Cluster::buildUniqueId(digits[0].getDetID() / 100 - 1, digits[0].getDetID(), thetaToGroup[s]);
+        // ??? uint32_t uid = Cluster::buildUniqueId(digits[0].getDetID() / 100 - 1, digits[0].getDetID(), thetaToGroup[s]);
+        uint32_t uid = Cluster::buildUniqueId(digits[0].getDetID() / 100 - 1, digits[0].getDetID(), nPreviousCluster + s);
+        // Debug
+        /*
+        std::cout << "nPreviousCluster=" << nPreviousCluster << ", s=" << ", uid=" << uid << std::endl;
+        */
         mClusters.push_back({
           static_cast<float>(x), static_cast<float>(y), 0.0, // x, y, z
           static_cast<float>(0), static_cast<float>(0),      // x, y resolution
@@ -442,6 +460,14 @@ void ClusterFinderGEM::findClusters(gsl::span<const Digit> digits,
           firstDigit, nDigits                                // firstDigit, nDigits
         });
         setClusterResolution(mClusters[mClusters.size() - 1]);
+        // Debug
+        int iNewCluster = mClusters.size() - 1;
+        // Debug ???
+        /*
+        std::cout << "iNewCluster=" << iNewCluster << ", DEId=" << digits[0].getDetID()
+                 << ", x" <<  mClusters[iNewCluster].x << ", y" <<  mClusters[iNewCluster].y << ", z" <<  mClusters[iNewCluster].z
+                << "uid=" << mClusters[iNewCluster].uid << std::endl;
+        */
       }
     }
   }

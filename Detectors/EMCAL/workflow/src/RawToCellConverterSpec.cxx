@@ -150,7 +150,6 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 
     // loop over all the DMA pages
     while (rawreader.hasNext()) {
-
       try {
         rawreader.next();
       } catch (RawDecodingError& e) {
@@ -258,7 +257,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             default:
               break;
           };
-          LOG(warning) << " EMCAL raw task: " << errormessage << " in DDL " << feeID << std::endl;
+          LOG(warning) << " EMCAL raw task: " << errormessage << " in DDL " << feeID;
           mNumErrorMessages++;
           if (mNumErrorMessages == mMaxErrorMessages) {
             LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
@@ -276,7 +275,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       if (mCreateRawDataErrors) {
         for (auto minorerror : decoder.getMinorDecodingErrors()) {
           if (mNumErrorMessages < mMaxErrorMessages) {
-            LOG(warning) << " EMCAL raw task - Minor error in DDL " << feeID << ": " << minorerror.what() << std::endl;
+            LOG(warning) << " EMCAL raw task - Minor error in DDL " << feeID << ": " << minorerror.what();
             mNumErrorMessages++;
             if (mNumErrorMessages == mMaxErrorMessages) {
               LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
@@ -284,7 +283,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           } else {
             mErrorMessagesSuppressed++;
           }
-          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, MinorAltroDecodingError::errorTypeToInt(minorerror.getErrorType()), -1, -1);
+          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::MINOR_ALTRO_ERROR, MinorAltroDecodingError::errorTypeToInt(minorerror.getErrorType()), -1, -1);
           mOutputDecoderErrors.push_back(errornum);
         }
       }
@@ -317,7 +316,6 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         // Loop over all the channels
         int nBunchesNotOK = 0;
         for (auto& chan : decoder.getChannels()) {
-
           int iRow, iCol;
           ChannelType_t chantype;
           try {

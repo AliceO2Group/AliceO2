@@ -149,7 +149,17 @@ void GPUTPCTracker::SetMaxData(const GPUTrackingInOutPointers& io)
   } else {
     mNMaxStartHits = mRec->MemoryScalers()->NTPCStartHits(mData.NumberOfHits());
   }
-  mNMaxRowStartHits = mRec->MemoryScalers()->NTPCRowStartHits(mData.NumberOfHits());
+  if (io.clustersNative) {
+    unsigned int maxRowHits = 0;
+    for (unsigned int i = 0; i < GPUCA_ROW_COUNT; i++) {
+      if (io.clustersNative->nClusters[mISlice][i] > maxRowHits) {
+        maxRowHits = io.clustersNative->nClusters[mISlice][i];
+      }
+    }
+    mNMaxRowStartHits = mRec->MemoryScalers()->NTPCRowStartHits(maxRowHits * GPUCA_ROW_COUNT);
+  } else {
+    mNMaxRowStartHits = mRec->MemoryScalers()->NTPCRowStartHits(mData.NumberOfHits());
+  }
   mNMaxTracklets = mRec->MemoryScalers()->NTPCTracklets(mData.NumberOfHits());
   mNMaxRowHits = mRec->MemoryScalers()->NTPCTrackletHits(mData.NumberOfHits());
   mNMaxTracks = mRec->MemoryScalers()->NTPCSectorTracks(mData.NumberOfHits());

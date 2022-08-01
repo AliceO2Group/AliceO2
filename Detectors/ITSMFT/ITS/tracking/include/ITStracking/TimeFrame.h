@@ -76,6 +76,7 @@ class TimeFrame
   const Vertex& getPrimaryVertex(const int) const;
   gsl::span<const Vertex> getPrimaryVertices(int tf) const;
   gsl::span<const Vertex> getPrimaryVertices(int romin, int romax) const;
+  gsl::span<const std::vector<MCCompLabel>> getPrimaryVerticesLabels(const int rof) const;
   gsl::span<const std::array<float, 2>> getPrimaryVerticesXAlpha(int tf) const;
   void fillPrimaryVerticesXandAlpha();
   int getPrimaryVerticesNum(int rofID = -1) const;
@@ -141,7 +142,9 @@ class TimeFrame
   std::vector<std::vector<std::vector<int>>>& getCellsNeighbours();
   std::vector<Road>& getRoads();
   std::vector<TrackITSExt>& getTracks(int rof) { return mTracks[rof]; }
-  std::vector<MCCompLabel>& getTracksLabel(int rof) { return mTracksLabel[rof]; }
+  std::vector<MCCompLabel>& getTracksLabel(const int rof) { return mTracksLabel[rof]; }
+  std::vector<MCCompLabel>& getLinesLabel(const int rof) { return mLinesLabels[rof]; }
+  std::vector<std::vector<MCCompLabel>>& getVerticesLabels() { return mVerticesLabels; }
 
   int getNumberOfClusters() const;
   int getNumberOfCells() const;
@@ -159,6 +162,7 @@ class TimeFrame
   std::vector<Line>& getLines(int tf);
   std::vector<ClusterLines>& getTrackletClusters(int tf);
   gsl::span<const Tracklet> getFoundTracklets(int rofId, int combId) const;
+  gsl::span<const MCCompLabel> getLabelsFoundTracklets(int rofId, int combId) const;
   gsl::span<int> getNTrackletsCluster(int rofId, int combId);
   // \Vertexer
 
@@ -238,6 +242,8 @@ class TimeFrame
   std::vector<std::vector<Line>> mLines;
   std::vector<std::vector<ClusterLines>> mTrackletClusters;
   std::vector<std::vector<int>> mTrackletsIndexROf;
+  std::vector<std::vector<MCCompLabel>> mLinesLabels;
+  std::vector<std::vector<MCCompLabel>> mVerticesLabels;
   // \Vertexer
 };
 
@@ -249,6 +255,14 @@ inline gsl::span<const Vertex> TimeFrame::getPrimaryVertices(int rof) const
   const int stop_idx = rof >= mNrof - 1 ? mNrof : rof + 1;
   int delta = mMultiplicityCutMask[rof] ? mROframesPV[stop_idx] - start : 0; // return empty span if Rof is excluded
   return {&mPrimaryVertices[start], static_cast<gsl::span<const Vertex>::size_type>(delta)};
+}
+
+inline gsl::span<const std::vector<MCCompLabel>> TimeFrame::getPrimaryVerticesLabels(const int rof) const
+{
+  const int start = mROframesPV[rof];
+  const int stop_idx = rof >= mNrof - 1 ? mNrof : rof + 1;
+  int delta = mMultiplicityCutMask[rof] ? mROframesPV[stop_idx] - start : 0; // return empty span if Rof is excluded
+  return {&mVerticesLabels[start], static_cast<gsl::span<const Vertex>::size_type>(delta)};
 }
 
 inline gsl::span<const Vertex> TimeFrame::getPrimaryVertices(int romin, int romax) const
@@ -470,6 +484,15 @@ inline gsl::span<const Tracklet> TimeFrame::getFoundTracklets(int rofId, int com
   }
   auto startIdx{mNTrackletsPerROf[combId][rofId]};
   return {&mTracklets[combId][startIdx], static_cast<gsl::span<Tracklet>::size_type>(mNTrackletsPerROf[combId][rofId + 1] - startIdx)};
+}
+
+inline gsl::span<const MCCompLabel> TimeFrame::getLabelsFoundTracklets(int rofId, int combId) const
+{
+  if (rofId < 0 || rofId >= mNrof || !hasMCinformation()) {
+    return gsl::span<const MCCompLabel>();
+  }
+  auto startIdx{mNTrackletsPerROf[combId][rofId]};
+  return {&mTrackletLabels[combId][startIdx], static_cast<gsl::span<Tracklet>::size_type>(mNTrackletsPerROf[combId][rofId + 1] - startIdx)};
 }
 
 inline int TimeFrame::getNumberOfClusters() const

@@ -232,7 +232,7 @@ class GPUTPCGMMerger : public GPUProcessor
   int* mTrackLinks;
   int* mTrackCCRoots; // root of the connected component of this track
 
-  unsigned int mNMaxSliceTracks;         // maximum number of incoming slice tracks
+  unsigned int mNTotalSliceTracks;       // maximum number of incoming slice tracks
   unsigned int mNMaxTracks;              // maximum number of output tracks
   unsigned int mNMaxSingleSliceTracks;   // max N tracks in one slice
   unsigned int mNMaxOutputTrackClusters; // max number of clusters in output tracks (double-counting shared clusters)

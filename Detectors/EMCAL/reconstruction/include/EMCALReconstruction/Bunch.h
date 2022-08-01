@@ -89,6 +89,17 @@ class Bunch
   /// the samples are in reversed order.
   uint8_t getEndTime() const { return mStartTime - mBunchLength + 1; }
 
+  /// \brief Set the length of the ALTRO bunch
+  /// \param length Bunch length
+  void setBunchLength(uint8_t length) { mBunchLength = length; }
+
+  /// \brief Set the start time bin
+  /// \param start timebin
+  ///
+  /// The start timebin is the higher of the two,
+  /// the samples are in reversed order.
+  void setStartTime(uint8_t start) { mStartTime = start; }
+
  private:
   uint8_t mBunchLength = 0;   ///< Number of ADC samples in buffer
   uint8_t mStartTime = 0;     ///< Start timebin (larger time bin, samples are in reversed order)

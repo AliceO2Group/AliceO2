@@ -68,6 +68,7 @@ for det in `echo $LIST_OF_DETECTORS | sed "s/,/ /g"`; do
 done
 [[ -z $VERTEXING_SOURCES ]] && VERTEXING_SOURCES="$TRACK_SOURCES"
 PVERTEX_CONFIG="--vertexing-sources $VERTEXING_SOURCES --vertex-track-matching-sources $VERTEXING_SOURCES"
+[[ -z $SVERTEXING_SOURCES ]] && SVERTEXING_SOURCES=$(echo $VERTEXING_SOURCES | sed -E -e "s/(^|,)TPC(-TRD|-TOF)+//g" -e "s/,TPC,/,/") 
 
 # this option requires well calibrated timing beween different detectors, at the moment suppress it
 #has_detector_reco FT0 && PVERTEX_CONFIG+=" --validate-with-ft0"

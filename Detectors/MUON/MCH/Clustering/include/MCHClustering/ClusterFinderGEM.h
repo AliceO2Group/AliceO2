@@ -28,16 +28,13 @@
 #include <TH2D.h>
 
 #include "DataFormatsMCH/Digit.h"
-#include "DataFormatsMCH/Cluster.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHPreClustering/PreClusterFinder.h"
 #include "ClusterFinderOriginal.h"
+#include "MCHClustering/ClusterPEM.h"
 
 // GG Added include
 #include "ClusterDump.h"
-#include "dataStructure.h"
-#include "mathieson.h"
-#include "padProcessing.h"
 #include "clusterProcessing.h"
 
 namespace o2
@@ -136,7 +133,11 @@ class ClusterFinderGEM
   void setClusterResolution(Cluster& cluster) const;
   std::unique_ptr<MathiesonOriginal[]> mMathiesons; ///< Mathieson functions for station 1 and the others
   // GG MathiesonOriginal* mMathieson = nullptr;          ///< pointer to the Mathieson function currently used
-
+  //
+  // GG Introduced for run3
+  // function to reinterpret digit ADC as charge
+  std::function<double(uint32_t)> mADCToCharge = [](uint32_t adc) { return static_cast<double>(adc); };
+  //
   std::unique_ptr<ClusterOriginal> mPreCluster; ///< precluster currently processed
   // GG  std::vector<PadOriginal> mPixels;   ///< list of pixels for the current precluster
 
