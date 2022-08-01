@@ -329,14 +329,17 @@ int TrackletsParser::Parse()
                 LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mHalfChamberSide << " " << mTrackletMCMHeader->padrow << ":" << mTrackletMCMHeader->col;
               }
             }
+
             // TODO cross reference hcid to somewhere for a check. mDetector is assigned at the time of parser initialization.
             if (mOptions[TRDDataVerboseBit]) {
               LOG(info) << "TTT format : " << (int)mTrackletHCHeader.format << " hcid: " << hcid << " padrow:" << padrow << " col:" << col << " pos:" << pos << " slope:" << slope << " q::" << q0 << " " << q1 << " " << q2;
             }
+
             mEventRecord->getTracklets().emplace_back((int)mTrackletHCHeader.format, hcid, padrow, col, pos, slope, q0, q1, q2); // our format is always
             mEventRecord->incTrackletsFound(1);
             mTrackletsFound++;
             mcmtrackletcount++;
+
             if (mcmtrackletcount == headertrackletcount) { // headertrackletcount and mcmtrackletcount are not zero based counting
               // at the end of the tracklet output of this mcm
               // next to come can either be an mcmheaderword or a trackletendmarker.
@@ -353,8 +356,10 @@ int TrackletsParser::Parse()
         }
       }
     } // else
+
     trackletloopcount++;
   } // end of for loop
+
   // sanity check
   incParsingError(TRDParsingTrackletExitingNoTrackletEndMarker);
 
