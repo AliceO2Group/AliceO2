@@ -39,6 +39,7 @@ fi
 # Set general arguments
 source $MYDIR/getCommonArgs.sh
 source $MYDIR/workflow-setup.sh
+workflow_has_parameter CALIB &&  { source $O2DPG_ROOT/DATA/common/setenv_calib.sh; [[ $? != 0 ]] && exit 1; }
 
 [[ -z $SHM_MANAGER_SHMID ]] && ( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS != 0 ]] ) && ARGS_ALL+=" --no-cleanup"
 ( [[ $GPUTYPE != "CPU" ]] || [[ $OPTIMIZED_PARALLEL_ASYNC != 0 ]] ) && ARGS_ALL+=" --shm-mlock-segment-on-creation 1"
@@ -71,6 +72,8 @@ MIDDEC_CONFIG=
 EMCRAW2C_CONFIG=
 PHS_CONFIG=
 MCH_CONFIG_KEY=
+
+[[ "0$DISABLE_ROOT_OUTPUT" == "00" ]] && DISABLE_ROOT_OUTPUT=
 
 if [[ -z $ALPIDE_ERR_DUMPS ]]; then
   [[ $EPNSYNCMODE == 1 ]] && ALPIDE_ERR_DUMPS="1" || ALPIDE_ERR_DUMPS="0"
@@ -124,7 +127,7 @@ if [[ $BEAMTYPE == "PbPb" || $BEAMTYPE == "pp" ]]; then
   workflow_has_parameter CALIB && TRD_CONFIG+=" --enable-trackbased-calib"
 fi
 
-workflow_has_parameter CALIB && [[ -z ${CALIB_TPC_VDRIFTTGL+x} ]] && SEND_ITSTPC_DTGL="--produce-calibration-data"
+workflow_has_parameter CALIB && [[ $CALIB_TPC_VDRIFTTGL == 1 ]] && SEND_ITSTPC_DTGL="--produce-calibration-data"
 
 PVERTEXING_CONFIG_KEY+="${ITSMFT_STROBES};"
 

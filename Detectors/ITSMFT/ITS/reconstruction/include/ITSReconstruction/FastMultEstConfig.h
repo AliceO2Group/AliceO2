@@ -39,6 +39,7 @@ struct FastMultEstConfig : public o2::conf::ConfigurableParamHelper<FastMultEstC
   float cutMultVtxLow = -1;   /// reject seed vertex if its multiplicity below this value (no cut if <0)
   float cutMultVtxHigh = -1;  /// reject seed vertex if its multiplicity above this value (no cut if <0)
   float cutRandomFraction = -1.; /// apply random cut rejecting requested fraction
+  int randomSeed = 0;            /// 0 - do not seet seed, >0 : set as is, <0 : use current time
   bool preferTriggered = true;   /// prefer ROFs with highest number of physics triggers
 
   bool isMultCutRequested() const { return cutMultClusLow >= 0.f && cutMultClusHigh > 0.f; };

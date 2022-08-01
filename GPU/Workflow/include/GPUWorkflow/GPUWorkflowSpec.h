@@ -92,6 +92,8 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   o2::framework::Inputs inputs();
   o2::framework::Outputs outputs();
 
+  void deinitialize();
+
  private:
   /// initialize TPC options from command line
   void initFunctionTPC();

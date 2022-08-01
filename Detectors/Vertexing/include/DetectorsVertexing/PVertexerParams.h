@@ -36,6 +36,7 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
 
   int maxVerticesPerCluster = 10; ///< max vertices per time-z cluster to look for
   int maxTrialsPerCluster = 100;  ///< max unsucessful trials for vertex search per vertex
+  long maxTimeMSPerCluster = 10000; ///< max allowed time per TZCluster processing, ms
 
   // track selection
   float dcaTolerance = 1.3; ///< consider tracks within this abs DCA to mean vertex

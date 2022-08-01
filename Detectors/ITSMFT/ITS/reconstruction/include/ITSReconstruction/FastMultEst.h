@@ -38,8 +38,12 @@ struct FastMultEst {
   float cov[3] = {0.};                     /// covariance matrix of estimation
   float chi2 = 0.;                         /// chi2
   int nLayersUsed = 0;                     /// number of layers actually used
-  std::array<int, NLayers> nClPerLayer{0}; // measured N Cl per layer
+  uint32_t lastRandomSeed = 0;             /// state of the gRandom before
 
+  std::array<int, NLayers> nClPerLayer{0}; // measured N Cl per layer selectROFs
+  FastMultEst();
+
+  static uint32_t getCurrentRandomSeed();
   int selectROFs(const gsl::span<const o2::itsmft::ROFRecord> rofs, const gsl::span<const o2::itsmft::CompClusterExt> clus,
                  const gsl::span<const o2::itsmft::PhysTrigger> trig, std::vector<bool>& sel);
 
@@ -55,6 +59,7 @@ struct FastMultEst {
     fillNClPerLayer(clusters);
     return process(nClPerLayer);
   }
+  static bool sSeedSet;
 
   ClassDefNV(FastMultEst, 1);
 };

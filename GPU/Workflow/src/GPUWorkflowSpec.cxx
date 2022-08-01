@@ -1160,4 +1160,11 @@ void GPURecoWorkflowSpec::storeUpdatedCalibsTPCPtrs()
   }
 }
 
+void GPURecoWorkflowSpec::deinitialize()
+{
+  mQA.reset(nullptr);
+  mDisplayFrontend.reset(nullptr);
+  mTracker.reset(nullptr);
+}
+
 } // namespace o2::gpu
