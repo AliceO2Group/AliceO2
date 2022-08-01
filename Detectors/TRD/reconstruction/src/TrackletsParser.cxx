@@ -196,6 +196,7 @@ int TrackletsParser::Parse()
       mState = StateFinished;
       return mWordsRead;
     }
+
     if (*word == o2::trd::constants::CRUPADDING32) {
       // padding word first as it clashes with the hcheader.
       mState = StatePadding;
@@ -211,6 +212,7 @@ int TrackletsParser::Parse()
         incParsingError(TRDParsingTrackletBit11NotSetInTrackletHCHeader);
         continue; // go back to the start of loop, walk the data till the above code of the tracklet end marker is hit, padding is hit or we get to the end of the data.
       }
+
       // fix to missing bit on supermodule 16 and 17, to set the uniquely identifying bit.
       if (mState == StateTrackletHCHeader) {
         if (mOptions[TRDVerboseBit]) {
@@ -221,6 +223,7 @@ int TrackletsParser::Parse()
         }
         // LOG(info) << "mFEEID : 0x"<< std::hex << mFEEID.word << " supermodule : 0x" << (int)mFEEID.supermodule << " tracklethcheader : 0x" << *word;
       }
+
       // now for Tracklet hc header
       if ((isTrackletHCHeader(*word)) && !mOptions[TRDIgnoreTrackletHCHeaderBit] && mState == StateTrackletHCHeader) { // TrackletHCHeader has bit 11 set to 1 always. Check for state because raw data can have bit 11 set!
         if (mState != StateTrackletHCHeader) {
