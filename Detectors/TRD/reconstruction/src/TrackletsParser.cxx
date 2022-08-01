@@ -226,9 +226,6 @@ int TrackletsParser::Parse()
 
       // now for Tracklet hc header
       if ((isTrackletHCHeader(*word)) && !mOptions[TRDIgnoreTrackletHCHeaderBit] && mState == StateTrackletHCHeader) { // TrackletHCHeader has bit 11 set to 1 always. Check for state because raw data can have bit 11 set!
-        if (mState != StateTrackletHCHeader) {
-          incParsingError(TRDParsingTrackletBit11NotSetInTrackletHCHeader);
-        }
         // read the header
         if (mOptions[TRDHeaderVerboseBit]) {
           LOG(info) << "*** TrackletHCHeader : 0x" << std::hex << *word << " at offset :0x" << std::distance(mStartParse, word);
