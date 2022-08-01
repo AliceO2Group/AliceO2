@@ -253,9 +253,11 @@ int TrackletsParser::Parse()
             a.word = *word;
             printTrackletMCMHeader(a);
           }
+
           if (!sanityCheckTrackletMCMHeader(mTrackletMCMHeader)) {
             incParsingError(TRDParsingTrackletMCMHeaderSanityCheckFailure);
           }
+
           headertrackletcount = getNumberOfTrackletsFromHeader(mTrackletMCMHeader);
           if (headertrackletcount > 0) {
             mState = StateTrackletMCMData; // after reading a header we should then have data for next round through the loop
@@ -276,14 +278,15 @@ int TrackletsParser::Parse()
             word = mEndParse;
             continue;
           }
+
           mState = StateTrackletMCMData;
-          // tracklet data;
-          mTrackletMCMData[mcmtrackletcount].word = *word;
+          mTrackletMCMData[mcmtrackletcount].word = *word; // tracklet data
           mWordsRead++;
           if (mOptions[TRDHeaderVerboseBit]) {
             LOG(info) << "*** TrackletMCMData : 0x" << std::hex << *word << " at offset :0x" << std::distance(mStartParse, word);
             printTrackletMCMData(mTrackletMCMData[mcmtrackletcount]);
           }
+
           // do we have more tracklets than the header allows?
           if (headertrackletcount < mcmtrackletcount) {
             ignoreDataTillTrackletEndMarker = true;
