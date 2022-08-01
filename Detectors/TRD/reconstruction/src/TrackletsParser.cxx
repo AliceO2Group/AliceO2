@@ -245,7 +245,8 @@ int TrackletsParser::Parse()
       } else {                                                                // not TrackletHCHeader
         if (isTrackletMCMHeader(*word) && mState == StateTrackletMCMHeader) { // TrackletMCMHeader has the bits on either end always 1
           // mcmheader
-          mTrackletMCMHeader = (TrackletMCMHeader*)&(*word);
+          mTrackletMCMHeader->word = *word;
+
           if (mOptions[TRDHeaderVerboseBit]) {
             LOG(info) << "***TrackletMCMHeader : 0x" << std::hex << *word << " at offset: 0x" << std::distance(mStartParse, word);
             TrackletMCMHeader a;
