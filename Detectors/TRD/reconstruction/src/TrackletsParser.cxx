@@ -183,8 +183,8 @@ int TrackletsParser::Parse()
     }
 
     if (*word == 0x10001000 && nextwordcopy == 0x10001000) {
-      if (!StateTrackletEndMarker && !StateTrackletHCHeader) {
-        LOG(warn) << "State should be TrackletEndMarker, current ?= end marker  ?? " << mState << " ?=" << StateTrackletEndMarker;
+      if (mState != StateTrackletEndMarker) {
+        LOG(warn) << "State should be TrackletEndMarker (=" << StateTrackletEndMarker << "), but is currently: " << mState;
       }
 
       mWordsRead += 2;
