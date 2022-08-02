@@ -514,6 +514,7 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
     auto& ir = mBCData[seq_end].ir;
     auto bcd = mBCData[ibc].ir.differenceInBC(ir);
     if (bcd < 0) {
+      LOG(error) << "Bunch order error in TDC reconstruction";
       for (int ibcdump = 0; ibcdump < mNBC; ibcdump++) {
         LOG(error) << "mBCData[" << ibcdump << "] @ " << mBCData[ibcdump].ir.orbit << "." << mBCData[ibcdump].ir.bc;
       }
@@ -550,6 +551,7 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
     auto& ir = mBCData[seq_end].ir;
     auto bcd = mBCData[ibc].ir.differenceInBC(ir);
     if (bcd < 0) {
+      LOG(error) << "Bunch order error in ADC reconstruction";
       for (int ibcdump = 0; ibcdump < mNBC; ibcdump++) {
         LOG(error) << "mBCData[" << ibcdump << "] @ " << mBCData[ibcdump].ir.orbit << "." << mBCData[ibcdump].ir.bc;
       }
@@ -1022,7 +1024,7 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
     auto ref_s = mReco[b2].ref[TDCSignal[itdc]]; // reference to subtrahend
     // Check data consistency before computing difference
     if (ref_m == ZDCRefInitVal || ref_s == ZDCRefInitVal) {
-      LOG(fatal) << "Missing information for bunch crossing";
+      LOG(fatal) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing";
       return;
     }
     // Check that bunch crossings are indeed the same or consecutive
@@ -1124,7 +1126,7 @@ void DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
     int s1 = is1 % NTimeBinsPerBC;
     if (is1 < 0) {
       if (ref_s == ZDCRefInitVal) {
-        LOG(fatal) << "Missing information for bunch crossing";
+        LOG(fatal) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing";
         return;
       }
       diff = mOffset[isig] - mChData[ref_s].data[s2];
@@ -1137,7 +1139,7 @@ void DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
       auto ref_m = mReco[b1].ref[TDCSignal[itdc]]; // reference to minuend
       // Check data consistency before computing difference
       if (ref_m == ZDCRefInitVal || ref_s == ZDCRefInitVal) {
-        LOG(fatal) << "Missing information for bunch crossing";
+        LOG(fatal) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing";
         return;
       }
       // Check that bunch crossings are indeed the same or consecutive
@@ -1304,7 +1306,7 @@ void DigiReco::fullInterpolation(int isig, int ibeg, int iend)
   for (int ibun = ibeg; ibun <= iend; ibun++) {
     auto ref = mReco[ibun].ref[isig];
     if (ref == ZDCRefInitVal) {
-      LOG(fatal) << "Missing information for bunch crossing";
+      LOG(fatal) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing";
     }
   }
 
@@ -1349,7 +1351,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   for (int ibun = ibeg; ibun <= iend; ibun++) {
     auto ref = mReco[ibun].ref[isig];
     if (ref == ZDCRefInitVal) {
-      LOG(fatal) << "Missing information for bunch crossing";
+      LOG(fatal) << __func__ << " @ " << __LINE__ << " Missing information for bunch crossing";
     }
   }
 

@@ -51,6 +51,29 @@ void DumpRaw::setStat(TH1* h)
   }
 }
 
+void DumpRaw::setModuleLabel(TH1* h)
+{
+  for (int im = 0; im < NModules; im++) {
+    for (int ic = 0; ic < NChPerModule; ic++) {
+      h->GetXaxis()->SetBinLabel(im * NChPerModule + ic + 1, TString::Format("%d%d", im, ic));
+    }
+  }
+}
+
+void DumpRaw::setTriggerYLabel(TH2* h)
+{
+  h->GetYaxis()->SetBinLabel(10, "Alice_3");
+  h->GetYaxis()->SetBinLabel(9, "Alice_2");
+  h->GetYaxis()->SetBinLabel(8, "Alice_1");
+  h->GetYaxis()->SetBinLabel(7, "Alice_0");
+  h->GetYaxis()->SetBinLabel(6, "Auto_3");
+  h->GetYaxis()->SetBinLabel(5, "Auto_2");
+  h->GetYaxis()->SetBinLabel(4, "Auto_1");
+  h->GetYaxis()->SetBinLabel(3, "Auto_0");
+  h->GetYaxis()->SetBinLabel(2, "Auto_m");
+  h->GetYaxis()->SetBinLabel(1, "None");
+}
+
 void DumpRaw::init()
 {
   gROOT->SetBatch();
@@ -61,41 +84,23 @@ void DumpRaw::init()
   if (mTransmitted == nullptr) {
     mTransmitted = std::make_unique<TH2F>("ht", "Transmitted channels", NModules, -0.5, NModules - 0.5, NChPerModule, -0.5, NChPerModule - 0.5);
   }
+  if (mLoss == nullptr) {
+    mLoss = std::make_unique<TH1F>("hloss", "Data loss", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5);
+    setModuleLabel(mLoss.get());
+  }
+  if (mOve == nullptr) {
+    mOve = std::make_unique<TH1F>("hove", "BC overflow", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5);
+    setModuleLabel(mOve.get());
+  }
   if (mBits == nullptr) {
     mBits = std::make_unique<TH2F>("hb", "Trigger bits", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5, 10, -0.5, 9.5);
-    mBits->GetYaxis()->SetBinLabel(10, "Alice_3");
-    mBits->GetYaxis()->SetBinLabel(9, "Alice_2");
-    mBits->GetYaxis()->SetBinLabel(8, "Alice_1");
-    mBits->GetYaxis()->SetBinLabel(7, "Alice_0");
-    mBits->GetYaxis()->SetBinLabel(6, "Auto_3");
-    mBits->GetYaxis()->SetBinLabel(5, "Auto_2");
-    mBits->GetYaxis()->SetBinLabel(4, "Auto_1");
-    mBits->GetYaxis()->SetBinLabel(3, "Auto_0");
-    mBits->GetYaxis()->SetBinLabel(2, "Auto_m");
-    mBits->GetYaxis()->SetBinLabel(1, "None");
-    for (int im = 0; im < NModules; im++) {
-      for (int ic = 0; ic < NChPerModule; ic++) {
-        mBits->GetXaxis()->SetBinLabel(im * NChPerModule + ic + 1, TString::Format("%d%d", im, ic));
-      }
-    }
+    setTriggerYLabel(mBits.get());
+    setModuleLabel(mBits.get());
   }
   if (mBitsH == nullptr) {
     mBitsH = std::make_unique<TH2F>("hbh", "Trigger bits HIT", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5, 10, -0.5, 9.5);
-    mBitsH->GetYaxis()->SetBinLabel(10, "Alice_3");
-    mBitsH->GetYaxis()->SetBinLabel(9, "Alice_2");
-    mBitsH->GetYaxis()->SetBinLabel(8, "Alice_1");
-    mBitsH->GetYaxis()->SetBinLabel(7, "Alice_0");
-    mBitsH->GetYaxis()->SetBinLabel(6, "Auto_3");
-    mBitsH->GetYaxis()->SetBinLabel(5, "Auto_2");
-    mBitsH->GetYaxis()->SetBinLabel(4, "Auto_1");
-    mBitsH->GetYaxis()->SetBinLabel(3, "Auto_0");
-    mBitsH->GetYaxis()->SetBinLabel(2, "Auto_m");
-    mBitsH->GetYaxis()->SetBinLabel(1, "None");
-    for (int im = 0; im < NModules; im++) {
-      for (int ic = 0; ic < NChPerModule; ic++) {
-        mBitsH->GetXaxis()->SetBinLabel(im * NChPerModule + ic + 1, TString::Format("%d%d", im, ic));
-      }
-    }
+    setTriggerYLabel(mBitsH.get());
+    setModuleLabel(mBitsH.get());
   }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
     uint32_t imod = i / NChPerModule;
@@ -184,6 +189,8 @@ void DumpRaw::write()
   mTransmitted->Write();
   mBits->Write();
   mBitsH->Write();
+  mLoss->Write();
+  mOve->Write();
   f->Close();
 }
 
@@ -378,11 +385,17 @@ int DumpRaw::process(const EventChData& ch)
       mBitsH->Fill(ih, 0);
     }
   }
+  if (f.bc >= o2::constants::lhc::LHCMaxBunches) {
+    mOve->Fill(ih);
+  }
 
   if (f.bc == last_bc) {
     word16.uns = f.offset;
     mBaseline[ih]->Fill(word16.sig);
     mCounts[ih]->Fill(f.hits & 0xfff);
+    if (f.hits & 0x8000) {
+      mLoss->Fill(ih);
+    }
   }
   return 0;
 }

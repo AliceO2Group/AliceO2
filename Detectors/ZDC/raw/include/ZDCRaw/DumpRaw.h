@@ -40,10 +40,14 @@ class DumpRaw
 
  private:
   void setStat(TH1* h);
+  void setModuleLabel(TH1* h);
+  void setTriggerYLabel(TH2* h);
   int mVerbosity = 1;
   std::unique_ptr<TH2> mTransmitted = nullptr;
   std::unique_ptr<TH2> mBits = nullptr;
   std::unique_ptr<TH2> mBitsH = nullptr;
+  std::unique_ptr<TH1> mLoss = nullptr;
+  std::unique_ptr<TH1> mOve = nullptr;
   std::unique_ptr<TH1> mBaseline[NDigiChannels] = {nullptr};
   std::unique_ptr<TH1> mCounts[NDigiChannels] = {nullptr};
   std::unique_ptr<TH2> mSignalA[NDigiChannels] = {nullptr};
