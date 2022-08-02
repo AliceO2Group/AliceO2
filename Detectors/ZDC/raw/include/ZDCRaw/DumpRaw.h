@@ -17,6 +17,7 @@
 
 #ifndef ALICEO2_ZDC_DUMPRAW_H_
 #define ALICEO2_ZDC_DUMPRAW_H_
+
 namespace o2
 {
 namespace zdc
