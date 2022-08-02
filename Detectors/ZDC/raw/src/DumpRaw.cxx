@@ -59,16 +59,10 @@ void DumpRaw::init()
   double xmin = -sopt.nBCAheadTrig * NTimeBinsPerBC - 0.5;
   double xmax = 2 * NTimeBinsPerBC - 0.5;
   if (mTransmitted == nullptr) {
-    mTransmitted = (TH2*)gROOT->FindObject("ht");
-  }
-  if (mTransmitted == nullptr) {
-    mTransmitted = new TH2F("ht", "Transmitted channels", NModules, -0.5, NModules - 0.5, NChPerModule, -0.5, NChPerModule - 0.5);
+    mTransmitted = std::make_unique<TH2F>("ht", "Transmitted channels", NModules, -0.5, NModules - 0.5, NChPerModule, -0.5, NChPerModule - 0.5);
   }
   if (mBits == nullptr) {
-    mBits = (TH2*)gROOT->FindObject("hb");
-  }
-  if (mBits == nullptr) {
-    mBits = new TH2F("hb", "Trigger bits", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5, 10, -0.5, 9.5);
+    mBits = std::make_unique<TH2F>("hb", "Trigger bits", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5, 10, -0.5, 9.5);
     mBits->GetYaxis()->SetBinLabel(10, "Alice_3");
     mBits->GetYaxis()->SetBinLabel(9, "Alice_2");
     mBits->GetYaxis()->SetBinLabel(8, "Alice_1");
@@ -86,10 +80,7 @@ void DumpRaw::init()
     }
   }
   if (mBitsH == nullptr) {
-    mBitsH = (TH2*)gROOT->FindObject("hbh");
-  }
-  if (mBitsH == nullptr) {
-    mBitsH = new TH2F("hbh", "Trigger bits HIT", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5, 10, -0.5, 9.5);
+    mBitsH = std::make_unique<TH2F>("hbh", "Trigger bits HIT", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5, 10, -0.5, 9.5);
     mBitsH->GetYaxis()->SetBinLabel(10, "Alice_3");
     mBitsH->GetYaxis()->SetBinLabel(9, "Alice_2");
     mBitsH->GetYaxis()->SetBinLabel(8, "Alice_1");
@@ -109,66 +100,36 @@ void DumpRaw::init()
   for (uint32_t i = 0; i < NDigiChannels; i++) {
     uint32_t imod = i / NChPerModule;
     uint32_t ich = i % NChPerModule;
-    {
+    if (mBaseline[i] == nullptr) {
       TString hname = TString::Format("hp%d%d", imod, ich);
-      if (mBaseline[i] == nullptr) {
-        mBaseline[i] = (TH1*)gROOT->FindObject(hname);
-      }
-      if (mBaseline[i] == nullptr) {
-        TString htit = TString::Format("Baseline mod. %d ch. %d;Average orbit baseline", imod, ich);
-        // mBaseline[i]=new TH1F(hname,htit,ADCRange,ADCMin-0.5,ADCMax+0.5);
-        mBaseline[i] = new TH1F(hname, htit, 65536, -32768.5, 32767.5);
-      }
+      TString htit = TString::Format("Baseline mod. %d ch. %d;Average orbit baseline", imod, ich);
+      // mBaseline[i]=std::make_unique<TH1F>(hname,htit,ADCRange,ADCMin-0.5,ADCMax+0.5);
+      mBaseline[i] = std::make_unique<TH1F>(hname, htit, 65536, -32768.5, 32767.5);
     }
-    {
+    if (mCounts[i] == nullptr) {
       TString hname = TString::Format("hc%d%d", imod, ich);
-      if (mCounts[i] == nullptr) {
-        mCounts[i] = (TH1*)gROOT->FindObject(hname);
-      }
-      if (mCounts[i] == nullptr) {
-        TString htit = TString::Format("Counts mod. %d ch. %d; Orbit hits", imod, ich);
-        mCounts[i] = new TH1F(hname, htit, o2::constants::lhc::LHCMaxBunches + 1, -0.5, o2::constants::lhc::LHCMaxBunches + 0.5);
-      }
+      TString htit = TString::Format("Counts mod. %d ch. %d; Orbit hits", imod, ich);
+      mCounts[i] = std::make_unique<TH1F>(hname, htit, o2::constants::lhc::LHCMaxBunches + 1, -0.5, o2::constants::lhc::LHCMaxBunches + 0.5);
     }
-    {
+    if (mSignalA[i] == nullptr) {
       TString hname = TString::Format("hsa%d%d", imod, ich);
-      if (mSignalA[i] == nullptr) {
-        mSignalA[i] = (TH2*)gROOT->FindObject(hname);
-      }
-      if (mSignalA[i] == nullptr) {
-        TString htit = TString::Format("Signal mod. %d ch. %d ALICET; Sample; ADC", imod, ich);
-        mSignalA[i] = new TH2F(hname, htit, nbx, xmin, xmax, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
-      }
+      TString htit = TString::Format("Signal mod. %d ch. %d ALICET; Sample; ADC", imod, ich);
+      mSignalA[i] = std::make_unique<TH2F>(hname, htit, nbx, xmin, xmax, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
     }
-    {
+    if (mSignalT[i] == nullptr) {
       TString hname = TString::Format("hst%d%d", imod, ich);
-      if (mSignalT[i] == nullptr) {
-        mSignalT[i] = (TH2*)gROOT->FindObject(hname);
-      }
-      if (mSignalT[i] == nullptr) {
-        TString htit = TString::Format("Signal mod. %d ch. %d AUTOT; Sample; ADC", imod, ich);
-        mSignalT[i] = new TH2F(hname, htit, nbx, xmin, xmax, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
-      }
+      TString htit = TString::Format("Signal mod. %d ch. %d AUTOT; Sample; ADC", imod, ich);
+      mSignalT[i] = std::make_unique<TH2F>(hname, htit, nbx, xmin, xmax, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
     }
-    {
+    if (mBunchA[i] == nullptr) {
       TString hname = TString::Format("hba%d%d", imod, ich);
-      if (mBunchA[i] == nullptr) {
-        mBunchA[i] = (TH2*)gROOT->FindObject(hname);
-      }
-      if (mBunchA[i] == nullptr) {
-        TString htit = TString::Format("Bunch mod. %d ch. %d ALICET; Sample; ADC", imod, ich);
-        mBunchA[i] = new TH2F(hname, htit, 100, -0.5, 99.5, 36, -35.5, 0.5);
-      }
+      TString htit = TString::Format("Bunch mod. %d ch. %d ALICET; Sample; ADC", imod, ich);
+      mBunchA[i] = std::make_unique<TH2F>(hname, htit, 100, -0.5, 99.5, 36, -35.5, 0.5);
     }
-    {
+    if (mBunchT[i] == nullptr) {
       TString hname = TString::Format("hbt%d%d", imod, ich);
-      if (mBunchT[i] == nullptr) {
-        mBunchT[i] = (TH2*)gROOT->FindObject(hname);
-      }
-      if (mBunchT[i] == nullptr) {
-        TString htit = TString::Format("Bunch mod. %d ch. %d AUTOT; Sample; ADC", imod, ich);
-        mBunchT[i] = new TH2F(hname, htit, 100, -0.5, 99.5, 36, -35.5, 0.5);
-      }
+      TString htit = TString::Format("Bunch mod. %d ch. %d AUTOT; Sample; ADC", imod, ich);
+      mBunchT[i] = std::make_unique<TH2F>(hname, htit, 100, -0.5, 99.5, 36, -35.5, 0.5);
     }
   }
   // Word id not present in payload
@@ -186,37 +147,37 @@ void DumpRaw::write()
   }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
     if (mBunchA[i] && mBunchA[i]->GetEntries() > 0) {
-      setStat(mBunchA[i]);
+      setStat(mBunchA[i].get());
       mBunchA[i]->Write();
     }
   }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
     if (mBunchT[i] && mBunchT[i]->GetEntries() > 0) {
-      setStat(mBunchT[i]);
+      setStat(mBunchT[i].get());
       mBunchT[i]->Write();
     }
   }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
     if (mBaseline[i] && mBaseline[i]->GetEntries() > 0) {
-      setStat(mBaseline[i]);
+      setStat(mBaseline[i].get());
       mBaseline[i]->Write();
     }
   }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
     if (mCounts[i] && mCounts[i]->GetEntries() > 0) {
-      setStat(mCounts[i]);
+      setStat(mCounts[i].get());
       mCounts[i]->Write();
     }
   }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
     if (mSignalA[i] && mSignalA[i]->GetEntries() > 0) {
-      setStat(mSignalA[i]);
+      setStat(mSignalA[i].get());
       mSignalA[i]->Write();
     }
   }
   for (uint32_t i = 0; i < NDigiChannels; i++) {
     if (mSignalT[i] && mSignalT[i]->GetEntries() > 0) {
-      setStat(mSignalT[i]);
+      setStat(mSignalT[i].get());
       mSignalT[i]->Write();
     }
   }

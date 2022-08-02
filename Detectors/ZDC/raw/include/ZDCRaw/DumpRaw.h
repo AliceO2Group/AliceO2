@@ -40,15 +40,15 @@ class DumpRaw
  private:
   void setStat(TH1* h);
   int mVerbosity = 1;
-  TH2* mTransmitted = nullptr;
-  TH2* mBits = nullptr;
-  TH2* mBitsH = nullptr;
-  TH1* mBaseline[NDigiChannels] = {nullptr};
-  TH1* mCounts[NDigiChannels] = {nullptr};
-  TH2* mSignalA[NDigiChannels] = {nullptr};
-  TH2* mSignalT[NDigiChannels] = {nullptr};
-  TH2* mBunchA[NDigiChannels] = {nullptr};
-  TH2* mBunchT[NDigiChannels] = {nullptr};
+  std::unique_ptr<TH2> mTransmitted = nullptr;
+  std::unique_ptr<TH2> mBits = nullptr;
+  std::unique_ptr<TH2> mBitsH = nullptr;
+  std::unique_ptr<TH1> mBaseline[NDigiChannels] = {nullptr};
+  std::unique_ptr<TH1> mCounts[NDigiChannels] = {nullptr};
+  std::unique_ptr<TH2> mSignalA[NDigiChannels] = {nullptr};
+  std::unique_ptr<TH2> mSignalT[NDigiChannels] = {nullptr};
+  std::unique_ptr<TH2> mBunchA[NDigiChannels] = {nullptr};
+  std::unique_ptr<TH2> mBunchT[NDigiChannels] = {nullptr};
   EventChData mCh;
 };
 } // namespace zdc
