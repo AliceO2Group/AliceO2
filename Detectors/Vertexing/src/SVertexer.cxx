@@ -488,9 +488,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
       cascVlist.setMin(v0.getVertexID());
       cascVlist.setMax(v0.getVertexID());
     }
-    if (bach.minR > rv0 + mSVParams->causalityRTolerance) {
-      continue;
-    }
+
     int nCandC = fitterCasc.process(v0, bach);
     if (nCandC == 0) { // discard this pair
       continue;
