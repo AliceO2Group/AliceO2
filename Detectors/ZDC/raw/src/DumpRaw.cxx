@@ -382,7 +382,7 @@ int DumpRaw::process(const EventChData& ch)
   if (f.bc == last_bc) {
     word16.uns = f.offset;
     mBaseline[ih]->Fill(word16.sig);
-    mCounts[ih]->Fill(f.hits&0xfff);
+    mCounts[ih]->Fill(f.hits & 0xfff);
   }
   return 0;
 }
