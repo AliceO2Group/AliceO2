@@ -70,7 +70,7 @@ class Triggers
   bool getOutputsAreBlocked() const { return (triggersignals & (1 << bitOutputsAreBlocked)) != 0; }
   bool getDataIsValid() const { return (triggersignals & (1 << bitDataIsValid)) != 0; }
 
-  int8_t getTriggersignals() const { return triggersignals; }
+  uint8_t getTriggersignals() const { return triggersignals; }
   uint8_t getNChanA() const { return nChanA; }
   uint8_t getNChanC() const { return nChanC; }
   int32_t getAmplA() const { return amplA; }
