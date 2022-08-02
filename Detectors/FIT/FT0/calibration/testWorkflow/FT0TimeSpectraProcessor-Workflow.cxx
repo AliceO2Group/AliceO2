@@ -30,8 +30,6 @@ class FT0TimeSpectraProcessor final : public o2::framework::Task
 {
 
  public:
-  FT0TimeSpectraProcessor() = default;
-  ~FT0TimeSpectraProcessor() = default;
   static constexpr int sNCHANNELS = o2::ft0::Geometry::Nchannels;
   int mNbinsY{400};
   float mMinY{-200.};
