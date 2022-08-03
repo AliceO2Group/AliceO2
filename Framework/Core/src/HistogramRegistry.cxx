@@ -114,7 +114,7 @@ HistPtr HistogramRegistry::add(char const* const name, char const* const title, 
   return insert({name, title, {histType, axes}, callSumw2});
 }
 
-HistPtr HistogramRegistry::add(std::string_view name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2)
+HistPtr HistogramRegistry::add(const std::string& name, char const* const title, HistType histType, const std::vector<AxisSpec>& axes, bool callSumw2)
 {
   return insert({name.data(), title, {histType, axes}, callSumw2});
 }
