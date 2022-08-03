@@ -30,7 +30,6 @@ namespace o2::fit
 template <typename InputCalibrationInfoType, typename TimeSlotStorageType, typename CalibrationObjectType>
 class FITCalibrationDevice : public o2::framework::Task
 {
-
   static constexpr const char* DEFAULT_INPUT_DATA_LABEL = "calib";
   static constexpr const char* sDEFAULT_CCDB_URL = "http://localhost:8080";
   using CalibratorType = FITCalibrator<InputCalibrationInfoType, TimeSlotStorageType, CalibrationObjectType>;
