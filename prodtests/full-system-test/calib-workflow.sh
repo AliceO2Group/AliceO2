@@ -29,6 +29,12 @@ if workflow_has_parameter CALIB_PROXIES; then
   if [[ ! -z $CALIBDATASPEC_BARREL_SPORADIC ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_BARREL_SPORADIC\" $(get_proxy_connection barrel_sp output)" "" 0
   fi
+  if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]]; then
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_A\" $(get_proxy_connection tpcidc_A output)" "" 0
+  fi
+  if [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_C\" $(get_proxy_connection tpcidc_C output)" "" 0
+  fi
   if [[ ! -z $CALIBDATASPEC_CALO_TF ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_CALO_TF\" $(get_proxy_connection calo_tf output)" "" 0
   fi

@@ -44,6 +44,7 @@ if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
   echo "CALIB_TPC_RESPADGAIN = $CALIB_TPC_RESPADGAIN" 1>&2
   echo "CALIB_TPC_SCDCALIB = $CALIB_TPC_SCDCALIB" 1>&2
   echo "CALIB_TPC_VDRIFTTGL = $CALIB_TPC_VDRIFTTGL" 1>&2
+  echo "CALIB_TPC_IDC = $CALIB_TPC_IDC" 1>&2
   echo "CALIB_CPV_GAIN = $CALIB_CPV_GAIN" 1>&2
 fi
 
@@ -90,6 +91,14 @@ if workflow_has_parameter CALIB_PROXIES; then
   elif [[ $AGGREGATOR_TASKS == BARREL_SPORADIC ]]; then
     if [[ ! -z $CALIBDATASPEC_BARREL_SPORADIC ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_BARREL_SPORADIC\" $(get_proxy_connection barrel_sp input)" "" 0
+    fi
+  elif [[ $AGGREGATOR_TASKS == TPCIDC_A ]]; then
+    if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]]; then
+      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_A\" $(get_proxy_connection tpcidc_A input)" "" 0
+    fi
+  elif [[ $AGGREGATOR_TASKS == TPCIDC_C ]]; then
+    if [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
+      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_C\" $(get_proxy_connection tpcidc_C input)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_TF ]]; then
     if [[ ! -z $CALIBDATASPEC_CALO_TF ]]; then
@@ -154,6 +163,20 @@ if [[ $AGGREGATOR_TASKS == BARREL_SPORADIC ]] || [[ $AGGREGATOR_TASKS == ALL ]];
   if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then
     add_W o2-tpc-calibrator-gainmap-tracks "--tf-per-slot 10000"
   fi
+fi
+
+# TPC IDCs
+firstCRU=0
+lastCRU=179
+crus="$firstCRU-$lastCRU"
+lanes=1
+lanesDistribute=1
+lanesFactorize=6
+nTFs=500
+if [[ $AGGREGATOR_TASKS == TPCIDC_A ]] || [[ $AGGREGATOR_TASKS == TPCIDC_C ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
+  add_W o2-tpc-idc-distribute "--crus ${crus} --timeframes ${nTFs} --firstTF -100 --configKeyValues 'keyval.output_dir=/dev/null' --check-for-missing-data true --lanes ${lanesDistribute} --output-lanes ${lanesFactorize} --nFactorTFs 100"
+  add_W o2-tpc-idc-factorize "--lanesDistribute ${lanesDistribute} --input-lanes ${lanesFactorize} --crus ${crus} --timeframes ${nTFs} --configFile "" --compression 2 --configKeyValues 'TPCIDCGroupParam.groupPadsSectorEdges=32211;keyval.output_dir=/dev/null'  --groupIDCs true --nthreads-grouping 8 --nthreads-IDC-factorization 8 --groupPads \"5,6,7,8,4,5,6,8,10,13\" --groupRows \"2,2,2,3,3,3,2,2,2,2\" --sendOutputFFT true --nTFsMessage 500 --enable-CCDB-output true --enablePadStatusMap --check-for-missing-data"
+  add_W o2-tpc-idc-ft-aggregator "#  --rangeIDC 200 --inputLanes ${lanesFactorize} --nFourierCoeff 40 --timeframes ${nTFs} --configKeyValues 'keyval.output_dir=/dev/null' --nthreads 8"
 fi
 
 # Calo cal
