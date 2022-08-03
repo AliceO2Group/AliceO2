@@ -71,6 +71,12 @@ class TPCDistributeIDCSpec : public o2::framework::Task
         }
       }
     }
+
+    const auto sides = IDCFactorization::getSides(mCRUs);
+    for (auto side : sides) {
+      const std::string name = (side == Side::A) ? "idcsgroupa" : "idcsgroupc";
+      mFilter.emplace_back(InputSpec{name.data(), ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescriptionIDCGroup(side)}, Lifetime::Timeframe});
+    }
   };
 
   void init(o2::framework::InitContext& ic) final
@@ -221,24 +227,24 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   static constexpr header::DataDescription getDataDescriptionIDCOrbitReset() { return header::DataDescription{"IDCORBITRESET"}; }
 
  private:
-  std::vector<uint32_t> mCRUs{};                                                                                                                                                                         ///< CRUs to process in this instance
-  const unsigned int mTimeFrames{};                                                                                                                                                                      ///< number of TFs per aggregation interval
-  const unsigned int mOutLanes{};                                                                                                                                                                        ///< number of output lanes
-  const bool mLoadFromFile{};                                                                                                                                                                            ///< if true data will be loaded from root file
-  std::array<int, 2> mProcessedTFs{{0, 0}};                                                                                                                                                              ///< number of processed time frames to keep track of when the writing to CCDB will be done
-  std::array<std::array<std::vector<pmr::vector<float>>, CRU::MaxCRU>, 2> mIDCs{};                                                                                                                       ///< grouped and integrated IDCs for the whole TPC. CRU -> time frame -> IDCs. Buffer used in case one FLP delivers the TF after the last TF for the current aggregation interval faster then the other FLPs the last TF.
-  std::array<std::vector<unsigned int>, 2> mProcessedCRU{};                                                                                                                                              ///< counter of received data from CRUs per TF to merge incoming data from FLPs. Buffer used in case one FLP delivers the TF after the last TF for the current aggregation interval faster then the other FLPs the last TF.
-  std::array<std::vector<bool>, 2> mDataSent{};                                                                                                                                                          ///< to keep track if the data for a given tf has already been sent
-  std::array<std::vector<std::unordered_map<unsigned int, bool>>, 2> mProcessedCRUs{};                                                                                                                   ///< to keep track of the already processed CRUs ([buffer][relTF][CRU])
-  std::array<long, 2> mTFStart{};                                                                                                                                                                        ///< storing of first TF for buffer interval
-  std::array<long, 2> mTFEnd{};                                                                                                                                                                          ///< storing of last TF for buffer interval
-  const bool mSendPrecisetimeStamp{true};                                                                                                                                                                ///< use precise time stamp when writing to CCDB
-  unsigned int mCurrentOutLane{0};                                                                                                                                                                       ///< index for keeping track of the current output lane
-  bool mBuffer{false};                                                                                                                                                                                   ///< buffer index
-  bool mCheckMissingData{false};                                                                                                                                                                         ///< perform check for missing data
-  Long64_t mOrbitResetTime{};                                                                                                                                                                            ///< orbit reset time to calculate precise time stamp
-  int mNFactorTFs{0};                                                                                                                                                                                    ///< Number of TFs to skip for sending oldest TF
-  const std::vector<InputSpec> mFilter = {{"idcsgroup", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescriptionIDCGroup()}, Lifetime::Timeframe}}; ///< filter for looping over input data
+  std::vector<uint32_t> mCRUs{};                                                       ///< CRUs to process in this instance
+  const unsigned int mTimeFrames{};                                                    ///< number of TFs per aggregation interval
+  const unsigned int mOutLanes{};                                                      ///< number of output lanes
+  const bool mLoadFromFile{};                                                          ///< if true data will be loaded from root file
+  std::array<int, 2> mProcessedTFs{{0, 0}};                                            ///< number of processed time frames to keep track of when the writing to CCDB will be done
+  std::array<std::array<std::vector<pmr::vector<float>>, CRU::MaxCRU>, 2> mIDCs{};     ///< grouped and integrated IDCs for the whole TPC. CRU -> time frame -> IDCs. Buffer used in case one FLP delivers the TF after the last TF for the current aggregation interval faster then the other FLPs the last TF.
+  std::array<std::vector<unsigned int>, 2> mProcessedCRU{};                            ///< counter of received data from CRUs per TF to merge incoming data from FLPs. Buffer used in case one FLP delivers the TF after the last TF for the current aggregation interval faster then the other FLPs the last TF.
+  std::array<std::vector<bool>, 2> mDataSent{};                                        ///< to keep track if the data for a given tf has already been sent
+  std::array<std::vector<std::unordered_map<unsigned int, bool>>, 2> mProcessedCRUs{}; ///< to keep track of the already processed CRUs ([buffer][relTF][CRU])
+  std::array<long, 2> mTFStart{};                                                      ///< storing of first TF for buffer interval
+  std::array<long, 2> mTFEnd{};                                                        ///< storing of last TF for buffer interval
+  const bool mSendPrecisetimeStamp{true};                                              ///< use precise time stamp when writing to CCDB
+  unsigned int mCurrentOutLane{0};                                                     ///< index for keeping track of the current output lane
+  bool mBuffer{false};                                                                 ///< buffer index
+  bool mCheckMissingData{false};                                                       ///< perform check for missing data
+  Long64_t mOrbitResetTime{};                                                          ///< orbit reset time to calculate precise time stamp
+  int mNFactorTFs{0};                                                                  ///< Number of TFs to skip for sending oldest TF
+  std::vector<InputSpec> mFilter{};                                                    ///< filter for looping over input data
   std::vector<header::DataDescription> mDataDescrOut{};
 
   void sendOutput(o2::framework::ProcessingContext& pc, const unsigned int currentOutLane, const bool currentBuffer, const unsigned int relTF)
@@ -307,10 +313,10 @@ DataProcessorSpec getTPCDistributeIDCSpec(const int ilane, const std::vector<uin
 {
   std::vector<InputSpec> inputSpecs;
   if (!loadFromFile) {
-    inputSpecs.reserve(crus.size());
-    for (const auto& cru : crus) {
-      const header::DataHeader::SubSpecificationType subSpec{cru << 7};
-      inputSpecs.emplace_back(InputSpec{"idcsgroup", gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescriptionIDCGroup(), subSpec, Lifetime::Timeframe});
+    const auto sides = IDCFactorization::getSides(crus);
+    for (auto side : sides) {
+      const std::string name = (side == Side::A) ? "idcsgroupa" : "idcsgroupc";
+      inputSpecs.emplace_back(InputSpec{name.data(), ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescriptionIDCGroup(side)}, Lifetime::Timeframe});
     }
   }
 
