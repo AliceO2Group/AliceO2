@@ -20,7 +20,7 @@
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/MCLabel.h"
-#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
+#include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
 #include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
@@ -51,8 +51,8 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");
   auto digch = pc.inputs().get<gsl::span<o2::ft0::ChannelData>>("digch");
   // RS: if we need to process MC truth, uncomment lines below
-  //std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>> labels;
-  //const o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* lblPtr = nullptr;
+  // std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>> labels;
+  // const o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>* lblPtr = nullptr;
   if (mUseMC) {
     LOG(info) << "Ignoring MC info";
   }

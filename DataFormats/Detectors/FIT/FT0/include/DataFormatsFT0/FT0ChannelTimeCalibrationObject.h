@@ -14,26 +14,19 @@
 
 #include <array>
 #include "Rtypes.h"
-#include "DataFormatsFT0/RawEventData.h"
+#include "FT0Base/Geometry.h"
 
 namespace o2::ft0
 {
 
 struct FT0ChannelTimeCalibrationObject {
 
-  std::array<int16_t, o2::ft0::Nchannels_FT0> mTimeOffsets{};
+  std::array<int16_t, o2::ft0::Geometry::Nchannels> mTimeOffsets{};
+  static constexpr const char* getObjectPath() { return "FT0/Calib/ChannelTimeOffset"; }
 
   ClassDefNV(FT0ChannelTimeCalibrationObject, 1);
 };
 
-class FT0ChannelTimeTimeSlotContainer;
-
-class FT0TimeChannelOffsetCalibrationObjectAlgorithm
-{
- public:
-  [[nodiscard]] static FT0ChannelTimeCalibrationObject generateCalibrationObject(const FT0ChannelTimeTimeSlotContainer& container);
-};
-
 } // namespace o2::ft0
 
-#endif //O2_FT0CHANNELTIMECALIBRATIONOBJECT_H
+#endif // O2_FT0CHANNELTIMECALIBRATIONOBJECT_H

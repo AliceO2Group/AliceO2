@@ -23,7 +23,7 @@
 #include <TGraph.h>
 #include "Rtypes.h"
 #include "FairLogger.h"
-#include "FT0Calibration/FT0CalibrationInfoObject.h"
+#include "DataFormatsFT0/FT0CalibrationInfoObject.h"
 #include "FT0Base/Geometry.h"
 namespace o2::ft0
 {
@@ -60,13 +60,14 @@ class FT0CalibTimeSlewing
   void setNfiles(int nfiles) { mNfiles = nfiles; };
 
   FT0CalibTimeSlewing& operator+=(const FT0CalibTimeSlewing& other);
+  static constexpr const char* getObjectPath() { return "FT0/Calib/SlewingCorrection"; }
 
  private:
   // FT0 channel calibrations
   std::array<TGraph, NCHANNELS> mTimeSlewing; ///< array of TGraph wirh time -amplitude for each channel
   std::array<float, NCHANNELS> mSigmaPeak;    ///< array with the sigma of the peak
   TFile* mMergedFile;                         // file  with merged tree
-  TH2F* mTimeAmpHist[NCHANNELS];              //historgams time vs amplitude
+  TH2F* mTimeAmpHist[NCHANNELS];              // historgams time vs amplitude
   int mNfiles;                                // number of files with stored Tree with CalibrationInfoObject
   std::string mSingleFileName;
   std::string mMergedFileName;

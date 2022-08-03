@@ -21,8 +21,8 @@ FITCalibration module is based on templates, so it can be used for FT0, FDD and 
 ###How to add new code, new calibration object?
 - Define your calibration object class (can be combined more than one into one class)
 - Define your timeslot container class (can be used for many calibration objects)
-- Define algorithm / function for calibration object generation. Add template specialization with your classes in `FITCalibrationObjectProducer` `generateCalibrationObject` method
-- Add template specialization for calibration object in `FitCalibrationApi`, define ccdb calib object path and also recipe how to store them in CCDB
+- Define calib object producer method `generateCalibrationObject` in your TimeSlot custom class
+- Define path methode `static constexpr const char* getObjectPath()` in calib object which refers to path in CCDB
 - Create separated workflow or add your `DataProcessorSpec` to main calibration workflow
 
 For example check `FT0CalibrationDummy-Workflow` which uses combined calibration object. It is also uses mechanism to retrieve (from CCDB) another calibration object needed for calibration. Before running this workflow it is required to run `makeDummyFt0CalibObjectInCCDB` macro to generate dummy object in the local CCDB instance.

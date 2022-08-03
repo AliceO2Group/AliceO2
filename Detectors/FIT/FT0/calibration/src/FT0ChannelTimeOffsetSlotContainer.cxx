@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FT0Calibration/FT0ChannelTimeTimeSlotContainer.h"
+#include "FT0Calibration/FT0ChannelTimeOffsetSlotContainer.h"
 #include "FT0Base/Geometry.h"
 #include "FT0Base/FT0DigParam.h"
 #include <numeric>
@@ -22,9 +22,9 @@
 
 using namespace o2::ft0;
 
-int FT0ChannelTimeTimeSlotContainer::sGausFitBins = 999; // NOT USED
+int FT0ChannelTimeOffsetSlotContainer::sGausFitBins = 999; // NOT USED
 
-FT0ChannelTimeTimeSlotContainer::FT0ChannelTimeTimeSlotContainer(std::size_t minEntries)
+FT0ChannelTimeOffsetSlotContainer::FT0ChannelTimeOffsetSlotContainer(std::size_t minEntries)
   : mMinEntries(minEntries)
 {
   for (int ich = 0; ich < NCHANNELS; ++ich) {
@@ -32,7 +32,7 @@ FT0ChannelTimeTimeSlotContainer::FT0ChannelTimeTimeSlotContainer(std::size_t min
   }
 }
 
-FT0ChannelTimeTimeSlotContainer::FT0ChannelTimeTimeSlotContainer(FT0ChannelTimeTimeSlotContainer const& other)
+FT0ChannelTimeOffsetSlotContainer::FT0ChannelTimeOffsetSlotContainer(FT0ChannelTimeOffsetSlotContainer const& other)
   : mMinEntries(other.mMinEntries)
 {
   for (int ich = 0; ich < NCHANNELS; ++ich) {
@@ -40,7 +40,7 @@ FT0ChannelTimeTimeSlotContainer::FT0ChannelTimeTimeSlotContainer(FT0ChannelTimeT
   }
 }
 
-FT0ChannelTimeTimeSlotContainer& FT0ChannelTimeTimeSlotContainer::operator=(FT0ChannelTimeTimeSlotContainer const& other)
+FT0ChannelTimeOffsetSlotContainer& FT0ChannelTimeOffsetSlotContainer::operator=(FT0ChannelTimeOffsetSlotContainer const& other)
 {
   mMinEntries = other.mMinEntries;
   for (int ich = 0; ich < NCHANNELS; ++ich) {
@@ -49,11 +49,11 @@ FT0ChannelTimeTimeSlotContainer& FT0ChannelTimeTimeSlotContainer::operator=(FT0C
   return *this;
 }
 
-bool FT0ChannelTimeTimeSlotContainer::hasEnoughEntries() const
+bool FT0ChannelTimeOffsetSlotContainer::hasEnoughEntries() const
 {
   return *std::min_element(mEntriesPerChannel.begin(), mEntriesPerChannel.end()) > mMinEntries;
 }
-void FT0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FT0CalibrationInfoObject>& data)
+void FT0ChannelTimeOffsetSlotContainer::fill(const gsl::span<const FT0CalibrationInfoObject>& data)
 {
   for (auto& entry : data) {
     updateFirstCreation(entry.getTimeStamp());
@@ -67,7 +67,7 @@ void FT0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FT0CalibrationI
   }
 }
 
-void FT0ChannelTimeTimeSlotContainer::merge(FT0ChannelTimeTimeSlotContainer* prev)
+void FT0ChannelTimeOffsetSlotContainer::merge(FT0ChannelTimeOffsetSlotContainer* prev)
 {
   for (unsigned int iCh = 0; iCh < NCHANNELS; ++iCh) {
     mHistogram[iCh]->Add(prev->mHistogram[iCh].get(), 1);
@@ -77,7 +77,7 @@ void FT0ChannelTimeTimeSlotContainer::merge(FT0ChannelTimeTimeSlotContainer* pre
   mFirstCreation = std::min(mFirstCreation, prev->mFirstCreation);
 }
 
-int16_t FT0ChannelTimeTimeSlotContainer::getMeanGaussianFitValue(std::size_t channelID) const
+int16_t FT0ChannelTimeOffsetSlotContainer::getMeanGaussianFitValue(std::size_t channelID) const
 {
 
   if (0 == mEntriesPerChannel[channelID]) {
@@ -100,8 +100,16 @@ int16_t FT0ChannelTimeTimeSlotContainer::getMeanGaussianFitValue(std::size_t cha
 
   return static_cast<int16_t>(outputGaussianFitValues);
 }
-
-void FT0ChannelTimeTimeSlotContainer::print() const
+FT0ChannelTimeCalibrationObject FT0ChannelTimeOffsetSlotContainer::generateCalibrationObject() const
 {
-  //QC will do that part
+  FT0ChannelTimeCalibrationObject calibrationObject;
+  for (unsigned int iCh = 0; iCh < o2::ft0::Geometry::Nchannels; ++iCh) {
+    calibrationObject.mTimeOffsets[iCh] = getMeanGaussianFitValue(iCh);
+  }
+  return calibrationObject;
+}
+
+void FT0ChannelTimeOffsetSlotContainer::print() const
+{
+  // QC will do that part
 }

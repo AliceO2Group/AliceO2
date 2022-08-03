@@ -24,13 +24,7 @@ namespace dataformats
 template <typename T>
 FlatHisto1D<T>::FlatHisto1D(uint32_t nb, T xmin, T xmax)
 {
-  assert(nb > 0 && xmin < xmax);
-  mContainer.resize(nb + NServiceSlots, 0.);
-  mContainer[NBins] = nb;
-  mContainer[XMin] = xmin;
-  mContainer[XMax] = xmax;
-  mContainer[BinSize] = (xmax - xmin) / nb;
-  init(gsl::span<const T>(mContainer.data(), mContainer.size()));
+  init(nb, xmin, xmax);
 }
 
 template <typename T>
@@ -38,6 +32,21 @@ FlatHisto1D<T>::FlatHisto1D(const FlatHisto1D& src)
 {
   mContainer = src.mContainer;
   init(gsl::span<const T>(mContainer.data(), mContainer.size()));
+}
+
+template <typename T>
+FlatHisto1D<T>& FlatHisto1D<T>::operator=(const FlatHisto1D<T>& rhs)
+{
+  if (this == &rhs) {
+    return *this;
+  }
+  if (!rhs.canFill()) {
+    throw std::runtime_error("trying to copy read-only histogram");
+  } else {
+    mContainer = rhs.mContainer;
+    init(gsl::span<const T>(mContainer.data(), mContainer.size()));
+  }
+  return *this;
 }
 
 template <typename T>
@@ -92,6 +101,17 @@ void FlatHisto1D<T>::init(const gsl::span<const T> ext)
   mXMax = ext[XMax];
   mBinSize = ext[BinSize];
   mBinSizeInv = 1. / mBinSize;
+}
+template <typename T>
+void FlatHisto1D<T>::init(uint32_t nb, T xmin, T xmax)
+{ // when reading from file, need to call this method to make it operational
+  assert(nb > 0 && xmin < xmax);
+  mContainer.resize(nb + NServiceSlots, 0.);
+  mContainer[NBins] = nb;
+  mContainer[XMin] = xmin;
+  mContainer[XMax] = xmax;
+  mContainer[BinSize] = (xmax - xmin) / nb;
+  init(gsl::span<const T>(mContainer.data(), mContainer.size()));
 }
 
 template <typename T>

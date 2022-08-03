@@ -90,7 +90,7 @@ o2_add_executable(reco-qc
                   COMPONENT_NAME ft0
                   SOURCES src/reco-qc.cxx
                   PUBLIC_LINK_LIBRARIES
-                  O2::FT0Workflow O2::FITCalibration O2::GlobalTrackingWorkflowHelpers)
+                  O2::FT0Workflow O2::GlobalTrackingWorkflowHelpers)
 
 o2_add_executable(recpoints-reader-workflow
                   SOURCES src/recpoints-reader-workflow.cxx

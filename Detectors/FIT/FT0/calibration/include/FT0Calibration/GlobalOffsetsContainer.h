@@ -13,6 +13,7 @@
 #define O2_GLOBALOFFSETSCONTAINER_H
 
 #include "DataFormatsFT0/GlobalOffsetsInfoObject.h"
+#include "DataFormatsFT0/GlobalOffsetsCalibrationObject.h"
 #include "Rtypes.h"
 #include <TH1F.h>
 #include <array>
@@ -37,6 +38,7 @@ class GlobalOffsetsContainer final
   int getMeanGaussianFitValue() const;
   void merge(GlobalOffsetsContainer* prev);
   void print() const;
+  GlobalOffsetsCalibrationObject generateCalibrationObject() const;
   void updateFirstCreation(std::uint64_t creation)
   {
     if (creation < mFirstCreation) {
@@ -64,4 +66,4 @@ class GlobalOffsetsContainer final
 
 } // namespace o2::ft0
 
-#endif //O2_GLOBALOFFSETCONTAINER_H
+#endif // O2_GLOBALOFFSETCONTAINER_H

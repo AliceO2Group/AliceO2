@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_FT0CHANNELTIMETIMESLOTCONTAINER_H
-#define O2_FT0CHANNELTIMETIMESLOTCONTAINER_H
+#ifndef O2_FT0CHANNELTIMEOFFSETSLOTCONTAINER_H
+#define O2_FT0CHANNELTIMEOFFSETSLOTCONTAINER_H
 
 #include <array>
 #include <cstdint>
@@ -18,18 +18,16 @@
 #include <memory>
 #include <vector>
 #include <gsl/span>
-#include "FT0Calibration/FT0CalibrationInfoObject.h"
-#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
-#include "DataFormatsFT0/RawEventData.h"
-#include "DataFormatsFT0/ChannelData.h"
+#include "DataFormatsFT0/FT0CalibrationInfoObject.h"
+#include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
+#include "FT0Base/Geometry.h"
 #include "Rtypes.h"
-#include <boost/histogram.hpp>
 #include <TH1F.h>
 
 namespace o2::ft0
 {
 
-class FT0ChannelTimeTimeSlotContainer final
+class FT0ChannelTimeOffsetSlotContainer final
 {
 
   // ranges to be discussed
@@ -38,16 +36,17 @@ class FT0ChannelTimeTimeSlotContainer final
   static constexpr int NCHANNELS = o2::ft0::Geometry::Nchannels;
 
  public:
-  explicit FT0ChannelTimeTimeSlotContainer(std::size_t minEntries);
-  FT0ChannelTimeTimeSlotContainer(FT0ChannelTimeTimeSlotContainer const&);
-  FT0ChannelTimeTimeSlotContainer(FT0ChannelTimeTimeSlotContainer&&) = default;
-  FT0ChannelTimeTimeSlotContainer& operator=(FT0ChannelTimeTimeSlotContainer const&);
-  FT0ChannelTimeTimeSlotContainer& operator=(FT0ChannelTimeTimeSlotContainer&&) = default;
+  explicit FT0ChannelTimeOffsetSlotContainer(std::size_t minEntries);
+  FT0ChannelTimeOffsetSlotContainer(FT0ChannelTimeOffsetSlotContainer const&);
+  FT0ChannelTimeOffsetSlotContainer(FT0ChannelTimeOffsetSlotContainer&&) = default;
+  FT0ChannelTimeOffsetSlotContainer& operator=(FT0ChannelTimeOffsetSlotContainer const&);
+  FT0ChannelTimeOffsetSlotContainer& operator=(FT0ChannelTimeOffsetSlotContainer&&) = default;
   [[nodiscard]] bool hasEnoughEntries() const;
   void fill(const gsl::span<const FT0CalibrationInfoObject>& data);
   [[nodiscard]] int16_t getMeanGaussianFitValue(std::size_t channelID) const;
-  void merge(FT0ChannelTimeTimeSlotContainer* prev);
+  void merge(FT0ChannelTimeOffsetSlotContainer* prev);
   void print() const;
+  FT0ChannelTimeCalibrationObject generateCalibrationObject() const;
   void updateFirstCreation(std::uint64_t creation)
   {
     if (creation < mFirstCreation) {
@@ -73,9 +72,9 @@ class FT0ChannelTimeTimeSlotContainer final
   std::array<uint64_t, NCHANNELS> mEntriesPerChannel{};
   std::array<std::unique_ptr<TH1F>, NCHANNELS> mHistogram;
   std::uint64_t mFirstCreation = std::numeric_limits<std::uint64_t>::max();
-  ClassDefNV(FT0ChannelTimeTimeSlotContainer, 2);
+  ClassDefNV(FT0ChannelTimeOffsetSlotContainer, 2);
 };
 
 } // namespace o2::ft0
 
-#endif // O2_FT0CHANNELTIMETIMESLOTCONTAINER_H
+#endif // O2_FT0CHANNELTIMEOFFSETSLOTCONTAINER_H

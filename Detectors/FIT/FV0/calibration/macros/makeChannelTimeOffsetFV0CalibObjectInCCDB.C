@@ -19,7 +19,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include <iostream>
 #include <array>
-#include "FV0Calibration/FV0ChannelTimeCalibrationObject.h"
+#include "DataFormatsFV0/FV0ChannelTimeCalibrationObject.h"
 #include "CCDB/CcdbApi.h"
 #include "FV0Base/Constants.h"
 
@@ -42,8 +42,7 @@ int makeChannelTimeOffsetFV0CalibObjectInCCDB(const std::string url = "http://al
   LOG(info) << " clName " << clName << " flName " << flName;
   result.first = o2::ccdb::CcdbObjectInfo("FV0/Calib/ChannelTimeOffset", clName, flName, metaData, starting, stopping);
   result.second = o2::ccdb::CcdbApi::createObjectImage(&offsets, &result.first);
-  LOG(info) << " FITCalibrationApi::doSerializationAndPrepareObjectInfo"
-            << " start " << starting << " end " << stopping;
+  LOG(info) << " start " << starting << " end " << stopping;
   api.storeAsTFileAny(&calibrationObject, "FV0/Calib/ChannelTimeOffset", metaData, starting, stopping);
   return 0;
 }

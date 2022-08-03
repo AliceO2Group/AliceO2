@@ -16,7 +16,7 @@
 #include "Framework/Task.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/Digit.h"
-#include "FT0Calibration/FT0CalibrationInfoObject.h"
+#include "DataFormatsFT0/FT0CalibrationInfoObject.h"
 
 using namespace o2::framework;
 

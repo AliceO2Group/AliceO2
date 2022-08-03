@@ -27,18 +27,7 @@ using namespace o2::dataformats;
 template <typename T>
 FlatHisto2D<T>::FlatHisto2D(uint32_t nbx, T xmin, T xmax, uint32_t nby, T ymin, T ymax)
 {
-  assert(nbx > 0 && xmin < xmax);
-  assert(nby > 0 && ymin < ymax);
-  mContainer.resize(nbx * nby + NServiceSlots, 0.);
-  mContainer[NBinsX] = nbx;
-  mContainer[NBinsY] = nby;
-  mContainer[XMin] = xmin;
-  mContainer[XMax] = xmax;
-  mContainer[YMin] = ymin;
-  mContainer[YMax] = ymax;
-  mContainer[BinSizeX] = (xmax - xmin) / nbx;
-  mContainer[BinSizeY] = (ymax - ymin) / nby;
-  init(gsl::span<const T>(mContainer.data(), mContainer.size()));
+  init(nbx, xmin, xmax, nby, ymin, ymax);
 }
 
 template <typename T>
@@ -46,6 +35,21 @@ FlatHisto2D<T>::FlatHisto2D(const FlatHisto2D& src)
 {
   mContainer = src.mContainer;
   init(gsl::span<const T>(mContainer.data(), mContainer.size()));
+}
+
+template <typename T>
+FlatHisto2D<T>& FlatHisto2D<T>::operator=(const FlatHisto2D<T>& rhs)
+{
+  if (this == &rhs) {
+    return *this;
+  }
+  if (!rhs.canFill()) {
+    throw std::runtime_error("trying to copy read-only histogram");
+  } else {
+    mContainer = rhs.mContainer;
+    init(gsl::span<const T>(mContainer.data(), mContainer.size()));
+  }
+  return *this;
 }
 
 template <typename T>
@@ -109,6 +113,23 @@ void FlatHisto2D<T>::init(const gsl::span<const T> ext)
   mBinSizeY = ext[BinSizeY];
   mBinSizeXInv = 1. / mBinSizeX;
   mBinSizeYInv = 1. / mBinSizeY;
+}
+
+template <typename T>
+void FlatHisto2D<T>::init(uint32_t nbx, T xmin, T xmax, uint32_t nby, T ymin, T ymax)
+{ // when reading from file, need to call this method to make it operational
+  assert(nbx > 0 && xmin < xmax);
+  assert(nby > 0 && ymin < ymax);
+  mContainer.resize(nbx * nby + NServiceSlots, 0.);
+  mContainer[NBinsX] = nbx;
+  mContainer[NBinsY] = nby;
+  mContainer[XMin] = xmin;
+  mContainer[XMax] = xmax;
+  mContainer[YMin] = ymin;
+  mContainer[YMax] = ymax;
+  mContainer[BinSizeX] = (xmax - xmin) / nbx;
+  mContainer[BinSizeY] = (ymax - ymin) / nby;
+  init(gsl::span<const T>(mContainer.data(), mContainer.size()));
 }
 
 template <typename T>

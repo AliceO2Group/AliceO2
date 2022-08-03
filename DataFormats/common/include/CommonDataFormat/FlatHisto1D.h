@@ -60,6 +60,7 @@ class FlatHisto1D
   FlatHisto1D(uint32_t nb, T xmin, T xmax);
   FlatHisto1D(const FlatHisto1D& src);
   FlatHisto1D(const gsl::span<const T> ext) { adoptExternal(ext); }
+  FlatHisto1D& operator=(const FlatHisto1D& rhs);
   void adoptExternal(const gsl::span<const T> ext);
   void init()
   {
@@ -67,7 +68,7 @@ class FlatHisto1D
     assert(mContainer.size() > NServiceSlots);
     init(gsl::span<const T>(mContainer.data(), mContainer.size()));
   }
-
+  void init(uint32_t nbx, T xmin, T xmax);
   uint32_t getNBins() const { return mNBins; }
   T getXMin() const { return mXMin; }
   T getXMax() const { return mXMax; }

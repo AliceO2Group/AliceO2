@@ -18,7 +18,7 @@
 //#include "FT0Calibration/FT0CollectCalibInfo.h"
 #include "FT0Calibration/FT0CalibCollector.h"
 #include "DetectorsCalibration/Utils.h"
-#include "FT0Calibration/FT0CalibrationInfoObject.h"
+#include "DataFormatsFT0/FT0CalibrationInfoObject.h"
 #include "Framework/Task.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"

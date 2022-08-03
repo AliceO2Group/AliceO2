@@ -9,18 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FV0Calibration/FV0ChannelTimeCalibrationObject.h"
-#include "FV0Calibration/FV0ChannelTimeTimeSlotContainer.h"
+#include "FT0Calibration/CalibParam.h"
 
-using namespace o2::fv0;
-
-FV0ChannelTimeCalibrationObject FV0TimeChannelOffsetCalibrationObjectAlgorithm::generateCalibrationObject(const FV0ChannelTimeTimeSlotContainer& container)
-{
-  FV0ChannelTimeCalibrationObject calibrationObject;
-
-  for (unsigned int iCh = 0; iCh < Constants::nFv0Channels; ++iCh) {
-    calibrationObject.mTimeOffsets[iCh] = container.getMeanGaussianFitValue(iCh);
-  }
-
-  return calibrationObject;
-}
+using namespace o2::ft0;
+O2ParamImpl(CalibParam);

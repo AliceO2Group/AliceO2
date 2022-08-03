@@ -9,18 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
-#include "FT0Calibration/FT0ChannelTimeTimeSlotContainer.h"
+#include "DataFormatsFT0/DigitFilterParam.h"
 
 using namespace o2::ft0;
-
-FT0ChannelTimeCalibrationObject FT0TimeChannelOffsetCalibrationObjectAlgorithm::generateCalibrationObject(const FT0ChannelTimeTimeSlotContainer& container)
-{
-  FT0ChannelTimeCalibrationObject calibrationObject;
-
-  for (unsigned int iCh = 0; iCh < o2::ft0::Geometry::Nchannels; ++iCh) {
-    calibrationObject.mTimeOffsets[iCh] = container.getMeanGaussianFitValue(iCh);
-  }
-
-  return calibrationObject;
-}
+O2ParamImpl(DigitFilterParam);

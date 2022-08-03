@@ -22,6 +22,7 @@ namespace o2::ft0
 struct GlobalOffsetsCalibrationObject {
   // LHCphase calibration
   int mCollisionTimeOffsets; ///< <LHCphase>
+  static constexpr const char* getObjectPath() { return "FT0/Calib/GlobalOffsets"; }
   ClassDefNV(GlobalOffsetsCalibrationObject, 1);
 };
 
@@ -35,4 +36,4 @@ class GlobalOffsetsCalibrationObjectAlgorithm
 
 } // namespace o2::ft0
 
-#endif //O2_GLOBALOFFSETSCALIBRATIONOBJECT_H
+#endif // O2_GLOBALOFFSETSCALIBRATIONOBJECT_H

@@ -9,15 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FV0Calibration/FV0ChannelTimeTimeSlotContainer.h"
+#include "FV0Calibration/FV0ChannelTimeOffsetSlotContainer.h"
 #include "FV0Base/Constants.h"
 #include "MathUtils/fit.h"
 
 using namespace o2::fv0;
 
-int FV0ChannelTimeTimeSlotContainer::sGausFitBins = 999; // NOT USED
+int FV0ChannelTimeOffsetSlotContainer::sGausFitBins = 999; // NOT USED
 
-FV0ChannelTimeTimeSlotContainer::FV0ChannelTimeTimeSlotContainer(std::size_t minEntries)
+FV0ChannelTimeOffsetSlotContainer::FV0ChannelTimeOffsetSlotContainer(std::size_t minEntries)
   : mMinEntries(minEntries)
 {
 
@@ -25,11 +25,11 @@ FV0ChannelTimeTimeSlotContainer::FV0ChannelTimeTimeSlotContainer(std::size_t min
                                                 boost::histogram::axis::integer<>(0, Constants::nFv0Channels, "channel_ID"));
 }
 
-bool FV0ChannelTimeTimeSlotContainer::hasEnoughEntries() const
+bool FV0ChannelTimeOffsetSlotContainer::hasEnoughEntries() const
 {
   return *std::min_element(mEntriesPerChannel.begin(), mEntriesPerChannel.end()) > mMinEntries;
 }
-void FV0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FV0CalibrationInfoObject>& data)
+void FV0ChannelTimeOffsetSlotContainer::fill(const gsl::span<const FV0CalibrationInfoObject>& data)
 {
 
   for (auto& entry : data) {
@@ -39,19 +39,19 @@ void FV0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FV0CalibrationI
     const auto chID = entry.getChannelIndex();
     const auto chTime = entry.getTime();
 
-    //i dont really know when should it be marked as invalid
+    // i dont really know when should it be marked as invalid
     if (chID < Constants::nFv0Channels) {
       mHistogram(chTime, chID);
       ++mEntriesPerChannel[chID];
-      LOG(debug) << "FV0ChannelTimeTimeSlotContainer::fill entries " << mEntriesPerChannel[chID] << " chID " << int(chID) << " time " << chTime << " tiestamp " << uint64_t(entry.getTimeStamp());
+      LOG(debug) << "FV0ChannelTimeOffsetSlotContainer::fill entries " << mEntriesPerChannel[chID] << " chID " << int(chID) << " time " << chTime << " tiestamp " << uint64_t(entry.getTimeStamp());
     }
-    //else {
-    //  LOG(fatal) << "Invalid channel data";
-    //}
+    // else {
+    //   LOG(fatal) << "Invalid channel data";
+    // }
   }
 }
 
-void FV0ChannelTimeTimeSlotContainer::merge(FV0ChannelTimeTimeSlotContainer* prev)
+void FV0ChannelTimeOffsetSlotContainer::merge(FV0ChannelTimeOffsetSlotContainer* prev)
 {
 
   mHistogram += prev->mHistogram;
@@ -61,7 +61,7 @@ void FV0ChannelTimeTimeSlotContainer::merge(FV0ChannelTimeTimeSlotContainer* pre
   mFirstCreation = std::min(mFirstCreation, prev->mFirstCreation);
 }
 
-int16_t FV0ChannelTimeTimeSlotContainer::getMeanGaussianFitValue(std::size_t channelID) const
+int16_t FV0ChannelTimeOffsetSlotContainer::getMeanGaussianFitValue(std::size_t channelID) const
 {
 
   static constexpr size_t MEAN_VALUE_INDEX_IN_OUTPUT_VECTOR = 1;
@@ -98,13 +98,23 @@ int16_t FV0ChannelTimeTimeSlotContainer::getMeanGaussianFitValue(std::size_t cha
   if (returnCode < 0) {
     LOG(error) << "Gaussian fit error!";
     return static_cast<int16_t>(std::round(MaxValOfHistogram));
-    //return 0;
+    // return 0;
   }
 
   return static_cast<int16_t>(std::round(outputGaussianFitValues[MEAN_VALUE_INDEX_IN_OUTPUT_VECTOR]));
 }
-
-void FV0ChannelTimeTimeSlotContainer::print() const
+FV0ChannelTimeCalibrationObject FV0ChannelTimeOffsetSlotContainer::generateCalibrationObject() const
 {
-  //QC will do that part
+  FV0ChannelTimeCalibrationObject calibrationObject;
+
+  for (unsigned int iCh = 0; iCh < Constants::nFv0Channels; ++iCh) {
+    calibrationObject.mTimeOffsets[iCh] = getMeanGaussianFitValue(iCh);
+  }
+
+  return calibrationObject;
+}
+
+void FV0ChannelTimeOffsetSlotContainer::print() const
+{
+  // QC will do that part
 }

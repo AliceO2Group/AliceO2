@@ -19,7 +19,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include <iostream>
 #include <array>
-#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
+#include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
 #endif
 
 int makeChannelOffsetCalibObjectInCCDB(const std::string url = "http://ccdb-test.cern.ch:8080")
@@ -37,13 +37,12 @@ int makeChannelOffsetCalibObjectInCCDB(const std::string url = "http://ccdb-test
   static std::map<std::string, std::string> metaData;
   auto clName = o2::utils::MemFileHelper::getClassName(calibrationObject);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  uint64_t starting = 1546300800;                                   //01.01.2019
-  uint64_t stopping = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; //1633046400; // 01.10.2021
+  uint64_t starting = 1546300800;                                   // 01.01.2019
+  uint64_t stopping = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; // 1633046400; // 01.10.2021
   LOG(info) << " clName " << clName << " flName " << flName;
   result.first = o2::ccdb::CcdbObjectInfo("FT0/Calib/ChannelTimeOffset", clName, flName, metaData, starting, stopping);
   result.second = o2::ccdb::CcdbApi::createObjectImage(&offsets, &result.first);
-  LOG(info) << " FITCalibrationApi::doSerializationAndPrepareObjectInfo"
-            << " start " << starting << " end " << stopping;
+  LOG(info) << " start " << starting << " end " << stopping;
   api.storeAsTFileAny(&calibrationObject, "FT0/Calib/ChannelTimeOffset", metaData, starting, stopping);
 
   return 0;

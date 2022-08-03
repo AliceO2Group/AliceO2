@@ -14,7 +14,7 @@
 
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
-#include "FT0Calibration/FT0CalibrationInfoObject.h"
+#include "DataFormatsFT0/FT0CalibrationInfoObject.h"
 #include "DataFormatsFT0/LHCphaseCalibrationObject.h"
 #include "CommonConstants/LHCConstants.h"
 #include "CommonUtils/NameConf.h"

@@ -26,6 +26,8 @@ o2_add_library(DataFormatsFV0
 o2_target_root_dictionary(DataFormatsFV0
   HEADERS include/DataFormatsFV0/ChannelData.h
           include/DataFormatsFV0/Digit.h
+          include/DataFormatsFV0/FV0CalibrationInfoObject.h
+          include/DataFormatsFV0/FV0ChannelTimeCalibrationObject.h
           include/DataFormatsFV0/MCLabel.h
           include/DataFormatsFV0/Hit.h
           include/DataFormatsFV0/RecPoints.h

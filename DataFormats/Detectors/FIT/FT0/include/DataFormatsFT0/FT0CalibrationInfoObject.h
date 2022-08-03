@@ -46,4 +46,4 @@ class FT0CalibrationInfoObject
 } // namespace ft0
 } // namespace o2
 
-#endif //O2_FT0CALIBRATIONINFOOBJECT_H
+#endif // O2_FT0CALIBRATIONINFOOBJECT_H

@@ -46,4 +46,4 @@ class FV0CalibrationInfoObject
 } // namespace fv0
 } // namespace o2
 
-#endif //O2_FV0CALIBRATIONINFOOBJECT_H
+#endif // O2_FV0CALIBRATIONINFOOBJECT_H
