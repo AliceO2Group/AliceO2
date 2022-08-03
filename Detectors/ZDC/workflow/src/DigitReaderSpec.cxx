@@ -100,7 +100,7 @@ DataProcessorSpec getDigitReaderSpec(bool useMC)
       {"zdc-digit-infile", VariantType::String, "zdcdigits.root", {"Name of the input file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}},
       {"first-entry", o2::framework::VariantType::Int, 0, {"First digit entry"}},
-      {"last-entry", o2::framework::VariantType::Int, 0, {"Last digit entry"}}}};
+      {"last-entry", o2::framework::VariantType::Int, -1, {"Last digit entry"}}}};
 }
 
 } // namespace zdc
