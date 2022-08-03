@@ -65,7 +65,7 @@ void DigitReader::run(ProcessingContext& pc)
     mTree->SetBranchAddress("ZDCDigitLabels", &plabels);
   }
 
-  auto ent = mTree->GetReadEntry() < 0 ? mTree->GetReadEntry() + mFirstEntry : mTree->GetReadEntry() + 1;
+  auto ent = mTree->GetReadEntry() < 0 ? mTree->GetReadEntry() + mFirstEntry + 1 : mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
   LOG(info) << "ZDCDigitReader pushed " << zdcOrbitData.size() << " orbits with " << zdcBCData.size() << " bcs and " << zdcChData.size() << " digits";
@@ -76,7 +76,7 @@ void DigitReader::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"ZDC", "DIGITSLBL", 0, Lifetime::Timeframe}, labels);
   }
   uint64_t nextEntry = mTree->GetReadEntry() + 1;
-  if (nextEntry >= mTree->GetEntries() || (mLastEntry > 0 && nextEntry >= mLastEntry)) {
+  if (nextEntry >= mTree->GetEntries() || (mLastEntry >= 0 && nextEntry > mLastEntry)) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
