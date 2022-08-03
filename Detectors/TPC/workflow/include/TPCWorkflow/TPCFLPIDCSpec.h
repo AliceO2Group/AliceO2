@@ -212,8 +212,13 @@ class TPCFLPIDCDevice : public o2::framework::Task
     ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
 
-  /// return data description for IDC Group
-  static constexpr header::DataDescription getDataDescriptionIDCGroup() { return header::DataDescription{"IDCGROUP"}; }
+  static constexpr header::DataDescription getDataDescriptionIDCGroup(const Side side) { return (side == Side::A) ? getDataDescriptionIDCGroupA() : getDataDescriptionIDCGroupC(); }
+
+  /// return data description for IDC Group on A Side
+  static constexpr header::DataDescription getDataDescriptionIDCGroupA() { return header::DataDescription{"IDCGROUPA"}; }
+
+  /// return data description for IDC Group on C Side
+  static constexpr header::DataDescription getDataDescriptionIDCGroupC() { return header::DataDescription{"IDCGROUPC"}; }
 
   /// return data description for buffered 1D IDCs for EPNs
   static constexpr header::DataDescription getDataDescription1DIDCEPN() { return header::DataDescription{"1DIDCEPN"}; }
@@ -274,7 +279,8 @@ class TPCFLPIDCDevice : public o2::framework::Task
     // TODO use this and fix #include <boost/container/pmr/polymorphic_allocator.hpp> in ROOT CINT
     // output.adoptContainer(Output{gDataOriginTPC, getDataDescriptionIDCGroup(), subSpec, Lifetime::Timeframe}, std::move(mIDCs[cru]).getIDCGroupData());
     LOGP(info, "Sending IDCs of size {}", mIDCStruct.getData(cru).size());
-    output.snapshot(Output{gDataOriginTPC, getDataDescriptionIDCGroup(), subSpec, Lifetime::Timeframe}, mIDCStruct.getData(cru));
+    const Side side = CRU(cru).side();
+    output.snapshot(Output{gDataOriginTPC, getDataDescriptionIDCGroup(side), subSpec, Lifetime::Timeframe}, mIDCStruct.getData(cru));
 
     mBuffer1DIDCs[cru].emplace_back(std::move(idcOne));
     mBuffer1DIDCs[cru].pop_front(); // removing oldest 1D-IDCs
@@ -315,7 +321,8 @@ DataProcessorSpec getTPCFLPIDCSpec(const int ilane, const std::vector<uint32_t>&
       inputSpecs.emplace_back(InputSpec{"idcs", gDataOriginTPC, TPCIntegrateIDCDevice::getDataDescription(TPCIntegrateIDCDevice::IDCFormat::Sim), subSpec, Lifetime::Timeframe});
     }
 
-    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPIDCDevice<Type>::getDataDescriptionIDCGroup(), subSpec});
+    const Side side = CRU(cru).side();
+    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPIDCDevice<Type>::getDataDescriptionIDCGroup(side), subSpec});
     outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPIDCDevice<Type>::getDataDescription1DIDCEPN(), subSpec});
     outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFLPIDCDevice<Type>::getDataDescription1DIDCEPNWeights(), subSpec});
   }
