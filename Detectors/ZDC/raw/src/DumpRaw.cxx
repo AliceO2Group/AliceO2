@@ -84,6 +84,9 @@ void DumpRaw::init()
   if (mTransmitted == nullptr) {
     mTransmitted = std::make_unique<TH2F>("ht", "Transmitted channels", NModules, -0.5, NModules - 0.5, NChPerModule, -0.5, NChPerModule - 0.5);
   }
+  if (mFired == nullptr) {
+    mFired = std::make_unique<TH2F>("hfired", "Fired channels", NModules, -0.5, NModules - 0.5, NChPerModule, -0.5, NChPerModule - 0.5);
+  }
   if (mLoss == nullptr) {
     mLoss = std::make_unique<TH1F>("hloss", "Data loss", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5);
     setModuleLabel(mLoss.get());
@@ -187,6 +190,7 @@ void DumpRaw::write()
     }
   }
   mTransmitted->Write();
+  mFired->Write();
   mBits->Write();
   mBitsH->Write();
   mLoss->Write();
@@ -269,6 +273,9 @@ int DumpRaw::process(const EventChData& ch)
   }
 
   mTransmitted->Fill(f.board, f.ch);
+  if (f.Hit) {
+    mFired->Fill(f.board, f.ch);
+  }
 
   uint16_t us[12];
   int16_t s[12];

@@ -336,6 +336,30 @@ void DigiReco::init()
   }
 } // init
 
+void DigiReco::eor()
+{
+  if (mTreeDbg) {
+    LOG(info) << "o2::zdc::DigiReco: closing debug output";
+    mTDbg->Write();
+    mTDbg.reset();
+    mDbg->Close();
+    mDbg.reset();
+  }
+  if (mNLonely > 0) {
+    LOG(warn) << "Detected " << mNLonely << " lonely bunches";
+    for (int ib = 0; ib < o2::constants::lhc::LHCMaxBunches; ib++) {
+      if (mLonely[ib]) {
+        LOG(warn) << "lonely " << ib << " " << mLonely[ib] << " T " << mLonelyTrig[ib];
+      }
+    }
+  }
+  for (int ich = 0; ich < NChannels; ich++) {
+    if (mMissingPed[ich] > 0) {
+      LOGF(error, "Missing pedestal for ch %2d %s: %u", ich, ChannelNames[ich], mMissingPed[ich]);
+    }
+  }
+}
+
 void DigiReco::prepareInterpolation()
 {
   // Prepare tapered sinc function
@@ -980,7 +1004,10 @@ void DigiReco::updateOffsets(int ibun)
 
   for (int ich = 0; ich < NChannels; ich++) {
     if (mSource[ich] == PedND) {
-      LOGF(error, "Missing pedestal for ch %2d %s orbit %u ", ich, ChannelNames[ich], mOffsetOrbit);
+      mMissingPed[ich]++;
+      if (mVerbosity > DbgMinimal) {
+        LOGF(error, "Missing pedestal for ch %2d %s orbit %u ", ich, ChannelNames[ich], mOffsetOrbit);
+      }
     }
 #ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
     LOGF(info, "Pedestal for ch %2d %s orbit %u %s: %f", ich, ChannelNames[ich], mOffsetOrbit, mSource[ich] == PedOr ? "OR" : (mSource[ich] == PedQC ? "QC" : "??"), mOffset[ich]);

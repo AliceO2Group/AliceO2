@@ -44,6 +44,7 @@ class DumpRaw
   void setTriggerYLabel(TH2* h);
   int mVerbosity = 1;
   std::unique_ptr<TH2> mTransmitted = nullptr;
+  std::unique_ptr<TH2> mFired = nullptr;
   std::unique_ptr<TH2> mBits = nullptr;
   std::unique_ptr<TH2> mBitsH = nullptr;
   std::unique_ptr<TH1> mLoss = nullptr;
