@@ -914,7 +914,6 @@ template <typename V0CursorType, typename CascadeCursorType, typename Decay3Body
 void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::RecoContainer& recoData, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3BodyCursorType& decay3BodyCursor)
 {
 
-  LOG(info) << " Fill SecondaryVertices Start ";
   auto v0s = recoData.getV0s();
   auto cascades = recoData.getCascades();
   auto decays3Body = recoData.getDecays3Body();
@@ -974,7 +973,6 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
     cascadeCursor(0, collID, v0tableID, bachTableIdx);
   }
 
-  LOG(info) << " Fill 3body decays table Start ";
   // filling 3 body decays table
   for (size_t i3Body = 0; i3Body < decays3Body.size(); i3Body++) {
     const auto& decay3Body = decays3Body[i3Body];
@@ -1006,7 +1004,6 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
     }
     decay3BodyCursor(0, collID, tableIdx[0], tableIdx[1], tableIdx[2]);
   }
-  LOG(info) << " Fill Secondary Vertices Finish ";
 }
 
 void AODProducerWorkflowDPL::countTPCClusters(const o2::tpc::TrackTPC& track,
@@ -1216,14 +1213,10 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
 
 void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 {
-  LOG(info) << "Produce Workflow Start ";
   mTimer.Start(false);
   o2::globaltracking::RecoContainer recoData;
-  LOG(info) << " recodata collectData";
   recoData.collectData(pc, *mDataRequest);
-  LOG(info) << " Call for UpdatetimeDependentParams";
   updateTimeDependentParams(pc); // Make sure that this is called after the RecoContainer collect data, since some condition objects are fetched there
-  LOG(info) << "UpdatetimeDependentParams Finish ";
 
   mStartIR = recoData.startIR;
 
@@ -1288,7 +1281,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& caloCellsTRGTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALOTRIGGER"});
   auto& originTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ORIGIN"});
 
-  LOG(info) << " Cursor Init Start ";
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
   auto cascadesCursor = cascadesBuilder.cursor<o2::aod::Cascades>();
   auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
@@ -1643,7 +1635,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     collisionID++;
   }
 
-  LOG(info) << " Call for Fill SecondaryVertices Start ";
   fillSecondaryVertices(recoData, v0sCursor, cascadesCursor, decay3BodyCursor);
 
   // helper map for fast search of a corresponding class mask for a bc
@@ -1733,7 +1724,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
 
   mTimer.Stop();
-  LOG(info) << "Produce Workflow Start ";
 }
 
 void AODProducerWorkflowDPL::cacheTriggers(const o2::globaltracking::RecoContainer& recoData)

@@ -387,7 +387,6 @@ void DataRequest::requestPrimaryVerterticesTMP(bool mc) // primary vertices befo
 
 void DataRequest::requestSecondaryVertertices(bool)
 {
-  LOG(info)<<"RequestSecondaryVertertices Start";
   addInput({"v0s", "GLO", "V0S", 0, Lifetime::Timeframe});
   addInput({"p2v0s", "GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe});
   addInput({"cascs", "GLO", "CASCS", 0, Lifetime::Timeframe});
@@ -395,7 +394,6 @@ void DataRequest::requestSecondaryVertertices(bool)
   addInput({"decay3body", "GLO", "DECAYS3BODY", 0, Lifetime::Timeframe});
   addInput({"p2decay3body", "GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe});
   requestMap["SVertex"] = false; // no MC provided for secondary vertices
-  LOG(info)<<"RequestSecondaryVertertices Finish";
 }
 
 void DataRequest::requestCTPDigits(bool mc)
@@ -552,7 +550,6 @@ void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
 //__________________________________________________________________
 void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& requests)
 {
-  LOG(info)<<"collectData Start";
   auto& reqMap = requests.requestMap;
 
   startIR = {0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
@@ -727,10 +724,8 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addPVerticesTMP(pc, req->second);
   }
 
-  LOG(info)<<"reqMap find SVertex";
   req = reqMap.find("SVertex");
   if (req != reqMap.end()) {
-  LOG(info)<<"Call for Add SVertices";
     addSVertices(pc, req->second);
   }
 
@@ -742,22 +737,17 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   if (req != reqMap.end()) {
     addHMPMatches(pc, req->second);
   }
-  LOG(info)<<"collectData Finish";
 }
 
 //____________________________________________________________
 void RecoContainer::addSVertices(ProcessingContext& pc, bool)
 {
-  LOG(info)<<"Add SVertices Start";
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::V0>>("v0s"), V0S);
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2v0s"), PVTX_V0REFS);
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::Cascade>>("cascs"), CASCS);
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2cascs"), PVTX_CASCREFS);
-  LOG(info)<<"svtxPool.registerContainer decay3body Start";
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::DecayNbody>>("decay3body"), DECAY3BODY);
-  LOG(info)<<"svtxPool.registerContainer decay3body Finish";
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2decay3body"), PVTX_3BODYREFS);
-  LOG(info)<<"Add SVertices Finish";
   // no mc
 }
 
