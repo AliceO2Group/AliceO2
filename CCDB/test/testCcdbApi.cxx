@@ -19,7 +19,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "CCDB/CcdbApi.h"
-#include "CCDB/IdPath.h"    // just as test object
+#include "CCDB/IdPath.h"           // just as test object
 #include "CommonUtils/RootChain.h" // just as test object
 #include "CCDB/CCDBTimeStampUtils.h"
 #include <boost/test/unit_test.hpp>
@@ -101,6 +101,24 @@ struct test_fixture {
   CcdbApi api;
   map<string, string> metadata;
 };
+
+BOOST_AUTO_TEST_CASE(CCDBResponseLatest)
+{
+  CcdbApi api;
+  string url = "http://ccdb-test.cern.ch:8080,http://alice-ccdb.cern.ch";
+  api.init(url);
+  std::string response = api.latest();
+  BOOST_CHECK(response != "");
+}
+
+BOOST_AUTO_TEST_CASE(CCDBResponseBrowse)
+{
+  CcdbApi api;
+  string url = "http://ccdb-test.cern.ch:8080,http://alice-ccdb.cern.ch";
+  api.init(url);
+  std::string response = api.browse();
+  BOOST_CHECK(response != "");
+}
 
 BOOST_AUTO_TEST_CASE(storeTMemFile_test, *utf::precondition(if_reachable()))
 {

@@ -16,6 +16,7 @@
 
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CCDBQuery.h"
+#include "CCDB/CCDBResponse.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/FileSystemUtils.h"
 #include "CommonUtils/MemFileHelper.h"
@@ -43,6 +44,7 @@
 #include <boost/interprocess/sync/named_semaphore.hpp>
 #include <regex>
 #include <cstdio>
+#include <chrono> // debug and optimization
 
 namespace o2::ccdb
 {
@@ -1696,6 +1698,114 @@ void CcdbApi::logReading(const std::string& path, long ts, const std::map<std::s
   }
   upath.erase(remove(upath.begin(), upath.end(), '\"'), upath.end());
   LOGP(info, "ccdb reads {}{}{} for {} ({}, agent_id: {}), ", mUrl, mUrl.back() == '/' ? "" : "/", upath, ts < 0 ? getCurrentTimestamp() : ts, comment, mUniqueAgentID);
+}
+
+std::string CcdbApi::browse()
+{
+  CCDBResponse* firstResponse = nullptr;
+
+  // Setting up CURL
+  CURL* curlHandle;
+  curlHandle = curl_easy_init();
+
+  if (curlHandle != nullptr) {
+
+    curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString2);
+    curlSetSSLOptions(curlHandle);
+
+    // Making /browse/ request for each host
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
+
+      CURLcode curlResultCode = CURL_LAST;
+
+      // Preparing options for connecting to host
+      std::string result;
+      curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, &result);
+      string fullUrl = hostsPool.at(hostIndex) + "/browse/TPC/.*?Accept=application/json";
+      curl_easy_setopt(curlHandle, CURLOPT_URL, fullUrl.c_str());
+
+      // Connecting to host
+      curlResultCode = curl_easy_perform(curlHandle);
+
+      if (curlResultCode != CURLE_OK) {
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(curlResultCode));
+      } else {
+        // Parsing answer
+        if (firstResponse == nullptr) {
+          firstResponse = new CCDBResponse(result);
+        } else {
+          CCDBResponse* nextResponse = new CCDBResponse(result);
+          firstResponse->browseAndMerge(nextResponse);
+          delete nextResponse;
+        }
+      }
+    }
+
+    // Curl cleanup
+    curl_easy_cleanup(curlHandle);
+  }
+
+  // Parsing answer
+  if (firstResponse != nullptr) {
+    std::string parsedResponse = firstResponse->toString();
+    delete firstResponse;
+    return parsedResponse;
+  }
+  return "";
+}
+
+std::string CcdbApi::latest()
+{
+  CCDBResponse* firstResponse = nullptr;
+
+  // Setting up CURL
+  CURL* curlHandle;
+  curlHandle = curl_easy_init();
+
+  if (curlHandle != nullptr) {
+
+    curlSetSSLOptions(curlHandle);
+    curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString2);
+
+    // Making /latest/ request for each host
+    for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
+
+      CURLcode curlResultCode = CURL_LAST;
+
+      // Preparing options for connecting to host
+      std::string result;
+      curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, &result);
+      string fullUrl = hostsPool.at(hostIndex) + "/latest/TPC/.*?Accept=application/json";
+      curl_easy_setopt(curlHandle, CURLOPT_URL, fullUrl.c_str());
+
+      // Connecting to host
+      curlResultCode = curl_easy_perform(curlHandle);
+
+      if (curlResultCode != CURLE_OK) {
+        LOGP(alarm, "curl_easy_perform() failed: {}", curl_easy_strerror(curlResultCode));
+      } else {
+        // Parsing answer
+        if (firstResponse == nullptr) {
+          firstResponse = new CCDBResponse(result);
+        } else {
+          CCDBResponse* nextResponse = new CCDBResponse(result);
+          firstResponse->latestAndMerge(nextResponse);
+          delete nextResponse;
+        }
+      }
+    }
+
+    // Curl cleanup
+    curl_easy_cleanup(curlHandle);
+  }
+
+  // Parsing answer
+  if (firstResponse != nullptr) {
+    std::string parsedResponse = firstResponse->toString();
+    delete firstResponse;
+    return parsedResponse;
+  }
+  return "";
 }
 
 } // namespace o2

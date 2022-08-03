@@ -439,6 +439,18 @@ class CcdbApi //: public DatabaseInterface
                           long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
                           const std::string& createdNotAfter = "", const std::string& createdNotBefore = "") const;
 
+  /**
+   * Concatenates /browse/ responses from all servers in hostsPool.
+   * @return Summary /browse/ string. Empty string if no response received.
+   */
+  std::string browse();
+
+  /**
+   * Concatenates /latest/ responses from all servers in hostsPool.
+   * @return Summary /latest/ string. Empty string if no response received.
+   */
+  std::string latest();
+
  private:
   /**
    * A helper function to extract object from a local ROOT file

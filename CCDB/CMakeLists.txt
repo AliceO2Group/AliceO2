@@ -13,13 +13,16 @@ o2_add_library(CCDB
                SOURCES  src/CcdbApi.cxx
                         src/BasicCCDBManager.cxx
                         src/CCDBTimeStampUtils.cxx
-        src/IdPath.cxx src/CCDBQuery.cxx
+                        src/IdPath.cxx
+                        src/CCDBQuery.cxx
+                        src/CCDBResponse.cxx
         PUBLIC_LINK_LIBRARIES CURL::libcurl
-                                    FairRoot::ParMQ
-                                    ROOT::Hist
-                                    O2::CommonUtils
-                                    FairMQ::FairMQ
-                                    libjalien::libjalienO2
+                                FairRoot::ParMQ
+                                ROOT::Hist
+                                O2::CommonUtils
+                                FairMQ::FairMQ
+                                libjalien::libjalienO2
+                                RapidJSON::RapidJSON
                TARGETVARNAME targetName)
 
 o2_target_root_dictionary(CCDB
@@ -30,7 +33,8 @@ o2_target_root_dictionary(CCDB
                                   include/CCDB/IdPath.h
                                   include/CCDB/BasicCCDBManager.h
                                   include/CCDB/CCDBTimeStampUtils.h
-                                  include/CCDB/CCDBQuery.h)
+                                  include/CCDB/CCDBQuery.h
+                                  include/CCDB/CCDBResponse.h)
 
 o2_add_executable(inspectccdbfile
             COMPONENT_NAME ccdb
@@ -74,6 +78,12 @@ o2_add_test(BasicCCDBManager
 
 o2_add_test(CcdbApiMultipleUrls
             SOURCES test/testCcdbApiMultipleUrls.cxx
+            COMPONENT_NAME ccdb
+            PUBLIC_LINK_LIBRARIES O2::CCDB
+            LABELS ccdb)
+
+o2_add_test(CCDBResponse
+            SOURCES test/testCCDBResponse.cxx
             COMPONENT_NAME ccdb
             PUBLIC_LINK_LIBRARIES O2::CCDB
             LABELS ccdb)
