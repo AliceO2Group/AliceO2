@@ -51,7 +51,8 @@ union ModuleTriggerMapData {
 
 struct BCData {
   /// we are going to refer to at most 26 channels, so 5 bits for the NChannels and 27 for the reference
-  o2::dataformats::RangeRefComp<5> ref;
+  /// 220803 we are transmitting 32 ch: need to increase to 6 bit
+  o2::dataformats::RangeRefComp<6> ref;
   o2::InteractionRecord ir;
   std::array<uint16_t, NModules> moduleTriggers{};
   uint32_t channels = 0;    // pattern of channels it refers to
@@ -73,7 +74,7 @@ struct BCData {
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
   void print(uint32_t triggerMask = 0, int diff = 0) const;
 
-  ClassDefNV(BCData, 2);
+  ClassDefNV(BCData, 3);
 };
 } // namespace zdc
 } // namespace o2

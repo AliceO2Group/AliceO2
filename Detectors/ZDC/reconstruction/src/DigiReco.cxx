@@ -399,7 +399,7 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   }
   for (int ich = 0; ich < NChannels; ich++) {
     if (mVerbosity > DbgZero) {
-      LOG(info) << ChannelNames[ich] << ": " << scaler[ich];
+      LOG(info) << ChannelNames[ich] << " cnt: " << scaler[ich];
     }
   }
 
