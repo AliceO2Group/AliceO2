@@ -108,10 +108,11 @@ void AlpideSimResponse::initData(int tableNumber)
   std::string jsonFile = mDataPath + "charge_collection_tables.json";
   inpGrid.open(jsonFile, std::ifstream::in);
   if (inpGrid.fail()) {
-    LOG(fatal) << "Failed to open file " << "charge_collection_tables.json";
+    LOG(fatal) << "Failed to open file "
+               << "charge_collection_tables.json";
   }
-  nlohmann::json j;	// declare JSON object
-  inpGrid >> j; // affect the elements of the JSON file to the JSON object
+  nlohmann::json j; // declare JSON object
+  inpGrid >> j;     // affect the elements of the JSON file to the JSON object
   inpGrid.close();
 
   for (int ix = 0; ix < mNBinCol; ix++) {

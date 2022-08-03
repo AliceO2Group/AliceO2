@@ -109,7 +109,7 @@ class AlpideSimResponse
   std::string mDataPath = "$(O2_ROOT)/share/Detectors/ITSMFT/data/alpideResponseData/";
   std::string mGridColName = "grid_list_x.txt";             /// name of the file with grid in Col
   std::string mGridRowName = "grid_list_y.txt";             /// name of the file with grid in Row
-  std::string mColRowDataFmt = "data_pixels_%.2f_%.2f"; /// format to read the data for given Col,Row
+  std::string mColRowDataFmt = "data_pixels_%.2f_%.2f";     /// format to read the data for given Col,Row
 
  public:
   AlpideSimResponse() = default;
