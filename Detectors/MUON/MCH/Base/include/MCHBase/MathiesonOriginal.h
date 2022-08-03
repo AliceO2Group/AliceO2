@@ -17,6 +17,8 @@
 #ifndef O2_MCH_MATHIESONORIGINAL_H_
 #define O2_MCH_MATHIESONORIGINAL_H_
 
+#include <array>
+
 namespace o2
 {
 namespace mch
@@ -50,19 +52,21 @@ class MathiesonOriginal
   struct LUT
   {
     LUT() = default;
-    LUT(int size, double min, double max);
+    LUT(int size, float min, float max);
     ~LUT();
-    void init(int size, double min, double max);
-    double getX(int i) const { return ((mStep * i) + mMin); }
-    double getY(int j) const { return ((mStep * j) + mMin); }
+    void init(int size, float min, float max);
+    float getX(int i) const { return ((mStep * i) + mMin); }
+    float getY(int j) const { return ((mStep * j) + mMin); }
     void set(int i, int j, double val)
     {
       if(mSize > 0) {
         mTable[j][i] = val;
       }
     }
-    bool get(double x, double y, double& val) const;
-    bool isIncluded(double x, double y) const
+    bool get(float x, float y, double& val) const;
+    bool get4points(float xMin, float yMin, float xMax, float yMax, std::array<double, 4>& val) const;
+    bool get4pointsAVX2(float xMin, float yMin, float xMax, float yMax, std::array<double, 4>& val) const;
+    bool isIncluded(float x, float y) const
     {
       if (x <= mMin || x >= mMax) {
         return false;
@@ -77,15 +81,16 @@ class MathiesonOriginal
     //std::vector<std::vector<double>> mTable{};
     double** mTable{ nullptr };
     int mSize{ 0 };
-    double mMin{ 0 };
-    double mMax{ 0 };
+    int mLUTSize{ 0 };
+    float mMin{ 0 };
+    float mMax{ 0 };
     double mStep{ 0 };
     double mInverseStep{ 0 };
     double mInverseWidth{ 0 };
   } mLUT;
 
-  float integrateAnalytic(float xMin, float yMin, float xMax, float yMax) const;
-  float integrateLUT(float xMin, float yMin, float xMax, float yMax) const;
+  double integrateAnalytic(float xMin, float yMin, float xMax, float yMax) const;
+  double integrateLUT(float xMin, float yMin, float xMax, float yMax) const;
 
   float mSqrtKx3 = 0.;      ///< Mathieson Sqrt(Kx3)
   float mKx2 = 0.;          ///< Mathieson Kx2

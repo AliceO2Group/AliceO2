@@ -22,6 +22,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include <chrono>
 
 #include <gsl/span>
 
@@ -91,7 +92,7 @@ class ClusterFinderOriginal
 
   int fit(const std::vector<const std::vector<int>*>& clustersOfPixels, const double fitRange[2][2], double fitParam[SNFitParamMax + 1]);
   double fit(double currentParam[SNFitParamMax + 2], const double parmin[SNFitParamMax], const double parmax[SNFitParamMax],
-             int nParamUsed, int& nTrials) const;
+             int nParamUsed, int& nTrials);
   double computeChi2(const double param[SNFitParamMax + 2], int nParamUsed) const;
   void param2ChargeFraction(const double param[SNFitParamMax], int nParamUsed, double fraction[SNFitClustersMax]) const;
   float chargeIntegration(double x, double y, const PadOriginal& pad) const;
@@ -129,6 +130,11 @@ class ClusterFinderOriginal
   std::vector<Digit> mUsedDigits{}; ///< list of digits used in reconstructed clusters
 
   PreClusterFinder mPreClusterFinder{}; ///< preclusterizer
+
+  std::chrono::duration<double> mTimeMLEM{}; ///< timer
+  std::chrono::duration<double> mTimeSplit{}; ///< timer
+  std::chrono::duration<double> mTimeFit{}; ///< timer
+  std::chrono::duration<double> mTimeChi2{}; ///< timer
 };
 
 } // namespace mch

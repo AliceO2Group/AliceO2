@@ -27,6 +27,7 @@
 #include <set>
 #include <stdexcept>
 #include <string>
+#include <iostream>
 
 #include <TH2I.h>
 #include <TAxis.h>
@@ -55,7 +56,13 @@ ClusterFinderOriginal::ClusterFinderOriginal()
 }
 
 //_________________________________________________________________________________________________
-ClusterFinderOriginal::~ClusterFinderOriginal() = default;
+ClusterFinderOriginal::~ClusterFinderOriginal()// = default;
+{
+  std::cout << "MLEM  duration = " << mTimeMLEM.count() << " s" << std::endl;
+  std::cout << "SPLIT duration = " << mTimeSplit.count() << " s" << std::endl;
+  std::cout << "  FIT          = " << mTimeFit.count() << " s" << std::endl;
+  std::cout << "    CHI2       = " << mTimeChi2.count() << " s" << std::endl;
+}
 
 //_________________________________________________________________________________________________
 void ClusterFinderOriginal::init(bool run2Config)
@@ -90,6 +97,8 @@ void ClusterFinderOriginal::init(bool run2Config)
 
   } else {
 
+    bool fastIntegral = true;
+
     // minimum charge of pad, pixel and cluster
     mLowestPadCharge = ClusterizerParam::Instance().lowestPadCharge;
     mLowestPixelCharge = mLowestPadCharge / 12.;
@@ -99,13 +108,13 @@ void ClusterFinderOriginal::init(bool run2Config)
     mMathiesons[0].setPitch(ResponseParam::Instance().pitchSt1);
     mMathiesons[0].setSqrtKx3AndDeriveKx2Kx4(ResponseParam::Instance().mathiesonSqrtKx3St1);
     mMathiesons[0].setSqrtKy3AndDeriveKy2Ky4(ResponseParam::Instance().mathiesonSqrtKy3St1);
-    mMathiesons[0].setFastIntegral(false);
+    mMathiesons[0].setFastIntegral(fastIntegral);
 
     // Mathieson function for other stations
     mMathiesons[1].setPitch(ResponseParam::Instance().pitchSt2345);
     mMathiesons[1].setSqrtKx3AndDeriveKx2Kx4(ResponseParam::Instance().mathiesonSqrtKx3St2345);
     mMathiesons[1].setSqrtKy3AndDeriveKy2Ky4(ResponseParam::Instance().mathiesonSqrtKy3St2345);
-    mMathiesons[1].setFastIntegral(false);
+    mMathiesons[1].setFastIntegral(fastIntegral);
   }
   mMathiesons[0].init();
   mMathiesons[1].init();
@@ -783,6 +792,7 @@ void ClusterFinderOriginal::process()
     yMax = TMath::Max(yMax, pixel.y());
   }
 
+  auto tStart = std::chrono::steady_clock::now();
   std::vector<double> coef(0);
   std::vector<double> prob(0);
   std::unique_ptr<TH2D> histMLEM(nullptr);
@@ -845,9 +855,15 @@ void ClusterFinderOriginal::process()
   for (const auto& pixel : mPixels) {
     histMLEM->SetBinContent(histMLEM->GetXaxis()->FindBin(pixel.x()), histMLEM->GetYaxis()->FindBin(pixel.y()), pixel.charge());
   }
+  auto tEnd = std::chrono::steady_clock::now();
+  mTimeMLEM += tEnd - tStart;
+
 
   // split the precluster into clusters
+  tStart = std::chrono::steady_clock::now();
   split(*histMLEM, coef);
+  tEnd = std::chrono::steady_clock::now();
+  mTimeSplit += tEnd - tStart;
 }
 
 //_________________________________________________________________________________________________
@@ -1462,7 +1478,7 @@ int ClusterFinderOriginal::fit(const std::vector<const std::vector<int>*>& clust
 //_________________________________________________________________________________________________
 double ClusterFinderOriginal::fit(double currentParam[SNFitParamMax + 2],
                                   const double parmin[SNFitParamMax], const double parmax[SNFitParamMax],
-                                  int nParamUsed, int& nTrials) const
+                                  int nParamUsed, int& nTrials) //const
 {
   /// perform the fit with a custom algorithm, using currentParam as starting parameters
   /// update currentParam with the fitted parameters and return the corresponding chi2
@@ -1492,6 +1508,7 @@ double ClusterFinderOriginal::fit(double currentParam[SNFitParamMax + 2],
     int iCurrentParam = 1 - iBestParam;
 
     // get the chi2 of the fit with the current parameters
+    //auto tStart = std::chrono::steady_clock::now();
     chi2[iCurrentParam] = computeChi2(currentParam, nParamUsed);
     ++nTrials;
 
@@ -1506,6 +1523,8 @@ double ClusterFinderOriginal::fit(double currentParam[SNFitParamMax + 2],
       deriv2nd[i] = param[0][i] != param[1][i] ? (deriv[0][i] - deriv[1][i]) / (param[0][i] - param[1][i]) : 0;
       currentParam[i] -= defaultShift[i] / 10.;
     }
+    //auto tEnd = std::chrono::steady_clock::now();
+    //mTimeChi2 += tEnd - tStart;
 
     // abort if we exceed the maximum number of trials (integrated over the fits with 1, 2 and 3 clusters)
     if (nTrials > 2000) {
@@ -1816,12 +1835,15 @@ void ClusterFinderOriginal::split(const TH2D& histMLEM, const std::vector<double
       }
 
       // do the fit
+      auto tStart = std::chrono::steady_clock::now();
       clustersOfPixelsForFit.clear();
       for (auto iCluster : clustersForFit) {
         clustersOfPixelsForFit.push_back(&clustersOfPixels[iCluster]);
       }
       double fitParam[SNFitParamMax + 1] = {0.};
       int nParamUsed = fit(clustersOfPixelsForFit, fitRange, fitParam);
+      auto tEnd = std::chrono::steady_clock::now();
+      mTimeFit += tEnd - tStart;
 
       // update the status (and possibly the charge) of selected pads
       updatePads(fitParam, nParamUsed);
