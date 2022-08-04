@@ -39,6 +39,7 @@
 
 #include <array>
 #include <boost/histogram.hpp>
+#include <fstream>
 
 using boostHisto2d = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
 
@@ -142,7 +143,9 @@ void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::finalizeSlot(
     mCalibObjectVector.push_back(tcd);
 
     if ((EMCALCalibParams::Instance().localRootFilePath).find(".root") != std::string::npos) {
-      TFile fLocalStorage((EMCALCalibParams::Instance().localRootFilePath).c_str(), "update");
+      std::ifstream ffile(EMCALCalibParams::Instance().localRootFilePath.c_str());
+
+      TFile fLocalStorage((EMCALCalibParams::Instance().localRootFilePath).c_str(), ffile.good() == true ? "update" : "recreate");
       fLocalStorage.cd();
       TH1F* histTCparams = (TH1F*)tcd.getHistogramRepresentation(false);
       std::string nameTCHist = "TCParams_" + std::to_string(slot.getStartTimeMS());
