@@ -67,3 +67,8 @@ o2_add_executable(standalone-aod-producer-workflow
                   COMPONENT_NAME emcal
                   SOURCES src/standalone-aod-producer-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)
+
+o2_add_executable(channel-data-producer
+                  COMPONENT_NAME emcal
+                  SOURCES src/emc-channel-data-producer.cxx
+                  PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)
