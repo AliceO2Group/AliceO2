@@ -44,7 +44,7 @@ int TrackletsParser::Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX
                            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
                            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end,
                            TRDFeeID feeid, int halfchamberside, int detector, int stack, int layer,
-                           EventRecord* eventrecord, EventStorage* eventrecords, std::bitset<16> options, bool cleardigits, int usetracklethcheader)
+                           EventRecord* eventrecord, EventStorage* eventrecords, std::bitset<16> options, int usetracklethcheader)
 {
   mStartParse = start;
   mEndParse = end;
@@ -107,7 +107,7 @@ void TrackletsParser::OutputIncomingData()
 int TrackletsParser::Parse()
 {
   // we are handed the buffer payload of an rdh and need to parse its contents.
-  // producing a vector of digits.
+  // producing a vector of tracklets.
 
   mTrackletParsingBad = false;
   if (mHeaderVerbose) {
@@ -145,7 +145,7 @@ int TrackletsParser::Parse()
       // digit half chamber header ends with 01b and has the supermodule in position (9-13).
       // this of course can conflict with a tracklet hc header, hence should not be used!
       // NBNBNBNB
-      if ((tmpheader & 0x3) == 0x1 && (((tmpheader >> 9) & 0x1f) == mHCID / 30)) {
+      if ((tmpheader & 0x3) == 0x1 && (((tmpheader >> 9) & 0x1f) == mHCID / constants::NHCPERSEC)) {
         if (mHeaderVerbose) {
           LOG(info) << " we seem to be on a digit halfchamber header";
         }
@@ -219,7 +219,6 @@ int TrackletsParser::Parse()
         incParsingError(TRDParsingTrackletBit11NotSetInTrackletHCHeader);
         continue; // go back to the start of loop, walk the data till the above code of the tracklet end marker is hit, padding is hit or we get to the end of the data.
       }
-      // fix to missing bit on supermodule 16 and 17, to set the uniquely identifying bit.
       if (mState == StateTrackletHCHeader) {
         if (mVerbose) {
           LOG(info) << "mFEEID : 0x" << std::hex << mFEEID.word << " supermodule : 0x" << (int)mFEEID.supermodule << " tracklethcheader : 0x" << *word;
@@ -227,13 +226,10 @@ int TrackletsParser::Parse()
           a.word = *word;
           printTrackletHCHeader(a);
         }
-        // LOG(info) << "mFEEID : 0x"<< std::hex << mFEEID.word << " supermodule : 0x" << (int)mFEEID.supermodule << " tracklethcheader : 0x" << *word;
       }
       // now for Tracklet hc header
       if ((isTrackletHCHeader(*word)) && !mIgnoreTrackletHCHeader && mState == StateTrackletHCHeader) { // TrackletHCHeader has bit 11 set to 1 always. Check for state because raw data can have bit 11 set!
-        if (mState != StateTrackletHCHeader) {
-          incParsingError(TRDParsingTrackletBit11NotSetInTrackletHCHeader);
-        }
+
         // read the header
         if (mHeaderVerbose) {
           LOG(info) << "*** TrackletHCHeader : 0x" << std::hex << *word << " at offset :0x" << std::distance(mStartParse, word);
@@ -346,7 +342,7 @@ int TrackletsParser::Parse()
             }
             // TODO cross reference hcid to somewhere for a check. mDetector is assigned at the time of parser initialization.
             if (mDataVerbose) {
-              LOG(info) << "TTT format : " << (int)mTrackletHCHeader.format << " hcid: " << hcid << " padrow:" << padrow << " col:" << col << " pos:" << pos << " slope:" << slope << " q::" << qcharges[0] << " " << qcharges[1] << " " << qcharges[2];
+              LOG(info) << "TTT format : " << (int)mTrackletHCHeader.format << " hcid: " << hcid << " padrow:" << padrow << " col:" << col << " pos:" << pos << " slope:" << slope << " q::" << (int)qcharges[0] << " " << (int)qcharges[1] << " " << (int)qcharges[2];
             }
             mEventRecord->getTracklets().emplace_back((int)mTrackletHCHeader.format, hcid, padrow, col, pos, slope, qcharges[0], qcharges[1], qcharges[2]); // our format is always
             mEventRecord->incTrackletsFound(1);

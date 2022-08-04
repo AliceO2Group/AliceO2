@@ -25,11 +25,6 @@
 #include "CommonUtils/VerbosityConfig.h"
 #include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "DataFormatsTRD/Constants.h"
-#include <TH3F.h>
-#include "TH2F.h"
-#include "TFile.h"
-
-//using namespace o2::framework;
 
 namespace o2::trd
 {
@@ -38,13 +33,10 @@ void DataReaderTask::init(InitContext& ic)
 {
   LOG(info) << "o2::trd::DataReadTask init";
 
-  auto finishFunction = [this]() {
-    mReader.checkSummary();
-  };
   mReader.setMaxErrWarnPrinted(ic.options().get<int>("log-max-errors"), ic.options().get<int>("log-max-warnings"));
-  ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
-  mDigitPreviousTotal = mReader.getDigitsFound();
-  mTrackletsPreviousTotal = mReader.getTrackletsFound();
+
+  mDigitPreviousTotal = 0;
+  mTrackletsPreviousTotal = 0;
   mWordsRead = 0;
   mWordsRejected = 0;
 }
@@ -124,12 +116,11 @@ void DataReaderTask::run(ProcessingContext& pc)
     sendData(pc, true); //send the empty tf data.
     return;
   }
-  uint64_t total1 = 0, total2 = 0;
 
   std::vector<InputSpec> sel{InputSpec{"filter", ConcreteDataTypeMatcher{"TRD", "RAWDATA"}}};
   uint64_t tfCount = 0;
   for (auto& ref : InputRecordWalker(pc.inputs(), sel)) {
-    auto inputprocessingstart = std::chrono::high_resolution_clock::now(); // measure total processing time
+    // loop over incoming HBFs from all half-CRUs (typically 128 * 72 iterations per TF)
     const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     tfCount = dh->tfCounter;
     const char* payloadIn = ref.payload;
@@ -138,16 +129,10 @@ void DataReaderTask::run(ProcessingContext& pc)
       LOGP(info, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : ",
            dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadInSize);
     }
-    if (!mCompressedData) { //we have raw data coming in from flp
-      if (mVerbose) {
-        LOG(info) << " parsing non compressed data in the data reader task with a payload of " << payloadInSize << " payload size";
-      }
-      total1 += payloadInSize;
-      total2 += dh->headerSize;
+    if (!mCompressedData) { // we have raw data coming in from flp
       mReader.setDataBuffer(payloadIn);
       mReader.setDataBufferSize(payloadInSize);
       mReader.configure(mTrackletHCHeaderState, mHalfChamberWords, mHalfChamberMajor, mOptions);
-      //mReader.setStats(&mTimeFrameStats);
       mReader.run();
       if (mVerbose) {
         LOG(info) << "relevant vectors to read : " << mReader.sumTrackletsFound() << " tracklets and " << mReader.sumDigitsFound() << " compressed digits";

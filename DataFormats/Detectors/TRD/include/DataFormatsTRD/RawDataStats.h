@@ -36,7 +36,7 @@ enum ParsingErrors { TRDParsingNoError,
                      TRDParsingBadDigt,
                      TRDParsingBadTracklet,
                      TRDParsingDigitEndMarkerWrongState,                // read a end marker but we were expecting something else due to
-                     TRDParsingDigitMCMHeaderSanityCheckFailure,        //essentially we did not see an MCM header see RawData.h for requirement
+                     TRDParsingDigitMCMHeaderSanityCheckFailure,        // essentially we did not see an MCM header see RawData.h for requirement
                      TRDParsingDigitROBDecreasing,                      // sequential headers must have the same or increasing rob number
                      TRDParsingDigitMCMNotIncreasing,                   // sequential headers must have increasing mcm number
                      TRDParsingDigitADCMaskMismatch,                    // mask adc count does not match # of 1s in bitpattern
@@ -51,14 +51,14 @@ enum ParsingErrors { TRDParsingNoError,
                      TRDParsingDigitParsingExitInWrongState,            // exiting parsing in the wrong state ... got to the end of the buffer in wrong state.
                      TRDParsingDigitStackMismatch,                      // mismatch between rdh and hcheader stack calculation/value
                      TRDParsingDigitLayerMismatch,                      // mismatch between rdh and hcheader stack calculation/value
-                     TRDParsingDigitSectorMismatch,                     // mismatch between rdh and hcheader stack calculation/value
+                     TRDParsingDigitHCHeaderMismatch,                   // the half-chamber ID from the digit HC header is not consistent with the one expected from the link ID
                      TRDParsingTrackletCRUPaddingWhileParsingTracklets, // reading a padding word while expecting tracklet data
                      TRDParsingTrackletBit11NotSetInTrackletHCHeader,   // bit 11 not set in hc header for tracklets.
                      TRDParsingTrackletHCHeaderSanityCheckFailure,      // HCHeader sanity check failure, see RawData.cxx for reasons.
                      TRDParsingTrackletMCMHeaderSanityCheckFailure,     // MCMHeader sanity check failure, see RawData.cxx for reasons.
                      TRDParsingTrackletMCMHeaderButParsingMCMData,      // state is still MCMHeader but we are parsing MCMData
                      TRDParsingTrackletStateMCMHeaderButParsingMCMData,
-                     TRDParsingTrackletTrackletCountGTThatDeclaredInMCMHeader, //mcmheader tracklet count does not match that in we have parsed.
+                     TRDParsingTrackletTrackletCountGTThatDeclaredInMCMHeader, // mcmheader tracklet count does not match that in we have parsed.
                      TRDParsingTrackletInvalidTrackletCount,                   // invalid tracklet count in header vs data
                      TRDParsingTrackletPadRowIncreaseError,                    // subsequent padrow can not be less than previous one.
                      TRDParsingTrackletColIncreaseError,                       // subsequent col can not be less than previous one
@@ -73,6 +73,7 @@ enum ParsingErrors { TRDParsingNoError,
                      TRDParsingTrackletIgnoringDataTillEndMarker,              // for some reason we are bouncing to the end word by word, this counts those words
                      TRDParsingGarbageDataAtEndOfHalfCRU,                      // if the first word of the halfcru is wrong i.e. side, eventype, the half cru header is so wrong its not corrupt, its other garbage
                      TRDParsingHalfCRUSumLength,                               // if the HalfCRU headers summed lengths wont fit into the buffer, implies corruption, its a faster check than the next one.
+                     TRDParsingBadRDHMemSize,                                  // RDH memory size is supposedly zero
                      TRDParsingBadRDHFEEID,                                    // RDH parsing failure for reasons in the word
                      TRDParsingBadRDHEndPoint,                                 // RDH parsing failure for reasons in the word
                      TRDParsingBadRDHOrbit,                                    // RDH parsing failure for reasons in the word
@@ -82,9 +83,7 @@ enum ParsingErrors { TRDParsingNoError,
                      TRDParsingDigitHCHeader1,                                 // multiple instances of Digit HC Header 1
                      TRDParsingDigitHCHeader2,                                 // multiple instances of Digit HC Header 2
                      TRDParsingDigitHCHeader3,                                 // multiple instances of Digit HC Header 3
-                     TRDProcessingBadPayloadOrOffset,                          // if something is off with the HBFPayload array or its offset into it.
                      TRDParsingDigitHCHeaderSVNMismatch,                       // svn version information has changed in the DigitHCHeader3.
-                     TRDParsingBadLinkstartend,                                // end - start of tracklet is greater than the maximal length stored in the cru half chamber header field.
                      TRDParsingTrackletsReturnedMinusOne,                      // trackletparsing returned -1, data was dumped;
                      TRDFEEIDIsFFFF,                                           // RDH is in error, the FEEID is 0xffff
                      TRDFEEIDBadSector,                                        // RDH is in error, the FEEID.supermodule is not a valid value.
@@ -103,31 +102,26 @@ enum OptionBits {
   TRDDataVerboseBit,
   TRDCompressedDataBit,
   TRDFixDigitCorruptionBit,
-  TRDEnableTimeInfoBit,
-  TRDEnableStatsBit,
   TRDIgnoreDigitHCHeaderBit,
   TRDIgnoreTrackletHCHeaderBit,
-  TRDEnableRootOutputBit,
   TRDIgnore2StageTrigger,
   TRDGenerateStats,
-  TRDM1Debug
 };
 
 //Data to be stored and accumulated on an event basis.
 //events are spread out with in the data coming in with a halfcruheader per event, per ... half cru.
 //this is looked up via the interaction record (orbit and bunchcrossing).
 //this permits averaging in the data that gets senton per timeframe
-class TRDDataCountersPerEvent
-{
- public:
+struct TRDDataCountersPerEvent {
+  TRDDataCountersPerEvent() = default;
   //TODO this should go into a dpl message for catching by qc ?? I think.
-  double mTimeTaken;             // time take to process an event (summed trackletparsing and digitparsing) parts not accounted for.
-  double mTimeTakenForDigits;    // time take to process tracklet data blocks [us].
-  double mTimeTakenForTracklets; // time take to process digit data blocks [us].
-  uint64_t mWordsRead;           // words read in
-  uint64_t mWordsRejected;       // words skipped for various reasons.
-  uint16_t mTrackletsFound;      // tracklets found in the event
-  uint16_t mDigitsFound;         // digits found in the event
+  double mTimeTaken = 0.;             // time take to process an event (summed trackletparsing and digitparsing) parts not accounted for.
+  double mTimeTakenForDigits = 0.;    // time take to process tracklet data blocks [us].
+  double mTimeTakenForTracklets = 0.; // time take to process digit data blocks [us].
+  uint64_t mWordsRead = 0;            // words read in
+  uint64_t mWordsRejected = 0;        // words skipped for various reasons.
+  uint16_t mTrackletsFound = 0;       // tracklets found in the event
+  uint16_t mDigitsFound = 0;          // digits found in the event
 };
 
 //Data to be stored on a timeframe basis to then be sent as a message to be ultimately picked up by qc.

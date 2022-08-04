@@ -226,12 +226,12 @@ void EventStorage::accumulateStats()
   uint64_t sumwordsrejected = 0;
   uint64_t sumwordsread = 0;
   for (auto event : mEventRecords) {
-    sumtracklets += event.mEventStats.mTrackletsFound;
-    sumdigits += event.mEventStats.mDigitsFound;
-    sumtracklettime += event.mEventStats.mTimeTakenForTracklets;
-    sumdigittime += event.mEventStats.mTimeTakenForDigits;
-    sumwordsrejected += event.mEventStats.mWordsRejected;
-    sumwordsread += event.mEventStats.mWordsRead;
+    sumtracklets += event.getEventStats().mTrackletsFound;
+    sumdigits += event.getEventStats().mDigitsFound;
+    sumtracklettime += event.getEventStats().mTimeTakenForTracklets;
+    sumdigittime += event.getEventStats().mTimeTakenForDigits;
+    sumwordsrejected += event.getEventStats().mWordsRejected;
+    sumwordsread += event.getEventStats().mWordsRead;
   }
   if (eventcount != 0) {
     mTFStats.mTrackletsPerEvent = sumtracklets / eventcount;

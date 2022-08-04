@@ -37,7 +37,7 @@ class TrackletsParser
   void setData(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data) { mData = data; }
   int Parse(); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, TRDFeeID feeid, int robside,
-            int detector, int stack, int layer, EventRecord* eventrecord, EventStorage* eventrecords, std::bitset<16> option, bool cleardigits = false, int usetracklethcheader = 0);
+            int detector, int stack, int layer, EventRecord* eventrecord, EventStorage* eventrecords, std::bitset<16> option, int usetracklethcheader = 0);
   void setVerbose(bool verbose, bool header = false, bool data = false)
   {
     mVerbose = verbose;
@@ -74,13 +74,13 @@ class TrackletsParser
     if (side > 1 || side < 0) {
       side = 0;
     }
-    if (mFEEID.supermodule > 17 || mFEEID.supermodule < 0) {
+    if (mFEEID.supermodule > 17) {
       sector = 0;
     }
-    if (mStack > 4 || mStack < 0) {
+    if (mStack > 4) {
       stack = 0;
     }
-    if (layer > 5 || mLayer < 0) {
+    if (layer > 5) {
       layer = 0;
     }
     // error is too big ?
