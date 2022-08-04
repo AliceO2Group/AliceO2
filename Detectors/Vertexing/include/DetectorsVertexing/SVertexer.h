@@ -252,6 +252,7 @@ template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCR
       }
     }
   }
+  LOG(info)<<"relate Cascades to primary vertices Finish";
 
   // relate 3 body decays to primary vertices
   pvID = -1;
@@ -281,6 +282,7 @@ template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCR
       }
     }
   }
+  LOG(info)<<"relate 3 body decays to primary vertices Finish";
 }
 
 } // namespace vertexing
