@@ -66,7 +66,7 @@ struct CTPInput {
 struct CTPDescriptor {
   CTPDescriptor() = default;
   std::string name = "";
-  std::vector<CTPInput const *> inputs;
+  std::vector<CTPInput const*> inputs;
   std::uint64_t getInputsMask() const;
   // void createInputsFromName();
   void printStream(std::ostream& strem) const;
@@ -102,7 +102,7 @@ struct CTPClass {
   int clusterIndex = 0;
   int descriptorIndex = 0xff;
   uint32_t downScale = 1;
-  std::vector<BCMask const *> BCClassMask;
+  std::vector<BCMask const*> BCClassMask;
   uint64_t getClassMaskForInput(int inputindex) const;
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPClass, 4);
@@ -157,7 +157,8 @@ class CTPConfiguration
   uint64_t getClassMaskForInput(int inputindex) const;
   uint64_t getClassMaskForInput(const std::string& name) const;
   void printConfigString() { std::cout << mConfigString << std::endl; };
-  std::string getConfigString() {return mConfigString ;};
+  std::string getConfigString() { return mConfigString; };
+
  private:
   std::string mConfigString = "";
   uint32_t mRunNumber = 0;
@@ -212,7 +213,7 @@ class CTPRunManager
   std::array<std::uint32_t, NRUNS> mActiveRunNumbers;
   std::array<uint32_t, CTPRunScalers::NCOUNTERS> mCounters;
   std::map<std::string, uint32_t> mScalerName2Position;
-  std::map<uint32_t,CTPActiveRun*> mRunsLoaded;
+  std::map<uint32_t, CTPActiveRun*> mRunsLoaded;
   int mEOX = 0; // redundancy check
   int mQC = 0; // 1 - no CCDB: used for QC
   ClassDefNV(CTPRunManager, 5);

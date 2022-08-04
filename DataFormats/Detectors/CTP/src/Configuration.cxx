@@ -127,7 +127,7 @@ void CTPClass::printStream(std::ostream& stream) const
   stream << "CTP Class:" << name << " Hardware mask:" << classMask << " Cluster index:" << clusterIndex << " Desc index:" << descriptorIndex;
   stream << " Downscale:" << downScale;
   stream << " BCM:";
-  for(const auto& bcm: BCClassMask) {
+  for (const auto& bcm : BCClassMask) {
     stream << bcm->name << " ";
   }
   if (descriptor != nullptr) {
@@ -492,7 +492,7 @@ void CTPConfiguration::createInputsInDecriptorsFromNames()
       if (index > 100) {
         index = index - 100;
       }
-      //CTPInput* inp = const_cast<CTPInput*>(isInputInConfig(index));
+      // CTPInput* inp = const_cast<CTPInput*>(isInputInConfig(index));
       const CTPInput* inp = isInputInConfig(index);
       if (inp) {
         des.inputs.push_back(inp);
@@ -603,7 +603,8 @@ int CTPRunManager::loadRun(const std::string& cfg)
   saveRunConfigToCCDB(&activerun->cfg, timeStamp);
   return 0;
 }
-int CTPRunManager::startRun(const std::string& cfg) {
+int CTPRunManager::startRun(const std::string& cfg)
+{
   return 0;
 }
 int CTPRunManager::stopRun(uint32_t irun)
@@ -662,7 +663,7 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
       std::string countername = "ltg" + CTPConfiguration::detName2LTG.at(detname) + "_PH";
       uint32_t detcount = mCounters[mScalerName2Position[countername]];
       scalrec.scalersDets.push_back(detcount);
-      //LOG(info) << "Scaler for detector:" << countername << ":" << detcount;
+      // LOG(info) << "Scaler for detector:" << countername << ":" << detcount;
     }
   }
   //
@@ -737,7 +738,7 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
     } else if ((mCounters[i] != 0) && (mActiveRunNumbers[i] == 0)) {
       LOG(info) << "Run started:" << mCounters[i];
       auto run = mRunsLoaded.find(mCounters[i]);
-      if(run != mRunsLoaded.end()) {
+      if (run != mRunsLoaded.end()) {
         mActiveRunNumbers[i] = mCounters[i];
         mActiveRuns[i] = run->second;
         mRunsLoaded.erase(run);
@@ -767,7 +768,7 @@ void CTPRunManager::printActiveRuns() const
     std::cout << arun << " ";
   }
   std::cout << " #loaded runs:" << mRunsLoaded.size();
-  for(auto const& lrun: mRunsLoaded) {
+  for (auto const& lrun : mRunsLoaded) {
     std::cout << " " << lrun.second->cfg.getRunNumber();
   }
   std::cout << std::endl;

@@ -110,8 +110,8 @@ void Digitizer::init()
   }
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBServer);
-  map<string,string> metadata = {};
+  map<string, string> metadata = {};
   long timestamp = 1546300800000;
-  mCTPConfiguration = mgr.getSpecific<CTPConfiguration>(o2::ctp::CCDBPathCTPConfig,timestamp,metadata);
+  mCTPConfiguration = mgr.getSpecific<CTPConfiguration>(o2::ctp::CCDBPathCTPConfig, timestamp, metadata);
   LOG(info) << " @@@ CTP Digitizer:: CCDB connected " << std::endl;
 }
