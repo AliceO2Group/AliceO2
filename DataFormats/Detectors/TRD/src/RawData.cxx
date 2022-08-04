@@ -317,7 +317,7 @@ void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
   LOGF(info, "V:%d BC:%d SB:%d EType:%d", halfcru.HeaderVersion, halfcru.BunchCrossing,
        halfcru.StopBit, halfcru.EventType);
   for (int i = 0; i < 15; i++) {
-    LOGF(info, "Link %d size: %ul eflag: 0x%02x", i, sizes[i], errorflags[i]);
+    LOGF(info, "Link %d size: %lu eflag: 0x%02x", i, sizes[i], errorflags[i]);
   }
   LOG(info) << "Raw: " << std::hex << halfcru.word0 << " " << halfcru.word12[0] << " " << halfcru.word12[1] << " " << halfcru.word3 << " " << halfcru.word47[0] << " " << halfcru.word47[1] << " " << halfcru.word47[2] << " " << halfcru.word47[3];
 }
@@ -352,25 +352,23 @@ bool halfCRUHeaderSanityCheck(o2::trd::HalfCRUHeader& header, std::array<uint32_
   // check the sizes for less than max value
   // check the errors for either < 0x3, for now (may 2022) there is only no error, 1, or 2.
   //
-  bool goodheader = true;
   for (int lengthindex = 0; lengthindex < 15; ++lengthindex) {
     if (lengths[lengthindex] > o2::trd::constants::MAXDATAPERLINK256) {
       // something has gone insane.
-      goodheader = false;
+      return false;
     }
   }
   for (int eflagindex = 0; eflagindex < 15; ++eflagindex) {
     if (eflags[eflagindex] > o2::trd::constants::MAXCRUERRORVALUE) {
       // something has gone insane.
-      goodheader = false;
+      return false;
     }
     if (header.EndPoint > 1) {
-      // end point can only be zero or 1, for ach of the 2 pci end points in the cru
-      goodheader = false;
+      // end point can only be zero or 1, for each of the 2 pci end points in the cru
+      return false;
     }
   }
-
-  return goodheader;
+  return true;
 }
 
 bool sanityCheckTrackletMCMHeader(o2::trd::TrackletMCMHeader* header)

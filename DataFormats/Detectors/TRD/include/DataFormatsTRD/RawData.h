@@ -430,8 +430,6 @@ std::ostream& operator<<(std::ostream& stream, const TrackletHCHeader& halfchamb
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& mcmhead);
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMData& tracklet);
 void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet);
-void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead);
-void printHalfChamber(o2::trd::TrackletHCHeader& halfchamber);
 void dumpHalfChamber(o2::trd::TrackletHCHeader& halfchamber);
 std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru);
 bool trackletMCMHeaderSanityCheck(o2::trd::TrackletMCMHeader& header);
@@ -472,8 +470,6 @@ std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru);
 void printTrackletHCHeader(o2::trd::TrackletHCHeader& tracklet);
 void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet);
 void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead);
-
-void printHalfChamber(o2::trd::TrackletHCHeader& digithcheader);
 
 void printDigitHCHeader(o2::trd::DigitHCHeader& digitmcmheader);
 void printDigitMCMData(o2::trd::DigitMCMData& digitmcmdata);
