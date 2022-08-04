@@ -234,11 +234,12 @@ template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCR
       }
     }
   }
+  LOG(info)<<"relate Cascades to primary vertices Finish";
 
   // relate 3 body decays to primary vertices
   pvID = -1;
   nForPV = 0;
-  for (int iv = 0; iv < nv0; iv++) {
+  for (int iv = 0; iv < n3body; iv++) {
     const auto& vertex3body = tmp3B[vtx3SortID[iv]];
     if (pvID < vertex3body.getVertexID()) {
       if (pvID > -1) {
@@ -263,6 +264,7 @@ template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCR
       }
     }
   }
+  LOG(info)<<"relate 3 body decays to primary vertices Finish";
 }
 
 } // namespace vertexing

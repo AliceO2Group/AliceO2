@@ -93,8 +93,11 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
   auto& vtx3body = pc.outputs().make<std::vector<DecayNbody>>(Output{"GLO", "DECAYS3BODY", 0, Lifetime::Timeframe});
   auto& vtx3bodyRefs = pc.outputs().make<std::vector<RRef>>(Output{"GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe});
 
+  LOG(info)<<"SecondaryVertexingSpec::run process Start";
   mVertexer.process(recoData);
+  LOG(info)<<"SecondaryVertexingSpec::run process Finish";
   mVertexer.extractSecondaryVertices(v0s, v0Refs, cascs, cascRefs, vtx3body, vtx3bodyRefs);
+  LOG(info)<<"SecondaryVertexingSpec::run extractSecondaryVertices Finish";
 
   mTimer.Stop();
   LOG(info) << "Found " << v0s.size() << " V0s, " << cascs.size() << " cascades, and " << vtx3body.size() << " 3-body decays; timing: CPU: "
