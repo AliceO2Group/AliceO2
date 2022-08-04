@@ -108,11 +108,15 @@ void SecondaryVertexReader::connectTree()
   assert(mTree->GetBranch(mPVertex2V0RefBranchName.c_str()));
   assert(mTree->GetBranch(mCascBranchName.c_str()));
   assert(mTree->GetBranch(mPVertex2CascRefBranchName.c_str()));
+  assert(mTree->GetBranch(m3BodyBranchName.c_str()));
+  assert(mTree->GetBranch(mPVertex23BodyRefBranchName.c_str()));
 
   mTree->SetBranchAddress(mV0BranchName.c_str(), &mV0sPtr);
   mTree->SetBranchAddress(mPVertex2V0RefBranchName.c_str(), &mPV2V0RefPtr);
   mTree->SetBranchAddress(mCascBranchName.c_str(), &mCascsPtr);
   mTree->SetBranchAddress(mPVertex2CascRefBranchName.c_str(), &mPV2CascRefPtr);
+  mTree->SetBranchAddress(m3BodyBranchName.c_str(), &m3BodysPtr);
+  mTree->SetBranchAddress(mPVertex23BodyRefBranchName.c_str(), &mPV23BodyRefPtr);
 
   LOG(info) << "Loaded " << mSVertexTreeName << " tree from " << mFileName << " with " << mTree->GetEntries() << " entries";
 }
