@@ -23,6 +23,7 @@
 #include <bitset>
 #include <map>
 #include <set>
+#include <iostream>
 namespace o2
 {
 namespace ctp
@@ -65,7 +66,7 @@ struct CTPInput {
 struct CTPDescriptor {
   CTPDescriptor() = default;
   std::string name = "";
-  std::vector<CTPInput*> inputs;
+  std::vector<CTPInput const *> inputs;
   std::uint64_t getInputsMask() const;
   // void createInputsFromName();
   void printStream(std::ostream& strem) const;
@@ -101,7 +102,7 @@ struct CTPClass {
   int clusterIndex = 0;
   int descriptorIndex = 0xff;
   uint32_t downScale = 1;
-  std::vector<BCMask*> BCClassMask;
+  std::vector<BCMask const *> BCClassMask;
   uint64_t getClassMaskForInput(int inputindex) const;
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPClass, 4);
@@ -155,12 +156,13 @@ class CTPConfiguration
   void createDefaultInputsConfig();
   uint64_t getClassMaskForInput(int inputindex) const;
   uint64_t getClassMaskForInput(const std::string& name) const;
-
+  void printConfigString() { std::cout << mConfigString << std::endl; };
+  std::string getConfigString() {return mConfigString ;};
  private:
   std::string mConfigString = "";
   uint32_t mRunNumber = 0;
   std::string mName = "";
-  std::string mVersion = "0";
+  std::string mVersion = "1";
   std::vector<BCMask> mBCMasks;
   std::vector<CTPGenerator> mGenerators;
   std::vector<CTPInput> mInputs;
@@ -184,6 +186,7 @@ class CTPRunManager
  public:
   CTPRunManager() = default;
   void init();
+  int loadRun(const std::string& cfg);
   int startRun(const std::string& cfg);
   int stopRun(uint32_t irun);
   int addScalers(uint32_t irun, std::time_t time);
@@ -209,11 +212,10 @@ class CTPRunManager
   std::array<std::uint32_t, NRUNS> mActiveRunNumbers;
   std::array<uint32_t, CTPRunScalers::NCOUNTERS> mCounters;
   std::map<std::string, uint32_t> mScalerName2Position;
-  CTPActiveRun* mRunInStart = nullptr;
+  std::map<uint32_t,CTPActiveRun*> mRunsLoaded;
   int mEOX = 0; // redundancy check
-  int mCtpcfg = 0;
   int mQC = 0; // 1 - no CCDB: used for QC
-  ClassDefNV(CTPRunManager, 4);
+  ClassDefNV(CTPRunManager, 5);
 };
 
 } // namespace ctp

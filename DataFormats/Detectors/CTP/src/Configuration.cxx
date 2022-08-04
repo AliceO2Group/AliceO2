@@ -15,7 +15,6 @@
 #include "DataFormatsCTP/Configuration.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/BasicCCDBManager.h"
-#include <iostream>
 #include <sstream>
 #include <regex>
 #include "CommonUtils/StringUtils.h"
@@ -126,6 +125,11 @@ uint64_t CTPClass::getClassMaskForInput(int inputindex) const
 void CTPClass::printStream(std::ostream& stream) const
 {
   stream << "CTP Class:" << name << " Hardware mask:" << classMask << " Cluster index:" << clusterIndex << " Desc index:" << descriptorIndex;
+  stream << " Downscale:" << downScale;
+  stream << " BCM:";
+  for(const auto& bcm: BCClassMask) {
+    stream << bcm->name << " ";
+  }
   if (descriptor != nullptr) {
     stream << " Descriptor:" << descriptor->name;
   }
@@ -346,7 +350,7 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
           if (cls.descriptorIndex == 0xff) {
             CTPDescriptor desc;
             desc.name = token;
-            std::string inpname;
+            mDescriptors.push_back(desc);
             cls.descriptorIndex = mDescriptors.size() - 1;
           } else {
             CTPDescriptor desc = mDescriptors.at(cls.descriptorIndex);
@@ -372,6 +376,7 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
           int i = 0;
           for (auto const& bcm : mBCMasks) {
             if (bcm.name == token) {
+              cls.BCClassMask.push_back(&bcm);
               LOG(info) << "Class BCMask found:" << token;
               break;
             }
@@ -487,14 +492,15 @@ void CTPConfiguration::createInputsInDecriptorsFromNames()
       if (index > 100) {
         index = index - 100;
       }
-      CTPInput* inp = const_cast<CTPInput*>(isInputInConfig(index));
+      //CTPInput* inp = const_cast<CTPInput*>(isInputInConfig(index));
+      const CTPInput* inp = isInputInConfig(index);
       if (inp) {
         des.inputs.push_back(inp);
       } else {
         LOG(warning) << "Descriptor not found:" << des.name;
       }
     } else {
-      LOG(info) << "Input is no a number:" << des.name;
+      LOG(info) << "Input is not a number:" << des.name;
     }
   }
 }
@@ -577,9 +583,9 @@ void CTPRunManager::init()
   LOG(info) << "CTP QC:" << mQC;
   LOG(info) << "CTPRunManager initialised.";
 }
-int CTPRunManager::startRun(const std::string& cfg)
+int CTPRunManager::loadRun(const std::string& cfg)
 {
-  LOG(info) << "Starting run: " << cfg;
+  LOG(info) << "Loading run: " << cfg;
   const auto now = std::chrono::system_clock::now();
   const long timeStamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   CTPActiveRun* activerun = new CTPActiveRun;
@@ -587,13 +593,17 @@ int CTPRunManager::startRun(const std::string& cfg)
   activerun->cfg.loadConfigurationRun3(cfg);
   activerun->cfg.printStream(std::cout);
   //
-  activerun->scalers.setRunNumber(activerun->cfg.getRunNumber());
+  uint32_t runnumber = activerun->cfg.getRunNumber();
+  activerun->scalers.setRunNumber(runnumber);
   activerun->scalers.setClassMask(activerun->cfg.getTriggerClassMask());
   o2::detectors::DetID::mask_t detmask = activerun->cfg.getDetectorMask();
   activerun->scalers.setDetectorMask(detmask);
   //
-  mRunInStart = activerun;
+  mRunsLoaded[runnumber] = activerun;
   saveRunConfigToCCDB(&activerun->cfg, timeStamp);
+  return 0;
+}
+int CTPRunManager::startRun(const std::string& cfg) {
   return 0;
 }
 int CTPRunManager::stopRun(uint32_t irun)
@@ -652,7 +662,7 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
       std::string countername = "ltg" + CTPConfiguration::detName2LTG.at(detname) + "_PH";
       uint32_t detcount = mCounters[mScalerName2Position[countername]];
       scalrec.scalersDets.push_back(detcount);
-      LOG(info) << "Scaler for detector:" << countername << ":" << detcount;
+      //LOG(info) << "Scaler for detector:" << countername << ":" << detcount;
     }
   }
   //
@@ -674,8 +684,7 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
   std::string firstcounters;
   if (topic.find("ctpconfig") != std::string::npos) {
     LOG(info) << "ctpcfg received";
-    startRun(message);
-    mCtpcfg = 1;
+    loadRun(message);
     return 0;
   }
   if (topic.find("sox") != std::string::npos) {
@@ -687,13 +696,8 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
       return 1;
     }
     LOG(info) << "SOX received, Run keyword position:" << irun;
-    if (mCtpcfg == 0) {
-      std::string cfg = message.substr(irun, message.size() - irun);
-      LOG(info) << "Config:" << cfg;
-      startRun(cfg);
-    } else {
-      mCtpcfg = 0;
-    }
+    std::string cfg = message.substr(irun, message.size() - irun);
+    startRun(cfg);
     firstcounters = message.substr(0, irun);
   }
   if (topic.find("eox") != std::string::npos) {
@@ -732,13 +736,15 @@ int CTPRunManager::processMessage(std::string& topic, const std::string& message
       addScalers(i, tt);
     } else if ((mCounters[i] != 0) && (mActiveRunNumbers[i] == 0)) {
       LOG(info) << "Run started:" << mCounters[i];
-      mActiveRunNumbers[i] = mCounters[i];
-      if (mRunInStart == nullptr) {
-        LOG(error) << "Internal error in processMessage: nullptr != 0 expected";
+      auto run = mRunsLoaded.find(mCounters[i]);
+      if(run != mRunsLoaded.end()) {
+        mActiveRunNumbers[i] = mCounters[i];
+        mActiveRuns[i] = run->second;
+        mRunsLoaded.erase(run);
+        addScalers(i, tt);
+      } else {
+        LOG(error) << "Trying to start run which is not loaded:" << mCounters[i];
       }
-      mActiveRuns[i] = mRunInStart;
-      mRunInStart = nullptr;
-      addScalers(i, tt);
     } else if ((mCounters[i] == 0) && (mActiveRunNumbers[i] != 0)) {
       if (mEOX != 1) {
         LOG(error) << "Internal error in processMessage: mEOX != 1 expected 0: mEOX:" << mEOX;
@@ -759,6 +765,10 @@ void CTPRunManager::printActiveRuns() const
   std::cout << "Active runs:";
   for (auto const& arun : mActiveRunNumbers) {
     std::cout << arun << " ";
+  }
+  std::cout << " #loaded runs:" << mRunsLoaded.size();
+  for(auto const& lrun: mRunsLoaded) {
+    std::cout << " " << lrun.second->cfg.getRunNumber();
   }
   std::cout << std::endl;
 }
