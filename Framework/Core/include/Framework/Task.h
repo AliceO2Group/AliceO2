@@ -74,6 +74,24 @@ class has_stop
   enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
 };
 
+/// Check if the class task has a destructor
+template <typename T>
+class has_destructor
+{
+  typedef char one;
+  struct two {
+    char x[2];
+  };
+
+  template <typename C>
+  static one test(decltype(&C::~C));
+  template <typename C>
+  static two test(...);
+
+ public:
+  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+};
+
 /// A more familiar task API for the DPL.
 /// This allows you to define your own tasks as subclasses
 /// of o2::framework::Task and to pass them in the specification
@@ -133,8 +151,14 @@ AlgorithmSpec adaptFromTask(Args&&... args)
         task->stop();
       });
     }
+    if constexpr (has_destructor<T>::value) {
+      auto& callbacks = ic.services().get<CallbackService>();
+      callbacks.set(CallbackService::Id::Terminate, [task]() mutable {
+        task.reset();
+      });
+    }
     task->init(ic);
-    return [task](ProcessingContext& pc) {
+    return [task = task](ProcessingContext& pc) {
       task->run(pc);
     };
   }};

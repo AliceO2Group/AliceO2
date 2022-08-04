@@ -1138,6 +1138,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
 
   runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
   auto result = runner.Run();
+  serviceRegistry.get<CallbackService>()(CallbackService::Id::Terminate, serviceRegistry);
   serviceRegistry.preExitCallbacks();
   return result;
 }
