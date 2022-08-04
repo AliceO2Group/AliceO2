@@ -87,6 +87,9 @@ class ITSDCSParser : public Task
   // Keep track of whether the endOfStream() or stop() has been called
   bool mStopped = false;
 
+  // Whether to use verbose output
+  bool mVerboseOutput = false;
+
   // DCS config object for storing output string
   o2::dcs::DCSconfigObject_t mConfigDCS;
 

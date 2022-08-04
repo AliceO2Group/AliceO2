@@ -36,6 +36,8 @@ void ITSDCSParser::init(InitContext& ic)
 
   this->mCcdbUrl = ic.options().get<std::string>("ccdb-url");
 
+  this->mVerboseOutput = ic.options().get<bool>("verbose");
+
   return;
 }
 
@@ -70,6 +72,11 @@ void ITSDCSParser::run(ProcessingContext& pc)
 //////////////////////////////////////////////////////////////////////////////
 void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
 {
+  // Print the entire string if verbose mode is requested
+  if (this->mVerboseOutput) {
+    LOG(info) << "Parsing string: " << inString;
+  }
+
   // Parse the individual parts of the string
   const std::string delimiter = "|";
   unsigned int pos = 0;
@@ -407,6 +414,7 @@ DataProcessorSpec getITSDCSParserSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<o2::its::ITSDCSParser>()},
     Options{
+      {"verbose", VariantType::Bool, false, {"Use verbose output mode"}},
       {"ccdb-url", VariantType::String, "", {"CCDB url, default is empty (i.e. send output to CCDB populator workflow)"}}}};
 }
 } // namespace its
