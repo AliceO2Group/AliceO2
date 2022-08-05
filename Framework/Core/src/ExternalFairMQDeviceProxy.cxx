@@ -279,7 +279,8 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
         if (DataSpecUtils::match(spec, OutputSpec{{header::gDataOriginAny, header::gDataDescriptionAny}}) ||
             DataSpecUtils::match(spec, query)) {
           channelName = channelRetriever(query, dph->startTime);
-          if (channelName.empty()) {
+          // We do not complain about DPL/EOS/0, since it's normal not to forward it.
+          if (channelName.empty() && DataSpecUtils::describe(query) != "DPL/EOS/0") {
             LOG(warning) << "can not find matching channel, not able to adopt " << DataSpecUtils::describe(query);
           }
           break;
@@ -435,8 +436,21 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       });
     };
     ctx.services().get<CallbackService>().set(CallbackService::Id::Start, channelConfigurationChecker);
+    static int numberOfEoS = 0;
+    numberOfEoS = 0;
 
-    auto dataHandler = [device, converter,
+    static auto countEoS = [](fair::mq::Parts& inputs) -> int {
+      int count = 0;
+      for (int msgidx = 0; msgidx < inputs.Size() / 2; ++msgidx) {
+        auto const sih = o2::header::get<SourceInfoHeader*>(inputs.At(msgidx * 2)->GetData());
+        if (sih != nullptr && sih->state == InputChannelState::Completed) {
+          count++;
+        }
+      }
+      return count;
+    };
+
+    auto dataHandler = [device, converter, &channel,
                         outputRoutes = std::move(outputRoutes),
                         control = &ctx.services().get<ControlService>(),
                         deviceState = &ctx.services().get<DeviceState>(),
@@ -453,21 +467,16 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         return {""};
       };
 
-      auto checkEos = [&inputs]() -> bool {
-        std::string channelNameForSplitParts;
-        for (int msgidx = 0; msgidx < inputs.Size() / 2; ++msgidx) {
-          auto const sih = o2::header::get<SourceInfoHeader*>(inputs.At(msgidx * 2)->GetData());
-          if (sih != nullptr && sih->state == InputChannelState::Completed) {
-            return true;
-          }
-        }
-        return false;
-      };
       // we buffer the condition since the converter will forward messages by move
-      bool doEos = checkEos();
+      numberOfEoS += countEoS(inputs);
       converter(timingInfo, *device, inputs, channelRetriever);
 
-      if (doEos) {
+      // If we have enough EoS messages, we can stop the device
+      // Notice that this has a number of failure modes:
+      // * If a connection sends the EoS and then closes.
+      // * If a connection sends two EoS.
+      // * If a connection sends an end of stream closes and another one opens.
+      if (numberOfEoS >= device->GetNumberOfConnectedPeers(channel)) {
         // Mark all input channels as closed
         for (auto& info : deviceState->inputChannelInfos) {
           info.state = InputChannelState::Completed;
