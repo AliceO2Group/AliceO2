@@ -351,3 +351,31 @@ void RecEventFlat::printDecodedMessages() const
     }
   }
 }
+
+void RecEventFlat::printEvent() const
+{
+  print();
+  if (getNInfo() > 0) {
+    printDecodedMessages();
+  }
+  if (getNEnergy() > 0 && mCurB.triggers == 0) {
+    printf("%9u.%04u Untriggered bunch\n", mCurB.ir.orbit, mCurB.ir.bc);
+  }
+  // TDC
+  for (int32_t itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
+    int ich = o2::zdc::TDCSignal[itdc];
+    int nhit = NtdcV(itdc);
+    if (NtdcA(itdc) != nhit) {
+      fprintf(stderr, "Mismatch in TDC %d data Val=%d Amp=%d\n", itdc, NtdcV(itdc), NtdcA(ich));
+      continue;
+    }
+    for (int32_t ipos = 0; ipos < nhit; ipos++) {
+      printf("%9u.%04u T %2d %s = %g @ %g \n", mCurB.ir.orbit, mCurB.ir.bc, ich, ChannelNames[ich].data(),
+             FTDCAmp * TDCAmp[itdc][ipos], FTDCVal * TDCVal[itdc][ipos]);
+    }
+  }
+  // Energy
+  for (const auto& [ich, value] : ezdc) {
+    printf("%9u.%04u E %2d %s = %g\n", mCurB.ir.orbit, mCurB.ir.bc, ich, ChannelNames[ich].data(), value);
+  }
+}
