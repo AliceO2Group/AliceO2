@@ -153,6 +153,7 @@ class DigiReco
   bool mLowPassFilterSet = false;                            /// Low pass filtering set via function call
   bool mFullInterpolation = false;                           /// Full waveform interpolation
   bool mFullInterpolationSet = false;                        /// Full waveform interpolation set via function call
+  int mInterpolationStep = 25;                               /// Coarse interpolation step
   bool mCorrSignal = true;                                   /// Enable TDC signal correction
   bool mCorrSignalSet = false;                               /// TDC signal correction set via function call
   bool mCorrBackground = true;                               /// Enable TDC pile-up correction
