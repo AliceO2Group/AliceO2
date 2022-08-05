@@ -1411,7 +1411,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   int ip[nsp] = {-1, -1, -1, -1, -1};
   // N.B. Points at the extremes are constant therefore no local maximum
   // can occur in these two regions
-  for (int i = 0; i < mNint; i+=mInterpolationStep) {
+  for (int i = 0; i < mNint; i += mInterpolationStep) {
     int isam = i + TSNH;
     // Check if trigger is fired for this point
     // For the moment we don't take into account possible extensions of the search zone
@@ -1518,22 +1518,22 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
     // If we exit from searching zone
     if (was_searchable && !is_searchable) {
       if (amp <= ADCMax) {
-        if(mInterpolationStep>1){
+        if (mInterpolationStep > 1) {
           // Refine peak search
           int sbeg = (isam_amp - TSNH);
           int send = (isam_amp + TSNH);
-          if(sbeg<0){
-            sbeg=0;
+          if (sbeg < 0) {
+            sbeg = 0;
             send = sbeg + TSN;
           }
-          if(send>(mNint + TSNH)){
-            send=mNint + TSNH;
-            sbeg=send-TSN;
+          if (send > (mNint + TSNH)) {
+            send = mNint + TSNH;
+            sbeg = send - TSN;
           }
-          if(sbeg<0){
-            sbeg=0;
+          if (sbeg < 0) {
+            sbeg = 0;
           }
-          for(int spos = sbeg; spos<send; spos++){
+          for (int spos = sbeg; spos < send; spos++) {
             // Perform interpolation for the searched point
             O2_ZDC_DIGIRECO_FLT myval = getPoint(isig, ibeg, iend, spos);
             // Get local minimum of waveform
@@ -1584,22 +1584,22 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   if (is_searchable) {
     // Add last identified peak
     if (amp <= ADCMax) {
-      if(mInterpolationStep>1){
+      if (mInterpolationStep > 1) {
         // Refine peak search
         int sbeg = (isam_amp - TSNH);
         int send = (isam_amp + TSNH);
-        if(sbeg<0){
-          sbeg=0;
+        if (sbeg < 0) {
+          sbeg = 0;
           send = sbeg + TSN;
         }
-        if(send>(mNint + TSNH)){
-          send=mNint + TSNH;
-          sbeg=send-TSN;
+        if (send > (mNint + TSNH)) {
+          send = mNint + TSNH;
+          sbeg = send - TSN;
         }
-        if(sbeg<0){
-          sbeg=0;
+        if (sbeg < 0) {
+          sbeg = 0;
         }
-        for(int spos = sbeg; spos<send; spos++){
+        for (int spos = sbeg; spos < send; spos++) {
           // Perform interpolation for the searched point
           O2_ZDC_DIGIRECO_FLT myval = getPoint(isig, ibeg, iend, spos);
           // Get local minimum of waveform
@@ -2168,5 +2168,6 @@ int DigiReco::correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& t
 #endif
   return 0;
 }
+
 } // namespace zdc
 } // namespace o2
