@@ -43,8 +43,16 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \param timeframesDeltaIDC number of time frames stored for each DeltaIDC object
   IDCFactorization(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const unsigned int groupNotnPadsSectorEdges, const unsigned int timeFrames, const unsigned int timeframesDeltaIDC, const std::vector<uint32_t>& crus);
 
+  /// constructor for creating and object without grouped input IDCs
+  /// \param timeFrames number of time frames which will be stored
+  /// \param timeframesDeltaIDC number of time frames stored for each DeltaIDC object
+  IDCFactorization(const unsigned int timeFrames, const unsigned int timeframesDeltaIDC, const std::vector<uint32_t>& crus) : IDCFactorization(std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 0, timeFrames, timeframesDeltaIDC, crus){};
+
   /// default constructor for ROOT I/O
   IDCFactorization() = default;
+
+  /// destructor
+  ~IDCFactorization();
 
   /// returns sides for CRUs
   /// \param crus crus which will be checked for their side
@@ -72,7 +80,8 @@ class IDCFactorization : public IDCGroupHelperSector
   void calcIDCDelta();
 
   /// calculate I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
-  static void calcIDCOne(const std::vector<float>& idcsData, const int idcsPerCRU, const int integrationIntervalOffset, const unsigned int indexOffset, const CRU cru, std::vector<float>& idcOneTmp, std::vector<unsigned int>& weights, const IDCZero* idcZero, const CalDet<PadFlags>* flagMap = nullptr, const bool usePadStatusMap = false);
+  template <typename DataVec>
+  static void calcIDCOne(const DataVec& idcsData, const int idcsPerCRU, const int integrationIntervalOffset, const unsigned int indexOffset, const CRU cru, std::vector<float>& idcOneTmp, std::vector<unsigned int>& weights, const IDCZero* idcZero, const CalDet<PadFlags>* flagMap = nullptr, const bool usePadStatusMap = false);
 
   /// \return returns the stored grouped and integrated IDC
   /// \param sector sector
@@ -107,21 +116,27 @@ class IDCFactorization : public IDCGroupHelperSector
   float getIDCDeltaVal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int chunk, unsigned int localintegrationInterval) const { return mIDCDelta[mSideIndex[Sector(sector).side()]][chunk].getValue(getIndexUngrouped(sector, region, urow, upad, localintegrationInterval)); }
 
   /// \return returns index of integration interval in the chunk from global integration interval
-  /// \param cru TPC cru
   /// \param integrationInterval integration interval
   /// \param chunk which will be set in the function
   /// \param localintegrationInterval local integration interval for chunk which will be set in the function
-  void getLocalIntegrationInterval(const unsigned int cru, const unsigned int integrationInterval, unsigned int& chunk, unsigned int& localintegrationInterval) const;
+  void getLocalIntegrationInterval(const unsigned int integrationInterval, unsigned int& chunk, unsigned int& localintegrationInterval) const;
 
   /// \return returns number of timeframes for which the IDCs are stored
   unsigned int getNTimeframes() const { return mTimeFrames; }
 
-  /// \return returns the number of stored integration intervals for given Delta IDC chunk
+  /// \return returns the number of stored integration intervals for given Delta IDC chunk (dropped TFs taken into account)
   /// \param chunk chunk of Delta IDC
-  unsigned long getNIntegrationIntervals(const unsigned int chunk, const int cru) const;
+  unsigned long getNIntegrationIntervalsInChunk(const unsigned int chunk) const;
 
-  /// \return returns the total number of stored integration intervals
+  /// \return returns the number of stored integration intervals up to a given Delta IDC chunk (dropped TFs taken into account)
+  /// \param chunk chunk of Delta IDC
+  unsigned long getNIntegrationIntervalsToChunk(const unsigned int chunk) const;
+
+  /// \return returns the total number of stored integration intervals (dropped TFs not taken into account)
   unsigned long getNIntegrationIntervals(const int cru) const;
+
+  /// \return returns the total number of stored integration intervals (dropped TFs are taken into account)
+  unsigned long getNIntegrationIntervals() const;
 
   /// \return returns stored IDC0 I_0(r,\phi) = <I(r,\phi,t)>_t
   /// \param side TPC side
@@ -256,9 +271,12 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \param outFileName name of the output file
   void dumpToTree(int integrationIntervals = -1, const char* outFileName = "IDCTree.root") const;
 
-  /// \returns vector containing the number of integration intervals for each stored TF
+  /// \returns vector containing the number of integration intervals for each stored TF (dropped TFs not taken into account)
   /// \param cru cru which is used for the lookup (cru=-1: automatic cru lookup)
   std::vector<unsigned int> getIntegrationIntervalsPerTF(const int cru = -1) const;
+
+  /// \returns vector containing the number of integration intervals for each stored TF (dropped TFs taken into account)
+  std::vector<unsigned int> getAllIntegrationIntervalsPerTF() const;
 
   /// resetting aggregated IDCs
   void reset();
@@ -311,6 +329,7 @@ class IDCFactorization : public IDCGroupHelperSector
   const std::vector<uint32_t> mCRUs{};                              ///< CRUs to process in this instance
   std::array<unsigned int, SIDES> mSideIndex{0, 1};                 ///< index to mIDCZero, mIDCOne and mIDCDelta for TPC side
   std::vector<Side> mSides{};                                       ///< processed TPC sides
+  std::vector<unsigned int> mIntegrationIntervalsPerTF{};           ///< storage of integration intervals per TF (taken dropped TFs into account)
 
   /// helper function for drawing IDCDelta
   void drawIDCDeltaHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const IDCDeltaCompression compression, const std::string filename, const float minZ, const float maxZ) const;

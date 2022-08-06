@@ -60,7 +60,7 @@ class TPCFourierTransformEPNSpec : public o2::framework::Task
       const o2::tpc::CRU cruTmp(cru);
       const auto descr = tpcCRUHeader->dataDescription;
 
-      if (TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDCEPN() == descr) {
+      if (TPCFLPIDCDevice::getDataDescription1DIDCEPN() == descr) {
         LOGP(debug, "Receiving IDC1 for TF {} for CRU {}", currTF, cru);
         mIDCOneAggregator.aggregate1DIDCs(cruTmp.side(), pc.inputs().get<std::vector<float>>(ref));
       } else {
@@ -109,8 +109,8 @@ class TPCFourierTransformEPNSpec : public o2::framework::Task
   const bool mDebug{false};                                               ///< dump IDCs to tree for debugging
   int mReceivedCRUs = 0;                                                  ///< counter to keep track of the number of received data from CRUs
   uint32_t mCurrentTF{0};                                                 ///< currently processed TF
-  const std::vector<InputSpec> mFilter = {{"1didcepn", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDCEPN()}, Lifetime::Timeframe},
-                                          {"1didcepnweights", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDCEPNWeights()}, Lifetime::Timeframe}}; ///< filter for looping over input data
+  const std::vector<InputSpec> mFilter = {{"1didcepn", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice::getDataDescription1DIDCEPN()}, Lifetime::Timeframe},
+                                          {"1didcepnweights", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice::getDataDescription1DIDCEPNWeights()}, Lifetime::Timeframe}}; ///< filter for looping over input data
 
   void sendOutput(DataAllocator& output, const Side side)
   {
@@ -120,8 +120,8 @@ class TPCFourierTransformEPNSpec : public o2::framework::Task
 
 DataProcessorSpec getTPCFourierTransformEPNSpec(const std::vector<uint32_t>& crus, const unsigned int rangeIDC, const unsigned int nFourierCoefficientsSend, const bool debug = false)
 {
-  std::vector<InputSpec> inputSpecs{InputSpec{"1didcepn", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDCEPN()}, Lifetime::Timeframe},
-                                    InputSpec{"1didcepnweights", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDCEPNWeights()}, Lifetime::Timeframe}};
+  std::vector<InputSpec> inputSpecs{InputSpec{"1didcepn", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice::getDataDescription1DIDCEPN()}, Lifetime::Timeframe},
+                                    InputSpec{"1didcepnweights", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice::getDataDescription1DIDCEPNWeights()}, Lifetime::Timeframe}};
 
   std::vector<OutputSpec> outputSpecs{ConcreteDataMatcher{gDataOriginTPC, TPCFourierTransformEPNSpec::getDataDescription(), header::DataHeader::SubSpecificationType{o2::tpc::Side::A}},
                                       ConcreteDataMatcher{gDataOriginTPC, TPCFourierTransformEPNSpec::getDataDescription(), header::DataHeader::SubSpecificationType{o2::tpc::Side::C}}};

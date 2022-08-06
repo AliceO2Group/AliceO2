@@ -42,122 +42,89 @@ using namespace o2::tpc;
 namespace o2::tpc
 {
 
-template <class Type>
-struct TPCFactorizeIDCStruct;
-
-/// dummy class for template specialization
-class TPCFactorizeIDCSpecGroup;
-class TPCFactorizeIDCSpecNoGroup;
-
-template <>
-struct TPCFactorizeIDCStruct<TPCFactorizeIDCSpecNoGroup> {
-};
-
-template <>
-struct TPCFactorizeIDCStruct<TPCFactorizeIDCSpecGroup> {
-
-  TPCFactorizeIDCStruct(const std::array<unsigned char, Mapper::NREGIONS>& groupPads, const std::array<unsigned char, Mapper::NREGIONS>& groupRows, const std::array<unsigned char, Mapper::NREGIONS>& groupLastRowsThreshold, const std::array<unsigned char, Mapper::NREGIONS>& groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const unsigned char overlapRows = 0, const unsigned char overlapPads = 0)
-    : mIDCs(groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges){};
-  IDCAverageGroup<IDCAverageGroupTPC> mIDCs; ///< object for averaging and grouping of the IDCs
-  inline static int sNThreads{1};            ///< number of threads which are used during the calculations
-};
-
-template <class Type = TPCFactorizeIDCSpecNoGroup>
 class TPCFactorizeIDCSpec : public o2::framework::Task
 {
  public:
-  template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, TPCFactorizeIDCSpecNoGroup>::value)), int>::type = 0>
   TPCFactorizeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, std::array<unsigned char, Mapper::NREGIONS> groupPads,
                       std::array<unsigned char, Mapper::NREGIONS> groupRows, std::array<unsigned char, Mapper::NREGIONS> groupLastRowsThreshold,
-                      std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const IDCDeltaCompression compression, const bool debug, const bool senddebug, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB, const int lane, const std::vector<o2::tpc::Side>& sides)
-    : mCRUs{crus}, mIDCFactorization{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, timeframes, timeframesDeltaIDC, crus}, mCompressionDeltaIDC{compression}, mDebug{debug}, mSendOutDebug{senddebug}, mUsePrecisetimeStamp{usePrecisetimeStamp}, mSendOutFFT{sendOutputFFT}, mSendOutCCDB{sendCCDB}, mLaneId{lane}, mSides{sides} {};
-
-  template <bool IsEnabled = true, typename std::enable_if<(IsEnabled && (std::is_same<Type, TPCFactorizeIDCSpecGroup>::value)), int>::type = 0>
-  TPCFactorizeIDCSpec(const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, std::array<unsigned char, Mapper::NREGIONS> groupPads,
-                      std::array<unsigned char, Mapper::NREGIONS> groupRows, std::array<unsigned char, Mapper::NREGIONS> groupLastRowsThreshold,
-                      std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const IDCDeltaCompression compression, const bool debug, const bool senddebug, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB, const int lane, const std::vector<o2::tpc::Side>& sides)
-    : mCRUs{crus}, mIDCFactorization{std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, std::array<unsigned char, Mapper::NREGIONS>{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 0, timeframes, timeframesDeltaIDC, crus}, mIDCStruct{TPCFactorizeIDCStruct<TPCFactorizeIDCSpecGroup>(groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges)}, mCompressionDeltaIDC{compression}, mDebug{debug}, mSendOutDebug{senddebug}, mUsePrecisetimeStamp{usePrecisetimeStamp}, mSendOutFFT{sendOutputFFT}, mSendOutCCDB{sendCCDB}, mLaneId{lane}, mSides{sides} {};
+                      std::array<unsigned char, Mapper::NREGIONS> groupLastPadsThreshold, const unsigned int groupPadsSectorEdges, const IDCDeltaCompression compression, const bool debug, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB, const int lane, const std::vector<o2::tpc::Side>& sides)
+    : mCRUs{crus}, mIDCFactorization{timeframes, timeframesDeltaIDC, crus}, mIDCGrouping{groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges}, mCompressionDeltaIDC{compression}, mDebug{debug}, mUsePrecisetimeStamp{usePrecisetimeStamp}, mSendOutFFT{sendOutputFFT}, mSendOutCCDB{sendCCDB}, mLaneId{lane}, mSides{sides} {};
 
   void init(o2::framework::InitContext& ic) final
   {
     mUpdateGroupingPar = mLaneId == 0 ? !(ic.options().get<bool>("update-not-grouping-parameter")) : false;
     mIDCFactorization.setUsePadStatusMap(ic.options().get<bool>("enablePadStatusMap"));
-    mDisableWritingPadStatusMap = ic.options().get<bool>("disableWritingPadStatusMap");
+    mEnableWritingPadStatusMap = ic.options().get<bool>("enableWritingPadStatusMap");
     mLanesDistribute = ic.options().get<int>("lanesDistribute");
     mTFsMessaged = ic.options().get<int>("nTFsMessage") * mCRUs.size();
+    mNOrbitsIDC = ic.options().get<int>("orbits-IDCs");
 
     const std::string refGainMapFile = ic.options().get<std::string>("gainMapFile");
     if (!refGainMapFile.empty()) {
       LOGP(info, "Loading GainMap from file {}", refGainMapFile);
       mIDCFactorization.setGainMap(refGainMapFile.data(), "GainMap");
     }
-
-    mTFRangeIDCDelta.resize(mIDCFactorization.getNChunks(mSides.front()));
-    mTimeStampRangeIDCDelta.resize(mIDCFactorization.getNChunks(mSides.front()));
   }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    // store precise timestamp for look up later
+    // store precise timestamp and hbf per TF for look up later only once
     if (mUsePrecisetimeStamp && pc.inputs().isValid("orbitreset")) {
-      mOrbitResetTime = pc.inputs().get<Long64_t>("orbitreset");
+      mTFInfo = pc.inputs().get<dataformats::Pair<long, int>>("orbitreset");
       if (pc.inputs().countValidInputs() == 1) {
         return;
       }
     }
 
     const auto currTF = processing_helpers::getCurrentTF(pc);
+    if (pc.inputs().isValid("firstTF")) {
+      mTFFirst = pc.inputs().get<long>("firstTF");
+    }
+    mRelTF = (mTFFirst == -1) ? 0 : currTF - mTFFirst;
 
-    // set the min range of TFs for first TF
-    if (mProcessedCRUs == 0) {
-      mTFOrbitFirst = processing_helpers::getFirstTForbit(pc);
-      mTFFirst = currTF;
-      for (unsigned int iChunk = 0; iChunk < mIDCFactorization.getNChunks(mSides.front()); ++iChunk) {
-        mTFRangeIDCDelta[iChunk] = getFirstTFDeltaIDC(iChunk);
-      }
+    if (mTFFirst == -1) {
+      LOGP(warning, "firstTF not Found!!! Found {} valid inputs {}", pc.inputs().countValidInputs());
     }
 
-    // relative TF of current aggreagtion intervall
-    const auto relTF = currTF - mTFFirst;
-
-    // check if current TF is in range of IDCDelta range
-    findTimeStamp(pc);
-
+    // loop over input data
     for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
+      ++mProcessedCRUs;
+      if (mRelTF >= mIDCFactorization.getNTimeframes()) {
+        continue;
+      }
+
+      auto data = pc.inputs().get<std::vector<float>>(ref);
+      if (data.empty()) {
+        continue;
+      }
+
       auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       const int cru = tpcCRUHeader->subSpecification;
-      mIDCFactorization.setIDCs(pc.inputs().get<std::vector<float>>(ref), cru, relTF); // aggregate IDCs
-      ++mProcessedCRUs;
+      mIDCFactorization.setIDCs(std::move(data), cru, mRelTF);
     }
 
     if (!(mProcessedCRUs % mTFsMessaged)) {
-      LOGP(info, "ProcessedTFs: {}   currTF: {}  relTF: {}   OrbitResetTime: {}", mProcessedCRUs / mCRUs.size(), currTF, relTF, mOrbitResetTime);
+      LOGP(info, "ProcessedTFs: {}   currTF: {}  relTF: {}   OrbitResetTime: {} orbits per TF: {}", mProcessedCRUs / mCRUs.size(), currTF, mRelTF, mTFInfo.first, mTFInfo.second);
     }
 
     if (mProcessedCRUs == mCRUs.size() * mIDCFactorization.getNTimeframes()) {
       mProcessedCRUs = 0; // reset processed TFs for next aggregation interval
-      if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
-        mIDCFactorization.factorizeIDCs(true); // calculate DeltaIDC, 0D-IDC, 1D-IDC
-      } else {
-        mIDCFactorization.factorizeIDCs(false); // calculate DeltaIDC, 0D-IDC, 1D-IDC
-      }
 
       if (mDebug) {
-        LOGP(info, "dumping aggregated and factorized IDCs to file");
+        LOGP(info, "dumping aggregated and factorized IDCs to file for currTF {}", currTF);
         mIDCFactorization.dumpToFile(fmt::format("IDCFactorized_{:02}.root", currTF).data());
-        mIDCFactorization.dumpPadFlagMap("padstatusmap.root", "PadStatus");
       }
 
+      mIDCFactorization.factorizeIDCs(true); // calculate DeltaIDC, 0D-IDC, 1D-IDC
+
       // storing to CCDB
-      sendOutput(pc.outputs());
-      mTFOrbitFirst = 0;
+      const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+      sendOutput(pc.outputs(), tinfo);
+      mTFFirst = -1;
     }
   }
 
-  void endOfStream(o2::framework::EndOfStreamContext& ec) final
-  {
-    ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-  }
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final { ec.services().get<ControlService>().readyToQuit(QuitRequest::Me); }
 
   static constexpr header::DataDescription getDataDescriptionIDC0() { return header::DataDescription{"IDC0"}; }
   static constexpr header::DataDescription getDataDescriptionIDC1() { return header::DataDescription{"IDC1"}; }
@@ -175,85 +142,38 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   static constexpr header::DataDescription getDataDescriptionCCDBIDCPadFlag() { return header::DataDescription{"TPC_CalibFlags"}; }
 
  private:
-  const std::vector<uint32_t> mCRUs{};                                                                                                                                     ///< CRUs to process in this instance
-  int mProcessedCRUs{};                                                                                                                                                    ///< number of processed CRUs to keep track of when the writing to CCDB etc. will be done
-  IDCFactorization mIDCFactorization;                                                                                                                                      ///< object aggregating the IDCs and performing the factorization of the IDCs
-  TPCFactorizeIDCStruct<Type> mIDCStruct{};                                                                                                                                ///< object for averaging and grouping of the IDCs
-  const IDCDeltaCompression mCompressionDeltaIDC{};                                                                                                                        ///< compression type for IDC Delta
-  const bool mDebug{false};                                                                                                                                                ///< dump IDCs to tree for debugging
-  const bool mSendOutDebug{false};                                                                                                                                         ///< flag if the output will be send (for debugging)
-  const bool mUsePrecisetimeStamp{true};                                                                                                                                   ///< use precise time stamp when writing to CCDB
-  const bool mSendOutFFT{false};                                                                                                                                           ///<  flag if the output will be send for the FFT
-  const bool mSendOutCCDB{false};                                                                                                                                          ///< sending the outputs for ccdb populator
-  uint32_t mTFFirst{};                                                                                                                                                     ///< first TF of current aggregation interval
-  std::vector<uint32_t> mTFRangeIDCDelta{};                                                                                                                                ///< tf range for storing IDCDelta
-  std::vector<uint64_t> mTimeStampRangeIDCDelta{};                                                                                                                         ///< time stamp range of IDCDelta
-  bool mUpdateGroupingPar{true};                                                                                                                                           ///< flag to set if grouping parameters should be updated or not
-  const int mLaneId{0};                                                                                                                                                    ///< the id of the current process within the parallel pipeline
-  std::vector<Side> mSides{};                                                                                                                                              ///< processed TPC sides
-  std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;                                                                                                                          ///< status flag for each pad (i.e. if the pad is dead). This map is buffered to check if something changed, when a new map is created
-  int mLanesDistribute{1};                                                                                                                                                 ///< number of lanes used in the DistributeIDC device
-  unsigned int mTFsMessaged{10};                                                                                                                                           ///< send info messages only every mTFsMessaged
-  Long64_t mOrbitResetTime{};                                                                                                                                              ///< orbit reset time for CCDB time stamp writing
-  uint32_t mTFOrbitFirst{};                                                                                                                                                ///< first TF orbit of current aggregation interval
-  bool mDisableWritingPadStatusMap{false};                                                                                                                                 ///< do not store the pad status map in the CCDB
-  const std::vector<InputSpec> mFilter = {{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(mLaneId)}, Lifetime::Timeframe}}; ///< filter for looping over input data
+  const std::vector<uint32_t> mCRUs{};              ///< CRUs to process in this instance
+  int mProcessedCRUs{};                             ///< number of processed CRUs to keep track of when the writing to CCDB etc. will be done
+  IDCFactorization mIDCFactorization;               ///< object aggregating the IDCs and performing the factorization of the IDCs
+  IDCAverageGroup<IDCAverageGroupTPC> mIDCGrouping; ///< object for averaging and grouping of the IDCs
+  const IDCDeltaCompression mCompressionDeltaIDC{}; ///< compression type for IDC Delta
+  const bool mDebug{false};                         ///< dump IDCs to tree for debugging
+  const bool mUsePrecisetimeStamp{true};            ///< use precise time stamp when writing to CCDB
+  const bool mSendOutFFT{false};                    ///<  flag if the output will be send for the FFT
+  const bool mSendOutCCDB{false};                   ///< sending the outputs for ccdb populator
+  long mTFFirst{-1};                                ///< first TF of current aggregation interval
+  int mRelTF{0};
+  bool mUpdateGroupingPar{true};                                                                                                                                          ///< flag to set if grouping parameters should be updated or not
+  const int mLaneId{0};                                                                                                                                                   ///< the id of the current process within the parallel pipeline
+  std::vector<Side> mSides{};                                                                                                                                             ///< processed TPC sides
+  std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;                                                                                                                         ///< status flag for each pad (i.e. if the pad is dead). This map is buffered to check if something changed, when a new map is created
+  int mLanesDistribute{1};                                                                                                                                                ///< number of lanes used in the DistributeIDC device
+  unsigned int mTFsMessaged{10};                                                                                                                                          ///< send info messages only every mTFsMessaged
+  int mNOrbitsIDC{12};                                                                                                                                                    ///< Number of orbits over which the IDCs are integrated.
+  dataformats::Pair<long, int> mTFInfo{};                                                                                                                                 ///< orbit reset time for CCDB time stamp writing
+  bool mEnableWritingPadStatusMap{false};                                                                                                                                 ///< do not store the pad status map in the CCDB
+  const std::vector<InputSpec> mFilter = {{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(mLaneId)}, Lifetime::Sporadic}}; ///< filter for looping over input data
 
-  /// \return returns first TF for validity range when storing to CCDB
-  uint32_t getFirstTF() const { return mTFFirst; }
+  /// \return returns the timestamp for given relative TF
+  long getTimeStamp(const int relTF, const o2::framework::TimingInfo& tinfo) { return mTFInfo.first + (tinfo.firstTForbit + (relTF - mRelTF) * mTFInfo.second) * o2::constants::lhc::LHCOrbitMUS * 0.001; }
 
-  /// \return returns first TF for validity range when storing to IDCDelta CCDB
-  unsigned int getFirstTFDeltaIDC(const unsigned int iChunk) const { return getFirstTF() + iChunk * mIDCFactorization.getTimeFramesDeltaIDC(); }
-
-  /// \return returns last TF for validity range when storing to IDCDelta CCDB
-  unsigned int getLastTFDeltaIDC(const unsigned int iChunk) const { return (iChunk == mIDCFactorization.getNChunks(mSides.front()) - 1) ? (mIDCFactorization.getNTimeframes() + getFirstTF()) : (getFirstTFDeltaIDC(iChunk) + mIDCFactorization.getTimeFramesDeltaIDC()); }
-
-  /// \return returns first time stamp for validity range when storing to IDCDelta CCDB
-  auto getFirstTimeStampDeltaIDC(const unsigned int iChunk) const { return mTimeStampRangeIDCDelta[iChunk]; }
-
-  /// \return returns the current timestamp
-  auto getTimeStamp(o2::framework::ProcessingContext& pc) { return mUsePrecisetimeStamp ? processing_helpers::getTimeStamp(pc, mOrbitResetTime) / 1000 : processing_helpers::getCreationTime(pc); }
-
-  /// check if current tf will be used to set the time stamp range
-  bool findTimeStamp(o2::framework::ProcessingContext& pc)
-  {
-    const auto tf = processing_helpers::getCurrentTF(pc);
-    return findTimeStamp(tf, pc);
-  }
-
-  bool findTimeStamp(const uint32_t tf, o2::framework::ProcessingContext& pc)
-  {
-    auto it = std::find(mTFRangeIDCDelta.begin(), mTFRangeIDCDelta.end(), tf);
-    if (it != mTFRangeIDCDelta.end()) {
-      const int index = std::distance(mTFRangeIDCDelta.begin(), it);
-      mTimeStampRangeIDCDelta[index] = mUsePrecisetimeStamp ? processing_helpers::getFirstTForbit(pc) : getTimeStamp(pc);
-      // TODO remove found tf?
-      return true;
-    }
-    return false;
-  }
-
-  /// send output to next device for debugging
-  void sendOutputDebug(DataAllocator& output)
-  {
-    for (const auto side : mSides) {
-      output.snapshot(Output{gDataOriginTPC, getDataDescriptionIDC0()}, mIDCFactorization.getIDCZero(side));
-      for (unsigned int iChunk = 0; iChunk < mIDCFactorization.getNChunks(side); ++iChunk) {
-        output.snapshot(Output{gDataOriginTPC, getDataDescriptionIDCDelta(), o2::header::DataHeader::SubSpecificationType{iChunk}, Lifetime::Timeframe}, mIDCFactorization.getIDCDeltaUncompressed(iChunk, side));
-      }
-    }
-  }
-
-  void sendOutput(DataAllocator& output)
+  void sendOutput(DataAllocator& output, const o2::framework::TimingInfo& tinfo)
   {
     using timer = std::chrono::high_resolution_clock;
 
-    if (mSendOutDebug) {
-      sendOutputDebug(output);
-    }
-
-    const auto timeStampStart = mUsePrecisetimeStamp ? (processing_helpers::getTimeStamp(mOrbitResetTime, mTFOrbitFirst) / 1000) : getFirstTimeStampDeltaIDC(0);
-    const auto timeStampEnd = timeStampStart + o2::ccdb::CcdbObjectInfo::DAY;
+    const long timeStampStart = mUsePrecisetimeStamp ? getTimeStamp(0, tinfo) : tinfo.creation;
+    const long timeStampEnd = timeStampStart + mNOrbitsIDC * mIDCFactorization.getNIntegrationIntervals() * o2::constants::lhc::LHCOrbitMUS * 0.001;
+    LOGP(info, "Setting time stamp range from {} to {} for writing to CCDB", timeStampStart, timeStampEnd);
 
     // sending output to FFT
     if (mSendOutFFT) {
@@ -262,7 +182,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
         LOGP(info, "Sending IDC1 for side {} of size {}", iSide, mIDCFactorization.getIDCOneVec(side).size());
         output.snapshot(Output{gDataOriginTPC, getDataDescriptionIDC1(), header::DataHeader::SubSpecificationType{iSide}}, mIDCFactorization.getIDCOneVec(side));
       }
-      output.snapshot(Output{gDataOriginTPC, getDataDescriptionTimeStamp()}, std::vector<uint64_t>{timeStampStart, timeStampEnd});
+      output.snapshot(Output{gDataOriginTPC, getDataDescriptionTimeStamp()}, std::vector<long>{timeStampStart, timeStampEnd});
       output.snapshot(Output{gDataOriginTPC, getDataDescriptionIntervals()}, mIDCFactorization.getIntegrationIntervalsPerTF());
       output.snapshot(Output{gDataOriginTPC, getDataDescriptionLane()}, mLaneId);
     }
@@ -275,13 +195,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
 
         // write struct containing grouping parameters to access grouped IDCs to CCDB
         if (mUpdateGroupingPar) {
-          ParameterIDCGroupCCDB object;
-          if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
-            object = mIDCStruct.mIDCs.getIDCGroupHelperSector().getGroupingParameter();
-          } else {
-            object = mIDCFactorization.getGroupingParameter();
-          }
-
+          ParameterIDCGroupCCDB object = mIDCGrouping.getIDCGroupHelperSector().getGroupingParameter();
           o2::ccdb::CcdbObjectInfo ccdbInfo(CDBTypeMap.at(sideA ? CDBType::CalIDCGroupingParA : CDBType::CalIDCGroupingParC), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStart, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
           auto image = o2::ccdb::CcdbApi::createObjectImage(&object, &ccdbInfo);
           LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", ccdbInfo.getPath(), ccdbInfo.getFileName(), image->size(), ccdbInfo.getStartValidityTimestamp(), ccdbInfo.getEndValidityTimestamp());
@@ -317,7 +231,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
           start = timer::now();
 
           // store map in case it is nullptr
-          if (!mDisableWritingPadStatusMap) {
+          if (mEnableWritingPadStatusMap) {
             if (!mPadFlagsMap) {
               mPadFlagsMap = std::move(padStatusMap);
               LOGP(info, "Writing pad status map to CCDB.");
@@ -353,61 +267,40 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
 
         start = timer::now();
         for (unsigned int iChunk = 0; iChunk < mIDCFactorization.getNChunks(side); ++iChunk) {
-          if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
-            // perform grouping of IDC Delta if necessary
-            auto startGrouping = timer::now();
-            mIDCStruct.mIDCs.setIDCs(std::move(mIDCFactorization).getIDCDeltaUncompressed(iChunk, side), side);
-            LOGP(info, "averaging and grouping DeltaIDCs for TFs {} - {} for CRUs {} to {} using {} threads", getFirstTFDeltaIDC(iChunk), getLastTFDeltaIDC(iChunk), mCRUs.front(), mCRUs.back(), mIDCStruct.mIDCs.getNThreads());
+          auto startGrouping = timer::now();
+          mIDCGrouping.setIDCs(std::move(mIDCFactorization).getIDCDeltaUncompressed(iChunk, side), side);
+          mIDCGrouping.processIDCs(mIDCFactorization.getUsePadStatusMap() ? mPadFlagsMap.get() : nullptr);
+          auto stopGrouping = timer::now();
+          time = stopGrouping - startGrouping;
+          LOGP(info, "Averaging and grouping time: {}", time.count());
 
-            // perform averagiing and grouping
-            mIDCStruct.mIDCs.processIDCs(mIDCFactorization.getUsePadStatusMap() ? mPadFlagsMap.get() : nullptr);
+          const int relTF = iChunk * mIDCFactorization.getTimeFramesDeltaIDC();
+          const auto timeStampStartDelta = timeStampStart + mNOrbitsIDC * mIDCFactorization.getNIntegrationIntervalsToChunk(iChunk) * o2::constants::lhc::LHCOrbitMUS * 0.001;
+          const long timeStampEndDelta = timeStampStartDelta + mNOrbitsIDC * mIDCFactorization.getNIntegrationIntervalsInChunk(iChunk) * o2::constants::lhc::LHCOrbitMUS * 0.001;
+          o2::ccdb::CcdbObjectInfo ccdbInfoIDCDelta(CDBTypeMap.at(sideA ? CDBType::CalIDCDeltaA : CDBType::CalIDCDeltaC), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStartDelta, timeStampEndDelta);
 
-            auto stopGrouping = timer::now();
-            time = stopGrouping - startGrouping;
-            LOGP(info, "Averaging and grouping time: {}", time.count());
-
-            if (mDebug) {
-              mIDCStruct.mIDCs.dumpToFile(fmt::format("IDCDeltaAveraged_chunk{:02}_{:02}_side{}.root", iChunk, getFirstTFDeltaIDC(iChunk), side).data());
-            }
+          if (mDebug) {
+            mIDCGrouping.dumpToFile(fmt::format("IDCDeltaAveraged_chunk{:02}_{:02}_side{}.root", iChunk, timeStampStartDelta, side).data());
           }
-
-          const auto timeStampStartDelta = mUsePrecisetimeStamp ? (processing_helpers::getTimeStamp(mOrbitResetTime, getFirstTimeStampDeltaIDC(iChunk)) / 1000) : getFirstTimeStampDeltaIDC(iChunk);
-          o2::ccdb::CcdbObjectInfo ccdbInfoIDCDelta(CDBTypeMap.at(sideA ? CDBType::CalIDCDeltaA : CDBType::CalIDCDeltaC), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStartDelta, timeStampEnd);
 
           auto startCCDBIDCDelta = timer::now();
           std::unique_ptr<std::vector<char>> imageIDCDelta;
-
           switch (mCompressionDeltaIDC) {
             case IDCDeltaCompression::MEDIUM:
             default: {
               using compType = unsigned short;
-              IDCDelta<compType> idcDelta;
-              if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
-                idcDelta = IDCDeltaCompressionHelper<compType>::getCompressedIDCs(mIDCStruct.mIDCs.getIDCGroupData());
-              } else {
-                idcDelta = mIDCFactorization.getIDCDeltaMediumCompressed(iChunk, side);
-              }
+              IDCDelta<compType> idcDelta = IDCDeltaCompressionHelper<compType>::getCompressedIDCs(mIDCGrouping.getIDCGroupData());
               imageIDCDelta = o2::ccdb::CcdbApi::createObjectImage(&idcDelta, &ccdbInfoIDCDelta);
               break;
             }
             case IDCDeltaCompression::HIGH: {
               using compType = unsigned char;
-              IDCDelta<compType> idcDelta;
-              if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
-                idcDelta = IDCDeltaCompressionHelper<compType>::getCompressedIDCs(mIDCStruct.mIDCs.getIDCGroupData());
-              } else {
-                idcDelta = mIDCFactorization.getIDCDeltaHighCompressed(iChunk, side);
-              }
+              IDCDelta<compType> idcDelta = IDCDeltaCompressionHelper<compType>::getCompressedIDCs(mIDCGrouping.getIDCGroupData());
               imageIDCDelta = o2::ccdb::CcdbApi::createObjectImage(&idcDelta, &ccdbInfoIDCDelta);
               break;
             }
             case IDCDeltaCompression::NO:
-              IDCDelta<float> idcDelta;
-              if constexpr (std::is_same_v<Type, TPCFactorizeIDCSpecGroup>) {
-                idcDelta = std::move(mIDCStruct).mIDCs.getIDCGroupData();
-              } else {
-                idcDelta = std::move(mIDCFactorization).getIDCDeltaUncompressed(iChunk, side);
-              }
+              IDCDelta<float> idcDelta = std::move(mIDCGrouping).getIDCGroupData();
               imageIDCDelta = o2::ccdb::CcdbApi::createObjectImage(&idcDelta, &ccdbInfoIDCDelta);
               break;
           }
@@ -434,42 +327,36 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
   }
 };
 
-template <class Type>
-DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, const IDCDeltaCompression compression, const bool debug, const bool senddebug, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB)
+DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint32_t>& crus, const unsigned int timeframes, const unsigned int timeframesDeltaIDC, const IDCDeltaCompression compression, const bool debug, const bool usePrecisetimeStamp, const bool sendOutputFFT, const bool sendCCDB)
 {
   const auto sides = o2::tpc::IDCFactorization::getSides(crus);
 
   std::vector<OutputSpec> outputSpecs;
   if (sendCCDB) {
-    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, TPCFactorizeIDCSpec<Type>::getDataDescriptionCCDBGroupingPar()}, Lifetime::Sporadic);
-    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, TPCFactorizeIDCSpec<Type>::getDataDescriptionCCDBGroupingPar()}, Lifetime::Sporadic);
-    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, TPCFactorizeIDCSpec<Type>::getDataDescriptionCCDBIDC0()}, Lifetime::Sporadic);
-    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, TPCFactorizeIDCSpec<Type>::getDataDescriptionCCDBIDC0()}, Lifetime::Sporadic);
-    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, TPCFactorizeIDCSpec<Type>::getDataDescriptionCCDBIDC1()}, Lifetime::Sporadic);
-    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, TPCFactorizeIDCSpec<Type>::getDataDescriptionCCDBIDC1()}, Lifetime::Sporadic);
-    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, TPCFactorizeIDCSpec<Type>::getDataDescriptionCCDBIDCDelta()}, Lifetime::Sporadic);
-    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, TPCFactorizeIDCSpec<Type>::getDataDescriptionCCDBIDCDelta()}, Lifetime::Sporadic);
-    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, TPCFactorizeIDCSpec<Type>::getDataDescriptionCCDBIDCPadFlag()}, Lifetime::Sporadic);
-    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, TPCFactorizeIDCSpec<Type>::getDataDescriptionCCDBIDCPadFlag()}, Lifetime::Sporadic);
-  }
-
-  if (senddebug) {
-    outputSpecs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, TPCFactorizeIDCSpec<Type>::getDataDescriptionIDC0()}, Lifetime::Sporadic);
-    outputSpecs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, TPCFactorizeIDCSpec<Type>::getDataDescriptionIDCDelta()}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, TPCFactorizeIDCSpec::getDataDescriptionCCDBGroupingPar()}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, TPCFactorizeIDCSpec::getDataDescriptionCCDBGroupingPar()}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, TPCFactorizeIDCSpec::getDataDescriptionCCDBIDC0()}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, TPCFactorizeIDCSpec::getDataDescriptionCCDBIDC0()}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, TPCFactorizeIDCSpec::getDataDescriptionCCDBIDC1()}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, TPCFactorizeIDCSpec::getDataDescriptionCCDBIDC1()}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, TPCFactorizeIDCSpec::getDataDescriptionCCDBIDCDelta()}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, TPCFactorizeIDCSpec::getDataDescriptionCCDBIDCDelta()}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, TPCFactorizeIDCSpec::getDataDescriptionCCDBIDCPadFlag()}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, TPCFactorizeIDCSpec::getDataDescriptionCCDBIDCPadFlag()}, Lifetime::Sporadic);
   }
 
   if (sendOutputFFT) {
     for (auto side : sides) {
-      outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeIDCSpec<Type>::getDataDescriptionIDC1(), header::DataHeader::SubSpecificationType{side}}, Lifetime::Sporadic);
+      outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeIDCSpec::getDataDescriptionIDC1(), header::DataHeader::SubSpecificationType{side}}, Lifetime::Sporadic);
     }
-    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeIDCSpec<Type>::getDataDescriptionTimeStamp(), header::DataHeader::SubSpecificationType{0}}, Lifetime::Sporadic);
-    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeIDCSpec<Type>::getDataDescriptionIntervals(), header::DataHeader::SubSpecificationType{0}}, Lifetime::Sporadic);
-    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeIDCSpec<Type>::getDataDescriptionLane(), header::DataHeader::SubSpecificationType{0}}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeIDCSpec::getDataDescriptionTimeStamp(), header::DataHeader::SubSpecificationType{0}}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeIDCSpec::getDataDescriptionIntervals(), header::DataHeader::SubSpecificationType{0}}, Lifetime::Sporadic);
+    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFactorizeIDCSpec::getDataDescriptionLane(), header::DataHeader::SubSpecificationType{0}}, Lifetime::Sporadic);
   }
 
   std::vector<InputSpec> inputSpecs;
   inputSpecs.emplace_back(InputSpec{"idcagg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDC(lane)}, Lifetime::Sporadic});
-
+  inputSpecs.emplace_back(InputSpec{"firstTF", gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDCFirstTF(), header::DataHeader::SubSpecificationType{static_cast<unsigned int>(lane)}, Lifetime::Sporadic});
   if (usePrecisetimeStamp) {
     inputSpecs.emplace_back(InputSpec{"orbitreset", gDataOriginTPC, TPCDistributeIDCSpec::getDataDescriptionIDCOrbitReset(), header::DataHeader::SubSpecificationType{static_cast<unsigned int>(lane)}, Lifetime::Sporadic});
   }
@@ -489,12 +376,13 @@ DataProcessorSpec getTPCFactorizeIDCSpec(const int lane, const std::vector<uint3
     fmt::format("tpc-factorize-idc-{:02}", lane).data(),
     inputSpecs,
     outputSpecs,
-    AlgorithmSpec{adaptFromTask<TPCFactorizeIDCSpec<Type>>(crus, timeframes, timeframesDeltaIDC, groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, compression, debug, senddebug, usePrecisetimeStamp, sendOutputFFT, sendCCDB, lane, sides)},
+    AlgorithmSpec{adaptFromTask<TPCFactorizeIDCSpec>(crus, timeframes, timeframesDeltaIDC, groupPads, groupRows, groupLastRowsThreshold, groupLastPadsThreshold, groupPadsSectorEdges, compression, debug, usePrecisetimeStamp, sendOutputFFT, sendCCDB, lane, sides)},
     Options{{"gainMapFile", VariantType::String, "", {"file to reference gain map, which will be used for correcting the cluster charge"}},
             {"lanesDistribute", VariantType::Int, 1, {"Number of lanes which were used in the DistributeIDC device."}},
             {"nTFsMessage", VariantType::Int, 200, {"Send messages only every nTFs."}},
             {"enablePadStatusMap", VariantType::Bool, false, {"Enabling the usage of the pad-by-pad status map during factorization."}},
-            {"disableWritingPadStatusMap", VariantType::Bool, false, {"Do not write the pad status map to CCDB."}},
+            {"enableWritingPadStatusMap", VariantType::Bool, false, {"Write the pad status map to CCDB."}},
+            {"orbits-IDCs", VariantType::Int, 12, {"Number of orbits over which the IDCs are integrated."}},
             {"update-not-grouping-parameter", VariantType::Bool, false, {"Do NOT Update/Writing grouping parameters to CCDB."}}}}; // end DataProcessorSpec
   spec.rank = lane;
   return spec;
