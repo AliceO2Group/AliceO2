@@ -19,12 +19,15 @@
 #include "TPCWorkflow/TPCFourierTransformEPNSpec.h"
 #include "TPCWorkflow/TPCFourierTransformAggregatorSpec.h"
 #include "TPCWorkflow/TPCDistributeIDCSpec.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 #include <boost/throw_exception.hpp>
 #include "Framework/DataRefUtils.h"
 #include "Framework/ControlService.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "TRandom.h"
+#include "TKey.h"
 
 #include <unistd.h>
 
@@ -35,7 +38,7 @@ using namespace o2::framework;
     LOG(fatal) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
-DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std::vector<uint32_t>& crus, const bool slowgen, const bool delay, const bool loadFromFile);
+DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std::vector<uint32_t>& crus, const bool slowgen, const bool delay, const bool loadFromFile, const int dropTFsRandom, const std::vector<int>& rangeTFsDrop);
 DataProcessorSpec ftAggregatorIDC(const unsigned int nFourierCoefficients, const unsigned int rangeIDC, const unsigned int maxTFs, const bool debug);
 DataProcessorSpec receiveFourierCoeffEPN(const unsigned int maxTFs, const unsigned int nFourierCoefficients);
 DataProcessorSpec compare_EPN_AGG();
@@ -60,9 +63,17 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"idc-gen-lanes", VariantType::Int, 1, {"number of parallel lanes for generation of IDCs"}},
     {"idc-gen-time-lanes", VariantType::Int, 1, {"number of parallel lanes for generation of IDCs"}},
     {"delay", VariantType::Bool, false, {"Add delay for sending IDCs"}},
+    {"dropTFsRandom", VariantType::Int, 0, {"Drop randomly whole TFs every dropTFsRandom TFs (for all CRUs)"}},
+    {"dropTFsRange", VariantType::String, "", {"Drop range of TFs"}},
+    {"hbfutils-config", VariantType::String, "hbfutils", {"config file for HBFUtils (or none) to get number of orbits per TF"}},
     {"nthreads", VariantType::Int, 1, {"Number of threads."}}};
-
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
+}
+
+void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
+{
+  o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
 }
 
 #include "Framework/runDataProcessing.h"
@@ -70,6 +81,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   const auto tpcCRUs = o2::RangeTokenizer::tokenize<int>(config.options().get<std::string>("crus"));
+  const auto rangeTFsDrop = o2::RangeTokenizer::tokenize<int>(config.options().get<std::string>("dropTFsRange"));
   const auto nCRUs = tpcCRUs.size();
   const auto first = tpcCRUs.begin();
   const auto last = std::min(tpcCRUs.end(), first + nCRUs);
@@ -87,6 +99,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const bool onlyIDCGen = config.options().get<bool>("only-idc-gen");
   const bool fastgen = config.options().get<bool>("fast-gen");
   const bool debugFT = config.options().get<bool>("debug");
+  const int dropTFsRandom = config.options().get<int>("dropTFsRandom");
+
   const unsigned int firstTF = 0;
   const unsigned int nLanes = 1;
   const bool loadFromFile = false;
@@ -102,14 +116,19 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     }
     const auto last = std::min(tpcCRUs.end(), first + crusPerLane);
     const std::vector<uint32_t> rangeCRUs(first, last);
-    workflow.emplace_back(timePipeline(generateIDCsCRU(ilane, timeframes, rangeCRUs, fastgen, delay, loadFromFileGen), idcgentimelanes));
+    workflow.emplace_back(timePipeline(generateIDCsCRU(ilane, timeframes, rangeCRUs, fastgen, delay, loadFromFileGen, dropTFsRandom, rangeTFsDrop), idcgentimelanes));
   }
+
+  auto& hbfu = o2::raw::HBFUtils::Instance();
+  long startTime = hbfu.startTime > 0 ? hbfu.startTime : std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+  o2::conf::ConfigurableParam::updateFromString(fmt::format("HBFUtils.startTime={}", startTime).data());
+  o2::raw::HBFUtilsInitializer hbfIni(config, workflow);
 
   if (onlyIDCGen == true) {
     return workflow;
   }
 
-  auto workflowTmp = WorkflowSpec{getTPCFLPIDCSpec<TPCFLPIDCDeviceNoGroup>(0, crus, iondrifttime, debugFT, false, false, "", true), getTPCFourierTransformEPNSpec(crus, iondrifttime, nFourierCoefficients, debugFT), getTPCDistributeIDCSpec(0, crus, timeframes, nLanes, firstTF, loadFromFile), ftAggregatorIDC(nFourierCoefficients, iondrifttime, timeframes, debugFT), receiveFourierCoeffEPN(timeframes, nFourierCoefficients), compare_EPN_AGG()};
+  auto workflowTmp = WorkflowSpec{getTPCFLPIDCSpec(0, crus, iondrifttime, debugFT, false, "", true, false), getTPCFourierTransformEPNSpec(crus, iondrifttime, nFourierCoefficients, debugFT), getTPCDistributeIDCSpec(0, crus, timeframes, nLanes, firstTF, loadFromFile), ftAggregatorIDC(nFourierCoefficients, iondrifttime, timeframes, debugFT), receiveFourierCoeffEPN(timeframes, nFourierCoefficients), compare_EPN_AGG()};
   for (auto& spec : workflowTmp) {
     workflow.emplace_back(spec);
   }
@@ -121,7 +140,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   return workflow;
 }
 
-DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std::vector<uint32_t>& crus, const bool fastgen, const bool delay, const bool loadFromFile)
+DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std::vector<uint32_t>& crus, const bool fastgen, const bool delay, const bool loadFromFile, const int dropTFsRandom, const std::vector<int>& rangeTFsDrop)
 {
   using timer = std::chrono::high_resolution_clock;
 
@@ -159,8 +178,21 @@ DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std
     Inputs{},
     outputSpecs,
     AlgorithmSpec{
-      [maxTFs, fastgen, nIDCs, delay, cruStart = crus.front(), cruEnde = crus.back(), mIDCs](ProcessingContext& ctx) {
+      [maxTFs, fastgen, nIDCs, delay, cruStart = crus.front(), cruEnde = crus.back(), mIDCs, dropTFsRandom, rangeTFsDrop](ProcessingContext& ctx) {
         const auto tf = ctx.services().get<o2::framework::TimingInfo>().tfCounter;
+
+        if (!rangeTFsDrop.empty()) {
+          if (tf >= rangeTFsDrop.front() && tf <= rangeTFsDrop.back()) {
+            LOGP(info, "Dropping TF as specified from range: {}", tf);
+            return;
+          }
+        }
+
+        if (dropTFsRandom && !gRandom->Integer(dropTFsRandom)) {
+          LOGP(info, "Dropping TF: {}", tf);
+          return;
+        }
+
         auto start = timer::now();
         const unsigned int additionalInterval = (tf % 3) ? 1 : 0; // in each integration inerval are either 10 or 11 values when having 128 orbits per TF and 12 orbits integration length
         const unsigned int intervals = (nIDCs + additionalInterval);

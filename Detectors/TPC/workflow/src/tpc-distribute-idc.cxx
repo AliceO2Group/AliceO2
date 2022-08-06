@@ -36,7 +36,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"crus", VariantType::String, cruDefault.c_str(), {"List of CRUs, comma separated ranges, e.g. 0-3,7,9-15"}},
     {"timeframes", VariantType::Int, 2000, {"Number of TFs which will be aggregated per aggregation interval."}},
     {"firstTF", VariantType::Int, -1, {"First time frame index. (if set to -1 the first TF will be automatically detected. Values < -1 are setting an offset for skipping the first TFs)"}},
-    {"load-from-file", VariantType::Bool, false, {"load average and grouped IDCs from IDCGroup.root file."}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"lanes", VariantType::Int, 1, {"Number of lanes of this device (CRUs are splitted per line)"}},
     {"send-precise-timestamp", VariantType::Bool, false, {"Send precise timestamp which can be used for writing to CCDB"}},
@@ -61,7 +60,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const auto outlanes = static_cast<unsigned int>(config.options().get<int>("output-lanes"));
   const auto nLanes = static_cast<unsigned int>(config.options().get<int>("lanes"));
   const auto firstTF = static_cast<unsigned int>(config.options().get<int>("firstTF"));
-  const auto loadFromFile = config.options().get<bool>("load-from-file");
   const bool sendPrecisetimeStamp = config.options().get<bool>("send-precise-timestamp");
 
   const auto crusPerLane = nCRUs / nLanes + ((nCRUs % nLanes) != 0);
@@ -73,7 +71,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     }
     const auto last = std::min(tpcCRUs.end(), first + crusPerLane);
     const std::vector<uint32_t> rangeCRUs(first, last);
-    workflow.emplace_back(getTPCDistributeIDCSpec(ilane, rangeCRUs, timeframes, outlanes, firstTF, loadFromFile, sendPrecisetimeStamp));
+    workflow.emplace_back(getTPCDistributeIDCSpec(ilane, rangeCRUs, timeframes, outlanes, firstTF, sendPrecisetimeStamp));
   }
 
   return workflow;
