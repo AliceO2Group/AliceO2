@@ -124,9 +124,9 @@ void read_json(std::string Vbb, std::vector<std::string> list_of_files, nlohmann
 
 // function converting a .json file into data_pixels_*-*.txt files (with Miko's convention)
 // arguments:
-//	- Vbb: only Vbb0 and Vbb3 for now
-//	- jsonFile: name of the .json file chosen as input
-//	- outputPath: path of the (existing) directory where the .txt files will be saved (do not forget a "/" in the end)
+//- Vbb: only Vbb0 and Vbb3 for now
+//- jsonFile: name of the .json file chosen as input
+//- outputPath: path of the (existing) directory where the .txt files will be saved (do not forget a "/" in the end)
 void json2txt(std::string Vbb, std::string jsonFile, std::string outputPath)
 {
   // outputPath = "/home/abigot/Documents/ALICE/json_test/nlohmann/all_from_ROOT_macro/ComparisonChecks/"
@@ -140,8 +140,8 @@ void json2txt(std::string Vbb, std::string jsonFile, std::string outputPath)
 
 // function converting Miko's data_pixels_*-*.txt files into 1 .json file
 // arguments:
-//	- Vbb: only Vbb0 and Vbb3 for now
-//	- pathVbb: path to the folder containing Miko's .txt files (for the chosen Vbb value)
+//- Vbb: only Vbb0 and Vbb3 for now
+//- pathVbb: path to the folder containing Miko's .txt files (for the chosen Vbb value)
 // command example: txt2json("Vbb3", "/home/abigot/alice/O2/Detectors/ITSMFT/common/data/alpideResponseData/Vbb-3.0V/")
 void txt2json(std::string Vbb, std::string pathVbb)
 {
