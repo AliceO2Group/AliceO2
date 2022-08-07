@@ -73,7 +73,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"only-nth-event", VariantType::Int, 0, {"process only every nth event"}},
     {"primary-vertex-mode", VariantType::Bool, false, {"produce jsons with individual primary vertices, not total time frame data"}},
     {"max-primary-vertices", VariantType::Int, 5, {"maximum number of primary vertices to draw per time frame"}},
-    {"primary-vertex-triggers", VariantType::Bool, false, {"instead of drawing vertices with tracks (and maybe calorimeter triggers), draw vertices with calorimeter triggers (and maybe tracks)"}}};
+    {"primary-vertex-triggers", VariantType::Bool, false, {"instead of drawing vertices with tracks (and maybe calorimeter triggers), draw vertices with calorimeter triggers (and maybe tracks)"}},
+    {"mft-propagation-z-min", VariantType::Float, 1.f, {"Set minimum z position for propagating MFT tracks (1 means the default value)"}},
+    {"mft-propagation-z-max", VariantType::Float, 1.f, {"Set maximum z position for propagating MFT tracks (1 means the default value)"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -112,8 +114,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   enabledFilters.set(EveWorkflowHelper::Filter::TimeBracket, this->mFilterTime);
   enabledFilters.set(EveWorkflowHelper::Filter::EtaBracket, this->mRemoveTPCEta);
   enabledFilters.set(EveWorkflowHelper::Filter::TotalNTracks, this->mNumberOfTracks != -1);
-
-  EveWorkflowHelper helper(enabledFilters, this->mNumberOfTracks, this->mTimeBracket, this->mEtaBracket, this->mPrimaryVertexMode);
+  EveWorkflowHelper helper(enabledFilters, this->mNumberOfTracks, this->mTimeBracket, this->mEtaBracket, this->mPrimaryVertexMode, this->mMFTPropagationZMin, this->mMFTPropagationZMax);
   helper.setRecoContainer(&recoCont);
 
   helper.setITSROFs();
@@ -337,6 +338,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto onlyNthEvent = cfgc.options().get<int>("only-nth-event");
   auto tracksSorting = cfgc.options().get<bool>("track-sorting");
   auto primaryVertexTriggers = cfgc.options().get<bool>("primary-vertex-triggers");
+  auto mftPropagationZMin = cfgc.options().get<float>("mft-propagation-z-min");
+  auto mftPropagationZMax = cfgc.options().get<float>("mft-propagation-z-max");  
 
   if (numberOfTracks == -1) {
     tracksSorting = false; // do not sort if all tracks are allowed
@@ -354,7 +357,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     "o2-eve-export",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, ggRequest, jsonFolder, ext, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent, primaryVertexMode, maxPrimaryVertices, primaryVertexTriggers)}});
+    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, ggRequest, jsonFolder, ext, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent, primaryVertexMode, maxPrimaryVertices, primaryVertexTriggers, mftPropagationZMin, mftPropagationZMax)}});
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

@@ -58,8 +58,8 @@ class O2DPLDisplaySpec : public o2::framework::Task
                    std::chrono::milliseconds timeInterval, int numberOfFiles, int numberOfTracks,
                    bool eveHostNameMatch, int minITSTracks, int minTracks, bool filterITSROF, bool filterTime,
                    const EveWorkflowHelper::Bracket& timeBracket, bool removeTPCEta,
-                   const EveWorkflowHelper::Bracket& etaBracket, bool trackSorting, int onlyNthEvent, bool primaryVertex, int maxPrimaryVertices, bool primaryVertexTriggers)
-    : mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mGGCCDBRequest(gr), mJsonPath(jsonPath), mExt(ext), mTimeInterval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch), mMinITSTracks(minITSTracks), mMinTracks(minTracks), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket), mRemoveTPCEta(removeTPCEta), mEtaBracket(etaBracket), mTrackSorting(trackSorting), mOnlyNthEvent(onlyNthEvent), mPrimaryVertexMode(primaryVertex), mMaxPrimaryVertices(maxPrimaryVertices), mPrimaryVertexTriggers(primaryVertexTriggers)
+                   const EveWorkflowHelper::Bracket& etaBracket, bool trackSorting, int onlyNthEvent, bool primaryVertex, int maxPrimaryVertices, bool primaryVertexTriggers, float mftPropagationZMin, float mftPropagationZMax)
+    : mUseMC(useMC), mTrkMask(trkMask), mClMask(clMask), mDataRequest(dataRequest), mGGCCDBRequest(gr), mJsonPath(jsonPath), mExt(ext), mTimeInterval(timeInterval), mNumberOfFiles(numberOfFiles), mNumberOfTracks(numberOfTracks), mEveHostNameMatch(eveHostNameMatch), mMinITSTracks(minITSTracks), mMinTracks(minTracks), mFilterITSROF(filterITSROF), mFilterTime(filterTime), mTimeBracket(timeBracket), mRemoveTPCEta(removeTPCEta), mEtaBracket(etaBracket), mTrackSorting(trackSorting), mOnlyNthEvent(onlyNthEvent), mPrimaryVertexMode(primaryVertex), mMaxPrimaryVertices(maxPrimaryVertices), mPrimaryVertexTriggers(primaryVertexTriggers), mMFTPropagationZMin(mftPropagationZMin), mMFTPropagationZMax(mftPropagationZMax)
 
   {
     this->mTimeStamp = std::chrono::high_resolution_clock::now() - timeInterval; // first run meets condition
@@ -92,6 +92,8 @@ class O2DPLDisplaySpec : public o2::framework::Task
   int mOnlyNthEvent;                       // process only every nth event.
   int mMaxPrimaryVertices;                 // max number of primary vertices to draw per time frame
   bool mPrimaryVertexTriggers;             // instead of drawing vertices with tracks (and maybe calorimeter triggers), draw vertices with calorimeter triggers (and maybe tracks)
+  float mMFTPropagationZMin;               // Minimum z position for propagating MFT tracks
+  float mMFTPropagationZMax;               // Maximum z position for propagating MFT tracks
   int mEventCounter = 0;
   std::chrono::time_point<std::chrono::high_resolution_clock> mTimeStamp;
 
