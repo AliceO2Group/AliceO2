@@ -136,7 +136,7 @@ class EveWorkflowHelper
 
   using Bracket = o2::math_utils::Bracketf_t;
 
-  EveWorkflowHelper(const FilterSet& enabledFilters = {}, std::size_t maxNTracks = -1, const Bracket& timeBracket = {}, const Bracket& etaBracket = {}, bool primaryVertexMode = false, float mftPropagationZMin = 1, float mftPropagationZMax = 1);
+  EveWorkflowHelper(const FilterSet& enabledFilters = {}, std::size_t maxNTracks = -1, const Bracket& timeBracket = {}, const Bracket& etaBracket = {}, bool primaryVertexMode = false, float mftPropagationZMin = -39.f, float mftPropagationZMax = -86.f);
   static std::vector<PNT> getTrackPoints(const o2::track::TrackPar& trc, float minR, float maxR, float maxStep, float minZ = -25000, float maxZ = 25000);
   void selectTracks(const CalibObjectsConst* calib, GID::mask_t maskCl, GID::mask_t maskTrk, GID::mask_t maskMatch);
   void selectTowers();
