@@ -781,13 +781,8 @@ void EveWorkflowHelper::drawAODFwd(AODForwardTrack const& track, float trackTime
 
 void EveWorkflowHelper::drawMFTTrack(o2::track::TrackParFwd tr, float trackTime)
 {
-  
-  if (mMFTPropagationZMin == 1) {
-    tr.propagateParamToZlinear(mftZPositions.front()); // Fix the track starting position.
-  } else {
-    tr.propagateParamToZlinear(mMFTPropagationZMin); // Fix the track starting position.
-  } 
-  
+  tr.propagateParamToZlinear(mMFTPropagationZMin); // Fix the track starting position.
+
   auto vTrack = mEvent.addTrack({.time = static_cast<float>(trackTime),
                                  .charge = (int)tr.getCharge(),
                                  .PID = o2::track::PID::Muon,
@@ -797,24 +792,17 @@ void EveWorkflowHelper::drawMFTTrack(o2::track::TrackParFwd tr, float trackTime)
                                  .eta = (float)tr.getEta(),
                                  .gid = GID::getSourceName(GID::MFT),
                                  .source = GID::MFT});
-  
 
-  
-  if (mMFTPropagationZMin != 1){
-    tr.propagateParamToZlinear(mMFTPropagationZMin);
-    vTrack->addPolyPoint((float)tr.getX(), (float)tr.getY(), (float)tr.getZ()); 
-  }
+  tr.propagateParamToZlinear(mMFTPropagationZMin);
+  vTrack->addPolyPoint((float)tr.getX(), (float)tr.getY(), (float)tr.getZ());
 
   for (auto zPos : mftZPositions) {
     tr.propagateParamToZlinear(zPos);
     vTrack->addPolyPoint((float)tr.getX(), (float)tr.getY(), (float)tr.getZ());
   }
 
-  if (mMFTPropagationZMax != 1){
-    tr.propagateParamToZlinear(mMFTPropagationZMax);
-    vTrack->addPolyPoint((float)tr.getX(), (float)tr.getY(), (float)tr.getZ()); 
-  }
-
+  tr.propagateParamToZlinear(mMFTPropagationZMax);
+  vTrack->addPolyPoint((float)tr.getX(), (float)tr.getY(), (float)tr.getZ());
 }
 
 void EveWorkflowHelper::drawForwardTrack(mch::TrackParam track, const std::string& gidString, GID::Source source, float startZ, float endZ, float trackTime)
