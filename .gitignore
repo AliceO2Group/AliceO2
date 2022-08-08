@@ -82,3 +82,6 @@ bazel-*
 
 # LSP support on macOS with vim
 .clangd
+DataFormats/Detectors/CTP/include/DataFormatsCTP/Scalers.h
+dpl-config.json
+O2.code-workspace

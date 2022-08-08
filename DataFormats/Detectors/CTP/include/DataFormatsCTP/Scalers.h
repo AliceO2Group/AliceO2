@@ -87,6 +87,7 @@ class CTPRunScalers
   void setDetectorMask(o2::detectors::DetID::mask_t mask) { mDetectorMask = mask; };
   void setRunNumber(uint32_t rnumber) { mRunNumber = rnumber; };
   void addScalerRacordRaw(CTPScalerRecordRaw& scalerrecordraw) { mScalerRecordRaw.push_back(scalerrecordraw); };
+  uint32_t getRunNUmber() { return mRunNumber; };
   int printRates();
   int printIntegrals();
   //
