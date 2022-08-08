@@ -66,7 +66,6 @@ class Triggers
   bool getVertex() const { return (triggersignals & (1 << bitVertex)) != 0; }       // only used by FT0/FDD (same bit as OrAIn in FV0)
   bool getOrAIn() const { return (triggersignals & (1 << bitAIn)) != 0; }           // only used by FV0 (same bit as OrC in FT0/FDD)
   bool getLaser() const { return (triggersignals & (1 << bitLaser)) != 0; }
-  bool getLaserBit() const { return getLaser(); } // TODO: remove after QC is modified
   bool getOutputsAreBlocked() const { return (triggersignals & (1 << bitOutputsAreBlocked)) != 0; }
   bool getDataIsValid() const { return (triggersignals & (1 << bitDataIsValid)) != 0; }
 
@@ -114,7 +113,7 @@ class Triggers
   void print(std::ostream&) const;
   void printLog() const;
 
- public:                                 // TODO: change to 'private' after modifying QC to use the setters/getters
+ private:
   uint8_t triggersignals = DEFAULT_ZERO; // FIT trigger signals
   uint8_t nChanA = DEFAULT_ZERO;         // number of fired channels A side
   uint8_t nChanC = DEFAULT_ZERO;         // number of fired channels A side

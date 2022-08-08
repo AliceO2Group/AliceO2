@@ -13,8 +13,8 @@
 /// \brief Container class to store time and charge values of single FV0 channel
 /// \author maciej.slupecki@cern.ch
 
-#ifndef _FV0_CHANNEL_DATA_H_
-#define _FV0_CHANNEL_DATA_H_
+#ifndef _FV0_CHANNELDATA_H_
+#define _FV0_CHANNELDATA_H_
 
 #include <Rtypes.h>
 #include <tuple>
@@ -22,7 +22,6 @@ namespace o2
 {
 namespace fv0
 {
-
 struct ChannelData {
   static constexpr char sChannelNameDPL[] = "DIGITSCH";
   static constexpr char sDigitName[] = "ChannelData";
@@ -64,6 +63,16 @@ struct ChannelData {
   static void setFlag(EEventDataBit bitFlag, uint8_t& chainQTC) { chainQTC |= (1 << bitFlag); }
   static void clearFlag(EEventDataBit bitFlag, uint8_t& chainQTC) { chainQTC &= ~(1 << bitFlag); }
   bool getFlag(EEventDataBit bitFlag) const { return bool(ChainQTC & (1 << bitFlag)); }
+  bool areAllFlagsGood() const
+  {
+    return (!getFlag(ChannelData::kIsDoubleEvent) &&
+            !getFlag(ChannelData::kIsTimeInfoNOTvalid) &&
+            getFlag(ChannelData::kIsCFDinADCgate) &&
+            !getFlag(ChannelData::kIsTimeInfoLate) &&
+            !getFlag(ChannelData::kIsAmpHigh) &&
+            getFlag(ChannelData::kIsEventInTVDC) &&
+            !getFlag(ChannelData::kIsTimeInfoLost));
+  }
   void print() const;
   void printLog() const;
   [[nodiscard]] uint8_t getChannelID() const { return ChId; }
@@ -78,5 +87,4 @@ struct ChannelData {
 };
 } // namespace fv0
 } // namespace o2
-
 #endif

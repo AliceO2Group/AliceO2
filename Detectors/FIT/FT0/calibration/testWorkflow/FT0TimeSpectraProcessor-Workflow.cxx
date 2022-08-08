@@ -61,7 +61,7 @@ class FT0TimeSpectraProcessor final : public o2::framework::Task
     auto channels = pc.inputs().get<gsl::span<o2::ft0::ChannelData>>("channels");
     o2::dataformats::FlatHisto2D<float> timeSpectraInfoObject(sNCHANNELS, 0, sNCHANNELS, mNbinsY, mMinY, mMaxY);
     for (const auto& digit : digits) {
-      if ((digit.mTriggers.triggersignals & mTrgBitsToCheck) != mTrgBitsGood) {
+      if ((digit.mTriggers.getTriggersignals() & mTrgBitsToCheck) != mTrgBitsGood) {
         continue;
       }
       const auto& chan = digit.getBunchChannelData(channels);

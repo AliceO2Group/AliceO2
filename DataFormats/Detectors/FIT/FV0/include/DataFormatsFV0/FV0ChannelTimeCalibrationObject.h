@@ -23,8 +23,10 @@ struct FV0ChannelTimeCalibrationObject {
 
   std::array<int16_t, Constants::nFv0Channels> mTimeOffsets{};
   static constexpr const char* getObjectPath() { return "FV0/Calib/ChannelTimeOffset"; }
+
   ClassDefNV(FV0ChannelTimeCalibrationObject, 1);
 };
+
 } // namespace o2::fv0
 
 #endif // O2_FV0CHANNELTIMECALIBRATIONOBJECT_H
