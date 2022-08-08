@@ -24,7 +24,6 @@
 // default: processing , intermal database
 // o2-ctp-qc-proxy --ctp-qc-proxy '--channel-config "name=ctp-qc-proxy,type=sub,method=connect,address=tcp://10.161.64.100:50090,rateLogging=5,transport=zeromq"' -b
 
-
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
@@ -80,14 +79,14 @@ InjectorFunction dcs2dpl()
     std::string payload = (messageHeader + " " + messageData);
     LOG(info) << messageHeader;
     int Nchars = 1000;
-    if(messageData.size() > Nchars) {
-      LOG(info) << messageData.substr(0,Nchars);
+    if (messageData.size() > Nchars) {
+      LOG(info) << messageData.substr(0, Nchars);
     } else {
       LOG(info) << messageData;
     }
-    const char * c = payload.c_str();
+    const char* c = payload.c_str();
     const void* pp = static_cast<const void*>(c);
-    memcpy(plMessageF->GetData(), pp , hdrF.payloadSize);
+    memcpy(plMessageF->GetData(), pp, hdrF.payloadSize);
 
     //
 

@@ -61,7 +61,7 @@ InjectorFunction dcs2dpl(std::string& ccdbhost)
     std::string messageHeader{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
     size_t dataSize = parts.At(1)->GetSize();
     std::string messageData{static_cast<const char*>(parts.At(1)->GetData()), parts.At(1)->GetSize()};
-    LOG(info) << "received message " << messageHeader << " of size " << dataSize; // << " Payload:" << messageData; 
+    LOG(info) << "received message " << messageHeader << " of size " << dataSize; // << " Payload:" << messageData;
     runMgr->processMessage(messageHeader, messageData);
   };
 }
