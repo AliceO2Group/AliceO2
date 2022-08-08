@@ -461,58 +461,36 @@ void EventManagerFrame::DoSequentialMode()
   }
 }
 
-void EventManagerFrame::DoSyntheticData()
+void EventManagerFrame::changeRunMode(RunMode runMode)
 {
   TEnv settings;
   ConfigurationManager::getInstance().getConfig(settings);
 
-  if (this->mRunMode != EventManagerFrame::SyntheticRun) {
-    this->mRunMode = EventManagerFrame::SyntheticRun;
+  if (this->mRunMode != runMode) {
+    this->mRunMode = runMode;
     this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
 
-    if (mEventManager->getDataSource()->refresh()) {
-      mEventManager->displayCurrentEvent();
-    }
+    mEventManager->getDataSource()->refresh();
+    mEventManager->displayCurrentEvent();
     clearInTick();
     mEventManager->GotoEvent(-1);
     mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
   }
+}
+
+void EventManagerFrame::DoSyntheticData()
+{
+  changeRunMode(EventManagerFrame::SyntheticRun);
 }
 
 void EventManagerFrame::DoCosmicsData()
 {
-  TEnv settings;
-  ConfigurationManager::getInstance().getConfig(settings);
-
-  if (this->mRunMode != EventManagerFrame::CosmicsRun) {
-    this->mRunMode = EventManagerFrame::CosmicsRun;
-    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
-
-    if (mEventManager->getDataSource()->refresh()) {
-      mEventManager->displayCurrentEvent();
-    }
-    clearInTick();
-    mEventManager->GotoEvent(-1);
-    mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
-  }
+  changeRunMode(EventManagerFrame::CosmicsRun);
 }
 
 void EventManagerFrame::DoPhysicsData()
 {
-  TEnv settings;
-  ConfigurationManager::getInstance().getConfig(settings);
-
-  if (this->mRunMode != EventManagerFrame::PhysicsRun) {
-    this->mRunMode = EventManagerFrame::PhysicsRun;
-    this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
-
-    if (mEventManager->getDataSource()->refresh()) {
-      mEventManager->displayCurrentEvent();
-    }
-    clearInTick();
-    mEventManager->GotoEvent(-1);
-    mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
-  }
+  changeRunMode(EventManagerFrame::PhysicsRun);
 }
 
 bool EventManagerFrame::setInTick()

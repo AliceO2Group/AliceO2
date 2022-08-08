@@ -34,11 +34,11 @@ class FileWatcher
   std::string prevItem(const std::string& item) const;
   std::string mDataFolder;  ///< folder being observed
   std::string mCurrentFile; ///< "current" file name
-  std::vector<std::string> mExt; ///< extensions of files to be observed
+  const std::vector<std::string>& mExt; ///< extensions of files to be observed
   bool currentFileExist();
 
  public:
-  FileWatcher(const std::string& path, std::vector<std::string> ext);
+  FileWatcher(const std::string& path, const std::vector<std::string>& ext);
   void changeFolder(const std::string& path);                         ///< switch to observe other folder
   void saveCurrentFileToFolder(const std::string& destinationFolder); ///< copies
   int getSize() const; ///< include guards (so >=2 )

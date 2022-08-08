@@ -38,9 +38,13 @@ namespace event_visualisation
 
 class EventManagerFrame : public TGMainFrame
 {
+ public:
   enum DisplayMode { OnlineMode,
                      SavedMode,
                      SequentialMode };
+  enum RunMode { SyntheticRun,
+                 CosmicsRun,
+                 PhysicsRun };
 
  private:
   static EventManagerFrame* mInstance;     // Instance
@@ -64,6 +68,7 @@ class EventManagerFrame : public TGMainFrame
   void clearInTick();       // safely clears inTick
   void checkMemory();       // check memory used end exit(-1) if it is too much
   void updateGUI();         // updates
+  void changeRunMode(RunMode runMode);
   static TGTextButton* makeButton(TGCompositeFrame* p, const char* txt, Int_t width = 0, const char* txttooltip = nullptr,
                                   Int_t lo = 8, Int_t ro = 8, Int_t to = 4, Int_t bo = 4);
   static TGRadioButton* makeRadioButton(TGButtonGroup* g, const char* txt, Int_t width = 0, const char* txttooltip = nullptr, bool checked = false,
@@ -87,9 +92,6 @@ class EventManagerFrame : public TGMainFrame
   float getMinTimeFrameSliderValue() const;
   float getMaxTimeFrameSliderValue() const;
 
-  enum RunMode { SyntheticRun,
-                 CosmicsRun,
-                 PhysicsRun };
   void setRunMode(EventManagerFrame::RunMode runMode, Bool_t emit = kTRUE);
 
   EventManagerFrame(o2::event_visualisation::EventManager& eventManager);

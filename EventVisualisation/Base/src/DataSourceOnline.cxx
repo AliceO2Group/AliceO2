@@ -27,6 +27,7 @@ namespace o2
 {
 namespace event_visualisation
 {
+std::vector<std::string> DataSourceOnline::sourceFilextensions = {".json", ".root"};
 
 std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline::getVisualisationList(int no, float minTime, float maxTime, float range)
 {
@@ -65,7 +66,7 @@ std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline
   return res;
 }
 
-DataSourceOnline::DataSourceOnline(const std::string path) : mFileWatcher(path, {".json", ".root"})
+DataSourceOnline::DataSourceOnline(const std::string path) : mFileWatcher(path, sourceFilextensions)
 {
 }
 
