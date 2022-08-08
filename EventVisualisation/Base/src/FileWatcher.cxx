@@ -28,7 +28,7 @@ using namespace o2::event_visualisation;
 const char* FileWatcher::mLowGuard = " 0"; /// start guard
 const char* FileWatcher::mEndGuard = "~0"; /// stop guard
 
-FileWatcher::FileWatcher(const string& path, std::vector<std::string> ext)
+FileWatcher::FileWatcher(const string& path, const std::vector<std::string>& ext) : mExt(ext)
 {
   //LOG(info) << "FileWatcher::FileWatcher(" << path << ")";
   this->mDataFolder = path;
@@ -36,8 +36,6 @@ FileWatcher::FileWatcher(const string& path, std::vector<std::string> ext)
   this->mFiles.clear();
   this->mFiles.push_front(mLowGuard);
   this->mFiles.push_back(mEndGuard);
-  this->mExt = ext;
-  //LOG(info) << "FileWatcher" << this->getSize();
 }
 
 void FileWatcher::changeFolder(const string& path)

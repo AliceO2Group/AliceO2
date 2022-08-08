@@ -19,6 +19,8 @@
 #include <EventVisualisationBase/DataSource.h>
 #include <EventVisualisationBase/DataReader.h>
 #include <EventVisualisationBase/FileWatcher.h>
+#include <string>
+#include <vector>
 
 class TObject;
 
@@ -30,6 +32,7 @@ namespace event_visualisation
 class DataSourceOnline : public DataSource
 {
  protected:
+  static std::vector<std::string> sourceFilextensions;
   FileWatcher mFileWatcher;
   int mRunNumber;
   int mFirstTForbit;
