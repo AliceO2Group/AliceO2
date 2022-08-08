@@ -35,11 +35,11 @@ class BaseRecoTask
                              gsl::span<const o2::fv0::ChannelData> inChData,
                              gsl::span<o2::fv0::ChannelDataFloat> outChData);
   void FinishTask();
-  void setChannelOffset(o2::fv0::FV0ChannelTimeCalibrationObject* caliboffsets) { mCalibOffset = caliboffsets; };
-  int getChannelOffset(int channel);
+  void SetChannelOffset(o2::fv0::FV0ChannelTimeCalibrationObject const* caliboffsets) { mCalibOffset = caliboffsets; };
+  int getOffset(int channel);
 
  private:
-  o2::fv0::FV0ChannelTimeCalibrationObject* mCalibOffset = nullptr;
+  o2::fv0::FV0ChannelTimeCalibrationObject const* mCalibOffset = nullptr;
 
   ClassDefNV(BaseRecoTask, 3);
 };

@@ -31,10 +31,10 @@ RP BaseRecoTask::process(o2::fv0::Digit const& bcd,
 {
   LOG(debug) << "Running reconstruction on new event";
 
-  Float_t sideAtimeFirst = 1e10;
   Int_t ndigitsA = 0;
-  Float_t sideAtimeAvg = 0;
   Int_t ndigitsASelected = 0;
+  Float_t sideAtimeFirst = 1e10;
+  Float_t sideAtimeAvg = 0;
   Float_t sideAtimeAvgSelected = 0;
 
   auto timeStamp = o2::InteractionRecord::bc2ns(bcd.getIntRecord().bc, bcd.getIntRecord().orbit);
@@ -44,28 +44,24 @@ RP BaseRecoTask::process(o2::fv0::Digit const& bcd,
   int nch = inChData.size();
   for (int ich = 0; ich < nch; ich++) {
     LOG(debug) << "  channel " << ich << " / " << nch;
-    int offsetChannel = getChannelOffset(inChData[ich].ChId);
-
+    int offsetChannel = getOffset(int(inChData[ich].ChId));
     outChData[ich] = o2::fv0::ChannelDataFloat{inChData[ich].ChId,
                                                (inChData[ich].CFDTime - offsetChannel) * DigitizationConstant::TIME_PER_TDCCHANNEL,
-                                               (double)inChData[ich].QTCAmpl,
+                                               (float)inChData[ich].QTCAmpl,
                                                inChData[ich].ChainQTC};
-    //  only signals with amplitude participate in collision time
-    if (outChData[ich].charge > 0) {
+
+    // Conditions for reconstructing collision time (3 variants: first, average-relaxed and average-tight)
+    if (outChData[ich].charge > FV0DigParam::Instance().chargeThrForMeanTime) {
       sideAtimeFirst = std::min(static_cast<Double_t>(sideAtimeFirst), outChData[ich].time);
-      sideAtimeAvg += outChData[ich].time;
-      ndigitsA++;
-    }
-    if (outChData[ich].charge > o2::fv0::FV0DigParam::Instance().chargeThrForMeanTime) {
-      if (!inChData[ich].getFlag(ChannelData::kIsDoubleEvent) &&
-          !inChData[ich].getFlag(ChannelData::kIsTimeInfoNOTvalid) &&
-          inChData[ich].getFlag(ChannelData::kIsCFDinADCgate) &&
-          !inChData[ich].getFlag(ChannelData::kIsTimeInfoLate) &&
-          !inChData[ich].getFlag(ChannelData::kIsAmpHigh) &&
-          inChData[ich].getFlag(ChannelData::kIsEventInTVDC) &&
-          !inChData[ich].getFlag(ChannelData::kIsTimeInfoLost)) {
-        sideAtimeAvgSelected += outChData[ich].time;
-        ndigitsASelected++;
+      if (inChData[ich].areAllFlagsGood()) {
+        if (std::abs(outChData[ich].time) < FV0DigParam::Instance().mTimeThresholdForReco) {
+          sideAtimeAvg += outChData[ich].time;
+          ndigitsA++;
+        }
+        if (outChData[ich].charge > FV0DigParam::Instance().mAmpThresholdForReco && std::abs(outChData[ich].time) < FV0DigParam::Instance().mTimeThresholdForReco) {
+          sideAtimeAvgSelected += outChData[ich].time;
+          ndigitsASelected++;
+        }
       }
     }
   }
@@ -81,13 +77,14 @@ RP BaseRecoTask::process(o2::fv0::Digit const& bcd,
 void BaseRecoTask::FinishTask()
 {
   // finalize digitization, if needed, flash remaining digits
-  //if (!mContinuous)   return;
+  // if (!mContinuous)   return;
 }
 //______________________________________________________
-int BaseRecoTask::getChannelOffset(int channel)
+int BaseRecoTask::getOffset(int channel)
 {
   if (!mCalibOffset) {
     return 0;
   }
-  return mCalibOffset->mTimeOffsets[channel];
+  int offsetChannel = mCalibOffset->mTimeOffsets[channel];
+  return offsetChannel;
 }
