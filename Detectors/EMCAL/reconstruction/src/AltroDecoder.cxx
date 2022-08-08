@@ -122,6 +122,14 @@ void AltroDecoder::readChannels()
         // we must break here as well, the bunch is cut and the pointer would be set to invalid memory
         break;
       }
+      if (bunchlength == 0) {
+        // skip bunches with bunch size 0, they don't contain any payload
+        // Map error type to NULL header since header word is null
+        mMinorDecodingErrors.emplace_back(MinorAltroDecodingError::ErrorType_t::BUNCH_HEADER_NULL, channelheader, 0);
+        // Forward position by bunch header size
+        currentsample += bunchlength + 2;
+        continue;
+      }
       auto& currentbunch = currentchannel.createBunch(bunchlength, starttime);
       currentbunch.initFromRange(gsl::span<uint16_t>(&bunchwords[currentsample + 2], std::min((unsigned long)bunchlength, bunchwords.size() - currentsample - 2)));
       currentsample += bunchlength + 2;
