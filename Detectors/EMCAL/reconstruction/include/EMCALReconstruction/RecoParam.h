@@ -37,8 +37,8 @@ class RecoParam : public o2::conf::ConfigurableParamHelper<RecoParam>
 
  private:
   double mNoiseThresholdLGnoHG = 10.;  ///< Noise threshold applied to suppress LGnoHG error
-  double mCellTimeShiftNanoSec = 475.; ///< Time shift applied on the cell time to center trigger peak around 0
-  int mPhaseBCmod4 = 2;                ///< Rollback of the BC ID in the correction of the cell time for the BC mod 4
+  double mCellTimeShiftNanoSec = 470.; ///< Time shift applied on the cell time to center trigger peak around 0
+  int mPhaseBCmod4 = 1;                ///< Rollback of the BC ID in the correction of the cell time for the BC mod 4
 
   O2ParamDef(RecoParam, "EMCRecoParam");
 };
