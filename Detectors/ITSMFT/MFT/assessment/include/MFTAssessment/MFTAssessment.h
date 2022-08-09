@@ -63,6 +63,7 @@ class MFTAssessment
   ~MFTAssessment() = default;
 
   void init(bool finalizeAnalysis);
+  void setRefOrbit(uint32_t orbit) { mRefOrbit = orbit; }
   void createHistos();
   void runASyncQC(o2::framework::ProcessingContext& ctx);
   void processTrackables();
@@ -126,7 +127,7 @@ class MFTAssessment
   std::unique_ptr<TH1F> mTrackNumberOfClusters = nullptr;
   std::unique_ptr<TH1F> mCATrackNumberOfClusters = nullptr;
   std::unique_ptr<TH1F> mLTFTrackNumberOfClusters = nullptr;
-  std::unique_ptr<TH1F> mTrackOnvQPt = nullptr;
+  std::unique_ptr<TH1F> mTrackInvQPt = nullptr;
   std::unique_ptr<TH1F> mTrackChi2 = nullptr;
   std::unique_ptr<TH1F> mTrackCharge = nullptr;
   std::unique_ptr<TH1F> mTrackPhi = nullptr;
