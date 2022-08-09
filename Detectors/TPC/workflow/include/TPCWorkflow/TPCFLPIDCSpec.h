@@ -24,6 +24,8 @@
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/InputRecordWalker.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Headers/DataHeader.h"
 #include "TPCWorkflow/TPCIntegrateIDCSpec.h"
 #include "TPCCalibration/IDCFactorization.h"
@@ -41,8 +43,8 @@ namespace o2::tpc
 class TPCFLPIDCDevice : public o2::framework::Task
 {
  public:
-  TPCFLPIDCDevice(const int lane, const std::vector<uint32_t>& crus, const unsigned int rangeIDC, const bool debug = false, const bool loadStatusMap = false, const std::string idc0File = "", const bool loadIDC0CCDB = false, const bool enableSynchProc = false)
-    : mLane{lane}, mCRUs{crus}, mRangeIDC{rangeIDC}, mDebug{debug}, mLoadPadMapCCDB{loadStatusMap}, mLoadIDC0CCDB{loadIDC0CCDB}, mEnableSynchProc{enableSynchProc}, mOneDIDCs{std::vector<float>(rangeIDC), std::vector<unsigned int>(rangeIDC)}
+  TPCFLPIDCDevice(const int lane, const std::vector<uint32_t>& crus, const unsigned int rangeIDC, const bool loadStatusMap, const std::string idc0File, const bool loadIDC0CCDB, const bool enableSynchProc)
+    : mLane{lane}, mCRUs{crus}, mRangeIDC{rangeIDC}, mLoadPadMapCCDB{loadStatusMap}, mLoadIDC0CCDB{loadIDC0CCDB}, mEnableSynchProc{enableSynchProc}, mOneDIDCs{std::vector<float>(rangeIDC), std::vector<unsigned int>(rangeIDC)}
   {
     const auto nSizeDeque = std::ceil(static_cast<float>(mRangeIDC) / mMinIDCsPerTF);
     for (const auto& cru : mCRUs) {
@@ -55,14 +57,19 @@ class TPCFLPIDCDevice : public o2::framework::Task
       IDCZero* idcs = nullptr;
       f.GetObject("IDC0", idcs);
       if (idcs) {
+        LOGP(info, "Setting IDC0 from file {}", idc0File);
         mIDCZero = *idcs;
         delete idcs;
       }
     } else if (!mLoadIDC0CCDB) {
       LOGP(info, "setting standard IDC0 values");
-      mIDCZero.mIDCZero = std::vector<float>(Mapper::getPadsInSector() * SECTORSPERSIDE, 1);
-      // mIDCZero.mIDCZero[Side::C] = std::vector<float>(Mapper::getPadsInSector() * SECTORSPERSIDE, 1);
+      mIDCZero.mIDCZero = std::vector<float>(Mapper::getNumberOfPadsPerSide(), 1);
     }
+  }
+
+  void init(o2::framework::InitContext& ic) final
+  {
+    mDumpIDCs = ic.options().get<bool>("dump-idcs-flp");
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -82,28 +89,21 @@ class TPCFLPIDCDevice : public o2::framework::Task
       mLoadIDC0CCDB = false;
     }
 
-    for (int i = 0; i < mCRUs.size() + mLoadPadMapCCDB; ++i) {
-      const DataRef ref = pc.inputs().getByPos(i);
+    for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
       auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      const auto descr = tpcCRUHeader->dataDescription;
-      if (TPCIntegrateIDCDevice::getDataDescription(TPCIntegrateIDCDevice::IDCFormat::Sim) == descr) {
-        const int cru = tpcCRUHeader->subSpecification >> 7;
-        mIDCs[cru] = pc.inputs().get<o2::pmr::vector<float>>(ref);
-        // send the output for one CRU for one TF
-        sendOutput(pc.outputs(), cru);
-      }
+      const int cru = tpcCRUHeader->subSpecification >> 7;
+      mIDCs[cru] = pc.inputs().get<o2::pmr::vector<float>>(ref);
+      // calculate 1D-IDCs and send data
+      sendOutput(pc.outputs(), cru);
     }
 
-    if (mDebug) {
-      TFile fOut(fmt::format("IDCGroup_{}_tf_{}.root", mLane, processing_helpers::getCurrentTF(pc)).data(), "RECREATE");
-      for (int i = 0; i < mCRUs.size() + mLoadPadMapCCDB; ++i) {
-        const DataRef ref = pc.inputs().getByPos(i);
+    if (mDumpIDCs) {
+      TFile fOut(fmt::format("IDCs_{}_tf_{}.root", mLane, processing_helpers::getCurrentTF(pc)).data(), "RECREATE");
+      for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
         auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-        const auto descr = tpcCRUHeader->dataDescription;
-        if (TPCIntegrateIDCDevice::getDataDescription(TPCIntegrateIDCDevice::IDCFormat::Sim) == descr) {
-          const int cru = tpcCRUHeader->subSpecification >> 7;
-          fOut.WriteObject(&mIDCs[cru], fmt::format("CRU_{}", cru).data());
-        }
+        const int cru = tpcCRUHeader->subSpecification >> 7;
+        auto vec = pc.inputs().get<std::vector<float>>(ref);
+        fOut.WriteObject(&vec, fmt::format("CRU_{}", cru).data());
       }
     }
   }
@@ -140,19 +140,20 @@ class TPCFLPIDCDevice : public o2::framework::Task
   static unsigned int getMinIDCsPerTF() { return mMinIDCsPerTF; }
 
  private:
-  inline static unsigned int mMinIDCsPerTF{10};                                                                           ///< minimum number of IDCs per TF (depends only on number of orbits per TF and (fixed) number of orbits per integration interval). 11 for 128 orbits per TF and 21 for 256 orbits per TF
-  const int mLane{};                                                                                                      ///< lane number of processor
-  const std::vector<uint32_t> mCRUs{};                                                                                    ///< CRUs to process in this instance
-  const unsigned int mRangeIDC{};                                                                                         ///< number of IDCs used for the calculation of fourier coefficients
-  const bool mDebug{};                                                                                                    ///< dump IDCs to tree for debugging
-  const bool mLoadPadMapCCDB{};                                                                                           ///< load status map for pads from CCDB
-  bool mLoadIDC0CCDB{};                                                                                                   ///< loading reference IDC0 from CCDB
-  const bool mEnableSynchProc{};                                                                                          ///< flag for enabling calculation of 1D-IDCs
-  std::pair<std::vector<float>, std::vector<unsigned int>> mOneDIDCs{};                                                   ///< 1D-IDCs which will be send to the EPNs
-  std::unordered_map<unsigned int, o2::pmr::vector<float>> mIDCs{};                                                       ///< object for averaging and grouping of the IDCs
-  std::unordered_map<unsigned int, std::deque<std::pair<std::vector<float>, std::vector<unsigned int>>>> mBuffer1DIDCs{}; ///< buffer for 1D-IDCs. The buffered 1D-IDCs for n TFs will be send to the EPNs for synchronous reco. Zero initialized to avoid empty first TFs!
-  CalDet<PadFlags>* mPadFlagsMap{nullptr};                                                                                ///< status flag for each pad (i.e. if the pad is dead)
-  IDCZero mIDCZero{};                                                                                                     ///< I_0(r,\phi) = <I(r,\phi,t)>_t: Used for calculating IDC1 (provided from input file or CCDB)
+  inline static unsigned int mMinIDCsPerTF{10};                                                                                                                                                      ///< minimum number of IDCs per TF (depends only on number of orbits per TF and (fixed) number of orbits per integration interval). 11 for 128 orbits per TF and 21 for 256 orbits per TF
+  const int mLane{};                                                                                                                                                                                 ///< lane number of processor
+  const std::vector<uint32_t> mCRUs{};                                                                                                                                                               ///< CRUs to process in this instance
+  const unsigned int mRangeIDC{};                                                                                                                                                                    ///< number of IDCs used for the calculation of fourier coefficients
+  const bool mLoadPadMapCCDB{};                                                                                                                                                                      ///< load status map for pads from CCDB
+  bool mLoadIDC0CCDB{};                                                                                                                                                                              ///< loading reference IDC0 from CCDB
+  const bool mEnableSynchProc{};                                                                                                                                                                     ///< flag for enabling calculation of 1D-IDCs
+  bool mDumpIDCs{};                                                                                                                                                                                  ///< dump IDCs to tree for debugging
+  std::pair<std::vector<float>, std::vector<unsigned int>> mOneDIDCs{};                                                                                                                              ///< 1D-IDCs which will be send to the EPNs
+  std::unordered_map<unsigned int, o2::pmr::vector<float>> mIDCs{};                                                                                                                                  ///< object for averaging and grouping of the IDCs
+  std::unordered_map<unsigned int, std::deque<std::pair<std::vector<float>, std::vector<unsigned int>>>> mBuffer1DIDCs{};                                                                            ///< buffer for 1D-IDCs. The buffered 1D-IDCs for n TFs will be send to the EPNs for synchronous reco. Zero initialized to avoid empty first TFs!
+  CalDet<PadFlags>* mPadFlagsMap{nullptr};                                                                                                                                                           ///< status flag for each pad (i.e. if the pad is dead)
+  IDCZero mIDCZero{};                                                                                                                                                                                ///< I_0(r,\phi) = <I(r,\phi,t)>_t: Used for calculating IDC1 (provided from input file or CCDB)
+  const std::vector<InputSpec> mFilter = {{"idcs", ConcreteDataTypeMatcher{gDataOriginTPC, TPCIntegrateIDCDevice::getDataDescription(TPCIntegrateIDCDevice::IDCFormat::Sim)}, Lifetime::Timeframe}}; ///< filter for looping over input data
 
   /// update the time dependent parameters if they have changed (i.e. update the pad status map)
   void updateTimeDependentParams(ProcessingContext& pc) { pc.inputs().get<o2::tpc::CalDet<PadFlags>*>("tpcpadmap").get(); }
@@ -160,10 +161,10 @@ class TPCFLPIDCDevice : public o2::framework::Task
   void sendOutput(DataAllocator& output, const uint32_t cru)
   {
     const header::DataHeader::SubSpecificationType subSpec{cru << 7};
+    const CRU cruTmp(cru);
     if (mEnableSynchProc) {
       std::pair<std::vector<float>, std::vector<unsigned int>> idcOne;
       const int integrationIntervalOffset = 0;
-      const CRU cruTmp(cru);
       const auto region = cruTmp.region();
       const unsigned int indexOffset = (cruTmp.sector() % SECTORSPERSIDE) * Mapper::getPadsInSector() + Mapper::GLOBALPADOFFSET[region]; // TODO get correct offset for TPCFLPIDCDeviceGroup case
       const auto nIDCsPerIntegrationInterval = Mapper::PADSPERREGION[region];
@@ -179,13 +180,13 @@ class TPCFLPIDCDevice : public o2::framework::Task
       mBuffer1DIDCs[cru].pop_front(); // removing oldest 1D-IDCs
 
       fill1DIDCs(cru);
-      LOGP(info, "Sending 1D-IDCs to EPNs of size {} and weights of size {}", mOneDIDCs.first.size(), mOneDIDCs.second.size());
+      LOGP(debug, "Sending 1D-IDCs to EPNs of size {} and weights of size {}", mOneDIDCs.first.size(), mOneDIDCs.second.size());
       output.snapshot(Output{gDataOriginTPC, getDataDescription1DIDCEPN(), subSpec, Lifetime::Timeframe}, mOneDIDCs.first);
       output.snapshot(Output{gDataOriginTPC, getDataDescription1DIDCEPNWeights(), subSpec, Lifetime::Timeframe}, mOneDIDCs.second);
     }
 
-    LOGP(info, "Sending IDCs of size {}", mIDCs[cru].size());
-    const Side side = CRU(cru).side();
+    LOGP(debug, "Sending IDCs of size {}", mIDCs[cru].size());
+    const Side side = cruTmp.side();
     output.adoptContainer(Output{gDataOriginTPC, getDataDescriptionIDCGroup(side), subSpec, Lifetime::Timeframe}, std::move(mIDCs[cru]));
   }
 
@@ -205,7 +206,7 @@ class TPCFLPIDCDevice : public o2::framework::Task
   }
 };
 
-DataProcessorSpec getTPCFLPIDCSpec(const int ilane, const std::vector<uint32_t>& crus, const unsigned int rangeIDC, const bool debug, const bool loadStatusMap, const std::string idc0File, const bool disableIDC0CCDB, const bool enableSynchProc)
+DataProcessorSpec getTPCFLPIDCSpec(const int ilane, const std::vector<uint32_t>& crus, const unsigned int rangeIDC, const bool loadStatusMap, const std::string idc0File, const bool disableIDC0CCDB, const bool enableSynchProc)
 {
   std::vector<OutputSpec> outputSpecs;
   std::vector<InputSpec> inputSpecs;
@@ -240,7 +241,8 @@ DataProcessorSpec getTPCFLPIDCSpec(const int ilane, const std::vector<uint32_t>&
     id.data(),
     inputSpecs,
     outputSpecs,
-    AlgorithmSpec{adaptFromTask<TPCFLPIDCDevice>(ilane, crus, rangeIDC, debug, loadStatusMap, idc0File, loadIDC0CCDB, enableSynchProc)}}; // end DataProcessorSpec
+    AlgorithmSpec{adaptFromTask<TPCFLPIDCDevice>(ilane, crus, rangeIDC, loadStatusMap, idc0File, loadIDC0CCDB, enableSynchProc)},
+    Options{{"dump-idcs-flp", VariantType::Bool, false, {"Dump IDCs to file"}}}}; // end DataProcessorSpec
 }
 
 } // namespace o2::tpc

@@ -76,6 +76,20 @@ void o2::tpc::IDCFactorization::dumpToFile(const char* outFileName, const char* 
   fOut.Close();
 }
 
+void o2::tpc::IDCFactorization::dumpIDCZeroToFile(const Side side, const char* outFileName, const char* outName) const
+{
+  TFile fOut(outFileName, "RECREATE");
+  fOut.WriteObject(&mIDCZero[mSideIndex[side]], outName);
+  fOut.Close();
+}
+
+void o2::tpc::IDCFactorization::dumpIDCOneToFile(const Side side, const char* outFileName, const char* outName) const
+{
+  TFile fOut(outFileName, "RECREATE");
+  fOut.WriteObject(&mIDCOne[mSideIndex[side]], outName);
+  fOut.Close();
+}
+
 void o2::tpc::IDCFactorization::dumpToTree(int integrationIntervals, const char* outFileName) const
 {
   const Mapper& mapper = Mapper::instance();
@@ -197,25 +211,24 @@ void o2::tpc::IDCFactorization::calcIDCZero(const bool norm)
       }
     }
   }
-  // loop over sides
-  for (auto& idcZero : mIDCZero) {
+
 // perform normalization per CRU (in case some CRUs lack data)
 #pragma omp parallel for num_threads(sNThreads)
-    for (unsigned int cruInd = 0; cruInd < mCRUs.size(); ++cruInd) {
-      const unsigned int cru = mCRUs[cruInd];
-      const o2::tpc::CRU cruTmp(cru);
-      const unsigned int region = cruTmp.region();
-      const auto indexStart = mRegionOffs[region] + mNIDCsPerSector * (cruTmp.sector() % o2::tpc::SECTORSPERSIDE);
-      const auto indexEnd = indexStart + mNIDCsPerCRU[region];
+  for (unsigned int cruInd = 0; cruInd < mCRUs.size(); ++cruInd) {
+    const unsigned int cru = mCRUs[cruInd];
+    const o2::tpc::CRU cruTmp(cru);
+    const auto side = cruTmp.side();
+    const unsigned int region = cruTmp.region();
+    const auto indexStart = mRegionOffs[region] + mNIDCsPerSector * (cruTmp.sector() % o2::tpc::SECTORSPERSIDE);
+    const auto indexEnd = indexStart + mNIDCsPerCRU[region];
 
-      const auto normFac = getNIntegrationIntervals(cru);
-      if (normFac == 0) {
-        LOGP(info, "number of integration intervals is zero for CRU {}! Skipping normalization of IDC0", cru);
-        continue;
-      }
-
-      std::transform(idcZero.mIDCZero.begin() + indexStart, idcZero.mIDCZero.begin() + indexEnd, idcZero.mIDCZero.begin() + indexStart, [normVal = normFac](auto& val) { return val / normVal; });
+    const auto normFac = getNIntegrationIntervals(cru);
+    if (normFac == 0) {
+      LOGP(info, "number of integration intervals is zero for CRU {}! Skipping normalization of IDC0", cru);
+      continue;
     }
+
+    std::transform(mIDCZero[mSideIndex[side]].mIDCZero.begin() + indexStart, mIDCZero[mSideIndex[side]].mIDCZero.begin() + indexEnd, mIDCZero[mSideIndex[side]].mIDCZero.begin() + indexStart, [normVal = normFac](auto& val) { return val / normVal; });
   }
 }
 
@@ -496,12 +509,13 @@ void o2::tpc::IDCFactorization::getTF(const unsigned int region, unsigned int in
 std::vector<unsigned int> o2::tpc::IDCFactorization::getAllIntegrationIntervalsPerTF() const
 {
   // find three consecutive time frames
-  const int nTFs = 3;
+  const int nMaxTFs = 3;
+  const int nTFs = (mTimeFrames >= nMaxTFs) ? nMaxTFs : mTimeFrames;
 
   // store the number of integration intervals like 10 -> 11 -> 11
-  std::vector<int> ordering;
+  std::vector<unsigned int> ordering;
   ordering.reserve(nTFs);
-  int order = 0;
+  unsigned int order = 0;
   int firstTF = 0;
 
   // find ordering
@@ -525,9 +539,14 @@ std::vector<unsigned int> o2::tpc::IDCFactorization::getAllIntegrationIntervalsP
     }
   }
 
+  // in case TFs < 3
+  if ((nTFs == mTimeFrames) && (ordering.size() == nTFs)) {
+    return ordering;
+  }
+
   if (ordering.size() != nTFs) {
     LOGP(warning, "Couldnt find {} consecutive TFs with data", nTFs);
-    ordering = std::vector<int>(nTFs, order);
+    ordering = std::vector<unsigned int>(nTFs, order);
     firstTF = 0;
   } else {
     std::sort(ordering.begin(), ordering.end());

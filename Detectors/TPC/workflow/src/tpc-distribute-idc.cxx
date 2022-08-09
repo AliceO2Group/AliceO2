@@ -37,7 +37,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"timeframes", VariantType::Int, 2000, {"Number of TFs which will be aggregated per aggregation interval."}},
     {"firstTF", VariantType::Int, -1, {"First time frame index. (if set to -1 the first TF will be automatically detected. Values < -1 are setting an offset for skipping the first TFs)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
-    {"lanes", VariantType::Int, 1, {"Number of lanes of this device (CRUs are splitted per line)"}},
+    {"lanes", VariantType::Int, 1, {"Number of lanes of this device (CRUs are split per lane)"}},
     {"send-precise-timestamp", VariantType::Bool, false, {"Send precise timestamp which can be used for writing to CCDB"}},
     {"output-lanes", VariantType::Int, 2, {"Number of parallel pipelines which will be used in the factorization device."}}};
 
