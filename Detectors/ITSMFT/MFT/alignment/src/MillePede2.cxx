@@ -21,8 +21,6 @@
 #include <TArrayL.h>
 #include <TArrayF.h>
 #include <TSystem.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -505,7 +503,7 @@ int MillePede2::LocalFit(std::vector<double>& localParams)
 {
   static int nrefSize = 0;
   //  static TArrayI refLoc,refGlo,nrefLoc,nrefGlo;
-  static int *refLoc = 0, *refGlo = 0, *nrefLoc = 0, *nrefGlo = 0;
+  static int *refLoc = nullptr, *refGlo = nullptr, *nrefLoc = nullptr, *nrefGlo = nullptr;
   int nPoints = 0;
   fIsChi2BelowLimit = true;
 
@@ -522,7 +520,7 @@ int MillePede2::LocalFit(std::vector<double>& localParams)
   while (cnt < recSz) { // Transfer the measurement records to matrices
     // extract addresses of residual, weight and pointers on local and global derivatives for each point
     if (nrefSize <= nPoints) {
-      int* tmpA = 0;
+      int* tmpA = nullptr;
       nrefSize = 2 * (nPoints + 1);
       tmpA = refLoc;
       refLoc = new int[nrefSize];
@@ -1581,7 +1579,7 @@ void MillePede2::SetRejRunList(const int* runs, const int nruns)
   if (fRejRunList) {
     delete fRejRunList;
   }
-  fRejRunList = 0;
+  fRejRunList = nullptr;
   if (nruns < 1 || !runs) {
     return;
   }
@@ -1600,7 +1598,7 @@ void MillePede2::SetAccRunList(const int* runs, const int nruns, const float* wg
   if (fAccRunListWgh) {
     delete fAccRunListWgh;
   }
-  fAccRunList = 0;
+  fAccRunList = nullptr;
   if (nruns < 1 || !runs) {
     return;
   }

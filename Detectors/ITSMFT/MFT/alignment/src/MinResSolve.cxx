@@ -12,7 +12,6 @@
 /// @file MinResSolve.cxx
 
 #include <iomanip>
-#include <float.h>
 #include <TMath.h>
 #include <TStopwatch.h>
 
@@ -30,22 +29,22 @@ ClassImp(MinResSolve);
 MinResSolve::MinResSolve()
   : fSize(0),
     fPrecon(0),
-    fMatrix(0),
-    fRHS(0),
-    fPVecY(0),
-    fPVecR1(0),
-    fPVecR2(0),
-    fPVecV(0),
-    fPVecW(0),
-    fPVecW1(0),
-    fPVecW2(0),
-    fPvv(0),
-    fPvz(0),
-    fPhh(0),
-    fDiagLU(0),
-    fMatL(0),
-    fMatU(0),
-    fMatBD(0)
+    fMatrix(nullptr),
+    fRHS(nullptr),
+    fPVecY(nullptr),
+    fPVecR1(nullptr),
+    fPVecR2(nullptr),
+    fPVecV(nullptr),
+    fPVecW(nullptr),
+    fPVecW1(nullptr),
+    fPVecW2(nullptr),
+    fPvv(nullptr),
+    fPvz(nullptr),
+    fPhh(nullptr),
+    fDiagLU(nullptr),
+    fMatL(nullptr),
+    fMatU(nullptr),
+    fMatBD(nullptr)
 {
 }
 
@@ -56,20 +55,20 @@ MinResSolve::MinResSolve(const MinResSolve& src)
     fPrecon(src.fPrecon),
     fMatrix(src.fMatrix),
     fRHS(src.fRHS),
-    fPVecY(0),
-    fPVecR1(0),
-    fPVecR2(0),
-    fPVecV(0),
-    fPVecW(0),
-    fPVecW1(0),
-    fPVecW2(0),
-    fPvv(0),
-    fPvz(0),
-    fPhh(0),
-    fDiagLU(0),
-    fMatL(0),
-    fMatU(0),
-    fMatBD(0)
+    fPVecY(nullptr),
+    fPVecR1(nullptr),
+    fPVecR2(nullptr),
+    fPVecV(nullptr),
+    fPVecW(nullptr),
+    fPVecW1(nullptr),
+    fPVecW2(nullptr),
+    fPvv(nullptr),
+    fPvz(nullptr),
+    fPhh(nullptr),
+    fDiagLU(nullptr),
+    fMatL(nullptr),
+    fMatU(nullptr),
+    fMatBD(nullptr)
 {
 }
 
@@ -79,20 +78,20 @@ MinResSolve::MinResSolve(const MatrixSq* mat, const TVectorD* rhs)
     fPrecon(0),
     fMatrix((MatrixSq*)mat),
     fRHS((double*)rhs->GetMatrixArray()),
-    fPVecY(0),
-    fPVecR1(0),
-    fPVecR2(0),
-    fPVecV(0),
-    fPVecW(0),
-    fPVecW1(0),
-    fPVecW2(0),
-    fPvv(0),
-    fPvz(0),
-    fPhh(0),
-    fDiagLU(0),
-    fMatL(0),
-    fMatU(0),
-    fMatBD(0)
+    fPVecY(nullptr),
+    fPVecR1(nullptr),
+    fPVecR2(nullptr),
+    fPVecV(nullptr),
+    fPVecW(nullptr),
+    fPVecW1(nullptr),
+    fPVecW2(nullptr),
+    fPvv(nullptr),
+    fPvz(nullptr),
+    fPhh(nullptr),
+    fDiagLU(nullptr),
+    fMatL(nullptr),
+    fMatU(nullptr),
+    fMatBD(nullptr)
 {
 }
 
@@ -729,47 +728,47 @@ void MinResSolve::ClearAux()
   if (fPVecY) {
     delete[] fPVecY;
   }
-  fPVecY = 0;
+  fPVecY = nullptr;
   if (fPVecR1) {
     delete[] fPVecR1;
   }
-  fPVecR1 = 0;
+  fPVecR1 = nullptr;
   if (fPVecR2) {
     delete[] fPVecR2;
   }
-  fPVecR2 = 0;
+  fPVecR2 = nullptr;
   if (fPVecV) {
     delete[] fPVecV;
   }
-  fPVecV = 0;
+  fPVecV = nullptr;
   if (fPVecW) {
     delete[] fPVecW;
   }
-  fPVecW = 0;
+  fPVecW = nullptr;
   if (fPVecW1) {
     delete[] fPVecW1;
   }
-  fPVecW1 = 0;
+  fPVecW1 = nullptr;
   if (fPVecW2) {
     delete[] fPVecW2;
   }
-  fPVecW2 = 0;
+  fPVecW2 = nullptr;
   if (fDiagLU) {
     delete[] fDiagLU;
   }
-  fDiagLU = 0;
+  fDiagLU = nullptr;
   if (fMatL) {
     delete fMatL;
   }
-  fMatL = 0;
+  fMatL = nullptr;
   if (fMatU) {
     delete fMatU;
   }
-  fMatU = 0;
+  fMatU = nullptr;
   if (fMatBD) {
     delete fMatBD;
   }
-  fMatBD = 0;
+  fMatBD = nullptr;
 }
 
 //___________________________________________________________
@@ -1075,9 +1074,9 @@ Int_t MinResSolve::PreconILUKsymb(Int_t lofM)
   MatrixSparse* matrix = (MatrixSparse*)fMatrix;
   sw.Start();
 
-  UChar_t **ulvl = 0, *levls = 0;
-  UShort_t* jbuf = 0;
-  Int_t* iw = 0;
+  UChar_t **ulvl = nullptr, *levls = nullptr;
+  UShort_t* jbuf = nullptr;
+  Int_t* iw = nullptr;
   ulvl = new UChar_t*[fSize]; // stores lev-fils for U part of ILU factorization
   levls = new UChar_t[fSize];
   jbuf = new UShort_t[fSize];
@@ -1219,9 +1218,9 @@ Int_t MinResSolve::PreconILUKsymbDense(Int_t lofM)
    * Adapted from iluk.c: lofC of ITSOL_1 package by Y.Saad: http://www-users.cs.umn.edu/~saad/software/
    *----------------------------------------------------------------------------*/
   //
-  UChar_t **ulvl = 0, *levls = 0;
-  UShort_t* jbuf = 0;
-  Int_t* iw = 0;
+  UChar_t **ulvl = nullptr, *levls = nullptr;
+  UShort_t* jbuf = nullptr;
+  Int_t* iw = nullptr;
   ulvl = new UChar_t*[fSize]; // stores lev-fils for U part of ILU factorization
   levls = new UChar_t[fSize];
   jbuf = new UShort_t[fSize];

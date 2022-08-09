@@ -11,10 +11,7 @@
 
 /// @file SymBDMatrix.cxx
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <iostream>
-#include <float.h>
 
 #include "TClass.h"
 #include "TMath.h"
@@ -26,14 +23,14 @@ ClassImp(SymBDMatrix);
 
 //___________________________________________________________
 SymBDMatrix::SymBDMatrix()
-  : fElems(0)
+  : fElems(nullptr)
 {
   fSymmetric = kTRUE;
 }
 
 //___________________________________________________________
 SymBDMatrix::SymBDMatrix(Int_t size, Int_t w)
-  : MatrixSq(), fElems(0)
+  : MatrixSq(), fElems(nullptr)
 {
   fNcols = size; // number of rows
   if (w < 0) {
@@ -55,7 +52,7 @@ SymBDMatrix::SymBDMatrix(Int_t size, Int_t w)
 
 //___________________________________________________________
 SymBDMatrix::SymBDMatrix(const SymBDMatrix& src)
-  : MatrixSq(src), fElems(0)
+  : MatrixSq(src), fElems(nullptr)
 {
   if (src.GetSize() < 1) {
     return;
@@ -101,7 +98,7 @@ void SymBDMatrix::Clear(Option_t*)
 {
   if (fElems) {
     delete[] fElems;
-    fElems = 0;
+    fElems = nullptr;
   }
   fNelems = fNcols = fNrows = fRowLwb = 0;
 }

@@ -148,11 +148,13 @@ class MillePede2
   void SetParamGrID(const int grID, int i)
   {
     int ir = GetRGId(i);
-    if (ir < 0)
+    if (ir < 0) {
       return;
+    }
     fParamGrID[ir] = grID;
-    if (fNGroupsSet < grID)
+    if (fNGroupsSet < grID) {
       fNGroupsSet = grID;
+    }
   }
   void SetNGloPar(const int n) { fNGloPar = n; }
   void SetNLocPar(const int n) { fNLocPar = n; }
@@ -179,7 +181,7 @@ class MillePede2
   void SetSigmaPar(int i, double par);
 
   /// \brief performs a requested number of global iterations
-  int GlobalFit(double* par = 0, double* error = 0, double* pull = 0);
+  int GlobalFit(double* par = nullptr, double* error = nullptr, double* pull = nullptr);
 
   /// \brief perform global parameters fit once all the local equations have been fitted
   int GlobalFitIteration();
@@ -211,7 +213,7 @@ class MillePede2
   void SetRejRunList(const int* runs, const int nruns);
 
   /// \brief set the list of runs to be selected
-  void SetAccRunList(const int* runs, const int nruns, const float* wghList = 0);
+  void SetAccRunList(const int* runs, const int nruns, const float* wghList = nullptr);
 
   /// \brief validate record according run lists set by the user
   bool IsRecordAcceptable();
@@ -275,8 +277,9 @@ class MillePede2
   void SetNonLinear(int index, bool v = true)
   {
     int id = GetRGId(index);
-    if (id < 0)
+    if (id < 0) {
       return;
+    }
     fIsLinear[id] = !v;
   }
 

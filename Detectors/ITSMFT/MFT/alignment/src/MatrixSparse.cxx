@@ -24,7 +24,7 @@ ClassImp(MatrixSparse);
 //___________________________________________________________
 MatrixSparse::MatrixSparse(Int_t sz)
   : MatrixSq(),
-    fVecs(0)
+    fVecs(nullptr)
 {
   fNcols = fNrows = sz;
 
@@ -37,7 +37,7 @@ MatrixSparse::MatrixSparse(Int_t sz)
 //___________________________________________________________
 MatrixSparse::MatrixSparse(const MatrixSparse& src)
   : MatrixSq(src),
-    fVecs(0)
+    fVecs(nullptr)
 {
   fVecs = new VectorSparse*[src.GetSize()];
   for (int i = GetSize(); i--;) {
@@ -70,8 +70,9 @@ VectorSparse* MatrixSparse::GetRowAdd(Int_t ir)
 //___________________________________________________________
 MatrixSparse& MatrixSparse::operator=(const MatrixSparse& src)
 {
-  if (this == &src)
+  if (this == &src) {
     return *this;
+  }
   MatrixSq::operator=(src);
 
   Clear();

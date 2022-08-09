@@ -28,7 +28,7 @@ namespace mft
 class MatrixSparse : public MatrixSq
 {
  public:
-  MatrixSparse() : fVecs(0) {}
+  MatrixSparse() = default;
 
   /// \brief constructor
   MatrixSparse(Int_t size);
@@ -36,45 +36,46 @@ class MatrixSparse : public MatrixSq
   /// \brief copy c-tor
   MatrixSparse(const MatrixSparse& mat);
 
-  virtual ~MatrixSparse() { Clear(); }
+  ~MatrixSparse() override { Clear(); }
 
-  VectorSparse* GetRow(Int_t ir) const { return (ir < fNcols) ? fVecs[ir] : 0; }
+  VectorSparse* GetRow(Int_t ir) const { return (ir < fNcols) ? fVecs[ir] : nullptr; }
   VectorSparse* GetRowAdd(Int_t ir);
 
-  virtual Int_t GetSize() const { return fNrows; }
+  Int_t GetSize() const override { return fNrows; }
   virtual Int_t GetNRows() const { return fNrows; }
   virtual Int_t GetNCols() const { return fNcols; }
 
-  void Clear(Option_t* option = "");
-  void Reset()
+  void Clear(Option_t* option = "") override;
+  void Reset() override
   {
-    for (int i = fNcols; i--;)
+    for (int i = fNcols; i--;) {
       GetRow(i)->Reset();
+    }
   }
-  void Print(Option_t* option = "") const;
+  void Print(Option_t* option = "") const override;
   MatrixSparse& operator=(const MatrixSparse& src);
-  Double_t& operator()(Int_t row, Int_t col);
-  Double_t operator()(Int_t row, Int_t col) const;
+  Double_t& operator()(Int_t row, Int_t col) override;
+  Double_t operator()(Int_t row, Int_t col) const override;
   void SetToZero(Int_t row, Int_t col);
 
   /// \brief get fraction of non-zero elements
-  Float_t GetDensity() const;
+  Float_t GetDensity() const override;
 
-  Double_t DiagElem(Int_t r) const;
-  Double_t& DiagElem(Int_t r);
+  Double_t DiagElem(Int_t r) const override;
+  Double_t& DiagElem(Int_t r) override;
 
   /// \brief sort columns in increasing order. Used to fix the matrix after ILUk decompostion
   void SortIndices(Bool_t valuesToo = kFALSE);
 
   /// \brief fill vecOut by matrix * vecIn (vector should be of the same size as the matrix)
-  void MultiplyByVec(const TVectorD& vecIn, TVectorD& vecOut) const;
+  void MultiplyByVec(const TVectorD& vecIn, TVectorD& vecOut) const override;
 
-  void MultiplyByVec(const Double_t* vecIn, Double_t* vecOut) const;
+  void MultiplyByVec(const Double_t* vecIn, Double_t* vecOut) const override;
 
-  void AddToRow(Int_t r, Double_t* valc, Int_t* indc, Int_t n);
+  void AddToRow(Int_t r, Double_t* valc, Int_t* indc, Int_t n) override;
 
  protected:
-  VectorSparse** fVecs;
+  VectorSparse** fVecs = nullptr;
 
   ClassDef(MatrixSparse, 0);
 };
@@ -90,21 +91,25 @@ inline void MatrixSparse::MultiplyByVec(const TVectorD& vecIn, TVectorD& vecOut)
 /// \brief set existing element to 0
 inline void MatrixSparse::SetToZero(Int_t row, Int_t col)
 {
-  if (IsSymmetric() && col > row)
+  if (IsSymmetric() && col > row) {
     Swap(row, col);
+  }
   VectorSparse* rowv = GetRow(row);
-  if (rowv)
+  if (rowv) {
     rowv->SetToZero(col);
+  }
 }
 
 //___________________________________________________
 inline Double_t MatrixSparse::operator()(Int_t row, Int_t col) const
 {
-  if (IsSymmetric() && col > row)
+  if (IsSymmetric() && col > row) {
     Swap(row, col);
+  }
   VectorSparse* rowv = GetRow(row);
-  if (!rowv)
+  if (!rowv) {
     return 0;
+  }
   return rowv->FindIndex(col);
 }
 
@@ -112,11 +117,13 @@ inline Double_t MatrixSparse::operator()(Int_t row, Int_t col) const
 inline Double_t& MatrixSparse::operator()(Int_t row, Int_t col)
 {
   //  printf("M: findindexAdd\n");
-  if (IsSymmetric() && col > row)
+  if (IsSymmetric() && col > row) {
     Swap(row, col);
+  }
   VectorSparse* rowv = GetRowAdd(row);
-  if (col >= fNcols)
+  if (col >= fNcols) {
     fNcols = col + 1;
+  }
   return rowv->FindIndexAdd(col);
 }
 
@@ -125,12 +132,14 @@ inline Double_t& MatrixSparse::operator()(Int_t row, Int_t col)
 inline Double_t MatrixSparse::DiagElem(Int_t row) const
 {
   VectorSparse* rowv = GetRow(row);
-  if (!rowv)
+  if (!rowv) {
     return 0;
+  }
   if (IsSymmetric()) {
     return (rowv->GetNElems() > 0 && rowv->GetLastIndex() == row) ? rowv->GetLastElem() : 0.;
-  } else
+  } else {
     return rowv->FindIndex(row);
+  }
 }
 
 //___________________________________________________
@@ -138,12 +147,14 @@ inline Double_t MatrixSparse::DiagElem(Int_t row) const
 inline Double_t& MatrixSparse::DiagElem(Int_t row)
 {
   VectorSparse* rowv = GetRowAdd(row);
-  if (row >= fNcols)
+  if (row >= fNcols) {
     fNcols = row + 1;
+  }
   if (IsSymmetric()) {
     return (rowv->GetNElems() > 0 && rowv->GetLastIndex() == row) ? rowv->GetLastElem() : rowv->FindIndexAdd(row);
-  } else
+  } else {
     return rowv->FindIndexAdd(row);
+  }
 }
 
 } // namespace mft

@@ -30,8 +30,8 @@ class MatrixSq : public TMatrixDBase
 
  public:
   MatrixSq() : fSymmetric(kFALSE) {}
-  MatrixSq(const MatrixSq& src) : TMatrixDBase(src), fSymmetric(src.fSymmetric) {}
-  virtual ~MatrixSq() {}
+  MatrixSq(const MatrixSq& src);
+  ~MatrixSq() override = default;
 
   /// \brief = operator
   MatrixSq& operator=(const MatrixSq& src);
@@ -39,18 +39,18 @@ class MatrixSq : public TMatrixDBase
   virtual Int_t GetSize() const { return fNcols; }
   virtual Float_t GetDensity() const = 0;
 
-  virtual void Clear(Option_t* option = "") = 0;
+  void Clear(Option_t* option = "") override = 0;
 
   virtual Double_t Query(Int_t rown, Int_t coln) const { return operator()(rown, coln); }
-  virtual Double_t operator()(Int_t rown, Int_t coln) const = 0;
-  virtual Double_t& operator()(Int_t rown, Int_t coln) = 0;
+  Double_t operator()(Int_t rown, Int_t coln) const override = 0;
+  Double_t& operator()(Int_t rown, Int_t coln) override = 0;
 
   virtual Double_t QueryDiag(Int_t rc) const { return DiagElem(rc); }
   virtual Double_t DiagElem(Int_t r) const = 0;
   virtual Double_t& DiagElem(Int_t r) = 0;
   virtual void AddToRow(Int_t r, Double_t* valc, Int_t* indc, Int_t n) = 0;
 
-  virtual void Print(Option_t* option = "") const = 0;
+  void Print(Option_t* option = "") const override = 0;
   virtual void Reset() = 0;
 
   /// \brief print matrix in COO sparse format
@@ -61,66 +61,66 @@ class MatrixSq : public TMatrixDBase
 
   virtual void MultiplyByVec(const TVectorD& vecIn, TVectorD& vecOut) const;
 
-  Bool_t IsSymmetric() const { return fSymmetric; }
+  Bool_t IsSymmetric() const override { return fSymmetric; }
   void SetSymmetric(Bool_t v = kTRUE) { fSymmetric = v; }
 
   // ---------------------------------- Dummy methods of MatrixBase
-  virtual const Double_t* GetMatrixArray() const
+  const Double_t* GetMatrixArray() const override
   {
     Error("GetMatrixArray", "Dummy");
-    return 0;
+    return nullptr;
   };
-  virtual Double_t* GetMatrixArray()
+  Double_t* GetMatrixArray() override
   {
     Error("GetMatrixArray", "Dummy");
-    return 0;
+    return nullptr;
   };
-  virtual const Int_t* GetRowIndexArray() const
+  const Int_t* GetRowIndexArray() const override
   {
     Error("GetRowIndexArray", "Dummy");
-    return 0;
+    return nullptr;
   };
-  virtual Int_t* GetRowIndexArray()
+  Int_t* GetRowIndexArray() override
   {
     Error("GetRowIndexArray", "Dummy");
-    return 0;
+    return nullptr;
   };
-  virtual const Int_t* GetColIndexArray() const
+  const Int_t* GetColIndexArray() const override
   {
     Error("GetColIndexArray", "Dummy");
-    return 0;
+    return nullptr;
   };
-  virtual Int_t* GetColIndexArray()
+  Int_t* GetColIndexArray() override
   {
     Error("GetColIndexArray", "Dummy");
-    return 0;
+    return nullptr;
   };
-  virtual TMatrixDBase& SetRowIndexArray(Int_t*)
+  TMatrixDBase& SetRowIndexArray(Int_t*) override
   {
     Error("SetRowIndexArray", "Dummy");
     return *this;
   }
-  virtual TMatrixDBase& SetColIndexArray(Int_t*)
+  TMatrixDBase& SetColIndexArray(Int_t*) override
   {
     Error("SetColIndexArray", "Dummy");
     return *this;
   }
-  virtual TMatrixDBase& GetSub(Int_t, Int_t, Int_t, Int_t, TMatrixDBase&, Option_t*) const
+  TMatrixDBase& GetSub(Int_t, Int_t, Int_t, Int_t, TMatrixDBase&, Option_t*) const override
   {
     Error("GetSub", "Dummy");
     return *((TMatrixDBase*)this);
   }
-  virtual TMatrixDBase& SetSub(Int_t, Int_t, const TMatrixDBase&)
+  TMatrixDBase& SetSub(Int_t, Int_t, const TMatrixDBase&) override
   {
     Error("GetSub", "Dummy");
     return *this;
   }
-  virtual TMatrixDBase& ResizeTo(Int_t, Int_t, Int_t)
+  TMatrixDBase& ResizeTo(Int_t, Int_t, Int_t) override
   {
     Error("ResizeTo", "Dummy");
     return *this;
   }
-  virtual TMatrixDBase& ResizeTo(Int_t, Int_t, Int_t, Int_t, Int_t)
+  TMatrixDBase& ResizeTo(Int_t, Int_t, Int_t, Int_t, Int_t) override
   {
     Error("ResizeTo", "Dummy");
     return *this;

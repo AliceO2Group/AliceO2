@@ -11,7 +11,8 @@
 
 /// @file AlignPointHelper.cxx
 
-#include <math.h>
+#include <cmath>
+
 #include <Rtypes.h>
 #include "Framework/Logger.h"
 #include "DataFormatsMFT/TrackMFT.h"

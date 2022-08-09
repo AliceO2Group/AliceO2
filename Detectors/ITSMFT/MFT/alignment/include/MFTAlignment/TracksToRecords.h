@@ -48,10 +48,10 @@ class TracksToRecords : public Aligner
   TracksToRecords();
 
   /// \brief destructor
-  ~TracksToRecords();
+  ~TracksToRecords() override;
 
   /// \brief init Millipede and AlignPointHelper
-  void init();
+  void init() override;
 
   // simple setters
 

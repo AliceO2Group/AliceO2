@@ -11,11 +11,7 @@
 
 /// @file SymMatrix.cxx
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <iostream>
-#include <float.h>
-#include <string.h>
 
 #include <TClass.h>
 #include <TMath.h>
@@ -26,13 +22,13 @@ using namespace o2::mft;
 
 ClassImp(SymMatrix);
 
-SymMatrix* SymMatrix::fgBuffer = 0;
+SymMatrix* SymMatrix::fgBuffer = nullptr;
 Int_t SymMatrix::fgCopyCnt = 0;
 
 //___________________________________________________________
 SymMatrix::SymMatrix()
-  : fElems(0),
-    fElemsAdd(0)
+  : fElems(nullptr),
+    fElemsAdd(nullptr)
 {
   fSymmetric = kTRUE;
   fgCopyCnt++;
@@ -41,8 +37,8 @@ SymMatrix::SymMatrix()
 //___________________________________________________________
 SymMatrix::SymMatrix(Int_t size)
   : MatrixSq(),
-    fElems(0),
-    fElemsAdd(0)
+    fElems(nullptr),
+    fElemsAdd(nullptr)
 {
   fNrows = 0;
   fNrowIndex = fNcols = fRowLwb = size;
@@ -55,8 +51,8 @@ SymMatrix::SymMatrix(Int_t size)
 //___________________________________________________________
 SymMatrix::SymMatrix(const SymMatrix& src)
   : MatrixSq(src),
-    fElems(0),
-    fElemsAdd(0)
+    fElems(nullptr),
+    fElemsAdd(nullptr)
 {
   fNrowIndex = fNcols = src.GetSize();
   fNrows = 0;
@@ -76,9 +72,9 @@ SymMatrix::SymMatrix(const SymMatrix& src)
       }
     }
   } else {
-    fElems = 0;
+    fElems = nullptr;
   }
-  fElemsAdd = 0;
+  fElemsAdd = nullptr;
   fgCopyCnt++;
 }
 
@@ -88,7 +84,7 @@ SymMatrix::~SymMatrix()
   Clear();
   if (--fgCopyCnt < 1 && fgBuffer) {
     delete fgBuffer;
-    fgBuffer = 0;
+    fgBuffer = nullptr;
   }
 }
 
@@ -171,7 +167,7 @@ void SymMatrix::Clear(Option_t*)
 {
   if (fElems) {
     delete[] fElems;
-    fElems = 0;
+    fElems = nullptr;
   }
 
   if (fElemsAdd) {
@@ -179,7 +175,7 @@ void SymMatrix::Clear(Option_t*)
       delete[] fElemsAdd[i];
     }
     delete[] fElemsAdd;
-    fElemsAdd = 0;
+    fElemsAdd = nullptr;
   }
   fNrowIndex = fNcols = fNrows = fRowLwb = 0;
 }
@@ -204,8 +200,9 @@ void SymMatrix::Print(Option_t* option) const
   printf("Symmetric Matrix: Size = %d (%d rows added dynamically), %d used\n", GetSize(), GetSizeAdded(), GetSizeUsed());
   TString opt = option;
   opt.ToLower();
-  if (opt.IsNull())
+  if (opt.IsNull()) {
     return;
+  }
   opt = "%";
   opt += 1 + int(TMath::Log10(double(GetSize())));
   opt += "d|";
@@ -483,7 +480,7 @@ void SymMatrix::Reset()
       delete[] fElemsAdd[i];
     }
     delete[] fElemsAdd;
-    fElemsAdd = 0;
+    fElemsAdd = nullptr;
     fNcols = fRowLwb = fNrowIndex;
     fElems = new Double_t[GetSize() * (GetSize() + 1) / 2];
     fNrows = 0;
@@ -552,7 +549,7 @@ int SymMatrix::SolveSpmInv(double* vecB, Bool_t stabilize)
   double eps = 1e-14;
   int nGlo = GetSizeUsed();
   bool* bUnUsed = new bool[nGlo];
-  double *rowMax, *colMax = 0;
+  double *rowMax, *colMax = nullptr;
   rowMax = new double[nGlo];
 
   if (stabilize) {

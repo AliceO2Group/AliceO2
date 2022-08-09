@@ -11,7 +11,6 @@
 
 /// @file VectorSparse.cxx
 
-#include <string.h>
 #include <TString.h>
 
 #include "MFTAlignment/VectorSparse.h"
@@ -23,8 +22,8 @@ ClassImp(VectorSparse);
 //___________________________________________________________
 VectorSparse::VectorSparse()
   : fNElems(0),
-    fIndex(0),
-    fElems(0)
+    fIndex(nullptr),
+    fElems(nullptr)
 {
 }
 
@@ -32,8 +31,8 @@ VectorSparse::VectorSparse()
 VectorSparse::VectorSparse(const VectorSparse& src)
   : TObject(src),
     fNElems(src.fNElems),
-    fIndex(0),
-    fElems(0)
+    fIndex(nullptr),
+    fElems(nullptr)
 {
   fIndex = new UShort_t[fNElems];
   fElems = new Double_t[fNElems];
@@ -45,17 +44,18 @@ VectorSparse::VectorSparse(const VectorSparse& src)
 void VectorSparse::Clear(Option_t*)
 {
   delete[] fIndex;
-  fIndex = 0;
+  fIndex = nullptr;
   delete[] fElems;
-  fElems = 0;
+  fElems = nullptr;
   fNElems = 0;
 }
 
 //___________________________________________________________
 VectorSparse& VectorSparse::operator=(const VectorSparse& src)
 {
-  if (&src == this)
+  if (&src == this) {
     return *this;
+  }
   Clear();
   TObject::operator=(src);
   fNElems = src.fNElems;
@@ -75,12 +75,15 @@ Double_t VectorSparse::FindIndex(Int_t ind) const
   int last = fNElems - 1;
   while (first <= last) {
     int mid = (first + last) >> 1;
-    if (ind > fIndex[mid])
+    if (ind > fIndex[mid]) {
       first = mid + 1;
-    else if (ind < fIndex[mid])
-      last = mid - 1;
-    else
-      return fElems[mid];
+    } else {
+      if (ind < fIndex[mid]) {
+        last = mid - 1;
+      } else {
+        return fElems[mid];
+      }
+    }
   }
   return 0.0;
 }
@@ -92,13 +95,15 @@ void VectorSparse::SetToZero(Int_t ind)
   int last = fNElems - 1;
   while (first <= last) {
     int mid = (first + last) >> 1;
-    if (ind > fIndex[mid])
+    if (ind > fIndex[mid]) {
       first = mid + 1;
-    else if (ind < fIndex[mid])
-      last = mid - 1;
-    else {
-      fElems[mid] = 0.;
-      return;
+    } else {
+      if (ind < fIndex[mid]) {
+        last = mid - 1;
+      } else {
+        fElems[mid] = 0.;
+        return;
+      }
     }
   }
 }
@@ -111,12 +116,15 @@ Double_t& VectorSparse::FindIndexAdd(Int_t ind)
   int last = fNElems - 1;
   while (first <= last) {
     int mid = (first + last) >> 1;
-    if (ind > fIndex[mid])
+    if (ind > fIndex[mid]) {
       first = mid + 1;
-    else if (ind < fIndex[mid])
-      last = mid - 1;
-    else
-      return fElems[mid];
+    } else {
+      if (ind < fIndex[mid]) {
+        last = mid - 1;
+      } else {
+        return fElems[mid];
+      }
+    }
   }
   // need to insert a new element
   UShort_t* arrI = new UShort_t[fNElems + 1];
@@ -185,14 +193,16 @@ void VectorSparse::Print(Option_t* opt) const
   TString sopt = opt;
   sopt.ToLower();
   int ndig = sopt.Atoi();
-  if (ndig <= 1)
+  if (ndig <= 1) {
     ndig = 2;
+  }
   sopt = "%2d:%+.";
   sopt += ndig;
   sopt += "e |";
   printf("|");
-  for (int i = 0; i < fNElems; i++)
+  for (int i = 0; i < fNElems; i++) {
     printf(sopt.Data(), fIndex[i], fElems[i]);
+  }
   printf("\n");
 }
 
@@ -211,33 +221,36 @@ void VectorSparse::Add(Double_t* valc, Int_t* indc, Int_t n)
     indx = indc[i];
     while (first <= last) {
       mid = (first + last) >> 1;
-      if (indx > fIndex[mid])
+      if (indx > fIndex[mid]) {
         first = mid + 1;
-      else if (indx < fIndex[mid])
-        last = mid - 1;
-      else {
-        fElems[mid] += valc[i];
-        indc[i] = -1;
-        toAdd = kFALSE;
-        last = mid - 1; // profit from the indices being ordered
-        break;
+      } else {
+        if (indx < fIndex[mid]) {
+          last = mid - 1;
+        } else {
+          fElems[mid] += valc[i];
+          indc[i] = -1;
+          toAdd = kFALSE;
+          last = mid - 1; // profit from the indices being ordered
+          break;
+        }
       }
     }
     if (toAdd)
       nadd++;
   }
 
-  if (nadd < 1)
+  if (nadd < 1) {
     return; // nothing to do anymore
-
+  }
   // need to expand the row
   UShort_t* arrI = new UShort_t[fNElems + nadd];
   Double_t* arrE = new Double_t[fNElems + nadd];
   // copy old elems embedding the new ones
   int inew = 0, iold = 0;
   for (int i = 0; i < n; i++) {
-    if ((indx = indc[i]) < 0)
+    if ((indx = indc[i]) < 0) {
       continue;
+    }
     while (iold < fNElems && fIndex[iold] < indx) {
       arrI[inew] = fIndex[iold];
       arrE[inew++] = fElems[iold++];

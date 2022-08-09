@@ -11,17 +11,25 @@
 
 /// @file MatrixSq.cxx
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <iostream>
 
 #include "TClass.h"
 #include "TMath.h"
+
+#include "Framework/Logger.h"
 #include "MFTAlignment/MatrixSq.h"
 
 using namespace o2::mft;
 
 ClassImp(MatrixSq);
+
+//___________________________________________________________
+MatrixSq::MatrixSq(const MatrixSq& src)
+  : TMatrixDBase(src),
+    fSymmetric(src.fSymmetric)
+{
+  LOG(debug) << "copy ctor";
+}
 
 //___________________________________________________________
 MatrixSq& MatrixSq::operator=(const MatrixSq& src)

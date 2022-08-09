@@ -59,7 +59,7 @@ class MinResSolve : public TObject
   MinResSolve(const MinResSolve& src);
 
   /// \brief destructor
-  ~MinResSolve();
+  ~MinResSolve() override;
 
   /// \brief assignment op.
   MinResSolve& operator=(const MinResSolve& rhs);

@@ -45,30 +45,30 @@ class SymBDMatrix : public MatrixSq
   SymBDMatrix(const SymBDMatrix& mat);
 
   /// \brief d-tor
-  virtual ~SymBDMatrix();
+  ~SymBDMatrix() override;
 
   Int_t GetBandHWidth() const { return fNrows; }
   Int_t GetNElemsStored() const { return fNelems; }
 
   /// \brief clear dynamic part
-  void Clear(Option_t* option = "");
+  void Clear(Option_t* option = "") override;
 
   /// \brief set all elems to 0
-  void Reset();
+  void Reset() override;
 
   /// \brief get fraction of non-zero elements
-  Float_t GetDensity() const;
+  Float_t GetDensity() const override;
 
   /// \brief assignment operator
   SymBDMatrix& operator=(const SymBDMatrix& src);
 
-  Double_t operator()(Int_t rown, Int_t coln) const;
-  Double_t& operator()(Int_t rown, Int_t coln);
+  Double_t operator()(Int_t rown, Int_t coln) const override;
+  Double_t& operator()(Int_t rown, Int_t coln) override;
   Double_t operator()(Int_t rown) const;
   Double_t& operator()(Int_t rown);
 
-  Double_t DiagElem(Int_t r) const { return (*(const SymBDMatrix*)this)(r, r); }
-  Double_t& DiagElem(Int_t r) { return (*this)(r, r); }
+  Double_t DiagElem(Int_t r) const override { return (*(const SymBDMatrix*)this)(r, r); }
+  Double_t& DiagElem(Int_t r) override { return (*this)(r, r); }
 
   /// \brief decomposition to L Diag L^T
   void DecomposeLDLT();
@@ -83,7 +83,7 @@ class SymBDMatrix : public MatrixSq
   void Solve(const TVectorD& rhs, TVectorD& sol) { Solve(rhs.GetMatrixArray(), sol.GetMatrixArray()); }
 
   /// \brief print data
-  void Print(Option_t* option = "") const;
+  void Print(Option_t* option = "") const override;
 
   void SetDecomposed(Bool_t v = kTRUE) { SetBit(kDecomposedBit, v); }
   Bool_t IsDecomposed() const { return TestBit(kDecomposedBit); }
@@ -91,12 +91,12 @@ class SymBDMatrix : public MatrixSq
   /// \brief fill vecOut by matrix*vecIn
   ///
   /// vector should be of the same size as the matrix
-  void MultiplyByVec(const Double_t* vecIn, Double_t* vecOut) const;
+  void MultiplyByVec(const Double_t* vecIn, Double_t* vecOut) const override;
 
-  void MultiplyByVec(const TVectorD& vecIn, TVectorD& vecOut) const;
+  void MultiplyByVec(const TVectorD& vecIn, TVectorD& vecOut) const override;
 
   /// \brief add list of elements to row r
-  void AddToRow(Int_t r, Double_t* valc, Int_t* indc, Int_t n);
+  void AddToRow(Int_t r, Double_t* valc, Int_t* indc, Int_t n) override;
 
   virtual Int_t GetIndex(Int_t row, Int_t col) const;
   virtual Int_t GetIndex(Int_t diagID) const;
@@ -113,11 +113,13 @@ class SymBDMatrix : public MatrixSq
 inline Int_t SymBDMatrix::GetIndex(Int_t row, Int_t col) const
 {
   // lower triangle band is actually filled
-  if (row < col)
+  if (row < col) {
     Swap(row, col);
+  }
   col -= row;
-  if (col < -GetBandHWidth())
+  if (col < -GetBandHWidth()) {
     return -1;
+  }
   return GetIndex(row) + col;
 }
 
@@ -141,8 +143,9 @@ inline Double_t& SymBDMatrix::operator()(Int_t row, Int_t col)
 {
   // get element for assingment; assignment outside of the stored range has no effect
   int idx = GetIndex(row, col);
-  if (idx >= 0)
+  if (idx >= 0) {
     return fElems[idx];
+  }
   fTol = 0;
   return fTol;
 }

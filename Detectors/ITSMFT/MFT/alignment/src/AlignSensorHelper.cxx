@@ -159,8 +159,9 @@ void AlignSensorHelper::setSymName()
 //__________________________________________________________________________
 void AlignSensorHelper::extractSensorTransform()
 {
-  if (mIsTransformExtracted)
+  if (mIsTransformExtracted) {
     return;
+  }
   if (mGeometry == nullptr) {
     mGeometry = o2::mft::GeometryTGeo::Instance();
   }

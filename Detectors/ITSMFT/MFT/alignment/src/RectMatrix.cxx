@@ -22,7 +22,7 @@ ClassImp(RectMatrix);
 RectMatrix::RectMatrix()
   : fNRows(0),
     fNCols(0),
-    fRows(0)
+    fRows(nullptr)
 {
 }
 
@@ -30,7 +30,7 @@ RectMatrix::RectMatrix()
 RectMatrix::RectMatrix(Int_t nrow, Int_t ncol)
   : fNRows(nrow),
     fNCols(ncol),
-    fRows(0)
+    fRows(nullptr)
 {
   fRows = new Double_t*[fNRows];
   for (int i = fNRows; i--;) {
@@ -44,7 +44,7 @@ RectMatrix::RectMatrix(const RectMatrix& src)
   : TObject(src),
     fNRows(src.fNRows),
     fNCols(src.fNCols),
-    fRows(0)
+    fRows(nullptr)
 {
   fRows = new Double_t*[fNRows];
   for (int i = fNRows; i--;) {

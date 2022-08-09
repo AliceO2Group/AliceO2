@@ -49,13 +49,13 @@ class MillePedeRecord : public TObject
   MillePedeRecord& operator=(const MillePedeRecord& rhs);
 
   /// \brief destuctor
-  virtual ~MillePedeRecord();
+  ~MillePedeRecord() override;
 
   /// \brief reset all
   void Reset();
 
   /// \brief print itself
-  void Print(const Option_t* opt = "") const;
+  void Print(const Option_t* opt = "") const override;
 
   Int_t GetSize() const { return fSize; }
   Int_t* GetIndex() const { return fIndex; }
@@ -133,8 +133,9 @@ class MillePedeRecord : public TObject
 //_____________________________________________________________________________
 inline void MillePedeRecord::AddIndexValue(Int_t ind, Double_t val)
 {
-  if (fSize >= GetDtBufferSize())
+  if (fSize >= GetDtBufferSize()) {
     ExpandDtBuffer(2 * (fSize + 1));
+  }
   fIndex[fSize] = ind;
   fValue[fSize++] = val;
 }
@@ -143,9 +144,11 @@ inline void MillePedeRecord::AddIndexValue(Int_t ind, Double_t val)
 inline Bool_t MillePedeRecord::IsGroupPresent(Int_t id) const
 {
   id++;
-  for (int i = fNGroups; i--;)
-    if (fGroupID[i] == id)
+  for (int i = fNGroups; i--;) {
+    if (fGroupID[i] == id) {
       return kTRUE;
+    }
+  }
   return kFALSE;
 }
 

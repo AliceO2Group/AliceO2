@@ -48,19 +48,19 @@ class SymMatrix : public MatrixSq
   SymMatrix(const SymMatrix& mat);
 
   /// \brief destructor
-  virtual ~SymMatrix();
+  ~SymMatrix() override;
 
   /// \brief clear dynamic part
-  void Clear(Option_t* option = "");
-  void Reset();
+  void Clear(Option_t* option = "") override;
+  void Reset() override;
 
-  Int_t GetSize() const { return fNrowIndex; }
+  Int_t GetSize() const override { return fNrowIndex; }
   Int_t GetSizeUsed() const { return fRowLwb; }
   Int_t GetSizeBooked() const { return fNcols; }
   Int_t GetSizeAdded() const { return fNrows; }
 
   /// \brief get fraction of non-zero elements
-  Float_t GetDensity() const;
+  Float_t GetDensity() const override;
 
   /// \brief assignment operator
   SymMatrix& operator=(const SymMatrix& src);
@@ -71,17 +71,17 @@ class SymMatrix : public MatrixSq
   /// \brief minus operator
   SymMatrix& operator-=(const SymMatrix& src);
 
-  Double_t operator()(Int_t rown, Int_t coln) const;
-  Double_t& operator()(Int_t rown, Int_t coln);
+  Double_t operator()(Int_t rown, Int_t coln) const override;
+  Double_t& operator()(Int_t rown, Int_t coln) override;
 
-  Double_t DiagElem(Int_t r) const { return (*(const SymMatrix*)this)(r, r); }
-  Double_t& DiagElem(Int_t r) { return (*this)(r, r); }
+  Double_t DiagElem(Int_t r) const override { return (*(const SymMatrix*)this)(r, r); }
+  Double_t& DiagElem(Int_t r) override { return (*this)(r, r); }
 
   /// \brief get pointer on the row
   Double_t* GetRow(Int_t r);
 
   /// \brief print itself
-  void Print(const Option_t* option = "") const;
+  void Print(const Option_t* option = "") const override;
 
   /// \brief add empty rows
   void AddRows(int nrows = 1);
@@ -96,60 +96,60 @@ class SymMatrix : public MatrixSq
   /// \brief fill vecOut by matrix*vecIn
   ///
   /// vector should be of the same size as the matrix
-  void MultiplyByVec(const Double_t* vecIn, Double_t* vecOut) const;
+  void MultiplyByVec(const Double_t* vecIn, Double_t* vecOut) const override;
 
-  void MultiplyByVec(const TVectorD& vecIn, TVectorD& vecOut) const;
-  void AddToRow(Int_t r, Double_t* valc, Int_t* indc, Int_t n);
+  void MultiplyByVec(const TVectorD& vecIn, TVectorD& vecOut) const override;
+  void AddToRow(Int_t r, Double_t* valc, Int_t* indc, Int_t n) override;
 
   // ---------------------------------- Dummy methods of MatrixBase
-  virtual const Double_t* GetMatrixArray() const { return fElems; };
-  virtual Double_t* GetMatrixArray() { return (Double_t*)fElems; }
-  virtual const Int_t* GetRowIndexArray() const
+  const Double_t* GetMatrixArray() const override { return fElems; };
+  Double_t* GetMatrixArray() override { return (Double_t*)fElems; }
+  const Int_t* GetRowIndexArray() const override
   {
     Error("GetRowIndexArray", "Dummy");
-    return 0;
+    return nullptr;
   };
-  virtual Int_t* GetRowIndexArray()
+  Int_t* GetRowIndexArray() override
   {
     Error("GetRowIndexArray", "Dummy");
-    return 0;
+    return nullptr;
   };
-  virtual const Int_t* GetColIndexArray() const
+  const Int_t* GetColIndexArray() const override
   {
     Error("GetColIndexArray", "Dummy");
-    return 0;
+    return nullptr;
   };
-  virtual Int_t* GetColIndexArray()
+  Int_t* GetColIndexArray() override
   {
     Error("GetColIndexArray", "Dummy");
-    return 0;
+    return nullptr;
   };
-  virtual TMatrixDBase& SetRowIndexArray(Int_t*)
+  TMatrixDBase& SetRowIndexArray(Int_t*) override
   {
     Error("SetRowIndexArray", "Dummy");
     return *this;
   }
-  virtual TMatrixDBase& SetColIndexArray(Int_t*)
+  TMatrixDBase& SetColIndexArray(Int_t*) override
   {
     Error("SetColIndexArray", "Dummy");
     return *this;
   }
-  virtual TMatrixDBase& GetSub(Int_t, Int_t, Int_t, Int_t, TMatrixDBase&, Option_t*) const
+  TMatrixDBase& GetSub(Int_t, Int_t, Int_t, Int_t, TMatrixDBase&, Option_t*) const override
   {
     Error("GetSub", "Dummy");
     return *((TMatrixDBase*)this);
   }
-  virtual TMatrixDBase& SetSub(Int_t, Int_t, const TMatrixDBase&)
+  TMatrixDBase& SetSub(Int_t, Int_t, const TMatrixDBase&) override
   {
     Error("GetSub", "Dummy");
     return *this;
   }
-  virtual TMatrixDBase& ResizeTo(Int_t, Int_t, Int_t)
+  TMatrixDBase& ResizeTo(Int_t, Int_t, Int_t) override
   {
     Error("ResizeTo", "Dummy");
     return *this;
   }
-  virtual TMatrixDBase& ResizeTo(Int_t, Int_t, Int_t, Int_t, Int_t)
+  TMatrixDBase& ResizeTo(Int_t, Int_t, Int_t, Int_t, Int_t) override
   {
     Error("ResizeTo", "Dummy");
     return *this;
@@ -229,20 +229,24 @@ inline Int_t SymMatrix::GetIndex(Int_t row, Int_t col) const
 inline Double_t SymMatrix::operator()(Int_t row, Int_t col) const
 {
   //
-  if (row < col)
+  if (row < col) {
     Swap(row, col);
-  if (row >= fNrowIndex)
+  }
+  if (row >= fNrowIndex) {
     return 0;
+  }
   return (const Double_t&)(row < fNcols ? fElems[GetIndex(row, col)] : (fElemsAdd[row - fNcols])[col]);
 }
 
 //___________________________________________________________
 inline Double_t& SymMatrix::operator()(Int_t row, Int_t col)
 {
-  if (row < col)
+  if (row < col) {
     Swap(row, col);
-  if (row >= fNrowIndex)
+  }
+  if (row >= fNrowIndex) {
     AddRows(row - fNrowIndex + 1);
+  }
   return (row < fNcols ? fElems[GetIndex(row, col)] : (fElemsAdd[row - fNcols])[col]);
 }
 
@@ -255,19 +259,22 @@ inline void SymMatrix::MultiplyByVec(const TVectorD& vecIn, TVectorD& vecOut) co
 //___________________________________________________________
 inline void SymMatrix::Scale(Double_t coeff)
 {
-  for (int i = fNrowIndex; i--;)
+  for (int i = fNrowIndex; i--;) {
     for (int j = i; j--;) {
       double& el = operator()(i, j);
-      if (el)
+      if (el) {
         el *= coeff;
+      }
     }
+  }
 }
 
 //___________________________________________________________
 inline void SymMatrix::AddToRow(Int_t r, Double_t* valc, Int_t* indc, Int_t n)
 {
-  for (int i = n; i--;)
+  for (int i = n; i--;) {
     (*this)(indc[i], r) += valc[i];
+  }
 }
 
 } // namespace mft

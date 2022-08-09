@@ -36,10 +36,10 @@ class RecordsToAlignParams : public Aligner
   RecordsToAlignParams();
 
   /// \brief destructor
-  ~RecordsToAlignParams();
+  ~RecordsToAlignParams() override;
 
   /// \brief init MilliPede
-  void init();
+  void init() override;
 
   // simple setters
 

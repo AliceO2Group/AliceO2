@@ -33,10 +33,10 @@ class VectorSparse : public TObject
   /// \brief copy c-tor
   VectorSparse(const VectorSparse& src);
 
-  virtual ~VectorSparse() { Clear(); }
+  ~VectorSparse() override { Clear(); }
 
   /// \brief print itself
-  virtual void Print(Option_t* option = "") const;
+  void Print(Option_t* option = "") const override;
 
   Int_t GetNElems() const { return fNElems; }
   UShort_t* GetIndices() const { return fIndex; }
@@ -45,7 +45,7 @@ class VectorSparse : public TObject
   Double_t& GetElem(Int_t i) const { return fElems[i]; }
 
   /// \brief clear all
-  void Clear(Option_t* option = "");
+  void Clear(Option_t* option = "") override;
 
   void Reset() { memset(fElems, 0, fNElems * sizeof(Double_t)); }
 

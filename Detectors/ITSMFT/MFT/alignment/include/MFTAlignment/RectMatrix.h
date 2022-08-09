@@ -41,7 +41,7 @@ class RectMatrix : public TObject
   RectMatrix(const RectMatrix& src);
 
   /// \brief dest-tor
-  virtual ~RectMatrix();
+  ~RectMatrix() override;
 
   Int_t GetNRows() const { return fNRows; }
   Int_t GetNCols() const { return fNCols; }
@@ -60,7 +60,7 @@ class RectMatrix : public TObject
   void Reset() const;
 
   /// \brief print itself
-  virtual void Print(Option_t* option = "") const;
+  void Print(Option_t* option = "") const override;
 
  protected:
   Int_t fNRows;     ///< Number of rows
