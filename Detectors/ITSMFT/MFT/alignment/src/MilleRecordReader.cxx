@@ -37,10 +37,12 @@ MilleRecordReader::MilleRecordReader()
 //__________________________________________________________________________
 MilleRecordReader::~MilleRecordReader()
 {
-  if (mDataTree)
+  if (mDataTree) {
     mDataTree->Reset();
-  if (mRecord)
+  }
+  if (mRecord) {
     delete mRecord;
+  }
 }
 
 //__________________________________________________________________________

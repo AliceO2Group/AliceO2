@@ -46,15 +46,17 @@ MilleRecordWriter::~MilleRecordWriter()
     LOG(info) << "MilleRecordWriter - closed file "
               << mDataFileName.Data();
   }
-  if (mRecord)
+  if (mRecord) {
     delete mRecord;
+  }
 }
 
 //__________________________________________________________________________
 void MilleRecordWriter::setCyclicAutoSave(const long nEntries)
 {
-  if (nEntries <= 0)
+  if (nEntries <= 0) {
     return;
+  }
   mNEntriesAutoSave = nEntries;
 }
 
@@ -74,8 +76,9 @@ void MilleRecordWriter::init()
 {
   mIsSuccessfulInit = false;
 
-  if (mDataFile == nullptr)
+  if (mDataFile == nullptr) {
     mDataFile = new TFile(mDataFileName.Data(), "recreate", "", 505);
+  }
 
   if ((!mDataFile) || (mDataFile->IsZombie())) {
     LOGF(fatal,

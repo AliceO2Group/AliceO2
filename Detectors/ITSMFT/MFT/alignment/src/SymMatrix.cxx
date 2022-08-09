@@ -75,8 +75,9 @@ SymMatrix::SymMatrix(const SymMatrix& src)
         ncl++;
       }
     }
-  } else
+  } else {
     fElems = 0;
+  }
   fElemsAdd = 0;
   fgCopyCnt++;
 }
@@ -98,10 +99,12 @@ SymMatrix& SymMatrix::operator=(const SymMatrix& src)
     TObject::operator=(src);
     if (GetSizeBooked() != src.GetSizeBooked() && GetSizeAdded() != src.GetSizeAdded()) {
       // recreate the matrix
-      if (fElems)
+      if (fElems) {
         delete[] fElems;
-      for (int i = 0; i < GetSizeAdded(); i++)
+      }
+      for (int i = 0; i < GetSizeAdded(); i++) {
         delete[] fElemsAdd[i];
+      }
       delete[] fElemsAdd;
 
       fNrowIndex = src.GetSize();
@@ -140,9 +143,11 @@ SymMatrix& SymMatrix::operator+=(const SymMatrix& src)
     LOG(error) << "Matrix sizes are different";
     return *this;
   }
-  for (int i = 0; i < GetSizeUsed(); i++)
-    for (int j = i; j < GetSizeUsed(); j++)
+  for (int i = 0; i < GetSizeUsed(); i++) {
+    for (int j = i; j < GetSizeUsed(); j++) {
       (*this)(j, i) += src(j, i);
+    }
+  }
   return *this;
 }
 
@@ -153,9 +158,11 @@ SymMatrix& SymMatrix::operator-=(const SymMatrix& src)
     LOG(error) << "Matrix sizes are different";
     return *this;
   }
-  for (int i = 0; i < GetSizeUsed(); i++)
-    for (int j = i; j < GetSizeUsed(); j++)
+  for (int i = 0; i < GetSizeUsed(); i++) {
+    for (int j = i; j < GetSizeUsed(); j++) {
       (*this)(j, i) -= src(j, i);
+    }
+  }
   return *this;
 }
 
@@ -168,8 +175,9 @@ void SymMatrix::Clear(Option_t*)
   }
 
   if (fElemsAdd) {
-    for (int i = 0; i < GetSizeAdded(); i++)
+    for (int i = 0; i < GetSizeAdded(); i++) {
       delete[] fElemsAdd[i];
+    }
     delete[] fElemsAdd;
     fElemsAdd = 0;
   }
@@ -180,10 +188,13 @@ void SymMatrix::Clear(Option_t*)
 Float_t SymMatrix::GetDensity() const
 {
   Int_t nel = 0;
-  for (int i = GetSizeUsed(); i--;)
-    for (int j = i + 1; j--;)
-      if (!IsZero(GetEl(i, j)))
+  for (int i = GetSizeUsed(); i--;) {
+    for (int j = i + 1; j--;) {
+      if (!IsZero(GetEl(i, j))) {
         nel++;
+      }
+    }
+  }
   return 2. * nel / ((GetSizeUsed() + 1) * GetSizeUsed());
 }
 
@@ -200,8 +211,9 @@ void SymMatrix::Print(Option_t* option) const
   opt += "d|";
   for (Int_t i = 0; i < GetSizeUsed(); i++) {
     printf(opt, i);
-    for (Int_t j = 0; j <= i; j++)
+    for (Int_t j = 0; j <= i; j++) {
       printf("%+.3e|", GetEl(i, j));
+    }
     printf("\n");
   }
 }
@@ -211,8 +223,9 @@ void SymMatrix::MultiplyByVec(const Double_t* vecIn, Double_t* vecOut) const
 {
   for (int i = GetSizeUsed(); i--;) {
     vecOut[i] = 0.0;
-    for (int j = GetSizeUsed(); j--;)
+    for (int j = GetSizeUsed(); j--;) {
       vecOut[i] += vecIn[j] * GetEl(i, j);
+    }
   }
 }
 
@@ -227,14 +240,16 @@ Bool_t SymMatrix::Multiply(const SymMatrix& right)
   if (!fgBuffer || fgBuffer->GetSizeUsed() != sz) {
     delete fgBuffer;
     fgBuffer = new SymMatrix(*this);
-  } else
+  } else {
     (*fgBuffer) = *this;
+  }
 
   for (int i = sz; i--;) {
     for (int j = i + 1; j--;) {
       double val = 0.;
-      for (int k = sz; k--;)
+      for (int k = sz; k--;) {
         val += fgBuffer->GetEl(i, k) * right.GetEl(k, j);
+      }
       SetEl(i, j, val);
     }
   }
@@ -248,8 +263,9 @@ SymMatrix* SymMatrix::DecomposeChol()
   if (!fgBuffer || fgBuffer->GetSizeUsed() != GetSizeUsed()) {
     delete fgBuffer;
     fgBuffer = new SymMatrix(*this);
-  } else
+  } else {
     (*fgBuffer) = *this;
+  }
 
   SymMatrix& mchol = *fgBuffer;
 
@@ -258,9 +274,10 @@ SymMatrix* SymMatrix::DecomposeChol()
     for (int j = i; j < GetSizeUsed(); j++) {
       Double_t* rowj = mchol.GetRow(j);
       double sum = rowj[i];
-      for (int k = i - 1; k >= 0; k--)
+      for (int k = i - 1; k >= 0; k--) {
         if (rowi[k] && rowj[k])
           sum -= rowi[k] * rowj[k];
+      }
       if (i == j) {
         if (sum <= 0.0) { // not positive-definite
           LOG(debug) << "The matrix is not positive definite [" << sum
@@ -269,8 +286,9 @@ SymMatrix* SymMatrix::DecomposeChol()
           return 0;
         }
         rowi[i] = TMath::Sqrt(sum);
-      } else
+      } else {
         rowj[i] = sum / rowi[i];
+      }
     }
   }
   return fgBuffer;
@@ -301,12 +319,14 @@ void SymMatrix::InvertChol(SymMatrix* pmchol)
     for (int j = i + 1; j < GetSizeUsed(); j++) {
       Double_t* rowj = mchol.GetRow(j);
       sum = 0.0;
-      for (int k = i; k < j; k++)
+      for (int k = i; k < j; k++) {
         if (rowj[k]) {
           double& mki = mchol(k, i);
-          if (mki)
+          if (mki) {
             sum -= rowj[k] * mki;
+          }
         }
+      }
       rowj[i] = sum / rowj[j];
     }
   }
@@ -319,8 +339,9 @@ void SymMatrix::InvertChol(SymMatrix* pmchol)
         double& mik = mchol(i, k);
         if (mik) {
           double& mjk = mchol(j, k);
-          if (mjk)
+          if (mjk) {
             sum += mik * mjk;
+          }
         }
       }
       (*this)(j, i) = sum;
@@ -345,8 +366,9 @@ Bool_t SymMatrix::SolveChol(Double_t* b, Bool_t invert)
   for (i = 0; i < GetSizeUsed(); i++) {
     Double_t* rowi = mchol.GetRow(i);
     for (sum = b[i], k = i - 1; k >= 0; k--)
-      if (rowi[k] && b[k])
+      if (rowi[k] && b[k]) {
         sum -= rowi[k] * b[k];
+      }
     b[i] = sum / rowi[i];
   }
 
@@ -354,8 +376,9 @@ Bool_t SymMatrix::SolveChol(Double_t* b, Bool_t invert)
     for (sum = b[i], k = i + 1; k < GetSizeUsed(); k++)
       if (b[k]) {
         double& mki = mchol(k, i);
-        if (mki)
+        if (mki) {
           sum -= mki * b[k];
+        }
       }
     b[i] = sum / mchol(i, i);
   }
@@ -386,8 +409,9 @@ Bool_t SymMatrix::SolveCholN(Double_t* bn, int nRHS, Bool_t invert)
     for (i = 0; i < sz; i++) {
       Double_t* rowi = mchol.GetRow(i);
       for (sum = b[i], k = i - 1; k >= 0; k--)
-        if (rowi[k] && b[k])
+        if (rowi[k] && b[k]) {
           sum -= rowi[k] * b[k];
+        }
       b[i] = sum / rowi[i];
     }
 
@@ -395,8 +419,9 @@ Bool_t SymMatrix::SolveCholN(Double_t* bn, int nRHS, Bool_t invert)
       for (sum = b[i], k = i + 1; k < sz; k++)
         if (b[k]) {
           double& mki = mchol(k, i);
-          if (mki)
+          if (mki) {
             sum -= mki * b[k];
+          }
         }
       b[i] = sum / mchol(i, i);
     }
@@ -433,8 +458,9 @@ void SymMatrix::AddRows(int nrows)
   if (nrows < 1)
     return;
   Double_t** pnew = new Double_t*[nrows + fNrows];
-  for (int ir = 0; ir < fNrows; ir++)
+  for (int ir = 0; ir < fNrows; ir++) {
     pnew[ir] = fElemsAdd[ir]; // copy old extra rows
+  }
   for (int ir = 0; ir < nrows; ir++) {
     int ncl = GetSize() + 1;
     pnew[fNrows] = new Double_t[ncl];
@@ -453,45 +479,53 @@ void SymMatrix::Reset()
   // if additional rows exist, regularize it
   if (fElemsAdd) {
     delete[] fElems;
-    for (int i = 0; i < fNrows; i++)
+    for (int i = 0; i < fNrows; i++) {
       delete[] fElemsAdd[i];
+    }
     delete[] fElemsAdd;
     fElemsAdd = 0;
     fNcols = fRowLwb = fNrowIndex;
     fElems = new Double_t[GetSize() * (GetSize() + 1) / 2];
     fNrows = 0;
   }
-  if (fElems)
+  if (fElems) {
     memset(fElems, 0, GetSize() * (GetSize() + 1) / 2 * sizeof(Double_t));
+  }
 }
 
 //___________________________________________________________
 /*
-void SymMatrix::AddToRow(Int_t r, Double_t *valc,Int_t *indc,Int_t n)
+void SymMatrix::AddToRow(Int_t r, Double_t* valc, Int_t* indc, Int_t n)
 {
   //   for (int i=n;i--;) {
   //     (*this)(indc[i],r) += valc[i];
   //   }
   //   return;
 
-  double *row;
-  if (r>=fNrowIndex) {
-    AddRows(r-fNrowIndex+1);
-    row = &((fElemsAdd[r-fNcols])[0]);
+  double* row;
+  if (r >= fNrowIndex) {
+    AddRows(r - fNrowIndex + 1);
+    row = &((fElemsAdd[r - fNcols])[0]);
+  } else {
+    row = &fElems[GetIndex(r, 0)];
   }
-  else row = &fElems[GetIndex(r,0)];
 
   int nadd = 0;
-  for (int i=n;i--;) {
-    if (indc[i]>r) continue;
+  for (int i = n; i--;) {
+    if (indc[i] > r) {
+      continue;
+    }
     row[indc[i]] += valc[i];
     nadd++;
   }
-  if (nadd == n) return;
+  if (nadd == n) {
+    return;
+  }
 
   // add to col>row
-  for (int i=n;i--;) {
-    if (indc[i]>r) (*this)(indc[i],r) += valc[i];
+  for (int i = n; i--;) {
+    if (indc[i] > r)
+      (*this)(indc[i], r) += valc[i];
   }
 }
 */
@@ -504,8 +538,9 @@ Double_t* SymMatrix::GetRow(Int_t r)
     AddRows(r - GetSize() + 1);
     LOG(debug) << Form("create %d of %d\n", r, nn);
     return &((fElemsAdd[r - GetSizeBooked()])[0]);
-  } else
+  } else {
     return &fElems[GetIndex(r, 0)];
+  }
 }
 
 //___________________________________________________________
@@ -522,59 +557,73 @@ int SymMatrix::SolveSpmInv(double* vecB, Bool_t stabilize)
 
   if (stabilize) {
     colMax = new double[nGlo];
-    for (Int_t i = nGlo; i--;)
+    for (Int_t i = nGlo; i--;) {
       rowMax[i] = colMax[i] = 0.0;
-    for (Int_t i = nGlo; i--;)
+    }
+    for (Int_t i = nGlo; i--;) {
       for (Int_t j = i + 1; j--;) {
         double vl = TMath::Abs(Query(i, j));
-        if (IsZero(vl))
+        if (IsZero(vl)) {
           continue;
-        if (vl > rowMax[i])
+        }
+        if (vl > rowMax[i]) {
           rowMax[i] = vl; // Max elemt of row i
-        if (vl > colMax[j])
+        }
+        if (vl > colMax[j]) {
           colMax[j] = vl; // Max elemt of column j
-        if (i == j)
+        }
+        if (i == j) {
           continue;
-        if (vl > rowMax[j])
+        }
+        if (vl > rowMax[j]) {
           rowMax[j] = vl; // Max elemt of row j
-        if (vl > colMax[i])
+        }
+        if (vl > colMax[i]) {
           colMax[i] = vl; // Max elemt of column i
+        }
       }
+    }
 
     for (Int_t i = nGlo; i--;) {
-      if (!IsZero(rowMax[i]))
+      if (!IsZero(rowMax[i])) {
         rowMax[i] = 1. / rowMax[i]; // Max elemt of row i
-      if (!IsZero(colMax[i]))
+      }
+      if (!IsZero(colMax[i])) {
         colMax[i] = 1. / colMax[i]; // Max elemt of column i
+      }
     }
   }
 
-  for (Int_t i = nGlo; i--;)
+  for (Int_t i = nGlo; i--;) {
     bUnUsed[i] = true;
+  }
 
   if (!fgBuffer || fgBuffer->GetSizeUsed() != GetSizeUsed()) {
     delete fgBuffer;
     fgBuffer = new SymMatrix(*this);
-  } else
+  } else {
     (*fgBuffer) = *this;
+  }
 
-  if (stabilize)
+  if (stabilize) {
     for (int i = 0; i < nGlo; i++) { // Small loop for matrix equilibration (gives a better conditioning)
       for (int j = 0; j <= i; j++) {
         double vl = Query(i, j);
-        if (!IsZero(vl))
+        if (!IsZero(vl)) {
           SetEl(i, j, TMath::Sqrt(rowMax[i]) * vl * TMath::Sqrt(colMax[j])); // Equilibrate the V matrix
+        }
       }
       for (int j = i + 1; j < nGlo; j++) {
         double vl = Query(j, i);
-        if (!IsZero(vl))
+        if (!IsZero(vl)) {
           fgBuffer->SetEl(j, i, TMath::Sqrt(rowMax[i]) * vl * TMath::Sqrt(colMax[j])); // Equilibrate the V matrix
+        }
       }
     }
-
-  for (Int_t j = nGlo; j--;)
+  }
+  for (Int_t j = nGlo; j--;) {
     fgBuffer->DiagElem(j) = TMath::Abs(QueryDiag(j)); // save diagonal elem absolute values
-
+  }
   for (Int_t i = 0; i < nGlo; i++) {
     vPivot = 0.0;
     iPivot = -1;
@@ -614,8 +663,9 @@ int SymMatrix::SolveSpmInv(double* vecB, Bool_t stabilize)
           vecB[j] = 0.0;
           for (Int_t k = 0; k < nGlo; k++) {
             (*this)(j, k) = 0.;
-            if (j != k)
+            if (j != k) {
               (*fgBuffer)(j, k) = 0;
+            }
           }
         }
       }
@@ -623,24 +673,27 @@ int SymMatrix::SolveSpmInv(double* vecB, Bool_t stabilize)
     }
   }
 
-  if (stabilize)
-    for (Int_t i = 0; i < nGlo; i++)
+  if (stabilize) {
+    for (Int_t i = 0; i < nGlo; i++) {
       for (Int_t j = 0; j < nGlo; j++) {
         double vl = TMath::Sqrt(colMax[i]) * TMath::Sqrt(rowMax[j]); // Correct matrix V
-        if (i >= j)
+        if (i >= j) {
           (*this)(i, j) *= vl;
-        else
+        } else {
           (*fgBuffer)(j, i) *= vl;
+        }
       }
-
+    }
+  }
   for (Int_t j = 0; j < nGlo; j++) {
     rowMax[j] = 0.0;
     for (Int_t jj = 0; jj < nGlo; jj++) { // Reverse matrix elements
       double vl;
-      if (j >= jj)
+      if (j >= jj) {
         vl = (*this)(j, jj) = -Query(j, jj);
-      else
+      } else {
         vl = (*fgBuffer)(j, jj) = -fgBuffer->Query(j, jj);
+      }
       rowMax[j] += vl * vecB[jj];
     }
   }
@@ -651,8 +704,9 @@ int SymMatrix::SolveSpmInv(double* vecB, Bool_t stabilize)
 
   delete[] bUnUsed;
   delete[] rowMax;
-  if (stabilize)
+  if (stabilize) {
     delete[] colMax;
+  }
 
   return nRank;
 }

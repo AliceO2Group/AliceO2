@@ -78,16 +78,18 @@ TracksToRecords::~TracksToRecords()
   if (mAlignPoint) {
     delete mAlignPoint;
   }
-  if (mDictionary)
+  if (mDictionary) {
     mDictionary = nullptr;
+  }
   LOGF(debug, "TracksToRecords destroyed");
 }
 
 //__________________________________________________________________________
 void TracksToRecords::init()
 {
-  if (mIsInitDone)
+  if (mIsInitDone) {
     return;
+  }
   if (mDictionary == nullptr) {
     LOGF(fatal, "TracksToRecords::init() failed because no cluster dictionary is defined");
     mIsInitDone = false;
@@ -240,8 +242,9 @@ void TracksToRecords::processRecoTracks()
       success &= setLocalEquationY();
       success &= setLocalEquationZ();
       isTrackUsed &= success;
-      if (mWithControl && success)
+      if (mWithControl && success) {
         mPointControl.fill(mAlignPoint, mCounterUsedTracks);
+      }
       if (!success) {
         LOGF(error, "TracksToRecords::processRecoTracks() - track %i h %d d %d l %d s %4d lMpos x %.2e y %.2e z %.2e gMpos x %.2e y %.2e z %.2e gRpos x %.2e y %.2e z %.2e",
              mCounterUsedTracks, mAlignPoint->half(), mAlignPoint->disk(), mAlignPoint->layer(), mAlignPoint->getSensorId(),
@@ -375,8 +378,9 @@ void TracksToRecords::processROFs(TChain* mfttrackChain, TChain* mftclusterChain
         success &= setLocalEquationY();
         success &= setLocalEquationZ();
         isTrackUsed &= success;
-        if (mWithControl && success)
+        if (mWithControl && success) {
           mPointControl.fill(mAlignPoint, mCounterUsedTracks);
+        }
         if (!success) {
           LOGF(error, "TracksToRecords::processROFs() - track %i h %d d %d l %d s %4d lMpos x %.2e y %.2e z %.2e gMpos x %.2e y %.2e z %.2e gRpos x %.2e y %.2e z %.2e",
                mCounterUsedTracks, mAlignPoint->half(), mAlignPoint->disk(), mAlignPoint->layer(), mAlignPoint->getSensorId(),
@@ -423,8 +427,9 @@ void TracksToRecords::printProcessTrackSummary()
 //__________________________________________________________________________
 void TracksToRecords::startRecordWriter()
 {
-  if (mRecordWriter)
+  if (mRecordWriter) {
     mRecordWriter->init();
+  }
   if (mWithControl) {
     mPointControl.setCyclicAutoSave(mNEntriesAutoSave);
     mPointControl.init();
@@ -444,9 +449,9 @@ void TracksToRecords::endRecordWriter()
 //__________________________________________________________________________
 void TracksToRecords::startConstraintsRecWriter()
 {
-  if (!mWithConstraintsRecWriter)
+  if (!mWithConstraintsRecWriter) {
     return;
-
+  }
   if (mConstraintsRecWriter) {
     mConstraintsRecWriter->changeDataBranchName();
     mConstraintsRecWriter->init();
@@ -456,9 +461,9 @@ void TracksToRecords::startConstraintsRecWriter()
 //__________________________________________________________________________
 void TracksToRecords::endConstraintsRecWriter()
 {
-  if (!mWithConstraintsRecWriter)
+  if (!mWithConstraintsRecWriter) {
     return;
-
+  }
   if (mConstraintsRecWriter) {
     mConstraintsRecWriter->terminate();
   }
@@ -525,10 +530,12 @@ bool TracksToRecords::setLocalEquationX()
          "TracksToRecords::setLocalEquationX() - no align point coordinates set !");
     return false;
   }
-  if (!mAlignPoint->isGlobalDerivativeDone())
+  if (!mAlignPoint->isGlobalDerivativeDone()) {
     return false;
-  if (!mAlignPoint->isLocalDerivativeDone())
+  }
+  if (!mAlignPoint->isLocalDerivativeDone()) {
     return false;
+  }
 
   bool success = true;
 
@@ -587,10 +594,12 @@ bool TracksToRecords::setLocalEquationY()
          "TracksToRecords::setLocalEquationY() - no align point coordinates set !");
     return false;
   }
-  if (!mAlignPoint->isGlobalDerivativeDone())
+  if (!mAlignPoint->isGlobalDerivativeDone()) {
     return false;
-  if (!mAlignPoint->isLocalDerivativeDone())
+  }
+  if (!mAlignPoint->isLocalDerivativeDone()) {
     return false;
+  }
 
   bool success = true;
 
@@ -649,10 +658,12 @@ bool TracksToRecords::setLocalEquationZ()
          "TracksToRecords::setLocalEquationZ() - no align point coordinates set !");
     return false;
   }
-  if (!mAlignPoint->isGlobalDerivativeDone())
+  if (!mAlignPoint->isGlobalDerivativeDone()) {
     return false;
-  if (!mAlignPoint->isLocalDerivativeDone())
+  }
+  if (!mAlignPoint->isLocalDerivativeDone()) {
     return false;
+  }
 
   bool success = true;
 

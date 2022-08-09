@@ -70,8 +70,9 @@ AlignPointControl::~AlignPointControl()
 //__________________________________________________________________________
 void AlignPointControl::setCyclicAutoSave(const long nEntries)
 {
-  if (nEntries <= 0)
+  if (nEntries <= 0) {
     return;
+  }
   mNEntriesAutoSave = nEntries;
 }
 
@@ -80,8 +81,9 @@ void AlignPointControl::init()
 {
   mIsSuccessfulInit = true;
 
-  if (mControlFile == nullptr)
+  if (mControlFile == nullptr) {
     mControlFile = new TFile(mOutFileName.Data(), "recreate", "", 505);
+  }
 
   if (mControlTree == nullptr) {
     mControlFile->cd();

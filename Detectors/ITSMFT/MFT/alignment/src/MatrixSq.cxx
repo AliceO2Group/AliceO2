@@ -26,8 +26,9 @@ ClassImp(MatrixSq);
 //___________________________________________________________
 MatrixSq& MatrixSq::operator=(const MatrixSq& src)
 {
-  if (this == &src)
+  if (this == &src) {
     return *this;
+  }
   TMatrixDBase::operator=(src);
   fSymmetric = src.fSymmetric;
   return *this;
@@ -38,8 +39,9 @@ void MatrixSq::MultiplyByVec(const Double_t* vecIn, Double_t* vecOut) const
 {
   for (int i = GetSize(); i--;) {
     vecOut[i] = 0.0;
-    for (int j = GetSize(); j--;)
+    for (int j = GetSize(); j--;) {
       vecOut[i] += vecIn[j] * (*this)(i, j);
+    }
   }
 }
 
@@ -49,15 +51,21 @@ void MatrixSq::PrintCOO() const
   // get number of non-zero elements
   int nnz = 0;
   int sz = GetSize();
-  for (int ir = 0; ir < sz; ir++)
-    for (int ic = 0; ic < sz; ic++)
-      if (Query(ir, ic) != 0)
+  for (int ir = 0; ir < sz; ir++) {
+    for (int ic = 0; ic < sz; ic++) {
+      if (Query(ir, ic) != 0) {
         nnz++;
+      }
+    }
+  }
 
   printf("%d %d %d\n", sz, sz, nnz);
   double vl;
-  for (int ir = 0; ir < sz; ir++)
-    for (int ic = 0; ic < sz; ic++)
-      if ((vl = Query(ir, ic)) != 0)
+  for (int ir = 0; ir < sz; ir++) {
+    for (int ic = 0; ic < sz; ic++) {
+      if ((vl = Query(ir, ic)) != 0) {
         printf("%d %d %f\n", ir, ic, vl);
+      }
+    }
+  }
 }

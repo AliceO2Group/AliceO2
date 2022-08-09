@@ -147,10 +147,11 @@ Int_t MinResSolve::BuildPrecon(Int_t prec)
   }
 
   if (fPrecon >= kPreconILU0 && fPrecon <= kPreconILU10) {
-    if (fMatrix->InheritsFrom("MatrixSparse"))
+    if (fMatrix->InheritsFrom("MatrixSparse")) {
       return BuildPreconILUK(fPrecon - kPreconILU0);
-    else
+    } else {
       return BuildPreconILUKDense(fPrecon - kPreconILU0);
+    }
   }
 
   return -1;
@@ -208,11 +209,13 @@ Bool_t MinResSolve::SolveFGMRES(double* VecSol, Int_t precon, int itnlim, double
     }
   }
 
-  if (!InitAuxFGMRES(nkrylov))
+  if (!InitAuxFGMRES(nkrylov)) {
     return kFALSE;
+  }
 
-  for (l = fSize; l--;)
+  for (l = fSize; l--;) {
     VecSol[l] = 0;
+  }
 
   //-------------------- outer loop starts here
   TStopwatch timer;
@@ -221,21 +224,26 @@ Bool_t MinResSolve::SolveFGMRES(double* VecSol, Int_t precon, int itnlim, double
 
     //-------------------- compute initial residual vector
     fMatrix->MultiplyByVec(VecSol, fPvv[0]);
-    for (l = fSize; l--;)
+    for (l = fSize; l--;) {
       fPvv[0][l] = fRHS[l] - fPvv[0][l]; //  fPvv[0]= initial residual
+    }
     beta = 0;
-    for (l = fSize; l--;)
+    for (l = fSize; l--;) {
       beta += fPvv[0][l] * fPvv[0][l];
+    }
     beta = TMath::Sqrt(beta);
 
-    if (beta < epsmac)
+    if (beta < epsmac) {
       break; // success?
+    }
     t = 1.0 / beta;
     //--------------------   normalize:  fPvv[0] = fPvv[0] / beta
-    for (l = fSize; l--;)
+    for (l = fSize; l--;) {
       fPvv[0][l] *= t;
-    if (its == 0)
+    }
+    if (its == 0) {
       eps1 = rtol * beta;
+    }
 
     //    ** initialize 1-st term  of rhs of hessenberg system
     fPVecV[0] = beta;
@@ -247,11 +255,13 @@ Bool_t MinResSolve::SolveFGMRES(double* VecSol, Int_t precon, int itnlim, double
 
       //  (Right) Preconditioning Operation   z_{j} = M^{-1} v_{j}
 
-      if (precon > 0)
+      if (precon > 0) {
         ApplyPrecon(fPvv[i], fPvz[i]);
-      else
-        for (l = fSize; l--;)
+      } else {
+        for (l = fSize; l--;) {
           fPvz[i][l] = fPvv[i][l];
+        }
+      }
 
       //-------------------- matvec operation w = A z_{j} = A M^{-1} v_{j}
       fMatrix->MultiplyByVec(fPvz[i], fPvv[i1]);
@@ -261,21 +271,25 @@ Bool_t MinResSolve::SolveFGMRES(double* VecSol, Int_t precon, int itnlim, double
       // w  = w - h_{i,j} v_{i}
 
       for (int j = 0; j <= i; j++) {
-        for (t = 0, l = fSize; l--;)
+        for (t = 0, l = fSize; l--;) {
           t += fPvv[j][l] * fPvv[i1][l];
+        }
         fPhh[i][j] = t;
-        for (l = fSize; l--;)
+        for (l = fSize; l--;) {
           fPvv[i1][l] -= t * fPvv[j][l];
+        }
       }
       // -------------------- h_{j+1,j} = ||w||_{2}
-      for (t = 0, l = fSize; l--;)
+      for (t = 0, l = fSize; l--;) {
         t += fPvv[i1][l] * fPvv[i1][l];
+      }
       t = TMath::Sqrt(t);
       fPhh[i][i1] = t;
-      if (t > 0)
-        for (t = 1. / t, l = 0; l < fSize; l++)
-          fPvv[i1][l] *= t; //  v_{j+1} = w / h_{j+1,j}
-
+      if (t > 0) {
+        for (t = 1. / t, l = 0; l < fSize; l++) {
+          fPvv[i1][l] *= t; // v_{j+1} = w / h_{j+1,j}
+        }
+      }
       // done with modified gram schimdt and arnoldi step
       // now  update factorization of fPhh
       //
@@ -291,8 +305,9 @@ Bool_t MinResSolve::SolveFGMRES(double* VecSol, Int_t precon, int itnlim, double
 
       // if gamma is zero then any small value will do...
       // will affect only residual estimate
-      if (gam < epsmac)
+      if (gam < epsmac) {
         gam = epsmac;
+      }
       //  get  next plane rotation
       fPVecR1[i] = fPhh[i][i] / gam;
       fPVecR2[i] = fPhh[i][i1] / gam;
@@ -314,10 +329,11 @@ Bool_t MinResSolve::SolveFGMRES(double* VecSol, Int_t precon, int itnlim, double
       fPVecV[k] = t / fPhh[k][k];
     }
     // --------------------  linear combination of v[i]'s to get sol.
-    for (int j = 0; j <= i; j++)
-      for (t = fPVecV[j], l = 0; l < fSize; l++)
+    for (int j = 0; j <= i; j++) {
+      for (t = fPVecV[j], l = 0; l < fSize; l++) {
         VecSol[l] += t * fPvz[j][l];
-
+      }
+    }
     // --------------------  restart outer loop if needed
 
     if (beta <= eps1) {
@@ -395,8 +411,9 @@ Bool_t MinResSolve::SolveMinRes(double* VecSol, Int_t precon, int itnlim, double
   double rnorm = 0;
   double gam, gmax = 1, gmin = 1, gbar, oldeps, epsa, epsx, epsr, diag, delta, phi, denom, z;
 
-  if (!InitAuxMinRes())
+  if (!InitAuxMinRes()) {
     return kFALSE;
+  }
 
   memset(VecSol, 0, fSize * sizeof(double));
 
@@ -404,14 +421,17 @@ Bool_t MinResSolve::SolveMinRes(double* VecSol, Int_t precon, int itnlim, double
   //   Set up y and v for the first Lanczos vector v1.
   //   y  =  beta1 P' v1,  where  P = C**(-1). v is really P' v1.
 
-  for (int i = fSize; i--;)
+  for (int i = fSize; i--;) {
     fPVecY[i] = fPVecR1[i] = fRHS[i];
+  }
 
-  if (precon > 0)
+  if (precon > 0) {
     ApplyPrecon(fRHS, fPVecY);
+  }
   beta1 = 0;
-  for (int i = fSize; i--;)
+  for (int i = fSize; i--;) {
     beta1 += fRHS[i] * fPVecY[i];
+  }
 
   if (beta1 < 0) {
     LOG(error) << "Preconditioner is indefinite (init) ("
@@ -444,8 +464,9 @@ Bool_t MinResSolve::SolveMinRes(double* VecSol, Int_t precon, int itnlim, double
   double ynorm2 = 0;
   double cs = -1;
   double sn = 0;
-  for (int i = fSize; i--;)
+  for (int i = fSize; i--;) {
     fPVecR2[i] = fPVecR1[i];
+  }
 
   TStopwatch timer;
   timer.Start();
@@ -465,20 +486,21 @@ Bool_t MinResSolve::SolveMinRes(double* VecSol, Int_t precon, int itnlim, double
       -----------------------------------------------------------------*/
 
     double s = 1. / beta; // Normalize previous vector (in y).
-    for (int i = fSize; i--;)
+    for (int i = fSize; i--;) {
       fPVecV[i] = s * fPVecY[i]; // v = vk if P = I
-
+    }
     fMatrix->MultiplyByVec(fPVecV, fPVecY); //      APROD (VecV, VecY);
 
     if (itn >= 2) {
       double btrat = beta / oldb;
-      for (int i = fSize; i--;)
+      for (int i = fSize; i--;) {
         fPVecY[i] -= btrat * fPVecR1[i];
+      }
     }
     double alfa = 0;
-    for (int i = fSize; i--;)
+    for (int i = fSize; i--;) {
       alfa += fPVecV[i] * fPVecY[i]; //      alphak
-
+    }
     double alf2bt = alfa / beta;
     for (int i = fSize; i--;) {
       fPVecY[i] -= alf2bt * fPVecR2[i];
@@ -486,14 +508,15 @@ Bool_t MinResSolve::SolveMinRes(double* VecSol, Int_t precon, int itnlim, double
       fPVecR2[i] = fPVecY[i];
     }
 
-    if (precon > 0)
+    if (precon > 0) {
       ApplyPrecon(fPVecR2, fPVecY);
+    }
 
     oldb = beta; //      oldb = betak
     beta = 0;
-    for (int i = fSize; i--;)
+    for (int i = fSize; i--;) {
       beta += fPVecR2[i] * fPVecY[i]; // beta = betak+1^2
-
+    }
     if (beta < 0) {
       LOG(error) << "Preconditioner is indefinite ("
                  << std::scientific << std::setprecision(3) << beta << ").";
@@ -560,8 +583,9 @@ Bool_t MinResSolve::SolveMinRes(double* VecSol, Int_t precon, int itnlim, double
     epsx = normA * ynorm * eps;
     epsr = normA * ynorm * rtol;
     diag = gbar;
-    if (diag == 0)
+    if (diag == 0) {
       diag = epsa;
+    }
     //
     qrnorm = phibar;
     rnorm = qrnorm;
@@ -645,15 +669,17 @@ void MinResSolve::ApplyPrecon(const double* vecRHS, double* vecOut) const
       vecOut[i] = vecRHS[i];
       VectorSparse& rowLi = *fMatL->GetRow(i);
       int n = rowLi.GetNElems();
-      for (int j = 0; j < n; j++)
+      for (int j = 0; j < n; j++) {
         vecOut[i] -= vecOut[rowLi.GetIndex(j)] * rowLi.GetElem(j);
+      }
     }
 
     for (int i = fSize; i--;) { // Block -- U solve
       VectorSparse& rowUi = *fMatU->GetRow(i);
       int n = rowUi.GetNElems();
-      for (int j = 0; j < n; j++)
+      for (int j = 0; j < n; j++) {
         vecOut[i] -= vecOut[rowUi.GetIndex(j)] * rowUi.GetElem(j);
+      }
       vecOut[i] *= fDiagLU[i];
     }
   }
@@ -670,9 +696,9 @@ Bool_t MinResSolve::InitAuxMinRes()
   fPVecW1 = new double[fSize];
   fPVecW2 = new double[fSize];
 
-  for (int i = fSize; i--;)
+  for (int i = fSize; i--;) {
     fPVecY[i] = fPVecR1[i] = fPVecR2[i] = fPVecV[i] = fPVecW[i] = fPVecW1[i] = fPVecW2[i] = 0.0;
-
+  }
   return kTRUE;
 }
 
@@ -681,8 +707,9 @@ Bool_t MinResSolve::InitAuxFGMRES(int nkrylov)
 {
   fPvv = new double*[nkrylov + 1];
   fPvz = new double*[nkrylov];
-  for (int i = 0; i <= nkrylov; i++)
+  for (int i = 0; i <= nkrylov; i++) {
     fPvv[i] = new double[fSize];
+  }
   fPhh = new double*[nkrylov];
   for (int i = 0; i < nkrylov; i++) {
     fPhh[i] = new double[i + 2];
@@ -699,38 +726,49 @@ Bool_t MinResSolve::InitAuxFGMRES(int nkrylov)
 //___________________________________________________________
 void MinResSolve::ClearAux()
 {
-  if (fPVecY)
+  if (fPVecY) {
     delete[] fPVecY;
+  }
   fPVecY = 0;
-  if (fPVecR1)
+  if (fPVecR1) {
     delete[] fPVecR1;
+  }
   fPVecR1 = 0;
-  if (fPVecR2)
+  if (fPVecR2) {
     delete[] fPVecR2;
+  }
   fPVecR2 = 0;
-  if (fPVecV)
+  if (fPVecV) {
     delete[] fPVecV;
+  }
   fPVecV = 0;
-  if (fPVecW)
+  if (fPVecW) {
     delete[] fPVecW;
+  }
   fPVecW = 0;
-  if (fPVecW1)
+  if (fPVecW1) {
     delete[] fPVecW1;
+  }
   fPVecW1 = 0;
-  if (fPVecW2)
+  if (fPVecW2) {
     delete[] fPVecW2;
+  }
   fPVecW2 = 0;
-  if (fDiagLU)
+  if (fDiagLU) {
     delete[] fDiagLU;
+  }
   fDiagLU = 0;
-  if (fMatL)
+  if (fMatL) {
     delete fMatL;
+  }
   fMatL = 0;
-  if (fMatU)
+  if (fMatU) {
     delete fMatU;
+  }
   fMatU = 0;
-  if (fMatBD)
+  if (fMatBD) {
     delete fMatBD;
+  }
   fMatBD = 0;
 }
 
@@ -748,16 +786,18 @@ Int_t MinResSolve::BuildPreconBD(Int_t hwidth)
       VectorSparse& irow = *((MatrixSparse*)fMatrix)->GetRow(ir);
       for (int j = irow.GetNElems(); j--;) {
         int jind = irow.GetIndex(j);
-        if (jind < jmin)
+        if (jind < jmin) {
           break;
+        }
         (*fMatBD)(ir, jind) = irow.GetElem(j);
       }
     }
   } else {
     for (int ir = fMatrix->GetSize(); ir--;) {
       int jmin = TMath::Max(0, ir - hwidth);
-      for (int jr = jmin; jr <= ir; jr++)
+      for (int jr = jmin; jr <= ir; jr++) {
         (*fMatBD)(ir, jr) = fMatrix->Query(ir, jr);
+      }
     }
   }
 
@@ -793,9 +833,9 @@ Int_t MinResSolve::BuildPreconILUK(Int_t lofM)
   }
 
   Int_t* jw = new Int_t[fSize];
-  for (int j = fSize; j--;)
+  for (int j = fSize; j--;) {
     jw[j] = -1; // set indicator array jw to -1
-
+  }
   for (int i = 0; i < fSize; i++) { // beginning of main loop
     if ((i % int(0.1 * fSize)) == 0) {
       LOG(info) << "BuildPrecon: row " << i << " of " << fSize;
@@ -823,23 +863,29 @@ Int_t MinResSolve::BuildPreconILUK(Int_t lofM)
     }
     // copy row from csmat into L,U D
     for (int j = rowM.GetNElems(); j--;) { // L and D part
-      if (MatrixSq::IsZero(rowM.GetElem(j)))
+      if (MatrixSq::IsZero(rowM.GetElem(j))) {
         continue;
+      }
       int col = rowM.GetIndex(j); // (the original matrix stores only lower triangle)
-      if (col < i)
+      if (col < i) {
         rowLi.GetElem(jw[col]) = rowM.GetElem(j);
-      else if (col == i)
-        fDiagLU[i] = rowM.GetElem(j);
-      else
-        rowUi.GetElem(jw[col]) = rowM.GetElem(j);
+      } else {
+        if (col == i) {
+          fDiagLU[i] = rowM.GetElem(j);
+        } else {
+          rowUi.GetElem(jw[col]) = rowM.GetElem(j);
+        }
+      }
     }
-    if (matrix->IsSymmetric())
+    if (matrix->IsSymmetric()) {
       for (int col = i + 1; col < fSize; col++) { // part of the row I on the right of diagonal is stored as
         double vl = matrix->Query(col, i);        // the lower part of the column I
-        if (MatrixSq::IsZero(vl))
+        if (MatrixSq::IsZero(vl)) {
           continue;
+        }
         rowUi.GetElem(jw[col]) = vl;
       }
+    }
 
     // eliminate previous rows
     for (int j = 0; j < rowLi.GetNElems(); j++) {
@@ -852,22 +898,28 @@ Int_t MinResSolve::BuildPreconILUK(Int_t lofM)
       for (int k = 0; k < rowUj.GetNElems(); k++) {
         int col = rowUj.GetIndex(k);
         int jpos = jw[col];
-        if (jpos == -1)
+        if (jpos == -1) {
           continue;
-        if (col < i)
+        }
+        if (col < i) {
           rowLi.GetElem(jpos) -= rowLi.GetElem(j) * rowUj.GetElem(k);
-        else if (col == i)
-          fDiagLU[i] -= rowLi.GetElem(j) * rowUj.GetElem(k);
-        else
-          rowUi.GetElem(jpos) -= rowLi.GetElem(j) * rowUj.GetElem(k);
+        } else {
+          if (col == i) {
+            fDiagLU[i] -= rowLi.GetElem(j) * rowUj.GetElem(k);
+          } else {
+            rowUi.GetElem(jpos) -= rowLi.GetElem(j) * rowUj.GetElem(k);
+          }
+        }
       }
     }
     // reset double-pointer to -1 ( U-part)
-    for (int j = rowLi.GetNElems(); j--;)
+    for (int j = rowLi.GetNElems(); j--;) {
       jw[rowLi.GetIndex(j)] = -1;
+    }
     jw[i] = -1;
-    for (int j = rowUi.GetNElems(); j--;)
+    for (int j = rowUi.GetNElems(); j--;) {
       jw[rowUi.GetIndex(j)] = -1;
+    }
 
     if (MatrixSq::IsZero(fDiagLU[i])) {
       LOG(fatal) << "Fatal error in ILIk: Zero diagonal found...";
@@ -916,9 +968,9 @@ Int_t MinResSolve::BuildPreconILUKDense(Int_t lofM)
   }
 
   Int_t* jw = new Int_t[fSize];
-  for (int j = fSize; j--;)
+  for (int j = fSize; j--;) {
     jw[j] = -1; // set indicator array jw to -1
-
+  }
   for (int i = 0; i < fSize; i++) { // beginning of main loop
     /* setup array jw[], and initial i-th row */
     VectorSparse& rowLi = *fMatL->GetRow(i);
@@ -940,14 +992,18 @@ Int_t MinResSolve::BuildPreconILUKDense(Int_t lofM)
     // copy row from csmat into L,U D
     for (int j = fSize; j--;) { // L and D part
       double vl = fMatrix->Query(i, j);
-      if (MatrixSq::IsZero(vl))
+      if (MatrixSq::IsZero(vl)) {
         continue;
-      if (j < i)
+      }
+      if (j < i) {
         rowLi.GetElem(jw[j]) = vl;
-      else if (j == i)
-        fDiagLU[i] = vl;
-      else
-        rowUi.GetElem(jw[j]) = vl;
+      } else {
+        if (j == i) {
+          fDiagLU[i] = vl;
+        } else {
+          rowUi.GetElem(jw[j]) = vl;
+        }
+      }
     }
     // eliminate previous rows
     for (int j = 0; j < rowLi.GetNElems(); j++) {
@@ -960,22 +1016,28 @@ Int_t MinResSolve::BuildPreconILUKDense(Int_t lofM)
       for (int k = 0; k < rowUj.GetNElems(); k++) {
         int col = rowUj.GetIndex(k);
         int jpos = jw[col];
-        if (jpos == -1)
+        if (jpos == -1) {
           continue;
-        if (col < i)
+        }
+        if (col < i) {
           rowLi.GetElem(jpos) -= rowLi.GetElem(j) * rowUj.GetElem(k);
-        else if (col == i)
-          fDiagLU[i] -= rowLi.GetElem(j) * rowUj.GetElem(k);
-        else
-          rowUi.GetElem(jpos) -= rowLi.GetElem(j) * rowUj.GetElem(k);
+        } else {
+          if (col == i) {
+            fDiagLU[i] -= rowLi.GetElem(j) * rowUj.GetElem(k);
+          } else {
+            rowUi.GetElem(jpos) -= rowLi.GetElem(j) * rowUj.GetElem(k);
+          }
+        }
       }
     }
     // reset double-pointer to -1 ( U-part)
-    for (int j = rowLi.GetNElems(); j--;)
+    for (int j = rowLi.GetNElems(); j--;) {
       jw[rowLi.GetIndex(j)] = -1;
+    }
     jw[i] = -1;
-    for (int j = rowUi.GetNElems(); j--;)
+    for (int j = rowUi.GetNElems(); j--;) {
       jw[rowUi.GetIndex(j)] = -1;
+    }
 
     if (MatrixSq::IsZero(fDiagLU[i])) {
       LOG(fatal) << "Fatal error in ILIk: Zero diagonal found...";
@@ -1021,8 +1083,9 @@ Int_t MinResSolve::PreconILUKsymb(Int_t lofM)
   jbuf = new UShort_t[fSize];
   iw = new Int_t[fSize];
 
-  for (int j = fSize; j--;)
+  for (int j = fSize; j--;) {
     iw[j] = -1; // initialize iw
+  }
   for (int i = 0; i < fSize; i++) {
     int incl = 0;
     int incu = i;
@@ -1031,8 +1094,9 @@ Int_t MinResSolve::PreconILUKsymb(Int_t lofM)
     // assign lof = 0 for matrix elements
     for (int j = 0; j < row.GetNElems(); j++) {
       int col = row.GetIndex(j);
-      if (MatrixSq::IsZero(row.GetElem(j)))
-        continue;    // !!!! matrix is sparse but sometimes 0 appears
+      if (MatrixSq::IsZero(row.GetElem(j))) {
+        continue; // !!!! matrix is sparse but sometimes 0 appears
+      }
       if (col < i) { // L-part
         jbuf[incl] = col;
         levls[incl] = 0;
@@ -1045,8 +1109,9 @@ Int_t MinResSolve::PreconILUKsymb(Int_t lofM)
     }
     if (matrix->IsSymmetric())
       for (int col = i + 1; col < fSize; col++) { // U-part of symmetric matrix
-        if (MatrixSq::IsZero(matrix->Query(col, i)))
+        if (MatrixSq::IsZero(matrix->Query(col, i))) {
           continue; // Due to the symmetry  == matrix(i,col)
+        }
         jbuf[incu] = col;
         levls[incu] = 0;
         iw[col] = incu++;
@@ -1058,11 +1123,12 @@ Int_t MinResSolve::PreconILUKsymb(Int_t lofM)
       int k = jbuf[jpiv]; // select leftmost pivot
       int kmin = k;
       int jmin = jpiv;
-      for (int j = jpiv + 1; j < incl; j++)
+      for (int j = jpiv + 1; j < incl; j++) {
         if (jbuf[j] < kmin) {
           kmin = jbuf[j];
           jmin = j;
         }
+      }
 
       // ------------------------------------  swap
       if (jmin != jpiv) {
@@ -1080,8 +1146,9 @@ Int_t MinResSolve::PreconILUKsymb(Int_t lofM)
       for (int j = 0; j < rowU.GetNElems(); j++) {
         int col = rowU.GetIndex(j);
         int it = ulvl[k][j] + levls[jpiv] + 1;
-        if (it > lofM)
+        if (it > lofM) {
           continue;
+        }
         int ip = iw[col];
         if (ip == -1) {
           if (col < i) {
@@ -1093,22 +1160,26 @@ Int_t MinResSolve::PreconILUKsymb(Int_t lofM)
             levls[incu] = it;
             iw[col] = incu++;
           }
-        } else
+        } else {
           levls[ip] = TMath::Min(levls[ip], it);
+        }
       }
     } // end - while loop
 
     // reset iw
-    for (int j = 0; j < incl; j++)
+    for (int j = 0; j < incl; j++) {
       iw[jbuf[j]] = -1;
-    for (int j = i; j < incu; j++)
+    }
+    for (int j = i; j < incu; j++) {
       iw[jbuf[j]] = -1;
+    }
 
     // copy L-part
     VectorSparse& rowLi = *fMatL->GetRow(i);
     rowLi.ReSize(incl);
-    if (incl > 0)
+    if (incl > 0) {
       memcpy(rowLi.GetIndices(), jbuf, sizeof(UShort_t) * incl);
+    }
     // copy U-part
     int k = incu - i;
     VectorSparse& rowUi = *fMatU->GetRow(i);
@@ -1123,9 +1194,11 @@ Int_t MinResSolve::PreconILUKsymb(Int_t lofM)
   // free temp space and leave
   delete[] levls;
   delete[] jbuf;
-  for (int i = fSize; i--;)
-    if (fMatU->GetRow(i)->GetNElems())
+  for (int i = fSize; i--;) {
+    if (fMatU->GetRow(i)->GetNElems()) {
       delete[] ulvl[i];
+    }
+  }
   delete[] ulvl;
   delete[] iw;
 
@@ -1154,16 +1227,18 @@ Int_t MinResSolve::PreconILUKsymbDense(Int_t lofM)
   jbuf = new UShort_t[fSize];
   iw = new Int_t[fSize];
 
-  for (int j = fSize; j--;)
+  for (int j = fSize; j--;) {
     iw[j] = -1; // initialize iw
+  }
   for (int i = 0; i < fSize; i++) {
     int incl = 0;
     int incu = i;
 
     // assign lof = 0 for matrix elements
     for (int j = 0; j < fSize; j++) {
-      if (MatrixSq::IsZero(fMatrix->Query(i, j)))
+      if (MatrixSq::IsZero(fMatrix->Query(i, j))) {
         continue;
+      }
       if (j < i) { // L-part
         jbuf[incl] = j;
         levls[incl] = 0;
@@ -1181,11 +1256,12 @@ Int_t MinResSolve::PreconILUKsymbDense(Int_t lofM)
       int k = jbuf[jpiv]; // select leftmost pivot
       int kmin = k;
       int jmin = jpiv;
-      for (int j = jpiv + 1; j < incl; j++)
+      for (int j = jpiv + 1; j < incl; j++) {
         if (jbuf[j] < kmin) {
           kmin = jbuf[j];
           jmin = j;
         }
+      }
 
       // ------------------------------------  swap
       if (jmin != jpiv) {
@@ -1203,8 +1279,9 @@ Int_t MinResSolve::PreconILUKsymbDense(Int_t lofM)
       for (int j = 0; j < rowU.GetNElems(); j++) {
         int col = rowU.GetIndex(j);
         int it = ulvl[k][j] + levls[jpiv] + 1;
-        if (it > lofM)
+        if (it > lofM) {
           continue;
+        }
         int ip = iw[col];
         if (ip == -1) {
           if (col < i) {
@@ -1216,22 +1293,26 @@ Int_t MinResSolve::PreconILUKsymbDense(Int_t lofM)
             levls[incu] = it;
             iw[col] = incu++;
           }
-        } else
+        } else {
           levls[ip] = TMath::Min(levls[ip], it);
+        }
       }
     } // end - while loop
 
     // reset iw
-    for (int j = 0; j < incl; j++)
+    for (int j = 0; j < incl; j++) {
       iw[jbuf[j]] = -1;
-    for (int j = i; j < incu; j++)
+    }
+    for (int j = i; j < incu; j++) {
       iw[jbuf[j]] = -1;
+    }
 
     // copy L-part
     VectorSparse& rowLi = *fMatL->GetRow(i);
     rowLi.ReSize(incl);
-    if (incl > 0)
+    if (incl > 0) {
       memcpy(rowLi.GetIndices(), jbuf, sizeof(UShort_t) * incl);
+    }
     // copy U-part
     int k = incu - i;
     VectorSparse& rowUi = *fMatU->GetRow(i);
@@ -1246,9 +1327,11 @@ Int_t MinResSolve::PreconILUKsymbDense(Int_t lofM)
   // free temp space and leave
   delete[] levls;
   delete[] jbuf;
-  for (int i = fSize; i--;)
-    if (fMatU->GetRow(i)->GetNElems())
+  for (int i = fSize; i--;) {
+    if (fMatU->GetRow(i)->GetNElems()) {
       delete[] ulvl[i];
+    }
+  }
   delete[] ulvl;
   delete[] iw;
 

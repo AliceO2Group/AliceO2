@@ -56,20 +56,25 @@ RectMatrix::RectMatrix(const RectMatrix& src)
 //___________________________________________________________
 RectMatrix::~RectMatrix()
 {
-  if (fNRows)
-    for (int i = fNRows; i--;)
+  if (fNRows) {
+    for (int i = fNRows; i--;) {
       delete[] fRows[i];
+    }
+  }
   delete[] fRows;
 }
 
 //___________________________________________________________
 RectMatrix& RectMatrix::operator=(const RectMatrix& src)
 {
-  if (&src == this)
+  if (&src == this) {
     return *this;
-  if (fNRows)
-    for (int i = fNRows; i--;)
+  }
+  if (fNRows) {
+    for (int i = fNRows; i--;) {
       delete[] fRows[i];
+    }
+  }
   delete[] fRows;
   fNRows = src.fNRows;
   fNCols = src.fNCols;
@@ -88,11 +93,13 @@ void RectMatrix::Print(Option_t* option) const
   printf("Rectangular Matrix:  %d rows %d columns\n", fNRows, fNCols);
   TString opt = option;
   opt.ToLower();
-  if (opt.IsNull())
+  if (opt.IsNull()) {
     return;
+  }
   for (int i = 0; i < fNRows; i++) {
-    for (Int_t j = 0; j <= fNCols; j++)
+    for (Int_t j = 0; j <= fNCols; j++) {
       printf("%+.3e|", Query(i, j));
+    }
     printf("\n");
   }
 }
@@ -102,7 +109,8 @@ void RectMatrix::Reset() const
 {
   for (int i = fNRows; i--;) {
     double* row = GetRow(i);
-    for (int j = fNCols; j--;)
+    for (int j = fNCols; j--;) {
       row[j] = 0.;
+    }
   }
 }

@@ -182,11 +182,12 @@ void AlignSensorHelper::extractSensorTransform()
   // force the value of some calculations of sin, cos to avoid numerical errors
 
   // for MFT sensors, Rx = - Pi/2, or + Pi/2
-  if (mRx > 0)
+  if (mRx > 0) {
     mSinRx = 1.0; // std::sin(mRx)
-  else
+  } else {
     mSinRx = -1.0; // std::sin(mRx)
-  mCosRx = 0.0;    // std::cos(mRx)
+  }
+  mCosRx = 0.0; // std::cos(mRx)
 
   // for MFT sensors, Ry = 0
   mSinRy = 0.0; // std::sin(mRy);

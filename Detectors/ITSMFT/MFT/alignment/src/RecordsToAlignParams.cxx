@@ -57,8 +57,9 @@ RecordsToAlignParams::~RecordsToAlignParams()
 //__________________________________________________________________________
 void RecordsToAlignParams::init()
 {
-  if (mIsInitDone)
+  if (mIsInitDone) {
     return;
+  }
 
   mMillepede->SetRecordReader(mRecordReader);
 
@@ -112,8 +113,9 @@ void RecordsToAlignParams::globalFit()
 
   // initialize the file and tree to store chi2 from Millepede LocalFit()
 
-  if (mWithControl)
+  if (mWithControl) {
     mMillepede->InitChi2Storage(mNEntriesAutoSave);
+  }
 
   // allocate memory in arrays to temporarily store the results of the global fit
 
@@ -133,8 +135,9 @@ void RecordsToAlignParams::globalFit()
 
   mMillepede->GlobalFit(params, paramsErrors, paramsPulls);
 
-  if (mWithControl)
+  if (mWithControl) {
     mMillepede->EndChi2Storage();
+  }
 
   // post-treatment:
   // debug output + save Millepede global fit result in AlignParam vector

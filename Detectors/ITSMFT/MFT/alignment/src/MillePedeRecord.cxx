@@ -64,8 +64,9 @@ MillePedeRecord& MillePedeRecord::operator=(const MillePedeRecord& rhs)
     }
     fWeight = rhs.fWeight;
     fRunID = rhs.fRunID;
-    for (int i = 0; i < rhs.GetNGroups(); i++)
+    for (int i = 0; i < rhs.GetNGroups(); i++) {
       MarkGroup(rhs.GetGroupID(i));
+    }
   }
   return *this;
 }
@@ -82,8 +83,9 @@ MillePedeRecord::~MillePedeRecord()
 void MillePedeRecord::Reset()
 {
   fSize = 0;
-  for (int i = fNGroups; i--;)
+  for (int i = fNGroups; i--;) {
     fGroupID[i] = 0;
+  }
   fNGroups = 0;
   fRunID = 0;
   fWeight = 1.;
@@ -98,10 +100,12 @@ void MillePedeRecord::Print(const Option_t*) const
   }
   int cnt = 0, point = 0;
 
-  if (fNGroups)
+  if (fNGroups) {
     printf("Groups: ");
-  for (int i = 0; i < fNGroups; i++)
+  }
+  for (int i = 0; i < fNGroups; i++) {
     printf("%4d |", GetGroupID(i));
+  }
   printf("Run: %9d Weight: %+.2e\n", fRunID, fWeight);
   while (cnt < fSize) {
     Double_t resid = fValue[cnt++];
@@ -123,12 +127,14 @@ void MillePedeRecord::Print(const Option_t*) const
 
     printf("\n*** Point#%2d | Residual = %+.4e | Weight = %+.4e\n", point++, resid, weight);
     printf("Locals : ");
-    for (int i = 0; i < nLoc; i++)
+    for (int i = 0; i < nLoc; i++) {
       printf("[%5d] %+.4e|", indLoc[i], derLoc[i]);
+    }
     printf("\n");
     printf("Globals: ");
-    for (int i = 0; i < nGlo; i++)
+    for (int i = 0; i < nGlo; i++) {
       printf("[%5d] %+.4e|", indGlo[i], derGlo[i]);
+    }
     printf("\n");
   }
 }
@@ -145,8 +151,9 @@ Double_t MillePedeRecord::GetGloResWProd(Int_t indx) const
 
   while (cnt < fSize) {
     Double_t resid = fValue[cnt++];
-    while (!IsWeight(cnt))
+    while (!IsWeight(cnt)) {
       cnt++;
+    }
     Double_t weight = GetValue(cnt++);
     Double_t* derGlo = GetValue() + cnt;
     int* indGlo = GetIndex() + cnt;
@@ -155,9 +162,11 @@ Double_t MillePedeRecord::GetGloResWProd(Int_t indx) const
       nGlo++;
       cnt++;
     }
-    for (int i = nGlo; i--;)
-      if (indGlo[i] == indx)
+    for (int i = nGlo; i--;) {
+      if (indGlo[i] == indx) {
         prodsum += resid * weight * derGlo[i];
+      }
+    }
   }
   return prodsum;
 }
@@ -172,8 +181,9 @@ Double_t MillePedeRecord::GetGlobalDeriv(Int_t pnt, Int_t indx) const
   int cnt = 0, point = 0;
   while (cnt < fSize) {
     cnt++;
-    while (!IsWeight(cnt))
+    while (!IsWeight(cnt)) {
       cnt++;
+    }
     cnt++;
     Double_t* derGlo = GetValue() + cnt;
     int* indGlo = GetIndex() + cnt;
@@ -182,11 +192,14 @@ Double_t MillePedeRecord::GetGlobalDeriv(Int_t pnt, Int_t indx) const
       nGlo++;
       cnt++;
     }
-    if (pnt != point++)
+    if (pnt != point++) {
       continue;
-    for (int i = nGlo; i--;)
-      if (indGlo[i] == indx)
+    }
+    for (int i = nGlo; i--;) {
+      if (indGlo[i] == indx) {
         return derGlo[i];
+      }
+    }
     break;
   }
   return 0;
@@ -210,13 +223,16 @@ Double_t MillePedeRecord::GetLocalDeriv(Int_t pnt, Int_t indx) const
       cnt++;
     }
     cnt++;
-    while (!IsResidual(cnt) && cnt < fSize)
+    while (!IsResidual(cnt) && cnt < fSize) {
       cnt++;
-    if (pnt != point++)
+    }
+    if (pnt != point++) {
       continue;
-    for (int i = nLoc; i--;)
+    }
+    for (int i = nLoc; i--;) {
       if (indLoc[i] == indx)
         return derLoc[i];
+    }
     break;
   }
   return 0;
@@ -232,13 +248,16 @@ Double_t MillePedeRecord::GetResidual(Int_t pnt) const
   int cnt = 0, point = 0;
   while (cnt < fSize) {
     Double_t resid = fValue[cnt++];
-    while (!IsWeight(cnt))
+    while (!IsWeight(cnt)) {
       cnt++;
+    }
     cnt++;
-    while (!IsResidual(cnt) && cnt < fSize)
+    while (!IsResidual(cnt) && cnt < fSize) {
       cnt++;
-    if (pnt != point++)
+    }
+    if (pnt != point++) {
       continue;
+    }
     return resid;
   }
   return 0;
@@ -254,14 +273,16 @@ Double_t MillePedeRecord::GetWeight(Int_t pnt) const
   int cnt = 0, point = 0;
   while (cnt < fSize) {
     cnt++;
-    while (!IsWeight(cnt))
+    while (!IsWeight(cnt)) {
       cnt++;
-    if (point == pnt)
+    }
+    if (point == pnt) {
       return GetValue(cnt);
-    ;
+    }
     cnt++;
-    while (!IsResidual(cnt) && cnt < fSize)
+    while (!IsResidual(cnt) && cnt < fSize) {
       cnt++;
+    }
     point++;
   }
   return -1;
@@ -292,8 +313,9 @@ void MillePedeRecord::ExpandGrBuffer(Int_t bfsize)
   memcpy(tmpI, fGroupID, fNGroups * sizeof(UShort_t));
   delete[] fGroupID;
   fGroupID = tmpI;
-  for (int i = fNGroups; i < bfsize; i++)
+  for (int i = fNGroups; i < bfsize; i++) {
     fGroupID[i] = 0;
+  }
 
   SetGrBufferSize(bfsize);
 }
@@ -302,9 +324,11 @@ void MillePedeRecord::ExpandGrBuffer(Int_t bfsize)
 void MillePedeRecord::MarkGroup(Int_t id)
 {
   id++; // groupID is stored as realID+1
-  if (fNGroups > 0 && fGroupID[fNGroups - 1] == id)
+  if (fNGroups > 0 && fGroupID[fNGroups - 1] == id) {
     return; // already there
-  if (fNGroups >= GetGrBufferSize())
+  }
+  if (fNGroups >= GetGrBufferSize()) {
     ExpandGrBuffer(2 * (fNGroups + 1));
+  }
   fGroupID[fNGroups++] = id;
 }
