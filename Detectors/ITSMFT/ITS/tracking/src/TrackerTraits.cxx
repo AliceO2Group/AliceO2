@@ -455,7 +455,8 @@ void TrackerTraits::findTracks()
   }
 
 #pragma omp parallel for num_threads(mNThreads)
-  for (auto& road : mTimeFrame->getRoads()) {
+  for (size_t ri = 0; ri < mTimeFrame->getRoads().size(); ++ri) {
+    auto& road = mTimeFrame->getRoads()[ri];
     std::vector<int> clusters(mTrkParams[0].NLayers, constants::its::UnusedIndex);
     int lastCellLevel = constants::its::UnusedIndex;
     CA_DEBUGGER(int nClusters = 2);
