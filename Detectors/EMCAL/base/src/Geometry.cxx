@@ -311,9 +311,17 @@ void Geometry::DefineSamplingFraction(const std::string_view mcname, const std::
   } else if (contains(mcname, "Fluka")) {
     samplingFactorTranportModel = 1.; // To be set
   } else if (contains(mcname, "Geant4")) {
-    samplingFactorTranportModel = 0.821; // EMC list but for EMCal, before 0.86
-    // @TODO here we will have dedicated samplingFactors for the different physics lists provided for O2
-    //
+    std::string physicslist = mctitle.substr(mctitle.find(":") + 2).data();
+    LOG(info) << "Selected physics list: " << physicslist;
+    // sampling factors for different Geant4 physics list
+    // GEANT4 10.7 -> EMCAL-784
+    if (physicslist == "FTFP_BERT_EMV+optical") {
+      samplingFactorTranportModel = 0.821;
+    } else if (physicslist == "FTFP_BERT_EMV+optical+biasing") {
+      samplingFactorTranportModel = 0.81;
+    } else if (physicslist == "FTFP_INCLXX_EMV+optical") {
+      samplingFactorTranportModel = 0.81;
+    }
   }
 
   LOG(info) << "MC modeler <" << mcname << ">, Title <" << mctitle << ">: Sampling " << std::setw(2)
