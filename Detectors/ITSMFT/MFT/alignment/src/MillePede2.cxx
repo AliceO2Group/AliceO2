@@ -843,7 +843,7 @@ int MillePede2::GlobalFit(double* par, double* error, double* pull)
       fChi2CutFactor = TMath::Sqrt(fChi2CutFactor);
       if (fChi2CutFactor < 1.2 * fChi2CutRef) {
         fChi2CutFactor = fChi2CutRef;
-        // RRR	fIter = fMaxIter - 1;  // Last iteration
+        // fIter = fMaxIter - 1; // RRR // Last iteration
       }
     }
     fIter++;
