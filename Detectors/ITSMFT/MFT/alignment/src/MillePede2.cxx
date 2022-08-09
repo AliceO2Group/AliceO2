@@ -843,7 +843,7 @@ int MillePede2::GlobalFit(double* par, double* error, double* pull)
       fChi2CutFactor = TMath::Sqrt(fChi2CutFactor);
       if (fChi2CutFactor < 1.2 * fChi2CutRef) {
         fChi2CutFactor = fChi2CutRef;
-        // RRR	fIter = fMaxIter - 1;     // Last iteration
+        // RRR	fIter = fMaxIter - 1;  // Last iteration
       }
     }
     fIter++;
@@ -968,7 +968,7 @@ int MillePede2::GlobalFitIteration()
     double oldMin = 1.e20;
     double oldMax = -1.e20;
 
-    for (int i = fNGloPar; i--;) { // // Reset row and column of fixed params and add 1/sig^2 to free ones
+    for (int i = fNGloPar; i--;) { // Reset row and column of fixed params and add 1/sig^2 to free ones
       int grID = fParamGrID[i];
       if (grID < 0)
         continue; // not in the group
@@ -1054,13 +1054,14 @@ int MillePede2::GlobalFitIteration()
 
   // add large number to diagonal of fixed params
 
-  for (int i = fNGloPar; i--;) { // // Reset row and column of fixed params and add 1/sig^2 to free ones
-    //    printf("#%3d : Nproc : %5d   grp: %d\n",i,fProcPnt[i],fParamGrID[i]);
+  for (int i = fNGloPar; i--;) { // Reset row and column of fixed params and add 1/sig^2 to free ones
+                                 // printf("#%3d : Nproc : %5d grp: %d\n",i,fProcPnt[i],fParamGrID[i]);
     if (fProcPnt[i] < 1) {
       fNGloFix++;
       fVecBGlo[i] = 0.;
-      matCGlo.DiagElem(i) = 1.; // float(fNLocEquations*fNLocEquations);
-      //      matCGlo.DiagElem(i) = float(fNLocEquations*fNLocEquations);
+      matCGlo.DiagElem(i) = 1.;
+      // float(fNLocEquations*fNLocEquations);
+      // matCGlo.DiagElem(i) = float(fNLocEquations*fNLocEquations);
     } else
       matCGlo.DiagElem(i) += (fgWeightSigma ? fProcPnt[i] : 1.) / (fSigmaPar[i] * fSigmaPar[i]);
   }
@@ -1101,7 +1102,7 @@ int MillePede2::GlobalFitIteration()
     }
 
     if (nSuppressed == csize) {
-      //      AliInfo(Form("Neglecting constraint %d of %d derivatives since no free parameters left",i,csize));
+      // LOG(info << Form("Neglecting constraint %d of %d derivatives since no free parameters left",i,csize));
 
       // was this constraint ever created ?
       if (sig == 0 && fConstrUsed[i]) { // this is needed only for constraints with Lagrange multiplier
@@ -1369,7 +1370,7 @@ double MillePede2::GetParError(int iPar) const
     if (fkReGroup.size())
       iPar = fkReGroup[iPar];
     if (iPar < 0) {
-      //  AliDebug(2,Form("Parameter %d was suppressed in the regrouping",iPar));
+      // LOG(debug) << Form("Parameter %d was suppressed in the regrouping",iPar));
       return 0;
     }
     double res = fMatCGlo->QueryDiag(iPar);
@@ -1386,7 +1387,7 @@ double MillePede2::GetPull(int iPar) const
     if (fkReGroup.size())
       iPar = fkReGroup[iPar];
     if (iPar < 0) {
-      //  AliDebug(2,Form("Parameter %d was suppressed in the regrouping",iPar));
+      // LOG(debug) << Form("Parameter %d was suppressed in the regrouping",iPar));
       return 0;
     }
     return fProcPnt[iPar] > 0 && (fSigmaPar[iPar] * fSigmaPar[iPar] - fMatCGlo->QueryDiag(iPar)) > 0. && fSigmaPar[iPar] > 0
