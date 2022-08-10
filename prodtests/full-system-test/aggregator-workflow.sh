@@ -173,7 +173,8 @@ lanes=1
 lanesDistribute=1
 lanesFactorize=6
 nTFs=500
-if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR && [[ $AGGREGATOR_TASKS == TPCIDC_A || $AGGREGATOR_TASKS == TPCIDC_C || $AGGREGATOR_TASKS == ALL ]]; then
+
+if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR && [[ $CALIB_TPC_IDC == 1 ]] && [[ $AGGREGATOR_TASKS == TPCIDC_A || $AGGREGATOR_TASKS == TPCIDC_C || $AGGREGATOR_TASKS == ALL ]]; then
   add_W o2-tpc-idc-distribute "--crus ${crus} --timeframes ${nTFs} --firstTF -100 true --lanes ${lanesDistribute} --output-lanes ${lanesFactorize} --nFactorTFs 100"
   add_W o2-tpc-idc-factorize "--lanesDistribute ${lanesDistribute} --input-lanes ${lanesFactorize} --crus ${crus} --timeframes ${nTFs} --configFile '' --compression 2 --nthreads-grouping 8 --nthreads-IDC-factorization 8 --groupPads \"5,6,7,8,4,5,6,8,10,13\" --groupRows \"2,2,2,3,3,3,2,2,2,2\" --sendOutputFFT true --nTFsMessage 500 --enable-CCDB-output true --enablePadStatusMap" "TPCIDCGroupParam.groupPadsSectorEdges=32211"
   add_W o2-tpc-idc-ft-aggregator "--rangeIDC 200 --inputLanes ${lanesFactorize} --nFourierCoeff 40 --timeframes ${nTFs} --nthreads 8"
