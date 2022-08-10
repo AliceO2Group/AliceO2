@@ -31,6 +31,8 @@
 #include "CCDB/CcdbObjectInfo.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "Framework/CCDBParamSpec.h"
+
 // for time measurements
 #include <chrono>
 
@@ -47,7 +49,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   using EMCALCalibParams = o2::emcal::EMCALCalibParams;
 
  public:
-  EMCALChannelCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
+  EMCALChannelCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool params) : mCCDBRequest(req), mLoadCalibParamsFromCCDB(params) {}
 
   void init(o2::framework::InitContext& ic) final
   {
@@ -87,8 +89,13 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
   {
     o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+    // check if calib params need to be updated
+    if (matcher == ConcreteDataMatcher("EMC", "EMCALCALIBPARAM", 0)) {
+      LOG(info) << "EMCal CalibParams updated";
+    }
   }
 
+  //_________________________________________________________________
   void run(o2::framework::ProcessingContext& pc) final
   {
     if (EMCALCalibParams::Instance().enableTimeProfiling) {
@@ -97,6 +104,11 @@ class EMCALChannelCalibDevice : public o2::framework::Task
 
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mTimeCalibrator->getCurrentTFInfo());
+
+    if (mLoadCalibParamsFromCCDB) {
+      // for reading the calib objects from the ccdb
+      pc.inputs().get<o2::emcal::EMCALCalibParams*>("EMC_CalibParam");
+    }
 
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get(getCellBinding()).header)->startTime;
 
@@ -157,6 +169,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   std::shared_ptr<o2::emcal::EMCALCalibExtractor> mCalibExtractor;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   bool isBadChannelCalib = true;
+  bool mLoadCalibParamsFromCCDB = true;
   std::array<double, 2> timeMeas;
 
   //________________________________________________________________
@@ -209,7 +222,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getEMCALChannelCalibDeviceSpec()
+DataProcessorSpec getEMCALChannelCalibDeviceSpec(const bool loadCalibParamsFromCCDB)
 {
   using device = o2::calibration::EMCALChannelCalibDevice;
   using clbUtils = o2::calibration::Utils;
@@ -227,6 +240,10 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec()
   std::vector<InputSpec> inputs;
   inputs.emplace_back(device::getCellBinding(), o2::header::gDataOriginEMC, "CELLS", 0, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back(device::getCellTriggerRecordBinding(), o2::header::gDataOriginEMC, "CELLSTRGR", 0, o2::framework::Lifetime::Timeframe);
+  // for loading the channelCalibParams from the ccdb
+  if (loadCalibParamsFromCCDB) {
+    inputs.emplace_back("EMC_CalibParam", o2::header::gDataOriginEMC, "EMCALCALIBPARAM", 0, Lifetime::Condition, ccdbParamSpec("EMC/Config/CalibParam"));
+  }
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF
@@ -238,7 +255,7 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec()
     "calib-emcalchannel-calibration",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest, loadCalibParamsFromCCDB)},
     Options{}};
 }
 
