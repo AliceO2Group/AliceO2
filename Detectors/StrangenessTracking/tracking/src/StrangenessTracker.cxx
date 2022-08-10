@@ -66,7 +66,6 @@ void StrangenessTracker::process()
     LOG(info) << "Analysing V0: " << iV0 + 1 << "/" << mInputV0tracks.size();
     auto& DecIndexRef = iV0;
     auto& v0 = mInputV0tracks[iV0];
-
     auto posTrack = v0.getProng(0);
     auto negTrack = v0.getProng(1);
     auto alphaV0 = calcV0alpha(v0);
@@ -79,18 +78,16 @@ void StrangenessTracker::process()
     auto v0R2 = v0.calcR2();
     auto iBinsV0 = mUtils.getBinRect(correctedV0.getEta(), correctedV0.getPhi(), 0.1, 0.1);
     for (int& iBinV0 : iBinsV0) {
-      // LOG(info) << "iBinV0: " << iBinV0;
       for (int iTrack{mTracksIdxTable[iBinV0]}; iTrack < TMath::Min(mTracksIdxTable[iBinV0 + 1], int(mSortedITStracks.size())); iTrack++) {
         mITStrack = mSortedITStracks[iTrack];
         auto& ITSindexRef = mSortedITSindexes[iTrack];
+        LOG(debug) << "V0 pos: " << v0.getProngID(0) << " V0 neg: " << v0.getProngID(1) << ", ITS track ref: " << ITSindexRef;
         mStrangeTrack.mMother = (o2::track::TrackParCovF)correctedV0;
         mStrangeTrack.mDaughterFirst = alphaV0 > 0 ? correctedV0.getProng(0) : correctedV0.getProng(1);
         mStrangeTrack.mDaughterSecond = alphaV0 < 0 ? correctedV0.getProng(0) : correctedV0.getProng(1);
         if (matchDecayToITStrack(v0R2, false)) {
-          LOG(info) << "------------------------------------------------------";
-          LOG(info) << "------------------------------------------------------";
-          LOG(info) << "ITS Track matched with a V0 decay topology ....";
-          LOG(info) << "Number of ITS track clusters attached: " << mITStrack.getNumberOfClusters();
+          LOG(debug) << "ITS Track matched with a V0 decay topology ....";
+          LOG(debug) << "Number of ITS track clusters attached: " << mITStrack.getNumberOfClusters();
           mStrangeTrackVec.push_back(mStrangeTrack);
           mITStrackRefVec.push_back(ITSindexRef);
           mDecayTrackRefVec.push_back(DecIndexRef);
@@ -102,14 +99,13 @@ void StrangenessTracker::process()
 
   // Loop over Cascades
   for (int iCasc{0}; iCasc < mInputCascadeTracks.size(); iCasc++) {
-    LOG(info) << "Analysing Cascade: " << iCasc + 1 << "/" << mInputCascadeTracks.size();
+    LOG(debug) << "Analysing Cascade: " << iCasc + 1 << "/" << mInputCascadeTracks.size();
     auto& DecIndexRef = iCasc;
     auto& casc = mInputCascadeTracks[iCasc];
 
     auto cascR2 = casc.calcR2();
     auto iBinsCasc = mUtils.getBinRect(casc.getEta(), casc.getPhi(), 0.1, 0.1);
     for (int& iBinCasc : iBinsCasc) {
-      // LOG(info) << "iBinCasc: " << iBinCasc;
       for (int iTrack{mTracksIdxTable[iBinCasc]}; iTrack < TMath::Min(mTracksIdxTable[iBinCasc + 1], int(mSortedITStracks.size())); iTrack++) {
         mITStrack = mSortedITStracks[iTrack];
         auto& ITSindexRef = mSortedITSindexes[iTrack];
@@ -120,9 +116,8 @@ void StrangenessTracker::process()
         mStrangeTrack.mDaughterSecond = casc.getBachelorTrack();
 
         if (matchDecayToITStrack(cascR2, true)) {
-          LOG(info) << "------------------------------------------------------";
-          LOG(info) << "ITS Track matched with a Cascade decay topology ....";
-          LOG(info) << "Number of ITS track clusters attached: " << mITStrack.getNumberOfClusters();
+          LOG(debug) << "ITS Track matched with a Cascade decay topology ....";
+          LOG(debug) << "Number of ITS track clusters attached: " << mITStrack.getNumberOfClusters();
           mStrangeTrackVec.push_back(mStrangeTrack);
           mITStrackRefVec.push_back(ITSindexRef);
           mDecayTrackRefVec.push_back(DecIndexRef);
@@ -193,11 +188,14 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR2, bool isCascade)
   o2::track::TrackParCov motherTrackClone = mStrangeTrack.mMother; // clone and reset covariance for final topology refit
   motherTrackClone.resetCovariance();
 
+  LOG(debug) << "Clusters attached, starting inward-outward refit";
+
   std::reverse(motherClusters.begin(), motherClusters.end());
   for (auto& clus : motherClusters) {
     if (!updateTrack(clus, motherTrackClone))
       break;
   }
+  LOG(debug) << "Inward-outward refit finished, starting final topology refit";
 
   // final Topology refit
 
@@ -207,12 +205,18 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR2, bool isCascade)
   try {
     nCand = mFitter3Body.process(motherTrackClone, mStrangeTrack.mDaughterFirst, mStrangeTrack.mDaughterSecond);
   } catch (std::runtime_error& e) {
+    LOG(debug) << "Fitter3Body failed: " << e.what();
     return false;
   }
-  if (!nCand)
+  if (!nCand) {
+    LOG(debug) << "Fitter3Body failed: no candidate";
     return false;
+  }
 
-  mFitter3Body.propagateTracksToVertex();
+  if (!mFitter3Body.propagateTracksToVertex()) {
+    LOG(debug) << "Fitter3Body failed: propagation to vertex failed";
+    return false;
+  }
 
   mStrangeTrack.mDaughterFirst = mFitter3Body.getTrack(1, 0);
   mStrangeTrack.mDaughterSecond = mFitter3Body.getTrack(2, 0);
@@ -242,8 +246,7 @@ bool StrangenessTracker::updateTrack(const ITSCluster& clus, o2::track::TrackPar
     if (!track.correctForMaterial(thick, thick * rho * radl))
       return false;
   }
-  auto chi2 = std::abs(track.getPredictedChi2(clus));
-  LOG(debug) << "chi2: " << track.getPredictedChi2(clus);
+  auto chi2 = std::abs(track.getPredictedChi2(clus));  // abs to be understood
   if (chi2 > mMaxChi2 || chi2 < 0)
     return false;
 

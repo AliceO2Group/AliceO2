@@ -94,7 +94,7 @@ class StrangenessTracker
     mFitterV0.setBz(mBz);
     mFitter3Body.setBz(mBz);
     mFitterV0.setUseAbsDCA(true);
-    // mFitter3Body.setUseAbsDCA(true);
+    mFitter3Body.setUseAbsDCA(true);
   }
 
   bool loadData(gsl::span<const o2::its::TrackITS> InputITStracks, std::vector<ITSCluster>& InputITSclusters, gsl::span<const int> InputITSidxs, gsl::span<const V0> InputV0tracks, gsl::span<const Cascade> InputCascadeTracks, o2::its::GeometryTGeo* geomITS);

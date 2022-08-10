@@ -22,6 +22,7 @@
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflow/TOFMatcherSpec.h"
 #include "Framework/CCDBParamSpec.h"
+#include "DataFormatsParameters/GRPObject.h"
 
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
@@ -53,7 +54,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useRootInput)
   return specs;
 }
 
-StrangenessTrackerSpec::StrangenessTrackerSpec(bool isMC) : mIsMC{isMC}
+StrangenessTrackerSpec::StrangenessTrackerSpec(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC) : mGGCCDBRequest(gr), mIsMC{isMC}
 {
   // no ops
 }
@@ -63,28 +64,9 @@ void StrangenessTrackerSpec::init(framework::InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
 
-  auto filename = ic.options().get<std::string>("grp-file");
-  const auto grp = parameters::GRPObject::loadFrom(filename);
-
   // load propagator
-  base::Propagator::initFieldFromGRP(grp);
-  std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
-  std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
-  if (o2::utils::Str::pathExists(matLUTFile)) {
-    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
-    o2::base::Propagator::Instance()->setMatLUT(lut);
-    mTracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
-    mTracker.setBz(grp->getNominalL3Field());
-    LOG(info) << "Loaded material LUT from " << matLUTFile;
-    LOG(info) << "Magnetic field loaded from GRP " << grp->getNominalL3Field();
-  } else {
-    LOG(info) << "Material LUT " << matLUTFile << " file is absent, only heuristic material correction can be used";
-  }
 
-  // load geometry
-  base::GeometryManager::loadGeometry();
-  auto gman = o2::its::GeometryTGeo::Instance();
-  gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
 
   LOG(info) << "Initialized strangeness tracker...";
 }
@@ -126,25 +108,23 @@ void StrangenessTrackerSpec::run(framework::ProcessingContext& pc)
        labITS.size());
   //  \nlabTPCTOF: %d\nlabITSTPCTOF: %d
 
+  mTracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
+  mTracker.setBz(o2::base::Propagator::Instance()->getNominalBz());
+
   auto pattIt = ITSpatt.begin();
   std::vector<ITSCluster> ITSClustersArray;
   ITSClustersArray.reserve(ITSclus.size());
   o2::its::ioutils::convertCompactClusters(ITSclus, pattIt, ITSClustersArray, mDict);
   auto geom = o2::its::GeometryTGeo::Instance();
-  auto field = static_cast<field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-  double origD[3] = {0., 0., 0.};
-  mTracker.setBz(field->getBz(origD));
 
   mTracker.loadData(ITStracks, ITSClustersArray, ITSTrackClusIdx, v0Vec, cascadeVec, geom);
   mTracker.initialise();
   mTracker.process();
 
-
   pc.outputs().snapshot(Output{"STK", "STRTRACKS", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackVec());
   pc.outputs().snapshot(Output{"STK", "CLUSUPDATES", 0, Lifetime::Timeframe}, mTracker.getClusAttachments());
   pc.outputs().snapshot(Output{"STK", "ITSREFS", 0, Lifetime::Timeframe}, mTracker.getITStrackRefVec());
   pc.outputs().snapshot(Output{"STK", "DECREFS", 0, Lifetime::Timeframe}, mTracker.getDecayTrackRefVec());
-
 
   mTimer.Stop();
 }
@@ -152,16 +132,22 @@ void StrangenessTrackerSpec::run(framework::ProcessingContext& pc)
 ///_______________________________________
 void StrangenessTrackerSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+    o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
+    geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
   }
 }
 
 ///_______________________________________
 void StrangenessTrackerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
@@ -186,6 +172,14 @@ DataProcessorSpec getStrangenessTrackerSpec()
   inputs.emplace_back("trackITSClIdx", "ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
   inputs.emplace_back("ITSTrack", "ITS", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("cldict", "ITS", "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/ClusterDictionary"));
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              inputs,
+                                                              true);
 
   // V0
   inputs.emplace_back("v0s", "GLO", "V0S", 0, Lifetime::Timeframe);                // found V0s
@@ -211,15 +205,12 @@ DataProcessorSpec getStrangenessTrackerSpec()
   outputs.emplace_back("STK", "ITSREFS", 0, Lifetime::Timeframe);
   outputs.emplace_back("STK", "DECREFS", 0, Lifetime::Timeframe);
 
-
   return DataProcessorSpec{
     "strangeness-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<StrangenessTrackerSpec>()},
-    Options{
-      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
+    AlgorithmSpec{adaptFromTask<StrangenessTrackerSpec>(ggRequest, false)},
+    Options{}};
 }
 
 } // namespace strangeness_tracking

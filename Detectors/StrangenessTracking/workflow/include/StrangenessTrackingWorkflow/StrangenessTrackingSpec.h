@@ -17,6 +17,7 @@
 #include "Framework/Task.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 
@@ -33,7 +34,7 @@ class StrangenessTrackerSpec : public framework::Task
  public:
   using ITSCluster = o2::BaseCluster<float>;
 
-  StrangenessTrackerSpec(bool isMC = false);
+  StrangenessTrackerSpec(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC);
   ~StrangenessTrackerSpec() override = default;
 
   void init(framework::InitContext& ic) final;
@@ -46,9 +47,9 @@ class StrangenessTrackerSpec : public framework::Task
   void updateTimeDependentParams(framework::ProcessingContext& pc);
 
   bool mIsMC = false;
-  bool mRecreateV0 = true;
   TStopwatch mTimer;
   StrangenessTracker mTracker;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::unique_ptr<parameters::GRPObject> mGRP = nullptr;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
 };
