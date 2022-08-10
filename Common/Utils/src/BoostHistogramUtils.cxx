@@ -19,6 +19,27 @@ namespace o2
 namespace utils
 {
 
+std::string createErrorMessageFitGaus(o2::utils::FitGausError_t errorcode)
+{
+  switch (errorcode) {
+    case FitGausError_t::FIT_ERROR_MIN:
+      return "Gaus fit failed! xMax < 4";
+    case FitGausError_t::FIT_ERROR_MAX:
+      return "Gaus fit failed! xMax too large";
+    case FitGausError_t::FIT_ERROR_ENTRIES:
+      return "Gaus fit failed! entries < 12";
+    case FitGausError_t::FIT_ERROR_KTOL_MEAN:
+      return "Gaus fit failed! std::abs(par[1]) < kTol";
+    case FitGausError_t::FIT_ERROR_KTOL_SIGMA:
+      return "Gaus fit failed! std::abs(par[2]) < kTol";
+    case FitGausError_t::FIT_ERROR_KTOL_RMS:
+      return "Gaus fit failed! RMS < kTol";
+    default:
+      return "Gaus fit failed! Unknown error code";
+  }
+  return "Gaus fit failed! Unknown error code";
+}
+
 boostHisto1d_VarAxis boosthistoFromRoot_1D(TH1D* inHist1D)
 {
   // first setup the proper boost histogram
