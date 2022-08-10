@@ -23,6 +23,7 @@
 #include <bitset>
 #include <map>
 #include <set>
+#include <iostream>
 namespace o2
 {
 namespace ctp
@@ -47,22 +48,27 @@ struct CTPGenerator {
   ClassDefNV(CTPGenerator, 1);
 };
 struct CTPInput {
+  const static std::map<std::string, std::string> run2DetToRun3Det;
   CTPInput() = default;
   CTPInput(std::string& name, std::string& det, uint32_t index);
   CTPInput(const char* name, const char* det, uint32_t index);
   std::string name = "";
   std::string level = "";
   std::uint64_t inputMask = 0;
-  o2::detectors::DetID::ID detID = 0;
+  o2::detectors::DetID::ID detID = 13;
+  bool neg = 1;
+  uint32_t getIndex() const { return ((inputMask > 1) ? 1 + log2(inputMask >> 1) : 0) + 1; }
   std::string getInputDetName() const { return o2::detectors::DetID::getName(detID); }
+  void setRun3DetName(std::string& run2Name);
   void printStream(std::ostream& strem) const;
-  ClassDefNV(CTPInput, 2);
+  ClassDefNV(CTPInput, 3);
 };
 struct CTPDescriptor {
   CTPDescriptor() = default;
   std::string name = "";
-  std::vector<CTPInput*> inputs;
+  std::vector<CTPInput const*> inputs;
   std::uint64_t getInputsMask() const;
+  // void createInputsFromName();
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPDescriptor, 2)
 };
@@ -94,9 +100,12 @@ struct CTPClass {
   CTPDescriptor const* descriptor = nullptr;
   CTPCluster const* cluster = nullptr;
   int clusterIndex = 0;
-  int descriptorIndex = 0;
+  int descriptorIndex = 0xff;
+  uint32_t downScale = 1;
+  std::vector<BCMask const*> BCClassMask;
+  uint64_t getClassMaskForInput(int inputindex) const;
   void printStream(std::ostream& strem) const;
-  ClassDefNV(CTPClass, 3);
+  ClassDefNV(CTPClass, 4);
 };
 struct CTPInputsConfiguration {
   CTPInputsConfiguration() = default;
@@ -116,10 +125,11 @@ class CTPConfiguration
   bool isDetector(const o2::detectors::DetID& det);
   static void capitaliseString(std::string& str);
   static bool isNumber(const std::string& s);
-  enum ConfigPart { RUN,
+  enum ConfigPart { START,
+                    RUN,
+                    INPUTS,
                     MASKS,
                     GENS,
-                    INPUT,
                     LTG,
                     LTGitems,
                     CLUSTER,
@@ -129,10 +139,13 @@ class CTPConfiguration
   void printStream(std::ostream& stream) const;
   std::vector<CTPInput>& getCTPInputs() { return mInputs; }
   std::vector<CTPClass>& getCTPClasses() { return mCTPClasses; }
-  uint64_t getInputMask(const std::string& name);
+  uint64_t getInputMask(const std::string& name) const;
+  int getInputIndex(const std::string& name) const;
   bool isMaskInInputs(const uint64_t& mask) const;
   bool isBCMaskInConfig(const std::string maskname) const;
-  CTPInput* isInputInConfig(const std::string inpname);
+  const CTPInput* isInputInConfig(const std::string inpname) const;
+  const CTPInput* isInputInConfig(const int index) const;
+  void createInputsInDecriptorsFromNames();
   uint64_t getDecrtiptorInputsMask(const std::string& name) const;
   std::map<o2::detectors::DetID::ID, std::vector<CTPInput>> getDet2InputMap();
   uint64_t getTriggerClassMask() const;
@@ -141,12 +154,16 @@ class CTPConfiguration
   std::vector<std::string> getDetectorList() const;
   o2::detectors::DetID::mask_t getDetectorMask() const;
   void createDefaultInputsConfig();
+  uint64_t getClassMaskForInput(int inputindex) const;
+  uint64_t getClassMaskForInput(const std::string& name) const;
+  void printConfigString() { std::cout << mConfigString << std::endl; };
+  std::string getConfigString() { return mConfigString; };
 
  private:
   std::string mConfigString = "";
   uint32_t mRunNumber = 0;
   std::string mName = "";
-  std::string mVersion = "0";
+  std::string mVersion = "1";
   std::vector<BCMask> mBCMasks;
   std::vector<CTPGenerator> mGenerators;
   std::vector<CTPInput> mInputs;
@@ -170,6 +187,7 @@ class CTPRunManager
  public:
   CTPRunManager() = default;
   void init();
+  int loadRun(const std::string& cfg);
   int startRun(const std::string& cfg);
   int stopRun(uint32_t irun);
   int addScalers(uint32_t irun, std::time_t time);
@@ -177,29 +195,28 @@ class CTPRunManager
   void printActiveRuns() const;
   int saveRunScalersToCCDB(int i);
   int saveRunConfigToCCDB(CTPConfiguration* cfg, long timeStart);
-  CTPConfiguration getConfigFromCCDB(long timestamp, std::string run);
+  static CTPConfiguration getConfigFromCCDB(long timestamp, std::string run);
   CTPRunScalers getScalersFromCCDB(long timestamp, std::string);
   int loadScalerNames();
   // void setCCDBPathConfig(std::string path) { mCCDBPathCTPConfig = path;};
   void setCCDBPathScalers(std::string path) { mCCDBPathCTPScalers = path; };
-  void setCCDBHost(std::string host) { mCCDBHost = host; };
+  static void setCCDBHost(std::string host) { mCCDBHost = host; };
   void setCTPQC(int qc) { mQC = qc; };
   void printCounters();
 
  private:
   /// Database constants
   // std::string mCCDBHost = "http://ccdb-test.cern.ch:8080";
-  std::string mCCDBHost = "http://o2-ccdb.internal";
+  static std::string mCCDBHost;
   std::string mCCDBPathCTPScalers = "CTP/Calib/Scalers";
   std::array<CTPActiveRun*, NRUNS> mActiveRuns;
   std::array<std::uint32_t, NRUNS> mActiveRunNumbers;
   std::array<uint32_t, CTPRunScalers::NCOUNTERS> mCounters;
   std::map<std::string, uint32_t> mScalerName2Position;
-  CTPActiveRun* mRunInStart = nullptr;
+  std::map<uint32_t, CTPActiveRun*> mRunsLoaded;
   int mEOX = 0; // redundancy check
-  int mCtpcfg = 0;
   int mQC = 0; // 1 - no CCDB: used for QC
-  ClassDefNV(CTPRunManager, 4);
+  ClassDefNV(CTPRunManager, 5);
 };
 
 } // namespace ctp

@@ -24,15 +24,16 @@
 #include <iostream>
 #endif
 using namespace o2::ctp;
-CTPConfiguration CreateCTPConfig()
+CTPConfiguration CreateCTPConfig(std::string cfgRun3str = "", int writeToFile = 0)
 {
   /// Demo configuration
   CTPConfiguration ctpcfg;
   //
   // run3 config
   //
-  std::string cfgRun3str =
-    "bcm TOF 100 1288 2476 \n \
+  if (cfgRun3str.find(".rcfg") == std::string::npos) {
+    cfgRun3str =
+      "bcm TOF 100 1288 2476 \n \
 bcm PHYS 1226 \n\
 bcd10 1khz \n\
 bcd20 0 \n\
@@ -57,8 +58,25 @@ ferst 1 \n\
 2 cl_1khz bcd10 \n \
 3 cluster clu4 emc cpv \n \
 4 cl_5khz bcd20 \n";
+  } else {
+    std::string filename = cfgRun3str;
+    std::ifstream in;
+    in.open(filename);
+    if (!in) {
+      std::cout << "Can not open file:" << filename << std::endl;
+      exit(1);
+    }
+    std::stringstream buffer;
+    buffer << in.rdbuf();
+    cfgRun3str = buffer.str();
+  }
   //
   ctpcfg.loadConfigurationRun3(cfgRun3str);
   ctpcfg.printStream(std::cout);
+  if (writeToFile == 1) {
+    std::unique_ptr<TFile> myFile(TFile::Open("CTPConfig.root", "RECREATE"));
+    myFile->WriteObject(&ctpcfg, "CTPConfig");
+    std::cout << "File CTPConfig.root written." << std::endl;
+  }
   return ctpcfg;
 }

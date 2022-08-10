@@ -16,6 +16,7 @@
 #include "DataFormatsFDD/RecPoint.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsCTP/Digits.h"
+#include "DataFormatsCTP/Configuration.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
@@ -23,6 +24,7 @@
 #include "DataFormatsMID/Track.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsZDC/ZDCEnergy.h"
 #include "DataFormatsZDC/ZDCTDCData.h"
 #include "DataFormatsParameters/GRPECSObject.h"
@@ -91,6 +93,56 @@ using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<dou
 
 namespace o2::aodproducer
 {
+
+void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoContainer& recoData, std::vector<o2::ctp::CTPDigit>& ctpDigits, ProcessingContext& pc)
+{
+  // Extraxt CTP Config from CCDB
+  const auto ctpcfg = pc.inputs().get<o2::ctp::CTPConfiguration*>("ctpconfig");
+  // o2::ctp::CTPConfiguration ctpcfg = o2::ctp::CTPRunManager::getConfigFromCCDB(-1, std::to_string(runNumber)); // how to get run
+  //  Extract inputs from recoData
+  std::map<uint64_t, uint64_t> bcsMapT0triggers;
+  std::map<uint64_t, bool> bcsMapTRDreadout;
+  // const auto& fddRecPoints = recoData.getFDDRecPoints();
+  // const auto& fv0RecPoints = recoData.getFV0RecPoints();
+  const auto& caloEMCCellsTRGR = recoData.getEMCALTriggers();
+  const auto& caloPHOSCellsTRGR = recoData.getPHOSTriggers();
+  const auto& triggerrecordTRD = recoData.getTRDTriggerRecords();
+  //
+  const auto& ft0RecPoints = recoData.getFT0RecPoints();
+  for (auto& ft0RecPoint : ft0RecPoints) {
+    auto t0triggers = ft0RecPoint.getTrigger();
+    if (t0triggers.getVertex()) {
+      uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
+      uint64_t classmask = ctpcfg->getClassMaskForInput("MTVX");
+      bcsMapT0triggers[globalBC] = classmask;
+    }
+  }
+  // find trd redaout and add CTPDigit if trigger there
+  int cntwarnings = 0;
+  uint32_t orbitPrev = 0;
+  uint16_t bcPrev = 0;
+  for (auto& trdrec : triggerrecordTRD) {
+    auto orbitPrevT = orbitPrev;
+    auto bcPrevT = bcPrev;
+    bcPrev = trdrec.getBCData().bc;
+    orbitPrev = trdrec.getBCData().orbit;
+    if (orbitPrev < orbitPrevT || bcPrev >= o2::constants::lhc::LHCMaxBunches || (orbitPrev == orbitPrevT && bcPrev < bcPrevT)) {
+      cntwarnings++;
+      // LOGP(warning, "Bogus TRD trigger at bc:{}/orbit:{} (previous was {}/{}), with {} tracklets and {} digits",bcPrev, orbitPrev, bcPrevT, orbitPrevT, trig.getNumberOfTracklets(), trig.getNumberOfDigits());
+    } else {
+      uint64_t globalBC = trdrec.getBCData().toLong();
+      auto t0entry = bcsMapT0triggers.find(globalBC);
+      if (t0entry != bcsMapT0triggers.end()) {
+        auto& ctpdig = ctpDigits.emplace_back();
+        ctpdig.intRecord.setFromLong(globalBC);
+        ctpdig.CTPClassMask = t0entry->second;
+      } else {
+        LOG(warning) << "Found trd and no MTVX:" << globalBC;
+      }
+    }
+  }
+  LOG(info) << "# of TRD bogus triggers:" << cntwarnings;
+}
 
 void AODProducerWorkflowDPL::collectBCs(const o2::globaltracking::RecoContainer& data,
                                         const std::vector<o2::InteractionTimeRecord>& mcRecords,
@@ -1096,6 +1148,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mRecoOnly = ic.options().get<int>("reco-mctracks-only");
   mTruncate = ic.options().get<int>("enable-truncation");
   mRunNumber = ic.options().get<int>("run-number");
+  mCTPReadout = ic.options().get<int>("ctpreadout-create");
 
   if (mTFNumber == -1L) {
     LOG(info) << "TFNumber will be obtained from CCDB";
@@ -1212,9 +1265,13 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   auto caloPHOSCells = recoData.getPHOSCells();
   auto caloPHOSCellsTRGR = recoData.getPHOSTriggers();
-
   auto ctpDigits = recoData.getCTPDigits();
-
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+  std::vector<o2::ctp::CTPDigit> ctpDigitsCreated;
+  if (mCTPReadout == 1) {
+    createCTPReadout(recoData, ctpDigitsCreated, pc);
+    ctpDigits = gsl::span<o2::ctp::CTPDigit>(ctpDigitsCreated);
+  }
   LOG(debug) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(debug) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
   LOG(debug) << "FOUND " << fv0RecPoints.size() << " FV0 rec. points";
@@ -1275,8 +1332,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto caloCellsCursor = caloCellsBuilder.cursor<o2::aod::Calos>();
   auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
   auto originCursor = originTableBuilder.cursor<o2::aod::Origins>();
-
-  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
 
   std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
   if (mUseMC) {
@@ -2030,6 +2085,8 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
 
+  dataRequest->inputs.emplace_back("ctpconfig", "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config"));
+
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
   if (src[GID::CTP]) {
@@ -2099,7 +2156,8 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"anchor-pass", VariantType::String, "", {"AnchorPassName"}},
       ConfigParamSpec{"anchor-prod", VariantType::String, "", {"AnchorProduction"}},
       ConfigParamSpec{"reco-pass", VariantType::String, "", {"RecoPassName"}},
-      ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}}}};
+      ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}},
+      ConfigParamSpec{"ctpreadout-create", VariantType::Int, 0, {"Create CTP digits from detector readout and CTP inputs. !=1 -- off, 1 -- on"}}}};
 }
 
 } // namespace o2::aodproducer
