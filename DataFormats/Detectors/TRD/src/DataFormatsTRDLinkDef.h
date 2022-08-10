@@ -32,6 +32,7 @@
 #pragma link C++ class o2::trd::NoiseStatusMCM + ;
 #pragma link C++ class o2::trd::AngularResidHistos + ;
 #pragma link C++ class o2::trd::CalVdriftExB + ;
+#pragma link C++ class o2::trd::CalT0 + ;
 #pragma link C++ class o2::trd::CompressedDigit + ;
 #pragma link C++ class o2::trd::HelperMethods + ;
 #pragma link C++ class std::vector < o2::trd::Tracklet64> + ;
