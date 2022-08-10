@@ -59,7 +59,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)");
 }
 
-void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules, bool& mIsRun5)
+void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules, bool mIsRun5)
 {
   using o2::detectors::DetID;
 
