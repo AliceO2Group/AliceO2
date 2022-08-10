@@ -29,7 +29,7 @@ namespace emcal
 // class containing the parameters to trigger the calibrations
 struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibParams> {
 
-  unsigned int minNEvents = 1e6;              ///< minimum number of events to trigger the calibration
+  unsigned int minNEvents = 1e7;              ///< minimum number of events to trigger the calibration
   unsigned int minNEntries = 1e6;             ///< minimum number of entries to trigger the calibration
   bool useNEventsForCalib = true;             ///< use the minimum number of events to trigger the calibration
   std::string calibType = "time";             ///< type of calibration to run
@@ -49,6 +49,16 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
 };
 
 } // namespace emcal
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::emcal::EMCALCalibParams> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif /*EMCAL_CALIB_INIT_PARAMS_H_ */
