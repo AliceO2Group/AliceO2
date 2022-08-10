@@ -15,6 +15,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <algorithm>
 
 #include <Rtypes.h>
 #include "Framework/Logger.h"
@@ -26,10 +27,8 @@ ClassImp(o2::mft::AlignSensorHelper);
 
 //__________________________________________________________________________
 AlignSensorHelper::AlignSensorHelper()
-  : mNumberOfSensors(0),
-    mChipIndexOnLadder(0),
+  : mChipIndexOnLadder(0),
     mChipIndexInMft(0),
-    mLadderInHalfDisk(0),
     mConnector(0),
     mTransceiver(0),
     mLayer(0),
@@ -49,8 +48,8 @@ AlignSensorHelper::AlignSensorHelper()
     mCosRz(0),
     mIsTransformExtracted(false)
 {
-  mNumberOfSensors = mChipMapping.getNChips();
   setGeometry();
+  builSymNames();
   LOGF(debug, "AlignSensorHelper instantiated");
 }
 
@@ -63,6 +62,7 @@ void AlignSensorHelper::setGeometry()
       o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L,
                                o2::math_utils::TransformType::L2G));
     mGeoSymbolicName = mGeometry->composeSymNameMFT();
+    mSymNames.fill(mGeoSymbolicName);
   }
 }
 
@@ -70,7 +70,8 @@ void AlignSensorHelper::setGeometry()
 void AlignSensorHelper::setSensorOnlyInfo(const int chipIndex)
 {
   if (chipIndex < mNumberOfSensors) {
-    o2::itsmft::MFTChipMappingData chipMappingData = (mChipMapping.getChipMappingData())[chipIndex];
+    o2::itsmft::ChipMappingMFT chipMapping;
+    o2::itsmft::MFTChipMappingData chipMappingData = (chipMapping.getChipMappingData())[chipIndex];
     mChipIndexOnLadder = (UShort_t)chipMappingData.chipOnModule;
     mChipIndexInMft = chipMappingData.globalChipSWID;
     mConnector = (UShort_t)chipMappingData.connector;
@@ -96,7 +97,7 @@ std::stringstream AlignSensorHelper::getSensorFullName(bool wSymName)
     wSymName = false;
   }
   name << "h " << mHalf << " d " << mDisk << " layer " << mLayer
-       << " z " << mZone << " lr " << std::setw(3) << mLadderInHalfDisk
+       << " z " << mZone
        << " con " << std::setw(1) << mConnector
        << " tr " << std::setw(2) << mTransceiver
        << " sr " << std::setw(1) << mChipIndexOnLadder
@@ -118,6 +119,57 @@ bool AlignSensorHelper::setSensor(const int chipIndex)
 }
 
 //__________________________________________________________________________
+void AlignSensorHelper::builSymNames()
+{
+  if (mGeometry) {
+    Int_t iChip = 0;
+    Int_t nHalf = mGeometry->getNumberOfHalfs();
+    TString sname = mGeometry->composeSymNameMFT();
+
+    for (Int_t hf = 0; hf < nHalf; hf++) {
+      Int_t nDisks = mGeometry->getNumberOfDisksPerHalf(hf);
+      sname = mGeometry->composeSymNameHalf(hf);
+
+      for (Int_t dk = 0; dk < nDisks; dk++) {
+        sname = mGeometry->composeSymNameDisk(hf, dk);
+
+        Int_t nLadders = 0;
+        for (Int_t sensor = mGeometry->getMinSensorsPerLadder();
+             sensor < mGeometry->getMaxSensorsPerLadder() + 1; sensor++) {
+          nLadders += mGeometry->getNumberOfLaddersPerDisk(hf, dk, sensor);
+        }
+
+        for (Int_t lr = 0; lr < nLadders; lr++) { // nLadders
+          sname = mGeometry->composeSymNameLadder(hf, dk, lr);
+          Int_t nSensorsPerLadder = mGeometry->getNumberOfSensorsPerLadder(hf, dk, lr);
+
+          for (Int_t sr = 0; sr < nSensorsPerLadder; sr++) {
+            sname = mGeometry->composeSymNameChip(hf, dk, lr, sr);
+            mSymNames[iChip] = sname;
+            iChip++;
+          }
+        }
+      }
+    }
+  } else {
+    LOG(error) << "SensorInfo::builSymNames() - nullptr to geometry";
+  }
+}
+
+//__________________________________________________________________________
+int AlignSensorHelper::getChipIdGeoFromRO(const int chipIdRO)
+{
+  int chipIdGeo = 0;
+  for (int index = 0; index < mNumberOfSensors; index++) {
+    if (o2::itsmft::ChipMappingMFT::mChipIDGeoToRO[index] == chipIdRO) {
+      chipIdGeo = index;
+      break;
+    }
+  }
+  return chipIdGeo;
+}
+
+//__________________________________________________________________________
 void AlignSensorHelper::setSensorUid(const int chipIndex)
 {
   if (chipIndex < mNumberOfSensors) {
@@ -133,27 +185,7 @@ void AlignSensorHelper::setSensorUid(const int chipIndex)
 //__________________________________________________________________________
 void AlignSensorHelper::setSymName()
 {
-  int hf = 0, dk = 0, lr = 0, sr = 0;
-  if (mGeometry == nullptr) {
-    mGeometry = o2::mft::GeometryTGeo::Instance();
-  }
-  mGeometry->fillMatrixCache(
-    o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L,
-                             o2::math_utils::TransformType::L2G));
-  mGeometry->getSensorID(mChipIndexInMft, hf, dk, lr, sr);
-  mLadderInHalfDisk = lr;
-  bool isIdVerified = true;
-  isIdVerified &= (hf == (int)mHalf);
-  isIdVerified &= (dk == (int)mDisk);
-  isIdVerified &= (sr == (int)mChipIndexOnLadder);
-  if (isIdVerified) {
-    mGeoSymbolicName = mGeometry->composeSymNameChip(mHalf,
-                                                     mDisk,
-                                                     mLadderInHalfDisk,
-                                                     mChipIndexOnLadder);
-  } else {
-    LOGF(error, "AlignSensorHelper::setSymName() - mismatch in some index");
-  }
+  mGeoSymbolicName = mSymNames[getChipIdGeoFromRO(mChipIndexInMft)];
 }
 
 //__________________________________________________________________________
