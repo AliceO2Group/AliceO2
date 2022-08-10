@@ -75,6 +75,9 @@ StepTHnT<TemplateArray>::StepTHnT(const char* name, const char* title, const int
   for (Int_t i = 0; i < mNVars; i++) {
     mNBins *= nBins[i];
   }
+  if (mNBins > 250000000) {
+    LOGF(warning, "StepTHn: Requesting more than 250M bins (%lld). This will need extensive memory.", mNBins);
+  }
   mPrototype = new THnSparseT<TemplateArray>(Form("%s_sparse", name), title, nAxes, nBins, xmin, xmax);
 }
 
@@ -85,6 +88,9 @@ StepTHnT<TemplateArray>::StepTHnT(const Char_t* name, const Char_t* title, const
   mNBins = 1;
   for (Int_t i = 0; i < mNVars; i++) {
     mNBins *= nBins[i];
+  }
+  if (mNBins > 250000000) {
+    LOGF(warning, "StepTHn: Requesting more than 250M bins (%lld). This will need extensive memory.", mNBins);
   }
   mPrototype = new THnSparseT<TemplateArray>(Form("%s_sparse", name), title, nAxes, nBins);
 

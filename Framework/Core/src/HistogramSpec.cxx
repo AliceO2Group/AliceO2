@@ -15,7 +15,7 @@
 namespace o2::framework
 {
 
-void AxisSpec::makeLogaritmic()
+void AxisSpec::makeLogarithmic()
 {
   if (binEdges.size() > 2) {
     LOG(fatal) << "Cannot make a variabled bin width axis logaritmic";
@@ -41,7 +41,16 @@ void AxisSpec::makeLogaritmic()
   nBins = std::nullopt;
 }
 
-// main function for creating arbirtary histograms
+long AxisSpec::getNbins() const
+{
+  // return the number of bins
+  if (nBins.has_value()) {
+    return *nBins;
+  }
+  return binEdges.size() - 1;
+}
+
+// main function for creating arbitrary histograms
 template <typename T>
 std::unique_ptr<T> HistFactory::createHist(const HistogramSpec& histSpec)
 {
