@@ -140,8 +140,7 @@ class EMCALCalibExtractor
           maxElementIndex = 0;
         }
         float maxElementCenter = 0.5 * (boostHist1d.axis(0).bin(maxElementIndex).upper() + boostHist1d.axis(0).bin(maxElementIndex).lower());
-        float timeInterval = 25; // in ns
-        boostHist1d = boost::histogram::algorithm::reduce(boostHist1d, boost::histogram::algorithm::shrink(maxElementCenter - timeInterval, maxElementCenter + timeInterval));
+        boostHist1d = boost::histogram::algorithm::reduce(boostHist1d, boost::histogram::algorithm::shrink(maxElementCenter - restrictFitRangeToMax, maxElementCenter + restrictFitRangeToMax));
       }
 
       try {
@@ -149,7 +148,8 @@ class EMCALCalibExtractor
         mean = fitValues.at(1);
         // add mean to time calib params
         TCP.addTimeCalibParam(i, mean, 0);
-      } catch (o2::utils::FitGausError_t) {
+      } catch (o2::utils::FitGausError_t err) {
+        LOG(warning) << createErrorMessageFitGaus(err) << "; for cell " << i << " (Will take the parameter of the previous cell: " << mean << "ns)";
         TCP.addTimeCalibParam(i, mean, 0); // take calib value of last cell; or 400 ns shift default value
       }
     }

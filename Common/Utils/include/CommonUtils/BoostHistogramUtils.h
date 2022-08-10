@@ -28,7 +28,6 @@
 #include "Rtypes.h"
 #include "TLinearFitter.h"
 #include "TVectorD.h"
-#include "TMath.h"
 #include "TF1.h"
 #include "Foption.h"
 #include "HFitInterface.h"
@@ -211,12 +210,18 @@ class fitResult
  * \brief Error code for invalid result in the fitGaus process
  */
 enum class FitGausError_t {
-  FIT_ERROR, ///< Fit procedure returned invalid result
+  FIT_ERROR_MAX,        ///< Gaus fit failed! yMax too large
+  FIT_ERROR_MIN,        ///< Gaus fit failed! yMax < 4
+  FIT_ERROR_ENTRIES,    ///< Gaus fit failed! entries < 12
+  FIT_ERROR_KTOL_MEAN,  ///< Gaus fit failed! std::abs(par[1]) < kTol
+  FIT_ERROR_KTOL_SIGMA, ///< Gaus fit failed! std::abs(par[2]) < kTol
+  FIT_ERROR_KTOL_RMS    ///< Gaus fit failed! RMS < kTol
+
 };
 
 /// \brief Printing an error message when then fit returns an invalid result
 /// \param errorcode Error of the type FitGausError_t, thrown when fit result is invalid.
-std::string createErrorMessage(o2::utils::FitGausError_t errorcode);
+std::string createErrorMessageFitGaus(o2::utils::FitGausError_t errorcode);
 
 /// \brief Function to fit histogram to a gaussian using iterators.
 /// \param first begin iterator of the histogram
@@ -235,31 +240,36 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
   if (ignoreUnderOverflowBin) {
     first++;
     last--;
+    axisfirst++;
   }
 
-  static TLinearFitter fitter(3, "pol2");
-  static TMatrixD mat(3, 3);
-  static Double_t kTol = mat.GetTol();
+  TLinearFitter fitter(3, "pol2");
+  TMatrixD mat(3, 3);
+  double kTol = mat.GetTol();
   fitter.StoreData(kFALSE);
   fitter.ClearPoints();
   TVectorD par(3);
   TMatrixD A(3, 3);
   TMatrixD b(3, 1);
-  T rms = TMath::RMS(first, last);
-  // Markus: return type of std::max_element is an iterator, cannot cast implicitly to double
-  // better use auto
+
+  // return type of std::max_element is an iterator, cannot cast implicitly to double
   // pointer needs to be dereferenced afterwards
-  auto xMax = std::max_element(first, last);
-  auto xMin = std::min_element(first, last);
-  auto nbins = last - first;
-  const double binWidth = double(*xMax - *xMin) / double(nbins);
+  auto yMax = std::max_element(first, last);
+  auto nbins = std::distance(first, last);
+  auto getBinWidth = [](BinCenterView axisiter) {
+    double binCenter1 = *axisiter;
+    axisiter++;
+    double binCenter2 = *axisiter;
+    return std::abs(binCenter1 - binCenter2);
+  };
+  double binWidth = getBinWidth(axisfirst);
 
-  Float_t meanCOG = 0;
-  Float_t rms2COG = 0;
-  Float_t sumCOG = 0;
+  float meanCOG = 0;
+  float rms2COG = 0;
+  float sumCOG = 0;
 
-  Float_t entries = 0;
-  Int_t nfilled = 0;
+  float entries = 0;
+  int nfilled = 0;
 
   for (auto iter = first; iter != last; iter++) {
     entries += *iter;
@@ -268,17 +278,11 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
     }
   }
 
-  if (*xMax < 4) {
-    LOG(warning) << "Gaus fit failed! xMax < 4";
-    throw FitGausError_t::FIT_ERROR;
+  if (*yMax < 4) {
+    throw FitGausError_t::FIT_ERROR_MIN;
   }
   if (entries < 12) {
-    LOG(warning) << "Gaus fit failed! entries < 12";
-    throw FitGausError_t::FIT_ERROR;
-  }
-  if (rms < kTol) {
-    LOG(warning) << "Gaus fit failed! rms < kTol";
-    throw FitGausError_t::FIT_ERROR;
+    throw FitGausError_t::FIT_ERROR_ENTRIES;
   }
 
   // create the result, first fill it with all 0's
@@ -289,7 +293,7 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
   // then set the third parameter to entries
   result.at(3) = entries;
 
-  Int_t npoints = 0;
+  int npoints = 0;
   // in this loop: increase iter and axisiter (iterator for bin center and bincontent)
   auto axisiter = axisfirst;
   for (auto iter = first; iter != last; iter++, axisiter++) {
@@ -300,7 +304,7 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
         continue;
       }
       double x = *axisiter;
-      // take logarith of gaussian in order to obtain a pol2
+      // take logarithm of gaussian in order to obtain a pol2
       double y = std::log(*iter);
       // first order taylor series of log(x) to approimate the errors df(x)/dx * err(f(x))
       double ey = std::sqrt(fabs(*iter)) / fabs(*iter);
@@ -312,13 +316,13 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
         A(npoints, 2) = x * x;
         b(npoints, 0) = y;
         meanCOG += x * nbins;
-        rms2COG += x * nbins * x;
+        rms2COG += x * x * nbins;
         sumCOG += nbins;
       }
       npoints++;
     }
   }
-  Double_t chi2 = 0;
+  double chi2 = 0;
   if (npoints >= 3) {
     if (npoints == 3) {
       // analytic calculation of the parameters for three points
@@ -334,58 +338,43 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
       fitter.Eval();
       fitter.GetParameters(par);
       fitter.GetCovarianceMatrix(mat);
-      result.at(4) = (fitter.GetChisquare() / Double_t(npoints));
+      result.at(4) = (fitter.GetChisquare() / double(npoints));
     }
 
-    if (TMath::Abs(par[1]) < kTol) {
-      LOG(warning) << "Gaus fit failed! TMath::Abs(par[1]) < kTol";
-      throw FitGausError_t::FIT_ERROR;
+    if (std::abs(par[1]) < kTol) {
+      throw FitGausError_t::FIT_ERROR_KTOL_MEAN;
     }
-    if (TMath::Abs(par[2]) < kTol) {
-      LOG(warning) << "Gaus fit failed! TMath::Abs(par[2]) < kTol";
-      throw FitGausError_t::FIT_ERROR;
+    if (std::abs(par[2]) < kTol) {
+      throw FitGausError_t::FIT_ERROR_KTOL_SIGMA;
     }
 
     // calculate parameters for gaus from pol2 fit
     T param1 = T(par[1] / (-2. * par[2]));
     result.at(1) = param1;
-    result.at(2) = T(1. / TMath::Sqrt(TMath::Abs(-2. * par[2])));
+    result.at(2) = T(1. / std::sqrt(std::abs(-2. * par[2])));
     auto lnparam0 = par[0] - par[1] * par[1] / (4 * par[2]);
     if (lnparam0 > 307) {
-      LOG(warning) << "Gaus fit failed! lnparam0 > 307";
-      throw FitGausError_t::FIT_ERROR;
+      throw FitGausError_t::FIT_ERROR_MAX;
     }
 
-    result.at(0) = T(TMath::Exp(lnparam0));
+    result.at(0) = T(std::exp(lnparam0));
     return result;
-  }
 
-  if (npoints == 2) {
+  } else if (npoints == 2) {
     // use center of gravity for 2 points
     meanCOG /= sumCOG;
     rms2COG /= sumCOG;
-    /*
-    result.setParameter<0>(xMax);
-    result.setParameter<1>(meanCOG);
-    result.setParameter<2>(TMath::Sqrt(TMath::Abs(meanCOG * meanCOG - rms2COG)));
-    result.setChi2(-2);
-    */
-    result.at(0) = *xMax;
+
+    result.at(0) = *yMax;
     result.at(1) = meanCOG;
-    result.at(2) = TMath::Sqrt(TMath::Abs(meanCOG * meanCOG - rms2COG));
+    result.at(2) = std::sqrt(std::abs(meanCOG * meanCOG - rms2COG));
     result.at(4) = -2;
-  }
-  if (npoints == 1) {
+  } else if (npoints == 1) {
     meanCOG /= sumCOG;
-    /*
-    result.setParameter<0>(xMax);
-    result.setParameter<1>(meanCOG);
-    result.setParameter<2>(binWidth / TMath::Sqrt(12));
-    result.setChi2(-1);
-    */
-    result.at(0) = *xMax;
+
+    result.at(0) = *yMax;
     result.at(1) = meanCOG;
-    result.at(2) = binWidth / TMath::Sqrt(12);
+    result.at(2) = binWidth / std::sqrt(12);
     result.at(4) = -1;
   }
 
