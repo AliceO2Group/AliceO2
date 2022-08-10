@@ -26,8 +26,9 @@ if [[ -z $CTF_MAX_PER_FILE ]];         then CTF_MAX_PER_FILE="10000"; fi       #
 workflow_has_parameter CTF && export SAVECTF=1
 workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
 
-NITSDECTHREADS=2
-NMFTDECTHREADS=2
+[[ -z $NITSDECTHREADS ]] && NITSDECTHREADS=2
+[[ -z $NMFTDECTHREADS ]] && NMFTDECTHREADS=2
+
 [[ -z $SVERTEX_THREADS ]] && SVERTEX_THREADS=$(( $SYNCMODE == 1 ? 1 : 2 ))
 # FIXME: multithreading in the itsmft reconstruction does not work on macOS.
 if [[ $(uname) == "Darwin" ]]; then
