@@ -23,7 +23,6 @@ struct ThreadPool {
   int poolSize;
 };
 
-
 /// A few ServiceSpecs for services we know about and that / are needed by
 /// everyone.
 struct CommonServices {

@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_CASE(HandleDataZeroParts)
   o2::framework::DataProcessorContext context;
   context.registry = new o2::framework::ServiceRegistry;
   DeviceState deviceState;
-  std::vector<o2::framework::ServiceSpec> services {
+  std::vector<o2::framework::ServiceSpec> services{
     CommonServices::dataProcessingStats(),
   };
   fair::mq::ProgOptions options;
