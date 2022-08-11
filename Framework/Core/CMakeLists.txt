@@ -190,6 +190,7 @@ foreach(t
         ConfigParamRegistry
         DataDescriptorMatcher
         DataDescriptorQueryBuilder
+        DataProcessingDevice
         DataProcessorSpec
         DataRefUtils
         DataRelayer
