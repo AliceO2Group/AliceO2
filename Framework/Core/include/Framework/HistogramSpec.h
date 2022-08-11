@@ -119,6 +119,7 @@ struct AxisSpec {
   long getNbins() const;
 
   /// Function to make the axis logarithmic
+  void makeLogaritmic() { makeLogarithmic(); };
   void makeLogarithmic();
 
   /// Data members
