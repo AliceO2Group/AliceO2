@@ -20,6 +20,7 @@
 #include <TLorentzVector.h>
 #include "TMath.h"
 #include "StrangenessTracking/IndexTableUtils.h"
+#include "StrangenessTracking/StrangenessTrackingConfigParam.h"
 #include "ReconstructionDataFormats/PID.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
@@ -83,8 +84,6 @@ class StrangenessTracker
   std::vector<int>& getITStrackRefVec() { return mITStrackRefVec; };
   std::vector<int>& getDecayTrackRefVec() { return mDecayTrackRefVec; };
 
-  float getMaxChi2() const { return mMaxChi2; }
-  void setMaxChi2(float d) { mMaxChi2 = d; }
   float getBz() const { return mBz; }
   void setBz(float d) { mBz = d; }
   void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType& type) { mCorrType = type; }
@@ -125,9 +124,7 @@ class StrangenessTracker
   std::vector<int> mITStrackRefVec;              // Ref to the ITS tracks
   std::vector<int> mDecayTrackRefVec;            // Ref to the Cascade and V0 files
 
-  float mRadiusTol = 4.;     // Radius tolerance for matching V0s
-  float mMinMotherClus = 3.; // minimum number of cluster to be attached to the mother
-  float mMaxChi2 = 50;       // Maximum matching chi2
+const StrangenessTrackingParamConfig* mStrParams = nullptr;
   float mBz = -5;            // Magnetic field
 
   DCAFitter2 mFitterV0;    // optional DCA Fitter for recreating V0 with hypertriton mass hypothesis

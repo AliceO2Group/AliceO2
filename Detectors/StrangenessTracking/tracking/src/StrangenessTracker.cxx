@@ -144,7 +144,7 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR2, bool isCascade)
   for (auto& clus : trackClusters) {
     auto diffR2 = decayR2 - clus.getX() * clus.getX() - clus.getY() * clus.getY(); // difference between decay radius and Layer R2
     // Look for the Mother if the Decay radius allows for it, within a tolerance
-    if (diffR2 > -mRadiusTol) {
+    if (diffR2 > -mStrParams->mRadiusTol) {
       LOG(debug) << "Try to attach cluster to Mother, layer: " << mGeomITS->getLayer(clus.getSensorID());
       if (updateTrack(clus, mStrangeTrack.mMother)) {
         motherClusters.push_back(clus);
@@ -160,7 +160,7 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR2, bool isCascade)
     }
 
     // if Mother is not found, check for V0 daughters compatibility
-    if (diffR2 < mRadiusTol && !isMotherUpdated) {
+    if (diffR2 < mStrParams->mRadiusTol && !isMotherUpdated) {
       LOG(debug) << "Try to attach cluster to Daughters, layer: " << mGeomITS->getLayer(clus.getSensorID());
 
       if (!isCascade) {
@@ -182,7 +182,7 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR2, bool isCascade)
     }
   }
 
-  if (nUpdates < trackClusters.size() || motherClusters.size() < mMinMotherClus)
+  if (nUpdates < trackClusters.size() || motherClusters.size() < mStrParams->mMinMotherClus)
     return false;
 
   o2::track::TrackParCov motherTrackClone = mStrangeTrack.mMother; // clone and reset covariance for final topology refit
@@ -247,7 +247,7 @@ bool StrangenessTracker::updateTrack(const ITSCluster& clus, o2::track::TrackPar
       return false;
   }
   auto chi2 = std::abs(track.getPredictedChi2(clus));  // abs to be understood
-  if (chi2 > mMaxChi2 || chi2 < 0)
+  if (chi2 > mStrParams->mMaxChi2 || chi2 < 0)
     return false;
 
   if (!track.update(clus))

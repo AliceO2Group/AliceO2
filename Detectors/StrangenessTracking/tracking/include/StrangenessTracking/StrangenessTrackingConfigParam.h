@@ -21,9 +21,13 @@ namespace strangeness_tracking
 {
 
 struct StrangenessTrackingParamConfig : public o2::conf::ConfigurableParamHelper<StrangenessTrackingParamConfig> {
-  float dummy = 0;
 
-  O2ParamDef(StrangenessTrackingParamConfig, "StrangenessTrackingParam");
+    // parameters
+  float mRadiusTol = 4.;     // Radius tolerance for matching V0s
+  float mMinMotherClus = 3.; // minimum number of cluster to be attached to the mother
+  float mMaxChi2 = 50;       // Maximum matching chi2
+
+  O2ParamDef(StrangenessTrackingParamConfig, "strtracker");
 };
 
 } // namespace strangeness_tracking
