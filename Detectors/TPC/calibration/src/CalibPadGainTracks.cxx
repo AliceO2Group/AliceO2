@@ -249,29 +249,19 @@ float CalibPadGainTracks::getTrackTopologyCorrection(const o2::tpc::TrackTPC& tr
 
 float CalibPadGainTracks::getTrackTopologyCorrectionPol(const o2::tpc::TrackTPC& track, const o2::tpc::ClusterNative& cl, const unsigned int region, const float charge) const
 {
-  const float trackSnp = track.getSnp();
-  const float maxSnp = mCalibTrackTopologyPol->getMaxSinPhi();
-  float snp = std::abs(trackSnp);
-  if (snp > maxSnp) {
-    snp = maxSnp;
-  }
-
+  const float trackSnp = std::abs(track.getSnp());
   float snp2 = trackSnp * trackSnp;
   const float sec2 = 1.f / (1.f - snp2);
   const float trackTgl = track.getTgl();
   const float tgl2 = trackTgl * trackTgl;
-  float tanTheta = std::sqrt(tgl2 * sec2);
-  const float maxTanTheta = mCalibTrackTopologyPol->getMaxTanTheta();
-  if (tanTheta > maxTanTheta) {
-    tanTheta = maxTanTheta;
-  }
+  const float tanTheta = std::sqrt(tgl2 * sec2);
 
   const float z = std::abs(track.getParam(1));
   const float padTmp = cl.getPad();
   const float absRelPad = std::abs(padTmp - int(padTmp + 0.5f));
   const float relTime = cl.getTime() - int(cl.getTime() + 0.5f);
 
-  const float effectiveLength = (mChargeType == ChargeType::Max) ? mCalibTrackTopologyPol->getCorrectionqMax(region, tanTheta, snp, z, absRelPad, relTime) : mCalibTrackTopologyPol->getCorrectionqTot(region, tanTheta, snp, z, 3.5f /*dummy threshold for now*/, std::clamp(charge, mCalibTrackTopologyPol->getMinqTot(), mCalibTrackTopologyPol->getMaxqTot()));
+  const float effectiveLength = (mChargeType == ChargeType::Max) ? mCalibTrackTopologyPol->getCorrectionqMax(region, tanTheta, trackSnp, z, absRelPad, relTime) : mCalibTrackTopologyPol->getCorrectionqTot(region, tanTheta, trackSnp, z, 3.5f /*dummy threshold for now*/, charge);
   return effectiveLength;
 }
 

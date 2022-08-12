@@ -16,7 +16,7 @@
 #define ALICEO2_TPC_CALIBDEDXTRACKTOPOLOGYPOL_H_
 
 #include "GPUCommonRtypes.h"
-#include "MultivariatePolynomial.h"
+#include "NDPiecewisePolynomials.h"
 #include "GPUCommonDef.h"
 #include "FlatObject.h"
 #include "DataFormatsTPC/Defs.h"
@@ -30,27 +30,15 @@ namespace o2::tpc
 #if !defined(GPUCA_GPUCODE)
 /// simple struct to enable writing the MultivariatePolynomialCT to file
 struct CalibdEdxTrackTopologyPolContainer {
-  /// constructor
-  /// \param maxTheta maximum tanTheta for which the polynomials are valid
-  /// \param maxSinPhi maximum sinPhi for which the polynomials are valid
-  /// \param thresholdMin minimum zero supression threshold for which the polynomials are valid
-  /// \param thresholdMax maximum zero supression threshold for which the polynomials are valid
-  CalibdEdxTrackTopologyPolContainer(const float maxTheta, const float maxSinPhi, const float thresholdMin, const float thresholdMax, const float qTotMin, const float qTotMax) : mMaxTanTheta{maxTheta}, mMaxSinPhi{maxSinPhi}, mThresholdMin{thresholdMin}, mThresholdMax{thresholdMax}, mQTotMin{qTotMin}, mQTotMax{qTotMax} {};
 
-  /// for ROOT I/O
+  /// default constructor
   CalibdEdxTrackTopologyPolContainer() = default;
 
-  std::vector<gpu::MultivariatePolynomialContainer> mCalibPols{}; ///< parameters of the polynomial
-  float mMaxTanTheta{2.f};                                        ///< max tanTheta for which the correction is stored
-  float mMaxSinPhi{0.99f};                                        ///< max snp for which the correction is stored
-  float mThresholdMin{2.5f};                                      ///< min zero supression for which the correction is stored
-  float mThresholdMax{5};                                         ///< max zero supression for which the correction is stored
-  float mQTotMin{30};                                             ///< minimum qTot for which the correction is valid
-  float mQTotMax{200};                                            ///< maximum qTot for which the correction is valid
-  std::vector<float> mScalingFactorsqTot{};                       ///< value which is used to scale the result of the polynomial for qTot (can be used for normalization)
-  std::vector<float> mScalingFactorsqMax{};                       ///< value which is used to scale the result of the polynomial for qMax (can be used for normalization)
+  std::vector<gpu::NDPiecewisePolynomialContainer> mCalibPols{}; ///< parameters of the polynomial
+  std::vector<float> mScalingFactorsqTot{};                      ///< value which is used to scale the result of the polynomial for qTot (can be used for normalization)
+  std::vector<float> mScalingFactorsqMax{};                      ///< value which is used to scale the result of the polynomial for qMax (can be used for normalization)
 
-  ClassDefNV(CalibdEdxTrackTopologyPolContainer, 1);
+  ClassDefNV(CalibdEdxTrackTopologyPolContainer, 2);
 };
 #endif
 
@@ -96,7 +84,7 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// \param charge charge of the cluster
   GPUd() float getCorrectionqTot(const int region, const float tanTheta, const float sinPhi, const float z, const float threshold, const float charge) const
   {
-    const float x[]{z, tanTheta, sinPhi, threshold, charge};
+    float x[]{z, tanTheta, sinPhi, threshold, charge};
     const float corr = mScalingFactorsqTot[region] * mCalibPolsqTot[region].eval(x);
     return corr;
   }
@@ -110,7 +98,7 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// \param relTime relative time position of the track
   GPUd() float getCorrectionqMax(const int region, const float tanTheta, const float sinPhi, const float z, const float relPad, const float relTime) const
   {
-    const float x[]{z, tanTheta, sinPhi, relPad, relTime};
+    float x[]{z, tanTheta, sinPhi, relPad, relTime};
     const float corr = mScalingFactorsqMax[region] * mCalibPolsqMax[region].eval(x);
     return corr;
   }
@@ -119,25 +107,15 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// \param region region of the TPC
   /// \param charge correction for maximum or total charge
   /// \param x coordinates where the correction is evaluated
-  GPUd() float getCorrection(const int region, const ChargeType charge, const float x[/*inpXdim*/]) const { return (charge == ChargeType::Tot) ? mCalibPolsqTot[region].eval(x) : mCalibPolsqMax[region].eval(x); }
-
-  /// returns the maximum tanTheta for which the polynomials are valid
-  GPUd() float getMaxTanTheta() const { return mMaxTanTheta; };
-
-  /// returns the maximum sinPhi for which the polynomials are valid
-  GPUd() float getMaxSinPhi() const { return mMaxSinPhi; };
+  GPUd() float getCorrection(const int region, const ChargeType charge, float x[/*inpXdim*/]) const { return (charge == ChargeType::Tot) ? mCalibPolsqTot[region].eval(x) : mCalibPolsqMax[region].eval(x); }
 
   /// returns the minimum zero supression threshold for which the polynomials are valid
-  GPUd() float getMinThreshold() const { return mThresholdMin; };
+  /// \param region region of the TPC
+  GPUd() float getMinThreshold(const int region = 0) const { return mCalibPolsqTot[region].getXMin(3); };
 
   /// returns the maximum zero supression threshold for which the polynomials are valid
-  GPUd() float getMaxThreshold() const { return mThresholdMax; };
-
-  /// \return returns the the minimum qTot for which the polynomials are valid
-  GPUd() float getMinqTot() const { return mQTotMin; };
-
-  /// \return returns the the maximum qTot for which the polynomials are valid
-  GPUd() float getMaxqTot() const { return mQTotMax; };
+  /// \param region region of the TPC
+  GPUd() float getMaxThreshold(const int region = 0) const { return mCalibPolsqTot[region].getXMax(3); };
 
   /// \return returns the the scaling factors for the polynomials for qTot
   /// \param region region of the scaling factor
@@ -156,31 +134,7 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// \param region region of the TPC
   const auto& getPolyqMax(const int region) const { return mCalibPolsqMax[region]; }
 
-  /// set the maximum tanTheta for which the polynomials are valid
-  /// \param maxTanTheta maximum tanTheta
-  void setMaxTanTheta(const float maxTanTheta) { mMaxTanTheta = maxTanTheta; };
-
-  /// set the maximum sinPhi for which the polynomials are valid
-  /// \param maxSinPhi maximum sinPhi
-  void setMaxSinPhi(const float maxSinPhi) { mMaxSinPhi = maxSinPhi; };
-
-  /// set the the minimum zero supression threshold for which the polynomials are valid
-  /// \param thresholdMin minimum threshold
-  void setMinThreshold(const float thresholdMin) { mThresholdMin = thresholdMin; };
-
-  /// set the the maximum zero supression threshold for which the polynomials are valid
-  /// \param thresholdMax maximum threshold
-  void setMaxThreshold(const float thresholdMax) { mThresholdMax = thresholdMax; };
-
 #ifndef GPUCA_STANDALONE
-  /// set the the minimum qTot for which the polynomials are valid
-  /// \param qTotMin minimum qTot
-  void setMinqTot(const float qTotMin) { mQTotMin = qTotMin; };
-
-  /// set the the maximum qTot for which the polynomials are valid
-  /// \param qTotMax maximum qTot
-  void setMaxTot(const float qTotMax) { mQTotMax = qTotMax; };
-
   /// set the the scaling factors for the polynomials for qTot
   /// \param factor scaling factor
   /// \param region region of the scaling factor
@@ -194,7 +148,7 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// write a class object to the file
   /// \param outf file where the object will be written to
   /// \param name name of the object in the output file
-  void writeToFile(TFile& outf, const char* name) const;
+  void writeToFile(TFile& outf, const char* name = "CalibdEdxTrackTopologyPol") const;
 
   /// init parameters from CalibdEdxTrackTopologyPolContainer
   /// \param container container for the members
@@ -204,6 +158,11 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// \param fileName file where the object will be read from
   /// \param name name of the object in the output file
   void loadFromFile(const char* fileName, const char* name);
+
+  /// dump the correction to a tree for visualisation
+  /// \param nSamplingPoints number of sampling points per dimension
+  /// \param outName name of the output file
+  void dumpToTree(const unsigned int nSamplingPoints[/* Dim */], const char* outName = "track_topology_corr_debug.root") const;
 
   /// sets the polynomials from an input file. The names of the objects have to be the same as in the getPolyName() function
   /// \param inpf file where the polynomials are stored
@@ -240,17 +199,13 @@ class CalibdEdxTrackTopologyPol : public o2::gpu::FlatObject
   /// ================================================================================================
 
  private:
-  constexpr static int FFits{10};                                 ///< total number of fits: 10 regions * 2 charge types
-  o2::gpu::MultivariatePolynomial<5, 4> mCalibPolsqTot[FFits];    ///< polynomial objects storage for the polynomials for qTot
-  o2::gpu::MultivariatePolynomial<5, 4> mCalibPolsqMax[FFits];    ///< polynomial objects storage for the polynomials for qMax
-  float mMaxTanTheta{2.f};                                        ///< max tanTheta for which the correction is stored
-  float mMaxSinPhi{0.99f};                                        ///< max snp for which the correction is stored
-  float mThresholdMin{2.5f};                                      ///< min zero supression for which the correction is stored
-  float mThresholdMax{5};                                         ///< max zero supression for which the correction is stored
-  float mQTotMin{30};                                             ///< minimum qTot for which the correction is valid
-  float mQTotMax{200};                                            ///< maximum qTot for which the correction is valid
-  float mScalingFactorsqTot[FFits]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; ///< value which is used to scale the result of the polynomial for qTot (can be used for normalization)
-  float mScalingFactorsqMax[FFits]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; ///< value which is used to scale the result of the polynomial for qMax (can be used for normalization)
+  constexpr static int FFits{10};                                              ///< total number of fits: 10 regions * 2 charge types
+  constexpr static int FDim{5};                                                ///< dimensions of polynomials
+  constexpr static int FDegree{3};                                             ///< degree of polynomials
+  o2::gpu::NDPiecewisePolynomials<FDim, FDegree, false> mCalibPolsqTot[FFits]; ///< polynomial objects storage for the polynomials for qTot
+  o2::gpu::NDPiecewisePolynomials<FDim, FDegree, false> mCalibPolsqMax[FFits]; ///< polynomial objects storage for the polynomials for qMax
+  float mScalingFactorsqTot[FFits]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1};              ///< value which is used to scale the result of the polynomial for qTot (can be used for normalization)
+  float mScalingFactorsqMax[FFits]{1, 1, 1, 1, 1, 1, 1, 1, 1, 1};              ///< value which is used to scale the result of the polynomial for qMax (can be used for normalization)
 
 #if !defined(GPUCA_GPUCODE)
   void construct();
