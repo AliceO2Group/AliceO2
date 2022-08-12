@@ -25,13 +25,18 @@ using namespace o2::zdc::fastsim;
 //-------------------------------------------------NeuralFAstSimulation------------------------------------------------------
 
 NeuralFastSimulation::NeuralFastSimulation(const std::string& modelPath,
-                                           Ort::SessionOptions sessionOptions,
                                            OrtAllocatorType allocatorType,
                                            OrtMemType memoryType,
-                                           int64_t batchSize) : mSession(mEnv, modelPath.c_str(), sessionOptions),
-                                                                mMemoryInfo(Ort::MemoryInfo::CreateCpu(allocatorType, memoryType)),
-                                                                mBatchSize(batchSize)
+                                           int64_t batchSize) : mModelPath(modelPath), mSession(nullptr), mMemoryInfo(Ort::MemoryInfo::CreateCpu(allocatorType, memoryType)), mBatchSize(batchSize)
 {
+}
+
+void NeuralFastSimulation::initRunSession()
+{
+  // create the session object
+  Ort::SessionOptions options;
+  options.SetIntraOpNumThreads(1); // one thread since we might have multiple workers in parallel anyway
+  mSession = new Ort::Session(mEnv, mModelPath.c_str(), options);
   setInputOutputData();
 }
 
@@ -42,14 +47,14 @@ size_t NeuralFastSimulation::getBatchSize() const
 
 void NeuralFastSimulation::setInputOutputData()
 {
-  for (size_t i = 0; i < mSession.GetInputCount(); ++i) {
-    mInputNames.push_back(mSession.GetInputName(i, mAllocator));
+  for (size_t i = 0; i < mSession->GetInputCount(); ++i) {
+    mInputNames.push_back(mSession->GetInputName(i, mAllocator));
   }
-  for (size_t i = 0; i < mSession.GetInputCount(); ++i) {
-    mInputShapes.emplace_back(mSession.GetInputTypeInfo(i).GetTensorTypeAndShapeInfo().GetShape());
+  for (size_t i = 0; i < mSession->GetInputCount(); ++i) {
+    mInputShapes.emplace_back(mSession->GetInputTypeInfo(i).GetTensorTypeAndShapeInfo().GetShape());
   }
-  for (size_t i = 0; i < mSession.GetOutputCount(); ++i) {
-    mOutputNames.push_back(mSession.GetOutputName(i, mAllocator));
+  for (size_t i = 0; i < mSession->GetOutputCount(); ++i) {
+    mOutputNames.push_back(mSession->GetOutputName(i, mAllocator));
   }
 
   // Prevent negative values from being passed as tensor shape
@@ -73,12 +78,15 @@ void NeuralFastSimulation::setTensors(std::vector<std::vector<float>>& input)
 }
 
 //---------------------------------------------------------Conditional-------------------------------------------------------
-ConditionalModelSimulation::ConditionalModelSimulation(const std::string& modelPath, const int64_t batchSize) : NeuralFastSimulation(modelPath, Ort::SessionOptions{nullptr}, OrtDeviceAllocator, OrtMemTypeCPU, batchSize) {}
+ConditionalModelSimulation::ConditionalModelSimulation(const std::string& modelPath, const int64_t batchSize) : NeuralFastSimulation(modelPath, OrtDeviceAllocator, OrtMemTypeCPU, batchSize)
+{
+  initRunSession();
+}
 
 bool ConditionalModelSimulation::setInput(std::vector<std::vector<float>>& input)
 {
   // Checks if number of inputs matches
-  if (mSession.GetInputCount() != input.size()) {
+  if (mSession->GetInputCount() != input.size()) {
     return false;
   }
   setTensors(input);
@@ -88,12 +96,12 @@ bool ConditionalModelSimulation::setInput(std::vector<std::vector<float>>& input
 void ConditionalModelSimulation::run()
 {
   // Run simulation (single event) with default run options
-  mModelOutput = mSession.Run(Ort::RunOptions{nullptr},
-                              mInputNames.data(),
-                              mInputTensors.data(),
-                              mInputTensors.size(),
-                              mOutputNames.data(),
-                              mOutputNames.size());
+  mModelOutput = mSession->Run(Ort::RunOptions{nullptr},
+                               mInputNames.data(),
+                               mInputTensors.data(),
+                               mInputTensors.size(),
+                               mOutputNames.data(),
+                               mOutputNames.size());
   mInputTensors.clear();
 }
 
