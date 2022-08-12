@@ -105,8 +105,6 @@ class StrangenessTracker
   bool updateTrack(const ITSCluster& clus, o2::track::TrackParCov& track);
   bool matchDecayToITStrack(float decayR2, bool isCascade);
 
-
-
  protected:
   gsl::span<const o2::its::TrackITS> mInputITStracks; // input ITS tracks
   std::vector<int> mTracksIdxTable;                   // index table for ITS tracks
@@ -124,8 +122,8 @@ class StrangenessTracker
   std::vector<int> mITStrackRefVec;              // Ref to the ITS tracks
   std::vector<int> mDecayTrackRefVec;            // Ref to the Cascade and V0 files
 
-const StrangenessTrackingParamConfig* mStrParams = nullptr;
-  float mBz = -5;            // Magnetic field
+  const StrangenessTrackingParamConfig* mStrParams = nullptr;
+  float mBz = -5; // Magnetic field
 
   DCAFitter2 mFitterV0;    // optional DCA Fitter for recreating V0 with hypertriton mass hypothesis
   DCAFitter3 mFitter3Body; // optional DCA Fitter for final 3 Body refit

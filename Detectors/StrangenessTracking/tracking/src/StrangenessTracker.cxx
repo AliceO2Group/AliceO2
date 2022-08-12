@@ -57,13 +57,17 @@ void StrangenessTracker::initialise()
   }
   std::exclusive_scan(mTracksIdxTable.begin(), mTracksIdxTable.begin() + mUtils.mPhiBins * mUtils.mEtaBins, mTracksIdxTable.begin(), 0);
   mTracksIdxTable[mUtils.mPhiBins * mUtils.mEtaBins] = mSortedITStracks.size();
+
+  // create config param instance
+  mStrParams = &StrangenessTrackingParamConfig::Instance();
+
 }
 
 void StrangenessTracker::process()
 {
   // Loop over V0s
   for (int iV0{0}; iV0 < mInputV0tracks.size(); iV0++) {
-    LOG(info) << "Analysing V0: " << iV0 + 1 << "/" << mInputV0tracks.size();
+    LOG(debug) << "Analysing V0: " << iV0 + 1 << "/" << mInputV0tracks.size();
     auto& DecIndexRef = iV0;
     auto& v0 = mInputV0tracks[iV0];
     auto posTrack = v0.getProng(0);
