@@ -89,7 +89,7 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
   /// \param region region of the TPC
   /// \param chargeT type of the charge (qMax or qTot)
   /// \param x coordinates where the correction is evaluated
-  GPUd() float getTopologyCorrection(const int region, const ChargeType chargeT, const float x[]) const
+  GPUd() float getTopologyCorrection(const int region, const ChargeType chargeT, float x[]) const
   {
     return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getCorrection(region, chargeT, x) : (mCalibTrackTopologySpline ? mCalibTrackTopologySpline->getCorrection(region, chargeT, x) : getDefaultTopologyCorrection(x[0], x[1]));
   }
@@ -97,18 +97,6 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
   /// \return returns analytical default correction
   /// Correction corresponds to: "sqrt((dz/dx)^2 + (dy/dx)^2 + (dx/dx)^2) / padlength" simple track length correction (ToDo add division by pad length)
   GPUd() float getDefaultTopologyCorrection(const float tanTheta, const float sinPhi) const { return gpu::CAMath::Sqrt(tanTheta * tanTheta + 1 / (1 - sinPhi * sinPhi)); }
-
-  /// \return returns maximum tanTheta for which the topology correction is valid
-  GPUd() float getMaxTanThetaTopologyCorrection() const { return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getMaxTanTheta() : (mCalibTrackTopologySpline ? mCalibTrackTopologySpline->getMaxTanTheta() : 2); }
-
-  /// \return returns maximum sinPhi for which the topology correction is valid
-  GPUd() float getMaxSinPhiTopologyCorrection() const { return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getMaxSinPhi() : (mCalibTrackTopologySpline ? mCalibTrackTopologySpline->getMaxSinPhi() : 1); }
-
-  /// \return returns the the minimum qTot for which the polynomials are valid
-  GPUd() float getMinqTot() const { return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getMinqTot() : 0; };
-
-  /// \return returns the the maximum qTot for which the polynomials are valid
-  GPUd() float getMaxqTot() const { return mCalibTrackTopologyPol ? mCalibTrackTopologyPol->getMaxqTot() : 10000; };
 
 #if !defined(GPUCA_GPUCODE)
   /// \returns the minimum zero supression threshold for which the track topology correction is valid

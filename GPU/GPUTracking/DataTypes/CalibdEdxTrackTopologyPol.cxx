@@ -19,6 +19,21 @@
 
 using namespace o2::tpc;
 
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // code invisible on GPU and in the standalone compilation
+void CalibdEdxTrackTopologyPol::dumpToTree(const unsigned int nSamplingPoints[/* Dim */], const char* outName) const
+{
+  for (unsigned int i = 0; i < FFits; i++) {
+    const auto treename = getPolyName(i, ChargeType::Max);
+    mCalibPolsqMax[i].dumpToTree(nSamplingPoints, outName, treename.data(), false);
+  }
+
+  for (unsigned int i = 0; i < FFits; i++) {
+    const auto treename = getPolyName(i, ChargeType::Tot);
+    mCalibPolsqTot[i].dumpToTree(nSamplingPoints, outName, treename.data(), false);
+  }
+}
+#endif
+
 void CalibdEdxTrackTopologyPol::cloneFromObject(const CalibdEdxTrackTopologyPol& obj, char* newFlatBufferPtr)
 {
   const char* oldFlatBufferPtr = obj.mFlatBufferPtr;
@@ -33,13 +48,6 @@ void CalibdEdxTrackTopologyPol::cloneFromObject(const CalibdEdxTrackTopologyPol&
     char* buffer = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mCalibPolsqMax[i].getFlatBufferPtr());
     mCalibPolsqMax[i].cloneFromObject(obj.mCalibPolsqMax[i], buffer);
   }
-
-  mMaxTanTheta = obj.mMaxTanTheta;
-  mMaxSinPhi = obj.mMaxSinPhi;
-  mThresholdMin = obj.mThresholdMin;
-  mThresholdMax = obj.mThresholdMax;
-  mQTotMin = obj.mQTotMin;
-  mQTotMax = obj.mQTotMax;
 
   for (int i = 0; i < FFits; ++i) {
     mScalingFactorsqTot[i] = obj.mScalingFactorsqTot[i];
@@ -128,15 +136,26 @@ void CalibdEdxTrackTopologyPol::construct()
 void CalibdEdxTrackTopologyPol::setDefaultPolynomials()
 {
   for (int i = 0; i < FFits; ++i) {
-    mCalibPolsqTot[i].setParam(0, 1);
-    mCalibPolsqMax[i].setParam(0, 1);
+    const unsigned int n[FDim]{6, 5, 5, 5, 5};
+
+    //                        z tan(theta) sin(phi) |relPad| relTime
+    const float minqMax[FDim]{0, 0, 0, 0, -0.5f};
+    const float maxqMax[FDim]{250, 1.5, 0.9, 0.5f, 0.5f};
+    mCalibPolsqMax[i].init(minqMax, maxqMax, n);
+    mCalibPolsqMax[i].setDefault();
+
+    //                        z tan(theta) sin(phi) threshold <qTot>
+    const float minqTot[FDim]{0, 0, 0, 2, 30};
+    const float maxqTot[FDim]{250, 1.5, 0.9, 5, 200};
+    mCalibPolsqTot[i].init(minqTot, maxqTot, n);
+    mCalibPolsqTot[i].setDefault();
   }
   construct();
 }
 
 void CalibdEdxTrackTopologyPol::writeToFile(TFile& outf, const char* name) const
 {
-  CalibdEdxTrackTopologyPolContainer cont(mMaxTanTheta, mMaxSinPhi, mThresholdMin, mThresholdMax, mQTotMin, mQTotMax);
+  CalibdEdxTrackTopologyPolContainer cont;
   cont.mCalibPols.reserve(FFits);
 
   for (const auto& par : mCalibPolsqTot) {
@@ -178,13 +197,6 @@ void CalibdEdxTrackTopologyPol::setFromContainer(const CalibdEdxTrackTopologyPol
   for (int i = 0; i < FFits; ++i) {
     mCalibPolsqMax[i].setFromContainer(container.mCalibPols[FFits + i]);
   }
-
-  mMaxTanTheta = container.mMaxTanTheta;
-  mMaxSinPhi = container.mMaxSinPhi;
-  mThresholdMin = container.mThresholdMin;
-  mThresholdMax = container.mThresholdMax;
-  mQTotMin = container.mQTotMin;
-  mQTotMax = container.mQTotMax;
 
   for (int i = 0; i < FFits; ++i) {
     mScalingFactorsqTot[i] = container.mScalingFactorsqTot[i];
