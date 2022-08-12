@@ -21,6 +21,7 @@
 #include "TPCWorkflow/TPCDistributeIDCSpec.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "Framework/CompletionPolicyHelpers.h"
 
 #include <boost/throw_exception.hpp>
 #include "Framework/DataRefUtils.h"
@@ -38,8 +39,7 @@ using namespace o2::framework;
     LOG(fatal) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
-DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std::vector<uint32_t>& crus, const bool slowgen, const bool delay, const bool loadFromFile, const int dropTFsRandom, const std::vector<int>& rangeTFsDrop);
-DataProcessorSpec ftAggregatorIDC(const unsigned int nFourierCoefficients, const unsigned int rangeIDC, const unsigned int maxTFs, const bool debug);
+DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std::vector<uint32_t>& crus, const bool delay, const bool loadFromFile, const int dropTFsRandom, const std::vector<int>& rangeTFsDrop);
 DataProcessorSpec receiveFourierCoeffEPN(const unsigned int maxTFs, const unsigned int nFourierCoefficients);
 DataProcessorSpec compare_EPN_AGG();
 static constexpr o2::header::DataDescription getDataDescriptionCoeffEPN() { return o2::header::DataDescription{"COEFFEPNALL"}; }
@@ -57,7 +57,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"use-naive-fft", VariantType::Bool, false, {"using naive fourier transform (true) or FFTW (false)"}},
     {"seed", VariantType::Int, 0, {"Seed for the random IDC generator."}},
     {"only-idc-gen", VariantType::Bool, false, {"Start only the IDC generator device"}},
-    {"fast-gen", VariantType::Bool, false, {"fast generation of IDCs by setting fixed IDC value"}},
     {"load-from-file", VariantType::Bool, false, {"load from file"}},
     {"debug", VariantType::Bool, false, {"create debug for FT"}},
     {"idc-gen-lanes", VariantType::Int, 1, {"number of parallel lanes for generation of IDCs"}},
@@ -66,7 +65,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"dropTFsRandom", VariantType::Int, 0, {"Drop randomly whole TFs every dropTFsRandom TFs (for all CRUs)"}},
     {"dropTFsRange", VariantType::String, "", {"Drop range of TFs"}},
     {"hbfutils-config", VariantType::String, "hbfutils", {"config file for HBFUtils (or none) to get number of orbits per TF"}},
-    {"nthreads", VariantType::Int, 1, {"Number of threads."}}};
+    {"nthreads", VariantType::Int, 1, {"Number of threads."}},
+    {"iter", VariantType::Int, 0, {"Iteration for testing the workflow (.....)"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -74,6 +74,12 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
   o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
+}
+
+void customize(std::vector<o2::framework::CompletionPolicy>& policies)
+{
+  using o2::framework::CompletionPolicy;
+  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-factorize-idc.*", CompletionPolicy::CompletionOp::Consume));
 }
 
 #include "Framework/runDataProcessing.h"
@@ -90,6 +96,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   const auto iondrifttime = static_cast<unsigned int>(config.options().get<int>("ion-drift-time"));
   const auto nFourierCoefficients = std::clamp(static_cast<unsigned int>(config.options().get<int>("nFourierCoeff")), static_cast<unsigned int>(0), iondrifttime + 2);
   const auto nthreads = static_cast<unsigned int>(config.options().get<int>("nthreads"));
+  const auto iter = static_cast<unsigned int>(config.options().get<int>("iter"));
   const auto seed = static_cast<unsigned int>(config.options().get<int>("seed"));
   const auto idcgenlanes = static_cast<unsigned int>(config.options().get<int>("idc-gen-lanes"));
   const auto idcgentimelanes = static_cast<unsigned int>(config.options().get<int>("idc-gen-time-lanes"));
@@ -97,13 +104,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   const bool fft = config.options().get<bool>("use-naive-fft");
   const bool onlyIDCGen = config.options().get<bool>("only-idc-gen");
-  const bool fastgen = config.options().get<bool>("fast-gen");
   const bool debugFT = config.options().get<bool>("debug");
   const int dropTFsRandom = config.options().get<int>("dropTFsRandom");
 
   const unsigned int firstTF = 0;
   const unsigned int nLanes = 1;
-  const bool loadFromFile = false;
   const bool loadFromFileGen = config.options().get<bool>("load-from-file");
   gRandom->SetSeed(seed);
 
@@ -116,7 +121,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     }
     const auto last = std::min(tpcCRUs.end(), first + crusPerLane);
     const std::vector<uint32_t> rangeCRUs(first, last);
-    workflow.emplace_back(timePipeline(generateIDCsCRU(ilane, timeframes, rangeCRUs, fastgen, delay, loadFromFileGen, dropTFsRandom, rangeTFsDrop), idcgentimelanes));
+    workflow.emplace_back(timePipeline(generateIDCsCRU(ilane, timeframes, rangeCRUs, delay, loadFromFileGen, dropTFsRandom, rangeTFsDrop), idcgentimelanes));
   }
 
   auto& hbfu = o2::raw::HBFUtils::Instance();
@@ -128,9 +133,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     return workflow;
   }
 
-  auto workflowTmp = WorkflowSpec{getTPCFLPIDCSpec(0, crus, iondrifttime, debugFT, false, "", true, false), getTPCFourierTransformEPNSpec(crus, iondrifttime, nFourierCoefficients, debugFT), getTPCDistributeIDCSpec(0, crus, timeframes, nLanes, firstTF, loadFromFile), ftAggregatorIDC(nFourierCoefficients, iondrifttime, timeframes, debugFT), receiveFourierCoeffEPN(timeframes, nFourierCoefficients), compare_EPN_AGG()};
-  for (auto& spec : workflowTmp) {
-    workflow.emplace_back(spec);
+  if (iter == 0) {
+    auto workflowTmp = WorkflowSpec{getTPCFLPIDCSpec(0, crus, iondrifttime, false, "", true, false), getTPCDistributeIDCSpec(0, crus, timeframes, nLanes, firstTF, false), getTPCFactorizeIDCSpec(0, crus, timeframes, timeframes, o2::tpc::IDCDeltaCompression::NO, false, true, false)};
+    for (auto& spec : workflowTmp) {
+      workflow.emplace_back(spec);
+    }
+  } else if (iter == 1) {
+    const Side side = CRU(crus.front()).side();
+    const std::string idc0File = (side == Side::A) ? fmt::format("IDCZero_A_{:02}.root", timeframes - 1) : fmt::format("IDCZero_C_{:02}.root", timeframes - 1);
+    auto workflowTmp = WorkflowSpec{getTPCFLPIDCSpec(0, crus, iondrifttime, false, idc0File.data(), true, true), getTPCFourierTransformEPNSpec(crus, iondrifttime, nFourierCoefficients), getTPCDistributeIDCSpec(0, crus, timeframes, nLanes, firstTF, false), getTPCFactorizeIDCSpec(0, crus, timeframes, timeframes, o2::tpc::IDCDeltaCompression::NO, false, true, false), getTPCFourierTransformAggregatorSpec(iondrifttime, nFourierCoefficients, true, false, nLanes), receiveFourierCoeffEPN(timeframes, nFourierCoefficients), compare_EPN_AGG()};
+    for (auto& spec : workflowTmp) {
+      workflow.emplace_back(spec);
+    }
   }
 
   IDCAverageGroup<IDCAverageGroupTPC>::setNThreads(nthreads);
@@ -140,7 +154,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   return workflow;
 }
 
-DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std::vector<uint32_t>& crus, const bool fastgen, const bool delay, const bool loadFromFile, const int dropTFsRandom, const std::vector<int>& rangeTFsDrop)
+DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std::vector<uint32_t>& crus, const bool delay, const bool loadFromFile, const int dropTFsRandom, const std::vector<int>& rangeTFsDrop)
 {
   using timer = std::chrono::high_resolution_clock;
 
@@ -178,8 +192,8 @@ DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std
     Inputs{},
     outputSpecs,
     AlgorithmSpec{
-      [maxTFs, fastgen, nIDCs, delay, cruStart = crus.front(), cruEnde = crus.back(), mIDCs, dropTFsRandom, rangeTFsDrop](ProcessingContext& ctx) {
-        const auto tf = ctx.services().get<o2::framework::TimingInfo>().tfCounter;
+      [maxTFs, nIDCs, delay, cruStart = crus.front(), cruEnde = crus.back(), mIDCs, dropTFsRandom, rangeTFsDrop](ProcessingContext& ctx) {
+        const auto tf = processing_helpers::getCurrentTF(ctx);
 
         if (!rangeTFsDrop.empty()) {
           if (tf >= rangeTFsDrop.front() && tf <= rangeTFsDrop.back()) {
@@ -196,48 +210,37 @@ DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std
         auto start = timer::now();
         const unsigned int additionalInterval = (tf % 3) ? 1 : 0; // in each integration inerval are either 10 or 11 values when having 128 orbits per TF and 12 orbits integration length
         const unsigned int intervals = (nIDCs + additionalInterval);
+        const bool generateIDCs = mIDCs.front().empty();
 
         std::vector<int> intervalsRand;
         std::vector<float> normFac;
-        if (!mIDCs.front().empty()) {
-          const int nIntervalsMax = mIDCs[0].size() / o2::tpc::Mapper::PADSPERREGION[0];
-          const float globalScaling = gRandom->Gaus(1, 0.2);
-          for (int i = 0; i < intervals; ++i) {
-            intervalsRand.emplace_back(gRandom->Integer(nIntervalsMax));
-            normFac.emplace_back(globalScaling + gRandom->Gaus(1, 0.02));
-          }
+        intervalsRand.reserve(intervals);
+        normFac.reserve(intervals);
+        const int nIntervalsMax = generateIDCs ? intervals : (mIDCs[0].size() / o2::tpc::Mapper::PADSPERREGION[0]);
+        const float globalScaling = gRandom->Gaus(1, 0.2);
+        for (int i = 0; i < intervals; ++i) {
+          intervalsRand.emplace_back(gRandom->Integer(nIntervalsMax));
+          normFac.emplace_back(globalScaling + gRandom->Gaus(1, 0.02));
         }
 
         for (uint32_t icru = cruStart; icru <= cruEnde; ++icru) {
           o2::tpc::CRU cruTmp(icru);
           const unsigned int nPads = o2::tpc::Mapper::PADSPERREGION[cruTmp.region()];
-          if (mIDCs.front().empty()) {
-            // generate random IDCs per CRU
-            const unsigned int nTotIDCs = intervals * nPads;
-            if (!fastgen) {
-              o2::pmr::vector<float> idcs;
-              idcs.reserve(nTotIDCs);
-              for (int i = 0; i < nTotIDCs; ++i) {
-                idcs.emplace_back(gRandom->Gaus(1000, 20));
-              }
-              ctx.outputs().adoptContainer(Output{gDataOriginTPC, TPCIntegrateIDCDevice::getDataDescription(TPCIntegrateIDCDevice::IDCFormat::Sim), o2::header::DataHeader::SubSpecificationType{icru << 7}, Lifetime::Timeframe}, std::move(idcs));
-            } else {
-              o2::pmr::vector<float> idcs(nTotIDCs, 1000.);
-              ctx.outputs().adoptContainer(Output{gDataOriginTPC, TPCIntegrateIDCDevice::getDataDescription(TPCIntegrateIDCDevice::IDCFormat::Sim), o2::header::DataHeader::SubSpecificationType{icru << 7}, Lifetime::Timeframe}, std::move(idcs));
-            }
-          } else {
-            const int cru = (icru + tf * 10) % 360;
-            o2::pmr::vector<float> idcs;
-            idcs.reserve(mIDCs[cru].size());
-            const int nIntervals = intervalsRand.size();
-            for (int interval = 0; interval < nIntervals; ++interval) {
-              const int offset = intervalsRand[interval] * nPads;
-              for (int iPad = 0; iPad < nPads; ++iPad) {
+          const int cru = (icru + tf * Mapper::NREGIONS) % o2::tpc::CRU::MaxCRU; // shuffle CRUs
+          o2::pmr::vector<float> idcs;
+          idcs.reserve(generateIDCs ? o2::tpc::Mapper::PADSPERREGION[cruTmp.region()] : mIDCs[cru].size());
+          const int nIntervals = intervalsRand.size();
+          for (int interval = 0; interval < nIntervals; ++interval) {
+            const int offset = intervalsRand[interval] * nPads;
+            for (int iPad = 0; iPad < nPads; ++iPad) {
+              if (generateIDCs) {
+                idcs.emplace_back(gRandom->Gaus(1000, 20) / normFac[interval]);
+              } else {
                 idcs.emplace_back(mIDCs[cru][offset + iPad] / normFac[interval]);
               }
             }
-            ctx.outputs().adoptContainer(Output{gDataOriginTPC, TPCIntegrateIDCDevice::getDataDescription(TPCIntegrateIDCDevice::IDCFormat::Sim), o2::header::DataHeader::SubSpecificationType{icru << 7}, Lifetime::Timeframe}, std::move(idcs));
           }
+          ctx.outputs().adoptContainer(Output{gDataOriginTPC, TPCIntegrateIDCDevice::getDataDescription(TPCIntegrateIDCDevice::IDCFormat::Sim), o2::header::DataHeader::SubSpecificationType{icru << 7}, Lifetime::Timeframe}, std::move(idcs));
         }
 
         if (delay) {
@@ -257,18 +260,6 @@ DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std
       }}};
 }
 
-DataProcessorSpec ftAggregatorIDC(const unsigned int nFourierCoefficients, const unsigned int rangeIDC, const unsigned int maxTFs, const bool debug)
-{
-  std::vector<ConfigParamSpec> options{
-    {"ccdb-uri", VariantType::String, "", {"URI for the CCDB access."}},
-    {"update-not-grouping-parameter", VariantType::Bool, true, {"Do NOT Update/Writing grouping parameters to CCDB."}}};
-
-  auto spec = getTPCFourierTransformAggregatorSpec(maxTFs, rangeIDC, nFourierCoefficients, debug, true);
-  std::swap(spec.options, options);
-
-  return spec;
-}
-
 class TPCReceiveEPNSpec : public o2::framework::Task
 {
   /// device for receiving and aggregating fourier coefficients from EPN device
@@ -277,16 +268,14 @@ class TPCReceiveEPNSpec : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& ctx) final
   {
-    const auto& tinfo = ctx.services().get<o2::framework::TimingInfo>();
-    for (int i = 0; i < o2::tpc::SIDES; ++i) {
-      const DataRef ref = ctx.inputs().getByPos(i);
+    const auto tf = processing_helpers::getCurrentTF(ctx);
+
+    for (auto const& ref : InputRecordWalker(ctx.inputs(), mFilter)) {
       auto const* tpcFourierCoeffHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       const int side = tpcFourierCoeffHeader->subSpecification;
-      const auto tf = tinfo.tfCounter;
       mFourierCoeffEPN[tf].mFourierCoefficients = ctx.inputs().get<std::vector<float>>(ref);
     }
 
-    const auto tf = tinfo.tfCounter;
     if (tf == mMaxTF) {
       ctx.outputs().snapshot(Output{gDataOriginTPC, getDataDescriptionCoeffEPN()}, mFourierCoeffEPN);
     }
@@ -295,6 +284,7 @@ class TPCReceiveEPNSpec : public o2::framework::Task
  private:
   std::vector<o2::tpc::FourierCoeff> mFourierCoeffEPN; ///< one set of fourier coefficients per TF
   const unsigned int mMaxTF{};                         ///< max TF when aggregator will send data
+  const std::vector<InputSpec> mFilter = {{"coeffEPN", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFourierTransformEPNSpec::getDataDescription()}, Lifetime::Sporadic}};
 };
 
 class TPCCompareFourierCoeffSpec : public o2::framework::Task
@@ -306,14 +296,11 @@ class TPCCompareFourierCoeffSpec : public o2::framework::Task
     LOGP(info, "==== Comparing Fourier coefficients for EPN and Aggregator... ====");
     const auto fourierCoeffAgg = ctx.inputs().get<FourierCoeff*>(ctx.inputs().get("coeffAgg"));
     const std::vector<o2::tpc::FourierCoeff> fourierCoeffEPN = ctx.inputs().get<std::vector<o2::tpc::FourierCoeff>>(ctx.inputs().get("coeffEPN"));
-    for (int iside = 0; iside < o2::tpc::SIDES; ++iside) {
-      const o2::tpc::Side side = iside == 0 ? o2::tpc::Side::A : o2::tpc::Side::C;
-      for (int tf = 0; tf < fourierCoeffEPN.size(); ++tf) {
-        for (int i = 0; i < fourierCoeffEPN[tf].getNCoefficientsPerTF(); ++i) {
-          const float epnval = fourierCoeffEPN[tf](i);
-          const float aggval = (*fourierCoeffAgg)(fourierCoeffAgg->getIndex(tf, i));
-          ASSERT_ERROR((std::abs(std::min(epnval, aggval)) < 1.f) ? isSameZero(epnval, aggval) : isSame(epnval, aggval));
-        }
+    for (int tf = 0; tf < fourierCoeffEPN.size(); ++tf) {
+      for (int i = 0; i < fourierCoeffEPN[tf].getNCoefficientsPerTF(); ++i) {
+        const float epnval = fourierCoeffEPN[tf](i);
+        const float aggval = (*fourierCoeffAgg)(fourierCoeffAgg->getIndex(tf, i));
+        ASSERT_ERROR((std::abs(std::min(epnval, aggval)) < 1.f) ? isSameZero(epnval, aggval) : isSame(epnval, aggval));
       }
     }
     LOGP(info, "==== Test finished successfull! Fourier coefficients for EPN and Aggregator are equal. ====");
@@ -330,12 +317,8 @@ class TPCCompareFourierCoeffSpec : public o2::framework::Task
 
 DataProcessorSpec receiveFourierCoeffEPN(const unsigned int maxTFs, const unsigned int nFourierCoefficients)
 {
-  // generate IDCs per CRU
-  std::vector<InputSpec> inputSpecs;
-  inputSpecs.emplace_back(InputSpec{"coeffAEPN", gDataOriginTPC, TPCFourierTransformEPNSpec::getDataDescription(), o2::header::DataHeader::SubSpecificationType{o2::tpc::Side::A}, Lifetime::Timeframe});
-  inputSpecs.emplace_back(InputSpec{"coeffCEPN", gDataOriginTPC, TPCFourierTransformEPNSpec::getDataDescription(), o2::header::DataHeader::SubSpecificationType{o2::tpc::Side::C}, Lifetime::Timeframe});
+  std::vector<InputSpec> inputSpecs{{"coeffEPN", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFourierTransformEPNSpec::getDataDescription()}, Lifetime::Sporadic}};
   std::vector<OutputSpec> outputSpecs{ConcreteDataTypeMatcher{gDataOriginTPC, getDataDescriptionCoeffEPN()}};
-
   return DataProcessorSpec{
     "idc-fouriercoeff-epn",
     inputSpecs,
@@ -346,11 +329,9 @@ DataProcessorSpec receiveFourierCoeffEPN(const unsigned int maxTFs, const unsign
 
 DataProcessorSpec compare_EPN_AGG()
 {
-  // generate IDCs per CRU
   std::vector<InputSpec> inputSpecs;
   inputSpecs.emplace_back(InputSpec("coeffEPN", ConcreteDataTypeMatcher{gDataOriginTPC, getDataDescriptionCoeffEPN()}));
   inputSpecs.emplace_back(InputSpec("coeffAgg", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFourierTransformAggregatorSpec::getDataDescriptionFourier()}));
-
   return DataProcessorSpec{
     "idc-fouriercoeff-compare",
     inputSpecs,

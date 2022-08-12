@@ -267,6 +267,12 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \param outName name of the object in the output file
   void dumpToFile(const char* outFileName = "IDCFactorized.root", const char* outName = "IDCFactorized") const;
 
+  /// dump the IDC0 to file
+  void dumpIDCZeroToFile(const Side side, const char* outFileName = "IDCZero.root", const char* outName = "IDC0") const;
+
+  /// dump the IDC1 to file
+  void dumpIDCOneToFile(const Side side, const char* outFileName = "IDCOne.root", const char* outName = "IDC1") const;
+
   /// \param integrationIntervals number of integration intervals which will be dumped to the tree (-1: all integration intervalls)
   /// \param outFileName name of the output file
   void dumpToTree(int integrationIntervals = -1, const char* outFileName = "IDCTree.root") const;
@@ -313,6 +319,9 @@ class IDCFactorization : public IDCGroupHelperSector
 
   /// \return returns unique_ptr to pad status map
   std::unique_ptr<CalDet<PadFlags>> getPadStatusMap() { return std::move(mPadFlagsMap); }
+
+  /// \return returns TPC sides for which the factorization is performed
+  const std::vector<Side>& getSides() const { return mSides; }
 
  private:
   const unsigned int mTimeFrames{};                                 ///< number of timeframes which are stored

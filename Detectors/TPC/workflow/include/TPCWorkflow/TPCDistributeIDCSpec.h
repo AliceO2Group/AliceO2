@@ -47,7 +47,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   {
     // pre calculate data description for output
     mDataDescrOut.reserve(mOutLanes);
-    for (int i = 0; i < mOutLanes; ++i) {
+    for (unsigned int i = 0; i < mOutLanes; ++i) {
       mDataDescrOut.emplace_back(getDataDescriptionIDC(i));
     }
 
@@ -108,7 +108,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
     // automatically detect firstTF in case firstTF was not specified
     if (mTFStart.front() <= -1) {
       const auto firstTF = tf;
-      const int offsetTF = std::abs(mTFStart.front() + 1);
+      const long offsetTF = std::abs(mTFStart.front() + 1);
       mTFStart = {firstTF + offsetTF, firstTF + offsetTF + mTimeFrames};
       mTFEnd = {mTFStart[1] - 1, mTFStart[1] - 1 + mTimeFrames};
       LOGP(info, "Setting {} as first TF", mTFStart[0]);
@@ -123,7 +123,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
     }
 
     const unsigned int currentOutLane = getOutLane(tf);
-    const auto relTF = tf - mTFStart[currentBuffer];
+    const unsigned int relTF = tf - mTFStart[currentBuffer];
     LOGP(info, "current TF: {}   relative TF: {}    current buffer: {}    current output lane: {}     mTFStart: {}", tf, relTF, currentBuffer, currentOutLane, mTFStart[currentBuffer]);
 
     if (relTF >= mProcessedCRU[currentBuffer].size()) {
@@ -152,7 +152,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
 
     for (auto& ref : InputRecordWalker(pc.inputs(), mFilter)) {
       auto const* tpcCRUHeader = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      const int cru = tpcCRUHeader->subSpecification >> 7;
+      const unsigned int cru = tpcCRUHeader->subSpecification >> 7;
 
       // check if cru is specified in input cru list
       if (!(std::binary_search(mCRUs.begin(), mCRUs.end(), cru))) {
@@ -193,7 +193,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final { ec.services().get<ControlService>().readyToQuit(QuitRequest::Me); }
 
   /// return data description for aggregated IDCs for given lane
-  static header::DataDescription getDataDescriptionIDC(const int lane)
+  static header::DataDescription getDataDescriptionIDC(const unsigned int lane)
   {
     const std::string name = fmt::format("IDCAGG{}", lane).data();
     header::DataDescription description;
@@ -257,7 +257,7 @@ class TPCDistributeIDCSpec : public o2::framework::Task
     mCurrentOutLane = ++mCurrentOutLane % mOutLanes;
   }
 
-  void checkIntervalsForMissingData(o2::framework::ProcessingContext& pc, const bool currentBuffer, const int relTF, const int currentOutLane, const uint32_t tf)
+  void checkIntervalsForMissingData(o2::framework::ProcessingContext& pc, const bool currentBuffer, const long relTF, const unsigned int currentOutLane, const uint32_t tf)
   {
     if (!(mProcessedTotalData++ % mCheckEveryNData)) {
       LOGP(info, "Checking for dropped packages...");

@@ -166,18 +166,19 @@ if [[ $AGGREGATOR_TASKS == BARREL_SPORADIC ]] || [[ $AGGREGATOR_TASKS == ALL ]];
 fi
 
 # TPC IDCs
-firstCRU=0
-lastCRU=179
-crus="$firstCRU-$lastCRU"
-lanes=1
-lanesDistribute=1
+crus="0-359"
+if [[ $AGGREGATOR_TASKS == TPCIDC_A ]]; then
+  crus="0-179"
+elif [[ $AGGREGATOR_TASKS == TPCIDC_C ]]; then
+  crus="180-359"
+fi
 lanesFactorize=6
-nTFs=500
+nTFs=1000
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR && [[ $CALIB_TPC_IDC == 1 ]] && [[ $AGGREGATOR_TASKS == TPCIDC_A || $AGGREGATOR_TASKS == TPCIDC_C || $AGGREGATOR_TASKS == ALL ]]; then
-  add_W o2-tpc-idc-distribute "--crus ${crus} --timeframes ${nTFs} --firstTF -100 true --lanes ${lanesDistribute} --output-lanes ${lanesFactorize} --nFactorTFs 100"
-  add_W o2-tpc-idc-factorize "--lanesDistribute ${lanesDistribute} --input-lanes ${lanesFactorize} --crus ${crus} --timeframes ${nTFs} --configFile '' --compression 2 --nthreads-grouping 8 --nthreads-IDC-factorization 8 --groupPads \"5,6,7,8,4,5,6,8,10,13\" --groupRows \"2,2,2,3,3,3,2,2,2,2\" --sendOutputFFT true --nTFsMessage 500 --enable-CCDB-output true --enablePadStatusMap" "TPCIDCGroupParam.groupPadsSectorEdges=32211"
-  add_W o2-tpc-idc-ft-aggregator "--rangeIDC 200 --inputLanes ${lanesFactorize} --nFourierCoeff 40 --timeframes ${nTFs} --nthreads 8"
+  add_W o2-tpc-idc-distribute "--crus ${crus} --timeframes ${nTFs} --firstTF -100 --output-lanes ${lanesFactorize} --send-precise-timestamp true --condition-tf-per-query ${nTFs}"
+  add_W o2-tpc-idc-factorize "--input-lanes ${lanesFactorize} --crus ${crus} --timeframes ${nTFs} --nthreads-grouping 8 --nthreads-IDC-factorization 8 --sendOutputFFT true --nTFsMessage 500 --enable-CCDB-output true --enablePadStatusMap true --use-precise-timestamp true" "TPCIDCGroupParam.groupPadsSectorEdges=32211"
+  add_W o2-tpc-idc-ft-aggregator "--rangeIDC 200 --inputLanes ${lanesFactorize} --nFourierCoeff 40 --nthreads 8"
 fi
 
 # Calo cal
