@@ -101,7 +101,7 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalGas, "TPC/Calib/Gas"},
   {CDBType::CalTemperature, "TPC/Calib/Temperature"},
   {CDBType::CalHV, "TPC/Calib/HV"},
-  {CDBType::CalTopologyGain, "TPC/Calib/TopologyGain"},
+  {CDBType::CalTopologyGain, "TPC/Calib/TopologyGainPiecewise"},
   {CDBType::CalVDriftTgl, "TPC/Calib/VDriftTgl"},
   //
   {CDBType::ConfigFEEPad, "TPC/Config/FEEPad"},
