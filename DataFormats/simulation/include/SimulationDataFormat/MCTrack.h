@@ -19,7 +19,7 @@
 #include "SimulationDataFormat/ParticleStatus.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Rtypes.h"
-#include "TDatabasePDG.h"
+#include "SimulationDataFormat/O2DatabasePDG.h"
 #include "TLorentzVector.h"
 #include "TMCProcess.h"
 #include "TMath.h"
@@ -29,6 +29,12 @@
 
 namespace o2
 {
+
+namespace MCTrackHelper
+{
+void printMassError(int pdg);
+};
+
 /// Data class for storing Monte Carlo tracks processed by the Stack.
 /// An MCTrack can be a primary track put into the simulation or a
 /// secondary one produced by the transport through decay or interaction.
@@ -73,6 +79,8 @@ class MCTrackT
   Double_t GetStartVertexCoordinatesY() const { return mStartVertexCoordinatesY; }
   Double_t GetStartVertexCoordinatesZ() const { return mStartVertexCoordinatesZ; }
   Double_t GetStartVertexCoordinatesT() const { return mStartVertexCoordinatesT; }
+
+  /// return mass from PDG Database if known (print message in case cannot look up)
   Double_t GetMass() const;
 
   Double_t GetEnergy() const;
@@ -363,15 +371,15 @@ inline void MCTrackT<T>::Print(Int_t trackId) const
 template <typename T>
 inline Double_t MCTrackT<T>::GetMass() const
 {
-  if (TDatabasePDG::Instance()) {
-    TParticlePDG* particle = TDatabasePDG::Instance()->GetParticle(mPdgCode);
+  TDatabasePDG* pdgdb = O2DatabasePDG::Instance();
+  if (pdgdb) {
+    auto particle = pdgdb->GetParticle(mPdgCode);
     if (particle) {
       return particle->Mass();
-    } else {
-      return 0.;
     }
   }
-  return 0.;
+  MCTrackHelper::printMassError(mPdgCode);
+  return 0; // coming here is a mistake which should not happen
 }
 
 template <typename T>
