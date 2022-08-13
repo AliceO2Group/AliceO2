@@ -11,7 +11,9 @@
 #ifndef O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 #define O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 
+#ifndef DPL_CUSTOM_DATA_MODEL
 #include "Framework/ASoA.h"
+#endif
 #include "MathUtils/Utils.h"
 #include <cmath>
 #include "Framework/DataTypes.h"

@@ -19,6 +19,10 @@ add_subdirectory(Utils)
 
 add_subdirectory(AnalysisSupport) 
 
+if (TARGET Python::Interpreter)
+add_subdirectory(PythonSupport) 
+endif()
+
 # Build the GUI support only if we have DebugGUI
 if (TARGET AliceO2::DebugGUI)
 add_subdirectory(GUISupport) 
