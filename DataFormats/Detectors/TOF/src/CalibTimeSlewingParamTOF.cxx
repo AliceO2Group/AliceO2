@@ -35,6 +35,16 @@ float CalibTimeSlewingParamTOF::getChannelOffset(int channel) const
 {
   return evalTimeSlewing(channel, 0);
 }
+
+//______________________________________________
+void CalibTimeSlewingParamTOF::setChannelOffset(int channel, float val)
+{
+  int sector = channel / NCHANNELXSECTOR;
+  channel = channel % NCHANNELXSECTOR;
+
+  (*(mGlobalOffset[sector]))[channel] = val;
+}
+//______________________________________________
 void CalibTimeSlewingParamTOF::bind()
 {
   mGlobalOffset[0] = &mGlobalOffsetSec0;
@@ -55,12 +65,87 @@ void CalibTimeSlewingParamTOF::bind()
   mGlobalOffset[15] = &mGlobalOffsetSec15;
   mGlobalOffset[16] = &mGlobalOffsetSec16;
   mGlobalOffset[17] = &mGlobalOffsetSec17;
+
+  mChannelStart[0] = &mChannelStartSec0;
+  mChannelStart[1] = &mChannelStartSec1;
+  mChannelStart[2] = &mChannelStartSec2;
+  mChannelStart[3] = &mChannelStartSec3;
+  mChannelStart[4] = &mChannelStartSec4;
+  mChannelStart[5] = &mChannelStartSec5;
+  mChannelStart[6] = &mChannelStartSec6;
+  mChannelStart[7] = &mChannelStartSec7;
+  mChannelStart[8] = &mChannelStartSec8;
+  mChannelStart[9] = &mChannelStartSec9;
+  mChannelStart[10] = &mChannelStartSec10;
+  mChannelStart[11] = &mChannelStartSec11;
+  mChannelStart[12] = &mChannelStartSec12;
+  mChannelStart[13] = &mChannelStartSec13;
+  mChannelStart[14] = &mChannelStartSec14;
+  mChannelStart[15] = &mChannelStartSec15;
+  mChannelStart[16] = &mChannelStartSec16;
+  mChannelStart[17] = &mChannelStartSec17;
+
+  mTimeSlewing[0] = &mTimeSlewingSec0;
+  mTimeSlewing[1] = &mTimeSlewingSec1;
+  mTimeSlewing[2] = &mTimeSlewingSec2;
+  mTimeSlewing[3] = &mTimeSlewingSec3;
+  mTimeSlewing[4] = &mTimeSlewingSec4;
+  mTimeSlewing[5] = &mTimeSlewingSec5;
+  mTimeSlewing[6] = &mTimeSlewingSec6;
+  mTimeSlewing[7] = &mTimeSlewingSec7;
+  mTimeSlewing[8] = &mTimeSlewingSec8;
+  mTimeSlewing[9] = &mTimeSlewingSec9;
+  mTimeSlewing[10] = &mTimeSlewingSec10;
+  mTimeSlewing[11] = &mTimeSlewingSec11;
+  mTimeSlewing[12] = &mTimeSlewingSec12;
+  mTimeSlewing[13] = &mTimeSlewingSec13;
+  mTimeSlewing[14] = &mTimeSlewingSec14;
+  mTimeSlewing[15] = &mTimeSlewingSec15;
+  mTimeSlewing[16] = &mTimeSlewingSec16;
+  mTimeSlewing[17] = &mTimeSlewingSec17;
+
+  mFractionUnderPeak[0] = &mFractionUnderPeakSec0;
+  mFractionUnderPeak[1] = &mFractionUnderPeakSec1;
+  mFractionUnderPeak[2] = &mFractionUnderPeakSec2;
+  mFractionUnderPeak[3] = &mFractionUnderPeakSec3;
+  mFractionUnderPeak[4] = &mFractionUnderPeakSec4;
+  mFractionUnderPeak[5] = &mFractionUnderPeakSec5;
+  mFractionUnderPeak[6] = &mFractionUnderPeakSec6;
+  mFractionUnderPeak[7] = &mFractionUnderPeakSec7;
+  mFractionUnderPeak[8] = &mFractionUnderPeakSec8;
+  mFractionUnderPeak[9] = &mFractionUnderPeakSec9;
+  mFractionUnderPeak[10] = &mFractionUnderPeakSec10;
+  mFractionUnderPeak[11] = &mFractionUnderPeakSec11;
+  mFractionUnderPeak[12] = &mFractionUnderPeakSec12;
+  mFractionUnderPeak[13] = &mFractionUnderPeakSec13;
+  mFractionUnderPeak[14] = &mFractionUnderPeakSec14;
+  mFractionUnderPeak[15] = &mFractionUnderPeakSec15;
+  mFractionUnderPeak[16] = &mFractionUnderPeakSec16;
+  mFractionUnderPeak[17] = &mFractionUnderPeakSec17;
+
+  mSigmaPeak[0] = &mSigmaPeakSec0;
+  mSigmaPeak[1] = &mSigmaPeakSec1;
+  mSigmaPeak[2] = &mSigmaPeakSec2;
+  mSigmaPeak[3] = &mSigmaPeakSec3;
+  mSigmaPeak[4] = &mSigmaPeakSec4;
+  mSigmaPeak[5] = &mSigmaPeakSec5;
+  mSigmaPeak[6] = &mSigmaPeakSec6;
+  mSigmaPeak[7] = &mSigmaPeakSec7;
+  mSigmaPeak[8] = &mSigmaPeakSec8;
+  mSigmaPeak[9] = &mSigmaPeakSec9;
+  mSigmaPeak[10] = &mSigmaPeakSec10;
+  mSigmaPeak[11] = &mSigmaPeakSec11;
+  mSigmaPeak[12] = &mSigmaPeakSec12;
+  mSigmaPeak[13] = &mSigmaPeakSec13;
+  mSigmaPeak[14] = &mSigmaPeakSec14;
+  mSigmaPeak[15] = &mSigmaPeakSec15;
+  mSigmaPeak[16] = &mSigmaPeakSec16;
+  mSigmaPeak[17] = &mSigmaPeakSec17;
 }
 
 //______________________________________________
 float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
 {
-
   // totIn is in ns
   // the correction is returned in ps
 
@@ -75,8 +160,8 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
   if (n < 0) {
     return 0.;
   }
-
   int nstop = mTimeSlewing[sector]->size();
+
   if (channel < NCHANNELXSECTOR - 1) {
     nstop = (*(mChannelStart[sector]))[channel + 1];
   }

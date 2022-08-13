@@ -43,6 +43,8 @@ class CalibInfoTOF
   void setFlags(int flags) { mFlags = flags; }
   float getFlags() const { return mFlags; }
 
+  int getMask() const { return mMask; }
+
   // for event time maker
   float tofSignal() const { return mDeltaTimePi; }
   float tofExpSignalPi() const { return 0.0; }

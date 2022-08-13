@@ -66,6 +66,7 @@ class CalibTOFapi
   }
   void readLHCphase();
   void readTimeSlewingParam();
+  void readTimeSlewingParamFromFile(const char* filename);
   void readDiagnosticFrequencies();
   void loadDiagnosticFrequencies();
   void readActiveMap();

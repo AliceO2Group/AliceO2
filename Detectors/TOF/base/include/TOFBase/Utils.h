@@ -56,6 +56,10 @@ class Utils
   static float mEtaMax;
   static float mLHCPhase;
 
+  static int addMaskBC(int mask, int channel);
+  static int getMaxUsed();
+  static int getMaxUsedChannel(int channel);
+
  private:
   static std::vector<int> mFillScheme;
   static int mBCmult[o2::constants::lhc::LHCMaxBunches];
@@ -70,6 +74,10 @@ class Utils
   static int mNsample;
   static int mIsample;
   static float mPhases[100];
+  static uint64_t mMaskBC[16];
+  static uint64_t mMaskBCUsed[16];
+  static int mMaskBCchan[o2::tof::Geo::NCHANNELS][16];
+  static int mMaskBCchanUsed[o2::tof::Geo::NCHANNELS][16];
 
   ClassDefNV(Utils, 1);
 };
