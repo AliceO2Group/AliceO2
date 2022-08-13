@@ -74,15 +74,18 @@ void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> d
     auto tot = data[i].getTot();
     // TO BE DISCUSSED: could it be that the LHCphase is too old? If we ar ein sync mode, it could be that it is not yet created for the current run, so the one from the previous run (which could be very old) is used. But maybe it does not matter much, since soon enough a calibrated LHC phase should be produced
     auto corr = mCalibTOFapi->getTimeCalibration(ch, tot); // we take into account LHCphase, offsets and time slewing
-
     auto dtcorr = dt - corr;
+
+    int used = o2::tof::Utils::addMaskBC(data[i].getMask(), data[i].getTOFChIndex()); // fill the current BC candidate mask and return the one used
+    dtcorr -= used * o2::tof::Geo::BC_TIME_INPS;
 
     // add calib info for computation of LHC phase
     Utils::addCalibTrack(dtcorr);
 
-    dtcorr -= Utils::mLHCPhase;
+    // uncomment to enable auto correction of LHC phase
+    //    dtcorr -= Utils::mLHCPhase;
 
-    LOG(debug) << "LHCphase = " << Utils::mLHCPhase;
+    LOG(debug) << "Residual LHCphase = " << Utils::mLHCPhase;
 
 #ifdef DEBUGGING
     mChannelDist->Fill(ch, dtcorr);
@@ -653,8 +656,8 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
 
   // for the CCDB entry
   std::map<std::string, std::string> md;
-  TimeSlewing& ts = mCalibTOFapi->getSlewParamObj(); // we take the current CCDB object, since we want to simply update the offset
-  //  ts.bind();
+  TimeSlewing ts = mCalibTOFapi->getSlewParamObj(); // we take the current CCDB object, since we want to simply update the offset
+  ts.bind();
 
 #ifdef WITH_OPENMP
   if (mNThreads < 1) {
@@ -681,11 +684,13 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
       int ich = chinsector + sector * Geo::NPADSXSECTOR;
       auto entriesInChannel = entriesPerChannel.at(ich);
       if (entriesInChannel == 0) {
+        ts.setChannelOffset(ich, 0.0);
         continue; // skip always since a channel with 0 entries is normal, it will be flagged as problematic
       }
 
       if (entriesInChannel < mMinEntries) {
         LOG(debug) << "channel " << ich << " will not be calibrated since it has only " << entriesInChannel << " entries (min = " << mMinEntries << ")";
+        ts.setChannelOffset(ich, 0.0);
         continue;
       }
 
@@ -709,6 +714,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
         LOG(info) << "Channel " << ich << " :: Fit failed with result = " << fitres;
         ts.setFractionUnderPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, -1);
         ts.setSigmaPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, 99999);
+        ts.setChannelOffset(ich, 0.0);
         continue;
       }
 
@@ -737,7 +743,23 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
       // now we need to store the results in the TimeSlewingObject
       ts.setFractionUnderPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, fractionUnderPeak);
       ts.setSigmaPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, abs(fitValues[2]));
-      ts.updateOffsetInfo(ich, fitValues[1]);
+
+      int tobeused = o2::tof::Utils::getMaxUsedChannel(ich);
+      fitValues[1] += tobeused * o2::tof::Geo::BC_TIME_INPS; // adjust by adding the right BC
+
+      if (abs(fitValues[1]) > mRange) {
+        ts.setFractionUnderPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, -1);
+        ts.setSigmaPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, 99999);
+      }
+
+      bool isProb = ts.getFractionUnderPeak(ich) < 0.5 || ts.getSigmaPeak(ich) > 1000;
+
+      if (!isProb) {
+        ts.updateOffsetInfo(ich, fitValues[1]);
+      } else {
+        ts.setChannelOffset(ich, 0.0);
+      }
+
 #ifdef DEBUGGING
       mFitCal->Fill(ich, fitValues[1]);
 #endif

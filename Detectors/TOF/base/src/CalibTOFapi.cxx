@@ -100,6 +100,17 @@ void CalibTOFapi::readTimeSlewingParam()
 }
 
 //______________________________________________________________________
+void CalibTOFapi::readTimeSlewingParamFromFile(const char* filename)
+{
+  TFile* f = TFile::Open(filename);
+  if (f) {
+    mSlewParam = (SlewParam*)f->Get("ccdb_object");
+  } else {
+    LOG(info) << "File " << filename << " not found";
+  }
+}
+
+//______________________________________________________________________
 
 void CalibTOFapi::readDiagnosticFrequencies()
 {
@@ -278,8 +289,8 @@ float CalibTOFapi::getTimeCalibration(int ich, float tot, float phase) const
   // time calibration to correct measured TOF times
 
   float corr = 0;
-  if (!mLHCphase || !mSlewParam) {
-    LOG(warning) << "Either LHC phase or slewing object null: mLHCphase = " << mLHCphase << ", mSlewParam = " << mSlewParam;
+  if (!mSlewParam) {
+    LOG(warning) << "slewing object null: mSlewParam = " << mSlewParam;
     return corr;
   }
   //  printf("LHC phase apply\n");

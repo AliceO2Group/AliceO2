@@ -37,6 +37,7 @@ class CalibTimeSlewingParamTOF
   CalibTimeSlewingParamTOF& operator=(const CalibTimeSlewingParamTOF& source) = default;
 
   float getChannelOffset(int channel) const;
+  void setChannelOffset(int channel, float val);
 
   float evalTimeSlewing(int channel, float tot) const;
 
