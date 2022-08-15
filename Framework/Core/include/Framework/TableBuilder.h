@@ -692,7 +692,7 @@ class TableBuilder
     if constexpr (sizeof...(ARGS) == 1 &&
                   is_bounded_array<pack_element_t<0, args_pack_t>>::value == false &&
                   std::is_arithmetic_v<pack_element_t<0, args_pack_t>> == false &&
-                  framework::is_base_of_template<std::vector, pack_element_t<0, args_pack_t>>::value == false) {
+                  framework::is_base_of_template_v<std::vector, pack_element_t<0, args_pack_t>> == false) {
       using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
       using argsPack_t = decltype(tuple_to_pack(framework::to_tuple(std::declval<objType_t>())));
       auto persister = persistTuple(argsPack_t{}, columnNames);
@@ -702,7 +702,7 @@ class TableBuilder
       };
     } else if constexpr (sizeof...(ARGS) == 1 &&
                          (is_bounded_array<pack_element_t<0, args_pack_t>>::value == true ||
-                          framework::is_base_of_template<std::vector, pack_element_t<0, args_pack_t>>::value == true)) {
+                          framework::is_base_of_template_v<std::vector, pack_element_t<0, args_pack_t>> == true)) {
       using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
       auto persister = persistTuple(framework::pack<objType_t>{}, columnNames);
       // Callback used to fill the builders
@@ -920,7 +920,7 @@ constexpr auto pack_from_tuple(std::tuple<T...> const&)
 template <typename Key, typename T>
 void lowerBound(int32_t value, T& start)
 {
-  static_assert(soa::is_soa_iterator_t<T>::value, "Argument needs to be a Table::iterator");
+  static_assert(soa::is_soa_iterator_v<T>, "Argument needs to be a Table::iterator");
   int step;
   auto count = start.size() - start.globalIndex();
 

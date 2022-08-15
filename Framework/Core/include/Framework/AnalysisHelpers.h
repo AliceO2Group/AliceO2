@@ -77,7 +77,7 @@ struct WritingCursor<soa::Table<PC...>> {
   template <typename T>
   static decltype(auto) extract(T const& arg)
   {
-    if constexpr (soa::is_soa_iterator_t<T>::value) {
+    if constexpr (soa::is_soa_iterator_v<T>) {
       return arg.globalIndex();
     } else {
       static_assert(!framework::has_type_v<T, framework::pack<PC...>>, "Argument type mismatch");
@@ -529,7 +529,7 @@ struct Service {
 template <typename T>
 auto getTableFromFilter(const T& table, soa::SelectionVector&& selection)
 {
-  if constexpr (soa::is_soa_filtered_t<std::decay_t<T>>::value) {
+  if constexpr (soa::is_soa_filtered_v<std::decay_t<T>>) {
     return std::make_unique<o2::soa::Filtered<T>>(std::vector{table}, std::forward<soa::SelectionVector>(selection));
   } else {
     return std::make_unique<o2::soa::Filtered<T>>(std::vector{table.asArrowTable()}, std::forward<soa::SelectionVector>(selection));
@@ -660,7 +660,7 @@ auto Extend(T const& table)
 template <typename T, typename... Cs>
 auto Attach(T const& table)
 {
-  static_assert((framework::is_base_of_template<o2::soa::DynamicColumn, Cs>::value && ...), "You can only attach dynamic columns");
+  static_assert((framework::is_base_of_template_v<o2::soa::DynamicColumn, Cs> && ...), "You can only attach dynamic columns");
   using output_t = Join<T, o2::soa::Table<Cs...>>;
   return output_t{{table.asArrowTable()}, table.offset()};
 }

@@ -75,7 +75,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename T>
   static inline auto getSources()
   {
-    if constexpr (soa::is_soa_index_table_t<T>::value) {
+    if constexpr (soa::is_soa_index_table_v<T>) {
       return getInputSpecs(typename T::sources_t{});
     } else if constexpr (soa::is_soa_extension_table_v<std::decay_t<T>>) {
       return getInputSpecs(typename aod::MetadataTrait<T>::metadata::sources{});
@@ -104,7 +104,7 @@ struct AnalysisDataProcessorBuilder {
                   "Could not find metadata. Did you register your type?");
     std::vector<ConfigParamSpec> inputMetadata;
     inputMetadata.emplace_back(ConfigParamSpec{std::string{"control:"} + name, VariantType::Bool, value, {"\"\""}});
-    if constexpr (soa::is_soa_index_table_t<std::decay_t<Arg>>::value || soa::is_soa_extension_table_v<std::decay_t<Arg>>) {
+    if constexpr (soa::is_soa_index_table_v<std::decay_t<Arg>> || soa::is_soa_extension_table_v<std::decay_t<Arg>>) {
       auto inputSources = getInputMetadata<std::decay_t<Arg>>();
       inputMetadata.insert(inputMetadata.end(), inputSources.begin(), inputSources.end());
     }
@@ -123,9 +123,9 @@ struct AnalysisDataProcessorBuilder {
   {
     static_assert(std::is_lvalue_reference_v<T>, "Argument to process needs to be a reference (&).");
     using dT = std::decay_t<T>;
-    if constexpr (soa::is_soa_filtered_t<dT>::value) {
+    if constexpr (soa::is_soa_filtered_v<dT>) {
       eInfos.push_back({AI, hash, dT::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
-    } else if constexpr (soa::is_soa_iterator_t<dT>::value) {
+    } else if constexpr (soa::is_soa_iterator_v<dT>) {
       if constexpr (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
         eInfos.push_back({AI, hash, dT::parent_t::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
       }
@@ -176,7 +176,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename T, typename... Os>
   static auto extractFromRecord(InputRecord& record, pack<Os...> const&)
   {
-    if constexpr (soa::is_soa_iterator_t<T>::value) {
+    if constexpr (soa::is_soa_iterator_v<T>) {
       return typename T::parent_t{{extractTableFromRecord<Os>(record)...}};
     } else {
       return T{{extractTableFromRecord<Os>(record)...}};
@@ -194,12 +194,12 @@ struct AnalysisDataProcessorBuilder {
       info.selection = framework::expressions::createSelection(table, info.filter);
       info.resetSelection = false;
     }
-    if constexpr (!framework::is_base_of_template<soa::SmallGroups, std::decay_t<T>>::value) {
+    if constexpr (!framework::is_base_of_template_v<soa::SmallGroups, std::decay_t<T>>) {
       if (info.selection == nullptr) {
         throw runtime_error_f("Null selection for %d (arg %d), missing Filter declaration?", info.processHash, info.argumentIndex);
       }
     }
-    if constexpr (soa::is_soa_iterator_t<T>::value) {
+    if constexpr (soa::is_soa_iterator_v<T>) {
       return typename T::parent_t({table}, info.selection);
     } else {
       return T({table}, info.selection);
@@ -211,9 +211,9 @@ struct AnalysisDataProcessorBuilder {
   {
     using decayed = std::decay_t<T>;
 
-    if constexpr (soa::is_soa_filtered_t<decayed>::value) {
+    if constexpr (soa::is_soa_filtered_v<decayed>) {
       return extractFilteredFromRecord<decayed>(record, *std::find_if(infos.begin(), infos.end(), [&phash](ExpressionInfo const& i) { return (i.processHash == phash && i.argumentIndex == AI); }), soa::make_originals_from_type<decayed>());
-    } else if constexpr (soa::is_soa_iterator_t<decayed>::value) {
+    } else if constexpr (soa::is_soa_iterator_v<decayed>) {
       if constexpr (std::is_same_v<typename decayed::policy_t, soa::FilteredIndexPolicy>) {
         return extractFilteredFromRecord<decayed>(record, *std::find_if(infos.begin(), infos.end(), [&phash](ExpressionInfo const& i) { return (i.processHash == phash && i.argumentIndex == AI); }), soa::make_originals_from_type<decayed>());
       } else {
@@ -284,18 +284,18 @@ struct AnalysisDataProcessorBuilder {
         return true;
       },
                              task);
-      if constexpr (soa::is_soa_iterator_t<G>::value) {
+      if constexpr (soa::is_soa_iterator_v<G>) {
         for (auto& element : groupingTable) {
           std::invoke(processingFunction, task, *element);
         }
       } else {
-        static_assert(soa::is_soa_table_like_t<G>::value,
+        static_assert(soa::is_soa_table_like_v<G>,
                       "Single argument of process() should be a table-like or an iterator");
         std::invoke(processingFunction, task, groupingTable);
       }
     } else {
       // multiple arguments to process
-      static_assert(((soa::is_soa_iterator_t<std::decay_t<Associated>>::value == false) && ...),
+      static_assert(((soa::is_soa_iterator_v<std::decay_t<Associated>> == false) && ...),
                     "Associated arguments of process() should not be iterators");
       auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, processingFunction, infos);
       //pre-bind self indices
@@ -336,7 +336,7 @@ struct AnalysisDataProcessorBuilder {
       },
                              task);
 
-      if constexpr (soa::is_soa_iterator_t<std::decay_t<G>>::value) {
+      if constexpr (soa::is_soa_iterator_v<std::decay_t<G>>) {
         // grouping case
         // pre-slice associated tables
         std::apply([&presliceTable](auto&... x) {
@@ -565,7 +565,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   homogeneous_apply_refs(
     [name = name_str, &expressionInfos, &inputs](auto& x) {
       using D = std::decay_t<decltype(x)>;
-      if constexpr (is_base_of_template<ProcessConfigurable, D>::value) {
+      if constexpr (is_base_of_template_v<ProcessConfigurable, D>) {
         // this pushes (argumentIndex,processHash,schemaPtr,nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
         AnalysisDataProcessorBuilder::inputsFromArgs(x.process, (name + "/" + x.name).c_str(), x.value, inputs, expressionInfos);
         return true;
@@ -650,7 +650,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       // execute optional process()
       homogeneous_apply_refs(
         [&pc, &expressionInfos, &task](auto& x) mutable {
-          if constexpr (is_base_of_template<ProcessConfigurable, std::decay_t<decltype(x)>>::value) {
+          if constexpr (is_base_of_template_v<ProcessConfigurable, std::decay_t<decltype(x)>>) {
             if (x.value == true) {
               AnalysisDataProcessorBuilder::invokeProcess(*task.get(), pc.inputs(), x.process, expressionInfos);
               return true;

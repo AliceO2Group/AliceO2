@@ -88,7 +88,7 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
     return groupedIndices;
   }
 
-  if constexpr (soa::is_soa_filtered_t<T>::value) {
+  if constexpr (soa::is_soa_filtered_v<T>) {
     selectedRows = table.getSelectedRows(); // vector<int64_t>
   }
 
@@ -111,7 +111,7 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
       }
     });
 
-    if constexpr (soa::is_soa_filtered_t<T>::value) {
+    if constexpr (soa::is_soa_filtered_v<T>) {
       if (selectedRows[ind] >= selInd + chunkLength) {
         selInd += chunkLength;
         continue; // Go to the next chunk, no value selected in this chunk
@@ -120,7 +120,7 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
 
     uint64_t ai = 0;
     while (ai < chunkLength) {
-      if constexpr (soa::is_soa_filtered_t<T>::value) {
+      if constexpr (soa::is_soa_filtered_v<T>) {
         ai += selectedRows[ind] - selInd;
         selInd = selectedRows[ind];
       }
@@ -132,7 +132,7 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
       }
       ind++;
 
-      if constexpr (soa::is_soa_filtered_t<T>::value) {
+      if constexpr (soa::is_soa_filtered_v<T>) {
         if (ind >= selectedRows.size()) {
           break;
         }
@@ -141,7 +141,7 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
       }
     }
 
-    if constexpr (soa::is_soa_filtered_t<T>::value) {
+    if constexpr (soa::is_soa_filtered_v<T>) {
       if (ind == selectedRows.size()) {
         break;
       }

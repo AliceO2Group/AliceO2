@@ -55,7 +55,7 @@ struct GroupSlicer {
         return str;
       };
 
-      if constexpr (soa::is_soa_index_table_t<std::decay_t<Z>>::value) {
+      if constexpr (soa::is_soa_index_table_v<std::decay_t<Z>>) {
         using T = typename std::decay_t<Z>::first_t;
         if constexpr (soa::is_type_with_originals_v<std::decay_t<T>>) {
           using O = typename framework::pack_element_t<0, typename std::decay_t<Z>::originals>;
@@ -116,7 +116,7 @@ struct GroupSlicer {
     template <typename T>
     auto extractingFunction(T&& table)
     {
-      if constexpr (soa::is_soa_filtered_t<std::decay_t<T>>::value) {
+      if constexpr (soa::is_soa_filtered_v<std::decay_t<T>>) {
         constexpr auto index = framework::has_type_at_v<std::decay_t<T>>(associated_pack_t{});
         selections[index] = &table.getSelectedRows();
         starts[index] = selections[index]->begin();
@@ -131,7 +131,7 @@ struct GroupSlicer {
         mGroupingElement{gt.begin()},
         position{0}
     {
-      if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
+      if constexpr (soa::is_soa_filtered_v<std::decay_t<G>>) {
         groupSelection = mGt->getSelectedRows();
       }
 
@@ -230,7 +230,7 @@ struct GroupSlicer {
 
       if constexpr (relatedByIndex<std::decay_t<G>, std::decay_t<A1>>()) {
         uint64_t pos;
-        if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
+        if constexpr (soa::is_soa_filtered_v<std::decay_t<G>>) {
           pos = groupSelection[position];
         } else {
           pos = position;
@@ -241,7 +241,7 @@ struct GroupSlicer {
           if (originalTable.size() == 0) {
             return originalTable;
           }
-          if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
+          if constexpr (soa::is_soa_filtered_v<std::decay_t<A1>>) {
             if (groups[index].empty()) {
               return std::decay_t<A1>{{makeEmptyTable<A1>("empty")}, soa::SelectionVector{}};
             }
@@ -272,7 +272,7 @@ struct GroupSlicer {
           }
         } else {
           //generic split
-          if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
+          if constexpr (soa::is_soa_filtered_v<std::decay_t<A1>>) {
             // intersect selections
             o2::soa::SelectionVector s;
             if (selections[index]->empty()) {

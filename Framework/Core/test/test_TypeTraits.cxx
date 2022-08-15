@@ -142,3 +142,35 @@ BOOST_AUTO_TEST_CASE(TestIsSpan)
   BOOST_REQUIRE_EQUAL(is_span<decltype(b)>::value, false);
   BOOST_REQUIRE_EQUAL(is_span<decltype(c)>::value, false);
 }
+
+template <typename A>
+struct FooFoo {
+};
+
+template <typename A>
+struct NoFooFoo {
+};
+
+struct Bar : FooFoo<int> {
+};
+
+struct NoBar : NoFooFoo<int> {
+};
+
+BOOST_AUTO_TEST_CASE(BaseOfTemplate)
+{
+  constexpr bool t = is_base_of_template_v<std::vector, std::vector<int>>;
+  static_assert(t == true, "This should be true");
+
+  constexpr bool t2 = is_base_of_template_v<std::vector, int>;
+  static_assert(t2 == false, "This should be true");
+
+  constexpr bool t3 = is_base_of_template_v<FooFoo, Bar>;
+  static_assert(t3 == true, "This should be true");
+
+  constexpr bool t4 = is_base_of_template_v<FooFoo, NoBar>;
+  static_assert(t4 == false, "This should be false");
+
+  constexpr bool t5 = is_base_of_template_v<NoFooFoo, NoBar>;
+  static_assert(t5 == true, "This should be true");
+}
