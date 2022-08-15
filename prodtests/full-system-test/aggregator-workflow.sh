@@ -34,7 +34,8 @@ if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
   echo "CALIB_TOF_LHCPHASE = $CALIB_TOF_LHCPHASE" 1>&2
   echo "CALIB_TOF_CHANNELOFFSETS = $CALIB_TOF_CHANNELOFFSETS" 1>&2
   echo "CALIB_TOF_DIAGNOSTICS = $CALIB_TOF_DIAGNOSTICS" 1>&2
-  echo "CALIB_EMC_CHANNELCALIB = $CALIB_EMC_CHANNELCALIB" 1>&2
+  echo "CALIB_EMC_BADCHANNELCALIB = $CALIB_EMC_BADCHANNELCALIB" 1>&2
+  echo "CALIB_EMC_TIMECALIB = $CALIB_EMC_TIMECALIB" 1>&2
   echo "CALIB_PHS_ENERGYCALIB = $CALIB_PHS_ENERGYCALIB" 1>&2
   echo "CALIB_PHS_BADMAPCALIB = $CALIB_PHS_BADMAPCALIB" 1>&2
   echo "CALIB_PHS_TURNONCALIB = $CALIB_PHS_TURNONCALIB" 1>&2
@@ -185,7 +186,10 @@ fi
 # calibrations for AGGREGATOR_TASKS == CALO_TF
 if [[ $AGGREGATOR_TASKS == CALO_TF || $AGGREGATOR_TASKS == ALL ]]; then
   # EMC
-  if [[ $CALIB_EMC_CHANNELCALIB == 1 ]]; then
+  if [[ $CALIB_EMC_BADCHANNELCALIB == 1 ]]; then
+    add_W o2-calibration-emcal-channel-calib-workflow "" "EMCALCalibParams.calibType=\"badchannels\""
+  fi
+  if [[ $CALIB_EMC_TIMECALIB == 1 ]]; then
     add_W o2-calibration-emcal-channel-calib-workflow "" "EMCALCalibParams.calibType=\"time\""
   fi
 
