@@ -1015,20 +1015,15 @@ constexpr bool is_binding_compatible_v()
   return are_bindings_compatible_v<T>(originals_pack_t<B>{});
 }
 
+//! Helper to check if a type T is an iterator
 template <typename T>
-using is_soa_iterator_t = typename framework::is_base_of_template<RowViewCore, T>;
-
-template <typename T>
-constexpr bool is_soa_iterator_v()
-{
-  return is_soa_iterator_t<T>::value || framework::is_specialization_v<T, RowViewCore>;
-}
+inline constexpr bool is_soa_iterator_v = framework::is_base_of_template_v<RowViewCore, T> || framework::is_specialization_v<T, RowViewCore>;
 
 template <typename T>
 using is_soa_table_t = typename framework::is_specialization<T, soa::Table>;
 
 template <typename T>
-using is_soa_table_like_t = typename framework::is_base_of_template<soa::Table, T>;
+inline constexpr bool is_soa_table_like_v = framework::is_base_of_template_v<soa::Table, T>;
 
 /// Helper function to extract bound indices
 template <typename... Is>
@@ -2921,7 +2916,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 };
 
 template <typename T>
-using is_soa_filtered_t = typename framework::is_base_of_template<soa::FilteredBase, T>;
+inline constexpr bool is_soa_filtered_v = framework::is_base_of_template_v<soa::FilteredBase, T>;
 
 /// Template for building an index table to access matching rows from non-
 /// joinable, but compatible tables, e.g. Collisions and ZDCs.
@@ -2953,7 +2948,7 @@ struct IndexTable : Table<soa::Index<>, H, Ts...> {
 };
 
 template <typename T>
-using is_soa_index_table_t = typename framework::is_base_of_template<soa::IndexTable, T>;
+inline constexpr bool is_soa_index_table_v = framework::is_base_of_template_v<soa::IndexTable, T>;
 
 template <typename T>
 struct SmallGroups : public Filtered<T> {

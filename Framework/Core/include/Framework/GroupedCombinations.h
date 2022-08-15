@@ -62,7 +62,7 @@ struct GroupedCombinationsGenerator {
     template <typename... T2s>
     GroupedIterator(const GroupingPolicy& groupingPolicy, const G& grouping, std::tuple<T2s...>& associated) : GroupingPolicy(groupingPolicy), mGrouping{std::make_shared<G>(std::vector{grouping.asArrowTable()})}, mAssociated{std::make_shared<std::tuple<As...>>(std::make_tuple(std::get<As>(associated)...))}, mIndexColumns{getMatchingIndexNode<G, As>()...}
     {
-      if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
+      if constexpr (soa::is_soa_filtered_v<std::decay_t<G>>) {
         mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()}, grouping.getSelectedRows());
       } else {
         mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()});
@@ -80,7 +80,7 @@ struct GroupedCombinationsGenerator {
     template <typename... T2s>
     void setTables(const G& grouping, std::tuple<T2s...>& associated)
     {
-      if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
+      if constexpr (soa::is_soa_filtered_v<std::decay_t<G>>) {
         mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()}, grouping.getSelectedRows());
       } else {
         mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()});
