@@ -551,24 +551,14 @@ void makeAverageIDCs(const std::vector<std::string>& files, const char* outFile 
 
   // calculate 1D IDC
   for (unsigned long iSlice = 0; iSlice < idc3D.size(); ++iSlice) {
-    const auto vecCalArr = idc3D[iSlice].getData();
-    const int maxrocs = ROC::MaxROC;
-    for (int iROC = 0; iROC < maxrocs; ++iROC) {
-      ROC roc(iROC);
-      const Side side = roc.side();
-      if (side == Side::A) {
-        // 1D IDC for A side
-        idc1DASide[iSlice] += vecCalArr[iROC].getSum();
-      } else {
-        // 1D IDC for C side
-        idc1DCSide[iSlice] += vecCalArr[iROC].getSum();
-      }
-    }
+    const auto vecCalArr = idc3D[iSlice];
+    idc1DASide[iSlice] = get1DIDCs(vecCalArr, o2::tpc::Side::A);
+    idc1DCSide[iSlice] = get1DIDCs(vecCalArr, o2::tpc::Side::C);
   }
 
   // calculate 0D IDC
-  idc0DASide[0] = std::accumulate(idc1DASide.begin(), idc1DASide.end(), (float)0);
-  idc0DCSide[0] = std::accumulate(idc1DCSide.begin(), idc1DCSide.end(), (float)0);
+  idc0DASide[0] = get0DIDCs(idc1DASide);
+  idc0DCSide[0] = get0DIDCs(idc1DCSide);
 
   std::cout << "output path is: " << outFile << std::endl;
   TFile fMergedIDC(outFile, "RECREATE");
