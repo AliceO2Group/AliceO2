@@ -39,10 +39,10 @@ void MeanVertexCalibDevice::init(InitContext& ic)
   int nbZ = params->nbinsZ;
   float rangeZ = params->rangeZ;
   int nSlots4SMA = params->nSlots4SMA;
-  bool useFit = params->useFit;
   auto slotL = params->tfPerSlot;
   auto delay = params->maxTFdelay;
-  mCalibrator = std::make_unique<o2::calibration::MeanVertexCalibrator>(minEnt, useFit, nbX, rangeX, nbY, rangeY, nbZ, rangeZ, nSlots4SMA);
+  auto nPointsForSlope = params->nPointsForSlope;
+  mCalibrator = std::make_unique<o2::calibration::MeanVertexCalibrator>(minEnt, nbX, rangeX, nbY, rangeY, nbZ, rangeZ, nSlots4SMA, nPointsForSlope);
   mCalibrator->setSlotLength(slotL);
   mCalibrator->setMaxSlotsDelay(delay);
   bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
