@@ -326,6 +326,12 @@ bool create_GRPs(Options const& opts)
       }
       grp.setBunchFillingWithTime(grp.getBeamEnergyPerZTime(), *bc); // borrow the time from the existing entry
       delete bc;
+    } else {
+      // we initialize with a default bunch filling scheme;
+      LOG(info) << "Initializing with default bunch filling";
+      o2::BunchFilling bc;
+      bc.setDefault();
+      grp.setBunchFillingWithTime(grp.getBeamEnergyPerZTime(), bc);
     }
     std::string grpfilename = o2::base::NameConf::getGRPLHCIFFileName(opts.outprefix);
     if (opts.print) {
