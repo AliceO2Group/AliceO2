@@ -166,6 +166,7 @@ int TrackletsParser::Parse()
   int trackletloopcount = 0;
   int headertrackletcount = 0;
   bool ignoreDataTillTrackletEndMarker = false;                                       // used for when we need to dump the rest of the tracklet data.
+  std::array<uint8_t, 3> qcharges;
   if (std::distance(mStartParse, mEndParse) > o2::trd::constants::MAXDATAPERLINK32) { // full event is all digits and 3 tracklets per mcm,
     LOG(warn) << "Attempt to parse a block of data for tracklets that is longer than a link can poossibly be : " << std::distance(mStartParse, mEndParse) << " should be less than : " << o2::trd::constants::MAXDATAPERLINK32 << " dumping this data.";
     // sanity check that the length of data to scan is less the possible maximum for a link
@@ -258,8 +259,13 @@ int TrackletsParser::Parse()
             a.word = *word;
             printTrackletMCMHeader(a);
           }
+          qcharges.fill(0xff);
           if (!sanityCheckTrackletMCMHeader(mTrackletMCMHeader)) {
             incParsingError(TRDParsingTrackletMCMHeaderSanityCheckFailure);
+            mWordsDumped = std::distance(word, mEndParse);
+            ignoreDataTillTrackletEndMarker = true;
+            word = mEndParse;
+            continue;
           }
           headertrackletcount = getNumberOfTrackletsFromHeader(mTrackletMCMHeader);
           if (headertrackletcount > 0) {
@@ -296,8 +302,11 @@ int TrackletsParser::Parse()
             // cant dump till mEndParse and digits are after the tracklets
             // we can assume the mcmtrackletcount (n from the end) last tracklets in the vector are to be removed.
             incParsingError(TRDParsingTrackletTrackletCountGTThatDeclaredInMCMHeader);
-            mEventRecord->popTracklets(mcmtrackletcount); // our format is always 4
-            // TODO count remove warning
+            mEventRecord->popTracklets(mcmtrackletcount); // remove the added tracklets, we are clearly lost.
+            mWordsDumped = std::distance(word, mEndParse);
+            ignoreDataTillTrackletEndMarker = true;
+            word = mEndParse;
+            continue;
           }
           // take the header and this data word and build the underlying 64bit tracklet.
           int q0, q1, q2;
@@ -309,9 +318,15 @@ int TrackletsParser::Parse()
             break;
           }
           if (!ignoreDataTillTrackletEndMarker) {
-            q0 = getChargeFromRawHeaders(mTrackletHCHeader, mTrackletMCMHeader, mTrackletMCMData, 0, mcmtrackletcount);
-            q1 = getChargeFromRawHeaders(mTrackletHCHeader, mTrackletMCMHeader, mTrackletMCMData, 1, mcmtrackletcount);
-            q2 = getChargeFromRawHeaders(mTrackletHCHeader, mTrackletMCMHeader, mTrackletMCMData, 2, mcmtrackletcount);
+            auto validheader = getChargesFromRawHeaders(mTrackletHCHeader, mTrackletMCMHeader, mTrackletMCMData, qcharges, mcmtrackletcount);
+            if (validheader == -1) {
+              //tracklet unpacking went wrong.
+              incParsingError(TRDParsingTrackletTrackletCountGTThatDeclaredInMCMHeader);
+              mWordsDumped = std::distance(word, mEndParse);
+              ignoreDataTillTrackletEndMarker = true;
+              word = mEndParse;
+              continue;
+            }
             int padrow = mTrackletMCMHeader->padrow;
             int col = mTrackletMCMHeader->col;
             int pos = mTrackletMCMData[mcmtrackletcount].pos;
@@ -331,9 +346,9 @@ int TrackletsParser::Parse()
             }
             // TODO cross reference hcid to somewhere for a check. mDetector is assigned at the time of parser initialization.
             if (mDataVerbose) {
-              LOG(info) << "TTT format : " << (int)mTrackletHCHeader.format << " hcid: " << hcid << " padrow:" << padrow << " col:" << col << " pos:" << pos << " slope:" << slope << " q::" << q0 << " " << q1 << " " << q2;
+              LOG(info) << "TTT format : " << (int)mTrackletHCHeader.format << " hcid: " << hcid << " padrow:" << padrow << " col:" << col << " pos:" << pos << " slope:" << slope << " q::" << qcharges[0] << " " << qcharges[1] << " " << qcharges[2];
             }
-            mEventRecord->getTracklets().emplace_back((int)mTrackletHCHeader.format, hcid, padrow, col, pos, slope, q0, q1, q2); // our format is always
+            mEventRecord->getTracklets().emplace_back((int)mTrackletHCHeader.format, hcid, padrow, col, pos, slope, qcharges[0], qcharges[1], qcharges[2]); // our format is always
             mEventRecord->incTrackletsFound(1);
             mTrackletsFound++;
             mcmtrackletcount++;
