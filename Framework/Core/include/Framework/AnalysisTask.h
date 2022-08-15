@@ -37,8 +37,6 @@
 #include <type_traits>
 #include <utility>
 #include <memory>
-#include <sstream>
-#include <iomanip>
 namespace o2::framework
 {
 /// A more familiar task API for the DPL analysis framework.
