@@ -33,6 +33,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"energy", o2::framework::VariantType::Bool, false, {"collect tree for E calib"}});
   workflowOptions.push_back(ConfigParamSpec{"badmap", o2::framework::VariantType::Bool, false, {"do bad map calculation"}});
 
+  workflowOptions.push_back(ConfigParamSpec{"phoscalib-output-dir", o2::framework::VariantType::String, "./", {"ROOT files output directory"}});
+  workflowOptions.push_back(ConfigParamSpec{"phoscalib-meta-output-dir", o2::framework::VariantType::String, "/dev/null", {"metafile output directory"}});
+  workflowOptions.push_back(ConfigParamSpec{"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}});
+
   workflowOptions.push_back(ConfigParamSpec{"not-use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb phos calibration objects"}});
   workflowOptions.push_back(ConfigParamSpec{"forceupdate", o2::framework::VariantType::Bool, false, {"update ccdb even difference to previous object large"}});
 
@@ -59,6 +63,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useCCDB = !configcontext.options().get<bool>("not-use-ccdb");
   auto forceUpdate = configcontext.options().get<bool>("forceupdate");
 
+  std::string outputDir = configcontext.options().get<std::string>("phoscalib-output-dir");
+  if (outputDir.compare("/dev/null")) {
+    outputDir = o2::utils::Str::rectifyDirectory(outputDir);
+  }
+  std::string metaFileDir = configcontext.options().get<std::string>("phoscalib-meta-output-dir");
+  if (metaFileDir.compare("/dev/null")) {
+    metaFileDir = o2::utils::Str::rectifyDirectory(metaFileDir);
+  }
+  bool writeRootOutput = !configcontext.options().get<bool>("disable-root-output");
+
   if (doPedestals && doHgLgRatio) {
     LOG(fatal) << "Can not run pedestal and HG/LG calibration simulteneously";
   }
@@ -75,7 +89,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
   if (doEnergy) {
-    specs.emplace_back(o2::phos::getPHOSEnergyCalibDeviceSpec(useCCDB));
+    specs.emplace_back(o2::phos::getPHOSEnergyCalibDeviceSpec(useCCDB, outputDir, metaFileDir, writeRootOutput));
   }
   if (doTurnOn) {
     LOG(info) << "TurnOn curves calculation";
@@ -83,12 +97,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   if (doRunbyrun) {
     LOG(info) << "Run by run correction calculation on ";
-    specs.emplace_back(o2::phos::getPHOSRunbyrunCalibDeviceSpec(useCCDB));
+    specs.emplace_back(o2::phos::getPHOSRunbyrunCalibDeviceSpec(useCCDB, outputDir, metaFileDir, writeRootOutput));
   }
   if (doBadMap) {
     LOG(info) << "bad map calculation ";
     int mode = configcontext.options().get<int>("mode");
-    ;
     specs.emplace_back(o2::phos::getBadMapCalibSpec(mode));
   }
   return specs;
