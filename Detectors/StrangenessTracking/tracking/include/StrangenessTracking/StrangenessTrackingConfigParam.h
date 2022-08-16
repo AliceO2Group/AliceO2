@@ -23,7 +23,9 @@ namespace strangeness_tracking
 struct StrangenessTrackingParamConfig : public o2::conf::ConfigurableParamHelper<StrangenessTrackingParamConfig> {
 
     // parameters
-  float mRadiusTol = 4.;     // Radius tolerance for matching V0s
+  float mRadiusTolIB = .5;     // Radius tolerance for matching V0s in the IB 
+  float mRadiusTolOB = 4.;     // Radius tolerance for matching V0s in the OB
+
   float mMinMotherClus = 3.; // minimum number of cluster to be attached to the mother
   float mMaxChi2 = 50;       // Maximum matching chi2
 
