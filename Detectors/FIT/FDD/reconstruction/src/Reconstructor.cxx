@@ -60,7 +60,7 @@ o2::fdd::RecPoint Reconstructor::process(o2::fdd::Digit const& digitBC,
   }
   const int nsToPs = 1e3;
   std::array<int, 2> mCollisionTime = {o2::fdd::RecPoint::sDummyCollissionTime, o2::fdd::RecPoint::sDummyCollissionTime};
-  /// Avg time for each side only one channel satisfy the
+  /// Avg time for each side, only if one channel satisfy the TVDC condition
   if (nInTimeA > 0)
     mCollisionTime[o2::fdd::RecPoint::TimeA] = (weightFDA > 1) ? round(timeFDA / weightFDA * nsToPs) : o2::fdd::RecPoint::sDummyCollissionTime;
   if (nInTimeC > 0)
