@@ -1329,3 +1329,49 @@ BOOST_AUTO_TEST_CASE(ConstructorsWithoutTables)
   }
   BOOST_CHECK_EQUAL(count, 0);
 }
+
+BOOST_AUTO_TEST_CASE(BlockCombinationsCounters)
+{
+  TableBuilder builderA;
+  auto rowWriterA = builderA.persist<int32_t, int32_t, float>({"x", "y", "floatZ"});
+  rowWriterA(0, 0, 25, -1.3f);
+  rowWriterA(0, 1, 21, -1.8f);
+  rowWriterA(0, 2, 48, 2.0f);
+  rowWriterA(0, 3, 26, -2.0f);
+  rowWriterA(0, 4, 28, -1.5f);
+  rowWriterA(0, 5, 42, 2.0f);
+  rowWriterA(0, 6, 47, 2.5f);
+  rowWriterA(0, 7, 24, -1.8f);
+  rowWriterA(0, 8, 41, 1.3f);
+  rowWriterA(0, 9, 49, 1.8f);
+  auto tableA = builderA.finalize();
+  BOOST_REQUIRE_EQUAL(tableA->num_rows(), 10);
+
+  using TestA = o2::soa::Table<o2::soa::Index<>, test::X, test::Y, test::FloatZ>;
+  TestA testA{tableA};
+  BOOST_REQUIRE_EQUAL(10, testA.size());
+
+  // Grouped data:
+  // [0, 1, 3, 4, 7], [2, 5, 6, 8, 9]
+  // Assuming bins intervals: [ , )
+  std::vector<double> yBins{VARIABLE_WIDTH, 0, 5, 10, 20, 30, 40, 50, 101};
+  std::vector<double> zBins{VARIABLE_WIDTH, -7.0, -5.0, -3.0, -1.0, 1.0, 3.0, 5.0, 7.0};
+
+  ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}, false};
+
+  std::vector<std::tuple<int32_t, int32_t>> expectedStrictlyUpperPairs{
+    {0, 4}, {0, 7}, {4, 7}, {1, 6}, {3, 5}, {2, 8}, {2, 9}, {8, 9}};
+  std::vector<int> expectedEventsInBin{4, 3, 2, 1, 4, 3, 2, 1};
+  int countFirst = 0;
+  int previousEvent = -1;
+  auto combGen = combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 4, -1, testA, testA));
+  for (auto it = combGen.begin(); it != combGen.end(); it++) {
+    auto& [c0, c1] = *it;
+    BOOST_CHECK_EQUAL(it.getIsFirstEvent(), previousEvent != c0.x());
+    if (it.getIsFirstEvent()) {
+      BOOST_CHECK_EQUAL(it.getNumberOfEventsToMixWith(), expectedEventsInBin[countFirst]);
+      countFirst++;
+    }
+    previousEvent = c0.index();
+  }
+}
