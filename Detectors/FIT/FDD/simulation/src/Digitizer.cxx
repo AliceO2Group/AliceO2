@@ -197,10 +197,10 @@ void Digitizer::storeBC(const BCCache& bc,
   for (int ic = 0; ic < Nchannels; ic++) {
     float chargeADC = integrateCharge(bc.pulse[ic]);
     if (chargeADC != 0) {
-        uint8_t channelBits = parameters.defaultFEEbits;
-        if (std::rand() % 2) {
-            ChannelData::setFlag(ChannelData::kNumberADC, channelBits);
-        }
+      uint8_t channelBits = parameters.defaultFEEbits;
+      if (std::rand() % 2) {
+        ChannelData::setFlag(ChannelData::kNumberADC, channelBits);
+      }
       digitsCh.emplace_back(ic, int(simulateTimeCFD(bc.pulse[ic])), int(chargeADC), channelBits);
       nStored++;
     }

@@ -33,19 +33,19 @@ struct ChannelData {
   static constexpr uint8_t DUMMY_CHAIN_QTC = 0;
   static constexpr int16_t DUMMY_CFD_TIME = -5000;
   static constexpr int16_t DUMMY_QTC_AMPL = -5000;
-  uint8_t mPMNumber = DUMMY_CHANNEL_ID;     // PhotoMultiplier number (0 to 16)
-  int16_t mTime = DUMMY_CFD_TIME;      // Time of Flight
-  int16_t mChargeADC = DUMMY_QTC_AMPL; // ADC sample
-  uint8_t mFEEBits = DUMMY_CHAIN_QTC;       //Bit information from FEE
-                              /*  enum Flags { Integrator = 0x1 << 0,
-               DoubleEvent = 0x1 << 1,
-               Event1TimeLost = 0x1 << 2,
-               Event2TimeLost = 0x1 << 3,
-               AdcInGate = 0x1 << 4,
-               TimeTooLate = 0x1 << 5,
-               AmpTooHigh = 0x1 << 6,
-               EventInTrigger = 0x1 << 7,
-               TimeLost = 0x1 << 8 };*/
+  uint8_t mPMNumber = DUMMY_CHANNEL_ID; // PhotoMultiplier number (0 to 16)
+  int16_t mTime = DUMMY_CFD_TIME;       // Time of Flight
+  int16_t mChargeADC = DUMMY_QTC_AMPL;  // ADC sample
+  uint8_t mFEEBits = DUMMY_CHAIN_QTC;   // Bit information from FEE
+  /*  enum Flags { Integrator = 0x1 << 0,
+DoubleEvent = 0x1 << 1,
+Event1TimeLost = 0x1 << 2,
+Event2TimeLost = 0x1 << 3,
+AdcInGate = 0x1 << 4,
+TimeTooLate = 0x1 << 5,
+AmpTooHigh = 0x1 << 6,
+EventInTrigger = 0x1 << 7,
+TimeLost = 0x1 << 8 };*/
   enum EEventDataBit { kNumberADC,
                        kIsDoubleEvent,
                        kIsTimeInfoNOTvalid,

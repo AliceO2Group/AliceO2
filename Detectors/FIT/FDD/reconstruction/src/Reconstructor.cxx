@@ -49,11 +49,11 @@ o2::fdd::RecPoint Reconstructor::process(o2::fdd::Digit const& digitBC,
       timeErr = 1 / adc;
     }
     if (outChData[ich].mPMNumber < 8) {
-      nInTimeC+=inTime;
+      nInTimeC += inTime;
       timeFDC += time / (timeErr * timeErr);
       weightFDC += 1. / (timeErr * timeErr);
     } else {
-      nInTimeA+=inTime;
+      nInTimeA += inTime;
       timeFDA += time / (timeErr * timeErr);
       weightFDA += 1. / (timeErr * timeErr);
     }
@@ -61,8 +61,10 @@ o2::fdd::RecPoint Reconstructor::process(o2::fdd::Digit const& digitBC,
   const int nsToPs = 1e3;
   std::array<int, 2> mCollisionTime = {o2::fdd::RecPoint::sDummyCollissionTime, o2::fdd::RecPoint::sDummyCollissionTime};
   /// Avg time for each side only one channel satisfy the
-  if (nInTimeA > 0) mCollisionTime[o2::fdd::RecPoint::TimeA] = (weightFDA > 1) ? round(timeFDA / weightFDA * nsToPs) : o2::fdd::RecPoint::sDummyCollissionTime;
-  if (nInTimeC > 0) mCollisionTime[o2::fdd::RecPoint::TimeC] = (weightFDC > 1) ? round(timeFDC / weightFDC * nsToPs) : o2::fdd::RecPoint::sDummyCollissionTime;
+  if (nInTimeA > 0)
+    mCollisionTime[o2::fdd::RecPoint::TimeA] = (weightFDA > 1) ? round(timeFDA / weightFDA * nsToPs) : o2::fdd::RecPoint::sDummyCollissionTime;
+  if (nInTimeC > 0)
+    mCollisionTime[o2::fdd::RecPoint::TimeC] = (weightFDC > 1) ? round(timeFDC / weightFDC * nsToPs) : o2::fdd::RecPoint::sDummyCollissionTime;
   return RecPoint{mCollisionTime, digitBC.ref.getFirstEntry(), digitBC.ref.getEntries(), digitBC.getIntRecord(), digitBC.mTriggers};
 }
 //________________________________________________________
