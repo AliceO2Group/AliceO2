@@ -56,7 +56,7 @@ struct SimConfigData {
                                               // but will themselves be overridden by any values given in mKeyValueTokens.
   int mPrimaryChunkSize;                      // defining max granularity for input primaries of a sim job
   int mInternalChunkSize;                     //
-  int mStartSeed;                             // base for random number seeds
+  ULong_t mStartSeed;                         // base for random number seeds
   int mSimWorkers = 1;                        // number of parallel sim workers (when it applies)
   bool mFilterNoHitEvents = false;            // whether to filter out events not leaving any response
   std::string mCCDBUrl;                       // the URL where to find CCDB
@@ -137,7 +137,7 @@ class SimConfig
   std::string getConfigFile() const { return mConfigData.mConfigFile; }
   int getPrimChunkSize() const { return mConfigData.mPrimaryChunkSize; }
   int getInternalChunkSize() const { return mConfigData.mInternalChunkSize; }
-  int getStartSeed() const { return mConfigData.mStartSeed; }
+  ULong_t getStartSeed() const { return mConfigData.mStartSeed; }
   int getNSimWorkers() const { return mConfigData.mSimWorkers; }
   bool isFilterOutNoHitEvents() const { return mConfigData.mFilterNoHitEvents; }
   bool asService() const { return mConfigData.mAsService; }
@@ -173,7 +173,7 @@ struct SimReconfigData {
   // values within the config file will override values set in code by the param classes
   // but will themselves be overridden by any values given in mKeyValueTokens.
   unsigned int primaryChunkSize; // defining max granularity for input primaries of a sim job
-  int startSeed;                 // base for random number seeds
+  ULong_t startSeed;             // base for random number seeds
   bool stop;                     // to shut down the service
 
   ClassDefNV(SimReconfigData, 1);
