@@ -48,7 +48,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "configFile", bpo::value<std::string>()->default_value(""), "Path to an INI or JSON configuration file")(
     "chunkSize", bpo::value<unsigned int>()->default_value(500), "max size of primary chunk (subevent) distributed by server")(
     "chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize")(
-    "seed", bpo::value<int>()->default_value(-1), "initial seed (default: -1 random)")(
+    "seed", bpo::value<ULong_t>()->default_value(0), "initial seed as ULong_t (default: 0 == random)")(
     "field", bpo::value<std::string>()->default_value("-5"), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0; +-<intKGaus>U for uniform field; \"ccdb\" for taking it from CCDB ")(
     "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)")(
     "noemptyevents", "only writes events with at least one hit")(
@@ -171,7 +171,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mConfigFile = vm["configFile"].as<std::string>();
   mConfigData.mPrimaryChunkSize = vm["chunkSize"].as<unsigned int>();
   mConfigData.mInternalChunkSize = vm["chunkSizeI"].as<int>();
-  mConfigData.mStartSeed = vm["seed"].as<int>();
+  mConfigData.mStartSeed = vm["seed"].as<ULong_t>();
   mConfigData.mSimWorkers = vm["nworkers"].as<int>();
   if (vm.count("timestamp")) {
     mConfigData.mTimestamp = vm["timestamp"].as<uint64_t>();
@@ -286,7 +286,7 @@ bool parseSimReconfigFromString(std::string const& argumentstring, SimReconfigDa
     "configKeyValues", bpo::value<std::string>(&data.keyValueTokens)->default_value(""), "semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...")(
     "configFile", bpo::value<std::string>(&data.configFile)->default_value(""), "Path to an INI or JSON configuration file")(
     "chunkSize", bpo::value<unsigned int>(&data.primaryChunkSize)->default_value(500), "max size of primary chunk (subevent) distributed by server")(
-    "seed", bpo::value<int>(&data.startSeed)->default_value(-1), "initial seed (default: -1 random)")(
+    "seed", bpo::value<ULong_t>(&data.startSeed)->default_value(0L), "initial seed as ULong_t (default: 0 == random)")(
     "stop", bpo::value<bool>(&data.stop)->default_value(false), "control command to shut down daemon");
 
   bpo::variables_map vm;
