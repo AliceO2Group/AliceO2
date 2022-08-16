@@ -27,6 +27,7 @@ struct DigitizationParameters {
   static constexpr int PheRRSize = 1e5;     // size of random ring to be used inside photoelectron loop
   static constexpr int HitRRSize = 1e4;     // size of random ring to be used inside hit loop
   static constexpr int NResponseTables = 9; // number of PMT response tables
+  static constexpr  uint8_t defaultFEEbits = 0x48; // (01001000) only 2 flags are set by default in simulation:kIsCFDinADCgate and kIsEventInTVDC
 };
 } // namespace o2::fdd
 #endif
