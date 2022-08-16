@@ -28,7 +28,7 @@
 /DataFormats/Detectors/Common                  @shahor02
 /DataFormats/Detectors/CPV                     @peressounko @kharlov
 /DataFormats/Detectors/CTP                     @lietava
-/DataFormats/Detectors/EMCAL                   @mfasDa
+/DataFormats/Detectors/EMCAL                   @mfasDa @jokonig
 /DataFormats/Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
 /DataFormats/Detectors/GlobalTracking          @shahor02
 /DataFormats/Detectors/GlobalTrackingWorkflow  @shahor02
