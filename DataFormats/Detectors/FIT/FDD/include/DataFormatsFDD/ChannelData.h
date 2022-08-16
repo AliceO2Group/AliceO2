@@ -59,7 +59,6 @@ struct ChannelData {
   ChannelData() = default;
   ChannelData(uint8_t channel, int time, int adc, uint8_t bits) : mPMNumber(channel), mTime(time), mChargeADC(adc), mFEEBits(bits) {}
   uint8_t getChannelID() const { return mPMNumber; }
-  uint8_t getChannelID1() const { return mPMNumber; }
   static void setFlag(EEventDataBit bitFlag, uint8_t& mFEEBits) { mFEEBits |= (1 << bitFlag); }
   static void clearFlag(EEventDataBit bitFlag, uint8_t& mFEEBits) { mFEEBits &= ~(1 << bitFlag); }
   bool getFlag(EEventDataBit bitFlag) const { return bool(mFEEBits & (1 << bitFlag)); }
