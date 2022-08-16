@@ -1367,9 +1367,9 @@ BOOST_AUTO_TEST_CASE(BlockCombinationsCounters)
   auto combGen = combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 4, -1, testA, testA));
   for (auto it = combGen.begin(); it != combGen.end(); it++) {
     auto& [c0, c1] = *it;
-    BOOST_CHECK_EQUAL(it.getIsFirstEvent(), previousEvent != c0.x());
-    if (it.getIsFirstEvent()) {
-      BOOST_CHECK_EQUAL(it.getNumberOfEventsToMixWith(), expectedEventsInBin[countFirst]);
+    BOOST_CHECK_EQUAL(it.isFirstEvent(), previousEvent != c0.x());
+    if (it.isFirstEvent()) {
+      BOOST_CHECK_EQUAL(it.numberOfEventsToMixWith(), expectedEventsInBin[countFirst]);
       countFirst++;
     }
     previousEvent = c0.index();

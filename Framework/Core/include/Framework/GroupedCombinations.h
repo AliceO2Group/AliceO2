@@ -165,6 +165,9 @@ struct GroupedCombinationsGenerator {
       }
     }
 
+    //using GroupingPolicy::getIsFirstEvent;
+    //using GroupingPolicy::getNumberOfEventsToMixWith;
+
     std::array<expressions::BindingNode, sizeof...(As)> mIndexColumns;
     std::shared_ptr<G> mGrouping;
     std::shared_ptr<std::tuple<As...>> mAssociated;

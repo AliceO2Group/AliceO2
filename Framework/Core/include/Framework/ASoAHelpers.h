@@ -500,7 +500,7 @@ struct CombinationsBlockIndexPolicyBase : public CombinationsIndexPolicyBase<Ts.
     });
   }
 
-  int getNumberOfEventsToMixWith()
+  int numberOfEventsToMixWith()
   {
     if (this->mIsEnd) {
       return 0;
@@ -512,7 +512,7 @@ struct CombinationsBlockIndexPolicyBase : public CombinationsIndexPolicyBase<Ts.
     return numberOfEventsToMixWith;
   }
 
-  bool getIsFirstEvent()
+  bool isFirstEvent()
   {
     return mIsFirstEvent;
   }
@@ -846,7 +846,7 @@ struct CombinationsBlockSameIndexPolicyBase : public CombinationsIndexPolicyBase
     std::get<0>(this->mCurrentIndices) = 0;
   }
 
-  int getNumberOfEventsToMixWith()
+  int numberOfEventsToMixWith()
   {
     if (this->mIsEnd) {
       return 0;
@@ -858,7 +858,7 @@ struct CombinationsBlockSameIndexPolicyBase : public CombinationsIndexPolicyBase
     return numberOfEventsToMixWith;
   }
 
-  bool getIsFirstEvent()
+  bool isFirstEvent()
   {
     return mIsFirstEvent;
   }
