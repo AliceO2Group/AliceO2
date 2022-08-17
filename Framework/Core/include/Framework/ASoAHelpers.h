@@ -502,6 +502,11 @@ struct CombinationsBlockIndexPolicyBase : public CombinationsIndexPolicyBase<Ts.
 
   int currentWindowNeighbours()
   {
+    // NOTE: The same number of currentWindowNeighbours is returned for all kinds of block combinations.
+    // Strictly upper: the first element will is paired with exactly currentWindowNeighbours other elements.
+    // Upper: the first element is paired with (currentWindowNeighbours + 1) elements, including itself.
+    // Full: (currentWindowNeighbours + 1) pairs with the first element in the first position (c1)
+    //       + there are other combinations with the first element at other positions.
     if (this->mIsEnd) {
       return 0;
     }
@@ -847,6 +852,11 @@ struct CombinationsBlockSameIndexPolicyBase : public CombinationsIndexPolicyBase
 
   int currentWindowNeighbours()
   {
+    // NOTE: The same number of currentWindowNeighbours is returned for all kinds of block combinations.
+    // Strictly upper: the first element will is paired with exactly currentWindowNeighbours other elements.
+    // Upper: the first element is paired with (currentWindowNeighbours + 1) elements, including itself.
+    // Full: (currentWindowNeighbours + 1) pairs with the first element in the first position (c1)
+    //       + there are other combinations with the first element at other positions.
     if (this->mIsEnd) {
       return 0;
     }
