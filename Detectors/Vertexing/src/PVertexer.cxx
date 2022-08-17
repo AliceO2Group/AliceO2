@@ -171,7 +171,7 @@ int PVertexer::findVertices(const VertexingInput& input, std::vector<PVertex>& v
     int peakBinT = seedHistoTZ.getXBin(peakBin), peakBinZ = seedHistoTZ.getYBin(peakBin);
     float tv = seedHistoTZ.getBinXCenter(peakBinT);
     float zv = seedHistoTZ.getBinYCenter(peakBinZ);
-    LOG(debug) << "Seeding with T=" << tv << " Z=" << zv << " bin " << peakBin << " on trial " << nTrials << " for vertex " << nfound;
+    LOG(debug) << "Seeding with T=" << tv << " Z=" << zv << " bin " << peakBin << " on trial " << nTrials << " for vertex " << nfound << " mult=" << mult;
 
     PVertex vtx;
     vtx.setXYZ(mMeanVertex.getX(), mMeanVertex.getY(), zv);
@@ -386,7 +386,9 @@ bool PVertexer::solveVertex(VertexSeed& vtxSeed) const
 
   vtxSeed.setChi2((vtxSeed.getNContributors() - vtxSeed.wghSum) / vtxSeed.scaleSig2ITuk2I); // calculate chi^2
   auto newScale = vtxSeed.wghChi2 / vtxSeed.wghSum;
-  LOG(debug) << "Solve: wghChi2=" << vtxSeed.wghChi2 << " wghSum=" << vtxSeed.wghSum << " -> scale= " << newScale << " old scale " << vtxSeed.scaleSigma2 << " prevScale: " << vtxSeed.scaleSigma2Prev;
+  LOG(debug) << "Solve: wghChi2=" << vtxSeed.wghChi2 << " wghSum=" << vtxSeed.wghSum << " -> scale= "
+             << newScale << " old scale " << vtxSeed.scaleSigma2 << " prevScale: " << vtxSeed.scaleSigma2Prev
+             << " n-contributors=" << vtxSeed.getNContributors();
   vtxSeed.setScale(newScale < mPVParams->minScale2 ? mPVParams->minScale2 : newScale, mTukey2I);
   return true;
 }
@@ -400,6 +402,7 @@ PVertexer::FitStatus PVertexer::evalIterations(VertexSeed& vtxSeed, PVertex& vtx
 
   if (vtxSeed.nIterations > mPVParams->maxIterations) {
     result = PVertexer::FitStatus::Failure;
+    return result;
   } else if (vtxSeed.scaleSigma2Prev <= mPVParams->minScale2 + kAlmost0F) {
     result = PVertexer::FitStatus::OK;
     LOG(debug) << "stop on simga :" << vtxSeed.scaleSigma2 << " prev: " << vtxSeed.scaleSigma2Prev;
@@ -696,9 +699,12 @@ void PVertexer::end()
   mDebugDBScanTree->Write();
   mDebugVtxCompTree->Write();
   mDebugVtxTree->Write();
-  mDebugDBScanTree.reset();
+
+  mDebugPoolTree.reset();
   mDebugDBScanTree.reset();
   mDebugVtxCompTree.reset();
+  mDebugVtxTree.reset();
+
   mDebugDumpFile->Close();
   mDebugDumpFile.reset();
 #endif
@@ -1155,4 +1161,21 @@ void PVertexer::dumpPool()
     LOGP(warn, "Produced tracks pool dump {}", dumpFile.GetName());
   }
   mPoolDumpProduced = true;
+}
+//______________________________________________
+int PVertexer::processFromExternalPool(const std::vector<TrackVF>& pool, std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs)
+{
+  // dummy inputs
+  std::vector<o2::InteractionRecord> bcData;
+  std::vector<o2::MCCompLabel> lblTracks;
+  std::vector<o2::MCEventLabel> lblVtx;
+
+  std::vector<GTrackID> gids;
+  for (auto tr : pool) {
+    tr.vtxID = TrackVF::kNoVtx;
+    tr.wgh = 0.;
+    mTracksPool.push_back(tr);
+    gids.push_back(tr.gid);
+  }
+  return runVertexing(gids, bcData, vertices, vertexTrackIDs, v2tRefs, lblTracks, lblVtx);
 }
