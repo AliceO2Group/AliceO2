@@ -480,9 +480,9 @@ struct BuilderHolder : InsertionPolicy<T> {
 
 struct TableBuilderHelpers {
   template <typename... ARGS>
-  static auto makeFields(std::vector<std::string> const& names)
+  static auto makeFields(std::array<char const*, sizeof...(ARGS)> const& names)
   {
-    std::vector<std::shared_ptr<arrow::DataType>> types{BuilderMaker<ARGS>::make_datatype()...};
+    std::array<std::shared_ptr<arrow::DataType>, sizeof...(ARGS)> types{BuilderMaker<ARGS>::make_datatype()...};
     std::vector<std::shared_ptr<arrow::Field>> result;
     for (size_t i = 0; i < names.size(); ++i) {
       result.emplace_back(std::make_shared<arrow::Field>(names[i], types[i], true, nullptr));
@@ -651,10 +651,10 @@ class TableBuilder
     return (HoldersTuple<ARGS...>*)mHolders;
   }
 
-  void validate(const int nColumns, std::vector<std::string> const& columnNames) const;
+  void validate() const;
 
   template <typename... ARGS>
-  auto makeBuilders(std::vector<std::string> const& columnNames, size_t nRows)
+  auto makeBuilders(std::array<char const*, sizeof...(ARGS)> const& columnNames, size_t nRows)
   {
     mSchema = std::make_shared<arrow::Schema>(TableBuilderHelpers::makeFields<ARGS...>(columnNames));
 
@@ -675,6 +675,29 @@ class TableBuilder
   }
 
  public:
+  template <typename... ARGS>
+  static constexpr int countColumns()
+  {
+    using args_pack_t = framework::pack<ARGS...>;
+    if constexpr (sizeof...(ARGS) == 1 &&
+                  is_bounded_array<pack_element_t<0, args_pack_t>>::value == false &&
+                  std::is_arithmetic_v<pack_element_t<0, args_pack_t>> == false &&
+                  framework::is_base_of_template_v<std::vector, pack_element_t<0, args_pack_t>> == false) {
+      using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
+      using argsPack_t = decltype(tuple_to_pack(framework::to_tuple(std::declval<objType_t>())));
+      return framework::pack_size(argsPack_t{});
+    } else if constexpr (sizeof...(ARGS) == 1 &&
+                         (is_bounded_array<pack_element_t<0, args_pack_t>>::value == true ||
+                          framework::is_base_of_template_v<std::vector, pack_element_t<0, args_pack_t>> == true)) {
+      using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
+      using argsPack_t = framework::pack<objType_t>;
+      return framework::pack_size(argsPack_t{});
+    } else if constexpr (sizeof...(ARGS) >= 1) {
+      return sizeof...(ARGS);
+    } else {
+      static_assert(o2::framework::always_static_assert_v<ARGS...>, "Unmanaged case");
+    }
+  }
   void setLabel(const char* label);
 
   TableBuilder(arrow::MemoryPool* pool = arrow::default_memory_pool())
@@ -686,7 +709,7 @@ class TableBuilder
   /// Creates a lambda which is suitable to persist things
   /// in an arrow::Table
   template <typename... ARGS>
-  auto persist(std::vector<std::string> const& columnNames)
+  auto persist(std::array<char const*, countColumns<ARGS...>()> const& columnNames)
   {
     using args_pack_t = framework::pack<ARGS...>;
     if constexpr (sizeof...(ARGS) == 1 &&
@@ -722,10 +745,10 @@ class TableBuilder
 
   /// Same a the above, but use a tuple to persist stuff.
   template <typename... ARGS>
-  auto persistTuple(framework::pack<ARGS...>, std::vector<std::string> const& columnNames)
+  auto persistTuple(framework::pack<ARGS...>, std::array<char const*, sizeof...(ARGS)> const& columnNames)
   {
     constexpr int nColumns = sizeof...(ARGS);
-    validate(nColumns, columnNames);
+    validate();
     mArrays.resize(nColumns);
     makeBuilders<ARGS...>(columnNames, 1000);
     makeFinalizer<ARGS...>();
@@ -759,10 +782,10 @@ class TableBuilder
   }
 
   template <typename... ARGS>
-  auto preallocatedPersist(std::vector<std::string> const& columnNames, int nRows)
+  auto preallocatedPersist(std::array<char const*, sizeof...(ARGS)> const& columnNames, int nRows)
   {
     constexpr int nColumns = sizeof...(ARGS);
-    validate(nColumns, columnNames);
+    validate();
     mArrays.resize(nColumns);
     makeBuilders<ARGS...>(columnNames, nRows);
     makeFinalizer<ARGS...>();
@@ -774,10 +797,11 @@ class TableBuilder
   }
 
   template <typename... ARGS>
-  auto bulkPersist(std::vector<std::string> const& columnNames, size_t nRows)
+  auto bulkPersist(std::array<char const*, sizeof...(ARGS)> const& columnNames, size_t nRows)
   {
     constexpr int nColumns = sizeof...(ARGS);
-    validate(nColumns, columnNames);
+    validate();
+    //  Should not be called more than once
     mArrays.resize(nColumns);
     makeBuilders<ARGS...>(columnNames, nRows);
     makeFinalizer<ARGS...>();
@@ -788,10 +812,10 @@ class TableBuilder
   }
 
   template <typename... ARGS>
-  auto bulkPersistChunked(std::vector<std::string> const& columnNames, size_t nRows)
+  auto bulkPersistChunked(std::array<char const*, sizeof...(ARGS)> const& columnNames, size_t nRows)
   {
     constexpr int nColumns = sizeof...(ARGS);
-    validate(nColumns, columnNames);
+    validate();
     mArrays.resize(nColumns);
     makeBuilders<ARGS...>(columnNames, nRows);
     makeFinalizer<ARGS...>();
@@ -828,14 +852,14 @@ class TableBuilder
   template <typename T, size_t... Is>
   auto cursorHelper(std::index_sequence<Is...>)
   {
-    std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
+    std::array<char const*, sizeof...(Is)> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
     return this->template persist<typename pack_element_t<Is, typename T::columns>::type...>(columnNames);
   }
 
   template <typename T, typename E, size_t... Is>
   auto cursorHelper(std::index_sequence<Is...>)
   {
-    std::vector<std::string> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
+    std::array<char const*, sizeof...(Is)> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
     return this->template persist<E>(columnNames);
   }
 
