@@ -72,11 +72,8 @@ void TableBuilder::throwError(RuntimeErrorRef const& ref)
   throw ref;
 }
 
-void TableBuilder::validate(const int nColumns, std::vector<std::string> const& columnNames) const
+void TableBuilder::validate() const
 {
-  if (nColumns != columnNames.size()) {
-    throwError(runtime_error("Mismatching number of column types and names"));
-  }
   if (mHolders != nullptr) {
     throwError(runtime_error("TableBuilder::persist can only be invoked once per instance"));
   }
