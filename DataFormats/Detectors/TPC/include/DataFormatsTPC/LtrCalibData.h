@@ -61,6 +61,11 @@ struct LtrCalibData {
     dvCorrectionC *= fact;
   }
 
+  float getT0A() const { return (250.f * (1.f - dvCorrectionA) - dvOffsetA) / refVDrift; }
+  float getT0C() const { return (250.f * (1.f - dvCorrectionC) + dvOffsetC) / refVDrift; }
+  float getZOffsetA() const { return (250.f * (1.f - dvCorrectionA) - dvOffsetA) / dvCorrectionA; }
+  float getZOffsetC() const { return (250.f * (1.f - dvCorrectionC) + dvOffsetC) / dvCorrectionC; }
+
   void reset()
   {
     processedTFs = 0;
