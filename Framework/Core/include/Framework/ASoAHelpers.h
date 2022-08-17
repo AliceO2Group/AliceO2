@@ -500,7 +500,7 @@ struct CombinationsBlockIndexPolicyBase : public CombinationsIndexPolicyBase<Ts.
     });
   }
 
-  int combinationsWithFirst()
+  int currentWindowNeighbours()
   {
     if (this->mIsEnd) {
       return 0;
@@ -845,7 +845,7 @@ struct CombinationsBlockSameIndexPolicyBase : public CombinationsIndexPolicyBase
     std::get<0>(this->mCurrentIndices) = 0;
   }
 
-  int combinationsWithFirst()
+  int currentWindowNeighbours()
   {
     if (this->mIsEnd) {
       return 0;

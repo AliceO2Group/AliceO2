@@ -1368,7 +1368,7 @@ BOOST_AUTO_TEST_CASE(BlockCombinationsCounters)
     auto& [c0, c1] = *it;
     BOOST_CHECK_EQUAL(it.isNewWindow(), previousEvent != c0.x());
     if (it.isNewWindow()) {
-      BOOST_CHECK_EQUAL(it.combinationsWithFirst(), expectedCollisionsInBinSmallWindow[countFirst]);
+      BOOST_CHECK_EQUAL(it.currentWindowNeighbours(), expectedCollisionsInBinSmallWindow[countFirst]);
       countFirst++;
     }
     previousEvent = c0.index();
@@ -1383,7 +1383,7 @@ BOOST_AUTO_TEST_CASE(BlockCombinationsCounters)
     auto& [c0, c1] = *it;
     BOOST_CHECK_EQUAL(it.isNewWindow(), previousEvent != c0.x());
     if (it.isNewWindow()) {
-      BOOST_CHECK_EQUAL(it.combinationsWithFirst(), expectedCollisionsInBinEqualWindow[countFirst]);
+      BOOST_CHECK_EQUAL(it.currentWindowNeighbours(), expectedCollisionsInBinEqualWindow[countFirst]);
       countFirst++;
     }
     previousEvent = c0.index();
@@ -1398,7 +1398,7 @@ BOOST_AUTO_TEST_CASE(BlockCombinationsCounters)
     auto& [c0, c1] = *it;
     BOOST_CHECK_EQUAL(it.isNewWindow(), previousEvent != c0.x());
     if (it.isNewWindow()) {
-      BOOST_CHECK_EQUAL(it.combinationsWithFirst(), expectedCollisionsInBinBigWindow[countFirst]);
+      BOOST_CHECK_EQUAL(it.currentWindowNeighbours(), expectedCollisionsInBinBigWindow[countFirst]);
       countFirst++;
     }
     previousEvent = c0.index();
