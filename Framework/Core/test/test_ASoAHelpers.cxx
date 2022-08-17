@@ -1360,45 +1360,45 @@ BOOST_AUTO_TEST_CASE(BlockCombinationsCounters)
   ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}, false};
 
   // Window size < category size
-  std::vector<int> expectedEventsInBinSmallWindow{3, 3, 2, 1, 3, 3, 2, 1};
+  std::vector<int> expectedCollisionsInBinSmallWindow{3, 3, 2, 1, 3, 3, 2, 1};
   int countFirst = 0;
   int previousEvent = -1;
   auto combGenSmallWindow = combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 3, -1, testA, testA));
   for (auto it = combGenSmallWindow.begin(); it != combGenSmallWindow.end(); it++) {
     auto& [c0, c1] = *it;
-    BOOST_CHECK_EQUAL(it.isFirstEvent(), previousEvent != c0.x());
-    if (it.isFirstEvent()) {
-      BOOST_CHECK_EQUAL(it.numberOfEventsToMixWith(), expectedEventsInBinSmallWindow[countFirst]);
+    BOOST_CHECK_EQUAL(it.isNewWindow(), previousEvent != c0.x());
+    if (it.isNewWindow()) {
+      BOOST_CHECK_EQUAL(it.combinationsWithFirst(), expectedCollisionsInBinSmallWindow[countFirst]);
       countFirst++;
     }
     previousEvent = c0.index();
   }
 
   // Window size = category size
-  std::vector<int> expectedEventsInBinEqualWindow{4, 3, 2, 1, 4, 3, 2, 1};
+  std::vector<int> expectedCollisionsInBinEqualWindow{4, 3, 2, 1, 4, 3, 2, 1};
   countFirst = 0;
   previousEvent = -1;
   auto combGenEqualWindow = combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 4, -1, testA, testA));
   for (auto it = combGenEqualWindow.begin(); it != combGenEqualWindow.end(); it++) {
     auto& [c0, c1] = *it;
-    BOOST_CHECK_EQUAL(it.isFirstEvent(), previousEvent != c0.x());
-    if (it.isFirstEvent()) {
-      BOOST_CHECK_EQUAL(it.numberOfEventsToMixWith(), expectedEventsInBinEqualWindow[countFirst]);
+    BOOST_CHECK_EQUAL(it.isNewWindow(), previousEvent != c0.x());
+    if (it.isNewWindow()) {
+      BOOST_CHECK_EQUAL(it.combinationsWithFirst(), expectedCollisionsInBinEqualWindow[countFirst]);
       countFirst++;
     }
     previousEvent = c0.index();
   }
 
   // Window size = category size
-  std::vector<int> expectedEventsInBinBigWindow{4, 3, 2, 1, 4, 3, 2, 1};
+  std::vector<int> expectedCollisionsInBinBigWindow{4, 3, 2, 1, 4, 3, 2, 1};
   countFirst = 0;
   previousEvent = -1;
   auto combGenBigWindow = combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 5, -1, testA, testA));
   for (auto it = combGenBigWindow.begin(); it != combGenBigWindow.end(); it++) {
     auto& [c0, c1] = *it;
-    BOOST_CHECK_EQUAL(it.isFirstEvent(), previousEvent != c0.x());
-    if (it.isFirstEvent()) {
-      BOOST_CHECK_EQUAL(it.numberOfEventsToMixWith(), expectedEventsInBinBigWindow[countFirst]);
+    BOOST_CHECK_EQUAL(it.isNewWindow(), previousEvent != c0.x());
+    if (it.isNewWindow()) {
+      BOOST_CHECK_EQUAL(it.combinationsWithFirst(), expectedCollisionsInBinBigWindow[countFirst]);
       countFirst++;
     }
     previousEvent = c0.index();
