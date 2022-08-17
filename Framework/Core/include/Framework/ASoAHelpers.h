@@ -509,7 +509,6 @@ struct CombinationsBlockIndexPolicyBase : public CombinationsIndexPolicyBase<Ts.
     uint64_t maxForTable = std::get<0>(this->mMaxOffset);
     uint64_t currentMax = maxForWindow < maxForTable ? maxForWindow : maxForTable;
     int numberOfEventsToMixWith = currentMax - std::get<0>(mCurrentIndices);
-    LOG(info) << "maxForWindow: " << maxForWindow << " window size: " << this->mSlidingWindowSize << " maxForTable: " << maxForTable << " current max: " << currentMax << " number of events: " << numberOfEventsToMixWith;
     return numberOfEventsToMixWith;
   }
 
@@ -821,11 +820,6 @@ struct CombinationsBlockSameIndexPolicyBase : public CombinationsIndexPolicyBase
 
     this->mGroupedIndices = groupTable(table, mBP, mMinWindowSize, mOutsider);
 
-    LOG(info) << "Grouped indices:";
-    for (auto& binInd : this->mGroupedIndices) {
-      LOG(info) << binInd.index << " bin: " << binInd.bin;
-    }
-
     if (this->mGroupedIndices.size() == 0) {
       this->mIsEnd = true;
       return;
@@ -861,7 +855,6 @@ struct CombinationsBlockSameIndexPolicyBase : public CombinationsIndexPolicyBase
     uint64_t maxForTable = std::get<0>(this->mMaxOffset);
     uint64_t currentMax = maxForWindow < maxForTable ? maxForWindow : maxForTable;
     int numberOfEventsToMixWith = currentMax - std::get<0>(mCurrentIndices);
-    LOG(info) << "maxForWindow: " << maxForWindow << " window size: " << this->mSlidingWindowSize << " maxForTable: " << maxForTable << " current max: " << currentMax << " number of events: " << numberOfEventsToMixWith;
     return numberOfEventsToMixWith;
   }
 

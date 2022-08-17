@@ -1359,15 +1359,46 @@ BOOST_AUTO_TEST_CASE(BlockCombinationsCounters)
 
   ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}, false};
 
-  std::vector<int> expectedEventsInBin{3, 3, 2, 1, 3, 3, 2, 1};
+  // Window size < category size
+  std::vector<int> expectedEventsInBinSmallWindow{3, 3, 2, 1, 3, 3, 2, 1};
   int countFirst = 0;
   int previousEvent = -1;
-  auto combGen = combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 3, -1, testA, testA));
-  for (auto it = combGen.begin(); it != combGen.end(); it++) {
+  auto combGenSmallWindow = combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 3, -1, testA, testA));
+  for (auto it = combGenSmallWindow.begin(); it != combGenSmallWindow.end(); it++) {
     auto& [c0, c1] = *it;
     BOOST_CHECK_EQUAL(it.isFirstEvent(), previousEvent != c0.x());
     if (it.isFirstEvent()) {
-      BOOST_CHECK_EQUAL(it.numberOfEventsToMixWith(), expectedEventsInBin[countFirst]);
+      BOOST_CHECK_EQUAL(it.numberOfEventsToMixWith(), expectedEventsInBinSmallWindow[countFirst]);
+      countFirst++;
+    }
+    previousEvent = c0.index();
+  }
+
+  // Window size = category size
+  std::vector<int> expectedEventsInBinEqualWindow{4, 3, 2, 1, 4, 3, 2, 1};
+  countFirst = 0;
+  previousEvent = -1;
+  auto combGenEqualWindow = combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 4, -1, testA, testA));
+  for (auto it = combGenEqualWindow.begin(); it != combGenEqualWindow.end(); it++) {
+    auto& [c0, c1] = *it;
+    BOOST_CHECK_EQUAL(it.isFirstEvent(), previousEvent != c0.x());
+    if (it.isFirstEvent()) {
+      BOOST_CHECK_EQUAL(it.numberOfEventsToMixWith(), expectedEventsInBinEqualWindow[countFirst]);
+      countFirst++;
+    }
+    previousEvent = c0.index();
+  }
+
+  // Window size = category size
+  std::vector<int> expectedEventsInBinBigWindow{4, 3, 2, 1, 4, 3, 2, 1};
+  countFirst = 0;
+  previousEvent = -1;
+  auto combGenBigWindow = combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 5, -1, testA, testA));
+  for (auto it = combGenBigWindow.begin(); it != combGenBigWindow.end(); it++) {
+    auto& [c0, c1] = *it;
+    BOOST_CHECK_EQUAL(it.isFirstEvent(), previousEvent != c0.x());
+    if (it.isFirstEvent()) {
+      BOOST_CHECK_EQUAL(it.numberOfEventsToMixWith(), expectedEventsInBinBigWindow[countFirst]);
       countFirst++;
     }
     previousEvent = c0.index();
