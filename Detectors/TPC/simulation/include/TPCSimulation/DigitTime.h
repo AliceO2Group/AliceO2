@@ -99,7 +99,7 @@ inline void DigitTime::addDigit(const MCCompLabel& label, const CRU& cru, Global
     // could also register this pad in a vector of digits
   }
   paddigit.addDigit(label, signal, mLabels);
-  mCommonMode[cru.gemStack()] += signal;
+  mCommonMode[cru.gemStack()] += signal * 0.5; // TODO: Replace 0.5 by k-factor, take into account ion tail
 }
 
 inline void DigitTime::reset()
@@ -132,10 +132,10 @@ inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataforma
     }
   }
   for (auto& pad : mGlobalPads) {
-    if (pad.getChargePad() > 0.) {
-      const CRU cru = mapper.getCRU(sector, globalPad);
-      pad.fillOutputContainer<MODE>(output, mcTruth, cru, timeBin, globalPad, mLabels, getCommonMode(cru));
-    }
+    // if (pad.getChargePad() > 0.) {
+    const CRU cru = mapper.getCRU(sector, globalPad);
+    pad.fillOutputContainer<MODE>(output, mcTruth, cru, timeBin, globalPad, mLabels, getCommonMode(cru));
+    //}
     ++globalPad;
   }
 }

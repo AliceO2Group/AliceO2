@@ -145,7 +145,7 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
   const float mADC = sampaProcessing.makeSignal<MODE>(mChargePad, cru.sector(), globalPad, commonMode, pedestal, noise);
 
   /// only write out the data if there is actually charge on that pad
-  if (mADC > 0 && mChargePad > 0) {
+  if (mADC > 0) {
     auto labelview = labels.getLabels(mID);
 
     /// Write out the Digit
