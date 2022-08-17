@@ -45,6 +45,10 @@ struct ParameterElectronics : public o2::conf::ConfigurableParamHelper<Parameter
   float ADCsaturation = 1024.f;                                                 ///< ADC saturation [ADC counts]
   float ZbinWidth = TIMEBININBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3; ///< Width of a z bin [us]
   float ElectronCharge = 1.602e-19f;                                            ///< Electron charge [C]
+  float adcToT = 1.f / 1024.f;                                                  ///< relation between time over threshold and ADC value
+  bool doIonTail = false;                                                       ///< add ion tail in simulation
+  bool doSaturationTail = false;                                                ///< add saturation tail in simulation
+  bool doNoiseEmptyPads = false;                                                ///< add noise in pads without signal in simulation
   DigitzationMode DigiMode = DigitzationMode::ZeroSuppression;                  ///< Digitization mode [full / ... ]
 
   /// Average time from the start of the signal shaping to the COG of the sampled distribution

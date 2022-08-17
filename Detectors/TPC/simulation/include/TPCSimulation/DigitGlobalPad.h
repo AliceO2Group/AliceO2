@@ -18,6 +18,7 @@
 
 #include <map>
 #include <vector>
+#include <fmt/format.h>
 
 #include "TTree.h" // for TTree destructor
 
@@ -33,6 +34,15 @@ namespace o2
 {
 namespace tpc
 {
+
+/// \struct PrevDigitInfo
+struct PrevDigitInfo {
+  float signal{}; ///< pad signal
+  float cumul{};  ///< cumulative signal of prev time bins
+  int tot{};      ///< remaining time over threshold
+
+  bool hasSignal() const { return signal != 0 || cumul != 0 || tot != 0; }
+};
 
 /// \class DigitGlobalPad
 /// This is the lowest class of the intermediate Digit Containers, in which all incoming electrons from the
@@ -63,6 +73,9 @@ class DigitGlobalPad
   void addDigit(const MCCompLabel& label, float signal,
                 o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>&);
 
+  /// Fold signal with previous pad signal add ion tail and ToT for sigmal saturation
+  void foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time);
+
   void setID(int id) { mID = id; }
   int getID() const { return mID; }
 
@@ -78,7 +91,7 @@ class DigitGlobalPad
                            const CRU& cru, TimeBin timeBin,
                            GlobalPadNumber globalPad,
                            o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>& labelContainer,
-                           float commonMode = 0.f);
+                           float commonMode = 0.f, const PrevDigitInfo& prevDigit = PrevDigitInfo());
 
  private:
   /// Compare two MC labels regarding trackID, eventID and sourceID
@@ -112,6 +125,40 @@ inline void DigitGlobalPad::addDigit(const MCCompLabel& label, float signal,
   mChargePad += signal;
 }
 
+inline void DigitGlobalPad::foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time)
+{
+  const auto& eleParam = ParameterElectronics::Instance();
+
+  // Saturation tail simulation
+  if (eleParam.doSaturationTail) {
+    if (prevDigit.signal > 1023.f) {
+      prevDigit.tot += int(std::round(mChargePad * eleParam.adcToT));
+    }
+    if (prevDigit.tot > 0) {
+      prevDigit.tot -= 1;
+    }
+  }
+
+  // ion tail simulation
+  if (eleParam.doIonTail) {
+    const float kAmp = 0.1276;  // TODO: replace with pad-by-pad value
+    const float kTime = 0.0515; // TODO: replace with pad-by-pad value
+    const float tailSlopeUnit = std::exp(-kTime);
+    const auto mChargeOrig = mChargePad;
+    const auto prevCumul = prevDigit.cumul;
+    mChargePad = mChargePad + kAmp * (1 - tailSlopeUnit) * prevDigit.cumul;
+    prevDigit.cumul += mChargeOrig;
+    prevDigit.cumul *= tailSlopeUnit;
+    if (prevDigit.cumul < 0.1) {
+      prevDigit.cumul = 0;
+    }
+  }
+
+  // fmt::print("sector: {}, pad: {}, time: {}, mChargeOrig: {}, mChargePad: {}, mCumul: {}, mCumulPrev: {}, mTot: {}\n", sector, pad, time, mChargeOrig, mChargePad, prevDigit.cumul, prevCumul, prevDigit.tot);
+
+  // TODO: propagate labels for ion tail?
+}
+
 inline void DigitGlobalPad::reset()
 {
   mChargePad = 0;
@@ -131,7 +178,7 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
                                                 const CRU& cru, TimeBin timeBin,
                                                 GlobalPadNumber globalPad,
                                                 o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>& labels,
-                                                float commonMode)
+                                                float commonMode, const PrevDigitInfo& prevDigit)
 {
   const Mapper& mapper = Mapper::instance();
   SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
@@ -142,7 +189,7 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
   /// is created in written out
 
   float noise, pedestal;
-  const float mADC = sampaProcessing.makeSignal<MODE>(mChargePad, cru.sector(), globalPad, commonMode, pedestal, noise);
+  const float mADC = sampaProcessing.makeSignal<MODE>(mChargePad, cru.sector(), globalPad, commonMode, pedestal, noise, prevDigit.tot);
 
   /// only write out the data if there is actually charge on that pad
   if (mADC > 0) {
