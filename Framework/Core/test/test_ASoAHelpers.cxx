@@ -1359,12 +1359,10 @@ BOOST_AUTO_TEST_CASE(BlockCombinationsCounters)
 
   ColumnBinningPolicy<test::Y, test::FloatZ> pairBinning{{yBins, zBins}, false};
 
-  std::vector<std::tuple<int32_t, int32_t>> expectedStrictlyUpperPairs{
-    {0, 4}, {0, 7}, {4, 7}, {1, 6}, {3, 5}, {2, 8}, {2, 9}, {8, 9}};
-  std::vector<int> expectedEventsInBin{4, 3, 2, 1, 4, 3, 2, 1};
+  std::vector<int> expectedEventsInBin{3, 3, 2, 1, 3, 3, 2, 1};
   int countFirst = 0;
   int previousEvent = -1;
-  auto combGen = combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 4, -1, testA, testA));
+  auto combGen = combinations(CombinationsBlockStrictlyUpperSameIndexPolicy(pairBinning, 3, -1, testA, testA));
   for (auto it = combGen.begin(); it != combGen.end(); it++) {
     auto& [c0, c1] = *it;
     BOOST_CHECK_EQUAL(it.isFirstEvent(), previousEvent != c0.x());

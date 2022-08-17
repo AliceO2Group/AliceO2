@@ -505,7 +505,7 @@ struct CombinationsBlockIndexPolicyBase : public CombinationsIndexPolicyBase<Ts.
     if (this->mIsEnd) {
       return 0;
     }
-    uint64_t maxForWindow = std::get<0>(this->mBeginIndices) + this->mSlidingWindowSize;
+    uint64_t maxForWindow = std::get<0>(this->mBeginIndices) + this->mSlidingWindowSize - 1;
     uint64_t maxForTable = std::get<0>(this->mMaxOffset);
     uint64_t currentMax = maxForWindow < maxForTable ? maxForWindow : maxForTable;
     int numberOfEventsToMixWith = currentMax - std::get<0>(mCurrentIndices);
@@ -857,7 +857,7 @@ struct CombinationsBlockSameIndexPolicyBase : public CombinationsIndexPolicyBase
     if (this->mIsEnd) {
       return 0;
     }
-    uint64_t maxForWindow = std::get<0>(this->mCurrentIndices) + this->mSlidingWindowSize;
+    uint64_t maxForWindow = std::get<0>(this->mCurrentIndices) + this->mSlidingWindowSize - 1;
     uint64_t maxForTable = std::get<0>(this->mMaxOffset);
     uint64_t currentMax = maxForWindow < maxForTable ? maxForWindow : maxForTable;
     int numberOfEventsToMixWith = currentMax - std::get<0>(mCurrentIndices);
