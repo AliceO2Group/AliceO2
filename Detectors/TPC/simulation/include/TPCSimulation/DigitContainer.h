@@ -17,6 +17,7 @@
 #define ALICEO2_TPC_DigitContainer_H_
 
 #include <deque>
+#include <algorithm>
 #include "TPCBase/CRU.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCSimulation/DigitTime.h"
@@ -80,11 +81,12 @@ class DigitContainer
   size_t size() const { return mTimeBins.size(); }
 
  private:
-  TimeBin mFirstTimeBin = 0;       ///< First time bin to consider
-  TimeBin mEffectiveTimeBin = 0;   ///< Effective time bin of that digit
-  TimeBin mTmaxTriggered = 0;      ///< Maximum time bin in case of triggered mode (hard cut at average drift speed with additional margin)
-  TimeBin mOffset;                 ///< Size of the container for one event
-  std::deque<DigitTime*> mTimeBins; ///< Time bin Container for the ADC value
+  TimeBin mFirstTimeBin = 0;                                  ///< First time bin to consider
+  TimeBin mEffectiveTimeBin = 0;                              ///< Effective time bin of that digit
+  TimeBin mTmaxTriggered = 0;                                 ///< Maximum time bin in case of triggered mode (hard cut at average drift speed with additional margin)
+  TimeBin mOffset;                                            ///< Size of the container for one event
+  std::deque<DigitTime*> mTimeBins;                           ///< Time bin Container for the ADC value
+  std::unique_ptr<DigitTime::PrevDigitInfoArray> mPrevDigArr; ///< Keep track of ToT and ion tail cumul from last time bin
 };
 
 inline DigitContainer::DigitContainer()
@@ -108,6 +110,9 @@ inline void DigitContainer::reset()
       time->reset();
     }
   }
+  if (mPrevDigArr) {
+    std::fill(mPrevDigArr->begin(), mPrevDigArr->end(), PrevDigitInfo{});
+  }
 }
 
 inline void DigitContainer::reserve(TimeBin eventTimeBin)
@@ -125,6 +130,7 @@ inline void DigitContainer::addDigit(const MCCompLabel& label, const CRU& cru, T
   if (mTimeBins[mEffectiveTimeBin] == nullptr) {
     mTimeBins[mEffectiveTimeBin] = new DigitTime();
   }
+
   mTimeBins[mEffectiveTimeBin]->addDigit(label, cru, globalPad, signal);
 }
 

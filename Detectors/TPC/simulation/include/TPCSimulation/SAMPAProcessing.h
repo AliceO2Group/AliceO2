@@ -69,7 +69,7 @@ class SAMPAProcessing
   /// \param commonMode value of the common mode
   /// \return ADC value after application of noise, pedestal and saturation
   template <DigitzationMode MODE>
-  float makeSignal(float ADCcounts, const int sector, const int globalPadInSector, const float commonMode, float& pedestal, float& noise);
+  float makeSignal(float ADCcounts, const int sector, const int globalPadInSector, const float commonMode, float& pedestal, float& noise, float tot = 0);
 
   /// A delta signal is shaped by the FECs and thus spread over several time bins
   /// This function returns an array with the signal spread into the following time bins
@@ -149,7 +149,7 @@ inline T SAMPAProcessing::getADCvalue(T nElectrons) const
 
 template <DigitzationMode MODE>
 inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, const int globalPadInSector, const float commonMode,
-                                         float& pedestal, float& noise)
+                                         float& pedestal, float& noise, float tot)
 {
   float signal = ADCcounts;
   pedestal = getPedestal(sector, globalPadInSector);
@@ -166,6 +166,7 @@ inline float SAMPAProcessing::makeSignal(float ADCcounts, const int sector, cons
       signal -= commonMode;
       signal += noise;
       signal += pedestal;
+      signal += (tot > 0) ? 80 : 0; // TODO: improve to also add tail
       const float signalSubtractPedestal = getADCSaturation(signal) - pedestal;
       const float zeroSuppression = getZeroSuppression(sector, globalPadInSector);
       if (signalSubtractPedestal < zeroSuppression) {
