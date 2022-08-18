@@ -335,8 +335,7 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
   if (mCFContext == nullptr) {
     mCFContext.reset(new GPUTPCCFChainContext);
   }
-  const bool doGPU = GetRecoStepsGPU() & RecoStep::TPCClusterFinding;
-  const short maxFragmentLen = doGPU ? TPC_MAX_FRAGMENT_LEN_GPU : TPC_MAX_FRAGMENT_LEN_HOST;
+  const short maxFragmentLen = GetProcessingSettings().overrideClusterizerFragmentLen;
   mCFContext->tpcMaxTimeBin = param().par.continuousTracking ? std::max<int>(param().par.continuousMaxTimeBin, maxFragmentLen) : TPC_MAX_TIME_BIN_TRIGGERED;
   const CfFragment fragmentMax{(tpccf::TPCTime)mCFContext->tpcMaxTimeBin + 1, maxFragmentLen};
   mCFContext->prepare(mIOPtrs.tpcZS, fragmentMax);
@@ -547,8 +546,8 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
 
         using ChargeMapType = decltype(*clustererShadow.mPchargeMap);
         using PeakMapType = decltype(*clustererShadow.mPpeakMap);
-        runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPchargeMap, TPCMapMemoryLayout<ChargeMapType>::items(doGPU) * sizeof(ChargeMapType));
-        runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPpeakMap, TPCMapMemoryLayout<PeakMapType>::items(doGPU) * sizeof(PeakMapType));
+        runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPchargeMap, TPCMapMemoryLayout<ChargeMapType>::items(GetProcessingSettings().overrideClusterizerFragmentLen) * sizeof(ChargeMapType));
+        runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPpeakMap, TPCMapMemoryLayout<PeakMapType>::items(GetProcessingSettings().overrideClusterizerFragmentLen) * sizeof(PeakMapType));
         if (fragment.index == 0) {
           runKernel<GPUMemClean16>(GetGridAutoStep(lane, RecoStep::TPCClusterFinding), krnlRunRangeNone, {}, clustererShadow.mPpadIsNoisy, TPC_PADS_IN_SECTOR * sizeof(*clustererShadow.mPpadIsNoisy));
         }

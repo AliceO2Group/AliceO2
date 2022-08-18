@@ -272,7 +272,10 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mProcessingSettings.mergerSortTracks = false;
   }
   if (mProcessingSettings.nTPCClustererLanes == -1) {
-    mProcessingSettings.nTPCClustererLanes = IsGPU() ? 3 : 1;
+    mProcessingSettings.nTPCClustererLanes = (GetRecoStepsGPU() & RecoStep::TPCClusterFinding) ? 3 : 1;
+  }
+  if (mProcessingSettings.overrideClusterizerFragmentLen == -1) {
+    mProcessingSettings.overrideClusterizerFragmentLen = (GetRecoStepsGPU() & RecoStep::TPCClusterFinding) ? TPC_MAX_FRAGMENT_LEN_GPU : TPC_MAX_FRAGMENT_LEN_HOST;
   }
   if (!IsGPU()) {
     mProcessingSettings.nDeviceHelperThreads = 0;
