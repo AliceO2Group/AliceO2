@@ -79,6 +79,7 @@ struct GPUMemorySizeScalers {
   inline size_t NTPCSectorTrackHits(size_t tpcHits) { return getValue(tpcMaxSectorTrackHits, tpcHits * tpcSectorTrackHitsPerHit); }
   inline size_t NTPCMergedTracks(size_t tpcSliceTracks) { return getValue(tpcMaxMergedTracks, tpcSliceTracks * tpcMergedTrackPerSliceTrack); }
   inline size_t NTPCMergedTrackHits(size_t tpcSliceTrackHitss) { return getValue(tpcMaxMergedTrackHits, tpcSliceTrackHitss * tpcMergedTrackHitPerSliceHit); }
+  inline size_t NTPCUnattachedHitsBase1024(int type) { return returnMaxVal ? 1024 : std::min<size_t>(1024, tpcCompressedUnattachedHitsBase1024[type] * factor * temporaryFactor); }
 };
 
 } // namespace GPUCA_NAMESPACE::gpu
