@@ -85,7 +85,7 @@ struct GroupedCombinationsGenerator {
       } else {
         mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()});
       }
-      mAssociated = std::make_shared<std::tuple<As...>>(std::make_tuple(std::get<As>(associated)...));
+      mAssociated = std::make_shared<std::tuple<As...>>(std::make_tuple(std::get<has_type_at<As>(pack<T2s...>{})>(associated)...));
       setMultipleGroupingTables<sizeof...(As)>(grouping);
       if (!this->mIsEnd) {
         setCurrentGroupedCombination();
