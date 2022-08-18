@@ -319,6 +319,11 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mProcessingSettings.ompAutoNThreads = false;
     omp_set_num_threads(mProcessingSettings.ompThreads);
   }
+  if (mProcessingSettings.ompKernels) {
+    if (omp_get_max_active_levels() < 2) {
+      omp_set_max_active_levels(2);
+    }
+  }
 #else
   mProcessingSettings.ompThreads = 1;
 #endif
