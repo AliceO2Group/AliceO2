@@ -319,8 +319,12 @@ bool create_GRPs(Options const& opts)
 
     // set the BC pattern if necessary
     if (opts.bcPatternFile.size() > 0) {
-      // load bunch filling from the file
-      auto* bc = o2::BunchFilling::loadFrom(opts.bcPatternFile);
+      // load bunch filling from the file (with standard CCDB convention)
+      auto* bc = o2::BunchFilling::loadFrom(opts.bcPatternFile, "ccdb_object");
+      if (!bc) {
+        // if it failed, retry with default naming
+        bc = o2::BunchFilling::loadFrom(opts.bcPatternFile);
+      }
       if (!bc) {
         LOG(fatal) << "Failed to load bunch filling from " << opts.bcPatternFile;
       }
