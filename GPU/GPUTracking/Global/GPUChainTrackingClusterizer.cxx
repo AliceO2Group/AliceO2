@@ -398,7 +398,7 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
   }
 
   if (param().par.continuousMaxTimeBin > 0 && mCFContext->tpcMaxTimeBin >= std::max<unsigned int>(param().par.continuousMaxTimeBin, maxFragmentLen) + 1) {
-    GPUWarning("Input data has invalid time bin %u >= %d", mCFContext->tpcMaxTimeBin, std::max<unsigned int>(param().par.continuousMaxTimeBin + 1, (int)maxFragmentLen));
+    GPUError("Input data has invalid time bin %u >= %d", mCFContext->tpcMaxTimeBin, std::max<unsigned int>(param().par.continuousMaxTimeBin + 1, (int)maxFragmentLen));
     if (GetProcessingSettings().ignoreNonFatalGPUErrors) {
       mCFContext->abandonTimeframe = true;
       mCFContext->tpcMaxTimeBin = param().par.continuousMaxTimeBin;
