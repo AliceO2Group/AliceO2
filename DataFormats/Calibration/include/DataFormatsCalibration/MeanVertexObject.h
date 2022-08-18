@@ -102,7 +102,7 @@ class MeanVertexObject : public VertexBase
   float mSlopeX{0.f}; // slope of x = f(z)
   float mSlopeY{0.f}; // slope of y = f(z)
 
-  ClassDefNV(MeanVertexObject, 1);
+  ClassDefNV(MeanVertexObject, 2);
 };
 
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::MeanVertexObject& o);
