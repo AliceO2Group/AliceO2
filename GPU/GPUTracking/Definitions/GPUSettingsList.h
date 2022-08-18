@@ -153,6 +153,7 @@ AddOption(ompAutoNThreads, bool, true, "", 0, "Auto-adjust number of OMP threads
 AddOption(nDeviceHelperThreads, int, 1, "", 0, "Number of CPU helper threads for CPU processing")
 AddOption(nStreams, char, 8, "", 0, "Number of GPU streams / command queues")
 AddOption(nTPCClustererLanes, char, -1, "", 0, "Number of TPC clusterers that can run in parallel (-1 = autoset)")
+AddOption(overrideClusterizerFragmentLen, int, -1, "", 0, "Force the cluster max fragment len to a certain value (-1 = autodetect)")
 AddOption(trackletSelectorSlices, char, -1, "", 0, "Number of slices to processes in parallel at max")
 AddOption(trackletConstructorInPipeline, char, -1, "", 0, "Run tracklet constructor in the pipeline")
 AddOption(trackletSelectorInPipeline, char, -1, "", 0, "Run tracklet selector in the pipeline")
