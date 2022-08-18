@@ -31,11 +31,6 @@ using namespace o2::phos;
 void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
-  mOutputDir = ic.options().get<std::string>("output-dir");
-  mOutputDir = o2::utils::Str::rectifyDirectory(mOutputDir);
-  mMetaFileDir = ic.options().get<std::string>("meta-output-dir");
-  mMetaFileDir = o2::utils::Str::rectifyDirectory(mMetaFileDir);
-  LOG(info) << "Meta dir=" << mMetaFileDir;
 
   mPtMin = ic.options().get<float>("ptminmgg");
   mEminHGTime = ic.options().get<float>("eminhgtime");
@@ -51,6 +46,7 @@ void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
   LOG(info) << " Emin for LG time=" << mEminLGTime;
   LOG(info) << " Emin for out digits=" << mEDigMin;
   LOG(info) << " Cluster Emin for out digits=" << mECluMin;
+  LOG(info) << " Root output dir=" << mOutputDir;
 
   mCalibrator = std::make_unique<PHOSEnergyCalibrator>();
 
@@ -64,6 +60,7 @@ void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
     mHasCalib = true;
   }
   mCalibrator->setCuts(mPtMin, mEminHGTime, mEminLGTime, mEminHGTime, mEminLGTime);
+  mCalibrator->setUpdateAtTheEndOfRunOnly();
 
   // Create geometry instance (inclusing reading mis-alignement)
   // instance will be pick up by Calibrator
@@ -148,14 +145,17 @@ void PHOSEnergyCalibDevice::fillOutputTree()
 
   LOG(info) << "Filling tree with " << mOutputDigits.size() << " digits";
   if (!mFileOut) { // create file and tree
-    mFileName = mOutputDir + fmt::format("PHOS_CalibDigits_{}.root", mRunNumber);
-    LOG(info) << "Creating new tree for PHOS calib digits, output file=" << mFileName;
-    mFileOut = std::make_unique<TFile>(mFileName.c_str(), "recreate");
+    if (mWriteRootOutput) {
+      mFileName = mOutputDir + fmt::format("PHOS_CalibDigits_{}.root", mRunNumber);
+      LOG(info) << "Creating new tree for PHOS calib digits, output file=" << mFileName;
+      mFileOut = std::make_unique<TFile>(mFileName.c_str(), "recreate");
+      mFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
+      mHistoFileName = mOutputDir + fmt::format("PHOS_CalibHistos_{}.root", mRunNumber);
+      mHistoFileOut = std::make_unique<TFile>(mHistoFileName.c_str(), "recreate");
+      mHistoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
+    }
+    // else Tree will be memory resident
     mTreeOut = std::make_unique<TTree>("phosCalibDig", "O2 PHOS calib tree");
-    mFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
-    mHistoFileName = mOutputDir + fmt::format("PHOS_CalibHistos_{}.root", mRunNumber);
-    mHistoFileOut = std::make_unique<TFile>(mHistoFileName.c_str(), "recreate");
-    mHistoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
   }
   auto* br = mTreeOut->GetBranch("PHOSCalib");
   auto* pptr = &mOutputDigits;
@@ -172,6 +172,9 @@ void PHOSEnergyCalibDevice::fillOutputTree()
 
 void PHOSEnergyCalibDevice::writeOutFile()
 {
+  if (!mWriteRootOutput) {
+    return;
+  }
   // write collected vector and metadata
   if (!mTreeOut) { // nothing to write,
     return;
@@ -192,15 +195,19 @@ void PHOSEnergyCalibDevice::writeOutFile()
 
   std::string metaFileNameTmp = mMetaFileDir + fmt::format("PHOS_CalibDigits_{}.tmp", mRunNumber);
   std::string metaFileName = mMetaFileDir + fmt::format("PHOS_CalibDigits_{}.done", mRunNumber);
-  try {
-    std::ofstream metaFileOut(metaFileNameTmp);
-    metaFileOut << *mFileMetaData.get();
-    metaFileOut.close();
-    std::filesystem::rename(metaFileNameTmp, metaFileName);
-  } catch (std::exception const& e) {
-    LOG(error) << "Failed to store PHOS meta data file " << metaFileName << ", reason: " << e.what();
+  if (mMetaFileDir.compare("/dev/null")) {
+    try {
+      std::ofstream metaFileOut(metaFileNameTmp);
+      metaFileOut << *mFileMetaData.get();
+      metaFileOut.close();
+      std::filesystem::rename(metaFileNameTmp, metaFileName);
+    } catch (std::exception const& e) {
+      LOG(error) << "Failed to store PHOS meta data file " << metaFileName << ", reason: " << e.what();
+    }
+    LOG(info) << "Stored metadate file " << mFileName << ".done";
+  } else {
+    LOG(info) << "Scipped storing metafile as meta-dir=" << mMetaFileDir;
   }
-  LOG(info) << "Stored metadate file " << mFileName << ".done";
   mFileMetaData.reset();
 
   LOG(info) << "Writing calibration histograms";
@@ -217,18 +224,20 @@ void PHOSEnergyCalibDevice::writeOutFile()
 
   metaFileNameTmp = mMetaFileDir + fmt::format("PHOS_CalibHistos_{}.tmp", mRunNumber);
   metaFileName = mMetaFileDir + fmt::format("PHOS_CalibHistos_{}.done", mRunNumber);
-  try {
-    std::ofstream metaFileOut(metaFileNameTmp);
-    metaFileOut << *mHistoFileMetaData.get();
-    metaFileOut.close();
-    std::filesystem::rename(metaFileNameTmp, metaFileName);
-  } catch (std::exception const& e) {
-    LOG(error) << "Failed to store PHOS histos meta data file " << metaFileName << ", reason: " << e.what();
+  if (mMetaFileDir.compare("/dev/null")) {
+    try {
+      std::ofstream metaFileOut(metaFileNameTmp);
+      metaFileOut << *mHistoFileMetaData.get();
+      metaFileOut.close();
+      std::filesystem::rename(metaFileNameTmp, metaFileName);
+    } catch (std::exception const& e) {
+      LOG(error) << "Failed to store PHOS histos meta data file " << metaFileName << ", reason: " << e.what();
+    }
+    LOG(info) << "Stored histos metadate file " << mHistoFileName << ".done";
   }
-  LOG(info) << "Stored histos metadate file " << mHistoFileName << ".done";
   mHistoFileMetaData.reset();
 }
-o2::framework::DataProcessorSpec o2::phos::getPHOSEnergyCalibDeviceSpec(bool useCCDB)
+o2::framework::DataProcessorSpec o2::phos::getPHOSEnergyCalibDeviceSpec(bool useCCDB, const std::string& outputDir, const std::string& metaFileDir, bool writeRootOutput)
 {
 
   std::vector<InputSpec> inputs;
@@ -252,13 +261,11 @@ o2::framework::DataProcessorSpec o2::phos::getPHOSEnergyCalibDeviceSpec(bool use
   return o2::framework::DataProcessorSpec{"PHOSEnergyCalibDevice",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<PHOSEnergyCalibDevice>(useCCDB, ccdbRequest),
+                                          o2::framework::adaptFromTask<PHOSEnergyCalibDevice>(useCCDB, ccdbRequest, outputDir, metaFileDir, writeRootOutput),
                                           o2::framework::Options{
                                             {"ptminmgg", o2::framework::VariantType::Float, 1.5f, {"minimal pt to fill mgg calib histos"}},
                                             {"eminhgtime", o2::framework::VariantType::Float, 1.5f, {"minimal E (GeV) to fill HG time calib histos"}},
                                             {"eminlgtime", o2::framework::VariantType::Float, 5.f, {"minimal E (GeV) to fill LG time calib histos"}},
                                             {"ecalibdigitmin", o2::framework::VariantType::Float, 0.05f, {"minimal digtit E (GeV) to keep digit for calibration"}},
-                                            {"ecalibclumin", o2::framework::VariantType::Float, 0.4f, {"minimal cluster E (GeV) to keep digit for calibration"}},
-                                            {"output-dir", VariantType::String, "./", {"ROOT trees output directory"}},
-                                            {"meta-output-dir", VariantType::String, "./", {"metafile output directory"}}}};
+                                            {"ecalibclumin", o2::framework::VariantType::Float, 0.4f, {"minimal cluster E (GeV) to keep digit for calibration"}}}};
 }

@@ -300,9 +300,6 @@ struct ColumnBinningPolicy : BinningPolicyBase<sizeof...(Ts)> {
   using persistent_columns_t = framework::selected_pack<o2::soa::is_persistent_t, Ts...>;
 };
 
-template <typename... Ts>
-using BinningPolicy = ColumnBinningPolicy<Ts...>;
-
 template <typename C>
 struct NoBinningPolicy {
   // Just take the bin number from the column data

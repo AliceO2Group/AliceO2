@@ -84,6 +84,40 @@ BOOST_AUTO_TEST_CASE(TRDRawDataHeaderInternals)
   //check tracklet
   tracklet.word = 0xffe00000;
   BOOST_CHECK_EQUAL((uint32_t)tracklet.pos, 0x7ff);
+
+  // This will get expanded, for now just check the current changes to charges.
+  // build a tracklet package of ff00ff
+  TrackletHCHeader hcheader;
+  hcheader.word = 0;
+  constructTrackletHCHeader(hcheader, 42, 42, 3); //only thing important is the format of 3
+  // hcid=42, clock=42
+  TrackletMCMHeader header;
+  header.word = 0;
+  header.onea = 1;
+  header.oneb = 1;
+  header.padrow = 2;
+  header.col = 1;
+  header.pid0 = 0xff;
+  header.pid1 = 0x02;
+  header.pid2 = 0xff;
+  std::array<TrackletMCMData, 3> tracklets;
+  tracklets[0].word = 0;
+  tracklets[0].pos = 42;
+  tracklets[0].slope = 24;
+  tracklets[0].checkbit = 1;
+  tracklets[0].pid = 0xefe;
+  tracklets[1].word = 0;
+  tracklets[2].word = 0;
+  std::array<uint8_t, 3> charges;
+  auto invalidheader = getChargesFromRawHeaders(hcheader, &header, tracklets, charges, 0);
+  auto trackletcount = getNumberOfTrackletsFromHeader(&header);
+
+  BOOST_CHECK(trackletcount == 1);
+  BOOST_CHECK(invalidheader == 0);
+  //std::cout << std::hex << " charges[0]:0x"<<(int)charges[0];
+  //std::cout << std::hex << " charges[1]:0x"<<(int)charges[1];
+  //std::cout << std::hex << " charges[2]:0x"<<(int)charges[2];
+  BOOST_CHECK((int)charges[2] == 0x02);
 }
 } // namespace trd
 } // namespace o2

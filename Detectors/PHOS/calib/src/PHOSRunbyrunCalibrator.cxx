@@ -38,7 +38,7 @@ PHOSRunbyrunSlot::PHOSRunbyrunSlot(bool useCCDB, std::string path) : mUseCCDB(us
 PHOSRunbyrunSlot::PHOSRunbyrunSlot(const PHOSRunbyrunSlot& other)
 {
   mUseCCDB = other.mUseCCDB;
-  mRunStartTime = other.mUseCCDB;
+  mRunStartTime = other.mRunStartTime;
   mCCDBPath = other.mCCDBPath;
   const int nMass = 150.;
   const float massMax = 0.3;
@@ -201,17 +201,6 @@ Slot& PHOSRunbyrunCalibrator::emplaceNewSlot(bool front, TFType tstart, TFType t
 
 bool PHOSRunbyrunCalibrator::process(TFType tf, const gsl::span<const Cluster>& clu, const gsl::span<const TriggerRecord>& tr)
 {
-  // if (!mUpdateAtTheEndOfRunOnly) {
-  //   int maxDelay = mMaxSlotsDelay * mSlotLength;
-  //   //  if (tf<mLastClosedTF || (!mSlots.empty() && getSlot(0).getTFStart() > tf + maxDelay)) { // ignore TF
-  //   if (maxDelay != 0 && (tf < mLastClosedTF || (!mSlots.empty() && getLastSlot().getTFStart() > tf + maxDelay))) { // ignore TF
-  //     LOG(info) << "Ignoring TF " << tf;
-  //     return false;
-  //   }
-
-  //   // check if some slots are done
-  //   checkSlotsToFinalize(tf, maxDelay);
-  // }
 
   // process current TF
   auto& slotTF = getSlotForTF(tf);
@@ -220,14 +209,15 @@ bool PHOSRunbyrunCalibrator::process(TFType tf, const gsl::span<const Cluster>& 
 
   return true;
 }
-void PHOSRunbyrunCalibrator::endOfStream()
+void PHOSRunbyrunCalibrator::writeHistos()
 {
+
   // Merge collected in different slots histograms
   TF1 fRatio("ratio", this, &PHOSRunbyrunCalibrator::CBRatio, 0, 1, 6, "PHOSRunbyrunCalibrator", "CBRatio");
   TF1 fBg("background", this, &PHOSRunbyrunCalibrator::bg, 0, 1, 6, "PHOSRunbyrunCalibrator", "bg");
   TF1 fSignal("signal", this, &PHOSRunbyrunCalibrator::CBSignal, 0, 1, 6, "PHOSRunbyrunCalibrator", "CBSignal");
   // fit inv mass distributions
-  TFile fout("mgg.root", "recreate");
+
   for (int mod = 0; mod < 4; mod++) {
     mReMi[2 * mod]->Sumw2();
     mReMi[2 * mod + 1]->Sumw2();
@@ -250,7 +240,8 @@ void PHOSRunbyrunCalibrator::endOfStream()
     mReMi[2 * mod]->Reset();
     mReMi[2 * mod + 1]->Reset();
   }
-  fout.Close();
+
+  LOG(info) << "Wrote Run-by-run calibration histos";
 }
 double PHOSRunbyrunCalibrator::CBRatio(double* x, double* par)
 {
