@@ -240,6 +240,7 @@ GPUdii() void GPUTPCCFDecodeZSLink::Thread<0>(int nBlocks, int nThreads, int iBl
 #endif
       }
 
+      int nDecoded = 0;
       const auto* decHdr = ConsumeHeader<TPCZSHDRV2>(page);
       ConsumeBytes(page, decHdr->firstZSDataOffset * 16);
 
@@ -257,6 +258,7 @@ GPUdii() void GPUTPCCFDecodeZSLink::Thread<0>(int nBlocks, int nThreads, int iBl
         unsigned int nAdc = CAMath::Popcount(channelMask[0]) + CAMath::Popcount(channelMask[1]) + CAMath::Popcount(channelMask[2]);
 
         bool inFragment = fragment.contains(timeBin);
+        nDecoded += nAdc;
 
         // TimeBin not in fragment: Skip this timebin header and fill positions with dummy values instead
         if (not inFragment) {
@@ -293,6 +295,17 @@ GPUdii() void GPUTPCCFDecodeZSLink::Thread<0>(int nBlocks, int nThreads, int iBl
 #endif
         pageDigitOffset += nAdc;
       } // for (unsigned int t = 0; t < decHdr->nTimebinHeaders; t++)
+      (void)nDecoded;
+#ifdef GPUCA_CHECK_TPCZS_CORRUPTION
+      if (iThread == 0 && nDecoded != decHdr->nADCsamples) {
+        clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_NADC, clusterer.mISlice, decHdr->nADCsamples, nDecoded);
+/*#ifndef GPUCA_GPUCODE
+        FILE* foo = fopen("dump.bin", "w+b");
+        fwrite(pageSrc, 1, o2::raw::RDHUtils::getMemorySize(*rdHdr), foo);
+        fclose(foo);
+#endif*/
+      }
+#endif
     }   // [CPU] for (unsigned int j = minJ; j < maxJ; j++)
   }     // [CPU] for (unsigned int i = clusterer.mMinMaxCN[endpoint].minC; i < clusterer.mMinMaxCN[endpoint].maxC; i++)
 }
@@ -447,12 +460,14 @@ GPUd() void GPUTPCCFDecodeZSLink::WriteCharge(processorType& clusterer, unsigned
 {
   const unsigned int slice = clusterer.mISlice;
   ChargePos* positions = clusterer.mPpositions;
-  if (padAndRow.getRow() >= GPUCA_ROW_COUNT) { // FIXME: to be removed once TPC does not send corrupt data any more
+#ifdef GPUCA_CHECK_TPCZS_CORRUPTION
+  if (padAndRow.getRow() >= GPUCA_ROW_COUNT) {
     constexpr ChargePos INVALID_POS(UCHAR_MAX, UCHAR_MAX, INVALID_TIME_BIN);
     positions[positionOffset] = INVALID_POS;
+    clusterer.raiseError(GPUErrors::ERROR_CF_ROW_CLUSTER_OVERFLOW, clusterer.mISlice * 1000 + padAndRow.getRow(), 0, 0);
     return;
   }
-
+#endif
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
 
   ChargePos pos(padAndRow.getRow(), padAndRow.getPad(), localTime);
