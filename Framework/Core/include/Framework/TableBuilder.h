@@ -480,14 +480,11 @@ struct BuilderHolder : InsertionPolicy<T> {
 
 struct TableBuilderHelpers {
   template <typename... ARGS>
-  static auto makeFields(std::array<char const*, sizeof...(ARGS)> const& names)
+  static std::vector<std::shared_ptr<arrow::Field>> makeFields(std::array<char const*, sizeof...(ARGS)> const& names)
   {
-    std::array<std::shared_ptr<arrow::DataType>, sizeof...(ARGS)> types{BuilderMaker<ARGS>::make_datatype()...};
-    std::vector<std::shared_ptr<arrow::Field>> result;
-    for (size_t i = 0; i < names.size(); ++i) {
-      result.emplace_back(std::make_shared<arrow::Field>(names[i], types[i], true, nullptr));
-    }
-    return std::move(result);
+    char const* const* names_ptr = names.data();
+    return {
+      std::make_shared<arrow::Field>(*names_ptr++, BuilderMaker<ARGS>::make_datatype(), true, nullptr)...};
   }
 
   /// Invokes the append method for each entry in the tuple
@@ -523,14 +520,28 @@ struct TableBuilderHelpers {
   template <typename HOLDERS, std::size_t... Is>
   static bool finalize(std::vector<std::shared_ptr<arrow::Array>>& arrays, HOLDERS& holders, std::index_sequence<Is...> seq)
   {
-    bool ok = (BuilderUtils::flush(std::get<Is>(holders)).ok() && ...);
-    return ok && (std::get<Is>(holders).builder->Finish(&arrays[Is]).ok() && ...);
+    return (finalize(arrays[Is], std::get<Is>(holders)) && ...);
+  }
+
+  template <typename HOLDER>
+  static bool finalize(std::shared_ptr<arrow::Array>& array, HOLDER& holder)
+  {
+    return BuilderUtils::flush(holder).ok() && holder.builder->Finish(&array).ok();
   }
 
   template <typename HOLDERS, std::size_t... Is>
   static bool reserveAll(HOLDERS& holders, size_t s, std::index_sequence<Is...>)
   {
     return (std::get<Is>(holders).builder->Reserve(s).ok() && ...);
+  }
+
+  template <typename HOLDER>
+  static HOLDER&& reserveAll(HOLDER&& holder, size_t s)
+  {
+    if (s != -1) {
+      holder.builder->Reserve(s).ok();
+    }
+    return std::move(holder);
   }
 };
 
@@ -657,13 +668,7 @@ class TableBuilder
   auto makeBuilders(std::array<char const*, sizeof...(ARGS)> const& columnNames, size_t nRows)
   {
     mSchema = std::make_shared<arrow::Schema>(TableBuilderHelpers::makeFields<ARGS...>(columnNames));
-
-    auto holders = new HoldersTuple<ARGS...>(typename HolderTrait<ARGS>::Holder(mMemoryPool)...);
-    if (nRows != -1) {
-      auto seq = std::make_index_sequence<sizeof...(ARGS)>{};
-      TableBuilderHelpers::reserveAll(*holders, nRows, seq);
-    }
-    mHolders = holders; // We store the builders
+    mHolders = new HoldersTuple<ARGS...>(TableBuilderHelpers::reserveAll(typename HolderTrait<ARGS>::Holder(mMemoryPool), nRows)...);
   }
 
   template <typename... ARGS>
