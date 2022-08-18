@@ -96,7 +96,11 @@ class EMCALChannelCalibDevice : public o2::framework::Task
     }
 
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mTimeCalibrator->getCurrentTFInfo());
+    if (mTimeCalibrator) {
+      o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mTimeCalibrator->getCurrentTFInfo());
+    } else if (mBadChannelCalibrator) {
+      o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mBadChannelCalibrator->getCurrentTFInfo());
+    }
 
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get(getCellBinding()).header)->startTime;
 
