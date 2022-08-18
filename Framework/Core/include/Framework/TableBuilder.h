@@ -768,17 +768,13 @@ class TableBuilder
   template <typename T>
   auto cursor()
   {
-    using persistent_columns_pack = typename T::table_t::persistent_columns_t;
-    constexpr auto persistent_size = pack_size(persistent_columns_pack{});
-    return cursorHelper<typename soa::PackToTable<persistent_columns_pack>::table>(std::make_index_sequence<persistent_size>());
+    return cursorHelper(typename T::table_t::persistent_columns_t{});
   }
 
   template <typename T, typename E>
   auto cursor()
   {
-    using persistent_columns_pack = typename T::table_t::persistent_columns_t;
-    constexpr auto persistent_size = pack_size(persistent_columns_pack{});
-    return cursorHelper<typename soa::PackToTable<persistent_columns_pack>::table, E>(std::make_index_sequence<persistent_size>());
+    return cursorHelper2<E>(typename T::table_t::persistent_columns_t{});
   }
 
   template <typename... ARGS>
@@ -849,18 +845,16 @@ class TableBuilder
   /// Helper which actually creates the insertion cursor. Notice that the
   /// template argument T is a o2::soa::Table which contains only the
   /// persistent columns.
-  template <typename T, size_t... Is>
-  auto cursorHelper(std::index_sequence<Is...>)
+  template <typename... Cs>
+  auto cursorHelper(framework::pack<Cs...>)
   {
-    std::array<char const*, sizeof...(Is)> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
-    return this->template persist<typename pack_element_t<Is, typename T::columns>::type...>(columnNames);
+    return this->template persist<typename Cs::type...>({Cs::columnLabel()...});
   }
 
-  template <typename T, typename E, size_t... Is>
-  auto cursorHelper(std::index_sequence<Is...>)
+  template <typename E, typename... Cs>
+  auto cursorHelper2(framework::pack<Cs...>)
   {
-    std::array<char const*, sizeof...(Is)> columnNames{pack_element_t<Is, typename T::columns>::columnLabel()...};
-    return this->template persist<E>(columnNames);
+    return this->template persist<E>({Cs::columnLabel()...});
   }
 
   bool (*mFinalizer)(std::shared_ptr<arrow::Schema> schema, std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders);
