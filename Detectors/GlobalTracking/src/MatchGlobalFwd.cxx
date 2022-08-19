@@ -145,11 +145,19 @@ bool MatchGlobalFwd::prepareMCHData()
     return false;
   }
   mMCHWork.reserve(mMCHTracks.size());
+  static int BCDiffErrCount = 0;
+  constexpr int MAXBCDiffErrCount = 5;
 
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mMCHTrackROFRec[irof];
 
     int nBC = rofRec.getBCData().differenceInBC(mStartIR);
+    if (nBC < 0) {
+      if (BCDiffErrCount < MAXBCDiffErrCount) {
+        LOGP(alarm, "wrong bunches diff. {} for current IR {} wrt 1st TF orbit {} in MCH data", nBC, rofRec.getBCData(), mStartIR);
+      }
+      continue;
+    }
     float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
     float tMax = (nBC + rofRec.getBCWidth()) * o2::constants::lhc::LHCBunchSpacingMUS;
     auto mchTime = rofRec.getTimeMUS(mStartIR).first;
@@ -234,10 +242,19 @@ bool MatchGlobalFwd::prepareMFTData()
   }
   mMFTWork.reserve(mMFTTracks.size());
 
+  static int BCDiffErrCount = 0;
+  constexpr int MAXBCDiffErrCount = 5;
+
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mMFTTrackROFRec[irof];
 
     int nBC = rofRec.getBCData().differenceInBC(mStartIR);
+    if (nBC < 0) {
+      if (BCDiffErrCount < MAXBCDiffErrCount) {
+        LOGP(alarm, "wrong bunches diff. {} for current IR {} wrt 1st TF orbit {} in MFT data", nBC, rofRec.getBCData(), mStartIR);
+      }
+      continue;
+    }
     float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
     float tMax = (nBC + mMFTROFrameLengthInBC) * o2::constants::lhc::LHCBunchSpacingMUS;
     if (!mMFTTriggered) {
