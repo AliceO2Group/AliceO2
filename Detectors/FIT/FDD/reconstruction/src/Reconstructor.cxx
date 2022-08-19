@@ -29,6 +29,7 @@ o2::fdd::RecPoint Reconstructor::process(o2::fdd::Digit const& digitBC,
   // Compute charge weighted average time
   Double_t timeFDA = 0, timeFDC = 0;
   Double_t weightFDA = 0.0, weightFDC = 0.0;
+  Int_t nInTimeA = 0, nInTimeC = 0;
 
   int nch = inChData.size();
   for (int ich = 0; ich < nch; ich++) {
@@ -39,26 +40,31 @@ o2::fdd::RecPoint Reconstructor::process(o2::fdd::Digit const& digitBC,
 
     Float_t adc = outChData[ich].mChargeADC;
     Float_t time = outChData[ich].mTime;
+    bool inTime = inChData[ich].getFlag(ChannelData::EEventDataBit::kIsEventInTVDC);
     if (time == o2::InteractionRecord::DummyTime) {
       continue;
     }
     Float_t timeErr = 1;
-    if (adc > 1) {
+    if (adc > 3) {
       timeErr = 1 / adc;
     }
     if (outChData[ich].mPMNumber < 8) {
+      nInTimeC += inTime;
       timeFDC += time / (timeErr * timeErr);
       weightFDC += 1. / (timeErr * timeErr);
     } else {
+      nInTimeA += inTime;
       timeFDA += time / (timeErr * timeErr);
       weightFDA += 1. / (timeErr * timeErr);
     }
   }
   const int nsToPs = 1e3;
   std::array<int, 2> mCollisionTime = {o2::fdd::RecPoint::sDummyCollissionTime, o2::fdd::RecPoint::sDummyCollissionTime};
-
-  mCollisionTime[o2::fdd::RecPoint::TimeA] = (weightFDA > 1) ? round(timeFDA / weightFDA * nsToPs) : o2::fdd::RecPoint::sDummyCollissionTime;
-  mCollisionTime[o2::fdd::RecPoint::TimeC] = (weightFDC > 1) ? round(timeFDC / weightFDC * nsToPs) : o2::fdd::RecPoint::sDummyCollissionTime;
+  /// Avg time for each side, only if one channel satisfy the TVDC condition
+  if (nInTimeA > 0)
+    mCollisionTime[o2::fdd::RecPoint::TimeA] = (weightFDA > 1) ? round(timeFDA / weightFDA * nsToPs) : o2::fdd::RecPoint::sDummyCollissionTime;
+  if (nInTimeC > 0)
+    mCollisionTime[o2::fdd::RecPoint::TimeC] = (weightFDC > 1) ? round(timeFDC / weightFDC * nsToPs) : o2::fdd::RecPoint::sDummyCollissionTime;
   return RecPoint{mCollisionTime, digitBC.ref.getFirstEntry(), digitBC.ref.getEntries(), digitBC.getIntRecord(), digitBC.mTriggers};
 }
 //________________________________________________________
