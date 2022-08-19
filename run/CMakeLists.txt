@@ -71,7 +71,7 @@ o2_add_executable(primary-server-device-runner
                   SOURCES O2PrimaryServerDeviceRunner.cxx
                   PUBLIC_LINK_LIBRARIES internal::allsim
                   TARGETVARNAME simexe)
-                  
+
 o2_add_executable(serial-run5
                   COMPONENT_NAME sim
                   SOURCES o2sim.cxx
