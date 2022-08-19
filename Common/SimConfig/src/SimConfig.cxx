@@ -66,16 +66,16 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
   // input args is a vector of module strings as obtained from the -m,--modules options
   // of SimConfig
   activeModules = inputargs;
-    if (activeModules[0] != "all") {
-    if(mIsRun5) {
-      for(int i = 0; i < activeModules.size(); ++i) {
+  if (activeModules[0] != "all") {
+    if (mIsRun5) {
+      for (int i = 0; i < activeModules.size(); ++i) {
         if (activeModules[i] != "IT3" && activeModules[i] != "TRK" && activeModules[i] != "FT3" && activeModules[i] != "FCT") {
           LOG(fatal) << "List of active modules contains " << activeModules[i] << " which is NOT a Run 5 module!";
         }
       }
     }
-    if(!mIsRun5) {
-      for(int i = 0; i < activeModules.size(); ++i) {
+    if (!mIsRun5) {
+      for (int i = 0; i < activeModules.size(); ++i) {
         if (activeModules[i] == "IT3" || activeModules[i] == "TRK" || activeModules[i] == "FT3" || activeModules[i] == "FCT") {
           LOG(fatal) << "List of active modules contains " << activeModules[i] << " which is NOT a Run 3 module!";
         }
@@ -84,14 +84,13 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
   }
   if (activeModules.size() == 1 && activeModules[0] == "all") {
     activeModules.clear();
-        if(mIsRun5) {
+    if (mIsRun5) {
       for (int d = DetID::First; d <= DetID::Last; ++d) {
         if (d == DetID::IT3 || d == DetID::TRK || d == DetID::FT3 || d == DetID::FCT) {
           activeModules.emplace_back(DetID::getName(d));
         }
       }
-    }
-    else {
+    } else {
       // add passive components manually (make a PassiveDetID for them!)
       activeModules.emplace_back("HALL");
       activeModules.emplace_back("MAG");
