@@ -124,6 +124,7 @@ class CTFWriterSpec : public o2::framework::Task
   bool mCreateRunEnvDir = true;
   bool mStoreMetaFile = false;
   bool mRejectCurrentTF = false;
+  bool mFallBackDirUsed = false;
   int mReportInterval = -1;
   int mVerbosity = 0;
   int mSaveDictAfter = 0;          // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
@@ -488,6 +489,7 @@ void CTFWriterSpec::prepareTFTreeAndFile()
   }
   if (needToOpen) {
     closeTFTreeAndFile();
+    mFallBackDirUsed = false;
     auto ctfDir = mCTFDir.empty() ? o2::utils::Str::rectifyDirectory("./") : mCTFDir;
     if (mChkSize > 0 && (mCTFDirFallBack != "/dev/null")) {
       createLockFile(0);
@@ -496,6 +498,7 @@ void CTFWriterSpec::prepareTFTreeAndFile()
         removeLockFile();
         LOG(warning) << "Primary CTF output device has available size " << sz << " while " << mChkSize << " is requested: will write on secondary one";
         ctfDir = mCTFDirFallBack;
+        mFallBackDirUsed = true;
       }
     }
     if (mCreateRunEnvDir && !mDataTakingContext.envId.empty() && (mDataTakingContext.envId != o2::framework::DataTakingContext::UNKNOWN)) {
@@ -533,7 +536,7 @@ void CTFWriterSpec::closeTFTreeAndFile()
         ctfMetaData.fillFileData(mCurrentCTFFileNameFull);
         ctfMetaData.setDataTakingContext(mDataTakingContext);
         ctfMetaData.type = mMetaDataType;
-        ctfMetaData.priority = "high";
+        ctfMetaData.priority = mFallBackDirUsed ? "low" : "high";
         ctfMetaData.tfOrbits.swap(mTFOrbits);
         auto metaFileNameTmp = fmt::format("{}{}.tmp", mCTFMetaFileDir, mCurrentCTFFileName);
         auto metaFileName = fmt::format("{}{}.done", mCTFMetaFileDir, mCurrentCTFFileName);
