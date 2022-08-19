@@ -55,6 +55,7 @@ struct Options {
   std::string fieldstring = "";
   std::string bcPatternFile = "";
   bool print = false; // whether to print outcome of GRP operation
+  bool lhciffromccdb = false; // whether only to take GRPLHCIF from CCDB
   std::string publishto = "";
   std::string ccdbhost = "http://alice-ccdb.cern.ch";
 };
@@ -307,45 +308,51 @@ bool create_GRPs(Options const& opts)
   // GRPLHCIF --> complete it later
   {
     LOG(info) << " --- creating GRP LHCIF -----";
-    o2::parameters::GRPLHCIFData grp;
-    // eventually we need to set the beam info from the generator, at the moment put some plausible values
-    grp.setFillNumberWithTime(runStart, 0);         // RS FIXME
-    grp.setInjectionSchemeWithTime(runStart, "");   // RS FIXME
-    grp.setBeamEnergyPerZWithTime(runStart, 6.8e3); // RS FIXME
-    grp.setAtomicNumberB1WithTime(runStart, 1.);    // RS FIXME
-    grp.setAtomicNumberB2WithTime(runStart, 1.);    // RS FIXME
-    grp.setCrossingAngleWithTime(runStart, 0.);     // RS FIXME
-    grp.setBeamAZ();
-
-    // set the BC pattern if necessary
-    if (opts.bcPatternFile.size() > 0) {
-      // load bunch filling from the file (with standard CCDB convention)
-      auto* bc = o2::BunchFilling::loadFrom(opts.bcPatternFile, "ccdb_object");
-      if (!bc) {
-        // if it failed, retry with default naming
-        bc = o2::BunchFilling::loadFrom(opts.bcPatternFile);
-      }
-      if (!bc) {
-        LOG(fatal) << "Failed to load bunch filling from " << opts.bcPatternFile;
-      }
-      grp.setBunchFillingWithTime(grp.getBeamEnergyPerZTime(), *bc); // borrow the time from the existing entry
-      delete bc;
+    if (opts.lhciffromccdb) { // if we take the whole object it directly from CCDB, we can just download it
+      LOG(info) << "Downloading complete GRPLHCIF object directly from CCDB";
+      anchor_GRPs(opts, {"GLO/Config/GRPLHCIF"});
     } else {
-      // we initialize with a default bunch filling scheme;
-      LOG(info) << "Initializing with default bunch filling";
-      o2::BunchFilling bc;
-      bc.setDefault();
-      grp.setBunchFillingWithTime(grp.getBeamEnergyPerZTime(), bc);
-    }
-    std::string grpfilename = o2::base::NameConf::getGRPLHCIFFileName(opts.outprefix);
-    if (opts.print) {
-      grp.print();
-    }
-    TFile grpF(grpfilename.c_str(), "recreate");
-    grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
-    grpF.Close();
-    if (opts.publishto.size() > 0) {
-      publish(grpfilename, opts.publishto, "/GLO/Config/GRPLHCIF");
+      o2::parameters::GRPLHCIFData grp;
+      // eventually we need to set the beam info from the generator, at the moment put some plausible values
+      grp.setFillNumberWithTime(runStart, 0);         // RS FIXME
+      grp.setInjectionSchemeWithTime(runStart, "");   // RS FIXME
+      grp.setBeamEnergyPerZWithTime(runStart, 6.8e3); // RS FIXME
+      grp.setAtomicNumberB1WithTime(runStart, 1.);    // RS FIXME
+      grp.setAtomicNumberB2WithTime(runStart, 1.);    // RS FIXME
+      grp.setCrossingAngleWithTime(runStart, 0.);     // RS FIXME
+      grp.setBeamAZ();
+
+      // set the BC pattern if necessary
+      if (opts.bcPatternFile.size() > 0) {
+        // load bunch filling from the file (with standard CCDB convention)
+        auto* bc = o2::BunchFilling::loadFrom(opts.bcPatternFile, "ccdb_object");
+        if (!bc) {
+          // if it failed, retry with default naming
+          bc = o2::BunchFilling::loadFrom(opts.bcPatternFile);
+        }
+        if (!bc) {
+          LOG(fatal) << "Failed to load bunch filling from " << opts.bcPatternFile;
+        }
+        grp.setBunchFillingWithTime(grp.getBeamEnergyPerZTime(), *bc); // borrow the time from the existing entry
+        delete bc;
+      } else {
+        // we initialize with a default bunch filling scheme;
+        LOG(info) << "Initializing with default bunch filling";
+        o2::BunchFilling bc;
+        bc.setDefault();
+        grp.setBunchFillingWithTime(grp.getBeamEnergyPerZTime(), bc);
+      }
+
+      std::string grpfilename = o2::base::NameConf::getGRPLHCIFFileName(opts.outprefix);
+      if (opts.print) {
+        grp.print();
+      }
+      TFile grpF(grpfilename.c_str(), "recreate");
+      grpF.WriteObjectAny(&grp, grp.Class(), o2::base::NameConf::CCDBOBJECT.data());
+      grpF.Close();
+      if (opts.publishto.size() > 0) {
+        publish(grpfilename, opts.publishto, "/GLO/Config/GRPLHCIF");
+      }
     }
   }
 
@@ -466,6 +473,7 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     desc.add_options()("field", bpo::value<std::string>(&optvalues.fieldstring)->default_value("-5"), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0; +-<intKGaus>U for uniform field");
     desc.add_options()("outprefix,o", bpo::value<std::string>(&optvalues.outprefix)->default_value("o2sim"), "Prefix for GRP output files");
     desc.add_options()("bcPatternFile", bpo::value<std::string>(&optvalues.bcPatternFile)->default_value(""), "Interacting BC pattern file (e.g. from CreateBCPattern.C)");
+    desc.add_options()("lhcif-CCDB", "take GRPLHCIF directly from CCDB");
     desc.add_options()("print", "print resulting GRPs");
     desc.add_options()("publishto", bpo::value<std::string>(&optvalues.publishto)->default_value(""), "Base path under which GRP objects should be published on disc. This path can serve as lookup for CCDB queries of the GRP objects.");
     if (!subparse(desc, vm, "createGRPs")) {
@@ -473,6 +481,9 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     }
     if (vm.count("print") > 0) {
       optvalues.print = true;
+    }
+    if (vm.count("lhcif-CCDB") > 0) {
+      optvalues.lhciffromccdb = true;
     }
   } else if (cmd == "setROMode") {
     // set/modify the ROMode
