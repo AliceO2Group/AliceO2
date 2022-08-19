@@ -121,6 +121,9 @@ void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
     mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, std::min<unsigned int>(threshold, mNMaxClusterPerRow * 10)); // Relative increased value up until a threshold, for noisy pads
     mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, io.settingsTF->nHBFPerTF * 20000 / 256);                     // Absolute increased value, to have a minimum for noisy pads
   }
+  if (mNMaxDigitsEndpoint) {
+    mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, 0.0085f * mRec->MemoryScalers()->NTPCClusters(mNMaxDigitsEndpoint * GPUTrackingInOutZS::NENDPOINTS, true));
+  }
   if (mRec->GetProcessingSettings().tpcIncreasedMinClustersPerRow) {
     mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, mRec->GetProcessingSettings().tpcIncreasedMinClustersPerRow);
   }
@@ -129,11 +132,12 @@ void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
   mNBufs = getNSteps(mBufSize);
 }
 
-void GPUTPCClusterFinder::SetNMaxDigits(size_t nDigits, size_t nPages, size_t nDigitsFragment)
+void GPUTPCClusterFinder::SetNMaxDigits(size_t nDigits, size_t nPages, size_t nDigitsFragment, size_t nDigitsEndpointMax)
 {
   mNMaxDigits = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN, mScanWorkGroupSize)>(nDigits);
   mNMaxPages = nPages;
   mNMaxDigitsFragment = nDigitsFragment;
+  mNMaxDigitsEndpoint = nDigitsEndpointMax;
 }
 
 unsigned int GPUTPCClusterFinder::getNSteps(size_t items) const
