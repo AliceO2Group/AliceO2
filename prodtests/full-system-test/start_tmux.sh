@@ -31,8 +31,9 @@ if [[ "0$FST_TMUX_NO_EPN" != "01" ]]; then
   export GPUMEMSIZE=$(( 24 << 30 ))
   export NUMAGPUIDS=1
   export EPNPIPELINES=1
-  export ALL_EXTRA_CONFIG="$ALL_EXTRA_CONFIG;NameConf.mCCDBServer=http://o2-ccdb.internal;"
-  export DPL_CONDITION_BACKEND="http://o2-ccdb.internal"
+  export ALL_EXTRA_CONFIG="$ALL_EXTRA_CONFIG;NameConf.mCCDBServer=http://localhost:8084;"
+  export DPL_CONDITION_BACKEND="http://localhost:8084"
+  export GEN_TOPO_QC_OVERRIDE_CCDB_SERVER="http://localhost:8084"
   NUM_DPL_WORKFLOWS=2
   if [[ `lspci | grep "Vega 20" | wc -l` != "8" ]]; then
     echo "Could not detect 8 EPN GPUs, aborting" 1>&2
