@@ -60,7 +60,7 @@ struct GroupedCombinationsGenerator {
 
     GroupedIterator(const GroupingPolicy& groupingPolicy) : GroupingPolicy(groupingPolicy), mIndexColumns{getMatchingIndexNode<G, As>()...} {}
     template <typename... T2s>
-    GroupedIterator(const GroupingPolicy& groupingPolicy, const G& grouping, std::tuple<T2s...>& associated) : GroupingPolicy(groupingPolicy), mGrouping{std::make_shared<G>(std::vector{grouping.asArrowTable()})}, mAssociated{std::make_shared<std::tuple<As...>>(std::make_tuple(std::get<As>(associated)...))}, mIndexColumns{getMatchingIndexNode<G, As>()...}
+    GroupedIterator(const GroupingPolicy& groupingPolicy, const G& grouping, std::tuple<T2s...>& associated) : GroupingPolicy(groupingPolicy), mGrouping{std::make_shared<G>(std::vector{grouping.asArrowTable()})}, mAssociated{std::make_shared<std::tuple<As...>>(std::make_tuple(std::get<has_type_at<As>(pack<T2s...>{})>(associated)...))}, mIndexColumns{getMatchingIndexNode<G, As>()...}
     {
       if constexpr (soa::is_soa_filtered_v<std::decay_t<G>>) {
         mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()}, grouping.getSelectedRows());
@@ -85,7 +85,7 @@ struct GroupedCombinationsGenerator {
       } else {
         mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()});
       }
-      mAssociated = std::make_shared<std::tuple<As...>>(std::make_tuple(std::get<As>(associated)...));
+      mAssociated = std::make_shared<std::tuple<As...>>(std::make_tuple(std::get<has_type_at<As>(pack<T2s...>{})>(associated)...));
       setMultipleGroupingTables<sizeof...(As)>(grouping);
       if (!this->mIsEnd) {
         setCurrentGroupedCombination();
