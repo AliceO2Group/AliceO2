@@ -11,6 +11,7 @@
 
 o2_add_library(GlobalTrackingStudy
                SOURCES src/TPCTrackStudy.cxx
+               SOURCES src/TrackingStudy.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
                                      O2::GlobalTrackingWorkflowHelpers
@@ -18,9 +19,15 @@ o2_add_library(GlobalTrackingStudy
                                      O2::SimulationDataFormat)
 
 o2_target_root_dictionary(GlobalTrackingStudy
-                          HEADERS include/GlobalTrackingStudy/TPCTrackStudy.h)
+                          HEADERS include/GlobalTrackingStudy/TPCTrackStudy.h
+                                  include/GlobalTrackingStudy/TrackingStudy.h)
 
 o2_add_executable(study-workflow
                   COMPONENT_NAME tpc-track
                   SOURCES src/tpc-track-study-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingStudy)
+
+o2_add_executable(study-workflow
+                  COMPONENT_NAME tracking
+                  SOURCES src/tracking-study-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingStudy)
