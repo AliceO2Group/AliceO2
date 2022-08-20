@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TPCTRACK_STUDY_H
-#define O2_TPCTRACK_STUDY_H
+#ifndef O2_TRACKING_STUDY_H
+#define O2_TRACKING_STUDY_H
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/Task.h"
@@ -22,7 +22,7 @@
 namespace o2::trackstudy
 {
 /// create a processor spec
-o2::framework::DataProcessorSpec getTPCTrackStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC);
+o2::framework::DataProcessorSpec getTrackingStudySpec(o2::dataformats::GlobalTrackID::mask_t srcTracks, o2::dataformats::GlobalTrackID::mask_t srcClus, bool useMC);
 
 } // namespace o2::trackstudy
 
