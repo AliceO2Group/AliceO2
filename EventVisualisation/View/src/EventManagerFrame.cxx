@@ -353,7 +353,10 @@ void EventManagerFrame::createOutreachScreenshot()
     fileName = imageFolder + "/" + fileName.substr(0, fileName.find_last_of('.')) + ".png";
     if (!std::filesystem::is_regular_file(fileName)) {
       std::vector<std::string> ext = {".png"};
-      DirectoryLoader::removeOldestFiles(imageFolder, ext, 10);
+      TEnv settings;
+      ConfigurationManager::getInstance().getConfig(settings);
+      UInt_t outreachFilesMax = settings.GetValue("outreach.files.max", 10);
+      DirectoryLoader::removeOldestFiles(imageFolder, ext, outreachFilesMax);
       LOG(info) << "Outreach screenshot: " << fileName;
       Screenshot::perform(fileName, this->mEventManager->getDataSource()->getDetectorsMask(),
                           this->mEventManager->getDataSource()->getRunNumber(),
@@ -463,10 +466,14 @@ void EventManagerFrame::DoSequentialMode()
 
 void EventManagerFrame::changeRunMode(RunMode runMode)
 {
-  TEnv settings;
-  ConfigurationManager::getInstance().getConfig(settings);
-
   if (this->mRunMode != runMode) {
+    if (not setInTick()) {
+      return;
+    }
+
+    TEnv settings;
+    ConfigurationManager::getInstance().getConfig(settings);
+
     this->mRunMode = runMode;
     this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode).Data());
 
