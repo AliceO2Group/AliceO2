@@ -29,7 +29,6 @@
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/RawDataStats.h"
 #include "TRDReconstruction/DigitsParser.h"
-#include "TRDReconstruction/TrackletsParser.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/Digit.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -50,7 +49,8 @@ class CruRawReader
   // top-level method, takes the full payload data of the DPL raw data message and delegates to processHBFs()
   // probably this method can be removed and we can directly go to processHBFs()
   void run();
-  // configure the raw reader, currently done for each TF and should be done only once (change DataReaderTask::run() method)
+
+  // configure the raw reader, done once at the init() stage
   void configure(int tracklethcheader, int halfchamberwords, int halfchambermajor, std::bitset<16> options);
 
   // settings in order to avoid InfoLogger flooding
@@ -68,6 +68,9 @@ class CruRawReader
   // set the input data buffer size in bytes
   void setDataBufferSize(long val) { mDataBufferSize = val; }
 
+  // set the mapping from Link ID to HCID and vice versa
+  void setLinkMap(const LinkToHCIDMapping* map) { mLinkMap = map; }
+
   // probably better to make mEventRecords available to the outside and then use that directly, can clean up this header a lot more
   void buildDPLOutputs(o2::framework::ProcessingContext& outputs);
   int getDigitsFound() { return mTotalDigitsFound; }
@@ -80,9 +83,15 @@ class CruRawReader
   void clearall()
   {
     mEventRecords.clear();
-    mTrackletsParser.clear();
     mDigitsParser.clear();
   }
+
+  enum TrackletParserState { StateTrackletHCHeader,
+                             StateTrackletMCMHeader,
+                             StateTrackletMCMData,
+                             StateMoveToEndMarker,
+                             StateSecondEndmarker,
+                             StateFinished };
 
  private:
   // the parsing starts here, payload from all available RDHs is copied into mHBFPayload and afterwards processHalfCRU() is called
@@ -90,12 +99,12 @@ class CruRawReader
   int processHBFs();
 
   // process the data which is stored inside the mHBFPayload for the current half-CRU. The iteration corresponds to the trigger index inside the HBF
-  int processHalfCRU(int iteration);
+  bool processHalfCRU(int iteration);
 
   // parse the digit HC headers, possibly update settings as the number of time bins from the header word
-  int parseDigitHCHeader(int hcid);
+  bool parseDigitHCHeaders(int hcid);
 
-  // if configured, compare the link ID information from the digit HC headers with what we know from RDH header
+  // compare the link ID information from the digit HC header with what we know from RDH header
   void checkDigitHCHeader(int hcidRef);
 
   // helper function to compare two consecutive RDHs
@@ -103,6 +112,19 @@ class CruRawReader
 
   // sanity check on individual RDH (can find unconfigured FLP or invalid data)
   bool checkRDH(const o2::header::RDHAny* rdh);
+
+  // given the total link size and the hcid from the RDH
+  // parse the tracklet data. Overwrite hcid from TrackletHCHeader if mismatch is detected
+  // trackletWordsRejected:  count the number of words which were skipped (subset of words read)
+  // returns total number of words read (no matter if parsed successfully or not)
+  int parseTrackletLinkData(int linkSize32, int& hcid, int& trackletWordsRejected);
+
+  // check validity of TrackletHCHeader (always once bit needs to be set and hcid needs to be consistent with what we expect from RDH)
+  // FIXME currently hcid can be overwritten from TrackletHCHeader
+  bool isTrackletHCHeaderOK(const TrackletHCHeader& header, int& hcid);
+
+  // helper function to create Tracklet64 from link data
+  Tracklet64 assembleTracklet64(int format, TrackletMCMHeader& mcmHeader, TrackletMCMData& mcmData, int cpu, int hcid) const;
 
   // important function to keep track of all errors, if possible accounted to a certain link / half-chamber ID
   // FIXME:
@@ -146,11 +168,9 @@ class CruRawReader
 
   HalfCRUHeader mCurrentHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on
   HalfCRUHeader mPreviousHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on
-  DigitHCHeader mDigitHCHeader;        // Digit HalfChamber header we are currently on.
-  DigitHCHeader1 mDigitHCHeader1;      // this and the next 2 are option are and variable in order, hence
+  DigitHCHeader mDigitHCHeader;         // Digit HalfChamber header we are currently on.
   uint16_t mTimeBins;                  // the number of time bins to be read out (default 30, can be overwritten from digit HC header)
-  DigitHCHeader2 mDigitHCHeader2;      // the individual seperation instead of an array.
-  DigitHCHeader3 mDigitHCHeader3;
+  bool mHaveSeenDigitHCHeader3{false};
   uint32_t mPreviousDigitHCHeadersvnver;  // svn ver in the digithalfchamber header, used for validity checks
   uint32_t mPreviousDigitHCHeadersvnrver; // svn release ver also used for validity checks
   TrackletHCHeader mTrackletHCHeader;  // Tracklet HalfChamber header we are currently on.
@@ -163,6 +183,8 @@ class CruRawReader
   std::array<uint32_t, 15> mCurrentHalfCRULinkLengths;
   std::array<uint32_t, 15> mCurrentHalfCRULinkErrorFlags;
 
+  const LinkToHCIDMapping* mLinkMap = nullptr; // to retrieve HCID from Link ID
+
   // FIXME for all counters need to check which one is really needed
   uint32_t mTotalDigitWordsRead = 0;
   uint32_t mTotalDigitWordsRejected = 0;
@@ -171,10 +193,6 @@ class CruRawReader
   uint32_t mWordsRejected = 0; // those words rejected before tracklet and digit parsing together with the digit and tracklet rejected words;
   uint32_t mWordsAccepted = 0; // those words before before tracklet and digit parsing together with the digit and tracklet rejected words;
 
-  // we parse rdh to rdh but data is cru to cru.
-  //the relevant parsers. Not elegant but we need both so pointers to base classes and sending them in with templates or some other such mechanism seems impossible, or its just late and I cant think.
-  //TODO think of a more elegant way of incorporating the parsers.
-  TrackletsParser mTrackletsParser;
   DigitsParser mDigitsParser;
 
   EventStorage mEventRecords; // store data range indexes into the above vectors.

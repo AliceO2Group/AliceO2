@@ -53,6 +53,7 @@ enum ParsingErrors {
   TrackletCRUPaddingWhileParsingTracklets, // reading a padding word while expecting tracklet data
   TrackletTrackletHCHeaderButWrongState,   // read a trackletHCHedaer but not in correct state.
   TrackletHCHeaderSanityCheckFailure,      // HCHeader sanity check failure, see RawData.cxx for reasons.
+  TrackletHCHeaderFailure,                 // either reserved bit not set or HCID is not what was expected from RDH
   TrackletMCMHeaderSanityCheckFailure,     // MCMHeader sanity check failure, see RawData.cxx for reasons.
   TrackletMCMHeaderButParsingMCMData,      // state is still MCMHeader but we are parsing MCMData
   TrackletStateMCMHeaderButParsingMCMData,
@@ -113,6 +114,7 @@ static std::unordered_map<int, std::string> ParsingErrorsString = {
   {DigitLayerMismatch, "Digit Layer MisMatch"},
   {TrackletCRUPaddingWhileParsingTracklets, "Tracklet CRU Padding while parsing trackletsl"},
   {TrackletHCHeaderSanityCheckFailure, "Tracklet HC Header Sanity Check Failure"},
+  {TrackletHCHeaderFailure, "TrackletHCHeaderFailure"},
   {TrackletMCMHeaderSanityCheckFailure, "Tracklet MCMHeader Sanity Check Failure"},
   {TrackletMCMHeaderButParsingMCMData, "Tracklet on MCMHeader, but parsing MCMData"},
   {TrackletStateMCMHeaderButParsingMCMData, "Tracklet state MCMHeader but parsing MCMData"},

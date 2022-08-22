@@ -107,6 +107,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
   }
   inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CTP/Config/TriggerOffsets"));
+  // inputs.emplace_back("linkToHcid", "TRD", "LinkToHcid", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("TRD/Config/LinkToHCIDMapping")); // FIXME: uncomment, when object available in CCDB
   workflow.emplace_back(DataProcessorSpec{
     std::string("trd-datareader"), // left as a string cast incase we append stuff to the string
     inputs,
