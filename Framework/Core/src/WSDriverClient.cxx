@@ -120,6 +120,14 @@ void on_connect(uv_connect_t* connection, int status)
     state->nextFairMQState.emplace_back("STOP");
   });
 
+  client->observe("/stop", [state = context->state](std::string_view) {
+    state->nextFairMQState.emplace_back("STOP");
+  });
+
+  client->observe("/start", [state = context->state](std::string_view) {
+    state->nextFairMQState.emplace_back("RUN");
+  });
+
   client->observe("/trace", [state = context->state](std::string_view cmd) {
     static constexpr int prefixSize = std::string_view{"/trace "}.size();
     if (prefixSize > cmd.size()) {

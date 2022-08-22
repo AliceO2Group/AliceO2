@@ -156,11 +156,33 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
     auto& callbacks = registry.get<CallbackService>();
     control.notifyDeviceState(fair::mq::GetStateName(state));
     callbacks(CallbackService::Id::DeviceStateChanged, registry, state);
+    LOG(detail) << "In state watcher callback " << state;
+
+    static bool runningOnce = false;
 
     if (deviceState.nextFairMQState.empty() == false) {
+      LOG(detail) << "State change requested, changing state to " << deviceState.nextFairMQState.back();
       auto state = deviceState.nextFairMQState.back();
       this->ChangeState(state);
       deviceState.nextFairMQState.pop_back();
+    } else if (state == fair::mq::State::Running && deviceState.nextFairMQState.empty()) {
+      LOGP(detail, "Device is running and no transition expected. We are done.");
+    } else {
+      while (runningOnce && deviceState.nextFairMQState.empty() && this->NewStatePending() == false) {
+        LOG(detail) << "No state change requested, waiting for next state change " << this->NewStatePending();
+        uv_run(deviceState.loop, UV_RUN_ONCE);
+      }
+      if (runningOnce && deviceState.nextFairMQState.empty() == false) {
+        LOG(detail) << "State change requested, changing state to " << deviceState.nextFairMQState.back();
+        auto state = deviceState.nextFairMQState.back();
+        this->ChangeState(state);
+        deviceState.nextFairMQState.pop_back();
+      }
+      LOG(detail) << "Exiting callback for state " << state;
+    }
+    if (runningOnce == false && state == fair::mq::State::Running) {
+      LOG(detail) << "First iteration, next time we start the event loop";
+      runningOnce = true;
     }
   };
 
