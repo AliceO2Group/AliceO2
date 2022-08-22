@@ -38,6 +38,7 @@ void DataReaderTask::init(InitContext& ic)
   mTrackletsPreviousTotal = 0;
   mWordsRead = 0;
   mWordsRejected = 0;
+  mReader.configure(mTrackletHCHeaderState, mHalfChamberWords, mHalfChamberMajor, mOptions);
 }
 
 void DataReaderTask::endOfStream(o2::framework::EndOfStreamContext& ec)
@@ -51,6 +52,13 @@ void DataReaderTask::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     o2::ctp::TriggerOffsetsParam::Instance().printKeyValues();
     return;
   }
+  /* FIXME uncomment when CCDB object is available
+  else if (matcher == ConcreteDataMatcher("TRD", "LinkToHcid", 0)) {
+    LOG(info) << "Updated Link ID to HCID mapping";
+    mReader.setLinkMap((const o2::trd::LinkToHCIDMapping*)obj);
+    return;
+  }
+  */
 }
 
 void DataReaderTask::sendData(ProcessingContext& pc, bool blankframe)
@@ -75,6 +83,7 @@ void DataReaderTask::updateTimeDependentParams(framework::ProcessingContext& pc)
   static bool updateOnlyOnce = false;
   if (!updateOnlyOnce) {
     pc.inputs().get<o2::ctp::TriggerOffsetsParam*>("trigoffset");
+    // pc.inputs().get<o2::trd::LinkToHCIDMapping*>("linkToHcid");  FIXME uncomment when CCDB object is available
     updateOnlyOnce = true;
   }
 }
@@ -130,8 +139,6 @@ void DataReaderTask::run(ProcessingContext& pc)
     }
     mReader.setDataBuffer(payloadIn);
     mReader.setDataBufferSize(payloadInSize);
-    mReader.configure(mTrackletHCHeaderState, mHalfChamberWords, mHalfChamberMajor, mOptions);
-    //mReader.setStats(&mTimeFrameStats);
     mReader.run();
     mWordsRead += mReader.getWordsRead();
     mWordsRejected += mReader.getWordsRejected();
