@@ -1004,6 +1004,10 @@ void DataProcessingDevice::Run()
           }
         }
       }
+      // If we are Idle, we can then consider the transition to be expired.
+      if (mState.transitionHandling == TransitionHandlingState::Requested && mState.streaming == StreamingState::Idle) {
+        mState.transitionHandling = TransitionHandlingState::Expired;
+      }
       TracyPlot("shouldNotWait", (int)shouldNotWait);
       if (mState.severityStack.empty() == false) {
         fair::Logger::SetConsoleSeverity((fair::Severity)mState.severityStack.back());
