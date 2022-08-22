@@ -54,6 +54,13 @@ struct HelperMethods {
     printf("%02i_%i_%i\n", det / constants::NCHAMBERPERSEC, (det % constants::NCHAMBERPERSEC) / constants::NLAYER, det % constants::NLAYER);
   }
 
+  static void printSectorStackLayerSide(int hcid)
+  {
+    // for a given half-chamber number prints SECTOR_STACK_LAYER_side
+    int det = hcid / 2;
+    printf("%02i_%i_%i side: %i\n", det / constants::NCHAMBERPERSEC, (det % constants::NCHAMBERPERSEC) / constants::NLAYER, det % constants::NLAYER, hcid % 2);
+  }
+
   static int getPadColFromADC(int irob, int imcm, int iadc)
   {
     if (iadc < 0 || iadc > constants::NADCMCM) {
