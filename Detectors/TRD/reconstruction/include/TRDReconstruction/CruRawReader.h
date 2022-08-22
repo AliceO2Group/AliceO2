@@ -29,7 +29,6 @@
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/RawDataStats.h"
 #include "TRDReconstruction/DigitsParser.h"
-#include "TRDReconstruction/TrackletsParser.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/Digit.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -86,9 +85,15 @@ class CruRawReader
   void clearall()
   {
     mEventRecords.clear();
-    mTrackletsParser.clear();
     mDigitsParser.clear();
   }
+
+  enum TrackletParserState { StateTrackletHCHeader,
+                             StateTrackletMCMHeader,
+                             StateTrackletMCMData,
+                             StateMoveToEndMarker,
+                             StateSecondEndmarker,
+                             StateFinished };
 
  private:
   // the parsing starts here, payload from all available RDHs is copied into mHBFPayload and afterwards processHalfCRU() is called
@@ -109,6 +114,19 @@ class CruRawReader
 
   // sanity check on individual RDH (can find unconfigured FLP or invalid data)
   bool checkRDH(const o2::header::RDHAny* rdh);
+
+  // given the total link size and the hcid from the RDH
+  // parse the tracklet data. Overwrite hcid from TrackletHCHeader if mismatch is detected
+  // trackletWordsRejected:  count the number of words which were skipped (subset of words read)
+  // returns total number of words read (no matter if parsed successfully or not)
+  int parseLinkData(int linkSize32, int& hcid, int& trackletWordsRejected);
+
+  // check validity of TrackletHCHeader (always once bit needs to be set and hcid needs to be consistent with what we expect from RDH)
+  // FIXME currently hcid can be overwritten from TrackletHCHeader
+  bool isTrackletHCHeaderOK(const TrackletHCHeader& header, int& hcid) const;
+
+  // helper function to create Tracklet64 from link data
+  Tracklet64 assembleTracklet64(int format, TrackletMCMHeader& mcmHeader, TrackletMCMData& mcmData, int cpu, int hcid) const;
 
   // important function to keep track of all errors, if possible accounted to a certain link / half-chamber ID
   // FIXME:
@@ -176,10 +194,6 @@ class CruRawReader
   uint32_t mWordsRejected = 0; // those words rejected before tracklet and digit parsing together with the digit and tracklet rejected words;
   uint32_t mWordsAccepted = 0; // those words before before tracklet and digit parsing together with the digit and tracklet rejected words;
 
-  // we parse rdh to rdh but data is cru to cru.
-  //the relevant parsers. Not elegant but we need both so pointers to base classes and sending them in with templates or some other such mechanism seems impossible, or its just late and I cant think.
-  //TODO think of a more elegant way of incorporating the parsers.
-  TrackletsParser mTrackletsParser;
   DigitsParser mDigitsParser;
 
   EventStorage mEventRecords; // store data range indexes into the above vectors.

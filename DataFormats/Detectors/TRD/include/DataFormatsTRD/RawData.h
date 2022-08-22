@@ -138,9 +138,9 @@ struct TrackletHCHeader {
     //             --------------------------------- 28-31 tracklet data format number
     uint32_t word;
     struct {
-      uint32_t side : 1;  // side of chamber
-      uint32_t layer : 3;
+      uint32_t side : 1; // side of chamber
       uint32_t stack : 3;
+      uint32_t layer : 3;
       uint32_t supermodule : 5;
       uint32_t one : 1;   //always 1
       uint32_t MCLK : 15; // MCM clock counter 120MHz ... for simulation -- incrementing, and uniform across an event
@@ -455,9 +455,6 @@ uint32_t getHalfCRULinkErrorFlag(const HalfCRUHeader& cruhead, const uint32_t li
 uint32_t getHalfCRULinkDataSize(const HalfCRUHeader& cruhead, const uint32_t link);
 void getHalfCRULinkErrorFlags(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linkerrorflags);
 void getHalfCRULinkDataSizes(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linksizes);
-int getNumberOfTrackletsFromHeader(const o2::trd::TrackletMCMHeader* header, bool verbose = false);
-int getChargesFromRawHeaders(const o2::trd::TrackletHCHeader& hcheader, const o2::trd::TrackletMCMHeader* header, const std::array<o2::trd::TrackletMCMData, 3>& data, std::array<uint8_t, 3>& q, int trackletindex);
-uint32_t getHCIDFromTrackletHCHeader(const TrackletHCHeader& header);
 std::ostream& operator<<(std::ostream& stream, const TrackletHCHeader& halfchamberheader);
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& tracklmcmhead);
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMData& trackletmcmdata);
@@ -479,7 +476,6 @@ void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
 void dumpHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
 void clearHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
 bool sanityCheckTrackletMCMHeader(o2::trd::TrackletMCMHeader* header);
-bool sanityCheckTrackletHCHeader(o2::trd::TrackletHCHeader& header, bool verbose = false);
 bool sanityCheckDigitMCMHeader(o2::trd::DigitMCMHeader* header);
 bool sanityCheckDigitMCMADCMask(o2::trd::DigitMCMADCMask& mask, int numberofbitsset);
 bool sanityCheckDigitMCMWord(o2::trd::DigitMCMData* word, int adcchannel);
