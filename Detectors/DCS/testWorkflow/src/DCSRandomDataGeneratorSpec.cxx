@@ -28,13 +28,13 @@ using namespace o2::framework;
 namespace
 {
 /** generate random integers uniformly distributed within a range.
-  *
-  * @param size the number of integers to generate
-  * @param min the minimum value to be generated
-  * @param max the maximum value to be generated
-  *
-  * @returns a vector of integers
-  */
+ *
+ * @param size the number of integers to generate
+ * @param min the minimum value to be generated
+ * @param max the maximum value to be generated
+ *
+ * @returns a vector of integers
+ */
 std::vector<int> generateIntegers(size_t size, int min, int max)
 {
   std::uniform_int_distribution<int> distribution(min, max);
@@ -54,12 +54,12 @@ std::vector<int> generateIntegers(size_t size, int min, int max)
 }
 
 /** generate DCS data points.
-  *
-  * @param hints vector of HintType describing what to generate
-  * @param fraction fraction of the generated aliases that are returned (1.0 by default)
-  *
-  * @returns a vector of DataPointCompositeObjects
-  */
+ *
+ * @param hints vector of HintType describing what to generate
+ * @param fraction fraction of the generated aliases that are returned (1.0 by default)
+ *
+ * @returns a vector of DataPointCompositeObjects
+ */
 std::vector<o2::dcs::DataPointCompositeObject> generate(const std::vector<o2::dcs::test::HintType> hints,
                                                         float fraction = 1.0,
                                                         uint64_t tfid = 0)
@@ -96,12 +96,12 @@ std::vector<o2::dcs::DataPointCompositeObject> generate(const std::vector<o2::dc
 }
 
 /**
-  * DCSRandomDataGenerator is an example device that generates random
-  * DCS Data Points.
-  *
-  * The actual description of what is generated is hard-coded in
-  * the init() method.
-  */
+ * DCSRandomDataGenerator is an example device that generates random
+ * DCS Data Points.
+ *
+ * The actual description of what is generated is hard-coded in
+ * the init() method.
+ */
 class DCSRandomDataGenerator : public o2::framework::Task
 {
  public:
@@ -150,7 +150,7 @@ void DCSRandomDataGenerator::run(o2::framework::ProcessingContext& pc)
 
   LOG(info) << "***************** TF " << tfid << " has generated " << dpcoms.size() << " DPs";
   auto& timingInfo = pc.services().get<o2::framework::TimingInfo>();
-  auto timeNow = std::chrono::high_resolution_clock::now();
+  auto timeNow = std::chrono::system_clock::now();
   timingInfo.creation = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
 
   pc.outputs().snapshot(Output{"DCS", mDataDescription, 0, Lifetime::Timeframe}, dpcoms);

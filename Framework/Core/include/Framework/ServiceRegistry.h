@@ -11,6 +11,7 @@
 #ifndef O2_FRAMEWORK_SERVICEREGISTRY_H_
 #define O2_FRAMEWORK_SERVICEREGISTRY_H_
 
+#include "Framework/ThreadSafetyAnalysis.h"
 #include "Framework/ServiceHandle.h"
 #include "Framework/ServiceSpec.h"
 #include "Framework/ServiceRegistryHelpers.h"
@@ -41,9 +42,9 @@ struct NoLocking {
   void unlock() {}
 };
 
-struct MutexLock {
-  void lock() { mutex.lock(); }
-  void unlock() { mutex.unlock(); }
+struct CAPABILITY("mutex") MutexLock {
+  void lock() ACQUIRE() { mutex.lock(); }
+  void unlock() RELEASE() { mutex.unlock(); }
   std::mutex& mutex;
 };
 

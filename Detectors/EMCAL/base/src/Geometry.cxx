@@ -311,12 +311,16 @@ void Geometry::DefineSamplingFraction(const std::string_view mcname, const std::
   } else if (contains(mcname, "Fluka")) {
     samplingFactorTranportModel = 1.; // To be set
   } else if (contains(mcname, "Geant4")) {
-    if (contains(mctitle, "EMV-EMCAL")) {
-      samplingFactorTranportModel = 0.821; // EMC list but for EMCal, before 0.86
-    } else if (contains(mctitle, "EMV")) {
-      samplingFactorTranportModel = 1.096; // 0.906, 0.896 (OPT)
-    } else {
-      samplingFactorTranportModel = 0.821; // 1.15 (CHIPS), 1.149 (BERT), 1.147 (BERT_CHIPS)
+    std::string physicslist = mctitle.substr(mctitle.find(":") + 2).data();
+    LOG(info) << "Selected physics list: " << physicslist;
+    // sampling factors for different Geant4 physics list
+    // GEANT4 10.7 -> EMCAL-784
+    if (physicslist == "FTFP_BERT_EMV+optical") {
+      samplingFactorTranportModel = 0.821;
+    } else if (physicslist == "FTFP_BERT_EMV+optical+biasing") {
+      samplingFactorTranportModel = 0.81;
+    } else if (physicslist == "FTFP_INCLXX_EMV+optical") {
+      samplingFactorTranportModel = 0.81;
     }
   }
 
@@ -771,7 +775,7 @@ std::tuple<int, int, int> Geometry::GetModuleIndexesFromCellIndexesInSModule(int
       moduleID = moduleEta * nModulesInSMPhi + modulePhi;
   int etaInModule = etaInSupermodule % mNETAdiv,
       phiInModule = phiInSupermodule % mNPHIdiv;
-  //return std::make_tuple(modulePhi, moduleEta, moduleID);
+  // return std::make_tuple(modulePhi, moduleEta, moduleID);
   return std::make_tuple(phiInModule, etaInModule, moduleID);
 }
 

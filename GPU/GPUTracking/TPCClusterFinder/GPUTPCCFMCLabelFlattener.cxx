@@ -52,7 +52,7 @@ GPUd() void GPUTPCCFMCLabelFlattener::Thread<GPUTPCCFMCLabelFlattener::setRowOff
   uint labelCount = 0;
 
   for (uint i = 0; i < clusterInRow; i++) {
-    auto& interim = clusterer.mPlabelsByRow[row * clusterer.mNMaxClusterPerRow + i];
+    auto& interim = clusterer.mPlabelsByRow[row].data[i];
     labelCount += interim.labels.size();
   }
 
@@ -73,7 +73,7 @@ GPUd() void GPUTPCCFMCLabelFlattener::Thread<GPUTPCCFMCLabelFlattener::flatten>(
     dataOffset += clusterer.mPlabelsInRow[r];
   }
 
-  auto* labels = &clusterer.mPlabelsByRow[row * clusterer.mNMaxClusterPerRow];
+  auto* labels = clusterer.mPlabelsByRow[row].data.data();
   for (uint c = 0; c < clusterer.mPclusterInRow[row]; c++) {
     GPUTPCClusterMCInterim& interim = labels[c];
     assert(dataOffset + interim.labels.size() <= out->data.size());

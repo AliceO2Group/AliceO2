@@ -20,6 +20,7 @@
 #include "ITSMFTWorkflow/EntropyDecoderSpec.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
+#include "DataFormatsITSMFT/PhysTrigger.h"
 
 using namespace o2::framework;
 
@@ -54,6 +55,9 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   //  const auto ctfImage = o2::itsmft::CTF::getImage(buff.data());
+
+  // this produces weird memory problems in unrelated devices, to be understood
+  // auto& trigs = pc.outputs().make<std::vector<o2::itsmft::PhysTrigger>>(OutputRef{"phystrig"}); // dummy output
 
   auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(OutputRef{"ROframes"});
   if (mGetDigits) {
@@ -112,6 +116,11 @@ void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matche
 DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosity, bool getDigits, unsigned int sspec)
 {
   std::vector<OutputSpec> outputs;
+  // this is a special dummy input which makes sense only in sync workflows
+
+  // this produces weird memory problems in unrelated devices, to be understood
+  // outputs.emplace_back(OutputSpec{{"phystrig"}, orig, "PHYSTRIG", 0, Lifetime::Timeframe});
+
   if (getDigits) {
     outputs.emplace_back(OutputSpec{{"Digits"}, orig, "DIGITS", 0, Lifetime::Timeframe});
     outputs.emplace_back(OutputSpec{{"ROframes"}, orig, "DIGITSROF", 0, Lifetime::Timeframe});

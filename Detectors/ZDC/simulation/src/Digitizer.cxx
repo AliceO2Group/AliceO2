@@ -683,19 +683,14 @@ void Digitizer::Finalize(std::vector<BCData>& bcData, std::vector<o2::zdc::Orbit
 //______________________________________________________________________________
 void Digitizer::findEmptyBunches(const std::bitset<o2::constants::lhc::LHCMaxBunches>& bunchPattern)
 {
-  mNEmptyBCs = 0;
-  for (int ib = 0; ib < o2::constants::lhc::LHCMaxBunches; ib++) {
-    int mb = (ib + 31) % o2::constants::lhc::LHCMaxBunches;                                                 // beam gas from back of calorimeter
-    int m1 = ib ? ((ib - 1) % o2::constants::lhc::LHCMaxBunches) : (o2::constants::lhc::LHCMaxBunches - 1); // previous bunch
-    int cb = ib;                                                                                            // current bunch crossing
-    int p1 = (ib + 1) % o2::constants::lhc::LHCMaxBunches;                                                  // colliding + 1
-    int p2 = (ib + 2) % o2::constants::lhc::LHCMaxBunches;                                                  // colliding + 2
-    int p3 = (ib + 3) % o2::constants::lhc::LHCMaxBunches;                                                  // colliding + 3
-    if (!(bunchPattern[mb] || bunchPattern[m1] || bunchPattern[cb] || bunchPattern[p1] || bunchPattern[p2] || bunchPattern[p3])) {
-      mNEmptyBCs++;
-    }
+  // Baseline parameters from CTP -> DCS -> ModuleConfig
+  if (mModuleConfig->nBunchAverage > 0 || mModuleConfig->baselineFactor == 0) {
+    mNEmptyBCs = mModuleConfig->nBunchAverage;
+    mPedFactor = 1. / mModuleConfig->baselineFactor;
+    LOG(info) << "Empty bunches from ModuleConfig: " << mNEmptyBCs << " Baseline factor: " << mPedFactor;
+  } else {
+    LOG(fatal) << "Invalid configuration for baseline computation from ModuleConfig object";
   }
-  LOG(info) << "There are " << mNEmptyBCs << " clean empty bunches";
 }
 
 //______________________________________________________________________________
@@ -703,12 +698,16 @@ void Digitizer::updatePedestalReference(OrbitData& pdata)
 {
   // Compute or update baseline reference
   for (uint32_t id = 0; id < NChannels; id++) {
-    auto base_m = mSimCondition->channels[id].pedestal;                                                   // Average pedestal
-    auto base_s = mSimCondition->channels[id].pedestalFluct;                                              // Baseline oscillations
-    auto base_n = mSimCondition->channels[id].pedestalNoise;                                              // Electronic noise
-    float ped = gRandom->Gaus(12. * mNEmptyBCs * base_m, 12. * 2. * base_s * std::sqrt(0.5 * mNEmptyBCs)) // 2 for fluctuation every 2 BCs
-                + gRandom->Gaus(0, base_n * std::sqrt(12. * mNEmptyBCs));
-    int16_t peds = std::round(8. * ped / mNEmptyBCs / 12.);
+    auto base_m = mSimCondition->channels[id].pedestal;      // Average pedestal
+    auto base_s = mSimCondition->channels[id].pedestalFluct; // Baseline oscillations
+    auto base_n = mSimCondition->channels[id].pedestalNoise; // Electronic noise
+    // We don't know the time scale of the fluctuations of the baseline. As a rough guess we consider two bunch crossings
+    // sum = 12 * (mNEmptyBCs/2) * (2*base_m) = 12 * mNEmptyBCs * base_m
+    float mean_sum = 12. * mNEmptyBCs * base_m;                     // Adding 12 samples for bunch crossing
+    float rms_sum = 12. * 2. * base_s * std::sqrt(mNEmptyBCs / 2.); // 2 for fluctuation every 2 BCs
+    float rms_noise_sum = base_n * std::sqrt(12. * mNEmptyBCs);
+    float ped = gRandom->Gaus(mean_sum, rms_sum) + gRandom->Gaus(0, rms_noise_sum);
+    int16_t peds = std::round(ped / mNEmptyBCs / 12. / mModuleConfig->baselineFactor);
     if (peds < SHRT_MIN) {
       peds = SHRT_MIN;
     } else if (peds > SHRT_MAX) {

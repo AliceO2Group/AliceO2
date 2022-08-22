@@ -14,7 +14,6 @@ find_package(GSL REQUIRED)
 o2_add_library(MCHClustering
                SOURCES src/ClusterOriginal.cxx
                        src/ClusterFinderOriginal.cxx
-                       src/MathiesonOriginal.cxx
                        src/ClusterizerParam.cxx
                PUBLIC_LINK_LIBRARIES O2::MCHMappingInterface O2::MCHBase O2::MCHPreClustering
                                      O2::Framework O2::CommonUtils)
@@ -27,18 +26,16 @@ o2_add_library(MCHClusteringGEM
                        src/ClusterDump.cxx
                        src/ClusterFinderOriginal.cxx
                        src/ClusterFinderGEM.cxx
-                       src/MathiesonOriginal.cxx
                        src/ClusterizerParam.cxx
                        src/clusterProcessing.cxx
-                       src/dataStructure.cxx
-                       src/gaussianEM.cxx
+                       src/ClusterPEM.cxx
                        src/mathUtil.cxx
                        src/mathieson.cxx
                        src/mathiesonFit.cxx
-                       src/padProcessing.cxx
                        src/PadsPEM.cxx
                        src/poissonEM.h
                        src/poissonEM.cxx
+                       src/InspectModel.cxx
                PUBLIC_LINK_LIBRARIES GSL::gsl O2::MCHMappingInterface O2::MCHBase O2::MCHPreClustering
                                      O2::Framework O2::CommonUtils)
 

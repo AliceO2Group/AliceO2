@@ -13,6 +13,7 @@
 /// \author David Rohr
 
 #include "GPUDisplayBackend.h"
+#include "GPUDisplayMagneticField.h"
 
 #include "GPUDisplayBackendOpenGL.h"
 

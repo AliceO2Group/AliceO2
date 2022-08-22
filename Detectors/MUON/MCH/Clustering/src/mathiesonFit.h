@@ -9,45 +9,61 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_MATHIESONFIT_H_
-#define O2_MCH_MATHIESONFIT_H_
+#ifndef O2_MCH_MATHIESONFIT_H
+#define O2_MCH_MATHIESONFIT_H
 
-#include <gsl/gsl_vector.h>
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_multifit_nlin.h>
+#include <gsl/gsl_vector.h>
 
-#include "MCHClustering/mathUtil.h"
+#include "MCHClustering/PadsPEM.h"
+#include "mathUtil.h"
 
+namespace o2
+{
+namespace mch
+{
 typedef struct dataFit {
   int N;
   int K;
-  double* x_ptr;
-  double* dx_ptr;
-  double* y_ptr;
-  double* dy_ptr;
-  Mask_t* cath_ptr;
-  double* zObs_ptr;
+  const double* x_ptr;
+  const double* dx_ptr;
+  const double* y_ptr;
+  const double* dy_ptr;
+  const Mask_t* cath_ptr;
+  const double* zObs_ptr;
   Mask_t* notSaturated_ptr;
   double* cathWeights_ptr;
   double* cathMax_ptr;
   int chamberId;
   double* zCathTotalCharge_ptr;
   int verbose;
+  double* thetaInit; // Only used by InspectModel
 } funcDescription_t;
 
+void fitMathieson(const Pads& iPads, double* thetaInit, int kInit, int mode,
+                  double* thetaFinal, double* khi2, double* pError);
+
+void printState(int iter, gsl_multifit_fdfsolver* s, int K);
 // Notes :
-//  - the intitialization of Mathieson module must be done before (initMathieson)
+//  - the intitialization of Mathieson module must be done before
+//  (initMathieson)
+} // namespace mch
+} // namespace o2
+
 extern "C" {
-void fitMathieson(double* muAndWi,
-                  double* xyAndDxy, double* z, Mask_t* cath, Mask_t* notSaturated,
-                  double* zCathTotalCharge,
-                  int K, int N, int chamberId, int jacobian,
-                  double* muAndWf,
-                  double* khi2,
-                  double* pError);
+void fitMathieson0(double* muAndWi, double* xyAndDxy, double* z, o2::mch::Mask_t* cath,
+                   o2::mch::Mask_t* notSaturated, double* zCathTotalCharge, int K, int N,
+                   int chamberId, int jacobian, double* muAndWf, double* khi2,
+                   double* pError);
+
+void fitMathieson(const double* x, const double* y, const double* dx, const double* dy, const double* q,
+                  const o2::mch::Mask_t* cath, const o2::mch::Mask_t* sat, int chId, int nPads,
+                  double* thetaInit, int kInit,
+                  double* thetaFinal, double* khi2, double* pError);
 
 int f_ChargeIntegral(const gsl_vector* gslParams, void* data,
                      gsl_vector* residual);
 }
 
-#endif
+#endif // O2_MCH_MATHIESONFIT_H

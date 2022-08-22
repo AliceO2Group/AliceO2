@@ -50,16 +50,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   o2::framework::WorkflowSpec specs;
 
-  bool useDigitTrigRec = false;
-
   // input
   if (!configcontext.options().get<bool>("disable-root-input")) {
     specs.emplace_back(o2::trd::getTRDDigitReaderSpec(false));
-    useDigitTrigRec = true;
   }
 
   // processing devices
-  specs.emplace_back(o2::trd::getKrClustererSpec(useDigitTrigRec));
+  specs.emplace_back(o2::trd::getKrClustererSpec());
 
   // output devices
   if (!configcontext.options().get<bool>("disable-root-output")) {

@@ -67,3 +67,9 @@ void GPUO2InterfaceQA::resetHists()
 {
   mQA->resetHists();
 }
+
+void GPUO2InterfaceQA::updateGRP(GPUSettingsGRP* grp)
+{
+  mParam->UpdateSettings(grp, nullptr);
+  mQA->UpdateParam(mParam.get());
+}

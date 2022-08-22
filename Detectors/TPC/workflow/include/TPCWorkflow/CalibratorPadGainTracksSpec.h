@@ -125,7 +125,7 @@ o2::framework::DataProcessorSpec getTPCCalibPadGainTracksSpec(const bool useLast
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibResGain"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibResGain"}, Lifetime::Sporadic);
 
-  std::vector<InputSpec> inputs{{"gainhistos", "TPC", "TRACKGAINHISTOS"}};
+  std::vector<InputSpec> inputs{{"gainhistos", "TPC", "TRACKGAINHISTOS", 0, Lifetime::Sporadic}};
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF

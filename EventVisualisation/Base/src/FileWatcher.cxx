@@ -28,7 +28,7 @@ using namespace o2::event_visualisation;
 const char* FileWatcher::mLowGuard = " 0"; /// start guard
 const char* FileWatcher::mEndGuard = "~0"; /// stop guard
 
-FileWatcher::FileWatcher(const string& path)
+FileWatcher::FileWatcher(const string& path, const std::vector<std::string>& ext) : mExt(ext)
 {
   //LOG(info) << "FileWatcher::FileWatcher(" << path << ")";
   this->mDataFolder = path;
@@ -36,7 +36,6 @@ FileWatcher::FileWatcher(const string& path)
   this->mFiles.clear();
   this->mFiles.push_front(mLowGuard);
   this->mFiles.push_back(mEndGuard);
-  //LOG(info) << "FileWatcher" << this->getSize();
 }
 
 void FileWatcher::changeFolder(const string& path)
@@ -83,6 +82,18 @@ string FileWatcher::currentItem() const
   return this->mCurrentFile;
 }
 
+void FileWatcher::rollToNext()
+{
+  if (this->mFiles.size() == 2) { // only guards on the list
+    return;                       // nothing to do
+  }
+  this->setNext();
+  if (this->mCurrentFile == mEndGuard) {
+    this->setFirst();
+    this->setNext();
+  }
+}
+
 void FileWatcher::setFirst()
 {
   this->mCurrentFile = mLowGuard;
@@ -119,7 +130,7 @@ bool FileWatcher::refresh()
   LOG(info) << "previous:" << previous;
   LOG(info) << "currentFile:" << this->mCurrentFile;
 
-  this->mFiles = DirectoryLoader::load(this->mDataFolder, "_"); // already sorted according part staring with marker
+  this->mFiles = DirectoryLoader::load(this->mDataFolder, "_", this->mExt); // already sorted according part staring with marker
   if (this->mCurrentFile != mEndGuard) {
     if (this->mFiles.empty()) {
       this->mCurrentFile = mEndGuard; // list empty - stick to last element

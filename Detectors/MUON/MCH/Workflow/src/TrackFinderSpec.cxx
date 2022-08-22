@@ -42,6 +42,7 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/Cluster.h"
 #include "DataFormatsMCH/Digit.h"
+#include "MCHBase/TrackerParam.h"
 #include "MCHTracking/TrackParam.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackFinder.h"
@@ -123,7 +124,18 @@ class TrackFinderTask
     }
 
     trackROFs.reserve(clusterROFs.size());
+    auto timeStart = std::chrono::high_resolution_clock::now();
+
     for (const auto& clusterROF : clusterROFs) {
+
+      if (clusterROF.getNEntries() > TrackerParam::Instance().maxClusters) {
+        LOGP(warning, "Number of clusters above limit ({}>{}) : skipping tracking", clusterROF.getNEntries(), TrackerParam::Instance().maxClusters);
+        int trackOffset(mchTracks.size());
+        writeTracks({}, mchTracks, usedClusters, digitsIn, usedDigits);
+        trackROFs.emplace_back(clusterROF.getBCData(), trackOffset, mchTracks.size() - trackOffset,
+                               clusterROF.getBCWidth());
+        continue;
+      }
 
       // sort the input clusters of the current event per DE
       std::unordered_map<int, std::list<const Cluster*>> clusters{};
@@ -144,8 +156,10 @@ class TrackFinderTask
                              clusterROF.getBCWidth());
     }
 
-    LOGP(info, "Found {:3d} MCH tracks from {:4d} clusters in {:2d} ROFs",
-         mchTracks.size(), clustersIn.size(), clusterROFs.size());
+    auto timeEnd = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> elapsed = timeEnd - timeStart;
+    LOGP(info, "Found {:3d} MCH tracks from {:4d} clusters in {:2d} ROFs in {:8.0f} ms",
+         mchTracks.size(), clustersIn.size(), clusterROFs.size(), elapsed.count());
   }
 
  private:

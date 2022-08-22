@@ -48,7 +48,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "configFile", bpo::value<std::string>()->default_value(""), "Path to an INI or JSON configuration file")(
     "chunkSize", bpo::value<unsigned int>()->default_value(500), "max size of primary chunk (subevent) distributed by server")(
     "chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize")(
-    "seed", bpo::value<int>()->default_value(-1), "initial seed (default: -1 random)")(
+    "seed", bpo::value<ULong_t>()->default_value(0), "initial seed as ULong_t (default: 0 == random)")(
     "field", bpo::value<std::string>()->default_value("-5"), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0; +-<intKGaus>U for uniform field; \"ccdb\" for taking it from CCDB ")(
     "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)")(
     "noemptyevents", "only writes events with at least one hit")(
@@ -59,12 +59,13 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)");
 }
 
-bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
+void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs, std::vector<std::string> const& skippedModules, std::vector<std::string>& activeModules)
 {
   using o2::detectors::DetID;
-  mConfigData.mMCEngine = vm["mcEngine"].as<std::string>();
-  mConfigData.mActiveModules = vm["modules"].as<std::vector<std::string>>();
-  auto& activeModules = mConfigData.mActiveModules;
+
+  // input args is a vector of module strings as obtained from the -m,--modules options
+  // of SimConfig
+  activeModules = inputargs;
   if (activeModules.size() == 1 && activeModules[0] == "all") {
     activeModules.clear();
     for (int d = DetID::First; d <= DetID::Last; ++d) {
@@ -86,19 +87,19 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
     activeModules.emplace_back("SHIL");
   }
   // now we take out detectors listed as skipped
-  auto& skipped = vm["skipModules"].as<std::vector<std::string>>();
-  for (auto& s : skipped) {
+  for (auto& s : skippedModules) {
     auto iter = std::find(activeModules.begin(), activeModules.end(), s);
     if (iter != activeModules.end()) {
       // take it out
       activeModules.erase(iter);
     }
   }
+}
 
-  // find all detectors that should be readout
-  auto enableReadout = vm["readoutDetectors"].as<std::vector<std::string>>();
-  auto& disableReadout = vm["skipReadoutDetectors"].as<std::vector<std::string>>();
-  auto& readoutDetectors = mConfigData.mReadoutDetectors;
+void SimConfig::determineReadoutDetectors(std::vector<std::string> const& activeModules, std::vector<std::string> const& enableReadout, std::vector<std::string> const& disableReadout, std::vector<std::string>& readoutDetectors)
+{
+  using o2::detectors::DetID;
+
   readoutDetectors.clear();
 
   auto isDet = [](std::string const& s) {
@@ -141,6 +142,19 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
       readoutDetectors.erase(iter);
     }
   }
+}
+
+bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& vm)
+{
+  using o2::detectors::DetID;
+  mConfigData.mMCEngine = vm["mcEngine"].as<std::string>();
+
+  // get final set of active Modules
+  determineActiveModules(vm["modules"].as<std::vector<std::string>>(), vm["skipModules"].as<std::vector<std::string>>(), mConfigData.mActiveModules);
+  const auto& activeModules = mConfigData.mActiveModules;
+
+  // get final set of detectors which are readout
+  determineReadoutDetectors(activeModules, vm["readoutDetectors"].as<std::vector<std::string>>(), vm["skipReadoutDetectors"].as<std::vector<std::string>>(), mConfigData.mReadoutDetectors);
 
   mConfigData.mGenerator = vm["generator"].as<std::string>();
   mConfigData.mTrigger = vm["trigger"].as<std::string>();
@@ -157,7 +171,7 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mConfigFile = vm["configFile"].as<std::string>();
   mConfigData.mPrimaryChunkSize = vm["chunkSize"].as<unsigned int>();
   mConfigData.mInternalChunkSize = vm["chunkSizeI"].as<int>();
-  mConfigData.mStartSeed = vm["seed"].as<int>();
+  mConfigData.mStartSeed = vm["seed"].as<ULong_t>();
   mConfigData.mSimWorkers = vm["nworkers"].as<int>();
   if (vm.count("timestamp")) {
     mConfigData.mTimestamp = vm["timestamp"].as<uint64_t>();
@@ -189,6 +203,30 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   }
   if (fieldstring != "ccdb") {
     mConfigData.mField = std::stoi((vm["field"].as<std::string>()).substr(0, (vm["field"].as<std::string>()).rfind("U")));
+  }
+  if (!parseFieldString(fieldstring, mConfigData.mField, mConfigData.mFieldMode)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool SimConfig::parseFieldString(std::string const& fieldstring, int& fieldvalue, SimFieldMode& mode)
+{
+  // analyse field options
+  // either: "ccdb" or +-2[U],+-5[U] and 0[U]; +-<intKGaus>U
+  std::regex re("(ccdb)|([+-]?[250]U?)");
+  if (!std::regex_match(fieldstring, re)) {
+    LOG(error) << "Invalid field option";
+    return false;
+  }
+  if (fieldstring == "ccdb") {
+    mode = SimFieldMode::kCCDB;
+  } else if (fieldstring.find("U") != std::string::npos) {
+    mode = SimFieldMode::kUniform;
+  }
+  if (fieldstring != "ccdb") {
+    fieldvalue = std::stoi(fieldstring.substr(0, fieldstring.rfind("U")));
   }
   return true;
 }
@@ -248,7 +286,7 @@ bool parseSimReconfigFromString(std::string const& argumentstring, SimReconfigDa
     "configKeyValues", bpo::value<std::string>(&data.keyValueTokens)->default_value(""), "semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...")(
     "configFile", bpo::value<std::string>(&data.configFile)->default_value(""), "Path to an INI or JSON configuration file")(
     "chunkSize", bpo::value<unsigned int>(&data.primaryChunkSize)->default_value(500), "max size of primary chunk (subevent) distributed by server")(
-    "seed", bpo::value<int>(&data.startSeed)->default_value(-1), "initial seed (default: -1 random)")(
+    "seed", bpo::value<ULong_t>(&data.startSeed)->default_value(0L), "initial seed as ULong_t (default: 0 == random)")(
     "stop", bpo::value<bool>(&data.stop)->default_value(false), "control command to shut down daemon");
 
   bpo::variables_map vm;

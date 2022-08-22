@@ -39,7 +39,7 @@ namespace phos
 class PHOSEnergyCalibDevice : public o2::framework::Task
 {
  public:
-  explicit PHOSEnergyCalibDevice(bool useCCDB, std::shared_ptr<o2::base::GRPGeomRequest> req) : mUseCCDB(useCCDB), mCCDBRequest(req) {}
+  explicit PHOSEnergyCalibDevice(bool useCCDB, std::shared_ptr<o2::base::GRPGeomRequest> req, const std::string& outputDir, const std::string& metaFileDir, bool writeRootOutput) : mUseCCDB(useCCDB), mWriteRootOutput(writeRootOutput), mOutputDir(outputDir), mMetaFileDir(metaFileDir), mCCDBRequest(req) {}
 
   void init(o2::framework::InitContext& ic) final;
 
@@ -65,9 +65,10 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
   o2::framework::DataTakingContext mDataTakingContext{};
   bool mUseCCDB = false;
   bool mHasCalib = false;
-  bool mPostHistos = true; /// post colllected histos to ccdb
-  long mRunStartTime = 0;  /// start time of the run (sec)
-  float mPtMin = 1.5;      /// minimal energy to fill inv. mass histo
+  bool mPostHistos = true;      /// post colllected histos to ccdb
+  bool mWriteRootOutput = true; /// Write local root files
+  long mRunStartTime = 0;       /// start time of the run (sec)
+  float mPtMin = 1.5;           /// minimal energy to fill inv. mass histo
   float mEminHGTime = 1.5;
   float mEminLGTime = 5.;
   float mEDigMin = 0.05;
@@ -90,7 +91,7 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 };
 
-o2::framework::DataProcessorSpec getPHOSEnergyCalibDeviceSpec(bool useCCDB);
+o2::framework::DataProcessorSpec getPHOSEnergyCalibDeviceSpec(bool useCCDB, const std::string& outputDir, const std::string& metaFileDir, bool writeRootOutput);
 } // namespace phos
 } // namespace o2
 

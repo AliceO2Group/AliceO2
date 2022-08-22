@@ -59,8 +59,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"use-fit", o2::framework::VariantType::Bool, false, {"enable access to fit info for calibration"}},
     {"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}},
     {"strict-matching", o2::framework::VariantType::Bool, false, {"High purity preliminary matching"}},
-    {"output-type", o2::framework::VariantType::String, "matching-info,calib-info", {"matching-info, calib-info"}},
-    {"enable-dia", o2::framework::VariantType::Bool, false, {"to require diagnostic freq and then write to calib outputs"}},
+    {"output-type", o2::framework::VariantType::String, "matching-info", {"matching-info, calib-info"}},
+    {"enable-dia", o2::framework::VariantType::Bool, false, {"to require diagnostic freq and then write to calib outputs (obsolete since now default)"}},
+    {"trd-extra-tolerance", o2::framework::VariantType::Float, 500.0f, {"Extra time tolerance for TRD tracks in ns"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-devices", o2::framework::VariantType::Bool, false, {"merge DPL source/writer devices"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -87,6 +88,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useCCDB = configcontext.options().get<bool>("use-ccdb");
   auto strict = configcontext.options().get<bool>("strict-matching");
   auto diagnostic = configcontext.options().get<bool>("enable-dia");
+  auto extratolerancetrd = configcontext.options().get<float>("trd-extra-tolerance");
 
   bool writematching = 0;
   bool writecalib = 0;
@@ -96,6 +98,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   if (outputType.rfind("calib-info") < outputType.size()) {
     writecalib = 1;
+    if (!diagnostic) {
+      diagnostic = true;
+      LOG(info) << "Diagnostic switched on since required for calibInfo time";
+    }
   }
 
   if (!writecalib) {
@@ -111,6 +117,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   LOG(debug) << "TOF disable-root-input = " << disableRootIn;
   LOG(debug) << "TOF disable-root-output = " << disableRootOut;
   LOG(debug) << "TOF matching in strict mode = " << strict;
+  LOG(debug) << "TOF extra time tolerance for TRD tracks = " << extratolerancetrd;
 
   //GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC");
   GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD");
@@ -145,24 +152,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, strict)); // doTPCrefit not yet supported (need to load TPC clusters?)
-
-  // initialize collision context
-  if (gSystem->AccessPathName("collisioncontext.root")) {
-    LOG(info) << "collisioncontext.root not available, let's skip it (cosmics?) ";
-  } else {
-    auto mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
-    auto context = mcReader->getDigitizationContext();
-    if (context) {
-      auto bcf = context->getBunchFilling();
-      std::bitset<3564> isInBC = bcf.getBCPattern();
-      for (unsigned int i = 0; i < isInBC.size(); i++) {
-        if (isInBC.test(i)) {
-          o2::tof::Utils::addInteractionBC(i, true);
-        }
-      }
-    }
-  }
+  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, strict, extratolerancetrd)); // doTPCrefit not yet supported (need to load TPC clusters?)
 
   if (!disableRootOut) {
     std::vector<DataProcessorSpec> writers;
@@ -197,7 +187,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
   return std::move(specs);

@@ -43,19 +43,21 @@
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "CommonUtils/NameConf.h"
 #include "TPCBase/RDHUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceQA.h"
 #include "GPUO2Interface.h"
 #include "CalibdEdxContainer.h"
+#include "GPUNewCalibValues.h"
 #include "TPCPadGainCalib.h"
 #include "TPCZSLinkMapping.h"
 #include "display/GPUDisplayInterface.h"
-#include "DataFormatsParameters/GRPObject.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/Utils.h"
 #include "TPCBase/CDBInterface.h"
+#include "TPCCalibration/VDriftHelper.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Algorithm/Parser.h"
@@ -92,7 +94,7 @@ using namespace o2::tpc;
 namespace o2::gpu
 {
 
-GPURecoWorkflowSpec::GPURecoWorkflowSpec(GPURecoWorkflowSpec::CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask) : o2::framework::Task(), mPolicyData(policyData), mTPCSectorMask(tpcSectorMask), mTPCSectors(tpcsectors), mSpecConfig(specconfig)
+GPURecoWorkflowSpec::GPURecoWorkflowSpec(GPURecoWorkflowSpec::CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr) : o2::framework::Task(), mPolicyData(policyData), mTPCSectorMask(tpcSectorMask), mTPCSectors(tpcsectors), mSpecConfig(specconfig), mGGR(ggr)
 {
   if (mSpecConfig.outputCAClusters && !mSpecConfig.caClusterer && !mSpecConfig.decompressTPC) {
     throw std::runtime_error("inconsistent configuration: cluster output is only possible if CA clusterer is activated");
@@ -108,29 +110,17 @@ GPURecoWorkflowSpec::~GPURecoWorkflowSpec() = default;
 
 void GPURecoWorkflowSpec::init(InitContext& ic)
 {
+  GRPGeomHelper::instance().setRequest(mGGR);
   GPUO2InterfaceConfiguration& config = *mConfig.get();
   {
     mParser = std::make_unique<o2::algorithm::ForwardParser<ClusterGroupHeader>>();
     mTracker = std::make_unique<GPUO2Interface>();
 
     // Create configuration object and fill settings
-    const auto grp = o2::parameters::GRPObject::loadFrom();
-    o2::base::GeometryManager::loadGeometry();
-    o2::base::Propagator::initFieldFromGRP();
-    if (!grp) {
-      throw std::runtime_error("Failed to initialize run parameters from GRP");
-    }
-    mConfig->configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
-    mConfig->configGRP.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
-    mTFSettings->hasNHBFPerTF = 1;
-    mTFSettings->nHBFPerTF = grp->getNHBFPerTF();
-    mTFSettings->hasRunStartOrbit = 1;
-    mTFSettings->runStartOrbit = grp->getFirstOrbit();
+    mConfig->configGRP.solenoidBz = 0;
     mTFSettings->hasSimStartOrbit = 1;
     auto& hbfu = o2::raw::HBFUtils::Instance();
     mTFSettings->simStartOrbit = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).orbit;
-
-    LOG(info) << "Initializing run paramerers from GRP bz=" << mConfig->configGRP.solenoidBz << " cont=" << grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
 
     *mConfParam = mConfig->ReadConfigurableParam();
     mConfig->configInterface.dumpEvents = mConfParam->dump;
@@ -144,8 +134,9 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       }
     }
 
-    if (mConfig->configGRP.continuousMaxTimeBin == -1) {
-      mConfig->configGRP.continuousMaxTimeBin = (mTFSettings->nHBFPerTF * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
+    mAutoContinuousMaxTimeBin = mConfig->configGRP.continuousMaxTimeBin == -1;
+    if (mAutoContinuousMaxTimeBin) {
+      mConfig->configGRP.continuousMaxTimeBin = (256 * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
     }
     if (mConfig->configProcessing.deviceNum == -2) {
       int myId = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
@@ -221,6 +212,13 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       mConfig->configCalib.fastTransform = TPCFastTransform::loadFromFile(mConfParam->transformationFile.c_str());
     } else {
       mFastTransform = std::move(TPCFastTransformHelperO2::instance()->create(0));
+
+      if (mConfParam->transformationSCFile.size()) {
+        LOG(info) << "Reading TPC space charge corrections from file " << mConfParam->transformationSCFile;
+        TFile fInp(mConfParam->transformationSCFile.data(), "READ");
+        mFastTransform->setSlowTPCSCCorrection(fInp);
+      }
+
       mConfig->configCalib.fastTransform = mFastTransform.get();
     }
     if (mConfig->configCalib.fastTransform == nullptr) {
@@ -233,20 +231,19 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       if (mConfig->configCalib.matLUT == nullptr) {
         LOGF(fatal, "Error loading matlut file");
       }
+    } else {
+      mConfig->configProcessing.lateO2MatLutProvisioningSize = 50 * 1024 * 1024;
     }
+
+    if (mSpecConfig.readTRDtracklets) {
+      mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>();
+      mConfig->configCalib.trdGeometry = mTRDGeometry.get();
+    }
+
+    mConfig->configProcessing.internalO2PropagatorGPUField = true;
 
     // initialize TPC calib objects
     initFunctionTPC();
-
-    mConfig->configCalib.o2Propagator = Propagator::Instance();
-
-    if (mSpecConfig.readTRDtracklets) {
-      auto gm = o2::trd::Geometry::instance();
-      gm->createPadPlaneArray();
-      gm->createClusterMatrixArray();
-      mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>(*gm);
-      mConfig->configCalib.trdGeometry = mTRDGeometry.get();
-    }
 
     if (mConfParam->printSettings) {
       mConfig->PrintParam();
@@ -316,6 +313,10 @@ void GPURecoWorkflowSpec::endOfStream(EndOfStreamContext& ec)
 void GPURecoWorkflowSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
   finaliseCCDBTPC(matcher, obj);
+  if (GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    mGRPGeomUpdated = true;
+    return;
+  }
 }
 
 void GPURecoWorkflowSpec::run(ProcessingContext& pc)
@@ -323,12 +324,15 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   constexpr static size_t NSectors = Sector::MAXSECTOR;
   constexpr static size_t NEndpoints = o2::gpu::GPUTrackingInOutZS::NENDPOINTS;
 
-  if (mReadyToQuit) {
-    return;
-  }
   auto cput = mTimer->CpuTime();
   auto realt = mTimer->RealTime();
   mTimer->Start(false);
+
+  GRPGeomHelper::instance().checkUpdates(pc);
+  if (mConfParam->tpcTriggeredMode ^ !GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
+    LOG(fatal) << "configKeyValue tpcTriggeredMode does not match GRP isDetContinuousReadOut(TPC) setting";
+  }
+
   std::vector<gsl::span<const char>> inputs;
 
   const CompressedClustersFlat* pCompClustersFlat = nullptr;
@@ -417,7 +421,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       }
       int rawcru = rdh_utils::getCRU(ptr);
       int rawendpoint = rdh_utils::getEndPoint(ptr);
-      if (o2::raw::RDHUtils::getDetectorField(ptr) == 2) {
+      if ((rdh_utils::getLink(ptr) == rdh_utils::UserLogicLinkID || rdh_utils::getLink(ptr) == rdh_utils::ILBZSLinkID) && o2::raw::RDHUtils::getDetectorField(ptr) == 2) {
         tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(ptr);
         tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
       }
@@ -585,9 +589,15 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     outputRegions.clusterLabels.allocator = [&clustersMCBuffer](size_t size) -> void* { return &clustersMCBuffer; };
   }
 
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
-  mTFSettings->tfStartOrbit = dh->firstTForbit;
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+  mTFSettings->tfStartOrbit = tinfo.firstTForbit;
   mTFSettings->hasTfStartOrbit = 1;
+  mTFSettings->hasNHBFPerTF = 1;
+  mTFSettings->nHBFPerTF = GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF();
+  mTFSettings->hasRunStartOrbit = 0;
+  if (mVerbosity) {
+    LOG(info) << "TF firstTForbit " << mTFSettings->tfStartOrbit << " nHBF " << mTFSettings->nHBFPerTF << " runStartOrbit " << mTFSettings->runStartOrbit << " simStartOrbit " << mTFSettings->simStartOrbit;
+  }
   ptrs.settingsTF = mTFSettings.get();
 
   if (mTPCSectorMask != 0xFFFFFFFFF) {
@@ -611,8 +621,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
   const auto& holdData = TPCTrackingDigitsPreCheck::runPrecheck(&ptrs, mConfig.get());
 
-  // check for updates of TPC calibration objects
-  fetchCalibsCCDBTPC(pc);
+  doCalibUpdates(pc);
 
   int retVal = mTracker->RunTracking(&ptrs, &outputRegions);
 
@@ -689,7 +698,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     }
   }
 
-  LOG(info) << "found " << ptrs.nOutputTracksTPCO2 << " track(s)";
+  if (mConfig->configWorkflow.outputs.isSet(GPUDataTypes::InOutType::TPCMergedTracks)) {
+    LOG(info) << "found " << ptrs.nOutputTracksTPCO2 << " track(s)";
+  }
 
   if (mSpecConfig.outputCompClusters) {
     CompressedClustersROOT compressedClusters = *ptrs.tpcCompressedClusters;
@@ -755,6 +766,53 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   LOG(info) << "GPU Reoncstruction time for this TF " << mTimer->CpuTime() - cput << " s (cpu), " << mTimer->RealTime() - realt << " s (wall)";
 }
 
+void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc)
+{
+  GPUCalibObjectsConst newCalibObjects;
+  GPUNewCalibValues newCalibValues;
+  // check for updates of TPC calibration objects
+  bool needCalibUpdate = fetchCalibsCCDBTPC(pc, newCalibObjects);
+  if (mGRPGeomUpdated) {
+    mGRPGeomUpdated = false;
+    needCalibUpdate = true;
+
+    newCalibValues.newSolenoidField = true;
+    newCalibValues.solenoidField = mConfig->configGRP.solenoidBz = (5.00668f / 30000.f) * GRPGeomHelper::instance().getGRPMagField()->getL3Current();
+    LOG(info) << "Updating solenoid field " << newCalibValues.solenoidField;
+    if (mAutoContinuousMaxTimeBin) {
+      mConfig->configGRP.continuousMaxTimeBin = (mTFSettings->nHBFPerTF * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
+      newCalibValues.newContinuousMaxTimeBin = true;
+      newCalibValues.continuousMaxTimeBin = mConfig->configGRP.continuousMaxTimeBin;
+      LOG(info) << "Updating max time bin " << newCalibValues.continuousMaxTimeBin;
+    }
+
+    if (!mPropagatorInstanceCreated) {
+      newCalibObjects.o2Propagator = mConfig->configCalib.o2Propagator = Propagator::Instance();
+      mPropagatorInstanceCreated = true;
+    }
+
+    if (!mGeometryCreated) {
+      if (mConfParam->matLUTFile.size() == 0) {
+        newCalibObjects.matLUT = GRPGeomHelper::instance().getMatLUT();
+        LOG(info) << "Loaded material budget lookup table";
+      }
+      if (mSpecConfig.readTRDtracklets) {
+        auto gm = o2::trd::Geometry::instance();
+        gm->createPadPlaneArray();
+        gm->createClusterMatrixArray();
+        mTRDGeometry = std::make_unique<o2::trd::GeometryFlat>(*gm);
+        newCalibObjects.trdGeometry = mConfig->configCalib.trdGeometry = mTRDGeometry.get();
+        LOG(info) << "Loaded TRD geometry";
+      }
+      mGeometryCreated = true;
+    }
+  }
+  if (needCalibUpdate) {
+    LOG(info) << "Updating GPUReconstruction calibration objects";
+    mTracker->UpdateCalibration(newCalibObjects, newCalibValues);
+  }
+}
+
 Inputs GPURecoWorkflowSpec::inputs()
 {
   Inputs inputs;
@@ -765,6 +823,7 @@ Inputs GPURecoWorkflowSpec::inputs()
     inputs.emplace_back("tpctimegain", gDataOriginTPC, "TIMEGAIN", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalTimeGain)));
     inputs.emplace_back("tpctopologygain", gDataOriginTPC, "TOPOLOGYGAIN", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalTopologyGain)));
     inputs.emplace_back("tpcthreshold", gDataOriginTPC, "PADTHRESHOLD", 0, Lifetime::Condition, ccdbParamSpec("TPC/Config/FEEPad"));
+    o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
   }
   if (mSpecConfig.decompressTPC) {
     inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, mSpecConfig.decompressTPCFromROOT ? o2::header::DataDescription("COMPCLUSTERS") : o2::header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});
@@ -868,6 +927,7 @@ Outputs GPURecoWorkflowSpec::outputs()
 void GPURecoWorkflowSpec::initFunctionTPC()
 {
   mdEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
+  mTPCVDriftHelper.reset(new o2::tpc::VDriftHelper());
 
   if (mConfParam->dEdxDisableTopologyPol) {
     LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB");
@@ -974,7 +1034,6 @@ void GPURecoWorkflowSpec::initFunctionTPC()
 
 void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* obj)
 {
-  LOGP(info, "checking for newer object....");
   const CalibdEdxContainer* dEdxCalibContainer = mdEdxCalibContainer.get();
 
   auto copyCalibsToBuffer = [this, dEdxCalibContainer]() {
@@ -1023,12 +1082,15 @@ void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* ob
     copyCalibsToBuffer();
     const auto* residualCorr = static_cast<o2::tpc::CalibdEdxCorrection*>(obj);
     mdEdxCalibContainerBufferNew->setResidualCorrection(*residualCorr);
+  } else if (mTPCVDriftHelper->accountCCDBInputs(matcher, obj)) {
   }
 }
 
-void GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc)
+template <class T>
+bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newCalibObjects)
 {
   // update calibrations for clustering and tracking
+  mMustUpdateFastTransform = false;
   if ((mSpecConfig.outputTracks || mSpecConfig.caClusterer) && !mConfParam->disableCalibUpdates) {
     const CalibdEdxContainer* dEdxCalibContainer = mdEdxCalibContainer.get();
 
@@ -1055,23 +1117,32 @@ void GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc)
       if (dEdxCalibContainer->isCorrectionCCDB(CalibsdEdx::CalTimeGain)) {
         pc.inputs().get<o2::tpc::CalibdEdxCorrection*>("tpctimegain");
       }
+
+      o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+
+      if (mTPCVDriftHelper->isUpdated() && mConfParam->transformationFile.size() == 0 && mConfParam->transformationSCFile.size() == 0) {
+        LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
+             mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift, mTPCVDriftHelper->getSourceName());
+        mTPCVDriftHelper->acknowledgeUpdate();
+        mFastTransformNew.reset(new TPCFastTransform);
+        mFastTransformNew->cloneFromObject(*mFastTransform, nullptr);
+        TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformNew, 0, mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift);
+        newCalibObjects.fastTransform = mFastTransformNew.get();
+        mMustUpdateFastTransform = true;
+      }
     }
 
-    if (mdEdxCalibContainerBufferNew || mTPCPadGainCalibBufferNew) {
-      // updating the calibration object
-      GPUCalibObjectsConst newTopologyCalib;
-
-      if (mdEdxCalibContainerBufferNew) {
-        newTopologyCalib.dEdxCalibContainer = mdEdxCalibContainerBufferNew.get();
-      }
-
-      if (mTPCPadGainCalibBufferNew) {
-        newTopologyCalib.tpcPadGain = mTPCPadGainCalibBufferNew.get();
-      }
-
-      mTracker->UpdateCalibration(newTopologyCalib);
+    if (mdEdxCalibContainerBufferNew) {
+      newCalibObjects.dEdxCalibContainer = mdEdxCalibContainerBufferNew.get();
     }
+
+    if (mTPCPadGainCalibBufferNew) {
+      newCalibObjects.tpcPadGain = mTPCPadGainCalibBufferNew.get();
+    }
+
+    return mdEdxCalibContainerBufferNew || mTPCPadGainCalibBufferNew || mMustUpdateFastTransform;
   }
+  return false;
 }
 
 void GPURecoWorkflowSpec::storeUpdatedCalibsTPCPtrs()
@@ -1083,6 +1154,17 @@ void GPURecoWorkflowSpec::storeUpdatedCalibsTPCPtrs()
   if (mTPCPadGainCalibBufferNew) {
     mTPCPadGainCalib = std::move(mTPCPadGainCalibBufferNew);
   }
+
+  if (mFastTransformNew) {
+    mFastTransform = std::move(mFastTransformNew);
+  }
+}
+
+void GPURecoWorkflowSpec::deinitialize()
+{
+  mQA.reset(nullptr);
+  mDisplayFrontend.reset(nullptr);
+  mTracker.reset(nullptr);
 }
 
 } // namespace o2::gpu

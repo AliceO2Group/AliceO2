@@ -304,7 +304,7 @@ void Cluster::print(Option_t* opt) const
   if (mDigs.size() > 0) {
     std::cout << "Digits of Cluster" << std::endl;
     for (int i; i < mDigs.size(); i++) {
-      std::cout << mDigs.at(i) << std::endl;
+      std::cout << mDigs[i] << std::endl;
     }
   }
   return;
@@ -352,13 +352,13 @@ int Cluster::solve(std::vector<o2::hmpid::Cluster>* pCluLst, float* pSigmaCut, b
   // Phase 1. Find number of local maxima. Strategy is to check if the current pad has QDC more then all neigbours. Also find the box contaning the cluster
   mNlocMax = 0;
   for (int iDig1 = 0; iDig1 < rawSize; iDig1++) {   // first digits loop
-    o2::hmpid::Digit* pDig1 = mDigs.at(iDig1);      // take next digit
+    auto pDig1 = mDigs.at(iDig1);                   // take next digit
     int iCnt = 0;                                   // counts how many neighbouring pads has QDC more then current one
     for (int iDig2 = 0; iDig2 < rawSize; iDig2++) { // loop on all digits again
       if (iDig1 == iDig2) {
         continue;
       }                                                                                                   // the same digit, no need to compare
-      o2::hmpid::Digit* pDig2 = mDigs.at(iDig2);                                                          // take second digit to compare with the first one
+      auto pDig2 = mDigs.at(iDig2);                                                                       // take second digit to compare with the first one
       int dist = TMath::Sign(int(pDig1->mX - pDig2->mX), 1) + TMath::Sign(int(pDig1->mY - pDig2->mY), 1); // distance between pads
       if (dist == 1) {                                                                                    // means dig2 is a neighbour of dig1
         if (pDig2->mQ >= pDig1->mQ) {
@@ -462,7 +462,7 @@ void Cluster::findClusterSize(int i, float* pSigmaCut)
 {
   int size = 0;
   for (int iDig = 0; iDig < mSi; iDig++) { // digits loop
-    o2::hmpid::Digit* pDig = dig(iDig);    // take digit
+    auto pDig = dig(iDig);                 // take digit
     int iCh = pDig->mCh;
     double qPad = mQ * o2::hmpid::Digit::intMathieson(x(), y(), pDig->getPadID()); // pad charge  pDig->
     //  AliDebug(1,Form("Chamber %i X %i Y %i SigmaCut %i pad %i qpadMath %8.2f qPadRaw %8.2f Qtotal %8.2f cluster n.%i",
@@ -483,7 +483,7 @@ Bool_t Cluster::isInPc()
   // Check if (X,Y) position is inside the PC limits
   // Arguments:
   //   Returns: True or False
-  int pc = ((o2::hmpid::Digit*)&mDigs.at(0))->getPh(); // (o2::hmpid::Digit*)&mDigs.at(iDig)
+  int pc = mDigs[0]->getPh(); // (o2::hmpid::Digit*)&mDigs.at(iDig)
 
   if (mXX < Param::minPcX(pc) || mXX > Param::maxPcX(pc) || mYY < Param::minPcY(pc) || mYY > Param::maxPcY(pc)) {
     return false;
@@ -492,7 +492,7 @@ Bool_t Cluster::isInPc()
   return true;
 }
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void Cluster::digAdd(Digit* pDig)
+void Cluster::digAdd(const Digit* pDig)
 {
   // Adds a given digit to the list of digits belonging to this cluster, cluster is not owner of digits
   // Arguments: pDig - pointer to digit to be added

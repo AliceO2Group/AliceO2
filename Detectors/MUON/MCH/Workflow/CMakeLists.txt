@@ -17,7 +17,6 @@ o2_add_library(MCHWorkflow
                    src/ClusterReaderSpec.cxx
                    src/ClusterWriterSpec.cxx
                    src/DataDecoderSpec.cxx
-                   src/PreClusterFinderSpec.cxx
                    src/TrackReaderSpec.cxx
                    src/TrackTreeReader.cxx
                    src/TrackWriterSpec.cxx
@@ -77,14 +76,6 @@ o2_add_executable(
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::MCHTriggering)
 
-
-o2_add_executable(
-        digits-to-preclusters-workflow
-        SOURCES src/digits-to-preclusters-workflow.cxx
-        COMPONENT_NAME mch
-        # PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl4)
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHMappingImpl3)
-
 o2_add_executable(
         digits-reader-workflow
         SOURCES src/DigitSamplerSpec.cxx src/digits-reader-workflow.cxx
@@ -107,8 +98,7 @@ o2_add_executable(
         preclusters-to-clusters-original-workflow
         SOURCES src/preclusters-to-clusters-original-workflow.cxx
         COMPONENT_NAME mch
-        # PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImp4)
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImpl3)
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHClustering O2::MCHMappingImpl4)
 
 o2_add_executable(
         preclusters-to-clusters-gem-workflow

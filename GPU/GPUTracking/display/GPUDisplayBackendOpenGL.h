@@ -42,12 +42,17 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   void deleteFB(GLfb& fb);
 
   unsigned int drawVertices(const vboList& v, const drawType t) override;
+  unsigned int drawField() override;
   void ActivateColor(std::array<float, 4>& color) override;
   void setQuality() override;
   void setDepthBuffer() override;
   void setFrameBuffer(unsigned int newID = 0);
   int InitBackendA() override;
+  int InitMagField();
   void ExitBackendA() override;
+  void ExitMagField();
+  static int checkShaderStatus(unsigned int shader);
+  static int checkProgramStatus(unsigned int program);
   void clearScreen(bool alphaOnly = false);
   void loadDataToGPU(size_t totalVertizes) override;
   void prepareDraw(const hmm_mat4& proj, const hmm_mat4& view, bool requestScreenshot, bool toMixBuffer, float includeMixImage) override;
@@ -75,11 +80,14 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   unsigned int mVertexShader;
   unsigned int mFragmentShader;
   unsigned int mVertexShaderTexture;
+  unsigned int mVertexShaderPassthrough;
   unsigned int mFragmentShaderTexture;
   unsigned int mFragmentShaderText;
+  unsigned int mGeometryShader;
   unsigned int mShaderProgram;
   unsigned int mShaderProgramText;
   unsigned int mShaderProgramTexture;
+  unsigned int mShaderProgramField;
   unsigned int mVertexArray;
 
   unsigned int mIndirectId;
@@ -94,9 +102,18 @@ class GPUDisplayBackendOpenGL : public GPUDisplayBackend
   unsigned int mSPIRVModelViewBuffer;
   unsigned int mSPIRVColorBuffer;
 
+  unsigned int mFieldModelViewBuffer;
+  unsigned int mFieldModelConstantsBuffer;
+  unsigned int mSolenoidSegmentsBuffer;
+  unsigned int mSolenoidParameterizationBuffer;
+  unsigned int mDipoleSegmentsBuffer;
+  unsigned int mDipoleParameterizationBuffer;
+
   unsigned int VAO_text, VBO_text;
 
   unsigned int VAO_texture, VBO_texture;
+
+  unsigned int VAO_field, VBO_field;
 
   bool mSPIRVShaders = false;
 

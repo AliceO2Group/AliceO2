@@ -91,7 +91,7 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
   // the only clusters MC which is need with useMC is ITS (for afterburner), for the rest we use tracks MC labels
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcL, srcL, srcL, useMC, GID::getSourceMask(GID::ITS), GID::getSourcesMask(GID::ALL), needStrictTRDTOF);
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
   return std::move(specs);

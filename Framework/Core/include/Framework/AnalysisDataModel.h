@@ -109,7 +109,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(Phi, phi, float,     //! Phi of the track, in radi
 DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //! Pseudorapidity
                               -1.f * nlog(ntan(PIQuarter - 0.5f * natan(aod::track::tgl))));
 DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, //! Transverse momentum of the track in GeV/c
-                              nabs(1.f / aod::track::signed1Pt));
+                              ifnode(nabs(aod::track::signed1Pt) <= Almost0, VeryBig, nabs(1.f / aod::track::signed1Pt)));
 DECLARE_SOA_DYNAMIC_COLUMN(IsWithinBeamPipe, isWithinBeamPipe, //! Is the track within the beam pipe (= successfully propagated to a collision vertex)
                            [](float x) -> bool { return (std::fabs(x) < o2::constants::geom::XBeamPipeOuterRef); });
 DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign, //! Charge: positive: 1, negative: -1
@@ -137,11 +137,10 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //! Momentum in z-direction in GeV/c
                            });
 
 DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //! Momentum in Gev/c
-                              0.5f * (ntan(PIQuarter - 0.5f * natan(aod::track::tgl)) + 1.f / ntan(PIQuarter - 0.5f * natan(aod::track::tgl))) / nabs(aod::track::signed1Pt));
+                              ifnode(nabs(aod::track::signed1Pt) <= Almost0, VeryBig, 0.5f * (ntan(PIQuarter - 0.5f * natan(aod::track::tgl)) + 1.f / ntan(PIQuarter - 0.5f * natan(aod::track::tgl))) / nabs(aod::track::signed1Pt)));
 DECLARE_SOA_DYNAMIC_COLUMN(Energy, energy, //! Track energy, computed under the mass assumption given as input
                            [](float signed1Pt, float tgl, float mass) -> float {
                              const auto pt = 1.f / std::abs(signed1Pt);
-                             const auto pz = pt * tgl;
                              const auto p = 0.5f * (tan(PIQuarter - 0.5f * atan(tgl)) + 1.f / tan(PIQuarter - 0.5f * atan(tgl))) * pt;
                              return sqrt(p * p + mass * mass);
                            });
@@ -1022,6 +1021,76 @@ DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);       //! Bit mask to indicate col
 DECLARE_SOA_TABLE(McCollisionLabels, "AOD", "MCCOLLISLABEL", //! Table joined to the collision table containing the MC index
                   mccollisionlabel::McCollisionId, mccollisionlabel::McMask);
 using McCollisionLabel = McCollisionLabels::iterator;
+
+// --- HepMC ---
+namespace hepmcxsection
+{
+DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);    //! MC collision index
+DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short); //!
+DECLARE_SOA_COLUMN(Accepted, accepted, uint64_t);      //! The number of events generated so far
+DECLARE_SOA_COLUMN(Attempted, attempted, uint64_t);    //! The number of events attempted so far
+DECLARE_SOA_COLUMN(XsectGen, xsectGen, float);         //! Cross section in pb
+DECLARE_SOA_COLUMN(XsectErr, xsectErr, float);         //! Error associated with this cross section
+DECLARE_SOA_COLUMN(PtHard, ptHard, float);             //! PT-hard (event scale, for pp collisions)
+} // namespace hepmcxsection
+
+DECLARE_SOA_TABLE(HepMCXSections, "AOD", "HEPMCXSECTION", //! HepMC table for cross sections
+                  o2::soa::Index<>, hepmcxsection::McCollisionId, hepmcxsection::GeneratorsID,
+                  hepmcxsection::Accepted, hepmcxsection::Attempted, hepmcxsection::XsectGen,
+                  hepmcxsection::XsectErr, hepmcxsection::PtHard);
+using HepMCXSection = HepMCXSections::iterator;
+
+namespace hepmcpdfinfo
+{
+DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);    //! MC collision index
+DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short); //!
+DECLARE_SOA_COLUMN(Id1, id1, int);                     //! flavour code of first parton
+DECLARE_SOA_COLUMN(Id2, id2, int);                     //! flavour code of second parton
+DECLARE_SOA_COLUMN(PdfId1, pdfId1, int);               //! LHAPDF set id of first parton
+DECLARE_SOA_COLUMN(PdfId2, pdfId2, int);               //! LHAPDF set id of second parton
+DECLARE_SOA_COLUMN(X1, x1, float);                     //! fraction of beam momentum carried by first parton ("beam side")
+DECLARE_SOA_COLUMN(X2, x2, float);                     //! fraction of beam momentum carried by second parton ("target side")
+DECLARE_SOA_COLUMN(ScalePdf, scalePdf, float);         //! Q-scale used in evaluation of PDF's   (in GeV)
+DECLARE_SOA_COLUMN(Pdf1, pdf1, float);                 //! PDF (id1, x1, Q) = x*f(x)
+DECLARE_SOA_COLUMN(Pdf2, pdf2, float);                 //! PDF (id2, x2, Q) = x*f(x)
+} // namespace hepmcpdfinfo
+
+DECLARE_SOA_TABLE(HepMCPdfInfos, "AOD", "HEPMCPDFINFO", //! HepMC table for PDF infos
+                  o2::soa::Index<>, hepmcpdfinfo::McCollisionId, hepmcpdfinfo::GeneratorsID,
+                  hepmcpdfinfo::Id1, hepmcpdfinfo::Id2,
+                  hepmcpdfinfo::PdfId1, hepmcpdfinfo::PdfId2,
+                  hepmcpdfinfo::X1, hepmcpdfinfo::X2,
+                  hepmcpdfinfo::ScalePdf, hepmcpdfinfo::Pdf1, hepmcpdfinfo::Pdf2);
+using HepMCPdfInfo = HepMCPdfInfos::iterator;
+
+namespace hepmcheavyion
+{
+DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);                              //! MC collision index
+DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);                           //!
+DECLARE_SOA_COLUMN(NcollHard, ncollHard, int);                                   //! Number of hard scatterings
+DECLARE_SOA_COLUMN(NpartProj, npartProj, int);                                   //! Number of projectile participants
+DECLARE_SOA_COLUMN(NpartTarg, npartTarg, int);                                   //! Number of target participants
+DECLARE_SOA_COLUMN(Ncoll, ncoll, int);                                           //! Number of NN (nucleon-nucleon) collisions
+DECLARE_SOA_COLUMN(NNwoundedCollisions, nNwoundedCollisions, int);               //! Number of N-Nwounded collisions
+DECLARE_SOA_COLUMN(NwoundedNCollisions, nwoundedNCollisions, int);               //! Number of Nwounded-N collisons
+DECLARE_SOA_COLUMN(NwoundedNwoundedCollisions, nwoundedNwoundedCollisions, int); //! Number of Nwounded-Nwounded collisions
+DECLARE_SOA_COLUMN(SpectatorNeutrons, spectatorNeutrons, int);                   //! Number of spectator neutrons
+DECLARE_SOA_COLUMN(SpectatorProtons, spectatorProtons, int);                     //! Number of spectator protons
+DECLARE_SOA_COLUMN(ImpactParameter, impactParameter, float);                     //! Impact Parameter(fm) of collision
+DECLARE_SOA_COLUMN(EventPlaneAngle, eventPlaneAngle, float);                     //! Azimuthal angle of event plane
+DECLARE_SOA_COLUMN(Eccentricity, eccentricity, float);                           //! eccentricity of participating nucleons in the transverse plane (as in phobos nucl-ex/0510031)
+DECLARE_SOA_COLUMN(SigmaInelNN, sigmaInelNN, float);                             //! nucleon-nucleon inelastic (including diffractive) cross-section
+DECLARE_SOA_COLUMN(Centrality, centrality, float);                               //! centrality (prcentile of geometric cross section)
+} // namespace hepmcheavyion
+
+DECLARE_SOA_TABLE(HepMCHeavyIons, "AOD", "HEPMCHEAVYION", //! HepMC table for cross sections
+                  o2::soa::Index<>, hepmcheavyion::McCollisionId, hepmcheavyion::GeneratorsID,
+                  hepmcheavyion::NcollHard, hepmcheavyion::NpartProj, hepmcheavyion::NpartTarg,
+                  hepmcheavyion::Ncoll, hepmcheavyion::NNwoundedCollisions, hepmcheavyion::NwoundedNCollisions,
+                  hepmcheavyion::NwoundedNwoundedCollisions, hepmcheavyion::SpectatorNeutrons,
+                  hepmcheavyion::SpectatorProtons, hepmcheavyion::ImpactParameter, hepmcheavyion::EventPlaneAngle,
+                  hepmcheavyion::Eccentricity, hepmcheavyion::SigmaInelNN, hepmcheavyion::Centrality);
+using HepMCHeavyIon = HepMCHeavyIons::iterator;
 
 // --- Matching between collisions and other tables through BC ---
 

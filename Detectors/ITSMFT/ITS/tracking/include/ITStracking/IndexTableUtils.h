@@ -16,18 +16,11 @@
 #ifndef TRACKINGITSU_INCLUDE_INDEXTABLEUTILS_H_
 #define TRACKINGITSU_INCLUDE_INDEXTABLEUTILS_H_
 
-#ifndef GPUCA_GPUCODE_DEVICE
-#include <array>
-#include <utility>
-#include <vector>
-#endif
-
 #include "ITStracking/Constants.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/Definitions.h"
 #include "GPUCommonMath.h"
 #include "GPUCommonDef.h"
-#include "GPUCommonLogger.h"
 
 namespace o2
 {
@@ -52,8 +45,8 @@ class IndexTableUtils
   int mNzBins = 0;
   int mNphiBins = 0;
   float mInversePhiBinSize = 0.f;
-  float mLayerZ[7];
-  float mInverseZBinSize[7];
+  float mLayerZ[7] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+  float mInverseZBinSize[7] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
 };
 
 template <class T>

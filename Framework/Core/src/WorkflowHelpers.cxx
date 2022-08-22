@@ -218,6 +218,12 @@ std::string defaultConditionBackend()
   return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "http://alice-ccdb.cern.ch";
 }
 
+// get the default value for condition query rate
+int64_t defaultConditionQueryRate()
+{
+  return getenv("DPL_CONDITION_QUERY_RATE") ? std::stoll(getenv("DPL_CONDITION_QUERY_RATE")) : 0;
+}
+
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
 {
   auto fakeCallback = AlgorithmSpec{[](InitContext& ic) {
@@ -240,7 +246,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
                 {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
                 {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
                 {"condition-remap", VariantType::String, "", {"remap condition path in CCDB based on the provided string."}},
-                {"condition-tf-per-query", VariantType::Int64, 1ll, {"check condition validity per requested number of TFs, fetch only once if <0"}},
+                {"condition-tf-per-query", VariantType::Int64, defaultConditionQueryRate(), {"check condition validity per requested number of TFs, fetch only once if <0"}},
                 {"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
                 {"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
                 {"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
@@ -699,6 +705,13 @@ void WorkflowHelpers::adjustTopology(WorkflowSpec& workflow, ConfigContext const
       // have Optional inputs as well.
       // This is done to avoid the race condition where the DISTSUBTIMEFRAME/0 gets
       // forwarded before actual RAWDATA arrives.
+      if (DataSpecUtils::match(input, ConcreteDataTypeMatcher{"FLP", "DISTSUBTIMEFRAME"}) &&
+          !DataSpecUtils::match(input, ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", 0})) {
+        LOGP(error,
+             "Only FLP/DISTSUBTIMEFRAME/0 is supported as input "
+             "provided by the user. Please replace {} with FLP/DISTSUBTIMEFRAME/0 in {}.",
+             DataSpecUtils::describe(input), input.binding);
+      }
       if (hasOptionals && DataSpecUtils::match(input, ConcreteDataMatcher{"FLP", "DISTSUBTIMEFRAME", 0})) {
         // The first one remains unchanged, therefore we use the postincrement
         DataSpecUtils::updateMatchingSubspec(input, distSTFCount++);
@@ -765,9 +778,8 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
   assert(!workflow.empty());
 
   // This is the state. Oif is the iterator I use for the searches.
-  std::list<LogicalOutputInfo> availableOutputsInfo;
+  std::vector<LogicalOutputInfo> availableOutputsInfo;
   auto const& constOutputs = outputs; // const version of the outputs
-  decltype(availableOutputsInfo.begin()) oif;
   // Forwards is a local cache to avoid adding forwards before time.
   std::vector<LogicalOutputInfo> forwards;
 
@@ -786,88 +798,6 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
     }
   };
 
-  // Notice that if the output is actually a forward, we need to store that
-  // information so that when we add it at device level we know which output
-  // channel we need to connect it too.
-  auto hasMatchingOutputFor = [&workflow, &constOutputs,
-                               &availableOutputsInfo, &oif,
-                               &forwardedInputsInfo](size_t ci, size_t ii) {
-    assert(ci < workflow.size());
-    assert(ii < workflow[ci].inputs.size());
-    auto& input = workflow[ci].inputs[ii];
-    auto matcher = [&input, &constOutputs](const LogicalOutputInfo& outputInfo) -> bool {
-      auto& output = constOutputs[outputInfo.outputGlobalIndex];
-      return DataSpecUtils::match(input, output);
-    };
-    oif = std::find_if(availableOutputsInfo.begin(),
-                       availableOutputsInfo.end(),
-                       matcher);
-    if (oif != availableOutputsInfo.end() && oif->forward) {
-      LogicalForwardInfo forward;
-      forward.consumer = ci;
-      forward.inputLocalIndex = ii;
-      forward.outputGlobalIndex = oif->outputGlobalIndex;
-      forwardedInputsInfo.emplace_back(LogicalForwardInfo{ci, ii, oif->outputGlobalIndex});
-    }
-    return oif != availableOutputsInfo.end();
-  };
-
-  // We have consumed the input, therefore we remove it from the list.
-  // We will insert the forwarded inputs only at the end of the iteration.
-  auto findNextOutputFor = [&availableOutputsInfo, &constOutputs, &oif, &workflow](
-                             size_t ci, size_t& ii) {
-    auto& input = workflow[ci].inputs[ii];
-    auto matcher = [&input, &constOutputs](const LogicalOutputInfo& outputInfo) -> bool {
-      auto& output = constOutputs[outputInfo.outputGlobalIndex];
-      return DataSpecUtils::match(input, output);
-    };
-    oif = availableOutputsInfo.erase(oif);
-    oif = std::find_if(oif, availableOutputsInfo.end(), matcher);
-    return oif;
-  };
-
-  auto numberOfInputsFor = [&workflow](size_t ci) {
-    auto& consumer = workflow[ci];
-    return consumer.inputs.size();
-  };
-
-  auto maxInputTimeslicesFor = [&workflow](size_t pi) {
-    auto& processor = workflow[pi];
-    return processor.maxInputTimeslices;
-  };
-
-  // Trivial, but they make reading easier..
-  auto getOutputAssociatedProducer = [&oif]() {
-    return oif->specIndex;
-  };
-
-  // Trivial, but they make reading easier..
-  auto getAssociateOutput = [&oif]() {
-    return oif->outputGlobalIndex;
-  };
-
-  auto isForward = [&oif]() {
-    return oif->forward;
-  };
-
-  // Trivial but makes reasing easier in the outer loop.
-  auto createEdge = [&logicalEdges](size_t producer,
-                                    size_t consumer,
-                                    size_t tpi,
-                                    size_t ptpi,
-                                    size_t uniqueOutputId,
-                                    size_t matchingInputInConsumer,
-                                    bool doForward) {
-    logicalEdges.emplace_back(
-      DeviceConnectionEdge{producer,
-                           consumer,
-                           tpi,
-                           ptpi,
-                           uniqueOutputId,
-                           matchingInputInConsumer,
-                           doForward});
-  };
-
   auto errorDueToMissingOutputFor = [&workflow, &constOutputs](size_t ci, size_t ii) {
     auto input = workflow[ci].inputs[ii];
     std::ostringstream str;
@@ -879,31 +809,6 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
     }
 
     throw std::runtime_error(str.str());
-  };
-
-  // Whenever we have a set of forwards, we need to append it
-  // the the global list of outputs, so that they can be matched
-  // and we need to add a ForwardRoute for the current consumer
-  // because it is the one who will actually do the forwarding.
-  auto appendForwardsToPossibleOutputs = [&availableOutputsInfo, &forwards]() {
-    for (auto& forward : forwards) {
-      availableOutputsInfo.push_back(forward);
-    }
-  };
-
-  // Given we create a forward every time we match and input and an
-  // output, having no forwards means we did not find any matching.
-  auto noMatchingOutputFound = [&forwards]() {
-    return forwards.empty();
-  };
-
-  // Forwards is basically a cache to record
-  auto newEdgeBetweenDevices = [&forwards]() {
-    forwards.clear();
-  };
-
-  auto forwardOutputFrom = [&forwards](size_t consumer, size_t uniqueOutputId) {
-    forwards.push_back(LogicalOutputInfo{consumer, uniqueOutputId, true});
   };
 
   // This is the outer loop
@@ -919,25 +824,41 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
   // parallel pipeline and add an edge for each.
   enumerateAvailableOutputs();
 
+  std::vector<bool> matches(constOutputs.size());
   for (size_t consumer = 0; consumer < workflow.size(); ++consumer) {
-    for (size_t input = 0; input < numberOfInputsFor(consumer); ++input) {
-      newEdgeBetweenDevices();
-
-      while (hasMatchingOutputFor(consumer, input)) {
-        auto producer = getOutputAssociatedProducer();
-        auto uniqueOutputId = getAssociateOutput();
-        for (size_t tpi = 0; tpi < maxInputTimeslicesFor(consumer); ++tpi) {
-          for (size_t ptpi = 0; ptpi < maxInputTimeslicesFor(producer); ++ptpi) {
-            createEdge(producer, consumer, tpi, ptpi, uniqueOutputId, input, isForward());
-          }
-          forwardOutputFrom(consumer, uniqueOutputId);
-        }
-        findNextOutputFor(consumer, input);
+    for (size_t input = 0; input < workflow[consumer].inputs.size(); ++input) {
+      forwards.clear();
+      for (size_t i = 0; i < constOutputs.size(); i++) {
+        matches[i] = DataSpecUtils::match(workflow[consumer].inputs[input], constOutputs[i]);
       }
-      if (noMatchingOutputFound()) {
+
+      for (size_t i = 0; i < availableOutputsInfo.size(); i++) {
+        // Notice that if the output is actually a forward, we need to store that information so that when we add it at device level we know which output channel we need to connect it too.
+        if (!matches[availableOutputsInfo[i].outputGlobalIndex]) {
+          continue;
+        }
+        auto* oif = &availableOutputsInfo[i];
+        if (oif->forward) {
+          forwardedInputsInfo.emplace_back(LogicalForwardInfo{consumer, input, oif->outputGlobalIndex});
+        }
+        auto producer = oif->specIndex;
+        auto uniqueOutputId = oif->outputGlobalIndex;
+        for (size_t tpi = 0; tpi < workflow[consumer].maxInputTimeslices; ++tpi) {
+          for (size_t ptpi = 0; ptpi < workflow[producer].maxInputTimeslices; ++ptpi) {
+            logicalEdges.emplace_back(DeviceConnectionEdge{producer, consumer, tpi, ptpi, uniqueOutputId, input, oif->forward});
+          }
+        }
+        forwards.push_back(LogicalOutputInfo{consumer, uniqueOutputId, true});
+        // We have consumed the input, therefore we remove it from the list. We will insert the forwarded inputs only at the end of the iteration.
+        oif->enabled = false;
+      }
+      if (forwards.empty()) {
         errorDueToMissingOutputFor(consumer, input);
       }
-      appendForwardsToPossibleOutputs();
+      availableOutputsInfo.erase(std::remove_if(availableOutputsInfo.begin(), availableOutputsInfo.end(), [](auto& info) { return info.enabled == false; }), availableOutputsInfo.end());
+      for (auto& forward : forwards) {
+        availableOutputsInfo.push_back(forward);
+      }
     }
   }
 }

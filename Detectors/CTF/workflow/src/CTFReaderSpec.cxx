@@ -20,6 +20,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/InputSpec.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/RateLimiter.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/FileFetcher.h"
 #include "CTFWorkflow/CTFReaderSpec.h"
@@ -44,6 +45,7 @@
 #include "DataFormatsCTP/CTF.h"
 #include "Algorithm/RangeTokenizer.h"
 #include <TStopwatch.h>
+#include <fairmq/Device.h>
 
 using namespace o2::framework;
 
@@ -174,10 +176,9 @@ void CTFReaderSpec::openCTFFile(const std::string& flname)
 ///_______________________________________
 void CTFReaderSpec::run(ProcessingContext& pc)
 {
-
-  if (!mCTFCounter) { // RS FIXME: this is a temporary hack to avoid late-starting devices to lose the input
-    LOG(warning) << "This is a hack, sleeping 5 s at startup";
-    pc.services().get<RawDeviceService>().waitFor(1000);
+  static bool initOnceDone = false;
+  if (!initOnceDone) {
+    mInput.tfRateLimit = std::stoi(pc.services().get<RawDeviceService>().device()->fConfig->GetValue<std::string>("timeframes-rate-limit"));
   }
 
   std::string tfFileName;
@@ -227,6 +228,9 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
 
+  static RateLimiter limiter;
+  limiter.check(pc, mInput.tfRateLimit, mInput.minSHM);
+
   CTFHeader ctfHeader;
   if (!readFromTree(*(mCTFTree.get()), "CTFHeader", ctfHeader, mCurrTreeEntry)) {
     throw std::runtime_error("did not find CTFHeader");
@@ -245,7 +249,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   LOG(info) << ctfHeader;
 
   auto& timingInfo = pc.services().get<o2::framework::TimingInfo>();
-  timingInfo.firstTFOrbit = ctfHeader.firstTForbit;
+  timingInfo.firstTForbit = ctfHeader.firstTForbit;
   timingInfo.creation = ctfHeader.creationTime;
   timingInfo.tfCounter = ctfHeader.tfCounter;
   timingInfo.runNumber = ctfHeader.run;
@@ -281,6 +285,7 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
   auto entryStr = fmt::format("({} of {} in {})", mCurrTreeEntry, mCTFTree->GetEntries(), mCTFFile->GetName());
   checkTreeEntries();
   mTimer.Stop();
+
   // do we need to way to respect the delay ?
   long tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
   auto tDiff = tNow - mLastSendTime;
@@ -288,8 +293,6 @@ void CTFReaderSpec::processTF(ProcessingContext& pc)
     if (tDiff < mInput.delay_us) {
       pc.services().get<RawDeviceService>().waitFor((mInput.delay_us - tDiff) / 1000); // respect requested delay before sending
     }
-  } else {
-    mLastSendTime = tNow;
   }
   tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
   LOGP(info, "Read CTF {} {} in {:.3f} s, {:.4f} s elapsed from previous CTF", mCTFCounter, entryStr, mTimer.CpuTime() - cput, 1e-6 * (tNow - mLastSendTime));
@@ -393,6 +396,7 @@ void CTFReaderSpec::tryToFixCTFHeader(CTFHeader& ctfHeader) const
 DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
 {
   std::vector<OutputSpec> outputs;
+  std::vector<ConfigParamSpec> options;
 
   outputs.emplace_back(OutputLabel{"header"}, "CTF", "HEADER", inp.subspec, Lifetime::Timeframe);
   for (auto id = DetID::First; id <= DetID::Last; id++) {
@@ -405,14 +409,19 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
     outputs.emplace_back(OutputSpec{{"TFDist"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0xccdb});
   }
 
+  options.emplace_back(ConfigParamSpec{"select-ctf-ids", VariantType::String, "", {"comma-separated list CTF IDs to inject (from cumulative counter of CTFs seen)"}});
+  options.emplace_back(ConfigParamSpec{"impose-run-start-timstamp", VariantType::Int64, 0L, {"impose run start time stamp (ms), ignored if 0"}});
+  options.emplace_back(ConfigParamSpec{"local-tf-counter", VariantType::Bool, false, {"reassign header.tfCounter from local TF counter"}});
+  if (!inp.metricChannel.empty()) {
+    options.emplace_back(ConfigParamSpec{"channel-config", VariantType::String, inp.metricChannel, {"Out-of-band channel config for TF throttling"}});
+  }
+
   return DataProcessorSpec{
     "ctf-reader",
     Inputs{},
     outputs,
     AlgorithmSpec{adaptFromTask<CTFReaderSpec>(inp)},
-    Options{{"select-ctf-ids", VariantType::String, "", {"comma-separated list CTF IDs to inject (from cumulative counter of CTFs seen)"}},
-            {"impose-run-start-timstamp", VariantType::Int64, 0L, {"impose run start time stamp (ms), ignored if 0"}},
-            {"local-tf-counter", VariantType::Bool, false, {"reassign header.tfCounter from local TF counter"}}}};
+    options};
 }
 
 } // namespace ctf

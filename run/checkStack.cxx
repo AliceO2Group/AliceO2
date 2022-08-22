@@ -93,6 +93,11 @@ int main(int argc, char** argv)
     int physicalprimaries = 0;
     int secondaries = 0;
     for (auto& t : *mctracks) {
+      // perform checks on the mass
+      if (t.GetMass() < 0) {
+        LOG(info) << "Mass not found for PDG " << t.GetPdgCode();
+      }
+
       if (t.isSecondary()) {
         // check that mother indices are monotonic
         // for primaries, this may be different (for instance with Pythia8)

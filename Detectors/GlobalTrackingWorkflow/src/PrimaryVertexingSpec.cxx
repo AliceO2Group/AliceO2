@@ -22,7 +22,6 @@
 #include "GlobalTrackingWorkflow/PrimaryVertexingSpec.h"
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "CommonDataFormat/BunchFilling.h"
-#include "SimulationDataFormat/DigitizationContext.h"
 #include "CommonUtils/NameConf.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -69,29 +68,15 @@ class PrimaryVertexingSpec : public Task
 
 void PrimaryVertexingSpec::init(InitContext& ic)
 {
-  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
-  //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP();
-
-  // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
-  std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
-  std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
-  if (o2::utils::Str::pathExists(matLUTFile)) {
-    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
-    o2::base::Propagator::Instance()->setMatLUT(lut);
-    LOG(info) << "Loaded material LUT from " << matLUTFile;
-  } else {
-    LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
-  }
   mTimer.Stop();
   mTimer.Reset();
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mVertexer.setValidateWithIR(mValidateWithIR);
-
-  // set bunch filling. Eventually, this should come from CCDB
-  const auto* digctx = o2::steer::DigitizationContext::loadFromFile();
-  const auto& bcfill = digctx->getBunchFilling();
-  mVertexer.setBunchFilling(bcfill);
+  auto dumpDir = ic.options().get<std::string>("pool-dumps-directory");
+  if (!(dumpDir.empty() || dumpDir == "/dev/null") && !o2::utils::Str::pathIsDirectory(dumpDir)) {
+    throw std::runtime_error(fmt::format("directory {} for raw data dumps does not exist", dumpDir));
+  }
+  mVertexer.setPoolDumpDirectory(dumpDir);
 }
 
 void PrimaryVertexingSpec::run(ProcessingContext& pc)
@@ -161,8 +146,11 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   }
 
   mTimer.Stop();
-  LOG(info) << "Found " << vertices.size() << " primary vertices, timing: CPU: "
-            << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0 << " s";
+  LOGP(info, "Found {} PVs, Time CPU/Real:{:.3f}/{:.3f} (DBScan: {:.4f}, Finder:{:.4f}, Rej.Debris:{:.4f}, Reattach:{:.4f}) | {} trials for {} TZ-clusters, max.trials: {}, Slowest TZ-cluster: {} ms of mult {}",
+       vertices.size(), mTimer.CpuTime() - timeCPU0, mTimer.RealTime() - timeReal0,
+       mVertexer.getTimeDBScan().CpuTime(), mVertexer.getTimeVertexing().CpuTime(), mVertexer.getTimeDebris().CpuTime(), mVertexer.getTimeReAttach().CpuTime(),
+       mVertexer.getTotTrials(), mVertexer.getNTZClusters(), mVertexer.getMaxTrialsPerCluster(),
+       mVertexer.getLongestClusterTimeMS(), mVertexer.getLongestClusterMult());
 }
 
 void PrimaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
@@ -174,7 +162,9 @@ void PrimaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
 
 void PrimaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
-  o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
   // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
   if (matcher == ConcreteDataMatcher("ITS", "ALPIDEPARAM", 0)) {
     LOG(info) << "ITS Alpide param updated";
@@ -191,15 +181,19 @@ void PrimaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     // Note: reading of the ITS AlpideParam needed for ITS timing is done by the RecoContainer
-    std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
+    auto grp = o2::base::GRPGeomHelper::instance().getGRPECS();
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
     if (!grp->isDetContinuousReadOut(DetID::ITS)) {
       mITSROFrameLengthMUS = alpParams.roFrameLengthTrig / 1.e3; // ITS ROFrame duration in \mus
     } else {
       mITSROFrameLengthMUS = alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3; // ITS ROFrame duration in \mus
     }
+    if (o2::base::GRPGeomHelper::instance().getGRPECS()->getRunType() != o2::parameters::GRPECSObject::RunType::COSMICS) {
+      mVertexer.setBunchFilling(o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling());
+    }
     mVertexer.setITSROFrameLength(mITSROFrameLengthMUS);
     mVertexer.init();
+    PVertexerParams::Instance().printKeyValues();
   }
   // we may have other params which need to be queried regularly
 }
@@ -222,20 +216,21 @@ DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool skip, bool 
     outputs.emplace_back("GLO", "PVTX_MCTR", 0, Lifetime::Timeframe);
   }
 
-  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
-                                                              true,                           // GRPECS=true
-                                                              false,                          // GRPLHCIF
-                                                              false,                          // GRPMagField
-                                                              false,                          // askMatLUT
-                                                              o2::base::GRPGeomRequest::None, // geometry
-                                                              dataRequest->inputs);
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              true,                              // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              dataRequest->inputs,
+                                                              true);
 
   return DataProcessorSpec{
     "primary-vertexing",
     dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(dataRequest, ggRequest, skip, validateWithFT0, useMC)},
-    Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
+    Options{{"pool-dumps-directory", VariantType::String, "", {"Destination directory for the tracks pool dumps"}}}};
 }
 
 } // namespace vertexing

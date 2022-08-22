@@ -16,9 +16,9 @@
 /// @brief  Device to calibrate LHC clock phase using FT0 data
 
 #include "Framework/DataProcessorSpec.h"
-#include "DataFormatsFT0/GlobalOffsetsContainer.h"
 #include "DataFormatsFT0/GlobalOffsetsCalibrationObject.h"
 #include "DataFormatsFT0/GlobalOffsetsInfoObject.h"
+#include "FT0Calibration/GlobalOffsetsContainer.h"
 #include "FITCalibration/FITCalibrationDevice.h"
 
 using namespace o2::framework;

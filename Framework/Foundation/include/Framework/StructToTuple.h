@@ -12,7 +12,7 @@
 #define O2_FRAMEWORK_STRUCTTOTUPLE_H_
 
 #include <Framework/Traits.h>
-#include <vector>
+#include <array>
 
 namespace o2::framework
 {
@@ -255,25 +255,25 @@ constexpr long brace_constructible_size()
 }
 #endif
 
-#define DPL_HOMOGENEOUS_APPLY_ENTRY_LOW(u)                      \
-  constexpr(numElements == u)                                   \
-  {                                                             \
-    auto&& [DPL_ENUM_##u(p, )] = object;                        \
-    return std::vector<decltype(l(p0))>{DPL_FENUM_##u(l, p, )}; \
-  }
-
-#define DPL_HOMOGENEOUS_APPLY_ENTRY(d, u)                         \
-  constexpr(numElements == d##u)                                  \
+#define DPL_HOMOGENEOUS_APPLY_ENTRY_LOW(u)                        \
+  constexpr(numElements == u)                                     \
   {                                                               \
-    auto&& [DPL_ENUM(p, , d, u)] = object;                        \
-    return std::vector<decltype(l(p0))>{DPL_FENUM(l, p, , d, u)}; \
+    auto&& [DPL_ENUM_##u(p, )] = object;                          \
+    return std::array<decltype(l(p0)), u>{DPL_FENUM_##u(l, p, )}; \
   }
 
-#define DPL_HOMOGENEOUS_APPLY_ENTRY_TENS(d)                        \
-  constexpr(numElements == d##0)                                   \
-  {                                                                \
-    auto&& [DPL_ENUM_##d##0(p, )] = object;                        \
-    return std::vector<decltype(l(p0))>{DPL_FENUM_##d##0(l, p, )}; \
+#define DPL_HOMOGENEOUS_APPLY_ENTRY(d, u)                              \
+  constexpr(numElements == d##u)                                       \
+  {                                                                    \
+    auto&& [DPL_ENUM(p, , d, u)] = object;                             \
+    return std::array<decltype(l(p0)), d##u>{DPL_FENUM(l, p, , d, u)}; \
+  }
+
+#define DPL_HOMOGENEOUS_APPLY_ENTRY_TENS(d)                             \
+  constexpr(numElements == d##0)                                        \
+  {                                                                     \
+    auto&& [DPL_ENUM_##d##0(p, )] = object;                             \
+    return std::array<decltype(l(p0)), d##0>{DPL_FENUM_##d##0(l, p, )}; \
   }
 
 template <bool B = false, typename L, class T>

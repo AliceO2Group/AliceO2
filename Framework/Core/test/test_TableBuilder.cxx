@@ -377,3 +377,37 @@ BOOST_AUTO_TEST_CASE(TestPodInjestion)
     ++i;
   }
 }
+
+BOOST_AUTO_TEST_CASE(TestColumnCount)
+{
+  struct Foo {
+    int x;
+    int y;
+  };
+  struct Bar {
+    int x;
+    int y;
+    std::string s;
+  };
+  struct FooBar {
+    int x;
+    int y;
+    float f;
+  };
+  BOOST_REQUIRE_EQUAL(TableBuilder::countColumns<Foo>(), 2);
+  BOOST_REQUIRE_EQUAL(TableBuilder::countColumns<Bar>(), 3);
+  BOOST_REQUIRE_EQUAL(TableBuilder::countColumns<FooBar>(), 3);
+  int count = TableBuilder::countColumns<float, int>();
+  BOOST_REQUIRE_EQUAL(count, 2);
+  int count2 = TableBuilder::countColumns<float, int, char[3]>();
+  BOOST_REQUIRE_EQUAL(count2, 3);
+}
+
+BOOST_AUTO_TEST_CASE(TestMakeFields) {
+  auto fields = TableBuilderHelpers::makeFields<int, float>({ "i", "f" });
+  BOOST_REQUIRE_EQUAL(fields.size(), 2);
+  BOOST_REQUIRE_EQUAL(fields[0]->name(), "i");
+  BOOST_REQUIRE_EQUAL(fields[1]->name(), "f");
+  BOOST_REQUIRE_EQUAL(fields[0]->type()->name(), "int32");
+  BOOST_REQUIRE_EQUAL(fields[1]->type()->name(), "float");
+}

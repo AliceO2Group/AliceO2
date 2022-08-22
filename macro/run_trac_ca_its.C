@@ -53,7 +53,6 @@
 #include "ITStracking/Configuration.h"
 
 using namespace o2::gpu;
-using o2::its::MemoryParameters;
 using o2::its::TrackingParameters;
 
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
@@ -180,7 +179,6 @@ void run_trac_ca_its(bool cosmics = false,
   std::vector<double> time;
 
   std::vector<TrackingParameters> trackParams(1);
-  std::vector<MemoryParameters> memParams(1);
   if (cosmics) {
     trackParams[0].MinTrackLength = 4;
     trackParams[0].CellDeltaTanLambdaSigma *= 400;
@@ -200,7 +198,6 @@ void run_trac_ca_its(bool cosmics = false,
     // trackParams[2].CopyCuts(trackParams[1], 2.);
     // trackParams[2].DeltaROF = 1;
     // trackParams[2].MinTrackLength = 4;
-    // memParams.resize(3);
     // ---
     // Uncomment for pp
     trackParams.resize(3);
@@ -208,7 +205,6 @@ void run_trac_ca_its(bool cosmics = false,
     trackParams[2].TrackletMinPt = 0.1f;
     trackParams[2].DeltaROF = 1;
     trackParams[2].MinTrackLength = 4;
-    memParams.resize(3);
     // ---
   }
 
@@ -226,7 +222,7 @@ void run_trac_ca_its(bool cosmics = false,
 
   int rofId{0};
   vertexer.adoptTimeFrame(tf);
-  vertexer.clustersToVertices(false);
+  vertexer.clustersToVertices();
 
   tf.printVertices();
 
@@ -248,7 +244,7 @@ void run_trac_ca_its(bool cosmics = false,
   }
 
   tracker.setBz(field->getBz(origD));
-  tracker.setParameters(memParams, trackParams);
+  tracker.setParameters(trackParams);
   tracker.clustersToTracks();
   //-------- init lookuptable --------//
 

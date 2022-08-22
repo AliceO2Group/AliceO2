@@ -18,6 +18,9 @@
 
 #include <iostream>
 
+#include "CommonConstants/LHCConstants.h"
+#include "Framework/Logger.h"
+
 namespace o2
 {
 namespace dataformats
@@ -37,6 +40,24 @@ std::ostream& operator<<(std::ostream& os, const o2::dataformats::TrackMCHMID& t
 void TrackMCHMID::print() const
 {
   std::cout << *this << std::endl;
+}
+
+//__________________________________________________________________________
+/// return a pair consisting of the track time with error (in mus) relative to the reference IR 'startIR'
+/// and a flag telling if it is inside the TF starting at 'startIR' and containing 'nOrbits' orbits.
+/// if printError = true, print an error message in case the track is outside the TF
+std::pair<TrackMCHMID::Time, bool> TrackMCHMID::getTimeMUS(const InteractionRecord& startIR, uint32_t nOrbits,
+                                                           bool printError) const
+{
+  auto bcDiff = mIR.differenceInBC(startIR);
+  float tMean = (bcDiff + 0.5) * o2::constants::lhc::LHCBunchSpacingMUS;
+  float tErr = 0.5 * o2::constants::lhc::LHCBunchSpacingMUS;
+  bool isInTF = bcDiff >= 0 && bcDiff < nOrbits * o2::constants::lhc::LHCMaxBunches;
+  if (printError && !isInTF) {
+    LOGP(alarm, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}, source:MCH-MID",
+         bcDiff, mIR, startIR);
+  }
+  return std::make_pair(Time(tMean, tErr), isInTF);
 }
 
 } // namespace dataformats

@@ -84,7 +84,7 @@ class DigitContainer
   TimeBin mEffectiveTimeBin = 0;   ///< Effective time bin of that digit
   TimeBin mTmaxTriggered = 0;      ///< Maximum time bin in case of triggered mode (hard cut at average drift speed with additional margin)
   TimeBin mOffset;                 ///< Size of the container for one event
-  std::deque<DigitTime> mTimeBins; ///< Time bin Container for the ADC value
+  std::deque<DigitTime*> mTimeBins; ///< Time bin Container for the ADC value
 };
 
 inline DigitContainer::DigitContainer()
@@ -96,7 +96,7 @@ inline DigitContainer::DigitContainer()
 
   // always have 50 % contingency for the size of the container depending on the input
   mOffset = static_cast<TimeBin>(1.5 * detParam.TPClength / gasParam.DriftV / eleParam.ZbinWidth);
-  mTimeBins.resize(mOffset);
+  mTimeBins.resize(mOffset, nullptr);
 }
 
 inline void DigitContainer::reset()
@@ -104,14 +104,17 @@ inline void DigitContainer::reset()
   mFirstTimeBin = 0;
   mEffectiveTimeBin = 0;
   for (auto& time : mTimeBins) {
-    time.reset();
+    if (time) {
+      time->reset();
+    }
   }
 }
 
 inline void DigitContainer::reserve(TimeBin eventTimeBin)
 {
-  if (mTimeBins.size() < mOffset + eventTimeBin - mFirstTimeBin) {
-    mTimeBins.resize(mOffset + eventTimeBin - mFirstTimeBin);
+  const auto space = mOffset + eventTimeBin - mFirstTimeBin;
+  if (mTimeBins.size() < space) {
+    mTimeBins.resize(space);
   }
 }
 
@@ -119,7 +122,10 @@ inline void DigitContainer::addDigit(const MCCompLabel& label, const CRU& cru, T
                                      float signal)
 {
   mEffectiveTimeBin = timeBin - mFirstTimeBin;
-  mTimeBins[mEffectiveTimeBin].addDigit(label, cru, globalPad, signal);
+  if (mTimeBins[mEffectiveTimeBin] == nullptr) {
+    mTimeBins[mEffectiveTimeBin] = new DigitTime();
+  }
+  mTimeBins[mEffectiveTimeBin]->addDigit(label, cru, globalPad, signal);
 }
 
 } // namespace tpc

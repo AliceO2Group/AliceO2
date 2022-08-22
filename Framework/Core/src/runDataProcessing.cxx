@@ -57,6 +57,7 @@
 #include "HTTPParser.h"
 #include "DPLWebSocket.h"
 #include "ArrowSupport.h"
+#include "GuiCallbackContext.h"
 
 #include "ComputingResourceHelpers.h"
 #include "DataProcessingStatus.h"
@@ -346,6 +347,8 @@ void spawnRemoteDevice(std::string const&,
   info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
   info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
   info.outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}};
+  info.inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}};
+  info.outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}};
   // FIXME: use uv_now.
   info.lastSignal = uv_hrtime() - 10000000;
 
@@ -464,7 +467,8 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     auto updateMetricsViews = Metric2DViewIndex::getUpdater({&(*mContext.infos)[mIndex].dataRelayerViewIndex,
                                                              &(*mContext.infos)[mIndex].variablesViewIndex,
                                                              &(*mContext.infos)[mIndex].queriesViewIndex,
-                                                             &(*mContext.infos)[mIndex].outputsViewIndex});
+                                                             &(*mContext.infos)[mIndex].outputsViewIndex,
+                                                             &(*mContext.infos)[mIndex].inputChannelMetricsViewIndex});
 
     auto newMetricCallback = [&updateMetricsViews, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
       updateMetricsViews(name, metric, value, metricIndex);
@@ -690,7 +694,21 @@ void handle_crash(int /* sig */)
 
   int size = backtrace(array, 1024);
 
+  {
+    char const* msg = "*** Program crashed (Segmentation fault, FPE, BUS, ABRT, KILL)\nBacktrace by DPL:\n";
+    int len = strlen(msg); /* the byte length of the string */
+    auto retVal = write(STDERR_FILENO, msg, len);
+    (void)retVal;
+  }
   demangled_backtrace_symbols(array, size, STDERR_FILENO);
+  {
+    char const* msg = "Backtrace complete.\n";
+    int len = strlen(msg); /* the byte length of the string */
+
+    auto retVal = write(STDERR_FILENO, msg, len);
+    (void)retVal;
+    fsync(STDERR_FILENO);
+  }
   _exit(1);
 }
 
@@ -814,6 +832,8 @@ void spawnDevice(DeviceRef ref,
   info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
   info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
   info.outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}};
+  info.inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}};
+  info.outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}};
   info.tracyPort = driverInfo.tracyPort;
   info.lastSignal = uv_hrtime() - 10000000;
 
@@ -1226,7 +1246,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   decltype(debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
 
   // An empty frameworkId means this is the driver, so we initialise the GUI
-  if (driverInfo.batch == false && frameworkId.empty()) {
+  if ((driverInfo.batch == false || getenv("DPL_DRIVER_REMOTE_GUI") != nullptr) && frameworkId.empty()) {
     auto initDebugGUI = []() -> DebugGUI* {
       uv_lib_t supportLib;
       int result = 0;
@@ -1251,7 +1271,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     };
     debugGUI = initDebugGUI();
     if (debugGUI) {
-      window = debugGUI->initGUI("O2 Framework debug GUI");
+      if (driverInfo.batch == false) {
+        window = debugGUI->initGUI("O2 Framework debug GUI");
+      } else {
+        window = debugGUI->initGUI(nullptr);
+      }
     }
   }
   if (driverInfo.batch == false && window == nullptr && frameworkId.empty()) {
@@ -1268,9 +1292,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   uv_loop_t* loop = uv_loop_new();
 
-  uv_timer_t gui_timer;
-  if (window) {
-    uv_timer_init(loop, &gui_timer);
+  uv_timer_t* gui_timer = nullptr;
+
+  if (!driverInfo.batch) {
+    gui_timer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
+    uv_timer_init(loop, gui_timer);
   }
 
   // We initialise this in the driver, because different drivers might have
@@ -1289,8 +1315,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DevicesManager>(devicesManager));
 
-  // This is the context used by the callback which does the GUI rendering.
-  // FIXME: move to a service maybe.
   GuiCallbackContext guiContext;
   guiContext.plugin = debugGUI;
   guiContext.frameLast = uv_hrtime();
@@ -1400,6 +1424,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     switch (current) {
       case DriverState::INIT:
         LOGP(info, "Initialising O2 Data Processing Layer. Driver PID: {}.", getpid());
+        LOGP(info, "Driver listening on port: {}", driverInfo.port);
 
         // Install signal handler for quitting children.
         driverInfo.sa_handle_child.sa_handler = &handle_sigchld;
@@ -1461,7 +1486,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       case DriverState::MATERIALISE_WORKFLOW:
         try {
           auto workflowState = WorkflowHelpers::verifyWorkflow(workflow);
-          if (driverInfo.batch == true && workflowState == WorkflowParsingState::Empty) {
+          if (driverInfo.batch == true && varmap["dds"].as<std::string>().empty() && !varmap["dump-workflow"].as<bool>() && workflowState == WorkflowParsingState::Empty) {
             LOGP(error, "Empty workflow provided while running in batch mode.");
             return 1;
           }
@@ -1567,6 +1592,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             }
           }
 
+          // These allow services customization via an environment variable
+          OverrideServiceSpecs overrides = ServiceSpecHelpers::parseOverrides(getenv("DPL_OVERRIDE_SERVICES"));
           DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(altered_workflow,
                                                             driverInfo.channelPolicies,
                                                             driverInfo.completionPolicies,
@@ -1580,7 +1607,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             *driverInfo.configContext,
                                                             !varmap["no-IPC"].as<bool>(),
                                                             driverInfo.resourcesMonitoringInterval,
-                                                            varmap["channel-prefix"].as<std::string>());
+                                                            varmap["channel-prefix"].as<std::string>(),
+                                                            overrides);
           metricProcessingCallbacks.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
@@ -1668,12 +1696,22 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // has been added to the topology.
         // We need to recreate the GUI callback every time we reschedule
         // because getGUIDebugger actually recreates the GUI state.
-        if (window) {
-          uv_timer_stop(&gui_timer);
+        // Notice also that we need the actual gui_timer only for the
+        // case the GUI runs in interactive mode, however we deploy the
+        // GUI in both interactive and non-interactive mode, if the
+        // DPL_DRIVER_REMOTE_GUI environment variable is set.
+        if (!driverInfo.batch || getenv("DPL_DRIVER_REMOTE_GUI")) {
+          if (gui_timer) {
+            uv_timer_stop(gui_timer);
+          }
+
           guiContext.callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
           guiContext.window = window;
-          gui_timer.data = &guiContext;
-          uv_timer_start(&gui_timer, gui_callback, 0, 20);
+
+          if (gui_timer) {
+            gui_timer->data = &guiContext;
+            uv_timer_start(gui_timer, gui_callback, 0, 20);
+          }
           guiDeployedOnce = true;
         }
         break;
@@ -2208,17 +2246,23 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
       DriverState::IMPORT_CURRENT_WORKFLOW, //
       DriverState::MATERIALISE_WORKFLOW     //
     };
-  } else if (varmap["dds"].as<bool>()) {
+  } else if (!varmap["dds"].as<std::string>().empty()) {
     // Dump a DDS representation of what I will do.
     // Notice that compared to DDS we need to schedule things,
     // because DDS needs to be able to have actual Executions in
     // order to provide a correct configuration.
-    control.callbacks = {[workflowSuffix = varmap["dds-workflow-suffix"]](WorkflowSpec const&,
+    control.callbacks = {[filename = varmap["dds"].as<std::string>(),
+                          workflowSuffix = varmap["dds-workflow-suffix"]](WorkflowSpec const& workflow,
                                                                           DeviceSpecs const& specs,
                                                                           DeviceExecutions const& executions,
-                                                                          DataProcessorInfos&,
+                                                                          DataProcessorInfos& dataProcessorInfos,
                                                                           CommandInfo const& commandInfo) {
-      dumpDeviceSpec2DDS(std::cout, workflowSuffix.as<std::string>(), specs, executions, commandInfo);
+      if (filename == "-") {
+        DDSConfigHelpers::dumpDeviceSpec2DDS(std::cout, workflowSuffix.as<std::string>(), workflow, dataProcessorInfos, specs, executions, commandInfo);
+      } else {
+        std::ofstream out(filename);
+        DDSConfigHelpers::dumpDeviceSpec2DDS(out, workflowSuffix.as<std::string>(), workflow, dataProcessorInfos, specs, executions, commandInfo);
+      }
     }};
     control.forcedTransitions = {
       DriverState::EXIT,                    //
@@ -2405,8 +2449,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                                                                            //                                                                                                         //
     ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")                                                                    //                                                                                                           //
     ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")                                                              //                                                                                                             //
-    ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(isatty(fileno(stdout)) == 0), "batch processing mode")                                                //                                                                                                               //
-    ("no-batch", bpo::value<bool>()->zero_tokens()->default_value(false), "force gui processing mode")                                                                 //                                                                                                            //
+    ("batch,b", bpo::value<std::vector<std::string>>()->zero_tokens()->composing(), "batch processing mode")                                                           //                                                                                                               //
+    ("no-batch", bpo::value<bool>()->zero_tokens(), "force gui processing mode")                                                                                       //                                                                                                            //
     ("no-cleanup", bpo::value<bool>()->zero_tokens()->default_value(false), "do not cleanup the shm segment")                                                          //                                                                                                               //
     ("hostname", bpo::value<std::string>()->default_value("localhost"), "hostname to deploy")                                                                          //                                                                                                                 //
     ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                                                                //                                                                                                                   //
@@ -2421,7 +2465,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graphviz output")                                                                 //                                                                                                                              //
     ("mermaid", bpo::value<std::string>()->default_value(""), "produce graph output in mermaid format in file under specified name or on stdout if argument is \"-\"") //                                                                                                                              //
     ("timeout,t", bpo::value<uint64_t>()->default_value(0), "forced exit timeout (in seconds)")                                                                        //                                                                                                                                //
-    ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                                                                     //                                                                                                                                  //
+    ("dds,D", bpo::value<std::string>()->default_value(""), "create DDS configuration")                                                                                //                                                                                                                                  //
     ("dds-workflow-suffix,D", bpo::value<std::string>()->default_value(""), "suffix for DDS names")                                                                    //                                                                                                                                  //
     ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")                                                           //                                                                                                                                    //
     ("dump-workflow-file", bpo::value<std::string>()->default_value("-"), "file to which do the dump")                                                                 //                                                                                                                                      //
@@ -2491,7 +2535,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   }
 
   /// This is the earlies the services are actually needed
-  std::vector<ServiceSpec> driverServices = CommonDriverServices::defaultServices();
+  OverrideServiceSpecs driverServicesOverride = ServiceSpecHelpers::parseOverrides(getenv("DPL_DRIVER_OVERRIDE_SERVICES"));
+  ServiceSpecs driverServices = ServiceSpecHelpers::filterDisabled(CommonDriverServices::defaultServices(), driverServicesOverride);
   // We insert the hash for the internal devices.
   WorkflowHelpers::injectServiceDevices(physicalWorkflow, configContext);
   auto reader = std::find_if(physicalWorkflow.begin(), physicalWorkflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-reader"; });
@@ -2646,9 +2691,46 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     printHelp(varmap, executorOptions, physicalWorkflow, currentWorkflowOptions);
     exit(0);
   }
+  /// Set the fair::Logger severity to the one specified in the command line
+  /// We do it by hand here, because FairMQ device is not initialsed until
+  /// much later and we need the logger before that.
+  if (varmap.count("severity")) {
+    auto logLevel = varmap["severity"].as<std::string>();
+    if (logLevel == "debug") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::debug);
+    } else if (logLevel == "detail") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::detail);
+    } else if (logLevel == "info") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::info);
+    } else if (logLevel == "warning") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::warning);
+    } else if (logLevel == "error") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::error);
+    } else if (logLevel == "fatal") {
+      fair::Logger::SetConsoleSeverity(fair::Severity::fatal);
+    } else {
+      LOGP(error, "Invalid log level '{}'", logLevel);
+      exit(1);
+    }
+  }
   DriverControl driverControl;
   initialiseDriverControl(varmap, driverControl);
 
+  auto evaluateBatchOption = [&varmap]() -> bool {
+    if (varmap.count("no-batch") > 0) {
+      return false;
+    }
+    if (varmap.count("batch") == 0) {
+      // default value
+      return isatty(fileno(stdout)) == 0;
+    }
+    // FIXME: should actually use the last value, but for some reason the
+    // values are not filled into the vector, even if specifying `-b true`
+    // need to find out why the boost program options example is not working
+    // in our case. Might depend on the parser options
+    //auto value = varmap["batch"].as<std::vector<std::string>>();
+    return true;
+  };
   DriverInfo driverInfo{
     .sendingPolicies = sendingPolicies,
     .callbacksPolicies = callbacksPolicies};
@@ -2661,7 +2743,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.resourcePolicies = resourcePolicies;
   driverInfo.argc = argc;
   driverInfo.argv = argv;
-  driverInfo.batch = varmap["no-batch"].defaulted() ? varmap["batch"].as<bool>() : false;
+  driverInfo.batch = evaluateBatchOption();
   driverInfo.noSHMCleanup = varmap["no-cleanup"].as<bool>();
   driverInfo.processingPolicies.termination = varmap["completion-policy"].as<TerminationPolicy>();
   driverInfo.processingPolicies.earlyForward = varmap["early-forward-policy"].as<EarlyForwardPolicy>();

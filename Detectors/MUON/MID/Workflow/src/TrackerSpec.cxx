@@ -32,6 +32,7 @@
 #include "MIDTracking/Tracker.h"
 #include "MIDSimulation/TrackLabeler.h"
 #include "CommonUtils/NameConf.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 namespace of = o2::framework;
 
@@ -42,26 +43,13 @@ namespace mid
 class TrackerDeviceDPL
 {
  public:
-  TrackerDeviceDPL(bool isMC) : mIsMC(isMC) {}
+  TrackerDeviceDPL(std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC) : mGGCCDBRequest(gr), mIsMC(isMC) {}
   ~TrackerDeviceDPL() = default;
 
   void init(o2::framework::InitContext& ic)
   {
-
-    if (!gGeoManager) {
-      o2::base::GeometryManager::loadGeometry();
-    }
-
-    auto keepAll = !ic.options().get<bool>("mid-tracker-keep-best");
-
-    auto geoTrans = createTransformationFromManager(gGeoManager);
-
-    mTracker = std::make_unique<Tracker>(geoTrans);
-    if (!mTracker->init(keepAll)) {
-      LOG(error) << "Initialization of MID tracker device failed";
-    }
-
-    mHitMapBuilder = std::make_unique<HitMapBuilder>(geoTrans);
+    o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+    mKeepAll = !ic.options().get<bool>("mid-tracker-keep-best");
 
     auto stop = [this]() {
       LOG(info) << "Capacities: ROFRecords: " << mTracker->getTrackROFRecords().capacity() << "  tracks: " << mTracker->getTracks().capacity() << "  clusters: " << mTracker->getClusters().capacity();
@@ -74,6 +62,7 @@ class TrackerDeviceDPL
   void run(o2::framework::ProcessingContext& pc)
   {
     auto tStart = std::chrono::high_resolution_clock::now();
+    updateTimeDependentParams(pc);
 
     auto clusters = pc.inputs().get<gsl::span<Cluster>>("mid_clusters");
 
@@ -111,9 +100,33 @@ class TrackerDeviceDPL
     mNROFs += inROFRecords.size();
   }
 
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+  {
+    if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+      return;
+    }
+  }
+
  private:
+  void updateTimeDependentParams(o2::framework::ProcessingContext& pc)
+  {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    static bool initOnceDone = false;
+    if (!initOnceDone) {
+      initOnceDone = true;
+      auto geoTrans = createTransformationFromManager(gGeoManager);
+      mTracker = std::make_unique<Tracker>(geoTrans);
+      if (!mTracker->init(mKeepAll)) {
+        LOG(error) << "Initialization of MID tracker device failed";
+      }
+      mHitMapBuilder = std::make_unique<HitMapBuilder>(geoTrans);
+    }
+  }
+
   bool mIsMC = false;
+  bool mKeepAll = false;
   TrackLabeler mTrackLabeler{};
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::unique_ptr<Tracker> mTracker{nullptr};
   std::unique_ptr<HitMapBuilder> mHitMapBuilder{nullptr};
   std::chrono::duration<double> mTimer{0};        ///< full timer
@@ -125,7 +138,14 @@ class TrackerDeviceDPL
 framework::DataProcessorSpec getTrackerSpec(bool isMC)
 {
   std::vector<of::InputSpec> inputSpecs{of::InputSpec{"mid_clusters", "MID", "CLUSTERS"}, of::InputSpec{"mid_clusters_rof", "MID", "CLUSTERSROF"}};
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              false,                             // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              false,                             // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              inputSpecs,
+                                                              true);
   std::vector<of::OutputSpec> outputSpecs{
     of::OutputSpec{"MID", "TRACKS"},
     of::OutputSpec{"MID", "TRACKCLUSTERS"},
@@ -143,7 +163,7 @@ framework::DataProcessorSpec getTrackerSpec(bool isMC)
     "MIDTracker",
     {inputSpecs},
     {outputSpecs},
-    of::adaptFromTask<o2::mid::TrackerDeviceDPL>(isMC),
+    of::adaptFromTask<o2::mid::TrackerDeviceDPL>(ggRequest, isMC),
     of::Options{{"mid-tracker-keep-best", of::VariantType::Bool, false, {"Keep only best track (default is keep all)"}}}};
 }
 } // namespace mid

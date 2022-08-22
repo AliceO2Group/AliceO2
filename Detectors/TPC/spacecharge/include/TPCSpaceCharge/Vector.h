@@ -91,7 +91,7 @@ inline Vector<DataT, N> operator*(const Matrix<DataT, N>& a, const Vector<DataT,
 }
 
 template <typename DataT, size_t N>
-inline Vector<DataT, N> floor(const Vector<DataT, N>& a)
+inline Vector<DataT, N> floor_vec(const Vector<DataT, N>& a)
 {
   Vector<DataT, N> c;
   for (size_t j = 0; j < a.getvectorsCount(); ++j) {

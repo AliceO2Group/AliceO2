@@ -41,7 +41,7 @@ class CalibLaserTracksDevice : public o2::framework::Task
     mCalib.setWriteDebugTree(ic.options().get<bool>("write-debug"));
     mMinNumberTFs = ic.options().get<int>("min-tfs");
     mOnlyPublishOnEOS = ic.options().get<bool>("only-publish-on-eos");
-
+    mNormalize = !ic.options().get<bool>("ignore-normalization");
     auto finishFunction = [this]() {
       if (!mPublished) {
         const auto nTFs = mCalib.getCalibData().processedTFs;
@@ -87,6 +87,7 @@ class CalibLaserTracksDevice : public o2::framework::Task
   int mMinNumberTFs{100};        ///< minimum number of TFs required for good calibration
   bool mPublished{false};        ///< if calibration was already published
   bool mOnlyPublishOnEOS{false}; ///< if to only publish the calibration on EOS, not during running
+  bool mNormalize{true};         ///< normalize reference to have mean correction = 1
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -97,7 +98,16 @@ class CalibLaserTracksDevice : public o2::framework::Task
     std::map<std::string, std::string> md;
 
     using clbUtils = o2::calibration::Utils;
-    const auto& ltrCalib = mCalib.getCalibData();
+    auto ltrCalib = mCalib.getCalibData();
+
+    if (mNormalize) {
+      ltrCalib.normalize(0.);
+      LOGP(info, "After normalization: correction factors: {} / {} for A- / C-Side, reference: {}", ltrCalib.dvCorrectionA, ltrCalib.dvCorrectionC, ltrCalib.refVDrift);
+    }
+    if (ltrCalib.getDriftVCorrection() == 0) {
+      LOG(error) << "Extracted drift correction is 0, something is wrong, will not upload the object";
+      return;
+    }
 
     o2::ccdb::CcdbObjectInfo w;
     auto image = o2::ccdb::CcdbApi::createObjectImage(&ltrCalib, &w);
@@ -141,6 +151,7 @@ DataProcessorSpec getCalibLaserTracks(const std::string inputSpec)
       {"write-debug", VariantType::Bool, false, {"write a debug output tree."}},
       {"min-tfs", VariantType::Int, 100, {"minimum number of TFs with enough laser tracks to finalize the calibration."}},
       {"only-publish-on-eos", VariantType::Bool, false, {"only publish the calibration on eos, not during running"}},
+      {"ignore-normalization", VariantType::Bool, false, {"ignore normalization of reference to have mean correction factor 1"}},
     }};
 }
 

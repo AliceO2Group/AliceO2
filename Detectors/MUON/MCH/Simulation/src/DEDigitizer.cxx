@@ -10,7 +10,10 @@
 // or submit itself to any jurisdiction.
 
 #include "MCHSimulation/DEDigitizer.h"
+
+#include "MCHSimulation/DigitizerParam.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include <algorithm>
 #include <cmath>
 #include <random>
 
@@ -38,73 +41,42 @@ void DEDigitizer::startCollision(o2::InteractionRecord collisionTime)
 void DEDigitizer::process(const Hit& hit, int evID, int srcID)
 {
   MCCompLabel label(hit.GetTrackID(), evID, srcID);
-  Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
 
-  //convert energy to charge
+  // convert energy to charge
   auto charge = mResponse.etocharge(hit.GetEnergyLoss());
+  auto chargeCorr = mResponse.chargeCorr();
+  auto chargeBending = chargeCorr * charge;
+  auto chargeNonBending = charge / chargeCorr;
 
-  auto time = mIR.differenceInBC(o2::raw::HBFUtils::Instance().orbitFirst);
-  // digit time will disappear anyway ? (same information in ROFRecord)
-
-  //transformation from global to local
+  // local position of the charge distribution
+  Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
   Point3D<float> lpos;
   mTransformation.MasterToLocal(pos, lpos);
-
-  auto anodpos = mResponse.getAnod(lpos.X());
-  auto fracplane = mResponse.chargeCorr();
-  auto chargebend = fracplane * charge;
-  auto chargenon = charge / fracplane;
-
-  //borders of charge gen.
-  auto xMin = anodpos - mResponse.getQspreadX() * mResponse.getSigmaIntegration() * 0.5;
-  auto xMax = anodpos + mResponse.getQspreadX() * mResponse.getSigmaIntegration() * 0.5;
-  auto yMin = lpos.Y() - mResponse.getQspreadY() * mResponse.getSigmaIntegration() * 0.5;
-  auto yMax = lpos.Y() + mResponse.getQspreadY() * mResponse.getSigmaIntegration() * 0.5;
-
-  //get segmentation for detector element
-  auto localX = anodpos;
+  auto localX = mResponse.getAnod(lpos.X());
   auto localY = lpos.Y();
 
-  //get area for signal induction from segmentation
-  //single pad as check
-  int padidbendcent = 0;
-  int padidnoncent = 0;
-  int ndigits = 0;
+  // borders of charge integration area
+  auto dxy = mResponse.getSigmaIntegration() * mResponse.getChargeSpread();
+  auto xMin = localX - dxy;
+  auto xMax = localX + dxy;
+  auto yMin = localY - dxy;
+  auto yMax = localY + dxy;
 
-  bool padexists = mSegmentation.findPadPairByPosition(localX, localY, padidbendcent, padidnoncent);
-  if (!padexists) {
-    LOGP(warning, "Did not find _any_ pad for localX,Y={},{} for DeId {}", localX, localY, mDeId);
-    return;
-  }
-
-  std::vector<int> padids;
-
-  // get all pads within the defined bounding box ...
-  mSegmentation.forEachPadInArea(xMin, yMin, xMax, yMax, [&padids](int padid) {
-    padids.emplace_back(padid);
-  });
-
-  // ... and loop over all those pads to compute the charge on each of them
-  for (auto padid : padids) {
+  // loop over all pads within the defined bounding box to compute the charge on each of them
+  mSegmentation.forEachPadInArea(xMin, yMin, xMax, yMax, [&](int padid) {
     auto dx = mSegmentation.padSizeX(padid) * 0.5;
     auto dy = mSegmentation.padSizeY(padid) * 0.5;
-    auto xmin = (localX - mSegmentation.padPositionX(padid)) - dx;
-    auto xmax = xmin + 2 * dx;
-    auto ymin = (localY - mSegmentation.padPositionY(padid)) - dy;
-    auto ymax = ymin + 2 * dy;
-    auto q = mResponse.chargePadfraction(xmin, xmax, ymin, ymax);
-    if (mResponse.aboveThreshold(q)) {
-      if (mSegmentation.isBendingPad(padid)) {
-        q *= chargebend;
-      } else {
-        q *= chargenon;
-      }
-      if (q > 0) {
+    auto xPad = mSegmentation.padPositionX(padid) - localX;
+    auto yPad = mSegmentation.padPositionY(padid) - localY;
+    auto q = mResponse.chargePadfraction(xPad - dx, xPad + dx, yPad - dy, yPad + dy);
+    if (mResponse.isAboveThreshold(q)) {
+      q *= mSegmentation.isBendingPad(padid) ? chargeBending : chargeNonBending;
+      if (q > 0.f) {
         mCharges[padid] += q;
         mLabels[padid].emplace_back(label);
       }
     }
-  }
+  });
 }
 
 void DEDigitizer::addNoise(float noiseProba)
@@ -137,16 +109,22 @@ void DEDigitizer::extractDigitsAndLabels(std::vector<Digit>& digits,
   int dataindex = labels.getIndexedSize();
   for (auto padid = 0; padid < mCharges.size(); ++padid) {
     auto q = mCharges[padid];
-    if (q <= 0) {
+    if (q <= 0.f) {
       continue;
     }
-    // FIXME: this is just to compare with previous MCHDigitizer
-    auto signal = (uint32_t)q * mResponse.getInverseChargeThreshold();
-    auto padc = signal * mResponse.getChargeThreshold();
-    auto adc = mResponse.response(TMath::Nint(padc));
-    if (adc > 0) {
+    uint32_t adc = std::round(q);
+    if (adc >= DigitizerParam::Instance().minADC) {
       auto time = mIR.differenceInBC(o2::raw::HBFUtils::Instance().orbitFirst);
-      digits.emplace_back(mDeId, padid, adc, time, 1);
+      auto nSamples = mResponse.nSamples(adc);
+      nSamples = std::min(nSamples, 0x3FFU); // the number of samples must fit within 10 bits
+      bool saturated = false;
+      // the charge sum must fit within 20 bits
+      // FIXME: we should better handle charge saturation here
+      if (adc > 0xFFFFFU) {
+        adc = 0xFFFFFU;
+        saturated = true;
+      }
+      digits.emplace_back(mDeId, padid, adc, time, nSamples, saturated);
       for (auto element : mLabels[padid]) {
         labels.addElement(dataindex, element);
       }

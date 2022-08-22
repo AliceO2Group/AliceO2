@@ -17,24 +17,14 @@
 namespace o2::framework
 {
 
-enum struct OrbitResetTimeSource : int {
-  Default, // The information is dummy an should not be used
-  User,    // The information was provided by the user via either ECS or command line
-  Data,    // The information was retrieved from the first message processed.
-  CTP      // The information was retrieved from the CTP object in CCDB
-};
-
 struct DataTakingContext {
-  static constexpr uint64_t INVALID_RESET_TIME = 490917600;
   static constexpr const char* UNKNOWN = "unknown";
   /// The current run number
   std::string runNumber{UNKNOWN};
   /// How many orbits in a timeframe
   uint64_t nOrbitsPerTF = 128;
-  /// The start time of the first orbit
-  uint64_t orbitResetTime = INVALID_RESET_TIME;
-  // What currently set the orbitResetTime value.
-  OrbitResetTimeSource source = OrbitResetTimeSource::Default;
+  /// The start time of the first orbit in microseconds(!)
+  long orbitResetTimeMUS = 0;
   /// The current lhc period
   std::string lhcPeriod{UNKNOWN};
   /// The run type of the current run
@@ -43,6 +33,8 @@ struct DataTakingContext {
   std::string envId{UNKNOWN};
   /// The list of detectors taking part in the run
   std::string detectors{UNKNOWN};
+  /// ECS declared run data storage type as raw
+  bool forcedRaw{false};
 };
 
 } // namespace o2::framework

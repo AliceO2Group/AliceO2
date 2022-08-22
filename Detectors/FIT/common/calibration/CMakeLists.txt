@@ -10,23 +10,14 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(FITCalibration
+        SOURCES
+        src/FITCalibrationDevice.cxx
+        src/FITCalibrator.cxx
         PUBLIC_LINK_LIBRARIES
-        O2::FT0Calibration
-        O2::FV0Calibration
-        O2::DataFormatsFT0
         O2::Framework
+        O2::DetectorsRaw
         O2::CCDB
         O2::DetectorsCalibration
         ROOT::Minuit
         Microsoft.GSL::GSL
         )
-#
-#
-o2_target_root_dictionary(FITCalibration
-        HEADERS
-        include/FITCalibration/FITCalibrator.h
-        include/FITCalibration/FITCalibrationDevice.h
-        include/FITCalibration/FITCalibrationObjectProducer.h
-        include/FITCalibration/FITCalibrationApi.h
-        )
-

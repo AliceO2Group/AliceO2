@@ -19,6 +19,7 @@
 #pragma link C++ class o2::trd::TrackTriggerRecord + ;
 #pragma link C++ class o2::trd::LinkRecord + ;
 #pragma link C++ struct o2::trd::HalfCRUHeader + ;
+#pragma link C++ struct o2::trd::TRDFeeID + ;
 #pragma link C++ struct o2::trd::TrackletHCHeader + ;
 #pragma link C++ struct o2::trd::TrackletMCMHeader + ;
 #pragma link C++ struct o2::trd::TrackletMCMData + ;
@@ -31,6 +32,7 @@
 #pragma link C++ class o2::trd::NoiseStatusMCM + ;
 #pragma link C++ class o2::trd::AngularResidHistos + ;
 #pragma link C++ class o2::trd::CalVdriftExB + ;
+#pragma link C++ class o2::trd::CalT0 + ;
 #pragma link C++ class o2::trd::CompressedDigit + ;
 #pragma link C++ class o2::trd::HelperMethods + ;
 #pragma link C++ class std::vector < o2::trd::Tracklet64> + ;

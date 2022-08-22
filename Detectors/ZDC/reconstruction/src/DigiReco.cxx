@@ -325,6 +325,15 @@ void DigiReco::init()
   if (mCorrBackground == false) {
     LOG(warning) << "TDC pile-up correction is disabled";
   }
+  if (mPedParam == nullptr) {
+    LOG(warning) << "Missing average pedestals";
+  } else {
+    if (mVerbosity > DbgZero) {
+      mPedParam->print();
+    } else {
+      mPedParam->print(false);
+    }
+  }
 } // init
 
 void DigiReco::prepareInterpolation()
@@ -374,12 +383,26 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   if (mVerbosity >= DbgFull) {
     LOG(info) << "Dump of pedestal data lookup table";
   }
+  // TODO: send scalers to aggregator
+  uint32_t scaler[NChannels] = {0};
   for (int iorb = 0; iorb < norb; iorb++) {
     mOrbit[mOrbitData[iorb].ir.orbit] = iorb;
     if (mVerbosity >= DbgFull) {
       LOG(info) << "mOrbitData[" << mOrbitData[iorb].ir.orbit << "] = " << iorb;
     }
+    // TODO: add only if orbit is good. Here we check only the individual scaler values
+    for (int ich = 0; ich < NChannels; ich++) {
+      if (mOrbitData[iorb].scaler[ich] <= o2::constants::lhc::LHCMaxBunches) {
+        scaler[ich] += mOrbitData[iorb].scaler[ich];
+      }
+    }
   }
+  for (int ich = 0; ich < NChannels; ich++) {
+    if (mVerbosity > DbgZero) {
+      LOG(info) << ChannelNames[ich] << ": " << scaler[ich];
+    }
+  }
+
   mNBC = mBCData.size();
   mReco.clear();
   mReco.resize(mNBC);
@@ -482,7 +505,9 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   // that do not span the entire range
   int seq_beg = 0;
   int seq_end = 0;
-  LOG(info) << "Processing ZDC reconstruction for " << mNBC << " bunch crossings";
+  if (mVerbosity > DbgMinimal) {
+    LOG(info) << "Processing ZDC reconstruction for " << mNBC << " bunch crossings";
+  }
 
   // TDC reconstruction
   for (int ibc = 0; ibc < mNBC; ibc++) {
@@ -715,12 +740,13 @@ int DigiReco::reconstruct(int ibeg, int iend)
 #endif
   // Process consecutive BCs
   if (ibeg == iend) {
-    if (mReco[ibeg].ir.bc == (o2::constants::lhc::LHCMaxBunches - 1)) {
-      mNLastLonely++;
-    } else {
-      mNLonely++;
-      LOG(info) << "Lonely bunch " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc;
+    mNLonely++;
+    mLonely[mReco[ibeg].ir.bc]++;
+    if (mBCData[ibeg].triggers != 0x0) {
+      mLonelyTrig[mReco[ibeg].ir.bc]++;
     }
+    // Cannot reconstruct lonely bunch
+    // LOG(info) << "Lonely bunch " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc;
     return 0;
   }
 #ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
@@ -928,7 +954,7 @@ void DigiReco::updateOffsets(int ibun)
   if (it != mOrbit.end()) {
     auto& orbitdata = mOrbitData[it->second];
     for (int ich = 0; ich < NChannels; ich++) {
-      auto myped = orbitdata.asFloat(ich);
+      auto myped = float(orbitdata.data[ich]) * mModuleConfig->baselineFactor;
       if (myped >= ADCMin && myped <= ADCMax) {
         // Pedestal information is present for this channel
         mOffset[ich] = myped;
@@ -937,7 +963,18 @@ void DigiReco::updateOffsets(int ibun)
     }
   }
 
-  // TODO: use QC pedestal if orbit pedestals are missing
+  // Use average "QC" pedestal if orbit pedestals are missing
+  if (mPedParam != nullptr) {
+    for (int ich = 0; ich < NChannels; ich++) {
+      if (mSource[ich] == PedND) {
+        auto myped = mPedParam->getCalib(ich);
+        if (myped >= ADCMin && myped <= ADCMax) {
+          mOffset[ich] = myped;
+          mSource[ich] = PedQC;
+        }
+      }
+    }
+  }
 
   for (int ich = 0; ich < NChannels; ich++) {
     if (mSource[ich] == PedND) {
@@ -1594,7 +1631,7 @@ void DigiReco::findSignals(int ibeg, int iend)
 #endif
   // Identify TDC signals
   for (int ibun = ibeg; ibun <= iend; ibun++) {
-    updateOffsets(ibun); // Get orbit pedestals or QC fallback
+    updateOffsets(ibun); // Get orbit pedestals or run pedestals as a fallback
     auto& rec = mReco[ibun];
     for (int itdc = 0; itdc < NTDCChannels; itdc++) {
 #ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG

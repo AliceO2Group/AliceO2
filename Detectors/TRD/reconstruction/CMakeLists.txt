@@ -26,6 +26,7 @@ o2_add_library(TRDReconstruction
                                      O2::ReconstructionDataFormats
                                      O2::DetectorsRaw
                                      O2::rANS
+                                     O2::DataFormatsCTP
                                      Microsoft.GSL::GSL)
 
 

@@ -43,8 +43,8 @@ class Utils
   static void addBC(double toftime, bool subLatency = false) { addBC(float(toftime), subLatency); }
   static void addInteractionBC(int bc, bool fromCollisonCotext = false);
   static int getInteractionBC(int ibc) { return mFillScheme[ibc]; }
-  static double subtractInteractionBC(double time, bool subLatency = false);
-  static float subtractInteractionBC(float time, bool subLatency = false);
+  static double subtractInteractionBC(double time, int& mask, bool subLatency = false);
+  static float subtractInteractionBC(float time, int& mask, bool subLatency = false);
   static void init();
   static void printFillScheme();
   static void addCalibTrack(float time);

@@ -17,6 +17,7 @@ o2_add_library(ZDCReconstruction
                        src/ZDCTDCParam.cxx
                        src/ZDCEnergyParam.cxx
                        src/ZDCTowerParam.cxx
+                       src/BaselineParam.cxx
                        src/RecoConfigZDC.cxx
                        src/DigiRecoTest.cxx
                        src/ZDCTDCCorr.cxx
@@ -34,4 +35,5 @@ o2_target_root_dictionary(ZDCReconstruction
                                   include/ZDCReconstruction/ZDCTDCParam.h
                                   include/ZDCReconstruction/ZDCEnergyParam.h
                                   include/ZDCReconstruction/ZDCTowerParam.h
+                                  include/ZDCReconstruction/BaselineParam.h
                                   include/ZDCReconstruction/ZDCTDCCorr.h)

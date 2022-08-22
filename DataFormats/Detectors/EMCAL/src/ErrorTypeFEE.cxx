@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsEMCAL/ErrorTypeFEE.h"
+#include <iomanip>
 #include <iostream>
 
 using namespace o2::emcal;
@@ -44,6 +45,12 @@ void ErrorTypeFEE::PrintStream(std::ostream& stream) const
       break;
   };
   stream << "EMCAL SM: " << getFEEID() << ", " << typestring << " Type: " << getErrorCode();
+  if (mSubspecification >= 0) {
+    stream << ", Subspecification: " << mSubspecification;
+  }
+  if (mHardwareAddress >= 0) {
+    stream << ", hardware address 0x" << std::hex << mHardwareAddress << std::dec;
+  }
 }
 
 std::ostream& operator<<(std::ostream& stream, const ErrorTypeFEE& error)

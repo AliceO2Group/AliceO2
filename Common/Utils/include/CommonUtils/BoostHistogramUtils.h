@@ -28,7 +28,6 @@
 #include "Rtypes.h"
 #include "TLinearFitter.h"
 #include "TVectorD.h"
-#include "TMath.h"
 #include "TF1.h"
 #include "Foption.h"
 #include "HFitInterface.h"
@@ -37,6 +36,7 @@
 #include "Fit/Fitter.h"
 #include "Fit/BinData.h"
 #include "Math/WrappedMultiTF1.h"
+#include "MathUtils/detail/StatAccumulator.h"
 #include <boost/histogram.hpp>
 #include <boost/histogram/histogram.hpp>
 #include <boost/format.hpp>
@@ -63,8 +63,7 @@ class BinCenterView
  public:
   BinCenterView(AxisIterator iter) : mBaseIterator(iter) {}
   ~BinCenterView() = default;
-  AxisIterator&
-    operator++()
+  AxisIterator& operator++()
   {
     ++mBaseIterator;
     return mBaseIterator;
@@ -74,6 +73,10 @@ class BinCenterView
     AxisIterator result(mBaseIterator);
     mBaseIterator++;
     return result;
+  }
+  bool operator!=(const BinCenterView& rhs) const
+  {
+    return mBaseIterator != rhs.mBaseIterator;
   }
 
   decltype(auto) operator*() { return mBaseIterator->center(); }
@@ -103,6 +106,11 @@ class BinUpperView
     return result;
   }
 
+  bool operator!=(const BinUpperView& rhs) const
+  {
+    return mBaseIterator != rhs.mBaseIterator;
+  }
+
   decltype(auto) operator*() { return mBaseIterator->upper(); }
 
  private:
@@ -128,6 +136,10 @@ class BinLowerView
     AxisIterator result(mBaseIterator);
     mBaseIterator++;
     return result;
+  }
+  bool operator!=(const BinLowerView& rhs) const
+  {
+    return mBaseIterator != rhs.mBaseIterator;
   }
 
   decltype(auto) operator*() { return mBaseIterator->lower(); }
@@ -211,12 +223,18 @@ class fitResult
  * \brief Error code for invalid result in the fitGaus process
  */
 enum class FitGausError_t {
-  FIT_ERROR, ///< Fit procedure returned invalid result
+  FIT_ERROR_MAX,        ///< Gaus fit failed! yMax too large
+  FIT_ERROR_MIN,        ///< Gaus fit failed! yMax < 4
+  FIT_ERROR_ENTRIES,    ///< Gaus fit failed! entries < 12
+  FIT_ERROR_KTOL_MEAN,  ///< Gaus fit failed! std::abs(par[1]) < kTol
+  FIT_ERROR_KTOL_SIGMA, ///< Gaus fit failed! std::abs(par[2]) < kTol
+  FIT_ERROR_KTOL_RMS    ///< Gaus fit failed! RMS < kTol
+
 };
 
 /// \brief Printing an error message when then fit returns an invalid result
 /// \param errorcode Error of the type FitGausError_t, thrown when fit result is invalid.
-std::string createErrorMessage(o2::utils::FitGausError_t errorcode);
+std::string createErrorMessageFitGaus(o2::utils::FitGausError_t errorcode);
 
 /// \brief Function to fit histogram to a gaussian using iterators.
 /// \param first begin iterator of the histogram
@@ -235,31 +253,36 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
   if (ignoreUnderOverflowBin) {
     first++;
     last--;
+    axisfirst++;
   }
 
-  static TLinearFitter fitter(3, "pol2");
-  static TMatrixD mat(3, 3);
-  static Double_t kTol = mat.GetTol();
+  TLinearFitter fitter(3, "pol2");
+  TMatrixD mat(3, 3);
+  double kTol = mat.GetTol();
   fitter.StoreData(kFALSE);
   fitter.ClearPoints();
   TVectorD par(3);
   TMatrixD A(3, 3);
   TMatrixD b(3, 1);
-  T rms = TMath::RMS(first, last);
-  // Markus: return type of std::max_element is an iterator, cannot cast implicitly to double
-  // better use auto
+
+  // return type of std::max_element is an iterator, cannot cast implicitly to double
   // pointer needs to be dereferenced afterwards
-  auto xMax = std::max_element(first, last);
-  auto xMin = std::min_element(first, last);
-  auto nbins = last - first;
-  const double binWidth = double(*xMax - *xMin) / double(nbins);
+  auto yMax = std::max_element(first, last);
+  auto nbins = std::distance(first, last);
+  auto getBinWidth = [](BinCenterView axisiter) {
+    double binCenter1 = *axisiter;
+    axisiter++;
+    double binCenter2 = *axisiter;
+    return std::abs(binCenter1 - binCenter2);
+  };
+  double binWidth = getBinWidth(axisfirst);
 
-  Float_t meanCOG = 0;
-  Float_t rms2COG = 0;
-  Float_t sumCOG = 0;
+  float meanCOG = 0;
+  float rms2COG = 0;
+  float sumCOG = 0;
 
-  Float_t entries = 0;
-  Int_t nfilled = 0;
+  float entries = 0;
+  int nfilled = 0;
 
   for (auto iter = first; iter != last; iter++) {
     entries += *iter;
@@ -268,17 +291,11 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
     }
   }
 
-  if (*xMax < 4) {
-    LOG(error) << "Gaus fit failed! xMax < 4";
-    throw FitGausError_t::FIT_ERROR;
+  if (*yMax < 4) {
+    throw FitGausError_t::FIT_ERROR_MIN;
   }
   if (entries < 12) {
-    LOG(error) << "Gaus fit failed! entries < 12";
-    throw FitGausError_t::FIT_ERROR;
-  }
-  if (rms < kTol) {
-    LOG(error) << "Gaus fit failed! rms < kTol";
-    throw FitGausError_t::FIT_ERROR;
+    throw FitGausError_t::FIT_ERROR_ENTRIES;
   }
 
   // create the result, first fill it with all 0's
@@ -289,7 +306,7 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
   // then set the third parameter to entries
   result.at(3) = entries;
 
-  Int_t npoints = 0;
+  int npoints = 0;
   // in this loop: increase iter and axisiter (iterator for bin center and bincontent)
   auto axisiter = axisfirst;
   for (auto iter = first; iter != last; iter++, axisiter++) {
@@ -300,7 +317,7 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
         continue;
       }
       double x = *axisiter;
-      // take logarith of gaussian in order to obtain a pol2
+      // take logarithm of gaussian in order to obtain a pol2
       double y = std::log(*iter);
       // first order taylor series of log(x) to approimate the errors df(x)/dx * err(f(x))
       double ey = std::sqrt(fabs(*iter)) / fabs(*iter);
@@ -312,13 +329,13 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
         A(npoints, 2) = x * x;
         b(npoints, 0) = y;
         meanCOG += x * nbins;
-        rms2COG += x * nbins * x;
+        rms2COG += x * x * nbins;
         sumCOG += nbins;
       }
       npoints++;
     }
   }
-  Double_t chi2 = 0;
+  double chi2 = 0;
   if (npoints >= 3) {
     if (npoints == 3) {
       // analytic calculation of the parameters for three points
@@ -334,58 +351,43 @@ std::vector<double> fitGaus(Iterator first, Iterator last, BinCenterView axisfir
       fitter.Eval();
       fitter.GetParameters(par);
       fitter.GetCovarianceMatrix(mat);
-      result.at(4) = (fitter.GetChisquare() / Double_t(npoints));
+      result.at(4) = (fitter.GetChisquare() / double(npoints));
     }
 
-    if (TMath::Abs(par[1]) < kTol) {
-      LOG(error) << "Gaus fit failed! TMath::Abs(par[1]) < kTol";
-      throw FitGausError_t::FIT_ERROR;
+    if (std::abs(par[1]) < kTol) {
+      throw FitGausError_t::FIT_ERROR_KTOL_MEAN;
     }
-    if (TMath::Abs(par[2]) < kTol) {
-      LOG(error) << "Gaus fit failed! TMath::Abs(par[2]) < kTol";
-      throw FitGausError_t::FIT_ERROR;
+    if (std::abs(par[2]) < kTol) {
+      throw FitGausError_t::FIT_ERROR_KTOL_SIGMA;
     }
 
     // calculate parameters for gaus from pol2 fit
     T param1 = T(par[1] / (-2. * par[2]));
     result.at(1) = param1;
-    result.at(2) = T(1. / TMath::Sqrt(TMath::Abs(-2. * par[2])));
+    result.at(2) = T(1. / std::sqrt(std::abs(-2. * par[2])));
     auto lnparam0 = par[0] - par[1] * par[1] / (4 * par[2]);
     if (lnparam0 > 307) {
-      LOG(error) << "Gaus fit failed! lnparam0 > 307";
-      throw FitGausError_t::FIT_ERROR;
+      throw FitGausError_t::FIT_ERROR_MAX;
     }
 
-    result.at(0) = T(TMath::Exp(lnparam0));
+    result.at(0) = T(std::exp(lnparam0));
     return result;
-  }
 
-  if (npoints == 2) {
+  } else if (npoints == 2) {
     // use center of gravity for 2 points
     meanCOG /= sumCOG;
     rms2COG /= sumCOG;
-    /*
-    result.setParameter<0>(xMax);
-    result.setParameter<1>(meanCOG);
-    result.setParameter<2>(TMath::Sqrt(TMath::Abs(meanCOG * meanCOG - rms2COG)));
-    result.setChi2(-2);
-    */
-    result.at(0) = *xMax;
+
+    result.at(0) = *yMax;
     result.at(1) = meanCOG;
-    result.at(2) = TMath::Sqrt(TMath::Abs(meanCOG * meanCOG - rms2COG));
+    result.at(2) = std::sqrt(std::abs(meanCOG * meanCOG - rms2COG));
     result.at(4) = -2;
-  }
-  if (npoints == 1) {
+  } else if (npoints == 1) {
     meanCOG /= sumCOG;
-    /*
-    result.setParameter<0>(xMax);
-    result.setParameter<1>(meanCOG);
-    result.setParameter<2>(binWidth / TMath::Sqrt(12));
-    result.setChi2(-1);
-    */
-    result.at(0) = *xMax;
+
+    result.at(0) = *yMax;
     result.at(1) = meanCOG;
-    result.at(2) = binWidth / TMath::Sqrt(12);
+    result.at(2) = binWidth / std::sqrt(12);
     result.at(4) = -1;
   }
 
@@ -403,6 +405,23 @@ boostHisto1d_VarAxis boosthistoFromRoot_1D(TH1D* inHist1D);
 
 /// \brief Convert a 2D root histogram to a Boost histogram
 boostHisto2d_VarAxis boostHistoFromRoot_2D(TH2D* inHist2D);
+
+/// \brief Get the mean of a 1D boost histogram
+template <typename... axes>
+double getMeanBoost1D(boost::histogram::histogram<axes...>& inHist1D)
+{
+  // LOG(info) << "Entering the mean function for hist with rank " << inHist1D.rank() << " with " << inHist1D.axis(0).size() << " bins";
+  o2::math_utils::detail::StatAccumulator stats;
+  int mynbins = 0;
+  auto histiter = inHist1D.begin() + 1;
+  const auto& axis = inHist1D.axis(0);
+  for (auto bincenter = BinCenterView(axis.begin()); bincenter != BinCenterView(axis.end()); ++bincenter, ++histiter) {
+    // std::cout << "bin center bin " << mynbins << ": " << *bincenter << " <-> value: " << *histiter << std::endl;
+    ++mynbins;
+    stats.add(*bincenter, *histiter);
+  }
+  return stats.getMean();
+}
 
 /// \brief Convert a 2D boost histogram to a root histogram
 template <class BoostHist>
@@ -493,7 +512,113 @@ auto ProjectBoostHistoXFast(boost::histogram::histogram<axes...>& hist2d, const 
   return histoProj;
 }
 
-} // end namespace utils
+/// \brief Function to project 2d boost histogram onto x-axis
+/// \param hist2d 2d boost histogram
+/// \param binXLow lower bin in x for the reduction
+/// \param binXHigh lower bin in x for the reduction
+/// \param binYLow lower bin in y for the reduction
+/// \param binYHigh lower bin in y for the reduction
+/// \param includeOverflowUnderflow option to include overflow and underflow bins
+/// \return result
+///      1d boost histogram from projection of the input 2d boost histogram
+template <typename... axes>
+auto ReduceBoostHistoFastSlice(boost::histogram::histogram<axes...>& hist2d, int binXLow, int binXHigh, int binYLow, int binYHigh, bool includeOverflowUnderflow)
+{
+  int nXbins = binXHigh - binXLow + 1;
+  int nYbins = binYHigh - binYLow + 1;
+  double valueStartX = hist2d.axis(0).bin(binXLow).lower();
+  double valueEndX = hist2d.axis(0).bin(binXHigh).upper();
+  double valueStartY = hist2d.axis(1).bin(binYLow).lower();
+  double valueEndY = hist2d.axis(1).bin(binYHigh).upper();
+
+  auto histoReduced = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nXbins, valueStartX, valueEndX), boost::histogram::axis::regular<>(nYbins, valueStartY, valueEndY));
+
+  int nbinsxOld = hist2d.axis(0).size();
+  int nbinsyOld = hist2d.axis(1).size();
+  // Now rewrite the bin content of the 1d histogram to get the summed bin content in the specified range
+  for (int x = -1; x < nbinsxOld + 1; ++x) {
+    for (int y = -1; y < nbinsyOld + 1; ++y) {
+      int nXbinsNew = x - binXLow;
+      int nYbinsNew = y - binYLow;
+      if (nXbinsNew < 0 || nYbinsNew < 0 || nXbinsNew >= nXbins || nYbinsNew >= nYbins) {
+        if (!includeOverflowUnderflow) {
+          continue;
+        } else {
+          // handle the over and underflow
+          nXbinsNew = int(std::min(int(std::max(nXbinsNew, -1)), nXbins));
+          nYbinsNew = int(std::min(int(std::max(nYbinsNew, -1)), nYbins));
+          histoReduced.at(nXbinsNew, nYbinsNew) += hist2d.at(x, y);
+        }
+      } else {
+        histoReduced.at(nXbinsNew, nYbinsNew) = hist2d.at(x, y);
+      }
+    }
+  }
+
+  return histoReduced;
+}
+
+// \brief Function to project 2d boost histogram onto x-axis
+/// \param hist1d 2d boost histogram
+/// \param binXLow lower bin in x for the reduction
+/// \param binXHigh lower bin in x for the reduction
+/// \param includeOverflowUnderflow option to include overflow and underflow bins
+/// \return result
+///      1d boost histogram from projection of the input 2d boost histogram
+template <typename... axes>
+auto ReduceBoostHistoFastSlice1D(boost::histogram::histogram<axes...>& hist1d, int binXLow, int binXHigh, bool includeOverflowUnderflow)
+{
+  // LOG(info) << "Settting the binning with binXLost = " << binXLow << " and binXHigh = " << binXHigh;
+  int nXbins = binXHigh - binXLow + 1;
+  double valueStartX = hist1d.axis(0).bin(binXLow).lower();
+  double valueEndX = hist1d.axis(0).bin(binXHigh).upper();
+  // LOG(info) << "Binning is set, now making the histogram with " << nXbins << " bins in X with lower bound " << valueStartX << " and upper bound " << valueEndX;
+
+  auto histoReduced = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nXbins, valueStartX, valueEndX));
+  // LOG(info) << "made the histogram";
+
+  int nbinsxOld = hist1d.axis(0).size();
+  // Now rewrite the bin content of the 1d histogram to get the summed bin content in the specified range
+  for (int x = -1; x < nbinsxOld + 1; ++x) {
+    int nXbinsNew = x - binXLow;
+    if (nXbinsNew < 0 || nXbinsNew >= nXbins) {
+      if (!includeOverflowUnderflow) {
+        continue;
+      } else {
+        // handle the over and underflow
+        nXbinsNew = int(std::min(int(std::max(nXbinsNew, -1)), nXbins));
+        histoReduced.at(nXbinsNew) += hist1d.at(x);
+      }
+    } else {
+      histoReduced.at(nXbinsNew) = hist1d.at(x);
+    }
+  }
+
+  return histoReduced;
+}
+
+/// \brief Function to project 2d boost histogram onto x-axis
+/// \param hist2d 2d boost histogram
+/// \param xLow lower value in x for the reduction
+/// \param xHigh lower value in x for the reduction
+/// \param yLow lower value in y for the reduction
+/// \param yHigh lower value in y for the reduction
+/// \param includeOverflowUnderflow option to include overflow and underflow bins
+/// \return result
+///      1d boost histogram from projection of the input 2d boost histogram
+template <typename... axes>
+auto ReduceBoostHistoFastSliceByValue(boost::histogram::histogram<axes...>& hist2d, double xLow, double xHigh, double yLow, double yHigh, bool includeOverflowUnderflow)
+{
+
+  int binXLow = hist2d.axis(0).index(xLow);
+  int binXHigh = hist2d.axis(0).index(xHigh);
+  int binYLow = hist2d.axis(1).index(yLow);
+  int binYHigh = hist2d.axis(1).index(yHigh);
+
+  return ReduceBoostHistoFastSlice(hist2d, binXLow, binXHigh, binYLow, binYHigh, includeOverflowUnderflow);
+}
+
+} // namespace utils
 } // end namespace o2
 
 #endif

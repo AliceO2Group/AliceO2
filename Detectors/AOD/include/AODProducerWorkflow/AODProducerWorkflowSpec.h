@@ -27,6 +27,7 @@
 #include "DataFormatsZDC/BCRecData.h"
 #include "DataFormatsEMCAL/EventHandler.h"
 #include "DataFormatsPHOS/EventHandler.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
@@ -56,7 +57,7 @@ namespace o2::aodproducer
 
 typedef boost::tuple<int, int, int> Triplet_t;
 
-struct TripletHash : std::unary_function<Triplet_t, std::size_t> {
+struct TripletHash {
   std::size_t operator()(Triplet_t const& e) const
   {
     std::size_t seed = 0;
@@ -67,7 +68,7 @@ struct TripletHash : std::unary_function<Triplet_t, std::size_t> {
   }
 };
 
-struct TripletEqualTo : std::binary_function<Triplet_t, Triplet_t, bool> {
+struct TripletEqualTo {
   bool operator()(Triplet_t const& x, Triplet_t const& y) const
   {
     return (x.get<0>() == y.get<0>() &&
@@ -81,7 +82,7 @@ typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> Triple
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, bool enableSV, std::string resFile, bool useMC = true) : mInputSources(src), mDataRequest(dataRequest), mEnableSV(enableSV), mResFile{resFile}, mUseMC(useMC) {}
+  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enableSV, std::string resFile, bool useMC = true) : mInputSources(src), mDataRequest(dataRequest), mGGCCDBRequest(gr), mEnableSV(enableSV), mResFile{resFile}, mUseMC(useMC) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -162,6 +163,7 @@ class AODProducerWorkflowDPL : public Task
   TMap mMetaData;
 
   std::shared_ptr<DataRequest> mDataRequest;
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
 
   static constexpr int TOFTimePrecPS = 16; // required max error in ps for TOF tracks
   // truncation is enabled by default
@@ -200,7 +202,7 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mV0Amplitude = 0xFFFFF000;          // 11 bits
   uint32_t mFDDAmplitude = 0xFFFFF000;         // 11 bits
   uint32_t mT0Amplitude = 0xFFFFF000;          // 11 bits
-
+  int mCTPReadout = 0;                         // 0 = use CTP readout from CTP; 1 = create CTP readout
   // helper struct for extra info in fillTrackTablesPerCollision()
   struct TrackExtraInfo {
     float tpcInnerParam = 0.f;
@@ -284,13 +286,12 @@ class AODProducerWorkflowDPL : public Task
 
   void addRefGlobalBCsForTOF(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices,
                              const o2::globaltracking::RecoContainer& data, std::map<uint64_t, int>& bcsMap);
-
+  void createCTPReadout(const o2::globaltracking::RecoContainer& recoData, std::vector<o2::ctp::CTPDigit>& ctpDigits, ProcessingContext& pc);
   void collectBCs(const o2::globaltracking::RecoContainer& data,
                   const std::vector<o2::InteractionTimeRecord>& mcRecords,
                   std::map<uint64_t, int>& bcsMap);
 
   uint64_t getTFNumber(const o2::InteractionRecord& tfStartIR, int runNumber);
-
   template <typename TracksCursorType, typename TracksCovCursorType>
   void addToTracksTable(TracksCursorType& tracksCursor, TracksCovCursorType& tracksCovCursor,
                         const o2::track::TrackParCov& track, int collisionID);
@@ -333,7 +334,7 @@ class AODProducerWorkflowDPL : public Task
                                    AmbigFwdTracksCursorType& ambigFwdTracksCursor,
                                    const std::map<uint64_t, int>& bcsMap);
 
-  void fillIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices);
+  void fillIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices, const o2::globaltracking::RecoContainer& data);
 
   template <typename V0CursorType, typename CascadeCursorType>
   void fillSecondaryVertices(const o2::globaltracking::RecoContainer& data, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor);

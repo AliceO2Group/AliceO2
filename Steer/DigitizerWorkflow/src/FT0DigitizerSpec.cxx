@@ -31,7 +31,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "CCDB/BasicCCDBManager.h"
-#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
+#include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "Framework/CCDBParamSpec.h"
 #include <TChain.h>
@@ -57,7 +57,7 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
   void initDigitizerTask(framework::InitContext& ic) override
   {
     mDigitizer.init();
-    mROMode = mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
+    mROMode = o2::parameters::GRPObject::ROMode(o2::parameters::GRPObject::TRIGGERING | (mDigitizer.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT));
     mDisableQED = ic.options().get<bool>("disable-qed");
   }
 
@@ -81,7 +81,7 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
     context->initSimChains(o2::detectors::DetID::FT0, mSimChains);
     const bool withQED = context->isQEDProvided() && !mDisableQED;
     auto& timesview = context->getEventRecords(withQED);
-    //set CCDB for miscalibration
+    // set CCDB for miscalibration
     if (mUseCCDB) {
       auto caliboffsets = pc.inputs().get<o2::ft0::FT0ChannelTimeCalibrationObject*>("ft0offsets");
       mDigitizer.SetChannelOffset(caliboffsets.get());

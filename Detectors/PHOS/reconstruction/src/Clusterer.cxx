@@ -109,8 +109,9 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
 {
   // Transform input Cells to digits and run standard recontruction
   clusters.clear(); // final out list of clusters
-  trigRec.clear();
+  cluelements.clear();
   cluelements.reserve(cells.size());
+  trigRec.clear();
   cluMC.clear();
   mProcessMC = (dmc != nullptr);
   miCellLabel = 0;

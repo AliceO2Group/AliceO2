@@ -49,7 +49,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if(BUILD_DEBUG)
-  set(CMAKE_CXX_FLAGS "-O0 -ggdb")
+  set(CMAKE_CXX_FLAGS "-Og -ggdb")
   set(CMAKE_BUILD_TYPE DEBUG)
 else()
   set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -funroll-loops -ffast-math -fno-stack-protector")
@@ -164,6 +164,7 @@ include_directories(${GPUTRACKING_DIR}/TPCClusterFinder
                     ${O2_DIR}/Common/Field/include
                     ${O2_DIR}/Common/Constants/include
                     ${O2_DIR}/Common/MathUtils/include
+                    ${O2_DIR}/Common/Utils/include
                     ${O2_DIR}/DataFormats/common/include
                     ${O2_DIR}/DataFormats/Detectors/Common/include
                     ${O2_DIR}/DataFormats/Detectors/ITSMFT/common/include
@@ -208,9 +209,6 @@ if(CONFIG_O2_EXTENSIONS)
   target_sources(standalone_support PRIVATE
                ${O2_DIR}/Common/Field/src/MagFieldFast.cxx
                ${O2_DIR}/DataFormats/Detectors/TPC/src/CompressedClusters.cxx
-               ${O2_DIR}/GPU/GPUTracking/DataTypes/CalibdEdxContainer.cxx
-               ${O2_DIR}/DataFormats/Detectors/TPC/src/CalibdEdxTrackTopologySpline.cxx
-               ${O2_DIR}/DataFormats/Detectors/TPC/src/CalibdEdxTrackTopologyPol.cxx
                ${O2_DIR}/DataFormats/simulation/src/MCCompLabel.cxx
                ${O2_DIR}/DataFormats/Reconstruction/src/TrackParametrization.cxx
                ${O2_DIR}/DataFormats/Reconstruction/src/TrackParametrizationWithError.cxx

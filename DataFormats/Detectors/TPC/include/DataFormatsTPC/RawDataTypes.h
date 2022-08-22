@@ -22,12 +22,12 @@
 
 namespace o2::tpc::raw_data_types
 {
-enum class Type {
+enum Type : char {
   RAWDATA = 0, ///< GBT raw data
-  LinkZS = 1,  ///< Link-based zero suppression
-  ZS = 2,      ///< final zero suppression
-  IDC = 3,     ///< integrated digitial current, with priority bit to end up in separate buffer
-  IAC = 4,     ///< Analogue currents from the current monitor
+  LinkZS = 1,  ///< Link-based Zero Suppression
+  ZS = 2,      ///< final Zero Suppression
+  IDC = 3,     ///< Integrated Digitial Currents, with priority bit to end up in separate buffer
+  SAC = 4,     ///< Sampled Analogue Currents from the current monitor
 };
 
 const std::unordered_map<Type, std::string_view> TypeNameMap{
@@ -35,7 +35,7 @@ const std::unordered_map<Type, std::string_view> TypeNameMap{
   {Type::LinkZS, "LinkZS"},
   {Type::ZS, "ZS"},
   {Type::IDC, "IDC"},
-  {Type::IAC, "IAC"},
+  {Type::SAC, "SAC"},
 };
 
 } // namespace o2::tpc::raw_data_types

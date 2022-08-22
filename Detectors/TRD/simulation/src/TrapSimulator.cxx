@@ -60,7 +60,8 @@ void TrapSimulator::init(TrapConfig* trapconfig, int det, int robPos, int mcmPos
   mMcmHeaderEmpty = (1 << 31) | (row << 27) | (column << 25) | 1;
   // prepare the part of the Tracklet64 which is common to all tracklets of this MCM
   uint64_t hcid = 2 * mDetector + (mRobPos % 2);
-  mTrkltWordEmpty = (1UL << Tracklet64::formatbs) | (hcid << Tracklet64::hcidbs) | (row << Tracklet64::padrowbs) | (column << Tracklet64::colbs);
+  uint64_t format = mUseFloatingPointForQ ? 1UL : 0UL;
+  mTrkltWordEmpty = (format << Tracklet64::formatbs) | (hcid << Tracklet64::hcidbs) | (row << Tracklet64::padrowbs) | (column << Tracklet64::colbs);
 
   if (!mInitialized) {
     mTrapConfig = trapconfig;
@@ -1208,7 +1209,7 @@ void TrapSimulator::addHitToFitreg(int adc, unsigned short timebin, unsigned sho
     mFitReg[adc].q1 += qtot;
   }
 
-  if ((timebin >= 5) &&
+  if ((timebin >= 1) &&
       (timebin < 24)) {
     mFitReg[adc].sumX += timebin;
     mFitReg[adc].sumX2 += timebin * timebin;
@@ -1758,6 +1759,7 @@ void TrapSimulator::fitTracklet()
             temp = q2; // temporarily move to 64bit variable
             temp *= mScaleQ;
             q2 = temp >> 32;
+            q2 >>= 1; // q2 needs additional shift, since we want the same range as q0 and q1 and q2 is only 6 bit wide
 
             // clip the charges
             if (q0 > mMaskQ0Q1) {
@@ -1796,7 +1798,6 @@ void TrapSimulator::fitTracklet()
           // prepare 64 bit tracklet word directly
           uint64_t trkltWord64 = mTrkltWordEmpty;
           trkltWord64 |= (static_cast<uint64_t>(position & 0x7ff) << Tracklet64::posbs) | (static_cast<uint64_t>(slope & 0xff) << Tracklet64::slopebs) | (q2 << Tracklet64::Q2bs) | (q1 << Tracklet64::Q1bs) | q0;
-          trkltWord64 ^= 0x8080000000UL; // two bits are inverted in before the tracklet is sent / stored
           mTrackletArray64.emplace_back(trkltWord64);
 
           // calculate number of hits and MC label

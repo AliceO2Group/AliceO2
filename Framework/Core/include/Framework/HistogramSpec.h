@@ -116,8 +116,10 @@ struct AxisSpec {
     binEdges.erase(binEdges.begin()); // remove first entry that we assume to be number of bins
   }
 
-  /// Function to make the axis logartitmic
-  void makeLogaritmic();
+  long getNbins() const;
+
+  /// Function to make the axis logarithmic
+  void makeLogarithmic();
 
   /// Data members
   std::optional<int> nBins{};         /// Number of bins (only used for fixed bin width axis)

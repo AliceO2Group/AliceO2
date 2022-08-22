@@ -29,7 +29,7 @@ struct SubEventInfo {
   int32_t runID = 0;      // the runID of this run
   uint16_t part = 0;      // which part of the eventID
   uint16_t nparts = 0;    // out of how many parts
-  uint32_t seed = 0;      // seed for RNG
+  uint64_t seed = 0;      // seed for RNG
   uint32_t index = 0;
   int32_t npersistenttracks = -1; // the number of persistent tracks for this SubEvent (might be set to cache it)
   int32_t nprimarytracks = -1;    // the number of primary tracks for this SubEvent
@@ -37,7 +37,7 @@ struct SubEventInfo {
 
   o2::dataformats::MCEventHeader mMCEventHeader; // associated FairMC header for vertex information
 
-  ClassDefNV(SubEventInfo, 1);
+  ClassDefNV(SubEventInfo, 2);
 };
 
 inline bool operator<(SubEventInfo const& a, SubEventInfo const& b)

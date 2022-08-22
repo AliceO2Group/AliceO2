@@ -131,10 +131,10 @@ class CTFHelper
 
   //_______________________________________________
   // Orbit difference wrt previous. For the very 1st entry return 0 (diff wrt 1st BC in the CTF header)
-  class Iter_orbitIncTrig : public _Iter<Iter_orbitIncTrig, TriggerRecord, uint32_t>
+  class Iter_orbitIncTrig : public _Iter<Iter_orbitIncTrig, TriggerRecord, int32_t>
   {
    public:
-    using _Iter<Iter_orbitIncTrig, TriggerRecord, uint32_t>::_Iter;
+    using _Iter<Iter_orbitIncTrig, TriggerRecord, int32_t>::_Iter;
     value_type operator*() const { return mIndex ? mData[mIndex].getBCData().orbit - mData[mIndex - 1].getBCData().orbit : 0; }
   };
 

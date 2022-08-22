@@ -25,7 +25,6 @@
 #include "ITSMFTReconstruction/RawPixelReader.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "ITSQCDataReaderWorkflow/TestDataReader.h"
-#include "DetectorsBase/GeometryManager.h"
 #include <TCanvas.h>
 #include <iostream>
 #include <dirent.h>
@@ -68,8 +67,6 @@ void TestDataReader::init(InitContext& ic)
 
   LOG(debug) << "OLD CONFIG: EventPerPush = " << mEventPerPush << "   TrackError = " << mTrackError << "  WorkDir = " << mWorkDir;
   LOG(debug) << "DONE Reset Histogram Decision";
-
-  o2::base::GeometryManager::loadGeometry();
 
   mFolderNames = GetFName(mWorkDir);
 

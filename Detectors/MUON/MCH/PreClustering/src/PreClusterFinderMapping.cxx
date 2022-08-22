@@ -22,6 +22,8 @@
 
 #include "MCHMappingInterface/Segmentation.h"
 
+#include "MCHPreClustering/PreClusterFinderParam.h"
+
 namespace o2
 {
 namespace mch
@@ -62,6 +64,30 @@ auto Mapping::addPad(MpDE& de, const mapping::Segmentation& segmentation)
 }
 
 //_________________________________________________________________________________________________
+auto Mapping::removeNeighbouringPadsInCorners(MpDE& de)
+{
+  /// return a function to update the neighbours of each pad, removing the ones in the corners
+  /// must be called after the internal mapping is set for each pad
+  return [&de](int padID) {
+    auto connectedByCorners = [](float area1[2][2], float area2[2][2]) -> bool {
+      constexpr float precision = -1.e-4; // overlap precision in cm: negative = decrease pad size
+      return (area1[0][0] - area2[0][1] > precision || area2[0][0] - area1[0][1] > precision) &&
+             (area1[1][0] - area2[1][1] > precision || area2[1][0] - area1[1][1] > precision);
+    };
+    MpPad& pad = de.pads[padID];
+    uint8_t nSelectedNeighbours = 0;
+    for (auto i = 0; i < pad.nNeighbours; ++i) {
+      MpPad& neighbour = de.pads[pad.neighbours[i]];
+      if (!connectedByCorners(pad.area, neighbour.area)) {
+        pad.neighbours[nSelectedNeighbours] = pad.neighbours[i];
+        ++nSelectedNeighbours;
+      }
+    }
+    pad.nNeighbours = nSelectedNeighbours;
+  };
+}
+
+//_________________________________________________________________________________________________
 std::vector<std::unique_ptr<Mapping::MpDE>> Mapping::createMapping()
 {
   /// create the internal mapping used for preclustering from the O2 mapping
@@ -78,6 +104,9 @@ std::vector<std::unique_ptr<Mapping::MpDE>> Mapping::createMapping()
     de.nPads[1] = segmentation.nonBending().nofPads();
     de.pads = std::make_unique<MpPad[]>(de.nPads[0] + de.nPads[1]);
     segmentation.forEachPad(addPad(de, segmentation));
+    if (PreClusterFinderParam::Instance().excludeCorners) {
+      segmentation.forEachPad(removeNeighbouringPadsInCorners(de));
+    }
   });
 
   return detectionElements;

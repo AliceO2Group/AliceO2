@@ -125,12 +125,15 @@ class Digitizer
   /// \param TFile file containing distortions and corrections
   void setUseSCDistortions(TFile& finp);
 
+  void setVDrift(float v) { mVDrift = v; }
+
  private:
   DigitContainer mDigitContainer;    ///< Container for the Digits
   std::unique_ptr<SC> mSpaceCharge;  ///< Handler of space-charge distortions
   Sector mSector = -1;               ///< ID of the currently processed sector
   double mEventTime = 0.f;           ///< Time of the currently processed event
   double mOutputDigitTimeOffset = 0; ///< Time of the first IR sampled in the digitizer
+  float mVDrift = 0;                 ///< VDrift for current timestamp
   bool mIsContinuous;                ///< Switch for continuous readout
   bool mUseSCDistortions = false; ///< Flag to switch on the use of space-charge distortions
   ClassDefNV(Digitizer, 1);

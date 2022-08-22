@@ -20,11 +20,13 @@
 
 #endif
 
+#include "ZDCBase/Helpers.h"
 using namespace o2::zdc;
 using namespace std;
 
 void CreateWaveformCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = "")
 {
+  // Shortcuts: internal, external, test, local, root
 
   // This object configures the measurement of the average waveforms for the ZDC channels
   WaveformCalibConfig conf;
@@ -46,18 +48,18 @@ void CreateWaveformCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHo
 
   conf.print();
 
+  std::string ccdb_host = ccdbShortcuts(ccdbHost, conf.Class_Name(), CCDBPathWaveformCalibConfig);
+
+  if (endsWith(ccdb_host, ".root")) {
+    TFile f(ccdb_host.data(), "recreate");
+    f.WriteObjectAny(&conf, conf.Class_Name(), "ccdb_object");
+    f.Close();
+    return;
+  }
+
   o2::ccdb::CcdbApi api;
   map<string, string> metadata; // can be empty
-  if (ccdbHost.size() == 0 || ccdbHost == "external") {
-    ccdbHost = "http://alice-ccdb.cern.ch:8080";
-  } else if (ccdbHost == "internal") {
-    ccdbHost = "http://o2-ccdb.internal/";
-  } else if (ccdbHost == "test") {
-    ccdbHost = "http://ccdb-test.cern.ch:8080";
-  } else if (ccdbHost == "local") {
-    ccdbHost = "http://localhost:8080";
-  }
-  api.init(ccdbHost.c_str());
+  api.init(ccdb_host.c_str());
   LOG(info) << "CCDB server: " << api.getURL();
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&conf, CCDBPathWaveformCalibConfig, metadata, tmin, tmax);

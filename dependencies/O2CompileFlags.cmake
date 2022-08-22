@@ -51,16 +51,16 @@ string-compare;type-limits;uninitialized;shift-negative-value")
 if(O2_ENABLE_WARNINGS)
 
 o2_build_warning_flags(PREFIX "-W"
-              OUTPUTVARNAME O2_C_ENABLED_WARNINGS 
+              OUTPUTVARNAME O2_C_ENABLED_WARNINGS
               WARNINGS ${O2_COMMON_WARNINGS} ${O2_C_WARNINGS} "array-bounds=1")
 o2_build_warning_flags(PREFIX "-Wno-error="
-              OUTPUTVARNAME O2_C_ENABLED_WARNINGS_NO_ERROR 
+              OUTPUTVARNAME O2_C_ENABLED_WARNINGS_NO_ERROR
               WARNINGS ${O2_COMMON_WARNINGS} ${O2_C_WARNINGS} "array-bounds")
 o2_build_warning_flags(PREFIX "-W"
-              OUTPUTVARNAME O2_CXX_ENABLED_WARNINGS 
+              OUTPUTVARNAME O2_CXX_ENABLED_WARNINGS
               WARNINGS ${O2_COMMON_WARNINGS} ${O2_CXX_WARNINGS} "array-bounds=1")
 o2_build_warning_flags(PREFIX "-Wno-error="
-              OUTPUTVARNAME O2_CXX_ENABLED_WARNINGS_NO_ERROR 
+              OUTPUTVARNAME O2_CXX_ENABLED_WARNINGS_NO_ERROR
               WARNINGS ${O2_COMMON_WARNINGS} ${O2_CXX_WARNINGS} "array-bounds")
 else()
  message(STATUS "Building without compiler warnings enabled.")
@@ -96,14 +96,22 @@ ELSE()
       set(FAIR_MIN_SEVERITY "detail")
     endif()
 ENDIF()
+
+IF(ENABLE_THREAD_SAFETY_ANALYSIS)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror=thread-safety -D_LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Werror=thread-safety -D_LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS")
+  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -Werror=thread-safety -D_LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Werror=thread-safety -D_LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS")
+ENDIF()
+
 set(CMAKE_C_FLAGS_RELEASE "-O2")
 set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O2 -g")
 set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-O2 -g")
 # make sure Debug build not optimized (does not seem to work without CACHE + FORCE)
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0" CACHE STRING "Debug mode build flags" FORCE)
-set(CMAKE_C_FLAGS_DEBUG "-g -O0" CACHE STRING "Debug mode build flags" FORCE)
-set(CMAKE_Fortran_FLAGS_DEBUG "-g -O0" CACHE STRING "Debug mode build flags" FORCE)
+set(CMAKE_CXX_FLAGS_DEBUG "-g -Og" CACHE STRING "Debug mode build flags" FORCE)
+set(CMAKE_C_FLAGS_DEBUG "-g -Og" CACHE STRING "Debug mode build flags" FORCE)
+set(CMAKE_Fortran_FLAGS_DEBUG "-g -Og" CACHE STRING "Debug mode build flags" FORCE)
 
 set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} ${CMAKE_CXX_WARNINGS}")
 set(CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE}} ${CMAKE_C_WARNINGS}")

@@ -182,6 +182,8 @@ void CheckTracksCA(bool doFakeClStud = false, std::string tracfile = "o2trac_its
     xbins[i] = ptcutl * std::exp(i * a);
   TH1D* num = new TH1D("num", ";#it{p}_{T} (GeV/#it{c});Efficiency (fake-track rate)", nb, xbins);
   num->Sumw2();
+  TH1D* numEta = new TH1D("numEta", ";#eta;Number of tracks", 60, -3, 3);
+  numEta->Sumw2();
   TH1D* numChi2 = new TH1D("numChi2", ";#it{p}_{T} (GeV/#it{c});Efficiency (fake-track rate)", 200, 0, 100);
 
   TH1D* fak = new TH1D("fak", ";#it{p}_{T} (GeV/#it{c});Fak", nb, xbins);
@@ -198,18 +200,19 @@ void CheckTracksCA(bool doFakeClStud = false, std::string tracfile = "o2trac_its
 
   for (auto& evInfo : info) {
     for (auto& part : evInfo) {
-      if (part.clusters != 0x7f) {
+      if ((part.clusters & 0x7f) != 0x7f) {
         // part.clusters != 0x3f && part.clusters != 0x3f << 1 &&
         // part.clusters != 0x1f && part.clusters != 0x1f << 1 && part.clusters != 0x1f << 2 &&
         // part.clusters != 0x0f && part.clusters != 0x0f << 1 && part.clusters != 0x0f << 2 && part.clusters != 0x0f << 3) {
         continue;
       }
-      if (std::abs(part.eta) > 1.1 && !part.isPrimary) {
+      if (!part.isPrimary) {
         continue;
       }
       den->Fill(part.pt);
       if (part.isReco) {
         num->Fill(part.pt);
+        numEta->Fill(part.eta);
         if (part.isReco > 1) {
           for (int _i{0}; _i < part.isReco - 1; ++_i) {
             clone->Fill(part.pt);
@@ -270,6 +273,7 @@ void CheckTracksCA(bool doFakeClStud = false, std::string tracfile = "o2trac_its
   sum->Write("total");
   fak->Write("singleFake");
   num->Write("efficiency");
+  numEta->Write("etaDist");
   multiFak->Write("multiFake");
   clone->Write("clones");
   file.Close();

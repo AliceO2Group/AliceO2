@@ -10,8 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(FV0Calibration
-  SOURCES src/FV0ChannelTimeTimeSlotContainer.cxx
-          src/FV0ChannelTimeCalibrationObject.cxx
+  SOURCES src/FV0ChannelTimeOffsetSlotContainer.cxx
           src/FV0CalibCollector.cxx
   PUBLIC_LINK_LIBRARIES O2::DataFormatsFV0
                         O2::FV0Base
@@ -22,24 +21,20 @@ o2_add_library(FV0Calibration
 )
 
 o2_target_root_dictionary(FV0Calibration
-  HEADERS include/FV0Calibration/FV0CalibrationInfoObject.h
-          include/FV0Calibration/FV0ChannelTimeCalibrationObject.h
-          include/FV0Calibration/FV0ChannelTimeTimeSlotContainer.h
+  HEADERS include/FV0Calibration/FV0ChannelTimeOffsetSlotContainer.h
           include/FV0Calibration/FV0CalibCollector.h
 )
 
 o2_add_executable(fv0-channel-offset-calibration
   COMPONENT_NAME calibration
   SOURCES workflow/FV0ChannelTimeCalibration-Workflow.cxx
-  PUBLIC_LINK_LIBRARIES O2::DataFormatsFV0
-                        O2::FITCalibration
+  PUBLIC_LINK_LIBRARIES O2::FV0Calibration O2::FITCalibration
 )
 
 o2_add_executable(fv0-tf-processor
   COMPONENT_NAME calibration
   SOURCES workflow/FV0TFProcessor-Workflow.cxx
-  PUBLIC_LINK_LIBRARIES O2::DataFormatsFV0
-                        O2::FITCalibration
+  PUBLIC_LINK_LIBRARIES O2::FV0Calibration
 )
 
 add_subdirectory(macros)

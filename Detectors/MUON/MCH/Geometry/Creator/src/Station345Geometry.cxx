@@ -1023,7 +1023,7 @@ const string jsonSlatDescription =
     {
       "name":"SC07I",
       "moduleID":12,
-      "position":[0.00, -0.1074, -1259.75],
+      "position":[0.00, -0.1074, -1268.75],
       "rotation":[90, 0, 90.794, 90, 0.794, 90],
       "nodes":[
         {

@@ -11,7 +11,7 @@
 
 set(MODULE GPUTracking)
 
-# set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -O0") # to uncomment if needed, tired of typing this...
+# set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -Og") # to uncomment if needed, tired of typing this...
 
 function(create_binary_resource RESOURCE OUTPUTFILE)
   get_filename_component(input-file-abs ${RESOURCE} ABSOLUTE)
@@ -84,7 +84,7 @@ set(SRCS_O2_DATATYPES
     Interface/GPUO2InterfaceConfigurableParam.cxx)
 set(HDRS_CINT_O2 Merger/GPUTPCGMMergedTrack.h)
 set(HDRS_CINT_O2_DATATYPES DataTypes/GPUDataTypes.h Interface/GPUO2InterfaceConfigurableParam.h)
-set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h DataTypes/GPUTRDTrack.h) # Manual dependencies for ROOT dictionary generation
+set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h DataTypes/GPUTRDTrack.h DataTypes/CalibdEdxTrackTopologyPol.h DataTypes/CalibdEdxTrackTopologySpline.h) # Manual dependencies for ROOT dictionary generation
 
 set(SRCS_NO_CINT
     DataTypes/GPUMemorySizeScalers.cxx
@@ -155,6 +155,7 @@ set(HDRS_INSTALL
     DataTypes/GPUO2DataTypes.h
     DataTypes/GPUHostDataTypes.h
     DataTypes/GPUdEdxInfo.h
+    DataTypes/GPUNewCalibValues.h
     DataTypes/GPUTRDInterfaceO2Track.h
     Base/GPUParam.inc
     Merger/GPUTPCGMMergerTypes.h
@@ -207,6 +208,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         DataTypes/TPCPadGainCalib.cxx
         DataTypes/TPCZSLinkMapping.cxx
         DataTypes/CalibdEdxContainer.cxx
+        DataTypes/CalibdEdxTrackTopologyPol.cxx
+        DataTypes/CalibdEdxTrackTopologySpline.cxx
         Refit/GPUTrackingRefit.cxx
         Refit/GPUTrackingRefitKernel.cxx
         Merger/GPUTPCGMO2Output.cxx)
@@ -274,6 +277,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                             DataTypes
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                        O2::ReconstructionDataFormats
+                                       O2::TPCFastTransformation
                  PRIVATE_LINK_LIBRARIES O2::DataFormatsTPC
                  SOURCES ${SRCS_O2_DATATYPE_HEADERS})
   target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)

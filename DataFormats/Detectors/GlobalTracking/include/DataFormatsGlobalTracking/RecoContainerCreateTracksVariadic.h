@@ -299,12 +299,13 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     }
     for (unsigned i = 0; i < matchesMCHMID.size(); i++) {
       const auto& match = matchesMCHMID[i];
+      auto [trcTime, isInTF] = match.getTimeMUS(startIR, 256, BCDiffErrCount < MAXBCDiffErrCount);
+      if (!isInTF && BCDiffErrCount < MAXBCDiffErrCount) {
+        BCDiffErrCount++;
+      }
       auto gidxMCH = match.getMCHRef();
       const auto& trc = tracksMCH[gidxMCH.getIndex()];
-      float t0err = 0.0005;
-      auto bcdiff = getBCDiff(match.getIR());
-      float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingMUS;
-      if (creator(trc, {i, currentSource}, t0, t0err)) {
+      if (creator(trc, {i, currentSource}, trcTime.getTimeStamp(), trcTime.getTimeStampError())) {
         flagUsed(gidxMCH);           // flag used MCH tracks
         flagUsed(match.getMIDRef()); // flag used MID tracks (if requested)
       }
@@ -356,21 +357,20 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     currentSource = GTrackID::MCH;
     const auto& rofs = getMCHTracksROFRecords();
     for (const auto& rof : rofs) {
-      auto bcWidth = 56;
-      // FIXME (LA): should really be rof.getBCWidth() once
-      // getBCWidth is actually set to a meaningfull value.
-      // For now we hard-code a 1.4 microseconds window for all tracks
-      auto bcdiff = getBCDiff(rof.getBCData());
-      auto rofMeanBC = bcdiff + bcWidth / 2;
-      float t0 = rofMeanBC * o2::constants::lhc::LHCBunchSpacingMUS;
-      float t0err = o2::constants::lhc::LHCBunchSpacingMUS * bcWidth / 2;
+      if (rof.getNEntries() == 0) {
+        continue;
+      }
+      auto [trcTime, isInTF] = rof.getTimeMUS(startIR, 256, BCDiffErrCount < MAXBCDiffErrCount);
+      if (!isInTF && BCDiffErrCount < MAXBCDiffErrCount) {
+        BCDiffErrCount++;
+      }
       for (int idx = rof.getFirstIdx(); idx <= rof.getLastIdx(); ++idx) {
         if (isUsed2(idx, currentSource)) {
           continue;
         }
         GTrackID gidMCH(idx, currentSource);
         const auto& trc = tracksMCH[idx];
-        creator(trc, gidMCH, t0, t0err);
+        creator(trc, gidMCH, trcTime.getTimeStamp(), trcTime.getTimeStampError());
       }
     }
   }
@@ -380,22 +380,26 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     currentSource = GTrackID::MID;
     const auto& rofs = getMIDTracksROFRecords();
     for (const auto& rof : rofs) {
-      float t0err = 0.0005;
-      auto bcdiff = getBCDiff(rof.interactionRecord);
-      if (bcdiff < 0) {
-        if (BCDiffErrCount < MAXBCDiffErrCount) {
+      if (rof.nEntries == 0) {
+        continue;
+      }
+      auto [trcTime, isInTF] = rof.getTimeMUS(startIR, 256, BCDiffErrCount < MAXBCDiffErrCount);
+      if (!isInTF && BCDiffErrCount < MAXBCDiffErrCount) {
+        BCDiffErrCount++;
+      }
+      if (trcTime.getTimeStamp() < 0.f) {
+        if (BCDiffErrCount - 1 < MAXBCDiffErrCount) {
           LOGP(alarm, "Skipping MID ROF with {} entries since it precedes TF start", rof.nEntries);
         }
         continue;
       }
-      float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingMUS;
       for (int idx = rof.firstEntry; idx < rof.getEndIndex(); ++idx) {
         if (isUsed2(idx, currentSource)) {
           continue;
         }
         GTrackID gidMID(idx, currentSource);
         const auto& trc = tracksMID[idx];
-        creator(trc, gidMID, t0, t0err);
+        creator(trc, gidMID, trcTime.getTimeStamp(), trcTime.getTimeStampError());
       }
     }
   }

@@ -154,7 +154,11 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track, o2::gpu::GPUO2Int
         continue;
       }
 
-      const float fillVal = chargeNorm / dedx;
+      if (dedx < mDedxMin || (mDedxMax > 0 && dedx > mDedxMax)) {
+        continue;
+      }
+
+      const float fillVal = mDoNotNormCharge ? chargeNorm : chargeNorm / dedx;
       int index = Mapper::GLOBALPADOFFSET[region] + Mapper::OFFSETCRUGLOBAL[rowIndex] + pad;
       if (cru.isOROC()) {
         index -= Mapper::getPadsInIROC();
@@ -188,7 +192,7 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track, o2::gpu::GPUO2Int
       const int indexBuffer = getdEdxBufferIndex(region);
 
       const float dedxTmp = mDedxTmp[indexBuffer];
-      if (dedxTmp <= 0) {
+      if (dedxTmp <= 0 || dedxTmp < mDedxMin || (mDedxMax > 0 && dedxTmp > mDedxMax)) {
         continue;
       }
 
@@ -200,7 +204,7 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track, o2::gpu::GPUO2Int
       }
 
       // fill the normalizes charge in pad histogram
-      const float fillVal = std::get<3>(x) / dedxTmp;
+      const float fillVal = mDoNotNormCharge ? std::get<3>(x) : std::get<3>(x) / dedxTmp;
       fillPadByPadHistogram(roc.getRoc(), index, fillVal);
     }
   } else {

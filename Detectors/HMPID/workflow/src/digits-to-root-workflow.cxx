@@ -64,7 +64,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
   DataProcessorSpec consumer = o2::hmpid::getDigitsToRootSpec();
   specs.push_back(consumer);
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
   return specs;

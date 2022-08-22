@@ -24,6 +24,7 @@
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/InputRecordWalker.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "Headers/DataHeader.h"
 #include "TPCCalibration/IDCFourierTransform.h"
 #include "TPCWorkflow/TPCFLPIDCSpec.h"
@@ -41,7 +42,12 @@ class TPCFourierTransformEPNSpec : public o2::framework::Task
  public:
   using IDCFType = IDCFourierTransform<IDCFourierTransformBaseEPN>;
 
-  TPCFourierTransformEPNSpec(const std::vector<uint32_t>& crus, const unsigned int nFourierCoefficientsSend, const unsigned int rangeIDC, const bool debug = false) : mCRUs{crus}, mIDCFourierTransform{rangeIDC, nFourierCoefficientsSend}, mDebug{debug} {};
+  TPCFourierTransformEPNSpec(const std::vector<uint32_t>& crus, const unsigned int nFourierCoefficientsSend, const unsigned int rangeIDC, const std::vector<o2::tpc::Side>& sides) : mCRUs{crus}, mIDCFourierTransform{rangeIDC, nFourierCoefficientsSend}, mSides{sides} {};
+
+  void init(o2::framework::InitContext& ic) final
+  {
+    mDumpFFT = ic.options().get<bool>("dump-coefficients-epn");
+  }
 
   void run(o2::framework::ProcessingContext& pc) final
   {
@@ -60,7 +66,7 @@ class TPCFourierTransformEPNSpec : public o2::framework::Task
       const o2::tpc::CRU cruTmp(cru);
       const auto descr = tpcCRUHeader->dataDescription;
 
-      if (TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDCEPN() == descr) {
+      if (TPCFLPIDCDevice::getDataDescription1DIDCEPN() == descr) {
         LOGP(debug, "Receiving IDC1 for TF {} for CRU {}", currTF, cru);
         mIDCOneAggregator.aggregate1DIDCs(cruTmp.side(), pc.inputs().get<std::vector<float>>(ref));
       } else {
@@ -79,16 +85,18 @@ class TPCFourierTransformEPNSpec : public o2::framework::Task
     // perform fourier transform of 1D-IDCs
     LOGP(debug, "normalize IDCs");
     mIDCOneAggregator.normalizeIDCOne();
-    mIDCFourierTransform.setIDCs(std::move(mIDCOneAggregator).get());
-    LOGP(debug, "calculate fourier coefficients");
-    mIDCFourierTransform.calcFourierCoefficients();
+    for (const auto side : mSides) {
+      mIDCFourierTransform.setIDCs(std::move(mIDCOneAggregator).get(side));
+      LOGP(debug, "calculate fourier coefficients");
+      mIDCFourierTransform.calcFourierCoefficients();
 
-    if (mDebug) {
-      LOGP(info, "dumping FT to file");
-      mIDCFourierTransform.dumpToFile(fmt::format("FourierEPN_{:02}.root", o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->tfCounter).data());
+      if (mDumpFFT) {
+        LOGP(info, "dumping FT to file");
+        mIDCFourierTransform.dumpToFile(fmt::format("FourierEPN_{:02}_side{}.root", pc.services().get<o2::framework::TimingInfo>().tfCounter, static_cast<int>(side)).data());
+      }
+
+      sendOutput(pc.outputs(), side);
     }
-
-    sendOutput(pc.outputs());
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
@@ -102,33 +110,39 @@ class TPCFourierTransformEPNSpec : public o2::framework::Task
  private:
   const std::vector<uint32_t> mCRUs{};                                    ///< CRUs to process in this instance
   IDCFourierTransform<IDCFourierTransformBaseEPN> mIDCFourierTransform{}; ///< object for performing the fourier transform of 1D-IDCs
+  std::vector<Side> mSides{};                                             ///< processed TPC sides                                                                                                                                           ///< processed TPC sides
   IDCOneAggregator mIDCOneAggregator{};                                   ///< helper class for aggregation of 1D-IDCs
-  const bool mDebug{false};                                               ///< dump IDCs to tree for debugging
+  bool mDumpFFT{false};                                                   ///< dump fourier coefficients to file
   int mReceivedCRUs = 0;                                                  ///< counter to keep track of the number of received data from CRUs
   uint32_t mCurrentTF{0};                                                 ///< currently processed TF
-  const std::vector<InputSpec> mFilter = {{"1didcepn", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDCEPN()}, Lifetime::Timeframe},
-                                          {"1didcepnweights", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDCEPNWeights()}, Lifetime::Timeframe}}; ///< filter for looping over input data
+  const std::vector<InputSpec> mFilter = {{"1didcepn", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice::getDataDescription1DIDCEPN()}, Lifetime::Timeframe},
+                                          {"1didcepnweights", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, TPCFLPIDCDevice::getDataDescription1DIDCEPNWeights()}, Lifetime::Timeframe}}; ///< filter for looping over input data
 
-  void sendOutput(DataAllocator& output)
+  void sendOutput(DataAllocator& output, const Side side)
   {
-    output.snapshot(Output{gDataOriginTPC, getDataDescription(), header::DataHeader::SubSpecificationType{Side::A}, Lifetime::Timeframe}, mIDCFourierTransform.getFourierCoefficients().getFourierCoefficients(Side::A));
-    output.snapshot(Output{gDataOriginTPC, getDataDescription(), header::DataHeader::SubSpecificationType{Side::C}, Lifetime::Timeframe}, mIDCFourierTransform.getFourierCoefficients().getFourierCoefficients(Side::C));
+    output.snapshot(Output{gDataOriginTPC, getDataDescription(), header::DataHeader::SubSpecificationType{side}, Lifetime::Timeframe}, mIDCFourierTransform.getFourierCoefficients().getFourierCoefficients());
   }
 };
 
-DataProcessorSpec getTPCFourierTransformEPNSpec(const std::vector<uint32_t>& crus, const unsigned int rangeIDC, const unsigned int nFourierCoefficientsSend, const bool debug = false)
+DataProcessorSpec getTPCFourierTransformEPNSpec(const std::vector<uint32_t>& crus, const unsigned int rangeIDC, const unsigned int nFourierCoefficientsSend)
 {
-  std::vector<InputSpec> inputSpecs{InputSpec{"1didcepn", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDCEPN()}, Lifetime::Timeframe},
-                                    InputSpec{"1didcepnweights", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice<TPCFLPIDCDeviceGroup>::getDataDescription1DIDCEPNWeights()}, Lifetime::Timeframe}};
+  const auto sides = o2::tpc::IDCFactorization::getSides(crus);
 
-  std::vector<OutputSpec> outputSpecs{ConcreteDataMatcher{gDataOriginTPC, TPCFourierTransformEPNSpec::getDataDescription(), header::DataHeader::SubSpecificationType{o2::tpc::Side::A}},
-                                      ConcreteDataMatcher{gDataOriginTPC, TPCFourierTransformEPNSpec::getDataDescription(), header::DataHeader::SubSpecificationType{o2::tpc::Side::C}}};
+  std::vector<InputSpec> inputSpecs{InputSpec{"1didcepn", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice::getDataDescription1DIDCEPN()}, Lifetime::Timeframe},
+                                    InputSpec{"1didcepnweights", ConcreteDataTypeMatcher{gDataOriginTPC, TPCFLPIDCDevice::getDataDescription1DIDCEPNWeights()}, Lifetime::Timeframe}};
+
+  std::vector<OutputSpec> outputSpecs;
+  for (const auto side : sides) {
+    outputSpecs.emplace_back(ConcreteDataMatcher{gDataOriginTPC, TPCFourierTransformEPNSpec::getDataDescription(), header::DataHeader::SubSpecificationType{side}});
+  }
 
   return DataProcessorSpec{
     "tpc-epn-ft",
     inputSpecs,
     outputSpecs,
-    AlgorithmSpec{adaptFromTask<TPCFourierTransformEPNSpec>(crus, nFourierCoefficientsSend, rangeIDC, debug)}};
+    AlgorithmSpec{adaptFromTask<TPCFourierTransformEPNSpec>(crus, nFourierCoefficientsSend, rangeIDC, sides)},
+    Options{
+      {"dump-coefficients-epn", VariantType::Bool, false, {"Dump fourier coefficients to file"}}}}; // end DataProcessorSpec
 }
 
 } // namespace o2::tpc

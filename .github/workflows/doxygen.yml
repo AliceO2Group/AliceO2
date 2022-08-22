@@ -13,19 +13,19 @@ jobs:
       run: |
         sudo apt-get update -y
         sudo apt-get install -y doxygen doxygen-doc doxygen-latex doxygen-gui graphviz cmake
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         ref: "dev"
-    - name: Install doxygen
+        persist-credentials: false
+    - name: Build docs
       run: |
         cat > CMakeLists.txt <<\EOF
         add_subdirectory(doc)
         EOF
         cmake .
-        make doc
+        make doc 2>&1 >log.txt
         git add doc/html
         git config --global user.email "github-action-bot@example.com"
         git config --global user.name "GitHub Action Bot"
         git commit -m "Updated README" -a || echo "No changes to commit"
-        git push origin `git subtree split --prefix doc/html dev`:refs/heads/gh-pages --force
-
+        git push https://alibuild:${{ secrets.ALIBUILD_GITHUB_TOKEN }}@github.com/AliceO2Group/docs `git subtree split --prefix doc/html dev`:refs/heads/main --force

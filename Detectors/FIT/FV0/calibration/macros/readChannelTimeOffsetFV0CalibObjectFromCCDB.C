@@ -13,7 +13,7 @@
 #include <string>
 #include "TFile.h"
 #include <iostream>
-#include "FV0Calibration/FV0ChannelTimeCalibrationObject.h"
+#include "DataFormatsFV0/FV0ChannelTimeCalibrationObject.h"
 #include "CCDB/CcdbApi.h"
 #endif
 

@@ -36,18 +36,14 @@ Vertexer::Vertexer(VertexerTraits* traits)
   mTraits = traits;
 }
 
-float Vertexer::clustersToVertices(const bool useMc, std::function<void(std::string s)> logger)
+float Vertexer::clustersToVertices(std::function<void(std::string s)> logger)
 {
   float total{0.f};
   TrackingParameters trkPars;
-  MemoryParameters memPars;
-  total += evaluateTask(&Vertexer::initialiseVertexer, false, "Vertexer initialisation", logger, memPars, trkPars);
-  total += evaluateTask(&Vertexer::findTracklets, false, "Tracklet finding", logger);
-  // if (useMc) {
-  //   total += evaluateTask(&Vertexer::filterMCTracklets, false, "MC tracklets filtering", logger);
-  // }
-  total += evaluateTask(&Vertexer::validateTracklets, false, "Adjacent tracklets validation", logger);
-  total += evaluateTask(&Vertexer::findVertices, false, "Vertex finding", logger);
+  total += evaluateTask(&Vertexer::initialiseVertexer, "Vertexer initialisation", logger, trkPars);
+  total += evaluateTask(&Vertexer::findTracklets, "Tracklet finding", logger);
+  total += evaluateTask(&Vertexer::validateTracklets, "Adjacent tracklets validation", logger);
+  total += evaluateTask(&Vertexer::findVertices, "Vertex finding", logger);
 
   return total;
 }
@@ -56,11 +52,6 @@ void Vertexer::findVertices()
 {
   mTraits->computeVertices();
 }
-
-// void Vertexer::findHistVertices()
-// {
-//   mTraits->computeHistVertices();
-// }
 
 void Vertexer::getGlobalConfiguration()
 {
@@ -74,6 +65,7 @@ void Vertexer::getGlobalConfiguration()
   verPar.histPairCut = vc.histPairCut;
   verPar.tanLambdaCut = vc.tanLambdaCut;
   verPar.clusterContributorsCut = vc.clusterContributorsCut;
+  verPar.maxTrackletsPerCluster = vc.maxTrackletsPerCluster;
   verPar.phiSpan = vc.phiSpan;
 
   mTraits->updateVertexingParameters(verPar);

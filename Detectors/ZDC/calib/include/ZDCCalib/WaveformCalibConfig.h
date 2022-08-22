@@ -27,10 +27,6 @@ namespace o2
 namespace zdc
 {
 struct WaveformCalibConfig {
-  static constexpr int NBB = WaveformCalib_NBB;
-  static constexpr int NBA = WaveformCalib_NBA;
-  static constexpr int NBT = WaveformCalib_NBT;
-  static constexpr int NW = WaveformCalib_NW;
 
   WaveformCalibConfig();
 
@@ -40,8 +36,8 @@ struct WaveformCalibConfig {
   double cutTimeLow[NTDCChannels]{};  /// TDC cut low
   double cutTimeHigh[NTDCChannels]{}; /// TDC cut high
   std::string desc = "";
-  int ibeg = -NBB;
-  int iend = NBA;
+  int ibeg = -WaveformCalib_NBB;
+  int iend = WaveformCalib_NBA;
   int nbun = iend - ibeg + 1;
 
   void print() const;
@@ -62,16 +58,8 @@ struct WaveformCalibConfig {
   void setTimeCuts(double low, double high);
   void setTimeCuts(int itdc, double low, double high);
   void setDescription(std::string d) { desc = d; }
-
-  int getFirst() const
-  {
-    return ibeg;
-  }
-
-  int getLast() const
-  {
-    return iend;
-  }
+  int getFirst() const;
+  int getLast() const;
 
   ClassDefNV(WaveformCalibConfig, 1);
 };

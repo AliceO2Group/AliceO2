@@ -18,6 +18,7 @@
 #ifndef EMCALCALIBEXTRACTOR_H_
 #define EMCALCALIBEXTRACTOR_H_
 
+#include <algorithm>
 #include <iostream>
 #include "CCDB/BasicCCDBManager.h"
 #include "EMCALCalib/BadChannelMap.h"
@@ -25,6 +26,8 @@
 #include "CommonUtils/BoostHistogramUtils.h"
 #include "EMCALBase/Geometry.h"
 #include <boost/histogram.hpp>
+
+#include <TRobustEstimator.h>
 
 #if (defined(WITH_OPENMP) && !defined(__CLING__))
 #include <omp.h>
@@ -38,6 +41,14 @@ namespace emcal
 class EMCALCalibExtractor
 {
   using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::integer<>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
+  using slice_t = int;
+  using cell_t = int;
+
+  /// \brief Stuct for the maps needed for the bad channel calibration
+  struct BadChannelCalibInfo {
+    std::map<slice_t, std::array<double, 17664>> energyPerHitMap;   // energy/per hit per cell per slice
+    std::map<slice_t, std::pair<double, double>> goodCellWindowMap; // for each slice, the emin and the emax of the good cell window
+  };
 
  public:
   EMCALCalibExtractor()
@@ -49,7 +60,7 @@ class EMCALCalibExtractor
         mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000); // fallback option
       }
     }
-    mNcells = mGeometry->GetNCells();
+    // mNcells = mGeometry->GetNCells();
   };
   ~EMCALCalibExtractor() = default;
 
@@ -61,10 +72,6 @@ class EMCALCalibExtractor
 
   void setUseScaledHistoForBadChannels(bool useScaledHistoForBadChannels) { mUseScaledHistoForBadChannels = useScaledHistoForBadChannels; }
 
-  /// \brief Average energy per hit is caluclated for each cell.
-  /// \param emin -- min. energy for cell amplitudes
-  /// \param emax -- max. energy for cell amplitudes
-  boostHisto buildHitAndEnergyMean(double emin, double emax, boostHisto mCellAmplitude);
   /// \brief Scaled hits per cell
   /// \param emin -- min. energy for cell amplitudes
   /// \param emax -- max. energy for cell amplitudes
@@ -74,31 +81,130 @@ class EMCALCalibExtractor
   template <typename... axes>
   o2::emcal::BadChannelMap calibrateBadChannels(boost::histogram::histogram<axes...>& hist)
   {
-    // calculate the mean and sigma of the mEsumHisto
-    auto fitValues = o2::utils::fitBoostHistoWithGaus<double>(hist);
-    double mean = fitValues.at(1);
-    double sigma = fitValues.at(2);
+    double time1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    std::map<int, std::pair<double, double>> slices = {{0, {0.1, 0.3}}, {1, {0.3, 0.5}}, {2, {0.5, 1.0}}, {3, {1.0, 4.0}}};
 
-    // calculate the "good cell window from the mean"
-    double maxVal = mean + mSigma * sigma;
-    double minVal = mean - mSigma * sigma;
+    // get all ofthe calibration information that we need in a struct
+    BadChannelCalibInfo calibrationInformation = buildHitAndEnergyMean(slices, hist);
+
     o2::emcal::BadChannelMap mOutputBCM;
     // now loop through the cells and determine the mask for a given cell
-    for (int cellID = 0; cellID < 17664; cellID++) {
-      double E = hist.at(cellID);
-      // if in the good window, mark the cell as good
-      // for now we won't do warm cells - the definition of this is unclear.
-      if (E == 0) {
+
+#if (defined(WITH_OPENMP) && !defined(__CLING__))
+    if (mNThreads < 1) {
+      mNThreads = std::min(omp_get_max_threads(), mNcells);
+    }
+    LOG(info) << "Number of threads that will be used = " << mNThreads;
+#pragma omp parallel for num_threads(mNThreads)
+#else
+    LOG(info) << "OPEN MP will not be used for the bad channel calibration";
+    mNThreads = 1;
+#endif
+
+    for (int cellID = 0; cellID < mNcells; cellID++) {
+      if (calibrationInformation.energyPerHitMap[0][cellID] == 0) {
+        LOG(debug) << "Cell " << cellID << " is dead.";
         mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::DEAD_CELL);
-      } else if (E < maxVal || E > minVal) {
-        mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::GOOD_CELL);
       } else {
-        mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::BAD_CELL);
+        bool failed = false;
+        for (auto& [sliceIndex, slice] : slices) {
+          auto ranges = calibrationInformation.goodCellWindowMap[sliceIndex];
+          auto meanPerCell = calibrationInformation.energyPerHitMap[sliceIndex][cellID];
+          LOG(debug) << "Mean per cell is " << meanPerCell << " Good Cell Window: [ " << ranges.first << " , " << ranges.second << " ]";
+          if (meanPerCell < ranges.first || meanPerCell > ranges.second) {
+            LOG(debug) << "********* FAILED **********";
+            failed = true;
+            break;
+          }
+        }
+        if (failed) {
+          LOG(debug) << "Cell " << cellID << " is bad.";
+          mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::BAD_CELL);
+        } else {
+          LOG(debug) << "Cell " << cellID << " is good.";
+          mOutputBCM.addBadChannel(cellID, o2::emcal::BadChannelMap::MaskType_t::GOOD_CELL);
+        }
       }
     }
+    double time2 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    double diffTransfer = time2 - time1;
+    LOG(info) << "Total time" << diffTransfer << " ns";
 
     return mOutputBCM;
   }
+
+  //___________________________________________________________________________________________________
+  /// \brief Average energy per hit is caluclated for each cell.
+  /// \param sliceID -- numerical index for the slice of amplitudes
+  /// \param emin -- min. energy for cell amplitudes
+  /// \param emax -- max. energy for cell amplitudes
+  /// \param cellAmplitude -- boost histogram for the cell ID vs. Amplitude
+  template <typename... axes>
+  BadChannelCalibInfo buildHitAndEnergyMean(std::map<slice_t, std::pair<double, double>> sliceMap, boost::histogram::histogram<axes...>& cellAmplitude)
+  {
+    // create the output histo
+    BadChannelCalibInfo outputInfo;
+    std::map<slice_t, std::array<double, mNcells>> outputMapEnergyPerHit;
+    // initialize the output maps with 0
+    for (const auto& [sliceIndex, sliceLimits] : sliceMap) {
+      std::array<double, mNcells> energyPerHit, nHits;
+      std::fill(energyPerHit.begin(), energyPerHit.end(), 0.);
+      std::fill(nHits.begin(), nHits.end(), 0.);
+      outputMapEnergyPerHit[sliceIndex] = energyPerHit;
+      // outputMapNHits[sliceIndex] = nHits;
+    }
+#if (defined(WITH_OPENMP) && !defined(__CLING__))
+    if (mNThreads < 1) {
+      mNThreads = std::min(omp_get_max_threads(), mNcells);
+    }
+    LOG(info) << "Number of threads that will be used = " << mNThreads;
+#pragma omp parallel for num_threads(mNThreads)
+#else
+    LOG(info) << "OPEN MP will not be used for the bad channel calibration";
+    mNThreads = 1;
+#endif
+    for (int cellID = 0; cellID < mNcells; cellID++) {
+      int binCellID = cellAmplitude.axis(1).index(cellID);
+      auto projectedSlice = o2::utils::ProjectBoostHistoXFast(cellAmplitude, binCellID, binCellID + 1);
+      auto projectedSum = boost::histogram::algorithm::sum(projectedSlice);
+      if (projectedSum == 0) {
+        continue; // check before loop if the cell is dead
+      }
+      for (const auto& [sliceIndex, slice] : sliceMap) {
+        double emin = slice.first;
+        double emax = slice.second;
+        int binXLowSlice = cellAmplitude.axis(0).index(emin);
+        int binXHighSlice = cellAmplitude.axis(0).index(emax);
+        auto slicedHist = o2::utils::ReduceBoostHistoFastSlice1D(projectedSlice, binXLowSlice, binXHighSlice, false);
+        double meanVal = o2::utils::getMeanBoost1D(slicedHist);
+        double sumVal = boost::histogram::algorithm::sum(slicedHist);
+        if (sumVal > 0.) {
+          // fill the output map with the desired slicing etc.
+          outputMapEnergyPerHit[sliceIndex][cellID] = (meanVal / (sumVal));
+        }
+
+      } // end loop over the slices
+    }   // end loop over the cells
+    for (const auto& [sliceIndex, slice] : sliceMap) {
+      Double_t meanPerSlice = 0.0;  // mean energy per slice to be compared to the cell
+      Double_t sigmaPerSlice = 0.0; // sigma energy per slice to be compared to the cell
+      TRobustEstimator robustEstimator;
+      auto& means = outputMapEnergyPerHit[sliceIndex];
+      robustEstimator.EvaluateUni(means.size(), means.data(), meanPerSlice, sigmaPerSlice, 0);
+
+      LOG(debug) << "Mean per slice is: " << meanPerSlice << " Sigma Per Slice: " << sigmaPerSlice << " with size " << outputMapEnergyPerHit[sliceIndex].size();
+      // calculate the "good cell window from the mean"
+      double maxVal = meanPerSlice + 4.0 * sigmaPerSlice;
+      double minVal = meanPerSlice - 4.0 * sigmaPerSlice;
+      // we need to change this
+      outputInfo.goodCellWindowMap[sliceIndex] = {minVal, maxVal};
+    }
+    // now add these to the calib info struct
+    outputInfo.energyPerHitMap = outputMapEnergyPerHit;
+
+    return outputInfo;
+  }
+  //____________________________________________
 
   /// \brief Calibrate time for all cells
   /// \param hist -- 2d boost histogram: cell-time vs. cell-ID
@@ -115,16 +221,16 @@ class EMCALCalibExtractor
 
     double mean = 0;
 
-#if (defined(WITH_OPENMP) && !defined(__CLING__))
-    if (mNThreads < 1) {
-      mNThreads = std::min(omp_get_max_threads(), mNcells);
-    }
-    LOG(info) << "Number of threads that will be used = " << mNThreads;
-#pragma omp parallel for num_threads(mNThreads)
-#else
-    LOG(info) << "OPEN MP will not be used for the time calibration";
-    mNThreads = 1;
-#endif
+    // #if (defined(WITH_OPENMP) && !defined(__CLING__))
+    //     if (mNThreads < 1) {
+    //       mNThreads = std::min(omp_get_max_threads(), mNcells);
+    //     }
+    //     LOG(info) << "Number of threads that will be used = " << mNThreads;
+    // #pragma omp parallel for num_threads(mNThreads)
+    // #else
+    //     LOG(info) << "OPEN MP will not be used for the time calibration";
+    //     mNThreads = 1;
+    // #endif
 
     for (unsigned int i = 0; i < mNcells; ++i) {
       // project boost histogram to 1d just for 1 cell
@@ -140,8 +246,7 @@ class EMCALCalibExtractor
           maxElementIndex = 0;
         }
         float maxElementCenter = 0.5 * (boostHist1d.axis(0).bin(maxElementIndex).upper() + boostHist1d.axis(0).bin(maxElementIndex).lower());
-        float timeInterval = 25; // in ns
-        boostHist1d = boost::histogram::algorithm::reduce(boostHist1d, boost::histogram::algorithm::shrink(maxElementCenter - timeInterval, maxElementCenter + timeInterval));
+        boostHist1d = boost::histogram::algorithm::reduce(boostHist1d, boost::histogram::algorithm::shrink(maxElementCenter - restrictFitRangeToMax, maxElementCenter + restrictFitRangeToMax));
       }
 
       try {
@@ -149,7 +254,8 @@ class EMCALCalibExtractor
         mean = fitValues.at(1);
         // add mean to time calib params
         TCP.addTimeCalibParam(i, mean, 0);
-      } catch (o2::utils::FitGausError_t) {
+      } catch (o2::utils::FitGausError_t err) {
+        LOG(warning) << createErrorMessageFitGaus(err) << "; for cell " << i << " (Will take the parameter of the previous cell: " << mean << "ns)";
         TCP.addTimeCalibParam(i, mean, 0); // take calib value of last cell; or 400 ns shift default value
       }
     }
@@ -162,10 +268,11 @@ class EMCALCalibExtractor
   int mNThreads = 1;                          ///< number of threads used for calibration
 
   o2::emcal::Geometry* mGeometry = nullptr;
-  int mNcells = 17664;
+  static constexpr int mNcells = 17664;
 
   ClassDefNV(EMCALCalibExtractor, 1);
 };
+
 } // namespace emcal
 } // namespace o2
 #endif

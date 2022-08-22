@@ -13,7 +13,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <Generators/PrimaryGenerator.h>
 #include <Generators/GeneratorFactory.h>
-#include <Generators/PDG.h>
+#include "SimulationDataFormat/O2DatabasePDG.h"
 #include "SimulationDataFormat/MCEventHeader.h"
 #include <SimConfig/SimConfig.h>
 #include <SimConfig/SimParams.h>
@@ -191,7 +191,8 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
   rtdb->setOutput(parOut);
   rtdb->saveOutput();
   rtdb->print();
-  o2::PDG::addParticlesToPdgDataBase(0);
+  // add ALICE particles to TDatabasePDG singleton
+  o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance());
 
   long runStart = confref.getTimestamp(); // this will signify "time of this MC" (might not coincide with start of Run)
   {
@@ -238,7 +239,7 @@ FairRunSim* o2sim_init(bool asservice, bool evalmat = false)
       grp.addDetReadOut(o2::detectors::DetID::CTP);
     }
     grp.setIsMC(true);
-    grp.setRunType(o2::parameters::GRPECSObject::PHYSICS);
+    grp.setRunType(o2::parameters::GRPECSObject::RunType::PHYSICS);
     // grp.setDataPeriod("mc"); // decide what to put here
     std::string grpfilename = o2::base::NameConf::getGRPECSFileName(confref.getOutPrefix());
     TFile grpF(grpfilename.c_str(), "recreate");

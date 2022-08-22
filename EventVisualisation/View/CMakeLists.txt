@@ -15,6 +15,7 @@ o2_add_library(EventVisualisationView
                        src/EventManager.cxx
                        src/Options.cxx
                        src/EventManagerFrame.cxx
+                       src/Screenshot.cxx
                PUBLIC_LINK_LIBRARIES ROOT::ASImage
                                      O2::EventVisualisationBase
                                      O2::EventVisualisationDetectors

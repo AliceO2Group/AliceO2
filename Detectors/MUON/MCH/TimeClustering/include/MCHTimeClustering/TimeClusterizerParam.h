@@ -32,6 +32,8 @@ struct TimeClusterizerParam : public o2::conf::ConfigurableParamHelper<TimeClust
   bool peakSearchSignalOnly = true; ///< only use signal-like hits in peak search
   bool irFramesOnly = false;        ///< only output ROFs that overlap one of the IRFrames (provided externally, e.g. by ITS) @see MCHROFFiltering/IRFrameFilter
 
+  float rofRejectionFraction = 0; ///< fraction of output (i.e. time-clusterized) ROFs to discard. If 0 (default) keep them all. WARNING: use a non zero value only at Pt2 for sync reco, if needed.
+
   O2ParamDef(TimeClusterizerParam, "MCHTimeClusterizer");
 };
 

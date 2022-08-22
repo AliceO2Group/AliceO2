@@ -55,6 +55,8 @@ class Digitizer
   void flush(DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
   void dumpLabels(const SignalContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
   void pileup();
+  void clearPileupSignals() { mPileupSignals.clear(); }
+  const std::deque<std::array<SignalContainer, constants::MAXCHAMBER>>& getPileupSignals() const { return mPileupSignals; }
   void setEventTime(double timeNS) { mTime = timeNS; }
   void setTriggerTime(double t) { mCurrentTriggerTime = t; }
   void setEventID(int entryID) { mEventID = entryID; }

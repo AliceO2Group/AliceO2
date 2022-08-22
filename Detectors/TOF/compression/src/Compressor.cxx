@@ -199,7 +199,7 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
   while (mDecoderPointer < mDecoderPointerMax) {
     nsteps++;
     if (nsteps > 3 && !(nsteps % 4)) {
-      LOG(error) << "processHBF: nsteps in while loop = " << nsteps << ", infity loop?";
+      LOG(debug) << "processHBF: nsteps in while loop = " << nsteps << ", infity loop?";
     }
     mEventCounter++;
     if (processDRM()) {            // if this breaks, we did not run the checker and the summary is not reset!
@@ -407,7 +407,7 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
   while (true) {
     nsteps++;
     if (nsteps > 19 && !(nsteps % 20)) {
-      LOG(error) << "processDRM: nsteps in while loop = " << nsteps << ", infity loop?";
+      LOG(debug) << "processDRM: nsteps in while loop = " << nsteps << ", infity loop?";
     }
 
     /** LTM global header detected **/
@@ -616,7 +616,7 @@ bool Compressor<RDH, verbose, paranoid>::processTRM()
   while (true) {
     nsteps++;
     if (nsteps > 19 && !(nsteps % 20)) {
-      LOG(error) << "processTRM: nsteps in while loop = " << nsteps << ", infity loop?";
+      LOG(debug) << "processTRM: nsteps in while loop = " << nsteps << ", infity loop?";
     }
 
     /** TRM Chain-A Header detected **/
@@ -711,7 +711,7 @@ bool Compressor<RDH, verbose, paranoid>::processTRMchain(int itrm, int ichain)
   while (true) {
     nsteps++;
     if (nsteps > 99 && !(nsteps % 100)) {
-      LOG(error) << "processTRMchain: nsteps in while loop = " << nsteps << ", infity loop?";
+      LOG(debug) << "processTRMchain: nsteps in while loop = " << nsteps << ", infity loop?";
     }
     /** TDC hit detected **/
     if (IS_TDC_HIT(*mDecoderPointer)) {

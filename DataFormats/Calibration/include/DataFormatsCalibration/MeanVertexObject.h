@@ -15,29 +15,39 @@
 #include <array>
 #include "Rtypes.h"
 
+#include "Framework/Logger.h"
+#include "ReconstructionDataFormats/Vertex.h"
+
 namespace o2
 {
 namespace dataformats
 {
-class MeanVertexObject
+class MeanVertexObject : public VertexBase
 {
 
  public:
-  MeanVertexObject(float x, float y, float z, float sigmax, float sigmay, float sigmaz)
+  MeanVertexObject(float x, float y, float z, float sigmax, float sigmay, float sigmaz, float slopeX, float slopeY)
   {
-    mPos[0] = x;
-    mPos[1] = y;
-    mPos[2] = z;
-    mSigma[0] = sigmax;
-    mSigma[1] = sigmay;
-    mSigma[2] = sigmaz;
+    gpu::gpustd::array<float, kNCov> cov;
+    cov[CovElems::kCovXX] = sigmax;
+    cov[CovElems::kCovYY] = sigmay;
+    cov[CovElems::kCovZZ] = sigmaz;
+    setXYZ(x, y, z);
+    setCov(cov);
+    mSlopeX = slopeX;
+    mSlopeY = slopeY;
   }
-  MeanVertexObject(std::array<float, 3> pos, std::array<float, 3> sigma)
+  MeanVertexObject(std::array<float, 3> pos, std::array<float, 3> sigma, float slopeX, float slopeY)
   {
-    for (int i = 0; i < 3; i++) {
-      mPos[i] = pos[i];
-      mSigma[i] = sigma[i];
-    }
+    math_utils::Point3D<float> p(pos[0], pos[1], pos[2]);
+    gpu::gpustd::array<float, kNCov> cov;
+    cov[CovElems::kCovXX] = sigma[0];
+    cov[CovElems::kCovYY] = sigma[1];
+    cov[CovElems::kCovZZ] = sigma[2];
+    setPos(p);
+    setCov(cov);
+    mSlopeX = slopeX;
+    mSlopeY = slopeY;
   }
   MeanVertexObject() = default;
   ~MeanVertexObject() = default;
@@ -46,42 +56,57 @@ class MeanVertexObject
   MeanVertexObject& operator=(MeanVertexObject& other) = default;
   MeanVertexObject& operator=(MeanVertexObject&& other) = default;
 
-  void setX(float val) { mPos[0] = val; }
-  void setY(float val) { mPos[1] = val; }
-  void setZ(float val) { mPos[2] = val; }
-  void setPos(std::array<float, 3> val)
-  {
-    for (int i = 0; i < 3; i++) {
-      mPos[i] = val[i];
-    }
-  }
-
-  float getX() const { return mPos[0]; }
-  float getY() const { return mPos[1]; }
-  float getZ() const { return mPos[2]; }
-  const std::array<float, 3>& getPos() const { return mPos; }
-
-  void setSigmaX(float val) { mSigma[0] = val; }
-  void setSigmaY(float val) { mSigma[1] = val; }
-  void setSigmaZ(float val) { mSigma[2] = val; }
+  void set(int icoord, float val);
+  void setSigma(int icoord, float val);
+  void setSigmaX(float val) { setSigmaX2(val); }
+  void setSigmaY(float val) { setSigmaY2(val); }
+  void setSigmaZ(float val) { setSigmaZ2(val); }
   void setSigma(std::array<float, 3> val)
   {
-    for (int i = 0; i < 3; i++) {
-      mSigma[i] = val[i];
-    }
+    setSigmaX2(val[0]);
+    setSigmaY2(val[1]);
+    setSigmaZ2(val[2]);
+  }
+  void setSlopeX(float val) { mSlopeX = val; }
+  void setSlopeY(float val) { mSlopeY = val; }
+
+  math_utils::Point3D<float>& getPos() { return getXYZ(); }
+  math_utils::Point3D<float> getPos() const { return getXYZ(); }
+  float getSigmaX() const { return getSigmaX2(); }
+  float getSigmaY() const { return getSigmaY2(); }
+  float getSigmaZ() const { return getSigmaZ2(); }
+  const gpu::gpustd::array<float, kNCov>& getSigma() const { return getCov(); }
+
+  float getSlopeX() const { return mSlopeX; }
+  float getSlopeY() const { return mSlopeY; }
+
+  float getXAtZ(float z) { return getX() + mSlopeX * (z - getZ()); }
+  float getYAtZ(float z) { return getY() + mSlopeY * (z - getZ()); }
+
+  void print() const;
+  std::string asString() const;
+
+  VertexBase getMeanVertex(float z)
+  {
+    VertexBase v = *this;
+    v.setXYZ(getXAtZ(z), getYAtZ(z), z);
+    return v;
   }
 
-  float getSigmaX() const { return mSigma[0]; }
-  float getSigmaY() const { return mSigma[1]; }
-  float getSigmaZ() const { return mSigma[2]; }
-  const std::array<float, 3>& getSigma() const { return mSigma; }
+  const VertexBase& getMeanVertex() const
+  {
+    return (const VertexBase&)(*this);
+  }
 
  private:
-  std::array<float, 3> mPos;   // position of mean vertex
-  std::array<float, 3> mSigma; // sigma of mean vertex
+  float mSlopeX{0.f}; // slope of x = f(z)
+  float mSlopeY{0.f}; // slope of y = f(z)
 
-  ClassDefNV(MeanVertexObject, 1);
+  ClassDefNV(MeanVertexObject, 2);
 };
+
+std::ostream& operator<<(std::ostream& os, const o2::dataformats::MeanVertexObject& o);
+
 } // namespace dataformats
 } // namespace o2
 

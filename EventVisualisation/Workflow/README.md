@@ -11,7 +11,7 @@ This module contains DPL worflow, which can be used to produce data (in JSON for
 
 ## Prepare data based on simulated data
 before one starts steps described below, please verify that:
-* for `o2-eve-display` step you should:
+* for `o2-eve-export-workflow` step you should:
   * start within the folder where simulated data was produced
   * you need to store in the folder file ```ITSdictionary.bin``` and ```MFSdictionary.bin``` (available from O2-2288 jira)
 * for `o2-eve` step you should:
@@ -33,7 +33,7 @@ $O2_ROOT/prodtests/sim_challenge.sh -n 5 -s pbpb
 ```
 * Run Workflow in folder with files produced by simulation
 ```shell
-o2-global-track-cluster-reader --track-types TPC,ITS --cluster-types TPC,ITS | o2-eve-display --display-tracks TPC,ITS --display-clusters TPC,ITS
+o2-global-track-cluster-reader --track-types TPC,ITS --cluster-types TPC,ITS | o2-eve-export-workflow --display-tracks TPC,ITS --display-clusters TPC,ITS
 ```
 * Run `o2-eve` pointing a folder where produced `*.json` files were stored (see description # Event Visualisation View)
 ```shell
@@ -42,7 +42,7 @@ o2-eve -j -d /home/ed/jsons -o
 ```
 
 
-## o2-eve-display command line parameters:
+## o2-eve-export-workflow command line parameters:
 
 | *parameter*              | *default value*                                         | *description*                                                                                                                        |  
 |--------------------------|---------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|

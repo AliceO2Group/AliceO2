@@ -21,7 +21,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "TPCBase/CalDet.h"
 #include "TPCCalibration/CalibPadGainTracksBase.h"
-#include "DataFormatsTPC/CalibdEdxTrackTopologyPol.h"
+#include "CalibdEdxTrackTopologyPol.h"
 #include "TPCFastTransform.h"
 
 #include <vector>
@@ -116,6 +116,15 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   /// \param eta maximum accpeted eta of the tracks
   void setMaxEta(const float eta) { mEtaMax = eta; }
 
+  /// \param mindedx minimmum accepted dE/dx
+  void setdEdxMin(const float mindedx) { mDedxMin = mindedx; }
+
+  /// \param mDedxMax maximum accepted dE/dx
+  void setdEdxMax(const float maxdEdx) { mDedxMax = maxdEdx; }
+
+  /// \param mDoNotNormCharge minimmum do not normalize the cluster charge to the dE/dx
+  void doNotNomalize(const bool doNotNormCharge) { mDoNotNormCharge = doNotNormCharge; }
+
   /// \param nCl minimum number of clusters required of the tracks
   void setMinNClusters(const int nCl) { mMinClusters = nCl; }
 
@@ -148,6 +157,15 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
 
   /// \return returns maximum eta of accepted tracks
   float getEtaMax() const { return mEtaMax; }
+
+  /// \return returns minimmum accepted dE/dx
+  float getdEdxMin() const { return mDedxMin; }
+
+  /// \return returns minimmum accepted dE/dx
+  float getdEdxMax() const { return mDedxMax; }
+
+  /// \return returns whether the charge will be normalized to the dE/dx dE/dx
+  bool getdoNotNomalize() const { return mDoNotNormCharge; }
 
   /// \return returns minimum number of clusters required of the tracks
   float getMinNClusters() const { return mMinClusters; }
@@ -201,9 +219,12 @@ class CalibPadGainTracks : public CalibPadGainTracksBase
   float mField{-5};                                                                   ///< Magnetic field in kG, used for track propagation
   float mMomMin{0.1f};                                                                ///< minimum momentum which is required by tracks
   float mMomMax{5.f};                                                                 ///< maximum momentum which is required by tracks
+  float mDedxMin{0.f};                                                                ///< minimum accepted dE/dx
+  float mDedxMax{-1.f};                                                               ///< maximum accepted dE/dx
   float mEtaMax{1.f};                                                                 ///< maximum accpeted eta of tracks
   int mMinClusters{50};                                                               ///< minimum number of clusters the tracks require
   bool mPropagateTrack{false};                                                        ///< propagating the track instead of performing a refit
+  bool mDoNotNormCharge{false};                                                       ///< do not normalize the cluster charge to the dE/dx
   ChargeType mChargeType{ChargeType::Max};                                            ///< charge type which is used for calculating the dE/dx and filling the pad-by-pad histograms
   std::vector<std::vector<float>> mDEdxBuffer{};                                      ///<! memory for dE/dx
   std::vector<std::tuple<unsigned char, unsigned char, unsigned char, float>> mClTrk; ///<! memory for cluster informations

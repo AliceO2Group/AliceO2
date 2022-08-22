@@ -49,7 +49,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
   using LHCphase = o2::dataformats::CalibLHCphaseTOF;
 
  public:
-  explicit TOFChannelCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool useCCDB, bool followCCDBUpdates, bool attachChannelOffsetToLHCphase, bool isCosmics, bool perstrip = false, bool safe = false) : mCCDBRequest(req), mUseCCDB(useCCDB), mFollowCCDBUpdates(followCCDBUpdates), mAttachToLHCphase(attachChannelOffsetToLHCphase), mCosmics(isCosmics), mDoPerStrip(perstrip), mSafeMode(safe) {}
+  explicit TOFChannelCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool useCCDB, bool attachChannelOffsetToLHCphase, bool isCosmics, bool perstrip = false, bool safe = false) : mCCDBRequest(req), mUseCCDB(useCCDB), mAttachToLHCphase(attachChannelOffsetToLHCphase), mCosmics(isCosmics), mDoPerStrip(perstrip), mSafeMode(safe) {}
 
   void init(o2::framework::InitContext& ic) final
   {
@@ -112,15 +112,13 @@ class TOFChannelCalibDevice : public o2::framework::Task
   {
     o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
     mUpdateCCDB = false;
-    if (mFollowCCDBUpdates) {
-      if (matcher == ConcreteDataMatcher("TOF", "LHCphaseCal", 0)) {
-        mUpdateCCDB = true;
-        return;
-      }
-      if (matcher == ConcreteDataMatcher("TOF", "ChannelCalibCal", 0)) {
-        mUpdateCCDB = true;
-        return;
-      }
+    if (matcher == ConcreteDataMatcher("TOF", "LHCphaseCal", 0)) {
+      mUpdateCCDB = true;
+      return;
+    }
+    if (matcher == ConcreteDataMatcher("TOF", "ChannelCalibCal", 0)) {
+      mUpdateCCDB = true;
+      return;
     }
   }
 
@@ -133,36 +131,27 @@ class TOFChannelCalibDevice : public o2::framework::Task
     auto tfcounter = mCalibrator->getCurrentTFInfo().tfCounter;
 
     if (mUseCCDB) { // read calibration objects from ccdb
-      LHCphase lhcPhaseObjTmp;
-      auto lhcPhase = pc.inputs().get<LHCphase*>("tofccdbLHCphase");
-      lhcPhaseObjTmp = std::move(*lhcPhase);
-      auto channelCalib = pc.inputs().get<TimeSlewing*>("tofccdbChannelCalib");
-      TimeSlewing channelCalibObjTmp = std::move(*channelCalib);
+      const auto lhcPhaseIn = pc.inputs().get<LHCphase*>("tofccdbLHCphase");
+      const auto channelCalibIn = pc.inputs().get<TimeSlewing*>("tofccdbChannelCalib");
 
-      mPhase = lhcPhaseObjTmp;
-      mTimeSlewing = channelCalibObjTmp;
-
-      startTimeLHCphase = mPhase.getStartValidity();
-      startTimeChCalib = mTimeSlewing.getStartValidity();
-    }
-
-    LOG(debug) << "startTimeLHCphase = " << startTimeLHCphase << ",  startTimeChCalib = " << startTimeChCalib;
-
-    if (!mcalibTOFapi) {
-      mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), &mPhase, &mTimeSlewing);
-
-      // checking if the existing object is too old. This check we can do only once, because any other update will be from the same run (--> not too old)
-      long timeNow = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-      if ((timeNow - startTimeChCalib) > o2::ccdb::CcdbObjectInfo::DAY * 7) {
-        LOG(info) << "Enlarging the range of the booked histogram since the latest CCDB entry is too old";
-        mCalibrator->setRange(mRange * 10); // we enlarge the range for the calibration in case the last valid object is too old (older than 1 week)
+      if (!mcalibTOFapi) {
+        LHCphase* lhcPhase = new LHCphase(std::move(*lhcPhaseIn));
+        TimeSlewing* channelCalib = new TimeSlewing(std::move(*channelCalibIn));
+        mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib);
+        mUpdateCCDB = false;
+      } else {
+        // if the calib objects were updated, we need to update the mcalibTOFapi
+        if (mUpdateCCDB) {
+          delete mcalibTOFapi;
+          LHCphase* lhcPhase = new LHCphase(*lhcPhaseIn);
+          TimeSlewing* channelCalib = new TimeSlewing(std::move(*channelCalibIn));
+          mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), lhcPhase, channelCalib);
+          mUpdateCCDB = false;
+        }
       }
-    } else {
-      if (mUseCCDB && mUpdateCCDB) {
-        mcalibTOFapi->setLhcPhase(&mPhase);
-        mcalibTOFapi->setSlewParam(&mTimeSlewing);
-        mCalibrator->setRange(mRange);                                                                               // let's restrict the range since we received an updated calibration
-        mCalibrator->getSlot(mCalibrator->getNSlots() - 1).getContainer()->resetAndReRange(mCalibrator->getRange()); // we also empty the existing slot to update its range; the loss in statistics will be minimal
+    } else { // we use "fake" initial calibrations
+      if (!mcalibTOFapi) {
+        mcalibTOFapi = new o2::tof::CalibTOFapi(long(0), &mPhase, &mTimeSlewing);
       }
     }
 
@@ -172,7 +161,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
     LOG(info) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
 
     if (mUseCCDB) { // setting the timestamp to get the LHCPhase correction; if we don't use CCDB, then it can stay to 0 as set when creating the calibTOFapi above
-      const auto tfOrbitFirst = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true))->firstTForbit;
+      const auto tfOrbitFirst = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
       mcalibTOFapi->setTimeStamp(0.001 * (o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS * 0.001)); // in seconds
     }
 
@@ -199,7 +188,6 @@ class TOFChannelCalibDevice : public o2::framework::Task
   bool mCosmics = false;
   bool mDoPerStrip = false;
   bool mSafeMode = false;
-  bool mFollowCCDBUpdates = false;
   bool mUpdateCCDB = false;
 
   //________________________________________________________________
@@ -233,7 +221,7 @@ namespace framework
 {
 
 template <class T>
-DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool followCCDBUpdates = false, bool attachChannelOffsetToLHCphase = false, bool isCosmics = false, bool perstrip = false, bool safe = false)
+DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelOffsetToLHCphase = false, bool isCosmics = false, bool perstrip = false, bool safe = false)
 {
   using device = o2::calibration::TOFChannelCalibDevice<T>;
   using clbUtils = o2::calibration::Utils;
@@ -264,7 +252,7 @@ DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool followCCDBUpda
     "calib-tofchannel-calibration",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(ccdbRequest, useCCDB, followCCDBUpdates, attachChannelOffsetToLHCphase, isCosmics, perstrip, safe)},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest, useCCDB, attachChannelOffsetToLHCphase, isCosmics, perstrip, safe)},
     Options{
       {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit channel histos"}},
       {"nbins", VariantType::Int, 1000, {"number of bins for t-texp"}},

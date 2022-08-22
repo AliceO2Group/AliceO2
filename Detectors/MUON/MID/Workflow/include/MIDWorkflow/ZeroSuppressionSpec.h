@@ -18,13 +18,14 @@
 #define O2_MID_ZEROSUPPRESSIONSPEC_H
 
 #include "Framework/DataProcessorSpec.h"
+#include <string_view>
 
 namespace o2
 {
 namespace mid
 {
-framework::DataProcessorSpec getZeroSuppressionSpec(bool useMC = true);
+framework::DataProcessorSpec getZeroSuppressionSpec(bool useMC = true, std::string_view dataDesc = "DATAMC");
 }
 } // namespace o2
 
-#endif //O2_MID_ZEROSUPPRESSIONSPEC_H
+#endif // O2_MID_ZEROSUPPRESSIONSPEC_H

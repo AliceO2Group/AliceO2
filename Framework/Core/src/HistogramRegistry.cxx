@@ -94,8 +94,8 @@ void HistogramRegistry::validateHistName(const std::string& name, const uint32_t
   }
 
   // validate that name contains only allowed characters
-  if (!std::regex_match(name, std::regex("([a-zA-Z0-9])(([\\/_])?[a-zA-Z0-9])*"))) {
-    LOGF(fatal, R"(Histogram name "%s" contains invalid characters.)", name);
+  if (!std::regex_match(name, std::regex("([a-zA-Z0-9])(([\\/_-])?[a-zA-Z0-9])*"))) {
+    LOGF(fatal, R"(Histogram name "%s" contains invalid characters. Only letters, numbers, and (except for the beginning or end of the word) the special characters '/', '_', '-' are allowed.)", name);
   }
 }
 

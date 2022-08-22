@@ -14,7 +14,7 @@
 
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
-#include "FV0Calibration/FV0CalibrationInfoObject.h"
+#include "DataFormatsFV0/FV0CalibrationInfoObject.h"
 #include "FV0Base/Constants.h"
 
 #include <array>

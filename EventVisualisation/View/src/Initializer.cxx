@@ -58,8 +58,11 @@ void Initializer::setup()
 
   auto const options = Options::Instance();
 
+  EventManagerFrame::RunMode runMode = EventManagerFrame::decipherRunMode(settings.GetValue("data.default", "SYNTHETIC"));
+
   if (options->json()) {
-    eventManager.setDataSource(new DataSourceOnline(options->dataFolder()));
+    runMode = EventManagerFrame::decipherRunMode(options->dataFolder(), runMode);
+    eventManager.setDataSource(new DataSourceOnline(EventManagerFrame::getSourceDirectory(runMode).Data()));
   } else {
     eventManager.setDataSource(new DataSourceOffline(options->AODConverterPath(), options->dataFolder(), options->fileName(), options->hideDplGUI()));
   }
@@ -153,7 +156,7 @@ void Initializer::setupCamera()
   double zoom[MultiView::NumberOfViews];
   zoom[MultiView::View3d] = settings.GetValue("camera.3D.zoom", 1.0);
   zoom[MultiView::ViewRphi] = settings.GetValue("camera.R-Phi.zoom", 1.0);
-  zoom[MultiView::ViewZrho] = settings.GetValue("camera.Rho-Z.zoom", 1.0);
+  zoom[MultiView::ViewZY] = settings.GetValue("camera.Z-Y.zoom", 1.0);
 
   // get necessary elements of the multiview and set camera position
   auto multiView = MultiView::getInstance();

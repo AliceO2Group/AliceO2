@@ -44,7 +44,7 @@ GPUdii() void GPUTPCStartHitsFinder::Thread<0>(int /*nBlocks*/, int nThreads, in
       unsigned int nextRowStartHits = CAMath::AtomicAddShared(&s.mNRowStartHits, 1u);
       if (nextRowStartHits >= tracker.mNMaxRowStartHits) {
         tracker.raiseError(GPUErrors::ERROR_ROWSTARTHIT_OVERFLOW, tracker.ISlice() * 1000 + s.mIRow, nextRowStartHits, tracker.mNMaxRowStartHits);
-        CAMath::AtomicExch(&tracker.mCommonMem->nStartHits, tracker.mNMaxRowStartHits);
+        CAMath::AtomicExchShared(&s.mNRowStartHits, tracker.mNMaxRowStartHits);
         break;
       }
 #else

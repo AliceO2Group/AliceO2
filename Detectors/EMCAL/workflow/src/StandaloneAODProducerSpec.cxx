@@ -48,15 +48,15 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
 
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getFirstValid(true).header);
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
   uint64_t tfNumber;
   if (mTFNumber == -1L) {
     // TODO has to be made globally unique (by using absolute time of TF). For now is unique within the run
-    tfNumber = uint64_t(dh->firstTForbit) + (uint64_t(dh->runNumber) << 32); // getTFNumber(mStartIR, runNumber);
+    tfNumber = uint64_t(tinfo.firstTForbit) + (uint64_t(tinfo.runNumber) << 32); // getTFNumber(mStartIR, runNumber);
   } else {
     tfNumber = mTFNumber;
   }
-  const int runNumber = (mRunNumber == -1) ? int(dh->runNumber) : mRunNumber;
+  const int runNumber = (mRunNumber == -1) ? int(tinfo.runNumber) : mRunNumber;
 
   auto cellsIn = pc.inputs().get<gsl::span<o2::emcal::Cell>>(getCellBinding());
   auto triggersIn = pc.inputs().get<gsl::span<o2::emcal::TriggerRecord>>(getCellTriggerRecordBinding());

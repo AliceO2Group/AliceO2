@@ -19,6 +19,8 @@
 #include <EventVisualisationBase/DataSource.h>
 #include <EventVisualisationBase/DataReader.h>
 #include <EventVisualisationBase/FileWatcher.h>
+#include <string>
+#include <vector>
 
 class TObject;
 
@@ -30,6 +32,7 @@ namespace event_visualisation
 class DataSourceOnline : public DataSource
 {
  protected:
+  static std::vector<std::string> sourceFilextensions;
   FileWatcher mFileWatcher;
   int mRunNumber;
   int mFirstTForbit;
@@ -53,10 +56,12 @@ class DataSourceOnline : public DataSource
   bool refresh() override; // recompute
 
   std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> getVisualisationList(int no, float minTime, float maxTime, float range) override;
+  void rollToNext() override { mFileWatcher.rollToNext(); };
   void changeDataFolder(std::string newFolder) override { mFileWatcher.changeFolder(newFolder); };
   void saveCurrentEvent(std::string targetFolder) override { mFileWatcher.saveCurrentFileToFolder(targetFolder); };
   int getRunNumber() const override { return this->mRunNumber; }
   void setRunNumber(int runNumber) override { this->mRunNumber = runNumber; }
+  std::string getEventName() override { return mFileWatcher.currentItem(); };
   int getFirstTForbit() const override { return this->mFirstTForbit; }
   void setFirstTForbit(int firstTForbit) override { this->mFirstTForbit = firstTForbit; }
   std::string getCollisionTime() const override { return this->mCollisionTime; }

@@ -40,6 +40,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-itsonly", VariantType::Bool, false, {"process tracks without outer point (ITS-TPC only)"}},
     {"tracking-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use for tracking"}},
     {"enable-residual-writer", VariantType::Bool, false, {"write unbinned and unfiltered residuals"}},
+    {"send-track-data", VariantType::Bool, false, {"Send also the track information to the aggregator"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -74,15 +75,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   useMC = false; // force disabling MC as long as it is not implemented
   auto processITSTPConly = configcontext.options().get<bool>("enable-itsonly");
   auto writeResiduals = configcontext.options().get<bool>("enable-residual-writer");
+  auto sendTrackData = configcontext.options().get<bool>("send-track-data");
   GID::mask_t src = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("tracking-sources"));
   LOG(info) << "Data sources: " << GID::getSourcesNames(src);
 
-  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(src, useMC, processITSTPConly, writeResiduals));
+  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(src, useMC, processITSTPConly, writeResiduals, sendTrackData));
   if (!configcontext.options().get<bool>("disable-root-output") && writeResiduals) {
     specs.emplace_back(o2::tpc::getTPCResidualWriterSpec(useMC));
   }
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC);

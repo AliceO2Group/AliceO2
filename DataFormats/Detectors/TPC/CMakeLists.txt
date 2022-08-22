@@ -28,11 +28,8 @@ o2_add_library(
           src/CompressedClusters.cxx
           src/TrackCuts.cxx
           src/CalibdEdxCorrection.cxx
-          src/CalibdEdxTrackTopologyPol.cxx
-          src/CalibdEdxTrackTopologySpline.cxx
           src/DCS.cxx
   PUBLIC_LINK_LIBRARIES O2::GPUCommon
-                        O2::TPCFastTransformation
                         O2::SimulationDataFormat
                         O2::CommonDataFormat
                         O2::Headers
@@ -57,13 +54,13 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/CompressedClusters.h
           include/DataFormatsTPC/CTF.h
           include/DataFormatsTPC/IDC.h
+          include/DataFormatsTPC/SAC.h
           include/DataFormatsTPC/ZeroSuppression.h
           include/DataFormatsTPC/ZeroSuppressionLinkBased.h
           include/DataFormatsTPC/TrackCuts.h
           include/DataFormatsTPC/LtrCalibData.h
+          include/DataFormatsTPC/VDriftCorrFact.h
           include/DataFormatsTPC/CalibdEdxCorrection.h
-          include/DataFormatsTPC/CalibdEdxTrackTopologyPol.h
-          include/DataFormatsTPC/CalibdEdxTrackTopologySpline.h
           include/DataFormatsTPC/BetheBlochAleph.h)
 
 o2_add_test(

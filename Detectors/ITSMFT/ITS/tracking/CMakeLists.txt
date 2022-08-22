@@ -17,7 +17,6 @@ o2_add_library(ITStracking
                        src/TimeFrame.cxx
                        src/IOUtils.cxx
                        src/Label.cxx
-                       src/PrimaryVertexContext.cxx
                        src/Road.cxx
                        src/Tracker.cxx
                        src/TrackerTraits.cxx
@@ -35,6 +34,11 @@ o2_add_library(ITStracking
                                      O2::ITSReconstruction
                                      O2::ITSMFTReconstruction
                                      O2::DataFormatsITS)
+
+if (OpenMP_CXX_FOUND)
+        target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+        target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 o2_target_root_dictionary(ITStracking
                           HEADERS include/ITStracking/ClusterLines.h

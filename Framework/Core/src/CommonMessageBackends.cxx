@@ -56,8 +56,13 @@ o2::framework::ServiceSpec CommonMessageBackends::fairMQDeviceProxy()
       auto* proxy = static_cast<FairMQDeviceProxy*>(instance);
       auto& outputs = services.get<DeviceSpec const>().outputs;
       auto& inputs = services.get<DeviceSpec const>().inputs;
+      auto& forwards = services.get<DeviceSpec const>().forwards;
       auto* device = services.get<RawDeviceService>().device();
-      proxy->bind(outputs, inputs, *device); },
+      /// Notice that we do it here (and not in the init) because
+      /// some of the channels are added only later on to the party,
+      /// (e.g. by ECS) and Init might not be late enough to
+      /// account for them.
+      proxy->bind(outputs, inputs, forwards, *device); },
   };
 }
 

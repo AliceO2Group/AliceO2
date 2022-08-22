@@ -22,7 +22,6 @@
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Constants.h"
 #include "TPCBase/ParameterElectronics.h"
-#include "TPCBase/ParameterGas.h"
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "GPUWorkflowHelper/GPUWorkflowHelper.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -64,76 +63,85 @@ namespace trd
 
 void TRDGlobalTracking::init(InitContext& ic)
 {
-
-  //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP();
-  auto geo = Geometry::instance();
-  o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L));
-  geo->createPadPlaneArray();
-  geo->createClusterMatrixArray();
-  mFlatGeo = std::make_unique<GeometryFlat>(*geo);
-
-  // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
-  std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
-  std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
-  if (o2::utils::Str::pathExists(matLUTFile)) {
-    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
-    o2::base::Propagator::Instance()->setMatLUT(lut);
-    LOG(info) << "Loaded material LUT from " << matLUTFile;
-  } else {
-    LOG(info) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
-  }
-
-  //-------- init GPU reconstruction --------//
-  GPURecoStepConfiguration cfgRecoStep;
-  cfgRecoStep.steps = GPUDataTypes::RecoStep::NoRecoStep;
-  cfgRecoStep.inputs.clear();
-  cfgRecoStep.outputs.clear();
-  mRec = GPUReconstruction::CreateInstance("CPU", true);
-  mRec->SetSettings(o2::base::Propagator::Instance()->getNominalBz(), &cfgRecoStep);
-  mRec->GetNonConstParam().rec.trd.useExternalO2DefaultPropagator = true;
-
-  mChainTracking = mRec->AddChain<GPUChainTracking>();
-
-  mTracker = new GPUTRDTracker();
-  mTracker->SetNCandidates(mRec->GetProcessingSettings().trdNCandidates); // must be set before initialization
-  if (mStrict && mRec->GetProcessingSettings().trdNCandidates == 1) {
-    LOG(error) << "Strict matching mode requested, but tracks with another close hypothesis will not be rejected. Please set trdNCandidates to at least 3.";
-  }
-  mTracker->SetProcessPerTimeFrame(true);
-  mTracker->SetGenerateSpacePoints(false); // set to true to force space point calculation by the TRD tracker itself
-
-  mRec->RegisterGPUProcessor(mTracker, false);
-  mChainTracking->SetTRDGeometry(std::move(mFlatGeo));
-  if (mRec->Init()) {
-    LOG(fatal) << "GPUReconstruction could not be initialized";
-  }
-
-  std::unique_ptr<o2::gpu::TPCFastTransform> fastTransform = (o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
-  mTPCTransform = std::move(fastTransform);
-  mRecoParam.setBfield(o2::base::Propagator::Instance()->getNominalBz());
-
-  mTracker->PrintSettings();
-  LOG(info) << "Strict matching mode is " << ((mStrict) ? "ON" : "OFF");
-
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  mTPCTransform = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
   mTimer.Stop();
   mTimer.Reset();
 }
 
 void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 {
-  // strictly speaking, one should do this only in case of the CCDB objects update
-  // TODO: add CCDB interface
-
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
   // pc.inputs().get<TopologyDictionary*>("cldict"); // called by the RecoContainer to trigger finaliseCCDB
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    // init-once stuff
 
-  auto& elParam = o2::tpc::ParameterElectronics::Instance();
-  auto& gasParam = o2::tpc::ParameterGas::Instance();
-  mTPCTBinMUS = elParam.ZbinWidth;
-  mTPCTBinMUSInv = 1. / mTPCTBinMUS;
-  mTPCVdrift = gasParam.DriftV;
-  mTracker->SetTPCVdrift(mTPCVdrift);
+    auto geo = Geometry::instance();
+    o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L));
+    geo->createPadPlaneArray();
+    geo->createClusterMatrixArray();
+    mFlatGeo = std::make_unique<GeometryFlat>(*geo);
+
+    GPURecoStepConfiguration cfgRecoStep;
+    cfgRecoStep.steps = GPUDataTypes::RecoStep::NoRecoStep;
+    cfgRecoStep.inputs.clear();
+    cfgRecoStep.outputs.clear();
+    mRec = GPUReconstruction::CreateInstance("CPU", true);
+    mRec->SetSettings(o2::base::Propagator::Instance()->getNominalBz(), &cfgRecoStep);
+    mRec->GetNonConstParam().rec.trd.useExternalO2DefaultPropagator = true;
+    mChainTracking = mRec->AddChain<GPUChainTracking>();
+
+    mTracker = new GPUTRDTracker();
+    mTracker->SetNCandidates(mRec->GetProcessingSettings().trdNCandidates); // must be set before initialization
+    if (mStrict && mRec->GetProcessingSettings().trdNCandidates == 1) {
+      LOG(error) << "Strict matching mode requested, but tracks with another close hypothesis will not be rejected. Please set trdNCandidates to at least 3.";
+    }
+    mTracker->SetProcessPerTimeFrame(true);
+    mTracker->SetGenerateSpacePoints(false); // set to true to force space point calculation by the TRD tracker itself
+
+    mRec->RegisterGPUProcessor(mTracker, false);
+    mChainTracking->SetTRDGeometry(std::move(mFlatGeo));
+    if (mRec->Init()) {
+      LOG(fatal) << "GPUReconstruction could not be initialized";
+    }
+
+    mRecoParam.setBfield(o2::base::Propagator::Instance()->getNominalBz());
+
+    mTracker->PrintSettings();
+    LOG(info) << "Strict matching mode is " << ((mStrict) ? "ON" : "OFF");
+    LOGF(info, "The search road in time for ITS-TPC tracks is set to %.1f sigma and %.2f us are added to it on top",
+         mRec->GetParam().rec.trd.nSigmaTerrITSTPC, mRec->GetParam().rec.trd.addTimeRoadITSTPC);
+  }
+  if (mTPCVDriftHelper.isUpdated()) {
+    auto& elParam = o2::tpc::ParameterElectronics::Instance();
+    mTPCTBinMUS = elParam.ZbinWidth;
+    mTPCTBinMUSInv = 1. / mTPCTBinMUS;
+    auto& vd = mTPCVDriftHelper.getVDriftObject();
+    mTPCVdrift = vd.refVDrift * vd.corrFact;
+    LOGP(info, "Updating TPC VDrift with factor of {} wrt reference {} from source {}",
+         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCTransform, 0, vd.corrFact, vd.refVDrift);
+    mTracker->SetTPCVdrift(mTPCVdrift);
+    mTPCVDriftHelper.acknowledgeUpdate();
+  }
+}
+
+void TRDGlobalTracking::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
+  if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mITSDict = (const o2::itsmft::TopologyDictionary*)obj;
+    return;
+  }
 }
 
 void TRDGlobalTracking::fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lblSeed, std::vector<o2::MCCompLabel>& lblContainerTrd, std::vector<o2::MCCompLabel>& lblContainerMatch, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* trkltLabels) const
@@ -210,9 +218,11 @@ void TRDGlobalTracking::fillTrackTriggerRecord(const std::vector<TrackTRD>& trac
 void TRDGlobalTracking::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
-  mChainTracking->ClearIOPointers();
   o2::globaltracking::RecoContainer inputTracks;
   inputTracks.collectData(pc, *mDataRequest);
+  updateTimeDependentParams(pc);
+  mChainTracking->ClearIOPointers();
+
   mTPCClusterIdxStruct = &inputTracks.inputsTPCclusters->clusterIndex;
   mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCTransform.get(), o2::base::Propagator::Instance()->getNominalBz(), inputTracks.getTPCTracksClusterRefs().data(), inputTracks.clusterShMapTPC.data(), nullptr, o2::base::Propagator::Instance());
   auto tmpInputContainer = getRecoInputContainer(pc, &mChainTracking->mIOPtrs, &inputTracks, mUseMC);
@@ -251,9 +261,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       tpcTrackLabels = inputTracks.getTPCTracksMCLabels();
     }
   }
-
   mTracker->Reset();
-  updateTimeDependentParams(pc);
   mRec->PrepareEvent();
   mRec->SetupGPUProcessor(mTracker, true);
 
@@ -284,8 +292,8 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     const auto& trkITSTPC = mChainTracking->mIOPtrs.tracksTPCITSO2[iTrk];
     GPUTRDTracker::HelperTrackAttributes trkAttribs;
     trkAttribs.mTime = trkITSTPC.getTimeMUS().getTimeStamp();
-    trkAttribs.mTimeAddMax = trkITSTPC.getTimeMUS().getTimeStampError() * mRec->GetParam().rec.trd.nSigmaTerrITSTPC;
-    trkAttribs.mTimeSubMax = trkITSTPC.getTimeMUS().getTimeStampError() * mRec->GetParam().rec.trd.nSigmaTerrITSTPC;
+    trkAttribs.mTimeAddMax = trkITSTPC.getTimeMUS().getTimeStampError() * mRec->GetParam().rec.trd.nSigmaTerrITSTPC + mRec->GetParam().rec.trd.addTimeRoadITSTPC;
+    trkAttribs.mTimeSubMax = trkITSTPC.getTimeMUS().getTimeStampError() * mRec->GetParam().rec.trd.nSigmaTerrITSTPC + mRec->GetParam().rec.trd.addTimeRoadITSTPC;
     GPUTRDTrack trkLoad(trkITSTPC);
     auto trackGID = GTrackID(iTrk, GTrackID::ITSTPC);
     if (mTracker->LoadTrack(trkLoad, trackGID.getRaw(), true, &trkAttribs)) {
@@ -613,14 +621,6 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards)
   return true;
 }
 
-void TRDGlobalTracking::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
-{
-  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
-    LOG(info) << "cluster dictionary updated";
-    mITSDict = (const o2::itsmft::TopologyDictionary*)obj;
-  }
-}
-
 void TRDGlobalTracking::endOfStream(EndOfStreamContext& ec)
 {
   LOGF(info, "TRD global tracking total timing: Cpu: %.3e Real: %.3e s in %d slots",
@@ -646,7 +646,15 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
   }
   dataRequest->requestTracks(trkSrc, useMC);
   auto& inputs = dataRequest->inputs;
-
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              false,                             // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              inputs,
+                                                              true);
+  o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
 
   if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {
     outputs.emplace_back(o2::header::gDataOriginTRD, "MATCH_ITSTPC", 0, Lifetime::Timeframe);
@@ -676,7 +684,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
     processorName,
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, dataRequest, src, trigRecFilterActive, strict)},
+    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, dataRequest, ggRequest, src, trigRecFilterActive, strict)},
     Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
 

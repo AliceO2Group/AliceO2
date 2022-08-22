@@ -53,84 +53,84 @@ class InvalidEnergyIntervalException final : public std::exception
   std::string mMessage; ///< Message to be printed
 };
 
+class EnergyIntervals
+{
+ public:
+  EnergyIntervals() = default;
+  EnergyIntervals(float min, float max)
+  {
+    Elow = min;
+    Ehigh = max;
+  }
+  ~EnergyIntervals() = default;
+
+  /// Set the energy interval
+  /// \param min The lower bound of the energy interval
+  /// \param max The upper bound of the energy interval
+  void setEnergy(float min, float max)
+  {
+    Elow = min;
+    Ehigh = max;
+  }
+  /// Check if the energy is in the energy interval
+  /// \param energy The energy to check
+  /// \return True if the energy is in the energy interval
+  bool isInInterval(float E) const
+  {
+    LOG(debug) << "EMCALChannelScaleFactors::EnergyIntervals::IsInInterval: Checking if " << E << " is in the interval " << Elow << " - " << Ehigh;
+    if (E >= Elow && E < Ehigh) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  /// declare operator ==, !=, <, >
+  bool operator==(const EnergyIntervals& other) const
+  {
+    if (std::abs(Elow - other.Elow) < FLT_EPSILON && std::abs(Ehigh - other.Ehigh) < FLT_EPSILON) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  bool operator!=(const EnergyIntervals& other) const
+  {
+    if (std::abs(Elow - other.Elow) < FLT_EPSILON && std::abs(Ehigh - other.Ehigh) < FLT_EPSILON) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+  bool operator<(const EnergyIntervals& other) const
+  {
+    if (Elow < other.Elow) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+  bool operator>(const EnergyIntervals& other) const
+  {
+    if (Elow > other.Elow) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+ private:
+  /// declare energy upper and lower bound
+  float Elow;
+  float Ehigh;
+
+  ClassDefNV(EnergyIntervals, 1);
+};
+
 class EMCALChannelScaleFactors
 {
 
  public:
-  class EnergyIntervals
-  {
-   public:
-    EnergyIntervals() = default;
-    EnergyIntervals(float min, float max)
-    {
-      Elow = min;
-      Ehigh = max;
-    }
-    ~EnergyIntervals() = default;
-
-    /// Set the energy interval
-    /// \param min The lower bound of the energy interval
-    /// \param max The upper bound of the energy interval
-    void setEnergy(float min, float max)
-    {
-      Elow = min;
-      Ehigh = max;
-    }
-    /// Check if the energy is in the energy interval
-    /// \param energy The energy to check
-    /// \return True if the energy is in the energy interval
-    bool isInInterval(float E) const
-    {
-      LOG(debug) << "EMCALChannelScaleFactors::EnergyIntervals::IsInInterval: Checking if " << E << " is in the interval " << Elow << " - " << Ehigh;
-      if (E >= Elow && E < Ehigh) {
-        return true;
-      } else {
-        return false;
-      }
-    }
-
-    /// declare operator ==, !=, <, >
-    bool operator==(const EnergyIntervals& other) const
-    {
-      if (std::abs(Elow - other.Elow) < FLT_EPSILON && std::abs(Ehigh - other.Ehigh) < FLT_EPSILON) {
-        return true;
-      } else {
-        return false;
-      }
-    }
-    bool operator!=(const EnergyIntervals& other) const
-    {
-      if (std::abs(Elow - other.Elow) < FLT_EPSILON && std::abs(Ehigh - other.Ehigh) < FLT_EPSILON) {
-        return false;
-      } else {
-        return true;
-      }
-    }
-    bool operator<(const EnergyIntervals& other) const
-    {
-      if (Elow < other.Elow) {
-        return true;
-      } else {
-        return false;
-      }
-    }
-    bool operator>(const EnergyIntervals& other) const
-    {
-      if (Elow > other.Elow) {
-        return true;
-      } else {
-        return false;
-      }
-    }
-
-   private:
-    /// declare energy upper and lower bound
-    float Elow;
-    float Ehigh;
-
-    ClassDefNV(EnergyIntervals, 1);
-  };
-
   /// Insert value into the map
   /// \param cell The cell number
   /// \param E_min Minimum energy of the interval

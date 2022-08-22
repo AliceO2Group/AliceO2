@@ -66,6 +66,8 @@ constexpr int N_INJ = 50;
 enum RunTypes {
   THR_SCAN = 42,
   THR_SCAN_SHORT = 43,
+  THR_SCAN_SHORT_33 = 45,
+  THR_SCAN_SHORT_2_10HZ = 46,
   THR_SCAN_SHORT_100HZ = 101,
   THR_SCAN_SHORT_200HZ = 102,
   VCASN150 = 61,
@@ -142,7 +144,10 @@ class ITSThresholdCalibrator : public Task
   std::map<short int, std::array<int, 5>> mThresholds;
   // Map including PixID for noisy pixels
   std::map<short int, std::vector<int>> mNoisyPixID;
-
+  // Map including PixID for Inefficient pixels
+  std::map<short int, std::vector<int>> mIneffPixID;
+  // Map including PixID for Dead pixels
+  std::map<short int, std::vector<int>> mDeadPixID;
   // Tree to save threshold info in full threshold scan case
   TFile* mRootOutfile = nullptr;
   TTree* mThresholdTree = nullptr;
@@ -194,7 +199,7 @@ class ITSThresholdCalibrator : public Task
 
   // How many rows before starting new ROOT file
   unsigned int mFileNumber = 0;
-  static constexpr unsigned int N_ROWS_PER_FILE = 10000;
+  static constexpr unsigned int N_ROWS_PER_FILE = 150000;
   unsigned int mRowCounter = 0;
 
   short int mRunType = -1;
@@ -208,12 +213,15 @@ class ITSThresholdCalibrator : public Task
   // Get threshold method (fit == 1, derivative == 0, or hitcounting == 2)
   char mFitType = -1;
 
+  // To tag type(noisy, dead, ineff) of pixel
+  std::string PixelType;
   // Machine hostname
   std::string mHostname;
 
   // DCS config object
   o2::dcs::DCSconfigObject_t mTuning;
-
+  // DCS config object for pixel type
+  o2::dcs::DCSconfigObject_t mPixStat;
   // DCS config object shipped only to QC to know when scan is done
   o2::dcs::DCSconfigObject_t mChipDoneQc;
 
@@ -226,6 +234,8 @@ class ITSThresholdCalibrator : public Task
   // Flag to tag single noisy pix in digital scan
   bool mTagSinglePix = false;
 
+  // flag to set url for ccdb mgr
+  std::string mCcdbMgrUrl = "";
   // Bool to check exact row when counting hits
   bool mCheckExactRow = false;
 

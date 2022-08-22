@@ -20,6 +20,7 @@
 #include "Framework/ConcreteDataMatcher.h"
 #include "DataFormatsCPV/CPVBlockHeader.h"
 #include "DataFormatsCPV/TriggerRecord.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "CPVReconstruction/RawDecoder.h"
 #include "CPVWorkflow/RawToDigitConverterSpec.h"
@@ -58,8 +59,47 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
   LOG(info) << "Task configuration is done.";
 }
 
+void RawToDigitConverterSpec::finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (matcher == framework::ConcreteDataMatcher("CTP", "Trig_Offset", 0)) {
+    LOG(info) << "RawToDigitConverterSpec::finaliseCCDB() : CTP/Config/TriggerOffsets updated.";
+    const auto& par = o2::ctp::TriggerOffsetsParam::Instance();
+    par.printKeyValues();
+    return;
+  }
+}
+
+void RawToDigitConverterSpec::updateTimeDependentParams(framework::ProcessingContext& ctx)
+{
+  static bool updateOnlyOnce = false;
+  if (!updateOnlyOnce) {
+    ctx.inputs().get<o2::ctp::TriggerOffsetsParam*>("trigoffset");
+
+    // std::decay_t<decltype(ctx.inputs().get<o2::cpv::Pedestals*>("peds"))> pedPtr{};
+    // std::decay_t<decltype(ctx.inputs().get<o2::cpv::BadChannelMap*>("badmap"))> badMapPtr{};
+    // std::decay_t<decltype(ctx.inputs().get<o2::cpv::CalibParams*>("gains"))> gainsPtr{};
+
+    if (!mIsPedestalData) {
+      auto pedPtr = ctx.inputs().get<o2::cpv::Pedestals*>("peds");
+      mPedestals = pedPtr.get();
+    }
+
+    if (mIsUsingBadMap) {
+      auto badMapPtr = ctx.inputs().get<o2::cpv::BadChannelMap*>("badmap");
+      mBadMap = badMapPtr.get();
+    }
+
+    if (mIsUsingGainCalibration) {
+      auto gainsPtr = ctx.inputs().get<o2::cpv::CalibParams*>("gains");
+      mGains = gainsPtr.get();
+    }
+    updateOnlyOnce = true;
+  }
+}
+
 void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
 {
+  updateTimeDependentParams(ctx);
   // check timers if we need mute/unmute error reporting
   auto now = std::chrono::system_clock::now();
   if (mIsMuteDecoderErrors) { // check if 10-minutes muting period passed
@@ -105,28 +145,6 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     }
   }
   contDeadBeef = 0; // if good data, reset the counter
-
-  const o2::cpv::Pedestals* pedestals = nullptr;
-  const o2::cpv::BadChannelMap* badMap = nullptr;
-  const o2::cpv::CalibParams* gains = nullptr;
-  std::decay_t<decltype(ctx.inputs().get<o2::cpv::Pedestals*>("peds"))> pedPtr{};
-  std::decay_t<decltype(ctx.inputs().get<o2::cpv::BadChannelMap*>("badmap"))> badMapPtr{};
-  std::decay_t<decltype(ctx.inputs().get<o2::cpv::CalibParams*>("gains"))> gainsPtr{};
-
-  if (!mIsPedestalData) {
-    pedPtr = ctx.inputs().get<o2::cpv::Pedestals*>("peds");
-    pedestals = pedPtr.get();
-  }
-
-  if (mIsUsingBadMap) {
-    badMapPtr = ctx.inputs().get<o2::cpv::BadChannelMap*>("badmap");
-    badMap = badMapPtr.get();
-  }
-
-  if (mIsUsingGainCalibration) {
-    gainsPtr = ctx.inputs().get<o2::cpv::CalibParams*>("gains");
-    gains = gainsPtr.get();
-  }
 
   bool skipTF = false; // skip TF due to fatal error?
 
@@ -227,15 +245,15 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
           if (!mIsPedestalData) { // not a pedestal data
             // test bad map
             if (mIsUsingBadMap) {
-              if (!badMap->isChannelGood(absId)) {
+              if (!mBadMap->isChannelGood(absId)) {
                 continue; // skip bad channel
               }
             }
             float amp = 0;
             if (mIsUsingGainCalibration) { // calibrate amplitude
-              amp = gains->getGain(absId) * (ac.Charge - pedestals->getPedestal(absId));
+              amp = mGains->getGain(absId) * (ac.Charge - mPedestals->getPedestal(absId));
             } else { // no gain calibration needed
-              amp = ac.Charge - pedestals->getPedestal(absId);
+              amp = ac.Charge - mPedestals->getPedestal(absId);
             }
             if (amp > 0) { // emplace new digit
               currentDigitContainer->emplace_back(absId, amp, -1);
@@ -266,7 +284,12 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   // Loop over BCs, sort digits with increasing digit ID and write to output containers
   mOutputDigits.clear();
   mOutputTriggerRecords.clear();
+  const auto tfOrbitFirst = ctx.services().get<o2::framework::TimingInfo>().firstTForbit;
+  const auto& ctpOffsets = o2::ctp::TriggerOffsetsParam::Instance();
   for (auto [bc, digits] : digitBuffer) {
+    if (bc.differenceInBC({0, tfOrbitFirst}) < ctpOffsets.LM_L0) {
+      continue; // discard this BC as it is actually out of
+    }
     int prevDigitSize = mOutputDigits.size();
     if (digits->size()) {
       // Sort digits according to digit ID
@@ -276,8 +299,8 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
         mOutputDigits.push_back(digit);
       }
     }
-
-    mOutputTriggerRecords.emplace_back(bc, prevDigitSize, mOutputDigits.size() - prevDigitSize);
+    // subtract ctp L0-LM offset here
+    mOutputTriggerRecords.emplace_back(bc - ctpOffsets.LM_L0, prevDigitSize, mOutputDigits.size() - prevDigitSize);
   }
   digitBuffer.clear();
 
@@ -304,6 +327,8 @@ o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getRawToDigitConverterS
       inputs.emplace_back("gains", "CPV", "CPV_Gains", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CPV/Calib/Gains"));
     }
   }
+  // for BC correction
+  inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back("CPV", "DIGITS", 0, o2::framework::Lifetime::Timeframe);

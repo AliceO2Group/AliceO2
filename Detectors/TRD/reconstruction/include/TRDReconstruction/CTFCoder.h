@@ -25,6 +25,7 @@
 #include "DetectorsBase/CTFCoderBase.h"
 #include "rANS/rans.h"
 #include "TRDReconstruction/CTFHelper.h"
+#include "CommonConstants/LHCConstants.h"
 
 class TTree;
 
@@ -49,9 +50,16 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
+  void setBCShift(int n) { mBCShift = 0; }
+  void setFirstTFOrbit(uint32_t n) { mFirstTFOrbit = n; }
+  void setCheckBogusTrig(int v) { mCheckBogusTrig = v; }
+
  private:
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<TriggerRecord>& trigVec, std::vector<Tracklet64>& trkVec, std::vector<Digit>& digVec);
+  int mBCShift = 0; // shift to apply to decoded IR (i.e. CTP offset if was not corrected on raw data decoding level)
+  uint32_t mFirstTFOrbit = 0;
+  int mCheckBogusTrig = 1;
 };
 
 /// entropy-encode digits and tracklets to buffer with CTF
@@ -77,9 +85,29 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const TriggerReco
     MD::EENCODE, // BLC_chanDig
     MD::EENCODE, // BLC_ADCDig
   };
+  static size_t bogusWarnMsg = 0;
+  if (mCheckBogusTrig && bogusWarnMsg < mCheckBogusTrig) {
+    uint32_t orbitPrev = mFirstTFOrbit;
+    uint16_t bcPrev = 0;
+    int cnt = 0;
+    for (const auto& trig : trigData) {
+      LOGP(debug, "Trig#{} Old: {}/{} New: {}/{}", cnt++, bcPrev, orbitPrev, trig.getBCData().bc, trig.getBCData().orbit);
+      auto orbitPrevT = orbitPrev;
+      auto bcPrevT = bcPrev;
+      bcPrev = trig.getBCData().bc;
+      orbitPrev = trig.getBCData().orbit;
+      if (trig.getBCData().orbit < orbitPrevT || trig.getBCData().bc >= o2::constants::lhc::LHCMaxBunches || (trig.getBCData().orbit == orbitPrevT && trig.getBCData().bc < bcPrevT)) {
+        LOGP(warning, "Bogus TRD trigger at bc:{}/orbit:{} (previous was {}/{}), with {} tracklets and {} digits",
+             trig.getBCData().bc, trig.getBCData().orbit, bcPrevT, orbitPrevT, trig.getNumberOfTracklets(), trig.getNumberOfDigits());
+        if (++bogusWarnMsg >= mCheckBogusTrig) {
+          LOGP(warning, "Max amount of warnings ({}) was issued, will not warn anymore", size_t(mCheckBogusTrig));
+          break;
+        }
+      }
+    }
+  }
 
   CTFHelper helper(trigData, trkData, digData);
-
   // book output size with some margin
   auto szIni = sizeof(CTFHeader) + helper.getSize() * 2. / 3; // will be autoexpanded if needed
   buff.resize(szIni);
@@ -127,8 +155,10 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& tr
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix(), mVerbosity);
-  std::vector<uint16_t> bcInc, HCIDTrk, posTrk, CIDDig, ADCDig;
-  std::vector<uint32_t> orbitInc, entriesTrk, entriesDig, pidTrk;
+  std::vector<uint16_t> HCIDTrk, posTrk, CIDDig, ADCDig;
+  std::vector<int16_t> bcInc; // RS to not crash at negative increments
+  std::vector<uint32_t> entriesTrk, entriesDig, pidTrk;
+  std::vector<int32_t> orbitInc; // RS to not crash at negative increments
   std::vector<uint8_t> padrowTrk, colTrk, slopeTrk, ROBDig, MCMDig, chanDig;
 
   o2::ctf::CTFIOSize iosize;
@@ -159,38 +189,68 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& tr
   trigVec.reserve(header.nTriggers);
   trkVec.reserve(header.nTracklets);
   digVec.reserve(header.nDigits);
-
   uint32_t trkCount = 0, digCount = 0, adcCount = 0;
-  o2::InteractionRecord ir(header.firstBC, header.firstOrbit);
+  uint32_t orbit = header.firstOrbit, orbitPrev = 0, orbitPrevGood = mFirstTFOrbit;
+  uint16_t bc = header.firstBC;
+  bool checkIROK = (mBCShift == 0); // need to check if CTP offset correction does not make the local time negative ?
+  static size_t countDiscardMsg = 0;
 
   for (uint32_t itrig = 0; itrig < header.nTriggers; itrig++) {
     // restore TrigRecord
     if (orbitInc[itrig]) {  // non-0 increment => new orbit
-      ir.bc = bcInc[itrig]; // bcInc has absolute meaning
-      ir.orbit += orbitInc[itrig];
+      bc = bcInc[itrig];    // bcInc has absolute meaning
+      orbit += orbitInc[itrig];
     } else {
-      ir.bc += bcInc[itrig];
+      bc += bcInc[itrig];
     }
-
-    uint32_t firstEntryTrk = trkVec.size();
-    uint16_t hcid = 0;
-    for (uint32_t it = 0; it < entriesTrk[itrig]; it++) {
-      hcid += HCIDTrk[trkCount]; // 1st tracklet of trigger was encoded with abs HCID, then increments
-      trkVec.emplace_back(header.format, hcid, padrowTrk[trkCount], colTrk[trkCount], posTrk[trkCount], slopeTrk[trkCount], pidTrk[trkCount]);
-      trkCount++;
+    bool triggerOK = true;
+    if (mCheckBogusTrig && (bc >= o2::constants::lhc::LHCMaxBunches || orbitInc[itrig] < 0 || bcInc[itrig] < 0 || orbit < orbitPrevGood || (entriesTrk[itrig] == 0 && entriesDig[itrig] == 0))) {
+      if (countDiscardMsg < size_t(mCheckBogusTrig) || mCheckBogusTrig < 0) {
+        LOGP(warning, "Bogus TRD trigger at bc:{}/orbit:{} (increments: {}/{}, 1st TF orbit: {}) with {} tracklets and {} digits{}: {}",
+             bc, orbit, bcInc[itrig], orbitInc[itrig], mFirstTFOrbit, entriesTrk[itrig], entriesDig[itrig],
+             orbitInc[itrig] < 0 ? " (decreasing orbit!) " : "",
+             mCheckBogusTrig > 0 ? "discarding" : "discarding disabled");
+        if (++countDiscardMsg == size_t(mCheckBogusTrig) && mCheckBogusTrig > 0) {
+          LOGP(warning, "Max amount of warnings ({}) was issued, will not warn anymore", size_t(mCheckBogusTrig));
+        }
+      }
+      if (mCheckBogusTrig > 0) {
+        triggerOK = false;
+      }
     }
+    orbitPrev = orbit;
+    o2::InteractionRecord ir{bc, orbit};
+    if (triggerOK && (checkIROK || ir.differenceInBC({0, mFirstTFOrbit}) >= mBCShift)) { // correction will be ok
+      checkIROK = true;                                                   // don't check anymore since the following checks will yield same
+      orbitPrevGood = orbit;
+      uint32_t firstEntryTrk = trkVec.size();
+      uint16_t hcid = 0;
+      for (uint32_t it = 0; it < entriesTrk[itrig]; it++) {
+        hcid += HCIDTrk[trkCount]; // 1st tracklet of trigger was encoded with abs HCID, then increments
+        trkVec.emplace_back(header.format, hcid, padrowTrk[trkCount], colTrk[trkCount], posTrk[trkCount], slopeTrk[trkCount], pidTrk[trkCount]);
+        trkCount++;
+      }
+      uint32_t firstEntryDig = digVec.size();
+      int16_t cid = 0;
+      for (uint32_t id = 0; id < entriesDig[itrig]; id++) {
+        cid += CIDDig[digCount]; // 1st digit of trigger was encoded with abs CID, then increments
+        auto& dig = digVec.emplace_back(cid, ROBDig[digCount], MCMDig[digCount], chanDig[digCount]);
+        dig.setADC({&ADCDig[adcCount], constants::TIMEBINS});
+        digCount++;
+        adcCount += constants::TIMEBINS;
+      }
+      if (mBCShift && bc < o2::constants::lhc::LHCMaxBunches) { // we don't want corrupted orbit to look as good one after correction
+        ir -= mBCShift;
+      }
 
-    uint32_t firstEntryDig = digVec.size();
-    int16_t cid = 0;
-    for (uint32_t id = 0; id < entriesDig[itrig]; id++) {
-      cid += CIDDig[digCount]; // 1st digit of trigger was encoded with abs CID, then increments
-      auto& dig = digVec.emplace_back(cid, ROBDig[digCount], MCMDig[digCount], chanDig[digCount]);
-      dig.setADC({&ADCDig[adcCount], constants::TIMEBINS});
-      digCount++;
-      adcCount += constants::TIMEBINS;
+      LOGP(debug, "Storing TRD trigger at {} (increments: {}/{}) with {} tracklets and {} digits", ir.asString(), bcInc[itrig], orbitInc[itrig], entriesTrk[itrig], entriesDig[itrig]);
+      trigVec.emplace_back(ir, firstEntryDig, entriesDig[itrig], firstEntryTrk, entriesTrk[itrig]);
+    } else { // skip the trigger with negative local time
+      trkCount += entriesTrk[itrig];
+      digCount += entriesDig[itrig];
+      adcCount += constants::TIMEBINS * entriesDig[itrig];
+      continue;
     }
-
-    trigVec.emplace_back(ir, firstEntryDig, entriesDig[itrig], firstEntryTrk, entriesTrk[itrig]);
   }
   assert(digCount == header.nDigits && trkCount == header.nTracklets && adcCount == (int)ADCDig.size());
   iosize.rawIn = trigVec.size() * sizeof(TriggerRecord) + sizeof(Tracklet64) * trkVec.size() + sizeof(Digit) * digVec.size();

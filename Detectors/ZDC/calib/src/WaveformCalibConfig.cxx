@@ -28,17 +28,17 @@ WaveformCalibConfig::WaveformCalibConfig()
 
 void WaveformCalibConfig::restrictRange(int ib, int ie)
 {
-  ibeg = -NBB;
-  iend = NBA;
+  ibeg = -WaveformCalib_NBB;
+  iend = WaveformCalib_NBA;
   if (ib >= ibeg && ib <= 0) {
     ibeg = ib;
   } else {
-    LOG(fatal) << __func__ << " wrong setting for ibeg = " << ib;
+    LOG(fatal) << "WaveformCalibConfig::restrictRange wrong setting for ibeg = " << ib;
   }
   if (ie <= iend && ie >= 0) {
     iend = ie;
   } else {
-    LOG(fatal) << __func__ << " wrong setting for iend = " << ie;
+    LOG(fatal) << "WaveformCalibConfig::restrictRange wrong setting for iend = " << ie;
   }
   nbun = iend - ibeg + 1;
 }
@@ -148,4 +148,14 @@ void WaveformCalibConfig::setTimeCuts(int itdc, double low, double high)
 {
   cutTimeHigh[itdc] = low;
   cutTimeLow[itdc] = high;
+}
+
+int WaveformCalibConfig::getFirst() const
+{
+  return ibeg;
+}
+
+int WaveformCalibConfig::getLast() const
+{
+  return iend;
 }

@@ -84,9 +84,12 @@ class ROBoardConfigHandler
 std::vector<ROBoardConfig> makeDefaultROBoardConfig(uint16_t gbtUniqueId = 0xFFFF);
 /// Creates a local board configuration where no zero suppression is required
 /// \param gbtUniqueId GBT unique ID
-/// \return Vector of Readout boards configuration with no Zero suppression
+/// \return Vector of Readout boards configuration with no zero suppression
 std::vector<ROBoardConfig> makeNoZSROBoardConfig(uint16_t gbtUniqueId = 0xFFFF);
-
+/// Creates a local board configuration with zero suppression
+/// \param gbtUniqueId GBT unique ID
+/// \return Vector of Readout boards configuration with zero suppression
+std::vector<ROBoardConfig> makeZSROBoardConfig(uint16_t gbtUniqueId = 0xFFFF);
 } // namespace mid
 } // namespace o2
 

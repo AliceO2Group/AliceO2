@@ -49,6 +49,7 @@ namespace o2::gpu
 class GPUQA;
 struct GPUParam;
 struct GPUO2InterfaceConfiguration;
+struct GPUSettingsGRP;
 class GPUO2InterfaceQA
 {
  public:
@@ -59,6 +60,7 @@ class GPUO2InterfaceQA
 
   void runQA(const std::vector<o2::tpc::TrackTPC>* tracksExternal, const std::vector<o2::MCCompLabel>* tracksExtMC, const o2::tpc::ClusterNativeAccess* clNative);
   int postprocess(TObjArray& out);
+  void updateGRP(GPUSettingsGRP* grp);
 
   // Input might be modified, so we assume non-const. If it is const, a copy should be created before.
   int postprocessExternal(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, TObjArray& out, int tasks);

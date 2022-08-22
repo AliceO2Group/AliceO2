@@ -19,6 +19,7 @@
 #include <Rtypes.h>
 #include <cstdint>
 #include <ctime>
+#include "DataFormatsParameters/ECSDataAdapters.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 
 namespace o2
@@ -35,27 +36,12 @@ class GRPECSObject
 
  public:
   using timePoint = uint64_t;
+  using RunType = o2::parameters::GRPECS::RunType;
 
   enum ROMode : int { ABSENT = 0,
                       PRESENT = 0x1,
                       CONTINUOUS = PRESENT + (0x1 << 1),
                       TRIGGERING = PRESENT + (0x1 << 2) };
-  enum RunType : int {
-    NONE,
-    PHYSICS,
-    TECHNICAL,
-    PEDESTAL,
-    PULSER,
-    LASER,
-    CALIBRATION_ITHR_TUNING,
-    CALIBRATION_VCASN_TUNING,
-    CALIBRATION_THR_SCAN,
-    CALIBRATION_DIGITAL_SCAN,
-    CALIBRATION_ANALOG_SCAN,
-    CALIBRATION_FHR,
-    CALIBRATION_ALPIDE_SCAN,
-    NRUNTYPES
-  };
   GRPECSObject() = default;
   ~GRPECSObject() = default;
 
@@ -127,6 +113,7 @@ class GRPECSObject
   void print() const;
 
   static GRPECSObject* loadFrom(const std::string& grpecsFileName = "");
+  static constexpr bool alwaysTriggeredRO(DetID::ID det) { return DefTriggeredDets[det]; }
 
  private:
   timePoint mTimeStart = 0; ///< DAQ_time_start entry from DAQ logbook
@@ -134,13 +121,16 @@ class GRPECSObject
 
   uint32_t mNHBFPerTF = 128; /// Number of HBFrames per TF
 
-  DetID::mask_t mDetsReadout;      ///< mask of detectors which are read out
-  DetID::mask_t mDetsContinuousRO; ///< mask of detectors read out in continuos mode
-  DetID::mask_t mDetsTrigger;      ///< mask of detectors which provide trigger
-  bool mIsMC = false;              ///< flag GRP for MC
-  int mRun = 0;                    ///< run identifier
-  RunType mRunType = NONE;         ///< run type
-  std::string mDataPeriod{};       ///< name of the period
+  DetID::mask_t mDetsReadout;       ///< mask of detectors which are read out
+  DetID::mask_t mDetsContinuousRO;  ///< mask of detectors read out in continuos mode
+  DetID::mask_t mDetsTrigger;       ///< mask of detectors which provide trigger input to CTP
+  bool mIsMC = false;               ///< flag GRP for MC
+  int mRun = 0;                     ///< run identifier
+  RunType mRunType = RunType::NONE; ///< run type
+  std::string mDataPeriod{};        ///< name of the period
+
+  // detectors which are always readout in triggered mode. Others are continuous by default but exceptionally can be triggered
+  static constexpr DetID::mask_t DefTriggeredDets = DetID::getMask(DetID::TRD) | DetID::getMask(DetID::PHS) | DetID::getMask(DetID::CPV) | DetID::getMask(DetID::EMC) | DetID::getMask(DetID::HMP);
 
   ClassDefNV(GRPECSObject, 4);
 };

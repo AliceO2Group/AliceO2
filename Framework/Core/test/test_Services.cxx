@@ -184,3 +184,38 @@ BOOST_AUTO_TEST_CASE(TestServiceDeclaration)
   BOOST_CHECK(registry.active<CallbackService>() == true);
   BOOST_CHECK(registry.active<DummyService>() == false);
 }
+
+BOOST_AUTO_TEST_CASE(TestServiceOverride)
+{
+  using namespace o2::framework;
+  auto overrides = ServiceSpecHelpers::parseOverrides("foo:enable,bar:disable");
+  BOOST_CHECK(overrides.size() == 2);
+  BOOST_CHECK(overrides[0].name == "foo");
+  BOOST_CHECK(overrides[0].active == true);
+  BOOST_CHECK(overrides[1].name == "bar");
+  BOOST_CHECK(overrides[1].active == false);
+
+  auto overrides2 = ServiceSpecHelpers::parseOverrides("foo:enable");
+  BOOST_CHECK(overrides2.size() == 1);
+  BOOST_CHECK(overrides[0].name == "foo");
+  BOOST_CHECK(overrides[0].active == true);
+
+  BOOST_CHECK_THROW(ServiceSpecHelpers::parseOverrides("foo:enabledisabl"), std::runtime_error);
+  BOOST_CHECK_THROW(ServiceSpecHelpers::parseOverrides("foo"), std::runtime_error);
+  BOOST_CHECK_THROW(ServiceSpecHelpers::parseOverrides("foo:"), std::runtime_error);
+  BOOST_CHECK_THROW(ServiceSpecHelpers::parseOverrides("foo:a,"), std::runtime_error);
+  BOOST_CHECK_THROW(ServiceSpecHelpers::parseOverrides("foo:,"), std::runtime_error);
+  BOOST_CHECK(ServiceSpecHelpers::parseOverrides("").size() == 0);
+  BOOST_CHECK(ServiceSpecHelpers::parseOverrides(nullptr).size() == 0);
+
+  auto overrides3 = ServiceSpecHelpers::parseOverrides("foo:disable,bar:enable,baz:enable");
+  ServiceSpecs originalServices{
+    {.name = "foo", .active = true},
+    {.name = "bar", .active = false},
+  };
+  BOOST_CHECK(overrides3.size() == 3);
+  auto services = ServiceSpecHelpers::filterDisabled(originalServices, overrides3);
+  BOOST_CHECK(services.size() == 1);
+  BOOST_CHECK_EQUAL(services[0].name, "bar");
+  BOOST_CHECK_EQUAL(services[0].active, true);
+}

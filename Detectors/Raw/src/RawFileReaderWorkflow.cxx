@@ -22,6 +22,7 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 #include "Framework/DomainInfoHeader.h"
+#include "Framework/RateLimiter.h"
 
 #include "DetectorsRaw/RawFileReader.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -76,7 +77,9 @@ class RawReaderSpecs : public o2f::Task
   uint32_t mMaxTFID = 0xffffffff; // last TF to extrct
   int mRunNumber = 0;             // run number to pass
   int mVerbosity = 0;
+  int mTFRateLimit = 0;
   bool mPreferCalcTF = false;
+  size_t mMinSHM = 0;
   size_t mLoopsDone = 0;
   size_t mSentSize = 0;
   size_t mSentMessages = 0;
@@ -90,7 +93,7 @@ class RawReaderSpecs : public o2f::Task
 
 //___________________________________________________________
 RawReaderSpecs::RawReaderSpecs(const ReaderInp& rinp)
-  : mLoop(rinp.loop < 0 ? INT_MAX : (rinp.loop < 1 ? 1 : rinp.loop)), mDelayUSec(rinp.delay_us), mMinTFID(rinp.minTF), mMaxTFID(rinp.maxTF), mRunNumber(rinp.runNumber), mPartPerSP(rinp.partPerSP), mSup0xccdb(rinp.sup0xccdb), mReader(std::make_unique<o2::raw::RawFileReader>(rinp.inifile, rinp.verbosity, rinp.bufferSize)), mRawChannelName(rinp.rawChannelConfig), mVerbosity(rinp.verbosity), mPreferCalcTF(rinp.preferCalcTF)
+  : mLoop(rinp.loop < 0 ? INT_MAX : (rinp.loop < 1 ? 1 : rinp.loop)), mDelayUSec(rinp.delay_us), mMinTFID(rinp.minTF), mMaxTFID(rinp.maxTF), mRunNumber(rinp.runNumber), mPartPerSP(rinp.partPerSP), mSup0xccdb(rinp.sup0xccdb), mReader(std::make_unique<o2::raw::RawFileReader>(rinp.inifile, rinp.verbosity, rinp.bufferSize)), mRawChannelName(rinp.rawChannelConfig), mVerbosity(rinp.verbosity), mPreferCalcTF(rinp.preferCalcTF), mMinSHM(rinp.minSHM)
 {
   mReader->setCheckErrors(rinp.errMap);
   mReader->setMaxTFToRead(rinp.maxTF);
@@ -151,6 +154,9 @@ void RawReaderSpecs::init(o2f::InitContext& ic)
     hbfU.setValue("HBFUtils.startTime", std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()));
     LOG(warning) << "Run start time is not provided via HBFUtils.startTime, will use now() = " << hbfU.startTime << " ms.";
   }
+  if (mRunNumber == 0 && hbfU.runNumber > 0) {
+    mRunNumber = hbfU.runNumber;
+  }
 }
 
 //___________________________________________________________
@@ -161,7 +167,10 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   mTimer.Start(false);
   auto device = ctx.services().get<o2f::RawDeviceService>().device();
   assert(device);
-
+  static bool initOnceDone = false;
+  if (!initOnceDone) {
+    mTFRateLimit = std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit"));
+  }
   auto findOutputChannel = [&ctx, this](o2h::DataHeader& h) {
     if (!this->mRawChannelName.empty()) {
       return std::string{this->mRawChannelName};
@@ -211,7 +220,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
     } else {
       if (!mRawChannelName.empty()) { // send endOfStream message to raw channel
         o2f::SourceInfoHeader exitHdr;
-        exitHdr.state = o2::framework::InputChannelState::Completed;
+        exitHdr.state = o2f::InputChannelState::Completed;
         const auto exitStack = o2::header::Stack(o2h::DataHeader(o2h::gDataDescriptionInfo, o2h::gDataOriginAny, 0, 0), o2f::DataProcessingHeader(), exitHdr);
         auto fmqFactory = device->GetChannel(mRawChannelName, 0).Transport();
         auto hdEOSMessage = fmqFactory->CreateMessage(exitStack.size(), fair::mq::Alignment{64});
@@ -238,9 +247,12 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   mReader->setNextTFToRead(tfID);
   std::vector<RawFileReader::PartStat> partsSP;
 
+  static o2f::RateLimiter limiter;
+  limiter.check(ctx, mTFRateLimit, mMinSHM);
+
   // read next time frame
   LOG(info) << "Reading TF#" << mTFCounter << " (" << tfID << " at iteration " << mLoopsDone << ')';
-  o2::header::Stack dummyStack{o2h::DataHeader{}, o2::framework::DataProcessingHeader{0}}; // dummy stack to just to get stack size
+  o2::header::Stack dummyStack{o2h::DataHeader{}, o2f::DataProcessingHeader{0}}; // dummy stack to just to get stack size
   auto hstackSize = dummyStack.size();
 
   uint32_t firstOrbit = 0;
@@ -292,7 +304,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
         firstOrbit = hdrTmpl.firstTForbit = (mPreferCalcTF || !link.cruDetector) ? hbfU.getIRTF(tfid).orbit : ir.orbit; // will be picked for the following parts
         creationTime = hbfU.getTFTimeStamp({0, firstOrbit});
       }
-      o2::header::Stack headerStack{hdrTmpl, o2::framework::DataProcessingHeader{mTFCounter, 1, creationTime}};
+      o2::header::Stack headerStack{hdrTmpl, o2f::DataProcessingHeader{mTFCounter, 1, creationTime}};
       memcpy(hdMessage->GetData(), headerStack.data(), headerStack.size());
       hdrTmpl.splitPayloadIndex++; // prepare for next
 
@@ -302,8 +314,8 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
          mLoopsDone, link.origin.as<std::string>(), link.description.as<std::string>(), link.subspec);
   }
 
-  auto& timingInfo = ctx.services().get<o2::framework::TimingInfo>();
-  timingInfo.firstTFOrbit = firstOrbit;
+  auto& timingInfo = ctx.services().get<o2f::TimingInfo>();
+  timingInfo.firstTForbit = firstOrbit;
   timingInfo.creation = creationTime;
   timingInfo.tfCounter = mTFCounter;
   timingInfo.runNumber = mRunNumber;
@@ -320,7 +332,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
     const auto fmqChannel = findOutputChannel(stfDistDataHeader);
     if (!fmqChannel.empty()) { // no output channel
       auto fmqFactory = device->GetChannel(fmqChannel, 0).Transport();
-      o2::header::Stack headerStackSTF{stfDistDataHeader, o2::framework::DataProcessingHeader{mTFCounter, 1, creationTime}};
+      o2::header::Stack headerStackSTF{stfDistDataHeader, o2f::DataProcessingHeader{mTFCounter, 1, creationTime}};
       auto hdMessageSTF = fmqFactory->CreateMessage(hstackSize, fair::mq::Alignment{64});
       auto plMessageSTF = fmqFactory->CreateMessage(stfDistDataHeader.payloadSize, fair::mq::Alignment{64});
       memcpy(hdMessageSTF->GetData(), headerStackSTF.data(), headerStackSTF.size());
@@ -369,6 +381,9 @@ o2f::DataProcessorSpec getReaderSpec(ReaderInp rinp)
     if (!rinp.sup0xccdb) {
       spec.outputs.emplace_back(o2f::OutputSpec{{"stfDistCCDB"}, o2::header::gDataOriginFLP, o2::header::gDataDescriptionDISTSTF, 0xccdb}); // will be added automatically
     }
+    if (!rinp.metricChannel.empty()) {
+      spec.options.emplace_back(o2f::ConfigParamSpec{"channel-config", o2f::VariantType::String, rinp.metricChannel, {"Out-of-band channel config for TF throttling"}});
+    }
   } else {
     auto nameStart = rinp.rawChannelConfig.find("name=");
     if (nameStart == std::string::npos) {
@@ -379,8 +394,12 @@ o2f::DataProcessorSpec getReaderSpec(ReaderInp rinp)
     if (nameEnd == std::string::npos) {
       nameEnd = rinp.rawChannelConfig.size();
     }
-    spec.options = {o2f::ConfigParamSpec{"channel-config", o2f::VariantType::String, rinp.rawChannelConfig, {"Out-of-band channel config"}}};
+    spec.options.emplace_back(o2f::ConfigParamSpec{"channel-config", o2f::VariantType::String, rinp.rawChannelConfig, {"Out-of-band channel config"}});
     rinp.rawChannelConfig = rinp.rawChannelConfig.substr(nameStart, nameEnd - nameStart);
+    if (!rinp.metricChannel.empty()) {
+      LOGP(alarm, "Cannot apply TF rate limiting when publishing to raw channel, limiting must be applied on the level of the input raw proxy");
+      LOGP(alarm, R"(To avoid reader filling shm buffer use "--shm-throw-bad-alloc 0 --shm-segment-id 2")");
+    }
     LOG(info) << "Will send output to non-DPL channel " << rinp.rawChannelConfig;
   }
 

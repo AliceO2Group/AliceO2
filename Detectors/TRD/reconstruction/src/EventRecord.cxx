@@ -211,9 +211,6 @@ void EventStorage::sendData(o2::framework::ProcessingContext& pc, bool generates
   mEventRecords.clear();
   std::chrono::duration<double, std::micro> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
   LOG(debug) << "Preparing for sending and sending data took  " << std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count() << "ms";
-  if (mPackagingTime != nullptr) {
-    mPackagingTime->Fill((int)std::chrono::duration_cast<std::chrono::microseconds>(dataReadTime).count());
-  }
 }
 
 void EventStorage::accumulateStats()
@@ -229,12 +226,12 @@ void EventStorage::accumulateStats()
   uint64_t sumwordsrejected = 0;
   uint64_t sumwordsread = 0;
   for (auto event : mEventRecords) {
-    sumtracklets += event.mEventStats.mTrackletsFound;
-    sumdigits += event.mEventStats.mDigitsFound;
-    sumtracklettime += event.mEventStats.mTimeTakenForTracklets;
-    sumdigittime += event.mEventStats.mTimeTakenForDigits;
-    sumwordsrejected += event.mEventStats.mWordsRejected;
-    sumwordsread += event.mEventStats.mWordsRead;
+    sumtracklets += event.getEventStats().mTrackletsFound;
+    sumdigits += event.getEventStats().mDigitsFound;
+    sumtracklettime += event.getEventStats().mTimeTakenForTracklets;
+    sumdigittime += event.getEventStats().mTimeTakenForDigits;
+    sumwordsrejected += event.getEventStats().mWordsRejected;
+    sumwordsread += event.getEventStats().mWordsRead;
   }
   if (eventcount != 0) {
     mTFStats.mTrackletsPerEvent = sumtracklets / eventcount;
@@ -323,7 +320,7 @@ EventRecord& EventStorage::getEventRecord(InteractionRecord& ir)
 void EventRecord::popTracklets(int popcount)
 {
   if (popcount > 3 || popcount < 0) {
-    LOG(error) << " been asked to pop more than 3 tracklets:" << popcount;
+    LOG(warn) << " been asked to pop more than 3 tracklets:" << popcount;
   } else {
     while (popcount > 0) {
       mTracklets.pop_back();

@@ -36,4 +36,7 @@
 #pragma link C++ class o2::fv0::ChannelDataFloat + ;
 #pragma link C++ class vector < o2::fv0::ChannelDataFloat> + ;
 
+#pragma link C++ class o2::fv0::FV0CalibrationInfoObject + ;
+#pragma link C++ class o2::fv0::FV0ChannelTimeCalibrationObject + ;
+
 #endif

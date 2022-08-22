@@ -62,15 +62,22 @@ class RawToDigitConverterSpec : public framework::Task
   /// Output cells trigger record: {"CPV", "DIGITTRIGREC", 0, Lifetime::Timeframe}
   /// Output HW errors: {"CPV", "RAWHWERRORS", 0, Lifetime::Timeframe}
   void run(framework::ProcessingContext& ctx) final;
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  protected:
   /// \brief simple check of HW address
   char CheckHWAddress(short ddl, short hwAddress, short& fee);
 
  private:
+  void updateTimeDependentParams(framework::ProcessingContext& ctx);
+
+ private:
   bool mIsUsingGainCalibration;                                      ///< Use gain calibration from CCDB
   bool mIsUsingBadMap;                                               ///< Use BadChannelMap to mask bad channels
   bool mIsPedestalData;                                              ///< Do not subtract pedestals if true
+  const o2::cpv::Pedestals* mPedestals = nullptr;                    ///< Pedestals from the CCDB
+  const o2::cpv::BadChannelMap* mBadMap = nullptr;                   ///< Bad Channel Map from the CCDB
+  const o2::cpv::CalibParams* mGains = nullptr;                      ///< Gains from the CCDB
   std::vector<Digit> mOutputDigits;                                  ///< Container with output cells
   std::vector<TriggerRecord> mOutputTriggerRecords;                  ///< Container with output cells
   std::vector<RawDecoderError> mOutputHWErrors;                      ///< Errors occured in reading data

@@ -31,7 +31,7 @@ if(HIP_ENABLED)
   set(CMAKE_CXX_EXTENSIONS OFF)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
 
-  message(STATUS "Building ITS HIP vertexer")
+  message(STATUS "Building ITS HIP tracker")
   o2_add_library(ITStrackingHIP
                  SOURCES ClusterLinesGPU.hip.cxx
                          Context.hip.cxx

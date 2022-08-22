@@ -43,6 +43,7 @@ o2_target_root_dictionary(DataFormatsTRD
                        include/DataFormatsTRD/NoiseCalibration.h
                        include/DataFormatsTRD/CTF.h
                        include/DataFormatsTRD/CalVdriftExB.h
+                       include/DataFormatsTRD/CalT0.h
                        include/DataFormatsTRD/SignalArray.h
                        include/DataFormatsTRD/CompressedDigit.h
                        include/DataFormatsTRD/CompressedHeader.h)
@@ -54,3 +55,12 @@ o2_add_test(Digit
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
             LABELS trd
 )
+
+o2_add_test(RawData
+            COMPONENT_NAME trd
+            PUBLIC_LINK_LIBRARIES O2::DataFormatsTRD
+            SOURCES test/testRawData.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            LABELS trd
+            )
+

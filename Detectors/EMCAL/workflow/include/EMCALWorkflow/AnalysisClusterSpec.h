@@ -20,10 +20,14 @@
 #include "EMCALReconstruction/Clusterizer.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 namespace o2
 {
-
+namespace framework
+{
+class ConcreteDataMatcher;
+}
 namespace emcal
 {
 
@@ -43,7 +47,7 @@ class AnalysisClusterSpec : public framework::Task
 {
  public:
   /// \brief Constructor
-  AnalysisClusterSpec() : framework::Task(){};
+  AnalysisClusterSpec(std::shared_ptr<o2::base::GRPGeomRequest> gr) : mGGCCDBRequest(gr){};
 
   /// \brief Destructor
   ~AnalysisClusterSpec() override = default;
@@ -51,7 +55,7 @@ class AnalysisClusterSpec : public framework::Task
   /// \brief Initializing the AnalysisClusterSpec
   /// \param ctx Init context
   void init(framework::InitContext& ctx) final;
-
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
   /// \brief Run conversion of digits to cells
   /// \param ctx Processing context
   ///
@@ -62,10 +66,12 @@ class AnalysisClusterSpec : public framework::Task
   void run(framework::ProcessingContext& ctx) final;
 
  private:
+  void updateTimeDependentParams(framework::ProcessingContext& pc);
   o2::emcal::Clusterizer<InputType> mClusterizer;                        ///< Clusterizer object
   o2::emcal::Geometry* mGeometry = nullptr;                              ///< Pointer to geometry object
   o2::emcal::EventHandler<InputType>* mEventHandler = nullptr;           ///< Pointer to the event builder
   o2::emcal::ClusterFactory<InputType>* mClusterFactory = nullptr;       ///< Pointer to the cluster builder
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::vector<o2::emcal::AnalysisCluster>* mOutputAnaClusters = nullptr; ///< Container with output clusters (pointer)
 };
 

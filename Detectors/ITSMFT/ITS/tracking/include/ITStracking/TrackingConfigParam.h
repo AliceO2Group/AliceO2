@@ -23,13 +23,14 @@ namespace its
 struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerParamConfig> {
 
   // geometrical cuts
-  float zCut = 0.002f;   //0.002f
-  float phiCut = 0.005f; //0.005f
+  float zCut = 0.002f;   // 0.002f
+  float phiCut = 0.005f; // 0.005f
   float pairCut = 0.04f;
   float clusterCut = 0.8f;
   float histPairCut = 0.04f;
   float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
   int clusterContributorsCut = 16;
+  int maxTrackletsPerCluster = 1e2;
   int phiSpan = -1;
   int zSpan = -1;
 
@@ -40,6 +41,7 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
 
   // Use TGeo for mat. budget
   bool useMatCorrTGeo = false;
+  bool useFastMaterial = false;
   float sysErrY2[7] = {0}; // systematic error^2 in Y per layer
   float sysErrZ2[7] = {0}; // systematic error^2 in Z per layer
   float nSigmaCut = -1.f;
@@ -52,6 +54,10 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   bool useDiamond = false;
   unsigned long maxMemory = 0;
   int useTrackFollower = -1;
+  float cellsPerClusterLimit = -1.f;
+  float trackletsPerClusterLimit = -1.f;
+  int findShortTracks = -1;
+  int nThreads = 1;
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };

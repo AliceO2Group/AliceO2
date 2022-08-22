@@ -32,13 +32,11 @@ o2::tpc::IDCOne get1DIDCs(const std::vector<unsigned int>& integrationIntervals)
 {
   const unsigned int nIDCs = std::accumulate(integrationIntervals.begin(), integrationIntervals.end(), static_cast<unsigned int>(0));
   o2::tpc::IDCOne idcsOut;
-  for (unsigned int iside = 0; iside < 2; ++iside) {
-    std::vector<float> idcs(nIDCs);
-    for (auto& val : idcs) {
-      val = gRandom->Gaus(0, 0.2);
-    }
-    idcsOut.mIDCOne[iside] = std::move(idcs);
+  std::vector<float> idcs(nIDCs);
+  for (auto& val : idcs) {
+    val = gRandom->Gaus(0, 0.2);
   }
+  idcsOut.mIDCOne = std::move(idcs);
   return idcsOut;
 }
 
@@ -68,26 +66,23 @@ BOOST_AUTO_TEST_CASE(IDCFourierTransformAggregator_test)
     FtType::setFFT(fft);
     FtType::setNThreads(2);
 
-    FtType idcFourierTransform{rangeIDC, tfs, nFourierCoeff};
+    FtType idcFourierTransform{rangeIDC, nFourierCoeff};
     const auto intervalsPerTF = getIntegrationIntervalsPerTF(integrationIntervals, tfs);
     idcFourierTransform.setIDCs(get1DIDCs(intervalsPerTF), intervalsPerTF);
     idcFourierTransform.setIDCs(get1DIDCs(intervalsPerTF), intervalsPerTF);
-    idcFourierTransform.calcFourierCoefficients();
+    idcFourierTransform.calcFourierCoefficients(tfs);
 
-    for (unsigned int iSide = 0; iSide < o2::tpc::SIDES; ++iSide) {
-      const o2::tpc::Side side = iSide == 0 ? Side::A : Side::C;
-      const std::vector<unsigned int> offsetIndex = idcFourierTransform.getLastIntervals(side);
-      const auto idcOneExpanded = idcFourierTransform.getExpandedIDCOne(side);
-      const auto inverseFourier = idcFourierTransform.inverseFourierTransform(side);
-      for (unsigned int interval = 0; interval < idcFourierTransform.getNIntervals(); ++interval) {
-        for (unsigned int index = 0; index < rangeIDC; ++index) {
-          const float origIDCOne = idcOneExpanded[index + offsetIndex[interval]];
-          const float iFTIDCOne = inverseFourier[interval][index];
-          if (std::fabs(origIDCOne) < ABSTOLERANCE) {
-            BOOST_CHECK_SMALL(iFTIDCOne - origIDCOne, ABSTOLERANCE);
-          } else {
-            BOOST_CHECK_CLOSE(iFTIDCOne, origIDCOne, TOLERANCE);
-          }
+    const std::vector<unsigned int> offsetIndex = idcFourierTransform.getLastIntervals();
+    const auto idcOneExpanded = idcFourierTransform.getExpandedIDCOne();
+    const auto inverseFourier = idcFourierTransform.inverseFourierTransform();
+    for (unsigned int interval = 0; interval < idcFourierTransform.getNIntervals(); ++interval) {
+      for (unsigned int index = 0; index < rangeIDC; ++index) {
+        const float origIDCOne = idcOneExpanded[index + offsetIndex[interval]];
+        const float iFTIDCOne = inverseFourier[interval][index];
+        if (std::fabs(origIDCOne) < ABSTOLERANCE) {
+          BOOST_CHECK_SMALL(iFTIDCOne - origIDCOne, ABSTOLERANCE);
+        } else {
+          BOOST_CHECK_CLOSE(iFTIDCOne, origIDCOne, TOLERANCE);
         }
       }
     }
@@ -113,20 +108,17 @@ BOOST_AUTO_TEST_CASE(IDCFourierTransformEPN_test)
       const auto intervalsPerTF = getIntegrationIntervalsPerTF(integrationIntervals, tfs);
       idcFourierTransform.setIDCs(get1DIDCs(intervalsPerTF));
       idcFourierTransform.calcFourierCoefficients();
-      for (unsigned int iSide = 0; iSide < o2::tpc::SIDES; ++iSide) {
-        const o2::tpc::Side side = iSide == 0 ? Side::A : Side::C;
-        const auto offsetIndex = idcFourierTransform.getLastIntervals(side);
-        const auto idcOneExpanded = idcFourierTransform.getExpandedIDCOne(side);
-        const auto inverseFourier = idcFourierTransform.inverseFourierTransform(side);
-        for (unsigned int interval = 0; interval < idcFourierTransform.getNIntervals(); ++interval) {
-          for (unsigned int index = 0; index < rangeIDC; ++index) {
-            const float origIDCOne = idcOneExpanded[index + offsetIndex[interval]];
-            const float iFTIDCOne = inverseFourier[interval][index];
-            if (std::fabs(origIDCOne) < ABSTOLERANCE) {
-              BOOST_CHECK_SMALL(iFTIDCOne - origIDCOne, ABSTOLERANCE);
-            } else {
-              BOOST_CHECK_CLOSE(iFTIDCOne, origIDCOne, TOLERANCE);
-            }
+      const auto offsetIndex = idcFourierTransform.getLastIntervals();
+      const auto idcOneExpanded = idcFourierTransform.getExpandedIDCOne();
+      const auto inverseFourier = idcFourierTransform.inverseFourierTransform();
+      for (unsigned int interval = 0; interval < idcFourierTransform.getNIntervals(); ++interval) {
+        for (unsigned int index = 0; index < rangeIDC; ++index) {
+          const float origIDCOne = idcOneExpanded[index + offsetIndex[interval]];
+          const float iFTIDCOne = inverseFourier[interval][index];
+          if (std::fabs(origIDCOne) < ABSTOLERANCE) {
+            BOOST_CHECK_SMALL(iFTIDCOne - origIDCOne, ABSTOLERANCE);
+          } else {
+            BOOST_CHECK_CLOSE(iFTIDCOne, origIDCOne, TOLERANCE);
           }
         }
       }

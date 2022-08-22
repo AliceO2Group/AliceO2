@@ -126,17 +126,16 @@ class FileWriterDevice : public Task
     }
 
     const std::string NAStr = "NA";
-
-    const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
     auto oldRun = mRun;
     auto oldTF = mPresentTF;
     mRun = processing_helpers::getRunNumber(pc);
-    mPresentTF = dh->tfCounter;
-    mFirstTForbit = dh->firstTForbit;
+    mPresentTF = tinfo.tfCounter;
+    mFirstTForbit = tinfo.firstTForbit;
 
     if (mWrite) {
       if (!mCollectedData.size() || mCollectedData.find(mPresentTF) == mCollectedData.end()) {
-        prepareTreeAndFile(dh);
+        prepareTreeAndFile(tinfo);
       }
 
       fillData();
@@ -206,12 +205,12 @@ class FileWriterDevice : public Task
   o2::framework::DataTakingContext mDataTakingContext{};
   static constexpr std::string_view TMPFileEnding{".part"};
 
-  void prepareTreeAndFile(const o2::header::DataHeader* dh);
+  void prepareTreeAndFile(const o2::framework::TimingInfo& tinfo);
   void closeTreeAndFile();
 };
 //___________________________________________________________________
 template <typename T>
-void FileWriterDevice<T>::prepareTreeAndFile(const o2::header::DataHeader* dh)
+void FileWriterDevice<T>::prepareTreeAndFile(const o2::framework::TimingInfo& tinfo)
 {
   if (!mWrite) {
     return;
@@ -227,7 +226,7 @@ void FileWriterDevice<T>::prepareTreeAndFile(const o2::header::DataHeader* dh)
   if (needToOpen) {
     LOGP(info, "opening new file");
     closeTreeAndFile();
-    // auto fname = o2::base::NameConf::getCTFFileName(mRun, dh->firstTForbit, dh->tfCounter, "tpc_krypton");
+    // auto fname = o2::base::NameConf::getCTFFileName(mRun, tinfo.firstTForbit, tinfo.tfCounter, "tpc_krypton");
     auto ctfDir = mOutDir.empty() ? o2::utils::Str::rectifyDirectory("./") : mOutDir;
     // if (mChkSize > 0 && (mDirFallBack != "/dev/null")) {
     // createLockFile(dh, 0);
@@ -248,7 +247,7 @@ void FileWriterDevice<T>::prepareTreeAndFile(const o2::header::DataHeader* dh)
         }
       }
     }
-    mCurrentFileName = o2::base::NameConf::getCTFFileName(mRun, dh->firstTForbit, dh->tfCounter, "tpc_krypton");
+    mCurrentFileName = o2::base::NameConf::getCTFFileName(mRun, tinfo.firstTForbit, tinfo.tfCounter, "tpc_krypton");
     mCurrentFileNameFull = fmt::format("{}{}", ctfDir, mCurrentFileName);
     mFileOut.reset(TFile::Open(fmt::format("{}{}", mCurrentFileNameFull, TMPFileEnding).c_str(), "recreate")); // to prevent premature external usage, use temporary name
     mTreeOut = std::make_unique<TTree>(TreeName.at(mBranchType).data(), "O2 tree");

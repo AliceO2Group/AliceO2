@@ -57,8 +57,7 @@ void PHOSBadMapCalibDevice::init(o2::framework::InitContext& ic)
 void PHOSBadMapCalibDevice::run(o2::framework::ProcessingContext& ctx)
 {
   if (mRunStartTime == 0) {
-    const auto ref = ctx.inputs().getFirstValid(true);
-    mRunStartTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->creation; // approximate time in ms
+    mRunStartTime = ctx.services().get<o2::framework::TimingInfo>().creation;
     mValidityTime = mRunStartTime + 31622400000;                                   // one year validity range
   }
 

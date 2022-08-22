@@ -27,11 +27,22 @@
 #include <unordered_map>
 #include <vector>
 #include "subsysname.h"
+#include <TFile.h>
 
 namespace po = boost::program_options;
 using DPID = o2::dcs::DataPointIdentifier;
 using DPVAL = o2::dcs::DataPointValue;
 using DPMAP = std::unordered_map<DPID, std::vector<DPVAL>>;
+
+float sum(float s, o2::dcs::DataPointValue v)
+{
+  union Converter {
+    uint64_t raw_data;
+    double value;
+  } converter;
+  converter.raw_data = v.payload_pt1;
+  return s + converter.value;
+};
 
 std::string CcdbDpConfName()
 {
@@ -39,6 +50,68 @@ std::string CcdbDpConfName()
 }
 
 bool verbose;
+
+/*
+ * Return the data point values with min and max timestamps
+ */
+std::pair<DPVAL, DPVAL> computeTimeRange(const std::vector<DPVAL>& dps)
+{
+  DPVAL dmin, dmax;
+  uint64_t minTime{std::numeric_limits<uint64_t>::max()};
+  uint64_t maxTime{0};
+
+  for (auto d : dps) {
+    const auto ts = d.get_epoch_time();
+    if (ts < minTime) {
+      dmin = d;
+      minTime = ts;
+    }
+    if (ts > maxTime) {
+      dmax = d;
+      maxTime = ts;
+    }
+  }
+  return std::make_pair(dmin, dmax);
+}
+
+void dump(const std::string what, DPMAP m, bool verbose)
+{
+  std::cout << "size of " << what << " map = " << m.size() << std::endl;
+  if (verbose) {
+    for (auto& i : m) {
+      auto v = i.second;
+      auto timeRange = computeTimeRange(v);
+      auto mean = std::accumulate(v.begin(), v.end(), 0.0, sum);
+      if (v.size()) {
+        mean /= v.size();
+      }
+      std::cout << fmt::format("{:64s} {:4d} values of mean {:7.2f} : ", i.first.get_alias(), v.size(),
+                               mean);
+      for (auto t : v) {
+        std::cout << t << " | ";
+      }
+      std::cout << "\n";
+      //       std::cout << timeRange.first << " " << timeRange.second << "\n";
+    }
+  }
+}
+
+void doQueryHVLV(const std::string fileName)
+{
+  std::cout << "Reading from file " << fileName << "\n";
+  std::unique_ptr<TFile> fin(TFile::Open(fileName.c_str()));
+  if (fin->IsZombie()) {
+    return;
+  }
+  TClass* cl = TClass::GetClass(typeid(DPMAP));
+
+  DPMAP* m = static_cast<DPMAP*>(fin->GetObjectChecked("ccdb_object", cl));
+  if (!m) {
+    std::cerr << "Could not read ccdb_object from file " << fileName << "\n";
+    return;
+  }
+  dump(fileName, *m, verbose);
+}
 
 void doQueryHVLV(const std::string ccdbUrl, uint64_t timestamp, bool hv, bool lv)
 {
@@ -50,33 +123,12 @@ void doQueryHVLV(const std::string ccdbUrl, uint64_t timestamp, bool hv, bool lv
     what.emplace_back(fmt::format("{}/Calib/LV", o2::muon::subsysname()));
   }
 
-  auto sum =
-    [](float s, o2::dcs::DataPointValue v) {
-      union Converter {
-        uint64_t raw_data;
-        double value;
-      } converter;
-      converter.raw_data = v.payload_pt1;
-      return s + converter.value;
-    };
-
   o2::ccdb::CcdbApi api;
   api.init(ccdbUrl);
   for (auto w : what) {
     std::map<std::string, std::string> metadata;
     auto* m = api.retrieveFromTFileAny<DPMAP>(w, metadata, timestamp);
-    std::cout << "size of " << w << " map = " << m->size() << std::endl;
-    if (verbose) {
-      for (auto& i : *m) {
-        auto v = i.second;
-        auto mean = std::accumulate(v.begin(), v.end(), 0.0, sum);
-        if (v.size()) {
-          mean /= v.size();
-        }
-        std::cout << fmt::format("{:64s} {:4d} values of mean {:7.2f}\n", i.first.get_alias(), v.size(),
-                                 mean);
-      }
-    }
+    dump(w, *m, verbose);
   }
 }
 
@@ -138,6 +190,7 @@ int main(int argc, char** argv)
   bool hv;
   bool dpconf;
   bool put;
+  std::string fileName;
 
   uint64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
@@ -150,6 +203,7 @@ int main(int argc, char** argv)
       ("put-datapoint-config,p",po::bool_switch(&put),"upload datapoint configuration")
       ("verbose,v",po::bool_switch(&verbose),"verbose output")
       ("datapoint-conf-name",po::value<std::string>(&dpConfName)->default_value(CcdbDpConfName()),"dp conf name (only if not from mch or mid)")
+      ("file,f",po::value<std::string>(&fileName)->default_value(""),"read from file instead of from ccdb")
       ;
   // clang-format on
 
@@ -170,6 +224,10 @@ int main(int argc, char** argv)
   } catch (boost::program_options::error& e) {
     std::cout << "Error: " << e.what() << "\n";
     exit(1);
+  }
+
+  if (fileName.size() > 0) {
+    doQueryHVLV(fileName);
   }
 
   if (vm.count("query")) {

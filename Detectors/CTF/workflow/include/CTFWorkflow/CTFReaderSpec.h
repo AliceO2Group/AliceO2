@@ -29,6 +29,7 @@ struct CTFReaderInp {
   std::string copyCmd{};
   std::string tffileRegex{};
   std::string remoteRegex{};
+  std::string metricChannel{};
   std::vector<int> ctfIDs{};
   bool allowMissingDetectors = false;
   bool sup0xccdb = false;
@@ -37,6 +38,8 @@ struct CTFReaderInp {
   int maxLoops = 0;
   int maxTFs = -1;
   unsigned int subspec = 0;
+  int tfRateLimit = 0;
+  size_t minSHM = 0;
 };
 
 /// create a processor spec

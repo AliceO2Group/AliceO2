@@ -17,7 +17,7 @@
 #include "DataFormatsFV0/Digit.h"
 #include "DataFormatsFV0/ChannelData.h"
 #include "DataFormatsFV0/RecPoints.h"
-#include "FV0Calibration/FV0ChannelTimeCalibrationObject.h"
+#include "DataFormatsFV0/FV0ChannelTimeCalibrationObject.h"
 #include <gsl/span>
 
 namespace o2

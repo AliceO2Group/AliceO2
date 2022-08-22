@@ -250,7 +250,7 @@ DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandl
 void DataDecoder::logErrorMap(int tfcount) const
 {
   for (auto err : mErrorMap) {
-    LOGP(alarm, "{} ({} time{}) [{} TFs seen]", err.first, err.second,
+    LOGP(warning, "{} ({} time{}) [{} TFs seen]", err.first, err.second,
          err.second > 1 ? "s" : "", tfcount);
   }
 }
@@ -812,12 +812,8 @@ void DataDecoder::computeDigitsTimeBCRst()
 
 //_________________________________________________________________________________________________
 
-void DataDecoder::checkDigitsTime(int minDigitOrbitAccepted, int maxDigitOrbitAccepted)
+void DataDecoder::checkDigitsTime()
 {
-  if (maxDigitOrbitAccepted < 0) {
-    maxDigitOrbitAccepted = mOrbitsInTF - 1;
-  }
-
   for (auto& digit : mDigits) {
     auto& d = digit.digit;
     auto& info = digit.info;
@@ -825,12 +821,6 @@ void DataDecoder::checkDigitsTime(int minDigitOrbitAccepted, int maxDigitOrbitAc
     if (tfTime == DataDecoder::tfTimeInvalid) {
       // add invalid digit time error
       mErrors.emplace_back(o2::mch::DecoderError(info.solar, info.ds, info.chip, ErrorInvalidDigitTime));
-    } else {
-      auto orbit = tfTime / o2::constants::lhc::LHCMaxBunches;
-      if (orbit < minDigitOrbitAccepted || orbit > maxDigitOrbitAccepted) {
-        // add bad digit time error
-        mErrors.emplace_back(o2::mch::DecoderError(info.solar, info.ds, info.chip, ErrorBadDigitTime));
-      }
     }
   }
 }

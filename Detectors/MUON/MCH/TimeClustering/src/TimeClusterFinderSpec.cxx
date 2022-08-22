@@ -16,11 +16,12 @@
 
 #include "MCHTimeClustering/TimeClusterFinderSpec.h"
 
-#include <iostream>
-#include <fstream>
 #include <chrono>
-#include <vector>
+#include <fstream>
+#include <iostream>
+#include <random>
 #include <stdexcept>
+#include <vector>
 
 #include <fmt/core.h>
 
@@ -66,6 +67,7 @@ class TimeClusterFinderTask
     mPeakSearchSignalOnly = param.peakSearchSignalOnly;
     mIRFramesOnly = param.irFramesOnly;
     mDebug = ic.options().get<bool>("mch-debug");
+    mROFRejectionFraction = param.rofRejectionFraction;
 
     if (mDebug) {
       fair::Logger::SetConsoleColor(true);
@@ -78,13 +80,18 @@ class TimeClusterFinderTask
     if ((mNbinsInOneWindow % 2) == 0) {
       mNbinsInOneWindow += 1;
     }
+    if (mROFRejectionFraction > 0) {
+      std::random_device rd;
+      mGenerator = std::mt19937(rd());
+    }
 
-    LOGP(info, "TimeClusterWidth    : {}", mTimeClusterWidth);
-    LOGP(info, "BinsInOneWindow     : {} ", mNbinsInOneWindow);
-    LOGP(info, "MinDigitPerROF      : {}", mMinDigitPerROF);
-    LOGP(info, "OnlyTrackable       : {}", mOnlyTrackable);
-    LOGP(info, "PeakSearchSignalOnly: {}", mPeakSearchSignalOnly);
-    LOGP(info, "IRFramesOnly        : {}", mIRFramesOnly);
+    LOGP(info, "TimeClusterWidth      : {}", mTimeClusterWidth);
+    LOGP(info, "BinsInOneWindow       : {} ", mNbinsInOneWindow);
+    LOGP(info, "MinDigitPerROF        : {}", mMinDigitPerROF);
+    LOGP(info, "OnlyTrackable         : {}", mOnlyTrackable);
+    LOGP(info, "PeakSearchSignalOnly  : {}", mPeakSearchSignalOnly);
+    LOGP(info, "IRFramesOnly          : {}", mIRFramesOnly);
+    LOGP(info, "ROFRejectionFraction  : {}", mROFRejectionFraction);
 
     auto stop = [this]() {
       if (mTFcount) {
@@ -92,6 +99,14 @@ class TimeClusterFinderTask
       }
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+  }
+
+  ROFFilter createRandomRejectionFilter(float rejectionFraction)
+  {
+    return [this, rejectionFraction](const ROFRecord& /*rof*/) {
+      double rnd = mDistribution(mGenerator);
+      return rnd > rejectionFraction;
+    };
   }
 
   //_________________________________________________________________________________________________
@@ -144,6 +159,13 @@ class TimeClusterFinderTask
       filters.emplace_back(createIRFrameFilter(irFrames));
     }
 
+    std::string extraMsg = "";
+
+    if (mROFRejectionFraction > 0) {
+      filters.emplace_back(createRandomRejectionFilter(mROFRejectionFraction));
+      extraMsg = fmt::format(" (CAUTION : hard-rejected {:3.0f}% of the output ROFs)", mROFRejectionFraction * 100);
+    }
+
     // a single filter which is the AND combination of the elements of the filters vector
     auto filter = createROFFilter(filters);
 
@@ -158,10 +180,10 @@ class TimeClusterFinderTask
     LOGP(info,
          "TF {} Processed {} input ROFs, "
          "time-clusterized them into {} ROFs ({:3.0f}%) "
-         "and output {} ({:3.0f}%) of them",
+         "and output {} ({:3.0f}%) of them{}",
          mTFcount, rofs.size(),
          pRofs.size(), p1,
-         outRofs.size(), p2);
+         outRofs.size(), p2, extraMsg);
     mTFcount += 1;
   }
 
@@ -169,14 +191,17 @@ class TimeClusterFinderTask
   std::chrono::duration<double, std::milli>
     mTimeProcess{}; ///< timer
 
-  uint32_t mTimeClusterWidth; ///< maximum size of one time cluster, in bunch crossings
-  uint32_t mNbinsInOneWindow; ///< number of time bins considered for the peak search
-  int mTFcount{0};            ///< number of processed time frames
-  int mDebug{0};              ///< verbosity flag
-  int mMinDigitPerROF;        ///< minimum digit per ROF threshold
-  bool mPeakSearchSignalOnly; ///< only use signal-like hits in peak search
-  bool mOnlyTrackable;        ///< only keep ROFs that are trackable
-  bool mIRFramesOnly;         ///< only keep ROFs that overlap some IRFrame
+  uint32_t mTimeClusterWidth;  ///< maximum size of one time cluster, in bunch crossings
+  uint32_t mNbinsInOneWindow;  ///< number of time bins considered for the peak search
+  int mTFcount{0};             ///< number of processed time frames
+  int mDebug{0};               ///< verbosity flag
+  int mMinDigitPerROF;         ///< minimum digit per ROF threshold
+  bool mPeakSearchSignalOnly;  ///< only use signal-like hits in peak search
+  bool mOnlyTrackable;         ///< only keep ROFs that are trackable
+  bool mIRFramesOnly;          ///< only keep ROFs that overlap some IRFrame
+  float mROFRejectionFraction; ///< fraction of output ROFs to reject (to save time in sync reco). MUST BE 0 for anything but Pt2 reco !
+  std::uniform_real_distribution<double> mDistribution{0.0, 1.0};
+  std::mt19937 mGenerator;
 };
 
 //_________________________________________________________________________________________________

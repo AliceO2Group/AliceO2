@@ -133,11 +133,13 @@ void ITSThresholdCalibrator::init(InitContext& ic)
   // check flag to tag single noisy pix in digital and analog scans
   this->mTagSinglePix = ic.options().get<bool>("enable-single-pix-tag");
 
+  // flag to set the url ccdb mgr
+  this->mCcdbMgrUrl = ic.options().get<std::string>("ccdb-mgr-url");
   // FIXME: Temporary solution to retrieve ConfDBmap
   long int ts = o2::ccdb::getCurrentTimestamp();
   LOG(info) << "Getting confDB map from ccdb - timestamp: " << ts;
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setURL("http://alice-ccdb.cern.ch");
+  mgr.setURL(mCcdbMgrUrl);
   mgr.setTimestamp(ts);
   mConfDBmap = mgr.get<std::vector<int>>("ITS/Calib/Confdbmap");
 
@@ -322,17 +324,16 @@ bool ITSThresholdCalibrator::findThresholdFit(
 // data is the number of trigger counts per charge injected;
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
-bool ITSThresholdCalibrator::findThresholdDerivative(
-  const unsigned short int* data, const short int* x, const short int& NPoints,
-  float& thresh, float& noise)
+
+bool ITSThresholdCalibrator::findThresholdDerivative(const unsigned short int* data, const short int* x, const short int& NPoints,
+                                                     float& thresh, float& noise)
 {
   // Find lower & upper values of the S-curve region
   short int lower, upper;
   bool flip = (this->mScanType == 'I');
   if (!this->findUpperLower(data, x, NPoints, lower, upper, flip) || lower == upper) {
     if (this->mVerboseOutput) {
-      LOG(warning) << "Start-finding unsuccessful: (lower, upper) = ("
-                   << lower << ", " << upper << ")";
+      LOG(warning) << "Start-finding unsuccessful: (lower, upper) = (" << lower << ", " << upper << ")";
     }
     return false;
   }
@@ -343,15 +344,14 @@ bool ITSThresholdCalibrator::findThresholdDerivative(
 
   // Fill array with derivatives
   for (int i = lower; i < upper; i++) {
-    deriv[i - lower] = (data[i + 1] - data[i]) / float(this->mX[i + 1] - mX[i]);
-    if (deriv[i - lower] < 0) {
-      deriv[i - lower] = 0.;
-    }
+    deriv[i - lower] = std::abs(data[i + 1] - data[i]) / float(this->mX[i + 1] - mX[i]);
     xfx += this->mX[i] * deriv[i - lower];
     fx += deriv[i - lower];
   }
 
-  thresh = xfx / fx;
+  if (fx > 0.) {
+    thresh = xfx / fx;
+  }
   float stddev = 0;
   for (int i = lower; i < upper; i++) {
     stddev += std::pow(this->mX[i] - thresh, 2) * deriv[i - lower];
@@ -360,7 +360,7 @@ bool ITSThresholdCalibrator::findThresholdDerivative(
   stddev /= fx;
   noise = std::sqrt(stddev);
 
-  return true;
+  return fx > 0.;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -415,6 +415,10 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
       vThreshold[col_i] = this->mPixelHits[chipID][row][col_i][0];
       if (vThreshold[col_i] > N_INJ) {
         this->mNoisyPixID[chipID].push_back(col_i * 1000 + row);
+      } else if (vThreshold[col_i] > 0 && vThreshold[col_i] < N_INJ) {
+        this->mIneffPixID[chipID].push_back(col_i * 1000 + row);
+      } else if (vThreshold[col_i] == 0) {
+        this->mDeadPixID[chipID].push_back(col_i * 1000 + row);
       }
     }
   } else {
@@ -568,7 +572,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->mCheckExactRow = true;
 
   } else if (runtype == THR_SCAN_SHORT || runtype == THR_SCAN_SHORT_100HZ ||
-             runtype == THR_SCAN_SHORT_200HZ) {
+             runtype == THR_SCAN_SHORT_200HZ || runtype == THR_SCAN_SHORT_33 || runtype == THR_SCAN_SHORT_2_10HZ) {
     // threshold_scan_short -- just extract thresholds for each pixel and write to TTree
     // 10 rows per chip
     this->mScanType = 'T';
@@ -715,8 +719,12 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
         if (this->mRunType == -1) {
           short int runtype = ((short int)(calib.calibUserField >> 24)) & 0xff;
           mConfDBv = ((short int)(calib.calibUserField >> 32)) & 0xffff; // confDB version
-          LOG(info) << "confDB version in use: " << mConfDBv;
           this->setRunType(runtype);
+          LOG(info) << "Calibrator will ship these run parameters to aggregator:";
+          LOG(info) << "Run type  : " << mRunType;
+          LOG(info) << "Scan type : " << mScanType;
+          LOG(info) << "Fit type  : " << std::to_string(mFitType);
+          LOG(info) << "DB version: " << mConfDBv;
         }
         this->mRunTypeUp = ((short int)(calib.calibUserField >> 24)) & 0xff;
         // Divide calibration word (24-bit) by 2^16 to get the first 8 bits
@@ -839,6 +847,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
     this->finalize(nullptr);
     LOG(info) << "Shipping all outputs to aggregator (no endOfStream will be used!)";
     pc.outputs().snapshot(Output{"ITS", "TSTR", (unsigned int)mChipModSel}, this->mTuning);
+    pc.outputs().snapshot(Output{"ITS", "PIXTYP", (unsigned int)mChipModSel}, this->mPixStat);
     pc.outputs().snapshot(Output{"ITS", "RUNT", (unsigned int)mChipModSel}, this->mRunType);
     pc.outputs().snapshot(Output{"ITS", "SCANT", (unsigned int)mChipModSel}, this->mScanType);
     pc.outputs().snapshot(Output{"ITS", "FITT", (unsigned int)mChipModSel}, this->mFitType);
@@ -846,15 +855,18 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"ITS", "QCSTR", (unsigned int)mChipModSel}, this->mChipDoneQc);
     // reset the DCSconfigObject_t before next ship out
     mTuning.clear();
+    mPixStat.clear();
     mChipDoneQc.clear();
   } else if (mCheckEos) {
     pc.outputs().snapshot(Output{"ITS", "TSTR", (unsigned int)mChipModSel}, this->mTuning); // dummy here
+    pc.outputs().snapshot(Output{"ITS", "PIXTYP", (unsigned int)mChipModSel}, this->mPixStat);
     pc.outputs().snapshot(Output{"ITS", "RUNT", (unsigned int)mChipModSel}, this->mRunType);
     pc.outputs().snapshot(Output{"ITS", "SCANT", (unsigned int)mChipModSel}, this->mScanType);
     pc.outputs().snapshot(Output{"ITS", "FITT", (unsigned int)mChipModSel}, this->mFitType);
     pc.outputs().snapshot(Output{"ITS", "CONFDBV", (unsigned int)mChipModSel}, this->mConfDBv);
     pc.outputs().snapshot(Output{"ITS", "QCSTR", (unsigned int)mChipModSel}, this->mChipDoneQc);
     mChipDoneQc.clear();
+    mPixStat.clear();
   }
 
   return;
@@ -907,7 +919,14 @@ void ITSThresholdCalibrator::addDatabaseEntry(
   // Bad pix list and bad dcols for dig and ana scan
   if (this->mScanType == 'D' || this->mScanType == 'A') {
     short int vPixDcolCounter[512] = {0}; // count #bad_pix per dcol
+    std::string dcolIDs = "";
+    std::string pixIDs_Noisy = "";
+    std::string pixIDs_Dead = "";
+    std::string pixIDs_Ineff = "";
     std::vector<int>& v = mNoisyPixID[chipID];
+    std::vector<int>& v_Dead = mDeadPixID[chipID];
+    std::vector<int>& v_Ineff = mIneffPixID[chipID];
+
     std::string ds = "-1"; // dummy string
     // find bad dcols and add them one by one
     for (int i = 0; i < v.size(); i++) {
@@ -924,26 +943,82 @@ void ITSThresholdCalibrator::addDatabaseEntry(
         o2::dcs::addConfigItem(this->mTuning, "Dcol", std::to_string(i));
         o2::dcs::addConfigItem(this->mTuning, "Row", ds);
         o2::dcs::addConfigItem(this->mTuning, "Col", ds);
+
+        dcolIDs += std::to_string(i) + '|'; // prepare string for second object for ccdb prod
       }
     }
 
     // find single noisy pix (not in the dcol string!) if required and add them one by one
     if (this->mTagSinglePix) {
-      for (int i = 0; i < v.size(); i++) {
-        short int dcol = ((v[i] - v[i] % 1000) / 1000) / 2;
-        if (vPixDcolCounter[dcol] > N_PIX_DCOL) { // single pixels must not be already in dcolIDs
-          continue;
+      if (PixelType == "Noisy") {
+        for (int i = 0; i < v.size(); i++) {
+          short int dcol = ((v[i] - v[i] % 1000) / 1000) / 2;
+          if (vPixDcolCounter[dcol] > N_PIX_DCOL) { // single pixels must not be already in dcolIDs
+            continue;
+          }
+
+          // Noisy pixel IDs
+          pixIDs_Noisy += std::to_string(v[i]);
+          if (i + 1 < v.size()) {
+            pixIDs_Noisy += '|';
+          }
+
+          o2::dcs::addConfigItem(this->mTuning, "Stave", std::string(stave));
+          o2::dcs::addConfigItem(this->mTuning, "Hs_pos", std::to_string(ssta));
+          o2::dcs::addConfigItem(this->mTuning, "Hic_Pos", std::to_string(mod));
+          o2::dcs::addConfigItem(this->mTuning, "ChipID", std::to_string(chipInMod));
+          o2::dcs::addConfigItem(this->mTuning, "ChipDbID", std::to_string(confDBid));
+          o2::dcs::addConfigItem(this->mTuning, "Dcol", ds);
+          o2::dcs::addConfigItem(this->mTuning, "Row", std::to_string(v[i] % 1000));
+          o2::dcs::addConfigItem(this->mTuning, "Col", std::to_string(int((v[i] - v[i] % 1000) / 1000)));
         }
-        o2::dcs::addConfigItem(this->mTuning, "Stave", std::string(stave));
-        o2::dcs::addConfigItem(this->mTuning, "Hs_pos", std::to_string(ssta));
-        o2::dcs::addConfigItem(this->mTuning, "Hic_Pos", std::to_string(mod));
-        o2::dcs::addConfigItem(this->mTuning, "ChipID", std::to_string(chipInMod));
-        o2::dcs::addConfigItem(this->mTuning, "ChipDbID", std::to_string(confDBid));
-        o2::dcs::addConfigItem(this->mTuning, "Dcol", ds);
-        o2::dcs::addConfigItem(this->mTuning, "Row", std::to_string(v[i] % 1000));
-        o2::dcs::addConfigItem(this->mTuning, "Col", std::to_string(int((v[i] - v[i] % 1000) / 1000)));
+      }
+
+      if (PixelType == "Dead") {
+        for (int i = 0; i < v_Dead.size(); i++) {
+          pixIDs_Dead += std::to_string(v_Dead[i]);
+          if (i + 1 < v_Dead.size()) {
+            pixIDs_Dead += '|';
+          }
+        }
+      }
+
+      if (PixelType == "Ineff") {
+        for (int i = 0; i < v_Ineff.size(); i++) {
+          pixIDs_Ineff += std::to_string(v_Ineff[i]);
+          if (i + 1 < v_Ineff.size()) {
+            pixIDs_Ineff += '|';
+          }
+        }
       }
     }
+
+    if (!dcolIDs.empty()) {
+      dcolIDs.pop_back(); // remove last pipe from the string
+    } else {
+      dcolIDs = "-1";
+    }
+
+    if (pixIDs_Noisy.empty()) {
+      pixIDs_Noisy = "-1";
+    }
+
+    if (pixIDs_Dead.empty()) {
+      pixIDs_Dead = "-1";
+    }
+
+    if (pixIDs_Ineff.empty()) {
+      pixIDs_Ineff = "-1";
+    }
+
+    o2::dcs::addConfigItem(this->mPixStat, "Stave", std::string(stave));
+    o2::dcs::addConfigItem(this->mPixStat, "Hs_pos", std::to_string(ssta));
+    o2::dcs::addConfigItem(this->mPixStat, "Hic_Pos", std::to_string(mod));
+    o2::dcs::addConfigItem(this->mPixStat, "ChipID", std::to_string(chipInMod));
+    o2::dcs::addConfigItem(this->mPixStat, "Dcol", dcolIDs);
+    o2::dcs::addConfigItem(this->mPixStat, "NoisyPixID", pixIDs_Noisy);
+    o2::dcs::addConfigItem(this->mPixStat, "DeadPixID", pixIDs_Dead);
+    o2::dcs::addConfigItem(this->mPixStat, "IneffPixID", pixIDs_Ineff);
   }
   if (this->mScanType != 'D' && this->mScanType != 'A') {
     o2::dcs::addConfigItem(this->mTuning, "Stave", std::string(stave));
@@ -981,6 +1056,7 @@ void ITSThresholdCalibrator::sendToAggregator(EndOfStreamContext* ec)
   if (this->mCheckEos && ec) { // send to ccdb-populator wf only if there is an EndOfStreamContext
     LOG(info) << "Shipping DCSconfigObject_t, run type, scan type and fit type to aggregator using endOfStream!";
     ec->outputs().snapshot(Output{"ITS", "TSTR", (unsigned int)mChipModSel}, this->mTuning);
+    ec->outputs().snapshot(Output{"ITS", "PIXTYP", (unsigned int)mChipModSel}, this->mPixStat);
     ec->outputs().snapshot(Output{"ITS", "RUNT", (unsigned int)mChipModSel}, this->mRunType);
     ec->outputs().snapshot(Output{"ITS", "SCANT", (unsigned int)mChipModSel}, this->mScanType);
     ec->outputs().snapshot(Output{"ITS", "FITT", (unsigned int)mChipModSel}, this->mFitType);
@@ -1063,38 +1139,59 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     name = "PixID";
 
     // Extract hits from the full matrix
-    LOG(info) << "Extracting hits for the full matrix";
     auto itchip = this->mPixelHits.cbegin();
     while (itchip != this->mPixelHits.cend()) { // loop over chips collected
       if (!this->mCheckEos && this->mRunTypeChip[itchip->first] < N_INJ) {
         ++itchip;
         continue;
       }
+      LOG(info) << "Extracting hits for the full matrix of chip " << itchip->first;
       for (short int irow = 0; irow < 512; irow++) {
         this->extractAndUpdate(itchip->first, irow);
       }
       if (this->mVerboseOutput) {
-        LOG(info) << "Chip " << itchip->first << " done";
+        LOG(info) << "Chip " << itchip->first << " hits extracted";
       }
+      mRunTypeChip[itchip->first] = 0; // to avoid multiple writes into the tree
       ++itchip;
     }
 
-    LOG(info) << "Extracting noisy pixels in the full matrix";
     auto it = this->mNoisyPixID.cbegin();
     while (it != this->mNoisyPixID.cend()) {
-      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ) {
-        ++it;
-        continue;
-      }
+      PixelType = "Noisy";
+      LOG(info) << "Extracting noisy pixels in the full matrix of chip " << it->first;
       this->addDatabaseEntry(it->first, name, 0, 0, 0, 0, 0, false); // all zeros are not used here
       if (this->mVerboseOutput) {
         LOG(info) << "Chip " << it->first << " done";
       }
       if (!this->mCheckEos) {
-        this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
         it = this->mNoisyPixID.erase(it);
       } else {
         ++it;
+      }
+    }
+
+    auto it_d = this->mDeadPixID.cbegin();
+    while (it_d != this->mDeadPixID.cend()) {
+      LOG(info) << "Extracting dead pixels in the full matrix of chip " << it_d->first;
+      PixelType = "Dead";
+      this->addDatabaseEntry(it_d->first, name, 0, 0, 0, 0, 0, false); // all zeros are not used here
+      if (!this->mCheckEos) {
+        it_d = this->mDeadPixID.erase(it_d);
+      } else {
+        ++it_d;
+      }
+    }
+
+    auto it_ineff = this->mIneffPixID.cbegin();
+    while (it_ineff != this->mIneffPixID.cend()) {
+      LOG(info) << "Extracting inefficient pixels in the full matrix of chip " << it_ineff->first;
+      PixelType = "Ineff";
+      this->addDatabaseEntry(it_ineff->first, name, 0, 0, 0, 0, 0, false);
+      if (!this->mCheckEos) {
+        it_ineff = this->mIneffPixID.erase(it_ineff);
+      } else {
+        ++it_ineff;
       }
     }
   }
@@ -1145,6 +1242,7 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ITS", "TSTR", inpConf.chipModSel);
+  outputs.emplace_back("ITS", "PIXTYP", inpConf.chipModSel);
   outputs.emplace_back("ITS", "RUNT", inpConf.chipModSel);
   outputs.emplace_back("ITS", "SCANT", inpConf.chipModSel);
   outputs.emplace_back("ITS", "FITT", inpConf.chipModSel);
@@ -1164,7 +1262,8 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"nthreads", VariantType::Int, 1, {"Number of threads, default is 1"}},
             {"enable-eos", VariantType::Bool, false, {"Use if endOfStream is available"}},
             {"enable-cw-cnt-check", VariantType::Bool, false, {"Use to enable the check of the calib word counter row by row in addition to the hits"}},
-            {"enable-single-pix-tag", VariantType::Bool, false, {"Use to enable tagging of single noisy pix in digital and analogue scan"}}}};
+            {"enable-single-pix-tag", VariantType::Bool, false, {"Use to enable tagging of single noisy pix in digital and analogue scan"}},
+            {"ccdb-mgr-url", VariantType::String, "", {"CCDB url to download confDBmap"}}}};
 }
 } // namespace its
 } // namespace o2

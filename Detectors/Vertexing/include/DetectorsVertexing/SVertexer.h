@@ -29,9 +29,16 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include <numeric>
 #include <algorithm>
+#include "GPUO2InterfaceRefit.h"
+#include "TPCFastTransform.h"
 
 namespace o2
 {
+namespace tpc
+{
+class VDriftCorrFact;
+}
+
 namespace vertexing
 {
 
@@ -54,6 +61,8 @@ class SVertexer
                AntiLambda,
                HyperTriton,
                AntiHyperTriton,
+               Hyperhydrog4,
+               AntiHyperhydrog4,
                NHypV0 };
 
   enum HypCascade {
@@ -83,13 +92,15 @@ class SVertexer
     // set TPC time bin in BCs
     mMUS2TPCBin = 1.f / (nbc * o2::constants::lhc::LHCBunchSpacingMUS);
   }
+  void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
 
   template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCREFCONT>
   void extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs);
+  void initTPCTransform();
 
  private:
   bool checkV0(const TrackCand& seed0, const TrackCand& seed1, int iP, int iN, int ithread);
-  int checkCascades(float rv0, std::array<float, 3> pV0, float p2v0, int avoidTrackID, int posneg, int ithread);
+  int checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, VBracket v0vlist, int ithread);
   void setupThreads();
   void buildT2V(const o2::globaltracking::RecoContainer& recoTracks);
   void updateTimeDependentParams();
@@ -102,11 +113,16 @@ class SVertexer
     return (uint64_t(id1) << 32) | id2;
   }
 
+  // at the moment not used
+  std::unique_ptr<o2::gpu::TPCFastTransform> mTPCTransform;   ///< TPC cluster transformation
+  std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
+
   gsl::span<const PVertex> mPVertices;
   std::vector<std::vector<V0>> mV0sTmp;
   std::vector<std::vector<Cascade>> mCascadesTmp;
   std::array<std::vector<TrackCand>, 2> mTracksPool{}; // pools of positive and negative seeds sorted in min VtxID
   std::array<std::vector<int>, 2> mVtxFirstTrack{};    // 1st pos. and neg. track of the pools for each vertex
+
   o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
   const SVertexerParams* mSVParams = nullptr;
   std::array<SVertexHypothesis, NHypV0> mV0Hyps;
@@ -126,6 +142,9 @@ class SVertexer
   float mMaxTgl2Casc = 2. * 2.;
   float mMUS2TPCBin = 1.f / (8 * o2::constants::lhc::LHCBunchSpacingMUS);
   float mTPCBin2Z = 0;
+  float mTPCVDrift = 0;
+  float mTPCVDriftRef = 0;
+
   bool mEnableCascades = true;
 };
 

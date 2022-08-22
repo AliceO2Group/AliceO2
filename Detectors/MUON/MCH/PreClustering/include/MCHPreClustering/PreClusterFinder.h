@@ -16,16 +16,17 @@
 #ifndef O2_MCH_PRECLUSTERFINDER_H_
 #define O2_MCH_PRECLUSTERFINDER_H_
 
+#include "DataFormatsMCH/Digit.h"
+#include "MCHBase/ErrorMap.h"
+#include "MCHBase/PreCluster.h"
 #include <cassert>
 #include <cstdint>
-#include <unordered_map>
-#include <vector>
-#include <memory>
-
 #include <gsl/span>
-
-#include "DataFormatsMCH/Digit.h"
-#include "MCHBase/PreCluster.h"
+#include <memory>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+#include <map>
 
 namespace o2
 {
@@ -55,6 +56,8 @@ class PreClusterFinder
   int run();
 
   void getPreClusters(std::vector<o2::mch::PreCluster>& preClusters, std::vector<Digit>& digits);
+
+  ErrorMap errorMap() const { return mErrorMap; }
 
  private:
   struct DetectionElement;
@@ -89,6 +92,10 @@ class PreClusterFinder
 
   int mNPreClusters[SNDEs][2]{};                                     ///< number of preclusters in each cathods of each DE
   std::vector<std::unique_ptr<PreCluster>> mPreClusters[SNDEs][2]{}; ///< preclusters in each cathods of each DE
+
+  enum ErrorTypes : uint32_t { kMultipleDigitInSamePad = 0 };
+
+  ErrorMap mErrorMap; ///< counting of encountered errors
 };
 
 } // namespace mch

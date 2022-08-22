@@ -220,6 +220,7 @@ std::string encode_websocket_handshake_reply(char const* nonce)
     "HTTP/1.1 101 Switching Protocols\r\n"
     "Upgrade: websocket\r\n"
     "Connection: Upgrade\r\n"
+    "Access-Control-Allow-Origin: \"*\"\r\n"
     "Sec-WebSocket-Accept: {}\r\n\r\n";
   return fmt::format(res, HTTPParserHelpers::calculateAccept(nonce));
 }

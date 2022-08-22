@@ -20,6 +20,7 @@ o2_add_library(EMCALWorkflow
                        src/AnalysisClusterSpec.cxx
                        src/RawToCellConverterSpec.cxx
                        src/EntropyEncoderSpec.cxx
+                       src/OfflineCalibSpec.cxx
                        src/EntropyDecoderSpec.cxx
                        src/StandaloneAODProducerSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsCTP O2::DataFormatsEMCAL O2::EMCALSimulation O2::Steer
@@ -53,6 +54,13 @@ o2_add_executable(cell-writer-workflow
                   SOURCES src/cell-writer-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)
 
+o2_add_executable(emc-offline-calib-workflow
+                  COMPONENT_NAME emcal
+                  SOURCES src/emc-offline-calib-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                        O2::EMCALWorkflow
+                                        O2::EMCALCalibration)
+
 o2_add_executable(cell-reader-workflow
                   COMPONENT_NAME emcal
                   SOURCES src/cell-reader-workflow.cxx
@@ -66,4 +74,9 @@ o2_add_executable(digit-reader-workflow
 o2_add_executable(standalone-aod-producer-workflow
                   COMPONENT_NAME emcal
                   SOURCES src/standalone-aod-producer-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)
+
+o2_add_executable(channel-data-producer
+                  COMPONENT_NAME emcal
+                  SOURCES src/emc-channel-data-producer.cxx
                   PUBLIC_LINK_LIBRARIES O2::EMCALWorkflow)

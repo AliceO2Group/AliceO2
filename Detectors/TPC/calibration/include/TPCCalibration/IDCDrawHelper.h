@@ -67,6 +67,9 @@ class IDCDrawHelper
   /// \param type IDC type
   /// \param compression compression of the IDCs if used (only for IDCDelta)
   static std::string getZAxisTitle(const IDCType type, const IDCDeltaCompression compression = IDCDeltaCompression::NO);
+
+ private:
+  static unsigned int getPad(const unsigned int pad, const unsigned int region, const unsigned int row, const Side side);
 };
 
 } // namespace o2::tpc

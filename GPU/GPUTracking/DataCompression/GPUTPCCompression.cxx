@@ -117,7 +117,7 @@ void GPUTPCCompression::RegisterMemoryAllocation()
 void GPUTPCCompression::SetMaxData(const GPUTrackingInOutPointers& io)
 {
   mMaxClusters = io.clustersNative->nClustersTotal;
-  mMaxClusterFactorBase1024 = mMaxClusters > 100000000 ? mRec->MemoryScalers()->tpcCompressedUnattachedHitsBase1024[mRec->GetParam().rec.tpc.rejectionStrategy] : 1024;
+  mMaxClusterFactorBase1024 = mMaxClusters > 100000000 ? mRec->MemoryScalers()->NTPCUnattachedHitsBase1024(mRec->GetParam().rec.tpc.rejectionStrategy) : 1024;
   mMaxClustersInCache = mMaxClusters * mMaxClusterFactorBase1024 / 1024;
   mMaxTrackClusters = mRec->GetConstantMem().tpcMerger.NOutputTrackClusters();
   mMaxTracks = mRec->GetConstantMem().tpcMerger.NOutputTracks();

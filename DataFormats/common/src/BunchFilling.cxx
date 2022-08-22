@@ -55,6 +55,18 @@ int BunchFilling::getLastFilledBC(int dir) const
 }
 
 //_________________________________________________
+std::vector<int> BunchFilling::getFilledBCs(int dir) const
+{
+  std::vector<int> vb;
+  for (int bc = 0; bc < o2::constants::lhc::LHCMaxBunches; bc++) {
+    if (testBC(bc, dir)) {
+      vb.push_back(bc);
+    }
+  }
+  return vb;
+}
+
+//_________________________________________________
 void BunchFilling::setBC(int bcID, bool active, int dir)
 {
   // add interacting BC slot
@@ -111,7 +123,7 @@ void BunchFilling::setBCFilling(const std::string& patt, int dir)
 }
 
 //_________________________________________________
-void BunchFilling::print(int dir, int bcPerLine) const
+void BunchFilling::print(int dir, bool filledOnly, int bcPerLine) const
 {
   const std::string names[3] = {"Interacting", "Beam-A", "Beam-C"};
   for (int id = -1; id < 2; id++) {
@@ -119,7 +131,14 @@ void BunchFilling::print(int dir, int bcPerLine) const
       printf("%s bunches\n", names[id + 1].c_str());
       bool endlOK = false;
       for (int i = 0; i < o2::constants::lhc::LHCMaxBunches; i++) {
-        printf("%c", testBC(i, id) ? '+' : '-');
+        bool on = testBC(i, id);
+        if (!filledOnly) {
+          printf("%c", on ? '+' : '-');
+        } else if (on) {
+          printf("%4d ", i);
+        } else {
+          continue;
+        }
         if (((i + 1) % bcPerLine) == 0) {
           printf("\n");
           endlOK = true;

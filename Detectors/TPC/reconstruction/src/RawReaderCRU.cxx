@@ -74,7 +74,7 @@ RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const uint3
 
 void RawReaderCRUEventSync::analyse(RAWDataType rawDataType)
 {
-  //expected number of packets in one HBorbit
+  // expected number of packets in one HBorbit
   const size_t numberOfPackets = ExpectedNumberOfPacketsPerHBFrame;
 
   for (int iEvent = mEventInformation.size() - 1; iEvent >= 0; --iEvent) {
@@ -211,8 +211,8 @@ int RawReaderCRU::scanFile()
   }
 
   // std::vector<PacketDescriptor> mPacketDescriptorMap;
-  //const uint64_t RDH_HEADERWORD0 = 0x1ea04003;
-  //const uint64_t RDH_HEADERWORD0 = 0x00004003;
+  // const uint64_t RDH_HEADERWORD0 = 0x1ea04003;
+  // const uint64_t RDH_HEADERWORD0 = 0x00004003;
   const uint64_t RDH_HEADERWORD0 = 0x00004000; // + RDHUtils::getVersion<o2::header::RAWDataHeader>();
 
   auto& file = getFileHandle();
@@ -282,7 +282,7 @@ int RawReaderCRU::scanFile()
 
     // ===| skip IDC data |=====================================================
     const auto detField = o2::raw::RDHUtils::getDetectorField(rdh);
-    if (((detField != 0xdeadbeef) && (detField > 1)) || (payloadSize == 0)) {
+    if (((detField != 0xdeadbeef) && (detField > 2)) || (payloadSize == 0)) {
       file.seekg(offset, file.cur);
       ++currentPacket;
       currentPos = file.tellg();
@@ -303,8 +303,8 @@ int RawReaderCRU::scanFile()
         const uint64_t pageCnt = RDHUtils::getPageCounter(rdh);
         const uint64_t linkID = RDHUtils::getLinkID(rdh);
 
-        //if (pageCnt == 0) {
-        if ((linkID == 15) || (detField == 0x1)) {
+        // if (pageCnt == 0) {
+        if ((linkID == 15) || (detField == 0x1) || (detField == 0x2)) {
           mManager->mRawDataType = RAWDataType::LinkZS;
           LOGP(info, "Detected LinkZS data");
           mManager->mDetectDataType = false;
@@ -338,15 +338,18 @@ int RawReaderCRU::scanFile()
     const auto heartbeatOrbit = RDHUtils::getHeartBeatOrbit(rdh);
     const auto heartbeatOrbitEvent = isTFfile ? dh.firstTForbit : RDHUtils::getHeartBeatOrbit(rdh);
     const auto endPoint = rdh_utils::getEndPoint(feeId);
-    const auto linkID = rdh_utils::getLink(feeId);
+    auto linkID = rdh_utils::getLink(feeId);
+    if (linkID == 21 && detField == 0x02) {
+      linkID = 0;
+    }
     const auto globalLinkID = linkID + endPoint * 12;
 
     // ===| check if cru should be forced |=====================================
     if (!mForceCRU) {
       mCRU = rdh_utils::getCRU(feeId);
-      //mCRU = RDHUtils::getCRUID(rdh); // work-around for MW2 data
+      // mCRU = RDHUtils::getCRUID(rdh); // work-around for MW2 data
     } else {
-      //overwrite cru id in rdh for further processing
+      // overwrite cru id in rdh for further processing
       RDHUtils::setCRUID(rdh, mCRU);
     }
 
@@ -653,7 +656,7 @@ void RawReaderCRU::runADCDataCallback(const ADCRawData& rawData)
     for (int ichannel = 0; ichannel < 16; ++ichannel) {
       const int sampaChannel = ichannel + channelOffset[partitionStream];
       const auto& padPos = mapper.padROCPos(cru, fecInPartition, sampa, sampaChannel);
-      //printf("Fill: %d %d %d %d / %d %d %d\n", int(mCRU), int(cru.roc()), ichannel, sampaChannel, int(padPos.getROC()), int(padPos.getRow()), int(padPos.getPad()));
+      // printf("Fill: %d %d %d %d / %d %d %d\n", int(mCRU), int(cru.roc()), ichannel, sampaChannel, int(padPos.getROC()), int(padPos.getRow()), int(padPos.getPad()));
       mManager->mADCDataCallback(padPos, cru, gsl::span<const uint32_t>(dataVector.data() + ichannel, dataVector.size() - ichannel));
     }
   }
@@ -662,7 +665,7 @@ void RawReaderCRU::runADCDataCallback(const ADCRawData& rawData)
 int RawReaderCRU::processDataFile()
 {
   GBTFrame gFrame;
-  //gFrame.setSyncPositions(mSyncPositions[mLink]);
+  // gFrame.setSyncPositions(mSyncPositions[mLink]);
 
   ADCRawData rawData;
 
@@ -672,26 +675,26 @@ int RawReaderCRU::processDataFile()
   }
 
   // ===| mapping to be updated |===============================================
-  //CRU cru; // assuming each decoder only hast once CRU
+  // CRU cru; // assuming each decoder only hast once CRU
   const int link = mLink;
 
   const auto& linkInfoArray = mManager->mEventSync.getLinkInfoArrayForEvent(mEventNumber, mCRU);
 
   // loop over the packets for each link and process them
-  //for (const auto& packet : mPacketDescriptorMaps[link]) {
+  // for (const auto& packet : mPacketDescriptorMaps[link]) {
   for (auto packetNumber : linkInfoArray[link].PacketPositions) {
     const auto& packet = mPacketDescriptorMaps[link][packetNumber];
 
-    //cru = packet.getCRUID();
-    // std::cout << "Packet : " << packetID << std::endl;
+    // cru = packet.getCRUID();
+    //  std::cout << "Packet : " << packetID << std::endl;
     gFrame.setPacketNumber(packetNumber);
     int retCode = processPacket(gFrame, packet.getPayloadOffset(), packet.getPayloadSize(), rawData);
     if (retCode) {
       break;
     }
 
-    //if (rawData.getNumTimebins() >= mNumTimeBins * 16)
-    //break;
+    // if (rawData.getNumTimebins() >= mNumTimeBins * 16)
+    // break;
   };
 
   // ===| fill ADC data to the output structure |===
@@ -720,7 +723,7 @@ int RawReaderCRU::processDataFile()
           std::cout << rawData << std::endl;
         };
         // write the data to file
-        //fileName = "ADC_" + std::to_string(mLink) + "_" + std::to_string(s);
+        // fileName = "ADC_" + std::to_string(mLink) + "_" + std::to_string(s);
         fileName = mOutputFilePrefix + "_ADC_" + std::to_string(mLink) + "_" + std::to_string(s) + ".txt";
         file.open(fileName, std::ofstream::out);
         file << rawData;
@@ -740,13 +743,13 @@ void RawReaderCRU::processDataMemory()
   }
 
   size_t dataSize = 4000 * 16;
-  //if (mDataType == DataType::HBScaling) {
-  //dataSize =
-  //} else if (mDataType == DataType::Triggered) {
+  // if (mDataType == DataType::HBScaling) {
+  // dataSize =
+  // } else if (mDataType == DataType::Triggered) {
   //// in triggered mode 4000 GBT frames are read out
   //// 16 is the size of a GBT frame in byte
-  //dataSize = 4000 * 16;
-  //}
+  // dataSize = 4000 * 16;
+  // }
 
   std::vector<std::byte> data;
   data.reserve(dataSize);
@@ -772,7 +775,7 @@ void RawReaderCRU::collectGBTData(std::vector<std::byte>& data)
   size_t presentDataPosition = 0;
 
   // loop over the packets for each link and process them
-  //for (const auto& packet : mPacketDescriptorMaps[link]) {
+  // for (const auto& packet : mPacketDescriptorMaps[link]) {
   for (auto packetNumber : linkInfoArray[mLink].PacketPositions) {
     const auto& packet = mPacketDescriptorMaps[mLink][packetNumber];
 
@@ -845,7 +848,7 @@ void RawReaderCRU::processLinks(const uint32_t linkMask)
         }
         setLink(lnk);
         if (mManager->mRawDataType == RAWDataType::GBT) {
-          //processDataFile();
+          // processDataFile();
           processDataMemory();
         } else {
           processLinkZS();
@@ -870,7 +873,7 @@ void RawReaderCRU::processFile(const std::string_view inputFile, uint32_t timeBi
   // Instantiate the RawReaderCRU
   RawReaderCRUManager cruManager;
   cruManager.setDebugLevel(debugLevel);
-  //RawReaderCRU& rawReaderCRU = cruManager.createReader(inputFile, timeBins, 0, stream, debugLevel, verbosity, outputFilePrefix);
+  // RawReaderCRU& rawReaderCRU = cruManager.createReader(inputFile, timeBins, 0, stream, debugLevel, verbosity, outputFilePrefix);
   cruManager.setupReaders(inputFile, timeBins, debugLevel, verbosity, outputFilePrefix);
   for (auto& reader : cruManager.getReaders()) {
     reader->mDumpTextFiles = true;
@@ -1007,7 +1010,7 @@ void GBTFrame::streamFrom(std::istream& input)
   };
 }
 
-//std::ostream& operator<<(std::ostream& output, const RawReaderCRU::GBTFrame& frame)
+// std::ostream& operator<<(std::ostream& output, const RawReaderCRU::GBTFrame& frame)
 void GBTFrame::streamTo(std::ostream& output) const
 {
   const auto offset = mPrevHWpos ^ 4;
@@ -1030,7 +1033,7 @@ void GBTFrame::streamTo(std::ostream& output) const
   output << std::endl;
 }
 
-//friend std::ostream& operator<<(std::ostream& output, const PacketDescriptor& PD)
+// friend std::ostream& operator<<(std::ostream& output, const PacketDescriptor& PD)
 void RawReaderCRU::PacketDescriptor::streamTo(std::ostream& output) const
 {
   output << "===| Packet Descriptor |================================="

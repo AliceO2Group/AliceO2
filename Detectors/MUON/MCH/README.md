@@ -14,6 +14,7 @@ This is a top page for the MCH detector documentation.
 \subpage refDetectorsMUONMCHContour
 \subpage refDetectorsMUONMCHDevIO
 \subpage refDetectorsMUONMCHDigitFiltering
+\subpage refDetectorsMUONMCHPreClustering
 \subpage refDetectorsMUONMCHROFFiltering
 \subpage refDetectorsMUONMCHTimeClustering
 \subpage refDetectorsMUONMCHGeometry
@@ -22,4 +23,5 @@ This is a top page for the MCH detector documentation.
 \subpage refDetectorsMUONMCHTracking
 \subpage refDetectorsMUONMCHTriggering
 \subpage refDetectorsMUONMCHWorkflow
+\subpage refDetectorsMUONMCHGlobalMapping
 /doxy -->

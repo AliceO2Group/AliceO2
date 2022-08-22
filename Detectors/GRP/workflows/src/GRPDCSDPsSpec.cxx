@@ -104,42 +104,88 @@ void GRPDCSDPsDataProcessor::init(o2::framework::InitContext& ic)
   }
 
   mProcessor = std::make_unique<o2::grp::GRPDCSDPsProcessor>();
-  bool useVerboseMode = ic.options().get<bool>("use-verbose-mode");
-  LOG(info) << " ************************* Verbose?" << useVerboseMode;
-  if (useVerboseMode) {
+  mVerbose = ic.options().get<bool>("use-verbose-mode");
+  LOG(info) << " ************************* Verbose?" << mVerbose;
+  bool clearVectors = ic.options().get<bool>("clear-vectors");
+  LOG(info) << " ************************* Clear vectors?" << clearVectors;
+  if (mVerbose) {
     mProcessor->useVerboseMode();
+  }
+  if (clearVectors) {
+    mProcessor->clearVectors();
   }
   mProcessor->init(vect);
   mTimer = HighResClock::now();
-  mReportTiming = ic.options().get<bool>("report-timing") || useVerboseMode;
+  mReportTiming = ic.options().get<bool>("report-timing") || mVerbose;
 }
 //__________________________________________________________________
 
 void GRPDCSDPsDataProcessor::run(o2::framework::ProcessingContext& pc)
 {
+  mLHCIFupdated = false;
   TStopwatch sw;
-  auto startValidity = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
+  auto startValidity = (long)(pc.services().get<o2::framework::TimingInfo>().creation);
   auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
   auto timeNow = HighResClock::now();
   if (startValidity == 0xffffffffffffffff) {                                                                   // it means it is not set
     startValidity = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
   }
-  mProcessor->setStartValidity(startValidity);
+  mProcessor->setStartValidityMagFi(startValidity);
+  if (mProcessor->getStartValidityLHCIF() == o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP) {
+    if (mVerbose) {
+      LOG(info) << "Change start validity for LHCIF to " << startValidity;
+    }
+    mProcessor->setStartValidityLHCIF(startValidity);
+  }
+  if (mProcessor->getStartValidityEnvVa() == o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP) {
+    if (mVerbose) {
+      LOG(info) << "Change start validity for Env Variables to " << startValidity;
+    }
+    mProcessor->setStartValidityEnvVa(startValidity);
+  }
+  if (mProcessor->getStartValidityColli() == o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP) {
+    if (mVerbose) {
+      LOG(info) << "Change start validity for Collimators to " << startValidity;
+    }
+    mProcessor->setStartValidityColli(startValidity);
+  }
   mProcessor->process(dps);
   Duration elapsedTime = timeNow - mTimer; // in seconds
   if (elapsedTime.count() >= mDPsUpdateInterval || mProcessor->isLHCIFInfoUpdated()) {
+    // after enough time or after something changed, we store the LHCIF part of the DPs:
+    if (elapsedTime.count() >= mDPsUpdateInterval) {
+      if (mVerbose) {
+        LOG(info) << "enough time passed (" << elapsedTime.count() << " s), sending to CCDB LHCIFDPs";
+      }
+    } else {
+      if (mVerbose) {
+        LOG(info) << "sending to CCDB LHCIFDPs since something changed";
+      }
+    }
+    mProcessor->updateLHCIFInfoCCDB();
     sendLHCIFDPsoutput(pc.outputs());
-    mProcessor->resetLHCIFDPs();
+    mProcessor->resetAndKeepLastLHCIFDPs();
+    mLHCIFupdated = true;
+    mProcessor->resetPIDsLHCIF();
+  }
+  if (elapsedTime.count() >= mDPsUpdateInterval) {
+    // after enough time, we store:
+    // collimators:
+    if (mVerbose) {
+      LOG(info) << "enough time passed (" << elapsedTime.count() << " s), sending to CCDB Env and Coll";
+    }
+    mProcessor->updateCollimatorsCCDB();
+    sendCollimatorsDPsoutput(pc.outputs());
+    mProcessor->resetAndKeepLast(mProcessor->getCollimatorsObj().mCollimators);
+    // env vars:
+    mProcessor->updateEnvVarsCCDB();
+    sendEnvVarsDPsoutput(pc.outputs());
+    mProcessor->resetAndKeepLast(mProcessor->getEnvVarsObj().mEnvVars);
     mTimer = timeNow;
+    mProcessor->resetPIDs();
   }
   if (mProcessor->isMagFieldUpdated()) {
     sendMagFieldDPsoutput(pc.outputs());
-  }
-  if (mProcessor->isCollimatorsUpdated()) {
-    sendCollimatorsDPsoutput(pc.outputs());
-  }
-  if (mProcessor->isEnvVarsUpdated()) {
-    sendEnvVarsDPsoutput(pc.outputs());
   }
   sw.Stop();
   if (mReportTiming) {
@@ -152,13 +198,17 @@ void GRPDCSDPsDataProcessor::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
 
   LOG(info) << " ********** End of Stream **********";
-  mProcessor->updateLHCIFInfoCCDB();
-  sendLHCIFDPsoutput(ec.outputs());
-  /*
-  sendMagFieldDPsoutput(ec.outputs());
+  // we force writing to CCDB the entries for which we accumulate values in vectors (we don't do it for the B field
+  // because this is updated every time on change of any of the 4 DPs related to it)
+  if (!mLHCIFupdated) { // the last TF did not update the LHCIF CCDB entry, let's force it
+    mProcessor->updateLHCIFInfoCCDB();
+    sendLHCIFDPsoutput(ec.outputs());
+  }
+  mProcessor->updateCollimatorsCCDB();
   sendCollimatorsDPsoutput(ec.outputs());
+
+  mProcessor->updateEnvVarsCCDB();
   sendEnvVarsDPsoutput(ec.outputs());
-  */
 }
 
 //________________________________________________________________
@@ -174,6 +224,7 @@ void GRPDCSDPsDataProcessor::sendLHCIFDPsoutput(DataAllocator& output)
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "GRP_LHCIF_DPs", 0}, *image.get());
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "GRP_LHCIF_DPs", 0}, info);
+  mProcessor->resetStartValidityLHCIF();
 }
 //________________________________________________________________
 
@@ -203,6 +254,7 @@ void GRPDCSDPsDataProcessor::sendCollimatorsDPsoutput(DataAllocator& output)
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "GRP_COLLIM_DPs", 0}, *image.get());
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "GRP_COLLIM_DPs", 0}, info);
+  mProcessor->resetStartValidityColli();
 }
 
 //________________________________________________________________
@@ -218,6 +270,7 @@ void GRPDCSDPsDataProcessor::sendEnvVarsDPsoutput(DataAllocator& output)
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "GRP_EVARS_DPs", 0}, *image.get());
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "GRP_EVARS_DPs", 0}, info);
+  mProcessor->resetStartValidityEnvVa();
 }
 
 } // namespace grp
@@ -251,7 +304,8 @@ DataProcessorSpec getGRPDCSDPsDataProcessorSpec()
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
             {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
             {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
-            {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};
+            {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}},
+            {"clear-vectors", VariantType::Bool, false, {"Clear vectors when starting processing for a new CCDB entry (latest value will not be kept)"}}}};
 }
 
 } // namespace framework

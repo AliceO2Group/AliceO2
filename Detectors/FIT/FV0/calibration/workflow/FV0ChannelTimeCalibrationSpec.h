@@ -14,9 +14,9 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "FITCalibration/FITCalibrationDevice.h"
-#include "FV0Calibration/FV0ChannelTimeCalibrationObject.h"
-#include "FV0Calibration/FV0ChannelTimeTimeSlotContainer.h"
-#include "FV0Calibration/FV0CalibrationInfoObject.h"
+#include "DataFormatsFV0/FV0ChannelTimeCalibrationObject.h"
+#include "DataFormatsFV0/FV0CalibrationInfoObject.h"
+#include "FV0Calibration/FV0ChannelTimeOffsetSlotContainer.h"
 
 namespace o2::fv0
 {
@@ -24,7 +24,7 @@ namespace o2::fv0
 o2::framework::DataProcessorSpec getFV0ChannelTimeCalibrationSpec()
 {
   using CalibrationDeviceType = o2::fit::FITCalibrationDevice<o2::fv0::FV0CalibrationInfoObject,
-                                                              o2::fv0::FV0ChannelTimeTimeSlotContainer, o2::fv0::FV0ChannelTimeCalibrationObject>;
+                                                              o2::fv0::FV0ChannelTimeOffsetSlotContainer, o2::fv0::FV0ChannelTimeCalibrationObject>;
 
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "FIT_CALIB"}, o2::framework::Lifetime::Sporadic);
@@ -53,4 +53,4 @@ o2::framework::DataProcessorSpec getFV0ChannelTimeCalibrationSpec()
 }
 } // namespace o2::fv0
 
-#endif //O2_FV0CHANNELTIMECALIBRATIONSPEC_H
+#endif // O2_FV0CHANNELTIMECALIBRATIONSPEC_H

@@ -19,7 +19,7 @@
 #include "DataFormatsFT0/RecPoints.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/TimeStamp.h"
-#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
+#include "DataFormatsFT0/FT0ChannelTimeCalibrationObject.h"
 #include "FT0Base/Geometry.h"
 #include <gsl/span>
 #include <bitset>

@@ -244,24 +244,29 @@ void Digitizer::storeBC(const BCCache& bc,
     double cfdWithOffset = SimulateTimeCfd(mCfdStartIndex[iPmt], mLastBCCache.mPmtChargeVsTime[iPmt], bc.mPmtChargeVsTime[iPmt]);
     double cfdZero = cfdWithOffset - FV0DigParam::Instance().avgCfdTimeForMip;
 
-    // TODO: The condition on time should probably be removed (in FEE the times outside of this gate will be stored without charge)
+    // Conditions to sum charge are: all participating channels must have time within +/- 2.5 ns, AND
+    //   at least one channel must follow more strict conditions (see below)
     if (cfdZero < -FV0DigParam::Instance().cfdCheckWindow || cfdZero > FV0DigParam::Instance().cfdCheckWindow) {
       continue;
     }
 
-    float totalCharge = IntegrateCharge(bc.mPmtChargeVsTime[iPmt]) * DP::INV_CHARGE_PER_ADC; // convert Coulomb to adc;
-    if (totalCharge > (FV0DigParam::Instance().maxCountInAdc) && FV0DigParam::Instance().useMaxChInAdc) {
-      totalCharge = FV0DigParam::Instance().maxCountInAdc; //max adc channel for one PMT
+    int iTotalCharge = std::lround(IntegrateCharge(bc.mPmtChargeVsTime[iPmt]) * DP::INV_CHARGE_PER_ADC); // convert Coulomb to adc;
+
+    uint8_t channelBits = FV0DigParam::Instance().defaultChainQtc;
+    if (std::rand() % 2) {
+      ChannelData::setFlag(ChannelData::kNumberADC, channelBits);
+    }
+    if (iTotalCharge > (FV0DigParam::Instance().maxCountInAdc) && FV0DigParam::Instance().useMaxChInAdc) {
+      iTotalCharge = FV0DigParam::Instance().maxCountInAdc; // max adc channel for one PMT
+      ChannelData::setFlag(ChannelData::kIsAmpHigh, channelBits);
     }
 
-    if (totalCharge < FV0DigParam::Instance().getCFDTrshInAdc()) {
+    if (iTotalCharge < FV0DigParam::Instance().getCFDTrshInAdc()) {
       continue;
     }
 
-    int iTotalCharge = std::lround(totalCharge);
     int iCfdZero = std::lround(cfdZero * DP::INV_TIME_PER_TDCCHANNEL);
-    int chain = (std::rand() % 2) ? 1 : 0;
-    digitsCh.emplace_back(iPmt, iCfdZero, iTotalCharge, chain);
+    digitsCh.emplace_back(iPmt, iCfdZero, iTotalCharge, channelBits);
     ++nTotFiredCells;
 
     int triggerGate = FV0DigParam::Instance().mTime_trg_gate;

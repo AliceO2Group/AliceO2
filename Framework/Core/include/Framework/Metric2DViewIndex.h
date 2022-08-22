@@ -8,17 +8,15 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef o2_framework_Metric2DViewInfo_H_INCLUDED
-#define o2_framework_Metric2DViewInfo_H_INCLUDED
+#ifndef O2_FRAMEWORK_METRIC2DVIEWINDEX_H_
+#define O2_FRAMEWORK_METRIC2DVIEWINDEX_H_
 
 #include <functional>
 #include <cstddef>
 #include <string>
 #include <vector>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 struct MetricInfo;
@@ -42,7 +40,6 @@ struct Metric2DViewIndex {
   static Updater getUpdater(std::vector<Metric2DViewIndex*> views);
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // o2_framework_Metric2DViewInfo_H_INCLUDED
+#endif // O2_FRAMEWORK_METRIC2DVIEWINDEX_H_

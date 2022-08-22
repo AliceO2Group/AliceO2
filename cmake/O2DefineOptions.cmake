@@ -32,4 +32,6 @@ function(o2_define_options)
   # ../dependencies/O2SimulationDependencies.cmake
 
   option(ENABLE_UPGRADES "Enable detectors for upgrades" OFF)
+
+  option(ENABLE_THREAD_SAFETY_ANALYSIS "Enable thread safety analysis" OFF)
 endfunction()

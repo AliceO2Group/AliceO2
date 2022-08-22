@@ -27,10 +27,14 @@ namespace o2
 {
 namespace event_visualisation
 {
+std::vector<std::string> DataSourceOnline::sourceFilextensions = {".json", ".root"};
 
 std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline::getVisualisationList(int no, float minTime, float maxTime, float range)
 {
   std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> res;
+  if (getEventCount() == 2) {
+    return res; // 2 means there are no real data = we have only "virtual" positions
+  }
   if (no < getEventCount()) {
     assert(no >= 0);
 
@@ -62,7 +66,7 @@ std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> DataSourceOnline
   return res;
 }
 
-DataSourceOnline::DataSourceOnline(const std::string path) : mFileWatcher(path)
+DataSourceOnline::DataSourceOnline(const std::string path) : mFileWatcher(path, sourceFilextensions)
 {
 }
 

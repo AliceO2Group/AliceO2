@@ -244,12 +244,12 @@ void CalibPadGainTracksBase::normalize(std::vector<float>& data, const std::vect
   }
 }
 
-auto CalibPadGainTracksBase::getHistogram(const int sector, const int region, const int lrow, const int pad) const
+o2::tpc::CalibPadGainTracksBase::DataTHisto CalibPadGainTracksBase::getHistogram(const int sector, const int region, const int lrow, const int pad) const
 {
   return mPadHistosDet->getValue(sector, Mapper::getGlobalPadNumber(lrow, pad, region));
 }
 
-auto CalibPadGainTracksBase::getHistogram(const int sector, const int grow, const int pad) const
+o2::tpc::CalibPadGainTracksBase::DataTHisto CalibPadGainTracksBase::getHistogram(const int sector, const int grow, const int pad) const
 {
   return mPadHistosDet->getValue(sector, Mapper::GLOBALPADOFFSET[Mapper::REGION[grow]] + Mapper::OFFSETCRUGLOBAL[grow] + pad);
 }

@@ -772,6 +772,12 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
     BOOST_CHECK_EQUAL(g1[i].globalIndex(), aa[i]);
   }
 
+  // Check the X coordinate of the points in the pointGroup
+  // for the first point.
+  for (auto& p : it.pointGroup_as<Points3Ds>()) {
+    BOOST_CHECK_EQUAL(p.x(), -1 * p.globalIndex());
+  }
+
   ++it;
   auto s2 = it.pointSlice();
   auto g2 = it.pointGroup();
@@ -912,6 +918,8 @@ BOOST_AUTO_TEST_CASE(TestListColumns)
 
 BOOST_AUTO_TEST_CASE(TestSliceBy)
 {
+  o2::framework::Preslice<References> slices = test::originId;
+  slices.setNewDF();
   TableBuilder b;
   auto writer = b.cursor<Origins>();
   for (auto i = 0; i < 20; ++i) {
@@ -931,11 +939,12 @@ BOOST_AUTO_TEST_CASE(TestSliceBy)
   }
   auto refs = w.finalize();
   References r{refs};
+  auto status = slices.processTable(refs);
 
   for (auto& oi : o) {
-    auto slice = r.sliceBy(test::originId, oi.globalIndex());
-    BOOST_CHECK_EQUAL(slice.size(), 5);
-    for (auto& ri : slice) {
+    auto cachedSlice = r.sliceBy(slices, oi.globalIndex());
+    BOOST_CHECK_EQUAL(cachedSlice.size(), 5);
+    for (auto& ri : cachedSlice) {
       BOOST_CHECK_EQUAL(ri.originId(), oi.globalIndex());
     }
   }

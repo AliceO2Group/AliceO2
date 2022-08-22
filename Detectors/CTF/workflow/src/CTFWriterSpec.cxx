@@ -21,6 +21,7 @@
 #include "Framework/TimingInfo.h"
 #include <fairmq/Device.h>
 
+#include "DataFormatsParameters/GRPECSObject.h"
 #include "CTFWorkflow/CTFWriterSpec.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "CommonUtils/NameConf.h"
@@ -51,6 +52,7 @@
 #include <vector>
 #include <TFile.h>
 #include <TTree.h>
+#include <TRandom.h>
 #include <filesystem>
 #include <ctime>
 #include <sys/stat.h>
@@ -121,6 +123,8 @@ class CTFWriterSpec : public o2::framework::Task
   bool mCreateDict = false;
   bool mCreateRunEnvDir = true;
   bool mStoreMetaFile = false;
+  bool mRejectCurrentTF = false;
+  bool mFallBackDirUsed = false;
   int mReportInterval = -1;
   int mVerbosity = 0;
   int mSaveDictAfter = 0;          // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
@@ -137,6 +141,7 @@ class CTFWriterSpec : public o2::framework::Task
   size_t mCTFAutoSave = 0;           // if > 0, autosave after so many TFs
   size_t mNCTFFiles = 0;             // total number of CTF files written
   int mMaxCTFPerFile = 0;            // max CTFs per files to store
+  int mRejRate = 0;                  // CTF rejection rule (>0: percentage to reject randomly, <0: reject if timeslice%|value|!=0)
   std::vector<uint32_t> mTFOrbits{}; // 1st orbits of TF accumulated in current file
   o2::framework::DataTakingContext mDataTakingContext{};
   o2::framework::TimingInfo mTimingInfo{};
@@ -149,6 +154,7 @@ class CTFWriterSpec : public o2::framework::Task
   std::string mCurrentCTFFileName{};
   std::string mCurrentCTFFileNameFull{};
   std::string mSizeReport{};
+  std::string mMetaDataType{};
   const std::string LOCKFileDir = "/tmp/ctf-writer-locks";
   std::string mLockFileName{};
   int mLockFD = -1;
@@ -220,6 +226,13 @@ void CTFWriterSpec::init(InitContext& ic)
   mMinSize = ic.options().get<int64_t>("min-file-size");
   mMaxSize = ic.options().get<int64_t>("max-file-size");
   mMaxCTFPerFile = ic.options().get<int>("max-ctf-per-file");
+  mRejRate = ic.options().get<int>("ctf-rejection");
+  if (mRejRate > 0) {
+    LOGP(info, "Will reject{} {}% of TFs", mRejRate < 100 ? " randomly" : "", mRejRate < 100 ? mRejRate : 100);
+  } else if (mRejRate < -1) {
+    LOGP(info, "Will reject all but each {}-th TF slice", -mRejRate);
+  }
+
   if (mWriteCTF) {
     if (mMinSize > 0) {
       LOG(info) << "Multiple CTFs will be accumulated in the tree/file until its size exceeds " << mMinSize << " bytes";
@@ -249,9 +262,12 @@ void CTFWriterSpec::init(InitContext& ic)
 void CTFWriterSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   static bool initOnceDone = false;
+  namespace GRPECS = o2::parameters::GRPECS;
   if (!initOnceDone) {
     initOnceDone = true;
     mDataTakingContext = pc.services().get<DataTakingContext>();
+    // determine the output type for the CTF metadata
+    mMetaDataType = GRPECS::getRawDataPersistencyMode(mDataTakingContext.runType, mDataTakingContext.forcedRaw);
   }
   mTimingInfo = pc.services().get<o2::framework::TimingInfo>();
 }
@@ -269,7 +285,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
   auto ctfBuffer = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName());
   const auto ctfImage = C::getImage(ctfBuffer.data());
   ctfImage.print(o2::utils::Str::concat_string(det.getName(), ": "), mVerbosity);
-  if (mWriteCTF) {
+  if (mWriteCTF && !mRejectCurrentTF) {
     sz = ctfImage.appendToTree(*tree, det.getName());
     header.detectors.set(det);
   } else {
@@ -374,14 +390,13 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
   updateTimeDependentParams(pc);
-
+  mRejectCurrentTF = (mRejRate > 0 && int(gRandom->Rndm() * 100) < mRejRate) || (mRejRate < -1 && mTimingInfo.timeslice % (-mRejRate));
   mCurrCTFSize = estimateCTFSize(pc);
-  if (mWriteCTF) {
+  if (mWriteCTF && !mRejectCurrentTF) {
     prepareTFTreeAndFile();
   }
-
   // create header
-  CTFHeader header{mTimingInfo.runNumber, mTimingInfo.creation, mTimingInfo.firstTFOrbit, mTimingInfo.tfCounter};
+  CTFHeader header{mTimingInfo.runNumber, mTimingInfo.creation, mTimingInfo.firstTForbit, mTimingInfo.tfCounter};
   size_t szCTF = 0;
   mSizeReport = "";
   szCTF += processDet<o2::itsmft::CTF>(pc, DetID::ITS, header, mCTFTreeOut.get());
@@ -406,11 +421,11 @@ void CTFWriterSpec::run(ProcessingContext& pc)
 
   mTimer.Stop();
 
-  if (mWriteCTF) {
+  if (mWriteCTF && !mRejectCurrentTF) {
     szCTF += appendToTree(*mCTFTreeOut.get(), "CTFHeader", header);
     mAccCTFSize += szCTF;
     mCTFTreeOut->SetEntries(++mNAccCTF);
-    mTFOrbits.push_back(mTimingInfo.firstTFOrbit);
+    mTFOrbits.push_back(mTimingInfo.firstTForbit);
     LOG(info) << "TF#" << mNCTF << ": wrote CTF{" << header << "} of size " << szCTF << " to " << mCurrentCTFFileNameFull << " in " << mTimer.CpuTime() - cput << " s";
     if (mNAccCTF > 1) {
       LOG(info) << "Current CTF tree has " << mNAccCTF << " entries with total size of " << mAccCTFSize << " bytes";
@@ -429,7 +444,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
       mCTFTreeOut->AutoSave("override");
     }
   } else {
-    LOG(info) << "TF#" << mNCTF << " CTF writing is disabled, size was " << szCTF << " bytes";
+    LOG(info) << "TF#" << mNCTF << " {" << header << "} CTF writing is disabled, size was " << szCTF << " bytes";
   }
 
   mNCTF++;
@@ -474,6 +489,7 @@ void CTFWriterSpec::prepareTFTreeAndFile()
   }
   if (needToOpen) {
     closeTFTreeAndFile();
+    mFallBackDirUsed = false;
     auto ctfDir = mCTFDir.empty() ? o2::utils::Str::rectifyDirectory("./") : mCTFDir;
     if (mChkSize > 0 && (mCTFDirFallBack != "/dev/null")) {
       createLockFile(0);
@@ -482,6 +498,7 @@ void CTFWriterSpec::prepareTFTreeAndFile()
         removeLockFile();
         LOG(warning) << "Primary CTF output device has available size " << sz << " while " << mChkSize << " is requested: will write on secondary one";
         ctfDir = mCTFDirFallBack;
+        mFallBackDirUsed = true;
       }
     }
     if (mCreateRunEnvDir && !mDataTakingContext.envId.empty() && (mDataTakingContext.envId != o2::framework::DataTakingContext::UNKNOWN)) {
@@ -491,7 +508,7 @@ void CTFWriterSpec::prepareTFTreeAndFile()
         LOGP(info, "Created {} directory for CTFs output", ctfDir);
       }
     }
-    mCurrentCTFFileName = o2::base::NameConf::getCTFFileName(mTimingInfo.runNumber, mTimingInfo.firstTFOrbit, mTimingInfo.tfCounter, mHostName);
+    mCurrentCTFFileName = o2::base::NameConf::getCTFFileName(mTimingInfo.runNumber, mTimingInfo.firstTForbit, mTimingInfo.tfCounter, mHostName);
     mCurrentCTFFileNameFull = fmt::format("{}{}", ctfDir, mCurrentCTFFileName);
     mCTFFileOut.reset(TFile::Open(fmt::format("{}{}", mCurrentCTFFileNameFull, TMPFileEnding).c_str(), "recreate")); // to prevent premature external usage, use temporary name
     mCTFTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
@@ -518,8 +535,8 @@ void CTFWriterSpec::closeTFTreeAndFile()
         o2::dataformats::FileMetaData ctfMetaData;
         ctfMetaData.fillFileData(mCurrentCTFFileNameFull);
         ctfMetaData.setDataTakingContext(mDataTakingContext);
-        ctfMetaData.type = "raw";
-        ctfMetaData.priority = "high";
+        ctfMetaData.type = mMetaDataType;
+        ctfMetaData.priority = mFallBackDirUsed ? "low" : "high";
         ctfMetaData.tfOrbits.swap(mTFOrbits);
         auto metaFileNameTmp = fmt::format("{}{}.tmp", mCTFMetaFileDir, mCurrentCTFFileName);
         auto metaFileName = fmt::format("{}{}.done", mCTFMetaFileDir, mCurrentCTFFileName);
@@ -599,7 +616,7 @@ void CTFWriterSpec::createLockFile(int level)
 {
   // create lock file for the CTF to be written to the storage of given level
   while (1) {
-    mLockFileName = fmt::format("{}/ctfs{}-{}_{}_{}_{}.lock", LOCKFileDir, level, o2::utils::Str::getRandomString(8), mTimingInfo.runNumber, mTimingInfo.firstTFOrbit, mTimingInfo.tfCounter);
+    mLockFileName = fmt::format("{}/ctfs{}-{}_{}_{}_{}.lock", LOCKFileDir, level, o2::utils::Str::getRandomString(8), mTimingInfo.runNumber, mTimingInfo.firstTForbit, mTimingInfo.tfCounter);
     if (!std::filesystem::exists(mLockFileName)) {
       break;
     }
@@ -701,6 +718,7 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, const std::
             {"min-file-size", VariantType::Int64, 0l, {"accumulate CTFs until given file size reached"}},
             {"max-file-size", VariantType::Int64, 0l, {"if > 0, try to avoid exceeding given file size, also used for space check"}},
             {"max-ctf-per-file", VariantType::Int, 0, {"if > 0, avoid storing more than requested CTFs per file"}},
+            {"ctf-rejection", VariantType::Int, 0, {">0: percentage to reject randomly, <0: reject if timeslice%|value|!=0"}},
             {"ignore-partition-run-dir", VariantType::Bool, false, {"Do not creare partition-run directory in output-dir"}}}};
 }
 

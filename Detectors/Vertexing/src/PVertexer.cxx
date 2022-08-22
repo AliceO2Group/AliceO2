@@ -18,8 +18,7 @@
 #include "Math/SMatrix.h"
 #include "Math/SVector.h"
 #include <unordered_map>
-#include <TStopwatch.h>
-#include "CommonUtils/StringUtils.h" // RS REM
+#include "CommonUtils/StringUtils.h"
 #include <TH2F.h>
 
 using namespace o2::vertexing;
@@ -36,12 +35,21 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
 #ifdef _PV_DEBUG_TREE_
   doDBGPoolDump(lblTracks);
 #endif
+  mTimeDBScan.Start();
   dbscan_clusterize();
+  mTimeDBScan.Stop();
+  mTotTrials = 0;
+  mMaxTrialPerCluster = 0;
+  mLongestClusterTimeMS = 0;
+  mLongestClusterMult = 0;
+  mPoolDumpProduced = false;
+
   std::vector<PVertex> verticesLoc;
   std::vector<uint32_t> trackIDs;
   std::vector<V2TRef> v2tRefsLoc;
   std::vector<float> validationTimes;
   std::vector<o2::MCEventLabel> lblVtxLoc;
+  mTimeVertexing.Start();
   for (auto tc : mTimeZClusters) {
     VertexingInput inp;
     inp.idRange = gsl::span<int>(tc.trackIDs);
@@ -52,6 +60,7 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
 #endif
     findVertices(inp, verticesLoc, trackIDs, v2tRefsLoc);
   }
+  mTimeVertexing.Stop();
   // sort in time
   std::vector<int> vtTimeSortID(verticesLoc.size());
   std::iota(vtTimeSortID.begin(), vtTimeSortID.end(), 0);
@@ -65,13 +74,16 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
   }
 #endif
 
+  mTimeDebris.Start();
   if (mPVParams->applyDebrisReduction) {
     reduceDebris(verticesLoc, vtTimeSortID, lblVtxLoc);
   }
+  mTimeDebris.Stop();
+  mTimeReAttach.Start();
   if (mPVParams->applyReattachment) {
     reAttach(verticesLoc, vtTimeSortID, trackIDs, v2tRefsLoc);
   }
-
+  mTimeReAttach.Stop();
   if (lblTracks.size()) { // at this stage labels are needed just for the debug output
     createMCLabels(lblTracks, trackIDs, v2tRefsLoc, lblVtxLoc);
   }
@@ -148,7 +160,8 @@ int PVertexer::findVertices(const VertexingInput& input, std::vector<PVertex>& v
   mDebugDumpFile->cd();
   hh->Write();
 #endif
-
+  long tStart = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count(), tCurr = tStart;
+  long mult = input.idRange.size();
   int nTrials = 0;
   while (nfound < mPVParams->maxVerticesPerCluster && nTrials < mPVParams->maxTrialsPerCluster) {
     int peakBin = seedHistoTZ.findPeakBin();
@@ -158,7 +171,7 @@ int PVertexer::findVertices(const VertexingInput& input, std::vector<PVertex>& v
     int peakBinT = seedHistoTZ.getXBin(peakBin), peakBinZ = seedHistoTZ.getYBin(peakBin);
     float tv = seedHistoTZ.getBinXCenter(peakBinT);
     float zv = seedHistoTZ.getBinYCenter(peakBinZ);
-    LOG(debug) << "Seeding with T=" << tv << " Z=" << zv << " bin " << peakBin << " on trial " << nTrials << " for vertex " << nfound;
+    LOG(debug) << "Seeding with T=" << tv << " Z=" << zv << " bin " << peakBin << " on trial " << nTrials << " for vertex " << nfound << " mult=" << mult;
 
     PVertex vtx;
     vtx.setXYZ(mMeanVertex.getX(), mMeanVertex.getY(), zv);
@@ -178,6 +191,23 @@ int PVertexer::findVertices(const VertexingInput& input, std::vector<PVertex>& v
     mDebugDumpFile->cd();
     hh1->Write();
 #endif
+    tCurr = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    auto clTime = tCurr - tStart;
+    if (clTime > mPVParams->maxTimeMSPerCluster) {
+      LOGP(warn, "Time per TZ-cluster ({}ms) of {} tracks exceeded limit after {} trials, abandon", clTime, mult, nTrials);
+      if (!mPoolDumpProduced) {
+        dumpPool();
+      }
+      break;
+    }
+  }
+  mTotTrials += nTrials;
+  if (size_t(nTrials) > mMaxTrialPerCluster) {
+    mMaxTrialPerCluster = nTrials;
+  }
+  if (tCurr - tStart > mLongestClusterTimeMS) {
+    mLongestClusterTimeMS = tCurr - tStart;
+    mLongestClusterMult = mult;
   }
   return nfound;
 }
@@ -356,7 +386,9 @@ bool PVertexer::solveVertex(VertexSeed& vtxSeed) const
 
   vtxSeed.setChi2((vtxSeed.getNContributors() - vtxSeed.wghSum) / vtxSeed.scaleSig2ITuk2I); // calculate chi^2
   auto newScale = vtxSeed.wghChi2 / vtxSeed.wghSum;
-  LOG(debug) << "Solve: wghChi2=" << vtxSeed.wghChi2 << " wghSum=" << vtxSeed.wghSum << " -> scale= " << newScale << " old scale " << vtxSeed.scaleSigma2 << " prevScale: " << vtxSeed.scaleSigma2Prev;
+  LOG(debug) << "Solve: wghChi2=" << vtxSeed.wghChi2 << " wghSum=" << vtxSeed.wghSum << " -> scale= "
+             << newScale << " old scale " << vtxSeed.scaleSigma2 << " prevScale: " << vtxSeed.scaleSigma2Prev
+             << " n-contributors=" << vtxSeed.getNContributors();
   vtxSeed.setScale(newScale < mPVParams->minScale2 ? mPVParams->minScale2 : newScale, mTukey2I);
   return true;
 }
@@ -370,6 +402,7 @@ PVertexer::FitStatus PVertexer::evalIterations(VertexSeed& vtxSeed, PVertex& vtx
 
   if (vtxSeed.nIterations > mPVParams->maxIterations) {
     result = PVertexer::FitStatus::Failure;
+    return result;
   } else if (vtxSeed.scaleSigma2Prev <= mPVParams->minScale2 + kAlmost0F) {
     result = PVertexer::FitStatus::OK;
     LOG(debug) << "stop on simga :" << vtxSeed.scaleSigma2 << " prev: " << vtxSeed.scaleSigma2Prev;
@@ -629,7 +662,6 @@ void PVertexer::init()
   mPVParams = &PVertexerParams::Instance();
   setTukey(mPVParams->tukey);
   initMeanVertexConstraint();
-
   auto* prop = o2::base::Propagator::Instance();
   setBz(prop->getNominalBz());
 
@@ -667,9 +699,12 @@ void PVertexer::end()
   mDebugDBScanTree->Write();
   mDebugVtxCompTree->Write();
   mDebugVtxTree->Write();
-  mDebugDBScanTree.reset();
+
+  mDebugPoolTree.reset();
   mDebugDBScanTree.reset();
   mDebugVtxCompTree.reset();
+  mDebugVtxTree.reset();
+
   mDebugDumpFile->Close();
   mDebugDumpFile.reset();
 #endif
@@ -751,7 +786,9 @@ void PVertexer::setBunchFilling(const o2::BunchFilling& bf)
   // find closest (from above) filled bunch
   int minBC = bf.getFirstFilledBC(), maxBC = bf.getLastFilledBC();
   if (minBC < 0) {
-    throw std::runtime_error("Bunch filling is not set in PVertexer");
+    LOG(error) << "Empty bunch filling is provided, all vertices will be rejected";
+    mClosestBunchAbove[0] = mClosestBunchBelow[0] = -1;
+    return;
   }
   int bcAbove = minBC;
   for (int i = o2::constants::lhc::LHCMaxBunches; i--;) {
@@ -773,6 +810,9 @@ void PVertexer::setBunchFilling(const o2::BunchFilling& bf)
 bool PVertexer::setCompatibleIR(PVertex& vtx)
 {
   // assign compatible IRs accounting for the bunch filling scheme
+  if (mClosestBunchAbove[0] < 0) { // empty or no BF was provided
+    return false;
+  }
   const auto& vtxT = vtx.getTimeStamp();
   o2::InteractionRecord irMin(mStartIR), irMax(mStartIR);
   auto rangeT = std::max(mPVParams->minTError, mPVParams->nSigmaTimeCut * std::min(mPVParams->maxTError, vtxT.getTimeStampError())) + mPVParams->timeMarginVertexTime;
@@ -858,7 +898,6 @@ void PVertexer::dbscan_clusterize()
   mTimeZClusters.clear();
   int ntr = mTracksPool.size();
   std::vector<int> status(ntr, DBS_UNDEF);
-  TStopwatch timer;
   int clID = -1;
 
   std::vector<int> nbVec;
@@ -921,8 +960,7 @@ void PVertexer::dbscan_clusterize()
     }
     clus.timeEst.setTimeStamp(tMean / clus.trackIDs.size());
   }
-  timer.Stop();
-  LOG(info) << "Found " << mTimeZClusters.size() << " seeding clusters from DBSCAN in " << timer.CpuTime() << " CPU s";
+  mNTZClustersIni = mTimeZClusters.size();
 }
 
 //___________________________________________________________________
@@ -1107,4 +1145,37 @@ PVertex PVertexer::refitVertex(const std::vector<bool> useTrack, const o2d::Vert
     vtxRes.setChi2(-1.);
   }
   return vtxRes;
+}
+
+//______________________________________________
+void PVertexer::dumpPool()
+{
+  static int dumpID = 0;
+  if (mPoolDumpDirectory != "/dev/null") {
+    TFile dumpFile(fmt::format("{}{}pvtracksPool{}_{}_{}.root", mPoolDumpDirectory, (mPoolDumpDirectory.empty() || mPoolDumpDirectory.back() == '/') ? "" : "/",
+                               dumpID, std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count(),
+                               o2::utils::Str::getRandomString(5))
+                     .c_str(),
+                   "create");
+    dumpFile.WriteObjectAny(&mTracksPool, "std::vector<o2::vertexing::TrackVF>", "pool");
+    LOGP(warn, "Produced tracks pool dump {}", dumpFile.GetName());
+  }
+  mPoolDumpProduced = true;
+}
+//______________________________________________
+int PVertexer::processFromExternalPool(const std::vector<TrackVF>& pool, std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs)
+{
+  // dummy inputs
+  std::vector<o2::InteractionRecord> bcData;
+  std::vector<o2::MCCompLabel> lblTracks;
+  std::vector<o2::MCEventLabel> lblVtx;
+
+  std::vector<GTrackID> gids;
+  for (auto tr : pool) {
+    tr.vtxID = TrackVF::kNoVtx;
+    tr.wgh = 0.;
+    mTracksPool.push_back(tr);
+    gids.push_back(tr.gid);
+  }
+  return runVertexing(gids, bcData, vertices, vertexTrackIDs, v2tRefs, lblTracks, lblVtx);
 }

@@ -67,6 +67,11 @@ void PreClusterFinder::init()
 void PreClusterFinder::deinit()
 {
   /// clear the internal structure
+  auto print = [](uint32_t /*errorType*/, uint32_t deId, uint32_t padid,
+                  uint64_t count) {
+    LOGP(warning, "multiple digits on the same pad (DE {} pad {}): seen {} time{}", deId, padid, count, count > 1 ? "s" : "");
+  };
+  mErrorMap.forEach(print);
   reset();
   mDEIndices.clear();
 }
@@ -138,7 +143,7 @@ void PreClusterFinder::loadDigit(const Digit& digit)
 
   // check that the pad is not already fired
   if (de.mapping->pads[iPad].useMe) {
-    LOG(info) << "multiple digits on the same pad (DE " << digit.getDetID() << ", pad " << iPad << ")";
+    mErrorMap.add(kMultipleDigitInSamePad, digit.getDetID(), iPad);
     return;
   }
 

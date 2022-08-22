@@ -15,6 +15,7 @@
 #include "Framework/Logger.h"
 #include "TPCBase/Mapper.h"
 #include "DataFormatsTPC/ZeroSuppressionLinkBased.h"
+#include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/Constants.h"
 
 #include "TPCReconstruction/RawProcessingHelpers.h"
@@ -31,7 +32,7 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
   const auto endPoint = rdh_utils::getEndPoint(feeId);
   const CRU cru(cruID);
   const int fecLinkOffsetCRU = (mapper.getPartitionInfo(cru.partition()).getNumberOfFECs() + 1) / 2;
-  const int fecInPartition = link + endPoint * fecLinkOffsetCRU;
+  int fecInPartition = link + endPoint * fecLinkOffsetCRU;
 
   // temporarily store the sync offset until it is available in the ZS header
   // WARNING: This only works until the TB counter wrapped afterwards the alignment might change
@@ -40,13 +41,16 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
   static std::array<uint32_t, 360 * 24> syncOffsetLinks;
 
   const uint32_t maxBunches = (uint32_t)o2::constants::lhc::LHCMaxBunches;
-  int globalBCOffset = int(orbit - referenceOrbit) * o2::constants::lhc::LHCMaxBunches;
+  const int globalBCOffset = int(orbit - referenceOrbit) * o2::constants::lhc::LHCMaxBunches;
   static int triggerBCOffset = 0;
 
   bool hasData{false};
 
   zerosupp_link_based::ContainerZS* zsdata = (zerosupp_link_based::ContainerZS*)data;
   const zerosupp_link_based::ContainerZS* const zsdataEnd = (zerosupp_link_based::ContainerZS*)(data + size);
+
+  int zsVersion = -1;
+  int timeOffset = 0;
 
   while (zsdata < zsdataEnd) {
     const auto& header = zsdata->cont.header;
@@ -55,7 +59,7 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
     if (!header.hasCorrectMagicWord()) {
       zsdata = (zerosupp_link_based::ContainerZS*)((const char*)zsdata + sizeof(zerosupp_link_based::Header));
       if (!header.isFillWord()) {
-        LOGP(error, "Bad LinkZS magic word (0x{:08x}), for feeId 0x{:05x} (CRU: {:3}, link: {:2}, EP {}) , skipping data block", header.magicWord, feeId, rdh_utils::getCRU(feeId), rdh_utils::getLink(feeId), rdh_utils::getEndPoint(feeId));
+        LOGP(error, "Bad LinkZS magic word (0x{:08x}), for feeId 0x{:05x} (CRU: {:3}, link: {:2}, EP {}), orbit {} , skipping data block", header.magicWord, feeId, cruID, link, endPoint, orbit);
         LOGP(error, "Full 128b word is: 0x{:016x}{:016x}", header.word1, header.word0);
       }
       continue;
@@ -81,6 +85,18 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
       zsdata = zsdata->next();
       continue;
     } else if (header.isMetaHeader()) {
+      const auto& metaHDR = *((TPCZSHDRV2*)zsdata);
+      zsVersion = metaHDR.version;
+      timeOffset = metaHDR.timeOffset;
+
+      const auto& triggerInfo = *(zerosupp_link_based::TriggerInfoV3*)((const char*)&metaHDR + sizeof(metaHDR));
+      if (triggerInfo.hasTrigger()) {
+        const auto triggerBC = triggerInfo.getFirstBC();
+        const auto triggerOrbit = orbit;
+        triggerBCOffset = (int(triggerOrbit) - int(referenceOrbit)) * maxBunches + triggerBC;
+      }
+
+      zsdata = (zerosupp_link_based::ContainerZS*)((const char*)&triggerInfo + sizeof(triggerInfo));
       continue;
     }
 
@@ -89,17 +105,27 @@ bool raw_processing_helpers::processZSdata(const char* data, size_t size, rdh_ut
     const uint32_t numberOfWords = zsdata->getDataWords();
     assert(expectedWords == numberOfWords);
 
-    const uint32_t bunchCrossingHeader = zsdata->getBunchCrossing() + syncOffsetReference;
-    uint32_t syncOffset = header.syncOffsetBC;
+    const auto bunchCrossingHeader = int(zsdata->getBunchCrossing());
+    const auto syncOffset = int(header.syncOffsetBC);
 
-    const int bcOffset = (int(globalBCOffset) + int(bunchCrossingHeader) - int(syncOffset)) - triggerBCOffset;
-    const int timebin = bcOffset / constants::LHCBCPERTIMEBIN;
+    // in case of old data, alignment must be done in software
+    if (zsVersion < 0) {
+      timeOffset = syncOffsetReference - syncOffset;
+    }
+
+    const int bcOffset = timeOffset + globalBCOffset + bunchCrossingHeader - triggerBCOffset;
     if (bcOffset < 0) {
-      LOGP(debug, "skipping time bin with negative BC offset (globalBCoffset (({} - {}) * {} = {}) + bunchCrossingHeader ({}) - syncOffset({}) - triggerBCOffset({})) = {}", orbit, referenceOrbit, o2::constants::lhc::LHCMaxBunches, globalBCOffset, bunchCrossingHeader, syncOffset, triggerBCOffset, bcOffset);
+      LOGP(info, "skipping time bin with negative BC offset timeOffset {} + globalBCoffset (({} - {}) * {} = {}) + bunchCrossingHeader ({}) - triggerBCOffset({}) = {}",
+           timeOffset, orbit, referenceOrbit, o2::constants::lhc::LHCMaxBunches, globalBCOffset, bunchCrossingHeader, triggerBCOffset, bcOffset);
 
       // go to next time bin
       zsdata = zsdata->next();
       continue;
+    }
+
+    const int timebin = bcOffset / constants::LHCBCPERTIMEBIN;
+    if (zsVersion == ZSVersionLinkBasedWithMeta) {
+      fecInPartition = header.fecInPartition;
     }
 
     std::size_t processedChannels = 0;

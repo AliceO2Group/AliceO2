@@ -11,6 +11,7 @@
 #ifndef O2_FRAMEWORK_CONTROLSERVICE_H_
 #define O2_FRAMEWORK_CONTROLSERVICE_H_
 
+#include "Framework/ThreadSafetyAnalysis.h"
 #include "Framework/ServiceHandle.h"
 #include <mutex>
 
@@ -55,8 +56,8 @@ class ControlService
  private:
   bool mOnce = false;
   ServiceRegistry& mRegistry;
-  DeviceState& mDeviceState;
-  DriverClient& mDriverClient;
+  DeviceState& mDeviceState GUARDED_BY(mMutex);
+  DriverClient& mDriverClient GUARDED_BY(mMutex);
   std::mutex mMutex;
 };
 

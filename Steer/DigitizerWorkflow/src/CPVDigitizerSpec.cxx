@@ -154,7 +154,7 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
     pc.outputs().snapshot(Output{"CPV", "DIGITSMCTR", 0, Lifetime::Timeframe}, mLabels);
   }
   // CPV is always a triggered detector
-  const o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::TRIGGERING;
+  const o2::parameters::GRPObject::ROMode roMode = o2::parameters::GRPObject::PRESENT;
   LOG(debug) << "CPV: Sending ROMode= " << roMode << " to GRPUpdater";
   pc.outputs().snapshot(Output{"CPV", "ROMode", 0, Lifetime::Timeframe}, roMode);
 

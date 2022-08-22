@@ -40,12 +40,13 @@ o2_add_executable(grp-create
                                         O2::CCDB
                                         Boost::program_options)
 
-o2_add_executable(create-aligned
-                  COMPONENT_NAME geometry
+o2_add_executable(workflow
+                  COMPONENT_NAME create-aligned-geometry
                   SOURCES src/create-aligned-geometry.cxx
                   PUBLIC_LINK_LIBRARIES O2::DetectorsBase
                                         O2::CommonUtils
                                         O2::CCDB
+                                        O2::DetectorsRaw
                                         Boost::program_options)
 
 o2_add_executable(grp-dcs-dps-sim-workflow

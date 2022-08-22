@@ -100,8 +100,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
 
       const auto& inputs = getWorkflowTPCInput(pc, 0, false, false, tpcSectorMask, true);
       sizes.resize(NSectors * NEndpoints);
-      const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
-      o2::InteractionRecord ir{0, dh->firstTForbit};
+      o2::InteractionRecord ir{0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
       o2::gpu::GPUReconstructionConvert::RunZSEncoder<DigitArray>(inputs->inputDigits, &zsoutput, sizes.data(), nullptr, &ir, _GPUParam, 2, verify, config.configReconstruction.tpc.zsThreshold);
       ZeroSuppressedContainer8kb* page = reinterpret_cast<ZeroSuppressedContainer8kb*>(zsoutput.get());
       unsigned int offset = 0;

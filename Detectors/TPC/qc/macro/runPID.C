@@ -85,7 +85,8 @@ void runPID(std::string outputFileName = "PID", std::string_view inputFileName =
 
   // ===| create PID object |=====================================================
   qc::PID pid;
-
+  // set elementart cuts for PID.  nClusterCut = 60, AbsTgl  = 1.,MindEdxTot = 10.0,MaxdEdxTot = 70., MinpTPC = 0.05, MaxpTPC = 20., MinpTPCMIPs = 0.45, MaxpTPCMIPs = 0.55
+  pid.setPIDCuts(60, 1., 10.0, 70., 0.05, 20., 0.45, 0.55);
   pid.initializeHistograms();
   gStyle->SetPalette(kCividis);
   qc::helpers::setStyleHistogramsInMap(pid.getMapOfHisto());

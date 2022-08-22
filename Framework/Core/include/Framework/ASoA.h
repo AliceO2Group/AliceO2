@@ -31,6 +31,50 @@
 #include <typeinfo>
 #include <gsl/span>
 
+namespace o2::framework
+{
+template <typename T>
+struct Preslice {
+  using target_t = T;
+  Preslice(expressions::BindingNode index_) : index{index_} {}
+  arrow::Status processTable(std::shared_ptr<arrow::Table> input)
+  {
+    if (newDataframe) {
+      fullSize = input->num_rows();
+      newDataframe = false;
+      return o2::framework::getSlices(index.name.c_str(), input, mValues, mCounts);
+    } else {
+      return arrow::Status::OK();
+    }
+  };
+
+  void setNewDF()
+  {
+    newDataframe = true;
+  };
+
+  std::shared_ptr<arrow::NumericArray<arrow::Int32Type>> mValues = nullptr;
+  std::shared_ptr<arrow::NumericArray<arrow::Int64Type>> mCounts = nullptr;
+  size_t fullSize;
+  expressions::BindingNode index;
+  bool newDataframe = false;
+
+  arrow::Status getSliceFor(int value, std::shared_ptr<arrow::Table> const& input, std::shared_ptr<arrow::Table>& output, uint64_t& offset) const
+  {
+    arrow::Status status;
+    for (auto slice = 0; slice < mValues->length(); ++slice) {
+      if (mValues->Value(slice) == value) {
+        output = input->Slice(offset, mCounts->Value(slice));
+        return arrow::Status::OK();
+      }
+      offset += mCounts->Value(slice);
+    }
+    output = input->Slice(offset, 0);
+    return arrow::Status::OK();
+  }
+};
+} // namespace o2::framework
+
 namespace o2::soa
 {
 template <typename... C>
@@ -93,6 +137,14 @@ inline constexpr bool is_self_index_column_v = false;
 
 template <typename T>
 inline constexpr bool is_self_index_column_v<T, std::void_t<decltype(sizeof(typename T::self_index_t))>> = true;
+
+template <typename B, typename E>
+struct EquivalentIndex {
+  constexpr static bool value = false;
+};
+
+template <typename B, typename E>
+constexpr bool is_index_equivalent_v = EquivalentIndex<B, E>::value || EquivalentIndex<E, B>::value;
 
 template <typename T, typename TLambda>
 void call_if_has_originals(TLambda&& lambda)
@@ -489,8 +541,23 @@ struct Index : o2::soa::IndexColumn<Index<START, END>> {
 template <typename T>
 using is_dynamic_t = framework::is_specialization<typename T::base, DynamicColumn>;
 
+namespace persistent_type_helper
+{
+// This checks both for the existence of the ::persistent member in the class T as well as the value returned stored in it.
+// Hack: a pointer to any field of type int inside persistent. Both true_type and false_type do not have any int field, but anyways we pass nullptr.
+// The compiler picks the version with exact number of arguments when only it can, i.e., when T::persistent is defined.
+template <class T>
+typename T::persistent test(int T::persistent::*);
+
+template <class>
+std::false_type test(...);
+} // namespace persistent_type_helper
+
 template <typename T>
-using is_persistent_t = typename std::decay_t<T>::persistent::type;
+using is_persistent_t = decltype(persistent_type_helper::test<T>(nullptr));
+
+template <typename T>
+using is_persistent_v = typename is_persistent_t<T>::value;
 
 template <typename T>
 using is_external_index_t = typename std::conditional<is_index_column_v<T>, std::true_type, std::false_type>::type;
@@ -932,20 +999,31 @@ struct ArrowHelpers {
 template <typename... T>
 using originals_pack_t = decltype(make_originals_from_type<T...>());
 
-template <typename T>
-using is_soa_iterator_t = typename framework::is_base_of_template<RowViewCore, T>;
-
-template <typename T>
-constexpr bool is_soa_iterator_v()
+template <typename T, typename... Os>
+constexpr bool are_bindings_compatible_v(framework::pack<Os...>&&)
 {
-  return is_soa_iterator_t<T>::value || framework::is_specialization_v<T, RowViewCore>;
+  if constexpr (is_type_with_originals_v<T>) {
+    return (are_bindings_compatible_v<Os>(originals_pack_t<T>{}) || ...);
+  } else {
+    return ((std::is_same_v<T, Os> || is_index_equivalent_v<T, Os>) || ...);
+  }
 }
+
+template <typename T, typename B>
+constexpr bool is_binding_compatible_v()
+{
+  return are_bindings_compatible_v<T>(originals_pack_t<B>{});
+}
+
+//! Helper to check if a type T is an iterator
+template <typename T>
+inline constexpr bool is_soa_iterator_v = framework::is_base_of_template_v<RowViewCore, T> || framework::is_specialization_v<T, RowViewCore>;
 
 template <typename T>
 using is_soa_table_t = typename framework::is_specialization<T, soa::Table>;
 
 template <typename T>
-using is_soa_table_like_t = typename framework::is_base_of_template<soa::Table, T>;
+inline constexpr bool is_soa_table_like_v = framework::is_base_of_template_v<soa::Table, T>;
 
 /// Helper function to extract bound indices
 template <typename... Is>
@@ -965,19 +1043,6 @@ auto select(T const& t, framework::expressions::Filter const& f)
   return Filtered<T>({t.asArrowTable()}, selectionToVector(framework::expressions::createSelection(t.asArrowTable(), f)));
 }
 
-template <typename T>
-auto sliceBy(T const& t, framework::expressions::BindingNode const& node, int value)
-{
-  uint64_t offset = 0;
-  std::shared_ptr<arrow::Table> result = nullptr;
-  auto status = o2::framework::getSliceFor(value, node.name.c_str(), t.asArrowTable(), result, offset);
-  if (status.ok()) {
-    return T({result}, offset);
-  }
-  o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
-  O2_BUILTIN_UNREACHABLE();
-}
-
 arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, const char* label);
 
 /// A Table class which observes an arrow::Table and provides
@@ -994,7 +1059,7 @@ class Table
 
   static constexpr auto hashes()
   {
-    return std::set{typeid(C).hash_code()...};
+    return std::set{{typeid(C).hash_code()...}};
   }
 
   template <typename IP, typename Parent, typename... T>
@@ -1044,10 +1109,12 @@ class Table
     auto getId() const
     {
       using decayed = std::decay_t<TI>;
-      if constexpr (framework::has_type_v<decayed, bindings_pack_t>) {
+      if constexpr (framework::has_type_v<decayed, bindings_pack_t>) { // index to another table
         constexpr auto idx = framework::has_type_at_v<decayed>(bindings_pack_t{});
         return framework::pack_element_t<idx, external_index_columns_t>::getId();
-      } else if constexpr (std::is_same_v<decayed, Parent>) {
+      } else if constexpr (std::is_same_v<decayed, Parent>) { // self index
+        return this->globalIndex();
+      } else if constexpr (is_index_t<decayed>::value && decayed::mLabel == "Index") { // soa::Index<>
         return this->globalIndex();
       } else {
         return static_cast<int32_t>(-1);
@@ -1236,11 +1303,20 @@ class Table
     return t;
   }
 
-  auto sliceBy(framework::expressions::BindingNode const& node, int value) const
+  template <typename T1>
+  auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
   {
-    auto t = o2::soa::sliceBy(*this, node, value);
-    copyIndexBindings(t);
-    return t;
+    if constexpr (o2::soa::is_binding_compatible_v<T1, std::decay_t<decltype(*this)>>()) {
+      std::shared_ptr<arrow::Table> out;
+      uint64_t offset = 0;
+      auto status = container.getSliceFor(value, mTable, out, offset);
+      auto t = table_t({out}, offset);
+      copyIndexBindings(t);
+      t.bindInternalIndicesTo(this);
+      return t;
+    } else {
+      static_assert(o2::framework::always_static_assert_v<T1>, "Wrong Preslice<> entry used: incompatible type");
+    }
   }
 
   auto slice(uint64_t start, uint64_t end) const
@@ -1413,30 +1489,6 @@ using JoinBase = decltype(join(std::declval<Ts>()...));
 template <typename T1, typename T2>
 using ConcatBase = decltype(concat(std::declval<T1>(), std::declval<T2>()));
 
-template <typename B, typename E>
-struct EquivalentIndex {
-  constexpr static bool value = false;
-};
-
-template <typename B, typename E>
-constexpr bool is_index_equivalent_v = EquivalentIndex<B, E>::value || EquivalentIndex<E, B>::value;
-
-template <typename T, typename... Os>
-constexpr bool are_bindings_compatible_v(framework::pack<Os...>&&)
-{
-  if constexpr (is_type_with_originals_v<T>) {
-    return (are_bindings_compatible_v<Os>(originals_pack_t<T>{}) || ...);
-  } else {
-    return ((std::is_same_v<T, Os> || is_index_equivalent_v<T, Os>) || ...);
-  }
-}
-
-template <typename T, typename B>
-constexpr bool is_binding_compatible_v()
-{
-  return are_bindings_compatible_v<T>(originals_pack_t<B>{});
-}
-
 void notBoundTable(const char* tableName);
 
 namespace row_helpers
@@ -1444,52 +1496,63 @@ namespace row_helpers
 template <typename... Cs>
 std::array<arrow::ChunkedArray*, sizeof...(Cs)> getArrowColumns(arrow::Table* table, framework::pack<Cs...>)
 {
-  static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
+  static_assert(std::conjunction_v<typename Cs::persistent...>, "Arrow columns: only persistent columns accepted (not dynamic and not index ones");
   return std::array<arrow::ChunkedArray*, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())...};
 }
 
 template <typename... Cs>
 std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table* table, framework::pack<Cs...>, uint64_t ci)
 {
-  static_assert(std::conjunction_v<typename Cs::persistent...>, "BinningPolicy: only persistent columns accepted (not dynamic and not index ones");
+  static_assert(std::conjunction_v<typename Cs::persistent...>, "Arrow chunks: only persistent columns accepted (not dynamic and not index ones");
   return std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)>{o2::soa::getIndexFromLabel(table, Cs::columnLabel())->chunk(ci)...};
 }
 
-template <typename C>
-typename C::type getSingleRowPersistentData(arrow::Table* table, uint64_t ci, uint64_t ai)
+template <typename T, typename C>
+typename C::type getSingleRowPersistentData(arrow::Table* table, T& rowIterator, uint64_t ci = -1, uint64_t ai = -1)
 {
+  if (ci == -1 || ai == -1) {
+    auto colIterator = static_cast<C>(rowIterator).getIterator();
+    ci = colIterator.mCurrentChunk;
+    ai = *(colIterator.mCurrentPos) - colIterator.mFirstIndex;
+  }
   return std::static_pointer_cast<o2::soa::arrow_array_for_t<typename C::type>>(o2::soa::getIndexFromLabel(table, C::columnLabel())->chunk(ci))->raw_values()[ai];
 }
 
 template <typename T, typename C>
-typename C::type getSingleRowDynamicData(T& rowIterator, uint64_t globalIndex)
+typename C::type getSingleRowDynamicData(T& rowIterator, uint64_t globalIndex = -1)
 {
-  rowIterator.setCursor(globalIndex);
+  if (globalIndex != -1 && globalIndex != *std::get<0>(rowIterator.getIndices())) {
+    rowIterator.setCursor(globalIndex);
+  }
   return rowIterator.template getDynamicColumn<C>();
 }
 
 template <typename T, typename C>
-typename C::type getSingleRowIndexData(T& rowIterator, uint64_t globalIndex)
+typename C::type getSingleRowIndexData(T& rowIterator, uint64_t globalIndex = -1)
 {
-  rowIterator.setCursor(globalIndex);
+  if (globalIndex != -1 && globalIndex != *std::get<0>(rowIterator.getIndices())) {
+    rowIterator.setCursor(globalIndex);
+  }
   return rowIterator.template getId<C>();
 }
 
 template <typename T, typename C>
-typename C::type getSingleRowData(arrow::Table* table, T& rowIterator, uint64_t ci, uint64_t ai, uint64_t globalIndex)
+typename C::type getSingleRowData(arrow::Table* table, T& rowIterator, uint64_t ci = -1, uint64_t ai = -1, uint64_t globalIndex = -1)
 {
   using decayed = std::decay_t<C>;
   if constexpr (decayed::persistent::value) {
-    return getSingleRowPersistentData<C>(table, ci, ai);
+    return getSingleRowPersistentData<T, C>(table, rowIterator, ci, ai);
   } else if constexpr (o2::soa::is_dynamic_t<decayed>()) {
     return getSingleRowDynamicData<T, C>(rowIterator, globalIndex);
-  } else if constexpr (o2::soa::is_index_column_v<decayed>) {
+  } else if constexpr (o2::soa::is_index_t<decayed>::value) {
     return getSingleRowIndexData<T, C>(rowIterator, globalIndex);
+  } else {
+    static_assert(!sizeof(decayed*), "Unrecognized column kind"); // A trick to delay static_assert until we actually instantiate this branch
   }
 }
 
 template <typename T, typename... Cs>
-std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, uint64_t ci, uint64_t ai, uint64_t globalIndex)
+std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, uint64_t ci = -1, uint64_t ai = -1, uint64_t globalIndex = -1)
 {
   return std::make_tuple(getSingleRowData<T, Cs>(table, rowIterator, ci, ai, globalIndex)...);
 }
@@ -2257,6 +2320,22 @@ struct Join : JoinBase<Ts...> {
     this->copyIndexBindings(t);
     return t;
   }
+
+  template <typename T1>
+  auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
+  {
+    if constexpr (o2::soa::is_binding_compatible_v<T1, std::decay_t<decltype(*this)>>()) {
+      std::shared_ptr<arrow::Table> out;
+      uint64_t offset = 0;
+      auto status = container.getSliceFor(value, this->asArrowTable(), out, offset);
+      auto t = table_t({out}, offset);
+      this->copyIndexBindings(t);
+      t.bindInternalIndicesTo(this);
+      return t;
+    } else {
+      static_assert(o2::framework::always_static_assert_v<T1>, "Wrong Preslice<> entry used: incompatible type");
+    }
+  }
 };
 
 template <typename... Ts>
@@ -2440,9 +2519,10 @@ class FilteredBase : public T
     doCopyIndexBindings(external_index_columns_t{}, dest);
   }
 
-  auto rawSliceBy(framework::expressions::BindingNode const& node, int value) const
+  template <typename T1>
+  auto rawSliceBy(o2::framework::Preslice<T1> const& container, int value) const
   {
-    return (table_t)this->sliceBy(node, value);
+    return (table_t)this->sliceBy(container, value);
   }
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value)
@@ -2471,21 +2551,33 @@ class FilteredBase : public T
     return fresult;
   }
 
-  auto sliceBy(framework::expressions::BindingNode const& node, int value) const
+  template <typename T1>
+  auto sliceBy(o2::framework::Preslice<T1> const& container, int value) const
   {
-    auto t = o2::soa::sliceBy((table_t)(*this), node, value);
-    auto start = t.offset();
-    auto end = start + t.size();
-    auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
-    auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
-    SelectionVector slicedSelection{start_iterator, stop_iterator};
-    std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                   [&](int64_t idx) {
-                     return idx - static_cast<int64_t>(start);
-                   });
-    self_t result{{t.asArrowTable()}, std::move(slicedSelection), start};
-    copyIndexBindings(result);
-    return result;
+    if constexpr (o2::soa::is_binding_compatible_v<T1, std::decay_t<decltype(*this)>>()) {
+      uint64_t offset = 0;
+      std::shared_ptr<arrow::Table> result = nullptr;
+      auto status = container.getSliceFor(value, this->asArrowTable(), result, offset);
+      if (offset >= this->tableSize()) {
+        self_t fresult{{result}, SelectionVector{}, 0}; // empty slice
+        this->copyIndexBindings(fresult);
+        return fresult;
+      }
+      auto start = offset;
+      auto end = start + result->num_rows();
+      auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
+      auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
+      SelectionVector slicedSelection{start_iterator, stop_iterator};
+      std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
+                     [&start](int64_t idx) {
+                       return idx - static_cast<int64_t>(start);
+                     });
+      self_t fresult{{result}, std::move(slicedSelection), start};
+      copyIndexBindings(fresult);
+      return fresult;
+    } else {
+      static_assert(o2::framework::always_static_assert_v<T1>, "Wrong Preslice<> entry used: incompatible type");
+    }
   }
 
   auto select(framework::expressions::Filter const& f) const
@@ -2824,7 +2916,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 };
 
 template <typename T>
-using is_soa_filtered_t = typename framework::is_base_of_template<soa::FilteredBase, T>;
+inline constexpr bool is_soa_filtered_v = framework::is_base_of_template_v<soa::FilteredBase, T>;
 
 /// Template for building an index table to access matching rows from non-
 /// joinable, but compatible tables, e.g. Collisions and ZDCs.
@@ -2856,7 +2948,7 @@ struct IndexTable : Table<soa::Index<>, H, Ts...> {
 };
 
 template <typename T>
-using is_soa_index_table_t = typename framework::is_base_of_template<soa::IndexTable, T>;
+inline constexpr bool is_soa_index_table_v = framework::is_base_of_template_v<soa::IndexTable, T>;
 
 template <typename T>
 struct SmallGroups : public Filtered<T> {

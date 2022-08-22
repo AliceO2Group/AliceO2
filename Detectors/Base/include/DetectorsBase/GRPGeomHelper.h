@@ -19,6 +19,9 @@
 #include <vector>
 #include <memory>
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "DataFormatsParameters/GRPLHCIFData.h"
+#include "DataFormatsParameters/GRPECSObject.h"
+#include "DataFormatsParameters/GRPMagField.h"
 
 namespace o2::framework
 {
@@ -65,15 +68,17 @@ class MatLayerCylSet;
      ...
    }
    void init(o2::framework::InitContext& ic) {
-     GRPGeomHelper::instance()->setRequest(mCCDBReq);
+     GRPGeomHelper::instance().setRequest(mCCDBReq);
      ...
    }
    void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) {
-     GRPGeomHelper::instance()->finaliseCCDB(matcher, obj);
+     if (GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+       return;
+     }
      ...
    }
    void run(ProcessingContext& pc) {
-     GRPGeomHelper::instance()->checkUpdates(pc);
+     GRPGeomHelper::instance().checkUpdates(pc);
      ...
    }
    protected:
@@ -95,9 +100,10 @@ struct GRPGeomRequest {
   bool askGeomAlign = false;  // load aligned geometry
   bool askGeomIdeal = false;  // load ideal geometry
   bool askAlignments = false; // load detector alignments but don't apply them
+  bool askOnceAllButField = false; // for all entries but field query only once
 
   GRPGeomRequest() = delete;
-  GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs);
+  GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs, bool askOnce = false);
   void addInput(const o2::framework::InputSpec&& isp, std::vector<o2::framework::InputSpec>& inputs);
 };
 
@@ -113,7 +119,7 @@ class GRPGeomHelper
     return inst;
   }
   void setRequest(std::shared_ptr<GRPGeomRequest> req);
-  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj);
+  bool finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj);
   void checkUpdates(o2::framework::ProcessingContext& pc) const;
 
   auto getAlignment(o2::detectors::DetID det) const { return mAlignments[det]; }

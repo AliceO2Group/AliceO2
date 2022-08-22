@@ -56,7 +56,6 @@
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
-#include "SimulationDataFormat/DigitizationContext.h"
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -124,13 +123,10 @@ void FilteringSpec::run(ProcessingContext& pc)
 
   if (mNeedToSave) {
     fillData(recoData);
-    auto dref = pc.inputs().getFirstValid(true);
-    const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(dref);
-    const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(dref);
-
-    mFTF.header.run = dh->runNumber;
-    mFTF.header.firstTForbit = dh->firstTForbit;
-    mFTF.header.creationTime = dph->creation;
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+    mFTF.header.run = tinfo.runNumber;
+    mFTF.header.firstTForbit = tinfo.firstTForbit;
+    mFTF.header.creationTime = tinfo.creation;
 
     pc.outputs().snapshot(Output{"GLO", "FILTERED_RECO_TF", 0}, mFTF);
     clear(); // clear caches, safe after the snapshot

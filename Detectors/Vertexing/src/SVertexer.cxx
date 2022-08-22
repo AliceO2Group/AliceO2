@@ -15,7 +15,8 @@
 
 #include "DetectorsVertexing/SVertexer.h"
 #include "DetectorsBase/Propagator.h"
-#include "TPCBase/ParameterGas.h"
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "DataFormatsTPC/VDriftCorrFact.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -121,47 +122,61 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
 //__________________________________________________________________
 void SVertexer::init()
 {
+  initTPCTransform();
 }
 
 //__________________________________________________________________
 void SVertexer::updateTimeDependentParams()
 {
   // TODO RS: strictly speaking, one should do this only in case of the CCDB objects update
-  mSVParams = &SVertexerParams::Instance();
-  // precalculated selection cuts
-  mMinR2ToMeanVertex = mSVParams->minRToMeanVertex * mSVParams->minRToMeanVertex;
-  mMaxR2ToMeanVertexCascV0 = mSVParams->maxRToMeanVertexCascV0 * mSVParams->maxRToMeanVertexCascV0;
-  mMaxDCAXY2ToMeanVertex = mSVParams->maxDCAXYToMeanVertex * mSVParams->maxDCAXYToMeanVertex;
-  mMaxDCAXY2ToMeanVertexV0Casc = mSVParams->maxDCAXYToMeanVertexV0Casc * mSVParams->maxDCAXYToMeanVertexV0Casc;
-  mMinR2DiffV0Casc = mSVParams->minRDiffV0Casc * mSVParams->minRDiffV0Casc;
-  mMinPt2V0 = mSVParams->minPtV0 * mSVParams->minPtV0;
-  mMaxTgl2V0 = mSVParams->maxTglV0 * mSVParams->maxTglV0;
-  mMinPt2Casc = mSVParams->minPtCasc * mSVParams->minPtCasc;
-  mMaxTgl2Casc = mSVParams->maxTglCasc * mSVParams->maxTglCasc;
-
+  static bool updatedOnce = false;
+  if (!updatedOnce) {
+    updatedOnce = true;
+    mSVParams = &SVertexerParams::Instance();
+    // precalculated selection cuts
+    mMinR2ToMeanVertex = mSVParams->minRToMeanVertex * mSVParams->minRToMeanVertex;
+    mMaxR2ToMeanVertexCascV0 = mSVParams->maxRToMeanVertexCascV0 * mSVParams->maxRToMeanVertexCascV0;
+    mMaxDCAXY2ToMeanVertex = mSVParams->maxDCAXYToMeanVertex * mSVParams->maxDCAXYToMeanVertex;
+    mMaxDCAXY2ToMeanVertexV0Casc = mSVParams->maxDCAXYToMeanVertexV0Casc * mSVParams->maxDCAXYToMeanVertexV0Casc;
+    mMinR2DiffV0Casc = mSVParams->minRDiffV0Casc * mSVParams->minRDiffV0Casc;
+    mMinPt2V0 = mSVParams->minPtV0 * mSVParams->minPtV0;
+    mMaxTgl2V0 = mSVParams->maxTglV0 * mSVParams->maxTglV0;
+    mMinPt2Casc = mSVParams->minPtCasc * mSVParams->minPtCasc;
+    mMaxTgl2Casc = mSVParams->maxTglCasc * mSVParams->maxTglCasc;
+    setupThreads();
+  }
   auto bz = o2::base::Propagator::Instance()->getNominalBz();
-
   mV0Hyps[HypV0::Photon].set(PID::Photon, PID::Electron, PID::Electron, mSVParams->pidCutsPhoton, bz);
   mV0Hyps[HypV0::K0].set(PID::K0, PID::Pion, PID::Pion, mSVParams->pidCutsK0, bz);
   mV0Hyps[HypV0::Lambda].set(PID::Lambda, PID::Proton, PID::Pion, mSVParams->pidCutsLambda, bz);
   mV0Hyps[HypV0::AntiLambda].set(PID::Lambda, PID::Pion, PID::Proton, mSVParams->pidCutsLambda, bz);
   mV0Hyps[HypV0::HyperTriton].set(PID::HyperTriton, PID::Helium3, PID::Pion, mSVParams->pidCutsHTriton, bz);
   mV0Hyps[HypV0::AntiHyperTriton].set(PID::HyperTriton, PID::Pion, PID::Helium3, mSVParams->pidCutsHTriton, bz);
-
+  mV0Hyps[HypV0::Hyperhydrog4].set(PID::Hyperhydrog4, PID::Alpha, PID::Pion, mSVParams->pidCutsHhydrog4, bz);
+  mV0Hyps[HypV0::AntiHyperhydrog4].set(PID::Hyperhydrog4, PID::Pion, PID::Alpha, mSVParams->pidCutsHhydrog4, bz);
   mCascHyps[HypCascade::XiMinus].set(PID::XiMinus, PID::Lambda, PID::Pion, mSVParams->pidCutsXiMinus, bz);
   mCascHyps[HypCascade::OmegaMinus].set(PID::OmegaMinus, PID::Lambda, PID::Kaon, mSVParams->pidCutsOmegaMinus, bz);
-
-  setupThreads();
-
   for (auto& ft : mFitterV0) {
     ft.setBz(bz);
   }
   for (auto& ft : mFitterCasc) {
     ft.setBz(bz);
   }
+}
 
-  auto& gasParam = o2::tpc::ParameterGas::Instance();
-  mTPCBin2Z = gasParam.DriftV / mMUS2TPCBin;
+//______________________________________________
+void SVertexer::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
+{
+  mTPCVDrift = v.refVDrift * v.corrFact;
+  mTPCVDriftRef = v.refVDrift;
+  o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mTPCTransform, 0, v.corrFact, v.refVDrift);
+  mTPCBin2Z = mTPCVDrift / mMUS2TPCBin;
+}
+
+//_________________________________________________________
+void SVertexer::initTPCTransform()
+{
+  mTPCTransform = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
 }
 
 //__________________________________________________________________
@@ -300,8 +315,10 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
     const auto& tracksPool = mTracksPool[pn];
     for (unsigned i = 0; i < tracksPool.size(); i++) {
       const auto& t = tracksPool[i];
-      if (vtxFirstT[t.vBracket.getMin()] == -1) {
-        vtxFirstT[t.vBracket.getMin()] = i;
+      for (int j{t.vBracket.getMin()}; j <= t.vBracket.getMax(); ++j) {
+        if (vtxFirstT[j] == -1) {
+          vtxFirstT[j] = i;
+        }
       }
     }
   }
@@ -421,10 +438,10 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   if (checkForCascade) {
     int nCascAdded = 0;
     if (hypCheckStatus[HypV0::Lambda] || !mSVParams->checkCascadeHypothesis) {
-      nCascAdded += checkCascades(rv0, pV0, p2V0, iN, NEG, ithread);
+      nCascAdded += checkCascades(rv0, pV0, p2V0, iN, NEG, vlist, ithread);
     }
     if (hypCheckStatus[HypV0::AntiLambda] || !mSVParams->checkCascadeHypothesis) {
-      nCascAdded += checkCascades(rv0, pV0, p2V0, iP, POS, ithread);
+      nCascAdded += checkCascades(rv0, pV0, p2V0, iP, POS, vlist, ithread);
     }
     if (!nCascAdded && rejectIfNotCascade) { // v0 would be accepted only if it creates a cascade
       mV0sTmp[ithread].pop_back();
@@ -436,16 +453,20 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
 }
 
 //__________________________________________________________________
-int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, int ithread)
+int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, VBracket v0vlist, int ithread)
 {
+
   // check last added V0 for belonging to cascade
   auto& fitterCasc = mFitterCasc[ithread];
   const auto& v0 = mV0sTmp[ithread].back();
   auto& tracks = mTracksPool[posneg];
-  const auto& pv = mPVertices[v0.getVertexID()];
   int nCascIni = mCascadesTmp[ithread].size();
-  // start from the 1st track compatible with V0's primary vertex
-  int firstTr = mVtxFirstTrack[posneg][v0.getVertexID()], nTr = tracks.size();
+
+  // check if a given PV has already been used in a cascade
+  std::unordered_map<int, int> pvMap;
+
+  // start from the 1st bachelor track compatible with earliest vertex in the v0vlist
+  int firstTr = mVtxFirstTrack[posneg][v0vlist.getMin()], nTr = tracks.size();
   if (firstTr < 0) {
     firstTr = nTr;
   }
@@ -454,23 +475,29 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
       continue; // skip the track used by V0
     }
     auto& bach = tracks[it];
-    if (bach.vBracket > v0.getVertexID()) {
+    if (bach.vBracket.getMin() > v0vlist.getMax()) {
+      LOG(debug) << "Skipping";
       break; // all other bachelor candidates will be also not compatible with this PV
     }
-    if (bach.vBracket.isOutside(v0.getVertexID())) {
-      LOG(error) << "Incompatible bachelor: PV " << bach.vBracket.asString() << " vs V0 " << v0.getVertexID();
+    auto cascVlist = v0vlist.getOverlap(bach.vBracket); // indices of vertices shared by V0 and bachelor
+    if (mSVParams->selectBestV0) {
+      // select only the best V0 candidate among the compatible ones
+      if (v0.getVertexID() < cascVlist.getMin() || v0.getVertexID() > cascVlist.getMax()) {
+        continue;
+      }
+      cascVlist.setMin(v0.getVertexID());
+      cascVlist.setMax(v0.getVertexID());
     }
-    if (bach.minR > rv0 + mSVParams->causalityRTolerance) {
-      continue;
-    }
+
     int nCandC = fitterCasc.process(v0, bach);
     if (nCandC == 0) { // discard this pair
       continue;
     }
     int candC = 0;
     const auto& cascXYZ = fitterCasc.getPCACandidatePos(candC);
-    // make sure the cascade radius is smaller than that of the vertex
-    float dxc = cascXYZ[0] - pv.getX(), dyc = cascXYZ[1] - pv.getY(), dzc = cascXYZ[2] - pv.getZ(), r2casc = dxc * dxc + dyc * dyc;
+
+    // make sure the cascade radius is smaller than that of the mean vertex
+    float dxc = cascXYZ[0] - mMeanVertex.getX(), dyc = cascXYZ[1] - mMeanVertex.getY(), r2casc = dxc * dxc + dyc * dyc;
     if (rv0 * rv0 - r2casc < mMinR2DiffV0Casc || r2casc < mMinR2ToMeanVertex) {
       continue;
     }
@@ -479,6 +506,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
     if (!fitterCasc.isPropagateTracksToVertexDone() && !fitterCasc.propagateTracksToVertex()) {
       continue;
     }
+
     auto& trNeut = fitterCasc.getTrack(0, candC);
     auto& trBach = fitterCasc.getTrack(1, candC);
     trNeut.setPID(o2::track::PID::Lambda);
@@ -487,22 +515,46 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
     trNeut.getPxPyPzGlo(pNeut);
     trBach.getPxPyPzGlo(pBach);
     std::array<float, 3> pCasc = {pNeut[0] + pBach[0], pNeut[1] + pBach[1], pNeut[2] + pBach[2]};
-    auto prodPPos = pV0[0] * dxc + pV0[1] * dyc + pV0[2] * dzc;
-    if (prodPPos < 0.) { // causality cut
-      continue;
-    }
+
     float pt2Casc = pCasc[0] * pCasc[0] + pCasc[1] * pCasc[1], p2Casc = pt2Casc + pCasc[2] * pCasc[2];
     if (pt2Casc < mMinPt2Casc) { // pt cut
+      LOG(debug) << "Casc pt too low";
       continue;
     }
     if (pCasc[2] * pCasc[2] / pt2Casc > mMaxTgl2Casc) { // tgLambda cut
+      LOG(debug) << "Casc tgLambda too high";
       continue;
     }
-    //    LOG(info) << "ptcasc2 " << pt2Casc << " tglcasc2 " << pCasc[2]*pCasc[2] / pt2Casc << " cut " << mMaxTgl2Casc;
-    float cosPA = (pCasc[0] * dxc + pCasc[1] * dyc + pCasc[2] * dzc) / std::sqrt(p2Casc * (r2casc + dzc * dzc));
-    if (cosPA < mSVParams->minCosPACasc) {
+
+    // compute primary vertex and cosPA of the cascade
+    auto bestCosPA = mSVParams->minCosPACasc;
+    auto cascVtxID = -1;
+
+    for (int iv = cascVlist.getMin(); iv <= cascVlist.getMax(); iv++) {
+      const auto& pv = mPVertices[iv];
+      // check cos of pointing angle
+      float dx = cascXYZ[0] - pv.getX(), dy = cascXYZ[1] - pv.getY(), dz = cascXYZ[2] - pv.getZ(), prodXYZcasc = dx * pCasc[0] + dy * pCasc[1] + dz * pCasc[2];
+      float cosPA = prodXYZcasc / std::sqrt((dx * dx + dy * dy + dz * dz) * p2Casc);
+      if (cosPA < bestCosPA) {
+        LOG(debug) << "Rej. cosPA: " << cosPA;
+        continue;
+      }
+      cascVtxID = iv;
+      bestCosPA = cosPA;
+    }
+    if (cascVtxID == -1) {
+      LOG(debug) << "Casc not compatible with any vertex";
       continue;
     }
+
+    const auto& cascPv = mPVertices[cascVtxID];
+    float dxCasc = cascXYZ[0] - cascPv.getX(), dyCasc = cascXYZ[1] - cascPv.getY(), dzCasc = cascXYZ[2] - cascPv.getZ();
+    auto prodPPos = pV0[0] * dxCasc + pV0[1] * dyCasc + pV0[2] * dzCasc;
+    if (prodPPos < 0.) { // causality cut
+      LOG(debug) << "Casc not causally compatible";
+      continue;
+    }
+
     float p2Bach = pBach[0] * pBach[0] + pBach[1] * pBach[1] + pBach[2] * pBach[2];
     float ptCasc = std::sqrt(pt2Casc);
     bool goodHyp = false;
@@ -513,20 +565,46 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
       }
     }
     if (!goodHyp) {
+      LOG(debug) << "Casc not compatible with any hypothesis";
       continue;
     }
     auto& casc = mCascadesTmp[ithread].emplace_back(cascXYZ, pCasc, fitterCasc.calcPCACovMatrixFlat(candC), trNeut, trBach, mV0sTmp[ithread].size() - 1, bach.gid);
     o2::track::TrackParCov trc = casc;
     o2::dataformats::DCA dca;
-    if (!trc.propagateToDCA(pv, fitterCasc.getBz(), &dca, 5.) ||
+    if (!trc.propagateToDCA(cascPv, fitterCasc.getBz(), &dca, 5.) ||
         std::abs(dca.getY()) > mSVParams->maxDCAXYCasc || std::abs(dca.getZ()) > mSVParams->maxDCAZCasc) {
+      LOG(debug) << "Casc not compatible with PV";
+      LOG(debug) << "DCA: " << dca.getY() << " " << dca.getZ();
       mCascadesTmp[ithread].pop_back();
       continue;
     }
-    casc.setCosPA(cosPA);
-    casc.setVertexID(v0.getVertexID());
+
+    LOG(debug) << "Casc successfully added";
+    casc.setCosPA(bestCosPA);
+    casc.setVertexID(cascVtxID);
     casc.setDCA(fitterCasc.getChi2AtPCACandidate());
+
+    // clone the V0, set new cosPA and VerteXID, add it to the list of V0s
+    if (cascVtxID != v0.getVertexID()) {
+      auto v0clone = v0;
+      const auto& pv = mPVertices[cascVtxID];
+
+      float dx = v0.getX() - pv.getX(), dy = v0.getY() - pv.getY(), dz = v0.getZ() - pv.getZ(), prodXYZ = dx * pV0[0] + dy * pV0[1] + dz * pV0[2];
+      float cosPA = prodXYZ / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0);
+      v0clone.setCosPA(cosPA);
+      v0clone.setVertexID(cascVtxID);
+
+      auto pvIdx = pvMap.find(cascVtxID);
+      if (pvIdx != pvMap.end()) {
+        casc.setV0ID(pvIdx->second); // V0 already exists, add reference to the cascade
+      } else {
+        mV0sTmp[ithread].push_back(v0clone);
+        casc.setV0ID(mV0sTmp[ithread].size() - 1);      // set the new V0 index in the cascade
+        pvMap[cascVtxID] = mV0sTmp[ithread].size() - 1; // add the new V0 index to the map
+      }
+    }
   }
+
   return mCascadesTmp[ithread].size() - nCascIni;
 }
 

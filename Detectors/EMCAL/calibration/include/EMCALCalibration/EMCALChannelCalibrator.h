@@ -39,6 +39,7 @@
 
 #include <array>
 #include <boost/histogram.hpp>
+#include <fstream>
 
 using boostHisto2d = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
 
@@ -124,14 +125,16 @@ void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::finalizeSlot(
 
   std::map<std::string, std::string> md;
   if constexpr (std::is_same<DataInput, o2::emcal::EMCALChannelData>::value) {
+    LOG(debug) << "Launching the calibration.";
     auto bcm = mCalibrator->calibrateBadChannels(c->getHisto());
+    LOG(debug) << "Done with the calibraiton";
     // for the CCDB entry
     auto clName = o2::utils::MemFileHelper::getClassName(bcm);
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
     mInfoVector.emplace_back(CalibDB::getCDBPathBadChannelMap(), clName, flName, md, slot.getStartTimeMS(), o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
     mCalibObjectVector.push_back(bcm);
   } else if constexpr (std::is_same<DataInput, o2::emcal::EMCALTimeCalibData>::value) {
-    auto tcd = mCalibrator->calibrateTime(c->getHisto());
+    auto tcd = mCalibrator->calibrateTime(c->getHisto(), EMCALCalibParams::Instance().minTimeForFit, EMCALCalibParams::Instance().maxTimeForFit, EMCALCalibParams::Instance().restrictFitRangeToMax);
 
     // for the CCDB entry
     auto clName = o2::utils::MemFileHelper::getClassName(slot);
@@ -142,7 +145,9 @@ void EMCALChannelCalibrator<DataInput, DataOutput, HistContainer>::finalizeSlot(
     mCalibObjectVector.push_back(tcd);
 
     if ((EMCALCalibParams::Instance().localRootFilePath).find(".root") != std::string::npos) {
-      TFile fLocalStorage((EMCALCalibParams::Instance().localRootFilePath).c_str(), "update");
+      std::ifstream ffile(EMCALCalibParams::Instance().localRootFilePath.c_str());
+
+      TFile fLocalStorage((EMCALCalibParams::Instance().localRootFilePath).c_str(), ffile.good() == true ? "update" : "recreate");
       fLocalStorage.cd();
       TH1F* histTCparams = (TH1F*)tcd.getHistogramRepresentation(false);
       std::string nameTCHist = "TCParams_" + std::to_string(slot.getStartTimeMS());

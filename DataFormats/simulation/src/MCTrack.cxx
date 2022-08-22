@@ -14,10 +14,12 @@
 /// \author M. Al-Turany, S. Wenzel - June 2014
 
 #include "SimulationDataFormat/MCTrack.h"
-
 #include "FairLogger.h"
 
 namespace o2
 {
-
+void MCTrackHelper::printMassError(int pdg)
+{
+  LOG(warn) << "MCTrack: Cannot determine mass for pdg " << pdg << " (possibly missing in TDatabasePDG)";
+}
 }

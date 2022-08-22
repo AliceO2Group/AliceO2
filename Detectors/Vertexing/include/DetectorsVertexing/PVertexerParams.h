@@ -36,6 +36,7 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
 
   int maxVerticesPerCluster = 10; ///< max vertices per time-z cluster to look for
   int maxTrialsPerCluster = 100;  ///< max unsucessful trials for vertex search per vertex
+  long maxTimeMSPerCluster = 10000; ///< max allowed time per TZCluster processing, ms
 
   // track selection
   float dcaTolerance = 1.3; ///< consider tracks within this abs DCA to mean vertex
@@ -52,7 +53,7 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   bool useMeanVertexConstraint = true; ///< use MeanVertex as extra measured point
   float tukey = kDefTukey;             ///< Tukey parameter
   float iniScale2 = 5.;              ///< initial scale to assign
-  float minScale2 = 1.;              ///< min slaling factor^2
+  float minScale2 = 1.;              ///< min scaling factor^2
   float acceptableScale2 = 4.;       ///< if below this factor, try to refit with minScale2
   float maxScale2 = 50;              ///< max slaling factor^2
   float upscaleFactor = 9.;          ///< factor for upscaling if not candidate is found

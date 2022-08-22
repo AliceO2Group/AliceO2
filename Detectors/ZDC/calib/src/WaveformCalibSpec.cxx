@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// @file   WaveformCalibSpec.cxx
-/// @brief  ZDC reconstruction
+/// @brief  ZDC waveform calibration
 /// @author pietro.cortese@cern.ch
 
 #include <iostream>
@@ -69,19 +69,23 @@ void WaveformCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
   pc.inputs().get<o2::zdc::WaveformCalibConfig*>("wavecalibconfig");
 }
 
-void WaveformCalibSpec::run(ProcessingContext& pc)
+void WaveformCalibSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
-  updateTimeDependentParams(pc);
-  if (!mInitialized) {
-    mInitialized = true;
-    std::string loadedConfFiles = "Loaded ZDC configuration files:";
-    auto config = pc.inputs().get<o2::zdc::WaveformCalibConfig*>("wavecalibconfig");
-    loadedConfFiles += " WaveformCalibConfig";
+  if (matcher == ConcreteDataMatcher("ZDC", "WAVECALIBCONFIG", 0)) {
+    // InterCalib configuration
+    auto* config = (const o2::zdc::WaveformCalibConfig*)obj;
     if (mVerbosity > DbgZero) {
       config->print();
     }
-    mWorker.setConfig(config.get());
-    LOG(info) << loadedConfFiles;
+    mWorker.setConfig(config);
+  }
+}
+
+void WaveformCalibSpec::run(ProcessingContext& pc)
+{
+  if (!mInitialized) {
+    mInitialized = true;
+    updateTimeDependentParams(pc);
     mTimer.Stop();
     mTimer.Reset();
     mTimer.Start(false);
@@ -131,7 +135,7 @@ framework::DataProcessorSpec getWaveformCalibSpec()
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("waveformcalibdata", "ZDC", "WAVECALIBDATA", 0, Lifetime::Timeframe);
-  inputs.emplace_back("wavecalibconfig", "ZDC", "WAVECALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(fmt::format("{}", o2::zdc::CCDBPathWaveformCalibConfig.data())));
+  inputs.emplace_back("wavecalibconfig", "ZDC", "WAVECALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathWaveformCalibConfig.data()));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDCWaveformCalib"}, Lifetime::Sporadic);

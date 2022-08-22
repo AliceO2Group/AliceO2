@@ -21,4 +21,7 @@
 #pragma link C++ class o2::mch::TrackerParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::mch::TrackerParam> + ;
 
+#pragma link C++ class o2::mch::ResponseParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::mch::ResponseParam> + ;
+
 #endif

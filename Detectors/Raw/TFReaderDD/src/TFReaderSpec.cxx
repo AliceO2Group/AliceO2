@@ -21,6 +21,7 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 #include "Framework/DataProcessingHelpers.h"
+#include "Framework/RateLimiter.h"
 #include "Headers/DataHeaderHelpers.h"
 
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -115,7 +116,10 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
   if (device != mDevice) {
     throw std::runtime_error(fmt::format("FMQDevice has changed, old={} new={}", fmt::ptr(mDevice), fmt::ptr(device)));
   }
-
+  static bool initOnceDone = false;
+  if (!initOnceDone) {
+    mInput.tfRateLimit = std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit"));
+  }
   auto acknowledgeOutput = [this](fair::mq::Parts& parts) {
     int np = parts.Size();
     for (int ip = 0; ip < np; ip += 2) {
@@ -162,7 +166,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
     const auto* dataptr = (*msgMap.begin()->second.get())[0].GetData();
     const auto* hd0 = o2h::get<o2h::DataHeader*>(dataptr);
     const auto* dph = o2h::get<o2f::DataProcessingHeader*>(dataptr);
-    timingInfo.firstTFOrbit = hd0->firstTForbit;
+    timingInfo.firstTForbit = hd0->firstTForbit;
     timingInfo.creation = dph->creation;
     timingInfo.tfCounter = hd0->tfCounter;
     timingInfo.runNumber = hd0->runNumber;
@@ -209,6 +213,9 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       break;
     }
     if (mTFQueue.size()) {
+      static o2f::RateLimiter limiter;
+      limiter.check(ctx, mInput.tfRateLimit, mInput.minSHM);
+
       auto tfPtr = std::move(mTFQueue.front());
       mTFQueue.pop();
       if (!tfPtr) {
@@ -411,6 +418,9 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
     if (!rinp.sup0xccdb) {
       spec.outputs.emplace_back(o2f::OutputSpec{{"stfDistCCDB"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0xccdb});
     }
+    if (!rinp.metricChannel.empty()) {
+      spec.options.emplace_back(o2f::ConfigParamSpec{"channel-config", o2f::VariantType::String, rinp.metricChannel, {"Out-of-band channel config for TF throttling"}});
+    }
   } else {
     auto nameStart = rinp.rawChannelConfig.find("name=");
     if (nameStart == std::string::npos) {
@@ -423,6 +433,10 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
     }
     spec.options = {o2f::ConfigParamSpec{"channel-config", o2f::VariantType::String, rinp.rawChannelConfig, {"Out-of-band channel config"}}};
     rinp.rawChannelConfig = rinp.rawChannelConfig.substr(nameStart, nameEnd - nameStart);
+    if (!rinp.metricChannel.empty()) {
+      LOGP(alarm, "Cannot apply TF rate limiting when publishing to raw channel, limiting must be applied on the level of the input raw proxy");
+      LOGP(alarm, R"(To avoid reader filling shm buffer use "--shm-throw-bad-alloc 0 --shm-segment-id 2")");
+    }
   }
 
   spec.algorithm = o2f::adaptFromTask<TFReaderSpec>(rinp);

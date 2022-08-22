@@ -13,22 +13,16 @@ else
   if [[ -z "${WORKFLOW_DETECTORS_MATCHING+x}" ]]; then export WORKFLOW_DETECTORS_MATCHING="ALL"; fi # All matching / vertexing enabled in async mode
 fi
 
-if [[ $BEAMTYPE == "PbPb" ]]; then
-  [[ -z $ITS_STROBE ]] && ITS_STROBE="891"
-elif [[ $BEAMTYPE == "pp" ]]; then
-  [[ -z $ITS_STROBE ]] && ITS_STROBE="198"
-fi
-
 MID_FEEID_MAP="$FILEWORKDIR/mid-feeId_mapper.txt"
 
 ITSMFT_STROBES=""
 [[ ! -z $ITS_STROBE ]] && ITSMFT_STROBES+="ITSAlpideParam.roFrameLengthInBC=$ITS_STROBE;"
 [[ ! -z $MFT_STROBE ]] && ITSMFT_STROBES+="MFTAlpideParam.roFrameLengthInBC=$MFT_STROBE;"
 
-LIST_OF_ASYNC_RECO_STEPS="MID MCH MFT FDD FV0 ZDC"
+LIST_OF_ASYNC_RECO_STEPS="MID MCH MFT FDD FV0 ZDC HMP"
 
 DISABLE_DIGIT_ROOT_INPUT="--disable-root-input"
-DISABLE_DIGIT_CLUSTER_INPUT="--clusters-from-upstream"
+if [[ -z ${DISABLE_DIGIT_CLUSTER_INPUT+x} ]]; then DISABLE_DIGIT_CLUSTER_INPUT="--clusters-from-upstream"; fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Set active reconstruction steps (defaults added according to SYNCMODE)
@@ -47,6 +41,7 @@ else # Add default steps for async mode
   for i in $LIST_OF_ASYNC_RECO_STEPS; do
     has_detector_reco $i && add_comma_separated WORKFLOW_EXTRA_PROCESSING_STEPS ${i}_RECO
   done
+  add_comma_separated WORKFLOW_EXTRA_PROCESSING_STEPS TPC_DEDX
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -73,6 +68,7 @@ for det in `echo $LIST_OF_DETECTORS | sed "s/,/ /g"`; do
 done
 [[ -z $VERTEXING_SOURCES ]] && VERTEXING_SOURCES="$TRACK_SOURCES"
 PVERTEX_CONFIG="--vertexing-sources $VERTEXING_SOURCES --vertex-track-matching-sources $VERTEXING_SOURCES"
+[[ -z $SVERTEXING_SOURCES ]] && SVERTEXING_SOURCES=$(echo $VERTEXING_SOURCES | sed -E -e "s/(^|,)TPC(-TRD|-TOF)+//g" -e "s/,TPC,/,/") 
 
 # this option requires well calibrated timing beween different detectors, at the moment suppress it
 #has_detector_reco FT0 && PVERTEX_CONFIG+=" --validate-with-ft0"
@@ -87,7 +83,7 @@ get_N() # USAGE: get_N [processor-name] [DETECTOR_NAME] [RAW|CTF|REST] [threads,
   local NAME_PROC="MULTIPLICITY_FACTOR_PROCESS_${1//-/_}"
   local NAME_DEFAULT="N_$5"
   local MULT=${!NAME_PROC:-$((${!NAME_FACTOR} * ${!NAME_DET:-1} * ${!NAME_DEFAULT:-1}))}
-  if [[ "0$GEN_TOPO_AUTOSCALE_PROCESSES" == "01" && $4 != 0 ]]; then
+  if [[ "0$GEN_TOPO_AUTOSCALE_PROCESSES" == "01" && ($WORKFLOWMODE != "print" || $GEN_TOPO_RUN_HOME_TEST == 1) && $4 != 0 ]]; then
     echo $1:\$\(\(\($MULT*\$AUTOSCALE_PROCESS_FACTOR/100\) \< 16 ? \($MULT*\$AUTOSCALE_PROCESS_FACTOR/100\) : 16\)\)
   else
     echo $1:$MULT

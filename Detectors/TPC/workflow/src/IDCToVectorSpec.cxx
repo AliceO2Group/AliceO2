@@ -18,7 +18,8 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
-#include "fmt/format.h"
+#include <fmt/format.h>
+#include <fmt/chrono.h>
 
 #include "TFile.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -31,6 +32,7 @@
 #include "Framework/InputRecordWalker.h"
 #include "DPLUtils/RawParser.h"
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "CommonUtils/NameConf.h"
 #include "DataFormatsTPC/Constants.h"
@@ -119,110 +121,141 @@ class IDCToVectorDevice : public o2::framework::Task
     for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
       const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       tfCounter = dh->tfCounter;
+      const auto subSpecification = dh->subSpecification;
+      auto payloadSize = DataRefUtils::getPayloadSize(ref);
 
       // ---| data loop |---
       const gsl::span<const char> raw = pc.inputs().get<gsl::span<char>>(ref);
-      o2::framework::RawParser parser(raw.data(), raw.size());
-      for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-        const auto size = it.size();
-        // skip empty packages (HBF open)
-        if (size == 0) {
-          continue;
-        }
-
-        auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
-        if (!rdhPtr) {
-          throw std::runtime_error("could not get RDH from packet");
-        }
-
-        // ---| extract hardware information to do the processing |---
-        const auto feeId = (FEEIDType)RDHUtils::getFEEID(*rdhPtr);
-        const auto link = rdh_utils::getLink(feeId);
-        const uint32_t cruID = rdh_utils::getCRU(feeId);
-        const auto endPoint = rdh_utils::getEndPoint(feeId);
-        const auto detField = RDHUtils::getDetectorField(*rdhPtr);
-
-        // only select IDCs
-        // ToDo: cleanup once IDCs will be propagated not as RAWDATA, but IDC.
-        if ((detField != (decltype(detField))RawDataType::IDC) || (link != rdh_utils::IDCLinkID)) {
-          continue;
-        }
-        LOGP(info, "IDC Processing firstTForbit {:9}, tfCounter {:5}, run {:6}, feeId {:6} ({:3}/{}/{:2})", dh->firstTForbit, dh->tfCounter, dh->runNumber, feeId, cruID, endPoint, link);
-
-        if (std::find(mCRUs.begin(), mCRUs.end(), cruID) == mCRUs.end()) {
-          LOGP(error, "IDC CRU {:3} not configured in CRUs, skipping", cruID);
-          continue;
-        }
-
-        const CRU cru(cruID);
-        const int sector = cru.sector();
-        const auto& partInfo = mapper.getPartitionInfo(cru.partition());
-        const int fecLinkOffsetCRU = (partInfo.getNumberOfFECs() + 1) / 2;
-        const int fecSectorOffset = partInfo.getSectorFECOffset();
-        const GlobalPadNumber regionPadOffset = Mapper::GLOBALPADOFFSET[cru.region()];
-        const GlobalPadNumber numberPads = Mapper::PADSPERREGION[cru.region()];
-        int sampaOnFEC{}, channelOnSAMPA{};
-        auto& idcVec = mIDCvectors[cruID];
-        auto& infoVec = mIDCInfos[cruID];
-
-        assert(size == sizeof(idc::Container));
-        auto data = it.data();
-        auto& idcs = *((idc::Container*)(data));
-        const uint32_t orbit = idcs.header.heartbeatOrbit;
-        const uint32_t bc = idcs.header.heartbeatBC;
-        // LOGP(info, "IDC Procssing orbit/BC: {:9}/{:4}", orbit, bc);
-
-        auto infoIt = std::find(infoVec.begin(), infoVec.end(), orbit);
-        if (!infoVec.size()) {
-          infoVec.emplace_back(orbit, bc);
-          infoIt = infoVec.end() - 1;
-        } else if (infoIt == infoVec.end()) {
-          auto& lastInfo = infoVec.back();
-          if ((orbit - lastInfo.heartbeatOrbit) != mNOrbitsIDC) {
-            LOGP(error, "received packet with invalid jump in idc orbit ({} - {} == {} != {})", orbit, lastInfo.heartbeatOrbit, orbit - lastInfo.heartbeatOrbit, mNOrbitsIDC);
-          }
-          infoVec.emplace_back(orbit, bc);
-          infoIt = infoVec.end() - 1;
-        }
-
-        // check if end poit was already processed
-        auto& lastInfo = *infoIt;
-        if (lastInfo.wasEPseen(endPoint)) {
-          LOGP(info, "Already received another data packet for CRU {}, ep {}, orbit {}, bc {}", cruID, endPoint, orbit, bc);
-          continue;
-        }
-
-        lastInfo.setEPseen(endPoint);
-        // idc value offset in present time frame
-        const size_t idcOffset = std::distance(infoVec.begin(), infoIt);
-
-        // TODO: for debugging, remove later
-        // LOGP(info, "processing IDCs for CRU {}, ep {}, feeId {:6} ({:3}/{}/{:2}), detField: {}, orbit {}, bc {}, idcOffset {}, idcVec size {}, epSeen {:02b}", cruID, endPoint, feeId, cruID, endPoint, link, detField, orbit, bc, idcOffset, idcVec.size(), lastInfo.epSeen);
-
-        const float norm = 1. / float(mTimeStampsPerIntegrationInterval);
-        for (uint32_t iLink = 0; iLink < idc::Links; ++iLink) {
-          if (!idcs.hasLink(iLink)) {
+      try {
+        o2::framework::RawParser parser(raw.data(), raw.size());
+        for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+          const auto size = it.size();
+          // skip empty packages (HBF open)
+          if (size == 0) {
             continue;
           }
-          const int fecInSector = iLink + endPoint * fecLinkOffsetCRU + fecSectorOffset;
 
-          for (uint32_t iChannel = 0; iChannel < idc::Channels; ++iChannel) {
-            auto val = idcs.getChannelValueFloat(iLink, iChannel);
-            Mapper::getSampaAndChannelOnFEC(cruID, iChannel, sampaOnFEC, channelOnSAMPA);
-            const GlobalPadNumber padInSector = mapper.globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
-            if (pedestals) {
-              val -= pedestals->getValue(sector, padInSector) * mTimeStampsPerIntegrationInterval;
-              val *= norm;
+          auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
+          if (!rdhPtr) {
+            throw std::runtime_error("could not get RDH from packet");
+          }
+
+          // ---| extract hardware information to do the processing |---
+          const auto feeId = (FEEIDType)RDHUtils::getFEEID(*rdhPtr);
+          const auto link = rdh_utils::getLink(feeId);
+          const uint32_t cruID = rdh_utils::getCRU(feeId);
+          const auto endPoint = rdh_utils::getEndPoint(feeId);
+          const auto detField = RDHUtils::getDetectorField(*rdhPtr);
+
+          // only select IDCs
+          // ToDo: cleanup once IDCs will be propagated not as RAWDATA, but IDC.
+          if ((detField != (decltype(detField))RawDataType::IDC) || (link != rdh_utils::IDCLinkID)) {
+            continue;
+          }
+          LOGP(info, "IDC Processing firstTForbit {:9}, tfCounter {:5}, run {:6}, feeId {:6} ({:3}/{}/{:2})", dh->firstTForbit, dh->tfCounter, dh->runNumber, feeId, cruID, endPoint, link);
+
+          if (std::find(mCRUs.begin(), mCRUs.end(), cruID) == mCRUs.end()) {
+            LOGP(error, "IDC CRU {:3} not configured in CRUs, skipping", cruID);
+            continue;
+          }
+
+          const CRU cru(cruID);
+          const int sector = cru.sector();
+          const auto& partInfo = mapper.getPartitionInfo(cru.partition());
+          const int fecLinkOffsetCRU = (partInfo.getNumberOfFECs() + 1) / 2;
+          const int fecSectorOffset = partInfo.getSectorFECOffset();
+          const GlobalPadNumber regionPadOffset = Mapper::GLOBALPADOFFSET[cru.region()];
+          const GlobalPadNumber numberPads = Mapper::PADSPERREGION[cru.region()];
+          int sampaOnFEC{}, channelOnSAMPA{};
+          auto& idcVec = mIDCvectors[cruID];
+          auto& infoVec = mIDCInfos[cruID];
+
+          assert(size == sizeof(idc::Container));
+          auto data = it.data();
+          auto& idcs = *((idc::Container*)(data));
+          const uint32_t orbit = idcs.header.heartbeatOrbit;
+          const uint32_t bc = idcs.header.heartbeatBC;
+          // LOGP(info, "IDC Procssing orbit/BC: {:9}/{:4}", orbit, bc);
+
+          auto infoIt = std::find(infoVec.begin(), infoVec.end(), orbit);
+          if (!infoVec.size()) {
+            infoVec.emplace_back(orbit, bc);
+            infoIt = infoVec.end() - 1;
+          } else if (infoIt == infoVec.end()) {
+            auto& lastInfo = infoVec.back();
+            if ((orbit - lastInfo.heartbeatOrbit) != mNOrbitsIDC) {
+              LOGP(error, "received packet with invalid jump in idc orbit ({} - {} == {} != {})", orbit, lastInfo.heartbeatOrbit, orbit - lastInfo.heartbeatOrbit, mNOrbitsIDC);
             }
-            const GlobalPadNumber padInRegion = padInSector - regionPadOffset;
-            const GlobalPadNumber vectorPosition = padInRegion + idcOffset * numberPads;
-            // TODO: for debugging, remove later
-            // auto rawVal = idcs.getChannelValue(iLink, iChannel);
-            // auto rawValF = idcs.getChannelValueFloat(iLink, iChannel);
-            // LOGP(info, "filling channel {}, link {}, fecLinkOffsetCRU {:2}, fecSectorOffset {:3}, fecInSector {:3}, idcVec[{} ({})] = {} ({} / {})", iChannel, iLink, fecLinkOffsetCRU, fecSectorOffset, fecInSector, vectorPosition, padInRegion, val, rawVal, rawValF);
-            idcVec[vectorPosition] = val;
+            infoVec.emplace_back(orbit, bc);
+            infoIt = infoVec.end() - 1;
+          }
+
+          // check if end poit was already processed
+          auto& lastInfo = *infoIt;
+          if (lastInfo.wasEPseen(endPoint)) {
+            LOGP(info, "Already received another data packet for CRU {}, ep {}, orbit {}, bc {}", cruID, endPoint, orbit, bc);
+            continue;
+          }
+
+          lastInfo.setEPseen(endPoint);
+          // idc value offset in present time frame
+          const size_t idcOffset = std::distance(infoVec.begin(), infoIt);
+
+          // TODO: for debugging, remove later
+          // LOGP(info, "processing IDCs for CRU {}, ep {}, feeId {:6} ({:3}/{}/{:2}), detField: {}, orbit {}, bc {}, idcOffset {}, idcVec size {}, epSeen {:02b}", cruID, endPoint, feeId, cruID, endPoint, link, detField, orbit, bc, idcOffset, idcVec.size(), lastInfo.epSeen);
+
+          const float norm = 1. / float(mTimeStampsPerIntegrationInterval);
+          for (uint32_t iLink = 0; iLink < idc::Links; ++iLink) {
+            if (!idcs.hasLink(iLink)) {
+              continue;
+            }
+            const int fecInSector = iLink + endPoint * fecLinkOffsetCRU + fecSectorOffset;
+
+            for (uint32_t iChannel = 0; iChannel < idc::Channels; ++iChannel) {
+              auto val = idcs.getChannelValueFloat(iLink, iChannel);
+              Mapper::getSampaAndChannelOnFEC(cruID, iChannel, sampaOnFEC, channelOnSAMPA);
+              const GlobalPadNumber padInSector = mapper.globalPadNumber(fecInSector, sampaOnFEC, channelOnSAMPA);
+              if (pedestals) {
+                val -= pedestals->getValue(sector, padInSector) * mTimeStampsPerIntegrationInterval;
+                val *= norm;
+              }
+              const GlobalPadNumber padInRegion = padInSector - regionPadOffset;
+              const GlobalPadNumber vectorPosition = padInRegion + idcOffset * numberPads;
+              // TODO: for debugging, remove later
+              // auto rawVal = idcs.getChannelValue(iLink, iChannel);
+              // auto rawValF = idcs.getChannelValueFloat(iLink, iChannel);
+              // LOGP(info, "filling channel {}, link {}, fecLinkOffsetCRU {:2}, fecSectorOffset {:3}, fecInSector {:3}, idcVec[{} ({})] = {} ({} / {})", iChannel, iLink, fecLinkOffsetCRU, fecSectorOffset, fecInSector, vectorPosition, padInRegion, val, rawVal, rawValF);
+              idcVec[vectorPosition] = val;
+            }
           }
         }
+      } catch (const std::exception& e) {
+        // error message throtteling
+        using namespace std::literals::chrono_literals;
+        static std::unordered_map<uint32_t, size_t> nErrorPerSubspec;
+        static std::chrono::time_point<std::chrono::steady_clock> lastReport = std::chrono::steady_clock::now();
+        const auto now = std::chrono::steady_clock::now();
+        static size_t reportedErrors = 0;
+        const size_t MAXERRORS = 10;
+        const auto sleepTime = 10min;
+        ++nErrorPerSubspec[subSpecification];
+
+        if ((now - lastReport) < sleepTime) {
+          if (reportedErrors < MAXERRORS) {
+            ++reportedErrors;
+            std::string sleepInfo;
+            if (reportedErrors == MAXERRORS) {
+              sleepInfo = fmt::format(", maximum error count ({}) reached, not reporting for the next {}", MAXERRORS, sleepTime);
+            }
+            LOGP(alarm, "EXCEPTIION in processRawData: {} -> skipping part:{}/{} of spec:{}/{}/{}, size:{}, error count for subspec: {}{}", e.what(), dh->splitPayloadIndex, dh->splitPayloadParts,
+                 dh->dataOrigin, dh->dataDescription, subSpecification, payloadSize, nErrorPerSubspec.at(subSpecification), sleepInfo);
+            lastReport = now;
+          }
+        } else {
+          lastReport = now;
+          reportedErrors = 0;
+        }
+        continue;
       }
     }
 
@@ -232,7 +265,8 @@ class IDCToVectorDevice : public o2::framework::Task
     snapshotIDCs(pc.outputs());
   }
 
-  void endOfStream(o2::framework::EndOfStreamContext& ec) final
+  void
+    endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     LOGP(info, "endOfStream");
     ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);

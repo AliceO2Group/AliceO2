@@ -65,7 +65,7 @@ class FlatHisto2D
   FlatHisto2D(uint32_t nbx, T xmin, T xmax, uint32_t nby, T ymin, T ymax);
   FlatHisto2D(const gsl::span<const T> ext) { adoptExternal(ext); }
   FlatHisto2D(const FlatHisto2D& src);
-
+  FlatHisto2D& operator=(const FlatHisto2D& rhs);
   void adoptExternal(const gsl::span<const T> ext);
   void init()
   {
@@ -73,7 +73,7 @@ class FlatHisto2D
     assert(mContainer.size() > NServiceSlots);
     init(gsl::span<const T>(mContainer.data(), mContainer.size()));
   }
-
+  void init(uint32_t nbx, T xmin, T xmax, uint32_t nby, T ymin, T ymax);
   uint32_t getNBinsX() const { return mNBinsX; }
   uint32_t getNBinsY() const { return mNBinsY; }
   uint32_t getNBins() const { return getNBinsX() * getNBinsY(); }
@@ -228,7 +228,7 @@ class FlatHisto2D
     return binX < getNBinsX() ? gsl::span<const T>(&mDataPtr[offs], getNBinsY()) : gsl::span<const T>();
   }
 
-  std::unique_ptr<TH2F> createTH2F(const std::string& name = "histo2d");
+  std::unique_ptr<TH2F> createTH2F(const std::string& name = "histo2d") const;
 
   std::unique_ptr<TH1F> createSliceXTH1F(uint32_t binY, const std::string& name = "histo2dsliceX") const;
   std::unique_ptr<TH1F> createSliceYTH1F(uint32_t binX, const std::string& name = "histo2dsliceY") const;

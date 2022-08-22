@@ -18,9 +18,11 @@
 #include "Framework/DispatchPolicy.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
+#include "Framework/CustomWorkflowTerminationHook.h"
 #include "GPUWorkflow/GPUWorkflowSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "Framework/CallbacksPolicy.h"
 #include "TPCBase/Sector.h"
 #include "Algorithm/RangeTokenizer.h"
@@ -36,6 +38,7 @@ using namespace o2::gpu;
 using CompletionPolicyData = std::vector<InputSpec>;
 CompletionPolicyData gPolicyData;
 static constexpr unsigned long gTpcSectorMask = 0xFFFFFFFFF;
+std::shared_ptr<GPURecoWorkflowSpec> gTask;
 
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
@@ -67,6 +70,18 @@ void customize(std::vector<DispatchPolicy>& policies)
 void customize(std::vector<CompletionPolicy>& policies)
 {
   policies.push_back(o2::tpc::TPCSectorCompletionPolicy("gpu-reconstruction.*", o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll, &gPolicyData, &gTpcSectorMask)());
+}
+
+void customize(o2::framework::OnWorkflowTerminationHook& hook)
+{
+  fprintf(stderr, "Inserting termination hook\n");
+  hook = [](const char* idstring) {
+    fprintf(stderr, "Termination callback\n");
+    if (gTask) {
+      fprintf(stderr, "Deinit\n");
+      gTask->deinitialize();
+    }
+  };
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -147,10 +162,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   cfg.readTRDtracklets = isEnabled(inputTypes, ioType::TRDTracklets);
   cfg.runTRDTracking = isEnabled(outputTypes, ioType::TRDTracks);
 
-  std::shared_ptr<GPURecoWorkflowSpec> task = std::make_shared<GPURecoWorkflowSpec>(&gPolicyData, cfg, tpcSectors, gTpcSectorMask);
+  Inputs ggInputs;
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true, o2::base::GRPGeomRequest::Aligned, ggInputs, true);
+
+  auto task = std::make_shared<GPURecoWorkflowSpec>(&gPolicyData, cfg, tpcSectors, gTpcSectorMask, ggRequest);
+  Inputs taskInputs = task->inputs();
+  std::move(ggInputs.begin(), ggInputs.end(), std::back_inserter(taskInputs));
+  gTask = task;
+
   specs.emplace_back(DataProcessorSpec{
     "gpu-reconstruction",
-    task->inputs(),
+    taskInputs,
     task->outputs(),
     AlgorithmSpec{adoptTask<GPURecoWorkflowSpec>(task)}});
 
@@ -160,7 +182,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     o2::globaltracking::InputHelper::addInputSpecs(cfgc, specs, srcCl, srcTrk, srcTrk, doMC);
   }
 
-  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
 
   return specs;

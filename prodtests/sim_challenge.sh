@@ -111,6 +111,10 @@ fi
 
 
 if [ "$dosim" == "1" ]; then
+  #---- GRP creation ------
+  echo "Creating GRPs ... and publishing in local CCDB overwrite"
+  taskwrapper grp.log o2-grp-simgrp-tool createGRPs --run ${runNumber} --publishto GRP -o mcGRP
+
   #---------------------------------------------------
   echo "Running simulation for $nev $collSyst events with $gener generator and engine $engine and run number $runNumber"
   taskwrapper sim.log o2-sim -n"$nev" --configKeyValues "Diamond.width[2]=6." -g "$gener" -e "$engine" $simWorker --run ${runNumber}
@@ -217,16 +221,6 @@ if [ "$doreco" == "1" ]; then
   taskwrapper tofmatch_qa.log root -b -q -l $O2_ROOT/share/macro/checkTOFMatching.C
   echo "Return status of TOF matching qa: $?"
 
-  echo "Running primary vertex finding flow"
-  #needs results of TPC-ITS matching and FIT workflows
-  taskwrapper pvfinder.log o2-primary-vertexing-workflow $gloOpt
-  echo "Return status of primary vertexing: $?"
-
-  echo "Running secondary vertex finding flow"
-  #needs results of all trackers + P.Vertexer
-  taskwrapper svfinder.log o2-secondary-vertexing-workflow $gloOpt
-  echo "Return status of secondary vertexing: $?"
-
   echo "Running ZDC reconstruction"
   #need ZDC digits
   taskwrapper zdcreco.log o2-zdc-digits-reco $gloOpt
@@ -246,6 +240,16 @@ if [ "$doreco" == "1" ]; then
   #need CPV digits
   taskwrapper cpvreco.log o2-cpv-reco-workflow $gloOpt
   echo "Return status of CPV reconstruction: $?"
+
+  echo "Running primary vertex finding flow"
+  #needs results of TPC-ITS matching and FIT workflows
+  taskwrapper pvfinder.log o2-primary-vertexing-workflow $gloOpt --condition-remap file://./GRP=GLO/Config/GRPECS
+  echo "Return status of primary vertexing: $?"
+
+  echo "Running secondary vertex finding flow"
+  #needs results of all trackers + P.Vertexer
+  taskwrapper svfinder.log o2-secondary-vertexing-workflow $gloOpt
+  echo "Return status of secondary vertexing: $?"
 
   echo "Producing AOD"
   taskwrapper aod.log o2-aod-producer-workflow $gloOpt --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1 --run-number 300000

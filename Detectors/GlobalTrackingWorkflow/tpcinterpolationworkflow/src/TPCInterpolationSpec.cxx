@@ -41,12 +41,40 @@ namespace tpc
 void TPCInterpolationDPL::init(InitContext& ic)
 {
   //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP();
   mTimer.Stop();
   mTimer.Reset();
-  mInterpolation.init();
-  mResidualProcessor.init(false, o2::base::Propagator::Instance()->getNominalBz()); // initialize but skip the binning which is needed only later
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+}
+
+void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
+{
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+  static bool initOnceDone = false;
+  if (!initOnceDone) { // this params need to be queried only once
+    initOnceDone = true;
+    // other init-once stuff
+
+    mInterpolation.init();
+    mResidualProcessor.init(false, o2::base::Propagator::Instance()->getNominalBz()); // initialize but skip the binning which is needed only later
+  }
+  // we may have other params which need to be queried regularly
+  if (mTPCVDriftHelper.isUpdated()) {
+    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
+         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    mInterpolation.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
+    mTPCVDriftHelper.acknowledgeUpdate();
+  }
+}
+
+void TPCInterpolationDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
+  if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
+    return;
+  }
 }
 
 void TPCInterpolationDPL::run(ProcessingContext& pc)
@@ -55,6 +83,7 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
   mTimer.Start(false);
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
+  updateTimeDependentParams(pc);
 
   // load the input tracks
   std::vector<o2::globaltracking::RecoContainer::GlobalIDSet> gidTables;
@@ -130,7 +159,13 @@ void TPCInterpolationDPL::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"GLO", "TPCINT_RES", 0, Lifetime::Timeframe}, mInterpolation.getClusterResiduals());
   }
   pc.outputs().snapshot(Output{"GLO", "UNBINNEDRES", 0, Lifetime::Timeframe}, mResidualProcessor.getUnbinnedResiduals());
-  mTimer.Stop();
+  if (mSendTrackData) {
+    pc.outputs().snapshot(Output{"GLO", "TRKDATA", 0, Lifetime::Timeframe}, mResidualProcessor.getTrackDataOut());
+  }
+
+  mInterpolation.reset();
+  mResidualProcessor.resetUnbinnedResiduals();
+  mResidualProcessor.resetTrackData();
 }
 
 void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
@@ -139,7 +174,7 @@ void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool processITSTPConly, bool writeResiduals)
+DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool processITSTPConly, bool writeResiduals, bool sendTrackData)
 {
   auto dataRequest = std::make_shared<DataRequest>();
   std::vector<OutputSpec> outputs;
@@ -151,17 +186,27 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestClusters(src, useMC);
 
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
+                                                              true,                              // GRPECS=true
+                                                              false,                             // GRPLHCIF
+                                                              true,                              // GRPMagField
+                                                              true,                              // askMatLUT
+                                                              o2::base::GRPGeomRequest::Aligned, // geometry
+                                                              dataRequest->inputs,
+                                                              true);
+  o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
   if (writeResiduals) {
     outputs.emplace_back("GLO", "TPCINT_TRK", 0, Lifetime::Timeframe);
     outputs.emplace_back("GLO", "TPCINT_RES", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back("GLO", "UNBINNEDRES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "TRKDATA", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "tpc-track-interpolation",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, useMC, processITSTPConly, writeResiduals)},
+    AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, ggRequest, useMC, processITSTPConly, writeResiduals, sendTrackData)},
     Options{}};
 }
 
