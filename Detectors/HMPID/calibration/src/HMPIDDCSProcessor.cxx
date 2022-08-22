@@ -17,7 +17,7 @@ namespace o2::hmpid
 
 // initialize map of DPIDs, function is called once in the
 // HMPIDDCSDataProcessorSpec::init() function
-void HMPIDDCSProcessor::init(const std::vector<DPID> pids)
+void HMPIDDCSProcessor::init(const std::vector<DPID>& pids)
 {
   for (const auto& it : pids) {
     mPids[it] = false;
@@ -49,10 +49,10 @@ void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
     const auto& el = mPids.find(dp.id);
 
     // check if datapoint is within the defined map of DPs for HMPID
-    // if (el == mPids.end()) {
-    //  LOG(info) << "DP " << dp.id << "Not found, will not be processed";
-    //  continue;
-    //}
+    if (el == mPids.end()) {
+      LOG(info) << "DP " << dp.id << "Not found, will not be processed";
+      continue;
+    }
     // The aliasstring has been processed:
     mPids[dp.id] = true;
 
@@ -74,7 +74,7 @@ void HMPIDDCSProcessor::process(const gsl::span<const DPCOM> dps)
 
 // if the string of the dp contains the HMPID-specifier "HMP_",
 // but not the Transparency-specifier
-void HMPIDDCSProcessor::processHMPID(DPCOM dp)
+void HMPIDDCSProcessor::processHMPID(const DPCOM& dp)
 {
 
   const std::string alias(dp.id.get_alias());
@@ -102,7 +102,7 @@ void HMPIDDCSProcessor::processHMPID(DPCOM dp)
 
 // if the string of the dp contains the Transparency-specifier
 // "HMP_TRANPLANT_MEASURE_"
-void HMPIDDCSProcessor::processTRANS(DPCOM dp)
+void HMPIDDCSProcessor::processTRANS(const DPCOM& dp)
 {
   const auto& dpid = dp.id;
   const std::string alias(dpid.get_alias());
@@ -381,7 +381,7 @@ double HMPIDDCSProcessor::calculateWaveLength(int i)
     return defaultEMean(); // will break this entry in foor loop
   }
 
-  DPCOM dp = (waveLenVec[i]).at(0);
+  DPCOM dp = (waveLenVec[i])[0];
 
   // check if datatype is as expected
   if (dp.id.get_type() == DeliveryType::DPVAL_DOUBLE) {
@@ -408,7 +408,7 @@ double HMPIDDCSProcessor::calculateWaveLength(int i)
   return photEn;
 }
 
-double HMPIDDCSProcessor::dpVector2Double(std::vector<DPCOM> dpVec,
+double HMPIDDCSProcessor::dpVector2Double(const std::vector<DPCOM>& dpVec,
                                           const char* dpString, int i)
 {
 
@@ -421,7 +421,7 @@ double HMPIDDCSProcessor::dpVector2Double(std::vector<DPCOM> dpVec,
     return defaultEMean();
   }
 
-  DPCOM dp = (dpVec).at(0);
+  DPCOM dp = dpVec[0];
 
   if (dp.id.get_type() == DeliveryType::DPVAL_DOUBLE) {
     dpVal = o2::dcs::getValue<double>(dp);
@@ -489,7 +489,7 @@ bool HMPIDDCSProcessor::evalCorrFactor(double dRefArgon, double dCellArgon,
 
 // ==== Functions that are called after run is finished ========================
 
-// will return false if there is no entry in Environment-pressure
+// will return nullptr if there is no entry in Environment-pressure
 // DPCOM-vector dpVecEnvPress
 std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeEnvPressure()
 {
@@ -565,7 +565,7 @@ std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeChPressure(int iCh)
   return pCh;
 }
 
-// returns false if the element in array of DPCOM-vector has no entries
+// process Tempout
 void HMPIDDCSProcessor::finalizeTempOut(int iCh, int iRad)
 {
   if (dpVecTempOut[3 * iCh + iRad].size() != 0) {
@@ -606,7 +606,7 @@ void HMPIDDCSProcessor::finalizeTempOut(int iCh, int iRad)
   }
 }
 
-// returns false if the element in array of DPCOM-vector has no entries
+// process Tempin
 void HMPIDDCSProcessor::finalizeTempIn(int iCh, int iRad)
 {
 
@@ -648,7 +648,7 @@ void HMPIDDCSProcessor::finalizeTempIn(int iCh, int iRad)
   }
 }
 
-// returns false if the element in array of DPCOM-vector has no entries
+// returns nullptr if the element in array of DPCOM-vector has no entries
 std::unique_ptr<TF1> HMPIDDCSProcessor::finalizeHv(int iCh, int iSec)
 {
   std::unique_ptr<TF1> pHvTF;
@@ -758,16 +758,14 @@ void HMPIDDCSProcessor::finalize()
 
   std::map<std::string, std::string> md;
   md["responsible"] = "CHANGE RESPONSIBLE";
-
+  //    o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP
   // Refractive index (T_out, T_in, mean photon energy);
   o2::calibration::Utils::prepareCCDBobjectInfo(
-    arNmean, mccdbRefInfo, "HMP/Calib/RefIndex", md, mStartValidity,
-    o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+    arNmean, mccdbRefInfo, "HMP/Calib/RefIndex", md, mStartValidity, mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY);
   LOG(info) << "mStartValidity = " << mStartValidity;
   // charge threshold;
   o2::calibration::Utils::prepareCCDBobjectInfo(
-    arQthre, mccdbChargeInfo, "HMP/Calib/ChargeCut", md, mStartValidity,
-    o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+    arQthre, mccdbChargeInfo, "HMP/Calib/ChargeCut", md, mStartValidity, mStartValidity + 3 * o2::ccdb::CcdbObjectInfo::DAY);
 }
 
 uint64_t HMPIDDCSProcessor::processFlags(const uint64_t flags,
@@ -790,11 +788,11 @@ uint64_t HMPIDDCSProcessor::processFlags(const uint64_t flags,
 
 // extract string from DPID, convert char at specified element in string
 // to int
-int HMPIDDCSProcessor::aliasStringToInt(DPID dpid, std::size_t startIndex)
+int HMPIDDCSProcessor::aliasStringToInt(const DPID& dpid, std::size_t startIndex)
 {
 
   const std::string inputString(dpid.get_alias());
-  char stringPos = inputString.at(startIndex);
+  char stringPos = inputString[startIndex];
   int charInt = ((int)stringPos) - ((int)'0');
   if (charInt < 10 && charInt >= 0) {
     return charInt;

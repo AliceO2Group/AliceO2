@@ -54,6 +54,7 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
  public:
   void init(o2::framework::InitContext& ic) final
   {
+
     mCheckRunStartStop = ic.options().get<bool>("follow-hmpid-run");
     LOGP(info, "mCheckRunStartStop set {} ", mCheckRunStartStop);
     std::vector<DPID> vect;
@@ -101,14 +102,26 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
     }
     mProcessor->init(vect);
     mTimer = HighResClock::now();
-
-    auto timeNow = HighResClock::now();
   }
 
   //==========================================================================
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+
+    auto timeNow = HighResClock::now();
+    long dataTime = (long)(pc.services().get<o2::framework::TimingInfo>().creation);
+    if (dataTime == 0xffffffffffffffff) {
+      dataTime = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
+    }
+
+    /* ef : only for local simulation to verify fits:
+    // set startValidity if not set already, and mCheckRunStartStop (--follow-hmpid-run) is not used
+    if (mProcessor->getStartValidity() == o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP && mCheckRunStartStop == false)
+    {
+      mProcessor->setStartValidity(dataTime);
+    }
+    */
 
     if (mCheckRunStartStop) {
       const auto* grp = mRunChecker.check(); // check if there is a run with HMP
@@ -121,6 +134,10 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
         grp->print();
         mProcessor->setRunNumberFromGRP(
           mRunChecker.getFollowedRun()); // ef: just the same as for emcal?
+                                         // ef: set startValidity here if run-specific object
+        if (mProcessor->getStartValidity() == o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP) {
+          mProcessor->setStartValidity(dataTime);
+        }
       } else if (mRunChecker.getRunStatus() ==
                  RunStatus::ONGOING) { // run which was already seen is still
                                        // ongoing
@@ -138,49 +155,45 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
     mProcessor->process(dps);
 
-    //
-    // auto startValidity =
-    // DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
-
-    // mProcessor->setStartValidity(startValidity); // works
-
-    // ef: something like this? : (check if run has started)
-    if (mCheckRunStartStop &&
-        (mRunChecker.getRunStatus() == RunStatus::START)) {
-      // ef: has to add something in case mCheckRunStartStop is false?
-      // also, mCheckRunStartStop never runs in simulation
-
-      auto startValidity = DataRefUtils::getHeader<DataProcessingHeader*>(
-                             pc.inputs().getFirstValid(true))
-                             ->creation;
-      mProcessor->setStartValidity(startValidity);
-    }
-
-    // ef: something like this? : (send objects when run is ending)
+    // ef: runspecific object : send CCDB
     if (mCheckRunStartStop && (mRunChecker.getRunStatus() == RunStatus::STOP)) {
       mProcessor->finalize();
-      //  ef : prepareCCDBObjectInfo is already called in finalize()-function
+
+      mProcessor->setEndValidityRunSpecific(dataTime);
 
       sendChargeThresOutput(pc.outputs());
       sendRefIndexOutput(pc.outputs());
-      // ef: need to also make a function which clears all the vectors? after
-      // the
-      //     CCDB-objects are sent?
       mProcessor->clearCCDBObjects(); // clears the vectors
-
-      // ef : should the unordered map of DPs also be cleared?
-      // (should init() in this class then be called?)
+      mProcessor->clearDPsInfo();     // clear map of DPIDs
+      mProcessor->resetStartValidity();
+      mProcessor->resetEndValidity();
     }
   }
 
   //==========================================================================
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
-  {
+  { /*
+    ef : only for local testing of Fits etc.:
+
+    auto timeNow = HighResClock::now();
+    long dataTime = (long)(ec.services().get<o2::framework::TimingInfo>().creation);
+    if (dataTime == 0xffffffffffffffff)
+    {
+      dataTime =  std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
+    }
+
+    mProcessor->setEndValidityRunIndependent(dataTime);
     mProcessor->finalize();
 
     sendChargeThresOutput(ec.outputs());
     sendRefIndexOutput(ec.outputs());
+
+    mProcessor->clearCCDBObjects(); // clears the vectors
+    mProcessor->clearDPsInfo();     // clear map of DPIDs
+    mProcessor->resetStartValidity();
+    mProcessor->resetEndValidity();
+    */
   }
 
   //==========================================================================
@@ -236,8 +249,7 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
     "HMP_TRANPLANT_MEASURE_[0..29]_ARGONREFERENCE",
     "HMP_TRANPLANT_MEASURE_[0..29]_ARGONCELL",
     "HMP_TRANPLANT_MEASURE_[0..29]_C6F14REFERENCE",
-    "HMP_TRANPLANT_MEASURE_[0..29]_C6F14CELL"
-    "HMP_RUNNUMBER"};
+    "HMP_TRANPLANT_MEASURE_[0..29]_C6F14CELL"};
 
   bool isRunStarted = false;
   bool mCheckRunStartStop = false;
@@ -245,7 +257,6 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
 
   std::unique_ptr<HMPIDDCSProcessor> mProcessor;
   HighResClock::time_point mTimer;
-  int64_t mDPsUpdateInterval;
 
 }; // end class HMPIDDCSDataProcessor
 } // namespace hmpid

@@ -68,13 +68,12 @@ class HMPIDDCSProcessor
 
   // process span of DPs:
   // process DPs, fetch IDs and call processIR or processHMPID
-  void init(const std::vector<DPID> pids);
-  std::unordered_map<DPID, bool> mPids;
+  void init(const std::vector<DPID>& pids);
 
   void process(const gsl::span<const DPCOM> dps);
 
-  void processTRANS(DPCOM dp);
-  void processHMPID(DPCOM dp);
+  void processTRANS(const DPCOM& dp);
+  void processHMPID(const DPCOM& dp);
 
   // Fill entries of DPs==================================================
   void fillChPressure(
@@ -91,7 +90,7 @@ class HMPIDDCSProcessor
 
   // =====finalize DPs, after run is finished
   // ==================================================================================
-  // functions return true if there is an entry in the array of DPCOM-vectors at
+  // functions return nullptr if there is no entry in the array of DPCOM-vectors at
   // the given element
   std::unique_ptr<TF1> finalizeEnvPressure();
   std::unique_ptr<TF1> finalizeChPressure(int iCh);
@@ -113,7 +112,7 @@ class HMPIDDCSProcessor
 
   bool evalCorrFactor(double dRefArgon, double dCellArgon, double dRefFreon,
                       double dCellFreon, double photEn, int i);
-  double dpVector2Double(std::vector<DPCOM> dpVec, const char* dpString, int i);
+  double dpVector2Double(const std::vector<DPCOM>& dpVec, const char* dpString, int i);
   double calculateWaveLength(int i);
 
   //===== help-functions
@@ -124,14 +123,36 @@ class HMPIDDCSProcessor
     LOGP(info, "mStartValidity {}", mStartValidity);
   }
 
-  // void setStart(long t) { mStart = t;
-  //  LOGP(info, "mStart{}", mStart); }
+  void resetStartValidity()
+  {
+    mStartValidity = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
+  }
+
+  // ef : runindenpendent, only used for verifying fits
+  void setEndValidityRunIndependent(long t)
+  {
+    mEndValidity = t + 3 * o2::ccdb::CcdbObjectInfo::DAY; // ef : add some time for validity
+    LOGP(info, "mEndValidity {}", mStartValidity);        // after startValidity
+  }
+
+  // ef : set end validity when Runstatus == STOP
+  void setEndValidityRunSpecific(long t)
+  {
+    mEndValidity = t;
+    LOGP(info, "mEndValidity {}", mStartValidity);
+  }
+
+  void resetEndValidity()
+  {
+    mEndValidity = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
+  }
+
   long getStartValidity() { return mStartValidity; }
 
   void useVerboseMode() { mVerbose = true; }
 
   // convert char in aliasString to int
-  int aliasStringToInt(DPID dpid, std::size_t startIndex);
+  int aliasStringToInt(const DPID& dpid, std::size_t startIndex);
   int subStringToInt(std::string istr, std::size_t si);
   uint64_t processFlags(const uint64_t flags, const char* pid);
 
@@ -157,7 +178,7 @@ class HMPIDDCSProcessor
 
   /// / return timestamp of first fetched datapoint for a given ID (Tin/Tout,
   /// Environment pressure, HV, chamber pressure)
-  TimeStampType getMinTime(const std::vector<DPCOM> dps)
+  TimeStampType getMinTime(const std::vector<DPCOM>& dps)
   {
     TimeStampType firstTime = std::numeric_limits<uint64_t>::max();
     for (const auto& dp : dps) {
@@ -168,7 +189,7 @@ class HMPIDDCSProcessor
   }
   // return timestamp of last fetched datapoint for a given ID (Tin/Tout,
   // Environment pressure, HV, chamber pressure)
-  TimeStampType getMaxTime(const std::vector<DPCOM> dps)
+  TimeStampType getMaxTime(const std::vector<DPCOM>& dps)
   {
     TimeStampType lastTime = 0;
     for (const auto& dp : dps) {
@@ -181,8 +202,8 @@ class HMPIDDCSProcessor
     return lastTime;
   }
 
-  void checkEntries(const std::vector<TF1> arQthresh,
-                    const std::vector<TF1> arrayNmean)
+  void checkEntries(const std::vector<TF1>& arQthresh,
+                    const std::vector<TF1>& arrayNmean)
   {
     int cnt = 0;
     bool arQthreFull = true;
@@ -194,7 +215,7 @@ class HMPIDDCSProcessor
 
     for (int iCh = 0; iCh < 7; ++iCh) {
       for (int iSec = 0; iSec < 6; ++iSec) {
-        auto tf = arQthresh.at(6 * iCh + iSec);
+        auto tf = arQthresh[6 * iCh + iSec];
         const char* strCCDB = tf.GetName();
         const char* strExpected = Form("HMP_QthreC%iS%i", iCh, iSec);
 
@@ -211,9 +232,9 @@ class HMPIDDCSProcessor
     for (int iCh = 0; iCh < 7; ++iCh) {
       for (int iRad = 0; iRad < 3; iRad += 2) {
 
-        const char* strCcdbin = (arrayNmean.at(6 * iCh + 2 * iRad)).GetName();
+        const char* strCcdbin = (arrayNmean[6 * iCh + 2 * iRad]).GetName();
         const char* strCcdbinOut =
-          (arrayNmean.at(6 * iCh + 2 * iRad + 1)).GetName();
+          (arrayNmean[6 * iCh + 2 * iRad + 1]).GetName();
 
         const char* strExpectedIn = Form("Tin%i%i", iCh, iRad);
         const char* strExpectedOut = Form("Tout%i%i", iCh, iRad);
@@ -229,7 +250,7 @@ class HMPIDDCSProcessor
       }
     }
 
-    if (strcmp((arrayNmean.at(42)).GetName(), "HMP_PhotEmean") != 0) {
+    if (strcmp((arrayNmean[42]).GetName(), "HMP_PhotEmean") != 0) {
       arNmeanFull = false;
     }
 
@@ -245,6 +266,12 @@ class HMPIDDCSProcessor
     LOG(info) << " ";
     LOG(info) << "======================================== ";
   }
+
+  void clearDPsInfo()
+  {
+    mPids.clear();
+  }
+
   int getRunNumberFromGRP()
   {
     return mRunNumberFromGRP;
@@ -255,19 +282,17 @@ class HMPIDDCSProcessor
     mRunNumberFromGRP = rn;
   } // ef : just using the same as for emcal
  private:
-  // ef: is this needed?
-  // prepareCCDBObjectInfo is already called in finalize()-function
-  //     EMCDCSProcessor::updateFeeCCDBInfo(){... prepareCCDBObjectInfo()};)
-  // void updateCCDBInfo(){};
+  std::unordered_map<DPID, bool> mPids;
 
   int mRunNumberFromGRP = -2; // ef : just using the same as for emcal
 
   // ======= DCS-CCDB
   // ==========================================================================================
 
-  long mFirstTime;         // time when a CCDB object was stored first
-  long mStartValidity = 0; // TF index for processing, used to store CCDB object
-  long mStart = 0;         // TF index for processing, used to store CCDB object
+  long mFirstTime;                                                    // time when a CCDB object was stored first
+  long mStartValidity = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; // TF index for processing, used to store CCDB object
+  long mEndValidity = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
+  long mStart = 0; // TF index for processing, used to store CCDB object
   bool mFirstTimeSet = false;
 
   bool mVerbose = false;
