@@ -48,6 +48,8 @@ struct DeviceControl {
   DeviceController* controller = nullptr;
   /// What kind of events should run with the TRACE level
   int tracingFlags = 0;
+  /// An incremental number to identify the device state
+  int requestedState = 0;
 };
 
 } // namespace o2::framework
