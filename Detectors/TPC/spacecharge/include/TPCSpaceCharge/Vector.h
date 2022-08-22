@@ -24,23 +24,8 @@ namespace o2
 {
 namespace tpc
 {
-template <typename DataT = float, size_t N = 64>
-class Matrix
-{
-  using VDataT = Vc::Vector<DataT>;
 
- public:
-  /// constructor
-  /// \param dataMatrix pointer to the data
-  Matrix(const Vc::Memory<VDataT, N>* dataMatrix) : mDataMatrix(dataMatrix) {}
-
-  const Vc::Memory<VDataT, N>& operator[](size_t i) const { return mDataMatrix[i]; }
-
- private:
-  const Vc::Memory<VDataT, N>* mDataMatrix{};
-};
-
-template <typename DataT = float, size_t N = 64>
+template <typename DataT, size_t N>
 class Vector
 {
   using VDataT = Vc::Vector<DataT>;
@@ -50,8 +35,7 @@ class Vector
   Vector() = default;
 
   /// constructor
-  /// \param dataVector data which is assigned to the vector
-  Vector(const Vc::Memory<VDataT, N>& dataVector) : mDataVector(dataVector) {}
+  Vector(Vc::Memory<VDataT, N>&& dataVector) : mDataVector(std::move(dataVector)) {}
 
   /// operator access
   const DataT operator[](size_t i) const { return mDataVector.scalar(i); }
@@ -66,16 +50,12 @@ class Vector
   /// \return returns the number of Vc::Vector<DataT> stored in the Vector
   size_t getvectorsCount() const { return mDataVector.vectorsCount(); }
 
-  /// \return returns the number of entries stored in the Vector
-  size_t getentriesCount() const { return mDataVector.entriesCount(); }
-
  private:
-  // storage for the data
-  Vc::Memory<VDataT, N> mDataVector{};
+  Vc::Memory<VDataT, N> mDataVector{}; ///< storage for the data
 };
 
 template <typename DataT, size_t N>
-inline Vector<DataT, N> operator*(const Matrix<DataT, N>& a, const Vector<DataT, N>& b)
+inline Vector<DataT, N> operator*(const std::array<Vc::Memory<Vc::Vector<DataT>, N>, N>& a, const Vector<DataT, N>& b)
 {
   using V = Vc::Vector<DataT>;
   // resulting vector c
@@ -107,17 +87,6 @@ inline Vector<DataT, N> operator-(const Vector<DataT, N>& a, const Vector<DataT,
   Vector<DataT, N> c;
   for (size_t j = 0; j < a.getvectorsCount(); ++j) {
     c.setVector(j, a.getVector(j) - b.getVector(j));
-  }
-  return c;
-}
-
-template <typename DataT, size_t N>
-inline Vector<DataT, N> operator+(const Vector<DataT, N>& a, const Vector<DataT, N>& b)
-{
-  // resulting matrix c
-  Vector<DataT, N> c;
-  for (size_t j = 0; j < a.getvectorsCount(); ++j) {
-    c.setVector(j, a.getVector(j) + b.getVector(j));
   }
   return c;
 }
@@ -155,18 +124,6 @@ inline Vector<DataT, N> operator*(const Vector<DataT, N>& a, const Vector<DataT,
     c.setVector(j, a.getVector(j) * b.getVector(j));
   }
   return c;
-}
-
-// check if all elements are equal
-template <typename DataT, size_t N>
-inline bool operator==(const Vector<DataT, N>& a, const Vector<DataT, N>& b)
-{
-  for (size_t j = 0; j < a.getvectorsCount(); ++j) {
-    if (any_of(a.getVector(j) != b.getVector(j))) {
-      return false;
-    }
-  }
-  return true;
 }
 
 } // namespace tpc
