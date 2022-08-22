@@ -278,8 +278,13 @@ void displayDeviceInspector(DeviceSpec const& spec,
       control.controller->write("/shm-offer 1000", strlen("/shm-offer 1000"));
     }
 
-    if (ImGui::Button("Restart")) {
-      control.controller->write("/restart", strlen("/restart"));
+    if (control.requestedState > info.providedState) {
+      ImGui::Text(ICON_FA_CLOCK_O);
+    } else {
+      if (ImGui::Button("Restart")) {
+        control.requestedState = info.providedState + 1;
+        control.controller->write("/restart", strlen("/restart"));
+      }
     }
   }
 
