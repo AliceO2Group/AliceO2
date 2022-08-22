@@ -23,11 +23,11 @@
       </O2Physicslocal>
 
       <!-- ALICE O2Physics gitHub repository -->
-      <O2GitHub> 
+      <O2GitHub>
         https://github.com/AliceO2Group/AliceO2/tree/dev
       </O2GitHub>
 
-      <O2PhysicsGitHub> 
+      <O2PhysicsGitHub>
         https://github.com/AliceO2Group/O2Physics/tree/master
       </O2PhysicsGitHub>
 
