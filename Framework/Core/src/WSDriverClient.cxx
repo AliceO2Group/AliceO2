@@ -14,6 +14,7 @@
 #include "Framework/Logger.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/ControlService.h"
 #include "DriverClientContext.h"
 #include "DPLWebSocket.h"
 #include <uv.h>
@@ -126,6 +127,15 @@ void on_connect(uv_connect_t* connection, int status)
 
   client->observe("/start", [state = context->state](std::string_view) {
     state->nextFairMQState.emplace_back("RUN");
+  });
+
+  client->observe("/endofstream", [state = context->state](std::string_view) {
+    state->nextDPLCommands.emplace_back([](ServiceRegistry& registry) {
+      LOG(info) << "Forcing end of stream as requested from outside";
+      registry.get<ControlService>().endOfStream();
+      auto& state = registry.get<DeviceState>();
+      uv_async_send(state.awakeMainThread);
+    });
   });
 
   client->observe("/trace", [state = context->state](std::string_view cmd) {

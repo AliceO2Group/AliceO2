@@ -281,15 +281,19 @@ void displayDeviceInspector(DeviceSpec const& spec,
     if (control.requestedState > info.providedState) {
       ImGui::TextUnformatted(ICON_FA_CLOCK_O "Requested transition in progress");
     } else {
-      if (ImGui::Button("Restart")) {
-        control.requestedState = info.providedState + 1;
-        control.controller->write("/restart", strlen("/restart"));
-      }
-      ImGui::SameLine();
       if (info.deviceState == "RUNNING") {
+        if (ImGui::Button("Restart")) {
+          control.requestedState = info.providedState + 1;
+          control.controller->write("/restart", strlen("/restart"));
+        }
+        ImGui::SameLine();
         if (ImGui::Button(ICON_FA_STOP)) {
           control.requestedState = info.providedState + 1;
           control.controller->write("/stop", strlen("/stop"));
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("End of Stream")) {
+          control.controller->write("/endofstream", strlen("/endofstream"));
         }
       } else if (info.deviceState == "READY") {
         if (ImGui::Button(ICON_FA_PLAY)) {

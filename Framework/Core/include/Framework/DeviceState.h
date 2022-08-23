@@ -48,6 +48,8 @@ enum struct TransitionHandlingState {
   Expired
 };
 
+struct ServiceRegistry;
+
 /// Running state information of a given device
 struct DeviceState {
   /// Motivation for the loop being triggered.
@@ -102,6 +104,9 @@ struct DeviceState {
 
   // A list of states which we should go to
   std::vector<std::string> nextFairMQState;
+
+  // A list of commands which we should execute
+  std::vector<std::function<void(ServiceRegistry&)>> nextDPLCommands;
 
   /// Bitmask of LoopReason which caused this iterations.
   int loopReason = 0;

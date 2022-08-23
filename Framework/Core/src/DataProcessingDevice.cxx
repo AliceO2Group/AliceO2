@@ -1074,6 +1074,11 @@ void DataProcessingDevice::Run()
            mState.loopReason, mState.tracingFlags,
            mState.loopReason & mState.tracingFlags);
 
+      // Run any pending action.
+      for (auto& action : mState.nextDPLCommands) {
+        action(mServiceRegistry);
+      }
+      mState.nextDPLCommands.clear();
       if ((mState.loopReason & DeviceState::LoopReason::OOB_ACTIVITY) != 0) {
         LOGP(debug, "We were awakened by a OOB event. Rescanning everything.");
         mRelayer->rescan();
