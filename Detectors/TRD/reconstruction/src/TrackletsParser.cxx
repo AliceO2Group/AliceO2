@@ -89,7 +89,7 @@ void TrackletsParser::incParsingError(int error, std::string message)
     layer = 0;
   }
   // error is too big ?
-  if (mOptions[TRDGenerateStats] && error <= LastParsingError) {
+  if (mOptions[TRDGenerateStats] && error <= TRDLastParsingError) {
     mEventRecords->incParsingError(error, hcid);
   }
   if (mOptions[TRDVerboseErrorsBit]) {

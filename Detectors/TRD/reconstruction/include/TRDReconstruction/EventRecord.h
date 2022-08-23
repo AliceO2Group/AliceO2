@@ -158,14 +158,14 @@ class EventStorage
     if (hcid < 0) {
       detailGraphs = false;
     }
-    if (error > LastParsingError) {
+    if (error > TRDLastParsingError) {
       LOG(info) << "wrong error number to inc ParsingError in TrackletParsing : error" << error << " for hcid:" << hcid;
     } else {
       mTFStats.mParsingErrors[error]++;
       if (detailGraphs) { // sm=-1 is reserved for those errors where we dont know or cant know the underlying source.
-        if (hcid * LastParsingError + error < o2::trd::constants::NCHAMBER * 2 * LastParsingError) {
+        if (hcid * TRDLastParsingError + error < o2::trd::constants::NCHAMBER * 2 * TRDLastParsingError) {
           //prevent bounding errors
-          mTFStats.mParsingErrorsByLink[hcid * LastParsingError + error]++;
+          mTFStats.mParsingErrorsByLink[hcid * TRDLastParsingError + error]++;
         }
       }
     }
