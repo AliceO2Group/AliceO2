@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <exception>
 #include <iterator>
+#include <vector>
 #include <gsl/span>
 #include "Rtypes.h"
 #include "fmt/format.h"
@@ -22,7 +23,9 @@
 #include "DataFormatsEMCAL/Digit.h"
 #include "DataFormatsEMCAL/EventData.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
-
+#include "EMCALCalib/BadChannelMap.h"
+#include "EMCALCalib/TimeCalibrationParams.h"
+#include "EMCALCalib/EMCALCalibrationHandler.h"
 namespace o2
 {
 namespace emcal
@@ -396,6 +399,20 @@ class EventHandler
     mTriggerRecordsCellIndices = triggersCellIndex;
   }
 
+  /// \brief Set the bad channel map for the EMCal
+  /// \param bcm EMCal bad channel map
+  void setEMCBadChannelMap(o2::emcal::BadChannelMap bcm)
+  {
+    mEMCBadChannelMap = bcm;
+  }
+
+  /// \brief Set the time calibration parameters for the EMCal
+  /// \param tcp EMCal time calibration parameters
+  void setEMCTimeCalibParam(o2::emcal::TimeCalibrationParams tcp)
+  {
+    mEMCTimeCalibParams = tcp;
+  }
+
   /// \brief Setting the data at cell level
   /// \param cells Container for cells within the timeframe
   /// \param triggers Container with trigger records corresponding to the cell container
@@ -437,6 +454,9 @@ class EventHandler
   ClusterRange mClusters;             /// container for clusters in timeframe
   CellIndexRange mClusterCellIndices; /// container for cell indices in timeframe
   CellRange mCells;                   /// container for cells in timeframe
+
+  o2::emcal::TimeCalibrationParams mEMCTimeCalibParams;
+  o2::emcal::BadChannelMap mEMCBadChannelMap;
 
   ClassDefNV(EventHandler, 1);
 };

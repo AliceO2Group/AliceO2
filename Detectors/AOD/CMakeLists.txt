@@ -15,6 +15,7 @@ target_link_libraries(
         AODProducerWorkflow
         INTERFACE
           O2::DetectorsVertexing
+          O2::EMCALReconstruction
           O2::FT0Workflow
           O2::FDDWorkflow
           O2::FV0Workflow

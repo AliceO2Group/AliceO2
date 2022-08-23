@@ -53,6 +53,7 @@
 #include "MCHTracking/TrackExtrap.h"
 #include "MCHTracking/TrackParam.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
+#include "EMCALCalib/CalibDB.h"
 #include "DetectorsVertexing/PVertexerParams.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ReconstructionDataFormats/Track.h"
@@ -1203,6 +1204,9 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mZDCTDCMap[(string)ChannelName] = 999;
   }
 
+  // set emcal calibrations
+  o2::emcal::EMCALCalibCCDBHelper::instance().setRequest(mEMCCalibRequest);
+
   // writing metadata if it's not yet in AOD file
   // note: `--aod-writer-resmode "UPDATE"` has to be used,
   //       so that metadata is not overwritten
@@ -1693,6 +1697,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     // fill EMC cells to tables
     // TODO handle MC info
     o2::emcal::EventHandler<o2::emcal::Cell> caloEventHandler;
+
     fillCaloTable(&caloEventHandler, caloEMCCells, caloEMCCellsTRGR, caloCellsCursor, caloCellsTRGTableCursor, bcsMap, 1);
   }
 
@@ -1923,6 +1928,7 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
 void AODProducerWorkflowDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  o2::emcal::EMCALCalibCCDBHelper::instance().checkUpdates(pc); // emcal specific calibration handler
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
@@ -1959,6 +1965,9 @@ void AODProducerWorkflowDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
 {
   // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
   if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
+  if (o2::emcal::EMCALCalibCCDBHelper::instance().finaliseCCDB(matcher, obj)) {
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "ALPIDEPARAM", 0)) {
@@ -2102,8 +2111,15 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   if (src[GID::PHS]) {
     dataRequest->requestPHOSCells(useMC);
   }
+  std::shared_ptr<o2::emcal::EMCALCalibRequest> emcCalibRequest;
   if (src[GID::EMC]) {
     dataRequest->requestEMCALCells(useMC);
+    // request calibrations
+    emcCalibRequest = std::make_shared<o2::emcal::EMCALCalibRequest>(false, // bad channel
+                                                                     true,  // time calib
+                                                                     false, // gain calib
+                                                                     false, // temperature calib
+                                                                     dataRequest->inputs);
   }
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                              // orbitResetTime
                                                               true,                              // GRPECS=true
@@ -2146,7 +2162,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     "aod-producer-workflow",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, ggRequest, enableSV, resFile, useMC)},
+    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, ggRequest, emcCalibRequest, enableSV, resFile, useMC)},
     Options{
       ConfigParamSpec{"run-number", VariantType::Int64, -1L, {"The run-number. If left default we try to get it from DPL header."}},
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},

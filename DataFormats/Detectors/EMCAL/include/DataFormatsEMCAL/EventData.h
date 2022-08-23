@@ -12,6 +12,7 @@
 #define ALICEO2_EMCAL_EVENTDATA_H_
 #include <cstdint>
 #include <gsl/span>
+#include <vector>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/Cluster.h"
@@ -36,7 +37,7 @@ template <class InputType>
 struct EventData {
   InteractionRecord mInteractionRecord; ///< Interaction record for the trigger corresponding to this event
   gsl::span<const Cluster> mClusters;   ///< EMCAL clusters
-  gsl::span<const InputType> mCells;    ///< EMCAL cells / digits
+  std::vector<InputType> mCells;        ///< EMCAL cells / digits
   gsl::span<const int> mCellIndices;    ///< Cell indices in cluster
   uint64_t mTriggerBits;                ///< Trigger bits for the event
 
@@ -45,7 +46,7 @@ struct EventData {
   {
     mInteractionRecord.clear();
     mClusters = gsl::span<const Cluster>();
-    mCells = gsl::span<const InputType>();
+    mCells = std::vector<InputType>();
     mCellIndices = gsl::span<const int>();
     mTriggerBits = 0;
   }

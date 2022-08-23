@@ -27,7 +27,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsZDC/BCRecData.h"
-#include "DataFormatsEMCAL/EventHandler.h"
+#include "EMCALReconstruction/EventHandler.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "Framework/ConcreteDataMatcher.h"

@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsEMCAL/EventHandler.h"
+#include "EMCALReconstruction/EventHandler.h"
 #include <optional>
 
 using namespace o2::emcal;
@@ -125,6 +125,7 @@ const typename EventHandler<CellInputType>::ClusterRange EventHandler<CellInputT
   throw NotInitializedException();
 }
 
+// const typename EventHandler<CellInputType>::CellRange EventHandler<CellInputType>::getCellsForEvent(int eventID) const
 template <class CellInputType>
 const typename o2::emcal::EventHandler<CellInputType>::CellRangeVec o2::emcal::EventHandler<CellInputType>::getCellsForEvent(int eventID) const
 {
@@ -133,12 +134,20 @@ const typename o2::emcal::EventHandler<CellInputType>::CellRangeVec o2::emcal::E
       throw RangeException(eventID, mTriggerRecordsCells.size());
     }
     auto& trgrecord = mTriggerRecordsCells[eventID];
-    CellRange cellsEvent(mCells.data() + trgrecord.getFirstEntry(), trgrecord.getNumberOfObjects());
 
-    CellRangeVec cellsEventCalibrated;
+    o2::emcal::EMCALCalibrationHandler<CellInputType> calibHandler; // bad channels, time, energy
+
+    CellRange cellsEvent(mCells.data() + trgrecord.getFirstEntry(), trgrecord.getNumberOfObjects());
+    std::vector<CellInputType> cellsEventCalibrated; // declare this
+
     for (auto& cell : cellsEvent) {
-      cellsEventCalibrated.emplace_back(cell);
+      // in accept cell, check if the cell is good or bad
+      // if the cell is good, calibrate time, energy in getCellCalibrated
+      if (calibHandler.acceptCell(cell.getTower())) {
+        cellsEventCalibrated.emplace_back(calibHandler.getCellCalibrated(cell));
+      }
     }
+
     return cellsEventCalibrated;
   }
   throw NotInitializedException();
@@ -174,6 +183,7 @@ EventData<CellInputType> EventHandler<CellInputType>::buildEvent(int eventID) co
   EventData<CellInputType> outputEvent;
   outputEvent.mInteractionRecord = getInteractionRecordForEvent(eventID);
   outputEvent.mTriggerBits = getTriggerBitsForEvent(eventID);
+
   if (hasClusters()) {
     outputEvent.mClusters = getClustersForEvent(eventID);
   }

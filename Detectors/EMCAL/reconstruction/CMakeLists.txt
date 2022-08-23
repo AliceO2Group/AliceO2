@@ -28,12 +28,15 @@ o2_add_library(EMCALReconstruction
         src/DigitReader.cxx
         src/CTFCoder.cxx
         src/CTFHelper.cxx
+        src/EventHandler.cxx
         PUBLIC_LINK_LIBRARIES FairRoot::Base O2::Headers
         AliceO2::InfoLogger
         O2::DataFormatsEMCAL
         O2::DetectorsBase
         O2::DetectorsRaw
         O2::EMCALBase
+        O2::EMCALCalib
+        O2::EMCALCalibration
         O2::rANS
         Microsoft.GSL::GSL)
 
@@ -54,6 +57,7 @@ o2_target_root_dictionary(
         include/EMCALReconstruction/ClusterizerTask.h
         include/EMCALReconstruction/DigitReader.h
         include/EMCALReconstruction/RecoParam.h
+        include/EMCALReconstruction/EventHandler.h
 )
 
 o2_add_executable(rawreader-file

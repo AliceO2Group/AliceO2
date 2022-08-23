@@ -11,6 +11,7 @@
 
 o2_add_library(EMCALCalib
                SOURCES src/BadChannelMap.cxx
+                       src/EMCALCalibCCDBHelper.cxx
                        src/TimeCalibrationParams.cxx
                        src/TimeCalibParamL1Phase.cxx
                        src/TempCalibrationParams.cxx
@@ -28,6 +29,8 @@ o2_add_library(EMCALCalib
 
 o2_target_root_dictionary(EMCALCalib
                           HEADERS include/EMCALCalib/BadChannelMap.h
+                                  include/EMCALCalib/EMCALCalibCCDBHelper.h
+                                  include/EMCALCalib/EMCALCalibrationHandler.h
                                   include/EMCALCalib/TimeCalibrationParams.h
                                   include/EMCALCalib/TimeCalibParamL1Phase.h
                                   include/EMCALCalib/TempCalibrationParams.h

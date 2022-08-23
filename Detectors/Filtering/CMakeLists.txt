@@ -16,6 +16,7 @@ o2_add_executable(
   PUBLIC_LINK_LIBRARIES
           O2::DataFormatsGlobalTracking
           O2::DetectorsVertexing
+          O2::EMCALReconstruction
           O2::FT0Workflow
           O2::FDDWorkflow
           O2::FV0Workflow

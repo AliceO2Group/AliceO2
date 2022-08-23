@@ -26,7 +26,13 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  std::vector<ConfigParamSpec> options{ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+  std::vector<ConfigParamSpec> options{
+    ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    ConfigParamSpec{"enableCalibBadChannel", VariantType::Bool, false, {"enable bad channel calibration"}},
+    ConfigParamSpec{"enableCalibTime", VariantType::Bool, false, {"enable time calibration"}},
+    ConfigParamSpec{"enableCalibGain", VariantType::Bool, false, {"enable gain calibration"}},
+    ConfigParamSpec{"enableCalibTemp", VariantType::Bool, false, {"enable temperature calibration"}},
+  };
 
   std::swap(workflowOptions, options);
 }
@@ -40,6 +46,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec wf;
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  wf.emplace_back(o2::emcal::getStandaloneAODProducerSpec());
+  std::array<bool, 4> arrEnableCalib = {
+    cfgc.options().get<bool>("enableCalibBadChannel"),
+    cfgc.options().get<bool>("enableCalibTime"),
+    cfgc.options().get<bool>("enableCalibGain"),
+    cfgc.options().get<bool>("enableCalibTemp")};
+
+  wf.emplace_back(o2::emcal::getStandaloneAODProducerSpec(arrEnableCalib));
   return wf;
 }

@@ -41,6 +41,7 @@
 
 #pragma link C++ class o2::emcal::EventData < o2::emcal::Cell> + ;
 #pragma link C++ class o2::emcal::EventData < o2::emcal::Digit> + ;
+
 #pragma link C++ class o2::emcal::EventHandler < o2::emcal::Cell> + ;
 #pragma link C++ class o2::emcal::EventHandler < o2::emcal::Digit> + ;
 

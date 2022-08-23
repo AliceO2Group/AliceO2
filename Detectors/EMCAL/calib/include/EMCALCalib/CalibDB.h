@@ -8,6 +8,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
+#ifndef EMCAL_CALIB_DB_H
+#define EMCAL_CALIB_DB_H
+
 #include <exception>
 #include <map>
 #include <string>
@@ -343,3 +347,5 @@ class CalibDB
 } // namespace emcal
 
 } // namespace o2
+
+#endif

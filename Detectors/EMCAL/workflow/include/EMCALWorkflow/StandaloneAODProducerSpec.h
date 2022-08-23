@@ -19,7 +19,8 @@
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "DataFormatsEMCAL/EventHandler.h"
+#include "EMCALReconstruction/EventHandler.h"
+#include "EMCALCalib/EMCALCalibCCDBHelper.h"
 #include <TStopwatch.h>
 
 namespace o2
@@ -30,11 +31,13 @@ namespace emcal
 class StandaloneAODProducerSpec : public o2::framework::Task
 {
  public:
-  StandaloneAODProducerSpec();
+  StandaloneAODProducerSpec(std::shared_ptr<o2::emcal::EMCALCalibRequest> cr);
   ~StandaloneAODProducerSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
+  void updateTimeDependentParams(o2::framework::ProcessingContext& pc);
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
 
   static const char* getCellBinding() { return "EMCCells"; }
   static const char* getCellTriggerRecordBinding() { return "EMCCellsTrgR"; }
@@ -45,6 +48,7 @@ class StandaloneAODProducerSpec : public o2::framework::Task
   uint32_t mCaloAmp = 0xFFFFFF00;                                        // 15 bits
   uint32_t mCaloTime = 0xFFFFFF00;                                       // 15 bits
   o2::emcal::EventHandler<o2::emcal::Cell>* mCaloEventHandler = nullptr; ///< Pointer to the event builder for emcal cells
+  std::shared_ptr<o2::emcal::EMCALCalibRequest> mCalibRequest;           ///< calib request handles which calibrations are applied
   TStopwatch mTimer;
 
   static const char* BININGCELLS;
@@ -52,7 +56,7 @@ class StandaloneAODProducerSpec : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getStandaloneAODProducerSpec();
+framework::DataProcessorSpec getStandaloneAODProducerSpec(std::array<bool, 4> arrEnableCalib);
 
 } // namespace emcal
 } // namespace o2

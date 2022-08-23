@@ -27,7 +27,7 @@ namespace o2
 namespace emcal
 {
 
-StandaloneAODProducerSpec::StandaloneAODProducerSpec()
+StandaloneAODProducerSpec::StandaloneAODProducerSpec(std::shared_ptr<o2::emcal::EMCALCalibRequest> cr) : mCalibRequest(cr)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -41,12 +41,17 @@ void StandaloneAODProducerSpec::init(o2::framework::InitContext& ic)
 
   mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
   mRunNumber = ic.options().get<int>("run-number");
+
+  // set which calibrations are applied in the event handler
+  o2::emcal::EMCALCalibCCDBHelper::instance().setRequest(mCalibRequest);
 }
 
 void StandaloneAODProducerSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
+
+  updateTimeDependentParams(pc);
 
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
   uint64_t tfNumber;
@@ -85,7 +90,7 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
     auto cellsInEvent = inputEvent.mCells;                  // get cells belonging to current event
     auto interactionRecord = inputEvent.mInteractionRecord; // get interaction records belonging to current event
 
-    LOG(info) << "Found " << cellsInEvent.size() << " cells in event";
+    LOG(debug) << "Found " << cellsInEvent.size() << " cells in event";
 
     auto bcID = interactionRecord.toLong();
     bcCursor(0,
@@ -140,14 +145,32 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
   mTimer.Stop();
 }
 
+//_______________________________________
+void StandaloneAODProducerSpec::updateTimeDependentParams(ProcessingContext& pc)
+{
+  LOG(debug) << "o2::emcal::EMCALCalibCCDBHelper::instance().checkUpdates";
+  o2::emcal::EMCALCalibCCDBHelper::instance().checkUpdates(pc);
+}
+
+//_______________________________________
+void StandaloneAODProducerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
+  LOG(debug) << "o2::emcal::EMCALCalibCCDBHelper::instance().finaliseCCDB";
+  if (o2::emcal::EMCALCalibCCDBHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
+}
+
 void StandaloneAODProducerSpec::endOfStream(EndOfStreamContext& ec)
 {
   LOGF(info, "EMCAL Standalone AOD Producer total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getStandaloneAODProducerSpec()
+DataProcessorSpec getStandaloneAODProducerSpec(std::array<bool, 4> arrEnableCalib)
 {
+
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
@@ -155,13 +178,23 @@ DataProcessorSpec getStandaloneAODProducerSpec()
   outputs.emplace_back(OutputLabel{"O2caloCellTRGR"}, "AOD", "CALOTRIGGER", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
 
+  std::vector<InputSpec> inputs;
+
+  inputs.emplace_back(StandaloneAODProducerSpec::getCellTriggerRecordBinding(), "EMC", "CELLSTRGR", 0, Lifetime::Timeframe);
+  inputs.emplace_back(StandaloneAODProducerSpec::getCellBinding(), "EMC", "CELLS", 0, Lifetime::Timeframe);
+
+  // request calibrations
+  auto calibRequest = std::make_shared<o2::emcal::EMCALCalibRequest>(arrEnableCalib[0], // bad channel
+                                                                     arrEnableCalib[1], // time calib
+                                                                     arrEnableCalib[2], // gain calib
+                                                                     arrEnableCalib[3], // temperature calib
+                                                                     inputs);
+
   return DataProcessorSpec{
     "standalone-aod-producer-workflow",
-    Inputs{
-      InputSpec{StandaloneAODProducerSpec::getCellTriggerRecordBinding(), "EMC", "CELLSTRGR", 0, Lifetime::Timeframe},
-      InputSpec{StandaloneAODProducerSpec::getCellBinding(), "EMC", "CELLS", 0, Lifetime::Timeframe}},
+    inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<StandaloneAODProducerSpec>()},
+    AlgorithmSpec{adaptFromTask<StandaloneAODProducerSpec>(calibRequest)},
     Options{
       ConfigParamSpec{"run-number", VariantType::Int64, -1L, {"The run-number. If left default we try to get it from DPL header."}},
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}}}};
