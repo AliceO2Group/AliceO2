@@ -22,6 +22,7 @@
 #include "FrameworkGUIDataRelayerUsage.h"
 #include "PaletteHelpers.h"
 #include "FrameworkGUIState.h"
+#include <DebugGUI/icons_font_awesome.h>
 
 #include <fmt/format.h>
 
@@ -625,9 +626,10 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     ImGui::SetNextWindowSize(ImVec2(metricDisplayPos, state.bottomPaneSize), 0);
     ImGui::Begin("Available metrics", nullptr, ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
-    ImGui::Text("Find metrics: ");
+    ImGui::Text(ICON_FA_FILTER);
     ImGui::SameLine();
     ImGui::InputText("##query-metrics", query, MAX_QUERY_SIZE);
+
     static const char* possibleAxis[] = {
       "Y",
       "Y1",
@@ -681,9 +683,9 @@ void displayMetrics(gui::WorkspaceGUIState& state,
   ImGui::Begin("Devices", nullptr, ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
   if (!metricSelectorVisible) {
-    metricSelectorVisible = ImGui::Button(">> Show metric selector");
+    metricSelectorVisible = ImGui::Button(ICON_FA_CHEVRON_RIGHT "Show metric selector");
   } else {
-    metricSelectorVisible = !ImGui::Button("<< Hide metric selector");
+    metricSelectorVisible = !ImGui::Button(ICON_FA_CHEVRON_LEFT "Hide metric selector");
   }
   static char const* plotStyles[] = {
     "lines",
