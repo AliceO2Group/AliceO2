@@ -87,7 +87,7 @@ enum ParsingErrors {
   FEEIDBadSector,                                 // RDH is in error, the FEEID.supermodule is not a valid value.
   DigitHCHeaderPreTriggerPhaseOOB,                // pretrigger phase in Digit HC header has to be less than 12, it is not.
   HalfCRUBadBC,                                   // saw a bc below the L0 trigger
-  LastParsingError
+  TRDLastParsingError                             // This is to keep QC happy until we can change it there as well.
 };
 
 static std::unordered_map<int, std::string> ParsingErrorsString = {
@@ -146,7 +146,7 @@ static std::unordered_map<int, std::string> ParsingErrorsString = {
   {FEEIDBadSector, "FEEID Sector is not valid"},
   {DigitHCHeaderPreTriggerPhaseOOB, "Digit Half Chamber Header PreTriggerPhase is out of bounds"},
   {HalfCRUBadBC, "HalfCRU has a bad bunchcrossing"},
-  {LastParsingError, "Last Parsing Error"}};
+  {TRDLastParsingError, "Last Parsing Error"}};
 
 //enumerations for the options, saves on having a long parameter list.
 enum OptionBits {
@@ -189,8 +189,8 @@ class TRDDataCountersPerTimeFrame
   std::array<uint16_t, o2::trd::constants::NSECTOR * 60> mLinkWords{};                                 // units of 256bits, read from the cru half chamber header
   std::array<uint16_t, o2::trd::constants::NSECTOR * 60> mLinkWordsRead{};                             // units of 32 bits the data words read before dumping or finishing
   std::array<uint16_t, o2::trd::constants::NSECTOR * 60> mLinkWordsRejected{};                         // units of 32 bits the data dumped due to some or other error
-  std::array<uint16_t, LastParsingError> mParsingErrors{};                                             // errors in parsing, indexed by enum above of ParsingErrors
-  std::array<uint32_t, o2::trd::constants::NSECTOR * 60 * LastParsingError + LastParsingError> mParsingErrorsByLink{};       // errors in parsing, indexed by enum above of ParsingErrors
+  std::array<uint16_t, TRDLastParsingError> mParsingErrors{};                                          // errors in parsing, indexed by enum above of ParsingErrors
+  std::array<uint32_t, o2::trd::constants::NSECTOR * 60 * TRDLastParsingError + TRDLastParsingError> mParsingErrorsByLink{}; // errors in parsing, indexed by enum above of ParsingErrors
   uint16_t mDigitsPerEvent;                                                                                                  // average digits found per event in this timeframe, ignoring the no digit events where there is no calibration trigger.
   uint16_t mTrackletsPerEvent;                                                                                               // average tracklets found per event in this timeframe
   double mTimeTaken;                                                                                   // time taken to process the entire timeframe [ms].
