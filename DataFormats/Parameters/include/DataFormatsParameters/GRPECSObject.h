@@ -19,6 +19,7 @@
 #include <Rtypes.h>
 #include <cstdint>
 #include <ctime>
+#include <bitset>
 #include "DataFormatsParameters/ECSDataAdapters.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 
@@ -109,6 +110,12 @@ class GRPECSObject
   /// same with comma-separate list of detector names
   DetID::mask_t getDetsReadOut(const std::string& only, const std::string& skip = "") const { return getDetsReadOut(DetID::getMask(only), DetID::getMask(skip)); }
 
+  // methods to manipulate the list of FLPs in the run
+  std::bitset<202> getListOfFLPs() const { return mFLPs; }
+  void setFLPStatus(size_t flp, bool status) { mFLPs.set(flp, status); }
+  bool getFLPStatus(size_t flp) const { return mFLPs.test(flp); }
+  bool listOfFLPsSet() const { mFLPs.count() > 0 ? true : false; }
+
   /// print itself
   void print() const;
 
@@ -128,11 +135,12 @@ class GRPECSObject
   int mRun = 0;                     ///< run identifier
   RunType mRunType = RunType::NONE; ///< run type
   std::string mDataPeriod{};        ///< name of the period
+  std::bitset<202> mFLPs{};         ///< to store which FLPs were in the processing
 
   // detectors which are always readout in triggered mode. Others are continuous by default but exceptionally can be triggered
   static constexpr DetID::mask_t DefTriggeredDets = DetID::getMask(DetID::TRD) | DetID::getMask(DetID::PHS) | DetID::getMask(DetID::CPV) | DetID::getMask(DetID::EMC) | DetID::getMask(DetID::HMP);
 
-  ClassDefNV(GRPECSObject, 4);
+  ClassDefNV(GRPECSObject, 5);
 };
 
 } // namespace parameters
