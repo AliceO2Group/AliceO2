@@ -479,6 +479,13 @@ struct BuilderHolder : InsertionPolicy<T> {
 };
 
 struct TableBuilderHelpers {
+
+  template <typename... ARGS, size_t NCOLUMNS>
+  static std::array<arrow::DataType, NCOLUMNS> makeArrowColumnTypes()
+  {
+    return {BuilderTraits<ARGS>::make_datatype()...};
+  }
+
   template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>
   static std::vector<std::shared_ptr<arrow::Field>> makeFields(std::array<char const*, NCOLUMNS> const& names)
   {
