@@ -878,6 +878,9 @@ auto makeEmptyTable(const char* name)
   return b.finalize();
 }
 
+std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> fullTable, std::shared_ptr<arrow::Schema> newSchema, size_t nColumns,
+                                            expressions::Projector* projectors, std::vector<std::shared_ptr<arrow::Field>> const& fields, const char* name);
+
 /// Expression-based column generator to materialize columns
 template <typename... C>
 auto spawner(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::Table>>&& tables, const char* name)
@@ -886,43 +889,10 @@ auto spawner(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::T
   if (fullTable->num_rows() == 0) {
     return makeEmptyTable<soa::Table<C...>>(name);
   }
-  static auto new_schema = std::make_shared<arrow::Schema>(o2::soa::createFieldsFromColumns(columns));
-  auto projectors = framework::expressions::createProjectors(columns, fullTable->schema());
-
-  arrow::TableBatchReader reader(*fullTable);
-  std::shared_ptr<arrow::RecordBatch> batch;
-  arrow::ArrayVector v;
-  std::array<arrow::ArrayVector, sizeof...(C)> chunks;
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays;
-
-  while (true) {
-    auto s = reader.ReadNext(&batch);
-    if (!s.ok()) {
-      throw runtime_error_f("Cannot read batches from source table to spawn %s: %s", name, s.ToString().c_str());
-    }
-    if (batch == nullptr) {
-      break;
-    }
-    try {
-      s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
-      if (!s.ok()) {
-        throw runtime_error_f("Cannot apply projector to source table of %s: %s", name, s.ToString().c_str());
-      }
-    } catch (std::exception& e) {
-      throw runtime_error_f("Cannot apply projector to source table of %s: exception caught: %s", name, e.what());
-    }
-
-    for (auto i = 0u; i < sizeof...(C); ++i) {
-      chunks[i].emplace_back(v.at(i));
-    }
-  }
-
-  for (auto i = 0u; i < sizeof...(C); ++i) {
-    arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
-  }
-
-  addLabelToSchema(new_schema, name);
-  return arrow::Table::Make(new_schema, arrays);
+  static auto fields = o2::soa::createFieldsFromColumns(columns);
+  static auto new_schema = std::make_shared<arrow::Schema>(fields);
+  std::array<expressions::Projector, sizeof...(C)> projectors{{std::move(C::Projector())...}};
+  return spawnerHelper(fullTable, new_schema, sizeof...(C), projectors.data(), fields, name);
 }
 
 /// Helper to get a tuple tail
