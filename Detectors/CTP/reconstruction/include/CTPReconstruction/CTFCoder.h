@@ -50,13 +50,32 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
  private:
+  template <typename VEC>
+  o2::ctf::CTFIOSize encode_impl(VEC& buff, const gsl::span<const CTPDigit>& data);
+
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<CTPDigit>& data);
+  std::vector<CTPDigit> mDataFilt;
 };
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
 o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const CTPDigit>& data)
+{
+  if (mIRFrameSelector.isSet()) { // preselect data
+    mDataFilt.clear();
+    for (const auto& trig : data) {
+      if (mIRFrameSelector.check(trig.intRecord) >= 0) {
+        mDataFilt.push_back(trig);
+      }
+    }
+    return encode_impl(buff, mDataFilt);
+  }
+  return encode_impl(buff, data);
+}
+
+template <typename VEC>
+o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const CTPDigit>& data)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
