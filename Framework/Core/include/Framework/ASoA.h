@@ -77,11 +77,13 @@ struct Preslice {
 
 namespace o2::soa
 {
+
 template <typename... C>
-auto createSchemaFromColumns(framework::pack<C...>)
+auto createFieldsFromColumns(framework::pack<C...>)
 {
-  return std::make_shared<arrow::Schema>(std::vector<std::shared_ptr<arrow::Field>>{C::asArrowField()...});
+  return std::vector<std::shared_ptr<arrow::Field>>{C::asArrowField()...};
 }
+
 using SelectionVector = std::vector<int64_t>;
 
 template <typename, typename = void>

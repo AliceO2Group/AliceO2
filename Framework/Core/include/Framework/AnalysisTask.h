@@ -124,10 +124,12 @@ struct AnalysisDataProcessorBuilder {
     static_assert(std::is_lvalue_reference_v<T>, "Argument to process needs to be a reference (&).");
     using dT = std::decay_t<T>;
     if constexpr (soa::is_soa_filtered_v<dT>) {
-      eInfos.push_back({AI, hash, dT::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+      auto fields = createFieldsFromColumns(typename dT::table_t::persistent_columns_t{});
+      eInfos.push_back({AI, hash, dT::hashes(), std::make_shared<arrow::Schema>(fields), nullptr});
     } else if constexpr (soa::is_soa_iterator_v<dT>) {
+      auto fields = createFieldsFromColumns(typename dT::parent_t::persistent_columns_t{});
       if constexpr (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
-        eInfos.push_back({AI, hash, dT::parent_t::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+        eInfos.push_back({AI, hash, dT::parent_t::hashes(), std::make_shared<arrow::Schema>(fields), nullptr});
       }
     }
     doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), name, value, inputs);
