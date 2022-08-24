@@ -29,7 +29,10 @@ namespace o2::utils
 
 /// struct defining the flags which can be used to check if a certain debug streamer is used
 enum StreamFlags {
-  streamdEdx = 1 << 0, ///< stream corrections and cluster properties used for the dE/dx
+  streamdEdx = 1 << 0,         ///< stream corrections and cluster properties used for the dE/dx
+  streamDigitFolding = 1 << 1, ///< stream ion tail and saturatio information
+  streamDigits = 1 << 2,       ///< stream digit information
+  streamITCorr = 1 << 4,       ///< stream ion tail correction information
 };
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)

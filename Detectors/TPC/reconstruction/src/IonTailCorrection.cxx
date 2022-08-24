@@ -55,6 +55,36 @@ void IonTailCorrection::filterDigitsDirect(std::vector<Digit>& digits)
 
     // cumulate charge also over missing time stamps
     while (lastTime < time) {
+      ++lastTime;
+
+      using Streamer = o2::utils::DebugStreamer;
+      if (Streamer::checkStream(o2::utils::StreamFlags::streamITCorr)) {
+        mStreamer.setStreamer("debug_ITCorr", "UPDATE");
+        int cru = digit.getCRU();
+        auto rowTmp = row;
+        auto padTmp = pad;
+        auto kAmpTmp = kAmp;
+        auto kTimeTmp = kTime;
+        auto tailSlopeUnitTmp = tailSlopeUnit;
+        auto chargeTmp = origCharge + mSign * kAmp * (1 - tailSlopeUnit) * cumul;
+
+        mStreamer.getStreamer()
+          << mStreamer.getUniqueTreeName("itCorr").data()
+          << "cru=" << cru
+          << "row=" << rowTmp
+          << "pad=" << padTmp
+          << "time=" << lastTime
+
+          << "kAmp=" << kAmpTmp
+          << "kTime=" << kTimeTmp
+          << "tailSlopeUnit=" << tailSlopeUnitTmp
+          << "itMultFactor=" << mITMultFactor
+
+          << "origCharge=" << origCharge
+          << "charge=" << chargeTmp
+          << "\n";
+      }
+
       cumul += origCharge;
       cumul *= tailSlopeUnit;
 
@@ -63,7 +93,6 @@ void IonTailCorrection::filterDigitsDirect(std::vector<Digit>& digits)
         break;
       }
       origCharge = 0;
-      ++lastTime;
     }
 
     digit.setCharge(charge);

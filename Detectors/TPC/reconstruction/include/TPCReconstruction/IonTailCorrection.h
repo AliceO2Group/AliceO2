@@ -21,6 +21,7 @@
 
 #include "Rtypes.h"
 #include "DataFormatsTPC/Digit.h"
+#include "CommonUtils/DebugStreamer.h"
 
 namespace o2::tpc
 {
@@ -49,8 +50,9 @@ class IonTailCorrection
   float getSign() const { return mSign; }
 
  private:
-  float mITMultFactor = 1; ///< fudge factor to tune IT correction
-  float mSign = -1.f;      ///< -1 do correction, +1 add tail
+  float mITMultFactor = 1;            ///< fudge factor to tune IT correction
+  float mSign = -1.f;                 ///< -1 do correction, +1 add tail
+  o2::utils::DebugStreamer mStreamer; ///< debug streaming
 
   ClassDefNV(IonTailCorrection, 0);
 };

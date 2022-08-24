@@ -25,6 +25,13 @@ using namespace o2::tpc;
 void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
                                          dataformats::MCTruthContainer<MCCompLabel>& mcTruth, std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin eventTimeBin, bool isContinuous, bool finalFlush)
 {
+  using Streamer = o2::utils::DebugStreamer;
+  Streamer* debugStream = nullptr;
+  if (Streamer::checkStream(o2::utils::StreamFlags::streamDigitFolding) || Streamer::checkStream(o2::utils::StreamFlags::streamDigits)) {
+    mStreamer.setStreamer("debug_digits", "UPDATE");
+    debugStream = &mStreamer;
+  }
+
   const auto& eleParam = ParameterElectronics::Instance();
   const auto digitizationMode = eleParam.DigiMode;
   int nProcessedTimeBins = 0;
@@ -59,23 +66,23 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
     if (time) {
       switch (digitizationMode) {
         case DigitzationMode::FullMode: {
-          time->fillOutputContainer<DigitzationMode::FullMode>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get());
+          time->fillOutputContainer<DigitzationMode::FullMode>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream);
           break;
         }
         case DigitzationMode::ZeroSuppression: {
-          time->fillOutputContainer<DigitzationMode::ZeroSuppression>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get());
+          time->fillOutputContainer<DigitzationMode::ZeroSuppression>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream);
           break;
         }
         case DigitzationMode::SubtractPedestal: {
-          time->fillOutputContainer<DigitzationMode::SubtractPedestal>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get());
+          time->fillOutputContainer<DigitzationMode::SubtractPedestal>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream);
           break;
         }
         case DigitzationMode::NoSaturation: {
-          time->fillOutputContainer<DigitzationMode::NoSaturation>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get());
+          time->fillOutputContainer<DigitzationMode::NoSaturation>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream);
           break;
         }
         case DigitzationMode::PropagateADC: {
-          time->fillOutputContainer<DigitzationMode::PropagateADC>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get());
+          time->fillOutputContainer<DigitzationMode::PropagateADC>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream);
           break;
         }
       }

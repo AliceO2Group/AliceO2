@@ -19,11 +19,10 @@
 #include "TPCBase/Mapper.h"
 #include "TPCSimulation/DigitGlobalPad.h"
 #include "SimulationDataFormat/LabelContainer.h"
+#include "CommonUtils/DebugStreamer.h"
 #include "TPCSimulation/CommonMode.h"
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 
 class Digit;
@@ -37,6 +36,7 @@ class Digit;
 class DigitTime
 {
  public:
+  using Streamer = o2::utils::DebugStreamer;
   using PrevDigitInfoArray = std::array<PrevDigitInfo, Mapper::getPadsInSector()>;
 
   /// Constructor
@@ -76,7 +76,7 @@ class DigitTime
   /// \param prevTime Previous time bin to calculate CM and ToT
   template <DigitzationMode MODE>
   void fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
-                           std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin, PrevDigitInfoArray* prevTime = nullptr);
+                           std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin, PrevDigitInfoArray* prevTime = nullptr, Streamer* debugStream = nullptr);
 
  private:
   std::array<float, GEMSTACKSPERSECTOR> mCommonMode;                 ///< Common mode container - 4 GEM ROCs per sector
@@ -126,7 +126,7 @@ inline float DigitTime::getCommonMode(const GEMstack& gemstack) const
 template <DigitzationMode MODE>
 inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataformats::MCTruthContainer<MCCompLabel>& mcTruth,
                                            std::vector<CommonMode>& commonModeOutput, const Sector& sector, TimeBin timeBin,
-                                           PrevDigitInfoArray* prevTime)
+                                           PrevDigitInfoArray* prevTime, Streamer* debugStream)
 {
   const auto& mapper = Mapper::instance();
   const auto& eleParam = ParameterElectronics::Instance();
@@ -138,7 +138,7 @@ inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataforma
     if (prevTime) {
       auto& prevDigit = (*prevTime)[iPad];
       if (prevDigit.hasSignal()) {
-        digit.foldSignal(prevDigit, sector.getSector(), iPad, timeBin);
+        digit.foldSignal(prevDigit, sector.getSector(), iPad, timeBin, debugStream);
       }
       prevDigit.signal = digit.getChargePad(); // to make hasSignal() check work in next time bin
     }
@@ -162,11 +162,10 @@ inline void DigitTime::fillOutputContainer(std::vector<Digit>& output, dataforma
         prevDigit = (*prevTime)[iPad];
       }
       const CRU cru = mapper.getCRU(sector, iPad);
-      digit.fillOutputContainer<MODE>(output, mcTruth, cru, timeBin, iPad, mLabels, getCommonMode(cru), prevDigit);
+      digit.fillOutputContainer<MODE>(output, mcTruth, cru, timeBin, iPad, mLabels, getCommonMode(cru), prevDigit, debugStream);
     }
   }
 }
-} // namespace tpc
-} // namespace o2
+} // namespace o2::tpc
 
 #endif // ALICEO2_TPC_DigitTime_H_
