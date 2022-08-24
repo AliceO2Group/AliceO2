@@ -59,7 +59,7 @@ class NoiseCalibratorSpec : public Task
   std::string mPath;
   std::string mMeta;
 
-  std::vector<std::array<int, 4>> mNoiseMapForDcs;
+  std::vector<std::array<int, 3>> mNoiseMapForDcs;
   std::string mPathDcs;
   std::string mOutputType;
 
