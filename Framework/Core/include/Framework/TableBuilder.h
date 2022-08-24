@@ -479,8 +479,8 @@ struct BuilderHolder : InsertionPolicy<T> {
 };
 
 struct TableBuilderHelpers {
-  template <typename... ARGS>
-  static std::vector<std::shared_ptr<arrow::Field>> makeFields(std::array<char const*, sizeof...(ARGS)> const& names)
+  template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>
+  static std::vector<std::shared_ptr<arrow::Field>> makeFields(std::array<char const*, NCOLUMNS> const& names)
   {
     char const* const* names_ptr = names.data();
     return {
@@ -664,8 +664,8 @@ class TableBuilder
 
   void validate() const;
 
-  template <typename... ARGS>
-  auto makeBuilders(std::array<char const*, sizeof...(ARGS)> const& columnNames, size_t nRows)
+  template <typename... ARGS, size_t I = sizeof...(ARGS)>
+  auto makeBuilders(std::array<char const*, I> const& columnNames, size_t nRows)
   {
     mSchema = std::make_shared<arrow::Schema>(TableBuilderHelpers::makeFields<ARGS...>(columnNames));
     mHolders = new HoldersTuple<ARGS...>(TableBuilderHelpers::reserveAll(typename HolderTrait<ARGS>::Holder(mMemoryPool), nRows)...);
@@ -713,8 +713,8 @@ class TableBuilder
 
   /// Creates a lambda which is suitable to persist things
   /// in an arrow::Table
-  template <typename... ARGS>
-  auto persist(std::array<char const*, countColumns<ARGS...>()> const& columnNames)
+  template <typename... ARGS, size_t NCOLUMNS = countColumns<ARGS...>()>
+  auto persist(std::array<char const*, NCOLUMNS> const& columnNames)
   {
     using args_pack_t = framework::pack<ARGS...>;
     if constexpr (sizeof...(ARGS) == 1 &&
@@ -782,10 +782,10 @@ class TableBuilder
     return cursorHelper2<E>(typename T::table_t::persistent_columns_t{});
   }
 
-  template <typename... ARGS>
-  auto preallocatedPersist(std::array<char const*, sizeof...(ARGS)> const& columnNames, int nRows)
+  template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>
+  auto preallocatedPersist(std::array<char const*, NCOLUMNS> const& columnNames, int nRows)
   {
-    constexpr int nColumns = sizeof...(ARGS);
+    constexpr size_t nColumns = NCOLUMNS;
     validate();
     mArrays.resize(nColumns);
     makeBuilders<ARGS...>(columnNames, nRows);
@@ -797,13 +797,12 @@ class TableBuilder
     };
   }
 
-  template <typename... ARGS>
-  auto bulkPersist(std::array<char const*, sizeof...(ARGS)> const& columnNames, size_t nRows)
+  template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>
+  auto bulkPersist(std::array<char const*, NCOLUMNS> const& columnNames, size_t nRows)
   {
-    constexpr int nColumns = sizeof...(ARGS);
     validate();
     //  Should not be called more than once
-    mArrays.resize(nColumns);
+    mArrays.resize(NCOLUMNS);
     makeBuilders<ARGS...>(columnNames, nRows);
     makeFinalizer<ARGS...>();
 
@@ -812,12 +811,11 @@ class TableBuilder
     };
   }
 
-  template <typename... ARGS>
-  auto bulkPersistChunked(std::array<char const*, sizeof...(ARGS)> const& columnNames, size_t nRows)
+  template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>
+  auto bulkPersistChunked(std::array<char const*, NCOLUMNS> const& columnNames, size_t nRows)
   {
-    constexpr int nColumns = sizeof...(ARGS);
     validate();
-    mArrays.resize(nColumns);
+    mArrays.resize(NCOLUMNS);
     makeBuilders<ARGS...>(columnNames, nRows);
     makeFinalizer<ARGS...>();
 
