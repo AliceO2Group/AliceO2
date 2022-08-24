@@ -25,14 +25,13 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/LabelContainer.h"
+#include "CommonUtils/DebugStreamer.h"
 #include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCBase/Mapper.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 
 /// \struct PrevDigitInfo
@@ -42,6 +41,8 @@ struct PrevDigitInfo {
   int tot{};      ///< remaining time over threshold
 
   bool hasSignal() const { return signal != 0 || cumul != 0 || tot != 0; }
+
+  ClassDefNV(PrevDigitInfo, 1);
 };
 
 /// \class DigitGlobalPad
@@ -53,6 +54,8 @@ struct PrevDigitInfo {
 class DigitGlobalPad
 {
  public:
+  using Streamer = o2::utils::DebugStreamer;
+
   /// Constructor
   DigitGlobalPad() = default;
 
@@ -74,7 +77,7 @@ class DigitGlobalPad
                 o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>&);
 
   /// Fold signal with previous pad signal add ion tail and ToT for sigmal saturation
-  void foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time);
+  void foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time, Streamer* debugStream = nullptr);
 
   void setID(int id) { mID = id; }
   int getID() const { return mID; }
@@ -91,7 +94,7 @@ class DigitGlobalPad
                            const CRU& cru, TimeBin timeBin,
                            GlobalPadNumber globalPad,
                            o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>& labelContainer,
-                           float commonMode = 0.f, const PrevDigitInfo& prevDigit = PrevDigitInfo());
+                           float commonMode = 0.f, const PrevDigitInfo& prevDigit = PrevDigitInfo(), Streamer* debugStream = nullptr);
 
  private:
   /// Compare two MC labels regarding trackID, eventID and sourceID
@@ -125,9 +128,13 @@ inline void DigitGlobalPad::addDigit(const MCCompLabel& label, float signal,
   mChargePad += signal;
 }
 
-inline void DigitGlobalPad::foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time)
+inline void DigitGlobalPad::foldSignal(PrevDigitInfo& prevDigit, const int sector, const int pad, const TimeBin time, Streamer* debugStream)
 {
   const auto& eleParam = ParameterElectronics::Instance();
+  const float kAmp = 0.1276;  // TODO: replace with pad-by-pad value
+  const float kTime = 0.0515; // TODO: replace with pad-by-pad value
+  const float tailSlopeUnit = std::exp(-kTime);
+  const PrevDigitInfo prevDigInf = prevDigit;
 
   // Saturation tail simulation
   if (eleParam.doSaturationTail) {
@@ -141,20 +148,30 @@ inline void DigitGlobalPad::foldSignal(PrevDigitInfo& prevDigit, const int secto
 
   // ion tail simulation
   if (eleParam.doIonTail) {
-    const float kAmp = 0.1276;  // TODO: replace with pad-by-pad value
-    const float kTime = 0.0515; // TODO: replace with pad-by-pad value
-    const float tailSlopeUnit = std::exp(-kTime);
-    const auto mChargeOrig = mChargePad;
-    const auto prevCumul = prevDigit.cumul;
     mChargePad = mChargePad + kAmp * (1 - tailSlopeUnit) * prevDigit.cumul;
-    prevDigit.cumul += mChargeOrig;
+    prevDigit.cumul += prevDigInf.signal;
     prevDigit.cumul *= tailSlopeUnit;
     if (prevDigit.cumul < 0.1) {
       prevDigit.cumul = 0;
     }
   }
+  prevDigit.signal = mChargePad;
 
-  // fmt::print("sector: {}, pad: {}, time: {}, mChargeOrig: {}, mChargePad: {}, mCumul: {}, mCumulPrev: {}, mTot: {}\n", sector, pad, time, mChargeOrig, mChargePad, prevDigit.cumul, prevCumul, prevDigit.tot);
+  if (debugStream) {
+    debugStream->setStreamer("debug_digits", "UPDATE");
+    float kAmpTmp = kAmp;
+    float kTimeTmp = kTime;
+    float tailSlopeUnitTmp = tailSlopeUnit;
+    PrevDigitInfo prevDigInfTmp = prevDigInf;
+
+    debugStream->getStreamer() << debugStream->getUniqueTreeName("foldSignal").data()
+                               << "kAmp=" << kAmpTmp
+                               << "kTime=" << kTimeTmp
+                               << "tailSlopeUnit=" << tailSlopeUnitTmp
+                               << "prevDig=" << prevDigInfTmp
+                               << "dig=" << prevDigit
+                               << "\n";
+  }
 
   // TODO: propagate labels for ion tail?
 }
@@ -178,7 +195,7 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
                                                 const CRU& cru, TimeBin timeBin,
                                                 GlobalPadNumber globalPad,
                                                 o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>& labels,
-                                                float commonMode, const PrevDigitInfo& prevDigit)
+                                                float commonMode, const PrevDigitInfo& prevDigit, Streamer* debugStream)
 {
   const Mapper& mapper = Mapper::instance();
   SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
@@ -190,6 +207,20 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
 
   float noise, pedestal;
   const float mADC = sampaProcessing.makeSignal<MODE>(mChargePad, cru.sector(), globalPad, commonMode, pedestal, noise, prevDigit.tot);
+
+  if (debugStream) {
+    int sector = cru.sector();
+    float adc = mADC;
+    PrevDigitInfo prevDigitTmp = prevDigit;
+    debugStream->getStreamer() << debugStream->getUniqueTreeName("digit").data()
+                               << "sector=" << sector
+                               << "pad=" << globalPad
+                               << "charge=" << mChargePad
+                               << "adc=" << adc
+                               << "prevDig=" << prevDigitTmp
+                               << "cm=" << commonMode
+                               << "\n";
+  }
 
   /// only write out the data if there is actually charge on that pad
   if (mADC > 0) {
@@ -213,7 +244,6 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
     }
   }
 }
-} // namespace tpc
-} // namespace o2
+} // namespace o2::tpc
 
 #endif // ALICEO2_TPC_DigitGlobalPad_H_

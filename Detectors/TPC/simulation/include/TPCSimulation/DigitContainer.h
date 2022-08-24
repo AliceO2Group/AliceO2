@@ -21,14 +21,13 @@
 #include "TPCBase/CRU.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCSimulation/DigitTime.h"
+#include "CommonUtils/DebugStreamer.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
 #include "TPCBase/CDBInterface.h"
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 
 class Digit;
@@ -87,6 +86,7 @@ class DigitContainer
   TimeBin mOffset;                                            ///< Size of the container for one event
   std::deque<DigitTime*> mTimeBins;                           ///< Time bin Container for the ADC value
   std::unique_ptr<DigitTime::PrevDigitInfoArray> mPrevDigArr; ///< Keep track of ToT and ion tail cumul from last time bin
+  o2::utils::DebugStreamer mStreamer;                         ///< Debug streamer
 };
 
 inline DigitContainer::DigitContainer()
@@ -134,7 +134,6 @@ inline void DigitContainer::addDigit(const MCCompLabel& label, const CRU& cru, T
   mTimeBins[mEffectiveTimeBin]->addDigit(label, cru, globalPad, signal);
 }
 
-} // namespace tpc
-} // namespace o2
+} // namespace o2::tpc
 
 #endif // ALICEO2_TPC_DigitContainer_H_
