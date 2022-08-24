@@ -127,26 +127,26 @@ void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoCont
   uint32_t orbitPrev = 0;
   uint16_t bcPrev = 0;
   std::cout << "I am here 2" << std::endl;
-  //~ for (auto& trdrec : triggerrecordTRD) {
-  //~ auto orbitPrevT = orbitPrev;
-  //~ auto bcPrevT = bcPrev;
-  //~ bcPrev = trdrec.getBCData().bc;
-  //~ orbitPrev = trdrec.getBCData().orbit;
-  //~ if (orbitPrev < orbitPrevT || bcPrev >= o2::constants::lhc::LHCMaxBunches || (orbitPrev == orbitPrevT && bcPrev < bcPrevT)) {
-  //~ cntwarnings++;
-  //~ // LOGP(warning, "Bogus TRD trigger at bc:{}/orbit:{} (previous was {}/{}), with {} tracklets and {} digits",bcPrev, orbitPrev, bcPrevT, orbitPrevT, trig.getNumberOfTracklets(), trig.getNumberOfDigits());
-  //~ } else {
-  //~ uint64_t globalBC = trdrec.getBCData().toLong();
-  //~ auto t0entry = bcsMapT0triggers.find(globalBC);
-  //~ if (t0entry != bcsMapT0triggers.end()) {
-  //~ auto& ctpdig = ctpDigits.emplace_back();
-  //~ ctpdig.intRecord.setFromLong(globalBC);
-  //~ ctpdig.CTPClassMask = t0entry->second;
-  //~ } else {
-  //~ LOG(warning) << "Found trd and no MTVX:" << globalBC;
-  //~ }
-  //~ }
-  //~ }
+  for (auto& trdrec : triggerrecordTRD) {
+    auto orbitPrevT = orbitPrev;
+    auto bcPrevT = bcPrev;
+    bcPrev = trdrec.getBCData().bc;
+    orbitPrev = trdrec.getBCData().orbit;
+    if (orbitPrev < orbitPrevT || bcPrev >= o2::constants::lhc::LHCMaxBunches || (orbitPrev == orbitPrevT && bcPrev < bcPrevT)) {
+      cntwarnings++;
+      // LOGP(warning, "Bogus TRD trigger at bc:{}/orbit:{} (previous was {}/{}), with {} tracklets and {} digits",bcPrev, orbitPrev, bcPrevT, orbitPrevT, trig.getNumberOfTracklets(), trig.getNumberOfDigits());
+    } else {
+      uint64_t globalBC = trdrec.getBCData().toLong();
+      auto t0entry = bcsMapT0triggers.find(globalBC);
+      if (t0entry != bcsMapT0triggers.end()) {
+        auto& ctpdig = ctpDigits.emplace_back();
+        ctpdig.intRecord.setFromLong(globalBC);
+        ctpdig.CTPClassMask = t0entry->second;
+      } else {
+        LOG(warning) << "Found trd and no MTVX:" << globalBC;
+      }
+    }
+  }
   LOG(info) << "# of TRD bogus triggers:" << cntwarnings;
 }
 
