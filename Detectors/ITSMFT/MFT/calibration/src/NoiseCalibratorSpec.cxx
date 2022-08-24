@@ -113,7 +113,7 @@ void NoiseCalibratorSpec::setOutputDcs(const o2::itsmft::NoiseMap& payload)
         if (!payload.isNoisy(iChip, iRow, iCol)) {
           continue;
         }
-        std::array<int, 4> noise = {iChip, iRow, iCol, 0};
+        std::array<int, 3> noise = {iChip, iRow, iCol};
         mNoiseMapForDcs.emplace_back(noise);
       }
     }
