@@ -1192,6 +1192,9 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
     auto newEnd = std::remove_if(pollOrder.begin(), pollOrder.end(), [&infos, limitNew = currentOldest.value + ahead](int a) -> bool {
       return infos[a].oldestForChannel.value > limitNew;
     });
+    if (newEnd != pollOrder.end()) {
+      context.allDone = false;
+    }
     pollOrder.erase(newEnd, pollOrder.end());
   }
   LOGP(debug, "processing {} channels", pollOrder.size());
