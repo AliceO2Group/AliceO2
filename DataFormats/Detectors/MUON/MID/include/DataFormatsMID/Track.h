@@ -143,19 +143,26 @@ class Track
   /// Gets the word allowing to compute the chamber efficiency
   uint32_t getEfficiencyWord() const { return mEfficiencyWord; }
 
-  /// Sets the fired local board for efficiency calculation
-  /// \param locId local board ID in the range 1-234
-  void setFiredLocalBoard(int locId) { setEfficiencyWord(8, 0xFF, locId); }
+  /// Sets the fired FEE ID
+  void setFiredFEEId(int uniqueFeeId) { setEfficiencyWord(8, 0x7FFF, uniqueFeeId); }
+
+  /// Gets the fired FEE ID
+  int getFiredFEEId() const { return (mEfficiencyWord >> 8) & 0x7FFF; }
 
   /// Gets the fired local board for efficiency calculation
-  int getFiredLocalBoard() const { return (mEfficiencyWord >> 8) & 0xFF; }
+  [[deprecated]] int getFiredLocalBoard() const { return (mEfficiencyWord >> 8) & 0xFF; }
 
-  /// Sets the fired detection element ID for efficiency calculation
-  /// \param deId detection element ID in the range 1-234
-  void setFiredDeId(int deId) { setEfficiencyWord(16, 0xFF, deId); }
+  /// Gets the fired Detection Element ID
+  int getFiredDEId() const { return (mEfficiencyWord >> 16) & 0x7F; }
 
-  /// Gets the fired detection element ID for efficiency calculation
-  int getFiredDeId() const { return (mEfficiencyWord >> 16) & 0xFF; }
+  /// Gets the fired Detection Element ID
+  [[deprecated("Use getFiredDEId instead")]] int getFiredDeId() const { return getFiredDEId(); }
+
+  /// Gets the fired column ID
+  int getFiredColumnId() const { return (mEfficiencyWord >> 12) & 0x7; }
+
+  /// Gets the fired line ID
+  int getFiredLineId() const { return (mEfficiencyWord >> 8) & 0x3; }
 
   /// Sets the flag for efficiency calculation
   /// \param effFlag efficiency flag
