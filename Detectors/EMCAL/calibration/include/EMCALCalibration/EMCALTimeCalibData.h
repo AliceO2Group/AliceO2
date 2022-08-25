@@ -41,15 +41,6 @@ namespace o2
 namespace emcal
 {
 
-// class containing the initialization parameters for histograms (time bins/range etc.)
-struct TimeCalibInitParams {
- public:
-  unsigned int mTimeBins = 1500;
-  std::array<float, 2> mTimeRange = {-500., 1000.}; // time range in ns
-  unsigned int mEnergyBins = 5000;
-  std::array<float, 2> mEnergyRange = {0., 50.}; // energy range in GeV
-};
-
 class EMCALTimeCalibData
 {
  public:
@@ -59,10 +50,13 @@ class EMCALTimeCalibData
   o2::emcal::Geometry* mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
   int NCELLS = mGeometry->GetNCells();
 
-  EMCALTimeCalibData(const TimeCalibInitParams& par)
+  EMCALTimeCalibData()
   {
     // boost histogram with amplitude vs. cell ID, specify the range and binning of the amplitude axis
-    mTimeHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(par.mTimeBins, par.mTimeRange.at(0), par.mTimeRange.at(1), "t (ns)"), boost::histogram::axis::regular<>(NCELLS, -0.5, NCELLS - 0.5, "CELL ID"));
+    int nBins = EMCALCalibParams::Instance().nBinsTimeAxis_tc;
+    int minValTime = EMCALCalibParams::Instance().minValueTimeAxis_tc;
+    int maxValTime = EMCALCalibParams::Instance().maxValueTimeAxis_tc;
+    mTimeHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(nBins, minValTime, maxValTime, "t (ns)"), boost::histogram::axis::regular<>(NCELLS, -0.5, NCELLS - 0.5, "CELL ID"));
     LOG(debug) << "initialize time histogram with " << NCELLS << " cells";
   }
 
@@ -102,8 +96,7 @@ class EMCALTimeCalibData
   o2::emcal::TimeCalibrationParams process();
 
  private:
-  boostHisto mTimeHisto;                ///< histogram with cell time vs. cell ID
-  TimeCalibInitParams mTimeCalibParams; ///< initialization parameters for histogram
+  boostHisto mTimeHisto; ///< histogram with cell time vs. cell ID
 
   int mEvents = 0;                        ///< current number of events
   long unsigned int mNEntriesInHisto = 0; ///< number of entries in histogram

@@ -46,11 +46,6 @@ namespace emcal
 {
 class EMCALCalibExtractor;
 
-struct ChannelCalibInitParams {
-  unsigned int nbins = 1000;
-  std::array<float, 2> range = {0, 0.35};
-};
-
 class EMCALChannelData
 {
   //using Slot = o2::calibration::TimeSlot<o2::emcal::EMCALChannelData>;
@@ -63,7 +58,7 @@ class EMCALChannelData
   o2::emcal::Geometry* mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
   int NCELLS = mGeometry->GetNCells();
 
-  EMCALChannelData(const ChannelCalibInitParams& hist) : mNBins(hist.nbins), mRange(1)
+  EMCALChannelData() : mNBins(EMCALCalibParams::Instance().nBinsEnergyAxis_bc), mRange(EMCALCalibParams::Instance().maxValueEnergyAxis_bc)
   {
     // boost histogram with amplitude vs. cell ID, specify the range and binning of the amplitude axis
     mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBins, 0, mRange, "t-texp"), boost::histogram::axis::integer<>(0, NCELLS, "CELL ID"));
@@ -112,10 +107,10 @@ class EMCALChannelData
   void setNEntriesInHisto(long unsigned int n) { mNEntriesInHisto = n; }
 
  private:
-  float mRange = 0.35; // looked at old QA plots where max was 0.35 GeV, might need to be changed
-  int mNBins = 1000;
-  boostHisto mHisto;
-  int mEvents = 0;
+  float mRange = 10;                                    ///< Maximum energy range of boost histogram (will be overwritten by values in the EMCALCalibParams)
+  int mNBins = 1000;                                    ///< Number of bins in the boost histogram (will be overwritten by values in the EMCALCalibParams)
+  boostHisto mHisto;                                    ///< 2d boost histogram with cellID vs cell energy
+  int mEvents = 0;                                      ///< event counter
   long unsigned int mNEntriesInHisto = 0;               ///< Number of entries in the histogram
   boostHisto mEsumHisto;                                ///< contains the average energy per hit for each cell
   boostHisto mEsumHistoScaled;                          ///< contains the average energy (scaled) per hit for each cell
