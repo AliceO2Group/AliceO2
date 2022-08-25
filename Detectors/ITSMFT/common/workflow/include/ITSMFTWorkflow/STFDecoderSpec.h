@@ -25,6 +25,7 @@
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
+#include "ITSMFTReconstruction/PixelChipSquasher.h"
 
 using namespace o2::framework;
 
@@ -43,6 +44,7 @@ struct STFDecoderInp {
   bool doPatterns = true;
   bool doDigits = false;
   bool doCalib = false;
+  bool doSquashing = false;
   bool askSTFDist = true;
   bool allowReporting = true;
   o2::header::DataOrigin origin{"NIL"};
@@ -72,6 +74,7 @@ class STFDecoder : public Task
   bool mDoPatterns = false;
   bool mDoDigits = false;
   bool mDoCalibData = false;
+  bool mDoSquashing = false;
   bool mUnmutExtraLanes = false;
   bool mFinalizeDone = false;
   bool mAllowReporting = true;
@@ -90,6 +93,7 @@ class STFDecoder : public Task
   std::string mSelfName;
   std::unique_ptr<RawPixelDecoder<Mapping>> mDecoder;
   std::unique_ptr<Clusterer> mClusterer;
+  std::unique_ptr<PixelChipSquasher> mSquasher;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
 };
 

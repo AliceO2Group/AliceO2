@@ -45,7 +45,7 @@ using namespace o2::framework;
 ///_______________________________________
 template <class Mapping>
 STFDecoder<Mapping>::STFDecoder(const STFDecoderInp& inp, std::shared_ptr<o2::base::GRPGeomRequest> gr)
-  : mDoClusters(inp.doClusters), mDoPatterns(inp.doPatterns), mDoDigits(inp.doDigits), mDoCalibData(inp.doCalib), mAllowReporting(inp.allowReporting), mInputSpec(inp.inputSpec), mGGCCDBRequest(gr)
+  : mDoClusters(inp.doClusters), mDoPatterns(inp.doPatterns), mDoDigits(inp.doDigits), mDoCalibData(inp.doCalib), mDoSquashing(inp.doSquashing), mAllowReporting(inp.allowReporting), mInputSpec(inp.inputSpec), mGGCCDBRequest(gr)
 {
   mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "STFDecoder");
   mTimer.Stop();
@@ -148,14 +148,22 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 
   mDecoder->setDecodeNextAuto(false);
   while (mDecoder->decodeNextTrigger()) {
-    if (mDoDigits) {                                    // call before clusterization, since the latter will hide the digits
-      mDecoder->fillDecodedDigits(digVec, digROFVec);   // lot of copying involved
+    if (mDoDigits || mDoSquashing) {                  // call before clusterization, since the latter will hide the digits
+      mDecoder->fillDecodedDigits(digVec, digROFVec); // lot of copying involved
       if (mDoCalibData) {
         mDecoder->fillCalibData(calVec);
       }
     }
-    if (mDoClusters) { // !!! THREADS !!!
+    if (mDoClusters && !mDoSquashing) { // !!! THREADS !!!
       mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
+    }
+  }
+
+  if (mDoSquashing) {
+    if (mDoClusters) {
+      // Squash digits
+      mSquasher->process(digVec, digROFVec);
+      // Run clusterer on all PixelChipData entries per TF
     }
   }
 
@@ -170,7 +178,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     }
   }
 
-  if (mDoClusters) {                                                                  // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
+  if (mDoClusters) { // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
     pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
     pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
     pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);

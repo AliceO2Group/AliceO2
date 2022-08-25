@@ -29,6 +29,7 @@ o2_add_library(ITSMFTReconstruction
                        src/RawPixelDecoder.cxx
                        src/CTFCoder.cxx
                        src/DecodingStat.cxx
+                       src/PixelChipSquasher.cxx
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
                                      O2::CommonDataFormat
                                      O2::DetectorsRaw
