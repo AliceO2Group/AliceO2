@@ -53,10 +53,8 @@ void GRPECSObject::print() const
     printf("\n");
   }
   printf("List of FLPs used\n");
-  for (size_t flpId = 0; flpId < mFLPs.size(); ++flpId) {
-    if (mFLPs.test(flpId)) {
-      printf("%3zu ", flpId);
-    }
+  for (auto flp : mFLPs) {
+    printf("%3hu ", flp);
   }
   printf("\n");
 }
