@@ -30,7 +30,7 @@ struct MeanVertexData {
   std::vector<std::array<float, 3>> histoVtx{0};
   bool mVerbose = false;
 
-  MeanVertexData();
+  MeanVertexData() = default;
 
   ~MeanVertexData()
   {

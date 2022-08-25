@@ -27,12 +27,6 @@ using PVertex = o2::dataformats::PrimaryVertex;
 using clbUtils = o2::calibration::Utils;
 
 //_____________________________________________
-MeanVertexData::MeanVertexData()
-{
-  LOG(info) << "Default c-tor, not to be used";
-}
-
-//_____________________________________________
 void MeanVertexData::print() const
 {
   LOG(info) << entries << " entries";
