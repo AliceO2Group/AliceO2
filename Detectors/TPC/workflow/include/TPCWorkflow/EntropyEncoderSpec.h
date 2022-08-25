@@ -29,7 +29,7 @@ namespace tpc
 class EntropyEncoderSpec : public o2::framework::Task
 {
  public:
-  EntropyEncoderSpec(bool fromFile) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mFromFile(fromFile)
+  EntropyEncoderSpec(bool fromFile, bool selIR = false) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mFromFile(fromFile), mSelIR(selIR)
   {
     mTimer.Stop();
     mTimer.Reset();
@@ -43,11 +43,12 @@ class EntropyEncoderSpec : public o2::framework::Task
  private:
   o2::tpc::CTFCoder mCTFCoder;
   bool mFromFile = false;
+  bool mSelIR = false;
   TStopwatch mTimer;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile);
+framework::DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR = false);
 
 } // end namespace tpc
 } // end namespace o2

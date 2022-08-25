@@ -14,6 +14,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "CommonUtils/NameConf.h"
+#include "CommonUtils/IRFrameSelector.h"
 #include "MIDCTF/CTFCoder.h"
 #include "DataFormatsMID/CTF.h"
 #include "Framework/Logger.h"
@@ -65,7 +66,8 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     tfData.colData[i] = {colData[i].data(), colData[i].size()};
     tfData.rofData[i] = {rofData[i].data(), rofData[i].size()};
   }
-  tfData.buildReferences();
+  o2::utils::IRFrameSelector irSelector;
+  tfData.buildReferences(irSelector);
 
   sw.Start();
   std::vector<o2::ctf::BufferType> vec;

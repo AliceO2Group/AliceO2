@@ -24,6 +24,10 @@
 
 namespace o2
 {
+namespace utils
+{
+class IRFrameSelector;
+}
 namespace mid
 {
 
@@ -37,7 +41,7 @@ class CTFHelper
     std::vector<OrderRef> rofDataRefs{};
     std::array<gsl::span<const o2::mid::ColumnData>, NEvTypes> colData{};
     std::array<gsl::span<const o2::mid::ROFRecord>, NEvTypes> rofData{};
-    void buildReferences();
+    void buildReferences(o2::utils::IRFrameSelector& irSelector);
   };
 
   CTFHelper(const TFData& data) : mTFData(data) {}

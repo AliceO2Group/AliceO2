@@ -49,7 +49,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"select-with-triggers", o2::framework::VariantType::String, "none", {"use triggers to prescale processed ROFs: phys, trd, none"}},
     {"tracking-mode", o2::framework::VariantType::String, "sync", {"sync,async,cosmics"}},
     {"disable-tracking", o2::framework::VariantType::Bool, false, {"disable tracking step"}},
-    {"entropy-encoding", o2::framework::VariantType::Bool, false, {"produce entropy encoded data"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"gpuDevice", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -72,7 +71,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto extDigits = configcontext.options().get<bool>("digits-from-upstream");
   auto extClusters = configcontext.options().get<bool>("clusters-from-upstream");
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
-  auto eencode = configcontext.options().get<bool>("entropy-encoding");
   if (configcontext.options().get<bool>("disable-tracking")) {
     trmode = "";
   }
@@ -89,8 +87,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       LOG(fatal) << "Unknown trigger type requested for events prescaling: " << selTrig;
     }
   }
-
-  auto wf = o2::its::reco_workflow::getWorkflow(useMC, useCAtracker, trmode, gpuDevice, extDigits, extClusters, disableRootOutput, trType, eencode);
+  auto wf = o2::its::reco_workflow::getWorkflow(useMC, useCAtracker, trmode, gpuDevice, extDigits, extClusters, disableRootOutput, trType);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);

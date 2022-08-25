@@ -54,7 +54,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
     {"input-type", o2::framework::VariantType::String, "digits", {"digits, raw, clusters"}},
-    {"output-type", o2::framework::VariantType::String, "clusters", {"digits, clusters, raw, ctf"}},
+    {"output-type", o2::framework::VariantType::String, "clusters", {"digits, clusters, raw"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information, TBI"}},
     {"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}},
     {"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}},
@@ -104,7 +104,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool writecluster = 0;
   bool writedigit = 0;
   bool writeraw = 0;
-  bool writectf = 0;
   bool writeerr = 0;
 
   if (outputType.rfind("clusters") < outputType.size()) {
@@ -115,9 +114,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
   if (outputType.rfind("raw") < outputType.size()) {
     writeraw = 1;
-  }
-  if (outputType.rfind("ctf") < outputType.size()) {
-    writectf = 1;
   }
 
   bool dgtinput = 0;
@@ -198,11 +194,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
       LOG(debug) << "Insert TOF Cluster Writer";
       specs.emplace_back(o2::tof::getTOFClusterWriterSpec(useMC));
     }
-  }
-
-  if (writectf) {
-    LOG(debug) << "Insert TOF CTF encoder";
-    specs.emplace_back(o2::tof::getEntropyEncoderSpec());
   }
 
   LOG(debug) << "Number of active devices = " << specs.size();

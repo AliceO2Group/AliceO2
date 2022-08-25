@@ -140,3 +140,10 @@ void IRFrameSelector::print(bool lst) const
     }
   }
 }
+
+void IRFrameSelector::clear()
+{
+  mIsSet = false;
+  mOwnList.clear();
+  mFrames = {};
+}
