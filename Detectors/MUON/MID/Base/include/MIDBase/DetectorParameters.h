@@ -58,6 +58,29 @@ int getDEId(bool isRight, int chamber, int rpc);
 /// Gets the detection element name from its ID
 /// \param deId The detection element ID
 std::string getDEName(int deId);
+
+/// Gets the unique Front-End Electronics ID
+/// \param deId The detection element ID
+/// \param columnId Column ID
+/// \param lineId Line in column
+/// \return unique FEE ID
+inline int getUniqueFEEId(int deId, int columnId, int lineId) { return lineId | (columnId << 4) | (deId << 8); }
+
+/// Gets the detection element ID from the unique FEE ID
+/// \param uniqueFEEId Unique FEE ID
+/// \return Detection element ID
+inline int getDEIdFromFEEId(int uniqueFEEId) { return (uniqueFEEId >> 8) & 0x7F; }
+
+/// Gets the column ID from the unique FEE ID
+/// \param uniqueFEEId Unique FEE ID
+/// \return Column ID
+inline int getColumnIdFromFEEId(int uniqueFEEId) { return (uniqueFEEId >> 4) & 0x7; }
+
+/// Gets the line ID from the unique FEE ID
+/// \param uniqueFEEId Unique FEE ID
+/// \return Line ID
+inline int getLineIdFromFEEId(int uniqueFEEId) { return uniqueFEEId & 0x3; }
+
 } // namespace detparams
 } // namespace mid
 } // namespace o2

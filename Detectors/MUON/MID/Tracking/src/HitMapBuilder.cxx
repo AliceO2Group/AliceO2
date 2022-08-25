@@ -46,10 +46,18 @@ bool HitMapBuilder::crossCommonElement(const std::vector<int>& fired, const std:
   return false;
 }
 
-int HitMapBuilder::getEffFlag(const std::vector<int>& firedRPCLines, const std::vector<int>& nonFiredRPCLines, const std::vector<int>& firedLocIds, const std::vector<int>& nonFiredLocIds) const
+int HitMapBuilder::getEffFlag(const std::vector<int>& firedFEEIdMT11, const std::vector<int>& nonFiredFEEIdMT11) const
 {
+  std::vector<int> firedRPCLines, nonFiredRPCLines;
+  for (auto& feeId : firedFEEIdMT11) {
+    firedRPCLines.emplace_back(detparams::getDEIdFromFEEId(feeId));
+  }
+  for (auto& feeId : nonFiredFEEIdMT11) {
+    nonFiredRPCLines.emplace_back(detparams::getDEIdFromFEEId(feeId));
+  }
+
   if (crossCommonElement(firedRPCLines, nonFiredRPCLines)) {
-    if (crossCommonElement(firedLocIds, nonFiredLocIds)) {
+    if (crossCommonElement(firedFEEIdMT11, nonFiredFEEIdMT11)) {
       return 3;
     }
     return 2;
@@ -57,27 +65,25 @@ int HitMapBuilder::getEffFlag(const std::vector<int>& firedRPCLines, const std::
   return 1;
 }
 
-int HitMapBuilder::getLocId(double xp, double yp, uint8_t deId) const
+int HitMapBuilder::getFEEIdMT11(double xp, double yp, uint8_t deId) const
 {
   auto stripIndex = mMapping.stripByPosition(xp, yp, 0, deId, false);
   if (stripIndex.isValid()) {
-    return mMapping.getBoardId(stripIndex.line, stripIndex.column, deId);
+    auto deIdMT11 = detparams::getDEId(detparams::isRightSide(deId), 0, detparams::getRPCLine(deId));
+    return detparams::getUniqueFEEId(deIdMT11, stripIndex.column, stripIndex.line);
   }
-  return 0;
+  return -1;
 }
 
 void HitMapBuilder::buildTrackInfo(Track& track, gsl::span<const Cluster> clusters) const
 {
-  std::vector<int> firedLocIds, nonFiredLocIds;
-  std::vector<int> firedDeIds, firedRPCLines, nonFiredRPCLines;
+  std::vector<int> firedFEEIdMT11, nonFiredFEEIdMT11;
   bool outsideAcceptance = false;
   for (int ich = 0; ich < 4; ++ich) {
     auto icl = track.getClusterMatchedUnchecked(ich);
     if (icl >= 0) {
       auto& cl = clusters[icl];
-      firedDeIds.emplace_back(cl.deId);
-      firedRPCLines.emplace_back(detparams::getRPCLine(cl.deId));
-      firedLocIds.emplace_back(getLocId(cl.xCoor, cl.yCoor, cl.deId));
+      firedFEEIdMT11.emplace_back(getFEEIdMT11(cl.xCoor, cl.yCoor, cl.deId));
       // auto localPt = mHitFinder.getGeometryTransformer().globalToLocal(cl.deId, cl.xCoor, cl.yCoor, cl.zCoor);
       for (int icath = 0; icath < 2; ++icath) {
         if (cl.isFired(icath)) {
@@ -87,20 +93,17 @@ void HitMapBuilder::buildTrackInfo(Track& track, gsl::span<const Cluster> cluste
     } else {
       auto impactPts = mHitFinder.getLocalPositions(track, ich);
       for (auto& impactPt : impactPts) {
-        nonFiredRPCLines.emplace_back(detparams::getRPCLine(impactPt.deId));
-        nonFiredLocIds.emplace_back(getLocId(impactPt.xCoor, impactPt.yCoor, impactPt.deId));
-        if (nonFiredLocIds.back() == 0) {
+        auto feeIdMT11 = getFEEIdMT11(impactPt.xCoor, impactPt.yCoor, impactPt.deId);
+        if (feeIdMT11 >= 0) {
+          nonFiredFEEIdMT11.emplace_back(feeIdMT11);
+        } else {
           outsideAcceptance = true;
         }
       }
     }
   }
-  track.setFiredDeId(firedDeIds.front());
-  track.setFiredLocalBoard(firedLocIds.front());
-  int effFlag = 0;
-  if (!outsideAcceptance) {
-    effFlag = getEffFlag(firedRPCLines, nonFiredRPCLines, firedLocIds, nonFiredLocIds);
-  }
+  track.setFiredFEEId(firedFEEIdMT11.front());
+  int effFlag = outsideAcceptance ? 0 : getEffFlag(firedFEEIdMT11, nonFiredFEEIdMT11);
   track.setEfficiencyFlag(effFlag);
 }
 

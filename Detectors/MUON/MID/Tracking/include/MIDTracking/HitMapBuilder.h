@@ -65,14 +65,14 @@ class HitMapBuilder
   /// \param firedLocIds Vector of fired Local board Ids
   /// \param nonFiredLocIds Vector of non-fired Local board Ids
   /// \return the efficiency flag
-  int getEffFlag(const std::vector<int>& firedRPCLines, const std::vector<int>& nonFiredRPCLines, const std::vector<int>& firedLocIds, const std::vector<int>& nonFiredLocIds) const;
+  int getEffFlag(const std::vector<int>& firedFEEIdMT11, const std::vector<int>& nonFiredFEEIdMT11) const;
 
-  /// Function to extract the local board ID of the cluster
-  /// \param xp cluster x coordinate
-  /// \param yp cluster y coordinate
-  /// \param deId cluster Detection Element ID
-  /// \return the Local board ID
-  int getLocId(double xp, double yp, uint8_t deId) const;
+  /// Returns the FEE ID in MT11
+  /// \param xp x position
+  /// \param yp y position
+  /// \param deId Detector element ID
+  /// \return The FEE ID in MT11
+  int getFEEIdMT11(double xp, double yp, uint8_t deId) const;
 
   Mapping mMapping;     ///< Mapping
   HitFinder mHitFinder; ///< Hit finder
