@@ -1149,7 +1149,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   }
   // Whether or not we had something to do.
 
-  // Initialize the value for context.allDone it will be possibly updated
+  // Initialise the value for context.allDone. It will possibly be updated
   // below if any of the channels is not done.
   //
   // Notice that fake input channels (InputChannelState::Pull) cannot possibly
