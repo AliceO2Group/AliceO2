@@ -11,6 +11,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <bitset>
 #include "fairlogger/Logger.h"
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/LinkRecord.h"
@@ -251,17 +252,29 @@ bool sanityCheckTrackletMCMHeader(o2::trd::TrackletMCMHeader* header)
   return goodheader;
 }
 
-bool sanityCheckDigitMCMHeader(o2::trd::DigitMCMHeader* header)
+bool sanityCheckDigitMCMHeader(const o2::trd::DigitMCMHeader* header)
 {
   // a bit limited to what we can check.
-  bool goodheader = true;
   if (header->res != 0xc) {
-    goodheader = false;
+    return false;
   }
   if (header->yearflag == 0) { //we only have data after 2007 now in run3.
-    goodheader = false;
+    return false;
   }
-  return goodheader;
+  return true;
+}
+
+bool sanityCheckDigitMCMADCMask(const o2::trd::DigitMCMADCMask& mask)
+{
+  if (mask.n != 0x1) {
+    return false;
+  }
+  if (mask.j != 0xc) {
+    return false;
+  }
+  int counter = (~mask.c) & 0x1f;
+  std::bitset<NADCMCM> headerMask(mask.adcmask);
+  return (counter == headerMask.count());
 }
 
 bool sanityCheckDigitMCMADCMask(o2::trd::DigitMCMADCMask& mask, int numberofbitsset)
@@ -294,7 +307,7 @@ bool sanityCheckDigitMCMWord(o2::trd::DigitMCMData* word, int adcchannel)
 {
   bool gooddata = true;
   // DigitMCMWord0x3 is odd 10 for odd adc channels and 11 for even, counted as the first of the 3.
-  switch (word->c) {
+  switch (word->f) {
     case 3: // even adc channnel
       if (adcchannel % 2 == 0) {
         gooddata = true;
@@ -329,8 +342,8 @@ void printDigitMCMHeader(o2::trd::DigitMCMHeader& digitmcmhead)
 
 void printDigitMCMData(o2::trd::DigitMCMData& digitmcmdata)
 {
-  LOGF(info, "DigitMCMRawData: Raw:0x%08x res(0xc):0x%02x x: 0x%04x y: 0x%04x z 0x%04x ",
-       digitmcmdata.word, digitmcmdata.c, digitmcmdata.x, digitmcmdata.y, digitmcmdata.z);
+  LOGF(info, "DigitMCMRawData: Raw:0x%08x res:0x%x x: 0x%03x y: 0x%03x z 0x%03x ",
+       digitmcmdata.word, digitmcmdata.f, digitmcmdata.x, digitmcmdata.y, digitmcmdata.z);
 }
 void printDigitMCMADCMask(o2::trd::DigitMCMADCMask& digitmcmadcmask)
 {

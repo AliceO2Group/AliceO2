@@ -344,7 +344,7 @@ int Trap2CRU::buildDigitRawData(const int digitstartindex, const int digitendind
       data.z = adcdata[timebin];
       data.y = adcdata[timebin + 1];
       data.x = adcdata[timebin + 2];
-      data.c = (channel % 2 == 0) ? 0x3 : 0x2;                 // 3 for even channel 2 for odd channel
+      data.f = (channel % 2 == 0) ? 0x3 : 0x2;                 // 3 for even channel 2 for odd channel
       memcpy(mRawDataPtr, (char*)&data, sizeof(DigitMCMData)); // uint32 -- 4 bytes.
       mRawDataPtr += sizeof(DigitMCMData);
       digitwordswritten++;

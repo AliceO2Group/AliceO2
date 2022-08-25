@@ -16,19 +16,15 @@
 #ifndef O2_TRD_CRURAWREADER
 #define O2_TRD_CRURAWREADER
 
-#include <fstream>
-#include <iostream>
 #include <string>
 #include <cstdint>
+#include <bitset>
 #include <array>
-#include <vector>
-#include <chrono>
 #include "Headers/RAWDataHeader.h"
 #include "Headers/RDHAny.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/RawDataStats.h"
-#include "TRDReconstruction/DigitsParser.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/Digit.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -83,15 +79,18 @@ class CruRawReader
   void clearall()
   {
     mEventRecords.clear();
-    mDigitsParser.clear();
   }
 
-  enum TrackletParserState { StateTrackletHCHeader,
-                             StateTrackletMCMHeader,
-                             StateTrackletMCMData,
-                             StateMoveToEndMarker,
-                             StateSecondEndmarker,
-                             StateFinished };
+  // both the tracklet and the digit parsing is implemented as a state machine
+  enum ParsingState { StateTrackletHCHeader,
+                      StateTrackletMCMHeader,
+                      StateTrackletMCMData,
+                      StateDigitMCMHeader,
+                      StateDigitADCMask,
+                      StateDigitMCMData,
+                      StateMoveToEndMarker,
+                      StateSecondEndmarker,
+                      StateFinished };
 
  private:
   // the parsing starts here, payload from all available RDHs is copied into mHBFPayload and afterwards processHalfCRU() is called
@@ -119,6 +118,8 @@ class CruRawReader
   // returns total number of words read (no matter if parsed successfully or not)
   int parseTrackletLinkData(int linkSize32, int& hcid, int& trackletWordsRejected);
 
+  int parseDigitLinkData(int maxWords32, int hcid, int& digitWordsRejected);
+
   // check validity of TrackletHCHeader (always once bit needs to be set and hcid needs to be consistent with what we expect from RDH)
   // FIXME currently hcid can be overwritten from TrackletHCHeader
   bool isTrackletHCHeaderOK(const TrackletHCHeader& header, int& hcid);
@@ -136,9 +137,6 @@ class CruRawReader
   // helper function to dump the whole input payload including RDH headers
   void dumpInputPayload() const;
 
-  // dump out a link with in a half cru buffer
-  void outputLinkRawData(int link);
-
   // ###############################################################
   // ## class member variables
   // ###############################################################
@@ -149,7 +147,7 @@ class CruRawReader
   int mHalfChamberMajor{0};
   std::bitset<16> mOptions;
 
-  std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX> mHBFPayload; // this holds the O2 payload held with in the HBFs to pass to parsing.
+  std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX> mHBFPayload; // the full input data payload excluding the RDH header(s)
 
   uint32_t mTotalTrackletsFound{0}; // accumulated number of tracklets found
   uint32_t mTotalDigitsFound{0};    // accumulated number of digits found
@@ -169,15 +167,14 @@ class CruRawReader
   HalfCRUHeader mCurrentHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on
   HalfCRUHeader mPreviousHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on
   DigitHCHeader mDigitHCHeader;         // Digit HalfChamber header we are currently on.
-  uint16_t mTimeBins;                  // the number of time bins to be read out (default 30, can be overwritten from digit HC header)
-  bool mHaveSeenDigitHCHeader3{false};
+  uint16_t mTimeBins{constants::TIMEBINS}; // the number of time bins to be read out (default 30, can be overwritten from digit HC header)
+  bool mHaveSeenDigitHCHeader3{false};     // flag, whether we can compare an incoming DigitHCHeader3 with a header we have seen before
   uint32_t mPreviousDigitHCHeadersvnver;  // svn ver in the digithalfchamber header, used for validity checks
   uint32_t mPreviousDigitHCHeadersvnrver; // svn release ver also used for validity checks
-  TrackletHCHeader mTrackletHCHeader;  // Tracklet HalfChamber header we are currently on.
-  uint16_t mCurrentLink;               // current link within the halfcru we are parsing 0-14
-  uint16_t mCRUEndpoint;               // the upper or lower half of the currently parsed cru 0-14 or 15-29
-  uint16_t mCRUID;                     // CRU ID taken from the FEEID of the RDH
-  TRDFeeID mFEEID; // current Fee ID working on
+
+  uint16_t mCRUEndpoint; // the upper or lower half of the currently parsed cru 0-14 or 15-29
+  uint16_t mCRUID;       // CRU ID taken from the FEEID of the RDH
+  TRDFeeID mFEEID;       // current Fee ID working on
 
   o2::InteractionRecord mIR;
   std::array<uint32_t, 15> mCurrentHalfCRULinkLengths;
@@ -192,8 +189,6 @@ class CruRawReader
   uint32_t mTotalTrackletWordsRead = 0;
   uint32_t mWordsRejected = 0; // those words rejected before tracklet and digit parsing together with the digit and tracklet rejected words;
   uint32_t mWordsAccepted = 0; // those words before before tracklet and digit parsing together with the digit and tracklet rejected words;
-
-  DigitsParser mDigitsParser;
 
   EventStorage mEventRecords; // store data range indexes into the above vectors.
   EventRecord* mCurrentEvent; // the current event we are looking at, info extracted from cru half chamber header.
