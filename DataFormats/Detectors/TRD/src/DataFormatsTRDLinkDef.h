@@ -23,6 +23,7 @@
 #pragma link C++ struct o2::trd::TrackletHCHeader + ;
 #pragma link C++ struct o2::trd::TrackletMCMHeader + ;
 #pragma link C++ struct o2::trd::TrackletMCMData + ;
+// TODO add also digit data types and ClassDefNV etc...
 #pragma link C++ class o2::trd::Tracklet64 + ;
 #pragma link C++ class o2::trd::CalibratedTracklet + ;
 #pragma link C++ class o2::trd::Hit + ;

@@ -16,6 +16,7 @@
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/LinkRecord.h"
 #include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/HelperMethods.h"
 
 using namespace o2::trd::constants;
 
@@ -143,9 +144,9 @@ std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru)
 void constructTrackletHCHeader(TrackletHCHeader& header, int hcid, int chipclock, int format)
 {
   int detector = hcid / 2;
-  int sector = (detector % (NLAYER * NSTACK));
-  int stack = (detector % NLAYER);
-  int layer = ((detector % (NLAYER * NSTACK)) / NLAYER);
+  int sector = HelperMethods::getSector(detector);
+  int stack = HelperMethods::getStack(detector);
+  int layer = HelperMethods::getLayer(detector);
   int side = hcid % 2;
   header.word = 0;
   header.format = format;
@@ -182,25 +183,25 @@ DigitMCMADCMask constructBlankADCMask()
   return mask;
 }
 
-void printTrackletHCHeader(o2::trd::TrackletHCHeader& halfchamber)
+void printTrackletHCHeader(const o2::trd::TrackletHCHeader& halfchamber)
 {
   LOGF(info, "TrackletHCHeader: Raw:0x%08x SM : %d stack %d layer %d side : %d MCLK: 0x%0x Format: 0x%0x Always1:0x%0x",
        halfchamber.word, (int)(~halfchamber.supermodule) & 0x1f, (int)(~halfchamber.stack) & 0x7, (int)(~halfchamber.layer) & 0x7, (int)(~halfchamber.side) & 0x1, (int)halfchamber.MCLK, (int)halfchamber.format, (int)halfchamber.one);
 }
 
-void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet)
+void printTrackletMCMData(const o2::trd::TrackletMCMData& tracklet)
 {
   LOGF(info, "TrackletMCMData: Raw:0x%08x pos:%d slope:%d pid:0x%03x checkbit:0x%02x",
        tracklet.word, tracklet.pos, tracklet.slope, tracklet.pid, tracklet.checkbit);
 }
-void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead)
+void printTrackletMCMHeader(const o2::trd::TrackletMCMHeader& mcmhead)
 {
   LOGF(info, "MCMRawHeader: Raw:0x%08x 1:%d padrow: 0x%02x col: 0x%01x pid2 0x%02x pid1: 0x%02x pid0: 0x%02x 1:%d",
        mcmhead.word, mcmhead.onea, mcmhead.padrow, mcmhead.col,
        mcmhead.pid2, mcmhead.pid1, mcmhead.pid0, mcmhead.oneb);
 }
 
-void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru)
+void printHalfCRUHeader(const o2::trd::HalfCRUHeader& halfcru)
 {
   std::array<uint32_t, 15> sizes;
   std::array<uint32_t, 15> errorflags;
@@ -239,26 +240,25 @@ bool halfCRUHeaderSanityCheck(const o2::trd::HalfCRUHeader& header)
   return true;
 }
 
-bool sanityCheckTrackletMCMHeader(o2::trd::TrackletMCMHeader* header)
+bool sanityCheckTrackletMCMHeader(const o2::trd::TrackletMCMHeader& header)
 {
   // a bit limited to what we can check.
-  bool goodheader = true;
-  if (header->onea != 1) {
-    goodheader = false;
-  }
-  if (header->oneb != 1) {
-    goodheader = false;
-  }
-  return goodheader;
-}
-
-bool sanityCheckDigitMCMHeader(const o2::trd::DigitMCMHeader* header)
-{
-  // a bit limited to what we can check.
-  if (header->res != 0xc) {
+  if (header.onea != 1) {
     return false;
   }
-  if (header->yearflag == 0) { //we only have data after 2007 now in run3.
+  if (header.oneb != 1) {
+    return false;
+  }
+  return true;
+}
+
+bool sanityCheckDigitMCMHeader(const o2::trd::DigitMCMHeader& header)
+{
+  // a bit limited to what we can check.
+  if (header.res != 0xc) {
+    return false;
+  }
+  if (header.yearflag == 0) { // we only have data after 2007 now in run3.
     return false;
   }
   return true;
@@ -277,24 +277,6 @@ bool sanityCheckDigitMCMADCMask(const o2::trd::DigitMCMADCMask& mask)
   return (counter == headerMask.count());
 }
 
-bool sanityCheckDigitMCMADCMask(o2::trd::DigitMCMADCMask& mask, int numberofbitsset)
-{
-  bool goodadcmask = true;
-  uint32_t count = (unsigned int)mask.c;
-  count = (~count) & 0x1f;
-  if (count != numberofbitsset) {
-    goodadcmask=false;
-    LOG(info) << "***DigitMCMADCMask bad bit count maskcount:" << ((~mask.c) & 0x1f) << " bitscounting:" << numberofbitsset << " bp: 0x" << std::hex << mask.adcmask;
-  }
-  if (mask.n != 0x1) {
-    goodadcmask = false;
-  }
-  if (mask.j != 0xc) {
-    goodadcmask = false;
-  }
-  return goodadcmask;
-}
-
 void incrementADCMask(DigitMCMADCMask& mask, int channel)
 {
   mask.adcmask |= 1UL << channel;
@@ -303,49 +285,19 @@ void incrementADCMask(DigitMCMADCMask& mask, int channel)
   mask.c = ~((bitcount)&0x1f);
 }
 
-bool sanityCheckDigitMCMWord(o2::trd::DigitMCMData* word, int adcchannel)
+void printDigitMCMHeader(const o2::trd::DigitMCMHeader& digitmcmhead)
 {
-  bool gooddata = true;
-  // DigitMCMWord0x3 is odd 10 for odd adc channels and 11 for even, counted as the first of the 3.
-  switch (word->f) {
-    case 3: // even adc channnel
-      if (adcchannel % 2 == 0) {
-        gooddata = true;
-      } else {
-        gooddata = false;
-      }
-      break;
-    case 2: // odd adc channel
-      if (adcchannel % 2 == 1) {
-        gooddata = true;
-      } else {
-        gooddata = false;
-      }
-      break;
-    case 1: // error
-      gooddata = false;
-      break;
-    case 0: // error
-      gooddata = false;
-      break;
-      // no default all cases taken care of
-  }
-  return gooddata;
-}
-
-void printDigitMCMHeader(o2::trd::DigitMCMHeader& digitmcmhead)
-{
-  LOGF(info, "DigitMCMRawHeader: Raw:0x%08x res(0xc):0x%02x mcm: 0x%03x rob: 0x%03x eventcount 0x%05x year(>2007?): 0x%02x ",
+  LOGF(info, "DigitMCMHeader: Raw:0x%08x, res: 0x%02x mcm: 0x%x rob: 0x%x eventcount 0x%05x year(>2007?): 0x%x ",
        digitmcmhead.word, digitmcmhead.res, digitmcmhead.mcm, digitmcmhead.rob, digitmcmhead.eventcount,
        digitmcmhead.yearflag);
 }
 
-void printDigitMCMData(o2::trd::DigitMCMData& digitmcmdata)
+void printDigitMCMData(const o2::trd::DigitMCMData& digitmcmdata)
 {
   LOGF(info, "DigitMCMRawData: Raw:0x%08x res:0x%x x: 0x%03x y: 0x%03x z 0x%03x ",
        digitmcmdata.word, digitmcmdata.f, digitmcmdata.x, digitmcmdata.y, digitmcmdata.z);
 }
-void printDigitMCMADCMask(o2::trd::DigitMCMADCMask& digitmcmadcmask)
+void printDigitMCMADCMask(const o2::trd::DigitMCMADCMask& digitmcmadcmask)
 {
   LOGF(info, "DigitMCMADCMask: Raw:0x%08x j(0xc):0x%01x mask: 0x%05x count: 0x%02x n(0x1) 0x%01x ",
        digitmcmadcmask.word, digitmcmadcmask.j, digitmcmadcmask.adcmask, digitmcmadcmask.c, digitmcmadcmask.n);
@@ -435,26 +387,6 @@ void printDigitHCHeader(o2::trd::DigitHCHeader& header, uint32_t headers[3])
         break;
     }
   }
-}
-
-int getNextMCMADCfromBP(uint32_t& bp, int channel)
-{
-  //given a bitpattern (adcmask) find next channel with in the mask starting from the current channel.
-  //channels are read from right to left, lsb to msb. channel zero is position 0 in the bit pattern.
-  if (bp == 0) {
-    return 22;
-  }
-  int position = channel;
-  int m = 1 << channel;
-  while (!(bp & m)) {
-    m = m << 1;
-    position++;
-    if (position > 21) {
-      break;
-    }
-  }
-  bp &= ~(1UL << (position));
-  return position;
 }
 
 } // namespace trd
