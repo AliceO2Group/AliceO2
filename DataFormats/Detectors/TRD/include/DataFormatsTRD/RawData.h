@@ -401,20 +401,12 @@ struct trdTestPattern6 {
 struct DigitMCMData {
   //             10987654321098765432109876543210
   // uint32_t:   00000000000000000000000000000000
-  /*  union {
-    uint32_t word0;
-    struct {
-      uint32_t a : 2;
-      uint32_t b : 5;
-      uint32_t adc : 21; //adc bit patternpad plane
-    } __attribute__((__packed__));
-  };*/
   union {
     //             10987654321098765432109876543210
     // uint32_t:   00000000000000000000000000000000
     uint32_t word;
     struct {
-      uint32_t c : 2; // c is wrong I cant remember name, but not a concern at the moment.
+      uint32_t f : 2;
       uint32_t z : 10;
       uint32_t y : 10;
       uint32_t x : 10;
@@ -485,7 +477,6 @@ void printTrackletHCHeader(o2::trd::TrackletHCHeader& tracklet);
 void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet);
 void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead);
 
-void printDigitHCHeader(o2::trd::DigitHCHeader& digitmcmheader);
 void printDigitMCMData(o2::trd::DigitMCMData& digitmcmdata);
 void printDigitMCMHeader(o2::trd::DigitMCMHeader& digitmcmhead);
 void printDigitMCMADCMask(o2::trd::DigitMCMADCMask& digitmcmadcmask);
@@ -493,8 +484,9 @@ void printDigitMCMADCMask(o2::trd::DigitMCMADCMask& digitmcmadcmask);
 void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
 void clearHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
 bool sanityCheckTrackletMCMHeader(o2::trd::TrackletMCMHeader* header);
-bool sanityCheckDigitMCMHeader(o2::trd::DigitMCMHeader* header);
+bool sanityCheckDigitMCMHeader(const o2::trd::DigitMCMHeader* header);
 bool sanityCheckDigitMCMADCMask(o2::trd::DigitMCMADCMask& mask, int numberofbitsset);
+bool sanityCheckDigitMCMADCMask(const o2::trd::DigitMCMADCMask& mask);
 bool sanityCheckDigitMCMWord(o2::trd::DigitMCMData* word, int adcchannel);
 void incrementADCMask(DigitMCMADCMask& mask, int channel);
 void printDigitMCMHeader(o2::trd::DigitMCMHeader& header);

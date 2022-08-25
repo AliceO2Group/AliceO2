@@ -37,14 +37,15 @@ enum ParsingErrors {
   DigitMCMHeaderSanityCheckFailure,        // essentially we did not see an MCM header see RawData.h for requirement
   DigitROBDecreasing,                      // sequential headers must have the same or increasing rob number
   DigitMCMNotIncreasing,                   // sequential headers must have increasing mcm number
-  DigitADCMaskMismatch,                    // mask adc count does not match # of 1s in bitpattern
+  DigitMCMDuplicate,                       // we saw two DigitMCMHeaders for the same MCM in one trigger
+  DigitADCMaskInvalid,                     // mask adc count does not match # of 1s in bitpattern or the check bits are wrongly set
   DigitADCMaskAdvanceToEnd,                // in advancing to adcmask we have reached the end of the buffer
   DigitMCMHeaderBypassButStateMCMHeader,   // we are reading mcmadc data but the state is mcmheader
   DigitEndMarkerStateButReadingMCMADCData, // read the endmarker while expecting to read the mcmadcdata
   DigitADCChannel21,                       // ADCMask is zero but we are still on a digit.
   DigitADCChannelGT22,                     // error allocating digit, so digit channel has error value
   DigitGT10ADCs,                           // more than 10 adc data words seen
-  DigitSanityCheck,                        // adc failed sanity check see RawData.cxx for faiulre reasons
+  DigitSanityCheck,                        // adc failed sanity check based on current channel (odd/even) and check bits DigitMCMData.f
   DigitExcessTimeBins,                     // ADC has more than 30 timebins (10 adc words)
   DigitParsingExitInWrongState,            // exiting parsing in the wrong state ... got to the end of the buffer in wrong state.
   DigitStackMismatch,                      // mismatch between rdh and hcheader stack calculation/value
@@ -59,8 +60,8 @@ enum ParsingErrors {
   TrackletStateMCMHeaderButParsingMCMData,
   TrackletTrackletCountGTThatDeclaredInMCMHeader, // mcmheader tracklet count does not match that in we have parsed.
   TrackletInvalidTrackletCount,                   // invalid tracklet count in header vs data
-  TrackletPadRowIncreaseError,                    // subsequent padrow can not be less than previous one.
-  TrackletColIncreaseError,                       // subsequent col can not be less than previous one
+  TrackletDataWrongOrdering,                      // the tracklet data is not arriving in increasing MCM order
+  TrackletDataDuplicateMCM,                       // we see more than one TrackletMCMHeader for the same MCM
   TrackletNoTrackletEndMarker,                    // got to the end of the buffer with out finding a tracklet end marker.
   TrackletExitingNoTrackletEndMarker,             // got to the end of the buffer exiting tracklet parsing with no tracklet end marker
   DigitHeaderCountGT3,                            // digital half chamber header had more than 3 additional words expected by header. most likely corruption above somewhere.
@@ -87,7 +88,7 @@ enum ParsingErrors {
   FEEIDIsFFFF,                                    // RDH is in error, the FEEID is 0xffff
   FEEIDBadSector,                                 // RDH is in error, the FEEID.supermodule is not a valid value.
   DigitHCHeaderPreTriggerPhaseOOB,                // pretrigger phase in Digit HC header has to be less than 12, it is not.
-  HalfCRUBadBC,                                   // saw a bc below the L0 trigger
+  HalfCRUBadBC,                                   // the BC in the half-CRU header is so low that the BC shift would make it negative
   TRDLastParsingError                             // This is to keep QC happy until we can change it there as well.
 };
 
@@ -97,17 +98,18 @@ static std::unordered_map<int, std::string> ParsingErrorsString = {
   {BadDigit, "Bad Digt"},
   {BadTracklet, "Bad Tracklet"},
   {DigitEndMarkerWrongState, "Digit EndMarker but Wrong State"},
-  {DigitMCMHeaderSanityCheckFailure, "Digit MCM Header Sanity Check Failure"},
+  {DigitMCMHeaderSanityCheckFailure, "DigitMCMHeaderSanityCheckFailure"},
   {DigitROBDecreasing, "Digit ROB not increasing"},
-  {DigitMCMNotIncreasing, "Digit MCM number Not Increasing"},
-  {DigitADCMaskMismatch, "Digit ADCMask Mismatch"},
+  {DigitMCMNotIncreasing, "DigitMCMNotIncreasing"},
+  {DigitMCMDuplicate, "DigitMCMDuplicate"},
+  {DigitADCMaskInvalid, "DigitADCMaskInvalid"},
   {DigitADCMaskAdvanceToEnd, "Digit ADC Mask problem, advancing to end"},
   {DigitMCMHeaderBypassButStateMCMHeader, "Digit MCM Header bypassed but state is mcm header"},
   {DigitEndMarkerStateButReadingMCMADCData, "Digit End Marker but state is MCMADCData"},
   {DigitADCChannel21, "Digit ADC has Channel 21"},
   {DigitADCChannelGT22, "Digit ADC Channel > 22"},
   {DigitGT10ADCs, "Digit has more than 10 ADCs"},
-  {DigitSanityCheck, "Digit Sanity Check Failure"},
+  {DigitSanityCheck, "DigitSanityCheck"},
   {DigitExcessTimeBins, "Digit has Excess TimeBins"},
   {DigitParsingExitInWrongState, "Digit Parsing Exiting in wrong starte"},
   {DigitStackMismatch, "Digit Stack MisMatch"},
@@ -115,13 +117,13 @@ static std::unordered_map<int, std::string> ParsingErrorsString = {
   {TrackletCRUPaddingWhileParsingTracklets, "Tracklet CRU Padding while parsing trackletsl"},
   {TrackletHCHeaderSanityCheckFailure, "Tracklet HC Header Sanity Check Failure"},
   {TrackletHCHeaderFailure, "TrackletHCHeaderFailure"},
-  {TrackletMCMHeaderSanityCheckFailure, "Tracklet MCMHeader Sanity Check Failure"},
+  {TrackletMCMHeaderSanityCheckFailure, "TrackletMCMHeaderSanityCheckFailure"},
   {TrackletMCMHeaderButParsingMCMData, "Tracklet on MCMHeader, but parsing MCMData"},
   {TrackletStateMCMHeaderButParsingMCMData, "Tracklet state MCMHeader but parsing MCMData"},
   {TrackletTrackletCountGTThatDeclaredInMCMHeader, "Tracklet count > than that in the MCM header"},
   {TrackletInvalidTrackletCount, "Tracklet invalid tracklet count"},
-  {TrackletPadRowIncreaseError, "Tracklet padrow is not increasing"},
-  {TrackletColIncreaseError, "Tracklet column is not increasing"},
+  {TrackletDataWrongOrdering, "TrackletDataWrongOrdering"},
+  {TrackletDataDuplicateMCM, "TrackletDataDuplicateMCM"},
   {TrackletNoTrackletEndMarker, "Tracklet  did not find an end marker"},
   {TrackletExitingNoTrackletEndMarker, "Tracklet exiting with out a tracklet end marker"},
   {DigitHeaderCountGT3, "DigitHeaderCountGT3"},
@@ -147,7 +149,7 @@ static std::unordered_map<int, std::string> ParsingErrorsString = {
   {FEEIDIsFFFF, "FEEID Is FFFx"},
   {FEEIDBadSector, "FEEID Sector is not valid"},
   {DigitHCHeaderPreTriggerPhaseOOB, "Digit Half Chamber Header PreTriggerPhase is out of bounds"},
-  {HalfCRUBadBC, "HalfCRU has a bad bunchcrossing"},
+  {HalfCRUBadBC, "HalfCRUBadBC"},
   {TRDLastParsingError, "Last Parsing Error"}};
 
 //enumerations for the options, saves on having a long parameter list.

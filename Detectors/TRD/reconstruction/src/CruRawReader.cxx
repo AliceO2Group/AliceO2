@@ -19,7 +19,6 @@
 #include "TRDBase/FeeParam.h"
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Tracklet64.h"
-#include "TRDReconstruction/DigitsParser.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/HelperMethods.h"
 
@@ -32,10 +31,7 @@
 #include "Framework/InputRecordWalker.h"
 #include "DataFormatsCTP/TriggerOffsetsParam.h"
 
-#include <cstring>
 #include <string>
-#include <vector>
-#include <array>
 #include <numeric>
 #include <iomanip>
 
@@ -50,43 +46,20 @@ void CruRawReader::configure(int tracklethcheader, int halfchamberwords, int hal
   mHalfChamberWords = halfchamberwords;
   mHalfChamberMajor = halfchambermajor;
   mOptions = options;
-  mTimeBins = TIMEBINS; // set to value from constants incase the DigitHCHeader1 header is not present.
 }
 
 void CruRawReader::incrementErrors(int error, int hcid, std::string message)
 {
   mEventRecords.incParsingError(error, hcid);
   if (mOptions[TRDVerboseErrorsBit]) {
-    LOGF(info, "Detected PE (%s) for HCID(%i). Message: %s", ParsingErrorsString[error], hcid, message);
-  }
-}
-
-void CruRawReader::outputLinkRawData(int link)
-{
-  std::array<uint32_t, 1024>::iterator linkstart, linkend, bufferoffset;
-  uint32_t lengthoflinksbefore = 0;
-  int linkindex = 0;
-  for (linkindex = 0; linkindex < link; ++linkindex) {
-    lengthoflinksbefore += mCurrentHalfCRULinkLengths[linkindex];
-  }
-  lengthoflinksbefore *= 8;                                 // to get to 32 bit word units
-  lengthoflinksbefore += sizeof(mCurrentHalfCRUHeader) / 4; // 8 bit words to 32 bit words
-  linkstart = mHBFPayload.begin() + mHalfCRUStartOffset + lengthoflinksbefore;
-  linkend = linkstart + mCurrentHalfCRULinkLengths[link] * 8;
-  //mHalfCRUStartOffset=cruhbfstartoffset;
-  bufferoffset = linkstart;
-  uint32_t wordcount = 0;
-  while (bufferoffset < linkend) {
-    std::stringstream outputstring;
-    uint32_t stringlength = 8;
-    if (linkend - bufferoffset < 8) {
-      stringlength = linkend - bufferoffset;
+    std::string logMessage = "Detected PE (" + ParsingErrorsString[error] + ")";
+    if (hcid >= 0) {
+      logMessage += " HCID (" + std::to_string(hcid) + ")";
     }
-    for (int z = 0; z < stringlength; ++z) {
-      outputstring << "0x" << std::hex << std::setw(8) << std::setfill('0') << *(bufferoffset + z) << " ";
+    if (!message.empty()) {
+      logMessage += " Message: " + message;
     }
-    bufferoffset += 8;
-    LOG(info) << wordcount++ << ":" << outputstring.str();
+    LOG(info) << logMessage;
   }
 }
 
@@ -197,10 +170,10 @@ int CruRawReader::processHBFs()
     auto memorySize = o2::raw::RDHUtils::getMemorySize(rdh);
     auto offsetToNext = o2::raw::RDHUtils::getOffsetToNext(rdh);
     auto rdhpayload = memorySize - headerSize;
-    mFEEID.word = o2::raw::RDHUtils::getFEEID(rdh);       //TODO change this and just carry around the curreht RDH
+    mFEEID.word = o2::raw::RDHUtils::getFEEID(rdh);
     mCRUEndpoint = o2::raw::RDHUtils::getEndPointID(rdh); // the upper or lower half of the currently parsed cru 0-14 or 15-29
     mCRUID = o2::raw::RDHUtils::getCRUID(rdh);
-    mIR = o2::raw::RDHUtils::getTriggerIR(rdh);
+    mIR = o2::raw::RDHUtils::getTriggerIR(rdh); // the orbit counter is taken from the RDH here, the bc is overwritten later from the HalfCRUHeader
 
     // copy the contents of the current RDH into the buffer to be parsed, RDH payload is memory size minus header size
     std::memcpy((char*)&mHBFPayload[0] + mTotalHBFPayLoad, ((char*)rdh) + headerSize, rdhpayload);
@@ -330,7 +303,7 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
             LOGF(warn, "We have more than one DigitHCHeader of type 2. Current word in hex %08x", headers[headerwordcount]);
             printDigitHCHeader(mDigitHCHeader, headers.data());
           }
-          incrementErrors(DigitHCHeader2Problem);
+          incrementErrors(DigitHCHeader2Problem, hcid);
         }
         DigitHCHeader2 header2;
         header2.word = headers[headerwordcount];
@@ -433,6 +406,7 @@ bool CruRawReader::processHalfCRU(int iteration)
       LOGF(warn, "End point mismatch detected. HalfCRUHeader says %i, RDH says %i", mCurrentHalfCRUHeader.EndPoint, mCRUEndpoint);
       checkNoWarn();
     }
+    // try next trigger (HalfCRUHeader)
     mHBFoffset32 += totalHalfCRUDataLength32;
     mWordsRejected += totalHalfCRUDataLength32;
     return true;
@@ -509,7 +483,9 @@ bool CruRawReader::processHalfCRU(int iteration)
     int side = halfChamberId % 2;
     int stack_layer = stack * NLAYER + layer; // similarly this is also only for graphing so just use the rdh ones for now.
     mEventRecords.incLinkErrorFlags(mFEEID.supermodule, side, stack_layer, mCurrentHalfCRULinkErrorFlags[currentlinkindex]);
-    uint32_t currentlinksize32 = mCurrentHalfCRULinkLengths[currentlinkindex] * 8; // x8 to go from 256 bits to 32 bit;
+    int currentlinksize32 = mCurrentHalfCRULinkLengths[currentlinkindex] * 8; // x8 to go from 256 bits to 32 bit;
+    int endOfCurrentLink = mHBFoffset32 + currentlinksize32;
+
     std::array<uint32_t, 1024>::iterator linkstart = mHBFPayload.begin() + mHBFoffset32;
     std::array<uint32_t, 1024>::iterator linkend = linkstart + currentlinksize32;
     linksizeAccum32 += currentlinksize32;
@@ -526,12 +502,13 @@ bool CruRawReader::processHalfCRU(int iteration)
         LOGF(info, "Half-CRU link %i has zero link size", currentlinkindex);
       }
     }
-    if (linkstart != linkend) { // if link is not empty
+    if (currentlinksize32 > 0) { // if link is not empty
       auto trackletparsingstart = std::chrono::high_resolution_clock::now();
       if (mOptions[TRDVerboseBit]) {
         LOGF(info, "Tracklet parser starting at offset %u and processing up to %u words", mHBFoffset32, currentlinksize32);
       }
       int trackletWordsRejected = 0;
+      // LOGF(warn, "Starting tracklet parsing for HCID %i", halfChamberId);
       int trackletWordsRead = parseTrackletLinkData(currentlinksize32, halfChamberId, trackletWordsRejected);
       if (trackletWordsRead == -1) {
         //something went wrong bailout of here.
@@ -561,7 +538,7 @@ bool CruRawReader::processHalfCRU(int iteration)
       ** DIGITS NOW ***
       *****************/
       // Check if we have a calibration trigger ergo we do actually have digits data. check if we are now at the end of the data due to bugs, i.e. if trackletparsing read padding words.
-      if (linkstart != linkend &&
+      if (mHBFoffset32 != endOfCurrentLink &&
           (mCurrentHalfCRUHeader.EventType == ETYPECALIBRATIONTRIGGER || mOptions[TRDIgnore2StageTrigger]) &&
           (mHBFPayload[mHBFoffset32] != CRUPADDING32)) {
         // we still have data on this link, we have a calibration trigger (or ignore the event type) and we are not reading a padding word
@@ -595,46 +572,26 @@ bool CruRawReader::processHalfCRU(int iteration)
           LOG(info) << "Configuration event  ";
         } else {
           auto digitsparsingstart = std::chrono::high_resolution_clock::now();
-          // linkstart and linkend already have the multiple cruheaderoffsets built in
-          int digitWordsRead = mDigitsParser.Parse(&mHBFPayload, linkstart, linkend, detectorId, stack, layer, side, mDigitHCHeader, mTimeBins, mFEEID, currentlinkindex, mCurrentEvent, &mEventRecords, mOptions);
+          int digitWordsRejected = 0;
+          int digitWordsRead = parseDigitLinkData(endOfCurrentLink - mHBFoffset32, halfChamberId, digitWordsRejected);
           std::chrono::duration<double, std::micro> digitsparsingtime = std::chrono::high_resolution_clock::now() - digitsparsingstart;
           mCurrentEvent->incDigitTime((double)std::chrono::duration_cast<std::chrono::microseconds>(digitsparsingtime).count());
-          int digitWordsRejected = mDigitsParser.getDumpedDataCount();
           mCurrentEvent->incWordsRead(digitWordsRead);
           mCurrentEvent->incWordsRejected(digitWordsRejected);
           mEventRecords.incLinkWordsRead(mFEEID.supermodule, side, stack_layer, digitWordsRead);
           mEventRecords.incLinkWordsRejected(mFEEID.supermodule, side, stack_layer, digitWordsRejected);
 
           if (mOptions[TRDVerboseBit]) {
-            LOGF(info, "FEEID: 0x%8x, LINK # %i, digit words parsed %i, digit words dumped %i", mFEEID.word, linkIdxGlobal, digitWordsRead, digitWordsRejected);
+            LOGF(info, "Read %i digit words and rejected %i words", digitWordsRead, digitWordsRejected);
           }
-          if (mDigitsParser.dumpLink()) {
-            //dump the link that cause the error
-            // the call to dumpLink resets the boolean to false;
-            outputLinkRawData(currentlinkindex);
-          }
-          if (mOptions[TRDVerboseBit]) {
-            LOG(info) << "FEEID: " << mFEEID.word << " LINK #" << linkIdxGlobal << " bad datacount:"
-                      << mDigitsParser.getDataWordsParsed() << "::" << mDigitsParser.getDumpedDataCount();
-          }
-          if (digitWordsRead + digitWordsRejected != std::distance(linkstart, linkend)) {
-            // we have the data corruption problem of a pile of stuff at the end of a link, jump over it.
-            if (mFixDigitEndCorruption) {
-              digitWordsRead = std::distance(linkstart, linkend);
-            } else {
-              incrementErrors(DigitDataStillOnLink, halfChamberId);
-              if (mOptions[TRDVerboseErrorsBit]) {
-                LOG(info) << "FEEID: " << mFEEID.word << " LINK #" << linkIdxGlobal << " data still on link ";
-              }
-            }
-          }
-          mTotalDigitsFound += mDigitsParser.getDigitsFound();
+
           mHBFoffset32 += digitWordsRead + digitWordsRejected; // all 3 in 32bit units
           mTotalDigitWordsRead += digitWordsRead;
           mTotalDigitWordsRejected += digitWordsRejected;
         }
       }
     } else {
+      // OS: link is empty, what does this block mean???
       if (mCurrentHalfCRUHeader.EventType == ETYPEPHYSICSTRIGGER) {
         mEventRecords.incMajorVersion(128); // 127 is max histogram goes to 256
       }
@@ -681,17 +638,166 @@ bool CruRawReader::isTrackletHCHeaderOK(const TrackletHCHeader& header, int& hci
   return (hcid == hcidHeader);
 }
 
-// We receive a pointer to the beginning of the HBF payload data,
-// the offset (in 32-bit words) for beginning of the data for the
-// link we are parsing and the total link size (also in 32-bit words).
-// From the link we also have the HCID which is parsed by the raw reader
-//
+int CruRawReader::parseDigitLinkData(int maxWords32, int hcid, int& wordsRejected)
+{
+  int wordsRead = 0;
+  int numberOfDigitsFound = 0;
+  int state = StateDigitMCMHeader;
+  DigitMCMHeader mcmHeader;
+  DigitMCMADCMask adcMask;
+
+  // data is expected to be ordered
+  int previousMcm = -1;
+  int previousRob = -1;
+  // TODO add check for event counter of DigitMCMHeader?
+  // are the counters expected to be the same for all MCMs for one trigger?
+
+  while (wordsRead < maxWords32 && state != StateFinished) {
+    uint32_t currWord = mHBFPayload[mHBFoffset32 + wordsRead];
+
+    if (state == StateDigitMCMHeader) {
+      ++wordsRead;
+      if (currWord == DIGITENDMARKER) {
+        state = StateSecondEndmarker;
+        continue;
+      }
+      mcmHeader.word = currWord;
+      if (!sanityCheckDigitMCMHeader(&mcmHeader)) {
+        incrementErrors(DigitMCMHeaderSanityCheckFailure, hcid, fmt::format("DigitMCMHeader {:#010x} failed sanity check", currWord));
+        ++wordsRejected;
+        state = StateMoveToEndMarker; // give up for this link and try to find end markers
+        continue;
+      }
+      // check correct ordering of link data
+      if (previousMcm >= 0) {
+        // first DigitMCMHeader we see for this link
+        if (previousRob > mcmHeader.rob || (mcmHeader.rob == previousRob && mcmHeader.mcm < previousMcm)) {
+          incrementErrors(DigitMCMNotIncreasing, hcid, fmt::format("Current rob/mcm = {}/{}, previous rob/mcm = {}/{}", (int)mcmHeader.rob, (int)mcmHeader.mcm, previousRob, previousMcm));
+        } else if (previousRob == mcmHeader.rob && previousMcm == mcmHeader.mcm) {
+          incrementErrors(DigitMCMDuplicate, hcid, fmt::format("Second MCM header {:#010x} for rob/mcm = {}/{}", currWord, previousRob, previousMcm));
+        }
+      } else {
+        previousMcm = mcmHeader.mcm;
+        previousRob = mcmHeader.rob;
+      }
+      if (mDigitHCHeader.major & 0x20) {
+        // zero suppression (ZS) is ON, we expect ADC mask next
+        state = StateDigitADCMask;
+      } else {
+        // full readout, expect ADC data next
+        state = StateDigitMCMData;
+      }
+      LOGF(debug, "Got DigitMCMHeader 0x%08x", currWord);
+      continue;
+    }
+
+    else if (state == StateDigitADCMask) {
+      ++wordsRead;
+      adcMask.word = currWord;
+      if (!sanityCheckDigitMCMADCMask(adcMask)) {
+        incrementErrors(DigitADCMaskInvalid, hcid, fmt::format("DigitADCMask {:#010x} failed sanity check", currWord));
+        ++wordsRejected;
+        state = StateMoveToEndMarker; // give up for this link and try to find end markers
+        continue;
+      }
+      state = StateDigitMCMData;
+      LOGF(debug, "Got DigitADCMask 0x%08x", currWord);
+      continue;
+    }
+
+    else if (state == StateDigitMCMData) {
+      std::array<uint16_t, TIMEBINS> adcValues;
+      bool exitChannelLoop = false;
+      state = StateDigitMCMHeader; // after we are done reading the ADC data, by default we expect another MCM header
+      for (int iChannel = 0; iChannel < NADCMCM; ++iChannel) {
+        if (!(mDigitHCHeader.major & 0x20) || adcMask.adcmask & (1UL << iChannel)) {
+          // either ZS is OFF, or the adcMask has iChannel flagged as active
+          DigitMCMData data;
+          int timebin = 0;
+          while (timebin < mTimeBins) {
+            if (currWord == DIGITENDMARKER) {
+              incrementErrors(DigitSanityCheck, hcid, "Expected Digit ADC data, but found end marker instead");
+              exitChannelLoop = true;
+              state = StateSecondEndmarker;
+              ++wordsRead;
+              wordsRejected += timebin / 3; // we are rejecting all ADC data we have already read for this channel
+              break;
+            }
+            data.word = currWord;
+            if ((((iChannel % 2) == 0) && (data.f != 0x3)) || ((iChannel % 2) && (data.f != 0x2))) {
+              incrementErrors(DigitSanityCheck, hcid, fmt::format("Current channel {}, check bits {}. Word {:#010x}", iChannel, (int)data.f, currWord));
+              exitChannelLoop = true;
+              state = StateMoveToEndMarker;
+              ++wordsRead;
+              ++wordsRejected;
+              break;
+            }
+            adcValues[timebin++] = data.z;
+            adcValues[timebin++] = data.y;
+            adcValues[timebin++] = data.x;
+            ++wordsRead;
+            currWord = mHBFPayload[mHBFoffset32 + wordsRead];
+          } // end time bin loop
+          if (exitChannelLoop) {
+            break;
+          }
+          mCurrentEvent->getDigits().emplace_back(hcid / 2, (int)mcmHeader.rob, (int)mcmHeader.mcm, iChannel, adcValues);
+          mCurrentEvent->incDigitsFound(1);
+          ++mTotalDigitsFound;
+        } // end active channel
+      }   // end channel loop
+      continue;
+    }
+
+    else if (state == StateMoveToEndMarker) {
+      ++wordsRead;
+      if (currWord == DIGITENDMARKER) {
+        state = StateSecondEndmarker;
+      } else {
+        ++wordsRejected;
+      }
+      continue;
+    } // StateMoveToEndMarker
+
+    else if (state == StateSecondEndmarker) {
+      ++wordsRead;
+      if (currWord != DIGITENDMARKER) {
+        if (mMaxWarnPrinted > 0) {
+          LOGF(warn, "Expected second end marker, but found 0x%08x instead", currWord);
+          checkNoWarn();
+        }
+        return -1;
+      }
+      state = StateFinished;
+      continue;
+    } // StateSecondEndmarker
+  }
+
+  if (state == StateFinished) {
+    // all good, we exited the state machine in the expected state
+    return wordsRead;
+  } else {
+    // not good, something went wrong with digit parsing
+    // e.g. we tried to move to the end marker but reached the link size
+    //      without finding one.
+    if (mMaxWarnPrinted > 0) {
+      LOG(warn) << "We exited the digit parser state machine, but we are not in the state finished";
+      checkNoWarn();
+    }
+    return -1;
+  }
+}
+
 // Returns number of words read (>=0) or error state (<0)
 int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRejected)
 {
   int wordsRead = 0;                 // count the number of words which were parsed (both successful and not successful)
   int numberOfTrackletsFound = 0;    // count the number of found tracklets for this link
   int state = StateTrackletHCHeader; // we expect to always see a TrackletHCHeader at the beginning of the link
+  // tracklet data for one link is expected to arrive ordered
+  // first MCM in row=0, column=0, then row=0, column=1, ... row=1, column=0, ...
+  int previousColumn = -1;
+  int previousRow = -1;
   TrackletHCHeader hcHeader;
   TrackletMCMHeader mcmHeader;
 
@@ -738,6 +844,17 @@ int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRej
           ++wordsRead;
           ++wordsRejected;
           continue;
+        }
+        // check ordering by MCM index
+        if (previousColumn >= 0) {
+          if (mcmHeader.padrow < previousRow || (mcmHeader.padrow == previousRow && mcmHeader.col < previousColumn)) {
+            incrementErrors(TrackletDataWrongOrdering, hcid, fmt::format("Current padrow/column = {}/{}, previous padrow/column = {}/{}", (int)mcmHeader.padrow, (int)mcmHeader.col, previousRow, previousColumn));
+          } else if (mcmHeader.padrow == previousRow && mcmHeader.col == previousColumn) {
+            incrementErrors(TrackletDataDuplicateMCM, hcid, fmt::format("Second MCM header {:#010x} for padrow/column = {}/{}", currWord, previousRow, previousColumn));
+          }
+        } else {
+          previousColumn = mcmHeader.col;
+          previousRow = mcmHeader.padrow;
         }
         state = StateTrackletMCMData; // tracklet words must be following, unless the HC header format indicates sending of empty MCM headers
       }
@@ -808,8 +925,10 @@ int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRej
     else if (state == StateSecondEndmarker) {
       ++wordsRead;
       if (currWord != TRACKLETENDMARKER) {
-        // ERROR expected a second end marker, but have something else
-        LOGF(warn, "Expected second end marker, but found 0x%08x instead", currWord);
+        if (mMaxWarnPrinted > 0) {
+          LOGF(warn, "Expected second end marker, but found 0x%08x instead", currWord);
+          checkNoWarn();
+        }
         return -1;
       }
       state = StateFinished;
@@ -840,16 +959,13 @@ int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRej
   }
 
   if (state == StateFinished) {
-    // all good, we excited the state machine in the expected state
+    // all good, we exited the state machine in the expected state
     return wordsRead;
   } else {
     // not good, something went wrong with tracklet parsing
     // e.g. we tried to move to the end marker but reached the link size
     //      without finding one.
-    if (mMaxWarnPrinted > 0) {
-      LOG(warn) << "We exited the state machine, but we are not in the state finished";
-      checkNoWarn();
-    }
+    incrementErrors(TrackletExitingNoTrackletEndMarker, hcid, "Exiting tracklet parsing not in the state finished");
     return -1;
   }
 }
