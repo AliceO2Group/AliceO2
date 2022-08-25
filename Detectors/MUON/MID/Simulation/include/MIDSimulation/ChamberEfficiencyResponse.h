@@ -18,7 +18,8 @@
 #define O2_MID_CHAMBEREFFICIENCYRESPONSE_H
 
 #include <random>
-#include "MIDBase/ChamberEfficiency.h"
+#include "DataFormatsMID/ChEffCounter.h"
+#include "MIDEfficiency/ChamberEfficiency.h"
 
 namespace o2
 {
@@ -34,6 +35,9 @@ class ChamberEfficiencyResponse
 
   /// Sets the seed
   void setSeed(unsigned int seed) { mGenerator.seed(seed); }
+
+  /// Sets the chamber efficiency from the counters
+  void setFromCounters(const std::vector<ChEffCounter>& counters) { mEfficiency.setFromCounters(counters); }
 
  private:
   ChamberEfficiency mEfficiency;                  ///< Measured chamber efficiencies

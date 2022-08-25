@@ -9,16 +9,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Base)
-add_subdirectory(Calibration)
-add_subdirectory(Clustering)
-add_subdirectory(Conditions)
-add_subdirectory(CTF)
-add_subdirectory(Efficiency)
-add_subdirectory(Filtering)
-add_subdirectory(QC)
-add_subdirectory(Raw)
-add_subdirectory(Simulation)
-add_subdirectory(TestingSimTools)
-add_subdirectory(Tracking)
-add_subdirectory(Workflow)
+o2_add_library(
+  MIDEfficiency
+  SOURCES src/ChamberEfficiency.cxx
+  PUBLIC_LINK_LIBRARIES O2::DataFormatsMID O2::MIDBase
+                        Microsoft.GSL::GSL)
+
+o2_target_root_dictionary(MIDEfficiency
+  HEADERS include/MIDEfficiency/ChamberEfficiency.h)
+
+add_subdirectory(macros)
