@@ -17,6 +17,7 @@
 #include "MCHTracking/TrackFinder.h"
 
 #include <cassert>
+#include <cmath>
 #include <iostream>
 #include <stdexcept>
 
@@ -145,6 +146,7 @@ const std::list<Track>& TrackFinder::findTracks(const std::unordered_map<int, st
   /// Run the track finder algorithm
 
   mTracks.clear();
+  mStartTime = std::chrono::steady_clock::now();
 
   // fill the internal array of pointers to the list of clusters per DE
   for (auto& plane : mClusters) {
@@ -801,6 +803,7 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
   /// Every compatible clusters found in the process are added to the "excludedClusters" list
   /// The initial candidate "itTrack" is not modified, with the exception of its current parameters,
   /// which are set to the parameters at "chamber" or invalidated in case of propagation issue
+  /// Throw an exception if the tracking duration exceeds limit
 
   // list of (half-)planes, 2 or 4 per chamber, ordered according to the direction of propagation,
   // which is forward when going to station 5 and backward otherwise with the present algorithm
@@ -811,6 +814,11 @@ std::list<Track>::iterator TrackFinder::followTrackInChamber(std::list<Track>::i
   // the current track parameters must be set at a different chamber and valid
   if (!itTrack->areCurrentParamValid() || chamber == itTrack->getCurrentChamber()) {
     return mTracks.end();
+  }
+
+  std::chrono::duration<double> currentTrackingDuration = std::chrono::steady_clock::now() - mStartTime;
+  if (currentTrackingDuration.count() > TrackerParam::Instance().maxTrackingDuration) {
+    throw length_error(string("Tracking is taking too long (") + std::round(currentTrackingDuration.count()) + " s)");
   }
 
   // determine whether the chamber is the first one reached on the station

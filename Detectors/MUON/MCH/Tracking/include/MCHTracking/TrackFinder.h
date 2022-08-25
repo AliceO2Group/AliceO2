@@ -134,6 +134,8 @@ class TrackFinder
 
   std::list<Track> mTracks{}; ///< list of reconstructed tracks
 
+  std::chrono::time_point<std::chrono::steady_clock> mStartTime{}; ///< time when the tracking start
+
   double mChamberResolutionX2 = 0.;      ///< chamber resolution square (cm^2) in x direction
   double mChamberResolutionY2 = 0.;      ///< chamber resolution square (cm^2) in y direction
   double mBendingVertexDispersion2 = 0.; ///< vertex dispersion square (cm^2) in y direction
