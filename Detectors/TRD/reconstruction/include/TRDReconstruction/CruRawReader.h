@@ -67,19 +67,16 @@ class CruRawReader
   // set the mapping from Link ID to HCID and vice versa
   void setLinkMap(const LinkToHCIDMapping* map) { mLinkMap = map; }
 
-  // probably better to make mEventRecords available to the outside and then use that directly, can clean up this header a lot more
+  // assemble output for full TF and send it out
   void buildDPLOutputs(o2::framework::ProcessingContext& outputs);
-  int getDigitsFound() { return mTotalDigitsFound; }
-  int getTrackletsFound() { return mTotalTrackletsFound; }
-  int sumTrackletsFound() { return mEventRecords.sumTracklets(); }
-  int sumDigitsFound() { return mEventRecords.sumDigits(); }
-  int getWordsRead() { return mWordsAccepted + mTotalDigitWordsRead + mTotalTrackletWordsRead; }
-  int getWordsRejected() { return mWordsRejected + mTotalDigitWordsRejected + mTotalTrackletWordsRejected; }
 
-  void clearall()
-  {
-    mEventRecords.clear();
-  }
+  int getDigitsFound() const { return mDigitsFound; }
+  int getTrackletsFound() const { return mTrackletsFound; }
+
+  int getWordsRejected() const { return mWordsRejected + mDigitWordsRejected + mTrackletWordsRejected; }
+
+  // reset the event storage
+  void resetAfterSingleTF();
 
   // both the tracklet and the digit parsing is implemented as a state machine
   enum ParsingState { StateTrackletHCHeader,
@@ -141,16 +138,13 @@ class CruRawReader
   // ## class member variables
   // ###############################################################
 
-  bool mFixDigitEndCorruption{false};
+  // these variables are configured externally
   int mTrackletHCHeaderState{0};
   int mHalfChamberWords{0};
   int mHalfChamberMajor{0};
   std::bitset<16> mOptions;
 
-  std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX> mHBFPayload; // the full input data payload excluding the RDH header(s)
-
-  uint32_t mTotalTrackletsFound{0}; // accumulated number of tracklets found
-  uint32_t mTotalDigitsFound{0};    // accumulated number of digits found
+  std::array<uint32_t, constants::HBFBUFFERMAX> mHBFPayload; // the full input data payload excluding the RDH header(s)
 
   // InfoLogger flood protection settings
   int mMaxErrsPrinted = 20;
@@ -162,7 +156,6 @@ class CruRawReader
   const char* mCurrRdhPtr = nullptr;    // points inside the payload data at the current RDH position
   uint32_t mTotalHBFPayLoad = 0;        // total data payload of the heart beat frame in question (up to wich array index mHBFPayload is filled with data)
   uint32_t mHBFoffset32 = 0;            // points to the current position inside mHBFPayload we are currently reading
-  uint32_t mHalfCRUStartOffset = 0;     // store the start of the halfcru we are currently on.
 
   HalfCRUHeader mCurrentHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on
   HalfCRUHeader mPreviousHalfCRUHeader; // are we waiting for new header or currently parsing the payload of on
@@ -182,16 +175,16 @@ class CruRawReader
 
   const LinkToHCIDMapping* mLinkMap = nullptr; // to retrieve HCID from Link ID
 
-  // FIXME for all counters need to check which one is really needed
-  uint32_t mTotalDigitWordsRead = 0;
-  uint32_t mTotalDigitWordsRejected = 0;
-  uint32_t mTotalTrackletWordsRejected = 0;
-  uint32_t mTotalTrackletWordsRead = 0;
-  uint32_t mWordsRejected = 0; // those words rejected before tracklet and digit parsing together with the digit and tracklet rejected words;
-  uint32_t mWordsAccepted = 0; // those words before before tracklet and digit parsing together with the digit and tracklet rejected words;
+  // these counters are reset after every TF
+  uint32_t mTrackletsFound{0};         // accumulated number of tracklets found
+  uint32_t mDigitsFound{0};            // accumulated number of digits found
+  uint32_t mDigitWordsRead = 0;        // number of words read by the digit parser
+  uint32_t mDigitWordsRejected = 0;    // number of words rejected by the digit parser
+  uint32_t mTrackletWordsRejected = 0; // number of words read by the tracklet parser
+  uint32_t mTrackletWordsRead = 0;     // number of words rejected by the tracklet parser
+  uint32_t mWordsRejected = 0;         // those words rejected before tracklet and digit parsing could start
 
-  EventStorage mEventRecords; // store data range indexes into the above vectors.
-  EventRecord* mCurrentEvent; // the current event we are looking at, info extracted from cru half chamber header.
+  EventRecordContainer mEventRecords; // store data range indexes into the above vectors.
 };
 
 } // namespace o2::trd

@@ -33,18 +33,11 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
 
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"output-desc", VariantType::String, "TRDTLT", {"Output specs description string."}},
     {"verbose", VariantType::Bool, false, {"Enable verbose epn data reading."}},
-    {"verbosehalfcru", VariantType::Bool, false, {"Enable verbose for a halfcru, the halfcru contents are dumped out in hex."}},
-    {"verboselink", VariantType::Bool, false, {"Enable verbose for a link, the links contents are dumped out in hex."}},
-    {"verboseword", VariantType::Bool, false, {"Enable verbose for each word seen, as its seen, labeled, identified/rejected, and unpacked."}},
     {"verboseerrors", VariantType::Bool, false, {"Enable verbose error text, instead of simply updating the spectra."}},
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
-    {"fixdigitcorruptdata", VariantType::Bool, false, {"Fix the erroneous data at the end of digits"}},
-    {"ignore-tracklethcheader", VariantType::Bool, false, {"Ignore the tracklethalf chamber header for cross referencing"}},
     {"halfchamberwords", VariantType::Int, 0, {"Fix half chamber for when it is version is 0.0 integer value of additional header words, ignored if version is not 0.0"}},
     {"halfchambermajor", VariantType::Int, 0, {"Fix half chamber for when it is version is 0.0 integer value of major version, ignored if version is not 0.0"}},
-    {"ignore-digithcheader", VariantType::Bool, false, {"Ignore the digithalf chamber header for cross referencing, take rdh/cru as authorative."}},
     {"fixforoldtrigger", VariantType::Bool, false, {"Fix for the old data not having a 2 stage trigger stored in the cru header."}},
     {"onlycalibrationtrigger", VariantType::Bool, false, {"Only permit calibration triggers, used for debugging traclets and their digits, maybe other uses."}},
     {"tracklethcheader", VariantType::Int, 2, {"Status of TrackletHalfChamberHeader 0 off always, 1 iff tracklet data, 2 on always"}},
@@ -61,9 +54,8 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
 
-  //  auto config = cfgc.options().get<std::string>("trd-datareader-config");
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  //auto outputspec = cfgc.options().get<std::string>("trd-datareader-outputspec");
+
   auto askSTFDist = !cfgc.options().get<bool>("ignore-dist-stf");
   auto tracklethcheader = cfgc.options().get<int>("tracklethcheader");
   auto halfchamberwords = cfgc.options().get<int>("halfchamberwords");
@@ -74,17 +66,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "RAWSTATS", 0, Lifetime::Timeframe);
-  //outputs.emplace_back("TRD", "FLPSTAT", 0, Lifetime::Timeframe);
-  //
+
   std::bitset<16> binaryoptions;
   binaryoptions[o2::trd::TRDVerboseBit] = cfgc.options().get<bool>("verbose");
-  binaryoptions[o2::trd::TRDVerboseLinkBit] = cfgc.options().get<bool>("verboselink");
-  binaryoptions[o2::trd::TRDVerboseHalfCruBit] = cfgc.options().get<bool>("verbosehalfcru");
-  binaryoptions[o2::trd::TRDVerboseWordBit] = cfgc.options().get<bool>("verboseword");
   binaryoptions[o2::trd::TRDVerboseErrorsBit] = cfgc.options().get<bool>("verboseerrors");
-  binaryoptions[o2::trd::TRDFixDigitCorruptionBit] = cfgc.options().get<bool>("fixdigitcorruptdata");
-  binaryoptions[o2::trd::TRDIgnoreDigitHCHeaderBit] = cfgc.options().get<bool>("ignore-digithcheader");
-  binaryoptions[o2::trd::TRDIgnoreTrackletHCHeaderBit] = cfgc.options().get<bool>("ignore-tracklethcheader");
   binaryoptions[o2::trd::TRDByteSwapBit] = cfgc.options().get<bool>("enablebyteswapdata");
   binaryoptions[o2::trd::TRDIgnore2StageTrigger] = cfgc.options().get<bool>("fixforoldtrigger");
   binaryoptions[o2::trd::TRDGenerateStats] = cfgc.options().get<bool>("generate-stats");
