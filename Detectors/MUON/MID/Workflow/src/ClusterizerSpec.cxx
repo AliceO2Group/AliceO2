@@ -67,7 +67,7 @@ class ClusterizerDeviceDPL
     }
 
     auto stop = [this]() {
-      double scaleFactor = 1.e6 / mNROFs;
+      double scaleFactor = (mNROFs == 0) ? 0. : 1.e6 / mNROFs;
       LOG(info) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  pre-clustering: " << mTimerPreCluster.count() * scaleFactor << " us  clustering: " << mTimerCluster.count() * scaleFactor << " us";
     };
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
