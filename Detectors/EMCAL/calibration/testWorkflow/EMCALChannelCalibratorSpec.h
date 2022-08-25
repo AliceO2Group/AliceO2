@@ -60,26 +60,26 @@ class EMCALChannelCalibDevice : public o2::framework::Task
     if (EMCALCalibParams::Instance().calibType.find("time") != std::string::npos) { // time calibration
       isBadChannelCalib = false;
       if (!mTimeCalibrator) {
-        mTimeCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams, o2::emcal::TimeCalibInitParams>>();
+        mTimeCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams>>();
       }
       mTimeCalibrator->SetCalibExtractor(mCalibExtractor);
-      mTimeCalibrator->setSlotLength(EMCALCalibParams::Instance().slotLength);
-      if (EMCALCalibParams::Instance().UpdateAtEndOfRunOnly) {
+      mTimeCalibrator->setSlotLength(EMCALCalibParams::Instance().slotLength_tc);
+      if (EMCALCalibParams::Instance().UpdateAtEndOfRunOnly_tc) {
         mBadChannelCalibrator->setUpdateAtTheEndOfRunOnly();
       }
 
     } else { // bad cell calibration
       isBadChannelCalib = true;
       if (!mBadChannelCalibrator) {
-        mBadChannelCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap, o2::emcal::ChannelCalibInitParams>>();
+        mBadChannelCalibrator = std::make_unique<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap>>();
       }
       mBadChannelCalibrator->SetCalibExtractor(mCalibExtractor);
-      mBadChannelCalibrator->setSlotLength(EMCALCalibParams::Instance().slotLength);
-      if (EMCALCalibParams::Instance().UpdateAtEndOfRunOnly) {
+      mBadChannelCalibrator->setSlotLength(EMCALCalibParams::Instance().slotLength_bc);
+      if (EMCALCalibParams::Instance().UpdateAtEndOfRunOnly_bc) {
         mBadChannelCalibrator->setUpdateAtTheEndOfRunOnly();
       }
-      mBadChannelCalibrator->setIsTest(EMCALCalibParams::Instance().enableTestMode);
-      if (EMCALCalibParams::Instance().useScaledHistoForBadChannelMap) {
+      mBadChannelCalibrator->setIsTest(EMCALCalibParams::Instance().enableTestMode_bc);
+      if (EMCALCalibParams::Instance().useScaledHisto_bc) {
         mBadChannelCalibrator->getCalibExtractor()->setUseScaledHistoForBadChannels(true);
       }
     }
@@ -168,8 +168,8 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   static const char* getCellTriggerRecordBinding() { return "EMCCellsTrgR"; }
 
  private:
-  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap, o2::emcal::ChannelCalibInitParams>> mBadChannelCalibrator;
-  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams, o2::emcal::TimeCalibInitParams>> mTimeCalibrator;
+  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap>> mBadChannelCalibrator;
+  std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALTimeCalibData, o2::emcal::TimeCalibrationParams>> mTimeCalibrator;
   std::shared_ptr<o2::emcal::EMCALCalibExtractor> mCalibExtractor;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   bool isBadChannelCalib = true;
