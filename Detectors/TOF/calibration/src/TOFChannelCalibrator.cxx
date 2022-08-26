@@ -698,19 +698,52 @@ void TOFChannelCalibrator<T>::finalizeSlotWithTracks(Slot& slot)
       fitValues.fill(-99999999);
       histoValues.clear();
       // more efficient way
+      int imax = nbins / 2;
+      double maxval = 0;
+      double binwidth = 2 * range / nbins;
+      int binrange = int(1500 / binwidth) + 1;
+      float minRange = -range;
+      float maxRange = range;
+      int nbinsUsed = 0;
       for (unsigned j = chinsector; j <= chinsector; ++j) {
+        for (unsigned i = 0; i < nbins; ++i) { // find peak
+          const auto& v = histo.at(i, j);
+          if (v > maxval) {
+            maxval = v;
+            imax = i;
+          }
+        }
+
+        float renorm = 1.; // to avoid fit problem when stats is too large (bad chi2)
+        if (maxval > 10) {
+          renorm = 10. / maxval;
+        }
+
         for (unsigned i = 0; i < nbins; ++i) {
           const auto& v = histo.at(i, j);
           LOG(debug) << "channel = " << ich << ", in sector = " << sector << " (where it is channel = " << chinsector << ") bin = " << i << " value = " << v;
-          histoValues.push_back(v);
+          if (i >= imax - binrange && i < imax + binrange) {
+            histoValues.push_back(v * renorm);
+            nbinsUsed++;
+          } // not count for entries far from the peak (fit optimization)
         }
       }
 
-      double fitres = fitGaus(nbins, histoValues.data(), -range, range, fitValues, nullptr, 2., true);
+      minRange = (imax - nbins / 2 - binrange) * binwidth;
+      maxRange = (imax - nbins / 2 + binrange) * binwidth;
+
+      double fitres = fitGaus(nbinsUsed, histoValues.data(), minRange, maxRange, fitValues, nullptr, 2., false);
       LOG(info) << "channel = " << ich << " fitted by thread = " << ithread;
-      if (fitres >= 0) {
+      if (fitres > -3) {
         LOG(info) << "Channel " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
       } else {
+#ifdef DEBUGGING
+        FILE* f = fopen(Form("%d.cal", ich), "w");
+        for (int i = 0; i < histoValues.size(); i++) {
+          fprintf(f, "%d %f %f\n", i, minRange + binwidth * i, histoValues[i]);
+        }
+        fclose(f);
+#endif
         LOG(info) << "Channel " << ich << " :: Fit failed with result = " << fitres;
         ts.setFractionUnderPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, -1);
         ts.setSigmaPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, 99999);

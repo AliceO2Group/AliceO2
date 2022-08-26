@@ -120,7 +120,7 @@ class TOFChannelData
 
  private:
   float mRange = o2::tof::Geo::BC_TIME_INPS * 0.5;
-  int mNBins = 1000;
+  int mNBins = 2000;
   float mV2Bin;
   std::array<boostHisto, 18> mHisto;
   std::vector<int> mEntries; // vector containing number of entries per channel
@@ -191,7 +191,11 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
     }
 #ifdef DEBUGGING
     mFitCal = new TProfile("fitCal", ";channel;offset (ps)", 157248, 0, 157248);
-    mChannelDist = new TH2F("channelDist", ";channel; t - t_{exp}^{#pi} (ps)", 157248, 0, 157248, 1000, -100000, 100000);
+    int nbins = mNBins;
+    if (nbins > 2000) { // not more than 2000 otherwise it will cause overflow in the bin indexing
+      nbins = 2000;
+    }
+    mChannelDist = new TH2F("channelDist", ";channel; t - t_{exp}^{#pi} (ps)", 157248, 0, 157248, nbins, -mRange, mRange);
 #endif
   }
 
