@@ -55,13 +55,14 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
 
-    // will follow HMP-run by default:
-    //--local-test is passed only when using it on local installation
-    // to verify fits etc
 
+    // will follow HMP-run by default:
+    //--local-test is passed only when using it on local installation 
+    // to verify fits etc
+ 
     mLocalTest = ic.options().get<bool>("local-test");
 
-    if (mLocalTest) {
+    if(mLocalTest) {
       mCheckRunStartStop = false;
     }
     LOGP(info, "mCheckRunStartStop {} ", mCheckRunStartStop);
@@ -181,26 +182,28 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
   //==========================================================================
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
-  {
-    // ef : only for local testing of Fits etc.:
-    if (mLocalTest) {
+  { 
+    //ef : only for local testing of Fits etc.:
+    if(mLocalTest){
       auto timeNow = HighResClock::now();
       long dataTime = (long)(ec.services().get<o2::framework::TimingInfo>().creation);
-      if (dataTime == 0xffffffffffffffff) {
-        dataTime = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
-      }
+    if (dataTime == 0xffffffffffffffff)
+    {
+      dataTime =  std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
+    }
 
-      mProcessor->setEndValidityRunIndependent(dataTime);
-      mProcessor->finalize();
+    mProcessor->setEndValidityRunIndependent(dataTime);
+    mProcessor->finalize();
 
-      sendChargeThresOutput(ec.outputs());
-      sendRefIndexOutput(ec.outputs());
+    sendChargeThresOutput(ec.outputs());
+    sendRefIndexOutput(ec.outputs());
 
-      mProcessor->clearCCDBObjects(); // clears the vectors
-      mProcessor->clearDPsInfo();     // clear map of DPIDs
-      mProcessor->resetStartValidity();
-      mProcessor->resetEndValidity();
+    mProcessor->clearCCDBObjects(); // clears the vectors
+    mProcessor->clearDPsInfo();     // clear map of DPIDs
+    mProcessor->resetStartValidity();
+    mProcessor->resetEndValidity();
     } // <end if mLocalTest>
+    
   }
 
   //==========================================================================
@@ -310,7 +313,7 @@ o2::framework::DataProcessorSpec getHMPIDDCSDataProcessorSpec()
             {"local-test",
              VariantType::Bool,
              false,
-             {"Local installation test"}}, // Check HMPID runs SOR/EOR by default
+             {"Local installation test"}}, // Check HMPID runs SOR/EOR by default 
             {"use-verbose-mode",
              VariantType::Bool,
              false,
