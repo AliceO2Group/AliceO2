@@ -149,25 +149,22 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
 
                        bool changed = false;
                        bool hasMetrics = false;
-                       // Find  the last timestamp when we signaled.
-                       static size_t signalIndex = DeviceMetricsHelper::metricIdxByName("aod-reader-signals", driverMetrics);
-                       if (signalIndex < driverMetrics.metrics.size()) {
-                         MetricInfo& info = driverMetrics.metrics.at(signalIndex);
-                       }
 
                        size_t lastTimestamp = 0;
                        size_t firstTimestamp = -1;
-                       size_t lastDecision = 0;
                        static std::vector<MetricIndices> allIndices = createDefaultIndices(allDeviceMetrics);
                        for (size_t mi = 0; mi < allDeviceMetrics.size(); ++mi) {
                          auto& deviceMetrics = allDeviceMetrics[mi];
+                         if (deviceMetrics.changed.size() != deviceMetrics.metrics.size()) {
+                           throw std::runtime_error("deviceMetrics.size() != allDeviceMetrics.size()");
+                         }
                          auto& indices = allIndices[mi];
                          {
                            size_t index = indices.arrowBytesCreated;
                            if (index < deviceMetrics.metrics.size()) {
                              hasMetrics = true;
-                             changed |= deviceMetrics.changed.at(index);
-                             MetricInfo info = deviceMetrics.metrics.at(index);
+                             changed |= deviceMetrics.changed[index];
+                             MetricInfo info = deviceMetrics.metrics[index];
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              auto value = (int64_t)data.at((info.pos - 1) % data.size());
                              totalBytesCreated += value;
@@ -179,8 +176,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            size_t index = indices.shmOfferConsumed;
                            if (index < deviceMetrics.metrics.size()) {
                              hasMetrics = true;
-                             changed |= deviceMetrics.changed.at(index);
-                             MetricInfo info = deviceMetrics.metrics.at(index);
+                             changed |= deviceMetrics.changed[index];
+                             MetricInfo info = deviceMetrics.metrics[index];
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              auto value = (int64_t)data.at((info.pos - 1) % data.size());
                              shmOfferConsumed += value;
@@ -192,8 +189,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            size_t index = indices.arrowBytesDestroyed;
                            if (index < deviceMetrics.metrics.size()) {
                              hasMetrics = true;
-                             changed |= deviceMetrics.changed.at(index);
-                             MetricInfo info = deviceMetrics.metrics.at(index);
+                             changed |= deviceMetrics.changed[index];
+                             MetricInfo info = deviceMetrics.metrics[index];
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              totalBytesDestroyed += (int64_t)data.at((info.pos - 1) % data.size());
                              firstTimestamp = std::min(lastTimestamp, firstTimestamp);
@@ -203,8 +200,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            size_t index = indices.arrowBytesExpired;
                            if (index < deviceMetrics.metrics.size()) {
                              hasMetrics = true;
-                             changed |= deviceMetrics.changed.at(index);
-                             MetricInfo info = deviceMetrics.metrics.at(index);
+                             changed |= deviceMetrics.changed[index];
+                             MetricInfo info = deviceMetrics.metrics[index];
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              totalBytesExpired += (int64_t)data.at((info.pos - 1) % data.size());
                              firstTimestamp = std::min(lastTimestamp, firstTimestamp);
@@ -213,8 +210,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          {
                            size_t index = indices.arrowMessagesCreated;
                            if (index < deviceMetrics.metrics.size()) {
-                             MetricInfo info = deviceMetrics.metrics.at(index);
-                             changed |= deviceMetrics.changed.at(index);
+                             MetricInfo info = deviceMetrics.metrics[index];
+                             changed |= deviceMetrics.changed[index];
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              totalMessagesCreated += (int64_t)data.at((info.pos - 1) % data.size());
                            }
@@ -222,8 +219,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          {
                            size_t index = indices.arrowMessagesDestroyed;
                            if (index < deviceMetrics.metrics.size()) {
-                             MetricInfo info = deviceMetrics.metrics.at(index);
-                             changed |= deviceMetrics.changed.at(index);
+                             MetricInfo info = deviceMetrics.metrics[index];
+                             changed |= deviceMetrics.changed[index];
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              totalMessagesDestroyed += (int64_t)data.at((info.pos - 1) % data.size());
                            }
@@ -232,8 +229,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            size_t index = indices.timeframesRead;
                            if (index < deviceMetrics.metrics.size()) {
                              hasMetrics = true;
-                             changed |= deviceMetrics.changed.at(index);
-                             MetricInfo info = deviceMetrics.metrics.at(index);
+                             changed |= deviceMetrics.changed[index];
+                             MetricInfo info = deviceMetrics.metrics[index];
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              totalTimeframesRead += (int64_t)data.at((info.pos - 1) % data.size());
                              firstTimestamp = std::min(lastTimestamp, firstTimestamp);
@@ -243,8 +240,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            size_t index = indices.timeframesConsumed;
                            if (index < deviceMetrics.metrics.size()) {
                              hasMetrics = true;
-                             changed |= deviceMetrics.changed.at(index);
-                             MetricInfo info = deviceMetrics.metrics.at(index);
+                             changed |= deviceMetrics.changed[index];
+                             MetricInfo info = deviceMetrics.metrics[index];
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              totalTimeframesConsumed += (int64_t)data.at((info.pos - 1) % data.size());
                              firstTimestamp = std::min(lastTimestamp, firstTimestamp);
@@ -268,14 +265,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          return;
                        }
 
-                       bool done = false;
-                       static int stateTransitions = 0;
-                       static int signalsCount = 0;
-                       static int skippedCount = 0;
                        static uint64_t now = 0;
                        now = uv_hrtime();
-                       static RateLimitingState lastReportedState = RateLimitingState::UNKNOWN;
-                       static uint64_t lastReportTime = 0;
                        static int64_t MAX_SHARED_MEMORY = calculateAvailableSharedMemory(registry);
                        constexpr int64_t MAX_QUANTUM_SHARED_MEMORY = 100;
                        constexpr int64_t MIN_QUANTUM_SHARED_MEMORY = 50;
@@ -306,7 +297,6 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          }
                          size_t candidate = (lastDeviceOffered + di) % specs.size();
 
-                         auto& spec = specs[candidate];
                          auto& info = infos[candidate];
                          // Do not bother for inactive devices
                          // FIXME: there is probably a race condition if the device died and we did not
@@ -367,7 +357,6 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            LOGP(debug, "Message {}/{} is not of kind arrow, therefore we are not accounting its shared memory", dh->dataOrigin, dh->dataDescription);
                            continue;
                          }
-                         auto dph = o2::header::get<DataProcessingHeader*>(input.header);
                          bool forwarded = false;
                          for (auto const& forward : ctx.services().get<DeviceSpec const>().forwards) {
                            if (DataSpecUtils::match(forward.matcher, *dh)) {
