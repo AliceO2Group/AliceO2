@@ -55,8 +55,16 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
 
-    mCheckRunStartStop = ic.options().get<bool>("follow-hmpid-run");
-    LOGP(info, "mCheckRunStartStop set {} ", mCheckRunStartStop);
+    // will follow HMP-run by default:
+    //--local-test is passed only when using it on local installation
+    // to verify fits etc
+
+    mLocalTest = ic.options().get<bool>("local-test");
+
+    if (mLocalTest) {
+      mCheckRunStartStop = false;
+    }
+    LOGP(info, "mCheckRunStartStop {} ", mCheckRunStartStop);
     std::vector<DPID> vect;
 
     bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
@@ -173,27 +181,26 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
   //==========================================================================
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
-  { /*
-    ef : only for local testing of Fits etc.:
+  {
+    // ef : only for local testing of Fits etc.:
+    if (mLocalTest) {
+      auto timeNow = HighResClock::now();
+      long dataTime = (long)(ec.services().get<o2::framework::TimingInfo>().creation);
+      if (dataTime == 0xffffffffffffffff) {
+        dataTime = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
+      }
 
-    auto timeNow = HighResClock::now();
-    long dataTime = (long)(ec.services().get<o2::framework::TimingInfo>().creation);
-    if (dataTime == 0xffffffffffffffff)
-    {
-      dataTime =  std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
-    }
+      mProcessor->setEndValidityRunIndependent(dataTime);
+      mProcessor->finalize();
 
-    mProcessor->setEndValidityRunIndependent(dataTime);
-    mProcessor->finalize();
+      sendChargeThresOutput(ec.outputs());
+      sendRefIndexOutput(ec.outputs());
 
-    sendChargeThresOutput(ec.outputs());
-    sendRefIndexOutput(ec.outputs());
-
-    mProcessor->clearCCDBObjects(); // clears the vectors
-    mProcessor->clearDPsInfo();     // clear map of DPIDs
-    mProcessor->resetStartValidity();
-    mProcessor->resetEndValidity();
-    */
+      mProcessor->clearCCDBObjects(); // clears the vectors
+      mProcessor->clearDPsInfo();     // clear map of DPIDs
+      mProcessor->resetStartValidity();
+      mProcessor->resetEndValidity();
+    } // <end if mLocalTest>
   }
 
   //==========================================================================
@@ -252,7 +259,8 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
     "HMP_TRANPLANT_MEASURE_[0..29]_C6F14CELL"};
 
   bool isRunStarted = false;
-  bool mCheckRunStartStop = false;
+  bool mLocalTest = false;
+  bool mCheckRunStartStop = true;
   o2::dcs::RunStatusChecker mRunChecker{o2::detectors::DetID::getMask("HMP")};
 
   std::unique_ptr<HMPIDDCSProcessor> mProcessor;
@@ -293,16 +301,16 @@ o2::framework::DataProcessorSpec getHMPIDDCSDataProcessorSpec()
     outputs, AlgorithmSpec{adaptFromTask<o2::hmpid::HMPIDDCSDataProcessor>()},
     Options{{"ccdb-path",
              VariantType::String,
-             "localhost:8080",
+             o2::base::NameConf::getCCDBServer(),
              {"Path to CCDB"}},
             {"use-ccdb-to-configure",
              VariantType::Bool,
              false,
              {"Use CCDB to configure"}},
-            {"follow-hmpid-run",
+            {"local-test",
              VariantType::Bool,
              false,
-             {"Check HMPID runs SOR/EOR"}},
+             {"Local installation test"}}, // Check HMPID runs SOR/EOR by default
             {"use-verbose-mode",
              VariantType::Bool,
              false,
