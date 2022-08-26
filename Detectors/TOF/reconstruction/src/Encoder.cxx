@@ -148,7 +148,7 @@ void Encoder::encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t i
 // start to convert digiti from istart --> then update istart to the starting position of the new TRM
 {
 
-  static unsigned long bc_shift = o2::raw::HBFUtils::Instance().orbitFirstSampled * Geo::BC_IN_ORBIT;
+  static unsigned long bc_shift = uint64_t(o2::raw::HBFUtils::Instance().orbitFirstSampled) * Geo::BC_IN_ORBIT;
 
   if (mVerbose) {
     printf("Crate %d: encode TRM %d \n", icrate, itrm);

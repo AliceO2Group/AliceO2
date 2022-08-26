@@ -26,7 +26,7 @@ namespace o2
 namespace emcal
 {
 
-EntropyEncoderSpec::EntropyEncoderSpec() : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder)
+EntropyEncoderSpec::EntropyEncoderSpec(bool selIR) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mSelIR(selIR)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -53,9 +53,15 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto cells = pc.inputs().get<gsl::span<Cell>>("cells");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"EMC", "CTFDATA", 0, Lifetime::Timeframe});
+  if (mSelIR) {
+    mCTFCoder.getIRFramesSelector().setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
+  }
   auto iosize = mCTFCoder.encode(buffer, triggers, cells);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
+  if (mSelIR) {
+    mCTFCoder.getIRFramesSelector().clear();
+  }
   LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
 
@@ -65,19 +71,21 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyEncoderSpec()
+DataProcessorSpec getEntropyEncoderSpec(bool selIR)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("triggers", "EMC", "CELLSTRGR", 0, Lifetime::Timeframe);
   inputs.emplace_back("cells", "EMC", "CELLS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ctfdict", "EMC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("EMC/Calib/CTFDictionary"));
-
+  if (selIR) {
+    inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
     "emcal-entropy-encoder",
     inputs,
     Outputs{{"EMC", "CTFDATA", 0, Lifetime::Timeframe},
             {{"ctfrep"}, "EMC", "CTFENCREP", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
+    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(selIR)},
     Options{
       {"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
       {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};

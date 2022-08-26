@@ -10,3 +10,4 @@
 # or submit itself to any jurisdiction.
 
 add_subdirectory(calibration)
+add_subdirectory(dcsmonitoring)

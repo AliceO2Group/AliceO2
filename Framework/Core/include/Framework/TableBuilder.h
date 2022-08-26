@@ -479,8 +479,15 @@ struct BuilderHolder : InsertionPolicy<T> {
 };
 
 struct TableBuilderHelpers {
-  template <typename... ARGS>
-  static std::vector<std::shared_ptr<arrow::Field>> makeFields(std::array<char const*, sizeof...(ARGS)> const& names)
+
+  template <typename... ARGS, size_t NCOLUMNS>
+  static std::array<arrow::DataType, NCOLUMNS> makeArrowColumnTypes()
+  {
+    return {BuilderTraits<ARGS>::make_datatype()...};
+  }
+
+  template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>
+  static std::vector<std::shared_ptr<arrow::Field>> makeFields(std::array<char const*, NCOLUMNS> const& names)
   {
     char const* const* names_ptr = names.data();
     return {
@@ -664,8 +671,8 @@ class TableBuilder
 
   void validate() const;
 
-  template <typename... ARGS>
-  auto makeBuilders(std::array<char const*, sizeof...(ARGS)> const& columnNames, size_t nRows)
+  template <typename... ARGS, size_t I = sizeof...(ARGS)>
+  auto makeBuilders(std::array<char const*, I> const& columnNames, size_t nRows)
   {
     mSchema = std::make_shared<arrow::Schema>(TableBuilderHelpers::makeFields<ARGS...>(columnNames));
     mHolders = new HoldersTuple<ARGS...>(TableBuilderHelpers::reserveAll(typename HolderTrait<ARGS>::Holder(mMemoryPool), nRows)...);
@@ -713,8 +720,8 @@ class TableBuilder
 
   /// Creates a lambda which is suitable to persist things
   /// in an arrow::Table
-  template <typename... ARGS>
-  auto persist(std::array<char const*, countColumns<ARGS...>()> const& columnNames)
+  template <typename... ARGS, size_t NCOLUMNS = countColumns<ARGS...>()>
+  auto persist(std::array<char const*, NCOLUMNS> const& columnNames)
   {
     using args_pack_t = framework::pack<ARGS...>;
     if constexpr (sizeof...(ARGS) == 1 &&
@@ -782,10 +789,10 @@ class TableBuilder
     return cursorHelper2<E>(typename T::table_t::persistent_columns_t{});
   }
 
-  template <typename... ARGS>
-  auto preallocatedPersist(std::array<char const*, sizeof...(ARGS)> const& columnNames, int nRows)
+  template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>
+  auto preallocatedPersist(std::array<char const*, NCOLUMNS> const& columnNames, int nRows)
   {
-    constexpr int nColumns = sizeof...(ARGS);
+    constexpr size_t nColumns = NCOLUMNS;
     validate();
     mArrays.resize(nColumns);
     makeBuilders<ARGS...>(columnNames, nRows);
@@ -797,13 +804,12 @@ class TableBuilder
     };
   }
 
-  template <typename... ARGS>
-  auto bulkPersist(std::array<char const*, sizeof...(ARGS)> const& columnNames, size_t nRows)
+  template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>
+  auto bulkPersist(std::array<char const*, NCOLUMNS> const& columnNames, size_t nRows)
   {
-    constexpr int nColumns = sizeof...(ARGS);
     validate();
     //  Should not be called more than once
-    mArrays.resize(nColumns);
+    mArrays.resize(NCOLUMNS);
     makeBuilders<ARGS...>(columnNames, nRows);
     makeFinalizer<ARGS...>();
 
@@ -812,12 +818,11 @@ class TableBuilder
     };
   }
 
-  template <typename... ARGS>
-  auto bulkPersistChunked(std::array<char const*, sizeof...(ARGS)> const& columnNames, size_t nRows)
+  template <typename... ARGS, size_t NCOLUMNS = sizeof...(ARGS)>
+  auto bulkPersistChunked(std::array<char const*, NCOLUMNS> const& columnNames, size_t nRows)
   {
-    constexpr int nColumns = sizeof...(ARGS);
     validate();
-    mArrays.resize(nColumns);
+    mArrays.resize(NCOLUMNS);
     makeBuilders<ARGS...>(columnNames, nRows);
     makeFinalizer<ARGS...>();
 
@@ -878,6 +883,9 @@ auto makeEmptyTable(const char* name)
   return b.finalize();
 }
 
+std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> fullTable, std::shared_ptr<arrow::Schema> newSchema, size_t nColumns,
+                                            expressions::Projector* projectors, std::vector<std::shared_ptr<arrow::Field>> const& fields, const char* name);
+
 /// Expression-based column generator to materialize columns
 template <typename... C>
 auto spawner(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::Table>>&& tables, const char* name)
@@ -886,43 +894,10 @@ auto spawner(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::T
   if (fullTable->num_rows() == 0) {
     return makeEmptyTable<soa::Table<C...>>(name);
   }
-  static auto new_schema = o2::soa::createSchemaFromColumns(columns);
-  auto projectors = framework::expressions::createProjectors(columns, fullTable->schema());
-
-  arrow::TableBatchReader reader(*fullTable);
-  std::shared_ptr<arrow::RecordBatch> batch;
-  arrow::ArrayVector v;
-  std::array<arrow::ArrayVector, sizeof...(C)> chunks;
-  std::vector<std::shared_ptr<arrow::ChunkedArray>> arrays;
-
-  while (true) {
-    auto s = reader.ReadNext(&batch);
-    if (!s.ok()) {
-      throw runtime_error_f("Cannot read batches from source table to spawn %s: %s", name, s.ToString().c_str());
-    }
-    if (batch == nullptr) {
-      break;
-    }
-    try {
-      s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
-      if (!s.ok()) {
-        throw runtime_error_f("Cannot apply projector to source table of %s: %s", name, s.ToString().c_str());
-      }
-    } catch (std::exception& e) {
-      throw runtime_error_f("Cannot apply projector to source table of %s: exception caught: %s", name, e.what());
-    }
-
-    for (auto i = 0u; i < sizeof...(C); ++i) {
-      chunks[i].emplace_back(v.at(i));
-    }
-  }
-
-  for (auto i = 0u; i < sizeof...(C); ++i) {
-    arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
-  }
-
-  addLabelToSchema(new_schema, name);
-  return arrow::Table::Make(new_schema, arrays);
+  static auto fields = o2::soa::createFieldsFromColumns(columns);
+  static auto new_schema = std::make_shared<arrow::Schema>(fields);
+  std::array<expressions::Projector, sizeof...(C)> projectors{{std::move(C::Projector())...}};
+  return spawnerHelper(fullTable, new_schema, sizeof...(C), projectors.data(), fields, name);
 }
 
 /// Helper to get a tuple tail

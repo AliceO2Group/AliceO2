@@ -138,9 +138,6 @@ void CruCompressorTask::run(ProcessingContext& pc)
       std::cout << "payload In size is : " << std::dec << payloadInSize << std::endl;
       mReader.setDataBuffer(payloadIn);
       mReader.setDataBufferSize(payloadInSize);
-      mReader.setVerbose(mVerbose);
-      mReader.setDataVerbose(mDataVerbose);
-      mReader.setHeaderVerbose(mHeaderVerbose);
       /* run */
       mReader.run();
 

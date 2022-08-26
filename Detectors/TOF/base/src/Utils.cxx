@@ -38,6 +38,10 @@ o2::dataformats::CalibInfoTOF Utils::mCalibTracks[NTRACKS_REQUESTED];
 int Utils::mNsample = 0;
 int Utils::mIsample = 0;
 float Utils::mPhases[100];
+uint64_t Utils::mMaskBC[16] = {};
+uint64_t Utils::mMaskBCUsed[16] = {};
+int Utils::mMaskBCchan[o2::tof::Geo::NCHANNELS][16] = {};
+int Utils::mMaskBCchanUsed[o2::tof::Geo::NCHANNELS][16] = {};
 
 void Utils::addInteractionBC(int bc, bool fromCollisonCotext)
 {
@@ -255,4 +259,50 @@ bool Utils::hasFillScheme()
   }
 
   return false;
+}
+
+int Utils::addMaskBC(int mask, int channel)
+{
+  int mask2 = (mask >> 16);
+  int cmask = 1;
+  int used = 0;
+  for (int ibit = 0; ibit < 16; ibit++) {
+    if (mask & cmask) {
+      mMaskBCchan[channel][ibit]++;
+      mMaskBC[ibit]++;
+    }
+    if (mask2 & cmask) {
+      mMaskBCchanUsed[channel][ibit]++;
+      mMaskBCUsed[ibit]++;
+      used = ibit - 8;
+    }
+    cmask *= 2;
+  }
+  return used;
+}
+
+int Utils::getMaxUsed()
+{
+  int cmask = 0;
+  uint64_t val = 10; // at least 10 entry required
+  for (int ibit = 0; ibit < 16; ibit++) {
+    if (mMaskBC[ibit] > val) {
+      val = mMaskBC[ibit];
+      cmask = ibit - 8;
+    }
+  }
+  return cmask;
+}
+
+int Utils::getMaxUsedChannel(int channel)
+{
+  int cmask = 0;
+  int val = 10; // at least 10 entry required
+  for (int ibit = 0; ibit < 16; ibit++) {
+    if (mMaskBCchan[channel][ibit] > val) {
+      val = mMaskBCchan[channel][ibit];
+      cmask = ibit - 8;
+    }
+  }
+  return cmask;
 }

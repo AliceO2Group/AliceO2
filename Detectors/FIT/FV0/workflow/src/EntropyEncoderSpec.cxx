@@ -26,7 +26,7 @@ namespace o2
 namespace fv0
 {
 
-EntropyEncoderSpec::EntropyEncoderSpec() : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder)
+EntropyEncoderSpec::EntropyEncoderSpec(bool selIR) : mCTFCoder(o2::ctf::CTFCoderBase::OpType::Encoder), mSelIR(selIR)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -51,9 +51,16 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   mCTFCoder.updateTimeDependentParams(pc);
   auto digits = pc.inputs().get<gsl::span<o2::fv0::Digit>>("digits");
   auto channels = pc.inputs().get<gsl::span<o2::fv0::ChannelData>>("channels");
+  if (mSelIR) {
+    mCTFCoder.getIRFramesSelector().setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
+  }
+
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"FV0", "CTFDATA", 0, Lifetime::Timeframe});
   auto iosize = mCTFCoder.encode(buffer, digits, channels);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
+  if (mSelIR) {
+    mCTFCoder.getIRFramesSelector().clear();
+  }
   mTimer.Stop();
   LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
@@ -64,19 +71,21 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyEncoderSpec()
+DataProcessorSpec getEntropyEncoderSpec(bool selIR)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "FV0", "DIGITSBC", 0, Lifetime::Timeframe);
   inputs.emplace_back("channels", "FV0", "DIGITSCH", 0, Lifetime::Timeframe);
   inputs.emplace_back("ctfdict", "FV0", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("FV0/Calib/CTFDictionary"));
-
+  if (selIR) {
+    inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
     "fv0-entropy-encoder",
     inputs,
     Outputs{{"FV0", "CTFDATA", 0, Lifetime::Timeframe},
             {{"ctfrep"}, "FV0", "CTFENCREP", 0, Lifetime::Timeframe}},
-    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
+    AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(selIR)},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }

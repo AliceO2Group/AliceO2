@@ -36,8 +36,11 @@
 #include "TGraph.h"
 #include "TCanvas.h"
 
-#ifdef WITH_OPENMP
+#if defined(WITH_OPENMP) || defined(_OPENMP)
 #include <omp.h>
+#else
+static inline int omp_get_thread_num() { return 0; }
+static inline int omp_get_max_threads() { return 1; }
 #endif
 
 templateClassImp(o2::tpc::SpaceCharge);
@@ -50,6 +53,12 @@ void SpaceCharge<DataT>::setGrid(const unsigned short nZVertices, const unsigned
   o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NZVertices", nZVertices);
   o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NRVertices", nRVertices);
   o2::conf::ConfigurableParam::setValue<unsigned short>("TPCSpaceChargeParam", "NPhiVertices", nPhiVertices);
+}
+
+template <typename DataT>
+int SpaceCharge<DataT>::getOMPMaxThreads()
+{
+  return omp_get_max_threads();
 }
 
 template <typename DataT>
@@ -151,11 +160,11 @@ void SpaceCharge<DataT>::calculateDistortionsCorrections(const o2::tpc::Side sid
 template <typename DataT>
 DataT SpaceCharge<DataT>::regulateR(const DataT posR, const Side side) const
 {
-  const DataT minR = getRMin(side) - 4 * getGridSpacingR(side);
+  const DataT minR = getRMinSim(side);
   if (posR < minR) {
     return minR;
   }
-  const DataT maxR = getRMax(side) + 2 * getGridSpacingR(side);
+  const DataT maxR = getRMaxSim(side);
   if (posR > maxR) {
     return maxR;
   }
@@ -257,10 +266,12 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongR(const std::function<
 
       for (int sector = 0; sector < SECTORSPERSIDE; ++sector) {
         const size_t iPhiLeft = sector * verticesPerSector + iPhiTmp;
-        const size_t iPhiRight = (sector + 1) * verticesPerSector - iPhiTmp;
         const size_t iZ = mParamGrid.NZVertices - 1;
         mPotential[side](iZ, iR, iPhiLeft) = potentialFunc(radius);
-        mPotential[side](iZ, iR, iPhiRight) = potentialFunc(radius);
+        if (iPhiTmp > 0) {
+          const size_t iPhiRight = (sector + 1) * verticesPerSector - iPhiTmp;
+          mPotential[side](iZ, iR, iPhiRight) = potentialFunc(radius);
+        }
       }
     }
   }
@@ -587,21 +598,18 @@ void SpaceCharge<DataT>::calcGlobalDistWithGlobalCorrIterative(const DistCorrInt
           const DataT phiCurrPos = getPhiVertex(nearestiPhi, side) + stepPhi;
 
           // abort calculation of drift path if electron reached inner/outer field cage or central electrode
-          if (rCurrPos <= (getRMin(side) - 4 * getGridSpacingR(side)) || rCurrPos >= (getRMax(side) + 2 * getGridSpacingR(side)) || getSide(zCurrPos) != side) {
+          if (rCurrPos <= getRMinSim(side) || rCurrPos >= getRMaxSim(side) || getSide(zCurrPos) != side) {
             break;
           }
 
           // interpolate global correction at new point and calculate position of global correction
-          // corrdR = globCorr.evalSparsedR(zCurrPos, rCurrPos, phiCurrPos);
           corrdR = globCorr.evaldR(zCurrPos, rCurrPos, phiCurrPos);
           const DataT rNewPos = rCurrPos + corrdR;
 
-          // const DataT corrPhi = globCorr.evalSparsedRPhi(zCurrPos, rCurrPos, phiCurrPos) / rCurrPos;
           const DataT corrPhi = globCorr.evaldRPhi(zCurrPos, rCurrPos, phiCurrPos) / rCurrPos;
           corrdRPhi = corrPhi * rNewPos; // normalize to new r coordinate
           const DataT phiNewPos = phiCurrPos + corrPhi;
 
-          // corrdZ = globCorr.evalSparsedZ(zCurrPos, rCurrPos, phiCurrPos);
           corrdZ = globCorr.evaldZ(zCurrPos, rCurrPos, phiCurrPos);
           const DataT zNewPos = zCurrPos + corrdZ;
 
@@ -1190,7 +1198,7 @@ void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct)
   const Side side = formulaStruct.getSide();
   const int iSteps = formulaStruct.getID() == 2 ? 1 : sSteps; // if one used local corrections no step width is needed. since it is already used for calculation of the local corrections
   const DataT stepSize = -getGridSpacingZ(side) / iSteps;
-  // loop over tpc volume and let the electron drift from each vertex to the readout of the tpc
+// loop over tpc volume and let the electron drift from each vertex to the readout of the tpc
 #pragma omp parallel for num_threads(sNThreads)
   for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
     const DataT phi0 = getPhiVertex(iPhi, side);
@@ -1200,6 +1208,7 @@ void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct)
       DataT drCorr = 0;
       DataT dPhiCorr = 0;
       DataT dzCorr = 0;
+      bool isOutOfVolume = false;
 
       // start at the readout and follow electron towards central electrode
       for (size_t iZ = mParamGrid.NZVertices - 1; iZ >= 1; --iZ) {
@@ -1207,7 +1216,7 @@ void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct)
         // flag which is set when the central electrode is reached. if the central electrode is reached the calculation of the global corrections is aborted and the value set is the last calculated value.
         bool centralElectrodeReached = false;
         for (int iter = 0; iter < iSteps; ++iter) {
-          if (centralElectrodeReached) {
+          if (centralElectrodeReached || isOutOfVolume) {
             break;
           }
           const DataT radius = regulateR(r0 + drCorr, side);     // current radial position of the electron
@@ -1229,6 +1238,16 @@ void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct)
             ddR *= fac;
             ddZ *= fac;
             ddPhi *= fac;
+          }
+
+          // calculate current r and z position after correction
+          const DataT rCurr = r0 + drCorr + ddR;
+          const DataT zCurr = z0Tmp + dzCorr + ddZ + stepSize;
+
+          // check if current position lies in the TPC volume if not the electron gets corrected outside of the TPC volume and the calculation of the following corrections can be skipped
+          if (rCurr <= getRMinSim(side) || rCurr >= getRMaxSim(side) || (std::abs(zCurr) > 1.2 * std::abs(getZMax(side)))) {
+            isOutOfVolume = true;
+            break;
           }
 
           // add local corrections to global corrections

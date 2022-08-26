@@ -69,6 +69,9 @@ void MeanVertexCalibrator::binVector(std::vector<float>& vectOut, const std::vec
       continue;
     }
     int bin = (vectIn[i] - min) * binWidthInv;
+    if (bin >= vectOut.size()) {
+      continue;
+    }
     vectOut[bin]++;
   }
 }
@@ -142,8 +145,8 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
           printVector(binnedVect, -(mRangeX), mRangeX, mBinWidthX);
         }
         fitres = fitGaus(mNBinsX, &binnedVect[0], -(mRangeX), mRangeX, fitResSlicesX.back(), &covMatrixX.back());
-        if (fitres != 10) {
-          LOG(info) << "X, counter " << counter << ": Fit result (z slice [" << c->histoVtx[startZ][2] << ", " << c->histoVtx[ii][2] << "[) => " << fitres << ". Mean = " << fitResSlicesX[counter][1] << " Sigma = " << fitResSlicesX[counter][2] << ", covMatrix = " << covMatrixX[counter](2, 2);
+        if (fitres != -10) {
+          LOG(info) << "X, counter " << counter << ": Fit result (z slice [" << c->histoVtx[startZ][2] << ", " << c->histoVtx[ii - 1][2] << "]) => " << fitres << ". Mean = " << fitResSlicesX[counter][1] << " Sigma = " << fitResSlicesX[counter][2] << ", covMatrix = " << covMatrixX[counter](2, 2);
         } else {
           LOG(error) << "X, counter " << counter << ": Fit failed with result = " << fitres;
         }
@@ -165,8 +168,8 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
           printVector(binnedVect, -(mRangeY), mRangeY, mBinWidthY);
         }
         fitres = fitGaus(mNBinsY, &binnedVect[0], -(mRangeY), mRangeY, fitResSlicesY.back(), &covMatrixY.back());
-        if (fitres != 10) {
-          LOG(info) << "Y, counter " << counter << ": Fit result (z slice [" << c->histoVtx[startZ][2] << ", " << c->histoVtx[ii][2] << "[) => " << fitres << ". Mean = " << fitResSlicesY[counter][1] << " Sigma = " << fitResSlicesY[counter][2] << ", covMatrix = " << covMatrixY[counter](2, 2);
+        if (fitres != -10) {
+          LOG(info) << "Y, counter " << counter << ": Fit result (z slice [" << c->histoVtx[startZ][2] << ", " << c->histoVtx[ii - 1][2] << "]) => " << fitres << ". Mean = " << fitResSlicesY[counter][1] << " Sigma = " << fitResSlicesY[counter][2] << ", covMatrix = " << covMatrixY[counter](2, 2);
         } else {
           LOG(error) << "Y, counter " << counter << ": Fit failed with result = " << fitres;
         }
@@ -181,7 +184,7 @@ void MeanVertexCalibrator::fitMeanVertex(o2::calibration::MeanVertexData* c, Mea
         break;
       }
     }
-    startZ += mMinEntries * counter;
+    startZ += minEntriesPerPoint * counter;
     if (mVerbose) {
       LOG(info) << "End of while: startZ = " << startZ << " c->histoVtx.size() = " << c->histoVtx.size();
     }

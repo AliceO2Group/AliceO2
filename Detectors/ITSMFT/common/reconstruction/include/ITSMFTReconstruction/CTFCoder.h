@@ -51,7 +51,8 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   /// entropy-encode clusters to buffer with CTF
   template <typename VEC>
-  o2::ctf::CTFIOSize encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec);
+  o2::ctf::CTFIOSize encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec,
+                            const gsl::span<const unsigned char>& pattVec, const LookUp& clPattLookup, int strobeLength);
 
   /// entropy decode clusters from buffer with CTF
   template <typename VROF, typename VCLUS, typename VPAT>
@@ -67,7 +68,8 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   CompressedClusters decodeCompressedClusters(const CTF::base& ec, o2::ctf::CTFIOSize& sz);
 
   /// compres compact clusters to CompressedClusters
-  void compress(CompressedClusters& compCl, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec);
+  void compress(CompressedClusters& compCl, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec,
+                const gsl::span<const unsigned char>& pattVec, const LookUp& clPattLookup, int strobeLength);
   size_t estimateCompressedSize(const CompressedClusters& compCl);
 
   /// decompress CompressedClusters to compact clusters
@@ -84,7 +86,8 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec, const gsl::span<const unsigned char>& pattVec)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofRecVec, const gsl::span<const CompClusterExt>& cclusVec,
+                                    const gsl::span<const unsigned char>& pattVec, const LookUp& clPattLookup, int strobeLength)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -101,7 +104,7 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>&
     MD::EENCODE  //BLCpattMap
   };
   CompressedClusters compCl;
-  compress(compCl, rofRecVec, cclusVec, pattVec);
+  compress(compCl, rofRecVec, cclusVec, pattVec, clPattLookup, strobeLength);
   // book output size with some margin
   auto szIni = estimateCompressedSize(compCl);
   buff.resize(szIni);

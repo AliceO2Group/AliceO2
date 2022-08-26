@@ -170,8 +170,9 @@ BOOST_AUTO_TEST_CASE(TestGandivaTreeCreation)
   BOOST_CHECK_EQUAL(gandiva_expression2->ToString(), "if (bool less_than_or_equal_to(float absf((float) fSigned1Pt), (const float) 1.17549e-38 raw(7fffe1))) { (const float) 8.50709e+37 raw(7e80001f) } else { float absf(float divide((const float) 1 raw(3f800000), (float) fSigned1Pt)) }");
 
   auto projector_b = createProjector(schema2, ptespecs, resfield2);
-  auto schema_p = o2::soa::createSchemaFromColumns(o2::aod::Tracks::persistent_columns_t{});
-  auto projector_alt = o2::framework::expressions::createProjectors(o2::framework::pack<o2::aod::track::Pt>{}, schema_p);
+  auto fields = o2::soa::createFieldsFromColumns(o2::aod::Tracks::persistent_columns_t{});
+  auto schema_p = std::make_shared<arrow::Schema>(fields);
+  auto projector_alt = o2::framework::expressions::createProjectors(o2::framework::pack<o2::aod::track::Pt>{}, fields, schema_p);
 
   Filter bitwiseFilter = (o2::aod::track::flags & static_cast<uint32_t>(o2::aod::track::TPCrefit)) != 0u;
   auto bwf = createOperations(bitwiseFilter);

@@ -703,11 +703,7 @@ class SpaceCharge
   static int getNThreads() { return sNThreads; }
 
   /// set the number of threads used for some of the calculations
-  static void setNThreads(const int nThreads)
-  {
-    sNThreads = nThreads;
-    TriCubic::setNThreads(nThreads);
-  }
+  static void setNThreads(const int nThreads) { sNThreads = nThreads; }
 
   /// set which kind of numerical integration is used for calcution of the integrals int Er/Ez dz, int Ephi/Ez dz, int Ez dz
   /// \param strategy numerical integration strategy. see enum IntegrationStrategy for the different types
@@ -910,17 +906,12 @@ class SpaceCharge
   /// \param histoIonsPhiRZ histogram which will be normalized to the sapce charge density
   static void normalizeHistoQVEps0(TH3& histoIonsPhiRZ);
 
+  /// \return returns max threads
+  static int getOMPMaxThreads();
+
  private:
-  inline static auto& mParamGrid = ParameterSpaceCharge::Instance(); ///< parameters of the grid on which the calculations are performed
-  inline static int sNThreads{TriCubic::getOMPMaxThreads()};         ///< number of threads which are used during the calculations
-
-  /// check if the addition of two values are close to zero.
-  /// This avoids errors during the integration of the electric fields when the sum of the nominal electric with the electric field from the space charge is close to 0 (usually this is not the case!).
-  bool isCloseToZero(const DataT valA, const DataT valB) const
-  {
-    return std::abs(valA + valB) < static_cast<DataT>(0.01);
-  }
-
+  inline static auto& mParamGrid = ParameterSpaceCharge::Instance();                                      ///< parameters of the grid on which the calculations are performed
+  inline static int sNThreads{getOMPMaxThreads()};                                                        ///< number of threads which are used during the calculations
   inline static IntegrationStrategy sNumericalIntegrationStrategy{IntegrationStrategy::SimpsonIterative}; ///< numerical integration strategy of integration of the E-Field: 0: trapezoidal, 1: Simpson, 2: Root (only for analytical formula case)
   inline static int sSimpsonNIteratives{3};                                                               ///< number of iterations which are performed in the iterative simpson calculation of distortions/corrections
   inline static int sSteps{1};                                                                            ///< during the calculation of the corrections/distortions it is assumed that the electron drifts on a line from deltaZ = z0 -> z1. The value sets the deltaZ width: 1: deltaZ=zBin/1, 5: deltaZ=zBin/5
@@ -1007,6 +998,10 @@ class SpaceCharge
     {mElectricFieldEr[Side::A], mElectricFieldEz[Side::A], mElectricFieldEphi[Side::A], mGrid3D[Side::A], Side::A},
     {mElectricFieldEr[Side::C], mElectricFieldEz[Side::C], mElectricFieldEphi[Side::C], mGrid3D[Side::C], Side::C}}; ///< interpolator for the electric fields
 
+  /// check if the addition of two values are close to zero.
+  /// This avoids errors during the integration of the electric fields when the sum of the nominal electric with the electric field from the space charge is close to 0 (usually this is not the case!).
+  bool isCloseToZero(const DataT valA, const DataT valB) const { return std::abs(valA + valB) < static_cast<DataT>(0.01); }
+
   static int getSign(const Side side) { return side == Side::C ? -1 : 1; }
 
   /// get inverse spacing in z direction
@@ -1017,6 +1012,12 @@ class SpaceCharge
 
   /// get inverse spacing in phi direction
   DataT getInvSpacingPhi(const Side side) const { return mGrid3D[side].getInvSpacingPhi(); }
+
+  /// \return returns minimum r coordinate up to distortions and corrections are being calculated
+  DataT getRMinSim(const Side side) const { return getRMin(side) - 4 * getGridSpacingR(side); }
+
+  /// \return returns maximum r coordinate up to distortions and corrections are being calculated
+  DataT getRMaxSim(const Side side) const { return getRMax(side) + 2 * getGridSpacingR(side); }
 
   std::string getSideName(const Side side) const { return side == Side::A ? "A" : "C"; }
 
@@ -1044,16 +1045,10 @@ class SpaceCharge
   void integrateEFieldsSimpsonIterative(const DataT p1r, const DataT p2r, const DataT p1phi, const DataT p2phi, const DataT p1z, const DataT p2z, DataT& localIntErOverEz, DataT& localIntEPhiOverEz, DataT& localIntDeltaEz, const Fields& formulaStruct) const;
 
   /// calculate distortions/corrections using analytical electric fields
-  void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const AnalyticalFields<DataT>& formulaStruct) const
-  {
-    calcDistCorr(radius, phi, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, formulaStruct, false);
-  }
+  void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const AnalyticalFields<DataT>& formulaStruct) const { calcDistCorr(radius, phi, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, formulaStruct, false); }
 
   /// calculate distortions/corrections using electric fields from tricubic interpolator
-  void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const NumericalFields<DataT>& formulaStruct) const
-  {
-    calcDistCorr(radius, phi, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, formulaStruct, false);
-  }
+  void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const NumericalFields<DataT>& formulaStruct) const { calcDistCorr(radius, phi, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, formulaStruct, false); }
 
   /// calculate distortions/corrections by interpolation of local distortions/corrections
   void processGlobalDistCorr(const DataT radius, const DataT phi, const DataT z0Tmp, [[maybe_unused]] const DataT z1Tmp, DataT& ddR, DataT& ddPhi, DataT& ddZ, const DistCorrInterpolator<DataT>& localDistCorr) const

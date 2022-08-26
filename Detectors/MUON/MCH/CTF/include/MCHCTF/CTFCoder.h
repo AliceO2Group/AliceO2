@@ -52,13 +52,38 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
  private:
+  template <typename VEC>
+  o2::ctf::CTFIOSize encode_impl(VEC& buff, const gsl::span<const ROFRecord>& rofData, const gsl::span<const Digit>& digData);
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<ROFRecord>& rofVec, std::vector<Digit>& digVec);
+
+  std::vector<ROFRecord> mROFRecFilt;
+  std::vector<Digit> mDigDataFilt;
 };
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
 o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofData, const gsl::span<const Digit>& digData)
+{
+  if (mIRFrameSelector.isSet()) { // preselect data
+    mROFRecFilt.clear();
+    mDigDataFilt.clear();
+    for (const auto& rof : rofData) {
+      if (mIRFrameSelector.check(rof.getBCData()) >= 0) {
+        mROFRecFilt.push_back(rof);
+        auto digIt = digData.begin() + rof.getFirstIdx();
+        auto& rofC = mROFRecFilt.back();
+        rofC.setDataRef((int)mDigDataFilt.size(), rof.getNEntries());
+        std::copy(digIt, digIt + rofC.getNEntries(), std::back_inserter(mDigDataFilt));
+      }
+    }
+    return encode_impl(buff, mROFRecFilt, mDigDataFilt);
+  }
+  return encode_impl(buff, rofData, digData);
+}
+
+template <typename VEC>
+o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const ROFRecord>& rofData, const gsl::span<const Digit>& digData)
 {
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
@@ -74,7 +99,6 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>&
     MD::EENCODE  // BLC_ADC
   };
   CTFHelper helper(rofData, digData);
-
   // book output size with some margin
   auto szIni = sizeof(CTFHeader) + helper.getSize() * 2. / 3; // will be autoexpanded if needed
   buff.resize(szIni);

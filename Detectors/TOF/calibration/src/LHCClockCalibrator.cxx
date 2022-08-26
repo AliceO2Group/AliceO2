@@ -16,6 +16,7 @@
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
 #include "DetectorsRaw/HBFUtils.h"
+#include "TOFBase/Utils.h"
 
 namespace o2
 {
@@ -41,7 +42,9 @@ void LHCClockDataHisto::fill(const gsl::span<const o2::dataformats::CalibInfoTOF
     auto ch = data[i].getTOFChIndex();
     auto dt = data[i].getDeltaTimePi();
     auto tot = data[i].getTot();
-    auto corr = calibApi->getTimeCalibration(ch, tot, 0.); // we take into offsets and time slewing but not lhc phase
+    int used = o2::tof::Utils::addMaskBC(data[i].getMask(), data[i].getTOFChIndex()); // fill the current BC candidate mask and return the one used
+    dt -= used * o2::tof::Geo::BC_TIME_INPS;                                          // report the time using the current 0 deltaBC as reference (the right one will be added later)
+    auto corr = calibApi->getTimeCalibration(ch, tot, 0.);                            // we take into offsets and time slewing but not lhc phase
     dt -= corr;
 
     //    printf("ch=%d - tot=%f - corr=%f -> dtcorr = %f (range=%f, bin=%d)\n",ch,tot,corr,dt,range,int((dt+range)*v2Bin));
@@ -98,6 +101,8 @@ void LHCClockCalibrator::finalizeSlot(Slot& slot)
 
   std::map<std::string, std::string> md;
   LHCphase l;
+  int tobeused = o2::tof::Utils::getMaxUsed();
+  fitValues[1] += tobeused * o2::tof::Geo::BC_TIME_INPS; // adjust by adding the right BC
   l.addLHCphase(0, fitValues[1]);
   l.addLHCphase(o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP_SECONDS, fitValues[1]);
   auto clName = o2::utils::MemFileHelper::getClassName(l);
@@ -105,7 +110,7 @@ void LHCClockCalibrator::finalizeSlot(Slot& slot)
 
   auto starting = slot.getStartTimeMS();
   auto stopping = slot.getEndTimeMS() + 5 * getSlotLength() + getMaxSlotsDelay();
-  LOG(info) << "starting = " << starting << " - stopping = " << stopping << " -> phase = " << fitValues[1] << " ps";
+  LOG(info) << "starting = " << starting << " - stopping = " << stopping << " -> phase = " << fitValues[1] << " ps (added BC = " << tobeused << ")";
   l.setStartValidity(starting);
   l.setEndValidity(stopping);
 

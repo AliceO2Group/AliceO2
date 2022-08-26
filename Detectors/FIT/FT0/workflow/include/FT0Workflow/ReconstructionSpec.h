@@ -18,7 +18,6 @@
 #include "Framework/Task.h"
 #include "FT0Reconstruction/CollisionTimeRecoTask.h"
 #include "DataFormatsFT0/RecPoints.h"
-#include "CCDB/BasicCCDBManager.h"
 #include "FT0Base/Geometry.h"
 #include "TStopwatch.h"
 #include "CommonUtils/NameConf.h"

@@ -63,11 +63,16 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   }
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"TPC", "CTFDATA", 0, Lifetime::Timeframe});
+  if (mSelIR) {
+    mCTFCoder.getIRFramesSelector().setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
+  }
   auto iosize = mCTFCoder.encode(buffer, clusters);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
+  if (mSelIR) {
+    mCTFCoder.getIRFramesSelector().clear();
+  }
   LOG(info) << iosize.asString() << " in " << mTimer.CpuTime() - cput << " s";
 }
 
@@ -77,13 +82,15 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile)
+DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
 {
   std::vector<InputSpec> inputs;
   header::DataDescription inputType = inputFromFile ? header::DataDescription("COMPCLUSTERS") : header::DataDescription("COMPCLUSTERSFLAT");
   inputs.emplace_back("input", "TPC", inputType, 0, Lifetime::Timeframe);
   inputs.emplace_back("ctfdict", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionary"));
-
+  if (selIR) {
+    inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
     "tpc-entropy-encoder", // process id
     inputs,

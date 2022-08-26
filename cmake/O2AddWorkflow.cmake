@@ -53,7 +53,7 @@ function(o2_add_dpl_workflow baseTargetName)
 
   add_custom_command(
     TARGET ${targetExeName} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E env "LD_LIBRARY_PATH=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:$$LD_LIBRARY_PATH" $<TARGET_FILE:${targetExeName}> -b --dump-workflow --dump-workflow-file ${jsonFile})
+    COMMAND ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=0,detect_container_overflow=0,detect_odr_violation=0 "LD_LIBRARY_PATH=${CMAKE_LIBRARY_OUTPUT_DIRECTORY}:$$LD_LIBRARY_PATH" $<TARGET_FILE:${targetExeName}> -b --dump-workflow --dump-workflow-file ${jsonFile})
   add_dependencies(${targetExeName} O2::FrameworkAnalysisSupport)
 
   install(

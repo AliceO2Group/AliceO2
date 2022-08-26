@@ -9,9 +9,9 @@
   <action>
     3
   </action>
-  
+
   <O2general>
-    
+
     <mainDir>
       <!-- main path to the local O2 installation -->
       <O2local>
@@ -21,58 +21,58 @@
       <O2Physicslocal>
         ../../../O2Physics
       </O2Physicslocal>
-    
+
       <!-- ALICE O2Physics gitHub repository -->
-      <O2GitHub> 
+      <O2GitHub>
         https://github.com/AliceO2Group/AliceO2/tree/dev
       </O2GitHub>
-      
-      <O2PhysicsGitHub> 
+
+      <O2PhysicsGitHub>
         https://github.com/AliceO2Group/O2Physics/tree/master
       </O2PhysicsGitHub>
-      
+
     </mainDir>
 
     <!-- title for tables created by default when reading AO2D.root -->
     <AO2Dproducer>
       AO2D files
     </AO2Dproducer>
-  
+
     <!-- leading string of task executables -->
     <exePreamble>
       o2-analysis-
     </exePreamble>
-    
+
     <!-- string used in CMakefiles.txt to define a task executable -->
     <CEdeclarationString>
       o2physics_add_dpl_workflow
     </CEdeclarationString>
-    
+
     <!-- regex used to identify version identifiers in table names -->
     <TableVersionPattern>
       _\d\d\d$
     </TableVersionPattern>
-    
+
     <!-- delimiters used to mark text blocks to be replaced in html files -->
     <delimAO2D>
       &lt;!-- Block with AO2D tables --&gt;
     </delimAO2D>
-    
+
     <delimHelpers>
       &lt;!-- Block with helper tasks --&gt;
     </delimHelpers>
-    
+
     <delimJoins>
       &lt;!-- Block with joins and iterators --&gt;
     </delimJoins>
-    
+
     <delimPWGs>
       &lt;!-- Block with PWG tables --&gt;
     </delimPWGs>
 
   </O2general>
-  
-  
+
+
   <!-- There are different types of DataModels -->
   <!-- type: Main -->
   <!--       tables included in the AO2D files -->
@@ -87,9 +87,9 @@
   <!--   Item headerFiles/fileName: *.h -->
   <!--   Item CMLfiles/fileName: CMakeLists.txt -->
   <!--   Item codeFiles/fileName: *.cxx -->
-  
+
   <DataModels>
-    
+
     <DataModel type="Main" name="AO2D">
       <headerFiles>
         <!-- relative to O2general/mainDir/O2local -->
@@ -97,7 +97,7 @@
           Framework/Core/include/Framework/AnalysisDataModel.h
         </fileName>
       </headerFiles>
-      
+
       <categories>
         <category name="General">
           o2::aod::BCs, o2::aod::Timestamps, o2::aod::Collisions
@@ -121,9 +121,9 @@
           o2::aod::Run2BCInfos, o2::aod::Run2MatchedExclusive, o2::aod::Run2MatchedSparse, o2::aod::Run2MatchedToBCSparse
         </category>
       </categories>
-      
+
     </DataModel>
-  
+
     <DataModel type="Helper" name="Helpers">
       <headerFiles>
         <!-- relative to O2general/mainDir/O2Physicslocal -->
@@ -163,8 +163,8 @@
         </fileName>
       </codeFiles>
     </DataModel>
-    
-  
+
+
     <DataModel type="PWG" name="CF">
       <!-- where to get the extra header files from -->
       <headerFiles>
@@ -331,8 +331,8 @@
         </fileName>
       </codeFiles>
     </DataModel>
-  
-  
+
+
   </DataModels>
 
 </data>
