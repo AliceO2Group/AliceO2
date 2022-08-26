@@ -143,10 +143,16 @@ bool NoiseCalibrator::processTimeFrameDigits(gsl::span<const o2::itsmft::Digit> 
   return (mNumberOfStrobes > mMinROFs) ? true : false;
 }
 
-void NoiseCalibrator::finalize()
+void NoiseCalibrator::finalize(float cutIB)
 {
   LOG(info) << "Number of processed strobes is " << mNumberOfStrobes;
-  mNoiseMap.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes, mProbRelErr);
+  if (cutIB > 0) {
+    mNoiseMap.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes, mProbRelErr, 432, 24119); // to OB only
+    LOG(info) << "Applying special cut for ITS IB: " << cutIB;
+    mNoiseMap.applyProbThreshold(cutIB, mNumberOfStrobes, mProbRelErr, 0, 431); // to IB only
+  } else {
+    mNoiseMap.applyProbThreshold(mProbabilityThreshold, mNumberOfStrobes, mProbRelErr);
+  }
   mNoiseMap.print();
 }
 

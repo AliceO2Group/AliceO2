@@ -40,6 +40,7 @@ void NoiseCalibratorSpec::init(InitContext& ic)
   LOG(info) << "Fast 1=pixel calibration: " << onepix;
   auto probT = ic.options().get<float>("prob-threshold");
   auto probTRelErr = ic.options().get<float>("prob-rel-err");
+  mNoiseCutIB = ic.options().get<float>("cut-ib");
   LOGP(info, "Setting the probability threshold to {} with relative error {}", probT, probTRelErr);
   mStopMeOnly = ic.options().get<bool>("stop-me-only");
   mCalibrator = std::make_unique<CALIBRATOR>(onepix, probT, probTRelErr);
@@ -79,6 +80,7 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
     done = mCalibrator->processTimeFrameDigits(digits, rofs);
   }
   if (done) {
+    pc.inputs().get<std::vector<int>*>("confdbmap"); // to trigger finaliseCCDB
     LOG(info) << "Minimum number of noise counts has been reached !";
     sendOutput(pc.outputs());
     pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
@@ -94,7 +96,7 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
     return;
   }
   done = true;
-  mCalibrator->finalize();
+  mCalibrator->finalize(mNoiseCutIB);
 
   long tstart = o2::ccdb::getCurrentTimestamp();
   long tend = o2::ccdb::getFutureTimestamp(3600 * 24 * mValidityDays);
@@ -103,7 +105,10 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
 #else
   const auto& payload = mCalibrator->getNoiseMap();
 #endif
+
+  // Preparing the object for production CCDB and sending it
   std::map<std::string, std::string> md;
+
   o2::ccdb::CcdbObjectInfo info("ITS/Calib/NoiseMap", "NoiseMap", "noise.root", md, tstart, tend);
 
   auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
@@ -114,11 +119,39 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
 
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITS_NOISE", 0}, *image.get());
   output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITS_NOISE", 0}, info);
-  LOG(info) << "sending done";
+  LOG(info) << "sending of o2::itsmft::NoiseMap done";
+
+  // Preparing the object for DCS CCDB and sending it to output
+  for (int ichip = 0; ichip < 24120; ichip++) {
+    const std::map<int, int>* chipmap = payload.getChipMap(ichip);
+    if (chipmap) {
+      for (std::map<int, int>::const_iterator it = chipmap->begin(); it != chipmap->end(); ++it) {
+        addDatabaseEntry(ichip, payload.key2Row(it->first), payload.key2Col(it->first));
+      }
+    }
+  }
+
+  o2::ccdb::CcdbObjectInfo info_dcs("ITS/Calib/NOISE", "NoiseMap", "noise_scan.root", md, tstart, tend); // to DCS CCDB
+  auto image_dcs = o2::ccdb::CcdbApi::createObjectImage(&mNoiseMapDCS, &info_dcs);
+  info_dcs.setFileName("noise_scan.root");
+  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITS_NOISE", 1}, *image_dcs.get());
+  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITS_NOISE", 1}, info_dcs);
+  LOG(info) << "sending of DCSConfigObject done";
+
+  // Timer
   LOGP(info, "Timing: {:.2f} CPU / {:.2f} Real s. in {} TFs for {} {} / {:.2f} GB",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1,
        mUseClusters ? "clusters" : "digits",
        mNClustersProc, double(mDataSizeStat) / (1024L * 1024L * 1024L));
+}
+
+void NoiseCalibratorSpec::addDatabaseEntry(int chip, int row, int col)
+{
+  o2::dcs::addConfigItem(mNoiseMapDCS, "O2ChipID", std::to_string(chip));
+  o2::dcs::addConfigItem(mNoiseMapDCS, "ChipDbID", std::to_string(mConfDBmap->at(chip)));
+  o2::dcs::addConfigItem(mNoiseMapDCS, "Dcol", "-1"); // dummy, just to keep the same format between digital scan and noise scan (easier dcs scripts)
+  o2::dcs::addConfigItem(mNoiseMapDCS, "Row", std::to_string(row));
+  o2::dcs::addConfigItem(mNoiseMapDCS, "Col", std::to_string(col));
 }
 
 void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
@@ -143,6 +176,11 @@ void NoiseCalibratorSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     LOG(info) << "cluster dictionary updated";
     mCalibrator->setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
   }
+
+  if (matcher == ConcreteDataMatcher("ITS", "CONFDBMAP", 0)) {
+    LOG(info) << "confDB map updated";
+    mConfDBmap = (std::vector<int>*)obj;
+  }
 }
 
 DataProcessorSpec getNoiseCalibratorSpec(bool useClusters)
@@ -157,6 +195,8 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useClusters)
     inputs.emplace_back("digits", "ITS", "DIGITS", 0, Lifetime::Timeframe);
     inputs.emplace_back("ROframes", "ITS", "DIGITSROF", 0, Lifetime::Timeframe);
   }
+  inputs.emplace_back("confdbmap", "ITS", "CONFDBMAP", 0, Lifetime::Condition, ccdbParamSpec("ITS/Calib/Confdbmap"));
+
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
                                                                 false,                          // GRPECS=true
                                                                 false,                          // GRPLHCIF
@@ -177,6 +217,7 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useClusters)
       {"1pix-only", VariantType::Bool, false, {"Fast 1-pixel calibration only (cluster input only)"}},
       {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}},
       {"prob-rel-err", VariantType::Float, 0.2f, {"Relative error on channel noise to apply the threshold"}},
+      {"cut-ib", VariantType::Float, -1.f, {"Special cut to apply to Inner Barrel"}},
       {"nthreads", VariantType::Int, 1, {"Number of map-filling threads"}},
       {"validity-days", VariantType::Int, 3, {"Validity on days from upload time"}},
       {"stop-me-only", VariantType::Bool, false, {"At sufficient statistics stop only this device, otherwise whole workflow"}}}};

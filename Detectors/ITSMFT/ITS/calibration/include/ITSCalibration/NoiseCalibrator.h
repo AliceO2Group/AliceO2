@@ -51,7 +51,7 @@ class NoiseCalibrator
   bool processTimeFrameDigits(gsl::span<const o2::itsmft::Digit> const& digits,
                               gsl::span<const o2::itsmft::ROFRecord> const& rofs);
 
-  void finalize();
+  void finalize(float cutIB);
 
   void setNThreads(int n) { mNThreads = n > 0 ? n : 1; }
 
@@ -70,6 +70,7 @@ class NoiseCalibrator
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   o2::itsmft::NoiseMap mNoiseMap{24120};
   float mProbabilityThreshold = 3e-6f;
+  float mCutIB = 1e-2;     // looser cut for IB to decide which pixels to keep in the noise mask
   float mProbRelErr = 0.2; // relative error on channel noise to apply the threshold
   long mMinROFs = 0;
   unsigned int mNumberOfStrobes = 0;
