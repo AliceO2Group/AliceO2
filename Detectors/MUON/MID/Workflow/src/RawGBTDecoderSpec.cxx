@@ -46,7 +46,7 @@ class RawGBTDecoderDeviceDPL
   void init(o2::framework::InitContext& ic)
   {
     auto stop = [this]() {
-      double scaleFactor = 1.e6 / mNROFs;
+      double scaleFactor = (mNROFs == 0) ? 0. : 1.e6 / mNROFs;
       LOG(info) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  decoding: " << mTimerAlgo.count() * scaleFactor << " us";
     };
     ic.services().get<o2::framework::CallbackService>().set(o2::framework::CallbackService::Id::Stop, stop);

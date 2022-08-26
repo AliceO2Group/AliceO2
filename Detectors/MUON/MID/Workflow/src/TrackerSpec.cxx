@@ -52,8 +52,7 @@ class TrackerDeviceDPL
     mKeepAll = !ic.options().get<bool>("mid-tracker-keep-best");
 
     auto stop = [this]() {
-      LOG(info) << "Capacities: ROFRecords: " << mTracker->getTrackROFRecords().capacity() << "  tracks: " << mTracker->getTracks().capacity() << "  clusters: " << mTracker->getClusters().capacity();
-      double scaleFactor = 1.e6 / mNROFs;
+      double scaleFactor = (mNROFs == 0) ? 0. : 1.e6 / mNROFs;
       LOG(info) << "Processing time / " << mNROFs << " ROFs: full: " << mTimer.count() * scaleFactor << " us  tracking: " << mTimerTracker.count() * scaleFactor << " us  hitMapBuilder: " << mTimerBuilder.count() << " us";
     };
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
