@@ -629,6 +629,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     ImGui::Text(ICON_FA_FILTER);
     ImGui::SameLine();
     ImGui::InputText("##query-metrics", query, MAX_QUERY_SIZE);
+    ImGui::Text("%zu/%zu matching", selectedMetricIndex.size(), totalMetrics);
 
     static const char* possibleAxis[] = {
       "Y",
