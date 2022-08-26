@@ -599,6 +599,9 @@ void AODProducerWorkflowDPL::addToFwdTracksTable(FwdTracksCursorType& fwdTracksC
     fwdInfo.trackTimeRes = time.getTimeStampError() * 1.e3;
   } else { // This is a GlobalMuonTrack or a GlobalForwardTrack
     const auto& track = data.getGlobalFwdTrack(trackID);
+    if (!extrapMCHTrack(track.getMCHTrackID())) {
+      LOGF(warn, "Unable to extrapolate MCH track with ID %d! Dummy parameters will be used", track.getMCHTrackID());
+    }
     fwdInfo.x = track.getX();
     fwdInfo.y = track.getY();
     fwdInfo.z = track.getZ();
