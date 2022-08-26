@@ -160,6 +160,19 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
 
     static bool runningOnce = false;
 
+    if (state == fair::mq::State::ResettingTask) {
+      LOG(detail) << "Resetting task, nothing to do";
+      return;
+    }
+    if (state == fair::mq::State::ResettingDevice) {
+      LOG(detail) << "Resetting device, nothing to do";
+      return;
+    }
+    if (state == fair::mq::State::Exiting) {
+      LOG(info) << "Exiting device, nothing to do";
+      return;
+    }
+
     if (deviceState.nextFairMQState.empty() == false) {
       LOG(detail) << "State change requested, changing state to " << deviceState.nextFairMQState.back();
       auto state = deviceState.nextFairMQState.back();

@@ -129,6 +129,12 @@ void on_connect(uv_connect_t* connection, int status)
     state->nextFairMQState.emplace_back("RUN");
   });
 
+  client->observe("/shutdown", [state = context->state](std::string_view) {
+    state->nextFairMQState.emplace_back("END");
+    state->nextFairMQState.emplace_back("RESET DEVICE");
+    state->nextFairMQState.emplace_back("RESET TASK");
+  });
+
   client->observe("/endofstream", [state = context->state](std::string_view) {
     state->nextDPLCommands.emplace_back([](ServiceRegistry& registry) {
       LOG(info) << "Forcing end of stream as requested from outside";
