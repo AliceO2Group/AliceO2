@@ -70,7 +70,6 @@ class NoiseCalibrator
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
   o2::itsmft::NoiseMap mNoiseMap{24120};
   float mProbabilityThreshold = 3e-6f;
-  float mCutIB = 1e-2;     // looser cut for IB to decide which pixels to keep in the noise mask
   float mProbRelErr = 0.2; // relative error on channel noise to apply the threshold
   long mMinROFs = 0;
   unsigned int mNumberOfStrobes = 0;
