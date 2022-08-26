@@ -125,6 +125,27 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
     mServiceRegistry{registry},
     mProcessingPolicies{policies}
 {
+  GetConfig()->Subscribe<std::string>("dpl", [&cleanupCount = mCleanupCount, &registry = mServiceRegistry](const std::string& key, std::string value) {
+    if (key == "cleanup") {
+      int64_t newCleanupCount = std::stoll(value);
+      if (newCleanupCount <= cleanupCount) {
+        return;
+      }
+      cleanupCount = newCleanupCount;
+      auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
+      auto& deviceState = ref.get<DeviceState>();
+      for (auto& info : deviceState.inputChannelInfos) {
+        FairMQParts parts;
+        while (info.channel->Receive(parts, 0)) {
+          LOGP(debug, "Dropping {} parts", parts.Size());
+          if (parts.Size() == 0) {
+            break;
+          }
+        }
+      }
+    }
+  });
+
   std::function<void(const fair::mq::State)> stateWatcher = [this, &registry = mServiceRegistry](const fair::mq::State state) -> void {
     auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
     auto& deviceState = ref.get<DeviceState>();
