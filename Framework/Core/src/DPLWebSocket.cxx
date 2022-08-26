@@ -62,12 +62,13 @@ void websocket_server_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
     return;
   }
   if (nread == UV_EOF) {
-    LOG(debug) << "websocket_server_callback: communication with driver closed";
+    LOG(detail) << "websocket_server_callback: communication with driver closed upon EOF";
     uv_close((uv_handle_t*)stream, websocket_server_close_callback);
     return;
   }
   if (nread < 0) {
-    LOG(error) << "websocket_server_callback: Error while reading from websocket";
+    char errorBuf[256];
+    LOG(error) << "websocket_server_callback: Error while reading from websocket" << uv_strerror_r((int)nread, errorBuf, 256);
     uv_close((uv_handle_t*)stream, websocket_server_close_callback);
     return;
   }
