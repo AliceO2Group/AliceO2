@@ -66,6 +66,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
+  o2::ctf::CTFIOSize iosize;
 
   mCTFCoder.updateTimeDependentParams(pc);
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
@@ -74,8 +75,10 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto& digits = pc.outputs().make<std::vector<o2::mch::Digit>>(OutputRef{"digits", 0});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
-  const auto ctfImage = o2::mch::CTF::getImage(buff.data());
-  auto iosize = mCTFCoder.decode(ctfImage, rofs, digits);
+  if (buff.size()) {
+    const auto ctfImage = o2::mch::CTF::getImage(buff.data());
+    iosize = mCTFCoder.decode(ctfImage, rofs, digits);
+  }
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
   LOG(info) << "Decoded " << digits.size() << " MCH digits in " << rofs.size() << " ROFRecords, (" << iosize.asString() << ") in " << mTimer.CpuTime() - cput << " s.";
