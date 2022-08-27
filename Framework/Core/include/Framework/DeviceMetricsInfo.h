@@ -13,6 +13,7 @@
 #define O2_FRAMEWORK_DEVICEMETRICSINFO_H_
 
 #include "Framework/RuntimeError.h"
+#include "Framework/CompilerBuiltins.h"
 #include "Framework/Traits.h"
 #include <array>
 #include <cstddef>
@@ -27,6 +28,9 @@ enum class MetricType {
   String = 1,
   Float = 2,
   Uint64 = 3,
+  // DPL specific type, used for the GUI. Maximum 8 bits
+  // and we keep only the last 8 entries in the history.
+  Enum = 16,
   Unknown
 };
 
@@ -83,17 +87,65 @@ struct ParsedMetricMatch {
   char const* endStringValue;
 };
 
+template <typename T>
+inline constexpr size_t metricStorageSize()
+{
+  if constexpr (std::is_same_v<T, int>) {
+    return 1024;
+  } else if constexpr (std::is_same_v<T, uint64_t>) {
+    return 1024;
+  } else if constexpr (std::is_same_v<T, StringMetric>) {
+    return 32;
+  } else if constexpr (std::is_same_v<T, float>) {
+    return 1024;
+  } else if constexpr (std::is_same_v<T, int8_t>) {
+    return 8;
+  } else {
+    static_assert(always_static_assert_v<T>, "Unsupported type");
+  }
+}
+
+static inline constexpr size_t metricStorageSize(enum MetricType type)
+{
+  switch (type) {
+    case MetricType::Int:
+      return 1024;
+    case MetricType::Uint64:
+      return 1024;
+    case MetricType::Float:
+      return 1024;
+    case MetricType::String:
+      return 32;
+    case MetricType::Enum:
+      return 8;
+    case MetricType::Unknown:
+      return 0;
+  }
+  O2_BUILTIN_UNREACHABLE();
+}
+
+template <typename T>
+using MetricsStorage = std::array<T, metricStorageSize<T>()>;
+
+template <typename T>
+using TimestampsStorage = std::array<size_t, metricStorageSize<T>()>;
+
 /// This struct hold information about device metrics when running
 /// in standalone mode. It's position in the holding vector is
 /// the same as the DeviceSpec in its own vector.
 struct DeviceMetricsInfo {
   // We keep the size of each metric to 4096 bytes. No need for more
   // for the debug GUI
-  std::vector<std::array<int, 1024>> intMetrics;
-  std::vector<std::array<uint64_t, 1024>> uint64Metrics;
-  std::vector<std::array<StringMetric, 32>> stringMetrics; // We do not keep so many strings as metrics as history is less relevant.
-  std::vector<std::array<float, 1024>> floatMetrics;
-  std::vector<std::array<size_t, 1024>> timestamps;
+  std::vector<MetricsStorage<int>> intMetrics;
+  std::vector<MetricsStorage<uint64_t>> uint64Metrics;
+  std::vector<MetricsStorage<StringMetric>> stringMetrics; // We do not keep so many strings as metrics as history is less relevant.
+  std::vector<MetricsStorage<float>> floatMetrics;
+  std::vector<MetricsStorage<int8_t>> enumMetrics;
+  std::vector<std::array<size_t, metricStorageSize<int>()>> intTimestamps;
+  std::vector<std::array<size_t, metricStorageSize<uint64_t>()>> uint64Timestamps;
+  std::vector<std::array<size_t, metricStorageSize<float>()>> floatTimestamps;
+  std::vector<std::array<size_t, metricStorageSize<StringMetric>()>> stringTimestamps;
+  std::vector<std::array<size_t, metricStorageSize<int8_t>()>> enumTimestamps;
   std::vector<float> max;
   std::vector<float> min;
   std::vector<float> average;
@@ -108,8 +160,8 @@ struct DeviceMetricsInfo {
 };
 
 struct DeviceMetricsInfoHelpers {
-  template <typename T>
-  static std::array<T, 1024> const& get(DeviceMetricsInfo const& info, size_t metricIdx)
+  template <typename T, size_t I = metricStorageSize<T>()>
+  static std::array<T, I> const& get(DeviceMetricsInfo const& info, size_t metricIdx)
   {
     if constexpr (std::is_same_v<T, int>) {
       return info.intMetrics[metricIdx];
@@ -119,6 +171,8 @@ struct DeviceMetricsInfoHelpers {
       return info.stringMetrics[metricIdx];
     } else if constexpr (std::is_same_v<T, float>) {
       return info.floatMetrics[metricIdx];
+    } else if constexpr (std::is_same_v<T, int8_t>) {
+      return info.enumMetrics[metricIdx];
     } else {
       static_assert(always_static_assert_v<T>, "Unsupported type");
     }

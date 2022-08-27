@@ -34,8 +34,13 @@ std::ostream& operator<<(std::ostream& oss, MetricType const& val)
       oss << "string";
       break;
     case MetricType::Int:
+      oss << "int";
+      break;
     case MetricType::Uint64:
-      oss << "float";
+      oss << "uint64";
+      break;
+    case MetricType::Enum:
+      oss << "enum";
       break;
     case MetricType::Unknown:
     default:
