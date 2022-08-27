@@ -14,6 +14,7 @@
 #include "Framework/DeviceInfo.h"
 #include "Framework/DataDescriptorMatcher.h"
 #include "PaletteHelpers.h"
+#include "Framework/Logger.h"
 #include <iostream>
 #include <cstring>
 #include <cmath>
@@ -115,16 +116,31 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
     }
     return 0;
   };
-  auto getItem = [&metrics, &viewIndex](int const& record, size_t i) -> int const& {
+  auto getItem = [&metrics, &viewIndex](int const& record, size_t i) -> int8_t const& {
     // Calculate the index in the viewIndex.
     auto idx = record * viewIndex.h + i;
     assert(viewIndex.indexes.size() > idx);
-    MetricInfo const& metricInfo = metrics.metrics[viewIndex.indexes[idx]];
-    assert(metrics.intMetrics.size() > metricInfo.storeIdx);
-    auto& data = metrics.intMetrics[metricInfo.storeIdx];
+    // Metrics which have not arrived yet are displayed as 0.
+    auto metricIndex = viewIndex.indexes[idx];
+    static int8_t const zero = 0;
+    if (metricIndex == -1) {
+      return zero;
+    }
+    MetricInfo const& metricInfo = metrics.metrics[metricIndex];
+    MetricLabel const& metricLabel = metrics.metricLabels[metricIndex];
+    if (metricInfo.type != MetricType::Enum || metrics.enumMetrics.size() <= metricInfo.storeIdx) {
+      LOG(error) << "Unexpected data relayer metric " << metricLabel.label << " " << metricInfo.type << " " << metrics.enumMetrics.size() << " " << metricInfo.storeIdx;
+      LOG(error) << record << " " << viewIndex.w << " " << viewIndex.h << " " << i;
+      for (auto index : viewIndex.indexes) {
+        LOG(error) << index << ": " << metrics.metricLabels[index].label;
+      }
+    }
+    assert(metricInfo.type == MetricType::Enum);
+    assert(metrics.enumMetrics.size() > metricInfo.storeIdx);
+    auto& data = metrics.enumMetrics[metricInfo.storeIdx];
     return data[(metricInfo.pos - 1) % data.size()];
   };
-  auto getValue = [](int const& item) -> int { return item; };
+  auto getValue = [](int8_t const& item) -> int { return item; };
   auto getColor = [](int value) {
     static const ImU32 SLOT_EMPTY = ImColor(70, 70, 70, 255);
     static const ImU32 SLOT_FULL = ImColor(PaletteHelpers::RED);
@@ -174,15 +190,15 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
   };
 
   if (getNumRecords()) {
-    HeatMapHelper::draw<int, int>("DataRelayer",
-                                  size,
-                                  getNumRecords,
-                                  getRecord,
-                                  getNumItems,
-                                  getItem,
-                                  getValue,
-                                  getColor,
-                                  describeCell);
+    HeatMapHelper::draw<int, int8_t>("DataRelayer",
+                                     size,
+                                     getNumRecords,
+                                     getRecord,
+                                     getNumItems,
+                                     getItem,
+                                     getValue,
+                                     getColor,
+                                     describeCell);
   }
 }
 

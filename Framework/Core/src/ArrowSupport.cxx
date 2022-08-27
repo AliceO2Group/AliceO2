@@ -166,9 +166,10 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                              changed |= deviceMetrics.changed[index];
                              MetricInfo info = deviceMetrics.metrics[index];
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
+                             auto const& timestamps = DeviceMetricsHelper::getTimestampsStore<uint64_t>(deviceMetrics).at(info.storeIdx);
                              auto value = (int64_t)data.at((info.pos - 1) % data.size());
                              totalBytesCreated += value;
-                             lastTimestamp = std::max(lastTimestamp, deviceMetrics.timestamps[index][(info.pos - 1) % data.size()]);
+                             lastTimestamp = std::max(lastTimestamp, timestamps[(info.pos - 1) % data.size()]);
                              firstTimestamp = std::min(lastTimestamp, firstTimestamp);
                            }
                          }
@@ -179,9 +180,10 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                              changed |= deviceMetrics.changed[index];
                              MetricInfo info = deviceMetrics.metrics[index];
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
+                             auto const& timestamps = DeviceMetricsHelper::getTimestampsStore<uint64_t>(deviceMetrics).at(info.storeIdx);
                              auto value = (int64_t)data.at((info.pos - 1) % data.size());
                              shmOfferConsumed += value;
-                             lastTimestamp = std::max(lastTimestamp, deviceMetrics.timestamps[index][(info.pos - 1) % data.size()]);
+                             lastTimestamp = std::max(lastTimestamp, timestamps[(info.pos - 1) % data.size()]);
                              firstTimestamp = std::min(lastTimestamp, firstTimestamp);
                            }
                          }
