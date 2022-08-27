@@ -482,13 +482,7 @@ inline constexpr auto isGlobalFwdTrack()
 }
 
 template <class T>
-inline constexpr auto isTPCTRDTOFTrack()
+inline constexpr auto isBarrelTrack()
 {
-  return false;
-} // to be implemented
-
-template <class T>
-inline constexpr auto isITSTPCTRDTOFTrack()
-{
-  return false;
-} // to be implemented
+  return std::is_base_of<o2::track::TrackParF, std::decay_t<T>>::value || std::is_base_of<o2::track::TrackParD, std::decay_t<T>>::value;
+}
