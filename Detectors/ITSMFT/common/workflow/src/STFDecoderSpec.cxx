@@ -23,6 +23,7 @@
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
+#include "ITSMFTReconstruction/DigitPixelReader.h"
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "ITSMFTReconstruction/GBTLink.h"
@@ -67,7 +68,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     dataDesc.runtimeInit(v1[1].c_str());
     mDecoder->setUserDataOrigin(dataOrig);
     mDecoder->setUserDataDescription(dataDesc);
-    mDecoder->init();
+    mDecoder->init(); // is this no-op?
   } catch (const std::exception& e) {
     LOG(error) << "exception was thrown in decoder creation: " << e.what();
     throw;
@@ -159,12 +160,16 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     }
   }
 
-  if (mDoSquashing) {
-    if (mDoClusters) {
-      // Squash digits
-      mSquasher->process(digVec, digROFVec);
-      // Run clusterer on all PixelChipData entries per TF
-    }
+  if (mDoClusters && mDoSquashing) {
+    // Digits squashing require to run on a batch of digits and uses a digit reader, cannot (?) run with decoder
+    //  - Setup decoder for running on a batch of digits
+    o2::itsmft::DigitPixelReader reader;
+    reader.setSquashingDepth(2);
+    reader.setDigits(digVec);
+    reader.setROFRecords(digROFVec);
+    reader.init();
+
+    mClusterer->process(mNThreads, reader, &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
   }
 
   if (mDoDigits) {

@@ -59,6 +59,9 @@ class DigitPixelReader : public PixelReader
   {
     mDigits = a;
     mIdDig = 0;
+    if (mSquashOverlflowsDepth) {
+      mMaskSquashedDigits.resize(a.size(), false);
+    }
   }
 
   void setDigitsMCTruth(const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* m)
@@ -89,6 +92,12 @@ class DigitPixelReader : public PixelReader
 
   void clear();
 
+  uint16_t getSquashingDepth() const { return mSquashOverlflowsDepth; }
+  void setSquashingDepth(const int16_t v)
+  {
+    mSquashOverlflowsDepth = v;
+  }
+
  private:
   void addPixel(ChipPixelData& chipData, const Digit* dig)
   {
@@ -111,8 +120,10 @@ class DigitPixelReader : public PixelReader
   Int_t mIdDig = 0; // Digits slot read within ROF
   Int_t mIdROF = 0; // ROFRecord being red
 
-  std::unique_ptr<TTree> mInputTree;       // input tree for digits
-
+  std::unique_ptr<TTree> mInputTree;     // input tree for digits
+  int16_t mSquashOverlflowsDepth = 0;    // merge overflow pixels in next N ROF(s) into first ROF and mask them
+  std::vector<bool> mMaskSquashedDigits; // keep info of masked pixels
+  uint16_t mMaxSquashDist = 1;           // maximum pixel distance to allow for squashing
   ClassDefOverride(DigitPixelReader, 1);
 };
 

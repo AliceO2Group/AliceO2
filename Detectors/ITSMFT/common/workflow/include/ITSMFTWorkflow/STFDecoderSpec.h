@@ -25,7 +25,6 @@
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
-#include "ITSMFTReconstruction/PixelChipSquasher.h"
 
 using namespace o2::framework;
 
@@ -93,7 +92,6 @@ class STFDecoder : public Task
   std::string mSelfName;
   std::unique_ptr<RawPixelDecoder<Mapping>> mDecoder;
   std::unique_ptr<Clusterer> mClusterer;
-  std::unique_ptr<PixelChipSquasher> mSquasher;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
 };
 

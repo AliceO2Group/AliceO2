@@ -253,7 +253,7 @@ class ChipPixelData
   uint64_t mErrorInfo = 0;                         // optional extra info on the error
   std::array<uint8_t, MAXDATAERRBYTES> mRawBuff{}; // buffer for raw data showing an error
   o2::InteractionRecord mInteractionRecord = {};   // interaction record
-  std::vector<PixelData> mPixels;                  // vector of pixeld
+  std::vector<PixelData> mPixels;                  // vector of pixels
 
   ClassDefNV(ChipPixelData, 1);
 };
