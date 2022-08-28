@@ -606,9 +606,26 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
 
 //______________________________________________
 template <typename value_T>
+GPUd() void TrackParametrizationWithError<value_T>::checkCorrelations()
+{
+  // This function forces the abs of correlation coefficients to be <1.
+  constexpr float MaxCorr = 0.99;
+  for (int i = kNParams; i--;) {
+    for (int j = i; j--;) {
+      auto sig2 = mC[DiagMap[i]] * mC[DiagMap[j]];
+      auto& cov = mC[CovarMap[i][j]];
+      if (cov * cov >= MaxCorr) { // constrain correlation
+        cov = gpu::CAMath::Sqrt(sig2) * (cov > 0. ? MaxCorr : -MaxCorr);
+      }
+    }
+  }
+}
+
+//______________________________________________
+template <typename value_T>
 GPUd() void TrackParametrizationWithError<value_T>::checkCovariance()
 {
-  // This function forces the diagonal elements of the covariance matrix to be positive.
+  // This function forces the diagonal elements of the covariance matrix to be positive and abs of correlation coefficients to be <1.
   // In case the diagonal element is bigger than the maximal allowed value, it is set to
   // the limit and the off-diagonal elements that correspond to it are set to zero.
 
@@ -713,8 +730,14 @@ GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const value
 
   value_t d = this->getY() - p[0];
   value_t z = this->getZ() - p[1];
-
-  return (d * (szz * d - sdz * z) + z * (sdd * z - d * sdz)) / det;
+  auto chi2 = (d * (szz * d - sdz * z) + z * (sdd * z - d * sdz)) / det;
+  if (chi2 < 0.) {
+    LOGP(alarm, "Negative chi2={}, Cluster: {} {} {} Dy:{} Dz:{} | sdd:{} sdz:{} szz:{} det:{}", chi2, cov[0], cov[1], cov[2], d, z, sdd, sdz, szz, det);
+#ifndef GPUCA_ALIGPUCODE
+    LOGP(alarm, "Track: {}", asString());
+#endif
+  }
+  return chi2;
 }
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // Disable function relying on ROOT SMatrix on GPU
