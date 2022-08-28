@@ -1250,8 +1250,12 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     trfit.setZ(tITS.getZ()); // fix the seed Z
   }
   float deltaT = (trfit.getZ() - tTPC.getZ()) * mTPCVDriftInv;                                                                                    // time correction in \mus
-  float timeC = tTPC.getCorrectedTime(deltaT);                                                                                                    /// precise time estimate
   float timeErr = tTPC.constraint == TrackLocTPC::Constrained ? tTPC.timeErr : std::sqrt(tITS.getSigmaZ2() + tTPC.getSigmaZ2()) * mTPCVDriftInv;  // estimate the error on time
+  if (timeErr > mITSTimeResMUS && tTPC.constraint != TrackLocTPC::Constrained) {
+    timeErr = mITSTimeResMUS; // chose smallest error
+    deltaT = tTPC.constraint == TrackLocTPC::ASide ? tITS.tBracket.mean() - tTPC.time0 : tTPC.time0 - tITS.tBracket.mean();
+  }
+  float timeC = tTPC.getCorrectedTime(deltaT);                                                                                                    /// precise time estimate
   if (timeC < 0) {                                                                                                                                // RS TODO similar check is needed for other edge of TF
     if (timeC + std::min(timeErr, mParams->tfEdgeTimeToleranceMUS * mTPCTBinMUSInv) < 0) {
       mMatchedTracks.pop_back(); // destroy failed track
@@ -2146,6 +2150,7 @@ void MatchTPCITS::fillClustersForAfterBurner(int rofStart, int nROFs, ITSChipClu
 void MatchTPCITS::setITSROFrameLengthMUS(float fums)
 {
   mITSROFrameLengthMUS = fums;
+  mITSTimeResMUS = mITSROFrameLengthMUS / std::sqrt(12.f);
   mITSROFrameLengthMUSInv = 1. / mITSROFrameLengthMUS;
   mITSROFrameLengthInBC = std::max(1, int(mITSROFrameLengthMUS / (o2::constants::lhc::LHCBunchSpacingNS * 1e-3)));
 }
@@ -2155,6 +2160,7 @@ void MatchTPCITS::setITSROFrameLengthInBC(int nbc)
 {
   mITSROFrameLengthInBC = nbc;
   mITSROFrameLengthMUS = nbc * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+  mITSTimeResMUS = mITSROFrameLengthMUS / std::sqrt(12.f);
   mITSROFrameLengthMUSInv = 1. / mITSROFrameLengthMUS;
 }
 
