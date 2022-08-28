@@ -135,7 +135,7 @@ class CTPConfiguration
   bool isDetector(const o2::detectors::DetID& det);
   static void capitaliseString(std::string& str);
   static bool isNumber(const std::string& s);
-  int addInput(std::string& inp, int clsindex,std::map<int,std::vector<int>>& descInputsIndex);
+  int addInput(std::string& inp, int clsindex, std::map<int, std::vector<int>>& descInputsIndex);
   enum ConfigPart { START,
                     RUN,
                     INPUTS,
@@ -167,6 +167,7 @@ class CTPConfiguration
   uint64_t getClassMaskForInputMask(uint64_t inputMask) const;
   void printConfigString() { std::cout << mConfigString << std::endl; };
   std::string getConfigString() { return mConfigString; };
+
  private:
   std::string mConfigString = "";
   uint32_t mRunNumber = 0;
@@ -179,7 +180,7 @@ class CTPConfiguration
   std::vector<CTPDetector> mDetectors;
   std::vector<CTPCluster> mClusters;
   std::vector<CTPClass> mCTPClasses;
-  int processConfigurationLineRun3(std::string& line, int& level, std::map<int,std::vector<int>>& descInputsIndex);
+  int processConfigurationLineRun3(std::string& line, int& level, std::map<int, std::vector<int>>& descInputsIndex);
   ClassDefNV(CTPConfiguration, 6);
 };
 // Run Manager

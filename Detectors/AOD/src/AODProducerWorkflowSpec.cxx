@@ -116,7 +116,7 @@ void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoCont
     if (t0triggers.getVertex()) {
       uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
       uint64_t classmask = ctpcfg->getClassMaskForInputMask(0x4);
-      std::cout << "class mask:" << std::hex <<classmask << std::dec << std::endl;
+      //std::cout << "class mask:" << std::hex << classmask << std::dec << std::endl;
       bcsMapT0triggers[globalBC] = classmask;
     }
   }
@@ -124,7 +124,6 @@ void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoCont
   int cntwarnings = 0;
   uint32_t orbitPrev = 0;
   uint16_t bcPrev = 0;
-  std::cout << "I am here 2" << std::endl;
   for (auto& trdrec : triggerrecordTRD) {
     auto orbitPrevT = orbitPrev;
     auto bcPrevT = bcPrev;
@@ -2110,7 +2109,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     dataRequest->requestPHOSCells(useMC);
   }
   if (src[GID::TRD]) {
-   dataRequest->requestTRDTracklets(false);
+    dataRequest->requestTRDTracklets(false);
   }
   if (src[GID::EMC]) {
     dataRequest->requestEMCALCells(useMC);
