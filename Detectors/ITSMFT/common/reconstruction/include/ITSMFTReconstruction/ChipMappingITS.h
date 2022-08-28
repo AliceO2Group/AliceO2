@@ -233,7 +233,7 @@ class ChipMappingITS
   {
     int i = 0;
     do {
-      if (chipSW < FirstChipsOnLr[i]) {
+      if (chipSW < FirstChipsOnLr[i] + NChipsOnLr[i]) {
         break;
       }
     } while (++i < NLayers);
@@ -271,10 +271,10 @@ class ChipMappingITS
   static constexpr std::array<int, NLayers> FirstStaveOnLr = {0, 12, 28, 48, 72, 102, 144};
 
   ///< number of chips per layer
-  static constexpr std::array<int, NLayers> NChipsOnLr = {108, 144, 180, 2688, 3360, 8232, 144};
+  static constexpr std::array<int, NLayers> NChipsOnLr = {108, 144, 180, 2688, 3360, 8232, 9408};
 
   ///< 1st chipID on layer
-  static constexpr std::array<int, NLayers> FirstChipsOnLr = {0, 108, 252, 432, 3120, 6480, 9408};
+  static constexpr std::array<int, NLayers> FirstChipsOnLr = {0, 108, 252, 432, 3120, 6480, 14712};
 
   ///< RU types for each layer
   static constexpr std::array<uint8_t, NLayers> RUTypeLr = {IB, IB, IB, MB, MB, OB, OB};
