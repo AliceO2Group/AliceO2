@@ -16,6 +16,7 @@
 #include "CommonUtils/RootChain.h"
 #include <fairlogger/Logger.h>
 #include <cassert>
+#include <algorithm>
 
 using namespace o2::itsmft;
 using o2::itsmft::Digit;
@@ -156,7 +157,9 @@ bool DigitPixelReader::getNextChipData(ChipPixelData& chipData)
       }
     }
   }
-
+  if (mSquashOverlflowsDepth) {
+    std::sort(chipData.getData().begin(), chipData.getData().end(), [](auto& d1, auto& d2) { return d1.getCol() == d2.getCol() ? d1.getRow() < d2.getRow() : d1.getCol() < d2.getCol(); });
+  }
   return true;
 }
 
