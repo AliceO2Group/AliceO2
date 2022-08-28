@@ -50,7 +50,9 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
   std::vector<float> validationTimes;
   std::vector<o2::MCEventLabel> lblVtxLoc;
   mTimeVertexing.Start();
+  int cntTZ = 0;
   for (auto tc : mTimeZClusters) {
+    size_t nnold = verticesLoc.size();
     VertexingInput inp;
     inp.idRange = gsl::span<int>(tc.trackIDs);
     inp.scaleSigma2 = mPVParams->iniScale2;
@@ -454,7 +456,7 @@ PVertexer::FitStatus PVertexer::evalIterations(VertexSeed& vtxSeed, PVertex& vtx
 //___________________________________________________________________
 void PVertexer::reAttach(std::vector<PVertex>& vertices, std::vector<int>& timeSort, std::vector<uint32_t>& trackIDs, std::vector<V2TRef>& v2tRefs)
 {
-  float tRange = 0.5 * std::max(mITSROFrameLengthMUS, mPVParams->dbscanDeltaT) + mPVParams->timeMarginReattach; // consider only vertices in this proximity to tracks
+  float tRange = 0.5 * std::max(mITSROFrameLengthMUS, mDBScanDeltaT) + mPVParams->timeMarginReattach;           // consider only vertices in this proximity to tracks
   std::vector<std::pair<int, TimeEst>> vtvec;                                                                   // valid vertex times and indices
   int nvtOrig = vertices.size();
   vtvec.reserve(nvtOrig);
@@ -664,6 +666,8 @@ void PVertexer::init()
   initMeanVertexConstraint();
   auto* prop = o2::base::Propagator::Instance();
   setBz(prop->getNominalBz());
+  mDBScanDeltaT = mPVParams->dbscanDeltaT > 0.f ? mPVParams->dbscanDeltaT : mITSROFrameLengthMUS - mPVParams->dbscanDeltaT;
+  mDBSMaxZ2InvCorePoint = mPVParams->dbscanMaxSigZCorPoint > 0 ? 1. / (mPVParams->dbscanMaxSigZCorPoint * mPVParams->dbscanMaxSigZCorPoint) : 1e6;
 
 #ifdef _PV_DEBUG_TREE_
   mDebugDumpFile = std::make_unique<TFile>("pvtxDebug.root", "recreate");
@@ -856,11 +860,14 @@ int PVertexer::dbscan_RangeQuery(int id, std::vector<int>& cand, std::vector<int
   // Since we use asymmetric distance definition, is it bit more complex than simple search within chi2 proximity
   int nFound = 0;
   const auto& tI = mTracksPool[id];
+  if (tI.sig2ZI < mDBSMaxZ2InvCorePoint) {
+    return nFound;
+  }
   int ntr = mTracksPool.size();
 
   auto procPnt = [this, &tI, &status, &cand, &nFound, id](int idN) {
     const auto& tL = this->mTracksPool[idN];
-    if (std::abs(tI.timeEst.getTimeStamp() - tL.timeEst.getTimeStamp()) > this->mPVParams->dbscanDeltaT) {
+    if (std::abs(tI.timeEst.getTimeStamp() - tL.timeEst.getTimeStamp()) > this->mDBScanDeltaT) {
       return -1;
     }
     auto statN = status[idN], stat = status[id];
@@ -1145,6 +1152,19 @@ PVertex PVertexer::refitVertex(const std::vector<bool> useTrack, const o2d::Vert
     vtxRes.setChi2(-1.);
   }
   return vtxRes;
+}
+
+//______________________________________________
+void PVertexer::printInpuTracksStatus(const VertexingInput& input) const
+{
+  int cnt = 0;
+  for (int i : input.idRange) {
+    if (mTracksPool[i].canUse()) {
+      LOGP(info, "#{}: {} z:{:.3f}/{:.3f} t:{:.3f}/{:.3f} w:{:.3f} gid:{}", cnt, i, mTracksPool[i].z, std::sqrt(1. / mTracksPool[i].sig2ZI),
+           mTracksPool[i].timeEst.getTimeStamp(), mTracksPool[i].timeEst.getTimeStampError(), mTracksPool[i].wgh, mTracksPool[i].gid.asString());
+    }
+    cnt++;
+  }
 }
 
 //______________________________________________

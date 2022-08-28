@@ -97,19 +97,20 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
     std::vector<o2::MCCompLabel> tracksMCInfo;
     std::vector<o2d::GlobalTrackID> gids;
     auto maxTrackTimeError = PVertexerParams::Instance().maxTimeErrorMUS;
+    auto trackMaxX = PVertexerParams::Instance().trackMaxX;
     auto halfROFITS = 0.5 * mITSROFrameLengthMUS;
     auto hw2ErrITS = 2.f / std::sqrt(12.f) * mITSROFrameLengthMUS; // conversion from half-width to error for ITS
 
-    auto creator = [maxTrackTimeError, hw2ErrITS, halfROFITS, &tracks, &gids](auto& _tr, GTrackID _origID, float t0, float terr) {
-      if (!_origID.includesDet(DetID::ITS)) {
-        return true; // just in case this selection was not done on RecoContainer filling level
-      }
-      if constexpr (isITSTrack<decltype(_tr)>()) {
-        t0 += halfROFITS;  // ITS time is supplied in \mus as beginning of ROF
-        terr *= hw2ErrITS; // error is supplied as a half-ROF duration, convert to \mus
-      }
-      // for all other tracks the time is in \mus with gaussian error
-      if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(_tr)>>) {
+    auto creator = [maxTrackTimeError, hw2ErrITS, halfROFITS, trackMaxX, &tracks, &gids](auto& _tr, GTrackID _origID, float t0, float terr) {
+      if constexpr (isBarrelTrack<decltype(_tr)>()) {
+        if (!_origID.includesDet(DetID::ITS) || _tr.getX() > trackMaxX) {
+          return true; // just in case this selection was not done on RecoContainer filling level
+        }
+        if constexpr (isITSTrack<decltype(_tr)>()) {
+          t0 += halfROFITS;  // ITS time is supplied in \mus as beginning of ROF
+          terr *= hw2ErrITS; // error is supplied as a half-ROF duration, convert to \mus
+        }
+        // for all other barrel tracks the time is in \mus with gaussian error
         if (terr < maxTrackTimeError) {
           tracks.emplace_back(TrackWithTimeStamp{_tr, {t0, terr}});
           gids.emplace_back(_origID);

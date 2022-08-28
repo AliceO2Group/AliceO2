@@ -38,7 +38,7 @@
 
 //TODO: MeanVertex and parameters input from CCDB
 
-//#define _PV_DEBUG_TREE_ // if enabled, produce dbscan and vertex comparison dump
+#define _PV_DEBUG_TREE_ // if enabled, produce dbscan and vertex comparison dump
 
 namespace o2
 {
@@ -119,6 +119,8 @@ class PVertexer
 
   void setPoolDumpDirectory(const std::string& d) { mPoolDumpDirectory = d; }
 
+  void printInpuTracksStatus(const VertexingInput& input) const;
+
  private:
   static constexpr int DBS_UNDEF = -2, DBS_NOISE = -1, DBS_INCHECK = -10;
 
@@ -165,8 +167,10 @@ class PVertexer
   std::vector<TrackVF> mTracksPool;         ///< tracks in internal representation used for vertexing, sorted in time
   std::vector<TimeZCluster> mTimeZClusters; ///< set of time clusters
   float mITSROFrameLengthMUS = 0;           ///< ITS readout time span in \mus
-  float mBz = 0.;                          ///< mag.field at beam line
-  bool mValidateWithIR = false;            ///< require vertex validation with InteractionRecords (if available)
+  float mBz = 0.;                           ///< mag.field at beam line
+  float mDBScanDeltaT = 0.;                 ///< deltaT cut for DBScan check
+  float mDBSMaxZ2InvCorePoint = 0;          ///< inverse of max sigZ^2 of the track which can be core point in the DBScan
+  bool mValidateWithIR = false;             ///< require vertex validation with InteractionRecords (if available)
 
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
 
