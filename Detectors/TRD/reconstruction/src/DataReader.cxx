@@ -36,6 +36,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"verbose", VariantType::Bool, false, {"Enable verbose epn data reading."}},
     {"verboseerrors", VariantType::Bool, false, {"Enable verbose error text, instead of simply updating the spectra."}},
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
+    {"ignore-tracklethcheader", VariantType::Bool, false, {"temporary fix for synthetic data with bogus headers, not to be used with real raw data"}},
     {"halfchamberwords", VariantType::Int, 0, {"Fix half chamber for when it is version is 0.0 integer value of additional header words, ignored if version is not 0.0"}},
     {"halfchambermajor", VariantType::Int, 0, {"Fix half chamber for when it is version is 0.0 integer value of major version, ignored if version is not 0.0"}},
     {"fixforoldtrigger", VariantType::Bool, false, {"Fix for the old data not having a 2 stage trigger stored in the cru header."}},
@@ -74,6 +75,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   binaryoptions[o2::trd::TRDIgnore2StageTrigger] = cfgc.options().get<bool>("fixforoldtrigger");
   binaryoptions[o2::trd::TRDGenerateStats] = cfgc.options().get<bool>("generate-stats");
   binaryoptions[o2::trd::TRDOnlyCalibrationTriggerBit] = cfgc.options().get<bool>("onlycalibrationtrigger");
+  binaryoptions[o2::trd::TRDIgnoreBogusTrackletHCHeaders] = cfgc.options().get<bool>("ignore-tracklethcheader");
   AlgorithmSpec algoSpec;
   algoSpec = AlgorithmSpec{adaptFromTask<o2::trd::DataReaderTask>(tracklethcheader, halfchamberwords, halfchambermajor, binaryoptions)};
 

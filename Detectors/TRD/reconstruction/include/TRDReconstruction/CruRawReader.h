@@ -75,8 +75,8 @@ class CruRawReader
 
   int getWordsRejected() const { return mWordsRejected + mDigitWordsRejected + mTrackletWordsRejected; }
 
-  // reset the event storage
-  void resetAfterSingleTF();
+  // reset the event storage and the counters
+  void reset();
 
   // both the tracklet and the digit parsing is implemented as a state machine
   enum ParsingState { StateTrackletHCHeader,

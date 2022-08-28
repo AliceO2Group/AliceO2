@@ -615,6 +615,13 @@ bool CruRawReader::isTrackletHCHeaderOK(const TrackletHCHeader& header, int& hci
   int detHeader = HelperMethods::getDetector(((~header.supermodule) & 0x1f), ((~header.stack) & 0x7), ((~header.layer) & 0x7));
   int hcidHeader = (detHeader * 2 + ((~header.side) & 0x1));
 
+  if (mOptions[TRDIgnoreBogusTrackletHCHeaders]) {
+    // in the current synthetic data sample the tracklet HC headers are screwed up
+    // this option should be removed when we have new synthetic data samples available
+    // with fixed headers
+    return true;
+  }
+
   if (hcid != hcidHeader) {
     /* FIXME currently would be flooded by these messages, as long as CCDB object not available
     if (mMaxWarnPrinted > 0) {
@@ -1043,9 +1050,9 @@ void CruRawReader::buildDPLOutputs(o2::framework::ProcessingContext& pc)
   mEventRecords.sendData(pc, mOptions[TRDGenerateStats]);
 }
 
-void CruRawReader::resetAfterSingleTF()
+void CruRawReader::reset()
 {
-  mEventRecords.clear();
+  mEventRecords.reset();
   mTrackletsFound = 0;
   mDigitsFound = 0;
   mDigitWordsRead = 0;

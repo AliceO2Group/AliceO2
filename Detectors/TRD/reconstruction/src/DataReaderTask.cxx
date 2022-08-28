@@ -59,23 +59,6 @@ void DataReaderTask::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   */
 }
 
-void DataReaderTask::sendData(ProcessingContext& pc, bool blankframe)
-{
-  if (!blankframe) {
-    mReader.buildDPLOutputs(pc);
-  } else {
-    //ensure the objects we are sending back are indeed blank.
-    //TODO maybe put this in buildDPLOutputs so sending all done in 1 place, not now though.
-    std::vector<Tracklet64> tracklets;
-    std::vector<Digit> digits;
-    std::vector<o2::trd::TriggerRecord> triggers;
-    LOG(info) << "Sending data onwards with " << digits.size() << " Digits and " << tracklets.size() << " Tracklets and " << triggers.size() << " Triggers and blankframe:" << blankframe;
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, digits);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe}, tracklets);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, triggers);
-  }
-}
-
 void DataReaderTask::updateTimeDependentParams(framework::ProcessingContext& pc)
 {
   static bool updateOnlyOnce = false;
@@ -119,7 +102,8 @@ void DataReaderTask::run(ProcessingContext& pc)
   auto dataReadStart = std::chrono::high_resolution_clock::now();
 
   if (isTimeFrameEmpty(pc)) {
-    sendData(pc, true); //send the empty tf data.
+    mReader.buildDPLOutputs(pc);
+    mReader.reset();
     return;
   }
 
@@ -145,16 +129,16 @@ void DataReaderTask::run(ProcessingContext& pc)
     }
   }
 
-  sendData(pc, false);
+  mReader.buildDPLOutputs(pc);
   std::chrono::duration<double, std::milli> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
-  LOGP(info, "Digits: {}, Tracklets: {}, DataRead in: {:.3f} MB, Rejected: {:.3f} MB for TF {} in {} ms",
-       mReader.getDigitsFound(), mReader.getTrackletsFound(), (float)datasizeInTF / (1024. * 1024.), (float)mReader.getWordsRejected() * 4. / (1024. * 1024.), tfCount,
+  LOGP(info, "Digits: {}, Tracklets: {}, DataRead in: {:.3f} MB, Rejected: {:.3f} kB for TF {} in {} ms",
+       mReader.getDigitsFound(), mReader.getTrackletsFound(), (float)datasizeInTF / (1024. * 1024.), (float)mReader.getWordsRejected() * 4. / 1024., tfCount,
        std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count());
   mDigitsTotal += mReader.getDigitsFound();
   mTrackletsTotal += mReader.getTrackletsFound();
   mDatasizeInTotal += datasizeInTF;
   mWordsRejectedTotal += mReader.getWordsRejected();
-  mReader.resetAfterSingleTF();
+  mReader.reset();
 }
 
 } // namespace o2::trd
