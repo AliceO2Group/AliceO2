@@ -106,6 +106,7 @@ enum OptionBits {
   TRDVerboseBit,
   TRDVerboseErrorsBit,
   TRDIgnore2StageTrigger,
+  TRDIgnoreBogusTrackletHCHeaders,
   TRDGenerateStats,
   TRDOnlyCalibrationTriggerBit
 }; // this is currently 16 options, the array is 16, if you add here you need to change the 16;
@@ -163,13 +164,6 @@ class TRDDataCountersPerTimeFrame
     mDataFormatRead.fill(0);
   };
   ClassDefNV(TRDDataCountersPerTimeFrame, 1); // primarily for serialisation so we can send this as a message in o2
-};
-
-class TRDDataCountersRunning
-{                                                //those counters that keep counting
-  std::array<uint32_t, 1080> mLinkFreq{};        //units of 256bits "cru word"
-  std::array<bool, 1080> mLinkEmpty{};           // Link only has padding words only, probably not serious.
-  std::array<uint64_t, 65535> mDataFormatRead{}; // 7bits.7bits major.minor version read from HCHeader.
 };
 
 } // namespace o2::trd

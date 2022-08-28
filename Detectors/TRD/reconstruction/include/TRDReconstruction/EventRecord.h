@@ -83,8 +83,6 @@ class EventRecordContainer
   EventRecordContainer() = default;
   ~EventRecordContainer() = default;
 
-  void clear() { mEventRecords.clear(); }
-
   void sendData(o2::framework::ProcessingContext& pc, bool generatestats);
 
   void setCurrentEventRecord(const InteractionRecord& ir);
@@ -116,7 +114,7 @@ class EventRecordContainer
       }
     }
   }
-  void resetCounters();
+  void reset();
   void accumulateStats();
 
  private:

@@ -36,7 +36,6 @@ class DataReaderTask : public Task
   DataReaderTask(int tracklethcheader, int halfchamberwords, int halfchambermajor, std::bitset<16> option) : mTrackletHCHeaderState(tracklethcheader), mHalfChamberWords(halfchamberwords), mHalfChamberMajor(halfchambermajor), mOptions(option) {}
   ~DataReaderTask() override = default;
   void init(InitContext& ic) final;
-  void sendData(ProcessingContext& pc, bool blankframe = false);
   void run(ProcessingContext& pc) final;
   bool isTimeFrameEmpty(ProcessingContext& pc);
   void endOfStream(o2::framework::EndOfStreamContext& ec) override;

@@ -120,8 +120,9 @@ void EventRecordContainer::setCurrentEventRecord(const InteractionRecord& ir)
   }
 }
 
-void EventRecordContainer::resetCounters()
+void EventRecordContainer::reset()
 {
+  mEventRecords.clear();
   mTFStats.clear();
 }
 } // namespace o2::trd
