@@ -116,7 +116,7 @@ void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoCont
     if (t0triggers.getVertex()) {
       uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
       uint64_t classmask = ctpcfg->getClassMaskForInputMask(0x4);
-      //std::cout << "class mask:" << std::hex << classmask << std::dec << std::endl;
+      // std::cout << "class mask:" << std::hex << classmask << std::dec << std::endl;
       bcsMapT0triggers[globalBC] = classmask;
     }
   }
