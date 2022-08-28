@@ -94,7 +94,7 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
 
   auto persistentColumns = typename BP<Cs...>::persistent_columns_t{};
   constexpr auto persistentColumnsCount = pack_size(persistentColumns);
-  auto arrowColumns = o2::soa::row_helpers::getArrowColumns(arrowTable, persistentColumns);
+  auto arrowColumns = o2::soa::row_helpers::getArrowColumnsTyped(table, persistentColumns);
   auto chunksCount = arrowColumns[0]->num_chunks();
   for (int i = 1; i < persistentColumnsCount; i++) {
     if (arrowColumns[i]->num_chunks() != chunksCount) {
@@ -103,7 +103,7 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
   }
 
   for (uint64_t ci = 0; ci < chunksCount; ++ci) {
-    auto chunks = o2::soa::row_helpers::getChunks(arrowTable, persistentColumns, ci);
+    auto chunks = o2::soa::row_helpers::getChunksFromColumns(arrowColumns, ci);
     auto chunkLength = std::get<0>(chunks)->length();
     for_<persistentColumnsCount - 1>([&chunks, &chunkLength](auto i) {
       if (std::get<i.value + 1>(chunks)->length() != chunkLength) {
