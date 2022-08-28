@@ -97,14 +97,12 @@ namespace o2::aodproducer
 void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoContainer& recoData, std::vector<o2::ctp::CTPDigit>& ctpDigits, ProcessingContext& pc)
 {
   // Extraxt CTP Config from CCDB
-  std::cout << "I am here 0" << std::endl;
   const auto ctpcfg = pc.inputs().get<o2::ctp::CTPConfiguration*>("ctpconfig");
   ctpcfg->printStream(std::cout);
   // o2::ctp::CTPConfiguration ctpcfg = o2::ctp::CTPRunManager::getConfigFromCCDB(-1, std::to_string(runNumber)); // how to get run
   //  Extract inputs from recoData
   std::map<uint64_t, uint64_t> bcsMapT0triggers;
   std::map<uint64_t, bool> bcsMapTRDreadout;
-  std::cout << "I am here 01" << std::endl;
   // const auto& fddRecPoints = recoData.getFDDRecPoints();
   // const auto& fv0RecPoints = recoData.getFV0RecPoints();
   // const auto& caloEMCCellsTRGR = recoData.getEMCALTriggers();
@@ -113,12 +111,12 @@ void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoCont
   // const auto& triggerrecordTRD =recoData.getITSTPCTRDTriggers()
   //
   const auto& ft0RecPoints = recoData.getFT0RecPoints();
-  std::cout << "I am here 1" << std::endl;
   for (auto& ft0RecPoint : ft0RecPoints) {
     auto t0triggers = ft0RecPoint.getTrigger();
     if (t0triggers.getVertex()) {
       uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
-      uint64_t classmask = ctpcfg->getClassMaskForInput("MTVX");
+      uint64_t classmask = ctpcfg->getClassMaskForInputMask(0x4);
+      std::cout << "class mask:" << std::hex <<classmask << std::dec << std::endl;
       bcsMapT0triggers[globalBC] = classmask;
     }
   }
@@ -2110,6 +2108,9 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   }
   if (src[GID::PHS]) {
     dataRequest->requestPHOSCells(useMC);
+  }
+  if (src[GID::TRD]) {
+   dataRequest->requestTRDTracklets(false);
   }
   if (src[GID::EMC]) {
     dataRequest->requestEMCALCells(useMC);
