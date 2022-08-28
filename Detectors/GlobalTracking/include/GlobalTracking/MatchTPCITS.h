@@ -537,6 +537,7 @@ class MatchTPCITS
   float mTPCExtConstrainedNSigmaInv = 0.f; // inverse for NSigmas for TPC time-interval from external constraint time sigma
   int mITSROFrameLengthInBC = 0;    ///< ITS RO frame in BC (for ITS cont. mode only)
   float mITSROFrameLengthMUS = -1.; ///< ITS RO frame in \mus
+  float mITSTimeResMUS = -1.;       ///< nominal ITS time resolution derived from ROF
   float mITSROFrameLengthMUSInv = -1.; ///< ITS RO frame in \mus inverse
   float mTPCVDriftRef = -1.;           ///< TPC nominal drift speed in cm/microseconds
   float mTPCVDrift = -1.;              ///< TPC drift speed in cm/microseconds
