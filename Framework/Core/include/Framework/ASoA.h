@@ -1046,7 +1046,8 @@ auto select(T const& t, framework::expressions::Filter const& f)
 }
 
 template <typename C, typename... Cs>
-arrow::ChunkedArray* getColumnByType(framework::pack<Cs...> columns, arrow::Table* table) {
+arrow::ChunkedArray* getColumnByType(framework::pack<Cs...> columns, arrow::Table* table)
+{
   return table->column(framework::has_type_at_v<C>(columns)).get();
 }
 
@@ -1348,7 +1349,7 @@ class Table
   arrow::ChunkedArray* lookupColumn()
   {
     if constexpr (T::persistent::value) {
-      return getColumnByType<T>(persistent_columns_t{},mTable.get());
+      return getColumnByType<T>(persistent_columns_t{}, mTable.get());
     } else {
       return nullptr;
     }
