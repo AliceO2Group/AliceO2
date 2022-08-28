@@ -24,15 +24,16 @@ namespace vertexing
 
 // These are configurable params for Primary Vertexer
 struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParams> {
-  static constexpr float kDefTukey = 5.0f; ///< def.value for tukey constant
+  static constexpr float kDefTukey = 4.685f; ///< def.value for tukey constant
 
   float sysErrY2 = 0.; ///< systematic error on track Y error
   float sysErrZ2 = 0.; ///< systematic error on track Z error
 
   // DBSCAN clustering settings
   float dbscanMaxDist2 = 9.;   ///< distance^2 cut (eps^2).
-  float dbscanDeltaT = 10.;    ///< abs. time difference cut, should be >= ITS ROF duration if ITS SA tracks used
+  float dbscanDeltaT = -0.1;   ///< abs. time difference cut, should be >= ITS ROF duration if ITS SA tracks used, if < 0 then the value calculated as mITSROFrameLengthMUS - dbscanDeltaT
   float dbscanAdaptCoef = 0.1; ///< adapt dbscan minPts for each cluster as minPts=max(minPts, currentSize*dbscanAdaptCoef).
+  float dbscanMaxSigZCorPoint = 0.1; ///< max sigZ of the track which can be core points in the DBScan
 
   int maxVerticesPerCluster = 10; ///< max vertices per time-z cluster to look for
   int maxTrialsPerCluster = 100;  ///< max unsucessful trials for vertex search per vertex
@@ -42,6 +43,7 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   float dcaTolerance = 1.3; ///< consider tracks within this abs DCA to mean vertex
   float pullIniCut = 9;     ///< cut on pull (n^2 sigma) on dca to mean vertex
   float maxTimeErrorMUS = 10.0; ///< max time error in ms of the track to account
+  float trackMaxX = 5.;         ///< lowest updtate point must be below this X
 
   // histogramming and its weigths params
   float histoBinZSize = 0.05;       ///< size of the seedTZ histo bin Z
@@ -86,7 +88,7 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   bool useTimeInChi2 = true;        ///< use track-vertex time difference in chi2 calculation
 
   // track vertex time-wise association
-  float nSigmaTimeTrack = 4.;       ///< define track time bracker as +- this number of sigmas of its time resolution
+  float nSigmaTimeTrack = 4.;       ///< define track time bracket as +- this number of sigmas of its time resolution
   float timeMarginTrackTime = 0.5;  ///< additive marginal error in \mus to track time bracket
   float timeMarginVertexTime = 0.0; ///< additive marginal error to \mus vertex time bracket
 
