@@ -571,7 +571,9 @@ struct RecoContainer {
   gsl::span<const o2::trd::CalibratedTracklet> getTRDCalibratedTracklets() const;
   gsl::span<const o2::trd::TriggerRecord> getTRDTriggerRecords() const;
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* getTRDTrackletsMCLabels() const;
-
+  // TRD triggers
+  int countWarnings = 0;
+  int MAXWarnings = 1;
   // TOF
   const o2::dataformats::MatchInfoTOF& getTOFMatch(GTrackID id) const { return getObject<o2::dataformats::MatchInfoTOF>(id, MATCHES); } // generic match getter
   // TPC-TOF, made of refitted TPC track and separate matchInfo

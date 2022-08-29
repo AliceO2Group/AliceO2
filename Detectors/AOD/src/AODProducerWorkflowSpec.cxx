@@ -1667,7 +1667,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // helper map for fast search of a corresponding class mask for a bc
   std::unordered_map<uint64_t, uint64_t> bcToClassMask;
   if (mInputSources[GID::CTP]) {
-    LOG(info) << "CTP input available";
+    LOG(debug) << "CTP input available";
     for (auto& ctpDigit : ctpDigits) {
       uint64_t bc = ctpDigit.intRecord.toLong();
       uint64_t classMask = ctpDigit.CTPClassMask.to_ulong();
