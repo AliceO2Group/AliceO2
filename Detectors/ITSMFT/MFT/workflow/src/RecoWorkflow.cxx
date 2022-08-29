@@ -19,6 +19,7 @@
 #include "MFTWorkflow/TrackWriterSpec.h"
 #include "ITSMFTWorkflow/DigitReaderSpec.h"
 #include "MFTWorkflow/MFTAssessmentSpec.h"
+#include "MFTWorkflow/TracksToRecordsSpec.h"
 
 namespace o2
 {
@@ -28,7 +29,15 @@ namespace mft
 namespace reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC, bool upstreamDigits, bool upstreamClusters, bool disableRootOutput, bool runAssessment, bool processGen, bool runTracking)
+framework::WorkflowSpec getWorkflow(
+  bool useMC,
+  bool upstreamDigits,
+  bool upstreamClusters,
+  bool disableRootOutput,
+  bool runAssessment,
+  bool processGen,
+  bool runTracking,
+  bool runTracks2Records)
 {
   framework::WorkflowSpec specs;
 
@@ -48,6 +57,9 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool upstreamDigits, bool upstre
     }
     if (runAssessment) {
       specs.emplace_back(o2::mft::getMFTAssessmentSpec(useMC, processGen));
+    }
+    if (runTracks2Records) {
+      specs.emplace_back(o2::mft::getTracksToRecordsSpec());
     }
   }
   return specs;

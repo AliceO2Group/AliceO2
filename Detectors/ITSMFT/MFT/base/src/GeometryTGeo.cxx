@@ -483,7 +483,7 @@ void GeometryTGeo::updateL2GMatrixCache(std::vector<int> chipIDs)
 //__________________________________________________________________________
 TGeoHMatrix& GeometryTGeo::createT2LMatrix(Int_t index)
 {
-  // create for sensor isn the TGeo matrix for Tracking to Local frame transformations
+  // create for sensor at index the TGeo matrix for Tracking to Local frame transformations
 
   static TGeoHMatrix t2l;
   Float_t x = 0.f, alpha = 0.f;
@@ -491,8 +491,9 @@ TGeoHMatrix& GeometryTGeo::createT2LMatrix(Int_t index)
   t2l.Clear();
   /*
   t2l.RotateZ(alpha * RadToDeg()); // rotate in direction of normal to the sensor plane
-  const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
-  t2l.MultiplyLeft(&matL2G->Inverse());
+  const TGeoHMatrix* matL2G = extractMatrixSensor(index);
+  const TGeoHMatrix& matL2Gi = matL2G->Inverse();
+  t2l.MultiplyLeft(&matL2Gi);
   */
   return t2l;
 }

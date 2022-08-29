@@ -9,31 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MFT_RECOWORKFLOW_H_
-#define O2_MFT_RECOWORKFLOW_H_
+/// @file AlignConfig.cxx
+/// @brief Configuration file for MFT standalone alignment
 
-/// @file   RecoWorkflow.h
-
-#include "Framework/WorkflowSpec.h"
-
-namespace o2
-{
-namespace mft
-{
-
-namespace reco_workflow
-{
-framework::WorkflowSpec getWorkflow(
-  bool useMC,
-  bool upstreamDigits,
-  bool upstreamClusters,
-  bool disableRootOutput,
-  bool runAssessment,
-  bool processGen,
-  bool runTracking,
-  bool runTracks2Records);
-}
-
-} // namespace mft
-} // namespace o2
-#endif
+#include "MFTAlignment/AlignConfig.h"
+O2ParamImpl(o2::mft::AlignConfig);
