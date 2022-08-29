@@ -43,6 +43,8 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "TPCReconstruction/IonTailCorrection.h"
+#include "GPUO2InterfaceConfiguration.h"
 
 namespace bpo = boost::program_options;
 
@@ -81,6 +83,7 @@ static constexpr const char* CRU_FLPS[361] = {
 struct ProcessAttributes {
   std::unique_ptr<unsigned long long int[]> zsoutput;
   std::vector<unsigned int> sizes;
+  std::function<void(std::vector<o2::tpc::Digit>&)> digitsFilter = nullptr;
   MCLabelContainer mctruthArray;
   std::vector<int> inputIds;
   int version = 2;
@@ -173,6 +176,13 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   attr.padding = padding;
   attr.version = zsV;
 
+  GPUO2InterfaceConfiguration config;
+  auto globalConfig = config.ReadConfigurableParam();
+  attr.zsThreshold = config.configReconstruction.tpc.zsThreshold;
+  if (globalConfig.zsOnTheFlyDigitsFilter) {
+    attr.digitsFilter = [](std::vector<o2::tpc::Digit>& digits) { IonTailCorrection itCorr; itCorr.filterDigitsDirect(digits); };
+  }
+
   for (int iSecBySec = 0; iSecBySec < Sector::MAXSECTOR; ++iSecBySec) {
     treeSim->ResetBranchAddresses();
     for (int iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
@@ -225,7 +235,7 @@ void convert(DigitArray& inputDigits, ProcessAttributes* processAttributes, o2::
 
   o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
   ir.bc = 0; // By convention the TF starts at BC = 0
-  o2::gpu::GPUReconstructionConvert::RunZSEncoder(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, processAttributes->version, false, zsThreshold, processAttributes->padding);
+  o2::gpu::GPUReconstructionConvert::RunZSEncoder(inputDigits, nullptr, nullptr, &writer, &ir, mGPUParam, processAttributes->version, false, zsThreshold, processAttributes->padding, processAttributes->digitsFilter);
 }
 
 int main(int argc, char** argv)

@@ -446,6 +446,7 @@ AddOption(registerSelectedSegmentIds, int, -1, "", 0, "Register only a specific 
 AddOption(disableCalibUpdates, bool, false, "", 0, "Disable all calibration updates")
 AddOption(partialOutputForNonFatalErrors, bool, false, "", 0, "In case of a non-fatal error that is ignored (ignoreNonFatalGPUErrors=true), forward the partial output that was created instead of shipping an empty TF")
 AddOption(tpcTriggeredMode, bool, false, "", 0, "In case we have triggered TPC data, this must be set to true")
+AddOption(zsOnTheFlyDigitsFilter, bool, false, "", 0, "Run on the fly digits filter during zs encoding")
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE
