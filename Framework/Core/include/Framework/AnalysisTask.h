@@ -605,7 +605,11 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 
     auto& callbacks = ic.services().get<CallbackService>();
     auto endofdatacb = [task](EndOfStreamContext& eosContext) {
-      homogeneous_apply_refs([&eosContext](auto&& x) { return OutputManager<std::decay_t<decltype(x)>>::postRun(eosContext, x); }, *task.get());
+      homogeneous_apply_refs([&eosContext](auto&& x) {
+          using X = std::decay_t<decltype(x)>;
+          ServiceManager<X>::postRun(eosContext, x);
+          return OutputManager<X>::postRun(eosContext, x); },
+                             *task.get());
       eosContext.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
