@@ -1109,7 +1109,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
   for (unsigned int i = 0; i < NSLICES; i++) {
     std::vector<o2::tpc::Digit> tmpBuffer;
     tmpBuffer.resize(ZSEncoderGetNDigits(in, i));
-    if (threshold > 0.f) {
+    if (threshold > 0.f && !digitsFilter) {
       auto it = std::copy_if(ZSEncoderGetDigits(in, i), ZSEncoderGetDigits(in, i) + ZSEncoderGetNDigits(in, i), tmpBuffer.begin(), [threshold](auto& v) { return v.getChargeFloat() >= threshold; });
       tmpBuffer.resize(std::distance(tmpBuffer.begin(), it));
     } else {
@@ -1118,6 +1118,12 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
 
     if (digitsFilter) {
       digitsFilter(tmpBuffer);
+      if (threshold > 0.f) {
+        std::vector<o2::tpc::Digit> tmpBuffer2 = std::move(tmpBuffer);
+        tmpBuffer = std::vector<o2::tpc::Digit>(tmpBuffer2.size());
+        auto it = std::copy_if(tmpBuffer2.begin(), tmpBuffer2.end(), tmpBuffer.begin(), [threshold](auto& v) { return v.getChargeFloat() >= threshold; });
+        tmpBuffer.resize(std::distance(tmpBuffer.begin(), it));
+      }
     }
 
     auto runZS = [&](auto& encoder) {

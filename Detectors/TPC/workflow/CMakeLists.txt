@@ -204,7 +204,7 @@ o2_add_test(workflow
 
 o2_add_executable(digits-to-rawzs
                   COMPONENT_NAME tpc
-                  PUBLIC_LINK_LIBRARIES O2::TPCBase O2::SimulationDataFormat O2::GPUO2Interface O2::GPUTracking O2::DetectorsRaw
+                  PUBLIC_LINK_LIBRARIES O2::TPCBase O2::SimulationDataFormat O2::GPUO2Interface O2::GPUTracking O2::DetectorsRaw O2::TPCReconstruction
                   SOURCES src/convertDigitsToRawZS.cxx)
 
 o2_add_executable(monitor-workflow
