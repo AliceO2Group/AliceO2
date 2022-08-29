@@ -840,6 +840,7 @@ void o2::tpc::IDCFactorization::drawPadFlagMap(const bool type, const Sector sec
 {
   if (!mPadFlagsMap) {
     LOGP(info, "Status map not set returning");
+    return;
   }
 
   std::function<float(const unsigned int, const unsigned int, const unsigned int, const unsigned int)> idcFunc = [this, flag](const unsigned int sector, const unsigned int region, const unsigned int row, const unsigned int pad) {

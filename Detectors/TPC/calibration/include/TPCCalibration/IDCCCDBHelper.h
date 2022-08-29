@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file IDCCCDBHelper.h
-/// \brief helper class for accessing IDC0 and IDCDelta from CCDB
+/// \brief helper class for accessing IDCs from CCDB
 /// \author Matthias Kleiner <mkleiner@ikf.uni-frankfurt.de>
 
 #ifndef ALICEO2_TPC_IDCCCDBHELPER_H_
@@ -18,10 +18,9 @@
 
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Sector.h"
-#include "CommonUtils/NameConf.h"
 #include "Rtypes.h"
-#include "TCanvas.h"
-#include "CCDB/BasicCCDBManager.h"
+
+class TCanvas;
 
 namespace o2::tpc
 {

@@ -359,8 +359,6 @@ struct SACDelta {
 };
 
 struct FourierCoeffSAC {
-  std::vector<float> mFourierCoefficients{}; ///< fourier coefficients. coefficient real and complex parameters are stored alternating
-  const unsigned int mCoeffPerTF{};          ///< number of real+imag coefficients per TF
   std::array<FourierCoeff, SIDES> mCoeff{};
 };
 
@@ -411,28 +409,6 @@ class IDCDeltaCompressionHelper
   }
 };
 
-template <typename T>
-struct Enable_enum_class_bitfield {
-  static constexpr bool value = false;
-};
-
-// operator overload for allowing bitfiedls with enum
-template <typename T>
-typename std::enable_if<std::is_enum<T>::value && Enable_enum_class_bitfield<T>::value, T>::type
-  operator&(T lhs, T rhs)
-{
-  typedef typename std::underlying_type<T>::type integer_type;
-  return static_cast<T>(static_cast<integer_type>(lhs) & static_cast<integer_type>(rhs));
-}
-
-template <typename T>
-typename std::enable_if<std::is_enum<T>::value && Enable_enum_class_bitfield<T>::value, T>::type
-  operator|(T lhs, T rhs)
-{
-  typedef typename std::underlying_type<T>::type integer_type;
-  return static_cast<T>(static_cast<integer_type>(lhs) | static_cast<integer_type>(rhs));
-}
-
 enum class PadFlags : unsigned short {
   flagGoodPad = 1 << 0,      ///< flag for a good pad binary 0001
   flagDeadPad = 1 << 1,      ///< flag for a dead pad binary 0010
@@ -443,10 +419,9 @@ enum class PadFlags : unsigned short {
   flagSkip = 1 << 6          ///< flag for defining a pad which is just ignored during the calculation of I1 and IDCDelta
 };
 
-template <>
-struct Enable_enum_class_bitfield<PadFlags> {
-  static constexpr bool value = true;
-};
+inline PadFlags operator&(PadFlags a, PadFlags b) { return static_cast<PadFlags>(static_cast<int>(a) & static_cast<int>(b)); }
+inline PadFlags operator~(PadFlags a) { return static_cast<PadFlags>(~static_cast<int>(a)); }
+inline PadFlags operator|(PadFlags a, PadFlags b) { return static_cast<PadFlags>(static_cast<int>(a) | static_cast<int>(b)); }
 
 } // namespace tpc
 } // namespace o2
