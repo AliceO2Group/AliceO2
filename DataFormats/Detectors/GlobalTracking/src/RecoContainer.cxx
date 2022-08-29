@@ -1181,9 +1181,9 @@ gsl::span<const o2::trd::CalibratedTracklet> RecoContainer::getTRDCalibratedTrac
 gsl::span<const o2::trd::TriggerRecord> RecoContainer::getTRDTriggerRecords() const
 {
   if (inputsTRD == nullptr) {
-    if(countWarnings < MAXWarnings) {
+    if (countWarnings < MAXWarnings) {
       LOG(warning) << "No TRD triggers";
-      //countWarnings++;
+      // countWarnings++;
     }
     return gsl::span<const o2::trd::TriggerRecord>();
   } else {
