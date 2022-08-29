@@ -85,6 +85,7 @@ class CruRawReader
                       StateDigitMCMHeader,
                       StateDigitADCMask,
                       StateDigitMCMData,
+                      StateMoveToDigitMCMHeader,
                       StateMoveToEndMarker,
                       StateSecondEndmarker,
                       StateFinished };

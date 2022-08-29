@@ -701,6 +701,33 @@ int CruRawReader::parseDigitLinkData(int maxWords32, int hcid, int& wordsRejecte
       continue;
     }
 
+    else if (state == StateMoveToDigitMCMHeader) {
+      // the parsing of ADC values went wrong, we search for the next MCM header
+      bool foundHeader = false;
+      while (wordsRead < maxWords32 && !foundHeader) {
+        if (currWord == DIGITENDMARKER) {
+          ++wordsRead;
+          state = StateSecondEndmarker;
+          break;
+        }
+        DigitMCMHeader tmpHeader;
+        tmpHeader.word = currWord;
+        if (sanityCheckDigitMCMHeader(tmpHeader)) {
+          foundHeader = true;
+          state = StateDigitMCMHeader;
+          break;
+        }
+        ++wordsRead;
+        ++wordsRejected;
+        currWord = mHBFPayload[mHBFoffset32 + wordsRead];
+      }
+      if (state == StateMoveToDigitMCMHeader) {
+        // we could neither find a MCM header, nor an endmarker
+        break;
+      }
+      continue;
+    }
+
     else if (state == StateDigitMCMData) {
       std::array<uint16_t, TIMEBINS> adcValues;
       bool exitChannelLoop = false;
@@ -723,7 +750,7 @@ int CruRawReader::parseDigitLinkData(int maxWords32, int hcid, int& wordsRejecte
             if ((((iChannel % 2) == 0) && (data.f != 0x3)) || ((iChannel % 2) && (data.f != 0x2))) {
               incrementErrors(DigitSanityCheck, hcid, fmt::format("Current channel {}, check bits {}. Word {:#010x}", iChannel, (int)data.f, currWord));
               exitChannelLoop = true;
-              state = StateMoveToEndMarker;
+              state = StateMoveToDigitMCMHeader;
               ++wordsRead;
               ++wordsRejected;
               break;
@@ -777,7 +804,7 @@ int CruRawReader::parseDigitLinkData(int maxWords32, int hcid, int& wordsRejecte
     // e.g. we tried to move to the end marker but reached the link size
     //      without finding one.
     if (mMaxWarnPrinted > 0) {
-      LOG(warn) << "We exited the digit parser state machine, but we are not in the state finished";
+      LOGF(warn, "We exited the digit parser state machine in the state %i and not in the proper finished state", state);
       checkNoWarn();
     }
     incrementErrors(DigitParsingExitInWrongState, hcid, "Done with digit parsing but state is not StateFinished");
