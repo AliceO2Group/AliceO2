@@ -68,6 +68,9 @@ void ClustererDPL::run(ProcessingContext& pc)
   LOG(info) << "ITSClusterer pulled " << labels.getNElements() << " labels ";
 
   o2::itsmft::DigitPixelReader reader;
+  if (mDoSquashing) {
+    reader.setSquashingDepth(2);
+  }
   reader.setDigits(digits);
   reader.setROFRecords(rofs);
   if (mUseMC) {
@@ -154,7 +157,7 @@ void ClustererDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-DataProcessorSpec getClustererSpec(bool useMC)
+DataProcessorSpec getClustererSpec(bool useMC, bool doSquashing)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "ITS", "DIGITS", 0, Lifetime::Timeframe);
@@ -186,7 +189,7 @@ DataProcessorSpec getClustererSpec(bool useMC)
     "its-clusterer",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<ClustererDPL>(ggRequest, useMC)},
+    AlgorithmSpec{adaptFromTask<ClustererDPL>(ggRequest, useMC, doSquashing)},
     Options{
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}},
       {"nthreads", VariantType::Int, 1, {"Number of clustering threads"}}}};
