@@ -676,13 +676,8 @@ class TableBuilder
   {
     mSchema = std::make_shared<arrow::Schema>(TableBuilderHelpers::makeFields<ARGS...>(columnNames));
     mHolders = new HoldersTuple<ARGS...>(TableBuilderHelpers::reserveAll(typename HolderTrait<ARGS>::Holder(mMemoryPool), nRows)...);
-  }
-
-  template <typename... ARGS>
-  auto makeFinalizer()
-  {
     mFinalizer = [](std::shared_ptr<arrow::Schema> schema, std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders) -> bool {
-      return TableBuilderHelpers::finalize(arrays, *(HoldersTuple<ARGS...>*)holders, std::make_index_sequence<sizeof...(ARGS)>{});
+      return TableBuilderHelpers::finalize(arrays, *(HoldersTuple<ARGS...>*)holders, std::make_index_sequence<I>{});
     };
   }
 
@@ -763,7 +758,6 @@ class TableBuilder
     validate();
     mArrays.resize(nColumns);
     makeBuilders<ARGS...>(columnNames, 1000);
-    makeFinalizer<ARGS...>();
 
     // Callback used to fill the builders
     using FillTuple = std::tuple<typename BuilderMaker<ARGS>::FillType...>;
@@ -796,7 +790,6 @@ class TableBuilder
     validate();
     mArrays.resize(nColumns);
     makeBuilders<ARGS...>(columnNames, nRows);
-    makeFinalizer<ARGS...>();
 
     // Callback used to fill the builders
     return [holders = mHolders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args) -> void {
@@ -811,7 +804,6 @@ class TableBuilder
     //  Should not be called more than once
     mArrays.resize(NCOLUMNS);
     makeBuilders<ARGS...>(columnNames, nRows);
-    makeFinalizer<ARGS...>();
 
     return [holders = mHolders](unsigned int slot, size_t batchSize, typename BuilderMaker<ARGS>::FillType const*... args) -> void {
       TableBuilderHelpers::bulkAppend(*(HoldersTuple<ARGS...>*)holders, batchSize, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
@@ -824,7 +816,6 @@ class TableBuilder
     validate();
     mArrays.resize(NCOLUMNS);
     makeBuilders<ARGS...>(columnNames, nRows);
-    makeFinalizer<ARGS...>();
 
     return [holders = mHolders](unsigned int slot, BulkInfo<typename BuilderMaker<ARGS>::STLValueType const*>... args) -> bool {
       return TableBuilderHelpers::bulkAppendChunked(*(HoldersTuple<ARGS...>*)holders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
