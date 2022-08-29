@@ -275,7 +275,7 @@ void processDataPoints(o2::framework::ProcessingContext& pc,
   }
 
   for (auto i = 0; i < NOBJECTS; i++) {
-    auto duration = creationTime - t0[i];
+    auto duration = (creationTime - t0[i]) / 1000; // ms -> s
     auto [shouldOutput, reason] = needOutput(dataPoints[i], maxSize[i], maxDuration[i], duration);
     if (shouldOutput) {
       sendOutput(dataPoints[i], pc.outputs(), info[i], reason, t0[i]);
