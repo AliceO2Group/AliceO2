@@ -60,7 +60,7 @@ struct CTPInput {
   std::string name = "";
   std::string level = "";
   std::uint64_t inputMask = 0;
-  o2::detectors::DetID::ID detID = 13;
+  o2::detectors::DetID::ID detID = 16; // CTP
   bool neg = 1;
   int getIndex() const { return ((inputMask > 0) ? 1 + log2(inputMask) : 0xff); }
   std::string getInputDetName() const { return o2::detectors::DetID::getName(detID); }
