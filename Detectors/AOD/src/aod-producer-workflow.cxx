@@ -39,7 +39,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"info-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}},
-    {"ctpconfig-per-run",o2::framework::VariantType::Bool,false,{"Use CTP config per run. 1 -- on (Data), 0 -- off (MC)"}}};
+    {"ctpconfig-per-run", o2::framework::VariantType::Bool, false, {"Use CTP config per run. 1 -- on (Data), 0 -- off (MC)"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
