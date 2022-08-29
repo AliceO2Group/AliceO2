@@ -44,7 +44,7 @@ NCPUS=$(getNumberOfPhysicalCPUCores)
 echo "Found ${NCPUS} physical CPU cores"
 NJOBS=${NJOBS:-"${NCPUS}"}
 SHMSIZE=${SHMSIZE:-8000000000} # Size of shared memory for messages (use 128 GB for 550 event full TF)
-TPCTRACKERSCRATCHMEMORY=${SHMSIZE:-4000000000} # Size of memory allocated by TPC tracker. (Use 24 GB for 550 event full TF)
+#TPCTRACKERSCRATCHMEMORY=${TPCTRACKERSCRATCHMEMORY:-8000000000} # Not needed by default
 ENABLE_GPU_TEST=${ENABLE_GPU_TEST:-0} # Run the full system test also on the GPU
 GPUMEMSIZE=${GPUMEMSIZE:-6000000000} # Size of GPU memory to use in case ENABBLE_GPU_TEST=1
 NTIMEFRAMES=${NTIMEFRAMES:-1} # Number of time frames to process
