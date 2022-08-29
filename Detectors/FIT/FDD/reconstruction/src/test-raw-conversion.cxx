@@ -35,8 +35,8 @@ int main(int argc, char* argv[])
   }
   std::vector<o2::fdd::Digit> digitsBC, *fddBCDataPtr = &digitsBC;
   std::vector<o2::fdd::ChannelData> digitsCh, *fddChDataPtr = &digitsCh;
-  tree->SetBranchAddress("FDDDIGITSBC", &fddBCDataPtr);
-  tree->SetBranchAddress("FDDDIGITSCH", &fddChDataPtr);
+  tree->SetBranchAddress("FDDDigit", &fddBCDataPtr);
+  tree->SetBranchAddress("FDDDigitCh", &fddChDataPtr);
 
   if (!std::filesystem::exists(decDigDile)) {
     LOG(fatal) << "Decoded digits file " << genDigDile << " is absent";
@@ -49,8 +49,8 @@ int main(int argc, char* argv[])
   }
   std::vector<o2::fdd::Digit> digitsBC2, *fddBCDataPtr2 = &digitsBC2;
   std::vector<o2::fdd::ChannelData> digitsCh2, *fddChDataPtr2 = &digitsCh2;
-  tree2->SetBranchAddress("FDDDIGITSBC", &fddBCDataPtr2);
-  tree2->SetBranchAddress("FDDDIGITSCH", &fddChDataPtr2);
+  tree2->SetBranchAddress("FDDDigit", &fddBCDataPtr2);
+  tree2->SetBranchAddress("FDDDigitCh", &fddChDataPtr2);
 
   int nbc = 0, nbc2 = 0, nch = 0, nch2 = 0;
   for (int ient = 0; ient < tree->GetEntries(); ient++) {
