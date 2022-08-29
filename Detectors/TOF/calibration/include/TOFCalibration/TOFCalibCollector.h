@@ -14,9 +14,9 @@
 
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
+#include "TOFBase/Geo.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
 #include "DataFormatsTOF/CalibInfoCluster.h"
-#include "TOFBase/Geo.h"
 #include "DataFormatsTOF/CalibInfoTOFshort.h"
 
 #include <array>
@@ -57,7 +57,7 @@ class TOFCalibInfoSlot
 
  private:
   std::array<int, Geo::NCHANNELS> mEntriesSlot;                               // vector containing number of entries per channel
-  std::vector<o2::dataformats::CalibInfoTOFshort> mTOFCollectedCalibInfoSlot; ///< output TOF calibration info
+  std::vector<o2::dataformats::CalibInfoTOF> mTOFCollectedCalibInfoSlot;      ///< output TOF calibration info
 
   ClassDefNV(TOFCalibInfoSlot, 1);
 };
@@ -87,9 +87,9 @@ class TOFCalibCollector final : public o2::calibration::TimeSlotCalibration<o2::
   bool mTest = false;                                                     // flag to say whether we are in test mode or not
   bool mAbsMaxNumOfHits = true;                                           // to decide if the mMaxNumOfHits should be multiplied by the number of TOF channels
   std::array<int, Geo::NCHANNELS> mEntries;                               // vector containing number of entries per channel
-  std::vector<o2::dataformats::CalibInfoTOFshort> mTOFCollectedCalibInfo; ///< output TOF calibration info
+  std::vector<o2::dataformats::CalibInfoTOF> mTOFCollectedCalibInfo;      ///< output TOF calibration info
 
-  ClassDefOverride(TOFCalibCollector, 1);
+  ClassDefOverride(TOFCalibCollector, 2);
 };
 
 } // end namespace tof
