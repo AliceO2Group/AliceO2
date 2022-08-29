@@ -65,7 +65,7 @@ std::string CCDBManagerInstance::getSummaryString() const
 
 void CCDBManagerInstance::endOfStream()
 {
-  LOG(info) << getSummaryString();
+  LOG(info) << "CCDB summary: " << getSummaryString();
 }
 
 } // namespace ccdb
