@@ -15,6 +15,7 @@
 #include "DebugGUI/implot.h"
 #include "DebugGUI/imgui_extras.h"
 #include "Framework/DriverControl.h"
+#include "Framework/DeviceController.h"
 #include "Framework/DriverInfo.h"
 #include "Framework/DeviceMetricsHelper.h"
 #include "FrameworkGUIDeviceInspector.h"
@@ -429,7 +430,7 @@ void displayDeviceMetrics(const char* label,
     case MetricsDisplayStyle::Lines: {
       auto xAxisFlags = ImPlotAxisFlags_None;
       auto yAxisFlags = ImPlotAxisFlags_LockMin;
-      //ImPlot::FitNextPlotAxes(true, true, true, true);
+      // ImPlot::FitNextPlotAxes(true, true, true, true);
       if (ImPlot::BeginPlot("##Some plot", "time", "value", {-1, -1}, axisFlags, xAxisFlags, yAxisFlags)) {
         for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
           ImGui::PushID(pi);
@@ -891,10 +892,9 @@ void popWindowColorDueToStatus()
 
 /// Display information window about the driver
 /// and its state.
-void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverControl)
+void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverControl, std::vector<DeviceInfo> const& infos, std::vector<DeviceControl>& controls)
 {
   ImGui::Begin("Driver information");
-  static int pid = getpid();
 
   if (driverControl.state == DriverControlState::STEP) {
     driverControl.state = DriverControlState::PAUSE;
@@ -906,8 +906,54 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
   ImGui::SameLine();
   ImGui::RadioButton("Step", state, static_cast<int>(DriverControlState::STEP));
 
+  assert(controls.size() == infos.size());
+
+  /// Check if there is any transition pending
+  bool transitionsPending = false;
+  for (size_t di = 0; di < infos.size(); di++) {
+    auto& info = infos[di];
+    auto& control = controls[di];
+    if (control.requestedState != info.providedState) {
+      transitionsPending = true;
+      break;
+    }
+  }
+
+  ImGui::Text("Global topology controls:");
+  ImGui::SameLine();
+  if (transitionsPending) {
+    ImGui::TextUnformatted(ICON_FA_CLOCK_O "Transitions in progress");
+  } else {
+    std::string command;
+    if (ImGui::Button("Restart")) {
+      command = "/restart";
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FA_PLAY)) {
+      command = "/start";
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FA_STOP)) {
+      command = "/stop";
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(ICON_FA_POWER_OFF)) {
+      command = "/shutdown";
+    }
+
+    if (!command.empty()) {
+      for (auto di = 0; di < infos.size(); ++di) {
+        auto& control = controls[di];
+        auto& info = infos[di];
+        control.requestedState = info.providedState + 1;
+        control.controller->write(command.c_str(), command.size());
+      }
+    }
+  }
+
   ImGui::Columns();
 
+  static int pid = getpid();
   ImGui::Text("PID: %d - Control port %d", pid, driverInfo.port);
   ImGui::Text("Frame cost (latency): %.1f(%.1f)ms", driverInfo.frameCost, driverInfo.frameLatency);
   ImGui::Text("Input parsing cost (latency): %.1f(%.1f)ms", driverInfo.inputProcessingCost, driverInfo.inputProcessingLatency);
@@ -1019,7 +1065,7 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
     metricsStore.specs[DEVICE_METRICS] = &deviceNodesInfos;
     metricsStore.specs[DRIVER_METRICS] = &driverNodesInfos;
     displayMetrics(guiState, driverInfo, infos, metadata, controls, metricsStore);
-    displayDriverInfo(driverInfo, driverControl);
+    displayDriverInfo(driverInfo, driverControl, infos, controls);
 
     int windowPosStepping = (ImGui::GetIO().DisplaySize.y - 500) / guiState.devices.size();
 
