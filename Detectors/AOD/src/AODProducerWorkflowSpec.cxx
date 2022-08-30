@@ -698,7 +698,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                                                   const o2::globaltracking::RecoContainer& data,
                                                   const std::map<std::pair<int, int>, int>& mcColToEvSrc)
 {
-  auto setLabelForSrc = [&](std::array<GID, GID::NSources>& contributorsGID, uint8_t src) {
+  auto markMCTrackForSrc = [&](std::array<GID, GID::NSources>& contributorsGID, uint8_t src) {
     auto mcTruthITS = data.getTrackMCLabel(contributorsGID[src]);
     if (!mcTruthITS.isValid()) {
       return;
@@ -727,13 +727,14 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
           mToStore[Triplet_t(source, event, particle)] = 1;
           // treating contributors of global tracks
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
-          if (contributorsGID[GIndex::Source::ITS].isIndexSet() && contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-            setLabelForSrc(contributorsGID, GIndex::Source::ITS);
-            setLabelForSrc(contributorsGID, GIndex::Source::TPC);
+          if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+            markMCTrackForSrc(contributorsGID, GIndex::Source::TPC);
           }
-          if (contributorsGID[GIndex::Source::TOF].isIndexSet() && contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-            setLabelForSrc(contributorsGID, GIndex::Source::TOF);
-            setLabelForSrc(contributorsGID, GIndex::Source::TPC);
+          if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
+            markMCTrackForSrc(contributorsGID, GIndex::Source::ITS);
+          }
+          if (contributorsGID[GIndex::Source::TOF].isIndexSet()) {
+            markMCTrackForSrc(contributorsGID, GIndex::Source::TOF);
           }
         }
       }
