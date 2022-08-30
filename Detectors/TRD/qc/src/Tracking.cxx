@@ -58,6 +58,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
   qcStruct.nLayers = trkTrd.getNlayersFindable();
   qcStruct.chi2 = trkTrd.getChi2();
   qcStruct.reducedChi2 = trkTrd.getReducedChi2();
+  qcStruct.p = trkTrd.getP();
   qcStruct.pt = trkTrd.getPt();
   qcStruct.ptSigma2 = trkTrd.getSigma1Pt2();
 

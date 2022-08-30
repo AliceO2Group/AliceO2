@@ -47,6 +47,7 @@ struct TrackQC {
   int nLayers;       //< Number of Layers of a Track in which the track extrapolation was in geometrical acceptance of the TRD
   float chi2;        ///< total chi2 value for the track
   float reducedChi2; ///< chi2 total divided by number of layers in which track is inside TRD geometrical acceptance
+  float p;          ///< the total momentum of the track at the point of the innermost ITS cluster (ITS-TPC-TRD) or at the inner TPC radius (TPC-TRD)
   float pt;          ///< the transverse momentum of the track at the point of the innermost ITS cluster (ITS-TPC-TRD) or at the inner TPC radius (TPC-TRD)
   float ptSigma2;    //< Sigma2 of pt
 
