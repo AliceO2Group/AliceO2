@@ -698,6 +698,17 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                                                   const o2::globaltracking::RecoContainer& data,
                                                   const std::map<std::pair<int, int>, int>& mcColToEvSrc)
 {
+  auto setLabelForSrc = [&](std::array<GID, GID::NSources>& contributorsGID, uint8_t src) {
+    auto mcTruthITS = data.getTrackMCLabel(contributorsGID[src]);
+    if (!mcTruthITS.isValid()) {
+      return;
+    }
+    int source = mcTruthITS.getSourceID();
+    int event = mcTruthITS.getEventID();
+    int particle = mcTruthITS.getTrackID();
+    mToStore[Triplet_t(source, event, particle)] = 1;
+  };
+
   // mark reconstructed MC particles to store them into the table
   for (auto& trackRef : primVer2TRefs) {
     for (int src = GIndex::NSources; src--;) {
@@ -717,20 +728,12 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
           // treating contributors of global tracks
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
           if (contributorsGID[GIndex::Source::ITS].isIndexSet() && contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-            auto mcTruthITS = data.getTrackMCLabel(contributorsGID[GIndex::Source::ITS]);
-            if (mcTruthITS.isValid()) {
-              source = mcTruthITS.getSourceID();
-              event = mcTruthITS.getEventID();
-              particle = mcTruthITS.getTrackID();
-              mToStore[Triplet_t(source, event, particle)] = 1;
-            }
-            auto mcTruthTPC = data.getTrackMCLabel(contributorsGID[GIndex::Source::TPC]);
-            if (mcTruthTPC.isValid()) {
-              source = mcTruthTPC.getSourceID();
-              event = mcTruthTPC.getEventID();
-              particle = mcTruthTPC.getTrackID();
-              mToStore[Triplet_t(source, event, particle)] = 1;
-            }
+            setLabelForSrc(contributorsGID, GIndex::Source::ITS);
+            setLabelForSrc(contributorsGID, GIndex::Source::TPC);
+          }
+          if (contributorsGID[GIndex::Source::TOF].isIndexSet() && contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+            setLabelForSrc(contributorsGID, GIndex::Source::TOF);
+            setLabelForSrc(contributorsGID, GIndex::Source::TPC);
           }
         }
       }
@@ -880,7 +883,7 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(const MCTrackLabelCursorType
                                                     const o2::globaltracking::RecoContainer& data)
 {
   // labelMask (temporary) usage:
-  //   bit 13 -- ITS and TPC labels are not equal
+  //   bit 13 -- ITS/TPC or TPC/TOF labels are not equal
   //   bit 14 -- isNoise() == true
   //   bit 15 -- isFake() == true
   // labelID = -1 -- label is not set
@@ -935,19 +938,34 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(const MCTrackLabelCursorType
           }
           // treating possible mismatches for global tracks
           auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
-          if (contributorsGID[GIndex::Source::ITS].isIndexSet() && contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-            auto mcTruthITS = data.getTrackMCLabel(contributorsGID[GIndex::Source::ITS]);
-            if (mcTruthITS.isValid()) {
-              labelHolder.labelITS = mToStore.at(Triplet_t(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
-            }
+          bool isSetTPC = contributorsGID[GIndex::Source::TPC].isIndexSet();
+          bool isSetITS = contributorsGID[GIndex::Source::ITS].isIndexSet();
+          bool isSetTOF = contributorsGID[GIndex::Source::TOF].isIndexSet();
+          if (isSetTPC && (isSetITS || isSetTOF)) {
             auto mcTruthTPC = data.getTrackMCLabel(contributorsGID[GIndex::Source::TPC]);
             if (mcTruthTPC.isValid()) {
               labelHolder.labelTPC = mToStore.at(Triplet_t(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
               labelHolder.labelID = labelHolder.labelTPC;
             }
-            if (labelHolder.labelITS != labelHolder.labelTPC) {
-              LOG(debug) << "ITS-TPC MCTruth: labelIDs do not match at " << trackIndex.getIndex() << ", src = " << src;
-              labelHolder.labelMask |= (0x1 << 13);
+            if (isSetITS) {
+              auto mcTruthITS = data.getTrackMCLabel(contributorsGID[GIndex::Source::ITS]);
+              if (mcTruthITS.isValid()) {
+                labelHolder.labelITS = mToStore.at(Triplet_t(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+              }
+              if (labelHolder.labelITS != labelHolder.labelTPC) {
+                LOG(debug) << "ITS-TPC MCTruth: labelIDs do not match at " << trackIndex.getIndex() << ", src = " << src;
+                labelHolder.labelMask |= (0x1 << 13);
+              }
+            }
+            if (isSetTOF) {
+              auto mcTruthTOF = data.getTrackMCLabel(contributorsGID[GIndex::Source::TOF]);
+              if (mcTruthTOF.isValid()) {
+                labelHolder.labelTOF = mToStore.at(Triplet_t(mcTruthTOF.getSourceID(), mcTruthTOF.getEventID(), mcTruthTOF.getTrackID()));
+              }
+              if (labelHolder.labelTOF != labelHolder.labelTPC && labelHolder.labelTPC != -1 && labelHolder.labelTOF != -1) {
+                LOG(debug) << "TPC-TOF MCTruth: labelIDs do not match at " << trackIndex.getIndex() << ", src = " << src;
+                labelHolder.labelMask |= (0x1 << 13);
+              }
             }
           }
           if (mcTruth.isFake()) {
