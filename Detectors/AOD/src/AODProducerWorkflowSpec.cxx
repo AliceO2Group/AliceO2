@@ -699,13 +699,13 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
                                                   const std::map<std::pair<int, int>, int>& mcColToEvSrc)
 {
   auto markMCTrackForSrc = [&](std::array<GID, GID::NSources>& contributorsGID, uint8_t src) {
-    auto mcTruthITS = data.getTrackMCLabel(contributorsGID[src]);
-    if (!mcTruthITS.isValid()) {
+    auto mcLabel = data.getTrackMCLabel(contributorsGID[src]);
+    if (!mcLabel.isValid()) {
       return;
     }
-    int source = mcTruthITS.getSourceID();
-    int event = mcTruthITS.getEventID();
-    int particle = mcTruthITS.getTrackID();
+    int source = mcLabel.getSourceID();
+    int event = mcLabel.getEventID();
+    int particle = mcLabel.getTrackID();
     mToStore[Triplet_t(source, event, particle)] = 1;
   };
 
