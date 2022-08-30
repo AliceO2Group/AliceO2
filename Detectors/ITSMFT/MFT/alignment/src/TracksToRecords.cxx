@@ -438,8 +438,9 @@ void TracksToRecords::endRecordWriter()
   if (mRecordWriter) {
     mRecordWriter->terminate(); // write record tree and close output file
   }
-  if (mWithControl)
+  if (mWithControl) {
     mPointControl.terminate();
+  }
 }
 
 //__________________________________________________________________________

@@ -272,15 +272,16 @@ SymMatrix* SymMatrix::DecomposeChol()
       Double_t* rowj = mchol.GetRow(j);
       double sum = rowj[i];
       for (int k = i - 1; k >= 0; k--) {
-        if (rowi[k] && rowj[k])
+        if (rowi[k] && rowj[k]) {
           sum -= rowi[k] * rowj[k];
+        }
       }
       if (i == j) {
         if (sum <= 0.0) { // not positive-definite
           LOG(debug) << "The matrix is not positive definite [" << sum
                      << "]: Choleski decomposition is not possible";
           // Print("l");
-          return 0;
+          return nullptr;
         }
         rowi[i] = TMath::Sqrt(sum);
       } else {
@@ -362,26 +363,29 @@ Bool_t SymMatrix::SolveChol(Double_t* b, Bool_t invert)
 
   for (i = 0; i < GetSizeUsed(); i++) {
     Double_t* rowi = mchol.GetRow(i);
-    for (sum = b[i], k = i - 1; k >= 0; k--)
+    for (sum = b[i], k = i - 1; k >= 0; k--) {
       if (rowi[k] && b[k]) {
         sum -= rowi[k] * b[k];
       }
+    }
     b[i] = sum / rowi[i];
   }
 
   for (i = GetSizeUsed() - 1; i >= 0; i--) {
-    for (sum = b[i], k = i + 1; k < GetSizeUsed(); k++)
+    for (sum = b[i], k = i + 1; k < GetSizeUsed(); k++) {
       if (b[k]) {
         double& mki = mchol(k, i);
         if (mki) {
           sum -= mki * b[k];
         }
       }
+    }
     b[i] = sum / mchol(i, i);
   }
 
-  if (invert)
+  if (invert) {
     InvertChol(pmchol);
+  }
   return kTRUE;
 }
 
@@ -405,27 +409,30 @@ Bool_t SymMatrix::SolveCholN(Double_t* bn, int nRHS, Bool_t invert)
 
     for (i = 0; i < sz; i++) {
       Double_t* rowi = mchol.GetRow(i);
-      for (sum = b[i], k = i - 1; k >= 0; k--)
+      for (sum = b[i], k = i - 1; k >= 0; k--) {
         if (rowi[k] && b[k]) {
           sum -= rowi[k] * b[k];
         }
+      }
       b[i] = sum / rowi[i];
     }
 
     for (i = sz - 1; i >= 0; i--) {
-      for (sum = b[i], k = i + 1; k < sz; k++)
+      for (sum = b[i], k = i + 1; k < sz; k++) {
         if (b[k]) {
           double& mki = mchol(k, i);
           if (mki) {
             sum -= mki * b[k];
           }
         }
+      }
       b[i] = sum / mchol(i, i);
     }
   }
 
-  if (invert)
+  if (invert) {
     InvertChol(pmchol);
+  }
   return kTRUE;
 }
 
@@ -452,8 +459,9 @@ Bool_t SymMatrix::SolveChol(const TVectorD& brhs, TVectorD& bsol, Bool_t invert)
 //___________________________________________________________
 void SymMatrix::AddRows(int nrows)
 {
-  if (nrows < 1)
+  if (nrows < 1) {
     return;
+  }
   Double_t** pnew = new Double_t*[nrows + fNrows];
   for (int ir = 0; ir < fNrows; ir++) {
     pnew[ir] = fElemsAdd[ir]; // copy old extra rows
@@ -648,12 +656,12 @@ int SymMatrix::SolveSpmInv(double* vecB, Bool_t stabilize)
         }
       }
 
-      for (Int_t j = 0; j < nGlo; j++)
+      for (Int_t j = 0; j < nGlo; j++) {
         if (j != iPivot) { // Pivot row or column elements
           (*this)(j, iPivot) *= vPivot;
           (*fgBuffer)(iPivot, j) *= vPivot;
         }
-
+      }
     } else { // No more pivot value (clear those elements)
       for (Int_t j = 0; j < nGlo; j++) {
         if (bUnUsed[j]) {
