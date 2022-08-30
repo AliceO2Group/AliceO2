@@ -35,6 +35,19 @@ struct FileAndFolder {
   std::string folderName = "";
 };
 
+struct ParentFile {
+  TFile* file = nullptr;
+  ParentFile* parent = nullptr;
+  ~ParentFile()
+  {
+    if (file) {
+      file->Close();
+      delete file;
+      delete parent;
+    }
+  }
+};
+
 struct DataInputDescriptor {
   /// Holds information concerning the reading of an aod table.
   /// The information includes the table specification, treename,
@@ -70,6 +83,7 @@ struct DataInputDescriptor {
 
   uint64_t getTimeFrameNumber(int counter, int numTF);
   FileAndFolder getFileFolder(int counter, int numTF);
+  ParentFile* getParentFile(int counter, int numTF);
   int getTimeFramesInFile(int counter);
 
   void closeInputFile();
@@ -84,6 +98,8 @@ struct DataInputDescriptor {
   std::vector<FileNameHolder*>* mdefaultFilenamesPtr = nullptr;
   TFile* mcurrentFile = nullptr;
   bool mAlienSupport = false;
+  TMap* parentFileMap = nullptr;
+  ParentFile* parentFile = nullptr;
 
   int mtotalNumberTimeFrames = 0;
 };
