@@ -41,16 +41,12 @@ DataProcessorSpec getStrangenessTrackingWriterSpec()
 
   auto inpStTrkID = InputSpec{"strangetracks", "STK", "STRTRACKS", 0};
   auto inpClusAtt = InputSpec{"clusupdates", "STK", "CLUSUPDATES",0};
-  auto inpITSRefID = InputSpec{"itsrefs", "STK", "ITSREFS", 0};
-  auto inpDecRefID = InputSpec{"decrefs", "STK", "DECREFS", 0};
 
   return MakeRootTreeWriterSpec("strangenesstracking-writer",
                                 "o2_strange_tracks.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with Strange Tracks"},
                                 BranchDefinition<std::vector<StrangeTrack>>{inpStTrkID, "StrangeTracks", loggerV},
-                                BranchDefinition<std::vector<o2::strangeness_tracking::ClusAttachments>>{inpClusAtt, "ClusUpdates"},
-                                BranchDefinition<std::vector<int>>{inpITSRefID, "ITSTrackRefs"},
-                                BranchDefinition<std::vector<int>>{inpDecRefID, "DecayTrackRefs"})();
+                                BranchDefinition<std::vector<o2::strangeness_tracking::ClusAttachments>>{inpClusAtt, "ClusUpdates"})();
 }
 
 } // namespace strangeness_tracking

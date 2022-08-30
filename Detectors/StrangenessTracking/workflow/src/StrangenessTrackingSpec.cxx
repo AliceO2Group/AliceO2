@@ -109,6 +109,7 @@ void StrangenessTrackerSpec::run(framework::ProcessingContext& pc)
   //  \nlabTPCTOF: %d\nlabITSTPCTOF: %d
 
   mTracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
+  LOG(debug) << "Bz: " << o2::base::Propagator::Instance()->getNominalBz(); 
   mTracker.setBz(o2::base::Propagator::Instance()->getNominalBz());
 
   auto pattIt = ITSpatt.begin();
@@ -123,8 +124,6 @@ void StrangenessTrackerSpec::run(framework::ProcessingContext& pc)
 
   pc.outputs().snapshot(Output{"STK", "STRTRACKS", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackVec());
   pc.outputs().snapshot(Output{"STK", "CLUSUPDATES", 0, Lifetime::Timeframe}, mTracker.getClusAttachments());
-  pc.outputs().snapshot(Output{"STK", "ITSREFS", 0, Lifetime::Timeframe}, mTracker.getITStrackRefVec());
-  pc.outputs().snapshot(Output{"STK", "DECREFS", 0, Lifetime::Timeframe}, mTracker.getDecayTrackRefVec());
 
   mTimer.Stop();
 }
@@ -202,8 +201,6 @@ DataProcessorSpec getStrangenessTrackerSpec()
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("STK", "STRTRACKS", 0, Lifetime::Timeframe);
   outputs.emplace_back("STK", "CLUSUPDATES", 0, Lifetime::Timeframe);
-  outputs.emplace_back("STK", "ITSREFS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("STK", "DECREFS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "strangeness-tracker",

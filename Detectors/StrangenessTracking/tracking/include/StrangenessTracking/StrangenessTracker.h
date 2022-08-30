@@ -38,37 +38,36 @@ namespace o2
 namespace strangeness_tracking
 {
 
+enum kPartType { kV0,
+                 kCascade,
+                 kThreeBody };
+
 struct ClusAttachments {
 
   std::array<unsigned int, 7> arr;
 };
 
 struct StrangeTrack {
+  kPartType mPartType;
   o2::track::TrackParCovF mMother;
-  o2::track::TrackParCovF mDaughterFirst;
-  o2::track::TrackParCovF mDaughterSecond;
+  int mITSRef = -1;
+  int mDecayRef = -1;
   std::array<float, 3> decayVtx;
-
+  std::array<float, 3> decayMom;
+  float mInvMass;
   float mMatchChi2;
   float mTopoChi2;
-  int isCascade = false;
 };
 
 class StrangenessTracker
 {
  public:
-  enum kTopology { kMother = 1,
-                   kFirstDaughter = 2,
-                   kSecondDaughter = 3,
-                   kThirdDaughter = 4,
-                   kBachelor = 5 };
 
   using PID = o2::track::PID;
   using TrackITS = o2::its::TrackITS;
   using ITSCluster = o2::BaseCluster<float>;
   using V0 = o2::dataformats::V0;
   using Cascade = o2::dataformats::Cascade;
-
   using GIndex = o2::dataformats::VtxTrackIndex;
   using DCAFitter2 = o2::vertexing::DCAFitterN<2>;
   using DCAFitter3 = o2::vertexing::DCAFitterN<3>;
@@ -81,8 +80,6 @@ class StrangenessTracker
 
   std::vector<ClusAttachments>& getClusAttachments() { return mClusAttachments; };
   std::vector<StrangeTrack>& getStrangeTrackVec() { return mStrangeTrackVec; };
-  std::vector<int>& getITStrackRefVec() { return mITStrackRefVec; };
-  std::vector<int>& getDecayTrackRefVec() { return mDecayTrackRefVec; };
 
   float getBz() const { return mBz; }
   void setBz(float d) { mBz = d; }
@@ -100,10 +97,10 @@ class StrangenessTracker
   double calcV0alpha(const V0& v0);
   std::vector<ITSCluster> getTrackClusters();
   float getMatchingChi2(o2::track::TrackParCovF, const TrackITS ITSTrack, ITSCluster matchingClus);
-  bool recreateV0(const o2::track::TrackParCov& posTrack, const o2::track::TrackParCov& negTrack, const GIndex posID, const GIndex negID, V0& newV0);
+  bool recreateV0(const o2::track::TrackParCov& posTrack, const o2::track::TrackParCov& negTrack, V0& newV0);
 
   bool updateTrack(const ITSCluster& clus, o2::track::TrackParCov& track);
-  bool matchDecayToITStrack(float decayR2, bool isCascade);
+  bool matchDecayToITStrack(float decayR);
 
  protected:
   gsl::span<const o2::its::TrackITS> mInputITStracks; // input ITS tracks
@@ -119,8 +116,6 @@ class StrangenessTracker
 
   std::vector<StrangeTrack> mStrangeTrackVec;    // structure containing updated mother and daughter tracks
   std::vector<ClusAttachments> mClusAttachments; // # of attached tracks, 1 for mother, 2 for daughter
-  std::vector<int> mITStrackRefVec;              // Ref to the ITS tracks
-  std::vector<int> mDecayTrackRefVec;            // Ref to the Cascade and V0 files
 
   const StrangenessTrackingParamConfig* mStrParams = nullptr;
   float mBz = -5; // Magnetic field
@@ -130,9 +125,12 @@ class StrangenessTracker
 
   o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE; // use mat correction
   o2::its::GeometryTGeo* mGeomITS;                                                                                       // ITS geometry
-  StrangeTrack mStrangeTrack;
-  ClusAttachments mStructClus;
-  o2::its::TrackITS mITStrack;
+
+  std::vector<o2::track::TrackParCovF> mDaughterTracks; // vector of daughter tracks
+  StrangeTrack mStrangeTrack;                           // structure containing updated mother and daughter track refs
+  ClusAttachments mStructClus;                          // # of attached tracks, 1 for mother, 2 for daughter
+  o2::its::TrackITS mITStrack;                          // ITS track
+  std::array<GIndex, 2> mV0dauIDs;                      // V0 daughter IDs
 
   ClassDefNV(StrangenessTracker, 1);
 };
