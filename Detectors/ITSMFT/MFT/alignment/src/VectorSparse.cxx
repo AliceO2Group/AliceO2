@@ -173,8 +173,8 @@ void VectorSparse::ReSize(Int_t sz, Bool_t copy)
 //__________________________________________________________
 void VectorSparse::SortIndices(Bool_t valuesToo)
 {
-  for (int i = fNElems; i--;)
-    for (int j = i; j--;)
+  for (int i = fNElems; i--;) {
+    for (int j = i; j--;) {
       if (fIndex[i] < fIndex[j]) { // swap
         UShort_t tmpI = fIndex[i];
         fIndex[i] = fIndex[j];
@@ -185,6 +185,8 @@ void VectorSparse::SortIndices(Bool_t valuesToo)
           fElems[j] = tmpV;
         }
       }
+    }
+  }
 }
 
 //__________________________________________________________

@@ -230,8 +230,9 @@ Double_t MillePedeRecord::GetLocalDeriv(Int_t pnt, Int_t indx) const
       continue;
     }
     for (int i = nLoc; i--;) {
-      if (indLoc[i] == indx)
+      if (indLoc[i] == indx) {
         return derLoc[i];
+      }
     }
     break;
   }
