@@ -76,6 +76,7 @@ class MFTDCSProcessor
   int process(const gsl::span<const DPCOM> dps);
   int processDP(const DPCOM& dpcom);
 
+  bool sendDPsCCDB();
   void updateDPsCCDB();
 
   const CcdbObjectInfo& getccdbDPsInfo() const { return mccdbDPsInfo; }
@@ -88,6 +89,26 @@ class MFTDCSProcessor
   void setTF(TFType tf) { mTF = tf; }
   void useVerboseMode() { mVerbose = true; }
 
+  void setThreBackBiasCurrent(float thre)
+  {
+    mThresholdBackBiasCurrent = thre;
+  }
+  void setThreDigitCurrent(float thre)
+  {
+    mThresholdDigitalCurrent = thre;
+  }
+  void setThreAnalogCurrent(float thre)
+  {
+    mThresholdAnalogCurrent = thre;
+  }
+  void setThreBackBiasVoltage(float thre)
+  {
+    mThresholdBackBiasVoltage = thre;
+  }
+  void setThreRULV(float thre)
+  {
+    mThresholdRULV = thre;
+  }
   void clearDPsinfo()
   {
     mDpsdoublesmap.clear();
@@ -107,6 +128,14 @@ class MFTDCSProcessor
   bool mStartTFset = false;
 
   bool mVerbose = false;
+
+  bool mSendToCCDB = false;
+
+  double mThresholdAnalogCurrent;
+  double mThresholdBackBiasCurrent;
+  double mThresholdDigitalCurrent;
+  double mThresholdBackBiasVoltage;
+  double mThresholdRULV;
 
   ClassDefNV(MFTDCSProcessor, 0);
 };
