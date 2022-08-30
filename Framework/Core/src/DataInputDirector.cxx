@@ -191,6 +191,9 @@ int DataInputDescriptor::fillInputfiles()
     // 2. getFilenamesRegex() @ getInputfilesFilename()
     try {
       std::ifstream filelist(fileName);
+      if (!filelist.is_open()) {
+        throw std::runtime_error(fmt::format(R"(Couldn't open file "{}")", fileName));
+      }
       while (std::getline(filelist, fileName)) {
         // remove white spaces, empty lines are skipped
         fileName.erase(std::remove_if(fileName.begin(), fileName.end(), ::isspace), fileName.end());
