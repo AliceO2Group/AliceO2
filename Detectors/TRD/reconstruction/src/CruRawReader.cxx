@@ -46,6 +46,9 @@ void CruRawReader::configure(int tracklethcheader, int halfchamberwords, int hal
   mHalfChamberWords = halfchamberwords;
   mHalfChamberMajor = halfchambermajor;
   mOptions = options;
+  if (mOptions[TRDVerboseErrorsBit] && (ParsingErrorsString.size() - 1) != TRDLastParsingError) {
+    LOG(error) << "Verbose error reporting requested, but the mapping of error code to error string is not complete";
+  }
 }
 
 void CruRawReader::incrementErrors(int error, int hcid, std::string message)
@@ -109,9 +112,6 @@ bool CruRawReader::compareRDH(const o2::header::RDHAny* rdhPrev, const o2::heade
     if (mMaxWarnPrinted > 0) {
       LOG(warn) << "ERDH  EndPointID are not identical in rdh.";
       checkNoWarn();
-    }
-    if (mOptions[TRDVerboseErrorsBit]) {
-      LOG(error) << "ERDH  EndPointID are not identical in rdh.";
     }
     incrementErrors(BadRDHEndPoint);
     return false;
@@ -193,7 +193,7 @@ int CruRawReader::processHBFs()
     if (!o2::raw::RDHUtils::getStop(rdh) && offsetToNext >= mCurrRdhPtr - mDataBufferPtr) {
       // we can still copy into this buffer.
       if (mMaxWarnPrinted > 0) {
-        LOGP(warn, "RDH offsetToNext = {} is larger than it can possibly be. Remaining data in the buffer = {}", offsetToNext, mCurrRdhPtr - mDataBufferPtr);
+        LOGP(alarm, "RDH offsetToNext = {} is larger than it can possibly be. Remaining data in the buffer = {}", offsetToNext, mCurrRdhPtr - mDataBufferPtr);
         checkNoWarn();
       }
       return -1;
@@ -502,6 +502,7 @@ bool CruRawReader::processHalfCRU(int iteration)
       int trackletWordsRejected = 0;
       // LOGF(warn, "Starting tracklet parsing for HCID %i", halfChamberId);
       int trackletWordsRead = parseTrackletLinkData(currentlinksize32, halfChamberId, trackletWordsRejected);
+      std::chrono::duration<double, std::micro> trackletparsingtime = std::chrono::high_resolution_clock::now() - trackletparsingstart;
       if (trackletWordsRead == -1) {
         //something went wrong bailout of here.
         if (mMaxWarnPrinted > 0) {
@@ -512,12 +513,19 @@ bool CruRawReader::processHalfCRU(int iteration)
         incrementErrors(TrackletsReturnedMinusOne, halfChamberId);
         continue; // move to next link of this half-CRU
       }
-      std::chrono::duration<double, std::micro> trackletparsingtime = std::chrono::high_resolution_clock::now() - trackletparsingstart;
+      mHBFoffset32 += trackletWordsRead;
+      if (mCurrentHalfCRUHeader.EventType == ETYPEPHYSICSTRIGGER &&
+          endOfCurrentLink - mHBFoffset32 >= 8) {
+        if (mMaxWarnPrinted > 0) {
+          LOGF(warn, "After successfully parsing the tracklet data for link %i there are %i words remaining which did not get parsed", currentlinkindex, endOfCurrentLink - mHBFoffset32);
+          checkNoWarn();
+        }
+        incrementErrors(UnparsedTrackletDataRemaining, halfChamberId, fmt::format("On link {} there are {} words remaining which did not get parsed", currentlinkindex, endOfCurrentLink - mHBFoffset32));
+      }
       mEventRecords.getCurrentEventRecord().incTrackletTime((double)std::chrono::duration_cast<std::chrono::microseconds>(trackletparsingtime).count());
       if (mOptions[TRDVerboseBit]) {
         LOGF(info, "Read %i tracklet words and rejected %i words", trackletWordsRead, trackletWordsRejected);
       }
-      mHBFoffset32 += trackletWordsRead;
       mTrackletWordsRejected += trackletWordsRejected;
       mTrackletWordsRead += trackletWordsRead;
       mEventRecords.getCurrentEventRecord().incWordsRead(trackletWordsRead);
@@ -564,6 +572,21 @@ bool CruRawReader::processHalfCRU(int iteration)
           int digitWordsRejected = 0;
           int digitWordsRead = parseDigitLinkData(endOfCurrentLink - mHBFoffset32, halfChamberId, digitWordsRejected);
           std::chrono::duration<double, std::micro> digitsparsingtime = std::chrono::high_resolution_clock::now() - digitsparsingstart;
+          if (digitWordsRead == -1) {
+            // something went wrong bailout of here.
+            mHBFoffset32 = hbfOffsetTmp + linksizeAccum32;
+            continue; // move to next link of this half-CRU
+          }
+          mHBFoffset32 += digitWordsRead;
+          if (endOfCurrentLink - mHBFoffset32 >= 8) {
+            // check if some data is lost (probably due to bug in CRU user logic)
+            // we should have max 7 padding words to align the link to 256 bits
+            if (mMaxWarnPrinted > 0) {
+              LOGF(warn, "After successfully parsing the digit data for link %i there are %i words remaining which did not get parsed", currentlinkindex, endOfCurrentLink - mHBFoffset32);
+              checkNoWarn();
+            }
+            incrementErrors(UnparsedDigitDataRemaining, halfChamberId, fmt::format("On link {} there are {} words remaining which did not get parsed", currentlinkindex, endOfCurrentLink - mHBFoffset32));
+          }
           mEventRecords.getCurrentEventRecord().incDigitTime((double)std::chrono::duration_cast<std::chrono::microseconds>(digitsparsingtime).count());
           mEventRecords.getCurrentEventRecord().incWordsRead(digitWordsRead);
           mEventRecords.getCurrentEventRecord().incWordsRejected(digitWordsRejected);
@@ -573,8 +596,6 @@ bool CruRawReader::processHalfCRU(int iteration)
           if (mOptions[TRDVerboseBit]) {
             LOGF(info, "Read %i digit words and rejected %i words", digitWordsRead, digitWordsRejected);
           }
-
-          mHBFoffset32 += digitWordsRead + digitWordsRejected; // all 3 in 32bit units
           mDigitWordsRead += digitWordsRead;
           mDigitWordsRejected += digitWordsRejected;
         }
@@ -786,9 +807,10 @@ int CruRawReader::parseDigitLinkData(int maxWords32, int hcid, int& wordsRejecte
       ++wordsRead;
       if (currWord != DIGITENDMARKER) {
         if (mMaxWarnPrinted > 0) {
-          LOGF(warn, "Expected second end marker, but found 0x%08x instead", currWord);
+          LOGF(warn, "Expected second digit end marker, but found 0x%08x instead", currWord);
           checkNoWarn();
         }
+        incrementErrors(DigitParsingNoSecondEndmarker, hcid, "No second digit end marker found");
         return -1;
       }
       state = StateFinished;
@@ -950,7 +972,7 @@ int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRej
       ++wordsRead;
       if (currWord != TRACKLETENDMARKER) {
         if (mMaxWarnPrinted > 0) {
-          LOGF(warn, "Expected second end marker, but found 0x%08x instead", currWord);
+          LOGF(warn, "Expected second tracklet end marker, but found 0x%08x instead", currWord);
           checkNoWarn();
         }
         return -1;

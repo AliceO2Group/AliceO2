@@ -50,9 +50,9 @@ class EventRecord
   // needed, in order to check if a trigger already exist for this bunch crossing
   bool operator==(const EventRecord& o) const { return mBCData == o.mBCData; }
 
-  // only the tracklets are sorted by HCID
+  // only the tracklets are sorted by detector ID
   // TODO: maybe at some point a finer sorting might be helpful (padrow, padcolumn?)
-  void sortTrackletsByHCID();
+  void sortTrackletsByDetector();
 
   //statistics stuff these get passed to the per tf data at the end of the timeframe,
   //but as we read in per link, events are seperated hence these counters

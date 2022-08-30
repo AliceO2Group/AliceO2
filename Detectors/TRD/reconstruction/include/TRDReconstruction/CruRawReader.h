@@ -42,6 +42,18 @@ class CruRawReader
   CruRawReader() = default;
   ~CruRawReader() = default;
 
+  // both the tracklet and the digit parsing is implemented as a state machine
+  enum ParsingState { StateTrackletHCHeader,
+                      StateTrackletMCMHeader,
+                      StateTrackletMCMData,
+                      StateDigitMCMHeader,
+                      StateDigitADCMask,
+                      StateDigitMCMData,
+                      StateMoveToDigitMCMHeader,
+                      StateMoveToEndMarker,
+                      StateSecondEndmarker,
+                      StateFinished };
+
   // top-level method, takes the full payload data of the DPL raw data message and delegates to processHBFs()
   // probably this method can be removed and we can directly go to processHBFs()
   void run();
@@ -78,19 +90,6 @@ class CruRawReader
   // reset the event storage and the counters
   void reset();
 
-  // both the tracklet and the digit parsing is implemented as a state machine
-  enum ParsingState { StateTrackletHCHeader,
-                      StateTrackletMCMHeader,
-                      StateTrackletMCMData,
-                      StateDigitMCMHeader,
-                      StateDigitADCMask,
-                      StateDigitMCMData,
-                      StateMoveToDigitMCMHeader,
-                      StateMoveToEndMarker,
-                      StateSecondEndmarker,
-                      StateFinished };
-
- private:
   // the parsing starts here, payload from all available RDHs is copied into mHBFPayload and afterwards processHalfCRU() is called
   // returns the total number of bytes read, including RDH header
   int processHBFs();
@@ -116,6 +115,10 @@ class CruRawReader
   // returns total number of words read (no matter if parsed successfully or not)
   int parseTrackletLinkData(int linkSize32, int& hcid, int& trackletWordsRejected);
 
+  // the parsing begins after the DigitHCHeaders have been parsed already
+  // maxWords32 is the remaining number of words for the given link
+  // digitWordsRejected: count the number of words which were skipped (subset of words read)
+  // returns total number of words read (no matter if parsed successfully or not)
   int parseDigitLinkData(int maxWords32, int hcid, int& digitWordsRejected);
 
   // check validity of TrackletHCHeader (always once bit needs to be set and hcid needs to be consistent with what we expect from RDH)
@@ -135,10 +138,7 @@ class CruRawReader
   // helper function to dump the whole input payload including RDH headers
   void dumpInputPayload() const;
 
-  // ###############################################################
-  // ## class member variables
-  // ###############################################################
-
+ private:
   // these variables are configured externally
   int mTrackletHCHeaderState{0};
   int mHalfChamberWords{0};
