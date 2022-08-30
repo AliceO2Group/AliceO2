@@ -237,8 +237,9 @@ void VectorSparse::Add(Double_t* valc, Int_t* indc, Int_t n)
         }
       }
     }
-    if (toAdd)
+    if (toAdd) {
       nadd++;
+    }
   }
 
   if (nadd < 1) {
