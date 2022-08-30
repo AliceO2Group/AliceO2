@@ -699,18 +699,20 @@ void PVertexer::init()
 void PVertexer::end()
 {
 #ifdef _PV_DEBUG_TREE_
-  mDebugPoolTree->Write();
-  mDebugDBScanTree->Write();
-  mDebugVtxCompTree->Write();
-  mDebugVtxTree->Write();
+  if (mDebugDumpFile) {
+    mDebugPoolTree->Write();
+    mDebugDBScanTree->Write();
+    mDebugVtxCompTree->Write();
+    mDebugVtxTree->Write();
 
-  mDebugPoolTree.reset();
-  mDebugDBScanTree.reset();
-  mDebugVtxCompTree.reset();
-  mDebugVtxTree.reset();
+    mDebugPoolTree.reset();
+    mDebugDBScanTree.reset();
+    mDebugVtxCompTree.reset();
+    mDebugVtxTree.reset();
 
-  mDebugDumpFile->Close();
-  mDebugDumpFile.reset();
+    mDebugDumpFile->Close();
+    mDebugDumpFile.reset();
+  }
 #endif
 }
 
