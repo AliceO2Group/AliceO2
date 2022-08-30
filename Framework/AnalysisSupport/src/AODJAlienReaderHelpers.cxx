@@ -315,6 +315,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
         delete tr;
 
         // needed for metrics dumping (upon next file read, or terminate due to watchdog)
+        // TODO need support for multiple files here
         if (currentFile == nullptr) {
           currentFile = didir->getFileFolder(dh, fcnt, ntf).file;
           tfCurrentFile = didir->getTimeFramesInFile(dh, fcnt);

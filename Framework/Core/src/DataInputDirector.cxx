@@ -19,6 +19,7 @@
 
 #include "TGrid.h"
 #include "TObjString.h"
+#include "TMap.h"
 
 namespace o2
 {
@@ -126,6 +127,11 @@ bool DataInputDescriptor::setFile(int counter)
     mfilenames[counter]->numberOfTimeFrames = mfilenames[counter]->listOfTimeFrameKeys.size();
   }
 
+  // get the parent file map if exists
+  parentFileMap = (TMap*)mcurrentFile->Get("parent_files"); // folder name (DF_XXX) --> parent file (absolute path)
+  // TODO add list of available trees in parent file in this map to avoid unneccessary opens (is this needed?)
+  // TODO needs configurable to replace part of absolute files if they have been relocated after producing them (e.g. local cluster)
+
   return true;
 }
 
@@ -165,6 +171,33 @@ FileAndFolder DataInputDescriptor::getFileFolder(int counter, int numTF)
   return fileAndFolder;
 }
 
+ParentFile* DataInputDescriptor::getParentFile(int counter, int numTF)
+{
+  if (!parentFileMap) {
+    // This file has no parent map
+    return nullptr;
+  }
+  auto folderName = (mfilenames[counter]->listOfTimeFrameKeys)[numTF];
+  auto parentFileName = (TObjString*)parentFileMap->GetValue(folderName.c_str());
+  if (!parentFileName) {
+    // The current DF is not found in the parent map (this should not happen and is a FATAL error)
+    return nullptr;
+  }
+  if (parentFile) {
+    // Is this still the corresponding to the correct file?
+    if (parentFile->file && parentFile->file->GetName() && parentFileName->GetString().CompareTo(parentFile->file->GetName() == 0)) {
+      return parentFile;
+    } else {
+      delete parentFile;
+      parentFile = nullptr;
+    }
+  }
+
+  parentFile = new ParentFile;
+  parentFile->file = TFile::Open(parentFileName->GetString());
+  return parentFile;
+}
+
 int DataInputDescriptor::getTimeFramesInFile(int counter)
 {
   return mfilenames.at(counter)->numberOfTimeFrames;
@@ -173,9 +206,13 @@ int DataInputDescriptor::getTimeFramesInFile(int counter)
 void DataInputDescriptor::closeInputFile()
 {
   if (mcurrentFile) {
+    delete parentFileMap;
+    parentFileMap = nullptr;
     mcurrentFile->Close();
-    mcurrentFile = nullptr;
     delete mcurrentFile;
+    mcurrentFile = nullptr;
+    delete parentFile;
+    parentFile = nullptr;
   }
 }
 
@@ -578,6 +615,13 @@ TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter, int nu
   if (fileAndFolder.file) {
     treename = fileAndFolder.folderName + "/" + treename;
     tree = (TTree*)fileAndFolder.file->Get(treename.c_str());
+    // NOTE one level of fallback only for now as a proof of principle
+    if (!tree) {
+      auto parentFile = didesc->getParentFile(counter, numTF);
+      if (parentFile != nullptr) {
+        tree = (TTree*)parentFile->file->Get(treename.c_str());
+      }
+    }
     if (!tree) {
       throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/treenotfound.html for more information.)", treename, fileAndFolder.file->GetName()));
     }
