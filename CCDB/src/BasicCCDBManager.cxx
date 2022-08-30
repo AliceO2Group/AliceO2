@@ -43,5 +43,30 @@ std::pair<uint64_t, uint64_t> CCDBManagerInstance::getRunDuration(int runnumber)
   return std::make_pair(sor, eor);
 }
 
+std::string CCDBManagerInstance::getSummaryString() const
+{
+  std::string res = fmt::format("{} queries", mQueries);
+  if (mCachingEnabled) {
+    res += fmt::format(" for {} objects", mCache.size());
+  }
+  res += fmt::format(", {} good fetches (and {} failed ones", mFetches, mFailures);
+  if (mCachingEnabled && mFailures) {
+    int nfailObj = 0;
+    for (const auto& obj : mCache) {
+      if (obj.second.failures) {
+        nfailObj++;
+      }
+    }
+    res += fmt::format(" for {} objects", nfailObj);
+  }
+  res += fmt::format("), instance: {}", mCCDBAccessor.getUniqueAgentID());
+  return res;
+}
+
+void CCDBManagerInstance::endOfStream()
+{
+  LOG(info) << "CCDBManager summary: " << getSummaryString();
+}
+
 } // namespace ccdb
 } // namespace o2
