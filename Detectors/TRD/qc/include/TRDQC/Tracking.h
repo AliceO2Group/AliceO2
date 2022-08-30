@@ -50,6 +50,7 @@ struct TrackQC {
   float p;          ///< the total momentum of the track at the point of the innermost ITS cluster (ITS-TPC-TRD) or at the inner TPC radius (TPC-TRD)
   float pt;          ///< the transverse momentum of the track at the point of the innermost ITS cluster (ITS-TPC-TRD) or at the inner TPC radius (TPC-TRD)
   float ptSigma2;    //< Sigma2 of pt
+  float dEdxTotTPC ; //< raw total dEdx information for seeding track in TPC
 
   // layer-wise information for seeding track and assigned tracklet (if available)
   std::array<float, constants::NLAYER> findable{}; ///< flag if track was in geometrical acceptance
