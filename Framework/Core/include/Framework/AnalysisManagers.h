@@ -413,6 +413,26 @@ class has_instance
 };
 
 template <typename T>
+class has_end_of_stream
+{
+  typedef char one;
+  struct two {
+    char x[2];
+  };
+
+  template <typename C>
+  static one test(decltype(&C::endOfStream));
+  template <typename C>
+  static two test(...);
+
+ public:
+  enum { value = sizeof(test<T>(nullptr)) == sizeof(char) };
+};
+
+template <typename T>
+inline constexpr bool has_end_of_stream_v = has_end_of_stream<T>::value;
+
+template <typename T>
 struct ServiceManager {
   template <typename ANY>
   static bool add(std::vector<ServiceSpec>&, ANY&)
@@ -422,6 +442,12 @@ struct ServiceManager {
 
   template <typename ANY>
   static bool prepare(InitContext&, ANY&)
+  {
+    return false;
+  }
+
+  template <typename ANY>
+  static bool postRun(EndOfStreamContext&, ANY&)
   {
     return false;
   }
@@ -442,6 +468,18 @@ struct ServiceManager<Service<T>> {
       return true;
     } else {
       service.service = &(context.services().get<T>());
+      return true;
+    }
+    return false;
+  }
+
+  /// If a service has a method endOfStream, it is called at the end of the stream.
+  static bool postRun(EndOfStreamContext& context, Service<T>& service)
+  {
+    // FIXME: for the moment we only need endOfStream to be
+    // stateless. In the future we might want to pass it EndOfStreamContext
+    if constexpr (has_end_of_stream_v<T>) {
+      service.service->endOfStream();
       return true;
     }
     return false;
