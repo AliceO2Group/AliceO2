@@ -38,7 +38,7 @@
 
 //TODO: MeanVertex and parameters input from CCDB
 
-#define _PV_DEBUG_TREE_ // if enabled, produce dbscan and vertex comparison dump
+// #define _PV_DEBUG_TREE_ // if enabled, produce dbscan and vertex comparison dump
 
 namespace o2
 {
