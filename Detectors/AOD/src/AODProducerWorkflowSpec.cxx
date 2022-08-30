@@ -1671,7 +1671,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       uint64_t bc = ctpDigit.intRecord.toLong();
       uint64_t classMask = ctpDigit.CTPClassMask.to_ulong();
       bcToClassMask[bc] = classMask;
-      LOG(debug) << Form("classmask:0x%ullx", classMask);
+      LOG(debug) << Form("classmask:0x%llx", classMask);
     }
   }
 
