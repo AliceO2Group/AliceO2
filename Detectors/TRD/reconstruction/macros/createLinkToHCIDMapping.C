@@ -29,21 +29,6 @@
 
 using namespace o2::trd;
 
-// linkA and linkB refer to the global ORI index and not to the half-chamber ID
-void swapLinks(int linkA, int linkB, std::map<int, int>& linkIDToHCID, std::map<int, int>& hcIDToLinkID)
-{
-  int hcidA = HelperMethods::getHCIDFromLinkID(linkA);
-  int hcidB = HelperMethods::getHCIDFromLinkID(linkB);
-  linkIDToHCID.erase(linkA);
-  linkIDToHCID.insert({linkA, hcidB});
-  linkIDToHCID.erase(linkB);
-  linkIDToHCID.insert({linkB, hcidA});
-  hcIDToLinkID.erase(hcidA);
-  hcIDToLinkID.insert({hcidA, linkB});
-  hcIDToLinkID.erase(hcidB);
-  hcIDToLinkID.insert({hcidB, linkA});
-}
-
 void createLinkToHCIDMapping(bool isDefault = true)
 {
 
@@ -56,17 +41,17 @@ void createLinkToHCIDMapping(bool isDefault = true)
   if (!isDefault) {
     // in case we have swapped links, they should be manually entered here
     // the default map should correspond to the foreseen mapping
-    swapLinks(139, 175, mapping.linkIDToHCID, mapping.hcIDToLinkID);
-    swapLinks(170, 171, mapping.linkIDToHCID, mapping.hcIDToLinkID);
-    swapLinks(156, 162, mapping.linkIDToHCID, mapping.hcIDToLinkID); // To be confirmed, only saw data from HCID 166 so far (corresponding to link 162 with default mapping)
-    swapLinks(584, 590, mapping.linkIDToHCID, mapping.hcIDToLinkID);
-    swapLinks(644, 650, mapping.linkIDToHCID, mapping.hcIDToLinkID);
-    swapLinks(665, 671, mapping.linkIDToHCID, mapping.hcIDToLinkID);
-    swapLinks(675, 681, mapping.linkIDToHCID, mapping.hcIDToLinkID); // To be confirmed, only saw data from HCID 677 so far (corresponding to link 681 with default mapping)
-    swapLinks(728, 729, mapping.linkIDToHCID, mapping.hcIDToLinkID);
-    swapLinks(794, 800, mapping.linkIDToHCID, mapping.hcIDToLinkID);
-    swapLinks(855, 856, mapping.linkIDToHCID, mapping.hcIDToLinkID);
-    swapLinks(858, 861, mapping.linkIDToHCID, mapping.hcIDToLinkID);
+    mapping.swapLinks(139, 175);
+    mapping.swapLinks(170, 171);
+    mapping.swapLinks(156, 162); // To be confirmed, only saw data from HCID 166 so far (corresponding to link 162 with default mapping)
+    mapping.swapLinks(584, 590);
+    mapping.swapLinks(644, 650);
+    mapping.swapLinks(665, 671);
+    mapping.swapLinks(675, 681); // To be confirmed, only saw data from HCID 677 so far (corresponding to link 681 with default mapping)
+    mapping.swapLinks(728, 729);
+    mapping.swapLinks(794, 800);
+    mapping.swapLinks(855, 856);
+    mapping.swapLinks(858, 861);
   }
 
   if (!mapping.isOK()) {

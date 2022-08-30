@@ -40,10 +40,10 @@
 namespace o2::trd
 {
 
-void EventRecord::sortTrackletsByHCID()
+void EventRecord::sortTrackletsByDetector()
 {
-  // sort the tracklets by HCID
-  std::stable_sort(std::begin(mTracklets), std::end(mTracklets), [this](const Tracklet64& trackleta, const Tracklet64& trackletb) { return trackleta.getHCID() < trackletb.getHCID(); });
+  // sort the tracklets by detector ID
+  std::stable_sort(std::begin(mTracklets), std::end(mTracklets), [this](const Tracklet64& trackleta, const Tracklet64& trackletb) { return trackleta.getDetector() < trackletb.getDetector(); });
 }
 
 void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool generatestats)
@@ -57,7 +57,7 @@ void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool g
   std::vector<Digit> digits;
   std::vector<TriggerRecord> triggers;
   for (auto& event : mEventRecords) {
-    event.sortTrackletsByHCID();
+    event.sortTrackletsByDetector();
     tracklets.insert(tracklets.end(), event.getTracklets().begin(), event.getTracklets().end());
     digits.insert(digits.end(), event.getDigits().begin(), event.getDigits().end());
     triggers.emplace_back(event.getBCData(), digitcount, event.getDigits().size(), trackletcount, event.getTracklets().size());

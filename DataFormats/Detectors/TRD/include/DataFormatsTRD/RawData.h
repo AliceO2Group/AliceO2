@@ -419,9 +419,10 @@ struct LinkToHCIDMapping {
   // link ID -> half-chamber ID
   // half-chamber ID -> link ID
 
-  bool isOK() const { return linkIDToHCID.size() == constants::MAXHALFCHAMBER && hcIDToLinkID.size() == constants::MAXHALFCHAMBER; }
-  int getHCID(int link) const { return isOK() ? linkIDToHCID.at(link) : -1; }
-  int getLink(int hcid) const { return isOK() ? hcIDToLinkID.at(hcid) : -1; }
+  bool isOK() const;
+  int getHCID(int link) const { return linkIDToHCID.at(link); }
+  int getLink(int hcid) const { return hcIDToLinkID.at(hcid); }
+  void swapLinks(int linkA, int linkB);
 
   std::map<int, int> linkIDToHCID;
   std::map<int, int> hcIDToLinkID;

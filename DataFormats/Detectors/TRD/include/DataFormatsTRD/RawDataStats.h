@@ -37,6 +37,7 @@ enum ParsingErrors {
   DigitADCMaskInvalid,                 // mask adc count does not match # of 1s in bitpattern or the check bits are wrongly set
   DigitSanityCheck,                    // adc failed sanity check based on current channel (odd/even) and check bits DigitMCMData.f
   DigitParsingExitInWrongState,        // exiting parsing in the wrong state ... got to the end of the buffer in wrong state.
+  DigitParsingNoSecondEndmarker,       // we found a single digit end marker not followed by a second one
   DigitHCHeaderMismatch,               // the half-chamber ID from the digit HC header is not consistent with the one expected from the link ID
   TrackletHCHeaderFailure,             // either reserved bit not set or HCID is not what was expected from RDH
   TrackletMCMHeaderSanityCheckFailure, // MCMHeader sanity check failure, LSB or MSB not set
@@ -44,6 +45,8 @@ enum ParsingErrors {
   TrackletDataDuplicateMCM,            // we see more than one TrackletMCMHeader for the same MCM
   TrackletNoTrackletEndMarker,         // got to the end of the buffer with out finding a tracklet end marker.
   TrackletExitingNoTrackletEndMarker,  // got to the end of the buffer exiting tracklet parsing with no tracklet end marker
+  UnparsedTrackletDataRemaining,       // the tracklet parsing has finished correctly, but there is still data left on the link (CRU puts incorrect link size or corrupt data?)
+  UnparsedDigitDataRemaining,          // the digit parsing has finished correctly, but there is still data left on the link (CRU puts incorrect link size or corrupt data? RDH > 8kByte before?)
   DigitHeaderCountGT3,                 // digital half chamber header had more than 3 additional words expected by header. most likely corruption above somewhere.
   DigitHeaderWrongType,                // expected digit header, but could not determine type
   HalfCRUSumLength,                    // if the HalfCRU headers summed lengths wont fit into the buffer, implies corruption, its a faster check than the next one.
@@ -74,6 +77,7 @@ static const std::unordered_map<int, std::string> ParsingErrorsString = {
   {DigitADCMaskInvalid, "DigitADCMaskInvalid"},
   {DigitSanityCheck, "DigitSanityCheck"},
   {DigitParsingExitInWrongState, "DigitParsingExitInWrongState"},
+  {DigitParsingNoSecondEndmarker, "DigitParsingNoSecondEndmarker"},
   {DigitHCHeaderMismatch, "DigitHCHeaderMismatch"},
   {TrackletHCHeaderFailure, "TrackletHCHeaderFailure"},
   {TrackletMCMHeaderSanityCheckFailure, "TrackletMCMHeaderSanityCheckFailure"},
@@ -81,9 +85,12 @@ static const std::unordered_map<int, std::string> ParsingErrorsString = {
   {TrackletDataDuplicateMCM, "TrackletDataDuplicateMCM"},
   {TrackletNoTrackletEndMarker, "TrackletNoTrackletEndMarker"},
   {TrackletExitingNoTrackletEndMarker, "TrackletExitingNoTrackletEndMarker"},
+  {UnparsedTrackletDataRemaining, "UnparsedTrackletDataRemaining"},
+  {UnparsedDigitDataRemaining, "UnparsedDigitDataRemaining"},
   {DigitHeaderCountGT3, "DigitHeaderCountGT3"},
   {DigitHeaderWrongType, "DigitHeaderWrongType"},
   {HalfCRUSumLength, "HalfCRUSumLength"},
+  {BadRDHMemSize, "BadRDHMemSize"},
   {BadRDHFEEID, "BadRDHFEEID"},
   {BadRDHEndPoint, "BadRDHEndPoint"},
   {BadRDHOrbit, "BadRDHOrbit"},

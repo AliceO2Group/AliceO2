@@ -26,6 +26,32 @@ namespace o2
 namespace trd
 {
 
+bool LinkToHCIDMapping::isOK() const
+{
+  for (int linkIn = 0; linkIn < MAXHALFCHAMBER; ++linkIn) {
+    int hcid = getHCID(linkIn);
+    if (linkIn != getLink(hcid)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// linkA and linkB refer to the global ORI index and not to the half-chamber ID
+void LinkToHCIDMapping::swapLinks(int linkA, int linkB)
+{
+  int hcidA = HelperMethods::getHCIDFromLinkID(linkA);
+  int hcidB = HelperMethods::getHCIDFromLinkID(linkB);
+  linkIDToHCID.erase(linkA);
+  linkIDToHCID.insert({linkA, hcidB});
+  linkIDToHCID.erase(linkB);
+  linkIDToHCID.insert({linkB, hcidA});
+  hcIDToLinkID.erase(hcidA);
+  hcIDToLinkID.insert({hcidA, linkB});
+  hcIDToLinkID.erase(hcidB);
+  hcIDToLinkID.insert({hcidB, linkA});
+}
+
 //
 //  Printing methods to dump and display the various structures above in pretty format or hexdump
 //  printNameOfStruct(const NameOfStruct& nameofstruct);
