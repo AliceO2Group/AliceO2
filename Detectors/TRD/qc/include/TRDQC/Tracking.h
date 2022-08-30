@@ -49,7 +49,6 @@ struct TrackQC {
   float reducedChi2; ///< chi2 total divided by number of layers in which track is inside TRD geometrical acceptance
   float pt;          ///< the transverse momentum of the track at the point of the innermost ITS cluster (ITS-TPC-TRD) or at the inner TPC radius (TPC-TRD)
   float ptSigma2;    //< Sigma2 of pt
-  track::PID pid;    //< assigned particle id from TPC
 
   // layer-wise information for seeding track and assigned tracklet (if available)
   std::array<float, constants::NLAYER> findable{}; ///< flag if track was in geometrical acceptance
