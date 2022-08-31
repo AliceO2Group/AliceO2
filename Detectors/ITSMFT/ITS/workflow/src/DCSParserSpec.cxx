@@ -148,7 +148,6 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
 
       // First, update map of disabled double columns at EOR
       std::vector<std::string> doubleColDisable = this->vectorizeStringList(bigVectSplit[0], ";");
-      //LOG(info) << "doubleColDisable: " << doubleColDisable;
       for (const std::string& str : doubleColDisable) {
         std::vector<unsigned short int> doubleColDisableVector = this->vectorizeStringListInt(str, ":");
         this->mDoubleColsDisableEOR[doubleColDisableVector[0]].push_back(doubleColDisableVector[1]);
