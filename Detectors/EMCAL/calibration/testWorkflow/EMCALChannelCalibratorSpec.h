@@ -233,10 +233,13 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec(const bool loadCalibParamsFromC
   using EMCALCalibParams = o2::emcal::EMCALCalibParams;
 
   std::vector<OutputSpec> outputs;
-  if (EMCALCalibParams::Instance().calibType.find("time") != std::string::npos) {                                                        // time calibration
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_TIMECALIB"}, Lifetime::Sporadic);   // This needs to match with the output!
-    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_TIMECALIB"}, Lifetime::Sporadic);   // This needs to match with the output!
-  } else {                                                                                                                               // bad channel calibration
+  std::string processorName;
+  if (EMCALCalibParams::Instance().calibType.find("time") != std::string::npos) { // time calibration
+    processorName = "calib-emcalchannel-time";
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_TIMECALIB"}, Lifetime::Sporadic); // This needs to match with the output!
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_TIMECALIB"}, Lifetime::Sporadic); // This needs to match with the output!
+  } else {                                                                                                                             // bad channel calibration
+    processorName = "calib-emcalchannel-badchannel";
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "EMC_BADCHANNELS"}, Lifetime::Sporadic); // This needs to match with the output!
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "EMC_BADCHANNELS"}, Lifetime::Sporadic); // This needs to match with the output!
   }
@@ -256,7 +259,7 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec(const bool loadCalibParamsFromC
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs);
   return DataProcessorSpec{
-    "calib-emcalchannel-calibration",
+    processorName,
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<device>(ccdbRequest, loadCalibParamsFromCCDB)},
