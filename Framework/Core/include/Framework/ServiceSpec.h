@@ -14,7 +14,6 @@
 #include "Framework/ServiceHandle.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceInfo.h"
-#include <functional>
 #include <string>
 #include <vector>
 
@@ -40,27 +39,27 @@ struct WorkflowSpecNode;
 class DanglingContext;
 
 /// A callback to create a given Service.
-using ServiceInit = std::function<ServiceHandle(ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&)>;
+using ServiceInit = ServiceHandle (*)(ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&);
 /// A callback invoked whenever we start running, before the user processing callback.
-using ServiceStartCallback = std::function<void(ServiceRegistry&, void*)>;
+using ServiceStartCallback = void (*)(ServiceRegistry&, void*);
 /// A callback invoked whenever we stop running, after the user processing callback.
-using ServiceStopCallback = std::function<void(ServiceRegistry&, void*)>;
+using ServiceStopCallback = void (*)(ServiceRegistry&, void*);
 /// A callback invoked whenever we stop running completely, before we exit.
-using ServiceExitCallback = std::function<void(ServiceRegistry&, void*)>;
+using ServiceExitCallback = void (*)(ServiceRegistry&, void*);
 
 /// A callback to configure a given Service. Notice that the
 /// service itself is type erased and it's responsibility of
 /// the configuration itself to cast it to the correct value
-using ServiceConfigureCallback = std::function<void*(InitContext&, void*)>;
+using ServiceConfigureCallback = void* (*)(InitContext&, void*);
 
 /// A callback which is executed before each processing loop.
-using ServiceProcessingCallback = std::function<void(ProcessingContext&, void*)>;
+using ServiceProcessingCallback = void (*)(ProcessingContext&, void*);
 
 /// A callback which is executed before each dangling input loop
-using ServiceDanglingCallback = std::function<void(DanglingContext&, void*)>;
+using ServiceDanglingCallback = void (*)(DanglingContext&, void*);
 
 /// A callback which is executed before the end of stream loop.
-using ServiceEOSCallback = std::function<void(EndOfStreamContext&, void*)>;
+using ServiceEOSCallback = void (*)(EndOfStreamContext&, void*);
 
 /// Callback executed before the forking of a given device in the driver
 /// Notice the forking can happen multiple times. It's responsibility of
@@ -76,39 +75,39 @@ using ServicePostForkChild = std::function<void(ServiceRegistry&)>;
 using ServicePostForkParent = std::function<void(ServiceRegistry&)>;
 
 /// Callback executed before each redeployment of the whole configuration
-using ServicePreSchedule = std::function<void(ServiceRegistry&, boost::program_options::variables_map const&)>;
+using ServicePreSchedule = void (*)(ServiceRegistry&, boost::program_options::variables_map const&);
 
 /// Callback executed after each redeployment of the whole configuration
-using ServicePostSchedule = std::function<void(ServiceRegistry&, boost::program_options::variables_map const&)>;
+using ServicePostSchedule = void (*)(ServiceRegistry&, boost::program_options::variables_map const&);
 
 /// Callback executed in the driver in order to process a metric.
-using ServiceMetricHandling = std::function<void(ServiceRegistry&,
-                                                 std::vector<o2::framework::DeviceMetricsInfo>& metrics,
-                                                 std::vector<o2::framework::DeviceSpec>& specs,
-                                                 std::vector<o2::framework::DeviceInfo>& infos,
-                                                 DeviceMetricsInfo& driverMetrics,
-                                                 size_t timestamp)>;
+using ServiceMetricHandling = void (*)(ServiceRegistry&,
+                                       std::vector<o2::framework::DeviceMetricsInfo>& metrics,
+                                       std::vector<o2::framework::DeviceSpec>& specs,
+                                       std::vector<o2::framework::DeviceInfo>& infos,
+                                       DeviceMetricsInfo& driverMetrics,
+                                       size_t timestamp);
 
 /// Callback executed in the child after dispatching happened.
-using ServicePostDispatching = std::function<void(ProcessingContext&, void*)>;
+using ServicePostDispatching = void (*)(ProcessingContext&, void*);
 
 /// Callback executed in the child after late forwarding happened.
-using ServicePostForwarding = std::function<void(ProcessingContext&, void*)>;
+using ServicePostForwarding = void (*)(ProcessingContext&, void*);
 
 /// Callback invoked when the driver enters the init phase.
-using ServiceDriverInit = std::function<void(ServiceRegistry&, boost::program_options::variables_map const&)>;
+using ServiceDriverInit = void (*)(ServiceRegistry&, boost::program_options::variables_map const&);
 
 /// Callback invoked when the driver enters the init phase.
-using ServiceDriverStartup = std::function<void(ServiceRegistry&, boost::program_options::variables_map const&)>;
+using ServiceDriverStartup = void (*)(ServiceRegistry&, boost::program_options::variables_map const&);
 
 /// Callback invoked when we inject internal devices in the topology
-using ServiceTopologyInject = std::function<void(WorkflowSpecNode&, ConfigContext&)>;
+using ServiceTopologyInject = void (*)(WorkflowSpecNode&, ConfigContext&);
 
 /// Callback invoked when we amend the topology
-using ServiceTopologyAdjust = std::function<void(WorkflowSpecNode&, ConfigContext const&)>;
+using ServiceTopologyAdjust = void (*)(WorkflowSpecNode&, ConfigContext const&);
 
 /// Callback invoked whenever we get updated about the oldest possible timeslice we can process
-using ServiceDomainInfoUpdated = std::function<void(ServiceRegistry&, size_t tileslice, ChannelIndex channel)>;
+using ServiceDomainInfoUpdated = void (*)(ServiceRegistry&, size_t tileslice, ChannelIndex channel);
 
 /// A specification for a Service.
 /// A Service is a utility class which does not perform
