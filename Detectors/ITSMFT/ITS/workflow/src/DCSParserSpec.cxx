@@ -56,7 +56,7 @@ void ITSDCSParser::run(ProcessingContext& pc)
   // Check for DOS vs. Unix line ending
   std::string line_ending = "\n";
   size_t newline_pos = inStringConv.find(line_ending);
-  if (newline_pos && inStringConv[newline_pos-1] == '\r') {
+  if (newline_pos && inStringConv[newline_pos - 1] == '\r') {
     line_ending = "\r\n";
   }
 
