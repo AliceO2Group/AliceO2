@@ -52,7 +52,16 @@ void ITSDCSParser::run(ProcessingContext& pc)
   const auto inString = pc.inputs().get<gsl::span<char>>("inString");
   std::string inStringConv;
   std::copy(inString.begin(), inString.end(), std::back_inserter(inStringConv));
-  for (const std::string& line : this->vectorizeStringList(inStringConv, "\n")) {
+
+  // Check for DOS vs. Unix line ending
+  std::string line_ending = "\n";
+  size_t newline_pos = inStringConv.find(line_ending);
+  if (newline_pos && inStringConv[newline_pos-1] == '\r') {
+    line_ending = "\r\n";
+  }
+
+  // Loop over lines in the input file
+  for (const std::string& line : this->vectorizeStringList(inStringConv, line_ending)) {
     if (!line.length()) {
       continue;
     }
@@ -139,15 +148,18 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
 
       // First, update map of disabled double columns at EOR
       std::vector<std::string> doubleColDisable = this->vectorizeStringList(bigVectSplit[0], ";");
+      //LOG(info) << "doubleColDisable: " << doubleColDisable;
       for (const std::string& str : doubleColDisable) {
         std::vector<unsigned short int> doubleColDisableVector = this->vectorizeStringListInt(str, ":");
         this->mDoubleColsDisableEOR[doubleColDisableVector[0]].push_back(doubleColDisableVector[1]);
       }
       // Second, update map of flagged pixels at EOR
-      std::vector<std::string> pixelFlagsEOR = this->vectorizeStringList(bigVectSplit[1], ";");
-      for (const std::string& str : pixelFlagsEOR) {
-        std::vector<unsigned short int> pixelFlagsVector = this->vectorizeStringListInt(str, ":");
-        this->mPixelFlagsEOR[pixelFlagsVector[0]].push_back(pixelFlagsVector[1]);
+      if (bigVectSplit.size() > 1) {
+        std::vector<std::string> pixelFlagsEOR = this->vectorizeStringList(bigVectSplit[1], ";");
+        for (const std::string& str : pixelFlagsEOR) {
+          std::vector<unsigned short int> pixelFlagsVector = this->vectorizeStringListInt(str, ":");
+          this->mPixelFlagsEOR[pixelFlagsVector[0]].push_back(pixelFlagsVector[1]);
+        }
       }
     }
   }
