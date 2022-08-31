@@ -98,22 +98,25 @@ void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoCont
 {
   // Extraxt CTP Config from CCDB
   const auto ctpcfg = pc.inputs().get<o2::ctp::CTPConfiguration*>("ctpconfig");
+  ctpcfg->printStream(std::cout);
   // o2::ctp::CTPConfiguration ctpcfg = o2::ctp::CTPRunManager::getConfigFromCCDB(-1, std::to_string(runNumber)); // how to get run
   //  Extract inputs from recoData
   std::map<uint64_t, uint64_t> bcsMapT0triggers;
   std::map<uint64_t, bool> bcsMapTRDreadout;
   // const auto& fddRecPoints = recoData.getFDDRecPoints();
   // const auto& fv0RecPoints = recoData.getFV0RecPoints();
-  const auto& caloEMCCellsTRGR = recoData.getEMCALTriggers();
-  const auto& caloPHOSCellsTRGR = recoData.getPHOSTriggers();
+  // const auto& caloEMCCellsTRGR = recoData.getEMCALTriggers();
+  // const auto& caloPHOSCellsTRGR = recoData.getPHOSTriggers();
   const auto& triggerrecordTRD = recoData.getTRDTriggerRecords();
+  // const auto& triggerrecordTRD =recoData.getITSTPCTRDTriggers()
   //
   const auto& ft0RecPoints = recoData.getFT0RecPoints();
   for (auto& ft0RecPoint : ft0RecPoints) {
     auto t0triggers = ft0RecPoint.getTrigger();
     if (t0triggers.getVertex()) {
       uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
-      uint64_t classmask = ctpcfg->getClassMaskForInput("MTVX");
+      uint64_t classmask = ctpcfg->getClassMaskForInputMask(0x4);
+      // std::cout << "class mask:" << std::hex << classmask << std::dec << std::endl;
       bcsMapT0triggers[globalBC] = classmask;
     }
   }
@@ -1149,7 +1152,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mTruncate = ic.options().get<int>("enable-truncation");
   mRunNumber = ic.options().get<int>("run-number");
   mCTPReadout = ic.options().get<int>("ctpreadout-create");
-
   if (mTFNumber == -1L) {
     LOG(info) << "TFNumber will be obtained from CCDB";
   }
@@ -1269,7 +1271,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
   std::vector<o2::ctp::CTPDigit> ctpDigitsCreated;
   if (mCTPReadout == 1) {
+    LOG(info) << "CTP : creating ctpreadout in AOD producer";
     createCTPReadout(recoData, ctpDigitsCreated, pc);
+    LOG(info) << "CTP : ctpreadout created from AOD";
     ctpDigits = gsl::span<o2::ctp::CTPDigit>(ctpDigitsCreated);
   }
   LOG(debug) << "FOUND " << primVertices.size() << " primary vertices";
@@ -1662,10 +1666,12 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // helper map for fast search of a corresponding class mask for a bc
   std::unordered_map<uint64_t, uint64_t> bcToClassMask;
   if (mInputSources[GID::CTP]) {
+    LOG(debug) << "CTP input available";
     for (auto& ctpDigit : ctpDigits) {
       uint64_t bc = ctpDigit.intRecord.toLong();
       uint64_t classMask = ctpDigit.CTPClassMask.to_ulong();
       bcToClassMask[bc] = classMask;
+      //LOG(debug) << Form("classmask:0x%llx", classMask);
     }
   }
 
@@ -2080,12 +2086,11 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, std::string resFile)
+DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, std::string resFile, bool CTPConfigPerRun)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
-
-  dataRequest->inputs.emplace_back("ctpconfig", "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config"));
+  dataRequest->inputs.emplace_back("ctpconfig", "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", CTPConfigPerRun));
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
@@ -2101,6 +2106,9 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   }
   if (src[GID::PHS]) {
     dataRequest->requestPHOSCells(useMC);
+  }
+  if (src[GID::TRD]) {
+    dataRequest->requestTRDTracklets(false);
   }
   if (src[GID::EMC]) {
     dataRequest->requestEMCALCells(useMC);

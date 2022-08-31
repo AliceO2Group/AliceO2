@@ -38,7 +38,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-secondary-vertices", o2::framework::VariantType::Bool, false, {"disable filling secondary vertices"}},
     {"info-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
-    {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}}};
+    {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}},
+    {"ctpconfig-per-run", o2::framework::VariantType::Bool, false, {"Use CTP config per run. 1 -- on (Data), 0 -- off (MC)"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -51,12 +52,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto resFile = configcontext.options().get<std::string>("aod-writer-resfile");
   bool enableSV = !configcontext.options().get<bool>("disable-secondary-vertices");
+  bool ctpcfgperrun = configcontext.options().get<bool>("ctpconfig-per-run");
 
-  GID::mask_t allowedSrc = GID::getSourcesMask("ITS,MFT,MCH,MID,MCH-MID,TPC,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TRD-TOF,MFT-MCH,FT0,FV0,FDD,ZDC,EMC,CTP,PHS");
+  GID::mask_t allowedSrc = GID::getSourcesMask("ITS,MFT,MCH,MID,MCH-MID,TPC,TRD,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TRD-TOF,MFT-MCH,FT0,FV0,FDD,ZDC,EMC,CTP,PHS");
   GID::mask_t src = allowedSrc & GID::getSourcesMask(configcontext.options().get<std::string>("info-sources"));
 
   WorkflowSpec specs;
-  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, enableSV, useMC, resFile));
+  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, enableSV, useMC, resFile, ctpcfgperrun));
 
   auto srcCls = src & ~(GID::getSourceMask(GID::MCH) | GID::getSourceMask(GID::MID)); // Don't read global MID and MCH clusters (those attached to tracks are always read)
   auto srcMtc = src;
