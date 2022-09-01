@@ -24,19 +24,23 @@ namespace o2::utils
 class IRFrameSelector
 {
  public:
-  long check(const o2::dataformats::IRFrame& fr);
-  long check(const o2::InteractionRecord& ir) { return check(o2::dataformats::IRFrame{ir, ir}); }
+  long check(o2::dataformats::IRFrame fr, size_t bwd = 0, size_t fwd = 0);
+  long check(const o2::InteractionRecord& ir, size_t bwd = 0, size_t fwd = 0) { return check(o2::dataformats::IRFrame{ir, ir}, bwd, fwd); }
+  gsl::span<const o2::dataformats::IRFrame> getMatchingFrames(const o2::dataformats::IRFrame& fr);
 
   template <typename SPAN>
-  void setSelectedIRFrames(const SPAN& sp)
+  void setSelectedIRFrames(const SPAN& sp, size_t bwd = 0, size_t fwd = 0, bool removeOverlaps = true)
   {
     mFrames = gsl::span<const o2::dataformats::IRFrame>(sp.data(), sp.size());
-    mLastBoundID = -1;
-    mLastIRFrameChecked.getMin().clear(); // invalidate
     mIsSet = true;
+    applyMargins(bwd, fwd, removeOverlaps);
+    mLastIRFrameChecked.getMin().clear(); // invalidate
+    mLastBoundID = -1;
   }
+
   void clear();
   size_t loadIRFrames(const std::string& fname);
+  void applyMargins(size_t bwd, size_t fwd, bool removeOverlaps = true);
   void print(bool lst = false) const;
 
   auto getIRFrames() const { return mFrames; }

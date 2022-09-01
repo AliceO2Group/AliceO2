@@ -29,18 +29,19 @@ struct InteractionRecord {
   static constexpr uint16_t DummyBC = 0xffff;
   static constexpr uint32_t DummyOrbit = 0xffffffff;
   static constexpr double DummyTime = DummyBC * o2::constants::lhc::LHCBunchSpacingNS + DummyOrbit * o2::constants::lhc::LHCOrbitNS;
-
+  static constexpr int64_t MaxGlobalBCs = (int64_t(DummyOrbit) * o2::constants::lhc::LHCMaxBunches) + (o2::constants::lhc::LHCMaxBunches);
+  static constexpr InteractionRecord getIRMaxBC() { return {o2::constants::lhc::LHCMaxBunches - 1, DummyOrbit}; }
   uint16_t bc = DummyBC;       ///< bunch crossing ID of interaction
   uint32_t orbit = DummyOrbit; ///< LHC orbit
 
-  InteractionRecord() = default;
+  constexpr InteractionRecord() = default;
 
   InteractionRecord(double tNS)
   {
     setFromNS(tNS);
   }
 
-  InteractionRecord(uint16_t b, uint32_t orb) : bc(b), orbit(orb)
+  constexpr InteractionRecord(uint16_t b, uint32_t orb) : bc(b), orbit(orb)
   {
   }
 

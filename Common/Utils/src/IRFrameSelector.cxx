@@ -21,10 +21,27 @@
 
 using namespace o2::utils;
 
-long IRFrameSelector::check(const o2::dataformats::IRFrame& fr)
+gsl::span<const o2::dataformats::IRFrame> IRFrameSelector::getMatchingFrames(const o2::dataformats::IRFrame& fr)
 {
-  long ans = -1;
+  // extract span of IRFrames matching to fr
+  auto lower = std::lower_bound(mFrames.begin(), mFrames.end(), o2::dataformats::IRFrame{fr.getMin(), fr.getMin()});
+  if (lower == mFrames.end() || *lower > fr) {
+    return {};
+  }
+  auto upper = std::upper_bound(lower, mFrames.end(), o2::dataformats::IRFrame{fr.getMax(), fr.getMax()});
+  return {&*lower, size_t(std::distance(lower, upper) + 1)};
+}
 
+long IRFrameSelector::check(o2::dataformats::IRFrame fr, size_t bwd, size_t fwd)
+{
+  // check if fr overlaps with at least 1 entry in the frames container, if needed expand fr by -bwd and fwd BCs from 2 sides
+  long ans = -1;
+  if (bwd) {
+    fr.setMin(fr.getMin().toLong() > bwd ? fr.getMin() - bwd : o2::InteractionRecord{0, 0});
+  }
+  if (fwd) {
+    fr.setMax(o2::InteractionRecord::MaxGlobalBCs - fr.getMax().toLong() > fwd ? fr.getMax() + bwd : o2::InteractionRecord::getIRMaxBC());
+  }
   // find entry which overlaps or above fr
   auto fullcheck = [&fr, this]() -> long {
     auto lower = std::lower_bound(this->mFrames.begin(), this->mFrames.end(), fr);
@@ -88,7 +105,7 @@ size_t IRFrameSelector::loadIRFrames(const std::string& fname)
   // read IRFrames to filter from the file
   std::unique_ptr<TFile> tfl(TFile::Open(fname.c_str()));
   if (!tfl || tfl->IsZombie()) {
-    LOGP(fatal, "Cannot open file {}", fname);
+    LOGP(fatal, "Cannot open selected IRFrames file {}", fname);
   }
   auto klst = gDirectory->GetListOfKeys();
   TIter nextkey(klst);
@@ -100,7 +117,7 @@ size_t IRFrameSelector::loadIRFrames(const std::string& fname)
     if (kcl == clVec) {
       auto* v = (std::vector<o2::dataformats::IRFrame>*)tfl->GetObjectUnchecked(key->GetName());
       if (!v) {
-        LOGP(fatal, "Failed to extract vector {} from {}", key->GetName(), fname);
+        LOGP(fatal, "Failed to extract IRFrames vector {} from {}", key->GetName(), fname);
       }
       mOwnList.insert(mOwnList.end(), v->begin(), v->end());
       LOGP(info, "Loaded {} IRFrames from vector {} of {}", mOwnList.size(), key->GetName(), fname);
@@ -146,4 +163,25 @@ void IRFrameSelector::clear()
   mIsSet = false;
   mOwnList.clear();
   mFrames = {};
+}
+
+void IRFrameSelector::applyMargins(size_t bwd, size_t fwd, bool removeOverlaps)
+{
+  // apply margin to all IRFrames by converting them to IRFrame.getMin()-fwd, IRFrame.getMax()-bwd
+  if ((!fwd && !bwd) || !mIsSet || !mFrames.size()) {
+    return;
+  }
+  mLastBoundID = -1;
+  std::vector<o2::dataformats::IRFrame> lst;
+  for (const auto& fr : mFrames) {
+    auto irmin = fr.getMin().toLong() > bwd ? fr.getMin() - bwd : o2::InteractionRecord{0, 0};
+    auto irmax = (o2::InteractionRecord::MaxGlobalBCs - fr.getMax().toLong()) > fwd ? fr.getMax() + fwd : o2::InteractionRecord::getIRMaxBC();
+    if (removeOverlaps && lst.size() && lst.back().getMax() >= irmin) {
+      lst.back().setMax(irmax);
+    } else {
+      lst.emplace_back(irmin, irmax).info = fr.info;
+    }
+  }
+  mOwnList.swap(lst);
+  setSelectedIRFrames(mOwnList);
 }
