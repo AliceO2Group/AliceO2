@@ -31,6 +31,12 @@
 #include <numeric>
 #include <algorithm>
 
+//add for 3body check
+#include "SimulationDataFormat/MCEventLabel.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include <TTree.h>
+#include <TFile.h>
+
 namespace o2
 {
 namespace vertexing
@@ -98,9 +104,10 @@ class SVertexer
   void extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs, VTX3BCONT& vtx3, VTX3BREFCONT& vtx3Refs);
 
  private:
-  bool checkV0(const TrackCand& seed0, const TrackCand& seed1, int iP, int iN, int ithread);
+  //bool checkV0(const TrackCand& seed0, const TrackCand& seed1, int iP, int iN, int ithread);
+  bool checkV0(const o2::globaltracking::RecoContainer& recoData, const TrackCand& seed0, const TrackCand& seed1, int iP, int iN, int ithread);
   int checkCascades(float rv0, std::array<float, 3> pV0, float p2v0, int avoidTrackID, int posneg, int ithread);
-  int check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, int ithread);
+  int check3bodyDecays(const o2::globaltracking::RecoContainer& recoData, float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, int ithread);
   void setupThreads();
   void buildT2V(const o2::globaltracking::RecoContainer& recoTracks);
   void updateTimeDependentParams();
@@ -128,6 +135,7 @@ class SVertexer
   std::vector<DCAFitterN<2>> mFitterV0;
   std::vector<DCAFitterN<2>> mFitterCasc;
   std::vector<DCAFitterN<3>> mFitter3body;
+  std::vector<int> num3bodyCandidates = std::vector<int> (14,0);// test the efficiency of 3 body decay;
   int mNThreads = 1;
   float mMinR2ToMeanVertex = 0;
   float mMaxDCAXY2ToMeanVertex = 0;
@@ -146,6 +154,23 @@ class SVertexer
   float mTPCBin2Z = 0;
   bool mEnableCascades = true;
   bool mEnable3BodyDecays = true;
+
+  //For Debug
+  std::unique_ptr<TFile> mSVDebugFile;
+  std::unique_ptr<TTree> mV0PoolTree;
+  std::unique_ptr<TTree> mV0PoolAfterCutTree;
+  std::unique_ptr<TTree> mVtxPoolTree;
+  std::unique_ptr<TTree> mVtxPoolAfterCutTree;
+  std::vector<o2::MCCompLabel> mV0DebugPosTrack;
+  std::vector<o2::MCCompLabel> mV0DebugNegTrack;
+  std::vector<o2::MCCompLabel> mV0DebugPosTrack2;
+  std::vector<o2::MCCompLabel> mV0DebugNegTrack2;
+  std::vector<o2::MCCompLabel> mVtxDebugTrack0;
+  std::vector<o2::MCCompLabel> mVtxDebugTrack1;
+  std::vector<o2::MCCompLabel> mVtxDebugTrack2;
+  std::vector<o2::MCCompLabel> mVtxDebugTrack0_2;
+  std::vector<o2::MCCompLabel> mVtxDebugTrack1_2;
+  std::vector<o2::MCCompLabel> mVtxDebugTrack2_2;
 };
 
 // input containers can be std::vectors or pmr vectors
@@ -234,7 +259,6 @@ template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCR
       }
     }
   }
-  LOG(info)<<"relate Cascades to primary vertices Finish";
 
   // relate 3 body decays to primary vertices
   pvID = -1;
@@ -264,7 +288,6 @@ template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCR
       }
     }
   }
-  LOG(info)<<"relate 3 body decays to primary vertices Finish";
 }
 
 } // namespace vertexing
