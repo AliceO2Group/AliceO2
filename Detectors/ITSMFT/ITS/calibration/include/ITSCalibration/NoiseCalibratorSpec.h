@@ -66,7 +66,7 @@ class NoiseCalibratorSpec : public Task
   TStopwatch mTimer{};
   float mNoiseCutIB = -1.;
   o2::dcs::DCSconfigObject_t mNoiseMapDCS; // noisy pixels to be sent to DCS CCDB
-  std::vector<int>* mConfDBmap;
+  std::vector<int>* mConfDBmap{nullptr};
 };
 
 /// create a processor spec
