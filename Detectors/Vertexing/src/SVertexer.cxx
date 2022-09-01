@@ -183,8 +183,6 @@ void SVertexer::updateTimeDependentParams()
 
   m3bodyHyps[Hyp3body::H3L3body].set(PID::HyperTriton, PID::Deuteron, PID::Proton, PID::Pion, mSVParams->pidCutsH3L3body, bz);
 
-  setupThreads();
-
   for (auto& ft : mFitterV0) {
     ft.setBz(bz);
   }
@@ -194,6 +192,7 @@ void SVertexer::updateTimeDependentParams()
   for (auto& ft : mFitter3body) {
     ft.setBz(bz);
   }
+}
 
 //______________________________________________
 void SVertexer::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
@@ -601,11 +600,36 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
       continue;
     }
     if (pCasc[2] * pCasc[2] / pt2Casc > mMaxTgl2Casc) { // tgLambda cut
+      LOG(debug) << "Casc tgLambda too high";
       continue;
     }
-    //    LOG(info) << "ptcasc2 " << pt2Casc << " tglcasc2 " << pCasc[2]*pCasc[2] / pt2Casc << " cut " << mMaxTgl2Casc;
-    float cosPA = (pCasc[0] * dxc + pCasc[1] * dyc + pCasc[2] * dzc) / std::sqrt(p2Casc * (r2casc + dzc * dzc));
-    if (cosPA < mSVParams->minCosPACasc) {
+
+    // compute primary vertex and cosPA of the cascade
+    auto bestCosPA = mSVParams->minCosPACasc;
+    auto cascVtxID = -1;
+
+    for (int iv = cascVlist.getMin(); iv <= cascVlist.getMax(); iv++) {
+      const auto& pv = mPVertices[iv];
+      // check cos of pointing angle
+      float dx = cascXYZ[0] - pv.getX(), dy = cascXYZ[1] - pv.getY(), dz = cascXYZ[2] - pv.getZ(), prodXYZcasc = dx * pCasc[0] + dy * pCasc[1] + dz * pCasc[2];
+      float cosPA = prodXYZcasc / std::sqrt((dx * dx + dy * dy + dz * dz) * p2Casc);
+      if (cosPA < bestCosPA) {
+        LOG(debug) << "Rej. cosPA: " << cosPA;
+        continue;
+      }
+      cascVtxID = iv;
+      bestCosPA = cosPA;
+    }
+    if (cascVtxID == -1) {
+      LOG(debug) << "Casc not compatible with any vertex";
+      continue;
+    }
+
+    const auto& cascPv = mPVertices[cascVtxID];
+    float dxCasc = cascXYZ[0] - cascPv.getX(), dyCasc = cascXYZ[1] - cascPv.getY(), dzCasc = cascXYZ[2] - cascPv.getZ();
+    auto prodPPos = pV0[0] * dxCasc + pV0[1] * dyCasc + pV0[2] * dzCasc;
+    if (prodPPos < 0.) { // causality cut
+      LOG(debug) << "Casc not causally compatible";
       continue;
     }
 
