@@ -118,7 +118,8 @@ class SVertexer
   // bool checkV0(const TrackCand& seed0, const TrackCand& seed1, int iP, int iN, int ithread);
   bool checkV0(const o2::globaltracking::RecoContainer& recoData, const TrackCand& seed0, const TrackCand& seed1, int iP, int iN, int ithread);
   int checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, VBracket v0vlist, int ithread);
-  int check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, int ithread);
+  int check3bodyDecays(const o2::globaltracking::RecoContainer& recoData, float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, int ithread);
+  // int check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, int ithread);
   void setupThreads();
   void buildT2V(const o2::globaltracking::RecoContainer& recoTracks);
   void updateTimeDependentParams();

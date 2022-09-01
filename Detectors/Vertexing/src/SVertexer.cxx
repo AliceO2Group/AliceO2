@@ -61,13 +61,13 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
       iThread = omp_get_thread_num();
 #endif
       if (mSVParams->maxPVContributors < 2 && seedP.gid.isPVContributor() + seedN.gid.isPVContributor() > mSVParams->maxPVContributors) {
-        //continue;
+        // continue;
       }
-      //checkV0(seedP, seedN, itp, itn, iThread);
+      // checkV0(seedP, seedN, itp, itn, iThread);
       checkV0(recoData, seedP, seedN, itp, itn, iThread);
     }
   }
-  LOG(info)<<"checkV0 finished";
+  LOG(info) << "checkV0 finished";
   // sort V0s and Cascades in vertex id
   struct vid {
     int thrID;
@@ -137,20 +137,20 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
     mCascadesTmp[i].clear();
     m3bodyTmp[i].clear();
   }
-  LOG(info)<<"Process Finished";
-  for (int i=0; i<14; i++){
-    LOG(info)<<"Remian 3body Candidates number after Cut "<<i<<": "<<num3bodyCandidates[i];
+  LOG(info) << "Process Finished";
+  for (int i = 0; i < 14; i++) {
+    LOG(info) << "Remian 3body Candidates number after Cut " << i << ": " << num3bodyCandidates[i];
   }
   LOG(debug) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size() << " " << m3bodyTmp[0].size();
 
-  LOG(info)<<"mV0DebugPosTrack size:"<<mV0DebugPosTrack.size();
-  LOG(info)<<"mV0DebugNegTrack size:"<<mV0DebugNegTrack.size();
-  LOG(info)<<"mV0DebugPosTrack2 size:"<<mV0DebugPosTrack2.size();
-  LOG(info)<<"mV0DebugNegTrack2 size:"<<mV0DebugNegTrack2.size();
-  LOG(info)<<"mVtxDebugTrack0 size:"<<mVtxDebugTrack0.size();
-  LOG(info)<<"mVtxDebugTrack1 size:"<<mVtxDebugTrack1.size();
-  LOG(info)<<"mVtxDebugTrack2 size:"<<mVtxDebugTrack2.size();
-  LOG(info)<<"mVtxDebugTrack0_2 size:"<<mVtxDebugTrack0_2.size();
+  LOG(info) << "mV0DebugPosTrack size:" << mV0DebugPosTrack.size();
+  LOG(info) << "mV0DebugNegTrack size:" << mV0DebugNegTrack.size();
+  LOG(info) << "mV0DebugPosTrack2 size:" << mV0DebugPosTrack2.size();
+  LOG(info) << "mV0DebugNegTrack2 size:" << mV0DebugNegTrack2.size();
+  LOG(info) << "mVtxDebugTrack0 size:" << mVtxDebugTrack0.size();
+  LOG(info) << "mVtxDebugTrack1 size:" << mVtxDebugTrack1.size();
+  LOG(info) << "mVtxDebugTrack2 size:" << mVtxDebugTrack2.size();
+  LOG(info) << "mVtxDebugTrack0_2 size:" << mVtxDebugTrack0_2.size();
 
   mV0PoolTree->Fill();
   mV0PoolAfterCutTree->Fill();
@@ -182,10 +182,10 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
 void SVertexer::init()
 {
   mSVDebugFile = std::make_unique<TFile>("svtxDebug.root", "recreate");
-  mV0PoolTree = std::make_unique<TTree>("V0Pool","V0Pool");
-  mV0PoolAfterCutTree = std::make_unique<TTree>("V0PoolAfterCut","V0PoolAfterCut");
-  mVtxPoolTree = std::make_unique<TTree>("VtxPool","VtxPool");
-  mVtxPoolAfterCutTree = std::make_unique<TTree>("VtxPoolAfterCut","VtxPoolAfterCut");
+  mV0PoolTree = std::make_unique<TTree>("V0Pool", "V0Pool");
+  mV0PoolAfterCutTree = std::make_unique<TTree>("V0PoolAfterCut", "V0PoolAfterCut");
+  mVtxPoolTree = std::make_unique<TTree>("VtxPool", "VtxPool");
+  mVtxPoolAfterCutTree = std::make_unique<TTree>("VtxPoolAfterCut", "VtxPoolAfterCut");
   /*mV0PoolTree->Branch("track1ID", &track1ID, "track1ID/I");
   mV0PoolTree->Branch("evn1ID", &evn1ID,"evn1ID/I");
   mV0PoolTree->Branch("track2ID", &track2ID, "track2ID/I");
@@ -209,18 +209,19 @@ void SVertexer::updateTimeDependentParams()
   static bool updatedOnce = false;
   if (!updatedOnce) {
     updatedOnce = true;
-  mSVParams = &SVertexerParams::Instance();
-  // precalculated selection cuts
-  mMinR2ToMeanVertex = mSVParams->minRToMeanVertex * mSVParams->minRToMeanVertex;
-  mMaxR2ToMeanVertexCascV0 = mSVParams->maxRToMeanVertexCascV0 * mSVParams->maxRToMeanVertexCascV0;
-  mMaxDCAXY2ToMeanVertex = mSVParams->maxDCAXYToMeanVertex * mSVParams->maxDCAXYToMeanVertex;
-  mMaxDCAXY2ToMeanVertexV0Casc = mSVParams->maxDCAXYToMeanVertexV0Casc * mSVParams->maxDCAXYToMeanVertexV0Casc;
-  mMinR2DiffV0Casc = mSVParams->minRDiffV0Casc * mSVParams->minRDiffV0Casc;
-  mMinPt2V0 = mSVParams->minPtV0 * mSVParams->minPtV0;
-  mMaxTgl2V0 = mSVParams->maxTglV0 * mSVParams->maxTglV0;
-  mMinPt2Casc = mSVParams->minPtCasc * mSVParams->minPtCasc;
-  mMaxTgl2Casc = mSVParams->maxTglCasc * mSVParams->maxTglCasc;
-
+    mSVParams = &SVertexerParams::Instance();
+    // precalculated selection cuts
+    mMinR2ToMeanVertex = mSVParams->minRToMeanVertex * mSVParams->minRToMeanVertex;
+    mMaxR2ToMeanVertexCascV0 = mSVParams->maxRToMeanVertexCascV0 * mSVParams->maxRToMeanVertexCascV0;
+    mMaxDCAXY2ToMeanVertex = mSVParams->maxDCAXYToMeanVertex * mSVParams->maxDCAXYToMeanVertex;
+    mMaxDCAXY2ToMeanVertexV0Casc = mSVParams->maxDCAXYToMeanVertexV0Casc * mSVParams->maxDCAXYToMeanVertexV0Casc;
+    mMinR2DiffV0Casc = mSVParams->minRDiffV0Casc * mSVParams->minRDiffV0Casc;
+    mMinPt2V0 = mSVParams->minPtV0 * mSVParams->minPtV0;
+    mMaxTgl2V0 = mSVParams->maxTglV0 * mSVParams->maxTglV0;
+    mMinPt2Casc = mSVParams->minPtCasc * mSVParams->minPtCasc;
+    mMaxTgl2Casc = mSVParams->maxTglCasc * mSVParams->maxTglCasc;
+    setupThreads();
+  }
   auto bz = o2::base::Propagator::Instance()->getNominalBz();
   mV0Hyps[HypV0::Photon].set(PID::Photon, PID::Electron, PID::Electron, mSVParams->pidCutsPhoton, bz);
   mV0Hyps[HypV0::K0].set(PID::K0, PID::Pion, PID::Pion, mSVParams->pidCutsK0, bz);
@@ -329,7 +330,7 @@ void SVertexer::setupThreads()
 bool SVertexer::acceptTrack(GIndex gid, const o2::track::TrackParCov& trc) const
 {
   if (gid.isPVContributor() && mSVParams->maxPVContributors < 3) {
-    //return false;
+    // return false;
   }
   // DCA to mean vertex
   if (mSVParams->minDCAToPV > 0.f) {
@@ -428,7 +429,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
 }
 
 //__________________________________________________________________
-//bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, int iN, int ithread)
+// bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, int iN, int ithread)
 bool SVertexer::checkV0(const o2::globaltracking::RecoContainer& recoData, const TrackCand& seedP, const TrackCand& seedN, int iP, int iN, int ithread)
 {
   auto mclabelP = recoData.getTrackMCLabel(seedP.gid);
@@ -453,7 +454,7 @@ bool SVertexer::checkV0(const o2::globaltracking::RecoContainer& recoData, const
   if (drv0P > mSVParams->causalityRTolerance || drv0P < -mSVParams->maxV0ToProngsRDiff ||
       drv0N > mSVParams->causalityRTolerance || drv0N < -mSVParams->maxV0ToProngsRDiff) {
     LOG(debug) << "RejCausality " << drv0P << " " << drv0N;
-    //return false;
+    // return false;
   }
 
   if (!fitterV0.isPropagateTracksToVertexDone() && !fitterV0.propagateTracksToVertex()) {
@@ -473,11 +474,11 @@ bool SVertexer::checkV0(const o2::globaltracking::RecoContainer& recoData, const
   float pt2V0 = pV0[0] * pV0[0] + pV0[1] * pV0[1], prodXYv0 = dxv0 * pV0[0] + dyv0 * pV0[1], tDCAXY = prodXYv0 / pt2V0;
   if (pt2V0 < mMinPt2V0) { // pt cut
     LOG(debug) << "RejPt2 " << pt2V0;
-    //return false;
+    // return false;
   }
   if (pV0[2] * pV0[2] / pt2V0 > mMaxTgl2V0) { // tgLambda cut
     LOG(debug) << "RejTgL " << pV0[2] * pV0[2] / pt2V0;
-    //return false;
+    // return false;
   }
   float p2V0 = pt2V0 + pV0[2] * pV0[2], ptV0 = std::sqrt(pt2V0);
   // apply mass selections
@@ -500,7 +501,7 @@ bool SVertexer::checkV0(const o2::globaltracking::RecoContainer& recoData, const
 
   bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]));
   /// we want to reconstruct the 3 body decay of hypernuclei starting from the V0 of the Lambda decay (e.g. H3L->d + (p + pi-), or He4L->He3 + (p + pi-)))
-  bool checkFor3BodyDecays = mEnable3BodyDecays && (!mSVParams->checkV0Hypothesis || (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]));
+  // bool checkFor3BodyDecays = mEnable3BodyDecays && (!mSVParams->checkV0Hypothesis || (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]));
   bool rejectIfNotCascade = false, rejectIfNot3BodyDecay = false;
   float dcaX = dxv0 - pV0[0] * tDCAXY, dcaY = dyv0 - pV0[1] * tDCAXY, dca2 = dcaX * dcaX + dcaY * dcaY;
   float cosPAXY = prodXYv0 / std::sqrt(r2v0 * pt2V0);
@@ -514,7 +515,7 @@ bool SVertexer::checkV0(const o2::globaltracking::RecoContainer& recoData, const
   if (checkFor3BodyDecays) {
     if (dca2 > mMaxDCAXY2ToMeanVertex3bodyV0 || cosPAXY < mSVParams->minCosPAXYMeanVertex3bodyV0) {
       LOG(debug) << "Rej for 3 body decays DCAXY2: " << dca2 << " << cosPAXY: " << cosPAXY;
-      //return false;
+      // return false;
     }
   }
 
@@ -580,10 +581,10 @@ bool SVertexer::checkV0(const o2::globaltracking::RecoContainer& recoData, const
   // check 3 body decays
   if (checkFor3BodyDecays) {
     int n3bodyDecays = 0;
-      //n3bodyDecays += check3bodyDecays(rv0, pV0, p2V0, iN, NEG, ithread);
-      //n3bodyDecays += check3bodyDecays(rv0, pV0, p2V0, iP, POS, ithread);
-      n3bodyDecays += check3bodyDecays(recoData, rv0, pV0, p2V0, iN, NEG, ithread);
-      n3bodyDecays += check3bodyDecays(recoData, rv0, pV0, p2V0, iP, POS, ithread);
+    // n3bodyDecays += check3bodyDecays(rv0, pV0, p2V0, iN, NEG, ithread);
+    // n3bodyDecays += check3bodyDecays(rv0, pV0, p2V0, iP, POS, ithread);
+    n3bodyDecays += check3bodyDecays(recoData, rv0, pV0, p2V0, iN, NEG, ithread);
+    n3bodyDecays += check3bodyDecays(recoData, rv0, pV0, p2V0, iP, POS, ithread);
     if (!n3bodyDecays && rejectIfNot3BodyDecay && rejectIfNotCascade) { // v0 would be accepted only if it is 3 body decay
       mV0sTmp[ithread].pop_back();
       return false;
@@ -750,7 +751,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
 }
 
 //__________________________________________________________________
-//int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, int ithread)
+// int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, int ithread)
 int SVertexer::check3bodyDecays(const o2::globaltracking::RecoContainer& recoData, float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, int ithread)
 {
   // check last added V0 for belonging to cascade
@@ -791,7 +792,7 @@ int SVertexer::check3bodyDecays(const o2::globaltracking::RecoContainer& recoDat
     mVtxDebugTrack2.emplace_back(mclabel2);
     num3bodyCandidates[3]++;
     if (bach.minR > rv0 + mSVParams->causalityRTolerance) {
-      //continue;
+      // continue;
     }
     num3bodyCandidates[4]++;
     int n3bodyVtx = fitter3body.process(v0.getProng(0), v0.getProng(1), bach);
@@ -804,7 +805,7 @@ int SVertexer::check3bodyDecays(const o2::globaltracking::RecoContainer& recoDat
     // make sure the 3 body vertex radius is close to that of the V0
     float dxc = vertexXYZ[0] - pv.getX(), dyc = vertexXYZ[1] - pv.getY(), dzc = vertexXYZ[2] - pv.getZ(), r2vertex = dxc * dxc + dyc * dyc;
     if (std::abs(rv0 * rv0 - r2vertex) > mMaxR2Diff3bodyV0 || r2vertex < mMinR2ToMeanVertex) {
-      //continue;
+      // continue;
     }
     num3bodyCandidates[6]++;
     // do we want to apply mass cut ?
@@ -826,21 +827,21 @@ int SVertexer::check3bodyDecays(const o2::globaltracking::RecoContainer& recoDat
     std::array<float, 3> p3B = {p0[0] + p1[0] + p2[0], p0[1] + p1[1] + p2[1], p0[2] + p1[2] + p2[2]};
     auto prodPPos = pV0[0] * dxc + pV0[1] * dyc + pV0[2] * dzc;
     if (prodPPos < 0.) { // causality cut
-      //continue;
+      // continue;
     }
     num3bodyCandidates[8]++;
     float pt2 = p3B[0] * p3B[0] + p3B[1] * p3B[1], p2candidate = pt2 + p3B[2] * p3B[2];
     if (pt2 < mMinPt23Body) { // pt cut
-      //continue;
+      // continue;
     }
     num3bodyCandidates[9]++;
     if (p3B[2] * p3B[2] / pt2 > mMaxTgl23Body) { // tgLambda cut
-      //continue;
+      // continue;
     }
     num3bodyCandidates[10]++;
     float cosPA = (p3B[0] * dxc + p3B[1] * dyc + p3B[2] * dzc) / std::sqrt(p2candidate * (r2vertex + dzc * dzc));
     if (cosPA < mSVParams->minCosPA3body) {
-      //continue;
+      // continue;
     }
     num3bodyCandidates[11]++;
     float sqP0 = p0[0] * p0[0] + p0[1] * p0[1] + p0[2] * p0[2], sqP1 = p1[0] * p1[0] + p1[1] * p1[1] + p1[2] * p1[2], sqP2 = p2[0] * p2[0] + p2[1] * p2[1] + p2[2] * p2[2];
