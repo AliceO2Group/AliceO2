@@ -52,7 +52,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto digits = pc.inputs().get<gsl::span<o2::fv0::Digit>>("digits");
   auto channels = pc.inputs().get<gsl::span<o2::fv0::ChannelData>>("channels");
   if (mSelIR) {
-    mCTFCoder.getIRFramesSelector().setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
+    mCTFCoder.setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
   }
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"FV0", "CTFDATA", 0, Lifetime::Timeframe});
@@ -87,6 +87,8 @@ DataProcessorSpec getEntropyEncoderSpec(bool selIR)
             {{"ctfrep"}, "FV0", "CTFENCREP", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(selIR)},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
+            {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
+            {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }
 

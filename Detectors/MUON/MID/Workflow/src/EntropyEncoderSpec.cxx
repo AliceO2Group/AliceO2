@@ -78,7 +78,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
     }
   }
   if (mSelIR) {
-    mCTFCoder.getIRFramesSelector().setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
+    mCTFCoder.setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
   }
   // build references for looping over the data in BC increasing direction
   tfData.buildReferences(mCTFCoder.getIRFramesSelector());
@@ -116,6 +116,8 @@ DataProcessorSpec getEntropyEncoderSpec(bool selIR)
             {{"ctfrep"}, header::gDataOriginMID, "CTFENCREP", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(selIR)},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
+            {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
+            {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }
 
