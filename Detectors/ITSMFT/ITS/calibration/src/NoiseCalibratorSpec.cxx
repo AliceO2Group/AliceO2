@@ -163,8 +163,13 @@ void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
 void NoiseCalibratorSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  if (mUseClusters) {
-    pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+  static bool initOnceDone = false;
+  if (!initOnceDone) {
+    initOnceDone = true;
+    if (mUseClusters) {
+      pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
+    }
+    pc.inputs().get<std::vector<int>*>("confdbmap");
   }
 }
 
@@ -175,11 +180,13 @@ void NoiseCalibratorSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
     LOG(info) << "cluster dictionary updated";
     mCalibrator->setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
+    return;
   }
 
   if (matcher == ConcreteDataMatcher("ITS", "CONFDBMAP", 0)) {
     LOG(info) << "confDB map updated";
     mConfDBmap = (std::vector<int>*)obj;
+    return;
   }
 }
 
