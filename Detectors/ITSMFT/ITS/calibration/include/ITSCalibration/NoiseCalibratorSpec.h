@@ -19,6 +19,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "DataFormatsDCS/DCSConfigObject.h"
 
 //#define TIME_SLOT_CALIBRATION
 #ifdef TIME_SLOT_CALIBRATION
@@ -52,6 +53,7 @@ class NoiseCalibratorSpec : public Task
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
+  void addDatabaseEntry(int chip, int row, int col);
   void sendOutput(DataAllocator& output);
   void updateTimeDependentParams(ProcessingContext& pc);
   std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
@@ -62,6 +64,9 @@ class NoiseCalibratorSpec : public Task
   bool mUseClusters = false;
   bool mStopMeOnly = false; // send QuitRequest::Me instead of QuitRequest::All
   TStopwatch mTimer{};
+  float mNoiseCutIB = -1.;
+  o2::dcs::DCSconfigObject_t mNoiseMapDCS; // noisy pixels to be sent to DCS CCDB
+  std::vector<int>* mConfDBmap;
 };
 
 /// create a processor spec

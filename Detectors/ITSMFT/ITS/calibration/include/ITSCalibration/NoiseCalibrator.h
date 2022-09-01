@@ -51,7 +51,7 @@ class NoiseCalibrator
   bool processTimeFrameDigits(gsl::span<const o2::itsmft::Digit> const& digits,
                               gsl::span<const o2::itsmft::ROFRecord> const& rofs);
 
-  void finalize();
+  void finalize(float cutIB = -1.);
 
   void setNThreads(int n) { mNThreads = n > 0 ? n : 1; }
 

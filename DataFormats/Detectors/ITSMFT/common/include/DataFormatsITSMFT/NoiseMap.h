@@ -93,9 +93,10 @@ class NoiseMap
     return dumpAboveThreshold(p * mNumOfStrobes);
   }
 
-  void applyProbThreshold(float t, long int n, float relErr = 0.2f)
+  void applyProbThreshold(float t, long int n, float relErr = 0.2f, int minChipID = 0, int maxChipID = 24119)
   {
     // Remove from the maps all pixels with the firing probability below the threshold
+    // Apply the cut only for chips between minChipID and maxChipID (included)
     if (n < 1) {
       LOGP(alarm, "Cannot apply threshold with {} ROFs scanned", n);
       return;
@@ -119,7 +120,12 @@ class NoiseMap
       LOGP(alarm, "Requested relative error {} with prob.threshold {} needs > {} ROFs, {} provided: pixels with noise >{} will be masked", relErr, t, req, n, mProbThreshold);
     }
 
+    int currChipID = 0;
     for (auto& map : mNoisyPixels) {
+      if (currChipID < minChipID || currChipID > maxChipID) { // chipID range
+        currChipID++;
+        continue;
+      }
       for (auto it = map.begin(); it != map.end();) {
         if (it->second < minFired) {
           it = map.erase(it);
@@ -127,6 +133,7 @@ class NoiseMap
           ++it;
         }
       }
+      currChipID++;
     }
   }
   float getProbThreshold() const { return mProbThreshold; }
@@ -187,11 +194,12 @@ class NoiseMap
   void addStrobes(long n) { mNumOfStrobes += n; }
   long getNumberOfStrobes() const { return mNumOfStrobes; }
 
+  int key2Row(int key) const { return key >> SHIFT; }
+  int key2Col(int key) const { return key & MASK; }
+
  private:
   static constexpr int SHIFT = 10, MASK = (0x1 << SHIFT) - 1;
   int getKey(int row, int col) const { return (row << SHIFT) + col; }
-  int key2Row(int key) const { return key >> SHIFT; }
-  int key2Col(int key) const { return key & MASK; }
   std::vector<std::map<int, int>> mNoisyPixels; ///< Internal noise map representation
   long int mNumOfStrobes = 0;                   ///< Accumulated number of ALPIDE strobes
   float mProbThreshold = 0;                     ///< Probability threshold for noisy pixels
