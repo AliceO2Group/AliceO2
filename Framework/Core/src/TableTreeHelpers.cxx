@@ -441,6 +441,8 @@ void TableToTree::addBranch(std::shared_ptr<arrow::ChunkedArray> const& column, 
 
 std::shared_ptr<TTree> TableToTree::process()
 {
+  mTree->SetBasketSize("*", 10000000);
+  
   int64_t row = 0;
   if (mTree->GetNbranches() == 0 || mRows == 0) {
     mTree->Write("", TObject::kOverwrite);
