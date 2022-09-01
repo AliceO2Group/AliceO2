@@ -36,7 +36,9 @@ o2_add_library(Framework
                        src/ComputingResourceHelpers.cxx
                        src/ConfigContext.cxx
                        src/ControlService.cxx
+                       src/SpyService.cxx
                        src/ControlServiceHelpers.cxx
+                       src/SpyServiceHelpers.cxx
                        src/ControlWebSocketHandler.cxx
                        src/CCDBHelpers.cxx
                        src/DispatchPolicy.cxx
@@ -145,6 +147,7 @@ o2_add_library(Framework
                                      AliceO2::Configuration
                                      AliceO2::InfoLogger
                                      AliceO2::Monitoring
+                                     AliceO2::DebugGUI
                                      CURL::libcurl
                                      FairMQ::FairMQ
                                      O2::CommonUtils

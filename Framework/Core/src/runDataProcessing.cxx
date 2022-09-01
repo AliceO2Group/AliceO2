@@ -1137,6 +1137,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   };
 
   runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
+
   auto result = runner.Run();
   serviceRegistry.preExitCallbacks();
   return result;
@@ -1277,6 +1278,37 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         window = debugGUI->initGUI(nullptr);
       }
     }
+  } else if (!frameworkId.empty()) {
+    auto initDebugGUI = []() -> DebugGUI* {
+      uv_lib_t supportLib;
+      int result = 0;
+#ifdef __APPLE__
+      result = uv_dlopen("libO2FrameworkGUISupport.dylib", &supportLib);
+#else
+      result = uv_dlopen("libO2FrameworkGUISupport.so", &supportLib);
+#endif
+      if (result == -1) {
+        LOG(error) << uv_dlerror(&supportLib);
+        return nullptr;
+      }
+      DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
+
+      result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
+      if (result == -1) {
+        LOG(error) << uv_dlerror(&supportLib);
+        return nullptr;
+      }
+      DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
+      return PluginManager::getByName<DebugGUI>(pluginInstance, "ImGUIDebugGUI");
+    };
+    debugGUI = initDebugGUI();
+    if (debugGUI) {
+      if (false) {
+        window = debugGUI->initGUI("O2 Framework debug GUI");
+      } else {
+        window = debugGUI->initGUI(nullptr);
+      }
+    }
   }
   if (driverInfo.batch == false && window == nullptr && frameworkId.empty()) {
     LOG(warn) << "Could not create GUI. Switching to batch mode. Do you have GLFW on your system?";
@@ -1315,6 +1347,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DevicesManager>(devicesManager));
 
+  // This is the context used by the callback which does the GUI rendering.
+  // FIXME: move to a service maybe.
   GuiCallbackContext guiContext;
   guiContext.plugin = debugGUI;
   guiContext.frameLast = uv_hrtime();
@@ -1339,7 +1373,20 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   uv_tcp_t serverHandle;
   serverHandle.data = &serverContext;
   uv_tcp_init(loop, &serverHandle);
+
   driverInfo.port = 8080 + (getpid() % 30000);
+
+  if (getenv("DPL_DRIVER_REMOTE_GUI_PORT")) {
+    try {
+      auto envPort = stoi(std::string(getenv("DPL_DRIVER_REMOTE_GUI_PORT")));
+      driverInfo.port = envPort;
+    } catch (std::invalid_argument) {
+      LOG(error) << "DPL_DRIVER_REMOTE_GUI_PORT not a valid integer";
+    } catch (std::out_of_range) {
+      LOG(error) << "DPL_DRIVER_REMOTE_GUI_PORT out of range (integer)";
+    }
+  }
+
   int result = 0;
   struct sockaddr_in* serverAddr = nullptr;
 
@@ -1370,6 +1417,30 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         usleep(1000);
         continue;
       }
+    } while (result != 0);
+  } else if (!frameworkId.empty()) {
+    do {
+      if (serverAddr) {
+        free(serverAddr);
+      }
+      if (driverInfo.port > 64000) {
+        throw runtime_error_f("Unable to find a free port for the driver. Last attempt returned %d", result);
+      }
+      serverAddr = (sockaddr_in*)malloc(sizeof(sockaddr_in));
+      uv_ip4_addr("0.0.0.0", driverInfo.port, serverAddr);
+      auto bindResult = uv_tcp_bind(&serverHandle, (const struct sockaddr*)serverAddr, 0);
+      if (bindResult != 0) {
+        driverInfo.port++;
+        usleep(1000);
+        continue;
+      }
+      result = uv_listen((uv_stream_t*)&serverHandle, 100, ws_connect_callback);
+      if (result != 0) {
+        driverInfo.port++;
+        usleep(1000);
+        continue;
+      }
+      LOG(info) << "PORT DP: " << driverInfo.port << " " << frameworkId;
     } while (result != 0);
   }
 

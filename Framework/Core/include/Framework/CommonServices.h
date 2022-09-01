@@ -57,6 +57,7 @@ struct CommonServices {
   static ServiceSpec infologgerSpec();
   static ServiceSpec configurationSpec();
   static ServiceSpec controlSpec();
+  static ServiceSpec spySpec();
   static ServiceSpec rootFileSpec();
   static ServiceSpec parallelSpec();
   static ServiceSpec rawDeviceSpec();

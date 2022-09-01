@@ -57,6 +57,8 @@ void customize(std::vector<CallbacksPolicy>& policies)
 
 #include "Framework/runDataProcessing.h"
 
+static const size_t DATA_SIZE = 100;
+
 AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 {
   return AlgorithmSpec{adaptStateful([what, minDelay](RunningWorkflowInfo const& runningWorkflow) {
@@ -65,7 +67,7 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
     return adaptStateless([what, minDelay](DataAllocator& outputs, RawDeviceService& device) {
       LOGP(info, "Invoked {}", what);
       device.device()->WaitFor(std::chrono::milliseconds(minDelay));
-      auto& bData = outputs.make<int>(OutputRef{what}, 1);
+      auto& bData = outputs.make<int>(OutputRef{what}, DATA_SIZE);
     });
   })};
 }
@@ -81,11 +83,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
       [](DataAllocator& outputs, RawDeviceService& device, DataTakingContext& context, ProcessingContext& pcx) {
         // static RateLimiter limiter;
         // limiter.check(pcx, std::stoi(device.device()->fConfig->GetValue<std::string>("timeframes-rate-limit")), 2000);
-        auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
-        auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);
+        auto& aData = outputs.make<int>(OutputRef{"a1"}, DATA_SIZE);
+        auto& bData = outputs.make<int>(OutputRef{"a2"}, DATA_SIZE);
+        static int foo = 0;
+        aData[0] = foo++;
+        bData[0] = foo++;
       })},
-    .options = {ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}},
-                ConfigParamSpec{"channel-config", VariantType::String, "name=metric-feedback", {"Timeframes per second limit"}}}};
+    .options = {
+      ConfigParamSpec{"some-device-param", VariantType::Int, 1, {"Some device parameter"}},
+    }};
   DataProcessorSpec b{
     .name = "B",
     .inputs = {InputSpec{"x", "TST", "A1", Lifetime::Timeframe, {ConfigParamSpec{"somestring", VariantType::String, "", {"Some input param"}}}}},

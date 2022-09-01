@@ -25,6 +25,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "ControlWebSocketHandler.h"
+#include "DebugGUI/imgui.h"
+#include "SpyService.h"
+#include "SpyServiceHelpers.h"
+#include <fairmq/Device.h>
 
 namespace o2::framework
 {
@@ -223,8 +227,13 @@ void remoteGuiCallback(uv_timer_s* ctx)
 
   // if less than 15ms have passed reuse old frame
   if (renderer->gui->lastFrame == nullptr || frameLatency / 1000000 > 15) {
+
     renderer->gui->plugin->pollGUIPreRender(renderer->gui->window, (float)frameLatency / 1000000000.0f);
-    draw_data = renderer->gui->plugin->pollGUIRender(renderer->gui->callback);
+
+    std::function<void()> webGUICallback = [ctx, renderer]() { SpyServiceHelpers::webGUI(ctx, renderer); };
+
+    draw_data = renderer->gui->plugin->pollGUIRender(webGUICallback);
+
     renderer->gui->plugin->pollGUIPostRender(renderer->gui->window, draw_data);
   } else {
     draw_data = renderer->gui->lastFrame;
@@ -235,6 +244,8 @@ void remoteGuiCallback(uv_timer_s* ctx)
   encode_websocket_frames(outputs, (const char*)frame, size, WebSocketOpCode::Binary, 0);
   renderer->handler->write(outputs);
   free(frame);
+
+  renderer->guiConnected = true;
 
   if (frameLatency / 1000000 > 15) {
     uint64_t frameEnd = uv_hrtime();
@@ -301,6 +312,9 @@ void WSDPLHandler::endHeaders()
       mHandler = std::make_unique<GUIWebSocketHandler>(*mServerContext, renderer);
       mHandler->headers(mHeaders);
       mServerContext->gui->renderers.insert(renderer);
+
+      mServerContext->registry->get<SpyService>().renderer = renderer;
+      mServerContext->registry->get<SpyService>().loop = mServerContext->loop;
       LOGP(info, "RemoteGUI connected, {} running", mServerContext->gui->renderers.size());
     } else {
       LOG(warning) << "Connection not bound to a PID however DPL_DRIVER_REMOTE_GUI is not set. Skipping.";

@@ -27,6 +27,8 @@ struct GuiRenderer {
   uv_timer_t drawTimer;
   WSDPLHandler* handler = nullptr;
   GuiCallbackContext* gui = nullptr;
+  size_t enableAfter = 0;
+  bool guiConnected = false;
 };
 
 struct GuiCallbackContext {
