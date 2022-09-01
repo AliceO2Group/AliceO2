@@ -175,8 +175,8 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
 //////////////////////////////////////////////////////////////////////////////
 // Update pos and npos and check for validity. Return false if there is error
 bool ITSDCSParser::updatePosition(unsigned int& pos, unsigned int& npos,
-  const std::string& delimiter, const char* word,
-  const std::string& inString, bool ignoreNpos/*=false*/)
+                                  const std::string& delimiter, const char* word,
+                                  const std::string& inString, bool ignoreNpos /*=false*/)
 {
   pos += npos + delimiter.length() + std::string(word).length();
   if (!ignoreNpos) {
