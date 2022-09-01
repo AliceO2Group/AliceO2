@@ -56,7 +56,8 @@ void ITSDCSParser::run(ProcessingContext& pc)
   // Check for DOS vs. Unix line ending
   std::string line_ending = "\n";
   size_t newline_pos = inStringConv.find(line_ending);
-  if (newline_pos && inStringConv[newline_pos - 1] == '\r') {
+  if (newline_pos && newline_pos != std::string::npos &&
+      inStringConv[newline_pos - 1] == '\r') {
     line_ending = "\r\n";
   }
 
@@ -90,41 +91,45 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
   const std::string delimiter = "|";
   unsigned int pos = 0;
   unsigned int npos = inString.find(delimiter);
+  if (npos == std::string::npos) {
+    LOG(error) << "Delimiter not found, possibly corrupted data!";
+    return;
+  }
 
   // First is the stave name
   this->mStaveName = inString.substr(pos, npos);
 
   // Next is the run number
-  std::string word = "RUN";
-  pos += npos + delimiter.length() + word.length();
-  npos = inString.find(delimiter, pos) - pos;
+  if (!this->updatePosition(pos, npos, delimiter, "RUN", inString)) {
+    return;
+  }
   this->updateAndCheck(this->mRunNumber, std::stoi(inString.substr(pos, npos)));
 
   // Next is the config
-  word = "CONFIG";
-  pos += npos + delimiter.length() + word.length();
-  npos = inString.find(delimiter, pos) - pos;
+  if (!this->updatePosition(pos, npos, delimiter, "CONFIG", inString)) {
+    return;
+  }
   this->updateAndCheck(this->mConfigVersion, std::stoi(inString.substr(pos, npos)));
 
   // Then it's the run type
-  word = "RUNTYPE";
-  pos += npos + delimiter.length() + word.length();
-  npos = inString.find(delimiter, pos) - pos;
+  if (!this->updatePosition(pos, npos, delimiter, "RUNTYPE", inString)) {
+    return;
+  }
   this->updateAndCheck(this->mRunType, std::stoi(inString.substr(pos, npos)));
 
   // Then there is a semicolon-delineated list of disabled chips
-  word = "DISABLED_CHIPS";
-  pos += npos + delimiter.length() + word.length();
-  npos = inString.find(delimiter, pos) - pos;
+  if (!this->updatePosition(pos, npos, delimiter, "DISABLED_CHIPS", inString)) {
+    return;
+  }
   std::string disabledChipsStr = inString.substr(pos, npos);
   if (disabledChipsStr.length()) {
     this->mDisabledChips = this->vectorizeStringListInt(disabledChipsStr, ";");
   }
 
   // Then there is a 2D list of masked double-columns
-  word = "MASKED_DCOLS";
-  pos += npos + delimiter.length() + word.length();
-  npos = inString.find(delimiter, pos) - pos;
+  if (!this->updatePosition(pos, npos, delimiter, "MASKED_DCOLS", inString)) {
+    return;
+  }
   std::string maskedDoubleColsStr = inString.substr(pos, npos);
   if (maskedDoubleColsStr.length()) {
     std::vector<std::string> chipVect = this->vectorizeStringList(maskedDoubleColsStr, ";");
@@ -135,8 +140,9 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
   }
 
   // Finally, there are double columns which are disabled at EOR
-  word = "DCOLS_EOR";
-  pos += npos + delimiter.length() + word.length();
+  if (!this->updatePosition(pos, npos, delimiter, "DCOLS_EOR", inString, true)) {
+    return;
+  }
   std::string doubleColsEORstr = inString.substr(pos);
   if (doubleColsEORstr.length()) {
     std::vector<std::string> bigVect = this->vectorizeStringList(doubleColsEORstr, "&");
@@ -164,6 +170,28 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
   }
 
   return;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Update pos and npos and check for validity. Return false if there is error
+bool ITSDCSParser::updatePosition(unsigned int& pos, unsigned int& npos,
+  const std::string& delimiter, const char* word,
+  const std::string& inString, bool ignoreNpos/*=false*/)
+{
+  pos += npos + delimiter.length() + std::string(word).length();
+  if (!ignoreNpos) {
+    npos = inString.find(delimiter, pos);
+
+    // Check that npos does not go out-of-bounds
+    if (npos == std::string::npos) {
+      LOG(error) << "Delimiter not found, possibly corrupted data!";
+      return false;
+    }
+
+    npos -= pos;
+  }
+
+  return true;
 }
 
 //////////////////////////////////////////////////////////////////////////////
