@@ -89,8 +89,8 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
 
   // Parse the individual parts of the string
   const std::string delimiter = "|";
-  unsigned int pos = 0;
-  unsigned int npos = inString.find(delimiter);
+  size_t pos = 0;
+  size_t npos = inString.find(delimiter);
   if (npos == std::string::npos) {
     LOG(error) << "Delimiter not found, possibly corrupted data!";
     return;
@@ -174,7 +174,7 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
 
 //////////////////////////////////////////////////////////////////////////////
 // Update pos and npos and check for validity. Return false if there is error
-bool ITSDCSParser::updatePosition(unsigned int& pos, unsigned int& npos,
+bool ITSDCSParser::updatePosition(size_t& pos, size_t& npos,
                                   const std::string& delimiter, const char* word,
                                   const std::string& inString, bool ignoreNpos /*=false*/)
 {
@@ -231,7 +231,7 @@ std::vector<std::string> ITSDCSParser::vectorizeStringList(
   const std::string& str, const std::string& delimiter)
 {
   std::vector<std::string> str_vect;
-  std::string::size_type prev_pos = 0, pos = 0;
+  size_t prev_pos = 0, pos = 0;
   while ((pos = str.find(delimiter, pos)) != std::string::npos) {
     std::string substr = str.substr(prev_pos, pos - prev_pos);
     if (substr.length()) {
@@ -252,7 +252,7 @@ std::vector<unsigned short int> ITSDCSParser::vectorizeStringListInt(
   const std::string& str, const std::string& delimiter)
 {
   std::vector<unsigned short int> int_vect;
-  std::string::size_type prev_pos = 0, pos = 0;
+  size_t prev_pos = 0, pos = 0;
   while ((pos = str.find(delimiter, pos)) != std::string::npos) {
     unsigned short int substr = std::stoi(str.substr(prev_pos, pos - prev_pos));
     int_vect.push_back(substr);
