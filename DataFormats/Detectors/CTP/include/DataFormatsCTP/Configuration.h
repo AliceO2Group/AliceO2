@@ -32,6 +32,8 @@ namespace ctp
 const std::string CCDBPathCTPConfig = "CTP/Config/Config";
 ///
 /// CTP Config items
+///
+// Bunch Crossing (BC) mask
 struct BCMask {
   BCMask() = default;
   std::string name = "";
@@ -40,6 +42,7 @@ struct BCMask {
   void printStream(std::ostream& stream) const;
   ClassDefNV(BCMask, 1);
 };
+/// CTP internal generator: 4 for L0 and 4 for LM levels
 struct CTPGenerator {
   static const std::set<std::string> Generators;
   std::string name = "";
@@ -47,6 +50,8 @@ struct CTPGenerator {
   void printStream(std::ostream& stream) const;
   ClassDefNV(CTPGenerator, 1);
 };
+/// CTP inputs
+/// Default input config is in CTPConfiguration
 struct CTPInput {
   const static std::map<std::string, std::string> run2DetToRun3Det;
   CTPInput() = default;
@@ -55,14 +60,15 @@ struct CTPInput {
   std::string name = "";
   std::string level = "";
   std::uint64_t inputMask = 0;
-  o2::detectors::DetID::ID detID = 13;
+  o2::detectors::DetID::ID detID = 16; // CTP
   bool neg = 1;
-  uint32_t getIndex() const { return ((inputMask > 1) ? 1 + log2(inputMask >> 1) : 0) + 1; }
+  int getIndex() const { return ((inputMask > 0) ? 1 + log2(inputMask) : 0xff); }
   std::string getInputDetName() const { return o2::detectors::DetID::getName(detID); }
   void setRun3DetName(std::string& run2Name);
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPInput, 3);
 };
+/// Descriptor = Generator or List of [negated] inputs
 struct CTPDescriptor {
   CTPDescriptor() = default;
   std::string name = "";
@@ -84,6 +90,7 @@ struct CTPDetector {
   void printStream(std::ostream& stream) const;
   ClassDefNV(CTPDetector, 1)
 };
+/// List of detectors
 struct CTPCluster {
   CTPCluster() = default;
   std::string name = "";
@@ -93,6 +100,7 @@ struct CTPCluster {
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPCluster, 3)
 };
+/// Class = Mask+Descriptor+Cluster
 struct CTPClass {
   CTPClass() = default;
   std::string name = "";
@@ -103,7 +111,7 @@ struct CTPClass {
   int descriptorIndex = 0xff;
   uint32_t downScale = 1;
   std::vector<BCMask const*> BCClassMask;
-  uint64_t getClassMaskForInput(int inputindex) const;
+  int getIndex() const { return ((classMask > 0) ? log2(classMask) : 0xff); }
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPClass, 4);
 };
@@ -114,6 +122,8 @@ struct CTPInputsConfiguration {
   void printStream(std::ostream& strem) const;
   static CTPInputsConfiguration defaultInputConfig;
   static void initDefaultInputConfig();
+  static std::string getInputNameFromIndex(int index);
+  static int getInputIndexFromName(std::string& name);
   ClassDefNV(CTPInputsConfiguration, 0);
 };
 class CTPConfiguration
@@ -125,6 +135,7 @@ class CTPConfiguration
   bool isDetector(const o2::detectors::DetID& det);
   static void capitaliseString(std::string& str);
   static bool isNumber(const std::string& s);
+  int addInput(std::string& inp, int clsindex, std::map<int, std::vector<int>>& descInputsIndex);
   enum ConfigPart { START,
                     RUN,
                     INPUTS,
@@ -153,9 +164,7 @@ class CTPConfiguration
   uint32_t getRunNumber() { return mRunNumber; };
   std::vector<std::string> getDetectorList() const;
   o2::detectors::DetID::mask_t getDetectorMask() const;
-  void createDefaultInputsConfig();
-  uint64_t getClassMaskForInput(int inputindex) const;
-  uint64_t getClassMaskForInput(const std::string& name) const;
+  uint64_t getClassMaskForInputMask(uint64_t inputMask) const;
   void printConfigString() { std::cout << mConfigString << std::endl; };
   std::string getConfigString() { return mConfigString; };
 
@@ -171,7 +180,7 @@ class CTPConfiguration
   std::vector<CTPDetector> mDetectors;
   std::vector<CTPCluster> mClusters;
   std::vector<CTPClass> mCTPClasses;
-  int processConfigurationLineRun3(std::string& line, int& level);
+  int processConfigurationLineRun3(std::string& line, int& level, std::map<int, std::vector<int>>& descInputsIndex);
   ClassDefNV(CTPConfiguration, 6);
 };
 // Run Manager

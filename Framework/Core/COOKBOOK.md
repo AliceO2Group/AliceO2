@@ -496,6 +496,8 @@ will be pushed every `<poll-interval>` seconds to the same backend and dumped in
 
 One can also specify `--resources-monitoring-dump-interval <interval in seconds>` to regularly dump the file at a give interval.
 
+A value of 0 for the interval will disable the monitoring.
+
 ### Disabling monitoring
 
 Sometimes (e.g. when running a child inside valgrind) it might be useful to disable metrics which might pollute STDOUT. In order to disable monitoring you can use the `no-op://` backend:

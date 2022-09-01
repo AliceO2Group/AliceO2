@@ -643,12 +643,12 @@ int MillePede2::LocalFit(std::vector<double>& localParams)
   // If requested, store the track params and errors
   // RRR  printf("locfit: "); for (int i=0;i<fNLocPar;i++) printf("%+e |",fVecBLoc[i]); printf("\n");
 
-  if (localParams.size())
+  if (localParams.size()) {
     for (int i = maxLocUsed; i--;) {
       localParams[2 * i] = fVecBLoc[i];
       localParams[2 * i + 1] = TMath::Sqrt(TMath::Abs(matCLoc.QueryDiag(i)));
     }
-
+  }
   float lChi2 = 0;
   int nEq = 0;
 
@@ -814,10 +814,11 @@ int MillePede2::LocalFit(std::vector<double>& localParams)
 
     vl = 0;
     double* rowGLIDg = matCGloLoc(iCIDg);
-    for (int kl = 0; kl < maxLocUsed; kl++)
+    for (int kl = 0; kl < maxLocUsed; kl++) {
       if (rowGLIDg[kl]) {
         vl += rowGLIDg[kl] * fVecBLoc[kl];
       }
+    }
     if (!IsZero(vl)) {
       fVecBGlo[iIDg] -= fLocFitAdd ? vl : -vl;
     }
@@ -1048,11 +1049,12 @@ int MillePede2::GlobalFitIteration()
               fProcPnt[iold] = 0;
             }
             bool fnd = false; // check if the group is already accounted
-            for (int j = nFixedGroups; j--;)
+            for (int j = nFixedGroups; j--;) {
               if (fixGroups[j] == grIDold) {
                 fnd = true;
                 break;
               }
+            }
             if (!fnd) {
               if (nFixedGroups >= fixArrSize) {
                 fixArrSize *= 2;
@@ -1119,8 +1121,9 @@ int MillePede2::GlobalFitIteration()
 
     if (nFixedGroups) {
       LOGF(info, "MillePede2 - Suppressed contributions of groups with NPoints < %d :", fMinPntValid);
-      for (int i = 0; i < nFixedGroups; i++)
+      for (int i = 0; i < nFixedGroups; i++) {
         printf("%d ", fixGroups[i]);
+      }
       printf("\n");
     }
     swsup.Stop();
@@ -1302,8 +1305,9 @@ int MillePede2::GlobalFitIteration()
   //
   sw.Stop();
   LOGF(info, "MillePede2 - Iteration#%2d %s. CPU time: %.1f", fIter, fGloSolveStatus == kFailed ? "Failed" : "Converged", sw.CpuTime());
-  if (fGloSolveStatus == kFailed)
+  if (fGloSolveStatus == kFailed) {
     return 0;
+  }
   //
   for (int i = fNGloPar; i--;) { // Update global parameters values (for iterations)
     fDeltaPar[i] += fVecBGlo[i];
@@ -1368,9 +1372,9 @@ int MillePede2::SolveGlobalMatEq()
   TVectorD sol(fNGloSize);
 
   MinResSolve* slv = new MinResSolve(fMatCGlo, fVecBGlo.data());
-  if (!slv)
+  if (!slv) {
     return kFailed;
-
+  }
   bool res = false;
   if (fgIterSol == MinResSolve::kSolMinRes) {
     res = slv->SolveMinRes(sol, fgMinResCondType, fgMinResMaxIter, fgMinResTol);
@@ -1565,8 +1569,9 @@ bool MillePede2::IsRecordAcceptable()
           break;
         }
       }
-      if (!prevAns)
+      if (!prevAns) {
         LOGF(info, "New Run is not in the list to accept: %ld", runID);
+      }
     }
   }
 

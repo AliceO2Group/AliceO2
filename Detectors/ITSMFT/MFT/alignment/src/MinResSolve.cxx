@@ -101,20 +101,20 @@ MinResSolve::MinResSolve(const MatrixSq* mat, const double* rhs)
     fPrecon(0),
     fMatrix((MatrixSq*)mat),
     fRHS((double*)rhs),
-    fPVecY(0),
-    fPVecR1(0),
-    fPVecR2(0),
-    fPVecV(0),
-    fPVecW(0),
-    fPVecW1(0),
-    fPVecW2(0),
-    fPvv(0),
-    fPvz(0),
-    fPhh(0),
-    fDiagLU(0),
-    fMatL(0),
-    fMatU(0),
-    fMatBD(0)
+    fPVecY(nullptr),
+    fPVecR1(nullptr),
+    fPVecR2(nullptr),
+    fPVecV(nullptr),
+    fPVecW(nullptr),
+    fPVecW1(nullptr),
+    fPVecW2(nullptr),
+    fPvv(nullptr),
+    fPvz(nullptr),
+    fPhh(nullptr),
+    fDiagLU(nullptr),
+    fMatL(nullptr),
+    fMatU(nullptr),
+    fMatBD(nullptr)
 {
 }
 
@@ -323,8 +323,9 @@ Bool_t MinResSolve::SolveFGMRES(double* VecSol, Int_t precon, int itnlim, double
     fPVecV[i] = fPVecV[i] / fPhh[i][i];
     for (int j = 1; j <= i; j++) {
       int k = i - j;
-      for (t = fPVecV[k], l = k + 1; l <= i; l++)
+      for (t = fPVecV[k], l = k + 1; l <= i; l++) {
         t -= fPhh[l][k] * fPVecV[l];
+      }
       fPVecV[k] = t / fPhh[k][k];
     }
     // --------------------  linear combination of v[i]'s to get sol.
@@ -1106,7 +1107,7 @@ Int_t MinResSolve::PreconILUKsymb(Int_t lofM)
         iw[col] = incu++;
       }
     }
-    if (matrix->IsSymmetric())
+    if (matrix->IsSymmetric()) {
       for (int col = i + 1; col < fSize; col++) { // U-part of symmetric matrix
         if (MatrixSq::IsZero(matrix->Query(col, i))) {
           continue; // Due to the symmetry  == matrix(i,col)
@@ -1115,7 +1116,7 @@ Int_t MinResSolve::PreconILUKsymb(Int_t lofM)
         levls[incu] = 0;
         iw[col] = incu++;
       }
-
+    }
     // symbolic k,i,j Gaussian elimination
     int jpiv = -1;
     while (++jpiv < incl) {

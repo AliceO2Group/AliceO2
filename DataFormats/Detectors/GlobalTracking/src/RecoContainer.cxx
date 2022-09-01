@@ -1180,7 +1180,16 @@ gsl::span<const o2::trd::CalibratedTracklet> RecoContainer::getTRDCalibratedTrac
 
 gsl::span<const o2::trd::TriggerRecord> RecoContainer::getTRDTriggerRecords() const
 {
-  return inputsTRD->mTriggerRecords;
+  static int countWarnings = 0;
+  if (inputsTRD == nullptr) {
+    if (countWarnings < 1) {
+      LOG(warning) << "No TRD triggers";
+      countWarnings++;
+    }
+    return gsl::span<const o2::trd::TriggerRecord>();
+  } else {
+    return inputsTRD->mTriggerRecords;
+  }
 }
 
 const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* RecoContainer::getTRDTrackletsMCLabels() const

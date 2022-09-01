@@ -50,8 +50,8 @@ bool CTPConfiguration::isNumber(const std::string& s)
 //
 void BCMask::printStream(std::ostream& stream) const
 {
-  stream << "CTP BC mask:" << name << ":" << mask << std::endl;
-  /// <<  ":" << BCmask << std::endl;
+  stream << "CTP BC mask:" << name << ":" << mask; /// << std::endl;
+  stream << " # of active BC:" << BCmask.count() << std::endl;
 }
 //
 const std::set<std::string> CTPGenerator::Generators = {"bcd1m", "bcd2m", "bcd10", "bcd20", "rnd1m", "rnd2m", "rnd10", "rnd20"};
@@ -113,15 +113,6 @@ void CTPCluster::printStream(std::ostream& stream) const
   stream << " clust index:" << hwMask;
   stream << std::endl;
 }
-//
-uint64_t CTPClass::getClassMaskForInput(int inputindex) const
-{
-  uint64_t clsmask = 0;
-  if (descriptor != nullptr) {
-    clsmask = getClassMaskForInput(inputindex);
-  }
-  return clsmask;
-}
 void CTPClass::printStream(std::ostream& stream) const
 {
   stream << "CTP Class:" << name << " Hardware mask:" << classMask << " Cluster index:" << clusterIndex << " Desc index:" << descriptorIndex;
@@ -140,9 +131,55 @@ void CTPClass::printStream(std::ostream& stream) const
 }
 /// CTP configuration
 /// Assuming Run2 format + LTG
+int CTPConfiguration::addInput(std::string& inp, int clsindex, std::map<int, std::vector<int>>& descInputsIndex)
+{
+  LOG(info) << "adding input:" << inp;
+  CTPInput ctpinp;
+  std::string sinp = inp;
+  ;
+  if (inp[0] == '~') {
+    sinp = inp.substr(1, inp.size() - 1);
+    ctpinp.neg = 0;
+  }
+  if (inp[0] == 'b') { // BC downscale
+    ctpinp.level = "b";
+    ctpinp.name = inp;
+  } else if (inp[0] == 'r') { // randpm gen
+    ctpinp.level = "r";
+    ctpinp.name = inp;
+  } else if (isNumber(sinp)) { // inputs as number
+    int index = std::stoi(sinp);
+    ctpinp.name = CTPInputsConfiguration::getInputNameFromIndex(index);
+    ctpinp.inputMask = 1ull << (index - 1);
+    ctpinp.level = ctpinp.name[0];
+    if (ctpinp.neg == 0) {
+      ctpinp.name = "~" + ctpinp.name;
+    }
+  } else { // input as string or error
+    ctpinp.name = inp;
+    int index = CTPInputsConfiguration::getInputIndexFromName(inp);
+    ctpinp.level = sinp[0];
+    ctpinp.inputMask = 1ull << (index - 1);
+  }
+  // add to desc
+  // check if already there
+  for (int i = 0; i < mInputs.size(); i++) {
+    if (mInputs[i].name == ctpinp.name) {
+      LOG(info) << "input found at:" << i;
+      descInputsIndex[clsindex].push_back(i);
+      return 0;
+    }
+  }
+  mInputs.push_back(ctpinp);
+  descInputsIndex[clsindex].push_back(mInputs.size() - 1);
+  LOG(info) << "input inderted at:" << mInputs.size() - 1;
+  return 0;
+}
 int CTPConfiguration::loadConfigurationRun3(const std::string& ctpconfiguration)
 {
   LOG(info) << "Loading CTP configuration.";
+  std::map<int, std::vector<int>> clsDescIndex;
+  CTPInputsConfiguration::initDefaultInputConfig();
   mConfigString = ctpconfiguration;
   std::istringstream iss(ctpconfiguration);
   int ret = 0;
@@ -150,7 +187,7 @@ int CTPConfiguration::loadConfigurationRun3(const std::string& ctpconfiguration)
   std::string line;
   while (std::getline(iss, line)) {
     o2::utils::Str::trim(line);
-    if ((ret = processConfigurationLineRun3(line, level)) != 0) {
+    if ((ret = processConfigurationLineRun3(line, level, clsDescIndex)) != 0) {
       return ret;
     }
   }
@@ -158,12 +195,17 @@ int CTPConfiguration::loadConfigurationRun3(const std::string& ctpconfiguration)
     cls.cluster = &mClusters[cls.clusterIndex];
     if (cls.descriptorIndex != 0xff) {
       cls.descriptor = &mDescriptors[cls.descriptorIndex];
+      if (cls.getIndex() != 0xff) {
+        for (auto const& inp : clsDescIndex[cls.getIndex()]) {
+          mDescriptors.at(cls.descriptorIndex).inputs.push_back(&mInputs.at(inp));
+        }
+      }
     }
   }
-  createInputsInDecriptorsFromNames();
+  // createInputsInDecriptorsFromNames();
   return ret;
 }
-int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level)
+int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level, std::map<int, std::vector<int>>& descInputsIndex)
 {
   LOG(info) << "Processing line";
   LOG(info) << "line:" << line << " lev:" << level;
@@ -185,9 +227,9 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
     level = RUN;
   } else if ((line.find("inp") != std::string::npos) && ((level == RUN) || (level == INPUTS))) {
     level = INPUTS;
-  } else if (((first = line.find("bcm")) != std::string::npos) && ((level == INPUTS) || (level == MASKS))) {
+  } else if (((first = line.find("bcm")) != std::string::npos) && ((level == RUN) || (level == INPUTS) || (level == MASKS))) {
     level = MASKS;
-  } else if (CTPGenerator::Generators.count(tokens[0]) && ((level == INPUTS) || (level == MASKS) || (level == GENS))) {
+  } else if (CTPGenerator::Generators.count(tokens[0]) && ((level == RUN) || (level == INPUTS) || (level == MASKS) || (level == GENS))) {
     level = GENS;
   } else if ((first = line.find("LTG")) != std::string::npos) {
     level = LTG;
@@ -230,9 +272,6 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
         break;
       }
       bcmask.name = tokens[1];
-      for (int i = 2; i < tokens.size(); i++) {
-        bcmask.mask = tokens[i] = " ";
-      }
       bool coded = tokens[2].find("L") != std::string::npos;
       coded |= tokens[2].find("H") != std::string::npos;
       // std::cout << "coded:" << coded << std::endl;
@@ -245,7 +284,7 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
           try {
             bc = std::stoull(tokens[i]);
           } catch (...) {
-            LOG(info) << "mask syntax:" << tokens[i];
+            LOG(info) << "mask syntax:" << i << ":" << tokens[i];
             continue;
           }
           bcmask.BCmask.set(bc, 1);
@@ -327,6 +366,8 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
       cls.classMask = 1ull << index;
       cls.name = tokens[1];
       cls.clusterIndex = mClusters.size() - 1;
+      CTPDescriptor desc;
+      desc.name = "d" + cls.name;
       // LOG(info) << "point:" << cls.cluster << " " << &mClusters.front();
       for (int i = 2; i < tokens.size(); i++) {
         std::string token = tokens[i];
@@ -338,40 +379,19 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
           }
         }
         if (isGenerator) {
-          CTPDescriptor desc;
-          desc.name = token;
-          mDescriptors.push_back(desc);
-          cls.descriptorIndex = mDescriptors.size() - 1;
+          addInput(token, index, descInputsIndex);
           LOG(info) << "Class generator found:" << desc.name;
         } else if (token.find("~") != std::string::npos) { // inverted input
           // std::cout << "Inverted input" << std::endl;
-          std::string sinp = token.substr(1, token.size() - 1);
-          // uint32_t inp = std::strtoul(sinp);
-          if (cls.descriptorIndex == 0xff) {
-            CTPDescriptor desc;
-            desc.name = token;
-            mDescriptors.push_back(desc);
-            cls.descriptorIndex = mDescriptors.size() - 1;
-          } else {
-            CTPDescriptor desc = mDescriptors.at(cls.descriptorIndex);
-            desc.name += " " + token;
-          }
-        } else if (isNumber(token)) { // normal input
+          addInput(token, index, descInputsIndex);
+        } else if (isNumber(token)) { // normal input as number
           // std::cout << "Normal input" << std::endl;
-          if (cls.descriptorIndex == 0xff) {
-            CTPDescriptor desc;
-            desc.name = token;
-            mDescriptors.push_back(desc);
-            cls.descriptorIndex = mDescriptors.size() - 1;
-          } else {
-            CTPDescriptor desc = mDescriptors.at(cls.descriptorIndex);
-            desc.name += " " + token;
-          }
-          LOG(info) << "Class input descriptor:" << mDescriptors[mDescriptors.size() - 1].name;
+          addInput(token, index, descInputsIndex);
+          // LOG(info) << "Class input descriptor:" << mDescriptors[mDescriptors.size() - 1].name;
         } else if (token.find("0x") != std::string::npos) { // downscale
           // std::cout << "Downscale" << std::endl;
           cls.downScale = std::stoul(token, nullptr, 16);
-        } else {                                            // mask
+        } else if (token.find("bcm") != std::string::npos) { // bcmask
           // std::cout << "Mask" << std::endl;
           int i = 0;
           for (auto const& bcm : mBCMasks) {
@@ -383,10 +403,14 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
             i++;
           }
           if (i == mBCMasks.size()) {
-            LOG(error) << "Class BCMask NOT found:" << token;
+            LOG(error) << "Class BCMask NOT found:" << token << " assuming input";
           }
+        } else { // input as string or descriptor
+          addInput(token, index, descInputsIndex);
         }
       }
+      mDescriptors.push_back(desc);
+      cls.descriptorIndex = mDescriptors.size() - 1;
       //
       mCTPClasses.push_back(cls);
       break;
@@ -437,12 +461,13 @@ uint64_t CTPConfiguration::getInputMask(const std::string& name) const
 }
 int CTPConfiguration::getInputIndex(const std::string& name) const
 {
+  int index = 0xff;
   const CTPInput* inp = isInputInConfig(name);
-  if (inp == nullptr) {
-    return 0xff;
-  } else {
-    return inp->getIndex();
+  if (inp != nullptr) {
+    index = inp->getIndex();
   }
+  LOG(info) << "input:" << name << " index:" << index;
+  return index;
 }
 bool CTPConfiguration::isMaskInInputs(const uint64_t& mask) const
 {
@@ -466,9 +491,11 @@ const CTPInput* CTPConfiguration::isInputInConfig(const std::string inpname) con
 {
   for (const auto& inp : mInputs) {
     if (inp.name == inpname) {
+      LOG(info) << "isInpuyInConfig found:" << inpname;
       return &inp;
     }
   }
+  LOG(info) << "isInputInConfig NOT found:" << inpname;
   return nullptr;
 }
 const CTPInput* CTPConfiguration::isInputInConfig(const int index) const
@@ -485,6 +512,7 @@ const CTPInput* CTPConfiguration::isInputInConfig(const int index) const
 void CTPConfiguration::createInputsInDecriptorsFromNames()
 // using run3 conventions for inputs
 {
+  LOG(info) << "Creating Inputs";
   for (auto& des : mDescriptors) {
     if (CTPConfiguration::isNumber(des.name)) {
       // parse here if more inputs
@@ -503,15 +531,6 @@ void CTPConfiguration::createInputsInDecriptorsFromNames()
       LOG(info) << "Input is not a number:" << des.name;
     }
   }
-}
-uint64_t CTPConfiguration::getDecrtiptorInputsMask(const std::string& name) const
-{
-  for (auto const& desc : mDescriptors) {
-    if (desc.name == name) {
-      return desc.getInputsMask();
-    }
-  }
-  return 0xffffffff;
 }
 std::map<o2::detectors::DetID::ID, std::vector<CTPInput>> CTPConfiguration::getDet2InputMap()
 {
@@ -557,22 +576,25 @@ o2::detectors::DetID::mask_t CTPConfiguration::getDetectorMask() const
   }
   return mask;
 }
-uint64_t CTPConfiguration::getClassMaskForInput(int inputindex) const
+// This is special case of general approach:
+// classmask = fin(inputmask)g
+uint64_t CTPConfiguration::getClassMaskForInputMask(uint64_t inputMask) const
 {
   uint64_t clsmask = 0;
   for (auto const& cls : mCTPClasses) {
-    clsmask += cls.getClassMaskForInput(inputindex);
+    if (cls.descriptor) {
+      // std::cout << cls.name << std::hex << " " << cls.descriptor->getInputsMask() << " " << inputMask << std::endl;
+      if (cls.descriptor->getInputsMask() & inputMask) {
+        clsmask += cls.classMask;
+        // std::cout << " clsmask:" << clsmask << std::endl;
+      }
+    }
   }
   return clsmask;
 }
-uint64_t CTPConfiguration::getClassMaskForInput(const std::string& name) const
-{
-  uint64_t clsmask = 0;
-  int index = getInputIndex(name);
-  return getClassMaskForInput(index);
-}
-//===============================================
-//
+///
+/// Run Managet to manage Config and Scalers
+///
 void CTPRunManager::init()
 {
   for (auto r : mActiveRuns) {
@@ -976,6 +998,10 @@ int CTPInputsConfiguration::createInputsConfigFromFile(std::string& filename)
   return ret;
   ;
 }
+///
+/// CTP inputs config
+/// Only default used.
+///
 CTPInputsConfiguration CTPInputsConfiguration::defaultInputConfig;
 void CTPInputsConfiguration::printStream(std::ostream& stream) const
 {
@@ -1022,4 +1048,36 @@ void CTPInputsConfiguration::initDefaultInputConfig()
   //
   defaultInputConfig.CTPInputs.push_back(CTPInput("1ZED", "ZDC", 25));
   defaultInputConfig.CTPInputs.push_back(CTPInput("1ZNC", "ZDC", 26));
+}
+std::string CTPInputsConfiguration::getInputNameFromIndex(int index)
+{
+  int indexcor = index;
+  if (index > 100) {
+    indexcor = index - 100;
+  }
+  for (auto& inp : defaultInputConfig.CTPInputs) {
+    if (inp.getIndex() == indexcor) {
+      std::string name = inp.name;
+      if (index > 100) {
+        name[0] = '0';
+      }
+      return name;
+    }
+  }
+  LOG(info) << "Input with index:" << index << " not in deafult input config";
+  return "";
+}
+int CTPInputsConfiguration::getInputIndexFromName(std::string& name)
+{
+  std::string namecorr = name;
+  if (name[0] == '0') {
+    name.substr(1, name.size() - 1);
+  }
+  for (auto& inp : defaultInputConfig.CTPInputs) {
+    if (inp.name.find(namecorr) != std::string::npos) {
+      return inp.getIndex();
+    }
+  }
+  LOG(info) << "Input with name:" << name << " not in default input config";
+  return 0xff;
 }
