@@ -11,8 +11,5 @@
 
 o2_add_test_root_macro(
   makeZDCCCDBEntryForDCS.C
-  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
-
-install(
-  FILES makeZDCCCDBEntryForDCS.C
-  DESTINATION share/macro/)
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB
+  LABELS zdc)
