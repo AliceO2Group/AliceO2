@@ -29,6 +29,7 @@ namespace o2::tpc
 class IonTailCorrection
 {
  public:
+  IonTailCorrection();
   void filterDigitsDirect(std::vector<Digit>& digits);
 
   /// Apply exponential filter to expanded array
@@ -51,6 +52,7 @@ class IonTailCorrection
 
  private:
   float mITMultFactor = 1;            ///< fudge factor to tune IT correction
+  float mKTime = 0.0515;              ///< kTime constant for ion tail filter
   float mSign = -1.f;                 ///< -1 do correction, +1 add tail
   o2::utils::DebugStreamer mStreamer; ///< debug streaming
 

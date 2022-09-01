@@ -19,8 +19,17 @@
 #include <algorithm>
 
 #include "TPCReconstruction/IonTailCorrection.h"
+#include "TPCReconstruction/IonTailCorrectionSettings.h"
 
 using namespace o2::tpc;
+
+IonTailCorrection::IonTailCorrection()
+{
+  const auto& settings = IonTailCorrectionSettings::Instance();
+  mKTime = settings.kTime;
+  mITMultFactor = settings.ITMultFactor;
+}
+
 void IonTailCorrection::filterDigitsDirect(std::vector<Digit>& digits)
 {
   // make sure we process the digits pad-by-pad in increasing time order
@@ -33,10 +42,10 @@ void IonTailCorrection::filterDigitsDirect(std::vector<Digit>& digits)
 
   // TODO: for now hard-coded, make pad-by-pad, if available
   float kAmp = std::abs(mITMultFactor) * 0.1276; // TODO: replace with pad-by-pad value
-  if (mITMultFactor == -1) {
+  if (mITMultFactor < 0) {
     kAmp = kAmp / (1 + kAmp);
   }
-  const float kTime = 0.0515; // TODO: replace with pad-by-pad value
+  const float kTime = mKTime; // TODO: replace with pad-by-pad value
   const float tailSlopeUnit = std::exp(-kTime);
 
   for (auto& digit : digits) {
