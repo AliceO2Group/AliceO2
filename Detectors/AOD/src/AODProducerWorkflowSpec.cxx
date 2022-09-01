@@ -1034,7 +1034,7 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
   // filling 3 body decays table
   for (size_t i3Body = 0; i3Body < decays3Body.size(); i3Body++) {
     const auto& decay3Body = decays3Body[i3Body];
-    int trIDs[3]{
+    GIndex trIDs[3]{
       decay3Body.getProngID(0),
       decay3Body.getProngID(1),
       decay3Body.getProngID(2)

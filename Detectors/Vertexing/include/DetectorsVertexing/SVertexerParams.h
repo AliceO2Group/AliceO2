@@ -61,21 +61,21 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
 
   float minCosPAXYMeanVertex = 0.95;      ///< min cos of PA to beam line (mean vertex) in tr. plane for prompt V0 candidates
   float minCosPAXYMeanVertexCascV0 = 0.8; ///< min cos of PA to beam line (mean vertex) in tr. plane for V0 of cascade cand.
-  float minCosPAXYMeanVertex3bodyV0 = 0.8;///< min cos of PA to beam line (mean vertex) in tr. plane for 3body V0 cand.
+  float minCosPAXYMeanVertex3bodyV0 = 0.7;///< min cos of PA to beam line (mean vertex) in tr. plane for 3body V0 cand.
 
   float maxRToMeanVertexCascV0 = 80; // don't consider as a cascade V0 seed if above this R
   float minCosPACascV0 = 0.8;        // min cos of pointing angle to PV for cascade V0 candidates
   float minCosPA = 0.9;              ///< min cos of PA to PV for prompt V0 candidates
 
   float minRDiffV0Casc = 0.2;  ///< cascade should be at least this radial distance below V0
-  float maxRDiffV03body = 0.2; ///< Maximum difference between V0 and 3body radii
+  float maxRDiffV03body = 3; ///< Maximum difference between V0 and 3body radii
   float maxRIniCasc = 90.;     // don't consider as a cascade seed (circles/line intersection) if its R exceeds this
 
   float maxDCAXYCasc = 0.3; // max DCA of cascade to PV in XY // TODO RS: shall we use real chi2 to vertex?
   float maxDCAZCasc = 0.3;  // max DCA of cascade to PV in Z
   float maxDCAXY3Body = 0.3; // max DCA of 3 body decay to PV in XY // TODO RS: shall we use real chi2 to vertex?
-  float maxDCAZ3Body = 0.3;  // max DCA of 3 body decay to PV in Z
-  float minCosPACasc = 0.7; ///< min cos of PA to PV for cascade candidates
+  float maxDCAZ3Body = 1.;  // max DCA of 3 body decay to PV in Z
+  float minCosPACasc = 0.7; // min cos of PA to PV for cascade candidates
   float minCosPA3body = 0.7; // min cos of PA to PV for 3body V0
   float minPtCasc = 0.01;   // cascade minimum pT
   float maxTglCasc = 2.;    // maximum tgLambda of cascade
