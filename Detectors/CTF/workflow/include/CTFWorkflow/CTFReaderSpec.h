@@ -30,6 +30,7 @@ struct CTFReaderInp {
   std::string tffileRegex{};
   std::string remoteRegex{};
   std::string metricChannel{};
+  std::string fileIRFrames{};
   std::vector<int> ctfIDs{};
   bool allowMissingDetectors = false;
   bool sup0xccdb = false;
