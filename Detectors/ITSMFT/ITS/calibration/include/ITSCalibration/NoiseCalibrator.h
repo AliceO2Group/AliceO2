@@ -15,7 +15,6 @@
 #define O2_ITS_NOISECALIBRATOR
 
 #include <string>
-
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/NoiseMap.h"
 #include "ITSMFTReconstruction/PixelData.h"
@@ -78,7 +77,7 @@ class NoiseCalibrator
   size_t mInstanceID = 0; // pipeline instance
   size_t mNInstances = 1; // total number of pipelines
   std::vector<int> mChipIDs;
-  std::vector<std::vector<o2::itsmft::PixelData>> mChipHits;
+  std::array<std::vector<int>, 24120> mChipHits;
 };
 
 } // namespace its

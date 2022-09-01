@@ -69,6 +69,15 @@ class NoiseMap
     mNoisyPixels[chip][getKey(row, col)]++;
   }
 
+  void increaseNoiseCount(int chip, const std::vector<int>& rowcolKey)
+  {
+    assert(chip < (int)mNoisyPixels.size());
+    auto& ch = mNoisyPixels[chip];
+    for (const auto k : rowcolKey) {
+      ch[k]++;
+    }
+  }
+
   int dumpAboveThreshold(int t = 3) const
   {
     int n = 0;
@@ -193,13 +202,12 @@ class NoiseMap
   void setNumOfStrobes(long n) { mNumOfStrobes = n; }
   void addStrobes(long n) { mNumOfStrobes += n; }
   long getNumberOfStrobes() const { return mNumOfStrobes; }
-
-  int key2Row(int key) const { return key >> SHIFT; }
-  int key2Col(int key) const { return key & MASK; }
+  static int getKey(int row, int col) { return (row << SHIFT) + col; }
+  static int key2Row(int key) { return key >> SHIFT; }
+  static int key2Col(int key) { return key & MASK; }
 
  private:
   static constexpr int SHIFT = 10, MASK = (0x1 << SHIFT) - 1;
-  int getKey(int row, int col) const { return (row << SHIFT) + col; }
   std::vector<std::map<int, int>> mNoisyPixels; ///< Internal noise map representation
   long int mNumOfStrobes = 0;                   ///< Accumulated number of ALPIDE strobes
   float mProbThreshold = 0;                     ///< Probability threshold for noisy pixels
