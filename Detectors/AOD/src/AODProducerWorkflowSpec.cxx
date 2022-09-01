@@ -1702,7 +1702,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       uint64_t bc = ctpDigit.intRecord.toLong();
       uint64_t classMask = ctpDigit.CTPClassMask.to_ulong();
       bcToClassMask[bc] = classMask;
-      //LOG(debug) << Form("classmask:0x%llx", classMask);
+      // LOG(debug) << Form("classmask:0x%llx", classMask);
     }
   }
 
@@ -2134,6 +2134,9 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   }
   if (src[GID::TPC]) {
     dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false); // no need to ask for TOF clusters as they are requested with TOF tracks
+  }
+  if (src[GID::TOF]) {
+    dataRequest->requestTOFClusters(useMC);
   }
   if (src[GID::PHS]) {
     dataRequest->requestPHOSCells(useMC);
