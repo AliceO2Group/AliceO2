@@ -101,13 +101,13 @@ if workflow_has_parameter CALIB_PROXIES; then
     echo "ERROR: You cannot run the TPC IDCs in FLP mode if you are not in EPNSYNCMODE" 1>&2
     exit 2
   fi
-  # expand FLPs
+  # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
   for flp in $(seq -f "%03g" 1 144)
   do
-    FLPS_ADDRESS+="tcp://alicr1-flp-ib${flp}:45000;"
+    FLP_ADDRESS+="tcp://alicr1-flp-ib${flp}:45000"
+    CHANNELS_LIST+=" --channel-config \"type=pull,name=tpcidc_flp${flp},transport=zmq,address=$FLP_ADDRESS,method=connect,rateLogging=10\""
   done
-  FLPS_ADDRESS=${FLPS_ADDRESS::-1}
-  add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_A;CALIBDATASPEC_TPCIDC_C\" --channel-config \"type=pull,name=tpcidc_flp,transport=zmq,address=$FLPS_ADDRESS,method=connect,rateLogging=10\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
+  add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_A;CALIBDATASPEC_TPCIDC_C\" $CHANNELS_LIST --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
       else
   add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C\" $(get_proxy_connection tpcidc_both input)" "" 0
       fi
