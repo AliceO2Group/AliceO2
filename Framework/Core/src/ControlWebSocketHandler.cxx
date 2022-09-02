@@ -83,9 +83,6 @@ void ControlWebSocketHandler::endChunk()
   for (auto& metricsInfo : *mContext.metrics) {
     std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
   }
-  if (didHaveNewMetric) {
-    DeviceMetricsHelper::updateMetricsNames(*mContext.driver, *mContext.metrics);
-  }
 }
 
 void ControlWebSocketHandler::headers(std::map<std::string, std::string> const& headers)

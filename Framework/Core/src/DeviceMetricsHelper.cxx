@@ -458,21 +458,4 @@ size_t DeviceMetricsHelper::metricIdxByName(const std::string& name, const Devic
   return i;
 }
 
-void DeviceMetricsHelper::updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> const& metricsInfos)
-{
-  // Calculate the unique set of metrics, as available in the metrics service
-  static std::unordered_set<std::string> allMetricsNames;
-  for (const auto& metricsInfo : metricsInfos) {
-    for (const auto& labelsPairs : metricsInfo.metricLabels) {
-      allMetricsNames.insert(std::string(labelsPairs.label));
-    }
-  }
-  for (const auto& labelsPairs : driverInfo.metrics.metricLabels) {
-    allMetricsNames.insert(std::string(labelsPairs.label));
-  }
-  std::vector<std::string> result(allMetricsNames.begin(), allMetricsNames.end());
-  std::sort(result.begin(), result.end());
-  driverInfo.availableMetrics.swap(result);
-}
-
 } // namespace o2::framework

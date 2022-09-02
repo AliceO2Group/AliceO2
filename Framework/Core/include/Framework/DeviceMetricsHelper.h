@@ -145,8 +145,6 @@ struct DeviceMetricsHelper {
     size_t metricIndex = bookNumericMetric<T>(metrics, name, newMetricsCallback);
     return getNumericMetricCursor<T>(metricIndex);
   }
-
-  static void updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> const& metricsInfos);
 };
 
 } // namespace o2::framework

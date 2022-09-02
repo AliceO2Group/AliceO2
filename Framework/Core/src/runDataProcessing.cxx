@@ -532,9 +532,6 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     for (auto& metricsInfo : *mContext.metrics) {
       std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
     }
-    if (didHaveNewMetric) {
-      DeviceMetricsHelper::updateMetricsNames(*mContext.driver, *mContext.metrics);
-    }
   }
 
   /// The driver context were we want to accumulate changes
@@ -953,7 +950,6 @@ LogProcessingState processChildrenOutput(DriverInfo& driverInfo,
   result.hasNewMetric = hasNewMetric;
   if (hasNewMetric) {
     hasNewMetric = false;
-    DeviceMetricsHelper::updateMetricsNames(driverInfo, metricsInfos);
   }
   return result;
 }
