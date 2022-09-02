@@ -286,4 +286,6 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF(const CalibTimeSlewingParamTO
     *(mSigmaPeak[i]) = *(source.mSigmaPeak[i]);
     *(mGlobalOffset[i]) = *(source.mGlobalOffset[i]);
   }
+  mStartValidity = source.mStartValidity;
+  mEndValidity = source.mEndValidity;
 }
