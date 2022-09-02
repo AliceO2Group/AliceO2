@@ -455,7 +455,7 @@ std::shared_ptr<TTree> TableToTree::process()
 
   for (auto& reader : mColumnReaders) {
     int idealBasketSize = 1024 + reader->fieldSize() * mRows; // minimal additional size needed, otherwise we get 2 baskets
-    int basketSize = std::max(32000, idealBasketSize); // keep a minimum value
+    int basketSize = std::max(32000, idealBasketSize);        // keep a minimum value
     mTree->SetBasketSize(reader->branchName(), basketSize);
   }
 
