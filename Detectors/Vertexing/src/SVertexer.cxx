@@ -181,6 +181,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
 //__________________________________________________________________
 void SVertexer::init()
 {
+  initTPCTransform();
   mSVDebugFile = std::make_unique<TFile>("svtxDebug.root", "recreate");
   mV0PoolTree = std::make_unique<TTree>("V0Pool", "V0Pool");
   mV0PoolAfterCutTree = std::make_unique<TTree>("V0PoolAfterCut", "V0PoolAfterCut");
