@@ -176,8 +176,8 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DIG", 0}, *image);
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DIG", 0}, info);
 
-      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DIG", 0}, *image_pixtyp);
-      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DIG", 0}, info_pixtyp);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DIG", 1}, *image_pixtyp);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DIG", 1}, info_pixtyp);
     } else if (this->mScanType == 'A') {
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ANA", 0}, *image);
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ANA", 0}, info);
