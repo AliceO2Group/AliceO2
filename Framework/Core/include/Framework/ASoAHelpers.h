@@ -1084,11 +1084,15 @@ struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockS
 
     // No more combinations within this category - move to the next category, if possible
     if (modify && std::get<k - 1>(this->mCurrentIndices) < this->mGroupedIndices.size()) {
+      LOG(info) << "Last index: " << std::get<k - 1>(this->mCurrentIndices) << " less than all: " << this->mGroupedIndices.size() << ", still modifying";
       for_<k>([&, this](auto m) {
         std::get<m.value>(this->mCurrentIndices) = std::get<m.value>(this->mMaxOffset) + k - 1;
       });
+      LOG(info) << "Last index less than all, setting ranges";
       setRanges();
       return;
+    } else {
+      LOG(info) << "End of bins, last index: " << std::get<k - 1>(this->mCurrentIndices) << " less than all: " << this->mGroupedIndices.size();
     }
 
     this->mIsEnd = modify;
