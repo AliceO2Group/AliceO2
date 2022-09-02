@@ -52,7 +52,7 @@ bool DeviceMetricsHelper::parseMetric(std::string_view const s, ParsedMetricMatc
   // Find all spaces
   char const* nextSpace = s.data();
   while (space - spaces < 256) {
-    *space = strchr(nextSpace, ' ');
+    *space = (const char*)memchr(nextSpace, ' ', s.size() - (nextSpace - s.data()));
     if (*space == nullptr) {
       break;
     }
