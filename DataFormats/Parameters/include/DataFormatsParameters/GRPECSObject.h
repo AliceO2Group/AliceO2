@@ -112,6 +112,7 @@ class GRPECSObject
   // methods to manipulate the list of FLPs in the run
   const std::vector<unsigned short>& getListOfFLPs() const { return mFLPs; }
   void addFLP(unsigned short flp) { mFLPs.push_back(flp); }
+  void setListOfFLPs(std::vector<unsigned short> listFLPs) { mFLPs = listFLPs; }
   bool getFLPStatus(unsigned short flp) const
   {
     return std::find(mFLPs.begin(), mFLPs.end(), flp) == mFLPs.end() ? false : true;

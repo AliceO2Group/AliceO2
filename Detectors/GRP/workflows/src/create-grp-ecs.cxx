@@ -35,6 +35,7 @@ void createGRPECSObject(const std::string& dataPeriod,
                         const std::string& detsReadout,
                         const std::string& detsContinuousRO,
                         const std::string& detsTrigger,
+                        const std::string& flpList,
                         long tstart,
                         long tend,
                         long marginAtSOR,
@@ -52,6 +53,13 @@ void createGRPECSObject(const std::string& dataPeriod,
   }
   auto detMaskCont = detMask & o2::detectors::DetID::getMask(detsContinuousRO);
   auto detMaskTrig = detMask & o2::detectors::DetID::getMask(detsTrigger);
+  std::stringstream flpListSS(flpList);
+  std::vector<unsigned short> flps;
+  while (flpListSS.good()) {
+    string substr;
+    getline(flpListSS, substr, ',');
+    flps.push_back(atoi(substr.c_str()));
+  }
   LOG(info) << tstart << " " << tend;
   if (tstart == 0) {
     tstart = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
@@ -73,6 +81,7 @@ void createGRPECSObject(const std::string& dataPeriod,
   grpecs.setRun(run);
   grpecs.setRunType((GRPECSObject::RunType)runType);
   grpecs.setDataPeriod(dataPeriod);
+  grpecs.setListOfFLPs(flps);
 
   grpecs.print();
   std::map<std::string, std::string> metadata;
@@ -163,6 +172,7 @@ int main(int argc, char** argv)
     add_option("detectors,d", bpo::value<string>()->default_value("all"), "comma separated list of detectors");
     add_option("continuous,c", bpo::value<string>()->default_value("ITS,TPC,TOF,MFT,MCH,MID,ZDC,FT0,FV0,FDD,CTP"), "comma separated list of detectors in continuous readout mode");
     add_option("triggering,g", bpo::value<string>()->default_value("FT0,FV0"), "comma separated list of detectors providing a trigger");
+    add_option("flps,f", bpo::value<string>()->default_value(""), "comma separated list of FLPs in the data taking");
     add_option("start-time,s", bpo::value<long>()->default_value(0), "run start time in ms, now() if 0");
     add_option("end-time,e", bpo::value<long>()->default_value(0), "run end time in ms, start-time+3days is used if 0");
     add_option("ccdb-server", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "CCDB server for upload, local file if empty");
@@ -220,6 +230,7 @@ int main(int argc, char** argv)
     vm["detectors"].as<std::string>(),
     vm["continuous"].as<std::string>(),
     vm["triggering"].as<std::string>(),
+    vm["flps"].as<std::string>(),
     vm["start-time"].as<long>(),
     vm["end-time"].as<long>(),
     vm["marginSOR"].as<long>(),
