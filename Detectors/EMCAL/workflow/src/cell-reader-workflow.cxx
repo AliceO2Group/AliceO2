@@ -31,6 +31,7 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{{"disable-mc", VariantType::Bool, false, {"Do not propagate MC labels"}},
+                                       {"subspec", VariantType::UInt32, 0, {"Subspecification for cell output"}},
                                        {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
@@ -41,6 +42,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   bool disableMC = cfgc.options().get<bool>("disable-mc");
+  auto subspec = cfgc.options().get<uint32_t>("subspec");
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   WorkflowSpec specs;
@@ -51,9 +53,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                                                  {"cellbranch", "EMCALCell", "Cell branch"},
                                                                                  {"celltriggerbranch", "EMCALCellTRGR", "Trigger record branch"},
                                                                                  {"mcbranch", "EMCALCellMCTruth", "MC label branch"},
-                                                                                 o2::framework::OutputSpec{"EMC", "CELLS"},
-                                                                                 o2::framework::OutputSpec{"EMC", "CELLSTRGR"},
-                                                                                 o2::framework::OutputSpec{"EMC", "CELLSMCTR"}},
+                                                                                 o2::framework::OutputSpec{"EMC", "CELLS", subspec},
+                                                                                 o2::framework::OutputSpec{"EMC", "CELLSTRGR", subspec},
+                                                                                 o2::framework::OutputSpec{"EMC", "CELLSMCTR", subspec}},
                                                                                !disableMC));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
