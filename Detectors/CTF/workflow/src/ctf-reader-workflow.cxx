@@ -66,7 +66,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   //
   options.push_back(ConfigParamSpec{"its-digits", VariantType::Bool, false, {"convert ITS clusters to digits"}});
   options.push_back(ConfigParamSpec{"mft-digits", VariantType::Bool, false, {"convert MFT clusters to digits"}});
-
+  //
+  options.push_back(ConfigParamSpec{"emcal-decoded-subspec", VariantType::Int, 0, {"subspec to use for decoded EMCAL data"}});
+  //
   options.push_back(ConfigParamSpec{"timeframes-shm-limit", VariantType::String, "0", {"Minimum amount of SHM required in order to publish data"}});
   options.push_back(ConfigParamSpec{"metric-feedback-channel-format", VariantType::String, "name=metric-feedback,type=pull,method=connect,address=ipc://{}metric-feedback-{},transport=shmem,rateLogging=0", {"format for the metric-feedback channel for TF rate limiting"}});
   std::swap(workflowOptions, options);
@@ -92,6 +94,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   ctfInput.detMask &= DetID::getMask(allowedDetectors);
   ctfInput.inpdata = configcontext.options().get<std::string>("ctf-input");
   ctfInput.subspec = (unsigned int)configcontext.options().get<int>("ctf-data-subspec");
+  ctfInput.decSSpecEMC = (unsigned int)configcontext.options().get<int>("emcal-decoded-subspec");
   if (ctfInput.inpdata.empty() || ctfInput.inpdata == "none") {
     if (!configcontext.helpOnCommandLine()) {
       throw std::runtime_error("--ctf-input <file,...> is not provided");
@@ -161,7 +164,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.push_back(o2::mch::getEntropyDecoderSpec(verbosity, "mch-entropy-decoder", ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::EMC]) {
-    specs.push_back(o2::emcal::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    specs.push_back(o2::emcal::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.decSSpecEMC));
   }
   if (ctfInput.detMask[DetID::PHS]) {
     specs.push_back(o2::phos::getEntropyDecoderSpec(verbosity, ctfInput.subspec));

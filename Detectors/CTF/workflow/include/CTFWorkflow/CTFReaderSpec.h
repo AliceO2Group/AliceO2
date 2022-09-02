@@ -39,6 +39,7 @@ struct CTFReaderInp {
   int maxLoops = 0;
   int maxTFs = -1;
   unsigned int subspec = 0;
+  unsigned int decSSpecEMC = 0;
   int tfRateLimit = 0;
   size_t minSHM = 0;
 };
