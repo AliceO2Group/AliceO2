@@ -159,6 +159,7 @@ struct GroupedCombinationsGenerator {
     void setCurrentGroupedCombination()
     {
       if (!this->mIsEnd) {
+        LOG(info) << "No end yet, setting new associated tables";
         auto& currentGrouping = GroupingPolicy::mCurrent;
         mSlices.emplace(getAssociatedTables());
         mCurrentGrouped.emplace(interleaveTuples(currentGrouping, *mSlices));
