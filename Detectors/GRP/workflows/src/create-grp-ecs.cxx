@@ -53,14 +53,6 @@ void createGRPECSObject(const std::string& dataPeriod,
   }
   auto detMaskCont = detMask & o2::detectors::DetID::getMask(detsContinuousRO);
   auto detMaskTrig = detMask & o2::detectors::DetID::getMask(detsTrigger);
-  auto flpsVec = o2::utils::Str::tokenize(flpList, ',');
-  for (const auto& s : flpsVec) {
-    try {
-      addFlp((unsigned short)std::stoi(s));
-    } catch (const std::exception& e) {
-      LOG(alarm) << "could not convert string " << s << " to integer FLP ID, error : " << e.what();
-    }
-  }
   LOG(info) << tstart << " " << tend;
   if (tstart == 0) {
     tstart = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
@@ -82,7 +74,14 @@ void createGRPECSObject(const std::string& dataPeriod,
   grpecs.setRun(run);
   grpecs.setRunType((GRPECSObject::RunType)runType);
   grpecs.setDataPeriod(dataPeriod);
-
+  auto flpsVec = o2::utils::Str::tokenize(flpList, ',');
+  for (const auto& s : flpsVec) {
+    try {
+      grpecs.addFlp((unsigned short)std::stoi(s));
+    } catch (const std::exception& e) {
+      LOG(alarm) << "could not convert string " << s << " to integer FLP ID, error : " << e.what();
+    }
+  }
   grpecs.print();
   std::map<std::string, std::string> metadata;
 
