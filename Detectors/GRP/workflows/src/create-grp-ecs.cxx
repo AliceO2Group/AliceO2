@@ -57,9 +57,8 @@ void createGRPECSObject(const std::string& dataPeriod,
   for (const auto& s : flpsVec) {
     try {
       addFlp((unsigned short)std::stoi(s));
-    }
-    catch(const std::exception& e) {
-      LOG(alarm) << "could not convert string " << s << " to integer FLP ID, error : " << e.what(); 
+    } catch (const std::exception& e) {
+      LOG(alarm) << "could not convert string " << s << " to integer FLP ID, error : " << e.what();
     }
   }
   LOG(info) << tstart << " " << tend;
