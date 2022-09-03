@@ -53,12 +53,14 @@ void createGRPECSObject(const std::string& dataPeriod,
   }
   auto detMaskCont = detMask & o2::detectors::DetID::getMask(detsContinuousRO);
   auto detMaskTrig = detMask & o2::detectors::DetID::getMask(detsTrigger);
-  std::stringstream flpListSS(flpList);
-  std::vector<unsigned short> flps;
-  while (flpListSS.good()) {
-    string substr;
-    getline(flpListSS, substr, ',');
-    flps.push_back(atoi(substr.c_str()));
+  auto flpsVec = o2::utils::Str::tokenize(flpList, ',');
+  for (const auto& s : flpsVec) {
+    try {
+      addFlp((unsigned short)std::stoi(s));
+    }
+    catch(const std::exception& e) {
+      LOG(alarm) << "could not convert string " << s << " to integer FLP ID, error : " << e.what(); 
+    }
   }
   LOG(info) << tstart << " " << tend;
   if (tstart == 0) {
@@ -81,7 +83,6 @@ void createGRPECSObject(const std::string& dataPeriod,
   grpecs.setRun(run);
   grpecs.setRunType((GRPECSObject::RunType)runType);
   grpecs.setDataPeriod(dataPeriod);
-  grpecs.setListOfFLPs(flps);
 
   grpecs.print();
   std::map<std::string, std::string> metadata;
