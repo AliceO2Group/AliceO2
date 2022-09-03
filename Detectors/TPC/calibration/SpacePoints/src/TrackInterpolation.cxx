@@ -267,6 +267,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   for (int i = 0; i < o2::track::kNParams; ++i) {
     trackData.p[i] = (*mSeeds)[iSeed].getParam(i);
   }
+  trackData.chi2TRD = gidTable[GTrackID::TRD].isIndexSet() ? mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]).getChi2() : 0;
   trackData.chi2TPC = trkTPC.getChi2();
   trackData.chi2ITS = trkITS.getChi2();
   trackData.nClsTPC = trkTPC.getNClusterReferences();
