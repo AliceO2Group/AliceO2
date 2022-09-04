@@ -172,6 +172,9 @@ class NoiseMap
   void merge(const NoiseMap* prev) {}
   const std::map<int, int>* getChipMap(int chip) const { return chip < (int)mNoisyPixels.size() ? &mNoisyPixels[chip] : nullptr; }
 
+  std::map<int, int>& getChip(int chip) { return mNoisyPixels[chip]; }
+  const std::map<int, int>& getChip(int chip) const { return mNoisyPixels[chip]; }
+
   void maskFullChip(int chip, bool cleanNoisyPixels = false)
   {
     if (cleanNoisyPixels) {
@@ -199,6 +202,7 @@ class NoiseMap
     return std::ceil((1. + 1. / t) / (relErr * relErr));
   }
 
+  size_t size() const { return mNoisyPixels.size(); }
   void setNumOfStrobes(long n) { mNumOfStrobes = n; }
   void addStrobes(long n) { mNumOfStrobes += n; }
   long getNumberOfStrobes() const { return mNumOfStrobes; }
