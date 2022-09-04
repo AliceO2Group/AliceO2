@@ -15,6 +15,7 @@
 #include <TStopwatch.h>
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
+#include "DataFormatsCalibration/MeanVertexObject.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/Propagator.h"
@@ -173,6 +174,10 @@ void PrimaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     par.printKeyValues();
     return;
   }
+  if (matcher == ConcreteDataMatcher("GLO", "MEANVERTEX", 0)) {
+    mVertexer.setMeanVertex((const o2::dataformats::MeanVertexObject*)obj);
+    return;
+  }
 }
 
 void PrimaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -197,6 +202,7 @@ void PrimaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
     PVertexerParams::Instance().printKeyValues();
   }
   // we may have other params which need to be queried regularly
+  pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
 }
 
 DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool skip, bool validateWithFT0, bool useMC)
@@ -225,6 +231,7 @@ DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool skip, bool 
                                                               o2::base::GRPGeomRequest::Aligned, // geometry
                                                               dataRequest->inputs,
                                                               true);
+  dataRequest->inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
 
   return DataProcessorSpec{
     "primary-vertexing",
