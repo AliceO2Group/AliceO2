@@ -28,6 +28,13 @@ constexpr double PVertexer::kAlmost0D;
 constexpr float PVertexer::kHugeF;
 
 //___________________________________________________________________
+PVertexer::PVertexer()
+{
+  mMeanVertex.setSigma({0.5f, 0.5f, 6.0f});
+  initMeanVertexConstraint();
+}
+
+//___________________________________________________________________
 int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl::span<o2::InteractionRecord> bcData,
                             std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
                             gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx)
@@ -176,7 +183,7 @@ int PVertexer::findVertices(const VertexingInput& input, std::vector<PVertex>& v
     LOG(debug) << "Seeding with T=" << tv << " Z=" << zv << " bin " << peakBin << " on trial " << nTrials << " for vertex " << nfound << " mult=" << mult;
 
     PVertex vtx;
-    vtx.setXYZ(mMeanVertex.getX(), mMeanVertex.getY(), zv);
+    mMeanVertex.setMeanXYVertexAtZ(vtx, zv);
     vtx.setTimeStamp({tv, 0.f});
     if (findVertex(input, vtx)) {
       finalizeVertex(input, vtx, vertices, v2tRefs, trackIDs, &seedHistoTZ);
@@ -663,7 +670,6 @@ void PVertexer::init()
 {
   mPVParams = &PVertexerParams::Instance();
   setTukey(mPVParams->tukey);
-  initMeanVertexConstraint();
   auto* prop = o2::base::Propagator::Instance();
   setBz(prop->getNominalBz());
   mDBScanDeltaT = mPVParams->dbscanDeltaT > 0.f ? mPVParams->dbscanDeltaT : mITSROFrameLengthMUS - mPVParams->dbscanDeltaT;
@@ -1039,9 +1045,14 @@ SeedHistoTZ PVertexer::buildHistoTZ(const VertexingInput& input)
 }
 
 //______________________________________________
-bool PVertexer::relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxErr2) const
+bool PVertexer::relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxErr2)
 {
   o2d::DCA dca;
+  auto z = trc.getZAt(0., mBz);
+  if (z < -999.) {
+    z = mMeanVertex.getZ();
+  }
+  mMeanVertex.setMeanXYVertexAtZ(mMeanVertexSeed, z);
   return o2::base::Propagator::Instance()->propagateToDCA(mMeanVertex, trc, mBz, 2.0f,
                                                           o2::base::Propagator::MatCorrType::USEMatCorrLUT, &dca, nullptr, 0, mPVParams->dcaTolerance) &&
          (dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) < mPVParams->pullIniCut);
