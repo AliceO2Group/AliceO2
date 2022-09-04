@@ -133,6 +133,21 @@ bool NoiseCalibrator::processTimeFrameDigits(gsl::span<const o2::itsmft::Digit> 
   return (mNumberOfStrobes > mMinROFs) ? true : false;
 }
 
+void NoiseCalibrator::addMap(const o2::itsmft::NoiseMap& extMap)
+{
+  // add preproprecessed map to total
+#ifdef WITH_OPENMP
+#pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
+#endif
+  for (int ic = 0; ic < NChips; ic++) {
+    const auto& chExt = extMap.getChip(ic);
+    auto& chCurr = mNoiseMap.getChip(ic);
+    for (auto it : chExt) {
+      chCurr[it.first] += it.second;
+    }
+  }
+}
+
 void NoiseCalibrator::finalize(float cutIB)
 {
   LOG(info) << "Number of processed strobes is " << mNumberOfStrobes;
