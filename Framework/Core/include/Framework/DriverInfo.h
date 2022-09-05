@@ -135,10 +135,6 @@ struct DriverInfo {
   std::vector<DataProcessorInfo> processorInfo;
   /// The config context. We use a bare pointer because std::observer_ptr is not a thing, yet.
   ConfigContext const* configContext;
-  /// The amount of time to process inputs coming from all the processes
-  float inputProcessingCost;
-  /// The time between one input processing and the other.
-  float inputProcessingLatency;
   /// The amount of time to draw last frame in the GUI
   float frameCost;
   /// The time between one frame and the other.
