@@ -88,6 +88,10 @@ void LHCClockCalibrator::initOutput()
 void LHCClockCalibrator::finalizeSlot(Slot& slot)
 {
   // Extract results for the single slot
+
+  // marging in milliseconds for the end validity of the object to be uploaded
+  static long endValidityMarging = long((5 + getMaxSlotsDelay()) * getSlotLength() * o2::base::GRPGeomHelper::getNHBFPerTF() * o2::constants::lhc::LHCOrbitMUS * 1e-3);
+
   o2::tof::LHCClockDataHisto* c = slot.getContainer();
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd() << " with "
             << c->getEntries() << " entries";
@@ -108,8 +112,8 @@ void LHCClockCalibrator::finalizeSlot(Slot& slot)
   auto clName = o2::utils::MemFileHelper::getClassName(l);
   auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
 
-  auto starting = slot.getStartTimeMS();
-  auto stopping = slot.getEndTimeMS() + 5 * getSlotLength() + getMaxSlotsDelay();
+  auto starting = slot.getStartTimeMS() - o2::ccdb::CcdbObjectInfo::SECOND * 10; // adding a marging, in case some TFs were not processed
+  auto stopping = slot.getEndTimeMS() + endValidityMarging;
   LOG(info) << "starting = " << starting << " - stopping = " << stopping << " -> phase = " << fitValues[1] << " ps (added BC = " << tobeused << ")";
   l.setStartValidity(starting);
   l.setEndValidity(stopping);

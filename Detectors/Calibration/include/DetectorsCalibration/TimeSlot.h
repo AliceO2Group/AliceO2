@@ -34,10 +34,7 @@ class TimeSlot
 {
  public:
   TimeSlot() = default;
-  TimeSlot(TFType tfS, TFType tfE) : mTFStart(tfS), mTFEnd(tfE)
-  {
-    mTFStartMS = getStartTimeMS();
-  }
+  TimeSlot(TFType tfS, TFType tfE) : mTFStart(tfS), mTFEnd(tfE) {}
   TimeSlot(const TimeSlot& src) : mTFStart(src.mTFStart), mTFEnd(src.mTFEnd), mContainer(std::make_unique<Container>(*src.getContainer())) {}
   TimeSlot& operator=(const TimeSlot& src)
   {
@@ -65,6 +62,7 @@ class TimeSlot
 
   void setTFStart(TFType v) { mTFStart = v; }
   void setTFEnd(TFType v) { mTFEnd = v; }
+  void setStaticStartTimeMS(long t) { mTFStartMS = t; }
   void setRunStartOrbit(long t) { mRunStartOrbit = t; }
   auto getRunStartOrbit() const { return mRunStartOrbit; }
 
@@ -76,11 +74,12 @@ class TimeSlot
   {
     mContainer->merge(prev.mContainer.get());
     mTFStart = prev.mTFStart;
+    mTFStartMS = prev.mTFStartMS;
   }
 
   void print() const
   {
-    LOGF(info, "Calibration slot %5d <=TF<=  %5d", mTFStart, mTFEnd);
+    LOGF(info, "Calibration slot %5d <=TF<=  %5d (start in ms = %ld)", mTFStart, mTFEnd, mTFStartMS);
     mContainer->print();
   }
 
