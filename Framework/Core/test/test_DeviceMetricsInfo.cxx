@@ -19,6 +19,70 @@
 #include <regex>
 #include <string_view>
 
+BOOST_AUTO_TEST_CASE(TestIndexedMetrics)
+{
+  using namespace o2::framework;
+  std::string metricString;
+  ParsedMetricMatch match;
+  bool result;
+  DeviceMetricsInfo info;
+  metricString = "[METRIC] array/1-10,0 12 1789372894 hostname=test.cern.chbar";
+  result = DeviceMetricsHelper::parseMetric(metricString, match);
+  BOOST_CHECK(result);
+  BOOST_CHECK(strncmp(match.beginKey, "array", 4) == 0);
+  BOOST_CHECK(match.firstIndex == 1);
+  BOOST_CHECK(match.lastIndex == 10);
+  BOOST_CHECK_EQUAL(match.timestamp, 1789372894);
+  BOOST_REQUIRE_EQUAL(match.type, MetricType::Int);
+  BOOST_CHECK_EQUAL(match.intValue, 12);
+}
+
+BOOST_AUTO_TEST_CASE(TestEnums)
+{
+  using namespace o2::framework;
+  {
+    std::string metricString;
+    ParsedMetricMatch match;
+    bool result;
+    DeviceMetricsInfo info;
+    metricString = "[METRIC] data_relayer/1,0 1 1789372894 hostname=test.cern.chbar";
+    result = DeviceMetricsHelper::parseMetric(metricString, match);
+    BOOST_CHECK(result);
+    BOOST_CHECK(strncmp(match.beginKey, "data_relayer/1", strlen("data_relayer/1")) == 0);
+    BOOST_CHECK(match.endKey - match.beginKey == strlen("data_relayer/1"));
+    BOOST_CHECK_EQUAL(match.timestamp, 1789372894);
+    BOOST_REQUIRE_EQUAL(match.type, MetricType::Enum);
+    BOOST_CHECK_EQUAL(match.intValue, 1);
+    BOOST_CHECK_EQUAL(match.uint64Value, 1);
+  }
+
+  {
+    std::string metricString;
+    ParsedMetricMatch match;
+    bool result;
+    DeviceMetricsInfo info;
+    metricString = "[METRIC] data_relayer/h,0 3 1662377068602 hostname=stillwater.dyndns.cern.ch,dataprocessor_id=D,dataprocessor_name=D,dpl_instance=0";
+    result = DeviceMetricsHelper::parseMetric(metricString, match);
+    BOOST_CHECK(result);
+    BOOST_CHECK(strncmp(match.beginKey, "data_relayer/h", strlen("data_relayer/h")) == 0);
+    BOOST_CHECK(match.endKey - match.beginKey == strlen("data_relayer/h"));
+    BOOST_CHECK_EQUAL(match.timestamp, 1662377068602);
+    BOOST_REQUIRE_EQUAL(match.type, MetricType::Int);
+    BOOST_CHECK_EQUAL(match.intValue, 3);
+    BOOST_CHECK_EQUAL(match.uint64Value, 3);
+  }
+
+  {
+    std::string metricString;
+    ParsedMetricMatch match;
+    bool result;
+    DeviceMetricsInfo info;
+    metricString = "[14:00:44][INFO] metric-feedback[0]: in: 0 (0 MB) out: 0 (0";
+    result = DeviceMetricsHelper::parseMetric(metricString, match);
+    BOOST_CHECK(result == false);
+  }
+}
+
 BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
 {
   using namespace o2::framework;

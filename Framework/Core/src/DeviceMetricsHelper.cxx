@@ -28,105 +28,201 @@
 namespace o2::framework
 {
 
+// Parser state for the metric string
+enum struct ParsingState {
+  IN_START,
+  IN_PREFIX,
+  IN_BEGIN_INDEX,
+  IN_END_INDEX,
+  IN_TYPE,
+  IN_INT_VALUE,
+  IN_UINT64_VALUE,
+  IN_FLOAT_VALUE,
+  IN_STRING_VALUE,
+  IN_TIMESTAMP,
+  IN_TAGS,
+  IN_EXIT,
+  IN_ERROR,
+};
 // Parses a metric in the form
 //
-// [METRIC] <name>,<type> <value> <timestamp> [<tag>,<tag>]
+// [METRIC] <name>[/<begin>[-<end>]],<type> <value> <timestamp>[ <tag>,<tag>]
+//
+// FIXME: I should probably also support the following format:
+//
+// [METRIC] <name>/<index1>:<index2>:<index3>,<type> <value>,<value>,<value> <timestamp>[ <tag>,<tag>]
+//
+// I.e. allow to specify multiple values for different indices.
 bool DeviceMetricsHelper::parseMetric(std::string_view const s, ParsedMetricMatch& match)
 {
-  /// Must start with "[METRIC] "
-  ///                  012345678
-  constexpr size_t PREFIXSIZE = 9;
-  if (s.size() < PREFIXSIZE) {
-    return false;
-  }
-  if (memcmp(s.data(), "[METRIC] ", 9) != 0) {
-    return false;
-  }
-  char const* comma;           // first comma
-  char const* spaces[256];     // list of spaces
-  char const** space = spaces; // first element to fill
+  ParsingState state = ParsingState::IN_START;
+  char const* cur = s.data();
+  char const* next = s.data();
+  char* err = nullptr;
+  // We need to keep track of the last and last but one space
+  // to be able to parse the timestamp and tags.
+  char const* lastSpace = nullptr;
+  char const* previousLastSpace = nullptr;
 
-  comma = (char const*)memchr((void*)s.data(), ',', s.size());
-  if (comma == nullptr) {
-    return false;
-  }
-  // Find all spaces
-  char const* nextSpace = s.data();
-  while (space - spaces < 256) {
-    *space = (const char*)memchr(nextSpace, ' ', s.size() - (nextSpace - s.data()));
-    if (*space == nullptr) {
-      break;
+  while (true) {
+    auto previousState = state;
+    state = ParsingState::IN_ERROR;
+    err = nullptr;
+    switch (previousState) {
+      case ParsingState::IN_START: {
+        if (strncmp(cur, "[METRIC] ", 9) == 0) {
+          next = cur + 8;
+          state = ParsingState::IN_PREFIX;
+          match.beginKey = cur + 9;
+        }
+      } break;
+      case ParsingState::IN_PREFIX: {
+        next = strpbrk(cur, ",/\n");
+        if (next == nullptr || *next == '\n' || ((cur == next) && (match.endKey - match.beginKey == 0))) {
+        } else if (*next == '/') {
+          // Notice that in case of indexed metrics
+          // we start by considering the key only
+          // the prefix, in case there is a range
+          // afterwards. If not, we will update the
+          // key to include the index.
+          match.endKey = next;
+          state = ParsingState::IN_BEGIN_INDEX;
+        } else if (*next == ',') {
+          match.endKey = next;
+          state = ParsingState::IN_TYPE;
+        }
+      } break;
+      case ParsingState::IN_BEGIN_INDEX: {
+        match.firstIndex = strtol(cur, &err, 10);
+        next = err;
+        if (*next == '-') {
+          state = ParsingState::IN_END_INDEX;
+        } else if (*next == ',') {
+          // In case there is no range, we
+          // maintain backwards compatibility
+          // with the old key format.
+          match.lastIndex = match.firstIndex + 1;
+          match.endKey = next;
+          state = ParsingState::IN_TYPE;
+        } else {
+          // We are still in prefix, we simply
+          // it a / in the middle of the metric
+          // so we skip it and go back to prefix.
+          match.firstIndex = -1;
+          match.endKey = next + 1;
+          state = ParsingState::IN_PREFIX;
+        }
+      } break;
+      case ParsingState::IN_END_INDEX: {
+        match.lastIndex = strtol(cur, &err, 10);
+        next = err;
+        if (cur == next) {
+        } else if (*next == ',') {
+          state = ParsingState::IN_TYPE;
+        }
+      } break;
+      case ParsingState::IN_TYPE: {
+        match.type = (MetricType)strtol(cur, &err, 10);
+        next = err;
+        if (cur == next) {
+        } else if (*next == ' ') {
+          if (match.type == MetricType::Int) {
+            state = ParsingState::IN_INT_VALUE;
+          } else if (match.type == MetricType::Uint64) {
+            state = ParsingState::IN_UINT64_VALUE;
+          } else if (match.type == MetricType::Float) {
+            state = ParsingState::IN_FLOAT_VALUE;
+          } else if (match.type == MetricType::String) {
+            state = ParsingState::IN_STRING_VALUE;
+            match.beginStringValue = next + 1;
+            match.endStringValue = next + 1;
+          } else {
+            break;
+          }
+          if (strncmp(match.beginKey, "data_relayer/", 13) == 0 && match.beginKey[13] != 'w' && match.beginKey[13] != 'h') {
+            match.type = MetricType::Enum;
+          }
+        }
+      } break;
+      case ParsingState::IN_INT_VALUE: {
+        match.intValue = strtol(cur, &err, 10);
+        next = err;
+        if (cur == next) {
+        } else if (*next == ' ') {
+          match.uint64Value = match.intValue;
+          match.floatValue = match.intValue;
+          state = ParsingState::IN_TIMESTAMP;
+        }
+      } break;
+      case ParsingState::IN_UINT64_VALUE: {
+        match.uint64Value = strtoull(cur, &err, 10);
+        next = err;
+        if (cur == next) {
+        } else if (*next == ' ') {
+          match.intValue = match.uint64Value;
+          match.floatValue = match.uint64Value;
+          state = ParsingState::IN_TIMESTAMP;
+        }
+      } break;
+      case ParsingState::IN_FLOAT_VALUE: {
+        match.floatValue = strtof(cur, &err);
+        next = err;
+        if (cur == next) {
+        } else if (*next == ' ') {
+          match.uint64Value = match.floatValue;
+          match.intValue = match.floatValue;
+          state = ParsingState::IN_TIMESTAMP;
+        }
+      } break;
+      case ParsingState::IN_STRING_VALUE: {
+        next = (char*)memchr(cur, ' ', s.data() + s.size() - cur);
+        if (next == nullptr) {
+          auto timestamp = strtoull(cur, &err, 10);
+          if (*err != '\n' && *err != '\0') {
+            // last word is not a number, backtrack
+            // to the previous space and assume it is the
+            // timestamp
+            match.endStringValue = previousLastSpace;
+            next = previousLastSpace;
+            state = ParsingState::IN_TIMESTAMP;
+          } else {
+            // We found a timestamp as last word.
+            match.endStringValue = lastSpace;
+            match.timestamp = timestamp;
+            next = err;
+            state = ParsingState::IN_EXIT;
+          }
+          break;
+          // This is the end of the string
+        } else if (*next == ' ') {
+          previousLastSpace = lastSpace;
+          lastSpace = next;
+          state = ParsingState::IN_STRING_VALUE;
+          break;
+        }
+      } break;
+      case ParsingState::IN_TIMESTAMP: {
+        match.timestamp = strtoull(cur, &err, 10);
+        next = err;
+        if (cur == next) {
+        } else if (*next == ' ') {
+          state = ParsingState::IN_TAGS;
+        } else if (next == s.data() + s.size() || *next == '\n') {
+          state = ParsingState::IN_EXIT;
+        }
+      } break;
+      case ParsingState::IN_TAGS: {
+        // Tags not handled for now.
+        state = ParsingState::IN_EXIT;
+      } break;
+      case ParsingState::IN_EXIT:
+        return true;
+      case ParsingState::IN_ERROR: {
+        return false;
+      }
     }
-    nextSpace = *space + 1;
-    space++;
+    cur = next + 1;
   }
-  // First space should always come before comma
-  if (spaces[0] > comma) {
-    return false;
-  }
-  match.beginKey = spaces[0] + 1;
-  match.endKey = comma;
-  // type is alway 1 char after the comma, followed by space
-  if ((spaces[1] - comma) != 2) {
-    return false;
-  }
-  char* ep = nullptr;
-  // Some metrics are special
-  match.type = static_cast<MetricType>(strtol(comma + 1, &ep, 10));
-  if (strncmp(match.beginKey, "data_relayer/", 13) == 0 && match.beginKey[13] != 'w' && match.beginKey[13] != 'h') {
-    match.type = MetricType::Enum;
-  }
-  if (ep != spaces[1]) {
-    return false;
-  }
-  // We need at least 4 spaces
-  if (space - spaces < 4) {
-    return false;
-  }
-  // Value is between the second and the last but one space
-  switch (match.type) {
-    case MetricType::Int:
-      match.intValue = strtol(spaces[1] + 1, &ep, 10);
-      if (ep != *(space - 2)) {
-        return false;
-      }
-      match.floatValue = (float)match.intValue;
-      break;
-    case MetricType::Float:
-      match.floatValue = strtof(spaces[1] + 1, &ep);
-      if (ep != *(space - 2)) {
-        return false;
-      }
-      break;
-    case MetricType::String:
-      match.beginStringValue = spaces[1] + 1;
-      match.endStringValue = *(space - 2);
-      match.floatValue = 0;
-      break;
-    case MetricType::Uint64:
-      match.uint64Value = strtoul(spaces[1] + 1, &ep, 10);
-      if (ep != *(space - 2)) {
-        return false;
-      }
-      match.floatValue = (float)match.uint64Value;
-      break;
-    case MetricType::Enum:
-      match.intValue = strtoul(spaces[1] + 1, &ep, 10);
-      if (ep != *(space - 2)) {
-        return false;
-      }
-      match.floatValue = (float)match.uint64Value;
-      break;
-
-    default:
-      return false;
-  }
-  // Timestamp is between the last but one and the last space
-  match.timestamp = strtol(*(space - 2) + 1, &ep, 10);
-  if (ep != *(space - 1)) {
-    return false;
-  }
-  return true;
 }
 
 static auto updatePrefix = [](std::string_view prefix, DeviceMetricsInfo& info, bool hasPrefix, std::vector<MetricPrefixIndex>::iterator pi) -> void {
@@ -164,7 +260,7 @@ static auto updatePrefix = [](std::string_view prefix, DeviceMetricsInfo& info, 
   }
 };
 
-static constexpr int DPL_MAX_METRICS_PER_DEVICE = 1024*128;
+static constexpr int DPL_MAX_METRICS_PER_DEVICE = 1024 * 128;
 
 static auto initMetric = [](DeviceMetricsInfo& info) -> void {
   // Add the timestamp buffer for it
@@ -178,7 +274,7 @@ static auto initMetric = [](DeviceMetricsInfo& info) -> void {
     for (size_t i = 0; i < info.metricLabels.size(); i++) {
       std::cout << info.metricLabels[i].label << std::endl;
     }
-    throw runtime_error_f("Too many metrics for a given device. Max is DPL_MAX_METRICS_PER_DEVICE=%d.", DPL_MAX_METRICS_PER_DEVICE );
+    throw runtime_error_f("Too many metrics for a given device. Max is DPL_MAX_METRICS_PER_DEVICE=%d.", DPL_MAX_METRICS_PER_DEVICE);
   }
 };
 

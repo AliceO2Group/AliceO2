@@ -76,8 +76,19 @@ struct MetricPrefixIndex {
 
 /// Temporary struct to hold a metric after it has been parsed.
 struct ParsedMetricMatch {
+  // Pointer to the first character of the metric name.
   char const* beginKey;
+  // Pointer to the last character of the metric name.
   char const* endKey;
+  // If the metric is in the form name/<begin>-<end>, this is /
+  // nullptr otherwise. If not nullptr, the actual
+  // metric name is given by the range [beginKey, beginRange) applied
+  // the key. I.e.:
+  // name/<begin>-<end> -> name/<begin>...name/<end>
+  // If the metric is in the form name/<begin>-<end>, this is <begin>
+  int firstIndex = -1;
+  // If the metric is in the form name/<begin>-<end>, this is <end>
+  int lastIndex = -1;
   size_t timestamp;
   MetricType type;
   int intValue;
