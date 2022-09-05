@@ -261,8 +261,8 @@ void RecEventFlat::decodeInfo(uint8_t ch, uint16_t code)
 }
 
 void RecEventFlat::centroidZNA(float &x, float &y){
-  const static float xc[4] = {17.6, -17.6, 17.6, -17.6};
-  const static float yc[4] = {-17.6, -17.6, 17.6, 17.6};
+  const static float xc[4] = {1.76, -1.76, 1.76, -1.76};
+  const static float yc[4] = {-1.76, -1.76, 1.76, 1.76};
   static float c[2] = {0};
   if(mComputed[0]){
     x=c[0];
@@ -307,8 +307,8 @@ void RecEventFlat::centroidZNA(float &x, float &y){
 }
 
 void RecEventFlat::centroidZNC(float &x, float &y){
-  const static float xc[4] = {17.6, -17.6, 17.6, -17.6};
-  const static float yc[4] = {-17.6, -17.6, 17.6, 17.6};
+  const static float xc[4] = {1.76, -1.76, 1.76, -1.76};
+  const static float yc[4] = {-1.76, -1.76, 1.76, 1.76};
   static float c[2] = {0};
   if(mComputed[1]){
     x=c[0];
@@ -382,17 +382,17 @@ float RecEventFlat::yZNC()
 
 float RecEventFlat::xZPA()
 {
-  const static float xc[4] = {28, 84, 140., 196.};
+  const static float xc[4] = {2.8, 8.4, 14.0, 19.6};
   static float c = 0;
   if(mComputed[2]){
     return c;
   }
   mComputed[2] = true;
   float e[4], w[4];
-  e[0] = EZDC(IdZNA1);
-  e[1] = EZDC(IdZNA2);
-  e[2] = EZDC(IdZNA3);
-  e[3] = EZDC(IdZNA4);
+  e[0] = EZDC(IdZPA1);
+  e[1] = EZDC(IdZPA2);
+  e[2] = EZDC(IdZPA3);
+  e[3] = EZDC(IdZPA4);
   if (e[0] < -1000000 || e[1] < -1000000 || e[2] < -1000000 || e[3] < -1000000) {
     c=-std::numeric_limits<float>::infinity();
     return c;
@@ -417,17 +417,17 @@ float RecEventFlat::xZPA()
 
 float RecEventFlat::xZPC()
 {
-  const static float xc[4] = {28, 84, 140., 196.};
+  const static float xc[4] = {-2.8, -8.4, -14.0, -19.6};
   static float c = 0;
   if(mComputed[3]){
     return c;
   }
   mComputed[3] = true;
   float e[4], w[4];
-  e[0] = EZDC(IdZNA1);
-  e[1] = EZDC(IdZNA2);
-  e[2] = EZDC(IdZNA3);
-  e[3] = EZDC(IdZNA4);
+  e[0] = EZDC(IdZPC1);
+  e[1] = EZDC(IdZPC2);
+  e[2] = EZDC(IdZPC3);
+  e[3] = EZDC(IdZPC4);
   if (e[0] < -1000000 || e[1] < -1000000 || e[2] < -1000000 || e[3] < -1000000) {
     c=-std::numeric_limits<float>::infinity();
     return c;
