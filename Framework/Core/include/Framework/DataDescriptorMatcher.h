@@ -20,9 +20,7 @@
 #include <cstdint>
 #include <iosfwd>
 #include <string>
-#if !defined(__CLING__) && !defined(__ROOTCLING__)
 #include <variant>
-#endif
 #include <vector>
 #include <ostream>
 
@@ -61,13 +59,8 @@ enum ContextPos {
 /// We do not have any float in the value, because AFAICT there is no need for
 /// it in the O2 DataHeader, however we could add it later on.
 struct ContextElement {
-
-#if !defined(__CLING__) && !defined(__ROOTCLING__)
   using Value = std::variant<uint32_t, uint64_t, std::string, None>;
-#else
-  using Value = None;
-#endif
-  std::string label;    /// The name of the variable contained in this element.
+  char label[24];       /// The name of the variable contained in this element.
   Value value = None{}; /// The actual contents of the element.
 };
 

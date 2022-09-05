@@ -9,11 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-namespace o2
-{
-namespace framework
-{
-namespace data_matcher
+namespace o2::framework::data_matcher
 {
 
 inline bool ContextRef::operator==(ContextRef const& other) const
@@ -164,6 +160,4 @@ inline bool ConstantValueMatcher::operator==(ConstantValueMatcher const& other) 
   return mValue == other.mValue;
 }
 
-} // namespace data_matcher
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework::data_matcher
