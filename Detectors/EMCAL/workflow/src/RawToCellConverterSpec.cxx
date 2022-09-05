@@ -12,6 +12,7 @@
 #include <iomanip>
 #include <iostream>
 #include <bitset>
+#include <map>
 
 #include <InfoLogger/InfoLogger.hxx>
 
@@ -131,6 +132,11 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   const auto tfOrbitFirst = ctx.services().get<o2::framework::TimingInfo>().firstTForbit;
   auto lml0delay = o2::ctp::TriggerOffsetsParam::Instance().LM_L0;
 
+//std::cout<<"=== tfOrbitFirst = " << tfOrbitFirst << "\n";
+  std::unordered_map<ULong64_t, std::bitset<46>> bcFreq;
+//std::unordered_map<ULong64_t, int> bcFreqN;
+
+  constexpr std::bitset<46> bitSetActiveLinks{0x307FFFDFFFFF}; // must come from CCDB or from a cfg file. to be fixed. 
   // Cache cells from for bunch crossings as the component reads timeframes from many links consecutively
   std::map<o2::InteractionRecord, std::shared_ptr<std::vector<RecCellInfo>>> cellBuffer; // Internal cell buffer
   std::map<o2::InteractionRecord, uint32_t> triggerBuffer;
@@ -176,6 +182,11 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       auto triggerOrbit = raw::RDHUtils::getTriggerOrbit(header);
       auto feeID = raw::RDHUtils::getFEEID(header);
       auto triggerbits = raw::RDHUtils::getTriggerType(header);
+
+      ULong64_t BCcoll =  ULong64_t(triggerBC) + ULong64_t(triggerOrbit*3564);
+      bcFreq[BCcoll].set(feeID, true);
+//      bcFreqN[BCcoll]++;
+//    std::cout<<"feeID = " << feeID<< ": orbit/bc = " << triggerOrbit<< "/" << triggerBC <<std::endl;
 
       int correctionShiftBCmod4 = 0;
       o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
@@ -586,6 +597,26 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     }
     mOutputTriggerRecords.emplace_back(bc, triggerBuffer[bc], eventstart, ncellsEvent);
   }
+
+
+
+  std::unordered_map<ULong64_t, std::bitset<46>>::iterator p;
+   for (p = bcFreq.begin(); p != bcFreq.end(); p++) {
+    if (p->second != bitSetActiveLinks){
+      LOG(error) << "Not all EMC active links contributed in global BCid=" << p->first << ": mask="<< p->second ;
+    }
+
+  }
+
+//  std::unordered_map<ULong64_t, int>::iterator pN;
+//   for (pN = bcFreqN.begin(); pN != bcFreqN.end(); pN++) {
+//    if (pN->second != 40) {
+//      std::cout << "BC_NDDL_ERROR: bc=" << pN->first << ", Nddl=" << pN->second <<", "<<bcFreq[pN->first]<< ")\n";
+//    }
+//  }
+
+    bcFreq.clear();
+//  bcFreqN.clear();
 
   LOG(info) << "[EMCALRawToCellConverter - run] Writing " << mOutputCells.size() << " cells from " << mOutputTriggerRecords.size() << " events ...";
   sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
