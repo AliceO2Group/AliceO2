@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file RawReaderZDC.h class  for RAW data reading
+// file RawReaderZDC.h class  for RAW data reading
 
 #ifndef ALICEO2_RAWREADERZDC_H_
 #define ALICEO2_RAWREADERZDC_H_
@@ -24,6 +24,7 @@
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/OrbitData.h"
 #include "ZDCSimulation/Digits2Raw.h"
+#include "ZDCBase/Constants.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/DataAllocator.h"
@@ -45,7 +46,9 @@ class RawReaderZDC
   std::vector<o2::zdc::BCData> mDigitsBC;          // Digitized bunch crossing data
   std::vector<o2::zdc::ChannelData> mDigitsCh;     // Digitized channel data
   std::vector<o2::zdc::OrbitData> mOrbitData;      // Digitized orbit data
-  bool mDumpData;                                  // Enable printout of all data
+  bool mDumpData = false;                          // Enable printout of all data
+  int mVerbosity = 0;                              // Verbosity level
+  uint32_t mEvents[NModules][NChPerModule] = {0};  // Debug words per module
 
  public:
   RawReaderZDC(bool dumpData) : mDumpData(dumpData) {}
@@ -56,14 +59,19 @@ class RawReaderZDC
 
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
+  void setVerbosity(int v)
+  {
+    mVerbosity = v;
+  }
+  int getVerbosity() const { return mVerbosity; }
   void setTriggerMask();
   void setVerifyTrigger(const bool verifyTrigger) { mVerifyTrigger = verifyTrigger; };
   bool getVerifyTrigger() { return mVerifyTrigger; };
 
   void clear();
 
-  //decoding binary data into data blocks
-  void processBinaryData(gsl::span<const uint8_t> payload, int linkID); //processing data blocks into digits
+  // decoding binary data into data blocks
+  void processBinaryData(gsl::span<const uint8_t> payload, int linkID); // processing data blocks into digits
   int processWord(const uint32_t* word);
   void process(const EventChData& ch);
 
@@ -83,6 +91,7 @@ class RawReaderZDC
     outputSpec.emplace_back("ZDC", "DIGITSCH", 0, o2::framework::Lifetime::Timeframe);
     outputSpec.emplace_back("ZDC", "DIGITSPD", 0, o2::framework::Lifetime::Timeframe);
   }
+
   void makeSnapshot(o2::framework::ProcessingContext& pc)
   {
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginZDC, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mDigitsBC);

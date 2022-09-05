@@ -149,6 +149,7 @@ void DigitRecoSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, vo
 void DigitRecoSpec::run(ProcessingContext& pc)
 {
   if (!mInitialized) {
+    LOG(info) << "DigitRecoSpec::run initialization";
     mInitialized = true;
     updateTimeDependentParams(pc);
     if (mDebugOut) {

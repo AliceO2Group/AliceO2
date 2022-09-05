@@ -80,25 +80,7 @@ class DigiReco
   {
     mTreeDbg = state;
   }
-  void eor()
-  {
-    if (mTreeDbg) {
-      LOG(info) << "o2::zdc::DigiReco: closing debug output";
-      mTDbg->Write();
-      mTDbg.reset();
-      mDbg->Close();
-      mDbg.reset();
-    }
-    if (mNLonely > 0) {
-      LOG(info) << "Detected " << mNLonely << " lonely bunches";
-      for (int ib = 0; ib < o2::constants::lhc::LHCMaxBunches; ib++) {
-        if (mLonely[ib]) {
-          LOG(info) << "lonely " << ib << " " << mLonely[ib] << " T " << mLonelyTrig[ib];
-        }
-      }
-    }
-  }
-
+  void eor();
   uint8_t getTriggerCondition() { return mTriggerCondition; }
   void setTripleTrigger() { mTriggerCondition = 0x7; }
   void setDoubleTrigger() { mTriggerCondition = 0x3; }
@@ -171,6 +153,7 @@ class DigiReco
   bool mLowPassFilterSet = false;                            /// Low pass filtering set via function call
   bool mFullInterpolation = false;                           /// Full waveform interpolation
   bool mFullInterpolationSet = false;                        /// Full waveform interpolation set via function call
+  int mInterpolationStep = 25;                               /// Coarse interpolation step
   bool mCorrSignal = true;                                   /// Enable TDC signal correction
   bool mCorrSignalSet = false;                               /// TDC signal correction set via function call
   bool mCorrBackground = true;                               /// Enable TDC pile-up correction
@@ -216,6 +199,7 @@ class DigiReco
   int mNLonely = 0;
   int mLonely[o2::constants::lhc::LHCMaxBunches] = {0};
   int mLonelyTrig[o2::constants::lhc::LHCMaxBunches] = {0};
+  uint32_t mMissingPed[NChannels] = {0};
   int16_t tdc_shift[NTDCChannels] = {0};                          /// TDC correction (units of 1/96 ns)
   float tdc_calib[NTDCChannels] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1}; /// TDC correction factor
   constexpr static uint16_t mMask[NTimeBinsPerBC] = {0x0001, 0x002, 0x004, 0x008, 0x0010, 0x0020, 0x0040, 0x0080, 0x0100, 0x0200, 0x0400, 0x0800};
