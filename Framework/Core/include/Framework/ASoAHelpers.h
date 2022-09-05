@@ -164,7 +164,6 @@ std::vector<BinningIndex> groupTable(const T& table, const BP<Cs...>& binningPol
     }
   }
 
-  LOG(info) << "Grouped indices size: " << groupedIndices.size() << " last: " << groupedIndices.end()->bin << " " << groupedIndices.end()->index;
   return groupedIndices;
 }
 
@@ -1025,7 +1024,6 @@ struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockS
       std::get<i.value>(this->mCurrentIndices) = std::get<0>(this->mCurrentIndices) + i.value;
       std::get<i.value>(this->mCurrent).setCursor(this->mGroupedIndices[std::get<i.value>(this->mCurrentIndices)].index);
       std::get<i.value>(this->mMaxOffset) = lastOffset - k + i.value + 1;
-      LOG(info) << "max offset at i: " << i.value << ": " << std::get<i.value>(this->mMaxOffset);
     });
   }
 
@@ -1055,9 +1053,6 @@ struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockS
     });
 
     this->mIsNewWindow = modify;
-    if (modify) {
-      LOG(info) << "New window processed";
-    }
 
     // First iterator processed separately
     if (modify) {
@@ -1067,7 +1062,6 @@ struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockS
       // If we remain within the same category - slide window
       if (curGroupedInd < std::get<0>(this->mMaxOffset)) {
         std::get<0>(this->mCurrent).setCursor(this->mGroupedIndices[curGroupedInd].index);
-        LOG(info) << "Same bin, first iterator: " << this->mGroupedIndices[curGroupedInd].index;
         for_<k - 1>([&, this](auto j) {
           constexpr auto curJ = j.value + 1;
           std::get<curJ>(this->mCurrentIndices) = std::get<curJ - 1>(this->mCurrentIndices) + 1;
@@ -1078,21 +1072,13 @@ struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockS
       }
     }
 
-    if (modify) {
-      LOG(info) << "Moving to the next bin, last index: " << std::get<k - 1>(this->mCurrentIndices) << " number of all grouped indices: " << this->mGroupedIndices.size();
-    }
-
     // No more combinations within this category - move to the next category, if possible
     if (modify && std::get<k - 1>(this->mCurrentIndices) < this->mGroupedIndices.size()) {
-      LOG(info) << "Last index: " << std::get<k - 1>(this->mCurrentIndices) << " less than all: " << this->mGroupedIndices.size() << ", still modifying";
       for_<k>([&, this](auto m) {
         std::get<m.value>(this->mCurrentIndices) = std::get<m.value>(this->mMaxOffset) + k - 1;
       });
-      LOG(info) << "Last index less than all, setting ranges";
       setRanges();
       return;
-    } else {
-      LOG(info) << "End of bins, last index: " << std::get<k - 1>(this->mCurrentIndices) << " no less than all: " << this->mGroupedIndices.size();
     }
 
     this->mIsEnd = modify;
