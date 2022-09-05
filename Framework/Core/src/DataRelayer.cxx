@@ -282,7 +282,6 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       }
       continue;
     }
-    bool droppingNotCondition = false;
     mPruneOps.push_back(PruneOp{si});
     for (size_t mi = 0; mi < mInputs.size(); ++mi) {
       auto& input = mInputs[mi];
