@@ -153,13 +153,15 @@ struct GroupedCombinationsGenerator {
     auto getAssociatedTable()
     {
       uint64_t ind = *std::get<0>(std::get<I>(this->mCurrent).getIndices());
+      if (std::get<I>(*mAssociated).size() == 0) {
+        return std::get<I>(*mAssociated);
+      }
       return std::get<I>(*mAssociated).sliceByCached(mIndexColumns[I], ind);
     }
 
     void setCurrentGroupedCombination()
     {
       if (!this->mIsEnd) {
-        LOG(info) << "No end yet, setting new associated tables";
         auto& currentGrouping = GroupingPolicy::mCurrent;
         mSlices.emplace(getAssociatedTables());
         mCurrentGrouped.emplace(interleaveTuples(currentGrouping, *mSlices));
