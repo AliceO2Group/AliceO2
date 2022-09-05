@@ -382,7 +382,7 @@ float RecEventFlat::yZNC()
 
 float RecEventFlat::xZPA()
 {
-  const static float xc[4] = {2.8, 8.4, 14., 19.6};
+  const static float xc[4] = {28, 84, 140., 196.};
   static float c = 0;
   if(mComputed[2]){
     return c;
@@ -417,7 +417,7 @@ float RecEventFlat::xZPA()
 
 float RecEventFlat::xZPC()
 {
-  const static float xc[4] = {2.8, 8.4, 14., 19.6};
+  const static float xc[4] = {28, 84, 140., 196.};
   static float c = 0;
   if(mComputed[3]){
     return c;
