@@ -393,7 +393,7 @@ void TrackResiduals::doOutlierRejection(bool writeToFile)
         continue;
       }
       ++nClValidated;
-      float tgPhi = std::tan(std::asin(clRes[clIdx].phi));
+      float tgPhi = clRes[clIdx].snp / std::sqrt((1.f - clRes[clIdx].snp) * (1.f + clRes[clIdx].snp));
       mUnbinnedResiduals.emplace_back(clRes[clIdx].dy, clRes[clIdx].dz, tgPhi, clRes[clIdx].y, clRes[clIdx].z, iRow, clRes[clIdx].sec);
     }
     trkDataOut.clIdx.setEntries(nClValidated);
