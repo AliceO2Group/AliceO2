@@ -60,8 +60,6 @@ struct RateLimitConfig {
   int64_t maxTimeframes = 0;
 };
 
-static int64_t memLimit = 0;
-
 struct MetricIndices {
   size_t arrowBytesCreated = -1;
   size_t arrowBytesDestroyed = -1;
@@ -126,7 +124,6 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        int64_t totalMessagesDestroyed = 0;
                        int64_t totalTimeframesRead = 0;
                        int64_t totalTimeframesConsumed = 0;
-                       static RateLimitingState currentState = RateLimitingState::UNKNOWN;
                        static auto stateMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "rate-limit-state");
                        static auto totalBytesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-created");
                        static auto shmOfferConsumedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-shm-offer-bytes-consumed");
@@ -148,10 +145,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        auto& manager = registry.get<DevicesManager>();
 
                        bool changed = false;
-                       bool hasMetrics = false;
 
                        size_t lastTimestamp = 0;
-                       size_t firstTimestamp = -1;
                        static std::vector<MetricIndices> allIndices = createDefaultIndices(allDeviceMetrics);
                        for (size_t mi = 0; mi < allDeviceMetrics.size(); ++mi) {
                          auto& deviceMetrics = allDeviceMetrics[mi];
@@ -161,93 +156,81 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          auto& indices = allIndices[mi];
                          {
                            size_t index = indices.arrowBytesCreated;
-                           if (index < deviceMetrics.metrics.size()) {
-                             hasMetrics = true;
-                             changed |= deviceMetrics.changed[index];
-                             MetricInfo info = deviceMetrics.metrics[index];
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             auto const& timestamps = DeviceMetricsHelper::getTimestampsStore<uint64_t>(deviceMetrics).at(info.storeIdx);
-                             auto value = (int64_t)data.at((info.pos - 1) % data.size());
-                             totalBytesCreated += value;
-                             lastTimestamp = std::max(lastTimestamp, timestamps[(info.pos - 1) % data.size()]);
-                             firstTimestamp = std::min(lastTimestamp, firstTimestamp);
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           changed |= deviceMetrics.changed[index];
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           auto const& timestamps = DeviceMetricsHelper::getTimestampsStore<uint64_t>(deviceMetrics)[info.storeIdx];
+                           auto value = (int64_t)data[(info.pos - 1) % data.size()];
+                           totalBytesCreated += value;
+                           lastTimestamp = std::max(lastTimestamp, timestamps[(info.pos - 1) % data.size()]);
                          }
                          {
                            size_t index = indices.shmOfferConsumed;
-                           if (index < deviceMetrics.metrics.size()) {
-                             hasMetrics = true;
-                             changed |= deviceMetrics.changed[index];
-                             MetricInfo info = deviceMetrics.metrics[index];
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             auto const& timestamps = DeviceMetricsHelper::getTimestampsStore<uint64_t>(deviceMetrics).at(info.storeIdx);
-                             auto value = (int64_t)data.at((info.pos - 1) % data.size());
-                             shmOfferConsumed += value;
-                             lastTimestamp = std::max(lastTimestamp, timestamps[(info.pos - 1) % data.size()]);
-                             firstTimestamp = std::min(lastTimestamp, firstTimestamp);
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           changed |= deviceMetrics.changed[index];
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           auto const& timestamps = DeviceMetricsHelper::getTimestampsStore<uint64_t>(deviceMetrics)[info.storeIdx];
+                           auto value = (int64_t)data[(info.pos - 1) % data.size()];
+                           shmOfferConsumed += value;
+                           lastTimestamp = std::max(lastTimestamp, timestamps[(info.pos - 1) % data.size()]);
                          }
                          {
                            size_t index = indices.arrowBytesDestroyed;
-                           if (index < deviceMetrics.metrics.size()) {
-                             hasMetrics = true;
-                             changed |= deviceMetrics.changed[index];
-                             MetricInfo info = deviceMetrics.metrics[index];
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             totalBytesDestroyed += (int64_t)data.at((info.pos - 1) % data.size());
-                             firstTimestamp = std::min(lastTimestamp, firstTimestamp);
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           changed |= deviceMetrics.changed[index];
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           totalBytesDestroyed += (int64_t)data[(info.pos - 1) % data.size()];
                          }
                          {
                            size_t index = indices.arrowBytesExpired;
-                           if (index < deviceMetrics.metrics.size()) {
-                             hasMetrics = true;
-                             changed |= deviceMetrics.changed[index];
-                             MetricInfo info = deviceMetrics.metrics[index];
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             totalBytesExpired += (int64_t)data.at((info.pos - 1) % data.size());
-                             firstTimestamp = std::min(lastTimestamp, firstTimestamp);
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           changed |= deviceMetrics.changed[index];
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           totalBytesExpired += (int64_t)data[(info.pos - 1) % data.size()];
                          }
                          {
                            size_t index = indices.arrowMessagesCreated;
-                           if (index < deviceMetrics.metrics.size()) {
-                             MetricInfo info = deviceMetrics.metrics[index];
-                             changed |= deviceMetrics.changed[index];
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             totalMessagesCreated += (int64_t)data.at((info.pos - 1) % data.size());
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           changed |= deviceMetrics.changed[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           totalMessagesCreated += (int64_t)data[(info.pos - 1) % data.size()];
                          }
                          {
                            size_t index = indices.arrowMessagesDestroyed;
-                           if (index < deviceMetrics.metrics.size()) {
-                             MetricInfo info = deviceMetrics.metrics[index];
-                             changed |= deviceMetrics.changed[index];
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             totalMessagesDestroyed += (int64_t)data.at((info.pos - 1) % data.size());
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           changed |= deviceMetrics.changed[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           totalMessagesDestroyed += (int64_t)data[(info.pos - 1) % data.size()];
                          }
                          {
                            size_t index = indices.timeframesRead;
-                           if (index < deviceMetrics.metrics.size()) {
-                             hasMetrics = true;
-                             changed |= deviceMetrics.changed[index];
-                             MetricInfo info = deviceMetrics.metrics[index];
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             totalTimeframesRead += (int64_t)data.at((info.pos - 1) % data.size());
-                             firstTimestamp = std::min(lastTimestamp, firstTimestamp);
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           changed |= deviceMetrics.changed[index];
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           totalTimeframesRead += (int64_t)data[(info.pos - 1) % data.size()];
                          }
                          {
                            size_t index = indices.timeframesConsumed;
-                           if (index < deviceMetrics.metrics.size()) {
-                             hasMetrics = true;
-                             changed |= deviceMetrics.changed[index];
-                             MetricInfo info = deviceMetrics.metrics[index];
-                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
-                             totalTimeframesConsumed += (int64_t)data.at((info.pos - 1) % data.size());
-                             firstTimestamp = std::min(lastTimestamp, firstTimestamp);
-                           }
+                           assert(index < deviceMetrics.metrics.size());
+                           changed |= deviceMetrics.changed[index];
+                           MetricInfo info = deviceMetrics.metrics[index];
+                           assert(info.storeIdx < deviceMetrics.uint64Metrics.size());
+                           auto& data = deviceMetrics.uint64Metrics[info.storeIdx];
+                           totalTimeframesConsumed += (int64_t)data[(info.pos - 1) % data.size()];
                          }
                        }
                        if (changed) {
