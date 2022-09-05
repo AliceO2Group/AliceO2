@@ -14,6 +14,7 @@
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/RuntimeError.h"
+#include "Framework/TimesliceSlot.h"
 #include "Headers/DataHeader.h"
 
 #include <array>
@@ -62,6 +63,8 @@ struct ContextElement {
   using Value = std::variant<uint32_t, uint64_t, std::string, None>;
   char label[24];       /// The name of the variable contained in this element.
   Value value = None{}; /// The actual contents of the element.
+  size_t commitVersion = -1;  /// The committed version of the element. Every time we commit something to it, we bump the version.
+  size_t publishVersion = -1; /// The version of the element which has been published to the GUI.
 };
 
 struct ContextUpdate {
@@ -78,6 +81,12 @@ class VariableContext
   inline VariableContext();
 
   ContextElement::Value const& get(size_t pos) const;
+
+  /// Publish the context to the GUI / monitoring.
+  /// @a callback is a function which will be called for each element
+  /// @a context is userdata which will be passed to the callback.
+  /// @a name is the name of the metrics to be used.
+  void publish(void (*callback)(ContextElement::Value const&, std::string const& name, void* context), void* context, TimesliceSlot slot, std::vector<std::string> const& names);
 
   inline void put(ContextUpdate&& update);
 
