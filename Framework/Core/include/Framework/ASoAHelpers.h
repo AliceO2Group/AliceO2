@@ -1092,7 +1092,7 @@ struct CombinationsBlockStrictlyUpperSameIndexPolicy : public CombinationsBlockS
       setRanges();
       return;
     } else {
-      LOG(info) << "End of bins, last index: " << std::get<k - 1>(this->mCurrentIndices) << " less than all: " << this->mGroupedIndices.size();
+      LOG(info) << "End of bins, last index: " << std::get<k - 1>(this->mCurrentIndices) << " no less than all: " << this->mGroupedIndices.size();
     }
 
     this->mIsEnd = modify;
