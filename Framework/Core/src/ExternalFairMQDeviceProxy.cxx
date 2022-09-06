@@ -502,6 +502,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         for (auto& info : deviceState->inputChannelInfos) {
           info.state = InputChannelState::Completed;
         }
+        numberOfEoS = 0;
         control->endOfStream();
       }
     };
