@@ -54,6 +54,18 @@ class CalibInfoTOF
   float tofExpSigmaKa() const { return 500.0; }
   float tofExpSigmaPr() const { return 500.0; }
 
+  enum Flags {
+    kTPC = BIT(0),
+    kITSTPC = BIT(1),
+    kTPCTRD = BIT(2),
+    kITSTPCTRD = BIT(3),
+    kBelow = BIT(4),    // < 0.5 GeV/c
+    kAbove = BIT(5),    // > 1.5 GeV/c
+    kNoBC = BIT(6),     // no BC in the range
+    kMultiHit = BIT(7), // single hit cluster
+    kNotUsed = BIT(31)
+  };
+
  private:
   int mTOFChIndex;      // index of the TOF channel
   int mTimestamp;       // timestamp in seconds
