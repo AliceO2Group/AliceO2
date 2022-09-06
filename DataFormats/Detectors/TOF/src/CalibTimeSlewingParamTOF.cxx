@@ -33,7 +33,10 @@ CalibTimeSlewingParamTOF::CalibTimeSlewingParamTOF()
 //______________________________________________
 float CalibTimeSlewingParamTOF::getChannelOffset(int channel) const
 {
-  return evalTimeSlewing(channel, 0);
+  int sector = channel / NCHANNELXSECTOR;
+  channel = channel % NCHANNELXSECTOR;
+
+  return (*(mGlobalOffset[sector]))[channel];
 }
 
 //______________________________________________
@@ -149,6 +152,9 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
   // totIn is in ns
   // the correction is returned in ps
 
+  static unsigned short maxshort = 65535; // in ps
+  static float maxval = maxshort * 1E-3;  // in ns
+
   int sector = channel / NCHANNELXSECTOR;
   channel = channel % NCHANNELXSECTOR;
 
@@ -158,7 +164,7 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
 
   int n = (*(mChannelStart[sector]))[channel];
   if (n < 0) {
-    return 0.;
+    return (*(mGlobalOffset[sector]))[channel];
   }
   int nstop = mTimeSlewing[sector]->size();
 
@@ -167,11 +173,15 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
   }
 
   if (n >= nstop) {
-    return 0.; // something went wrong!
+    return (*(mGlobalOffset[sector]))[channel]; // something went wrong!
   }
 
   if (totIn == 0) {
     return (float)((*(mTimeSlewing[sector]))[n].second + (*(mGlobalOffset[sector]))[channel]);
+  }
+
+  if (totIn > maxval) {
+    totIn = maxval;
   }
 
   // we convert tot from ns to ps and to unsigned short
@@ -183,7 +193,7 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
   n--;
 
   if (n < 0) { // tot is lower than the first available value
-    return 0;
+    return (*(mGlobalOffset[sector]))[channel];
   }
 
   if (n == nstop - 1) {
@@ -196,7 +206,67 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
   return (float)((*(mGlobalOffset[sector]))[channel] + (((*(mTimeSlewing[sector]))[n].second * w2 + (*(mTimeSlewing[sector]))[n + 1].second * w1) / ((*(mTimeSlewing[sector]))[n + 1].first - (*(mTimeSlewing[sector]))[n].first)));
 }
 //______________________________________________
+void CalibTimeSlewingParamTOF::setTimeSlewingInfo(int channel, float offsetold, int nold, const unsigned short* oldtot, const short* olddt, int nnew, const unsigned short* newtot, const short* newdt)
+{
+  // to be used when updating new calibration from scratch and merging it with the old one (all channels should be called in order)
+  int sector = channel / NCHANNELXSECTOR;
+  channel = channel % NCHANNELXSECTOR;
 
+  // work with float to avoid to loose precision due to short (in case offset will be adjust before to move deltat to short)
+  std::vector<float> deltat;
+
+  float minVal = 0;
+  float maxVal = 0;
+
+  if (nnew >= nold) { // use new binning
+    int j = 0;
+    for (int i = 0; i < nnew; i++) {
+      while (j < nold && oldtot[j + 1] < newtot[i]) {
+        j++;
+      }
+      float val = float(newdt[i]) + olddt[j];
+      //      printf("%d %d -> %f\n",i,j,val);
+      deltat.push_back(val);
+      if (val < minVal) {
+        minVal = val;
+      }
+      if (val > maxVal) {
+        maxVal = val;
+      }
+    }
+    float recentering = (minVal + maxVal) * 0.5;
+    (*(mGlobalOffset[sector]))[channel] = offsetold + recentering;
+    //    printf("update channel offset for sec=%d/ch=%d -> %f\n",sector,channel,(*(mGlobalOffset[sector]))[channel]);
+    (*(mChannelStart[sector]))[channel] = mTimeSlewing[sector]->size();
+
+    for (int i = 0; i < nnew; i++) {
+      (*(mTimeSlewing[sector])).emplace_back(newtot[i], (short)(deltat[i] - recentering));
+      //      printf("%d) %d\n",i,(*(mTimeSlewing[sector]))[i]);
+    }
+  } else { // use old binning
+    int j = 0;
+    for (int i = 0; i < nold; i++) {
+      while (j < nnew && newtot[j + 1] < oldtot[i]) {
+        j++;
+      }
+      float val = float(olddt[i]) + newdt[j];
+      deltat.push_back(val);
+      if (val < minVal) {
+        minVal = val;
+      }
+      if (val > maxVal) {
+        maxVal = val;
+      }
+    }
+    float recentering = (minVal + maxVal) * 0.5;
+    (*(mGlobalOffset[sector]))[channel] = offsetold + recentering;
+    (*(mChannelStart[sector]))[channel] = mTimeSlewing[sector]->size();
+    for (int i = 0; i < nold; i++) {
+      (*(mTimeSlewing[sector])).emplace_back(oldtot[i], (short)(deltat[i] - recentering));
+    }
+  }
+}
+//______________________________________________
 void CalibTimeSlewingParamTOF::addTimeSlewingInfo(int channel, float tot, float time)
 {
   // WE ARE ASSUMING THAT:

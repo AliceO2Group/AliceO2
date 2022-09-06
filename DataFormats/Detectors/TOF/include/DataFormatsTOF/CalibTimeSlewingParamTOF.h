@@ -42,6 +42,7 @@ class CalibTimeSlewingParamTOF
   float evalTimeSlewing(int channel, float tot) const;
 
   void addTimeSlewingInfo(int channel, float tot, float time);
+  void setTimeSlewingInfo(int channel, float offsetold, int nold, const unsigned short* oldtot, const short* olddt, int nnew, const unsigned short* newtot, const short* newdt);
 
   bool updateOffsetInfo(int channel, float residualOffset);
 
