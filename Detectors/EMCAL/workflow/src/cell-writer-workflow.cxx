@@ -28,7 +28,7 @@ using namespace o2::emcal;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{{"disable-mc", VariantType::Bool, false, {"Do not propagate MC labels"}},
-                                       {"subspec", VariantType::UInt32, 0, {"Input subspecification"}},
+                                       {"subspec", VariantType::UInt32, 0U, {"Input subspecification"}},
                                        {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
 }
