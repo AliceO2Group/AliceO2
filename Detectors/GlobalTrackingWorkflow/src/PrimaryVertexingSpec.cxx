@@ -47,8 +47,8 @@ namespace o2d = o2::dataformats;
 class PrimaryVertexingSpec : public Task
 {
  public:
-  PrimaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool skip, bool validateWithIR, bool useMC)
-    : mDataRequest(dr), mGGCCDBRequest(gr), mSkip(skip), mUseMC(useMC), mValidateWithIR(validateWithIR) {}
+  PrimaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool skip, bool validateWithIR, bool useMC)
+    : mDataRequest(dr), mGGCCDBRequest(gr), mTrackSrc(src), mSkip(skip), mUseMC(useMC), mValidateWithIR(validateWithIR) {}
   ~PrimaryVertexingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -60,6 +60,7 @@ class PrimaryVertexingSpec : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   o2::vertexing::PVertexer mVertexer;
+  GTrackID::mask_t mTrackSrc{};
   bool mSkip{false};           ///< skip vertexing
   bool mUseMC{false};          ///< MC flag
   bool mValidateWithIR{false}; ///< require vertex validation with IR (e.g. from FT0)
@@ -120,7 +121,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
       return true;
     };
 
-    recoData.createTracksVariadic(creator); // create track sample considered for vertexing
+    recoData.createTracksVariadic(creator, mTrackSrc); // create track sample considered for vertexing
 
     if (mUseMC) {
       recoData.fillTrackMCLabels(gids, tracksMCInfo);
@@ -237,7 +238,7 @@ DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool skip, bool 
     "primary-vertexing",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(dataRequest, ggRequest, skip, validateWithFT0, useMC)},
+    AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(dataRequest, ggRequest, src, skip, validateWithFT0, useMC)},
     Options{{"pool-dumps-directory", VariantType::String, "", {"Destination directory for the tracks pool dumps"}}}};
 }
 
