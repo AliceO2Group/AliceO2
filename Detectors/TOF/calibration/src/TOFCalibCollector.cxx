@@ -35,6 +35,14 @@ void TOFCalibInfoSlot::fill(const gsl::span<const o2::dataformats::CalibInfoTOF>
   int nd = data.size();
   LOG(info) << "entries in incoming data = " << nd;
   for (int i = 0; i < nd; i++) {
+    auto flags = data[i].getFlags();
+    if (flags & o2::dataformats::CalibInfoTOF::kMultiHit) { // skip multi-hit clusters
+      continue;
+    }
+    if (flags & o2::dataformats::CalibInfoTOF::kNoBC) { // skip events far from Int BC
+      continue;
+    }
+
     mTOFCollectedCalibInfoSlot.emplace_back(data[i].getTOFChIndex(), data[i].getTimestamp(), data[i].getDeltaTimePi(), data[i].getTot(), data[i].getFlags());
     mEntriesSlot[data[i].getTOFChIndex()]++;
   }

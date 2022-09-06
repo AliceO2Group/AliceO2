@@ -152,9 +152,6 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
   // totIn is in ns
   // the correction is returned in ps
 
-  static unsigned short maxshort = 65535; // in ps
-  static float maxval = maxshort * 1E-3;  // in ns
-
   int sector = channel / NCHANNELXSECTOR;
   channel = channel % NCHANNELXSECTOR;
 
@@ -180,8 +177,8 @@ float CalibTimeSlewingParamTOF::evalTimeSlewing(int channel, float totIn) const
     return (float)((*(mTimeSlewing[sector]))[n].second + (*(mGlobalOffset[sector]))[channel]);
   }
 
-  if (totIn > maxval) {
-    totIn = maxval;
+  if (totIn > MAXTOT) {
+    totIn = MAXTOT;
   }
 
   // we convert tot from ns to ps and to unsigned short

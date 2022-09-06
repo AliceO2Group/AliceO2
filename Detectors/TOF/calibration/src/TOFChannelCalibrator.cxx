@@ -66,6 +66,14 @@ void TOFChannelData::fill(const gsl::span<const o2::dataformats::CalibInfoTOF> d
 
   // fill container
   for (int i = data.size(); i--;) {
+    auto flags = data[i].getFlags();
+    if (flags & o2::dataformats::CalibInfoTOF::kMultiHit) { // skip multi-hit clusters
+      continue;
+    }
+    if (flags & o2::dataformats::CalibInfoTOF::kNoBC) { // skip events far from Int BC
+      continue;
+    }
+
     auto ch = data[i].getTOFChIndex();
     int sector = ch / Geo::NPADSXSECTOR;
     int chInSect = ch % Geo::NPADSXSECTOR;

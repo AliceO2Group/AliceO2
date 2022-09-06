@@ -1105,34 +1105,43 @@ void MatchTOF::selectBestMatches()
     }
 
     // add also calibration infos
-    if (sourceID == o2::dataformats::GlobalTrackID::ITSTPC) {
-      int mask = 0;
-      int flags = o2::dataformats::CalibInfoTOF::kITSTPC;
-      float deltat = o2::tof::Utils::subtractInteractionBC(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion), mask, true);
-
-      float pt = 1.0;
-
-      if (pt > 1.5) {
-        flags = flags || o2::dataformats::CalibInfoTOF::kAbove;
-      }
-
-      if (pt < 0.5) {
-        flags = flags || o2::dataformats::CalibInfoTOF::kBelow;
-      }
-
-      if (mask == 0) {
-        flags = flags || o2::dataformats::CalibInfoTOF::kNoBC;
-      }
-
-      if (mTOFClusWork[matchingPair.getTOFClIndex()].getNumOfContributingChannels() != 1) {
-        flags = flags || o2::dataformats::CalibInfoTOF::kMultiHit;
-      }
-
-      mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
-                                 mTimestamp / 1000 + int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
-                                 deltat,
-                                 mTOFClusWork[matchingPair.getTOFClIndex()].getTot(), mask, flags);
+    int flags = 0;
+    if (sourceID == o2::dataformats::GlobalTrackID::TPC) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kTPC;
+    } else if (sourceID == o2::dataformats::GlobalTrackID::ITSTPC) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kITSTPC;
+    } else if (sourceID == o2::dataformats::GlobalTrackID::TPCTRD) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kTPCTRD;
+    } else if (sourceID == o2::dataformats::GlobalTrackID::ITSTPCTRD) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kITSTPCTRD;
     }
+
+    int mask = 0;
+    float deltat = o2::tof::Utils::subtractInteractionBC(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion), mask, true);
+
+    const o2::track::TrackParCov& trc = mTracksWork[trkType][itrk].first;
+    float pt = trc.getPt(); // from outer parameters!
+
+    if (pt > 1.5) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kAbove;
+    }
+
+    if (pt < 0.5) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kBelow;
+    }
+
+    if (mask == 0) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kNoBC;
+    }
+
+    if (mTOFClusWork[matchingPair.getTOFClIndex()].getNumOfContributingChannels() != 1) {
+      flags = flags | o2::dataformats::CalibInfoTOF::kMultiHit;
+    }
+
+    mCalibInfoTOF.emplace_back(mTOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
+                               mTimestamp / 1000 + int(mTOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
+                               deltat,
+                               mTOFClusWork[matchingPair.getTOFClIndex()].getTot(), mask, flags);
 
     if (mMCTruthON) {
       const auto& labelsTOF = mTOFClusLabels->getLabels(matchingPair.getTOFClIndex());
