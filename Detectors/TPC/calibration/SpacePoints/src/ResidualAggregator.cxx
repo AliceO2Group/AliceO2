@@ -198,7 +198,7 @@ void ResidualsContainer::fill(const o2::dataformats::TFIDInfo& ti, const std::pa
 void ResidualsContainer::writeToFile(bool closeFileAfterwards)
 {
   LOG(info) << "Writing results to file. Closing afterwards? " << closeFileAfterwards;
-  fillStatisticsBranches(); // TODO these would need to be filled only once, so only the last entry is important
+  fillStatisticsBranches(); // these would need to be filled only once, so only the last entry is important
   fileOut->cd();
   if (writeBinnedResid) {
     treeOutResiduals->Write();

@@ -54,7 +54,7 @@ struct TPCClusterResiduals {
   float dz{};           ///< residual in Z
   float y{};            ///< Y position of track
   float z{};            ///< Z position of track
-  float phi{};          ///< phi angle of track
+  float snp{};          ///< sin of the phi angle between padrow and track
   float tgl{};          ///< dip angle of track
   unsigned char sec{};  ///< sector number 0..35
   unsigned char dRow{}; ///< distance to previous row in units of pad rows
@@ -62,9 +62,9 @@ struct TPCClusterResiduals {
   void setDZ(float val) { dz = fabs(val) < param::MaxResid ? val : std::copysign(param::MaxResid, val); }
   void setY(float val) { y = fabs(val) < param::MaxY ? val : std::copysign(param::MaxY, val); }
   void setZ(float val) { z = fabs(val) < param::MaxZ ? val : std::copysign(param::MaxZ, val); }
-  void setPhi(float val) { phi = fabs(val) < param::MaxTgSlp ? val : std::copysign(param::MaxTgSlp, val); }
+  void setSnp(float val) { snp = fabs(val) < param::MaxTgSlp ? val : std::copysign(param::MaxTgSlp, val); }
   void setTgl(float val) { tgl = fabs(val) < param::MaxTgSlp ? val : std::copysign(param::MaxTgSlp, val); }
-  ClassDefNV(TPCClusterResiduals, 2);
+  ClassDefNV(TPCClusterResiduals, 3);
 };
 
 /// Structure filled for each track with track quality information and a vector with TPCClusterResiduals
@@ -76,12 +76,13 @@ struct TrackData {
   std::array<float, o2::track::kNParams> p{}; ///< track parameters
   float chi2TPC{};             ///< chi2 of TPC track
   float chi2ITS{};             ///< chi2 of ITS track
+  float chi2TRD{};             ///< chi2 of TRD track
   unsigned short nClsTPC{};    ///< number of attached TPC clusters
   unsigned short nClsITS{};    ///< number of attached ITS clusters
   unsigned short nTrkltsTRD{}; ///< number of attached TRD tracklets
   unsigned short clAvailTOF{}; ///< whether or not track seed has a matched TOF cluster
   o2::dataformats::RangeReference<> clIdx{}; ///< index of first cluster residual and total number of cluster residuals of this track
-  ClassDefNV(TrackData, 2);
+  ClassDefNV(TrackData, 3);
 };
 
 /// \class TrackInterpolation
@@ -115,7 +116,7 @@ class TrackInterpolation
     std::array<float, NIndices> sy2{};
     std::array<float, NIndices> szy{};
     std::array<float, NIndices> sz2{};
-    std::array<float, NIndices> phi{};
+    std::array<float, NIndices> snp{};
     std::array<float, NIndices> tgl{};
     float clY{0.f};
     float clZ{0.f};
