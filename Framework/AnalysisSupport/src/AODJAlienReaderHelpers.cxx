@@ -117,28 +117,6 @@ static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingConte
   return std::make_tuple(extractTypedOriginal<Os>(pc)...);
 }
 
-void AODJAlienReaderHelpers::dumpFileMetrics(Monitoring& monitoring, TFile* currentFile, uint64_t startedAt, uint64_t ioTime, int dfPerFile, int dfRead)
-{
-  if (currentFile == nullptr) {
-    return;
-  }
-  uint64_t wait_time = 0;
-  if (uv_hrtime() > startedAt - ioTime) {
-    wait_time = uv_hrtime() - startedAt - ioTime;
-  }
-  std::string monitoringInfo(fmt::format("lfn={},size={},total_df={},read_df={},read_bytes={},read_calls={},io_time={:.1f},wait_time={:.1f}", currentFile->GetName(),
-                                         currentFile->GetSize(), dfPerFile, dfRead, currentFile->GetBytesRead(), currentFile->GetReadCalls(),
-                                         ((float)ioTime / 1e9), ((float)wait_time / 1e9)));
-#if __has_include(<TJAlienFile.h>)
-  auto alienFile = dynamic_cast<TJAlienFile*>(currentFile);
-  if (alienFile) {
-    monitoringInfo += fmt::format(",se={},open_time={:.1f}", alienFile->GetSE(), alienFile->GetElapsed());
-  }
-#endif
-  monitoring.send(Metric{monitoringInfo, "aod-file-read-info"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-  LOGP(info, "Read info: {}", monitoringInfo);
-}
-
 AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 {
   auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
@@ -208,19 +186,14 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
       bool first = true;
       static size_t totalSizeUncompressed = 0;
       static size_t totalSizeCompressed = 0;
-      static TFile* currentFile = nullptr;
-      static int tfCurrentFile = -1;
-      static auto currentFileStartedAt = uv_hrtime();
-      static uint64_t currentFileIOTime = 0;
       static uint64_t totalDFSent = 0;
 
       // check if RuntimeLimit is reached
       if (!watchdog->update()) {
         LOGP(info, "Run time exceeds run time limit of {} seconds. Exiting gracefully...", watchdog->runTimeLimit);
         LOGP(info, "Stopping reader {} after time frame {}.", device.inputTimesliceId, watchdog->numberTimeFrames - 1);
-        dumpFileMetrics(monitoring, currentFile, currentFileStartedAt, currentFileIOTime, tfCurrentFile, ntf);
-        monitoring.flushBuffer();
         didir->closeInputFiles();
+        monitoring.flushBuffer();
         control.endOfStream();
         control.readyToQuit(QuitRequest::Me);
         return;
@@ -239,17 +212,12 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 
         if (!didir->readTree(outputs, dh, fcnt, ntf, (first) ? &TFNumberHeader : nullptr, totalSizeCompressed, totalSizeUncompressed)) {
           if (first) {
-            // dump metrics of file which is done for reading
-            dumpFileMetrics(monitoring, currentFile, currentFileStartedAt, currentFileIOTime, tfCurrentFile, ntf);
-            currentFile = nullptr;
-            currentFileStartedAt = uv_hrtime();
-            currentFileIOTime = 0;
-
             // check if there is a next file to read
             fcnt += device.maxInputTimeslices;
             if (didir->atEnd(fcnt)) {
               LOGP(info, "No input files left to read for reader {}!", device.inputTimesliceId);
               didir->closeInputFiles();
+              monitoring.flushBuffer();
               control.endOfStream();
               control.readyToQuit(QuitRequest::Me);
               return;
@@ -266,11 +234,6 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
           }
         }
 
-        if (currentFile == nullptr) {
-          currentFile = didir->getFileFolder(dh, fcnt, ntf).file;
-          tfCurrentFile = didir->getTimeFramesInFile(dh, fcnt);
-        }
-
         first = false;
       }
       totalDFSent++;
@@ -281,7 +244,6 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
       // save file number and time frame
       *fileCounter = (fcnt - device.inputTimesliceId) / device.maxInputTimeslices;
       *numTF = ntf;
-      currentFileIOTime += (uv_hrtime() - ioStart);
     });
   })};
 
