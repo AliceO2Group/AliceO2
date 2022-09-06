@@ -31,7 +31,7 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{{"disable-mc", VariantType::Bool, false, {"Do not propagate MC labels"}},
-                                       {"subspec", VariantType::UInt32, 0, {"Subspecification for cell output"}},
+                                       {"subspec", VariantType::UInt32, 0U, {"Subspecification for cell output"}},
                                        {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
