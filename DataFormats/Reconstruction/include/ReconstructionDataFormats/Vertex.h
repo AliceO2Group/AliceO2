@@ -61,6 +61,10 @@ class VertexBase
   GPUd() float getSigmaXY() const { return mCov[kCovXY]; }
   GPUd() float getSigmaXZ() const { return mCov[kCovXZ]; }
   GPUd() float getSigmaYZ() const { return mCov[kCovYZ]; }
+  GPUd() float getSigmaX() const { return gpu::CAMath::Sqrt(getSigmaX2()); }
+  GPUd() float getSigmaY() const { return gpu::CAMath::Sqrt(getSigmaY2()); }
+  GPUd() float getSigmaZ() const { return gpu::CAMath::Sqrt(getSigmaZ2()); }
+
   GPUd() const gpu::gpustd::array<float, kNCov>& getCov() const { return mCov; }
 
   GPUd() math_utils::Point3D<float> getXYZ() const { return mPos; }
@@ -84,6 +88,10 @@ class VertexBase
   GPUd() void setSigmaXY(float v) { mCov[kCovXY] = v; }
   GPUd() void setSigmaXZ(float v) { mCov[kCovXZ] = v; }
   GPUd() void setSigmaYZ(float v) { mCov[kCovYZ] = v; }
+  GPUd() void setSigmaX(float val) { setSigmaX2(val * val); }
+  GPUd() void setSigmaY(float val) { setSigmaY2(val * val); }
+  GPUd() void setSigmaZ(float val) { setSigmaZ2(val * val); }
+
   GPUd() void setCov(float sxx, float sxy, float syy, float sxz, float syz, float szz)
   {
     setSigmaX2(sxx);

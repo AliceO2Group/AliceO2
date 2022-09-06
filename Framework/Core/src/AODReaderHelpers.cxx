@@ -24,7 +24,6 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataSpecUtils.h"
-#include "Framework/DataInputDirector.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/ChannelInfo.h"
 #include "Framework/Logger.h"
@@ -43,11 +42,6 @@
 #include <arrow/util/key_value_metadata.h>
 
 #include <thread>
-
-using o2::monitoring::Metric;
-using o2::monitoring::Monitoring;
-using o2::monitoring::tags::Key;
-using o2::monitoring::tags::Value;
 
 namespace o2::framework::readers
 {

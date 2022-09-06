@@ -545,6 +545,10 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
     printf("NULL\n");
     return;
   }
+  union {
+    uint16_t uns;
+    int16_t sig;
+  } word16;
   unsigned __int128 val = word[2];
   val = val << 32;
   val = val | word[1];
@@ -570,11 +574,11 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
     }
     printf("%04x %08x %08x ", c, b, a);
     uint32_t hits = (val >> 24) & 0xfff;
-    int32_t offset = (lsb >> 8) & 0xffff - 32768;
-    // float foffset = offset * (moduleConfig == nullptr ? 1 : moduleConfig->baselineFactor);
+    word16.uns = (lsb >> 8) & 0xffff;
+    // float foffset = word16.sig * (moduleConfig == nullptr ? 1 : moduleConfig->baselineFactor);
     uint32_t board = (lsb >> 2) & 0xf;
     uint32_t ch = (lsb >> 6) & 0x3;
-    printf("orbit %9u bc %4u hits %4u offset %+6i Board %2u Ch %1u", myorbit, mybc, hits, offset, board, ch);
+    printf("orbit %9u bc %4u hits %4u offset %+6i Board %2u Ch %1u", myorbit, mybc, hits, word16.sig, board, ch);
     // printf("orbit %9u bc %4u hits %4u offset %+9.3f Board %2u Ch %1u", myorbit, mybc, hits, foffset, board, ch);
     if (board >= NModules) {
       printf(" ERROR with board");
@@ -603,7 +607,7 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
       }
       val = val >> 12;
     }
-    printf(" %5d %5d %5d %5d %5d %5d", s[0], s[1], s[2], s[3], s[4], s[5]);
+    printf(" %5d %5d %5d %5d %5d %5d%s%s", s[0], s[1], s[2], s[3], s[4], s[5], (a & 0x4) ? " DLOSS" : "", (a & 0x8) ? " ERROR" : "");
   } else if ((a & 0x3) == 2) {
     printf("%04x %08x %08x ", c, b, a);
     printf("%s %s %s %s %s %s ", a & 0x4 ? "H" : " ", a & 0x8 ? "TM" : "  ", a & 0x10 ? "T0" : "  ", a & 0x20 ? "T1" : "  ", a & 0x40 ? "T2" : "  ", a & 0x80 ? "T3" : "  ");

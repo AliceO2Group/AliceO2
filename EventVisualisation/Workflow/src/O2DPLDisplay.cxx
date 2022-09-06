@@ -28,6 +28,7 @@
 #include "TRDBase/Geometry.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "Framework/ConfigParamSpec.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "DataFormatsMCH/ROFRecord.h"
@@ -73,7 +74,14 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"only-nth-event", VariantType::Int, 0, {"process only every nth event"}},
     {"primary-vertex-mode", VariantType::Bool, false, {"produce jsons with individual primary vertices, not total time frame data"}},
     {"max-primary-vertices", VariantType::Int, 5, {"maximum number of primary vertices to draw per time frame"}},
-    {"primary-vertex-triggers", VariantType::Bool, false, {"instead of drawing vertices with tracks (and maybe calorimeter triggers), draw vertices with calorimeter triggers (and maybe tracks)"}}};
+    {"primary-vertex-triggers", VariantType::Bool, false, {"instead of drawing vertices with tracks (and maybe calorimeter triggers), draw vertices with calorimeter triggers (and maybe tracks)"}},
+    {"primary-vertex-min-z", VariantType::Float, -o2::constants::math::VeryBig, {"minimum z position for primary vertex"}},
+    {"primary-vertex-max-z", VariantType::Float, o2::constants::math::VeryBig, {"maximum z position for primary vertex"}},
+    {"primary-vertex-min-x", VariantType::Float, -o2::constants::math::VeryBig, {"minimum x position for primary vertex"}},
+    {"primary-vertex-max-x", VariantType::Float, o2::constants::math::VeryBig, {"maximum x position for primary vertex"}},
+    {"primary-vertex-min-y", VariantType::Float, -o2::constants::math::VeryBig, {"minimum y position for primary vertex"}},
+    {"primary-vertex-max-y", VariantType::Float, o2::constants::math::VeryBig, {"maximum y position for primary vertex"}}};
+
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -134,9 +142,20 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
       }
 
       const auto pv = keyVal.first;
-      helper.draw(pv, mTrackSorting);
-
-      bool save = true;
+      bool save = false;
+      if (mPrimaryVertexMode) {
+        auto primaryVertex = recoCont.getPrimaryVertices()[pv];
+        auto primaryVertex_X = primaryVertex.getX();
+        auto primaryVertex_Y = primaryVertex.getY();
+        auto primaryVertex_Z = primaryVertex.getZ();
+        if ((primaryVertex_X >= mPrimaryVertexMinX) & (primaryVertex_X <= mPrimaryVertexMaxX) & (primaryVertex_Y >= mPrimaryVertexMinY) & (primaryVertex_Y <= mPrimaryVertexMaxY) & (primaryVertex_Z >= mPrimaryVertexMinZ) & (primaryVertex_Z <= mPrimaryVertexMaxZ)) {
+          helper.draw(pv, mTrackSorting);
+          save = true;
+        }
+      } else {
+        helper.draw(pv, mTrackSorting);
+        save = true;
+      }
 
       if (this->mMinITSTracks != -1 && helper.mEvent.getDetectorTrackCount(detectors::DetID::ITS) < this->mMinITSTracks) {
         save = false;
@@ -337,6 +356,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto onlyNthEvent = cfgc.options().get<int>("only-nth-event");
   auto tracksSorting = cfgc.options().get<bool>("track-sorting");
   auto primaryVertexTriggers = cfgc.options().get<bool>("primary-vertex-triggers");
+  auto primaryVertexMinZ = cfgc.options().get<float>("primary-vertex-min-z");
+  auto primaryVertexMaxZ = cfgc.options().get<float>("primary-vertex-max-z");
+  auto primaryVertexMinX = cfgc.options().get<float>("primary-vertex-min-x");
+  auto primaryVertexMaxX = cfgc.options().get<float>("primary-vertex-max-x");
+  auto primaryVertexMinY = cfgc.options().get<float>("primary-vertex-min-y");
+  auto primaryVertexMaxY = cfgc.options().get<float>("primary-vertex-max-y");
 
   if (numberOfTracks == -1) {
     tracksSorting = false; // do not sort if all tracks are allowed
@@ -354,7 +379,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     "o2-eve-export",
     dataRequest->inputs,
     {},
-    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, ggRequest, jsonFolder, ext, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent, primaryVertexMode, maxPrimaryVertices, primaryVertexTriggers)}});
+    AlgorithmSpec{adaptFromTask<O2DPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest, ggRequest, jsonFolder, ext, timeInterval, numberOfFiles, numberOfTracks, eveHostNameMatch, minITSTracks, minTracks, filterITSROF, filterTime, timeBracket, removeTPCEta, etaBracket, tracksSorting, onlyNthEvent, primaryVertexMode, maxPrimaryVertices, primaryVertexTriggers, primaryVertexMinZ, primaryVertexMaxZ, primaryVertexMinX, primaryVertexMaxX, primaryVertexMinY, primaryVertexMaxY)}});
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

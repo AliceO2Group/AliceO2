@@ -276,9 +276,13 @@ struct GroupSlicer {
             // intersect selections
             o2::soa::SelectionVector s;
             if (selections[index]->empty()) {
-              std::copy((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), std::back_inserter(s));
+              if (!filterGroups[index].empty()) {
+                std::copy((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), std::back_inserter(s));
+              }
             } else {
-              std::set_intersection((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), selections[index]->begin(), selections[index]->end(), std::back_inserter(s));
+              if (!filterGroups[index].empty()) {
+                std::set_intersection((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), selections[index]->begin(), selections[index]->end(), std::back_inserter(s));
+              }
             }
             std::decay_t<A1> typedTable{{originalTable.asArrowTable()}, std::move(s)};
             typedTable.bindInternalIndicesTo(&originalTable);

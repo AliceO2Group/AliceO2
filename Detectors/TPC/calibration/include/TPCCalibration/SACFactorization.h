@@ -76,7 +76,7 @@ class SACFactorization
   /// \return returns index for SAC delta
   /// \param stack stack
   /// \param interval local integration interval
-  unsigned int getSACDeltaIndex(const unsigned int stack, unsigned int interval) const { return stack % GEMSTACKSPERSIDE + GEMSTACKSPERSIDE * interval; }
+  static unsigned int getSACDeltaIndex(const unsigned int stack, unsigned int interval) { return stack % GEMSTACKSPERSIDE + GEMSTACKSPERSIDE * interval; }
 
   /// \return returns number of timeframes for which the SACs are stored
   unsigned int getNTimeframes() const { return mTimeFrames; }
@@ -203,6 +203,15 @@ class SACFactorization
   /// resetting aggregated SACs
   void reset();
 
+  /// \return returns side for given GEM stack
+  static Side getSide(const unsigned int gemStack) { return (gemStack < GEMSTACKSPERSIDE) ? Side::A : Side::C; }
+
+  /// \return returns stack for given sector and stack
+  static unsigned int getStack(const unsigned int sector, const unsigned int stack) { return static_cast<unsigned int>(stack + sector * GEMSTACKSPERSECTOR); }
+
+  /// \return returns stack (starts at 0 for each side)
+  static unsigned int getStackInSide(const unsigned int sector, const unsigned int stack) { return getStack(sector, stack) % GEMSTACKS / 2; }
+
  private:
   const unsigned int mTimeFrames{};                             ///< number of timeframes which are stored
   std::array<std::vector<int32_t>, o2::tpc::GEMSTACKS> mSACs{}; ///< SACs aggregated over mTimeFrames
@@ -211,12 +220,6 @@ class SACFactorization
   std::array<int, GEMSTACKS> mOutlierMap{};                     ///< map containing the outliers for the SAC0
   SACDelta<float> mSACDelta{};                                  ///< uncompressed: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   inline static int sNThreads{1};                               ///< number of threads which are used during the calculations
-
-  /// \return returns side for given GEM stack
-  Side getSide(const unsigned int gemStack) const { return (gemStack < GEMSTACKSPERSIDE) ? Side::A : Side::C; }
-
-  /// \return returns stack for given sector and stack
-  unsigned int getStack(const unsigned int sector, const unsigned int stack) const { return static_cast<unsigned int>(stack + sector * GEMSTACKSPERSECTOR); }
 
   /// helper function for drawing SACDelta
   void drawSACDeltaHelper(const bool type, const Sector sector, const unsigned int interval, const SACDeltaCompression compression, const std::string filename, const float minZ, const float maxZ) const;

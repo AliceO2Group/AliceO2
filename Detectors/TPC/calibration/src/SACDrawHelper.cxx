@@ -11,7 +11,6 @@
 
 #include "TPCCalibration/SACDrawHelper.h"
 #include "TPCBase/Painter.h"
-#include "TPCBase/Mapper.h"
 #include "TH2Poly.h"
 #include "TCanvas.h"
 #include "TLatex.h"
@@ -95,7 +94,7 @@ TH2Poly* o2::tpc::SACDrawHelper::drawSide(const SACDraw& SAC, const o2::tpc::Sid
   poly->SetStats(0);
 
   unsigned int sectorStart = (side == Side::A) ? 0 : o2::tpc::SECTORSPERSIDE;
-  unsigned int sectorEnd = (side == Side::A) ? o2::tpc::SECTORSPERSIDE : Mapper::NSECTORS;
+  unsigned int sectorEnd = (side == Side::A) ? o2::tpc::SECTORSPERSIDE : (sectorStart * SIDES);
   for (unsigned int sector = sectorStart; sector < sectorEnd; ++sector) {
     for (unsigned int stack = 0; stack < GEMSTACKSPERSECTOR; ++stack) {
       const float angDeg = 10.f + sector * 20;

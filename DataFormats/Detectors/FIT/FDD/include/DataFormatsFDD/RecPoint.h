@@ -77,6 +77,8 @@ class RecPoint
     return mRef.getEntries() ? gsl::span<const ChannelDataFloat>(tfdata).subspan(mRef.getFirstEntry(), mRef.getEntries()) : gsl::span<const ChannelDataFloat>();
   }
   short static constexpr sDummyCollissionTime = 32767;
+  int getFirstEntry() const { return mRef.getFirstEntry(); }
+  int getEntriesInCurrentBC() const { return mRef.getEntries(); }
 
  private:
   o2::dataformats::RangeReference<int, int> mRef;

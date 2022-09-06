@@ -32,9 +32,7 @@ void ControlWebSocketHandler::frame(char const* frame, size_t s)
     updateMetricsViews(name, metric, value, metricIndex);
     hasNewMetric = true;
   };
-  std::string token(frame, s);
-  std::smatch match;
-  ParsedConfigMatch configMatch;
+  std::string_view tokenSV(frame, s);
   ParsedMetricMatch metricMatch;
 
   auto doParseConfig = [](std::string const& token, ParsedConfigMatch& configMatch, DeviceInfo& info) -> bool {
@@ -46,14 +44,21 @@ void ControlWebSocketHandler::frame(char const* frame, size_t s)
     return false;
   };
   LOG(debug3) << "Data received: " << std::string_view(frame, s);
-  if (DeviceMetricsHelper::parseMetric(token, metricMatch)) {
+  if (DeviceMetricsHelper::parseMetric(tokenSV, metricMatch)) {
     // We use this callback to cache which metrics are needed to provide a
     // the DataRelayer view.
     assert(mContext.metrics);
     DeviceMetricsHelper::processMetric(metricMatch, (*mContext.metrics)[mIndex], newMetricCallback);
     didProcessMetric = true;
     didHaveNewMetric |= hasNewMetric;
-  } else if (ControlServiceHelpers::parseControl(token, match) && mContext.infos) {
+    return;
+  }
+
+  ParsedConfigMatch configMatch;
+  std::string token(frame, s);
+  std::smatch match;
+
+  if (ControlServiceHelpers::parseControl(token, match) && mContext.infos) {
     ControlServiceHelpers::processCommand(*mContext.infos, mPid, match[1].str(), match[2].str());
   } else if (doParseConfig(token, configMatch, (*mContext.infos)[mIndex]) && mContext.infos) {
     LOG(debug2) << "Found configuration information for pid " << mPid;
@@ -77,9 +82,6 @@ void ControlWebSocketHandler::endChunk()
   }
   for (auto& metricsInfo : *mContext.metrics) {
     std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);
-  }
-  if (didHaveNewMetric) {
-    DeviceMetricsHelper::updateMetricsNames(*mContext.driver, *mContext.metrics);
   }
 }
 

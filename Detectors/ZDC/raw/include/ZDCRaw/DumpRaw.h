@@ -14,8 +14,10 @@
 #include "ZDCBase/Constants.h"
 #include "ZDCSimulation/ZDCSimParam.h"
 #include "DataFormatsZDC/RawEventData.h"
+
 #ifndef ALICEO2_ZDC_DUMPRAW_H_
 #define ALICEO2_ZDC_DUMPRAW_H_
+
 namespace o2
 {
 namespace zdc
@@ -38,14 +40,23 @@ class DumpRaw
 
  private:
   void setStat(TH1* h);
+  void setModuleLabel(TH1* h);
+  void setTriggerYLabel(TH2* h);
   int mVerbosity = 1;
-  TH1* mBaseline[NDigiChannels] = {nullptr};
-  TH1* mCounts[NDigiChannels] = {nullptr};
-  TH2* mSignal[NDigiChannels] = {nullptr};
-  TH2* mBunch[NDigiChannels] = {nullptr};
+  std::unique_ptr<TH2> mTransmitted = nullptr;
+  std::unique_ptr<TH2> mFired = nullptr;
+  std::unique_ptr<TH2> mBits = nullptr;
+  std::unique_ptr<TH2> mBitsH = nullptr;
+  std::unique_ptr<TH1> mLoss = nullptr;
+  std::unique_ptr<TH1> mOve = nullptr;
+  std::unique_ptr<TH1> mBaseline[NDigiChannels] = {nullptr};
+  std::unique_ptr<TH1> mCounts[NDigiChannels] = {nullptr};
+  std::unique_ptr<TH2> mSignalA[NDigiChannels] = {nullptr};
+  std::unique_ptr<TH2> mSignalT[NDigiChannels] = {nullptr};
+  std::unique_ptr<TH2> mBunchA[NDigiChannels] = {nullptr};
+  std::unique_ptr<TH2> mBunchT[NDigiChannels] = {nullptr};
   EventChData mCh;
 };
 } // namespace zdc
 } // namespace o2
-
 #endif

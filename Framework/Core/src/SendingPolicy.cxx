@@ -27,13 +27,13 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
   return {SendingPolicy{
             .name = "dispatcher",
             .matcher = [](DeviceSpec const& spec, ConfigContext const&) { return spec.name == "Dispatcher" || DeviceSpecHelpers::hasLabel(spec, "Dispatcher"); },
-            .send = [](FairMQDeviceProxy& proxy, fair::mq::Parts& parts, ChannelIndex channelIndex) {
+            .send = [](FairMQDeviceProxy& proxy, fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistry& registry) {
               auto *channel = proxy.getOutputChannel(channelIndex);
               channel->Send(parts, -1); }},
           SendingPolicy{
             .name = "default",
             .matcher = [](DeviceSpec const&, ConfigContext const&) { return true; },
-            .send = [](FairMQDeviceProxy& proxy, fair::mq::Parts& parts, ChannelIndex channelIndex) {
+            .send = [](FairMQDeviceProxy& proxy, fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistry& registry) {
               auto *channel = proxy.getOutputChannel(channelIndex);
               auto timeout = 1000;
               auto res = channel->Send(parts, timeout);

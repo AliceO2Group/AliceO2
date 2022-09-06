@@ -17,6 +17,8 @@
 #include "TPCBase/Mapper.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TPCBase/Painter.h"
+#include "TCanvas.h"
+#include "TH2Poly.h"
 #include <map>
 
 #include "TProfile.h"

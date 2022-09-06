@@ -26,9 +26,10 @@ class Reconstructor
  public:
   Reconstructor() = default;
   ~Reconstructor() = default;
-  o2::fdd::RecPoint process(o2::fdd::Digit const& digitBC,
-                            gsl::span<const o2::fdd::ChannelData> inChData,
-                            gsl::span<o2::fdd::ChannelDataFloat> outChData);
+  void process(o2::fdd::Digit const& digitBC,
+               gsl::span<const o2::fdd::ChannelData> inChData,
+               std::vector<o2::fdd::RecPoint>& RecPoints,
+               std::vector<o2::fdd::ChannelDataFloat>& outChData);
 
   void finish();
 

@@ -97,6 +97,9 @@
 #pragma link C++ struct o2::tpc::SACZero + ;
 #pragma link C++ struct o2::tpc::SACOne + ;
 #pragma link C++ struct o2::tpc::FourierCoeffSAC + ;
+#pragma link C++ class o2::tpc::SACCCDBHelper < float> + ;
+#pragma link C++ class o2::tpc::SACCCDBHelper < unsigned short> + ;
+#pragma link C++ class o2::tpc::SACCCDBHelper < unsigned char> + ;
 
 #pragma link C++ class o2::calibration::TimeSlot < o2::tpc::TPCVDTglContainer> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::dataformats::Pair < float, float>, o2::tpc::TPCVDTglContainer> + ;

@@ -17,6 +17,7 @@
 #define ALICEO2_MFT_ALIGN_SENSOR_HELPER_H
 
 #include <sstream>
+#include <array>
 
 #include <TGeoMatrix.h>
 #include <TString.h>
@@ -56,9 +57,6 @@ class AlignSensorHelper
 
   /// \brief return sensor sw index within the MFT [0, 935]
   UShort_t chipIndexInMft() const { return mChipIndexInMft; }
-
-  /// \brief return ladder geo index in this half MFT disk [0, 33]
-  UShort_t ladderInHalfDisk() const { return mLadderInHalfDisk; }
 
   /// \brief return the half number to which belongs the sensor
   UShort_t half() const { return mHalf; }
@@ -121,21 +119,20 @@ class AlignSensorHelper
   std::stringstream getSensorFullName(bool wSymName = true);
 
  protected:
-  o2::itsmft::ChipMappingMFT mChipMapping;         ///< MFT chip <-> ladder, layer, disk, half mapping
-  o2::mft::GeometryTGeo* mGeometry = nullptr;      ///< MFT geometry
-  int mNumberOfSensors = mChipMapping.getNChips(); ///< Total number of sensors (detection elements) in the MFT
-  UShort_t mChipIndexOnLadder = 0;                 ///< sensor index within the ladder [0, 4]
-  UShort_t mChipIndexInMft = 0;                    ///< sensor sw index within the MFT [0, 935]
-  UShort_t mLadderInHalfDisk = 0;                  ///< ladder geo index in this half MFT disk [0, 33]
-  UShort_t mConnector = 0;                         ///< connector index to which the ladder is plugged in the zone [0, 4]
-  UShort_t mTransceiver = 0;                       ///< transceiver id to which the sensor is connected in the zone [0, 24]
-  UShort_t mLayer = 0;                             ///< layer id [0, 9]
-  UShort_t mZone = 0;                              ///< zone id [0,3]
-  UShort_t mDisk = 0;                              ///< disk id [0, 4]
-  UShort_t mHalf = 0;                              ///< half id [0, 1]
-  Int_t mChipUniqueId = 0;                         ///< ALICE global unique id of the sensor
-  TGeoHMatrix mTransform;                          ///< sensor transformation matrix L2G
-  o2::math_utils::Point3D<double> mTranslation;    ///< coordinates of the translation between the local system origin (the center of the sensor) and the global origin
+  o2::mft::GeometryTGeo* mGeometry = nullptr;                                 ///< MFT geometry
+  static constexpr int mNumberOfSensors = o2::itsmft::ChipMappingMFT::NChips; ///< Total number of sensors (detection elements) in the MFT
+  UShort_t mChipIndexOnLadder = 0;                                            ///< sensor index within the ladder [0, 4]
+  UShort_t mChipIndexInMft = 0;                                               ///< sensor sw index within the MFT [0, 935]
+  UShort_t mConnector = 0;                                                    ///< connector index to which the ladder is plugged in the zone [0, 4]
+  UShort_t mTransceiver = 0;                                                  ///< transceiver id to which the sensor is connected in the zone [0, 24]
+  UShort_t mLayer = 0;                                                        ///< layer id [0, 9]
+  UShort_t mZone = 0;                                                         ///< zone id [0,3]
+  UShort_t mDisk = 0;                                                         ///< disk id [0, 4]
+  UShort_t mHalf = 0;                                                         ///< half id [0, 1]
+  Int_t mChipUniqueId = 0;                                                    ///< ALICE global unique id of the sensor
+  TGeoHMatrix mTransform;                                                     ///< sensor transformation matrix L2G
+  o2::math_utils::Point3D<double> mTranslation;                               ///< coordinates of the translation between the local system origin (the center of the sensor) and the global origin
+  std::array<TString, mNumberOfSensors> mSymNames;                            ///> array of symbolic names of all sensors
 
   // Euler angles extracted from the sensor transform
   double mRx = 0; ///< rotation angle aroung global x-axis (radian)
@@ -157,6 +154,12 @@ class AlignSensorHelper
  protected:
   /// \brief set the ALICE global unique id of the sensor
   void setSensorUid(const int chipIndex);
+
+  /// \brief build array of symbolic names of all sensors
+  void builSymNames();
+
+  /// \brief return chip id Geo from a given chip id RO
+  int getChipIdGeoFromRO(const int chipIdRO);
 
   /// \brief set the symbolic name of this sensor in the geometry
   void setSymName();

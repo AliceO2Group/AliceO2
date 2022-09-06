@@ -22,25 +22,28 @@
 using namespace o2::fdd;
 
 //_____________________________________________________________________
-o2::fdd::RecPoint Reconstructor::process(o2::fdd::Digit const& digitBC,
-                                         gsl::span<const o2::fdd::ChannelData> inChData,
-                                         gsl::span<o2::fdd::ChannelDataFloat> outChData)
+void Reconstructor::process(o2::fdd::Digit const& digitBC, gsl::span<const o2::fdd::ChannelData> inChData,
+                            std::vector<o2::fdd::RecPoint>& RecPoints, std::vector<o2::fdd::ChannelDataFloat>& outChData)
+// gsl::span<o2::fdd::ChannelDataFloat> outChData)
 {
   // Compute charge weighted average time
   Double_t timeFDA = 0, timeFDC = 0;
   Double_t weightFDA = 0.0, weightFDC = 0.0;
   Int_t nInTimeA = 0, nInTimeC = 0;
-
+  int firstEntry = outChData.size();
+  int nStored = 0;
   int nch = inChData.size();
   for (int ich = 0; ich < nch; ich++) {
-    outChData[ich] = o2::fdd::ChannelDataFloat{inChData[ich].mPMNumber,
-                                               (inChData[ich].mTime) * timePerTDC,
-                                               (double)inChData[ich].mChargeADC,
-                                               inChData[ich].mFEEBits};
-
-    Float_t adc = outChData[ich].mChargeADC;
-    Float_t time = outChData[ich].mTime;
     bool inTime = inChData[ich].getFlag(ChannelData::EEventDataBit::kIsEventInTVDC);
+    bool inAdcGate = inChData[ich].getFlag(ChannelData::EEventDataBit::kIsCFDinADCgate);
+    if (inAdcGate) {
+      outChData.emplace_back(inChData[ich].mPMNumber, (inChData[ich].mTime) * timePerTDC,
+                             (double)inChData[ich].mChargeADC, inChData[ich].mFEEBits);
+      nStored++;
+    }
+
+    Float_t adc = inChData[ich].mChargeADC;
+    Float_t time = (inChData[ich].mTime) * timePerTDC;
     if (time == o2::InteractionRecord::DummyTime) {
       continue;
     }
@@ -62,16 +65,20 @@ o2::fdd::RecPoint Reconstructor::process(o2::fdd::Digit const& digitBC,
   std::array<int, 2> mCollisionTime = {o2::fdd::RecPoint::sDummyCollissionTime, o2::fdd::RecPoint::sDummyCollissionTime};
   /// Avg time for each side, only if one channel satisfy the TVDC condition
   if (nInTimeA > 0) {
-    mCollisionTime[o2::fdd::RecPoint::TimeA] = (weightFDA > 1) ? round(timeFDA / weightFDA * nsToPs) : o2::fdd::RecPoint::sDummyCollissionTime;
+    mCollisionTime[o2::fdd::RecPoint::TimeA] = (weightFDA > 1) ? round(timeFDA / weightFDA * nsToPs)
+                                                               : o2::fdd::RecPoint::sDummyCollissionTime;
   }
   if (nInTimeC > 0) {
-    mCollisionTime[o2::fdd::RecPoint::TimeC] = (weightFDC > 1) ? round(timeFDC / weightFDC * nsToPs) : o2::fdd::RecPoint::sDummyCollissionTime;
+    mCollisionTime[o2::fdd::RecPoint::TimeC] = (weightFDC > 1) ? round(timeFDC / weightFDC * nsToPs)
+                                                               : o2::fdd::RecPoint::sDummyCollissionTime;
   }
-  return RecPoint{mCollisionTime, digitBC.ref.getFirstEntry(), digitBC.ref.getEntries(), digitBC.getIntRecord(), digitBC.mTriggers};
+  if (nStored != 0) {
+    RecPoints.emplace_back(mCollisionTime, firstEntry, nStored, digitBC.getIntRecord(), digitBC.mTriggers);
+  }
 }
 //________________________________________________________
 void Reconstructor::finish()
 {
-  // finalize digitization, if needed, flash remaining digits
+  // finalize reconstruction, if needed, flash remaining recpoints
   // if (!mContinuous)   return;
 }

@@ -240,6 +240,7 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
 
   void print() const;
   void printDecodedMessages() const;
+  void printEvent() const;
   ClassDefNV(RecEventFlat, 1);
 };
 

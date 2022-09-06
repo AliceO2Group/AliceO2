@@ -17,6 +17,7 @@
 #include "Framework/DriverControl.h"
 #include "Framework/DriverInfo.h"
 #include "Framework/DeviceMetricsHelper.h"
+#include "Framework/DeviceMetricsInfo.h"
 #include "FrameworkGUIDeviceInspector.h"
 #include "FrameworkGUIDevicesGraph.h"
 #include "FrameworkGUIDataRelayerUsage.h"
@@ -242,10 +243,9 @@ void displaySparks(
     static ImPlotAxisFlags rty_axis = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoTickMarks;
     ImGui::PushID(index.stateIndex);
     HistoData data;
-    data.mod = std::min(metric.filledMetrics, metricsInfo.timestamps[index.metricIndex].size());
+    data.mod = std::min(metric.filledMetrics, metricStorageSize(metric.type));
     data.first = metric.pos - data.mod;
     data.size = metric.filledMetrics;
-    data.time = metricsInfo.timestamps[index.metricIndex].data();
     data.legend = state.legend.c_str();
 
     if (!locked) {
@@ -256,35 +256,50 @@ void displaySparks(
     if (ImPlot::BeginPlot("##sparks", "time", "value", ImVec2(700, 100), 0, rtx_axis, rty_axis)) {
       ImPlot::SetPlotYAxis(state.axis);
       switch (metric.type) {
-        case MetricType::Int: {
-          data.points = (void*)metricsInfo.intMetrics[metric.storeIdx].data();
+        case MetricType::Enum: {
+          data.points = (void*)metricsInfo.enumMetrics[metric.storeIdx].data();
+          data.time = metricsInfo.enumTimestamps[metric.storeIdx].data();
 
           auto getter = [](void* hData, int idx) -> ImPlotPoint {
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
-            assert(pos >= 0 && pos < 1024);
+            assert(pos >= 0 && pos < metricStorageSize(MetricType::Enum));
+            return ImPlotPoint(histoData->time[pos], ((int8_t*)(histoData->points))[pos]);
+          };
+          ImPlot::PlotLineG("##plot", getter, &data, data.mod);
+        } break;
+        case MetricType::Int: {
+          data.points = (void*)metricsInfo.intMetrics[metric.storeIdx].data();
+          data.time = metricsInfo.intTimestamps[metric.storeIdx].data();
+
+          auto getter = [](void* hData, int idx) -> ImPlotPoint {
+            auto histoData = reinterpret_cast<HistoData*>(hData);
+            size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
+            assert(pos >= 0 && pos < metricStorageSize(MetricType::Int));
             return ImPlotPoint(histoData->time[pos], ((int*)(histoData->points))[pos]);
           };
           ImPlot::PlotLineG("##plot", getter, &data, data.mod);
         } break;
         case MetricType::Uint64: {
           data.points = (void*)metricsInfo.uint64Metrics[metric.storeIdx].data();
+          data.time = metricsInfo.uint64Timestamps[metric.storeIdx].data();
 
           auto getter = [](void* hData, int idx) -> ImPlotPoint {
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
-            assert(pos >= 0 && pos < 1024);
+            assert(pos >= 0 && pos < metricStorageSize(MetricType::Uint64));
             return ImPlotPoint(histoData->time[pos], ((uint64_t*)histoData->points)[pos]);
           };
           ImPlot::PlotLineG("##plot", getter, &data, data.mod, 0);
         } break;
         case MetricType::Float: {
           data.points = (void*)metricsInfo.floatMetrics[metric.storeIdx].data();
+          data.time = metricsInfo.floatTimestamps[metric.storeIdx].data();
 
           auto getter = [](void* hData, int idx) -> ImPlotPoint {
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
-            assert(pos >= 0 && pos < 1024);
+            assert(pos >= 0 && pos < metricStorageSize(MetricType::Float));
             return ImPlotPoint(histoData->time[pos], ((float*)histoData->points)[pos]);
           };
           ImPlot::PlotLineG("##plot", getter, &data, data.mod, 0);
@@ -334,9 +349,6 @@ void displayDeviceMetrics(const char* label,
         deviceNames.push_back(specs[di].label.c_str());
         MultiplotData data;
         data.size = metric.filledMetrics;
-        data.mod = std::min(metric.filledMetrics, metricsInfos[di].timestamps[mi].size());
-        data.first = metric.pos - data.mod;
-        data.X = metricsInfos[di].timestamps[mi].data();
         data.legend = state[gmi].legend.c_str();
         data.type = metric.type;
         data.axis = state[gmi].axis;
@@ -349,12 +361,31 @@ void displayDeviceMetrics(const char* label,
         switch (metric.type) {
           case MetricType::Int: {
             data.Y = metricsInfos[di].intMetrics[metric.storeIdx].data();
+            auto timestamps = metricsInfos[di].intTimestamps[metric.storeIdx];
+            data.mod = std::min(metric.filledMetrics, timestamps.size());
+            data.first = metric.pos - data.mod;
+            data.X = timestamps.data();
+          } break;
+          case MetricType::Enum: {
+            data.Y = metricsInfos[di].enumMetrics[metric.storeIdx].data();
+            auto timestamps = metricsInfos[di].enumTimestamps[metric.storeIdx];
+            data.mod = std::min(metric.filledMetrics, timestamps.size());
+            data.first = metric.pos - data.mod;
+            data.X = timestamps.data();
           } break;
           case MetricType::Uint64: {
             data.Y = metricsInfos[di].uint64Metrics[metric.storeIdx].data();
+            auto timestamps = metricsInfos[di].uint64Timestamps[metric.storeIdx];
+            data.mod = std::min(metric.filledMetrics, timestamps.size());
+            data.first = metric.pos - data.mod;
+            data.X = timestamps.data();
           } break;
           case MetricType::Float: {
             data.Y = metricsInfos[di].floatMetrics[metric.storeIdx].data();
+            auto timestamps = metricsInfos[di].floatTimestamps[metric.storeIdx];
+            data.mod = std::min(metric.filledMetrics, timestamps.size());
+            data.first = metric.pos - data.mod;
+            data.X = timestamps.data();
           } break;
           case MetricType::Unknown:
           case MetricType::String: {
@@ -393,6 +424,8 @@ void displayDeviceMetrics(const char* label,
       y = static_cast<const uint64_t*>(histoData->Y)[pos];
     } else if (histoData->type == MetricType::Float) {
       y = static_cast<const float*>(histoData->Y)[pos];
+    } else if (histoData->type == MetricType::Enum) {
+      y = static_cast<const int8_t*>(histoData->Y)[pos];
     }
     auto point = ImPlotPoint{x, y};
     return point;
@@ -478,18 +511,25 @@ void metricsTableRow(std::vector<MetricIndex> metricIndex,
     auto& info = metricsInfos[index.deviceIndex].metrics[index.metricIndex];
 
     ImGui::TableNextColumn();
-    auto time = metricsInfo.timestamps[index.metricIndex][row];
     switch (info.type) {
       case MetricType::Int: {
+        auto time = metricsInfo.intTimestamps[info.storeIdx][row];
         ImGui::Text("%i, %" PRIu64, metricsInfo.intMetrics[info.storeIdx][row], (uint64_t)time);
       } break;
       case MetricType::Uint64: {
+        auto time = metricsInfo.uint64Timestamps[info.storeIdx][row];
         ImGui::Text("%" PRIu64 ", %" PRIu64, metricsInfo.uint64Metrics[info.storeIdx][row], (uint64_t)time);
       } break;
       case MetricType::Float: {
+        auto time = metricsInfo.floatTimestamps[info.storeIdx][row];
         ImGui::Text("%f, %" PRIu64, metricsInfo.floatMetrics[info.storeIdx][row], (uint64_t)time);
       } break;
+      case MetricType::Enum: {
+        auto time = metricsInfo.enumTimestamps[info.storeIdx][row];
+        ImGui::Text("%i, %" PRIu64, metricsInfo.enumMetrics[info.storeIdx][row], (uint64_t)time);
+      } break;
       case MetricType::String: {
+        auto time = metricsInfo.stringTimestamps[info.storeIdx][row];
         ImGui::Text("%s, %" PRIu64, metricsInfo.stringMetrics[info.storeIdx][row].data, (uint64_t)time);
       } break;
       default:
@@ -629,6 +669,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     ImGui::Text(ICON_FA_FILTER);
     ImGui::SameLine();
     ImGui::InputText("##query-metrics", query, MAX_QUERY_SIZE);
+    ImGui::Text("%zu/%zu matching", selectedMetricIndex.size(), totalMetrics);
 
     static const char* possibleAxis[] = {
       "Y",
@@ -734,10 +775,29 @@ void displayMetrics(gui::WorkspaceGUIState& state,
           deviceVisible = true;
           visibleMetrics++;
           auto& metric = metricInfo.metrics[mi];
-          auto& timestamps = metricInfo.timestamps[mi];
+          size_t const* timestamps = nullptr;
+          switch (metric.type) {
+            case MetricType::Int:
+              timestamps = metricInfo.intTimestamps[metric.storeIdx].data();
+              break;
+            case MetricType::Float:
+              timestamps = metricInfo.floatTimestamps[metric.storeIdx].data();
+              break;
+            case MetricType::String:
+              timestamps = metricInfo.stringTimestamps[metric.storeIdx].data();
+              break;
+            case MetricType::Uint64:
+              timestamps = metricInfo.uint64Timestamps[metric.storeIdx].data();
+              break;
+            case MetricType::Enum:
+              timestamps = metricInfo.enumTimestamps[metric.storeIdx].data();
+              break;
+            default:
+              throw std::runtime_error("Unknown metric type");
+          }
 
-          for (size_t ti = 0; ti != metricInfo.timestamps.size(); ++ti) {
-            size_t minRangePos = (metric.pos + ti) % metricInfo.timestamps.size();
+          for (size_t ti = 0; ti != metricStorageSize(metric.type); ++ti) {
+            size_t minRangePos = (metric.pos + ti) % metricStorageSize(metric.type);
             size_t curMinTime = timestamps[minRangePos];
             if (curMinTime == 0) {
               continue;
@@ -747,7 +807,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
               break;
             }
           }
-          size_t maxRangePos = (size_t)(metric.pos) - 1 % metricInfo.timestamps.size();
+          size_t maxRangePos = (size_t)(metric.pos) - 1 % metricStorageSize(metric.type);
           size_t curMaxTime = timestamps[maxRangePos];
           maxTime = std::max(maxTime, curMaxTime);
           visibleMetricsIndex.push_back(MetricIndex{si, di, mi, gmi});

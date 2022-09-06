@@ -1125,7 +1125,7 @@ void MatchTOF::selectBestMatches()
           fake = false;
         }
       }
-      mOutTOFLabels[trkTypeSplitted].emplace_back(labelsTOF[0].getTrackID(), labelsTOF[0].getEventID(), labelsTOF[0].getSourceID(), fake);
+      mOutTOFLabels[trkTypeSplitted].emplace_back(labelTrack).setFakeFlag(fake);
     }
     i++;
   }
@@ -1234,7 +1234,7 @@ void MatchTOF::selectBestMatchesHP()
           fake = false;
         }
       }
-      mOutTOFLabels[trkTypeSplitted].emplace_back(labelsTOF[0].getTrackID(), labelsTOF[0].getEventID(), labelsTOF[0].getSourceID(), fake);
+      mOutTOFLabels[trkTypeSplitted].emplace_back(labelTrack).setFakeFlag(fake);
     }
   }
 }

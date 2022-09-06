@@ -73,6 +73,18 @@ class MFTDCSDataProcessor : public o2::framework::Task
     mStart = ic.options().get<int64_t>("tstart");
     mEnd = ic.options().get<int64_t>("tend");
 
+    mThreBBCurrent = ic.options().get<float>("thre-bb-current");
+    mThreAnalogCurrent = ic.options().get<float>("thre-analog-current");
+    mThreDigitCurrent = ic.options().get<float>("thre-digit-current");
+    mThreBBValtage = ic.options().get<float>("thre-bb-voltage");
+    mThreRULV = ic.options().get<float>("thre-ru-low-voltage");
+
+    LOG(info) << "mThreBBCurrent" << mThreBBCurrent;
+    LOG(info) << "mThreAnalogCurrent" << mThreAnalogCurrent;
+    LOG(info) << "mThreDigitCurrent" << mThreDigitCurrent;
+    LOG(info) << "mThreBBValtage" << mThreBBValtage;
+    LOG(info) << "mThreRULV" << mThreRULV;
+
     if (useCCDBtoConfigure) {
       LOG(info) << "Configuring via CCDB";
 
@@ -143,12 +155,17 @@ class MFTDCSDataProcessor : public o2::framework::Task
     auto tfid = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
     auto dps = pc.inputs().get<gsl::span<DPCOM>>("input");
 
+    mProcessor->setThreBackBiasCurrent(mThreBBCurrent);
+    mProcessor->setThreAnalogCurrent(mThreAnalogCurrent);
+    mProcessor->setThreDigitCurrent(mThreDigitCurrent);
+    mProcessor->setThreBackBiasVoltage(mThreBBValtage);
+    mProcessor->setThreRULV(mThreRULV);
     mProcessor->setTF(tfid);
     mProcessor->process(dps);
 
     auto timeNow = HighResClock::now();
     Duration elapsedTime = timeNow - mTimer; // in seconds
-    if (elapsedTime.count() >= mDPsUpdateInterval) {
+    if (elapsedTime.count() >= mDPsUpdateInterval || mProcessor->sendDPsCCDB()) {
       sendDPsoutput(pc.outputs());
       mTimer = timeNow;
     }
@@ -171,6 +188,12 @@ class MFTDCSDataProcessor : public o2::framework::Task
   int64_t mDPsUpdateInterval;
   long mStart;
   long mEnd;
+
+  float mThreBBCurrent;
+  float mThreAnalogCurrent;
+  float mThreDigitCurrent;
+  float mThreBBValtage;
+  float mThreRULV;
 
   //________________________________________________________________
   void sendDPsoutput(DataAllocator& output)
@@ -229,7 +252,11 @@ DataProcessorSpec getMFTDCSDataProcessorSpec()
       {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
       {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
       {"report-timing", VariantType::Bool, false, {"Report timing for every slice"}},
-      //{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+      {"thre-analog-current", VariantType::Float, 999.f, {"Threshold for Analog Currect to send to CCDB"}},
+      {"thre-digit-current", VariantType::Float, 999.f, {"Threshold for Digital Currect to send to CCDB"}},
+      {"thre-bb-current", VariantType::Float, 999.f, {"Threshold for BackBias Currect to send to CCDB"}},
+      {"thre-bb-voltage", VariantType::Float, 999.f, {"Threshold for BackBias Voltage to send to CCDB"}},
+      {"thre-ru-low-voltage", VariantType::Float, 999.f, {"Threshold for RU LV to send to CCDB"}},
       {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};
 }
 

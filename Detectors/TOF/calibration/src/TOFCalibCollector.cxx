@@ -33,22 +33,10 @@ void TOFCalibInfoSlot::fill(const gsl::span<const o2::dataformats::CalibInfoTOF>
 
   // we first order the data that arrived, to improve speed when filling
   int nd = data.size();
-  LOG(debug) << "entries in incoming data = " << nd;
-  std::vector<int> ord(nd);
-  std::iota(ord.begin(), ord.end(), 0);
-  std::sort(ord.begin(), ord.end(), [&data](int i, int j) { return data[i].getTOFChIndex() < data[j].getTOFChIndex(); });
-  int chPrev = 0, offsPrev = 0;
+  LOG(info) << "entries in incoming data = " << nd;
   for (int i = 0; i < nd; i++) {
-    const auto& dti = data[ord[i]];
-    auto ch = dti.getTOFChIndex();
-    auto offset = offsPrev;
-    if (ch > chPrev) {
-      offset += std::accumulate(mEntriesSlot.begin() + chPrev, mEntriesSlot.begin() + ch, 0);
-    }
-    offsPrev = offset;
-    chPrev = ch;
-    mTOFCollectedCalibInfoSlot.emplace(mTOFCollectedCalibInfoSlot.begin() + offset, data[ord[i]].getTimestamp(), data[ord[i]].getDeltaTimePi(), data[ord[i]].getTot(), data[ord[i]].getFlags());
-    mEntriesSlot[ch]++;
+    mTOFCollectedCalibInfoSlot.emplace_back(data[i].getTOFChIndex(), data[i].getTimestamp(), data[i].getDeltaTimePi(), data[i].getTot(), data[i].getFlags());
+    mEntriesSlot[data[i].getTOFChIndex()]++;
   }
 }
 //_____________________________________________
@@ -104,7 +92,7 @@ void TOFCalibInfoSlot::merge(const TOFCalibInfoSlot* prev)
   LOG(debug) << "Merging two slots with entries: current slot -> " << mTOFCollectedCalibInfoSlot.size() << " , previous slot -> " << prev->mTOFCollectedCalibInfoSlot.size();
 
   int offset = 0, offsetPrev = 0;
-  std::vector<o2::dataformats::CalibInfoTOFshort> tmpVector;
+  std::vector<o2::dataformats::CalibInfoTOF> tmpVector;
   for (int ch = 0; ch < Geo::NCHANNELS; ch++) {
     if (mEntriesSlot[ch] != 0) {
       for (int i = offset; i < offset + mEntriesSlot[ch]; i++) {
@@ -195,6 +183,8 @@ void TOFCalibCollector::finalizeSlot(Slot& slot)
 
   o2::tof::TOFCalibInfoSlot* c = slot.getContainer();
   mTOFCollectedCalibInfo = c->getCollectedCalibInfoSlot();
+  // let's sort before to write
+  std::sort(mTOFCollectedCalibInfo.begin(), mTOFCollectedCalibInfo.end(), [](const o2::dataformats::CalibInfoTOF& a, const o2::dataformats::CalibInfoTOF& b) { return a.getTOFChIndex() < b.getTOFChIndex(); });
   LOG(debug) << "vector of CalibTOFInfoShort received with size = " << mTOFCollectedCalibInfo.size();
   mEntries = c->getEntriesPerChannel();
   return;

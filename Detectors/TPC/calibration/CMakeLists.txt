@@ -48,6 +48,7 @@ o2_add_library(TPCCalibration
                        src/SACParameter.cxx
                        src/SACDrawHelper.cxx
                        src/VDriftHelper.cxx
+                       src/SACCCDBHelper.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBase
                                      O2::TPCReconstruction ROOT::Minuit
                                      Microsoft.GSL::GSL
@@ -93,7 +94,8 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/SACFactorization.h
                                   include/TPCCalibration/SACParameter.h
                                   include/TPCCalibration/SACDrawHelper.h
-                                  include/TPCCalibration/VDriftHelper.h)
+                                  include/TPCCalibration/VDriftHelper.h
+                                  include/TPCCalibration/SACCCDBHelper.h)
 
 o2_add_test_root_macro(macro/comparePedestalsAndNoise.C
                        PUBLIC_LINK_LIBRARIES O2::TPCBase
