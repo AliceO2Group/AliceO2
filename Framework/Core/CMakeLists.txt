@@ -122,7 +122,6 @@ o2_add_library(Framework
                        src/TopologyPolicy.cxx
                        src/TextDriverClient.cxx
                        src/TimesliceIndex.cxx
-                       src/DataInputDirector.cxx
                        src/DataOutputDirector.cxx
                        src/Task.cxx
                        src/Array2D.cxx
@@ -236,8 +235,7 @@ foreach(t
         WorkflowHelpers
         WorkflowSerialization
         TreeToTable
-        DataOutputDirector
-    DataInputDirector)
+        DataOutputDirector)
 
   # FIXME ? The NAME parameter of o2_add_test is only needed to help the current
   # o2.sh recipe. If the recipe is changed, those params can go away, if needed.

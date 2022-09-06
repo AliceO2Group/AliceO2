@@ -21,7 +21,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DataSpecUtils.h"
-#include "Framework/DataInputDirector.h"
+#include "DataInputDirector.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/ChannelInfo.h"
 #include "Framework/Logger.h"
@@ -86,21 +86,6 @@ struct RuntimeWatchdog {
     LOGP(info, "  estimated total run time: {}", (double)(lastTime - startTime) / 1.E9 + ((numberTimeFrames >= 0) ? runTime / (numberTimeFrames + 1) : 0.));
   }
 };
-
-template <typename... C>
-static constexpr auto columnNamesTrait(framework::pack<C...>)
-{
-  return std::vector<std::string>{C::columnLabel()...};
-}
-
-std::vector<std::string> getColumnNames(header::DataHeader dh)
-{
-  auto description = std::string(dh.dataDescription.str);
-  auto origin = std::string(dh.dataOrigin.str);
-
-  // default: column names = {}
-  return std::vector<std::string>({});
-}
 
 using o2::monitoring::Metric;
 using o2::monitoring::Monitoring;
@@ -174,7 +159,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
     auto filename = options.get<std::string>("aod-file");
 
     // create a DataInputDirector
-    auto didir = std::make_shared<DataInputDirector>(filename);
+    auto didir = std::make_shared<DataInputDirector>(filename, &monitoring);
     if (options.isSet("aod-reader-json")) {
       auto jsonFile = options.get<std::string>("aod-reader-json");
       if (!didir->readJson(jsonFile)) {
@@ -210,7 +195,6 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
       // Each parallel reader device.inputTimesliceId reads the files fileCounter*device.maxInputTimeslices+device.inputTimesliceId
       // the TF to read is numTF
       assert(device.inputTimesliceId < device.maxInputTimeslices);
-      uint64_t timeFrameNumber = 0;
       int fcnt = (*fileCounter * device.maxInputTimeslices) + device.inputTimesliceId;
       int ntf = *numTF + 1;
       static int currentFileCounter = -1;
@@ -253,9 +237,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
         auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
 
-        // create a TreeToTable object
-        TTree* tr = didir->getDataTree(dh, fcnt, ntf);
-        if (!tr) {
+        if (!didir->readTree(outputs, dh, fcnt, ntf, (first) ? &TFNumberHeader : nullptr, totalSizeCompressed, totalSizeUncompressed)) {
           if (first) {
             // dump metrics of file which is done for reading
             dumpFileMetrics(monitoring, currentFile, currentFileStartedAt, currentFileIOTime, tfCurrentFile, ntf);
@@ -274,8 +256,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
             }
             // get first folder of next file
             ntf = 0;
-            tr = didir->getDataTree(dh, fcnt, ntf);
-            if (!tr) {
+            if (!didir->readTree(outputs, dh, fcnt, ntf, (first) ? &TFNumberHeader : nullptr, totalSizeCompressed, totalSizeUncompressed)) {
               LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin, fcnt, ntf);
               throw std::runtime_error("Processing is stopped!");
             }
@@ -285,37 +266,6 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
           }
         }
 
-        if (first) {
-          timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
-          auto o = Output(TFNumberHeader);
-          outputs.make<uint64_t>(o) = timeFrameNumber;
-        }
-
-        // create table output
-        auto o = Output(dh);
-        auto& t2t = outputs.make<TreeToTable>(o);
-
-        // add branches to read
-        // fill the table
-        auto colnames = getColumnNames(dh);
-        t2t.setLabel(tr->GetName());
-        if (colnames.size() == 0) {
-          totalSizeCompressed += tr->GetZipBytes();
-          totalSizeUncompressed += tr->GetTotBytes();
-          t2t.addAllColumns(tr);
-        } else {
-          for (auto& colname : colnames) {
-            TBranch* branch = tr->GetBranch(colname.c_str());
-            totalSizeCompressed += branch->GetZipBytes("*");
-            totalSizeUncompressed += branch->GetTotBytes("*");
-          }
-          t2t.addAllColumns(tr, std::move(colnames));
-        }
-        t2t.fill(tr);
-        delete tr;
-
-        // needed for metrics dumping (upon next file read, or terminate due to watchdog)
-        // TODO need support for multiple files here
         if (currentFile == nullptr) {
           currentFile = didir->getFileFolder(dh, fcnt, ntf).file;
           tfCurrentFile = didir->getTimeFramesInFile(dh, fcnt);

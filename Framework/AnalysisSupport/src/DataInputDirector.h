@@ -15,6 +15,8 @@
 #include "TTreeReader.h"
 
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/DataAllocator.h"
+#include "Monitoring/Monitoring.h"
 
 #include <regex>
 #include "rapidjson/fwd.h"
@@ -35,19 +37,6 @@ struct FileAndFolder {
   std::string folderName = "";
 };
 
-struct ParentFile {
-  TFile* file = nullptr;
-  ParentFile* parent = nullptr;
-  ~ParentFile()
-  {
-    if (file) {
-      file->Close();
-      delete file;
-      delete parent;
-    }
-  }
-};
-
 struct DataInputDescriptor {
   /// Holds information concerning the reading of an aod table.
   /// The information includes the table specification, treename,
@@ -58,7 +47,7 @@ struct DataInputDescriptor {
   std::unique_ptr<data_matcher::DataDescriptorMatcher> matcher;
 
   DataInputDescriptor() = default;
-  DataInputDescriptor(bool alienSupport);
+  DataInputDescriptor(bool alienSupport, int level, o2::monitoring::Monitoring* monitoring = nullptr);
 
   void printOut();
 
@@ -83,9 +72,12 @@ struct DataInputDescriptor {
 
   uint64_t getTimeFrameNumber(int counter, int numTF);
   FileAndFolder getFileFolder(int counter, int numTF);
-  ParentFile* getParentFile(int counter, int numTF);
+  DataInputDescriptor* getParentFile(int counter, int numTF);
   int getTimeFramesInFile(int counter);
 
+  bool readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, std::string treename, const header::DataHeader* tfHeader, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed);
+
+  void printFileStatistics();
   void closeInputFile();
   bool isAlienSupportOn() { return mAlienSupport; }
 
@@ -94,14 +86,24 @@ struct DataInputDescriptor {
   std::string* minputfilesFilePtr = nullptr;
   std::string mFilenameRegex = "";
   std::string* mFilenameRegexPtr = nullptr;
+  // TODO not sure those are deleted...
   std::vector<FileNameHolder*> mfilenames;
   std::vector<FileNameHolder*>* mdefaultFilenamesPtr = nullptr;
   TFile* mcurrentFile = nullptr;
+  int mCurrentFileID = -1;
   bool mAlienSupport = false;
-  TMap* parentFileMap = nullptr;
-  ParentFile* parentFile = nullptr;
+
+  o2::monitoring::Monitoring* mMonitoring = nullptr;
+
+  TMap* mParentFileMap = nullptr;
+  DataInputDescriptor* mParentFile = nullptr;
+  int mLevel = 0; // level of parent files
 
   int mtotalNumberTimeFrames = 0;
+  int mCurrentFileHighestTFRead = -1;
+
+  uint64_t mIOTime = 0;
+  uint64_t mCurrentFileStartedAt = 0;
 };
 
 struct DataInputDirector {
@@ -110,8 +112,8 @@ struct DataInputDirector {
   /// and the related input files
 
   DataInputDirector();
-  DataInputDirector(std::string inputFile);
-  DataInputDirector(std::vector<std::string> inputFiles);
+  DataInputDirector(std::string inputFile, o2::monitoring::Monitoring* monitoring = nullptr);
+  DataInputDirector(std::vector<std::string> inputFiles, o2::monitoring::Monitoring* monitoring = nullptr);
 
   void reset();
   void createDefaultDataInputDescriptor();
@@ -129,10 +131,13 @@ struct DataInputDirector {
   int getNumberInputDescriptors() { return mdataInputDescriptors.size(); }
 
   std::unique_ptr<TTreeReader> getTreeReader(header::DataHeader dh, int counter, int numTF, std::string treeName);
-  TTree* getDataTree(header::DataHeader dh, int counter, int numTF);
+  bool readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, const header::DataHeader* tfHeader, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed);
   uint64_t getTimeFrameNumber(header::DataHeader dh, int counter, int numTF);
   FileAndFolder getFileFolder(header::DataHeader dh, int counter, int numTF);
   int getTimeFramesInFile(header::DataHeader dh, int counter);
+
+  uint64_t getTotalSizeCompressed();
+  uint64_t getTotalSizeUncompressed();
 
  private:
   std::string minputfilesFile;
@@ -142,6 +147,8 @@ struct DataInputDirector {
   DataInputDescriptor* mdefaultDataInputDescriptor = nullptr;
   std::vector<FileNameHolder*> mdefaultInputFiles;
   std::vector<DataInputDescriptor*> mdataInputDescriptors;
+
+  o2::monitoring::Monitoring* mMonitoring = nullptr;
 
   bool mDebugMode = false;
   bool mAlienSupport = false;

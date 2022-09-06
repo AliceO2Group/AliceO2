@@ -8,10 +8,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#include "Framework/DataInputDirector.h"
+#include "DataInputDirector.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/Logger.h"
-#include "AnalysisDataModelHelpers.h"
+#include "Framework/AnalysisDataModelHelpers.h"
+#include "Framework/Output.h"
+#include "Headers/DataHeader.h"
+#include "Framework/TableTreeHelpers.h"
+#include "Monitoring/Tags.h"
 
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"
@@ -20,6 +24,21 @@
 #include "TGrid.h"
 #include "TObjString.h"
 #include "TMap.h"
+
+#include <uv.h>
+
+#if __has_include(<TJAlienFile.h>)
+#include <TJAlienFile.h>
+#endif
+
+std::vector<std::string> getColumnNames(o2::header::DataHeader dh)
+{
+  auto description = std::string(dh.dataDescription.str);
+  auto origin = std::string(dh.dataOrigin.str);
+
+  // default: column names = {}
+  return std::vector<std::string>({});
+}
 
 namespace o2
 {
@@ -35,9 +54,10 @@ FileNameHolder* makeFileNameHolder(std::string fileName)
   return fileNameHolder;
 }
 
-DataInputDescriptor::DataInputDescriptor(bool alienSupport)
+DataInputDescriptor::DataInputDescriptor(bool alienSupport, int level, o2::monitoring::Monitoring* monitoring) : mAlienSupport(alienSupport),
+                                                                                                                 mMonitoring(monitoring),
+                                                                                                                 mLevel(level)
 {
-  mAlienSupport = alienSupport;
 }
 
 void DataInputDescriptor::printOut()
@@ -94,13 +114,12 @@ bool DataInputDescriptor::setFile(int counter)
   // open file
   auto filename = mfilenames[counter]->fileName;
   if (mcurrentFile) {
-    if (mcurrentFile->GetName() != filename) {
-      closeInputFile();
-      mcurrentFile = TFile::Open(filename.c_str());
+    if (mcurrentFile->GetName() == filename) {
+      return true;
     }
-  } else {
-    mcurrentFile = TFile::Open(filename.c_str());
+    closeInputFile();
   }
+  mcurrentFile = TFile::Open(filename.c_str());
   if (!mcurrentFile) {
     throw std::runtime_error(fmt::format("Couldn't open file \"{}\"!", filename));
   }
@@ -127,9 +146,12 @@ bool DataInputDescriptor::setFile(int counter)
     mfilenames[counter]->numberOfTimeFrames = mfilenames[counter]->listOfTimeFrameKeys.size();
   }
 
+  mCurrentFileID = counter;
+  mCurrentFileHighestTFRead = -1;
+  mCurrentFileStartedAt = uv_hrtime();
+
   // get the parent file map if exists
-  parentFileMap = (TMap*)mcurrentFile->Get("parent_files"); // folder name (DF_XXX) --> parent file (absolute path)
-  // TODO add list of available trees in parent file in this map to avoid unneccessary opens (is this needed?)
+  mParentFileMap = (TMap*)mcurrentFile->Get("parent_files"); // folder name (DF_XXX) --> parent file (absolute path)
   // TODO needs configurable to replace part of absolute files if they have been relocated after producing them (e.g. local cluster)
 
   return true;
@@ -168,34 +190,45 @@ FileAndFolder DataInputDescriptor::getFileFolder(int counter, int numTF)
   fileAndFolder.file = mcurrentFile;
   fileAndFolder.folderName = (mfilenames[counter]->listOfTimeFrameKeys)[numTF];
 
+  mCurrentFileHighestTFRead = numTF;
+
   return fileAndFolder;
 }
 
-ParentFile* DataInputDescriptor::getParentFile(int counter, int numTF)
+DataInputDescriptor* DataInputDescriptor::getParentFile(int counter, int numTF)
 {
-  if (!parentFileMap) {
+  if (!mParentFileMap) {
     // This file has no parent map
     return nullptr;
   }
   auto folderName = (mfilenames[counter]->listOfTimeFrameKeys)[numTF];
-  auto parentFileName = (TObjString*)parentFileMap->GetValue(folderName.c_str());
+  auto parentFileName = (TObjString*)mParentFileMap->GetValue(folderName.c_str());
   if (!parentFileName) {
-    // The current DF is not found in the parent map (this should not happen and is a FATAL error)
+    // The current DF is not found in the parent map (this should not happen and is a fatal error)
+    throw std::runtime_error(fmt::format(R"(parent file map exists but does not contain the current DF "{}" in file "{}")", folderName.c_str(), mcurrentFile->GetName()));
     return nullptr;
   }
-  if (parentFile) {
+
+  if (mParentFile) {
     // Is this still the corresponding to the correct file?
-    if (parentFile->file && parentFile->file->GetName() && parentFileName->GetString().CompareTo(parentFile->file->GetName() == 0)) {
-      return parentFile;
+    if (parentFileName->GetString().CompareTo(mParentFile->mcurrentFile->GetName()) == 0) {
+      mParentFile->mCurrentFileHighestTFRead = numTF;
+      return mParentFile;
     } else {
-      delete parentFile;
-      parentFile = nullptr;
+      mParentFile->closeInputFile();
+      delete mParentFile;
+      mParentFile = nullptr;
     }
   }
 
-  parentFile = new ParentFile;
-  parentFile->file = TFile::Open(parentFileName->GetString());
-  return parentFile;
+  LOGP(info, "Opening parent file {}", parentFileName->GetString().Data());
+  mParentFile = new DataInputDescriptor(mAlienSupport, mLevel + 1, mMonitoring);
+  mParentFile->mdefaultFilenamesPtr = new std::vector<FileNameHolder*>;
+  mParentFile->mdefaultFilenamesPtr->emplace_back(makeFileNameHolder(parentFileName->GetString().Data()));
+  mParentFile->fillInputfiles();
+  mParentFile->setFile(0);
+  mParentFile->mCurrentFileHighestTFRead = numTF;
+  return mParentFile;
 }
 
 int DataInputDescriptor::getTimeFramesInFile(int counter)
@@ -203,16 +236,41 @@ int DataInputDescriptor::getTimeFramesInFile(int counter)
   return mfilenames.at(counter)->numberOfTimeFrames;
 }
 
+void DataInputDescriptor::printFileStatistics()
+{
+  uint64_t wait_time = 0;
+  if (uv_hrtime() > mCurrentFileStartedAt - mIOTime) {
+    wait_time = uv_hrtime() - mCurrentFileStartedAt - mIOTime;
+  }
+  std::string monitoringInfo(fmt::format("lfn={},size={},total_df={},read_df={},read_bytes={},read_calls={},io_time={:.1f},wait_time={:.1f},level={}", mcurrentFile->GetName(),
+                                         mcurrentFile->GetSize(), getTimeFramesInFile(mCurrentFileID), mCurrentFileHighestTFRead + 1, mcurrentFile->GetBytesRead(), mcurrentFile->GetReadCalls(),
+                                         ((float)mIOTime / 1e9), ((float)wait_time / 1e9), mLevel));
+#if __has_include(<TJAlienFile.h>)
+  auto alienFile = dynamic_cast<TJAlienFile*>(mcurrentFile);
+  if (alienFile) {
+    monitoringInfo += fmt::format(",se={},open_time={:.1f}", alienFile->GetSE(), alienFile->GetElapsed());
+  }
+#endif
+  mMonitoring->send(o2::monitoring::Metric{monitoringInfo, "aod-file-read-info"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
+  LOGP(info, "Read info: {}", monitoringInfo);
+}
+
 void DataInputDescriptor::closeInputFile()
 {
   if (mcurrentFile) {
-    delete parentFileMap;
-    parentFileMap = nullptr;
+    if (mParentFile) {
+      mParentFile->closeInputFile();
+      delete mParentFile;
+      mParentFile = nullptr;
+    }
+
+    delete mParentFileMap;
+    mParentFileMap = nullptr;
+
+    printFileStatistics();
     mcurrentFile->Close();
     delete mcurrentFile;
     mcurrentFile = nullptr;
-    delete parentFile;
-    parentFile = nullptr;
   }
 }
 
@@ -263,7 +321,7 @@ DataInputDirector::DataInputDirector()
   createDefaultDataInputDescriptor();
 }
 
-DataInputDirector::DataInputDirector(std::string inputFile)
+DataInputDirector::DataInputDirector(std::string inputFile, o2::monitoring::Monitoring* monitoring) : mMonitoring(monitoring)
 {
   if (inputFile.size() && inputFile[0] == '@') {
     inputFile.erase(0, 1);
@@ -275,7 +333,7 @@ DataInputDirector::DataInputDirector(std::string inputFile)
   createDefaultDataInputDescriptor();
 }
 
-DataInputDirector::DataInputDirector(std::vector<std::string> inputFiles)
+DataInputDirector::DataInputDirector(std::vector<std::string> inputFiles, o2::monitoring::Monitoring* monitoring) : mMonitoring(monitoring)
 {
   for (auto inputFile : inputFiles) {
     mdefaultInputFiles.emplace_back(makeFileNameHolder(inputFile));
@@ -296,7 +354,7 @@ void DataInputDirector::createDefaultDataInputDescriptor()
   if (mdefaultDataInputDescriptor) {
     delete mdefaultDataInputDescriptor;
   }
-  mdefaultDataInputDescriptor = new DataInputDescriptor(mAlienSupport);
+  mdefaultDataInputDescriptor = new DataInputDescriptor(mAlienSupport, 0, mMonitoring);
 
   mdefaultDataInputDescriptor->setInputfilesFile(minputfilesFile);
   mdefaultDataInputDescriptor->setFilenamesRegex(mFilenameRegex);
@@ -421,7 +479,7 @@ bool DataInputDirector::readJsonDocument(Document* jsonDoc)
         return false;
       }
       // create a new dataInputDescriptor
-      auto didesc = new DataInputDescriptor(mAlienSupport);
+      auto didesc = new DataInputDescriptor(mAlienSupport, 0, mMonitoring);
       didesc->setDefaultInputfiles(&mdefaultInputFiles);
 
       itemName = "table";
@@ -594,10 +652,9 @@ uint64_t DataInputDirector::getTimeFrameNumber(header::DataHeader dh, int counte
   return didesc->getTimeFrameNumber(counter, numTF);
 }
 
-TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter, int numTF)
+bool DataInputDirector::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, const header::DataHeader* tfHeader, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed)
 {
   std::string treename;
-  TTree* tree = nullptr;
 
   auto didesc = getDataInputDescriptor(dh);
   if (didesc) {
@@ -611,23 +668,63 @@ TTree* DataInputDirector::getDataTree(header::DataHeader dh, int counter, int nu
     treename = aod::datamodel::getTreeName(dh);
   }
 
-  auto fileAndFolder = didesc->getFileFolder(counter, numTF);
-  if (fileAndFolder.file) {
-    treename = fileAndFolder.folderName + "/" + treename;
-    tree = (TTree*)fileAndFolder.file->Get(treename.c_str());
-    // NOTE one level of fallback only for now as a proof of principle
-    if (!tree) {
-      auto parentFile = didesc->getParentFile(counter, numTF);
-      if (parentFile != nullptr) {
-        tree = (TTree*)parentFile->file->Get(treename.c_str());
-      }
-    }
-    if (!tree) {
-      throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/treenotfound.html for more information.)", treename, fileAndFolder.file->GetName()));
-    }
+  return didesc->readTree(outputs, dh, counter, numTF, treename, tfHeader, totalSizeCompressed, totalSizeUncompressed);
+}
+
+bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, std::string treename, const header::DataHeader* tfHeader, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed)
+{
+  auto ioStart = uv_hrtime();
+
+  auto fileAndFolder = getFileFolder(counter, numTF);
+  if (!fileAndFolder.file) {
+    return false;
   }
 
-  return tree;
+  auto fullpath = fileAndFolder.folderName + "/" + treename;
+  auto tree = (TTree*)fileAndFolder.file->Get(fullpath.c_str());
+
+  if (!tree) {
+    LOGP(debug, "Could not find tree {}. Trying in parent file.", fullpath.c_str());
+    auto parentFile = getParentFile(counter, numTF);
+    if (parentFile != nullptr) {
+      // first argument is 0 as the parent file object contains only 1 file
+      return parentFile->readTree(outputs, dh, 0, numTF, treename, tfHeader, totalSizeCompressed, totalSizeUncompressed);
+    }
+    throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/treenotfound.html for more information.)", fileAndFolder.folderName + "/" + treename, fileAndFolder.file->GetName()));
+  }
+
+  if (tfHeader) {
+    auto timeFrameNumber = getTimeFrameNumber(counter, numTF);
+    auto o = Output(*tfHeader);
+    outputs.make<uint64_t>(o) = timeFrameNumber;
+  }
+
+  // create table output
+  auto o = Output(dh);
+  auto& t2t = outputs.make<TreeToTable>(o);
+
+  // add branches to read
+  // fill the table
+  auto colnames = getColumnNames(dh);
+  t2t.setLabel(tree->GetName());
+  if (colnames.size() == 0) {
+    totalSizeCompressed += tree->GetZipBytes();
+    totalSizeUncompressed += tree->GetTotBytes();
+    t2t.addAllColumns(tree);
+  } else {
+    for (auto& colname : colnames) {
+      TBranch* branch = tree->GetBranch(colname.c_str());
+      totalSizeCompressed += branch->GetZipBytes("*");
+      totalSizeUncompressed += branch->GetTotBytes("*");
+    }
+    t2t.addAllColumns(tree, std::move(colnames));
+  }
+  t2t.fill(tree);
+  delete tree;
+
+  mIOTime += (uv_hrtime() - ioStart);
+
+  return true;
 }
 
 void DataInputDirector::closeInputFiles()
