@@ -64,7 +64,7 @@
 
 //________________________________________________________
 template <class T>
-void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
+void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID::mask_t srcSel) const
 {
   // We go from most complete tracks to least complete ones, taking into account that some track times
   // do not bear their own kinematics but just constrain the time
@@ -140,19 +140,21 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   //  ITS-TPC-TRD-TOF
   {
     currentSource = GTrackID::ITSTPCTRDTOF;
-    if (matchesITSTPCTRDTOF.size() && (!tofClusters.size() || !tracksITSTPCTRD.size())) {
-      throw std::runtime_error(fmt::format("Global-TOF tracks ({}) require ITS-TPC-TRD tracks ({}) and TOF clusters ({})",
-                                           matchesITSTPCTRDTOF.size(), tracksITSTPCTRD.size(), tofClusters.size()));
-    }
-    for (unsigned i = 0; i < matchesITSTPCTRDTOF.size(); i++) {
-      const auto& match = matchesITSTPCTRDTOF[i];
-      auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC-TRD track
-      // no need to check isUsed: by construction this ITS-TPC-TRD was not used elsewhere
-      const auto& tofCl = tofClusters[match.getTOFClIndex()];
-      float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
-      const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
-      if (creator(tracksITSTPCTRD[gidx.getIndex()], {i, currentSource}, timeTOFMUS, timeErr)) {
-        flagUsed(gidx); // flag used ITS-TPC-TRD tracks
+    if (srcSel[currentSource]) {
+      if (matchesITSTPCTRDTOF.size() && (!tofClusters.size() || !tracksITSTPCTRD.size())) {
+        throw std::runtime_error(fmt::format("Global-TOF tracks ({}) require ITS-TPC-TRD tracks ({}) and TOF clusters ({})",
+                                             matchesITSTPCTRDTOF.size(), tracksITSTPCTRD.size(), tofClusters.size()));
+      }
+      for (unsigned i = 0; i < matchesITSTPCTRDTOF.size(); i++) {
+        const auto& match = matchesITSTPCTRDTOF[i];
+        auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC-TRD track
+        // no need to check isUsed: by construction this ITS-TPC-TRD was not used elsewhere
+        const auto& tofCl = tofClusters[match.getTOFClIndex()];
+        float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+        const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
+        if (creator(tracksITSTPCTRD[gidx.getIndex()], {i, currentSource}, timeTOFMUS, timeErr)) {
+          flagUsed(gidx); // flag used ITS-TPC-TRD tracks
+        }
       }
     }
   }
@@ -160,18 +162,20 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // TPC-TRD-TOF
   {
     currentSource = GTrackID::TPCTRDTOF;
-    if (matchesTPCTRDTOF.size() && (!tofClusters.size() || !tracksTPCTRD.size())) {
-      throw std::runtime_error(fmt::format("Global-TOF tracks ({}) require TPC-TRD tracks ({}) and TOF clusters ({})",
-                                           matchesTPCTRDTOF.size(), tracksTPCTRD.size(), tofClusters.size()));
-    }
-    for (unsigned i = 0; i < matchesTPCTRDTOF.size(); i++) {
-      const auto& match = matchesTPCTRDTOF[i];
-      auto gidx = match.getTrackRef(); // this should be corresponding TPC-TRD track
-      const auto& tofCl = tofClusters[match.getTOFClIndex()];
-      float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
-      const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
-      if (creator(tracksTPCTRD[gidx.getIndex()], {i, currentSource}, timeTOFMUS, timeErr)) {
-        flagUsed(gidx); // flag used TPC-TRD tracks
+    if (srcSel[currentSource]) {
+      if (matchesTPCTRDTOF.size() && (!tofClusters.size() || !tracksTPCTRD.size())) {
+        throw std::runtime_error(fmt::format("Global-TOF tracks ({}) require TPC-TRD tracks ({}) and TOF clusters ({})",
+                                             matchesTPCTRDTOF.size(), tracksTPCTRD.size(), tofClusters.size()));
+      }
+      for (unsigned i = 0; i < matchesTPCTRDTOF.size(); i++) {
+        const auto& match = matchesTPCTRDTOF[i];
+        auto gidx = match.getTrackRef(); // this should be corresponding TPC-TRD track
+        const auto& tofCl = tofClusters[match.getTOFClIndex()];
+        float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+        const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
+        if (creator(tracksTPCTRD[gidx.getIndex()], {i, currentSource}, timeTOFMUS, timeErr)) {
+          flagUsed(gidx); // flag used TPC-TRD tracks
+        }
       }
     }
   }
@@ -179,19 +183,21 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // ITS-TPC-TRD
   {
     currentSource = GTrackID::ITSTPCTRD;
-    const auto trigITSTPCTRD = getITSTPCTRDTriggers();
-    for (unsigned itr = 0; itr < trigITSTPCTRD.size(); itr++) {
-      const auto& trig = trigITSTPCTRD[itr];
-      auto bcdiff = getBCDiff(trig.getBCData());
-      float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
-      for (unsigned int i = trig.getTrackRefs().getFirstEntry(); i < (unsigned int)trig.getTrackRefs().getEntriesBound(); i++) {
-        const auto& trc = tracksITSTPCTRD[i];
-        if (isUsed2(i, currentSource)) {
-          flagUsed(trc.getRefGlobalTrackId()); // flag seeding ITS-TPC track
-          continue;
-        }
-        if (creator(trc, {i, currentSource}, t0, 1e-3)) { // assign 1ns error to BC
-          flagUsed(trc.getRefGlobalTrackId());            // flag seeding ITS-TPC track
+    if (srcSel[currentSource]) {
+      const auto trigITSTPCTRD = getITSTPCTRDTriggers();
+      for (unsigned itr = 0; itr < trigITSTPCTRD.size(); itr++) {
+        const auto& trig = trigITSTPCTRD[itr];
+        auto bcdiff = getBCDiff(trig.getBCData());
+        float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+        for (unsigned int i = trig.getTrackRefs().getFirstEntry(); i < (unsigned int)trig.getTrackRefs().getEntriesBound(); i++) {
+          const auto& trc = tracksITSTPCTRD[i];
+          if (isUsed2(i, currentSource)) {
+            flagUsed(trc.getRefGlobalTrackId()); // flag seeding ITS-TPC track
+            continue;
+          }
+          if (creator(trc, {i, currentSource}, t0, 1e-3)) { // assign 1ns error to BC
+            flagUsed(trc.getRefGlobalTrackId());            // flag seeding ITS-TPC track
+          }
         }
       }
     }
@@ -200,22 +206,24 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // ITS-TPC-TOF matches, these are just MatchInfoTOF objects, pointing on ITS-TPC match and TOF cl.
   {
     currentSource = GTrackID::ITSTPCTOF;
-    if (matchesITSTPCTOF.size() && (!tofClusters.size() || !tracksTPCITS.size())) {
-      throw std::runtime_error(fmt::format("Global-TOF tracks ({}) require ITS-TPC tracks ({}) and TOF clusters ({})",
-                                           matchesITSTPCTOF.size(), tracksTPCITS.size(), tofClusters.size()));
-    }
-    for (unsigned i = 0; i < matchesITSTPCTOF.size(); i++) {
-      const auto& match = matchesITSTPCTOF[i];
-      auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC track
-      if (isUsed(gidx)) {              // RS FIXME: THIS IS TEMPORARY, until the TOF matching will use ITS-TPC-TRD as an input
-        continue;
+    if (srcSel[currentSource]) {
+      if (matchesITSTPCTOF.size() && (!tofClusters.size() || !tracksTPCITS.size())) {
+        throw std::runtime_error(fmt::format("Global-TOF tracks ({}) require ITS-TPC tracks ({}) and TOF clusters ({})",
+                                             matchesITSTPCTOF.size(), tracksTPCITS.size(), tofClusters.size()));
       }
-      // no need to check isUsed: by construction this ITS-TPC was not used elsewhere
-      const auto& tofCl = tofClusters[match.getTOFClIndex()];
-      float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
-      const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
-      if (creator(tracksTPCITS[gidx.getIndex()], {i, currentSource}, timeTOFMUS, timeErr)) {
-        flagUsed(gidx); // flag used ITS-TPC tracks
+      for (unsigned i = 0; i < matchesITSTPCTOF.size(); i++) {
+        const auto& match = matchesITSTPCTOF[i];
+        auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC track
+        if (isUsed(gidx)) {              // RS FIXME: THIS IS TEMPORARY, until the TOF matching will use ITS-TPC-TRD as an input
+          continue;
+        }
+        // no need to check isUsed: by construction this ITS-TPC was not used elsewhere
+        const auto& tofCl = tofClusters[match.getTOFClIndex()];
+        float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+        const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
+        if (creator(tracksTPCITS[gidx.getIndex()], {i, currentSource}, timeTOFMUS, timeErr)) {
+          flagUsed(gidx); // flag used ITS-TPC tracks
+        }
       }
     }
   }
@@ -223,19 +231,21 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // TPC-TRD
   {
     currentSource = GTrackID::TPCTRD;
-    const auto trigTPCTRD = getTPCTRDTriggers();
-    for (unsigned itr = 0; itr < trigTPCTRD.size(); itr++) {
-      const auto& trig = trigTPCTRD[itr];
-      auto bcdiff = getBCDiff(trig.getBCData());
-      float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
-      for (unsigned int i = trig.getTrackRefs().getFirstEntry(); i < (unsigned int)trig.getTrackRefs().getEntriesBound(); i++) {
-        const auto& trc = tracksTPCTRD[i];
-        if (isUsed2(i, currentSource)) {
-          flagUsed(trc.getRefGlobalTrackId()); // flag seeding TPC track
-          continue;
-        }
-        if (creator(trc, {i, currentSource}, t0, 1e-3)) { // assign 1ns error to BC
-          flagUsed(trc.getRefGlobalTrackId());            // flag seeding TPC track
+    if (srcSel[currentSource]) {
+      const auto trigTPCTRD = getTPCTRDTriggers();
+      for (unsigned itr = 0; itr < trigTPCTRD.size(); itr++) {
+        const auto& trig = trigTPCTRD[itr];
+        auto bcdiff = getBCDiff(trig.getBCData());
+        float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+        for (unsigned int i = trig.getTrackRefs().getFirstEntry(); i < (unsigned int)trig.getTrackRefs().getEntriesBound(); i++) {
+          const auto& trc = tracksTPCTRD[i];
+          if (isUsed2(i, currentSource)) {
+            flagUsed(trc.getRefGlobalTrackId()); // flag seeding TPC track
+            continue;
+          }
+          if (creator(trc, {i, currentSource}, t0, 1e-3)) { // assign 1ns error to BC
+            flagUsed(trc.getRefGlobalTrackId());            // flag seeding TPC track
+          }
         }
       }
     }
@@ -244,16 +254,18 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // ITS-TPC matches
   {
     currentSource = GTrackID::ITSTPC;
-    for (unsigned i = 0; i < tracksTPCITS.size(); i++) {
-      const auto& matchTr = tracksTPCITS[i];
-      if (isUsed2(i, currentSource)) {
-        flagUsed(matchTr.getRefITS()); // flag used ITS tracks or AB tracklets (though the latter is not really necessary)
-        flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
-        continue;
-      }
-      if (creator(matchTr, {i, currentSource}, matchTr.getTimeMUS().getTimeStamp(), matchTr.getTimeMUS().getTimeStampError())) {
-        flagUsed(matchTr.getRefITS()); // flag used ITS tracks or AB tracklets (though the latter is not really necessary)
-        flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
+    if (srcSel[currentSource]) {
+      for (unsigned i = 0; i < tracksTPCITS.size(); i++) {
+        const auto& matchTr = tracksTPCITS[i];
+        if (isUsed2(i, currentSource)) {
+          flagUsed(matchTr.getRefITS()); // flag used ITS tracks or AB tracklets (though the latter is not really necessary)
+          flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
+          continue;
+        }
+        if (creator(matchTr, {i, currentSource}, matchTr.getTimeMUS().getTimeStamp(), matchTr.getTimeMUS().getTimeStampError())) {
+          flagUsed(matchTr.getRefITS()); // flag used ITS tracks or AB tracklets (though the latter is not really necessary)
+          flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
+        }
       }
     }
   }
@@ -261,19 +273,21 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // TPC-TOF matches
   {
     currentSource = GTrackID::TPCTOF;
-    if (matchesTPCTOF.size() && !tracksTPCTOF.size()) {
-      throw std::runtime_error(fmt::format("TPC-TOF matched tracks ({}) require TPCTOF matches ({}) and TPCTOF tracks ({})",
-                                           matchesTPCTOF.size(), tracksTPCTOF.size()));
-    }
-    for (unsigned i = 0; i < matchesTPCTOF.size(); i++) {
-      const auto& match = matchesTPCTOF[i];
-      const auto& gidx = match.getTrackRef(); // TPC track global idx
-      if (isUsed(gidx)) {                     // flag used TPC tracks
-        continue;
+    if (srcSel[currentSource]) {
+      if (matchesTPCTOF.size() && !tracksTPCTOF.size()) {
+        throw std::runtime_error(fmt::format("TPC-TOF matched tracks ({}) require TPCTOF matches ({}) and TPCTOF tracks ({})",
+                                             matchesTPCTOF.size(), tracksTPCTOF.size()));
       }
-      const auto& trc = tracksTPCTOF[i];
-      if (creator(trc, {i, currentSource}, trc.getTimeMUS().getTimeStamp(), trc.getTimeMUS().getTimeStampError())) {
-        flagUsed(gidx); // flag used TPC tracks
+      for (unsigned i = 0; i < matchesTPCTOF.size(); i++) {
+        const auto& match = matchesTPCTOF[i];
+        const auto& gidx = match.getTrackRef(); // TPC track global idx
+        if (isUsed(gidx)) {                     // flag used TPC tracks
+          continue;
+        }
+        const auto& trc = tracksTPCTOF[i];
+        if (creator(trc, {i, currentSource}, trc.getTimeMUS().getTimeStamp(), trc.getTimeMUS().getTimeStampError())) {
+          flagUsed(gidx); // flag used TPC tracks
+        }
       }
     }
   }
@@ -281,11 +295,13 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // MFT-MCH tracks
   {
     currentSource = GTrackID::MFTMCH;
-    for (unsigned i = 0; i < tracksMFTMCH.size(); i++) {
-      const auto& matchTr = tracksMFTMCH[i];
-      if (creator(matchTr, {i, currentSource}, matchTr.getTimeMUS().getTimeStamp(), matchTr.getTimeMUS().getTimeStampError())) {
-        flagUsed2(matchTr.getMFTTrackID(), GTrackID::MFT);
-        flagUsed2(matchTr.getMCHTrackID(), GTrackID::MCH);
+    if (srcSel[currentSource]) {
+      for (unsigned i = 0; i < tracksMFTMCH.size(); i++) {
+        const auto& matchTr = tracksMFTMCH[i];
+        if (creator(matchTr, {i, currentSource}, matchTr.getTimeMUS().getTimeStamp(), matchTr.getTimeMUS().getTimeStampError())) {
+          flagUsed2(matchTr.getMFTTrackID(), GTrackID::MFT);
+          flagUsed2(matchTr.getMCHTrackID(), GTrackID::MCH);
+        }
       }
     }
   }
@@ -293,21 +309,23 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // MCH-MID matches
   {
     currentSource = GTrackID::MCHMID;
-    if (matchesMCHMID.size() && !tracksMCH.size()) {
-      throw std::runtime_error(fmt::format("MCH-MID matched tracks ({}) require MCHMID matches ({}) and MCH tracks ({})",
-                                           matchesMCHMID.size(), tracksMCH.size()));
-    }
-    for (unsigned i = 0; i < matchesMCHMID.size(); i++) {
-      const auto& match = matchesMCHMID[i];
-      auto [trcTime, isInTF] = match.getTimeMUS(startIR, 256, BCDiffErrCount < MAXBCDiffErrCount);
-      if (!isInTF && BCDiffErrCount < MAXBCDiffErrCount) {
-        BCDiffErrCount++;
+    if (srcSel[currentSource]) {
+      if (matchesMCHMID.size() && !tracksMCH.size()) {
+        throw std::runtime_error(fmt::format("MCH-MID matched tracks ({}) require MCHMID matches ({}) and MCH tracks ({})",
+                                             matchesMCHMID.size(), tracksMCH.size()));
       }
-      auto gidxMCH = match.getMCHRef();
-      const auto& trc = tracksMCH[gidxMCH.getIndex()];
-      if (creator(trc, {i, currentSource}, trcTime.getTimeStamp(), trcTime.getTimeStampError())) {
-        flagUsed(gidxMCH);           // flag used MCH tracks
-        flagUsed(match.getMIDRef()); // flag used MID tracks (if requested)
+      for (unsigned i = 0; i < matchesMCHMID.size(); i++) {
+        const auto& match = matchesMCHMID[i];
+        auto [trcTime, isInTF] = match.getTimeMUS(startIR, 256, BCDiffErrCount < MAXBCDiffErrCount);
+        if (!isInTF && BCDiffErrCount < MAXBCDiffErrCount) {
+          BCDiffErrCount++;
+        }
+        auto gidxMCH = match.getMCHRef();
+        const auto& trc = tracksMCH[gidxMCH.getIndex()];
+        if (creator(trc, {i, currentSource}, trcTime.getTimeStamp(), trcTime.getTimeStampError())) {
+          flagUsed(gidxMCH);           // flag used MCH tracks
+          flagUsed(match.getMIDRef()); // flag used MID tracks (if requested)
+        }
       }
     }
   }
@@ -315,19 +333,21 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // ITS only tracks
   {
     currentSource = GTrackID::ITS;
-    const auto& rofrs = getITSTracksROFRecords();
-    for (unsigned irof = 0; irof < rofrs.size(); irof++) {
-      const auto& rofRec = rofrs[irof];
-      auto bcdiff = getBCDiff(rofRec.getBCData());
-      float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
-      int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
-      for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
-        if (isUsed2(it, currentSource)) { // skip used tracks
-          continue;
+    if (srcSel[currentSource]) {
+      const auto& rofrs = getITSTracksROFRecords();
+      for (unsigned irof = 0; irof < rofrs.size(); irof++) {
+        const auto& rofRec = rofrs[irof];
+        auto bcdiff = getBCDiff(rofRec.getBCData());
+        float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+        int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
+        for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
+          if (isUsed2(it, currentSource)) { // skip used tracks
+            continue;
+          }
+          GTrackID gidITS(it, currentSource);
+          const auto& trc = tracksITS[it];
+          creator(trc, gidITS, t0, 0.5);
         }
-        GTrackID gidITS(it, currentSource);
-        const auto& trc = tracksITS[it];
-        creator(trc, gidITS, t0, 0.5);
       }
     }
   }
@@ -335,19 +355,21 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // MFT only tracks
   {
     currentSource = GTrackID::MFT;
-    const auto& rofrs = getMFTTracksROFRecords();
-    for (unsigned irof = 0; irof < rofrs.size(); irof++) {
-      const auto& rofRec = rofrs[irof];
-      auto bcdiff = getBCDiff(rofRec.getBCData());
-      float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
-      int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
-      for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
-        if (isUsed2(it, currentSource)) {
-          continue;
+    if (srcSel[currentSource]) {
+      const auto& rofrs = getMFTTracksROFRecords();
+      for (unsigned irof = 0; irof < rofrs.size(); irof++) {
+        const auto& rofRec = rofrs[irof];
+        auto bcdiff = getBCDiff(rofRec.getBCData());
+        float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+        int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
+        for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
+          if (isUsed2(it, currentSource)) {
+            continue;
+          }
+          GTrackID gidMFT(it, currentSource);
+          const auto& trc = tracksMFT[it];
+          creator(trc, gidMFT, t0, 0.5);
         }
-        GTrackID gidMFT(it, currentSource);
-        const auto& trc = tracksMFT[it];
-        creator(trc, gidMFT, t0, 0.5);
       }
     }
   }
@@ -355,22 +377,24 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // MCH standalone tracks
   {
     currentSource = GTrackID::MCH;
-    const auto& rofs = getMCHTracksROFRecords();
-    for (const auto& rof : rofs) {
-      if (rof.getNEntries() == 0) {
-        continue;
-      }
-      auto [trcTime, isInTF] = rof.getTimeMUS(startIR, 256, BCDiffErrCount < MAXBCDiffErrCount);
-      if (!isInTF && BCDiffErrCount < MAXBCDiffErrCount) {
-        BCDiffErrCount++;
-      }
-      for (int idx = rof.getFirstIdx(); idx <= rof.getLastIdx(); ++idx) {
-        if (isUsed2(idx, currentSource)) {
+    if (srcSel[currentSource]) {
+      const auto& rofs = getMCHTracksROFRecords();
+      for (const auto& rof : rofs) {
+        if (rof.getNEntries() == 0) {
           continue;
         }
-        GTrackID gidMCH(idx, currentSource);
-        const auto& trc = tracksMCH[idx];
-        creator(trc, gidMCH, trcTime.getTimeStamp(), trcTime.getTimeStampError());
+        auto [trcTime, isInTF] = rof.getTimeMUS(startIR, 256, BCDiffErrCount < MAXBCDiffErrCount);
+        if (!isInTF && BCDiffErrCount < MAXBCDiffErrCount) {
+          BCDiffErrCount++;
+        }
+        for (int idx = rof.getFirstIdx(); idx <= rof.getLastIdx(); ++idx) {
+          if (isUsed2(idx, currentSource)) {
+            continue;
+          }
+          GTrackID gidMCH(idx, currentSource);
+          const auto& trc = tracksMCH[idx];
+          creator(trc, gidMCH, trcTime.getTimeStamp(), trcTime.getTimeStampError());
+        }
       }
     }
   }
@@ -378,28 +402,30 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // MID standalone tracks
   {
     currentSource = GTrackID::MID;
-    const auto& rofs = getMIDTracksROFRecords();
-    for (const auto& rof : rofs) {
-      if (rof.nEntries == 0) {
-        continue;
-      }
-      auto [trcTime, isInTF] = rof.getTimeMUS(startIR, 256, BCDiffErrCount < MAXBCDiffErrCount);
-      if (!isInTF && BCDiffErrCount < MAXBCDiffErrCount) {
-        BCDiffErrCount++;
-      }
-      if (trcTime.getTimeStamp() < 0.f) {
-        if (BCDiffErrCount - 1 < MAXBCDiffErrCount) {
-          LOGP(alarm, "Skipping MID ROF with {} entries since it precedes TF start", rof.nEntries);
-        }
-        continue;
-      }
-      for (int idx = rof.firstEntry; idx < rof.getEndIndex(); ++idx) {
-        if (isUsed2(idx, currentSource)) {
+    if (srcSel[currentSource]) {
+      const auto& rofs = getMIDTracksROFRecords();
+      for (const auto& rof : rofs) {
+        if (rof.nEntries == 0) {
           continue;
         }
-        GTrackID gidMID(idx, currentSource);
-        const auto& trc = tracksMID[idx];
-        creator(trc, gidMID, trcTime.getTimeStamp(), trcTime.getTimeStampError());
+        auto [trcTime, isInTF] = rof.getTimeMUS(startIR, 256, BCDiffErrCount < MAXBCDiffErrCount);
+        if (!isInTF && BCDiffErrCount < MAXBCDiffErrCount) {
+          BCDiffErrCount++;
+        }
+        if (trcTime.getTimeStamp() < 0.f) {
+          if (BCDiffErrCount - 1 < MAXBCDiffErrCount) {
+            LOGP(alarm, "Skipping MID ROF with {} entries since it precedes TF start", rof.nEntries);
+          }
+          continue;
+        }
+        for (int idx = rof.firstEntry; idx < rof.getEndIndex(); ++idx) {
+          if (isUsed2(idx, currentSource)) {
+            continue;
+          }
+          GTrackID gidMID(idx, currentSource);
+          const auto& trc = tracksMID[idx];
+          creator(trc, gidMID, trcTime.getTimeStamp(), trcTime.getTimeStampError());
+        }
       }
     }
   }
@@ -407,13 +433,15 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // TPC only tracks
   {
     currentSource = GTrackID::TPC;
-    int nacc = 0, noffer = 0;
-    for (unsigned i = 0; i < tracksTPC.size(); i++) {
-      if (isUsed2(i, currentSource)) { // skip used tracks
-        continue;
+    if (srcSel[currentSource]) {
+      int nacc = 0, noffer = 0;
+      for (unsigned i = 0; i < tracksTPC.size(); i++) {
+        if (isUsed2(i, currentSource)) { // skip used tracks
+          continue;
+        }
+        const auto& trc = tracksTPC[i];
+        creator(trc, {i, currentSource}, trc.getTime0() + 0.5 * (trc.getDeltaTFwd() - trc.getDeltaTBwd()), 0.5 * (trc.getDeltaTFwd() + trc.getDeltaTBwd()));
       }
-      const auto& trc = tracksTPC[i];
-      creator(trc, {i, currentSource}, trc.getTime0() + 0.5 * (trc.getDeltaTFwd() - trc.getDeltaTBwd()), 0.5 * (trc.getDeltaTFwd() + trc.getDeltaTBwd()));
     }
   }
 
