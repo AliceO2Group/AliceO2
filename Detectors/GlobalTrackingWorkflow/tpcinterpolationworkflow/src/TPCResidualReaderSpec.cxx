@@ -64,7 +64,8 @@ void TPCResidualReader::run(ProcessingContext& pc)
   for (int iSec = 0; iSec < SECTORSPERSIDE * SIDES; ++iSec) {
     auto brStats = mTreeStats->GetBranch(Form("sec%d", iSec));
     brStats->SetAddress(mTrackResiduals.getVoxStatPtr());
-    brStats->GetEntry(0); // there is only one entry for the statistics tree
+    // in case autosave was enabled, we have multiple entries in the statistics tree
+    brStats->GetEntry(mTreeStats->GetEntries() - 1); // only the last entry is of interest
     auto brResid = mTreeResiduals->GetBranch(Form("sec%d", iSec));
     brResid->SetAddress(&mResidualsPtr);
     for (int iEntry = 0; iEntry < brResid->GetEntries(); ++iEntry) {
@@ -100,7 +101,6 @@ void TPCResidualReader::connectTree(const std::string& filename)
   assert(mTreeResiduals);
   mTreeStats.reset((TTree*)mFile->Get("stats"));
   assert(mTreeStats);
-  assert(mTreeStats->GetEntries() == 1); // expect exactly one entry for statistics
 
   LOG(info) << "Loaded tree from " << filename << " with " << mTreeResiduals->GetEntries() << " entries";
 }
