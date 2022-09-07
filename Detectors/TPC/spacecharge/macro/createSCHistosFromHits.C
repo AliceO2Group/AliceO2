@@ -175,7 +175,7 @@ int getSideEnd(const int sides);
 /// \nPhiBins number of phi bins the sc density histograms
 /// \nRBins number of phi bins the sc density histograms
 /// \nZBins number of phi bins the sc density histograms
-void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, const int sides = 0, const char* inputfolder = "", const int distortionType = 0, const int nPhiBins = 720, const int nRBins = 257, const int nZBins = 514 /*, const int nThreads = 1*/)
+void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, const int sides = 0, const char* inputfolder = "", const int distortionType = 0, const int nPhiBins = 720, const int nRBins = 257, const int nZBins = 514, const std::array<float, GEMSTACKSPERSECTOR> gainStackScaling = std::array<float, GEMSTACKSPERSECTOR>{1, 1, 1, 1} /*, const int nThreads = 1*/)
 {
   o2::tpc::SpaceCharge<double>::setGrid(NZ, NR, NPHI);
 
@@ -372,7 +372,7 @@ void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, 
             if (gain == 0) {
               continue;
             }
-            const int epsilon = static_cast<int>(gain * ibfMap.getValue(cru, row, pad) * 0.01); // IBF value is in % -> convert to absolute value
+            const int epsilon = static_cast<int>(gainStackScaling[cru.gemStack()] * gain * ibfMap.getValue(cru, row, pad) * 0.01); // IBF value is in % -> convert to absolute value
 
             const Side sideIBF = getSide(zIonsIBFTmp);
             const auto binPhi = hisSCRandom[sideIBF].GetXaxis()->FindBin(phiHitDiff);
