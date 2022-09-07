@@ -60,19 +60,6 @@ DataInputDescriptor::DataInputDescriptor(bool alienSupport, int level, o2::monit
 {
 }
 
-DataInputDescriptor::~DataInputDescriptor()
-{
-  for (auto fn : mfilenames) {
-    delete fn;
-  }
-  mfilenames.clear();
-  if (mdefaultFilenamesPtr) {
-    // NOTE the content of mdefaultFilenamesPtr is also in mfilenames and has already been deleted 3 lines ago
-    delete mdefaultFilenamesPtr;
-    mdefaultFilenamesPtr = nullptr;
-  }
-}
-
 void DataInputDescriptor::printOut()
 {
   LOGP(info, "DataInputDescriptor");
@@ -329,7 +316,7 @@ int DataInputDescriptor::fillInputfiles()
   return getNumberInputfiles();
 }
 
-bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, std::string treename, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed)
+bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, std::string treename, size_t& totalSizeCompressed, size_t& totalSizeUncompressed)
 {
   auto ioStart = uv_hrtime();
 
@@ -729,7 +716,7 @@ uint64_t DataInputDirector::getTimeFrameNumber(header::DataHeader dh, int counte
   return didesc->getTimeFrameNumber(counter, numTF);
 }
 
-bool DataInputDirector::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed)
+bool DataInputDirector::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, size_t& totalSizeCompressed, size_t& totalSizeUncompressed)
 {
   std::string treename;
 
