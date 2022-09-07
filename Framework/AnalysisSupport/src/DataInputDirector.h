@@ -78,7 +78,7 @@ class DataInputDescriptor
   DataInputDescriptor* getParentFile(int counter, int numTF);
   int getTimeFramesInFile(int counter);
 
-  bool readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, std::string treename, const header::DataHeader* tfHeader, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed);
+  bool readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, std::string treename, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed);
 
   void printFileStatistics();
   void closeInputFile();
@@ -136,7 +136,7 @@ class DataInputDirector
   int getNumberInputDescriptors() { return mdataInputDescriptors.size(); }
 
   std::unique_ptr<TTreeReader> getTreeReader(header::DataHeader dh, int counter, int numTF, std::string treeName);
-  bool readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, const header::DataHeader* tfHeader, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed);
+  bool readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed);
   uint64_t getTimeFrameNumber(header::DataHeader dh, int counter, int numTF);
   FileAndFolder getFileFolder(header::DataHeader dh, int counter, int numTF);
   int getTimeFramesInFile(header::DataHeader dh, int counter);

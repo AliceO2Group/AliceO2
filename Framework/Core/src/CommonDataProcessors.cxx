@@ -296,8 +296,10 @@ DataProcessorSpec
     // prepare map<uint64_t, uint64_t>(startTime, tfNumber)
     std::map<uint64_t, uint64_t> tfNumbers;
 
+    std::string aodInputFile;
+
     // this functor is called once per time frame
-    return [dod, tfNumbers](ProcessingContext& pc) mutable -> void {
+    return [dod, tfNumbers, aodInputFile](ProcessingContext& pc) mutable -> void {
       LOGP(debug, "======== getGlobalAODSink::processing ==========");
       LOGP(debug, " processing data set with {} entries", pc.inputs().size());
 
@@ -315,6 +317,10 @@ DataProcessorSpec
         startTime = DataRefUtils::getHeader<DataProcessingHeader*>(ref)->startTime;
         tfNumber = pc.inputs().get<uint64_t>("tfn");
         tfNumbers.insert(std::pair<uint64_t, uint64_t>(startTime, tfNumber));
+      }
+      auto ref2 = pc.inputs().get("tff");
+      if (ref2.spec && ref2.payload) {
+        aodInputFile = pc.inputs().get<std::string>("tff");
       }
 
       // loop over the DataRefs which are contained in pc.inputs()
@@ -367,7 +373,7 @@ DataProcessorSpec
         // a table can be saved in multiple ways
         // e.g. different selections of columns to different files
         for (auto d : ds) {
-          auto fileAndFolder = dod->getFileFolder(d, tfNumber);
+          auto fileAndFolder = dod->getFileFolder(d, tfNumber, aodInputFile);
           auto treename = fileAndFolder.folderName + d->treename;
           TableToTree ta2tr(table,
                             fileAndFolder.file,
