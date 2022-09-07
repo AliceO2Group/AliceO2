@@ -125,7 +125,12 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAllOrdered(const char* name
       if (input.header == nullptr) {
         return CompletionPolicy::CompletionOp::Wait;
       }
-      if (framework::DataRefUtils::isValid(input) && framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input)->startTime != *nextTimeSlice) {
+      long int startTime = framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input)->startTime;
+      if (startTime == 0) {
+        LOGP(info, "startTime is 0, which means we have the first message, so we can process it.");
+        *nextTimeSlice = 0;
+      }
+      if (framework::DataRefUtils::isValid(input) && startTime != *nextTimeSlice) {
         return CompletionPolicy::CompletionOp::Retry;
       }
     }
