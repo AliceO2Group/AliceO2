@@ -1784,6 +1784,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   originCursor(0, tfNumber);
 
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
+  pc.outputs().snapshot(Output{"TFF", "TFFilename", 0, Lifetime::Timeframe}, "");
 
   mTimer.Stop();
 }
@@ -2186,6 +2187,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputLabel{"O2caloCellTRGR"}, "AOD", "CALOTRIGGER", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2origin"}, "AOD", "ORIGIN", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
+  outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
 
   return DataProcessorSpec{
     "aod-producer-workflow",

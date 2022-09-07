@@ -452,12 +452,13 @@ FileAndFolder DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc, ui
     fileAndFolder.file = mfilePtrs[ind];
 
     // check if folder DF_* exists
-    fileAndFolder.folderName = "DF_" + std::to_string(folderNumber) + "/";
+    fileAndFolder.folderName = "DF_" + std::to_string(folderNumber);
     auto key = fileAndFolder.file->GetKey(fileAndFolder.folderName.c_str());
     if (!key) {
       fileAndFolder.file->mkdir(fileAndFolder.folderName.c_str());
-      if (parentFileName.length() > 0) {
-        mParentMaps[ind]->Add(new TObjString(fileAndFolder.folderName.substr(0, fileAndFolder.folderName.length() - 1).c_str()), new TObjString(parentFileName.c_str()));
+      // TODO not clear why we get a " " in case we sent empty over DPL, put the limit to 1 for now
+      if (parentFileName.length() > 1) {
+        mParentMaps[ind]->Add(new TObjString(fileAndFolder.folderName.c_str()), new TObjString(parentFileName.c_str()));
       }
     }
     fileAndFolder.file->cd(fileAndFolder.folderName.c_str());
