@@ -24,6 +24,7 @@
 #include <array>
 #include <vector>
 #include <map>
+#include <cmath>
 
 /// \file RecEventFlat.h
 /// \brief Class to decode the reconstructed ZDC event (single BC with signal in one of detectors)
@@ -65,6 +66,7 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   std::array<bool, NChannels> isEnd{};           //! End of sequence
   BCRecData mCurB;                               //! Current BC
   std::vector<float> inter[NChannels];           //! Interpolated samples
+  std::array<bool, 4> mComputed{};               //! Centroid computed
 
   // Reconstruction messages
   std::array<bool, NChannels> genericE{};       ///  0 Generic error
@@ -234,6 +236,20 @@ struct RecEventFlat { // NOLINT: false positive in clang-tidy !!
   float EZPC3() const { return EZDC(IdZPC3); }
   float EZPC4() const { return EZDC(IdZPC4); }
   float EZPCSum() const { return EZDC(IdZPCSum); }
+
+  // Centroid cartesian reference frame as seen by projectile fragments
+  // Side A: X direction towards outside of the ring
+  // Side C: X direction towards inside of the ring
+  // Y direction up
+  // Unit: cm
+  void centroidZNA(float& x, float& y);
+  void centroidZNC(float& x, float& y);
+  float xZNA();
+  float yZNA();
+  float xZNC();
+  float yZNC();
+  float xZPA(); // Positive
+  float xZPC(); // Negative
 
   void decodeInfo(uint8_t ch, uint16_t code);
   void decodeMapInfo(uint32_t ch, uint16_t code);

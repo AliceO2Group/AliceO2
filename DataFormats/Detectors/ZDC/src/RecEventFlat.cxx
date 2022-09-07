@@ -37,6 +37,7 @@ void RecEventFlat::init(const gsl::span<const o2::zdc::BCRecData> RecBC, const g
 
 void RecEventFlat::clearBitmaps()
 {
+  genericE.fill(false);
   tdcPedEv.fill(false);
   tdcPedOr.fill(false);
   tdcPedQC.fill(false);
@@ -61,6 +62,7 @@ void RecEventFlat::clearBitmaps()
   // Other bitmaps
   isBeg.fill(false);
   isEnd.fill(false);
+  mComputed.fill(false);
 }
 
 int RecEventFlat::next()
@@ -256,6 +258,206 @@ void RecEventFlat::decodeInfo(uint8_t ch, uint16_t code)
       return;
   }
   mDecodedInfo.emplace_back((code & 0x03ff) | ((ch & 0x1f) << 10));
+}
+
+void RecEventFlat::centroidZNA(float& x, float& y)
+{
+  // Coordinates of tower centers, looking from IP
+  const static float xc[4] = {1.76, -1.76, 1.76, -1.76};
+  const static float yc[4] = {-1.76, -1.76, 1.76, 1.76};
+  static float c[2] = {0};
+  if (mComputed[0]) {
+    x = c[0];
+    y = c[1];
+    return;
+  }
+  mComputed[0] = true;
+  float e[4], w[4];
+  e[0] = EZDC(IdZNA1);
+  e[1] = EZDC(IdZNA2);
+  e[2] = EZDC(IdZNA3);
+  e[3] = EZDC(IdZNA4);
+  if (e[0] < -1000000 || e[1] < -1000000 || e[2] < -1000000 || e[3] < -1000000) {
+    c[0] = -std::numeric_limits<float>::infinity();
+    c[1] = -std::numeric_limits<float>::infinity();
+    x = c[0];
+    y = c[1];
+    return;
+  }
+  float sumw = 0;
+  c[0] = 0;
+  c[1] = 0;
+  for (int i = 0; i < 4; i++) {
+    if (e[i] < 0) {
+      e[i] = 0;
+    }
+    w[i] = std::sqrt(e[i]);
+    sumw += w[i];
+    c[0] += w[i] * xc[i];
+    c[1] += w[i] * yc[i];
+  }
+  if (sumw <= 0) {
+    c[0] = -std::numeric_limits<float>::infinity();
+    c[1] = -std::numeric_limits<float>::infinity();
+  } else {
+    c[0] /= sumw;
+    c[1] /= sumw;
+  }
+  x = c[0];
+  y = c[1];
+  return;
+}
+
+void RecEventFlat::centroidZNC(float& x, float& y)
+{
+  // Coordinates of tower centers, looking from IP
+  const static float xc[4] = {1.76, -1.76, 1.76, -1.76};
+  const static float yc[4] = {-1.76, -1.76, 1.76, 1.76};
+  static float c[2] = {0};
+  if (mComputed[1]) {
+    x = c[0];
+    y = c[1];
+    return;
+  }
+  mComputed[1] = true;
+  float e[4], w[4];
+  e[0] = EZDC(IdZNC1);
+  e[1] = EZDC(IdZNC2);
+  e[2] = EZDC(IdZNC3);
+  e[3] = EZDC(IdZNC4);
+  if (e[0] < -1000000 || e[1] < -1000000 || e[2] < -1000000 || e[3] < -1000000) {
+    c[0] = -std::numeric_limits<float>::infinity();
+    c[1] = -std::numeric_limits<float>::infinity();
+    x = c[0];
+    y = c[1];
+    return;
+  }
+  float sumw = 0;
+  c[0] = 0;
+  c[1] = 0;
+  for (int i = 0; i < 4; i++) {
+    if (e[i] < 0) {
+      e[i] = 0;
+    }
+    w[i] = std::sqrt(e[i]);
+    sumw += w[i];
+    c[0] += w[i] * xc[i];
+    c[1] += w[i] * yc[i];
+  }
+  if (sumw <= 0) {
+    c[0] = -std::numeric_limits<float>::infinity();
+    c[1] = -std::numeric_limits<float>::infinity();
+  } else {
+    c[0] /= sumw;
+    c[1] /= sumw;
+  }
+  x = c[0];
+  y = c[1];
+  return;
+}
+
+float RecEventFlat::xZNA()
+{
+  float x, y;
+  centroidZNA(x, y);
+  return x;
+}
+
+float RecEventFlat::yZNA()
+{
+  float x, y;
+  centroidZNA(x, y);
+  return y;
+}
+
+float RecEventFlat::xZNC()
+{
+  float x, y;
+  centroidZNC(x, y);
+  return x;
+}
+
+float RecEventFlat::yZNC()
+{
+  float x, y;
+  centroidZNC(x, y);
+  return x;
+}
+
+float RecEventFlat::xZPA()
+{
+  // X coordinates of tower centers
+  // Positive because calorimeter is on the right of ZNA when looking
+  // from IP
+  const static float xc[4] = {2.8, 8.4, 14.0, 19.6};
+  static float c = 0;
+  if (mComputed[2]) {
+    return c;
+  }
+  mComputed[2] = true;
+  float e[4], w[4];
+  e[0] = EZDC(IdZPA1);
+  e[1] = EZDC(IdZPA2);
+  e[2] = EZDC(IdZPA3);
+  e[3] = EZDC(IdZPA4);
+  if (e[0] < -1000000 || e[1] < -1000000 || e[2] < -1000000 || e[3] < -1000000) {
+    c = -std::numeric_limits<float>::infinity();
+    return c;
+  }
+  float sumw = 0;
+  c = 0;
+  for (int i = 0; i < 4; i++) {
+    if (e[i] < 0) {
+      e[i] = 0;
+    }
+    w[i] = std::sqrt(e[i]);
+    sumw += w[i];
+    c += w[i] * xc[i];
+  }
+  if (sumw <= 0) {
+    c = -std::numeric_limits<float>::infinity();
+  } else {
+    c /= sumw;
+  }
+  return c;
+}
+
+float RecEventFlat::xZPC()
+{
+  // X coordinates of tower centers
+  // Negative because calorimeter is on the left of ZNC when looking
+  // from IP
+  const static float xc[4] = {-2.8, -8.4, -14.0, -19.6};
+  static float c = 0;
+  if (mComputed[3]) {
+    return c;
+  }
+  mComputed[3] = true;
+  float e[4], w[4];
+  e[0] = EZDC(IdZPC1);
+  e[1] = EZDC(IdZPC2);
+  e[2] = EZDC(IdZPC3);
+  e[3] = EZDC(IdZPC4);
+  if (e[0] < -1000000 || e[1] < -1000000 || e[2] < -1000000 || e[3] < -1000000) {
+    c = -std::numeric_limits<float>::infinity();
+    return c;
+  }
+  float sumw = 0;
+  c = 0;
+  for (int i = 0; i < 4; i++) {
+    if (e[i] < 0) {
+      e[i] = 0;
+    }
+    w[i] = std::sqrt(e[i]);
+    sumw += w[i];
+    c += w[i] * xc[i];
+  }
+  if (sumw <= 0) {
+    c = -std::numeric_limits<float>::infinity();
+  } else {
+    c /= sumw;
+  }
+  return c;
 }
 
 void RecEventFlat::print() const
