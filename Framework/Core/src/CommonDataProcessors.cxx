@@ -374,7 +374,7 @@ DataProcessorSpec
         // e.g. different selections of columns to different files
         for (auto d : ds) {
           auto fileAndFolder = dod->getFileFolder(d, tfNumber, aodInputFile);
-          auto treename = fileAndFolder.folderName + d->treename;
+          auto treename = fileAndFolder.folderName + "/" + d->treename;
           TableToTree ta2tr(table,
                             fileAndFolder.file,
                             treename.c_str());
