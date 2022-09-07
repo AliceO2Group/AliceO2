@@ -60,6 +60,19 @@ DataInputDescriptor::DataInputDescriptor(bool alienSupport, int level, o2::monit
 {
 }
 
+DataInputDescriptor::~DataInputDescriptor()
+{
+  for (auto fn : mfilenames) {
+    delete fn;
+  }
+  mfilenames.clear();
+  if (mdefaultFilenamesPtr) {
+    // NOTE the content of mdefaultFilenamesPtr is also in mfilenames and has already been deleted 3 lines ago
+    delete mdefaultFilenamesPtr;
+    mdefaultFilenamesPtr = nullptr;
+  }
+}
+
 void DataInputDescriptor::printOut()
 {
   LOGP(info, "DataInputDescriptor");
@@ -316,6 +329,62 @@ int DataInputDescriptor::fillInputfiles()
   return getNumberInputfiles();
 }
 
+bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, std::string treename, const header::DataHeader* tfHeader, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed)
+{
+  auto ioStart = uv_hrtime();
+
+  auto fileAndFolder = getFileFolder(counter, numTF);
+  if (!fileAndFolder.file) {
+    return false;
+  }
+
+  auto fullpath = fileAndFolder.folderName + "/" + treename;
+  auto tree = (TTree*)fileAndFolder.file->Get(fullpath.c_str());
+
+  if (!tree) {
+    LOGP(debug, "Could not find tree {}. Trying in parent file.", fullpath.c_str());
+    auto parentFile = getParentFile(counter, numTF);
+    if (parentFile != nullptr) {
+      // first argument is 0 as the parent file object contains only 1 file
+      return parentFile->readTree(outputs, dh, 0, numTF, treename, tfHeader, totalSizeCompressed, totalSizeUncompressed);
+    }
+    throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/treenotfound.html for more information.)", fileAndFolder.folderName + "/" + treename, fileAndFolder.file->GetName()));
+  }
+
+  if (tfHeader) {
+    auto timeFrameNumber = getTimeFrameNumber(counter, numTF);
+    auto o = Output(*tfHeader);
+    outputs.make<uint64_t>(o) = timeFrameNumber;
+  }
+
+  // create table output
+  auto o = Output(dh);
+  auto& t2t = outputs.make<TreeToTable>(o);
+
+  // add branches to read
+  // fill the table
+  auto colnames = getColumnNames(dh);
+  t2t.setLabel(tree->GetName());
+  if (colnames.size() == 0) {
+    totalSizeCompressed += tree->GetZipBytes();
+    totalSizeUncompressed += tree->GetTotBytes();
+    t2t.addAllColumns(tree);
+  } else {
+    for (auto& colname : colnames) {
+      TBranch* branch = tree->GetBranch(colname.c_str());
+      totalSizeCompressed += branch->GetZipBytes("*");
+      totalSizeUncompressed += branch->GetTotBytes("*");
+    }
+    t2t.addAllColumns(tree, std::move(colnames));
+  }
+  t2t.fill(tree);
+  delete tree;
+
+  mIOTime += (uv_hrtime() - ioStart);
+
+  return true;
+}
+
 DataInputDirector::DataInputDirector()
 {
   createDefaultDataInputDescriptor();
@@ -340,6 +409,20 @@ DataInputDirector::DataInputDirector(std::vector<std::string> inputFiles, o2::mo
   }
 
   createDefaultDataInputDescriptor();
+}
+
+DataInputDirector::~DataInputDirector()
+{
+  for (auto fn : mdefaultInputFiles) {
+    delete fn;
+  }
+  mdefaultInputFiles.clear();
+  mdefaultDataInputDescriptor = nullptr;
+
+  for (auto fn : mdataInputDescriptors) {
+    delete fn;
+  }
+  mdataInputDescriptors.clear();
 }
 
 void DataInputDirector::reset()
@@ -669,62 +752,6 @@ bool DataInputDirector::readTree(DataAllocator& outputs, header::DataHeader dh, 
   }
 
   return didesc->readTree(outputs, dh, counter, numTF, treename, tfHeader, totalSizeCompressed, totalSizeUncompressed);
-}
-
-bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, std::string treename, const header::DataHeader* tfHeader, uint64_t& totalSizeCompressed, uint64_t& totalSizeUncompressed)
-{
-  auto ioStart = uv_hrtime();
-
-  auto fileAndFolder = getFileFolder(counter, numTF);
-  if (!fileAndFolder.file) {
-    return false;
-  }
-
-  auto fullpath = fileAndFolder.folderName + "/" + treename;
-  auto tree = (TTree*)fileAndFolder.file->Get(fullpath.c_str());
-
-  if (!tree) {
-    LOGP(debug, "Could not find tree {}. Trying in parent file.", fullpath.c_str());
-    auto parentFile = getParentFile(counter, numTF);
-    if (parentFile != nullptr) {
-      // first argument is 0 as the parent file object contains only 1 file
-      return parentFile->readTree(outputs, dh, 0, numTF, treename, tfHeader, totalSizeCompressed, totalSizeUncompressed);
-    }
-    throw std::runtime_error(fmt::format(R"(Couldn't get TTree "{}" from "{}". Please check https://aliceo2group.github.io/analysis-framework/docs/troubleshooting/treenotfound.html for more information.)", fileAndFolder.folderName + "/" + treename, fileAndFolder.file->GetName()));
-  }
-
-  if (tfHeader) {
-    auto timeFrameNumber = getTimeFrameNumber(counter, numTF);
-    auto o = Output(*tfHeader);
-    outputs.make<uint64_t>(o) = timeFrameNumber;
-  }
-
-  // create table output
-  auto o = Output(dh);
-  auto& t2t = outputs.make<TreeToTable>(o);
-
-  // add branches to read
-  // fill the table
-  auto colnames = getColumnNames(dh);
-  t2t.setLabel(tree->GetName());
-  if (colnames.size() == 0) {
-    totalSizeCompressed += tree->GetZipBytes();
-    totalSizeUncompressed += tree->GetTotBytes();
-    t2t.addAllColumns(tree);
-  } else {
-    for (auto& colname : colnames) {
-      TBranch* branch = tree->GetBranch(colname.c_str());
-      totalSizeCompressed += branch->GetZipBytes("*");
-      totalSizeUncompressed += branch->GetTotBytes("*");
-    }
-    t2t.addAllColumns(tree, std::move(colnames));
-  }
-  t2t.fill(tree);
-  delete tree;
-
-  mIOTime += (uv_hrtime() - ioStart);
-
-  return true;
 }
 
 void DataInputDirector::closeInputFiles()

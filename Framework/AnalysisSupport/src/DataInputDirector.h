@@ -37,17 +37,20 @@ struct FileAndFolder {
   std::string folderName = "";
 };
 
-struct DataInputDescriptor {
+class DataInputDescriptor
+{
   /// Holds information concerning the reading of an aod table.
   /// The information includes the table specification, treename,
   /// and the input files
 
+ public:
   std::string tablename = "";
   std::string treename = "";
   std::unique_ptr<data_matcher::DataDescriptorMatcher> matcher;
 
   DataInputDescriptor() = default;
   DataInputDescriptor(bool alienSupport, int level, o2::monitoring::Monitoring* monitoring = nullptr);
+  ~DataInputDescriptor();
 
   void printOut();
 
@@ -86,7 +89,6 @@ struct DataInputDescriptor {
   std::string* minputfilesFilePtr = nullptr;
   std::string mFilenameRegex = "";
   std::string* mFilenameRegexPtr = nullptr;
-  // TODO not sure those are deleted...
   std::vector<FileNameHolder*> mfilenames;
   std::vector<FileNameHolder*>* mdefaultFilenamesPtr = nullptr;
   TFile* mcurrentFile = nullptr;
@@ -106,14 +108,17 @@ struct DataInputDescriptor {
   uint64_t mCurrentFileStartedAt = 0;
 };
 
-struct DataInputDirector {
+class DataInputDirector
+{
   /// Holds a list of DataInputDescriptor
   /// Provides functionality to access the matching DataInputDescriptor
   /// and the related input files
 
+ public:
   DataInputDirector();
   DataInputDirector(std::string inputFile, o2::monitoring::Monitoring* monitoring = nullptr);
   DataInputDirector(std::vector<std::string> inputFiles, o2::monitoring::Monitoring* monitoring = nullptr);
+  ~DataInputDirector();
 
   void reset();
   void createDefaultDataInputDescriptor();
