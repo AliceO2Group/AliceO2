@@ -80,7 +80,7 @@ struct TrackQC {
   std::array<int, constants::NLAYER> trackletMcm{};                                      ///< the MCM number of the tracklet
   std::array<float, constants::NLAYER> trackletChi2{};                                   ///< estimated chi2 for the update of the track with the given tracklet
   std::array<std::array<int, constants::NCHARGES>, constants::NLAYER> trackletCharges{}; ///< charges of tracklets
-  ClassDefNV(TrackQC, 1);
+  ClassDefNV(TrackQC, 2);
 };
 
 class Tracking
